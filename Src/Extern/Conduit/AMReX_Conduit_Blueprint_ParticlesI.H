@@ -38,7 +38,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     // and any user fields in the AOS
 
     // get the first particle's struct
-    const auto &pstruct = ptile.GetArrayOfStructs();
+    auto &pstruct = ptile.GetArrayOfStructs();
 
     // setup a blueprint description for the particle mesh
     // create a coordinate set
@@ -64,8 +64,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     // point locations from from aos
     //----------------------------------//
 
-    const char* pbuf_const = reinterpret_cast<const char*>(pstruct.data());
-    char* pbuf = const_cast<char*>(pbuf_const);
+    char* pbuf = reinterpret_cast<char*>(pstruct.data());
 
     ParticleReal* xp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
     n_coords["values/x"].set_external(xp,
