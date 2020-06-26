@@ -283,7 +283,12 @@ MLCellLinOp::makeNGrids (int grid_size) const
 void
 MLCellLinOp::restriction (int i1, int i2, MultiFab& crse, MultiFab& fine) const
 {
+#if (AMREX_SPACEDIM == 3)
     IntVect ratio(2,2,2);
+#endif
+#if (AMREX_SPACEDIM == 2)
+    IntVect ratio(2,2);
+#endif
     restriction(i1,i2,crse,fine,ratio);
 }
 

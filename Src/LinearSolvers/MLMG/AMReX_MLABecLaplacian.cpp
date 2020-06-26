@@ -611,7 +611,12 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                              osm, vbx, redblack, nc);
             });
         } else {
+#if (AMREX_SPACEDIM == 2)
+            if (dhx == dhy)
+#endif
+#if (AMREX_SPACEDIM == 3)
             if (dhx == dhz)
+#endif
             {
                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
                { 
