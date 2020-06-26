@@ -1075,18 +1075,11 @@ as:
 Users that choose to implement the macro launches should be aware of the limitations
 of C++ preprocessing macros to ensure GPU offloading is done properly.
 
-Finally, AMReX's expected OpenMP strategy for GPUs is to utilize OpenMP
-in CPU regions to maintain multi-threaded parallelism on work that cannot be
-offloaded efficiently, while using CUDA independently in GPU regions.
-This means OpenMP pragmas need to be maintained when ``USE_CUDA=FALSE``
-and turned off in locations CUDA is implemented when ``USE_CUDA=TRUE``.
-
-This can currently be implemented in preparation for an OpenMP strategy and
-users are highly encouraged to do so now.  This prevents having to track
-down and label the appropriate OpenMP regions in the future and
-clearly labels for readers that OpenMP and GPUs are not being used at the
-same time.  OpenMP pragmas can be turned off using the conditional pragma
-and :cpp:`Gpu::notInLaunchRegion()`, as shown below:
+Finally, AMReX's most common CPU threading strategy for GPU/CPU systems is to utilize
+OpenMP threads to maintain multi-threaded parallelism on work chosen to run on the host.
+This means OpenMP pragmas should be maintained where CPU work is performed and usually
+turned off where work is offloaded onto the GPU.  OpenMP pragmas can be turned
+off using the conditional pragma and :cpp:`Gpu::notInLaunchRegion()`, as shown below:
 
 .. highlight:: c++
 
@@ -1096,10 +1089,12 @@ and :cpp:`Gpu::notInLaunchRegion()`, as shown below:
     #pragma omp parallel if (Gpu::notInLaunchRegion())
     #endif
 
-This should be added only to MFIter loops that contain GPU work.
+It is generally expected that simply using OpenMP threads to launch GPU work quicker
+will show little improvement or even perform worse. So, this conditional statement
+should be added to MFIter loops that contain GPU work, unless users specifically test
+the performance or are designing more complex workflows that require OpenMP.
 
 .. _sec:gpu:example:
-
 
 An Example of Migrating to GPU
 ==============================
