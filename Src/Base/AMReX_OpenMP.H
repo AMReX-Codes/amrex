@@ -10,7 +10,7 @@ namespace OpenMP {
     inline int get_num_threads () { return omp_get_num_threads(); }
     inline int get_max_threads () { return omp_get_max_threads(); }
     inline int get_thread_num  () { return omp_get_thread_num();  }
-    inline int in_parallel     () { return omp_in_prallel();      }
+    inline int in_parallel     () { return omp_in_parallel();     }
 
 }}
 
