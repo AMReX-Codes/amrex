@@ -359,9 +359,7 @@ Device::Finalize ()
         delete s.queue;
         s.queue = nullptr;
     }
-    for (auto& s : gpu_stream) {
-        s.queue = nullptr;
-    }
+    gpu_stream.clear();
     delete gpu_default_stream.queue;
     gpu_default_stream.queue = nullptr;
 #endif
