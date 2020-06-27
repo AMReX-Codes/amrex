@@ -37,6 +37,11 @@ namespace {
     bool use_buddy_allocator = false;
     Long buddy_allocator_size = 0L;
     Long the_arena_init_size = 0L;
+#ifdef AMREX_USE_HIP
+    bool the_arena_is_managed = false; // xxxxx HIP FIX HERE
+#else
+    bool the_arena_is_managed = true;
+#endif
     bool abort_on_out_of_gpu_memory = false;
 }
 
@@ -86,7 +91,7 @@ Arena::allocate_system (std::size_t nbytes)
         if (arena_info.device_use_managed_memory)
         {
             AMREX_HIP_OR_CUDA_OR_DPCPP
-                (AMREX_HIP_SAFE_CALL(hipMalloc(&p, nbytes));,
+                (AMREX_HIP_SAFE_CALL(hipMallocManaged(&p, nbytes));,
                  AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));,
                  p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
             if (arena_info.device_set_readonly)
@@ -160,6 +165,7 @@ Arena::Initialize ()
     pp.query("use_buddy_allocator", use_buddy_allocator);
     pp.query("buddy_allocator_size", buddy_allocator_size);
     pp.query("the_arena_init_size", the_arena_init_size);
+    pp.query("the_arena_is_managed", the_arena_is_managed);
     pp.query("abort_on_out_of_gpu_memory", abort_on_out_of_gpu_memory);
 
 #ifdef AMREX_USE_GPU
@@ -175,13 +181,21 @@ Arena::Initialize ()
         }
         std::size_t chunk = 512*1024*1024;
         buddy_allocator_size = (buddy_allocator_size/chunk) * chunk;
-        the_arena = new DArena(buddy_allocator_size, 512, ArenaInfo().SetPreferred());
+        if (the_arena_is_managed) {
+            the_arena = new DArena(buddy_allocator_size, 512, ArenaInfo().SetPreferred());
+        } else {
+            the_arena = new DArena(buddy_allocator_size, 512, ArenaInfo().SetDeviceMemory());
+        }
     }
     else
 #endif
     {
 #if defined(BL_COALESCE_FABS) || defined(AMREX_USE_GPU)
-        the_arena = new CArena(0, ArenaInfo().SetPreferred());
+        if (the_arena_is_managed) {
+            the_arena = new CArena(0, ArenaInfo().SetPreferred());
+        } else {
+            the_arena = new CArena(0, ArenaInfo().SetDeviceMemory());
+        }
 #ifdef AMREX_USE_GPU
         if (the_arena_init_size <= 0) {
 #ifdef AMREX_USE_DPCPP
