@@ -2,6 +2,7 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_FabArray.H>
 #include <AMReX_FArrayBox.H>
+#include <AMReX_OpenMP.H>
 
 namespace amrex {
 
@@ -144,11 +145,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInf
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
     streams(info.num_streams),
-#ifdef _OPENMP
-    dynamic(info.dynamic && (omp_get_num_threads() > 1)),
-#else
-    dynamic(false),
-#endif
+    dynamic(info.dynamic && (OpenMP::get_num_threads() > 1)),
     device_sync(info.device_sync),
     index_map(nullptr),
     local_index_map(nullptr),
@@ -180,11 +177,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
     streams(info.num_streams),
-#ifdef _OPENMP
-    dynamic(info.dynamic && (omp_get_num_threads() > 1)),
-#else
-    dynamic(false),
-#endif
+    dynamic(info.dynamic && (OpenMP::get_num_threads() > 1)),
     device_sync(info.device_sync),
     index_map(nullptr),
     local_index_map(nullptr),
@@ -650,13 +643,8 @@ MFGhostIter::Initialize ()
     }
 #endif
 
-    int tid = 0;
-    int nthreads = 1;
-#ifdef _OPENMP
-    nthreads = omp_get_num_threads();
-    if (nthreads > 1)
-	tid = omp_get_thread_num();
-#endif
+    int tid = OpenMP::get_thread_num();
+    int nthreads = OpenMP::get_num_threads();
 
     int npes = nworkers*nthreads;
     int pid = rit*nthreads+tid;
