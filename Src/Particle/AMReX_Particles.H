@@ -49,6 +49,7 @@
 #include <AMReX_SparseBins.H>
 #include <AMReX_ParticleTransformation.H>
 #include <AMReX_ParIter.H>
+#include <AMReX_OpenMP.H>
 
 #ifdef AMREX_LAZY
 #include <AMReX_Lazy.H>

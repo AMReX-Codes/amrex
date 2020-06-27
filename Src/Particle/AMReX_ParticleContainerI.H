@@ -1285,12 +1285,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   // This will hold the valid particles that go to another process
   std::map<int, Vector<char> > not_ours;
 
-  int num_threads = 1;
-#ifdef _OPENMP
-#pragma omp parallel
-#pragma omp single
-  num_threads = omp_get_num_threads();
-#endif
+  int num_threads = OpenMP::get_max_threads();
 
   // these are temporary buffers for each thread
   std::map<int, Vector<Vector<char> > > tmp_remote;
@@ -1337,11 +1332,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 #endif
       for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
       {
-#ifdef _OPENMP
-          int thread_num = omp_get_thread_num();
-#else
-          int thread_num = 0;
-#endif
+          int thread_num = OpenMP::get_thread_num();
           int grid = grid_tile_ids[pmap_it].first;
           int tile = grid_tile_ids[pmap_it].second;
           auto& aos = ptile_ptrs[pmap_it]->GetArrayOfStructs();
