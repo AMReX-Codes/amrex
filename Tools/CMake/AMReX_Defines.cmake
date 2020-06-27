@@ -54,12 +54,6 @@ function ( set_amrex_defines )
    # Mem profiler
    add_amrex_define( AMREX_MEM_PROFILING NO_LEGACY IF ENABLE_MEM_PROFILE )
 
-   # Backtrace
-   if (ENABLE_BACKTRACE)
-      add_amrex_define( AMREX_BACKTRACING NO_LEGACY)
-      add_amrex_define( AMREX_TESTING NO_LEGACY )
-   endif ()
-
    # MPI
    add_amrex_define( AMREX_USE_MPI IF ENABLE_MPI )
 

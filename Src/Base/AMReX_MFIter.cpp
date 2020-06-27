@@ -216,11 +216,11 @@ MFIter::~MFIter ()
     if (device_sync) Gpu::synchronize();
 #endif
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
     reduce();
 #endif
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
     if (Gpu::inLaunchRegion()) {
         for (int i = 0; i < real_reduce_list.size(); ++i)
             for (int j = 0; j < real_reduce_list[i].size(); ++j)
@@ -387,12 +387,12 @@ Box
 MFIter::tilebox (const IntVect& nodal, const IntVect& ngrow) const noexcept
 {
     Box bx = tilebox(nodal);
-    const Box& vbx = validbox();
+    const Box& vccbx = amrex::enclosedCells(validbox());
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
+	if (bx.smallEnd(d) == vccbx.smallEnd(d)) {
 	    bx.growLo(d, ngrow[d]);
 	}
-	if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
+	if (bx.bigEnd(d) >= vccbx.bigEnd(d)) {
 	    bx.growHi(d, ngrow[d]);
 	}
     }
@@ -473,17 +473,7 @@ Box
 MFIter::grownnodaltilebox (int dir, IntVect const& a_ng) const noexcept
 {
     BL_ASSERT(dir < AMREX_SPACEDIM);
-    Box bx = nodaltilebox(dir);
-    const Box& vbx = validbox();
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
-	    bx.growLo(d, a_ng[d]);
-	}
-	if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
-	    bx.growHi(d, a_ng[d]);
-	}
-    }
-    return bx;
+    return tilebox(IntVect::TheDimensionVector(dir), a_ng);
 }
 
 void
@@ -498,15 +488,8 @@ MFIter::operator++ () noexcept
     else
 #endif
     {
-#ifdef AMREX_USE_GPU
-#ifdef _OPENMP
-        int numOmpThreads = omp_get_num_threads();
-#else
-        int numOmpThreads = 1;
-#endif
-        
-        bool use_gpu = (numOmpThreads == 1) && Gpu::inLaunchRegion();
-        if (use_gpu) {
+#ifdef AMREX_USE_GPU_PRAGMA
+        if (Gpu::inLaunchRegion()) {
             if (!real_reduce_list.empty()) {
                 for (int i = 0; i < real_reduce_list[currentIndex].size(); ++i) {
                     Gpu::dtoh_memcpy_async(&real_reduce_list[currentIndex][i],
@@ -520,7 +503,7 @@ MFIter::operator++ () noexcept
         ++currentIndex;
 
 #ifdef AMREX_USE_GPU
-        if (use_gpu) {
+        if (Gpu::inLaunchRegion()) {
             Gpu::Device::setStreamIndex((streams > 0) ? currentIndex%streams : -1);
             AMREX_GPU_ERROR_CHECK();
 #ifdef AMREX_DEBUG
@@ -531,7 +514,7 @@ MFIter::operator++ () noexcept
     }
 }
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
 Real*
 MFIter::add_reduce_value(Real* val, MFReducer r)
 {
@@ -593,7 +576,7 @@ MFIter::add_reduce_value(Real* val, MFReducer r)
 }
 #endif
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
 // Reduce over the values in the list.
 void
 MFIter::reduce()
