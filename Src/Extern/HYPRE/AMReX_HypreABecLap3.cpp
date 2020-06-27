@@ -297,8 +297,6 @@ HypreABecLap3::prepareSolver ()
 
     const Real* dx = geom.CellSize();
     const int bho = (m_maxorder > 2) ? 1 : 0;
-    FArrayBox rfab;
-    BaseFab<HYPRE_Int> ifab;
     FArrayBox foo(Box::TheUnitBox());
     const int is_eb_dirichlet = m_eb_b_coeffs != nullptr;
 
@@ -315,9 +313,6 @@ HypreABecLap3::prepareSolver ()
         {
             const HYPRE_Int max_stencil_size = (fabtyp == FabType::regular) ?
                 regular_stencil_size : eb_stencil_size;
-
-            ifab.resize(bx,(max_stencil_size+1));
-            rfab.resize(bx,max_stencil_size);
 
             const HYPRE_Int nrows = ncells_grid[mfi];
             cell_id_vec[mfi].resize(nrows);
