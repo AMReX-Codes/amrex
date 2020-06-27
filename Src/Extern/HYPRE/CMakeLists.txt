@@ -36,7 +36,6 @@ else ()
       AMReX_HypreABecLap2.H
       AMReX_Hypre.cpp
       AMReX_Hypre.H
-      AMReX_Habec_${DIM}D.cpp
       AMReX_Habec_${DIM}D_K.H
       AMReX_HypreNodeLap.cpp
       AMReX_HypreNodeLap.H
