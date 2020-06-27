@@ -306,10 +306,10 @@ void abec_gsrb_with_line_solve (
     Array1D<Real,0,31> r_ls;
     Array1D<Real,0,31> u_ls;
     Array1D<Real,0,31> gam;
-/*
+
     for (int n = 0; n < nc; ++n) {
+        AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            AMREX_PRAGMA_SIMD
             if ((i+redblack)%2 == 0) {
                 for (int j = lo.y; j <= hi.y; ++j) {  
                     Real gamma = alpha*a(i,j,0)
@@ -376,7 +376,6 @@ void abec_gsrb_with_line_solve (
             }
 	}
     }
-*/
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
