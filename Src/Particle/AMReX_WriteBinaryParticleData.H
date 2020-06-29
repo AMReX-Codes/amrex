@@ -337,15 +337,6 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
     pdir += name;
 
-    if (MyProc == IOProcNumber)
-    {
-        if ( ! amrex::UtilCreateDirectory(pdir, 0755))
-        {
-            amrex::CreateDirectoryFailed(pdir);
-        }
-    }
-    ParallelDescriptor::Barrier();
-
     Long total_np = 0;
     Vector<Long> np_per_level(pc.finestLevel()+1);
     Vector<Vector<Long> > np_per_grid(pc.finestLevel()+1);
@@ -357,26 +348,36 @@ void WriteBinaryParticleDataAsync (PC const& pc,
         total_np += np_per_level[lev];
     }
 
-    for (int lev = 0; lev <= pc.finestLevel(); lev++)
+    if (MyProc == IOProcNumber)
     {
-        std::string LevelDir = pdir;
-        bool gotsome = np_per_level[lev];
-
-        if (gotsome)
+        if ( ! amrex::UtilCreateDirectory(pdir, 0755))
         {
-            if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') LevelDir += '/';
+            amrex::CreateDirectoryFailed(pdir);
+        }
+        for (int lev = 0; lev <= pc.finestLevel(); lev++)
+        {
+            std::string LevelDir = pdir;
+            bool gotsome = np_per_level[lev];
 
-            LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
-
-            if (MyProc == IOProcNumber)
+            if (gotsome)
             {
+                if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') LevelDir += '/';
+
+                LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
+
                 if ( ! amrex::UtilCreateDirectory(LevelDir, 0755))
                 {
                     amrex::CreateDirectoryFailed(LevelDir);
                 }
             }
-            ParallelDescriptor::Barrier();
         }
+    }
+    ParallelDescriptor::Barrier();
+
+    for (int lev = 0; lev <= pc.finestLevel(); lev++)
+    {
+        std::string LevelDir = pdir;
+        bool gotsome = np_per_level[lev];
 
         // Write out the header for each particle
         if (gotsome and (MyProc == IOProcNumber))
