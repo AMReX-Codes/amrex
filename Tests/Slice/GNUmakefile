@@ -29,8 +29,3 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 HDF5_HOME   = /global/homes/s/sbyna/software/hdf5develop/install
 USE_HDF5 = FALSE
-ifeq ($(USE_HDF5), TRUE)
-DEFINES += -DBL_HDF5 
-INCLUDE_LOCATIONS += $(HDF5_HOME)/include
-LIBRARIES         += -lhdf5 -L$(HDF5_HOME)/lib
-endif

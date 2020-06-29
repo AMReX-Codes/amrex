@@ -71,6 +71,7 @@ target_sources( amrex
    AMReX_DistributionMapping.cpp
    AMReX_ParallelDescriptor.H
    AMReX_ParallelDescriptor.cpp
+   AMReX_OpenMP.H
    AMReX_ParallelReduce.H
    AMReX_ForkJoin.H
    AMReX_ForkJoin.cpp

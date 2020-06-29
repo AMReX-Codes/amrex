@@ -37,7 +37,6 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DENABLE_BACKTRACE=ON       \
             -DENABLE_TUTORIALS=ON       \
             -DENABLE_PARTICLES=ON
         make -j 2 tutorials
@@ -57,7 +56,6 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DENABLE_BACKTRACE=ON       \
             -DENABLE_TUTORIALS=ON       \
             -DENABLE_PARTICLES=ON       \
             -DCMAKE_CXX_STANDARD=20     \
@@ -81,7 +79,6 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DENABLE_BACKTRACE=ON       \
             -DENABLE_TUTORIALS=ON       \
             -DENABLE_MPI=OFF            \
             -DENABLE_PARTICLES=ON
@@ -102,7 +99,6 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DENABLE_BACKTRACE=ON       \
             -DENABLE_TUTORIALS=ON       \
             -DENABLE_PARTICLES=ON       \
             -DENABLE_FORTRAN=OFF        \
