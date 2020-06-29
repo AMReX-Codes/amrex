@@ -7,7 +7,6 @@ VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/PETSc
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/PETSc
 
 CEXE_headers += AMReX_Habec_$(DIM)D_K.H
-CEXE_sources += AMReX_Habec_$(DIM)D.cpp
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/HYPRE
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/HYPRE
