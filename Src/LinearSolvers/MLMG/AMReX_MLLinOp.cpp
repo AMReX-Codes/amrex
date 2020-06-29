@@ -506,9 +506,9 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
             mg_coarsen_ratio_vec.push_back(ratio);
         } 
-        for (int mglev = 0; mglev < m_num_mg_levels[0] - 1; mglev++){
-	amrex::Print() << "mg_coarsen_ratio_vec["<< mglev << "] = " << mg_coarsen_ratio_vec[mglev] << std::endl;
-	}
+//        for (int mglev = 0; mglev < m_num_mg_levels[0] - 1; mglev++){
+//	amrex::Print() << "mg_coarsen_ratio_vec["<< mglev << "] = " << mg_coarsen_ratio_vec[mglev] << std::endl;
+//	}
 
     }
 

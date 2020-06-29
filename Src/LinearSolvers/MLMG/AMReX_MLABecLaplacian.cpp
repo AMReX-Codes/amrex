@@ -244,26 +244,13 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
     {
-        IntVect ratio;
-        if (m_allow_semicoarsening)
-        {
-            const Box& fine_domain = m_geom[0][mglev-1].Domain();
-            const Box& crse_domain = m_geom[0][mglev].Domain();
-
-            ratio[0] = fine_domain.length()[0] / crse_domain.length()[0];
-            ratio[1] = fine_domain.length()[1] / crse_domain.length()[1];
-            ratio[2] = fine_domain.length()[2] / crse_domain.length()[2];
-        } else {
-            ratio = IntVect(mg_coarsen_ratio);
-        }
-
         if (m_a_scalar == 0.0)
         {
             a[mglev].setVal(0.0);
         }
         else
         {
-            amrex::average_down(a[mglev-1], a[mglev], 0, 1, ratio);
+            amrex::average_down(a[mglev-1], a[mglev], 0, 1, mg_coarsen_ratio_vec[mglev-1]);
         }
         
         Vector<const MultiFab*> fine {AMREX_D_DECL(&(b[mglev-1][0]),
@@ -273,7 +260,7 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
                                              &(b[mglev][1]),
                                              &(b[mglev][2]))};
 
-        amrex::average_down_faces(fine, crse, ratio, 0);
+        amrex::average_down_faces(fine, crse, mg_coarsen_ratio_vec[mglev-1], 0);
     }
 
     for (int mglev = 1; mglev < nmglevs; ++mglev)

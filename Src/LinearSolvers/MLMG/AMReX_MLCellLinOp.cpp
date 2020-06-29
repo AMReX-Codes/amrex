@@ -311,19 +311,6 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
 
     const int ncomp = getNComp();
 
-    IntVect ratio; 
-    if (m_allow_semicoarsening)
-    {
-        const Box& fine_domain = m_geom[0][fmglev].Domain();
-        const Box& crse_domain = m_geom[0][fmglev+1].Domain();
-
-        ratio[0] = fine_domain.length()[0] / crse_domain.length()[0];
-        ratio[1] = fine_domain.length()[1] / crse_domain.length()[1];
-        ratio[2] = fine_domain.length()[2] / crse_domain.length()[2];
-    } else {
-        ratio = IntVect(mg_coarsen_ratio);
-    }
-
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -332,12 +319,11 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
         const Box& bx    = mfi.tilebox();
         Array4<Real const> const& cfab = crse.const_array(mfi);
         Array4<Real> const& ffab = fine.array(mfi);
-        int rx = ratio[0]; int ry = ratio[1]; int rz = ratio[2]; 
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
-            int ic = amrex::coarsen(i,rx);
-            int jc = amrex::coarsen(j,ry);
-            int kc = amrex::coarsen(k,rz);
+            int ic = amrex::coarsen(i,mg_coarsen_ratio_vec[fmglev][0]);
+            int jc = amrex::coarsen(j,mg_coarsen_ratio_vec[fmglev][1]);
+            int kc = amrex::coarsen(k,mg_coarsen_ratio_vec[fmglev][2]);
             ffab(i,j,k,n) += cfab(ic,jc,kc,n);
         });
     }    

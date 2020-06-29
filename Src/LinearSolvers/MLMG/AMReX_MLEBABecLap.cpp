@@ -582,36 +582,23 @@ MLEBABecLap::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
     {
-        if (m_allow_semicoarsening)
-        {
-            const Box& fine_domain = m_geom[0][mglev-1].Domain();
-            const Box& crse_domain = m_geom[0][mglev].Domain();
-
-            int r0 = fine_domain.length()[0] / crse_domain.length()[0];
-            int r1 = fine_domain.length()[1] / crse_domain.length()[1];
-            int r2 = fine_domain.length()[2] / crse_domain.length()[2];
-            IntVect ratio(r0,r1,r2);
-        } else {
-            IntVect ratio {mg_coarsen_ratio};
-        }
-
         if (m_a_scalar == 0.0)
         {
             a[mglev].setVal(0.0);
         }
         else
         {
-            amrex::EB_average_down(a[mglev-1], a[mglev], 0, 1, ratio);
+            amrex::EB_average_down(a[mglev-1], a[mglev], 0, 1, mg_coarsen_ratio_vec[mglev-1]);
         }
 
         amrex::EB_average_down_faces(amrex::GetArrOfConstPtrs(b[mglev-1]),
                                      amrex::GetArrOfPtrs(b[mglev]),
-                                     ratio, 0);
+                                     mg_coarsen_ratio_vec[mglev-1], 0);
 
         if (b_eb[mglev])
         {
             amrex::EB_average_down_boundaries(*b_eb[mglev-1], *b_eb[mglev],
-                                              ratio, 0);
+                                              mg_coarsen_ratio_vec[mglev-1], 0);
         }
     }
 }
