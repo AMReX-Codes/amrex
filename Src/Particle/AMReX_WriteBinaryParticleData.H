@@ -369,30 +369,20 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 {
                     amrex::CreateDirectoryFailed(LevelDir);
                 }
+
+                std::string HeaderFileName = LevelDir;
+                HeaderFileName += "/Particle_H";
+                std::ofstream ParticleHeader(HeaderFileName);
+
+                pc.ParticleBoxArray(lev).writeOn(ParticleHeader);
+                ParticleHeader << '\n';
+
+                ParticleHeader.flush();
+                ParticleHeader.close();
             }
         }
     }
     ParallelDescriptor::Barrier();
-
-    for (int lev = 0; lev <= pc.finestLevel(); lev++)
-    {
-        std::string LevelDir = pdir;
-        bool gotsome = np_per_level[lev];
-
-        // Write out the header for each particle
-        if (gotsome and (MyProc == IOProcNumber))
-        {
-            std::string HeaderFileName = LevelDir;
-            HeaderFileName += "/Particle_H";
-            std::ofstream ParticleHeader(HeaderFileName);
-
-            pc.ParticleBoxArray(lev).writeOn(ParticleHeader);
-            ParticleHeader << '\n';
-
-            ParticleHeader.flush();
-            ParticleHeader.close();
-        }
-    }
 
     int maxnextid = PC::ParticleType::NextID();
     ParallelDescriptor::ReduceIntMax(maxnextid, IOProcNumber);
