@@ -282,6 +282,8 @@ protected:
     bool m_do_agglomeration = false;
     bool m_do_consolidation = false;
 
+    bool m_allow_semicoarsening = true;
+    Vector<IntVect> mg_coarsen_ratio_vec;
 
     //! first Vector is for amr level and second is mg level
     Vector<Vector<Geometry> >            m_geom;

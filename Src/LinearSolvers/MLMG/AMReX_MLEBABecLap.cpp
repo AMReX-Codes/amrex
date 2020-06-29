@@ -582,8 +582,7 @@ MLEBABecLap::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
     {
-        bool allow_semicoarsening = true;
-        if (allow_semicoarsening)
+        if (m_allow_semicoarsening)
         {
             const Box& fine_domain = m_geom[0][mglev-1].Domain();
             const Box& crse_domain = m_geom[0][mglev].Domain();

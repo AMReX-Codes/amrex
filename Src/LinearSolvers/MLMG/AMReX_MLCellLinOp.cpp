@@ -311,9 +311,8 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
 
     const int ncomp = getNComp();
 
-    bool allow_semicoarsening = true;
     IntVect ratio; 
-    if (allow_semicoarsening)
+    if (m_allow_semicoarsening)
     {
         const Box& fine_domain = m_geom[0][fmglev].Domain();
         const Box& crse_domain = m_geom[0][fmglev+1].Domain();
