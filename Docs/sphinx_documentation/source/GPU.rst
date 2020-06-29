@@ -288,17 +288,17 @@ specific type of GPU memory:
 
 .. table:: Memory Arenas
 
-    +---------------------+------------------+
-    | Arena               |    Memory Type   |
-    +=====================+==================+
-    | The_Arena()         |  unified memory  |
-    +---------------------+------------------+
-    | The_Device_Arena()  |  device memory   |
-    +---------------------+------------------+
-    | The_Managed_Arena() |  unified memory  |
-    +---------------------+------------------+
-    | The_Pinned_Arena()  |  pinned memory   |
-    +---------------------+------------------+
+    +---------------------+----------------------------+
+    | Arena               |        Memory Type         |
+    +=====================+============================+
+    | The_Arena()         |  managed or device memory  |
+    +---------------------+----------------------------+
+    | The_Device_Arena()  |  device memory             |
+    +---------------------+----------------------------+
+    | The_Managed_Arena() |  managed memory            |
+    +---------------------+----------------------------+
+    | The_Pinned_Arena()  |  pinned memory             |
+    +---------------------+----------------------------+
 
 .. raw:: latex
 
@@ -315,11 +315,13 @@ to two functions:
    void free (void* p);
 
 :cpp:`The_Arena()` is used for memory allocation of data in
-:cpp:`BaseFab`.  Therefore the data in a :cpp:`MultiFab` is placed in
-unified memory and is accessible from both CPU host and GPU device.
+:cpp:`BaseFab`.  By default, it allocates managed memory.  This can be changed with
+a boolean runtime parameter ``amrex.the_arena_is_managed``.
+Therefore the data in a :cpp:`MultiFab` is placed in
+managed memory by default and is accessible from both CPU host and GPU device.
 This allows application codes to develop their GPU capability
 gradually.  :cpp:`The_Managed_Arena()` is a separate pool of
-unified memory, that is distinguished from :cpp:`The_Arena()` for
+managed memory, that is distinguished from :cpp:`The_Arena()` for
 performance reasons.  If you want to print out the current memory usage
 of the Arenas, you can call :cpp:`amrex::Arena::PrintUsage()`.
 
