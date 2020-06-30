@@ -269,10 +269,6 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     bool coned = false;
     int agg_lev, con_lev;
 
-
-    amrex::Print() << "do_agglomeration = " << info.do_agglomeration << std::endl;
-    amrex::Print() << "do_consolidation = " << info.do_consolidation << std::endl;
-
     if (info.do_agglomeration && aggable)
     {
         Vector<Box> domainboxes;
@@ -402,8 +398,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             rr *= mg_coarsen_ratio;
         }
 
-
-        if (m_allow_semicoarsening)
+        if (info.do_semicoarsening)
         {
             int max_semicoarsening_levels = 6;
             int num_semicoarsening_levels = 1;
@@ -506,10 +501,6 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
             mg_coarsen_ratio_vec.push_back(ratio);
         } 
-//        for (int mglev = 0; mglev < m_num_mg_levels[0] - 1; mglev++){
-//	amrex::Print() << "mg_coarsen_ratio_vec["<< mglev << "] = " << mg_coarsen_ratio_vec[mglev] << std::endl;
-//	}
-
     }
 
     if (agged)

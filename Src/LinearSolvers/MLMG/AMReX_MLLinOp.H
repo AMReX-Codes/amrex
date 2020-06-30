@@ -34,6 +34,7 @@ struct LPInfo
 {
     bool do_agglomeration = true;
     bool do_consolidation = true;
+    bool do_semicoarsening = false;
     int agg_grid_size = -1;
     int con_grid_size = -1;
     bool has_metric_term = true;
@@ -41,6 +42,7 @@ struct LPInfo
 
     LPInfo& setAgglomeration (bool x) noexcept { do_agglomeration = x; return *this; }
     LPInfo& setConsolidation (bool x) noexcept { do_consolidation = x; return *this; }
+    LPInfo& setSemicoarsening (bool x) noexcept { do_semicoarsening = x; return *this; }
     LPInfo& setAgglomerationGridSize (int x) noexcept { agg_grid_size = x; return *this; }
     LPInfo& setConsolidationGridSize (int x) noexcept { con_grid_size = x; return *this; }
     LPInfo& setMetricTerm (bool x) noexcept { has_metric_term = x; return *this; }
@@ -282,7 +284,7 @@ protected:
     bool m_do_agglomeration = false;
     bool m_do_consolidation = false;
 
-    bool m_allow_semicoarsening = true;
+    bool m_do_semicoarsening = false;
     Vector<IntVect> mg_coarsen_ratio_vec;
 
     //! first Vector is for amr level and second is mg level
@@ -359,6 +361,7 @@ protected:
 
     bool doAgglomeration () const noexcept { return m_do_agglomeration; }
     bool doConsolidation () const noexcept { return m_do_consolidation; }
+    bool doSemicoarsening () const noexcept { return m_do_semicoarsening; }
 
     bool isCellCentered () const noexcept { return m_ixtype == 0; }
 
