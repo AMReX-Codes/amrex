@@ -422,9 +422,16 @@ void abec_gsrb_with_line_solve (
     //    it should be the direction in which the mesh spacing is much larger
     //    than in the other directions
     int idir = 2;
-
-    if (dhz <= dhx) amrex::Abort("dhz is supposed to be much larger than dhx");
-    if (dhz <= dhy) amrex::Abort("dhz is supposed to be much larger than dhy");
+    int ilen = hi.z - lo.z + 1;
+	
+    if ( (dhx <= dhy) and (dhz <= dhy) ) {
+	idir = 1;
+	int ilen = hi.y - lo.y + 1;
+    }	
+    if ( (dhy <= dhx) and (dhz <= dhx) ) {
+	idir = 0;
+	int ilen = hi.x - lo.x + 1;
+    } 
 
     int ilen = hi.z - lo.z + 1;
 
@@ -436,7 +443,6 @@ void abec_gsrb_with_line_solve (
     Array1D<Real,0,31> r_ls;
     Array1D<Real,0,31> u_ls;
     Array1D<Real,0,31> gam;
-    
 
     if (idir == 2) {         
     	for (int n = 0; n < nc; ++n) {

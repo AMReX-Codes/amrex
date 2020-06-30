@@ -449,7 +449,6 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                     m_grids[0].push_back(a_grids[0]);
                     m_grids[0].back().coarsen(rr_vec);
 
-#if 0
                     if (info.do_consolidation)
                     {
                         if (avg_npts/(AMREX_D_TERM(rr,*rr,*rr)) < 0.999*consolidation_threshold)
@@ -464,7 +463,6 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                         }
                     }
                     else
-#endif
                     {
                         m_dmap[0].push_back(a_dmap[0]);
                     }
