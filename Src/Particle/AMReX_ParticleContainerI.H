@@ -421,9 +421,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
     if (only_valid)
     {
         nparticles = amrex::ReduceSum(*this, lev, lev,
-            [=] AMREX_GPU_DEVICE (const SuperParticleType& p) -> Long
+            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p) -> Long
             {
-                return (p.id() > 0) ? 1 : 0;
+                return (p.id() > 0) ? 1L : 0L;
             });
     } else
     {
