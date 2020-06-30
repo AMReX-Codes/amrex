@@ -453,8 +453,6 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_PROFPARSER            |  Build with profile parser support              | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_BACKTRACE             |  Build with backtrace support                   | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_FPE                   |  Build with Floating Point Exceptions checks    | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_ASSERTIONS            |  Build with assertions turned on                | NO          | YES, NO         |
@@ -479,8 +477,8 @@ below.
 
    \end{center}
 
-The option ``CMAKE_BUILD_TYPE=Debug`` implies ``ENABLE_ASSERTION=YES``. In order to turn off
-assertions in debug mode, ``ENABLE_ASSERTION=NO`` must be set explicitly while
+The option ``CMAKE_BUILD_TYPE=Debug`` implies ``ENABLE_ASSERTIONS=YES``. In order to turn off
+assertions in debug mode, ``ENABLE_ASSERTIONS=NO`` must be set explicitly while
 invoking CMake.
 
 
@@ -627,8 +625,6 @@ A list of AMReX component names and related configure options are shown in the t
    | ENABLE_MEM_PROFILE           | MEMP            |
    +------------------------------+-----------------+
    | ENABLE_PROFPARSER            | PROFPARSER      |
-   +------------------------------+-----------------+
-   | ENABLE_BACKTRACE             | BACKTRACE       |
    +------------------------------+-----------------+
    | ENABLE_FPE                   | FPE             |
    +------------------------------+-----------------+

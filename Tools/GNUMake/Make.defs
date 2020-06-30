@@ -161,12 +161,6 @@ else
   BOUND_CHECK := FALSE
 endif
 
-ifdef BACKTRACE
-  BACKTRACE := $(strip $(BACKTRACE))
-else
-  BACKTRACE := FALSE
-endif
-
 ifdef EXPORT_DYNAMIC
   EXPORT_DYNAMIC := $(strip $(EXPORT_DYNAMIC))
 else
@@ -528,13 +522,6 @@ ifeq ($(TEST),TRUE)
     endif
 endif
 
-ifeq ($(BACKTRACE),TRUE)
-    CPPFLAGS += -DAMREX_BACKTRACING -DAMREX_TESTING
-    BTSuffix := .BT
-else
-    BTSuffix :=
-endif
-
 ifdef CRAY_CPU_TARGET
 ifneq ($(USE_CUDA),TRUE)
     archSuffix += .$(strip $(CRAY_CPU_TARGET))
@@ -846,7 +833,7 @@ ifeq ($(USE_RPATH),TRUE)
 endif
 LDFLAGS	+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(CUPTISuffix)$(USERSuffix)
+machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(CUPTISuffix)$(USERSuffix)
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
