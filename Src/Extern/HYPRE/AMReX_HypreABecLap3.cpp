@@ -1,11 +1,7 @@
 #include <AMReX_HypreABecLap3.H>
 #include <AMReX_VisMF.H>
 
-#if (AMREX_SPACEDIM == 2)
-#include <AMReX_Habec_2D_K.H>
-#elif (AMREX_SPACEDIM == 3)
-#include <AMReX_Habec_3D_K.H>
-#endif
+#include <AMReX_Habec_K.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>

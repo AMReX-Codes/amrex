@@ -1,10 +1,6 @@
 #include <AMReX_HypreABecLap2.H>
 
-#if (AMREX_SPACEDIM == 2)
-#include <AMReX_Habec_2D_K.H>
-#elif (AMREX_SPACEDIM == 3)
-#include <AMReX_Habec_3D_K.H>
-#endif
+#include <AMReX_Habec_K.H>
 
 #include <cmath>
 #include <numeric>
@@ -229,7 +225,7 @@ HypreABecLap2::prepareSolver ()
     {
         const Box &reg = mfi.validbox();
 
-        rfab.resize(reg,regular_stencil_size);
+        rfab.resize(reg);
         amrex_hpacoef(reg, rfab, acoefs[mfi], scalar_a);
          
         for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {

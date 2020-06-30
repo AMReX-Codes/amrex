@@ -12,6 +12,7 @@ if (NOT ENABLE_HYPRE) # only ENABLE_PETSC is active
    target_sources( amrex
       PRIVATE
       AMReX_Habec_${DIM}D_K.H
+      AMReX_Habec_K.H
       )
 
 else ()
@@ -37,6 +38,7 @@ else ()
       AMReX_Hypre.cpp
       AMReX_Hypre.H
       AMReX_Habec_${DIM}D_K.H
+      AMReX_Habec_K.H
       AMReX_HypreNodeLap.cpp
       AMReX_HypreNodeLap.H
       )

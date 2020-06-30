@@ -17,27 +17,6 @@
 namespace amrex {
 
 AMREX_FORCE_INLINE
-void amrex_hpacoef (Box const& box, 
-                    BaseFab<GpuArray<Real,2*AMREX_SPACEDIM + 1>>& mat,
-                    const FArrayBox& a,
-                    Real& sa)
-{
-    Array4<GpuArray<Real,2*AMREX_SPACEDIM + 1>> const& mat_arr = mat.array();
-    Array4<Real const> const& a_arr = a.const_array();
-    if (sa == 0.0){
-        AMREX_PARALLEL_FOR_3D (box, i, j, k,
-        {
-            mat_arr(i,j,k)[0] = 0.0;
-        });
-    }else{
-        AMREX_PARALLEL_FOR_3D (box, i, j, k,
-        {
-            mat_arr(i,j,k)[0] = sa * a_arr(i,j,k);
-        });
-    }
-}
-
-AMREX_FORCE_INLINE
 void amrex_hpbcoef (Box const& box,
                     BaseFab<GpuArray<Real,2*AMREX_SPACEDIM + 1>>& mat,
                     const FArrayBox& b,
@@ -237,7 +216,7 @@ void amrex_hpijmatrix (Box const& box,
     auto mat_tmpPtr = mat_tmp.dataPtr();
     auto iterPtr = iter.dataPtr();
 
-    AMREX_PARALLEL_FOR_3D (box, i, j, k,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (box, i, j, k,
     {
         int irow = iterPtr[0];
         rows[irow]  = cell_id_arr(i,j,k);
