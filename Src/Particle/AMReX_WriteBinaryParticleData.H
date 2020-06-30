@@ -4,6 +4,18 @@
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Particles.H>
 
+// note - namespace
+
+struct KeepValidFilter
+{    
+    template <typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    int operator() (const SrcData& src, int i) const noexcept
+    {
+        return (src.m_aos[i].id() > 0);
+    }
+};
+
 template <typename ParticleReal>
 std::size_t PSizeInFile (const Vector<int>& wrc, const Vector<int>& wic)
 {
@@ -333,20 +345,50 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     AMREX_ALWAYS_ASSERT(real_comp_names.size() == pc.NumRealComps() + NStructReal);
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == pc.NumIntComps() + NStructInt);
 
+    Vector<LayoutData<Long> > np_per_grid_local(pc.finestLevel()+1);
+    for (int lev = 0; lev <= pc.finestLevel(); lev++)
+    {
+        np_per_grid_local[lev].define(pc.ParticleBoxArray(lev), pc.ParticleDistributionMap(lev));
+        for (MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            int gid = mfi.index();
+            const auto& ptile = pc.ParticlesAt(lev, mfi);
+            const auto& aos = ptile.GetArrayOfStructs();
+            const auto pstruct = aos().dataPtr();
+            const int np = ptile.numParticles();
+
+            ReduceOps<ReduceOpSum> reduce_op;
+            ReduceData<int> reduce_data(reduce_op);
+            using ReduceTuple = typename decltype(reduce_data)::Type;
+
+            reduce_op.eval(np, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
+            {
+                return (pstruct[i].id() > 0) ? 1 : 0;
+            });
+
+            int np_valid = amrex::get<0>(reduce_data.value());
+            np_per_grid_local[lev][gid] += np_valid;
+        }
+    }
+
+    Vector<Vector<Long> > np_per_grid_global(pc.finestLevel()+1);
+    Long total_np = 0;
+    Vector<Long> np_per_level(pc.finestLevel()+1);
+    for (int lev = 0; lev <= pc.finestLevel(); lev++)
+    {
+        np_per_grid_global[lev].resize(np_per_grid_local[lev].size());
+        ParallelDescriptor::GatherLayoutDataToVector(np_per_grid_local[lev],
+                                                     np_per_grid_global[lev],
+                                                     IOProcNumber);
+        np_per_level[lev] = std::accumulate(np_per_grid_global[lev].begin(),
+                                            np_per_grid_global[lev].end(), 0L);
+        total_np += np_per_level[lev];
+    }
+
     std::string pdir = dir;
     if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
     pdir += name;
-
-    Long total_np = 0;
-    Vector<Long> np_per_level(pc.finestLevel()+1);
-    Vector<Vector<Long> > np_per_grid(pc.finestLevel()+1);
-    for (int lev = 0; lev <= pc.finestLevel(); lev++)
-    {
-        np_per_grid[lev] = pc.NumberOfParticlesInGrid(lev);
-        np_per_level[lev] = std::accumulate(np_per_grid[lev].begin(),
-                                            np_per_grid[lev].end(), 0);
-        total_np += np_per_level[lev];
-    }
 
     if (MyProc == IOProcNumber)
     {
@@ -387,23 +429,25 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     int maxnextid = PC::ParticleType::NextID();
     ParallelDescriptor::ReduceIntMax(maxnextid, IOProcNumber);
 
-    Vector<int64_t> np_on_rank(NProcs,-1L);
-    for (int lev = 0; lev <= pc.finestLevel(); lev++)
-    {
-        for (MFIter mfi = pc.MakeMFIter(lev, false); mfi.isValid(); ++mfi)
-        {
-            int rank = pc.ParticleDistributionMap(lev)[mfi.index()];
-            np_on_rank[rank] += np_per_grid[lev][mfi.index()];
-        }
-    }
-
-    using ParticleReal = typename PC::RealType;
+    Vector<Long> np_on_rank(NProcs, 0L);
     std::size_t psize = PSizeInFile<ParticleReal>(write_real_comp, write_int_comp);
     Vector<int64_t> rank_start_offset(NProcs);
-    for (int ip = 0; ip < NProcs; ++ip)
+    if (MyProc == IOProcNumber)
     {
-        auto info = AsyncOut::GetWriteInfo(ip);
-        rank_start_offset[ip] = (info.ispot == 0) ? 0 : rank_start_offset[ip-1] + np_on_rank[ip-1]*psize;
+        for (int lev = 0; lev <= pc.finestLevel(); lev++)
+        {
+            for (int k = 0; k < pc.ParticleBoxArray(lev).size(); ++k)
+            {
+                int rank = pc.ParticleDistributionMap(lev)[k];
+                np_on_rank[rank] += np_per_grid_global[lev][k];
+            }
+        }
+
+        for (int ip = 0; ip < NProcs; ++ip)
+        {
+            auto info = AsyncOut::GetWriteInfo(ip);
+            rank_start_offset[ip] = (info.ispot == 0) ? 0 : rank_start_offset[ip-1] + np_on_rank[ip-1]*psize;
+        }
     }
 
     // make tmp particle tiles in pinned memory to write
@@ -418,11 +462,13 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             auto& new_ptile = (*myptiles)[lev][std::make_pair(mfi.index(),
                                                               mfi.LocalTileIndex())];
 
-            if (np_per_grid[lev][mfi.index()] > 0)
+            if (np_per_grid_local[lev][mfi.index()] > 0)
             {
                 const auto& ptile = pc.ParticlesAt(lev, mfi);
-                new_ptile.resize(ptile.numParticles());
-                amrex::copyParticles(new_ptile, ptile);
+                const auto& aos = ptile.GetArrayOfStructs();
+                const auto pstruct = aos().dataPtr();
+                new_ptile.resize(np_per_grid_local[lev][mfi.index()]);
+                amrex::filterParticles(new_ptile, ptile, KeepValidFilter());
             }
         }
     }
@@ -515,9 +561,9 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                     int rank = dms[lev][k];
                     auto info = AsyncOut::GetWriteInfo(rank);
                     HdrFile << info.ifile << ' '
-                            << np_per_grid[lev][k] << ' '
+                            << np_per_grid_global[lev][k] << ' '
                             << grid_offset[rank] + rank_start_offset[rank] << '\n';
-                    grid_offset[rank] += np_per_grid[lev][k]*psize;
+                    grid_offset[rank] += np_per_grid_global[lev][k]*psize;
                 }
             }
 
@@ -560,7 +606,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 int rank = dms[lev][k];
                 if (rank != MyProc) continue;
                 const int grid = k;
-                if (np_per_grid[lev][grid] == 0) continue;
+                if (np_per_grid_local[lev][grid] == 0) continue;
 
                 // First write out the integer data in binary.
                 int num_output_int = 0;
@@ -568,7 +614,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                     if (write_int_comp[i]) ++num_output_int;
 
                 const int iChunkSize = 2 + num_output_int;
-                Vector<int> istuff(np_per_grid[lev][grid]*iChunkSize);
+                Vector<int> istuff(np_per_grid_local[lev][grid]*iChunkSize);
                 int* iptr = istuff.dataPtr();
 
                 for (unsigned i = 0; i < tile_map[grid].size(); i++) {
@@ -617,7 +663,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                     if (write_real_comp[i]) ++num_output_real;
 
                 const int rChunkSize = AMREX_SPACEDIM + num_output_real;
-                Vector<typename PC::ParticleType::RealType> rstuff(np_per_grid[lev][grid]*rChunkSize);
+                Vector<typename PC::ParticleType::RealType> rstuff(np_per_grid_local[lev][grid]*rChunkSize);
                 typename PC::ParticleType::RealType* rptr = rstuff.dataPtr();
 
                 for (unsigned i = 0; i < tile_map[grid].size(); i++) {
