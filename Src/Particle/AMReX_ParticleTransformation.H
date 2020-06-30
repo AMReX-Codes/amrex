@@ -274,7 +274,8 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
 /**
  * \brief Conditionally copy particles from src to dst based on the value of mask.
  * 
- * \tparam PTile the particle tile type
+ * \tparam DstTile the dst particle tile type
+ * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
  *
  * \param dst the destination tile
@@ -282,9 +283,9 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
  * \param mask pointer to the mask - 1 means copy, 0 means don't copy
  *
  */
-template <typename PTile, typename Index,
+template <typename DstTile, typename SrcTile, typename Index,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
-Index filterParticles (PTile& dst, const PTile& src, const Index* mask) noexcept
+Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> offsets(np);
@@ -311,7 +312,8 @@ Index filterParticles (PTile& dst, const PTile& src, const Index* mask) noexcept
 /**
  * \brief Conditionally copy particles from src to dst based on a predicate.
  * 
- * \tparam PTile the particle tile type
+ * \tparam DstTile the dst particle tile type
+ * \tparam SrcTile the src particle tile type
  * \tparam Pred a function object
  *
  * \param dst the destination tile
@@ -319,11 +321,11 @@ Index filterParticles (PTile& dst, const PTile& src, const Index* mask) noexcept
  * \param p predicate function - particles will be copied if p returns true
  *
  */    
-template <typename PTile, typename Pred>
-auto filterParticles (PTile& dst, const PTile& src, Pred&& p) noexcept
-    -> decltype(p(typename PTile::ConstParticleTileDataType(), 0))
+template <typename DstTile, typename SrcTile, typename Pred>
+auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
+    -> decltype(p(typename SrcTile::ConstParticleTileDataType(), 0))
 {
-    using Index = decltype(p(typename PTile::ConstParticleTileDataType(), 0));
+    using Index = decltype(p(typename SrcTile::ConstParticleTileDataType(), 0));
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> mask(np);
 
