@@ -307,8 +307,6 @@ HypreABecLap3::prepareSolver ()
 #endif
         if (fabtyp != FabType::covered)
         {
-            const HYPRE_Int max_stencil_size = (fabtyp == FabType::regular) ?
-                regular_stencil_size : eb_stencil_size;
 
             const HYPRE_Int nrows = ncells_grid[mfi];
             cell_id_vec[mfi].resize(nrows);
