@@ -1,21 +1,22 @@
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <cstring>
-#include <cstdio>
-
-#include <unistd.h>
-
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_AsyncOut.H>
 #include <AMReX.H>
+#include <AMReX_Utility.H>
 
 #ifdef AMREX_TINY_PROFILING
 #include <AMReX_TinyProfiler.H>
 #endif
+
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <cstring>
+#include <cstdio>
+#include <csignal>
+#include <cfenv>
 
 #if defined(AMREX_EXPORT_DYNAMIC) && defined(__APPLE__)
 #include <cxxabi.h>
@@ -25,11 +26,14 @@
 #define AMREX_BACKTRACE_SUPPORTED 1
 #endif
 
+#ifndef _WIN32
+#include <execinfo.h>
+#include <unistd.h>
+#endif
+
 namespace amrex {
 
-#ifdef AMREX_BACKTRACING
 std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;
-#endif
 
 void
 BLBackTrace::handler(int s)
@@ -78,7 +82,6 @@ BLBackTrace::handler(int s)
     
     amrex::ErrorStream() << "See " << errfilename << " file for details" << std::endl;
 
-#ifdef AMREX_BACKTRACING
     if (!bt_stack.empty()) {
 	std::ofstream errfile;
 	errfile.open(errfilename.c_str(), std::ofstream::out | std::ofstream::app);
@@ -92,7 +95,6 @@ BLBackTrace::handler(int s)
 	    errfile << std::endl;
 	}
     }
-#endif
 
 #ifdef AMREX_TINY_PROFILING
     {
@@ -107,7 +109,7 @@ BLBackTrace::handler(int s)
 #endif
 
     if (ParallelDescriptor::NProcs() > 1) {
-	sleep(3);
+	amrex::Sleep(3);
     }
 
 #endif
@@ -292,8 +294,6 @@ BLBackTrace::print_backtrace_info (FILE* f)
 #endif
 }
 
-#ifdef AMREX_BACKTRACING
-
 BLBTer::BLBTer(const std::string& s, const char* file, int line)
 {
     std::ostringstream ss;
@@ -352,7 +352,5 @@ BLBTer::pop_bt_stack()
 	}
     }
 }
-
-#endif
 
 }

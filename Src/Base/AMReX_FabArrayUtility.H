@@ -1592,29 +1592,28 @@ Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, 
 template <class FAB,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 void
-Abs (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+Abs (FabArray<FAB>& fa, int icomp, int numcomp, int nghost)
 {
-    Abs(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+    Abs(fa,icomp,numcomp,IntVect(nghost));
 }
 
 template <class FAB,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 void
-Abs (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+Abs (FabArray<FAB>& fa, int icomp, int numcomp, const IntVect& nghost)
 {
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(fa,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         if (bx.ok())
         {
-            auto const srcFab = src.array(mfi);
-            auto       dstFab = dst.array(mfi);
+            auto const& fab = fa.array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
-                dstFab(i,j,k,n+dstcomp) /= srcFab(i,j,k,n+srccomp);
+                fab(i,j,k,n+icomp) = amrex::Math::abs(fab(i,j,k,n+icomp));
             });
         }
     }
@@ -1727,6 +1726,84 @@ void
 htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src)
 {
     htod_memcpy(dst, src, 0, 0, dst.nComp());
+}
+
+template <class FAB, class foo = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+IntVect
+indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
+                typename FAB::value_type value)
+{
+    IntVect loc;
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
+    {
+        int tmp[1+AMREX_SPACEDIM] = {0};
+        amrex::Gpu::AsyncArray<int> aa(tmp, 1+AMREX_SPACEDIM);
+        int* p = aa.data();
+        // This is a device ptr to 1+AMREX_SPACEDIM int zeros.
+        // The first is used as an atomic bool and the others for intvect.
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+            const Box& bx = amrex::grow(mfi.validbox(), nghost);
+            auto const& arr = mf.const_array(mfi);
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                int* flag = p;
+                if (*flag == 0) {
+                    if (arr(i,j,k,comp) == value) {
+                        if (Gpu::Atomic::Exch(flag,1) == 0) {
+                            AMREX_D_TERM(p[1] = i;,
+                                         p[2] = j;,
+                                         p[3] = k;);
+                        }
+                    }
+                }
+            });
+        }
+        aa.copyToHost(tmp, 1+AMREX_SPACEDIM);
+        AMREX_D_TERM(loc[0] = tmp[1];,
+                     loc[1] = tmp[2];,
+                     loc[2] = tmp[3];);
+    }
+    else
+#endif
+    {
+        bool f = false;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        {
+            IntVect priv_loc = IntVect::TheMinVector();
+            for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.growntilebox(nghost);
+                auto const& fab = mf.const_array(mfi);
+                AMREX_LOOP_3D(bx, i, j, k,
+                {
+                    if (fab(i,j,k,comp) == value) priv_loc = IntVect(AMREX_D_DECL(i,j,k));
+                });
+            }
+
+            if (priv_loc.allGT(IntVect::TheMinVector())) {
+                bool old;
+// we should be able to test on _OPENMP < 201107 for capture (version 3.1)
+// but we must work around a bug in gcc < 4.9
+#if defined(_OPENMP) && _OPENMP < 201307 // OpenMP 4.0
+#pragma omp critical (amrex_indexfromvalue)
+#elif defined(_OPENMP)
+#pragma omp atomic capture
+#endif
+                {
+                    old = f;
+                    f = true;
+                }
+
+                if (old == false) loc = priv_loc;
+            }
+        }
+    }
+
+    return loc;
 }
 
 }

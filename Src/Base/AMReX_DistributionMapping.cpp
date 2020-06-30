@@ -988,6 +988,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
             Print() << "  Rank/Team " << i << ":" << std::endl;
             Real rank_vol = 0;
             for (const auto &box : v[i]) {
+                amrex::ignore_unused(box);
                 const auto &t = tokens[idx];
                 BL_ASSERT(box == t.m_box);
                 Print() << "    " << idx << ": "
@@ -1817,7 +1818,7 @@ DistributionMapping::makeSFC (const LayoutData<Real>& rcost_local,
 }
     
 std::vector<std::vector<int> >
-DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol)
+DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol, const int nprocs)
 {
     BL_PROFILE("makeSFC");
 
@@ -1856,7 +1857,6 @@ DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol)
     //
     std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
 
-    const int nprocs = ParallelContext::NProcsSub();
     Real volper;
     volper = vol_sum / nprocs;
 

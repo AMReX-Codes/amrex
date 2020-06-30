@@ -21,7 +21,7 @@ subroutine get_face_velocity(level, time, &
   real(amrex_real), intent(in) :: dx(3), prob_lo(3)
 
   integer :: i, j, k, plo(2), phi(2)
-  real(amrex_real) :: x, y, z
+  real(amrex_real) :: x, y
   real(amrex_real), pointer, contiguous :: psi(:,:)
   real(amrex_real), parameter :: M_PI = 3.141592653589793238462643383279502884197d0
 

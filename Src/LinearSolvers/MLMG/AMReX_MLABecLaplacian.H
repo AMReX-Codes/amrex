@@ -20,6 +20,12 @@ public:
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info = LPInfo(),
                      const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+    MLABecLaplacian (const Vector<Geometry>& a_geom,
+                     const Vector<BoxArray>& a_grids,
+                     const Vector<DistributionMapping>& a_dmap,
+                     const Vector<iMultiFab const*>& a_overset_mask,
+                     const LPInfo& a_info = LPInfo(),
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
     virtual ~MLABecLaplacian ();
 
     MLABecLaplacian (const MLABecLaplacian&) = delete;
@@ -30,6 +36,13 @@ public:
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info = LPInfo(),
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+
+    void define (const Vector<Geometry>& a_geom,
+                 const Vector<BoxArray>& a_grids,
+                 const Vector<DistributionMapping>& a_dmap,
+                 const Vector<iMultiFab const*>& a_overset_mask,
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
@@ -69,7 +82,9 @@ public:
         return std::unique_ptr<MLLinOp>{};
     }
 
-    void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
+    virtual void applyOverset (int amlev, MultiFab& rhs) const override;
+
+    void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
                                         Vector<Array<MultiFab,AMREX_SPACEDIM> >& b);
     void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);
@@ -89,6 +104,8 @@ protected:
     Real m_b_scalar = std::numeric_limits<Real>::quiet_NaN();
     Vector<Vector<MultiFab> > m_a_coeffs;
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
+
+    Vector<Vector<std::unique_ptr<iMultiFab> > > m_overset_mask;
 
     Vector<int> m_is_singular;
 };

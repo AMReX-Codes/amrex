@@ -23,12 +23,12 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
         m_ba[lev] = a_gdb->ParticleBoxArray(lev);
         m_dm[lev] = a_gdb->ParticleDistributionMap(lev);
     }
-    
+
     m_lev_offsets.resize(0);
     m_lev_offsets.push_back(0);
     for (int lev = 0; lev < num_levels; ++lev)
         m_lev_offsets.push_back(m_lev_offsets.back() + m_ba[lev].size());
-            
+
     int num_buckets = m_lev_offsets.back();
 
     m_bucket_to_gid.resize(0);
@@ -46,11 +46,12 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
 
     for (int lev = 0; lev < num_levels; ++lev) {
         for (int i = 0; i < m_ba[lev].size(); ++i) {
-            box_lev_proc_ids.push_back(std::make_tuple(i, lev, m_dm[lev][i]));
+            int rank = ParallelContext::global_to_local_rank(m_dm[lev][i]);
+            box_lev_proc_ids.push_back(std::make_tuple(i, lev, rank));
         }
     }
-    
-    std::sort(box_lev_proc_ids.begin(), box_lev_proc_ids.end(), 
+
+    std::sort(box_lev_proc_ids.begin(), box_lev_proc_ids.end(),
               [](const ThreeIntTuple& a, const ThreeIntTuple& b) -> bool
               {
                   int pid_a = std::get<2>(a);
@@ -79,7 +80,7 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
     }
 
     m_proc_box_counts.resize(0);
-    m_proc_box_counts.resize(ParallelDescriptor::NProcs(), 0);
+    m_proc_box_counts.resize(ParallelContext::NProcsSub(), 0);
 
     for (int i = 0; i < num_buckets; ++i)
     {
@@ -95,10 +96,10 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
         m_proc_box_offsets.push_back(m_proc_box_offsets.back() + count);
 
     d_bucket_to_pid.resize(0);
-    d_bucket_to_pid.resize(num_buckets);    
-    
+    d_bucket_to_pid.resize(num_buckets);
+
     d_lev_gid_to_bucket.resize(0);
-    d_lev_gid_to_bucket.resize(num_buckets);    
+    d_lev_gid_to_bucket.resize(num_buckets);
 
     d_lev_offsets.resize(0);
     d_lev_offsets.resize(m_lev_offsets.size());

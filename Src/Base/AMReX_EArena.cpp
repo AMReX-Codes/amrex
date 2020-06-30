@@ -89,6 +89,7 @@ EArena::free (void* vp)
     AMREX_ASSERT(m_freelist.find(*bit) == m_freelist.end()); // assert not in free list
 
     auto pair_fitb = m_freelist.insert(*bit);
+    amrex::ignore_unused(pair_fitb);
     auto pair_mitb = m_mergelist.insert(*bit);
     m_free_size += bit->m_size;
     AMREX_ASSERT(pair_fitb.second == true && pair_mitb.second);

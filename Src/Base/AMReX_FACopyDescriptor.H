@@ -463,6 +463,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     BL_PROFILE("FabArrayCopyDescriptor::CollectData()");
 
     const int MyProc = ParallelDescriptor::MyProc();
+    amrex::ignore_unused(MyProc);
 
     int Total_Rcvs_Size = 0;
     //

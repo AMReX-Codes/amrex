@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <sys/stat.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>

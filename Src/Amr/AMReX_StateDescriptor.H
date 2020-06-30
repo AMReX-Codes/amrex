@@ -219,7 +219,7 @@ public:
     * \param bc
     * \param func
     * \param interp
-    * \param master_or_slave
+    * \param primary_or_secondary
     * \param groupsize
     */
     void setComponent (int                comp,
@@ -227,7 +227,7 @@ public:
                        const BCRec&       bc,
                        const BndryFunc&   func,
                        Interpolater*      interp,
-                       bool               master_or_slave,
+                       bool               primary_or_secondary,
                        int                groupsize);
 
     /**
@@ -380,7 +380,7 @@ public:
     */
     bool store_in_checkpoint () const noexcept;
 
-    bool master (int i) const noexcept { return m_master[i]; }
+    bool primary (int i) const noexcept { return m_primary[i]; }
 
     int groupsize (int i) const noexcept { return m_groupsize[i]; }
 
@@ -412,8 +412,8 @@ private:
     Vector<std::string> names;        //!< Printable names of components
     Vector<BCRec>       bc;           //!< Array of bndry types for entire level
     Vector<std::unique_ptr<BndryFunc> >  bc_func;      //!< Array of pointers to bndry fill functions
-    Vector<int>         m_master;     //!< Are we a master or slave? (true or false)
-    Vector<int>         m_groupsize;     //!< Groupsize if we're a master
+    Vector<int>         m_primary;     //!< Are we a primary or secondary? (true or false)
+    Vector<int>         m_groupsize;     //!< Groupsize if we're a primary
 
     /**
     * \brief If mapper_comp[icomp] != 0, that map is used instead of mapper

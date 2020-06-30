@@ -8,13 +8,10 @@
 #include <AMReX_BlockMutex.H>
 #include <AMReX_GpuLaunch.H>
 #include <AMReX_GpuDevice.H>
+#include <AMReX_OpenMP.H>
 
 #ifdef AMREX_USE_HIP
 #include <hiprand.hpp>
-#endif
-
-#ifdef _OPENMP
-#include <omp.h>
 #endif
 
 #ifdef AMREX_USE_HIP
@@ -53,23 +50,17 @@ namespace
 void
 amrex::InitRandom (amrex::ULong seed, int nprocs)
 {
-#ifdef _OPENMP
-    nthreads = omp_get_max_threads();
-#else
-    nthreads = 1;
-#endif
+    nthreads = OpenMP::get_max_threads();
     generators.resize(nthreads);
 
 #ifdef _OPENMP
 #pragma omp parallel
+#endif
     {
-        int tid = omp_get_thread_num();
+        int tid = OpenMP::get_thread_num();
         amrex::ULong init_seed = seed + tid*nprocs;
         generators[tid].seed(init_seed);
     }
-#else
-    generators[0].seed(seed);
-#endif
 
 #ifdef AMREX_USE_GPU
     DeallocateRandomSeedDevArray();
@@ -127,10 +118,10 @@ amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
     int i = get_state(tid);
 #ifdef BL_USE_FLOAT
     AMREX_HIP_OR_CUDA( rand = stddev * hiprand_normal(&d_states_d_ptr[i]) + mean;,
-                       rand = stddev *  curand_normal(&d_states_d_ptr[i]) + mean; );
+                       rand = stddev *  curand_normal(&d_states_d_ptr[i]) + mean; )
 #else
     AMREX_HIP_OR_CUDA( rand = stddev * hiprand_normal_double(&d_states_d_ptr[i]) + mean;,
-                       rand = stddev *  curand_normal_double(&d_states_d_ptr[i]) + mean; );
+                       rand = stddev *  curand_normal_double(&d_states_d_ptr[i]) + mean; )
 #endif
     __threadfence();
     free_state(tid);
@@ -143,13 +134,8 @@ amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
 
 #else
 
-#ifdef _OPENMP
-    int tid = omp_get_thread_num();
-#else
-    int tid = 0;
-#endif
-
     std::normal_distribution<amrex::Real> distribution(mean, stddev);
+    int tid = OpenMP::get_thread_num();
     rand = distribution(generators[tid]);
 
 #endif
@@ -172,10 +158,10 @@ amrex::Random ()
     // std::uniform_real_distribution in [0.0, 1.0)
 #ifdef BL_USE_FLOAT
     AMREX_HIP_OR_CUDA( rand = 1.0f - hiprand_uniform(&d_states_d_ptr[i]);,
-                       rand = 1.0f - curand_uniform(&d_states_d_ptr[i]); );
+                       rand = 1.0f - curand_uniform(&d_states_d_ptr[i]); )
 #else
     AMREX_HIP_OR_CUDA( rand = 1.0 - hiprand_uniform_double(&d_states_d_ptr[i]);,
-                       rand = 1.0 - curand_uniform_double(&d_states_d_ptr[i]); );
+                       rand = 1.0 - curand_uniform_double(&d_states_d_ptr[i]); )
 #endif
 
     __threadfence();
@@ -189,14 +175,10 @@ amrex::Random ()
 
 #else     // on the host
 
-#ifdef _OPENMP
-    int tid = omp_get_thread_num();
-#else
-    int tid = 0;
-#endif
-
     std::uniform_real_distribution<amrex::Real> distribution(0.0, 1.0);
+    int tid = OpenMP::get_thread_num();
     rand = distribution(generators[tid]);
+
 #endif
 
     return rand;
@@ -217,7 +199,7 @@ amrex::RandomPoisson (amrex::Real lambda)
     const auto i = get_state(tid);
 
     AMREX_HIP_OR_CUDA( rand = hiprand_poisson(&d_states_d_ptr[i], lambda);,
-                       rand = curand_poisson(&d_states_d_ptr[i], lambda););
+                       rand = curand_poisson(&d_states_d_ptr[i], lambda);)
 
     __threadfence();
     free_state(tid);
@@ -230,13 +212,8 @@ amrex::RandomPoisson (amrex::Real lambda)
 
 #else
 
-#ifdef _OPENMP
-    const auto tid = omp_get_thread_num();
-#else
-    const auto tid = 0;
-#endif
-
     std::poisson_distribution<unsigned int> distribution(lambda);
+    int tid = OpenMP::get_thread_num();
     rand = distribution(generators[tid]);
 
 #endif
@@ -259,7 +236,7 @@ amrex::Random_int (unsigned int n)
     int i = get_state(tid);
     do {
         AMREX_HIP_OR_CUDA( rand = hiprand(&d_states_d_ptr[i]);,
-                           rand =  curand(&d_states_d_ptr[i]); );
+                           rand =  curand(&d_states_d_ptr[i]); )
     } while (rand > (RAND_M - RAND_M % n));
     __threadfence();
     free_state(tid);
@@ -273,12 +250,8 @@ amrex::Random_int (unsigned int n)
 
 #else // on the host
 
-#ifdef _OPENMP
-    int tid = omp_get_thread_num();
-#else
-    int tid = 0;
-#endif
     std::uniform_int_distribution<unsigned int> distribution(0, n-1);
+    int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
 
 #endif
@@ -287,12 +260,8 @@ amrex::Random_int (unsigned int n)
 AMREX_GPU_HOST amrex::ULong
 amrex::Random_long (amrex::ULong n)
 {
-#ifdef _OPENMP
-    int tid = omp_get_thread_num();
-#else
-    int tid = 0;
-#endif
     std::uniform_int_distribution<amrex::ULong> distribution(0, n-1);
+    int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
 }
 
@@ -415,7 +384,7 @@ amrex::ResizeRandomSeed (int N)
         int loc = idx + PrevSize;
 
         AMREX_HIP_OR_CUDA( hiprand_init(seed, seqstart, 0, &d_states_d_ptr[loc]);,
-                            curand_init(seed, seqstart, 0, &d_states_d_ptr[loc]); );
+                            curand_init(seed, seqstart, 0, &d_states_d_ptr[loc]); )
     });
 
 #endif

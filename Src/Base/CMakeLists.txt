@@ -54,6 +54,8 @@ target_sources( amrex
    AMReX_Functional.H
    AMReX_Utility.H
    AMReX_Utility.cpp
+   AMReX_FileSystem.H
+   AMReX_FileSystem.cpp
    AMReX_Reduce.H
    AMReX_Scan.H
    AMReX_Partition.H
@@ -69,6 +71,7 @@ target_sources( amrex
    AMReX_DistributionMapping.cpp
    AMReX_ParallelDescriptor.H
    AMReX_ParallelDescriptor.cpp
+   AMReX_OpenMP.H
    AMReX_ParallelReduce.H
    AMReX_ForkJoin.H
    AMReX_ForkJoin.cpp
@@ -165,11 +168,16 @@ target_sources( amrex
    # Geometry / Coordinate system routines -----------------------------------
    AMReX_CoordSys.cpp
    AMReX_CoordSys.H
+   AMReX_COORDSYS_${DIM}D_C.H
+   AMReX_COORDSYS_C.H
    AMReX_Geometry.cpp
    AMReX_Geometry.H
    AMReX_MultiFabUtil.cpp
    AMReX_MultiFabUtil.H
    AMReX_MultiFabUtilI.H
+   AMReX_MultiFabUtil_${DIM}D_C.H
+   AMReX_MultiFabUtil_nd_C.H
+   AMReX_MultiFabUtil_C.H
    # Boundary-related --------------------------------------------------------
    AMReX_BCRec.cpp
    AMReX_BCRec.H
@@ -232,15 +240,10 @@ target_sources( amrex
 if (ENABLE_FORTRAN)
    target_sources( amrex
       PRIVATE
-      AMReX_COORDSYS_${DIM}D_C.H
-      AMReX_COORDSYS_C.H
       AMReX_filcc_f.H
       AMReX_BLutil_F.F90
       AMReX_BLProfiler_F.F90
       AMReX_FILCC_${DIM}D.F90
-      AMReX_MultiFabUtil_${DIM}D_C.H
-      AMReX_MultiFabUtil_nd_C.H
-      AMReX_MultiFabUtil_C.H
       AMReX_filcc_mod.F90
       AMReX_omp_mod.F90
       AMReX_acc_mod.F90

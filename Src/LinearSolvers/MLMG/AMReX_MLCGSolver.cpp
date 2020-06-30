@@ -57,6 +57,7 @@ MLCGSolver::MLCGSolver (MLMG* a_mlmg, MLLinOp& _lp, Type _typ)
       amrlev(0),
       mglev(_lp.NMGLevels(0)-1)
 {
+    amrex::ignore_unused(mlmg);
 }
 
 MLCGSolver::~MLCGSolver ()

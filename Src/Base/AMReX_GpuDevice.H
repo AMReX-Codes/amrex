@@ -9,6 +9,8 @@
 #include <AMReX_GpuTypes.H>
 #include <AMReX_GpuError.H>
 #include <AMReX_GpuControl.H>
+#include <AMReX_OpenMP.H>
+#include <AMReX_Vector.H>
 
 namespace amrex {
 
@@ -45,17 +47,17 @@ public:
     static void Finalize ();
 
 #if defined(AMREX_USE_GPU)
-    static gpuStream_t gpuStream () noexcept { return gpu_stream; }
+    static gpuStream_t gpuStream () noexcept { return gpu_stream[OpenMP::get_thread_num()]; }
     static gpuStream_t nullStream () noexcept { return gpu_default_stream; }
 #ifdef AMREX_USE_CUDA
     // for backward compatibility
-    static cudaStream_t cudaStream () noexcept { return gpu_stream; }
+    static cudaStream_t cudaStream () noexcept { return gpu_stream[OpenMP::get_thread_num()]; }
 #endif
 #ifdef AMREX_USE_DPCPP
     static sycl::queue& nullQueue () noexcept { return *(gpu_default_stream.queue); }
-    static sycl::queue& streamQueue () noexcept { return *(gpu_stream.queue); }
+    static sycl::queue& streamQueue () noexcept { return *(gpu_stream[OpenMP::get_thread_num()].queue); }
     static sycl::queue& streamQueue (int i) noexcept { return *(gpu_streams[i].queue); }
-    static bool onNullStream () noexcept { return gpu_stream == gpu_default_stream; }
+    static bool onNullStream () noexcept { return gpu_stream[OpenMP::get_thread_num()] == gpu_default_stream; }
     static bool onNullStream (gpuStream_t stream) noexcept { return stream == gpu_default_stream; }
 #endif
 #endif
@@ -149,7 +151,7 @@ private:
 
     static std::array<gpuStream_t,max_gpu_streams> gpu_streams;
     static gpuStream_t gpu_default_stream;
-    static gpuStream_t gpu_stream;
+    static Vector<gpuStream_t> gpu_stream;
     static gpuDeviceProp_t device_prop;
     static int max_blocks_per_launch;
 
@@ -201,6 +203,8 @@ nonNullStreamSynchronize () noexcept
     Device::nonNullStreamSynchronize();
 }
 #endif
+
+#ifdef AMREX_USE_GPU
 
 inline void
 htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
@@ -303,6 +307,8 @@ dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noe
         AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_d_dst, p_d_src, sz, cudaMemcpyDeviceToDevice, gpuStream())); )
 #endif
 }
+
+#endif
 
 #ifdef AMREX_USE_DPCPP
 inline bool

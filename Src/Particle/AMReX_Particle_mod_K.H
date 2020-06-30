@@ -17,7 +17,7 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
 #if (AMREX_SPACEDIM == 1)
     amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
     
-    int i = amrex::Math::floor(lx);
+    int i = static_cast<int>(amrex::Math::floor(lx));
     
     amrex::Real xint = lx - i;
     
@@ -37,8 +37,8 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
     amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
     amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
 
-    int i = amrex::Math::floor(lx);
-    int j = amrex::Math::floor(ly);
+    int i = static_cast<int>(amrex::Math::floor(lx));
+    int j = static_cast<int>(amrex::Math::floor(ly));
 
     amrex::Real xint = lx - i;
     amrex::Real yint = ly - j;
@@ -67,9 +67,9 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
     amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
     amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
 
-    int i = amrex::Math::floor(lx);
-    int j = amrex::Math::floor(ly);
-    int k = amrex::Math::floor(lz);
+    int i = static_cast<int>(amrex::Math::floor(lx));
+    int j = static_cast<int>(amrex::Math::floor(ly));
+    int k = static_cast<int>(amrex::Math::floor(lz));
 
     amrex::Real xint = lx - i;
     amrex::Real yint = ly - j;
@@ -117,9 +117,9 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
 
     amrex::Real hx = (p.pos(0) - plo[0] + 0.5/pdxi[0]) * dxi[0];
 
-    int lo_x = amrex::Math::floor(lx);
+    int lo_x = static_cast<int>(amrex::Math::floor(lx));
 
-    int hi_x = amrex::Math::floor(hx);
+    int hi_x = static_cast<int>(amrex::Math::floor(hx));
     
     for (int i = lo_x; i <= hi_x; ++i) {
         if (i < rho.begin.x || i >= rho.end.x) continue;
@@ -147,11 +147,11 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     amrex::Real hx = (p.pos(0) - plo[0] + 0.5/pdxi[0]) * dxi[0];
     amrex::Real hy = (p.pos(1) - plo[1] + 0.5/pdxi[1]) * dxi[1];
 
-    int lo_x = amrex::Math::floor(lx);
-    int lo_y = amrex::Math::floor(ly);
+    int lo_x = static_cast<int>(amrex::Math::floor(lx));
+    int lo_y = static_cast<int>(amrex::Math::floor(ly));
 
-    int hi_x = amrex::Math::floor(hx);
-    int hi_y = amrex::Math::floor(hy);
+    int hi_x = static_cast<int>(amrex::Math::floor(hx));
+    int hi_y = static_cast<int>(amrex::Math::floor(hy));
 
     for (int j = lo_y; j <= hi_y; ++j) {
         if (j < rho.begin.y || j >= rho.end.y) continue;
@@ -190,13 +190,13 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     amrex::Real hy = (p.pos(1) - plo[1] + 0.5/pdxi[1]) * dxi[1];
     amrex::Real hz = (p.pos(2) - plo[2] + 0.5/pdxi[2]) * dxi[2];
     
-    int lo_x = amrex::Math::floor(lx);
-    int lo_y = amrex::Math::floor(ly);
-    int lo_z = amrex::Math::floor(lz);
+    int lo_x = static_cast<int>(amrex::Math::floor(lx));
+    int lo_y = static_cast<int>(amrex::Math::floor(ly));
+    int lo_z = static_cast<int>(amrex::Math::floor(lz));
     
-    int hi_x = amrex::Math::floor(hx);
-    int hi_y = amrex::Math::floor(hy);
-    int hi_z = amrex::Math::floor(hz);
+    int hi_x = static_cast<int>(amrex::Math::floor(hx));
+    int hi_y = static_cast<int>(amrex::Math::floor(hy));
+    int hi_z = static_cast<int>(amrex::Math::floor(hz));
     
     for (int k = lo_z; k <= hi_z; ++k) {
         if (k < rho.begin.z || k >= rho.end.z) continue;
@@ -245,7 +245,7 @@ void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const>
 #if (AMREX_SPACEDIM == 1)
     amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
     
-    int i = amrex::Math::floor(lx);
+    int i = static_cast<int>(amrex::Math::floor(lx));
     
     amrex::Real xint = lx - i;
     
@@ -254,14 +254,15 @@ void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const>
     for (int comp=0; comp < nc; ++comp) {    
         for (int ii = 0; ii <= 1; ++ii) { 
             amrex::Real acceleration = sx[ii]*acc(i+ii-1,0,0,comp);
+            amrex::ignore_unused(acceleration);
         }
     }
 #elif (AMREX_SPACEDIM == 2)
     amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
     amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
     
-    int i = amrex::Math::floor(lx);
-    int j = amrex::Math::floor(ly);
+    int i = static_cast<int>(amrex::Math::floor(lx));
+    int j = static_cast<int>(amrex::Math::floor(ly));
     
     amrex::Real xint = lx - i;
     amrex::Real yint = ly - j;
@@ -273,6 +274,7 @@ void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const>
         for (int jj = 0; jj <= 1; ++jj) { 
             for (int ii = 0; ii <= 1; ++ii) { 
                 amrex::Real acceleration = sx[ii]*sy[jj]*acc(i+ii-1,j+jj-1,0,comp);
+                amrex::ignore_unused(acceleration);
             }
         }
     }
@@ -281,9 +283,9 @@ void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const>
     amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
     amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
     
-    int i = amrex::Math::floor(lx);
-    int j = amrex::Math::floor(ly);
-    int k = amrex::Math::floor(lz);
+    int i = static_cast<int>(amrex::Math::floor(lx));
+    int j = static_cast<int>(amrex::Math::floor(ly));
+    int k = static_cast<int>(amrex::Math::floor(lz));
     
     amrex::Real xint = lx - i;
     amrex::Real yint = ly - j;
@@ -298,6 +300,7 @@ void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const>
             for (int jj = 0; jj <= 1; ++jj) { 
                 for (int ii = 0; ii <= 1; ++ii) {
                     amrex::Real acceleration = sx[ii]*sy[jj]*sz[kk]*acc(i+ii-1,j+jj-1,k+kk-1,comp);
+                    amrex::ignore_unused(acceleration);
                 }
             }
         }

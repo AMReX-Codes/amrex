@@ -387,9 +387,6 @@ void testRedistribute ()
 
     auto np_old = pc.TotalNumberOfParticles();
 
-    Gpu::DeviceVector<int> vecy = {1, 2, 3};
-    Gpu::HostVector<int> asdf = {1, 2, 3};
-    
     for (int i = 0; i < params.nsteps; ++i)
     {
         pc.moveParticles(params.move_dir, params.do_random);

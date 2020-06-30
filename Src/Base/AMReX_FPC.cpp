@@ -23,7 +23,8 @@
     defined(__amd64__) || \
     defined(__LITTLE_ENDIAN__) || \
     defined(__powerpc__) || \
-    defined(powerpc)
+    defined(powerpc) || \
+    defined(_WIN32)
 #define AMREX_LITTLE_ENDIAN
 #endif
 

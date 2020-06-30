@@ -23,10 +23,10 @@
   Parameters:
 
      file:      the name of the Ascii file with the particles
-     extradata: the number of real components to read in, beyond the AMREX_SPACEDIM 
+     extradata: the number of real components to read in, beyond the AMREX_SPACEDIM
                 positions
-     Nrep:      pointer to IntVect that lets you replicate the incoming particles 
-                across the domain so that you only need to specify a sub-volume of 
+     Nrep:      pointer to IntVect that lets you replicate the incoming particles
+                across the domain so that you only need to specify a sub-volume of
                 them. By default particles are not replicated.
  */
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -135,15 +135,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         for (int i = 0; i < MyCnt; i++)
         {
-            AMREX_D_TERM(ifs >> p.m_rdata.pos[0];,
-                         ifs >> p.m_rdata.pos[1];,
-                         ifs >> p.m_rdata.pos[2];);
+            AMREX_D_TERM(ifs >> p.pos(0);,
+                         ifs >> p.pos(1);,
+                         ifs >> p.pos(2););
 
             for (int n = 0; n < extradata; n++)
             {
                 if (n < NStructReal)
                 {
-                    ifs >> p.m_rdata.arr[AMREX_SPACEDIM+n];
+                    ifs >> p.rdata(n);
                 }
                 else
                 {
@@ -166,10 +166,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     if (m_verbose) {
                         amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
-                                          << "BAD PARTICLE POS " 
-                                          << AMREX_D_TERM(   p.m_rdata.pos[0],
-                                                           << p.m_rdata.pos[1],
-                                                           << p.m_rdata.pos[2])
+                                          << "BAD PARTICLE POS "
+                                          << AMREX_D_TERM(   p.pos(0),
+                                                          << p.pos(1),
+                                                          << p.pos(2))
                                           << "\n";
                     }
                     amrex::Abort("ParticleContainer::InitFromAsciiFile(): invalid particle");
@@ -177,15 +177,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             }
 
             // set these rather than reading them in
-            p.m_idata.id  = ParticleType::NextID();
-            p.m_idata.cpu = MyProc;
+            p.id()  = ParticleType::NextID();
+            p.cpu() = MyProc;
 
             nparticles.push_back(p);
             for (int n = NStructReal; n < extradata; n++)
             {
                 nreals[n-NStructReal].push_back(r[n-NStructReal]);
             }
-            
+
             how_many++;
             how_many_read++;
 
@@ -203,14 +203,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 for (rep[1] = 1; rep[1] <= lNrep[1]; rep[1]++)
                 {
 #endif
-                    for (rep[0] = 1; rep[0] <= lNrep[0]; rep[0]++) 
+                    for (rep[0] = 1; rep[0] <= lNrep[0]; rep[0]++)
                     {
                         if (!(AMREX_D_TERM( (rep[0] == 1), && (rep[1] == 1), && (rep[2] == 1) ) ) )
                         {
                             // Shift the position.
                             for (int d=0; d<AMREX_SPACEDIM; ++d)
                             {
-                                p_rep.m_rdata.pos[d] = p.m_rdata.pos[d] + (rep[d]-1)*DomSize[d];
+                                p_rep.pos(d) = p.pos(d) + (rep[d]-1)*DomSize[d];
                             }
 
                             // Copy the extra data
@@ -218,11 +218,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             {
                                 if (n < NStructReal)
                                 {
-                                    p_rep.m_rdata.arr[AMREX_SPACEDIM+n]
-                                        = p.m_rdata.arr[AMREX_SPACEDIM+n];
+                                    p_rep.rdata(n) = p.rdata(n);
                                 }
                             }
-                            
+
                             if (!Where(p_rep, pld))
                             {
                                 PeriodicShift(p_rep);
@@ -235,15 +234,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                                 }
                             }
 
-                            p_rep.m_idata.id  = ParticleType::NextID();
-                            p_rep.m_idata.cpu = MyProc;
-   
+                            p_rep.id()  = ParticleType::NextID();
+                            p_rep.cpu() = MyProc;
+
                             nparticles.push_back(p_rep);
                             for (int n = NStructReal; n < extradata; n++)
                             {
                                 nreals[n-NStructReal].push_back(r[n-NStructReal]);
                             }
- 
+
                             how_many++;
                         }
                     }
@@ -717,9 +716,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
                     ifs.read((char*)&fpos[0], AMREX_SPACEDIM*sizeof(float));
 
-                    AMREX_D_TERM(p.m_rdata.pos[0] = fpos[0];,
-                           p.m_rdata.pos[1] = fpos[1];,
-                           p.m_rdata.pos[2] = fpos[2];);
+                    AMREX_D_TERM(p.pos(0) = fpos[0];,
+                                 p.pos(1) = fpos[1];,
+                                 p.pos(2) = fpos[2];);
 
                 }
                 else if (RealSizeInFile == sizeof(double))
@@ -728,9 +727,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
                     ifs.read((char*)&dpos[0], AMREX_SPACEDIM*sizeof(double));
 
-                    AMREX_D_TERM(p.m_rdata.pos[0] = dpos[0];,
-                           p.m_rdata.pos[1] = dpos[1];,
-                           p.m_rdata.pos[2] = dpos[2];);
+                    AMREX_D_TERM(p.pos(0) = dpos[0];,
+                                 p.pos(1) = dpos[1];,
+                                 p.pos(2) = dpos[2];);
                 }
 
                 //
@@ -743,14 +742,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
                         ifs.read((char*)&fxtra[0], extradata*sizeof(float));
 
                         for (int ii = 0; ii < extradata; ii++)
-                            p.m_rdata.arr[AMREX_SPACEDIM+ii] = fxtra[ii];
+                            p.rdata(ii) = fxtra[ii];
                     }
                     else if (RealSizeInFile == sizeof(double))
                     {
                         ifs.read((char*)&dxtra[0], extradata*sizeof(double));
 
                         for (int ii = 0; ii < extradata; ii++)
-                            p.m_rdata.arr[AMREX_SPACEDIM+ii] = dxtra[ii];
+                            p.rdata(ii) = dxtra[ii];
                     }
                 }
                 //
@@ -784,18 +783,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
                     {
                         if (m_verbose) {
                             amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
-                                              << "BAD PARTICLE POS " 
-                                              << AMREX_D_TERM(   p.m_rdata.pos[0],
-                                                                 << p.m_rdata.pos[2],
-                                                                 << p.m_rdata.pos[3])
+                                              << "BAD PARTICLE POS "
+                                              << AMREX_D_TERM(   p.pos(0),
+                                                              << p.pos(1),
+                                                              << p.pos(2))
                                               << "\n";
                         }
                         amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): invalid particle");
                     }
                 }
 
-                p.m_idata.id  = ParticleType::NextID();
-                p.m_idata.cpu = MyProc;
+                p.id()  = ParticleType::NextID();
+                p.cpu() = MyProc;
 
                 host_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
             }
@@ -1010,11 +1009,11 @@ InitRandom (Long                    icount,
             ParticleType p;
 
             for (int i = 0; i < AMREX_SPACEDIM; i++) {
-                p.m_rdata.pos[i] = pos[j*AMREX_SPACEDIM + i];
+                p.pos(i) = pos[j*AMREX_SPACEDIM + i];
             }
 
             for (int i = 0; i < NStructReal; i++) {
-                p.m_rdata.arr[AMREX_SPACEDIM + i] = pdata.real_struct_data[i];
+                p.rdata(i) = pdata.real_struct_data[i];
             }
 
             if (!Where(p, pld)) {
@@ -1022,20 +1021,20 @@ InitRandom (Long                    icount,
             }
 
             AMREX_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
-            std::pair<int, int> ind(pld.m_grid, pld.m_tile); 
+            std::pair<int, int> ind(pld.m_grid, pld.m_tile);
 
             const int who = ParticleDistributionMap(pld.m_lev)[pld.m_grid];
 
             if (who == MyProc) {
 
                 // We own it. Add it at the appropriate level.
-                p.m_idata.id  = ParticleType::NextID();
-                p.m_idata.cpu = MyProc;
+                p.id()  = ParticleType::NextID();
+                p.cpu() = MyProc;
 
                 for (int i = 0; i < NStructInt; i++) {
-                    p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
+                    p.idata(i) = pdata.int_struct_data[i];
                 }
-                
+
                 // add the struct
                 host_particles[pld.m_lev][ind].push_back(p);
 
@@ -1117,32 +1116,31 @@ InitRandom (Long                    icount,
                     x = geom.ProbLo(i) + (r * len[i]);
                 }
                 while (x < xlo[i] || x > xhi[i]);
-                
-                p.m_rdata.pos[i] = x;
-                
-                AMREX_ASSERT(p.m_rdata.pos[i] < geom.ProbHi(i));
+
+                p.pos(i) = x;
+
+                AMREX_ASSERT(p.pos(i) < geom.ProbHi(i));
             }
-            
+
             for (int i = 0; i < NStructReal; i++) {
-                p.m_rdata.arr[AMREX_SPACEDIM + i] = pdata.real_struct_data[i];
+                p.rdata(i) = pdata.real_struct_data[i];
             }
-            
+
             // the int struct data
-            p.m_idata.id  = ParticleType::NextID();
-            p.m_idata.cpu = ParallelDescriptor::MyProc();
-            
+            p.id()  = ParticleType::NextID();
+            p.cpu() = ParallelDescriptor::MyProc();
+
             for (int i = 0; i < NStructInt; i++) {
-                p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
+                p.idata(i) = pdata.int_struct_data[i];
             }
-            
+
             // locate the particle
             if (!Where(p, pld))
             {
                 amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom(): invalid particle");
             }
-            AMREX_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());            
-            std::pair<int, int> ind(pld.m_grid, pld.m_tile); 
-            
+            AMREX_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
+            std::pair<int, int> ind(pld.m_grid, pld.m_tile);
 
 	    // add the struct
 	    host_particles[pld.m_lev][ind].push_back(p);
@@ -1257,15 +1255,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
             // the real struct data
             for (int i = 0; i < NStructReal; i++) {
-                p.m_rdata.arr[AMREX_SPACEDIM + i] = pdata.real_struct_data[i];
+                p.rdata(i) = pdata.real_struct_data[i];
             }
 
             // the int struct data
-            p.m_idata.id  = ParticleType::NextID();
-            p.m_idata.cpu = ParallelDescriptor::MyProc();
-            
+            p.id()  = ParticleType::NextID();
+            p.cpu() = ParallelDescriptor::MyProc();
+
             for (int i = 0; i < NStructInt; i++) {
-                p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
+                p.idata(i) = pdata.int_struct_data[i];
             }
 
             // locate the particle
@@ -1329,29 +1327,29 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
     for (MFIter mfi(*m_dummy_mf[0], false); mfi.isValid(); ++mfi) {
         Box grid = ParticleBoxArray(0)[mfi.index()];
         RealBox grid_box (grid,dx,geom.ProbLo());
-        
+
         for (IntVect beg = grid.smallEnd(), end=grid.bigEnd(),
-                 cell = grid.smallEnd(); cell <= end; grid.next(cell)) { 
+                 cell = grid.smallEnd(); cell <= end; grid.next(cell)) {
 
             // the real struct data
-            AMREX_D_TERM(p.m_rdata.pos[0] = grid_box.lo(0) + (x_off + cell[0]-beg[0])*dx[0];,
-                   p.m_rdata.pos[1] = grid_box.lo(1) + (y_off + cell[1]-beg[1])*dx[1];,
-                   p.m_rdata.pos[2] = grid_box.lo(2) + (z_off + cell[2]-beg[2])*dx[2];);
-            
+            AMREX_D_TERM(p.pos(0) = grid_box.lo(0) + (x_off + cell[0]-beg[0])*dx[0];,
+                         p.pos(1) = grid_box.lo(1) + (y_off + cell[1]-beg[1])*dx[1];,
+                         p.pos(2) = grid_box.lo(2) + (z_off + cell[2]-beg[2])*dx[2];);
+
             for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                AMREX_ASSERT(p.m_rdata.pos[d] < grid_box.hi(d));
+                AMREX_ASSERT(p.pos(d) < grid_box.hi(d));
             }
 
             for (int i = 0; i < NStructReal; i++) {
-                p.m_rdata.arr[AMREX_SPACEDIM + i] = pdata.real_struct_data[i];
+                p.rdata(i) = pdata.real_struct_data[i];
             }
 
             // the int struct data
-            p.m_idata.id  = ParticleType::NextID();
-            p.m_idata.cpu = ParallelDescriptor::MyProc();
+            p.id()  = ParticleType::NextID();
+            p.cpu() = ParallelDescriptor::MyProc();
 
             for (int i = 0; i < NStructInt; i++) {
-                p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
+                p.idata(i) = pdata.int_struct_data[i];
             }
 
             // locate the particle
@@ -1428,29 +1426,29 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 	Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<int>, NArrayInt > > > host_int_attribs;
         host_int_attribs.reserve(15);
         host_int_attribs.resize(finestLevel()+1);
-        
+
         for (IntVect beg = grid.smallEnd(), end=grid.bigEnd(),
-                    cell = grid.smallEnd(); cell <= end; grid.next(cell)) { 
+                    cell = grid.smallEnd(); cell <= end; grid.next(cell)) {
 
             for (int n = 0; n < n_per_cell; n++)
             {
                 // the real struct data
                 for (int i = 0; i < AMREX_SPACEDIM; i++) {
                     r = amrex::Random();
-                    p.m_rdata.pos[i] = grid_box.lo(i) + (r + cell[i]-beg[i])*dx[i];
-                    AMREX_ASSERT(p.m_rdata.pos[i] < grid_box.hi(i));
+                    p.pos(i) = grid_box.lo(i) + (r + cell[i]-beg[i])*dx[i];
+                    AMREX_ASSERT(p.pos(i) < grid_box.hi(i));
                 }
-                                
+
                 for (int i = 0; i < NStructReal; i++) {
-                    p.m_rdata.arr[AMREX_SPACEDIM + i] = pdata.real_struct_data[i];
+                    p.rdata(i) = pdata.real_struct_data[i];
                 }
 
                 // the int struct data
-                p.m_idata.id  = ParticleType::NextID();
-                p.m_idata.cpu = ParallelDescriptor::MyProc();
+                p.id()  = ParticleType::NextID();
+                p.cpu() = ParallelDescriptor::MyProc();
 
                 for (int i = 0; i < NStructInt; i++) {
-                    p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
+                    p.idata(i) = pdata.int_struct_data[i];
                 }
 
                 // locate the particle

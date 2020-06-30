@@ -1,0 +1,23 @@
+name: macos
+
+on: [push, pull_request]
+
+jobs:
+  # Build libamrex and all tutorials
+  tutorials-macos:
+    name: AppleClang@11.0 GFortran@9.3 [tutorials]
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_mac.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                        \
+            -DCMAKE_BUILD_TYPE=Debug    \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DENABLE_TUTORIALS=ON       \
+            -DENABLE_PARTICLES=ON
+        make -j 2 tutorials

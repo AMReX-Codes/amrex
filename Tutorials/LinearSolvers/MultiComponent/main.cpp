@@ -160,7 +160,6 @@ int main (int argc, char* argv[])
     		bx.grow(1);        // Expand to cover first layer of ghost nodes
     		bx = bx & domain;  // Take intersection of box and the problem domain
 		
-	   		Array4<Real> const& SOL  = solution[ilev].array(mfi);
     		Array4<Real> const& RHS  = rhs[ilev].array(mfi);
     		for (int n = 0; n < op.ncomp; n++)
     			ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {

@@ -20,10 +20,6 @@ void advance (MultiFab& phi_old,
     // Fill non-periodic physical boundaries
     FillDomainBoundary(phi_old, geom, bc);
 
-    int Ncomp = phi_old.nComp();
-    int ng_p = phi_old.nGrow();
-    int ng_f = flux[0].nGrow();
-
     const Real* dx = geom.CellSize();
 
     //

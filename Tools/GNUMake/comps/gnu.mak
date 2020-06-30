@@ -28,10 +28,6 @@ gcc_minor_version = $(shell $(GCC_VERSION_COMP) -dumpfullversion -dumpversion | 
 
 COMP_VERSION = $(gcc_version)
 
-DEFINES += -DBL_GCC_VERSION=$(gcc_version)
-DEFINES += -DBL_GCC_MAJOR_VERSION=$(gcc_major_version)
-DEFINES += -DBL_GCC_MINOR_VERSION=$(gcc_minor_version)
-
 ########################################################################
 
 GENERIC_GNU_FLAGS =
@@ -146,8 +142,6 @@ CFLAGS   += -std=gnu99
 
 CXXFLAGS += $(GENERIC_GNU_FLAGS) -pthread
 CFLAGS   += $(GENERIC_GNU_FLAGS)
-FFLAGS   += $(GENERIC_GNU_FLAGS)
-F90FLAGS += $(GENERIC_GNU_FLAGS)
 
 endif # AMREX_CCOMP == gnu
 
@@ -222,5 +216,3 @@ F90FLAGS += $(GENERIC_GNU_FLAGS)
 endif  # BL_NO_FORT
 
 endif # AMREX_FCOMP == gnu
-
-

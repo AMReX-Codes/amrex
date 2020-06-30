@@ -26,7 +26,7 @@ extern "C" {
     {
         ParmParse pp("amr");
         int cnt = pp.countval("max_grid_size");
-        int max_grid_size;
+        int max_grid_size = 0;
         if (cnt == 0) {
             max_grid_size = 8;
             pp.add("max_grid_size", max_grid_size);

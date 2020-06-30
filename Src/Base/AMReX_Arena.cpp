@@ -11,7 +11,17 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Gpu.H>
 
+#ifdef _WIN32
+///#include <memoryapi.h>
+//#define AMREX_MLOCK(x,y) VirtualLock(x,y)
+//#define AMREX_MUNLOCK(x,y) VirtualUnlock(x,y)
+#define AMREX_MLOCK(x,y) ((void)0)
+#define AMREX_MUNLOCK(x,y) ((void)0)
+#else
 #include <sys/mman.h>
+#define AMREX_MLOCK(x,y) mlock(x,y)
+#define AMREX_MUNLOCK(x,y) munlock(x,y)
+#endif
 
 namespace amrex {
 
@@ -27,6 +37,11 @@ namespace {
     bool use_buddy_allocator = false;
     Long buddy_allocator_size = 0L;
     Long the_arena_init_size = 0L;
+#ifdef AMREX_USE_HIP
+    bool the_arena_is_managed = false; // xxxxx HIP FIX HERE
+#else
+    bool the_arena_is_managed = true;
+#endif
     bool abort_on_out_of_gpu_memory = false;
 }
 
@@ -54,7 +69,7 @@ Arena::allocate_system (std::size_t nbytes)
     if (arena_info.use_cpu_memory)
     {
         p = std::malloc(nbytes);
-        if (p && arena_info.device_use_hostalloc) mlock(p, nbytes);
+        if (p && arena_info.device_use_hostalloc) AMREX_MLOCK(p, nbytes);
     }
     else if (arena_info.device_use_hostalloc)
     {
@@ -76,9 +91,9 @@ Arena::allocate_system (std::size_t nbytes)
         if (arena_info.device_use_managed_memory)
         {
             AMREX_HIP_OR_CUDA_OR_DPCPP
-                (AMREX_HIP_SAFE_CALL(hipMalloc(&p, nbytes));,
+                (AMREX_HIP_SAFE_CALL(hipMallocManaged(&p, nbytes));,
                  AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));,
-                 p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()););
+                 p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
             if (arena_info.device_set_readonly)
             {
                 Gpu::Device::mem_advise_set_readonly(p, nbytes);
@@ -94,12 +109,12 @@ Arena::allocate_system (std::size_t nbytes)
             AMREX_HIP_OR_CUDA_OR_DPCPP
                 (AMREX_HIP_SAFE_CALL ( hipMalloc(&p, nbytes));,
                  AMREX_CUDA_SAFE_CALL(cudaMalloc(&p, nbytes));,
-                 p = sycl::malloc_device(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()););
+                 p = sycl::malloc_device(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
         }
     }
 #else
     p = std::malloc(nbytes);
-    if (p && arena_info.device_use_hostalloc) mlock(p, nbytes);
+    if (p && arena_info.device_use_hostalloc) AMREX_MLOCK(p, nbytes);
 #endif
     if (p == nullptr) amrex::Abort("Sorry, malloc failed");
     return p;
@@ -111,7 +126,7 @@ Arena::deallocate_system (void* p, std::size_t nbytes)
 #ifdef AMREX_USE_GPU
     if (arena_info.use_cpu_memory)
     {
-        if (p && arena_info.device_use_hostalloc) munlock(p, nbytes);
+        if (p && arena_info.device_use_hostalloc) AMREX_MUNLOCK(p, nbytes);
         std::free(p);
     }
     else if (arena_info.device_use_hostalloc)
@@ -126,10 +141,10 @@ Arena::deallocate_system (void* p, std::size_t nbytes)
         AMREX_HIP_OR_CUDA_OR_DPCPP
             (AMREX_HIP_SAFE_CALL ( hipFree(p));,
              AMREX_CUDA_SAFE_CALL(cudaFree(p));,
-             sycl::free(p,Gpu::Device::syclContext()););
+             sycl::free(p,Gpu::Device::syclContext()));
     }
 #else
-    if (p && arena_info.device_use_hostalloc) munlock(p, nbytes);
+    if (p && arena_info.device_use_hostalloc) AMREX_MUNLOCK(p, nbytes);
     std::free(p);
 #endif
 }
@@ -150,6 +165,7 @@ Arena::Initialize ()
     pp.query("use_buddy_allocator", use_buddy_allocator);
     pp.query("buddy_allocator_size", buddy_allocator_size);
     pp.query("the_arena_init_size", the_arena_init_size);
+    pp.query("the_arena_is_managed", the_arena_is_managed);
     pp.query("abort_on_out_of_gpu_memory", abort_on_out_of_gpu_memory);
 
 #ifdef AMREX_USE_GPU
@@ -165,13 +181,21 @@ Arena::Initialize ()
         }
         std::size_t chunk = 512*1024*1024;
         buddy_allocator_size = (buddy_allocator_size/chunk) * chunk;
-        the_arena = new DArena(buddy_allocator_size, 512, ArenaInfo().SetPreferred());
+        if (the_arena_is_managed) {
+            the_arena = new DArena(buddy_allocator_size, 512, ArenaInfo().SetPreferred());
+        } else {
+            the_arena = new DArena(buddy_allocator_size, 512, ArenaInfo().SetDeviceMemory());
+        }
     }
     else
 #endif
     {
 #if defined(BL_COALESCE_FABS) || defined(AMREX_USE_GPU)
-        the_arena = new CArena(0, ArenaInfo().SetPreferred());
+        if (the_arena_is_managed) {
+            the_arena = new CArena(0, ArenaInfo().SetPreferred());
+        } else {
+            the_arena = new CArena(0, ArenaInfo().SetDeviceMemory());
+        }
 #ifdef AMREX_USE_GPU
         if (the_arena_init_size <= 0) {
 #ifdef AMREX_USE_DPCPP

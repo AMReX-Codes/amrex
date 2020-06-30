@@ -37,7 +37,11 @@ namespace amrex
         typename std::enable_if<RunOnGpu<T>::value>::type
         memCopyImpl (void* dst, const void* src, std::size_t count)
         {
+#ifdef AMREX_USE_GPU
             Gpu::dtod_memcpy(dst, src, count);
+#else
+            std::memcpy(dst, src, count);
+#endif
         }
 
         template <typename T>
@@ -51,15 +55,19 @@ namespace amrex
         typename std::enable_if<RunOnGpu<T>::value>::type
         memMoveImpl (void* dst, const void* src, std::size_t count, T& allocator)
         {
+#ifdef AMREX_USE_GPU
             AMREX_ASSERT(count % sizeof(typename T::value_type) == 0);
 
             auto N = count / sizeof(typename T::value_type);
             auto tmp = allocator.allocate(N);
-            
+
             Gpu::dtod_memcpy(tmp, src, count);
             Gpu::dtod_memcpy(dst, tmp, count);
 
             allocator.deallocate(tmp, N);
+#else
+            std::memmove(dst, src, count);
+#endif
         }
 
         template <typename T>
@@ -68,12 +76,16 @@ namespace amrex
         {
             std::memmove(dst, src, count);
         }
-        
+
         template <typename T, typename U>
         typename std::enable_if<RunOnGpu<T>::value>::type
         initFromListImpl (U* data, std::initializer_list<U> list)
         {
+#ifdef AMREX_USE_GPU
             Gpu::htod_memcpy(data, &(*list.begin()), list.size() * sizeof(U));
+#else
+            std::memcpy(data, &(*list.begin()), list.size() * sizeof(U));
+#endif
         }
 
         template <typename T, typename U>
@@ -505,7 +517,7 @@ namespace amrex
             m_capacity = a_capacity;
         }
         
-        PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::false_type) noexcept
+        PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::true_type) noexcept
         {
             const size_t other_size = a_vector.size();            
             if ( other_size > capacity() ) { AllocateBuffer(other_size); }            
@@ -514,11 +526,11 @@ namespace amrex
             return *this;
         }
         
-        PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::true_type) noexcept
+        PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::false_type) noexcept
         {
-            if (static_cast<Allocator&>(a_vector) == static_cast<Allocator&>(*this))
+            if (static_cast<Allocator const&>(a_vector) == static_cast<Allocator&>(*this))
             {
-                CopyAssignmentDoIt(a_vector, std::false_type());
+                return CopyAssignmentDoIt(a_vector, std::true_type());
             }
             else
             {
@@ -526,7 +538,7 @@ namespace amrex
                 if ( other_size > capacity() ) { AllocateBuffer(other_size); }                
                 m_size = other_size;                    
                 detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T));
-                Allocator::operator=(static_cast<Allocator&>(a_vector));                
+                Allocator::operator=(static_cast<Allocator const&>(a_vector));
                 return *this;
             }
         }
@@ -558,7 +570,7 @@ namespace amrex
         {
             deallocate(m_data, capacity());
             
-            Allocator::operator=(std::move(static_cast<Allocator&>(a_vector)));
+            Allocator::operator=(std::move(static_cast<Allocator const&>(a_vector)));
             
             m_data = a_vector.m_data;
             m_size = a_vector.m_size;

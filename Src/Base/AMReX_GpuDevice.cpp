@@ -58,7 +58,7 @@ int  Device::max_blocks_per_launch = 640;
 
 std::array<gpuStream_t,Device::max_gpu_streams> Device::gpu_streams;
 gpuStream_t                                     Device::gpu_default_stream;
-gpuStream_t                                     Device::gpu_stream;
+Vector<gpuStream_t>                             Device::gpu_stream;
 gpuDeviceProp_t                                 Device::device_prop;
 
 constexpr int                                   Device::warp_size;
@@ -124,7 +124,7 @@ Device::Initialize ()
         AMREX_HIP_OR_CUDA_OR_DPCPP
             ( amrex::Print() << "Initializing HIP...\n";,
               amrex::Print() << "Initializing CUDA...\n";,
-              amrex::Print() << "Initializing oneAPI...\n"; );
+              amrex::Print() << "Initializing oneAPI...\n"; )
     }
 
     // XL CUDA Fortran support needs to be initialized
@@ -278,7 +278,7 @@ Device::Initialize ()
     // is only available starting from CUDA 10.0, so we will
     // leave num_devices_used as 0 for older CUDA toolkits.
 
-#if AMREX_NVCC_MAJOR_VERSION >= 10
+#if (__CUDACC_VER_MAJOR__ >= 10)
     size_t uuid_length = 16;
     size_t recv_sz = uuid_length * ParallelDescriptor::NProcs();
     const char* sendbuf = &device_prop.uuid.bytes[0];
@@ -309,7 +309,7 @@ Device::Initialize ()
     cudaProfilerStart();
 
     if (amrex::Verbose()) {
-#if defined(AMREX_USE_MPI) && (AMREX_NVCC_MAJOR_VERSION >= 10)
+#if defined(AMREX_USE_MPI) && (__CUDACC_VER_MAJOR__ >= 10)
         if (num_devices_used == ParallelDescriptor::NProcs())
         {
             amrex::Print() << "CUDA initialized with 1 GPU per MPI rank; "
@@ -359,7 +359,7 @@ Device::Finalize ()
         delete s.queue;
         s.queue = nullptr;
     }
-    gpu_stream.queue = nullptr;
+    gpu_stream.clear();
     delete gpu_default_stream.queue;
     gpu_default_stream.queue = nullptr;
 #endif
@@ -473,7 +473,7 @@ Device::initialize_gpu ()
     }
 #endif
 
-    gpu_stream = gpu_default_stream;
+    gpu_stream.resize(OpenMP::get_max_threads(), gpu_default_stream);
 
     ParmParse pp("device");
 
@@ -539,13 +539,13 @@ Device::setStreamIndex (const int idx) noexcept
 {
 #ifdef AMREX_USE_GPU
     if (idx < 0) {
-        gpu_stream = gpu_default_stream;
+        gpu_stream[OpenMP::get_thread_num()] = gpu_default_stream;
 
 #ifdef AMREX_USE_ACC
         amrex_set_acc_stream(acc_async_sync);
 #endif
     } else {
-        gpu_stream = gpu_streams[idx % max_gpu_streams];
+        gpu_stream[OpenMP::get_thread_num()] = gpu_streams[idx % max_gpu_streams];
 
 #ifdef AMREX_USE_ACC
         amrex_set_acc_stream(idx % max_gpu_streams);
@@ -558,16 +558,16 @@ Device::setStreamIndex (const int idx) noexcept
 gpuStream_t
 Device::resetStream () noexcept
 {
-    gpuStream_t r = gpu_stream;
-    gpu_stream = gpu_default_stream;
+    gpuStream_t r = gpu_stream[OpenMP::get_thread_num()];
+    gpu_stream[OpenMP::get_thread_num()] = gpu_default_stream;
     return r;
 }
 
 gpuStream_t
 Device::setStream (gpuStream_t s) noexcept
 {
-    gpuStream_t r = gpu_stream;
-    gpu_stream = s;
+    gpuStream_t r = gpu_stream[OpenMP::get_thread_num()];
+    gpu_stream[OpenMP::get_thread_num()] = s;
     return r;
 }
 #endif
@@ -599,8 +599,8 @@ Device::streamSynchronize () noexcept
         amrex::Abort(std::string("streamSynchronize: ")+ex.what()+"!!!!!");
     }
 #else
-    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpu_stream));,
-                       AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpu_stream)); )
+    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpu_stream[OpenMP::get_thread_num()]));,
+                       AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpu_stream[OpenMP::get_thread_num()])); )
 #endif
 }
 

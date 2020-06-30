@@ -29,7 +29,7 @@ void ReportSleep(double s) {
 // --------------------------------------------------------------
 void SleepProcTimes(double sleepsec) {
   ReportSleep(sleepsec);
-  amrex::USleep(sleepsec);
+  amrex::Sleep(sleepsec);
 }
 
 //---------------------------------------------------------------
@@ -103,36 +103,36 @@ int main(int argc, char *argv[]) {
 
   amrex::ParallelDescriptor::Barrier();
   {
-    BL_PROFILE_REGION_START("USleep1");
-    BL_PROFILE("USleep1()");
-    amrex::Print() << "USleep1." << std::endl;
-    amrex::USleep(1);
-    BL_PROFILE_REGION_STOP("USleep1");
+    BL_PROFILE_REGION_START("Sleep1");
+    BL_PROFILE("Sleep1()");
+    amrex::Print() << "Sleep1." << std::endl;
+    amrex::Sleep(1);
+    BL_PROFILE_REGION_STOP("Sleep1");
   }
   amrex::ParallelDescriptor::Barrier();
   {
-    BL_PROFILE_REGION_START("USleep2");
-    BL_PROFILE("USleep2()");
-    amrex::Print() << "USleep2." << std::endl;
-    amrex::USleep(2);
-    BL_PROFILE_REGION_STOP("USleep2");
+    BL_PROFILE_REGION_START("Sleep2");
+    BL_PROFILE("Sleep2()");
+    amrex::Print() << "Sleep2." << std::endl;
+    amrex::Sleep(2);
+    BL_PROFILE_REGION_STOP("Sleep2");
   }
   amrex::ParallelDescriptor::Barrier();
   {
-    BL_PROFILE_REGION_START("USleep3");
-    BL_PROFILE("USleep3()");
-    amrex::Print() << "USleep3." << std::endl;
-    amrex::USleep(3);
-    BL_PROFILE_REGION_STOP("USleep3");
+    BL_PROFILE_REGION_START("Sleep3");
+    BL_PROFILE("Sleep3()");
+    amrex::Print() << "Sleep3." << std::endl;
+    amrex::Sleep(3);
+    BL_PROFILE_REGION_STOP("Sleep3");
   }
   amrex::ParallelDescriptor::Barrier();
   /*
   {
-    BL_PROFILE_REGION_START("USleepRplus1");
-    BL_PROFILE("USleepRplus1()");
-    amrex::Print() << "USleepRplus1." << std::endl;
-    amrex::USleep(myProc+1);
-    BL_PROFILE_REGION_STOP("USleepRplus1");
+    BL_PROFILE_REGION_START("SleepRplus1");
+    BL_PROFILE("SleepRplus1()");
+    amrex::Print() << "SleepRplus1." << std::endl;
+    amrex::Sleep(myProc+1);
+    BL_PROFILE_REGION_STOP("SleepRplus1");
   }
   amrex::ParallelDescriptor::Barrier();
   */

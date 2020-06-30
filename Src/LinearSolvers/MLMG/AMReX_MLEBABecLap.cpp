@@ -763,25 +763,30 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
 #endif
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
+                AMREX_DPCPP_ONLY(auto bafab    = dp[0]);
+                AMREX_DPCPP_ONLY(auto bcfab    = dp[1]);
+                AMREX_DPCPP_ONLY(auto bebfab   = dp[2]);
+                AMREX_DPCPP_ONLY(auto phiebfab = dp[3]);
+
+                AMREX_DPCPP_2D_ONLY(auto apxfab = dp[4]);
+                AMREX_DPCPP_2D_ONLY(auto apyfab = dp[5]);
+                AMREX_DPCPP_2D_ONLY(auto fcxfab = dp[6]);
+                AMREX_DPCPP_2D_ONLY(auto fcyfab = dp[7]);
+
+                AMREX_DPCPP_3D_ONLY(auto apxfab = dp[4]);
+                AMREX_DPCPP_3D_ONLY(auto apyfab = dp[5]);
+                AMREX_DPCPP_3D_ONLY(auto apzfab = dp[6]);
+                AMREX_DPCPP_3D_ONLY(auto fcxfab = dp[7]);
+                AMREX_DPCPP_3D_ONLY(auto fcyfab = dp[8]);
+                AMREX_DPCPP_3D_ONLY(auto fczfab = dp[9]);
+
                 mlebabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
                                   ccmfab, flagfab, vfracfab,
-#ifdef AMREX_USE_DPCPP
-#if (AMREX_SPACEDIM == 2)
-                                  dp[4], dp[5], dp[6], dp[7], dp[0], dp[1], dp[2],
-#else
-                                  dp[4], dp[5], dp[6], dp[7], dp[8], dp[9], dp[0], dp[1], dp[2],
-#endif
-#else
                                   AMREX_D_DECL(apxfab,apyfab,apzfab),
                                   AMREX_D_DECL(fcxfab,fcyfab,fczfab),
                                   bafab, bcfab, bebfab,
-#endif
                                   is_eb_dirichlet,
-#ifdef AMREX_USE_DPCPP
-                                  dp[3],
-#else
                                   phiebfab,
-#endif
                                   is_eb_inhomog, dxinvarr,
                                   ascalar, bscalar, ncomp, beta_on_centroid, phi_on_centroid);
             });
@@ -906,20 +911,25 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
             {
+                AMREX_DPCPP_2D_ONLY(auto f0fab = dp[0]);
+                AMREX_DPCPP_2D_ONLY(auto f2fab = dp[1]);
+                AMREX_DPCPP_2D_ONLY(auto f1fab = dp[2]);
+                AMREX_DPCPP_2D_ONLY(auto f3fab = dp[3]);
+
+                AMREX_DPCPP_3D_ONLY(auto f0fab = dp[0]);
+                AMREX_DPCPP_3D_ONLY(auto f2fab = dp[1]);
+                AMREX_DPCPP_3D_ONLY(auto f4fab = dp[2]);
+                AMREX_DPCPP_3D_ONLY(auto f1fab = dp[3]);
+                AMREX_DPCPP_3D_ONLY(auto f3fab = dp[4]);
+                AMREX_DPCPP_3D_ONLY(auto f5fab = dp[5]);
+
                 abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
                           AMREX_D_DECL(dhx, dhy, dhz),
                           AMREX_D_DECL(bxfab, byfab, bzfab),
                           AMREX_D_DECL(m0,m2,m4),
                           AMREX_D_DECL(m1,m3,m5),
-#ifdef AMREX_USE_DPCPP
-                          dp[0],dp[1],dp[2],dp[3],
-#if (AMREX_SPACEDIM == 3)
-                          dp[4],dp[5],
-#endif
-#else
                           AMREX_D_DECL(f0fab,f2fab,f4fab),
                           AMREX_D_DECL(f1fab,f3fab,f5fab),
-#endif
                           vbx, redblack, nc);
             });
         }
@@ -956,30 +966,41 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
             Gpu::AsyncArray<Array4<int const> > dtmp2(htmp2.data(), 2*AMREX_SPACEDIM);
             auto dp = dtmp.data();
             auto dp2 = dtmp2.data();
+#endif
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
             {
-                mlebabeclap_gsrb(thread_box, solnfab, dp[0], alpha, dp[1],
-                                 AMREX_D_DECL(dhx, dhy, dhz),
-                                 AMREX_D_DECL(dp[2],dp[3],dp[4]),
-                                 dp2[0],dp2[1],dp2[2],dp2[3],
-#if (AMREX_SPACEDIM == 3)
-                                 dp2[4],dp2[5],
-#endif
-#if (AMREX_SPACEDIM == 2)
-                                 dp[4],dp[5],dp[6],dp[7],
-#else
-                                 dp[5],dp[6],dp[7],dp[8],dp[9],dp[10],
-#endif
-                                 ccmfab, flagfab, vfracfab,
-                                 AMREX_D_DECL(apxfab,apyfab,apzfab),
-                                 AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                 bafab, bcfab, bebfab,
-                                 is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
-                                 vbx, redblack, nc);
-            });
-#else
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
-            {
+                AMREX_DPCPP_ONLY(auto rhsfab = dp[0]);
+                AMREX_DPCPP_ONLY(auto afab   = dp[1]);
+
+                AMREX_DPCPP_2D_ONLY(auto bxfab = dp[2]);
+                AMREX_DPCPP_2D_ONLY(auto byfab = dp[3]);
+                AMREX_DPCPP_2D_ONLY(auto f0fab = dp[4]);
+                AMREX_DPCPP_2D_ONLY(auto f2fab = dp[5]);
+                AMREX_DPCPP_2D_ONLY(auto f1fab = dp[6]);
+                AMREX_DPCPP_2D_ONLY(auto f3fab = dp[7]);
+
+                AMREX_DPCPP_3D_ONLY(auto bxfab = dp[2]);
+                AMREX_DPCPP_3D_ONLY(auto byfab = dp[3]);
+                AMREX_DPCPP_3D_ONLY(auto bzfab = dp[4]);
+                AMREX_DPCPP_3D_ONLY(auto f0fab = dp[5]);
+                AMREX_DPCPP_3D_ONLY(auto f2fab = dp[6]);
+                AMREX_DPCPP_3D_ONLY(auto f4fab = dp[7]);
+                AMREX_DPCPP_3D_ONLY(auto f1fab = dp[8]);
+                AMREX_DPCPP_3D_ONLY(auto f3fab = dp[9]);
+                AMREX_DPCPP_3D_ONLY(auto f5fab = dp[10]);
+
+                AMREX_DPCPP_2D_ONLY(auto m0 = dp2[0]);
+                AMREX_DPCPP_2D_ONLY(auto m2 = dp2[1]);
+                AMREX_DPCPP_2D_ONLY(auto m1 = dp2[2]);
+                AMREX_DPCPP_2D_ONLY(auto m3 = dp2[3]);
+
+                AMREX_DPCPP_3D_ONLY(auto m0 = dp2[0]);
+                AMREX_DPCPP_3D_ONLY(auto m2 = dp2[1]);
+                AMREX_DPCPP_3D_ONLY(auto m4 = dp2[2]);
+                AMREX_DPCPP_3D_ONLY(auto m1 = dp2[3]);
+                AMREX_DPCPP_3D_ONLY(auto m3 = dp2[4]);
+                AMREX_DPCPP_3D_ONLY(auto m5 = dp2[5]);
+
                 mlebabeclap_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
                                  AMREX_D_DECL(dhx, dhy, dhz),
                                  AMREX_D_DECL(bxfab,byfab,bzfab),
@@ -994,7 +1015,6 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                  is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
                                  vbx, redblack, nc);
             });
-#endif
         }
     }
 }
@@ -1079,39 +1099,31 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
         auto dp = dtmp.data();
 #endif
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM (
             xbx, txbx,
             {
-#ifdef AMREX_USE_DPCPP
-                auto apx = dp[0];
-                auto fcx = dp[1];
-                auto bxcoef = dp[2];
-#endif
+                AMREX_DPCPP_ONLY(auto apx    = dp[0]);
+                AMREX_DPCPP_ONLY(auto fcx    = dp[1]);
+                AMREX_DPCPP_ONLY(auto bxcoef = dp[2]);
                 mlebabeclap_flux_x(txbx, fx, apx, fcx, phi, bxcoef, msk, dhx, face_only, ncomp, xbx,
                                    beta_on_centroid, phi_on_centroid);
             }
             , ybx, tybx,
             {
-#ifdef AMREX_USE_DPCPP
-                auto apy = dp[3];
-                auto fcy = dp[4];
-                auto bycoef = dp[5];
-#endif
+                AMREX_DPCPP_ONLY(auto apy    = dp[3]);
+                AMREX_DPCPP_ONLY(auto fcy    = dp[4]);
+                AMREX_DPCPP_ONLY(auto bycoef = dp[5]);
                 mlebabeclap_flux_y(tybx, fy, apy, fcy, phi, bycoef, msk, dhy, face_only, ncomp, ybx,
                                    beta_on_centroid, phi_on_centroid);
             }
-#if (AMREX_SPACEDIM == 3)
             , zbx, tzbx,
             {
-#ifdef AMREX_USE_DPCPP
-                auto apz = dp[6];
-                auto fcz = dp[7];
-                auto bzcoef = dp[8];
-#endif
+                AMREX_DPCPP_3D_ONLY(auto apz    = dp[6]);
+                AMREX_DPCPP_3D_ONLY(auto fcz    = dp[7]);
+                AMREX_DPCPP_3D_ONLY(auto bzcoef = dp[8]);
                 mlebabeclap_flux_z(tzbx, fz, apz, fcz, phi, bzcoef, msk, dhz, face_only, ncomp, zbx,
                                    beta_on_centroid, phi_on_centroid);
             }
-#endif
         );
     } else {
         const auto& area = factory->getAreaFrac();
@@ -1137,33 +1149,25 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
         auto dp = dtmp.data();
 #endif
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM (
             xbx, txbx,
             {
-#ifdef AMREX_USE_DPCPP
-                auto apx = dp[0];
-                auto bxcoef = dp[1];
-#endif
+                AMREX_DPCPP_ONLY(auto apx    = dp[0]);
+                AMREX_DPCPP_ONLY(auto bxcoef = dp[1]);
                 mlebabeclap_flux_x_0(txbx, fx, apx, phi, bxcoef, dhx, face_only, ncomp, xbx);
             }
             , ybx, tybx,
             {
-#ifdef AMREX_USE_DPCPP
-                auto apy = dp[2];
-                auto bycoef = dp[3];
-#endif
+                AMREX_DPCPP_ONLY(auto apy    = dp[2]);
+                AMREX_DPCPP_ONLY(auto bycoef = dp[3]);
                 mlebabeclap_flux_y_0(tybx, fy, apy, phi, bycoef, dhy, face_only, ncomp, ybx);
             }
-#if (AMREX_SPACEDIM == 3)
             , zbx, tzbx,
             {
-#ifdef AMREX_USE_DPCPP
-                auto apz = dp[4];
-                auto bzcoef = dp[5];
-#endif
+                AMREX_DPCPP_3D_ONLY(auto apz    = dp[4]);
+                AMREX_DPCPP_3D_ONLY(auto bzcoef = dp[5]);
                 mlebabeclap_flux_z_0(tzbx, fz, apz, phi, bzcoef, dhz, face_only, ncomp, zbx);
             }
-#endif
         );
     }
 }
@@ -1251,7 +1255,7 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
 
             if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM (
                 fbx, txbx,
                 {
                     mlebabeclap_grad_x(txbx, gx, s, apx, fcx, msk, dxi, ncomp, phi_on_centroid);
@@ -1260,12 +1264,10 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                 {
                     mlebabeclap_grad_y(tybx, gy, s, apy, fcy, msk, dyi, ncomp, phi_on_centroid);
                 }
-#if (AMREX_SPACEDIM == 3)
                 , fbz, tzbx,
                 {
                     mlebabeclap_grad_z(tzbx, gz, s, apz, fcz, msk, dzi, ncomp, phi_on_centroid);
                 }
-#endif
             );
         } else {
 
@@ -1276,7 +1278,7 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_phi_loc == Location::CellCenter, 
              "If computing the gradient at face centers we assume phi at cell centers");
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM (
                 fbx, txbx,
                 {
                     mlebabeclap_grad_x_0(txbx, gx, s, ax, dxi, ncomp);
@@ -1285,12 +1287,10 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                 {
                     mlebabeclap_grad_y_0(tybx, gy, s, ay, dyi, ncomp);
                 }
-#if (AMREX_SPACEDIM == 3)
                 , fbz, tzbx,
                 {
                     mlebabeclap_grad_z_0(tzbx, gz, s, az, dzi, ncomp);
                 }
-#endif
             );
         }
     }
@@ -1379,16 +1379,15 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
+                AMREX_DPCPP_ONLY(   auto fcxfab = dp[0]);
+                AMREX_DPCPP_ONLY(   auto fcyfab = dp[1]);
+                AMREX_DPCPP_3D_ONLY(auto fczfab = dp[2]);
                 mlebabeclap_normalize(tbx, fab, ascalar, afab,
                                       AMREX_D_DECL(dhx, dhy, dhz),
                                       AMREX_D_DECL(bxfab, byfab, bzfab),
                                       ccmfab, flagfab, vfracfab,
                                       AMREX_D_DECL(apxfab,apyfab,apzfab),
-#ifdef AMREX_USE_DPCPP
-                                      AMREX_D_DECL(dp[0],dp[1],dp[2]),
-#else
                                       AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-#endif
                                       bafab, bcfab, bebfab, is_eb_dirichlet, 
                                       beta_on_centroid, ncomp);
             });

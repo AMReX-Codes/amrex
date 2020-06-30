@@ -110,7 +110,7 @@ struct warpReduce
 //#ifdef AMREX_USE_CUDA
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
             AMREX_HIP_OR_CUDA(T y = __shfl_down(x, offset);,
-                              T y = __shfl_down_sync(0xffffffff, x, offset); );
+                              T y = __shfl_down_sync(0xffffffff, x, offset); )
             x = F()(x,y);
         }
 //#endif

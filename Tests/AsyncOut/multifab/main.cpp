@@ -113,7 +113,7 @@ void main_main ()
         if (ip == ParallelDescriptor::MyProc()) {
             amrex::AllPrint() << "Proc. " << ip << " number of boxes = " << mfs[0].local_size() << std::endl;
         }
-        amrex::USleep(0.001);
+        amrex::Sleep(0.001);
         ParallelDescriptor::Barrier();
     }
 

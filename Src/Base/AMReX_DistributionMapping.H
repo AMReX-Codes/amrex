@@ -236,7 +236,9 @@ class DistributionMapping
     * if use_box_vol is true, weight boxes by their volume in Distribute
     * otherwise, all boxes will be treated with equal weight
     */
-    static std::vector<std::vector<int> > makeSFC (const BoxArray& ba, bool use_box_vol=true);
+    static std::vector<std::vector<int> > makeSFC (const BoxArray& ba, 
+                                                   bool use_box_vol=true,
+                                                   const int nprocs=ParallelContext::NProcsSub() );
 
     /** \brief Computes the average cost per MPI rank given a distribution mapping
      * global cost vector.

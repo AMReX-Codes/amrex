@@ -411,7 +411,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         remapNeighborhoods(m_dmap[0]);
     }
 
-    if (info.do_agglomeration || info.do_consolidation)
+    if (agged || coned)
     {
         m_bottom_comm = makeSubCommunicator(m_dmap[0].back());
     }

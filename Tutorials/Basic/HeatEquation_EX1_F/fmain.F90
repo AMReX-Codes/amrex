@@ -11,7 +11,7 @@ program main
   integer :: n_cell, max_grid_size, nsteps, plot_int
   integer, parameter :: ncomp = 1, nghost = 1  ! one component, one ghost
   integer :: istep
-  real(amrex_real) :: dt, time
+  real(amrex_real) :: dt, coeff, time
   type(amrex_parmparse) :: pp
   type(amrex_box) :: domain
   type(amrex_boxarray)  :: ba
@@ -66,7 +66,16 @@ program main
   time = 0.d0
 
   ! choose a time step with a diffusive CFL of 0.9
-  dt = 0.9d0*geom%dx(1)**2/(2.d0*amrex_spacedim)
+
+#if (AMREX_SPACEDIM==1)
+  coeff = 1./(geom%dx(1)*geom%dx(1))
+#elif (AMREX_SPACEDIM==2)
+  coeff = 1./(geom%dx(1)*geom%dx(1)) + 1./(geom%dx(2)*geom%dx(2))
+#else
+  coeff = 1./(geom%dx(1)*geom%dx(1)) + 1./(geom%dx(2)*geom%dx(2)) + 1./(geom%dx(3)*geom%dx(3))
+#endif
+
+  dt = 0.9d0/(2.d0*coeff)
 
   do istep = 1, nsteps
 

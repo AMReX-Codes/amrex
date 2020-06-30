@@ -130,7 +130,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
         auto fabtyp = flags[mfi].getType();
         if (fabtyp == FabType::covered)
         {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM (
                 xbx, txbx,
                 {
                     const auto lo = amrex::lbound(txbx);
@@ -155,7 +155,6 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
                         }}}
                     }
                 }
-#if (AMREX_SPACEDIM == 3)
                 ,zbx, tzbx,
                 {
                     const auto lo = amrex::lbound(tzbx);
@@ -168,15 +167,14 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
                         }}}
                     }
                 }
-#endif
-                );
+            );
         }
         else if (fabtyp == FabType::singlevalued)
         {
             AMREX_D_TERM(Array4<Real const> const& ax = area[0]->const_array(mfi);,
                          Array4<Real const> const& ay = area[1]->const_array(mfi);,
                          Array4<Real const> const& az = area[2]->const_array(mfi););
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM (
                 xbx, txbx,
                 {
                     const auto lo = amrex::lbound(txbx);
@@ -201,7 +199,6 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
                         }}}
                     }
                 }
-#if (AMREX_SPACEDIM == 3)
                 ,zbx, tzbx,
                 {
                     const auto lo = amrex::lbound(tzbx);
@@ -214,8 +211,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
                         }}}
                     }
                 }
-#endif
-                );
+            );
         }
     }
 }
@@ -250,7 +246,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, const int sco
         auto fabtyp = flags[mfi].getType();
         if (fabtyp == FabType::covered)
         {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM (
                 xbx, txbx,
                 {
                     const auto lo = amrex::lbound(txbx);
@@ -275,7 +271,6 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, const int sco
                         }}}
                     }
                 }
-#if (AMREX_SPACEDIM == 3)
                 ,zbx, tzbx,
                 {
                     const auto lo = amrex::lbound(tzbx);
@@ -288,15 +283,14 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, const int sco
                         }}}
                     }
                 }
-#endif
-                );
+            );
         }
         else if (fabtyp == FabType::singlevalued)
         {
             AMREX_D_TERM(Array4<Real const> const& ax = area[0]->const_array(mfi);,
                          Array4<Real const> const& ay = area[1]->const_array(mfi);,
                          Array4<Real const> const& az = area[2]->const_array(mfi););
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM (
                 xbx, txbx,
                 {
                     const auto lo = amrex::lbound(txbx);
@@ -321,7 +315,6 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, const int sco
                         }}}
                     }
                 }
-#if (AMREX_SPACEDIM == 3)
                 ,zbx, tzbx,
                 {
                     const auto lo = amrex::lbound(tzbx);
@@ -334,8 +327,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, const int sco
                         }}}
                     }
                 }
-#endif
-                );
+            );
         }
     }
 }
