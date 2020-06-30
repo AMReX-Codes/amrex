@@ -46,6 +46,7 @@ private:
     int linop_maxorder = 2;
     bool agglomeration = true;
     bool consolidation = true;
+    bool semicoarsening = false;
     int max_coarsening_level = 30;
     bool use_hypre = false;
     bool use_petsc = false;

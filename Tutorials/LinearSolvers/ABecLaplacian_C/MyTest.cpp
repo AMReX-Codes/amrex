@@ -130,6 +130,7 @@ MyTest::solveABecLaplacian ()
     LPInfo info;
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
+    info.setSemicoarsening(semicoarsening);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
     const Real tol_rel = 1.e-10;
@@ -432,6 +433,7 @@ MyTest::readParameters ()
     pp.query("linop_maxorder", linop_maxorder);
     pp.query("agglomeration", agglomeration);
     pp.query("consolidation", consolidation);
+    pp.query("semicoarsening", semicoarsening);
     pp.query("max_coarsening_level", max_coarsening_level);
 
 #ifdef AMREX_USE_HYPRE
@@ -469,10 +471,10 @@ MyTest::initData ()
         bcoef.resize(nlevels);
     }
 
-    RealBox rb({AMREX_D_DECL(-32.,0.,0.)}, {AMREX_D_DECL(32.,1.,1.)});
+    RealBox rb({AMREX_D_DECL(-32.,-32.,0.)}, {AMREX_D_DECL(32.,32.,1.)});
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
     Geometry::Setup(&rb, 0, is_periodic.data());
-    Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell/64-1,n_cell/64-1)});
+    Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell/64-1)});
     Box domain = domain0;
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
