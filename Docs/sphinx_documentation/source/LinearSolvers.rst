@@ -392,6 +392,7 @@ call :cpp:`setMaxCoarseningLevel(0)` on the :cpp:`LPInfo` object
 passed to the constructor of a linear operator to disable the
 coarsening completely.  In that case the bottom solver is solving the
 residual correction form of the original problem. To build Hypre, follow the next steps:
+
 .. highlight:: c++
 
 ::
@@ -410,6 +411,7 @@ For an example of using hypre, we refer the reader to
 
 AMReX can also use `PETSc <https://www.mcs.anl.gov/petsc/>`_ as a bottom solver for cell-centered
 problems. To build PETSc, follow the next steps:
+
 .. highlight:: c++
 
 ::
