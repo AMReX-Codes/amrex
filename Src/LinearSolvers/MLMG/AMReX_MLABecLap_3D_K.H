@@ -376,6 +376,25 @@ void abec_gsrb_os (Box const& box, Array4<Real> const& phi, Array4<Real const> c
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void tridiagonal_solve (Array1D<Real,0,31>& a_ls, Array1D<Real,0,31>& b_ls, Array1D<Real,0,31>& c_ls,
+                        Array1D<Real,0,31>& r_ls, Array1D<Real,0,31>& u_ls, Array1D<Real,0,31>& gam,
+                        int ilen ) noexcept
+{
+    Real bet = b_ls(0);
+    u_ls(0) = r_ls(0) / bet;
+
+    for (int i = 1; i <= ilen - 1; i++) {
+        gam(i) = c_ls(i-1) / bet;
+        bet = b_ls(i) - a_ls(i)*gam(i);
+        if (bet == 0) amrex::Abort(">>>TRIDIAG FAILED");
+        u_ls(i) = (r_ls(i)-a_ls(i)*u_ls(i-1)) / bet;
+    }
+    for (int i = ilen-2; i >= 0; i--) {
+        u_ls(i) = u_ls(i) - gam(i+1)*u_ls(i+1);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void abec_gsrb_with_line_solve (
                 Box const& box, Array4<Real> const& phi, Array4<Real const> const& rhs,
                 Real alpha, Array4<Real const> const& a,
@@ -484,24 +503,7 @@ void abec_gsrb_with_line_solve (
                             }
                         }
 
-//                      This is the tridiagonal solve
-                        {
-                            Real bet = b_ls(0);
-                            u_ls(0) = r_ls(0) / bet;
-
-                            for (int jj = 1; jj <= ilen-1; jj++)
-                            {
-                                gam(jj) = c_ls(jj-1) / bet;
-                                bet = b_ls(jj) - a_ls(jj)*gam(jj);
-                                if (bet == 0) amrex::Abort(">>>TRIDIAG FAILED");
-                                u_ls(jj) = (r_ls(jj)-a_ls(jj)*u_ls(jj-1)) / bet;
-                            }
-
-                            for (int jj = ilen-2; jj >= 0; jj--)
-                            {
-                                u_ls(jj) = u_ls(jj) - gam(jj+1)*u_ls(jj+1);
-                            }
-                        }
+			tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
 
                         for (int k = lo.z; k <= hi.z; ++k)
                         {
@@ -576,24 +578,7 @@ void abec_gsrb_with_line_solve (
                             }
                         }
 
-//                      This is the tridiagonal solve
-                        {
-                            Real bet = b_ls(0);
-                            u_ls(0) = r_ls(0) / bet;
-
-                            for (int jj = 1; jj <= ilen-1; jj++)
-                            {
-                                gam(jj) = c_ls(jj-1) / bet;
-                                bet = b_ls(jj) - a_ls(jj)*gam(jj);
-                                if (bet == 0) amrex::Abort(">>>TRIDIAG FAILED");
-                                u_ls(jj) = (r_ls(jj)-a_ls(jj)*u_ls(jj-1)) / bet;
-                            }
-
-                            for (int jj = ilen-2; jj >= 0; jj--)
-                            {
-                                u_ls(jj) = u_ls(jj) - gam(jj+1)*u_ls(jj+1);
-                            }
-                        }
+			tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
 
                         for (int j = lo.y; j <= hi.y; ++j)
                         {
@@ -668,24 +653,7 @@ void abec_gsrb_with_line_solve (
                             }
                         }
 
-//                      This is the tridiagonal solve
-                        {
-                            Real bet = b_ls(0);
-                            u_ls(0) = r_ls(0) / bet;
-
-                            for (int jj = 1; jj <= ilen-1; jj++)
-                            { 
-                                gam(jj) = c_ls(jj-1) / bet;
-                                bet = b_ls(jj) - a_ls(jj)*gam(jj);
-                                if (bet == 0) amrex::Abort(">>>TRIDIAG FAILED");
-                                u_ls(jj) = (r_ls(jj)-a_ls(jj)*u_ls(jj-1)) / bet;
-                            }
-    
-                            for (int jj = ilen-2; jj >= 0; jj--)
-                            {
-                                u_ls(jj) = u_ls(jj) - gam(jj+1)*u_ls(jj+1);
-                            }
-                        }
+			tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
         
                         for (int i = lo.x; i <= hi.x; ++i)
                         {
@@ -696,25 +664,6 @@ void abec_gsrb_with_line_solve (
             }
 	}
     }	
-}
-
-void tridiagonal_solve (Array1D<Real,0,31>& a_ls, Array1D<Real,0,31>& b_ls, Array1D<Real,0,31>& c_ls,
-                        Array1D<Real,0,31>& r_ls, Array1D<Real,0,31>& u_ls, Array1D<Real,0,31>& gam,
-                        int ilen ) noexcept
-{   
-    Real bet = b_ls(0);
-    u_ls(0) = r_ls(0) / bet;	
-
-    for (int i = 1; i <= ilen - 1; i++) {
-	gam(i) = c_ls(i-1) / bet;
-        bet = b_ls(i) - a_ls(i)*gam(i);
-        if (bet == 0) amrex::Abort(">>>TRIDIAG FAILED");
-        u_ls(i) = (r_ls(i)-a_ls(i)*u_ls(i-1)) / bet;
-    }
-    for (int i = ilen-2; i >= 0; i--) {
-        u_ls(i) = u_ls(i) - gam(i+1)*u_ls(i+1);
-    }
-
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
