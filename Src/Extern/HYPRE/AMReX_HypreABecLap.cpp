@@ -205,7 +205,7 @@ HypreABecLap::prepareSolver ()
     {  
         const Box &reg = mfi.validbox();
 
-        rfab.resize(reg,regular_stencil_size);
+        rfab.resize(reg);
         amrex_hpacoef(reg, rfab, acoefs[mfi], scalar_a); 
 
         for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {
