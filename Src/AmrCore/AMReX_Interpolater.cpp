@@ -818,4 +818,103 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 }
 #endif
 
+FaceDivFree::~FaceDivFree () {}
+
+Box
+FaceDivFree::CoarseBox (const Box& fine,
+                        int        ratio)
+{
+    Box b = amrex::coarsen(fine,ratio);
+
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    {
+        if (b.length(i) < 2)
+        {
+            //
+            // Don't want degenerate boxes.
+            //
+            b.growHi(i,1);
+        }
+    }
+
+    return b;
+}
+
+Box
+FaceDivFree::CoarseBox (const Box&     fine,
+                        const IntVect& ratio)
+{
+    Box b = amrex::coarsen(fine,ratio);
+
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    {
+        if (b.length(i) < 2)
+        {
+            //
+            // Don't want degenerate boxes.
+            //
+            b.growHi(i,1);
+        }
+    }
+
+    return b;
+}
+
+void
+FaceDivFree::interp (const FArrayBox&  crse,
+                     int               crse_comp,
+                     FArrayBox&        fine,
+                     int               fine_comp,
+                     int               ncomp,
+                     const Box&        fine_region,
+                     const IntVect&    ratio,
+                     const Geometry&   crse_geom,
+                     const Geometry&   fine_geom,
+                     Vector<BCRec> const& bcr,
+                     int               /*actual_comp*/,
+                     int               /*actual_state*/,
+                     RunOn             runon)
+{
+    amrex::Abort("FaceDivFree cannot be ran with this API (FArrayBox based).");
+}
+
+void
+FaceDivFree::interp (Array<const MultiFab*, AMREX_SPACEDIM> crse,
+                     int               crse_comp,
+                     Array<MultiFab*, AMREX_SPACEDIM> fine,
+                     int               fine_comp,
+                     int               ncomp,
+                     const Box&        fine_region,
+                     const IntVect&    ratio,
+                     const Geometry& /*crse_geom */,
+                     const Geometry& /*fine_geom */,
+                     Vector<BCRec> const& /*bcr*/,
+                     int               /*actual_comp*/,
+                     int               /*actual_state*/,
+                     RunOn             runon)
+{
+    BL_PROFILE("FaceDivFree::interp()");
+
+    // This is currently only designed for octree, where ratio = 2.
+    // Also, if fine_region has odd number of items in each direction?
+    // If fine_region has less than 2 elements in each direction?
+    AMREX_ALWAYS_ASSERT(ratio == 2);
+
+    const Box ccbx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
+    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
+
+    GpuArray<Array4<Real const>, AMREX_SPACEDIM> crsearr;
+    GpuArray<Array4<Real>, AMREX_SPACEDIM> finearr;
+    for (int i=0; i<AMREX_SPACEDIM; ++i)
+    {
+        crsearr[i] = crse[i].const_array();
+        finearr[i] = fine[i].array();
+    }
+
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, ccbx, tbx,
+    {
+        amrex::facediv_cubic<Real>(tbx, crsearr, finearr, crse_comp, ncomp, ratio);
+    });
+}
+
 }

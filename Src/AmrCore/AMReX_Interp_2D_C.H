@@ -430,10 +430,10 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv (Box const& bx,
-         GpuArray<Array4<T>, AMREX_SPACEDIM> crse,
-         GpuArray<Array4<T>, AMREX_SPACEDIM> fine,
-         const int icomp, const int ncomp, IntVect const& ratio) noexcept
+facediv_cubic (Box const& bx,
+               GpuArray<Array4<T>, AMREX_SPACEDIM> crse,
+               GpuArray<Array4<T>, AMREX_SPACEDIM> fine,
+               const int icomp, const int ncomp, IntVect const& ratio) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
