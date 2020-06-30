@@ -2630,9 +2630,8 @@ MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const
                                Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
                                Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
 {
-    AMREX_ASSERT(NMGLevels(0) == 1);
-
-    const Real* dxinv = m_geom[0][0].InvCellSize();
+    const int amrlev = 0;
+    const int mglev  = m_num_mg_levels[amrlev]-1;
 
     const Box& ndbx = mfi.validbox();
     const auto lo = amrex::lbound(ndbx);
@@ -2640,7 +2639,7 @@ MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const
 
     AMREX_ASSERT(m_coarsening_strategy == CoarseningStrategy::RAP);
 
-    const auto& sten = m_stencil[0][0]->array(mfi);
+    const auto& sten = m_stencil[amrlev][mglev]->array(mfi);
 
     constexpr int ist_000 = 1-1;
     constexpr int ist_p00 = 2-1;
