@@ -559,9 +559,9 @@ void abec_gsrb_with_line_solve (
                                 rho -= dhx*bX(i  ,j,k,n)*phi(i-1,j,k,n);
                             if (i == vhi.x and m3(vhi.x+1,j,k) > 0)
                                 rho -= dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n);
-                            if (k == vlo.z and m1(i,j,vlo.z-1) > 0)
+                            if (k == vlo.z and m2(i,j,vlo.z-1) > 0)
                                 rho -= dhz*bZ(i,j  ,k,n)*phi(i,j,k-1,n);
-                            if (k == vhi.z and m4(i,j,vhi.z+1) > 0)
+                            if (k == vhi.z and m5(i,j,vhi.z+1) > 0)
                                 rho -= dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
 
                             a_ls(j-lo.y) = -dhy*bY(i,j,k,n);
@@ -578,7 +578,7 @@ void abec_gsrb_with_line_solve (
                             if (j == hi.y)
                             {
                                 c_ls(j-lo.y) = 0.;
-                                if (!(m4(i,vlo.y+1,k) > 0)) r_ls(j-lo.y) += dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
+                                if (!(m4(i,vhi.y+1,k) > 0)) r_ls(j-lo.y) += dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
                             }
                         }
 
@@ -624,9 +624,9 @@ void abec_gsrb_with_line_solve (
                                 +  dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf4)
                                 +  dhz*(bZ(i,j,k,n)*cf2 + bZ(i,j,k+1,n)*cf5));
 
-                            Real rho =  dhy*( bY(i,j+1,k,n)*phi(i,j-1,k,n)
-                                      +       bY(i  ,j,k,n)*phi(i,j+1,k,n) )
-                                      + dhz*( bZ(i,j  ,k,n)*phi(i,j,k+1,n)
+                            Real rho =  dhy*( bY(i,j  ,k,n)*phi(i,j-1,k,n)
+                                      +       bY(i,j+1,k,n)*phi(i,j+1,k,n) )
+                                      + dhz*( bZ(i,j  ,k,n)*phi(i,j,k-1,n)
                                       +       bZ(i,j,k+1,n)*phi(i,j,k+1,n) );
 
                             // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
@@ -634,9 +634,9 @@ void abec_gsrb_with_line_solve (
                                 rho -= dhy*bY(i,j  ,k,n)*phi(i,j-1,k,n);
                             if (j == vhi.y and m4(i,vhi.y+1,k) > 0)
                                 rho -= dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
-                            if (k == vlo.z and m1(i,j,vlo.z-1) > 0)
+                            if (k == vlo.z and m2(i,j,vlo.z-1) > 0)
                                 rho -= dhz*bZ(i,j  ,k,n)*phi(i,j,k-1,n);
-                            if (k == vhi.z and m4(i,j,vhi.z+1) > 0)
+                            if (k == vhi.z and m5(i,j,vhi.z+1) > 0)
                                 rho -= dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
 
                             a_ls(i-lo.x) = -dhx*bX(i,j,k,n);
@@ -650,9 +650,9 @@ void abec_gsrb_with_line_solve (
                                 a_ls(i-lo.x) = 0.;
                                 if (!(m0(vlo.x-1,j,k) > 0)) r_ls(i-lo.x) += dhx*bX(i,j,k,n)*phi(i-1,j,k,n);
                             }
-                            if (k == hi.x)
+                            if (i == hi.x)
                             {
-                                c_ls(k-lo.z) = 0.;
+                                c_ls(i-lo.x) = 0.;
                                 if (!(m3(vhi.x+1,j,k) > 0)) r_ls(i-lo.x) += dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n);
                             }
                         }

@@ -603,7 +603,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             if (dhx == dhy)
 #endif
 #if (AMREX_SPACEDIM == 3)
-            if (dhx == dhz)
+            if ((dhx == dhz) and (dhy == dhz))
 #endif
             {
                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
