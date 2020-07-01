@@ -384,30 +384,56 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 Vector<Long>
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParticlesInGrid (int lev, bool only_valid, bool only_local) const
 {
-  auto ngrids = ParticleBoxArray(lev).size();
-  Vector<Long> nparticles(ngrids, 0);
+    AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
 
-  if (lev >= 0 && lev < int(m_particles.size())) {
-    for (const auto& kv : GetParticles(lev)) {
-      int gid = kv.first.first;
-      const auto& ptile = kv.second;
+    LayoutData<Long> np_per_grid_local(ParticleBoxArray(lev),
+                                       ParticleDistributionMap(lev));
 
-      if (only_valid) {
-	for (int k = 0; k < ptile.GetArrayOfStructs().numParticles(); ++k) {
-	  const ParticleType& p = ptile.GetArrayOfStructs()[k];
-	  if (p.id() > 0) ++nparticles[gid];
-	}
-      } else {
-	nparticles[gid] += ptile.numParticles();
-      }
+    for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
+    {
+        int gid = pti.index();
+        if (only_valid)
+        {
+            const auto& ptile = ParticlesAt(lev, pti);
+            const auto& aos = ptile.GetArrayOfStructs();
+            const auto pstruct = aos().dataPtr();
+            const int np = ptile.numParticles();
+
+            ReduceOps<ReduceOpSum> reduce_op;
+            ReduceData<int> reduce_data(reduce_op);
+            using ReduceTuple = typename decltype(reduce_data)::Type;
+
+            reduce_op.eval(np, reduce_data,
+                           [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
+                           {
+                               return (pstruct[i].id() > 0) ? 1 : 0;
+                           });
+
+            int np_valid = amrex::get<0>(reduce_data.value());
+            np_per_grid_local[gid] += np_valid;
+        } else
+        {
+            np_per_grid_local[gid] += pti.numParticles();
+        }
+    }
+        
+    Vector<Long> nparticles(np_per_grid_local.size(), 0);
+    if (only_local)
+    {
+        for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
+        {
+            nparticles[pti.index()] = np_per_grid_local[pti.index()];
+        }
+    } 
+    else
+    {
+        ParallelDescriptor::GatherLayoutDataToVector(np_per_grid_local, nparticles,
+                                                     ParallelContext::IOProcessorNumberSub());
+        ParallelDescriptor::Bcast(&nparticles[0], nparticles.size(), 
+                                  ParallelContext::IOProcessorNumberSub());
     }
 
-    if (!only_local) {
-        ParallelAllReduce::Sum(&nparticles[0], ngrids, ParallelContext::CommunicatorSub());
-    }
-  }
-
-  return nparticles;
+    return nparticles;
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
