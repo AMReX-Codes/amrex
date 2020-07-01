@@ -188,7 +188,7 @@ void amrex_hpijmatrix (Box const& box,
     Gpu::DeviceVector<int> iter(2,0);
 
     Array4<T> const& cell_id_arr = cell_id.array();
-    Gpu::DeviceVector<int> cols_tmp(AMREX_SPACEDIM*2+1,0.0);
+    Gpu::DeviceVector<T> cols_tmp(AMREX_SPACEDIM*2+1,0.0);
     Gpu::DeviceVector<Real> mat_tmp(AMREX_SPACEDIM*2+1,0.0);
     Array4<Real const> const& a_arr = acoefs.const_array();
     Array4<Real const> const& bx_arr = bcoefsx.const_array();

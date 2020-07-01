@@ -120,6 +120,7 @@ void
 PETScABecLap::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
                      int max_iter, const BndryData& bndry, int max_bndry_order)
 {
+    Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
     BL_PROFILE("PETScABecLap::solve()");
 
     if (solver == nullptr || m_bndry != &bndry || m_maxorder != max_bndry_order)
