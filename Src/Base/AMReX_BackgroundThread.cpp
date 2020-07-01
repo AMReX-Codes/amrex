@@ -21,7 +21,7 @@ void BackgroundThread::do_job ()
     while (true)
     {
         std::unique_lock<std::mutex> lck(m_mutx);
-        m_job_cond.wait(lck, [this] () -> bool { return not m_func.empty(); });
+        m_job_cond.wait(lck, [this] () -> bool { return !m_func.empty(); });
         auto f = m_func.front();
         m_func.pop();
         lck.unlock();
