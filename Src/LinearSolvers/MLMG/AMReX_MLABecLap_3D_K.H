@@ -426,14 +426,12 @@ void abec_gsrb_with_line_solve (
 	
     if ( (dhx <= dhy) and (dhz <= dhy) ) {
 	idir = 1;
-	int ilen = hi.y - lo.y + 1;
+	ilen = hi.y - lo.y + 1;
     }	
     if ( (dhy <= dhx) and (dhz <= dhx) ) {
 	idir = 0;
-	int ilen = hi.x - lo.x + 1;
+	ilen = hi.x - lo.x + 1;
     } 
-
-    int ilen = hi.z - lo.z + 1;
 
     if (ilen > 32) amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32");
 
