@@ -46,6 +46,7 @@ set(AMReX_TYPECHECKER "@CMAKE_INSTALL_PREFIX@/Tools/typechecker/typechecker.py")
 # General options
 set(AMReX_@DIM@D_FOUND                  ON)
 set(AMReX_MPI_FOUND                 @ENABLE_MPI@)
+set(AMReX_MPI_THREAD_MULTIPLE_FOUND @ENABLE_MPI_THREAD_MULTIPLE@)
 set(AMReX_OMP_FOUND                 @ENABLE_OMP@)
 set(AMReX_CUDA_FOUND                @ENABLE_CUDA@)
 set(AMReX_DPCPP_FOUND               @ENABLE_DPCPP@)
