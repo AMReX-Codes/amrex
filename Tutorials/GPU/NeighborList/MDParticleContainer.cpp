@@ -119,7 +119,7 @@ void MDParticleContainer::computeForces()
         auto& aos   = ptile.GetArrayOfStructs();
         const size_t np = aos.numParticles();
 
-        auto nbor_data = m_neighbor_list[index].data();
+        auto nbor_data = m_neighbor_list[lev][index].data();
         ParticleType* pstruct = aos().dataPtr();
 
        // now we loop over the neighbor list and compute the forces
@@ -172,7 +172,7 @@ Real MDParticleContainer::minDistance()
         auto& aos   = ptile.GetArrayOfStructs();
         const size_t np = aos.numParticles();
 
-        auto nbor_data = m_neighbor_list[index].data();
+        auto nbor_data = m_neighbor_list[lev][index].data();
         ParticleType* pstruct = aos().dataPtr();
 
 	Gpu::DeviceScalar<Real> min_d_gpu(min_d);
