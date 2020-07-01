@@ -94,7 +94,7 @@ public:
         const auto hi = ubound(bx);
         index_type* pcell   = m_cells.dataPtr();
         index_type* pcount  = m_counts.dataPtr();
-        AMREX_FOR_1D ( nitems, i,
+        amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (int i) noexcept
         {
             bin_type iv = f(v[i]);
             auto iv3 = iv.dim3();
@@ -114,7 +114,7 @@ public:
 
         index_type* pperm = m_perm.dataPtr();
         constexpr index_type max_index = std::numeric_limits<index_type>::max();
-        AMREX_FOR_1D ( nitems, i,
+        amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (int i) noexcept
         {
             index_type index = Gpu::Atomic::Inc(&pcount[pcell[i]], max_index);
             pperm[index] = i;
