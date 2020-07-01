@@ -19,3 +19,5 @@ linop_maxorder = 2
 agglomeration = 0    # Do agglomeration on AMR Level 0?
 consolidation = 1    # Do consolidation?
 semicoarsening = 1
+max_semicoarsening_level = 0
+

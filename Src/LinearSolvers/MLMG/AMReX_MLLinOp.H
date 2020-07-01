@@ -39,6 +39,7 @@ struct LPInfo
     int con_grid_size = -1;
     bool has_metric_term = true;
     int max_coarsening_level = 30;
+    int max_semicoarsening_level = 0;
 
     LPInfo& setAgglomeration (bool x) noexcept { do_agglomeration = x; return *this; }
     LPInfo& setConsolidation (bool x) noexcept { do_consolidation = x; return *this; }
@@ -47,6 +48,7 @@ struct LPInfo
     LPInfo& setConsolidationGridSize (int x) noexcept { con_grid_size = x; return *this; }
     LPInfo& setMetricTerm (bool x) noexcept { has_metric_term = x; return *this; }
     LPInfo& setMaxCoarseningLevel (int n) noexcept { max_coarsening_level = n; return *this; }
+    LPInfo& setMaxSemicoarseningLevel (int n) noexcept { max_semicoarsening_level = n; return *this; }
 
     static constexpr int getDefaultAgglomerationGridSize () {
 #ifdef AMREX_USE_GPU

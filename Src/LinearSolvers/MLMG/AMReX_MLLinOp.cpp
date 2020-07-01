@@ -400,8 +400,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
         if (info.do_semicoarsening)
         {
-            int max_semicoarsening_levels = 6;
-            int num_semicoarsening_levels = 1;
+            int num_semicoarsening_level = 1;
             // Semi-coarsening  -- by the time we get here we know we can't coarsen isotropically any more
             IntVect rr_0(AMREX_D_DECL(rr,1,1));
             bool is_coarsenable_x = ( a_geom[0].Domain().coarsenable(rr_0, mg_domain_min_width) and
@@ -425,12 +424,12 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             {
                 IntVect rr_vec(rr/mg_coarsen_ratio);
 #if (AMREX_SPACEDIM == 2)
-                while ( (num_semicoarsening_levels < max_semicoarsening_levels + 1) and
+                while ( (num_semicoarsening_level < info.max_semicoarsening_level + 1) and
 			(m_num_mg_levels[0] < info.max_coarsening_level + 1) and
                         (is_coarsenable_x or is_coarsenable_y ) )
 #endif 
 #if (AMREX_SPACEDIM == 3)    
-                while ( (num_semicoarsening_levels < max_semicoarsening_levels + 1) and
+                while ( (num_semicoarsening_level < info.max_semicoarsening_level + 1) and
 		        (m_num_mg_levels[0] < info.max_coarsening_level + 1) and
                         (is_coarsenable_x or is_coarsenable_y or is_coarsenable_z) )
 #endif
@@ -467,7 +466,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                         m_dmap[0].push_back(a_dmap[0]);
                     }
                     ++(m_num_mg_levels[0]);
-                    ++num_semicoarsening_levels; 
+                    ++num_semicoarsening_level; 
 
                     IntVect rr_0(AMREX_D_DECL(rr_vec[0]*mg_coarsen_ratio, 1, 1));
                     is_coarsenable_x = ( a_geom[0].Domain().coarsenable(rr_0, mg_domain_min_width) and

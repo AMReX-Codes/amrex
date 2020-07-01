@@ -48,6 +48,7 @@ private:
     bool consolidation = true;
     bool semicoarsening = false;
     int max_coarsening_level = 30;
+    int max_semicoarsening_level = 0;
     bool use_hypre = false;
     bool use_petsc = false;
    
