@@ -32,7 +32,6 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize ()
 {
-    levelDirectoriesCreated = false;
     usePrePost = false;
     doUnlink = true;
 
@@ -43,7 +42,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
     {
         static_assert(sizeof(ParticleType)%sizeof(RealType) == 0,
                       "sizeof ParticleType is not a multiple of sizeof RealType");
-        
+
         ParmParse pp("particles");
         pp.query("do_tiling", do_tiling);
         Vector<int> tilesize(AMREX_SPACEDIM);
@@ -54,7 +53,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
         static_assert(std::is_standard_layout<ParticleType>::value
                    && std::is_trivial<ParticleType>::value,
                       "Particle type must be standard layout and trivial.");
-        
+
         pp.query("use_prepost", usePrePost);
         pp.query("do_unlink", doUnlink);
 
@@ -909,7 +908,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 copyParticles (const ParticleContainerType& other, bool local)
 {
     BL_PROFILE("ParticleContainer::copyParticles");
-    clearParticles();   
+    clearParticles();
     addParticles(other, local);
 }
 
@@ -926,7 +925,7 @@ addParticles (const ParticleContainerType& other, bool local)
         auto& plevel = GetParticles(lev);
         for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
+            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
             if(plevel_other.find(index) == plevel_other.end()) continue;
 
             auto& ptile = plevel[index];
@@ -937,10 +936,10 @@ addParticles (const ParticleContainerType& other, bool local)
             auto dst_index = ptile.numParticles();
             ptile.resize(dst_index + np);
 
-            amrex::copyParticles(ptile, ptile_other, 0, dst_index, np);            
+            amrex::copyParticles(ptile, ptile_other, 0, dst_index, np);
         }
     }
-    
+
     if (not local) Redistribute();
 }
 
