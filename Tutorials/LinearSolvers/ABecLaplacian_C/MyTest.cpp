@@ -132,6 +132,7 @@ MyTest::solveABecLaplacian ()
     info.setConsolidation(consolidation);
     info.setSemicoarsening(semicoarsening);
     info.setMaxCoarseningLevel(max_coarsening_level);
+    info.setMaxSemicoarseningLevel(max_semicoarsening_level);
 
     const Real tol_rel = 1.e-10;
     const Real tol_abs = 0.0;
@@ -435,6 +436,7 @@ MyTest::readParameters ()
     pp.query("consolidation", consolidation);
     pp.query("semicoarsening", semicoarsening);
     pp.query("max_coarsening_level", max_coarsening_level);
+    pp.query("max_semicoarsening_level", max_semicoarsening_level);
 
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);

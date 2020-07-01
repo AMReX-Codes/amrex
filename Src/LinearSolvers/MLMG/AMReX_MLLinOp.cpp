@@ -486,19 +486,19 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                 }
             }
         }
-
-	for (int mglev = 0; mglev < m_num_mg_levels[0] - 1; mglev++){
-            IntVect ratio;
-            const Box& fine_domain = m_geom[0][mglev].Domain();
-            const Box& crse_domain = m_geom[0][mglev+1].Domain();
-
-            ratio[0] = fine_domain.length()[0] / crse_domain.length()[0];
-            ratio[1] = fine_domain.length()[1] / crse_domain.length()[1];
-            ratio[2] = fine_domain.length()[2] / crse_domain.length()[2];
-
-            mg_coarsen_ratio_vec.push_back(ratio);
-        } 
     }
+    for (int mglev = 0; mglev < m_num_mg_levels[0] - 1; mglev++){
+        IntVect ratio;
+        const Box& fine_domain = m_geom[0][mglev].Domain();
+        const Box& crse_domain = m_geom[0][mglev+1].Domain();
+
+        ratio[0] = fine_domain.length()[0] / crse_domain.length()[0];
+        ratio[1] = fine_domain.length()[1] / crse_domain.length()[1];
+        ratio[2] = fine_domain.length()[2] / crse_domain.length()[2];
+
+        mg_coarsen_ratio_vec.push_back(ratio);
+    } 
+    
 
     if (agged)
     {
