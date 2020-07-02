@@ -56,6 +56,7 @@ function ( set_amrex_defines )
 
    # MPI
    add_amrex_define( AMREX_USE_MPI IF ENABLE_MPI )
+   add_amrex_define( AMREX_MPI_THREAD_MULTIPLE NO_LEGACY IF ENABLE_MPI_THREAD_MULTIPLE)
 
    # OpenMP -- This one has legacy definition only in Base/AMReX_omp_mod.F90
    add_amrex_define( AMREX_USE_OMP IF ENABLE_OMP )
