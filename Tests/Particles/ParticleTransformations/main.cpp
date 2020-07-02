@@ -402,6 +402,8 @@ void testFilter (const PC& pc)
 
     auto np_new = pc2.TotalNumberOfParticles();
 
+    amrex::Print() << np_new << " " << np_old << "\n";
+
     AMREX_ALWAYS_ASSERT(2*np_new == np_old);
 
     auto all_odd = amrex::ReduceLogicalAnd(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() % 2 == 1; });
@@ -409,10 +411,13 @@ void testFilter (const PC& pc)
     AMREX_ALWAYS_ASSERT(all_odd);
 
     pc2.clearParticles();
-    pc2.copyParticles(pc);
-    filterParticles(pc2, KeepEvenFilter());
+    pc2.copyParticles(pc, KeepEvenFilter());
+    //    filterParticles(pc2, KeepEvenFilter());
 
     np_new = pc2.TotalNumberOfParticles();
+
+    amrex::Print() << np_new << " " << np_old << "\n";
+
     AMREX_ALWAYS_ASSERT(2*np_new == np_old);
 
     auto all_even = amrex::ReduceLogicalAnd(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() % 2 == 0; });
