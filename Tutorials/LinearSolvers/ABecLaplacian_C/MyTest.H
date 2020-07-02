@@ -46,10 +46,12 @@ private:
     int linop_maxorder = 2;
     bool agglomeration = true;
     bool consolidation = true;
+    bool semicoarsening = false;
     int max_coarsening_level = 30;
+    int max_semicoarsening_level = 0;
     bool use_hypre = false;
     bool use_petsc = false;
-    
+
 #ifdef AMREX_USE_HYPRE
     int hypre_interface_i = 1;  // 1. structed, 2. semi-structed, 3. ij
     amrex::Hypre::Interface hypre_interface = amrex::Hypre::Interface::structed;
