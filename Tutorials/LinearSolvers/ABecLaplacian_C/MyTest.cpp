@@ -183,7 +183,6 @@ MyTest::solveABecLaplacian ()
         mlmg.setMaxFmgIter(max_fmg_iter);
         mlmg.setVerbose(verbose);
         mlmg.setBottomVerbose(bottom_verbose);
-//        mlmg.setBottomSolver(MLMG::BottomSolver::smoother);
 
 #ifdef AMREX_USE_HYPRE
         if (use_hypre) {
@@ -242,7 +241,6 @@ MyTest::solveABecLaplacian ()
             mlmg.setMaxFmgIter(max_fmg_iter);
             mlmg.setVerbose(verbose);
             mlmg.setBottomVerbose(bottom_verbose);
-//            mlmg.setBottomSolver(MLMG::BottomSolver::smoother);
 
 #ifdef AMREX_USE_HYPRE
             if (use_hypre) {

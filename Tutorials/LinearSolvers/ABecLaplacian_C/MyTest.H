@@ -51,7 +51,7 @@ private:
     int max_semicoarsening_level = 0;
     bool use_hypre = false;
     bool use_petsc = false;
-   
+
 #ifdef AMREX_USE_HYPRE
     int hypre_interface_i = 1;  // 1. structed, 2. semi-structed, 3. ij
     amrex::Hypre::Interface hypre_interface = amrex::Hypre::Interface::structed;
@@ -67,7 +67,7 @@ private:
     amrex::Vector<amrex::MultiFab> acoef;
     amrex::Vector<amrex::MultiFab> bcoef;
 
-    amrex::Real ascalar = 0.0;
+    amrex::Real ascalar = 1.e-3;
     amrex::Real bscalar = 1.0;
 };
 
