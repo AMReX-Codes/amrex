@@ -397,10 +397,14 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
     if (MyProc == IOProcNumber)
     {
-        if ( ! amrex::UtilCreateDirectory(pdir, 0755))
+        if ( ! pc.GetLevelDirectoriesCreated())
         {
-            amrex::CreateDirectoryFailed(pdir);
+            if ( ! amrex::UtilCreateDirectory(pdir, 0755))
+            {
+                amrex::CreateDirectoryFailed(pdir);
+            }
         }
+
         for (int lev = 0; lev <= pc.finestLevel(); lev++)
         {
             std::string LevelDir = pdir;
@@ -412,9 +416,12 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
                 LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
 
-                if ( ! amrex::UtilCreateDirectory(LevelDir, 0755))
+                if ( ! pc.GetLevelDirectoriesCreated())
                 {
-                    amrex::CreateDirectoryFailed(LevelDir);
+                    if ( ! amrex::UtilCreateDirectory(LevelDir, 0755))
+                    {
+                        amrex::CreateDirectoryFailed(LevelDir);
+                    }
                 }
 
                 std::string HeaderFileName = LevelDir;
