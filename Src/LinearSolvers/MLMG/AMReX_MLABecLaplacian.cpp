@@ -603,6 +603,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                           AMREX_D_DECL(dp[0],dp[2],dp[4]),
                                           AMREX_D_DECL(dp[1],dp[3],dp[5]),
                                           vbx, redblack, nc);
+            });
         }
 #else
         if (m_overset_mask[amrlev][mglev]) {
