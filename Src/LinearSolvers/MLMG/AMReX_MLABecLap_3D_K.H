@@ -433,6 +433,7 @@ void abec_gsrb_with_line_solve (
 	ilen = hi.x - lo.x + 1;
     } 
 
+    // This assertion should be moved outside the kernel for performance!
     if (ilen > 32) amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32");
 
     Array1D<Real,0,31> a_ls;
@@ -712,6 +713,7 @@ void overset_rescale_bcoef_x (Box const& box, Array4<Real> const& bX, Array4<int
         }}}
     }
 }
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void overset_rescale_bcoef_y (Box const& box, Array4<Real> const& bY, Array4<int const> const& osm,
                               int ncomp, Real osfac) noexcept
@@ -746,7 +748,5 @@ void overset_rescale_bcoef_z (Box const& box, Array4<Real> const& bZ, Array4<int
     }
 }
 
-
-                            
 }
 #endif

@@ -435,8 +435,8 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         }
 
         // res_crse = R(rescor_fine); this provides res/b to the level below
+        linop.restriction(amrlev, mglev+1, res[amrlev][mglev+1], rescor[amrlev][mglev]);
 
-        linop.restriction(amrlev, mglev+1, res[amrlev][mglev+1], rescor[amrlev][mglev], linop.mg_coarsen_ratio_vec[mglev]);
     }
 
     BL_PROFILE_VAR("MLMG::mgVcycle_bottom", blp_bottom);

@@ -99,7 +99,6 @@ public:
         return std::unique_ptr<MLLinOp>{};
     }
 
-    virtual void restriction (int, int, MultiFab& crse, MultiFab& fine, IntVect& ratio) const;
     virtual void restriction (int, int, MultiFab& crse, MultiFab& fine) const final override;
 
     virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final override;
@@ -143,7 +142,7 @@ protected:
     //
     bool isEBDirichlet   () const noexcept { return m_eb_phi[0] != nullptr; }
 
-    void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
+    void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
                                         Vector<Array<MultiFab,AMREX_SPACEDIM> >& b,
                                         const Vector<MultiFab*>& b_eb);
     void averageDownCoeffs ();

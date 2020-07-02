@@ -246,13 +246,15 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
     {
+        IntVect ratio = (amrlev > 0) ? IntVect(mg_coarsen_ratio) : mg_coarsen_ratio_vec[mglev-1];
+
         if (m_a_scalar == 0.0)
         {
             a[mglev].setVal(0.0);
         }
         else
         {
-            amrex::average_down(a[mglev-1], a[mglev], 0, 1, mg_coarsen_ratio_vec[mglev-1]);
+            amrex::average_down(a[mglev-1], a[mglev], 0, 1, ratio);
         }
         
         Vector<const MultiFab*> fine {AMREX_D_DECL(&(b[mglev-1][0]),
@@ -262,7 +264,7 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
                                              &(b[mglev][1]),
                                              &(b[mglev][2]))};
 
-        amrex::average_down_faces(fine, crse, mg_coarsen_ratio_vec[mglev-1], 0);
+        amrex::average_down_faces(fine, crse, ratio, 0);
     }
 
     for (int mglev = 1; mglev < nmglevs; ++mglev)
@@ -464,6 +466,11 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 {
     BL_PROFILE("MLABecLaplacian::Fsmooth()");
 
+    bool regular_coarsening = true;
+    if (amrlev == 0 and mglev > 0) {
+        regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
+    }
+
     const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
     AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
                  const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
@@ -571,7 +578,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                              AMREX_D_DECL(dp[1],dp[3],dp[5]),
                              osm, vbx, redblack, nc);
             });
-        } else {
+        } else if (regular_coarsening) {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
             {
                 abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
@@ -583,6 +590,19 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                           AMREX_D_DECL(dp[1],dp[3],dp[5]),
                           vbx, redblack, nc);
             });
+        } else {
+            Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
+            // line solve does not with with GPU
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            {
+                abec_gsrb_with_line_solve(thread_box, solnfab, rhsfab, alpha, afab,
+                                          AMREX_D_DECL(dhx, dhy, dhz),
+                                          AMREX_D_DECL(bxfab, byfab, bzfab),
+                                          AMREX_D_DECL(m0,m2,m4),
+                                          AMREX_D_DECL(m1,m3,m5),
+                                          AMREX_D_DECL(dp[0],dp[2],dp[4]),
+                                          AMREX_D_DECL(dp[1],dp[3],dp[5]),
+                                          vbx, redblack, nc);
         }
 #else
         if (m_overset_mask[amrlev][mglev]) {
@@ -598,39 +618,32 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                              AMREX_D_DECL(f1fab,f3fab,f5fab),
                              osm, vbx, redblack, nc);
             });
-        } else {
-#if (AMREX_SPACEDIM == 2)
-            if (dhx == dhy)
-#endif
-#if (AMREX_SPACEDIM == 3)
-            if ((dhx == dhz) and (dhy == dhz))
-#endif
+        } else if (regular_coarsening) {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
             {
-               AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-               { 
-                   abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
-                             AMREX_D_DECL(dhx, dhy, dhz),
-                             AMREX_D_DECL(bxfab, byfab, bzfab),
-                             AMREX_D_DECL(m0,m2,m4),
-                             AMREX_D_DECL(m1,m3,m5),
-                             AMREX_D_DECL(f0fab,f2fab,f4fab),
-                             AMREX_D_DECL(f1fab,f3fab,f5fab),
-                             vbx, redblack, nc);
-               });
-            } else {
-               AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-               {   
-                   abec_gsrb_with_line_solve(thread_box, solnfab, rhsfab, alpha, afab,
-                             AMREX_D_DECL(dhx, dhy, dhz),
-                             AMREX_D_DECL(bxfab, byfab, bzfab),
-                             AMREX_D_DECL(m0,m2,m4),
-                             AMREX_D_DECL(m1,m3,m5),
-                             AMREX_D_DECL(f0fab,f2fab,f4fab),
-                             AMREX_D_DECL(f1fab,f3fab,f5fab),
-                             vbx, redblack, nc);
-               });
-            }
-
+                abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
+                          AMREX_D_DECL(dhx, dhy, dhz),
+                          AMREX_D_DECL(bxfab, byfab, bzfab),
+                          AMREX_D_DECL(m0,m2,m4),
+                          AMREX_D_DECL(m1,m3,m5),
+                          AMREX_D_DECL(f0fab,f2fab,f4fab),
+                          AMREX_D_DECL(f1fab,f3fab,f5fab),
+                          vbx, redblack, nc);
+            });
+        } else {
+            Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
+            // line solve does not with with GPU
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            {
+                abec_gsrb_with_line_solve(thread_box, solnfab, rhsfab, alpha, afab,
+                                          AMREX_D_DECL(dhx, dhy, dhz),
+                                          AMREX_D_DECL(bxfab, byfab, bzfab),
+                                          AMREX_D_DECL(m0,m2,m4),
+                                          AMREX_D_DECL(m1,m3,m5),
+                                          AMREX_D_DECL(f0fab,f2fab,f4fab),
+                                          AMREX_D_DECL(f1fab,f3fab,f5fab),
+                                          vbx, redblack, nc);
+            });
         }
 #endif
     }

@@ -273,7 +273,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void abec_gsrb_with_line_solve (
                 Box const& box, Array4<Real> const& phi, Array4<Real const> const& rhs,
                 Real alpha, Array4<Real const> const& a,
-                Real dhx, Real dhy, 
+                Real dhx, Real dhy,
                 Array4<Real const> const& bX, Array4<Real const> const& bY,
                 Array4<int const> const& m0, Array4<int const> const& m2,
                 Array4<int const> const& m1, Array4<int const> const& m3,
@@ -294,10 +294,12 @@ void abec_gsrb_with_line_solve (
     // than in the other directions
     int idir = 1;
 
+    // This should be moved outside the kernel!
     if (dhy <= dhx) amrex::Abort("dhy is supposed to be much larger than dhx");
 
     int ilen = hi.y - lo.y + 1;
 
+    // This should be moved outside the kernel!
     if (ilen > 32) amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32");
 
     Array1D<Real,0,31> a_ls;
@@ -311,11 +313,11 @@ void abec_gsrb_with_line_solve (
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             if ((i+redblack)%2 == 0) {
-                for (int j = lo.y; j <= hi.y; ++j) {  
+                for (int j = lo.y; j <= hi.y; ++j) {
                     Real gamma = alpha*a(i,j,0)
                         +   dhx*(bX(i,j,0,n)+bX(i+1,j,0,n))
                         +   dhy*(bY(i,j,0,n)+bY(i,j+1,0,n));
-   
+
                     Real cf0 = (i == vlo.x and m0(vlo.x-1,j,0) > 0)
                         ? f0(vlo.x,j,0,n) : 0.0;
                     Real cf1 = (j == vlo.y and m1(i,vlo.y-1,0) > 0)
@@ -332,7 +334,7 @@ void abec_gsrb_with_line_solve (
                     Real rho =  dhx*( bX(i  ,j,0,n)*phi(i-1,j,0,n)
                               +       bX(i+1,j,0,n)*phi(i+1,j,0,n) );
 
-                            // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)         
+                    // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
                     if (i == vlo.x and m0(vlo.x-1,j,0) > 0)
                         rho -= dhx*bX(i  ,j,0,n)*phi(i-1,j,0,n);
                     if (i == vhi.x and m3(vhi.x+1,j,0) > 0)
@@ -352,7 +354,7 @@ void abec_gsrb_with_line_solve (
                         c_ls(j-lo.y) = 0.;
                         if (!(m3(i,vhi.y+1,0) > 0)) r_ls(j-lo.y) += dhy*bY(i,j+1,0,n)*phi(i,j+1,0,n);
                     }
-                }   
+                }
 //                      This is the tridiagonal solve
                 {
                     Real bet = b_ls(0);
@@ -364,7 +366,7 @@ void abec_gsrb_with_line_solve (
                         if (bet == 0) amrex::Abort(">>>TRIDIAG FAILED");
                         u_ls(jj) = (r_ls(jj)-a_ls(jj)*u_ls(jj-1)) / bet;
                     }
-                   
+
                     for (int jj = ilen-2; jj >= 0; jj--) {
                                 u_ls(jj) = u_ls(jj) - gam(jj+1)*u_ls(jj+1);
                     }

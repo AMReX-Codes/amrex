@@ -281,24 +281,13 @@ MLCellLinOp::makeNGrids (int grid_size) const
 }
 
 void
-MLCellLinOp::restriction (int i1, int i2, MultiFab& crse, MultiFab& fine) const
-{
-#if (AMREX_SPACEDIM == 3)
-    IntVect ratio(2,2,2);
-#endif
-#if (AMREX_SPACEDIM == 2)
-    IntVect ratio(2,2);
-#endif
-    restriction(i1,i2,crse,fine,ratio);
-}
-
-void
-MLCellLinOp::restriction (int i1, int i2, MultiFab& crse, MultiFab& fine, IntVect& ratio) const
+MLCellLinOp::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const
 {
     const int ncomp = getNComp();
 #ifdef AMREX_SOFT_PERF_COUNTERS
     perf_counters.restrict(crse);
 #endif
+    IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[cmglev-1];
     amrex::average_down(fine, crse, 0, ncomp, ratio);
 }
 
@@ -311,6 +300,12 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
 
     const int ncomp = getNComp();
 
+    Dim3 ratio3 = {2,2,2};
+    IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[fmglev];
+    AMREX_D_TERM(ratio3.x = ratio[0];,
+                 ratio3.y = ratio[1];,
+                 ratio3.z = ratio[2];);
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -321,9 +316,9 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
         Array4<Real> const& ffab = fine.array(mfi);
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
-            int ic = amrex::coarsen(i,mg_coarsen_ratio_vec[fmglev][0]);
-            int jc = amrex::coarsen(j,mg_coarsen_ratio_vec[fmglev][1]);
-            int kc = amrex::coarsen(k,mg_coarsen_ratio_vec[fmglev][2]);
+            int ic = amrex::coarsen(i,ratio3.x);
+            int jc = amrex::coarsen(j,ratio3.y);
+            int kc = amrex::coarsen(k,ratio3.z);
             ffab(i,j,k,n) += cfab(ic,jc,kc,n);
         });
     }    
