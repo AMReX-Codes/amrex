@@ -1837,6 +1837,8 @@ BaseFab<T>::copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
 {
     AMREX_ASSERT(destbox.ok());
     AMREX_ASSERT(srcbox.sameSize(destbox));
+    std::cout << __FILE__ << ":" << __LINE__ << " src.box = " << src.box() << std::endl;
+    std::cout << __FILE__ << ":" << __LINE__ << " srcbox = " << srcbox << std::endl;
     AMREX_ASSERT(src.box().contains(srcbox));
     AMREX_ASSERT(this->domain.contains(destbox));
     AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());

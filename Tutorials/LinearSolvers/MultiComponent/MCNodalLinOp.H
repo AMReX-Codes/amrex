@@ -94,12 +94,12 @@ public:
 	// Overrides correctionResidual to add call to realFillBoundary
 	virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
 					 BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) override final;
+	// This function extends fillBoundary to account for the extra
+	// ghost nodes that are present. 
+	static void realFillBoundary(MultiFab &phi, const Geometry &geom);
 private:
 	// Usual buildMasks
 	void buildMasks ();
-	// This function extends fillBoundary to account for the extra
-	// ghost nodes that are present. 
-	void realFillBoundary(MultiFab &phi, const Geometry &geom) const;
 
 	bool m_is_bottom_singular = false;
 	bool m_masks_built = false;

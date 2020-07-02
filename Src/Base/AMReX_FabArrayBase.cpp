@@ -325,7 +325,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 			   const Vector<int>& imap_dst,
 			   const BoxArray& ba_src, const DistributionMapping& dm_src,
 			   const Vector<int>& imap_src,
-			   int MyProc)
+			   int MyProc) ///  DOES NOT GET CALLED HERE
 {
     BL_PROFILE("FabArrayBase::CPC::define()");
 
@@ -644,7 +644,7 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, const IntVect& nghost,
 }
 
 void
-FabArrayBase::FB::define_fb(const FabArrayBase& fa)
+FabArrayBase::FB::define_fb(const FabArrayBase& fa) // GETS USED
 {
     const int                  MyProc   = ParallelDescriptor::MyProc();
     const BoxArray&            ba       = fa.boxArray();
@@ -713,7 +713,9 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     {
 	const int   krcv = imap[i];
 	const Box& vbx   = ba[krcv];
+	//std::cout << "vbx = " << vbx << std::endl;
 	const Box& bxrcv = amrex::grow(vbx, ng);
+	//std::cout << "bxrcv = " << bxrcv << std::endl;
 	
 	if (check_local) {
 	    localtouch.resize(bxrcv);
@@ -735,17 +737,42 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 		const Box& dst_bx   = isects[j].second - *pit;
 		const int src_owner = dm[ksnd];
 		
+		//std::cout << "dst_box = " << dst_bx << std::endl;
+		//std::cout << "vbx = " << vbx << std::endl;
 		const BoxList& bl = amrex::boxDiff(dst_bx, vbx);
+        //BoxList bltmp2 = ba.boxList().accrete(ng);
+        //bltmp2 = amrex::removeOverlap(bltmp2);
+
+        //for (int i = 0; i < ba.size(); i++)
+        //{
+        //    BoxList bltmp3 = amrex::complementIn(BoxArray(bltmp2)[i],ba.boxList());
+        //    for (BoxList::const_iterator lit = bltmp3.begin(); lit != bltmp3.end(); ++lit)
+        //        std::cout << "bltmptwo = " << *lit << std::endl;
+        //    
+        //    bltmp3.intersect(ba[i].grow(ng));
+        //    for (BoxList::const_iterator lit = bltmp3.begin(); lit != bltmp3.end(); ++lit)
+        //        std::cout << "bltmpthree = " << *lit << std::endl;
+//
+        //    bltmp3.intersect(ba[i].grow(ng));
+        //    for (BoxList::const_iterator lit = bltmp3.begin(); lit != bltmp3.end(); ++lit)
+        //    {
+        //        BoxList boxdiff = amrex::(ba[i],*lit);
+        //        for (BoxList::const_iterator bdiff = boxdiff.begin(); bdiff != boxdiff.end(); ++bdiff)
+        //            std::cout << "bltmpfour = " << *bdiff << std::endl;
+        //    }
+        //}
 		for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
 		{
 		    const Box& blbx = *lit;
-			
+   
+			//std::cout << "blbx = " << blbx << std::endl;
 		    if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
 			const BoxList tilelist(blbx, FabArrayBase::comm_tile_size);
-			for (BoxList::const_iterator
+			for (BoxList::const_iterator   
 				 it_tile  = tilelist.begin(),
 				 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
 			{
+                        //std::cout << "it_tile = " << *it_tile << std::endl;
 			    m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), krcv, ksnd));
 			}
 			if (check_local) {
@@ -1806,5 +1833,26 @@ FabArrayBase::is_cell_centered () const noexcept
 {
     return boxArray().ixType().cellCentered();
 }
+
+void
+FabArrayBase::ghostToInterior (const BoxArray& bxs,
+                               const IntVect&  ngrow)
+{
+    boxarray = bxs;
+    n_grow = ngrow;
+    BL_ASSERT(distributionMap.ProcessorMap().size() == bxs.size());
+    indexArray = distributionMap.getIndexArray();
+    ownership = distributionMap.getOwnerShip();    
+    m_bdkey = getBDKey();
+}
+void
+FabArrayBase::ghostToInterior (int ng)
+{
+    BL_ASSERT(ng <= nGrow());
+    AMREX_D_TERM(n_grow[0] -= ng;, n_grow[1] -= ng;, n_grow[2] -= ng);
+    boxarray = boxarray.grow(ng);
+    m_bdkey = getBDKey();
+}
+
 
 }

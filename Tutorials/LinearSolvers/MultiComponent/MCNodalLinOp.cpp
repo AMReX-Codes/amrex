@@ -403,6 +403,14 @@ void MCNodalLinOp::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab
 			// i,j,k == fine coordinates
 			amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int I, int J, int K) {
 					int i=2*I, j=2*J, k=2*K;
+#if AMREX_SPACEDIM == 2					
+						cdata(I,J,K,n) =
+							(fdata(i-1,j-1,k,n) + fdata(i-1,j+1,k,n) + fdata(i+1,j-1,k,n) + fdata(i+1,j+1,k,n)) / 16.0
+							+
+							(fdata(i-1,j,k,n)   + fdata(i,j-1,k,n)   + fdata(i+1,j,k,n)   + fdata(i,j+1,k,n)) / 8.0
+							+
+							fdata(i,j,k,n) / 4.0;
+#elif AMREX_SPACEDIM == 3					
 						cdata(I,J,K,n) =
 							(fdata(i-1,j-1,k-1,n) + fdata(i-1,j-1,k+1,n) + fdata(i-1,j+1,k-1,n) + fdata(i-1,j+1,k+1,n) +
 							 fdata(i+1,j-1,k-1,n) + fdata(i+1,j-1,k+1,n) + fdata(i+1,j+1,k-1,n) + fdata(i+1,j+1,k+1,n)) / 64.0
@@ -415,6 +423,7 @@ void MCNodalLinOp::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab
 							 fdata(i+1,j,k,n) + fdata(i,j+1,k,n) + fdata(i,j,k+1,n)) / 16.0
 							+
 							fdata(i,j,k,n) / 8.0;
+#endif							
 				});
 		}
 	}
@@ -504,8 +513,28 @@ void MCNodalLinOp::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, Mult
 	if (isSingular(0)) amrex::Abort("Singular operators not supported!");
 }
 
-void MCNodalLinOp::realFillBoundary(MultiFab &phi, const Geometry &geom) const
+void MCNodalLinOp::realFillBoundary(MultiFab &phi, const Geometry &geom) 
 {
+	BL_PROFILE("MCNodalLinOp::realFillBoundary");
+#if 1
+	BoxArray ba_before = phi.boxArray();
+	//std::cout << "A: " << ba_before << std::endl;
+	
+    phi.FillBoundary();
+	//return;
+    phi.ghostToInterior(1);
+	for (int i = 0; i < phi.boxarray.size(); i++)
+	{
+		phi.boxarray.set(i,phi.boxarray[i] & convert(geom.Domain(), IntVect::TheNodeVector()));
+	}
+	//phi.boxarray = phi.boxarray & geom.Domain();
+    phi.FillBoundary();
+    phi.ghostToInterior(-1);
+	
+	phi.boxarray = ba_before;
+	phi.m_bdkey = phi.getBDKey();
+#else
+	int ncomp = phi.nComp();
 	for (int i = 0; i < 2; i++)
 	{
 		MultiFab & mf = phi;
@@ -517,6 +546,7 @@ void MCNodalLinOp::realFillBoundary(MultiFab &phi, const Geometry &geom) const
 		MultiFab::Copy(tmpmf, mf, 0, 0, ncomp, ng1); 
 		mf.ParallelCopy   (tmpmf, 0, 0, ncomp, ng1, ng2, geom.periodicity());
 	}
+#endif
 }
 
 void MCNodalLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode,

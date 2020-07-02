@@ -1,7 +1,7 @@
 AMREX_HOME ?= ../../../
 
-DEBUG	?= FALSE
-DIM	?= 3
+DEBUG	?= TRUE
+DIM	?= 2
 COMP    ?= gnu
 
 USE_MPI   ?= TRUE
