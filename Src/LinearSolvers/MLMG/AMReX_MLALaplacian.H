@@ -58,7 +58,7 @@ public:
         return std::unique_ptr<MLLinOp>{};
     }
 
-    void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a);
+    void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a);
     void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 
