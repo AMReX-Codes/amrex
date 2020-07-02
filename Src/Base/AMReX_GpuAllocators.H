@@ -166,7 +166,6 @@ namespace amrex {
 
     };
 
-
 #ifdef AMREX_USE_GPU
     template <class T>
     using DefaultAllocator = amrex::ArenaAllocator<T>;

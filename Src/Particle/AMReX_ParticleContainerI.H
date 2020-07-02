@@ -32,7 +32,6 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize ()
 {
-    levelDirectoriesCreated = false;
     usePrePost = false;
     doUnlink = true;
 
@@ -43,7 +42,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
     {
         static_assert(sizeof(ParticleType)%sizeof(RealType) == 0,
                       "sizeof ParticleType is not a multiple of sizeof RealType");
-        
+
         ParmParse pp("particles");
         pp.query("do_tiling", do_tiling);
         Vector<int> tilesize(AMREX_SPACEDIM);
@@ -54,7 +53,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
         static_assert(std::is_standard_layout<ParticleType>::value
                    && std::is_trivial<ParticleType>::value,
                       "Particle type must be standard layout and trivial.");
-        
+
         pp.query("use_prepost", usePrePost);
         pp.query("do_unlink", doUnlink);
 
@@ -385,49 +384,77 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 Vector<Long>
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParticlesInGrid (int lev, bool only_valid, bool only_local) const
 {
-  auto ngrids = ParticleBoxArray(lev).size();
-  Vector<Long> nparticles(ngrids, 0);
+    AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
 
-  if (lev >= 0 && lev < int(m_particles.size())) {
-    for (const auto& kv : GetParticles(lev)) {
-      int gid = kv.first.first;
-      const auto& ptile = kv.second;
+    LayoutData<Long> np_per_grid_local(ParticleBoxArray(lev),
+                                       ParticleDistributionMap(lev));
 
-      if (only_valid) {
-	for (int k = 0; k < ptile.GetArrayOfStructs().numParticles(); ++k) {
-	  const ParticleType& p = ptile.GetArrayOfStructs()[k];
-	  if (p.id() > 0) ++nparticles[gid];
-	}
-      } else {
-	nparticles[gid] += ptile.numParticles();
-      }
+    for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
+    {
+        int gid = pti.index();
+        if (only_valid)
+        {
+            const auto& ptile = ParticlesAt(lev, pti);
+            const auto& aos = ptile.GetArrayOfStructs();
+            const auto pstruct = aos().dataPtr();
+            const int np = ptile.numParticles();
+
+            ReduceOps<ReduceOpSum> reduce_op;
+            ReduceData<int> reduce_data(reduce_op);
+            using ReduceTuple = typename decltype(reduce_data)::Type;
+
+            reduce_op.eval(np, reduce_data,
+                           [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
+                           {
+                               return (pstruct[i].id() > 0) ? 1 : 0;
+                           });
+
+            int np_valid = amrex::get<0>(reduce_data.value());
+            np_per_grid_local[gid] += np_valid;
+        } else
+        {
+            np_per_grid_local[gid] += pti.numParticles();
+        }
+    }
+        
+    Vector<Long> nparticles(np_per_grid_local.size(), 0);
+    if (only_local)
+    {
+        for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
+        {
+            nparticles[pti.index()] = np_per_grid_local[pti.index()];
+        }
+    } 
+    else
+    {
+        ParallelDescriptor::GatherLayoutDataToVector(np_per_grid_local, nparticles,
+                                                     ParallelContext::IOProcessorNumberSub());
+        ParallelDescriptor::Bcast(&nparticles[0], nparticles.size(), 
+                                  ParallelContext::IOProcessorNumberSub());
     }
 
-    if (!only_local) {
-        ParallelAllReduce::Sum(&nparticles[0], ngrids, ParallelContext::CommunicatorSub());
-    }
-  }
-
-  return nparticles;
+    return nparticles;
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 Long
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParticlesAtLevel (int lev, bool only_valid, bool only_local) const
 {
-    Long nparticles = 0;
+    AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
 
-    if (lev >= 0 && lev < int(m_particles.size())) {
-        for (const auto& kv : GetParticles(lev)) {
-            const auto& ptile = kv.second;
-            if (only_valid) {
-                for (int k = 0; k < ptile.GetArrayOfStructs().numParticles(); ++k) {
-                    const ParticleType& p = ptile.GetArrayOfStructs()[k];
-                    if (p.id() > 0) ++nparticles;
-                }
-            } else {
-                nparticles += ptile.numParticles();
-            }
+    Long nparticles = 0;
+    if (only_valid)
+    {
+        nparticles = amrex::ReduceSum(*this, lev, lev,
+            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p) -> Long
+            {
+                return (p.id() > 0) ? 1L : 0L;
+            });
+    } else
+    {
+        for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
+        {
+            nparticles += pti.numParticles();
         }
     }
 
@@ -909,7 +936,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 copyParticles (const ParticleContainerType& other, bool local)
 {
     BL_PROFILE("ParticleContainer::copyParticles");
-    clearParticles();   
+    clearParticles();
     addParticles(other, local);
 }
 
@@ -926,7 +953,7 @@ addParticles (const ParticleContainerType& other, bool local)
         auto& plevel = GetParticles(lev);
         for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
+            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
             if(plevel_other.find(index) == plevel_other.end()) continue;
 
             auto& ptile = plevel[index];
@@ -937,10 +964,10 @@ addParticles (const ParticleContainerType& other, bool local)
             auto dst_index = ptile.numParticles();
             ptile.resize(dst_index + np);
 
-            amrex::copyParticles(ptile, ptile_other, 0, dst_index, np);            
+            amrex::copyParticles(ptile, ptile_other, 0, dst_index, np);
         }
     }
-    
+
     if (not local) Redistribute();
 }
 
