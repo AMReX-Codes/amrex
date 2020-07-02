@@ -52,14 +52,16 @@ void WriteBinaryParticleDataSync (PC const& pc,
     if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
     pdir += name;
 
-    if (ParallelDescriptor::IOProcessor())
-    {
-        if ( ! amrex::UtilCreateDirectory(pdir, 0755))
+    if ( ! pc.GetLevelDirectoriesCreated()) {
+        if (ParallelDescriptor::IOProcessor())
         {
-            amrex::CreateDirectoryFailed(pdir);
+            if ( ! amrex::UtilCreateDirectory(pdir, 0755))
+            {
+                amrex::CreateDirectoryFailed(pdir);
+            }
         }
+        ParallelDescriptor::Barrier();
     }
-    ParallelDescriptor::Barrier();
 
     std::ofstream HdrFile;
 
@@ -217,10 +219,13 @@ void WriteBinaryParticleDataSync (PC const& pc,
 
             LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
 
-            if (ParallelDescriptor::IOProcessor())
-                if ( ! amrex::UtilCreateDirectory(LevelDir, 0755))
-                    amrex::CreateDirectoryFailed(LevelDir);
-            ParallelDescriptor::Barrier();
+            if ( ! pc.GetLevelDirectoriesCreated())
+            {
+                if (ParallelDescriptor::IOProcessor())
+                    if ( ! amrex::UtilCreateDirectory(LevelDir, 0755))
+                        amrex::CreateDirectoryFailed(LevelDir);
+                ParallelDescriptor::Barrier();
+            }
         }
 
         // Write out the header for each particle
