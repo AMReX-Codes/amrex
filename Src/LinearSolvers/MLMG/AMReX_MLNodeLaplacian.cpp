@@ -1121,6 +1121,59 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
 }
 
 void
+MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine, IntVect& ratio) const
+{
+    BL_PROFILE("MLNodeLaplacian::restriction()");
+
+    applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
+
+    bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
+    MultiFab cfine;
+    if (need_parallel_copy) {
+        const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
+        cfine.define(ba, fine.DistributionMap(), 1, 0);
+    }
+
+    MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
+    const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][cmglev-1];
+
+    const auto& stencil = m_stencil[amrlev][cmglev-1];
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Array4<Real> cfab = pcrse->array(mfi);
+        Array4<Real const> const& ffab = fine.const_array(mfi);
+        Array4<int const> const& mfab = dmsk.const_array(mfi);
+        if (m_coarsening_strategy == CoarseningStrategy::Sigma)
+        {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndlap_restriction(i,j,k,cfab,ffab,mfab);
+            });
+        }
+        else
+        {
+            Array4<Real const> const& stfab = stencil->const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndlap_restriction_rap(i,j,k,cfab,ffab,stfab,mfab);
+            });
+        }
+    }
+
+    if (need_parallel_copy) {
+        crse.ParallelCopy(cfine);
+    }
+}
+
+
+
+
+void
 MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const
 {
     BL_PROFILE("MLNodeLaplacian::interpolation()");
