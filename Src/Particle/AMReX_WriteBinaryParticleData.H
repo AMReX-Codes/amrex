@@ -487,7 +487,10 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
     auto RD = pc.ParticleRealDescriptor;
 
-    AsyncOut::Submit([=] () mutable // workaround for gcc 8.1 bug
+    AsyncOut::Submit([=] () 
+#if defined(__GNUC__) && (__GNUC__ == 8) && (__GNUC_MINOR__ == 1)
+                     mutable // workaround for bug in gcc 8.1
+#endif
     {
         if (MyProc == IOProcNumber)
         {
