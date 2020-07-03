@@ -350,6 +350,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
  */    
 template <typename DstTile, typename SrcTile, typename Pred>
 auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
+    -> decltype(p(typename SrcTile::ConstParticleTileDataType(), 0))
 {
     return filterParticles(dst, src, p, 0, 0, src.numParticles());
 }
