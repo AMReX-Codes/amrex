@@ -936,7 +936,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 copyParticles (const ParticleContainerType& other, bool local)
 {
     using PData = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
-    copyParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& data, int i) { return true; }, local);
+    copyParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& data, int i) { return 1; }, local);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -945,11 +945,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 addParticles (const ParticleContainerType& other, bool local)
 {
     using PData = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>; 
-    addParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& data, int i) { return true; }, local);
+    addParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& data, int i) { return 1; }, local);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-template <class F>
+template <class F,
+          amrex::EnableIf_t<! std::is_integral<F>::value, int> foo>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 copyParticles (const ParticleContainerType& other, F&& f, bool local)
@@ -960,7 +961,8 @@ copyParticles (const ParticleContainerType& other, F&& f, bool local)
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-template <class F>
+template <class F,
+          amrex::EnableIf_t<! std::is_integral<F>::value, int> foo>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 addParticles (const ParticleContainerType& other, F&& f, bool local)
@@ -985,6 +987,7 @@ addParticles (const ParticleContainerType& other, F&& f, bool local)
             ptile.resize(dst_index + np);
 
             auto count = amrex::filterParticles(ptile, ptile_other, std::forward<F>(f), 0, dst_index, np);
+
             ptile.resize(dst_index + count);
         }
     }

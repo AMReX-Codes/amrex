@@ -680,7 +680,7 @@ public:
     * \param f function to apply to each particle as a filter
     * \param local whether to call redistribute after
     */
-    template <class F>
+    template <class F, amrex::EnableIf_t<! std::is_integral<F>::value, int> foo = 0>
     void copyParticles (const ParticleContainerType& other, F&&f, bool local=false);
 
     /**
@@ -696,7 +696,7 @@ public:
     * \param f function to apply to each particle as a filter
     * \param local whether to call redistribute after
     */
-    template <class F>
+    template <class F, amrex::EnableIf_t<! std::is_integral<F>::value, int> foo = 0>
     void addParticles (const ParticleContainerType& other, F&& f, bool local=false);
 
     /**

@@ -313,9 +313,6 @@ template <typename DstTile, typename SrcTile, typename Index, typename N,
 Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
                        Index src_start, Index dst_start, N n) noexcept
 {
-
-    amrex::Print() << src_start << " " << dst_start << "\n";
-
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> offsets(np);
     Gpu::exclusive_scan(mask, mask+np, offsets.begin());
@@ -323,7 +320,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
     Index last_mask, last_offset;
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);    
-                               
+      
     auto p_offsets = offsets.dataPtr();
     
     const auto src_data = src.getConstParticleTileData();
@@ -379,7 +376,6 @@ auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
                       Index src_start, Index dst_start, N n) noexcept
     -> decltype(p(typename SrcTile::ConstParticleTileDataType(), 0))
 {
-    //    using Index = decltype(p(typename SrcTile::ConstParticleTileDataType(), 0));
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> mask(np);
 
