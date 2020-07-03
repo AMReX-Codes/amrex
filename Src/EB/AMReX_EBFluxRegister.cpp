@@ -261,6 +261,8 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
         auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(crse_state.Factory());
         auto const& flags = factory.getMultiEBCellFlagFab();
 
+        const Box& gdomain = m_crse_geom.growPeriodicDomain(1);
+
         MFItInfo info;
         if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
@@ -273,7 +275,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                 const Box& bx = mfi.tilebox();
                 const auto& ebflag = flags[mfi];
                 if (ebflag.getType(bx) != FabType::covered) {
-                    const Box& bxg1 = amrex::grow(bx,1);
+                    const Box& bxg1 = amrex::grow(bx,1) & gdomain;
                     Array4<Real> const& dfab = m_crse_data.array(mfi);
                     Array4<Real const> const& sfab = grown_crse_data.const_array(mfi);
                     if (ebflag.getType(bxg1) == FabType::regular)
