@@ -1066,10 +1066,14 @@ public:
     static bool do_tiling;
     static IntVect tile_size;
 
+    void SetLevelDirectoriesCreated (bool tf) { levelDirectoriesCreated = tf; }
+
+    bool GetLevelDirectoriesCreated () const { return levelDirectoriesCreated; }
+
     void SetUsePrePost (bool tf) const {
       usePrePost = tf;
     }
-    bool GetUsePrePost() const {
+    bool GetUsePrePost () const {
       return usePrePost;
     }
 
@@ -1080,7 +1084,7 @@ public:
       doUnlink = tf;
     }
 
-    bool GetUseUnlink() const {
+    bool GetUseUnlink () const {
       return doUnlink;
     }
 
@@ -1132,6 +1136,7 @@ public:
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
 
     //! ---- variables for i/o optimization saved for pre and post checkpoint
+    mutable bool levelDirectoriesCreated;
     mutable bool usePrePost;
     mutable bool doUnlink;
     int maxnextidPrePost;

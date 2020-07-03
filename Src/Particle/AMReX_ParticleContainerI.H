@@ -32,6 +32,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize ()
 {
+    levelDirectoriesCreated = false;
     usePrePost = false;
     doUnlink = true;
 
