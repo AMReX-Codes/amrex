@@ -652,7 +652,8 @@ public:
     * particles from this container first. local controls whether or not to call
     * Redistribute() after adding the particles.
     *
-    * \param other
+    * \param other the other pc to copy from
+    * \param local whether to call redistribute after
     */
     void copyParticles (const ParticleContainerType& other, bool local=false);
 
@@ -660,9 +661,43 @@ public:
     * \brief Add particles from other to this ParticleContainer. local controls
     * whether or not to call Redistribute after adding the particles.
     *
-    * \param other
+    * \param other the other pc to copy from
+    * \param local whether to call redistribute after
     */
     void addParticles (const ParticleContainerType& other, bool local=false);
+
+    /**
+    * \brief Copy particles from other to this ParticleContainer. Will clear all the
+    * particles from this container first. local controls whether or not to call
+    * Redistribute() after adding the particles.
+    *
+    * This version conditionally copies based on a predicate function applied to 
+    * each particle.
+    *
+    * \tparam callable that takes a SuperParticle and returns a bool
+    *
+    * \param other the other pc to copy from
+    * \param f function to apply to each particle as a filter
+    * \param local whether to call redistribute after
+    */
+    template <class F, amrex::EnableIf_t<! std::is_integral<F>::value, int> foo = 0>
+    void copyParticles (const ParticleContainerType& other, F&&f, bool local=false);
+
+    /**
+    * \brief Add particles from other to this ParticleContainer. local controls
+    * whether or not to call Redistribute after adding the particles.
+    *
+    * This version conditionally copies based on a predicate function applied to 
+    * each particle.
+    *
+    * \tparam callable that takes a SuperParticle and returns a bool
+    *
+    * \param other the other pc to copy from
+    * \param f function to apply to each particle as a filter
+    * \param local whether to call redistribute after
+    */
+    template <class F, amrex::EnableIf_t<! std::is_integral<F>::value, int> foo = 0>
+    void addParticles (const ParticleContainerType& other, F&& f, bool local=false);
 
     /**
     * \brief Write a contiguous chunk of real particle data to an ostream.
