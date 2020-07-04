@@ -243,7 +243,7 @@ void amrex_hpijmatrix (Box const& box,
 
         diag_arr(i,j,k) = 1.0/mat_tmpPtr[0];
 
-        for (int ic=0; ic<=5; ic++){
+        for (int ic=0; ic<=4; ic++){
             if (cols_tmpPtr[ic] >= 0){
                 int imat = iterPtr[1];
                 ncols[irow]  = ncols[irow] +1;
