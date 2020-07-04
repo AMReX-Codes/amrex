@@ -466,6 +466,7 @@ Box
 MFIter::grownnodaltilebox (int dir, IntVect const& a_ng) const noexcept
 {
     BL_ASSERT(dir < AMREX_SPACEDIM);
+    if (dir < 0) return tilebox(IntVect::TheNodeVector(), a_ng);
     return tilebox(IntVect::TheDimensionVector(dir), a_ng);
 }
 

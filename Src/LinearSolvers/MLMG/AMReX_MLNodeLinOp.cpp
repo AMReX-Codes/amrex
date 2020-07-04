@@ -219,7 +219,7 @@ MLNodeLinOp::buildMasks ()
     auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet);
     if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end())
     {  // No Dirichlet
-        m_is_bottom_singular = m_domain_covered[0];
+        m_is_bottom_singular = (m_domain_covered[0] && !m_overset_dirichlet_mask);
     }
 
     const auto lobc = LoBC();

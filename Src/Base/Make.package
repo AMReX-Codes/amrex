@@ -47,6 +47,9 @@ C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CAren
 C$(AMREX_BASE)_sources += AMReX_AsyncOut.cpp
 C$(AMREX_BASE)_headers += AMReX_AsyncOut.H
 
+C$(AMREX_BASE)_sources += AMReX_BackgroundThread.cpp
+C$(AMREX_BASE)_headers += AMReX_BackgroundThread.H
+
 C$(AMREX_BASE)_headers += AMReX_BLProfiler.H
 
 C$(AMREX_BASE)_headers += AMReX_BLBackTrace.H
