@@ -11,6 +11,16 @@ ifeq ($(nvcc_major_lt_8),1)
   $(error Your nvcc version is $(nvcc_version). This is unsupported. Please use CUDA toolkit version 8.0 or newer.)
 endif
 
+nvcc_forward_unknowns = 0
+ifeq ($(shell expr $(nvcc_major_version) \= 10),1)
+ifeq ($(shell expr $(nvcc_minor_version) \>= 2),1)
+  nvcc_forward_unknowns = 1
+endif
+endif
+ifeq ($(shell expr $(nvcc_major_version) \>= 11),1)
+  nvcc_forward_unknowns = 1
+endif
+
 #
 # nvcc compiler driver does not always accept pgc++
 # as a host compiler at present. However, if we're using
@@ -119,6 +129,10 @@ ifneq ($(USE_CUDA_FAST_MATH),FALSE)
 endif
 
 NVCC_FLAGS += $(XTRA_NVCC_FLAGS)
+
+ifeq ($(nvcc_forward_unknowns),1)
+  NVCC_FLAGS += --forward-unknown-to-host-compiler
+endif
 
 CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
 CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
