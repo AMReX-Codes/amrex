@@ -192,6 +192,13 @@ ifeq ($(USE_CUDA),TRUE)
 
   LINK_WITH_FORTRAN_COMPILER = TRUE
 
+  ifeq ($(USE_MPI),TRUE)
+  ifneq ($(findstring Open MPI, $(shell mpicxx -showme:version 2>&1)),)
+    OMPI_FCFLAGS_ORIG = $(shell mpif90 -showme:compile)
+    export OMPI_FCFLAGS := $(subst -pthread,-lpthread,$(OMPI_FCFLAGS_ORIG))
+  endif
+  endif
+
 endif
 
 

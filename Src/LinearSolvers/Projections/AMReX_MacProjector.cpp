@@ -16,7 +16,8 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
                             const Vector<Geometry>& a_geom,
                             const LPInfo& a_lpinfo,
                             const Vector<MultiFab const*>& a_divu,
-                            MLMG::Location a_divu_loc)
+                            MLMG::Location a_divu_loc,
+                            const Vector<iMultiFab const*>& a_overset_mask)
     : m_umac(a_umac),
       m_geom(a_geom),
       m_umac_loc(a_umac_loc),
@@ -76,7 +77,11 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
             }
         }
 
-        m_abeclap.reset(new MLABecLaplacian(a_geom, ba, dm, a_lpinfo));
+        if(a_overset_mask.empty())
+            m_abeclap.reset(new MLABecLaplacian(a_geom, ba, dm, a_lpinfo));
+        else
+            m_abeclap.reset(new MLABecLaplacian(a_geom, ba, dm, a_overset_mask, a_lpinfo));
+
         m_linop = m_abeclap.get();
 
         m_abeclap->setScalars(0.0, 1.0);
@@ -221,7 +226,6 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
 void
 MacProjector::setOptions ()
 {
-
     // Default values
     int          maxorder(3);
     int          bottom_verbose(0);

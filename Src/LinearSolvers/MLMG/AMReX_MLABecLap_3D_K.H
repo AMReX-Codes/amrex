@@ -376,6 +376,302 @@ void abec_gsrb_os (Box const& box, Array4<Real> const& phi, Array4<Real const> c
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void tridiagonal_solve (Array1D<Real,0,31>& a_ls, Array1D<Real,0,31>& b_ls, Array1D<Real,0,31>& c_ls,
+                        Array1D<Real,0,31>& r_ls, Array1D<Real,0,31>& u_ls, Array1D<Real,0,31>& gam,
+                        int ilen ) noexcept
+{
+    Real bet = b_ls(0);
+    u_ls(0) = r_ls(0) / bet;
+
+    for (int i = 1; i <= ilen - 1; i++) {
+        gam(i) = c_ls(i-1) / bet;
+        bet = b_ls(i) - a_ls(i)*gam(i);
+        if (bet == 0) amrex::Abort(">>>TRIDIAG FAILED");
+        u_ls(i) = (r_ls(i)-a_ls(i)*u_ls(i-1)) / bet;
+    }
+    for (int i = ilen-2; i >= 0; i--) {
+        u_ls(i) = u_ls(i) - gam(i+1)*u_ls(i+1);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void abec_gsrb_with_line_solve (
+                Box const& box, Array4<Real> const& phi, Array4<Real const> const& rhs,
+                Real alpha, Array4<Real const> const& a,
+                Real dhx, Real dhy, Real dhz,
+                Array4<Real const> const& bX, Array4<Real const> const& bY,
+                Array4<Real const> const& bZ,
+                Array4<int const> const& m0, Array4<int const> const& m2,
+                Array4<int const> const& m4,
+                Array4<int const> const& m1, Array4<int const> const& m3,
+                Array4<int const> const& m5,
+                Array4<Real const> const& f0, Array4<Real const> const& f2,
+                Array4<Real const> const& f4,
+                Array4<Real const> const& f1, Array4<Real const> const& f3,
+                Array4<Real const> const& f5,
+                Box const& vbox, int redblack, int nc) noexcept
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
+    // amrex::Print() << "GSRB LS " << box << " " << dhx << " " << dhy << " " << dhz << std::endl;
+    
+    // idir is the direction in which we will do the tridiagonal solve --
+    //    it should be the direction in which the mesh spacing is much larger
+    //    than in the other directions
+    int idir = 2;
+    int ilen = hi.z - lo.z + 1;
+	
+    if ( (dhx <= dhy) and (dhz <= dhy) ) {
+	idir = 1;
+	ilen = hi.y - lo.y + 1;
+    }	
+    if ( (dhy <= dhx) and (dhz <= dhx) ) {
+	idir = 0;
+	ilen = hi.x - lo.x + 1;
+    } 
+
+    // This assertion should be moved outside the kernel for performance!
+    if (ilen > 32) amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32");
+
+    Array1D<Real,0,31> a_ls;
+    Array1D<Real,0,31> b_ls;
+    Array1D<Real,0,31> c_ls;
+    Array1D<Real,0,31> r_ls;
+    Array1D<Real,0,31> u_ls;
+    Array1D<Real,0,31> gam;
+
+    if (idir == 2) {         
+    	for (int n = 0; n < nc; ++n) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    if ((i+j+redblack)%2 == 0) {
+
+                        for (int k = lo.z; k <= hi.z; ++k)
+                        {
+                            Real gamma = alpha*a(i,j,k)
+                                +   dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
+                                +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
+                                +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
+
+                            Real cf0 = (i == vlo.x and m0(vlo.x-1,j,k) > 0)
+                                ? f0(vlo.x,j,k,n) : 0.0;
+                            Real cf1 = (j == vlo.y and m1(i,vlo.y-1,k) > 0)
+                                ? f1(i,vlo.y,k,n) : 0.0;
+                            Real cf2 = (k == vlo.z and m2(i,j,vlo.z-1) > 0)
+                                ? f2(i,j,vlo.z,n) : 0.0;
+                            Real cf3 = (i == vhi.x and m3(vhi.x+1,j,k) > 0)
+                                ? f3(vhi.x,j,k,n) : 0.0;
+                            Real cf4 = (j == vhi.y and m4(i,vhi.y+1,k) > 0)
+                                ? f4(i,vhi.y,k,n) : 0.0;
+                            Real cf5 = (k == vhi.z and m5(i,j,vhi.z+1) > 0)
+                                ? f5(i,j,vhi.z,n) : 0.0;
+
+                            Real g_m_d = gamma
+                                - (dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf3)
+                                +  dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf4)
+                                +  dhz*(bZ(i,j,k,n)*cf2 + bZ(i,j,k+1,n)*cf5));
+
+                            Real rho =  dhx*( bX(i  ,j,k,n)*phi(i-1,j,k,n)
+                                      +       bX(i+1,j,k,n)*phi(i+1,j,k,n) )
+                                      + dhy*( bY(i,j  ,k,n)*phi(i,j-1,k,n)
+                                      +       bY(i,j+1,k,n)*phi(i,j+1,k,n) );
+
+                            // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
+                            if (i == vlo.x and m0(vlo.x-1,j,k) > 0)
+                                rho -= dhx*bX(i  ,j,k,n)*phi(i-1,j,k,n);
+                            if (i == vhi.x and m3(vhi.x+1,j,k) > 0)
+                                rho -= dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n);
+                            if (j == vlo.y and m1(i,vlo.y-1,k) > 0)
+                                rho -= dhy*bY(i,j  ,k,n)*phi(i,j-1,k,n);
+                            if (j == vhi.y and m4(i,vhi.y+1,k) > 0)
+                                rho -= dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
+
+                            a_ls(k-lo.z) = -dhz*bZ(i,j,k,n);
+                            b_ls(k-lo.z) =  g_m_d;
+                            c_ls(k-lo.z) = -dhz*bZ(i,j,k+1,n);
+                            u_ls(k-lo.z) = 0.;
+                            r_ls(k-lo.z) = rhs(i,j,k,n) + rho;
+
+                            if (k == lo.z)
+                            {
+                                a_ls(k-lo.z) = 0.;
+                                if (!(m2(i,j,vlo.z-1) > 0)) r_ls(k-lo.z) += dhz*bZ(i,j,k,n)*phi(i,j,k-1,n);
+                            }
+                            if (k == hi.z)
+                            {
+                                c_ls(k-lo.z) = 0.;
+                                if (!(m5(i,j,vhi.z+1) > 0)) r_ls(k-lo.z) += dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
+                            }
+                        }
+
+			tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
+
+                        for (int k = lo.z; k <= hi.z; ++k)
+                        {
+                            phi(i,j,k,n) = u_ls(k-lo.z);
+                        }
+                    }
+                }
+            }
+        }
+    } else if (idir == 1) { 
+        for (int n = 0; n < nc; ++n) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                AMREX_PRAGMA_SIMD
+                for (int k = lo.z; k <= hi.z; ++k) {
+                    if ((i+k+redblack)%2 == 0) {
+
+                        for (int j = lo.y; j <= hi.y; ++j)
+                        {
+                            Real gamma = alpha*a(i,j,k)
+                                +   dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
+                                +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
+                                +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
+
+                            Real cf0 = (i == vlo.x and m0(vlo.x-1,j,k) > 0)
+                                ? f0(vlo.x,j,k,n) : 0.0;
+                            Real cf1 = (j == vlo.y and m1(i,vlo.y-1,k) > 0)
+                                ? f1(i,vlo.y,k,n) : 0.0;
+                            Real cf2 = (k == vlo.z and m2(i,j,vlo.z-1) > 0)
+                                ? f2(i,j,vlo.z,n) : 0.0;
+                            Real cf3 = (i == vhi.x and m3(vhi.x+1,j,k) > 0)
+                                ? f3(vhi.x,j,k,n) : 0.0;
+                            Real cf4 = (j == vhi.y and m4(i,vhi.y+1,k) > 0)
+                                ? f4(i,vhi.y,k,n) : 0.0;
+                            Real cf5 = (k == vhi.z and m5(i,j,vhi.z+1) > 0)
+                                ? f5(i,j,vhi.z,n) : 0.0;
+
+                            Real g_m_d = gamma
+                                - (dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf3)
+                                +  dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf4)
+                                +  dhz*(bZ(i,j,k,n)*cf2 + bZ(i,j,k+1,n)*cf5));
+
+                            Real rho =  dhx*( bX(i  ,j,k,n)*phi(i-1,j,k,n)
+                                      +       bX(i+1,j,k,n)*phi(i+1,j,k,n) )
+                                      + dhz*( bZ(i,j  ,k,n)*phi(i,j,k-1,n)
+                                      +       bZ(i,j,k+1,n)*phi(i,j,k+1,n) );
+
+                            // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
+                            if (i == vlo.x and m0(vlo.x-1,j,k) > 0)
+                                rho -= dhx*bX(i  ,j,k,n)*phi(i-1,j,k,n);
+                            if (i == vhi.x and m3(vhi.x+1,j,k) > 0)
+                                rho -= dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n);
+                            if (k == vlo.z and m2(i,j,vlo.z-1) > 0)
+                                rho -= dhz*bZ(i,j  ,k,n)*phi(i,j,k-1,n);
+                            if (k == vhi.z and m5(i,j,vhi.z+1) > 0)
+                                rho -= dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
+
+                            a_ls(j-lo.y) = -dhy*bY(i,j,k,n);
+                            b_ls(j-lo.y) =  g_m_d;
+                            c_ls(j-lo.y) = -dhy*bY(i,j+1,k,n);
+                            u_ls(j-lo.y) = 0.;
+                            r_ls(j-lo.y) = rhs(i,j,k,n) + rho;
+
+                            if (j == lo.y)
+                            {
+                                a_ls(j-lo.y) = 0.;
+                                if (!(m1(i,vlo.y-1,k) > 0)) r_ls(j-lo.y) += dhy*bY(i,j,k,n)*phi(i,j-1,k,n);
+                            }
+                            if (j == hi.y)
+                            {
+                                c_ls(j-lo.y) = 0.;
+                                if (!(m4(i,vhi.y+1,k) > 0)) r_ls(j-lo.y) += dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
+                            }
+                        }
+
+			tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
+
+                        for (int j = lo.y; j <= hi.y; ++j)
+                        {
+                            phi(i,j,k,n) = u_ls(j-lo.y);
+                        }
+                    }
+                }
+            }
+        } 
+    } else if (idir == 0) {
+        for (int n = 0; n < nc; ++n) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int k = lo.z; k <= hi.z; ++k) {
+                    if ((j+k+redblack)%2 == 0) {
+
+                        for (int i = lo.x; i <= hi.x; ++i)
+                        {
+                            Real gamma = alpha*a(i,j,k)
+                                +   dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
+                                +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
+                                +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
+
+                            Real cf0 = (i == vlo.x and m0(vlo.x-1,j,k) > 0)
+                                ? f0(vlo.x,j,k,n) : 0.0;
+                            Real cf1 = (j == vlo.y and m1(i,vlo.y-1,k) > 0)
+                                ? f1(i,vlo.y,k,n) : 0.0;
+                            Real cf2 = (k == vlo.z and m2(i,j,vlo.z-1) > 0)
+                                ? f2(i,j,vlo.z,n) : 0.0;
+                            Real cf3 = (i == vhi.x and m3(vhi.x+1,j,k) > 0)
+                                ? f3(vhi.x,j,k,n) : 0.0;
+                            Real cf4 = (j == vhi.y and m4(i,vhi.y+1,k) > 0)
+                                ? f4(i,vhi.y,k,n) : 0.0;
+                            Real cf5 = (k == vhi.z and m5(i,j,vhi.z+1) > 0)
+                                ? f5(i,j,vhi.z,n) : 0.0;
+
+                            Real g_m_d = gamma
+                                - (dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf3)
+                                +  dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf4)
+                                +  dhz*(bZ(i,j,k,n)*cf2 + bZ(i,j,k+1,n)*cf5));
+
+                            Real rho =  dhy*( bY(i,j  ,k,n)*phi(i,j-1,k,n)
+                                      +       bY(i,j+1,k,n)*phi(i,j+1,k,n) )
+                                      + dhz*( bZ(i,j  ,k,n)*phi(i,j,k-1,n)
+                                      +       bZ(i,j,k+1,n)*phi(i,j,k+1,n) );
+
+                            // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
+                            if (j == vlo.y and m1(i,vlo.y-1,k) > 0)
+                                rho -= dhy*bY(i,j  ,k,n)*phi(i,j-1,k,n);
+                            if (j == vhi.y and m4(i,vhi.y+1,k) > 0)
+                                rho -= dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
+                            if (k == vlo.z and m2(i,j,vlo.z-1) > 0)
+                                rho -= dhz*bZ(i,j  ,k,n)*phi(i,j,k-1,n);
+                            if (k == vhi.z and m5(i,j,vhi.z+1) > 0)
+                                rho -= dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
+
+                            a_ls(i-lo.x) = -dhx*bX(i,j,k,n);
+                            b_ls(i-lo.x) =  g_m_d;
+                            c_ls(i-lo.x) = -dhx*bX(i+1,j,k,n);
+                            u_ls(i-lo.x) = 0.;
+                            r_ls(i-lo.x) = rhs(i,j,k,n) + rho;
+
+                            if (i == lo.x)
+                            {
+                                a_ls(i-lo.x) = 0.;
+                                if (!(m0(vlo.x-1,j,k) > 0)) r_ls(i-lo.x) += dhx*bX(i,j,k,n)*phi(i-1,j,k,n);
+                            }
+                            if (i == hi.x)
+                            {
+                                c_ls(i-lo.x) = 0.;
+                                if (!(m3(vhi.x+1,j,k) > 0)) r_ls(i-lo.x) += dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n);
+                            }
+                        }
+
+			tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
+        
+                        for (int i = lo.x; i <= hi.x; ++i)
+                        {
+                            phi(i,j,k,n) = u_ls(i-lo.x);
+                        }
+                    }
+                }
+            }
+	}
+    }	
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int coarsen_overset_mask (Box const& bx, Array4<int> const& cmsk, Array4<int const> const& fmsk)
     noexcept
 {
