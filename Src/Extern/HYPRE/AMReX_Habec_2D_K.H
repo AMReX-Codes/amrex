@@ -384,8 +384,8 @@ void hpeb_ij (int i, int j, int k,
               Array4<Real const> const& beb_arr) noexcept
 {
         Array2D<Real,-1,1,-1,1> mat_tmp;
-        Array1D<Real,0,4> phig1;
-        Array1D<Real,0,4> feb;
+        Array1D<Real,0,3> phig1;
+        Array1D<Real,0,3> feb;
 
         if (flag_arr(i,j,k).isCovered()){
             diag_arr(i,j,k) = 0.0;
