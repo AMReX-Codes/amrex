@@ -16,9 +16,34 @@ grid creation process is governed by trying to balance the work in each grid.)
 
 Single-level load balancing algorithms are sequentially applied to each AMR level independently, 
 and the resulting distributions are mapped onto the ranks taking into account the weights 
-already assigned to them (assign heaviest set of grids to the least loaded rank)
+already assigned to them (assign heaviest set of grids to the least loaded rank).  Note that the
+load of each process is measured by how much memory has already been allocated, not how much memory
+will be allocated.  Therefore the following code is not recommended because it tends to generate
+non-optimal distributions.
 
-Options supported by AMReX include the following; the default is SFC:
+.. highlight:: c++
+
+::
+
+   for (int lev = 0; lev < nlevels; ++lev) {
+       // build DistributionMapping for Level lev
+   }
+   for (int lev = 0; lev < nlevels; ++lev) {
+       // build MultiFabs for Level lev
+   }
+
+Instead, one should do,
+
+.. highlight:: c++
+
+::
+
+   for (int lev = 0; lev < nlevels; ++lev) {
+       // build DistributionMapping for Level lev
+       // build MultiFabs for Level lev
+   }
+
+Distribution options supported by AMReX include the following; the default is SFC:
 
 - Knapsack: the default weight of a grid in the knapsack algorithm is the number of grid cells, 
   but AMReX supports the option to pass an array of weights -- one per grid -- or alternatively 
