@@ -1355,7 +1355,7 @@ AMReX for GPUs:
   some portion of your code that is not GPU accelerated and want to have
   many MPI ranks to make that part faster), this is probably the minority
   of cases. For example, on OLCF Summit you would want to ensure that your
-  resource sets contain one MPI rank and GPU each, using `jsrun -n N -a 1 -c 1 -g 1`,
+  resource sets contain one MPI rank and GPU each, using `jsrun -n N -a 1 -c 7 -g 1`,
   where `N` is the total number of MPI ranks/GPUs you want to use. (See the OLCF
   [job step viewer](https://jobstepviewer.olcf.ornl.gov/) for more information.)
 
