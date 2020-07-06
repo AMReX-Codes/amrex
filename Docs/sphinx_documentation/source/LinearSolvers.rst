@@ -391,14 +391,39 @@ problem as much as possible.  However, as we have mentioned, we can
 call :cpp:`setMaxCoarseningLevel(0)` on the :cpp:`LPInfo` object
 passed to the constructor of a linear operator to disable the
 coarsening completely.  In that case the bottom solver is solving the
-residual correction form of the original problem.  
+residual correction form of the original problem. To build Hypre, follow the next steps:
+
+.. highlight:: c++
+
+::
+
+    1.- git clone https://github.com/hypre-space/hypre.git
+    2.- cd hypre/src
+    3.- ./configure
+        (if you want to build hypre with long long int, do ./configure --enable-bigint ) 
+    4.- make install
+    5.- Create an environment variable with the HYPRE directory --
+        HYPRE_DIR=/hypre_path/hypre/src/hypre
 
 To use hypre, one must include ``amrex/Src/Extern/HYPRE`` in the build system. 
 For an example of using hypre, we refer the reader to
 ``Tutorials/LinearSolvers/ABecLaplacian_C``.
 
 AMReX can also use `PETSc <https://www.mcs.anl.gov/petsc/>`_ as a bottom solver for cell-centered
-problems.  To use PETSc, one must include ``amrex/Src/Extern/PETSc``
+problems. To build PETSc, follow the next steps:
+
+.. highlight:: c++
+
+::
+
+    1.- git clone https://github.com/petsc/petsc.git
+    2.- cd petsc
+    3.- ./configure --download-hypre=yes --prefix=build_dir
+    4.- Follow the steps given by petsc 
+    5.- Create an environment variable with the PETSC directory --
+        PETSC_DIR=/petsc_path/petsc/build_dir
+
+To use PETSc, one must include ``amrex/Src/Extern/PETSc``
 in the build system.  For an example of using PETSc, we refer the
 reader to ``Tutorials/LinearSolvers/ABecLaplacian_C``.
 

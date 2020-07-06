@@ -11,10 +11,10 @@
 #cmakedefine BL_COMM_PROFILING
 #cmakedefine AMREX_TINY_PROFILING
 #cmakedefine AMREX_MEM_PROFILING
-#cmakedefine AMREX_BACKTRACING
 #cmakedefine AMREX_TESTING
 #cmakedefine AMREX_USE_MPI
 #cmakedefine BL_USE_MPI
+#cmakedefine AMREX_MPI_THREAD_MULTIPLE
 #cmakedefine AMREX_USE_OMP
 #cmakedefine BL_USE_OMP
 #cmakedefine AMREX_USE_DPCPP
@@ -40,6 +40,8 @@
 #cmakedefine AMREX_GPUS_PER_SOCKET @AMREX_GPUS_PER_SOCKET@
 #cmakedefine AMREX_GPUS_PER_NODE   @AMREX_GPUS_PER_NODE@
 #cmakedefine AMREX_PARTICLES
+#cmakedefine AMREX_USE_HDF5
+#cmakedefine AMREX_USE_HDF5_ASYNC
 #ifdef __cplusplus
 #ifndef @COMPILER_ID_MACRO@
 static_assert(false,"libamrex was built with @CMAKE_CXX_COMPILER_ID@");

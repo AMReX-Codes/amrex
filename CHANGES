@@ -1,3 +1,41 @@
+# 20.07
+
+  -- Nodal hypre solver now supports coarsening before hypre is called.
+
+  -- A new ParmParse parameter, `amrex.the_arena_is_managed` is introduced to set the default memory
+     type of `The_Arena`.
+
+  -- MFIter is now OMP thread safe when it is compiled with GPU support.
+
+  -- Overset support is added to cell-center and tensor linear solvers.
+
+  -- Remove compile time flag, BACKTRACE, for simplicity.
+
+  -- Updates on Blueprint and Ascent.
+
+  -- HDF5 support in GNU Make and CMake.
+
+  -- CMake support for DPC++.
+
+  -- Add -DNDEBUG for non-debug build.
+
+  -- Support for Windows.
+
+  -- Support for ParallelContext in Particles.
+
+  -- Non const iterator for neighbor list.
+
+  -- Tool for comparing single-level plotfiles of all nodalities.
+
+  -- GNU Make: Use -M instead the perl script to generate dependencies.
+
+  -- Particle: Remove directly accessing the m_idata and m_rdata structs internally.
+
+  -- Extend the makeSFC method to take an additional argument where the user can override the number
+     of processes a BoxArray is distributed to.
+
+  -- Turn tiling off by default for gpu.
+
 # 20.06
 
   -- Set a non-default CMAKE_INSTALL_PREFIX only if AMReX is the

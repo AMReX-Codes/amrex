@@ -2552,13 +2552,17 @@ MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const
                                Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
                                Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
 {
+    const int amrlev = 0;
+    const int mglev  = m_num_mg_levels[amrlev]-1;
+
     const Box& ndbx = mfi.validbox();
     const auto lo = amrex::lbound(ndbx);
     const auto hi = amrex::ubound(ndbx);
 
-    AMREX_ASSERT(m_coarsening_strategy == CoarseningStrategy::RAP);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((mglev == 0) || (m_coarsening_strategy == CoarseningStrategy::RAP),
+                                     "Coarsening strategy must be RAP to use hypre at mglev > 0");
 
-    const auto& sten = m_stencil[0][0]->array(mfi);
+    const auto& sten = m_stencil[amrlev][mglev]->array(mfi);
 
     constexpr int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
@@ -2630,17 +2634,17 @@ MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const
                                Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
                                Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
 {
-    AMREX_ASSERT(NMGLevels(0) == 1);
-
-    const Real* dxinv = m_geom[0][0].InvCellSize();
+    const int amrlev = 0;
+    const int mglev  = m_num_mg_levels[amrlev]-1;
 
     const Box& ndbx = mfi.validbox();
     const auto lo = amrex::lbound(ndbx);
     const auto hi = amrex::ubound(ndbx);
 
-    AMREX_ASSERT(m_coarsening_strategy == CoarseningStrategy::RAP);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((mglev == 0) || (m_coarsening_strategy == CoarseningStrategy::RAP),
+                                     "Coarsening strategy must be RAP to use hypre at mglev > 0");
 
-    const auto& sten = m_stencil[0][0]->array(mfi);
+    const auto& sten = m_stencil[amrlev][mglev]->array(mfi);
 
     constexpr int ist_000 = 1-1;
     constexpr int ist_p00 = 2-1;

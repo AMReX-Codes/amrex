@@ -9,17 +9,29 @@ include_guard(GLOBAL)
 include(CMakeDependentOption)
 
 #
-# Define a macro to check the value of the inputs integer options
+# Define a macro to print active options
 #
 macro (print_option _var)
-   message( STATUS "   ${_var} = ${${_var}}")
+   if (${_var})
+      message( STATUS "   ${_var}")
+   endif ()
 endmacro ()
+
+
+#
+# Dimensionality of the build  ===============================================
+#
+set (DIM 3 CACHE STRING "Dimension of AMReX build")
+if ( (DIM GREATER 3) OR (DIM LESS 1) )
+   message( FATAL_ERROR "DIM must be either 1, 2 or 3.")
+endif ()
+message( STATUS "Building AMReX with DIM = ${DIM}")
+
 
 #
 # Populate the cache and check the value of the user-definable options
 #
-message(STATUS "Configuring AMReX with the following options: ")
-
+message(STATUS "Configuring AMReX with the following options enabled: ")
 
 #
 # This is the option to enable/disable xSDK mode
@@ -80,14 +92,7 @@ endif ()
 option( ENABLE_DP "Enable double precision" ON )
 print_option( ENABLE_DP )
 
-#
-# Dimensionality of the build  ===============================================
-#
-set (DIM 3 CACHE STRING "Dimension of AMReX build")
-if ( (DIM GREATER 3) OR (DIM LESS 1) )
-   message( FATAL_ERROR "DIM must be either 1, 2 or 3.")
-endif ()
-print_option( DIM )
+
 
 #
 # Parallel backends    ========================================================
@@ -111,6 +116,10 @@ print_option(  ENABLE_DPCPP_SPLIT_KERNEL )
 cmake_dependent_option( ENABLE_MPI  "Enable MPI"  ON
    "NOT ENABLE_DPCPP" OFF)
 print_option( ENABLE_MPI )
+
+cmake_dependent_option( ENABLE_MPI_THREAD_MULTIPLE
+   "whether to initialize MPI so that multiple threads can make MPI calls at the same time"  OFF
+   "ENABLE_MPI" OFF)
 
 option( ENABLE_OMP  "Enable OpenMP" OFF)
 print_option( ENABLE_OMP )
@@ -187,6 +196,19 @@ cmake_dependent_option(ENABLE_PETSC "Enable PETSc interfaces" OFF
    "ENABLE_FORTRAN;ENABLE_LINEAR_SOLVERS" OFF )
 print_option(ENABLE_PETSC)
 
+# HDF5
+option(ENABLE_HDF5 "Enable HDF5-based I/O" OFF)
+print_option(ENABLE_HDF5)
+
+cmake_dependent_option(ENABLE_HDF5_ASYNC "Enable asynchronous writes in the HDF5-based IO" OFF
+   "ENABLE_HDF5" OFF )
+print_option(ENABLE_HDF5_ASYNC)
+
+if (ENABLE_HDF5_ASYNC)
+   message(FATAL_ERROR "\nENABLE_HDF5_ASYNC not yet supported\n")
+endif ()
+
+
 #
 # Miscellanoues options  =====================================================
 #
@@ -226,15 +248,12 @@ cmake_dependent_option( ENABLE_COMM_PROFILE  "Enable communicator-profiling" OFF
    "ENABLE_BASE_PROFILE" OFF)
 print_option( ENABLE_COMM_PROFILE )
 
-option( ENABLE_BACKTRACE "Enable backtracing" OFF)
-print_option( ENABLE_BACKTRACE )
-
 cmake_dependent_option(ENABLE_PROFPARSER "Enable profile parser" OFF
    "ENABLE_BASE_PROFILE;ENABLE_TRACE_PROFILE;ENABLE_AMRDATA" OFF)
 print_option( ENABLE_PROFPARSER )
 
-set(TP_PROFILE_VALUES None CRAYPAT FORGE VTUNE)
-set(TP_PROFILE None CACHE STRING "Third-party profiling options: <CRAYPAT,FORGE,VTUNE>")
+set(TP_PROFILE_VALUES IGNORE CRAYPAT FORGE VTUNE)
+set(TP_PROFILE IGNORE CACHE STRING "Third-party profiling options: <CRAYPAT,FORGE,VTUNE>")
 set_property(CACHE TP_PROFILE PROPERTY STRINGS ${TP_PROFILE_VALUES})
 if(NOT TP_PROFILE IN_LIST TP_PROFILE_VALUES)
     message(FATAL_ERROR "TP_PROFILE (${TP_PROFILE}) must be one of ${TP_PROFILE_VALUES}")
