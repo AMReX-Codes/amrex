@@ -8,9 +8,8 @@
 add_library( amrex )
 add_library( AMReX::amrex ALIAS amrex )
 
-
 #
-# Setup parallel backends (any type: inter- or intra- node)
+# Setup parallel backends (any type: inter/intra-node)
 #
 include(AMReXParallelBackends)
 
