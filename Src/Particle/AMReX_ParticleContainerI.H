@@ -63,8 +63,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename P>
 IntVect
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Index (const ParticleType& p, int lev) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Index (const P& p, int lev) const
 {
     IntVect iv;
     const Geometry& geom = Geom(lev);
@@ -79,9 +80,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Index (const 
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename P>
 bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::Where (const ParticleType& p,
+::Where (const P& p,
 	 ParticleLocData&    pld,
 	 int                 lev_min,
 	 int                 lev_max,
@@ -90,17 +92,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
 
   AMREX_ASSERT(m_gdb != 0);
-  
+
   if (lev_max == -1)
       lev_max = finestLevel();
-  
+
   AMREX_ASSERT(lev_max <= finestLevel());
 
   AMREX_ASSERT(nGrow == 0 || (nGrow >= 0 && lev_min == lev_max));
 
   std::vector< std::pair<int, Box> > isects;
 
-  for (int lev = lev_max; lev >= lev_min; lev--) {      
+  for (int lev = lev_max; lev >= lev_min; lev--) {
       const IntVect& iv = Index(p, lev);
       if (lev == pld.m_lev) {
           // The fact that we are here means this particle does not belong to any finer grids.
@@ -137,7 +139,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	  return true;
       }
   }
-  
+
   return false;
 }
 
@@ -765,16 +767,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         {
             const auto& ptile = ParticlesAt(level, pti);
             const auto src = ptile.getConstParticleTileData();
-                  auto dst = virts.getParticleTileData();
 
             auto& aos = ptile.GetArrayOfStructs();
-            for (int pindex = 0; pindex < ptile.numParticles(); ++pti)
+            for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
             {
                 SuperParticleType p = src.getSuperParticle(pindex);
                 p.id() = VirtualParticleID;
-                auto np = virts.numParticles();
-                virts.resize(np+1);
-                dst.setSuperParticle(p, np);
+                virts.push_back(p);
             }
         }
     }
@@ -791,11 +790,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             const auto& ptile = ParticlesAt(level, pti);
             const auto& aos = pti.GetArrayOfStructs();
             const auto src = ptile.getConstParticleTileData();
-                  auto dst = virts.getParticleTileData();
 
             std::map<IntVect,SuperParticleType> agg_map;
 
-            for (int pindex = 0; pindex < ptile.numParticles(); ++pti)
+            for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
             {
                 IntVect cell = Index(aos[pindex], level);
                 if (buffer.contains(cell))
@@ -804,9 +802,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     // Set its id to indicate that it's a virt.
                     SuperParticleType p = src.getSuperParticle(pindex);
                     p.id() = VirtualParticleID;
-                    auto np = virts.numParticles();
-                    virts.resize(np+1);
-                    dst.setSuperParticle(p, np);
+                    virts.push_back(p);
                 }
                 else
                 {
@@ -859,9 +855,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             //
             for (const auto& agg_particle : agg_map)
             {
-                auto np = virts.numParticles();
-                virts.resize(np+1);
-                dst.setSuperParticle(agg_particle.second, np);
+                virts.push_back(agg_particle.second);
             }
         }
     }
@@ -895,10 +889,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     {
         const auto& ptile = ParticlesAt(level, pti);
         const auto src = ptile.getConstParticleTileData();
-              auto dst = ghosts.getParticleTileData();
 
         auto& aos = ptile.GetArrayOfStructs();
-        for (int pindex = 0; pindex < ptile.numParticles(); ++pti)
+        for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
         {
             const IntVect& iv = Index(aos[pindex], level+1);
             fine.intersections(Box(iv,iv),isects,false,nGrow);
@@ -907,9 +900,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 amrex::ignore_unused(isec);
                 SuperParticleType p = src.getSuperParticle(pindex);
                 p.id() = GhostParticleID;
-                auto np = ghosts.numParticles();
-                ghosts.resize(np+1);
-                dst.setSuperParticle(p, np);
+                ghosts.push_back(p);
             }
         }
     }
@@ -2000,6 +1991,9 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>
 ::AddParticlesAtLevel (ParticleTileType& particles, int level, int nGrow)
 {
     BL_PROFILE("ParticleContainer::AddParticlesAtLevel()");
+
+    if (particles.size() == 0) return;
+
     if (int(m_particles.size()) < level+1)
     {
         if (Verbose())
@@ -2016,11 +2010,19 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>
         }
     }
 
-    auto& ptile = m_particles[level].begin()->second;
+    ParticleLocData pld;
 
-    const auto old_np = ptile.numParticles();
-    ptile.resize(old_np + particles.numParticles());
-    amrex::copyParticles(ptile, particles, 0, old_np, particles.numParticles());
+    auto src = particles.getParticleTileData();
+
+    for (int i = 0; i < particles.numParticles(); ++i) {
+        SuperParticleType p = src.getSuperParticle(i);
+        if (p.id() > 0)
+        {
+            if (!Where(p, pld, level, level, nGrow))
+                amrex::Abort("ParticleContainerAddParticlesAtLevel(): Can't add outside of domain\n");
+            m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+        }
+    }
 
     Redistribute(level, level, nGrow);
     particles.resize(0);

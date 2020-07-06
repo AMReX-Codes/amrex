@@ -1047,7 +1047,8 @@ public:
     void AssignCellDensitySingleLevel (int rho_index, MultiFab& mf, int level,
                                        int ncomp=1, int particle_lvl_offset = 0) const;
 
-    IntVect Index (const Particle<NStructReal, NStructInt>& p, int lev) const;
+    template <typename P>
+    IntVect Index (const P& p, int lev) const;
 
 
     /**
@@ -1170,7 +1171,8 @@ protected:
     * \param nGrow
     * \param local_grid
     */
-    bool Where (const ParticleType& prt, ParticleLocData& pld,
+    template <typename P>
+    bool Where (const P& prt, ParticleLocData& pld,
 		int lev_min = 0, int lev_max = -1, int nGrow=0, int local_grid=-1) const;
 
 
