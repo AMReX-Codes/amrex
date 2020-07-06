@@ -93,36 +93,44 @@ void amrex_hpmat (Box const& box,
     }
 
     if (cdir == 0){
-        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (box, i, j, k,
+        Box tbx = box;
+        tbx.setSmall(0,lo.x).setBig(0,lo.x); // 0: x-direction
+        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (tbx, i, j, k,
         {
-            if (msk_arr(lo.x-1,j,k) > 0 && i==lo.x){
+            if (msk_arr(lo.x-1,j,k) > 0){
                 mat_arr(i,j,k)[0] = mat_arr(i,j,k)[0] + bf1*b_arr(i,j,k);
                 mat_arr(i,j,k)[1] = 0.0;
                 mat_arr(i,j,k)[2] = mat_arr(i,j,k)[2] + bf2*b_arr(i,j,k);
             }
         });
     }else if (cdir == 2){
-        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (box, i, j, k,
+        Box tbx = box;
+        tbx.setSmall(0,hi.x).setBig(0,hi.x); // 0: x-direction
+        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (tbx, i, j, k,
         {
-            if (msk_arr(hi.x+1,j,k) > 0 && i==hi.x){
+            if (msk_arr(hi.x+1,j,k) > 0){
                 mat_arr(i,j,k)[0] = mat_arr(i,j,k)[0] + bf1*b_arr(i+1,j,k);
                 mat_arr(i,j,k)[2] = 0.0;
                 mat_arr(i,j,k)[1] = mat_arr(i,j,k)[1] + bf2*b_arr(i+1,j,k);
             }
         });
    }else if (cdir == 1){
-        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (box, i, j, k,
+        Box tby = box;
+        tby.setSmall(1,lo.y).setBig(1,lo.y); // 1: y-direction
+        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (tby, i, j, k,
         {
-            if (msk_arr(i,lo.y-1,k) > 0 && j==lo.y){
+            if (msk_arr(i,lo.y-1,k) > 0){
                 mat_arr(i,j,k)[0] = mat_arr(i,j,k)[0] + bf1*b_arr(i,j,k);
                 mat_arr(i,j,k)[3] = 0.0;
                 mat_arr(i,j,k)[4] = mat_arr(i,j,k)[4] + bf2*b_arr(i,j,k);
             }
         });
    }else if (cdir == 3){
-        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (box, i, j, k,
+        Box tby = box;
+        tby.setSmall(1,hi.y).setBig(1,hi.y); // 1: y-direction
+        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (tby, i, j, k,
         {
-            if (msk_arr(i,hi.y+1,k) > 0 && j==hi.y){
+            if (msk_arr(i,hi.y+1,k) > 0){
                 mat_arr(i,j,k)[0] = mat_arr(i,j,k)[0] + bf1*b_arr(i,j+1,k);
                 mat_arr(i,j,k)[4] = 0.0;
                 mat_arr(i,j,k)[3] = mat_arr(i,j,k)[3] + bf2*b_arr(i,j+1,k);
