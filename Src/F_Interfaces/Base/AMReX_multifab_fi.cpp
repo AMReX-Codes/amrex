@@ -157,9 +157,9 @@ extern "C" {
     }
 
     void amrex_fi_multifab_copy (MultiFab* dstmf, const MultiFab* srcmf,
-                                 int srccomp, int dstcomp, int nc, int ng)
+                                 int srccomp, int dstcomp, int nc, const int* ng)
     {
-        MultiFab::Copy(*dstmf, *srcmf, srccomp, dstcomp, nc, ng);
+        MultiFab::Copy(*dstmf, *srcmf, srccomp, dstcomp, nc, IntVect(ng));
     }
 
     void amrex_fi_multifab_parallelcopy (MultiFab* dstmf, const MultiFab* srcmf,

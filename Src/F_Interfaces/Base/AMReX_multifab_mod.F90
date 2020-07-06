@@ -53,7 +53,7 @@ module amrex_multifab_module
      procedure :: divide        => amrex_multifab_divide
      procedure :: saxpy         => amrex_multifab_saxpy
      procedure :: lincomb       => amrex_multifab_lincomb
-     procedure :: copy          => amrex_multifab_copy     ! This copies the data
+     procedure :: copy          => amrex_multifab_copy, amrex_multifab_copy_cgv ! This copies the data
      generic   :: parallel_copy => amrex_multifab_parallel_copy, amrex_multifab_parallel_copy_c, &
           amrex_multifab_parallel_copy_cg, amrex_multifab_parallel_copy_cgv
      generic   :: fill_boundary => amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c
@@ -330,7 +330,8 @@ module amrex_multifab_module
        import
        implicit none
        type(c_ptr), value :: dstmf, srcmf
-       integer(c_int), value :: srccomp, dstcomp, nc, ng
+       integer(c_int), value :: srccomp, dstcomp, nc
+       integer(c_int), intent(in) :: ng(*)
      end subroutine amrex_fi_multifab_copy
 
      subroutine amrex_fi_multifab_parallelcopy(dstmf, srcmf, srccomp, dstcomp, nc,&
@@ -888,8 +889,15 @@ contains
     class(amrex_multifab) :: this
     type(amrex_multifab), intent(in) :: srcmf
     integer, intent(in) :: srccomp, dstcomp, nc, ng
-    call amrex_fi_multifab_copy(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, ng)
+    call amrex_fi_multifab_copy(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, (/ng,ng,ng/))
   end subroutine amrex_multifab_copy
+
+  subroutine amrex_multifab_copy_cgv (this, srcmf, srccomp, dstcomp, nc, ng)
+    class(amrex_multifab) :: this
+    type(amrex_multifab), intent(in) :: srcmf
+    integer, intent(in) :: srccomp, dstcomp, nc, ng(*)
+    call amrex_fi_multifab_copy(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, ng)
+  end subroutine amrex_multifab_copy_cgv
 
   subroutine amrex_multifab_parallel_copy (this, srcmf, geom)
     class(amrex_multifab) :: this
