@@ -371,8 +371,8 @@ skipped. You can also access the SoA data using the :math:`ParIter` as follows:
     using MyParIter = ParIter<0, 0, 2, 2>;
     for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
         auto& particle_attributes = pti.GetStructOfArrays();
-        Vector<Real>& real_comp0 = particle_attributes.GetRealData(0);
-        Vector<int>&  int_comp1  = particle_attributes.GetIntData(1);
+        RealVector& real_comp0 = particle_attributes.GetRealData(0);
+        IntVector&  int_comp1  = particle_attributes.GetIntData(1);
         for (int i = 0; i < pti.numParticles; ++i) {
             // do stuff with your SoA data...
         }
@@ -434,7 +434,7 @@ both these sorts of operations.
     Ey.FillBoundary(gm.periodicity());
     Ez.FillBoundary(gm.periodicity());
     for (MyParIter pti(MyPC, lev); pti.isValid(); ++pti) {
-        const Box& box = Ex[pti].validBox();
+        const Box& box = pti.validbox();
 
         const auto& particles = pti.GetArrayOfStructs();
         int nstride = particles.dataShape().first;
@@ -474,7 +474,7 @@ is quite similar:
 
     rho.setVal(0.0, ng);
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-        const Box& box = rho[pti].validbox();
+        const Box& box = pti.validbox();
 
         const auto& particles = pti.GetArrayOfStructs();
         int nstride = particles.dataShape().first;

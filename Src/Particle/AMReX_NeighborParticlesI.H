@@ -309,12 +309,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
     local_map.resize(this->numLevels());
     tmp_local_map.resize(this->numLevels());
 
-    int num_threads = 1;
-#ifdef _OPENMP
-#pragma omp parallel
-#pragma omp single
-    num_threads = omp_get_num_threads();
-#endif
+    int num_threads = OpenMP::get_max_threads();
 
     for (int lev = 0; lev < this->numLevels(); ++lev) {
         // resize our temporaries in serial
@@ -339,11 +334,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             Vector<NeighborCopyTag> tags;
             tags.reserve(AMREX_D_TERM(3, *3, *3));
             for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-#ifdef _OPENMP
-                int thread_num = omp_get_thread_num();
-#else
-                int thread_num = 0;
-#endif
+                int thread_num = OpenMP::get_thread_num();
                 const int& grid = pti.index();
                 const int& tile = pti.LocalTileIndex();
                 PairIndex src_index(grid, tile);

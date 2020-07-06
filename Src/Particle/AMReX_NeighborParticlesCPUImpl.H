@@ -275,12 +275,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
         const Periodicity& periodicity = this->Geom(lev).periodicity();
         const RealBox& prob_domain = this->Geom(lev).ProbDomain();
 
-        int num_threads = 1;
-#ifdef _OPENMP
-#pragma omp parallel
-#pragma omp single
-        num_threads = omp_get_num_threads();
-#endif
+        int num_threads = OpenMP::get_max_threads();
+
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
             PairIndex src_index(pti.index(), pti.LocalTileIndex());
             auto& particles = pti.GetArrayOfStructs();

@@ -44,6 +44,7 @@ target_sources( amrex
    AMReX_DistributionMapping.cpp
    AMReX_ParallelDescriptor.H
    AMReX_ParallelDescriptor.cpp
+   AMReX_OpenMP.H
    AMReX_ParallelReduce.H
    AMReX_ForkJoin.H
    AMReX_ForkJoin.cpp
@@ -53,6 +54,8 @@ target_sources( amrex
    AMReX_VisMF.cpp
    AMReX_AsyncOut.H
    AMReX_AsyncOut.cpp
+   AMReX_BackgroundThread.H
+   AMReX_BackgroundThread.cpp
    AMReX_Arena.H
    AMReX_Arena.cpp
    AMReX_BArena.H

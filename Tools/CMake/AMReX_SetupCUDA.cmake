@@ -19,9 +19,21 @@ endif ()
 # CUDAHOSTCXX and the CMake variable CMAKE_CUDA_HOST_COMPILER.
 # For the time being we force the CUDA host compiler to be the C++ compiler.
 #
-if ( ( CMAKE_CUDA_HOST_COMPILER AND NOT ("${CMAKE_CUDA_HOST_COMPILER}" STREQUAL "${CMAKE_CXX_COMPILER}") )
-      OR  ( NOT ("$ENV{CUDAHOSTCXX}" STREQUAL "") ) )
-   message(FATAl_ERROR "User-defined CUDA host compiler does not match C++ compiler")
+# Note: just comparing the CMAKE_..._COMPILER vars is not sufficient and raises
+#       false negatives on e.g. /usr/bin/g++-8 and /usr/bin/c++
+# Note: blocked by https://gitlab.kitware.com/cmake/cmake/-/issues/20901
+#
+if (CMAKE_CUDA_HOST_COMPILER)
+  if (NOT "${CMAKE_CXX_COMPILER}" STREQUAL "${CMAKE_CUDA_HOST_COMPILER}")
+    if (NOT "$ENV{CUDAHOSTCXX}" STREQUAL "" OR NOT "$ENV{CXX}" STREQUAL "")
+      message(WARNING "CUDA host compiler "
+                      "(${CMAKE_CUDA_HOST_COMPILER}) "
+                      "does not match the C++ compiler "
+                      "(${CMAKE_CXX_COMPILER})! "
+                      "Consider setting the CXX and CUDAHOSTCXX environment "
+                      "variables.")
+    endif ()
+  endif ()
 endif ()
 
 #

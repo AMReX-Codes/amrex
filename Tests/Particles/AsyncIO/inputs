@@ -1,0 +1,29 @@
+
+# Domain size
+
+#nx = 32 # number of grid points along the x axis
+#ny = 32 # number of grid points along the y axis 
+#nz = 32 # number of grid points along the z axis
+
+#nx = 64 # number of grid points along the x axis
+#ny = 64 # number of grid points along the y axis 
+#nz = 64 # number of grid points along the z axis
+
+nx = 128 # number of grid points along the x axis
+ny = 128 # number of grid points along the y axis 
+nz = 128 # number of grid points along the z axis
+
+# Maximum allowable size of each subdomain in the problem domain; 
+#    this is used to decompose the domain for parallel calculations.
+max_grid_size = 16
+
+# Number of particles per cell
+nppc = 10
+
+# Verbosity
+verbose = true   # set to true to get more verbosity 
+
+# Number of levels
+nlevs = 2
+
+amrex.async_io=1

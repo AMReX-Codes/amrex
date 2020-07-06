@@ -161,12 +161,6 @@ else
   BOUND_CHECK := FALSE
 endif
 
-ifdef BACKTRACE
-  BACKTRACE := $(strip $(BACKTRACE))
-else
-  BACKTRACE := FALSE
-endif
-
 ifdef EXPORT_DYNAMIC
   EXPORT_DYNAMIC := $(strip $(EXPORT_DYNAMIC))
 else
@@ -528,13 +522,6 @@ ifeq ($(TEST),TRUE)
     endif
 endif
 
-ifeq ($(BACKTRACE),TRUE)
-    CPPFLAGS += -DAMREX_BACKTRACING -DAMREX_TESTING
-    BTSuffix := .BT
-else
-    BTSuffix :=
-endif
-
 ifdef CRAY_CPU_TARGET
 ifneq ($(USE_CUDA),TRUE)
     archSuffix += .$(strip $(CRAY_CPU_TARGET))
@@ -846,7 +833,7 @@ ifeq ($(USE_RPATH),TRUE)
 endif
 LDFLAGS	+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(CUPTISuffix)$(USERSuffix)
+machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(CUPTISuffix)$(USERSuffix)
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
@@ -1049,40 +1036,40 @@ else ifeq ($(USE_CUDA),TRUE)
 
     DEFINES += -DAMREX_GPU_MAX_THREADS=$(CUDA_MAX_THREADS)
 
-    comm := ,
-    space :=
-    space +=
-
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
       LINKFLAGS = $(NVCC_FLAGS)
-      # we are using nvcc for linking
-      libraries := $(subst -Wl$(comm),-Xlinker=,$(libraries))
-      ifeq ($(FIX_NVCC_PTHREAD),TRUE)
-        libraries := $(subst -pthread,-Xcompiler$(space)-pthread,$(libraries))
-      endif
       AMREX_LINKER = nvcc
     endif
 
-    ifeq ($(USE_MPI),TRUE)
+    ifeq ($(nvcc_forward_unknowns),0)
 
-      ifneq ($(findstring Open MPI, $(shell mpicxx -showme:version 2>&1)),)
+      comm := ,
+      space :=
+      space +=
 
+      ifeq ($(AMREX_LINKER),nvcc)
+        libraries := $(subst -Wl$(comm),-Xlinker=,$(libraries))
         ifeq ($(FIX_NVCC_PTHREAD),TRUE)
-          OMPI_CXXFLAGS_ORIG = $(shell mpicxx -showme:compile)
-          export OMPI_CXXFLAGS := $(subst -pthread,-Xcompiler$(space)-pthread,$(OMPI_CXXFLAGS_ORIG))
-
-          OMPI_CFLAGS_ORIG = $(shell mpicc -showme:compile)
-          export OMPI_CFLAGS := $(subst -pthread,-Xcompiler$(space)-pthread,$(OMPI_CXXFLAGS_ORIG))
-
-          # If we're compiling with PGI, it doesn't know -pthread, replace
-          # with -lpthread.
-
-          OMPI_FCFLAGS_ORIG = $(shell mpif90 -showme:compile)
-          export OMPI_FCFLAGS := $(subst -pthread,-lpthread,$(OMPI_FCFLAGS_ORIG))
+          libraries := $(subst -pthread,-Xcompiler$(space)-pthread,$(libraries))
         endif
-
       endif
 
-    endif
+      ifeq ($(USE_MPI),TRUE)
+
+        ifneq ($(findstring Open MPI, $(shell mpicxx -showme:version 2>&1)),)
+
+          ifeq ($(FIX_NVCC_PTHREAD),TRUE)
+            OMPI_CXXFLAGS_ORIG = $(shell mpicxx -showme:compile)
+            export OMPI_CXXFLAGS := $(subst -pthread,-Xcompiler$(space)-pthread,$(OMPI_CXXFLAGS_ORIG))
+
+            OMPI_CFLAGS_ORIG = $(shell mpicc -showme:compile)
+            export OMPI_CFLAGS := $(subst -pthread,-Xcompiler$(space)-pthread,$(OMPI_CXXFLAGS_ORIG))
+          endif
+
+        endif # Open MPI
+
+      endif # USE_MPI
+
+    endif # nvcc_forward_unknowns == 0
 
 endif

@@ -190,6 +190,21 @@ void abec_gsrb_os (Box const& box, Array4<Real> const& phi, Array4<Real const> c
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void abec_gsrb_with_line_solve (
+                Box const& box, Array4<Real> const& phi, Array4<Real const> const& rhs,
+                Real alpha, Array4<Real const> const& a,
+                Real dhx,
+                Array4<Real const> const& bX,
+                Array4<int const> const& m0,
+                Array4<int const> const& m1,
+                Array4<Real const> const& f0,
+                Array4<Real const> const& f1,
+                Box const& vbox, int redblack, int nc) noexcept
+{
+    amrex::Abort("abec_gsrb_with_line_solve not implemented in 1D");
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int coarsen_overset_mask (Box const& bx, Array4<int> const& cmsk, Array4<int const> const& fmsk)
     noexcept
 {
