@@ -120,6 +120,7 @@ print_option( ENABLE_MPI )
 cmake_dependent_option( ENABLE_MPI_THREAD_MULTIPLE
    "whether to initialize MPI so that multiple threads can make MPI calls at the same time"  OFF
    "ENABLE_MPI" OFF)
+print_option( ENABLE_MPI_THREAD_MULTIPLE )
 
 option( ENABLE_OMP  "Enable OpenMP" OFF)
 print_option( ENABLE_OMP )
