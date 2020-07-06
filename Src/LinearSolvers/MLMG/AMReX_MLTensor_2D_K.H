@@ -202,6 +202,35 @@ void mltensor_cross_terms (Box const& box, Array4<Real> const& Ax,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mltensor_cross_terms_os (Box const& box, Array4<Real> const& Ax,
+                              Array4<Real const> const& fx,
+                              Array4<Real const> const& fy,
+                              Array4<int const> const& osm,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Real bscalar) noexcept
+{
+    const Real dxi = bscalar * dxinv[0];
+    const Real dyi = bscalar * dxinv[1];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            if (osm(i,j,0)) {
+                Ax(i,j,0,0) = 0.0;
+                Ax(i,j,0,1) = 0.0;
+            } else {
+                Ax(i,j,0,0) += dxi*(fx(i+1,j  ,0,0) - fx(i,j,0,0))
+                    +          dyi*(fy(i  ,j+1,0,0) - fy(i,j,0,0));
+                Ax(i,j,0,1) += dxi*(fx(i+1,j  ,0,1) - fx(i,j,0,1))
+                    +          dyi*(fy(i  ,j+1,0,1) - fy(i,j,0,1));
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
                               Array4<Real const> const& vel,
                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept

@@ -81,7 +81,7 @@ public:
 	SkipInit      = 0x08
     };
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
     enum MFReducer { SUM = 0, MAX, MIN };
 #endif
 
@@ -164,7 +164,7 @@ public:
     //! The the number of tiles in the current grid;
     int numLocalTiles() const noexcept {return num_local_tiles ? (*num_local_tiles)[currentIndex] : 1;}
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
     //! Maintain a list of values to reduce.
     template<typename T>
     T* add_reduce_value(T* val, MFReducer r) { return val; }
@@ -212,7 +212,7 @@ protected:
     const Vector<int>* local_tile_index_map;
     const Vector<int>* num_local_tiles;
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
     mutable Vector<Real*> real_reduce_val;
 
     mutable MFReducer reducer;

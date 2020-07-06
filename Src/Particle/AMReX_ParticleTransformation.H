@@ -11,7 +11,7 @@ namespace amrex
 {
 
 /**
- * \brief A general single particle copying routine that can run on the GPU. 
+ * \brief A general single particle copying routine that can run on the GPU.
  *
  * \tparam NSR number of extra reals in the particle struct
  * \tparam NSI number of extra ints in the particle struct
@@ -26,8 +26,8 @@ namespace amrex
  */
 template <int NSR, int NSI, int NAR, int NAI>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void copyParticle (const      ParticleTileData<NSR, NSI, NAR, NAI>& dst, 
-                   const ConstParticleTileData<NSR, NSI, NAR, NAI>& src, 
+void copyParticle (const      ParticleTileData<NSR, NSI, NAR, NAI>& dst,
+                   const ConstParticleTileData<NSR, NSI, NAR, NAI>& src,
                    int src_i, int dst_i) noexcept
 {
     AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
@@ -45,7 +45,7 @@ void copyParticle (const      ParticleTileData<NSR, NSI, NAR, NAI>& dst,
 }
 
 /**
- * \brief A general single particle copying routine that can run on the GPU. 
+ * \brief A general single particle copying routine that can run on the GPU.
  *
  * \tparam NSR number of extra reals in the particle struct
  * \tparam NSI number of extra ints in the particle struct
@@ -60,8 +60,8 @@ void copyParticle (const      ParticleTileData<NSR, NSI, NAR, NAI>& dst,
  */
 template <int NSR, int NSI, int NAR, int NAI>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void copyParticle (const ParticleTileData<NSR, NSI, NAR, NAI>& dst, 
-                   const ParticleTileData<NSR, NSI, NAR, NAI>& src, 
+void copyParticle (const ParticleTileData<NSR, NSI, NAR, NAI>& dst,
+                   const ParticleTileData<NSR, NSI, NAR, NAI>& src,
                    int src_i, int dst_i) noexcept
 {
     AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
@@ -77,9 +77,9 @@ void copyParticle (const ParticleTileData<NSR, NSI, NAR, NAI>& dst,
     for (int j = 0; j < dst.m_num_runtime_int; ++j)
         dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
 }
-    
+
 /**
- * \brief A general single particle swapping routine that can run on the GPU. 
+ * \brief A general single particle swapping routine that can run on the GPU.
  *
  * \tparam NSR number of extra reals in the particle struct
  * \tparam NSI number of extra ints in the particle struct
@@ -111,20 +111,21 @@ void swapParticle (const ParticleTileData<NSR, NSI, NAR, NAI>& dst,
     for (int j = 0; j < dst.m_num_runtime_int; ++j)
         amrex::Swap(dst.m_runtime_idata[j][dst_i], src.m_runtime_idata[j][src_i]);
 }
-    
+
 /**
- * \brief Copy particles from src to dst. This version copies all the 
+ * \brief Copy particles from src to dst. This version copies all the
  * particles, writing them to the beginning of dst.
- * 
- * \tparam PTile the particle tile type
+ *
+ * \tparam DstTile the dst particle tile type
+ * \tparam SrcTile the src particle tile type
  *
  * \param dst the destination tile
  * \param src the source tile
  * \param f the function that will be applied to each particle
  *
- */    
-template <typename PTile>
-void copyParticles (PTile& dst, const PTile& src) noexcept
+ */
+template <typename DstTile, typename SrcTile>
+void copyParticles (DstTile& dst, const SrcTile& src) noexcept
 {
     auto np = src.numParticles();
     copyParticles(dst, src, 0, 0, np);
@@ -133,8 +134,9 @@ void copyParticles (PTile& dst, const PTile& src) noexcept
 /**
  * \brief Copy particles from src to dst. This version copies n particles
  * starting at index src_start, writing the result starting at dst_start.
- * 
- * \tparam PTile the particle tile type
+ *
+ * \tparam DstTile the dst particle tile type
+ * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
  * \tparam N the size type, e.g. Long
  *
@@ -142,11 +144,12 @@ void copyParticles (PTile& dst, const PTile& src) noexcept
  * \param src the source tile
  * \param src_start the offset at which to start reading particles from src
  * \param dst_start the offset at which to start writing particles to dst
+ * \param n the number of particles to write
  *
  */
-template <typename PTile, typename Index, typename N,
+template <typename DstTile, typename SrcTile, typename Index, typename N,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
-void copyParticles (PTile& dst, const PTile& src,
+void copyParticles (DstTile& dst, const SrcTile& src,
                     Index src_start, Index dst_start, N n) noexcept
 {
     const auto src_data = src.getConstParticleTileData();
@@ -157,11 +160,11 @@ void copyParticles (PTile& dst, const PTile& src,
         copyParticle(dst_data, src_data, src_start+i, dst_start+i);
     });
 }
-    
+
 /**
  * \brief Apply the function f to all the particles in src, writing the
  * result to dst. This version does all the particles in src.
- * 
+ *
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam F a function object
@@ -268,11 +271,12 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
         f(dst1_data, dst2_data, src_data, src_start+i, dst1_start+i, dst2_start+i);
     });
 }
-    
+
 /**
  * \brief Conditionally copy particles from src to dst based on the value of mask.
  * 
- * \tparam PTile the particle tile type
+ * \tparam DstTile the dst particle tile type
+ * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
  *
  * \param dst the destination tile
@@ -280,9 +284,34 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
  * \param mask pointer to the mask - 1 means copy, 0 means don't copy
  *
  */
-template <typename PTile, typename Index,
+template <typename DstTile, typename SrcTile, typename Index, typename N,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
-Index filterParticles (PTile& dst, const PTile& src, const Index* mask) noexcept
+Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask) noexcept
+{
+    return filterParticles(dst, src, mask, 0, 0, src.numParticles());
+}
+    
+/**
+ * \brief Conditionally copy particles from src to dst based on the value of mask.
+ *  This version conditionally copies n particles starting at index src_start, writing 
+ *  the result starting at dst_start.
+ * 
+ * \tparam DstTile the dst particle tile type
+ * \tparam SrcTile the src particle tile type
+ * \tparam Index the index type, e.g. unsigned int
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param mask pointer to the mask - 1 means copy, 0 means don't copy
+ * \param src_start the offset at which to start reading particles from src
+ * \param dst_start the offset at which to start writing particles to dst
+ * \param n the number of particles to apply the operation to
+ *
+ */
+template <typename DstTile, typename SrcTile, typename Index, typename N,
+          amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
+Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
+                       Index src_start, Index dst_start, N n) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> offsets(np);
@@ -291,15 +320,16 @@ Index filterParticles (PTile& dst, const PTile& src, const Index* mask) noexcept
     Index last_mask, last_offset;
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);    
-                               
+      
     auto p_offsets = offsets.dataPtr();
     
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
 
-    AMREX_HOST_DEVICE_FOR_1D( np, i,
+    AMREX_HOST_DEVICE_FOR_1D( n, i,
     {
-        if (mask[i]) copyParticle(dst_data, src_data, i, p_offsets[i]);
+        if (mask[src_start+i]) copyParticle(dst_data, src_data, src_start+i, 
+                                            dst_start+p_offsets[src_start+i]);
     });
 
     Gpu::streamSynchronize();
@@ -309,7 +339,8 @@ Index filterParticles (PTile& dst, const PTile& src, const Index* mask) noexcept
 /**
  * \brief Conditionally copy particles from src to dst based on a predicate.
  * 
- * \tparam PTile the particle tile type
+ * \tparam DstTile the dst particle tile type
+ * \tparam SrcTile the src particle tile type
  * \tparam Pred a function object
  *
  * \param dst the destination tile
@@ -317,11 +348,35 @@ Index filterParticles (PTile& dst, const PTile& src, const Index* mask) noexcept
  * \param p predicate function - particles will be copied if p returns true
  *
  */    
-template <typename PTile, typename Pred>
-auto filterParticles (PTile& dst, const PTile& src, Pred&& p) noexcept
-    -> decltype(p(typename PTile::ConstParticleTileDataType(), 0))
+template <typename DstTile, typename SrcTile, typename Pred>
+auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
+    -> decltype(p(typename SrcTile::ConstParticleTileDataType(), 0))
 {
-    using Index = decltype(p(typename PTile::ConstParticleTileDataType(), 0));
+    return filterParticles(dst, src, p, 0, 0, src.numParticles());
+}
+
+/**
+ * \brief Conditionally copy particles from src to dst based on a predicate.
+ *  This version conditionally copies n particles starting at index src_start, writing 
+ *  the result starting at dst_start.
+ * 
+ * \tparam DstTile the dst particle tile type
+ * \tparam SrcTile the src particle tile type
+ * \tparam Pred a function object
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param p predicate function - particles will be copied if p returns true
+ * \param src_start the offset at which to start reading particles from src
+ * \param dst_start the offset at which to start writing particles to dst
+ * \param n the number of particles to apply the operation to
+ *
+ */    
+template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N>
+auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
+                      Index src_start, Index dst_start, N n) noexcept
+    -> decltype(p(typename SrcTile::ConstParticleTileDataType(), 0))
+{
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> mask(np);
 
@@ -333,7 +388,7 @@ auto filterParticles (PTile& dst, const PTile& src, Pred&& p) noexcept
         p_mask[i] = p(src_data, i);
     });
 
-    return filterParticles(dst, src, mask.dataPtr());
+    return filterParticles(dst, src, mask.dataPtr(), src_start, dst_start, n);
 }
 
 /**

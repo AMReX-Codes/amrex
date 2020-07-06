@@ -517,7 +517,7 @@ namespace amrex
             m_capacity = a_capacity;
         }
         
-        PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::false_type) noexcept
+        PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::true_type) noexcept
         {
             const size_t other_size = a_vector.size();            
             if ( other_size > capacity() ) { AllocateBuffer(other_size); }            
@@ -526,11 +526,11 @@ namespace amrex
             return *this;
         }
         
-        PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::true_type) noexcept
+        PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::false_type) noexcept
         {
-            if (static_cast<Allocator&>(a_vector) == static_cast<Allocator&>(*this))
+            if (static_cast<Allocator const&>(a_vector) == static_cast<Allocator&>(*this))
             {
-                CopyAssignmentDoIt(a_vector, std::false_type());
+                return CopyAssignmentDoIt(a_vector, std::true_type());
             }
             else
             {
@@ -538,7 +538,7 @@ namespace amrex
                 if ( other_size > capacity() ) { AllocateBuffer(other_size); }                
                 m_size = other_size;                    
                 detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T));
-                Allocator::operator=(static_cast<Allocator&>(a_vector));                
+                Allocator::operator=(static_cast<Allocator const&>(a_vector));
                 return *this;
             }
         }
@@ -570,7 +570,7 @@ namespace amrex
         {
             deallocate(m_data, capacity());
             
-            Allocator::operator=(std::move(static_cast<Allocator&>(a_vector)));
+            Allocator::operator=(std::move(static_cast<Allocator const&>(a_vector)));
             
             m_data = a_vector.m_data;
             m_size = a_vector.m_size;

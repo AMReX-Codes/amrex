@@ -1,6 +1,7 @@
 #include <AMReX_HypreABecLap3.H>
-#include <AMReX_HypreABec_F.H>
 #include <AMReX_VisMF.H>
+
+#include <AMReX_Habec_K.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
@@ -38,8 +39,10 @@ void
 HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
                       int max_iter, const BndryData& bndry, int max_bndry_order)
 {
+    Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
+
     BL_PROFILE("HypreABecLap3::solve()");
-    
+
     if (solver == NULL || m_bndry != &bndry || m_maxorder != max_bndry_order)
     {
         m_bndry = &bndry;
@@ -149,10 +152,10 @@ HypreABecLap3::getSolution (MultiFab& soln)
 #ifdef AMREX_USE_EB
             else if (fabtyp != FabType::regular)
             {
-                amrex_hpeb_copy_from_vec(BL_TO_FORTRAN_BOX(bx),
-                                         BL_TO_FORTRAN_ANYD(soln[mfi]),
-                                         xfab->dataPtr(), &nrows,
-                                         BL_TO_FORTRAN_ANYD((*flags)[mfi]));
+                amrex_hpeb_copy_from_vec(bx,
+                                         soln[mfi],
+                                         xfab->dataPtr(),
+                                         (*flags)[mfi]);
             }
 #endif
         }
@@ -214,10 +217,11 @@ HypreABecLap3::prepareSolver ()
         }
         else if (fabtyp == FabType::singlevalued)
         {
-            amrex_hpeb_fill_cellid(BL_TO_FORTRAN_BOX(bx),
-                                   &ncells_grid[mfi],
-                                   BL_TO_FORTRAN_ANYD(cid_fab),
-                                   BL_TO_FORTRAN_ANYD((*flags)[mfi]));
+            amrex_hpeb_fill_cellid(bx,
+                                   ncells_grid[mfi],
+                                   cid_fab,
+                                   (*flags)[mfi]);
+
             ncells_proc += ncells_grid[mfi];
         }
         else
@@ -291,8 +295,6 @@ HypreABecLap3::prepareSolver ()
 
     const Real* dx = geom.CellSize();
     const int bho = (m_maxorder > 2) ? 1 : 0;
-    FArrayBox rfab;
-    BaseFab<HYPRE_Int> ifab;
     FArrayBox foo(Box::TheUnitBox());
     const int is_eb_dirichlet = m_eb_b_coeffs != nullptr;
 
@@ -307,21 +309,16 @@ HypreABecLap3::prepareSolver ()
 #endif
         if (fabtyp != FabType::covered)
         {
-            const HYPRE_Int max_stencil_size = (fabtyp == FabType::regular) ?
-                regular_stencil_size : eb_stencil_size;
-
-            ifab.resize(bx,(max_stencil_size+1));
-            rfab.resize(bx,max_stencil_size);
 
             const HYPRE_Int nrows = ncells_grid[mfi];
             cell_id_vec[mfi].resize(nrows);
-            HYPRE_Int* rows = cell_id_vec[mfi].data();
-            HYPRE_Int* ncols = ifab.dataPtr(0);
-            HYPRE_Int* cols  = ifab.dataPtr(1);
-            Real*      mat   = rfab.dataPtr();
 
-            Array<int,AMREX_SPACEDIM*2> bctype;
-            Array<Real,AMREX_SPACEDIM*2> bcl;
+            Gpu::ManagedDeviceVector<HYPRE_Int> ncolsg(nrows,0);
+            Gpu::ManagedDeviceVector<HYPRE_Int> colsg(nrows*(AMREX_SPACEDIM*2+1),0);
+            Gpu::ManagedDeviceVector<Real> matg(nrows*(AMREX_SPACEDIM*2+1),0.0);
+
+            GpuArray<int,AMREX_SPACEDIM*2> bctype;
+            GpuArray<Real,AMREX_SPACEDIM*2> bcl;
             const Vector< Vector<BoundCond> > & bcs_i = m_bndry->bndryConds(mfi);
             const BndryData::RealTuple        & bcl_i = m_bndry->bndryLocs(mfi);
             for (OrientationIter oit; oit; oit++) {
@@ -332,47 +329,64 @@ HypreABecLap3::prepareSolver ()
             
             if (fabtyp == FabType::regular)
             {
-                amrex_hpijmatrix(BL_TO_FORTRAN_BOX(bx),
-                                 &nrows, ncols, rows, cols, mat,
-                                 BL_TO_FORTRAN_ANYD(cell_id[mfi]),
-                                 &(offset[mfi]),
-                                 BL_TO_FORTRAN_ANYD(diaginv[mfi]),
-                                 BL_TO_FORTRAN_ANYD(acoefs[mfi]),
-                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
-                                              BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
-                                              BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
-                                 &scalar_a, &scalar_b, dx,
-                                 bctype.data(), bcl.data(), &bho);
+                amrex_hpijmatrix(bx,
+                                 nrows, ncolsg.dataPtr(), 
+                                 cell_id_vec[mfi].dataPtr(), 
+                                 colsg.dataPtr(), matg.dataPtr(),
+                                 cell_id[mfi], 
+                                 offset[mfi],
+                                 diaginv[mfi],
+                                 acoefs[mfi],
+                                 bcoefs[0][mfi],
+                                 bcoefs[1][mfi],
+#if (AMREX_SPACEDIM == 3)
+                                 bcoefs[2][mfi],
+#endif
+                                 scalar_a, scalar_b, dx,
+                                 bctype, bcl, bho);
+
             }
 #ifdef AMREX_USE_EB
             else
             {
                 FArrayBox const& beb = (is_eb_dirichlet) ? (*m_eb_b_coeffs)[mfi] : foo;
+                int size_vec = std::pow(3,AMREX_SPACEDIM);
+                colsg.resize(nrows*size_vec);
+                matg.resize(nrows*size_vec);
+                amrex_hpeb_ijmatrix(bx,
+                                    nrows, ncolsg.dataPtr(),
+                                    cell_id_vec[mfi].dataPtr(),
+                                    colsg.dataPtr(), matg.dataPtr(),
+                                    cell_id[mfi],
+                                    offset[mfi], diaginv[mfi],
+                                    acoefs[mfi], bcoefs[0][mfi],
+                                    bcoefs[1][mfi], 
+#if (AMREX_SPACEDIM == 3)
+                                    bcoefs[2][mfi],
+#endif
+                                    (*flags)[mfi],
+                                    (*vfrac)[mfi],
+                                    (*area[0])[mfi], (*area[1])[mfi],
+#if (AMREX_SPACEDIM == 3)
+                                    (*area[2])[mfi],
+#endif 
+                                    (*fcent[0])[mfi], (*fcent[1])[mfi], 
+#if (AMREX_SPACEDIM == 3)
+                                    (*fcent[2])[mfi],
+#endif
+                                    (*barea)[mfi],
+                                    (*bcent)[mfi],
+                                    beb, is_eb_dirichlet,
+                                    scalar_a, scalar_b, dx,
+                                    bctype, bcl, bho);
 
-                amrex_hpeb_ijmatrix(BL_TO_FORTRAN_BOX(bx),
-                                    &nrows, ncols, rows, cols, mat,
-                                    BL_TO_FORTRAN_ANYD(cell_id[mfi]),
-                                    &(offset[mfi]),
-                                    BL_TO_FORTRAN_ANYD(diaginv[mfi]),
-                                    BL_TO_FORTRAN_ANYD(acoefs[mfi]),
-                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
-                                                 BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
-                                                 BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
-                                    BL_TO_FORTRAN_ANYD((*flags)[mfi]),
-                                    BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
-                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
-                                                 BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
-                                                 BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
-                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
-                                                 BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
-                                                 BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
-                                    BL_TO_FORTRAN_ANYD((*barea)[mfi]),
-                                    BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
-                                    BL_TO_FORTRAN_ANYD(beb), &is_eb_dirichlet,
-                                    &scalar_a, &scalar_b, dx,
-                                    bctype.data(), bcl.data(), &bho);
             }
 #endif
+
+            HYPRE_Int* rows = cell_id_vec[mfi].data();
+            HYPRE_Int* ncols = (HYPRE_Int*) ncolsg.dataPtr();
+            HYPRE_Int* cols = (HYPRE_Int*) colsg.dataPtr();
+            Real* mat = (Real*) matg.dataPtr();
 
 #ifdef AMREX_DEBUG
             HYPRE_Int nvalues = 0;
@@ -383,7 +397,6 @@ HypreABecLap3::prepareSolver ()
                 AMREX_ASSERT(cols[i] >= 0 && cols[i] < ncells_total);
             }
 #endif
-
 
             HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);
         }
@@ -447,10 +460,10 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
             {
                 bfab = &vecfab;
                 bfab->resize(bx);
-                amrex_hpeb_copy_to_vec(BL_TO_FORTRAN_BOX(bx),
-                                       BL_TO_FORTRAN_ANYD(rhsfab),
-                                       bfab->dataPtr(), &nrows,
-                                       BL_TO_FORTRAN_ANYD((*flags)[mfi]));
+                amrex_hpeb_copy_to_vec(bx,
+                                       rhsfab,
+                                       bfab->dataPtr(),
+                                       (*flags)[mfi]);
             }
             else
 #endif

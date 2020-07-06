@@ -164,8 +164,20 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
                                    << composite_norminf/max_norm << "\n";
                 }
                 break;
+            } else {
+              if (composite_norminf > 1.e20*max_norm) 
+              {
+                  if (verbose > 0) {
+                      amrex::Print() << "MLMG: Failing to converge after " << iter+1 << " iterations."
+                                     << " resid, resid/" << norm_name << " = "
+                                     << composite_norminf << ", "
+                                     << composite_norminf/max_norm << "\n";
+                      amrex::Abort("MLMG failing so lets stop here");
+                  }
+              }
             }
         }
+
         if (!converged && do_fixed_number_of_iters == 0) {
             if (verbose > 0) {
                 amrex::Print() << "MLMG: Failed to converge after " << max_iters << " iterations."
@@ -1166,6 +1178,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         linop.applyMetricTerm(alev, 0, rhs[alev]);
         linop.unimposeNeumannBC(alev, rhs[alev]);
         linop.applyInhomogNeumannTerm(alev, rhs[alev]);
+        linop.applyOverset(alev, rhs[alev]);
 
 #ifdef AMREX_USE_EB
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));

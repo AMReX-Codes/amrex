@@ -48,11 +48,13 @@ function (configure_amrex)
    # Moreover, it will also enforce such standard on all the consuming targets
    #
    set_target_properties(amrex PROPERTIES CXX_EXTENSIONS OFF)
-   target_compile_features(amrex PUBLIC cxx_std_11)  # minimum: C++11
+   # minimum: C++11 on Linux, C++17 on Windows
+   target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cxx_std_17,cxx_std_11>)
 
    if (ENABLE_CUDA AND (CMAKE_VERSION VERSION_GREATER_EQUAL 3.17) )
-       set_target_properties(amrex PROPERTIES CUDA_EXTENSIONS OFF)
-       target_compile_features(amrex PUBLIC cuda_std_11)  # minimum: C++11
+      set_target_properties(amrex PROPERTIES CUDA_EXTENSIONS OFF)
+      # minimum: C++11 on Linux, C++17 on Windows
+      target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cuda_std_17,cuda_std_11>)
    endif()
 
    #
@@ -156,6 +158,20 @@ function (configure_amrex)
    endif()
 
    #
+   # Setup HDF5 -- for now we do not create an imported target
+   #
+   if (ENABLE_HDF5)
+      set(HDF5_PREFER_PARALLEL TRUE)
+      find_package(HDF5 1.10.4 REQUIRED COMPONENTS CXX)
+      if (NOT HDF5_IS_PARALLEL)
+         message(FATAL_ERROR "\nHDF5 library does not support parallel I/O")
+      endif ()
+      target_include_directories(amrex PUBLIC ${HDF5_CXX_INCLUDE_DIRS})
+      target_compile_definitions(amrex PUBLIC ${HDF5_CXX_DEFINES})
+      target_link_libraries(amrex PUBLIC ${HDF5_CXX_LIBRARIES})
+   endif ()
+
+   #
    # Setup third-party profilers
    #
    set_amrex_profilers()
@@ -234,22 +250,30 @@ function (print_amrex_configuration_summary)
    message( STATUS "   Build type               = ${CMAKE_BUILD_TYPE}")
    message( STATUS "   Install directory        = ${CMAKE_INSTALL_PREFIX}")
    message( STATUS "   C++ compiler             = ${CMAKE_CXX_COMPILER}")
-   message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
+   endif ()
    if (ENABLE_CUDA)
       message( STATUS "   CUDA compiler            = ${CMAKE_CUDA_COMPILER}")
    endif ()
 
    message( STATUS "   C++ defines              = ${_cxx_defines}")
-   message( STATUS "   Fortran defines          = ${_fortran_defines}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran defines          = ${_fortran_defines}")
+   endif ()
 
    message( STATUS "   C++ flags                = ${_cxx_flags}")
-   message( STATUS "   Fortran flags            = ${_fortran_flags}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran flags            = ${_fortran_flags}")
+   endif ()
    if (ENABLE_CUDA)
       message( STATUS "   CUDA flags               = ${CMAKE_CUDA_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CUDA_FLAGS}"
          "${AMREX_CUDA_FLAGS}")
    endif ()
    message( STATUS "   C++ include paths        = ${_cxx_includes}")
-   message( STATUS "   Fortran include paths    = ${_fortran_includes}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran include paths    = ${_fortran_includes}")
+   endif ()
    message( STATUS "   Link line                = ${_cxx_link_line}")
 
 endfunction ()

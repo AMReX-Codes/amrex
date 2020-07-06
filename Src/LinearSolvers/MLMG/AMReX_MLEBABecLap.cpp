@@ -557,12 +557,12 @@ MLEBABecLap::averageDownCoeffs ()
         auto& fine_a_coeffs = m_a_coeffs[amrlev];
         auto& fine_b_coeffs = m_b_coeffs[amrlev];
         
-        averageDownCoeffsSameAmrLevel(fine_a_coeffs, fine_b_coeffs,
+        averageDownCoeffsSameAmrLevel(amrlev, fine_a_coeffs, fine_b_coeffs,
                                       amrex::GetVecOfPtrs(m_eb_b_coeffs[0]));
         averageDownCoeffsToCoarseAmrLevel(amrlev);
     }
 
-    averageDownCoeffsSameAmrLevel(m_a_coeffs[0], m_b_coeffs[0],
+    averageDownCoeffsSameAmrLevel(0, m_a_coeffs[0], m_b_coeffs[0],
                                   amrex::GetVecOfPtrs(m_eb_b_coeffs[0]));
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
@@ -575,30 +575,32 @@ MLEBABecLap::averageDownCoeffs ()
 }
 
 void
-MLEBABecLap::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
+MLEBABecLap::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
                                             Vector<Array<MultiFab,AMREX_SPACEDIM> >& b,
                                             const Vector<MultiFab*>& b_eb)
 {
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
     {
+        IntVect ratio = (amrlev > 0) ? IntVect(mg_coarsen_ratio) : mg_coarsen_ratio_vec[mglev-1];
+
         if (m_a_scalar == 0.0)
         {
             a[mglev].setVal(0.0);
         }
         else
         {
-            amrex::EB_average_down(a[mglev-1], a[mglev], 0, 1, mg_coarsen_ratio);
+            amrex::EB_average_down(a[mglev-1], a[mglev], 0, 1, ratio);
         }
 
         amrex::EB_average_down_faces(amrex::GetArrOfConstPtrs(b[mglev-1]),
                                      amrex::GetArrOfPtrs(b[mglev]),
-                                     mg_coarsen_ratio, 0);
+                                     ratio, 0);
 
         if (b_eb[mglev])
         {
             amrex::EB_average_down_boundaries(*b_eb[mglev-1], *b_eb[mglev],
-                                              mg_coarsen_ratio, 0);
+                                              ratio, 0);
         }
     }
 }
@@ -1396,10 +1398,11 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
 }
 
 void
-MLEBABecLap::restriction (int, int, MultiFab& crse, MultiFab& fine) const
+MLEBABecLap::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const
 {
+    IntVect ratio = (amrlev > 0) ? IntVect(mg_coarsen_ratio) : mg_coarsen_ratio_vec[cmglev-1];
     const int ncomp = getNComp();
-    amrex::EB_average_down(fine, crse, 0, ncomp, 2);
+    amrex::EB_average_down(fine, crse, 0, ncomp, ratio);
 }
 
 void

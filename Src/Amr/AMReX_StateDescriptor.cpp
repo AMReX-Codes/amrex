@@ -147,9 +147,9 @@ DescriptorList::setComponent (int                               indx,
 {
     for (int i = 0; i < nm.size(); i++)
     {
-        const bool master = (i == 0) ? true : false;
+        const bool is_primary = (i == 0) ? true : false;
 
-        desc[indx]->setComponent(comp+i,nm[i],bc[i],func,interp,master,nm.size());
+        desc[indx]->setComponent(comp+i,nm[i],bc[i],func,interp,is_primary,nm.size());
     }
 }
 
@@ -210,7 +210,7 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
     bc.resize(num_comp);
     bc_func.resize(num_comp);
     mapper_comp.resize(num_comp);
-    m_master.resize(num_comp);
+    m_primary.resize(num_comp);
     m_groupsize.resize(num_comp);
     max_map_start_comp.resize(num_comp);
     min_map_end_comp.resize(num_comp);
@@ -336,7 +336,7 @@ StateDescriptor::define (IndexType                   btyp,
     bc.resize(num_comp);
     bc_func.resize(num_comp);
     mapper_comp.resize(num_comp);
-    m_master.resize(num_comp);
+    m_primary.resize(num_comp);
     m_groupsize.resize(num_comp);
     max_map_start_comp.resize(num_comp);
     min_map_end_comp.resize(num_comp);
@@ -356,7 +356,7 @@ StateDescriptor::setComponent (int                               comp,
     names[comp]       = nm;
     bc[comp]          = bcr;
     mapper_comp[comp] = a_interp;
-    m_master[comp]    = false;
+    m_primary[comp]    = false;
     m_groupsize[comp] = 0;
 
     if (max_map_start_comp_>=0 && min_map_end_comp_>=0)
@@ -381,12 +381,12 @@ StateDescriptor::setComponent (int                               comp,
                                const BCRec&                      bcr,
                                const StateDescriptor::BndryFunc& func,
                                Interpolater*                     a_interp,
-                               bool                              a_master,
+                               bool                              a_primary,
                                int                               a_groupsize)
 {
     setComponent(comp,nm,bcr,func,a_interp,-1,-1);
 
-    m_master[comp]    = a_master;
+    m_primary[comp]    = a_primary;
     m_groupsize[comp] = a_groupsize;
 }
 

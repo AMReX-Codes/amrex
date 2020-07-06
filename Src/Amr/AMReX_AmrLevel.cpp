@@ -1829,7 +1829,8 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
                 const Box& bx = mfi.growntilebox();
                 FArrayBox& derfab = mf[mfi];
                 FArrayBox const& datafab = srcMF[mfi];
-                rec->derFuncFab()(bx, derfab, dcomp, ncomp, datafab, geom, time, rec->getBC(), level);
+                const int dncomp = rec->numDerive();
+                rec->derFuncFab()(bx, derfab, dcomp, dncomp, datafab, geom, time, rec->getBC(), level);
             }
         }
         else

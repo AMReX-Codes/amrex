@@ -37,7 +37,11 @@ public:
 
     static void pop () noexcept { m_instance.pop_back(); }
     static void clear () noexcept { m_instance.clear(); }
-    static const IndexSpace& top () { return *(m_instance.back()); }
+    static const IndexSpace& top () {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_instance.empty(),
+                                         "Have you forgot to call EB2::build? It's required even if the geometry is all regular.");
+        return *(m_instance.back());
+    }
     static bool empty () noexcept { return m_instance.empty(); }
     static int size () noexcept { return m_instance.size(); }
 
