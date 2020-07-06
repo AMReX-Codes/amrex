@@ -189,12 +189,12 @@ print_option(ENABLE_SUNDIALS)
 
 # Hypre
 cmake_dependent_option(ENABLE_HYPRE "Enable Hypre interfaces" OFF
-   "ENABLE_FORTRAN;ENABLE_LINEAR_SOLVERS" OFF)
+   "ENABLE_LINEAR_SOLVERS" OFF)
 print_option(ENABLE_HYPRE)
 
 # PETSc
 cmake_dependent_option(ENABLE_PETSC "Enable PETSc interfaces" OFF
-   "ENABLE_FORTRAN;ENABLE_LINEAR_SOLVERS" OFF )
+   "ENABLE_LINEAR_SOLVERS" OFF )
 print_option(ENABLE_PETSC)
 
 # HDF5

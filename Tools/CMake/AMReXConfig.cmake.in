@@ -95,7 +95,7 @@ endif()
 
 if (@ENABLE_OMP@)
    set( _omp_components CXX )
-   if (@ENABLE_FORTRAN_INTERFACES@ OR @ENABLE_HYPRE@)
+   if (@ENABLE_FORTRAN_INTERFACES@)
       list(APPEND _omp_components Fortran)
    endif ()
    find_dependency(OpenMP REQUIRED ${_omp_components})
