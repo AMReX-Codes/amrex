@@ -31,7 +31,7 @@ endif ()
 #
 if (ENABLE_OMP)
    set(_omp_comps CXX)
-   if (ENABLE_FORTRAN_INTERFACES OR ENABLE_HYPRE)
+   if (ENABLE_FORTRAN_INTERFACES)
       list(APPEND _omp_comps Fortran)
    endif ()
    find_package(OpenMP REQUIRED ${_omp_comps})
@@ -42,4 +42,25 @@ else ()
    target_compile_options( amrex
       PUBLIC
       $<$<CXX_COMPILER_ID:Cray>:-h;noomp> )
+endif ()
+
+
+
+#
+#
+# CUDA
+#
+#
+# For now this is a place holder.
+# CUDA stuff will go here after we get rid of AMReXSetupCUDA
+#
+
+#
+#
+#  SYCL/DPCPP
+#
+#
+if (ENABLE_DPCPP)
+   include(AMReXSYCL)
+   target_link_libraries(amrex PUBLIC SYCL)
 endif ()
