@@ -25,7 +25,8 @@ public:
                   const Vector<Geometry>& a_geom,
                   const LPInfo& a_lpinfo,
                   const Vector<MultiFab const*>& a_divu,
-                  MLMG::Location a_divu_loc);
+                  MLMG::Location a_divu_loc,
+                  const Vector<iMultiFab const*>& a_overset_mask = {});
 
     MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
                   MLMG::Location a_umac_loc,
@@ -81,7 +82,9 @@ public:
     //
     // Setters and getters
     //
-    void setVerbose            (int  v) noexcept { m_verbose = v; }
+    void setVerbose            (int  v) noexcept 
+       { m_verbose = v;
+         m_mlmg->setVerbose(m_verbose); }
 
     // Methods to get underlying objects
     // Use these to modify properties of MLMG and linear operator

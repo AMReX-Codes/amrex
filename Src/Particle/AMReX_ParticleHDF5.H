@@ -283,24 +283,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
     BL_PROFILE("ParticleContainer::WriteHDF5ParticleData()");
     BL_ASSERT(OK());
-    
+
     BL_ASSERT(sizeof(typename ParticleType::RealType) == 4 ||
               sizeof(typename ParticleType::RealType) == 8);
-    
+
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     const Real strttime = amrex::second();
-    
+
     AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == NumIntComps() + NStructInt);
 
     std::string pdir = dir;
     if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
-    
-    if ( ! levelDirectoriesCreated)
-    {
+    if ( ! levelDirectoriesCreated) {
         if (ParallelDescriptor::IOProcessor()) {
-            if ( ! amrex::UtilCreateDirectory(pdir, 0755)) 
+            if ( ! amrex::UtilCreateDirectory(pdir, 0755))
                 amrex::CreateDirectoryFailed(pdir);
 
             int set_stripe = 0;
@@ -309,7 +307,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             int stripe_size = 1;
             char *stripe_count_str = getenv("HDF5_STRIPE_COUNT");
             char *stripe_size_str  = getenv("HDF5_STRIPE_SIZE");
-            if (stripe_count_str) { 
+            if (stripe_count_str) {
                 stripe_count = atoi(stripe_count_str);
                 set_stripe = 1;
             }
@@ -319,7 +317,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             }
             if (set_stripe == 1) {
                 sprintf(setstripe, "lfs setstripe -c %d -S %dm %s", stripe_count, stripe_size, pdir.c_str());
-                std::cout << "Setting stripe parameters for HDF5 output: " << setstripe << std::endl; 
+                std::cout << "Setting stripe parameters for HDF5 output: " << setstripe << std::endl;
                 amrex::ignore_unused(std::system(setstripe));
             }
         }

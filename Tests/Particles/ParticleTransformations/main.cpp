@@ -299,6 +299,7 @@ void filterParticles (PC& pc, F&& f)
             ptile_tmp.resize(ptile.size());
             
             auto num_output = amrex::filterParticles(ptile_tmp, ptile, std::forward<F>(f));
+
             ptile.swap(ptile_tmp);
             ptile.resize(num_output);
         }
@@ -393,12 +394,10 @@ void testFilter (const PC& pc)
 {
     using PType = typename PC::SuperParticleType;
 
-    PC pc2(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
-    pc2.copyParticles(pc);
+    auto np_old = pc.TotalNumberOfParticles();
 
-    auto np_old = pc2.TotalNumberOfParticles();
-    
-    filterParticles(pc2, KeepOddFilter());
+    PC pc2(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
+    pc2.copyParticles(pc, KeepOddFilter());
 
     auto np_new = pc2.TotalNumberOfParticles();
 
@@ -409,10 +408,10 @@ void testFilter (const PC& pc)
     AMREX_ALWAYS_ASSERT(all_odd);
 
     pc2.clearParticles();
-    pc2.copyParticles(pc);
-    filterParticles(pc2, KeepEvenFilter());
+    pc2.copyParticles(pc, KeepEvenFilter());
 
     np_new = pc2.TotalNumberOfParticles();
+
     AMREX_ALWAYS_ASSERT(2*np_new == np_old);
 
     auto all_even = amrex::ReduceLogicalAnd(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() % 2 == 0; });

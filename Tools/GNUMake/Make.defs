@@ -1036,40 +1036,40 @@ else ifeq ($(USE_CUDA),TRUE)
 
     DEFINES += -DAMREX_GPU_MAX_THREADS=$(CUDA_MAX_THREADS)
 
-    comm := ,
-    space :=
-    space +=
-
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
       LINKFLAGS = $(NVCC_FLAGS)
-      # we are using nvcc for linking
-      libraries := $(subst -Wl$(comm),-Xlinker=,$(libraries))
-      ifeq ($(FIX_NVCC_PTHREAD),TRUE)
-        libraries := $(subst -pthread,-Xcompiler$(space)-pthread,$(libraries))
-      endif
       AMREX_LINKER = nvcc
     endif
 
-    ifeq ($(USE_MPI),TRUE)
+    ifeq ($(nvcc_forward_unknowns),0)
 
-      ifneq ($(findstring Open MPI, $(shell mpicxx -showme:version 2>&1)),)
+      comm := ,
+      space :=
+      space +=
 
+      ifeq ($(AMREX_LINKER),nvcc)
+        libraries := $(subst -Wl$(comm),-Xlinker=,$(libraries))
         ifeq ($(FIX_NVCC_PTHREAD),TRUE)
-          OMPI_CXXFLAGS_ORIG = $(shell mpicxx -showme:compile)
-          export OMPI_CXXFLAGS := $(subst -pthread,-Xcompiler$(space)-pthread,$(OMPI_CXXFLAGS_ORIG))
-
-          OMPI_CFLAGS_ORIG = $(shell mpicc -showme:compile)
-          export OMPI_CFLAGS := $(subst -pthread,-Xcompiler$(space)-pthread,$(OMPI_CXXFLAGS_ORIG))
-
-          # If we're compiling with PGI, it doesn't know -pthread, replace
-          # with -lpthread.
-
-          OMPI_FCFLAGS_ORIG = $(shell mpif90 -showme:compile)
-          export OMPI_FCFLAGS := $(subst -pthread,-lpthread,$(OMPI_FCFLAGS_ORIG))
+          libraries := $(subst -pthread,-Xcompiler$(space)-pthread,$(libraries))
         endif
-
       endif
 
-    endif
+      ifeq ($(USE_MPI),TRUE)
+
+        ifneq ($(findstring Open MPI, $(shell mpicxx -showme:version 2>&1)),)
+
+          ifeq ($(FIX_NVCC_PTHREAD),TRUE)
+            OMPI_CXXFLAGS_ORIG = $(shell mpicxx -showme:compile)
+            export OMPI_CXXFLAGS := $(subst -pthread,-Xcompiler$(space)-pthread,$(OMPI_CXXFLAGS_ORIG))
+
+            OMPI_CFLAGS_ORIG = $(shell mpicc -showme:compile)
+            export OMPI_CFLAGS := $(subst -pthread,-Xcompiler$(space)-pthread,$(OMPI_CXXFLAGS_ORIG))
+          endif
+
+        endif # Open MPI
+
+      endif # USE_MPI
+
+    endif # nvcc_forward_unknowns == 0
 
 endif
