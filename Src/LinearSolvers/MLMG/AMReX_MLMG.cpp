@@ -1836,7 +1836,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
 
             hypre_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
             hypre_bndry->setHomogValues();
-            const Real* dx = linop.m_geom[amrlev][mglev].CellSize();
+            const Real* dx = linop.m_geom[0][0].CellSize();
             int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
             RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio,
                                              0.5*dx[1]*crse_ratio,
