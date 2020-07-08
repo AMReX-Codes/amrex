@@ -32,6 +32,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize ()
 {
+    levelDirectoriesCreated = false;
     usePrePost = false;
     doUnlink = true;
 
@@ -935,15 +936,37 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 copyParticles (const ParticleContainerType& other, bool local)
 {
-    BL_PROFILE("ParticleContainer::copyParticles");
-    clearParticles();
-    addParticles(other, local);
+    using PData = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    copyParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& data, int i) { return 1; }, local);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 addParticles (const ParticleContainerType& other, bool local)
+{
+    using PData = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>; 
+    addParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& data, int i) { return 1; }, local);
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <class F,
+          amrex::EnableIf_t<! std::is_integral<F>::value, int> foo>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+copyParticles (const ParticleContainerType& other, F&& f, bool local)
+{
+    BL_PROFILE("ParticleContainer::copyParticles");
+    clearParticles();
+    addParticles(other, std::forward<F>(f), local);
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <class F,
+          amrex::EnableIf_t<! std::is_integral<F>::value, int> foo>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+addParticles (const ParticleContainerType& other, F&& f, bool local)
 {
     BL_PROFILE("ParticleContainer::addParticles");
 
@@ -964,7 +987,9 @@ addParticles (const ParticleContainerType& other, bool local)
             auto dst_index = ptile.numParticles();
             ptile.resize(dst_index + np);
 
-            amrex::copyParticles(ptile, ptile_other, 0, dst_index, np);
+            auto count = amrex::filterParticles(ptile, ptile_other, std::forward<F>(f), 0, dst_index, np);
+
+            ptile.resize(dst_index + count);
         }
     }
 

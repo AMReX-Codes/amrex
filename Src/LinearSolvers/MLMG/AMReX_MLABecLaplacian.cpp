@@ -359,7 +359,8 @@ MLABecLaplacian::prepareForSolve ()
     {  // No Dirichlet
         for (int alev = 0; alev < m_num_amr_levels; ++alev)
         {
-            if (m_domain_covered[alev])
+            // For now this assumes that overset regions are treated as Dirichlet bc's
+            if (m_domain_covered[alev] && !m_overset_mask[alev][0]) 
             {
                 if (m_a_scalar == 0.0)
                 {
@@ -756,7 +757,8 @@ MLABecLaplacian::update ()
     {  // No Dirichlet
         for (int alev = 0; alev < m_num_amr_levels; ++alev)
         {
-            if (m_domain_covered[alev])
+            // For now this assumes that overset regions are treated as Dirichlet bc's
+            if (m_domain_covered[alev] && !m_overset_mask[alev][0]) 
             {
                 if (m_a_scalar == 0.0)
                 {
