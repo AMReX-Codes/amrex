@@ -638,6 +638,7 @@ public:
     * FillBoundary expects that its cell-centered version of its BoxArray
     * is non-overlapping.
     */
+    void RealFillBoundary ();
     void FillBoundary (bool cross = false);
 
     void FillBoundary (const Periodicity& period, bool cross = false);
@@ -683,7 +684,7 @@ public:
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                       const Periodicity& period, bool cross,
-                      bool enforce_periodicity_only = false);
+                      bool enforce_periodicity_only = false, bool multi_ghost = false);
 
     void FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp);
     void PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
@@ -1391,6 +1392,7 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
         amrex::update_fab_stats(shmem.n_points, shmem.n_values, sizeof(value_type));
     }
 #endif
+
 }
 
 template <class FAB>
@@ -1806,6 +1808,17 @@ FabArray<FAB>::shift (const IntVect& v)
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         get(fai).shift(v);
+    }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::RealFillBoundary ()
+{
+    BL_PROFILE("FabArray::RealFillBoundary()");
+    if ( n_grow.max() > 0 ) {
+    FBEP_nowait(0, nComp(), n_grow, Periodicity::NonPeriodic(), false, false, true);
+	FillBoundary_finish();
     }
 }
 

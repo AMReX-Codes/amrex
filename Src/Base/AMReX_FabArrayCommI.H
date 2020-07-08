@@ -7,7 +7,7 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             const Periodicity& period, bool cross,
-			    bool enforce_periodicity_only)
+			    bool enforce_periodicity_only, bool multi_ghost)
 {
     fb_cross = cross;
     fb_epo   = enforce_periodicity_only;
@@ -26,7 +26,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     }
     if (!work_to_do) return;
 
-    const FB& TheFB = getFB(nghost, period, cross, enforce_periodicity_only);
+    const FB& TheFB = getFB(nghost, period, cross, enforce_periodicity_only, multi_ghost);
 
     if (ParallelContext::NProcsSub() == 1)
     {

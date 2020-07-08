@@ -513,42 +513,6 @@ void MCNodalLinOp::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, Mult
 	if (isSingular(0)) amrex::Abort("Singular operators not supported!");
 }
 
-void MCNodalLinOp::realFillBoundary(MultiFab &phi, const Geometry &geom) 
-{
-	BL_PROFILE("MCNodalLinOp::realFillBoundary");
-#if 1
-	BoxArray ba_before = phi.boxArray();
-	//std::cout << "A: " << ba_before << std::endl;
-	
-    phi.FillBoundary();
-	//return;
-    phi.ghostToInterior(1);
-	for (int i = 0; i < phi.boxarray.size(); i++)
-	{
-		phi.boxarray.set(i,phi.boxarray[i] & convert(geom.Domain(), IntVect::TheNodeVector()));
-	}
-	//phi.boxarray = phi.boxarray & geom.Domain();
-    phi.FillBoundary();
-    phi.ghostToInterior(-1);
-	
-	phi.boxarray = ba_before;
-	phi.m_bdkey = phi.getBDKey();
-#else
-	int ncomp = phi.nComp();
-	for (int i = 0; i < 2; i++)
-	{
-		MultiFab & mf = phi;
-		mf.FillBoundary(geom.periodicity());
-		//const int ncomp = mf.nComp();
-		const int ng1 = 1;
-		const int ng2 = 2;
-		MultiFab tmpmf(mf.boxArray(), mf.DistributionMap(), ncomp, ng1);
-		MultiFab::Copy(tmpmf, mf, 0, 0, ncomp, ng1); 
-		mf.ParallelCopy   (tmpmf, 0, 0, ncomp, ng1, ng2, geom.periodicity());
-	}
-#endif
-}
-
 void MCNodalLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode,
 		   					amrex::MLLinOp::StateMode , bool skip_fillboundary) const
 {

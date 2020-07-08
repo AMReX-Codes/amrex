@@ -501,7 +501,7 @@ public:
     {
         FB (const FabArrayBase& fa, const IntVect& nghost,
             bool cross, const Periodicity& period,
-	    bool enforce_periodicity_only);
+	    bool enforce_periodicity_only, bool multi_ghost = false);
         ~FB ();
 
         IndexType    m_typ;
@@ -521,7 +521,7 @@ public:
         //
         Long bytes () const;
     private:
-        void define_fb (const FabArrayBase& fa);
+        void define_fb (const FabArrayBase& fa, int tmp_grow = 0);
         void define_epo (const FabArrayBase& fa);
     };
     //
@@ -532,7 +532,8 @@ public:
     static CacheStats m_FBC_stats;
     //
     const FB& getFB (const IntVect& nghost, const Periodicity& period,
-                     bool cross=false, bool enforce_periodicity_only = false) const;
+                     bool cross=false, bool enforce_periodicity_only = false,
+                     bool multi_ghost=false) const;
     //
     void flushFB (bool no_assertion=false) const;       //!< This flushes its own FB.
     static void flushFBCache (); //!< This flushes the entire cache.

@@ -1,6 +1,6 @@
 mesh.nlevels = 3                # Number of AMR levels
 mesh.nnodes = 64                # Number of nodes in each direction
-mesh.max_grid_size = 48         # Maximum grid size (default = very large --> no parallelism)
+mesh.max_grid_size = 32         # Maximum grid size (default = very large --> no parallelism)
 
 mlmg.fixed_iter = 1000          # Number of iterations before exiting gracefully
 mlmg.verbose = 2                # Verbosity of MLMG
@@ -13,3 +13,7 @@ mlmg.consolidation = 1          # Do consolidation
 
 op.ncomp = 2                    # Number of components in the solution / RHS
 op.coeff = 1.0 0.0 0.5 1.0      # Matrix of coefficients - must be equal to op.ncomp^2
+
+#fabarray.mfiter_tile_size = 800 800
+#fabarray.comm_tile_size = 1 1
+#fabarray.mfghostiter_tile_size = 2 2
