@@ -191,16 +191,16 @@ int main (int argc, char* argv[])
                                                            * (x2-0.5)*(x2+0.5),
                                                            * (x3-0.5)*(x3+0.5));
                     else RHS(i,j,k,n) = 0.0;
-                    RHS(i,j,k,n) = ctr;
+                    //RHS(i,j,k,n) = ctr;
     			});         
             ctr += 1.0;
  	    }
         rhs[ilev].RealFillBoundary();
          //rhs[ilev].FillBoundary();
     }
-    std::cout << "Printing" << std::endl;
-    WriteOutput("rhs",rhs,geom);
-    return 0;
+    //std::cout << "Printing" << std::endl;
+    //WriteOutput("rhs",rhs,geom);
+    //return 0;
          
     // 
     // Set params to be passed to MLMG solver
