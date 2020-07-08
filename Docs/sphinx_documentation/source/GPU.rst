@@ -1347,6 +1347,32 @@ AMReX for GPUs:
         ...
     }
 
+* Pay attention to what GPUs your job scheduler is assigning to each MPI
+  rank. In most cases you'll achieve the best performance when a single
+  MPI rank is assigned to each GPU, and has boxes large enough to saturate
+  that GPU's compute capacity. While there are some cases where multiple
+  MPI ranks per GPU can make sense (typically this would be when you have
+  some portion of your code that is not GPU accelerated and want to have
+  many MPI ranks to make that part faster), this is probably the minority
+  of cases. For example, on OLCF Summit you would want to ensure that your
+  resource sets contain one MPI rank and GPU each, using `jsrun -n N -a 1 -c 7 -g 1`,
+  where `N` is the total number of MPI ranks/GPUs you want to use. (See the OLCF
+  [job step viewer](https://jobstepviewer.olcf.ornl.gov/) for more information.)
+
+  Conversely, if you choose to have multiple GPUs visible to each MPI rank,
+  AMReX will attempt to do the best job it can assigning MPI ranks to GPUs by
+  doing round robin assignment. This may be suboptimal because this assignment
+  scheme would not be aware of locality benefits that come from having an MPI
+  rank be on the same socket as the GPU it is managing. If you know the hardware
+  layout of the system you're running on, specifically the number of GPUs per
+  socket (`M`) and number of GPUs per node (`N`), you can set the preprocessor
+  defines `-DAMREX_GPUS_PER_SOCKET=M` and `-DAMREX_GPUS_PER_NODE=N`, which are
+  exposed in the GNU Make system through the variables `GPUS_PER_SOCKET` and
+  `GPUS_PER_NODE` respectively (see an example in `Tools/GNUMake/sites/Make.olcf`).
+  Then AMReX can ensure that each MPI rank selects a GPU on the same socket as
+  that rank (assuming your MPI implementation supports MPI 3.)
+
+
 .. ===================================================================
 
 Inputs Parameters

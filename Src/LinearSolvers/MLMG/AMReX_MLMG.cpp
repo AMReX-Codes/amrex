@@ -465,6 +465,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         {
             computeResOfCorrection(amrlev, mglev_bottom);
             Real norm = rescor[amrlev][mglev_bottom].norm0();
+            
             amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev_bottom
                            << "   UP: Norm after  bottom " << norm << "\n";
         }
@@ -1768,6 +1769,13 @@ MLMG::makeSolvable (int amrlev, int mglev, MultiFab& mf)
 
         ParallelAllReduce::Sum(offset.data(), ncomp, ParallelContext::CommunicatorSub());
 
+        if (verbose >= 4) {
+            for (int c = 0; c < ncomp; ++c) {
+                amrex::Print() << "MLMG: Subtracting " << offset[c] 
+                               << " from mf component c = " << c << "\n";
+            }
+        }
+
         for (int c = 0; c < ncomp; ++c) {
             mf.plus(-offset[c], c, 1);
         }
@@ -1809,6 +1817,9 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
     amrex::Abort("bottomSolveWithHypre is called without building with Hypre");
 #else
 
+    const int amrlev = 0;
+    const int mglev  = linop.NMGLevels(amrlev) - 1;
+
     const int ncomp = linop.getNComp();
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "bottomSolveWithHypre doesn't work with ncomp > 1");
 
@@ -1819,9 +1830,9 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
             hypre_solver = linop.makeHypre(hypre_interface);
             hypre_solver->setVerbose(bottom_verbose);
 
-            const BoxArray& ba = linop.m_grids[0].back();
-            const DistributionMapping& dm = linop.m_dmap[0].back();
-            const Geometry& geom = linop.m_geom[0].back();
+            const BoxArray& ba = linop.m_grids[amrlev].back();
+            const DistributionMapping& dm = linop.m_dmap[amrlev].back();
+            const Geometry& geom = linop.m_geom[amrlev].back();
 
             hypre_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
             hypre_bndry->setHomogValues();
@@ -1844,6 +1855,12 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         hypre_node_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter);
     }
 
+    // For singular problems there may be a large constant added to all values of the solution
+    // For precision reasons we enforce that the average of the correction from hypre is 0
+    if (linop.isSingular(amrlev))
+    {
+        makeSolvable(amrlev, mglev, x);
+    }
 #endif
 }
 
