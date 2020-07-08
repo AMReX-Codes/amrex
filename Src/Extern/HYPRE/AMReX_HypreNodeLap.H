@@ -29,10 +29,12 @@ public:
                   MPI_Comm comm_, MLNodeLinOp const* linop_, int verbose_);
     ~HypreNodeLap ();
 
+    using Int = HYPRE_Int;
+
     void solve (MultiFab& soln, const MultiFab& rhs,
                 Real rel_tol, Real abs_tol, int max_iter);
 
-    using Int = HYPRE_Int;
+    void fill_node_id (LayoutData<Int>& offset);
 
 private:
 
