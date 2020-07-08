@@ -477,7 +477,6 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             if (np_per_grid_local[lev][mfi.index()] > 0)
             {
                 const auto& ptile = pc.ParticlesAt(lev, mfi);
-                const auto& aos = ptile.GetArrayOfStructs();
                 new_ptile.resize(np_per_grid_local[lev][mfi.index()]);
                 amrex::filterParticles(new_ptile, ptile, KeepValidFilter());
             }
