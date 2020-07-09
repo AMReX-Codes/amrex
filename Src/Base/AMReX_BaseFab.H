@@ -1835,30 +1835,8 @@ BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
                   const Box& destbox, int destcomp, int numcomp) noexcept
 {
-    //Box srcbox = src.box() & a_srcbox;
-    //Box destbox = src.box() & a_destbox;
-
-    //std::cout << __FILE__ << ":" << __LINE__ << " " << destbox.bigEnd().allGE(destbox.smallEnd()) << std::endl;
-    //std::cout << __FILE__ << ":" << __LINE__ << " " << destbox.bigEnd() << std::endl;
-    //std::cout << __FILE__ << ":" << __LINE__ << " " << destbox.smallEnd() << std::endl;
-    //std::cout << __FILE__ << ":" << __LINE__ << " " << destbox.ixType().ok() << std::endl;
-    //std::cout << __FILE__ << ":" << __LINE__ << " src.box() = " << src.box() << std::endl;
-    //std::cout << __FILE__ << ":" << __LINE__ << " a_srcbox = " << a_srcbox << std::endl;
-    //std::cout << __FILE__ << ":" << __LINE__ << " a_destbox = " << a_destbox << std::endl;
-    //std::cout << __FILE__ << ":" << __LINE__ << " srcbox = " << srcbox << std::endl;
-    //std::cout << __FILE__ << ":" << __LINE__ << " destbox = " << destbox << std::endl;
     AMREX_ASSERT(destbox.ok());
     AMREX_ASSERT(srcbox.sameSize(destbox));
-    //std::cout /*<< __FILE__ << ":" << __LINE__ */<< " src.box = " << src.box() << std::endl;
-    //std::cout /*<< __FILE__ << ":" << __LINE__ */<< " srcbox = " << srcbox << std::endl;
-    if (!src.box().contains(srcbox) || !this->domain.contains(destbox))
-    {
-        std::cout << "errsrcbox" << src.box() << std::endl;
-        std::cout << "errsrcbox" << srcbox << std::endl;
-        std::cout << "errsrcbox" << this->domain << std::endl;
-        std::cout << "errsrcbox" << destbox << std::endl;
-        //return *this;
-    }
     AMREX_ASSERT(src.box().contains(srcbox));
     AMREX_ASSERT(this->domain.contains(destbox));
     AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());

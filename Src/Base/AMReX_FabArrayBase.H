@@ -637,10 +637,6 @@ public:
                               int tag);
 #endif
 
-    void ghostToInterior (const BoxArray& bxs,
-                          const IntVect&  ngrow);
-    void ghostToInterior (int ng);
-
 };
 
 std::ostream& operator<< (std::ostream& os, const FabArrayBase::BDKey& id);

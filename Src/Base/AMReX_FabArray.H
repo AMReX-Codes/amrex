@@ -1392,7 +1392,6 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
         amrex::update_fab_stats(shmem.n_points, shmem.n_values, sizeof(value_type));
     }
 #endif
-
 }
 
 template <class FAB>

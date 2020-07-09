@@ -94,109 +94,12 @@ public:
 	// Overrides correctionResidual to add call to realFillBoundary
 	virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
 					 BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) override final;
-	// This function extends fillBoundary to account for the extra
-	// ghost nodes that are present. 
-	// Note: FabArray-->FabArrayBase
-	//       FAB = FArrayBox --> BaseFab<Real>
-	template<typename FAB>
-	static void realFillBoundary(FabArray<FAB> &phi, const Geometry &geom) 
-	{
-		BL_PROFILE("MCNodalLinOp::realFillBoundary");
-	#if 1
-		std::cout << "NEW REALFILLBOUNDARY" << std::endl;
-		phi.RealFillBoundary();
-	    //phi.FillBoundary();
-		//phi.ghostToInterior(1);
-
-//		{
-//			const typename FabArray<FAB>::FB & TheFB  = phi.getFB(phi.nGrowVect(),geom.periodicity());
-//			auto const& LocTags = *(TheFB.m_LocTags);
-//		    for (int i = 0; i < LocTags.size(); ++i)
-//		    {
-//		        const typename FabArray<FAB>::CopyComTag& tag = LocTags[i];
-//
-//				Box srcbox = /*phi.boxArray()[tag.srcIndex]; */phi.get(tag.srcIndex).box();
-//				Box dstbox = /*phi.boxArray()[tag.dstIndex]; */phi.get(tag.dstIndex).box();
-//				Box sendbox = tag.sbox;
-//				Box recvbox = tag.dbox;
-//
-//				if (!srcbox.contains(sendbox) || !dstbox.contains(recvbox))
-//				{
-//					//std::cout << "ERROR sendbox: " << sendbox << std::endl;
-//					//std::cout << "not in srcbox:  " << srcbox << std::endl;
-//				//}
-//				//if (!dstbox.contains(recvbox))
-//				//{
-//					//std::cout << "ERROR recvbox: " << recvbox << std::endl;
-//					//std::cout << "not in dstbox:  " << dstbox << std::endl;
-//				}
-//		    }		
-//		}
-//		//exit(0);
-//
-
-//		{
-//			FabArray<FAB> mf;
-//			ba_before.grow(1);
-//			mf.define(ba_before.grow(1),phi.DistributionMap(),phi.nComp(),phi.nGrow());
-//			const typename FabArray<FAB>::FB & TheFB  = mf.getFB(phi.nGrowVect(),geom.periodicity());
-//
-//			auto const& LocTags = *(TheFB.m_LocTags);
-//		    for (int i = 0; i < LocTags.size(); ++i)
-//		    {
-//		        const typename FabArray<FAB>::CopyComTag& tag = LocTags[i];
-//
-//				Box srcbox = /*phi.boxArray()[tag.srcIndex]; */phi.get(tag.srcIndex).box();
-//				Box dstbox = /*phi.boxArray()[tag.dstIndex]; */phi.get(tag.dstIndex).box();
-//				Box sendbox = tag.sbox;
-//				Box recvbox = tag.dbox;
-//
-//				if (!srcbox.contains(sendbox))
-//				{
-//					std::cout << "> ERROR sendbox: " << sendbox << std::endl;
-//					std::cout << "> not in srcbox:  " << srcbox << std::endl;
-//				}
-//				if (!dstbox.contains(recvbox))
-//				{
-//					std::cout << "> ERROR recvbox: " << recvbox << std::endl;
-//					std::cout << "> not in dstbox:  " << dstbox << std::endl;
-//				}
-//		    }		
-//		}
-//
-		
-		
-		
-//		for (int i = 0; i < phi.boxarray.size(); i++)
-//		{
-//			phi.boxarray.set(i,phi.boxarray[i] & convert(geom.Domain(), IntVect::TheNodeVector()));
-//		}
-//		//phi.boxarray = phi.boxarray & geom.Domain();
-//	    phi.FillBoundary();
-//	    phi.ghostToInterior(-1);
-//
-//		phi.boxarray = ba_before;
-//		phi.m_bdkey = phi.getBDKey();
-//		return;
-	#else
-		int ncomp = phi.nComp();
-		for (int i = 0; i < 2; i++)
-		{
-			FabArray<FAB> & mf = phi;
-			mf.FillBoundary(geom.periodicity());
-			//const int ncomp = mf.nComp();
-			const int ng1 = 1;
-			const int ng2 = 2;
-			FabArray<FAB> tmpmf(mf.boxArray(), mf.DistributionMap(), ncomp, ng1);
-			Copy(tmpmf, mf, 0, 0, ncomp, ng1); 
-			mf.ParallelCopy   (tmpmf, 0, 0, ncomp, ng1, ng2, geom.periodicity());
-		}
-	#endif
-	}
-
 private:
 	// Usual buildMasks
 	void buildMasks ();
+	// This function extends fillBoundary to account for the extra
+	// ghost nodes that are present. 
+	void realFillBoundary(MultiFab &phi, const Geometry &geom) const;
 
 	bool m_is_bottom_singular = false;
 	bool m_masks_built = false;

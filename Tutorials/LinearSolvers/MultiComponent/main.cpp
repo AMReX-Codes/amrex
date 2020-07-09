@@ -117,13 +117,14 @@ int main (int argc, char* argv[])
     Vector<Geometry> geom;
   	Vector<BoxArray> cgrids, ngrids;
  	Vector<DistributionMapping> dmap;
-  	Vector<MultiFab> solution, rhs;
+  	Vector<MultiFab> solution, rhs, res;
  	geom.resize(mesh.nlevels);
  	cgrids.resize(mesh.nlevels);
  	ngrids.resize(mesh.nlevels);
  	dmap.resize(mesh.nlevels);
  	solution.resize(mesh.nlevels);
  	rhs.resize(mesh.nlevels);
+    res.resize(mesh.nlevels);
 	RealBox rb({AMREX_D_DECL(-0.5,-0.5,-0.5)},
 	          {AMREX_D_DECL(0.5,0.5,0.5)});
 	Geometry::Setup(&rb, 0);
@@ -160,7 +161,7 @@ int main (int argc, char* argv[])
     //    RHS[2] = 0 ... etc
     //
     int nghost = 2;
-    int ctr = 1.0;
+    int cntr = ParallelDescriptor::MyProc();
  	for (int ilev = 0; ilev < mesh.nlevels; ++ilev)
  	{
  		dmap   [ilev].define(cgrids[ilev]);
@@ -168,6 +169,8 @@ int main (int argc, char* argv[])
         solution[ilev].setVal(0.0);
  		rhs     [ilev].define(ngrids[ilev], dmap[ilev], op.ncomp, nghost);
         rhs     [ilev].setVal(0.0);
+ 		res     [ilev].define(ngrids[ilev], dmap[ilev], op.ncomp, nghost);
+        res     [ilev].setVal(0.0);
            
 	    Box domain(geom[ilev].Domain());
         const Real* DX = geom[ilev].CellSize();
@@ -177,7 +180,7 @@ int main (int argc, char* argv[])
     	{
     		Box bx = mfi.tilebox();
     		bx.grow(1);        // Expand to cover first layer of ghost nodes
-    		bx = bx & domain;  // Take intersection of box and the problem domain
+    		//bx = bx & domain;  // Take intersection of box and the problem domain
 		
     		Array4<Real> const& RHS  = rhs[ilev].array(mfi);
     		for (int n = 0; n < op.ncomp; n++)
@@ -191,15 +194,14 @@ int main (int argc, char* argv[])
                                                            * (x2-0.5)*(x2+0.5),
                                                            * (x3-0.5)*(x3+0.5));
                     else RHS(i,j,k,n) = 0.0;
-                    //RHS(i,j,k,n) = ctr;
+                    //RHS(i,j,k,n) = cntr;
     			});         
-            ctr += 1.0;
+                //cntr += ParallelDescriptor::NProcs();
  	    }
         rhs[ilev].RealFillBoundary();
-         //rhs[ilev].FillBoundary();
+        //rhs[ilev].FillBoundary();
     }
-    //std::cout << "Printing" << std::endl;
-    //WriteOutput("rhs",rhs,geom);
+    WriteOutput("rhs",rhs,geom);
     //return 0;
          
     // 
@@ -240,12 +242,15 @@ int main (int argc, char* argv[])
     //
     Real tol_rel = 1E-8, tol_abs = 1E-8;
     solver.solve(GetVecOfPtrs(solution),GetVecOfConstPtrs(rhs),tol_rel,tol_abs);
+    solver.compResidual(GetVecOfPtrs(res),GetVecOfPtrs(solution),GetVecOfConstPtrs(rhs));
 
     //
     // Write the output to ./solution
     //
-    WriteMLMF ("solution",GetVecOfConstPtrs(solution),geom);
-    WriteMLMF ("rhs",GetVecOfConstPtrs(rhs),geom);
+    //WriteMLMF ("solution",GetVecOfConstPtrs(solution),geom);
+    //WriteOutput("rhs",rhs,geom);
+    WriteOutput("solution",solution,geom);
+    WriteOutput("res",res,geom);
 
     }
     Finalize();

@@ -513,6 +513,22 @@ void MCNodalLinOp::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, Mult
 	if (isSingular(0)) amrex::Abort("Singular operators not supported!");
 }
 
+void MCNodalLinOp::realFillBoundary(MultiFab &phi, const Geometry &geom) const
+{
+	phi.RealFillBoundary();
+	//for (int i = 0; i < 2; i++)
+	//{
+	//	MultiFab & mf = phi;
+	//	mf.FillBoundary(geom.periodicity());
+	//	//const int ncomp = mf.nComp();
+	//	const int ng1 = 1;
+	//	const int ng2 = 2;
+	//	MultiFab tmpmf(mf.boxArray(), mf.DistributionMap(), ncomp, ng1);
+	//	MultiFab::Copy(tmpmf, mf, 0, 0, ncomp, ng1); 
+	//	mf.ParallelCopy   (tmpmf, 0, 0, ncomp, ng1, ng2, geom.periodicity());
+	//}
+}
+
 void MCNodalLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode,
 		   					amrex::MLLinOp::StateMode , bool skip_fillboundary) const
 {
