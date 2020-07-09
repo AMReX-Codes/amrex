@@ -43,7 +43,8 @@ function ( generate_amrex_config_header )
            message(FATAL_ERROR "Compiler '${CMAKE_CXX_COMPILER_ID}' not supported by AMReX developers! "
                "Try to configure with -DALLOW_DIFFERENT_COMPILER=ON")
        endif ()
-       set(COMP_DECLS "\n#ifndef ${COMPILER_ID_MACRO}\nstatic_assert(false,\"libamrex was built with ${CMAKE_CXX_COMPILER_ID}\");\n#endif")
+       set(msg "libamrex was built with ${CMAKE_CXX_COMPILER_ID}. To avoid this error, reconfigure with -DALLOW_DIFFERENT_COMPILER=ON")
+       set(COMP_DECLS "\n#ifndef ${COMPILER_ID_MACRO}\nstatic_assert(false,\"${msg}\");\n#endif")
    endif()
 
    if (ENABLE_OMP)

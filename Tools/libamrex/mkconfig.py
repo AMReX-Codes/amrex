@@ -29,9 +29,11 @@ def doit(defines, undefines, comp, allow_diff_comp, use_omp):
 
     if allow_diff_comp == "FALSE":
         if comp == "gnu" or comp == "nag":
-            print("#ifndef __GNUC__")
-            print('static_assert(false,"libamrex was built with GNU");')
-            print("#endif")
+            comp_macro = "__GNUC__"
+            comp_id    = "GNU"
+            # print("#ifndef __GNUC__")
+            # print('static_assert(false,"libamrex was built with GNU");')
+            # print("#endif")
         elif comp == "intel":
             print("#ifndef __INTEL_COMPILER")
             print('static_assert(false,"libamrex was built with Intel");')
@@ -58,6 +60,12 @@ def doit(defines, undefines, comp, allow_diff_comp, use_omp):
             print("#endif")
         else:
             sys.exit("ERROR: unknown compiler "+comp+" to mkconfig.py")
+
+        msg = "libamrex was built with " + comp_id + ". "
+        msg = msg + "To avoid this error, reconfigure with --allow-different-compiler=yes"
+        print("#ifndef " + comp_macro )
+        print('static_assert(false,"'+msg+'");')
+        print("#endif")
 
     if use_omp == "TRUE":
         print("#ifndef _OPENMP")
@@ -101,4 +109,3 @@ if __name__ == "__main__":
     except:
         # something went wrong
         print("$(error something went wrong in mkconfig.py)")
-
