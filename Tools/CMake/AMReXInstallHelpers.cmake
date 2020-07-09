@@ -39,9 +39,8 @@ function ( generate_amrex_config_header )
       set(COMPILER_ID_MACRO  _MSC_VER)
    else ()
       # avoid malforming the AMReX_Config.H file by setting something valid
-      set(COMPILER_ID_MACRO  __cplusplus)
-      message(WARNING "Compiler '${CMAKE_CXX_COMPILER_ID}' is not tested by AMReX developers! "
-                      "Will not be able to validate that the same compiler is picked in user-code.")
+      message(FATAL_ERROR "Compiler '${CMAKE_CXX_COMPILER_ID}' not supported by AMReX developers! "
+                      "Try to configure with -DALLOW_DIFFERENT_COMPILER=ON")
    endif ()
 
    if (ENABLE_OMP)
