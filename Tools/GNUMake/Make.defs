@@ -371,6 +371,8 @@ ifdef AMREX_CCOMP
     AMREX_CCOMP = cray
   else ifeq ($(lowercase_amrex_comp),pgi)
     AMREX_CCOMP = pgi
+  else ifeq ($(lowercase_amrex_comp),hpcsdk)
+    AMREX_CCOMP = hpcsdk
   else ifeq ($(lowercase_amrex_comp),ibm)
     AMREX_CCOMP = ibm
   else ifeq ($(lowercase_amrex_comp),$(filter $(lowercase_amrex_comp),llvm clang clang++))
@@ -382,7 +384,7 @@ ifdef AMREX_CCOMP
   else ifeq ($(lowercase_amrex_comp),nec)
     AMREX_CCOMP = nec
   else
-    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, ibm, llvm, nag, and nec)
+    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, hpcsdk, ibm, llvm, nag, and nec)
   endif
 endif
 
@@ -414,6 +416,11 @@ else ifeq ($(lowercase_comp),pgi)
   AMREX_CCOMP ?= pgi
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak
+else ifeq ($(lowercase_comp),hpcsdk)
+  AMREX_FCOMP ?= hpcsdk
+  AMREX_CCOMP ?= hpcsdk
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/hpcsdk.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/hpcsdk.mak
 else ifeq ($(lowercase_comp),ibm)
   AMREX_FCOMP ?= ibm
   AMREX_CCOMP ?= ibm
@@ -447,7 +454,7 @@ else ifeq ($(lowercase_comp),hip)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, ibm, llvm, nag, and nec)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, hpcsdk, ibm, llvm, nag, and nec)
 endif
 
 CXXFLAGS += $(XTRA_CXXFLAGS)
@@ -657,11 +664,13 @@ else ifeq ($(USE_CUDA),TRUE)
 
     ifeq ($(lowercase_comp),pgi)
         LINK_WITH_FORTRAN_COMPILER=TRUE
+    else ifeq ($(lowercase_comp),hpcsdk)
+        LINK_WITH_FORTRAN_COMPILER=TRUE
     else ifeq ($(lowercase_comp),ibm)
         LINK_WITH_FORTRAN_COMPILER=TRUE
     else ifeq ($(lowercase_comp),gnu)
     else
-        $(error CUDA can only be used with COMP=pgi or ibm or gnu)
+        $(error CUDA can only be used with COMP=pgi or hpcsdk or ibm or gnu)
     endif
 
     include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
@@ -699,7 +708,7 @@ else ifeq ($(USE_CUDA),TRUE)
 
     GPUSuffix := .CUDA
 
-    ifeq ($(lowercase_comp),$(filter $(lowercase_comp),ibm pgi))
+    ifeq ($(lowercase_comp),$(filter $(lowercase_comp),ibm pgi hpcsdk))
       DEFINES += -DAMREX_LAUNCH='attributes(global)'
       DEFINES += -DAMREX_DEVICE='attributes(device)'
       DEFINES += -DAMREX_CUDA_FORT_GLOBAL='attributes(global)'
