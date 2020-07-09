@@ -566,6 +566,42 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
     }
 }
 
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_linear_interp_x (int i, int j, int k, int n, Array4<T> const& fine,
+                      Array4<T const> const& crse, IntVect const& ratio) noexcept
+{
+    int ii = amrex::coarsen(i,ratio[0]);
+    int jj = amrex::coarsen(j,ratio[1]);
+    int kk = amrex::coarsen(k,ratio[2]);
+    Real const w = static_cast<Real>(i-ii*ratio[0]) * (1.0_rt/ratio[0]);
+    fine(i,j,k,n) = (1.0_rt-w) * crse(ii,jj,kk,n) + w * crse(ii+1,jj,kk,n);
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_linear_interp_y (int i, int j, int k, int n, Array4<T> const& fine,
+                      Array4<T const> const& crse, IntVect const& ratio) noexcept
+{
+    int ii = amrex::coarsen(i,ratio[0]);
+    int jj = amrex::coarsen(j,ratio[1]);
+    int kk = amrex::coarsen(k,ratio[2]);
+    Real const w = static_cast<Real>(j-jj*ratio[1]) * (1.0_rt/ratio[1]);
+    fine(i,j,k,n) = (1.0_rt-w) * crse(ii,jj,kk,n) + w * crse(ii,jj+1,kk,n);
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_linear_interp_z (int i, int j, int k, int n, Array4<T> const& fine,
+                      Array4<T const> const& crse, IntVect const& ratio) noexcept
+{
+    int ii = amrex::coarsen(i,ratio[0]);
+    int jj = amrex::coarsen(j,ratio[1]);
+    int kk = amrex::coarsen(k,ratio[2]);
+    Real const w = static_cast<Real>(k-kk*ratio[2]) * (1.0_rt/ratio[2]);
+    fine(i,j,k,n) = (1.0_rt-w) * crse(ii,jj,kk,n) + w * crse(ii,jj,kk+1,n);
+}
+
 }
 
 #endif

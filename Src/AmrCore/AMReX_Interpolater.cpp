@@ -13,7 +13,8 @@
 namespace amrex {
 
 //
-// PCInterp, NodeBilinear, and CellConservativeLinear are supported for all dimensions on cpu and gpu.
+// PCInterp, NodeBilinear, FaceLinear, and CellConservativeLinear are supported for all dimensions
+// on cpu and gpu.
 //
 // CellConsertiveProtected only works in 2D and 3D on cpu.
 //
@@ -29,6 +30,7 @@ namespace amrex {
 //
 PCInterp                  pc_interp;
 NodeBilinear              node_bilinear_interp;
+FaceLinear                face_linear_interp;
 CellConservativeLinear    lincc_interp;
 CellConservativeLinear    cell_cons_interp(0);
 
@@ -140,6 +142,76 @@ NodeBilinear::interp (const FArrayBox&  crse,
         amrex::nodebilin_interp<Real>(tbx, finearr, fine_comp, ncomp, slopearr, crsearr, crse_comp, ratio);
     });
 }
+
+Box
+FaceLinear::CoarseBox (const Box& fine, int ratio)
+{
+    return CoarseBox(fine, IntVect(ratio));
+}
+
+Box
+FaceLinear::CoarseBox (const Box& fine, const IntVect& ratio)
+{
+    Box b = amrex::coarsen(fine,ratio);
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
+        if (b.type(i) == IndexType::NODE && b.length(i) < 2) {
+            // Don't want degenerate boxes in nodal direction.
+            b.growHi(i,1);
+        }
+    }
+    return b;
+}
+
+void
+FaceLinear::interp (const FArrayBox&  crse,
+                    int               crse_comp,
+                    FArrayBox&        fine,
+                    int               fine_comp,
+                    int               ncomp,
+                    const Box&        fine_region,
+                    const IntVect&    ratio,
+                    const Geometry& /*crse_geom */,
+                    const Geometry& /*fine_geom */,
+                    Vector<BCRec> const& /*bcr*/,
+                    int               /*actual_comp*/,
+                    int               /*actual_state*/,
+                    RunOn             runon)
+{
+    BL_PROFILE("FaceLinear::interp()");
+
+    AMREX_ASSERT(AMREX_D_TERM(fine_region.type(0),+fine_region.type(1),+fine_region.type(2)) == 1);
+
+    Array4<Real> const& fine_arr = fine.array(fine_comp);
+    Array4<Real const> const& crse_arr = crse.const_array(crse_comp);
+
+    if (fine_region.type(0) == IndexType::NODE)
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_interp_x(i,j,k,n,fine_arr,crse_arr,ratio);
+        });
+    }
+#if (AMREX_SPACEDIM >= 2)
+    else if (fine_region.type(1) == IndexType::NODE)
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_interp_y(i,j,k,n,fine_arr,crse_arr,ratio);
+        });
+    }
+#if (AMREX_SPACEDIM == 3)
+    else
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_interp_z(i,j,k,n,fine_arr,crse_arr,ratio);
+        });
+    }
+#endif
+#endif
+}
+
+FaceLinear::~FaceLinear () {}
 
 #ifndef BL_NO_FORT
 CellBilinear::~CellBilinear () {}
