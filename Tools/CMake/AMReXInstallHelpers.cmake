@@ -33,6 +33,15 @@ function ( generate_amrex_config_header )
       set(COMPILER_ID_MACRO  __PGI)
    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" )
       set(COMPILER_ID_MACRO  __llvm__)
+   elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" )
+      set(COMPILER_ID_MACRO  __llvm__)
+   elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC" )
+      set(COMPILER_ID_MACRO  _MSC_VER)
+   else ()
+      # avoid malforming the AMReX_Config.H file by setting something valid
+      set(COMPILER_ID_MACRO  __cplusplus)
+      message(WARNING "Compiler '${CMAKE_CXX_COMPILER_ID}' is not tested by AMReX developers! "
+                      "Will not be able to validate that the same compiler is picked in user-code.")
    endif ()
 
    if (ENABLE_OMP)
