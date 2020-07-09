@@ -365,20 +365,20 @@ struct ParticleTile
     /// Add an int value to the struct-of-arrays at index comp.
     /// This sets the data for one particle.
     ///
-    void push_back_int (int comp, int v) { 
+    void push_back_int (int comp, int v) {
         m_soa_tile.GetIntData(comp).push_back(v);
     }
-    
+
     ///
     /// Add int values to the struct-of-arrays, for all comps at once.
     /// This sets the data for one particle.
     ///
-    void push_back_int (const std::array<int, NArrayInt>& v) { 
+    void push_back_int (const std::array<int, NArrayInt>& v) {
         for (int i = 0; i < NArrayInt; ++i) {
             m_soa_tile.GetIntData(i).push_back(v[i]);
         }
     }
-    
+
     ///
     /// Add a range of int values to the struct-of-arrays for the given comp.
     /// This sets the data for several particles at once.
@@ -387,7 +387,7 @@ struct ParticleTile
         auto it = m_soa_tile.GetIntData(comp).end();
         m_soa_tile.GetIntData(comp).insert(it, beg, end);
     }
-    
+
     ///
     /// Add npar copies of the int value v to the struct-of-arrays for the given comp.
     /// This sets the data for several particles at once.
@@ -404,8 +404,8 @@ struct ParticleTile
     int NumRuntimeRealComps () const noexcept { return m_runtime_r_ptrs.size(); }
 
     int NumRuntimeIntComps () const noexcept { return m_runtime_i_ptrs.size(); }
-    
-    void shrink_to_fit () 
+
+    void shrink_to_fit ()
     {
         m_aos_tile().shrink_to_fit();
         for (int j = 0; j < NumRealComps(); ++j)
@@ -413,12 +413,12 @@ struct ParticleTile
             auto& rdata = GetStructOfArrays().GetRealData(j);
             rdata.shrink_to_fit();
         }
-        
+
         for (int j = 0; j < NumIntComps(); ++j)
         {
             auto& idata = GetStructOfArrays().GetIntData(j);
             idata.shrink_to_fit();
-        }        
+        }
     }
 
     Long capacity () const
@@ -430,7 +430,7 @@ struct ParticleTile
             auto& rdata = GetStructOfArrays().GetRealData(j);
             nbytes += rdata.capacity() * sizeof(ParticleReal);
         }
-        
+
         for (int j = 0; j < NumIntComps(); ++j)
         {
             auto& idata = GetStructOfArrays().GetIntData(j);
@@ -447,7 +447,7 @@ struct ParticleTile
             auto& rdata = GetStructOfArrays().GetRealData(j);
             rdata.swap(other.GetStructOfArrays().GetRealData(j));
         }
-        
+
         for (int j = 0; j < NumIntComps(); ++j)
         {
             auto& idata = GetStructOfArrays().GetIntData(j);
@@ -457,10 +457,10 @@ struct ParticleTile
 
     ParticleTileDataType getParticleTileData ()
     {
-        for (int i = 0; i < m_runtime_r_ptrs.size(); ++i) {
+        for (std::size_t i = 0; i < m_runtime_r_ptrs.size(); ++i) {
             m_runtime_r_ptrs[i] = m_soa_tile.GetRealData(NArrayReal + i).dataPtr();
         }
-        for (int i = 0; i < m_runtime_i_ptrs.size(); ++i) 
+        for (std::size_t i = 0; i < m_runtime_i_ptrs.size(); ++i)
             m_runtime_i_ptrs[i] = m_soa_tile.GetIntData(NArrayInt + i).dataPtr();
 
         ParticleTileDataType ptd;
