@@ -52,7 +52,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
         {
             fx(i,j,k) = Type::regular;
         }
-        else if (s(i,j,k  ) >= 0.0 and s(i,j+1,k  ) >= 0.0 
+        else if (s(i,j,k  ) >= 0.0 and s(i,j+1,k  ) >= 0.0
             and  s(i,j,k+1) >= 0.0 and s(i,j+1,k+1) >= 0.0 )
         {
             fx(i,j,k) = Type::covered;
@@ -193,7 +193,7 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
     int nz11 = num_cuts(fine(i+2,j+2,k),fine(i+2,j+2,k+1)) + num_cuts(fine(i+2,j+2,k+1),fine(i+2,j+2,k+2));
 
     // x-faces
-    int nxm;
+    int nxm = -1;
     int n = ny00 + ny01 + nz00 + nz01;
     if (n == 0) {
         nxm = 0;
