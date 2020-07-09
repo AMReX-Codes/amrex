@@ -36,14 +36,11 @@ void WriteOutput(std::string filename, Vector<MultiFab> &mf, Vector<Geometry> &g
     for (int lev = 0; lev < mf.size(); lev++)
     {
         BoxArray ba = mf[lev].boxArray();
-        //for (int i = 0; i < ba.size(); i++) ba.set(i,ba[i].grow(mf[lev].nGrow()));
         ba = BoxArray(ba.boxList().accrete(mf[lev].nGrow()));
         out[lev].define(ba,mf[lev].DistributionMap(),mf[lev].nComp(),0);
         out[lev].setVal(0.0);
         Copy(out[lev],mf[lev],0,0,mf[lev].nComp(),0);
-        //out[lev].copy(mf[lev],0,0,mf[lev].nComp(),mf[lev].nGrow(),0);
     }
-    
     WriteMLMF (filename,GetVecOfConstPtrs(out),geom);
 }
 
@@ -160,6 +157,8 @@ int main (int argc, char* argv[])
     //    RHS[1] = 0 
     //    RHS[2] = 0 ... etc
     //
+    for (int round = 0; round < 2; round++)
+    {
     int nghost = 2;
     int cntr = ParallelDescriptor::MyProc();
  	for (int ilev = 0; ilev < mesh.nlevels; ++ilev)
@@ -180,7 +179,7 @@ int main (int argc, char* argv[])
     	{
     		Box bx = mfi.tilebox();
     		bx.grow(1);        // Expand to cover first layer of ghost nodes
-    		//bx = bx & domain;  // Take intersection of box and the problem domain
+    		bx = bx & domain;  // Take intersection of box and the problem domain
 		
     		Array4<Real> const& RHS  = rhs[ilev].array(mfi);
     		for (int n = 0; n < op.ncomp; n++)
@@ -195,13 +194,16 @@ int main (int argc, char* argv[])
                                                            * (x3-0.5)*(x3+0.5));
                     else RHS(i,j,k,n) = 0.0;
                     //RHS(i,j,k,n) = cntr;
+                    if (round==0) RHS(i,j,k,n) = ParallelDescriptor::MyProc();
     			});         
                 //cntr += ParallelDescriptor::NProcs();
  	    }
-        rhs[ilev].RealFillBoundary();
         //rhs[ilev].FillBoundary();
+        rhs[ilev].RealFillBoundary();
     }
-    WriteOutput("rhs",rhs,geom);
+    if (round==0) WriteOutput("proc",rhs,geom);
+    if (round==1) WriteOutput("rhs",rhs,geom);
+    }
     //return 0;
          
     // 
@@ -241,8 +243,9 @@ int main (int argc, char* argv[])
     // Perform the solve
     //
     Real tol_rel = 1E-8, tol_abs = 1E-8;
-    solver.solve(GetVecOfPtrs(solution),GetVecOfConstPtrs(rhs),tol_rel,tol_abs);
+    if (mlmg.fixed_iter !=0) solver.solve(GetVecOfPtrs(solution),GetVecOfConstPtrs(rhs),tol_rel,tol_abs);
     solver.compResidual(GetVecOfPtrs(res),GetVecOfPtrs(solution),GetVecOfConstPtrs(rhs));
+    //for (int lev = 0; lev < rhs.size(); lev++) res[lev].FillBoundary();
 
     //
     // Write the output to ./solution

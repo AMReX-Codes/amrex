@@ -1814,11 +1814,13 @@ template <class FAB>
 void
 FabArray<FAB>::RealFillBoundary ()
 {
+    //FillBoundary();
     BL_PROFILE("FabArray::RealFillBoundary()");
     if ( n_grow.max() > 0 ) {
     FBEP_nowait(0, nComp(), n_grow, Periodicity::NonPeriodic(), false, false, true);
 	FillBoundary_finish();
     }
+    //FillBoundary();
 }
 
 template <class FAB>

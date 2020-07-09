@@ -5,7 +5,7 @@ mesh.max_grid_size = 32         # Maximum grid size (default = very large --> no
 mlmg.fixed_iter = 1000          # Number of iterations before exiting gracefully
 mlmg.verbose = 2                # Verbosity of MLMG
 mlmg.cg_verbose = 0             # Verbosity of bottom solve
-mlmg.max_coarsening_level = 100 # Max MG level
+mlmg.max_coarsening_level = 0   # Max MG level
 mlmg.max_iter = 100             # Max number of iterations before error
 mlmg.max_fmg_iter = 100         # Number of F-cycles 
 mlmg.agglomeration = 1          # Do agglomeration 

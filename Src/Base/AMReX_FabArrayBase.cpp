@@ -639,8 +639,8 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, const IntVect& nghost,
 	    BL_ASSERT(m_cross==false);
 	    define_epo(fa);
 	} else {
-        define_fb(fa,0);
 	    if (multi_ghost) for (int g = 1; g < fa.nGrow(); g++) define_fb(fa,g);
+        else define_fb(fa,0);
 	}
     }
 }
@@ -651,8 +651,8 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
     AMREX_ASSERT(fa.nGrow() >= tmp_grow);
     const int                  MyProc   = ParallelDescriptor::MyProc();
     BoxArray                     ba       = fa.boxArray();
-    if (tmp_grow > 0)
-        ba = BoxArray(ba.boxList().accrete(tmp_grow));
+    BoxArray                     ba_ng    = fa.boxArray();
+    if (tmp_grow > 0) ba_ng = BoxArray(ba.boxList().accrete(tmp_grow));
     const DistributionMapping& dm       = fa.DistributionMap();
     const Vector<int>&         imap     = fa.IndexArray();
 
@@ -660,8 +660,10 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
     // so that they can share work.  But for remote communication, they are all different.
     
     const int nlocal = imap.size();
-    const IntVect ng(AMREX_D_DECL(m_ngrow[0]-tmp_grow,m_ngrow[1]-tmp_grow,m_ngrow[1]-tmp_grow));
+    const IntVect ng(m_ngrow[0]);
+    const IntVect ng_ng(AMREX_D_DECL(m_ngrow[0]-tmp_grow,m_ngrow[1]-tmp_grow,m_ngrow[1]-tmp_grow));
     std::vector< std::pair<int,Box> > isects;
+    std::vector< std::pair<int,Box> > isects_ng;
     
     const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
     
@@ -670,26 +672,30 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
     for (int i = 0; i < nlocal; ++i)
     {
 	const int ksnd = imap[i];
-	const Box& vbx = ba[ksnd];
+	const Box& vbx    = ba[ksnd];
+	const Box& vbx_ng = ba_ng[ksnd];
 	
 	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
 	    ba.intersections(vbx+(*pit), isects, false, ng);
+	    ba_ng.intersections(vbx_ng+(*pit), isects_ng, false, ng_ng);
 
 	    for (int j = 0, M = isects.size(); j < M; ++j)
 	    {
 		const int krcv      = isects[j].first;
 		const Box& bx       = isects[j].second;
+		const Box& bx_ng       = isects_ng[j].second;
 		const int dst_owner = dm[krcv];
 		
 		if (ParallelDescriptor::sameTeam(dst_owner)) {
 		    continue;  // local copy will be dealt with later
 		} else if (MyProc == dm[ksnd]) {
-		    const BoxList& bl = amrex::boxDiff(bx, ba[krcv]);
+		    BoxList bl = amrex::boxDiff(bx, ba[krcv]);
+		    const BoxList& bl_ng = amrex::boxDiff(bx_ng, ba_ng[krcv]);
+            bl.join(bl_ng);
 		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
             {
-                if      (tmp_grow==0) Print() << "remote patch_one = " << *lit << std::endl;
-			    else if (tmp_grow==1) Print() << "remote patch_two = " << *lit << std::endl;
+                Print() << "remote patch = " << *lit << std::endl;
 			    send_tags[dst_owner].push_back(CopyComTag(*lit, (*lit)-(*pit), krcv, ksnd));
             }
 		}
@@ -722,7 +728,9 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
     {
 	const int   krcv = imap[i];
 	const Box& vbx   = ba[krcv];
+	const Box& vbx_ng   = ba_ng[krcv];
 	const Box& bxrcv = amrex::grow(vbx, ng);
+	const Box& bxrcv_ng = amrex::grow(vbx_ng, ng_ng);
 	
 	if (check_local) {
 	    localtouch.resize(bxrcv);
@@ -737,14 +745,18 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
 	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
 	    ba.intersections(bxrcv+(*pit), isects);
+	    ba_ng.intersections(bxrcv_ng+(*pit), isects_ng);
 
 	    for (int j = 0, M = isects.size(); j < M; ++j)
 	    {
 		const int ksnd      = isects[j].first;
 		const Box& dst_bx   = isects[j].second - *pit;
+        const Box& dst_bx_ng = isects_ng[j].second - *pit;        
 		const int src_owner = dm[ksnd];
 		
-		const BoxList& bl = amrex::boxDiff(dst_bx, vbx);
+		BoxList bl = amrex::boxDiff(dst_bx, vbx);
+		const BoxList& bl_ng = amrex::boxDiff(dst_bx_ng, vbx_ng);
+        bl.join(bl_ng);
 		for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
 		{
 		    const Box& blbx = *lit;
@@ -755,8 +767,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
 				 it_tile  = tilelist.begin(),
 				 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
 			{
-                if      (tmp_grow==0) Print() << "local patch_one = " << *it_tile << std::endl;
-			    else if (tmp_grow==1) Print() << "local patch_two = " << *it_tile << std::endl;
+                Print() << "local patch = " << *it_tile << std::endl;
 			    m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), krcv, ksnd));
 			}
 			if (check_local) {
