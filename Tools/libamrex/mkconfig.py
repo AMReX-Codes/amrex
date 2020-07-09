@@ -31,33 +31,24 @@ def doit(defines, undefines, comp, allow_diff_comp, use_omp):
         if comp == "gnu" or comp == "nag":
             comp_macro = "__GNUC__"
             comp_id    = "GNU"
-            # print("#ifndef __GNUC__")
-            # print('static_assert(false,"libamrex was built with GNU");')
-            # print("#endif")
         elif comp == "intel":
-            print("#ifndef __INTEL_COMPILER")
-            print('static_assert(false,"libamrex was built with Intel");')
-            print("#endif")
+            comp_macro = "__INTEL_COMPILER"
+            comp_id    = Intel
         elif comp == "cray":
-            print("#ifndef _CRAYC")
-            print('static_assert(false,"libamrex was built with Cray");')
-            print("#endif")
+            comp_macro = "_CRAYC"
+            comp_id    = Cray
         elif comp == "pgi":
-            print("#ifndef __PGI")
-            print('static_assert(false,"libamrex was built with PGI");')
-            print("#endif")
+            comp_macro = "_PGI"
+            comp_id    = PGI
         elif comp == "llvm":
-            print("#ifndef __llvm__")
-            print('static_assert(false,"libamrex was built with Clang/LLVM");')
-            print("#endif")
+            comp_macro = "__llvm__"
+            comp_id    = "Clang/LLVM"
         elif comp == "nec":
-            print("#ifndef __NEC__")
-            print('static_assert(false,"libamrex was built with NEC");')
-            print("#endif")
+            comp_macro = "__NEC__"
+            comp_id    = "NEC"
         elif comp == "ibm":
-            print("#ifndef __ibmxl__")
-            print('static_assert(false,"libamrex was built with IBM");')
-            print("#endif")
+            comp_macro = "__ibmxl__"
+            comp_id    = "IBM"
         else:
             sys.exit("ERROR: unknown compiler "+comp+" to mkconfig.py")
 
