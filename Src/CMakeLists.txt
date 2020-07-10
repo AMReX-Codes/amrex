@@ -141,7 +141,11 @@ if (ENABLE_SENSEI_INSITU)
 endif ()
 
 if (ENABLE_SUNDIALS)
+<<<<<<< HEAD
    add_subdirectory(Extern/SUNDIALS4)
+=======
+   add_subdirectory(Extern/SUNDIALS)
+>>>>>>> backup/sundials5
 endif ()
 
 if (ENABLE_CONDUIT OR ENABLE_ASCENT)

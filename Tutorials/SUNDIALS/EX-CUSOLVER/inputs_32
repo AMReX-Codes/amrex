@@ -1,0 +1,6 @@
+n_cell = 32
+
+dt = 0.4e0
+
+prefix = plt_
+

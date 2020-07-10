@@ -1,0 +1,12 @@
+n_cell = 4
+max_grid_size = 2
+
+# 1 = Adams (non-stiff); 2 = BDF (stiff)
+cvode_meth = 2
+
+# 1 = functional iteration; 2 = Newton iteration
+cvode_itmeth = 2
+
+write_plotfile = 1
+
+do_tiling = 0
