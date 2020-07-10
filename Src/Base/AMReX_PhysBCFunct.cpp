@@ -53,7 +53,7 @@ CpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
                              const int orig_comp)
 {
     const int* lo = dest.loVect();
-    const Box& domain = geom.Domain();
+    const Box& domain = amrex::convert(geom.Domain(),bx.ixType());
     const int* dom_lo = domain.loVect();
     const Real* dx = geom.CellSize();
     const Real* problo = geom.ProbLo();
@@ -62,7 +62,13 @@ CpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
     {
         xlo[i] = problo[i] + dx[i]*(lo[i]-dom_lo[i]);
     }
-    fab_filcc(bx, dest.array(dcomp), numcomp, domain, dx, xlo, &(bcr[bcomp]));
+    if (bx.ixType().cellCentered()) {
+        fab_filcc(bx, dest.array(dcomp), numcomp, domain, dx, xlo, &(bcr[bcomp]));
+    } else if (bx.ixType().nodeCentered()) {
+        fab_filnd(bx, dest.array(dcomp), numcomp, domain, dx, xlo, &(bcr[bcomp]));
+    } else {
+        amrex::Abort("CpuBndryFuncFab: mixed index types are not supported");
+    }
 
     if (f_user != nullptr)
     {

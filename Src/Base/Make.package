@@ -170,6 +170,8 @@ C$(AMREX_BASE)_sources += AMReX_PhysBCFunct.cpp AMReX_BCUtil.cpp
 C$(AMREX_BASE)_headers += AMReX_PhysBCFunct.H AMReX_BCUtil.H
 C$(AMREX_BASE)_sources += AMReX_FilCC_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilCC_C.H AMReX_FilCC_$(DIM)D_C.H
+C$(AMREX_BASE)_sources += AMReX_FilND_C.cpp
+C$(AMREX_BASE)_headers += AMReX_FilND_C.H
 
 #
 # Plotfile

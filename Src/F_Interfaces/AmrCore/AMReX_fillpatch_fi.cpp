@@ -67,7 +67,7 @@ extern "C"
     {
 	Vector<BCRec> bcs(ncomp);
 	for (int i = 0; i < ncomp; ++i) {
-	    bcs.emplace_back(lo_bc[i], hi_bc[i]);
+	    bcs.emplace_back(lo_bc[i+scomp], hi_bc[i+scomp]);
 	}
 
         FPhysBC cbc(cfill, cgeom);
@@ -95,7 +95,7 @@ extern "C"
     {
 	Vector<BCRec> bcs(ncomp);
 	for (int i = 0; i < ncomp; ++i) {
-	    bcs.emplace_back(lo_bc[i], hi_bc[i]);
+	    bcs.emplace_back(lo_bc[i+scomp], hi_bc[i+scomp]);
 	}
 
         FPhysBC cbc(cfill, cgeom);
