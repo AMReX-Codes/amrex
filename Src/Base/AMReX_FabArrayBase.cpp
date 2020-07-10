@@ -639,7 +639,7 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, const IntVect& nghost,
 	    BL_ASSERT(m_cross==false);
 	    define_epo(fa);
 	} else {
-	    if (multi_ghost) for (int g = 1; g < fa.nGrow(); g++) define_fb(fa,g);
+	    if (multi_ghost) define_fb(fa,1);
         else define_fb(fa,0);
 	}
     }
@@ -678,7 +678,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
 	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
 	    ba.intersections(vbx+(*pit), isects, false, ng);
-	    ba_ng.intersections(vbx_ng+(*pit), isects_ng, false, ng_ng);
+	    if (tmp_grow > 0) ba_ng.intersections(vbx_ng+(*pit), isects_ng, false, ng_ng);
 
 	    for (int j = 0, M = isects.size(); j < M; ++j)
 	    {
@@ -692,7 +692,10 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
 		} else if (MyProc == dm[ksnd]) {
 		    BoxList bl = amrex::boxDiff(bx, ba[krcv]);
 		    const BoxList& bl_ng = amrex::boxDiff(bx_ng, ba_ng[krcv]);
-            bl.join(bl_ng);
+            if (tmp_grow > 0)
+            {
+                bl.join(bl_ng);
+            }
 		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
             {
                 Print() << "remote patch = " << *lit << std::endl;
@@ -745,7 +748,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
 	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
 	    ba.intersections(bxrcv+(*pit), isects);
-	    ba_ng.intersections(bxrcv_ng+(*pit), isects_ng);
+	    if (tmp_grow > 0) ba_ng.intersections(bxrcv_ng+(*pit), isects_ng);
 
 	    for (int j = 0, M = isects.size(); j < M; ++j)
 	    {
@@ -756,7 +759,9 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
 		
 		BoxList bl = amrex::boxDiff(dst_bx, vbx);
 		const BoxList& bl_ng = amrex::boxDiff(dst_bx_ng, vbx_ng);
-        bl.join(bl_ng);
+        if (tmp_grow > 0) {
+            bl.join(bl_ng);
+        }
 		for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
 		{
 		    const Box& blbx = *lit;
