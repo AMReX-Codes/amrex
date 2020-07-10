@@ -516,8 +516,6 @@ GpuBndryFuncFab<F>::nddoit (Box const& bx, FArrayBox& dest,
     Array4<Real> const& fab = dest.array();
     const auto geomdata = geom.data();
 
-#ifdef AMREX_USE_GPU
-
     AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
     BCRec* bcr_p = bcr_aa.data();
 
@@ -615,8 +613,6 @@ GpuBndryFuncFab<F>::nddoit (Box const& bx, FArrayBox& dest,
                    bcr_p, 0, orig_comp);
         });
     }
-#endif
-
 #endif
 }
 
