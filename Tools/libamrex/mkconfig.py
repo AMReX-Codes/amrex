@@ -38,7 +38,7 @@ def doit(defines, undefines, comp, allow_diff_comp, use_omp):
             comp_macro = "_CRAYC"
             comp_id    = Cray
         elif comp == "pgi":
-            comp_macro = "_PGI"
+            comp_macro = "__PGI"
             comp_id    = PGI
         elif comp == "llvm":
             comp_macro = "__llvm__"
