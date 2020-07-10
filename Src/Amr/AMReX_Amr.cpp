@@ -2843,9 +2843,12 @@ Amr::regrid (int  lbase,
 
     //
     // Reclaim old-time grid space for all remain levels > lbase.
+    // But skip this if we're in the middle of a post-timestep regrid.
     //
     for(int lev = start; lev <= finest_level; ++lev) {
-	amr_level[lev]->removeOldData();
+        if (!amr_level[lev]->postStepRegrid()) {
+            amr_level[lev]->removeOldData();
+        }
     }
     //
     // Reclaim all remaining storage for levels > new_finest.

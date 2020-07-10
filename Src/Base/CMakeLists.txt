@@ -191,6 +191,8 @@ target_sources( amrex
    AMReX_FilCC_${DIM}D_C.H
    AMReX_FilCC_C.H
    AMReX_FilCC_C.cpp
+   AMReX_FilND_C.H
+   AMReX_FilND_C.cpp
    # Plotfile ----------------------------------------------------------------
    AMReX_PlotFileUtil.cpp
    AMReX_PlotFileUtil.H
