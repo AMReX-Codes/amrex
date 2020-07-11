@@ -15,6 +15,7 @@
 #include <AMReX_Extension.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_GpuLaunchGlobal.H>
 #include <cstddef>
 #include <limits>
 #include <algorithm>
@@ -40,12 +41,6 @@ namespace amrex {
 //  Variadic lambda function wrappers for C++ CUDA/HIP Kernel calls.
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-    template<class L>
-    AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
-
-    template<class L, class... Lambdas>
-    AMREX_GPU_GLOBAL void launch_global (L f0, Lambdas... fs) { f0(); call_device(fs...); }
-    
     template<class L>
     AMREX_GPU_DEVICE void call_device (L&& f0) noexcept { f0(); }
     
