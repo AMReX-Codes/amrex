@@ -1,4 +1,5 @@
 #include <AMReX_Gpu.H>
+#include <AMReX_ParmParse.H>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -7,6 +8,13 @@ namespace amrex {
 namespace Gpu {
 
 #ifdef AMREX_USE_CUDA
+
+namespace {
+    bool s_in_fuse_region = false;
+    Long s_fuse_threshold = 32*32*32-1;
+}
+
+std::unique_ptr<Fuser> Fuser::m_instance = nullptr;
 
 Fuser::Fuser ()
 {
@@ -166,6 +174,50 @@ Fuser::resize_helper_buf ()
     }
     The_Pinned_Arena()->free(m_helper_buf);
     m_helper_buf = p;
+}
+
+Fuser&
+Fuser::getInstance ()
+{
+    if (m_instance == nullptr) {
+        m_instance.reset(new Fuser());
+    }
+    return *m_instance;
+}
+
+void
+Fuser::Initialize ()
+{
+    ParmParse pp("amrex");
+    pp.query("gpu_fuse_threshold", s_fuse_threshold);
+
+    amrex::ExecOnFinalize(Fuser::Finalize);
+}
+
+void
+Fuser::Finalize ()
+{
+    m_instance.reset();
+}
+
+Long getFuseThreshold () { return s_in_fuse_region; }
+
+Long
+setFuseThreshold (Long new_threshold)
+{
+    Long old = s_fuse_threshold;
+    s_fuse_threshold = new_threshold;
+    return old;
+}
+
+bool inFuseRegion () { return s_in_fuse_region; }
+
+bool
+setFuseRegion (bool flag)
+{
+    bool old = s_in_fuse_region;
+    s_in_fuse_region = flag;
+    return old;
 }
 
 #endif

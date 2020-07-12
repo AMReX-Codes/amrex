@@ -4,6 +4,7 @@
 #include <AMReX_GpuDevice.H>
 #include <AMReX_GpuLaunchGlobal.H>
 #include <cstring>
+#include <memory>
 
 namespace amrex {
 namespace Gpu {
@@ -131,6 +132,8 @@ public:
 
     Fuser ();
     ~Fuser ();
+    Fuser (Fuser const&) = delete;
+    Fuser& operator= (Fuser const&) = delete;
 
     template <typename F>
     void
@@ -166,7 +169,13 @@ public:
 
     void Launch ();
 
+    static Fuser& getInstance ();
+    static void Initialize ();
+    static void Finalize ();
+
 private:
+
+    static std::unique_ptr<Fuser> m_instance;
 
     char* m_lambda_buf = nullptr;
     std::size_t m_nbytes_used_lambda_buf = 0;
@@ -210,6 +219,42 @@ private:
         PutLambdaDtor<Lambda>(m_dtor_buf.back());
     }
 };
+
+Long getFuseThreshold ();
+Long setFuseThreshold (Long new_threshold);
+bool inFuseRegion ();
+bool setFuseRegion (bool flag);
+
+struct FuseSafeGuard
+{
+    explicit FuseSafeGuard (bool flag) noexcept
+        : m_old(setFuseRegion(flag)) {}
+    ~FuseSafeGuard () { setFuseRegion(m_old); }
+private:
+    bool m_old;
+};
+
+
+template <typename F>
+void
+Register (Box const& bx, F&& f)
+{
+    Fuser::getInstance().Register(bx, std::forward<F>(f));
+}
+
+template <typename F>
+void
+Register (Box const& bx, int ncomp, F&& f)
+{
+    Fuser::getInstance().Register(bx, ncomp, std::forward<F>(f));
+}
+
+template <typename T, typename F, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void
+Register (T N, F&&f)
+{
+    Fuser::getInstance().Register(N, std::forward<F>(f));
+}
 
 #endif
 
