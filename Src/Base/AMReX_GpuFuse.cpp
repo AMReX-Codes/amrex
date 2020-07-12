@@ -25,7 +25,7 @@ Fuser::Fuser ()
 
 Fuser::~Fuser ()
 {
-    if (m_nlambdas > 0){
+    if (m_nlambdas > 0) {
         Launch();
     }
 
@@ -41,7 +41,7 @@ void Fuser::Launch ()
 
     int nlambdas = m_nlambdas;
     if (nlambdas > 0) {
-        int* nwarps = (int*)The_Pinned_Arena()->alloc(nlambdas*sizeof(int));
+        int* nwarps = (int*)The_Pinned_Arena()->alloc((nlambdas+1)*sizeof(int));
         int ntotwarps = 0;
         for (int i = 0; i < nlambdas; ++i)
         {
@@ -107,7 +107,7 @@ void Fuser::Launch ()
                 };
             }
 
-            int b_wid = g_wid - d_nwarps[ilambda]; // b_wid'th warp on this this lambda
+            int b_wid = g_wid - d_nwarps[ilambda]; // b_wid'th warp on this lambda
             int lane = threadIdx.x % Gpu::Device::warp_size;
             int icell = b_wid*Gpu::Device::warp_size + lane;
 
@@ -150,6 +150,7 @@ void Fuser::Launch ()
             m_helper_buf[i].~FuseHelper();
         }
         m_dtor_buf.clear();
+        m_nbytes_used_lambda_buf = 0;
         m_nlambdas = 0;
     }
 }
@@ -201,7 +202,7 @@ Fuser::Finalize ()
     m_instance.reset();
 }
 
-Long getFuseThreshold () { return s_in_fuse_region; }
+Long getFuseThreshold () { return s_fuse_threshold; }
 
 Long
 setFuseThreshold (Long new_threshold)

@@ -1,6 +1,7 @@
 #include <AMReX_Arena.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Box.H>
+#include <AMReX_TypeTraits.H>
 #include <AMReX_GpuDevice.H>
 #include <AMReX_GpuLaunchGlobal.H>
 #include <cstring>
@@ -28,6 +29,8 @@ struct FuseHelper {
     Box m_bx;
     int m_N;
 };
+
+static_assert(AMREX_IS_TRIVIALLY_COPYABLE(FuseHelper),"FuseHelper is not trivially copyable");
 
 template <typename Lambda>
 AMREX_GPU_DEVICE
@@ -74,7 +77,7 @@ PutLambda1DLauncher (FuseHelper* helper)
 {
     static Lambda1DLauncher fp = nullptr;
     if (fp == nullptr) {
-        launch_global<<<1,1>>>([=] AMREX_GPU_DEVICE
+        launch_global<<<1,1>>>([=] AMREX_GPU_DEVICE ()
         {
             helper->m_fp.L1D = &LaunchLambda1D<Lambda>;
         });
@@ -91,7 +94,7 @@ PutLambda3DLauncher (FuseHelper* helper)
 {
     static Lambda3DLauncher fp = nullptr;
     if (fp == nullptr) {
-        launch_global<<<1,1>>>([=] AMREX_GPU_DEVICE
+        launch_global<<<1,1>>>([=] AMREX_GPU_DEVICE ()
         {
             helper->m_fp.L3D = &LaunchLambda3D<Lambda>;
         });
@@ -108,7 +111,7 @@ PutLambda4DLauncher (FuseHelper* helper)
 {
     static Lambda4DLauncher fp = nullptr;
     if (fp == nullptr) {
-        launch_global<<<1,1>>>([=] AMREX_GPU_DEVICE
+        launch_global<<<1,1>>>([=] AMREX_GPU_DEVICE ()
         {
             helper->m_fp.L4D = &LaunchLambda4D<Lambda>;
         });
@@ -214,7 +217,7 @@ private:
             resize_lambda_buf();
         }
         char* p_lambda = m_lambda_buf + m_nbytes_used_lambda_buf;
-        std::size_t sz_lambda =  PutLambda<Lambda>(f, p_lambda);
+        std::size_t sz_lambda = PutLambda<Lambda>(f, p_lambda);
         m_nbytes_used_lambda_buf += sz_lambda;
         AMREX_ASSERT(m_nbytes_used_lambda_buf <= m_nbytes_lambda_buf);
 
