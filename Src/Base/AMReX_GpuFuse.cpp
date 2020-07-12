@@ -1,17 +1,24 @@
 #include <AMReX_Gpu.H>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 namespace amrex {
 namespace Gpu {
 
 #ifdef AMREX_USE_CUDA
 
-Fuser3D::Fuser3D ()
+Fuser::Fuser ()
 {
     m_lambda_buf = (char*)The_Pinned_Arena()->alloc(m_nbytes_lambda_buf);
-    m_helper_buf = (Fuse3DHelper*)The_Pinned_Arena()->alloc(m_nhelpers_buf*sizeof(Fuse3DHelper));
+    m_helper_buf = (FuseHelper*)The_Pinned_Arena()->alloc(m_nhelpers_buf*sizeof(FuseHelper));
+    m_dtor_buf.reserve(1024);
+#ifdef _OPENMP
+    AMREX_ASSERT(!omp_in_parallel());
+#endif
 }
 
-Fuser3D::~Fuser3D ()
+Fuser::~Fuser ()
 {
     if (m_nlambdas > 0){
         Launch();
@@ -21,7 +28,7 @@ Fuser3D::~Fuser3D ()
     The_Pinned_Arena()->free(m_helper_buf);
 }
 
-void Fuser3D::Launch ()
+void Fuser::Launch ()
 {
     int nlambdas = m_nlambdas;
     if (nlambdas > 0) {
@@ -36,12 +43,12 @@ void Fuser3D::Launch ()
         nwarps[nlambdas] = ntotwarps;
 
         int* d_nwarps = (int*)The_Device_Arena()->alloc((nlambdas+1)*sizeof(int));
-        auto d_lambda_helper = (Fuse3DHelper*)The_Device_Arena()->alloc
-            (nlambdas*sizeof(Fuse3DHelper));
+        auto d_lambda_helper = (FuseHelper*)The_Device_Arena()->alloc
+            (nlambdas*sizeof(FuseHelper));
         auto d_lambda_object = (char*)The_Device_Arena()->alloc(m_nbytes_used_lambda_buf);
 
         Gpu::htod_memcpy_async(d_nwarps, nwarps, (nlambdas+1)*sizeof(int));
-        Gpu::htod_memcpy_async(d_lambda_helper, m_helper_buf, nlambdas*sizeof(Fuse3DHelper));
+        Gpu::htod_memcpy_async(d_lambda_helper, m_helper_buf, nlambdas*sizeof(FuseHelper));
         Gpu::htod_memcpy_async(d_lambda_object, m_lambda_buf, m_nbytes_used_lambda_buf);
 
         constexpr int nthreads = 256;
@@ -86,8 +93,14 @@ void Fuser3D::Launch ()
                 i += lo.x;
                 j += lo.y;
                 k += lo.z;
-                d_lambda_helper[ilambda].m_fp(d_lambda_object+d_lambda_helper[ilambda].m_offset,
-                                              i,j,k);
+                FuseHelper& helper = d_lambda_helper[ilambda];
+                if (helper.m_ncomp == 0) {
+                    helper.m_fp.L3D(d_lambda_object+helper.m_offset,i,j,k);
+                } else {
+                    for (int n = 0; n < helper.m_ncomp; ++n) {
+                        helper.m_fp.L4D(d_lambda_object+helper.m_offset,i,j,k,n);
+                    }
+                }
             }
         });
         Gpu::synchronize();
@@ -95,9 +108,38 @@ void Fuser3D::Launch ()
         The_Device_Arena()->free(d_nwarps);
         The_Device_Arena()->free(d_lambda_helper);
         The_Device_Arena()->free(d_lambda_object);
+
+        for (int i = 0; i < nlambdas; ++i) {
+            char* p = m_lambda_buf + m_helper_buf[i].m_offset;
+            m_dtor_buf[i](p);
+            m_helper_buf[i].~FuseHelper();
+        }
+        m_dtor_buf.clear();
         m_nlambdas = 0;
     }
+}
 
+void
+Fuser::resize_lambda_buf ()
+{
+    m_nbytes_lambda_buf += m_nbytes_lambda_buf/2;
+    auto p = (char*)The_Pinned_Arena()->alloc(m_nbytes_lambda_buf);
+    std::memcpy(p, m_lambda_buf, m_nbytes_used_lambda_buf);
+    The_Pinned_Arena()->free(m_lambda_buf);
+    m_lambda_buf = p;
+}
+
+void
+Fuser::resize_helper_buf ()
+{
+    m_nhelpers_buf += m_nhelpers_buf/2;
+    auto p = (FuseHelper*)The_Pinned_Arena()->alloc(m_nhelpers_buf*sizeof(FuseHelper));
+    for (int i = 0; i < m_nlambdas; ++i) {
+        new (p+i) FuseHelper(m_helper_buf[i]);
+        (m_helper_buf+i)->~FuseHelper();
+    }
+    The_Pinned_Arena()->free(m_helper_buf);
+    m_helper_buf = p;
 }
 
 #endif
