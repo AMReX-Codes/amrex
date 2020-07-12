@@ -37,10 +37,18 @@ void Fuser::Launch ()
         for (int i = 0; i < nlambdas; ++i)
         {
             nwarps[i] = ntotwarps;
-            ntotwarps += static_cast<int>(m_helper_buf[i].m_bx.numPts()+Gpu::Device::warp_size-1)
-                / Gpu::Device::warp_size;
+            Box const& bx = m_helper_buf[i].m_bx;
+            int N;
+            if (bx.isEmpty()) {
+                N = m_helper_buf[i].m_N;
+            } else {
+                N = bx.numPts();
+            }
+            ntotwarps += (N + Gpu::Device::warp_size-1) / Gpu::Device::warp_size;
         }
         nwarps[nlambdas] = ntotwarps;
+
+        AMREX_ASSERT(ntotwarps < std::numeric_limits<int>::max()/Gpu::Device::warp_size);
 
         int* d_nwarps = (int*)The_Device_Arena()->alloc((nlambdas+1)*sizeof(int));
         auto d_lambda_helper = (FuseHelper*)The_Device_Arena()->alloc
@@ -79,26 +87,34 @@ void Fuser::Launch ()
                 };
             }
 
-            Box const& bx = d_lambda_helper[ilambda].m_bx;
-            int ncells = bx.numPts();
             int b_wid = g_wid - d_nwarps[ilambda]; // b_wid'th warp on this this lambda
             int lane = threadIdx.x % Gpu::Device::warp_size;
             int icell = b_wid*Gpu::Device::warp_size + lane;
-            if (icell < ncells) {
-                const auto len = amrex::length(bx);
-                const auto lo  = amrex::lbound(bx);
-                int k =  icell /   (len.x*len.y);
-                int j = (icell - k*(len.x*len.y)) /   len.x;
-                int i = (icell - k*(len.x*len.y)) - j*len.x;
-                i += lo.x;
-                j += lo.y;
-                k += lo.z;
-                FuseHelper& helper = d_lambda_helper[ilambda];
-                if (helper.m_ncomp == 0) {
-                    helper.m_fp.L3D(d_lambda_object+helper.m_offset,i,j,k);
-                } else {
-                    for (int n = 0; n < helper.m_ncomp; ++n) {
-                        helper.m_fp.L4D(d_lambda_object+helper.m_offset,i,j,k,n);
+
+            FuseHelper& helper = d_lambda_helper[ilambda];
+            char* lambda_object = d_lambda_object + helper.m_offset;
+            Box const& bx = helper.m_bx;
+            if (bx.isEmpty()) {
+                if (icell < helper.m_N) {
+                    helper.m_fp.L1D(lambda_object,icell);
+                }
+            } else {
+                int ncells = bx.numPts();
+                if (icell < ncells) {
+                    const auto len = amrex::length(bx);
+                    const auto lo  = amrex::lbound(bx);
+                    int k =  icell /   (len.x*len.y);
+                    int j = (icell - k*(len.x*len.y)) /   len.x;
+                    int i = (icell - k*(len.x*len.y)) - j*len.x;
+                    i += lo.x;
+                    j += lo.y;
+                    k += lo.z;
+                    if (helper.m_N == 0) {
+                        helper.m_fp.L3D(lambda_object,i,j,k);
+                    } else {
+                        for (int n = 0; n < helper.m_N; ++n) {
+                            helper.m_fp.L4D(lambda_object,i,j,k,n);
+                        }
                     }
                 }
             }
