@@ -139,6 +139,7 @@ public:
     void
     Register (Box const& bx, F&& f)
     {
+        AMREX_ASSERT(!OpenMP::in_parallel());
         if (bx.isEmpty()) return;
         using Lambda = typename std::decay<F>::type;
         Register_doit<Lambda>(bx, 0, f);
@@ -149,6 +150,7 @@ public:
     void
     Register (Box const& bx, int ncomp, F&& f)
     {
+        AMREX_ASSERT(!OpenMP::in_parallel());
         if (bx.isEmpty()) return;
         using Lambda = typename std::decay<F>::type;
         Register_doit<Lambda>(bx, ncomp, f);
@@ -159,6 +161,7 @@ public:
     void
     Register (T N, F&&f)
     {
+        AMREX_ASSERT(!OpenMP::in_parallel());
         AMREX_ASSERT(sizeof(T) <= sizeof(int) ||
                      N < static_cast<T>(std::numeric_limits<int>::max()));
         if (N <= 0) return;

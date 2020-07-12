@@ -1,9 +1,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+#include <AMReX_OpenMP.H>
 
 namespace amrex {
 namespace Gpu {
@@ -19,12 +17,10 @@ std::unique_ptr<Fuser> Fuser::m_instance = nullptr;
 
 Fuser::Fuser ()
 {
+    AMREX_ASSERT(!OpenMP::in_parallel());
     m_lambda_buf = (char*)The_Pinned_Arena()->alloc(m_nbytes_lambda_buf);
     m_helper_buf = (FuseHelper*)The_Pinned_Arena()->alloc(m_nhelpers_buf*sizeof(FuseHelper));
     m_dtor_buf.reserve(1024);
-#ifdef _OPENMP
-    AMREX_ASSERT(!omp_in_parallel());
-#endif
 }
 
 Fuser::~Fuser ()
@@ -40,6 +36,8 @@ Fuser::~Fuser ()
 void Fuser::Launch ()
 {
     BL_PROFILE("Fuser::Launch()");
+
+    AMREX_ASSERT(!OpenMP::in_parallel());
 
     int nlambdas = m_nlambdas;
     if (nlambdas > 0) {
