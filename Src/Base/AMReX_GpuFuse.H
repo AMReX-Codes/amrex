@@ -256,6 +256,12 @@ Register (T N, F&&f)
     Fuser::getInstance().Register(N, std::forward<F>(f));
 }
 
+inline void
+LaunchFusedKernels ()
+{
+    Fuser::getInstance().Launch();
+}
+
 #endif
 
 }}

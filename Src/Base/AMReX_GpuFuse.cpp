@@ -1,5 +1,6 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_BLProfiler.H>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -38,6 +39,8 @@ Fuser::~Fuser ()
 
 void Fuser::Launch ()
 {
+    BL_PROFILE("Fuser::Launch()");
+
     int nlambdas = m_nlambdas;
     if (nlambdas > 0) {
         int* nwarps = (int*)The_Pinned_Arena()->alloc(nlambdas*sizeof(int));
