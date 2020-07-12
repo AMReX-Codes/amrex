@@ -36,7 +36,7 @@
 
 namespace amrex {
 
-// Because of CUDA, we cannot take rvalue lambdas.
+// We cannot take rvalue lambdas.
 // ************************************************
 //  Variadic lambda function wrappers for C++ CUDA/HIP Kernel calls.
 

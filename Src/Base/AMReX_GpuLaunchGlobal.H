@@ -6,7 +6,7 @@
 namespace amrex {
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-    // Because of CUDA, we cannot take rvalue lambdas.
+    // We cannot take rvalue lambdas.
     template<class L>
     AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
 #endif
