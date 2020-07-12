@@ -50,14 +50,25 @@ void Fuser::Launch ()
 
         AMREX_ASSERT(ntotwarps < std::numeric_limits<int>::max()/Gpu::Device::warp_size);
 
-        int* d_nwarps = (int*)The_Device_Arena()->alloc((nlambdas+1)*sizeof(int));
-        auto d_lambda_helper = (FuseHelper*)The_Device_Arena()->alloc
-            (nlambdas*sizeof(FuseHelper));
-        auto d_lambda_object = (char*)The_Device_Arena()->alloc(m_nbytes_used_lambda_buf);
+        // Pack nwarps, lambda helpers and lambda objects into a buffer
+        std::size_t sizeof_nwarps = sizeof(int) * (nlambdas+1);
+        std::size_t offset_helpers = Arena::align(sizeof_nwarps);
+        std::size_t sizeof_helpers = sizeof(FuseHelper)*nlambdas;
+        std::size_t offset_objects = Arena::align(offset_helpers+sizeof_helpers);
+        std::size_t sizeof_objects = m_nbytes_used_lambda_buf;
+        std::size_t total_buf_size = offset_objects + sizeof_objects;
 
-        Gpu::htod_memcpy_async(d_nwarps, nwarps, (nlambdas+1)*sizeof(int));
-        Gpu::htod_memcpy_async(d_lambda_helper, m_helper_buf, nlambdas*sizeof(FuseHelper));
-        Gpu::htod_memcpy_async(d_lambda_object, m_lambda_buf, m_nbytes_used_lambda_buf);
+        char* h_buffer = (char*)The_Pinned_Arena()->alloc(total_buf_size);
+        char* d_buffer = (char*)The_Device_Arena()->alloc(total_buf_size);
+
+        std::memcpy(h_buffer, nwarps, sizeof_nwarps);
+        std::memcpy(h_buffer+offset_helpers, m_helper_buf, sizeof_helpers);
+        std::memcpy(h_buffer+offset_objects, m_lambda_buf, sizeof_objects);
+        Gpu::htod_memcpy_async(d_buffer, h_buffer, total_buf_size);
+
+        auto d_nwarps = reinterpret_cast<int*>(d_buffer);
+        auto d_lambda_helper = reinterpret_cast<FuseHelper*>(d_buffer+offset_helpers);
+        auto d_lambda_object = reinterpret_cast<char*>(d_buffer+offset_objects);
 
         constexpr int nthreads = 256;
         constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
@@ -121,9 +132,8 @@ void Fuser::Launch ()
         });
         Gpu::synchronize();
         The_Pinned_Arena()->free(nwarps);
-        The_Device_Arena()->free(d_nwarps);
-        The_Device_Arena()->free(d_lambda_helper);
-        The_Device_Arena()->free(d_lambda_object);
+        The_Pinned_Arena()->free(h_buffer);
+        The_Device_Arena()->free(d_buffer);
 
         for (int i = 0; i < nlambdas; ++i) {
             char* p = m_lambda_buf + m_helper_buf[i].m_offset;
