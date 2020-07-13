@@ -31,6 +31,7 @@ namespace amrex {
 PCInterp                  pc_interp;
 NodeBilinear              node_bilinear_interp;
 FaceLinear                face_linear_interp;
+FaceDivFree               face_divfree_interp;
 CellConservativeLinear    lincc_interp;
 CellConservativeLinear    cell_cons_interp(0);
 
