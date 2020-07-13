@@ -37,10 +37,10 @@ void Fuser::Launch ()
 {
     BL_PROFILE("Fuser::Launch()");
 
-    AMREX_ASSERT(!OpenMP::in_parallel());
-
     int nlambdas = m_nlambdas;
     if (nlambdas > 0) {
+        AMREX_ASSERT(!OpenMP::in_parallel());
+
         int* nwarps = (int*)The_Pinned_Arena()->alloc((nlambdas+1)*sizeof(int));
         int ntotwarps = 0;
         for (int i = 0; i < nlambdas; ++i)
