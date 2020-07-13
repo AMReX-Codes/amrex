@@ -1038,7 +1038,9 @@ else ifeq ($(USE_CUDA),TRUE)
 
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
       LINKFLAGS = $(NVCC_FLAGS)
-      AMREX_LINKER = nvcc
+      ifneq ($(USE_MPI),TRUE)
+        AMREX_LINKER = nvcc
+      endif
     endif
 
     ifeq ($(nvcc_forward_unknowns),0)
