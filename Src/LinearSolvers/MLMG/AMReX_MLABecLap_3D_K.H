@@ -495,6 +495,7 @@ void abec_gsrb_with_line_solve (
                             c_ls(k-lo.z) = -dhz*bZ(i,j,k+1,n);
                             u_ls(k-lo.z) = 0.;
                             r_ls(k-lo.z) = rhs(i,j,k,n) + rho;
+                            // r_ls(k-lo.z) = g_m_d*phi(i,j,k,n) -gamma*phi(i,j,k,n) + rhs(i,j,k,n) + rho;
 
                             if (k == lo.z)
                             {
