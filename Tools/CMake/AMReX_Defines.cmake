@@ -54,14 +54,9 @@ function ( set_amrex_defines )
    # Mem profiler
    add_amrex_define( AMREX_MEM_PROFILING NO_LEGACY IF ENABLE_MEM_PROFILE )
 
-   # Backtrace
-   if (ENABLE_BACKTRACE)
-      add_amrex_define( AMREX_BACKTRACING NO_LEGACY)
-      add_amrex_define( AMREX_TESTING NO_LEGACY )
-   endif ()
-
    # MPI
    add_amrex_define( AMREX_USE_MPI IF ENABLE_MPI )
+   add_amrex_define( AMREX_MPI_THREAD_MULTIPLE NO_LEGACY IF ENABLE_MPI_THREAD_MULTIPLE)
 
    # OpenMP -- This one has legacy definition only in Base/AMReX_omp_mod.F90
    add_amrex_define( AMREX_USE_OMP IF ENABLE_OMP )
@@ -140,24 +135,6 @@ function ( set_amrex_defines )
    add_amrex_define( AMREX_GPU_MAX_THREADS=${CUDA_MAX_THREADS} NO_LEGACY
       IF ENABLE_CUDA )
 
-   # Fortran macros used by application code only
-   # (they are not present in AMReX source code)
-   if (ENABLE_CUDA AND ENABLE_AMREX_FORTRAN )
-      target_compile_definitions( amrex PUBLIC
-         $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LAUNCH=attributes\(global\);
-         AMREX_DEVICE=attributes\(device\);
-         AMREX_CUDA_FORT_GLOBAL=attributes\(global\);
-         AMREX_CUDA_FORT_DEVICE=attributes\(device\);
-         AMREX_CUDA_FORT_HOST=attributes\(host\)>)
-   # else ()
-   #    target_compile_definitions( amrex PUBLIC
-   #       $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LAUNCH=\"\";
-   #       AMREX_DEVICE=\"\";
-   #       AMREX_CUDA_FORT_GLOBAL=\"\";
-   #       AMREX_CUDA_FORT_DEVICE=\"\";
-   #       AMREX_CUDA_FORT_HOST=\"\">)
-   endif ()
-
    #
    # OpenACC
    #
@@ -176,5 +153,11 @@ function ( set_amrex_defines )
       add_amrex_define( AMREX_GPUS_PER_NODE=${GPUS_PER_NODE}
          NO_LEGACY IF GPUS_PER_NODE)
    endif ()
+
+   #
+   # HDF5
+   #
+   add_amrex_define(AMREX_USE_HDF5 NO_LEGACY IF ENABLE_HDF5)
+   add_amrex_define(AMREX_USE_HDF5_ASYNC NO_LEGACY IF ENABLE_HDF5_ASYNC)
 
 endfunction ()

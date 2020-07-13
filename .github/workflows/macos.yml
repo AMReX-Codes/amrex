@@ -18,7 +18,6 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DENABLE_BACKTRACE=ON       \
             -DENABLE_TUTORIALS=ON       \
             -DENABLE_PARTICLES=ON
         make -j 2 tutorials

@@ -29,12 +29,6 @@ void cns_bcfill (Box const& bx, FArrayBox& data,
                  const Vector<BCRec>& bcr, const int bcomp,
                  const int scomp)
 {
-    if (Gpu::inLaunchRegion()) {
-        GpuBndryFuncFab<CnsFillExtDir> gpu_bndry_func(CnsFillExtDir{});
-        gpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
-    } else {
-        // Without EXT_DIR (e.g., inflow), we can pass a nullptr
-        CpuBndryFuncFab cpu_bndry_func(nullptr);
-        cpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
-    }
+    GpuBndryFuncFab<CnsFillExtDir> gpu_bndry_func(CnsFillExtDir{});
+    gpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
 }

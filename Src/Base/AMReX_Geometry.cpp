@@ -9,9 +9,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_SPACE.H>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+#include <AMReX_OpenMP.H>
 
 namespace amrex {
 
@@ -119,9 +117,7 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
 
     if (gg->ok) return;
 
-#ifdef _OPENMP
-    BL_ASSERT(!omp_in_parallel());
-#endif
+    BL_ASSERT(!OpenMP::in_parallel());
 
     ParmParse pp("geometry");
 
