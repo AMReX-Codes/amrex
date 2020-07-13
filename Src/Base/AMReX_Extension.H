@@ -126,6 +126,12 @@
 #define AMREX_INLINE inline
 #endif
 
+// no inline
+#if defined(__GNUC__)
+#define AMREX_NO_INLINE __attribute__((noinline))
+#else
+#define AMREX_NO_INLINE
+#endif
 
 // __attribute__((weak))
 

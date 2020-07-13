@@ -441,21 +441,19 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 Long
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParticlesAtLevel (int lev, bool only_valid, bool only_local) const
 {
-    AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
-
     Long nparticles = 0;
-    if (only_valid)
-    {
-        nparticles = amrex::ReduceSum(*this, lev, lev,
-            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p) -> Long
-            {
-                return (p.id() > 0) ? 1L : 0L;
-            });
-    } else
-    {
-        for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
-        {
-            nparticles += pti.numParticles();
+
+    if (lev >= 0 && lev < int(m_particles.size())) {
+        for (const auto& kv : GetParticles(lev)) {
+            const auto& ptile = kv.second;
+            if (only_valid) {
+                for (int k = 0; k < ptile.GetArrayOfStructs().numParticles(); ++k) {
+                    const ParticleType& p = ptile.GetArrayOfStructs()[k];
+                    if (p.id() > 0) ++nparticles;
+                }
+            } else {
+                nparticles += ptile.numParticles();
+            }
         }
     }
 

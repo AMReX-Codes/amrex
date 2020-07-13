@@ -135,24 +135,6 @@ function ( set_amrex_defines )
    add_amrex_define( AMREX_GPU_MAX_THREADS=${CUDA_MAX_THREADS} NO_LEGACY
       IF ENABLE_CUDA )
 
-   # Fortran macros used by application code only
-   # (they are not present in AMReX source code)
-   if (ENABLE_CUDA AND ENABLE_AMREX_FORTRAN )
-      target_compile_definitions( amrex PUBLIC
-         $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LAUNCH=attributes\(global\);
-         AMREX_DEVICE=attributes\(device\);
-         AMREX_CUDA_FORT_GLOBAL=attributes\(global\);
-         AMREX_CUDA_FORT_DEVICE=attributes\(device\);
-         AMREX_CUDA_FORT_HOST=attributes\(host\)>)
-   # else ()
-   #    target_compile_definitions( amrex PUBLIC
-   #       $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LAUNCH=\"\";
-   #       AMREX_DEVICE=\"\";
-   #       AMREX_CUDA_FORT_GLOBAL=\"\";
-   #       AMREX_CUDA_FORT_DEVICE=\"\";
-   #       AMREX_CUDA_FORT_HOST=\"\">)
-   endif ()
-
    #
    # OpenACC
    #

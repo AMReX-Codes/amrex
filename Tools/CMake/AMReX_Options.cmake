@@ -273,3 +273,10 @@ if (  ( ( TP_PROFILE STREQUAL "CRAYPAT" ) OR
      (ENABLE_BASE_PROFILE OR ENABLE_TINY_PROFILE) )
    message(WARNING "This configuration should only be used to profile BL_PROFILE!")
 endif()
+
+
+#
+# Extra options  =========================================================
+#
+option(ALLOW_DIFFERENT_COMPILER
+    "Allow an application to use a different compiler than the one used to build AMReX" OFF)

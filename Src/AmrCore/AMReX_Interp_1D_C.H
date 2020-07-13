@@ -296,6 +296,16 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
     }
 }
 
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_linear_interp_x (int i, int /*j*/, int /*k*/, int n, Array4<T> const& fine,
+                      Array4<T const> const& crse, IntVect const& ratio) noexcept
+{
+    int ii = amrex::coarsen(i,ratio[0]);
+    Real const w = static_cast<Real>(i-ii*ratio[0]) * (1.0_rt/ratio[0]);
+    fine(i,0,0,n) = (1.0_rt-w) * crse(ii,0,0,n) + w * crse(ii+1,0,0,n);
+}
+
 }
 
 #endif
