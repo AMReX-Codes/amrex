@@ -566,6 +566,77 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
     }
 }
 
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv (Box const& bx,
+         GpuArray<Array4<T>, AMREX_SPACEDIM> crse,
+         GpuArray<Array4<T>, AMREX_SPACEDIM> fine,
+         const int icomp, const int ncomp, IntVect const& ratio) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+
+    for (int n = 0; n < ncomp; ++n) {
+        const int nu = n + icomp;
+        for (int k = lo.k; k <= hi.z; ++k) {
+            const int fk = amrex::refine(k, 2);
+            for (int j = lo.y; j <= hi.y; ++j) {
+                const int fj = amrex::refine(j, 2);
+                AMREX_PRAGMA_SIMD
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    const int fi = amrex::refine(i, 2);
+
+                    // Create references to coarse values.
+                    // North = positive y direction,
+                    // East = positive x direction.
+                    const Real& uW  = crse[0](i,   j,   0, n);
+                    const Real& uNW = crse[0](i,   j+1, 0, n);
+                    const Real& uSW = crse[0](i,   j-1, 0, n);
+
+                    const Real& uE  = crse[0](i+1, j,   0, n);
+                    const Real& uNW = crse[0](i+1, j+1, 0, n);
+                    const Real& uSW = crse[0](i+1, j-1, 0, n);
+
+                    const Real& vS  = crse[1](i,   j,   0, n);
+                    const Real& vSW = crse[1](i-1, j,   0, n);
+                    const Real& vSE = crse[1](i+1  j,   0, n);
+
+                    const Real& vN  = crse[1](i,   j+1, 0, n);
+                    const Real& vNW = crse[1](i-1, j+1, 0, n);
+                    const Real& vNE = crse[1](i+1, j+1, 0, n);
+
+                    // Calc fine faces that fall on coarse faces
+                    fine[0](fi,    fj,0,n) = (8.0_rt*uW + uNW - uSW)/8.0_rt;
+                    fine[0](fi,  fj+2,0,n) = (8.0_rt*uW - uNW + uSW)/8.0_rt;
+                    fine[0](fi+2,  fj,0,n) = (8.0_rt*uE + uNE - uSE)/8.0_rt;
+                    fine[0](fi+2,fj+2,0,n) = (8.0_rt*uE - uNE + uSE)/8.0_rt;
+                    fine[1](fi,    fj,0,n) = (8.0_rt*vS + vSW - vSE)/8.0_rt;
+                    fine[1](fi+2,  fj,0,n) = (8.0_rt*vS - vSW + vSW)/8.0_rt;
+                    fine[1](fi,  fj+2,0,n) = (8.0_rt*vN + vNW - vNE)/8.0_rt;
+                    fine[1](fi+2,fj+2,0,n) = (8.0_rt*vN - vNW + vNE)/8.0_rt;
+
+                    // Calc fine faces on interior coarse faces
+                    fine[0](fi+1,  fj,0,n) = (8.0_rt*(uE+uW) + uSE + uSW - uNE - uNW
+                                                             + vNE + vSW - vNW - vSE)/16.0_rt;
+
+                    fine[0](fi+1,fj+1,0,n) = (8.0_rt*(uE+uW) - uSE - uSW + uNE + uNW
+                                                             + vNE + vSW - vNW - vSE)/16.0_rt;
+
+                    fine[1](fi,  fj+1,0,n) = (8.0_rt*(vN+vS) - uSE + uSW + uNE - uNW
+                                                             - vNE + vSW + vNW - vSE)/16.0_rt;
+
+                    fine[1](fi+1 fj+1,0,n) = (8.0_rt*(vN+vS) - uSE + uSW + uNE - uNW
+                                                             + vNE - vSW - vNW + vSE)/16.0_rt;
+                }
+            }
+        }
+    }
 }
+
+
+}  // namespace amrex
+
+
+
 
 #endif

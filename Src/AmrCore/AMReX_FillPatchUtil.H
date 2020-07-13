@@ -83,6 +83,40 @@ namespace amrex
                         const PreInterpHook& pre_interp = {},
                         const PostInterpHook& post_interp = {});
 
+    template <typename MF, typename BC, typename Interp,
+              typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
+              typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
+    EnableIf_t<IsFabArray<MF>::value>
+    FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Real time,
+                        const Vector<MF*>& cmf, const Vector<Real>& ct,
+                        const Vector<MF*>& fmf, const Vector<Real>& ft,
+                        int scomp, int dcomp, int ncomp,
+                        const Geometry& cgeom, const Geometry& fgeom,
+                        BC& cbc, int cbccomp,
+                        BC& fbc, int fbccomp,
+                        const IntVect& ratio,
+                        Interp* mapper,
+                        const Vector<BCRec>& bcs, int bcscomp,
+                        const PreInterpHook& pre_interp = {},
+                        const PostInterpHook& post_interp = {});
+
+    template <typename MF, typename BC, typename Interp,
+              typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
+              typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
+    EnableIf_t<IsFabArray<MF>::value>
+    FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM>& mf, Real time,
+                        const Vector<MF*>& cmf, const Vector<Real>& ct,
+                        const Vector<MF*>& fmf, const Vector<Real>& ft,
+                        int scomp, int dcomp, int ncomp,
+                        const Geometry& cgeom, const Geometry& fgeom,
+                        BC& cbc, int cbccomp,
+                        BC& fbc, int fbccomp,
+                        const IntVect& ratio,
+                        Interp* mapper,
+                        const Vector<BCRec>& bcs, int bcscomp,
+                        const PreInterpHook& pre_interp = {},
+                        const PostInterpHook& post_interp = {});
+
 #ifdef AMREX_USE_EB
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
     EnableIf_t<IsFabArray<MF>::value>

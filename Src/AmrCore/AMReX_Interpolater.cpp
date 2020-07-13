@@ -826,6 +826,7 @@ FaceDivFree::CoarseBox (const Box& fine,
 {
     Box b = amrex::coarsen(fine,ratio);
 
+/*  NEEDED FOR FACE-DIVERGENCE FREE?
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         if (b.length(i) < 2)
@@ -836,6 +837,7 @@ FaceDivFree::CoarseBox (const Box& fine,
             b.growHi(i,1);
         }
     }
+*/
 
     return b;
 }
@@ -846,6 +848,7 @@ FaceDivFree::CoarseBox (const Box&     fine,
 {
     Box b = amrex::coarsen(fine,ratio);
 
+/*  NEEDED FOR FACE-DIVERGENCE FREE?
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         if (b.length(i) < 2)
@@ -856,6 +859,7 @@ FaceDivFree::CoarseBox (const Box&     fine,
             b.growHi(i,1);
         }
     }
+*/
 
     return b;
 }
@@ -879,9 +883,9 @@ FaceDivFree::interp (const FArrayBox&  crse,
 }
 
 void
-FaceDivFree::interp (Array<const MultiFab*, AMREX_SPACEDIM> crse,
+FaceDivFree::interp (Array<const FArrayBox*, AMREX_SPACEDIM> crse,
                      int               crse_comp,
-                     Array<MultiFab*, AMREX_SPACEDIM> fine,
+                     Array<FArrayBox*, AMREX_SPACEDIM> fine,
                      int               fine_comp,
                      int               ncomp,
                      const Box&        fine_region,
