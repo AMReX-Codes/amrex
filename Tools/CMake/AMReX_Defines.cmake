@@ -97,7 +97,8 @@ function ( set_amrex_defines )
 
       set( FORTLINK "" )
 
-      if ( FortranCInterface_GLOBAL_SUFFIX STREQUAL "" )
+      if ( (FortranCInterface_GLOBAL_SUFFIX STREQUAL "" ) AND NOT
+          (FortranCInterface_GLOBAL_CASE STREQUAL "") )
          set(FORTLINK "${FortranCInterface_GLOBAL_CASE}CASE" )
          message(STATUS "Fortran name mangling scheme: ${FORTLINK} (no append underscore)")
       elseif ( (FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")  AND
