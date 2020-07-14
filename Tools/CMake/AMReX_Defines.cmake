@@ -97,7 +97,8 @@ function ( set_amrex_defines )
 
       set( FORTLINK "" )
 
-      if ( FortranCInterface_GLOBAL_SUFFIX STREQUAL "" )
+      if ( (FortranCInterface_GLOBAL_SUFFIX STREQUAL "" ) AND NOT
+          (FortranCInterface_GLOBAL_CASE STREQUAL "") )
          set(FORTLINK "${FortranCInterface_GLOBAL_CASE}CASE" )
          message(STATUS "Fortran name mangling scheme: ${FORTLINK} (no append underscore)")
       elseif ( (FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")  AND
@@ -105,7 +106,13 @@ function ( set_amrex_defines )
          set(FORTLINK "UNDERSCORE")
          message(STATUS "Fortran name mangling scheme: ${FORTLINK} (lower case, append underscore)")
       else ()
-         message(AUTHOR_WARNING "Fortran to C mangling not compatible with AMReX code")
+         # now we have to guess
+         if (CMAKE_Fortran_COMPILER_ID MATCHES XL) # old IBM prior to XLClang
+             set(FORTLINK "LOWERCASE")
+         else ()
+             set(FORTLINK "UNDERSCORE")
+         endif()
+         message(WARNING "Fortran to C mangling not compatible with AMReX code, assuming '${FORTLINK}'")
       endif ()
 
       add_amrex_define( BL_FORT_USE_${FORTLINK} )  # Only legacy form
