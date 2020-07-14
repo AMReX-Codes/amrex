@@ -6,10 +6,11 @@
 namespace amrex {
 namespace Gpu {
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 
 namespace {
     bool s_in_fuse_region = false;
+    bool s_in_fuse_reduction_region = false;
     // Fusing kernels with elements greater than this are not recommended based tests on v100
     Long s_fuse_size_threshold = 257*257;
     // If the number of kernels is less than this, fusing is not recommended based on tests on v100
@@ -17,6 +18,8 @@ namespace {
 }
 
 std::unique_ptr<Fuser> Fuser::m_instance = nullptr;
+
+#ifdef AMREX_USE_CUDA
 
 Fuser::Fuser ()
 {
@@ -86,12 +89,32 @@ void Fuser::Launch ()
         constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
         int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
 
+        bool is_reduction = s_in_fuse_reduction_region;
+
         amrex::launch(nblocks, nthreads, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept
         {
             int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
             int g_wid = g_tid / Gpu::Device::warp_size;
-            if (g_wid >= ntotwarps) return;
+            if (g_wid >= ntotwarps) {
+                if (is_reduction) {
+                    // for reduction, the assumption is all lambdas have function signature
+                    FuseHelper& helper = d_lambda_helper[0];
+                    char* lambda_object = d_lambda_object + helper.m_offset;
+                    if (helper.m_bx.isEmpty()) {
+                        helper.m_fp.L1D(lambda_object,-1);
+                    } else {
+                        if (helper.m_N == 0) {
+                            helper.m_fp.L3D(lambda_object, INT_MIN, INT_MIN, INT_MIN);
+                        } else {
+                            for (int n = 0; n < helper.m_N; ++n) {
+                                helper.m_fp.L4D(lambda_object, INT_MIN, INT_MIN, INT_MIN, -1);
+                            }
+                        }
+                    }
+                }
+                return;
+            }
 
             int ilambda;
             {
@@ -120,6 +143,8 @@ void Fuser::Launch ()
             if (bx.isEmpty()) {
                 if (icell < helper.m_N) {
                     helper.m_fp.L1D(lambda_object,icell);
+                } else if (is_reduction) {
+                    helper.m_fp.L1D(lambda_object,-1);
                 }
             } else {
                 int ncells = bx.numPts();
@@ -137,6 +162,14 @@ void Fuser::Launch ()
                     } else {
                         for (int n = 0; n < helper.m_N; ++n) {
                             helper.m_fp.L4D(lambda_object,i,j,k,n);
+                        }
+                    }
+                } else if (is_reduction) {
+                    if (helper.m_N == 0) {
+                        helper.m_fp.L3D(lambda_object, INT_MIN, INT_MIN, INT_MIN);
+                    } else {
+                        for (int n = 0; n < helper.m_N; ++n) {
+                            helper.m_fp.L4D(lambda_object, INT_MIN, INT_MIN, INT_MIN, -1);
                         }
                     }
                 }
@@ -181,6 +214,8 @@ Fuser::resize_helper_buf ()
     m_helper_buf = p;
 }
 
+#endif
+
 Fuser&
 Fuser::getInstance ()
 {
@@ -218,8 +253,7 @@ setFuseSizeThreshold (Long new_threshold)
 
 int getFuseNumKernelsThreshold () { return s_fuse_numkernels_threshold; }
 
-int
-setFuseNumKernelsThreshold (int new_threshold)
+int setFuseNumKernelsThreshold (int new_threshold)
 {
     int old = s_fuse_numkernels_threshold;
     s_fuse_numkernels_threshold = new_threshold;
@@ -228,11 +262,19 @@ setFuseNumKernelsThreshold (int new_threshold)
 
 bool inFuseRegion () { return s_in_fuse_region; }
 
-bool
-setFuseRegion (bool flag)
+bool setFuseRegion (bool flag)
 {
     bool old = s_in_fuse_region;
     s_in_fuse_region = flag;
+    return old;
+}
+
+bool inFuseReductionRegion () { return s_in_fuse_reduction_region; }
+
+bool setFuseReductionRegion (bool flag)
+{
+    bool old = s_in_fuse_reduction_region;
+    s_in_fuse_reduction_region = flag;
     return old;
 }
 

@@ -53,6 +53,34 @@
             block \
         } \
     }}}
+#ifdef AMREX_USE_CUDA
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA_RANGE(TN,TI,block) \
+    { auto const& amrex_i_tn = TN; \
+    if (!amrex::isEmpty(amrex_i_tn)) { \
+    if (amrex::Gpu::inLaunchRegion()) \
+    { \
+      const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_tn); \
+      if (amrex::Gpu::inFuseRegion() && amrex_i_ec.numBlocks.x*amrex_i_ec.numThreads.x <= amrex::Gpu::getFuseSizeThreshold()) { \
+        amrex::Gpu::Register(amrex_i_tn, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { \
+            amrex::Box TI(amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))); \
+            block \
+        }); \
+      } else { \
+        AMREX_LAUNCH_KERNEL(amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream(), \
+        [=] AMREX_GPU_DEVICE () noexcept { \
+            for (auto const TI : amrex::Gpu::Range(amrex_i_tn)) { \
+                block \
+            } \
+        }); \
+        AMREX_GPU_ERROR_CHECK(); \
+      } \
+    } \
+    else { \
+        for (auto const TI : amrex::Gpu::Range(amrex_i_tn)) { \
+            block \
+        } \
+    }}}
+#endif
 #endif
 
 // two fused launches
@@ -134,6 +162,51 @@
             block2 \
         } \
     }}}
+#ifdef AMREX_USE_CUDA
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
+    { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; \
+    if (!amrex::isEmpty(amrex_i_tn1) or !amrex::isEmpty(amrex_i_tn2)) { \
+    if (amrex::Gpu::inLaunchRegion()) \
+    { \
+      const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(amrex_i_tn1); \
+      const auto amrex_i_ec2 = amrex::Gpu::ExecutionConfig(amrex_i_tn2); \
+      dim3 amrex_i_nblocks = amrex::max(amrex_i_ec1.numBlocks.x, \
+                                        amrex_i_ec2.numBlocks.x); \
+      amrex_i_nblocks.y = 2; \
+      if (amrex::Gpu::inFuseRegion() && amrex_i_nblocks.x*amrex_i_nblocks.y*amrex_i_ec1.numThreads.x <= amrex::Gpu::getFuseSizeThreshold()) { \
+        amrex::Gpu::Register(amrex_i_tn1, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { \
+            amrex::Box TI1(amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))); \
+            block1 \
+        }); \
+        amrex::Gpu::Register(amrex_i_tn2, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { \
+            amrex::Box TI2(amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))); \
+            block2 \
+        }); \
+      } else { \
+        AMREX_LAUNCH_KERNEL(amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream(), \
+        [=] AMREX_GPU_DEVICE () noexcept { \
+            switch (blockIdx.y) { \
+            case 0: for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1)) { \
+                        block1 \
+                    } \
+                    break; \
+            case 1: for (auto const TI2 : amrex::Gpu::Range(amrex_i_tn2)) { \
+                        block2 \
+                    } \
+            } \
+        }); \
+        AMREX_GPU_ERROR_CHECK(); \
+      } \
+    } \
+    else { \
+        for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1)) { \
+            block1 \
+        } \
+        for (auto const TI2 : amrex::Gpu::Range(amrex_i_tn2)) { \
+            block2 \
+        } \
+    }}}
+#endif
 #endif
 
 // three fused launches
@@ -233,6 +306,64 @@
             block3 \
         } \
     }}}
+#ifdef AMREX_USE_CUDA
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
+    { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; auto const& amrex_i_tn3 = TN3; \
+    if (!amrex::isEmpty(amrex_i_tn1) or !amrex::isEmpty(amrex_i_tn2) or !amrex::isEmpty(amrex_i_tn3)) { \
+    if (amrex::Gpu::inLaunchRegion()) \
+    { \
+      const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(amrex_i_tn1); \
+      const auto amrex_i_ec2 = amrex::Gpu::ExecutionConfig(amrex_i_tn2); \
+      const auto amrex_i_ec3 = amrex::Gpu::ExecutionConfig(amrex_i_tn3); \
+      dim3 amrex_i_nblocks = amrex::max(amrex::max(amrex_i_ec1.numBlocks.x, \
+                                                   amrex_i_ec2.numBlocks.x), \
+                                                   amrex_i_ec3.numBlocks.x); \
+      amrex_i_nblocks.y = 3; \
+      if (amrex::Gpu::inFuseRegion() && amrex_i_nblocks.x*amrex_i_nblocks.y*amrex_i_ec1.numThreads.x <= amrex::Gpu::getFuseSizeThreshold()) { \
+        amrex::Gpu::Register(amrex_i_tn1, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { \
+            amrex::Box TI1(amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))); \
+            block1 \
+        }); \
+        amrex::Gpu::Register(amrex_i_tn2, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { \
+            amrex::Box TI2(amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))); \
+            block2 \
+        }); \
+        amrex::Gpu::Register(amrex_i_tn3, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { \
+            amrex::Box TI3(amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))); \
+            block3 \
+        }); \
+      } else {                                                             \
+        AMREX_LAUNCH_KERNEL(amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream(), \
+        [=] AMREX_GPU_DEVICE () noexcept { \
+            switch (blockIdx.y) { \
+            case 0: for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1)) { \
+                        block1 \
+                    } \
+                    break; \
+            case 1: for (auto const TI2 : amrex::Gpu::Range(amrex_i_tn2)) { \
+                        block2 \
+                    } \
+                    break; \
+            case 2: for (auto const TI3 : amrex::Gpu::Range(amrex_i_tn3)) { \
+                        block3 \
+                    } \
+            } \
+        }); \
+        AMREX_GPU_ERROR_CHECK(); \
+      } \
+    } \
+    else { \
+        for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1)) { \
+            block1 \
+        } \
+        for (auto const TI2 : amrex::Gpu::Range(amrex_i_tn2)) { \
+            block2 \
+        } \
+        for (auto const TI3 : amrex::Gpu::Range(amrex_i_tn3)) { \
+            block3 \
+        } \
+    }}}
+#endif
 #endif
 
 #ifdef AMREX_USE_DPCPP
@@ -452,6 +583,19 @@
     } \
 }
 
+#define AMREX_GPU_HOST_DEVICE_FOR_1D_FUSABLE(n,i,block) \
+{ \
+    auto const& amrex_i_n = n; \
+    using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    if (amrex::Gpu::inLaunchRegion()) { \
+        amrex::ParallelFor(amrex::Gpu::KernelInfo().setFusable(true),amrex_i_n,[=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept block); \
+    } else { \
+        auto amrex_i_lambda = [=] (amrex_i_inttype i) noexcept block; \
+        AMREX_PRAGMA_SIMD \
+        for (amrex_i_inttype i = 0; i < amrex_i_n; ++i) amrex_i_lambda(i); \
+    } \
+}
+
 #define AMREX_GPU_DEVICE_FOR_1D(n,i,block) \
 { \
     using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
@@ -470,6 +614,16 @@
     } \
 }
 
+#define AMREX_GPU_HOST_DEVICE_FOR_3D_FUSABLE(box,i,j,k,block) \
+{ \
+    auto const& amrex_i_box = box; \
+    if (amrex::Gpu::inLaunchRegion()) { \
+        amrex::ParallelFor(amrex::Gpu::KernelInfo().setFusable(true),amrex_i_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept block); \
+    } else { \
+        amrex::LoopConcurrentOnCpu(amrex_i_box,[=] (int i, int j, int k) noexcept block); \
+    } \
+}
+
 #define AMREX_GPU_DEVICE_FOR_3D(box,i,j,k,block) \
 { \
     amrex::ParallelFor(box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept block); \
@@ -483,6 +637,17 @@
     auto const& amrex_i_ncomp = ncomp; \
     if (amrex::Gpu::inLaunchRegion()) { \
         amrex::ParallelFor(amrex_i_box,amrex_i_ncomp,[=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept block); \
+    } else { \
+        amrex::LoopConcurrentOnCpu(amrex_i_box,amrex_i_ncomp,[=] (int i, int j, int k, int n) noexcept block); \
+    } \
+}
+
+#define AMREX_GPU_HOST_DEVICE_FOR_4D_FUSABLE(box,ncomp,i,j,k,n,block) \
+{ \
+    auto const& amrex_i_box = box; \
+    auto const& amrex_i_ncomp = ncomp; \
+    if (amrex::Gpu::inLaunchRegion()) { \
+        amrex::ParallelFor(amrex::Gpu::KernelInfo().setFusable(true),amrex_i_box,amrex_i_ncomp,[=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept block); \
     } else { \
         amrex::LoopConcurrentOnCpu(amrex_i_box,amrex_i_ncomp,[=] (int i, int j, int k, int n) noexcept block); \
     } \

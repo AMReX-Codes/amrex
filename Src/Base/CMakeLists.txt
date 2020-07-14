@@ -175,6 +175,7 @@ target_sources( amrex
    # GPU --------------------------------------------------------------------
    AMReX_Gpu.H
    AMReX_GpuQualifiers.H
+   AMReX_GpuKernelInfo.H
    AMReX_GpuPrint.H
    AMReX_GpuAssert.H
    AMReX_GpuTypes.H

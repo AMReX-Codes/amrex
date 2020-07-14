@@ -13,6 +13,8 @@
 namespace amrex {
 namespace Gpu {
 
+#ifdef AMREX_USE_GPU
+
 #ifdef AMREX_USE_CUDA
 
 typedef void (*Lambda1DLauncher)(char*,int);
@@ -229,23 +231,6 @@ private:
     }
 };
 
-Long getFuseSizeThreshold ();
-Long setFuseSizeThreshold (Long new_threshold);
-int getFuseNumKernelsThreshold ();
-int setFuseNumKernelsThreshold (int new_threshold);
-bool inFuseRegion ();
-bool setFuseRegion (bool flag);
-
-struct FuseSafeGuard
-{
-    explicit FuseSafeGuard (bool flag) noexcept
-        : m_old(setFuseRegion(flag)) {}
-    ~FuseSafeGuard () { setFuseRegion(m_old); }
-private:
-    bool m_old;
-};
-
-
 template <typename F>
 void
 Register (Box const& bx, F&& f)
@@ -272,6 +257,56 @@ LaunchFusedKernels ()
 {
     Fuser::getInstance().Launch();
 }
+
+#else
+
+class Fuser
+{
+public:
+    static Fuser& getInstance ();
+    static void Initialize ();
+    static void Finalize ();
+private:
+    static std::unique_ptr<Fuser> m_instance;
+};
+
+inline void LaunchFusedKernels () {}
+
+#endif
+
+Long getFuseSizeThreshold ();
+Long setFuseSizeThreshold (Long new_threshold);
+int getFuseNumKernelsThreshold ();
+int setFuseNumKernelsThreshold (int new_threshold);
+bool inFuseRegion ();
+bool setFuseRegion (bool flag);
+bool inFuseReductionRegion ();
+bool setFuseReductionRegion (bool flag);
+
+struct FuseSafeGuard
+{
+    explicit FuseSafeGuard (bool flag) noexcept
+        : m_old(setFuseRegion(flag)) {}
+    ~FuseSafeGuard () { setFuseRegion(m_old); }
+private:
+    bool m_old;
+};
+
+struct FuseReductionSafeGuard
+{
+    explicit FuseReductionSafeGuard (bool flag) noexcept
+        : m_old(setFuseReductionRegion(flag)) {}
+    ~FuseReductionSafeGuard () { setFuseReductionRegion(m_old); }
+private:
+    bool m_old;
+};
+
+#else
+
+struct FuseSafeGuard
+{
+    explicit FuseSafeGuard (bool) {}
+};
 
 #endif
 

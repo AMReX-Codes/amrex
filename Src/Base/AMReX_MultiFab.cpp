@@ -43,16 +43,36 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
 
     BL_PROFILE("MultiFab::Dot()");
 
-    Real sm = amrex::ReduceSum(x, y, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& xfab, Array4<Real const> const& yfab) -> Real
-    {
-        Real t = 0.0;
-        AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
+    Real sm = 0.0;
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        sm = amrex::ReduceSum(x, y, nghost,
+        [=] AMREX_GPU_DEVICE (Box const& bx, Array4<Real const> const& xfab, Array4<Real const> const& yfab) -> Real
         {
-            t += xfab(i,j,k,xcomp+n) * yfab(i,j,k,ycomp+n);
+            Real t = 0.0;
+            AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
+            {
+                t += xfab(i,j,k,xcomp+n) * yfab(i,j,k,ycomp+n);
+            });
+            return t;
         });
-        return t;
-    });
+    } else
+#endif
+    {
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:sm)
+#endif
+        for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
+        {
+            Box const& bx = mfi.growntilebox(nghost);
+            Array4<Real const> const& xfab = x.const_array(mfi);
+            Array4<Real const> const& yfab = y.const_array(mfi);
+            AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
+            {
+                sm += xfab(i,j,k,xcomp+n) * yfab(i,j,k,ycomp+n);
+            });
+        }
+    }
 
     if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
 
@@ -198,7 +218,7 @@ MultiFab::Swap (MultiFab& dst, MultiFab& src,
             if (bx.ok()) {
                 auto sfab = src.array(mfi);
                 auto dfab = dst.array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSABLE ( bx, numcomp, i, j, k, n,
                 {
                     const amrex::Real tmp = dfab(i,j,k,n+dstcomp);
                     dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp);
@@ -298,7 +318,7 @@ MultiFab::Saxpy (MultiFab& dst, Real a, const MultiFab& src,
         if (bx.ok()) {
             auto const sfab = src.array(mfi);
             auto       dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSABLE ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,dstcomp+n) += a * sfab(i,j,k,srccomp+n);
             });
@@ -332,7 +352,7 @@ MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
         if (bx.ok()) {
             auto const sfab = src.array(mfi);
             auto       dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSABLE ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp) + a * dfab(i,j,k,n+dstcomp);
             });
@@ -374,7 +394,7 @@ MultiFab::LinComb (MultiFab& dst,
             auto const xfab =   x.array(mfi);
             auto const yfab =   y.array(mfi);
             auto       dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSABLE ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,dstcomp+n) = a*xfab(i,j,k,xcomp+n) + b*yfab(i,j,k,ycomp+n);
             });
@@ -415,7 +435,7 @@ MultiFab::AddProduct (MultiFab& dst,
             auto const s1fab = src1.array(mfi);
             auto const s2fab = src2.array(mfi);
             auto        dfab =  dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSABLE ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,n+dstcomp) += s1fab(i,j,k,n+comp1) * s2fab(i,j,k,n+comp2);
             });

@@ -522,7 +522,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     BL_PROFILE_INITPARAMS();
 #endif
     machine::Initialize();
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     Gpu::Fuser::Initialize();
 #endif
 
