@@ -1,3 +1,6 @@
+#ifndef AMREX_GPU_FUSE_H_
+#define AMREX_GPU_FUSE_H_
+
 #include <AMReX_Arena.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Box.H>
@@ -273,3 +276,5 @@ LaunchFusedKernels ()
 #endif
 
 }}
+
+#endif
