@@ -226,8 +226,10 @@ private:
     }
 };
 
-Long getFuseThreshold ();
-Long setFuseThreshold (Long new_threshold);
+Long getFuseSizeThreshold ();
+Long setFuseSizeThreshold (Long new_threshold);
+int getFuseNumKernelsThreshold ();
+int setFuseNumKernelsThreshold (int new_threshold);
 bool inFuseRegion ();
 bool setFuseRegion (bool flag);
 

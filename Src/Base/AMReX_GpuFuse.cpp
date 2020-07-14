@@ -10,7 +10,10 @@ namespace Gpu {
 
 namespace {
     bool s_in_fuse_region = false;
-    Long s_fuse_threshold = 32*32*32-1;
+    // Fusing kernels with elements greater than this are not recommended based tests on v100
+    Long s_fuse_size_threshold = 257*257;
+    // If the number of kernels is less than this, fusing is not recommended based on tests on v100
+    int s_fuse_numkernels_threshold = 3;
 }
 
 std::unique_ptr<Fuser> Fuser::m_instance = nullptr;
@@ -191,7 +194,8 @@ void
 Fuser::Initialize ()
 {
     ParmParse pp("amrex");
-    pp.query("gpu_fuse_threshold", s_fuse_threshold);
+    pp.query("gpu_fuse_size_threshold", s_fuse_size_threshold);
+    pp.query("gpu_fuse_numkernels_threshold", s_fuse_numkernels_threshold);
 
     amrex::ExecOnFinalize(Fuser::Finalize);
 }
@@ -202,13 +206,23 @@ Fuser::Finalize ()
     m_instance.reset();
 }
 
-Long getFuseThreshold () { return s_fuse_threshold; }
+Long getFuseSizeThreshold () { return s_fuse_size_threshold; }
 
 Long
-setFuseThreshold (Long new_threshold)
+setFuseSizeThreshold (Long new_threshold)
 {
-    Long old = s_fuse_threshold;
-    s_fuse_threshold = new_threshold;
+    Long old = s_fuse_size_threshold;
+    s_fuse_size_threshold = new_threshold;
+    return old;
+}
+
+int getFuseNumKernelsThreshold () { return s_fuse_numkernels_threshold; }
+
+int
+setFuseNumKernelsThreshold (int new_threshold)
+{
+    int old = s_fuse_numkernels_threshold;
+    s_fuse_numkernels_threshold = new_threshold;
     return old;
 }
 
