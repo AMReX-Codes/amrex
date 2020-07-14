@@ -213,16 +213,17 @@ public:
                 }
                 else
                 {
-                    amrex::ParallelFor( np, [=] AMREX_GPU_DEVICE (int i) noexcept
+                    amrex::ParallelForRNG( np,
+                    [=] AMREX_GPU_DEVICE (int i, RandomEngine const& engine) noexcept
                     {
                         ParticleType& p = pstruct[i];
 
-                        p.pos(0) += (2*amrex::Random()-1)*move_dir[0]*dx[0];
+                        p.pos(0) += (2*amrex::Random(engine)-1)*move_dir[0]*dx[0];
 #if AMREX_SPACEDIM > 1
-                        p.pos(1) += (2*amrex::Random()-1)*move_dir[1]*dx[1];
+                        p.pos(1) += (2*amrex::Random(engine)-1)*move_dir[1]*dx[1];
 #endif
 #if AMREX_SPACEDIM > 2
-                        p.pos(2) += (2*amrex::Random()-1)*move_dir[2]*dx[2];
+                        p.pos(2) += (2*amrex::Random(engine)-1)*move_dir[2]*dx[2];
 #endif
                     });
                 }

@@ -1,15 +1,50 @@
 #ifndef AMREX_RAND_H
 #define AMREX_RAND_H
 
+#include <AMReX.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_ParallelDescriptor.H>
-
-// xxxxx DPCPP todo
+#include <AMReX_RandomEngine.H>
+#include <limits>
+#include <cstdint>
 
 namespace amrex
 {
     /**
-    * \brief Generate a psuedo-random double using C++11's mt19937.
+    * \brief Generate a psuedo-random double from uniform distribution
+    *
+    *  Generates one pseudorandom real number (double) from a uniform
+    *  distribution between 0.0 and 1.0 (0.0 included, 1.0 excluded)
+    *
+    */
+    AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE Real Random ();
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real Random (RandomEngine const& random_engine)
+    {
+#if defined(__CUDA_ARCH__)
+#ifdef BL_USE_FLOAT
+        return 1.0f - curand_uniform(random_engine.rand_state);
+#else
+        return 1.0 - curand_uniform_double(random_engine.rand_state);
+#endif
+#elif defined(__HIP_DEVICE_COMPILE__)
+#ifdef BL_USE_FLOAT
+        return 1.0f - hiprand_uniform(random_engine.rand_state);
+#else
+        return 1.0 - hiprand_uniform_double(random_engine.rand_state);
+#endif
+#elif defined (__SYCL_DEVICE_ONLY__)
+        mkl::rng::device::uniform<Real> distr;
+        return mkl::rng::device::generate(distr, *random_engine.engine);
+#else
+        amrex::ignore_unused(random_engine);
+        return Random();
+#endif
+    }
+
+    /**
+    * \brief Generate a psuedo-random double from a normal distribution
     *
     *  Generates one pseudorandom real number (double) from a normal
     *  distribution with mean 'mean' and standard deviation 'stddev'.
@@ -17,14 +52,29 @@ namespace amrex
     */
     AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE Real RandomNormal (Real mean, Real stddev);
 
-    /**
-    * \brief Generate a psuedo-random double using C++11's mt19937.
-    *
-    *  Generates one pseudorandom real number (double) from a uniform
-    *  distribution between 0.0 and 1.0 (0.0 included, 1.0 excluded)
-    *
-    */
-    AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE Real Random ();
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real RandomNormal (Real mean, Real stddev, RandomEngine const& random_engine)
+    {
+#if defined(__CUDA_ARCH__)
+#ifdef BL_USE_FLOAT
+        return stddev * curand_normal(random_engine.rand_state) + mean;
+#else
+        return stddev * curand_normal_double(random_engine.rand_state) + mean;
+#endif
+#elif defined(__HIP_DEVICE_COMPILE__)
+#ifdef BL_USE_FLOAT
+        return stddev * hiprand_normal(random_engine.rand_state) + mean;
+#else
+        return stddev * hiprand_normal_double(random_engine.rand_state) + mean;
+#endif
+#elif defined (__SYCL_DEVICE_ONLY__)
+        mkl::rng::device::gaussian<Real> distr(mean, stddev);
+        return mkl::rng::device::generate(distr, *random_engine.engine);
+#else
+        amrex::ignore_unused(random_engine);
+        return RandomNormal(mean, stddev);
+#endif
+    }
 
     /**
     * \brief Generate a psuedo-random integer from a Poisson distribution
@@ -37,14 +87,20 @@ namespace amrex
     */
     AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE unsigned int RandomPoisson (Real lambda);
 
-
-
-#ifdef AMREX_USE_GPU
-    // Locking mechanism functions for locking and unlocking
-    AMREX_GPU_DEVICE int get_state (int tid);
-    AMREX_GPU_DEVICE void free_state (int tid);
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    unsigned int RandomPoisson (Real lambda, RandomEngine const& random_engine)
+    {
+#if defined(__CUDA_ARCH__)
+        return curand_poisson(random_engine.rand_state, lambda);
+#elif defined(__HIP_DEVICE_COMPILE__)
+        return hiprand_poisson(random_engine.rand_state, lambda);
+#elif defined (__SYCL_DEVICE_ONLY__)
+        return 0; // xxxxx DPCPP todo: Poisson distribution
+#else
+        amrex::ignore_unused(random_engine);
+        return RandomPoisson(lambda);
 #endif
-
+    }
 
     /**
     * \brief Generates one pseudorandom unsigned integer which is
@@ -54,6 +110,38 @@ namespace amrex
     * The GPU version uses CURAND's XORWOW generator.
     */
     AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE unsigned int Random_int (unsigned int n); // [0,n-1]
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    unsigned int Random_int (unsigned int n, RandomEngine const& random_engine)
+    {
+#if AMREX_DEVICE_COMPILE
+#if defined(__SYCL_DEVICE_ONLY__)
+        if (n <= static_cast<unsigned int>(std::numeric_limits<std::int32_t>::max())) {
+            mkl::rng::device::uniform<std::int32_t> distr(0,static_cast<std::int32_t>(n));
+            return mkl::rng::device::generate(distr, *random_engine.engine);
+        } else {
+            return 0; // xxxxx DPCPP todo: unsigned uniform distribution
+        }
+#else
+        int rand;
+        constexpr unsigned int RAND_M = 4294967295; // 2**32-1
+        do {
+            AMREX_HIP_OR_CUDA( rand = hiprand(random_engine.rand_state);,
+                               rand =  curand(random_engine.rand_state) );
+        } while (rand > (RAND_M - RAND_M % n));
+        return rand % n;
+#endif
+#else
+        amrex::ignore_unused(random_engine);
+        return Random_int(n);
+#endif
+    }
+
+#ifdef AMREX_USE_GPU
+    // Locking mechanism functions for locking and unlocking
+    AMREX_GPU_DEVICE int get_state (int tid);
+    AMREX_GPU_DEVICE void free_state (int tid);
+#endif
 
     /**
     * \brief Generates one pseudorandom unsigned long which is
@@ -78,19 +166,7 @@ namespace amrex
     */
     void InitRandom (ULong seed, int nprocs=ParallelDescriptor::NProcs());
 
-    /**
-    * \brief Resize seed array and copy address to global symbol
-    */
-    void ResizeRandomSeed (int N);
     void ResetRandomSeed (ULong seed);
-
-    /**
-    * \brief Set the seeds of the random number generator for each CUDA thread .
-    *  An in-built CUDA library, curand_init is used here.
-    *  The pseusorandom sequence currently implemented is obtained
-    *  from the XORWOW and MRG32k3a generator
-    */
-    void InitRandSeedOnDevice (int N);
 
     /**
     * \brief Save and restore random state.
@@ -117,14 +193,6 @@ namespace amrex
     *   The remainder items are randomly assigned.
     */
     void NItemsPerBin (int totalItems, Vector<int> &binCounts);
-
-    /**
-    * \brief Set the seeds of the random number generator for each CUDA thread .
-    *  An in-built CUDA library, curand_init is used here.
-    *  The pseusorandom sequence currently implemented is obtained
-    *  from the XORWOW and MRG32k3a generator
-    */
-    void InitRandSeedOnDevice (int N);
 
     void DeallocateRandomSeedDevArray ();
 }
