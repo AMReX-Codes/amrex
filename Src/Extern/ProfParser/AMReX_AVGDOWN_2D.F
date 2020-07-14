@@ -196,7 +196,8 @@ c
             do j=lo(2),hi(2)
                do i=lo(1),hi(1)
                   do joff=0,lrat-1
-                     crse(i,j,n) = crse(i,j,n) + vol_inv*fine(lrat*i,lrat*j+joff,n)
+                     crse(i,j,n) = crse(i,j,n) +
+     $                    vol_inv*fine(lrat*i,lrat*j+joff,n)
                   end do
                end do
             end do
@@ -206,7 +207,8 @@ c
             do j=lo(2),hi(2)
                do i=lo(1),hi(1)
                   do ioff=0,lrat-1
-                     crse(i,j,n) = crse(i,j,n) + vol_inv*fine(lrat*i+ioff,lrat*j,n)
+                     crse(i,j,n) = crse(i,j,n) +
+     $                    vol_inv*fine(lrat*i+ioff,lrat*j,n)
                   end do
                end do
             end do

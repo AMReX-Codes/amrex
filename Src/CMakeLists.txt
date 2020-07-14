@@ -81,10 +81,6 @@ endif ()
 
 if (ENABLE_LINEAR_SOLVERS)
    add_subdirectory(LinearSolvers)
-   target_link_libraries(amrex
-      PUBLIC
-      $<BUILD_INTERFACE:Flags_Fortran_REQUIRED>
-      )
 endif ()
 
 if (ENABLE_FORTRAN_INTERFACES)
@@ -100,10 +96,6 @@ endif ()
 #
 if (ENABLE_AMRDATA)
    add_subdirectory(Extern/amrdata)
-   target_link_libraries(amrex
-      PUBLIC
-      $<BUILD_INTERFACE:Flags_Fortran_REQUIRED>
-      )
 endif()
 
 if (ENABLE_PROFPARSER)
