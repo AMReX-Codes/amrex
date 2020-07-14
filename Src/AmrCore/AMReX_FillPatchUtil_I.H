@@ -383,12 +383,12 @@ namespace {
                     for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
                     {
                         Array<FAB*, AMREX_SPACEDIM> sfab, dfab;
+                        int li = mfi.LocalIndex();
+                        int gi = fpc.dst_idxs[li];
 
                         for (int i=0; i<AMREX_SPACEDIM; ++i)
                         {
                             sfab[i] = &(mf_crse_patch[i][mfi]);
-                            int li = mfi.LocalIndex();
-                            int gi = fpc.dst_idxs[li];
                             dfab[i] = &(mf[i][gi]);
                         }
                         const Box& dbx = fpc.dst_boxes[li] & dfab.box();

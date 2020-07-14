@@ -727,9 +727,9 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    virtual void interp (Array<const MultiFab*, AMREX_SPACEDIM> crse,
+    virtual void interp (Array<const FArrayBox*, AMREX_SPACEDIM> crse,
                          int               crse_comp,
-                         Array<MultiFab*, AMREX_SPACEDIM> fine,
+                         Array<FArrayBox*, AMREX_SPACEDIM> fine,
                          int               fine_comp,
                          int               ncomp,
                          const Box&        fine_region,
@@ -739,7 +739,7 @@ public:
                          Vector<BCRec> const& bcr,
                          int               actual_comp,
                          int               actual_state,
-                         RunOn             runon)
+                         RunOn             runon);
 };
 
 

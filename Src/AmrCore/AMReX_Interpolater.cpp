@@ -984,8 +984,8 @@ FaceDivFree::interp (Array<const FArrayBox*, AMREX_SPACEDIM> crse,
     GpuArray<Array4<Real>, AMREX_SPACEDIM> finearr;
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
-        crsearr[i] = crse[i].const_array();
-        finearr[i] = fine[i].array();
+        crsearr[i] = crse[i]->const_array();
+        finearr[i] = fine[i]->array();
     }
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, ccbx, tbx,
