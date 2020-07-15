@@ -58,6 +58,23 @@ function (configure_amrex)
    endif()
 
    #
+   # Special flags for MSV compiler
+   #
+   set(_cxx_msvc   "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>")
+
+   target_compile_options( amrex PRIVATE $<${_cxx_msvc}:/bigobj> )
+
+   if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+      if (CXX_COMPILER_VERSION VERSION_LESS 19.26)
+         target_compile_options( amrex PRIVATE $<${_cxx_msvc}:/experimental:preprocessor>)
+      else ()
+         target_compile_options( amrex PRIVATE $<${_cxx_msvc}:/Zc:preprocessor> )
+      endif ()
+   endif ()
+
+   unset(_cxx_msvc)
+
+   #
    # Setup OpenMP
    #
    if (ENABLE_OMP)
