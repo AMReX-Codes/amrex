@@ -93,6 +93,9 @@ function ( set_amrex_defines )
       # Fortran/C mangling scheme
       #
       include( FortranCInterface )
+      if(NOT FortranCInterface_GLOBAL_FOUND)
+          message(FATAL_ERROR "Failed to find the Fortan C Interface -- check the CMakeError.log")
+      endif()
       include( ${FortranCInterface_BINARY_DIR}/Output.cmake )
 
       set( FORTLINK "" )
