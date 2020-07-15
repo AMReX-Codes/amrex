@@ -1132,9 +1132,11 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     }
 
 #ifdef AMREX_USE_HYPRE
-    hypre_solver.reset();
-    hypre_bndry.reset();
-    hypre_node_solver.reset();
+    if (!preserve_hypre_solver) {
+      hypre_solver.reset();
+      hypre_bndry.reset();
+      hypre_node_solver.reset();
+    }
 #endif
 
 #ifdef AMREX_USE_PETSC
@@ -1829,6 +1831,11 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         {
             hypre_solver = linop.makeHypre(hypre_interface);
             hypre_solver->setVerbose(bottom_verbose);
+            hypre_solver->setHypreOldDefault(hypre_old_default);
+            hypre_solver->setHypreRelaxType(hypre_relax_type);
+            hypre_solver->setHypreRelaxOrder(hypre_relax_order);
+            hypre_solver->setHypreNumSweeps(hypre_num_sweeps);
+            hypre_solver->setHypreStrongThreshold(hypre_strong_threshold);
 
             const BoxArray& ba = linop.m_grids[amrlev].back();
             const DistributionMapping& dm = linop.m_dmap[amrlev].back();
