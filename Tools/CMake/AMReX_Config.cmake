@@ -61,22 +61,6 @@ function (configure_amrex)
    # Setup OpenMP
    #
    if (ENABLE_OMP)
-
-      find_package(OpenMP REQUIRED)
-      target_link_libraries(amrex PUBLIC OpenMP::OpenMP_CXX)
-
-      # Make imported target "global" so that it can be seen
-      # from other directories in the project.
-      # This is especially useful when get_target_properties_flattened()
-      # (see module AMReXTargetHelpers.cmake) is called to recover dependecy tree info
-      # in projects that use amrex directly in the build (via add_subdirectory()).
-      set_target_properties(OpenMP::OpenMP_CXX PROPERTIES IMPORTED_GLOBAL True )
-
-      if (ENABLE_FORTRAN_INTERFACES)
-         target_link_libraries(amrex PUBLIC OpenMP::OpenMP_Fortran )
-         set_target_properties(OpenMP::OpenMP_Fortran PROPERTIES IMPORTED_GLOBAL True )
-      endif ()
-
       # We have to manually pass OpenMP flags to host compiler if CUDA is enabled
       # Since OpenMP imported targets are generated only for the Compiler ID in use, i.e.
       # they do not provide flags for all possible compiler ids, we assume the same compiler use
