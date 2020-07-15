@@ -64,6 +64,7 @@ set(AMReX_CONDUIT_FOUND             @ENABLE_CONDUIT@)
 set(AMReX_SUNDIALS_FOUND            @ENABLE_SUNDIALS@)
 set(AMReX_ASCENT_FOUND              @ENABLE_ASCENT@)
 set(AMReX_HYPRE_FOUND               @ENABLE_HYPRE@)
+set(AMReX_PETSC_FOUND               @ENABLE_PETSC@)
 
 # Compilation options
 set(AMReX_FPE_FOUND                 @ENABLE_FPE@)
@@ -119,6 +120,10 @@ endif ()
 
 if (@ENABLE_HYPRE@)
    find_dependency(HYPRE 2.15 REQUIRED)
+endif ()
+
+if (@ENABLE_PETSC@)
+   find_dependency(PETSc 2.13 REQUIRED)
 endif ()
 
 #
