@@ -13,7 +13,8 @@
 #define SDIM 3
 
       subroutine FORT_CV_AVGDOWN (
-     &     crse,DIMS(crse),nvar,
+     &     crse,DIMS(crse),
+     &     nvar,
      &     fine,DIMS(fine),
      &     lo,hi,ratios)
 c     ----------------------------------------------------------
@@ -31,8 +32,10 @@ c     ----------------------------------------------------------
       integer  lo(SDIM), hi(SDIM)
       integer  nvar
       integer  ratios(SDIM)
-      REAL_T   crse(DIMV(crse),nvar)
-      REAL_T   fine(DIMV(fine),nvar)
+      REAL_T
+     $     crse(DIMV(crse),nvar)
+      REAL_T
+     $     fine(DIMV(fine),nvar)
 
       integer  i, j, k, n, ic, jc, kc, ioff, joff, koff
       integer  lratx,lraty,lratz
@@ -66,7 +69,8 @@ c
                      do ioff = 0, lratx-1
                         do ic = lo(1), hi(1)
                            i = ic*lratx + ioff
-                           crse(ic,jc,kc,n) = crse(ic,jc,kc,n) + fine(i,j,k,n)
+                           crse(ic,jc,kc,n) = crse(ic,jc,kc,n) +
+     $                          fine(i,j,k,n)
                         end do
                      end do
                   end do
@@ -87,7 +91,8 @@ c
       end
       subroutine FORT_CV_AVGDOWN_STAG (
      &     nodal_dir,
-     &     crse,DIMS(crse),nvar,
+     &     crse,DIMS(crse),
+     &     nvar,
      &     fine,DIMS(fine),
      &     lo,hi,ratios)
 c     ----------------------------------------------------------
@@ -106,8 +111,10 @@ c     ----------------------------------------------------------
       integer  lo(SDIM), hi(SDIM)
       integer  nvar
       integer  ratios(SDIM)
-      REAL_T   crse(DIMV(crse),nvar)
-      REAL_T   fine(DIMV(fine),nvar)
+      REAL_T
+     $     crse(DIMV(crse),nvar)
+      REAL_T
+     $     fine(DIMV(fine),nvar)
 
       integer  i, j, k, n, ic, jc, kc, ioff, joff, koff
       integer  lrat
@@ -147,8 +154,8 @@ c
                   do i=lo(1),hi(1)
                      do koff=0,lrat-1
                         do joff=0,lrat-1
-                           crse(i,j,k,n) = crse(i,j,k,n) + 
-     &                          vol_inv*fine(lrat*i,lrat*j+joff,lrat*k+koff,n)
+                           crse(i,j,k,n) = crse(i,j,k,n) + vol_inv*
+     $                          fine(lrat*i,lrat*j+joff,lrat*k+koff,n)
                         end do
                      end do
                   end do
@@ -162,8 +169,8 @@ c
                   do i=lo(1),hi(1)
                      do koff=0,lrat-1
                         do ioff=0,lrat-1
-                           crse(i,j,k,n) = crse(i,j,k,n) + 
-     &                          vol_inv*fine(lrat*i+ioff,lrat*j,lrat*k+koff,n)
+                           crse(i,j,k,n) = crse(i,j,k,n) + vol_inv
+     $                          *fine(lrat*i+ioff,lrat*j,lrat*k+koff,n)
                         end do
                      end do
                   end do
@@ -177,8 +184,8 @@ c
                   do i=lo(1),hi(1)
                      do joff=0,lrat-1
                         do ioff=0,lrat-1
-                           crse(i,j,k,n) = crse(i,j,k,n) + 
-     &                          vol_inv*fine(lrat*i+ioff,lrat*j+joff,lrat*k,n)
+                           crse(i,j,k,n) = crse(i,j,k,n) + vol_inv
+     $                          *fine(lrat*i+ioff,lrat*j+joff,lrat*k,n)
                         end do
                      end do
                   end do
@@ -193,7 +200,8 @@ c
 
 
       subroutine FORT_AVGDOWN (
-     &     crse,DIMS(crse),nvar,
+     &     crse,DIMS(crse),
+     &      nvar,
      &     fine,DIMS(fine),
      &     cv,DIMS(cv),
      &     fv,DIMS(fv),
@@ -217,9 +225,11 @@ c     ----------------------------------------------------------
       integer  lo(SDIM), hi(SDIM)
       integer  nvar
       integer  ratios(SDIM)
-      REAL_T   crse(DIMV(crse),nvar)
+      REAL_T
+     $     crse(DIMV(crse),nvar)
       REAL_T     cv(DIMV(cv))
-      REAL_T   fine(DIMV(fine),nvar)
+      REAL_T
+     $     fine(DIMV(fine),nvar)
       REAL_T     fv(DIMV(fv))
 
       integer  i, j, k, n, ic, jc, kc, ioff, joff, koff
