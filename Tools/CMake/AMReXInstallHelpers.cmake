@@ -81,13 +81,12 @@ function (install_amrex)
    include(CMakePackageConfigHelpers)
 
    #
-   # Set some variables
+   # Setup for install and export of build tree
    #
-   # AMREX_CMAKE_FILES_DIR
-   set(CMAKE_FILES_DIR   lib/cmake/AMReX)   # Relative path to top level installation
-   set(MODULE_PATH       Tools/CMake)
+   set(CMAKE_FILES_DIR   lib/cmake/AMReX)   # Relative path to top level installation/build-tree
+   set(MODULE_PATH       Tools/CMake)       # Relative path to top level installation/build-tree
 
-   set(MODULE_PATH Tools/CMake)  # Relative path
+   # Write Config file -- this is designed to work for both install and build trees
    configure_package_config_file(${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
       ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXConfig.cmake
       INSTALL_DESTINATION ${CMAKE_FILES_DIR}
@@ -102,7 +101,9 @@ function (install_amrex)
       ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXConfigVersion.cmake
       DESTINATION ${CMAKE_FILES_DIR} )
 
-   # Setup for target amrex installation
+   #
+   # Export install-tree
+   #
    install(
       TARGETS       ${_targets}
       EXPORT        AMReXTargets
@@ -112,14 +113,9 @@ function (install_amrex)
       PUBLIC_HEADER DESTINATION include
       )
 
-   # Setup for export AMReXtargets installation
    install( EXPORT AMReXTargets
       NAMESPACE AMReX::
       DESTINATION lib/cmake/AMReX )
-
-   # Setup to export build-tree
-   export( EXPORT AMReXTargets NAMESPACE AMReX::
-      FILE ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXTargets.cmake )
 
    # Install fortran modules if Fortran is enabled
    get_property(_lang GLOBAL PROPERTY ENABLED_LANGUAGES)
@@ -132,22 +128,34 @@ function (install_amrex)
    generate_amrex_config_header()
 
    # Install Tools directory
-   install(DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/CMake
-      ${PROJECT_SOURCE_DIR}/Tools/C_scripts
-      ${PROJECT_SOURCE_DIR}/Tools/typechecker
-      DESTINATION Tools
-      USE_SOURCE_PERMISSIONS
-      )
-
-   # Copy Tools directory to build tree
-   file(COPY
+   install(
+      DIRECTORY
       ${PROJECT_SOURCE_DIR}/Tools/CMake
       ${PROJECT_SOURCE_DIR}/Tools/C_scripts
       ${PROJECT_SOURCE_DIR}/Tools/typechecker
       DESTINATION
-      ${PROJECT_BINARY_DIR}/Tools)
+      Tools
+      USE_SOURCE_PERMISSIONS
+      )
 
    # Modify installed headers by calling external script: add #include<AMReX_Config.H>
    install(SCRIPT "${AMREX_CMAKE_MODULES_PATH}/modify_installed_headers.cmake" )
+
+   #
+   # Export build-tree
+   #
+   export( EXPORT AMReXTargets NAMESPACE AMReX::
+      FILE ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXTargets.cmake )
+
+   # Copy Tools directory to build tree
+   file(
+      COPY
+      ${PROJECT_SOURCE_DIR}/Tools/CMake
+      ${PROJECT_SOURCE_DIR}/Tools/C_scripts
+      ${PROJECT_SOURCE_DIR}/Tools/typechecker
+      DESTINATION
+      ${PROJECT_BINARY_DIR}/Tools
+      )
+
 
 endfunction ()
