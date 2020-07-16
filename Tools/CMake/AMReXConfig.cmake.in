@@ -23,14 +23,14 @@ set(AMReX_BUILD_TYPE  @CMAKE_BUILD_TYPE@)
 set(AMReX_GIT_VERSION \"@AMREX_GIT_VERSION@\")
 
 #
-# Add AMReX modules to app code CMake
-#
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "@CMAKE_INSTALL_PREFIX@/Tools/CMake/")
-
-#
 # AMReX CMake modules PATH
 #
-set(AMReX_MODULES_PATH @CMAKE_INSTALL_PREFIX@/Tools/CMake)
+set_and_check(AMReX_MODULE_PATH @PACKAGE_MODULE_PATH@)
+
+#
+# Add AMReX modules to app code CMake
+#
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${AMReX_MODULE_PATH})
 
 #
 # Configuration options

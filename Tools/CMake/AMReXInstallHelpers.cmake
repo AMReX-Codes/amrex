@@ -67,7 +67,7 @@ endfunction ()
 #
 function (install_amrex)
 
-   # Check if the given arguments are vvalid targets
+   # Check if the given arguments are valid targets
    set(_targets amrex)
    foreach (_arg IN LISTS ARGV)
       if (TARGET ${_arg})
@@ -80,18 +80,27 @@ function (install_amrex)
    # Write and install configure file
    include(CMakePackageConfigHelpers)
 
+   #
+   # Set some variables
+   #
+   # AMREX_CMAKE_FILES_DIR
+   set(CMAKE_FILES_DIR   lib/cmake/AMReX)   # Relative path to top level installation
+   set(MODULE_PATH       Tools/CMake)
+
+   set(MODULE_PATH Tools/CMake)  # Relative path
    configure_package_config_file(${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
-      ${PROJECT_BINARY_DIR}/export/AMReXConfig.cmake
-      INSTALL_DESTINATION bin/cmake/AMReX )
+      ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXConfig.cmake
+      INSTALL_DESTINATION ${CMAKE_FILES_DIR}
+      PATH_VARS MODULE_PATH)
 
    write_basic_package_version_file(
-       ${PROJECT_BINARY_DIR}/export/AMReXConfigVersion.cmake
+       ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXConfigVersion.cmake
        COMPATIBILITY AnyNewerVersion )
 
    install( FILES
-      ${PROJECT_BINARY_DIR}/export/AMReXConfig.cmake
-      ${PROJECT_BINARY_DIR}/export/AMReXConfigVersion.cmake
-      DESTINATION lib/cmake/AMReX )
+      ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXConfig.cmake
+      ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXConfigVersion.cmake
+      DESTINATION ${CMAKE_FILES_DIR} )
 
    # Setup for target amrex installation
    install(
@@ -107,6 +116,10 @@ function (install_amrex)
    install( EXPORT AMReXTargets
       NAMESPACE AMReX::
       DESTINATION lib/cmake/AMReX )
+
+   # Setup to export build-tree
+   export( EXPORT AMReXTargets NAMESPACE AMReX::
+      FILE ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXTargets.cmake )
 
    # Install fortran modules if Fortran is enabled
    get_property(_lang GLOBAL PROPERTY ENABLED_LANGUAGES)
@@ -125,6 +138,14 @@ function (install_amrex)
       DESTINATION Tools
       USE_SOURCE_PERMISSIONS
       )
+
+   # Copy Tools directory to build tree
+   file(COPY
+      ${PROJECT_SOURCE_DIR}/Tools/CMake
+      ${PROJECT_SOURCE_DIR}/Tools/C_scripts
+      ${PROJECT_SOURCE_DIR}/Tools/typechecker
+      DESTINATION
+      ${PROJECT_BINARY_DIR}/Tools)
 
    # Modify installed headers by calling external script: add #include<AMReX_Config.H>
    install(SCRIPT "${AMREX_CMAKE_MODULES_PATH}/modify_installed_headers.cmake" )
