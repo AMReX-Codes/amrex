@@ -130,7 +130,8 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
                  const Vector<FabFactory<FArrayBox> const*>& a_factory,
-                 bool eb_limit_coarsening)
+                 bool eb_limit_coarsening,
+                 const int & a_num_amr_levels)
 {
     BL_PROFILE("MLLinOp::define()");
 
@@ -161,7 +162,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
         }
     }
 #endif
-    defineGrids(a_geom, a_grids, a_dmap, a_factory);
+    defineGrids(a_geom, a_grids, a_dmap, a_factory, a_num_amr_levels);
     defineAuxData();
     defineBC();
 }
@@ -170,11 +171,13 @@ void
 MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap,
-                      const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                      const Vector<FabFactory<FArrayBox> const*>& a_factory,
+                      const int &a_num_amr_levels)
 {
     BL_PROFILE("MLLinOp::defineGrids()");
+    AMREX_ASSERT(a_num_amr_levels < a_geom.size());
 
-    m_num_amr_levels = a_geom.size();
+    m_num_amr_levels = a_num_amr_levels > 0 ? a_num_amr_levels : a_geom.size();
 
     m_amr_ref_ratio.resize(m_num_amr_levels);
     m_num_mg_levels.resize(m_num_amr_levels);
