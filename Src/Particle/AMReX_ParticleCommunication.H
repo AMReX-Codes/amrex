@@ -391,9 +391,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
 {
     BL_PROFILE("amrex::communicateParticlesStart");
 
-    Long psize = pc.superParticleSize();
-
 #ifdef AMREX_USE_MPI
+    Long psize = pc.superParticleSize();
     const int NProcs = ParallelContext::NProcsSub();
     const int MyProc = ParallelContext::MyProcSub();
 
@@ -520,12 +519,12 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
     {
         auto p_comm_real = pc.communicate_real_comp.dataPtr();
         auto p_comm_int  = pc.communicate_int_comp.dataPtr();
-	auto p_rcv_buffer = rcv_buffer.dataPtr();
+        auto p_rcv_buffer = rcv_buffer.dataPtr();
 
         std::vector<int> sizes;
         std::vector<PTile*> tiles;
-	for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
-	{
+        for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
+          {
             int copy_size = plan.m_rcv_box_counts[i];
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
@@ -540,8 +539,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
         Gpu::Device::synchronize();
         int uindex = 0;
         int procindex = 0, rproc = plan.m_rcv_box_pids[0];
-	for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
-	{
+        for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
+          {
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
             int tid = 0;
@@ -562,14 +561,13 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
             Long psize = pc.superParticleSize();
             auto p_pad_adjust = plan.m_rcv_pad_correction_d.dataPtr();
 
-            AMREX_FOR_1D ( size, ip,
-	    {
+            AMREX_FOR_1D ( size, ip, {
                 Long src_offset = psize*(offset + ip) + p_pad_adjust[procindex];
                 int dst_index = dst_offset + ip;
                 ptd.unpackParticleData(p_rcv_buffer, src_offset, dst_index,
                                        p_comm_real, p_comm_int);
-            });
-	}
+              });
+          }
     }
 #endif // MPI
 }
