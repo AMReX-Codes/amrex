@@ -33,11 +33,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "@CMAKE_INSTALL_PREFIX@/Tools/CMake/"
 set(AMReX_MODULES_PATH @CMAKE_INSTALL_PREFIX@/Tools/CMake)
 
 #
-# Path to amrex typechecker command
-#
-set(AMReX_TYPECHECKER "@CMAKE_INSTALL_PREFIX@/Tools/typechecker/typechecker.py")
-
-#
 # Configuration options
 # Each option is treated like a "component" so that find_package can be easily
 # used to check weather the option is enabled

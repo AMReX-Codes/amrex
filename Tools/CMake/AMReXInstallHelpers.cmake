@@ -121,6 +121,7 @@ function (install_amrex)
    # Install Tools directory
    install(DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/CMake
       ${PROJECT_SOURCE_DIR}/Tools/C_scripts
+      ${PROJECT_SOURCE_DIR}/Tools/typechecker
       DESTINATION Tools
       USE_SOURCE_PERMISSIONS
       )
