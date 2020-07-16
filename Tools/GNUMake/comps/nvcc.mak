@@ -134,6 +134,16 @@ ifeq ($(nvcc_forward_unknowns),1)
   NVCC_FLAGS += --forward-unknown-to-host-compiler
 endif
 
+ifeq ($(shell expr $(nvcc_major_version) \>= 11),1)
+ifeq ($(GPU_ERROR_CAPTURE_THIS),TRUE)
+  NVCC_FLAGS += --Werror ext-lambda-captures-this
+else
+ifeq ($(GPU_WARN_CAPTURE_THIS),TRUE)
+  NVCC_FLAGS += --Wext-lambda-captures-this
+endif
+endif
+endif
+
 CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
 CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
 
