@@ -312,8 +312,8 @@ namespace {
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
     EnableIf_t<IsFabArray<MF>::value>
     FillPatchTwoLevels_doit (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Real time,
-			     const Vector<MF*>& cmf, const Vector<Real>& ct,
-			     const Vector<MF*>& fmf, const Vector<Real>& ft,
+			     const Vector<Array<MF*, AMREX_SPACEDIM>>& cmf, const Vector<Real>& ct,
+			     const Vector<Array<MF*, AMREX_SPACEDIM>>& fmf, const Vector<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
 			     const Geometry& cgeom, const Geometry& fgeom,
 			     BC& cbc, int cbccomp,
@@ -334,7 +334,7 @@ namespace {
         using FAB = typename MF::FABType::value_type;
 
         // Test all of them?
-	if (nghost.max() > 0 || mf[0].getBDKey() != fmf[0]->getBDKey())
+	if (nghost.max() > 0 || mf[0].getBDKey() != fmf[0][0]->getBDKey())
 	{
 	    const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
@@ -351,10 +351,10 @@ namespace {
 		}
 	    }
 
-            MF mf_cc_dummy( amrex::convert(fmf[0].boxArray(),IndexType(0)),
+            MF mf_cc_dummy( amrex::convert(mf[0][0].boxArray(),IndexType(0)),
                             mf[0].DistributionMapping(), ncomp, 0, MFInfo().SetAlloc(false) );
-            MF fmf_cc_dummy( amrex::convert(fmf[0].boxArray(),IndexType(0)),
-                             fmf[0].DistributionMapping(), ncomp, 0, MFInfo().SetAlloc(false) );
+            MF fmf_cc_dummy( amrex::convert(fmf[0][0].boxArray(),IndexType(0)),
+                             fmf[0][0].DistributionMapping(), ncomp, 0, MFInfo().SetAlloc(false) );
 
 	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(fmf_cc_dummy, mf_cc_dummy, fdomain_g,
                                                                       nghost,
@@ -369,7 +369,7 @@ namespace {
                 {
                     mf_crse_patch[i] = make_mf_crse_patch<MF>(fpc, ncomp, mf[i].boxArray().ixType());
                     mf_set_domain_bndry (mf_crse_patch, cgeom);
-                    FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc, cbccomp);
+                    FillPatchSingleLevel(mf_crse_patch, time, cmf[i], ct, scomp, 0, ncomp, cgeom, cbc, cbccomp);
                 }
 
 		int idummy1=0, idummy2=0;
@@ -417,7 +417,7 @@ namespace {
 
         for (int i=0; i<AMREX_SPACEDIM; ++i)
         {
-	    FillPatchSingleLevel(mf, nghost, time, fmf, ft, scomp, dcomp, ncomp,
+	    FillPatchSingleLevel(mf, nghost, time, fmf[i], ft, scomp, dcomp, ncomp,
                                  fgeom, fbc, fbccomp);
         }
     }
