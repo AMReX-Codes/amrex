@@ -66,9 +66,9 @@ function (configure_amrex)
 
    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
       if (CXX_COMPILER_VERSION VERSION_LESS 19.26)
-         target_compile_options( amrex PRIVATE $<${_cxx_msvc}:/experimental:preprocessor>)
+         target_compile_options( amrex PUBLIC $<${_cxx_msvc}:/experimental:preprocessor>)
       else ()
-         target_compile_options( amrex PRIVATE $<${_cxx_msvc}:/Zc:preprocessor> )
+         target_compile_options( amrex PUBLIC $<${_cxx_msvc}:/Zc:preprocessor> )
       endif ()
    endif ()
 
