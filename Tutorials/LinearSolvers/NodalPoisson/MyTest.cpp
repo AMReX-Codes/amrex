@@ -18,7 +18,14 @@ MyTest::solve ()
 {
     if (composite_solve)
     {
-        MLNodeLaplacian linop(geom, grids, dmap);
+
+	LPInfo info;
+    	info.setAgglomeration(agglomeration);
+    	info.setConsolidation(consolidation);
+    	info.setSemicoarsening(semicoarsening);
+    	info.setMaxSemicoarseningLevel(max_semicoarsening_level);
+
+        MLNodeLaplacian linop(geom, grids, dmap, info);
 
         linop.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
                                         LinOpBCType::Dirichlet,
@@ -139,6 +146,12 @@ MyTest::readParameters ()
     pp.query("reltol", reltol);
 
     pp.query("gpu_regtest", gpu_regtest);
+
+    pp.query("agglomeration", agglomeration);
+    pp.query("consolidation", consolidation);
+    pp.query("semicoarsening", semicoarsening);
+    pp.query("max_semicoarsening_level", max_semicoarsening_level);
+
 }
 
 void
@@ -154,10 +167,10 @@ MyTest::initData ()
     exact_solution.resize(nlevels);
     sigma.resize(nlevels);
 
-    RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
+    RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(64.,64.,1.)});
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
     Geometry::Setup(&rb, 0, is_periodic.data());
-    Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
+    Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(64*n_cell-1,64*n_cell-1,n_cell-1)});
     Box domain = domain0;
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {

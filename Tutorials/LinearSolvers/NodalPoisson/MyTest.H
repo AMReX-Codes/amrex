@@ -37,6 +37,13 @@ private:
 
     int gpu_regtest = 0;
 
+
+    bool agglomeration = true;
+    bool consolidation = true;
+    bool semicoarsening = false;
+    int max_semicoarsening_level = 0;
+
+
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;
     amrex::Vector<amrex::DistributionMapping> dmap;
