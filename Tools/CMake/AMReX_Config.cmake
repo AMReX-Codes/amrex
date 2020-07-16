@@ -112,17 +112,12 @@ function (configure_amrex)
          get_target_property( _amrex_flags_2 Flags_CXX INTERFACE_COMPILE_OPTIONS)
       endif()
 
-      get_target_property( _amrex_flags_3 Flags_CXX_REQUIRED INTERFACE_COMPILE_OPTIONS)
-
       set(_amrex_flags)
       if (_amrex_flags_1)
          list(APPEND _amrex_flags ${_amrex_flags_1})
       endif ()
       if (_amrex_flags_2)
          list(APPEND _amrex_flags ${_amrex_flags_2})
-      endif ()
-      if (_amrex_flags_3)
-         list(APPEND _amrex_flags ${_amrex_flags_3})
       endif ()
 
       evaluate_genex(_amrex_flags _amrex_cxx_flags
