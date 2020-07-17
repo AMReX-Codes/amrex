@@ -292,9 +292,10 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
             Elixir cellflagtmp_eli = cellflagtmp.elixir();
             Array4<EBCellFlag> const& cfgtmp = cellflagtmp.array();
 
+            const Box& domain = amrex::enclosedCells(geom.Domain());
             build_cells(vbx, cfg, ftx, fty, ftz, apx, apy, apz,
                         fcx, fcy, fcz, xm2, ym2, zm2, vfr, ctr,
-                        bar, bct, bnm, cfgtmp, small_volfrac);
+                        bar, bct, bnm, cfgtmp, small_volfrac, domain);
 
 #elif (AMREX_SPACEDIM == 2)
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
