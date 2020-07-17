@@ -609,7 +609,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp,
-                  Real small_volfrac)
+                  Real small_volfrac, const Box& domain)
 {
     const Box& bxg1 = amrex::grow(bx,1);
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
