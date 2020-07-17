@@ -34,82 +34,34 @@ TagBox::TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp)
 {}
 
 void
-TagBox::coarsen (const IntVect& ratio) noexcept
+TagBox::coarsen (const IntVect& ratio, const Box& cbox) noexcept
 {
+    // xxxxx TODO: gpu
+
     BL_ASSERT(nComp() == 1);
+    Array4<char const> const& farr = this->const_array();
 
-    TagType*   fdat     = dataPtr();
-    IntVect    lov      = domain.smallEnd();
-    IntVect    hiv      = domain.bigEnd();
-    IntVect    d_length = domain.size();
-    const int* flo      = lov.getVect();
-    const int* fhi      = hiv.getVect();
-    const int* flen     = d_length.getVect();
+    TagBox cfab(cbox, 1, The_Cpu_Arena());
+    Array4<char> const& carr = cfab.array();
 
-    const Box& cbox = amrex::coarsen(domain,ratio);
+    const auto flo = amrex::lbound(domain);
+    const auto fhi = amrex::ubound(domain);
+    Dim3 r{1,1,1};
+    AMREX_D_TERM(r.x = ratio[0];, r.y = ratio[1];, r.z = ratio[2]);
 
-    this->nvar = 1;
+    for (int k = flo.z; k <= fhi.z; ++k) {
+        int kc = amrex::coarsen(k,r.z);
+        for (int j = flo.y; j <= fhi.y; ++j) {
+            int jc = amrex::coarsen(j,r.y);
+            for (int i = flo.x; i <= fhi.x; ++i) {
+                int ic = amrex::coarsen(i,r.x);
+                carr(ic,jc,kc) = carr(ic,jc,kc) || farr(i,j,k);
+            }
+        }
+    }
+
+    std::memcpy(this->dataPtr(), cfab.dataPtr(), sizeof(TagType)*cbox.numPts());
     this->domain = cbox;
-
-    const int* clo      = cbox.loVect();
-    IntVect    cbox_len = cbox.size();
-    const int* clen     = cbox_len.getVect();
-
-    Box b1(amrex::refine(cbox,ratio));
-    const int* lo       = b1.loVect();
-    int        longlen  = b1.longside();
-
-    Long numpts = domain.numPts();
-    Vector<TagType> cfab(numpts);
-    TagType* cdat = cfab.dataPtr();
-
-    Vector<TagType> t(longlen,TagBox::CLEAR);
-
-    int klo = 0, khi = 0, jlo = 0, jhi = 0, ilo, ihi;
-    AMREX_D_TERM(ilo=flo[0]; ihi=fhi[0]; ,
-                 jlo=flo[1]; jhi=fhi[1]; ,
-                 klo=flo[2]; khi=fhi[2];)
-
-#define IXPROJ(i,r) (((i)+(r)*std::abs(i))/(r) - std::abs(i))
-#define IOFF(j,k,lo,len) AMREX_D_TERM(0, +(j-lo[1])*len[0], +(k-lo[2])*len[0]*len[1])
-   
-   int ratiox = 1, ratioy = 1, ratioz = 1;
-   AMREX_D_TERM(ratiox = ratio[0];,
-                ratioy = ratio[1];,
-                ratioz = ratio[2];)
-
-   for (int k = klo; k <= khi; k++)
-   {
-       const int kc = IXPROJ(k,ratioz);
-       amrex::ignore_unused(kc);
-       for (int j = jlo; j <= jhi; j++)
-       {
-           const int     jc = IXPROJ(j,ratioy);
-           TagType*       c = cdat + IOFF(jc,kc,clo,clen);
-           const TagType* f = fdat + IOFF(j,k,flo,flen);
-           //
-           // Copy fine grid row of values into tmp array.
-           //
-           for (int i = ilo; i <= ihi; i++)
-               t[i-lo[0]] = f[i-ilo];
-
-           for (int off = 0; off < ratiox; off++)
-           {
-               for (int ic = 0; ic < clen[0]; ic++)
-               {
-                   const int i = ic*ratiox + off;
-                   c[ic] = std::max(c[ic],t[i]);
-               }
-           }
-       }
-   }
-
-#undef IXPROJ
-#undef IOFF
-
-   for (int i = 0; i < numpts; ++i) {
-       fdat[i] = cdat[i];
-   }
 }
 
 void 
@@ -160,53 +112,6 @@ TagBox::buffer (const IntVect& nbuff, const IntVect& nwid) noexcept
                             }
                         }
                     }
-                }
-            }
-        }
-    }
-#undef OFF
-}
-
-void 
-TagBox::merge (const TagBox& src) noexcept
-{
-    //
-    // Compute intersections.
-    //
-    const Box& bx = domain & src.domain;
-
-    if (bx.ok())
-    {
-        const int*     dlo        = domain.loVect();
-        IntVect        d_length   = domain.size();
-        const int*     dleng      = d_length.getVect();
-        const int*     slo        = src.domain.loVect();
-        IntVect        src_length = src.domain.size();
-        const int*     sleng      = src_length.getVect();
-        const int*     lo         = bx.loVect();
-        const int*     hi         = bx.hiVect();
-        const TagType* ds0        = src.dataPtr();
-        TagType*       dd0        = dataPtr();
-
-        int klo = 0, khi = 0, jlo = 0, jhi = 0, ilo, ihi;
-        AMREX_D_TERM(ilo=lo[0]; ihi=hi[0]; ,
-               jlo=lo[1]; jhi=hi[1]; ,
-               klo=lo[2]; khi=hi[2];)
-
-#define OFF(i,j,k,lo,len) AMREX_D_TERM(i-lo[0], +(j-lo[1])*len[0] , +(k-lo[2])*len[0]*len[1])
-      
-        for (int k = klo; k <= khi; k++)
-        {
-            for (int j = jlo; j <= jhi; j++)
-            {
-                for (int i = ilo; i <= ihi; i++)
-                {
-                    const TagType* ds = ds0 + OFF(i,j,k,slo,sleng);
-                    if (*ds != TagBox::CLEAR)
-                    {
-                        TagType* dd = dd0 + OFF(i,j,k,dlo,dleng);
-                        *dd = TagBox::SET;
-                    }            
                 }
             }
         }
@@ -448,12 +353,6 @@ TagBoxArray::TagBoxArray (const BoxArray& ba,
     if (SharedMemory()) setVal(TagBox::CLEAR);
 }
 
-IntVect
-TagBoxArray::borderSize () const noexcept
-{
-    return n_grow;
-}
-
 void 
 TagBoxArray::buffer (const IntVect& nbuf)
 {
@@ -472,29 +371,17 @@ TagBoxArray::buffer (const IntVect& nbuf)
 }
 
 void
-TagBoxArray::mapPeriodic (const Geometry& geom)
+TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
 {
-    if (!geom.isAnyPeriodic()) return;
-
-    BL_PROFILE("TagBoxArray::mapPeriodic()");
-
-    // This function is called after coarsening.
-    // So we can assume that n_grow is 0.
-    BL_ASSERT(n_grow[0] == 0);
-
-    TagBoxArray tmp(boxArray(),DistributionMap()); // note that tmp is filled w/ CLEAR.
-
-    tmp.copy(*this, geom.periodicity(), FabArrayBase::ADD);
+    BL_PROFILE("TagBoxArray::mapPRD");
 
     Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-    {
-        get(mfi).merge(tmp[mfi]);
-    }
+    TagBoxArray tmp(boxArray(),DistributionMap(),0); // note that tmp is filled w/ CLEAR.
+
+    tmp.ParallelAdd(*this, 0, 0, 1, nGrowVect(), IntVect{0}, geom.periodicity());
+
+    std::swap(*this, tmp);
 }
 
 Long
@@ -522,7 +409,7 @@ TagBoxArray::collate (Vector<IntVect>& TheGlobalCollateSpace) const
 {
     BL_PROFILE("TagBoxArray::collate()");
 
-    // Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
+    Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
 
     Long count = 0;
 
@@ -547,43 +434,39 @@ TagBoxArray::collate (Vector<IntVect>& TheGlobalCollateSpace) const
         count += get(fai).collate(TheLocalCollateSpace,count);
     }
 
-    if (count > 0)
-    {
-        amrex::RemoveDuplicates(TheLocalCollateSpace);
-        count = TheLocalCollateSpace.size();
-    }
     //
     // The total number of tags system wide that must be collated.
-    // This is really just an estimate of the upper bound due to duplicates.
-    // While we've removed duplicates per MPI process there's still more systemwide.
     //
     Long numtags = count;
-
     ParallelDescriptor::ReduceLongSum(numtags);
 
     if (numtags == 0) {
         TheGlobalCollateSpace.clear();
         return;
+    } else if (numtags > static_cast<Long>(std::numeric_limits<int>::max())) {
+        // xxxxx todo
+        amrex::Abort("TagBoxArray::collate: Too many tags. Using a larger blocking factor might help. Please file an issue on github");
     }
 
-    //
-    // This holds all tags after they've been gather'd and unique'ified.
-    //
-    // Each CPU needs an identical copy since they all must go through grid_places() which isn't parallelized.
-
-    TheGlobalCollateSpace.resize(numtags);
-
 #ifdef BL_USE_MPI
+    //
+    // On I/O proc. this holds all tags after they've been gather'd.
+    // On other procs. non-mempty signals size is not zero.
+    //
+    if (ParallelDescriptor::IOProcessor()) {
+        TheGlobalCollateSpace.resize(numtags);
+    } else {
+        TheGlobalCollateSpace.resize(1);
+    }
+
     //
     // Tell root CPU how many tags each CPU will be sending.
     //
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
-    count *= AMREX_SPACEDIM;  // Convert from count of tags to count of integers to expect.
-    const std::vector<Long>& countvec = ParallelDescriptor::Gather(count, IOProcNumber);
-    
-    std::vector<Long> offset(countvec.size(),0L);
-    if (ParallelDescriptor::IOProcessor())
-    {
+    const std::vector<int>& countvec = ParallelDescriptor::Gather(static_cast<int>(count),
+                                                                  IOProcNumber);
+    std::vector<int> offset(countvec.size(),0);
+    if (ParallelDescriptor::IOProcessor()) {
         for (int i = 1, N = offset.size(); i < N; i++) {
 	    offset[i] = offset[i-1] + countvec[i-1];
 	}
@@ -591,30 +474,12 @@ TagBoxArray::collate (Vector<IntVect>& TheGlobalCollateSpace) const
     //
     // Gather all the tags to IOProcNumber into TheGlobalCollateSpace.
     //
-    BL_ASSERT(sizeof(IntVect) == AMREX_SPACEDIM * sizeof(int));
-    const int* psend = (count > 0) ? TheLocalCollateSpace[0].getVect() : 0;
-    int* precv = TheGlobalCollateSpace[0].getVect();
-    ParallelDescriptor::Gatherv(psend, count,
-                                precv, countvec, offset, IOProcNumber);
-
-    if (ParallelDescriptor::IOProcessor())
-    {
-        amrex::RemoveDuplicates(TheGlobalCollateSpace);
-        numtags = TheGlobalCollateSpace.size();
-    }
-
-    //
-    // Now broadcast them back to the other processors.
-    //
-    ParallelDescriptor::Bcast(&numtags, 1, IOProcNumber);
-    ParallelDescriptor::Bcast(TheGlobalCollateSpace[0].getVect(), numtags*AMREX_SPACEDIM, IOProcNumber);
-    TheGlobalCollateSpace.resize(numtags);
+    const IntVect* psend = (count > 0) ? TheLocalCollateSpace.data() : nullptr;
+    IntVect* precv = TheGlobalCollateSpace.data();
+    ParallelDescriptor::Gatherv(psend, count, precv, countvec, offset, IOProcNumber);
 
 #else
-    //
-    // Copy TheLocalCollateSpace to TheGlobalCollateSpace.
-    //
-    TheGlobalCollateSpace = TheLocalCollateSpace;
+    TheGlobalCollateSpace = std::move(TheLocalCollateSpace);
 #endif
 }
 
@@ -666,18 +531,22 @@ TagBoxArray::coarsen (const IntVect & ratio)
 
     Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
 
+    IntVect new_n_grow;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        new_n_grow[idim] = (n_grow[idim]+ratio[idim]-1)/ratio[idim];
+    }
+
 #if defined(_OPENMP)
 #pragma omp parallel if (teamsize == 1)
 #endif
     for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
     {
-        this->fabPtr(mfi)->coarsen(ratio);
+        Box const& cbox = amrex::grow(amrex::coarsen(mfi.validbox(),ratio),new_n_grow);
+        this->fabPtr(mfi)->coarsen(ratio,cbox);
     }
 
-    boxarray.growcoarsen(n_grow,ratio);
-    updateBDKey();  // because we just modify boxarray in-place.
-
-    n_grow = IntVect::TheZeroVector();
+    boxarray.coarsen(ratio);
+    n_grow = new_n_grow;
 }
 
 }

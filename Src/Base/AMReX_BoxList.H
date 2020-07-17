@@ -210,6 +210,8 @@ public:
 	std::swap(btype, rhs.btype);
     }
 
+    void Bcast ();
+
 private:
     //! Core simplify routine.
     int simplify_doit (bool best);
