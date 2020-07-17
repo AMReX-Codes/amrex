@@ -681,34 +681,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IncrementWith
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-Real
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::sumParticleMass (int rho_index, int lev, bool local) const
-{
-  BL_PROFILE("ParticleContainer::sumParticleMass(lev)");
-  AMREX_ASSERT(NStructReal >= 1);
-  AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
-
-  Real msum = 0;
-
-  const auto& pmap = m_particles[lev];
-  for (const auto& kv : pmap) {
-      const auto& pbox = kv.second.GetArrayOfStructs();
-      for (int k = 0; k < pbox.numParticles(); ++k) {
-	  const ParticleType& p = pbox[k];
-	  if (p.id() > 0) {
-	      msum += p.rdata(rho_index);
-	  }
-      }
-  }
-
-  if (!local) {
-      ParallelAllReduce::Sum(msum, ParallelContext::CommunicatorSub());
-  }
-
-  return msum;
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RemoveParticlesAtLevel (int level)
 {
