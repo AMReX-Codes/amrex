@@ -682,10 +682,10 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         //
         // Map tagged points through periodic boundaries, if any.
         //
-        tags.mapPeriodic(Geometry(pc_domain[levc],
-                                  Geom(levc).ProbDomain(),
-                                  Geom(levc).CoordInt(),
-                                  Geom(levc).isPeriodic()));
+        tags.mapPeriodicRemoveDuplicates(Geometry(pc_domain[levc],
+                                                  Geom(levc).ProbDomain(),
+                                                  Geom(levc).CoordInt(),
+                                                  Geom(levc).isPeriodic()));
         //
         // Remove cells outside proper nesting domain for this level.
         //
@@ -976,6 +976,22 @@ AmrMesh::checkInput ()
                  amrex::Print() << "blocking_factor is " << blocking_factor[i][idim] << std::endl;
                  amrex::Error("max_grid_size not divisible by blocking_factor");
               }
+            }
+        }
+    }
+
+    // Make TagBoxArray has no overlapped valid cells after coarsening by block_factor/ref_ratio
+    for (int i = 0; i < max_level; ++i) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            int bf_lev = std::max(1,blocking_factor[i+1][idim]/ref_ratio[i][idim]);
+            int min_grid_size = std::min(blocking_factor[i][idim],max_grid_size[i][idim]);
+            if (min_grid_size % bf_lev != 0) {
+                amrex::Print() << "On level " << i << " in direction " << idim
+                               << " max_grid_size is " << max_grid_size[i][idim]
+                               << " blocking factor is " << blocking_factor[i][idim] << "\n"
+                               << "On level " << i+1 << " in direction " << idim
+                               << " blocking_factor is " << blocking_factor[i+1][idim] << std::endl;
+                amrex::Error("Coarse level blocking factor not a multiple of fine level blocking factor divided by ref ratio");
             }
         }
     }
