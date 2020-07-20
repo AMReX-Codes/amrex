@@ -108,7 +108,6 @@ public:
 #endif
     }
 
-    void setPreserveHypreSolver (bool l) noexcept {preserve_hypre_solver = l;}
     void setHypreOldDefault (bool l) noexcept {hypre_old_default = l;}
     void setHypreRelaxType (int n) noexcept {hypre_relax_type = n;}
     void setHypreRelaxOrder (int n) noexcept {hypre_relax_order = n;}
@@ -222,7 +221,6 @@ private:
     std::unique_ptr<MLMGBndry> hypre_bndry;
     std::unique_ptr<HypreNodeLap> hypre_node_solver;
 
-    bool preserve_hypre_solver = false;
     bool hypre_old_default = true; // Falgout coarsening with modified classical interpolation
     int hypre_relax_type = 6;  // G-S/Jacobi hybrid relaxation
     int hypre_relax_order = 1; // uses C/F relaxation

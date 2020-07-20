@@ -1129,20 +1129,18 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         linop_prepared = true;
     } else if (linop.needsUpdate()) {
         linop.update();
-    }
 
 #ifdef AMREX_USE_HYPRE
-    if (!preserve_hypre_solver) {
-      hypre_solver.reset();
-      hypre_bndry.reset();
-      hypre_node_solver.reset();
-    }
+        hypre_solver.reset();
+        hypre_bndry.reset();
+        hypre_node_solver.reset();
 #endif
 
 #ifdef AMREX_USE_PETSC
-    petsc_solver.reset(); 
-    petsc_bndry.reset(); 
+        petsc_solver.reset(); 
+        petsc_bndry.reset(); 
 #endif
+    }
 
     sol.resize(namrlevs);
     sol_raii.resize(namrlevs);
