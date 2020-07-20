@@ -219,38 +219,12 @@ bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::PeriodicShift (ParticleType& p) const
 {
-    AMREX_ASSERT(m_gdb != 0);
+    const auto& geom = Geom(0);
+    const auto plo = geom.ProbLoArray();
+    const auto phi = geom.ProbHiArray();
+    const auto is_per = geom.isPeriodicArray();
 
-    const Geometry& geom    = Geom(0);
-    const Box&      dmn     = geom.Domain();
-    const IntVect&  iv      = Index(p, 0);
-    bool            shifted = false;
-
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
-    {
-        if (!geom.isPeriodic(i)) continue;
-
-        if (iv[i] > dmn.bigEnd(i))
-        {
-            while (p.pos(i) >= (typename ParticleType::RealType) geom.ProbHi(i)) p.pos(i) -= (typename ParticleType::RealType) geom.ProbLength(i);
-            if (p.pos(i) < (typename ParticleType::RealType) geom.ProbLo(i)) p.pos(i) = (typename ParticleType::RealType) geom.ProbLo(i); // clamp to avoid precision issues;
-	            shifted = true;
-        }
-        else if (iv[i] < dmn.smallEnd(i))
-        {
-            while (p.pos(i) <  (typename ParticleType::RealType) geom.ProbLo(i)) p.pos(i) += (typename ParticleType::RealType) geom.ProbLength(i);
-
-            // clamp to avoid precision issues
-            if ( p.pos(i) == (typename ParticleType::RealType) geom.ProbHi(i)) p.pos(i) = (typename ParticleType::RealType) geom.ProbLo(i);
-            if ((p.pos(i) > (typename ParticleType::RealType) geom.ProbHi(i)))
-                p.pos(i) = (typename ParticleType::RealType) geom.ProbHi(i) - std::numeric_limits<typename ParticleType::RealType>::epsilon();
-
-            shifted = true;
-	    }
-        AMREX_ASSERT( (p.pos(i) >= (typename ParticleType::RealType) geom.ProbLo(i) ) and ( p.pos(i) < (typename ParticleType::RealType) geom.ProbHi(i) ));
-    }
-
-    return shifted;
+    return enforcePeriodic(p, plo, phi, is_per);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -678,34 +652,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IncrementWith
   }
 
   return num_particles_in_domain;
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-Real
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::sumParticleMass (int rho_index, int lev, bool local) const
-{
-  BL_PROFILE("ParticleContainer::sumParticleMass(lev)");
-  AMREX_ASSERT(NStructReal >= 1);
-  AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
-
-  Real msum = 0;
-
-  const auto& pmap = m_particles[lev];
-  for (const auto& kv : pmap) {
-      const auto& pbox = kv.second.GetArrayOfStructs();
-      for (int k = 0; k < pbox.numParticles(); ++k) {
-	  const ParticleType& p = pbox[k];
-	  if (p.id() > 0) {
-	      msum += p.rdata(rho_index);
-	  }
-      }
-  }
-
-  if (!local) {
-      ParallelAllReduce::Sum(msum, ParallelContext::CommunicatorSub());
-  }
-
-  return msum;
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
