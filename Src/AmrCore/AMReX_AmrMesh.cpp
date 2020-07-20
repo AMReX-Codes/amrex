@@ -37,10 +37,6 @@ AmrMesh::AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info)
     : AmrInfo(amr_info)
 {
     int nlev = max_level + 1;
-    ref_ratio.resize      (nlev, amr_info.ref_ratio.back());
-    blocking_factor.resize(nlev, amr_info.blocking_factor.back());
-    max_grid_size.resize  (nlev, amr_info.max_grid_size.back());
-    n_error_buf.resize    (nlev, amr_info.n_error_buf.back());
 
     dmap.resize(nlev);
     grids.resize(nlev);
@@ -598,7 +594,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             bl_tagged.simplify();
             bl_tagged.coarsen(ref_ratio[levf]);
             //
-            // This grows the boxes by n_error_buf[levf][idir] if they touch the edge 
+            // This grows the boxes by n_error_buf[levf][idir] if they touch the edge
             // of the domain in preparation for them being shrunk by n_error_buf[levf][idir] later.
             // We want the net effect to be that grids are NOT shrunk away
             // from the edges of the domain.
@@ -971,7 +967,7 @@ AmrMesh::checkInput ()
            if (blocking_factor[i][idim] <= max_grid_size[i][idim])
               if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
               {
-                 amrex::Print() << "max_grid_size in direction " << idim 
+                 amrex::Print() << "max_grid_size in direction " << idim
                                 << " is " << max_grid_size[i][idim] << std::endl;
                  amrex::Print() << "blocking_factor is " << blocking_factor[i][idim] << std::endl;
                  amrex::Error("max_grid_size not divisible by blocking_factor");
