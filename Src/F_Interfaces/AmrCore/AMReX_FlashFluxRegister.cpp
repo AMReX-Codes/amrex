@@ -1,8 +1,5 @@
 #include <AMReX_FlashFluxRegister.H>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+#include <AMReX_OpenMP.H>
 
 namespace amrex {
 
@@ -171,11 +168,7 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         }
     }
 
-#ifdef _OPNEMP
-    int nthreads = omp_get_max_threads;
-#else
-    int nthreads = 1;
-#endif
+    int nthreads = OpenMP::get_max_threads();
     m_h_ifd.resize(nthreads);
     m_d_ifd.resize(nthreads);
     for (int i = 0; i < nthreads; ++i) {
@@ -296,13 +289,8 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
 void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& fine_flux,
                                FArrayBox const& fine_area, const int* isFluxDensity, Real sf)
 {
-#ifdef _OPENMP
-    auto& h_ifd = m_h_ifd[omp_get_thread_num()];
-    auto& d_ifd = m_d_ifd[omp_get_thread_num()];
-#else
-    auto& h_ifd = m_h_ifd[0];
-    auto& d_ifd = m_d_ifd[0];
-#endif
+    auto& h_ifd = m_h_ifd[OpenMP::get_thread_num()];
+    auto& d_ifd = m_d_ifd[OpenMP::get_thread_num()];
 
     AMREX_ASSERT(dir < AMREX_SPACEDIM);
     auto found = m_fine_map.find(fine_global_index);
@@ -509,13 +497,8 @@ void FlashFluxRegister::load (int crse_global_index, int dir, FArrayBox& crse_fl
                               FArrayBox const& cflux, FArrayBox const& area_fab,
                               const int* isFluxDensity, Real sf_f, Real sf_c) const
 {
-#ifdef _OPENMP
-    auto& h_ifd = m_h_ifd[omp_get_thread_num()];
-    auto& d_ifd = m_d_ifd[omp_get_thread_num()];
-#else
-    auto& h_ifd = m_h_ifd[0];
-    auto& d_ifd = m_d_ifd[0];
-#endif
+    auto& h_ifd = m_h_ifd[OpenMP::get_thread_num()];
+    auto& d_ifd = m_d_ifd[OpenMP::get_thread_num()];
 
     AMREX_ASSERT(dir < AMREX_SPACEDIM);
     auto found = m_crse_map.find(crse_global_index);

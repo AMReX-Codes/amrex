@@ -106,9 +106,9 @@ InitParticles(const IntVect& a_num_particles_per_cell,
             }
         });
 
-        Gpu::inclusive_scan(counts.begin(), counts.end(), offsets.begin());
+        Gpu::exclusive_scan(counts.begin(), counts.end(), offsets.begin());
 
-        int num_to_add = offsets[tile_box.numPts()-1];
+        int num_to_add = offsets[tile_box.numPts()-1] + counts[tile_box.numPts()-1];
 
         auto& particles = GetParticles(lev);
         auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
@@ -191,4 +191,6 @@ InitParticles(const IntVect& a_num_particles_per_cell,
             }
         });
     }
+
+    AMREX_ASSERT(OK());
 }

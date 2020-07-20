@@ -488,10 +488,10 @@ struct ParticleTile
 
     ParticleTileDataType getParticleTileData ()
     {
-        for (int i = 0; i < m_runtime_r_ptrs.size(); ++i) {
+        for (std::size_t i = 0; i < m_runtime_r_ptrs.size(); ++i) {
             m_runtime_r_ptrs[i] = m_soa_tile.GetRealData(NArrayReal + i).dataPtr();
         }
-        for (int i = 0; i < m_runtime_i_ptrs.size(); ++i)
+        for (std::size_t i = 0; i < m_runtime_i_ptrs.size(); ++i)
             m_runtime_i_ptrs[i] = m_soa_tile.GetIntData(NArrayInt + i).dataPtr();
 
         ParticleTileDataType ptd;

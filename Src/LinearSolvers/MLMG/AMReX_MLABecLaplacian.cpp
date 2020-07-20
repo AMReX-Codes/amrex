@@ -123,6 +123,8 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
         }
     }
     int max_overset_mask_coarsening_level = m_overset_mask[amrlev].size()-1;
+    ParallelAllReduce::Min(max_overset_mask_coarsening_level, ParallelContext::CommunicatorSub());
+    m_overset_mask[amrlev].resize(max_overset_mask_coarsening_level+1);
 
     LPInfo info = a_info;
     info.max_coarsening_level = std::min(a_info.max_coarsening_level,
@@ -244,13 +246,15 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
     {
+        IntVect ratio = (amrlev > 0) ? IntVect(mg_coarsen_ratio) : mg_coarsen_ratio_vec[mglev-1];
+
         if (m_a_scalar == 0.0)
         {
             a[mglev].setVal(0.0);
         }
         else
         {
-            amrex::average_down(a[mglev-1], a[mglev], 0, 1, mg_coarsen_ratio);
+            amrex::average_down(a[mglev-1], a[mglev], 0, 1, ratio);
         }
         
         Vector<const MultiFab*> fine {AMREX_D_DECL(&(b[mglev-1][0]),
@@ -259,7 +263,7 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
         Vector<MultiFab*> crse {AMREX_D_DECL(&(b[mglev][0]),
                                              &(b[mglev][1]),
                                              &(b[mglev][2]))};
-        IntVect ratio {mg_coarsen_ratio};
+
         amrex::average_down_faces(fine, crse, ratio, 0);
     }
 
@@ -355,7 +359,8 @@ MLABecLaplacian::prepareForSolve ()
     {  // No Dirichlet
         for (int alev = 0; alev < m_num_amr_levels; ++alev)
         {
-            if (m_domain_covered[alev])
+            // For now this assumes that overset regions are treated as Dirichlet bc's
+            if (m_domain_covered[alev] && !m_overset_mask[alev][0]) 
             {
                 if (m_a_scalar == 0.0)
                 {
@@ -461,6 +466,11 @@ void
 MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const
 {
     BL_PROFILE("MLABecLaplacian::Fsmooth()");
+
+    bool regular_coarsening = true;
+    if (amrlev == 0 and mglev > 0) {
+        regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
+    }
 
     const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
     AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
@@ -569,7 +579,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                              AMREX_D_DECL(dp[1],dp[3],dp[5]),
                              osm, vbx, redblack, nc);
             });
-        } else {
+        } else if (regular_coarsening) {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
             {
                 abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
@@ -580,6 +590,20 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                           AMREX_D_DECL(dp[0],dp[2],dp[4]),
                           AMREX_D_DECL(dp[1],dp[3],dp[5]),
                           vbx, redblack, nc);
+            });
+        } else {
+            Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
+            // line solve does not with with GPU
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            {
+                abec_gsrb_with_line_solve(thread_box, solnfab, rhsfab, alpha, afab,
+                                          AMREX_D_DECL(dhx, dhy, dhz),
+                                          AMREX_D_DECL(bxfab, byfab, bzfab),
+                                          AMREX_D_DECL(m0,m2,m4),
+                                          AMREX_D_DECL(m1,m3,m5),
+                                          AMREX_D_DECL(dp[0],dp[2],dp[4]),
+                                          AMREX_D_DECL(dp[1],dp[3],dp[5]),
+                                          vbx, redblack, nc);
             });
         }
 #else
@@ -596,7 +620,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                              AMREX_D_DECL(f1fab,f3fab,f5fab),
                              osm, vbx, redblack, nc);
             });
-        } else {
+        } else if (regular_coarsening) {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
             {
                 abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
@@ -607,6 +631,20 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                           AMREX_D_DECL(f0fab,f2fab,f4fab),
                           AMREX_D_DECL(f1fab,f3fab,f5fab),
                           vbx, redblack, nc);
+            });
+        } else {
+            Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
+            // line solve does not with with GPU
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            {
+                abec_gsrb_with_line_solve(thread_box, solnfab, rhsfab, alpha, afab,
+                                          AMREX_D_DECL(dhx, dhy, dhz),
+                                          AMREX_D_DECL(bxfab, byfab, bzfab),
+                                          AMREX_D_DECL(m0,m2,m4),
+                                          AMREX_D_DECL(m1,m3,m5),
+                                          AMREX_D_DECL(f0fab,f2fab,f4fab),
+                                          AMREX_D_DECL(f1fab,f3fab,f5fab),
+                                          vbx, redblack, nc);
             });
         }
 #endif
@@ -719,7 +757,8 @@ MLABecLaplacian::update ()
     {  // No Dirichlet
         for (int alev = 0; alev < m_num_amr_levels; ++alev)
         {
-            if (m_domain_covered[alev])
+            // For now this assumes that overset regions are treated as Dirichlet bc's
+            if (m_domain_covered[alev] && !m_overset_mask[alev][0]) 
             {
                 if (m_a_scalar == 0.0)
                 {

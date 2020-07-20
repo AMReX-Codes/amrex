@@ -61,22 +61,6 @@ function (configure_amrex)
    # Setup OpenMP
    #
    if (ENABLE_OMP)
-
-      find_package(OpenMP REQUIRED)
-      target_link_libraries(amrex PUBLIC OpenMP::OpenMP_CXX)
-
-      # Make imported target "global" so that it can be seen
-      # from other directories in the project.
-      # This is especially useful when get_target_properties_flattened()
-      # (see module AMReXTargetHelpers.cmake) is called to recover dependecy tree info
-      # in projects that use amrex directly in the build (via add_subdirectory()).
-      set_target_properties(OpenMP::OpenMP_CXX PROPERTIES IMPORTED_GLOBAL True )
-
-      if (ENABLE_FORTRAN_INTERFACES OR ENABLE_HYPRE)
-         target_link_libraries(amrex PUBLIC OpenMP::OpenMP_Fortran )
-         set_target_properties(OpenMP::OpenMP_Fortran PROPERTIES IMPORTED_GLOBAL True )
-      endif ()
-
       # We have to manually pass OpenMP flags to host compiler if CUDA is enabled
       # Since OpenMP imported targets are generated only for the Compiler ID in use, i.e.
       # they do not provide flags for all possible compiler ids, we assume the same compiler use
@@ -157,6 +141,19 @@ function (configure_amrex)
       endif()
    endif()
 
+   #
+   # Setup HDF5 -- for now we do not create an imported target
+   #
+   if (ENABLE_HDF5)
+      set(HDF5_PREFER_PARALLEL TRUE)
+      find_package(HDF5 1.10.4 REQUIRED COMPONENTS CXX)
+      if (NOT HDF5_IS_PARALLEL)
+         message(FATAL_ERROR "\nHDF5 library does not support parallel I/O")
+      endif ()
+      target_include_directories(amrex PUBLIC ${HDF5_CXX_INCLUDE_DIRS})
+      target_compile_definitions(amrex PUBLIC ${HDF5_CXX_DEFINES})
+      target_link_libraries(amrex PUBLIC ${HDF5_CXX_LIBRARIES})
+   endif ()
 
    #
    # Setup third-party profilers

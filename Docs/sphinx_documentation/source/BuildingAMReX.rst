@@ -423,9 +423,29 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | CUDA_ARCH                    |  CUDA target architecture                       | Auto        | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_BACKTRACE               |  Host function symbol names (e.g. cuda-memcheck)| Auto        | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_COMPILATION_TIMER       |  CSV table with time for each compilation phase | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_DEBUG                   |  Device debug information (optimizations: off)  | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_ERROR_CAPTURE_THIS      |  Error if a CUDA lambda captures a class' this  | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_KEEP_FILES              |  Keep intermediately files (folder: nvcc_tmp)   | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_LTO                     |  Enable CUDA link-time-optimization             | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | CUDA_MAX_THREADS             |  Max number of CUDA threads per block           | 256         | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | CUDA_MAXREGCOUNT             |  Limits the number of CUDA registers available  | 255         | User-defined    |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_PTX_VERBOSE             |  Verbose code generation statistics in ptxas    | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_SHOW_CODELINES          |  Source information in PTX (optimizations: on)  | Auto        | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_SHOW_LINENUMBERS        |  Line-number information (optimizations: on)    | Auto        | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_WARN_CAPTURE_THIS       |  Warn if a CUDA lambda captures a class' this   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_CUDA_FASTMATH         |  Enable CUDA fastmath library                   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -453,8 +473,6 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_PROFPARSER            |  Build with profile parser support              | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_BACKTRACE             |  Build with backtrace support                   | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_FPE                   |  Build with Floating Point Exceptions checks    | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_ASSERTIONS            |  Build with assertions turned on                | NO          | YES, NO         |
@@ -469,16 +487,20 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_HYPRE                 |  Enable HYPRE interfaces                        | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_HDF5                  |  Enable HDF5-based I/O                          | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_PLOTFILE_TOOLS        |  Build and install plotfile postprocessing tools| NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_TUTORIALS             |  Build tutorials                                | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ALLOW_DIFFERENT_COMPILER     |  Allow an app to use a different compiler       | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
 .. raw:: latex
 
    \end{center}
 
-The option ``CMAKE_BUILD_TYPE=Debug`` implies ``ENABLE_ASSERTION=YES``. In order to turn off
-assertions in debug mode, ``ENABLE_ASSERTION=NO`` must be set explicitly while
+The option ``CMAKE_BUILD_TYPE=Debug`` implies ``ENABLE_ASSERTIONS=YES``. In order to turn off
+assertions in debug mode, ``ENABLE_ASSERTIONS=NO`` must be set explicitly while
 invoking CMake.
 
 
@@ -625,8 +647,6 @@ A list of AMReX component names and related configure options are shown in the t
    | ENABLE_MEM_PROFILE           | MEMP            |
    +------------------------------+-----------------+
    | ENABLE_PROFPARSER            | PROFPARSER      |
-   +------------------------------+-----------------+
-   | ENABLE_BACKTRACE             | BACKTRACE       |
    +------------------------------+-----------------+
    | ENABLE_FPE                   | FPE             |
    +------------------------------+-----------------+
