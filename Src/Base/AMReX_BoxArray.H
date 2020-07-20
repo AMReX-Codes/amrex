@@ -516,6 +516,7 @@ using BndryBATransformer = BATransformer;
 */
 
 class MFIter;
+class AmrMesh;
 
 class BoxArray
 {
@@ -551,6 +552,8 @@ public:
     explicit BoxArray (BoxList&& bl) noexcept;
 
     BoxArray (const BoxArray& rhs, const BATransformer& trans);
+
+    BoxArray (BoxList&& bl, IntVect const& max_grid_size);
     
     /**
     * \brief Initialize the BoxArray from a single box.
@@ -796,9 +799,14 @@ public:
     //! Make ourselves unique.
     void uniqify ();
 
+    friend class AmrMesh;
+
 private:
     //!  Update BoxArray index type according the box type, and then convert boxes to cell-centered.
     void type_update ();
+
+    BoxList const& simplified_list () const; // For regular AMR grids only
+    BoxArray simplified () const;
 
     BARef::HashType& getHashMap () const;
 
@@ -808,6 +816,7 @@ private:
     BATransformer m_bat;
     //! The data -- a reference-counted pointer to a Ref.
     std::shared_ptr<BARef> m_ref;
+    mutable std::shared_ptr<BoxList> m_simplified_list;
 };
 
 //! Write a BoxArray to an ostream in ASCII format.

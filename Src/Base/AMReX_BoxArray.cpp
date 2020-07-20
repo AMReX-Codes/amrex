@@ -278,7 +278,8 @@ BoxArray::BoxArray ()
 BoxArray::BoxArray (const Box& bx)
     :
     m_bat(bx.ixType()),
-    m_ref(std::make_shared<BARef>(amrex::enclosedCells(bx)))
+    m_ref(std::make_shared<BARef>(amrex::enclosedCells(bx))),
+    m_simplified_list(std::make_shared<BoxList>(bx))
 {}
 
 BoxArray::BoxArray (const BoxList& bl)
@@ -325,8 +326,22 @@ BoxArray::BoxArray (const BoxArray& rhs, const BATransformer& trans)
 BoxArray::BoxArray (const BoxArray& rhs)
     :
     m_bat(rhs.m_bat),
-    m_ref(rhs.m_ref)
+    m_ref(rhs.m_ref),
+    m_simplified_list(rhs.m_simplified_list)
 {}
+
+BoxArray::BoxArray (BoxList&& bl, IntVect const& max_grid_size)
+    :
+    m_bat(),
+    m_ref(std::make_shared<BARef>()),
+    m_simplified_list(std::make_shared<BoxList>(std::move(bl)))
+{
+    BoxList tmpbl = *m_simplified_list;
+    tmpbl.maxSize(max_grid_size);
+    m_bat = BATransformer(tmpbl.ixType());
+    m_ref->define(std::move(tmpbl));
+    type_update();
+}
 
 void
 BoxArray::define (const Box& bx)
@@ -334,6 +349,7 @@ BoxArray::define (const Box& bx)
     clear();
     m_bat = BATransformer(bx.ixType());
     m_ref->define(amrex::enclosedCells(bx));
+    m_simplified_list = std::make_shared<BoxList>(bx);
 }
 
 void
@@ -359,6 +375,7 @@ BoxArray::clear ()
 {
     m_bat = BATransformer();
     m_ref.reset(new BARef());
+    m_simplified_list.reset();
 }
 
 void
@@ -542,7 +559,11 @@ BoxArray::maxSize (const IntVect& block_size)
     blst.maxSize(block_size);
     const int N = blst.size();
     if (size() != N) { // If size doesn't change, do nothing.
+        BoxList bak = (m_simplified_list) ? *m_simplified_list : BoxList();
         define(std::move(blst));
+        if (bak.isNotEmpty()) {
+            m_simplified_list = std::make_shared<BoxList>(std::move(bak));
+        }
     }
     return *this;
 }
@@ -1547,6 +1568,24 @@ BoxArray::uniqify ()
         }
         m_bat.set_coarsen_ratio(IntVect::TheUnitVector());
     }
+    m_simplified_list.reset();
+}
+
+BoxList const&
+BoxArray::simplified_list () const
+{
+    if (!m_simplified_list) {
+        BoxList bl = boxList();
+        bl.ordered_simplify();
+        m_simplified_list = std::make_shared<BoxList>(std::move(bl));
+    }
+    return *m_simplified_list;
+}
+
+BoxArray
+BoxArray::simplified () const
+{
+    return BoxArray(simplified_list());
 }
 
 std::ostream&

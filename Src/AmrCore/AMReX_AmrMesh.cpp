@@ -502,8 +502,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
     Vector<BoxList> p_n(max_level);      // Proper nesting domain.
     Vector<BoxList> p_n_comp(max_level); // Complement proper nesting domain.
 
-    BoxList bl(grids[lbase]);
-    bl.simplify();
+    BoxList bl = grids[lbase].simplified_list();
     bl.coarsen(bf_lev[lbase]);
     p_n_comp[lbase].complementIn(pc_domain[lbase],bl);
     p_n_comp[lbase].simplify();
@@ -550,12 +549,12 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
         if (levf < new_finest)
         {
-            BoxArray ba_proj(new_grids[levf+1]);
+            BoxArray ba_proj = new_grids[levf+1].simplified();
 
             ba_proj.coarsen(ref_ratio[levf]);
             ba_proj.growcoarsen(n_proper, ref_ratio[levc]);
 
-            BoxArray levcBA = grids[levc];
+            BoxArray levcBA = grids[levc].simplified();
 
             while (!levcBA.contains(ba_proj))
             {
@@ -594,8 +593,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             // Replace this by n_error_buf that may be anisotropic
             // int nerr = n_error_buf[levf];
 
-            BoxList bl_tagged(new_grids[levf+1]);
-            bl_tagged.simplify();
+            BoxList bl_tagged = new_grids[levf+1].simplified_list();
             bl_tagged.coarsen(ref_ratio[levf]);
             //
             // This grows the boxes by n_error_buf[levf][idir] if they touch the edge 
@@ -706,60 +704,45 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 new_finest = std::max(new_finest,levf);
             }
 
-            BoxList new_bx;
-            if (ParallelDescriptor::IOProcessor()) {
-                //
-                // Construct initial cluster.
-                //
-                ClusterList clist(&tagvec[0], tagvec.size());
-                if (use_new_chop) {
-                    clist.new_chop(grid_eff);
-                } else {
-                    clist.chop(grid_eff);
-                }
-                BoxDomain bd;
-                bd.add(p_n[levc]);
-                clist.intersect(bd);
-                bd.clear();
-                //
-                // Efficient properly nested Clusters have been constructed
-                // now generate list of grids at level levf.
-                //
-                clist.boxList(new_bx);
-                new_bx.refine(bf_lev[levc]);
-                new_bx.simplify();
-                BL_ASSERT(new_bx.isDisjoint());
+            if (levf > useFixedUpToLevel()) {
+                BoxList new_bx;
+                if (ParallelDescriptor::IOProcessor()) {
+                    //
+                    // Construct initial cluster.
+                    //
+                    ClusterList clist(&tagvec[0], tagvec.size());
+                    if (use_new_chop) {
+                        clist.new_chop(grid_eff);
+                    } else {
+                        clist.chop(grid_eff);
+                    }
+                    BoxDomain bd;
+                    bd.add(p_n[levc]);
+                    clist.intersect(bd);
+                    bd.clear();
+                    //
+                    // Efficient properly nested Clusters have been constructed
+                    // now generate list of grids at level levf.
+                    //
+                    clist.boxList(new_bx);
+                    new_bx.refine(bf_lev[levc]);
+                    new_bx.simplify();
+                    BL_ASSERT(new_bx.isDisjoint());
 
-                if (new_bx.size()>0) {
-                    if ( !(Geom(levc).Domain().contains(BoxArray(new_bx).minimalBox())) ) {
-                        // Chop new grids outside domain, note that this is likely to result in
-                        //  new grids that violate blocking_factor....see warning checking below
-                        new_bx = amrex::intersect(new_bx,Geom(levc).Domain());
+                    if (new_bx.size()>0) {
+                        // Chop new grids outside domain
+                        new_bx.intersect(Geom(levc).Domain());
                     }
                 }
-            }
-            new_bx.Bcast();  // Broadcast the enw BoxList to other processes
+                new_bx.Bcast();  // Broadcast the new BoxList to other processes
 
-            const IntVect& largest_grid_size = max_grid_size[levf] / ref_ratio[levc];
-            //
-            // Ensure new grid boxes are at most max_grid_size in index dirs.
-            //
-            new_bx.maxSize(largest_grid_size);
+                //
+                // Refine up to levf.
+                //
+                new_bx.refine(ref_ratio[levc]);
+                BL_ASSERT(new_bx.isDisjoint());
 
-            //
-            // Refine up to levf.
-            //
-            new_bx.refine(ref_ratio[levc]);
-            BL_ASSERT(new_bx.isDisjoint());
-
-	    if (new_bx.size()>0) {
-		if ( !(Geom(levf).Domain().contains(BoxArray(new_bx).minimalBox())) ) {
-		    new_bx = amrex::intersect(new_bx,Geom(levf).Domain());
-		}
-	    }
-
-            if(levf > useFixedUpToLevel()) {
-              new_grids[levf].define(new_bx);
+                new_grids[levf] = BoxArray(std::move(new_bx), max_grid_size[levf]);
 	    }
         }
     }
