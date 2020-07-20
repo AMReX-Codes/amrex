@@ -502,6 +502,16 @@ void mlndlap_gauss_seidel_aa (Box const& bx, Array4<Real> const& sol,
     });
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const& sol,
+                              Array4<Real const> const& rhs, Array4<Real const> const& sig,
+                              Array4<int const> const& msk,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              bool is_rz) noexcept
+{
+    amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa not implemented in 2D (nodal solver does not support semicoarsening)");
+}
+
 //
 // restriction
 //
@@ -520,6 +530,13 @@ void mlndlap_restriction (int i, int j, int k, Array4<Real> const& crse,
                            + 2.*fine(ii-1,jj  ,kk) + 4.*fine(ii  ,jj  ,kk) + 2.*fine(ii+1,jj  ,kk)
                               + fine(ii-1,jj+1,kk) + 2.*fine(ii  ,jj+1,kk) +    fine(ii+1,jj+1,kk));
     }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
+                          Array4<Real const> const& fine, Array4<int const> const& msk, int idir) noexcept
+{
+    amrex::Abort("mlndlap_semi_restriction not implemented in 2D (nodal solver does not support semicoarsening)");
 }
 
 //
@@ -585,6 +602,14 @@ void mlndlap_interpadd_aa (int i, int j, int, Array4<Real> const& fine,
             fine(i,j,0) += crse(ic,jc,0);
         }
     }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_semi_interpadd_aa (int i, int j, int, Array4<Real> const& fine,
+                           Array4<Real const> const& crse, Array4<Real const> const& sig,
+                           Array4<int const> const& msk, int idir) noexcept
+{
+    amrex::Abort("mlndlap_semi_interpadd_aa not implemented in 2D (nodal solver does not support semicoarsening)");
 }
 
 namespace {
