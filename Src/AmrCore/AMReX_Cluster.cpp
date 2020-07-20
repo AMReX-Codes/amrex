@@ -5,6 +5,7 @@
 #include <AMReX_BoxDomain.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Array.H>
+#include <AMReX_BLProfiler.H>
 
 namespace amrex {
 
@@ -522,6 +523,7 @@ ClusterList::boxList (BoxList& blst) const
 void
 ClusterList::chop (Real eff)
 {
+    BL_PROFILE("ClusterList::chop()");
 
     for (std::list<Cluster*>::iterator cli = lst.begin(); cli != lst.end(); )
     {
@@ -539,6 +541,7 @@ ClusterList::chop (Real eff)
 void
 ClusterList::new_chop (Real eff)
 {
+    BL_PROFILE("ClusterList::new_chop()");
 
     for (std::list<Cluster*>::iterator cli = lst.begin(); cli != lst.end(); )
     {
@@ -556,6 +559,8 @@ ClusterList::new_chop (Real eff)
 void
 ClusterList::intersect (const BoxDomain& dom)
 {
+    BL_PROFILE("ClusterList::intersect()");
+
     //
     // Make a BoxArray covering dom.
     // We'll use this to speed up the contains() test below.
