@@ -1992,7 +1992,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>
 {
     BL_PROFILE("ParticleContainer::AddParticlesAtLevel()");
 
-    if (particles.size() == 0) return;
+    //    if (particles.size() == 0) return;
 
     if (int(m_particles.size()) < level+1)
     {
