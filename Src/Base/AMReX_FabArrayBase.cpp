@@ -674,6 +674,8 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
 	const int ksnd = imap[i];
 	const Box& vbx    = ba[ksnd];
 	const Box& vbx_ng = ba_ng[ksnd];
+
+    std::cout << __FILE__ << ":" << __LINE__ << " " << ParallelDescriptor::NTeams() << std::endl;
 	
 	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
@@ -691,14 +693,22 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
 		    continue;  // local copy will be dealt with later
 		} else if (MyProc == dm[ksnd]) {
 		    BoxList bl = amrex::boxDiff(bx, ba[krcv]);
-		    const BoxList& bl_ng = amrex::boxDiff(bx_ng, ba_ng[krcv]);
             if (tmp_grow > 0)
             {
-                bl.join(bl_ng);
+    		    const BoxList& bl_ng = amrex::boxDiff(bx_ng, ba_ng[krcv]);
+                BoxList compin(bl_ng.ixType());
+                for (BoxList::const_iterator lit = bl_ng.begin(); lit != bl_ng.end(); ++lit)            
+                {
+                    BoxList tmp = amrex::complementIn(*lit,ba).boxList();
+                    if (tmp.isNotEmpty()) compin.join(tmp);
+                }    
+                compin.simplify();
+
+                bl.join(compin);
+                bl.simplify();
             }
 		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
             {
-                Print() << "remote patch = " << *lit << std::endl;
 			    send_tags[dst_owner].push_back(CopyComTag(*lit, (*lit)-(*pit), krcv, ksnd));
             }
 		}
@@ -754,13 +764,24 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
 	    {
 		const int ksnd      = isects[j].first;
 		const Box& dst_bx   = isects[j].second - *pit;
-        const Box& dst_bx_ng = isects_ng[j].second - *pit;        
 		const int src_owner = dm[ksnd];
 		
 		BoxList bl = amrex::boxDiff(dst_bx, vbx);
-		const BoxList& bl_ng = amrex::boxDiff(dst_bx_ng, vbx_ng);
+		
         if (tmp_grow > 0) {
-            bl.join(bl_ng);
+        	const Box& dst_bx_ng = isects_ng[j].second - *pit;        
+		    const BoxList& bl_ng = amrex::boxDiff(dst_bx_ng, vbx_ng);
+            BoxList compin(bl_ng.ixType());
+
+            for (BoxList::const_iterator lit = bl_ng.begin(); lit != bl_ng.end(); ++lit)            
+            {
+                BoxList tmp = amrex::complementIn(*lit,ba).boxList();
+                if (tmp.isNotEmpty()) compin.join(tmp);
+            }
+            compin.simplify();
+            
+            bl.join(compin);
+            bl.simplify();
         }
 		for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
 		{
@@ -772,7 +793,6 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
 				 it_tile  = tilelist.begin(),
 				 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
 			{
-                Print() << "local patch = " << *it_tile << std::endl;
 			    m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), krcv, ksnd));
 			}
 			if (check_local) {

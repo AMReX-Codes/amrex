@@ -201,14 +201,13 @@ int main (int argc, char* argv[])
                 //cntr += ParallelDescriptor::NProcs();
  	    }
         //rhs[ilev].FillBoundary();
-        //rhs[ilev].RealFillBoundary();
-        rhs[ilev].FillBoundary();
+        rhs[ilev].RealFillBoundary();
+        //rhs[ilev].FillBoundary();
         proc[ilev].RealFillBoundary();
         
     }
     WriteOutput("proc",proc,geom);
     WriteOutput("rhs",rhs,geom);
-    return 0;
          
     // 
     // Set params to be passed to MLMG solver
@@ -254,9 +253,9 @@ int main (int argc, char* argv[])
     //
     // Write the output to ./solution
     //
-    //WriteMLMF ("solution",GetVecOfConstPtrs(solution),geom);
+    WriteMLMF ("solution",GetVecOfConstPtrs(solution),geom);
     //WriteOutput("rhs",rhs,geom);
-    WriteOutput("solution",solution,geom);
+    //WriteOutput("solution",solution,geom);
     WriteOutput("res",res,geom);
 
     }
