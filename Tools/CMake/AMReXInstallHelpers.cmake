@@ -83,7 +83,12 @@ function (install_amrex)
    #
    # Setup for install and export of build tree
    #
-   set(CMAKE_FILES_DIR   lib/cmake/AMReX)   # Relative path to top level installation/build-tree
+   # Relative path to top level installation/build-tree
+   if(WIN32)
+       set(CMAKE_FILES_DIR   cmake)   
+   else()
+       set(CMAKE_FILES_DIR   lib/cmake/AMReX)
+   endif()
    set(MODULE_PATH       Tools/CMake)       # Relative path to top level installation/build-tree
 
    # Write Config file -- this is designed to work for both install and build trees
