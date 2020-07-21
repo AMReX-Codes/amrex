@@ -1089,9 +1089,15 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
 
     const auto& stencil = m_stencil[amrlev][cmglev-1];
 
-    bool regular_coarsening = true;
+    bool regular_coarsening = true; int idir = 2;
     if (amrlev == 0 and cmglev > 0) {
         regular_coarsening = mg_coarsen_ratio_vec[cmglev-1] == mg_coarsen_ratio;
+        IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[cmglev-1];
+        if (ratio[1] == 1) {
+            idir = 1;
+        } else if (ratio[0] == 1) {
+            idir = 0;
+        }
     }
 
 #ifdef _OPENMP
@@ -1116,7 +1122,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
 	    {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                 {
-                    mlndlap_semi_restriction(i,j,k,cfab,ffab,mfab);
+                    mlndlap_semi_restriction(i,j,k,cfab,ffab,mfab,idir);
                 });
 	    }
         }
@@ -1155,9 +1161,15 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
 
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][fmglev];
 
-    bool regular_coarsening = true;
+    bool regular_coarsening = true; int idir = 2;
     if (amrlev == 0 and fmglev > 0) {
         regular_coarsening = mg_coarsen_ratio_vec[fmglev] == mg_coarsen_ratio;
+	IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[fmglev];
+	if (ratio[1] == 1) {
+	    idir = 1;
+        } else if (ratio[0] == 1) {
+ 	    idir = 0;
+        } 
     }
 
 
@@ -1202,7 +1214,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
 	    {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                 {
-                    mlndlap_semi_interpadd_aa(i,j,k,ffab,cfab,sfab,mfab);
+                    mlndlap_semi_interpadd_aa(i,j,k,ffab,cfab,sfab,mfab,idir);
                 });
 	    } 
         }
