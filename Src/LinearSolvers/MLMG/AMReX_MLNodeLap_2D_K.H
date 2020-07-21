@@ -762,7 +762,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int, Array4<Real> const& fine,
                 fine(i,j,0) += aa_interp_line_x(crse,sig,i,j,ic,jc);
             } else {
                 //Node coincident with coarse node
-                fine(i,j,0) += crse(ic,jc,0)
+                fine(i,j,0) += crse(ic,jc,0);
             }
         }
     } else if (idir == 0 ) { 
