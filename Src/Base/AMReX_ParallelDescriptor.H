@@ -1033,8 +1033,8 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
         T_to_send.push_back(sendbuf[i]);
     }
 
-    int nprocs = ParallelDescriptor::NProcs();
-    Vector<Long> recvcount(nprocs, 0);
+    int nprocs = ParallelContext::NProcsSub();
+    Vector<int> recvcount(nprocs, 0);
     const Vector<int>& old_pmap = sendbuf.DistributionMap().ProcessorMap();
     for (int i=0; i<old_pmap.size(); ++i)
     {
@@ -1066,22 +1066,21 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
         }
     }
 
-    Vector<Long> disp(nprocs);
+    Vector<int> disp(nprocs);
     disp[0] = 0;
     std::partial_sum(recvcount.begin(), recvcount.end()-1, disp.begin()+1);
     Vector<T> new_index_to_T(sendbuf.size());
 
-    ParallelDescriptor::Gatherv(&T_to_send[0],
-                                T_to_send.size(),
-                                &new_index_to_T[0],
-                                recvcount,
-                                disp,
-                                root);
+    MPI_Gatherv(T_to_send.data(), T_to_send.size(),
+                ParallelDescriptor::Mpi_typemap<T>::type(),
+                new_index_to_T.data(), recvcount.data(), disp.data(),
+                ParallelDescriptor::Mpi_typemap<T>::type(),
+                root, ParallelContext::CommunicatorSub());
 
     // Now work just on the root, which now has global information on the collected;
     // LayoutData information; with new_index_to_old_index and new_index_to_T,
     // sort the gathered vector in pre-gather index space
-    if (ParallelDescriptor::MyProc() == root)
+    if (ParallelContext::MyProcSub() == root)
     {
         // Invert the map (new_index) --> (old_index)
         Vector<int> old_index_to_new_index(sendbuf.size());
