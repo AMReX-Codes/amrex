@@ -760,6 +760,10 @@ public:
     BoxList complementIn (const Box& b) const;
     void complementIn (BoxList& bl, const Box& b) const;
 
+    //! Return a boxlist containing the complement of *this in bl
+    //  (i.e. everything in bl that is not also in *this)
+    BoxList complementIn (const BoxList& bl) const;
+
     //! Clear out the internal hash table used by intersections.
     void clear_hash_bin () const;
 

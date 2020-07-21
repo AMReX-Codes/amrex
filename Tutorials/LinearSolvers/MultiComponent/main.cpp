@@ -29,21 +29,6 @@
 
 using namespace amrex;
 
-void WriteOutput(std::string filename, Vector<MultiFab> &mf, Vector<Geometry> &geom)
-{
-    Vector<MultiFab> out;
-    out.resize(mf.size());
-    for (int lev = 0; lev < mf.size(); lev++)
-    {
-        BoxArray ba = mf[lev].boxArray();
-        ba = BoxArray(ba.boxList().accrete(mf[lev].nGrow()));
-        out[lev].define(ba,mf[lev].DistributionMap(),mf[lev].nComp(),0);
-        out[lev].setVal(0.0);
-        Copy(out[lev],mf[lev],0,0,mf[lev].nComp(),0);
-    }
-    WriteMLMF (filename,GetVecOfConstPtrs(out),geom);
-}
-
 int main (int argc, char* argv[])
 {
     Initialize(argc, argv);
@@ -114,15 +99,13 @@ int main (int argc, char* argv[])
     Vector<Geometry> geom;
   	Vector<BoxArray> cgrids, ngrids;
  	Vector<DistributionMapping> dmap;
-  	Vector<MultiFab> solution, rhs, res, proc;
+  	Vector<MultiFab> solution, rhs;
  	geom.resize(mesh.nlevels);
  	cgrids.resize(mesh.nlevels);
  	ngrids.resize(mesh.nlevels);
  	dmap.resize(mesh.nlevels);
  	solution.resize(mesh.nlevels);
  	rhs.resize(mesh.nlevels);
-    res.resize(mesh.nlevels);
-    proc.resize(mesh.nlevels);
 	RealBox rb({AMREX_D_DECL(-0.5,-0.5,-0.5)},
 	          {AMREX_D_DECL(0.5,0.5,0.5)});
 	Geometry::Setup(&rb, 0);
@@ -159,7 +142,6 @@ int main (int argc, char* argv[])
     //    RHS[2] = 0 ... etc
     //
     int nghost = 2;
-    int cntr = ParallelDescriptor::MyProc();
  	for (int ilev = 0; ilev < mesh.nlevels; ++ilev)
  	{
  		dmap   [ilev].define(cgrids[ilev]);
@@ -167,10 +149,6 @@ int main (int argc, char* argv[])
         solution[ilev].setVal(0.0);
  		rhs     [ilev].define(ngrids[ilev], dmap[ilev], op.ncomp, nghost);
         rhs     [ilev].setVal(0.0);
- 		res     [ilev].define(ngrids[ilev], dmap[ilev], op.ncomp, nghost);
-        res     [ilev].setVal(0.0);
- 		proc    [ilev].define(ngrids[ilev], dmap[ilev], op.ncomp, nghost);
-        proc    [ilev].setVal(0.0);
            
 	    Box domain(geom[ilev].Domain());
         const Real* DX = geom[ilev].CellSize();
@@ -183,31 +161,21 @@ int main (int argc, char* argv[])
     		bx = bx & domain;  // Take intersection of box and the problem domain
 		
     		Array4<Real> const& RHS  = rhs[ilev].array(mfi);
-    		Array4<Real> const& PROC = proc[ilev].array(mfi);
     		for (int n = 0; n < op.ncomp; n++)
     			ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     
-                    Real x1 = i*DX[0] + geom[ilev].ProbLo()[0],
-                         x2 = j*DX[1] + geom[ilev].ProbLo()[1], 
-                         x3 = k*DX[2] + geom[ilev].ProbLo()[2];
+                    Real AMREX_D_TERM(x1 = i*DX[0] + geom[ilev].ProbLo()[0],
+                                      x2 = j*DX[1] + geom[ilev].ProbLo()[1], 
+                                      x3 = k*DX[2] + geom[ilev].ProbLo()[2]);
 
                     if (n==0) RHS(i,j,k,n) = AMREX_D_TERM(   (x1-0.5)*(x1+0.5),
                                                            * (x2-0.5)*(x2+0.5),
                                                            * (x3-0.5)*(x3+0.5));
                     else RHS(i,j,k,n) = 0.0;
-                    //RHS(i,j,k,n) = cntr;
-                    PROC(i,j,k,n) = ParallelDescriptor::MyProc();
     			});         
-                //cntr += ParallelDescriptor::NProcs();
  	    }
-        //rhs[ilev].FillBoundary();
-        rhs[ilev].RealFillBoundary();
-        //rhs[ilev].FillBoundary();
-        proc[ilev].RealFillBoundary();
-        
+        rhs[ilev].FillBoundary(false,true);
     }
-    WriteOutput("proc",proc,geom);
-    WriteOutput("rhs",rhs,geom);
          
     // 
     // Set params to be passed to MLMG solver
@@ -246,17 +214,12 @@ int main (int argc, char* argv[])
     // Perform the solve
     //
     Real tol_rel = 1E-8, tol_abs = 1E-8;
-    if (mlmg.fixed_iter !=0) solver.solve(GetVecOfPtrs(solution),GetVecOfConstPtrs(rhs),tol_rel,tol_abs);
-    solver.compResidual(GetVecOfPtrs(res),GetVecOfPtrs(solution),GetVecOfConstPtrs(rhs));
-    //for (int lev = 0; lev < rhs.size(); lev++) res[lev].FillBoundary();
+    solver.solve(GetVecOfPtrs(solution),GetVecOfConstPtrs(rhs),tol_rel,tol_abs);
 
     //
     // Write the output to ./solution
     //
     WriteMLMF ("solution",GetVecOfConstPtrs(solution),geom);
-    //WriteOutput("rhs",rhs,geom);
-    //WriteOutput("solution",solution,geom);
-    WriteOutput("res",res,geom);
 
     }
     Finalize();

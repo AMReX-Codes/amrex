@@ -325,7 +325,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 			   const Vector<int>& imap_dst,
 			   const BoxArray& ba_src, const DistributionMapping& dm_src,
 			   const Vector<int>& imap_src,
-			   int MyProc) ///  DOES NOT GET CALLED HERE
+			   int MyProc)
 {
     BL_PROFILE("FabArrayBase::CPC::define()");
 
@@ -639,20 +639,19 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, const IntVect& nghost,
 	    BL_ASSERT(m_cross==false);
 	    define_epo(fa);
 	} else {
-	    if (multi_ghost) define_fb(fa,1);
-        else define_fb(fa,0);
+	    multi_ghost ? define_fb(fa,true) : define_fb(fa);
 	}
     }
 }
 
 void
-FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
+FabArrayBase::FB::define_fb(const FabArrayBase& fa, bool multi_ghost) // GETS USED
 {
-    AMREX_ASSERT(fa.nGrow() >= tmp_grow);
+    AMREX_ASSERT(multi_ghost ? fa.nGrow() >= 2 : true);
     const int                  MyProc   = ParallelDescriptor::MyProc();
     BoxArray                     ba       = fa.boxArray();
     BoxArray                     ba_ng    = fa.boxArray();
-    if (tmp_grow > 0) ba_ng = BoxArray(ba.boxList().accrete(tmp_grow));
+    if (multi_ghost)             ba_ng    = BoxArray(ba.boxList().accrete(1));
     const DistributionMapping& dm       = fa.DistributionMap();
     const Vector<int>&         imap     = fa.IndexArray();
 
@@ -661,7 +660,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
     
     const int nlocal = imap.size();
     const IntVect ng(m_ngrow[0]);
-    const IntVect ng_ng(AMREX_D_DECL(m_ngrow[0]-tmp_grow,m_ngrow[1]-tmp_grow,m_ngrow[1]-tmp_grow));
+    const IntVect ng_ng(AMREX_D_DECL(m_ngrow[0]-1,m_ngrow[1]-1,m_ngrow[1]-1));
     std::vector< std::pair<int,Box> > isects;
     std::vector< std::pair<int,Box> > isects_ng;
     
@@ -675,12 +674,10 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
 	const Box& vbx    = ba[ksnd];
 	const Box& vbx_ng = ba_ng[ksnd];
 
-    std::cout << __FILE__ << ":" << __LINE__ << " " << ParallelDescriptor::NTeams() << std::endl;
-	
 	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
 	    ba.intersections(vbx+(*pit), isects, false, ng);
-	    if (tmp_grow > 0) ba_ng.intersections(vbx_ng+(*pit), isects_ng, false, ng_ng);
+	    if (multi_ghost) ba_ng.intersections(vbx_ng+(*pit), isects_ng, false, ng_ng);
 
 	    for (int j = 0, M = isects.size(); j < M; ++j)
 	    {
@@ -693,18 +690,10 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
 		    continue;  // local copy will be dealt with later
 		} else if (MyProc == dm[ksnd]) {
 		    BoxList bl = amrex::boxDiff(bx, ba[krcv]);
-            if (tmp_grow > 0)
+            if (multi_ghost)
             {
     		    const BoxList& bl_ng = amrex::boxDiff(bx_ng, ba_ng[krcv]);
-                BoxList compin(bl_ng.ixType());
-                for (BoxList::const_iterator lit = bl_ng.begin(); lit != bl_ng.end(); ++lit)            
-                {
-                    BoxList tmp = amrex::complementIn(*lit,ba).boxList();
-                    if (tmp.isNotEmpty()) compin.join(tmp);
-                }    
-                compin.simplify();
-
-                bl.join(compin);
+                bl.join(ba.complementIn(bl_ng));
                 bl.simplify();
             }
 		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
@@ -758,7 +747,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
 	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
 	    ba.intersections(bxrcv+(*pit), isects);
-	    if (tmp_grow > 0) ba_ng.intersections(bxrcv_ng+(*pit), isects_ng);
+	    if (multi_ghost) ba_ng.intersections(bxrcv_ng+(*pit), isects_ng);
 
 	    for (int j = 0, M = isects.size(); j < M; ++j)
 	    {
@@ -768,25 +757,16 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, int tmp_grow) // GETS USED
 		
 		BoxList bl = amrex::boxDiff(dst_bx, vbx);
 		
-        if (tmp_grow > 0) {
+        if (multi_ghost) {
         	const Box& dst_bx_ng = isects_ng[j].second - *pit;        
 		    const BoxList& bl_ng = amrex::boxDiff(dst_bx_ng, vbx_ng);
-            BoxList compin(bl_ng.ixType());
-
-            for (BoxList::const_iterator lit = bl_ng.begin(); lit != bl_ng.end(); ++lit)            
-            {
-                BoxList tmp = amrex::complementIn(*lit,ba).boxList();
-                if (tmp.isNotEmpty()) compin.join(tmp);
-            }
-            compin.simplify();
-            
-            bl.join(compin);
+            bl.join(ba.complementIn(bl_ng));
             bl.simplify();
         }
 		for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
 		{
 		    const Box& blbx = *lit;
-   
+			
 		    if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
 			const BoxList tilelist(blbx, FabArrayBase::comm_tile_size);
 			for (BoxList::const_iterator

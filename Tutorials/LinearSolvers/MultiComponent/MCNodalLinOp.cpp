@@ -515,7 +515,8 @@ void MCNodalLinOp::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, Mult
 
 void MCNodalLinOp::realFillBoundary(MultiFab &phi, const Geometry &geom) const
 {
-	phi.RealFillBoundary();
+	BL_PROFILE("MCNodalLinOp::realFillBoundary");
+	phi.FillBoundary(false,true);
 	//for (int i = 0; i < 2; i++)
 	//{
 	//	MultiFab & mf = phi;

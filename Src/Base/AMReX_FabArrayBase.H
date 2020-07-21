@@ -521,7 +521,7 @@ public:
         //
         Long bytes () const;
     private:
-        void define_fb (const FabArrayBase& fa, int tmp_grow = 0);
+        void define_fb (const FabArrayBase& fa, bool multi_ghost = false);
         void define_epo (const FabArrayBase& fa);
     };
     //
