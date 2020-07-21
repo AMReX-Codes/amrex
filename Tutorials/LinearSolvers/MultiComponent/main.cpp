@@ -164,7 +164,7 @@ int main (int argc, char* argv[])
     		for (int n = 0; n < op.ncomp; n++)
     			ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     
-                    Real AMREX_D_TERM(x1 = i*DX[0] + geom[ilev].ProbLo()[0],
+                    Real AMREX_D_DECL(x1 = i*DX[0] + geom[ilev].ProbLo()[0],
                                       x2 = j*DX[1] + geom[ilev].ProbLo()[1], 
                                       x3 = k*DX[2] + geom[ilev].ProbLo()[2]);
 
