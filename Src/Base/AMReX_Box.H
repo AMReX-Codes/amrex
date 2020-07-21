@@ -498,17 +498,6 @@ public:
         return *this;
     }
 
-    //! for serialization
-    static size_t linearSize() noexcept
-    {
-        size_t retval = 2*IntVect::linearSize();
-        return retval;
-    }
-
-    //! for serialization
-    void linearOut(void* a_buffer ) const noexcept;
-    void linearIn(void* a_buffer ) noexcept;
-
     /**
     * \brief Modify Box to that of the minimum Box containing both
     * the original Box and the argument.
@@ -897,34 +886,6 @@ Box::setRange (int dir,
     smallend.setVal(dir,sm_index);
     bigend.setVal(dir,sm_index+n_cells-1);
     return *this;
-}
-
-inline
-void
-Box::linearOut(void* a_buffer ) const noexcept
-{
-    unsigned char* buf = (unsigned char*) a_buffer;
-    const IntVect& ivlo = this->smallEnd();
-    const IntVect& ivhi = this->bigEnd();
-    ivlo.linearOut(buf);
-    buf += ivlo.linearSize();
-    ivhi.linearOut(buf);
-//    buf += ivhi.linearSize();
-}
-
-inline
-void
-Box::linearIn(void* a_buffer ) noexcept
-{
-    unsigned char* buf = (unsigned char*) a_buffer;
-    IntVect ivlo;
-    IntVect ivhi;
-    ivlo.linearIn(buf);
-    buf += ivlo.linearSize();
-    ivhi.linearIn(buf);
-//    buf += ivhi.linearSize();
-
-    *this = Box(ivlo, ivhi);
 }
 
 AMREX_GPU_HOST_DEVICE
