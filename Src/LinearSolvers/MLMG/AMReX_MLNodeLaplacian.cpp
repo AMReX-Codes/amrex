@@ -1164,7 +1164,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
     bool regular_coarsening = true; int idir = 2;
     if (fmglev > 0) {
         regular_coarsening = mg_coarsen_ratio_vec[fmglev] == mg_coarsen_ratio;
-	IntVect ratio = mg_coarsen_ratio_vec[fmglev];
+        IntVect ratio = mg_coarsen_ratio_vec[fmglev];
 	if (ratio[1] == 1) {
 	    idir = 1;
         } else if (ratio[0] == 1) {
