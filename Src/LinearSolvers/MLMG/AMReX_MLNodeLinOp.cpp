@@ -21,15 +21,14 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info,
-                     const Vector<FabFactory<FArrayBox> const*>& a_factory,
-                     const int & a_num_amr_levels)
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
 #ifdef AMREX_USE_HYPRE
     bool eb_limit_coarsening = true;
 #else
     bool eb_limit_coarsening = false;
 #endif
-    MLLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory, eb_limit_coarsening, a_num_amr_levels);
+    MLLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory, eb_limit_coarsening);
 
     m_owner_mask.resize(m_num_amr_levels);
     m_dirichlet_mask.resize(m_num_amr_levels);

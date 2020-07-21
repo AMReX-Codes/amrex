@@ -99,8 +99,7 @@ public:
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
                  const Vector<FabFactory<FArrayBox> const*>& a_factory,
-                 bool eb_limit_coarsening = true,
-                 const int & a_num_amr_levels = -1);
+                 bool eb_limit_coarsening = true);
 
     virtual std::string name () const { return std::string("Unspecified"); }
 
@@ -377,8 +376,7 @@ private:
     void defineGrids (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap,
-                      const Vector<FabFactory<FArrayBox> const*>& a_factory,
-                      const int & a_num_amr_levels = -1);
+                      const Vector<FabFactory<FArrayBox> const*>& a_factory);
     void defineAuxData ();
     void defineBC ();
     static void makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm);
