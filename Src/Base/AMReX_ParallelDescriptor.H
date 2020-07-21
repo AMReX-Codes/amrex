@@ -546,9 +546,6 @@ while ( false )
     template <class T> void Gatherv (const T* send, int sc,
 				     T* recv, const std::vector<int>& rc, const std::vector<int>& disp,
 				     int root);
-    template <class T> void Gatherv (const T* send, Long sc,
-				     T* recv, const std::vector<Long>& rc, const std::vector<Long>& disp,
-				     int root);
 
     //! Gather LayoutData values to a vector on root
     template <class T> void GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
@@ -972,48 +969,6 @@ ParallelDescriptor::Gatherv (const T* send, int sc,
 		root, Communicator());
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, std::accumulate(rc.begin(),rc.end(),0)*sizeof(T), root, BLProfiler::NoTag());
-}
-
-template <class T>
-void
-ParallelDescriptor::Gatherv (const T* send, Long sc,
-			     T* recv, const std::vector<Long>& rc, const std::vector<Long>& disp,
-			     int root)
-{
-    BL_PROFILE_T_S("ParallelDescriptor::Gatherv(TLong)", T);
-    BL_COMM_PROFILE(BLProfiler::Gatherv,  BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
-
-    int tag = ParallelDescriptor::SeqNum();
-
-    if (MyProc() == root) {
-	int nprocs = NProcs();
-	BL_ASSERT(rc.size() == nprocs);
-	BL_ASSERT(disp.size() == nprocs);
-
-	std::vector<MPI_Request> request;
-	for (int i = 0; i < nprocs; ++i) {
-	    T* buf = recv + disp[i];
-	    if (i == root) {
-		for (int k = 0; k < rc[i]; ++k) {
-		    *buf++ = send[k];
-		}
-	    } else {
-		MPI_Request req;
-		MPI_Irecv(buf, rc[i], ParallelDescriptor::Mpi_typemap<T>::type(), i,
-			  tag, Communicator(), &req);
-		request.push_back(req);
-	    }
-	}
-	if (request.size() > 0) {
-	    std::vector<MPI_Status> status(request.size());
-	    MPI_Waitall(request.size(), &request[0], &status[0]);
-	}
-    } else {
-	MPI_Send(const_cast<T*>(send), sc, ParallelDescriptor::Mpi_typemap<T>::type(), root, tag,
-		 Communicator());
-    }
-
-    BL_COMM_PROFILE(BLProfiler::Gatherv, std::accumulate(rc.begin(),rc.end(),0L)*sizeof(T), root, BLProfiler::NoTag());
 }
 
 template <class T>
