@@ -14,4 +14,3 @@ max_fmg_iter = 0     # # of F-cycles before switching to V.  To do pure V-cycle,
 reltol = 1.e-11
 agglomeration = 1
 semicoarsening = 1
-max_semicoarsening_level = 2 

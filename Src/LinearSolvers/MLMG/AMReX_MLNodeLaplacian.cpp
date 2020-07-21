@@ -1486,6 +1486,12 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
     else // cpu
 #endif
     {
+	bool regular_coarsening = true;
+	if (amrlev == 0 and mglev > 0) 
+    	{
+            regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
+        }
+
         constexpr int nsweeps = 2;
         if (m_use_gauss_seidel)
         {
