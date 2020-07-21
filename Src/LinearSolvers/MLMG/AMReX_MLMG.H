@@ -107,6 +107,12 @@ public:
         hypre_interface = f;
 #endif
     }
+
+    void setHypreOldDefault (bool l) noexcept {hypre_old_default = l;}
+    void setHypreRelaxType (int n) noexcept {hypre_relax_type = n;}
+    void setHypreRelaxOrder (int n) noexcept {hypre_relax_order = n;}
+    void setHypreNumSweeps (int n) noexcept {hypre_num_sweeps = n;}
+    void setHypreStrongThreshold (Real t) noexcept {hypre_strong_threshold = t;}
 #endif
 
     void prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs);
@@ -214,6 +220,12 @@ private:
     std::unique_ptr<Hypre> hypre_solver;
     std::unique_ptr<MLMGBndry> hypre_bndry;
     std::unique_ptr<HypreNodeLap> hypre_node_solver;
+
+    bool hypre_old_default = true; // Falgout coarsening with modified classical interpolation
+    int hypre_relax_type = 6;  // G-S/Jacobi hybrid relaxation
+    int hypre_relax_order = 1; // uses C/F relaxation
+    int hypre_num_sweeps = 2;  // Sweeps on each level
+    Real hypre_strong_threshold = 0.25; // Hypre default is 0.25
 #endif
 
     //! PETSc

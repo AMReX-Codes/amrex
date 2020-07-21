@@ -153,3 +153,31 @@ jobs:
             -DCMAKE_CXX_COMPILER=$(which dpcpp)            \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
         make -j 2 tutorials
+
+  # Build 1D libamrex with configure
+  configure-1d:
+    name: GNU@7.5 C++17 Release [configure 1D]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        ./configure --dim 1
+        make -j2
+        make install
+
+  # Build 2D libamrex with configure
+  configure-2d:
+    name: GNU@7.5 C++17 Release [configure 2D]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        ./configure --dim 2
+        make -j2
+        make install

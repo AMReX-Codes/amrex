@@ -287,6 +287,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         boundboxes.push_back(bbx);
         agg_flag.push_back(false); 
 
+#if (AMREX_SPACEDIM > 1)
         if (info.do_semicoarsening) 
 	{   
 	    int num_semicoarsening_level = 0;
@@ -350,6 +351,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
         }
 	else 
+#endif
 	{
             while (    dbx.coarsenable(mg_coarsen_ratio,mg_domain_min_width)
                    and bbx.coarsenable(mg_coarsen_ratio,mg_box_min_width))

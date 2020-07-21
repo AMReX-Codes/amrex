@@ -516,15 +516,6 @@ public:
     Long IncrementWithTotal (MultiFab& mf, int level, bool local = false);
 
     /**
-    * \brief rho_index: rho index in rdata
-    *
-    * \param rho_index
-    * \param level
-    * \param local
-    */
-    Real sumParticleMass (int rho_index, int level, bool local = false) const;
-
-    /**
     * \brief Redistribute puts all the particles back in the right places (for some value of right)
     *
     * Assigns particles to the levels, grids, and tiles that contain their current positions. 
