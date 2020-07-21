@@ -1369,11 +1369,11 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                 		+ fm2xm2y4z*(sol(i,j,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1))
                            		   + sol(i,j,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )));
 
-                                a_ls(k-lo.z) = f4xm2ym2z*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1)+sig(i-1,j-1,k)+sig(i-1,j,k));
-                                b_ls(k-lo.z) = s0;
-                                c_ls(k-lo.z) = f4xm2ym2z*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1)+sig(i  ,j-1,k)+sig(i  ,j,k));
-                                u_ls(k-lo.z) = 0.;
-                                r_ls(k-lo.z) = rhs(i,j,k) - Ax;
+                   	a_ls(i-lo.x) = f4xm2ym2z*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1)+sig(i-1,j-1,k)+sig(i-1,j,k));
+                        b_ls(i-lo.x) = s0;
+                        c_ls(i-lo.x) = f4xm2ym2z*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1)+sig(i  ,j-1,k)+sig(i  ,j,k));
+                        u_ls(i-lo.x) = 0.;
+                        r_ls(i-lo.x) = rhs(i,j,k) - Ax;
 
               	    }
            	}

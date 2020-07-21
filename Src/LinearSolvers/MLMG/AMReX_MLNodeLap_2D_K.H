@@ -503,13 +503,143 @@ void mlndlap_gauss_seidel_aa (Box const& bx, Array4<Real> const& sol,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void tridiagonal_solve (Array1D<Real,0,31>& a_ls, Array1D<Real,0,31>& b_ls, Array1D<Real,0,31>& c_ls,
+                        Array1D<Real,0,31>& r_ls, Array1D<Real,0,31>& u_ls, Array1D<Real,0,31>& gam,
+                        int ilen ) noexcept
+{
+    Real bet = b_ls(0);
+    u_ls(0) = r_ls(0) / bet;
+
+    for (int i = 1; i <= ilen - 1; i++) {
+        gam(i) = c_ls(i-1) / bet;
+        bet = b_ls(i) - a_ls(i)*gam(i);
+        if (bet == 0) amrex::Abort(">>>TRIDIAG FAILED");
+        u_ls(i) = (r_ls(i)-a_ls(i)*u_ls(i-1)) / bet;
+    }
+    for (int i = ilen-2; i >= 0; i--) {
+        u_ls(i) = u_ls(i) - gam(i+1)*u_ls(i+1);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const& sol,
                               Array4<Real const> const& rhs, Array4<Real const> const& sig,
                               Array4<int const> const& msk,
                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                               bool is_rz) noexcept
 {
-    amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa not implemented in 2D (nodal solver does not support semicoarsening)");
+    Real facx = (1.0/6.0)*dxinv[0]*dxinv[0];
+    Real facy = (1.0/6.0)*dxinv[1]*dxinv[1];
+    Real fxy = facx + facy;
+    Real f2xmy = 2.0*facx - facy;
+    Real fmx2y = 2.0*facy - facx;
+
+    if (is_rz) {
+	amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa is not implemented in r-z 2D ");
+    } 
+
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+
+    int idir = -1;
+    int ilen = 33;
+    int k = 0;
+    if (dxinv[0] <= dxinv[1])  {
+        idir = 1;
+        ilen = hi.y - lo.y + 1;
+    }
+    if (dxinv[1] <= dxinv[0]) {
+        idir = 0;
+        ilen = hi.x - lo.x + 1;
+    }
+
+    if (ilen > 32) amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa is hard-wired to be no longer than 32");
+
+    Array1D<Real,0,31> a_ls,b_ls,c_ls,u_ls,r_ls,gam;
+
+    if (idir == 1) {
+	AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i)
+        {
+            for (int j = lo.y; j <= hi.y; ++j)
+            {
+        	if (msk(i,j,k)) {
+        	    a_ls(j-lo.y) = 0.;
+                    b_ls(j-lo.y) = 1.;
+                    c_ls(j-lo.y) = 0.;
+                    u_ls(j-lo.y) = 0.;
+                    r_ls(j-lo.y) = 0.;
+                }
+                else
+                {
+                    Real s0 = (-2.0)*fxy*(sig(i-1,j-1,k)+sig(i,j-1,k)+sig(i-1,j,k)+sig(i,j,k));
+
+                    Real Ax = sol(i-1,j-1,k)*fxy*sig(i-1,j-1,k)
+                            + sol(i+1,j-1,k)*fxy*sig(i  ,j-1,k)
+                            + sol(i-1,j+1,k)*fxy*sig(i-1,j  ,k)
+                            + sol(i+1,j+1,k)*fxy*sig(i  ,j  ,k)
+                            + sol(i-1,j,k)*f2xmy*(sig(i-1,j-1,k)+sig(i-1,j,k))
+                            + sol(i+1,j,k)*f2xmy*(sig(i  ,j-1,k)+sig(i  ,j,k));
+
+                    a_ls(j-lo.y) = fmx2y*(sig(i-1,j-1,k)+sig(i,j-1,k));
+                    b_ls(j-lo.y) = s0;
+                    c_ls(j-lo.y) = fmx2y*(sig(i-1,j  ,k)+sig(i,j  ,k));          
+                    u_ls(j-lo.y) = 0.;
+                    r_ls(j-lo.y) = rhs(i,j,k) - Ax;
+
+                }
+            }
+            tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
+
+            for (int j = lo.y; j <= hi.y; ++j)
+            {
+            	sol(i,j,k) = u_ls(j-lo.y);
+            }
+        }
+    } else if (idir == 0) {
+        AMREX_PRAGMA_SIMD
+        for (int j = lo.y ;j <= hi.y; ++j)
+        {
+            for (int i = lo.x; i <= hi.x; ++i)
+            {
+                if (msk(i,j,k)) {
+                    a_ls(i-lo.x) = 0.;
+                    b_ls(i-lo.x) = 1.;
+                    c_ls(i-lo.x) = 0.;
+                    u_ls(i-lo.x) = 0.;
+                    r_ls(i-lo.x) = 0.;
+                }
+                else
+                {
+
+                    Real s0 = (-2.0)*fxy*(sig(i-1,j-1,k)+sig(i,j-1,k)+sig(i-1,j,k)+sig(i,j,k));
+
+                    Real Ax = sol(i-1,j-1,k)*fxy*sig(i-1,j-1,k)
+                            + sol(i+1,j-1,k)*fxy*sig(i  ,j-1,k)
+                            + sol(i-1,j+1,k)*fxy*sig(i-1,j  ,k)
+                            + sol(i+1,j+1,k)*fxy*sig(i  ,j  ,k)
+                            + sol(i,j-1,k)*fmx2y*(sig(i-1,j-1,k)+sig(i,j-1,k))
+                            + sol(i,j+1,k)*fmx2y*(sig(i-1,j  ,k)+sig(i,j  ,k));
+
+                    a_ls(i-lo.x) = f2xmy*(sig(i-1,j-1,k)+sig(i-1,j,k));
+                    b_ls(i-lo.x) = s0;
+                    c_ls(i-lo.x) = f2xmy*(sig(i  ,j-1,k)+sig(i  ,j,k));
+                    u_ls(i-lo.x) = 0.;
+                    r_ls(i-lo.x) = rhs(i,j,k) - Ax;
+
+                }
+            }
+            tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
+
+            for (int i = lo.x; i <= hi.x; ++i)
+            {
+                sol(i,j,k) = u_ls(i-lo.x);
+            }
+        }
+    } else {
+	amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa is wrong direction.");
+    }
+
 }
 
 //
@@ -536,7 +666,25 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
                           Array4<Real const> const& fine, Array4<int const> const& msk, int idir) noexcept
 {
-    amrex::Abort("mlndlap_semi_restriction not implemented in 2D (nodal solver does not support semicoarsening)");
+    int kk = 0;
+    if (idir == 1) {
+    	int ii = i*2;
+    	int jj = j;
+    	if (msk(ii,jj,kk)) {
+            crse(i,j,k) = 0.0;
+    	} else {
+            crse(i,j,k) = (1./4.)*(fine(ii-1,jj,kk) + 2.*fine(ii,jj,kk) + fine(ii+1,jj,kk));
+    	}
+    } else if (idir == 0) {
+
+        int ii = i;
+        int jj = j*2;
+        if (msk(ii,jj,kk)) {
+            crse(i,j,k) = 0.0;
+        } else {
+            crse(i,j,k) = (1./4.)*(fine(ii,jj-1,kk) + 2.*fine(ii,jj,kk) + fine(ii,jj+1,kk));
+        }
+    }
 }
 
 //
@@ -609,7 +757,34 @@ void mlndlap_semi_interpadd_aa (int i, int j, int, Array4<Real> const& fine,
                            Array4<Real const> const& crse, Array4<Real const> const& sig,
                            Array4<int const> const& msk, int idir) noexcept
 {
-    amrex::Abort("mlndlap_semi_interpadd_aa not implemented in 2D (nodal solver does not support semicoarsening)");
+    
+    if (idir == 1) {
+	if (!msk(i,j,0)) {
+            int ic = amrex::coarsen(i,2);
+            int jc = j;
+            bool i_is_odd = (ic*2 != i);
+	    if (i_is_odd) {
+                // Node on X line
+                fine(i,j,0) += aa_interp_line_x(crse,sig,i,j,ic,jc);
+	    } else {
+	        //Node coincident with coarse node
+	        fine(i,j,0) += crse(ic,jc,0);
+	    }
+        }
+    } else if (idir == 0 ) { 
+	if (!msk(i,j,0)) { 
+            int ic = i;
+            int jc = amrex::coarsen(j,2);
+            bool j_is_odd = (ic*2 != i);
+            if (j_is_odd) {
+                // Node on Y line
+                fine(i,j,0) += aa_interp_line_y(crse,sig,i,j,ic,jc);
+            } else {
+                //Node coincident with coarse node
+                fine(i,j,0) += crse(ic,jc,0);
+            }
+	}
+    } 
 }
 
 namespace {

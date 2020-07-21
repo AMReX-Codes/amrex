@@ -1169,7 +1169,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
 	    idir = 1;
         } else if (ratio[0] == 1) {
  	    idir = 0;
-        } 
+        }
     }
 
 
@@ -1201,7 +1201,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
             });
         }
         else
-        {
+        { 
 	    Array4<Real const> const& sfab = sigma[0]->const_array(mfi);
 	    if (regular_coarsening)
 	    {

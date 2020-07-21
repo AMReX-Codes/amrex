@@ -167,10 +167,10 @@ MyTest::initData ()
     exact_solution.resize(nlevels);
     sigma.resize(nlevels);
 
-    RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(64.,64.,1.)});
+    RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(64.,1.,1.)});
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
     Geometry::Setup(&rb, 0, is_periodic.data());
-    Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(64*n_cell-1,64*n_cell-1,n_cell-1)});
+    Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(64*n_cell-1,n_cell-1,n_cell-1)});
     Box domain = domain0;
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
