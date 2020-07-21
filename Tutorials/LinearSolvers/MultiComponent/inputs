@@ -1,4 +1,4 @@
-mesh.nlevels = 2                # Number of AMR levels
+mesh.nlevels = 1                # Number of AMR levels
 mesh.nnodes = 64                # Number of nodes in each direction
 mesh.max_grid_size = 16         # Maximum grid size (default = very large --> no parallelism)
 

@@ -114,7 +114,7 @@ int main (int argc, char* argv[])
     Vector<Geometry> geom;
   	Vector<BoxArray> cgrids, ngrids;
  	Vector<DistributionMapping> dmap;
-  	Vector<MultiFab> solution, rhs, res;
+  	Vector<MultiFab> solution, rhs, res, proc;
  	geom.resize(mesh.nlevels);
  	cgrids.resize(mesh.nlevels);
  	ngrids.resize(mesh.nlevels);
@@ -122,6 +122,7 @@ int main (int argc, char* argv[])
  	solution.resize(mesh.nlevels);
  	rhs.resize(mesh.nlevels);
     res.resize(mesh.nlevels);
+    proc.resize(mesh.nlevels);
 	RealBox rb({AMREX_D_DECL(-0.5,-0.5,-0.5)},
 	          {AMREX_D_DECL(0.5,0.5,0.5)});
 	Geometry::Setup(&rb, 0);
@@ -157,8 +158,6 @@ int main (int argc, char* argv[])
     //    RHS[1] = 0 
     //    RHS[2] = 0 ... etc
     //
-    for (int round = 0; round < 2; round++)
-    {
     int nghost = 2;
     int cntr = ParallelDescriptor::MyProc();
  	for (int ilev = 0; ilev < mesh.nlevels; ++ilev)
@@ -170,6 +169,8 @@ int main (int argc, char* argv[])
         rhs     [ilev].setVal(0.0);
  		res     [ilev].define(ngrids[ilev], dmap[ilev], op.ncomp, nghost);
         res     [ilev].setVal(0.0);
+ 		proc    [ilev].define(ngrids[ilev], dmap[ilev], op.ncomp, nghost);
+        proc    [ilev].setVal(0.0);
            
 	    Box domain(geom[ilev].Domain());
         const Real* DX = geom[ilev].CellSize();
@@ -182,6 +183,7 @@ int main (int argc, char* argv[])
     		bx = bx & domain;  // Take intersection of box and the problem domain
 		
     		Array4<Real> const& RHS  = rhs[ilev].array(mfi);
+    		Array4<Real> const& PROC = proc[ilev].array(mfi);
     		for (int n = 0; n < op.ncomp; n++)
     			ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     
@@ -194,17 +196,19 @@ int main (int argc, char* argv[])
                                                            * (x3-0.5)*(x3+0.5));
                     else RHS(i,j,k,n) = 0.0;
                     //RHS(i,j,k,n) = cntr;
-                    if (round==0) RHS(i,j,k,n) = ParallelDescriptor::MyProc();
+                    PROC(i,j,k,n) = ParallelDescriptor::MyProc();
     			});         
                 //cntr += ParallelDescriptor::NProcs();
  	    }
         //rhs[ilev].FillBoundary();
-        rhs[ilev].RealFillBoundary();
+        //rhs[ilev].RealFillBoundary();
+        rhs[ilev].FillBoundary();
+        proc[ilev].RealFillBoundary();
+        
     }
-    if (round==0) WriteOutput("proc",rhs,geom);
-    if (round==1) WriteOutput("rhs",rhs,geom);
-    }
-    //return 0;
+    WriteOutput("proc",proc,geom);
+    WriteOutput("rhs",rhs,geom);
+    return 0;
          
     // 
     // Set params to be passed to MLMG solver
