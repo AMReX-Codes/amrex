@@ -38,8 +38,8 @@ private:
     int gpu_regtest = 0;
 
 
-    bool agglomeration = true;
-    bool consolidation = true;
+    bool agglomeration = false;
+    bool consolidation = false;
     bool semicoarsening = false;
     int max_semicoarsening_level = 0;
 

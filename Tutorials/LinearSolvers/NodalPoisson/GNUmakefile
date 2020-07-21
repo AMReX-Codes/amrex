@@ -5,7 +5,7 @@ USE_OMP  = FALSE
 
 COMP = gnu
 
-DIM = 2
+DIM = 3
 
 AMREX_HOME ?= ../../..
 

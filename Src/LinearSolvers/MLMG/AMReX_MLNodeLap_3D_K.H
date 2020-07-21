@@ -1198,114 +1198,112 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
     if ( idir == 2 ) 
     {
         for (int j = lo.y; j <= hi.y; ++j) 
-	{
-            AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i <= hi.x; ++i) 
-	    {
+        {
+            for (int i = lo.x; i <= hi.x; ++i)
+            {
                 for (int k = lo.z; k <= hi.z; ++k)
                 {
-        	    if (msk(i,j,k)) 
-		    {
-            		a_ls(k-lo.z) = 0.;
+                    if (msk(i,j,k)) 
+                    {
+                        a_ls(k-lo.z) = 0.;
                         b_ls(k-lo.z) = 1.;
                         c_ls(k-lo.z) = 0.;
                         u_ls(k-lo.z) = 0.;
                         r_ls(k-lo.z) = 0.;
-        	    } 
-		    else 
-		    {
-			Real s0 = (-4.0)*fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
+                    } 
+                    else 
+                    {
+                        Real s0 = (-4.0)*fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)   
                                              + sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  ));
 
-		        Real Ax = fxyz*(sol(i-1,j-1,k-1)*sig(i-1,j-1,k-1)
-                   	              + sol(i+1,j-1,k-1)*sig(i  ,j-1,k-1)
-                      	              + sol(i-1,j+1,k-1)*sig(i-1,j  ,k-1)
+                        Real Ax = fxyz*(sol(i-1,j-1,k-1)*sig(i-1,j-1,k-1)
+                                      + sol(i+1,j-1,k-1)*sig(i  ,j-1,k-1)
+                                      + sol(i-1,j+1,k-1)*sig(i-1,j  ,k-1)
                                       + sol(i+1,j+1,k-1)*sig(i  ,j  ,k-1)
                                       + sol(i-1,j-1,k+1)*sig(i-1,j-1,k  )
                                       + sol(i+1,j-1,k+1)*sig(i  ,j-1,k  )
                                       + sol(i-1,j+1,k+1)*sig(i-1,j  ,k  )
                                       + sol(i+1,j+1,k+1)*sig(i  ,j  ,k  ))
-                	      + fmx2y2z*(sol(i  ,j-1,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1))
-                               	      + sol(i  ,j+1,k-1)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1))
-                                      + sol(i  ,j-1,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  ))
-                                      + sol(i  ,j+1,k+1)*(sig(i-1,j  ,k  )+sig(i,j  ,k  )))
-                	      + f2xmy2z*(sol(i-1,j  ,k-1)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1))
-                         	       + sol(i+1,j  ,k-1)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1))
-                                       + sol(i-1,j  ,k+1)*(sig(i-1,j-1,k  )+sig(i-1,j,k  ))
-                                       + sol(i+1,j  ,k+1)*(sig(i  ,j-1,k  )+sig(i  ,j,k  )))
-                	      + f2x2ymz*(sol(i-1,j-1,k  )*(sig(i-1,j-1,k-1)+sig(i-1,j-1,k))
-                         	       + sol(i+1,j-1,k  )*(sig(i  ,j-1,k-1)+sig(i  ,j-1,k))
-                                       + sol(i-1,j+1,k  )*(sig(i-1,j  ,k-1)+sig(i-1,j  ,k))
-                         	       + sol(i+1,j+1,k  )*(sig(i  ,j  ,k-1)+sig(i  ,j  ,k)))
-                	      + f4xm2ym2z*(sol(i-1,j,k)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1)+sig(i-1,j-1,k)+sig(i-1,j,k))
-                           	       + sol(i+1,j,k)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1)+sig(i  ,j-1,k)+sig(i  ,j,k)))
-		              + fm2x4ym2z*(sol(i,j-1,k)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j-1,k)+sig(i,j-1,k))
-                	               + sol(i,j+1,k)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1)+sig(i-1,j  ,k)+sig(i,j  ,k)));
+                            + fmx2y2z*(sol(i  ,j-1,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1))
+                                     + sol(i  ,j+1,k-1)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1))
+                                     + sol(i  ,j-1,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  ))
+                                     + sol(i  ,j+1,k+1)*(sig(i-1,j  ,k  )+sig(i,j  ,k  )))
+                            + f2xmy2z*(sol(i-1,j  ,k-1)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1))
+                                     + sol(i+1,j  ,k-1)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1))
+                                     + sol(i-1,j  ,k+1)*(sig(i-1,j-1,k  )+sig(i-1,j,k  ))
+                                     + sol(i+1,j  ,k+1)*(sig(i  ,j-1,k  )+sig(i  ,j,k  )))
+                            + f2x2ymz*(sol(i-1,j-1,k  )*(sig(i-1,j-1,k-1)+sig(i-1,j-1,k))
+                                     + sol(i+1,j-1,k  )*(sig(i  ,j-1,k-1)+sig(i  ,j-1,k))
+                                     + sol(i-1,j+1,k  )*(sig(i-1,j  ,k-1)+sig(i-1,j  ,k))
+                                     + sol(i+1,j+1,k  )*(sig(i  ,j  ,k-1)+sig(i  ,j  ,k)))
+                            + f4xm2ym2z*(sol(i-1,j,k)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1)+sig(i-1,j-1,k)+sig(i-1,j,k))
+                                       + sol(i+1,j,k)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1)+sig(i  ,j-1,k)+sig(i  ,j,k)))
+                            + fm2x4ym2z*(sol(i,j-1,k)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j-1,k)+sig(i,j-1,k))
+                                       + sol(i,j+1,k)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1)+sig(i-1,j  ,k)+sig(i,j  ,k)));
 
 			a_ls(k-lo.z) = fm2xm2y4z*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1));
-            		b_ls(k-lo.z) = s0;
-            		c_ls(k-lo.z) = fm2xm2y4z*(sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  ));
-            		u_ls(k-lo.z) = 0.;  
-            		r_ls(k-lo.z) = rhs(i,j,k) - Ax;
+                        b_ls(k-lo.z) = s0;
+                        c_ls(k-lo.z) = fm2xm2y4z*(sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  ));
+                        u_ls(k-lo.z) = 0.;  
+                        r_ls(k-lo.z) = rhs(i,j,k) - Ax;
 				
-		    }
-		}
-		tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
+                    }
+                }
+                tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
 
-		for (int k = lo.z; k <= hi.z; ++k)
-		{   
-	      	    sol(i,j,k) = u_ls(k-lo.z);
-		}
-	    }
+                for (int k = lo.z; k <= hi.z; ++k)
+                {  
+                    sol(i,j,k) = u_ls(k-lo.z);
+                }
+            }
         }
     }
     else if (idir == 1)
     {
-        for (int i = lo.x; i <= hi.x; ++i)
+        for (int k = lo.z; k <= hi.z; ++k)
         {
-            AMREX_PRAGMA_SIMD
-            for (int k = lo.z; k <= hi.z; ++k)
+            for (int i = lo.x; i <= hi.x; ++i)
             {
-            	for (int j = lo.y; j <= hi.y; ++j)
+                for (int j = lo.y; j <= hi.y; ++j)
                 {
                     if (msk(i,j,k)) {
-                	a_ls(j-lo.y) = 0.;
+                        a_ls(j-lo.y) = 0.;
                         b_ls(j-lo.y) = 1.;
                         c_ls(j-lo.y) = 0.;
                         u_ls(j-lo.y) = 0.;
                         r_ls(j-lo.y) = 0.;
                     } 
-		    else 
-		    {
+                    else
+                    {
                         Real s0 = (-4.0)*fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
                                              + sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  ));
 
-		        Real Ax = fxyz*(sol(i-1,j-1,k-1)*sig(i-1,j-1,k-1)
-                      		      + sol(i+1,j-1,k-1)*sig(i  ,j-1,k-1)
-                      		      + sol(i-1,j+1,k-1)*sig(i-1,j  ,k-1)
-                      		      + sol(i+1,j+1,k-1)*sig(i  ,j  ,k-1)
-                      		      + sol(i-1,j-1,k+1)*sig(i-1,j-1,k  )
-                      		      + sol(i+1,j-1,k+1)*sig(i  ,j-1,k  )
-                      		      + sol(i-1,j+1,k+1)*sig(i-1,j  ,k  )
-                      		      + sol(i+1,j+1,k+1)*sig(i  ,j  ,k  ))
-                		+ fmx2y2z*(sol(i  ,j-1,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1))
-                                         + sol(i  ,j+1,k-1)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1))
-                                         + sol(i  ,j-1,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  ))
-                                         + sol(i  ,j+1,k+1)*(sig(i-1,j  ,k  )+sig(i,j  ,k  )))
-                		+ f2xmy2z*(sol(i-1,j  ,k-1)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1))
-                         		 + sol(i+1,j  ,k-1)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1))
-                         	         + sol(i-1,j  ,k+1)*(sig(i-1,j-1,k  )+sig(i-1,j,k  ))
-                         		 + sol(i+1,j  ,k+1)*(sig(i  ,j-1,k  )+sig(i  ,j,k  )))
-                		+ f2x2ymz*(sol(i-1,j-1,k  )*(sig(i-1,j-1,k-1)+sig(i-1,j-1,k))
-                         		 + sol(i+1,j-1,k  )*(sig(i  ,j-1,k-1)+sig(i  ,j-1,k))
-                         		 + sol(i-1,j+1,k  )*(sig(i-1,j  ,k-1)+sig(i-1,j  ,k))
-                         		 + sol(i+1,j+1,k  )*(sig(i  ,j  ,k-1)+sig(i  ,j  ,k)))
-                		+ f4xm2ym2z*(sol(i-1,j,k)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1)+sig(i-1,j-1,k)+sig(i-1,j,k))
-                           	         + sol(i+1,j,k)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1)+sig(i  ,j-1,k)+sig(i  ,j,k)))
-                		+ fm2xm2y4z*(sol(i,j,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1))
-                           	         + sol(i,j,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )));
+                        Real Ax = fxyz*(sol(i-1,j-1,k-1)*sig(i-1,j-1,k-1)
+                                      + sol(i+1,j-1,k-1)*sig(i  ,j-1,k-1)
+                                      + sol(i-1,j+1,k-1)*sig(i-1,j  ,k-1)
+                                      + sol(i+1,j+1,k-1)*sig(i  ,j  ,k-1)
+                                      + sol(i-1,j-1,k+1)*sig(i-1,j-1,k  )
+                                      + sol(i+1,j-1,k+1)*sig(i  ,j-1,k  )
+                                      + sol(i-1,j+1,k+1)*sig(i-1,j  ,k  )
+                                      + sol(i+1,j+1,k+1)*sig(i  ,j  ,k  ))
+                            + fmx2y2z*(sol(i  ,j-1,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1))
+                                     + sol(i  ,j+1,k-1)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1))
+                                     + sol(i  ,j-1,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  ))
+                                     + sol(i  ,j+1,k+1)*(sig(i-1,j  ,k  )+sig(i,j  ,k  )))
+                            + f2xmy2z*(sol(i-1,j  ,k-1)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1))
+                                     + sol(i+1,j  ,k-1)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1))
+                                     + sol(i-1,j  ,k+1)*(sig(i-1,j-1,k  )+sig(i-1,j,k  ))
+                                     + sol(i+1,j  ,k+1)*(sig(i  ,j-1,k  )+sig(i  ,j,k  )))
+                            + f2x2ymz*(sol(i-1,j-1,k  )*(sig(i-1,j-1,k-1)+sig(i-1,j-1,k))
+                                     + sol(i+1,j-1,k  )*(sig(i  ,j-1,k-1)+sig(i  ,j-1,k))
+                                     + sol(i-1,j+1,k  )*(sig(i-1,j  ,k-1)+sig(i-1,j  ,k))
+                                     + sol(i+1,j+1,k  )*(sig(i  ,j  ,k-1)+sig(i  ,j  ,k)))
+                            + f4xm2ym2z*(sol(i-1,j,k)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1)+sig(i-1,j-1,k)+sig(i-1,j,k))
+                                       + sol(i+1,j,k)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1)+sig(i  ,j-1,k)+sig(i  ,j,k)))
+                            + fm2xm2y4z*(sol(i,j,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1))
+                                       + sol(i,j,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )));
 
-                       	a_ls(j-lo.y) = fm2x4ym2z*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j-1,k)+sig(i,j-1,k));
+                        a_ls(j-lo.y) = fm2x4ym2z*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j-1,k)+sig(i,j-1,k));
                         b_ls(j-lo.y) = s0;
                         c_ls(j-lo.y) = fm2x4ym2z*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1)+sig(i-1,j  ,k)+sig(i,j  ,k));
                         u_ls(j-lo.y) = 0.;
@@ -1315,80 +1313,78 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                 }
                 tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
 
-        	for (int j = lo.y; j <= hi.y; ++j)
+                for (int j = lo.y; j <= hi.y; ++j)
                 {
                     sol(i,j,k) = u_ls(j-lo.y);
                 }
-	    }
-	}
+            }
+        }
     } 
     else if (idir == 0) 
     {
         for (int j = lo.y; j <= hi.y; ++j)
         {
-            AMREX_PRAGMA_SIMD
             for (int k = lo.z; k <= hi.z; ++k)
             {
                 for (int i = lo.x; i <= hi.x; ++i)
                 {
                     if (msk(i,j,k)) 
-		    {
-                        a_ls(i-lo.x) = 0.;
-                        b_ls(i-lo.x) = 1.;
-                        c_ls(i-lo.x) = 0.;
-                        u_ls(i-lo.x) = 0.;
-                        r_ls(i-lo.x) = 0.;
-                    } 
-		    else 
-		    {
+                    {
+                        a_ls(j-lo.y) = 0.;
+                        b_ls(j-lo.y) = 1.;
+                        c_ls(j-lo.y) = 0.;
+                        u_ls(j-lo.y) = 0.;
+                        r_ls(j-lo.y) = 0.;
+                    }
+                    else
+                    {
                         Real s0 = (-4.0)*fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
                                              + sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  ));
 
-		        Real Ax = fxyz*(sol(i-1,j-1,k-1)*sig(i-1,j-1,k-1)
-                      		      + sol(i+1,j-1,k-1)*sig(i  ,j-1,k-1)
-                      		      + sol(i-1,j+1,k-1)*sig(i-1,j  ,k-1)
-                      		      + sol(i+1,j+1,k-1)*sig(i  ,j  ,k-1)
+                        Real Ax = fxyz*(sol(i-1,j-1,k-1)*sig(i-1,j-1,k-1)
+                                      + sol(i+1,j-1,k-1)*sig(i  ,j-1,k-1)
+                                      + sol(i-1,j+1,k-1)*sig(i-1,j  ,k-1)
+                                      + sol(i+1,j+1,k-1)*sig(i  ,j  ,k-1)
                                       + sol(i-1,j-1,k+1)*sig(i-1,j-1,k  )
-                      		      + sol(i+1,j-1,k+1)*sig(i  ,j-1,k  )
-         			      + sol(i-1,j+1,k+1)*sig(i-1,j  ,k  )
-                      		      + sol(i+1,j+1,k+1)*sig(i  ,j  ,k  ))
-                		+ fmx2y2z*(sol(i  ,j-1,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1))
-                         		 + sol(i  ,j+1,k-1)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1))
-                         		 + sol(i  ,j-1,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  ))
-                         		 + sol(i  ,j+1,k+1)*(sig(i-1,j  ,k  )+sig(i,j  ,k  )))
-                		+ f2xmy2z*(sol(i-1,j  ,k-1)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1))
-                         		 + sol(i+1,j  ,k-1)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1))
-                         		 + sol(i-1,j  ,k+1)*(sig(i-1,j-1,k  )+sig(i-1,j,k  ))
-                         		 + sol(i+1,j  ,k+1)*(sig(i  ,j-1,k  )+sig(i  ,j,k  )))
-                		+ f2x2ymz*(sol(i-1,j-1,k  )*(sig(i-1,j-1,k-1)+sig(i-1,j-1,k))
-                         		 + sol(i+1,j-1,k  )*(sig(i  ,j-1,k-1)+sig(i  ,j-1,k))
-                                         + sol(i-1,j+1,k  )*(sig(i-1,j  ,k-1)+sig(i-1,j  ,k))
-                         		 + sol(i+1,j+1,k  )*(sig(i  ,j  ,k-1)+sig(i  ,j  ,k)))
-                		+ fm2x4ym2z*(sol(i,j-1,k)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j-1,k)+sig(i,j-1,k))
-                                           + sol(i,j+1,k)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1)+sig(i-1,j  ,k)+sig(i,j  ,k)))
-                		+ fm2xm2y4z*(sol(i,j,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1))
-                           		   + sol(i,j,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )));
+                                      + sol(i+1,j-1,k+1)*sig(i  ,j-1,k  )
+                                      + sol(i-1,j+1,k+1)*sig(i-1,j  ,k  )
+                                      + sol(i+1,j+1,k+1)*sig(i  ,j  ,k  ))
+                            + fmx2y2z*(sol(i  ,j-1,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1))
+                                     + sol(i  ,j+1,k-1)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1))
+                                     + sol(i  ,j-1,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  ))
+                                     + sol(i  ,j+1,k+1)*(sig(i-1,j  ,k  )+sig(i,j  ,k  )))
+                            + f2xmy2z*(sol(i-1,j  ,k-1)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1))
+                                     + sol(i+1,j  ,k-1)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1))
+                                     + sol(i-1,j  ,k+1)*(sig(i-1,j-1,k  )+sig(i-1,j,k  ))
+                                     + sol(i+1,j  ,k+1)*(sig(i  ,j-1,k  )+sig(i  ,j,k  )))
+                            + f2x2ymz*(sol(i-1,j-1,k  )*(sig(i-1,j-1,k-1)+sig(i-1,j-1,k))
+                                     + sol(i+1,j-1,k  )*(sig(i  ,j-1,k-1)+sig(i  ,j-1,k))
+                                     + sol(i-1,j+1,k  )*(sig(i-1,j  ,k-1)+sig(i-1,j  ,k))
+                                     + sol(i+1,j+1,k  )*(sig(i  ,j  ,k-1)+sig(i  ,j  ,k)))
+                            + fm2x4ym2z*(sol(i,j-1,k)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j-1,k)+sig(i,j-1,k))
+                                     + sol(i,j+1,k)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1)+sig(i-1,j  ,k)+sig(i,j  ,k)))
+                            + fm2xm2y4z*(sol(i,j,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1))
+                                     + sol(i,j,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )));
 
-                   	a_ls(i-lo.x) = f4xm2ym2z*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1)+sig(i-1,j-1,k)+sig(i-1,j,k));
+                        a_ls(i-lo.x) = f4xm2ym2z*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1)+sig(i-1,j-1,k)+sig(i-1,j,k));
                         b_ls(i-lo.x) = s0;
                         c_ls(i-lo.x) = f4xm2ym2z*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1)+sig(i  ,j-1,k)+sig(i  ,j,k));
                         u_ls(i-lo.x) = 0.;
                         r_ls(i-lo.x) = rhs(i,j,k) - Ax;
-
               	    }
-           	}
+                }
                 tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
 
                 for (int i = lo.x; i <= hi.x; ++i)
                 {
                     sol(i,j,k) = u_ls(i-lo.x);
-             	}
-	    }
-	}
+                }
+            }
+        }
     } 
     else
     {
-	amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa is wrong direction.");	
+        amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa is wrong direction.");	
     } 
 }
 
@@ -1435,9 +1431,9 @@ void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
         if (msk(ii,jj,kk)) {
             crse(i,j,k) = 0.0;
         } else { // use 2-D formula 
-             crse(i,j,k) = (1./16.)*(fine(ii-1,jj-1,kk) + 2.*fine(ii  ,jj-1,kk) +    fine(ii+1,jj-1,kk)
-                                + 2.*fine(ii-1,jj  ,kk) + 4.*fine(ii  ,jj  ,kk) + 2.*fine(ii+1,jj  ,kk)
-                                   + fine(ii-1,jj+1,kk) + 2.*fine(ii  ,jj+1,kk) +    fine(ii+1,jj+1,kk));
+            crse(i,j,k) = (1./16.)*(fine(ii-1,jj-1,kk) + 2.*fine(ii  ,jj-1,kk) +    fine(ii+1,jj-1,kk)
+                               + 2.*fine(ii-1,jj  ,kk) + 4.*fine(ii  ,jj  ,kk) + 2.*fine(ii+1,jj  ,kk)
+                                  + fine(ii-1,jj+1,kk) + 2.*fine(ii  ,jj+1,kk) +    fine(ii+1,jj+1,kk));
         }
     } 
     else if (idir == 1) 
@@ -1448,9 +1444,9 @@ void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
         if (msk(ii,jj,kk)) {
             crse(i,j,k) = 0.0;
         } else { // use 2-D formula 
-             crse(i,j,k) = (1./16.)*(fine(ii-1,jj,kk-1) + 2.*fine(ii  ,jj,kk-1) +    fine(ii+1,jj,kk-1)
-                                + 2.*fine(ii-1,jj  ,kk) + 4.*fine(ii  ,jj,kk  ) + 2.*fine(ii+1,jj,kk  )
-                                   + fine(ii-1,jj,kk+1) + 2.*fine(ii  ,jj,kk+1) +    fine(ii+1,jj,kk+1));
+            crse(i,j,k) = (1./16.)*(fine(ii-1,jj,kk-1) + 2.*fine(ii  ,jj,kk-1) +    fine(ii+1,jj,kk-1)
+                               + 2.*fine(ii-1,jj  ,kk) + 4.*fine(ii  ,jj,kk  ) + 2.*fine(ii+1,jj,kk  )
+                                  + fine(ii-1,jj,kk+1) + 2.*fine(ii  ,jj,kk+1) +    fine(ii+1,jj,kk+1));
         }
     }
     else if (idir == 0)
@@ -1461,14 +1457,14 @@ void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
         if (msk(ii,jj,kk)) {
             crse(i,j,k) = 0.0;
         } else { // use 2-D formula 
-             crse(i,j,k) = (1./16.)*(fine(ii,jj-1,kk-1) + 2.*fine(ii  ,jj,kk-1) +    fine(ii,jj+1,kk-1)
-                                + 2.*fine(ii,jj-1  ,kk) + 4.*fine(ii  ,jj,kk  ) + 2.*fine(ii,jj+1,kk  )
-                                   + fine(ii,jj-1,kk+1) + 2.*fine(ii  ,jj,kk+1) +    fine(ii,jj+1,kk+1));
+            crse(i,j,k) = (1./16.)*(fine(ii,jj-1,kk-1) + 2.*fine(ii  ,jj,kk-1) +    fine(ii,jj+1,kk-1)
+                               + 2.*fine(ii,jj-1  ,kk) + 4.*fine(ii  ,jj,kk  ) + 2.*fine(ii,jj+1,kk  )
+                                  + fine(ii,jj-1,kk+1) + 2.*fine(ii  ,jj,kk+1) +    fine(ii,jj+1,kk+1));
         }
     }
     else 
     {
-	amrex::Abort("mlndlap_semi_restriction semi direction wrong semi-direction. ");
+        amrex::Abort("mlndlap_semi_restriction semi direction wrong semi-direction. ");
     }
 }
 
@@ -1624,8 +1620,8 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
                 // Node on Y line
                 fine(i,j,k) += aa_interp_line_y(crse,sig,i,j,k,ic,jc,kc);
             } else {
-	        // Node coincident with coarse node
-	        fine(i,j,k) += crse(ic,jc,kc);
+                // Node coincident with coarse node 
+                fine(i,j,k) += crse(ic,jc,kc);
             }
 	}
     } else if (idir ==1 ){
@@ -1638,7 +1634,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
 
             if (i_is_odd and k_is_odd) {
                 // Node on a X-Z face
-		fine(i,j,k) += aa_interp_face_xz(crse,sig,i,j,k,ic,jc,kc);
+	        fine(i,j,k) += aa_interp_face_xz(crse,sig,i,j,k,ic,jc,kc);
             } else if (i_is_odd) {
                 // Node on X line
                 fine(i,j,k) += aa_interp_line_x(crse,sig,i,j,k,ic,jc,kc);
@@ -1647,7 +1643,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
                 fine(i,j,k) += aa_interp_line_z(crse,sig,i,j,k,ic,jc,kc);
             } else {
                 // Node coincident with coarse node
-		fine(i,j,k) += crse(ic,jc,kc);
+                fine(i,j,k) += crse(ic,jc,kc);
             }
         }
     } else if (idir == 0 ) {
@@ -1673,7 +1669,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
             }
         }
     } else { 
-	amrex::Abort("mlndlap_semi_interpolation semi direction wrong semi-direction. ");
+        amrex::Abort("mlndlap_semi_interpolation semi direction wrong semi-direction. ");
     }
 }
 namespace {

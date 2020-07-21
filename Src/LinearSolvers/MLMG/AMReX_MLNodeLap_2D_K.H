@@ -558,13 +558,12 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
     Array1D<Real,0,31> a_ls,b_ls,c_ls,u_ls,r_ls,gam;
 
     if (idir == 1) {
-	AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i)
         {
             for (int j = lo.y; j <= hi.y; ++j)
             {
-        	if (msk(i,j,k)) {
-        	    a_ls(j-lo.y) = 0.;
+                if (msk(i,j,k)) {
+                    a_ls(j-lo.y) = 0.;
                     b_ls(j-lo.y) = 1.;
                     c_ls(j-lo.y) = 0.;
                     u_ls(j-lo.y) = 0.;
@@ -586,18 +585,16 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                     c_ls(j-lo.y) = fmx2y*(sig(i-1,j  ,k)+sig(i,j  ,k));          
                     u_ls(j-lo.y) = 0.;
                     r_ls(j-lo.y) = rhs(i,j,k) - Ax;
-
                 }
             }
             tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
 
             for (int j = lo.y; j <= hi.y; ++j)
             {
-            	sol(i,j,k) = u_ls(j-lo.y);
+                sol(i,j,k) = u_ls(j-lo.y);
             }
         }
     } else if (idir == 0) {
-        AMREX_PRAGMA_SIMD
         for (int j = lo.y ;j <= hi.y; ++j)
         {
             for (int i = lo.x; i <= hi.x; ++i)
@@ -611,7 +608,6 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                 }
                 else
                 {
-
                     Real s0 = (-2.0)*fxy*(sig(i-1,j-1,k)+sig(i,j-1,k)+sig(i-1,j,k)+sig(i,j,k));
 
                     Real Ax = sol(i-1,j-1,k)*fxy*sig(i-1,j-1,k)
@@ -637,7 +633,7 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
             }
         }
     } else {
-	amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa is wrong direction.");
+        amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa is wrong direction.");
     }
 
 }
@@ -668,15 +664,14 @@ void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
 {
     int kk = 0;
     if (idir == 1) {
-    	int ii = i*2;
-    	int jj = j;
-    	if (msk(ii,jj,kk)) {
+        int ii = i*2;
+        int jj = j;
+        if (msk(ii,jj,kk)) {
             crse(i,j,k) = 0.0;
-    	} else {
+        } else {
             crse(i,j,k) = (1./4.)*(fine(ii-1,jj,kk) + 2.*fine(ii,jj,kk) + fine(ii+1,jj,kk));
-    	}
+        }
     } else if (idir == 0) {
-
         int ii = i;
         int jj = j*2;
         if (msk(ii,jj,kk)) {
@@ -757,25 +752,24 @@ void mlndlap_semi_interpadd_aa (int i, int j, int, Array4<Real> const& fine,
                            Array4<Real const> const& crse, Array4<Real const> const& sig,
                            Array4<int const> const& msk, int idir) noexcept
 {
-    
     if (idir == 1) {
-	if (!msk(i,j,0)) {
+        if (!msk(i,j,0)) {
             int ic = amrex::coarsen(i,2);
             int jc = j;
             bool i_is_odd = (ic*2 != i);
-	    if (i_is_odd) {
+            if (i_is_odd) {
                 // Node on X line
                 fine(i,j,0) += aa_interp_line_x(crse,sig,i,j,ic,jc);
-	    } else {
-	        //Node coincident with coarse node
-	        fine(i,j,0) += crse(ic,jc,0);
-	    }
+            } else {
+                //Node coincident with coarse node
+                fine(i,j,0) += crse(ic,jc,0)
+            }
         }
     } else if (idir == 0 ) { 
-	if (!msk(i,j,0)) { 
+        if (!msk(i,j,0)) { 
             int ic = i;
             int jc = amrex::coarsen(j,2);
-            bool j_is_odd = (ic*2 != i);
+            bool j_is_odd = (ic*2 != i); 
             if (j_is_odd) {
                 // Node on Y line
                 fine(i,j,0) += aa_interp_line_y(crse,sig,i,j,ic,jc);
@@ -783,7 +777,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int, Array4<Real> const& fine,
                 //Node coincident with coarse node
                 fine(i,j,0) += crse(ic,jc,0);
             }
-	}
+        }
     } 
 }
 

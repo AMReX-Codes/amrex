@@ -1090,9 +1090,9 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
     const auto& stencil = m_stencil[amrlev][cmglev-1];
 
     bool regular_coarsening = true; int idir = 2;
-    if (amrlev == 0 and cmglev > 0) {
+    if (cmglev > 0) {
         regular_coarsening = mg_coarsen_ratio_vec[cmglev-1] == mg_coarsen_ratio;
-        IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[cmglev-1];
+        IntVect ratio = mg_coarsen_ratio_vec[cmglev-1];
         if (ratio[1] == 1) {
             idir = 1;
         } else if (ratio[0] == 1) {
@@ -1162,9 +1162,9 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][fmglev];
 
     bool regular_coarsening = true; int idir = 2;
-    if (amrlev == 0 and fmglev > 0) {
+    if (fmglev > 0) {
         regular_coarsening = mg_coarsen_ratio_vec[fmglev] == mg_coarsen_ratio;
-	IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[fmglev];
+	IntVect ratio = mg_coarsen_ratio_vec[fmglev];
 	if (ratio[1] == 1) {
 	    idir = 1;
         } else if (ratio[0] == 1) {
@@ -1399,11 +1399,6 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #endif
 
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
-
-    bool regular_coarsening = true;
-    if (amrlev == 0 and mglev > 0) {
-        regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
-    }
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
