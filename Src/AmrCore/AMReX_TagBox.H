@@ -57,11 +57,8 @@ public:
     /**
     * \brief Construct and return a new tagbox in which the coarsened cell
     * is tagged of any of the corresponding fine cells are tagged.
-    *
-    * \param ratio
-    * \param owner
     */
-    void coarsen (const IntVect& ratio) noexcept;
+    void coarsen (const IntVect& ratio, const Box& cbox) noexcept;
 
     /**
     * \brief Mark neighbors of every tagged cell a distance nbuff away
@@ -72,13 +69,6 @@ public:
     * \param nwid
     */
     void buffer (const IntVect& nbuf, const IntVect& nwid) noexcept;
-
-    /**
-    * \brief Tag cells on intersect with src if corresponding src cell is tagged.
-    *
-    * \param src
-    */
-    void merge (const TagBox& src) noexcept;
 
     /**
     * \brief Add location of every tagged cell to IntVect array,
@@ -183,16 +173,10 @@ public:
     ~TagBoxArray () override = default;
 
     TagBoxArray (TagBoxArray&& rhs) noexcept = default;
+    TagBoxArray& operator= (TagBoxArray&& rhs) noexcept = default;
 
     TagBoxArray (const TagBoxArray& rhs) = delete;
     TagBoxArray& operator= (const TagBoxArray& rhs) = delete;
-    TagBoxArray& operator= (TagBoxArray&& rhs) = delete;
-
-
-    /**
-    * \brief Returns the grow factor for the TagBoxArray.
-    */
-    IntVect borderSize () const noexcept;
 
     /**
     * \brief Calls buffer() on all contained TagBoxes.
@@ -202,12 +186,12 @@ public:
     void buffer (const IntVect& nbuf);
 
     /**
-    * \brief Map tagged cells through a periodic boundary to other grids in
-    * TagBoxArray cells which were outside domain are set to TagBox::CLEAR.
+    * \brief This funciton does two things.  Map tagged cells through a periodic boundary to other
+    * grids in TagBoxArray cells, and remove duplicates.
     *
     * \param geom
     */
-    void mapPeriodic (const Geometry& geom);
+    void mapPeriodicRemoveDuplicates (const Geometry& geom);
 
     /**
     * \brief Set values in bl to val.

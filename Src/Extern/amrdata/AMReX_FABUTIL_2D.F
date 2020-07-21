@@ -199,8 +199,9 @@ c                         --- break ---
 
 
 c ::: --------------------------------------------------------------
-      subroutine FORT_PCINTERP (fine,floi1,floi2,fhii1,fhii2,fblo, fbhi,lrat,
-     $ nvar, crse,cloi1,cloi2,chii1,chii2,cblo, cbhi,temp,tloi,thii)
+      subroutine FORT_PCINTERP (fine,floi1,floi2,fhii1,fhii2,fblo,
+     $     fbhi,lrat,nvar,crse,cloi1,cloi2,chii1,chii2,cblo,
+     $     cbhi,temp,tloi,thii)
 
       integer floi1,floi2
       integer fhii1,fhii2

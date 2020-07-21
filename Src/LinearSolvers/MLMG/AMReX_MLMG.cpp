@@ -825,7 +825,6 @@ MLMG::addInterpCorrection (int alev, int mglev)
     const MultiFab& crse_cor = *cor[alev][mglev+1];
     MultiFab&       fine_cor = *cor[alev][mglev  ];
 
-    const int refratio = 2;
     MultiFab cfine;
     const MultiFab* cmf;
 
@@ -836,7 +835,9 @@ MLMG::addInterpCorrection (int alev, int mglev)
     else
     {
         BoxArray cba = fine_cor.boxArray();
-        cba.coarsen(refratio);
+        IntVect ratio = (alev > 0) ? IntVect(2) : linop.mg_coarsen_ratio_vec[mglev];
+
+        cba.coarsen(ratio);
         const int ng = 0;
         cfine.define(cba, fine_cor.DistributionMap(), ncomp, ng);
         cfine.ParallelCopy(crse_cor);
@@ -1129,18 +1130,18 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         linop_prepared = true;
     } else if (linop.needsUpdate()) {
         linop.update();
-    }
 
 #ifdef AMREX_USE_HYPRE
-    hypre_solver.reset();
-    hypre_bndry.reset();
-    hypre_node_solver.reset();
+        hypre_solver.reset();
+        hypre_bndry.reset();
+        hypre_node_solver.reset();
 #endif
 
 #ifdef AMREX_USE_PETSC
-    petsc_solver.reset(); 
-    petsc_bndry.reset(); 
+        petsc_solver.reset(); 
+        petsc_bndry.reset(); 
 #endif
+    }
 
     sol.resize(namrlevs);
     sol_raii.resize(namrlevs);
@@ -1829,6 +1830,11 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         {
             hypre_solver = linop.makeHypre(hypre_interface);
             hypre_solver->setVerbose(bottom_verbose);
+            hypre_solver->setHypreOldDefault(hypre_old_default);
+            hypre_solver->setHypreRelaxType(hypre_relax_type);
+            hypre_solver->setHypreRelaxOrder(hypre_relax_order);
+            hypre_solver->setHypreNumSweeps(hypre_num_sweeps);
+            hypre_solver->setHypreStrongThreshold(hypre_strong_threshold);
 
             const BoxArray& ba = linop.m_grids[amrlev].back();
             const DistributionMapping& dm = linop.m_dmap[amrlev].back();
