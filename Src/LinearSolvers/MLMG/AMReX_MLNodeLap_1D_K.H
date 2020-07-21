@@ -108,7 +108,7 @@ void mlndlap_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
+void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
                            Array4<Real const> const& crse, Array4<Real const> const& sig,
                            Array4<int const> const& msk, int idir) noexcept
 {}
