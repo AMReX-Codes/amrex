@@ -166,14 +166,14 @@ int main (int argc, char* argv[])
     		for (int n = 0; n < op.ncomp; n++)
     			ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     
-                    Real AMREX_D_DECL(x1 = i*dx + geom[ilev].ProbLo()[0],
-                                      x2 = j*dy + geom[ilev].ProbLo()[1], 
-                                      x3 = k*dz + geom[ilev].ProbLo()[2]);
-
-                    if (n==0) RHS(i,j,k,n) = AMREX_D_TERM(   (x1-0.5)*(x1+0.5),
-                                                           * (x2-0.5)*(x2+0.5),
-                                                           * (x3-0.5)*(x3+0.5));
-                    else RHS(i,j,k,n) = 0.0;
+//                    Real AMREX_D_DECL(x1 = i*dx + geom[ilev].ProbLo()[0],
+//                                      x2 = j*dy + geom[ilev].ProbLo()[1], 
+//                                      x3 = k*dz + geom[ilev].ProbLo()[2]);
+//
+//                    if (n==0) RHS(i,j,k,n) = AMREX_D_TERM(   (x1-0.5)*(x1+0.5),
+//                                                           * (x2-0.5)*(x2+0.5),
+//                                                           * (x3-0.5)*(x3+0.5));
+//                    else RHS(i,j,k,n) = 0.0;
     			});         
  	    }
         rhs[ilev].FillBoundary(false,true);
