@@ -682,10 +682,10 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         //
         // Map tagged points through periodic boundaries, if any.
         //
-        tags.mapPeriodic(Geometry(pc_domain[levc],
-                                  Geom(levc).ProbDomain(),
-                                  Geom(levc).CoordInt(),
-                                  Geom(levc).isPeriodic()));
+        tags.mapPeriodicRemoveDuplicates(Geometry(pc_domain[levc],
+                                                  Geom(levc).ProbDomain(),
+                                                  Geom(levc).CoordInt(),
+                                                  Geom(levc).isPeriodic()));
         //
         // Remove cells outside proper nesting domain for this level.
         //
@@ -704,38 +704,41 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             //
             if ( !(useFixedCoarseGrids() && levc<useFixedUpToLevel()) ) {
                 new_finest = std::max(new_finest,levf);
-	    }
-            //
-            // Construct initial cluster.
-            //
-            ClusterList clist(&tagvec[0], tagvec.size());
-            if (use_new_chop)
-            {
-               clist.new_chop(grid_eff);
-            } else {
-               clist.chop(grid_eff);
             }
-            BoxDomain bd;
-            bd.add(p_n[levc]);
-            clist.intersect(bd);
-            bd.clear();
-            //
-            // Efficient properly nested Clusters have been constructed
-            // now generate list of grids at level levf.
-            //
-            BoxList new_bx;
-            clist.boxList(new_bx);
-            new_bx.refine(bf_lev[levc]);
-            new_bx.simplify();
-            BL_ASSERT(new_bx.isDisjoint());
 
-	    if (new_bx.size()>0) {
-		if ( !(Geom(levc).Domain().contains(BoxArray(new_bx).minimalBox())) ) {
-		// Chop new grids outside domain, note that this is likely to result in
-		//  new grids that violate blocking_factor....see warning checking below
-		    new_bx = amrex::intersect(new_bx,Geom(levc).Domain());
-		}
-	    }
+            BoxList new_bx;
+            if (ParallelDescriptor::IOProcessor()) {
+                //
+                // Construct initial cluster.
+                //
+                ClusterList clist(&tagvec[0], tagvec.size());
+                if (use_new_chop) {
+                    clist.new_chop(grid_eff);
+                } else {
+                    clist.chop(grid_eff);
+                }
+                BoxDomain bd;
+                bd.add(p_n[levc]);
+                clist.intersect(bd);
+                bd.clear();
+                //
+                // Efficient properly nested Clusters have been constructed
+                // now generate list of grids at level levf.
+                //
+                clist.boxList(new_bx);
+                new_bx.refine(bf_lev[levc]);
+                new_bx.simplify();
+                BL_ASSERT(new_bx.isDisjoint());
+
+                if (new_bx.size()>0) {
+                    if ( !(Geom(levc).Domain().contains(BoxArray(new_bx).minimalBox())) ) {
+                        // Chop new grids outside domain, note that this is likely to result in
+                        //  new grids that violate blocking_factor....see warning checking below
+                        new_bx = amrex::intersect(new_bx,Geom(levc).Domain());
+                    }
+                }
+            }
+            new_bx.Bcast();  // Broadcast the enw BoxList to other processes
 
             const IntVect& largest_grid_size = max_grid_size[levf] / ref_ratio[levc];
             //
@@ -976,6 +979,22 @@ AmrMesh::checkInput ()
                  amrex::Print() << "blocking_factor is " << blocking_factor[i][idim] << std::endl;
                  amrex::Error("max_grid_size not divisible by blocking_factor");
               }
+            }
+        }
+    }
+
+    // Make sure TagBoxArray has no overlapped valid cells after coarsening by block_factor/ref_ratio
+    for (int i = 0; i < max_level; ++i) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            int bf_lev = std::max(1,blocking_factor[i+1][idim]/ref_ratio[i][idim]);
+            int min_grid_size = std::min(blocking_factor[i][idim],max_grid_size[i][idim]);
+            if (min_grid_size % bf_lev != 0) {
+                amrex::Print() << "On level " << i << " in direction " << idim
+                               << " max_grid_size is " << max_grid_size[i][idim]
+                               << " blocking factor is " << blocking_factor[i][idim] << "\n"
+                               << "On level " << i+1 << " in direction " << idim
+                               << " blocking_factor is " << blocking_factor[i+1][idim] << std::endl;
+                amrex::Error("Coarse level blocking factor not a multiple of fine level blocking factor divided by ref ratio");
             }
         }
     }

@@ -406,13 +406,13 @@ HypreABecLap3::prepareSolver ()
     // Create solver
     HYPRE_BoomerAMGCreate(&solver);
 
-    HYPRE_BoomerAMGSetOldDefault(solver); // Falgout coarsening with modified classical interpolation
+    if (old_default) HYPRE_BoomerAMGSetOldDefault(solver); // Falgout coarsening with modified classical interpolation
 //    HYPRE_BoomerAMGSetCoarsenType(solver, 6);
 //    HYPRE_BoomerAMGSetCycleType(solver, 1);
-    HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
-    HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
-    HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
-//    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6); // default is 0.25
+    HYPRE_BoomerAMGSetRelaxType(solver, relax_type);
+    HYPRE_BoomerAMGSetRelaxOrder(solver, relax_order);
+    HYPRE_BoomerAMGSetNumSweeps(solver, num_sweeps);
+    HYPRE_BoomerAMGSetStrongThreshold(solver, strong_threshold);
 
     int logging = (verbose >= 2) ? 1 : 0;
     HYPRE_BoomerAMGSetLogging(solver, logging);

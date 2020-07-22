@@ -802,4 +802,16 @@ BoxList::operator== (const BoxList& rhs) const
     return true;
 }
 
+void
+BoxList::Bcast ()
+{
+    int nboxes = this->size();
+    const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
+    ParallelDescriptor::Bcast(&nboxes, 1, IOProcNumber);
+    if (ParallelDescriptor::MyProc() != IOProcNumber) {
+        m_lbox.resize(nboxes);
+    }
+    ParallelDescriptor::Bcast(m_lbox.data(), nboxes, IOProcNumber);
+}
+
 }

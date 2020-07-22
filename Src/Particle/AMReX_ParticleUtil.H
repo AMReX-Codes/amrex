@@ -200,11 +200,12 @@ int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
 
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void enforcePeriodic (P& p,
+bool enforcePeriodic (P& p,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& phi,
                       amrex::GpuArray<int,AMREX_SPACEDIM> const& is_per) noexcept
 {
+    bool shifted = false;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         if (not is_per[idim]) continue;
@@ -214,6 +215,7 @@ void enforcePeriodic (P& p,
             }
             // clamp to avoid precision issues;
             if (p.pos(idim) < plo[idim]) p.pos(idim) = plo[idim];
+            shifted = true;
         }
         else if (p.pos(idim) < plo[idim]) {
             while (p.pos(idim) < plo[idim]) {
@@ -222,8 +224,12 @@ void enforcePeriodic (P& p,
             // clamp to avoid precision issues;
             if (p.pos(idim) == phi[idim]) p.pos(idim) = plo[idim];
             if (p.pos(idim) > phi[idim]) p.pos(idim) = std::nextafter( (amrex::ParticleReal) phi[idim], (amrex::ParticleReal) plo[idim]);
+            shifted = true;
         }
+        AMREX_ASSERT( (p.pos(idim) >= plo[idim] ) and ( p.pos(idim) < phi[idim] ));
     }
+
+    return shifted;
 }
 
 #if defined(AMREX_USE_GPU)

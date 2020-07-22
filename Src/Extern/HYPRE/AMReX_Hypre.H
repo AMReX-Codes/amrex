@@ -52,6 +52,12 @@ public:
                              static_cast<HYPRE_Int>(v[2]))};
     }
     
+    void setHypreOldDefault (bool l) noexcept {old_default = l;}
+    void setHypreRelaxType (int n) noexcept {relax_type = n;}
+    void setHypreRelaxOrder (int n) noexcept {relax_order = n;}
+    void setHypreNumSweeps (int n) noexcept {num_sweeps = n;}
+    void setHypreStrongThreshold (Real t) noexcept {strong_threshold = t;}
+
 protected:
 
     static constexpr HYPRE_Int regular_stencil_size = 2*AMREX_SPACEDIM + 1;
@@ -61,6 +67,11 @@ protected:
     Geometry geom;
 
     int verbose = 0;
+    bool old_default = true; // Falgout coarsening with modified classical interpolation
+    int relax_type = 6;  // G-S/Jacobi hybrid relaxation
+    int relax_order = 1; // uses C/F relaxation
+    int num_sweeps = 2;  // Sweeeps on each level
+    Real strong_threshold = 0.25; // Hypre default is 0.25
 
     MultiFab acoefs;
     Array<MultiFab,AMREX_SPACEDIM> bcoefs;
