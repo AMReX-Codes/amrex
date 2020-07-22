@@ -218,7 +218,7 @@ pick 6fj3g90 commit message c
 After saving and then exiting the editor, `git log` should show a clean history based on top of
 `development` branch.  You can also do `git diff yyy..xxx` to make sure nothing new was dropped.  If
 all goes well, you can submit a PR using `xxx` branch.
-
+Don't worry, if something goes wrong during the rebase, you an always `git rebase --abort` and start over.
 ## Core Developers
 
 People who make a number of substantive contributions will be named
