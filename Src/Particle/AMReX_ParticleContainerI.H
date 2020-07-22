@@ -966,36 +966,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticlesByCell ()
 {
-    BL_PROFILE("ParticleContainer::SortParticlesByCell()");
-
-    for (int lev = 0; lev < numLevels(); ++lev)
-    {
-        const Geometry& geom = Geom(lev);
-        const auto dxi = geom.InvCellSizeArray();
-        const auto plo = geom.ProbLoArray();
-        const auto domain = geom.Domain();
-
-        for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-        {
-            auto& ptile = ParticlesAt(lev, mfi);
-            auto& aos   = ptile.GetArrayOfStructs();
-            const size_t np = aos.numParticles();
-            auto pstruct_ptr = aos().dataPtr();
-            
-            ParticleTileType ptile_tmp;
-            ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
-            ptile_tmp.resize(np);
-
-            m_bins.build(np, pstruct_ptr, mfi.tilebox(),
-                       [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> IntVect
-                       {
-                           return getParticleCell(p, plo, dxi, domain);
-                       });
-          
-            gatherParticles(ptile_tmp, ptile, np, m_bins.permutationPtr());
-            ptile.swap(ptile_tmp);
-        }
-    }
+    SortParticlesByBin(IntVect(AMREX_D_DECL(1, 1, 1)));
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1024,13 +995,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
 
             const Box& box = mfi.tilebox();
             IntVect lo = box.smallEnd();
-			
+
             m_bins.build(np, pstruct_ptr, mfi.tilebox(),
                        [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> IntVect
                        {
                            return (getParticleCell(p, plo, dxi, domain) - lo) / bin_size;
                        });
-          
+
             gatherParticles(ptile_tmp, ptile, np, m_bins.permutationPtr());
             ptile.swap(ptile_tmp);
         }
