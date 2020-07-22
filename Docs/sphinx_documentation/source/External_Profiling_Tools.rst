@@ -307,8 +307,8 @@ To generate a dqstrm file, run nsys with the ``-o`` option:
 AMReX's lambda-based launch system often makes these timelines difficult to parse, as the kernel
 are mangled and are difficult to decipher. AMReX's Tiny Profiler includes NVTX region markers,
 which can be used to mark each section of the NSight Systems timeline and.  To include AMReX's
-built-in Tiny Profiler NVTX regions in NSight Systems outputs, compile AMReX 
-``with TINY_PROFILE=TRUE`` and run nsys with ``-e NSYS_NVTX_PROFILER_REGISTER_ONLY=0``: 
+built-in Tiny Profiler NVTX regions in NSight Systems outputs, compile AMReX with 
+``TINY_PROFILE=TRUE`` and run nsys with ``-e NSYS_NVTX_PROFILER_REGISTER_ONLY=0``: 
 
 .. highlight:: c++
 
