@@ -151,7 +151,9 @@ int main (int argc, char* argv[])
         rhs     [ilev].setVal(0.0);
            
 	    Box domain(geom[ilev].Domain());
-        const Real* DX = geom[ilev].CellSize();
+        const Real AMREX_D_DECL( dx = geom[ilev].CellSize()[0],
+                                 dy = geom[ilev].CellSize()[1],
+                                 dz = geom[ilev].CellSize()[2]);
 	    domain.convert(IntVect::TheNodeVector());
 	    domain.grow(-1); // Shrink domain so we don't operate on any boundaries            
         for (MFIter mfi(solution[ilev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -164,9 +166,9 @@ int main (int argc, char* argv[])
     		for (int n = 0; n < op.ncomp; n++)
     			ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     
-                    Real AMREX_D_DECL(x1 = i*DX[0] + geom[ilev].ProbLo()[0],
-                                      x2 = j*DX[1] + geom[ilev].ProbLo()[1], 
-                                      x3 = k*DX[2] + geom[ilev].ProbLo()[2]);
+                    Real AMREX_D_DECL(x1 = i*dx + geom[ilev].ProbLo()[0],
+                                      x2 = j*dy + geom[ilev].ProbLo()[1], 
+                                      x3 = k*dz + geom[ilev].ProbLo()[2]);
 
                     if (n==0) RHS(i,j,k,n) = AMREX_D_TERM(   (x1-0.5)*(x1+0.5),
                                                            * (x2-0.5)*(x2+0.5),
