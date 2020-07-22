@@ -1528,7 +1528,7 @@ Vector<Long>
 gather_weights (const MultiFab& weight)
 {
 #ifdef AMREX_USE_MPI
-    LayoutData<Real> costld;
+    LayoutData<Real> costld(weight.boxArray(), weight.DistributionMap());
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
