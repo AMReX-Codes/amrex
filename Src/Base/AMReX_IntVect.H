@@ -468,18 +468,6 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     IntVect& coarsen (int p) noexcept;
 
-    //! for serialization
-    static size_t AMREX_FORCE_INLINE
-    linearSize () noexcept
-    {
-        size_t retval = AMREX_SPACEDIM*sizeof(int);
-        return retval;
-    }
-
-    //! for serialization
-    void linearOut (void* a_buffer ) const noexcept;
-    void linearIn (void* a_buffer ) noexcept;
-
     /**
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose AMREX_SPACEDIM arguments are set to zero (0).
@@ -627,32 +615,6 @@ IntVect::maxDir(bool a_doAbsValue) const noexcept
         }
     }
     return retval;
-}
-
-AMREX_FORCE_INLINE
-void
-IntVect::linearOut(void* a_buffer ) const noexcept
-{
-    int* intbuf = (int *) a_buffer;
-    const IntVect& iv = *this;
-    for(int idir = 0; idir < SpaceDim; idir++)
-    {
-        *intbuf = iv[idir];
-        intbuf++;
-    }
-}
-
-AMREX_FORCE_INLINE
-void
-IntVect::linearIn(void* a_buffer ) noexcept
-{
-    int* intbuf = (int *) a_buffer;
-    IntVect& iv = *this;
-    for(int idir = 0; idir < SpaceDim; idir++)
-    {
-        iv[idir] = *intbuf;
-        intbuf++;
-    }
 }
 
 //! Returns p + s.

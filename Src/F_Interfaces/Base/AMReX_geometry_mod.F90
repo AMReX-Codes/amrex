@@ -14,14 +14,15 @@ module amrex_geometry_module
   public :: amrex_pmask, amrex_problo, amrex_probhi
   public :: amrex_geometry_build, amrex_geometry_destroy, amrex_geometry_init_data
   public :: amrex_is_periodic, amrex_is_any_periodic, amrex_is_all_periodic
+  public :: amrex_geometry_finalize
 
   logical, save :: amrex_pmask(3)  = .false.  
   real(amrex_real), save :: amrex_problo(3) = 0.0_amrex_real
   real(amrex_real), save :: amrex_probhi(3) = 1.0_amrex_real
 
-  logical, save :: amrex_geometry_initialzied = .false.
+  logical, save :: amrex_geometry_initialized = .false.
 
-!$omp threadprivate(amrex_geometry_initialzied,amrex_pmask,amrex_problo,amrex_probhi)
+!$omp threadprivate(amrex_geometry_initialized,amrex_pmask,amrex_problo,amrex_probhi)
 
   type, public :: amrex_geometry
      logical          :: owner     = .false.
@@ -77,6 +78,13 @@ module amrex_geometry_module
 
 contains
 
+  subroutine amrex_geometry_finalize ()
+    amrex_pmask(3)  = .false.
+    amrex_problo(3) = 0.0_amrex_real
+    amrex_probhi(3) = 1.0_amrex_real
+    amrex_geometry_initialized = .false.
+  end subroutine amrex_geometry_finalize
+
   subroutine amrex_geometry_set_coord_sys (csys)
     integer, intent(in) :: csys
     type(amrex_parmparse) :: pp
@@ -126,9 +134,9 @@ contains
     integer :: i, lo(3), hi(3)
     logical, external :: omp_in_parallel
     !$omp parallel if(.not.omp_in_parallel())
-    if (.not.amrex_geometry_initialzied) then
+    if (.not.amrex_geometry_initialized) then
        call amrex_geometry_init()
-       amrex_geometry_initialzied = .true.
+       amrex_geometry_initialized = .true.
     end if
     !$omp end parallel
     call amrex_fi_geometry_get_intdomain(geom%p, lo, hi)
