@@ -1089,6 +1089,17 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
 
     const auto& stencil = m_stencil[amrlev][cmglev-1];
 
+    bool regular_coarsening = true; int idir = 2;
+    if (cmglev > 0) {
+        regular_coarsening = mg_coarsen_ratio_vec[cmglev-1] == mg_coarsen_ratio;
+        IntVect ratio = mg_coarsen_ratio_vec[cmglev-1];
+        if (ratio[1] == 1) {
+            idir = 1;
+        } else if (ratio[0] == 1) {
+            idir = 0;
+        }
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1100,10 +1111,20 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
         Array4<int const> const& mfab = dmsk.const_array(mfi);
         if (m_coarsening_strategy == CoarseningStrategy::Sigma)
         {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-            {
-                mlndlap_restriction(i,j,k,cfab,ffab,mfab);
-            });
+	    if (regular_coarsening) 
+	    {
+            	AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            	{
+               	    mlndlap_restriction(i,j,k,cfab,ffab,mfab);
+            	});
+	    }
+	    else
+	    {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    mlndlap_semi_restriction(i,j,k,cfab,ffab,mfab,idir);
+                });
+	    }
         }
         else
         {
@@ -1140,6 +1161,18 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
 
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][fmglev];
 
+    bool regular_coarsening = true; int idir = 2;
+    if (fmglev > 0) {
+        regular_coarsening = mg_coarsen_ratio_vec[fmglev] == mg_coarsen_ratio;
+        IntVect ratio = mg_coarsen_ratio_vec[fmglev];
+	if (ratio[1] == 1) {
+	    idir = 1;
+        } else if (ratio[0] == 1) {
+ 	    idir = 0;
+        }
+    }
+
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1168,12 +1201,22 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
             });
         }
         else
-        {
-            Array4<Real const> const& sfab = sigma[0]->const_array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-            {
-                mlndlap_interpadd_aa(i,j,k,ffab,cfab,sfab,mfab);
-            });
+        { 
+	    Array4<Real const> const& sfab = sigma[0]->const_array(mfi);
+	    if (regular_coarsening)
+	    {
+            	AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            	{
+                    mlndlap_interpadd_aa(i,j,k,ffab,cfab,sfab,mfab);
+                });
+	    } 
+	    else
+	    {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    mlndlap_semi_interpadd_aa(i,j,k,ffab,cfab,sfab,mfab,idir);
+                });
+	    } 
         }
     }
 }
@@ -1450,6 +1493,12 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
     else // cpu
 #endif
     {
+	bool regular_coarsening = true;
+	if (amrlev == 0 and mglev > 0) 
+    	{
+            regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
+        }
+
         constexpr int nsweeps = 2;
         if (m_use_gauss_seidel)
         {
@@ -1504,20 +1553,33 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #endif
                 for (MFIter mfi(sol); mfi.isValid(); ++mfi)
                 {
+
                     const Box& bx = mfi.validbox();
                     Array4<Real const> const& sarr = sigma[0]->const_array(mfi);
                     Array4<Real> const& solarr = sol.array(mfi);
                     Array4<Real const> const& rhsarr = rhs.const_array(mfi);
                     Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
-                    for (int ns = 0; ns < nsweeps; ++ns) {
-                        mlndlap_gauss_seidel_aa(bx, solarr, rhsarr,
-                                                sarr, dmskarr, dxinvarr
+		    if ( regular_coarsening ) 
+		    {
+                        for (int ns = 0; ns < nsweeps; ++ns) {
+                            mlndlap_gauss_seidel_aa(bx, solarr, rhsarr,
+                                                    sarr, dmskarr, dxinvarr
 #if (AMREX_SPACEDIM == 2)
-                                                ,is_rz
+                                                   ,is_rz
 #endif
-                            );
-                    }
+                                 );
+                        }
+		    } else {
+			for (int ns = 0; ns < nsweeps; ++ns) {
+                            mlndlap_gauss_seidel_with_line_solve_aa(bx, solarr, rhsarr,
+                                                                    sarr, dmskarr, dxinvarr
+#if (AMREX_SPACEDIM == 2)
+                                                                   ,is_rz
+#endif
+                                 );
+			}
+		    }
                 }
             }
 
