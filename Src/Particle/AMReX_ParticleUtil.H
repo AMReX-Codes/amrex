@@ -237,7 +237,7 @@ bool enforcePeriodic (P& p,
 template <typename PTile, typename PLocator>
 int
 partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBufferMap& pmap,
-                          const Geometry& geom, int lev, int gid, int tid,
+                          const Geometry& geom, int lev, int gid, int /*tid*/,
                           int lev_min, int lev_max, int nGrow)
 {
     const auto plo    = geom.ProbLoArray();

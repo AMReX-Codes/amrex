@@ -3280,7 +3280,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
         }
     };
 
-    auto restrict_from_000_to = [] (int ii_, int jj_, int kk_) -> Real {
+    auto restrict_from_000_to = [] (int /*ii_*/, int /*jj_*/, int /*kk_*/) -> Real {
         return 1._rt;
     };
 

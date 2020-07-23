@@ -294,6 +294,16 @@ else
   USE_FORCE_INLINE := FALSE
 endif
 
+ifdef WARN_ALL
+  WARN_ALL := $(strip $(WARN_ALL))
+else
+ifeq ($(DEBUG),TRUE)
+  WARN_ALL := TRUE
+else
+  WARN_ALL := FALSE
+endif
+endif
+
 ifdef USE_GPU_PRAGMA
   USE_GPU_PRAGMA := $(strip $(USE_GPU_PRAGMA))
   GPU_PRAGMA_NO_HOST_VERSION ?= FALSE

@@ -126,10 +126,10 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
     ParallelAllReduce::Min(max_overset_mask_coarsening_level, ParallelContext::CommunicatorSub());
     m_overset_mask[amrlev].resize(max_overset_mask_coarsening_level+1);
 
-    LPInfo info = a_info;
-    info.max_coarsening_level = std::min(a_info.max_coarsening_level,
-                                         max_overset_mask_coarsening_level);
-    define(a_geom, a_grids, a_dmap, info, a_factory);
+    LPInfo linfo = a_info;
+    linfo.max_coarsening_level = std::min(a_info.max_coarsening_level,
+                                          max_overset_mask_coarsening_level);
+    define(a_geom, a_grids, a_dmap, linfo, a_factory);
 
     amrlev = 0;
     for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev) {
@@ -141,7 +141,7 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
         }
     }
 
-    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+    for (amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
             m_overset_mask[amrlev][mglev]->setBndry(0);
             m_overset_mask[amrlev][mglev]->FillBoundary(m_geom[amrlev][mglev].periodicity());

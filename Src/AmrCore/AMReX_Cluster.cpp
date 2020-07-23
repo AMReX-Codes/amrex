@@ -35,6 +35,8 @@ class InBox
 public:
     explicit InBox (const Box& b) noexcept : m_box(b) {}
 
+    // You might see compiler warning on this is never referenced.
+    // The compiler is wrong.
     bool operator() (const IntVect& iv) const noexcept
     {
         return m_box.contains(iv);
@@ -247,6 +249,8 @@ class Cut
 public:
     Cut (const IntVect& cut, int dir) : m_cut(cut), m_dir(dir) {}
 
+    // You might see compiler warning on this is never referenced.
+    // The compiler is wrong.
     bool operator() (const IntVect& iv) const
     {
         return iv[m_dir] < m_cut[m_dir];

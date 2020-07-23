@@ -239,7 +239,7 @@ struct ParticleTile
     static constexpr int NAR = NArrayReal;
     static constexpr int NAI = NArrayInt;
 
-    using SuperParticleType = Particle<NStructReal + NArrayReal, NStructInt + NArrayReal>;
+    using SuperParticleType = Particle<NStructReal + NArrayReal, NStructInt + NArrayInt>;
 
     using AoS = ArrayOfStructs<NStructReal, NStructInt, Allocator>;
     using ParticleVector = typename AoS::ParticleVector;
@@ -331,7 +331,7 @@ struct ParticleTile
     /// Add one particle to this tile.
     ///
     template < int NR = NArrayReal, int NI = NArrayInt,
-               typename std::enable_if<NR != 0 or NI != 0>::type = 0 >
+               EnableIf_t<NR != 0 or NI != 0, int> foo = 0>
     void push_back (const SuperParticleType& sp)
     {
         auto np = numParticles();

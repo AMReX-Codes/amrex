@@ -692,7 +692,7 @@ MultiFab::contains_inf (int scomp, int ncomp, IntVect const& ngrow, bool local) 
 bool 
 MultiFab::contains_inf (int scomp, int ncomp, int ngrow, bool local) const
 {
-    return contains_inf(0,ncomp,IntVect(ngrow),local);
+    return contains_inf(scomp,ncomp,IntVect(ngrow),local);
 }
 
 bool 
@@ -907,6 +907,8 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 Real
 MultiFab::norm0 (int comp, int nghost, bool local, bool ignore_covered ) const
 {
+    amrex::ignore_unused(ignore_covered);
+
     Real nm0;
 
 #ifdef AMREX_USE_EB
@@ -1015,6 +1017,8 @@ MultiFab::norm2 (const Vector<int>& comps) const
 Real
 MultiFab::norm1 (int comp, const Periodicity& period, bool ignore_covered ) const
 {
+    amrex::ignore_unused(ignore_covered);
+
     MultiFab tmpmf(this->boxArray(), this->DistributionMap(), 1, 0,
                    MFInfo(), this->Factory());
 
