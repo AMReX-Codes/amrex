@@ -9,7 +9,7 @@ namespace amrex
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 class ParticleContainer;
-    
+
 template <bool is_const, int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
 class ParIterBase
     : public MFIter
@@ -59,7 +59,6 @@ public:
         ++m_pariter_index;
         currentIndex = m_valid_index[m_pariter_index];
 #ifdef AMREX_USE_GPU
-
         Gpu::Device::setStreamIndex(currentIndex);
 #endif
     }
@@ -82,15 +81,14 @@ public:
 
     int numNeighborParticles () const { return GetArrayOfStructs().numNeighborParticles(); }
 
-    
     int GetLevel () const { return m_level; }
 
     std::pair<int, int> GetPairIndex () const { return std::make_pair(this->index(), this->LocalTileIndex()); }
 
-    const Geometry& Geom (int lev) const { return m_pc.Geom(lev); } 
-    
+    const Geometry& Geom (int lev) const { return m_pc.Geom(lev); }
+
 protected:
-    
+
     int m_level;
     int m_pariter_index;
     Vector<int> m_valid_index;

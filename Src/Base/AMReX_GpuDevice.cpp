@@ -76,6 +76,8 @@ namespace {
 
     void InitializeGraph(int graph_size)
     {
+        amrex::ignore_unused(graph_size);
+
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
 
         BL_PROFILE("InitGraph");
@@ -537,6 +539,7 @@ Device::numDevicesUsed () noexcept
 void
 Device::setStreamIndex (const int idx) noexcept
 {
+    amrex::ignore_unused(idx);
 #ifdef AMREX_USE_GPU
     if (idx < 0) {
         gpu_stream[OpenMP::get_thread_num()] = gpu_default_stream;
@@ -737,6 +740,7 @@ Device::executeGraph(const cudaGraphExec_t &graphExec, bool synch)
 void
 Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int device)
 {
+    amrex::ignore_unused(p,sz,device);
     // HIP does not support memory advise.
 #ifdef AMREX_USE_CUDA
 #ifndef AMREX_USE_HIP
@@ -758,6 +762,7 @@ Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int devic
 void
 Device::mem_advise_set_readonly (void* p, const std::size_t sz)
 {
+    amrex::ignore_unused(p,sz);
     // HIP does not support memory advise.
 #ifdef AMREX_USE_CUDA
 #ifndef AMREX_USE_HIP

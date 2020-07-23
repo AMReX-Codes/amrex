@@ -66,12 +66,6 @@
 
 # Minor
 
-* [Feature Request] Compiler flag to make implicit capture of this pointer via `[=]` an
-  error.  [Implicit capture of this pointer](http://eel.is/c++draft/depr#capture.this)
-  has been deprecated in C++ 20.  For many codes, it's almost always a
-  bug when `this` is implicitly captured onto device via `[=]`.
-  [oneAPI-spec issue #127](https://github.com/oneapi-src/oneAPI-spec/issues/127)
-
 * [Feature Request] Host callback.  Could DPC++ support appending a host callback
   function to an ordered queue?
   [oneAPI-spec issue #124](https://github.com/oneapi-src/oneAPI-spec/issues/124)
@@ -103,16 +97,24 @@
 
 # Resolved
 
-* ~~[Feature Request] Classes that are not standard layout.  The current specification of
+* [Feature Request] Classes that are not standard layout.  The current specification of
   oneAPI does not support the capture of objects that are not standard
-  layout.  This includes the following example,~~
+  layout.  This includes the following example,
 
   ```
   class A {int a;}; class B {long B;}; class C : A, B {};
   ```
 
-  ~~AMReX has a data structure called GpuTuple that is built with a
+  AMReX has a data structure called GpuTuple that is built with a
   pattern like the example shown above.  It works in CUDA, but not in
-  DPC++.  We wish this requirement can be relaxed.~~
+  DPC++.  We wish this requirement can be relaxed.
 
   This restriction has been relaxed since beta5.
+
+* [Feature Request] Compiler flag to make implicit capture of this pointer via `[=]` an
+  error.  [Implicit capture of this pointer](http://eel.is/c++draft/depr#capture.this)
+  has been deprecated in C++ 20.  For many codes, it's almost always a
+  bug when `this` is implicitly captured onto device via `[=]`.
+  [oneAPI-spec issue #127](https://github.com/oneapi-src/oneAPI-spec/issues/127)
+
+  This has been implemented in the intel/llvm github repo.

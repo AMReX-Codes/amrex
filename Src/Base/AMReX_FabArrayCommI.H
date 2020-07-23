@@ -83,7 +83,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     if (N_rcvs > 0) {
         PostRcvs(*TheFB.m_RcvTags, fb_the_recv_data,
                  fb_recv_data, fb_recv_size, fb_recv_from, fb_recv_reqs,
-                 scomp, ncomp, SeqNum);
+                 ncomp, SeqNum);
         fb_recv_stat.resize(N_rcvs);
     }
 
@@ -118,7 +118,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             std::size_t nbytes = 0;
             for (auto const& cct : kv.second)
             {
-                nbytes += (*this)[cct.srcIndex].nBytes(cct.sbox,scomp,ncomp);
+                nbytes += (*this)[cct.srcIndex].nBytes(cct.sbox,ncomp);
             }
 
             std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
@@ -439,7 +439,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         int actual_n_rcvs = 0;
 	if (N_rcvs > 0) {
             PostRcvs(*thecpc.m_RcvTags, the_recv_data,
-                     recv_data, recv_size, recv_from, recv_reqs, SC, NC, SeqNum);
+                     recv_data, recv_size, recv_from, recv_reqs, NC, SeqNum);
             actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
 	}
 
@@ -471,7 +471,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 std::size_t nbytes = 0;
                 for (auto const& cct : kv.second)
                 {
-                    nbytes += src[cct.srcIndex].nBytes(cct.sbox,SC,NC);
+                    nbytes += src[cct.srcIndex].nBytes(cct.sbox,NC);
                 }
 
                 std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
@@ -701,7 +701,6 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
                          Vector<std::size_t>&              recv_size,
                          Vector<int>&                      recv_from,
                          Vector<MPI_Request>&              recv_reqs,
-                         int                               icomp,
                          int                               ncomp,
                          int                               SeqNum)
 {
@@ -717,7 +716,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
         std::size_t nbytes = 0;
         for (auto const& cct : kv.second)
         {
-            nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,icomp,ncomp);
+            nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,ncomp);
         }
 
         std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
