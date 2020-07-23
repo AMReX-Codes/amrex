@@ -88,7 +88,7 @@ TinyProfiler::start () noexcept
 	global_depth = ttstack.size();
 
 #ifdef AMREX_USE_CUDA
-	nvtx_id = nvtxRangeStartA(fname.c_str());
+	nvtxRangePush(fname.c_str());
 #endif
 
         for (auto const& region : regionstack)
@@ -163,7 +163,7 @@ TinyProfiler::stop () noexcept
         }
 
 #ifdef AMREX_USE_CUDA
-        nvtxRangeEnd(nvtx_id);
+        nvtxRangePop();
 #endif
 	} else {
 	    improperly_nested_timers.insert(fname);
@@ -231,7 +231,7 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
             }
 
 #ifdef AMREX_USE_CUDA
-            nvtxRangeEnd(nvtx_id);
+            nvtxRangePop();
 #endif
         } else 
         {
