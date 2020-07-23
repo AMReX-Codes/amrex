@@ -86,12 +86,12 @@ namespace detail {
     }
 
 #else
-    template<typename T> void Reduce (ReduceOp op, T* v, int cnt, int root, MPI_Comm comm) {}
-    template<typename T> void Reduce (ReduceOp op, T& v, int root, MPI_Comm comm) {}
-    template<typename T> void Reduce (ReduceOp op, Vector<std::reference_wrapper<T> > const & v, int root, MPI_Comm comm) {}
+    template<typename T> void Reduce (ReduceOp /*op*/, T* /*v*/, int /*cnt*/, int /*root*/, MPI_Comm /*comm*/) {}
+    template<typename T> void Reduce (ReduceOp /*op*/, T& /*v*/, int /*root*/, MPI_Comm /*comm*/) {}
+    template<typename T> void Reduce (ReduceOp /*op*/, Vector<std::reference_wrapper<T> > const & /*v*/, int /*root*/, MPI_Comm /*comm*/) {}
 
-    template<typename T> void Gather (const T* v, int cnt, T* vs, int root, MPI_Comm comm) {}
-    template<typename T> void Gather (const T& v, T * vs, int root, MPI_Comm comm) {}
+    template<typename T> void Gather (const T* /*v*/, int /*cnt*/, T* /*vs*/, int /*root*/, MPI_Comm /*comm*/) {}
+    template<typename T> void Gather (const T& /*v*/, T * /*vs*/, int /*root*/, MPI_Comm /*comm*/) {}
 #endif
 }
 

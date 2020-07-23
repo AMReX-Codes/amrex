@@ -5,7 +5,7 @@ namespace amrex { namespace EB2 {
 namespace {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void set_eb_data (const int i, const int j, const int k,
-                  Array4<EBCellFlag> const& cell, Array4<Real> const& apx,
+                  Array4<Real> const& apx,
                   Array4<Real> const& apy, Array4<Real> const& apz,
                   Array4<Real const> const& fcx, Array4<Real const> const& fcy,
                   Array4<Real const> const& fcz, Array4<Real const> const& m2x,
@@ -640,7 +640,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             barea(i,j,k) = 0.0;            
         } else {
 
-            set_eb_data(i,j,k,cell,apx,apy,apz,
+            set_eb_data(i,j,k,apx,apy,apz,
                         fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
                         barea,bcent,bnorm);
 
@@ -695,14 +695,14 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                 if (cell(i  ,j,k).isRegular())
                 {
                     cell(i  ,j,k).setSingleValued();
-                    set_eb_data(i,j,k,cell,apx,apy,apz,
+                    set_eb_data(i,j,k,apx,apy,apz,
                                 fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
                                 barea,bcent,bnorm);
                 }
                 if (cell(i-1,j,k).isRegular())
                 {
                     cell(i-1,j,k).setSingleValued();
-                    set_eb_data(i-1,j,k,cell,apx,apy,apz,
+                    set_eb_data(i-1,j,k,apx,apy,apz,
                                 fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
                                 barea,bcent,bnorm);
                 }
@@ -721,14 +721,14 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                 if (cell(i,j  ,k).isRegular())
                 {
                     cell(i,j  ,k).setSingleValued();
-                    set_eb_data(i,j,k,cell,apx,apy,apz,
+                    set_eb_data(i,j,k,apx,apy,apz,
                                 fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
                                 barea,bcent,bnorm);
                 }
                 if (cell(i,j-1,k).isRegular())
                 {
                     cell(i,j-1,k).setSingleValued();
-                    set_eb_data(i,j-1,k,cell,apx,apy,apz,
+                    set_eb_data(i,j-1,k,apx,apy,apz,
                                 fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
                                 barea,bcent,bnorm);
                 }
@@ -748,14 +748,14 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                 if (cell(i,j,k  ).isRegular())
                 {
                     cell(i,j,k  ).setSingleValued();
-                    set_eb_data(i,j,k,cell,apx,apy,apz,
+                    set_eb_data(i,j,k,apx,apy,apz,
                                 fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
                                 barea,bcent,bnorm);
                 }
                 if (cell(i,j,k-1).isRegular())
                 {
                     cell(i,j,k-1).setSingleValued();
-                    set_eb_data(i,j,k-1,cell,apx,apy,apz,
+                    set_eb_data(i,j,k-1,apx,apy,apz,
                                 fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
                                 barea,bcent,bnorm);
                 }

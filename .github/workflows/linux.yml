@@ -179,5 +179,19 @@ jobs:
     - name: Build & Install
       run: |
         ./configure --dim 2
-        make -j2
+        make -j2 WARN_ALL=TRUE
+        make install
+
+  # Build 3D libamrex with configure
+  configure-3d:
+    name: GNU@7.5 C++17 Release [configure 3D]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        ./configure --dim 3 --enable-eb yes
+        make -j2 WARN_ALL=TRUE
         make install

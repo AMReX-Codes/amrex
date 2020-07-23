@@ -1674,6 +1674,8 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
     BL_ASSERT(send_data.size() == N_snds);
 
     ParallelDescriptor::Waitall(send_reqs, stats);
+#else
+    amrex::ignore_unused(N_snds,send_reqs,stats);
 #endif /*BL_USE_MPI*/
 }
 

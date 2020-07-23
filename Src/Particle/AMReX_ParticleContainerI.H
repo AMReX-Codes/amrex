@@ -1918,7 +1918,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
 	BL_PROFILE_VAR_STOP(blp_copy);
     }
-#endif /*AMREX_USE_MPI*/
+#else
+    amrex::ignore_unused(not_ours,lev_min,lev_max,nGrow,local);
+#endif
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>

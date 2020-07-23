@@ -248,6 +248,8 @@ namespace amrex
 		       const Geometry& fgeom, const Geometry& cgeom,
                        int scomp, int ncomp, const IntVect& ratio)
     {
+        amrex::ignore_unused(fgeom,cgeom);
+
         BL_PROFILE("amrex::average_down_w_geom");
 
         if (S_fine.is_nodal() || S_crse.is_nodal())
@@ -256,7 +258,6 @@ namespace amrex
         }
 
 #if (AMREX_SPACEDIM == 3)
-        amrex::ignore_unused(fgeom,cgeom);
 	amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
 	return;
 #else

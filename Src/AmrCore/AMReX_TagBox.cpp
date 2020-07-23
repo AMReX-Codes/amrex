@@ -89,6 +89,7 @@ TagBox::buffer (const IntVect& nbuff, const IntVect& nwid) noexcept
     const int* lo = domain.loVect();
     TagType* d = dataPtr();
 
+    amrex::ignore_unused(len);
 #define OFF(i,j,k,lo,len) AMREX_D_TERM(i-lo[0], +(j-lo[1])*len[0] , +(k-lo[2])*len[0]*len[1])
    
     for (int k = klo; k <= khi; k++)

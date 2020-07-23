@@ -904,7 +904,7 @@ void mlndlap_divu_compute_fine_contrib (int i, int j, int, Box const& fvbx,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_divu_add_fine_contrib (int i, int j, int k, Box const& fvbx,
+void mlndlap_divu_add_fine_contrib (int i, int j, int /*k*/, Box const& fvbx,
                                     Array4<Real> const& rhs, Array4<Real const> const& frh,
                                     Array4<int const> const& msk) noexcept
 {
@@ -1231,12 +1231,14 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
 {
     constexpr int k = 0;
 
+#if 0
     auto interp_from_mm_to = [&fsten] (int i_, int j_) -> Real {
         Real wxm = amrex::Math::abs(fsten(i_-1,j_  ,0,1))/(amrex::Math::abs(fsten(i_-1,j_-1,0,3))+amrex::Math::abs(fsten(i_-1,j_  ,0,3))+eps);
         Real wym = amrex::Math::abs(fsten(i_  ,j_-1,0,2))/(amrex::Math::abs(fsten(i_-1,j_-1,0,3))+amrex::Math::abs(fsten(i_  ,j_-1,0,3))+eps);
         Real wmm = amrex::Math::abs(fsten(i_-1,j_-1,0,3)) * (1._rt + wxm + wym);
         return wmm * fsten(i_,j_,0,4);
     };
+#endif
 
     auto interp_from_mp_to = [&fsten] (int i_, int j_) -> Real {
         Real wxm = amrex::Math::abs(fsten(i_-1,j_  ,0,1))/(amrex::Math::abs(fsten(i_-1,j_-1,0,3))+amrex::Math::abs(fsten(i_-1,j_  ,0,3))+eps);
@@ -1275,9 +1277,11 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
         return amrex::Math::abs(fsten(i_,j_,0,2))/(amrex::Math::abs(fsten(i_,j_-1,0,2))+amrex::Math::abs(fsten(i_,j_,0,2))+eps);
     };
 
+#if 0
     auto Amm = [&fsten] (int i_, int j_) -> Real {
         return fsten(i_-1,j_-1,0,3);
     };
+#endif
 
     auto A0m = [&fsten] (int i_, int j_) -> Real {
         return fsten(i_,j_-1,0,2);
@@ -1311,12 +1315,14 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
         return fsten(i_,j_,0,3);
     };
 
+#if 0
     auto restrict_from_mm_to = [&fsten] (int ii_, int jj_) -> Real {
         Real wxp = amrex::Math::abs(fsten(ii_-1,jj_-1,0,1))/(amrex::Math::abs(fsten(ii_-1,jj_-2,0,3))+amrex::Math::abs(fsten(ii_-1,jj_-1,0,3))+eps);
         Real wyp = amrex::Math::abs(fsten(ii_-1,jj_-1,0,2))/(amrex::Math::abs(fsten(ii_-2,jj_-1,0,3))+amrex::Math::abs(fsten(ii_-1,jj_-1,0,3))+eps);
         Real wpp = amrex::Math::abs(fsten(ii_-1,jj_-1,0,3))*(1._rt+wxp+wyp);
         return wpp * fsten(ii_-1,jj_-1,0,4);
     };
+#endif
 
     auto restrict_from_0m_to = [&fsten] (int ii_, int jj_) -> Real {
         return amrex::Math::abs(fsten(ii_,jj_-1,0,2))/(amrex::Math::abs(fsten(ii_,jj_-2,0,2))+amrex::Math::abs(fsten(ii_,jj_-1,0,2))+eps);
@@ -1534,7 +1540,7 @@ void mlndlap_interpadd_rap (int i, int j, int, Array4<Real> const& fine,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
+void mlndlap_restriction_rap (int i, int j, int /*k*/, Array4<Real> const& crse,
                               Array4<Real const> const& fine, Array4<Real const> const& sten,
                               Array4<int const> const& msk) noexcept
 {

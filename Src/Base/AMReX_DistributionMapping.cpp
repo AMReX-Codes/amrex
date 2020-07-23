@@ -294,6 +294,7 @@ DistributionMapping::LeastUsedTeams (Vector<int>        & rteam,
     rteam.push_back(0);
     rworker.clear();
     rworker.push_back(Vector<int>(1,0));
+    amrex::ignore_unused(nteams,nworkers);
 #endif
 }
 
@@ -1471,6 +1472,8 @@ DistributionMapping::makeKnapSack (const LayoutData<Real>& rcost_local,
             r = DistributionMapping(pmap);
         }
     }
+#else
+    amrex::ignore_unused(broadcastToAll);
 #endif
     
     return r;
@@ -1713,6 +1716,8 @@ DistributionMapping::makeSFC (const LayoutData<Real>& rcost_local,
             r = DistributionMapping(pmap);
         }
     }
+#else
+    amrex::ignore_unused(broadcastToAll);
 #endif
 
     return r;

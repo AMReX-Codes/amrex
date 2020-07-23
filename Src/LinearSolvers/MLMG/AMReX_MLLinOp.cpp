@@ -73,7 +73,6 @@ namespace {
     };
 
     std::unique_ptr<CommCache> comm_cache;
-#endif
 
     Vector<int> get_subgroup_ranks ()
     {
@@ -87,6 +86,7 @@ namespace {
         ParallelContext::local_to_global_rank(granks.data(), lranks.data(), rank_n);
         return granks;
     }
+#endif
 }
 
 // static member function
@@ -309,8 +309,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             while ( is_coarsenable_x or is_coarsenable_y or is_coarsenable_z )
 #endif
 	    {
-                int r0 = (is_coarsenable_x) ? mg_coarsen_ratio : 1;
 #if (AMREX_SPACEDIM >= 2)
+                int r0 = (is_coarsenable_x) ? mg_coarsen_ratio : 1;
                 int r1 = (is_coarsenable_y) ? mg_coarsen_ratio : 1;
                 rr_vec[0] = r0;
                 rr_vec[1] = r1;
@@ -475,9 +475,11 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             IntVect rr_0(AMREX_D_DECL(rr,1,1));
             bool is_coarsenable_x = ( a_geom[0].Domain().coarsenable(rr_0, mg_domain_min_width) and
                                       a_grids[0].coarsenable(rr_0, mg_box_min_width));
+#if (AMREX_SPACEDIM >= 2)
             IntVect rr_1(AMREX_D_DECL(1,rr,1));
             bool is_coarsenable_y = ( a_geom[0].Domain().coarsenable(rr_1, mg_domain_min_width) and
                                       a_grids[0].coarsenable(rr_1, mg_box_min_width));
+#endif
 #if (AMREX_SPACEDIM == 3)
             IntVect rr_2(AMREX_D_DECL(1,1,rr));
             bool is_coarsenable_z = ( a_geom[0].Domain().coarsenable(rr_2, mg_domain_min_width) and
@@ -798,6 +800,7 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
 
     return newcomm;
 #else
+    amrex::ignore_unused(dm);
     return m_default_comm;
 #endif
 }

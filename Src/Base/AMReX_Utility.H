@@ -31,11 +31,6 @@ namespace amrex
 * \brief Useful C++ Utility Functions
 */
 
-    //! This shuts up the compiler about unused variables
-    template <class... Ts>
-    AMREX_GPU_HOST_DEVICE
-    void ignore_unused (const Ts&...) {}
-
     //! Return true if argument is a non-zero length string of digits.
     bool is_integer (const char* str);
 

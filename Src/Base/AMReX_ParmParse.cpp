@@ -593,6 +593,11 @@ bldTable (const char*&                    str,
 	    {
 		amrex::Abort("ParmParse::bldTable() defn with no list");
 	    }
+#if (__cplusplus >= 201703L)
+            [[fallthrough]];
+#elif defined(__GNUC__)
+            [[gnu::fallthrough]];
+#endif
 	case pEOF:
 	    addDefn(cur_name,cur_list,tab);
 	    return;
@@ -636,6 +641,11 @@ bldTable (const char*&                    str,
 	    //
 	    // Otherwise, fall through, this may be a string.
 	    //
+#if (__cplusplus >= 201703L)
+            [[fallthrough]];
+#elif defined(__GNUC__)
+            [[gnu::fallthrough]];
+#endif
 	case pValue:
 	    if ( cur_name.empty() )
 	    {

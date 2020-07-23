@@ -237,7 +237,7 @@ public:
 
 #ifdef AMREX_USE_EB
     virtual void getEBFluxes (const Vector<MultiFab*>& /*a_flux*/,
-                              const Vector<MultiFab*>& a_sol) const {
+                              const Vector<MultiFab*>& /*a_sol*/) const {
         amrex::Abort("MLLinOp::getEBFluxes: How did we get here?");
     }
 #endif
