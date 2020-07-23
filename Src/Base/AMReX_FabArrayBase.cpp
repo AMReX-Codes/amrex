@@ -660,7 +660,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, bool multi_ghost) // GETS US
     // so that they can share work.  But for remote communication, they are all different.
     
     const int nlocal = imap.size();
-    const IntVect ng(m_ngrow[0]);
+    const IntVect& ng = m_ngrow;
     const IntVect ng_ng(AMREX_D_DECL(m_ngrow[0]-1,m_ngrow[1]-1,m_ngrow[1]-1));
     std::vector< std::pair<int,Box> > isects;
     std::vector< std::pair<int,Box> > isects_ng;
