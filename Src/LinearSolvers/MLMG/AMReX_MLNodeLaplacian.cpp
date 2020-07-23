@@ -731,6 +731,15 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
 
     for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
     {
+        int idir = 2;
+        bool regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
+        IntVect ratio = mg_coarsen_ratio_vec[mglev-1];
+        amrex::Print() << "regular_coarsening = " << regular_coarsening << ", idir = " << idir << std::endl;
+        if (ratio[1] == 1) {
+            idir = 1;
+        } else if (ratio[0] == 1) {
+            idir = 0;
+        }
         for (int idim = 0; idim < nsigma; ++idim)
         {
             const MultiFab& fine = *m_sigma[amrlev][mglev-1][idim];
@@ -743,37 +752,61 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
             }
 
             MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
-
+            
+            if (regular_coarsening) {
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-                const Box& bx = mfi.tilebox();
-                Array4<Real> const& cfab = pcrse->array(mfi);
-                Array4<Real const> const& ffab = fine.const_array(mfi);
-                if (idim == 0) {
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
-                    {
-                        mlndlap_avgdown_coeff_x(i,j,k,cfab,ffab);
-                    });
-                } else if (idim == 1) {
+                for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.tilebox();
+                    Array4<Real> const& cfab = pcrse->array(mfi);
+                    Array4<Real const> const& ffab = fine.const_array(mfi);
+                    if (idim == 0) {
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
+                        {
+                            mlndlap_avgdown_coeff_x(i,j,k,cfab,ffab);
+                        });
+                    } else if (idim == 1) {
 #if (AMREX_SPACEDIM >= 2)
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
-                    {
-                        mlndlap_avgdown_coeff_y(i,j,k,cfab,ffab);
-                    });
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
+                        {
+                            mlndlap_avgdown_coeff_y(i,j,k,cfab,ffab);
+                        });
 #endif
-                } else {
+                    } else {
 #if (AMREX_SPACEDIM == 3)
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
-                    {
-                        mlndlap_avgdown_coeff_z(i,j,k,cfab,ffab);
-                    });
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
+                        {
+                            mlndlap_avgdown_coeff_z(i,j,k,cfab,ffab);
+                        });
 #endif
+                    }
+                }
+            } else {
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+                for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.tilebox();
+                    Array4<Real> const& cfab = pcrse->array(mfi);
+                    Array4<Real const> const& ffab = fine.const_array(mfi);
+                    if (idir != 0) {
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
+                        {
+                            mlndlap_avgdown_coeff_x(i,j,k,cfab,ffab);
+                        });
+                    } else {
+#if (AMREX_SPACEDIM >= 2)
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
+                        {
+                            mlndlap_avgdown_coeff_z(i,j,k,cfab,ffab);
+                        });
+#endif
+                    } 
                 }
             }
-
             if (need_parallel_copy) {
                 crse.ParallelCopy(cfine);
             }
