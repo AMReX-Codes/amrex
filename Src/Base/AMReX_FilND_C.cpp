@@ -3,7 +3,7 @@
 namespace amrex {
 
 void fab_filnd (Box const& bx, Array4<Real> const& qn, int ncomp,
-                Box const& domain, Real const* dx, Real const* xlo,
+                Box const& domain, Real const* /*dx*/, Real const* /*xlo*/,
                 BCRec const* bcn)
 {
     const auto lo = amrex::lbound(bx);

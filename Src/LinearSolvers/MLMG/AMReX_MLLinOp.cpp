@@ -132,6 +132,8 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
                  const Vector<FabFactory<FArrayBox> const*>& a_factory,
                  bool eb_limit_coarsening)
 {
+    amrex::ignore_unused(eb_limit_coarsening);
+
     BL_PROFILE("MLLinOp::define()");
 
     if (!initialized) {
@@ -267,7 +269,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
     bool agged = false;
     bool coned = false;
-    int agg_lev, con_lev;
+    int agg_lev, con_lev = 0;
 
     if (info.do_agglomeration && aggable)
     {
@@ -424,7 +426,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     else
     {
         int rr = mg_coarsen_ratio;
-        Real avg_npts;
+        Real avg_npts = 0._rt;
         if (info.do_consolidation) {
             avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelContext::NProcsSub());
             if (consolidation_threshold == -1) {
@@ -535,18 +537,18 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                     ++(m_num_mg_levels[0]);
                     ++num_semicoarsening_level;
 
-                    IntVect rr_0(AMREX_D_DECL(rr_vec[0]*mg_coarsen_ratio, 1, 1));
-                    is_coarsenable_x = ( a_geom[0].Domain().coarsenable(rr_0, mg_domain_min_width) and
-                                         a_grids[0].coarsenable(rr_0, mg_box_min_width));
+                    IntVect rrr_0(AMREX_D_DECL(rr_vec[0]*mg_coarsen_ratio, 1, 1));
+                    is_coarsenable_x = ( a_geom[0].Domain().coarsenable(rrr_0, mg_domain_min_width) and
+                                         a_grids[0].coarsenable(rrr_0, mg_box_min_width));
 #if (AMREX_SPACEDIM >= 2)
-                    IntVect rr_1(AMREX_D_DECL(1, rr_vec[1]*mg_coarsen_ratio, 1));
-                    is_coarsenable_y = ( a_geom[0].Domain().coarsenable(rr_1, mg_domain_min_width) and
-                                         a_grids[0].coarsenable(rr_1, mg_box_min_width));
+                    IntVect rrr_1(AMREX_D_DECL(1, rr_vec[1]*mg_coarsen_ratio, 1));
+                    is_coarsenable_y = ( a_geom[0].Domain().coarsenable(rrr_1, mg_domain_min_width) and
+                                         a_grids[0].coarsenable(rrr_1, mg_box_min_width));
 
 #if (AMREX_SPACEDIM == 3)
-                    IntVect rr_2(AMREX_D_DECL(1,1,rr_vec[2]*mg_coarsen_ratio));
-                    is_coarsenable_z = ( a_geom[0].Domain().coarsenable(rr_2, mg_domain_min_width) and
-                                         a_grids[0].coarsenable(rr_2, mg_box_min_width));
+                    IntVect rrr_2(AMREX_D_DECL(1,1,rr_vec[2]*mg_coarsen_ratio));
+                    is_coarsenable_z = ( a_geom[0].Domain().coarsenable(rrr_2, mg_domain_min_width) and
+                                         a_grids[0].coarsenable(rrr_2, mg_box_min_width));
 #endif
 #endif
 

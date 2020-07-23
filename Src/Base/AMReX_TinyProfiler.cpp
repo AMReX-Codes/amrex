@@ -110,16 +110,17 @@ TinyProfiler::stop () noexcept
     {
         double t;
 	int nKernelCalls = 0;
-	if (!uCUPTI) {
-	    t = amrex::second();
-	} else {
 #ifdef AMREX_USE_CUPTI
-	    cudaDeviceSynchronize();
-	    cuptiActivityFlushAll(0);
-	    t = computeElapsedTimeUserdata(activityRecordUserdata);
-	    nKernelCalls = activityRecordUserdata.size();
+        if (uCUPTI) {
+            cudaDeviceSynchronize();
+            cuptiActivityFlushAll(0);
+            t = computeElapsedTimeUserdata(activityRecordUserdata);
+            nKernelCalls = activityRecordUserdata.size();
+        } else
 #endif
-	}
+        {
+	    t = amrex::second();
+        }
 
 	while (static_cast<int>(ttstack.size()) > global_depth) {
 	    ttstack.pop_back();

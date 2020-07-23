@@ -72,7 +72,7 @@ namespace amrex
 
         template <typename T>
         typename std::enable_if<!RunOnGpu<T>::value>::type
-        memMoveImpl (void* dst, const void* src, std::size_t count, T& allocator)
+        memMoveImpl (void* dst, const void* src, std::size_t count, T& /*allocator*/)
         {
             std::memmove(dst, src, count);
         }
