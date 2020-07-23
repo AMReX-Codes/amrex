@@ -315,9 +315,9 @@ operator << (std::ostream&    os,
       amrex::ParallelFor(bx,
       [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k) noexcept
       {
-        GpuArray<Real,AMREX_SPACEDIM> pt = {D_DECL(plo[0]+(i+0.5)*dx[0],
-                                                   plo[1]+(j+0.5)*dx[1],
-                                                   plo[2]+(k+0.5)*dx[2])};
+        GpuArray<Real,AMREX_SPACEDIM> pt = {D_DECL(plo[0]+(Real(i)+0.5_rt)*dx[0],
+                                                   plo[1]+(Real(j)+0.5_rt)*dx[1],
+                                                   plo[2]+(Real(k)+0.5_rt)*dx[2])};
         if (tag_rb.contains(pt.data())) {
           tag(i,j,k) = tagval;
         }
