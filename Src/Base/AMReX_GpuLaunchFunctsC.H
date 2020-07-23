@@ -4,13 +4,13 @@
 namespace amrex {
 
 template<typename T, typename L>
-void launch (T const& n, L&& f, std::size_t shared_mem_bytes=0) noexcept
+void launch (T const& n, L&& f, std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     f(n);
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-void For (T n, L&& f, std::size_t shared_mem_bytes=0) noexcept
+void For (T n, L&& f, std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     for (T i = 0; i < n; ++i) {
         f(i);
@@ -18,7 +18,7 @@ void For (T n, L&& f, std::size_t shared_mem_bytes=0) noexcept
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-void ParallelFor (T n, L&& f, std::size_t shared_mem_bytes=0) noexcept
+void ParallelFor (T n, L&& f, std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     AMREX_PRAGMA_SIMD
     for (T i = 0; i < n; ++i) {
@@ -27,7 +27,7 @@ void ParallelFor (T n, L&& f, std::size_t shared_mem_bytes=0) noexcept
 }
 
 template <typename L>
-void For (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
+void For (Box const& box, L&& f, std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -39,7 +39,7 @@ void For (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
 }
 
 template <typename L>
-void ParallelFor (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
+void ParallelFor (Box const& box, L&& f, std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -52,7 +52,7 @@ void ParallelFor (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcep
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-void For (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0) noexcept
+void For (Box const& box, T ncomp, L&& f, std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -66,7 +66,7 @@ void For (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0) noexce
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-void ParallelFor (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0) noexcept
+void ParallelFor (Box const& box, T ncomp, L&& f, std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -82,7 +82,7 @@ void ParallelFor (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0
 
 template <typename L1, typename L2>
 void For (Box const& box1, Box const& box2, L1&& f1, L2&& f2,
-          std::size_t shared_mem_bytes=0) noexcept
+          std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     For(box1, std::forward<L1>(f1));
     For(box2, std::forward<L2>(f2));
@@ -90,7 +90,7 @@ void For (Box const& box1, Box const& box2, L1&& f1, L2&& f2,
 
 template <typename L1, typename L2, typename L3>
 void For (Box const& box1, Box const& box2, Box const& box3, L1&& f1, L2&& f2, L3&& f3,
-          std::size_t shared_mem_bytes=0) noexcept
+          std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     For(box1, std::forward<L1>(f1));
     For(box2, std::forward<L2>(f2));
@@ -102,7 +102,7 @@ template <typename T1, typename T2, typename L1, typename L2,
           typename M2=amrex::EnableIf_t<std::is_integral<T2>::value> >
 void For (Box const& box1, T1 ncomp1, L1&& f1,
           Box const& box2, T2 ncomp2, L2&& f2,
-          std::size_t shared_mem_bytes=0) noexcept
+          std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     For(box1, ncomp1, std::forward<L1>(f1));
     For(box2, ncomp2, std::forward<L2>(f2));
@@ -115,7 +115,7 @@ template <typename T1, typename T2, typename T3, typename L1, typename L2, typen
 void For (Box const& box1, T1 ncomp1, L1&& f1,
           Box const& box2, T2 ncomp2, L2&& f2,
           Box const& box3, T3 ncomp3, L3&& f3,
-          std::size_t shared_mem_bytes=0) noexcept
+          std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     For(box1, ncomp1, std::forward<L1>(f1));
     For(box2, ncomp2, std::forward<L2>(f2));
@@ -124,7 +124,7 @@ void For (Box const& box1, T1 ncomp1, L1&& f1,
 
 template <typename L1, typename L2>
 void ParallelFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2,
-                  std::size_t shared_mem_bytes=0) noexcept
+                  std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     ParallelFor(box1, std::forward<L1>(f1));
     ParallelFor(box2, std::forward<L2>(f2));
@@ -132,7 +132,7 @@ void ParallelFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2,
 
 template <typename L1, typename L2, typename L3>
 void ParallelFor (Box const& box1, Box const& box2, Box const& box3, L1&& f1, L2&& f2, L3&& f3,
-                  std::size_t shared_mem_bytes=0) noexcept
+                  std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     ParallelFor(box1, std::forward<L1>(f1));
     ParallelFor(box2, std::forward<L2>(f2));
@@ -144,7 +144,7 @@ template <typename T1, typename T2, typename L1, typename L2,
           typename M2=amrex::EnableIf_t<std::is_integral<T2>::value> >
 void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
                   Box const& box2, T2 ncomp2, L2&& f2,
-                  std::size_t shared_mem_bytes=0) noexcept
+                  std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     ParallelFor(box1, ncomp1, std::forward<L1>(f1));
     ParallelFor(box2, ncomp2, std::forward<L2>(f2));
@@ -157,7 +157,7 @@ template <typename T1, typename T2, typename T3, typename L1, typename L2, typen
 void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
                   Box const& box2, T2 ncomp2, L2&& f2,
                   Box const& box3, T3 ncomp3, L3&& f3,
-                  std::size_t shared_mem_bytes=0) noexcept
+                  std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     ParallelFor(box1, ncomp1, std::forward<L1>(f1));
     ParallelFor(box2, ncomp2, std::forward<L2>(f2));
@@ -167,7 +167,7 @@ void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
 template <typename N, typename T, typename L1, typename L2,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 void FabReduce (Box const& box, N ncomp, T const& init_val,
-                L1&& f1, L2&& f2, std::size_t shared_mem_bytes=0) noexcept
+                L1&& f1, L2&& f2, std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     auto r = init_val;
     const auto lo = amrex::lbound(box);
@@ -184,7 +184,7 @@ void FabReduce (Box const& box, N ncomp, T const& init_val,
 
 template <typename T, typename L1, typename L2>
 void FabReduce (Box const& box, T const& init_val,
-                L1&& f1, L2&& f2, std::size_t shared_mem_bytes=0) noexcept
+                L1&& f1, L2&& f2, std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     auto r = init_val;
     const auto lo = amrex::lbound(box);
@@ -200,7 +200,7 @@ void FabReduce (Box const& box, T const& init_val,
 template <typename N, typename T, typename L1, typename L2,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 void VecReduce (N n, T const& init_val,
-                L1&& f1, L2&& f2, std::size_t shared_mem_bytes=0) noexcept
+                L1&& f1, L2&& f2, std::size_t /*shared_mem_bytes*/=0) noexcept
 {
     auto r = init_val;
     for (N i = 0; i < n; ++i) {

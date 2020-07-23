@@ -128,8 +128,8 @@ MLNodeTensorLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
 }
 
 void
-MLNodeTensorLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
-                                               const MultiFab& fine_sol, const MultiFab& fine_rhs)
+MLNodeTensorLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& /*crse_rhs*/,
+                                               const MultiFab& fine_sol, const MultiFab& /*fine_rhs*/)
 {
     const auto& amrrr = AMRRefRatio(camrlev);
     amrex::average_down(fine_sol, crse_sol, 0, 1, amrrr);
@@ -141,9 +141,9 @@ MLNodeTensorLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, 
 }
 
 void
-MLNodeTensorLaplacian::reflux (int crse_amrlev,
-                               MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
-                               MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const
+MLNodeTensorLaplacian::reflux (int /*crse_amrlev*/,
+                               MultiFab& /*res*/, const MultiFab& /*crse_sol*/, const MultiFab& /*crse_rhs*/,
+                               MultiFab& /*fine_res*/, MultiFab& /*fine_sol*/, const MultiFab& /*fine_rhs*/) const
 {
     amrex::Abort("MLNodeTensorLaplacian::reflux: TODO");
 }
@@ -215,6 +215,7 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
 void
 MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
+    amrex::ignore_unused(amrlev,mglev,mf);
     return;
 
 #if 0
@@ -242,7 +243,7 @@ MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 }
 
 void
-MLNodeTensorLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
+MLNodeTensorLaplacian::fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/)
 {
     amrex::Abort("MLNodeTensorLaplacian::fixUpResidualMask: TODO");
 }

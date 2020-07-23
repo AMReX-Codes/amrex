@@ -390,7 +390,7 @@ MLMG::miniCycle (int amrlev)
 
 namespace {
 
-void make_str_helper (std::ostringstream & oss) { }
+void make_str_helper (std::ostringstream & /*oss*/) { }
 
 template <class T, class... Ts>
 void make_str_helper (std::ostringstream & oss, T x, Ts... xs) {
@@ -1379,7 +1379,7 @@ MLMG::getFluxes (const Vector<MultiFab*> & a_flux, Location a_loc)
 }
 
 void
-MLMG::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<MultiFab*>& a_sol, Location a_loc)
+MLMG::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<MultiFab*>& a_sol, Location /*a_loc*/)
 {
     AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
 
@@ -1815,6 +1815,7 @@ void
 MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
 {
 #if !defined(AMREX_USE_HYPRE)
+    amrex::ignore_unused(x,b);
     amrex::Abort("bottomSolveWithHypre is called without building with Hypre");
 #else
 
@@ -1874,6 +1875,7 @@ void
 MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
 {
 #if !defined(AMREX_USE_PETSC)
+    amrex::ignore_unused(x,b);
     amrex::Abort("bottomSolveWithPETSc is called without building with PETSc");
 #else
 
