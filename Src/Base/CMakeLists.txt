@@ -179,8 +179,11 @@ target_sources( amrex
    AMReX_GpuTypes.H
    AMReX_GpuControl.H
    AMReX_GpuControl.cpp
+   AMReX_GpuFuse.H
+   AMReX_GpuFuse.cpp
    AMReX_GpuLaunch.H
    AMReX_GpuLaunch.cpp
+   AMReX_GpuLaunchGlobal.H
    AMReX_GpuLaunchMacrosG.H
    AMReX_GpuLaunchMacrosC.H
    AMReX_GpuLaunchFunctsG.H
