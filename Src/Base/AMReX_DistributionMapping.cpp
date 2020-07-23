@@ -1522,42 +1522,45 @@ DistributionMapping::ComputeDistributionMappingEfficiency (const DistributionMap
     *efficiency = (std::accumulate(rankToCost.begin(),
                                    rankToCost.end(), 0.0) / (nprocs*maxCost));
 }
-  
+
+namespace {
+Vector<Long>
+gather_weights (const MultiFab& weight)
+{
+#ifdef AMREX_USE_MPI
+    LayoutData<Real> costld(weight.boxArray(),weight.DistributionMap());
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
+        costld[mfi] = weight[mfi].sum<RunOn::Device>(mfi.validbox(),0);
+    }
+    Vector<Real> rcost(weight.size());
+    ParallelDescriptor::GatherLayoutDataToVector(costld, rcost,
+                                                 ParallelContext::IOProcessorNumberSub());
+    ParallelDescriptor::Bcast(rcost.data(), rcost.size(), ParallelContext::IOProcessorNumberSub());
+    Real wmax = *std::max_element(rcost.begin(), rcost.end());
+    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+    Vector<Long> lcost(rcost.size());
+    for (int i = 0; i < rcost.size(); ++i) {
+        lcost[i] = static_cast<Long>(rcost[i]*scale) + 1L;
+    }
+    return lcost;
+#else
+    return Vector<Long>(weight.size(), 1L);
+#endif
+}
+}
+
 DistributionMapping
 DistributionMapping::makeKnapSack (const MultiFab& weight, int nmax)
 {
     BL_PROFILE("makeKnapSack");
-
-    DistributionMapping r;
-
-    Vector<Long> cost(weight.size());
-#ifdef BL_USE_MPI
-    {
-	Vector<Real> rcost(cost.size(), 0.0);
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
-	    int i = mfi.index();
-	    rcost[i] = weight[mfi].sum<RunOn::Device>(mfi.validbox(),0);
-	}
-
-	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::CommunicatorSub());
-
-	Real wmax = *std::max_element(rcost.begin(), rcost.end());
-	Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
-
-	for (int i = 0; i < rcost.size(); ++i) {
-	    cost[i] = Long(rcost[i]*scale) + 1L;
-	}
-    }
-#endif
-
+    Vector<Long> cost = gather_weights(weight);
     int nprocs = ParallelContext::NProcsSub();
     Real eff;
-
+    DistributionMapping r;
     r.KnapSackProcessorMap(cost, nprocs, &eff, true, nmax);
-
     return r;
 }
 
@@ -1565,71 +1568,21 @@ DistributionMapping
 DistributionMapping::makeKnapSack (const MultiFab& weight, Real& eff, int nmax)
 {
     BL_PROFILE("makeKnapSack");
-
-    DistributionMapping r;
-
-    Vector<Long> cost(weight.size());
-#ifdef BL_USE_MPI
-    {
-        Vector<Real> rcost(cost.size(), 0.0);
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
-            int i = mfi.index();
-            rcost[i] = weight[mfi].sum<RunOn::Device>(mfi.validbox(),0);
-        }
-
-        ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::CommunicatorSub());
-
-        Real wmax = *std::max_element(rcost.begin(), rcost.end());
-        Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
-
-        for (int i = 0; i < rcost.size(); ++i) {
-            cost[i] = Long(rcost[i]*scale) + 1L;
-        }
-    }
-#endif
-
+    Vector<Long> cost = gather_weights(weight);
     int nprocs = ParallelContext::NProcsSub();
-
+    DistributionMapping r;
     r.KnapSackProcessorMap(cost, nprocs, &eff, true, nmax);
-
     return r;
 }
 
 DistributionMapping
 DistributionMapping::makeRoundRobin (const MultiFab& weight)
 {
-    DistributionMapping r;
-
-    Vector<Long> cost(weight.size());
-#ifdef BL_USE_MPI
-    {
-	Vector<Real> rcost(cost.size(), 0.0);
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
-	    int i = mfi.index();
-	    rcost[i] = weight[mfi].sum<RunOn::Device>(mfi.validbox(),0);
-	}
-
-	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::CommunicatorSub());
-
-	Real wmax = *std::max_element(rcost.begin(), rcost.end());
-        Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
-
-	for (int i = 0; i < rcost.size(); ++i) {
-	    cost[i] = Long(rcost[i]*scale) + 1L;
-	}
-    }
-#endif
-
+    BL_PROFILE("makeRoundRobin");
+    Vector<Long> cost = gather_weights(weight);
     int nprocs = ParallelContext::NProcsSub();
-
+    DistributionMapping r;
     r.RoundRobinProcessorMap(cost, nprocs);
-
     return r;
 }
 
@@ -1637,36 +1590,10 @@ DistributionMapping
 DistributionMapping::makeSFC (const MultiFab& weight, bool sort)
 {
     BL_PROFILE("makeSFC");
-
-    DistributionMapping r;
-
-    Vector<Long> cost(weight.size());
-#ifdef BL_USE_MPI
-    {
-	Vector<Real> rcost(cost.size(), 0.0);
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
-	    int i = mfi.index();
-	    rcost[i] = weight[mfi].sum<RunOn::Device>(mfi.validbox(),0);
-	}
-
-	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::CommunicatorSub());
-
-	Real wmax = *std::max_element(rcost.begin(), rcost.end());
-        Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
-
-	for (int i = 0; i < rcost.size(); ++i) {
-	    cost[i] = Long(rcost[i]*scale) + 1L;
-	}
-    }
-#endif
-
+    Vector<Long> cost = gather_weights(weight);
     int nprocs = ParallelContext::NProcsSub();
-
+    DistributionMapping r;
     r.SFCProcessorMap(weight.boxArray(), cost, nprocs, sort);
-
     return r;
 }
 
@@ -1674,36 +1601,10 @@ DistributionMapping
 DistributionMapping::makeSFC (const MultiFab& weight, Real& eff, bool sort)
 {
     BL_PROFILE("makeSFC");
-
-    DistributionMapping r;
-
-    Vector<Long> cost(weight.size());
-#ifdef BL_USE_MPI
-    {
-        Vector<Real> rcost(cost.size(), 0.0);
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
-            int i = mfi.index();
-            rcost[i] = weight[mfi].sum<RunOn::Device>(mfi.validbox(),0);
-        }
-
-	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::CommunicatorSub());
-
-        Real wmax = *std::max_element(rcost.begin(), rcost.end());
-        Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
-
-        for (int i = 0; i < rcost.size(); ++i) {
-            cost[i] = Long(rcost[i]*scale) + 1L;
-        }
-    }
-#endif
-
+    Vector<Long> cost = gather_weights(weight);
     int nprocs = ParallelContext::NProcsSub();
-
+    DistributionMapping r;
     r.SFCProcessorMap(weight.boxArray(), cost, nprocs, eff, sort);
-
     return r;
 }
 

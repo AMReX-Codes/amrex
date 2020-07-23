@@ -1169,7 +1169,7 @@ void
 VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 		    const std::string &filePrefix,
                     VisMF::Header &hdr,
-		    VisMF::Header::Version whichVersion,
+		    VisMF::Header::Version /*whichVersion*/,
 		    NFilesIter &nfi, MPI_Comm comm)
 {
 //    BL_PROFILE("VisMF::FindOffsets");

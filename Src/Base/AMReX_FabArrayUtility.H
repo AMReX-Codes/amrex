@@ -1629,6 +1629,8 @@ prefetchToHost (FabArray<FAB> const& fa, const bool synchronous = true)
             fa.prefetchToHost(mfi);
         }
     }
+#else
+    amrex::ignore_unused(fa,synchronous);
 #endif
 }
 
@@ -1642,6 +1644,8 @@ prefetchToDevice (FabArray<FAB> const& fa, const bool synchronous = true)
             fa.prefetchToDevice(mfi);
         }
     }
+#else
+    amrex::ignore_unused(fa,synchronous);
 #endif
 }
 
@@ -1689,7 +1693,7 @@ dtoh_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
     for (MFIter mfi(dst); mfi.isValid(); ++mfi) {
         void* pdst = dst[mfi].dataPtr(dcomp);
         void const* psrc = src[mfi].dataPtr(scomp);
-        Gpu::dtoh_memcpy_async(pdst, psrc, dst[mfi].nBytes(mfi.fabbox(), dcomp, ncomp));
+        Gpu::dtoh_memcpy_async(pdst, psrc, dst[mfi].nBytes(mfi.fabbox(), ncomp));
     }
 #else
     Copy(dst, src, scomp, dcomp, ncomp, dst.nGrowVect());
@@ -1714,7 +1718,7 @@ htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
     for (MFIter mfi(dst); mfi.isValid(); ++mfi) {
         void* pdst = dst[mfi].dataPtr(dcomp);
         void const* psrc = src[mfi].dataPtr(scomp);
-        Gpu::htod_memcpy_async(pdst, psrc, dst[mfi].nBytes(mfi.fabbox(), dcomp, ncomp));
+        Gpu::htod_memcpy_async(pdst, psrc, dst[mfi].nBytes(mfi.fabbox(), ncomp));
     }
 #else
     Copy(dst, src, scomp, dcomp, ncomp, dst.nGrowVect());

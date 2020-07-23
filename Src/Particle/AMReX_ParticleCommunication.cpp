@@ -202,6 +202,8 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
 
 void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
 {
+    amrex::ignore_unused(map);
+
     BL_PROFILE("ParticleCopyPlan::buildMPIFinish");
 
 #ifdef AMREX_USE_MPI
@@ -259,7 +261,6 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
         }
         m_rcv_num_particles[Who] = nparticles;
     }
-
 #endif // MPI
 }
 

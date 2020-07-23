@@ -198,6 +198,8 @@ namespace amrex
 
 #if (AMREX_SPACEDIM == 1)
         const GeometryData& gd = geom.data();
+#else
+        amrex::ignore_unused(geom);
 #endif
 
 #ifdef _OPENMP
@@ -254,6 +256,7 @@ namespace amrex
         }
 
 #if (AMREX_SPACEDIM == 3)
+        amrex::ignore_unused(fgeom,cgeom);
 	amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
 	return;
 #else
@@ -308,7 +311,7 @@ namespace amrex
 
     void sum_fine_to_coarse(const MultiFab& S_fine, MultiFab& S_crse,
                             int scomp, int ncomp, const IntVect& ratio,
-                            const Geometry& cgeom, const Geometry& fgeom)
+                            const Geometry& cgeom, const Geometry& /*fgeom*/)
     {
         AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
         AMREX_ASSERT(ratio == ratio[0]);

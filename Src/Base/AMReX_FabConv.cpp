@@ -221,7 +221,7 @@ selectOrdering (int prec,
 RealDescriptor*
 RealDescriptor::newRealDescriptor (int         iot,
                                    int         prec,
-                                   const char* sys,
+                                   const char* /*sys*/,
                                    int         ordering)
 {
     RealDescriptor* rd = 0;
@@ -498,7 +498,7 @@ _pd_reorder (char*      arr,
              const int* ord)
 {
     const int MAXLINE = 16;
-    char local[MAXLINE];
+    char local[MAXLINE] = {0};
 
     for (int j; nitems > 0; nitems--)
     {

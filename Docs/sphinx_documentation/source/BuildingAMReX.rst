@@ -56,6 +56,9 @@ list of important variables.
    +------------+-------------------------------------+--------------------+
    | USE_RPATH  | TRUE or FALSE                       | FALSE              |
    +------------+-------------------------------------+--------------------+
+   | WARN_ALL   | TRUE or FALSE                       | TRUE for DEBUG     |
+   |            |                                     | FALSE otherwise    |
+   +------------+-------------------------------------+--------------------+
 
 .. raw:: latex
 
@@ -108,6 +111,8 @@ If enabled, the library path at link time will be saved as a
 `rpath hint <https://en.wikipedia.org/wiki/Rpath>`_ in created binaries.
 When disabled, dynamic library paths could be provided via ``export LD_LIBRARY_PATH``
 hints at runtime.
+
+For GCC and Clang, the variable ``WARN_ALL`` controls the compiler's warning options.
 
 After defining these make variables, a number of files, ``Make.defs,
 Make.package`` and ``Make.rules``, are included in the GNUmakefile. AMReX-based

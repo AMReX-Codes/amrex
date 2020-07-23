@@ -77,7 +77,7 @@ public:
     virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final override
         { return amrex::GetArrOfConstPtrs(m_b_coeffs[amrlev][mglev]); }
 
-    virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const final override {
+    virtual std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final override {
         amrex::Abort("MLABecLaplacian::makeNLinOp: Not implmented");
         return std::unique_ptr<MLLinOp>{};
     }

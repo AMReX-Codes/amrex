@@ -546,9 +546,6 @@ while ( false )
     template <class T> void Gatherv (const T* send, int sc,
 				     T* recv, const std::vector<int>& rc, const std::vector<int>& disp,
 				     int root);
-    template <class T> void Gatherv (const T* send, Long sc,
-				     T* recv, const std::vector<Long>& rc, const std::vector<Long>& disp,
-				     int root);
 
     //! Gather LayoutData values to a vector on root
     template <class T> void GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
@@ -976,48 +973,6 @@ ParallelDescriptor::Gatherv (const T* send, int sc,
 
 template <class T>
 void
-ParallelDescriptor::Gatherv (const T* send, Long sc,
-			     T* recv, const std::vector<Long>& rc, const std::vector<Long>& disp,
-			     int root)
-{
-    BL_PROFILE_T_S("ParallelDescriptor::Gatherv(TLong)", T);
-    BL_COMM_PROFILE(BLProfiler::Gatherv,  BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
-
-    int tag = ParallelDescriptor::SeqNum();
-
-    if (MyProc() == root) {
-	int nprocs = NProcs();
-	BL_ASSERT(rc.size() == nprocs);
-	BL_ASSERT(disp.size() == nprocs);
-
-	std::vector<MPI_Request> request;
-	for (int i = 0; i < nprocs; ++i) {
-	    T* buf = recv + disp[i];
-	    if (i == root) {
-		for (int k = 0; k < rc[i]; ++k) {
-		    *buf++ = send[k];
-		}
-	    } else {
-		MPI_Request req;
-		MPI_Irecv(buf, rc[i], ParallelDescriptor::Mpi_typemap<T>::type(), i,
-			  tag, Communicator(), &req);
-		request.push_back(req);
-	    }
-	}
-	if (request.size() > 0) {
-	    std::vector<MPI_Status> status(request.size());
-	    MPI_Waitall(request.size(), &request[0], &status[0]);
-	}
-    } else {
-	MPI_Send(const_cast<T*>(send), sc, ParallelDescriptor::Mpi_typemap<T>::type(), root, tag,
-		 Communicator());
-    }
-
-    BL_COMM_PROFILE(BLProfiler::Gatherv, std::accumulate(rc.begin(),rc.end(),0L)*sizeof(T), root, BLProfiler::NoTag());
-}
-
-template <class T>
-void
 ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
                                               Vector<T>& recvbuf, int root)
 {
@@ -1033,8 +988,8 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
         T_to_send.push_back(sendbuf[i]);
     }
 
-    int nprocs = ParallelDescriptor::NProcs();
-    Vector<Long> recvcount(nprocs, 0);
+    int nprocs = ParallelContext::NProcsSub();
+    Vector<int> recvcount(nprocs, 0);
     const Vector<int>& old_pmap = sendbuf.DistributionMap().ProcessorMap();
     for (int i=0; i<old_pmap.size(); ++i)
     {
@@ -1066,22 +1021,21 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
         }
     }
 
-    Vector<Long> disp(nprocs);
+    Vector<int> disp(nprocs);
     disp[0] = 0;
     std::partial_sum(recvcount.begin(), recvcount.end()-1, disp.begin()+1);
     Vector<T> new_index_to_T(sendbuf.size());
 
-    ParallelDescriptor::Gatherv(&T_to_send[0],
-                                T_to_send.size(),
-                                &new_index_to_T[0],
-                                recvcount,
-                                disp,
-                                root);
+    MPI_Gatherv(T_to_send.data(), T_to_send.size(),
+                ParallelDescriptor::Mpi_typemap<T>::type(),
+                new_index_to_T.data(), recvcount.data(), disp.data(),
+                ParallelDescriptor::Mpi_typemap<T>::type(),
+                root, ParallelContext::CommunicatorSub());
 
     // Now work just on the root, which now has global information on the collected;
     // LayoutData information; with new_index_to_old_index and new_index_to_T,
     // sort the gathered vector in pre-gather index space
-    if (ParallelDescriptor::MyProc() == root)
+    if (ParallelContext::MyProcSub() == root)
     {
         // Invert the map (new_index) --> (old_index)
         Vector<int> old_index_to_new_index(sendbuf.size());

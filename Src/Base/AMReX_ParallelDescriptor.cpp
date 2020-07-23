@@ -408,6 +408,8 @@ ParallelDescriptor::second () noexcept
 void
 ParallelDescriptor::Barrier (const std::string &message)
 {
+    amrex::ignore_unused(message);
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -423,6 +425,8 @@ ParallelDescriptor::Barrier (const std::string &message)
 void
 ParallelDescriptor::Barrier (const MPI_Comm &comm, const std::string &message)
 {
+    amrex::ignore_unused(message);
+
 #ifdef BL_LAZY
     int r;
     MPI_Comm_compare(comm, Communicator(), &r);

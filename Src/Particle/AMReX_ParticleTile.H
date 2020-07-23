@@ -141,8 +141,8 @@ struct ParticleTileData
             m_aos[index].rdata(i) = sp.rdata(i);
         for (int i = 0; i < NArrayReal; ++i)
             m_rdata[i][index] = sp.rdata(NStructReal+i);
-        m_aos[index].id() == sp.id();
-        m_aos[index].cpu() == sp.cpu();
+        m_aos[index].id() = sp.id();
+        m_aos[index].cpu() = sp.cpu();
         for (int i = 0; i < NStructInt; ++i)
             m_aos[index].idata(i) = sp.idata(i);
         for (int i = 0; i < NArrayInt; ++i)
@@ -239,6 +239,8 @@ struct ParticleTile
     static constexpr int NAR = NArrayReal;
     static constexpr int NAI = NArrayInt;
 
+    using SuperParticleType = Particle<NStructReal + NArrayReal, NStructInt + NArrayInt>;
+
     using AoS = ArrayOfStructs<NStructReal, NStructInt, Allocator>;
     using ParticleVector = typename AoS::ParticleVector;
 
@@ -251,7 +253,7 @@ struct ParticleTile
 
     ParticleTile()
         : m_defined(false)
-        {}
+    {}
 
     void define (int a_num_runtime_real, int a_num_runtime_int)
     {
@@ -324,6 +326,35 @@ struct ParticleTile
     /// Add one particle to this tile.
     ///
     void push_back (const ParticleType& p) { m_aos_tile().push_back(p); }
+
+    ///
+    /// Add one particle to this tile.
+    ///
+    template < int NR = NArrayReal, int NI = NArrayInt,
+               EnableIf_t<NR != 0 or NI != 0, int> foo = 0>
+    void push_back (const SuperParticleType& sp)
+    {
+        auto np = numParticles();
+
+        m_aos_tile.resize(np+1);
+        m_soa_tile.resize(np+1);
+
+        auto& arr_rdata = m_soa_tile.GetRealData();
+        auto& arr_idata = m_soa_tile.GetIntData();
+
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+            m_aos_tile[np].pos(i) = sp.pos(i);
+        for (int i = 0; i < NStructReal; ++i)
+            m_aos_tile[np].rdata(i) = sp.rdata(i);
+        for (int i = 0; i < NArrayReal; ++i)
+            arr_rdata[i][np] = sp.rdata(NStructReal+i);
+        m_aos_tile[np].id() = sp.id();
+        m_aos_tile[np].cpu() = sp.cpu();
+        for (int i = 0; i < NStructInt; ++i)
+            m_aos_tile[np].idata(i) = sp.idata(i);
+        for (int i = 0; i < NArrayInt; ++i)
+            arr_idata[i][np] = sp.idata(NStructInt+i);
+    }
 
     ///
     /// Add a Real value to the struct-of-arrays at index comp.

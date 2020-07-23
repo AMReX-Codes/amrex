@@ -337,7 +337,7 @@ void mllinop_apply_innu_xlo (int i, int j, int k,
                              Array4<Real> const& rhs,
                              Array4<int const> const& mask,
                              Array4<Real const> const& bcoef,
-                             BoundCond bct, Real bcl,
+                             BoundCond bct, Real /*bcl*/,
                              Array4<Real const> const& bcval,
                              Real fac, bool has_bcoef, int icomp) noexcept
 {
@@ -352,7 +352,7 @@ void mllinop_apply_innu_xhi (int i, int j, int k,
                              Array4<Real> const& rhs,
                              Array4<int const> const& mask,
                              Array4<Real const> const& bcoef,
-                             BoundCond bct, Real bcl,
+                             BoundCond bct, Real /*bcl*/,
                              Array4<Real const> const& bcval,
                              Real fac, bool has_bcoef, int icomp) noexcept
 {
@@ -367,7 +367,7 @@ void mllinop_apply_innu_ylo (int i, int j, int k,
                              Array4<Real> const& rhs,
                              Array4<int const> const& mask,
                              Array4<Real const> const& bcoef,
-                             BoundCond bct, Real bcl,
+                             BoundCond bct, Real /*bcl*/,
                              Array4<Real const> const& bcval,
                              Real fac, bool has_bcoef, int icomp) noexcept
 {
@@ -381,7 +381,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_innu_ylo_m (int i, int j, int k,
                                Array4<Real> const& rhs,
                                Array4<int const> const& mask,
-                               BoundCond bct, Real bcl,
+                               BoundCond bct, Real /*bcl*/,
                                Array4<Real const> const& bcval,
                                Real fac, Real xlo, Real dx, int icomp) noexcept
 {
@@ -396,7 +396,7 @@ void mllinop_apply_innu_yhi (int i, int j, int k,
                              Array4<Real> const& rhs,
                              Array4<int const> const& mask,
                              Array4<Real const> const& bcoef,
-                             BoundCond bct, Real bcl,
+                             BoundCond bct, Real /*bcl*/,
                              Array4<Real const> const& bcval,
                              Real fac, bool has_bcoef, int icomp) noexcept
 {
@@ -410,7 +410,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_innu_yhi_m (int i, int j, int k,
                                Array4<Real> const& rhs,
                                Array4<int const> const& mask,
-                               BoundCond bct, Real bcl,
+                               BoundCond bct, Real /*bcl*/,
                                Array4<Real const> const& bcval,
                                Real fac, Real xlo, Real dx, int icomp) noexcept
 {
@@ -425,7 +425,7 @@ void mllinop_apply_innu_zlo (int i, int j, int k,
                              Array4<Real> const& rhs,
                              Array4<int const> const& mask,
                              Array4<Real const> const& bcoef,
-                             BoundCond bct, Real bcl,
+                             BoundCond bct, Real /*bcl*/,
                              Array4<Real const> const& bcval,
                              Real fac, bool has_bcoef, int icomp) noexcept
 {
@@ -440,7 +440,7 @@ void mllinop_apply_innu_zhi (int i, int j, int k,
                              Array4<Real> const& rhs,
                              Array4<int const> const& mask,
                              Array4<Real const> const& bcoef,
-                             BoundCond bct, Real bcl,
+                             BoundCond bct, Real /*bcl*/,
                              Array4<Real const> const& bcval,
                              Real fac, bool has_bcoef, int icomp) noexcept
 {
