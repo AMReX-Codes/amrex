@@ -502,7 +502,6 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 			 Array4<Real const> const& apz = area[2]->const_array(mfi););
 	    Array4<EBCellFlag const> const& flag = flags->const_array(mfi);
 	   
-            const auto & bdlv = bcondloc.bndryLocs(mfi);
             const auto & bdcv = bcondloc.bndryConds(mfi);
 
             GpuArray<BoundCond,2*AMREX_SPACEDIM*AMREX_SPACEDIM> bct;
