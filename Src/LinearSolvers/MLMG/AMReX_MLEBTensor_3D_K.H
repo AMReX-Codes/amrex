@@ -85,10 +85,10 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
 
                     whi = mlebtensor_weight(khip-khim);
                     wlo = mlebtensor_weight(klop-klom);
-                    Real dudz = (0.5*dzi) * ((vel(i  ,j,khip,0)-vel(i  ,j,khim,0))*whi
-                                            +(vel(i-1,j,klop,0)-vel(i-1,j,klom,0))*wlo);
-                    Real dwdz = (0.5*dzi) * ((vel(i  ,j,khip,2)-vel(i  ,j,khim,2))*whi
-                                            +(vel(i-1,j,klop,2)-vel(i-1,j,klom,2))*wlo);
+                    Real dudz = (0.5*dzi*aux) * ((vel(i  ,j,khip,0)-vel(i  ,j,khim,0))*whi
+                                                +(vel(i-1,j,klop,0)-vel(i-1,j,klom,0))*wlo);
+                    Real dwdz = (0.5*dzi*aux) * ((vel(i  ,j,khip,2)-vel(i  ,j,khim,2))*whi
+                                                +(vel(i-1,j,klop,2)-vel(i-1,j,klom,2))*wlo);
 
                     Real divu = dvdy + dwdz;
                     Real xif = kapx(i,j,k);
