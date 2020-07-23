@@ -38,6 +38,9 @@ ifeq ($(EXPORT_DYNAMIC),TRUE)
   GENERIC_GNU_FLAGS += -rdynamic -fno-omit-frame-pointer
 endif
 
+gcc_major_ge_5 = $(shell expr $(gcc_major_version) \>= 5)
+gcc_major_ge_6 = $(shell expr $(gcc_major_version) \>= 6)
+gcc_major_ge_7 = $(shell expr $(gcc_major_version) \>= 7)
 gcc_major_ge_8 = $(shell expr $(gcc_major_version) \>= 8)
 gcc_major_ge_9 = $(shell expr $(gcc_major_version) \>= 9)
 gcc_major_ge_10 = $(shell expr $(gcc_major_version) \>= 10)
@@ -75,32 +78,36 @@ CXXFLAGS += -Werror=return-type
 CFLAGS   += -Werror=return-type
 
 ifeq ($(DEBUG),TRUE)
+  CXXFLAGS += -g -O0 -ggdb -ftrapv
+  CFLAGS   += -g -O0 -ggdb -ftrapv
+else
+  CXXFLAGS += -g -O3
+  CFLAGS   += -g -O3
+endif
 
-  CXXFLAGS += -g -O0 -ggdb -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
-  CFLAGS   += -g -O0 -ggdb -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
+ifeq ($(WARN_ALL),TRUE)
+  warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code
 
-  ifneq ($(gcc_major_version),$(filter $(gcc_major_version),4 5))
-    CXXFLAGS += -Wnull-dereference
-    CFLAGS += -Wnull-dereference
+  ifneq ($(USE_CUDA),TRUE)
+    # With -Wpedantic I got 650 MB of warnings
+    warning_flags += -Wpedantic
   endif
 
-  ifneq ($(gcc_major_version),$(filter $(gcc_major_version),4))
-    CXXFLAGS += -Wfloat-conversion
-    CFLAGS += -Wfloat-conversion
+  ifeq ($(gcc_major_ge_6),1)
+    warning_flags += -Wnull-dereference
+  endif
+
+  ifeq ($(gcc_major_ge_5),1)
+    warning_flags += -Wfloat-conversion
   endif
 
   ifneq ($(WARN_SHADOW),FALSE)
-    CXXFLAGS += -Wshadow
-    CFLAGS += -Wshadow
+    warning_flags += -Wshadow
   endif
 
-else
-
-  CXXFLAGS += -g -O3
-  CFLAGS   += -g -O3
-
+  CXXFLAGS += $(warning_flags) -Woverloaded-virtual
+  CFLAGS += $(warning_flags)
 endif
-
 
 ifeq ($(USE_GPROF),TRUE)
   CXXFLAGS += -pg

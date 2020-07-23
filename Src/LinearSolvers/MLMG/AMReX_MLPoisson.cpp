@@ -112,6 +112,7 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
 void
 MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
+    amrex::ignore_unused(amrlev,mglev,mf);
 #if (AMREX_SPACEDIM != 3)
     BL_PROFILE("MLPoisson::normalize()");
 

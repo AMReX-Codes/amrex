@@ -48,7 +48,7 @@
 namespace amrex {
 
 template <typename T, typename std::enable_if<!IsBaseFab<T>::value,int>::type = 0>
-Long nBytesOwned (T const& t) noexcept { return 0; }
+Long nBytesOwned (T const&) noexcept { return 0; }
 
 template <typename T>
 Long nBytesOwned (BaseFab<T> const& fab) noexcept { return fab.nBytesOwned(); }
@@ -837,7 +837,6 @@ private:
                    Vector<std::size_t>&                   recv_size,
                    Vector<int>&                           recv_from,
                    Vector<MPI_Request>&                   recv_reqs,
-                   int                                    icomp,
                    int                                    ncomp,
                    int                                    SeqNum);
 
@@ -2003,8 +2002,8 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        CMD_local_setVal_gpu(val, thecmd, 0, ncomp);
-        CMD_remote_setVal_gpu(val, thecmd, 0, ncomp);
+        CMD_local_setVal_gpu(val, thecmd, scomp, ncomp);
+        CMD_remote_setVal_gpu(val, thecmd, scomp, ncomp);
     }
     else
 #endif
@@ -2017,7 +2016,7 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
 #endif
         for (int i = 0; i < N_locs; ++i) {
             const CopyComTag& tag = LocTags[i];
-            (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, 0, ncomp);
+            (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, scomp, ncomp);
         }
 
         for (auto it = RcvTags.begin(); it != RcvTags.end(); ++it) {
@@ -2027,7 +2026,7 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
 #endif
             for (int i = 0; i < N; ++i) {
                 const CopyComTag& tag = it->second[i];
-                (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, 0, ncomp);
+                (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, scomp, ncomp);
             }
         }
     }

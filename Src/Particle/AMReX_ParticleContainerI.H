@@ -909,7 +909,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 addParticles (const ParticleContainerType& other, bool local)
 {
     using PData = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>; 
-    addParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& data, int i) { return 1; }, local);
+    addParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>

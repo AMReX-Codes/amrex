@@ -239,6 +239,8 @@ CoordSys::SetDLogA (FArrayBox& a_dlogafab,
                     const Box& region,
                     int        dir) const
 {
+    amrex::ignore_unused(dir);
+
     AMREX_ASSERT(ok);
     AMREX_ASSERT(region.cellCentered());
 
@@ -491,6 +493,7 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
 Real
 CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
 {
+    amrex::ignore_unused(point);
 #if (AMREX_SPACEDIM==2)
     Real xlo[AMREX_SPACEDIM];
     switch (c_sys)
@@ -526,6 +529,7 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
 Real
 CoordSys::AreaHi (const IntVect& point, int dir) const noexcept
 {
+    amrex::ignore_unused(point);
 #if (AMREX_SPACEDIM==2)
     Real xhi[AMREX_SPACEDIM];
     switch (c_sys)

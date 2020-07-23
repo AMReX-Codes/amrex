@@ -470,7 +470,7 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
 
 void
 MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
-                       MultiFab& sol, Location loc) const
+                       MultiFab& sol, Location /*loc*/) const
 {
 #if (AMREX_SPACEDIM > 1)
     BL_PROFILE("MLTensorOp::compVelGrad()");
@@ -480,7 +480,7 @@ MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& flux
     applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, m_bndry_sol[amrlev].get());
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    const int dim_fluxes = pow(AMREX_SPACEDIM,2);
+    const int dim_fluxes = AMREX_SPACEDIM*AMREX_SPACEDIM;
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
