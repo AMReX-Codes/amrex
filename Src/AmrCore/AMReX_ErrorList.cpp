@@ -234,7 +234,7 @@ operator << (std::ostream&    os,
                    Array4<const Real> const& dat,
                    Array4<char> const&       tag,
                    Real                      threshold,
-                   int                       tagval)
+                   char                      tagval)
   {
     amrex::ParallelFor(bx,
     [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k) noexcept
@@ -271,7 +271,7 @@ operator << (std::ostream&    os,
                    Array4<const Real> const& dat,
                    Array4<char> const&       tag,
                    Real                      threshold,
-                   int                       tagval)
+                   char                      tagval) noexcept
   {
     amrex::ParallelFor(bx,
     [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k) noexcept
@@ -288,7 +288,7 @@ operator << (std::ostream&    os,
                       Array4<const Real> const& dat,
                       Array4<char> const&       tag,
                       Real                      threshold,
-                      int                       tagval)
+                      char                      tagval) noexcept
   {
     amrex::ParallelFor(bx,
     [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k) noexcept
@@ -305,11 +305,11 @@ operator << (std::ostream&    os,
                   Array4<char> const& tag,
                   const RealBox&      tag_rb,
                   const Geometry&     geom,
-                  int                 tagval)
+                  char                tagval) noexcept
   {
-    const Real* dx = geom.CellSize();
-    const Real* plo = geom.ProbLo();
-    class RealBox trb(bx,dx,plo);
+    auto plo = geom.ProbLoArray();
+    auto dx  = geom.CellSizeArray();
+    class RealBox trb(bx,dx.data(),plo.data());
     if (tag_rb.intersects(trb))
     {
       amrex::ParallelFor(bx,
@@ -332,12 +332,13 @@ operator << (std::ostream&    os,
                    Array4<char> const&       tag,
                    int                       level,
                    Real                      threshold,
-                   int                       tagval)
+                   char                      tagval) noexcept
   {
+    const Real fac = threshold * std::pow(2,level);
     amrex::ParallelFor(bx,
     [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k) noexcept
     {
-      if (dat(i,j,k) >= threshold * std::pow(2,level)) {
+      if (dat(i,j,k) >= fac) {
         tag(i,j,k) = tagval;
       }
     });
@@ -346,8 +347,8 @@ operator << (std::ostream&    os,
   void
   AMRErrorTag::operator() (TagBoxArray&    tba,
                            const MultiFab* mf,
-                           int             clearval,
-                           int             tagval,
+                           char            clearval,
+                           char            tagval,
                            Real            time,
                            int             level,
                            const Geometry& geom) const noexcept
@@ -365,19 +366,15 @@ operator << (std::ostream&    os,
       {
         const auto& bx    = mfi.tilebox();
         auto const& dat   = mf->array(mfi);
-        Vector<int> itags = tba[mfi].tags();
         auto tag          = tba.array(mfi);
-
         (*m_userfunc)(bx,dat,tag,time,level,tagval,clearval);
-
-        tba[mfi].tags(itags);
       }
     }
     else
     {
-      if ((m_info.m_max_level < 0 || level <  m_info.m_max_level) &&
-          (m_info.m_min_time  < 0 || time  >= m_info.m_min_time ) &&
-          (m_info.m_max_time  < 0 || time  <= m_info.m_max_time ) )
+      if ((level <  m_info.m_max_level) &&
+          (time  >= m_info.m_min_time ) &&
+          (time  <= m_info.m_max_time ) )
       {
 
 #ifdef _OPENMP
@@ -387,7 +384,6 @@ operator << (std::ostream&    os,
         {
           const auto& bx    = mfi.tilebox();
           auto const& dat   = mf->array(mfi);
-          Vector<int> itags = tba[mfi].tags();
           auto tag          = tba.array(mfi);
 
           if (m_test == BOX)
@@ -414,8 +410,6 @@ operator << (std::ostream&    os,
           {
             Abort("Bad AMRErrorTag test flag");
           }
-
-          tba[mfi].tags(itags);
         }
       }
     }

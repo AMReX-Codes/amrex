@@ -378,12 +378,10 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
 
   struct AMRErrorTagInfo
   {
-    int            m_max_level;
-    amrex::Real    m_min_time;
-    amrex::Real    m_max_time;
-    amrex::RealBox m_realbox;
-
-    AMRErrorTagInfo () noexcept : m_max_level(-1), m_min_time(-1), m_max_time(-1), m_realbox(amrex::RealBox()) {}
+    int m_max_level = 100000;
+    Real m_min_time = std::numeric_limits<Real>::lowest();
+    Real m_max_time = std::numeric_limits<Real>::max();
+    RealBox m_realbox;
 
     AMRErrorTagInfo& SetMaxLevel (int max_level) noexcept {
       m_max_level = max_level;
@@ -416,18 +414,18 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
                                amrex::Array4<char> const&              tag,
                                amrex::Real                             time,
                                int                                     level,
-                               int                                     tagval,
-                               int                                     clearval) = 0;
+                               char                                    tagval,
+                               char                                    clearval) = 0;
     };
 
-    AMRErrorTag (const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
-      : m_test(BOX), m_field(std::string()), m_info(info) {SetNGrow();}
+    explicit AMRErrorTag (const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
+      : m_test(BOX), m_field(std::string()), m_info(info) {m_ngrow = SetNGrow();}
 
     AMRErrorTag (amrex::Real            value,
                  AMRErrorTag::TEST      test,
                  const std::string&     field,
                  const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
-      : m_value(value), m_test(test), m_field(field), m_info(info) {SetNGrow();}
+      : m_value(value), m_test(test), m_field(field), m_info(info) {m_ngrow = SetNGrow();}
 
     AMRErrorTag (AMRErrorTag::UserFunc* userfunc,
                  const std::string&     field,
@@ -437,8 +435,8 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
 
     virtual void operator() (amrex::TagBoxArray&    tb,
                              const amrex::MultiFab* mf,
-                             int                    clearval,
-                             int                    tagval,
+                             char                   clearval,
+                             char                   tagval,
                              amrex::Real            time,
                              int                    level,
                              const amrex::Geometry& geom) const noexcept;
@@ -453,8 +451,8 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
     TEST m_test;
     UserFunc* m_userfunc = nullptr;
     std::string m_field;
-    int m_ngrow;
     AMRErrorTagInfo m_info;
+    int m_ngrow;
   };
 }
 
