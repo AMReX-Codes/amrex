@@ -801,7 +801,7 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
 #if (AMREX_SPACEDIM >= 2)
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
                         {
-                            mlndlap_avgdown_coeff_z(i,j,k,cfab,ffab);
+                            mlndlap_avgdown_coeff_y(i,j,k,cfab,ffab);
                         });
 #endif
                     } 
