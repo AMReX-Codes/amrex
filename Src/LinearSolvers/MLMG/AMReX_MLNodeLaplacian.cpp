@@ -734,7 +734,6 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
         int idir = 2;
         bool regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
         IntVect ratio = mg_coarsen_ratio_vec[mglev-1];
-        amrex::Print() << "regular_coarsening = " << regular_coarsening << ", idir = " << idir << std::endl;
         if (ratio[1] == 1) {
             idir = 1;
         } else if (ratio[0] == 1) {

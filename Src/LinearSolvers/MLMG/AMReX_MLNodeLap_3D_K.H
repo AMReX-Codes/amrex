@@ -1329,11 +1329,11 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                 {
                     if (msk(i,j,k)) 
                     {
-                        a_ls(j-lo.y) = 0.;
-                        b_ls(j-lo.y) = 1.;
-                        c_ls(j-lo.y) = 0.;
-                        u_ls(j-lo.y) = 0.;
-                        r_ls(j-lo.y) = 0.;
+                        a_ls(i-lo.x) = 0.;
+                        b_ls(i-lo.x) = 1.;
+                        c_ls(i-lo.x) = 0.;
+                        u_ls(i-lo.x) = 0.;
+                        r_ls(i-lo.x) = 0.;
                     }
                     else
                     {
