@@ -1180,7 +1180,7 @@ public:
     Vector<int> NeighborProcs(int ngrow) const         
     {
         return computeNeighborProcs(this->GetParGDB(), ngrow);
-    };
+    }
 
     bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
@@ -1280,10 +1280,10 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
 private:
 
     virtual void particlePostLocate(ParticleType& /*p*/, const ParticleLocData& /*pld*/,
-                                    const int /*lev*/) {};
+                                    const int /*lev*/) {}
 
     virtual void correctCellVectors(int /*old_index*/, int /*new_index*/,
-				    int /*grid*/, const ParticleType& /*p*/) {};
+				    int /*grid*/, const ParticleType& /*p*/) {}
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);

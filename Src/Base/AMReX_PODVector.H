@@ -66,6 +66,7 @@ namespace amrex
 
             allocator.deallocate(tmp, N);
 #else
+            amrex::ignore_unused(allocator);
             std::memmove(dst, src, count);
 #endif
         }

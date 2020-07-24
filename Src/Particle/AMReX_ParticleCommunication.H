@@ -496,6 +496,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
             amrex::Abort("TODO: message size is too big");
         }
     }
+#else
+    amrex::ignore_unused(pc,plan,snd_buffer,rcv_buffer);
 #endif // MPI
 }
 
@@ -569,6 +571,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
               });
           }
     }
+#else
+    amrex::ignore_unused(pc,plan,rcv_buffer,policy);
 #endif // MPI
 }
 

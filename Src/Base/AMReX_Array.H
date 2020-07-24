@@ -39,25 +39,25 @@ namespace amrex {
         T& operator [] (int i) noexcept { return arr[i]; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T* data () const noexcept { return arr; };
+        const T* data () const noexcept { return arr; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T* data () noexcept { return arr; };
+        T* data () noexcept { return arr; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        std::size_t size() const noexcept { return N; };
+        std::size_t size() const noexcept { return N; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T* begin() const noexcept { return arr; };
+        const T* begin() const noexcept { return arr; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T* end() const noexcept { return arr + N; };
+        const T* end() const noexcept { return arr + N; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T* begin() noexcept { return arr; };
+        T* begin() noexcept { return arr; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T* end() noexcept { return arr + N; };
+        T* end() noexcept { return arr + N; }
 
         T arr[amrex::max(N,std::size_t{1})];
     };

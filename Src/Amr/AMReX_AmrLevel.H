@@ -104,7 +104,7 @@ public:
     */
     virtual void writeSmallPlotFile (const std::string& /*dir*/,
                                      std::ostream&      /*os*/,
-				     VisMF::How         /*how*/ = VisMF::NFiles) {};
+				     VisMF::How         /*how*/ = VisMF::NFiles) {}
     //! Write current state to checkpoint file.
     virtual void checkPoint (const std::string& dir,
                              std::ostream&      os,
@@ -183,7 +183,7 @@ public:
     /**
     * \brief Operations to be done after restart.
     */
-    virtual void post_restart () {};
+    virtual void post_restart () {}
     /**
     * \brief Operations to be done after regridding
     * This is a pure virtual function and hence MUST be

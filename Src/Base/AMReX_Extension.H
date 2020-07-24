@@ -149,6 +149,8 @@
 
 #if (__cplusplus >= 201703L)
 #define AMREX_FALLTHROUGH [[fallthrough]]
+#elif defined(__clang__)
+#define AMREX_FALLTHROUGH [[clang::fallthrough]]
 #elif defined(__GNUC__)
 #define AMREX_FALLTHROUGH [[gnu::fallthrough]]
 #else

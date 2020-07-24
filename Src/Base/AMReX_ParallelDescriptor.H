@@ -1181,7 +1181,7 @@ Gather(const T* /*t*/, size_t /*n*/, T1* /*t1*/, size_t /*n1*/, int /*root*/)
 
 template <class T>
 std::vector<T>
-Gather(const T& t, int root)
+Gather(const T& t, int /*root*/)
 {
     std::vector<T> resl(1);
     resl[0] = t;

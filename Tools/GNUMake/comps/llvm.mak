@@ -41,6 +41,7 @@ endif
 ifeq ($(WARN_ALL),TRUE)
   warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
   warning_flags += -Wfloat-conversion -Wextra-semi
+  warning_flags += -Wno-pass-failed=loop-vectorize # disable this warning
 
   ifneq ($(USE_CUDA),TRUE)
     warning_flags += -Wpedantic

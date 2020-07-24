@@ -243,7 +243,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 ParticleLocData
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 Reset (ParticleType& p,
-       bool          update,
+       bool          /*update*/,
        bool          verbose,
        ParticleLocData pld) const
 {
@@ -910,7 +910,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 copyParticles (const ParticleContainerType& other, bool local)
 {
     using PData = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
-    copyParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& data, int i) { return 1; }, local);
+    copyParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1201,6 +1201,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     Gpu::Device::synchronize();
     AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
+#else
+    amrex::ignore_unused(lev_min,lev_max,nGrow,local);
 #endif
 }
 
