@@ -182,7 +182,7 @@ jobs:
 
   # Build 1D libamrex with configure
   configure-1d:
-    name: GNU@7.5 C++17 Release [configure 1D]
+    name: GNU@7.5 Release [configure 1D]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -196,21 +196,21 @@ jobs:
 
   # Build 2D libamrex with configure
   configure-2d:
-    name: GNU@7.5 C++17 Release [configure 2D]
+    name: Clang@6.0 Release [configure 2D]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies.sh
+      run: .github/workflows/dependencies/dependencies_clang6.sh
     - name: Build & Install
       run: |
-        ./configure --dim 2 --with-fortran no
+        ./configure --dim 2 --with-fortran no --comp llvm
         make -j2 WARN_ALL=TRUE
         make install
 
   # Build 3D libamrex with configure
   configure-3d:
-    name: GNU@7.5 C++17 Release [configure 3D]
+    name: GNU@7.5 Release [configure 3D]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
