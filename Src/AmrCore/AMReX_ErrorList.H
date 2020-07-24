@@ -431,7 +431,7 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
                  const std::string&     field,
                  int                    ngrow,
                  const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
-      : m_userfunc(userfunc), m_field(field), m_ngrow(ngrow), m_info(info) {}
+      : m_userfunc(userfunc), m_field(field), m_info(info), m_ngrow(ngrow) {}
 
     virtual void operator() (amrex::TagBoxArray&    tb,
                              const amrex::MultiFab* mf,
