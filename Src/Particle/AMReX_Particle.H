@@ -55,7 +55,7 @@ struct Particle
     */
     union im_t
     {
-      struct {int id; int cpu;};
+      int ids[2];
       int arr[2+NInt];
     };
 
@@ -64,10 +64,10 @@ struct Particle
 
     static int the_next_id;
 
-    AMREX_GPU_HOST_DEVICE int&  id ()       & {return m_idata.id;}
-    AMREX_GPU_HOST_DEVICE int   id () const & {return m_idata.id;}
-    AMREX_GPU_HOST_DEVICE int& cpu ()       & {return m_idata.cpu;}
-    AMREX_GPU_HOST_DEVICE int  cpu () const & {return m_idata.cpu;}
+    AMREX_GPU_HOST_DEVICE int&  id ()       & {return m_idata.ids[0];}
+    AMREX_GPU_HOST_DEVICE int   id () const & {return m_idata.ids[0];}
+    AMREX_GPU_HOST_DEVICE int& cpu ()       & {return m_idata.ids[1];}
+    AMREX_GPU_HOST_DEVICE int  cpu () const & {return m_idata.ids[1];}
 
     AMREX_GPU_HOST_DEVICE RealVect pos () const &
     {return RealVect(AMREX_D_DECL(m_rdata.pos[0], m_rdata.pos[1], m_rdata.pos[2]));}
@@ -693,8 +693,8 @@ template <int NReal, int NInt>
 std::ostream&
 operator<< (std::ostream& os, const Particle<NReal, NInt>& p)
 {
-    os << p.m_idata.id   << ' '
-       << p.m_idata.cpu  << ' ';
+    os << p.id()   << ' '
+       << p.cpu()  << ' ';
 
     for (int i = 0; i < AMREX_SPACEDIM + NReal; i++)
         os << p.m_rdata.arr[i] << ' ';
