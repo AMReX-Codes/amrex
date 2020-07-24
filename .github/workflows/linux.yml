@@ -196,7 +196,7 @@ jobs:
 
   # Build 2D libamrex with configure
   configure-2d:
-    name: Clang@6.0 Release [configure 2D]
+    name: Clang@6.0 NOMPI Release [configure 2D]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -204,7 +204,7 @@ jobs:
       run: .github/workflows/dependencies/dependencies_clang6.sh
     - name: Build & Install
       run: |
-        ./configure --dim 2 --with-fortran no --comp llvm
+        ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no
         make -j2 WARN_ALL=TRUE
         make install
 
