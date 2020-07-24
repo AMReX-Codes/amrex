@@ -15,7 +15,7 @@ public:
     constexpr Real operator() (const RealArray&) const noexcept { return -1.0; }
 
     AMREX_GPU_HOST_DEVICE
-    constexpr Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept { return -1.0; }
+    constexpr Real operator() (AMREX_D_DECL(Real, Real, Real)) const noexcept { return -1.0; }
 };
 
 }}

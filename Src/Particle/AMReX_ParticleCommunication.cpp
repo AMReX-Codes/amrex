@@ -196,7 +196,8 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
     m_snd_pad_correction_d.resize(m_snd_pad_correction_h.size());
     Gpu::copy(Gpu::hostToDevice, m_snd_pad_correction_h.begin(), m_snd_pad_correction_h.end(),
               m_snd_pad_correction_d.begin());
-
+#else
+    amrex::ignore_unused(map,psize);
 #endif
 }
 
@@ -307,6 +308,8 @@ void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>&
     {
         ParallelDescriptor::Waitall(rreqs, stats);
     }
+#else
+    amrex::ignore_unused(Snds,Rcvs);
 #endif
 }
 
@@ -328,6 +331,8 @@ void ParticleCopyPlan::doHandShakeAllToAll (const Vector<Long>& Snds, Vector<Lon
 
     BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(Long),
                     ParallelContext::MyProcSub(), BLProfiler::AfterCall());
+#else
+    amrex::ignore_unused(Snds,Rcvs);
 #endif
 }
 
@@ -370,6 +375,8 @@ void ParticleCopyPlan::doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>
         const auto Who = stats[i].MPI_SOURCE;
         Rcvs[Who] = num_bytes_rcv[i];
     }
+#else
+    amrex::ignore_unused(Snds,Rcvs);
 #endif
 }
 
@@ -381,5 +388,7 @@ void amrex::communicateParticlesFinish (const ParticleCopyPlan& plan)
     {
         ParallelDescriptor::Waitall(plan.m_particle_rreqs, plan.m_particle_stats);
     }
+#else
+    amrex::ignore_unused(plan);
 #endif
 }

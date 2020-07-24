@@ -94,8 +94,8 @@ public:
     * \param ratio
     * \param comp
     */
-    virtual void setBndryConds (const BCRec&   phys_bc,
-                                const IntVect& ratio,
+    virtual void setBndryConds (const BCRec&   /*phys_bc*/,
+                                const IntVect& /*ratio*/,
 				int            /*comp*/ = 0) {}
 
     /**

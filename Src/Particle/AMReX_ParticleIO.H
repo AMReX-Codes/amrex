@@ -33,7 +33,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::Checkpoint (const std::string& dir,
-              const std::string& name, bool is_checkpoint,
+              const std::string& name, bool /*is_checkpoint*/,
               const Vector<std::string>& real_comp_names,
               const Vector<std::string>& int_comp_names) const
 {
@@ -690,7 +690,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::Restart (const std::string& dir, const std::string& file, bool is_checkpoint)
+::Restart (const std::string& dir, const std::string& file, bool /*is_checkpoint*/)
 {
     Restart(dir, file);
 }

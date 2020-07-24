@@ -10,7 +10,7 @@ void mlndtslap_interpadd (int i, int, int, Array4<Real> const& fine,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndtslap_adotx (Box const& b, Array4<Real> const& y, Array4<Real const> const& x,
-                      Array4<int const> const& msk, GpuArray<Real,6> const& s,
+                      GpuArray<Real,6> const& s,
                       GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {}
 

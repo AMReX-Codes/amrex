@@ -707,6 +707,8 @@ void
 VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
                                 int procToWrite, MPI_Comm comm)
 {
+    amrex::ignore_unused(procToWrite,comm);
+
 //    BL_PROFILE("VisMF::CalculateMinMax");
 
     m_min.resize(m_ba.size());

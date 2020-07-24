@@ -374,14 +374,14 @@ protected:
                            Real stop_time);
 
     // pure virtural function in AmrCore
-    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
-	{ amrex::Abort("How did we get her!"); }
-    virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
-	{ amrex::Abort("How did we get her!"); }
-    virtual void RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
-	{ amrex::Abort("How did we get her!"); }
-    virtual void ClearLevel (int lev) override
-	{ amrex::Abort("How did we get her!"); }
+    virtual void MakeNewLevelFromScratch (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
+	{ amrex::Abort("How did we get here!"); }
+    virtual void MakeNewLevelFromCoarse (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
+	{ amrex::Abort("How did we get here!"); }
+    virtual void RemakeLevel (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
+	{ amrex::Abort("How did we get here!"); }
+    virtual void ClearLevel (int /*lev*/) override
+	{ amrex::Abort("How did we get here!"); }
 
     //! Whether to write a plotfile now
     bool writePlotNow () noexcept;

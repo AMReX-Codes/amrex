@@ -677,7 +677,7 @@ private:
 
     template <typename D, typename F>
     AMREX_FORCE_INLINE
-    static auto call_f (Box const& box, D & reduce_data, F const& f)
+    static auto call_f (Box const& box, D & /*reduce_data*/, F const& f)
         noexcept -> decltype(f(0,0,0))
     {
         using ReduceTuple = typename D::Type;

@@ -469,6 +469,9 @@ MLPoisson::makeNLinOp (int grid_size) const
     std::unique_ptr<MLLinOp> r{new MLALaplacian({geom}, {ba}, {dm}, minfo)};
 
     MLALaplacian* nop = dynamic_cast<MLALaplacian*>(r.get());
+    if (!nop) {
+        return std::unique_ptr<MLLinOp>{};
+    }
 
     nop->m_parent = this;
 

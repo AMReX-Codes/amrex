@@ -493,7 +493,7 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
 Real
 CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
 {
-    amrex::ignore_unused(point);
+    amrex::ignore_unused(point,dir);
 #if (AMREX_SPACEDIM==2)
     Real xlo[AMREX_SPACEDIM];
     switch (c_sys)
@@ -529,7 +529,7 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
 Real
 CoordSys::AreaHi (const IntVect& point, int dir) const noexcept
 {
-    amrex::ignore_unused(point);
+    amrex::ignore_unused(point,dir);
 #if (AMREX_SPACEDIM==2)
     Real xhi[AMREX_SPACEDIM];
     switch (c_sys)

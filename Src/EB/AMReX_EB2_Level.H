@@ -336,7 +336,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
 
 template <typename G>
-GShopLevel<G>::GShopLevel (IndexSpace const* is, int ilev, int max_grid_size, int /*ngrow*/,
+GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size, int /*ngrow*/,
                            const Geometry& geom, GShopLevel<G>& fineLevel)
     : Level(is, geom)
 {
