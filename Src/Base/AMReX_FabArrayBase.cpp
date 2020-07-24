@@ -116,11 +116,15 @@ FabArrayBase::Initialize ()
         MaxComp = 1;
     }
 
+#ifdef AMREX_USE_GPU
     if (ParallelDescriptor::UseGpuAwareMpi()) {
         the_fa_arena = The_Device_Arena();
     } else {
         the_fa_arena = The_Pinned_Arena();
     }
+#else
+    the_fa_arena = The_Cpu_Arena();
+#endif
 
     amrex::ExecOnFinalize(FabArrayBase::Finalize);
 
