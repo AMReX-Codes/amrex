@@ -91,7 +91,6 @@ namespace amrex
 
     //! This shuts up the compiler about unused variables
     template <class... Ts>
-    constexpr
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void ignore_unused (const Ts&...) {}
 
