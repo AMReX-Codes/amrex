@@ -43,20 +43,19 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                 int jlop = j + flag(i-1,j,0).isConnected(0, 1,0);
                 int jlom = j - flag(i-1,j,0).isConnected(0,-1,0);
 
+                Real whi = mlebtensor_weight(jhip-jhim);
+                Real wlo = mlebtensor_weight(jlop-jlom);
+
                 Real aux = 1.0;
                 if (i==domain.hiVect()[0]+1 and bct[2*AMREX_SPACEDIM+0]==AMREX_LO_NEUMANN){
-                    jhip = j;
-                    jhim = j;
+                    whi = 0.0;
                     aux = 2.0;
                 }
                 if (i==domain.loVect()[0] and bct[0*AMREX_SPACEDIM+1]==AMREX_LO_NEUMANN){
-                    jlop = j;
-                    jlom = j;
+                    wlo = 0.0;
                     aux = 2.0;
                 }
 
-                Real whi = mlebtensor_weight(jhip-jhim);
-                Real wlo = mlebtensor_weight(jlop-jlom);
                 Real dudy = (0.5*dyi*aux) * ((vel(i  ,jhip,0,0)-vel(i  ,jhim,0,0))*whi
                                             +(vel(i-1,jlop,0,0)-vel(i-1,jlom,0,0))*wlo);
                 Real dvdy = (0.5*dyi*aux) * ((vel(i  ,jhip,0,1)-vel(i  ,jhim,0,1))*whi
@@ -103,20 +102,19 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                 int ilop = i + flag(i,j-1,0).isConnected( 1,0,0);
                 int ilom = i - flag(i,j-1,0).isConnected(-1,0,0);
 
+                Real whi = mlebtensor_weight(ihip-ihim);
+                Real wlo = mlebtensor_weight(ilop-ilom);
+
                 Real aux = 1.0;
                 if (j==domain.hiVect()[1]+1 and bct[3*AMREX_SPACEDIM+0]==AMREX_LO_NEUMANN){
-                    ihip = i;
-                    ihim = i;
+                    whi = 0.0;
                     aux = 2.0;
-                }
+                }   
                 if (j==domain.loVect()[1] and bct[1*AMREX_SPACEDIM+1]==AMREX_LO_NEUMANN){
-                    ilop = i;
-                    ilom = i;
+                    wlo = 0.0;
                     aux = 2.0;
                 }
 
-                Real whi = mlebtensor_weight(ihip-ihim);
-                Real wlo = mlebtensor_weight(ilop-ilom);
                 Real dudx = (0.5*dxi*aux) * ((vel(ihip,j  ,0,0)-vel(ihim,j  ,0,0))*whi
                                             +(vel(ilop,j-1,0,0)-vel(ilom,j-1,0,0))*wlo);
                 Real dvdx = (0.5*dxi*aux) * ((vel(ihip,j  ,0,1)-vel(ihim,j  ,0,1))*whi
