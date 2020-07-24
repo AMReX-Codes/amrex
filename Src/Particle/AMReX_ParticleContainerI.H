@@ -10,6 +10,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::tile_size { AMREX_D_DECL(1024000,8,8) };
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+std::string
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::aggregation_type = "";
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+int
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::aggregation_buffer = 1;
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: SetParticleSize ()
 {
