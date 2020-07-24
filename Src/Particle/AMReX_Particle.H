@@ -15,8 +15,6 @@ namespace amrex {
 
 namespace
 {
-    std::string   aggregation_type   = "";
-    int           aggregation_buffer = 1;
     constexpr int GhostParticleID    = std::numeric_limits<int>::max();
     constexpr int VirtualParticleID  = std::numeric_limits<int>::max()-1;
     constexpr int LastParticleID     = std::numeric_limits<int>::max()-2;
