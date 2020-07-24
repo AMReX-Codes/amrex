@@ -861,6 +861,8 @@ indexFromValue (MultiFab const& mf, int comp, int nghost, Real value, MPI_Op mml
         MPI_Allreduce(&in,  &out, 1, datatype, mmloc, comm);
         MPI_Bcast(&(loc[0]), AMREX_SPACEDIM, MPI_INT, out.rank, comm);
     }
+#else
+    amrex::ignore_unused(mmloc);
 #endif
 
     return loc;

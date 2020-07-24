@@ -253,6 +253,7 @@ public:
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
+                amrex::ignore_unused(j,k);
                 Real v = f(AMREX_D_DECL(problo[0]+i*dx[0],
                                         problo[1]+j*dx[1],
                                         problo[2]+k*dx[2]));

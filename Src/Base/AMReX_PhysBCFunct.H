@@ -413,6 +413,7 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
             Box tmp = b & bx;
             amrex::For(tmp, [=] (int i, int j, int k) noexcept
             {
+                amrex::ignore_unused(j,k);
                 IntVect const cell(AMREX_D_DECL(i,j,k));
                 filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
                            bcr_p, 0, orig_comp);
@@ -453,6 +454,7 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
             Box tmp = b & bx;
             amrex::For(tmp, [=] (int i, int j, int k) noexcept
             {
+                amrex::ignore_unused(j,k);
                 IntVect const cell(AMREX_D_DECL(i,j,k));
                 filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
                            bcr_p, 0, orig_comp);

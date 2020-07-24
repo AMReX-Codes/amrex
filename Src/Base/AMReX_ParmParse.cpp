@@ -593,6 +593,7 @@ bldTable (const char*&                    str,
 	    {
 		amrex::Abort("ParmParse::bldTable() defn with no list");
 	    }
+            AMREX_FALLTHROUGH;
 	case pEOF:
 	    addDefn(cur_name,cur_list,tab);
 	    return;
@@ -636,6 +637,7 @@ bldTable (const char*&                    str,
 	    //
 	    // Otherwise, fall through, this may be a string.
 	    //
+            AMREX_FALLTHROUGH;
 	case pValue:
 	    if ( cur_name.empty() )
 	    {

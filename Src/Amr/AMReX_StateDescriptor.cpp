@@ -20,8 +20,8 @@ StateDescriptor::BndryFunc::clone () const
 StateDescriptor::BndryFunc::~BndryFunc () {}
 
 bool
-StateDescriptor::bf_thread_safety (const int* lo,const int* hi,
-				   const int* dom_lo, const int* dom_hi,
+StateDescriptor::bf_thread_safety (const int* /*lo*/,const int* /*hi*/,
+				   const int* /*dom_lo*/, const int* /*dom_hi*/,
 				   const int* bc, int ng)
 {
     bool thread_safe = true;

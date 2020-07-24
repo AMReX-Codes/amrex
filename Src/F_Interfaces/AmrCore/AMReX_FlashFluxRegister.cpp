@@ -188,43 +188,55 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
             Array4<Real> const& dest = fab_a[dir]->array();
             Array4<Real const> const& src = fine_flux.const_array();
             if (dir == 0) {
+#if (AMREX_SPACEDIM == 1)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-#if (AMREX_SPACEDIM == 1)
                     dest(i,0,0,n) = src(2*i,0,0,n)*sf;
-#elif (AMREX_SPACEDIM == 2)
+                });
+#endif
+#if (AMREX_SPACEDIM == 2)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
                     dest(i,j,0,n) = (src(2*i,2*j  ,0,n) +
                                      src(2*i,2*j+1,0,n)) * (0.5*sf);
-#elif (AMREX_SPACEDIM == 3)
+                });
+#endif
+#if (AMREX_SPACEDIM == 3)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
                     dest(i,j,k,n) = (src(2*i,2*j  ,2*k  ,n) +
                                      src(2*i,2*j+1,2*k  ,n) +
                                      src(2*i,2*j  ,2*k+1,n) +
                                      src(2*i,2*j+1,2*k+1,n)) * (0.25*sf);
-#endif
                 });
+#endif
             } else if (dir == 1) {
+#if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-#if (AMREX_SPACEDIM == 2)
                     dest(i,j,0,n) = (src(2*i  ,2*j,0,n) +
                                      src(2*i+1,2*j,0,n)) * (0.5*sf);
-#elif (AMREX_SPACEDIM == 3)
+                });
+#endif
+#if (AMREX_SPACEDIM == 3)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
                     dest(i,j,k,n) = (src(2*i  ,2*j,2*k  ,n) +
                                      src(2*i+1,2*j,2*k  ,n) +
                                      src(2*i  ,2*j,2*k+1,n) +
                                      src(2*i+1,2*j,2*k+1,n)) * (0.25*sf);
-#endif
                 });
+#endif
             } else {
+#if (AMREX_SPACEDIM == 3)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-#if (AMREX_SPACEDIM == 3)
                     dest(i,j,k,n) = (src(2*i  ,2*j  ,2*k,n) +
                                      src(2*i+1,2*j  ,2*k,n) +
                                      src(2*i  ,2*j+1,2*k,n) +
                                      src(2*i+1,2*j+1,2*k,n)) * (0.25*sf);
-#endif
                 });
+#endif
             }
         }
     }
@@ -244,43 +256,55 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
             Array4<Real const> const& src = fine_flux.const_array();
             Array4<Real const> const& area = fine_area.const_array();
             if (dir == 0) {
+#if (AMREX_SPACEDIM == 1)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-#if (AMREX_SPACEDIM == 1)
                     dest(i,0,0,n) = src(2*i,0,0,n)*area(2*i,0,0)*sf;
-#elif (AMREX_SPACEDIM == 2)
+                });
+#endif
+#if (AMREX_SPACEDIM == 2)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
                     dest(i,j,0,n) = (src(2*i,2*j  ,0,n)*area(2*i,2*j  ,0) +
                                      src(2*i,2*j+1,0,n)*area(2*i,2*j+1,0)) * sf;
-#elif (AMREX_SPACEDIM == 3)
+                });
+#endif
+#if (AMREX_SPACEDIM == 3)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
                     dest(i,j,k,n) = (src(2*i,2*j  ,2*k  ,n)*area(2*i,2*j  ,2*k  ) +
                                      src(2*i,2*j+1,2*k  ,n)*area(2*i,2*j+1,2*k  ) +
                                      src(2*i,2*j  ,2*k+1,n)*area(2*i,2*j  ,2*k+1) +
                                      src(2*i,2*j+1,2*k+1,n)*area(2*i,2*j+1,2*k+1)) * sf;
-#endif
                 });
+#endif
             } else if (dir == 1) {
+#if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-#if (AMREX_SPACEDIM == 2)
                     dest(i,j,0,n) = (src(2*i  ,2*j,0,n)*area(2*i  ,2*j,0) +
                                      src(2*i+1,2*j,0,n)*area(2*i+1,2*j,0)) * sf;
-#elif (AMREX_SPACEDIM == 3)
+                });
+#endif
+#if (AMREX_SPACEDIM == 3)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
                     dest(i,j,k,n) = (src(2*i  ,2*j,2*k  ,n)*area(2*i  ,2*j,2*k  ) +
                                      src(2*i+1,2*j,2*k  ,n)*area(2*i+1,2*j,2*k  ) +
                                      src(2*i  ,2*j,2*k+1,n)*area(2*i  ,2*j,2*k+1) +
                                      src(2*i+1,2*j,2*k+1,n)*area(2*i+1,2*j,2*k+1)) * sf;
-#endif
                 });
+#endif
             } else {
+#if (AMREX_SPACEDIM == 3)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-#if (AMREX_SPACEDIM == 3)
                     dest(i,j,k,n) = (src(2*i  ,2*j  ,2*k,n)*area(2*i  ,2*j  ,2*k) +
                                      src(2*i+1,2*j  ,2*k,n)*area(2*i+1,2*j  ,2*k) +
                                      src(2*i  ,2*j+1,2*k,n)*area(2*i  ,2*j+1,2*k) +
                                      src(2*i+1,2*j+1,2*k,n)*area(2*i+1,2*j+1,2*k)) * sf;
-#endif
                 });
+#endif
             }
         }
     }
@@ -319,59 +343,73 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
             Array4<Real const> const& area = fine_area.const_array();
             const int* ifd = d_ifd.data();
             if (dir == 0) {
+#if (AMREX_SPACEDIM == 1)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
                     if (ifd[n]) {
-#if (AMREX_SPACEDIM == 1)
                         dest(i,0,0,n) = src(2*i,0,0,n)*area(2*i,0,0)*sf;
-#elif (AMREX_SPACEDIM == 2)
+                    } else {
+                        dest(i,0,0,n) = src(2*i,0,0,n)*sf;
+                    }
+                });
+#endif
+#if (AMREX_SPACEDIM == 2)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
+                    if (ifd[n]) {
                         dest(i,j,0,n) = (src(2*i,2*j  ,0,n)*area(2*i,2*j  ,0) +
                                          src(2*i,2*j+1,0,n)*area(2*i,2*j+1,0)) * sf;
-#elif (AMREX_SPACEDIM == 3)
+                    } else {
+                        dest(i,j,0,n) = (src(2*i,2*j  ,0,n) +
+                                         src(2*i,2*j+1,0,n)) * sf;
+                    }
+                });
+#endif
+#if (AMREX_SPACEDIM == 3)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
+                    if (ifd[n]) {
                         dest(i,j,k,n) = (src(2*i,2*j  ,2*k  ,n)*area(2*i,2*j  ,2*k  ) +
                                          src(2*i,2*j+1,2*k  ,n)*area(2*i,2*j+1,2*k  ) +
                                          src(2*i,2*j  ,2*k+1,n)*area(2*i,2*j  ,2*k+1) +
                                          src(2*i,2*j+1,2*k+1,n)*area(2*i,2*j+1,2*k+1)) * sf;
-#endif
                     } else {
-#if (AMREX_SPACEDIM == 1)
-                        dest(i,0,0,n) = src(2*i,0,0,n)*sf;
-#elif (AMREX_SPACEDIM == 2)
-                        dest(i,j,0,n) = (src(2*i,2*j  ,0,n) +
-                                         src(2*i,2*j+1,0,n)) * sf;
-#elif (AMREX_SPACEDIM == 3)
                         dest(i,j,k,n) = (src(2*i,2*j  ,2*k  ,n) +
                                          src(2*i,2*j+1,2*k  ,n) +
                                          src(2*i,2*j  ,2*k+1,n) +
                                          src(2*i,2*j+1,2*k+1,n)) * sf;
-#endif
                     }
                 });
+#endif
             } else if (dir == 1) {
+#if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
                     if (ifd[n]) {
-#if (AMREX_SPACEDIM == 2)
                         dest(i,j,0,n) = (src(2*i  ,2*j,0,n)*area(2*i  ,2*j,0) +
                                          src(2*i+1,2*j,0,n)*area(2*i+1,2*j,0)) * sf;
-#elif (AMREX_SPACEDIM == 3)
+                    } else {
+                        dest(i,j,0,n) = (src(2*i  ,2*j,0,n) +
+                                         src(2*i+1,2*j,0,n)) * sf;
+                    }
+                });
+#endif
+#if (AMREX_SPACEDIM == 3)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
+                    if (ifd[n]) {
                         dest(i,j,k,n) = (src(2*i  ,2*j,2*k  ,n)*area(2*i  ,2*j,2*k  ) +
                                          src(2*i+1,2*j,2*k  ,n)*area(2*i+1,2*j,2*k  ) +
                                          src(2*i  ,2*j,2*k+1,n)*area(2*i  ,2*j,2*k+1) +
                                          src(2*i+1,2*j,2*k+1,n)*area(2*i+1,2*j,2*k+1)) * sf;
-#endif
                     } else {
-#if (AMREX_SPACEDIM == 2)
-                        dest(i,j,0,n) = (src(2*i  ,2*j,0,n) +
-                                         src(2*i+1,2*j,0,n)) * sf;
-#elif (AMREX_SPACEDIM == 3)
                         dest(i,j,k,n) = (src(2*i  ,2*j,2*k  ,n) +
                                          src(2*i+1,2*j,2*k  ,n) +
                                          src(2*i  ,2*j,2*k+1,n) +
                                          src(2*i+1,2*j,2*k+1,n)) * sf;
-#endif
                     }
                 });
+#endif
             } else {
 #if (AMREX_SPACEDIM == 3)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
