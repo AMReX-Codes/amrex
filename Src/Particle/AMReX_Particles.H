@@ -1301,6 +1301,9 @@ private:
     int num_real_comm_comps, num_int_comm_comps;
     Vector<ParticleLevel> m_particles;
     Vector<std::unique_ptr<MultiFab> > m_dummy_mf;
+
+    static std::string aggregation_type;
+    static int aggregation_buffer;
 };
 
 #include "AMReX_ParticleInit.H"
