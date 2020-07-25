@@ -112,7 +112,8 @@ If enabled, the library path at link time will be saved as a
 When disabled, dynamic library paths could be provided via ``export LD_LIBRARY_PATH``
 hints at runtime.
 
-For GCC and Clang, the variable ``WARN_ALL`` controls the compiler's warning options.
+For GCC and Clang, the variable ``WARN_ALL`` controls the compiler's warning options.  There is
+also a make variable ``WARN_ERROR`` (with default of ``FALSE``) to turn warnings into errors.
 
 After defining these make variables, a number of files, ``Make.defs,
 Make.package`` and ``Make.rules``, are included in the GNUmakefile. AMReX-based

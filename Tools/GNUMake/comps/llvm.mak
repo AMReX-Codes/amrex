@@ -55,6 +55,11 @@ ifeq ($(WARN_ALL),TRUE)
   CFLAGS += $(warning_flags)
 endif
 
+ifeq ($(WARN_ERROR),TRUE)
+  CXXFLAGS += -Werror
+  CFLAGS += -Werror
+endif
+
 ########################################################################
 
 ifdef CXXSTD
