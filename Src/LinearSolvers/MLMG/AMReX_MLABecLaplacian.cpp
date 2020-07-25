@@ -663,9 +663,9 @@ MLABecLaplacian::FFlux (int amrlev, const MFIter& mfi,
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
     const int ncomp = getNComp();
     FFlux(box, dxinv, m_b_scalar,
-          Array<FArrayBox const*,AMREX_SPACEDIM>{AMREX_D_DECL(&(m_b_coeffs[amrlev][mglev][0][mfi]),
-                                                              &(m_b_coeffs[amrlev][mglev][1][mfi]),
-                                                              &(m_b_coeffs[amrlev][mglev][2][mfi]))},
+          Array<FArrayBox const*,AMREX_SPACEDIM>{{AMREX_D_DECL(&(m_b_coeffs[amrlev][mglev][0][mfi]),
+                                                               &(m_b_coeffs[amrlev][mglev][1][mfi]),
+                                                               &(m_b_coeffs[amrlev][mglev][2][mfi]))}},
           flux, sol, face_only, ncomp);
 }
 

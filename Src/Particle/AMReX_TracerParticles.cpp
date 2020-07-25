@@ -71,9 +71,9 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 
             //array of these pointers to pass to the GPU
             amrex::GpuArray<amrex::Array4<const Real>, AMREX_SPACEDIM>
-            const umacarr {AMREX_D_DECL((*fab[0]).array(),
-                                        (*fab[1]).array(),
-                                        (*fab[2]).array() )};
+                const umacarr {{AMREX_D_DECL((*fab[0]).array(),
+                                             (*fab[1]).array(),
+                                             (*fab[2]).array() )}};
 
             amrex::ParallelFor(n,
                                [=] AMREX_GPU_DEVICE (int i)

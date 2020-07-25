@@ -102,7 +102,7 @@ namespace amrex
         const Vector<const MultiFab*>& fc, int ngrow)
     {
         average_face_to_cellcenter(cc, dcomp,
-            Array<MultiFab const*,AMREX_SPACEDIM>{AMREX_D_DECL(fc[0],fc[1],fc[2])},
+            Array<MultiFab const*,AMREX_SPACEDIM>{{AMREX_D_DECL(fc[0],fc[1],fc[2])}},
             ngrow);
     }
 
@@ -111,7 +111,7 @@ namespace amrex
     {
         average_face_to_cellcenter(cc,
                                    Array<MultiFab const*,AMREX_SPACEDIM>
-                                                  {AMREX_D_DECL(fc[0],fc[1],fc[2])},
+                                   {{AMREX_D_DECL(fc[0],fc[1],fc[2])}},
                                    geom);
     }
 
@@ -184,7 +184,7 @@ namespace amrex
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc,
 				     const Geometry& geom)
     {
-        average_cellcenter_to_face(Array<MultiFab*,AMREX_SPACEDIM>{AMREX_D_DECL(fc[0],fc[1],fc[2])},
+        average_cellcenter_to_face(Array<MultiFab*,AMREX_SPACEDIM>{{AMREX_D_DECL(fc[0],fc[1],fc[2])}},
                                    cc, geom);
     }
 
@@ -429,9 +429,9 @@ namespace amrex
                              const IntVect& ratio, int ngcrse)
     {
         average_down_faces(Array<const MultiFab*,AMREX_SPACEDIM>
-                                   {AMREX_D_DECL(fine[0],fine[1],fine[2])},
+                                   {{AMREX_D_DECL(fine[0],fine[1],fine[2])}},
                            Array<MultiFab*,AMREX_SPACEDIM>
-                                   {AMREX_D_DECL(crse[0],crse[1],crse[2])},
+                                   {{AMREX_D_DECL(crse[0],crse[1],crse[2])}},
                            ratio, ngcrse);
     }
 
