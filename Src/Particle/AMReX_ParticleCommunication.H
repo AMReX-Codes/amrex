@@ -554,7 +554,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
             auto ptd = tile.getParticleTileData();
 
             AMREX_ASSERT(MyProc ==
-                ParallelContext::global_to_local_rank(pc.ParticleDistributionMap(lev)[gid];));
+                ParallelContext::global_to_local_rank(pc.ParticleDistributionMap(lev)[gid]));
 
             int dst_offset = offsets[uindex];
             int size = sizes[uindex];
