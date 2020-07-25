@@ -22,13 +22,13 @@ namespace detail {
 #ifdef BL_USE_MPI
 
     // NOTE: the order of these needs to match the order in the ReduceOp enum above
-    const std::array<MPI_Op, 5> mpi_ops = {
+    const std::array<MPI_Op, 5> mpi_ops = {{
         MPI_MAX,
         MPI_MIN,
         MPI_SUM,
         MPI_LOR,
         MPI_LAND
-    };
+    }};
 
     template<typename T>
     inline void Reduce (ReduceOp op, T* v, int cnt, int root, MPI_Comm comm)

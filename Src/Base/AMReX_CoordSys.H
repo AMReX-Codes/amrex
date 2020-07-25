@@ -82,7 +82,7 @@ public:
 
     GpuArray<Real,AMREX_SPACEDIM> CellSizeArray () const noexcept {
         BL_ASSERT(ok);
-        return { AMREX_D_DECL(dx[0],dx[1],dx[2]) };
+        return {{ AMREX_D_DECL(dx[0],dx[1],dx[2]) }};
     }
 
     //! Returns the inverse cellsize for each coordinate direction.
@@ -93,7 +93,7 @@ public:
 
     GpuArray<Real,AMREX_SPACEDIM> InvCellSizeArray () const noexcept {
         BL_ASSERT(ok);
-        return { AMREX_D_DECL(inv_dx[0],inv_dx[1],inv_dx[2]) };
+        return {{ AMREX_D_DECL(inv_dx[0],inv_dx[1],inv_dx[2]) }};
     }
 
     //! Returns location of cell center in specified direction.

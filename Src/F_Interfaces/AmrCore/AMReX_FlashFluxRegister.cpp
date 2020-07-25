@@ -34,9 +34,9 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     {
         BoxArray const& fndba = amrex::convert(fba,IntVect::TheNodeVector());
         Array<BoxList,AMREX_SPACEDIM> bl
-            {AMREX_D_DECL(BoxList(IndexType(IntVect::TheDimensionVector(0))),
-                          BoxList(IndexType(IntVect::TheDimensionVector(1))),
-                          BoxList(IndexType(IntVect::TheDimensionVector(2))))};
+        {{AMREX_D_DECL(BoxList(IndexType(IntVect::TheDimensionVector(0))),
+                       BoxList(IndexType(IntVect::TheDimensionVector(1))),
+                       BoxList(IndexType(IntVect::TheDimensionVector(2))))}};
         Array<Vector<int>,AMREX_SPACEDIM> procmap;
         Array<Vector<int>,AMREX_SPACEDIM> my_global_indices;
         std::vector<std::pair<int,Box> > isects;
@@ -83,7 +83,7 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                     if (found != m_fine_map.end()) {
                         found->second[idim] = &(m_fine_fluxes[idim][mfi]);
                     } else {
-                        Array<FArrayBox*,AMREX_SPACEDIM> t{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+                        Array<FArrayBox*,AMREX_SPACEDIM> t{{AMREX_D_DECL(nullptr,nullptr,nullptr)}};
                         t[idim] = &(m_fine_fluxes[idim][mfi]);
                         m_fine_map.insert(std::make_pair(gi,t));
                     }
@@ -96,9 +96,9 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     {
         BoxArray const fba_coarsened = amrex::coarsen(fba,ref_ratio);
         Array<BoxList,AMREX_SPACEDIM> bl
-            {AMREX_D_DECL(BoxList(IndexType(IntVect::TheDimensionVector(0))),
-                          BoxList(IndexType(IntVect::TheDimensionVector(1))),
-                          BoxList(IndexType(IntVect::TheDimensionVector(2))))};
+        {{AMREX_D_DECL(BoxList(IndexType(IntVect::TheDimensionVector(0))),
+                       BoxList(IndexType(IntVect::TheDimensionVector(1))),
+                       BoxList(IndexType(IntVect::TheDimensionVector(2))))}};
         Array<Vector<int>,AMREX_SPACEDIM> procmap;
         Array<Vector<int>,AMREX_SPACEDIM> my_global_indices;
         std::vector<std::pair<int,Box> > isects;
@@ -158,8 +158,8 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                     if (found != m_crse_map.end()) {
                         found->second[index] = &(m_crse_fluxes[idim][mfi]);
                     } else {
-                        Array<FArrayBox*,2*AMREX_SPACEDIM> t{AMREX_D_DECL(nullptr,nullptr,nullptr),
-                                                             AMREX_D_DECL(nullptr,nullptr,nullptr)};
+                        Array<FArrayBox*,2*AMREX_SPACEDIM> t{{AMREX_D_DECL(nullptr,nullptr,nullptr),
+                                    AMREX_D_DECL(nullptr,nullptr,nullptr)}};
                         t[index] = &(m_crse_fluxes[idim][mfi]);
                         m_crse_map.insert(std::make_pair(gi,t));
                     }

@@ -339,14 +339,14 @@ protected:
     }
 
     GpuArray<BCType,AMREX_SPACEDIM> LoBC (int icomp = 0) const noexcept {
-        return GpuArray<BCType,AMREX_SPACEDIM>{AMREX_D_DECL(m_lobc[icomp][0],
-                                                            m_lobc[icomp][1],
-                                                            m_lobc[icomp][2])};
+        return GpuArray<BCType,AMREX_SPACEDIM>{{AMREX_D_DECL(m_lobc[icomp][0],
+                                                             m_lobc[icomp][1],
+                                                             m_lobc[icomp][2])}};
     }
     GpuArray<BCType,AMREX_SPACEDIM> HiBC (int icomp = 0) const noexcept {
-        return GpuArray<BCType,AMREX_SPACEDIM>{AMREX_D_DECL(m_hibc[icomp][0],
-                                                            m_hibc[icomp][1],
-                                                            m_hibc[icomp][2])};
+        return GpuArray<BCType,AMREX_SPACEDIM>{{AMREX_D_DECL(m_hibc[icomp][0],
+                                                             m_hibc[icomp][1],
+                                                             m_hibc[icomp][2])}};
     }
 
 #ifdef BL_USE_MPI
