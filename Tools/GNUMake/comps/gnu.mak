@@ -105,6 +105,10 @@ ifeq ($(WARN_ALL),TRUE)
     warning_flags += -Wshadow
   endif
 
+  ifeq ($(gcc_major_version),7)
+    warning_flags += -Wno-array-bounds
+  endif
+
   CXXFLAGS += $(warning_flags) -Woverloaded-virtual
   CFLAGS += $(warning_flags)
 endif
