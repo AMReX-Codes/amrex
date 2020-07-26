@@ -8,6 +8,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_ccse-mpi.H>
+#include <AMReX_iMultiFab.H>
 
 namespace amrex {
 
@@ -378,9 +379,23 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
 
     Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
 
-    TagBoxArray tmp(boxArray(),DistributionMap(),0); // note that tmp is filled w/ CLEAR.
+    TagBoxArray tmp(boxArray(),DistributionMap(),nGrowVect()); // note that tmp is filled w/ CLEAR.
 
-    tmp.ParallelAdd(*this, 0, 0, 1, nGrowVect(), IntVect{0}, geom.periodicity());
+    tmp.ParallelAdd(*this, 0, 0, 1, nGrowVect(), nGrowVect(), geom.periodicity());
+
+    const auto owner_mask = amrex::OwnerMask(tmp, geom.periodicity(), nGrowVect());
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(tmp); mfi.isValid(); ++mfi) {
+        Box const& box = mfi.fabbox();
+        Array4<TagType> const& tag = tmp.array(mfi);
+        Array4<int const> const& msk = owner_mask->const_array(mfi);
+        AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+        {
+            if (!msk(i,j,k)) tag(i,j,k) = TagBox::CLEAR;
+        });
+    }
 
     std::swap(*this, tmp);
 }

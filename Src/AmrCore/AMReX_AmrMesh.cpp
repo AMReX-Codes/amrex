@@ -764,6 +764,24 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         }
     }
 
+#ifdef AMREX_DEBUG
+    if (!useFixedCoarseGrids()) {
+        // check proper nesting
+        for (int lev = lbase+1; lev <= new_finest; ++lev) {
+            BoxArray const& cba = (lev == lbase+1) ? grids[lev-1] : new_grids[lev-1];
+            BoxArray const& fba = amrex::coarsen(new_grids[lev],ref_ratio[lev-1]);
+            IntVect np = bf_lev[lev-1] * n_proper;
+            Box const& cdomain = Geom(lev-1).Domain();
+            for (int i = 0, N = fba.size(); i < N; ++i) {
+                Box const& fb = amrex::grow(fba[i],np) & cdomain;
+                if (!cba.contains(fb,true)) {
+                    amrex::Abort("AmrMesh::MakeNewGrids: new grids not properly nested");
+                }
+            }
+        }
+    }
+#endif
+
     for (int lev = lbase+1; lev <= new_finest; ++lev) {
         if (new_grids[lev].empty())
         {
