@@ -1585,7 +1585,7 @@ BoxArray::simplified_list () const
 BoxArray
 BoxArray::simplified () const
 {
-    return BoxArray(simplified_list());
+    return BoxArray(simplified_list()).convert(ixType());
 }
 
 std::ostream&

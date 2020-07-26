@@ -517,6 +517,7 @@ using BndryBATransformer = BATransformer;
 
 class MFIter;
 class AmrMesh;
+class FabArrayBase;
 
 class BoxArray
 {
@@ -800,6 +801,7 @@ public:
     void uniqify ();
 
     friend class AmrMesh;
+    friend class FabArrayBase;
 
 private:
     //!  Update BoxArray index type according the box type, and then convert boxes to cell-centered.

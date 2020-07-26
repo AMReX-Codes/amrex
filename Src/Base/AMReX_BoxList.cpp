@@ -98,8 +98,7 @@ BoxList::removeEmpty()
 }
 
 BoxList
-intersect (const BoxList& bl,
-           const Box&     b)
+intersect (const BoxList& bl, const Box& b)
 {
     BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newbl(bl);
@@ -108,8 +107,7 @@ intersect (const BoxList& bl,
 }
 
 BoxList
-refine (const BoxList& bl,
-        int            ratio)
+refine (const BoxList& bl, int ratio)
 {
     BoxList nbl(bl);
     nbl.refine(ratio);
@@ -117,8 +115,7 @@ refine (const BoxList& bl,
 }
 
 BoxList
-coarsen (const BoxList& bl,
-         int            ratio)
+coarsen (const BoxList& bl, int ratio)
 {
     BoxList nbl(bl);
     nbl.coarsen(ratio);
@@ -126,8 +123,7 @@ coarsen (const BoxList& bl,
 }
 
 BoxList
-accrete (const BoxList& bl,
-         int            sz)
+accrete (const BoxList& bl, int sz)
 {
     BoxList nbl(bl);
     nbl.accrete(sz);
@@ -275,28 +271,21 @@ BoxList&
 BoxList::intersect (const Box& b)
 {
     BL_ASSERT(ixType() == b.ixType());
-    int N0 = m_lbox.size();
-    int N = N0;
-    for (int i = 0; i < N; ) {
-        if (b.contains(m_lbox[i])) {
-            ++i;
-        } else {
-            Box isect = b & m_lbox[i];
-            if (isect.isEmpty()) {
-                --N;
-                if (i < N) {
-                    m_lbox[i] = m_lbox[N];
-                }
-            } else {
-                m_lbox[i] = isect;
-                ++i;
-            }
+
+    for (Box& bx : m_lbox)
+    {
+        const Box& isect = bx & b;
+        if (isect.ok())
+        {
+            bx = isect;
+        }
+        else
+        {
+            bx = Box();
         }
     }
 
-    if (N < N0) {
-        m_lbox.resize(N);
-    }
+    removeEmpty();
 
     return *this;
 }
@@ -310,8 +299,7 @@ BoxList::intersect (const BoxList& bl)
 }
 
 BoxList
-complementIn (const Box&     b,
-              const BoxList& bl)
+complementIn (const Box& b, const BoxList& bl)
 {
     BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newb(b.ixType());
@@ -320,16 +308,14 @@ complementIn (const Box&     b,
 }
 
 BoxList&
-BoxList::complementIn (const Box&     b,
-                       const BoxList& bl)
+BoxList::complementIn (const Box& b, const BoxList& bl)
 {
     BoxArray ba(bl);
     return complementIn(b, ba);
 }
 
 BoxList&
-BoxList::complementIn (const Box& b,
-                       BoxList&&  bl)
+BoxList::complementIn (const Box& b, BoxList&&  bl)
 {
     BoxArray ba(std::move(bl));
     return complementIn(b, ba);
@@ -474,8 +460,7 @@ BoxList::accrete (const IntVect& sz)
 }
 
 BoxList&
-BoxList::shift (int dir,
-                int nzones)
+BoxList::shift (int dir, int nzones)
 {
     for (auto& bx : m_lbox)
     {
@@ -485,8 +470,7 @@ BoxList::shift (int dir,
 }
 
 BoxList&
-BoxList::shiftHalf (int dir,
-                    int num_halfs)
+BoxList::shiftHalf (int dir, int num_halfs)
 {
     for (auto& bx : m_lbox)
     {
@@ -510,8 +494,7 @@ BoxList::shiftHalf (const IntVect& iv)
 //
 
 BoxList
-boxDiff (const Box& b1in,
-         const Box& b2)
+boxDiff (const Box& b1in, const Box& b2)
 {
    BL_ASSERT(b1in.sameType(b2));  
    BoxList bl_diff(b1in.ixType());
@@ -790,8 +773,7 @@ BoxList::convert (IndexType typ) noexcept
 }
 
 std::ostream&
-operator<< (std::ostream&  os,
-            const BoxList& blist)
+operator<< (std::ostream& os, const BoxList& blist)
 {
     BoxList::const_iterator bli = blist.begin(), End = blist.end();
     os << "(BoxList " << blist.size() << ' ' << blist.ixType() << '\n';

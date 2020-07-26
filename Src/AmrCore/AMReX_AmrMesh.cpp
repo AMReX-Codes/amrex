@@ -727,7 +727,6 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     clist.boxList(new_bx);
                     new_bx.refine(bf_lev[levc]);
                     new_bx.simplify();
-                    BL_ASSERT(new_bx.isDisjoint());
 
                     if (new_bx.size()>0) {
                         // Chop new grids outside domain

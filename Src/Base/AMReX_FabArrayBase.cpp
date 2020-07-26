@@ -1115,13 +1115,15 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
     BoxList bl(boxtype);
     Vector<int> iprocs;
 
+    BoxArray srcba_simplified = srcba.simplified();
+
     for (int i = 0, N = dstba.size(); i < N; ++i)
     {
         Box bx = dstba[i];
         bx.grow(m_dstng);
         bx &= m_dstdomain;
 
-        BoxList leftover = srcba.complementIn(bx);
+        BoxList leftover = srcba_simplified.complementIn(bx);
 
         bool ismybox = (dstdm[i] == myproc);
         for (BoxList::const_iterator bli = leftover.begin(); bli != leftover.end(); ++bli)
