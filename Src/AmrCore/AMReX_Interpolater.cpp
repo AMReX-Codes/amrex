@@ -707,7 +707,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                                     Vector<BCRec>&   bcr,
                                     RunOn            /*runon*/)
 {
-#if (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(crse,crse_comp,fine,fine_comp,fine_state,
                          state_comp,ncomp,fine_region,ratio,
                          crse_geom,fine_geom,bcr);
