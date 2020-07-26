@@ -205,7 +205,7 @@ jobs:
     - name: Build & Install
       run: |
         ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no
-        make -j2 WARN_ALL=TRUE
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE
         make install
 
   # Build 3D libamrex with configure
@@ -219,5 +219,5 @@ jobs:
     - name: Build & Install
       run: |
         ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes
-        make -j2 WARN_ALL=TRUE
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE
         make install

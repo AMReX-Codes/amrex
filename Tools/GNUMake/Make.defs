@@ -304,6 +304,12 @@ else
 endif
 endif
 
+ifdef WARN_ERROR
+  WARN_ERROR := $(strip $(WARN_ERROR))
+else
+  WARN_ERROR := FALSE
+endif
+
 ifdef USE_GPU_PRAGMA
   USE_GPU_PRAGMA := $(strip $(USE_GPU_PRAGMA))
   GPU_PRAGMA_NO_HOST_VERSION ?= FALSE
