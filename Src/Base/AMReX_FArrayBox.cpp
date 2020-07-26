@@ -527,7 +527,7 @@ FABio::read_header (std::istream& is,
 FABio*
 FABio::read_header (std::istream& is,
                     FArrayBox&    f,
-		    int           compIndex,
+		    int           /*compIndex*/,
 		    int&          nCompAvailable)
 {
 //    BL_PROFILE("FArrayBox::read_header_is_i");
@@ -718,9 +718,9 @@ FABio_ascii::skip (std::istream& is,
 }
 
 void
-FABio_ascii::skip (std::istream& is,
-                   FArrayBox&    f,
-		   int           nCompToSkip) const
+FABio_ascii::skip (std::istream& /*is*/,
+                   FArrayBox&    /*f*/,
+		   int           /*nCompToSkip*/) const
 {
     amrex::Error("FABio_ascii::skip(..., int nCompToSkip) not implemented");
 }

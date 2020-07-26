@@ -164,8 +164,20 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
                                    << composite_norminf/max_norm << "\n";
                 }
                 break;
+            } else {
+              if (composite_norminf > 1.e20*max_norm) 
+              {
+                  if (verbose > 0) {
+                      amrex::Print() << "MLMG: Failing to converge after " << iter+1 << " iterations."
+                                     << " resid, resid/" << norm_name << " = "
+                                     << composite_norminf << ", "
+                                     << composite_norminf/max_norm << "\n";
+                      amrex::Abort("MLMG failing so lets stop here");
+                  }
+              }
             }
         }
+
         if (!converged && do_fixed_number_of_iters == 0) {
             if (verbose > 0) {
                 amrex::Print() << "MLMG: Failed to converge after " << max_iters << " iterations."
@@ -378,7 +390,7 @@ MLMG::miniCycle (int amrlev)
 
 namespace {
 
-void make_str_helper (std::ostringstream & oss) { }
+void make_str_helper (std::ostringstream & /*oss*/) { }
 
 template <class T, class... Ts>
 void make_str_helper (std::ostringstream & oss, T x, Ts... xs) {
@@ -453,6 +465,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         {
             computeResOfCorrection(amrlev, mglev_bottom);
             Real norm = rescor[amrlev][mglev_bottom].norm0();
+            
             amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev_bottom
                            << "   UP: Norm after  bottom " << norm << "\n";
         }
@@ -812,7 +825,6 @@ MLMG::addInterpCorrection (int alev, int mglev)
     const MultiFab& crse_cor = *cor[alev][mglev+1];
     MultiFab&       fine_cor = *cor[alev][mglev  ];
 
-    const int refratio = 2;
     MultiFab cfine;
     const MultiFab* cmf;
 
@@ -823,7 +835,9 @@ MLMG::addInterpCorrection (int alev, int mglev)
     else
     {
         BoxArray cba = fine_cor.boxArray();
-        cba.coarsen(refratio);
+        IntVect ratio = (alev > 0) ? IntVect(2) : linop.mg_coarsen_ratio_vec[mglev];
+
+        cba.coarsen(ratio);
         const int ng = 0;
         cfine.define(cba, fine_cor.DistributionMap(), ncomp, ng);
         cfine.ParallelCopy(crse_cor);
@@ -1004,9 +1018,13 @@ MLMG::ResNormInf (int alev, bool local)
         pmf = scratch[alev].get();
         MultiFab::Copy(*pmf, res[alev][mglev], 0, 0, ncomp, 0);
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
-        const MultiFab& vfrac = factory->getVolFrac();
-        for (int n=0; n < ncomp; ++n) {
-            MultiFab::Multiply(*pmf, vfrac, 0, n, 1, 0);
+        if (factory) {
+            const MultiFab& vfrac = factory->getVolFrac();
+            for (int n=0; n < ncomp; ++n) {
+                MultiFab::Multiply(*pmf, vfrac, 0, n, 1, 0);
+            }
+        } else {
+            amrex::Abort("MLMG::ResNormInf: not EB Factory");
         }
     }
 #endif
@@ -1053,9 +1071,13 @@ MLMG::MLRhsNormInf (bool local)
             pmf = scratch[alev].get();
             MultiFab::Copy(*pmf, rhs[alev], 0, 0, ncomp, 0);
             auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
-            const MultiFab& vfrac = factory->getVolFrac();
-            for (int n=0; n < ncomp; ++n) {
-                MultiFab::Multiply(*pmf, vfrac, 0, n, 1, 0);
+            if (factory) {
+                const MultiFab& vfrac = factory->getVolFrac();
+                for (int n=0; n < ncomp; ++n) {
+                    MultiFab::Multiply(*pmf, vfrac, 0, n, 1, 0);
+                }
+            } else {
+                amrex::Abort("MLMG::MLRhsNormInf: not EB Factory");
             }
         }
 #endif
@@ -1116,18 +1138,18 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         linop_prepared = true;
     } else if (linop.needsUpdate()) {
         linop.update();
-    }
 
 #ifdef AMREX_USE_HYPRE
-    hypre_solver.reset();
-    hypre_bndry.reset();
-    hypre_node_solver.reset();
+        hypre_solver.reset();
+        hypre_bndry.reset();
+        hypre_node_solver.reset();
 #endif
 
 #ifdef AMREX_USE_PETSC
-    petsc_solver.reset(); 
-    petsc_bndry.reset(); 
+        petsc_solver.reset(); 
+        petsc_bndry.reset(); 
 #endif
+    }
 
     sol.resize(namrlevs);
     sol_raii.resize(namrlevs);
@@ -1365,7 +1387,7 @@ MLMG::getFluxes (const Vector<MultiFab*> & a_flux, Location a_loc)
 }
 
 void
-MLMG::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<MultiFab*>& a_sol, Location a_loc)
+MLMG::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<MultiFab*>& a_sol, Location /*a_loc*/)
 {
     AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
 
@@ -1756,6 +1778,13 @@ MLMG::makeSolvable (int amrlev, int mglev, MultiFab& mf)
 
         ParallelAllReduce::Sum(offset.data(), ncomp, ParallelContext::CommunicatorSub());
 
+        if (verbose >= 4) {
+            for (int c = 0; c < ncomp; ++c) {
+                amrex::Print() << "MLMG: Subtracting " << offset[c] 
+                               << " from mf component c = " << c << "\n";
+            }
+        }
+
         for (int c = 0; c < ncomp; ++c) {
             mf.plus(-offset[c], c, 1);
         }
@@ -1794,8 +1823,12 @@ void
 MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
 {
 #if !defined(AMREX_USE_HYPRE)
+    amrex::ignore_unused(x,b);
     amrex::Abort("bottomSolveWithHypre is called without building with Hypre");
 #else
+
+    const int amrlev = 0;
+    const int mglev  = linop.NMGLevels(amrlev) - 1;
 
     const int ncomp = linop.getNComp();
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "bottomSolveWithHypre doesn't work with ncomp > 1");
@@ -1806,10 +1839,15 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         {
             hypre_solver = linop.makeHypre(hypre_interface);
             hypre_solver->setVerbose(bottom_verbose);
+            hypre_solver->setHypreOldDefault(hypre_old_default);
+            hypre_solver->setHypreRelaxType(hypre_relax_type);
+            hypre_solver->setHypreRelaxOrder(hypre_relax_order);
+            hypre_solver->setHypreNumSweeps(hypre_num_sweeps);
+            hypre_solver->setHypreStrongThreshold(hypre_strong_threshold);
 
-            const BoxArray& ba = linop.m_grids[0].back();
-            const DistributionMapping& dm = linop.m_dmap[0].back();
-            const Geometry& geom = linop.m_geom[0].back();
+            const BoxArray& ba = linop.m_grids[amrlev].back();
+            const DistributionMapping& dm = linop.m_dmap[amrlev].back();
+            const Geometry& geom = linop.m_geom[amrlev].back();
 
             hypre_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
             hypre_bndry->setHomogValues();
@@ -1832,6 +1870,12 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         hypre_node_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter);
     }
 
+    // For singular problems there may be a large constant added to all values of the solution
+    // For precision reasons we enforce that the average of the correction from hypre is 0
+    if (linop.isSingular(amrlev))
+    {
+        makeSolvable(amrlev, mglev, x);
+    }
 #endif
 }
 
@@ -1839,6 +1883,7 @@ void
 MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
 {
 #if !defined(AMREX_USE_PETSC)
+    amrex::ignore_unused(x,b);
     amrex::Abort("bottomSolveWithPETSc is called without building with PETSc");
 #else
 

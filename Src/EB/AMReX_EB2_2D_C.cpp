@@ -4,7 +4,7 @@ namespace amrex { namespace EB2 {
 
 namespace {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void set_eb_data (const int i, const int j, Array4<EBCellFlag> const& cell,
+void set_eb_data (const int i, const int j,
                   Array4<Real> const& apx, Array4<Real> const& apy,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
@@ -248,7 +248,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             bnorm(i,j,0,1) = 0.0;
         } else {
 
-            set_eb_data(i,j,cell,apx,apy,vfrac,vcent,barea,bcent,bnorm);
+            set_eb_data(i,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
 
             // remove small cells
             if (vfrac(i,j,0) < small_volfrac) {
@@ -279,12 +279,12 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                 if (cell(i,j,0).isRegular())
                 {
                     cell(i,j,0).setSingleValued();
-                    set_eb_data(i,j,cell,apx,apy,vfrac,vcent,barea,bcent,bnorm);
+                    set_eb_data(i,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
                 }
                 if (cell(i-1,j,0).isRegular())
                 {
                     cell(i-1,j,0).setSingleValued();
-                    set_eb_data(i-1,j,cell,apx,apy,vfrac,vcent,barea,bcent,bnorm);
+                    set_eb_data(i-1,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
                 }
             }
         }}
@@ -300,12 +300,12 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                 if (cell(i,j,0).isRegular())
                 {
                     cell(i,j,0).setSingleValued();
-                    set_eb_data(i,j,cell,apx,apy,vfrac,vcent,barea,bcent,bnorm);
+                    set_eb_data(i,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
                 }
                 if (cell(i,j-1,0).isRegular())
                 {
                     cell(i,j-1,0).setSingleValued();
-                    set_eb_data(i,j-1,cell,apx,apy,vfrac,vcent,barea,bcent,bnorm);
+                    set_eb_data(i,j-1,apx,apy,vfrac,vcent,barea,bcent,bnorm);
                 }
             }
         }}

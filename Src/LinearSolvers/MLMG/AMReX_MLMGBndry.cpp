@@ -35,7 +35,7 @@ MLMGBndry::setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo
         for (int icomp = 0; icomp < nComp(); ++icomp) {
             BCTuple bct;
             setBoxBC(bloc, bct, grd, domain, lo[icomp], hi[icomp], dx, ratio,
-                     a_loc, {AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(0.,0.,0.)},
+                     a_loc, {{AMREX_D_DECL(0.,0.,0.)}}, {{AMREX_D_DECL(0.,0.,0.)}},
                      is_periodic);
             for (int idim = 0; idim < 2*AMREX_SPACEDIM; ++idim) {
                 bctag[idim][icomp] = bct[idim];

@@ -170,20 +170,8 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(node_id,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        Int os = offset[mfi];
-        const Box& bx = mfi.growntilebox();
-        const auto& nid = node_id.array(mfi);
-        AMREX_FOR_3D(bx, i, j, k,
-        {
-            if (nid(i,j,k) >= 0) {
-                nid(i,j,k) += os;
-            } else {
-                nid(i,j,k) = -1;
-            }
-        });
-    }    
+
+    fill_node_id(offset);
 
     amrex::OverrideSync(node_id, *owner_mask, geom.periodicity());
     node_id.FillBoundary(geom.periodicity());
@@ -332,6 +320,25 @@ HypreNodeLap::solve (MultiFab& soln, const MultiFab& rhs,
     }
 
     getSolution(soln);
+}
+
+void
+HypreNodeLap::fill_node_id (LayoutData<Int>& offset)
+{
+    for (MFIter mfi(node_id,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        Int os = offset[mfi];
+        const Box& bx = mfi.growntilebox();
+        const auto& nid = node_id.array(mfi);
+        AMREX_FOR_3D(bx, i, j, k,
+        {
+            if (nid(i,j,k) >= 0) {
+                nid(i,j,k) += os;
+            } else {
+                nid(i,j,k) = -1;
+            }
+        });
+    }
 }
 
 void

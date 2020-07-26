@@ -52,14 +52,16 @@ void WriteBinaryParticleDataSync (PC const& pc,
     if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
     pdir += name;
 
-    if (ParallelDescriptor::IOProcessor())
-    {
-        if ( ! amrex::UtilCreateDirectory(pdir, 0755))
+    if ( ! pc.GetLevelDirectoriesCreated()) {
+        if (ParallelDescriptor::IOProcessor())
         {
-            amrex::CreateDirectoryFailed(pdir);
+            if ( ! amrex::UtilCreateDirectory(pdir, 0755))
+            {
+                amrex::CreateDirectoryFailed(pdir);
+            }
         }
+        ParallelDescriptor::Barrier();
     }
-    ParallelDescriptor::Barrier();
 
     std::ofstream HdrFile;
 
@@ -217,10 +219,13 @@ void WriteBinaryParticleDataSync (PC const& pc,
 
             LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
 
-            if (ParallelDescriptor::IOProcessor())
-                if ( ! amrex::UtilCreateDirectory(LevelDir, 0755))
-                    amrex::CreateDirectoryFailed(LevelDir);
-            ParallelDescriptor::Barrier();
+            if ( ! pc.GetLevelDirectoriesCreated())
+            {
+                if (ParallelDescriptor::IOProcessor())
+                    if ( ! amrex::UtilCreateDirectory(LevelDir, 0755))
+                        amrex::CreateDirectoryFailed(LevelDir);
+                ParallelDescriptor::Barrier();
+            }
         }
 
         // Write out the header for each particle
@@ -392,10 +397,14 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
     if (MyProc == IOProcNumber)
     {
-        if ( ! amrex::UtilCreateDirectory(pdir, 0755))
+        if ( ! pc.GetLevelDirectoriesCreated())
         {
-            amrex::CreateDirectoryFailed(pdir);
+            if ( ! amrex::UtilCreateDirectory(pdir, 0755))
+            {
+                amrex::CreateDirectoryFailed(pdir);
+            }
         }
+
         for (int lev = 0; lev <= pc.finestLevel(); lev++)
         {
             std::string LevelDir = pdir;
@@ -407,9 +416,12 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
                 LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
 
-                if ( ! amrex::UtilCreateDirectory(LevelDir, 0755))
+                if ( ! pc.GetLevelDirectoriesCreated())
                 {
-                    amrex::CreateDirectoryFailed(LevelDir);
+                    if ( ! amrex::UtilCreateDirectory(LevelDir, 0755))
+                    {
+                        amrex::CreateDirectoryFailed(LevelDir);
+                    }
                 }
 
                 std::string HeaderFileName = LevelDir;
@@ -465,8 +477,6 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             if (np_per_grid_local[lev][mfi.index()] > 0)
             {
                 const auto& ptile = pc.ParticlesAt(lev, mfi);
-                const auto& aos = ptile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
                 new_ptile.resize(np_per_grid_local[lev][mfi.index()]);
                 amrex::filterParticles(new_ptile, ptile, KeepValidFilter());
             }
@@ -487,7 +497,10 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
     auto RD = pc.ParticleRealDescriptor;
 
-    AsyncOut::Submit([=] ()
+    AsyncOut::Submit([=] () 
+#if defined(__GNUC__) && (__GNUC__ == 8) && (__GNUC_MINOR__ == 1)
+                     mutable // workaround for bug in gcc 8.1
+#endif
     {
         if (MyProc == IOProcNumber)
         {

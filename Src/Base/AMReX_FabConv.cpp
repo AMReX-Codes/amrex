@@ -221,7 +221,7 @@ selectOrdering (int prec,
 RealDescriptor*
 RealDescriptor::newRealDescriptor (int         iot,
                                    int         prec,
-                                   const char* sys,
+                                   const char* /*sys*/,
                                    int         ordering)
 {
     RealDescriptor* rd = 0;
@@ -238,6 +238,8 @@ RealDescriptor::newRealDescriptor (int         iot,
             return rd;
         case FABio::FAB_DOUBLE:
             rd = new RealDescriptor(FPC::ieee_double, ord, 8);
+            return rd;
+        default:
             return rd;
         }
     }
@@ -498,7 +500,7 @@ _pd_reorder (char*      arr,
              const int* ord)
 {
     const int MAXLINE = 16;
-    char local[MAXLINE];
+    char local[MAXLINE] = {0};
 
     for (int j; nitems > 0; nitems--)
     {

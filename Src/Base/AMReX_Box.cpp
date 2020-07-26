@@ -107,14 +107,11 @@ void
 AllGatherBoxes (Vector<Box>& bxs)
 {
 #ifdef BL_USE_MPI
-    // cell centered boxes only!
-    const auto szof_bx = Box::linearSize();
-
-    const Long count = bxs.size() * static_cast<Long>(szof_bx);
+    const int count = bxs.size();
     const auto& countvec = ParallelDescriptor::Gather(count, ParallelDescriptor::IOProcessorNumber());
     
     Long count_tot = 0L;
-    Vector<Long> offset(countvec.size(),0L);
+    Vector<int> offset(countvec.size(),0);
     if (ParallelDescriptor::IOProcessor())
     {
         count_tot = countvec[0];
@@ -128,27 +125,19 @@ AllGatherBoxes (Vector<Box>& bxs)
 
     if (count_tot == 0) return;
 
-    Vector<char> send_buffer(count);
-    char* psend = (count > 0) ? send_buffer.data() : nullptr;
-    char* p = psend;
-    for (const auto& b : bxs) {
-        b.linearOut(p);
-        p += szof_bx;
+    if (count_tot > static_cast<Long>(std::numeric_limits<int>::max())) {
+        amrex::Abort("AllGatherBoxes: not many boxes");
     }
 
-    Vector<char> recv_buffer(count_tot);
-    ParallelDescriptor::Gatherv(psend, count, recv_buffer.data(), countvec, offset, ParallelDescriptor::IOProcessorNumber());
+    Vector<Box> recv_buffer(count_tot);
+    ParallelDescriptor::Gatherv(bxs.data(), count, recv_buffer.data(), countvec, offset,
+                                ParallelDescriptor::IOProcessorNumber());
 
     ParallelDescriptor::Bcast(recv_buffer.data(), count_tot, ParallelDescriptor::IOProcessorNumber());
 
-    const Long nboxes_tot = count_tot/szof_bx;
-    bxs.resize(nboxes_tot);
-
-    p = recv_buffer.data();
-    for (auto& b : bxs) {
-        b.linearIn(p);
-        p += szof_bx;
-    }
+    bxs = std::move(recv_buffer);
+#else
+    amrex::ignore_unused(bxs);
 #endif
 }
 

@@ -292,7 +292,7 @@ void CommProfStats::AddTopoCoord(const int nid, const int node,
   cout << "**** Error:  CommProfStats::AddTopoCoord not supported for 2D" << endl;
 #else
   cout << "TopoMap.size() = " << TopoMap.size() << " nid node = " << nid << "  " << node << endl;
-  TopoMap[node].insert(std::pair<int, IntVect>(nid, IntVect(tx, ty, tz)));
+  TopoMap[node].insert(std::pair<int, IntVect>(nid, IntVect(AMREX_D_DECL(tx, ty, tz))));
   ++nTopPts;
   maxTopNodeNum = std::max(maxTopNodeNum, node);
 #endif
@@ -340,8 +340,8 @@ void CommProfStats::WriteTopoFab() {
 #if (BL_SPACEDIM == 2)
   cout << "**** Error:  CommProfStats::WriteTopoFab not supported for 2D" << endl;
 #else
-  IntVect ivmin(100000, 100000, 100000);
-  IntVect ivmax(-100000, -100000, -100000);
+  IntVect ivmin(AMREX_D_DECL(100000, 100000, 100000));
+  IntVect ivmax(AMREX_D_DECL(-100000, -100000, -100000));
   std::map<int, IntVect>::iterator it;
   for(int i(0); i < TopoMap.size(); ++i) {
     for(it = TopoMap[i].begin(); it != TopoMap[i].end(); ++it) {

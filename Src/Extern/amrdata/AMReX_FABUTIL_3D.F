@@ -53,7 +53,7 @@ c ::: --------------------------------------------------------------
       integer cblo(3), cbhi(3)
       integer fslo(3), fshi(3)
       integer lratio, nvar, clen, flen, clo, chi
-      REAL_T fine(floi1 :fhii1 ,floi2 :fhii2 ,floi3 :fhii3, nvar)
+      REAL_T fine(floi1:fhii1,floi2:fhii2,floi3:fhii3,nvar)
       REAL_T crse(clo:chi, nvar)
       REAL_T cslope(clo:chi, 3)
       REAL_T fslope(flen, 3)
@@ -356,8 +356,8 @@ c ::: --------------------------------------------------------------
       integer fblo(3), fbhi(3)
       integer cblo(3), cbhi(3)
       integer lrat, nvar, tloi, thii
-      REAL_T fine(floi1 :fhii1 ,floi2 :fhii2 ,floi3 :fhii3, nvar)
-      REAL_T crse(cloi1 :chii1 ,cloi2 :chii2 ,cloi3 :chii3, nvar)
+      REAL_T fine(floi1:fhii1,floi2:fhii2,floi3:fhii3, nvar)
+      REAL_T crse(cloi1:chii1,cloi2:chii2,cloi3:chii3, nvar)
       REAL_T temp(tloi:thii + 1)
 c ::: ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 c ::: pcinterp:  use piecewise constant interpolation to define
@@ -418,7 +418,7 @@ c ::: --------------------------------------------------------------
       integer cblo(3), cbhi(3)
       integer fslo(3), fshi(3)
       integer lratio, nvar, clen, flen, clo, chi
-      REAL_T fine(floi1 :fhii1 ,floi2 :fhii2 ,floi3 :fhii3, nvar)
+      REAL_T fine(floi1:fhii1,floi2:fhii2,floi3:fhii3,nvar)
       REAL_T crse(clo:chi, nvar)
       REAL_T cslope(clo:chi, 3)
       REAL_T fslope(flen, 3)

@@ -56,6 +56,9 @@ list of important variables.
    +------------+-------------------------------------+--------------------+
    | USE_RPATH  | TRUE or FALSE                       | FALSE              |
    +------------+-------------------------------------+--------------------+
+   | WARN_ALL   | TRUE or FALSE                       | TRUE for DEBUG     |
+   |            |                                     | FALSE otherwise    |
+   +------------+-------------------------------------+--------------------+
 
 .. raw:: latex
 
@@ -108,6 +111,9 @@ If enabled, the library path at link time will be saved as a
 `rpath hint <https://en.wikipedia.org/wiki/Rpath>`_ in created binaries.
 When disabled, dynamic library paths could be provided via ``export LD_LIBRARY_PATH``
 hints at runtime.
+
+For GCC and Clang, the variable ``WARN_ALL`` controls the compiler's warning options.  There is
+also a make variable ``WARN_ERROR`` (with default of ``FALSE``) to turn warnings into errors.
 
 After defining these make variables, a number of files, ``Make.defs,
 Make.package`` and ``Make.rules``, are included in the GNUmakefile. AMReX-based
@@ -423,9 +429,29 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | CUDA_ARCH                    |  CUDA target architecture                       | Auto        | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_BACKTRACE               |  Host function symbol names (e.g. cuda-memcheck)| Auto        | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_COMPILATION_TIMER       |  CSV table with time for each compilation phase | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_DEBUG                   |  Device debug information (optimizations: off)  | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_ERROR_CAPTURE_THIS      |  Error if a CUDA lambda captures a class' this  | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_KEEP_FILES              |  Keep intermediately files (folder: nvcc_tmp)   | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_LTO                     |  Enable CUDA link-time-optimization             | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | CUDA_MAX_THREADS             |  Max number of CUDA threads per block           | 256         | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | CUDA_MAXREGCOUNT             |  Limits the number of CUDA registers available  | 255         | User-defined    |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_PTX_VERBOSE             |  Verbose code generation statistics in ptxas    | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_SHOW_CODELINES          |  Source information in PTX (optimizations: on)  | Auto        | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_SHOW_LINENUMBERS        |  Line-number information (optimizations: on)    | Auto        | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_WARN_CAPTURE_THIS       |  Warn if a CUDA lambda captures a class' this   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_CUDA_FASTMATH         |  Enable CUDA fastmath library                   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -472,6 +498,8 @@ below.
    | ENABLE_PLOTFILE_TOOLS        |  Build and install plotfile postprocessing tools| NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_TUTORIALS             |  Build tutorials                                | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ALLOW_DIFFERENT_COMPILER     |  Allow an app to use a different compiler       | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
 .. raw:: latex
 

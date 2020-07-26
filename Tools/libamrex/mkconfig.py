@@ -29,35 +29,34 @@ def doit(defines, undefines, comp, allow_diff_comp, use_omp):
 
     if allow_diff_comp == "FALSE":
         if comp == "gnu" or comp == "nag":
-            print("#ifndef __GNUC__")
-            print('static_assert(false,"libamrex was built with GNU");')
-            print("#endif")
+            comp_macro = "__GNUC__"
+            comp_id    = "GNU"
         elif comp == "intel":
-            print("#ifndef __INTEL_COMPILER")
-            print('static_assert(false,"libamrex was built with Intel");')
-            print("#endif")
+            comp_macro = "__INTEL_COMPILER"
+            comp_id    = Intel
         elif comp == "cray":
-            print("#ifndef _CRAYC")
-            print('static_assert(false,"libamrex was built with Cray");')
-            print("#endif")
+            comp_macro = "_CRAYC"
+            comp_id    = Cray
         elif comp == "pgi":
-            print("#ifndef __PGI")
-            print('static_assert(false,"libamrex was built with PGI");')
-            print("#endif")
+            comp_macro = "__PGI"
+            comp_id    = PGI
         elif comp == "llvm":
-            print("#ifndef __llvm__")
-            print('static_assert(false,"libamrex was built with Clang/LLVM");')
-            print("#endif")
+            comp_macro = "__llvm__"
+            comp_id    = "Clang/LLVM"
         elif comp == "nec":
-            print("#ifndef __NEC__")
-            print('static_assert(false,"libamrex was built with NEC");')
-            print("#endif")
+            comp_macro = "__NEC__"
+            comp_id    = "NEC"
         elif comp == "ibm":
-            print("#ifndef __ibmxl__")
-            print('static_assert(false,"libamrex was built with IBM");')
-            print("#endif")
+            comp_macro = "__ibmxl__"
+            comp_id    = "IBM"
         else:
             sys.exit("ERROR: unknown compiler "+comp+" to mkconfig.py")
+
+        msg = "libamrex was built with " + comp_id + ". "
+        msg = msg + "To avoid this error, reconfigure with --allow-different-compiler=yes"
+        print("#ifndef " + comp_macro )
+        print('static_assert(false,"'+msg+'");')
+        print("#endif")
 
     if use_omp == "TRUE":
         print("#ifndef _OPENMP")
@@ -101,4 +100,3 @@ if __name__ == "__main__":
     except:
         # something went wrong
         print("$(error something went wrong in mkconfig.py)")
-

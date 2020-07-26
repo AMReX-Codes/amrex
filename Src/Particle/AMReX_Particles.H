@@ -516,15 +516,6 @@ public:
     Long IncrementWithTotal (MultiFab& mf, int level, bool local = false);
 
     /**
-    * \brief rho_index: rho index in rdata
-    *
-    * \param rho_index
-    * \param level
-    * \param local
-    */
-    Real sumParticleMass (int rho_index, int level, bool local = false) const;
-
-    /**
     * \brief Redistribute puts all the particles back in the right places (for some value of right)
     *
     * Assigns particles to the levels, grids, and tiles that contain their current positions. 
@@ -640,6 +631,34 @@ public:
     */
     void AddParticlesAtLevel (AoS& particles, int level, int nGrow=0);
 
+    /**
+    * \brief Creates virtual particles for a given level that represent
+    * in some capacity all particles at finer levels
+    *
+    * \param level
+    * \param virts
+    */
+    void CreateVirtualParticles (int level, ParticleTileType& virts) const;
+
+    /**
+    * \brief Create ghost particles for a given level that are copies of particles
+    * near coarse-\>fine boundaries in level-1
+    *
+    * \param level
+    * \param ngrow
+    * \param ghosts
+    */
+    void CreateGhostParticles (int level, int ngrow, ParticleTileType& ghosts) const;
+
+    /**
+    * \brief Add particles from a pbox to the grid at this level
+    *
+    * \param particles
+    * \param level
+    * \param nGrow
+    */
+    void AddParticlesAtLevel (ParticleTileType& particles, int level, int nGrow=0);
+
 
     /**
     * \brief Clear all the particles in this container. This does not free memory.
@@ -652,7 +671,8 @@ public:
     * particles from this container first. local controls whether or not to call
     * Redistribute() after adding the particles.
     *
-    * \param other
+    * \param other the other pc to copy from
+    * \param local whether to call redistribute after
     */
     void copyParticles (const ParticleContainerType& other, bool local=false);
 
@@ -660,9 +680,43 @@ public:
     * \brief Add particles from other to this ParticleContainer. local controls
     * whether or not to call Redistribute after adding the particles.
     *
-    * \param other
+    * \param other the other pc to copy from
+    * \param local whether to call redistribute after
     */
     void addParticles (const ParticleContainerType& other, bool local=false);
+
+    /**
+    * \brief Copy particles from other to this ParticleContainer. Will clear all the
+    * particles from this container first. local controls whether or not to call
+    * Redistribute() after adding the particles.
+    *
+    * This version conditionally copies based on a predicate function applied to 
+    * each particle.
+    *
+    * \tparam callable that takes a SuperParticle and returns a bool
+    *
+    * \param other the other pc to copy from
+    * \param f function to apply to each particle as a filter
+    * \param local whether to call redistribute after
+    */
+    template <class F, amrex::EnableIf_t<! std::is_integral<F>::value, int> foo = 0>
+    void copyParticles (const ParticleContainerType& other, F&&f, bool local=false);
+
+    /**
+    * \brief Add particles from other to this ParticleContainer. local controls
+    * whether or not to call Redistribute after adding the particles.
+    *
+    * This version conditionally copies based on a predicate function applied to 
+    * each particle.
+    *
+    * \tparam callable that takes a SuperParticle and returns a bool
+    *
+    * \param other the other pc to copy from
+    * \param f function to apply to each particle as a filter
+    * \param local whether to call redistribute after
+    */
+    template <class F, amrex::EnableIf_t<! std::is_integral<F>::value, int> foo = 0>
+    void addParticles (const ParticleContainerType& other, F&& f, bool local=false);
 
     /**
     * \brief Write a contiguous chunk of real particle data to an ostream.
@@ -905,7 +959,7 @@ public:
                         const std::string& name,
                         const Vector<int>& write_real_comp,
                         const Vector<int>& write_int_comp, F&& f) const;
-	
+
     /**
      * \brief This is the most general version of WritePlotFile, which takes component 
      * names and flags for whether to write each variable as components. Note that 
@@ -1020,7 +1074,8 @@ public:
     void AssignCellDensitySingleLevel (int rho_index, MultiFab& mf, int level,
                                        int ncomp=1, int particle_lvl_offset = 0) const;
 
-    IntVect Index (const Particle<NStructReal, NStructInt>& p, int lev) const;
+    template <typename P>
+    IntVect Index (const P& p, int lev) const;
 
 
     /**
@@ -1066,10 +1121,14 @@ public:
     static bool do_tiling;
     static IntVect tile_size;
 
+    void SetLevelDirectoriesCreated (bool tf) { levelDirectoriesCreated = tf; }
+
+    bool GetLevelDirectoriesCreated () const { return levelDirectoriesCreated; }
+
     void SetUsePrePost (bool tf) const {
       usePrePost = tf;
     }
-    bool GetUsePrePost() const {
+    bool GetUsePrePost () const {
       return usePrePost;
     }
 
@@ -1080,7 +1139,7 @@ public:
       doUnlink = tf;
     }
 
-    bool GetUseUnlink() const {
+    bool GetUseUnlink () const {
       return doUnlink;
     }
 
@@ -1121,7 +1180,7 @@ public:
     Vector<int> NeighborProcs(int ngrow) const         
     {
         return computeNeighborProcs(this->GetParGDB(), ngrow);
-    };
+    }
 
     bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
@@ -1132,6 +1191,7 @@ public:
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
 
     //! ---- variables for i/o optimization saved for pre and post checkpoint
+    mutable bool levelDirectoriesCreated;
     mutable bool usePrePost;
     mutable bool doUnlink;
     int maxnextidPrePost;
@@ -1161,7 +1221,8 @@ protected:
     * \param nGrow
     * \param local_grid
     */
-    bool Where (const ParticleType& prt, ParticleLocData& pld,
+    template <typename P>
+    bool Where (const P& prt, ParticleLocData& pld,
 		int lev_min = 0, int lev_max = -1, int nGrow=0, int local_grid=-1) const;
 
 
@@ -1219,10 +1280,10 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
 private:
 
     virtual void particlePostLocate(ParticleType& /*p*/, const ParticleLocData& /*pld*/,
-                                    const int /*lev*/) {};
+                                    const int /*lev*/) {}
 
     virtual void correctCellVectors(int /*old_index*/, int /*new_index*/,
-				    int /*grid*/, const ParticleType& /*p*/) {};
+				    int /*grid*/, const ParticleType& /*p*/) {}
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
@@ -1240,6 +1301,9 @@ private:
     int num_real_comm_comps, num_int_comm_comps;
     Vector<ParticleLevel> m_particles;
     Vector<std::unique_ptr<MultiFab> > m_dummy_mf;
+
+    static std::string aggregation_type;
+    static int aggregation_buffer;
 };
 
 #include "AMReX_ParticleInit.H"

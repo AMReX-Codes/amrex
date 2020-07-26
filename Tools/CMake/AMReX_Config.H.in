@@ -14,6 +14,7 @@
 #cmakedefine AMREX_TESTING
 #cmakedefine AMREX_USE_MPI
 #cmakedefine BL_USE_MPI
+#cmakedefine AMREX_MPI_THREAD_MULTIPLE
 #cmakedefine AMREX_USE_OMP
 #cmakedefine BL_USE_OMP
 #cmakedefine AMREX_USE_DPCPP
@@ -41,10 +42,7 @@
 #cmakedefine AMREX_PARTICLES
 #cmakedefine AMREX_USE_HDF5
 #cmakedefine AMREX_USE_HDF5_ASYNC
-#ifdef __cplusplus
-#ifndef @COMPILER_ID_MACRO@
-static_assert(false,"libamrex was built with @CMAKE_CXX_COMPILER_ID@");
-#endif
+#ifdef __cplusplus@COMP_DECLS@
 @OMP_DECLS@
 #endif
 #endif

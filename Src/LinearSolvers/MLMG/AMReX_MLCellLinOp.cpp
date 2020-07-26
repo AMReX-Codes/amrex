@@ -138,9 +138,9 @@ MLCellLinOp::defineBC ()
                                             m_amr_ref_ratio[amrlev-1], BCRec());
 
         Vector<Array<LinOpBCType,AMREX_SPACEDIM> > bclohi
-            (ncomp,Array<LinOpBCType,AMREX_SPACEDIM>{AMREX_D_DECL(BCType::Dirichlet,
-                                                                  BCType::Dirichlet,
-                                                                  BCType::Dirichlet)});
+            (ncomp,Array<LinOpBCType,AMREX_SPACEDIM>{{AMREX_D_DECL(BCType::Dirichlet,
+                                                                   BCType::Dirichlet,
+                                                                   BCType::Dirichlet)}});
         m_bndry_cor[amrlev]->setLOBndryConds(bclohi, bclohi, m_amr_ref_ratio[amrlev-1], RealVect{});
     }
 
@@ -281,13 +281,14 @@ MLCellLinOp::makeNGrids (int grid_size) const
 }
 
 void
-MLCellLinOp::restriction (int, int, MultiFab& crse, MultiFab& fine) const
+MLCellLinOp::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const
 {
     const int ncomp = getNComp();
 #ifdef AMREX_SOFT_PERF_COUNTERS
     perf_counters.restrict(crse);
 #endif
-    amrex::average_down(fine, crse, 0, ncomp, 2);
+    IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[cmglev-1];
+    amrex::average_down(fine, crse, 0, ncomp, ratio);
 }
 
 void
@@ -299,6 +300,12 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
 
     const int ncomp = getNComp();
 
+    Dim3 ratio3 = {2,2,2};
+    IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[fmglev];
+    AMREX_D_TERM(ratio3.x = ratio[0];,
+                 ratio3.y = ratio[1];,
+                 ratio3.z = ratio[2];);
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -309,9 +316,9 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
         Array4<Real> const& ffab = fine.array(mfi);
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
-            int ic = amrex::coarsen(i,2);
-            int jc = amrex::coarsen(j,2);
-            int kc = amrex::coarsen(k,2);
+            int ic = amrex::coarsen(i,ratio3.x);
+            int jc = amrex::coarsen(j,ratio3.y);
+            int kc = amrex::coarsen(k,ratio3.z);
             ffab(i,j,k,n) += cfab(ic,jc,kc,n);
         });
     }    
@@ -452,9 +459,9 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     const int imaxorder = maxorder;
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
-    const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
-    const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : 1.0;
-    const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : 1.0;
+    const Real dxi = dxinv[0];
+    const Real dyi = (AMREX_SPACEDIM >= 2) ? dxinv[1] : 1.0;
+    const Real dzi = (AMREX_SPACEDIM == 3) ? dxinv[2] : 1.0;
 
     const auto& maskvals = m_maskvals[amrlev][mglev];
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
@@ -539,12 +546,12 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
         }
         else
         {
+#ifndef BL_NO_FORT
             const RealTuple & bdl = bdlv[0];
             const BCTuple   & bdc = bdcv[0];
 
             for (OrientationIter oitr; oitr; ++oitr)
             {
-#ifndef BL_NO_FORT
                 const Orientation ori = oitr();
 
                 int  cdr = ori;
@@ -561,10 +568,10 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                                        cdr, bct, bcl,
                                        BL_TO_FORTRAN_ANYD(fsfab),
                                        maxorder, dxinv, flagbc, ncomp, cross);
+            }
 #else
                 amrex::Abort("amrex_mllinop_apply_bc not available when BL_NO_FORT=TRUE");
 #endif
-            }
         }
     }
 }
@@ -598,8 +605,8 @@ MLCellLinOp::reflux (int crse_amrlev,
 #endif
     {
         Array<FArrayBox,AMREX_SPACEDIM> flux;
-        Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
-        Array<FArrayBox const*,AMREX_SPACEDIM> cpflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        Array<FArrayBox*,AMREX_SPACEDIM> pflux {{ AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) }};
+        Array<FArrayBox const*,AMREX_SPACEDIM> cpflux {{ AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) }};
 
         for (MFIter mfi(crse_sol, mfi_info);  mfi.isValid(); ++mfi)
         {
@@ -661,7 +668,7 @@ MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes
 #endif
     {
         Array<FArrayBox,AMREX_SPACEDIM> flux;
-        Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        Array<FArrayBox*,AMREX_SPACEDIM> pflux {{ AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) }};
         for (MFIter mfi(sol, mfi_info);  mfi.isValid(); ++mfi)
         {
             const Box& tbx = mfi.tilebox();
@@ -687,7 +694,7 @@ MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes
 
 void
 MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
-                       MultiFab& sol, Location loc) const
+                       MultiFab& sol, Location /*loc*/) const
 {
     BL_PROFILE("MLCellLinOp::compGrad()");
 
@@ -830,7 +837,7 @@ MLCellLinOp::prepareForSolve ()
 }
 
 Real
-MLCellLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const
+MLCellLinOp::xdoty (int /*amrlev*/, int /*mglev*/, const MultiFab& x, const MultiFab& y, bool local) const
 {
     const int ncomp = getNComp();
     const int nghost = 0;
@@ -881,6 +888,7 @@ MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx
 void
 MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
+    amrex::ignore_unused(amrlev,mglev,rhs);
 #if (AMREX_SPACEDIM != 3)
     
     if (!m_has_metric_term) return;
@@ -936,6 +944,7 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 void
 MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
+    amrex::ignore_unused(amrlev,mglev,rhs);
 #if (AMREX_SPACEDIM != 3)
     
     if (!m_has_metric_term) return;

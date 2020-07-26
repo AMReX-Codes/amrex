@@ -50,15 +50,15 @@ public:
     virtual Real getBScalar () const final override { return m_b_scalar; }
     virtual MultiFab const* getACoeffs (int amrlev, int mglev) const final override
         { return &(m_a_coeffs[amrlev][mglev]); }
-    virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final override
-        { return { AMREX_D_DECL(nullptr,nullptr,nullptr)}; }
+    virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int /*amrlev*/, int /*mglev*/) const final override
+        { return {{ AMREX_D_DECL(nullptr,nullptr,nullptr)}}; }
 
-    virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const final override {
+    virtual std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final override {
         amrex::Abort("MLALaplacian::makeNLinOp: Not implmented");
         return std::unique_ptr<MLLinOp>{};
     }
 
-    void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a);
+    void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a);
     void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 

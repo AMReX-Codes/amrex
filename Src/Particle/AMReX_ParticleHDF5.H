@@ -283,44 +283,46 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
     BL_PROFILE("ParticleContainer::WriteHDF5ParticleData()");
     BL_ASSERT(OK());
-    
+
     BL_ASSERT(sizeof(typename ParticleType::RealType) == 4 ||
               sizeof(typename ParticleType::RealType) == 8);
-    
+
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     const Real strttime = amrex::second();
-    
+
     AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == NumIntComps() + NStructInt);
 
     std::string pdir = dir;
     if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
-    if (ParallelDescriptor::IOProcessor()) {
-        if ( ! amrex::UtilCreateDirectory(pdir, 0755)) 
-            amrex::CreateDirectoryFailed(pdir);
+    if ( ! levelDirectoriesCreated) {
+        if (ParallelDescriptor::IOProcessor()) {
+            if ( ! amrex::UtilCreateDirectory(pdir, 0755))
+                amrex::CreateDirectoryFailed(pdir);
 
-        int set_stripe = 0;
-        char setstripe[1024];
-        int stripe_count = 128;
-        int stripe_size = 1;
-        char *stripe_count_str = getenv("HDF5_STRIPE_COUNT");
-        char *stripe_size_str  = getenv("HDF5_STRIPE_SIZE");
-        if (stripe_count_str) { 
-            stripe_count = atoi(stripe_count_str);
-            set_stripe = 1;
+            int set_stripe = 0;
+            char setstripe[1024];
+            int stripe_count = 128;
+            int stripe_size = 1;
+            char *stripe_count_str = getenv("HDF5_STRIPE_COUNT");
+            char *stripe_size_str  = getenv("HDF5_STRIPE_SIZE");
+            if (stripe_count_str) {
+                stripe_count = atoi(stripe_count_str);
+                set_stripe = 1;
+            }
+            if (stripe_size_str) {
+                stripe_size = atoi(stripe_size_str);
+                set_stripe = 1;
+            }
+            if (set_stripe == 1) {
+                sprintf(setstripe, "lfs setstripe -c %d -S %dm %s", stripe_count, stripe_size, pdir.c_str());
+                std::cout << "Setting stripe parameters for HDF5 output: " << setstripe << std::endl;
+                amrex::ignore_unused(std::system(setstripe));
+            }
         }
-        if (stripe_size_str) {
-            stripe_size = atoi(stripe_size_str);
-            set_stripe = 1;
-        }
-        if (set_stripe == 1) {
-            sprintf(setstripe, "lfs setstripe -c %d -S %dm %s", stripe_count, stripe_size, pdir.c_str());
-            std::cout << "Setting stripe parameters for HDF5 output: " << setstripe << std::endl; 
-            amrex::ignore_unused(std::system(setstripe));
-        }
+        ParallelDescriptor::Barrier();
     }
-    ParallelDescriptor::Barrier();
 
     Long nparticles = 0;
     int maxnextid;
@@ -786,7 +788,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         /*         my_real_offset << ", my_real_count = " << my_real_count << ", total_real_size = " << total_real_size << '\n'; */
         real_dset_space = H5Screate_simple(1, &total_real_size, NULL); 
         H5Sselect_hyperslab (real_dset_space, H5S_SELECT_SET, &my_real_offset, NULL, &my_real_count, NULL);
-        H5Dwrite(real_dset_id, H5T_NATIVE_DOUBLE, real_mem_space, real_dset_space, dxpl, rstuff.dataPtr());
+        if (sizeof(typename ParticleType::RealType) == 4)
+            H5Dwrite(real_dset_id, H5T_NATIVE_FLOAT, real_mem_space, real_dset_space, dxpl, rstuff.dataPtr());
+        else
+            H5Dwrite(real_dset_id, H5T_NATIVE_DOUBLE, real_mem_space, real_dset_space, dxpl, rstuff.dataPtr());
         H5Sclose(real_mem_space);
         H5Sclose(real_dset_space);
 
@@ -1232,7 +1237,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     hsize_t real_offset = offset*rChunkSize;
     real_dspace = H5Screate_simple(1, &real_cnt, NULL); 
     H5Sselect_hyperslab (real_fspace, H5S_SELECT_SET, &real_offset, NULL, &real_cnt, NULL);
-    H5Dread(real_dset, H5T_NATIVE_DOUBLE, real_dspace, real_fspace, H5P_DEFAULT, rstuff.dataPtr());
+    if (sizeof(RTYPE) == 4)
+        H5Dread(real_dset, H5T_NATIVE_FLOAT, real_dspace, real_fspace, H5P_DEFAULT, rstuff.dataPtr());
+    else
+        H5Dread(real_dset, H5T_NATIVE_DOUBLE, real_dspace, real_fspace, H5P_DEFAULT, rstuff.dataPtr());
 
     H5Sclose(real_fspace);
     H5Sclose(real_dspace);

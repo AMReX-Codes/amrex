@@ -200,18 +200,12 @@ int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
 
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void enforcePeriodic (P& p,
+bool enforcePeriodic (P& p,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& phi,
                       amrex::GpuArray<int,AMREX_SPACEDIM> const& is_per) noexcept
 {
-    // In rare cases, degenerate cases can be found, filter out with a tolerance
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-    static constexpr Real eps = std::numeric_limits<Real>::epsilon();
-#else
-    static constexpr Real eps = DBL_EPSILON;
-#endif
-
+    bool shifted = false;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         if (not is_per[idim]) continue;
@@ -219,16 +213,23 @@ void enforcePeriodic (P& p,
             while (p.pos(idim) >= phi[idim]) {
                 p.pos(idim) -= (phi[idim] - plo[idim]);
             }
-            if (p.pos(idim) < plo[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
+            // clamp to avoid precision issues;
+            if (p.pos(idim) < plo[idim]) p.pos(idim) = plo[idim];
+            shifted = true;
         }
         else if (p.pos(idim) < plo[idim]) {
             while (p.pos(idim) < plo[idim]) {
                 p.pos(idim) += (phi[idim] - plo[idim]);
             }
-            if (p.pos(idim) == phi[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
-            if (p.pos(idim) > phi[idim]) p.pos(idim) = phi[idim]-eps; // clamp to avoid precision issues;
+            // clamp to avoid precision issues;
+            if (p.pos(idim) == phi[idim]) p.pos(idim) = plo[idim];
+            if (p.pos(idim) > phi[idim]) p.pos(idim) = std::nextafter( (amrex::ParticleReal) phi[idim], (amrex::ParticleReal) plo[idim]);
+            shifted = true;
         }
+        AMREX_ASSERT( (p.pos(idim) >= plo[idim] ) and ( p.pos(idim) < phi[idim] ));
     }
+
+    return shifted;
 }
 
 #if defined(AMREX_USE_GPU)
@@ -236,7 +237,7 @@ void enforcePeriodic (P& p,
 template <typename PTile, typename PLocator>
 int
 partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBufferMap& pmap,
-                          const Geometry& geom, int lev, int gid, int tid,
+                          const Geometry& geom, int lev, int gid, int /*tid*/,
                           int lev_min, int lev_max, int nGrow)
 {
     const auto plo    = geom.ProbLoArray();

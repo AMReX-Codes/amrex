@@ -39,9 +39,9 @@ target_sources ( ${EXENAME}
 
 set_target_properties ( ${EXENAME} PROPERTIES
    INCLUDE_DIRECTORIES
-   "${INC1};${INC2};${INC3};${CMAKE_CURRENT_BINARY_DIR}/mod_files"
+   "${INC1};${INC2};${INC3};${CMAKE_CURRENT_BINARY_DIR}/${EXENAME}_mod_files"
    Fortran_MODULE_DIRECTORY
-   ${CMAKE_CURRENT_BINARY_DIR}/mod_files
+   ${CMAKE_CURRENT_BINARY_DIR}/${EXENAME}_mod_files
    RUNTIME_OUTPUT_DIRECTORY
    ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex )
 
@@ -85,9 +85,9 @@ target_sources ( ${EXENAME}
 
 set_target_properties ( ${EXENAME} PROPERTIES
    INCLUDE_DIRECTORIES
-   "${INC1};${INC2};${INC3};${CMAKE_CURRENT_BINARY_DIR}/mod_files"
+   "${INC1};${INC2};${INC3};${CMAKE_CURRENT_BINARY_DIR}/${EXENAME}_mod_files"
    Fortran_MODULE_DIRECTORY
-   ${CMAKE_CURRENT_BINARY_DIR}/mod_files
+   ${CMAKE_CURRENT_BINARY_DIR}/${EXENAME}_mod_files
    RUNTIME_OUTPUT_DIRECTORY
    ${CMAKE_CURRENT_BINARY_DIR}/UniformVelocity )
 

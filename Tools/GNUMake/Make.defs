@@ -294,6 +294,22 @@ else
   USE_FORCE_INLINE := FALSE
 endif
 
+ifdef WARN_ALL
+  WARN_ALL := $(strip $(WARN_ALL))
+else
+ifeq ($(DEBUG),TRUE)
+  WARN_ALL := TRUE
+else
+  WARN_ALL := FALSE
+endif
+endif
+
+ifdef WARN_ERROR
+  WARN_ERROR := $(strip $(WARN_ERROR))
+else
+  WARN_ERROR := FALSE
+endif
+
 ifdef USE_GPU_PRAGMA
   USE_GPU_PRAGMA := $(strip $(USE_GPU_PRAGMA))
   GPU_PRAGMA_NO_HOST_VERSION ?= FALSE
@@ -316,6 +332,18 @@ ifdef FIX_NVCC_PTHREAD
   FIX_NVCC_PTHREAD := $(strip $(FIX_NVCC_PTHREAD))
 else
   FIX_NVCC_PTHREAD := FALSE
+endif
+
+ifdef GPU_WARN_CAPTURE_THIS
+  GPU_WARN_CAPTURE_THIS := $(strip $(GPU_WARN_CAPTURE_THIS))
+else
+  GPU_WARN_CAPTURE_THIS := TRUE
+endif
+
+ifdef GPU_ERROR_CAPTURE_THIS
+  GPU_ERROR_CAPTURE_THIS := $(strip $(GPU_ERROR_CAPTURE_THIS))
+else
+  GPU_ERROR_CAPTURE_THIS := TRUE
 endif
 
 SKIP_LINKING ?= FALSE
@@ -1036,40 +1064,40 @@ else ifeq ($(USE_CUDA),TRUE)
 
     DEFINES += -DAMREX_GPU_MAX_THREADS=$(CUDA_MAX_THREADS)
 
-    comm := ,
-    space :=
-    space +=
-
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
       LINKFLAGS = $(NVCC_FLAGS)
-      # we are using nvcc for linking
-      libraries := $(subst -Wl$(comm),-Xlinker=,$(libraries))
-      ifeq ($(FIX_NVCC_PTHREAD),TRUE)
-        libraries := $(subst -pthread,-Xcompiler$(space)-pthread,$(libraries))
-      endif
       AMREX_LINKER = nvcc
     endif
 
-    ifeq ($(USE_MPI),TRUE)
+    ifeq ($(nvcc_forward_unknowns),0)
 
-      ifneq ($(findstring Open MPI, $(shell mpicxx -showme:version 2>&1)),)
+      comm := ,
+      space :=
+      space +=
 
+      ifeq ($(AMREX_LINKER),nvcc)
+        libraries := $(subst -Wl$(comm),-Xlinker=,$(libraries))
         ifeq ($(FIX_NVCC_PTHREAD),TRUE)
-          OMPI_CXXFLAGS_ORIG = $(shell mpicxx -showme:compile)
-          export OMPI_CXXFLAGS := $(subst -pthread,-Xcompiler$(space)-pthread,$(OMPI_CXXFLAGS_ORIG))
-
-          OMPI_CFLAGS_ORIG = $(shell mpicc -showme:compile)
-          export OMPI_CFLAGS := $(subst -pthread,-Xcompiler$(space)-pthread,$(OMPI_CXXFLAGS_ORIG))
-
-          # If we're compiling with PGI, it doesn't know -pthread, replace
-          # with -lpthread.
-
-          OMPI_FCFLAGS_ORIG = $(shell mpif90 -showme:compile)
-          export OMPI_FCFLAGS := $(subst -pthread,-lpthread,$(OMPI_FCFLAGS_ORIG))
+          libraries := $(subst -pthread,-Xcompiler$(space)-pthread,$(libraries))
         endif
-
       endif
 
-    endif
+      ifeq ($(USE_MPI),TRUE)
+
+        ifneq ($(findstring Open MPI, $(shell mpicxx -showme:version 2>&1)),)
+
+          ifeq ($(FIX_NVCC_PTHREAD),TRUE)
+            OMPI_CXXFLAGS_ORIG = $(shell mpicxx -showme:compile)
+            export OMPI_CXXFLAGS := $(subst -pthread,-Xcompiler$(space)-pthread,$(OMPI_CXXFLAGS_ORIG))
+
+            OMPI_CFLAGS_ORIG = $(shell mpicc -showme:compile)
+            export OMPI_CFLAGS := $(subst -pthread,-Xcompiler$(space)-pthread,$(OMPI_CXXFLAGS_ORIG))
+          endif
+
+        endif # Open MPI
+
+      endif # USE_MPI
+
+    endif # nvcc_forward_unknowns == 0
 
 endif

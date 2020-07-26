@@ -71,15 +71,15 @@ MLALaplacian::averageDownCoeffs ()
     {
         auto& fine_a_coeffs = m_a_coeffs[amrlev];
 
-        averageDownCoeffsSameAmrLevel(fine_a_coeffs);
+        averageDownCoeffsSameAmrLevel(amrlev, fine_a_coeffs);
         averageDownCoeffsToCoarseAmrLevel(amrlev);
     }
 
-    averageDownCoeffsSameAmrLevel(m_a_coeffs[0]);
+    averageDownCoeffsSameAmrLevel(0, m_a_coeffs[0]);
 }
 
 void
-MLALaplacian::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a)
+MLALaplacian::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a)
 {
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
@@ -90,7 +90,8 @@ MLALaplacian::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a)
         }
         else
         {
-            amrex::average_down(a[mglev-1], a[mglev], 0, 1, mg_coarsen_ratio);
+            IntVect ratio = (amrlev > 0) ? IntVect(mg_coarsen_ratio) : mg_coarsen_ratio_vec[mglev-1];
+            amrex::average_down(a[mglev-1], a[mglev], 0, 1, ratio);
         }
     }
 }

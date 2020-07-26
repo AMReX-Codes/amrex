@@ -23,19 +23,14 @@ set(AMReX_BUILD_TYPE  @CMAKE_BUILD_TYPE@)
 set(AMReX_GIT_VERSION \"@AMREX_GIT_VERSION@\")
 
 #
-# Add AMReX modules to app code CMake
-#
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "@CMAKE_INSTALL_PREFIX@/Tools/CMake/")
-
-#
 # AMReX CMake modules PATH
 #
-set(AMReX_MODULES_PATH @CMAKE_INSTALL_PREFIX@/Tools/CMake)
+set_and_check(AMReX_MODULE_PATH @PACKAGE_MODULE_PATH@)
 
 #
-# Path to amrex typechecker command
+# Add AMReX modules to app code CMake
 #
-set(AMReX_TYPECHECKER "@CMAKE_INSTALL_PREFIX@/Tools/typechecker/typechecker.py")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${AMReX_MODULE_PATH})
 
 #
 # Configuration options
@@ -46,6 +41,7 @@ set(AMReX_TYPECHECKER "@CMAKE_INSTALL_PREFIX@/Tools/typechecker/typechecker.py")
 # General options
 set(AMReX_@DIM@D_FOUND                  ON)
 set(AMReX_MPI_FOUND                 @ENABLE_MPI@)
+set(AMReX_MPI_THREAD_MULTIPLE_FOUND @ENABLE_MPI_THREAD_MULTIPLE@)
 set(AMReX_OMP_FOUND                 @ENABLE_OMP@)
 set(AMReX_CUDA_FOUND                @ENABLE_CUDA@)
 set(AMReX_DPCPP_FOUND               @ENABLE_DPCPP@)
@@ -63,6 +59,7 @@ set(AMReX_CONDUIT_FOUND             @ENABLE_CONDUIT@)
 set(AMReX_SUNDIALS_FOUND            @ENABLE_SUNDIALS@)
 set(AMReX_ASCENT_FOUND              @ENABLE_ASCENT@)
 set(AMReX_HYPRE_FOUND               @ENABLE_HYPRE@)
+set(AMReX_PETSC_FOUND               @ENABLE_PETSC@)
 
 # Compilation options
 set(AMReX_FPE_FOUND                 @ENABLE_FPE@)
@@ -94,7 +91,7 @@ endif()
 
 if (@ENABLE_OMP@)
    set( _omp_components CXX )
-   if (@ENABLE_FORTRAN_INTERFACES@ OR @ENABLE_HYPRE@)
+   if (@ENABLE_FORTRAN_INTERFACES@)
       list(APPEND _omp_components Fortran)
    endif ()
    find_dependency(OpenMP REQUIRED ${_omp_components})
@@ -118,6 +115,10 @@ endif ()
 
 if (@ENABLE_HYPRE@)
    find_dependency(HYPRE 2.15 REQUIRED)
+endif ()
+
+if (@ENABLE_PETSC@)
+   find_dependency(PETSc 2.13 REQUIRED)
 endif ()
 
 #
