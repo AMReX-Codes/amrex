@@ -790,7 +790,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                          &ncomp,AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                          bc.dataPtr());
 
-#endif /*(AMREX_SPACEDIM > 1)*/
+#endif /*(AMREX_SPACEDIM == 1)*/
 
 }
 #endif
