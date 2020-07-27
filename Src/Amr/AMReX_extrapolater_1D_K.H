@@ -1,0 +1,33 @@
+#ifndef AMReX_extrapolater_1D_K_H_
+#define AMReX_extrapolater_1D_K_H_
+
+namespace amrex {
+
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+void
+amrex_first_order_extrap(amrex::Box const& bx,
+                         int               nComp,
+                         amrex::Array4<const int>   const& mask,
+                         amrex::Array4<amrex::Real> const& data) noexcept
+{
+   const int crsecell = 0;
+
+   const auto lo = amrex::lbound(bx);
+   const auto hi = amrex::ubound(bx);
+
+   if (mask(lo.x-1,lo.y,lo.z) == crsecell) {
+      for (int n = 0; n < nComp; n++) {
+         data(lo.x-1,lo.y,lo.z,n) = data((lo.x,lo.y,lo.z,n);
+      }
+   }
+   if (mask(hi.x+1,hi.y,hi.z) == crsecell) {
+      for (int n = 0; n < nComp; n++) {
+         data(hi.x+1,hi.y,hi.z,n) = data(hi.x,hi.y,hi.z,n);
+      }
+   }
+
+}
+
+}
+#endif
