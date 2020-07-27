@@ -383,7 +383,8 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
 
     tmp.ParallelAdd(*this, 0, 0, 1, nGrowVect(), nGrowVect(), geom.periodicity());
 
-    const auto owner_mask = amrex::OwnerMask(tmp, geom.periodicity(), nGrowVect());
+    // We need to keep tags in periodic boundary
+    const auto owner_mask = amrex::OwnerMask(tmp, Periodicity::NonPeriodic(), nGrowVect());
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
