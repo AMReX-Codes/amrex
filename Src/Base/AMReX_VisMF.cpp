@@ -707,6 +707,8 @@ void
 VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
                                 int procToWrite, MPI_Comm comm)
 {
+    amrex::ignore_unused(procToWrite,comm);
+
 //    BL_PROFILE("VisMF::CalculateMinMax");
 
     m_min.resize(m_ba.size());
@@ -1332,15 +1334,15 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 
 
 void
-VisMF::RemoveFiles(const std::string &mf_name, bool verbose)
+VisMF::RemoveFiles(const std::string &mf_name, bool a_verbose)
 {
     if(ParallelDescriptor::IOProcessor()) {
       std::string MFHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
-      if(verbose) {
+      if(a_verbose) {
         amrex::Print() << "---- removing:  " << MFHdrFileName << std::endl;
       }
       int retVal(std::remove(MFHdrFileName.c_str()));
-      if(verbose) {
+      if(a_verbose) {
         if(retVal != 0) {
           amrex::Print() << "---- error removing:  " << MFHdrFileName << "  errno = "
 	            << strerror(errno) << std::endl;
@@ -1348,11 +1350,11 @@ VisMF::RemoveFiles(const std::string &mf_name, bool verbose)
       }
       for(int ip(0); ip < nOutFiles; ++ip) {
         std::string fileName(NFilesIter::FileName(nOutFiles, mf_name + FabFileSuffix, ip, true));
-        if(verbose) {
+        if(a_verbose) {
           amrex::Print() << "---- removing:  " << fileName << std::endl;
 	}
         int rv(std::remove(fileName.c_str()));
-        if(verbose) {
+        if(a_verbose) {
           if(rv != 0) {
             amrex::Print() << "---- error removing:  " << fileName << "  errno = "
 	              << strerror(errno) << std::endl;

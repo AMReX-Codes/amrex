@@ -147,6 +147,17 @@
 #include <iso646.h>
 #endif
 
+#if (__cplusplus >= 201703L)
+#define AMREX_FALLTHROUGH [[fallthrough]]
+#elif defined(__clang__)
+#define AMREX_FALLTHROUGH [[clang::fallthrough]]
+#elif defined(__GNUC__) && (__GNUC__ >= 7)
+#define AMREX_FALLTHROUGH [[gnu::fallthrough]]
+#else
+#define AMREX_FALLTHROUGH ((void)0)
+#endif
+
+
 #endif /* !BL_LANG_FORT */
 
 #endif

@@ -53,7 +53,7 @@ public:
 
     explicit Mask (Array4<int const> const& a, IndexType t) noexcept : BaseFab<int>(a,t) {}
 
-    ~Mask () noexcept {};
+    ~Mask () noexcept {}
 
     Mask (Mask&& rhs) noexcept = default;
 

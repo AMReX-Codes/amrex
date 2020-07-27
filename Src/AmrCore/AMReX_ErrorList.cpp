@@ -250,7 +250,7 @@ operator << (std::ostream&    os,
       auto az = amrex::Math::abs(dat(i,j,k+1) - dat(i,j,k));
       az = amrex::max(az,amrex::Math::abs(dat(i,j,k) - dat(i,j,k-1)));
 #endif
-      if (amrex::max(D_DECL(ax,ay,az)) >= threshold) {
+      if (amrex::max(AMREX_D_DECL(ax,ay,az)) >= threshold) {
         tag(i,j,k) = tagval;
       }
 #endif
@@ -315,9 +315,9 @@ operator << (std::ostream&    os,
       amrex::ParallelFor(bx,
       [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k) noexcept
       {
-        GpuArray<Real,AMREX_SPACEDIM> pt = {D_DECL(plo[0]+(Real(i)+0.5_rt)*dx[0],
-                                                   plo[1]+(Real(j)+0.5_rt)*dx[1],
-                                                   plo[2]+(Real(k)+0.5_rt)*dx[2])};
+          GpuArray<Real,AMREX_SPACEDIM> pt = {{AMREX_D_DECL(plo[0]+(Real(i)+0.5_rt)*dx[0],
+                                                            plo[1]+(Real(j)+0.5_rt)*dx[1],
+                                                            plo[2]+(Real(k)+0.5_rt)*dx[2])}};
         if (tag_rb.contains(pt.data())) {
           tag(i,j,k) = tagval;
         }

@@ -214,6 +214,12 @@ if (ENABLE_CUDA_FASTMATH)
 endif ()
 
 #
+# Print numbers for warnings and errors
+#
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcudafe --display_error_number")
+
+
+#
 # CUDA specific warnings
 #
 if (CUDA_WARN_CAPTURE_THIS)

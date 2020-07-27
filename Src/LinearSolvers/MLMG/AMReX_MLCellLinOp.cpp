@@ -138,9 +138,9 @@ MLCellLinOp::defineBC ()
                                             m_amr_ref_ratio[amrlev-1], BCRec());
 
         Vector<Array<LinOpBCType,AMREX_SPACEDIM> > bclohi
-            (ncomp,Array<LinOpBCType,AMREX_SPACEDIM>{AMREX_D_DECL(BCType::Dirichlet,
-                                                                  BCType::Dirichlet,
-                                                                  BCType::Dirichlet)});
+            (ncomp,Array<LinOpBCType,AMREX_SPACEDIM>{{AMREX_D_DECL(BCType::Dirichlet,
+                                                                   BCType::Dirichlet,
+                                                                   BCType::Dirichlet)}});
         m_bndry_cor[amrlev]->setLOBndryConds(bclohi, bclohi, m_amr_ref_ratio[amrlev-1], RealVect{});
     }
 
@@ -605,8 +605,8 @@ MLCellLinOp::reflux (int crse_amrlev,
 #endif
     {
         Array<FArrayBox,AMREX_SPACEDIM> flux;
-        Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
-        Array<FArrayBox const*,AMREX_SPACEDIM> cpflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        Array<FArrayBox*,AMREX_SPACEDIM> pflux {{ AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) }};
+        Array<FArrayBox const*,AMREX_SPACEDIM> cpflux {{ AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) }};
 
         for (MFIter mfi(crse_sol, mfi_info);  mfi.isValid(); ++mfi)
         {
@@ -668,7 +668,7 @@ MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes
 #endif
     {
         Array<FArrayBox,AMREX_SPACEDIM> flux;
-        Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        Array<FArrayBox*,AMREX_SPACEDIM> pflux {{ AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) }};
         for (MFIter mfi(sol, mfi_info);  mfi.isValid(); ++mfi)
         {
             const Box& tbx = mfi.tilebox();

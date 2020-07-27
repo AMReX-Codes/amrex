@@ -136,6 +136,8 @@ AllGatherBoxes (Vector<Box>& bxs)
     ParallelDescriptor::Bcast(recv_buffer.data(), count_tot, ParallelDescriptor::IOProcessorNumber());
 
     bxs = std::move(recv_buffer);
+#else
+    amrex::ignore_unused(bxs);
 #endif
 }
 

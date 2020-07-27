@@ -116,11 +116,15 @@ FabArrayBase::Initialize ()
         MaxComp = 1;
     }
 
+#ifdef AMREX_USE_GPU
     if (ParallelDescriptor::UseGpuAwareMpi()) {
         the_fa_arena = The_Device_Arena();
     } else {
         the_fa_arena = The_Pinned_Arena();
     }
+#else
+    the_fa_arena = The_Cpu_Arena();
+#endif
 
     amrex::ExecOnFinalize(FabArrayBase::Finalize);
 
@@ -1674,6 +1678,8 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
     BL_ASSERT(send_data.size() == N_snds);
 
     ParallelDescriptor::Waitall(send_reqs, stats);
+#else
+    amrex::ignore_unused(N_snds,send_reqs,stats);
 #endif /*BL_USE_MPI*/
 }
 

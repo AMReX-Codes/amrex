@@ -120,11 +120,11 @@ public:
     Real ProbHi (int dir) const noexcept { return prob_domain.hi(dir); }
 
     GpuArray<Real,AMREX_SPACEDIM> ProbLoArray () const noexcept {
-        return {AMREX_D_DECL(prob_domain.lo(0),prob_domain.lo(1),prob_domain.lo(2))};
+        return {{AMREX_D_DECL(prob_domain.lo(0),prob_domain.lo(1),prob_domain.lo(2))}};
     }
 
     GpuArray<Real,AMREX_SPACEDIM> ProbHiArray () const noexcept {
-        return {AMREX_D_DECL(prob_domain.hi(0),prob_domain.hi(1),prob_domain.hi(2))};
+        return {{AMREX_D_DECL(prob_domain.hi(0),prob_domain.hi(1),prob_domain.hi(2))}};
     }
 
     //! Returns the overall size of the domain by multiplying the ProbLength's together
@@ -190,16 +190,16 @@ public:
         return AMREX_D_TERM(isPeriodic(0),&&isPeriodic(1),&&isPeriodic(2));
     }
     Array<int,AMREX_SPACEDIM> isPeriodic () const noexcept {
-        return {AMREX_D_DECL(static_cast<int>(is_periodic[0]),
-                             static_cast<int>(is_periodic[1]),
-                             static_cast<int>(is_periodic[2]))};
+        return {{AMREX_D_DECL(static_cast<int>(is_periodic[0]),
+                              static_cast<int>(is_periodic[1]),
+                              static_cast<int>(is_periodic[2]))}};
     }
     GpuArray<int,AMREX_SPACEDIM> isPeriodicArray () const noexcept {
 // HIP FIX HERE - Initialization List
 #ifdef AMREX_USE_HIP
         GpuArray<int, AMREX_SPACEDIM> arr;
         for (int i=0; i<AMREX_SPACEDIM; ++i)
-            { arr[i] = static_cast<int>(is_periodic[i]); }
+        { arr[i] = static_cast<int>(is_periodic[i]); }
         return arr;
 /*
         return {(int[AMREX_SPACEDIM]){AMREX_D_DECL(static_cast<int>(is_periodic[0]),
@@ -207,9 +207,9 @@ public:
                                                    static_cast<int>(is_periodic[2]))}};
 */
 #else
-        return {AMREX_D_DECL(static_cast<int>(is_periodic[0]),
-                             static_cast<int>(is_periodic[1]),
-                             static_cast<int>(is_periodic[2]))};
+        return {{AMREX_D_DECL(static_cast<int>(is_periodic[0]),
+                              static_cast<int>(is_periodic[1]),
+                              static_cast<int>(is_periodic[2]))}};
 #endif
     }
     //! What's period in specified direction?
@@ -250,9 +250,9 @@ public:
     //!
     Array<int,AMREX_SPACEDIM>
     setPeriodicity (Array<int,AMREX_SPACEDIM> const& period) noexcept {
-        Array<int,AMREX_SPACEDIM> r{AMREX_D_DECL(is_periodic[0],
-                                                 is_periodic[1],
-                                                 is_periodic[2])};
+        Array<int,AMREX_SPACEDIM> r{{AMREX_D_DECL(is_periodic[0],
+                                                  is_periodic[1],
+                                                  is_periodic[2])}};
         AMREX_D_TERM(is_periodic[0] = period[0];,
                      is_periodic[1] = period[1];,
                      is_periodic[2] = period[2];);

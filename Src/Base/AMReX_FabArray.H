@@ -937,6 +937,8 @@ FabArray<FAB>::prefetchToHost (const MFIter& mfi) const noexcept
 {
 #ifdef AMREX_USE_CUDA
     this->fabPtr(mfi)->prefetchToHost();
+#else
+    amrex::ignore_unused(mfi);
 #endif
 }
 
@@ -947,6 +949,8 @@ FabArray<FAB>::prefetchToDevice (const MFIter& mfi) const noexcept
 {
 #ifdef AMREX_USE_CUDA
     this->fabPtr(mfi)->prefetchToDevice();
+#else
+    amrex::ignore_unused(mfi);
 #endif
 }
 

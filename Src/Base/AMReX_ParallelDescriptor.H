@@ -138,6 +138,7 @@ while ( false )
 	MPI_Comm_rank(comm,&r);
 	return r;
 #else
+        amrex::ignore_unused(comm);
 	return 0;
 #endif
     }
@@ -227,6 +228,7 @@ while ( false )
         BL_MPI_REQUIRE(MPI_Comm_size(comm, &s));
         return s;
 #else
+        amrex::ignore_unused(comm);
         return 1;
 #endif
     }
@@ -1022,7 +1024,7 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
     }
 
     Vector<int> disp(nprocs);
-    disp[0] = 0;
+    if (!disp.empty()) disp[0] = 0;
     std::partial_sum(recvcount.begin(), recvcount.end()-1, disp.begin()+1);
     Vector<T> new_index_to_T(sendbuf.size());
 
@@ -1080,106 +1082,106 @@ namespace ParallelDescriptor
 {
 template <class T>
 Message
-Asend(const T* buf, size_t n, int dst_pid, int tag)
+Asend(const T* /*buf*/, size_t /*n*/, int /*dst_pid*/, int /*tag*/)
 {
     return Message();
 }
 
 template <class T>
 Message
-Asend(const T* buf, size_t n, int dst_pid, int tag, MPI_Comm comm)
+Asend(const T* /*buf*/, size_t /*n*/, int /*dst_pid*/, int /*tag*/, MPI_Comm /*comm*/)
 {
     return Message();
 }
 
 template <class T>
 Message
-Asend(const std::vector<T>& buf, int dst_pid, int tag)
+Asend(const std::vector<T>& /*buf*/, int /*dst_pid*/, int /*tag*/)
 {
     return Message();
 }
 
 template <class T>
 Message
-Send(const T* buf, size_t n, int dst_pid, int tag)
+Send(const T* /*buf*/, size_t /*n*/, int /*dst_pid*/, int /*tag*/)
 {
     return Message();
 }
 
 template <class T>
 Message
-Send(const T* buf, size_t n, int dst_pid, int tag, MPI_Comm comm)
+Send(const T* /*buf*/, size_t /*n*/, int /*dst_pid*/, int /*tag*/, MPI_Comm /*comm*/)
 {
     return Message();
 }
 
 template <class T>
 Message
-Send(const std::vector<T>& buf, int dst_pid, int tag)
+Send(const std::vector<T>& /*buf*/, int /*dst_pid*/, int /*tag*/)
 {
     return Message();
 }
 
 template <class T>
 Message
-Arecv(T* buf, size_t n, int src_pid, int tag)
+Arecv(T* /*buf*/, size_t /*n*/, int /*src_pid*/, int /*tag*/)
 {
     return Message();
 }
 
 template <class T>
 Message
-Arecv(T* buf, size_t n, int src_pid, int tag, MPI_Comm comm)
+Arecv(T* /*buf*/, size_t /*n*/, int /*src_pid*/, int /*tag*/, MPI_Comm /*comm*/)
 {
     return Message();
 }
 
 template <class T>
 Message
-Arecv(std::vector<T>& buf, int src_pid, int tag)
+Arecv(std::vector<T>& /*buf*/, int /*src_pid*/, int /*tag*/)
 {
     return Message();
 }
 
 template <class T>
 Message
-Recv(T* buf, size_t n, int src_pid, int tag)
+Recv(T* /*buf*/, size_t /*n*/, int /*src_pid*/, int /*tag*/)
 {
     return Message();
 }
 
 template <class T>
 Message
-Recv(T* buf, size_t n, int src_pid, int tag, MPI_Comm comm)
+Recv(T* /*buf*/, size_t /*n*/, int /*src_pid*/, int /*tag*/, MPI_Comm /*comm*/)
 {
     return Message();
 }
 
 template <class T>
 Message
-Recv(std::vector<T>& buf, int src_pid, int tag)
+Recv(std::vector<T>& /*buf*/, int /*src_pid*/, int /*tag*/)
 {
     return Message();
 }
 
 template <class T>
 void
-Bcast(T* t, size_t n, int root)
+Bcast(T* /*t*/, size_t /*n*/, int /*root*/)
 {}
 
 template <class T>
 void
-Bcast(T* t, size_t n, int root, const MPI_Comm &comm)
+Bcast(T* /*t*/, size_t /*n*/, int /*root*/, const MPI_Comm & /*comm*/)
 {}
 
 template <class T, class T1>
 void
-Gather(const T* t, size_t n, T1* t1, size_t n1, int root)
+Gather(const T* /*t*/, size_t /*n*/, T1* /*t1*/, size_t /*n1*/, int /*root*/)
 {}
 
 template <class T>
 std::vector<T>
-Gather(const T& t, int root)
+Gather(const T& t, int /*root*/)
 {
     std::vector<T> resl(1);
     resl[0] = t;
@@ -1189,7 +1191,7 @@ Gather(const T& t, int root)
 template <class T>
 void
 GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
-                          Vector<T>& recvbuf, int root)
+                          Vector<T>& recvbuf, int /*root*/)
 {
     for (int i=0; i<sendbuf.size(); ++i)
     {
@@ -1199,7 +1201,7 @@ GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
 
 template <class T, class T1>
 void
-Scatter(T* t, size_t n, const T1* t1, size_t n1, int root)
+Scatter(T* /*t*/, size_t /*n*/, const T1* /*t1*/, size_t /*n1*/, int /*root*/)
 {}
 
 }

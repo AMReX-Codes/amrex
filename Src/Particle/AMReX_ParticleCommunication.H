@@ -496,6 +496,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
             amrex::Abort("TODO: message size is too big");
         }
     }
+#else
+    amrex::ignore_unused(pc,plan,snd_buffer,rcv_buffer);
 #endif // MPI
 }
 
@@ -551,8 +553,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
             auto& tile = pc.DefineAndReturnParticleTile(lev, gid, tid);
             auto ptd = tile.getParticleTileData();
 
-            const int global_who = pc.ParticleDistributionMap(lev)[gid];
-            AMREX_ASSERT(MyProc == ParallelContext::global_to_local_rank(global_who));
+            AMREX_ASSERT(MyProc ==
+                ParallelContext::global_to_local_rank(pc.ParticleDistributionMap(lev)[gid]));
 
             int dst_offset = offsets[uindex];
             int size = sizes[uindex];
@@ -569,6 +571,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
               });
           }
     }
+#else
+    amrex::ignore_unused(pc,plan,rcv_buffer,policy);
 #endif // MPI
 }
 

@@ -1018,9 +1018,13 @@ MLMG::ResNormInf (int alev, bool local)
         pmf = scratch[alev].get();
         MultiFab::Copy(*pmf, res[alev][mglev], 0, 0, ncomp, 0);
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
-        const MultiFab& vfrac = factory->getVolFrac();
-        for (int n=0; n < ncomp; ++n) {
-            MultiFab::Multiply(*pmf, vfrac, 0, n, 1, 0);
+        if (factory) {
+            const MultiFab& vfrac = factory->getVolFrac();
+            for (int n=0; n < ncomp; ++n) {
+                MultiFab::Multiply(*pmf, vfrac, 0, n, 1, 0);
+            }
+        } else {
+            amrex::Abort("MLMG::ResNormInf: not EB Factory");
         }
     }
 #endif
@@ -1067,9 +1071,13 @@ MLMG::MLRhsNormInf (bool local)
             pmf = scratch[alev].get();
             MultiFab::Copy(*pmf, rhs[alev], 0, 0, ncomp, 0);
             auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
-            const MultiFab& vfrac = factory->getVolFrac();
-            for (int n=0; n < ncomp; ++n) {
-                MultiFab::Multiply(*pmf, vfrac, 0, n, 1, 0);
+            if (factory) {
+                const MultiFab& vfrac = factory->getVolFrac();
+                for (int n=0; n < ncomp; ++n) {
+                    MultiFab::Multiply(*pmf, vfrac, 0, n, 1, 0);
+                }
+            } else {
+                amrex::Abort("MLMG::MLRhsNormInf: not EB Factory");
             }
         }
 #endif

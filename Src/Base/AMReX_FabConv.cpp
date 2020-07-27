@@ -239,6 +239,8 @@ RealDescriptor::newRealDescriptor (int         iot,
         case FABio::FAB_DOUBLE:
             rd = new RealDescriptor(FPC::ieee_double, ord, 8);
             return rd;
+        default:
+            return rd;
         }
     }
     case FABio::FAB_NATIVE:

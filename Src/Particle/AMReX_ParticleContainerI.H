@@ -10,6 +10,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::tile_size { AMREX_D_DECL(1024000,8,8) };
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+std::string
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::aggregation_type = "";
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+int
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::aggregation_buffer = 1;
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: SetParticleSize ()
 {
@@ -233,7 +243,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 ParticleLocData
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 Reset (ParticleType& p,
-       bool          update,
+       bool          /*update*/,
        bool          verbose,
        ParticleLocData pld) const
 {
@@ -900,7 +910,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 copyParticles (const ParticleContainerType& other, bool local)
 {
     using PData = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
-    copyParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& data, int i) { return 1; }, local);
+    copyParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1191,6 +1201,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     Gpu::Device::synchronize();
     AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
+#else
+    amrex::ignore_unused(lev_min,lev_max,nGrow,local);
 #endif
 }
 
@@ -1918,7 +1930,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
 	BL_PROFILE_VAR_STOP(blp_copy);
     }
-#endif /*AMREX_USE_MPI*/
+#else
+    amrex::ignore_unused(not_ours,lev_min,lev_max,nGrow,local);
+#endif
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>

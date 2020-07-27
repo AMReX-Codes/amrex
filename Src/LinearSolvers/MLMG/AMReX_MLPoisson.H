@@ -48,7 +48,7 @@ public:
     virtual Real getBScalar () const final override { return -1.0; }
     virtual MultiFab const* getACoeffs (int /*amrlev*/, int /*mglev*/) const final override { return nullptr; }
     virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int /*amrlev*/, int /*mglev*/) const final override
-        { return { AMREX_D_DECL(nullptr,nullptr,nullptr)}; }
+        { return {{ AMREX_D_DECL(nullptr,nullptr,nullptr)}}; }
 
     virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const final override;
 

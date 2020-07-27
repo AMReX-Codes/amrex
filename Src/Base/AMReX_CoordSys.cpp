@@ -206,7 +206,7 @@ CoordSys::SetVolume (FArrayBox& a_volfab,
     AMREX_ASSERT(region.cellCentered());
 
     auto vol = a_volfab.array();
-    GpuArray<Real,AMREX_SPACEDIM> a_dx{AMREX_D_DECL(dx[0], dx[1], dx[2])};
+    GpuArray<Real,AMREX_SPACEDIM> a_dx{{AMREX_D_DECL(dx[0], dx[1], dx[2])}};
 
 #if (AMREX_SPACEDIM == 3)
     AMREX_ASSERT(IsCartesian());
@@ -216,7 +216,7 @@ CoordSys::SetVolume (FArrayBox& a_volfab,
         vol(i,j,k) = dv;
     });
 #else
-    GpuArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
+    GpuArray<Real,AMREX_SPACEDIM> a_offset{{AMREX_D_DECL(offset[0],offset[1],offset[2])}};
     int coord = (int) c_sys;
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
@@ -493,7 +493,7 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
 Real
 CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
 {
-    amrex::ignore_unused(point);
+    amrex::ignore_unused(point,dir);
 #if (AMREX_SPACEDIM==2)
     Real xlo[AMREX_SPACEDIM];
     switch (c_sys)
@@ -529,7 +529,7 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
 Real
 CoordSys::AreaHi (const IntVect& point, int dir) const noexcept
 {
-    amrex::ignore_unused(point);
+    amrex::ignore_unused(point,dir);
 #if (AMREX_SPACEDIM==2)
     Real xhi[AMREX_SPACEDIM];
     switch (c_sys)
