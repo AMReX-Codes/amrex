@@ -108,6 +108,8 @@ Geometry::define (const Box& dom, const RealBox* rb, int coord,
         dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
 	inv_dx[k] = 1.0/dx[k];
     }
+
+    computeRoundoffDomain();
 }
 
 void
@@ -395,6 +397,36 @@ Geometry::growPeriodicDomain (int ngrow) const noexcept
         }
     }
     return b;
+}
+
+void
+Geometry::computeRoundoffDomain ()
+{
+    using PReal = ParticleReal;
+    roundoff_domain = prob_domain;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        int ilo = Domain().smallEnd(idim);
+        int ihi = Domain().bigEnd(idim);
+        Real plo = ProbLo(idim);
+        Real phi = ProbHi(idim);
+        Real dx = CellSize(idim);
+        Real tolerance = std:: max(1.e-8*dx, 1.e-14*phi);
+
+        // bisect the point at which the cell no longer maps to inside the domain
+        using PReal = ParticleReal;
+        PReal lo = static_cast<PReal>(phi) - 0.5_prt*static_cast<PReal>(dx);
+        PReal hi = static_cast<PReal>(phi) + 0.5_prt*static_cast<PReal>(dx);
+
+        PReal closest_phi = bisect(lo, hi,
+                                   [=] (PReal x)
+                                   {
+                                       int i = std::floor((x - plo)/dx) + ilo;
+                                       bool inside = i >= 0 and i < ihi;
+                                       return static_cast<PReal>(inside) - 0.5_prt;
+                                   }, tolerance);
+        roundoff_domain.setHi(idim, closest_phi);
+    }
 }
 
 }

@@ -278,9 +278,18 @@ public:
 private:
     void read_params ();
 
+    void computeRoundoffDomain ();
+
     // is_periodic and RealBox used to be static
     bool    is_periodic[AMREX_SPACEDIM] = {AMREX_D_DECL(false,false,false)};
     RealBox prob_domain;
+
+    // Due to round-off errors, not all floating point numbers for which plo >= x < phi
+    // will map to a cell that is inside "domain". "roundoff_domain" stores a phi
+    // that is very close to that in prob_domain, and for which all floating point numbers
+    // inside it according to a naive inequality check will map to a cell inside domain.
+    RealBox roundoff_domain;
+
     //
     Box     domain;
 };
