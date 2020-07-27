@@ -411,7 +411,7 @@ Geometry::computeRoundoffDomain ()
         Real plo = ProbLo(idim);
         Real phi = ProbHi(idim);
         Real dx = CellSize(idim);
-        Real tolerance = std:: max(1.e-8*dx, 1.e-14*phi);
+        PReal tolerance = std::max(1.e-8*dx, 1.e-14*phi);
 
         // bisect the point at which the cell no longer maps to inside the domain
         using PReal = ParticleReal;
