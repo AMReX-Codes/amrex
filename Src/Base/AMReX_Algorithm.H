@@ -6,6 +6,7 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Extension.H>
 #include <AMReX_Dim3.H>
+#include <AMReX_BLassert.H>
 
 namespace amrex
 {
@@ -61,6 +62,41 @@ namespace amrex
     constexpr const T& Clamp (const T& v, const T& lo, const T& hi)
     {
         return (v < lo) ? lo : (hi < v) ? hi : v;
+    }
+
+    template <class T, class F,
+              typename std::enable_if<std::is_floating_point<T>{}, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T bisect (T lo, T hi, F f, T tol=1e-12, int max_iter=100)
+    {
+        AMREX_ASSERT_WITH_MESSAGE(hi > lo,
+            "Error - calling bisect but lo and hi don't describe a reasonable interaval. \n");
+
+        T flo = f(lo);
+        T fhi = f(hi);
+
+        if (flo == 0.0_rt) return flo;
+        if (fhi == 0.0_rt) return fhi;
+
+        AMREX_ASSERT_WITH_MESSAGE(flo * fhi >= 0.0_rt,
+            "Error - calling bisect but lo and hi don't bracket a root. \n");
+
+        T mi, fmi;
+        int n = 1;
+        while (n <= max_iter)
+        {
+            if (hi - lo < tol) break;
+            mi = (lo + hi) / 2.0_rt;
+            fmi = f(mi);
+            if (fmi == 0.0_rt) break;
+            fmi*flo < 0.0_rt ? hi = mi : lo = mi;
+            ++n;
+        }
+
+        AMREX_ASSERT_WITH_MESSAGE(n < max_iter,
+            "Error - maximum number of iterations reached in bisect. \n");
+
+        return mi;
     }
 }
 
