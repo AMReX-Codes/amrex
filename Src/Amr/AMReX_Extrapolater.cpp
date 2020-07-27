@@ -1,18 +1,11 @@
 
 #include <AMReX_Extrapolater.H>
+#include <AMReX_extrapolater_K.H>
 #include <AMReX_iMultiFab.H>
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-
-extern "C"
-{
-    void amrex_first_order_extrap(amrex::Real* u, const int* ulo, const int* uhi, const int& nu,
-			    const int* msk, const int* mlo, const int* mhi,
-			    const int* lo, const int* hi, 
-			    const int& scomp, const int& ncomp);
-}
 
 namespace amrex {
 
@@ -20,34 +13,30 @@ namespace Extrapolater
 {
     void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp)
     {
-        Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO gpu
+        BL_ASSERT(mf.nGrow() == 1);
+        BL_ASSERT(scomp >= 0);
+        BL_ASSERT((scomp+ncomp) <= mf.nComp());
 
-	BL_ASSERT(mf.nGrow() == 1);
-	BL_ASSERT(scomp >= 0);
-	BL_ASSERT(ncomp <= mf.nComp());
-
-	iMultiFab mask(mf.boxArray(), mf.DistributionMap(), 1, 1, MFInfo(),
+        iMultiFab mask(mf.boxArray(), mf.DistributionMap(), 1, 1, MFInfo(),
                        DefaultFabFactory<IArrayBox>());
-	mask.BuildMask(geom.Domain(), geom.periodicity(),
-		       finebnd, crsebnd, physbnd, interior);
-
-	int N = mf.nComp();
+        mask.BuildMask(geom.Domain(), geom.periodicity(),
+                       finebnd, crsebnd, physbnd, interior);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.validbox();
-	    const IArrayBox& maskfab = mask[mfi];
-	    const Box& maskbox = maskfab.box();
-	    FArrayBox& datafab = mf[mfi];
-	    const Box& databox = datafab.box();
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+            const Box& bx      = mfi.validbox();
+            auto const& mask_arr = mask.array(mfi);
+            auto const& data_arr = mf.array(mfi,scomp);
 
-	    amrex_first_order_extrap(datafab.dataPtr(), databox.loVect(), databox.hiVect(), N, 
-			       maskfab.dataPtr(), maskbox.loVect(), maskbox.hiVect(),
-			       bx.loVect(), bx.hiVect(), scomp, ncomp);
-	}
+            amrex::launch(bx, [mask_arr,data_arr,ncomp]
+            AMREX_GPU_DEVICE (Box const& tbx)
+            {
+               amrex_first_order_extrap(tbx, ncomp, mask_arr, data_arr);
+            });
+        }
     }
 }
 
