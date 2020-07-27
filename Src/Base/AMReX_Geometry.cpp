@@ -422,11 +422,23 @@ Geometry::computeRoundoffDomain ()
                                    [=] (PReal x)
                                    {
                                        int i = std::floor((x - plo)/dx) + ilo;
-                                       bool inside = i >= 0 and i < ihi;
+                                       bool inside = i >= 0 and i <= ihi;
                                        return static_cast<PReal>(inside) - 0.5_prt;
                                    }, tolerance);
         roundoff_domain.setHi(idim, closest_phi);
     }
+}
+
+bool
+Geometry::outsideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const
+{
+    bool outside = AMREX_D_TERM(x <  roundoff_domain.lo(0)
+                             || x >= roundoff_domain.hi(0),
+                             || y <  roundoff_domain.lo(1)
+                             || y >= roundoff_domain.hi(1),
+                             || z <  roundoff_domain.lo(2)
+                             || z >= roundoff_domain.hi(2));
+    return outside;
 }
 
 }

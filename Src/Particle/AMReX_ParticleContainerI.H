@@ -317,12 +317,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticle (ParticleType& p, ParticleLocData& pld,
                                                                                    int lev_min, int lev_max, int nGrow, int local_grid) const
 {
-    bool outside = AMREX_D_TERM(p.pos(0) <  Geom(0).ProbLo(0)
-                             || p.pos(0) >= Geom(0).ProbHi(0),
-                             || p.pos(1) <  Geom(0).ProbLo(1)
-                             || p.pos(1) >= Geom(0).ProbHi(1),
-                             || p.pos(2) <  Geom(0).ProbLo(2)
-                             || p.pos(2) >= Geom(0).ProbHi(2));
+    bool outside = Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2)));
 
     bool success;
     if (outside)

@@ -90,6 +90,8 @@ namespace amrex
             fmi = f(mi);
             if (fmi == 0.0_rt) break;
             fmi*flo < 0.0_rt ? hi = mi : lo = mi;
+            flo = f(lo);
+            fhi = f(hi);
             ++n;
         }
 
