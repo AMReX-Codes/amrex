@@ -18,7 +18,7 @@ amrex_first_order_extrap(amrex::Box const& bx,
 
    if (mask(lo.x-1,lo.y,lo.z) == crsecell) {
       for (int n = 0; n < nComp; n++) {
-         data(lo.x-1,lo.y,lo.z,n) = data((lo.x,lo.y,lo.z,n);
+         data(lo.x-1,lo.y,lo.z,n) = data(lo.x,lo.y,lo.z,n);
       }
    }
    if (mask(hi.x+1,hi.y,hi.z) == crsecell) {
