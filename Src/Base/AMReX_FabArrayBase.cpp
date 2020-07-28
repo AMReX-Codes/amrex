@@ -654,7 +654,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 {
     AMREX_ASSERT(m_multi_ghost ? fa.nGrow() >= 2 : true);
     const int                  MyProc   = ParallelDescriptor::MyProc();
-    BoxArray                     ba       = fa.boxArray();
+    const BoxArray&            ba       = fa.boxArray();
     const DistributionMapping& dm       = fa.DistributionMap();
     const Vector<int>&         imap     = fa.IndexArray();
 
@@ -674,8 +674,8 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     for (int i = 0; i < nlocal; ++i)
     {
 	const int ksnd = imap[i];
-	const Box& vbx    = ba[ksnd];
-    const Box& vbx_ng  = amrex::grow(ba[ksnd],1);
+	const Box& vbx = ba[ksnd];
+	const Box& vbx_ng  = amrex::grow(ba[ksnd],1);
 
 	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
@@ -702,9 +702,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
                 bl.simplify();
             }
 		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
-            {
-			    send_tags[dst_owner].push_back(CopyComTag(*lit, (*lit)-(*pit), krcv, ksnd));
-            }
+			send_tags[dst_owner].push_back(CopyComTag(*lit, (*lit)-(*pit), krcv, ksnd));
 		}
 	    }
 	}
@@ -1079,6 +1077,7 @@ FabArrayBase::getFB (const IntVect& nghost, const Periodicity& period,
                      bool cross, bool enforce_periodicity_only) const
 {
     BL_PROFILE("FabArrayBase::getFB()");
+
     BL_ASSERT(getBDKey() == m_bdkey);
     std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(m_bdkey);
     for (FBCacheIter it = er_it.first; it != er_it.second; ++it)
