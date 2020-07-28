@@ -77,6 +77,11 @@ ifneq ($(DPCPP_SPLIT_KERNEL),FALSE)
 endif
 endif
 
+# temporary work-around for DPC++ beta08 bug
+#   define "long double" as 64bit for C++ user-defined literals
+#   https://github.com/intel/llvm/issues/2187
+CXXFLAGS += -mlong-double-64
+
 FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore
 F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
 

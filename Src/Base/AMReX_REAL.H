@@ -68,14 +68,6 @@ namespace amrex {
     using Real = amrex_real;
     using ParticleReal = amrex_particle_real;
 
-// temporary work-around for DPC++ beta08 bug
-//   https://github.com/intel/llvm/issues/2187
-#ifdef AMREX_USE_DPCPP
-#   define AMREX_TMP_LONGDBL double
-#else
-#   define AMREX_TMP_LONGDBL long double
-#endif
-
 inline namespace literals {
 
     /** @{
@@ -88,7 +80,7 @@ inline namespace literals {
       ```
     */
     constexpr Real
-    operator"" _rt( AMREX_TMP_LONGDBL x )
+    operator"" _rt( long double x )
     {
         return Real( x );
     }
@@ -100,7 +92,7 @@ inline namespace literals {
     }
 
     constexpr ParticleReal
-    operator"" _prt( AMREX_TMP_LONGDBL x )
+    operator"" _prt( long double x )
     {
         return ParticleReal( x );
     }
@@ -113,9 +105,6 @@ inline namespace literals {
     /// @}
 } // namespace literals
 } // namespace amrex
-
-#undef AMREX_TMP_LONGDBL // work-around
-
 #endif
 
 #else
