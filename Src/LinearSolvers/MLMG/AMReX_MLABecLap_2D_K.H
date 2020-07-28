@@ -292,7 +292,7 @@ void abec_gsrb_with_line_solve (
     // idir is the direction in which we will do the tridiagonal solve --
     // it should be the direction in which the mesh spacing is much larger
     // than in the other directions
-    int idir = 1;
+    // int idir = 1;
 
     // This should be moved outside the kernel!
     if (dhy <= dhx) amrex::Abort("dhy is supposed to be much larger than dhx");

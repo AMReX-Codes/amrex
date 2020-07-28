@@ -116,11 +116,15 @@ FabArrayBase::Initialize ()
         MaxComp = 1;
     }
 
+#ifdef AMREX_USE_GPU
     if (ParallelDescriptor::UseGpuAwareMpi()) {
         the_fa_arena = The_Device_Arena();
     } else {
         the_fa_arena = The_Pinned_Arena();
     }
+#else
+    the_fa_arena = The_Cpu_Arena();
+#endif
 
     amrex::ExecOnFinalize(FabArrayBase::Finalize);
 
@@ -509,6 +513,7 @@ FabArrayBase::CPC::CPC (const BoxArray& ba, const IntVect& ng,
 void
 FabArrayBase::flushCPC (bool no_assertion) const
 {
+    amrex::ignore_unused(no_assertion);
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
     std::vector<CPCacheIter> others;
@@ -1037,6 +1042,7 @@ FabArrayBase::FB::~FB ()
 void
 FabArrayBase::flushFB (bool no_assertion) const
 {
+    amrex::ignore_unused(no_assertion);
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
     std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(m_bdkey);
     for (FBCacheIter it = er_it.first; it != er_it.second; ++it)
@@ -1117,7 +1123,8 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
       m_dstng    (dstng),
       m_coarsener(coarsener.clone()),
       m_nuse     (0)
-{ 
+{
+    amrex::ignore_unused(cdomain,index_space);
     BL_PROFILE("FPinfo::FPinfo()");
     const BoxArray& srcba = srcfa.boxArray();
     const BoxArray& dstba = dstfa.boxArray();
@@ -1242,6 +1249,7 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
 void
 FabArrayBase::flushFPinfo (bool no_assertion)
 {
+    amrex::ignore_unused(no_assertion);
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
     std::vector<FPinfoCacheIter> others;
@@ -1401,6 +1409,7 @@ FabArrayBase::TheCFinfo (const FabArrayBase& finefa,
 void
 FabArrayBase::flushCFinfo (bool no_assertion)
 {
+    amrex::ignore_unused(no_assertion);
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
     auto er_it = m_TheCrseFineCache.equal_range(m_bdkey);
     for (auto it = er_it.first; it != er_it.second; ++it)
@@ -1581,6 +1590,7 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 void
 FabArrayBase::flushTileArray (const IntVect& tileSize, bool no_assertion) const
 {
+    amrex::ignore_unused(no_assertion);
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
     TACache& tao = m_TheTileArrayCache;
@@ -1685,6 +1695,7 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
                                  Vector<char*>&       send_data,
                                  Vector<MPI_Status>&  stats)
 {
+    amrex::ignore_unused(send_data);
 #ifdef BL_USE_MPI
     BL_ASSERT(N_snds > 0);
 
@@ -1694,6 +1705,8 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
     BL_ASSERT(send_data.size() == N_snds);
 
     ParallelDescriptor::Waitall(send_reqs, stats);
+#else
+    amrex::ignore_unused(N_snds,send_reqs,stats);
 #endif /*BL_USE_MPI*/
 }
 

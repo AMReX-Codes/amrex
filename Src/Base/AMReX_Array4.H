@@ -10,12 +10,12 @@ namespace amrex {
     struct Array4
     {
         T* AMREX_RESTRICT p;
-        Long jstride;
-        Long kstride;
-        Long nstride;
-        Dim3 begin;
-        Dim3 end;  // end is hi + 1
-        int  ncomp;
+        Long jstride = 0;
+        Long kstride = 0;
+        Long nstride = 0;
+        Dim3 begin{1,1,1};
+        Dim3 end{0,0,0};  // end is hi + 1
+        int  ncomp=0;
 
         AMREX_GPU_HOST_DEVICE
         constexpr Array4 () noexcept : p(nullptr) {}

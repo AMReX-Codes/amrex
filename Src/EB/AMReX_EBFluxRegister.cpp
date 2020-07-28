@@ -229,7 +229,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
 
 void
 EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
-                        MultiFab& fine_state, const amrex::MultiFab& fine_vfrac)
+                        MultiFab& fine_state, const amrex::MultiFab& /*fine_vfrac*/)
 {
     if (!m_cfp_mask.empty())
     {

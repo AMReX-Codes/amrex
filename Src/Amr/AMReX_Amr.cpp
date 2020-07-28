@@ -1273,7 +1273,7 @@ Amr::initialInit (Real              strt_time,
 
 void
 Amr::InitializeInit(Real              strt_time,
-                    Real              stop_time,
+                    Real              /*stop_time*/,
                     const BoxArray*   lev0_grids,
                     const Vector<int>* pmap)
 {
@@ -2743,6 +2743,8 @@ Amr::defBaseLevel (Real              strt_time,
                    const BoxArray*   lev0_grids,
                    const Vector<int>* pmap)
 {
+    amrex::ignore_unused(pmap);
+
     BL_PROFILE("Amr::defBaseLevel()");
     // Just initialize this here for the heck of it
     which_level_being_advanced = -1;

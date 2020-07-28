@@ -402,17 +402,18 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
     // filcc on the faces first
     {
         Array<Box,2*AMREX_SPACEDIM> dom_face_boxes
-            = { AMREX_D_DECL(amrex::adjCellLo(gdomain, 0, len[0]),
-                             amrex::adjCellLo(gdomain, 1, len[1]),
-                             amrex::adjCellLo(gdomain, 2, len[2])),
-                AMREX_D_DECL(amrex::adjCellHi(gdomain, 0, len[0]),
-                             amrex::adjCellHi(gdomain, 1, len[1]),
-                             amrex::adjCellHi(gdomain, 2, len[2])) };
+            = {{ AMREX_D_DECL(amrex::adjCellLo(gdomain, 0, len[0]),
+                              amrex::adjCellLo(gdomain, 1, len[1]),
+                              amrex::adjCellLo(gdomain, 2, len[2])),
+                 AMREX_D_DECL(amrex::adjCellHi(gdomain, 0, len[0]),
+                              amrex::adjCellHi(gdomain, 1, len[1]),
+                              amrex::adjCellHi(gdomain, 2, len[2])) }};
 
         for (const Box& b : dom_face_boxes) {
             Box tmp = b & bx;
             amrex::For(tmp, [=] (int i, int j, int k) noexcept
             {
+                amrex::ignore_unused(j,k);
                 IntVect const cell(AMREX_D_DECL(i,j,k));
                 filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
                            bcr_p, 0, orig_comp);
@@ -427,32 +428,33 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
     {
 #if (AMREX_SPACEDIM == 2)
         Array<Box,4> dom_edge_boxes
-            = { amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
-                amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),
-                amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
-                amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]) };
+            = {{ amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
+                 amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),
+                 amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
+                 amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]) }};
 #else
         Array<Box,12> dom_edge_boxes
-            = { amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
-                amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),
-                amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
-                amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),
-                //
-                amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),2,len[2]),
-                amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),2,len[2]),
-                amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),2,len[2]),
-                amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),2,len[2]),
-                //
-                amrex::adjCellLo(amrex::adjCellLo(gdomain,1,len[1]),2,len[2]),
-                amrex::adjCellLo(amrex::adjCellHi(gdomain,1,len[1]),2,len[2]),
-                amrex::adjCellHi(amrex::adjCellLo(gdomain,1,len[1]),2,len[2]),
-                amrex::adjCellHi(amrex::adjCellHi(gdomain,1,len[1]),2,len[2]) };
+            = {{ amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
+                 amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),
+                 amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
+                 amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),
+                 //
+                 amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),2,len[2]),
+                 amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),2,len[2]),
+                 amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),2,len[2]),
+                 amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),2,len[2]),
+                 //
+                 amrex::adjCellLo(amrex::adjCellLo(gdomain,1,len[1]),2,len[2]),
+                 amrex::adjCellLo(amrex::adjCellHi(gdomain,1,len[1]),2,len[2]),
+                 amrex::adjCellHi(amrex::adjCellLo(gdomain,1,len[1]),2,len[2]),
+                 amrex::adjCellHi(amrex::adjCellHi(gdomain,1,len[1]),2,len[2]) }};
 #endif
 
         for (const Box& b : dom_edge_boxes) {
             Box tmp = b & bx;
             amrex::For(tmp, [=] (int i, int j, int k) noexcept
             {
+                amrex::ignore_unused(j,k);
                 IntVect const cell(AMREX_D_DECL(i,j,k));
                 filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
                            bcr_p, 0, orig_comp);
@@ -467,14 +469,14 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
     // filcc on corners
     {
         Array<Box,8> dom_corner_boxes
-            = { amrex::adjCellLo(amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
-                amrex::adjCellLo(amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]),
-                amrex::adjCellLo(amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
-                amrex::adjCellLo(amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]),
-                amrex::adjCellHi(amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
-                amrex::adjCellHi(amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]),
-                amrex::adjCellHi(amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
-                amrex::adjCellHi(amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]) };
+            = {{ amrex::adjCellLo(amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                 amrex::adjCellLo(amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                 amrex::adjCellLo(amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                 amrex::adjCellLo(amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                 amrex::adjCellHi(amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                 amrex::adjCellHi(amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                 amrex::adjCellHi(amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                 amrex::adjCellHi(amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]) }};
 
         for (const Box& b : dom_corner_boxes) {
             Box tmp = b & bx;

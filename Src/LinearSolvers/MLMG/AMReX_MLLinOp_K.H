@@ -46,7 +46,7 @@ void mllinop_apply_bc_x (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{-bcl * dxinv, 0.5_rt, 1.5_rt, 2.5_rt};
+        GpuArray<Real,4> x{{-bcl * dxinv, 0.5_rt, 1.5_rt, 2.5_rt}};
         GpuArray<Real,4> coef{};
         poly_interp_coeff(-0.5_rt, &x[0], NX, &coef[0]);
         for     (int k = lo.z; k <= hi.z; ++k) {
@@ -107,7 +107,7 @@ void mllinop_apply_bc_y (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{-bcl * dyinv, 0.5_rt, 1.5_rt, 2.5_rt};
+        GpuArray<Real,4> x{{-bcl * dyinv, 0.5_rt, 1.5_rt, 2.5_rt}};
         GpuArray<Real,4> coef{};
         poly_interp_coeff(-0.5_rt, &x[0], NX, &coef[0]);
         for     (int k = lo.z; k <= hi.z; ++k) {
@@ -168,7 +168,7 @@ void mllinop_apply_bc_z (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{-bcl * dzinv, 0.5_rt, 1.5_rt, 2.5_rt};
+        GpuArray<Real,4> x{{-bcl * dzinv, 0.5_rt, 1.5_rt, 2.5_rt}};
         GpuArray<Real,4> coef{};
         poly_interp_coeff(-0.5_rt, &x[0], NX, &coef[0]);
         for     (int j = lo.y; j <= hi.y; ++j) {
@@ -224,7 +224,7 @@ void mllinop_comp_interp_coef0_x (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{-bcl * dxinv, 0.5_rt, 1.5_rt, 2.5_rt};
+        GpuArray<Real,4> x{{-bcl * dxinv, 0.5_rt, 1.5_rt, 2.5_rt}};
         GpuArray<Real,4> coef{};
         poly_interp_coeff(-0.5_rt, &x[0], NX, &coef[0]);
         for     (int k = lo.z; k <= hi.z; ++k) {
@@ -271,7 +271,7 @@ void mllinop_comp_interp_coef0_y (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{-bcl * dyinv, 0.5_rt, 1.5_rt, 2.5_rt};
+        GpuArray<Real,4> x{{-bcl * dyinv, 0.5_rt, 1.5_rt, 2.5_rt}};
         GpuArray<Real,4> coef{};
         poly_interp_coeff(-0.5_rt, &x[0], NX, &coef[0]);
         for     (int k = lo.z; k <= hi.z; ++k) {
@@ -318,7 +318,7 @@ void mllinop_comp_interp_coef0_z (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{-bcl * dzinv, 0.5_rt, 1.5_rt, 2.5_rt};
+        GpuArray<Real,4> x{{-bcl * dzinv, 0.5_rt, 1.5_rt, 2.5_rt}};
         GpuArray<Real,4> coef{};
         poly_interp_coeff(-0.5_rt, &x[0], NX, &coef[0]);
         for     (int j = lo.y; j <= hi.y; ++j) {
@@ -337,7 +337,7 @@ void mllinop_apply_innu_xlo (int i, int j, int k,
                              Array4<Real> const& rhs,
                              Array4<int const> const& mask,
                              Array4<Real const> const& bcoef,
-                             BoundCond bct, Real bcl,
+                             BoundCond bct, Real /*bcl*/,
                              Array4<Real const> const& bcval,
                              Real fac, bool has_bcoef, int icomp) noexcept
 {
@@ -352,7 +352,7 @@ void mllinop_apply_innu_xhi (int i, int j, int k,
                              Array4<Real> const& rhs,
                              Array4<int const> const& mask,
                              Array4<Real const> const& bcoef,
-                             BoundCond bct, Real bcl,
+                             BoundCond bct, Real /*bcl*/,
                              Array4<Real const> const& bcval,
                              Real fac, bool has_bcoef, int icomp) noexcept
 {
@@ -367,7 +367,7 @@ void mllinop_apply_innu_ylo (int i, int j, int k,
                              Array4<Real> const& rhs,
                              Array4<int const> const& mask,
                              Array4<Real const> const& bcoef,
-                             BoundCond bct, Real bcl,
+                             BoundCond bct, Real /*bcl*/,
                              Array4<Real const> const& bcval,
                              Real fac, bool has_bcoef, int icomp) noexcept
 {
@@ -381,7 +381,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_innu_ylo_m (int i, int j, int k,
                                Array4<Real> const& rhs,
                                Array4<int const> const& mask,
-                               BoundCond bct, Real bcl,
+                               BoundCond bct, Real /*bcl*/,
                                Array4<Real const> const& bcval,
                                Real fac, Real xlo, Real dx, int icomp) noexcept
 {
@@ -396,7 +396,7 @@ void mllinop_apply_innu_yhi (int i, int j, int k,
                              Array4<Real> const& rhs,
                              Array4<int const> const& mask,
                              Array4<Real const> const& bcoef,
-                             BoundCond bct, Real bcl,
+                             BoundCond bct, Real /*bcl*/,
                              Array4<Real const> const& bcval,
                              Real fac, bool has_bcoef, int icomp) noexcept
 {
@@ -410,7 +410,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_innu_yhi_m (int i, int j, int k,
                                Array4<Real> const& rhs,
                                Array4<int const> const& mask,
-                               BoundCond bct, Real bcl,
+                               BoundCond bct, Real /*bcl*/,
                                Array4<Real const> const& bcval,
                                Real fac, Real xlo, Real dx, int icomp) noexcept
 {
@@ -425,7 +425,7 @@ void mllinop_apply_innu_zlo (int i, int j, int k,
                              Array4<Real> const& rhs,
                              Array4<int const> const& mask,
                              Array4<Real const> const& bcoef,
-                             BoundCond bct, Real bcl,
+                             BoundCond bct, Real /*bcl*/,
                              Array4<Real const> const& bcval,
                              Real fac, bool has_bcoef, int icomp) noexcept
 {
@@ -440,7 +440,7 @@ void mllinop_apply_innu_zhi (int i, int j, int k,
                              Array4<Real> const& rhs,
                              Array4<int const> const& mask,
                              Array4<Real const> const& bcoef,
-                             BoundCond bct, Real bcl,
+                             BoundCond bct, Real /*bcl*/,
                              Array4<Real const> const& bcval,
                              Real fac, bool has_bcoef, int icomp) noexcept
 {

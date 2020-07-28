@@ -24,6 +24,8 @@ InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 		      int                     num_comp,
 		      bool                    extrap)
 {
+    amrex::ignore_unused(extrap);
+
     const Real teps = (t2-t1)/1000.0;
 
     BL_ASSERT(extrap || ( (t>=t1-teps) && (t <= t2+teps) ) );
@@ -85,6 +87,8 @@ InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
 		       int                     num_comp,
 		       bool                    extrap)
 {
+    amrex::ignore_unused(extrap);
+
     const Real teps = (t2-t1)/1000.0;
 
     BL_ASSERT(extrap || ( (t>=t1-teps) && (t <= t2+teps) ) );

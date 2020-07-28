@@ -294,6 +294,7 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
             amrex::LoopOnCpu(ndgbx,
             [=,&tile_error] (int i, int j, int k) noexcept
             {
+                amrex::ignore_unused(j,k);
                 int ierr = coarsen_from_fine(AMREX_D_DECL(i,j,k),
                                              bx, gbx,
                                              AMREX_D_DECL(xbx,ybx,zbx),
@@ -371,6 +372,7 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
             reduce_op.eval(ndgbx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
+                amrex::ignore_unused(j,k);
                 int ierr = coarsen_from_fine(AMREX_D_DECL(i,j,k),
                                              bx, gbx,
                                              AMREX_D_DECL(xbx,ybx,zbx),

@@ -788,7 +788,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         /*         my_real_offset << ", my_real_count = " << my_real_count << ", total_real_size = " << total_real_size << '\n'; */
         real_dset_space = H5Screate_simple(1, &total_real_size, NULL); 
         H5Sselect_hyperslab (real_dset_space, H5S_SELECT_SET, &my_real_offset, NULL, &my_real_count, NULL);
-        H5Dwrite(real_dset_id, H5T_NATIVE_DOUBLE, real_mem_space, real_dset_space, dxpl, rstuff.dataPtr());
+        if (sizeof(typename ParticleType::RealType) == 4)
+            H5Dwrite(real_dset_id, H5T_NATIVE_FLOAT, real_mem_space, real_dset_space, dxpl, rstuff.dataPtr());
+        else
+            H5Dwrite(real_dset_id, H5T_NATIVE_DOUBLE, real_mem_space, real_dset_space, dxpl, rstuff.dataPtr());
         H5Sclose(real_mem_space);
         H5Sclose(real_dset_space);
 
@@ -1234,7 +1237,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     hsize_t real_offset = offset*rChunkSize;
     real_dspace = H5Screate_simple(1, &real_cnt, NULL); 
     H5Sselect_hyperslab (real_fspace, H5S_SELECT_SET, &real_offset, NULL, &real_cnt, NULL);
-    H5Dread(real_dset, H5T_NATIVE_DOUBLE, real_dspace, real_fspace, H5P_DEFAULT, rstuff.dataPtr());
+    if (sizeof(RTYPE) == 4)
+        H5Dread(real_dset, H5T_NATIVE_FLOAT, real_dspace, real_fspace, H5P_DEFAULT, rstuff.dataPtr());
+    else
+        H5Dread(real_dset, H5T_NATIVE_DOUBLE, real_dspace, real_fspace, H5P_DEFAULT, rstuff.dataPtr());
 
     H5Sclose(real_fspace);
     H5Sclose(real_dspace);

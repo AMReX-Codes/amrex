@@ -182,8 +182,7 @@ NodalProjector::setDomainBC ( std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
     m_bc_hi=a_bc_hi;
     m_linop->setDomainBC(m_bc_lo,m_bc_hi);
     m_need_bcs = false;
-};
-
+}
 
 void
 NodalProjector::setCustomRHS (const amrex::Vector<const amrex::MultiFab*> a_rhs)

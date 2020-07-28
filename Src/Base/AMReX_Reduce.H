@@ -214,7 +214,7 @@ public:
     using Type = GpuTuple<Ts...>;
 
     template <typename... Ps>
-    explicit ReduceData (ReduceOps<Ps...> const& ops)
+    explicit ReduceData (ReduceOps<Ps...> const&)
         : m_host_tuple(),
           m_device_tuple((Type*)(The_Device_Arena()->alloc(2*sizeof(m_host_tuple))))
     {
@@ -648,7 +648,7 @@ public:
     using Type = GpuTuple<Ts...>;
 
     template <typename... Ps>
-    explicit ReduceData (ReduceOps<Ps...> const& ops)
+    explicit ReduceData (ReduceOps<Ps...> const&)
         : m_tuple()
     {
         Reduce::detail::for_each_init<0, Type, Ps...>(m_tuple);
@@ -677,7 +677,7 @@ private:
 
     template <typename D, typename F>
     AMREX_FORCE_INLINE
-    static auto call_f (Box const& box, D & reduce_data, F const& f)
+    static auto call_f (Box const& box, D & /*reduce_data*/, F const& f)
         noexcept -> decltype(f(0,0,0))
     {
         using ReduceTuple = typename D::Type;

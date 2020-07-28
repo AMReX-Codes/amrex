@@ -19,7 +19,33 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
             -DCMAKE_CXX_STANDARD=17
-        make -j 2 VERBOSE=ON
+        make -j 2
+        make install
+
+  library_clang:
+    name: Clang@6.0 C++14 SP NOMPI Debug [lib]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_clang6.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                        \
+            -DCMAKE_BUILD_TYPE=Debug    \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
+            -DENABLE_MPI=OFF            \
+            -DENABLE_PARTICLES=ON       \
+            -DENABLE_DP=OFF             \
+            -DENABLE_DP_PARTICLES=OFF   \
+            -DCMAKE_CXX_STANDARD=14     \
+            -DCMAKE_C_COMPILER=$(which clang)         \
+            -DCMAKE_CXX_COMPILER=$(which clang++)     \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)
+        make -j 2
         make install
 
   # Build libamrex and all tutorials
@@ -66,7 +92,7 @@ jobs:
 
   # Build libamrex and all tutorials w/o MPI
   tutorials-nonmpi:
-    name: GNU@7.5 C++14 non-MPI [tutorials]
+    name: GNU@7.5 C++14 NOMPI [tutorials]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -130,8 +156,11 @@ jobs:
         make -j 2 tutorials
 
   # Build libamrex and all tutorials with DPC++
+  # broken in beta08
+  #   https://github.com/intel/llvm/issues/2187
   tutorials-dpcpp:
-    name: DPCPP@PubBeta GFortran@7.5 C++14 [tutorials]
+    if: false
+    name: DPCPP@PubBeta GFortran@7.5 C++17 [tutorials]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -156,7 +185,7 @@ jobs:
 
   # Build 1D libamrex with configure
   configure-1d:
-    name: GNU@7.5 C++17 Release [configure 1D]
+    name: GNU@7.5 Release [configure 1D]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -170,7 +199,21 @@ jobs:
 
   # Build 2D libamrex with configure
   configure-2d:
-    name: GNU@7.5 C++17 Release [configure 2D]
+    name: Clang@6.0 NOMPI Release [configure 2D]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_clang6.sh
+    - name: Build & Install
+      run: |
+        ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE
+        make install
+
+  # Build 3D libamrex with configure
+  configure-3d:
+    name: GNU@7.5 Release [configure 3D]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -178,6 +221,6 @@ jobs:
       run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
       run: |
-        ./configure --dim 2
-        make -j2
+        ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE
         make install

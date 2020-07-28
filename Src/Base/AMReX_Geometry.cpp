@@ -37,7 +37,7 @@ operator>> (std::istream& is,
         is >> c;
         IntVect is_per;
         is >> is_per;
-        g.setPeriodicity({AMREX_D_DECL(is_per[0],is_per[1],is_per[2])});
+        g.setPeriodicity({{AMREX_D_DECL(is_per[0],is_per[1],is_per[2])}});
     } else {
         g.setPeriodicity(DefaultGeometry().isPeriodic());
     }
