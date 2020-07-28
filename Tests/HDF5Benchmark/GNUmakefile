@@ -28,11 +28,6 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 USE_HDF5  = TRUE
 HDF5_HOME = $(HOME)/hdf5/develop_build/hdf5
-ifeq ($(USE_HDF5), TRUE)
-DEFINES += -DAMREX_USE_HDF5
-INCLUDE_LOCATIONS += $(HDF5_HOME)/include
-LIBRARIES         += -lhdf5 -lz -ldl -L$(HDF5_HOME)/lib
-endif
 
 # To use HDF5 asynchronous I/O VOL connector, follow the instructions at https://bitbucket.hdfgroup.org/projects/HDF5VOL/repos/async/browse
 USE_HDF5_ASYNC = FALSE
