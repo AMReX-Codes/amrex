@@ -418,6 +418,8 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
     const Geometry& geom = m_geom[amrlev][mglev];
     const auto dxinv = geom.InvCellSizeArray();
     const Box& domain = amrex::enclosedCells(geom.Domain());
+    const auto dlo = amrex::lbound(domain);
+    const auto dhi = amrex::ubound(domain);
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
 
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
@@ -504,27 +506,26 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 	   
             const auto & bdcv = bcondloc.bndryConds(mfi);
 
-            GpuArray<BoundCond,2*AMREX_SPACEDIM*AMREX_SPACEDIM> bct;
+            Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> bct;
             for (OrientationIter face; face; ++face) {
                 Orientation ori = face();
-                const int iface = ori;
                 for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
-                    bct[iface*AMREX_SPACEDIM+icomp] = bdcv[icomp][ori];
+                    bct(ori,icomp) = bdcv[icomp][ori];
                 }
             }
  
 	    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
 	    ( xbx, txbx,
 	      {
-		mlebtensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,apx,flag,dxinv,domain,bct);
+		mlebtensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,apx,flag,dxinv,dlo,dhi,bct);
 	      }
 	      , ybx, tybx,
 	      {
-		mlebtensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,apy,flag,dxinv,domain,bct);
+		mlebtensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,apy,flag,dxinv,dlo,dhi,bct);
 	      }
 	      , zbx, tzbx,
 	      {
-		mlebtensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,apz,flag,dxinv,domain,bct);
+		mlebtensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,apz,flag,dxinv,dlo,dhi,bct);
 	      }
 	      );
 	  }
