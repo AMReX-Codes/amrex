@@ -109,6 +109,7 @@ public:
     {
         prob_domain = rb;
         SetOffset(rb.lo());
+        computeRoundoffDomain();
     }
     //! Returns the lo end of the problem domain in each dimension.
     const Real* ProbLo () const noexcept { return prob_domain.lo(); }

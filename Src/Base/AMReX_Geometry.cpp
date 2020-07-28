@@ -141,10 +141,12 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
         gg->prob_domain.setLo(prob_lo);
         gg->prob_domain.setHi(prob_hi);
         gg->SetOffset(prob_lo.data());
+        gg->computeRoundoffDomain();
     } else {
         gg->prob_domain.setLo(rb->lo());
         gg->prob_domain.setHi(rb->hi());
         gg->SetOffset(rb->lo());
+        gg->computeRoundoffDomain();
     }
 
     //
@@ -175,6 +177,7 @@ Geometry::ResetDefaultProbDomain (const RealBox& rb) noexcept
     gg->prob_domain.setLo(rb.lo());
     gg->prob_domain.setHi(rb.hi());
     gg->SetOffset(rb.lo());
+    gg->computeRoundoffDomain();
 }
 
 void
