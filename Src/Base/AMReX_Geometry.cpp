@@ -421,14 +421,14 @@ Geometry::computeRoundoffDomain ()
         PReal lo = static_cast<PReal>(phi) - 0.5_prt*static_cast<PReal>(dx);
         PReal hi = static_cast<PReal>(phi) + 0.5_prt*static_cast<PReal>(dx);
 
-        PReal closest_phi = bisect(lo, hi,
-                                   [=] (PReal x)
-                                   {
-                                       int i = std::floor((x - plo)/dx) + ilo;
-                                       bool inside = i >= 0 and i <= ihi;
-                                       return static_cast<PReal>(inside) - 0.5_prt;
-                                   }, tolerance);
-        roundoff_domain.setHi(idim, closest_phi);
+        PReal mid = bisect(lo, hi,
+                           [=] (PReal x)
+                           {
+                               int i = std::floor((x - plo)/dx) + ilo;
+                               bool inside = i >= 0 and i <= ihi;
+                               return static_cast<PReal>(inside) - 0.5_prt;
+                           }, tolerance);
+        roundoff_domain.setHi(idim, mid - tolerance);
     }
 }
 
