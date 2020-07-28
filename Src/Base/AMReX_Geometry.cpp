@@ -166,7 +166,6 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
     }
 
     gg->ok = true;
-    gg->computeRoundoffDomain();
 }
 
 void
@@ -412,18 +411,17 @@ Geometry::computeRoundoffDomain ()
         int ihi = Domain().bigEnd(idim);
         Real plo = ProbLo(idim);
         Real phi = ProbHi(idim);
-        Real dx = CellSize(idim);
-        PReal tolerance = std::max(1.e-8*dx, 1.e-14*phi);
+        Real deltax = CellSize(idim);
+        PReal tolerance = std::max(1.e-8*deltax, 1.e-14*phi);
 
         // bisect the point at which the cell no longer maps to inside the domain
-        using PReal = ParticleReal;
-        PReal lo = static_cast<PReal>(phi) - 0.5_prt*static_cast<PReal>(dx);
-        PReal hi = static_cast<PReal>(phi) + 0.5_prt*static_cast<PReal>(dx);
+        PReal lo = static_cast<PReal>(phi) - 0.5_prt*static_cast<PReal>(deltax);
+        PReal hi = static_cast<PReal>(phi) + 0.5_prt*static_cast<PReal>(deltax);
 
         PReal mid = bisect(lo, hi,
                            [=] (PReal x)
                            {
-                               int i = std::floor((x - plo)/dx) + ilo;
+                               int i = int(Math::floor((x - plo)/deltax)) + ilo;
                                bool inside = i >= 0 and i <= ihi;
                                return static_cast<PReal>(inside) - 0.5_prt;
                            }, tolerance);
