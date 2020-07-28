@@ -157,7 +157,7 @@ inline
 void amrex_avgdown_faces (Box const& bx, Array4<Real> const& crse,
                           Array4<Real const> const& fine,
                           int ccomp, int fcomp, int ncomp,
-                          IntVect const& ratio, int idir) noexcept
+                          IntVect const& ratio, int /*idir*/) noexcept
 {
     const auto clo = lbound(bx);
     const auto chi = ubound(bx);
@@ -176,7 +176,7 @@ inline
 void amrex_avgdown_edges (Box const& bx, Array4<Real> const& crse,
                           Array4<Real const> const& fine,
                           int ccomp, int fcomp, int ncomp,
-                          IntVect const& ratio, int idir) noexcept
+                          IntVect const& ratio, int /*idir*/) noexcept
 {
     const auto clo = lbound(bx);
     const auto chi = ubound(bx);

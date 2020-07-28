@@ -102,9 +102,9 @@ public:
     * Unlike writePlotFile, this is NOT a pure virtual function 
     * so implementation by derived classes is optional.
     */
-    virtual void writeSmallPlotFile (const std::string& dir,
-                                     std::ostream&      os,
-				     VisMF::How         how = VisMF::NFiles) {};
+    virtual void writeSmallPlotFile (const std::string& /*dir*/,
+                                     std::ostream&      /*os*/,
+				     VisMF::How         /*how*/ = VisMF::NFiles) {}
     //! Write current state to checkpoint file.
     virtual void checkPoint (const std::string& dir,
                              std::ostream&      os,
@@ -183,7 +183,7 @@ public:
     /**
     * \brief Operations to be done after restart.
     */
-    virtual void post_restart () {};
+    virtual void post_restart () {}
     /**
     * \brief Operations to be done after regridding
     * This is a pure virtual function and hence MUST be
@@ -380,7 +380,7 @@ public:
 
 #ifdef AMREX_PARTICLES
     //! This function can be called from the parent 
-    virtual void particle_redistribute (int lbase = 0, bool a_init = false) {;}
+    virtual void particle_redistribute (int /*lbase*/ = 0, bool /*a_init*/ = false) {;}
 #endif
 
     static void FillPatch (AmrLevel& amrlevel,

@@ -86,12 +86,12 @@ void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const& domai
                         GpuArray<LinOpBCType, AMREX_SPACEDIM> bclo,
                         GpuArray<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
 {
-    GpuArray<bool,AMREX_SPACEDIM> bflo{AMREX_D_DECL(bclo[0] != LinOpBCType::Periodic,
-                                                    bclo[1] != LinOpBCType::Periodic,
-                                                    bclo[2] != LinOpBCType::Periodic)};
-    GpuArray<bool,AMREX_SPACEDIM> bfhi{AMREX_D_DECL(bchi[0] != LinOpBCType::Periodic,
-                                                    bchi[1] != LinOpBCType::Periodic,
-                                                    bchi[2] != LinOpBCType::Periodic)};
+    GpuArray<bool,AMREX_SPACEDIM> bflo{{AMREX_D_DECL(bclo[0] != LinOpBCType::Periodic,
+                                                     bclo[1] != LinOpBCType::Periodic,
+                                                     bclo[2] != LinOpBCType::Periodic)}};
+    GpuArray<bool,AMREX_SPACEDIM> bfhi{{AMREX_D_DECL(bchi[0] != LinOpBCType::Periodic,
+                                                     bchi[1] != LinOpBCType::Periodic,
+                                                     bchi[2] != LinOpBCType::Periodic)}};
     mlndlap_bc_doit(vbx, sigma, domain, bflo, bfhi);
 }
 
@@ -100,18 +100,18 @@ void mlndlap_applybc (Box const& vbx, Array4<T> const& phi, Box const& domain,
                       GpuArray<LinOpBCType, AMREX_SPACEDIM> bclo,
                       GpuArray<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
 {
-    GpuArray<bool,AMREX_SPACEDIM> bflo{AMREX_D_DECL(bclo[0] == LinOpBCType::Neumann or
-                                                    bclo[0] == LinOpBCType::inflow,
-                                                    bclo[1] == LinOpBCType::Neumann or
-                                                    bclo[1] == LinOpBCType::inflow,
-                                                    bclo[2] == LinOpBCType::Neumann or
-                                                    bclo[2] == LinOpBCType::inflow)};
-    GpuArray<bool,AMREX_SPACEDIM> bfhi{AMREX_D_DECL(bchi[0] == LinOpBCType::Neumann or
-                                                    bchi[0] == LinOpBCType::inflow,
-                                                    bchi[1] == LinOpBCType::Neumann or
-                                                    bchi[1] == LinOpBCType::inflow,
-                                                    bchi[2] == LinOpBCType::Neumann or
-                                                    bchi[2] == LinOpBCType::inflow)};
+    GpuArray<bool,AMREX_SPACEDIM> bflo{{AMREX_D_DECL(bclo[0] == LinOpBCType::Neumann or
+                                                     bclo[0] == LinOpBCType::inflow,
+                                                     bclo[1] == LinOpBCType::Neumann or
+                                                     bclo[1] == LinOpBCType::inflow,
+                                                     bclo[2] == LinOpBCType::Neumann or
+                                                     bclo[2] == LinOpBCType::inflow)}};
+    GpuArray<bool,AMREX_SPACEDIM> bfhi{{AMREX_D_DECL(bchi[0] == LinOpBCType::Neumann or
+                                                     bchi[0] == LinOpBCType::inflow,
+                                                     bchi[1] == LinOpBCType::Neumann or
+                                                     bchi[1] == LinOpBCType::inflow,
+                                                     bchi[2] == LinOpBCType::Neumann or
+                                                     bchi[2] == LinOpBCType::inflow)}};
     mlndlap_bc_doit(vbx, phi, domain, bflo, bfhi);
 }
 

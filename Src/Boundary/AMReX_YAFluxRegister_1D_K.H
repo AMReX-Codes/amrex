@@ -33,7 +33,6 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real> const& d, Array4<Real const>
                         Real dtdx, int nc, int dirside, Dim3 const& rr) noexcept
 {
     const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubound(bx);
 
     switch (dirside) {
     case 0 :

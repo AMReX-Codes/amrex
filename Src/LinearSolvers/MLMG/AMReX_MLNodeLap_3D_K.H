@@ -1246,7 +1246,6 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                         c_ls(k-lo.z) = fm2xm2y4z*(sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  ));
                         u_ls(k-lo.z) = 0.;  
                         r_ls(k-lo.z) = rhs(i,j,k) - Ax;
-				
                     }
                 }
                 tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
@@ -1330,11 +1329,11 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                 {
                     if (msk(i,j,k)) 
                     {
-                        a_ls(j-lo.y) = 0.;
-                        b_ls(j-lo.y) = 1.;
-                        c_ls(j-lo.y) = 0.;
-                        u_ls(j-lo.y) = 0.;
-                        r_ls(j-lo.y) = 0.;
+                        a_ls(i-lo.x) = 0.;
+                        b_ls(i-lo.x) = 1.;
+                        c_ls(i-lo.x) = 0.;
+                        u_ls(i-lo.x) = 0.;
+                        r_ls(i-lo.x) = 0.;
                     }
                     else
                     {
@@ -3280,7 +3279,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
         }
     };
 
-    auto restrict_from_000_to = [] (int ii_, int jj_, int kk_) -> Real {
+    auto restrict_from_000_to = [] (int /*ii_*/, int /*jj_*/, int /*kk_*/) -> Real {
         return 1._rt;
     };
 

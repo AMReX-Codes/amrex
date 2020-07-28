@@ -152,33 +152,33 @@ public:
     AMREX_GPU_HOST_DEVICE
     GpuArray<int,3> length3d () const noexcept {
 #if (AMREX_SPACEDIM == 1)
-        return {bigend[0]-smallend[0]+1, 1, 1};
+        return {{bigend[0]-smallend[0]+1, 1, 1}};
 #elif (AMREX_SPACEDIM == 2)
-        return {bigend[0]-smallend[0]+1, bigend[1]-smallend[1]+1, 1};
+        return {{bigend[0]-smallend[0]+1, bigend[1]-smallend[1]+1, 1}};
 #elif (AMREX_SPACEDIM == 3)
-        return {bigend[0]-smallend[0]+1, bigend[1]-smallend[1]+1, bigend[2]-smallend[2]+1};
+        return {{bigend[0]-smallend[0]+1, bigend[1]-smallend[1]+1, bigend[2]-smallend[2]+1}};
 #endif
     }
 
     AMREX_GPU_HOST_DEVICE
     GpuArray<int,3> loVect3d () const noexcept {
 #if (AMREX_SPACEDIM == 1)
-        return {smallend[0], 0, 0};
+        return {{smallend[0], 0, 0}};
 #elif (AMREX_SPACEDIM == 2)
-        return {smallend[0], smallend[1], 0};
+        return {{smallend[0], smallend[1], 0}};
 #elif (AMREX_SPACEDIM == 3)
-        return {smallend[0], smallend[1], smallend[2]};
+        return {{smallend[0], smallend[1], smallend[2]}};
 #endif
     }
 
     AMREX_GPU_HOST_DEVICE
     GpuArray<int,3> hiVect3d () const noexcept {
 #if (AMREX_SPACEDIM == 1)
-        return {bigend[0], 0, 0};
+        return {{bigend[0], 0, 0}};
 #elif (AMREX_SPACEDIM == 2)
-        return {bigend[0], bigend[1], 0};
+        return {{bigend[0], bigend[1], 0}};
 #elif (AMREX_SPACEDIM == 3)
-        return {bigend[0], bigend[1], bigend[2]};
+        return {{bigend[0], bigend[1], bigend[2]}};
 #endif
     }
 

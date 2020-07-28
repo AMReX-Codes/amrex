@@ -128,8 +128,8 @@ MLNodeTensorLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
 }
 
 void
-MLNodeTensorLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
-                                               const MultiFab& fine_sol, const MultiFab& fine_rhs)
+MLNodeTensorLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& /*crse_rhs*/,
+                                               const MultiFab& fine_sol, const MultiFab& /*fine_rhs*/)
 {
     const auto& amrrr = AMRRefRatio(camrlev);
     amrex::average_down(fine_sol, crse_sol, 0, 1, amrrr);
@@ -141,9 +141,9 @@ MLNodeTensorLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, 
 }
 
 void
-MLNodeTensorLaplacian::reflux (int crse_amrlev,
-                               MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
-                               MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const
+MLNodeTensorLaplacian::reflux (int /*crse_amrlev*/,
+                               MultiFab& /*res*/, const MultiFab& /*crse_sol*/, const MultiFab& /*crse_rhs*/,
+                               MultiFab& /*fine_res*/, MultiFab& /*fine_sol*/, const MultiFab& /*fine_rhs*/) const
 {
     amrex::Abort("MLNodeTensorLaplacian::reflux: TODO");
 }
@@ -164,7 +164,6 @@ MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const Multi
     BL_PROFILE("MLNodeTensorLaplacian::Fapply()");
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
     const auto s = m_sigma;
 
 #ifdef _OPENMP
@@ -175,11 +174,10 @@ MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const Multi
         const Box& bx = mfi.tilebox();
         Array4<Real const> const& xarr = in.const_array(mfi);
         Array4<Real> const& yarr = out.array(mfi);
-        Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
         {
-            mlndtslap_adotx(tbx,yarr,xarr,dmskarr,s,dxinv);
+            mlndtslap_adotx(tbx,yarr,xarr,s,dxinv);
         });
     }
 }
@@ -215,6 +213,7 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
 void
 MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
+    amrex::ignore_unused(amrlev,mglev,mf);
     return;
 
 #if 0
@@ -242,7 +241,7 @@ MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 }
 
 void
-MLNodeTensorLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
+MLNodeTensorLaplacian::fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/)
 {
     amrex::Abort("MLNodeTensorLaplacian::fixUpResidualMask: TODO");
 }

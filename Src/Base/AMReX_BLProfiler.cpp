@@ -1658,28 +1658,28 @@ namespace amrex {
 
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP,bl_proffortfuncstart_cpp)
   (
-   const int istr[], const int *NSTR
+   const int /*istr*/[], const int * /*NSTR*/
    )
 {
 }
 
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP,bl_proffortfuncstop_cpp)
   (
-   const int istr[], const int *NSTR
+   const int /*istr*/[], const int * /*NSTR*/
    )
 {
 }
 
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP_INT,bl_proffortfuncstart_cpp_int)
   (
-   int i
+   int /*i*/
    )
 {
 }
 
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP_INT,bl_proffortfuncstop_cpp_int)
   (
-   int i
+   int /*i*/
    )
 {
 }

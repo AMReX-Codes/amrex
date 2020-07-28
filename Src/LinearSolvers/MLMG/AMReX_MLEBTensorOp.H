@@ -73,7 +73,7 @@ public:
     }
 
     virtual void prepareForSolve () final override;
-    virtual bool isSingular (int armlev) const final override { return false; }
+    virtual bool isSingular (int /*armlev*/) const final override { return false; }
     virtual bool isBottomSingular () const final override { return false; }
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,

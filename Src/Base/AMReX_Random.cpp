@@ -327,6 +327,8 @@ void amrex::ResetRandomSeed (amrex::ULong seed)
 void
 amrex::ResizeRandomSeed (int N)
 {
+    amrex::ignore_unused(N);
+
     BL_PROFILE("ResizeRandomSeed");
 
 #ifdef AMREX_USE_DPCPP

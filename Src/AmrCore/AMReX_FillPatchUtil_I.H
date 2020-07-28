@@ -191,7 +191,7 @@ namespace {
               typename std::enable_if<!std::is_same<typename MF::FABType::value_type,
                                                     FArrayBox>::value,
                                       int>::type = 0>
-    void mf_set_domain_bndry (MF &mf, Geometry const & cgeom)
+    void mf_set_domain_bndry (MF &/*mf*/, Geometry const & /*cgeom*/)
     {
         // nothing
     }

@@ -1,6 +1,7 @@
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_Print.H>
+#include <AMReX_Utility.H>
 
 using namespace amrex;
 
@@ -15,6 +16,7 @@ extern "C" {
     void amrex_fi_new_boxarray_from_bxfarr (BoxArray*& ba, const int* bxs, 
                                             const int nsides, const int ndims, const int nbxs)
     {
+        amrex::ignore_unused(nsides);
         AMREX_ASSERT(nsides == 2);
         AMREX_ASSERT(ndims >= AMREX_SPACEDIM);
         BoxList bl;
