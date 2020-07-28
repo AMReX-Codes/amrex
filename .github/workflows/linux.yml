@@ -166,7 +166,7 @@ jobs:
     - name: Build & Install
       run: |
         set +e
-        source /opt/intel/inteloneapi/setvars.sh
+        source /opt/intel/oneapi/setvars.sh
         set -e
         mkdir build
         cd build
