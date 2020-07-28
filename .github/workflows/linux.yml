@@ -157,6 +157,7 @@ jobs:
 
   # Build libamrex and all tutorials with DPC++
   tutorials-dpcpp:
+    if: false
     name: DPCPP@PubBeta GFortran@7.5 C++17 [tutorials]
     runs-on: ubuntu-latest
     steps:
