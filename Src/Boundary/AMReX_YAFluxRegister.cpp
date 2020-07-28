@@ -280,12 +280,12 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
     const int nc = m_cfpatch.nComp();
 
     const Real ratio = static_cast<Real>(AMREX_D_TERM(m_ratio[0],*m_ratio[1],*m_ratio[2]));
-    std::array<Real,AMREX_SPACEDIM> dtdx{AMREX_D_DECL(dt/(dx[0]*ratio),
-                                                      dt/(dx[1]*ratio),
-                                                      dt/(dx[2]*ratio))};
+    std::array<Real,AMREX_SPACEDIM> dtdx{{AMREX_D_DECL(dt/(dx[0]*ratio),
+                                                       dt/(dx[1]*ratio),
+                                                       dt/(dx[2]*ratio))}};
     const Dim3 rr = m_ratio.dim3();
 
-    std::array<FArrayBox const*,AMREX_SPACEDIM> flux{AMREX_D_DECL(a_flux[0],a_flux[1],a_flux[2])};
+    std::array<FArrayBox const*,AMREX_SPACEDIM> flux{{AMREX_D_DECL(a_flux[0],a_flux[1],a_flux[2])}};
     bool use_gpu = (runon == RunOn::Gpu) && Gpu::inLaunchRegion();
     amrex::ignore_unused(use_gpu);
     std::array<FArrayBox,AMREX_SPACEDIM> ftmp;

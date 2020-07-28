@@ -1592,29 +1592,28 @@ Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, 
 template <class FAB,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 void
-Abs (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+Abs (FabArray<FAB>& fa, int icomp, int numcomp, int nghost)
 {
-    Abs(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+    Abs(fa,icomp,numcomp,IntVect(nghost));
 }
 
 template <class FAB,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 void
-Abs (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+Abs (FabArray<FAB>& fa, int icomp, int numcomp, const IntVect& nghost)
 {
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(fa,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         if (bx.ok())
         {
-            auto const srcFab = src.array(mfi);
-            auto       dstFab = dst.array(mfi);
+            auto const& fab = fa.array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
-                dstFab(i,j,k,n+dstcomp) /= srcFab(i,j,k,n+srccomp);
+                fab(i,j,k,n+icomp) = amrex::Math::abs(fab(i,j,k,n+icomp));
             });
         }
     }
@@ -1630,6 +1629,8 @@ prefetchToHost (FabArray<FAB> const& fa, const bool synchronous = true)
             fa.prefetchToHost(mfi);
         }
     }
+#else
+    amrex::ignore_unused(fa,synchronous);
 #endif
 }
 
@@ -1643,6 +1644,8 @@ prefetchToDevice (FabArray<FAB> const& fa, const bool synchronous = true)
             fa.prefetchToDevice(mfi);
         }
     }
+#else
+    amrex::ignore_unused(fa,synchronous);
 #endif
 }
 
@@ -1690,7 +1693,7 @@ dtoh_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
     for (MFIter mfi(dst); mfi.isValid(); ++mfi) {
         void* pdst = dst[mfi].dataPtr(dcomp);
         void const* psrc = src[mfi].dataPtr(scomp);
-        Gpu::dtoh_memcpy_async(pdst, psrc, dst[mfi].nBytes(mfi.fabbox(), dcomp, ncomp));
+        Gpu::dtoh_memcpy_async(pdst, psrc, dst[mfi].nBytes(mfi.fabbox(), ncomp));
     }
 #else
     Copy(dst, src, scomp, dcomp, ncomp, dst.nGrowVect());
@@ -1715,7 +1718,7 @@ htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
     for (MFIter mfi(dst); mfi.isValid(); ++mfi) {
         void* pdst = dst[mfi].dataPtr(dcomp);
         void const* psrc = src[mfi].dataPtr(scomp);
-        Gpu::htod_memcpy_async(pdst, psrc, dst[mfi].nBytes(mfi.fabbox(), dcomp, ncomp));
+        Gpu::htod_memcpy_async(pdst, psrc, dst[mfi].nBytes(mfi.fabbox(), ncomp));
     }
 #else
     Copy(dst, src, scomp, dcomp, ncomp, dst.nGrowVect());

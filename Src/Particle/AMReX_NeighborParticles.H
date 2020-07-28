@@ -6,6 +6,7 @@
 #include <AMReX_Particles.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_NeighborList.H>
+#include <AMReX_OpenMP.H>
 
 namespace amrex {
 

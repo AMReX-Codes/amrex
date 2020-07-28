@@ -321,6 +321,11 @@ ParallelDescriptor::StartParallel (int*    argc,
         call_mpi_finalize = 0;
     }
 
+    // It seems that for some MPI implementation, the first call to MPI_Wtime is always 0.  That
+    // sometimes causes problems for amrex::UniqueString function.  So we call MPI_Wtime here.
+    auto tfoo = MPI_Wtime();
+    amrex::ignore_unused(tfoo);
+
 #ifdef AMREX_MPI_THREAD_MULTIPLE
     {
         int requested = MPI_THREAD_MULTIPLE;
@@ -403,6 +408,8 @@ ParallelDescriptor::second () noexcept
 void
 ParallelDescriptor::Barrier (const std::string &message)
 {
+    amrex::ignore_unused(message);
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -418,6 +425,8 @@ ParallelDescriptor::Barrier (const std::string &message)
 void
 ParallelDescriptor::Barrier (const MPI_Comm &comm, const std::string &message)
 {
+    amrex::ignore_unused(message);
+
 #ifdef BL_LAZY
     int r;
     MPI_Comm_compare(comm, Communicator(), &r);
@@ -1752,8 +1761,8 @@ ParallelDescriptor::Bcast(void *buf,
 #else /*!BL_USE_MPI*/
 
 void
-ParallelDescriptor::StartParallel (int*    argc,
-                                   char*** argv,
+ParallelDescriptor::StartParallel (int*    /*argc*/,
+                                   char*** /*argv*/,
                                    MPI_Comm)
 {
     m_comm = 0;
@@ -1767,6 +1776,7 @@ ParallelDescriptor::Gather (Real* sendbuf,
 			    Real* recvbuf,
 			    int   root)
 {
+    amrex::ignore_unused(root);
     BL_ASSERT(root == 0);
     BL_ASSERT(nsend > 0);
     BL_ASSERT(!(sendbuf == 0));
@@ -1802,10 +1812,10 @@ void ParallelDescriptor::Abort (int s, bool backtrace)
 
 const char* ParallelDescriptor::ErrorString (int) { return ""; }
 
-void ParallelDescriptor::Barrier (const std::string &message) {}
-void ParallelDescriptor::Barrier (const MPI_Comm &comm, const std::string &message) {}
+void ParallelDescriptor::Barrier (const std::string &/*message*/) {}
+void ParallelDescriptor::Barrier (const MPI_Comm &/*comm*/, const std::string &/*message*/) {}
 ParallelDescriptor::Message ParallelDescriptor::Abarrier () { return ParallelDescriptor::Message(); }
-ParallelDescriptor::Message ParallelDescriptor::Abarrier (const MPI_Comm &comm) { return ParallelDescriptor::Message(); }
+ParallelDescriptor::Message ParallelDescriptor::Abarrier (const MPI_Comm &/*comm*/) { return ParallelDescriptor::Message(); }
 
 void ParallelDescriptor::Test (MPI_Request&, int&, MPI_Status&) {}
 void ParallelDescriptor::IProbe (int, int, int&, MPI_Status&) {}
@@ -1829,13 +1839,13 @@ void ParallelDescriptor::ReduceRealMax (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealMin (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealSum (Real*,int,int) {}
 
-void ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar) {}
-void ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar) {}
-void ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar) {}
+void ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
+void ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
+void ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
 
-void ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, int cpu) {}
-void ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, int cpu) {}
-void ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, int cpu) {}
+void ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& /*rvar*/, int /*cpu*/) {}
+void ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& /*rvar*/, int /*cpu*/) {}
+void ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& /*rvar*/, int /*cpu*/) {}
 
 void ParallelDescriptor::ReduceLongAnd (Long&) {}
 void ParallelDescriptor::ReduceLongSum (Long&) {}
@@ -1857,15 +1867,15 @@ void ParallelDescriptor::ReduceLongSum (Long*,int,int) {}
 void ParallelDescriptor::ReduceLongMax (Long*,int,int) {}
 void ParallelDescriptor::ReduceLongMin (Long*,int,int) {}
 
-void ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar) {}
-void ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar) {}
-void ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar) {}
-void ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar) {}
+void ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
+void ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
+void ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
+void ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
 
-void ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar, int cpu) {}
-void ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar, int cpu) {}
-void ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar, int cpu) {}
-void ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar, int cpu) {}
+void ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
+void ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
+void ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
+void ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
 
 void ParallelDescriptor::ReduceIntSum (int&) {}
 void ParallelDescriptor::ReduceIntMax (int&) {}
@@ -1883,13 +1893,13 @@ void ParallelDescriptor::ReduceIntSum (int*,int,int) {}
 void ParallelDescriptor::ReduceIntMax (int*,int,int) {}
 void ParallelDescriptor::ReduceIntMin (int*,int,int) {}
 
-void ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar) {}
-void ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar) {}
-void ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar) {}
+void ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& /*rvar*/) {}
+void ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& /*rvar*/) {}
+void ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& /*rvar*/) {}
 
-void ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, int cpu) {}
-void ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, int cpu) {}
-void ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, int cpu) {}
+void ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& /*rvar*/, int /*cpu*/) {}
+void ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& /*rvar*/, int /*cpu*/) {}
+void ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& /*rvar*/, int /*cpu*/) {}
 
 void ParallelDescriptor::ReduceBoolAnd (bool&) {}
 void ParallelDescriptor::ReduceBoolOr  (bool&) {}
@@ -1906,26 +1916,26 @@ ParallelDescriptor::second () noexcept
 }
 
 void
-ParallelDescriptor::Wait (MPI_Request& req,
-                          MPI_Status& status)
+ParallelDescriptor::Wait (MPI_Request& /*req*/,
+                          MPI_Status& /*status*/)
 {}
 
 void
-ParallelDescriptor::Waitall (Vector<MPI_Request>& reqs,
-                             Vector<MPI_Status>& status)
+ParallelDescriptor::Waitall (Vector<MPI_Request>& /*reqs*/,
+                             Vector<MPI_Status>& /*status*/)
 {}
 
 void
-ParallelDescriptor::Waitany (Vector<MPI_Request>& reqs,
-                             int &index,
-                             MPI_Status& status)
+ParallelDescriptor::Waitany (Vector<MPI_Request>& /*reqs*/,
+                             int &/*index*/,
+                             MPI_Status& /*status*/)
 {}
 
 void
-ParallelDescriptor::Waitsome (Vector<MPI_Request>& reqs,
-                              int&                completed,
-                              Vector<int>&         indx,
-                              Vector<MPI_Status>&  status)
+ParallelDescriptor::Waitsome (Vector<MPI_Request>& /*reqs*/,
+                              int&                 /*completed*/,
+                              Vector<int>&         /*indx*/,
+                              Vector<MPI_Status>&  /*status*/)
 {}
 
 #endif

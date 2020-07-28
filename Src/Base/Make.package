@@ -34,6 +34,7 @@ C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_INT.H AMReX_CONSTANTS.H AMReX_SPACE
 
 C$(AMREX_BASE)_sources += AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp
 C$(AMREX_BASE)_headers += AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H
+C$(AMREX_BASE)_headers += AMReX_OpenMP.H
 
 C$(AMREX_BASE)_headers += AMReX_ParallelReduce.H
 
@@ -45,6 +46,9 @@ C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CAren
 
 C$(AMREX_BASE)_sources += AMReX_AsyncOut.cpp
 C$(AMREX_BASE)_headers += AMReX_AsyncOut.H
+
+C$(AMREX_BASE)_sources += AMReX_BackgroundThread.cpp
+C$(AMREX_BASE)_headers += AMReX_BackgroundThread.H
 
 C$(AMREX_BASE)_headers += AMReX_BLProfiler.H
 
@@ -63,8 +67,11 @@ C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuPrint.H AMR
 
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosG.H AMReX_GpuLaunchFunctsG.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosC.H AMReX_GpuLaunchFunctsC.H
+C$(AMREX_BASE)_headers += AMReX_GpuLaunchGlobal.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunch.H
 C$(AMREX_BASE)_sources += AMReX_GpuLaunch.cpp
+C$(AMREX_BASE)_headers += AMReX_GpuFuse.H
+C$(AMREX_BASE)_sources += AMReX_GpuFuse.cpp
 
 C$(AMREX_BASE)_headers += AMReX_GpuControl.H
 C$(AMREX_BASE)_sources += AMReX_GpuControl.cpp
@@ -166,6 +173,8 @@ C$(AMREX_BASE)_sources += AMReX_PhysBCFunct.cpp AMReX_BCUtil.cpp
 C$(AMREX_BASE)_headers += AMReX_PhysBCFunct.H AMReX_BCUtil.H
 C$(AMREX_BASE)_sources += AMReX_FilCC_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilCC_C.H AMReX_FilCC_$(DIM)D_C.H
+C$(AMREX_BASE)_sources += AMReX_FilND_C.cpp
+C$(AMREX_BASE)_headers += AMReX_FilND_C.H
 
 #
 # Plotfile

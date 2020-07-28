@@ -61,7 +61,7 @@ std::string MultiFabFileFullPrefix (int level,
 
 void
 PreBuildDirectorHierarchy (const std::string &dirName,
-                           const std::string &subDirPrefix,
+                           const std::string &/*subDirPrefix*/,
                            int nSubDirs, bool callBarrier)
 {
   UtilCreateCleanDirectory(dirName, false);  // ---- dont call barrier

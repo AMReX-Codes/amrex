@@ -1,7 +1,3 @@
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 #include <iostream>
 #include <limits>
 #include <algorithm>
@@ -13,6 +9,7 @@
 #include <AMReX_CArena.H>
 #include <AMReX_MemPool.H>
 #include <AMReX_Vector.H>
+#include <AMReX_OpenMP.H>
 
 #ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
@@ -48,12 +45,7 @@ void amrex_mempool_init ()
         ParmParse pp("fab");
 	pp.query("init_snan", init_snan);
 
-	int nthreads = 1;
-
-#ifdef _OPENMP
-	nthreads = omp_get_max_threads();
-#endif
-
+	int nthreads = OpenMP::get_max_threads();
 
 #ifdef USE_PERILLA_PTHREADS
 #ifdef _OPENMP
@@ -106,11 +98,7 @@ void amrex_mempool_finalize ()
 
 void* amrex_mempool_alloc (size_t nbytes)
 {
-  int tid=0;
-
-#ifdef _OPENMP
-  tid = omp_get_thread_num();
-#endif
+  int tid = OpenMP::get_thread_num();
 
 #ifdef USE_PERILLA_PTHREADS
 #ifdef _OPENMP
@@ -124,11 +112,7 @@ void* amrex_mempool_alloc (size_t nbytes)
 
 void amrex_mempool_free (void* p) 
 {
-  int tid=0;
-
-#ifdef _OPENMP
-  tid = omp_get_thread_num();
-#endif
+  int tid = OpenMP::get_thread_num();
 
 #ifdef USE_PERILLA_PTHREADS
 #ifdef _OPENMP

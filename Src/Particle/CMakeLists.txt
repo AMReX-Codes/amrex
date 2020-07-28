@@ -42,4 +42,5 @@ target_sources( amrex
    AMReX_DenseBins.H
    AMReX_BinIterator.H
    AMReX_ParticleTransformation.H
+   AMReX_WriteBinaryParticleData.H
    )

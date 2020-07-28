@@ -58,25 +58,26 @@ function (configure_amrex)
    endif()
 
    #
+   # Special flags for MSV compiler
+   #
+   set(_cxx_msvc   "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>")
+
+   target_compile_options( amrex PRIVATE $<${_cxx_msvc}:/bigobj> )
+
+   if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+      if (CXX_COMPILER_VERSION VERSION_LESS 19.26)
+         target_compile_options( amrex PUBLIC $<${_cxx_msvc}:/experimental:preprocessor>)
+      else ()
+         target_compile_options( amrex PUBLIC $<${_cxx_msvc}:/Zc:preprocessor> )
+      endif ()
+   endif ()
+
+   unset(_cxx_msvc)
+
+   #
    # Setup OpenMP
    #
    if (ENABLE_OMP)
-
-      find_package(OpenMP REQUIRED)
-      target_link_libraries(amrex PUBLIC OpenMP::OpenMP_CXX)
-
-      # Make imported target "global" so that it can be seen
-      # from other directories in the project.
-      # This is especially useful when get_target_properties_flattened()
-      # (see module AMReXTargetHelpers.cmake) is called to recover dependecy tree info
-      # in projects that use amrex directly in the build (via add_subdirectory()).
-      set_target_properties(OpenMP::OpenMP_CXX PROPERTIES IMPORTED_GLOBAL True )
-
-      if (ENABLE_FORTRAN_INTERFACES OR ENABLE_HYPRE)
-         target_link_libraries(amrex PUBLIC OpenMP::OpenMP_Fortran )
-         set_target_properties(OpenMP::OpenMP_Fortran PROPERTIES IMPORTED_GLOBAL True )
-      endif ()
-
       # We have to manually pass OpenMP flags to host compiler if CUDA is enabled
       # Since OpenMP imported targets are generated only for the Compiler ID in use, i.e.
       # they do not provide flags for all possible compiler ids, we assume the same compiler use
@@ -111,17 +112,12 @@ function (configure_amrex)
          get_target_property( _amrex_flags_2 Flags_CXX INTERFACE_COMPILE_OPTIONS)
       endif()
 
-      get_target_property( _amrex_flags_3 Flags_CXX_REQUIRED INTERFACE_COMPILE_OPTIONS)
-
       set(_amrex_flags)
       if (_amrex_flags_1)
          list(APPEND _amrex_flags ${_amrex_flags_1})
       endif ()
       if (_amrex_flags_2)
          list(APPEND _amrex_flags ${_amrex_flags_2})
-      endif ()
-      if (_amrex_flags_3)
-         list(APPEND _amrex_flags ${_amrex_flags_3})
       endif ()
 
       evaluate_genex(_amrex_flags _amrex_cxx_flags
@@ -157,6 +153,19 @@ function (configure_amrex)
       endif()
    endif()
 
+   #
+   # Setup HDF5 -- for now we do not create an imported target
+   #
+   if (ENABLE_HDF5)
+      set(HDF5_PREFER_PARALLEL TRUE)
+      find_package(HDF5 1.10.4 REQUIRED COMPONENTS CXX)
+      if (NOT HDF5_IS_PARALLEL)
+         message(FATAL_ERROR "\nHDF5 library does not support parallel I/O")
+      endif ()
+      target_include_directories(amrex PUBLIC ${HDF5_CXX_INCLUDE_DIRS})
+      target_compile_definitions(amrex PUBLIC ${HDF5_CXX_DEFINES})
+      target_link_libraries(amrex PUBLIC ${HDF5_CXX_LIBRARIES})
+   endif ()
 
    #
    # Setup third-party profilers
@@ -237,22 +246,30 @@ function (print_amrex_configuration_summary)
    message( STATUS "   Build type               = ${CMAKE_BUILD_TYPE}")
    message( STATUS "   Install directory        = ${CMAKE_INSTALL_PREFIX}")
    message( STATUS "   C++ compiler             = ${CMAKE_CXX_COMPILER}")
-   message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
+   endif ()
    if (ENABLE_CUDA)
       message( STATUS "   CUDA compiler            = ${CMAKE_CUDA_COMPILER}")
    endif ()
 
    message( STATUS "   C++ defines              = ${_cxx_defines}")
-   message( STATUS "   Fortran defines          = ${_fortran_defines}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran defines          = ${_fortran_defines}")
+   endif ()
 
    message( STATUS "   C++ flags                = ${_cxx_flags}")
-   message( STATUS "   Fortran flags            = ${_fortran_flags}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran flags            = ${_fortran_flags}")
+   endif ()
    if (ENABLE_CUDA)
       message( STATUS "   CUDA flags               = ${CMAKE_CUDA_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CUDA_FLAGS}"
          "${AMREX_CUDA_FLAGS}")
    endif ()
    message( STATUS "   C++ include paths        = ${_cxx_includes}")
-   message( STATUS "   Fortran include paths    = ${_fortran_includes}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran include paths    = ${_fortran_includes}")
+   endif ()
    message( STATUS "   Link line                = ${_cxx_link_line}")
 
 endfunction ()

@@ -25,7 +25,8 @@ public:
                   const Vector<Geometry>& a_geom,
                   const LPInfo& a_lpinfo,
                   const Vector<MultiFab const*>& a_divu,
-                  MLMG::Location a_divu_loc);
+                  MLMG::Location a_divu_loc,
+                  const Vector<iMultiFab const*>& a_overset_mask = {});
 
     MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
                   MLMG::Location a_umac_loc,
@@ -36,7 +37,7 @@ public:
                   const LPInfo& a_lpinfo,
                   const Vector<MultiFab const*>& a_divu = {})
      : MacProjector(a_umac, a_umac_loc, a_beta, a_beta_loc, a_phi_loc,
-                    a_geom, a_lpinfo, a_divu, MLMG::Location::CellCenter) {};
+                    a_geom, a_lpinfo, a_divu, MLMG::Location::CellCenter) {}
 
 #ifndef AMREX_USE_EB
     MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
@@ -46,7 +47,7 @@ public:
                   const Vector<MultiFab const*>& a_divu = {}) 
      : MacProjector(a_umac, MLMG::Location::FaceCenter,
                     a_beta, MLMG::Location::FaceCenter, MLMG::Location::CellCenter,
-                    a_geom, a_lpinfo, a_divu, MLMG::Location::CellCenter) {};
+                    a_geom, a_lpinfo, a_divu, MLMG::Location::CellCenter) {}
 
     MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
                   const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
@@ -54,7 +55,7 @@ public:
                   const Vector<MultiFab const*>& a_divu = {})
      : MacProjector(a_umac, MLMG::Location::FaceCenter,
                     a_beta, MLMG::Location::FaceCenter, MLMG::Location::CellCenter,
-                    a_geom, LPInfo(), a_divu, MLMG::Location::CellCenter) {};
+                    a_geom, LPInfo(), a_divu, MLMG::Location::CellCenter) {}
 #endif
 
     //
@@ -81,7 +82,9 @@ public:
     //
     // Setters and getters
     //
-    void setVerbose            (int  v) noexcept { m_verbose = v; }
+    void setVerbose            (int  v) noexcept 
+       { m_verbose = v;
+         m_mlmg->setVerbose(m_verbose); }
 
     // Methods to get underlying objects
     // Use these to modify properties of MLMG and linear operator

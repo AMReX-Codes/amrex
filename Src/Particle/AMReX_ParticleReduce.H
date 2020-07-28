@@ -16,7 +16,7 @@ namespace amrex
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
  * This version operates over all particles on all levels.
- * 
+ *
  * This version uses "Sum" as the reduction operation. The quantity reduced over is an arbitrary function
  * of a "superparticle", which contains all the data in the particle type, whether it is stored in AoS or
  * SoA form.
@@ -25,12 +25,12 @@ namespace amrex
  * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
  *
  * \tparam PC the ParticleContainer type
- * \tparam F a function object 
+ * \tparam F a function object
  *
- * \param pc the ParticleContainer to operate on 
+ * \param pc the ParticleContainer to operate on
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
- */    
+ */
 template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceSum (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))

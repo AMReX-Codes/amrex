@@ -58,7 +58,7 @@ int  Device::max_blocks_per_launch = 640;
 
 std::array<gpuStream_t,Device::max_gpu_streams> Device::gpu_streams;
 gpuStream_t                                     Device::gpu_default_stream;
-gpuStream_t                                     Device::gpu_stream;
+Vector<gpuStream_t>                             Device::gpu_stream;
 gpuDeviceProp_t                                 Device::device_prop;
 
 constexpr int                                   Device::warp_size;
@@ -76,6 +76,8 @@ namespace {
 
     void InitializeGraph(int graph_size)
     {
+        amrex::ignore_unused(graph_size);
+
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
 
         BL_PROFILE("InitGraph");
@@ -359,7 +361,7 @@ Device::Finalize ()
         delete s.queue;
         s.queue = nullptr;
     }
-    gpu_stream.queue = nullptr;
+    gpu_stream.clear();
     delete gpu_default_stream.queue;
     gpu_default_stream.queue = nullptr;
 #endif
@@ -473,7 +475,7 @@ Device::initialize_gpu ()
     }
 #endif
 
-    gpu_stream = gpu_default_stream;
+    gpu_stream.resize(OpenMP::get_max_threads(), gpu_default_stream);
 
     ParmParse pp("device");
 
@@ -537,15 +539,16 @@ Device::numDevicesUsed () noexcept
 void
 Device::setStreamIndex (const int idx) noexcept
 {
+    amrex::ignore_unused(idx);
 #ifdef AMREX_USE_GPU
     if (idx < 0) {
-        gpu_stream = gpu_default_stream;
+        gpu_stream[OpenMP::get_thread_num()] = gpu_default_stream;
 
 #ifdef AMREX_USE_ACC
         amrex_set_acc_stream(acc_async_sync);
 #endif
     } else {
-        gpu_stream = gpu_streams[idx % max_gpu_streams];
+        gpu_stream[OpenMP::get_thread_num()] = gpu_streams[idx % max_gpu_streams];
 
 #ifdef AMREX_USE_ACC
         amrex_set_acc_stream(idx % max_gpu_streams);
@@ -558,16 +561,16 @@ Device::setStreamIndex (const int idx) noexcept
 gpuStream_t
 Device::resetStream () noexcept
 {
-    gpuStream_t r = gpu_stream;
-    gpu_stream = gpu_default_stream;
+    gpuStream_t r = gpu_stream[OpenMP::get_thread_num()];
+    gpu_stream[OpenMP::get_thread_num()] = gpu_default_stream;
     return r;
 }
 
 gpuStream_t
 Device::setStream (gpuStream_t s) noexcept
 {
-    gpuStream_t r = gpu_stream;
-    gpu_stream = s;
+    gpuStream_t r = gpu_stream[OpenMP::get_thread_num()];
+    gpu_stream[OpenMP::get_thread_num()] = s;
     return r;
 }
 #endif
@@ -599,8 +602,8 @@ Device::streamSynchronize () noexcept
         amrex::Abort(std::string("streamSynchronize: ")+ex.what()+"!!!!!");
     }
 #else
-    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpu_stream));,
-                       AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpu_stream)); )
+    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpu_stream[OpenMP::get_thread_num()]));,
+                       AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpu_stream[OpenMP::get_thread_num()])); )
 #endif
 }
 
@@ -737,6 +740,7 @@ Device::executeGraph(const cudaGraphExec_t &graphExec, bool synch)
 void
 Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int device)
 {
+    amrex::ignore_unused(p,sz,device);
     // HIP does not support memory advise.
 #ifdef AMREX_USE_CUDA
 #ifndef AMREX_USE_HIP
@@ -758,6 +762,7 @@ Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int devic
 void
 Device::mem_advise_set_readonly (void* p, const std::size_t sz)
 {
+    amrex::ignore_unused(p,sz);
     // HIP does not support memory advise.
 #ifdef AMREX_USE_CUDA
 #ifndef AMREX_USE_HIP

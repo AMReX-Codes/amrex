@@ -1,32 +1,5 @@
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
-# MPI header is incapsulated in AMReX_ccse-mpi.H
-if (ENABLE_MPI)
-   find_package(MPI REQUIRED C CXX)
-
-   # Make imported target "global" so that it can be seen
-   # from other directories in the project.
-   # This is especially useful when get_target_properties_flattened()
-   # (see module AMReXTargetHelpers.cmake) is called to recover dependecy tree info
-   # in projects that use amrex directly in the build (via add_subdirectory()).
-   # Without this, get_target_properties_flattened() would not recognize
-   # MPI::MPI_C and MPI::MPI_CXX as targets because they would be visibile only in this
-   # folder and subfolders.
-   set_target_properties(
-      MPI::MPI_C MPI::MPI_CXX
-      PROPERTIES
-      IMPORTED_GLOBAL True )
-
-   target_link_libraries(amrex PUBLIC MPI::MPI_C MPI::MPI_CXX)
-endif ()
-
-# We need threads
-set( THREADS_PREFER_PTHREAD_FLAG on)
-find_package(Threads REQUIRED)
-set_target_properties( Threads::Threads PROPERTIES IMPORTED_GLOBAL True )
-target_link_libraries(amrex PUBLIC Threads::Threads)
-
-
 target_sources( amrex
    PRIVATE
    # Utility classes ---------------------------------------------------------
@@ -71,6 +44,7 @@ target_sources( amrex
    AMReX_DistributionMapping.cpp
    AMReX_ParallelDescriptor.H
    AMReX_ParallelDescriptor.cpp
+   AMReX_OpenMP.H
    AMReX_ParallelReduce.H
    AMReX_ForkJoin.H
    AMReX_ForkJoin.cpp
@@ -80,6 +54,8 @@ target_sources( amrex
    AMReX_VisMF.cpp
    AMReX_AsyncOut.H
    AMReX_AsyncOut.cpp
+   AMReX_BackgroundThread.H
+   AMReX_BackgroundThread.cpp
    AMReX_Arena.H
    AMReX_Arena.cpp
    AMReX_BArena.H
@@ -188,6 +164,8 @@ target_sources( amrex
    AMReX_FilCC_${DIM}D_C.H
    AMReX_FilCC_C.H
    AMReX_FilCC_C.cpp
+   AMReX_FilND_C.H
+   AMReX_FilND_C.cpp
    # Plotfile ----------------------------------------------------------------
    AMReX_PlotFileUtil.cpp
    AMReX_PlotFileUtil.H
@@ -201,8 +179,11 @@ target_sources( amrex
    AMReX_GpuTypes.H
    AMReX_GpuControl.H
    AMReX_GpuControl.cpp
+   AMReX_GpuFuse.H
+   AMReX_GpuFuse.cpp
    AMReX_GpuLaunch.H
    AMReX_GpuLaunch.cpp
+   AMReX_GpuLaunchGlobal.H
    AMReX_GpuLaunchMacrosG.H
    AMReX_GpuLaunchMacrosC.H
    AMReX_GpuLaunchFunctsG.H

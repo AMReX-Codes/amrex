@@ -59,7 +59,7 @@ public:
     void PrintUsage (std::string const& name) const;
 
     //! The default memory hunk size to grab from the heap.
-    enum { DefaultHunkSize = 1024*1024*8 };
+    constexpr static std::size_t DefaultHunkSize = 1024*1024*8;
 
 protected:
     //! The nodes in our free list and block list.

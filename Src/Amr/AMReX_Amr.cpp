@@ -1273,7 +1273,7 @@ Amr::initialInit (Real              strt_time,
 
 void
 Amr::InitializeInit(Real              strt_time,
-                    Real              stop_time,
+                    Real              /*stop_time*/,
                     const BoxArray*   lev0_grids,
                     const Vector<int>* pmap)
 {
@@ -2743,6 +2743,8 @@ Amr::defBaseLevel (Real              strt_time,
                    const BoxArray*   lev0_grids,
                    const Vector<int>* pmap)
 {
+    amrex::ignore_unused(pmap);
+
     BL_PROFILE("Amr::defBaseLevel()");
     // Just initialize this here for the heck of it
     which_level_being_advanced = -1;
@@ -2843,9 +2845,12 @@ Amr::regrid (int  lbase,
 
     //
     // Reclaim old-time grid space for all remain levels > lbase.
+    // But skip this if we're in the middle of a post-timestep regrid.
     //
     for(int lev = start; lev <= finest_level; ++lev) {
-	amr_level[lev]->removeOldData();
+        if (!amr_level[lev]->postStepRegrid()) {
+            amr_level[lev]->removeOldData();
+        }
     }
     //
     // Reclaim all remaining storage for levels > new_finest.

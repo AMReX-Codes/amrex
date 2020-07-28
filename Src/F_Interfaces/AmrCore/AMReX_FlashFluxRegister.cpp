@@ -1,8 +1,5 @@
 #include <AMReX_FlashFluxRegister.H>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+#include <AMReX_OpenMP.H>
 
 namespace amrex {
 
@@ -37,9 +34,9 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     {
         BoxArray const& fndba = amrex::convert(fba,IntVect::TheNodeVector());
         Array<BoxList,AMREX_SPACEDIM> bl
-            {AMREX_D_DECL(BoxList(IndexType(IntVect::TheDimensionVector(0))),
-                          BoxList(IndexType(IntVect::TheDimensionVector(1))),
-                          BoxList(IndexType(IntVect::TheDimensionVector(2))))};
+        {{AMREX_D_DECL(BoxList(IndexType(IntVect::TheDimensionVector(0))),
+                       BoxList(IndexType(IntVect::TheDimensionVector(1))),
+                       BoxList(IndexType(IntVect::TheDimensionVector(2))))}};
         Array<Vector<int>,AMREX_SPACEDIM> procmap;
         Array<Vector<int>,AMREX_SPACEDIM> my_global_indices;
         std::vector<std::pair<int,Box> > isects;
@@ -86,7 +83,7 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                     if (found != m_fine_map.end()) {
                         found->second[idim] = &(m_fine_fluxes[idim][mfi]);
                     } else {
-                        Array<FArrayBox*,AMREX_SPACEDIM> t{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+                        Array<FArrayBox*,AMREX_SPACEDIM> t{{AMREX_D_DECL(nullptr,nullptr,nullptr)}};
                         t[idim] = &(m_fine_fluxes[idim][mfi]);
                         m_fine_map.insert(std::make_pair(gi,t));
                     }
@@ -99,9 +96,9 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     {
         BoxArray const fba_coarsened = amrex::coarsen(fba,ref_ratio);
         Array<BoxList,AMREX_SPACEDIM> bl
-            {AMREX_D_DECL(BoxList(IndexType(IntVect::TheDimensionVector(0))),
-                          BoxList(IndexType(IntVect::TheDimensionVector(1))),
-                          BoxList(IndexType(IntVect::TheDimensionVector(2))))};
+        {{AMREX_D_DECL(BoxList(IndexType(IntVect::TheDimensionVector(0))),
+                       BoxList(IndexType(IntVect::TheDimensionVector(1))),
+                       BoxList(IndexType(IntVect::TheDimensionVector(2))))}};
         Array<Vector<int>,AMREX_SPACEDIM> procmap;
         Array<Vector<int>,AMREX_SPACEDIM> my_global_indices;
         std::vector<std::pair<int,Box> > isects;
@@ -161,8 +158,8 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                     if (found != m_crse_map.end()) {
                         found->second[index] = &(m_crse_fluxes[idim][mfi]);
                     } else {
-                        Array<FArrayBox*,2*AMREX_SPACEDIM> t{AMREX_D_DECL(nullptr,nullptr,nullptr),
-                                                             AMREX_D_DECL(nullptr,nullptr,nullptr)};
+                        Array<FArrayBox*,2*AMREX_SPACEDIM> t{{AMREX_D_DECL(nullptr,nullptr,nullptr),
+                                    AMREX_D_DECL(nullptr,nullptr,nullptr)}};
                         t[index] = &(m_crse_fluxes[idim][mfi]);
                         m_crse_map.insert(std::make_pair(gi,t));
                     }
@@ -171,11 +168,7 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         }
     }
 
-#ifdef _OPNEMP
-    int nthreads = omp_get_max_threads;
-#else
-    int nthreads = 1;
-#endif
+    int nthreads = OpenMP::get_max_threads();
     m_h_ifd.resize(nthreads);
     m_d_ifd.resize(nthreads);
     for (int i = 0; i < nthreads; ++i) {
@@ -195,43 +188,55 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
             Array4<Real> const& dest = fab_a[dir]->array();
             Array4<Real const> const& src = fine_flux.const_array();
             if (dir == 0) {
+#if (AMREX_SPACEDIM == 1)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-#if (AMREX_SPACEDIM == 1)
                     dest(i,0,0,n) = src(2*i,0,0,n)*sf;
-#elif (AMREX_SPACEDIM == 2)
+                });
+#endif
+#if (AMREX_SPACEDIM == 2)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
                     dest(i,j,0,n) = (src(2*i,2*j  ,0,n) +
                                      src(2*i,2*j+1,0,n)) * (0.5*sf);
-#elif (AMREX_SPACEDIM == 3)
+                });
+#endif
+#if (AMREX_SPACEDIM == 3)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
                     dest(i,j,k,n) = (src(2*i,2*j  ,2*k  ,n) +
                                      src(2*i,2*j+1,2*k  ,n) +
                                      src(2*i,2*j  ,2*k+1,n) +
                                      src(2*i,2*j+1,2*k+1,n)) * (0.25*sf);
-#endif
                 });
+#endif
             } else if (dir == 1) {
+#if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-#if (AMREX_SPACEDIM == 2)
                     dest(i,j,0,n) = (src(2*i  ,2*j,0,n) +
                                      src(2*i+1,2*j,0,n)) * (0.5*sf);
-#elif (AMREX_SPACEDIM == 3)
+                });
+#endif
+#if (AMREX_SPACEDIM == 3)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
                     dest(i,j,k,n) = (src(2*i  ,2*j,2*k  ,n) +
                                      src(2*i+1,2*j,2*k  ,n) +
                                      src(2*i  ,2*j,2*k+1,n) +
                                      src(2*i+1,2*j,2*k+1,n)) * (0.25*sf);
-#endif
                 });
+#endif
             } else {
+#if (AMREX_SPACEDIM == 3)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-#if (AMREX_SPACEDIM == 3)
                     dest(i,j,k,n) = (src(2*i  ,2*j  ,2*k,n) +
                                      src(2*i+1,2*j  ,2*k,n) +
                                      src(2*i  ,2*j+1,2*k,n) +
                                      src(2*i+1,2*j+1,2*k,n)) * (0.25*sf);
-#endif
                 });
+#endif
             }
         }
     }
@@ -251,43 +256,55 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
             Array4<Real const> const& src = fine_flux.const_array();
             Array4<Real const> const& area = fine_area.const_array();
             if (dir == 0) {
+#if (AMREX_SPACEDIM == 1)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-#if (AMREX_SPACEDIM == 1)
                     dest(i,0,0,n) = src(2*i,0,0,n)*area(2*i,0,0)*sf;
-#elif (AMREX_SPACEDIM == 2)
+                });
+#endif
+#if (AMREX_SPACEDIM == 2)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
                     dest(i,j,0,n) = (src(2*i,2*j  ,0,n)*area(2*i,2*j  ,0) +
                                      src(2*i,2*j+1,0,n)*area(2*i,2*j+1,0)) * sf;
-#elif (AMREX_SPACEDIM == 3)
+                });
+#endif
+#if (AMREX_SPACEDIM == 3)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
                     dest(i,j,k,n) = (src(2*i,2*j  ,2*k  ,n)*area(2*i,2*j  ,2*k  ) +
                                      src(2*i,2*j+1,2*k  ,n)*area(2*i,2*j+1,2*k  ) +
                                      src(2*i,2*j  ,2*k+1,n)*area(2*i,2*j  ,2*k+1) +
                                      src(2*i,2*j+1,2*k+1,n)*area(2*i,2*j+1,2*k+1)) * sf;
-#endif
                 });
+#endif
             } else if (dir == 1) {
+#if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-#if (AMREX_SPACEDIM == 2)
                     dest(i,j,0,n) = (src(2*i  ,2*j,0,n)*area(2*i  ,2*j,0) +
                                      src(2*i+1,2*j,0,n)*area(2*i+1,2*j,0)) * sf;
-#elif (AMREX_SPACEDIM == 3)
+                });
+#endif
+#if (AMREX_SPACEDIM == 3)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
                     dest(i,j,k,n) = (src(2*i  ,2*j,2*k  ,n)*area(2*i  ,2*j,2*k  ) +
                                      src(2*i+1,2*j,2*k  ,n)*area(2*i+1,2*j,2*k  ) +
                                      src(2*i  ,2*j,2*k+1,n)*area(2*i  ,2*j,2*k+1) +
                                      src(2*i+1,2*j,2*k+1,n)*area(2*i+1,2*j,2*k+1)) * sf;
-#endif
                 });
+#endif
             } else {
+#if (AMREX_SPACEDIM == 3)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-#if (AMREX_SPACEDIM == 3)
                     dest(i,j,k,n) = (src(2*i  ,2*j  ,2*k,n)*area(2*i  ,2*j  ,2*k) +
                                      src(2*i+1,2*j  ,2*k,n)*area(2*i+1,2*j  ,2*k) +
                                      src(2*i  ,2*j+1,2*k,n)*area(2*i  ,2*j+1,2*k) +
                                      src(2*i+1,2*j+1,2*k,n)*area(2*i+1,2*j+1,2*k)) * sf;
-#endif
                 });
+#endif
             }
         }
     }
@@ -296,13 +313,8 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
 void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& fine_flux,
                                FArrayBox const& fine_area, const int* isFluxDensity, Real sf)
 {
-#ifdef _OPENMP
-    auto& h_ifd = m_h_ifd[omp_get_thread_num()];
-    auto& d_ifd = m_d_ifd[omp_get_thread_num()];
-#else
-    auto& h_ifd = m_h_ifd[0];
-    auto& d_ifd = m_d_ifd[0];
-#endif
+    auto& h_ifd = m_h_ifd[OpenMP::get_thread_num()];
+    auto& d_ifd = m_d_ifd[OpenMP::get_thread_num()];
 
     AMREX_ASSERT(dir < AMREX_SPACEDIM);
     auto found = m_fine_map.find(fine_global_index);
@@ -331,59 +343,73 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
             Array4<Real const> const& area = fine_area.const_array();
             const int* ifd = d_ifd.data();
             if (dir == 0) {
+#if (AMREX_SPACEDIM == 1)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
                     if (ifd[n]) {
-#if (AMREX_SPACEDIM == 1)
                         dest(i,0,0,n) = src(2*i,0,0,n)*area(2*i,0,0)*sf;
-#elif (AMREX_SPACEDIM == 2)
+                    } else {
+                        dest(i,0,0,n) = src(2*i,0,0,n)*sf;
+                    }
+                });
+#endif
+#if (AMREX_SPACEDIM == 2)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
+                    if (ifd[n]) {
                         dest(i,j,0,n) = (src(2*i,2*j  ,0,n)*area(2*i,2*j  ,0) +
                                          src(2*i,2*j+1,0,n)*area(2*i,2*j+1,0)) * sf;
-#elif (AMREX_SPACEDIM == 3)
+                    } else {
+                        dest(i,j,0,n) = (src(2*i,2*j  ,0,n) +
+                                         src(2*i,2*j+1,0,n)) * sf;
+                    }
+                });
+#endif
+#if (AMREX_SPACEDIM == 3)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
+                    if (ifd[n]) {
                         dest(i,j,k,n) = (src(2*i,2*j  ,2*k  ,n)*area(2*i,2*j  ,2*k  ) +
                                          src(2*i,2*j+1,2*k  ,n)*area(2*i,2*j+1,2*k  ) +
                                          src(2*i,2*j  ,2*k+1,n)*area(2*i,2*j  ,2*k+1) +
                                          src(2*i,2*j+1,2*k+1,n)*area(2*i,2*j+1,2*k+1)) * sf;
-#endif
                     } else {
-#if (AMREX_SPACEDIM == 1)
-                        dest(i,0,0,n) = src(2*i,0,0,n)*sf;
-#elif (AMREX_SPACEDIM == 2)
-                        dest(i,j,0,n) = (src(2*i,2*j  ,0,n) +
-                                         src(2*i,2*j+1,0,n)) * sf;
-#elif (AMREX_SPACEDIM == 3)
                         dest(i,j,k,n) = (src(2*i,2*j  ,2*k  ,n) +
                                          src(2*i,2*j+1,2*k  ,n) +
                                          src(2*i,2*j  ,2*k+1,n) +
                                          src(2*i,2*j+1,2*k+1,n)) * sf;
-#endif
                     }
                 });
+#endif
             } else if (dir == 1) {
+#if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
                     if (ifd[n]) {
-#if (AMREX_SPACEDIM == 2)
                         dest(i,j,0,n) = (src(2*i  ,2*j,0,n)*area(2*i  ,2*j,0) +
                                          src(2*i+1,2*j,0,n)*area(2*i+1,2*j,0)) * sf;
-#elif (AMREX_SPACEDIM == 3)
+                    } else {
+                        dest(i,j,0,n) = (src(2*i  ,2*j,0,n) +
+                                         src(2*i+1,2*j,0,n)) * sf;
+                    }
+                });
+#endif
+#if (AMREX_SPACEDIM == 3)
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
+                    if (ifd[n]) {
                         dest(i,j,k,n) = (src(2*i  ,2*j,2*k  ,n)*area(2*i  ,2*j,2*k  ) +
                                          src(2*i+1,2*j,2*k  ,n)*area(2*i+1,2*j,2*k  ) +
                                          src(2*i  ,2*j,2*k+1,n)*area(2*i  ,2*j,2*k+1) +
                                          src(2*i+1,2*j,2*k+1,n)*area(2*i+1,2*j,2*k+1)) * sf;
-#endif
                     } else {
-#if (AMREX_SPACEDIM == 2)
-                        dest(i,j,0,n) = (src(2*i  ,2*j,0,n) +
-                                         src(2*i+1,2*j,0,n)) * sf;
-#elif (AMREX_SPACEDIM == 3)
                         dest(i,j,k,n) = (src(2*i  ,2*j,2*k  ,n) +
                                          src(2*i+1,2*j,2*k  ,n) +
                                          src(2*i  ,2*j,2*k+1,n) +
                                          src(2*i+1,2*j,2*k+1,n)) * sf;
-#endif
                     }
                 });
+#endif
             } else {
 #if (AMREX_SPACEDIM == 3)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
@@ -509,13 +535,8 @@ void FlashFluxRegister::load (int crse_global_index, int dir, FArrayBox& crse_fl
                               FArrayBox const& cflux, FArrayBox const& area_fab,
                               const int* isFluxDensity, Real sf_f, Real sf_c) const
 {
-#ifdef _OPENMP
-    auto& h_ifd = m_h_ifd[omp_get_thread_num()];
-    auto& d_ifd = m_d_ifd[omp_get_thread_num()];
-#else
-    auto& h_ifd = m_h_ifd[0];
-    auto& d_ifd = m_d_ifd[0];
-#endif
+    auto& h_ifd = m_h_ifd[OpenMP::get_thread_num()];
+    auto& d_ifd = m_d_ifd[OpenMP::get_thread_num()];
 
     AMREX_ASSERT(dir < AMREX_SPACEDIM);
     auto found = m_crse_map.find(crse_global_index);

@@ -1,0 +1,19 @@
+CPPFLAGS += -DAMREX_USE_HDF5
+
+ifndef AMREX_HDF5_HOME
+ifdef HDF5_DIR
+  AMREX_HDF5_HOME = $(HDF5_DIR)
+endif
+ifdef HDF5_HOME
+  AMREX_HDF5_HOME = $(HDF5_HOME)
+endif
+endif
+
+LIBRARIES += -lhdf5 -lz -ldl
+
+ifdef AMREX_HDF5_HOME
+  HDF5_ABSPATH = $(abspath $(AMREX_HDF5_HOME))
+  INCLUDE_LOCATIONS += $(HDF5_ABSPATH)/include
+  LIBRARY_LOCATIONS += $(HDF5_ABSPATH)/lib
+  LDFLAGS += -Xlinker -rpath -Xlinker $(HDF5_ABSPATH)/lib
+endif

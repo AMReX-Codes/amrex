@@ -8,10 +8,10 @@
 add_library( amrex )
 add_library( AMReX::amrex ALIAS amrex )
 
-if (ENABLE_DPCPP)
-   include(AMReXSYCL)
-   target_link_libraries(amrex PUBLIC SYCL)
-endif ()
+#
+# Setup parallel backends (any type: inter/intra-node)
+#
+include(AMReXParallelBackends)
 
 # Where to store Fortran modules
 if (CMAKE_Fortran_COMPILER_LOADED)
@@ -37,11 +37,6 @@ if (CMAKE_Fortran_COMPILER_LOADED AND (NOT CMAKE_Fortran_FLAGS) )
       )
 endif ()
 
-
-target_link_libraries(amrex
-   PUBLIC
-   $<BUILD_INTERFACE:Flags_CXX_REQUIRED>
-   )
 
 if (NOT CMAKE_CXX_FLAGS)
    target_link_libraries(amrex
@@ -81,10 +76,6 @@ endif ()
 
 if (ENABLE_LINEAR_SOLVERS)
    add_subdirectory(LinearSolvers)
-   target_link_libraries(amrex
-      PUBLIC
-      $<BUILD_INTERFACE:Flags_Fortran_REQUIRED>
-      )
 endif ()
 
 if (ENABLE_FORTRAN_INTERFACES)
@@ -100,10 +91,6 @@ endif ()
 #
 if (ENABLE_AMRDATA)
    add_subdirectory(Extern/amrdata)
-   target_link_libraries(amrex
-      PUBLIC
-      $<BUILD_INTERFACE:Flags_Fortran_REQUIRED>
-      )
 endif()
 
 if (ENABLE_PROFPARSER)
@@ -152,7 +139,7 @@ if (ENABLE_SUNDIALS)
    add_subdirectory(Extern/SUNDIALS4)
 endif ()
 
-if (ENABLE_CONDUIT)
+if (ENABLE_CONDUIT OR ENABLE_ASCENT)
    add_subdirectory(Extern/Conduit)
 endif ()
 

@@ -16,7 +16,6 @@ target_sources( amrex
    PRIVATE
    AMReX_PETSc.cpp
    AMReX_PETSc.H
-   AMReX_PETSc_fort_mod.F90
    )
 
 target_link_libraries( amrex PUBLIC PETSC )

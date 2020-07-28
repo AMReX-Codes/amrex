@@ -188,7 +188,7 @@ void LSCoreBase::InitData (const Vector<Real> & m_phierr) {
 // Make a new level using provided BoxArray and DistributionMapping and fill
 // with interpolated coarse level data. Overrides the pure virtual function in
 // AmrCore
-void LSCoreBase::MakeNewLevelFromCoarse ( int lev, Real time, const BoxArray & ba,
+void LSCoreBase::MakeNewLevelFromCoarse ( int lev, Real /*time*/, const BoxArray & ba,
                                           const DistributionMapping & dm) {
 
     BL_PROFILE("LSCoreBase::MakeNewLevelFromCoarse()");
@@ -422,7 +422,7 @@ Box LSCoreBase::EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
 
 // tag all cells for refinement
 // overrides the pure virtual function in AmrCore
-void LSCoreBase::ErrorEst (int lev, TagBoxArray & tags, Real time, int ngrow) {
+void LSCoreBase::ErrorEst (int lev, TagBoxArray & tags, Real /*time*/, int /*ngrow*/) {
 
     if (use_phierr) {
         LSCoreBase::FillLevelSetTags(lev, tags, phierr, level_set[lev], geom);
@@ -510,7 +510,7 @@ void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int nco
 
 // Fill an entire multifab by interpolating from the coarser level. This comes
 // into play when a new level of refinement appears
-void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, int ncomp) {
+void LSCoreBase::FillCoarsePatch (int lev, Real /*time*/, MultiFab & mf, int icomp, int ncomp) {
 
     BL_PROFILE("LSCoreBase::FillCoarsePatch()");
     BL_ASSERT(lev > 0);
@@ -631,7 +631,7 @@ void LSCoreBase::FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
 
 
 // Get plotfile name
-std::string LSCoreBase::PlotFileName (int lev) const {
+std::string LSCoreBase::PlotFileName (int /*lev*/) const {
     // return amrex::Concatenate(plot_file, lev, 5);
     return plot_file;
 }

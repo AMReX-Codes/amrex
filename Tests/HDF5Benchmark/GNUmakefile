@@ -5,7 +5,7 @@ DEBUG	= FALSE
 
 DIM	= 3
 
-COMP    = gnu 
+COMP    = gnu
 
 PRECISION = DOUBLE
 

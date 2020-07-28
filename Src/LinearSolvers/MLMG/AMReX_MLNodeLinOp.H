@@ -34,7 +34,7 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
-    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) final override {}
+    virtual void setLevelBC (int /*amrlev*/, const MultiFab* /*levelbcdata*/) final override {}
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
@@ -46,19 +46,20 @@ public:
                                    const MultiFab* crse_bcdata=nullptr) override;
     virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                      BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) override;
-    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
-                           MultiFab& sol, Location loc) const final override {
+    virtual void compFlux (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*fluxes*/,
+                           MultiFab& /*sol*/, Location /*loc*/) const final override {
         amrex::Abort("AMReX_MLNodeLinOp::compFlux::How did we get here?");
     }
-    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
-                           MultiFab& sol, Location loc) const final override {
+    virtual void compGrad (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
+                           MultiFab& /*sol*/, Location /*loc*/) const final override {
         amrex::Abort("AMReX_MLNodeLinOp::compGrad::How did we get here?");
     }
     
-    virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final override {}
-    virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final override {}
+    virtual void applyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final override {}
+    virtual void unapplyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final override {}
 
-    virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) final override {
+    virtual void fillSolutionBC (int /*amrlev*/, MultiFab& /*sol*/,
+                                 const MultiFab* /*crse_bcdata*/=nullptr) final override {
         amrex::Abort("AMReX_MLNodeLinOp::fillSolutionBC::How did we get here?");
     }
 
@@ -80,7 +81,7 @@ public:
 
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const final override;
 
-    virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const final override {
+    virtual std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final override {
         amrex::Abort("MLNodeLinOp::makeNLinOp: N-Solve not supported");
         return std::unique_ptr<MLLinOp>{};
     }

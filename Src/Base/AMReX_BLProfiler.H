@@ -525,17 +525,17 @@ namespace amrex {
 class BLProfiler
 {
   public:
-    explicit BLProfiler(const std::string &funcname) { }
+    explicit BLProfiler(const std::string &/*funcname*/) { }
     static void Initialize() { }
     static void InitParams() { }
     static void Finalize() { }
-    static void WriteStats(std::ostream &os) { }
+    static void WriteStats(std::ostream &/*os*/) { }
     static void WriteCommStats() { }
     void start() { }
     void stop() { }
-    static void InitParams(const Real ptl, const bool writeall,
-                           const bool writefabs) { }
-    static void AddStep(const int snum) { }
+    static void InitParams(const Real /*ptl*/, const bool /*writeall*/,
+                           const bool /*writefabs*/) { }
+    static void AddStep(const int /*snum*/) { }
 };
 
 }

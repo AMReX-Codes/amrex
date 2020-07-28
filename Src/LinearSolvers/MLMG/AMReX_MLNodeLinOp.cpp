@@ -23,7 +23,11 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
                      const LPInfo& a_info,
                      const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
+#ifdef AMREX_USE_HYPRE
+    bool eb_limit_coarsening = true;
+#else
     bool eb_limit_coarsening = false;
+#endif
     MLLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory, eb_limit_coarsening);
 
     m_owner_mask.resize(m_num_amr_levels);
@@ -79,7 +83,7 @@ MLNodeLinOp::nodalSync (int amrlev, int mglev, MultiFab& mf) const
 
 void
 MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                               const MultiFab* crse_bcdata)
+                               const MultiFab* /*crse_bcdata*/)
 {
     const int mglev = 0;
     const int ncomp = b.nComp();
@@ -108,7 +112,7 @@ MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
 
 void
 MLNodeLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                                 BCMode bc_mode, const MultiFab* crse_bcdata)
+                                 BCMode /*bc_mode*/, const MultiFab* /*crse_bcdata*/)
 {
     apply(amrlev, mglev, resid, x, BCMode::Homogeneous, StateMode::Correction);
     int ncomp = b.nComp();
@@ -136,6 +140,7 @@ MLNodeLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 Real
 MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const
 {
+    amrex::ignore_unused(amrlev);
     AMREX_ASSERT(amrlev==0);
     AMREX_ASSERT(mglev+1==m_num_mg_levels[0] || mglev==0);
     const auto& mask = (mglev+1 == m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
@@ -156,6 +161,7 @@ MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
 void
 MLNodeLinOp::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
 {
+    amrex::ignore_unused(amrlev);
     int ncomp = rhs.nComp();
     for (int n = 0; n < ncomp; ++n)
     {
@@ -215,7 +221,7 @@ MLNodeLinOp::buildMasks ()
     auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet);
     if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end())
     {  // No Dirichlet
-        m_is_bottom_singular = m_domain_covered[0];
+        m_is_bottom_singular = (m_domain_covered[0] && !m_overset_dirichlet_mask);
     }
 
     const auto lobc = LoBC();
@@ -371,9 +377,6 @@ MLNodeLinOp::makeHypreNodeLap (int bottom_verbose) const
     const auto& owner_mask = *(m_owner_mask[0].back());
     const auto& dirichlet_mask = *(m_dirichlet_mask[0].back());
     MPI_Comm comm = BottomCommunicator();
-
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(NMGLevels(0) == 1,
-                                     "MLNodeLaplacian: To use hypre, max_coarsening_level must be 0");
 
     std::unique_ptr<HypreNodeLap> hypre_solver
         (new amrex::HypreNodeLap(ba, dm, geom, factory, owner_mask, dirichlet_mask,

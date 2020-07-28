@@ -24,7 +24,7 @@ struct BinIterator
         void operator++ () { ++m_index;; }
         
         AMREX_GPU_HOST_DEVICE
-        bool operator!= (iterator const& rhs) const { return m_index < m_stop; }
+        bool operator!= (iterator const& /*rhs*/) const { return m_index < m_stop; }
         
         AMREX_GPU_HOST_DEVICE
         std::pair<index_type, T> operator* () const

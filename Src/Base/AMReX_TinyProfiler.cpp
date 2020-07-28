@@ -88,7 +88,7 @@ TinyProfiler::start () noexcept
 	global_depth = ttstack.size();
 
 #ifdef AMREX_USE_CUDA
-	nvtx_id = nvtxRangeStartA(fname.c_str());
+	nvtxRangePush(fname.c_str());
 #endif
 
         for (auto const& region : regionstack)
@@ -110,16 +110,17 @@ TinyProfiler::stop () noexcept
     {
         double t;
 	int nKernelCalls = 0;
-	if (!uCUPTI) {
-	    t = amrex::second();
-	} else {
 #ifdef AMREX_USE_CUPTI
-	    cudaDeviceSynchronize();
-	    cuptiActivityFlushAll(0);
-	    t = computeElapsedTimeUserdata(activityRecordUserdata);
-	    nKernelCalls = activityRecordUserdata.size();
+        if (uCUPTI) {
+            cudaDeviceSynchronize();
+            cuptiActivityFlushAll(0);
+            t = computeElapsedTimeUserdata(activityRecordUserdata);
+            nKernelCalls = activityRecordUserdata.size();
+        } else
 #endif
-	}
+        {
+	    t = amrex::second();
+        }
 
 	while (static_cast<int>(ttstack.size()) > global_depth) {
 	    ttstack.pop_back();
@@ -162,7 +163,7 @@ TinyProfiler::stop () noexcept
         }
 
 #ifdef AMREX_USE_CUDA
-        nvtxRangeEnd(nvtx_id);
+        nvtxRangePop();
 #endif
 	} else {
 	    improperly_nested_timers.insert(fname);
@@ -230,7 +231,7 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
             }
 
 #ifdef AMREX_USE_CUDA
-            nvtxRangeEnd(nvtx_id);
+            nvtxRangePop();
 #endif
         } else 
         {
