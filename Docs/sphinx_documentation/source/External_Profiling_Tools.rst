@@ -290,7 +290,8 @@ on Summit and Cori in a system module.
 
 Nsight Systems provides a variety of profiling options.  This documentation will cover the
 most commonly used options for AMReX users to keep track of useful flags and analysis
-patterns. For the complete details of using Nsight Systems, refer to the official documentation.
+patterns. For the complete details of using Nsight Systems, refer to the `official documentation
+<https://docs.nvidia.com/nsight-systems/index.html>`_.
 
 Profile Analysis
 ----------------
@@ -306,12 +307,12 @@ To generate a qdrep file, run nsys with the ``-o`` option:
 
 AMReX's lambda-based launch system often makes these timelines difficult to parse, as the kernel
 are mangled and are difficult to decipher. AMReX's Tiny Profiler includes NVTX region markers,
-which can be used to mark each section of the Nsight Systems timeline and.  To include AMReX's
+which can be used to mark the respective section of the Nsight Systems timeline.  To include AMReX's
 built-in Tiny Profiler NVTX regions in Nsight Systems outputs, compile AMReX with ``TINY_PROFILE=TRUE``.
 
 Nsight Systems timelines only profile a single, contiguous block of time. There are a variety of
 methods to specify the specific region you would like to analyze. Listed here are a few common
-options that AMReX users may find helpful
+options that AMReX users may find helpful:
 
 #. A NVTX region can be specified as the starting point of the analysis. This is done using
      ``-c nvtx -p "region_name@*" -e NSYS_NVTX_PROFILER_REGISTER_ONLY=0``, where ``region_name``
@@ -386,7 +387,8 @@ on Summit and Cori in system modules.
 
 Nsight Compute provides a variety of profiling options.  This documentation will focus on the
 most commonly used options for AMReX users, primarily to keep track of useful flags and analysis
-patterns.  For the complete details of using Nsight Compute, refer to the official documentation.
+patterns.  For the complete details of using Nsight Compute, refer to the `official documentation
+<https://docs.nvidia.com/nsight-compute/index.html>`_.
 
 
 Kernel Analysis
@@ -428,7 +430,8 @@ flag specifies the total number of kernels to be analyzed. For example:
 will only analyze the first ten kernels inside of the ``GravitySolve()`` NVTX region.
 
 For further details on how to choose a subset of CUDA kernels to analyze, or to run a more detailed
-analysis, including CUDA hardware counters, refer to the Nsight Compute official documentation.
+analysis, including CUDA hardware counters, refer to the Nsight Compute official documentation on
+`NVTX Filtering <https://docs.nvidia.com/nsight-compute/NsightComputeCli/index.html#nvtx-filtering>`_.
 
 
 Roofline
@@ -436,7 +439,8 @@ Roofline
 
 As of version 2020.1.0, Nsight Compute has added the capability to perform roofline analyses on CUDA
 kernels to describe how well a given kernel is running on a given NVIDIA architecture.  For details
-on the roofline capabilities in Nsight Compute, refer to the NVIDIA Kernel Profiling Guide.
+on the roofline capabilities in Nsight Compute, refer to the `NVIDIA Kernel Profiling Guide
+<https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#roofline>`_.
 
 To run a roofline analysis on an AMReX application, run ``ncu`` with the flag
 ``--section SpeedOfLight_RooflineChart``. Again, using appropriate NVTX flags to limit the scope of the
@@ -447,7 +451,9 @@ analysis will be critical to achieve results within a reasonable time. For examp
     ncu --section SpeedOfLight_RooflineChart --nvtx --nvtx-include "MLMG()" -c 10 -o roofline ${EXE} ${INPUTS} amrex.fpe_trap_invalid=0
 
 will perform a roofline analysis of the first ten kernels inside of the region ``MLMG()``, and report
-their relative performance on a file ``roofline``, which can be read by the Nsight Compute GUI. 
+their relative performance in the file ``roofline``, which can be read by the Nsight Compute GUI. 
 
-For further information on the roofline model, refer to the scientific literature, Wikipedia 
-overview and NERSC documentation and tutorials. 
+For further information on the roofline model, refer to the scientific literature, `Wikipedia 
+overview <https://en.wikipedia.org/wiki/Roofline_model>`_ and NERSC
+`documentation <https://docs.nersc.gov/development/performance-debugging-tools/roofline/>`_ and 
+`tutorials <https://www.nersc.gov/users/training/events/roofline-on-nvidia-gpus-hackathon/>`_. 
