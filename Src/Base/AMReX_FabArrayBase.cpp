@@ -696,7 +696,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, bool multi_ghost) // GETS US
                 // In the case where ngrow>1, augment the send/rcv box list
                 // with boxes for overlapping ghost nodes.
                 const Box& ba_krcv   = amrex::grow(ba[krcv],1);
-                const Box& dst_bx_ng = (amrex::grow(ba_krcv,ng_ng) & vbx_ng + (*pit));
+                const Box& dst_bx_ng = (amrex::grow(ba_krcv,ng_ng) & (vbx_ng + (*pit)));
     		    BoxList bl_ng = amrex::boxDiff(dst_bx_ng, ba_krcv);
                 bl.join(ba.complementIn(bl_ng));
                 bl.simplify();
