@@ -277,6 +277,7 @@ public:
     }
 
     bool outsideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const;
+    bool insideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const;
 
 private:
     void read_params ();
