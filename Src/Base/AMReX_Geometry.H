@@ -279,10 +279,10 @@ public:
     bool outsideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const;
     bool insideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const;
 
+    void computeRoundoffDomain ();
+
 private:
     void read_params ();
-
-    void computeRoundoffDomain ();
 
     // is_periodic and RealBox used to be static
     bool    is_periodic[AMREX_SPACEDIM] = {AMREX_D_DECL(false,false,false)};

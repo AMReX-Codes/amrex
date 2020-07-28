@@ -420,7 +420,7 @@ Geometry::computeRoundoffDomain ()
         PReal hi = static_cast<PReal>(phi) + 0.5_prt*static_cast<PReal>(deltax);
 
         PReal mid = bisect(lo, hi,
-                           [=] (PReal x) -> PReal
+                           [=] AMREX_GPU_HOST_DEVICE (PReal x) -> PReal
                            {
                                int i = int(Math::floor((x - plo)/deltax)) + ilo;
                                bool inside = i >= 0 and i <= ihi;

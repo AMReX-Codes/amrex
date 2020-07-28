@@ -66,6 +66,7 @@ namespace amrex
 
     template <class T, class F,
               typename std::enable_if<std::is_floating_point<T>{}, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T bisect (T lo, T hi, F f, T tol=1e-12, int max_iter=100)
     {
         AMREX_ASSERT_WITH_MESSAGE(hi > lo,
