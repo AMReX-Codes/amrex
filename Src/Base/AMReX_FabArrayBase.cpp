@@ -655,8 +655,6 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, bool multi_ghost) // GETS US
     AMREX_ASSERT(multi_ghost ? fa.nGrow() >= 2 : true);
     const int                  MyProc   = ParallelDescriptor::MyProc();
     BoxArray                     ba       = fa.boxArray();
-    BoxArray                     ba_ng    = fa.boxArray();
-    if (multi_ghost)             ba_ng    = BoxArray(ba.boxList().accrete(1));
     const DistributionMapping& dm       = fa.DistributionMap();
     const Vector<int>&         imap     = fa.IndexArray();
 
@@ -677,18 +675,16 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, bool multi_ghost) // GETS US
     {
 	const int ksnd = imap[i];
 	const Box& vbx    = ba[ksnd];
-	const Box& vbx_ng = ba_ng[ksnd];
+    const Box& vbx_ng  = amrex::grow(ba[ksnd],1);
 
 	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
 	    ba.intersections(vbx+(*pit), isects, false, ng);
-	    if (multi_ghost) ba_ng.intersections(vbx_ng+(*pit), isects_ng, false, ng_ng);
 
 	    for (int j = 0, M = isects.size(); j < M; ++j)
 	    {
 		const int krcv      = isects[j].first;
 		const Box& bx       = isects[j].second;
-		const Box& bx_ng       = isects_ng[j].second;
 		const int dst_owner = dm[krcv];
 		
 		if (ParallelDescriptor::sameTeam(dst_owner)) {
@@ -697,7 +693,11 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, bool multi_ghost) // GETS US
 		    BoxList bl = amrex::boxDiff(bx, ba[krcv]);
             if (multi_ghost)
             {
-    		    const BoxList& bl_ng = amrex::boxDiff(bx_ng, ba_ng[krcv]);
+                // In the case where ngrow>1, augment the send/rcv box list
+                // with boxes for overlapping ghost nodes.
+                const Box& ba_krcv   = amrex::grow(ba[krcv],1);
+                const Box& dst_bx_ng = (amrex::grow(ba_krcv,ng_ng) & vbx_ng + (*pit));
+    		    BoxList bl_ng = amrex::boxDiff(dst_bx_ng, ba_krcv);
                 bl.join(ba.complementIn(bl_ng));
                 bl.simplify();
             }
@@ -735,7 +735,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, bool multi_ghost) // GETS US
     {
 	const int   krcv = imap[i];
 	const Box& vbx   = ba[krcv];
-	const Box& vbx_ng   = ba_ng[krcv];
+	const Box& vbx_ng  = amrex::grow(ba[krcv],1);
 	const Box& bxrcv = amrex::grow(vbx, ng);
 	const Box& bxrcv_ng = amrex::grow(vbx_ng, ng_ng);
 	
@@ -752,7 +752,6 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, bool multi_ghost) // GETS US
 	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
 	    ba.intersections(bxrcv+(*pit), isects);
-	    if (multi_ghost) ba_ng.intersections(bxrcv_ng+(*pit), isects_ng);
 
 	    for (int j = 0, M = isects.size(); j < M; ++j)
 	    {
@@ -762,8 +761,13 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, bool multi_ghost) // GETS US
 		
 		BoxList bl = amrex::boxDiff(dst_bx, vbx);
 		
-        if (multi_ghost) {
-        	const Box& dst_bx_ng = isects_ng[j].second - *pit;        
+        if (multi_ghost) 
+        {
+            // In the case where ngrow>1, augment the send/rcv box list
+            // with boxes for overlapping ghost nodes.
+            Box ba_ksnd = ba[ksnd];
+            ba_ksnd.grow(1);
+            const Box dst_bx_ng = (ba_ksnd & (bxrcv_ng + (*pit))) - (*pit);
 		    const BoxList& bl_ng = amrex::boxDiff(dst_bx_ng, vbx_ng);
             bl.join(ba.complementIn(bl_ng));
             bl.simplify();
