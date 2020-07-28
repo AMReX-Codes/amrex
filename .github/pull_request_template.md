@@ -1,10 +1,9 @@
 <!-- Thank you for your pull request to AMReX!
 
   1. Be sure the title above is descriptive
-  2. Be sure the PR targets the development branch
-  3. Summarize the changes in a form suitable for use in case the commit is "squashed"
-  4. Provide any background to help reviewers understand the proposed changes
-  5. Fill out the checklist (using [x] to check the box) 
+  2. Provide a summary of the proposed changes
+  3. Provide any background to help reviewers understand the proposed changes
+  4. Fill out the checklist (using [x] to check the box)
 
 NOTE: All text between <-- and --> will not be formatted in md previewers
 -->
