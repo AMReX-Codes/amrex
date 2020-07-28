@@ -70,7 +70,7 @@ namespace amrex
     T bisect (T lo, T hi, F f, T tol=1e-12, int max_iter=100)
     {
         AMREX_ASSERT_WITH_MESSAGE(hi > lo,
-            "Error - calling bisect but lo and hi don't describe a reasonable interaval. \n");
+            "Error - calling bisect but lo and hi don't describe a reasonable interval.");
 
         T flo = f(lo);
         T fhi = f(hi);
@@ -78,8 +78,8 @@ namespace amrex
         if (flo == 0.0_rt) return flo;
         if (fhi == 0.0_rt) return fhi;
 
-        AMREX_ASSERT_WITH_MESSAGE(flo * fhi >= 0.0_rt,
-            "Error - calling bisect but lo and hi don't bracket a root. \n");
+        AMREX_ASSERT_WITH_MESSAGE(flo * fhi <= 0.0_rt,
+            "Error - calling bisect but lo and hi don't bracket a root.");
 
         T mi, fmi;
         int n = 1;
@@ -96,7 +96,7 @@ namespace amrex
         }
 
         AMREX_ASSERT_WITH_MESSAGE(n < max_iter,
-            "Error - maximum number of iterations reached in bisect. \n");
+            "Error - maximum number of iterations reached in bisect.");
 
         return mi;
     }
