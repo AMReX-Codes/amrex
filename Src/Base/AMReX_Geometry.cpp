@@ -444,7 +444,7 @@ Geometry::outsideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const
 bool
 Geometry::insideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const
 {
-    return !outsideRoundoffDomain(x, y, z);
+    return !outsideRoundoffDomain(AMREX_D_DECL(x, y, z));
 }
 
 }
