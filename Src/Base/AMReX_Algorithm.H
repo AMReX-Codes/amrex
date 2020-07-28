@@ -81,7 +81,8 @@ namespace amrex
         AMREX_ASSERT_WITH_MESSAGE(flo * fhi <= 0.0_rt,
             "Error - calling bisect but lo and hi don't bracket a root.");
 
-        T mi, fmi;
+        T mi = (lo + hi) / 2.0_rt;
+        T fmi = 0.0;
         int n = 1;
         while (n <= max_iter)
         {
