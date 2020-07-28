@@ -143,6 +143,7 @@ public:
     */
     bool is_cell_centered () const noexcept;
 
+    void setMultiGhost(bool a_multi_ghost) {m_multi_ghost = a_multi_ghost;}
 
     // These are provided for convenience to keep track of how many
     // ghost cells are up to date.  The number of filled ghost cells
@@ -466,6 +467,7 @@ public:
     int                 n_comp;
     mutable BDKey       m_bdkey;
     IntVect             n_filled;  // Note that IntVect is zero by default.
+    bool                m_multi_ghost = false;
 
     //
     // Tiling
@@ -512,6 +514,7 @@ public:
         Periodicity  m_period;
         //
         Long         m_nuse;
+        bool         m_multi_ghost = false;
         //
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
         CudaGraph<CopyMemory> m_localCopy;
@@ -521,7 +524,7 @@ public:
         //
         Long bytes () const;
     private:
-        void define_fb (const FabArrayBase& fa, bool multi_ghost = false);
+        void define_fb (const FabArrayBase& fa);
         void define_epo (const FabArrayBase& fa);
     };
     //
@@ -532,8 +535,7 @@ public:
     static CacheStats m_FBC_stats;
     //
     const FB& getFB (const IntVect& nghost, const Periodicity& period,
-                     bool cross=false, bool enforce_periodicity_only = false,
-                     bool multi_ghost=false) const;
+                     bool cross=false, bool enforce_periodicity_only = false) const;
     //
     void flushFB (bool no_assertion=false) const;       //!< This flushes its own FB.
     static void flushFBCache (); //!< This flushes the entire cache.

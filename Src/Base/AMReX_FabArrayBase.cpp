@@ -631,7 +631,7 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, const IntVect& nghost,
     : m_typ(fa.boxArray().ixType()), m_crse_ratio(fa.boxArray().crseRatio()),
       m_ngrow(nghost), m_cross(cross),
       m_epo(enforce_periodicity_only), m_period(period),
-      m_nuse(0)
+      m_nuse(0), m_multi_ghost(multi_ghost)
 {
     BL_PROFILE("FabArrayBase::FB::FB()");
 
@@ -644,15 +644,15 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, const IntVect& nghost,
 	    BL_ASSERT(m_cross==false);
 	    define_epo(fa);
 	} else {
-	    multi_ghost ? define_fb(fa,true) : define_fb(fa);
+	    define_fb(fa);
 	}
     }
 }
 
 void
-FabArrayBase::FB::define_fb(const FabArrayBase& fa, bool multi_ghost) // GETS USED
+FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 {
-    AMREX_ASSERT(multi_ghost ? fa.nGrow() >= 2 : true);
+    AMREX_ASSERT(m_multi_ghost ? fa.nGrow() >= 2 : true);
     const int                  MyProc   = ParallelDescriptor::MyProc();
     BoxArray                     ba       = fa.boxArray();
     const DistributionMapping& dm       = fa.DistributionMap();
@@ -691,7 +691,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, bool multi_ghost) // GETS US
 		    continue;  // local copy will be dealt with later
 		} else if (MyProc == dm[ksnd]) {
 		    BoxList bl = amrex::boxDiff(bx, ba[krcv]);
-            if (multi_ghost)
+            if (m_multi_ghost)
             {
                 // In the case where ngrow>1, augment the send/rcv box list
                 // with boxes for overlapping ghost nodes.
@@ -761,7 +761,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa, bool multi_ghost) // GETS US
 		
 		BoxList bl = amrex::boxDiff(dst_bx, vbx);
 		
-        if (multi_ghost) 
+        if (m_multi_ghost) 
         {
             // In the case where ngrow>1, augment the send/rcv box list
             // with boxes for overlapping ghost nodes.
@@ -1076,10 +1076,9 @@ FabArrayBase::flushFBCache ()
 
 const FabArrayBase::FB&
 FabArrayBase::getFB (const IntVect& nghost, const Periodicity& period,
-                     bool cross, bool enforce_periodicity_only, bool multi_ghost) const
+                     bool cross, bool enforce_periodicity_only) const
 {
     BL_PROFILE("FabArrayBase::getFB()");
-
     BL_ASSERT(getBDKey() == m_bdkey);
     std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(m_bdkey);
     for (FBCacheIter it = er_it.first; it != er_it.second; ++it)
@@ -1088,6 +1087,7 @@ FabArrayBase::getFB (const IntVect& nghost, const Periodicity& period,
             it->second->m_crse_ratio == boxArray().crseRatio()   &&
 	    it->second->m_ngrow      == nghost                   &&
 	    it->second->m_cross      == cross                    &&
+	    it->second->m_multi_ghost== m_multi_ghost            &&
 	    it->second->m_epo        == enforce_periodicity_only &&
 	    it->second->m_period     == period              )
 	{
@@ -1098,7 +1098,7 @@ FabArrayBase::getFB (const IntVect& nghost, const Periodicity& period,
     }
 
     // Have to build a new one
-    FB* new_fb = new FB(*this, nghost, cross, period, enforce_periodicity_only,multi_ghost);
+    FB* new_fb = new FB(*this, nghost, cross, period, enforce_periodicity_only,m_multi_ghost);
 
 #ifdef BL_PROFILE
     m_FBC_stats.bytes += new_fb->bytes();

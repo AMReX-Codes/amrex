@@ -147,8 +147,10 @@ int main (int argc, char* argv[])
  		dmap   [ilev].define(cgrids[ilev]);
  		solution[ilev].define(ngrids[ilev], dmap[ilev], op.ncomp, nghost); 
         solution[ilev].setVal(0.0);
+        solution[ilev].setMultiGhost(true);
  		rhs     [ilev].define(ngrids[ilev], dmap[ilev], op.ncomp, nghost);
         rhs     [ilev].setVal(0.0);
+        rhs     [ilev].setMultiGhost(true);
            
 	    Box domain(geom[ilev].Domain());
         const Real AMREX_D_DECL( dx = geom[ilev].CellSize()[0],

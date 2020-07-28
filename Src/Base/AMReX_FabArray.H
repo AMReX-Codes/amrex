@@ -638,21 +638,21 @@ public:
     * FillBoundary expects that its cell-centered version of its BoxArray
     * is non-overlapping.
     */
-    void FillBoundary (bool cross = false, bool multi_ghost = false);
+    void FillBoundary (bool cross = false);
 
-    void FillBoundary (const Periodicity& period, bool cross = false, bool multi_ghost = false);
-    void FillBoundary (const IntVect& nghost, const Periodicity& period, bool cross = false, bool multi_ghost = false);
+    void FillBoundary (const Periodicity& period, bool cross = false);
+    void FillBoundary (const IntVect& nghost, const Periodicity& period, bool cross = false);
 
     //! Same as FillBoundary(), but only copies ncomp components starting at scomp.
-    void FillBoundary (int scomp, int ncomp, bool cross = false, bool multi_ghost = false);
-    void FillBoundary (int scomp, int ncomp, const Periodicity& period, bool cross = false, bool multi_ghost = false);
-    void FillBoundary (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, bool cross = false, bool multi_ghost = false);
+    void FillBoundary (int scomp, int ncomp, bool cross = false);
+    void FillBoundary (int scomp, int ncomp, const Periodicity& period, bool cross = false);
+    void FillBoundary (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, bool cross = false);
 
-    void FillBoundary_nowait (bool cross = false, bool multi_ghost = false);
-    void FillBoundary_nowait (const Periodicity& period, bool cross = false, bool multi_ghost = false);
-    void FillBoundary_nowait (int scomp, int ncomp, bool cross = false, bool multi_ghost = false);
-    void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross = false, bool multi_ghost = false);
-    void FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, bool cross = false, bool multi_ghost = false);
+    void FillBoundary_nowait (bool cross = false);
+    void FillBoundary_nowait (const Periodicity& period, bool cross = false);
+    void FillBoundary_nowait (int scomp, int ncomp, bool cross = false);
+    void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross = false);
+    void FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, bool cross = false);
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     void FillBoundary_finish ();
 
@@ -683,7 +683,7 @@ public:
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                       const Periodicity& period, bool cross,
-                      bool enforce_periodicity_only = false, bool multi_ghost = false);
+                      bool enforce_periodicity_only = false);
 
     void FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp);
     void PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
@@ -1814,57 +1814,57 @@ FabArray<FAB>::shift (const IntVect& v)
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary (bool cross, bool multi_ghost)
+FabArray<FAB>::FillBoundary (bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
     if ( n_grow.max() > 0 ) {
-	FillBoundary_nowait(0, nComp(), n_grow, Periodicity::NonPeriodic(), cross, multi_ghost);
+	FillBoundary_nowait(0, nComp(), n_grow, Periodicity::NonPeriodic(), cross);
 	FillBoundary_finish();
     }
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary (const Periodicity& period, bool cross, bool multi_ghost)
+FabArray<FAB>::FillBoundary (const Periodicity& period, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
     if ( n_grow.max() > 0 ) {
-	FillBoundary_nowait(0, nComp(), n_grow, period, cross, multi_ghost);
+	FillBoundary_nowait(0, nComp(), n_grow, period, cross);
 	FillBoundary_finish();
     }
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary (const IntVect& nghost, const Periodicity& period, bool cross, bool multi_ghost)
+FabArray<FAB>::FillBoundary (const IntVect& nghost, const Periodicity& period, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nghost.allLE(nGrowVect()),
                                      "FillBoundary: asked to fill more ghost cells than we have");
     if ( nghost.max() > 0 ) {
-	FillBoundary_nowait(0, nComp(), nghost, period, cross, multi_ghost);
+	FillBoundary_nowait(0, nComp(), nghost, period, cross);
 	FillBoundary_finish();
     }
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary (int scomp, int ncomp, bool cross, bool multi_ghost)
+FabArray<FAB>::FillBoundary (int scomp, int ncomp, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
     if ( n_grow.max() > 0 ) {
-	FillBoundary_nowait(scomp, ncomp, n_grow, Periodicity::NonPeriodic(), cross, multi_ghost);
+	FillBoundary_nowait(scomp, ncomp, n_grow, Periodicity::NonPeriodic(), cross);
 	FillBoundary_finish();
     }
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary (int scomp, int ncomp, const Periodicity& period, bool cross, bool multi_ghost)
+FabArray<FAB>::FillBoundary (int scomp, int ncomp, const Periodicity& period, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
     if ( n_grow.max() > 0 ) {
-	FillBoundary_nowait(scomp, ncomp, n_grow, period, cross, multi_ghost);
+	FillBoundary_nowait(scomp, ncomp, n_grow, period, cross);
 	FillBoundary_finish();
     }
 }
@@ -1872,36 +1872,36 @@ FabArray<FAB>::FillBoundary (int scomp, int ncomp, const Periodicity& period, bo
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary (int scomp, int ncomp, const IntVect& nghost,
-                             const Periodicity& period, bool cross, bool multi_ghost)
+                             const Periodicity& period, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nghost.allLE(nGrowVect()),
                                      "FillBoundary: asked to fill more ghost cells than we have");
     if ( nghost.max() > 0 ) {
-	FillBoundary_nowait(scomp, ncomp, nghost, period, cross, multi_ghost);
+	FillBoundary_nowait(scomp, ncomp, nghost, period, cross);
 	FillBoundary_finish();
     }
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary_nowait (bool cross, bool multi_ghost)
+FabArray<FAB>::FillBoundary_nowait (bool cross)
 {
-    FillBoundary_nowait(0, nComp(), nGrowVect(), Periodicity::NonPeriodic(), cross, multi_ghost);
+    FillBoundary_nowait(0, nComp(), nGrowVect(), Periodicity::NonPeriodic(), cross);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary_nowait (const Periodicity& period, bool cross, bool multi_ghost)
+FabArray<FAB>::FillBoundary_nowait (const Periodicity& period, bool cross)
 {
-    FillBoundary_nowait(0, nComp(), nGrowVect(), period, cross, multi_ghost);
+    FillBoundary_nowait(0, nComp(), nGrowVect(), period, cross);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross, bool multi_ghost)
+FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 {
-    FillBoundary_nowait(scomp, ncomp, nGrowVect(), Periodicity::NonPeriodic(), cross, multi_ghost);
+    FillBoundary_nowait(scomp, ncomp, nGrowVect(), Periodicity::NonPeriodic(), cross);
 }
 
 template <class FAB>
@@ -1940,19 +1940,19 @@ FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const IntVect& nghost,
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross, bool multi_ghost)
+FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross)
 {
     BL_PROFILE("FillBoundary_nowait()");
-    FBEP_nowait(scomp, ncomp, nGrowVect(), period, cross, false, multi_ghost);
+    FBEP_nowait(scomp, ncomp, nGrowVect(), period, cross, false);
 }
 
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost,
-                                    const Periodicity& period, bool cross, bool multi_ghost)
+                                    const Periodicity& period, bool cross)
 {
     BL_PROFILE("FillBoundary_nowait()");
-    FBEP_nowait(scomp, ncomp, nghost, period, cross, false, multi_ghost);
+    FBEP_nowait(scomp, ncomp, nghost, period, cross, false);
 }
 
 template <class FAB>
