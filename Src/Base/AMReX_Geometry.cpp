@@ -176,7 +176,6 @@ Geometry::ResetDefaultProbDomain (const RealBox& rb) noexcept
     gg->prob_domain.setLo(rb.lo());
     gg->prob_domain.setHi(rb.hi());
     gg->SetOffset(rb.lo());
-    gg->computeRoundoffDomain();
 }
 
 void
