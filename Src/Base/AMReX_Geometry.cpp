@@ -412,8 +412,12 @@ Geometry::computeRoundoffDomain ()
         Real plo = ProbLo(idim);
         Real phi = ProbHi(idim);
         Real deltax = CellSize(idim);
-        PReal tolerance = std::max(1.e-8*deltax, 1.e-14*phi);
 
+#ifdef AMREX_SINGLE_PRECISION_PARTICLE
+        PReal tolerance = std::max(1.e-8*deltax, 1.e-14*phi);
+#else
+        PReal tolerance = std::max(1.e-4*deltax, 1.e-10*phi);
+#endif
         // bisect the point at which the cell no longer maps to inside the domain
         PReal lo = static_cast<PReal>(phi) - 0.5_prt*static_cast<PReal>(deltax);
         PReal hi = static_cast<PReal>(phi) + 0.5_prt*static_cast<PReal>(deltax);
