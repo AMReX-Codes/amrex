@@ -596,9 +596,6 @@ bool AnyOf (Box const& box, P&& pred)
     Gpu::LaunchSafeGuard lsg(true);
     Gpu::DeviceScalar<int> ds(0);
     int* dp = ds.dataPtr();
-    int ncells = box.numPts();
-    const auto lo  = amrex::lbound(box);
-    const auto len = amrex::length(box);
 #ifdef AMREX_USE_DPCPP
     // xxxxx DPCPP todo: Anyof Box: better version
     amrex::ParallelFor(box, [=] (int i, int j, int k) noexcept
@@ -607,6 +604,9 @@ bool AnyOf (Box const& box, P&& pred)
         Gpu::Atomic::LogicalOr(dp, r);
     });
 #else
+    int ncells = box.numPts();
+    const auto lo  = amrex::lbound(box);
+    const auto len = amrex::length(box);
     auto ec = Gpu::ExecutionConfig(ncells);
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, 0,

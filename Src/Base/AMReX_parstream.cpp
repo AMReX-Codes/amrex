@@ -97,6 +97,7 @@ namespace amrex
 // in serial, this does absolutely nothing
   static void openFile()
   {
+    amrex::ignore_unused(s_pout);
   }
 #endif
 

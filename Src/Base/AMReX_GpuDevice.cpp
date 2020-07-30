@@ -1046,7 +1046,8 @@ Device::freeMemAvailable ()
     std::size_t f, t;
     AMREX_HIP_OR_CUDA_OR_DPCPP( AMREX_HIP_SAFE_CALL(hipMemGetInfo(&f,&t));,
                                 AMREX_CUDA_SAFE_CALL(cudaMemGetInfo(&f,&t));,
-                                f = device_prop.totalGlobalMem; ); // xxxxx DPCPP tod
+                                f = device_prop.totalGlobalMem; ); // xxxxx DPCPP todo
+    amrex::ignore_unused(t);
     return f;
 #else
     return 0;

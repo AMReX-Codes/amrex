@@ -33,16 +33,23 @@ namespace
     constexpr int gpu_nstates_default = 1e5;
 
     int gpu_nstates_h = 0;
+#ifndef AMREX_USE_DPCPP
     AMREX_GPU_DEVICE int gpu_nstates_d = 0;
+#endif
 
     randState_t* d_states_h_ptr = nullptr;
+#ifndef AMREX_USE_DPCPP
     AMREX_GPU_DEVICE randState_t* d_states_d_ptr;
+#endif
 
     amrex::BlockMutex* h_mutex_h_ptr = nullptr;
     amrex::BlockMutex* d_mutex_h_ptr = nullptr;
 
+#ifndef AMREX_USE_DPCPP
     AMREX_GPU_DEVICE
     amrex::BlockMutex* d_mutex_d_ptr = nullptr;
+#endif
+
 #endif
 
 }
@@ -74,6 +81,7 @@ int amrex::get_state (int tid)
 {
 #ifdef AMREX_USE_DPCPP
 // xxxxx DPCPP todo
+    amrex::ignore_unused(tid);
     return 0;
 #else
     // block size must evenly divide # of RNG states so we cut off the excess states
@@ -91,6 +99,7 @@ AMREX_GPU_DEVICE
 void amrex::free_state (int tid)
 {
 #ifdef AMREX_USE_DPCPP
+    amrex::ignore_unused(tid);
 // xxxxx DPCPP todo
 #else
     int bsize = blockDim.x * blockDim.y * blockDim.z;
@@ -128,6 +137,7 @@ amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
 
 #elif defined(__SYCL_DEVICE_ONLY__)
 
+    amrex::ignore_unused(mean,stddev);
     assert(0);
     rand = 0.0_rt;
     return rand;
@@ -206,8 +216,9 @@ amrex::RandomPoisson (amrex::Real lambda)
 
 #elif defined(__SYCL_DEVICE_ONLY__)
 
+    amrex::ignore_unused(lambda);
     assert(0);
-    rand = 0.0_rt;
+    rand = 0;
     return rand;
 
 #else
@@ -245,6 +256,7 @@ amrex::Random_int (unsigned int n)
 
 #elif defined(__SYCL_DEVICE_ONLY__)
 
+    amrex::ignore_unused(n);
     assert(0);
     return 0;
 
