@@ -5,7 +5,7 @@
   3. Provide any background to help reviewers understand the proposed changes
   4. Fill out the checklist (using [x] to check the box)
 
-NOTE: All text between <-- and --> will not be formatted in md previewers
+NOTE: All text between < and > will not be formatted in md previewers
 -->
 
 ## Summary
