@@ -1656,19 +1656,43 @@ void mlndlap_set_stencil_eb (int i, int j, int, Array4<Real> const& sten,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_divu_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real const> const& vel,
                       Array4<Real const> const& vfrac, Array4<Real const> const& intg,
-                      Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                      Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                      Box const& nodal_domain,
+                      GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                      GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
 {
     Real facx = 0.5_rt*dxinv[0];
     Real facy = 0.5_rt*dxinv[1];
+
+    const auto domlo = amrex::lbound(nodal_domain);
+    const auto domhi = amrex::ubound(nodal_domain);
+
     if (!msk(i,j,0)) {
-        rhs(i,j,0) = facx*(-vel(i-1,j-1,0,0)*(vfrac(i-1,j-1,0)+2._rt*intg(i-1,j-1,0,1))
-                           +vel(i  ,j-1,0,0)*(vfrac(i  ,j-1,0)+2._rt*intg(i  ,j-1,0,1))
-                           -vel(i-1,j  ,0,0)*(vfrac(i-1,j  ,0)-2._rt*intg(i-1,j  ,0,1))
-                           +vel(i  ,j  ,0,0)*(vfrac(i  ,j  ,0)-2._rt*intg(i  ,j  ,0,1)))
-                   + facy*(-vel(i-1,j-1,0,1)*(vfrac(i-1,j-1,0)+2._rt*intg(i-1,j-1,0,0))
-                           -vel(i  ,j-1,0,1)*(vfrac(i  ,j-1,0)-2._rt*intg(i  ,j-1,0,0))
-                           +vel(i-1,j  ,0,1)*(vfrac(i-1,j  ,0)+2._rt*intg(i-1,j  ,0,0))
-                           +vel(i  ,j  ,0,1)*(vfrac(i  ,j  ,0)-2._rt*intg(i  ,j  ,0,0)));
+
+        Real zero_ilo = 1.0;
+        Real zero_ihi = 1.0;
+        Real zero_jlo = 1.0;
+        Real zero_jhi = 1.0;
+
+        // The nodal divergence operator should not see the tangential velocity
+        //     at an inflow face
+        if ((bclo[0] == LinOpBCType::Neumann or bclo[0] == LinOpBCType::inflow)
+            and i == domlo.x) zero_ilo = 0.0;
+        if ((bchi[0] == LinOpBCType::Neumann or bchi[0] == LinOpBCType::inflow)
+            and i == domhi.x) zero_ihi = 0.0;
+        if ((bclo[1] == LinOpBCType::Neumann or bclo[1] == LinOpBCType::inflow)
+            and j == domlo.y) zero_jlo = 0.0;
+        if ((bchi[1] == LinOpBCType::Neumann or bchi[1] == LinOpBCType::inflow)
+            and j == domhi.y) zero_jhi = 0.0; 
+
+        rhs(i,j,0) = facx*(-vel(i-1,j-1,0,0)*(vfrac(i-1,j-1,0)+2._rt*intg(i-1,j-1,0,1))*zero_jlo
+                           +vel(i  ,j-1,0,0)*(vfrac(i  ,j-1,0)+2._rt*intg(i  ,j-1,0,1))*zero_jlo
+                           -vel(i-1,j  ,0,0)*(vfrac(i-1,j  ,0)-2._rt*intg(i-1,j  ,0,1))*zero_jhi
+                           +vel(i  ,j  ,0,0)*(vfrac(i  ,j  ,0)-2._rt*intg(i  ,j  ,0,1))*zero_jhi)
+                   + facy*(-vel(i-1,j-1,0,1)*(vfrac(i-1,j-1,0)+2._rt*intg(i-1,j-1,0,0))*zero_ilo
+                           -vel(i  ,j-1,0,1)*(vfrac(i  ,j-1,0)-2._rt*intg(i  ,j-1,0,0))*zero_ihi
+                           +vel(i-1,j  ,0,1)*(vfrac(i-1,j  ,0)+2._rt*intg(i-1,j  ,0,0))*zero_ilo
+                           +vel(i  ,j  ,0,1)*(vfrac(i  ,j  ,0)-2._rt*intg(i  ,j  ,0,0))*zero_ihi);
     } else {
         rhs(i,j,0) = 0._rt;
     }

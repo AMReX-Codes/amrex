@@ -6259,6 +6259,8 @@ void mlndlap_divu_eb (int i, int j, int k, Array4<Real> const& rhs, Array4<Real 
         Real zero_klo = 1.0;
         Real zero_khi = 1.0;
 
+        // The nodal divergence operator should not see the tangential velocity
+        //     at an inflow face
         if ((bclo[0] == LinOpBCType::Neumann or bclo[0] == LinOpBCType::inflow)
             and i == domlo.x) zero_ilo = 0.0;
         if ((bchi[0] == LinOpBCType::Neumann or bchi[0] == LinOpBCType::inflow)
