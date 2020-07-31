@@ -5,6 +5,11 @@
 #include <AMReX_BCRec.H>
 #include <AMReX_REAL.H>
 #include <AMReX_GpuControl.H>
+#if AMREX_SPACEDIM==2
+#include <AMReX_GP_2D.H>
+#elif AMREX_SPACEDIM==3
+#include <AMReX_GP_3D.H>
+#endif
 
 namespace amrex {
 
@@ -712,12 +717,60 @@ public:
                          RunOn            gpu_or_cpu) override;
 };
 
+class CellGaussianProcess
+    :
+    public Interpolater
+{
+public:
+    //GP Class inside a vector  
+    std::vector<GP> gp; 
+    //
+    // The destructor.
+    //
+    virtual ~CellGaussianProcess () override;
+    //
+    // Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box& fine,
+                           int        ratio) override;
+    //
+    // Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box&     fine,
+                           const IntVect& ratio) override;
+    //
+    // Coarse to fine interpolation in space.
+    //
+    virtual void interp (const FArrayBox& crse,
+                         int              crse_comp,
+                         FArrayBox&       fine,
+                         int              fine_comp,
+                         int              ncomp,
+                         const Box&       fine_region,
+                         const IntVect&   ratio,
+                         const Geometry&  crse_geom,
+                         const Geometry&  fine_geom,
+                         Vector<BCRec> const&    bcr,
+                         int              actual_comp,
+                         int              actual_state,
+                         RunOn            gpu_or_cpu) override;
+    //
+    // 
+    //
+    
+    GP get_GP(const IntVect ratio, const amrex::Real *dx); 
+
+};
+
+
+
 //! CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
 extern PCInterp                  pc_interp;
 extern NodeBilinear              node_bilinear_interp;
 extern FaceLinear                face_linear_interp;
 extern CellConservativeLinear    lincc_interp;
 extern CellConservativeLinear    cell_cons_interp;
+extern CellGaussianProcess       gp_interp; 
 
 #ifndef BL_NO_FORT
 extern CellBilinear              cell_bilinear_interp;

@@ -24,6 +24,8 @@ namespace amrex {
 //
 // CellConservativeQuartic only works with ref ratio of 2 on cpu
 //
+// CellGaussianProcess works on 2D and 3D with ref ratio 2 and 4 on CPU/GPU
+
 
 //
 // CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
@@ -33,6 +35,7 @@ NodeBilinear              node_bilinear_interp;
 FaceLinear                face_linear_interp;
 CellConservativeLinear    lincc_interp;
 CellConservativeLinear    cell_cons_interp(0);
+CellGaussianProcess       gp_interp;
 
 #ifndef BL_NO_FORT
 CellBilinear              cell_bilinear_interp;
@@ -896,5 +899,95 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 		      bc.dataPtr(),&actual_comp,&actual_state);
 }
 #endif
+
+CellGaussianProcess::~CellGaussianProcess () {
+       for(auto& it:gp) //Deallocate all CUDA mem in GP
+            it.GP_finalize();
+    }
+
+Box
+CellGaussianProcess::CoarseBox (const Box&     fine,
+                          const IntVect& ratio)
+{
+    Box crse = amrex::coarsen(fine,ratio);
+    crse.grow(2);
+    return crse;
+}
+
+Box
+CellGaussianProcess::CoarseBox (const Box& fine,
+                          int        ratio)
+{
+    Box crse = amrex::coarsen(fine,ratio);
+    crse.grow(2);
+    return crse;
+} 
+
+GP CellGaussianProcess::get_GP(const amrex::IntVect ratio, const amrex::Real *dx)
+{
+    if(ratio[0] > 4){
+        amrex::Abort("GP not implemented for refinement ratios other than 2 or 4!"); 
+    }
+    for(auto& it:gp){
+        if(it.dx[0] == dx[0]){
+            return it; 
+        }
+    }
+    GP Gaus(ratio, dx);
+    gp.push_back(Gaus);
+    return Gaus; 
+}
+
+void
+CellGaussianProcess::interp (const FArrayBox& crse,
+                             int              crse_comp,
+                             FArrayBox&       fine,
+                             int              fine_comp,
+                             int              ncomp,
+                             const Box&       fine_region,
+                             const IntVect&   ratio,
+                             const Geometry&  crse_geom,
+                             const Geometry&  fine_geom,
+                             Vector<BCRec> const&    bcr,
+                             int              actual_comp,
+                             int              actual_state, 
+                             RunOn            runon)
+{
+    BL_PROFILE("CellGaussianProcess::interp()");
+    BL_ASSERT(bcr.size() >= ncomp);
+    //
+    // Make box which is intersection of fine_region and domain of fine.
+    //
+    Box target_fine_region = fine_region & fine.box();
+    auto const& crsearr = crse.array(); 
+    auto finearr = fine.array();  
+    Gpu::LaunchSafeGuard lg(runon == RunOn::Gpu && Gpu::inLaunchRegion());
+   
+    const Box& crse_region = CoarseBox(fine_region,ratio);
+    Box cb = crse.box(); 
+    const Box& cb1 = amrex::grow(crse_region,-2);
+    const Box& fb  = cb.refine(ratio); 
+    FArrayBox ftemp(fb, ncomp);
+    Elixir feli = ftemp.elixir();  
+    auto fparr = ftemp.array(); 
+    const amrex::Real *dx = crse_geom.CellSize();
+    GP mygp = get_GP(ratio, dx);
+
+    amrex::Real *ks, *lam, *gam, *V;
+    ks = mygp.ksd; 
+    lam = mygp.lamd; 
+    gam = mygp.gamd; 
+    V = mygp.Vd;  
+
+    Vector<int> bc = GetBCArray(bcr);  
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cb1, tbx,{
+        amrex_gpinterp(tbx, fparr, fine_comp, ncomp, crsearr, crse_comp,
+                       ratio, ks, lam, gam, V); 
+    });
+
+    AMREX_PARALLEL_FOR_4D (target_fine_region, ncomp, i, j, k, n, {
+        finearr(i,j,k,n) = fparr(i,j,k,n); 
+    });
+}
 
 }

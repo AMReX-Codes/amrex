@@ -4,6 +4,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_Vector.H>
+#include <AMReX_GP_2D.H>
 #include <cmath>
 
 namespace amrex {
@@ -448,6 +449,134 @@ face_linear_interp_y (int i, int j, int /*k*/, int n, Array4<T> const& fine,
     int jj = amrex::coarsen(j,ratio[1]);
     Real const w = static_cast<Real>(j-jj*ratio[1]) * (1.0_rt/ratio[1]);
     fine(i,j,0,n) = (1.0_rt-w) * crse(ii,jj,0,n) + w * crse(ii,jj+1,0,n);
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void 
+amrex_gpinterp(Box const& bx, amrex::Array4<T> const& fine,
+               const int fcomp, const int ncomp, 
+               amrex::Array4<T> const& crse,
+               const int ccomp, 
+               amrex::IntVect ratio, 
+               const amrex::Real ks[], 
+               const amrex::Real lam[], 
+               const amrex::Real gam[], 
+               const amrex::Real V[])
+{
+    const auto lo   = amrex::lbound(bx);
+    const auto hi   = amrex::ubound(bx); 
+    amrex::Real beta[5], ws[5];
+    for(int n = 0; n < ncomp; ++n) { 
+        for (int jc = lo.y; jc <= hi.y; ++jc){ 
+            AMREX_PRAGMA_SIMD
+            for(int ic = lo.x; ic <= hi.x; ++ic){
+                amrex::Real sten_cen[5] = {crse(ic,jc-1,0,n), 
+                                           crse(ic-1,jc,0,n), crse(ic,jc,0,n),
+                                           crse(ic+1,jc,0,n), crse(ic,jc+1,0,n)};
+    
+                amrex::Real summ, test, sqrmean = 0.e0;
+                for(int ii = 0; ii < 5; ii++){ 
+                    beta[ii] = 0.e0; 
+                } 
+                amrex::Real vtemp[5]; 
+                amrex::Real inn;  
+                for(int ii = 0; ii < 5; ii++)
+                {
+                    for(int jj = 0; jj < 5; jj++){
+                         vtemp[jj] = V[ii*5 + jj];
+                    }
+                    inn = GP::inner_prod<5>(vtemp, sten_cen); 
+                    beta[2] += 1.0/lam[ii]*(inn*inn);
+                    sqrmean += sten_cen[ii]; 
+                }             
+                sqrmean /= 5; 
+                sqrmean *= sqrmean; 
+                test =beta[2]/(sqrmean + 1e-32); //Protect against dividing by 0
+                if(test > 100){
+                    amrex::Real sten_jm[5]  = {crse(ic,jc-2,0,n),
+                          crse(ic-1,jc-1,0,n), crse(ic,jc-1,0,n), crse(ic+1,jc-1,0,n),
+                                               crse(ic,jc,0,n)};
+                    amrex::Real sten_im[5]  = {crse(ic-1,jc-1,0,n),
+                            crse(ic-2,jc,0,n), crse(ic-1,jc,0,n),  crse(ic,jc,0,n), 
+                                               crse(ic-1,jc+1,0,n)};
+                    amrex::Real sten_ip[5]  = {crse(ic+1,jc-1,0,n),
+                             crse(ic,jc,0,n),  crse(ic+1,jc,0,n), crse(ic+2,jc,0,n), 
+                                               crse(ic+1,jc+1,0,n)}; 
+                    amrex::Real sten_jp[5]  = {crse(ic,jc,0,n), 
+                          crse(ic-1,jc+1,0,n), crse(ic,jc+1,0,n), crse(ic+1,jc+1,0,n),
+                                               crse(ic,jc+2,0,n)}; 
+                    for(int ii = 0; ii < 5; ii++)
+                    {
+                        for(int jj = 0; jj < 5; jj++){
+                         vtemp[jj] = V[ii*5 + jj];                       
+                        }
+                        inn = GP::inner_prod<5>(vtemp, sten_jm);
+                        beta[0] += 1.0/lam[ii]*(inn*inn); 
+                        inn = GP::inner_prod<5>(vtemp, sten_im); 
+                        beta[1] += 1.0/lam[ii]*(inn*inn); 
+                        inn = GP::inner_prod<5>(vtemp, sten_ip);
+                        beta[3] += 1.0/lam[ii]*(inn*inn); 
+                        inn = GP::inner_prod<5>(vtemp, sten_jp); 
+                        beta[4] += 1.0/lam[ii]*(inn*inn); 
+                   }
+                    for(int ry = 0; ry < ratio[1]; ry++){
+                        const int j = jc*ratio[1] + ry; 
+                        for(int rx = 0; rx< ratio[0]; rx++){ 
+                            const int i = ic*ratio[0] + rx;
+                            const int id = rx + ry*ratio[0]; 
+                            summ = 0.e0;
+
+                            for(int m = 0; m < 5; ++m){
+                                ws[m] = 0.e0; 
+                                amrex::Real denom = (1.e-32 + beta[m]);
+                                ws[m] = gam[id*5 + m]/(denom*denom);
+                                summ += ws[m];
+                            }
+                            for(int m = 0; m < 5; ++m) ws[m] /= summ; 
+
+                            amrex::Real in = 0.; 
+                            amrex::Real ftemp = 0.; 
+                            for(int m = 0; m < 5; ++m) 
+                                in += ks[(id*5 + 0)*5 + m]*sten_jm[m]; 
+                            ftemp += ws[0]*in; 
+                            in = 0; 
+                            for(int m = 0; m < 5; ++m) 
+                               in += ks[(id*5 + 1)*5 + m]*sten_im[m];
+                            ftemp += ws[1]*in;  
+                            in = 0; 
+                            for(int m = 0; m < 5; ++m) 
+                               in += ks[(id*5 + 2)*5 + m]*sten_cen[m];                   
+                            ftemp += ws[2]*in; 
+                            in = 0; 
+                            for(int m = 0; m < 5; ++m) 
+                               in += ks[(id*5 + 3)*5 + m]*sten_ip[m]; 
+                            ftemp += ws[3]*in; 
+                            in = 0; 
+                            for(int m = 0; m < 5; ++m) 
+                               in += ks[(id*5 + 4)*5 + m]*sten_jp[m]; 
+                            ftemp += ws[4]*in; 
+                            
+                            fine(i,j,0,n) = ftemp;
+                        }
+                    }
+                }
+                else{
+                    for(int ry = 0; ry < ratio[1]; ry++){
+                        const int j = jc*ratio[1] + ry; 
+                        for(int rx = 0; rx< ratio[0]; rx++){ 
+                            const int i = ic*ratio[0] + rx; 
+                            const int id = rx + ry*ratio[0];
+                            amrex::Real ftemp = 0; 
+                            for(int m = 0; m < 5; ++m) 
+                               ftemp += ks[(id*5 + 2)*5 + m]*sten_cen[m];                                               
+                            fine(i,j,0,n) = ftemp;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 }

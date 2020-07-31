@@ -4,6 +4,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_Vector.H>
+#include <AMReX_GP_3D.H>
 #include <cmath>
 
 namespace amrex {
@@ -600,6 +601,203 @@ face_linear_interp_z (int i, int j, int k, int n, Array4<T> const& fine,
     int kk = amrex::coarsen(k,ratio[2]);
     Real const w = static_cast<Real>(k-kk*ratio[2]) * (1.0_rt/ratio[2]);
     fine(i,j,k,n) = (1.0_rt-w) * crse(ii,jj,kk,n) + w * crse(ii,jj,kk+1,n);
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void 
+amrex_gpinterp(Box const& bx, const amrex::Array4<T> &fine,
+               const int fcomp, const int ncomp, 
+               const amrex::Array4<const T> const &crse,
+               const int ccomp, 
+               amrex::IntVect ratio,   
+               const amrex::Real ks[], 
+               const amrex::Real lam[], 
+               const amrex::Real gam[], 
+               const amrex::Real V[])
+{
+
+    const auto lo   = amrex::lbound(bx);
+    const auto hi   = amrex::ubound(bx); 
+
+    #ifdef __CUDA_ARCH__ 
+        __shared__ amrex::Real Vl[49]; 
+        if(threadIdx.x == 0){ 
+            for(int m = 0; m < 49; m++) Vl[m] = V[m]; 
+        } 
+        __syncthreads(); 
+    #else  
+       const amrex::Real *Vl = V; 
+    #endif 
+            
+
+    amrex::Real beta[7], ws[7];
+    for(int n = 0; n < ncomp; ++n) { 
+            for (int kc = lo.z; kc <= hi.z; ++kc){
+                for (int jc = lo.y; jc <= hi.y; ++jc){ 
+                AMREX_PRAGMA_SIMD
+                for(int ic = lo.x; ic <= hi.x; ++ic){
+
+                    amrex::Real sten_cen[7] = {crse(ic  ,jc  ,kc-1, n), crse(ic  ,jc-1,kc  ,n), 
+                                               crse(ic-1,jc  ,kc  , n), crse(ic  ,jc  ,kc  ,n),
+                                               crse(ic+1,jc  ,kc  , n), crse(ic  ,jc+1,kc  ,n), 
+                                               crse(ic  ,jc  ,kc+1, n)};
+        
+                    amrex::Real summ, test, sqrmean = 0.e0;
+                    for(int ii = 0; ii < 7; ii++){ 
+                        beta[ii] = 0.e0; 
+                    } 
+                    amrex::Real vtemp[7]; 
+                    amrex::Real inn = 0.e0;  
+                    for(int ii = 0; ii < 7; ii++)
+                    {
+                        for(int jj = 0; jj < 7; jj++){
+                             vtemp[jj] = Vl[ii*7 + jj];
+                        } 
+                        inn = 0.e0; 
+                        for(int m = 0; m < 7; ++m) inn += vtemp[m]*sten_cen[m];  
+                        beta[3] += (inn*inn)/lam[ii];  
+                        sqrmean += sten_cen[ii];
+                    } 
+                    sqrmean /= 7; 
+                    sqrmean *= sqrmean;
+                    test = beta[3]/(sqrmean+1e-32);
+                    if(test > 50){
+                         amrex::Real sten_km[7]  = {crse(ic  ,jc  ,kc-2,n), crse(ic  ,jc-1,kc-1,n), crse(ic-1,jc  ,kc-1,n), 
+                                                    sten_cen[0], crse(ic+1,jc  ,kc-1,n), crse(ic  ,jc+1,kc-1,n), 
+                                                    sten_cen[3]}; 
+
+                        amrex::Real sten_jm[7]  = {sten_km[1], crse(ic  ,jc-2,kc  ,n), crse(ic-1,jc-1,kc  ,n), 
+                                                   sten_cen[1], crse(ic+1,jc-1,kc  ,n), sten_cen[3],
+                                                   crse(ic  ,jc-1,kc+1,n)}; 
+
+                        amrex::Real sten_im[7]  = {sten_km[2], sten_jm[2], crse(ic-2,jc  ,kc  ,n), 
+                                                   sten_cen[2], sten_cen[3], crse(ic-1,jc+1,kc  ,n),
+                                                   crse(ic-1,jc  ,kc+1,n)};
+
+                        amrex::Real sten_ip[7]  = {sten_km[4], sten_jm[4], sten_cen[3],
+                                                   sten_cen[4], crse(ic+2,jc  ,kc  ,n), crse(ic+1,jc+1,kc  ,n),
+                                                   crse(ic+1,jc  ,kc+1,n)}; 
+
+                        amrex::Real sten_jp[7]  = {sten_km[5], sten_cen[3], sten_im[5], 
+                                                   sten_cen[5], sten_ip[5], crse(ic  ,jc+2,kc  ,n),
+                                                   crse(ic  ,jc+1,kc+1,n)};
+
+                        amrex::Real sten_kp[7]  = {sten_cen[3], sten_jm[6], sten_im[6],  
+                                                   sten_cen[6], sten_ip[6], sten_jp[6], 
+                                                   crse(ic  ,jc  ,kc+2,n)}; 
+                       
+                        for(int ii = 0; ii < 7; ii++)
+                        {
+                            for(int jj = 0; jj < 7; jj++){
+                             vtemp[jj] = Vl[ii*7 + jj];                       
+                            } 
+                            inn = 0.0; 
+                            for(int m = 0; m < 7; ++m){
+                                inn += vtemp[m]*sten_km[m]; 
+                            }
+                            beta[0] += (inn*inn)/lam[ii]; 
+
+                            inn = 0.0; 
+                            for(int m = 0; m < 7; ++m){
+                                inn += vtemp[m]*sten_jm[m]; 
+                            }
+                            beta[1] += (inn*inn)/lam[ii]; 
+
+                            inn = 0.0; 
+                            for(int m = 0; m < 7; ++m){
+                                inn += vtemp[m]*sten_im[m]; 
+                            }
+                            beta[2] += (inn*inn)/lam[ii]; 
+
+                            inn = 0.0; 
+                            for(int m = 0; m < 7; ++m){
+                                inn += vtemp[m]*sten_ip[m]; 
+                            }
+                            beta[4] += (inn*inn)/lam[ii]; 
+
+                            inn = 0.0; 
+                            for(int m = 0; m < 7; ++m){
+                                inn += vtemp[m]*sten_jp[m]; 
+                            }
+                            beta[5] += (inn*inn)/lam[ii]; 
+
+                            inn = 0.0; 
+                            for(int m = 0; m < 7; ++m){
+                                inn += vtemp[m]*sten_kp[m]; 
+                            }
+                            beta[6] += (inn*inn)/lam[ii]; 
+
+                       }
+                        for(int rz = 0; rz < ratio[2]; rz++){ 
+                           const int k = kc*ratio[2] + rz;  
+                            for(int ry = 0; ry < ratio[1]; ry++){
+                                const int j = jc*ratio[1] + ry; 
+                                for(int rx = 0; rx< ratio[0]; rx++){ 
+                                    const int i = ic*ratio[0] + rx;
+                                    const int id = rx + ratio[0]*(ry + ratio[1]*rz);
+                                    summ = 0.e0;
+                                    for(int m = 0; m < 7; ++m){
+                                        amrex::Real denom = (1.e-32 + beta[m])*(1.e-32 + beta[m]); 
+                                        ws[m] = gam[id*7 + m]/denom; 
+                                        summ += ws[m]; 
+                                    } 
+                                    for(int m = 0; m < 7; ++m) ws[m] /= summ; 
+   
+                                    amrex::Real in = 0.; 
+                                    amrex::Real ftemp = 0.; 
+                                    for(int m = 0; m < 7; ++m) 
+                                        in += ks[(id*7 + 0)*7 + m]*sten_km[m]; 
+                                    ftemp += ws[0]*in; 
+                                    in = 0; 
+                                    for(int m = 0; m < 7; ++m) 
+                                       in += ks[(id*7 + 1)*7 + m]*sten_jm[m];
+                                    ftemp += ws[1]*in;  
+                                    in = 0; 
+                                    for(int m = 0; m < 7; ++m) 
+                                       in += ks[(id*7 + 2)*7 + m]*sten_im[m];                   
+                                    ftemp += ws[2]*in; 
+                                    in = 0; 
+                                    for(int m = 0; m < 7; ++m) 
+                                       in += ks[(id*7 + 3)*7 + m]*sten_cen[m]; 
+                                    ftemp += ws[3]*in; 
+                                    in = 0; 
+                                    for(int m = 0; m < 7; ++m) 
+                                       in += ks[(id*7 + 4)*7 + m]*sten_ip[m]; 
+                                    ftemp += ws[4]*in;
+                                    in = 0;  
+                                    for(int m = 0; m < 7; ++m) 
+                                       in += ks[(id*7 + 5)*7 + m]*sten_jp[m]; 
+                                    ftemp += ws[5]*in; 
+                                    in = 0; 
+                                    for(int m = 0; m < 7; ++m) 
+                                       in += ks[(id*7 + 6)*7 + m]*sten_kp[m]; 
+                                    ftemp += ws[6]*in; 
+
+                                    fine(i,j,k,n) = ftemp; 
+                                }
+                            }
+                        }
+                    }
+                    else{
+                        for(int rz = 0; rz < ratio[2]; rz++){
+                            const int k = kc*ratio[2] + rz; 
+                            for(int ry = 0; ry < ratio[1]; ry++){
+                                const int j = jc*ratio[1] + ry; 
+                                for(int rx = 0; rx< ratio[0]; rx++){ 
+                                    const int i = ic*ratio[0] + rx; 
+                                    const int id = rx + ratio[0]*(ry + ratio[1]*rz);
+                                    amrex::Real ftemp = 0; 
+                                    for(int m = 0; m < 7; ++m) ftemp += ks[(id*7 + 3)*7 + m]*sten_cen[m];
+                                    fine(i,j,k,n) = ftemp; 
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 }
