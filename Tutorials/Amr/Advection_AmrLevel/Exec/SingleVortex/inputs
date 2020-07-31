@@ -15,13 +15,17 @@ adv.cfl            = 0.7     # cfl number for hyperbolic system
 			     # time-dependent.  We could use 0.9 in
 			     # the 3D test, but need to use 0.7 in 2D
 			     # to satisfy CFL condition.
+
+# PROLONGATION ORDER
+adv.amr_interp     = 1       # Choose GP Interp, 1 for Cell Cons
+
 # VERBOSITY
 adv.v              = 1       # verbosity in Adv
 amr.v              = 1       # verbosity in Amr
 #amr.grid_log         = grdlog  # name of grid logging file
 
 # REFINEMENT / REGRIDDING
-amr.max_level       = 2       # maximum level number allowed
+amr.max_level       = 1       # maximum level number allowed
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
 amr.regrid_int      = 2       # how often to regrid
 amr.blocking_factor = 8       # block factor in grid generation

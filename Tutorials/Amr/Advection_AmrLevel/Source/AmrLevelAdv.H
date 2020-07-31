@@ -175,6 +175,7 @@ protected:
     static int          verbose;
     static amrex::Real  cfl;
     static int          do_reflux;
+    static int          amr_interp;
 
 #ifdef AMREX_PARTICLES
     void init_particles ();
