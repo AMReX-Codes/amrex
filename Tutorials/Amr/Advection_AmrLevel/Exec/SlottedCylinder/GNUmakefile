@@ -15,7 +15,7 @@ USE_PARTICLES = TRUE
 
 USE_MPI    = TRUE
 USE_OMP    = FALSE
-
+USE_CUDA   = TRUE
 Bpack   := ./Make.package 
 Blocs   := . 
 

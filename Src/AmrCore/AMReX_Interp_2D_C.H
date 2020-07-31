@@ -456,7 +456,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void 
 amrex_gpinterp(Box const& bx, amrex::Array4<T> const& fine,
                const int fcomp, const int ncomp, 
-               amrex::Array4<T> const& crse,
+               amrex::Array4<const T> const& crse,
                const int ccomp, 
                amrex::IntVect ratio, 
                const amrex::Real ks[], 

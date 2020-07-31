@@ -1,8 +1,5 @@
 #include <AMReX_GP_2D.H>
 #include <AMReX_Gpu.H>
-#include <iostream> 
-#include <fstream> 
-#include <iomanip>
 #include <lapacke.h> 
 
 

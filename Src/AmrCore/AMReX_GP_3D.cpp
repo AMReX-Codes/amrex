@@ -1,8 +1,5 @@
 #include <AMReX_GP_3D.H>
 #include <AMReX_Gpu.H>
-#include <iostream> 
-#include <fstream> 
-#include <iomanip>
 #include <lapacke.h> 
 
 template<class T>
