@@ -35,7 +35,10 @@ NodeBilinear              node_bilinear_interp;
 FaceLinear                face_linear_interp;
 CellConservativeLinear    lincc_interp;
 CellConservativeLinear    cell_cons_interp(0);
+
+#if AMREX_SPACEDIM >= 2
 CellGaussianProcess       gp_interp;
+#endif 
 
 #ifndef BL_NO_FORT
 CellBilinear              cell_bilinear_interp;
@@ -900,6 +903,7 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 }
 #endif
 
+#if AMREX_SPACEDIM>=2
 CellGaussianProcess::~CellGaussianProcess () {
        for(auto& it:gp) //Deallocate all CUDA mem in GP
             it.GP_finalize();
@@ -989,5 +993,6 @@ CellGaussianProcess::interp (const FArrayBox& crse,
         finearr(i,j,k,n) = fparr(i,j,k,n); 
     });
 }
+#endif 
 
 }

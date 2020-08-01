@@ -717,6 +717,8 @@ public:
                          RunOn            gpu_or_cpu) override;
 };
 
+
+#if AMREX_SPACEDIM >= 2
 class CellGaussianProcess
     :
     public Interpolater
@@ -761,7 +763,7 @@ public:
     GP get_GP(const IntVect ratio, const amrex::Real *dx); 
 
 };
-
+#endif 
 
 
 //! CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
@@ -770,7 +772,9 @@ extern NodeBilinear              node_bilinear_interp;
 extern FaceLinear                face_linear_interp;
 extern CellConservativeLinear    lincc_interp;
 extern CellConservativeLinear    cell_cons_interp;
+#if AMREX_SPACEDIM >= 2
 extern CellGaussianProcess       gp_interp; 
+#endif 
 
 #ifndef BL_NO_FORT
 extern CellBilinear              cell_bilinear_interp;

@@ -112,6 +112,7 @@ AmrLevelAdv::variableSetUp ()
     // Get options, set phys_bc
     read_params();
 
+#if AMREX_SPACEDIM >=2 
     if(amr_interp > 1){
         desc_lst.addDescriptor(Phi_Type,IndexType::TheCellType(),
                            StateDescriptor::Point,0,NUM_STATE,
@@ -122,7 +123,11 @@ AmrLevelAdv::variableSetUp ()
                            StateDescriptor::Point,0,NUM_STATE,
                            &cell_cons_interp);
     }
-
+#else 
+        desc_lst.addDescriptor(Phi_Type,IndexType::TheCellType(),
+                           StateDescriptor::Point,0,NUM_STATE,
+                           &cell_cons_interp);
+#endif
     int lo_bc[BL_SPACEDIM];
     int hi_bc[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; ++i) {
