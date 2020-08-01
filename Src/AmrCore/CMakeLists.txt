@@ -16,9 +16,6 @@ target_sources(amrex
    AMReX_Interpolater.cpp
    AMReX_TagBox.cpp
    AMReX_AmrMesh.cpp
-   if (${DIM} GREATER 1)
-      AMReX_GP_${DIM}D.cpp
-   endif ()
    AMReX_Interpolater.H
    AMReX_TagBox.H
    AMReX_AmrMesh.H
@@ -26,10 +23,15 @@ target_sources(amrex
    AMReX_FluxReg_C.H
    AMReX_Interp_C.H
    AMReX_Interp_${DIM}D_C.H
-   if (${DIM} GREATER 1)
-      AMReX_GP_${DIM}D.H
-   endif ()
    )
+
+if (${DIM} GREATER 1)
+   target_sources(amrex
+      PRIVATE
+      AMReX_GP_${DIM}D.H
+      AMReX_GP_${DIM}D.cpp
+      )
+endif ()
 
 if (ENABLE_FORTRAN)
    target_sources(amrex
