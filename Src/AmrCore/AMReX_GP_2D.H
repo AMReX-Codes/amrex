@@ -14,7 +14,7 @@ class GP
 {
     public: 
     GP(const amrex::IntVect Ratio, const amrex::Real *del);
-    ~GP(){};      
+    ~GP(){}
     
     // Member data
     amrex::IntVect r; 
