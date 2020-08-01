@@ -173,10 +173,10 @@ class GP
         amrex::Real x[3] = {xc[0]*dx[0], xc[1]*dx[1], xc[2]*dx[2]};
         amrex::Real y[3] = {yc[0]*dx[0], yc[1]*dx[1], yc[2]*dx[2]};
         amrex::Real dks = (x[0] - y[0])/dx[0];
-        amrex::Real arg[4] = { dks + (r[0] -1.0)/(2.0*r[0]),
-                               dks + (r[0] +1.0)/(2.0*r[0]),
-                               dks - (r[0] -1.0)/(2.0*r[0]),
-                               dks - (r[0] +1.0)/(2.0*r[0])};
+        amrex::Real arg[4] = {static_cast<amrex::Real>( dks + (r[0] -1.0)/(2.0*r[0]) ),
+                              static_cast<amrex::Real>( dks + (r[0] +1.0)/(2.0*r[0]) ),
+                              static_cast<amrex::Real>( dks - (r[0] -1.0)/(2.0*r[0]) ),
+                              static_cast<amrex::Real>( dks - (r[0] +1.0)/(2.0*r[0]) )};
         amrex::Real pi = std::atan(1.0)*4.0;
         amrex::Real cx = 0.0;
         amrex::Real iarg;
