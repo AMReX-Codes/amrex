@@ -940,9 +940,9 @@ GP CellGaussianProcess::get_GP(const amrex::IntVect ratio, const amrex::Real *dx
 
 void
 CellGaussianProcess::interp (const FArrayBox& crse,
-                             int              crse_comp,
+                             int             /*crse_comp*/,
                              FArrayBox&       fine,
-                             int              fine_comp,
+                             int             /*fine_comp*/,
                              int              ncomp,
                              const Box&       fine_region,
                              const IntVect&   ratio,
@@ -981,7 +981,7 @@ CellGaussianProcess::interp (const FArrayBox& crse,
 
     Vector<int> bc = GetBCArray(bcr);  
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cb1, tbx,{
-        amrex_gpinterp(tbx, fparr, fine_comp, ncomp, crsearr, crse_comp,
+        amrex_gpinterp(tbx, fparr, ncomp, crsearr,
                        ratio, ks, lam, gam, V); 
     });
 
