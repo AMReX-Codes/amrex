@@ -1,8 +1,18 @@
 
 CEXE_headers += AMReX_AmrCore.H AMReX_Cluster.H AMReX_ErrorList.H AMReX_FillPatchUtil.H AMReX_FillPatchUtil_I.H AMReX_FluxRegister.H \
-                AMReX_Interpolater.H AMReX_TagBox.H AMReX_AmrMesh.H AMReX_GP_$(DIM)D.H
+                AMReX_Interpolater.H AMReX_TagBox.H AMReX_AmrMesh.H 
+ifeq ($(DIM), 2)
+CEXE_headers += AMReX_GP_2D.H
+CEXE_sources += AMReX_GP_2D.cpp
+endif
+
+ifeq ($(DIM), 3)
+CEXE_headers += AMReX_GP_3D.H
+CEXE_sources += AMReX_GP_3D.cpp
+endif
+
 CEXE_sources += AMReX_AmrCore.cpp AMReX_Cluster.cpp AMReX_ErrorList.cpp AMReX_FillPatchUtil.cpp AMReX_FluxRegister.cpp \
-                AMReX_Interpolater.cpp AMReX_TagBox.cpp AMReX_AmrMesh.cpp AMReX_GP_$(DIM)D.cpp
+                AMReX_Interpolater.cpp AMReX_TagBox.cpp AMReX_AmrMesh.cpp 
 
 CEXE_headers += AMReX_Interp_C.H AMReX_Interp_$(DIM)D_C.H
 
