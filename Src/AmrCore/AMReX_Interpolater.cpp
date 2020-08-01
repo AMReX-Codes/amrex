@@ -3,6 +3,11 @@
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Geometry.H>
+#if AMREX_SPACEDIM == 2
+#include <AMReX_GP_2D.H>
+#elif AMREX_SPACEDIM == 3
+#include <AMReX_GP_3D.H>
+#endif
 #include <AMReX_Interpolater.H>
 #include <AMReX_Interp_C.H>
 
