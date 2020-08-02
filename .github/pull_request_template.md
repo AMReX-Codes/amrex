@@ -2,7 +2,7 @@
 
 ## Additional background
 
-## Checklist <-- use [x] to check the box -->
+## Checklist
 
 The proposed changes:
 - [ ] fix a bug or incorrect behavior in AMReX
