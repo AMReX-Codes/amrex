@@ -587,6 +587,92 @@ void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
     }
 }
 
+void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                            const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                            const IntVect& ratio, const Geometry& crse_geom)
+{
+    AMREX_ASSERT(crse[0]->nComp() == fine[0]->nComp());
+
+    int ngcrse = 0;
+
+    int ncomp = crse[0]->nComp();
+    if (!(*fine[0]).hasEBFabFactory())
+    {
+        amrex::average_down_faces(fine, crse, ratio, ngcrse);
+    }
+    else
+    {
+        Dim3 dratio = ratio.dim3();
+
+        const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>((*fine[0]).Factory());
+        const auto&  aspect = factory.getAreaFrac();
+
+        if (isMFIterSafe(*fine[0], *crse[0]))
+        {
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (int n=0; n<AMREX_SPACEDIM; ++n) {
+                for (MFIter mfi(*crse[n],TilingIfNotGPU()); mfi.isValid(); ++mfi)
+                {
+                    const auto& flag_fab = amrex::getEBCellFlagFab((*fine[n])[mfi]);
+                    const Box& tbx = mfi.growntilebox(ngcrse);
+                    FabType typ = flag_fab.getType(amrex::refine(tbx,ratio));
+
+                    Array4<Real> const& ca = crse[n]->array(mfi);
+                    Array4<Real const> const& fa = fine[n]->const_array(mfi);
+
+                    if(typ == FabType::regular || typ == FabType::covered)
+                    {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
+                        {
+                            amrex_avgdown_faces(b, ca, fa, 0, 0, ncomp, ratio, n);
+                        });
+                    }
+                    else
+                    {
+                        Array4<Real const> const& ap = aspect[n]->const_array(mfi);
+                        if (n == 0) {
+                            AMREX_HOST_DEVICE_FOR_3D(tbx,i,j,k,
+                            {
+                                eb_avgdown_face_x(i,j,k,fa,0,ca,0,ap,dratio,ncomp);
+                            });
+                        } else if (n == 1) {
+                            AMREX_HOST_DEVICE_FOR_3D(tbx,i,j,k,
+                            {
+                                eb_avgdown_face_y(i,j,k,fa,0,ca,0,ap,dratio,ncomp);
+                            });
+                        } else {
+#if (AMREX_SPACEDIM == 3)
+                            AMREX_HOST_DEVICE_FOR_3D(tbx,i,j,k,
+                            {
+                                eb_avgdown_face_z(i,j,k,fa,0,ca,0,ap,dratio,ncomp);
+                            });
+#endif
+                        }
+                    }
+                }
+                // TODO: NEED TO ENFORCE PERIODICITY IN THIS CASE
+            }
+        }
+        else
+        {
+            Array<MultiFab,AMREX_SPACEDIM> ctmp;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                BoxArray cba = fine[idim]->boxArray();
+                cba.coarsen(ratio);
+                ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
+            }
+            EB_average_down_faces(fine, amrex::GetArrOfPtrs(ctmp), ratio, ngcrse);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                crse[idim]->ParallelCopy(ctmp[idim],0,0,ncomp,crse_geom.periodicity());
+            }
+        }
+    }
+}
+
 void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
                                  int ratio, int ngcrse)
 {
