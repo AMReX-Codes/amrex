@@ -19,7 +19,9 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                                 Array4<Real const> const& kapx,
                                 Array4<Real const> const& apx,
                                 Array4<EBCellFlag const> const& flag,
-                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                const Dim3& dlo, const Dim3& dhi,
+                                Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct) noexcept
 {
     const Real dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
@@ -40,12 +42,30 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                 int jhim = j - flag(i  ,j,0).isConnected(0,-1,0);
                 int jlop = j + flag(i-1,j,0).isConnected(0, 1,0);
                 int jlom = j - flag(i-1,j,0).isConnected(0,-1,0);
+
                 Real whi = mlebtensor_weight(jhip-jhim);
                 Real wlo = mlebtensor_weight(jlop-jlom);
+
                 Real dudy = (0.5*dyi) * ((vel(i  ,jhip,0,0)-vel(i  ,jhim,0,0))*whi
                                         +(vel(i-1,jlop,0,0)-vel(i-1,jlom,0,0))*wlo);
+
                 Real dvdy = (0.5*dyi) * ((vel(i  ,jhip,0,1)-vel(i  ,jhim,0,1))*whi
                                         +(vel(i-1,jlop,0,1)-vel(i-1,jlom,0,1))*wlo);
+
+                if (i==dhi.x+1 and bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_NEUMANN){
+                    dudy = (dyi) * ((vel(i-1,jlop,0,0)-vel(i-1,jlom,0,0))*wlo);
+                }
+                if (i==dhi.x+1 and bct(Orientation(Direction::x,Orientation::high),1)==AMREX_LO_NEUMANN){
+                    dvdy = (dyi) * ((vel(i-1,jlop,0,1)-vel(i-1,jlom,0,1))*wlo);
+                }
+ 
+                if (i==dlo.x and bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_NEUMANN){
+                    dudy = (dyi) * ((vel(i  ,jhip,0,0)-vel(i  ,jhim,0,0))*whi);
+                }
+                if (i==dlo.x and bct(Orientation(Direction::x,Orientation::low),1)==AMREX_LO_NEUMANN){
+                    dvdy = (dyi) * ((vel(i  ,jhip,0,1)-vel(i  ,jhim,0,1))*whi);
+                }
+
 		Real divu = dvdy;
                 Real xif = kapx(i,j,0);
                 Real mun = 0.75*(etax(i,j,0,0)-xif);  // restore the original eta
@@ -64,7 +84,9 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                                 Array4<Real const> const& kapy,
                                 Array4<Real const> const& apy,
                                 Array4<EBCellFlag const> const& flag,
-                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                const Dim3& dlo, const Dim3& dhi,
+                                Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct) noexcept
 {
     const Real dxi = dxinv[0];
     const auto lo = amrex::lbound(box);
@@ -85,12 +107,29 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                 int ihim = i - flag(i,j  ,0).isConnected(-1,0,0);
                 int ilop = i + flag(i,j-1,0).isConnected( 1,0,0);
                 int ilom = i - flag(i,j-1,0).isConnected(-1,0,0);
+
                 Real whi = mlebtensor_weight(ihip-ihim);
                 Real wlo = mlebtensor_weight(ilop-ilom);
+
                 Real dudx = (0.5*dxi) * ((vel(ihip,j  ,0,0)-vel(ihim,j  ,0,0))*whi
                                         +(vel(ilop,j-1,0,0)-vel(ilom,j-1,0,0))*wlo);
                 Real dvdx = (0.5*dxi) * ((vel(ihip,j  ,0,1)-vel(ihim,j  ,0,1))*whi
                                         +(vel(ilop,j-1,0,1)-vel(ilom,j-1,0,1))*wlo);
+
+                if (j==dhi.y+1 and bct(Orientation(Direction::y,Orientation::high),0)==AMREX_LO_NEUMANN){
+                    dudx = (dxi) * ((vel(ilop,j-1,0,0)-vel(ilom,j-1,0,0))*wlo);
+                }
+                if (j==dhi.y+1 and bct(Orientation(Direction::y,Orientation::high),1)==AMREX_LO_NEUMANN){
+                    dvdx = (dxi) * ((vel(ilop,j-1,0,1)-vel(ilom,j-1,0,1))*wlo);
+                }
+ 
+                if (j==dlo.y and bct(Orientation(Direction::y,Orientation::low),0)==AMREX_LO_NEUMANN){
+                    dudx = (dxi) * ((vel(ihip,j  ,0,0)-vel(ihim,j  ,0,0))*whi);
+                }
+                if (j==dlo.y and bct(Orientation(Direction::y,Orientation::low),1)==AMREX_LO_NEUMANN){
+                    dvdx = (dxi) * ((vel(ihip,j  ,0,1)-vel(ihim,j  ,0,1))*whi);
+                }
+
 
 		Real divu = dudx;
                 Real xif = kapy(i,j,0);
