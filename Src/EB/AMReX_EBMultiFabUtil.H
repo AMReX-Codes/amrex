@@ -25,11 +25,16 @@ namespace amrex
                           const IntVect& ratio);
 
     void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
-                                const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                                const Array<      MultiFab*,AMREX_SPACEDIM>& crse,
                                 int ratio, int ngcrse);
     void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
-                                const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                                const Array<      MultiFab*,AMREX_SPACEDIM>& crse,
                                 const IntVect& ratio, int ngcrse);
+
+    //  This version takes periodicity into account.
+    void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                                const Array<      MultiFab*,AMREX_SPACEDIM>& crse,
+                                const IntVect& ratio, const Geometry& crse_geom);
 
     void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
                                      int ratio, int ngcrse);
