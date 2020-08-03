@@ -697,8 +697,11 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
                 // with boxes for overlapping ghost nodes.
                 const Box& ba_krcv   = amrex::grow(ba[krcv],1);
                 const Box& dst_bx_ng = (amrex::grow(ba_krcv,ng_ng) & (vbx_ng + (*pit)));
-    		    BoxList bl_ng = amrex::boxDiff(dst_bx_ng, ba_krcv);
-                bl.join(ba.complementIn(bl_ng));
+                const BoxList &bltmp = ba.complementIn(dst_bx_ng);
+                for (auto const& btmp : bltmp)
+                {
+                    bl.join(amrex::boxDiff(btmp,ba_krcv));
+                }
                 bl.simplify();
             }
 		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
@@ -765,8 +768,11 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
             Box ba_ksnd = ba[ksnd];
             ba_ksnd.grow(1);
             const Box dst_bx_ng = (ba_ksnd & (bxrcv + (*pit))) - (*pit);
-		    const BoxList& bl_ng = amrex::boxDiff(dst_bx_ng, vbx_ng);
-            bl.join(ba.complementIn(bl_ng));
+            const BoxList &bltmp = ba.complementIn(dst_bx_ng);
+            for (auto const& btmp : bltmp)
+            {
+                bl.join(amrex::boxDiff(btmp,vbx_ng));
+            }
             bl.simplify();
         }
 		for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)

@@ -1246,19 +1246,6 @@ BoxArray::complementIn (const Box& bx) const
     complementIn(bl, bx);
     return bl;
 }
-BoxList 
-BoxArray::complementIn (const BoxList& bl) const
-{
-    AMREX_ASSERT(bl.ixType() == ixType());
-    BoxList ret(bl.ixType());
-    for (BoxList::const_iterator _bl = bl.begin(); _bl != bl.end(); ++_bl)
-    {
-        BoxList tmp = complementIn(*_bl);
-        if (tmp.isNotEmpty()) ret.join(tmp);
-    }
-    ret.simplify();
-    return ret;
-}
 
 void
 BoxArray::complementIn (BoxList& bl, const Box& bx) const
