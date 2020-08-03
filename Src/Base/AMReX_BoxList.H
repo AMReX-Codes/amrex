@@ -173,6 +173,8 @@ public:
     * is O(N-squared) while the other algorithm is O(N).
     */
     int simplify (bool best = false);
+    //! Assuming the boxes are nicely ordered
+    int ordered_simplify ();
     //! Forces each Box in the BoxList to have sides of length <= chunk.
     BoxList& maxSize (int chunk);
     //! Forces each Box in the BoxList to have dimth side of length <= chunk[dim].
@@ -214,7 +216,7 @@ public:
 
 private:
     //! Core simplify routine.
-    int simplify_doit (bool best);
+    int simplify_doit (int depth);
 
     //! The list of Boxes.
     Vector<Box> m_lbox;
