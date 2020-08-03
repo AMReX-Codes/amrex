@@ -653,7 +653,7 @@ void
 FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 {
     AMREX_ASSERT(m_multi_ghost ? fa.nGrow() >= 2 : true); // must have >= 2 ghost nodes
-    AMREX_ASSERT(m_multi_ghost ? !m_period.isPeriodic() : true); // this only works for non-periodic
+    AMREX_ASSERT(m_multi_ghost ? !m_period.isAnyPeriodic() : true); // this only works for non-periodic
     const int                  MyProc   = ParallelDescriptor::MyProc();
     const BoxArray&            ba       = fa.boxArray();
     const DistributionMapping& dm       = fa.DistributionMap();
