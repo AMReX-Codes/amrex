@@ -18,10 +18,10 @@ amrex_first_order_extrap(amrex::Box const& bx,
 
    const auto lo = amrex::lbound(bx);
    const auto hi = amrex::ubound(bx);
-   int idlo[3] = {D_DECL(lo.x,lo.y,lo.z)};            // base box bounds
-   int idhi[3] = {D_DECL(hi.x,hi.y,hi.z)};
-   int idlo_e[3] = {D_DECL(lo.x,lo.y,lo.z)};          // extended box bounds
-   int idhi_e[3] = {D_DECL(hi.x,hi.y,hi.z)};
+   int idlo[3] = {AMREX_D_DECL(lo.x,lo.y,lo.z)};            // base box bounds
+   int idhi[3] = {AMREX_D_DECL(hi.x,hi.y,hi.z)};
+   int idlo_e[3] = {AMREX_D_DECL(lo.x,lo.y,lo.z)};          // extended box bounds
+   int idhi_e[3] = {AMREX_D_DECL(hi.x,hi.y,hi.z)};
    for (int dim = 0; dim < AMREX_SPACEDIM; dim++) {   // Extend only AMREX_SPACEDIMs
       idlo_e[dim] -= 1;
       idhi_e[dim] += 1;
