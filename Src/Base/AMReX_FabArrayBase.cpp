@@ -663,9 +663,8 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     
     const int nlocal = imap.size();
     const IntVect& ng = m_ngrow;
-    const IntVect ng_ng(AMREX_D_DECL(m_ngrow[0]-1,m_ngrow[1]-1,m_ngrow[1]-1));
+    const IntVect ng_ng = m_ngrow - 1;
     std::vector< std::pair<int,Box> > isects;
-    std::vector< std::pair<int,Box> > isects_ng;
     
     const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
     
@@ -675,7 +674,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     {
 	const int ksnd = imap[i];
 	const Box& vbx = ba[ksnd];
-	const Box& vbx_ng  = amrex::grow(ba[ksnd],1);
+	const Box& vbx_ng  = amrex::grow(vbx,1);
 
 	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
@@ -733,9 +732,8 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     {
 	const int   krcv = imap[i];
 	const Box& vbx   = ba[krcv];
-	const Box& vbx_ng  = amrex::grow(ba[krcv],1);
+	const Box& vbx_ng  = amrex::grow(vbx,1);
 	const Box& bxrcv = amrex::grow(vbx, ng);
-	const Box& bxrcv_ng = amrex::grow(vbx_ng, ng_ng);
 	
 	if (check_local) {
 	    localtouch.resize(bxrcv);
@@ -765,7 +763,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
             // with boxes for overlapping ghost nodes.
             Box ba_ksnd = ba[ksnd];
             ba_ksnd.grow(1);
-            const Box dst_bx_ng = (ba_ksnd & (bxrcv_ng + (*pit))) - (*pit);
+            const Box dst_bx_ng = (ba_ksnd & (bxrcv + (*pit))) - (*pit);
 		    const BoxList& bl_ng = amrex::boxDiff(dst_bx_ng, vbx_ng);
             bl.join(ba.complementIn(bl_ng));
             bl.simplify();
