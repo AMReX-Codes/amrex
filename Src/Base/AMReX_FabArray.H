@@ -1217,6 +1217,8 @@ template <class FAB>
 bool
 FabArray<FAB>::ok () const
 {
+    if (!define_function_called) return false;
+
     int isok = 1;
 
     for (MFIter fai(*this); fai.isValid() && isok; ++fai)
