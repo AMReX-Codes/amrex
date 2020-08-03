@@ -35,6 +35,7 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
     m_rhs.resize(nlevs);
     m_phi.resize(nlevs);
     m_fluxes.resize(nlevs);
+    m_divu.resize(nlevs);
 
 #ifdef AMREX_USE_EB
     bool has_eb = a_umac[0][0]->hasEBFabFactory();
@@ -91,8 +92,14 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
     }
 
     for (int ilev = 0, N = a_divu.size(); ilev < N; ++ilev) {
-        if (a_divu[ilev]) {
-            MultiFab::Copy(m_rhs[ilev], *a_divu[ilev], 0, 0, 1, 0);
+        if (a_divu[ilev])
+        {
+#ifdef AMREX_USE_EB
+            m_divu[ilev].define(ba[ilev],dm[ilev],1,0,MFInfo(),a_umac[ilev][0]->Factory());
+#else
+            m_divu[ilev].define(ba[ilev],dm[ilev],1,0);
+#endif
+            MultiFab::Copy(m_divu[ilev], *a_divu[ilev], 0, 0, 1, 0);
         }
     }
 
@@ -146,12 +153,20 @@ MacProjector::project (Real reltol, Real atol)
                 m_umac[ilev][idim]->FillBoundary(m_geom[ilev].periodicity());
             }
         }
-        
+
         EB_computeDivergence(divu, u, m_geom[ilev], (m_umac_loc == MLMG::Location::FaceCentroid));
 #else
         computeDivergence(divu, u, m_geom[ilev]);
 #endif
-        MultiFab::Subtract(m_rhs[ilev], divu, 0, 0, 1, 0);
+
+        // Setup RHS as (m_divu - divu) where m_divu is a user-provided source term
+        MultiFab::Copy(m_rhs[ilev], divu, 0, 0, 1, 0);
+        m_rhs[ilev].mult(-1.0);
+
+        if (m_divu[ilev].ok())
+        {
+            MultiFab::Add(m_rhs[ilev],m_divu[ilev],0,0,1,0);
+        }
     }
 
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, atol);
@@ -194,7 +209,14 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
 #else
         computeDivergence(divu, u, m_geom[ilev]);
 #endif
-        MultiFab::Subtract(m_rhs[ilev], divu, 0, 0, 1, 0);
+        // Setup RHS as (m_divu - divu) where m_divu is a user-provided source term
+        MultiFab::Copy(m_rhs[ilev], divu, 0, 0, 1, 0);
+        m_rhs[ilev].mult(-1.0);
+
+        if (m_divu[ilev].ok())
+        {
+            MultiFab::Add(m_rhs[ilev],m_divu[ilev],0,0,1,0);
+        }
 
         MultiFab::Copy(m_phi[ilev], *phi_inout[ilev], 0, 0, 1, 0);
     }
