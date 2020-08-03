@@ -95,6 +95,8 @@ private:
 
     void setOptions ();
 
+    void averageDownVelocity ();
+
     std::unique_ptr<MLABecLaplacian> m_abeclap;
 #ifdef AMREX_USE_EB
     std::unique_ptr<MLEBABecLap> m_eb_abeclap;

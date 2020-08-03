@@ -136,6 +136,8 @@ MacProjector::project (Real reltol, Real atol)
 {
     const int nlevs = m_rhs.size();
 
+    averageDownVelocity();
+
     for (int ilev = 0; ilev < nlevs; ++ilev)
     {
         Array<MultiFab const*, AMREX_SPACEDIM> u;
@@ -181,12 +183,16 @@ MacProjector::project (Real reltol, Real atol)
 #endif
         }
     }
+
+    averageDownVelocity();
 }
 
 void
 MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real atol)
 {
     const int nlevs = m_rhs.size();
+
+    averageDownVelocity();
 
     for (int ilev = 0; ilev < nlevs; ++ilev)
     {
@@ -234,6 +240,9 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
 #endif
         }
     }
+
+    averageDownVelocity();
+
     for (int ilev = 0; ilev < nlevs; ++ilev)
     {
         MultiFab::Copy(*phi_inout[ilev], m_phi[ilev], 0, 0, 1, 0);
@@ -312,6 +321,29 @@ MacProjector::setOptions ()
         m_mlmg->setBottomSolver(MLMG::BottomSolver::hypre);
 #else
         amrex::Abort("AMReX was not built with HYPRE support");
+#endif
+    }
+}
+
+void
+MacProjector::averageDownVelocity ()
+{
+    int finest_level = m_umac.size() - 1;
+
+
+    for (int lev = finest_level; lev > 0; --lev)
+    {
+
+        IntVect rr  = m_geom[lev].Domain().size() / m_geom[lev-1].Domain().size();
+
+#ifdef AMREX_USE_EB
+        EB_average_down_faces(GetArrOfConstPtrs(m_umac[lev]),
+                              m_umac[lev-1],
+                              rr, m_geom[lev-1]);
+#else
+        average_down_faces(GetArrOfConstPtrs(m_umac[lev]),
+                           m_umac[lev-1],
+                           rr, m_geom[lev-1]);
 #endif
     }
 }
