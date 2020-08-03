@@ -87,36 +87,14 @@ SMPIARGS+=" --smpiargs="-disable_gpu_hooks -x PAMI_DISABLE_CUDA_HOOK=1""
 # 1. Run normally
 ${JSRUN} ${SMPIARGS} ${EXE} ${INPUTS} >& out.${LSB_JOBID}
 
-# 2. Run under nvprof and direct all stdout and stderr to nvprov.{jobid}
-#${JSRUN} ${SMPIARGS} nvprof --profile-child-processes --openmp-profiling off --device-buffer-size 64 ${EXE} ${INPUTS} &> out.${LSB_JOBID}
-
-# 3. Run under nvprof and output trace data of gpu launches. 
-#${JSRUN} ${SMPIARGS} nvprof --print-gpu-trace --profile-child-processes --openmp-profiling off --device-buffer-size 64 ${EXE} ${INPUTS} >& out.${LSB_JOBID}
-
-# 4. Run under nvprof and store performance data in a nvvp file
-#    Can be converted to text using nvprof -i nvprof-timeline-%p.nvvp
-#${JSRUN} ${SMPIARGS} nvprof --profile-child-processes --openmp-profiling off --device-buffer-size 64 -o nvprof_out.${PMIX_RANK}.${LSB_JOBID}.nvvp ${EXE} ${INPUTS} >& out.${LSB_JOBID}
-
-# 5. Run under nvprof only profiling MPI rank PROFILE_RANK
-#${JSRUN} ${SMPIARGS} ./profile_1rank.sh ${EXE} ${INPUTS} &> out.${LSB_JOBID}
-
-# Uncomment and copy the following lines into profile_1rank.sh 
-# #!/bin/bash
-# PROFILE_RANK=0
-# if [ $PMIX_RANK == $PROFILE_RANK ]; then
-#   nvprof --profile-child-processes --openmp-profiling off --device-buffer-size 64 "$@"
-# else
-#   "$@"
-# fi
-
-# 6. Run under nsys profile and store performance data in a qdrep file
+# 2. Run under nsys profile and store performance data in a qdrep file
 #${JSRUN} ${SMPIARGS} nsys profile -o nsys_out.%q{PMIX_RANK}.%q{LSB_JOBID}  ${EXE} ${INPUTS} >& out.${LSB_JOBID}
 
-# 7. Run under nsys profile and store performance data in a qdrep file and collect summary stats in sqlite file
+# 3. Run under nsys profile and store performance data in a qdrep file and collect summary stats in sqlite file
 #    Warning: summary statistics will take A LOT of extra time at the end of the run
 #${JSRUN} ${SMPIARGS} nsys profile --stats=true -o nsys_out.%q{PMIX_RANK}.%q{LSB_JOBID}  ${EXE} ${INPUTS} >& out.${LSB_JOBID}
 
-# 8. Run under nv-sight-cu-cli for Nsight Compute command line interface
+# 4. Run under nv-sight-cu-cli for Nsight Compute command line interface
 #    Warning: This will do a A LOT of analysis. Limit the kernels profiled with additional flags.
 #    For filtering examples, see:
 #    https://docs.nvidia.com/nsight-compute/NsightComputeCli/index.html#nvtx-filtering

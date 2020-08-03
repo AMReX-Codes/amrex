@@ -621,7 +621,7 @@ MLEBABecLap::averageDownCoeffsToCoarseAmrLevel (int flev)
 
     amrex::EB_average_down_faces(amrex::GetArrOfConstPtrs(fine_b_coeffs),
                                  amrex::GetArrOfPtrs(crse_b_coeffs),
-                                 mg_coarsen_ratio, 0);
+                                 IntVect(mg_coarsen_ratio), m_geom[flev-1][0]);
 
     if (fine_eb_b_coeffs) {
         amrex::EB_average_down_boundaries(*fine_eb_b_coeffs, *crse_eb_b_coeffs, mg_coarsen_ratio, 0);

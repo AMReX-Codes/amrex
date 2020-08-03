@@ -96,9 +96,9 @@ public :
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final override;
 
-    virtual void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
-                            const Vector<MultiFab*>& a_sol,
-                            Location a_loc) const final override {
+    virtual void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& /*a_flux*/,
+                            const Vector<MultiFab*>& /*a_sol*/,
+                            Location /*a_loc*/) const final override {
         amrex::Abort("MLLinOp::getFluxes: How did we get here?");
     }
     virtual void getFluxes (const Vector<MultiFab*>& a_flux,

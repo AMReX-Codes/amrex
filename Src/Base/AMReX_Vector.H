@@ -199,7 +199,7 @@ namespace amrex
             if (N < 2) return stop;
 
             T* const data = vec.data() + start;
-            T const sentinel = data[0];
+            T const sentinel = data[0]; // duplicates will be set to sentinel and removed later
             H const hasher;
             for (std::size_t i = 1; i < N; ) {
                 if (data[i] == sentinel) {
@@ -208,43 +208,60 @@ namespace amrex
                 }
 
                 std::size_t const hash = hasher(data[i]) % N;
-                if (i == hash) {
+                if (i == hash) { // data[i] in correct hash position
                     ++i;
                     continue;
                 }
 
                 if (data[i] == data[hash]) {
-                    data[i] = sentinel;
+                    data[i] = sentinel; // because it's a duplicate
                     ++i;
                     continue;
                 }
 
                 if (data[hash] == sentinel) {
                     std::swap(data[hash], data[i]);
+                    // after swap, new data[i] holds sentinel
+                    //   newdata[hash] in correct hash poitiion
                     ++i;
                     continue;
                 }
 
                 std::size_t const hashhash = hasher(data[hash]) % N;
-                if (hashhash != hash) {
+                if (hashhash != hash) { // data[hash] not in correct has poision, thus will yield it's poistion
                     std::swap(data[i], data[hash]);
-                    if (hash < i) {
+                    // after swap, new data[hash] in correct hash position
+                    //   new data[i] not sure
+                    if (hash < i) {  // we have seen new data[i]
                         ++i;
-                    }
-                } else {
+                    } // else next iteration we will work on data[i]
+                } else { // data[hash] in correct hash position, but data[i] is not because of hash collision
                     ++i;
                 }
             }
 
+            // Now there are three types for data[i]
+            //   (1) sentinel
+            //   (2) data[i] != sentinel and hash(data[i]) == i
+            //   (3) data[i] != sentinel and hash(data[i]) != i because of hash collision
+            // All type 2s are unique, and all sentinels except one can be removed.
+            // We will move all type 2s to the beginning, all sentinels to the end.
+            // This will leave all type 3s in the middle.  Then we will work on the middle
+            // part plus one sentinel.
+
             std::size_t swapPos = 0;
             for (std::size_t i = 0; i < N; ++i) {
+                // move type 2 to the beginning pointed to by swapPos
                 if (data[i] != sentinel and i == hasher(data[i]) % N) {
                     std::swap(data[i], data[swapPos++]);
                 }
             }
 
+            // Now we have moved all type 2 elements to the beginning, [0,swapPos)
+
             std::size_t sentinelPos = N;
             for (std::size_t i = swapPos; i < sentinelPos; ) {
+                // move type 1 to the end
                 if(data[i] == sentinel) {
                     std::swap(data[i], data[--sentinelPos]);
                 } else {
@@ -252,6 +269,7 @@ namespace amrex
                 }
             }
 
+            // recursively work on the middle part
             return detail::removeDupDoit<T,H>(vec, start+swapPos, start+sentinelPos+1);
         }
     }

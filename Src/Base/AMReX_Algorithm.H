@@ -55,6 +55,13 @@ namespace amrex
         t1 = std::move(t2);
         t2 = std::move(temp);
     }
+
+    template <typename T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    constexpr const T& Clamp (const T& v, const T& lo, const T& hi)
+    {
+        return (v < lo) ? lo : (hi < v) ? hi : v;
+    }
 }
 
 #endif

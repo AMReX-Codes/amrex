@@ -193,7 +193,7 @@ void eb_rereflux_from_crse (int i, int j, int k, int n, Box const& bx, Array4<Re
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void eb_rereflux_to_fine (int i, int j, int k, int n, Array4<Real> const& d,
+void eb_rereflux_to_fine (int i, int j, int /*k*/, int n, Array4<Real> const& d,
                           Array4<Real const> const& s, Array4<int const> const& msk, Dim3 ratio)
 {
     int ic = amrex::coarsen(i,ratio.x);

@@ -61,7 +61,7 @@ std::string MultiFabFileFullPrefix (int level,
 
 void
 PreBuildDirectorHierarchy (const std::string &dirName,
-                           const std::string &subDirPrefix,
+                           const std::string &/*subDirPrefix*/,
                            int nSubDirs, bool callBarrier)
 {
   UtilCreateCleanDirectory(dirName, false);  // ---- dont call barrier
@@ -947,7 +947,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
                 for(int i(0); i < AMREX_SPACEDIM; ++i) {
                     vbox[(vbCount * 2 * AMREX_SPACEDIM) + i] = sortedGrids[b].smallEnd(i);
                     vbox[(vbCount * 2 * AMREX_SPACEDIM) + i + AMREX_SPACEDIM] = sortedGrids[b].bigEnd(i);
-                    centering[vbCount + i] = sortedGrids[b].ixType().test(i) ? 1 : 0;
+                    centering[vbCount * AMREX_SPACEDIM + i] = sortedGrids[b].ixType().test(i) ? 1 : 0;
                 }
                 ++vbCount;
             }

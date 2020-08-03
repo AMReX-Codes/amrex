@@ -271,7 +271,7 @@ namespace detail {
     template <typename R, typename TP1, typename TP2, std::size_t... N1, std::size_t... N2>
     AMREX_GPU_HOST_DEVICE constexpr R
     make_tuple (TP1 && a, TP2 && b,
-                IndexSequence<N1...> const& n1, IndexSequence<N2...> const& n2)
+                IndexSequence<N1...> const& /*n1*/, IndexSequence<N2...> const& /*n2*/)
     {
         return R(amrex::get<N1>(a)..., amrex::get<N2>(b)...);
     }
@@ -342,7 +342,7 @@ namespace detail {
     template <typename F, typename TP, std::size_t... N>
     AMREX_GPU_HOST_DEVICE
     constexpr auto
-    apply_impl (F&& f, TP&& t, IndexSequence<N...> is)
+    apply_impl (F&& f, TP&& t, IndexSequence<N...> /*is*/)
         -> typename detail::apply_result<F,detail::tuple_decay_t<TP> >::type
     {
         return f(amrex::get<N>(std::forward<TP>(t))...);

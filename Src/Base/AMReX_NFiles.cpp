@@ -310,6 +310,7 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
   return false;
 
 #else
+  amrex::ignore_unused(appendFirst);
   if(finishedWriting) {
     return false;
   }

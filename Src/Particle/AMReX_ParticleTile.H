@@ -141,8 +141,8 @@ struct ParticleTileData
             m_aos[index].rdata(i) = sp.rdata(i);
         for (int i = 0; i < NArrayReal; ++i)
             m_rdata[i][index] = sp.rdata(NStructReal+i);
-        m_aos[index].id() == sp.id();
-        m_aos[index].cpu() == sp.cpu();
+        m_aos[index].id() = sp.id();
+        m_aos[index].cpu() = sp.cpu();
         for (int i = 0; i < NStructInt; ++i)
             m_aos[index].idata(i) = sp.idata(i);
         for (int i = 0; i < NArrayInt; ++i)
@@ -239,6 +239,8 @@ struct ParticleTile
     static constexpr int NAR = NArrayReal;
     static constexpr int NAI = NArrayInt;
 
+    using SuperParticleType = Particle<NStructReal + NArrayReal, NStructInt + NArrayInt>;
+
     using AoS = ArrayOfStructs<NStructReal, NStructInt, Allocator>;
     using ParticleVector = typename AoS::ParticleVector;
 
@@ -251,7 +253,7 @@ struct ParticleTile
 
     ParticleTile()
         : m_defined(false)
-        {}
+    {}
 
     void define (int a_num_runtime_real, int a_num_runtime_int)
     {
@@ -324,6 +326,35 @@ struct ParticleTile
     /// Add one particle to this tile.
     ///
     void push_back (const ParticleType& p) { m_aos_tile().push_back(p); }
+
+    ///
+    /// Add one particle to this tile.
+    ///
+    template < int NR = NArrayReal, int NI = NArrayInt,
+               EnableIf_t<NR != 0 or NI != 0, int> foo = 0>
+    void push_back (const SuperParticleType& sp)
+    {
+        auto np = numParticles();
+
+        m_aos_tile.resize(np+1);
+        m_soa_tile.resize(np+1);
+
+        auto& arr_rdata = m_soa_tile.GetRealData();
+        auto& arr_idata = m_soa_tile.GetIntData();
+
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+            m_aos_tile[np].pos(i) = sp.pos(i);
+        for (int i = 0; i < NStructReal; ++i)
+            m_aos_tile[np].rdata(i) = sp.rdata(i);
+        for (int i = 0; i < NArrayReal; ++i)
+            arr_rdata[i][np] = sp.rdata(NStructReal+i);
+        m_aos_tile[np].id() = sp.id();
+        m_aos_tile[np].cpu() = sp.cpu();
+        for (int i = 0; i < NStructInt; ++i)
+            m_aos_tile[np].idata(i) = sp.idata(i);
+        for (int i = 0; i < NArrayInt; ++i)
+            arr_idata[i][np] = sp.idata(NStructInt+i);
+    }
 
     ///
     /// Add a Real value to the struct-of-arrays at index comp.
@@ -457,12 +488,15 @@ struct ParticleTile
 
     ParticleTileDataType getParticleTileData ()
     {
-        for (std::size_t i = 0; i < m_runtime_r_ptrs.size(); ++i) {
-            m_runtime_r_ptrs[i] = m_soa_tile.GetRealData(NArrayReal + i).dataPtr();
+        int index = NArrayReal;
+        for (auto& r_ptr : m_runtime_r_ptrs) {
+            r_ptr = m_soa_tile.GetRealData(index++).dataPtr();
         }
-        for (std::size_t i = 0; i < m_runtime_i_ptrs.size(); ++i)
-            m_runtime_i_ptrs[i] = m_soa_tile.GetIntData(NArrayInt + i).dataPtr();
 
+        index = NArrayInt;
+        for (auto& i_ptr : m_runtime_i_ptrs) {
+            i_ptr = m_soa_tile.GetIntData(index++).dataPtr();
+        }
         ParticleTileDataType ptd;
         ptd.m_aos = m_aos_tile().dataPtr();
         for (int i = 0; i < NArrayReal; ++i)
@@ -479,11 +513,15 @@ struct ParticleTile
 
     ConstParticleTileDataType getConstParticleTileData () const
     {
-        for (size_t i = 0; i < m_runtime_r_ptrs.size(); ++i) {
-            m_runtime_r_cptrs[i] = m_soa_tile.GetRealData(NArrayReal + i).dataPtr();
+        int index = NArrayReal;
+        for (auto& r_ptr : m_runtime_r_cptrs) {
+            r_ptr = m_soa_tile.GetRealData(index++).dataPtr();
         }
-        for (size_t i = 0; i < m_runtime_i_ptrs.size(); ++i)
-            m_runtime_i_cptrs[i] = m_soa_tile.GetIntData(NArrayInt + i).dataPtr();
+
+        index = NArrayInt;
+        for (auto& i_ptr : m_runtime_i_cptrs) {
+            i_ptr = m_soa_tile.GetIntData(index++).dataPtr();
+        }
 
         ConstParticleTileDataType ptd;
         ptd.m_aos = m_aos_tile().dataPtr();

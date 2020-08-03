@@ -406,8 +406,21 @@ residual correction form of the original problem. To build Hypre, follow the nex
         HYPRE_DIR=/hypre_path/hypre/src/hypre
 
 To use hypre, one must include ``amrex/Src/Extern/HYPRE`` in the build system. 
-For an example of using hypre, we refer the reader to
-``Tutorials/LinearSolvers/ABecLaplacian_C``.
+For examples of using hypre, we refer the reader to
+``Tutorials/LinearSolvers/ABecLaplacian_C`` or ``Tutorials/LinearSolvers/NodalProjection_EB``.
+
+Caveat: to use hypre for the nodal solver,  you must either build with USE_EB = TRUE, 
+or explicitly set the coarsening strategy in the calling routine to be ``RAP`` rather than ``Sigma``
+by adding 
+
+.. highlight:: c++
+
+::
+
+    nodal_projector.getLinOp().setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::RAP);
+
+where
+:cpp:`nodal_projector` is the :cpp:`NodalProjector` object we have built.
 
 AMReX can also use `PETSc <https://www.mcs.anl.gov/petsc/>`_ as a bottom solver for cell-centered
 problems. To build PETSc, follow the next steps:

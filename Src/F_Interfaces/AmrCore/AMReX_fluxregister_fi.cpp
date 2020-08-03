@@ -72,7 +72,7 @@ extern "C"
                                           Real scale, const Geometry* crse_geom)
     {
         const int ncomp = flux_reg->nComp();
-        flux_reg->OverwriteFlux({AMREX_D_DECL(crse_flxs[0], crse_flxs[1], crse_flxs[2])},
+        flux_reg->OverwriteFlux({{AMREX_D_DECL(crse_flxs[0], crse_flxs[1], crse_flxs[2])}},
                                 scale, 0, 0, ncomp, *crse_geom);
     }
 }

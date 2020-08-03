@@ -160,7 +160,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         Lp.apply(amrlev, mglev, v, ph, MLLinOp::BCMode::Homogeneous, MLLinOp::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
 
-        if ( Real rhTv = dotxy(rh,v) )
+        Real rhTv = dotxy(rh,v);
+        if ( rhTv != 0.0_rt )
 	{
             alpha = rho/rhTv;
 	}
@@ -200,7 +201,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         ParallelAllReduce::Sum(tvals,2,Lp.BottomCommunicator());
         BL_PROFILE_VAR_STOP(blp_par);
 
-        if ( tvals[0] )
+        if ( tvals[0] != 0.0_rt )
 	{
             omega = tvals[1]/tvals[0];
 	}
@@ -332,7 +333,8 @@ MLCGSolver::solve_cg (MultiFab&       sol,
         Lp.apply(amrlev, mglev, q, p, MLLinOp::BCMode::Homogeneous, MLLinOp::StateMode::Correction);
 
         Real alpha;
-        if ( Real pw = dotxy(p,q) )
+        Real pw = dotxy(p,q);
+        if ( pw != 0.0_rt)
 	{
             alpha = rho/pw;
 	}

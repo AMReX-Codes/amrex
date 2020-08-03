@@ -274,7 +274,7 @@ public:
         intersect_hix = IntersectHiX;
         intersect_loy = IntersectLoY;
         intersect_hiy = IntersectHiY;
-    };
+    }
 
     /**
     * \brief More general version:
@@ -296,32 +296,32 @@ public:
         intersect_hiy = IntersectHiY;
         intersect_loz = IntersectLoZ;
         intersect_hiz = IntersectHiZ;
-    };
+    }
 
     BoundaryPointList& getIntersectLoX() noexcept
     {
         return intersect_lox;
-    };
+    }
     BoundaryPointList& getIntersectHiX() noexcept
     {
         return intersect_hix;
-    };
+    }
     BoundaryPointList& getIntersectLoY() noexcept
     {
         return intersect_loy;
-    };
+    }
     BoundaryPointList& getIntersectHiY() noexcept
     {
         return intersect_hiy;
-    };
+    }
     BoundaryPointList& getIntersectLoZ() noexcept
     {
         return intersect_loz;
-    };
+    }
     BoundaryPointList& getIntersectHiZ() noexcept
     {
         return intersect_hiz;
-    };
+    }
 
 #ifdef AMREX_PARTICLES
     //! Redistribute particles
@@ -374,14 +374,14 @@ protected:
                            Real stop_time);
 
     // pure virtural function in AmrCore
-    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
-	{ amrex::Abort("How did we get her!"); }
-    virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
-	{ amrex::Abort("How did we get her!"); }
-    virtual void RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
-	{ amrex::Abort("How did we get her!"); }
-    virtual void ClearLevel (int lev) override
-	{ amrex::Abort("How did we get her!"); }
+    virtual void MakeNewLevelFromScratch (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
+	{ amrex::Abort("How did we get here!"); }
+    virtual void MakeNewLevelFromCoarse (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
+	{ amrex::Abort("How did we get here!"); }
+    virtual void RemakeLevel (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
+	{ amrex::Abort("How did we get here!"); }
+    virtual void ClearLevel (int /*lev*/) override
+	{ amrex::Abort("How did we get here!"); }
 
     //! Whether to write a plotfile now
     bool writePlotNow () noexcept;

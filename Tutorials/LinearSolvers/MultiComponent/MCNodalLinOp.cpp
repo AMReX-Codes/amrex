@@ -155,7 +155,8 @@ void MCNodalLinOp::Fsmooth (int amrlev, int mglev, amrex::MultiFab& a_x, const a
 		}
 	}
 	amrex::Geometry geom = m_geom[amrlev][mglev];
-	realFillBoundary(a_x,geom);
+	a_x.setMultiGhost(true);
+	a_x.FillBoundary();
 	nodalSync(amrlev, mglev, a_x);
 }
 
@@ -403,6 +404,14 @@ void MCNodalLinOp::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab
 			// i,j,k == fine coordinates
 			amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int I, int J, int K) {
 					int i=2*I, j=2*J, k=2*K;
+#if AMREX_SPACEDIM == 2					
+						cdata(I,J,K,n) =
+							(fdata(i-1,j-1,k,n) + fdata(i-1,j+1,k,n) + fdata(i+1,j-1,k,n) + fdata(i+1,j+1,k,n)) / 16.0
+							+
+							(fdata(i-1,j,k,n)   + fdata(i,j-1,k,n)   + fdata(i+1,j,k,n)   + fdata(i,j+1,k,n)) / 8.0
+							+
+							fdata(i,j,k,n) / 4.0;
+#elif AMREX_SPACEDIM == 3					
 						cdata(I,J,K,n) =
 							(fdata(i-1,j-1,k-1,n) + fdata(i-1,j-1,k+1,n) + fdata(i-1,j+1,k-1,n) + fdata(i-1,j+1,k+1,n) +
 							 fdata(i+1,j-1,k-1,n) + fdata(i+1,j-1,k+1,n) + fdata(i+1,j+1,k-1,n) + fdata(i+1,j+1,k+1,n)) / 64.0
@@ -415,6 +424,7 @@ void MCNodalLinOp::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab
 							 fdata(i+1,j,k,n) + fdata(i,j+1,k,n) + fdata(i,j,k+1,n)) / 16.0
 							+
 							fdata(i,j,k,n) / 8.0;
+#endif							
 				});
 		}
 	}
@@ -424,7 +434,8 @@ void MCNodalLinOp::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab
 	}
 
 	amrex::Geometry geom = m_geom[amrlev][cmglev];
-	realFillBoundary(crse,geom);
+	crse.setMultiGhost(true);
+	crse.FillBoundary();
 	nodalSync(amrlev, cmglev, crse);
 }
 
@@ -491,7 +502,8 @@ void MCNodalLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const 
 		fine[mfi].plus<RunOn::Host>(tmpfab,fine_bx,fine_bx,0,0,fine.nComp());
 	}
 	amrex::Geometry geom = m_geom[amrlev][fmglev];
-	realFillBoundary(fine,geom);
+	fine.setMultiGhost(true);
+	fine.FillBoundary();
 	nodalSync(amrlev, fmglev, fine);
 }
   
@@ -504,27 +516,12 @@ void MCNodalLinOp::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, Mult
 	if (isSingular(0)) amrex::Abort("Singular operators not supported!");
 }
 
-void MCNodalLinOp::realFillBoundary(MultiFab &phi, const Geometry &geom) const
-{
-	for (int i = 0; i < 2; i++)
-	{
-		MultiFab & mf = phi;
-		mf.FillBoundary(geom.periodicity());
-		//const int ncomp = mf.nComp();
-		const int ng1 = 1;
-		const int ng2 = 2;
-		MultiFab tmpmf(mf.boxArray(), mf.DistributionMap(), ncomp, ng1);
-		MultiFab::Copy(tmpmf, mf, 0, 0, ncomp, ng1); 
-		mf.ParallelCopy   (tmpmf, 0, 0, ncomp, ng1, ng2, geom.periodicity());
-	}
-}
-
 void MCNodalLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode,
 		   					amrex::MLLinOp::StateMode , bool skip_fillboundary) const
 {
 	BL_PROFILE("MCNodalLinOp::applyBC()");
 	const Geometry& geom = m_geom[amrlev][mglev];
-	if (!skip_fillboundary) realFillBoundary(phi,geom);
+	if (!skip_fillboundary) {phi.setMultiGhost(true); phi.FillBoundary();}
 }
 
 void MCNodalLinOp::reflux (int crse_amrlev,
@@ -629,9 +626,9 @@ void MCNodalLinOp::reflux (int crse_amrlev,
 
 	// Sync up ghost nodes
 	amrex::Geometry geom = m_geom[crse_amrlev][mglev];
-	realFillBoundary(res,geom);
+	res.setMultiGhost(true);
+	res.FillBoundary();
 	nodalSync(crse_amrlev,mglev, res);
-	return;
 }
 
 void
@@ -642,7 +639,8 @@ MCNodalLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const 
 	apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, StateMode::Solution);
 	MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, 2);
 	amrex::Geometry geom = m_geom[amrlev][mglev];
-	realFillBoundary(resid,geom);
+	resid.setMultiGhost(true);
+	resid.FillBoundary();
 }
 
 void
@@ -653,5 +651,6 @@ MCNodalLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiF
 	apply(amrlev, mglev, resid, x, BCMode::Homogeneous, StateMode::Correction);
 	MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, resid.nGrow());
 	amrex::Geometry geom = m_geom[amrlev][mglev];
-	realFillBoundary(resid,geom);
+	resid.setMultiGhost(true);
+	resid.FillBoundary();
 }

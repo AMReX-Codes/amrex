@@ -150,10 +150,12 @@ extern "C" {
                         famrcore->octree_leaf_dmap[lev] = DistributionMapping(iproc);
                         update_dummy_mf = true;
                     }
-                    famrcore->octree_leaf_dummy_mf[lev].reset
-                        (new MultiFab(famrcore->octree_leaf_grids[lev],
-                                      famrcore->octree_leaf_dmap[lev],
-                                      1,0,MFInfo().SetAlloc(false)));
+                    if (update_dummy_mf) {
+                        famrcore->octree_leaf_dummy_mf[lev].reset
+                            (new MultiFab(famrcore->octree_leaf_grids[lev],
+                                          famrcore->octree_leaf_dmap[lev],
+                                          1,0,MFInfo().SetAlloc(false)));
+                    }
                 }
             }
         }

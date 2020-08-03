@@ -192,7 +192,7 @@ public:
                          bool skip_fillboundary=false) const = 0;
 
     // Divide mf by the diagonal component of the operator. Used by bicgstab.
-    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const {}
+    virtual void normalize (int /*amrlev*/, int /*mglev*/, MultiFab& /*mf*/) const {}
 
     virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                    const MultiFab* crse_bcdata=nullptr) = 0;
@@ -211,43 +211,43 @@ public:
     virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
     virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) = 0;
 
-    virtual void unimposeNeumannBC (int amrlev, MultiFab& rhs) const {} // only nodal solver might need it
-    virtual void applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const {}
-    virtual void applyOverset (int amlev, MultiFab& rhs) const {}
+    virtual void unimposeNeumannBC (int /*amrlev*/, MultiFab& /*rhs*/) const {} // only nodal solver might need it
+    virtual void applyInhomogNeumannTerm (int /*amrlev*/, MultiFab& /*rhs*/) const {}
+    virtual void applyOverset (int /*amlev*/, MultiFab& /*rhs*/) const {}
 
     virtual void prepareForSolve () = 0;
     virtual bool isSingular (int amrlev) const = 0;
     virtual bool isBottomSingular () const = 0;
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
 
-    virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
-    virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
+    virtual void fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/) { }
+    virtual void nodalSync (int /*amrlev*/, int /*mglev*/, MultiFab& /*mf*/) const {}
 
     virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const = 0;
 
-    virtual void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
-                            const Vector<MultiFab*>& a_sol,
-                            Location a_loc) const {
+    virtual void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& /*a_flux*/,
+                            const Vector<MultiFab*>& /*a_sol*/,
+                            Location /*a_loc*/) const {
         amrex::Abort("MLLinOp::getFluxes: How did we get here?");
     }
-    virtual void getFluxes (const Vector<MultiFab*>& a_flux,
-                            const Vector<MultiFab*>& a_sol) const {
+    virtual void getFluxes (const Vector<MultiFab*>& /*a_flux*/,
+                            const Vector<MultiFab*>& /*a_sol*/) const {
         amrex::Abort("MLLinOp::getFluxes: How did we get here?");
     }
 
 #ifdef AMREX_USE_EB
-    virtual void getEBFluxes (const Vector<MultiFab*>& a_flux,
-                              const Vector<MultiFab*>& a_sol) const {
+    virtual void getEBFluxes (const Vector<MultiFab*>& /*a_flux*/,
+                              const Vector<MultiFab*>& /*a_sol*/) const {
         amrex::Abort("MLLinOp::getEBFluxes: How did we get here?");
     }
 #endif
 
 #ifdef AMREX_USE_HYPRE
-    virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const {
+    virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface /*hypre_interface*/) const {
         amrex::Abort("MLLinOp::makeHypre: How did we get here?");
         return {nullptr};
     }
-    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const {
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int /*bottom_verbose*/) const {
         amrex::Abort("MLLinOp::makeHypreNodeLap: How did we get here?");
         return {nullptr};
     }
@@ -339,14 +339,14 @@ protected:
     }
 
     GpuArray<BCType,AMREX_SPACEDIM> LoBC (int icomp = 0) const noexcept {
-        return GpuArray<BCType,AMREX_SPACEDIM>{AMREX_D_DECL(m_lobc[icomp][0],
-                                                            m_lobc[icomp][1],
-                                                            m_lobc[icomp][2])};
+        return GpuArray<BCType,AMREX_SPACEDIM>{{AMREX_D_DECL(m_lobc[icomp][0],
+                                                             m_lobc[icomp][1],
+                                                             m_lobc[icomp][2])}};
     }
     GpuArray<BCType,AMREX_SPACEDIM> HiBC (int icomp = 0) const noexcept {
-        return GpuArray<BCType,AMREX_SPACEDIM>{AMREX_D_DECL(m_hibc[icomp][0],
-                                                            m_hibc[icomp][1],
-                                                            m_hibc[icomp][2])};
+        return GpuArray<BCType,AMREX_SPACEDIM>{{AMREX_D_DECL(m_hibc[icomp][0],
+                                                             m_hibc[icomp][1],
+                                                             m_hibc[icomp][2])}};
     }
 
 #ifdef BL_USE_MPI
@@ -367,7 +367,7 @@ protected:
 
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
-    virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const {
+    virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int /*amrlev*/, int /*mglev*/) const {
         return std::unique_ptr<FabFactory<FArrayBox> >(new FArrayBoxFactory());
     }
 
@@ -385,7 +385,7 @@ private:
     MPI_Comm makeSubCommunicator (const DistributionMapping& dm);
     void remapNeighborhoods (Vector<DistributionMapping> & dms);
 
-    virtual void checkPoint (std::string const& file_name) const {
+    virtual void checkPoint (std::string const& /*file_name*/) const {
         amrex::Abort("MLLinOp:checkPoint: not implemented");
     }
 };
