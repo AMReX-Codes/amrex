@@ -27,15 +27,19 @@ namespace Extrapolater
 #endif
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
-            const Box& bx      = mfi.validbox();
-            auto const& mask_arr = mask.array(mfi);
-            auto const& data_arr = mf.array(mfi,scomp);
+           const Box& bx        = mfi.validbox();
+           auto const& mask_arr = mask.const_array(mfi);
+           auto const& data_arr = mf.array(mfi,scomp);
 
-            amrex::launch(bx, [mask_arr,data_arr,ncomp]
-            AMREX_GPU_DEVICE (Box const& tbx)
-            {
-               amrex_first_order_extrap(tbx, ncomp, mask_arr, data_arr);
-            });
+           if (Gpu::inLaunchRegion()) {
+              ParallelFor(amrex::grow(bx,1), ncomp,
+              [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+              {
+                 amrex_first_order_extrap_gpu(i, j, k, n, bx, mask_arr, data_arr);
+              });
+           } else {
+              amrex_first_order_extrap_cpu(bx, ncomp, mask_arr, data_arr);
+           }
         }
     }
 }
