@@ -298,6 +298,16 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_cubic (Box const& bx,
+               GpuArray<Array4<T const>, AMREX_SPACEDIM> crse,
+               GpuArray<Array4<T>, AMREX_SPACEDIM> fine,
+               const int icomp, const int ncomp, IntVect const& ratio) noexcept
+{
+    amrex::Abort("No 1D version of FaceDiv exists.\n"); 
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 face_linear_interp_x (int i, int /*j*/, int /*k*/, int n, Array4<T> const& fine,
                       Array4<T const> const& crse, IntVect const& ratio) noexcept
 {

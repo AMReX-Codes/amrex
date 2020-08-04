@@ -579,7 +579,7 @@ facediv_cubic (Box const& bx,
     for (int n = 0; n < ncomp; ++n) {
         const int nu = n + icomp;
         for (int k = lo.z; k <= hi.z; ++k) {
-            const int fk = k*ratio[2];
+            //const int fk = k*ratio[2];
             for (int j = lo.y; j <= hi.y; ++j) {
                 const int fj = j*ratio[1];
                 AMREX_PRAGMA_SIMD

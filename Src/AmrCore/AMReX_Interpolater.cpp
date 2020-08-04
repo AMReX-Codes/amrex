@@ -985,7 +985,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
     AMREX_ALWAYS_ASSERT(ratio == 2);
 
     const Box ccbx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
-    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
+//    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
 
     GpuArray<Array4<Real const>, AMREX_SPACEDIM> crsearr;
     GpuArray<Array4<Real>, AMREX_SPACEDIM> finearr;

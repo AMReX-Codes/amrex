@@ -113,7 +113,7 @@ public:
                              int               /*actual_state*/,
                              RunOn             /*gpu_or_cpu*/)
 
-    { amrex::Abort("The Array<FArrayBox*, AMREX_SPACEDIM> version of this Interpolater is not implemented or does not apply. Call the FArrayBox version instead."); };
+    { amrex::Abort("The Array<FArrayBox*, AMREX_SPACEDIM> version of this Interpolater is not implemented or does not apply. Call the FArrayBox version instead."); }
 
     /**
     * \brief Re-visit the interpolation to protect against under- or overshoots.
