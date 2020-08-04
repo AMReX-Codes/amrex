@@ -35,6 +35,11 @@ namespace Extrapolater
               ParallelFor(amrex::grow(bx,1), ncomp,
               [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
               {
+                 if (mask_arr(i,j,k) == crsebnd) data_arr(i,j,k,n) = 0.0;
+              });
+              ParallelFor(amrex::grow(bx,1), ncomp,
+              [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+              {
                  amrex_first_order_extrap_gpu(i, j, k, n, bx, mask_arr, data_arr);
               });
            } else {
