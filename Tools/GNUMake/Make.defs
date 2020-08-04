@@ -294,6 +294,22 @@ else
   USE_FORCE_INLINE := FALSE
 endif
 
+ifdef WARN_ALL
+  WARN_ALL := $(strip $(WARN_ALL))
+else
+ifeq ($(DEBUG),TRUE)
+  WARN_ALL := TRUE
+else
+  WARN_ALL := FALSE
+endif
+endif
+
+ifdef WARN_ERROR
+  WARN_ERROR := $(strip $(WARN_ERROR))
+else
+  WARN_ERROR := FALSE
+endif
+
 ifdef USE_GPU_PRAGMA
   USE_GPU_PRAGMA := $(strip $(USE_GPU_PRAGMA))
   GPU_PRAGMA_NO_HOST_VERSION ?= FALSE
@@ -316,6 +332,18 @@ ifdef FIX_NVCC_PTHREAD
   FIX_NVCC_PTHREAD := $(strip $(FIX_NVCC_PTHREAD))
 else
   FIX_NVCC_PTHREAD := FALSE
+endif
+
+ifdef GPU_WARN_CAPTURE_THIS
+  GPU_WARN_CAPTURE_THIS := $(strip $(GPU_WARN_CAPTURE_THIS))
+else
+  GPU_WARN_CAPTURE_THIS := TRUE
+endif
+
+ifdef GPU_ERROR_CAPTURE_THIS
+  GPU_ERROR_CAPTURE_THIS := $(strip $(GPU_ERROR_CAPTURE_THIS))
+else
+  GPU_ERROR_CAPTURE_THIS := TRUE
 endif
 
 SKIP_LINKING ?= FALSE
@@ -371,6 +399,8 @@ ifdef AMREX_CCOMP
     AMREX_CCOMP = cray
   else ifeq ($(lowercase_amrex_comp),pgi)
     AMREX_CCOMP = pgi
+  else ifeq ($(lowercase_amrex_comp),hpcsdk)
+    AMREX_CCOMP = hpcsdk
   else ifeq ($(lowercase_amrex_comp),ibm)
     AMREX_CCOMP = ibm
   else ifeq ($(lowercase_amrex_comp),$(filter $(lowercase_amrex_comp),llvm clang clang++))
@@ -382,7 +412,7 @@ ifdef AMREX_CCOMP
   else ifeq ($(lowercase_amrex_comp),nec)
     AMREX_CCOMP = nec
   else
-    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, ibm, llvm, nag, and nec)
+    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, hpcsdk, ibm, llvm, nag, and nec)
   endif
 endif
 
@@ -414,6 +444,11 @@ else ifeq ($(lowercase_comp),pgi)
   AMREX_CCOMP ?= pgi
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak
+else ifeq ($(lowercase_comp),hpcsdk)
+  AMREX_FCOMP ?= hpcsdk
+  AMREX_CCOMP ?= hpcsdk
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/hpcsdk.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/hpcsdk.mak
 else ifeq ($(lowercase_comp),ibm)
   AMREX_FCOMP ?= ibm
   AMREX_CCOMP ?= ibm
@@ -447,7 +482,7 @@ else ifeq ($(lowercase_comp),hip)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, ibm, llvm, nag, and nec)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, hpcsdk, ibm, llvm, nag, and nec)
 endif
 
 CXXFLAGS += $(XTRA_CXXFLAGS)
@@ -657,11 +692,13 @@ else ifeq ($(USE_CUDA),TRUE)
 
     ifeq ($(lowercase_comp),pgi)
         LINK_WITH_FORTRAN_COMPILER=TRUE
+    else ifeq ($(lowercase_comp),hpcsdk)
+        LINK_WITH_FORTRAN_COMPILER=TRUE
     else ifeq ($(lowercase_comp),ibm)
         LINK_WITH_FORTRAN_COMPILER=TRUE
     else ifeq ($(lowercase_comp),gnu)
     else
-        $(error CUDA can only be used with COMP=pgi or ibm or gnu)
+        $(error CUDA can only be used with COMP=pgi or hpcsdk or ibm or gnu)
     endif
 
     include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
@@ -699,7 +736,7 @@ else ifeq ($(USE_CUDA),TRUE)
 
     GPUSuffix := .CUDA
 
-    ifeq ($(lowercase_comp),$(filter $(lowercase_comp),ibm pgi))
+    ifeq ($(lowercase_comp),$(filter $(lowercase_comp),ibm pgi hpcsdk))
       DEFINES += -DAMREX_LAUNCH='attributes(global)'
       DEFINES += -DAMREX_DEVICE='attributes(device)'
       DEFINES += -DAMREX_CUDA_FORT_GLOBAL='attributes(global)'

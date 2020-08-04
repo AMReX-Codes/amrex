@@ -58,25 +58,26 @@ function (configure_amrex)
    endif()
 
    #
+   # Special flags for MSV compiler
+   #
+   set(_cxx_msvc   "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>")
+
+   target_compile_options( amrex PRIVATE $<${_cxx_msvc}:/bigobj> )
+
+   if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+      if (CXX_COMPILER_VERSION VERSION_LESS 19.26)
+         target_compile_options( amrex PUBLIC $<${_cxx_msvc}:/experimental:preprocessor>)
+      else ()
+         target_compile_options( amrex PUBLIC $<${_cxx_msvc}:/Zc:preprocessor> )
+      endif ()
+   endif ()
+
+   unset(_cxx_msvc)
+
+   #
    # Setup OpenMP
    #
    if (ENABLE_OMP)
-
-      find_package(OpenMP REQUIRED)
-      target_link_libraries(amrex PUBLIC OpenMP::OpenMP_CXX)
-
-      # Make imported target "global" so that it can be seen
-      # from other directories in the project.
-      # This is especially useful when get_target_properties_flattened()
-      # (see module AMReXTargetHelpers.cmake) is called to recover dependecy tree info
-      # in projects that use amrex directly in the build (via add_subdirectory()).
-      set_target_properties(OpenMP::OpenMP_CXX PROPERTIES IMPORTED_GLOBAL True )
-
-      if (ENABLE_FORTRAN_INTERFACES)
-         target_link_libraries(amrex PUBLIC OpenMP::OpenMP_Fortran )
-         set_target_properties(OpenMP::OpenMP_Fortran PROPERTIES IMPORTED_GLOBAL True )
-      endif ()
-
       # We have to manually pass OpenMP flags to host compiler if CUDA is enabled
       # Since OpenMP imported targets are generated only for the Compiler ID in use, i.e.
       # they do not provide flags for all possible compiler ids, we assume the same compiler use
@@ -111,17 +112,12 @@ function (configure_amrex)
          get_target_property( _amrex_flags_2 Flags_CXX INTERFACE_COMPILE_OPTIONS)
       endif()
 
-      get_target_property( _amrex_flags_3 Flags_CXX_REQUIRED INTERFACE_COMPILE_OPTIONS)
-
       set(_amrex_flags)
       if (_amrex_flags_1)
          list(APPEND _amrex_flags ${_amrex_flags_1})
       endif ()
       if (_amrex_flags_2)
          list(APPEND _amrex_flags ${_amrex_flags_2})
-      endif ()
-      if (_amrex_flags_3)
-         list(APPEND _amrex_flags ${_amrex_flags_3})
       endif ()
 
       evaluate_genex(_amrex_flags _amrex_cxx_flags

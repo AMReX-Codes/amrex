@@ -72,7 +72,7 @@ namespace amrex {
                                    const int ncomp,
                                    const EBCellFlagFab& flags_fab,
                                    const MultiFab* volfrac,
-                                   Box& domain,
+                                   Box& /*domain*/,
                                    const Geometry & geom)
     {
         //
@@ -92,9 +92,6 @@ namespace amrex {
 #endif
 
         const Box dbox = geom.growPeriodicDomain(2);
-
-        const amrex::Dim3 dom_low  = amrex::lbound(domain);
-        const amrex::Dim3 dom_high = amrex::ubound(domain);
 
         //
         // Get array from arguments

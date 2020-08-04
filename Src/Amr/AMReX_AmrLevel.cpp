@@ -53,12 +53,12 @@ AmrLevel::postCoarseTimeStep (Real time)
 }
 
 void
-AmrLevel::set_preferred_boundary_values (MultiFab& S,
-                                         int       state_index,
-                                         int       scomp,
-                                         int       dcomp,
-                                         int       ncomp,
-                                         Real      time) const
+AmrLevel::set_preferred_boundary_values (MultiFab& /*S*/,
+                                         int       /*state_index*/,
+                                         int       /*scomp*/,
+                                         int       /*dcomp*/,
+                                         int       /*ncomp*/,
+                                         Real      /*time*/) const
 {}
 
 DeriveList&
@@ -68,8 +68,8 @@ AmrLevel::get_derive_lst () noexcept
 }
 
 void
-AmrLevel::manual_tags_placement (TagBoxArray&    tags,
-                                 const Vector<IntVect>& bf_lev)
+AmrLevel::manual_tags_placement (TagBoxArray& /*tags*/,
+                                 const Vector<IntVect>& /*bf_lev*/)
 {}
 
 AmrLevel::AmrLevel () noexcept
@@ -362,15 +362,15 @@ AmrLevel::writePlotFile (const std::string& dir,
 
 
 void
-AmrLevel::writePlotFilePre (const std::string& dir,
-                            std::ostream&      os)
+AmrLevel::writePlotFilePre (const std::string& /*dir*/,
+                            std::ostream&      /*os*/)
 {
 }
 
 
 void
-AmrLevel::writePlotFilePost (const std::string& dir,
-                             std::ostream&      os)
+AmrLevel::writePlotFilePost (const std::string& /*dir*/,
+                             std::ostream&      /*os*/)
 {
 }
 
@@ -448,7 +448,7 @@ AmrLevel::restart (Amr&          papa,
 }
 
 void
-AmrLevel::set_state_in_checkpoint (Vector<int>& state_in_checkpoint)
+AmrLevel::set_state_in_checkpoint (Vector<int>& /*state_in_checkpoint*/)
 {
     amrex::Error("Class derived AmrLevel has to handle this!");
 }
@@ -537,16 +537,16 @@ AmrLevel::checkPoint (const std::string& dir,
 
 
 void
-AmrLevel::checkPointPre (const std::string& dir,
-                         std::ostream&      os)
+AmrLevel::checkPointPre (const std::string& /*dir*/,
+                         std::ostream&      /*os*/)
 {
     BL_PROFILE("AmrLevel::checkPointPre()");
 }
 
 
 void
-AmrLevel::checkPointPost (const std::string& dir,
-                          std::ostream&      os)
+AmrLevel::checkPointPost (const std::string& /*dir*/,
+                          std::ostream&      /*os*/)
 {
     BL_PROFILE("AmrLevel::checkPointPost()");
 }
@@ -3086,7 +3086,9 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                              }
                           }
 			  Box c_dom= amrex::coarsen(geom_fine->Domain(), m_amrlevel.crse_ratio);
-                          m_fpc = &FabArrayBase::TheFPinfo(*(smf_fine[0]), m_fabs, fdomain_g, IntVect(ngrow), coarsener, c_dom, NULL);
+                          m_fpc = &FabArrayBase::TheFPinfo(*(smf_fine[0]), m_fabs, IntVect(ngrow),
+                                                           coarsener, *geom_fine, *geom_crse,
+                                                           nullptr);
                       }
 #ifdef USE_PERILLA_PTHREADS
 //                    perilla::syncAllThreads();

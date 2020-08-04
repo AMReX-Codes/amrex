@@ -71,6 +71,14 @@ namespace amrex
     void average_down_faces (const MultiFab& fine, MultiFab& crse,
                              const IntVect& ratio, int ngcrse=0);
 
+    //  This version takes periodicity into account.
+    void average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                             const IntVect& ratio, const Geometry& crse_geom);
+    //  This version takes periodicity into account.
+    void average_down_faces (const MultiFab& fine, MultiFab& crse,
+                             const IntVect& ratio, const Geometry& crse_geom);
+
     //! Average fine edge-based MultiFab onto crse edge-based MultiFab.
     void average_down_edges (const Vector<const MultiFab*>& fine,
                              const Vector<MultiFab*>& crse,

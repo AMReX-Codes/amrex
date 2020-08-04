@@ -152,33 +152,33 @@ public:
     AMREX_GPU_HOST_DEVICE
     GpuArray<int,3> length3d () const noexcept {
 #if (AMREX_SPACEDIM == 1)
-        return {bigend[0]-smallend[0]+1, 1, 1};
+        return {{bigend[0]-smallend[0]+1, 1, 1}};
 #elif (AMREX_SPACEDIM == 2)
-        return {bigend[0]-smallend[0]+1, bigend[1]-smallend[1]+1, 1};
+        return {{bigend[0]-smallend[0]+1, bigend[1]-smallend[1]+1, 1}};
 #elif (AMREX_SPACEDIM == 3)
-        return {bigend[0]-smallend[0]+1, bigend[1]-smallend[1]+1, bigend[2]-smallend[2]+1};
+        return {{bigend[0]-smallend[0]+1, bigend[1]-smallend[1]+1, bigend[2]-smallend[2]+1}};
 #endif
     }
 
     AMREX_GPU_HOST_DEVICE
     GpuArray<int,3> loVect3d () const noexcept {
 #if (AMREX_SPACEDIM == 1)
-        return {smallend[0], 0, 0};
+        return {{smallend[0], 0, 0}};
 #elif (AMREX_SPACEDIM == 2)
-        return {smallend[0], smallend[1], 0};
+        return {{smallend[0], smallend[1], 0}};
 #elif (AMREX_SPACEDIM == 3)
-        return {smallend[0], smallend[1], smallend[2]};
+        return {{smallend[0], smallend[1], smallend[2]}};
 #endif
     }
 
     AMREX_GPU_HOST_DEVICE
     GpuArray<int,3> hiVect3d () const noexcept {
 #if (AMREX_SPACEDIM == 1)
-        return {bigend[0], 0, 0};
+        return {{bigend[0], 0, 0}};
 #elif (AMREX_SPACEDIM == 2)
-        return {bigend[0], bigend[1], 0};
+        return {{bigend[0], bigend[1], 0}};
 #elif (AMREX_SPACEDIM == 3)
-        return {bigend[0], bigend[1], bigend[2]};
+        return {{bigend[0], bigend[1], bigend[2]}};
 #endif
     }
 
@@ -497,17 +497,6 @@ public:
         bigend.min(rhs.bigend);
         return *this;
     }
-
-    //! for serialization
-    static size_t linearSize() noexcept
-    {
-        size_t retval = 2*IntVect::linearSize();
-        return retval;
-    }
-
-    //! for serialization
-    void linearOut(void* a_buffer ) const noexcept;
-    void linearIn(void* a_buffer ) noexcept;
 
     /**
     * \brief Modify Box to that of the minimum Box containing both
@@ -899,34 +888,6 @@ Box::setRange (int dir,
     return *this;
 }
 
-inline
-void
-Box::linearOut(void* a_buffer ) const noexcept
-{
-    unsigned char* buf = (unsigned char*) a_buffer;
-    const IntVect& ivlo = this->smallEnd();
-    const IntVect& ivhi = this->bigEnd();
-    ivlo.linearOut(buf);
-    buf += ivlo.linearSize();
-    ivhi.linearOut(buf);
-//    buf += ivhi.linearSize();
-}
-
-inline
-void
-Box::linearIn(void* a_buffer ) noexcept
-{
-    unsigned char* buf = (unsigned char*) a_buffer;
-    IntVect ivlo;
-    IntVect ivhi;
-    ivlo.linearIn(buf);
-    buf += ivlo.linearSize();
-    ivhi.linearIn(buf);
-//    buf += ivhi.linearSize();
-
-    *this = Box(ivlo, ivhi);
-}
-
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 void
@@ -1071,7 +1032,7 @@ public:
 
 inline BoxConverter::~BoxConverter () { }
 
-void AllGatherBoxes (Vector<Box>& bxs);
+void AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve=0);
 
     /**
     * \brief Grow Box in all directions by given amount.

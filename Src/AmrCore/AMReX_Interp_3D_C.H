@@ -11,8 +11,8 @@ namespace amrex {
 AMREX_GPU_HOST
 inline
 Vector<Real>
-ccinterp_compute_voff (Box const& cbx, IntVect const& ratio, Geometry const& cgeom,
-                       Geometry const& fgeom) noexcept
+ccinterp_compute_voff (Box const& cbx, IntVect const& ratio, Geometry const& /*cgeom*/,
+                       Geometry const& /*fgeom*/) noexcept
 {
     const Box& fbx = amrex::refine(cbx,ratio);
     const auto& flen = amrex::length(fbx);

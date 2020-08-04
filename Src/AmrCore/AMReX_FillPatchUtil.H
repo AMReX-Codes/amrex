@@ -26,9 +26,9 @@ namespace amrex
     template <typename FAB>
     struct NullInterpHook
     {
-        void operator() (FAB& fab, const Box& bx, int icomp, int ncomp) const {}
+        void operator() (FAB& /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const {}
 
-        void operator() (Array<FAB*, AMREX_SPACEDIM> fab, const Box& bx, int icomp, int ncomp) const {}
+        void operator() (Array<FAB*, AMREX_SPACEDIM> /*fab*/, const /*Box& bx*/, int /*icomp*/, int /*ncomp*/) const {}
     };
 
     template <typename Interp>

@@ -80,7 +80,7 @@ Coord df_id_to_coord (int id)
     int slot = id % 16; id /= 16;
     int chas = id % 6;  id /= 6;
     int group = id;
-    return Coord {node, slot, chas, group};
+    return Coord {{node, slot, chas, group}};
 }
 
 template <class T, size_t N>
@@ -302,6 +302,7 @@ class Machine
 
         return result;
 #else
+        amrex::ignore_unused(flag_local_ranks);
         return Vector<int>(nbh_rank_n, 0);
 #endif
     }
@@ -548,21 +549,24 @@ class Machine
                     min_avg_dist = avg_dist;
                 }
             }
-            cur_node = std::move(*next_node);
-            next_node = nullptr;
-            candidates.erase(cur_node.id);
 
-            // add cur_node to result
-            result.push_back(cur_node.id);
-            total_rank_n += cur_node.rank_n;
-            total_pairs_dist += cur_node.sum_dist;
+            if (next_node) {
+                cur_node = std::move(*next_node);
+                next_node = nullptr;
+                candidates.erase(cur_node.id);
 
-            if (flag_verbose) {
-                Print() << "  Added " << cur_node.id
-                        << ": " << to_str(cur_node.coord)
-                        << ", ranks: " << cur_node.rank_n
-                        << ", total ranks: " << total_rank_n
-                        << ", avg dist: " << min_avg_dist << std::endl;
+                // add cur_node to result
+                result.push_back(cur_node.id);
+                total_rank_n += cur_node.rank_n;
+                total_pairs_dist += cur_node.sum_dist;
+
+                if (flag_verbose) {
+                    Print() << "  Added " << cur_node.id
+                            << ": " << to_str(cur_node.coord)
+                            << ", ranks: " << cur_node.rank_n
+                            << ", total ranks: " << total_rank_n
+                            << ", avg dist: " << min_avg_dist << std::endl;
+                }
             }
         }
 

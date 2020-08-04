@@ -4,8 +4,6 @@
 #
 #   Flags_CXX                 --> Optional flags for C++ code
 #   Flags_Fortran             --> Optional flags for Fortran code
-#   Flags_CXX_REQUIRED        --> Required C++ flags
-#   Flags_Fortran_REQUIRED    --> Required Fortran flags for some components of AMReX
 #   Flags_FPE                 --> Floating-Point Exception flags for both C++ and Fortran
 #
 # These INTERFACE targets can be added to the AMReX export set.
@@ -84,47 +82,6 @@ target_compile_options( Flags_Fortran
    $<${_fortran_pgi_rel}:-gopt -fast>
    $<${_fortran_cray_dbg}:-O0 -e i>
    $<${_fortran_cray_rel}:>
-   )
-
-#
-# CXX REQUIRED flags
-#
-add_library(Flags_CXX_REQUIRED INTERFACE)
-add_library(AMReX::Flags_CXX_REQUIRED ALIAS Flags_CXX_REQUIRED)
-
-target_compile_options( Flags_CXX_REQUIRED
-   INTERFACE
-   $<${_cxx_msvc}:/bigobj>
-   )
-
-# Currently can't make this a generator expression as amrex_evaluate_genex fails
-# to parse it and propagate the flags to cuda
-if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-   if (CXX_COMPILER_VERSION VERSION_LESS 19.26)
-      target_compile_options( Flags_CXX_REQUIRED
-         INTERFACE
-         $<${_cxx_msvc}:/experimental:preprocessor>
-         )
-   else ()
-      target_compile_options( Flags_CXX_REQUIRED
-         INTERFACE
-         $<${_cxx_msvc}:/Zc:preprocessor>
-         )
-   endif ()
-endif()
-
-#
-# Fortran REQUIRED flags -- This is for internal use only: it is useless to export it
-#
-add_library(Flags_Fortran_REQUIRED INTERFACE)
-add_library(AMReX::Flags_Fortran_REQUIRED ALIAS Flags_Fortran_REQUIRED)
-
-target_compile_options( Flags_Fortran_REQUIRED
-   INTERFACE
-   $<${_fortran_gnu}:-ffixed-line-length-none -ffree-line-length-none>
-   $<${_fortran_intel}:-extend_source>
-   $<${_fortran_pgi}:-Mextend>
-   $<${_fortran_cray}:-N 255 -h list=a>
    )
 
 

@@ -11,7 +11,7 @@ struct BlockMutex
 {
     union state_t
     {
-        struct { int blockid; int count; };
+        struct II { int blockid; int count; } data;
         unsigned long long ull;
     };
 
@@ -32,6 +32,7 @@ struct BlockMutex
     void lock (int i) noexcept {
 #ifdef AMREX_USE_DPCPP
 // xxxxx DPCPP todo
+        amrex::ignore_unused(i);
 #else
         int blockid = blockIdx.z*blockDim.x*blockDim.y + blockIdx.y*blockDim.x + blockIdx.x;
         state_t old = m_state[i];
@@ -39,13 +40,13 @@ struct BlockMutex
         do {
             assumed = old;
             state_t val;
-            val.blockid = blockid;
-            if (assumed.blockid == blockid) {
+            val.data.blockid = blockid;
+            if (assumed.data.blockid == blockid) {
                 // Already locked by another thread in this block. Need to ++count.
-                val.count = assumed.count + 1;
+                val.data.count = assumed.data.count + 1;
             } else {
                 // Currently unlocked or locked by another block.  Need to lock.
-                val.count = 1;
+                val.data.count = 1;
                 assumed = FreeState();
             }
             old.ull = atomicCAS((unsigned long long*)(m_state+i), assumed.ull, val.ull);
@@ -57,19 +58,20 @@ struct BlockMutex
     void unlock (int i) noexcept {
 #ifdef AMREX_USE_DPCPP
 // xxxxx DPCPP todo
+        amrex::ignore_unused(i);
 #else
         state_t old = m_state[i];
         state_t assumed;
         do {
             assumed = old;
             state_t val;
-            if (assumed.count == 1) {
+            if (assumed.data.count == 1) {
                 // Need to unlock
                 val = FreeState();
             } else {
                 // --count, but do NOT unlock
                 val = assumed;
-                --val.count;
+                --val.data.count;
             }
             old.ull = atomicCAS((unsigned long long*)(m_state+i), assumed.ull, val.ull);
         } while (assumed.ull != old.ull);

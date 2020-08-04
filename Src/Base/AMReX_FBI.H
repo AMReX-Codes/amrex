@@ -1084,6 +1084,8 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
                                      Vector<std::size_t> const& send_size,
                                      Vector<CopyComTagsContainer const*> const& send_cctc)
 {
+    amrex::ignore_unused(send_size);
+
     const int N_snds = send_data.size();
     if (N_snds == 0) return;
 
@@ -1124,6 +1126,8 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                                        Vector<CopyComTagsContainer const*> const& recv_cctc,
                                        CpOp op, bool is_thread_safe)
 {
+    amrex::ignore_unused(recv_size);
+
     const int N_rcvs = recv_cctc.size();
     if (N_rcvs == 0) return;
 
@@ -1211,6 +1215,8 @@ FabArray<FAB>::pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int nc
                                      Vector<std::size_t> const& send_size,
                                      Vector<CopyComTagsContainer const*> const& send_cctc)
 {
+    amrex::ignore_unused(send_size);
+
     const int N_snds = send_data.size();
     if (N_snds == 0) return;
 
@@ -1248,6 +1254,8 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                                        Vector<CopyComTagsContainer const*> const& recv_cctc,
                                        CpOp op, bool is_thread_safe)
 {
+    amrex::ignore_unused(recv_size);
+
     const int N_rcvs = recv_cctc.size();
     if (N_rcvs == 0) return;
 

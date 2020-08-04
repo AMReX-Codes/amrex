@@ -389,6 +389,8 @@ indexFromValue (iMultiFab const& mf, int comp, int nghost, int value, MPI_Op mml
         MPI_Allreduce(&in,  &out, 1, datatype, mmloc, comm);
         MPI_Bcast(&(loc[0]), AMREX_SPACEDIM, MPI_INT, out.rank, comm);
     }
+#else
+    amrex::ignore_unused(mmloc);
 #endif
 
     return loc;
@@ -523,7 +525,7 @@ iMultiFab::negate (const Box& region,
 }
 
 std::unique_ptr<iMultiFab>
-OwnerMask (FabArrayBase const& mf, const Periodicity& period)
+OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngrow)
 {
     BL_PROFILE("OwnerMask()");
 
@@ -533,7 +535,7 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period)
     const int owner = 1;
     const int nonowner = 0;
 
-    std::unique_ptr<iMultiFab> p{new iMultiFab(ba,dm,1,0, MFInfo(),
+    std::unique_ptr<iMultiFab> p{new iMultiFab(ba,dm,1,ngrow, MFInfo(),
                                                DefaultFabFactory<IArrayBox>())};
     const std::vector<IntVect>& pshifts = period.shiftIntVect();
 
@@ -559,7 +561,7 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period)
 
             for (const auto& iv : pshifts)
             {
-                ba.intersections(bx+iv, isects);                    
+                ba.intersections(bx+iv, isects, false, ngrow);
                 for (const auto& is : isects)
                 {
                     const int oi = is.first;

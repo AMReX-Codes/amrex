@@ -94,9 +94,9 @@ public:
     * \param ratio
     * \param comp
     */
-    virtual void setBndryConds (const BCRec&   phys_bc,
-                                const IntVect& ratio,
-				int            comp = 0) {}
+    virtual void setBndryConds (const BCRec&   /*phys_bc*/,
+                                const IntVect& /*ratio*/,
+				int            /*comp*/ = 0) {}
 
     /**
     * \brief set bndry values at coarse level (non interpolation performed)
