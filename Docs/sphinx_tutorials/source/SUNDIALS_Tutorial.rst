@@ -7,12 +7,6 @@
 Tutorials/SUNDIALS
 ==========================
 
-AMReX provides six tutorials in the ``amrex/Tutorials/CVODE/SUNDIALS3_finterface`` directory.
-``EX1`` is modeled after the CVODE Tutorial ``EX1`` showing use with AMReX.
-The four ``EX_cv_*`` tutorials are based on examples provided with the interface, which
-are more closely modeled after CVODE examples. The ``EX_ark_analytic_fp`` tutorial is based
-on the ``EX_cv_analytic_fp`` tutorial, but uses ARKODE instead of CVODE.
-
 AMReX provides five tutorials in the ``amrex/Tutorials/SUNDIALS`` directory.
 There are three versions of ``EX1`` which parallelize differently. ``EX1_C``
 packs a box worth of equations into a serial NVector, uses CVODE to solve, and then unpacks
