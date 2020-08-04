@@ -6,9 +6,6 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Print.H>
 #include <AMReX_PlotFileUtil.H>
-#if !defined(BL_NO_FORT)
-#include <AMReX_BaseFab_f.H>
-#endif
 
 #include <AMReX_BLFort.H>
 

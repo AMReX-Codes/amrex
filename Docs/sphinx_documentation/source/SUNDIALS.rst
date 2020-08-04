@@ -25,26 +25,29 @@ In order to use SUNDIALS:
       mkdir builddir instdir
       INSTALL_PREFIX=$(pwd)/instdir
       cd builddir
-      cmake     \
-      -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}     \
-      -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON     \
-      -DCMAKE_C_COMPILER=$(which gcc)     \
-      -DCMAKE_CXX_COMPILER=$(which g++)     \
+      cmake \
+      -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}  \
+      -DCMAKE_INSTALL_LIBDIR=lib \
+      -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
+      -DCMAKE_C_COMPILER=$(which gcc)  \
+      -DCMAKE_CXX_COMPILER=$(which g++)   \
       -DCMAKE_CUDA_HOST_COMPILER=$(which g++)    \
-      -DEXAMPLES_INSTALL_PATH=${INSTALL_PREFIX}/examples     \
-      -DCMAKE_BUILD_TYPE=Release     \
-      -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG"     \
-      -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG"     \
-      -DCUDA_ENABLE=ON     \
-      -DMPI_ENABLE=OFF     \
-      -DOPENMP_ENABLE=ON     \
-      -DF2003_INTERFACE_ENABLE=ON \
+      -DEXAMPLES_INSTALL_PATH=${INSTALL_PREFIX}/examples \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG" \
+      -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG"  \
+      -DCUDA_ENABLE=ON  \
+      -DMPI_ENABLE=OFF  \
+      -DOPENMP_ENABLE=ON   \
+      -DF2003_INTERFACE_ENABLE=ON   \
       -DCUDA_ARCH=sm_70 ../
       make -j8
       make install -j8
 
 #. Note that ``CMAKE_C_COMPILER`` and ``CMAKE_CXX_COMPILER`` need to be consistent with the AMReX
    make variable COMP to ensure matching OMP runtime libraries for use with the OpenMP NVector. 
+
+#. ``CUDA_ARCH`` must be set to the appropriate value for the GPU being targeted
 
 #. For more detailed instructions for installing SUNDIALS with different flags and versions see
    the `SUNDIALS documentation <https://computing.llnl.gov/projects/sundials/sundials-software>`_.
