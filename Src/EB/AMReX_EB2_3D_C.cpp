@@ -236,6 +236,27 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
         }
     }
 }
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void set_covered (const int i, const int j, const int k,
+                  Array4<EBCellFlag> const& cell,
+                  Array4<Real> const& vfrac, Array4<Real> const& vcent,
+                  Array4<Real> const& barea, Array4<Real> const& bcent,
+                  Array4<Real> const& bnorm)
+{
+    vfrac(i,j,k) = 0.0;
+    vcent(i,j,k,0) = 0.0;
+    vcent(i,j,k,1) = 0.0;
+    vcent(i,j,k,2) = 0.0;
+    bcent(i,j,k,0) = -1.0;
+    bcent(i,j,k,1) = -1.0;
+    bcent(i,j,k,2) = -1.0;
+    bnorm(i,j,k,0) = 0.0;
+    bnorm(i,j,k,1) = 0.0;
+    bnorm(i,j,k,2) = 0.0;
+    barea(i,j,k) = 0.0;
+    cell(i,j,k).setCovered();
+}
 }
 
 void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
@@ -646,7 +667,8 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
 
             // remove small cells
             if (vfrac(i,j,k) < small_volfrac) {
-                vfrac(i,j,k) = 0.0;
+                set_covered(i,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
+                /*vfrac(i,j,k) = 0.0;
                 vcent(i,j,k,0) = 0.0;
                 vcent(i,j,k,1) = 0.0;
                 vcent(i,j,k,2) = 0.0;
@@ -657,7 +679,32 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                 bnorm(i,j,k,1) = 0.0;
                 bnorm(i,j,k,2) = 0.0;
                 barea(i,j,k) = 0.0;
-                cell(i,j,k).setCovered();
+                cell(i,j,k).setCovered();*/
+                if(i == 0) {
+                  amrex::Print() << "Covering corresponding ghost cell: " << IntVect(i-1,j,k) << std::endl;
+                  set_covered(i-1,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
+                }
+                if(j == 0) {
+                  amrex::Print() << "Covering corresponding ghost cell: " << IntVect(i,j-1,k) << std::endl;
+                  set_covered(i,j-1,k,cell,vfrac,vcent,barea,bcent,bnorm);
+                }
+                if(k == 0) {
+                  amrex::Print() << "Covering corresponding ghost cell: " << IntVect(i,j,k-1) << std::endl;
+                  set_covered(i,j,k-1,cell,vfrac,vcent,barea,bcent,bnorm);
+                }
+                  /*vfrac(i,j,k-1) = 0.0;
+                  vcent(i,j,k-1,0) = 0.0;
+                  vcent(i,j,k-1,1) = 0.0;
+                  vcent(i,j,k-1,2) = 0.0;
+                  bcent(i,j,k-1,0) = -1.0;
+                  bcent(i,j,k-1,1) = -1.0;
+                  bcent(i,j,k-1,2) = -1.0;
+                  bnorm(i,j,k-1,0) = 0.0;
+                  bnorm(i,j,k-1,1) = 0.0;
+                  bnorm(i,j,k-1,2) = 0.0;
+                  barea(i,j,k-1) = 0.0;
+                  cell(i,j,k-1).setCovered();
+                }*/
             }
         }
     });
