@@ -252,11 +252,15 @@ namespace {
 		}
 	    }
 
+            amrex::Print() << "fdomain/fdomain_g: " << fdomain << " / " << fdomain_g << std::endl;
+
 	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf, fdomain_g,
                                                                       nghost,
                                                                       coarsener,
                                                                       amrex::coarsen(fgeom.Domain(),ratio),
                                                                       index_space);
+
+            amrex::Print() << "fpc.ba = " << fpc.ba_crse_patch << std::endl;
 
 	    if ( ! fpc.ba_crse_patch.empty())
 	    {
@@ -307,20 +311,18 @@ namespace {
                              fgeom, fbc, fbccomp);
     }
 
-//================
-
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
     EnableIf_t<IsFabArray<MF>::value>
-    FillPatchTwoLevels_doit (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Real time,
-			     const Vector<Array<MF*, AMREX_SPACEDIM>>& cmf, const Vector<Real>& ct,
-			     const Vector<Array<MF*, AMREX_SPACEDIM>>& fmf, const Vector<Real>& ft,
+    FillPatchTwoLevels_doit (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+			     const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
+			     const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
 			     const Geometry& cgeom, const Geometry& fgeom,
-			     BC& cbc, int cbccomp,
-                             BC& fbc, int fbccomp,
+			     Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
+                             Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
 			     const IntVect& ratio,
 			     Interp* mapper,
-                             const Vector<BCRec>& bcs, int bcscomp,
+                             const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
                              const PreInterpHook& pre_interp,
                              const PostInterpHook& post_interp,
                              EB2::IndexSpace const* index_space)
@@ -334,7 +336,7 @@ namespace {
         using FAB = typename MF::FABType::value_type;
 
         // Test all of them?
-	if (nghost.max() > 0 || mf[0].getBDKey() != fmf[0][0]->getBDKey())
+	if (nghost.max() > 0 || mf[0]->getBDKey() != fmf[0][0]->getBDKey())
 	{
 	    const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
@@ -343,7 +345,7 @@ namespace {
 
 	    Box fdomain = fgeom.Domain();
             // fdomain.convert(mf.boxArray().ixType());
-	    fdomain.convert(IndexType(0));  // <---- Needed? Will domain always be cell centered?
+	    fdomain.convert(IntVect::TheZeroVector());  // <---- Needed? Will domain always be cell centered?
 	    Box fdomain_g(fdomain);
 	    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 		if (fgeom.isPeriodic(i)) {
@@ -351,10 +353,12 @@ namespace {
 		}
 	    }
 
-            MF mf_cc_dummy( amrex::convert(mf[0][0].boxArray(),IndexType(0)),
-                            mf[0].DistributionMapping(), ncomp, 0, MFInfo().SetAlloc(false) );
-            MF fmf_cc_dummy( amrex::convert(fmf[0][0].boxArray(),IndexType(0)),
-                             fmf[0][0].DistributionMapping(), ncomp, 0, MFInfo().SetAlloc(false) );
+            amrex::Print() << "fdomain/fdomain_g: " << fdomain << " / " << fdomain_g << std::endl;
+
+            MF mf_cc_dummy( amrex::convert(mf[0]->boxArray(), IntVect::TheZeroVector()),
+                            mf[0]->DistributionMap(), ncomp, nghost, MFInfo().SetAlloc(false) );
+            MF fmf_cc_dummy( amrex::convert(fmf[0][0]->boxArray(), IntVect::TheZeroVector()),
+                             fmf[0][0]->DistributionMap(), ncomp, nghost, MFInfo().SetAlloc(false) );
 
 	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(fmf_cc_dummy, mf_cc_dummy, fdomain_g,
                                                                       nghost,
@@ -362,14 +366,26 @@ namespace {
                                                                       amrex::coarsen(fgeom.Domain(),ratio),
                                                                       index_space);
 
+            amrex::Print() << "fpc.ba = " << fpc.ba_crse_patch << std::endl;
+
 	    if ( !fpc.ba_crse_patch.empty() )
 	    {
                 Array<MF, AMREX_SPACEDIM> mf_crse_patch;
+                Vector<MF*> cmf_v;
+
                 for (int i=0; i<AMREX_SPACEDIM; ++i)
                 {
-                    mf_crse_patch[i] = make_mf_crse_patch<MF>(fpc, ncomp, mf[i].boxArray().ixType());
-                    mf_set_domain_bndry (mf_crse_patch, cgeom);
-                    FillPatchSingleLevel(mf_crse_patch, time, cmf[i], ct, scomp, 0, ncomp, cgeom, cbc, cbccomp);
+                    mf_crse_patch[i] = make_mf_crse_patch<MF>(fpc, ncomp, mf[i]->boxArray().ixType());
+                    mf_set_domain_bndry(mf_crse_patch[i], cgeom);
+
+                    Vector<MF*> cmf_time;
+                    for (const auto & cfab : cmf)
+                        { cmf_time.push_back(cfab[i]); }
+
+                    amrex::Print() << "cft[0]->nComp()/scomp/dcomp/ncomp: " << cmf_time[0]->nComp() << "/" << scomp << "/0/" << ncomp << std::endl;
+
+                    FillPatchSingleLevel(mf_crse_patch[i], time, cmf_time, ct, scomp, 0, ncomp, 
+                                         cgeom, cbc[i], cbccomp);
                 }
 
 		int idummy1=0, idummy2=0;
@@ -380,36 +396,51 @@ namespace {
 #endif
                 {
                     Vector<BCRec> bcr(ncomp);
-                    for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
+                    for (MFIter mfi(mf_crse_patch[0]); mfi.isValid(); ++mfi)
                     {
-                        Array<FAB*, AMREX_SPACEDIM> sfab, dfab;
                         int li = mfi.LocalIndex();
                         int gi = fpc.dst_idxs[li];
 
-                        for (int i=0; i<AMREX_SPACEDIM; ++i)
+                        Array<FAB*, AMREX_SPACEDIM> sfab{ AMREX_D_DECL( &(mf_crse_patch[0][mfi]), 
+                                                                        &(mf_crse_patch[1][mfi]),
+                                                                        &(mf_crse_patch[2][mfi]) )};
+                        Array<FAB*, AMREX_SPACEDIM> dfab{ AMREX_D_DECL( &(mf[0]->get(gi)), 
+                                                                        &(mf[1]->get(gi)),
+                                                                        &(mf[2]->get(gi))  )};
+
+                        const Box& dbx = fpc.dst_boxes[li];
+
+                        for (int d=0; d<AMREX_SPACEDIM; ++d)
                         {
-                            sfab[i] = &(mf_crse_patch[i][mfi]);
-                            dfab[i] = &(mf[i][gi]);
+                            amrex::Print() << "mf.type / dfab.type [" << d << "]: " 
+                                           << mf[0]->boxArray().ixType() << "/" 
+                                           << dfab[0]->box().ixType() << std::endl;
+
+                            const Box& bcbx = (amrex::convert(dbx,mf[d]->boxArray().ixType()) & dfab[d]->box());
+                            amrex::setBC(bcbx,fdomain,bcscomp,0,ncomp,bcs[d],bcr);
                         }
-                        const Box& dbx = fpc.dst_boxes[li] & dfab.box();
 
-                        amrex::setBC(dbx,fdomain,bcscomp,0,ncomp,bcs,bcr);
+                        pre_interp(sfab, sfab[0]->box(), 0, ncomp);
 
-                        pre_interp(sfab, sfab.box(), 0, ncomp);
+                        amrex::Print() << "Starting interp_arr with dbx = " << dbx << std::endl;
 
-                        mapper->interp(sfab,
-                                       0,
-                                       dfab,
-                                       dcomp,
-                                       ncomp,
-                                       dbx,
-                                       ratio,
-                                       cgeom,
-                                       fgeom,
-                                       bcr,
-                                       idummy1, idummy2, RunOn::Gpu);
+                        mapper->interp_arr(sfab,
+                                           0,
+                                           dfab,
+                                           dcomp,
+                                           ncomp,
+                                           dbx,
+                                           ratio,
+                                           cgeom,
+                                           fgeom,
+                                           bcr,
+                                           idummy1, idummy2, RunOn::Gpu);
 
                         post_interp(dfab, dbx, dcomp, ncomp);
+
+                        amrex::Print() << "Waiting for interp_arr" << std::endl;
+                        amrex::Gpu::synchronize();
+                        amrex::Print() << "Success!!" << std::endl;
                     }
                 }
 	    }
@@ -417,12 +448,14 @@ namespace {
 
         for (int i=0; i<AMREX_SPACEDIM; ++i)
         {
-	    FillPatchSingleLevel(mf, nghost, time, fmf[i], ft, scomp, dcomp, ncomp,
-                                 fgeom, fbc, fbccomp);
+            Vector<MF*> fmf_time;
+            for (auto ffab : fmf)
+                 { fmf_time.push_back(ffab[i]); }
+
+	    FillPatchSingleLevel(*mf[i], nghost, time, fmf_time, ft, scomp, dcomp, ncomp,
+                                 fgeom, fbc[i], fbccomp);
         }
     }
-
-//================
 
 } // Anonymous namespace
 
@@ -480,17 +513,17 @@ FillPatchTwoLevels (MF& mf, Real time,
 }
 
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-EnableIf_t<IsFabArray<MF>::value>
+EnableIf_t<IsFabArray<MF>::value> 
 FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Real time,
-                    const Vector<MF*>& cmf, const Vector<Real>& ct,
-                    const Vector<MF*>& fmf, const Vector<Real>& ft,
+                    const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
+                    const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                     int scomp, int dcomp, int ncomp,
                     const Geometry& cgeom, const Geometry& fgeom,
-                    BC& cbc, int cbccomp,
-                    BC& fbc, int fbccomp,
+                    Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
+                    Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
                     const IntVect& ratio,
                     Interp* mapper,
-                    const Vector<BCRec>& bcs, int bcscomp,
+                    const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
                     const PreInterpHook& pre_interp,
                     const PostInterpHook& post_interp)
 {
@@ -499,6 +532,7 @@ FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Real 
 #else
     EB2::IndexSpace const* index_space = nullptr;
 #endif
+
     FillPatchTwoLevels_doit(mf,nghost,time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
                             cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
@@ -508,15 +542,15 @@ FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Real 
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 EnableIf_t<IsFabArray<MF>::value>
 FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM>& mf, Real time,
-                    const Vector<MF*>& cmf, const Vector<Real>& ct,
-                    const Vector<MF*>& fmf, const Vector<Real>& ft,
+                    const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
+                    const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                     int scomp, int dcomp, int ncomp,
                     const Geometry& cgeom, const Geometry& fgeom,
-                    BC& cbc, int cbccomp,
-                    BC& fbc, int fbccomp,
+                    Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
+                    Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
                     const IntVect& ratio,
                     Interp* mapper,
-                    const Vector<BCRec>& bcs, int bcscomp,
+                    const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
                     const PreInterpHook& pre_interp,
                     const PostInterpHook& post_interp)
 {

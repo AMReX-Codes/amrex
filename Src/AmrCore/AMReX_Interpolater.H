@@ -83,6 +83,39 @@ public:
                          RunOn            gpu_or_cpu) = 0;
 
     /**
+    * \brief Coarse to fine interpolation in space.
+    *        Takes an Array of FArrayBox*s
+    *
+    * \param crse
+    * \param crse_comp
+    * \param fine
+    * \param fine_comp
+    * \param ncomp
+    * \param fine_region
+    * \param ratio
+    * \param crse_geom
+    * \param fine_geom
+    * \param bcr
+    * \param actual_comp
+    * \param actual_state
+    */
+    virtual void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
+                             int               crse_comp,
+                             Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
+                             int               fine_comp,
+                             int               ncomp,
+                             const Box&        fine_region,
+                             const IntVect&    ratio,
+                             const Geometry&   crse_geom,
+                             const Geometry&   fine_geom,
+                             Vector<BCRec> const & bcr,
+                             int               actual_comp,
+                             int               actual_state,
+                             RunOn             gpu_or_cpu)
+
+    { amrex::Abort("The Array<FArrayBox*, AMREX_SPACEDIM> version of this Interpolater is not implemented or does not apply. Call the FArrayBox version instead."); };
+
+    /**
     * \brief Re-visit the interpolation to protect against under- or overshoots.
     *
     * \param crse
@@ -727,19 +760,19 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    virtual void interp (Array<const FArrayBox*, AMREX_SPACEDIM> crse,
-                         int               crse_comp,
-                         Array<FArrayBox*, AMREX_SPACEDIM> fine,
-                         int               fine_comp,
-                         int               ncomp,
-                         const Box&        fine_region,
-                         const IntVect&    ratio,
-                         const Geometry& crse_geom,
-                         const Geometry& fine_geom,
-                         Vector<BCRec> const& bcr,
-                         int               actual_comp,
-                         int               actual_state,
-                         RunOn             runon);
+    virtual void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
+                             int               crse_comp,
+                             Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
+                             int               fine_comp,
+                             int               ncomp,
+                             const Box&        fine_region,
+                             const IntVect&    ratio,
+                             const Geometry& crse_geom,
+                             const Geometry& fine_geom,
+                             Vector<BCRec> const& bcr,
+                             int               actual_comp,
+                             int               actual_state,
+                             RunOn             runon) override;
 };
 
 

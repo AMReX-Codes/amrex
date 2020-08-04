@@ -1078,10 +1078,10 @@ FabArrayBase::getFB (const IntVect& nghost, const Periodicity& period,
 }
 
 FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
-			      const FabArrayBase& dstfa,
-			      const Box&          dstdomain,
-			      const IntVect&      dstng,
-			      const BoxConverter& coarsener,
+                              const FabArrayBase& dstfa,
+                              const Box&          dstdomain,
+                              const IntVect&      dstng,
+                              const BoxConverter& coarsener,
                               const Box&          cdomain,
                               const EB2::IndexSpace* index_space)
     : m_srcbdk   (srcfa.getBDKey()),
@@ -1098,6 +1098,10 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 
     const IndexType& boxtype = dstba.ixType();
     BL_ASSERT(boxtype == dstdomain.ixType());
+
+    amrex::Print() << "srcba: " << srcba << std::endl;
+    amrex::Print() << "dstba: " << dstba << std::endl;
+    amrex::Print() << "dstng -- dstfa" << dstng << " -- " << dstfa.nGrowVect() << std::endl << std::endl;
      
     BL_ASSERT(dstng.allLE(dstfa.nGrowVect()));
 
@@ -1114,18 +1118,27 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
         bx.grow(m_dstng);
         bx &= m_dstdomain;
 
+        amrex::Print() << " FP[i]: bx = " << i << ": " << bx << "-- <" << bx.ok() << ">" << std::endl;
+
         BoxList leftover = srcba.complementIn(bx);
+
+        amrex::Print() << " FP[i]: leftover = " << i << ": " << bx << std::endl;
 
         bool ismybox = (dstdm[i] == myproc);
         for (BoxList::const_iterator bli = leftover.begin(); bli != leftover.end(); ++bli)
         {
             bl.push_back(m_coarsener->doit(*bli));
+
+            amrex::Print() << " FP[i]: leftover = " << i << ": " << *bli << " -- <" << (*bli).ok() << ">" << std::endl;
+            amrex::Print() << " FP[i]: coarsener = " << i << ": " << m_coarsener->doit(*bli) << std::endl;
+
             if (ismybox) {
                 dst_boxes.push_back(*bli);
                 dst_idxs.push_back(i);
             }
             iprocs.push_back(dstdm[i]);
         }
+        amrex::Print() << std::endl;
     }
 
     if (!iprocs.empty()) {

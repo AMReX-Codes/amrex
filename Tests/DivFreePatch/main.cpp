@@ -7,8 +7,21 @@
 #include <AMReX_FillPatchUtil.H>
 
 using namespace amrex;
-
 void main_main ();
+
+void setupMF(MultiFab* mf)
+{
+    for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
+    {
+        const Box& bx_x = mfi.fabbox();
+        Array4<Real> c_x = mf->array(mfi);
+
+        amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            c_x(i,j,k) = amrex::Random()*10; 
+        });
+    }
+}
 
 int main (int argc, char* argv[])
 {
@@ -26,102 +39,112 @@ void main_main ()
     BL_PROFILE("main");
 
     int n_cell = 0;
-    int n_boxes_per_rank = 0;
-    amrex::Vector<int> n_cell_3d (AMREX_SPACEDIM, 512);
+    int f_offset = 4;
+    amrex::Vector<int> c_cell_3d(AMREX_SPACEDIM, 32);
+    amrex::Vector<int> f_cell_3d(AMREX_SPACEDIM, 28);
     int max_grid_size = 64;
-    int nwork = 10;
-    int nwrites = 4;
 
     {
         ParmParse pp;
         pp.query("n_cell", n_cell);
-        pp.queryarr("n_cell_3d", n_cell_3d, 0, AMREX_SPACEDIM);
-        pp.query("n_boxes_per_rank", n_boxes_per_rank);
+        pp.query("f_offset", f_offset);
+        pp.queryarr("c_cell_3d", c_cell_3d, 0, AMREX_SPACEDIM);
+        pp.queryarr("f_cell_3d", f_cell_3d, 0, AMREX_SPACEDIM);
         pp.query("max_grid_size", max_grid_size);
-        pp.query("nwork", nwork);
-        pp.query("nwrites", nwrites);
 
         // inputs hierarchy: 
-        // n_cell > n_boxes_per_rank > n_cell_3d
+        // n_cell > c_cell_3d & f_cell_3d
 
         if (n_cell != 0)
         {
             for (int i=0; i < AMREX_SPACEDIM; ++i)
-            { n_cell_3d[i] = n_cell; }
-        }
-        else if (n_boxes_per_rank != 0)
-        {
-           n_cell_3d[0] = (max_grid_size) - 1;
-           n_cell_3d[1] = (max_grid_size * n_boxes_per_rank) - 1;
-           n_cell_3d[2] = (max_grid_size * ParallelDescriptor::NProcs()) - 1;
+            { c_cell_3d[i] = n_cell;
+              f_cell_3d[i] = n_cell-f_offset; }
         }
     }
 
-    BoxArray ba(Box(IntVect(0),IntVect(n_cell_3d)));
-    ba.maxSize(max_grid_size);
-    DistributionMapping dm(ba);
+    int ncomp = 1;
+    IntVect ratio{AMREX_D_DECL(2,2,2)};  // For this stencil (octree), always 2.
+    IntVect ghost{AMREX_D_DECL(1,1,1)};  // For this stencil (octree), need 1 ghost.
+    Geometry c_geom, f_geom; 
 
-    Array<MultiFab, AMREX_SPACEDIM> mf_faces;
-    Gpu::ManagedVector< Array4<Real> > arrs(nwrites);
+    Array<MultiFab, AMREX_SPACEDIM> c_mf_faces;
+    Array<MultiFab, AMREX_SPACEDIM> f_mf_faces;
+    MultiFab div_coarse;
+ 
+    AMREX_D_TERM( IntVect x_face{AMREX_D_DECL(1,0,0)};,
+                  IntVect y_face{AMREX_D_DECL(0,1,0)};,
+                  IntVect z_face{AMREX_D_DECL(0,0,1)};  );
 
-    // Build x, y and z face MFs.
+    //  Create multifabs. 
+    {
+        Box domain  (IntVect{0}, IntVect{c_cell_3d});
+        Box domain_f(IntVect{f_offset}, IntVect{f_cell_3d});
+        RealBox realbox({AMREX_D_DECL(-1.0,-1.0,-1.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
+        Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};
 
-    IntVect x_face(AMREX_D_DECL(1,0,0));
-    IntVect y_face(AMREX_D_DECL(0,1,0));
-#if (AMREX_SPACEDIM==3)
-    IntVect z_face(AMREX_D_DECL(0,0,1));
-#endif
+        // Build coarse and fine boxArrays and DistributionMappings. 
+        BoxArray ba_c(domain);
+        ba_c.maxSize(max_grid_size);
 
-    mf_faces[0].define( amrex::convert( ba,x_face ), dm, 1, 1);
-    mf_faces[1].define( amrex::convert( ba,y_face ), dm, 1, 1);
-#if (AMREX_SPACEDIM==3)
-    mf_faces[2].define( amrex::convert( ba,z_face ), dm, 1, 1);
-#endif
+        BoxArray ba_f(domain_f);
+        ba_f.refine(ratio);
+        ba_f.maxSize(max_grid_size);
 
-    for (MFIter mfi(mf_faces[0]); mfi.isValid(); ++mfi) {
-        const Box& bx = mfi.fabbox();
-        for (int m = 0; m < AMREX_SPACEDIM; ++m) {
-            arrs[m] = mf_faces[m].array(mfi);
-        }
+        DistributionMapping dm_c(ba_c);
+        DistributionMapping dm_f(ba_f);
 
-        auto arrs_ptr = arrs.dataPtr();
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            for (int m = 0; m < AMREX_SPACEDIM; ++m) {
-               arrs_ptr[m](i,j,k) = amrex::Random()*10;
-            }
-        });
-        Gpu::streamSynchronize(); // because of arrs
+        c_geom.define(domain,   realbox, CoordSys::cartesian, is_periodic);
+        f_geom.define(domain_f, realbox, CoordSys::cartesian, is_periodic);
+
+        AMREX_D_TERM( c_mf_faces[0].define( amrex::convert( ba_c,x_face ), dm_c, ncomp, ghost);,
+                      c_mf_faces[1].define( amrex::convert( ba_c,y_face ), dm_c, ncomp, ghost);,
+                      c_mf_faces[2].define( amrex::convert( ba_c,z_face ), dm_c, ncomp, ghost); );
+
+        AMREX_D_TERM( f_mf_faces[0].define( amrex::convert( ba_f,x_face ), dm_f, ncomp, ghost);,
+                      f_mf_faces[1].define( amrex::convert( ba_f,y_face ), dm_f, ncomp, ghost);,
+                      f_mf_faces[2].define( amrex::convert( ba_f,z_face ), dm_f, ncomp, ghost); );
+
+        AMREX_D_TERM( f_mf_faces[0].setVal(0.0);,
+                      f_mf_faces[1].setVal(0.0);,
+                      f_mf_faces[2].setVal(0.0);  );
+
+        div_coarse.define(ba_c, dm_c, ncomp, ghost);
+        div_coarse.setVal(0.0);
+
+        amrex::Print() << "Testing Face FreeDiv FillPatch with: "
+                       << "\n  dimensions = "    << ba_c.minimalBox() 
+                       << "\n  max_grid_size = " << max_grid_size
+                       << "\n  boxes = "         << ba_c.size()
+                       << "\n  and ratio = "     << ratio << std::endl;
+
+        amrex::Print() << "Coarse box array: " << ba_c << std::endl;
+        amrex::Print() << "Fine box array: " << ba_f << std::endl;
+        amrex::Print() << "============================" << std::endl;
     }
 
-    amrex::Print() << "Testing Face FreeDiv FillPatch with: "
-                   << "\n  dimensions = "    << ba.minimalBox() 
-                   << "\n  max_grid_size = " << max_grid_size
-                   << "\n  boxes = "         << ba.size()
-                   << "\n  and nwork = "     << nwork << std::endl;
+    for (int i=0; i<AMREX_SPACEDIM; ++i)
+    {
+        setupMF(&c_mf_faces[i]);
+    }
 
 // ***************************************************************
 
 //    Calc div
-//    Do 2LevelFillPatch
+//    Do TwoLevelFillPatch
 //    Compare/check div at fine level
 
 // ***************************************************************
 
-    amrex::Print() << " Calculate divergence. " << std::endl;
-
-    MultiFab div_coarse(ba, dm, 1, 0);
-    div_coarse.setVal(0.0);
-
+    amrex::Print() << " Calculating coarse divergence. " << std::endl;
     for (MFIter mfi(div_coarse); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
         Array4<Real> div = div_coarse.array(mfi);
-        Array4<Real> face_x = mf_faces[0].array(mfi);
-        Array4<Real> face_y = mf_faces[1].array(mfi);
-#if (AMREX_SPACEDIM==3)
-        Array4<Real> face_z = mf_faces[2].array(mfi);
-#endif
+
+        AMREX_D_TERM( Array4<Real> face_x = c_mf_faces[0].array(mfi);,
+                      Array4<Real> face_y = c_mf_faces[1].array(mfi);,
+                      Array4<Real> face_z = c_mf_faces[2].array(mfi);  );
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -131,104 +154,77 @@ void main_main ()
         });
     }
 
-// ***************************************************************
-
-/*
+    amrex::Print() << " Performing DivFree FillPatch. " << std::endl;
     {
-            const auto& bcrec = get_velocity_bcrec();
-            PhysBCFunct<GpuBndryFuncFab<IncfloVelFill> > cphysbc
-                (geom[lev-1], bcrec, IncfloVelFill{m_probtype, m_bc_velocity});
-            PhysBCFunct<GpuBndryFuncFab<IncfloVelFill> > fphysbc
-                (geom[lev], bcrec, IncfloVelFill{m_probtype, m_bc_velocity});
-#else
-            Interpolater* mapper = &cell_cons_interp;
-#endif
-            FillPatchTwoLevels(vel, IntVect(ng), time,
-                               {&(m_leveldata[lev-1]->velocity_o),
-                                &(m_leveldata[lev-1]->velocity)},
-                               {m_t_old[lev-1], m_t_new[lev-1]},
-                               {&(m_leveldata[lev]->velocity_o),
-                                &(m_leveldata[lev]->velocity)},
-                               {m_t_old[lev], m_t_new[lev]},
-                               0, 0, AMREX_SPACEDIM, geom[lev-1], geom[lev],
-                               cphysbc, 0, fphysbc, 0,
-                               refRatio(lev-1), mapper, bcrec, 0);
+        double time = 1;
+        Vector<Real> time_v;
+        time_v.push_back(time);
+
+        Array<Vector<BCRec>, AMREX_SPACEDIM> bcrec;
+        for (int odim=0; odim < AMREX_SPACEDIM; ++odim)
+        {
+            bcrec[odim].resize(ncomp);
+            for (int n = 0; n < ncomp; ++n)
+            {
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+                {
+                    bcrec[odim][n].setLo(idim, BCType::int_dir);
+                    bcrec[odim][n].setHi(idim, BCType::int_dir);
+                }
+            }
+        }
+
+        Interpolater* mapper = &face_divfree_interp;
+        Array<MultiFab*, AMREX_SPACEDIM> fine_faces;
+        Array<MultiFab*, AMREX_SPACEDIM> coarse_faces;
+
+        for (int i=0; i<AMREX_SPACEDIM; ++i)
+        {
+            fine_faces[i] = &(f_mf_faces[i]);
+            coarse_faces[i] = &(c_mf_faces[i]);
+        }
+
+        Vector<Array<MultiFab*, AMREX_SPACEDIM> > fine_v;
+        Vector<Array<MultiFab*, AMREX_SPACEDIM> > coarse_v;
+        fine_v.push_back(fine_faces);
+        coarse_v.push_back(coarse_faces);
+
+        Array<PhysBCFunctNoOp, AMREX_SPACEDIM> phys_bc;
+
+        amrex::Print() << " Starting FillPatch. " << std::endl;
+       
+        FillPatchTwoLevels(fine_faces, ghost, time,
+                           coarse_v, time_v,
+                           fine_v, time_v,
+                           0, 0, 1, c_geom, f_geom,
+                           phys_bc, 0, phys_bc, 0,
+                           ratio, mapper, bcrec, 0);
+
     }
 
-
-    FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Real time,
-                        const Vector<MF*>& cmf, const Vector<Real>& ct,
-                        const Vector<MF*>& fmf, const Vector<Real>& ft,
-                        int scomp, int dcomp, int ncomp,
-                        const Geometry& cgeom, const Geometry& fgeom,
-                        BC& cbc, int cbccomp,
-                        BC& fbc, int fbccomp,
-                        const IntVect& ratio,
-                        Interp* mapper,
-                        const Vector<BCRec>& bcs, int bcscomp,
-                        const PreInterpHook& pre_interp = {},
-                        const PostInterpHook& post_interp = {});
-
-
-    Compute div in fine case & compare to coarse value in matching cell
-
+    amrex::Print() << " Test fine divergence. " << std::endl;
+/*
     for (MFIter mfi(div_coarse); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
         Array4<Real> div = div_coarse.array(mfi);
-        Array4<Real> face_x = mf_faces[0].array(mfi);
-        Array4<Real> face_y = mf_faces[1].array(mfi);
-        Array4<Real> face_z = mf_faces[2].array(mfi);
+
+        AMREX_D_TERM( Array4<Real> face_x = c_mf_faces[0].array(mfi);,
+                      Array4<Real> face_y = c_mf_faces[1].array(mfi);,
+                      Array4<Real> face_z = c_mf_faces[2].array(mfi);  );
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            div(i,j,k) = ( face_x(i+1,j  ,k  ) - face_x(i,j,k) ) +
-                         ( face_y(i  ,j+1,k  ) - face_y(i,j,k) ) +
-                         ( face_z(i  ,j  ,k+1) - face_z(i,j,k) );
+            div(i,j,k) = AMREX_D_TERM(   face_x(i+1,j  ,k  ) - face_x(i,j,k),
+                                       + face_y(i  ,j+1,k  ) - face_y(i,j,k),
+                                       + face_z(i  ,j  ,k+1) - face_z(i,j,k)  );
         });
     }
-
 */
 
 
-/*
+// ***************************************************************
 
-void incflo::fillpatch_velocity (int lev, Real time, MultiFab& vel, int ng)
-{
-    if (lev == 0) {
-        PhysBCFunct<GpuBndryFuncFab<IncfloVelFill> > physbc
-            (geom[lev], get_velocity_bcrec(),
-             IncfloVelFill{m_probtype, m_bc_velocity});
-        FillPatchSingleLevel(vel, IntVect(ng), time,
-                             {&(m_leveldata[lev]->velocity_o),
-                              &(m_leveldata[lev]->velocity)},
-                             {m_t_old[lev], m_t_new[lev]}, 0, 0, AMREX_SPACEDIM, geom[lev],
-                             physbc, 0);
-    } else {
-        const auto& bcrec = get_velocity_bcrec();
-        PhysBCFunct<GpuBndryFuncFab<IncfloVelFill> > cphysbc
-            (geom[lev-1], bcrec, IncfloVelFill{m_probtype, m_bc_velocity});
-        PhysBCFunct<GpuBndryFuncFab<IncfloVelFill> > fphysbc
-            (geom[lev], bcrec, IncfloVelFill{m_probtype, m_bc_velocity});
-#ifdef AMREX_USE_EB
-        Interpolater* mapper = (EBFactory(0).isAllRegular()) ?
-            (Interpolater*)(&cell_cons_interp) : (Interpolater*)(&eb_cell_cons_interp);
-#else
-        Interpolater* mapper = &cell_cons_interp;
-#endif
-        FillPatchTwoLevels(vel, IntVect(ng), time,
-                           {&(m_leveldata[lev-1]->velocity_o),
-                            &(m_leveldata[lev-1]->velocity)},
-                           {m_t_old[lev-1], m_t_new[lev-1]},
-                           {&(m_leveldata[lev]->velocity_o),
-                            &(m_leveldata[lev]->velocity)},
-                           {m_t_old[lev], m_t_new[lev]},
-                           0, 0, AMREX_SPACEDIM, geom[lev-1], geom[lev],
-                           cphysbc, 0, fphysbc, 0,
-                           refRatio(lev-1), mapper, bcrec, 0);
-    }
-}
 
-*/
 
 }

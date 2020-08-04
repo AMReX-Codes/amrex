@@ -27,6 +27,8 @@ namespace amrex
     struct NullInterpHook
     {
         void operator() (FAB& fab, const Box& bx, int icomp, int ncomp) const {}
+
+        void operator() (Array<FAB*, AMREX_SPACEDIM> fab, const Box& bx, int icomp, int ncomp) const {}
     };
 
     template <typename Interp>
@@ -86,17 +88,17 @@ namespace amrex
     template <typename MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    EnableIf_t<IsFabArray<MF>::value>
+    EnableIf_t<IsFabArray<MF>::value> 
     FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Real time,
-                        const Vector<MF*>& cmf, const Vector<Real>& ct,
-                        const Vector<MF*>& fmf, const Vector<Real>& ft,
+                        const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
+                        const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
                         const Geometry& cgeom, const Geometry& fgeom,
-                        BC& cbc, int cbccomp,
-                        BC& fbc, int fbccomp,
+                        Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
+                        Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
                         const IntVect& ratio,
                         Interp* mapper,
-                        const Vector<BCRec>& bcs, int bcscomp,
+                        const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
                         const PreInterpHook& pre_interp = {},
                         const PostInterpHook& post_interp = {});
 
@@ -105,15 +107,15 @@ namespace amrex
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
     EnableIf_t<IsFabArray<MF>::value>
     FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM>& mf, Real time,
-                        const Vector<MF*>& cmf, const Vector<Real>& ct,
-                        const Vector<MF*>& fmf, const Vector<Real>& ft,
+                        const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
+                        const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
                         const Geometry& cgeom, const Geometry& fgeom,
-                        BC& cbc, int cbccomp,
-                        BC& fbc, int fbccomp,
+                        Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
+                        Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
                         const IntVect& ratio,
                         Interp* mapper,
-                        const Vector<BCRec>& bcs, int bcscomp,
+                        const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
                         const PreInterpHook& pre_interp = {},
                         const PostInterpHook& post_interp = {});
 
