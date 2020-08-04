@@ -93,7 +93,7 @@ amrex_first_order_extrap_cpu(amrex::Box const& bx,
          int i = lo.x-1;
          for (int j = lo.y; j <= hi.y; ++j) {
             if ( mask(i,j,k) == crsecell ) {
-               data(i,j,k,n) = ( mask(i,j-1,k) * data(i,j-1,k,n) + mask(i+1,j,k) + mask(i,j+1,k) * data(i,j+1,k,n) )
+               data(i,j,k,n) = ( mask(i,j-1,k) * data(i,j-1,k,n) + data(i+1,j,k,n) + mask(i,j+1,k) * data(i,j+1,k,n) )
                                / ( mask(i,j-1,k) + 1 + mask(i,j+1,k) );
             }
          }
@@ -103,7 +103,7 @@ amrex_first_order_extrap_cpu(amrex::Box const& bx,
          int i = hi.x+1;
          for (int j = lo.y; j <= hi.y; ++j) {
             if ( mask(i,j,k) == crsecell ) {
-               data(i,j,k,n) = ( mask(i,j-1,k) * data(i,j-1,k,n) + mask(i-1,j,k) + mask(i,j+1,k) * data(i,j+1,k,n) )
+               data(i,j,k,n) = ( mask(i,j-1,k) * data(i,j-1,k,n) + data(i-1,j,k,n) + mask(i,j+1,k) * data(i,j+1,k,n) )
                                / ( mask(i,j-1,k) + 1 + mask(i,j+1,k) );
             }
          }
@@ -147,13 +147,10 @@ amrex_first_order_extrap_gpu(int i, int j, int k, int n,
    const auto lo = amrex::lbound(bx);
    const auto hi = amrex::ubound(bx);
 
-   // set all crse cells to zero first
-   if (mask(i,j,k) == crsecell) data(i,j,k,n) = 0.0_rt;
-
-   // Corners
-   // xlo, ylo
-   if ( (i == lo.x-1) && (j == lo.y-1) ) {
-      if ( mask(i,j,k) == crsecell ) {
+   if ( mask(i,j,k) == crsecell ) {
+      // Corners
+      // xlo, ylo
+      if ( (i == lo.x-1) && (j == lo.y-1) ) {
          if ( ( mask(i+1,j,k) == finecell ) ||
               ( mask(i,j+1,k) == finecell ) ) {
             data(i,j,k,n) = ( mask(i+1,j,k) * data(i+1,j,k,n) + mask(i,j+1,k) * data(i,j+1,k,n) )
@@ -161,11 +158,8 @@ amrex_first_order_extrap_gpu(int i, int j, int k, int n,
          } else {
             data(i,j,k,n) = data(i+1,j+1,k,n);
          }
-      }
-   }
-   // xlo, yhi
-   if ( (i == lo.x-1) && (j == hi.y+1) ) {
-      if ( mask(i,j,k) == crsecell ) {
+      // xlo, yhi
+      } else if ( (i == lo.x-1) && (j == hi.y+1) ) {
          if ( ( mask(i+1,j,k) == finecell ) ||
               ( mask(i,j-1,k) == finecell ) ) {
             data(i,j,k,n) = ( mask(i+1,j,k) * data(i+1,j,k,n) + mask(i,j-1,k) * data(i,j-1,k,n) )
@@ -173,11 +167,8 @@ amrex_first_order_extrap_gpu(int i, int j, int k, int n,
          } else {
             data(i,j,k,n) = data(i+1,j-1,k,n);
          }
-      }
-   }
-   // xhi, ylo
-   if ( (i == hi.x+1) && (j == lo.y-1) ) {
-      if ( mask(i,j,k) == crsecell ) {
+      // xhi, ylo
+      } else if ( (i == hi.x+1) && (j == lo.y-1) ) {
          if ( ( mask(i-1,j,k) == finecell ) ||
               ( mask(i,j+1,k) == finecell ) ) {
             data(i,j,k,n) = ( mask(i-1,j,k) * data(i-1,j,k,n) + mask(i,j+1,k) * data(i,j+1,k,n) )
@@ -185,11 +176,8 @@ amrex_first_order_extrap_gpu(int i, int j, int k, int n,
          } else {
             data(i,j,k,n) = data(i-1,j+1,k,n);
          }
-      }
-   }
-   // xhi, yhi
-   if ( (i == hi.x+1) && (j == hi.y+1) ) {
-      if ( mask(i,j,k) == crsecell ) {
+      // xhi, yhi
+      } else if ( (i == hi.x+1) && (j == hi.y+1) ) {
          if ( ( mask(i-1,j,k) == finecell ) ||
               ( mask(i,j-1,k) == finecell ) ) {
             data(i,j,k,n) = ( mask(i-1,j,k) * data(i-1,j,k,n) + mask(i,j-1,k) * data(i,j-1,k,n) )
@@ -197,33 +185,21 @@ amrex_first_order_extrap_gpu(int i, int j, int k, int n,
          } else {
             data(i,j,k,n) = data(i-1,j-1,k,n);
          }
-      }
-   }
-   // Edges
-   // xlo, y-valid
-   if ( (i == lo.x-1) && (j >= lo.y) && (j <= hi.y) ) {
-      if ( mask(i,j,k) == crsecell ) {
-         data(i,j,k,n) = ( mask(i,j-1,k) * data(i,j-1,k,n) + mask(i+1,j,k) + mask(i,j+1,k) * data(i,j+1,k,n) )
+      // Edges
+      // xlo, y-valid
+      } else if ( (i == lo.x-1) && (j >= lo.y) && (j <= hi.y) ) {
+         data(i,j,k,n) = ( mask(i,j-1,k) * data(i,j-1,k,n) + data(i+1,j,k,n) + mask(i,j+1,k) * data(i,j+1,k,n) )
                        / ( mask(i,j-1,k) + 1 + mask(i,j+1,k) );
-      }
-   }
-   // xhi, y-valid
-   if ( (i == hi.x+1) && (j >= lo.y) && (j <= hi.y) ) {
-      if ( mask(i,j,k) == crsecell ) {
-         data(i,j,k,n) = ( mask(i,j-1,k) * data(i,j-1,k,n) + mask(i-1,j,k) + mask(i,j+1,k) * data(i,j+1,k,n) )
+      // xhi, y-valid
+      } else if ( (i == hi.x+1) && (j >= lo.y) && (j <= hi.y) ) {
+         data(i,j,k,n) = ( mask(i,j-1,k) * data(i,j-1,k,n) + data(i-1,j,k,n) + mask(i,j+1,k) * data(i,j+1,k,n) )
                        / ( mask(i,j-1,k) + 1 + mask(i,j+1,k) );
-      }
-   }
-   // x-valid, ylo
-   if ( (i >= lo.x) && (i <= hi.x) && (j == lo.y-1) ) {
-      if ( mask(i,j,k) == crsecell ) {
+      // x-valid, ylo
+      } else if ( (i >= lo.x) && (i <= hi.x) && (j == lo.y-1) ) {
          data(i,j,k,n) = ( mask(i-1,j,k) * data(i-1,j,k,n) + mask(i+1,j,k) * data(i+1,j,k,n) + data(i,j+1,k,n) )
                        / ( mask(i-1,j,k) + mask(i+1,j,k) + 1 );
-      }
-   }
-   // x-valid, yhi
-   if ( (i >= lo.x) && (i <= hi.x) && (j == hi.y+1) ) {
-      if ( mask(i,j,k) == crsecell ) {
+      // x-valid, yhi
+      } else if ( (i >= lo.x) && (i <= hi.x) && (j == hi.y+1) ) {
          data(i,j,k,n) = ( mask(i-1,j,k) * data(i-1,j,k,n) + mask(i+1,j,k) * data(i+1,j,k,n) + data(i,j-1,k,n) )
                          / ( mask(i-1,j,k) + mask(i+1,j,k) + 1 );
       }
