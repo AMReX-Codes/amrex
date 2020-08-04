@@ -668,43 +668,28 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             // remove small cells
             if (vfrac(i,j,k) < small_volfrac) {
                 set_covered(i,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
-                /*vfrac(i,j,k) = 0.0;
-                vcent(i,j,k,0) = 0.0;
-                vcent(i,j,k,1) = 0.0;
-                vcent(i,j,k,2) = 0.0;
-                bcent(i,j,k,0) = -1.0;
-                bcent(i,j,k,1) = -1.0;
-                bcent(i,j,k,2) = -1.0;
-                bnorm(i,j,k,0) = 0.0;
-                bnorm(i,j,k,1) = 0.0;
-                bnorm(i,j,k,2) = 0.0;
-                barea(i,j,k) = 0.0;
-                cell(i,j,k).setCovered();*/
+                cell(i,j,k).setCovered();
+                
+                //left
                 if(i == 0) {
-                  amrex::Print() << "Covering corresponding ghost cell: " << IntVect(i-1,j,k) << std::endl;
+                  amrex::Print() << "Covering ghost cell: " << IntVect(i-1,j,k) << std::endl;
                   set_covered(i-1,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
                 }
+                //TODO: right
+                
+                //front
                 if(j == 0) {
-                  amrex::Print() << "Covering corresponding ghost cell: " << IntVect(i,j-1,k) << std::endl;
+                  amrex::Print() << "Covering ghost cell: " << IntVect(i,j-1,k) << std::endl;
                   set_covered(i,j-1,k,cell,vfrac,vcent,barea,bcent,bnorm);
                 }
+                //TODO: back
+
+                //bottom
                 if(k == 0) {
-                  amrex::Print() << "Covering corresponding ghost cell: " << IntVect(i,j,k-1) << std::endl;
+                  amrex::Print() << "Covering ghost cell: " << IntVect(i,j,k-1) << std::endl;
                   set_covered(i,j,k-1,cell,vfrac,vcent,barea,bcent,bnorm);
                 }
-                  /*vfrac(i,j,k-1) = 0.0;
-                  vcent(i,j,k-1,0) = 0.0;
-                  vcent(i,j,k-1,1) = 0.0;
-                  vcent(i,j,k-1,2) = 0.0;
-                  bcent(i,j,k-1,0) = -1.0;
-                  bcent(i,j,k-1,1) = -1.0;
-                  bcent(i,j,k-1,2) = -1.0;
-                  bnorm(i,j,k-1,0) = 0.0;
-                  bnorm(i,j,k-1,1) = 0.0;
-                  bnorm(i,j,k-1,2) = 0.0;
-                  barea(i,j,k-1) = 0.0;
-                  cell(i,j,k-1).setCovered();
-                }*/
+                //TODO: top
             }
         }
     });
