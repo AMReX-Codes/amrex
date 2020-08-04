@@ -372,7 +372,8 @@ namespace {
                                                                       cgeom,
                                                                       index_space);
 
-            amrex::Print() << "fpc.ba = " << fpc.ba_crse_patch << std::endl;
+            amrex::Print() << "fpc.ba_c = " << fpc.ba_crse_patch << std::endl;
+            amrex::Print() << "fpc.ba_f = " << fpc.ba_fine_patch << std::endl;
 
 	    if ( !fpc.ba_crse_patch.empty() )
 	    {
@@ -382,6 +383,8 @@ namespace {
                 {
                     mf_crse_patch[i] = make_mf_crse_patch<MF>(fpc, ncomp, mf[i]->boxArray().ixType());
                     mf_fine_patch[i] = make_mf_fine_patch<MF>(fpc, ncomp, mf[i]->boxArray().ixType());
+
+                    amrex::Print() << "mf_crse / mf_fine [" << i << "]: " << mf_crse_patch[i].boxArray() << " / " << mf_fine_patch[i].boxArray() << std::endl;
                 } 
 
                 for (int i=0; i<AMREX_SPACEDIM; ++i)
@@ -434,6 +437,11 @@ namespace {
                         post_interp(dfab, dbx_cc, 0, ncomp);
                     }
                 }
+
+                for (int i=0; i<AMREX_SPACEDIM; ++i)
+                {
+                    mf[i]->ParallelCopy(mf_fine_patch[i], 0, dcomp, ncomp, IntVect{0}, nghost);
+                } 
 	    }
 	}
 
