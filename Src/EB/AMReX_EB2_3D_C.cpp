@@ -668,7 +668,6 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             // remove small cells
             if (vfrac(i,j,k) < small_volfrac) {
                 set_covered(i,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
-                cell(i,j,k).setCovered();
                 
                 //left
                 if(i == 0) {
