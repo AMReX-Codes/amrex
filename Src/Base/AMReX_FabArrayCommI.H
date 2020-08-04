@@ -446,15 +446,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	//
 	// Post send's
 	//
-<<<<<<< HEAD
-<<<<<<< HEAD
-        char*                               the_send_data;
-=======
         char*                               the_send_data = nullptr;
->>>>>>> backup/sundials5
-=======
-        char*                               the_send_data = nullptr;
->>>>>>> development
 	Vector<char*>                       send_data;
 	Vector<std::size_t>                 send_size;
 	Vector<int>                         send_rank;

@@ -919,20 +919,9 @@ ifeq ($(USE_UPCXX),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.upcxx
 endif
 
-<<<<<<< HEAD
-ifeq ($(USE_SUNDIALS_3x4x),TRUE)
-  ifeq ("$(SUNDIALS_VERSION)","4")
-    $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials4...)
-    include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials4
-  else
-    $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3...)
-    include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3
-  endif
-=======
 ifeq ($(USE_SUNDIALS),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials
->>>>>>> backup/sundials5
 endif
 
 ifeq ($(USE_CVODE),TRUE)
