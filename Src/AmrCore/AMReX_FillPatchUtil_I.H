@@ -173,12 +173,35 @@ namespace {
               typename std::enable_if<std::is_same<typename MF::FABType::value_type,
                                                    FArrayBox>::value,
                                       int>::type = 0>
+    MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
+    {
+        MF mf_crse_patch(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_patch, 
+                         ncomp, 0, MFInfo(), *fpc.fact_crse_patch);
+        return mf_crse_patch;
+    }
+
+    template <typename MF,
+              typename std::enable_if<std::is_same<typename MF::FABType::value_type,
+                                                   FArrayBox>::value,
+                                      int>::type = 0>
     MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
         MF mf_fine_patch(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0, MFInfo(),
                          *fpc.fact_fine_patch);
         return mf_fine_patch;
     }
+
+    template <typename MF,
+              typename std::enable_if<std::is_same<typename MF::FABType::value_type,
+                                                   FArrayBox>::value,
+                                      int>::type = 0>
+    MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
+    {
+        MF mf_fine_patch(amrex::convert(fpc.ba_fine_patch, idx_type), fpc.dm_patch,
+                         ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
+        return mf_fine_patch;
+    }
+
 
     template <typename MF,
               typename std::enable_if<!std::is_same<typename MF::FABType::value_type,
@@ -193,29 +216,27 @@ namespace {
               typename std::enable_if<!std::is_same<typename MF::FABType::value_type,
                                                     FArrayBox>::value,
                                       int>::type = 0>
-    MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
-    {
-        return MF(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0);
-    }
-
-    template <typename MF,
-              typename std::enable_if<std::is_same<typename MF::FABType::value_type,
-                                                   FArrayBox>::value,
-                                      int>::type = 0>
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
-        MF mf_crse_patch(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_crse_patch, 
-                         ncomp, 0, MFInfo(), *fpc.fact_crse_patch);
-        return mf_crse_patch;
+        return MF(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_patch, ncomp, 0);
     }
 
     template <typename MF,
               typename std::enable_if<!std::is_same<typename MF::FABType::value_type,
                                                     FArrayBox>::value,
                                       int>::type = 0>
-    MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
+    MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
-        return MF(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_crse_patch, ncomp, 0);
+        return MF(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0);
+    }
+
+    template <typename MF,
+              typename std::enable_if<!std::is_same<typename MF::FABType::value_type,
+                                                    FArrayBox>::value,
+                                      int>::type = 0>
+    MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
+    {
+        return MF(amrex::convert(fpc.ba_fine_patch, idx_type), fpc.dm_patch, ncomp, 0);
     }
 
     template <typename MF,
@@ -338,30 +359,17 @@ namespace {
 	{
 	    const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
-            // Create the FPinfo object with cellCentered variation and convert the boxList after
-            // for each face.
-
-	    Box fdomain = fgeom.Domain();
-            // fdomain.convert(mf.boxArray().ixType());
-	    fdomain.convert(IntVect::TheZeroVector());  // <---- Needed? Will domain always be cell centered?
-	    Box fdomain_g(fdomain);
-	    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-		if (fgeom.isPeriodic(i)) {
-		    fdomain_g.grow(i,nghost[i]);
-		}
-	    }
-
-            amrex::Print() << "fdomain/fdomain_g: " << fdomain << " / " << fdomain_g << std::endl;
-
+            // Convert to cell-centered MF meta-data for FPInfo.
             MF mf_cc_dummy( amrex::convert(mf[0]->boxArray(), IntVect::TheZeroVector()),
                             mf[0]->DistributionMap(), ncomp, nghost, MFInfo().SetAlloc(false) );
             MF fmf_cc_dummy( amrex::convert(fmf[0][0]->boxArray(), IntVect::TheZeroVector()),
                              fmf[0][0]->DistributionMap(), ncomp, nghost, MFInfo().SetAlloc(false) );
 
-	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(fmf_cc_dummy, mf_cc_dummy, fdomain_g,
+	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(fmf_cc_dummy, mf_cc_dummy,
                                                                       nghost,
                                                                       coarsener,
-                                                                      amrex::coarsen(fgeom.Domain(),ratio),
+                                                                      fgeom,
+                                                                      cgeom,
                                                                       index_space);
 
             amrex::Print() << "fpc.ba = " << fpc.ba_crse_patch << std::endl;
@@ -369,76 +377,61 @@ namespace {
 	    if ( !fpc.ba_crse_patch.empty() )
 	    {
                 Array<MF, AMREX_SPACEDIM> mf_crse_patch;
-                Vector<MF*> cmf_v;
-
+                Array<MF, AMREX_SPACEDIM> mf_fine_patch;       
                 for (int i=0; i<AMREX_SPACEDIM; ++i)
                 {
                     mf_crse_patch[i] = make_mf_crse_patch<MF>(fpc, ncomp, mf[i]->boxArray().ixType());
+                    mf_fine_patch[i] = make_mf_fine_patch<MF>(fpc, ncomp, mf[i]->boxArray().ixType());
+                } 
+
+                for (int i=0; i<AMREX_SPACEDIM; ++i)
+                {
                     mf_set_domain_bndry(mf_crse_patch[i], cgeom);
 
                     Vector<MF*> cmf_time;
                     for (const auto & cfab : cmf)
                         { cmf_time.push_back(cfab[i]); }
 
-                    amrex::Print() << "cft[0]->nComp()/scomp/dcomp/ncomp: " << cmf_time[0]->nComp() << "/" << scomp << "/0/" << ncomp << std::endl;
-
                     FillPatchSingleLevel(mf_crse_patch[i], time, cmf_time, ct, scomp, 0, ncomp, 
                                          cgeom, cbc[i], cbccomp);
                 }
 
-		int idummy1=0, idummy2=0;
-//		bool cc = fpc.ba_crse_patch.ixType().cellCentered();
-//                ignore_unused(cc);
+                int idummy=0;
 #ifdef _OPENMP
-#pragma omp parallel if ( Gpu::notInLaunchRegion() )
+                bool cc = fpc.ba_crse_patch.ixType().cellCentered();   // What do we do here?
+#pragma omp parallel if (cc && Gpu::notInLaunchRegion() )
 #endif
                 {
-                    Vector<BCRec> bcr(ncomp);
-                    for (MFIter mfi(mf_crse_patch[0]); mfi.isValid(); ++mfi)
+                    Vector<Array<BCRec, AMREX_SPACEDIM> > bcr(ncomp);
+                    for (MFIter mfi(mf_fine_patch[0]); mfi.isValid(); ++mfi)
                     {
-                        int li = mfi.LocalIndex();
-                        int gi = fpc.dst_idxs[li];
-
                         Array<FAB*, AMREX_SPACEDIM> sfab{ AMREX_D_DECL( &(mf_crse_patch[0][mfi]), 
                                                                         &(mf_crse_patch[1][mfi]),
                                                                         &(mf_crse_patch[2][mfi]) )};
-                        Array<FAB*, AMREX_SPACEDIM> dfab{ AMREX_D_DECL( &(mf[0]->get(gi)), 
-                                                                        &(mf[1]->get(gi)),
-                                                                        &(mf[2]->get(gi))  )};
+                        Array<FAB*, AMREX_SPACEDIM> dfab{ AMREX_D_DECL( &(mf_fine_patch[0][mfi]), 
+                                                                        &(mf_fine_patch[1][mfi]),
+                                                                        &(mf_fine_patch[2][mfi]) )};
 
-                        const Box& dbx = fpc.dst_boxes[li];
+                        const Box& sbx_cc = amrex::convert(sfab[0]->box(), IntVect::TheZeroVector());
+                        const Box& dbx_cc = amrex::convert(dfab[0]->box(), IntVect::TheZeroVector());
 
                         for (int d=0; d<AMREX_SPACEDIM; ++d)
                         {
-                            amrex::Print() << "mf.type / dfab.type [" << d << "]: " 
-                                           << mf[0]->boxArray().ixType() << "/" 
-                                           << dfab[0]->box().ixType() << std::endl;
+                            Vector<BCRec> bcr_d(ncomp);
 
-                            const Box& bcbx = (amrex::convert(dbx,mf[d]->boxArray().ixType()) & dfab[d]->box());
-                            amrex::setBC(bcbx,fdomain,bcscomp,0,ncomp,bcs[d],bcr);
+                            amrex::setBC(dfab[d]->box(), amrex::convert(fgeom.Domain(), mf[d]->boxArray().ixType()),
+                                         bcscomp,0,ncomp,bcs[d],bcr_d);
+
+                            for (int n=0; n<ncomp; ++n) 
+                                { bcr[n][d] = bcr_d[n]; }
                         }
 
-                        pre_interp(sfab, sfab[0]->box(), 0, ncomp);
+                        pre_interp(sfab, sbx_cc, 0, ncomp);
 
-                        amrex::Print() << "Starting interp_arr with dbx = " << dbx << std::endl;
+                        mapper->interp_arr(sfab, 0, dfab, 0, ncomp, dbx_cc, ratio,
+                                           cgeom, fgeom, bcr, dcomp, idummy, RunOn::Gpu);
 
-                        mapper->interp_arr(sfab,
-                                           0,
-                                           dfab,
-                                           dcomp,
-                                           ncomp,
-                                           dbx,
-                                           ratio,
-                                           cgeom,
-                                           fgeom,
-                                           bcr,
-                                           idummy1, idummy2, RunOn::Gpu);
-
-                        post_interp(dfab, dbx, dcomp, ncomp);
-
-                        amrex::Print() << "Waiting for interp_arr" << std::endl;
-                        amrex::Gpu::synchronize();
-                        amrex::Print() << "Success!!" << std::endl;
+                        post_interp(dfab, dbx_cc, 0, ncomp);
                     }
                 }
 	    }

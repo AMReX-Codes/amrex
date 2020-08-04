@@ -945,19 +945,19 @@ FaceDivFree::CoarseBox (const Box&     fine,
 }
 
 void
-FaceDivFree::interp (const FArrayBox&  crse,
-                     int               crse_comp,
-                     FArrayBox&        fine,
-                     int               fine_comp,
-                     int               ncomp,
-                     const Box&        fine_region,
-                     const IntVect&    ratio,
-                     const Geometry&   crse_geom,
-                     const Geometry&   fine_geom,
-                     Vector<BCRec> const& bcr,
+FaceDivFree::interp (const FArrayBox&  /*crse*/,
+                     int               /*crse_comp*/,
+                     FArrayBox&        /*fine*/,
+                     int               /*fine_comp*/,
+                     int               /*ncomp*/,
+                     const Box&        /*fine_region*/,
+                     const IntVect&    /*ratio*/,
+                     const Geometry&   /*crse_geom*/,
+                     const Geometry&   /*fine_geom*/,
+                     Vector<BCRec> const& /*bcr*/,
                      int               /*actual_comp*/,
                      int               /*actual_state*/,
-                     RunOn             runon)
+                     RunOn             /*runon*/)
 {
     amrex::Abort("FaceDivFree does not work on a single MultiFab. Call with AMREX_SPACEDIM MultiFabs instead.");
 }
@@ -966,13 +966,13 @@ void
 FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                          int               crse_comp,
                          Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
-                         int               fine_comp,
+                         int               /*fine_comp*/,
                          int               ncomp,
                          const Box&        fine_region,
                          const IntVect&    ratio,
                          const Geometry& /*crse_geom */,
                          const Geometry& /*fine_geom */,
-                         Vector<BCRec> const& /*bcr*/,
+                         Vector<Array<BCRec, AMREX_SPACEDIM> > const& /*bcr*/,
                          int               /*actual_comp*/,
                          int               /*actual_state*/,
                          RunOn             runon)
