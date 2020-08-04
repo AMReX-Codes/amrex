@@ -1779,27 +1779,58 @@ void mlndlap_interpadd_ha (int i, int j, int k, Array4<Real> const& fine,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_divu (int i, int j, int k, Array4<Real> const& rhs, Array4<Real const> const& vel,
                    Array4<int const> const& msk,
-                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                   Box const& nodal_domain,
+                   GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                   GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
 {
     Real facx = 0.25*dxinv[0];
     Real facy = 0.25*dxinv[1];
     Real facz = 0.25*dxinv[2];
 
+    const auto domlo = amrex::lbound(nodal_domain);
+    const auto domhi = amrex::ubound(nodal_domain);
+
     if (msk(i,j,k)) {
         rhs(i,j,k) = 0.0;
     } else {
-        rhs(i,j,k) = facx*(-vel(i-1,j-1,k-1,0)+vel(i,j-1,k-1,0)
-                           -vel(i-1,j  ,k-1,0)+vel(i,j  ,k-1,0)
-                           -vel(i-1,j-1,k  ,0)+vel(i,j-1,k  ,0)
-                           -vel(i-1,j  ,k  ,0)+vel(i,j  ,k  ,0))
-                   + facy*(-vel(i-1,j-1,k-1,1)-vel(i,j-1,k-1,1)
-                           +vel(i-1,j  ,k-1,1)+vel(i,j  ,k-1,1)
-                           -vel(i-1,j-1,k  ,1)-vel(i,j-1,k  ,1)
-                           +vel(i-1,j  ,k  ,1)+vel(i,j  ,k  ,1))
-                   + facz*(-vel(i-1,j-1,k-1,2)-vel(i,j-1,k-1,2)
-                           -vel(i-1,j  ,k-1,2)-vel(i,j  ,k-1,2)
-                           +vel(i-1,j-1,k  ,2)+vel(i,j-1,k  ,2)
-                           +vel(i-1,j  ,k  ,2)+vel(i,j  ,k  ,2));
+
+        Real zero_ilo = 1.0;
+        Real zero_ihi = 1.0;
+        Real zero_jlo = 1.0;
+        Real zero_jhi = 1.0;
+        Real zero_klo = 1.0;
+        Real zero_khi = 1.0;
+
+        // The nodal divergence operator should not see the tangential velocity
+        //     at an inflow face
+        if ((bclo[0] == LinOpBCType::Neumann or bclo[0] == LinOpBCType::inflow)
+            and i == domlo.x) zero_ilo = 0.0;
+        if ((bchi[0] == LinOpBCType::Neumann or bchi[0] == LinOpBCType::inflow)
+            and i == domhi.x) zero_ihi = 0.0;
+        if ((bclo[1] == LinOpBCType::Neumann or bclo[1] == LinOpBCType::inflow)
+            and j == domlo.y) zero_jlo = 0.0;
+        if ((bchi[1] == LinOpBCType::Neumann or bchi[1] == LinOpBCType::inflow)
+            and j == domhi.y) zero_jhi = 0.0;
+        if ((bclo[2] == LinOpBCType::Neumann or bclo[2] == LinOpBCType::inflow)
+            and k == domlo.z) zero_klo = 0.0;
+        if ((bchi[2] == LinOpBCType::Neumann or bchi[2] == LinOpBCType::inflow)
+            and k == domhi.z) zero_khi = 0.0;
+
+        rhs(i,j,k) = facx*(-vel(i-1,j-1,k-1,0)*zero_jlo*zero_klo+vel(i,j-1,k-1,0)*zero_jlo*zero_klo
+                           -vel(i-1,j  ,k-1,0)*zero_jhi*zero_klo+vel(i,j  ,k-1,0)*zero_jhi*zero_klo
+                           -vel(i-1,j-1,k  ,0)*zero_jlo*zero_khi+vel(i,j-1,k  ,0)*zero_jlo*zero_khi
+                           -vel(i-1,j  ,k  ,0)*zero_jhi*zero_khi+vel(i,j  ,k  ,0)*zero_jhi*zero_khi)
+
+                   + facy*(-vel(i-1,j-1,k-1,1)*zero_ilo*zero_klo-vel(i,j-1,k-1,1)*zero_ihi*zero_klo
+                           +vel(i-1,j  ,k-1,1)*zero_ilo*zero_klo+vel(i,j  ,k-1,1)*zero_ihi*zero_klo
+                           -vel(i-1,j-1,k  ,1)*zero_ilo*zero_khi-vel(i,j-1,k  ,1)*zero_ihi*zero_khi
+                           +vel(i-1,j  ,k  ,1)*zero_ilo*zero_khi+vel(i,j  ,k  ,1)*zero_ihi*zero_khi)
+
+                   + facz*(-vel(i-1,j-1,k-1,2)*zero_ilo*zero_jlo-vel(i,j-1,k-1,2)*zero_ihi*zero_jlo
+                           -vel(i-1,j  ,k-1,2)*zero_ilo*zero_jhi-vel(i,j  ,k-1,2)*zero_ihi*zero_jhi
+                           +vel(i-1,j-1,k  ,2)*zero_ilo*zero_jlo+vel(i,j-1,k  ,2)*zero_ihi*zero_jlo
+                           +vel(i-1,j  ,k  ,2)*zero_ilo*zero_jhi+vel(i,j  ,k  ,2)*zero_ihi*zero_jhi);
     }
 }
 
@@ -1838,23 +1869,51 @@ void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real con
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_divu_compute_fine_contrib (int i, int j, int k, Box const& fvbx,
                                         Array4<Real> const& frh, Array4<Real const> const& vel,
-                                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                        Box const& nodal_domain,
+                                        GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                                        GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
 {
+    const auto domlo = amrex::lbound(nodal_domain);
+    const auto domhi = amrex::ubound(nodal_domain);
+
     IntVect iv(i,j,k);
     if (fvbx.contains(iv) and !fvbx.strictly_contains(iv))
     {
-        frh(i,j,k) = 0.25*dxinv[0]*(-vel(i-1,j-1,k-1,0)+vel(i,j-1,k-1,0)
-                                    -vel(i-1,j  ,k-1,0)+vel(i,j  ,k-1,0)
-                                    -vel(i-1,j-1,k  ,0)+vel(i,j-1,k  ,0)
-                                    -vel(i-1,j  ,k  ,0)+vel(i,j  ,k  ,0))
-                   + 0.25*dxinv[1]*(-vel(i-1,j-1,k-1,1)-vel(i,j-1,k-1,1)
-                                    +vel(i-1,j  ,k-1,1)+vel(i,j  ,k-1,1)
-                                    -vel(i-1,j-1,k  ,1)-vel(i,j-1,k  ,1)
-                                    +vel(i-1,j  ,k  ,1)+vel(i,j  ,k  ,1))
-                   + 0.25*dxinv[2]*(-vel(i-1,j-1,k-1,2)-vel(i,j-1,k-1,2)
-                                    -vel(i-1,j  ,k-1,2)-vel(i,j  ,k-1,2)
-                                    +vel(i-1,j-1,k  ,2)+vel(i,j-1,k  ,2)
-                                    +vel(i-1,j  ,k  ,2)+vel(i,j  ,k  ,2));
+        Real zero_ilo = 1.0;
+        Real zero_ihi = 1.0;
+        Real zero_jlo = 1.0;
+        Real zero_jhi = 1.0;
+        Real zero_klo = 1.0;
+        Real zero_khi = 1.0;
+
+        // The nodal divergence operator should not see the tangential velocity
+        //     at an inflow face
+        if ((bclo[0] == LinOpBCType::Neumann or bclo[0] == LinOpBCType::inflow)
+            and i == domlo.x) zero_ilo = 0.0;
+        if ((bchi[0] == LinOpBCType::Neumann or bchi[0] == LinOpBCType::inflow)
+            and i == domhi.x) zero_ihi = 0.0;
+        if ((bclo[1] == LinOpBCType::Neumann or bclo[1] == LinOpBCType::inflow)
+            and j == domlo.y) zero_jlo = 0.0;
+        if ((bchi[1] == LinOpBCType::Neumann or bchi[1] == LinOpBCType::inflow)
+            and j == domhi.y) zero_jhi = 0.0;
+        if ((bclo[2] == LinOpBCType::Neumann or bclo[2] == LinOpBCType::inflow)
+            and k == domlo.z) zero_klo = 0.0;
+        if ((bchi[2] == LinOpBCType::Neumann or bchi[2] == LinOpBCType::inflow)
+            and k == domhi.z) zero_khi = 0.0;
+
+        frh(i,j,k) = 0.25*dxinv[0]*(-vel(i-1,j-1,k-1,0)*zero_jlo*zero_klo+vel(i,j-1,k-1,0)*zero_jlo*zero_klo
+                                    -vel(i-1,j  ,k-1,0)*zero_jhi*zero_klo+vel(i,j  ,k-1,0)*zero_jhi*zero_klo
+                                    -vel(i-1,j-1,k  ,0)*zero_jlo*zero_khi+vel(i,j-1,k  ,0)*zero_jlo*zero_khi
+                                    -vel(i-1,j  ,k  ,0)*zero_jhi*zero_khi+vel(i,j  ,k  ,0)*zero_jhi*zero_khi)
+                   + 0.25*dxinv[1]*(-vel(i-1,j-1,k-1,1)*zero_ilo*zero_klo-vel(i,j-1,k-1,1)*zero_ihi*zero_klo
+                                    +vel(i-1,j  ,k-1,1)*zero_ilo*zero_klo+vel(i,j  ,k-1,1)*zero_ihi*zero_klo
+                                    -vel(i-1,j-1,k  ,1)*zero_ilo*zero_khi-vel(i,j-1,k  ,1)*zero_ihi*zero_khi
+                                    +vel(i-1,j  ,k  ,1)*zero_ilo*zero_khi+vel(i,j  ,k  ,1)*zero_ihi*zero_khi)
+                   + 0.25*dxinv[2]*(-vel(i-1,j-1,k-1,2)*zero_ilo*zero_jlo-vel(i,j-1,k-1,2)*zero_ihi*zero_jlo
+                                    -vel(i-1,j  ,k-1,2)*zero_ilo*zero_jhi-vel(i,j  ,k-1,2)*zero_ihi*zero_jhi
+                                    +vel(i-1,j-1,k  ,2)*zero_ilo*zero_jlo+vel(i,j-1,k  ,2)*zero_ihi*zero_jlo
+                                    +vel(i-1,j  ,k  ,2)*zero_ilo*zero_jhi+vel(i,j  ,k  ,2)*zero_ihi*zero_jhi);
     }
 }
 
@@ -6238,112 +6297,141 @@ void mlndlap_set_stencil_eb (int i, int j, int k, Array4<Real> const& sten,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_divu_eb (int i, int j, int k, Array4<Real> const& rhs, Array4<Real const> const& vel,
                       Array4<Real const> const& vfrac, Array4<Real const> const& intg,
-                      Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                      Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                      Box const& nodal_domain,
+                      GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                      GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
 {
     Real facx = 0.25_rt*dxinv[0];
     Real facy = 0.25_rt*dxinv[1];
     Real facz = 0.25_rt*dxinv[2];
 
+    const auto domlo = amrex::lbound(nodal_domain);
+    const auto domhi = amrex::ubound(nodal_domain);
+
     if (!msk(i,j,k)) {
+
+        Real zero_ilo = 1.0;
+        Real zero_ihi = 1.0;
+        Real zero_jlo = 1.0;
+        Real zero_jhi = 1.0;
+        Real zero_klo = 1.0;
+        Real zero_khi = 1.0;
+
+        // The nodal divergence operator should not see the tangential velocity
+        //     at an inflow face
+        if ((bclo[0] == LinOpBCType::Neumann or bclo[0] == LinOpBCType::inflow)
+            and i == domlo.x) zero_ilo = 0.0;
+        if ((bchi[0] == LinOpBCType::Neumann or bchi[0] == LinOpBCType::inflow)
+            and i == domhi.x) zero_ihi = 0.0;
+        if ((bclo[1] == LinOpBCType::Neumann or bclo[1] == LinOpBCType::inflow)
+            and j == domlo.y) zero_jlo = 0.0;
+        if ((bchi[1] == LinOpBCType::Neumann or bchi[1] == LinOpBCType::inflow)
+            and j == domhi.y) zero_jhi = 0.0;
+        if ((bclo[2] == LinOpBCType::Neumann or bclo[2] == LinOpBCType::inflow)
+            and k == domlo.z) zero_klo = 0.0;
+        if ((bchi[2] == LinOpBCType::Neumann or bchi[2] == LinOpBCType::inflow)
+            and k == domhi.z) zero_khi = 0.0;
+
         rhs(i,j,k) = facx*(
             vel(i-1,j-1,k  ,0)*(    -vfrac(i-1,j-1,k  )
                                -2._rt*intg(i-1,j-1,k  ,i_S_y)
                                +2._rt*intg(i-1,j-1,k  ,i_S_z)
-                               +4._rt*intg(i-1,j-1,k  ,i_S_y_z))
+                               +4._rt*intg(i-1,j-1,k  ,i_S_y_z))*zero_jlo*zero_khi
            +vel(i  ,j-1,k  ,0)*(     vfrac(i  ,j-1,k  )
                                +2._rt*intg(i  ,j-1,k  ,i_S_y)
                                -2._rt*intg(i  ,j-1,k  ,i_S_z)
-                               -4._rt*intg(i  ,j-1,k  ,i_S_y_z))
+                               -4._rt*intg(i  ,j-1,k  ,i_S_y_z))*zero_jlo*zero_khi
            +vel(i-1,j  ,k  ,0)*(    -vfrac(i-1,j  ,k  )
                                +2._rt*intg(i-1,j  ,k  ,i_S_y)
                                +2._rt*intg(i-1,j  ,k  ,i_S_z)
-                               -4._rt*intg(i-1,j  ,k  ,i_S_y_z))
+                               -4._rt*intg(i-1,j  ,k  ,i_S_y_z))*zero_jhi*zero_khi
            +vel(i  ,j  ,k  ,0)*(     vfrac(i  ,j  ,k  )
                                -2._rt*intg(i  ,j  ,k  ,i_S_y)
                                -2._rt*intg(i  ,j  ,k  ,i_S_z)
-                               +4._rt*intg(i  ,j  ,k  ,i_S_y_z))
+                               +4._rt*intg(i  ,j  ,k  ,i_S_y_z))*zero_jhi*zero_khi
            +vel(i-1,j-1,k-1,0)*(    -vfrac(i-1,j-1,k-1)
                                -2._rt*intg(i-1,j-1,k-1,i_S_y)
                                -2._rt*intg(i-1,j-1,k-1,i_S_z)
-                               -4._rt*intg(i-1,j-1,k-1,i_S_y_z))
+                               -4._rt*intg(i-1,j-1,k-1,i_S_y_z))*zero_jlo*zero_klo
            +vel(i  ,j-1,k-1,0)*(     vfrac(i  ,j-1,k-1)
                                +2._rt*intg(i  ,j-1,k-1,i_S_y)
                                +2._rt*intg(i  ,j-1,k-1,i_S_z)
-                               +4._rt*intg(i  ,j-1,k-1,i_S_y_z))
+                               +4._rt*intg(i  ,j-1,k-1,i_S_y_z))*zero_jlo*zero_klo
            +vel(i-1,j  ,k-1,0)*(    -vfrac(i-1,j  ,k-1)
                                +2._rt*intg(i-1,j  ,k-1,i_S_y)
                                -2._rt*intg(i-1,j  ,k-1,i_S_z)
-                               +4._rt*intg(i-1,j  ,k-1,i_S_y_z))
+                               +4._rt*intg(i-1,j  ,k-1,i_S_y_z))*zero_jhi*zero_klo
            +vel(i  ,j  ,k-1,0)*(     vfrac(i  ,j  ,k-1)
                                -2._rt*intg(i  ,j  ,k-1,i_S_y)
                                +2._rt*intg(i  ,j  ,k-1,i_S_z)
-                               -4._rt*intg(i  ,j  ,k-1,i_S_y_z)) )
+                               -4._rt*intg(i  ,j  ,k-1,i_S_y_z))*zero_jhi*zero_klo )
             + facy*(
             vel(i-1,j-1,k  ,1)*(    -vfrac(i-1,j-1,k  )
                                -2._rt*intg(i-1,j-1,k  ,i_S_x)
                                +2._rt*intg(i-1,j-1,k  ,i_S_z)
-                               +4._rt*intg(i-1,j-1,k  ,i_S_x_z))
+                               +4._rt*intg(i-1,j-1,k  ,i_S_x_z))*zero_ilo*zero_khi
            +vel(i  ,j-1,k  ,1)*(    -vfrac(i  ,j-1,k  )
                                +2._rt*intg(i  ,j-1,k  ,i_S_x)
                                +2._rt*intg(i  ,j-1,k  ,i_S_z)
-                               -4._rt*intg(i  ,j-1,k  ,i_S_x_z))
+                               -4._rt*intg(i  ,j-1,k  ,i_S_x_z))*zero_ihi*zero_khi
            +vel(i-1,j  ,k  ,1)*(     vfrac(i-1,j  ,k  )
                                +2._rt*intg(i-1,j  ,k  ,i_S_x)
                                -2._rt*intg(i-1,j  ,k  ,i_S_z)
-                               -4._rt*intg(i-1,j  ,k  ,i_S_x_z))
+                               -4._rt*intg(i-1,j  ,k  ,i_S_x_z))*zero_ilo*zero_khi
            +vel(i  ,j  ,k  ,1)*(     vfrac(i  ,j  ,k  )
                                -2._rt*intg(i  ,j  ,k  ,i_S_x)
                                -2._rt*intg(i  ,j  ,k  ,i_S_z)
-                               +4._rt*intg(i  ,j  ,k  ,i_S_x_z))
+                               +4._rt*intg(i  ,j  ,k  ,i_S_x_z))*zero_ihi*zero_khi
            +vel(i-1,j-1,k-1,1)*(    -vfrac(i-1,j-1,k-1)
                                -2._rt*intg(i-1,j-1,k-1,i_S_x)
                                -2._rt*intg(i-1,j-1,k-1,i_S_z)
-                               -4._rt*intg(i-1,j-1,k-1,i_S_x_z))
+                               -4._rt*intg(i-1,j-1,k-1,i_S_x_z))*zero_ilo*zero_klo
            +vel(i  ,j-1,k-1,1)*(    -vfrac(i  ,j-1,k-1)
                                +2._rt*intg(i  ,j-1,k-1,i_S_x)
                                -2._rt*intg(i  ,j-1,k-1,i_S_z)
-                               +4._rt*intg(i  ,j-1,k-1,i_S_x_z))
+                               +4._rt*intg(i  ,j-1,k-1,i_S_x_z))*zero_ihi*zero_klo
            +vel(i-1,j  ,k-1,1)*(     vfrac(i-1,j  ,k-1)
                                +2._rt*intg(i-1,j  ,k-1,i_S_x)
                                +2._rt*intg(i-1,j  ,k-1,i_S_z)
-                               +4._rt*intg(i-1,j  ,k-1,i_S_x_z))
+                               +4._rt*intg(i-1,j  ,k-1,i_S_x_z))*zero_ilo*zero_klo
            +vel(i  ,j  ,k-1,1)*(     vfrac(i  ,j  ,k-1)
                                -2._rt*intg(i  ,j  ,k-1,i_S_x)
                                +2._rt*intg(i  ,j  ,k-1,i_S_z)
-                               -4._rt*intg(i  ,j  ,k-1,i_S_x_z)) )
+                               -4._rt*intg(i  ,j  ,k-1,i_S_x_z))*zero_ihi*zero_klo )
             + facz*(
             vel(i-1,j-1,k  ,2)*(     vfrac(i-1,j-1,k  )
                                +2._rt*intg(i-1,j-1,k  ,i_S_x)
                                +2._rt*intg(i-1,j-1,k  ,i_S_y)
-                               +4._rt*intg(i-1,j-1,k  ,i_S_x_y))
+                               +4._rt*intg(i-1,j-1,k  ,i_S_x_y))*zero_ilo*zero_jlo
            +vel(i  ,j-1,k  ,2)*(     vfrac(i  ,j-1,k  )
                                -2._rt*intg(i  ,j-1,k  ,i_S_x)
                                +2._rt*intg(i  ,j-1,k  ,i_S_y)
-                               -4._rt*intg(i  ,j-1,k  ,i_S_x_y))
+                               -4._rt*intg(i  ,j-1,k  ,i_S_x_y))*zero_ihi*zero_jlo
            +vel(i-1,j  ,k  ,2)*(     vfrac(i-1,j  ,k  )
                                +2._rt*intg(i-1,j  ,k  ,i_S_x)
                                -2._rt*intg(i-1,j  ,k  ,i_S_y)
-                               -4._rt*intg(i-1,j  ,k  ,i_S_x_y))
+                               -4._rt*intg(i-1,j  ,k  ,i_S_x_y))*zero_ilo*zero_jhi
            +vel(i  ,j  ,k  ,2)*(     vfrac(i  ,j  ,k  )
                                -2._rt*intg(i  ,j  ,k  ,i_S_x)
                                -2._rt*intg(i  ,j  ,k  ,i_S_y)
-                               +4._rt*intg(i  ,j  ,k  ,i_S_x_y))
+                               +4._rt*intg(i  ,j  ,k  ,i_S_x_y))*zero_ihi*zero_jhi
            +vel(i-1,j-1,k-1,2)*(    -vfrac(i-1,j-1,k-1)
                                -2._rt*intg(i-1,j-1,k-1,i_S_x)
                                -2._rt*intg(i-1,j-1,k-1,i_S_y)
-                               -4._rt*intg(i-1,j-1,k-1,i_S_x_y))
+                               -4._rt*intg(i-1,j-1,k-1,i_S_x_y))*zero_ilo*zero_jlo
            +vel(i  ,j-1,k-1,2)*(    -vfrac(i  ,j-1,k-1)
                                +2._rt*intg(i  ,j-1,k-1,i_S_x)
                                -2._rt*intg(i  ,j-1,k-1,i_S_y)
-                               +4._rt*intg(i  ,j-1,k-1,i_S_x_y))
+                               +4._rt*intg(i  ,j-1,k-1,i_S_x_y))*zero_ihi*zero_jlo
            +vel(i-1,j  ,k-1,2)*(    -vfrac(i-1,j  ,k-1)
                                -2._rt*intg(i-1,j  ,k-1,i_S_x)
                                +2._rt*intg(i-1,j  ,k-1,i_S_y)
-                               +4._rt*intg(i-1,j  ,k-1,i_S_x_y))
+                               +4._rt*intg(i-1,j  ,k-1,i_S_x_y))*zero_ilo*zero_jhi
            +vel(i  ,j  ,k-1,2)*(    -vfrac(i  ,j  ,k-1)
                                +2._rt*intg(i  ,j  ,k-1,i_S_x)
                                +2._rt*intg(i  ,j  ,k-1,i_S_y)
-                               -4._rt*intg(i  ,j  ,k-1,i_S_x_y)) );
+                               -4._rt*intg(i  ,j  ,k-1,i_S_x_y))*zero_ihi*zero_jhi );
     } else {
         rhs(i,j,k) = 0._rt;
     }

@@ -97,9 +97,6 @@ public:
 private:
 	// Usual buildMasks
 	void buildMasks ();
-	// This function extends fillBoundary to account for the extra
-	// ghost nodes that are present. 
-	void realFillBoundary(MultiFab &phi, const Geometry &geom) const;
 
 	bool m_is_bottom_singular = false;
 	bool m_masks_built = false;

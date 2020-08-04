@@ -319,7 +319,7 @@ MLABecLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
 
     amrex::average_down_faces(amrex::GetArrOfConstPtrs(fine_b_coeffs),
                               amrex::GetArrOfPtrs(crse_b_coeffs),
-                              mg_coarsen_ratio, 0);
+                              IntVect(mg_coarsen_ratio), m_geom[flev-1][0]);
 }
 
 void

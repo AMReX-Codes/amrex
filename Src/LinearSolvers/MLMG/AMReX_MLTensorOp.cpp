@@ -138,7 +138,7 @@ MLTensorOp::prepareForSolve ()
             if (amrlev > 0) {
                 amrex::average_down_faces(GetArrOfConstPtrs(m_kappa[amrlev  ].back()),
                                           GetArrOfPtrs     (m_kappa[amrlev-1].front()),
-                                          IntVect(mg_coarsen_ratio), 0);
+                                          IntVect(mg_coarsen_ratio), m_geom[amrlev-1][0]);
             }
         }
     } else {
