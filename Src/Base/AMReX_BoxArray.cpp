@@ -1306,7 +1306,6 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
     if (m_bat.is_null()) {
         AMREX_LOOP_3D(cbx, i, j, k,
         {
-            amrex::ignore_unused(j,k);
             auto it = BoxHashMap.find(IntVect(AMREX_D_DECL(i,j,k)));
             if (it != TheEnd) {
                 for (const int index : it->second) {
@@ -1322,7 +1321,6 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
         IntVect cr = crseRatio();
         AMREX_LOOP_3D(cbx, i, j, k,
         {
-            amrex::ignore_unused(j,k);
             auto it = BoxHashMap.find(IntVect(AMREX_D_DECL(i,j,k)));
             if (it != TheEnd) {
                 for (const int index : it->second) {
@@ -1336,7 +1334,6 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
     } else {
         AMREX_LOOP_3D(cbx, i, j, k,
         {
-            amrex::ignore_unused(j,k);
             auto it = BoxHashMap.find(IntVect(AMREX_D_DECL(i,j,k)));
             if (it != TheEnd) {
                 for (const int index : it->second) {
