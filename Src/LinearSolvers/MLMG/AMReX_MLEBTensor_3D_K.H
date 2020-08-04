@@ -315,10 +315,10 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                             dwdx = (dxi) * ((vel(ilop,j,k-1,2)-vel(ilom,j,k-1,2))*wlo);
                         }
                         if (bct(Orientation(Direction::z,Orientation::high),0)==AMREX_LO_DIRICHLET){
-                            dudx = (dxi) * ((vel(ilop,j,k  ,0)-vel(ilom,j,k  ,0))*whi);
+                            dudx = (dxi) * ((vel(ihip,j,k  ,0)-vel(ihim,j,k  ,0))*whi);
                         }
                         if (bct(Orientation(Direction::z,Orientation::high),2)==AMREX_LO_DIRICHLET){
-                            dwdx = (dxi) * ((vel(ilop,j,k  ,2)-vel(ilom,j,k  ,2))*whi);
+                            dwdx = (dxi) * ((vel(ihip,j,k  ,2)-vel(ihim,j,k  ,2))*whi);
                         }
                     }
                     if (k==dlo.z){
@@ -329,10 +329,10 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                             dwdx = (dxi) * ((vel(ihip,j,k  ,2)-vel(ihim,j,k  ,2))*whi);
                         }
                         if (bct(Orientation(Direction::z,Orientation::low),0)==AMREX_LO_DIRICHLET){
-                            dudx = (dxi) * ((vel(ihip,j,k-1,0)-vel(ihim,j,k-1,0))*wlo);
+                            dudx = (dxi) * ((vel(ilop,j,k-1,0)-vel(ilom,j,k-1,0))*wlo);
                         }
                         if (bct(Orientation(Direction::z,Orientation::low),2)==AMREX_LO_DIRICHLET){
-                            dwdx = (dxi) * ((vel(ihip,j,k-1,2)-vel(ihim,j,k-1,2))*wlo);
+                            dwdx = (dxi) * ((vel(ilop,j,k-1,2)-vel(ilom,j,k-1,2))*wlo);
                         }
                     }
 
