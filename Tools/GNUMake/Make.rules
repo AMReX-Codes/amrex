@@ -263,6 +263,8 @@ cap_registers := $(shell expr $(CUDA_MAXREGCOUNT) \> 128)
 
 ifeq ($(lowercase_comp),pgi)
   cap_register_flag := -Mcuda=maxregcount:
+else ifeq ($(lowercase_comp),hpcsdk)
+  cap_register_flag := -gpu=maxregcount:
 else ifeq ($(lowercase_comp),ibm)
   cap_register_flag := -Xptxas -maxrregcount=
 else

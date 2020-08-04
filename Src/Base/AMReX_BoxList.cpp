@@ -98,8 +98,7 @@ BoxList::removeEmpty()
 }
 
 BoxList
-intersect (const BoxList& bl,
-           const Box&     b)
+intersect (const BoxList& bl, const Box& b)
 {
     BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newbl(bl);
@@ -108,8 +107,7 @@ intersect (const BoxList& bl,
 }
 
 BoxList
-refine (const BoxList& bl,
-        int            ratio)
+refine (const BoxList& bl, int ratio)
 {
     BoxList nbl(bl);
     nbl.refine(ratio);
@@ -117,8 +115,7 @@ refine (const BoxList& bl,
 }
 
 BoxList
-coarsen (const BoxList& bl,
-         int            ratio)
+coarsen (const BoxList& bl, int ratio)
 {
     BoxList nbl(bl);
     nbl.coarsen(ratio);
@@ -126,8 +123,7 @@ coarsen (const BoxList& bl,
 }
 
 BoxList
-accrete (const BoxList& bl,
-         int            sz)
+accrete (const BoxList& bl, int sz)
 {
     BoxList nbl(bl);
     nbl.accrete(sz);
@@ -303,8 +299,7 @@ BoxList::intersect (const BoxList& bl)
 }
 
 BoxList
-complementIn (const Box&     b,
-              const BoxList& bl)
+complementIn (const Box& b, const BoxList& bl)
 {
     BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newb(b.ixType());
@@ -313,16 +308,14 @@ complementIn (const Box&     b,
 }
 
 BoxList&
-BoxList::complementIn (const Box&     b,
-                       const BoxList& bl)
+BoxList::complementIn (const Box& b, const BoxList& bl)
 {
     BoxArray ba(bl);
     return complementIn(b, ba);
 }
 
 BoxList&
-BoxList::complementIn (const Box& b,
-                       BoxList&&  bl)
+BoxList::complementIn (const Box& b, BoxList&&  bl)
 {
     BoxArray ba(std::move(bl));
     return complementIn(b, ba);
@@ -467,8 +460,7 @@ BoxList::accrete (const IntVect& sz)
 }
 
 BoxList&
-BoxList::shift (int dir,
-                int nzones)
+BoxList::shift (int dir, int nzones)
 {
     for (auto& bx : m_lbox)
     {
@@ -478,8 +470,7 @@ BoxList::shift (int dir,
 }
 
 BoxList&
-BoxList::shiftHalf (int dir,
-                    int num_halfs)
+BoxList::shiftHalf (int dir, int num_halfs)
 {
     for (auto& bx : m_lbox)
     {
@@ -503,8 +494,7 @@ BoxList::shiftHalf (const IntVect& iv)
 //
 
 BoxList
-boxDiff (const Box& b1in,
-         const Box& b2)
+boxDiff (const Box& b1in, const Box& b2)
 {
    BL_ASSERT(b1in.sameType(b2));  
    BoxList bl_diff(b1in.ixType());
@@ -564,11 +554,28 @@ BoxList::simplify (bool best)
     std::sort(m_lbox.begin(), m_lbox.end(), [](const Box& l, const Box& r) {
             return l.smallEnd() < r.smallEnd(); });
 
-    return simplify_doit(best);
+    //
+    // If we're not looking for the "best" we can do in one pass, we
+    // limit how far afield we look for abutting boxes.  This greatly
+    // speeds up this routine for large numbers of boxes.  It does not
+    // do quite as good a job though as full brute force.
+    //
+    int depth = best ? size() : 100;
+    return simplify_doit(depth);
 }
 
 int
-BoxList::simplify_doit (bool best)
+BoxList::ordered_simplify ()
+{
+    int count;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        count = simplify_doit(1);
+    }
+    return count;
+}
+
+int
+BoxList::simplify_doit (int depth)
 {
     //
     // Try to merge adjacent boxes.
@@ -579,16 +586,9 @@ BoxList::simplify_doit (bool best)
     {
         const int* alo   = bla->loVect();
         const int* ahi   = bla->hiVect();
-        //
-        // If we're not looking for the "best" we can do in one pass, we
-        // limit how far afield we look for abutting boxes.  This greatly
-        // speeds up this routine for large numbers of boxes.  It does not
-        // do quite as good a job though as full brute force.
-        //
-        const int MaxCnt = (best ? size() : 100);
 
         iterator blb = bla + 1;
-        for (int cnt = 0; blb != End && cnt < MaxCnt; ++cnt, ++blb)
+        for (int cnt = 0; blb != End && cnt < depth; ++cnt, ++blb)
         {
             const int* blo = blb->loVect();
             const int* bhi = blb->hiVect();
@@ -663,55 +663,55 @@ BoxList&
 BoxList::maxSize (const IntVect& chunk)
 {
     Vector<Box> new_boxes;
-
-    for (int i = 0; i < AMREX_SPACEDIM; ++i)
-    {
-        new_boxes.clear();
-        for (auto& bx : m_lbox)
-        {
-            const IntVect& boxlen = bx.size();
-            const int* len = boxlen.getVect();
-
-            if (len[i] > chunk[i])
-            {
-                //
-                // Reduce by powers of 2.
-                //
-                int ratio = 1;
-                int bs    = chunk[i];
-                int nlen  = len[i];
-                while ((bs%2 == 0) && (nlen%2 == 0))
-                {
-                    ratio *= 2;
+    for (auto const& bx : m_lbox) {
+        const IntVect boxlen = amrex::enclosedCells(bx).size();
+        const IntVect boxlo = bx.smallEnd();
+        IntVect ratio{1}, numblk{1}, extra{0};
+        IntVect sz = boxlen;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (boxlen[idim] > chunk[idim]) {
+                int bs    = chunk[idim];
+                int nlen  = boxlen[idim];
+                while ((bs%2 == 0) && (nlen%2 == 0)) {
+                    ratio[idim] *= 2;
                     bs    /= 2;
                     nlen  /= 2;
                 }
-                //
-                // Determine number and size of (coarsened) cuts.
-                //
-                const int numblk = nlen/bs + (nlen%bs ? 1 : 0);
-                const int sz     = nlen/numblk;
-                const int extra  = nlen%numblk;
-                //
-                // Number of cuts = number of blocks - 1.
-                //
-                for (int k = 0; k < numblk-1; k++)
-                {
-                    //
-                    // Compute size of this chunk, expand by power of 2.
-                    //
-                    const int ksize = (k < extra ? sz+1 : sz) * ratio;
-                    //
-                    // Chop from high end.
-                    //
-                    const int pos = bx.bigEnd(i) - ksize + 1;
-
-                    new_boxes.push_back(bx.chop(i,pos));
-                }
+                numblk[idim] = (nlen+bs-1)/bs;
+                sz[idim] = nlen/numblk[idim];
+                extra[idim] = nlen - sz[idim]*numblk[idim];
             }
         }
-        join(new_boxes);
+        if (numblk == 1) {
+            new_boxes.push_back(bx);
+        } else {
+#if (AMREX_SPACEDIM == 3)
+            for (int k = 0; k < numblk[2]; ++k) {
+                int klo = (k < extra[2]) ? k*(sz[2]+1)*ratio[2] : (k*sz[2]+extra[2])*ratio[2];
+                int khi = (k < extra[2]) ? klo+(sz[2]+1)*ratio[2]-1 : klo+sz[2]*ratio[2]-1;
+                klo += boxlo[2];
+                khi += boxlo[2];
+#endif
+#if (AMREX_SPACEDIM >= 2)
+                for (int j = 0; j < numblk[1]; ++j) {
+                    int jlo = (j < extra[1]) ? j*(sz[1]+1)*ratio[1] : (j*sz[1]+extra[1])*ratio[1];
+                    int jhi = (j < extra[1]) ? jlo+(sz[1]+1)*ratio[1]-1 : jlo+sz[1]*ratio[1]-1;
+                    jlo += boxlo[1];
+                    jhi += boxlo[1];
+#endif
+                    for (int i = 0; i < numblk[0]; ++i) {
+                        int ilo = (i < extra[0]) ? i*(sz[0]+1)*ratio[0] : (i*sz[0]+extra[0])*ratio[0];
+                        int ihi = (i < extra[0]) ? ilo+(sz[0]+1)*ratio[0]-1 : ilo+sz[0]*ratio[0]-1;
+                        ilo += boxlo[0];
+                        ihi += boxlo[0];
+                        new_boxes.push_back(Box(IntVect(AMREX_D_DECL(ilo,jlo,klo)),
+                                                IntVect(AMREX_D_DECL(ihi,jhi,khi))).
+                                            convert(ixType()));
+            AMREX_D_TERM(},},})
+        }
     }
+    std::swap(new_boxes, m_lbox);
+
     return *this;
 }
 
@@ -773,8 +773,7 @@ BoxList::convert (IndexType typ) noexcept
 }
 
 std::ostream&
-operator<< (std::ostream&  os,
-            const BoxList& blist)
+operator<< (std::ostream& os, const BoxList& blist)
 {
     BoxList::const_iterator bli = blist.begin(), End = blist.end();
     os << "(BoxList " << blist.size() << ' ' << blist.ixType() << '\n';

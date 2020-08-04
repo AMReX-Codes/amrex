@@ -143,6 +143,7 @@ public:
     */
     bool is_cell_centered () const noexcept;
 
+    void setMultiGhost(bool a_multi_ghost) {m_multi_ghost = a_multi_ghost;}
 
     // These are provided for convenience to keep track of how many
     // ghost cells are up to date.  The number of filled ghost cells
@@ -466,6 +467,7 @@ public:
     int                 n_comp;
     mutable BDKey       m_bdkey;
     IntVect             n_filled;  // Note that IntVect is zero by default.
+    bool                m_multi_ghost = false;
 
     //
     // Tiling
@@ -501,7 +503,7 @@ public:
     {
         FB (const FabArrayBase& fa, const IntVect& nghost,
             bool cross, const Periodicity& period,
-	    bool enforce_periodicity_only);
+	    bool enforce_periodicity_only, bool multi_ghost = false);
         ~FB ();
 
         IndexType    m_typ;
@@ -512,6 +514,7 @@ public:
         Periodicity  m_period;
         //
         Long         m_nuse;
+        bool         m_multi_ghost = false;
         //
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
         CudaGraph<CopyMemory> m_localCopy;

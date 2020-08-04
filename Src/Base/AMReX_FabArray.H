@@ -270,7 +270,8 @@ public:
 
     /**
     * \brief Return true if the FabArray is well-defined.  That is,
-    * if FABs are allocated for each Box in the BoxArray and the
+    * the FabArray has a BoxArray and DistributionMapping, the
+    * FABs are allocated for each Box in the BoxArray and the
     * sizes of the FABs and the number of components are consistent
     * with the definition of the FabArray.
     */
@@ -1217,6 +1218,8 @@ template <class FAB>
 bool
 FabArray<FAB>::ok () const
 {
+    if (!define_function_called) return false;
+
     int isok = 1;
 
     for (MFIter fai(*this); fai.isValid() && isok; ++fai)
