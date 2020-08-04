@@ -630,8 +630,11 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp,
-                  Real small_volfrac)
+                  Real small_volfrac, Box const& domain)
 {
+    const auto dlo = domain.loVect();
+    const auto dhi = domain.hiVect();
+
     const Box& bxg1 = amrex::grow(bx,1);
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
     {
@@ -669,26 +672,32 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             if (vfrac(i,j,k) < small_volfrac) {
                 set_covered(i,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
                 
-                //left
-                if(i == 0) {
+                if(i == dlo[0]) {
                   amrex::Print() << "Covering ghost cell: " << IntVect(i-1,j,k) << std::endl;
                   set_covered(i-1,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
                 }
-                //TODO: right
-                
-                //front
-                if(j == 0) {
+                else if(i == dhi[0]) {
+                  amrex::Print() << "Covering ghost cell: " << IntVect(i+1,j,k) << std::endl;
+                  set_covered(i+1,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
+                }
+
+                if(j == dlo[1]) {
                   amrex::Print() << "Covering ghost cell: " << IntVect(i,j-1,k) << std::endl;
                   set_covered(i,j-1,k,cell,vfrac,vcent,barea,bcent,bnorm);
                 }
-                //TODO: back
+                else if(j == dhi[1]) {
+                  amrex::Print() << "Covering ghost cell: " << IntVect(i,j+1,k) << std::endl;
+                  set_covered(i,j+1,k,cell,vfrac,vcent,barea,bcent,bnorm);
+                }
 
-                //bottom
-                if(k == 0) {
+                if(k == dlo[2]) {
                   amrex::Print() << "Covering ghost cell: " << IntVect(i,j,k-1) << std::endl;
                   set_covered(i,j,k-1,cell,vfrac,vcent,barea,bcent,bnorm);
                 }
-                //TODO: top
+                else if(k == dhi[2]) {
+                  amrex::Print() << "Covering ghost cell: " << IntVect(i,j,k+1) << std::endl;
+                  set_covered(i,j,k+1,cell,vfrac,vcent,barea,bcent,bnorm);
+                }
             }
         }
     });

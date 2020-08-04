@@ -302,7 +302,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
             build_cells(vbx, cfg, ftx, fty, ftz, apx, apy, apz,
                         fcx, fcy, fcz, xm2, ym2, zm2, vfr, ctr,
-                        bar, bct, bnm, cfgtmp, small_volfrac);
+                        bar, bct, bnm, cfgtmp, small_volfrac, geom.Domain());
 
 #elif (AMREX_SPACEDIM == 2)
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -332,7 +332,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
             build_faces(vbx, cfg, ftx, fty, lst, xip, yip, apx, apy, fcx, fcy, dx, problo);
 
-            build_cells(vbx, cfg, ftx, fty, apx, apy, vfr, ctr, bar, bct, bnm, small_volfrac);
+            build_cells(vbx, cfg, ftx, fty, apx, apy, vfr, ctr, bar, bct, bnm, small_volfrac, geom.Domain());
 #endif
         }
     }
