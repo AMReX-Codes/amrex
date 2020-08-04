@@ -139,11 +139,13 @@ public:
     //! Remove empty Boxes from this BoxList.
     BoxList& removeEmpty();
 
-    BoxList& complementIn (const Box&     b,
-                           const BoxList& bl);
-    BoxList& complementIn (const Box&     b,
-                            BoxList&&     bl);
+    BoxList& complementIn (const Box& b, const BoxList& bl);
+    BoxList& complementIn (const Box& b, BoxList&& bl);
     BoxList& complementIn (const Box& b, const BoxArray& ba);
+    BoxList& parallelComplementIn (const Box& b, const BoxList& bl);
+    BoxList& parallelComplementIn (const Box& b, BoxList&& bl);
+    BoxList& parallelComplementIn (const Box& b, const BoxArray& ba);
+
     //! Refine each Box in the BoxList by the ratio.
     BoxList& refine (int ratio);
     //! Refine each Box in the BoxList by the ratio.

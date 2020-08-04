@@ -164,9 +164,20 @@ namespace {
                                       int>::type = 0>
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
-        MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0, MFInfo(),
+        MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_patch, ncomp, 0, MFInfo(),
                          *fpc.fact_crse_patch);
         return mf_crse_patch;
+    }
+
+    template <typename MF,
+              typename std::enable_if<std::is_same<typename MF::FABType::value_type,
+                                                   FArrayBox>::value,
+                                      int>::type = 0>
+    MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
+    {
+        MF mf_fine_patch(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0, MFInfo(),
+                         *fpc.fact_fine_patch);
+        return mf_fine_patch;
     }
 
     template <typename MF,
@@ -175,23 +186,32 @@ namespace {
                                       int>::type = 0>
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
-        return MF(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0);
-    }
-
-    template <typename MF,
-              typename std::enable_if<std::is_same<typename MF::FABType::value_type,
-                                                   FArrayBox>::value,
-                                      int>::type = 0>
-    void mf_set_domain_bndry (MF &mf, Geometry const & cgeom)
-    {
-        mf.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
+        return MF(fpc.ba_crse_patch, fpc.dm_patch, ncomp, 0);
     }
 
     template <typename MF,
               typename std::enable_if<!std::is_same<typename MF::FABType::value_type,
                                                     FArrayBox>::value,
                                       int>::type = 0>
-    void mf_set_domain_bndry (MF &/*mf*/, Geometry const & /*cgeom*/)
+    MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
+    {
+        return MF(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0);
+    }
+
+    template <typename MF,
+              typename std::enable_if<std::is_same<typename MF::FABType::value_type,
+                                                   FArrayBox>::value,
+                                      int>::type = 0>
+    void mf_set_domain_bndry (MF &mf, Geometry const & geom)
+    {
+        mf.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), geom);
+    }
+
+    template <typename MF,
+              typename std::enable_if<!std::is_same<typename MF::FABType::value_type,
+                                                    FArrayBox>::value,
+                                      int>::type = 0>
+    void mf_set_domain_bndry (MF &/*mf*/, Geometry const & /*geom*/)
     {
         // nothing
     }
@@ -199,88 +219,73 @@ namespace {
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
     EnableIf_t<IsFabArray<MF>::value>
     FillPatchTwoLevels_doit (MF& mf, IntVect const& nghost, Real time,
-			     const Vector<MF*>& cmf, const Vector<Real>& ct,
-			     const Vector<MF*>& fmf, const Vector<Real>& ft,
-			     int scomp, int dcomp, int ncomp,
-			     const Geometry& cgeom, const Geometry& fgeom,
-			     BC& cbc, int cbccomp,
+                             const Vector<MF*>& cmf, const Vector<Real>& ct,
+                             const Vector<MF*>& fmf, const Vector<Real>& ft,
+                             int scomp, int dcomp, int ncomp,
+                             const Geometry& cgeom, const Geometry& fgeom,
+                             BC& cbc, int cbccomp,
                              BC& fbc, int fbccomp,
-			     const IntVect& ratio,
-			     Interp* mapper,
+                             const IntVect& ratio,
+                             Interp* mapper,
                              const Vector<BCRec>& bcs, int bcscomp,
                              const PreInterpHook& pre_interp,
                              const PostInterpHook& post_interp,
                              EB2::IndexSpace const* index_space)
     {
-	BL_PROFILE("FillPatchTwoLevels");
+        BL_PROFILE("FillPatchTwoLevels");
 
         using FAB = typename MF::FABType::value_type;
 
-	if (nghost.max() > 0 || mf.getBDKey() != fmf[0]->getBDKey())
-	{
-	    const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
+        if (nghost.max() > 0 || mf.getBDKey() != fmf[0]->getBDKey())
+        {
+            const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
-	    Box fdomain = fgeom.Domain();
-	    fdomain.convert(mf.boxArray().ixType());
-	    Box fdomain_g(fdomain);
-	    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-		if (fgeom.isPeriodic(i)) {
-		    fdomain_g.grow(i,nghost[i]);
-		}
-	    }
-
-	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf, fdomain_g,
+            const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf,
                                                                       nghost,
                                                                       coarsener,
-                                                                      amrex::coarsen(fgeom.Domain(),ratio),
+                                                                      fgeom,
+                                                                      cgeom,
                                                                       index_space);
 
-	    if ( ! fpc.ba_crse_patch.empty())
-	    {
+            if ( ! fpc.ba_crse_patch.empty())
+            {
                 MF mf_crse_patch = make_mf_crse_patch<MF>(fpc, ncomp);
                 mf_set_domain_bndry (mf_crse_patch, cgeom);
 
-		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc, cbccomp);
+                FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc, cbccomp);
 
-		int idummy1=0, idummy2=0;
-		bool cc = fpc.ba_crse_patch.ixType().cellCentered();
-                ignore_unused(cc);
+                MF mf_fine_patch = make_mf_fine_patch<MF>(fpc, ncomp);
+
+                Box const& fdomain = amrex::convert(fgeom.Domain(),mf.ixType());
+                int idummy=0;
 #ifdef _OPENMP
+                bool cc = fpc.ba_crse_patch.ixType().cellCentered();
 #pragma omp parallel if (cc && Gpu::notInLaunchRegion())
 #endif
                 {
                     Vector<BCRec> bcr(ncomp);
-                    for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
+                    for (MFIter mfi(mf_fine_patch); mfi.isValid(); ++mfi)
                     {
                         FAB& sfab = mf_crse_patch[mfi];
-                        int li = mfi.LocalIndex();
-                        int gi = fpc.dst_idxs[li];
-                        FAB& dfab = mf[gi];
-                        const Box& dbx = fpc.dst_boxes[li] & dfab.box();
+                        FAB& dfab = mf_fine_patch[mfi];
+                        const Box& dbx = dfab.box();
 
                         amrex::setBC(dbx,fdomain,bcscomp,0,ncomp,bcs,bcr);
 
                         pre_interp(sfab, sfab.box(), 0, ncomp);
 
-                        mapper->interp(sfab,
-                                       0,
-                                       dfab,
-                                       dcomp,
-                                       ncomp,
-                                       dbx,
-                                       ratio,
-                                       cgeom,
-                                       fgeom,
-                                       bcr,
-                                       idummy1, idummy2, RunOn::Gpu);
+                        mapper->interp(sfab, 0, dfab, 0, ncomp, dbx, ratio,
+                                       cgeom, fgeom, bcr, dcomp, idummy, RunOn::Gpu);
 
-                        post_interp(dfab, dbx, dcomp, ncomp);
+                        post_interp(dfab, dbx, 0, ncomp);
                     }
                 }
+
+                mf.ParallelCopy(mf_fine_patch, 0, dcomp, ncomp, IntVect{0}, nghost);
 	    }
 	}
 
-	FillPatchSingleLevel(mf, nghost, time, fmf, ft, scomp, dcomp, ncomp,
+        FillPatchSingleLevel(mf, nghost, time, fmf, ft, scomp, dcomp, ncomp,
                              fgeom, fbc, fbccomp);
     } }
 

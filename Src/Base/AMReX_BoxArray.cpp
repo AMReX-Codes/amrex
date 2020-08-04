@@ -1275,99 +1275,90 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
     bl.set(bx.ixType());
     bl.push_back(bx);
 
-    if (!empty()) 
-    {
-	BARef::HashType& BoxHashMap = getHashMap();
+    if (empty()) return;
 
-	BL_ASSERT(bx.ixType() == ixType());
+    BARef::HashType& BoxHashMap = getHashMap();
 
-	Box gbx = bx;
+    BL_ASSERT(bx.ixType() == ixType());
 
-	IntVect glo = gbx.smallEnd();
-	IntVect ghi = gbx.bigEnd();
-	const IntVect& doilo = getDoiLo();
-	const IntVect& doihi = getDoiHi();
+    Box gbx = bx;
 
-	gbx.setSmall(glo - doihi).setBig(ghi + doilo);
-        gbx.refine(crseRatio()).coarsen(m_ref->crsn);
-	
-        const IntVect& sm = amrex::max(gbx.smallEnd()-1, m_ref->bbox.smallEnd());
-        const IntVect& bg = amrex::min(gbx.bigEnd(),     m_ref->bbox.bigEnd());
+    IntVect glo = gbx.smallEnd();
+    IntVect ghi = gbx.bigEnd();
+    const IntVect& doilo = getDoiLo();
+    const IntVect& doihi = getDoiHi();
 
-        Box cbx(sm,bg);
-        cbx.normalize();
+    gbx.setSmall(glo - doihi).setBig(ghi + doilo);
+    gbx.refine(crseRatio()).coarsen(m_ref->crsn);
 
-	if (!cbx.intersects(m_ref->bbox)) return;
+    const IntVect& sm = amrex::max(gbx.smallEnd()-1, m_ref->bbox.smallEnd());
+    const IntVect& bg = amrex::min(gbx.bigEnd(),     m_ref->bbox.bigEnd());
 
-	auto TheEnd = BoxHashMap.cend();
+    Box cbx(sm,bg);
+    cbx.normalize();
 
-        BoxList newbl(bl.ixType());
-        newbl.reserve(bl.capacity());
-        BoxList newdiff(bl.ixType());
+    if (!cbx.intersects(m_ref->bbox)) return;
 
-        auto& abox = m_ref->m_abox;
+    auto TheEnd = BoxHashMap.cend();
 
-	for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); 
-	     iv <= End && bl.isNotEmpty(); 
-	     cbx.next(iv))
+    Vector<Box> intersect_boxes;
+    auto& abox = m_ref->m_abox;
+    if (m_bat.is_null()) {
+        AMREX_LOOP_3D(cbx, i, j, k,
         {
-            auto it = BoxHashMap.find(iv);
-
-            if (it != TheEnd)
-            {
-                if (m_bat.is_null()) {
-                    for (const int index : it->second)
-                    {
-                        const Box& ibox = abox[index];
-                        const Box& isect = bx & ibox;
-
-                        if (isect.ok())
-                        {
-                            newbl.clear();
-                            for (const Box& b : bl) {
-                                amrex::boxDiff(newdiff, b, isect);
-                                newbl.join(newdiff);
-                            }
-                            bl.swap(newbl);
-                        }
-                    }
-                } else if (m_bat.is_simple()) {
-                    IndexType t = ixType();
-                    IntVect cr = crseRatio();
-                    for (const int index : it->second)
-                    {
-                        const Box& ibox = amrex::convert(amrex::coarsen(abox[index],cr),t);
-                        const Box& isect = bx & ibox;
-
-                        if (isect.ok())
-                        {
-                            newbl.clear();
-                            for (const Box& b : bl) {
-                                amrex::boxDiff(newdiff, b, isect);
-                                newbl.join(newdiff);
-                            }
-                            bl.swap(newbl);
-                        }
-                    }
-                } else {
-                    for (const int index : it->second)
-                    {
-                        const Box& ibox = m_bat.m_op.m_bndryReg(abox[index]);
-                        const Box& isect = bx & ibox;
-
-                        if (isect.ok())
-                        {
-                            newbl.clear();
-                            for (const Box& b : bl) {
-                                amrex::boxDiff(newdiff, b, isect);
-                                newbl.join(newdiff);
-                            }
-                            bl.swap(newbl);
-                        }
+            amrex::ignore_unused(j,k);
+            auto it = BoxHashMap.find(IntVect(AMREX_D_DECL(i,j,k)));
+            if (it != TheEnd) {
+                for (const int index : it->second) {
+                    const Box& ibox = abox[index];
+                    if (bx.intersects(ibox)) {
+                        intersect_boxes.push_back(ibox);
                     }
                 }
             }
+        });
+    } else if (m_bat.is_simple()) {
+        IndexType t = ixType();
+        IntVect cr = crseRatio();
+        AMREX_LOOP_3D(cbx, i, j, k,
+        {
+            amrex::ignore_unused(j,k);
+            auto it = BoxHashMap.find(IntVect(AMREX_D_DECL(i,j,k)));
+            if (it != TheEnd) {
+                for (const int index : it->second) {
+                    const Box& ibox = amrex::convert(amrex::coarsen(abox[index],cr),t);
+                    if (bx.intersects(ibox)) {
+                        intersect_boxes.push_back(ibox);
+                    }
+                }
+            }
+        });
+    } else {
+        AMREX_LOOP_3D(cbx, i, j, k,
+        {
+            amrex::ignore_unused(j,k);
+            auto it = BoxHashMap.find(IntVect(AMREX_D_DECL(i,j,k)));
+            if (it != TheEnd) {
+                for (const int index : it->second) {
+                    const Box& ibox = m_bat.m_op.m_bndryReg(abox[index]);
+                    if (bx.intersects(ibox)) {
+                        intersect_boxes.push_back(ibox);
+                    }
+                }
+            }
+        });
+    }
+
+    BoxList newbl(bl.ixType());
+    BoxList newdiff(bl.ixType());
+    for  (auto const& ibox : intersect_boxes) {
+        newbl.clear();
+        for (Box const& b : bl) {
+            amrex::boxDiff(newdiff, b, ibox);
+            newbl.join(newdiff);
         }
+        bl.swap(newbl);
+        if (bl.isEmpty()) { return; }
     }
 }
 
