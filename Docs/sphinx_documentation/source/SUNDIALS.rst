@@ -6,7 +6,7 @@
 
 
 Compiling AMReX with SUNDIALS 5
----------------------------------------------
+===============================
 
 The following steps describe how to compile an AMReX application with
 SUNDIALS 5 support.

@@ -5,12 +5,8 @@
    :language: fortran
 
 
-<<<<<<< HEAD:Docs/sphinx_documentation/source/SUNDIALS_CVODE.rst
 Compiling AMReX with CVODE 2.7
-=======
-Compiling AMReX with CVODE (Cray or Sundials version 2.7)
->>>>>>> development:Docs/sphinx_documentation/source/CVODE.rst
------------------------------------------------------------
+==============================
 
 The following steps describe how to compile an AMReX application with
 CVODE support.  On Cray systems (e.g., Cori or Edison at NERSC), Cray provides
@@ -77,13 +73,9 @@ On systems which are not Cray:
    ``CVODE_LIB_DIR`` environment variable to point to the location where the
    libraries are installed.
 
-<<<<<<< HEAD:Docs/sphinx_documentation/source/SUNDIALS_CVODE.rst
+
 CVODE 2.7 Tutorials
 -------------------
-=======
-CVODE Tutorials
-------------------
->>>>>>> development:Docs/sphinx_documentation/source/CVODE.rst
 
 AMReX provides two CVODE tutorials in the ``amrex/Tutorials/CVODE`` directory, called
 ``EX1`` and ``EX2``.  See the Tutorials CVODE_ documentation for more detail.
