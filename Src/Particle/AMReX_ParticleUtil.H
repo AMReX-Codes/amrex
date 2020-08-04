@@ -249,13 +249,11 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
 
     if (np == 0) return 0;
 
-    auto p_lev_offsets = pmap.levelOffsetsPtr();
-    auto p_box_perm = pmap.levGridToBucketPtr();
-    auto p_pids = pmap.bucketToPIDPtr();
+    auto getPID = pmap.getPIDFunctor();
     auto p_ptr = &(aos[0]);
 
     int pid = ParallelContext::MyProcSub();
-    int chunk_size = 256*256*256;
+    constexpr int chunk_size = 256*256*256;
     int num_chunks = std::max(1, (np + (chunk_size - 1)) / chunk_size);
 
     PTile ptile_tmp;
@@ -293,8 +291,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                     assigned_lev  = amrex::get<1>(tup);
                 }
 
-                return ((assigned_grid == gid) && (assigned_lev == lev)
-                        && (p_pids[p_box_perm[p_lev_offsets[lev]+gid]] == pid));
+                return ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid));
             };
 
             num_stay = Scan::PrefixSum<int> (this_chunk_size,
