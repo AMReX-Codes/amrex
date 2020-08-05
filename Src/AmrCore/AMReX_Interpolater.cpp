@@ -904,7 +904,7 @@ Box
 FaceDivFree::CoarseBox (const Box& fine,
                         int        ratio)
 {
-    Box b = amrex::coarsen(fine,ratio);
+    Box b = amrex::coarsen(fine,ratio).grow(1);
 
 /*  NEEDED FOR FACE-DIVERGENCE FREE?
     for (int i = 0; i < AMREX_SPACEDIM; i++)
@@ -926,7 +926,7 @@ Box
 FaceDivFree::CoarseBox (const Box&     fine,
                         const IntVect& ratio)
 {
-    Box b = amrex::coarsen(fine,ratio);
+    Box b = amrex::coarsen(fine,ratio).grow(1);
 
 /*  NEEDED FOR FACE-DIVERGENCE FREE?
     for (int i = 0; i < AMREX_SPACEDIM; i++)

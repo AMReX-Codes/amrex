@@ -365,6 +365,15 @@ namespace {
             MF fmf_cc_dummy( amrex::convert(fmf[0][0]->boxArray(), IntVect::TheZeroVector()),
                              fmf[0][0]->DistributionMap(), ncomp, nghost, MFInfo().SetAlloc(false) );
 
+
+            amrex::Print() << " \nfpc inputs\n=======\n ";
+            amrex::Print() << " fmf_cc_dummy.ba = " << fmf_cc_dummy.boxArray() << std::endl;
+            amrex::Print() << " mf_cc_dummy.ba = "  <<  mf_cc_dummy.boxArray() << std::endl;
+            amrex::Print() << " nghost = " << fmf_cc_dummy.boxArray() << std::endl;
+            amrex::Print() << " fgeom.domain = " << fgeom.Domain() << " / " << fgeom.ProbDomain() << std::endl;
+            amrex::Print() << " cgeom.domain = " << cgeom.Domain() << " / " << cgeom.ProbDomain() << std::endl;
+            amrex::Print() << "========\n";
+
 	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(fmf_cc_dummy, mf_cc_dummy,
                                                                       nghost,
                                                                       coarsener,
