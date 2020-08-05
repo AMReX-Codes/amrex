@@ -17,7 +17,7 @@ adv.cfl            = 0.7     # cfl number for hyperbolic system
 			     # to satisfy CFL condition.
 
 # PROLONGATION ORDER
-adv.amr_interp     = 1       # Choose GP Interp, 1 for Cell Cons
+adv.amr_interp     = 2       # Choose 3 GP Interp (requires LAPACKE), 2 for Cell Cons
 
 # VERBOSITY
 adv.v              = 1       # verbosity in Adv

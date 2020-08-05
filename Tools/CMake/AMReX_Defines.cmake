@@ -146,6 +146,12 @@ function ( set_amrex_defines )
       IF ENABLE_CUDA )
 
    #
+   # Lapacke 
+   #
+   add_amrex_define( AMREX_USE_LAPCKE NO_LEGACY IF ENABLE_LAPACKE)
+
+
+   #
    # OpenACC
    #
    add_amrex_define( AMREX_USE_ACC NO_LEGACY IF ENABLE_ACC )

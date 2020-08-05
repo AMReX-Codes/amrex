@@ -2,7 +2,6 @@ AMREX_HOME ?= ../../../../..
 USE_EB = FALSE
 PRECISION  = DOUBLE
 PROFILE    = FALSE
-LIBRARIES += -llapacke -llapack -lblas
 
 DEBUG      = TRUE
 DEBUG      = FALSE

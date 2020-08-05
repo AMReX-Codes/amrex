@@ -1,3 +1,4 @@
+#ifdef AMREX_USE_LAPACKE
 #include <AMReX_GP_3D.H>
 #include <AMReX_Gpu.H>
 #include <lapacke.h> 
@@ -421,4 +422,4 @@ GP::GetEigen()
     }
     free(work);
 }
-  
+#endif 

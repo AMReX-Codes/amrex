@@ -1,3 +1,4 @@
+#ifdef AMREX_USE_LAPACKE
 #ifndef AMREX_GP_3D_H
 #define AMREX_GP_3D_H
 #include <AMReX_REAL.H>
@@ -239,5 +240,5 @@ class GP
 };
 
 
-
+#endif
 #endif 

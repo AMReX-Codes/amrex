@@ -5,10 +5,13 @@
 #include <AMReX_BCRec.H>
 #include <AMReX_REAL.H>
 #include <AMReX_GpuControl.H>
+
+#if AMREX_USE_LAPACKE
 #if AMREX_SPACEDIM==2
 #include <AMReX_GP_2D.H>
 #elif AMREX_SPACEDIM==3
 #include <AMReX_GP_3D.H>
+#endif
 #endif
 
 namespace amrex {
@@ -717,7 +720,7 @@ public:
                          RunOn            gpu_or_cpu) override;
 };
 
-
+#ifdef AMREX_USE_LAPACKE
 #if AMREX_SPACEDIM >= 2
 class CellGaussianProcess
     :
@@ -764,7 +767,7 @@ public:
 
 };
 #endif 
-
+#endif
 
 //! CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
 extern PCInterp                  pc_interp;
@@ -772,8 +775,11 @@ extern NodeBilinear              node_bilinear_interp;
 extern FaceLinear                face_linear_interp;
 extern CellConservativeLinear    lincc_interp;
 extern CellConservativeLinear    cell_cons_interp;
+
+#ifdef AMREX_USE_LAPACKE
 #if AMREX_SPACEDIM >= 2
 extern CellGaussianProcess       gp_interp; 
+#endif
 #endif 
 
 #ifndef BL_NO_FORT

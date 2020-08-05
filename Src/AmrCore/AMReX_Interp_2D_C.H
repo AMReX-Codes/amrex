@@ -451,6 +451,7 @@ face_linear_interp_y (int i, int j, int /*k*/, int n, Array4<T> const& fine,
     fine(i,j,0,n) = (1.0_rt-w) * crse(ii,jj,0,n) + w * crse(ii,jj+1,0,n);
 }
 
+#ifdef AMREX_USE_LAPACKE
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void 
@@ -577,6 +578,7 @@ amrex_gpinterp(Box const& bx, amrex::Array4<T> const& fine,
         }
     }
 }
+#endif
 
 }
 

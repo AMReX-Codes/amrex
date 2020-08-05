@@ -1,7 +1,7 @@
+#ifdef AMREX_USE_LAPACKE
 #include <AMReX_GP_2D.H>
 #include <AMReX_Gpu.H>
 #include <lapacke.h> 
-
 
 //Constructor 
 GP::GP (const amrex::IntVect Ratio, const amrex::Real *del)
@@ -367,4 +367,5 @@ GP::GetEigen()
 
 
 }
-  
+ 
+#endif 

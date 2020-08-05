@@ -60,6 +60,7 @@ set(AMReX_SUNDIALS_FOUND            @ENABLE_SUNDIALS@)
 set(AMReX_ASCENT_FOUND              @ENABLE_ASCENT@)
 set(AMReX_HYPRE_FOUND               @ENABLE_HYPRE@)
 set(AMReX_PETSC_FOUND               @ENABLE_PETSC@)
+set(AMReX_LAPACKE_FOUND             @ENABLE_LAPACKE@)
 
 # Compilation options
 set(AMReX_FPE_FOUND                 @ENABLE_FPE@)

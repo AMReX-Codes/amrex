@@ -1,3 +1,4 @@
+#ifdef AMREX_USE_LAPACKE
 #ifndef AMREX_GP_2D_H
 #define AMREX_GP_2D_H
 #include <AMReX_REAL.H>
@@ -9,7 +10,6 @@
 #include <cmath> 
 
 // Contains the GP class for Steven Reeves' research into Gaussian Process based Models for AMR prolongation 
-
 class GP
 {
     public: 
@@ -192,5 +192,5 @@ class GP
 };
 
 
-
+#endif
 #endif 

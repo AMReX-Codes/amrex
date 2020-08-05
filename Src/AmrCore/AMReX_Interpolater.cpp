@@ -24,7 +24,7 @@ namespace amrex {
 //
 // CellConservativeQuartic only works with ref ratio of 2 on cpu
 //
-// CellGaussianProcess works on 2D and 3D with ref ratio 2 and 4 on CPU/GPU
+// CellGaussianProcess works on 2D and 3D with ref ratio 2 and 4 on CPU/GPU needs LAPACKE
 
 
 //
@@ -36,9 +36,11 @@ FaceLinear                face_linear_interp;
 CellConservativeLinear    lincc_interp;
 CellConservativeLinear    cell_cons_interp(0);
 
+#ifdef AMREX_USE_LAPACKE
 #if AMREX_SPACEDIM >= 2
 CellGaussianProcess       gp_interp;
 #endif 
+#endif
 
 #ifndef BL_NO_FORT
 CellBilinear              cell_bilinear_interp;
@@ -903,6 +905,7 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 }
 #endif
 
+#ifdef AMREX_USE_LAPACKE
 #if AMREX_SPACEDIM>=2
 CellGaussianProcess::~CellGaussianProcess () {
        for(auto& it:gp) //Deallocate all CUDA mem in GP
@@ -994,5 +997,6 @@ CellGaussianProcess::interp (const FArrayBox& crse,
     });
 }
 #endif 
+#endif
 
 }
