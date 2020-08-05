@@ -661,7 +661,7 @@ template <int NStructReal, int NStructInt>
 template <class CheckPair>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-buildNeighborList (CheckPair check_pair, bool sort) 
+buildNeighborList (CheckPair&& check_pair, bool sort) 
 {
     AMREX_ASSERT(numParticlesOutOfRange(*this, m_num_neighbor_cells) == 0);
 
@@ -705,7 +705,9 @@ buildNeighborList (CheckPair check_pair, bool sort)
             bx.coarsen(ref_fac);
             bx.grow(m_num_neighbor_cells);
             
-            m_neighbor_list[lev][index].build(ptile, bx, geom, check_pair, m_num_neighbor_cells);
+            m_neighbor_list[lev][index].build(ptile, bx, geom,
+                                              std::forward<CheckPair>(check_pair),
+                                              m_num_neighbor_cells);
 #ifndef AMREX_USE_GPU
             const auto& counts = m_neighbor_list[lev][index].GetCounts();
             const auto& list   = m_neighbor_list[lev][index].GetList();
