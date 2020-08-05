@@ -269,7 +269,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
     bool agged = false;
     bool coned = false;
-    int agg_lev, con_lev = 0;
+    int agg_lev = 0, con_lev = 0;
 
     if (info.do_agglomeration && aggable)
     {

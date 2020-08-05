@@ -143,7 +143,7 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
 
     for (amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
-            m_overset_mask[amrlev][mglev]->setBndry(0);
+            m_overset_mask[amrlev][mglev]->setBndry(1);
             m_overset_mask[amrlev][mglev]->FillBoundary(m_geom[amrlev][mglev].periodicity());
         }
     }
@@ -792,7 +792,7 @@ MLABecLaplacian::applyOverset (int amrlev, MultiFab& rhs) const
             Array4<int const> const& osm = m_overset_mask[amrlev][0]->const_array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
             {
-                if (osm(i,j,k)) rfab(i,j,k,n) = 0.0;
+                if (osm(i,j,k) == 0) rfab(i,j,k,n) = 0.0;
             });
         }
     }
