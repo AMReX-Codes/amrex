@@ -378,14 +378,14 @@ namespace {
 	    if ( !fpc.ba_crse_patch.empty() )
 	    {
                 Array<MF, AMREX_SPACEDIM> mf_crse_patch;
-                Array<MF, AMREX_SPACEDIM> mf_fine_patch;       
+                Array<MF, AMREX_SPACEDIM> mf_fine_patch;
                 for (int i=0; i<AMREX_SPACEDIM; ++i)
                 {
                     mf_crse_patch[i] = make_mf_crse_patch<MF>(fpc, ncomp, mf[i]->boxArray().ixType());
                     mf_fine_patch[i] = make_mf_fine_patch<MF>(fpc, ncomp, mf[i]->boxArray().ixType());
 
                     amrex::Print() << "mf_crse / mf_fine [" << i << "]: " << mf_crse_patch[i].boxArray() << " / " << mf_fine_patch[i].boxArray() << std::endl;
-                } 
+                }
 
                 for (int i=0; i<AMREX_SPACEDIM; ++i)
                 {
@@ -395,7 +395,7 @@ namespace {
                     for (const auto & cfab : cmf)
                         { cmf_time.push_back(cfab[i]); }
 
-                    FillPatchSingleLevel(mf_crse_patch[i], time, cmf_time, ct, scomp, 0, ncomp, 
+                    FillPatchSingleLevel(mf_crse_patch[i], time, cmf_time, ct, scomp, 0, ncomp,
                                          cgeom, cbc[i], cbccomp);
                 }
 
@@ -408,10 +408,10 @@ namespace {
                     Vector<Array<BCRec, AMREX_SPACEDIM> > bcr(ncomp);
                     for (MFIter mfi(mf_fine_patch[0]); mfi.isValid(); ++mfi)
                     {
-                        Array<FAB*, AMREX_SPACEDIM> sfab{ AMREX_D_DECL( &(mf_crse_patch[0][mfi]), 
+                        Array<FAB*, AMREX_SPACEDIM> sfab{ AMREX_D_DECL( &(mf_crse_patch[0][mfi]),
                                                                         &(mf_crse_patch[1][mfi]),
                                                                         &(mf_crse_patch[2][mfi]) )};
-                        Array<FAB*, AMREX_SPACEDIM> dfab{ AMREX_D_DECL( &(mf_fine_patch[0][mfi]), 
+                        Array<FAB*, AMREX_SPACEDIM> dfab{ AMREX_D_DECL( &(mf_fine_patch[0][mfi]),
                                                                         &(mf_fine_patch[1][mfi]),
                                                                         &(mf_fine_patch[2][mfi]) )};
 
@@ -425,7 +425,7 @@ namespace {
                             amrex::setBC(dfab[d]->box(), amrex::convert(fgeom.Domain(), mf[d]->boxArray().ixType()),
                                          bcscomp,0,ncomp,bcs[d],bcr_d);
 
-                            for (int n=0; n<ncomp; ++n) 
+                            for (int n=0; n<ncomp; ++n)
                                 { bcr[n][d] = bcr_d[n]; }
                         }
 
@@ -441,7 +441,7 @@ namespace {
                 for (int i=0; i<AMREX_SPACEDIM; ++i)
                 {
                     mf[i]->ParallelCopy(mf_fine_patch[i], 0, dcomp, ncomp, IntVect{0}, nghost);
-                } 
+                }
 	    }
 	}
 
@@ -512,7 +512,7 @@ FillPatchTwoLevels (MF& mf, Real time,
 }
 
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-EnableIf_t<IsFabArray<MF>::value> 
+EnableIf_t<IsFabArray<MF>::value>
 FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Real time,
                     const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                     const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,

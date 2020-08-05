@@ -18,7 +18,7 @@ void setupMF(MultiFab* mf)
 
         amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            c_x(i,j,k) = amrex::Random()*10; 
+            c_x(i,j,k) = amrex::Random()*10;
         });
     }
 }
@@ -52,21 +52,21 @@ void main_main ()
         pp.queryarr("f_cell_3d", f_cell_3d, 0, AMREX_SPACEDIM);
         pp.query("max_grid_size", max_grid_size);
 
-        // inputs hierarchy: 
+        // inputs hierarchy:
         // n_cell > c_cell_3d & f_cell_3d
 
         if (n_cell != 0)
         {
             for (int i=0; i < AMREX_SPACEDIM; ++i)
-            { c_cell_3d[i] = n_cell;
-              f_cell_3d[i] = n_cell-f_offset; }
+            { c_cell_3d[i] = n_cell-1;
+              f_cell_3d[i] = n_cell-f_offset-1; }
         }
     }
 
     int ncomp = 1;
     IntVect ratio{AMREX_D_DECL(2,2,2)};  // For this stencil (octree), always 2.
     IntVect ghost{AMREX_D_DECL(1,1,1)};  // For this stencil (octree), need 1 ghost.
-    Geometry c_geom, f_geom; 
+    Geometry c_geom, f_geom;
 
     Array<MultiFab, AMREX_SPACEDIM> c_mf_faces;
     Array<MultiFab, AMREX_SPACEDIM> f_mf_faces;
@@ -76,14 +76,18 @@ void main_main ()
                   IntVect y_face{AMREX_D_DECL(0,1,0)};,
                   IntVect z_face{AMREX_D_DECL(0,0,1)};  );
 
-    //  Create multifabs. 
+    //  Create multifabs.
     {
         Box domain  (IntVect{0}, IntVect{c_cell_3d});
         Box domain_f(IntVect{f_offset}, IntVect{f_cell_3d});
-        RealBox realbox({AMREX_D_DECL(-1.0,-1.0,-1.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
-        Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};
+        double scale = double(f_cell_3d[0])/double(c_cell_3d[0]);
+        RealBox realbox_c({AMREX_D_DECL(-1.0,-1.0,-1.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
+        RealBox realbox_f({AMREX_D_DECL(-scale,-scale,-scale)}, {AMREX_D_DECL(scale,scale,scale)});
+        Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
 
-        // Build coarse and fine boxArrays and DistributionMappings. 
+        amrex::Print() << "realbox_c / realbox_f: " << realbox_c << " " << realbox_f << std::endl;
+
+        // Build coarse and fine boxArrays and DistributionMappings.
         BoxArray ba_c(domain);
         ba_c.maxSize(max_grid_size);
 
@@ -94,8 +98,8 @@ void main_main ()
         DistributionMapping dm_c(ba_c);
         DistributionMapping dm_f(ba_f);
 
-        c_geom.define(domain,   realbox, CoordSys::cartesian, is_periodic);
-        f_geom.define(domain_f, realbox, CoordSys::cartesian, is_periodic);
+        c_geom.define(domain,   realbox_c, CoordSys::cartesian, is_periodic);
+        f_geom.define(domain_f, realbox_f, CoordSys::cartesian, is_periodic);
 
         AMREX_D_TERM( c_mf_faces[0].define( amrex::convert( ba_c,x_face ), dm_c, ncomp, ghost);,
                       c_mf_faces[1].define( amrex::convert( ba_c,y_face ), dm_c, ncomp, ghost);,
@@ -113,7 +117,7 @@ void main_main ()
         div_coarse.setVal(0.0);
 
         amrex::Print() << "Testing Face FreeDiv FillPatch with: "
-                       << "\n  dimensions = "    << ba_c.minimalBox() 
+                       << "\n  dimensions = "    << ba_c.minimalBox()
                        << "\n  max_grid_size = " << max_grid_size
                        << "\n  boxes = "         << ba_c.size()
                        << "\n  and ratio = "     << ratio << std::endl;
@@ -192,7 +196,7 @@ void main_main ()
         Array<PhysBCFunctNoOp, AMREX_SPACEDIM> phys_bc;
 
         amrex::Print() << " Starting FillPatch. " << std::endl;
-       
+
         FillPatchTwoLevels(fine_faces, ghost, time,
                            coarse_v, time_v,
                            fine_v, time_v,
