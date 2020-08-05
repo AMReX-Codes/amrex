@@ -111,7 +111,7 @@ AmrLevelAdv::variableSetUp ()
 
     // Get options, set phys_bc
     read_params();
-/
+
 #if AMREX_SPACEDIM >=2 
 #ifdef AMREX_USE_LAPACKE
     if(amr_interp > 2){
