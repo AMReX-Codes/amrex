@@ -13,7 +13,7 @@ COMP = gnu
 
 DIM = 2
 
-AMREX_HOME ?= ../../..
+AMREX_HOME = ../../..
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
