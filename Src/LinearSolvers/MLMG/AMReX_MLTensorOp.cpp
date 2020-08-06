@@ -211,6 +211,11 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
     applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry );
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+    const Geometry& geom = m_geom[amrlev][mglev];
+    const Box& domain = amrex::enclosedCells(geom.Domain());
+    const auto dlo = amrex::lbound(domain);
+    const auto dhi = amrex::ubound(domain);
+    const auto& bcondloc = *m_bcondloc[amrlev][mglev];
 
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
@@ -245,18 +250,27 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
                          Array4<Real> const fyfab = fluxfab_tmp[1].array();,
                          Array4<Real> const fzfab = fluxfab_tmp[2].array(););
 
+            const auto & bdcv = bcondloc.bndryConds(mfi);
+            Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> bct;
+            for (OrientationIter face; face; ++face) {
+                Orientation ori = face(); 
+                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                    bct(ori,icomp) = bdcv[icomp][ori];
+                }
+            }
+
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
             ( xbx, txbx,
               {
-                  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
+                  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,dlo,dhi,bct);
               }
             , ybx, tybx,
               {
-                  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
+                  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,dlo,dhi,bct);
               }
             , zbx, tzbx,
               {
-                  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
+                  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,dlo,dhi,bct);
               }
             );
 
@@ -403,6 +417,11 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
     applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, m_bndry_sol[amrlev].get());
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+    const Geometry& geom = m_geom[amrlev][mglev];
+    const Box& domain = amrex::enclosedCells(geom.Domain());
+    const auto dlo = amrex::lbound(domain);
+    const auto dhi = amrex::ubound(domain);
+    const auto& bcondloc = *m_bcondloc[amrlev][mglev];
 
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
@@ -436,18 +455,27 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                          Array4<Real> const fyfab = fluxfab_tmp[1].array();,
                          Array4<Real> const fzfab = fluxfab_tmp[2].array(););
 
+            const auto & bdcv = bcondloc.bndryConds(mfi);
+            Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> bct;
+            for (OrientationIter face; face; ++face) {
+                Orientation ori = face();
+                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                    bct(ori,icomp) = bdcv[icomp][ori];
+                }
+            }
+
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
             ( xbx, txbx,
               {
-                  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
+                  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,dlo,dhi,bct);
               }
             , ybx, tybx,
               {
-                  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
+                  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,dlo,dhi,bct);
               }
             , zbx, tzbx,
               {
-                  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
+                  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,dlo,dhi,bct);
               }
             );
 

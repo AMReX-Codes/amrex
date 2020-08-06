@@ -479,21 +479,30 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 	  AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].const_array(mfi);,
 		       Array4<Real const> const kapyfab = kapmf[1].const_array(mfi);,
 		       Array4<Real const> const kapzfab = kapmf[2].const_array(mfi););
-	  
+
+          const auto & bdcv = bcondloc.bndryConds(mfi);
+          Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> bct;
+          for (OrientationIter face; face; ++face) {
+              Orientation ori = face();
+              for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                  bct(ori,icomp) = bdcv[icomp][ori];
+              }
+          }
+ 
 	  if (fabtyp == FabType::regular)
 	  {
 	      AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
 	      ( xbx, txbx,
 		{
-		  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
+		  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,dlo,dhi,bct);
 		}
 		, ybx, tybx,
 		{
-		  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
+		  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,dlo,dhi,bct);
 		}
 		, zbx, tzbx,
 		{
-		  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
+		  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,dlo,dhi,bct);
 		}
 	      );
 	  }
@@ -504,16 +513,6 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 			 Array4<Real const> const& apz = area[2]->const_array(mfi););
 	    Array4<EBCellFlag const> const& flag = flags->const_array(mfi);
 	   
-            const auto & bdcv = bcondloc.bndryConds(mfi);
-
-            Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> bct;
-            for (OrientationIter face; face; ++face) {
-                Orientation ori = face();
-                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
-                    bct(ori,icomp) = bdcv[icomp][ori];
-                }
-            }
- 
 	    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
 	    ( xbx, txbx,
 	      {
