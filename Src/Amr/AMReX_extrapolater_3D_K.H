@@ -150,7 +150,7 @@ amrex_first_order_extrap_cpu(amrex::Box const& bx,
                data(i,j,k,n) = (  mask(i-1,j+1,k) * data(i-1,j+1,k,n) 
                                 + mask(i-1,j,k+1) * data(i-1,j,k+1,n) 
                                 + mask(i,j+1,k+1) * data(i,j+1,k+1,n) )
-                               / ( mask(i-1,j+1,k) + mask(i+1,j,k+1) + mask(i,j+1,k+1) );
+                               / ( mask(i-1,j+1,k) + mask(i-1,j,k+1) + mask(i,j+1,k+1) );
             } else {
                data(i,j,k,n) = data(i-1,j+1,k+1,n);
             }
