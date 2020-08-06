@@ -680,39 +680,35 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                    const auto & lo = bxg1.loVect();
                    const auto & hi = bxg1.hiVect();
 
+                   // if cell lies on any of the 6 domain faces, force
+                   // all layers of corresponding ghost cells to be convered
                    if(i == dlo[0]) {
-                     for(int ii = lo[0]; ii < dlo[0]; ++ii) { //all layers of ghost cells
-                        amrex::Print() << "Cover left ghost cell: " << IntVect(ii,j,k) << std::endl;
+                     for(int ii = lo[0]; ii < dlo[0]; ++ii) {
                         set_covered(ii,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
                      }
                    }
                    if(i == dhi[0]) {
-                     for(int ii = hi[0]; ii > dhi[0]; --ii) { //all layers of ghost cells
-                        amrex::Print() << "Cover right ghost cell: " << IntVect(ii,j,k) << std::endl;
+                     for(int ii = hi[0]; ii > dhi[0]; --ii) {
                         set_covered(ii,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
                      }
                    }
                    if(j == dlo[1]) {
-                     for(int jj = lo[1]; jj < dlo[1]; ++jj) { //all layers of ghost cells
-                        amrex::Print() << "Cover front ghost cell: " << IntVect(i,jj,k) << std::endl;
+                     for(int jj = lo[1]; jj < dlo[1]; ++jj) {
                         set_covered(i,jj,k,cell,vfrac,vcent,barea,bcent,bnorm);
                      }
                    }
                    if(j == dhi[1]) {
-                     for(int jj = hi[1]; jj > dhi[1]; --jj) { //all layers of ghost cells
-                        amrex::Print() << "Cover back ghost cell: " << IntVect(i,jj,k) << std::endl;
+                     for(int jj = hi[1]; jj > dhi[1]; --jj) {
                         set_covered(i,jj,k,cell,vfrac,vcent,barea,bcent,bnorm);
                      }
                    }
                    if(k == dlo[2]) {
-                     for(int kk = lo[2]; kk < dlo[2]; ++kk) { //all layers of ghost cells
-                        amrex::Print() << "Cover bottom ghost cell: " << IntVect(i,j,kk) << std::endl;
+                     for(int kk = lo[2]; kk < dlo[2]; ++kk) {
                         set_covered(i,j,kk,cell,vfrac,vcent,barea,bcent,bnorm);
                      }
                    }
                    if(k == dhi[2]) {
-                     for(int kk = hi[2]; kk > dhi[2]; --kk) { //all layers of ghost cells
-                        amrex::Print() << "Cover top ghost cell: " << IntVect(i,j,kk) << std::endl;
+                     for(int kk = hi[2]; kk > dhi[2]; --kk) {
                         set_covered(i,j,kk,cell,vfrac,vcent,barea,bcent,bnorm);
                      }
                    }
