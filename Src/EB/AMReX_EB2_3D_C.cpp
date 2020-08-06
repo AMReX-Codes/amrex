@@ -681,7 +681,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                    const auto & hi = bxg1.hiVect();
 
                    // if cell lies on any of the 6 domain faces, force
-                   // all layers of corresponding ghost cells to be convered
+                   // all layers of corresponding ghost cells to be covered
                    if(i == dlo[0]) {
                      for(int ii = lo[0]; ii < dlo[0]; ++ii) {
                         set_covered(ii,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
