@@ -1,4 +1,4 @@
-BOXLIB_HOME ?= ../../../..
+AMREX_HOME = ../../../..
 
 PRECISION  = DOUBLE
 PROFILE    = FALSE
