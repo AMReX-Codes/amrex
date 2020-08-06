@@ -325,6 +325,7 @@ public:
                 const Box&          dstdomain,
                 const IntVect&      dstng,
                 const BoxConverter& coarsener,
+                const Box&          fdomain,
                 const Box&          cdomain,
                 const EB2::IndexSpace* index_space);
 
@@ -333,16 +334,16 @@ public:
         Long bytes () const;
 
         BoxArray            ba_crse_patch;
-        DistributionMapping dm_crse_patch;
+        BoxArray            ba_fine_patch;
+        DistributionMapping dm_patch;
         std::unique_ptr<FabFactory<FArrayBox> > fact_crse_patch;
-        Vector<int>          dst_idxs;
-        Vector<Box>          dst_boxes;
+        std::unique_ptr<FabFactory<FArrayBox> > fact_fine_patch;
         //
         BDKey               m_srcbdk;
         BDKey               m_dstbdk;
         Box                 m_dstdomain;
         IntVect             m_dstng;
-        BoxConverter*       m_coarsener;
+        std::unique_ptr<BoxConverter> m_coarsener;
         //
         Long                m_nuse;
     };
@@ -356,10 +357,10 @@ public:
 
     static const FPinfo& TheFPinfo (const FabArrayBase& srcfa,
                                     const FabArrayBase& dstfa,
-                                    const Box&          dstdomain,
                                     const IntVect&      dstng,
                                     const BoxConverter& coarsener,
-                                    const Box&          cdomain,
+                                    const Geometry&     fgeom,
+                                    const Geometry&     cgeom,
                                     const EB2::IndexSpace*);
 
     void flushFPinfo (bool no_assertion=false);

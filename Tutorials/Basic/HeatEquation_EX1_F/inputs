@@ -13,5 +13,5 @@ geometry.coord_sys = 0
 geometry.prob_lo = -1.0  -1.0  -1.0
 geometry.prob_hi =  1.0   1.0   1.0
 
-# Periodic? Default in BoxLib is set to 0 (no).
+# Periodic? Default in AMReX is set to 0 (no).
 geometry.is_periodic = 1  1  1

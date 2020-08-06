@@ -23,7 +23,7 @@ EBASE = main
 
 EXTERN_SEARCH += .
 
-AMREX_HOME ?= ../../..
+AMREX_HOME = ../../..
 CVODE_HOME ?= ../CVODE
 CUDA_HOME  ?= /usr/local/cuda-9.2
 

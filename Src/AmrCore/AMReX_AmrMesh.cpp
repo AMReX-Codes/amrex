@@ -504,14 +504,14 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
     BoxList bl = grids[lbase].simplified_list();
     bl.coarsen(bf_lev[lbase]);
-    p_n_comp[lbase].complementIn(pc_domain[lbase],bl);
+    p_n_comp[lbase].parallelComplementIn(pc_domain[lbase],bl);
     p_n_comp[lbase].simplify();
     p_n_comp[lbase].accrete(n_proper);
     if (geom[lbase].isAnyPeriodic()) {
         ProjPeriodic(p_n_comp[lbase], pc_domain[lbase],
                      geom[lbase].isPeriodic());
     }
-    p_n[lbase].complementIn(pc_domain[lbase],p_n_comp[lbase]);
+    p_n[lbase].parallelComplementIn(pc_domain[lbase],p_n_comp[lbase]);
     p_n[lbase].simplify();
     bl.clear();
 
@@ -529,7 +529,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 	    ProjPeriodic(p_n_comp[i], pc_domain[i], geom[i].isPeriodic());
 	}
 
-        p_n[i].complementIn(pc_domain[i],p_n_comp[i]);
+        p_n[i].parallelComplementIn(pc_domain[i],p_n_comp[i]);
         p_n[i].simplify();
     }
 
@@ -615,7 +615,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             }
             Box mboxF = amrex::grow(bl_tagged.minimalBox(),1);
             BoxList blFcomp;
-            blFcomp.complementIn(mboxF,bl_tagged);
+            blFcomp.parallelComplementIn(mboxF,bl_tagged);
             blFcomp.simplify();
             bl_tagged.clear();
 
@@ -624,9 +624,8 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                                                      n_error_buf[levf][2]/ref_ratio[levf][2]));
             blFcomp.accrete(iv);
             BoxList blF;
-            blF.complementIn(mboxF,blFcomp);
-            BoxArray baF(blF);
-            blF.clear();
+            blF.parallelComplementIn(mboxF,blFcomp);
+            BoxArray baF(std::move(blF));
             baF.grow(n_proper);
             //
             // We need to do this in case the error buffering at
@@ -707,6 +706,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             if (levf > useFixedUpToLevel()) {
                 BoxList new_bx;
                 if (ParallelDescriptor::IOProcessor()) {
+                    BL_PROFILE("AmrMesh-cluster");
                     //
                     // Construct initial cluster.
                     //

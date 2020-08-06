@@ -1032,7 +1032,7 @@ public:
 
 inline BoxConverter::~BoxConverter () { }
 
-void AllGatherBoxes (Vector<Box>& bxs);
+void AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve=0);
 
     /**
     * \brief Grow Box in all directions by given amount.

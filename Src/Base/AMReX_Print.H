@@ -12,6 +12,15 @@
 
 namespace amrex
 {
+    template <typename T>
+    std::ostream& operator<< (std::ostream& os, Array<T,AMREX_SPACEDIM> const& a)
+    {
+        os << AMREX_D_TERM( '(' << a[0] , <<
+                            ',' << a[1] , <<
+                            ',' << a[2])  << ')';
+        return os;
+    }
+
     template <typename T, typename S>
     std::ostream& operator<<(std::ostream& os, const std::pair<T, S>& v)
     {
