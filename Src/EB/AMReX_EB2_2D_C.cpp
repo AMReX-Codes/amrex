@@ -105,6 +105,24 @@ void set_eb_data (const int i, const int j,
         }
     }
 }
+
+void set_covered(const int i, const int j,
+                 Array4<EBCellFlag> const& cell,
+                 Array4<Real> const& vfrac, Array4<Real> const& vcent,
+                 Array4<Real> const& barea, Array4<Real> const& bcent,
+                 Array4<Real> const& bnorm) 
+{
+   vfrac(i,j,0) = 0.0;
+   vcent(i,j,0,0) = 0.0;
+   vcent(i,j,0,1) = 0.0;
+   barea(i,j,0) = 0.0;
+   bcent(i,j,0,0) = -1.0;
+   bcent(i,j,0,1) = -1.0;
+   bnorm(i,j,0,0) = 0.0;
+   bnorm(i,j,0,1) = 0.0;
+   cell(i,j,0).setCovered();
+}
+
 }
 
 void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
@@ -223,7 +241,8 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& apx, Array4<Real> const& apy,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm, Real small_volfrac)
+                  Array4<Real> const& bnorm, Real small_volfrac,
+                  Geometry const& geom, bool extend_domain_face)
 {
     const Box& bxg1 = amrex::grow(bx,1);
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
@@ -252,18 +271,38 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
 
             // remove small cells
             if (vfrac(i,j,0) < small_volfrac) {
-                vfrac(i,j,0) = 0.0;
-                vcent(i,j,0,0) = 0.0;
-                vcent(i,j,0,1) = 0.0;
-                barea(i,j,0) = 0.0;
-                bcent(i,j,0,0) = -1.0;
-                bcent(i,j,0,1) = -1.0;
-                bnorm(i,j,0,0) = 0.0;
-                bnorm(i,j,0,1) = 0.0;
-                cell(i,j,0).setCovered();
+               set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
             }
         }
     });
+
+    if(extend_domain_face) {
+       AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
+       {
+           const auto & dlo = geom.Domain().loVect();
+           const auto & dhi = geom.Domain().hiVect();
+
+           if(not cell(i,j,k).isCovered()) {
+
+              if(not geom.isPeriodic(0)) {
+                 if( (i < dlo[0] and cell(dlo[0],j,k).isCovered()) or 
+                     (i > dhi[0] and cell(dhi[0],j,k).isCovered()) ) 
+                 {
+                     set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
+                 }
+              }
+
+              if(not geom.isPeriodic(1)) {
+                 if( (j < dlo[1] and cell(i,dlo[1],k).isCovered()) or 
+                     (j > dhi[1] and cell(i,dhi[1],k).isCovered()) ) 
+                 {
+                     set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
+                 }
+              }
+           }
+       });
+    }
+
 
     // fix face for small cells
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bxg1, tbx,

@@ -631,7 +631,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp,
                   Real small_volfrac, 
-                  Box const& domain, bool extend_domain_face)
+                  Geometry const& geom, bool extend_domain_face)
 {
 
     const Box& bxg1 = amrex::grow(bx,1);
@@ -671,51 +671,47 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
 
             // remove small cells
             if (vfrac(i,j,k) < small_volfrac) {
-
                 set_covered(i,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
-                
-                if(extend_domain_face) {
-                   const auto & dlo = domain.loVect();
-                   const auto & dhi = domain.hiVect();
-                   const auto & lo = bxg1.loVect();
-                   const auto & hi = bxg1.hiVect();
-
-                   // if cell lies on any of the 6 domain faces, force
-                   // all layers of corresponding ghost cells to be covered
-                   if(i == dlo[0]) {
-                     for(int ii = lo[0]; ii < dlo[0]; ++ii) {
-                        set_covered(ii,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
-                     }
-                   }
-                   if(i == dhi[0]) {
-                     for(int ii = hi[0]; ii > dhi[0]; --ii) {
-                        set_covered(ii,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
-                     }
-                   }
-                   if(j == dlo[1]) {
-                     for(int jj = lo[1]; jj < dlo[1]; ++jj) {
-                        set_covered(i,jj,k,cell,vfrac,vcent,barea,bcent,bnorm);
-                     }
-                   }
-                   if(j == dhi[1]) {
-                     for(int jj = hi[1]; jj > dhi[1]; --jj) {
-                        set_covered(i,jj,k,cell,vfrac,vcent,barea,bcent,bnorm);
-                     }
-                   }
-                   if(k == dlo[2]) {
-                     for(int kk = lo[2]; kk < dlo[2]; ++kk) {
-                        set_covered(i,j,kk,cell,vfrac,vcent,barea,bcent,bnorm);
-                     }
-                   }
-                   if(k == dhi[2]) {
-                     for(int kk = hi[2]; kk > dhi[2]; --kk) {
-                        set_covered(i,j,kk,cell,vfrac,vcent,barea,bcent,bnorm);
-                     }
-                   }
-                }
             }
         }
     });
+
+    // set cells in the extended region to covered if the
+    // corresponding cell on the domain face is covered
+    if(extend_domain_face) {
+       AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
+       {
+           const auto & dlo = geom.Domain().loVect();
+           const auto & dhi = geom.Domain().hiVect();
+
+           if(not cell(i,j,k).isCovered()) {
+
+              if(not geom.isPeriodic(0)) {
+                 if( (i < dlo[0] and cell(dlo[0],j,k).isCovered()) or
+                     (i > dhi[0] and cell(dhi[0],j,k).isCovered()) ) 
+                 {   
+                     set_covered(i,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
+                 }
+              }
+
+              if(not geom.isPeriodic(1)) {
+                 if( (j < dlo[1] and cell(i,dlo[1],k).isCovered()) or
+                     (j > dhi[1] and cell(i,dhi[1],k).isCovered()) ) 
+                 {
+                     set_covered(i,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
+                 }
+              }
+
+              if(not geom.isPeriodic(2)) {
+                 if( (k < dlo[2] and cell(i,j,dlo[2]).isCovered()) or
+                     (k > dhi[2] and cell(i,j,dhi[2]).isCovered()) ) 
+                 {
+                     set_covered(i,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
+                 }
+              }
+           }
+       });
+    }
 
     // fix faces for small cells
     const auto bxlo = amrex::lbound(bx);
@@ -797,6 +793,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         for (int i = lo.x; i <= hi.x; ++i)
         {
             if (vfrac(i,j,k-1) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
+                //amrex::Print() << "Here: " << vfrac(i,j,k-1) << ", " << vfrac(i,j,k) << std::endl;
                 fz(i,j,k) = Type::covered;
                 apz(i,j,k) = 0.0;
 
