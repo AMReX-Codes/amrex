@@ -104,7 +104,7 @@ LinOp::~LinOp ()
 }
 
 void
-LinOp::clearToLevel (int level) {}
+LinOp::clearToLevel (int /*level*/) {}
 
 void
 LinOp::initConstruct (const Real* _h)
@@ -295,7 +295,7 @@ LinOp::jacobi_smooth (MultiFab&       solnL,
 }
 
 Real
-LinOp::norm (int nm, int level, const bool local)
+LinOp::norm (int /*nm*/, int /*level*/, const bool /*local*/)
 {
     amrex::Error("LinOp::norm: Placeholder for pure virtual function");
     return 0;
@@ -570,7 +570,7 @@ LinOp::get_beta () const
 }
 
 const MultiFab&
-LinOp::aCoefficients (int level)
+LinOp::aCoefficients (int /*level*/)
 {
     static MultiFab junk;
     amrex::Abort("LinOp::aCoefficients");
@@ -578,7 +578,7 @@ LinOp::aCoefficients (int level)
 }
 
 const MultiFab&
-LinOp::bCoefficients (int dir,int level)
+LinOp::bCoefficients (int /*dir*/,int /*level*/)
 {
     static MultiFab junk;
     amrex::Abort("LinOp::bCoefficients");
