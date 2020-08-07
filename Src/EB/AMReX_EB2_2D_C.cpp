@@ -277,28 +277,44 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         }
     });
 
+    // set cells in the extended region to covered if the
+    // corresponding cell on the domain face is covered
     if(extend_domain_face) {
        AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
        {
            const auto & dlo = geom.Domain().loVect();
            const auto & dhi = geom.Domain().hiVect();
 
-           if(not cell(i,j,k).isCovered()) {
+           // find the cell(ii,jj,kk) on the corr. domain face
+           // this would have already been set to correct value
+           int ii = i;
+           int jj = j;
+           int kk = k;
+           if(i < dlo[0]) {
+               ii = dlo[0];
+           }
+           else if(i > dhi[0]) {
+               ii = dhi[0];
+           }
 
-              if(not geom.isPeriodic(0)) {
-                 if( (i < dlo[0] and cell(dlo[0],j,k).isCovered()) or 
-                     (i > dhi[0] and cell(dhi[0],j,k).isCovered()) ) 
-                 {
-                     set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
-                 }
+           if(j < dlo[1]) {
+               jj = dlo[1];
+           }
+           else if(j > dhi[1]) {
+               jj = dhi[1];
+           }
+
+           // set cell on extendable region to covered
+           if( (not cell(i,j,k).isCovered()) and 
+               cell(ii,jj,kk).isCovered() ) 
+           {
+
+              if( (not geom.isPeriodic(0)) and (i < dlo[0] or i > dhi[0]) ) {
+                  set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
               }
 
-              if(not geom.isPeriodic(1)) {
-                 if( (j < dlo[1] and cell(i,dlo[1],k).isCovered()) or 
-                     (j > dhi[1] and cell(i,dhi[1],k).isCovered()) ) 
-                 {
-                     set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
-                 }
+              if( (not geom.isPeriodic(1)) and (j < dlo[1] or j > dhi[1]) ) {
+                  set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
               }
            }
        });
