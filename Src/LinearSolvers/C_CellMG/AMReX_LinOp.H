@@ -274,7 +274,7 @@ public:
     *
     * \param level
     */
-    virtual int NumGrow (int level = 0) const {return LinOp_grow;}
+    virtual int NumGrow (int /*level*/ = 0) const {return LinOp_grow;}
 
     /**
     * \brief Construct/allocate internal data necessary for adding a new level.
