@@ -19,7 +19,7 @@ void cic_interpolate (const P& p,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
 		      const amrex::Array4<amrex::Real const> &  uccarr,
-		      amrex::Real * val){
+		      amrex::ParticleReal * val){
 
   AMREX_ASSERT(val != 0);
 
@@ -35,9 +35,10 @@ void cic_interpolate (const P& p,
 
     for (int d=0; d < AMREX_SPACEDIM; ++d)
     {
+        val[d] = 0.0_prt;
         for (int ii = 0; ii<=1; ++ii)
 	{
-            val[d] += sx[ii]*uccarr(i+ii,0,0,d);
+            val[d] += static_cast<ParticleReal>(sx[ii]*uccarr(i+ii,0,0,d));
         }
     }
 
@@ -58,12 +59,12 @@ void cic_interpolate (const P& p,
 
     for (int d=0; d < AMREX_SPACEDIM; ++d)
       {
-        val[d] = 0.0;
+        val[d] = 0.0_prt;
         for (int jj = 0; jj <= 1; ++jj)
 	  {
             for (int ii = 0; ii <= 1; ++ii)
 	      {
-                val[d] += sx[ii]*sy[jj]*uccarr(i+ii,j+jj,0,d);
+                  val[d] += static_cast<ParticleReal>(sx[ii]*sy[jj]*uccarr(i+ii,j+jj,0,d));
               }
           }
       }
@@ -89,14 +90,14 @@ void cic_interpolate (const P& p,
 
     for (int d=0; d < AMREX_SPACEDIM; ++d)
     {
-        val[d] = 0.0;
+        val[d] = 0.0_prt;
         for (int kk = 0; kk<=1; ++kk)
 	{
             for (int jj = 0; jj <= 1; ++jj)
             {
                 for (int ii = 0; ii <= 1; ++ii)
                 {
-                    val[d] += sx[ii]*sy[jj]*sz[kk]*uccarr(i+ii,j+jj,k+kk,d);
+                    val[d] += static_cast<ParticleReal>(sx[ii]*sy[jj]*sz[kk]*uccarr(i+ii,j+jj,k+kk,d));
                 }
             }
         }
@@ -112,7 +113,7 @@ void mac_interpolate (const P& p,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
 		      amrex::GpuArray<amrex::Array4<amrex::Real const>,AMREX_SPACEDIM> const& p_uccarr,
-		      amrex::Real * val)
+		      amrex::ParticleReal * val)
 {
 
 #if (AMREX_SPACEDIM == 1)
@@ -126,10 +127,10 @@ void mac_interpolate (const P& p,
 
         amrex::Real sx[] = {1._rt - xint, xint};
 
-        val[d] = 0.0;
+        val[d] = 0.0_prt;
         for (int ii = 0; ii <= 1; ++ii)
         {
-            val[d] += (p_uccarr[d])(i+ii, 0, 0, 0)*sx[ii];
+            val[d] += static_cast<ParticleReal>((p_uccarr[d])(i+ii, 0, 0, 0)*sx[ii]);
         }
     }
 
@@ -149,12 +150,12 @@ void mac_interpolate (const P& p,
       amrex::Real sx[] = {1._rt - xint, xint};
       amrex::Real sy[] = {1._rt - yint, yint};
 
-      val[d] = 0.0;
+      val[d] = 0.0_prt;
       for (int jj = 0; jj <= 1; ++jj)
       {
           for (int ii = 0; ii <= 1; ++ii)
           {
-              val[d] += (p_uccarr[d])(i+ii, j+jj, 0, 0)*sx[ii]*sy[jj];
+              val[d] += static_cast<ParticleReal>((p_uccarr[d])(i+ii, j+jj, 0, 0)*sx[ii]*sy[jj]);
           }
       }
   }
@@ -180,14 +181,14 @@ void mac_interpolate (const P& p,
       amrex::Real sy[] = {1._rt - yint, yint};
       amrex::Real sz[] = {1._rt - zint, zint};
 
-      val[d] = 0.0;
+      val[d] = 0.0_prt;
       for (int kk = 0; kk <=1; ++kk)
       {
 	  for (int jj = 0; jj <= 1; ++jj)
           {
 	      for (int ii = 0; ii <= 1; ++ii)
               {
-		  val[d] += (p_uccarr[d])(i+ii, j+jj, k+kk ,0)*sx[ii]*sy[jj]*sz[kk];
+		  val[d] += static_cast<ParticleReal>((p_uccarr[d])(i+ii, j+jj, k+kk ,0)*sx[ii]*sy[jj]*sz[kk]);
               }
           }
       }

@@ -80,21 +80,21 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
             {
                 ParticleType& p = p_pbox[i];
                 if (p.id() <= 0) return;
-                Real v[AMREX_SPACEDIM];
+                ParticleReal v[AMREX_SPACEDIM];
                 mac_interpolate(p, plo, dxi, umacarr, v);
                 if (ipass == 0)
                 {
                     for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
                         p.rdata(dim) = p.pos(dim);
-                        p.pos(dim) += 0.5*dt*v[dim];
+                        p.pos(dim) += static_cast<ParticleReal>(0.5_prt*dt*v[dim]);
                     }
                 }
                 else
                 {
                     for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
-                        p.pos(dim) = p.rdata(dim) + dt*v[dim];
+                        p.pos(dim) = p.rdata(dim) + static_cast<ParticleReal>(dt*v[dim]);
                         p.rdata(dim) = v[dim];
                     }
                 }
@@ -158,7 +158,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
             {
                 ParticleType& p  = p_pbox[i];
                 if (p.id() <= 0) return;
-                Real v[AMREX_SPACEDIM];
+                ParticleReal v[AMREX_SPACEDIM];
 
                 cic_interpolate(p, plo, dxi, uccarr, v);
 
@@ -167,14 +167,14 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
                     for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
                         p.rdata(dim) = p.pos(dim);
-                        p.pos(dim) += 0.5*dt*v[dim];
+                        p.pos(dim) += static_cast<ParticleReal>(0.5_prt*dt*v[dim]);
                     }
                 }
                 else
                 {
                     for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
-                        p.rdata(dim) = p.rdata(dim) + dt*v[dim];
+                        p.rdata(dim) = p.rdata(dim) + static_cast<ParticleReal>(dt*v[dim]);
                         p.rdata(dim) = v[dim];
                     }
                 }
