@@ -317,7 +317,31 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticle (ParticleType& p, ParticleLocData& pld,
                                                                                    int lev_min, int lev_max, int nGrow, int local_grid) const
 {
-    bool outside = Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2)));
+    bool outside = AMREX_D_TERM(p.pos(0) <  Geom(0).ProbLo(0)
+                             || p.pos(0) >= Geom(0).ProbHi(0),
+                             || p.pos(1) <  Geom(0).ProbLo(1)
+                             || p.pos(1) >= Geom(0).ProbHi(1),
+                             || p.pos(2) <  Geom(0).ProbLo(2)
+                             || p.pos(2) >= Geom(0).ProbHi(2));
+
+    if (not outside)
+    {
+        if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
+        {
+            RealBox roundoff_domain = Geom(0).RoundoffDomain();
+            for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                if (p.pos(idim) <= roundoff_domain.lo(idim)) {
+                    p.pos(idim) = std::nextafter((ParticleReal) roundoff_domain.lo(idim), (ParticleReal) roundoff_domain.hi(idim));
+                }
+                if (p.pos(idim) >= roundoff_domain.hi(idim)) {
+                    p.pos(idim) = std::nextafter((ParticleReal) roundoff_domain.hi(idim), (ParticleReal) roundoff_domain.lo(idim));
+                }
+            }
+
+            AMREX_ASSERT(not Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))));
+        }
+    }
 
     bool success;
     if (outside)

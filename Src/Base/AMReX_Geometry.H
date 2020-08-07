@@ -50,7 +50,7 @@ struct GeometryData
  //! Returns our rectangular domain.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const Box& Domain () const noexcept { return domain; }
- //! Returns whether the domain is periodic in the given direction.
+//! Returns whether the domain is periodic in the given direction.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int isPeriodic (const int i) const noexcept { return is_periodic[i]; }
  //! Coordinates type
@@ -104,6 +104,8 @@ public:
     void define (const Box& dom, const RealBox& rb, int coord, Array<int,AMREX_SPACEDIM> const& is_per) noexcept;
     //! Returns the problem domain.
     const RealBox& ProbDomain () const noexcept { return prob_domain; }
+    //! Returns the roundoff domain.
+    const RealBox& RoundoffDomain () const noexcept { return roundoff_domain; }
     //! Sets the problem domain.
     void ProbDomain (const RealBox& rb) noexcept
     {
