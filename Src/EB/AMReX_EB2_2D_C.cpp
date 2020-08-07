@@ -106,6 +106,7 @@ void set_eb_data (const int i, const int j,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void set_covered(const int i, const int j,
                  Array4<EBCellFlag> const& cell,
                  Array4<Real> const& vfrac, Array4<Real> const& vcent,

@@ -633,10 +633,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Real small_volfrac, 
                   Geometry const& geom, bool extend_domain_face)
 {
-
     const Box& bxg1 = amrex::grow(bx,1);
-
-
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
     {
         if (cell(i,j,k).isRegular()) {
@@ -793,7 +790,6 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         for (int i = lo.x; i <= hi.x; ++i)
         {
             if (vfrac(i,j,k-1) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
-                //amrex::Print() << "Here: " << vfrac(i,j,k-1) << ", " << vfrac(i,j,k) << std::endl;
                 fz(i,j,k) = Type::covered;
                 apz(i,j,k) = 0.0;
 
