@@ -137,8 +137,7 @@ struct ParticleCopyPlan
         m_box_counts.resize(num_buckets+1, 0);
         m_box_offsets.resize(num_buckets+1);
         auto p_dst_box_counts = m_box_counts.dataPtr();
-        auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
-        auto p_box_perm = pc.BufferMap().levGridToBucketPtr();
+        auto getBucket = pc.BufferMap().getBucketFunctor();
 
         constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
 
@@ -163,7 +162,7 @@ struct ParticleCopyPlan
                     {
                         int dst_lev = p_levs[i];
                         int index = Gpu::Atomic::Inc(
-                            &p_dst_box_counts[p_box_perm[p_lev_offsets[dst_lev]+dst_box]], max_unsigned_int);
+                            &p_dst_box_counts[getBucket(dst_lev, dst_box)], max_unsigned_int);
                         p_dst_indices[i] = index;
                     }
                 });
@@ -223,23 +222,21 @@ struct GetSendBufferOffset
     const unsigned int* m_box_offsets;
     const std::size_t* m_pad_correction;
 
-    const int* m_lev_offsets;
-    const int* m_box_perm;
-    const int* m_buck_to_pid;
+    GetPID m_get_pid;
+    GetBucket m_get_bucket;
 
     GetSendBufferOffset (const ParticleCopyPlan& plan, const ParticleBufferMap& map)
         : m_box_offsets(plan.m_box_offsets.dataPtr()),
           m_pad_correction(plan.m_snd_pad_correction_d.dataPtr()),
-          m_lev_offsets(map.levelOffsetsPtr()),
-          m_box_perm(map.levGridToBucketPtr()),
-          m_buck_to_pid(map.bucketToPIDPtr())
+          m_get_pid(map.getPIDFunctor()),
+          m_get_bucket(map.getBucketFunctor())
     {}
 
     AMREX_FORCE_INLINE AMREX_GPU_HOST_DEVICE
     Long operator() (int dst_box, int dst_lev, std::size_t psize, int i) const
     {
-        int dst_pid = m_buck_to_pid[m_box_perm[m_lev_offsets[dst_lev]+dst_box]];
-        Long dst_offset = psize*(m_box_offsets[m_box_perm[m_lev_offsets[dst_lev]+dst_box]] + i);
+        int dst_pid = m_get_pid(dst_lev, dst_box);
+        Long dst_offset = psize*(m_box_offsets[m_get_bucket(dst_lev, dst_box)] + i);
         dst_offset += m_pad_correction[dst_pid];
         return dst_offset;
     }
@@ -321,7 +318,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
 template <class PC, class Buffer, class UnpackPolicy,
           EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
-void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, const UnpackPolicy policy)
+void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, const UnpackPolicy&& policy)
 {
     BL_PROFILE("amrex::unpackBuffer");
 
@@ -505,7 +502,7 @@ void communicateParticlesFinish (const ParticleCopyPlan& plan);
 
 template <class PC, class Buffer, class UnpackPolicy,
           EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
-void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, const UnpackPolicy& policy)
+void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, UnpackPolicy&& policy)
 {
     BL_PROFILE("amrex::unpackRemotes");
 

@@ -857,7 +857,8 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
 					   int             nprocs)
 {
     BL_ASSERT(boxes.size() > 0);
-    BL_ASSERT(m_ref->m_pmap.size() == boxes.size());
+
+    m_ref->m_pmap.resize(boxes.size());
 
     if (boxes.size() <= nprocs || nprocs < 2)
     {
@@ -883,53 +884,161 @@ namespace
         class Compare
         {
         public:
+            AMREX_FORCE_INLINE
             bool operator () (const SFCToken& lhs,
                               const SFCToken& rhs) const;
         };
-
-        SFCToken (int box, const IntVect& idx, Real vol)
-            :
-            m_box(box), m_idx(idx), m_vol(vol) {}
-
-        int     m_box;
-        IntVect m_idx;
-        Real    m_vol;
-
-        static int MaxPower;
+        int m_box;
+        Array<uint32_t,AMREX_SPACEDIM> m_morton;
     };
 }
 
-int SFCToken::MaxPower = 64;
-
+AMREX_FORCE_INLINE
 bool
 SFCToken::Compare::operator () (const SFCToken& lhs,
                                 const SFCToken& rhs) const
 {
-    for (int i = SFCToken::MaxPower - 1; i >= 0; --i)
+#if (AMREX_SPACEDIM == 1)
+        return lhs.m_morton[0] < rhs.m_morton[0];
+#elif (AMREX_SPACEDIM == 2)
+        return (lhs.m_morton[1] <  rhs.m_morton[1]) ||
+              ((lhs.m_morton[1] == rhs.m_morton[1]) &&
+               (lhs.m_morton[0] <  rhs.m_morton[0]));
+#else
+        return (lhs.m_morton[2] <  rhs.m_morton[2]) ||
+              ((lhs.m_morton[2] == rhs.m_morton[2]) &&
+              ((lhs.m_morton[1] <  rhs.m_morton[1]) ||
+              ((lhs.m_morton[1] == rhs.m_morton[1]) &&
+               (lhs.m_morton[0] <  rhs.m_morton[0]))));
+#endif
+}
+
+namespace {
+#if (AMREX_SPACEDIM == 3)
+    AMREX_FORCE_INLINE
+    uint32_t make_space (uint32_t x)
     {
-        const int N = (1<<i);
-
-        for (int j = AMREX_SPACEDIM-1; j >= 0; --j)
-        {
-            const int il = lhs.m_idx[j]/N;
-            const int ir = rhs.m_idx[j]/N;
-
-            if (il < ir)
-            {
-                return true;
-            }
-            else if (il > ir)
-            {
-                return false;
-            }
-        }
+        // x            : 0000,0000,0000,0000,0000,00a9,8765,4321
+        x = (x | (x << 16)) & 0x030000FF;
+        // x << 16      : 0000,00a9,8765,4321,0000,0000,0000,0000
+        // x | (x << 16): 0000,00a9,8765,4321,0000,00a9,8765,4321
+        // 0x030000FF   : 0000,0011,0000,0000,0000,0000,1111,1111
+        // x            : 0000,00a9,0000,0000,0000,0000,8765,4321
+        x = (x | (x <<  8)) & 0x0300F00F;
+        // x << 8       : 0000,0000,0000,0000,8765,4321,0000,0000
+        // x | (x << 8) : 0000,00a9,0000,0000,8765,4321,8765,4321
+        // 0x0300F00F   : 0000,0011,0000,0000,1111,0000,0000,1111
+        // x            : 0000,00a9,0000,0000,8765,0000,0000,4321
+        x = (x | (x <<  4)) & 0x030C30C3;
+        // x << 4       : 00a9,0000,0000,8765,0000,0000,4321,0000
+        // x | (x << 4) : 00a9,00a9,0000,8765,8765,0000,4321,4321
+        // 0x030C30C3   : 0000,0011,0000,1100,0011,0000,1100,0011
+        // x            : 0000,00a9,0000,8700,0065,0000,4300,0021
+        x = (x | (x <<  2)) & 0x09249249;
+        // x << 2       : 0000,a900,0087,0000,6500,0043,0000,2100
+        // x | (x << 2) : 0000,a9a9,0087,8700,6565,0043,4300,2121
+        // 0x09249249   : 0000,1001,0010,0100,1001,0010,0100,1001
+        // x            : 0000,a009,0080,0700,6005,0040,0300,2001
+        return x;
     }
-    return false;
+#elif (AMREX_SPACEDIM == 2)
+    AMREX_FORCE_INLINE
+    uint32_t make_space (uint32_t x)
+    {
+        // x           : 0000,0000,0000,0000,gfed,cba9,8765,4321
+        x = (x | (x << 8)) & 0x00FF00FF;
+        // x << 8      : 0000,0000,gfed,cba9,8765,4321,0000,0000
+        // x | (x << 8): 0000,0000,gfed,cba9,????,????,8765,4321
+        // 0x00FF00FF  : 0000,0000,1111,1111,0000,0000,1111,1111
+        // x           : 0000,0000,gfed,cba9,0000,0000,8765,4321
+        x = (x | (x << 4)) & 0x0F0F0F0F;
+        // x << 4      : 0000,gfed,cba9,0000,0000,8765,4321,0000
+        // x | (x << 4): 0000,gfed,????,cba9,0000,8765,????,4321
+        // 0x0F0F0F0F  : 0000,1111,0000,1111,0000,1111,0000,1111
+        // x           : 0000,gfed,0000,cba9,0000,8765,0000,4321
+        x = (x | (x << 2)) & 0x33333333;
+        // x << 2      : 00gf,ed00,00cb,a900,0087,6500,0043,2100
+        // x | (x << 2): 00gf,??ed,00cb,??a9,0087,??65,0043,??21
+        // 0x33333333  : 0011,0011,0011,0011,0011,0011,0011,0011
+        // x           : 00gf,00ed,00cb,00a9,0087,0065,0043,0021
+        x = (x | (x << 1)) & 0x55555555;
+        // x << 1      : 0gf0,0ed0,0cb0,0a90,0870,0650,0430,0210
+        // x | (x << 1): 0g?f,0e?d,0c?b,0a?9,08?7,06?5,04?3,02?1
+        // 0x55555555  : 0101,0101,0101,0101,0101,0101,0101,0101
+        // x           : 0g0f,0e0d,0c0b,0a09,0807,0605,0403,0201
+        return x;
+    }
+#endif
+
+    AMREX_FORCE_INLINE
+    SFCToken makeSFCToken (int box_index, IntVect const& iv)
+    {
+        SFCToken token;
+        token.m_box = box_index;
+
+#if (AMREX_SPACEDIM == 3)
+
+        constexpr int imin = -static_cast<int>(1 << 29);
+        AMREX_ASSERT_WITH_MESSAGE(AMREX_D_TERM(iv[0] >= imin && iv[0] < -imin,
+                                            && iv[1] >= imin && iv[1] < -imin,
+                                            && iv[2] >= imin && iv[2] < -imin),
+                                  "SFCToken: index out of range");
+        uint32_t x = iv[0] - imin;
+        uint32_t y = iv[1] - imin;
+        uint32_t z = iv[2] - imin;
+        // extract lowest 10 bits and make space for interleaving
+        token.m_morton[0] = make_space(x & 0x3FF)
+                         | (make_space(y & 0x3FF) << 1)
+                         | (make_space(z & 0x3FF) << 2);
+        x = x >> 10;
+        y = y >> 10;
+        z = z >> 10;
+        token.m_morton[1] = make_space(x & 0x3FF)
+                         | (make_space(y & 0x3FF) << 1)
+                         | (make_space(z & 0x3FF) << 2);
+        x = x >> 10;
+        y = y >> 10;
+        z = z >> 10;
+        token.m_morton[2] = make_space(x & 0x3FF)
+                         | (make_space(y & 0x3FF) << 1)
+                         | (make_space(z & 0x3FF) << 2);
+
+#elif (AMREX_SPACEDIM == 2)
+
+        constexpr uint32_t offset = 1 << 31;
+        static_assert(static_cast<uint32_t>(std::numeric_limits<int>::max())+1 == offset,
+                      "INT_MAX != (1<<31)-1");
+        uint32_t x = (iv[0] >= 0) ? static_cast<uint32_t>(iv[0]) + offset
+            : static_cast<uint32_t>(iv[0]-std::numeric_limits<int>::lowest());
+        uint32_t y = (iv[1] >= 0) ? static_cast<uint32_t>(iv[1]) + offset
+            : static_cast<uint32_t>(iv[1]-std::numeric_limits<int>::lowest());
+        // extract lowest 16 bits and make sapce for interleaving
+        token.m_morton[0] = make_space(x & 0xFFFF)
+                         | (make_space(y & 0xFFFF) << 1);
+        x = x >> 16;
+        y = y >> 16;
+        token.m_morton[1] = make_space(x) | (make_space(y) << 1);
+
+#elif (AMREX_SPACEDIM == 1)
+
+        constexpr uint32_t offset = 1 << 31;
+        static_assert(static_cast<uint32_t>(std::numeric_limits<int>::max())+1 == offset,
+                      "INT_MAX != (1<<31)-1");
+        token.m_morton[0] = (iv[0] >= 0) ? static_cast<uint32_t>(iv[0]) + offset
+            : static_cast<uint32_t>(iv[0]-std::numeric_limits<int>::lowest());
+
+#else
+        static_assert(false,"AMREX_SPACEDIM != 1, 2 or 3");
+#endif
+
+        return token;
+    }
 }
 
 static
 void
 Distribute (const std::vector<SFCToken>&     tokens,
+            const std::vector<Long>&         wgts,
             int                              nprocs,
             Real                             volpercpu,
             std::vector< std::vector<int> >& v)
@@ -945,8 +1054,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
         for (const auto &t : tokens) {
             Print() << "    " << idx++ << ": "
                     << t.m_box << ": "
-                    << t.m_idx << ": "
-                    << t.m_vol << std::endl;
+                    << t.m_morton << std::endl;
         }
     }
 
@@ -964,7 +1072,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
               K < TSZ && (i == (nprocs-1) || (vol < volpercpu));
               ++K)
         {
-            vol += tokens[K].m_vol;
+            vol += wgts[tokens[K].m_box];
             ++cnt;
 
             v[i].push_back(tokens[K].m_box);
@@ -978,7 +1086,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
         {
             --K;
             v[i].pop_back();
-            totalvol -= tokens[K].m_vol;
+            totalvol -= wgts[tokens[K].m_box];
         }
     }
 
@@ -994,9 +1102,8 @@ Distribute (const std::vector<SFCToken>&     tokens,
                 BL_ASSERT(box == t.m_box);
                 Print() << "    " << idx << ": "
                         << t.m_box << ": "
-                        << t.m_idx << ": "
-                        << t.m_vol << std::endl;
-                rank_vol += t.m_vol;
+                        << t.m_morton << std::endl;
+                rank_vol += wgts[t.m_box];
                 idx++;
             }
             Print() << "    Total Rank Vol: " << rank_vol << std::endl;
@@ -1048,33 +1155,14 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                 << nprocs << ", " << nteams << ", " << nworkers << ")\n";
     }
 
-    std::vector<SFCToken> tokens;
-
     const int N = boxes.size();
-
+    std::vector<SFCToken> tokens;
     tokens.reserve(N);
-
-    int maxijk = 0;
-
     for (int i = 0; i < N; ++i)
     {
-	const Box& bx = boxes[i];
-        tokens.push_back(SFCToken(i,bx.smallEnd(),wgts[i]));
-
-        const SFCToken& token = tokens.back();
-
-        AMREX_D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
-                     maxijk = std::max(maxijk, token.m_idx[1]);,
-                     maxijk = std::max(maxijk, token.m_idx[2]););
+        const Box& bx = boxes[i];
+        tokens.push_back(makeSFCToken(i, bx.smallEnd()));
     }
-    //
-    // Set SFCToken::MaxPower for BoxArray.
-    //
-    int m = 0;
-    for ( ; (1 << m) <= maxijk; ++m) {
-        ;  // do nothing
-    }
-    SFCToken::MaxPower = m;
     //
     // Put'm in Morton space filling curve order.
     //
@@ -1083,14 +1171,14 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     // Split'm up as equitably as possible per team.
     //
     Real volperteam = 0;
-    for (const SFCToken& tok : tokens) {
-        volperteam += tok.m_vol;
+    for (Long wt : wgts) {
+        volperteam += wt;
     }
     volperteam /= nteams;
 
     std::vector< std::vector<int> > vec(nteams);
 
-    Distribute(tokens,nteams,volperteam,vec);
+    Distribute(tokens,wgts,nteams,volperteam,vec);
 
     // vec has a size of nteams and vec[] holds a vector of box ids.
 
@@ -1312,33 +1400,14 @@ DistributionMapping::RRSFCDoIt (const BoxArray&          boxes,
     amrex::Abort("Team support is not implemented yet in RRSFC");
 #endif
 
-    std::vector<SFCToken> tokens;
-
     const int nboxes = boxes.size();
-
+    std::vector<SFCToken> tokens;
     tokens.reserve(nboxes);
-
-    int maxijk = 0;
-
     for (int i = 0; i < nboxes; ++i)
     {
-	const Box& bx = boxes[i];
-        tokens.push_back(SFCToken(i,bx.smallEnd(),0.0));
-
-        const SFCToken& token = tokens.back();
-
-        AMREX_D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
-               maxijk = std::max(maxijk, token.m_idx[1]);,
-               maxijk = std::max(maxijk, token.m_idx[2]););
+        const Box& bx = boxes[i];
+        tokens.push_back(makeSFCToken(i, bx.smallEnd()));
     }
-    //
-    // Set SFCToken::MaxPower for BoxArray.
-    //
-    int m = 0;
-    for ( ; (1 << m) <= maxijk; ++m) {
-        ;  // do nothing
-    }
-    SFCToken::MaxPower = m;
     //
     // Put'm in Morton space filling curve order.
     //
@@ -1728,36 +1797,20 @@ DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol, const int np
 {
     BL_PROFILE("makeSFC");
 
-    std::vector<SFCToken> tokens;
-
     const int N = ba.size();
-
+    std::vector<SFCToken> tokens;
+    std::vector<Long> wgts;
     tokens.reserve(N);
-
-    int maxijk = 0;
-
-    Real vol_sum = 0;
+    wgts.reserve(N);
+    Long vol_sum = 0;
     for (int i = 0; i < N; ++i)
     {
-	const Box& bx = ba[i];
-        const auto & bx_vol = (use_box_vol ? bx.volume() : 1);
-        tokens.push_back(SFCToken(i,bx.smallEnd(),bx_vol));
-        vol_sum += bx_vol;
-
-        const SFCToken& token = tokens.back();
-
-        AMREX_D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
-                     maxijk = std::max(maxijk, token.m_idx[1]);,
-                     maxijk = std::max(maxijk, token.m_idx[2]););
+        const Box& bx = ba[i];
+        tokens.push_back(makeSFCToken(i, bx.smallEnd()));
+        const Long v = use_box_vol ? bx.volume() : Long(1);
+        vol_sum += v;
+        wgts.push_back(v);
     }
-    //
-    // Set SFCToken::MaxPower for BoxArray.
-    //
-    int m = 0;
-    for ( ; (1 << m) <= maxijk; ++m) {
-        ;  // do nothing
-    }
-    SFCToken::MaxPower = m;
     //
     // Put'm in Morton space filling curve order.
     //
@@ -1767,7 +1820,8 @@ DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol, const int np
     volper = vol_sum / nprocs;
 
     std::vector< std::vector<int> > r(nprocs);
-    Distribute(tokens, nprocs, volper, r);
+
+    Distribute(tokens, wgts, nprocs, volper, r);
 
     return r;
 }
