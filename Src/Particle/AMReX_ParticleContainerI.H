@@ -1418,8 +1418,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                       char* dst = &particles_to_send[old_size] + particle_size;
                       for (int comp = 0; comp < NumRealComps(); comp++) {
                           if (communicate_real_comp[comp]) {
-                              std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(Real));
-                              dst += sizeof(Real);
+                              std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
+                              dst += sizeof(ParticleReal);
                           }
                       }
                       for (int comp = 0; comp < NumIntComps(); comp++) {
@@ -1825,9 +1825,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 ptile.push_back(p);
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
                     if (communicate_real_comp[comp]) {
-                        Real rdata;
-                        std::memcpy(&rdata, pbuf, sizeof(Real));
-                        pbuf += sizeof(Real);
+                        ParticleReal rdata;
+                        std::memcpy(&rdata, pbuf, sizeof(ParticleReal));
+                        pbuf += sizeof(ParticleReal);
                         ptile.push_back_real(comp, rdata);
                     } else {
                         ptile.push_back_real(comp, 0.0);

@@ -366,7 +366,7 @@ CHECKFORT       = $(AMREX_HOME)/Tools/typechecker/typechecker.py
 MKCONFIG        = $(AMREX_HOME)/Tools/libamrex/mkconfig.py
 MKPKGCONFIG     = $(AMREX_HOME)/Tools/libamrex/mkpkgconfig.py
 
-DEPFLAGS        = -M
+DEPFLAGS        = -MM
 
 RANLIB          = ranlib
 

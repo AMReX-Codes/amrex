@@ -211,18 +211,18 @@ bool enforcePeriodic (P& p,
         if (not is_per[idim]) continue;
         if (p.pos(idim) >= phi[idim]) {
             while (p.pos(idim) >= phi[idim]) {
-                p.pos(idim) -= (phi[idim] - plo[idim]);
+                p.pos(idim) -= static_cast<ParticleReal>(phi[idim] - plo[idim]);
             }
             // clamp to avoid precision issues;
-            if (p.pos(idim) < plo[idim]) p.pos(idim) = plo[idim];
+            if (p.pos(idim) < plo[idim]) p.pos(idim) = static_cast<ParticleReal>(plo[idim]);
             shifted = true;
         }
         else if (p.pos(idim) < plo[idim]) {
             while (p.pos(idim) < plo[idim]) {
-                p.pos(idim) += (phi[idim] - plo[idim]);
+                p.pos(idim) += static_cast<ParticleReal>(phi[idim] - plo[idim]);
             }
             // clamp to avoid precision issues;
-            if (p.pos(idim) == phi[idim]) p.pos(idim) = plo[idim];
+            if (p.pos(idim) == phi[idim]) p.pos(idim) = static_cast<ParticleReal>(plo[idim]);
             if (p.pos(idim) > phi[idim]) p.pos(idim) = std::nextafter( (amrex::ParticleReal) phi[idim], (amrex::ParticleReal) plo[idim]);
             shifted = true;
         }
