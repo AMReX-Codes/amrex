@@ -280,44 +280,53 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     // set cells in the extended region to covered if the
     // corresponding cell on the domain face is covered
     if(extend_domain_face) {
+
+       Box gdomain = geom.Domain();
+       for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+           if (geom.isPeriodic(idim)) {
+               gdomain.setSmall(idim, std::min(gdomain.smallEnd(idim), bxg1.smallEnd(idim)));
+               gdomain.setBig(idim, std::max(gdomain.bigEnd(idim), bxg1.bigEnd(idim)));
+           }
+       }
+
+       if (not gdomain.contains(bxg1)) {
        AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
        {
-           const auto & dlo = geom.Domain().loVect();
-           const auto & dhi = geom.Domain().hiVect();
+              const auto & dlo = gdomain().loVect();
+              const auto & dhi = gdomain().hiVect();
 
-           // find the cell(ii,jj,kk) on the corr. domain face
-           // this would have already been set to correct value
-           int ii = i;
-           int jj = j;
-           int kk = k;
-           if(i < dlo[0]) {
-               ii = dlo[0];
-           }
-           else if(i > dhi[0]) {
-               ii = dhi[0];
-           }
-
-           if(j < dlo[1]) {
-               jj = dlo[1];
-           }
-           else if(j > dhi[1]) {
-               jj = dhi[1];
-           }
-
-           // set cell on extendable region to covered
-           if( (not cell(i,j,k).isCovered()) and 
-               cell(ii,jj,kk).isCovered() ) 
-           {
-
-              if( (not geom.isPeriodic(0)) and (i < dlo[0] or i > dhi[0]) ) {
-                  set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
+              // find the cell(ii,jj,kk) on the corr. domain face
+              // this would have already been set to correct value
+              bool in_extended_domain = false;
+              int ii = i;
+              int jj = j;
+              int kk = k;
+              if(i < dlo[0]) {
+                  in_extended_domain = true;
+                  ii = dlo[0];
+              }
+              else if(i > dhi[0]) {
+                  in_extended_domain = true;
+                  ii = dhi[0];
               }
 
-              if( (not geom.isPeriodic(1)) and (j < dlo[1] or j > dhi[1]) ) {
+              if(j < dlo[1]) {
+                  in_extended_domain = true;
+                  jj = dlo[1];
+              }
+              else if(j > dhi[1]) {
+                  in_extended_domain = true;
+                  jj = dhi[1];
+              }
+
+              // set cell in extendable region to covered if necessary
+              if( in_extended_domain and (not cell(i,j,k).isCovered()) 
+                  and cell(ii,jj,kk).isCovered() ) 
+              {
                   set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
               }
-           }
-       });
+          });
+       }
     }
 
 
