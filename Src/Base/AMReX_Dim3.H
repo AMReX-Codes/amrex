@@ -20,7 +20,7 @@ struct Dim3 { int x; int y; int z;
 };
 struct XDim3 { Real x; Real y; Real z;
     AMREX_GPU_HOST_DEVICE
-    constexpr XDim3 () : x(0._rt), y(0._rt), z(0._rt) {}
+    constexpr XDim3 () : x(0.), y(0.), z(0.) {}
     AMREX_GPU_HOST_DEVICE
     constexpr XDim3 (Real x_, Real y_, Real z_) // xxxxx HIP: todo
         : x(x_), y(y_), z(z_) {}

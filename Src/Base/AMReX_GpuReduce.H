@@ -39,7 +39,11 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
     sycl::intel::sub_group const& sg = h.item.get_sub_group();
     int lane = sg.get_local_id()[0];
     int wid = sg.get_group_id()[0];
+#if (__SYCL_COMPILER_VERSION <= 20200715)
     int numwarps = sg.get_group_range();
+#else
+    int numwarps = sg.get_group_range()[0];
+#endif
     x = warp_reduce(x, sg);
     // __syncthreads() prior to writing to shared memory is necessary
     // if this reduction call is occurring multiple times in a kernel,

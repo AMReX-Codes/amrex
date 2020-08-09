@@ -57,7 +57,7 @@ void interpbndrydata_x_o3 (int i, int j, int /*k*/, int n,
         NN = 1;
     }
 
-    Real xInt = -0.5_rt + (j-jc*r.y+0.5_rt)/r.y;
+    Real xInt = -Real(0.5) + (j-jc*r.y+Real(0.5))/r.y;
     poly_interp_coeff(xInt, x, NN, c);
     Real b = 0.0;
     for (int m = 0; m < NN; ++m) {
@@ -106,7 +106,7 @@ void interpbndrydata_y_o3 (int i, int j, int /*k*/, int n,
         NN = 1;
     }
 
-    Real xInt = -0.5_rt + (i-ic*r.x+0.5_rt)/r.x;
+    Real xInt = -Real(0.5) + (i-ic*r.x+Real(0.5))/r.x;
     poly_interp_coeff(xInt, x, NN, c);
     Real b = 0.0;
     for (int m = 0; m < NN; ++m) {

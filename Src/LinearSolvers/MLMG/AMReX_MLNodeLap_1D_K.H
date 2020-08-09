@@ -131,7 +131,7 @@ void mlndlap_divu (int /*i*/, int /*j*/, int /*k*/, Array4<Real> const& rhs, Arr
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real mlndlap_rhcc (int /*i*/, int /*j*/, int /*k*/, Array4<Real const> const& rhcc,
                    Array4<int const> const& msk) noexcept
-{ return 0._rt; }
+{ return Real(0.); }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_mknewu (int /*i*/, int /*j*/, int /*k*/, Array4<Real> const& u, Array4<Real const> const& p,
