@@ -292,8 +292,8 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
        if (not gdomain.contains(bxg1)) {
        AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
        {
-              const auto & dlo = gdomain().loVect();
-              const auto & dhi = gdomain().hiVect();
+              const auto & dlo = gdomain.loVect();
+              const auto & dhi = gdomain.hiVect();
 
               // find the cell(ii,jj,kk) on the corr. domain face
               // this would have already been set to correct value
