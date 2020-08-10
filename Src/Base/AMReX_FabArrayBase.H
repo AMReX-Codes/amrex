@@ -23,11 +23,6 @@ class Geometry;
 class FArrayBox;
 template <typename FAB> class FabFactory;
 template <typename FAB> class FabArray;
-class AmrTask;
-#ifdef USE_PERILLA
-class Perilla;
-class RegionGraph;
-#endif
 
 namespace EB2 { class IndexSpace; }
 
@@ -35,11 +30,6 @@ class FabArrayBase
 {
     friend class MFIter;
     friend class MFGhostIter;
-    friend class AmrTask;
-#ifdef USE_PERILLA
-    friend class Perilla;
-    friend class RegionGraph;
-#endif
 
     template <class FAB> friend void FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period);
 

@@ -330,7 +330,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         }
     }
 
-#if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)
+#if defined(AMREX_USE_UPCXX)
     upcxx::init();
 #endif
 
@@ -612,7 +612,7 @@ amrex::Finalize (amrex::AMReX* pamrex)
     Gpu::Device::Finalize();
 #endif
 
-#if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)
+#if defined(AMREX_USE_UPCXX)
     upcxx::finalize();
 #endif
 
