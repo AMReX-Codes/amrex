@@ -55,18 +55,33 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                     Real dvdy = (0.5*dyi) * ((vel(i  ,jhip,k,1)-vel(i  ,jhim,k,1))*whi
                                             +(vel(i-1,jlop,k,1)-vel(i-1,jlom,k,1))*wlo);
 
-                    if (i==dhi.x+1 and bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_NEUMANN){
-                        dudy = (dyi) * ((vel(i-1,jlop,k,0)-vel(i-1,jlom,k,0))*wlo);
+                    if (i==dhi.x+1){
+                        if (bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_NEUMANN){
+                            dudy = (dyi) * ((vel(i-1,jlop,k,0)-vel(i-1,jlom,k,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::high),1)==AMREX_LO_NEUMANN){
+                            dvdy = (dyi) * ((vel(i-1,jlop,k,1)-vel(i-1,jlom,k,1))*wlo);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_DIRICHLET){
+                            dudy = (dyi) * ((vel(i  ,jhip,k,0)-vel(i  ,jhim,k,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::high),1)==AMREX_LO_DIRICHLET){
+                            dvdy = (dyi) * ((vel(i  ,jhip,k,1)-vel(i  ,jhim,k,1))*whi);
+                        }
                     }
-                    if (i==dhi.x+1 and bct(Orientation(Direction::x,Orientation::high),1)==AMREX_LO_NEUMANN){
-                        dvdy = (dyi) * ((vel(i-1,jlop,k,1)-vel(i-1,jlom,k,1))*wlo);
-                    }
-
-                    if (i==dlo.x and bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_NEUMANN){
-                        dudy = (dyi) * ((vel(i  ,jhip,k,0)-vel(i  ,jhim,k,0))*whi);
-                    }
-                    if (i==dlo.x and bct(Orientation(Direction::x,Orientation::low),1)==AMREX_LO_NEUMANN){
-                        dvdy = (dyi) * ((vel(i  ,jhip,k,1)-vel(i  ,jhim,k,1))*whi);
+                    if (i==dlo.x){
+                        if (bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_NEUMANN){
+                            dudy = (dyi) * ((vel(i  ,jhip,k,0)-vel(i  ,jhim,k,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::low),1)==AMREX_LO_NEUMANN){
+                            dvdy = (dyi) * ((vel(i  ,jhip,k,1)-vel(i  ,jhim,k,1))*whi);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_DIRICHLET){
+                            dudy = (dyi) * ((vel(i-1,jlop,k,0)-vel(i-1,jlom,k,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::low),1)==AMREX_LO_DIRICHLET){
+                            dvdy = (dyi) * ((vel(i-1,jlop,k,1)-vel(i-1,jlom,k,1))*wlo);
+                        }
                     }
 
                     int khip = k + flag(i  ,j,k).isConnected(0,0, 1);
@@ -82,18 +97,33 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                     Real dwdz = (0.5*dzi) * ((vel(i  ,j,khip,2)-vel(i  ,j,khim,2))*whi
                                             +(vel(i-1,j,klop,2)-vel(i-1,j,klom,2))*wlo);
 
-                    if (i==dhi.x+1 and bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_NEUMANN){
-                        dudz = (dzi) * ((vel(i-1,j,klop,0)-vel(i-1,j,klom,0))*wlo);
+                    if (i==dhi.x+1){
+                        if (bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_NEUMANN){
+                            dudz = (dzi) * ((vel(i-1,j,klop,0)-vel(i-1,j,klom,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::high),2)==AMREX_LO_NEUMANN){
+                            dwdz = (dzi) * ((vel(i-1,j,klop,2)-vel(i-1,j,klom,2))*wlo);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_DIRICHLET){
+                            dudz = (dzi) * ((vel(i  ,j,khip,0)-vel(i  ,j,khim,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::high),2)==AMREX_LO_DIRICHLET){
+                            dwdz = (dzi) * ((vel(i  ,j,khip,2)-vel(i  ,j,khim,2))*whi);
+                        }
                     }
-                    if (i==dhi.x+1 and bct(Orientation(Direction::x,Orientation::high),2)==AMREX_LO_NEUMANN){
-                        dwdz = (dzi) * ((vel(i-1,j,klop,2)-vel(i-1,j,klom,2))*wlo);
-                    }
-
-                    if (i==dlo.x and bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_NEUMANN){
-                        dudz = (dzi) * ((vel(i  ,j,khip,0)-vel(i  ,j,khim,0))*whi);
-                    }
-                    if (i==dlo.x and bct(Orientation(Direction::x,Orientation::low),2)==AMREX_LO_NEUMANN){
-                        dwdz = (dzi) * ((vel(i  ,j,khip,2)-vel(i  ,j,khim,2))*whi);
+                    if (i==dlo.x){
+                        if (bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_NEUMANN){
+                            dudz = (dzi) * ((vel(i  ,j,khip,0)-vel(i  ,j,khim,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::low),2)==AMREX_LO_NEUMANN){
+                            dwdz = (dzi) * ((vel(i  ,j,khip,2)-vel(i  ,j,khim,2))*whi);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_DIRICHLET){
+                            dudz = (dzi) * ((vel(i-1,j,klop,0)-vel(i-1,j,klom,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::low),2)==AMREX_LO_DIRICHLET){
+                            dwdz = (dzi) * ((vel(i-1,j,klop,2)-vel(i-1,j,klom,2))*wlo);
+                        }
                     }
 
                     Real divu = dvdy + dwdz;
@@ -151,18 +181,33 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                     Real dvdx = (0.5*dxi) * ((vel(ihip,j  ,k,1)-vel(ihim,j  ,k,1))*whi
                                             +(vel(ilop,j-1,k,1)-vel(ilom,j-1,k,1))*wlo);
 
-                    if (j==dhi.y+1 and bct(Orientation(Direction::y,Orientation::high),0)==AMREX_LO_NEUMANN){
-                        dudx = (dxi) * ((vel(ilop,j-1,k,0)-vel(ilom,j-1,k,0))*wlo);
+                    if (j==dhi.y+1){ 
+                        if (bct(Orientation(Direction::y,Orientation::high),0)==AMREX_LO_NEUMANN){
+                            dudx = (dxi) * ((vel(ilop,j-1,k,0)-vel(ilom,j-1,k,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::high),1)==AMREX_LO_NEUMANN){
+                            dvdx = (dxi) * ((vel(ilop,j-1,k,1)-vel(ilom,j-1,k,1))*wlo);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::high),0)==AMREX_LO_DIRICHLET){
+                            dudx = (dxi) * ((vel(ihip,j  ,k,0)-vel(ihim,j  ,k,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::high),1)==AMREX_LO_DIRICHLET){
+                            dvdx = (dxi) * ((vel(ihip,j  ,k,1)-vel(ihim,j  ,k,1))*whi);
+                        }
                     }
-                    if (j==dhi.y+1 and bct(Orientation(Direction::y,Orientation::high),1)==AMREX_LO_NEUMANN){
-                        dvdx = (dxi) * ((vel(ilop,j-1,k,1)-vel(ilom,j-1,k,1))*wlo);
-                    }
-
-                    if (j==dlo.y and bct(Orientation(Direction::y,Orientation::low),0)==AMREX_LO_NEUMANN){
-                        dudx = (dxi) * ((vel(ihip,j  ,k,0)-vel(ihim,j  ,k,0))*whi);
-                    }
-                    if (j==dlo.y and bct(Orientation(Direction::y,Orientation::low),1)==AMREX_LO_NEUMANN){
-                        dvdx = (dxi) * ((vel(ihip,j  ,k,1)-vel(ihim,j  ,k,1))*whi);
+                    if (j==dlo.y){
+                        if (bct(Orientation(Direction::y,Orientation::low),0)==AMREX_LO_NEUMANN){
+                            dudx = (dxi) * ((vel(ihip,j  ,k,0)-vel(ihim,j  ,k,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::low),1)==AMREX_LO_NEUMANN){
+                            dvdx = (dxi) * ((vel(ihip,j  ,k,1)-vel(ihim,j  ,k,1))*whi);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::low),0)==AMREX_LO_DIRICHLET){
+                            dudx = (dxi) * ((vel(ilop,j-1,k,0)-vel(ilom,j-1,k,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::low),1)==AMREX_LO_DIRICHLET){
+                            dvdx = (dxi) * ((vel(ilop,j-1,k,1)-vel(ilom,j-1,k,1))*wlo);
+                        }
                     }
 
                     int khip = k + flag(i,j  ,k).isConnected(0,0, 1);
@@ -178,18 +223,33 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                     Real dwdz = (0.5*dzi) * ((vel(i,j  ,khip,2)-vel(i,j  ,khim,2))*whi
                                             +(vel(i,j-1,klop,2)-vel(i,j-1,klom,2))*wlo);
 
-                    if (j==dhi.y+1 and bct(Orientation(Direction::y,Orientation::high),1)==AMREX_LO_NEUMANN){
-                        dvdz = (dzi) * ((vel(i,j-1,klop,1)-vel(i,j-1,klom,1))*wlo);
+                    if (j==dhi.y+1){
+                        if (bct(Orientation(Direction::y,Orientation::high),1)==AMREX_LO_NEUMANN){
+                            dvdz = (dzi) * ((vel(i,j-1,klop,1)-vel(i,j-1,klom,1))*wlo);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::high),2)==AMREX_LO_NEUMANN){
+                            dwdz = (dzi) * ((vel(i,j-1,klop,2)-vel(i,j-1,klom,2))*wlo);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::high),1)==AMREX_LO_DIRICHLET){
+                            dvdz = (dzi) * ((vel(i,j  ,khip,1)-vel(i,j  ,khim,1))*whi);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::high),2)==AMREX_LO_DIRICHLET){
+                            dwdz = (dzi) * ((vel(i,j  ,khip,2)-vel(i,j  ,khim,2))*whi);
+                        }
                     }
-                    if (j==dhi.y+1 and bct(Orientation(Direction::y,Orientation::high),2)==AMREX_LO_NEUMANN){
-                        dwdz = (dzi) * ((vel(i,j-1,klop,2)-vel(i,j-1,klom,2))*wlo);
-                    }
-
-                    if (j==dlo.y and bct(Orientation(Direction::y,Orientation::low),1)==AMREX_LO_NEUMANN){
-                        dvdz = (dzi) * ((vel(i,j  ,khip,1)-vel(i,j  ,khim,1))*whi);
-                    }
-                    if (j==dlo.y and bct(Orientation(Direction::y,Orientation::low),2)==AMREX_LO_NEUMANN){
-                        dwdz = (dzi) * ((vel(i,j  ,khip,2)-vel(i,j  ,khim,2))*whi);
+                    if (j==dlo.y){
+                        if (bct(Orientation(Direction::y,Orientation::low),1)==AMREX_LO_NEUMANN){
+                            dvdz = (dzi) * ((vel(i,j  ,khip,1)-vel(i,j  ,khim,1))*whi);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::low),2)==AMREX_LO_NEUMANN){
+                            dwdz = (dzi) * ((vel(i,j  ,khip,2)-vel(i,j  ,khim,2))*whi);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::low),1)==AMREX_LO_DIRICHLET){
+                            dvdz = (dzi) * ((vel(i,j-1,klop,1)-vel(i,j-1,klom,1))*wlo);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::low),2)==AMREX_LO_DIRICHLET){
+                            dwdz = (dzi) * ((vel(i,j-1,klop,2)-vel(i,j-1,klom,2))*wlo);
+                        }
                     }
 
                     Real divu = dudx + dwdz;
@@ -247,18 +307,33 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                     Real dwdx = (0.5*dxi) * ((vel(ihip,j,k  ,2)-vel(ihim,j,k  ,2))*whi
                                             +(vel(ilop,j,k-1,2)-vel(ilom,j,k-1,2))*wlo);
 
-                    if (k==dhi.z+1 and bct(Orientation(Direction::z,Orientation::high),0)==AMREX_LO_NEUMANN){
-                        dudx = (dxi) * ((vel(ilop,j,k-1,0)-vel(ilom,j,k-1,0))*wlo);
+                    if (k==dhi.z+1){
+                        if (bct(Orientation(Direction::z,Orientation::high),0)==AMREX_LO_NEUMANN){
+                            dudx = (dxi) * ((vel(ilop,j,k-1,0)-vel(ilom,j,k-1,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::high),2)==AMREX_LO_NEUMANN){
+                            dwdx = (dxi) * ((vel(ilop,j,k-1,2)-vel(ilom,j,k-1,2))*wlo);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::high),0)==AMREX_LO_DIRICHLET){
+                            dudx = (dxi) * ((vel(ihip,j,k  ,0)-vel(ihim,j,k  ,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::high),2)==AMREX_LO_DIRICHLET){
+                            dwdx = (dxi) * ((vel(ihip,j,k  ,2)-vel(ihim,j,k  ,2))*whi);
+                        }
                     }
-                    if (k==dhi.z+1 and bct(Orientation(Direction::z,Orientation::high),2)==AMREX_LO_NEUMANN){
-                        dwdx = (dxi) * ((vel(ilop,j,k-1,2)-vel(ilom,j,k-1,2))*wlo);
-                    }
-
-                    if (k==dlo.z and bct(Orientation(Direction::z,Orientation::low),0)==AMREX_LO_NEUMANN){
-                        dudx = (dxi) * ((vel(ihip,j,k  ,0)-vel(ihim,j,k  ,0))*whi);
-                    }
-                    if (k==dlo.z and bct(Orientation(Direction::z,Orientation::low),2)==AMREX_LO_NEUMANN){
-                        dwdx = (dxi) * ((vel(ihip,j,k  ,2)-vel(ihim,j,k  ,2))*whi);
+                    if (k==dlo.z){
+                        if (bct(Orientation(Direction::z,Orientation::low),0)==AMREX_LO_NEUMANN){
+                            dudx = (dxi) * ((vel(ihip,j,k  ,0)-vel(ihim,j,k  ,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::low),2)==AMREX_LO_NEUMANN){
+                            dwdx = (dxi) * ((vel(ihip,j,k  ,2)-vel(ihim,j,k  ,2))*whi);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::low),0)==AMREX_LO_DIRICHLET){
+                            dudx = (dxi) * ((vel(ilop,j,k-1,0)-vel(ilom,j,k-1,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::low),2)==AMREX_LO_DIRICHLET){
+                            dwdx = (dxi) * ((vel(ilop,j,k-1,2)-vel(ilom,j,k-1,2))*wlo);
+                        }
                     }
 
                     int jhip = j + flag(i,j,k  ).isConnected(0, 1,0);
@@ -274,18 +349,33 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                     Real dwdy = (0.5*dyi) * ((vel(i,jhip,k  ,2)-vel(i,jhim,k  ,2))*whi
                                             +(vel(i,jlop,k-1,2)-vel(i,jlom,k-1,2))*wlo);
 
-                    if (k==dhi.z+1 and bct(Orientation(Direction::z,Orientation::high),1)==AMREX_LO_NEUMANN){
-                        dvdy = (dyi) * ((vel(i,jlop,k-1,1)-vel(i,jlom,k-1,1))*wlo);
+                    if (k==dhi.z+1){
+                        if (bct(Orientation(Direction::z,Orientation::high),1)==AMREX_LO_NEUMANN){
+                            dvdy = (dyi) * ((vel(i,jlop,k-1,1)-vel(i,jlom,k-1,1))*wlo);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::high),2)==AMREX_LO_NEUMANN){
+                            dwdy = (dyi) * ((vel(i,jlop,k-1,2)-vel(i,jlom,k-1,2))*wlo);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::high),1)==AMREX_LO_DIRICHLET){
+                            dvdy = (dyi) * ((vel(i,jhip,k  ,1)-vel(i,jhim,k  ,1))*whi);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::high),2)==AMREX_LO_DIRICHLET){
+                            dwdy = (dyi) * ((vel(i,jhip,k  ,2)-vel(i,jhim,k  ,2))*whi);
+                        }
                     }
-                    if (k==dhi.z+1 and bct(Orientation(Direction::z,Orientation::high),2)==AMREX_LO_NEUMANN){
-                        dwdy = (dyi) * ((vel(i,jlop,k-1,2)-vel(i,jlom,k-1,2))*wlo);
-                    }
-
-                    if (k==dlo.z and bct(Orientation(Direction::z,Orientation::low),1)==AMREX_LO_NEUMANN){
-                        dvdy = (dyi) * ((vel(i,jhip,k  ,1)-vel(i,jhim,k  ,1))*whi);
-                    }
-                    if (k==dlo.z and bct(Orientation(Direction::z,Orientation::low),2)==AMREX_LO_NEUMANN){
-                        dwdy = (dyi) * ((vel(i,jhip,k  ,2)-vel(i,jhim,k  ,2))*whi);
+                    if (k==dlo.z){
+                        if (bct(Orientation(Direction::z,Orientation::low),1)==AMREX_LO_NEUMANN){
+                            dvdy = (dyi) * ((vel(i,jhip,k  ,1)-vel(i,jhim,k  ,1))*whi);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::low),2)==AMREX_LO_NEUMANN){
+                            dwdy = (dyi) * ((vel(i,jhip,k  ,2)-vel(i,jhim,k  ,2))*whi);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::low),1)==AMREX_LO_DIRICHLET){
+                            dvdy = (dyi) * ((vel(i,jlop,k-1,1)-vel(i,jlom,k-1,1))*wlo);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::low),2)==AMREX_LO_DIRICHLET){
+                            dwdy = (dyi) * ((vel(i,jlop,k-1,2)-vel(i,jlom,k-1,2))*wlo);
+                        }
                     }
 
                     Real divu = dudx + dvdy;
