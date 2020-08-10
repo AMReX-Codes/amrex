@@ -31,11 +31,11 @@ void cic_interpolate (const P& p,
 
     amrex::Real xint = lx - i; //frac
 
-    amrex::Real sx[] = {1._rt - xint, xint};
+    amrex::Real sx[] = {Real(1.0) - xint, xint};
 
     for (int d=0; d < AMREX_SPACEDIM; ++d)
     {
-        val[d] = 0.0_prt;
+        val[d] = ParticleReal(0.0);
         for (int ii = 0; ii<=1; ++ii)
 	{
             val[d] += static_cast<ParticleReal>(sx[ii]*uccarr(i+ii,0,0,d));
@@ -54,12 +54,12 @@ void cic_interpolate (const P& p,
     amrex::Real xint = lx - i;
     amrex::Real yint = ly - j;
 
-    amrex::Real sx[] = {1._rt - xint, xint};
-    amrex::Real sy[] = {1._rt - yint, yint};
+    amrex::Real sx[] = {Real(1.0) - xint, xint};
+    amrex::Real sy[] = {Real(1.0) - yint, yint};
 
     for (int d=0; d < AMREX_SPACEDIM; ++d)
       {
-        val[d] = 0.0_prt;
+        val[d] = ParticleReal(0.0);
         for (int jj = 0; jj <= 1; ++jj)
 	  {
             for (int ii = 0; ii <= 1; ++ii)
@@ -84,13 +84,13 @@ void cic_interpolate (const P& p,
     amrex::Real const yint = ly - j;
     amrex::Real const zint = lz - k;
 
-    amrex::Real sx[] = {1._rt - xint, xint};
-    amrex::Real sy[] = {1._rt - yint, yint};
-    amrex::Real sz[] = {1._rt - zint, zint};
+    amrex::Real sx[] = {Real(1.0) - xint, xint};
+    amrex::Real sy[] = {Real(1.0) - yint, yint};
+    amrex::Real sz[] = {Real(1.0) - zint, zint};
 
     for (int d=0; d < AMREX_SPACEDIM; ++d)
     {
-        val[d] = 0.0_prt;
+        val[d] = ParticleReal(0.0);
         for (int kk = 0; kk<=1; ++kk)
 	{
             for (int jj = 0; jj <= 1; ++jj)
@@ -125,9 +125,9 @@ void mac_interpolate (const P& p,
 
         amrex::Real const xint = lx - i;
 
-        amrex::Real sx[] = {1._rt - xint, xint};
+        amrex::Real sx[] = {Real(1.0) - xint, xint};
 
-        val[d] = 0.0_prt;
+        val[d] = ParticleReal(0.0);
         for (int ii = 0; ii <= 1; ++ii)
         {
             val[d] += static_cast<ParticleReal>((p_uccarr[d])(i+ii, 0, 0, 0)*sx[ii]);
@@ -147,10 +147,10 @@ void mac_interpolate (const P& p,
       amrex::Real const xint = lx - i;
       amrex::Real const yint = ly - j;
 
-      amrex::Real sx[] = {1._rt - xint, xint};
-      amrex::Real sy[] = {1._rt - yint, yint};
+      amrex::Real sx[] = {Real(1.0) - xint, xint};
+      amrex::Real sy[] = {Real(1.0) - yint, yint};
 
-      val[d] = 0.0_prt;
+      val[d] = ParticleReal(0.0);
       for (int jj = 0; jj <= 1; ++jj)
       {
           for (int ii = 0; ii <= 1; ++ii)
@@ -177,11 +177,11 @@ void mac_interpolate (const P& p,
       amrex::Real const yint = ly - j;
       amrex::Real const zint = lz - k;
 
-      amrex::Real sx[] = {1._rt - xint, xint};
-      amrex::Real sy[] = {1._rt - yint, yint};
-      amrex::Real sz[] = {1._rt - zint, zint};
+      amrex::Real sx[] = {Real(1.0) - xint, xint};
+      amrex::Real sy[] = {Real(1.0) - yint, yint};
+      amrex::Real sz[] = {Real(1.0) - zint, zint};
 
-      val[d] = 0.0_prt;
+      val[d] = ParticleReal(0.0);
       for (int kk = 0; kk <=1; ++kk)
       {
 	  for (int jj = 0; jj <= 1; ++jj)
