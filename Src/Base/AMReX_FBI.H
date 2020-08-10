@@ -985,6 +985,7 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int n
                 
                 dptr += (tag.sbox.numPts() * ncomp * sizeof(value_type));
             }
+            amrex::ignore_unused(send_size);
             BL_ASSERT(dptr <= send_data[j] + send_size[j]);
         }
     }
@@ -999,7 +1000,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
                                                  Vector<char*> const& recv_data,
                                                  Vector<std::size_t> const& recv_size,
                                                  Vector<CopyComTagsContainer const*> const& recv_cctc,
-                                                 bool is_thread_safe)
+                                                 bool /*is_thread_safe*/)
 {
     const int N_rcvs = recv_cctc.size();
     if (N_rcvs == 0) return;
@@ -1018,6 +1019,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
                 dptr += tag.dbox.numPts() * ncomp * sizeof(value_type);
                 launches++;
             }
+            amrex::ignore_unused(recv_size);
             BL_ASSERT(dptr <= recv_data[k] + recv_size[k]);
         }
     }

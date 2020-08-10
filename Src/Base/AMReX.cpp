@@ -430,7 +430,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             if (invalid)   curr_fpe_excepts |= FE_INVALID;
             if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
             if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
-#if !defined(__PGI) || (__PGIC__ >= 16)
+#if !defined(AMREX_USE_DPCPP) && (!defined(__PGI) || (__PGIC__ >= 16))
+            // xxxxx DPCPP todo: fpe trap
             prev_fpe_excepts = fegetexcept();
             if (curr_fpe_excepts != 0) {
                 feenableexcept(curr_fpe_excepts);  // trap floating point exceptions

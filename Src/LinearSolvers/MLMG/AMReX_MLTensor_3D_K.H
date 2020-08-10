@@ -1377,7 +1377,7 @@ void mltensor_cross_terms_os (Box const& box, Array4<Real> const& Ax,
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                if (osm(i,j,k)) {
+                if (osm(i,j,k) == 0) {
                     Ax(i,j,k,0) = 0.0;
                     Ax(i,j,k,1) = 0.0;
                     Ax(i,j,k,2) = 0.0;

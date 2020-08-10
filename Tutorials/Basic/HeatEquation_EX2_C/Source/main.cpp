@@ -144,11 +144,11 @@ void main_main ()
 	}
     }
 
-    Real cfl = 0.9_rt;
+    Real cfl = 0.9;
     Real coeff = AMREX_D_TERM(   1./(dx[0]*dx[0]),
                                + 1./(dx[1]*dx[1]),
                                + 1./(dx[2]*dx[2]) );
-    Real dt = cfl/(2.0_rt*coeff);
+    Real dt = cfl/(2.0*coeff);
 
     // time = starting time in the simulation
     Real time = 0.0;

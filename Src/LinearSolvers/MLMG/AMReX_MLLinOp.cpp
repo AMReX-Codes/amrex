@@ -269,7 +269,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
     bool agged = false;
     bool coned = false;
-    int agg_lev, con_lev = 0;
+    int agg_lev = 0, con_lev = 0;
 
     if (info.do_agglomeration && aggable)
     {
@@ -426,7 +426,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     else
     {
         int rr = mg_coarsen_ratio;
-        Real avg_npts = 0._rt;
+        Real avg_npts = 0.0;
         if (info.do_consolidation) {
             avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelContext::NProcsSub());
             if (consolidation_threshold == -1) {
