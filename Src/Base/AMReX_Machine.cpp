@@ -34,7 +34,7 @@ Coord read_df_node_coord (const std::string & name)
         std::ifstream ifs {"/proc/cray_xt/cname"};
         if (!ifs) {
             // not on a cray
-            return Coord {0,0,0,0}; // initializer_list
+            return Coord {{0,0,0,0}}; // initializer_list
         }
         char t0, t1, t2, t3, t4;
         ifs >> t0 >> cabx >> t1 >> caby >> t2 >> cab_chas >> t3 >> slot >> t4 >> node;
@@ -49,7 +49,7 @@ Coord read_df_node_coord (const std::string & name)
     }
     int chas = cab_chas + 3*(cabx & 1); // 2 cabinets per group (6 chassis per group)
 
-    return Coord {node, slot, chas, group};
+    return Coord {{node, slot, chas, group}};
 }
 #endif
 
