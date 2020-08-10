@@ -75,7 +75,7 @@ set(AMReX_COMMP_FOUND               @ENABLE_COMM_PROFILE@)
 set(AMReX_PROFPARSER_FOUND          @ENABLE_PROFPARSER@)
 
 #
-# Find dependencies if needed
+# Parallel backends
 #
 set( THREADS_PREFER_PTHREAD_FLAG on)
 find_dependency(Threads REQUIRED)
@@ -97,20 +97,31 @@ if (@ENABLE_OMP@)
    find_dependency(OpenMP REQUIRED ${_omp_components})
 endif ()
 
-
-if (@ENABLE_SUNDIALS@)
-   find_dependency(SUNDIALS 4 COMPONENTS nvecserial cvode arkode REQUIRED )
-endif ()
-
+#
+# Third party libraries
+#
 if (@ENABLE_SENSEI_INSITU@)
    find_dependency(SENSEI REQUIRED)
 endif ()
 
+if (@ENABLE_SUNDIALS@)
+    set(_sundials_components nvecserial;cvode;arkode)
+    if (@ENABLE_OMP@)
+        list(APPEND _sundials_components nvecopenmp)
+    endif ()
+    if (@ENABLE_CUDA@)
+        list(APPEND _sundials_components nveccuda)
+    endif ()
+    find_dependency(SUNDIALS 4 REQUIRED COMPONENTS ${_sundials_components})
+    unset(_sundials_components)
+endif ()
+
+if (@ENABLE_ASCENT@)
+    find_dependency(Ascent REQUIRED)
+endif ()
+
 if (@ENABLE_CONDUIT@)
    find_dependency(Conduit REQUIRED)
-   if (@ENABLE_ASCENT@)
-      find_dependency(Ascent REQUIRED)
-   endif ()
 endif ()
 
 if (@ENABLE_HYPRE@)
