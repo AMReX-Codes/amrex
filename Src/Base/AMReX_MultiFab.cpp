@@ -155,33 +155,6 @@ MultiFab::Copy (MultiFab& dst, const MultiFab& src,
     amrex::Copy(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
-
-#ifdef USE_PERILLA
-void
-MultiFab::Copy (MultiFab&       dst,
-                const MultiFab& src,
-                int             f,
-                int             srccomp,
-                int             dstcomp,
-                int             numcomp,
-                const Box&      bx)
-{
-// don't have to    BL_ASSERT(dst.boxArray() == src.boxArray());
-    BL_ASSERT(dst.distributionMap == src.distributionMap);
-    //BL_ASSERT(dst.nGrow() >= nghost); // and src.nGrow() >= nghost);
-
-    int fis = src.IndexArray()[f];
-    int fid = dst.IndexArray()[f];
-    //const Box& bx = BoxLib::grow(dst[f].box(),nghost);
-    //const Box& bx = dst[fid].box();
-
-    if (bx.ok())
-      dst[fid].copy(src[fid], bx, srccomp, bx, dstcomp, numcomp);
-
-}
-#endif
-
-
 void
 MultiFab::Swap (MultiFab& dst, MultiFab& src,
                 int srccomp, int dstcomp, int numcomp, int nghost)

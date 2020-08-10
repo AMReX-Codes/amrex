@@ -42,7 +42,6 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    ManagingGridHierarchy_Chapter
    AmrCore_Chapter
    AmrLevel_Chapter
-   AsyncIter_Chapter
    ForkJoin
    IO_Chapter
    LinearSolvers_Chapter

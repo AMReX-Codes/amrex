@@ -33,11 +33,6 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Math.H>
 
-#ifdef USE_PERILLA
-#include <LocalConnection.H>
-#include <RemoteConnection.H>
-#endif
-
 namespace amrex
 {
 
@@ -1610,15 +1605,6 @@ protected:
     Long truesize = 0L;         //!< nvar*numpts that was allocated on heap.
     bool ptr_owner = false;     //!< Owner of T*?
     bool shared_memory = false; //!< Is the memory allocated in shared memory?
-
-#ifdef USE_PERILLA
-public:
-    LocalConnection l_con;
-    RemoteConnection r_con;
-    bool fireable;
-    int padding[1024];
-#endif
-
 };
 
 template <class T>
