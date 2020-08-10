@@ -1,5 +1,0 @@
-<sensei>
-  <!-- catalyst 2D -->
-  <analysis type="catalyst" pipeline="pythonscript"
-    filename="sensei/render_iso_catalyst_2d.py" enabled="1" />
-</sensei>
