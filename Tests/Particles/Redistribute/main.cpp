@@ -183,7 +183,6 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            const Geometry& geom = Geom(lev);
             const auto dx = Geom(lev).CellSizeArray();
             auto& plev  = GetParticles(lev);
         
@@ -198,7 +197,7 @@ public:
 
                 if (do_random == 0)
                 {
-                    AMREX_FOR_1D ( np, i,
+                    amrex::ParallelFor( np, [=] AMREX_GPU_DEVICE (int i) noexcept
                     {
                         ParticleType& p = pstruct[i];
                         p.pos(0) += move_dir[0]*dx[0];
@@ -209,10 +208,10 @@ public:
                         p.pos(2) += move_dir[2]*dx[2];
 #endif
                     });
-                }            
+                }
                 else
                 {
-                    AMREX_FOR_1D ( np, i,
+                    amrex::ParallelFor( np, [=] AMREX_GPU_DEVICE (int i) noexcept
                     {
                         ParticleType& p = pstruct[i];
 
@@ -240,10 +239,7 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            const Geometry& geom = Geom(lev);
-            const auto dx = Geom(lev).CellSizeArray();
             auto& plev  = GetParticles(lev);
-            
             for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
             {
                 int gid = mfi.index();
