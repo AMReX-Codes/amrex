@@ -102,9 +102,9 @@ CNS::initData ()
 
 void
 CNS::computeInitialDt (int                    finest_level,
-                       int                    sub_cycle,
+                       int                    /*sub_cycle*/,
                        Vector<int>&           n_cycle,
-                       const Vector<IntVect>& ref_ratio,
+                       const Vector<IntVect>& /*ref_ratio*/,
                        Vector<Real>&          dt_level,
                        Real                   stop_time)
 {
@@ -144,9 +144,9 @@ CNS::computeInitialDt (int                    finest_level,
 
 void
 CNS::computeNewDt (int                    finest_level,
-                   int                    sub_cycle,
+                   int                    /*sub_cycle*/,
                    Vector<int>&           n_cycle,
-                   const Vector<IntVect>& ref_ratio,
+                   const Vector<IntVect>& /*ref_ratio*/,
                    Vector<Real>&          dt_min,
                    Vector<Real>&          dt_level,
                    Real                   stop_time,
@@ -218,12 +218,12 @@ CNS::computeNewDt (int                    finest_level,
 }
 
 void
-CNS::post_regrid (int lbase, int new_finest)
+CNS::post_regrid (int /*lbase*/, int /*new_finest*/)
 {
 }
 
 void
-CNS::post_timestep (int iteration)
+CNS::post_timestep (int /*iteration*/)
 {
     BL_PROFILE("post_timestep");
 
@@ -239,7 +239,7 @@ CNS::post_timestep (int iteration)
 }
 
 void
-CNS::postCoarseTimeStep (Real time)
+CNS::postCoarseTimeStep (Real /*time*/)
 {
     BL_PROFILE("postCoarseTimeStep()");
 
@@ -290,7 +290,7 @@ CNS::post_restart ()
 }
 
 void
-CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
+CNS::errorEst (TagBoxArray& tags, int, int, Real /*time*/, int, int)
 {
     BL_PROFILE("CNS::errorEst()");
 
