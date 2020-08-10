@@ -133,7 +133,7 @@ void mlndlap_zero_fine (int i, int j, int, Array4<Real> const& phi,
         msk(i-1,j  ,0) == fine_flag and
         msk(i  ,j  ,0) == fine_flag)
     {
-        phi(i,j,0) = 0.0;
+        phi(i,j,0) = Real(0.0);
     }
 }
 
@@ -280,7 +280,7 @@ void mlndlap_adotx_ha (int i, int j, int k, Array4<Real> const& y, Array4<Real c
                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     if (msk(i,j,k)) {
-        y(i,j,k) = 0.0;
+        y(i,j,k) = Real(0.0);
     } else {
         Real facx = (1./6.)*dxinv[0]*dxinv[0];
         Real facy = (1./6.)*dxinv[1]*dxinv[1];
@@ -313,7 +313,7 @@ void mlndlap_adotx_aa (int i, int j, int k, Array4<Real> const& y, Array4<Real c
                        bool is_rz, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     if (msk(i,j,k)) {
-        y(i,j,k) = 0.0;
+        y(i,j,k) = Real(0.0);
     } else {
         Real facx = (1.0/6.0)*dxinv[0]*dxinv[0];
         Real facy = (1.0/6.0)*dxinv[1]*dxinv[1];
@@ -378,15 +378,15 @@ void mlndlap_jacobi_ha (Box const& bx, Array4<Real> const& sol, Array4<Real cons
                         Array4<Real const> const& sy, Array4<int const> const& msk,
                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    Real facx = -2.0 * (1.0/6.0)*dxinv[0]*dxinv[0];
-    Real facy = -2.0 * (1.0/6.0)*dxinv[1]*dxinv[1];
+    Real facx = -Real(2.0 * (1.0/6.0))*dxinv[0]*dxinv[0];
+    Real facy = -Real(2.0 * (1.0/6.0))*dxinv[1]*dxinv[1];
 
     amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
     {
         if (msk(i,j,k)) {
-            sol(i,j,k) = 0.0;
+            sol(i,j,k) = Real(0.0);
         } else {
-            sol(i,j,k) += (2.0/3.0) * (rhs(i,j,k) - Ax(i,j,k))
+            sol(i,j,k) += Real(2.0/3.0) * (rhs(i,j,k) - Ax(i,j,k))
                 / (facx*(sx(i-1,j-1,k)+sx(i,j-1,k)+sx(i-1,j,k)+sx(i,j,k))
                 +  facy*(sy(i-1,j-1,k)+sy(i,j-1,k)+sy(i-1,j,k)+sy(i,j,k)));
         }
@@ -398,14 +398,14 @@ void mlndlap_jacobi_aa (Box const& bx, Array4<Real> const& sol, Array4<Real cons
                         Array4<Real const> const& rhs, Array4<Real const> const& sig,
                         Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    Real fac = -2.0 * (1.0/6.0)*(dxinv[0]*dxinv[0] + dxinv[1]*dxinv[1]);
+    Real fac = -Real(2.0 * (1.0/6.0))*(dxinv[0]*dxinv[0] + dxinv[1]*dxinv[1]);
 
     amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
     {
         if (msk(i,j,k)) {
-            sol(i,j,k) = 0.0;
+            sol(i,j,k) = Real(0.0);
         } else {
-            sol(i,j,k) += (2.0/3.0) * (rhs(i,j,k) - Ax(i,j,k))
+            sol(i,j,k) += Real(2.0/3.0) * (rhs(i,j,k) - Ax(i,j,k))
                 / (fac*(sig(i-1,j-1,k)+sig(i,j-1,k)+sig(i-1,j,k)+sig(i,j,k)));
         }
     });
@@ -418,29 +418,29 @@ void mlndlap_gauss_seidel_ha (Box const& bx, Array4<Real> const& sol,
                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                               bool is_rz) noexcept
 {
-    Real facx = (1.0/6.0)*dxinv[0]*dxinv[0];
-    Real facy = (1.0/6.0)*dxinv[1]*dxinv[1];
+    Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
+    Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
 
     amrex::Loop(bx, [=] (int i, int j, int k) noexcept
     {
         if (msk(i,j,k)) {
-            sol(i,j,k) = 0.0;
+            sol(i,j,k) = Real(0.0);
         } else {
-            Real s0 = (-2.0)*(facx*(sx(i-1,j-1,k)+sx(i,j-1,k)+sx(i-1,j,k)+sx(i,j,k))
-                             +facy*(sy(i-1,j-1,k)+sy(i,j-1,k)+sy(i-1,j,k)+sy(i,j,k)));
+            Real s0 = Real(-2.0)*(facx*(sx(i-1,j-1,k)+sx(i,j-1,k)+sx(i-1,j,k)+sx(i,j,k))
+                                 +facy*(sy(i-1,j-1,k)+sy(i,j-1,k)+sy(i-1,j,k)+sy(i,j,k)));
 
             Real Ax = sol(i-1,j-1,k)*(facx*sx(i-1,j-1,k)+facy*sy(i-1,j-1,k))
                     + sol(i+1,j-1,k)*(facx*sx(i  ,j-1,k)+facy*sy(i  ,j-1,k))
                     + sol(i-1,j+1,k)*(facx*sx(i-1,j  ,k)+facy*sy(i-1,j  ,k))
                     + sol(i+1,j+1,k)*(facx*sx(i  ,j  ,k)+facy*sy(i  ,j  ,k))
-                    + sol(i-1,j,k)*(2.0*facx*(sx(i-1,j-1,k)+sx(i-1,j,k))
-                                  -     facy*(sy(i-1,j-1,k)+sx(i-1,j,k)))
-                    + sol(i+1,j,k)*(2.0*facx*(sx(i  ,j-1,k)+sx(i  ,j,k))
-                                  -     facy*(sy(i  ,j-1,k)+sx(i  ,j,k)))
+                    + sol(i-1,j,k)*(Real(2.0)*facx*(sx(i-1,j-1,k)+sx(i-1,j,k))
+                                        -     facy*(sy(i-1,j-1,k)+sx(i-1,j,k)))
+                    + sol(i+1,j,k)*(Real(2.0)*facx*(sx(i  ,j-1,k)+sx(i  ,j,k))
+                                        -     facy*(sy(i  ,j-1,k)+sx(i  ,j,k)))
                     + sol(i,j-1,k)*(   -facx*(sx(i-1,j-1,k)+sx(i,j-1,k))
-                                   +2.0*facy*(sy(i-1,j-1,k)+sy(i,j-1,k)))
+                             +Real(2.0)*facy*(sy(i-1,j-1,k)+sy(i,j-1,k)))
                     + sol(i,j+1,k)*(   -facx*(sx(i-1,j  ,k)+sx(i,j  ,k))
-                                   +2.0*facy*(sy(i-1,j  ,k)+sy(i,j  ,k)))
+                             +Real(2.0)*facy*(sy(i-1,j  ,k)+sy(i,j  ,k)))
                     + sol(i,j,k)*s0;
 
             if (is_rz) {
@@ -936,8 +936,8 @@ void mlndlap_divu_compute_fine_contrib (int i, int j, int, Box const& fvbx,
         if ((bchi[1] == LinOpBCType::Neumann or bchi[1] == LinOpBCType::inflow)
             and j == domhi.y) zero_jhi = 0.0; 
 
-        Real facx = 0.5_rt*dxinv[0];
-        Real facy = 0.5_rt*dxinv[1];
+        Real facx = Real(0.5)*dxinv[0];
+        Real facy = Real(0.5)*dxinv[1];
 
         frh(i,j,0) = facx*(-vel(i-1,j-1,0,0)*zero_jlo+vel(i,j-1,0,0)*zero_jlo-vel(i-1,j,0,0)*zero_jhi+vel(i,j,0,0)*zero_jhi)
             +        facy*(-vel(i-1,j-1,0,1)*zero_ilo-vel(i,j-1,0,1)*zero_ihi+vel(i-1,j,0,1)*zero_ilo+vel(i,j,0,1)*zero_ihi);
@@ -957,9 +957,9 @@ void mlndlap_divu_add_fine_contrib (int i, int j, int /*k*/, Box const& fvbx,
                                     Array4<Real> const& rhs, Array4<Real const> const& frh,
                                     Array4<int const> const& msk) noexcept
 {
-    constexpr Real rfd = 0.25_rt;
-    constexpr Real chip = 0.5_rt;
-    constexpr Real chip2 = 0.25_rt;
+    constexpr Real rfd = Real(0.25);
+    constexpr Real chip = Real(0.5);
+    constexpr Real chip2 = Real(0.25);
 
     int ii = 2*i;
     int jj = 2*j;
@@ -978,9 +978,9 @@ void mlndlap_rhcc_fine_contrib (int i, int j, int, Box const& fvbx,
                                 Array4<Real> const& rhs, Array4<Real const> const& cc,
                                 Array4<int const> const& msk) noexcept
 {
-    constexpr Real w1 = 9._rt/64._rt;
-    constexpr Real w2 = 3._rt/64._rt;
-    constexpr Real w3 = 1._rt/64._rt;
+    constexpr Real w1 = Real(9./64.);
+    constexpr Real w2 = Real(3./64.);
+    constexpr Real w3 = Real(1./64.);
 
     int ii = 2*i;
     int jj = 2*j;
@@ -1005,26 +1005,26 @@ void mlndlap_divu_cf_contrib (int i, int j, int, Array4<Real> const& rhs,
                               bool neumann_doubling) noexcept
 {
     if (!dmsk(i,j,0) and ndmsk(i,j,0) == crse_fine_node) {
-        Real facx = 0.5_rt * dxinv[0];
-        Real facy = 0.5_rt * dxinv[1];
+        Real facx = Real(0.5) * dxinv[0];
+        Real facy = Real(0.5) * dxinv[1];
         Real r = fc(i,j,0);
         if (rhcc) {
-            r += 0.25_rt*( (1._rt-ccmsk(i-1,j-1,0)) * rhcc(i-1,j-1,0)
-                         + (1._rt-ccmsk(i  ,j-1,0)) * rhcc(i  ,j-1,0)
-                         + (1._rt-ccmsk(i-1,j  ,0)) * rhcc(i-1,j  ,0)
-                         + (1._rt-ccmsk(i  ,j  ,0)) * rhcc(i  ,j  ,0));
+            r += Real(0.25)*( (Real(1.)-ccmsk(i-1,j-1,0)) * rhcc(i-1,j-1,0)
+                            + (Real(1.)-ccmsk(i  ,j-1,0)) * rhcc(i  ,j-1,0)
+                            + (Real(1.)-ccmsk(i-1,j  ,0)) * rhcc(i-1,j  ,0)
+                            + (Real(1.)-ccmsk(i  ,j  ,0)) * rhcc(i  ,j  ,0));
         }
-        r += (1._rt-ccmsk(i-1,j-1,0)) * (-facx*vel(i-1,j-1,0,0) - facy*vel(i-1,j-1,0,1))
-           + (1._rt-ccmsk(i  ,j-1,0)) * ( facx*vel(i  ,j-1,0,0) - facy*vel(i  ,j-1,0,1))
-           + (1._rt-ccmsk(i-1,j  ,0)) * (-facx*vel(i-1,j  ,0,0) + facy*vel(i-1,j  ,0,1))
-           + (1._rt-ccmsk(i  ,j  ,0)) * ( facx*vel(i  ,j  ,0,0) + facy*vel(i  ,j  ,0,1));
+        r += (Real(1.)-ccmsk(i-1,j-1,0)) * (-facx*vel(i-1,j-1,0,0) - facy*vel(i-1,j-1,0,1))
+           + (Real(1.)-ccmsk(i  ,j-1,0)) * ( facx*vel(i  ,j-1,0,0) - facy*vel(i  ,j-1,0,1))
+           + (Real(1.)-ccmsk(i-1,j  ,0)) * (-facx*vel(i-1,j  ,0,0) + facy*vel(i-1,j  ,0,1))
+           + (Real(1.)-ccmsk(i  ,j  ,0)) * ( facx*vel(i  ,j  ,0,0) + facy*vel(i  ,j  ,0,1));
         if (is_rz) {
             Real fm = facy / static_cast<Real>(6*i-3);
             Real fp = facy / static_cast<Real>(6*i+3);
-            r += fm*((1._rt-ccmsk(i-1,j  ,0))*vel(i-1,j  ,0,1)
-                    -(1._rt-ccmsk(i-1,j-1,0))*vel(i-1,j-1,0,1))
-               - fp*((1._rt-ccmsk(i  ,j  ,0))*vel(i  ,j  ,0,1)
-                    -(1._rt-ccmsk(i  ,j-1,0))*vel(i  ,j-1,0,1));
+            r += fm*((Real(1.)-ccmsk(i-1,j  ,0))*vel(i-1,j  ,0,1)
+                    -(Real(1.)-ccmsk(i-1,j-1,0))*vel(i-1,j-1,0,1))
+               - fp*((Real(1.)-ccmsk(i  ,j  ,0))*vel(i  ,j  ,0,1)
+                    -(Real(1.)-ccmsk(i  ,j-1,0))*vel(i  ,j-1,0,1));
         }
 
         if (neumann_doubling) {
@@ -1032,18 +1032,18 @@ void mlndlap_divu_cf_contrib (int i, int j, int, Array4<Real> const& rhs,
             const auto ndhi = amrex::ubound(nddom);
             if (i == ndlo.x and ( bclo[0] == LinOpBCType::Neumann or
                                   bclo[0] == LinOpBCType::inflow)) {
-                r *= 2._rt;
+                r *= Real(2.);
             } else if (i== ndhi.x and ( bchi[0] == LinOpBCType::Neumann or
                                         bchi[0] == LinOpBCType::inflow)) {
-                r *= 2._rt;
+                r *= Real(2.);
             }
 
             if (j == ndlo.y and ( bclo[1] == LinOpBCType::Neumann or
                                   bclo[1] == LinOpBCType::inflow)) {
-                r *= 2._rt;
+                r *= Real(2.);
             } else if (j == ndhi.y and ( bchi[1] == LinOpBCType::Neumann or
                                          bchi[1] == LinOpBCType::inflow)) {
-                r *= 2._rt;
+                r *= Real(2.);
             }
         }
 
@@ -1071,29 +1071,29 @@ void mlndlap_crse_resid (int i, int j, int k, Array4<Real> const& resid,
          msk(i-1,j  ,k  ) == 0 or
          msk(i  ,j  ,k  ) == 0))
     {
-        Real fac = 1.0_rt;
+        Real fac = Real(1.0);
         if (neumann_doubling) {
             const auto ndlo = amrex::lbound(nddom);
             const auto ndhi = amrex::ubound(nddom);
             if (i == ndlo.x and ( bclo[0] == LinOpBCType::Neumann or
                                   bclo[0] == LinOpBCType::inflow)) {
-                fac *= 2._rt;
+                fac *= Real(2.);
             } else if (i== ndhi.x and ( bchi[0] == LinOpBCType::Neumann or
                                         bchi[0] == LinOpBCType::inflow)) {
-                fac *= 2._rt;
+                fac *= Real(2.);
             }
             if (j == ndlo.y and ( bclo[1] == LinOpBCType::Neumann or
                                   bclo[1] == LinOpBCType::inflow)) {
-                fac *= 2._rt;
+                fac *= Real(2.);
             } else if (j == ndhi.y and ( bchi[1] == LinOpBCType::Neumann or
                                          bchi[1] == LinOpBCType::inflow)) {
-                fac *= 2._rt;
+                fac *= Real(2.);
             }
         }
 
         resid(i,j,k) = (rhs(i,j,k) - resid(i,j,k)) * fac;
     } else {
-        resid(i,j,k) = 0._rt;
+        resid(i,j,k) = Real(0.);
     }
 }
 
@@ -1109,11 +1109,11 @@ void mlndlap_res_fine_Ax (int i, int j, int, Box const& fvbx, Array4<Real> const
 {
     IntVect iv(i,j);
     if (fvbx.contains(iv) and !fvbx.strictly_contains(iv)) {
-        Real facx = (1._rt/6._rt)*dxinv[0]*dxinv[0];
-        Real facy = (1._rt/6._rt)*dxinv[1]*dxinv[1];
+        Real facx = Real(1./6.)*dxinv[0]*dxinv[0];
+        Real facy = Real(1./6.)*dxinv[1]*dxinv[1];
         Real fxy = facx + facy;
-        Real f2xmy = 2._rt*facx - facy;
-        Real fmx2y = 2._rt*facy - facx;
+        Real f2xmy = Real(2.)*facx - facy;
+        Real fmx2y = Real(2.)*facy - facx;
         Ax(i,j,0) = x(i-1,j-1,0)*fxy*sig(i-1,j-1,0)
             +       x(i+1,j-1,0)*fxy*sig(i  ,j-1,0)
             +       x(i-1,j+1,0)*fxy*sig(i-1,j  ,0)
@@ -1122,7 +1122,7 @@ void mlndlap_res_fine_Ax (int i, int j, int, Box const& fvbx, Array4<Real> const
             +       x(i+1,j,0)*f2xmy*(sig(i  ,j-1,0)+sig(i  ,j  ,0))
             +       x(i,j-1,0)*fmx2y*(sig(i-1,j-1,0)+sig(i  ,j-1,0))
             +       x(i,j+1,0)*fmx2y*(sig(i-1,j  ,0)+sig(i  ,j  ,0))
-            +       x(i,j,0)*(-2._rt)*fxy*(sig(i-1,j-1,0)+sig(i,j-1,0)
+            +       x(i,j,0)*Real(-2.)*fxy*(sig(i-1,j-1,0)+sig(i,j-1,0)
                                            +sig(i-1,j,0)+sig(i,j,0));
         if (is_rz) {
             Real fp = facy / static_cast<Real>(2*i+1);
@@ -1138,9 +1138,9 @@ void mlndlap_res_fine_contrib (int i, int j, int k, Array4<Real> const& f,
                                Array4<Real const> const& Ax,
                                Array4<int const> const& msk) noexcept
 {
-    constexpr Real rfd = 0.25_rt;
-    constexpr Real chip = 0.5_rt;
-    constexpr Real chip2 = 0.25_rt;
+    constexpr Real rfd = Real(0.25);
+    constexpr Real chip = Real(0.5);
+    constexpr Real chip2 = Real(0.25);
 
     int ii = 2*i;
     int jj = 2*j;
@@ -1165,8 +1165,8 @@ void mlndlap_res_cf_contrib (int i, int j, int, Array4<Real> const& res,
                              bool neumann_doubling) noexcept
 {
     if (!dmsk(i,j,0) and ndmsk(i,j,0) == crse_fine_node) {
-        Real facx = (1._rt/6._rt)*dxinv[0]*dxinv[0];
-        Real facy = (1._rt/6._rt)*dxinv[1]*dxinv[1];
+        Real facx = Real(1./6.)*dxinv[0]*dxinv[0];
+        Real facy = Real(1./6.)*dxinv[1]*dxinv[1];
 
         Real fp, fm;
         if (is_rz) {
@@ -1174,39 +1174,39 @@ void mlndlap_res_cf_contrib (int i, int j, int, Array4<Real> const& res,
             fm = facy / static_cast<Real>(2*i-1);
         }
 
-        Real Ax = 0._rt;
+        Real Ax = Real(0.);
         if (ccmsk(i-1,j-1,0) == crse_cell) {
-            Ax += sig(i-1,j-1,0)*(facx*(2._rt*(phi(i-1,j  ,0)-phi(i  ,j  ,0))
-                                        +     (phi(i-1,j-1,0)-phi(i  ,j-1,0)))
-                                + facy*(2._rt*(phi(i  ,j-1,0)-phi(i  ,j  ,0))
-                                        +     (phi(i-1,j-1,0)-phi(i-1,j  ,0))));
+            Ax += sig(i-1,j-1,0)*(facx*(Real(2.)*(phi(i-1,j  ,0)-phi(i  ,j  ,0))
+                                           +     (phi(i-1,j-1,0)-phi(i  ,j-1,0)))
+                                + facy*(Real(2.)*(phi(i  ,j-1,0)-phi(i  ,j  ,0))
+                                           +     (phi(i-1,j-1,0)-phi(i-1,j  ,0))));
             if (is_rz) {
                 Ax += fm*sig(i-1,j-1,0)*(phi(i,j-1,0)-phi(i,j,0));
             }
         }
         if (ccmsk(i,j-1,0) == crse_cell) {
-            Ax += sig(i,j-1,0)*(facx*(2._rt*(phi(i+1,j  ,0)-phi(i  ,j  ,0))
-                                      +     (phi(i+1,j-1,0)-phi(i  ,j-1,0)))
-                              + facy*(2._rt*(phi(i  ,j-1,0)-phi(i  ,j  ,0))
-                                      +     (phi(i+1,j-1,0)-phi(i+1,j  ,0))));
+            Ax += sig(i,j-1,0)*(facx*(Real(2.)*(phi(i+1,j  ,0)-phi(i  ,j  ,0))
+                                         +     (phi(i+1,j-1,0)-phi(i  ,j-1,0)))
+                              + facy*(Real(2.)*(phi(i  ,j-1,0)-phi(i  ,j  ,0))
+                                         +     (phi(i+1,j-1,0)-phi(i+1,j  ,0))));
             if (is_rz) {
                 Ax -= fp*sig(i,j-1,0)*(phi(i,j-1,0)-phi(i,j,0));
             }
         }
         if (ccmsk(i-1,j,0) == crse_cell) {
-            Ax += sig(i-1,j,0)*(facx*(2._rt*(phi(i-1,j  ,0)-phi(i  ,j  ,0))
-                                      +     (phi(i-1,j+1,0)-phi(i  ,j+1,0)))
-                              + facy*(2._rt*(phi(i  ,j+1,0)-phi(i  ,j  ,0))
-                                      +     (phi(i-1,j+1,0)-phi(i-1,j  ,0))));
+            Ax += sig(i-1,j,0)*(facx*(Real(2.)*(phi(i-1,j  ,0)-phi(i  ,j  ,0))
+                                         +     (phi(i-1,j+1,0)-phi(i  ,j+1,0)))
+                              + facy*(Real(2.)*(phi(i  ,j+1,0)-phi(i  ,j  ,0))
+                                         +     (phi(i-1,j+1,0)-phi(i-1,j  ,0))));
             if (is_rz) {
                 Ax += fm*sig(i-1,j,0)*(phi(i,j+1,0)-phi(i,j,0));
             }
         }
         if (ccmsk(i,j,0) == crse_cell) {
-            Ax += sig(i,j,0)*(facx*(2._rt*(phi(i+1,j  ,0)-phi(i  ,j  ,0))
-                                   +      (phi(i+1,j+1,0)-phi(i  ,j+1,0)))
-                            + facy*(2._rt*(phi(i  ,j+1,0)-phi(i  ,j  ,0))
-                                   +      (phi(i+1,j+1,0)-phi(i+1,j  ,0))));
+            Ax += sig(i,j,0)*(facx*(Real(2.)*(phi(i+1,j  ,0)-phi(i  ,j  ,0))
+                                      +      (phi(i+1,j+1,0)-phi(i  ,j+1,0)))
+                            + facy*(Real(2.)*(phi(i  ,j+1,0)-phi(i  ,j  ,0))
+                                      +      (phi(i+1,j+1,0)-phi(i+1,j  ,0))));
             if (is_rz) {
                 Ax -= fp*sig(i,j,0)*(phi(i,j+1,0)-phi(i,j,0));
             }
@@ -1219,18 +1219,18 @@ void mlndlap_res_cf_contrib (int i, int j, int, Array4<Real> const& res,
 
             if (i == ndlo.x and (bclo[0] == LinOpBCType::Neumann or
                                  bclo[0] == LinOpBCType::inflow)) {
-                Axf *= 2._rt;
+                Axf *= Real(2.);
             } else if (i== ndhi.x and (bchi[0] == LinOpBCType::Neumann or
                                        bchi[0] == LinOpBCType::inflow)) {
-                Axf *= 2._rt;
+                Axf *= Real(2.);
             }
 
             if (j == ndlo.y and (bclo[1] == LinOpBCType::Neumann or
                                  bclo[1] == LinOpBCType::inflow)) {
-                Axf *= 2._rt;
+                Axf *= Real(2.);
             } else if (j == ndhi.y and (bchi[1] == LinOpBCType::Neumann or
                                         bchi[1] == LinOpBCType::inflow)) {
-                Axf *= 2._rt;
+                Axf *= Real(2.);
             }
         }
 
@@ -1284,7 +1284,7 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
     auto interp_from_mm_to = [&fsten] (int i_, int j_) -> Real {
         Real wxm = amrex::Math::abs(fsten(i_-1,j_  ,0,1))/(amrex::Math::abs(fsten(i_-1,j_-1,0,3))+amrex::Math::abs(fsten(i_-1,j_  ,0,3))+eps);
         Real wym = amrex::Math::abs(fsten(i_  ,j_-1,0,2))/(amrex::Math::abs(fsten(i_-1,j_-1,0,3))+amrex::Math::abs(fsten(i_  ,j_-1,0,3))+eps);
-        Real wmm = amrex::Math::abs(fsten(i_-1,j_-1,0,3)) * (1._rt + wxm + wym);
+        Real wmm = amrex::Math::abs(fsten(i_-1,j_-1,0,3)) * (Real(1.) + wxm + wym);
         return wmm * fsten(i_,j_,0,4);
     };
 #endif
@@ -1292,21 +1292,21 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
     auto interp_from_mp_to = [&fsten] (int i_, int j_) -> Real {
         Real wxm = amrex::Math::abs(fsten(i_-1,j_  ,0,1))/(amrex::Math::abs(fsten(i_-1,j_-1,0,3))+amrex::Math::abs(fsten(i_-1,j_  ,0,3))+eps);
         Real wyp = amrex::Math::abs(fsten(i_  ,j_  ,0,2))/(amrex::Math::abs(fsten(i_-1,j_  ,0,3))+amrex::Math::abs(fsten(i_  ,j_  ,0,3))+eps);
-        Real wmp = amrex::Math::abs(fsten(i_-1,j_  ,0,3)) *(1._rt + wxm + wyp);
+        Real wmp = amrex::Math::abs(fsten(i_-1,j_  ,0,3)) *(Real(1.) + wxm + wyp);
         return wmp * fsten(i_,j_,0,4);
     };
 
     auto interp_from_pm_to = [&fsten] (int i_, int j_) -> Real {
         Real wxp = amrex::Math::abs(fsten(i_  ,j_  ,0,1))/(amrex::Math::abs(fsten(i_  ,j_-1,0,3))+amrex::Math::abs(fsten(i_  ,j_  ,0,3))+eps);
         Real wym = amrex::Math::abs(fsten(i_  ,j_-1,0,2))/(amrex::Math::abs(fsten(i_-1,j_-1,0,3))+amrex::Math::abs(fsten(i_  ,j_-1,0,3))+eps);
-        Real wpm = amrex::Math::abs(fsten(i_  ,j_-1,0,3)) * (1._rt + wxp + wym);
+        Real wpm = amrex::Math::abs(fsten(i_  ,j_-1,0,3)) * (Real(1.) + wxp + wym);
         return wpm * fsten(i_,j_,0,4);
     };
 
     auto interp_from_pp_to = [&fsten] (int i_, int j_) -> Real {
         Real wxp = amrex::Math::abs(fsten(i_  ,j_  ,0,1))/(amrex::Math::abs(fsten(i_  ,j_-1,0,3))+amrex::Math::abs(fsten(i_  ,j_  ,0,3))+eps);
         Real wyp = amrex::Math::abs(fsten(i_  ,j_  ,0,2))/(amrex::Math::abs(fsten(i_-1,j_  ,0,3))+amrex::Math::abs(fsten(i_  ,j_  ,0,3))+eps);
-        Real wpp = amrex::Math::abs(fsten(i_  ,j_  ,0,3)) * (1._rt + wxp + wyp);
+        Real wpp = amrex::Math::abs(fsten(i_  ,j_  ,0,3)) * (Real(1.) + wxp + wyp);
         return wpp * fsten(i_,j_,0,4);
     };
 
@@ -1368,7 +1368,7 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
     auto restrict_from_mm_to = [&fsten] (int ii_, int jj_) -> Real {
         Real wxp = amrex::Math::abs(fsten(ii_-1,jj_-1,0,1))/(amrex::Math::abs(fsten(ii_-1,jj_-2,0,3))+amrex::Math::abs(fsten(ii_-1,jj_-1,0,3))+eps);
         Real wyp = amrex::Math::abs(fsten(ii_-1,jj_-1,0,2))/(amrex::Math::abs(fsten(ii_-2,jj_-1,0,3))+amrex::Math::abs(fsten(ii_-1,jj_-1,0,3))+eps);
-        Real wpp = amrex::Math::abs(fsten(ii_-1,jj_-1,0,3))*(1._rt+wxp+wyp);
+        Real wpp = amrex::Math::abs(fsten(ii_-1,jj_-1,0,3))*(Real(1.)+wxp+wyp);
         return wpp * fsten(ii_-1,jj_-1,0,4);
     };
 #endif
@@ -1380,7 +1380,7 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
     auto restrict_from_pm_to = [&fsten] (int ii_, int jj_) -> Real {
         Real wxm = amrex::Math::abs(fsten(ii_  ,jj_-1,0,1))/(amrex::Math::abs(fsten(ii_,jj_-2,0,3))+amrex::Math::abs(fsten(ii_  ,jj_-1,0,3))+eps);
         Real wyp = amrex::Math::abs(fsten(ii_+1,jj_-1,0,2))/(amrex::Math::abs(fsten(ii_,jj_-1,0,3))+amrex::Math::abs(fsten(ii_+1,jj_-1,0,3))+eps);
-        Real wmp = amrex::Math::abs(fsten(ii_  ,jj_-1,0,3)) *(1._rt + wxm + wyp);
+        Real wmp = amrex::Math::abs(fsten(ii_  ,jj_-1,0,3)) *(Real(1.) + wxm + wyp);
         return wmp * fsten(ii_+1,jj_-1,0,4);
     };
 
@@ -1395,7 +1395,7 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
     auto restrict_from_mp_to = [&fsten] (int ii_, int jj_) -> Real {
         Real wxp = amrex::Math::abs(fsten(ii_-1,jj_+1,0,1))/(amrex::Math::abs(fsten(ii_-1,jj_,0,3))+amrex::Math::abs(fsten(ii_-1,jj_+1,0,3))+eps);
         Real wym = amrex::Math::abs(fsten(ii_-1,jj_  ,0,2))/(amrex::Math::abs(fsten(ii_-2,jj_,0,3))+amrex::Math::abs(fsten(ii_-1,jj_  ,0,3))+eps);
-        Real wpm = amrex::Math::abs(fsten(ii_-1,jj_  ,0,3)) * (1._rt + wxp + wym);
+        Real wpm = amrex::Math::abs(fsten(ii_-1,jj_  ,0,3)) * (Real(1.) + wxp + wym);
         return wpm * fsten(ii_-1,jj_+1,0,4);
     };
 
@@ -1406,7 +1406,7 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
     auto restrict_from_pp_to = [&fsten] (int ii_, int jj_) -> Real {
         Real wxm = amrex::Math::abs(fsten(ii_  ,jj_+1,0,1))/(amrex::Math::abs(fsten(ii_  ,jj_  ,0,3))+amrex::Math::abs(fsten(ii_  ,jj_+1,0,3))+eps);
         Real wym = amrex::Math::abs(fsten(ii_+1,jj_  ,0,2))/(amrex::Math::abs(fsten(ii_  ,jj_  ,0,3))+amrex::Math::abs(fsten(ii_+1,jj_  ,0,3))+eps);
-        Real wmm = amrex::Math::abs(fsten(ii_  ,jj_  ,0,3)) * (1._rt + wxm + wym);
+        Real wmm = amrex::Math::abs(fsten(ii_  ,jj_  ,0,3)) * (Real(1.) + wxm + wym);
         return wmm * fsten(ii_+1,jj_+1,0,4);
     };
 
@@ -1418,7 +1418,7 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
     p(-1,-1) = interp_from_pp_to(ii+1,jj-1);
     p( 0,-1) = interp_from_0p_to(ii+2,jj-1);
     p(-1, 0) = interp_from_p0_to(ii+1,jj  );
-    p( 0, 0) = 1._rt;
+    p( 0, 0) = Real(1.);
     p(-1, 1) = interp_from_pm_to(ii+1,jj+1);
     p( 0, 1) = interp_from_0m_to(ii+2,jj+1);
 
@@ -1433,7 +1433,7 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
     ap(1,1) = A0m(ii+1,jj+1)*p(-1,0) + Apm(ii+1,jj+1)*p(0,0)
         +     A00(ii+1,jj+1)*p(-1,1) + Ap0(ii+1,jj+1)*p(0,1);
 
-    csten(i,j,k,1) = 0.25_rt*(restrict_from_0m_to(ii,jj)*ap(0,-1)
+    csten(i,j,k,1) = Real(0.25)*(restrict_from_0m_to(ii,jj)*ap(0,-1)
                             + restrict_from_pm_to(ii,jj)*ap(1,-1)
                             + ap(0,0)
                             + restrict_from_p0_to(ii,jj)*ap(1,0)
@@ -1445,7 +1445,7 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
     p( 0,-1) = interp_from_0p_to(ii  ,jj+1);
     p( 1,-1) = interp_from_mp_to(ii+1,jj+1);
     p(-1, 0) = interp_from_p0_to(ii-1,jj+2);
-    p( 0, 0) = 1._rt;
+    p( 0, 0) = Real(1.);
     p( 1, 0) = interp_from_m0_to(ii+1,jj+2);
 
     ap(-1,0) = A0p(ii-1,jj)*p(-1,-1) + App(ii-1,jj)*p(0,-1);
@@ -1458,7 +1458,7 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
     ap(1,1) = Am0(ii+1,jj+1)*p(0,-1) + A00(ii+1,jj+1)*p(1,-1)
         +     Amp(ii+1,jj+1)*p(0,0) + A0p(ii+1,jj+1)*p(1,0);
 
-    csten(i,j,k,2) = 0.25_rt*(restrict_from_m0_to(ii,jj)*ap(-1,0)
+    csten(i,j,k,2) = Real(0.25)*(restrict_from_m0_to(ii,jj)*ap(-1,0)
                             + ap(0,0)
                             + restrict_from_p0_to(ii,jj)*ap(1,0)
                             + restrict_from_mp_to(ii,jj)*ap(-1,1)
@@ -1469,7 +1469,7 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
     p(-1,-1) = interp_from_pp_to(ii+1,jj+1);
     p( 0,-1) = interp_from_0p_to(ii+2,jj+1);
     p(-1, 0) = interp_from_p0_to(ii+1,jj+2);
-    p( 0, 0) = 1._rt;
+    p( 0, 0) = Real(1.);
 
     ap(0,0) = App(ii,jj)*p(-1,-1);
     ap(1,0) = A0p(ii+1,jj)*p(-1,-1) + App(ii+1,jj)*p(0,-1);
@@ -1477,14 +1477,14 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
     ap(1,1) = A00(ii+1,jj+1)*p(-1,-1) + Ap0(ii+1,jj+1)*p(0,-1)
         +     A0p(ii+1,jj+1)*p(-1,0) + App(ii+1,jj+1)*p(0,0);
 
-    Real cross1 = 0.25_rt*(ap(0,0)
+    Real cross1 = Real(0.25)*(ap(0,0)
                            + restrict_from_p0_to(ii,jj)*ap(1,0)
                            + restrict_from_0p_to(ii,jj)*ap(0,1)
                            + restrict_from_pp_to(ii,jj)*ap(1,1));
 
     p(0,-1) = interp_from_0p_to(ii,jj+1);
     p(1,-1) = interp_from_mp_to(ii+1,jj+1);
-    p(0, 0) = 1._rt;
+    p(0, 0) = Real(1.);
     p(1, 0) = interp_from_m0_to(ii+1,jj+2);
 
     ap(-1,0) = Amp(ii+1,jj)*p(0,-1) + A0p(ii+1,jj)*p(1,-1);
@@ -1493,12 +1493,12 @@ void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
         + A0p(ii+1,jj+1)*p(1,0);
     ap( 0,1) = Am0(ii+2,jj+1)*p(1,-1) + Amp(ii+2,jj+1)*p(1,0);
 
-    Real cross2 = 0.25_rt*(ap(0,0)
+    Real cross2 = Real(0.25)*(ap(0,0)
                            + restrict_from_m0_to(ii+2,jj)*ap(-1,0)
                            + restrict_from_mp_to(ii+2,jj)*ap(-1,1)
                            + restrict_from_0p_to(ii+2,jj)*ap( 0,1));
 
-    csten(i,j,k,3) = 0.5_rt*(cross1+cross2);
+    csten(i,j,k,3) = Real(0.5)*(cross1+cross2);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1670,19 +1670,19 @@ void mlndlap_set_connection (int i, int j, int, Array4<Real> const& conn,
                              Array4<EBCellFlag const> const& flag) noexcept
 {
     if (flag(i,j,0).isCovered()) {
-        for (int n = 0; n < 6; ++n) conn(i,j,0,n) = 0._rt;
+        for (int n = 0; n < 6; ++n) conn(i,j,0,n) = Real(0.);
     } else if (flag(i,j,0).isRegular() or vol(i,j,0) >= almostone) {
-        for (int n = 0; n < 6; ++n) conn(i,j,0,n) = 1._rt;
+        for (int n = 0; n < 6; ++n) conn(i,j,0,n) = Real(1.);
     } else {
         // Note that these are normalized so that they equal 1 in the case of a regular cell
 
-        conn(i,j,0,0) = 3._rt*(.25_rt*vol(i,j,0) + intg(i,j,0,i_S_y2) - intg(i,j,0,i_S_y));
-        conn(i,j,0,1) = 6._rt*(.25_rt*vol(i,j,0) - intg(i,j,0,i_S_y2));
-        conn(i,j,0,2) = 3._rt*(.25_rt*vol(i,j,0) + intg(i,j,0,i_S_y2) + intg(i,j,0,i_S_y));
+        conn(i,j,0,0) = Real(3.)*(Real(0.25)*vol(i,j,0) + intg(i,j,0,i_S_y2) - intg(i,j,0,i_S_y));
+        conn(i,j,0,1) = Real(6.)*(Real(0.25)*vol(i,j,0) - intg(i,j,0,i_S_y2));
+        conn(i,j,0,2) = Real(3.)*(Real(0.25)*vol(i,j,0) + intg(i,j,0,i_S_y2) + intg(i,j,0,i_S_y));
 
-        conn(i,j,0,3) = 3._rt*(.25_rt*vol(i,j,0) + intg(i,j,0,i_S_x2) - intg(i,j,0,i_S_x));
-        conn(i,j,0,4) = 6._rt*(.25_rt*vol(i,j,0) - intg(i,j,0,i_S_x2));
-        conn(i,j,0,5) = 3._rt*(.25_rt*vol(i,j,0) + intg(i,j,0,i_S_x2) + intg(i,j,0,i_S_x));
+        conn(i,j,0,3) = Real(3.)*(Real(0.25)*vol(i,j,0) + intg(i,j,0,i_S_x2) - intg(i,j,0,i_S_x));
+        conn(i,j,0,4) = Real(6.)*(Real(0.25)*vol(i,j,0) - intg(i,j,0,i_S_x2));
+        conn(i,j,0,5) = Real(3.)*(Real(0.25)*vol(i,j,0) + intg(i,j,0,i_S_x2) + intg(i,j,0,i_S_x));
     }
 }
 
@@ -1691,13 +1691,13 @@ void mlndlap_set_stencil_eb (int i, int j, int, Array4<Real> const& sten,
                              Array4<Real const> const& sig, Array4<Real const> const& conn,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    Real facx = (1._rt/6._rt)*dxinv[0]*dxinv[0];
-    Real facy = (1._rt/6._rt)*dxinv[1]*dxinv[1];
+    Real facx = Real(1./6.)*dxinv[0]*dxinv[0];
+    Real facy = Real(1./6.)*dxinv[1]*dxinv[1];
 
-    sten(i,j,0,1) = 2._rt*facx*(sig(i,j-1,0)*conn(i,j-1,0,2)+sig(i,j,0)*conn(i,j,0,0))
-                         -facy*(sig(i,j-1,0)*conn(i,j-1,0,4)+sig(i,j,0)*conn(i,j,0,4));
-    sten(i,j,0,2) = 2._rt*facy*(sig(i-1,j,0)*conn(i-1,j,0,5)+sig(i,j,0)*conn(i,j,0,3))
-                         -facx*(sig(i-1,j,0)*conn(i-1,j,0,1)+sig(i,j,0)*conn(i,j,0,1));
+    sten(i,j,0,1) = Real(2.)*facx*(sig(i,j-1,0)*conn(i,j-1,0,2)+sig(i,j,0)*conn(i,j,0,0))
+                            -facy*(sig(i,j-1,0)*conn(i,j-1,0,4)+sig(i,j,0)*conn(i,j,0,4));
+    sten(i,j,0,2) = Real(2.)*facy*(sig(i-1,j,0)*conn(i-1,j,0,5)+sig(i,j,0)*conn(i,j,0,3))
+                            -facx*(sig(i-1,j,0)*conn(i-1,j,0,1)+sig(i,j,0)*conn(i,j,0,1));
     sten(i,j,0,3) = (facx*conn(i,j,0,1)+facy*conn(i,j,0,4))*sig(i,j,0);
 }
 
@@ -1710,8 +1710,8 @@ void mlndlap_divu_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real co
                       GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
                       GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
 {
-    Real facx = 0.5_rt*dxinv[0];
-    Real facy = 0.5_rt*dxinv[1];
+    Real facx = Real(0.5)*dxinv[0];
+    Real facy = Real(0.5)*dxinv[1];
 
     const auto domlo = amrex::lbound(nodal_domain);
     const auto domhi = amrex::ubound(nodal_domain);
@@ -1734,16 +1734,16 @@ void mlndlap_divu_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real co
         if ((bchi[1] == LinOpBCType::Neumann or bchi[1] == LinOpBCType::inflow)
             and j == domhi.y) zero_jhi = 0.0; 
 
-        rhs(i,j,0) = facx*(-vel(i-1,j-1,0,0)*(vfrac(i-1,j-1,0)+2._rt*intg(i-1,j-1,0,1))*zero_jlo
-                           +vel(i  ,j-1,0,0)*(vfrac(i  ,j-1,0)+2._rt*intg(i  ,j-1,0,1))*zero_jlo
-                           -vel(i-1,j  ,0,0)*(vfrac(i-1,j  ,0)-2._rt*intg(i-1,j  ,0,1))*zero_jhi
-                           +vel(i  ,j  ,0,0)*(vfrac(i  ,j  ,0)-2._rt*intg(i  ,j  ,0,1))*zero_jhi)
-                   + facy*(-vel(i-1,j-1,0,1)*(vfrac(i-1,j-1,0)+2._rt*intg(i-1,j-1,0,0))*zero_ilo
-                           -vel(i  ,j-1,0,1)*(vfrac(i  ,j-1,0)-2._rt*intg(i  ,j-1,0,0))*zero_ihi
-                           +vel(i-1,j  ,0,1)*(vfrac(i-1,j  ,0)+2._rt*intg(i-1,j  ,0,0))*zero_ilo
-                           +vel(i  ,j  ,0,1)*(vfrac(i  ,j  ,0)-2._rt*intg(i  ,j  ,0,0))*zero_ihi);
+        rhs(i,j,0) = facx*(-vel(i-1,j-1,0,0)*(vfrac(i-1,j-1,0)+Real(2.)*intg(i-1,j-1,0,1))*zero_jlo
+                           +vel(i  ,j-1,0,0)*(vfrac(i  ,j-1,0)+Real(2.)*intg(i  ,j-1,0,1))*zero_jlo
+                           -vel(i-1,j  ,0,0)*(vfrac(i-1,j  ,0)-Real(2.)*intg(i-1,j  ,0,1))*zero_jhi
+                           +vel(i  ,j  ,0,0)*(vfrac(i  ,j  ,0)-Real(2.)*intg(i  ,j  ,0,1))*zero_jhi)
+                   + facy*(-vel(i-1,j-1,0,1)*(vfrac(i-1,j-1,0)+Real(2.)*intg(i-1,j-1,0,0))*zero_ilo
+                           -vel(i  ,j-1,0,1)*(vfrac(i  ,j-1,0)-Real(2.)*intg(i  ,j-1,0,0))*zero_ihi
+                           +vel(i-1,j  ,0,1)*(vfrac(i-1,j  ,0)+Real(2.)*intg(i-1,j  ,0,0))*zero_ilo
+                           +vel(i  ,j  ,0,1)*(vfrac(i  ,j  ,0)-Real(2.)*intg(i  ,j  ,0,0))*zero_ihi);
     } else {
-        rhs(i,j,0) = 0._rt;
+        rhs(i,j,0) = Real(0.);
     }
 }
 
@@ -1752,10 +1752,10 @@ void mlndlap_mknewu_eb (int i, int j, int, Array4<Real> const& u, Array4<Real co
                         Array4<Real const> const& sig, Array4<Real const> const& vfrac,
                         Array4<Real const> const& intg, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    Real facx = 0.5_rt*dxinv[0];
-    Real facy = 0.5_rt*dxinv[1];
-    if (vfrac(i,j,0) == 0._rt) {
-        u(i,j,0,0) = u(i,j,0,1) = 0._rt;
+    Real facx = Real(0.5)*dxinv[0];
+    Real facy = Real(0.5)*dxinv[1];
+    if (vfrac(i,j,0) == Real(0.)) {
+        u(i,j,0,0) = u(i,j,0,1) = Real(0.);
     } else {
         Real dpdx = facx*(-p(i,j,0)+p(i+1,j,0)-p(i,j+1,0)+p(i+1,j+1,0));
         Real dpdy = facy*(-p(i,j,0)-p(i+1,j,0)+p(i,j+1,0)+p(i+1,j+1,0));
@@ -1772,23 +1772,23 @@ Real mlndlap_rhcc_eb (int i, int j, int, Array4<Real const> const& rhcc,
 {
     if (!msk(i,j,0)) {
         return
-            rhcc(i  ,j  ,0)*(0.25_rt*vfrac(i  ,j  ,0)-intg(i  ,j  ,0,i_S_x)-intg(i  ,j  ,0,i_S_y)+intg(i  ,j  ,0,i_S_xy)) +
-            rhcc(i-1,j  ,0)*(0.25_rt*vfrac(i-1,j  ,0)+intg(i-1,j  ,0,i_S_x)-intg(i-1,j  ,0,i_S_y)-intg(i-1,j  ,0,i_S_xy)) +
-            rhcc(i-1,j-1,0)*(0.25_rt*vfrac(i-1,j-1,0)+intg(i-1,j-1,0,i_S_x)+intg(i-1,j-1,0,i_S_y)+intg(i-1,j-1,0,i_S_xy)) +
-            rhcc(i  ,j-1,0)*(0.25_rt*vfrac(i  ,j-1,0)-intg(i  ,j-1,0,i_S_x)+intg(i  ,j-1,0,i_S_y)-intg(i  ,j-1,0,i_S_xy));
+            rhcc(i  ,j  ,0)*(Real(0.25)*vfrac(i  ,j  ,0)-intg(i  ,j  ,0,i_S_x)-intg(i  ,j  ,0,i_S_y)+intg(i  ,j  ,0,i_S_xy)) +
+            rhcc(i-1,j  ,0)*(Real(0.25)*vfrac(i-1,j  ,0)+intg(i-1,j  ,0,i_S_x)-intg(i-1,j  ,0,i_S_y)-intg(i-1,j  ,0,i_S_xy)) +
+            rhcc(i-1,j-1,0)*(Real(0.25)*vfrac(i-1,j-1,0)+intg(i-1,j-1,0,i_S_x)+intg(i-1,j-1,0,i_S_y)+intg(i-1,j-1,0,i_S_xy)) +
+            rhcc(i  ,j-1,0)*(Real(0.25)*vfrac(i  ,j-1,0)-intg(i  ,j-1,0,i_S_x)+intg(i  ,j-1,0,i_S_y)-intg(i  ,j-1,0,i_S_xy));
     } else {
-        return 0._rt;
+        return Real(0.);
     }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_integral (int i, int j, int, Array4<Real> const& intg) noexcept
 {
-    intg(i,j,0,i_S_x ) = 0._rt;
-    intg(i,j,0,i_S_y ) = 0._rt;
-    intg(i,j,0,i_S_x2) = (1._rt/12._rt);
-    intg(i,j,0,i_S_y2) = (1._rt/12._rt);
-    intg(i,j,0,i_S_xy) = 0._rt;
+    intg(i,j,0,i_S_x ) = Real(0.);
+    intg(i,j,0,i_S_y ) = Real(0.);
+    intg(i,j,0,i_S_x2) = Real(1./12.);
+    intg(i,j,0,i_S_y2) = Real(1./12.);
+    intg(i,j,0,i_S_xy) = Real(0.);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1798,17 +1798,17 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
                               Array4<Real const> const& bcen) noexcept
 {
     if (flag(i,j,0).isCovered()) {
-        intg(i,j,0,i_S_x ) = 0._rt;
-        intg(i,j,0,i_S_y ) = 0._rt;
-        intg(i,j,0,i_S_x2) = 0._rt;
-        intg(i,j,0,i_S_y2) = 0._rt;
-        intg(i,j,0,i_S_xy) = 0._rt;
+        intg(i,j,0,i_S_x ) = Real(0.);
+        intg(i,j,0,i_S_y ) = Real(0.);
+        intg(i,j,0,i_S_x2) = Real(0.);
+        intg(i,j,0,i_S_y2) = Real(0.);
+        intg(i,j,0,i_S_xy) = Real(0.);
     } else if (flag(i,j,0).isRegular() or vol(i,j,0) >= almostone) {
-        intg(i,j,0,i_S_x ) = 0._rt;
-        intg(i,j,0,i_S_y ) = 0._rt;
-        intg(i,j,0,i_S_x2) = (1._rt/12._rt);
-        intg(i,j,0,i_S_y2) = (1._rt/12._rt);
-        intg(i,j,0,i_S_xy) = 0._rt;
+        intg(i,j,0,i_S_x ) = Real(0.);
+        intg(i,j,0,i_S_y ) = Real(0.);
+        intg(i,j,0,i_S_x2) = Real(1./12.);
+        intg(i,j,0,i_S_y2) = Real(1./12.);
+        intg(i,j,0,i_S_xy) = Real(0.);
     } else {
         Real axm = ax(i,j,0);
         Real axp = ax(i+1,j,0);
@@ -1816,11 +1816,11 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
         Real ayp = ay(i,j+1,0);
 
         Real apnorm = std::sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp));
-        if (apnorm == 0._rt) {
+        if (apnorm == Real(0.)) {
             amrex::Abort("amrex_mlndlap_set_integral: we are in trouble");
         }
 
-        Real apnorminv = 1._rt/apnorm;
+        Real apnorminv = Real(1.)/apnorm;
         Real anrmx = (axm-axp) * apnorminv;  // pointing to the wall
         Real anrmy = (aym-ayp) * apnorminv;
 
@@ -1828,58 +1828,58 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
         Real bcy = bcen(i,j,0,1);
 
         Real Sx, Sy, Sx2, Sy2, Sxy;
-        if (anrmx == 0._rt) {
-            Sx = 0._rt;
-            Sx2 = (1._rt/24._rt)*(axm+axp);
-            Sxy = 0._rt;
-        } else if (anrmy == 0._rt) {
-            Sx  = (1._rt/8._rt) *(axp-axm) + anrmx*0.5_rt*(bcx*bcx);
-            Sx2 = (1._rt/24._rt)*(axp+axm) + anrmx*(1._rt/3._rt)*(bcx*bcx*bcx);
-            Sxy = 0._rt;
+        if (anrmx == Real(0.)) {
+            Sx = Real(0.);
+            Sx2 = Real(1./24.)*(axm+axp);
+            Sxy = Real(0.);
+        } else if (anrmy == Real(0.)) {
+            Sx  = Real(1./8.) *(axp-axm) + anrmx*Real(0.5)*(bcx*bcx);
+            Sx2 = Real(1./24.)*(axp+axm) + anrmx*Real(1./3.)*(bcx*bcx*bcx);
+            Sxy = Real(0.);
         } else {
             Real xmin, xmax;
-            if (anrmx > 0._rt) {
-                xmin = -0.5_rt + amrex::min(aym,ayp);
-                xmax = -0.5_rt + amrex::max(aym,ayp);
+            if (anrmx > Real(0.)) {
+                xmin = Real(-0.5) + amrex::min(aym,ayp);
+                xmax = Real(-0.5) + amrex::max(aym,ayp);
             } else {
-                xmin = 0.5_rt - amrex::max(aym,ayp);
-                xmax = 0.5_rt - amrex::min(aym,ayp);
+                xmin = Real(0.5) - amrex::max(aym,ayp);
+                xmax = Real(0.5) - amrex::min(aym,ayp);
             }
             Real xmin3 = xmin*xmin*xmin;
             Real xmin4 = xmin3*xmin;
             Real xmax3 = xmax*xmax*xmax;
             Real xmax4 = xmax3*xmax;
-            Sx  = (1._rt/8._rt) *(axp-axm) + (anrmx/amrex::Math::abs(anrmy))*(1._rt/6._rt) *(xmax3-xmin3);
-            Sx2 = (1._rt/24._rt)*(axp+axm) + (anrmx/amrex::Math::abs(anrmy))*(1._rt/12._rt)*(xmax4-xmin4);
+            Sx  = Real(1./8.) *(axp-axm) + (anrmx/amrex::Math::abs(anrmy))*Real(1./6.) *(xmax3-xmin3);
+            Sx2 = Real(1./24.)*(axp+axm) + (anrmx/amrex::Math::abs(anrmy))*Real(1./12.)*(xmax4-xmin4);
 
             Real kk = -anrmx/anrmy;
             Real bb = bcy-kk*bcx;
-            Sxy = (1._rt/8._rt)*kk*kk*(xmax4-xmin4) + (1._rt/3._rt)*kk*bb*(xmax3-xmin3)
-                + (0.25_rt*bb*bb-(1._rt/16._rt))*(xmax*xmax-xmin*xmin);
+            Sxy = Real(1./8.)*kk*kk*(xmax4-xmin4) + Real(1./3.)*kk*bb*(xmax3-xmin3)
+                + (Real(0.25)*bb*bb-Real(1./16.))*(xmax*xmax-xmin*xmin);
             Sxy = amrex::Math::copysign(Sxy, anrmy);
         }
 
-        if (anrmy == 0._rt) {
-            Sy = 0._rt;
-            Sy2 = (1._rt/24._rt)*(aym+ayp);
-        } else if (anrmx == 0._rt) {
-            Sy  = (1._rt/8._rt) *(ayp-aym) + anrmy*0.5_rt*(bcy*bcy);
-            Sy2 = (1._rt/24._rt)*(ayp+aym) + anrmy*(1._rt/3._rt)*(bcy*bcy*bcy);
+        if (anrmy == Real(0.)) {
+            Sy = Real(0.);
+            Sy2 = Real(1./24.)*(aym+ayp);
+        } else if (anrmx == Real(0.)) {
+            Sy  = Real(1./8.) *(ayp-aym) + anrmy*Real(0.5)*(bcy*bcy);
+            Sy2 = Real(1./24.)*(ayp+aym) + anrmy*Real(1./3.)*(bcy*bcy*bcy);
         } else {
             Real ymin, ymax;
-            if (anrmy > 0._rt) {
-                ymin = -0.5_rt + amrex::min(axm,axp);
-                ymax = -0.5_rt + amrex::max(axm,axp);
+            if (anrmy > Real(0.)) {
+                ymin = Real(-0.5) + amrex::min(axm,axp);
+                ymax = Real(-0.5) + amrex::max(axm,axp);
             } else {
-                ymin = 0.5_rt - amrex::max(axm,axp);
-                ymax = 0.5_rt - amrex::min(axm,axp);
+                ymin = Real(0.5) - amrex::max(axm,axp);
+                ymax = Real(0.5) - amrex::min(axm,axp);
             }
             Real ymin3 = ymin*ymin*ymin;
             Real ymin4 = ymin3*ymin;
             Real ymax3 = ymax*ymax*ymax;
             Real ymax4 = ymax3*ymax;
-            Sy  = (1._rt/8._rt) *(ayp-aym) + (anrmy/amrex::Math::abs(anrmx))*(1._rt/6._rt) *(ymax3-ymin3);
-            Sy2 = (1._rt/24._rt)*(ayp+aym) + (anrmy/amrex::Math::abs(anrmx))*(1._rt/12._rt)*(ymax4-ymin4);
+            Sy  = Real(1./8.) *(ayp-aym) + (anrmy/amrex::Math::abs(anrmx))*Real(1./6.) *(ymax3-ymin3);
+            Sy2 = Real(1./24.)*(ayp+aym) + (anrmy/amrex::Math::abs(anrmx))*Real(1./12.)*(ymax4-ymin4);
         }
 
         intg(i,j,0,i_S_x ) = Sx;

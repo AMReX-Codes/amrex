@@ -205,7 +205,11 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
         sycl::intel::sub_group const& sg = gh.item.get_sub_group();
         int lane = sg.get_local_id()[0];
         int warp = sg.get_group_id()[0];
+#if (__SYCL_COMPILER_VERSION <= 20200715)
         int nwarps = sg.get_group_range();
+#else
+        int nwarps = sg.get_group_range()[0];
+#endif
 
         int threadIdxx = gh.item.get_local_id(0);
         int blockDimx = gh.item.get_local_range(0);

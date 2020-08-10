@@ -155,11 +155,7 @@ jobs:
             -DCUDA_ARCH=6.0
         make -j 2 tutorials
 
-  # Build libamrex and all tutorials with DPC++
-  # broken in beta08
-  #   https://github.com/intel/llvm/issues/2187
   tutorials-dpcpp:
-    if: false
     name: DPCPP@PubBeta GFortran@7.5 C++17 [tutorials]
     runs-on: ubuntu-latest
     steps:
@@ -169,7 +165,7 @@ jobs:
     - name: Build & Install
       run: |
         set +e
-        source /opt/intel/inteloneapi/setvars.sh
+        source /opt/intel/oneapi/setvars.sh
         set -e
         mkdir build
         cd build
