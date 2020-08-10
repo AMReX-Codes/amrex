@@ -223,11 +223,13 @@ readBoxList (const std::string& file, Box& domain)
 {
     BoxArray retval;
 
-    std::ifstream ifs;
-    ifs.open(file.c_str(), std::ios::in);
-    ifs >> domain;
-    ifs.ignore(1000,'\n');
-    retval.readFrom(ifs);
+    Vector<char> fileCharPtr;
+    ParallelDescriptor::ReadAndBcastFile(file, fileCharPtr);
+    std::istringstream is(fileCharPtr.data());
+
+    is >> domain;
+    is.ignore(1000,'\n');
+    retval.readFrom(is);
 
     return retval;
 }
