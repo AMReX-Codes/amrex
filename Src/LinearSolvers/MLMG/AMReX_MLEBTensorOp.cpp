@@ -482,9 +482,9 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 
           const auto & bdcv = bcondloc.bndryConds(mfi);
           Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> bct;
-          for (OrientationIter face; face; ++face) {
-              Orientation ori = face();
-              for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+          for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+              for (OrientationIter face; face; ++face) {
+                  Orientation ori = face();
                   bct(ori,icomp) = bdcv[icomp][ori];
               }
           }

@@ -252,9 +252,9 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
             const auto & bdcv = bcondloc.bndryConds(mfi);
             Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> bct;
-            for (OrientationIter face; face; ++face) {
-                Orientation ori = face(); 
-                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+            for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                for (OrientationIter face; face; ++face) {
+                    Orientation ori = face(); 
                     bct(ori,icomp) = bdcv[icomp][ori];
                 }
             }
@@ -457,9 +457,9 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
 
             const auto & bdcv = bcondloc.bndryConds(mfi);
             Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> bct;
-            for (OrientationIter face; face; ++face) {
-                Orientation ori = face();
-                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+            for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                for (OrientationIter face; face; ++face) {
+                    Orientation ori = face();
                     bct(ori,icomp) = bdcv[icomp][ori];
                 }
             }
