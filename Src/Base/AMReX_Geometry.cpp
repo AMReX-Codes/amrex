@@ -413,7 +413,7 @@ Geometry::computeRoundoffDomain ()
         Real phi = ProbHi(idim);
         Real deltax = CellSize(idim);
 
-#ifdef AMREX_SINGLE_PRECISION_PARTICLE
+#ifdef AMREX_SINGLE_PRECISION_PARTICLES
         PReal tolerance = std::max(1.e-8*deltax, 1.e-14*phi);
 #else
         PReal tolerance = std::max(1.e-4*deltax, 1.e-10*phi);
