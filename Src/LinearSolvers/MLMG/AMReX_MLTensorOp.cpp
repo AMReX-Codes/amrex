@@ -212,7 +212,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
     const Geometry& geom = m_geom[amrlev][mglev];
-    const Box& domain = amrex::enclosedCells(geom.Domain());
+    const Box& domain = geom.Domain();
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
@@ -418,7 +418,7 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
     const Geometry& geom = m_geom[amrlev][mglev];
-    const Box& domain = amrex::enclosedCells(geom.Domain());
+    const Box& domain = geom.Domain();
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];

@@ -417,7 +417,7 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 
     const Geometry& geom = m_geom[amrlev][mglev];
     const auto dxinv = geom.InvCellSizeArray();
-    const Box& domain = amrex::enclosedCells(geom.Domain());
+    const Box& domain = geom.Domain();
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
