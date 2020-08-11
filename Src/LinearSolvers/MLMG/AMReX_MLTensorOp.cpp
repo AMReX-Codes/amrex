@@ -215,6 +215,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
     const Box& domain = geom.Domain();
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
+    const GpuArray<int,AMREX_SPACEDIM>& is_periodic = geom.isPeriodicArray();
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
 
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
@@ -262,15 +263,15 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
             ( xbx, txbx,
               {
-                  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,dlo,dhi,bct);
+                  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,dlo,dhi,bct,is_periodic[0]);
               }
             , ybx, tybx,
               {
-                  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,dlo,dhi,bct);
+                  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,dlo,dhi,bct,is_periodic[1]);
               }
             , zbx, tzbx,
               {
-                  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,dlo,dhi,bct);
+                  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,dlo,dhi,bct,is_periodic[2]);
               }
             );
 
@@ -421,6 +422,7 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
     const Box& domain = geom.Domain();
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
+    const GpuArray<int,AMREX_SPACEDIM>& is_periodic = geom.isPeriodicArray();
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
 
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
@@ -467,15 +469,15 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
             ( xbx, txbx,
               {
-                  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,dlo,dhi,bct);
+                  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,dlo,dhi,bct,is_periodic[0]);
               }
             , ybx, tybx,
               {
-                  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,dlo,dhi,bct);
+                  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,dlo,dhi,bct,is_periodic[1]);
               }
             , zbx, tzbx,
               {
-                  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,dlo,dhi,bct);
+                  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,dlo,dhi,bct,is_periodic[2]);
               }
             );
 
