@@ -292,15 +292,14 @@ namespace detail {
 //  Inc
 ////////////////////////////////////////////////////////////////////////
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+#ifdef AMREX_USE_DPCPP
+    template <sycl::access::address_space AS = sycl::access::address_space::global_space>
+    AMREX_FORCE_INLINE
     unsigned int Inc (unsigned int* const m, unsigned int const value) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        return atomicInc(m, value);
-#elif defined(__SYCL_DEVICE_ONLY__)
+#if defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
-        constexpr auto as = sycl::access::address_space::global_space;
-        sycl::atomic<unsigned int,as> a{sycl::multi_ptr<unsigned int,as>(m)};
+        sycl::atomic<unsigned int,AS> a{sycl::multi_ptr<unsigned int,AS>(m)};
         unsigned int oldi = a.load(mo), newi;
         do {
             newi = (oldi >= value) ? 0u : (oldi+1u);
@@ -312,6 +311,19 @@ namespace detail {
         return old;
 #endif
     }
+#else
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    unsigned int Inc (unsigned int* const m, unsigned int const value) noexcept
+    {
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+        return atomicInc(m, value);
+#else
+        auto const old = *m;
+        *m = (old >= value) ? 0u : (old+1u);
+        return old;
+#endif
+    }
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 //  Dec
