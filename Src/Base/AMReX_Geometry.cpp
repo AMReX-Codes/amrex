@@ -411,6 +411,7 @@ Geometry::computeRoundoffDomain ()
         int ihi = Domain().bigEnd(idim);
         Real plo = ProbLo(idim);
         Real phi = ProbHi(idim);
+        Real idx = InvCellSize(idim);
         Real deltax = CellSize(idim);
 
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
@@ -425,7 +426,7 @@ Geometry::computeRoundoffDomain ()
         PReal mid = bisect(lo, hi,
                            [=] AMREX_GPU_HOST_DEVICE (PReal x) -> PReal
                            {
-                               int i = int(Math::floor((x - plo)/deltax)) + ilo;
+                               int i = int(Math::floor((x - plo)*idx)) + ilo;
                                bool inside = i >= 0 and i <= ihi;
                                return static_cast<PReal>(inside) - 0.5_prt;
                            }, tolerance);
