@@ -278,9 +278,26 @@ public:
         }
     }
 
+    /**
+    * \brief Returns true if a point is outside the roundoff domain.
+    *        All particles with positions inside the roundoff domain
+    *        are sure to be mapped to cells inside the Domain() box. Note that
+    *        the same need not be true for all points inside ProbDomain().
+    */
     bool outsideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const;
+
+    /**
+    * \brief Returns true if a point is inside the roundoff domain.
+    *        All particles with positions inside the roundoff domain
+    *        are sure to be mapped to cells inside the Domain() box. Note that
+    *        the same need not be true for all points inside ProbDomain().
+    */
     bool insideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const;
 
+    /**
+    * \brief Compute the roundoff domain. Public because it contains an
+    *        extended host / device lambda.
+    */
     void computeRoundoffDomain ();
 
 private:
