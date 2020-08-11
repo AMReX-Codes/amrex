@@ -5,15 +5,16 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_REAL.H>
 
-using namespace amrex;
-
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
-void get_face_velocity_psi(Box const& bx,
-                           const Real time,
-                           Array4<Real> const& psi,
-                           GeometryData const& geomdata)
+void get_face_velocity_psi(amrex::Box const& bx,
+                           const amrex::Real time,
+                           amrex::Array4<amrex::Real> const& psi,
+                           amrex::GeometryData const& geomdata)
 {
+    using namespace amrex;
+    constexpr Real PI = 3.1415926535897932384626;
+
     const auto lo  = lbound(bx);
     const auto hi  = ubound(bx);
 
@@ -25,8 +26,8 @@ void get_face_velocity_psi(Box const& bx,
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             Real x = dx[0]*(0.5+i) + prob_lo[0];
-            psi(i,j,0) = pow(sin(M_PI*x), 2) * pow(sin(M_PI*y), 2)
-                       * cos(M_PI*time/2.0) * 1.0/M_PI; 
+            psi(i,j,0) = std::pow(std::sin(PI*x), 2) * std::pow(std::sin(PI*y), 2)
+                       * std::cos(PI*time/2.0) * 1.0/PI;
         }
     }
 }
@@ -34,29 +35,27 @@ void get_face_velocity_psi(Box const& bx,
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void get_face_velocity_x(int i, int j, int k,
-                         Array4<Real> const& vx,
-                         Array4<Real> const& psi,
-                         GpuArray<Real, AMREX_SPACEDIM> const& dx)
+                         amrex::Array4<amrex::Real> const& vx,
+                         amrex::Array4<amrex::Real> const& psi,
+                         amrex::Real dy)
 {
-    vx(i,j,k) = -( (psi(i,j+1,0)+psi(i-1,j+1,0)) - (psi(i,j-1,0)+psi(i-1,j-1,0)) ) * (0.25/dx[1]); 
+    vx(i,j,k) = -( (psi(i,j+1,0)+psi(i-1,j+1,0)) - (psi(i,j-1,0)+psi(i-1,j-1,0)) ) * (0.25/dy);
 }
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void get_face_velocity_y(int i, int j, int k,
-                         Array4<Real> const& vy,
-                         Array4<Real> const& psi,
-                         GpuArray<Real, AMREX_SPACEDIM> const& dx)
+                         amrex::Array4<amrex::Real> const& vy,
+                         amrex::Array4<amrex::Real> const& psi,
+                         amrex::Real dx)
 {
-    vy(i,j,k) =  ( (psi(i+1,j,0)+psi(i+1,j-1,0)) - (psi(i-1,j,0)+psi(i-1,j-1,0)) ) * (0.25/dx[0]); 
+    vy(i,j,k) =  ( (psi(i+1,j,0)+psi(i+1,j-1,0)) - (psi(i-1,j,0)+psi(i-1,j-1,0)) ) * (0.25/dx);
 }
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void get_face_velocity_z(int i, int j, int k,
-                         Array4<Real> const& vz,
-                         Array4<Real> const& /*psi*/,
-                         GpuArray<Real, AMREX_SPACEDIM> const& /*dx*/)
+                         amrex::Array4<amrex::Real> const& vz)
 {
     vz(i,j,k) =  0.0; 
 }

@@ -8,9 +8,11 @@
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void slopex2(amrex::Box const& bx,
-             amrex::Array4<amrex::Real> const& q,
-             amrex::Array4<amrex::Real> const& dq)
+             amrex::Array4<amrex::Real> const& dq,
+             amrex::Array4<amrex::Real const> const& q)
 {
+    using namespace amrex;
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
@@ -33,10 +35,12 @@ void slopex2(amrex::Box const& bx,
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void slopex4(amrex::Box const& bx,
-             amrex::Array4<amrex::Real> const& q,
-             amrex::Array4<amrex::Real> const& dq,
-             amrex::Array4<amrex::Real> const& dq4)
+             amrex::Array4<amrex::Real> const& dq4,
+             amrex::Array4<amrex::Real const> const& q,
+             amrex::Array4<amrex::Real const> const& dq)
 {
+    using namespace amrex;
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
@@ -62,9 +66,11 @@ void slopex4(amrex::Box const& bx,
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void slopey2(amrex::Box const& bx,
-             amrex::Array4<amrex::Real> const& q,
-             amrex::Array4<amrex::Real> const& dq)
+             amrex::Array4<amrex::Real> const& dq,
+             amrex::Array4<amrex::Real const> const& q)
 {
+    using namespace amrex;
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
@@ -87,10 +93,12 @@ void slopey2(amrex::Box const& bx,
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void slopey4(amrex::Box const& bx,
-             amrex::Array4<amrex::Real> const& q,
-             amrex::Array4<amrex::Real> const& dq,
-             amrex::Array4<amrex::Real> const& dq4)
+             amrex::Array4<amrex::Real> const& dq4,
+             amrex::Array4<amrex::Real const> const& q,
+             amrex::Array4<amrex::Real const> const& dq)
 {
+    using namespace amrex;
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
@@ -116,9 +124,11 @@ void slopey4(amrex::Box const& bx,
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void slopez2(amrex::Box const& bx,
-             amrex::Array4<amrex::Real> const&  q,
-             amrex::Array4<amrex::Real> const& dq)
+             amrex::Array4<amrex::Real> const& dq,
+             amrex::Array4<amrex::Real const> const& q)
 {
+    using namespace amrex;
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
@@ -141,10 +151,12 @@ void slopez2(amrex::Box const& bx,
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void slopez4(amrex::Box const& bx,
-             amrex::Array4<amrex::Real> const& q,
-             amrex::Array4<amrex::Real> const& dq,
-             amrex::Array4<amrex::Real> const& dq4)
+             amrex::Array4<amrex::Real> const& dq4,
+             amrex::Array4<amrex::Real const> const& q,
+             amrex::Array4<amrex::Real const> const& dq)
 {
+    using namespace amrex;
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 

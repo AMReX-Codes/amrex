@@ -5,13 +5,14 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Geometry.H>
 
-using namespace amrex;
-
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
-initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomdata)
+initdata(amrex::Box const& bx, amrex::Array4<amrex::Real> const& phi,
+         amrex::GeometryData const& geomdata)
 {
+    using namespace amrex;
+
     const auto lo = lbound(bx);
     const auto hi = ubound(bx);    
 
@@ -19,7 +20,7 @@ initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomdata)
     const Real* AMREX_RESTRICT dx      = geomdata.CellSize();
 
 #ifdef _OPENMP
-#pragma omp parallel for collapse(2) if (GPU::notInLaunchRegion())
+#pragma omp parallel for collapse(2) if (Gpu::notInLaunchRegion())
 #endif
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
@@ -27,7 +28,7 @@ initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomdata)
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
                 Real x = prob_lo[0] + (0.5+i) * dx[0]; 
-                Real r2 = (pow(x-0.5, 2) + pow((y-0.75),2)) / 0.01;
+                Real r2 = (std::pow(x-0.5, 2) + std::pow((y-0.75),2)) / 0.01;
                 phi(i,j,k) = 1.0 + std::exp(-r2);
             }
         }

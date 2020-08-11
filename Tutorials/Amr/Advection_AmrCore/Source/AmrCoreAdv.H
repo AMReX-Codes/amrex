@@ -13,8 +13,6 @@
 #include <AMReX_FluxRegister.H>
 #include <AMReX_BCRec.H>
 
-using namespace amrex;
-
 class AmrCoreAdv
     : public amrex::AmrCore
 {
@@ -72,7 +70,7 @@ public:
     void DefineVelocityAllLevels (amrex::Real time);
 
     // compute dt from CFL considerations
-    Real EstTimeStep (int lev, amrex::Real time, bool local=false);
+    amrex::Real EstTimeStep (int lev, amrex::Real time, bool local=false);
 
 private:
 
@@ -148,7 +146,7 @@ private:
 
     // this is essentially a 2*DIM integer array storing the physical boundary
     // condition types at the lo/hi walls in each direction
-    amrex::Vector<BCRec> bcs;  // 1-component
+    amrex::Vector<amrex::BCRec> bcs;  // 1-component
 
     // stores fluxes at coarse-fine interface for synchronization
     // this will be sized "nlevs_max+1"
@@ -159,7 +157,7 @@ private:
     amrex::Vector<std::unique_ptr<amrex::FluxRegister> > flux_reg; 
 
     // Velocity on all faces at all levels
-    amrex::Vector< Array<amrex::MultiFab, AMREX_SPACEDIM> > facevel;
+    amrex::Vector< amrex::Array<amrex::MultiFab, AMREX_SPACEDIM> > facevel;
     
     ////////////////
     // runtime parameters

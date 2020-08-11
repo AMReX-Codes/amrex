@@ -274,10 +274,11 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
 
     MultiFab& state = phi_new[lev];
 
+    GeometryData geomData = geom[lev].data();
+
     for (MFIter mfi(state); mfi.isValid(); ++mfi)
     {
         Array4<Real> fab = state[mfi].array();
-        GeometryData geomData = geom[lev].data();
         const Box& box = mfi.validbox();
 
         amrex::launch(box,

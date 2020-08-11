@@ -66,25 +66,21 @@ AmrCoreAdv::DefineVelocityAtLevel (int lev, Real time)
                 get_face_velocity_psi(tbx, time, psi, geomdata); 
             });
 
-            AMREX_D_TERM(
-                         amrex::ParallelFor(ngbxx,
-                         [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                         {
-                             get_face_velocity_x(i, j, k, vel[0], psi, dx);
-                         });,
-
-                         amrex::ParallelFor(ngbxy,
-                         [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                         {
-                             get_face_velocity_y(i, j, k, vel[1], psi, dx);
-                         });,
-
-                         amrex::ParallelFor(ngbxz,
-                         [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                         {
-                             get_face_velocity_z(i, j, k, vel[2], psi, dx);
-                         });
-                        );
+            amrex::ParallelFor
+                (AMREX_D_DECL(ngbxx,ngbxy,ngbxz),
+                 AMREX_D_DECL(
+                     [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                     {
+                         get_face_velocity_x(i, j, k, vel[0], psi, dx[1]);
+                     },
+                     [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                     {
+                         get_face_velocity_y(i, j, k, vel[1], psi, dx[0]);
+                     },
+                     [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                     {
+                         get_face_velocity_z(i, j, k, vel[2]);
+                     }));
         }
     }
 }
