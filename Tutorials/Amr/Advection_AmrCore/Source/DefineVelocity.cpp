@@ -26,7 +26,6 @@ void
 AmrCoreAdv::DefineVelocityAtLevel (int lev, Real time)
 {
     const auto dx = geom[lev].CellSizeArray();
-    const Real* prob_lo = geom[lev].ProbLo();
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -60,8 +59,6 @@ AmrCoreAdv::DefineVelocityAtLevel (int lev, Real time)
             Elixir psieli = psifab.elixir();
             Array4<Real> psi = psifab.array();
             GeometryData geomdata = geom[lev].data();
-            auto prob_lo = geom[lev].ProbLoArray();
-            auto dx = geom[lev].CellSizeArray();
 
             amrex::launch(psibox,
             [=] AMREX_GPU_DEVICE (const Box& tbx)
@@ -73,19 +70,19 @@ AmrCoreAdv::DefineVelocityAtLevel (int lev, Real time)
                          amrex::ParallelFor(ngbxx,
                          [=] AMREX_GPU_DEVICE (int i, int j, int k)
                          {
-                             get_face_velocity_x(i, j, k, vel[0], psi, prob_lo, dx); 
+                             get_face_velocity_x(i, j, k, vel[0], psi, dx);
                          });,
 
                          amrex::ParallelFor(ngbxy,
                          [=] AMREX_GPU_DEVICE (int i, int j, int k)
                          {
-                             get_face_velocity_y(i, j, k, vel[1], psi, prob_lo, dx);
+                             get_face_velocity_y(i, j, k, vel[1], psi, dx);
                          });,
 
                          amrex::ParallelFor(ngbxz,
                          [=] AMREX_GPU_DEVICE (int i, int j, int k)
                          {
-                             get_face_velocity_z(i, j, k, vel[2], psi, prob_lo, dx);
+                             get_face_velocity_z(i, j, k, vel[2], psi, dx);
                          });
                         );
         }

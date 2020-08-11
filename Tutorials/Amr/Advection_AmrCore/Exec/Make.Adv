@@ -1,5 +1,5 @@
-AMREX_HOME ?= ../../../..
-ADV_DIR   ?= ../
+AMREX_HOME = ../../../..
+ADV_DIR    = ../
 
 TOP := $(ADV_DIR)
 

@@ -52,12 +52,10 @@ void flux_z(int i, int j, int k,
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void flux_xy(int i, int j, int k, 
-             AMREX_D_DECL(Array4<Real> const& vx, 
-                          Array4<Real> const& vy,
-                          Array4<Real> const& vz),
-             AMREX_D_DECL(Array4<Real> const& px,
-                          Array4<Real> const& py,
-                          Array4<Real> const& pz),
+             Array4<Real> const& vx,
+             Array4<Real> const& vy,
+             Array4<Real> const& px,
+             Array4<Real> const& py,
              Array4<Real> const& pxy,
              const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
@@ -69,12 +67,10 @@ void flux_xy(int i, int j, int k,
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void flux_xz(int i, int j, int k,
-             AMREX_D_DECL(Array4<Real> const& vx, 
-                          Array4<Real> const& vy,
-                          Array4<Real> const& vz),
-             AMREX_D_DECL(Array4<Real> const& px,
-                          Array4<Real> const& py,
-                          Array4<Real> const& pz),
+             Array4<Real> const& vx,
+             Array4<Real> const& vz,
+             Array4<Real> const& px,
+             Array4<Real> const& pz,
              Array4<Real> const& pxz,
              const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
@@ -86,12 +82,10 @@ void flux_xz(int i, int j, int k,
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void flux_yx(int i, int j, int k,
-             AMREX_D_DECL(Array4<Real> const& vx, 
-                          Array4<Real> const& vy,
-                          Array4<Real> const& vz),
-             AMREX_D_DECL(Array4<Real> const& px,
-                          Array4<Real> const& py,
-                          Array4<Real> const& pz),
+             Array4<Real> const& vx,
+             Array4<Real> const& vy,
+             Array4<Real> const& px,
+             Array4<Real> const& py,
              Array4<Real> const& pyx,
              const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
@@ -103,12 +97,10 @@ void flux_yx(int i, int j, int k,
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void flux_yz(int i, int j, int k,
-             AMREX_D_DECL(Array4<Real> const& vx, 
-                          Array4<Real> const& vy,
-                          Array4<Real> const& vz),
-             AMREX_D_DECL(Array4<Real> const& px,
-                          Array4<Real> const& py,
-                          Array4<Real> const& pz),
+             Array4<Real> const& vy,
+             Array4<Real> const& vz,
+             Array4<Real> const& py,
+             Array4<Real> const& pz,
              Array4<Real> const& pyz,
              const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
@@ -120,12 +112,10 @@ void flux_yz(int i, int j, int k,
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void flux_zx(int i, int j, int k,
-             AMREX_D_DECL(Array4<Real> const& vx, 
-                          Array4<Real> const& vy,
-                          Array4<Real> const& vz),
-             AMREX_D_DECL(Array4<Real> const& px,
-                          Array4<Real> const& py,
-                          Array4<Real> const& pz),
+             Array4<Real> const& vx,
+             Array4<Real> const& vz,
+             Array4<Real> const& px,
+             Array4<Real> const& pz,
              Array4<Real> const& pzx,
              const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
@@ -137,12 +127,10 @@ void flux_zx(int i, int j, int k,
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void flux_zy(int i, int j, int k,
-             AMREX_D_DECL(Array4<Real> const& vx, 
-                          Array4<Real> const& vy,
-                          Array4<Real> const& vz),
-             AMREX_D_DECL(Array4<Real> const& px,
-                          Array4<Real> const& py,
-                          Array4<Real> const& pz),
+             Array4<Real> const& vy,
+             Array4<Real> const& vz,
+             Array4<Real> const& py,
+             Array4<Real> const& pz,
              Array4<Real> const& pzy,
              const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {

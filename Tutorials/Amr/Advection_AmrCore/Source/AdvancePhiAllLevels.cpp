@@ -7,7 +7,7 @@ using namespace amrex;
 
 // advance all levels for a single time step
 void
-AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int iteration)
+AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
 {
     constexpr int num_grow = 3;
 
@@ -28,16 +28,10 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int iteration)
         t_old[lev] = t_new[lev];
         t_new[lev] += dt_lev;
 
-        const Real old_time = t_old[lev];
-        const Real new_time = t_new[lev];
-        const Real ctr_time = 0.5*(old_time+new_time);
-
         const auto dx = geom[lev].CellSizeArray();
         GpuArray<Real, AMREX_SPACEDIM> dtdx;
         for (int i=0; i<AMREX_SPACEDIM; ++i)
             dtdx[i] = dt_lev/(dx[i]);
-
-        const Real* prob_lo = geom[lev].ProbLo();
 
         // State with ghost cells
         MultiFab Sborder(grids[lev], dmap[lev], phi_new[lev].nComp(), num_grow);
@@ -57,7 +51,6 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int iteration)
                 const Box& gbx = amrex::grow(bx, 1);
 
                 Array4<Real> statein  = Sborder.array(mfi);
-                Array4<Real> stateout = phi_new[lev].array(mfi);
 
                 GpuArray<Array4<Real>, AMREX_SPACEDIM> flux{ AMREX_D_DECL(fluxes[lev][0].array(mfi),
                                                                           fluxes[lev][1].array(mfi),
@@ -150,9 +143,9 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int iteration)
                 // compute transverse fluxes (3D only)
                 // ===================================
 
-                AMREX_D_TERM(const Box& gbxx = amrex::grow(bx, 0, 1);,
-                             const Box& gbxy = amrex::grow(bx, 1, 1);,
-                             const Box& gbxz = amrex::grow(bx, 2, 1););
+                const Box& gbxx = amrex::grow(bx, 0, 1);
+                const Box& gbxy = amrex::grow(bx, 1, 1);
+                const Box& gbxz = amrex::grow(bx, 2, 1);
 
                 // xy --------------------
                 FArrayBox phix_yfab (gbx, 1);
@@ -163,8 +156,8 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int iteration)
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {
                     flux_xy(i, j, k, 
-                            AMREX_D_DECL(vel[0], vel[1], vel[2]),
-                            AMREX_D_DECL(phix, phiy, phiz),
+                            vel[0], vel[1],
+                            phix, phiy,
                             phix_y, dtdx);
                 }); 
 
@@ -177,8 +170,8 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int iteration)
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {
                     flux_xz(i, j, k,
-                            AMREX_D_DECL(vel[0], vel[1], vel[2]),
-                            AMREX_D_DECL(phix, phiy, phiz),
+                            vel[0], vel[2],
+                            phix, phiz,
                             phix_z, dtdx);
                 }); 
 
@@ -194,8 +187,8 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int iteration)
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {
                     flux_yx(i, j, k,
-                            AMREX_D_DECL(vel[0], vel[1], vel[2]),
-                            AMREX_D_DECL(phix, phiy, phiz),
+                            vel[0], vel[1],
+                            phix, phiy,
                             phiy_x, dtdx);
                 }); 
 
@@ -204,8 +197,8 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int iteration)
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {
                     flux_yz(i, j, k,
-                            AMREX_D_DECL(vel[0], vel[1], vel[2]),
-                            AMREX_D_DECL(phix, phiy, phiz),
+                            vel[1], vel[2],
+                            phiy, phiz,
                             phiy_z, dtdx);
                 }); 
 
@@ -221,8 +214,8 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int iteration)
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {
                     flux_zx(i, j, k, 
-                            AMREX_D_DECL(vel[0], vel[1], vel[2]),
-                            AMREX_D_DECL(phix, phiy, phiz),
+                            vel[0], vel[2],
+                            phix, phiz,
                             phiz_x, dtdx);
                 }); 
 
@@ -230,8 +223,8 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int iteration)
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {
                     flux_zy(i, j, k,
-                            AMREX_D_DECL(vel[0], vel[1], vel[2]),
-                            AMREX_D_DECL(phix, phiy, phiz),
+                            vel[1], vel[2],
+                            phiy, phiz,
                             phiz_y, dtdx);
                 }); 
 #endif

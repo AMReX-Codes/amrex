@@ -23,7 +23,6 @@ initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomdata)
 #endif
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
-            Real z = prob_lo[2] + (0.5+k) * dx[2];
             Real y = prob_lo[1] + (0.5+j) * dx[1];
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {

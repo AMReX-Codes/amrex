@@ -272,7 +272,6 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
 	flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
     }
 
-    Real cur_time = t_new[lev];
     MultiFab& state = phi_new[lev];
 
     for (MFIter mfi(state); mfi.isValid(); ++mfi)
@@ -292,7 +291,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
 // tag all cells for refinement
 // overrides the pure virtual function in AmrCore
 void
-AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
+AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
 {
     static bool first = true;
     static Vector<Real> phierr;
@@ -607,9 +606,6 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
     {
         if (istep[0] % regrid_int == 0)
         {
-            // Regrid could add newly refine levels (if finest_level < max_level)
-            // so we save the previous finest level index
-            int old_finest = finest_level; 
             regrid(0, time);
         }
     }
@@ -688,8 +684,7 @@ AmrCoreAdv::EstTimeStep (int lev, Real time, bool local)
 
     Real dt_est = std::numeric_limits<Real>::max();
 
-    const Real* dx      =  geom[lev].CellSize();
-    const Real cur_time = t_new[lev];
+    const Real* dx  =  geom[lev].CellSize();
 
     if (time == 0.0) {
        DefineVelocityAtLevel(lev,time);
