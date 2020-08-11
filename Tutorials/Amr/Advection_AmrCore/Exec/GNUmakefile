@@ -1,4 +1,4 @@
-AMREX_HOME = ../../../../..
+AMREX_HOME ?= ../../../..
 
 PRECISION  = DOUBLE
 PROFILE    = FALSE
@@ -12,9 +12,12 @@ DIM        = 2
 COMP	   = gnu
 
 USE_MPI    = TRUE
-USE_OMP    = FALSE
+USE_OMP    = FALSE 
+USE_CUDA   = FALSE
+
+BL_NO_FORT = TRUE
 
 Bpack   := ./Make.package 
 Blocs   := . 
 
-include ../Make.Adv
+include Make.Adv

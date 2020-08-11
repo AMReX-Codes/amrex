@@ -1,13 +1,25 @@
-Advection_AmrCore: This tutorial contains an AMR advection code that advects a single 
-scalar field with a velocity field that is specified on faces.
+Advection_AmrCore: 
 
-It is an AMReX based code designed to run in parallel using MPI/OMP.
+This tutorial contains an AMR advection code 
+that advects a single scalar field with a velocity field that is specified on faces.
+It is written entirely in C++, can be built in 2D or 3D and run with the same
+inputs file, and can be built with 
+
+USE_MPI = TRUE
+or 
+USE_MPI = FALSE
+
+and either 
+
+USE_OMP = TRUE
+or
+USE_CUDA = TRUE
 
 This example uses source code from the amrex/Src/Base, Boundary, and AmrCore directories.
-Notably, this example does not use source code from amrex/Src/Amr
-(see the tutorial Advection_AmrLevel).
+To see a similar example that uses amrex/Src/Amr rather than AmrCore, see
+the tutorial in amrex/Tutorials/Amr/Advection_AmrLevel.
 
-The directory Exec/SingleVortex includes a makefile and a sample inputs file.  
-Plotfiles are generated that can be viewed with amrvis2d / amrvis3d
-(CCSE's native vis / spreadsheet tool, downloadable separately from ccse.lbl.gov)
-or with VisIt.
+If you run this code with plot_int > 0, 
+plotfiles are generated that can be viewed with amrvis2d / amrvis3d
+(CCSE's native vis / spreadsheet tool, downloadable separately from 
+https://github.com/amrex-codes/amrvis) or with VisIt, yt or Paraview.
