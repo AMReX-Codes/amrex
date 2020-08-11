@@ -87,7 +87,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                     for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
                         p.rdata(dim) = p.pos(dim);
-                        p.pos(dim) += static_cast<ParticleReal>(0.5_prt*dt*v[dim]);
+                        p.pos(dim) += static_cast<ParticleReal>(ParticleReal(0.5)*dt*v[dim]);
                     }
                 }
                 else
@@ -167,7 +167,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
                     for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
                         p.rdata(dim) = p.pos(dim);
-                        p.pos(dim) += static_cast<ParticleReal>(0.5_prt*dt*v[dim]);
+                        p.pos(dim) += static_cast<ParticleReal>(ParticleReal(0.5)*dt*v[dim]);
                     }
                 }
                 else

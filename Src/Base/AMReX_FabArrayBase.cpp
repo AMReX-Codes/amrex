@@ -1271,11 +1271,12 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
                                            ba_crse_patch,
                                            dm_patch,
                                            {0,0,0}, EBSupport::basic);
+        int ng = boxtype.cellCentered() ? 0 : 1; // to avoid dengerate box
         fact_fine_patch = makeEBFabFactory(index_space,
                                            index_space->getGeometry(fdomain),
                                            ba_fine_patch,
                                            dm_patch,
-                                           {0,0,0}, EBSupport::basic);
+                                           {ng,ng,ng}, EBSupport::basic);
     }
     else
 #endif

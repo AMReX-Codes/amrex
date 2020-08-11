@@ -73,8 +73,7 @@ function ( set_amrex_defines )
    # Dimensionality
    add_amrex_define( AMREX_SPACEDIM=${DIM} )
 
-   # System -- not used anywhere in the source code but mentioned
-   # in /Src/AmrTask/ Makefiles
+   # System -- not used anywhere in the source code
    add_amrex_define( AMREX_${CMAKE_SYSTEM_NAME} )
 
    #  Assertions

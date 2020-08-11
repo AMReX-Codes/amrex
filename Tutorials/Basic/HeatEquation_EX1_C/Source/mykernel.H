@@ -9,20 +9,20 @@ void init_phi (int i, int j, int k,
                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo)
 {
-    using namespace amrex::literals;
+    using amrex::Real;;
 
-    amrex::Real x = prob_lo[0] + (i+0.5_rt) * dx[0];
-    amrex::Real y = prob_lo[1] + (j+0.5_rt) * dx[1];
+    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0];
+    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1];
 #if (AMREX_SPACEDIM > 2)
-    amrex::Real z = prob_lo[2] + (k+0.5_rt) * dx[2];
+    Real z = prob_lo[2] + (k+Real(0.5)) * dx[2];
 #else
-    amrex::Real z = 0._rt;
+    Real z = Real(0.);
 #endif
-    amrex::Real r2 = ((x-0.25_rt)*(x-0.25_rt)+(y-0.25_rt)*(y-0.25_rt)+(z-0.25_rt)*(z-0.25_rt))/0.01_rt;
+    Real r2 = ((x-Real(0.25))*(x-Real(0.25))+(y-Real(0.25))*(y-Real(0.25))+(z-Real(0.25))*(z-Real(0.25)))/Real(0.01);
 #ifdef AMREX_USE_HIP
-    phi(i,j,k) = 1._rt + ::exp(-r2); // xxxxx HIP todo
+    phi(i,j,k) = Real(1.) + ::exp(-r2); // xxxxx HIP todo
 #else
-    phi(i,j,k) = 1._rt + std::exp(-r2);
+    phi(i,j,k) = Real(1.) + std::exp(-r2);
 #endif
 }
 

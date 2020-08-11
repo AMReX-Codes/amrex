@@ -136,26 +136,12 @@ struct MFInfo {
     }
 };
 
-    template <class T>
-    class MFGraph;
-#ifdef USE_PERILLA
-    class Perilla;
-#endif
-
 template <class FAB>
 class FabArray
     :
     public FabArrayBase
 {
 public:
-    friend class Action;
-    friend class AmrTask;
-    template <class T>
-    friend class MFGraph;
-#ifdef USE_PERILLA
-    friend class Perilla;
-#endif
-
 
     struct FABType {
         typedef FAB value_type;

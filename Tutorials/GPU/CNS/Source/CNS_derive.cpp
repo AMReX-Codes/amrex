@@ -27,6 +27,6 @@ void cns_dervel (const Box& bx, FArrayBox& velfab, int dcomp, int /*ncomp*/,
     amrex::ParallelFor(bx,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        vel(i,j,k,dcomp) = vel(i,j,k,1)/vel(i,j,k,0);
+        vel(i,j,k,dcomp) = dat(i,j,k,1)/dat(i,j,k,0);
     });
 }
