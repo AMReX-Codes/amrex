@@ -1,3 +1,5 @@
+ use_math: true
+
 ##  Multi-Level Scalar Advection
 
 ### What Features Are We Using
@@ -105,19 +107,28 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
 
 ### Running the Code
 
+First git clone amrex.  Then from within the amrex repo,
+
 ```
-cd HandsOnLessons/amrex/AMReX_Amr101/Exec
+cd Tutorials/Advection_AmrCore/Exec
 ```
 Note that you can choose to work entirely in 2D or in 3D ... whichever you prefer.
 The instructions below will be written for 3D but you can substitute the 2D executable.
 
-In this directory you'll see
+To build in 2d, type
+```
+make DIM = 2
+```
+
+To build in 3d, type
+```
+make DIM = 3
+```
+
+In this directory you'll see 
+
 
 ```
-main2d.gnu.MPI.ex -- the 2D executable -- this has been built with MPI 
-
-main3d.gnu.MPI.ex -- the 3D executable -- this has been built with MPI 
-
 inputs -- an inputs file for both 2D and 3D
 ```
 
