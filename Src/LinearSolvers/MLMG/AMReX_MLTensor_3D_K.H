@@ -1058,7 +1058,8 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                               Array4<Real const> const& kapx,
                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                               const Dim3& dlo, const Dim3& dhi,
-                              Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct) noexcept
+                              Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct,
+                              const int& is_periodic) noexcept
 {
     const Real dyi = dxinv[1];
     const Real dzi = dxinv[2];
@@ -1072,7 +1073,7 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
             for (int i = lo.x; i <= hi.x; ++i) {
                 Real dudy = (vel(i,j+1,k,0)+vel(i-1,j+1,k,0)-vel(i,j-1,k,0)-vel(i-1,j-1,k,0))*(0.25*dyi);
                 Real dvdy = (vel(i,j+1,k,1)+vel(i-1,j+1,k,1)-vel(i,j-1,k,1)-vel(i-1,j-1,k,1))*(0.25*dyi);
-                if (i==dhi.x+1){
+                if (i==dhi.x+1 and !is_periodic){
                     if (bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_NEUMANN){
                         dudy = (0.5*dyi) * (vel(i-1,j+1,k,0)-vel(i-1,j-1,k,0));
                     }
@@ -1086,7 +1087,7 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                         dvdy = (0.5*dyi) * (vel(i  ,j+1,k,1)-vel(i  ,j-1,k,1));
                     }
                 }
-                if (i==dlo.x){
+                if (i==dlo.x and !is_periodic){
                     if (bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_NEUMANN){
                         dudy = (0.5*dyi) * (vel(i  ,j+1,k,0)-vel(i  ,j-1,k,0));
                     }
@@ -1102,7 +1103,7 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                 }
                 Real dudz = (vel(i,j,k+1,0)+vel(i-1,j,k+1,0)-vel(i,j,k-1,0)-vel(i-1,j,k-1,0))*(0.25*dzi);
                 Real dwdz = (vel(i,j,k+1,2)+vel(i-1,j,k+1,2)-vel(i,j,k-1,2)-vel(i-1,j,k-1,2))*(0.25*dzi);
-                if (i==dhi.x+1){
+                if (i==dhi.x+1 and !is_periodic){
                     if (bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_NEUMANN){
                         dudz = (0.5*dzi) * (vel(i-1,j,k+1,0)-vel(i-1,j,k-1,0));
                     }
@@ -1116,7 +1117,7 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                         dwdz = (0.5*dzi) * (vel(i  ,j,k+1,2)-vel(i  ,j,k-1,2));
                     }
                 }
-                if (i==dlo.x){
+                if (i==dlo.x and !is_periodic){
                     if (bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_NEUMANN){
                         dudz = (0.5*dzi) * (vel(i  ,j,k+1,0)-vel(i  ,j,k-1,0));
                     }
@@ -1150,7 +1151,8 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                               Array4<Real const> const& kapy,
                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                               const Dim3& dlo, const Dim3& dhi,
-                              Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct) noexcept
+                              Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct,
+                              const int& is_periodic) noexcept
 {
     const Real dxi = dxinv[0];
     const Real dzi = dxinv[2];
@@ -1164,7 +1166,7 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
             for (int i = lo.x; i <= hi.x; ++i) {
                 Real dudx = (vel(i+1,j,k,0)+vel(i+1,j-1,k,0)-vel(i-1,j,k,0)-vel(i-1,j-1,k,0))*(0.25*dxi);
                 Real dvdx = (vel(i+1,j,k,1)+vel(i+1,j-1,k,1)-vel(i-1,j,k,1)-vel(i-1,j-1,k,1))*(0.25*dxi);
-                if (j==dhi.y+1){
+                if (j==dhi.y+1 and !is_periodic){
                     if (bct(Orientation(Direction::y,Orientation::high),0)==AMREX_LO_NEUMANN){
                         dudx = (0.5*dxi) * (vel(i+1,j-1,k,0)-vel(i-1,j-1,k,0));
                     }
@@ -1178,7 +1180,7 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                         dvdx = (0.5*dxi) * (vel(i+1,j  ,k,1)-vel(i-1,j  ,k,1));
                     }
                 }
-                if (j==dlo.y){
+                if (j==dlo.y and !is_periodic){
                     if (bct(Orientation(Direction::y,Orientation::low),0)==AMREX_LO_NEUMANN){
                         dudx = (0.5*dxi) * (vel(i+1,j  ,k,0)-vel(i-1,j  ,k,0));
                     }
@@ -1194,7 +1196,7 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                 }
                 Real dvdz = (vel(i,j,k+1,1)+vel(i,j-1,k+1,1)-vel(i,j,k-1,1)-vel(i,j-1,k-1,1))*(0.25*dzi);
                 Real dwdz = (vel(i,j,k+1,2)+vel(i,j-1,k+1,2)-vel(i,j,k-1,2)-vel(i,j-1,k-1,2))*(0.25*dzi);
-                if (j==dhi.y+1){
+                if (j==dhi.y+1 and !is_periodic){
                     if (bct(Orientation(Direction::y,Orientation::high),1)==AMREX_LO_NEUMANN){
                         dvdz = (0.5*dzi) * (vel(i,j-1,k+1,1)-vel(i,j-1,k-1,1));
                     }
@@ -1208,7 +1210,7 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                         dwdz = (0.5*dzi) * (vel(i,j  ,k+1,2)-vel(i,j  ,k-1,2));
                     }
                 }
-                if (j==dlo.y){
+                if (j==dlo.y and !is_periodic){
                     if (bct(Orientation(Direction::y,Orientation::low),1)==AMREX_LO_NEUMANN){
                         dvdz = (0.5*dzi) * (vel(i,j  ,k+1,1)-vel(i,j  ,k-1,1));
                     }
@@ -1241,7 +1243,8 @@ void mltensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                               Array4<Real const> const& kapz,
                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                               const Dim3& dlo, const Dim3& dhi,
-                              Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct) noexcept
+                              Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct,
+                              const int& is_periodic) noexcept
 {
     const Real dxi = dxinv[0];
     const Real dyi = dxinv[1];
@@ -1255,7 +1258,7 @@ void mltensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
             for (int i = lo.x; i <= hi.x; ++i) {
                 Real dudx = (vel(i+1,j,k,0)+vel(i+1,j,k-1,0)-vel(i-1,j,k,0)-vel(i-1,j,k-1,0))*(0.25*dxi);
                 Real dwdx = (vel(i+1,j,k,2)+vel(i+1,j,k-1,2)-vel(i-1,j,k,2)-vel(i-1,j,k-1,2))*(0.25*dxi);
-                if (k==dhi.z+1){
+                if (k==dhi.z+1 and !is_periodic){
                     if (bct(Orientation(Direction::z,Orientation::high),0)==AMREX_LO_NEUMANN){
                         dudx = (0.5*dxi) * (vel(i+1,j,k-1,0)-vel(i-1,j,k-1,0));
                     }
@@ -1269,7 +1272,7 @@ void mltensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                         dwdx = (0.5*dxi) * (vel(i+1,j,k  ,2)-vel(i-1,j,k  ,2));
                     }
                 }
-                if (k==dlo.z){
+                if (k==dlo.z and !is_periodic){
                     if (bct(Orientation(Direction::z,Orientation::low),0)==AMREX_LO_NEUMANN){
                         dudx = (0.5*dxi) * (vel(i+1,j,k  ,0)-vel(i-1,j,k  ,0));
                     }
@@ -1285,7 +1288,7 @@ void mltensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                 }
                 Real dvdy = (vel(i,j+1,k,1)+vel(i,j+1,k-1,1)-vel(i,j-1,k,1)-vel(i,j-1,k-1,1))*(0.25*dyi);
                 Real dwdy = (vel(i,j+1,k,2)+vel(i,j+1,k-1,2)-vel(i,j-1,k,2)-vel(i,j-1,k-1,2))*(0.25*dyi);
-                if (k==dhi.z+1){
+                if (k==dhi.z+1 and !is_periodic){
                     if (bct(Orientation(Direction::z,Orientation::high),1)==AMREX_LO_NEUMANN){
                         dvdy = (0.5*dyi) * (vel(i,j+1,k-1,1)-vel(i,j-1,k-1,1));
                     }
@@ -1299,7 +1302,7 @@ void mltensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                         dwdy = (0.5*dyi) * (vel(i,j+1,k  ,2)-vel(i,j-1,k  ,2));
                     }
                 }
-                if (k==dlo.z){
+                if (k==dlo.z and !is_periodic){
                     if (bct(Orientation(Direction::z,Orientation::low),1)==AMREX_LO_NEUMANN){
                         dvdy = (0.5*dyi) * (vel(i,j+1,k  ,1)-vel(i,j-1,k  ,1));
                     }

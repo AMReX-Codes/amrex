@@ -21,7 +21,8 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                                 Array4<EBCellFlag const> const& flag,
                                 GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                 const Dim3& dlo, const Dim3& dhi,
-                                Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct) noexcept
+                                Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct,
+                                const int& is_periodic) noexcept
 {
     const Real dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
@@ -52,7 +53,7 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                 Real dvdy = (0.5*dyi) * ((vel(i  ,jhip,0,1)-vel(i  ,jhim,0,1))*whi
                                         +(vel(i-1,jlop,0,1)-vel(i-1,jlom,0,1))*wlo);
 
-                if (i==dhi.x+1){
+                if (i==dhi.x+1 and !is_periodic){
                     if (bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_NEUMANN){
                         dudy = (dyi) * ((vel(i-1,jlop,0,0)-vel(i-1,jlom,0,0))*wlo);
                     }
@@ -66,7 +67,7 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                         dvdy = (dyi) * ((vel(i  ,jhip,0,1)-vel(i  ,jhim,0,1))*whi);
                     }
                 }
-                if (i==dlo.x){
+                if (i==dlo.x and !is_periodic){
                     if (bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_NEUMANN){
                         dudy = (dyi) * ((vel(i  ,jhip,0,0)-vel(i  ,jhim,0,0))*whi);
                     }
@@ -101,7 +102,8 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                                 Array4<EBCellFlag const> const& flag,
                                 GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                 const Dim3& dlo, const Dim3& dhi,
-                                Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct) noexcept
+                                Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct,
+                                const int& is_periodic) noexcept
 {
     const Real dxi = dxinv[0];
     const auto lo = amrex::lbound(box);
@@ -131,7 +133,7 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                 Real dvdx = (0.5*dxi) * ((vel(ihip,j  ,0,1)-vel(ihim,j  ,0,1))*whi
                                         +(vel(ilop,j-1,0,1)-vel(ilom,j-1,0,1))*wlo);
 
-                if (j==dhi.y+1){
+                if (j==dhi.y+1 and !is_periodic){
                     if (bct(Orientation(Direction::y,Orientation::high),0)==AMREX_LO_NEUMANN){
                         dudx = (dxi) * ((vel(ilop,j-1,0,0)-vel(ilom,j-1,0,0))*wlo);
                     }
@@ -145,7 +147,7 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                         dvdx = (dxi) * ((vel(ihip,j  ,0,1)-vel(ihim,j  ,0,1))*whi);
                     }
                 }
-                if (j==dlo.y){
+                if (j==dlo.y and !is_periodic){
                     if (bct(Orientation(Direction::y,Orientation::low),0)==AMREX_LO_NEUMANN){
                         dudx = (dxi) * ((vel(ihip,j  ,0,0)-vel(ihim,j  ,0,0))*whi);
                     }

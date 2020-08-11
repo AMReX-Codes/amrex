@@ -21,7 +21,8 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                                 Array4<EBCellFlag const> const& flag,
                                 GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                 const Dim3& dlo, const Dim3& dhi,
-                                Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct) noexcept
+                                Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct,
+                                const int& is_periodic) noexcept
 {
     const Real dyi = dxinv[1];
     const Real dzi = dxinv[2];
@@ -55,7 +56,7 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                     Real dvdy = (0.5*dyi) * ((vel(i  ,jhip,k,1)-vel(i  ,jhim,k,1))*whi
                                             +(vel(i-1,jlop,k,1)-vel(i-1,jlom,k,1))*wlo);
 
-                    if (i==dhi.x+1){
+                    if (i==dhi.x+1 and !is_periodic){
                         if (bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_NEUMANN){
                             dudy = (dyi) * ((vel(i-1,jlop,k,0)-vel(i-1,jlom,k,0))*wlo);
                         }
@@ -69,7 +70,7 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                             dvdy = (dyi) * ((vel(i  ,jhip,k,1)-vel(i  ,jhim,k,1))*whi);
                         }
                     }
-                    if (i==dlo.x){
+                    if (i==dlo.x and !is_periodic){
                         if (bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_NEUMANN){
                             dudy = (dyi) * ((vel(i  ,jhip,k,0)-vel(i  ,jhim,k,0))*whi);
                         }
@@ -97,7 +98,7 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                     Real dwdz = (0.5*dzi) * ((vel(i  ,j,khip,2)-vel(i  ,j,khim,2))*whi
                                             +(vel(i-1,j,klop,2)-vel(i-1,j,klom,2))*wlo);
 
-                    if (i==dhi.x+1){
+                    if (i==dhi.x+1 and !is_periodic){
                         if (bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_NEUMANN){
                             dudz = (dzi) * ((vel(i-1,j,klop,0)-vel(i-1,j,klom,0))*wlo);
                         }
@@ -111,7 +112,7 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                             dwdz = (dzi) * ((vel(i  ,j,khip,2)-vel(i  ,j,khim,2))*whi);
                         }
                     }
-                    if (i==dlo.x){
+                    if (i==dlo.x and !is_periodic){
                         if (bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_NEUMANN){
                             dudz = (dzi) * ((vel(i  ,j,khip,0)-vel(i  ,j,khim,0))*whi);
                         }
@@ -148,7 +149,8 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                                 Array4<EBCellFlag const> const& flag,
                                 GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                 const Dim3& dlo, const Dim3& dhi,
-                                Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct) noexcept
+                                Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct,
+                                const int& is_periodic) noexcept
 {
     const Real dxi = dxinv[0];
     const Real dzi = dxinv[2];
@@ -181,7 +183,7 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                     Real dvdx = (0.5*dxi) * ((vel(ihip,j  ,k,1)-vel(ihim,j  ,k,1))*whi
                                             +(vel(ilop,j-1,k,1)-vel(ilom,j-1,k,1))*wlo);
 
-                    if (j==dhi.y+1){ 
+                    if (j==dhi.y+1 and !is_periodic){ 
                         if (bct(Orientation(Direction::y,Orientation::high),0)==AMREX_LO_NEUMANN){
                             dudx = (dxi) * ((vel(ilop,j-1,k,0)-vel(ilom,j-1,k,0))*wlo);
                         }
@@ -195,7 +197,7 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                             dvdx = (dxi) * ((vel(ihip,j  ,k,1)-vel(ihim,j  ,k,1))*whi);
                         }
                     }
-                    if (j==dlo.y){
+                    if (j==dlo.y and !is_periodic){
                         if (bct(Orientation(Direction::y,Orientation::low),0)==AMREX_LO_NEUMANN){
                             dudx = (dxi) * ((vel(ihip,j  ,k,0)-vel(ihim,j  ,k,0))*whi);
                         }
@@ -223,7 +225,7 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                     Real dwdz = (0.5*dzi) * ((vel(i,j  ,khip,2)-vel(i,j  ,khim,2))*whi
                                             +(vel(i,j-1,klop,2)-vel(i,j-1,klom,2))*wlo);
 
-                    if (j==dhi.y+1){
+                    if (j==dhi.y+1 and !is_periodic){
                         if (bct(Orientation(Direction::y,Orientation::high),1)==AMREX_LO_NEUMANN){
                             dvdz = (dzi) * ((vel(i,j-1,klop,1)-vel(i,j-1,klom,1))*wlo);
                         }
@@ -237,7 +239,7 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                             dwdz = (dzi) * ((vel(i,j  ,khip,2)-vel(i,j  ,khim,2))*whi);
                         }
                     }
-                    if (j==dlo.y){
+                    if (j==dlo.y and !is_periodic){
                         if (bct(Orientation(Direction::y,Orientation::low),1)==AMREX_LO_NEUMANN){
                             dvdz = (dzi) * ((vel(i,j  ,khip,1)-vel(i,j  ,khim,1))*whi);
                         }
@@ -274,7 +276,8 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                                 Array4<EBCellFlag const> const& flag,
                                 GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                                 const Dim3& dlo, const Dim3& dhi,
-                                Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct) noexcept
+                                Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct,
+                                const int& is_periodic) noexcept
 {
     const Real dxi = dxinv[0];
     const Real dyi = dxinv[1];
@@ -307,7 +310,7 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                     Real dwdx = (0.5*dxi) * ((vel(ihip,j,k  ,2)-vel(ihim,j,k  ,2))*whi
                                             +(vel(ilop,j,k-1,2)-vel(ilom,j,k-1,2))*wlo);
 
-                    if (k==dhi.z+1){
+                    if (k==dhi.z+1 and !is_periodic){
                         if (bct(Orientation(Direction::z,Orientation::high),0)==AMREX_LO_NEUMANN){
                             dudx = (dxi) * ((vel(ilop,j,k-1,0)-vel(ilom,j,k-1,0))*wlo);
                         }
@@ -321,7 +324,7 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                             dwdx = (dxi) * ((vel(ihip,j,k  ,2)-vel(ihim,j,k  ,2))*whi);
                         }
                     }
-                    if (k==dlo.z){
+                    if (k==dlo.z and !is_periodic){
                         if (bct(Orientation(Direction::z,Orientation::low),0)==AMREX_LO_NEUMANN){
                             dudx = (dxi) * ((vel(ihip,j,k  ,0)-vel(ihim,j,k  ,0))*whi);
                         }
@@ -349,7 +352,7 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                     Real dwdy = (0.5*dyi) * ((vel(i,jhip,k  ,2)-vel(i,jhim,k  ,2))*whi
                                             +(vel(i,jlop,k-1,2)-vel(i,jlom,k-1,2))*wlo);
 
-                    if (k==dhi.z+1){
+                    if (k==dhi.z+1 and !is_periodic){
                         if (bct(Orientation(Direction::z,Orientation::high),1)==AMREX_LO_NEUMANN){
                             dvdy = (dyi) * ((vel(i,jlop,k-1,1)-vel(i,jlom,k-1,1))*wlo);
                         }
@@ -363,7 +366,7 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                             dwdy = (dyi) * ((vel(i,jhip,k  ,2)-vel(i,jhim,k  ,2))*whi);
                         }
                     }
-                    if (k==dlo.z){
+                    if (k==dlo.z and !is_periodic){
                         if (bct(Orientation(Direction::z,Orientation::low),1)==AMREX_LO_NEUMANN){
                             dvdy = (dyi) * ((vel(i,jhip,k  ,1)-vel(i,jhim,k  ,1))*whi);
                         }
