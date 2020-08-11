@@ -403,7 +403,6 @@ Geometry::growPeriodicDomain (int ngrow) const noexcept
 void
 Geometry::computeRoundoffDomain ()
 {
-    using PReal = ParticleReal;
     roundoff_domain = prob_domain;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
@@ -415,21 +414,21 @@ Geometry::computeRoundoffDomain ()
         Real deltax = CellSize(idim);
 
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-        PReal tolerance = std::max(1.e-4*deltax, 1.e-10*phi);
+        Real tolerance = std::max(1.e-4*deltax, 1.e-10*phi);
 #else
-        PReal tolerance = std::max(1.e-8*deltax, 1.e-14*phi);
+        Real tolerance = std::max(1.e-8*deltax, 1.e-14*phi);
 #endif
         // bisect the point at which the cell no longer maps to inside the domain
-        PReal lo = static_cast<PReal>(phi) - 0.5_prt*static_cast<PReal>(deltax);
-        PReal hi = static_cast<PReal>(phi) + 0.5_prt*static_cast<PReal>(deltax);
+        Real lo = static_cast<Real>(phi) - Real(0.5)*static_cast<Real>(deltax);
+        Real hi = static_cast<Real>(phi) + Real(0.5)*static_cast<Real>(deltax);
 
-        PReal mid = bisect(lo, hi,
-                           [=] AMREX_GPU_HOST_DEVICE (PReal x) -> PReal
-                           {
-                               int i = int(Math::floor((x - plo)*idx)) + ilo;
-                               bool inside = i >= 0 and i <= ihi;
-                               return static_cast<PReal>(inside) - 0.5_prt;
-                           }, tolerance);
+        Real mid = bisect(lo, hi,
+                          [=] AMREX_GPU_HOST_DEVICE (Real x) -> Real
+                          {
+                              int i = int(Math::floor((x - plo)*idx)) + ilo;
+                              bool inside = i >= 0 and i <= ihi;
+                              return static_cast<Real>(inside) - Real(0.5);
+                          }, tolerance);
         roundoff_domain.setHi(idim, mid - tolerance);
     }
 }
