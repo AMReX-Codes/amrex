@@ -501,6 +501,25 @@ namespace amrex
         }
     }
 
+    void average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                             const IntVect& ratio, const Geometry& crse_geom)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            average_down_faces(*fine[idim], *crse[idim], ratio, crse_geom);
+        }
+    }
+
+    void average_down_faces (const MultiFab& fine, MultiFab& crse,
+                             const IntVect& ratio, const Geometry& crse_geom)
+    {
+        MultiFab ctmp(amrex::coarsen(fine.boxArray(),ratio), fine.DistributionMap(),
+                      crse.nComp(), 0);
+        average_down_faces(fine, ctmp, ratio, 0);
+        crse.ParallelCopy(ctmp,0,0,crse.nComp(),0,0,crse_geom.periodicity());
+    }
+
     //! Average fine edge-based MultiFab onto crse edge-based MultiFab.
     //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
     void average_down_edges (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,

@@ -155,7 +155,6 @@ jobs:
             -DCUDA_ARCH=6.0
         make -j 2 tutorials
 
-  # Build libamrex and all tutorials with DPC++
   tutorials-dpcpp:
     name: DPCPP@PubBeta GFortran@7.5 C++17 [tutorials]
     runs-on: ubuntu-latest

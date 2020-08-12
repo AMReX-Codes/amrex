@@ -19,7 +19,10 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                                 Array4<Real const> const& kapx,
                                 Array4<Real const> const& apx,
                                 Array4<EBCellFlag const> const& flag,
-                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                const Dim3& dlo, const Dim3& dhi,
+                                Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct,
+                                const int& is_periodic) noexcept
 {
     const Real dyi = dxinv[1];
     const Real dzi = dxinv[2];
@@ -39,27 +42,90 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                 }
                 else
                 {
+
                     int jhip = j + flag(i  ,j,k).isConnected(0, 1,0);
                     int jhim = j - flag(i  ,j,k).isConnected(0,-1,0);
                     int jlop = j + flag(i-1,j,k).isConnected(0, 1,0);
                     int jlom = j - flag(i-1,j,k).isConnected(0,-1,0);
+
                     Real whi = mlebtensor_weight(jhip-jhim);
                     Real wlo = mlebtensor_weight(jlop-jlom);
+
                     Real dudy = (0.5*dyi) * ((vel(i  ,jhip,k,0)-vel(i  ,jhim,k,0))*whi
                                             +(vel(i-1,jlop,k,0)-vel(i-1,jlom,k,0))*wlo);
                     Real dvdy = (0.5*dyi) * ((vel(i  ,jhip,k,1)-vel(i  ,jhim,k,1))*whi
                                             +(vel(i-1,jlop,k,1)-vel(i-1,jlom,k,1))*wlo);
 
+                    if (i==dhi.x+1 and !is_periodic){
+                        if (bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_NEUMANN){
+                            dudy = (dyi) * ((vel(i-1,jlop,k,0)-vel(i-1,jlom,k,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::high),1)==AMREX_LO_NEUMANN){
+                            dvdy = (dyi) * ((vel(i-1,jlop,k,1)-vel(i-1,jlom,k,1))*wlo);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_DIRICHLET){
+                            dudy = (dyi) * ((vel(i  ,jhip,k,0)-vel(i  ,jhim,k,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::high),1)==AMREX_LO_DIRICHLET){
+                            dvdy = (dyi) * ((vel(i  ,jhip,k,1)-vel(i  ,jhim,k,1))*whi);
+                        }
+                    }
+                    if (i==dlo.x and !is_periodic){
+                        if (bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_NEUMANN){
+                            dudy = (dyi) * ((vel(i  ,jhip,k,0)-vel(i  ,jhim,k,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::low),1)==AMREX_LO_NEUMANN){
+                            dvdy = (dyi) * ((vel(i  ,jhip,k,1)-vel(i  ,jhim,k,1))*whi);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_DIRICHLET){
+                            dudy = (dyi) * ((vel(i-1,jlop,k,0)-vel(i-1,jlom,k,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::low),1)==AMREX_LO_DIRICHLET){
+                            dvdy = (dyi) * ((vel(i-1,jlop,k,1)-vel(i-1,jlom,k,1))*wlo);
+                        }
+                    }
+
                     int khip = k + flag(i  ,j,k).isConnected(0,0, 1);
                     int khim = k - flag(i  ,j,k).isConnected(0,0,-1);
                     int klop = k + flag(i-1,j,k).isConnected(0,0, 1);
                     int klom = k - flag(i-1,j,k).isConnected(0,0,-1);
+
                     whi = mlebtensor_weight(khip-khim);
                     wlo = mlebtensor_weight(klop-klom);
+
                     Real dudz = (0.5*dzi) * ((vel(i  ,j,khip,0)-vel(i  ,j,khim,0))*whi
                                             +(vel(i-1,j,klop,0)-vel(i-1,j,klom,0))*wlo);
                     Real dwdz = (0.5*dzi) * ((vel(i  ,j,khip,2)-vel(i  ,j,khim,2))*whi
                                             +(vel(i-1,j,klop,2)-vel(i-1,j,klom,2))*wlo);
+
+                    if (i==dhi.x+1 and !is_periodic){
+                        if (bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_NEUMANN){
+                            dudz = (dzi) * ((vel(i-1,j,klop,0)-vel(i-1,j,klom,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::high),2)==AMREX_LO_NEUMANN){
+                            dwdz = (dzi) * ((vel(i-1,j,klop,2)-vel(i-1,j,klom,2))*wlo);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::high),0)==AMREX_LO_DIRICHLET){
+                            dudz = (dzi) * ((vel(i  ,j,khip,0)-vel(i  ,j,khim,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::high),2)==AMREX_LO_DIRICHLET){
+                            dwdz = (dzi) * ((vel(i  ,j,khip,2)-vel(i  ,j,khim,2))*whi);
+                        }
+                    }
+                    if (i==dlo.x and !is_periodic){
+                        if (bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_NEUMANN){
+                            dudz = (dzi) * ((vel(i  ,j,khip,0)-vel(i  ,j,khim,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::low),2)==AMREX_LO_NEUMANN){
+                            dwdz = (dzi) * ((vel(i  ,j,khip,2)-vel(i  ,j,khim,2))*whi);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::low),0)==AMREX_LO_DIRICHLET){
+                            dudz = (dzi) * ((vel(i-1,j,klop,0)-vel(i-1,j,klom,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::x,Orientation::low),2)==AMREX_LO_DIRICHLET){
+                            dwdz = (dzi) * ((vel(i-1,j,klop,2)-vel(i-1,j,klom,2))*wlo);
+                        }
+                    }
 
                     Real divu = dvdy + dwdz;
                     Real xif = kapx(i,j,k);
@@ -81,7 +147,10 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                                 Array4<Real const> const& kapy,
                                 Array4<Real const> const& apy,
                                 Array4<EBCellFlag const> const& flag,
-                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                const Dim3& dlo, const Dim3& dhi,
+                                Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct,
+                                const int& is_periodic) noexcept
 {
     const Real dxi = dxinv[0];
     const Real dzi = dxinv[2];
@@ -105,23 +174,85 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                     int ihim = i - flag(i,j  ,k).isConnected(-1,0,0);
                     int ilop = i + flag(i,j-1,k).isConnected( 1,0,0);
                     int ilom = i - flag(i,j-1,k).isConnected(-1,0,0);
+
                     Real whi = mlebtensor_weight(ihip-ihim);
                     Real wlo = mlebtensor_weight(ilop-ilom);
+
                     Real dudx = (0.5*dxi) * ((vel(ihip,j  ,k,0)-vel(ihim,j  ,k,0))*whi
                                             +(vel(ilop,j-1,k,0)-vel(ilom,j-1,k,0))*wlo);
                     Real dvdx = (0.5*dxi) * ((vel(ihip,j  ,k,1)-vel(ihim,j  ,k,1))*whi
                                             +(vel(ilop,j-1,k,1)-vel(ilom,j-1,k,1))*wlo);
 
+                    if (j==dhi.y+1 and !is_periodic){ 
+                        if (bct(Orientation(Direction::y,Orientation::high),0)==AMREX_LO_NEUMANN){
+                            dudx = (dxi) * ((vel(ilop,j-1,k,0)-vel(ilom,j-1,k,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::high),1)==AMREX_LO_NEUMANN){
+                            dvdx = (dxi) * ((vel(ilop,j-1,k,1)-vel(ilom,j-1,k,1))*wlo);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::high),0)==AMREX_LO_DIRICHLET){
+                            dudx = (dxi) * ((vel(ihip,j  ,k,0)-vel(ihim,j  ,k,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::high),1)==AMREX_LO_DIRICHLET){
+                            dvdx = (dxi) * ((vel(ihip,j  ,k,1)-vel(ihim,j  ,k,1))*whi);
+                        }
+                    }
+                    if (j==dlo.y and !is_periodic){
+                        if (bct(Orientation(Direction::y,Orientation::low),0)==AMREX_LO_NEUMANN){
+                            dudx = (dxi) * ((vel(ihip,j  ,k,0)-vel(ihim,j  ,k,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::low),1)==AMREX_LO_NEUMANN){
+                            dvdx = (dxi) * ((vel(ihip,j  ,k,1)-vel(ihim,j  ,k,1))*whi);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::low),0)==AMREX_LO_DIRICHLET){
+                            dudx = (dxi) * ((vel(ilop,j-1,k,0)-vel(ilom,j-1,k,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::low),1)==AMREX_LO_DIRICHLET){
+                            dvdx = (dxi) * ((vel(ilop,j-1,k,1)-vel(ilom,j-1,k,1))*wlo);
+                        }
+                    }
+
                     int khip = k + flag(i,j  ,k).isConnected(0,0, 1);
                     int khim = k - flag(i,j  ,k).isConnected(0,0,-1);
                     int klop = k + flag(i,j-1,k).isConnected(0,0, 1);
                     int klom = k - flag(i,j-1,k).isConnected(0,0,-1);
+
                     whi = mlebtensor_weight(khip-khim);
                     wlo = mlebtensor_weight(klop-klom);
+
                     Real dvdz = (0.5*dzi) * ((vel(i,j  ,khip,1)-vel(i,j  ,khim,1))*whi
                                             +(vel(i,j-1,klop,1)-vel(i,j-1,klom,1))*wlo);
                     Real dwdz = (0.5*dzi) * ((vel(i,j  ,khip,2)-vel(i,j  ,khim,2))*whi
                                             +(vel(i,j-1,klop,2)-vel(i,j-1,klom,2))*wlo);
+
+                    if (j==dhi.y+1 and !is_periodic){
+                        if (bct(Orientation(Direction::y,Orientation::high),1)==AMREX_LO_NEUMANN){
+                            dvdz = (dzi) * ((vel(i,j-1,klop,1)-vel(i,j-1,klom,1))*wlo);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::high),2)==AMREX_LO_NEUMANN){
+                            dwdz = (dzi) * ((vel(i,j-1,klop,2)-vel(i,j-1,klom,2))*wlo);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::high),1)==AMREX_LO_DIRICHLET){
+                            dvdz = (dzi) * ((vel(i,j  ,khip,1)-vel(i,j  ,khim,1))*whi);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::high),2)==AMREX_LO_DIRICHLET){
+                            dwdz = (dzi) * ((vel(i,j  ,khip,2)-vel(i,j  ,khim,2))*whi);
+                        }
+                    }
+                    if (j==dlo.y and !is_periodic){
+                        if (bct(Orientation(Direction::y,Orientation::low),1)==AMREX_LO_NEUMANN){
+                            dvdz = (dzi) * ((vel(i,j  ,khip,1)-vel(i,j  ,khim,1))*whi);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::low),2)==AMREX_LO_NEUMANN){
+                            dwdz = (dzi) * ((vel(i,j  ,khip,2)-vel(i,j  ,khim,2))*whi);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::low),1)==AMREX_LO_DIRICHLET){
+                            dvdz = (dzi) * ((vel(i,j-1,klop,1)-vel(i,j-1,klom,1))*wlo);
+                        }
+                        if (bct(Orientation(Direction::y,Orientation::low),2)==AMREX_LO_DIRICHLET){
+                            dwdz = (dzi) * ((vel(i,j-1,klop,2)-vel(i,j-1,klom,2))*wlo);
+                        }
+                    }
 
                     Real divu = dudx + dwdz;
                     Real xif = kapy(i,j,k);
@@ -143,7 +274,10 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                                 Array4<Real const> const& kapz,
                                 Array4<Real const> const& apz,
                                 Array4<EBCellFlag const> const& flag,
-                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                const Dim3& dlo, const Dim3& dhi,
+                                Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> const& bct,
+                                const int& is_periodic) noexcept
 {
     const Real dxi = dxinv[0];
     const Real dyi = dxinv[1];
@@ -167,6 +301,7 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                     int ihim = i - flag(i,j,k  ).isConnected(-1,0,0);
                     int ilop = i + flag(i,j,k-1).isConnected( 1,0,0);
                     int ilom = i - flag(i,j,k-1).isConnected(-1,0,0);
+
                     Real whi = mlebtensor_weight(ihip-ihim);
                     Real wlo = mlebtensor_weight(ilop-ilom);
 
@@ -175,16 +310,76 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                     Real dwdx = (0.5*dxi) * ((vel(ihip,j,k  ,2)-vel(ihim,j,k  ,2))*whi
                                             +(vel(ilop,j,k-1,2)-vel(ilom,j,k-1,2))*wlo);
 
+                    if (k==dhi.z+1 and !is_periodic){
+                        if (bct(Orientation(Direction::z,Orientation::high),0)==AMREX_LO_NEUMANN){
+                            dudx = (dxi) * ((vel(ilop,j,k-1,0)-vel(ilom,j,k-1,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::high),2)==AMREX_LO_NEUMANN){
+                            dwdx = (dxi) * ((vel(ilop,j,k-1,2)-vel(ilom,j,k-1,2))*wlo);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::high),0)==AMREX_LO_DIRICHLET){
+                            dudx = (dxi) * ((vel(ihip,j,k  ,0)-vel(ihim,j,k  ,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::high),2)==AMREX_LO_DIRICHLET){
+                            dwdx = (dxi) * ((vel(ihip,j,k  ,2)-vel(ihim,j,k  ,2))*whi);
+                        }
+                    }
+                    if (k==dlo.z and !is_periodic){
+                        if (bct(Orientation(Direction::z,Orientation::low),0)==AMREX_LO_NEUMANN){
+                            dudx = (dxi) * ((vel(ihip,j,k  ,0)-vel(ihim,j,k  ,0))*whi);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::low),2)==AMREX_LO_NEUMANN){
+                            dwdx = (dxi) * ((vel(ihip,j,k  ,2)-vel(ihim,j,k  ,2))*whi);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::low),0)==AMREX_LO_DIRICHLET){
+                            dudx = (dxi) * ((vel(ilop,j,k-1,0)-vel(ilom,j,k-1,0))*wlo);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::low),2)==AMREX_LO_DIRICHLET){
+                            dwdx = (dxi) * ((vel(ilop,j,k-1,2)-vel(ilom,j,k-1,2))*wlo);
+                        }
+                    }
+
                     int jhip = j + flag(i,j,k  ).isConnected(0, 1,0);
                     int jhim = j - flag(i,j,k  ).isConnected(0,-1,0);
                     int jlop = j + flag(i,j,k-1).isConnected(0, 1,0);
                     int jlom = j - flag(i,j,k-1).isConnected(0,-1,0);
+
                     whi = mlebtensor_weight(jhip-jhim);
                     wlo = mlebtensor_weight(jlop-jlom);
+
                     Real dvdy = (0.5*dyi) * ((vel(i,jhip,k  ,1)-vel(i,jhim,k  ,1))*whi
                                             +(vel(i,jlop,k-1,1)-vel(i,jlom,k-1,1))*wlo);
                     Real dwdy = (0.5*dyi) * ((vel(i,jhip,k  ,2)-vel(i,jhim,k  ,2))*whi
                                             +(vel(i,jlop,k-1,2)-vel(i,jlom,k-1,2))*wlo);
+
+                    if (k==dhi.z+1 and !is_periodic){
+                        if (bct(Orientation(Direction::z,Orientation::high),1)==AMREX_LO_NEUMANN){
+                            dvdy = (dyi) * ((vel(i,jlop,k-1,1)-vel(i,jlom,k-1,1))*wlo);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::high),2)==AMREX_LO_NEUMANN){
+                            dwdy = (dyi) * ((vel(i,jlop,k-1,2)-vel(i,jlom,k-1,2))*wlo);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::high),1)==AMREX_LO_DIRICHLET){
+                            dvdy = (dyi) * ((vel(i,jhip,k  ,1)-vel(i,jhim,k  ,1))*whi);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::high),2)==AMREX_LO_DIRICHLET){
+                            dwdy = (dyi) * ((vel(i,jhip,k  ,2)-vel(i,jhim,k  ,2))*whi);
+                        }
+                    }
+                    if (k==dlo.z and !is_periodic){
+                        if (bct(Orientation(Direction::z,Orientation::low),1)==AMREX_LO_NEUMANN){
+                            dvdy = (dyi) * ((vel(i,jhip,k  ,1)-vel(i,jhim,k  ,1))*whi);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::low),2)==AMREX_LO_NEUMANN){
+                            dwdy = (dyi) * ((vel(i,jhip,k  ,2)-vel(i,jhim,k  ,2))*whi);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::low),1)==AMREX_LO_DIRICHLET){
+                            dvdy = (dyi) * ((vel(i,jlop,k-1,1)-vel(i,jlom,k-1,1))*wlo);
+                        }
+                        if (bct(Orientation(Direction::z,Orientation::low),2)==AMREX_LO_DIRICHLET){
+                            dwdy = (dyi) * ((vel(i,jlop,k-1,2)-vel(i,jlom,k-1,2))*wlo);
+                        }
+                    }
 
                     Real divu = dudx + dvdy;
                     Real xif = kapz(i,j,k);

@@ -82,6 +82,7 @@ template <class FAB, class F>
 amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
 ReduceSum_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
+    amrex::ignore_unused(fa,nghost,f);
     amrex::Abort("ReduceSum: Launch Region is off. Device lambda cannot be called by host.");
     return 0;
 }
@@ -189,6 +190,7 @@ amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::val
 ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
 {
+    amrex::ignore_unused(fa1,fa2,nghost,f);
     amrex::Abort("ReduceSum: Launch Region is off. Device lambda cannot be called by host.");
     return 0;
 }
@@ -301,6 +303,7 @@ amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::val
 ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
 {
+    amrex::ignore_unused(fa1,fa2,fa3,nghost,f);
     amrex::Abort("ReduceSum: Launch Region is off. Device lambda cannot be called by host.");
     return 0;
 }
@@ -405,6 +408,7 @@ template <class FAB, class F>
 amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
 ReduceMin_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
+    amrex::ignore_unused(fa,nghost,f);
     amrex::Abort("ReduceMin: Launch Region is off. Device lambda cannot be called by host.");
     return 0;
 }
@@ -514,6 +518,7 @@ amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::val
 ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
 {
+    amrex::ignore_unused(fa1,fa2,nghost,f);
     amrex::Abort("ReduceMin: Launch Region is off. Device lambda cannot be called by host.");
     return 0;
 }
@@ -628,6 +633,7 @@ amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::val
 ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
 {
+    amrex::ignore_unused(fa1,fa2,fa3,nghost,f);
     amrex::Abort("ReduceMin: Launch Region is off. Device lambda lambda cannot be called by host.");
     return 0;
 }
@@ -733,6 +739,7 @@ template <class FAB, class F>
 amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
 ReduceMax_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
+    amrex::ignore_unused(fa,nghost,f);
     amrex::Abort("ReduceMax: Launch Region is off. Device lambda cannot be called by host.");
     return 0;
 }
@@ -842,6 +849,7 @@ amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::val
 ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
 {
+    amrex::ignore_unused(fa1,fa2,nghost,f);
     amrex::Abort("ReduceMax: Launch Region is off. Device lambda cannot be called by host.");
     return 0;
 }
@@ -956,6 +964,7 @@ amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::val
 ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
 {
+    amrex::ignore_unused(fa1,fa2,fa3,nghost,f);
     amrex::Abort("ReduceMax: Launch Region is off. Device lambda lambda cannot be called by host.");
     return 0;
 }
@@ -1058,6 +1067,7 @@ template <class FAB, class F>
 amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalAnd_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
+    amrex::ignore_unused(fa,nghost,f);
     amrex::Abort("ReduceLogicalAnd: Launch Region is off. Device lambda cannot be called by host.");
     return false;
 }
@@ -1165,6 +1175,7 @@ amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalAnd_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                                IntVect const& nghost, F&& f)
 {
+    amrex::ignore_unused(fa1,fa2,nghost,f);
     amrex::Abort("ReduceLogicalAnd: Luanch Region is off. Device lambda cannot be called by host.");
     return false;
 }
@@ -1267,6 +1278,7 @@ template <class FAB, class F>
 amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
+    amrex::ignore_unused(fa,nghost,f);
     amrex::Abort("ReduceLogicalOr: Launch Region is off. Device lambda cannot be called by host.");
     return 0;
 }
@@ -1350,6 +1362,7 @@ ReduceLogicalOr_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
                 int tr = f(b, arr1, arr2);
+                return {tr};
             });
         }
 
@@ -1373,6 +1386,7 @@ amrex::EnableIf_t<amrex::DefinitelyNotHostRunnable<F>::value, bool>
 ReduceLogicalOr_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                               IntVect const& nghost, F&& f)
 {
+    amrex::ignore_unused(fa1,fa2,nghost,f);
     amrex::Abort("ReeuceLogicalOr: Launch Region is off. Device lambda cannot be called by host.");
     return false;
 }

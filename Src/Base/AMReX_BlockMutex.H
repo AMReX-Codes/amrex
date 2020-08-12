@@ -32,6 +32,7 @@ struct BlockMutex
     void lock (int i) noexcept {
 #ifdef AMREX_USE_DPCPP
 // xxxxx DPCPP todo
+        amrex::ignore_unused(i);
 #else
         int blockid = blockIdx.z*blockDim.x*blockDim.y + blockIdx.y*blockDim.x + blockIdx.x;
         state_t old = m_state[i];
@@ -57,6 +58,7 @@ struct BlockMutex
     void unlock (int i) noexcept {
 #ifdef AMREX_USE_DPCPP
 // xxxxx DPCPP todo
+        amrex::ignore_unused(i);
 #else
         state_t old = m_state[i];
         state_t assumed;

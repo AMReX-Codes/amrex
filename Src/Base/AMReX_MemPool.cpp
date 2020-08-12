@@ -17,10 +17,6 @@
 
 #include <AMReX_ParmParse.H>
 
-#ifdef USE_PERILLA_PTHREADS
-#include <WorkerThread.H>
-#endif
-
 using namespace amrex;
 
 namespace
@@ -46,15 +42,6 @@ void amrex_mempool_init ()
 	pp.query("init_snan", init_snan);
 
 	int nthreads = OpenMP::get_max_threads();
-
-#ifdef USE_PERILLA_PTHREADS
-#ifdef _OPENMP
-	//Just in case Perilla thread spawns multiple OMP threads
-        nthreads *= perilla::nThreads();
-#else
-	nthreads = perilla::nThreads();
-#endif
-#endif
 
 	the_memory_pool.resize(nthreads);
 	for (int i=0; i<nthreads; ++i) {
@@ -99,29 +86,12 @@ void amrex_mempool_finalize ()
 void* amrex_mempool_alloc (size_t nbytes)
 {
   int tid = OpenMP::get_thread_num();
-
-#ifdef USE_PERILLA_PTHREADS
-#ifdef _OPENMP
-  tid = perilla::tid()*omp_get_max_threads()+tid;
-#else
-  tid = perilla::tid();
-#endif
-#endif
   return the_memory_pool[tid]->alloc(nbytes);
 }
 
 void amrex_mempool_free (void* p) 
 {
   int tid = OpenMP::get_thread_num();
-
-#ifdef USE_PERILLA_PTHREADS
-#ifdef _OPENMP
-  tid = perilla::tid()*omp_get_max_threads()+tid;
-#else
-  tid = perilla::tid();
-#endif
-#endif
-
   the_memory_pool[tid]->free(p);
 }
 

@@ -55,8 +55,6 @@ def compiletesting(arg_string):
                      'Tests/Particles/ParticleMesh',
                      'Tests/LinearSolvers/CellEB',
                      'Tests/LinearSolvers/CellEB2',
-                     'Tests/LinearSolvers/C_CellMG',
-                     'Tests/LinearSolvers/C_TensorMG',
                      'Tests/MKDir']
 
     else:

@@ -587,6 +587,35 @@ void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
     }
 }
 
+void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                            const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                            const IntVect& ratio, const Geometry& crse_geom)
+{
+    AMREX_ASSERT(crse[0]->nComp() == fine[0]->nComp());
+
+    if (!(*fine[0]).hasEBFabFactory())
+    {
+        amrex::average_down_faces(fine, crse, ratio, crse_geom);
+    }
+    else
+    {
+        int ngcrse = 0;
+        int ncomp = crse[0]->nComp();
+        Array<MultiFab,AMREX_SPACEDIM> ctmp;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            BoxArray cba = fine[idim]->boxArray();
+            cba.coarsen(ratio);
+            ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
+        }
+        EB_average_down_faces(fine, amrex::GetArrOfPtrs(ctmp), ratio, ngcrse);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            crse[idim]->ParallelCopy(ctmp[idim],0,0,ncomp,crse_geom.periodicity());
+        }
+    }
+}
+
 void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
                                  int ratio, int ngcrse)
 {
