@@ -159,6 +159,21 @@ void mlndlap_avgdown_coeff_y (int i, int j, int k, Array4<Real> const& crse,
     crse(i,j,k) = a*b/(a+b);
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_semi_avgdown_coeff (int i, int j, int k, Array4<Real> const& crse,
+                              Array4<Real const> const& fine, int idir) noexcept
+{   
+    if (idir == 1) {
+        Real a = fine(2*i  ,j,k);
+        Real b = fine(2*i+1,j,k);
+        crse(i,j,k) = 2.0*a*b/(a+b);
+    } else {
+        Real a = fine(i,2*j  ,k);
+        Real b = fine(i,2*j+1,k);
+        crse(i,j,k) = 2.0*a*b/(a+b);
+    }
+}
+
 //
 // bc
 //

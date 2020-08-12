@@ -32,6 +32,11 @@ void mlndlap_avgdown_coeff_x (int /*i*/, int /*j*/, int /*k*/, Array4<Real> cons
                               Array4<Real const> const& fine) noexcept
 {}
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_semi_avgdown_coeff (int /*i*/, int /*j*/, int /*k*/, Array4<Real> const& crse,
+                              Array4<Real const> const& fine, int idir) noexcept
+{}
+
 template <typename T>
 inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& domain,
                              GpuArray<bool,AMREX_SPACEDIM> const& bflo,
