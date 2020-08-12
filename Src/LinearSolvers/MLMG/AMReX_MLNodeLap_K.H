@@ -16,11 +16,11 @@ namespace {
     constexpr int crse_fine_node = 1;
     constexpr int fine_node = 2;
 #if (BL_USE_FLOAT)
-    constexpr double eps = 1.e-30;
+    constexpr float eps = 1.e-30;
 #else
     constexpr double eps = 1.e-100;
 #endif
-    constexpr Real almostone = 1._rt - 100._rt*std::numeric_limits<Real>::epsilon();
+    constexpr Real almostone = Real(1.) - Real(100.)*std::numeric_limits<Real>::epsilon();
 
 }
 

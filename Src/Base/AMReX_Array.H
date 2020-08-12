@@ -75,11 +75,13 @@ namespace amrex {
     {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i) const noexcept {
+            AMREX_ASSERT(i >= XLO && i <= XHI);
             return arr[i-XLO];
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i) noexcept {
+            AMREX_ASSERT(i >= XLO && i <= XHI);
             return arr[i-XLO];
         }
 
@@ -94,6 +96,7 @@ namespace amrex {
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j) const noexcept {
+            AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
             return arr[i+j*(XHI-XLO+1)-(YLO*(XHI-XLO+1)+XLO)];
         }
 
@@ -101,6 +104,7 @@ namespace amrex {
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j) noexcept {
+            AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
             return arr[i+j*(XHI-XLO+1)-(YLO*(XHI-XLO+1)+XLO)];
         }
 
@@ -108,6 +112,7 @@ namespace amrex {
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j) const noexcept {
+            AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
             return arr[j+i*(YHI-YLO+1)-(XLO*(YHI-YLO+1)+YLO)];
         }
 
@@ -115,6 +120,7 @@ namespace amrex {
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j) noexcept {
+            AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
             return arr[j+i*(YHI-YLO+1)-(XLO*(YHI-YLO+1)+YLO)];
         }
 

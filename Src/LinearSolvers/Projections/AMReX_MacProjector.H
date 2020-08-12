@@ -95,6 +95,8 @@ private:
 
     void setOptions ();
 
+    void averageDownVelocity ();
+
     std::unique_ptr<MLABecLaplacian> m_abeclap;
 #ifdef AMREX_USE_EB
     std::unique_ptr<MLEBABecLap> m_eb_abeclap;
@@ -107,6 +109,7 @@ private:
     Vector<Array<MultiFab*,AMREX_SPACEDIM> > m_umac;
     Vector<MultiFab> m_rhs;
     Vector<MultiFab> m_phi;
+    Vector<MultiFab> m_divu;
     Vector<Array<MultiFab,AMREX_SPACEDIM> > m_fluxes;
 
     Vector<Geometry> m_geom;

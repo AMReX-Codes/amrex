@@ -178,9 +178,9 @@ MyTest::initData ()
             }
             if (vbx.contains(IntVect(i,j,k))) {
                 if (overset_box.contains(IntVect(i,j,k))) {
-                    mask(i,j,k) = 1;
-                } else {
                     mask(i,j,k) = 0;
+                } else {
+                    mask(i,j,k) = 1;
                 }
             }
         });

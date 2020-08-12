@@ -217,6 +217,7 @@ void LoopConcurrentOnCpu (Box const& bx, int ncomp, F&& f) noexcept
     for (int k = amrex_i_lo.z; k <= amrex_i_hi.z; ++k) { \
     for (int j = amrex_i_lo.y; j <= amrex_i_hi.y; ++j) { \
     for (int i = amrex_i_lo.x; i <= amrex_i_hi.x; ++i) { \
+        AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0); \
         block \
     }}} \
 }
@@ -229,6 +230,7 @@ void LoopConcurrentOnCpu (Box const& bx, int ncomp, F&& f) noexcept
     for (int k = amrex_i_lo.z; k <= amrex_i_hi.z; ++k) { \
     for (int j = amrex_i_lo.y; j <= amrex_i_hi.y; ++j) { \
     for (int i = amrex_i_lo.x; i <= amrex_i_hi.x; ++i) { \
+        AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0); \
         block \
     }}}} \
 }

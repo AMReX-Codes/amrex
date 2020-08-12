@@ -241,7 +241,7 @@ public:
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair>
-    void buildNeighborList (CheckPair check_pair, bool sort=false);
+    void buildNeighborList (CheckPair&& check_pair, bool sort=false);
 
     void printNeighborList ();
 

@@ -138,7 +138,7 @@ public:
     template <class PTile, class CheckPair>
     void build (PTile& ptile,
                 const amrex::Box& bx, const amrex::Geometry& geom,
-                CheckPair check_pair, int num_cells=1)
+                CheckPair&& check_pair, int num_cells=1)
     {
         auto& vec = ptile.GetArrayOfStructs()();
         m_pstruct = vec.dataPtr();

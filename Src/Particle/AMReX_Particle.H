@@ -367,9 +367,9 @@ Particle<NReal, NInt>::CIC_Cells_Fracs_Basic (const Particle<NReal, NInt>& p,
     //
     // "cells" should be dimensioned: IntVect cells[AMREX_D_TERM(2,+2,+4)]
     //
-    const Real len[AMREX_SPACEDIM] = { AMREX_D_DECL(static_cast<Real>((p.m_rdata.pos[0]-plo[0])/dx[0] + 0.5_rt),
-                                                    static_cast<Real>((p.m_rdata.pos[1]-plo[1])/dx[1] + 0.5_rt),
-                                                    static_cast<Real>((p.m_rdata.pos[2]-plo[2])/dx[2] + 0.5_rt)) };
+    const Real len[AMREX_SPACEDIM] = { AMREX_D_DECL(static_cast<Real>((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5)),
+                                                    static_cast<Real>((p.m_rdata.pos[1]-plo[1])/dx[1] + Real(0.5)),
+                                                    static_cast<Real>((p.m_rdata.pos[2]-plo[2])/dx[2] + Real(0.5))) };
 
     const IntVect cell(AMREX_D_DECL(static_cast<int>(amrex::Math::floor(len[0])),
                                     static_cast<int>(amrex::Math::floor(len[1])),
@@ -431,34 +431,34 @@ Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
     for (int xi = locell[0]; xi <= hicell[0]; xi++)
     {
         cells[i][0] = xi;
-        fracs[i] = (std::min(hilen[0]-xi,1_rt)-std::max(lolen[0]-xi,0_rt))*cell_density;
+        fracs[i] = (std::min(hilen[0]-xi,Real(1.0))-std::max(lolen[0]-xi,Real(0.0)))*cell_density;
         i++;
     }
 #elif (AMREX_SPACEDIM == 2)
     for (int yi = locell[1]; yi <= hicell[1]; yi++)
     {
-        const Real yf = std::min(hilen[1]-yi,1_rt)-std::max(lolen[1]-yi,0_rt);
+        const Real yf = std::min(hilen[1]-yi,Real(1.0))-std::max(lolen[1]-yi,Real(0.0));
         for (int xi = locell[0]; xi <= hicell[0]; xi ++)
         {
             cells[i][0] = xi;
             cells[i][1] = yi;
-            fracs[i] = yf * (std::min(hilen[0]-xi,1_rt)-std::max(lolen[0]-xi,0_rt))*cell_density;
+            fracs[i] = yf * (std::min(hilen[0]-xi,Real(1.0))-std::max(lolen[0]-xi,Real(0.0)))*cell_density;
             i++;
         }
     }
 #elif (AMREX_SPACEDIM == 3)
     for (int zi = locell[2]; zi <= hicell[2]; zi++)
     {
-        const Real zf = std::min(hilen[2]-zi,1_rt)-std::max(lolen[2]-zi,0_rt);
+        const Real zf = std::min(hilen[2]-zi,Real(1.0))-std::max(lolen[2]-zi,Real(0.0));
         for (int yi = locell[1]; yi <= hicell[1]; yi++)
         {
-            const Real yf = std::min(hilen[1]-yi,1_rt)-std::max(lolen[1]-yi,0_rt);
+            const Real yf = std::min(hilen[1]-yi,Real(1.0))-std::max(lolen[1]-yi,Real(0.0));
             for (int xi = locell[0]; xi <= hicell[0]; xi++)
             {
                 cells[i][0] = xi;
                 cells[i][1] = yi;
                 cells[i][2] = zi;
-                fracs[i] = zf * yf * (std::min(hilen[0]-xi,1_rt)-std::max(lolen[0]-xi,0_rt)) * cell_density;
+                fracs[i] = zf * yf * (std::min(hilen[0]-xi,Real(1.0))-std::max(lolen[0]-xi,Real(0.0))) * cell_density;
                 i++;
             }
         }

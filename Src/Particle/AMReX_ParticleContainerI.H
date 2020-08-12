@@ -317,7 +317,31 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticle (ParticleType& p, ParticleLocData& pld,
                                                                                    int lev_min, int lev_max, int nGrow, int local_grid) const
 {
-    bool outside = Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2)));
+    bool outside = AMREX_D_TERM(p.pos(0) <  Geom(0).ProbLo(0)
+                             || p.pos(0) >= Geom(0).ProbHi(0),
+                             || p.pos(1) <  Geom(0).ProbLo(1)
+                             || p.pos(1) >= Geom(0).ProbHi(1),
+                             || p.pos(2) <  Geom(0).ProbLo(2)
+                             || p.pos(2) >= Geom(0).ProbHi(2));
+
+    if (not outside)
+    {
+        if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
+        {
+            RealBox roundoff_domain = Geom(0).RoundoffDomain();
+            for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                if (p.pos(idim) <= roundoff_domain.lo(idim)) {
+                    p.pos(idim) = std::nextafter((ParticleReal) roundoff_domain.lo(idim), (ParticleReal) roundoff_domain.hi(idim));
+                }
+                if (p.pos(idim) >= roundoff_domain.hi(idim)) {
+                    p.pos(idim) = std::nextafter((ParticleReal) roundoff_domain.hi(idim), (ParticleReal) roundoff_domain.lo(idim));
+                }
+            }
+
+            AMREX_ASSERT(not Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))));
+        }
+    }
 
     bool success;
     if (outside)
@@ -1394,8 +1418,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                       char* dst = &particles_to_send[old_size] + particle_size;
                       for (int comp = 0; comp < NumRealComps(); comp++) {
                           if (communicate_real_comp[comp]) {
-                              std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(Real));
-                              dst += sizeof(Real);
+                              std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
+                              dst += sizeof(ParticleReal);
                           }
                       }
                       for (int comp = 0; comp < NumIntComps(); comp++) {
@@ -1801,9 +1825,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 ptile.push_back(p);
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
                     if (communicate_real_comp[comp]) {
-                        Real rdata;
-                        std::memcpy(&rdata, pbuf, sizeof(Real));
-                        pbuf += sizeof(Real);
+                        ParticleReal rdata;
+                        std::memcpy(&rdata, pbuf, sizeof(ParticleReal));
+                        pbuf += sizeof(ParticleReal);
                         ptile.push_back_real(comp, rdata);
                     } else {
                         ptile.push_back_real(comp, 0.0);

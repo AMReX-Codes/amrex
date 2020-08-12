@@ -1,3 +1,49 @@
+# 20.08
+
+  -- New average_down_faces functions that take periodic boundary into account.
+
+  -- Update the documentation for Nsight.
+
+  -- Fix a bug with HDF5 boxcenter data.
+
+  -- New runtime parameter, `eb2.extend_domain_face`, that can be used to extraploate EB information
+     from domain faces.
+
+  -- New GNU Make options for GCC and Clang, `WARN_ALL` and `WARN_ERROR`. `WARN_ALL` turns on more
+     compiler warnings.  `WARN_ERROR` turns warnings into errors.
+
+  -- Fix various compiler warnings.
+
+  -- Fix memory fragmentation issue with communication buffer.
+
+  -- Semi-coarsening support in linear solvers.
+
+  -- Fix virtual particle issues.
+
+  -- Capability to fuse GPU kernel launches.
+
+  -- Make ghost particles support soa data.
+
+  -- CMake: ability to export build tree.
+
+  -- Reset amrex_geometry_module initialization state when finalizing.
+
+  -- Remove Long version of Gatherv.
+
+  -- Optimization of TagBoxArray::collate.
+
+  -- CMake: fix missing PETSc setup in Config file.
+
+  -- BndryFunc for nodal data.
+
+  -- MLMG Hypre fix for singular problems.
+
+  -- Add particle copy filters.
+
+  -- Async output support for particles.
+
+  -- BackgroundThread class.
+
 # 20.07
 
   -- Nodal hypre solver now supports coarsening before hypre is called.

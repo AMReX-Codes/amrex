@@ -74,22 +74,22 @@ namespace amrex
         T flo = f(lo);
         T fhi = f(hi);
 
-        if (flo == 0.0_rt) return flo;
-        if (fhi == 0.0_rt) return fhi;
+        if (flo == T(0)) return flo;
+        if (fhi == T(0)) return fhi;
 
-        AMREX_ASSERT_WITH_MESSAGE(flo * fhi <= 0.0_rt,
+        AMREX_ASSERT_WITH_MESSAGE(flo * fhi <= T(0),
             "Error - calling bisect but lo and hi don't bracket a root.");
 
-        T mi = (lo + hi) / 2.0_rt;
+        T mi = (lo + hi) / T(2);
         T fmi = 0.0;
         int n = 1;
         while (n <= max_iter)
         {
             if (hi - lo < tol) break;
-            mi = (lo + hi) / 2.0_rt;
+            mi = (lo + hi) / T(2);
             fmi = f(mi);
-            if (fmi == 0.0_rt) break;
-            fmi*flo < 0.0_rt ? hi = mi : lo = mi;
+            if (fmi == T(0)) break;
+            fmi*flo < T(0) ? hi = mi : lo = mi;
             flo = f(lo);
             fhi = f(hi);
             ++n;

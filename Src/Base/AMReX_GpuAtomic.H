@@ -82,6 +82,7 @@ namespace detail {
         sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(sum)};
         return sycl::atomic_fetch_add(a, value, mo);
 #else
+        amrex::ignore_unused(sum, value);
         return T(); // should never get here, but have to return something
 #endif
     }
@@ -143,6 +144,7 @@ namespace detail {
         sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(m)};
         return sycl::atomic_fetch_min(a, value, mo);
 #else
+        amrex::ignore_unused(m,value);
         return T(); // should never get here, but have to return something
 #endif
     }
@@ -202,6 +204,7 @@ namespace detail {
         sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(m)};
         return sycl::atomic_fetch_max(a, value, mo);
 #else
+        amrex::ignore_unused(m,value);
         return T(); // should never get here, but have to return something
 #endif
     }
