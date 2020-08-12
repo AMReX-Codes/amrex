@@ -906,6 +906,8 @@ FaceDivFree::CoarseBox (const Box& fine,
 {
     Box b = amrex::coarsen(fine,ratio).grow(1);
 
+    // if fine box is not divisible by ratio?
+
 /*  NEEDED FOR FACE-DIVERGENCE FREE?
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
@@ -985,7 +987,11 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
     AMREX_ALWAYS_ASSERT(ratio == 2);
 
     const Box ccbx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
-//    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
+    const Box c_fine_region = amrex::coarsen(fine_region, ratio);
+
+    amrex::Print() << " fine_region, c_fine_region, ccbx: " << fine_region << ", "
+                                                            << c_fine_region << ", " 
+                                                            << ccbx << std::endl; 
 
     GpuArray<Array4<Real const>, AMREX_SPACEDIM> crsearr;
     GpuArray<Array4<Real>, AMREX_SPACEDIM> finearr;
@@ -995,7 +1001,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
         finearr[i] = fine[i]->array();
     }
 
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, ccbx, tbx,
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, c_fine_region, tbx,
     {
         amrex::facediv_cubic<Real>(tbx, crsearr, finearr, crse_comp, ncomp, ratio);
     });

@@ -2,11 +2,11 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../
 
-DEBUG        = FALSE
+DEBUG        = TRUE 
 USE_MPI      = FALSE
 MPI_THREAD_MULTIPLE = FALSE  # amrex.async_out=1 with more than 64 processes requires MPI_THREAD_MULTIPLE
 USE_OMP      = FALSE
-USE_CUDA     = TRUE
+#USE_CUDA     = TRUE
 COMP         = gnu
 DIM          = 2 
 

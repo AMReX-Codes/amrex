@@ -365,15 +365,6 @@ namespace {
             MF fmf_cc_dummy( amrex::convert(fmf[0][0]->boxArray(), IntVect::TheZeroVector()),
                              fmf[0][0]->DistributionMap(), ncomp, nghost, MFInfo().SetAlloc(false) );
 
-
-            amrex::Print() << " \nfpc inputs\n=======\n ";
-            amrex::Print() << " fmf_cc_dummy.ba = " << fmf_cc_dummy.boxArray() << std::endl;
-            amrex::Print() << " mf_cc_dummy.ba = "  <<  mf_cc_dummy.boxArray() << std::endl;
-            amrex::Print() << " nghost = " << fmf_cc_dummy.boxArray() << std::endl;
-            amrex::Print() << " fgeom.domain = " << fgeom.Domain() << " / " << fgeom.ProbDomain() << std::endl;
-            amrex::Print() << " cgeom.domain = " << cgeom.Domain() << " / " << cgeom.ProbDomain() << std::endl;
-            amrex::Print() << "========\n";
-
 	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(fmf_cc_dummy, mf_cc_dummy,
                                                                       nghost,
                                                                       coarsener,
@@ -392,8 +383,6 @@ namespace {
                 {
                     mf_crse_patch[i] = make_mf_crse_patch<MF>(fpc, ncomp, mf[i]->boxArray().ixType());
                     mf_fine_patch[i] = make_mf_fine_patch<MF>(fpc, ncomp, mf[i]->boxArray().ixType());
-
-                    amrex::Print() << "mf_crse / mf_fine [" << i << "]: " << mf_crse_patch[i].boxArray() << " / " << mf_fine_patch[i].boxArray() << std::endl;
                 }
 
                 for (int i=0; i<AMREX_SPACEDIM; ++i)
@@ -640,6 +629,24 @@ InterpFromCoarseLevel (MF& mf, Real time,
 
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 EnableIf_t<IsFabArray<MF>::value>
+InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, Real time,
+                       const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
+                       const Geometry& cgeom, const Geometry& fgeom,
+                       Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
+                       Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
+                       const IntVect& ratio,
+                       Interp* mapper,
+                       const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
+                       const PreInterpHook& pre_interp,
+                       const PostInterpHook& post_interp)
+{
+    InterpFromCoarseLevel(mf,mf.nGrowVect(),time,cmf,scomp,dcomp,ncomp,cgeom,fgeom,
+                          cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
+                          pre_interp,post_interp);
+}
+
+template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
+EnableIf_t<IsFabArray<MF>::value>
 InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
                        const MF& cmf, int scomp, int dcomp, int ncomp,
                        const Geometry& cgeom, const Geometry& fgeom,
@@ -731,6 +738,119 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
     }
 
     fbc(mf, dcomp, ncomp, nghost, time, fbccomp);
+}
+
+template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
+EnableIf_t<IsFabArray<MF>::value>
+InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Real time,
+                       const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
+                       const Geometry& cgeom, const Geometry& fgeom,
+                       Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
+                       Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
+                       const IntVect& ratio,
+                       Interp* mapper,
+                       const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
+                       const PreInterpHook& pre_interp,
+                       const PostInterpHook& post_interp)
+{
+    using FAB = typename MF::FABType::value_type;
+
+    const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
+    const BoxArray& ba = mf[0].boxArray();
+    const DistributionMapping& dm = mf[0].DistributionMap();
+
+    // Change asserts.
+    // If DM is different? Need to adjust or do all 3 seperately?
+
+    // Confirm each boxArray is equal except for indexing?
+    //     Note: if this is not true, have to setup all 3 directions separately.
+
+    // const IndexType& typ = ba.ixType();
+    // BL_ASSERT(typ == cmf.boxArray().ixType());
+
+    // Create a cell-centered boxArray of the region to interp.
+    // Convert this boxArray and domain as needed.
+    Box fdomain = amrex::convert(fgeom.Domain(), IntVect::TheZeroVector());
+    Box fdomain_g(fdomain);
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+        if (fgeom.isPeriodic(i)) {
+            fdomain_g.grow(i,nghost[i]);
+        }
+    }
+
+    BoxArray ba_crse_patch(ba.size());
+    {  // TODO: later we might want to cache this
+        for (int i = 0, N = ba.size(); i < N; ++i)
+        {
+            Box bx = amrex::convert(amrex::grow(ba[i], nghost), IntVect::TheZeroVector());
+            bx &= fdomain_g;
+            ba_crse_patch.set(i, coarsener.doit(bx));
+        }
+    }
+
+    Array<MF, AMREX_SPACEDIM> mf_crse_patch;
+    for (int i = 0; i<AMREX_SPACEDIM; ++i)
+    {
+        BoxArray ba_crse_idxed = amrex::convert(ba_crse_patch, mf[i]->boxArray().ixType());
+ 
+#ifdef AMREX_USE_EB
+        auto factory = makeEBFabFactory(cgeom, ba_crse_idxed, dm, {0,0,0}, EBSupport::basic);
+        mf_crse_patch[i].define(ba_crse_idxed, dm, ncomp, 0, MFInfo(), *factory);
+#else
+        mf_crse_patch[i].define(ba_crse_idxed, dm, ncomp, 0);
+#endif
+        mf_set_domain_bndry (mf_crse_patch[i], cgeom);
+
+        mf_crse_patch[i].copy(cmf[i], scomp, 0, ncomp, cgeom.periodicity());
+
+        cbc[i](mf_crse_patch[i], 0, ncomp, mf_crse_patch[i].nGrowVect(), time, cbccomp);
+    }
+
+    int idummy1=0, idummy2=0;
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    {
+        Vector<Array<BCRec, AMREX_SPACEDIM> > bcr(ncomp);
+
+        for (MFIter mfi(mf_crse_patch[0]); mfi.isValid(); ++mfi)
+        {
+            Array<FAB*, AMREX_SPACEDIM> sfab{ AMREX_D_DECL( &(mf_crse_patch[0][mfi]),
+                                                            &(mf_crse_patch[1][mfi]),
+                                                            &(mf_crse_patch[2][mfi]) )};
+            Array<FAB*, AMREX_SPACEDIM> dfab{ AMREX_D_DECL( &(mf[0][mfi]),
+                                                            &(mf[1][mfi]),
+                                                            &(mf[2][mfi]) )};
+
+            const Box& sbx_cc = amrex::convert(sfab[0]->box(), IntVect::TheZeroVector());
+            Box& dfab_cc = amrex::convert(dfab[0]->box(), IntVect::TheZeroVector());
+            dfab_cc.grow(nghost-mf.nGrowVect());
+            const Box& dbx_cc = dfab_cc & fdomain_g;
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+            {
+                Vector<BCRec> bcr_d(ncomp);
+
+                amrex::setBC(dfab[d]->box(), amrex::convert(fdomain, dfab[d]->boxArray().ixType()),
+                             bcscomp,0,ncomp,bcs,bcr_d);
+
+                for (int n=0; n<ncomp; ++n)
+                    { bcr[n][d] = bcr_d[n]; }
+            }
+
+            pre_interp(sfab, sbx_cc, 0, ncomp);
+
+            mapper->interp(sfab, 0,  dfab, dcomp, ncomp, dbx_cc, ratio,
+                           cgeom, fgeom, bcr, idummy1, idummy2, RunOn::Gpu);
+
+            post_interp(dfab, dbx_cc, dcomp, ncomp);
+        }
+    }
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+    {
+        fbc[d](*mf[d], dcomp, ncomp, nghost, time, fbccomp);
+    }
 }
 
 }

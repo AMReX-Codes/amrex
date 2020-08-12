@@ -183,6 +183,36 @@ namespace amrex
                            const PreInterpHook& pre_interp = {},
                            const PostInterpHook& post_interp = {});
 
+    template <typename MF, typename BC, typename Interp,
+              typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
+              typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
+    EnableIf_t<IsFabArray<MF>::value>
+    InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, Real time,
+                           const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
+                           const Geometry& cgeom, const Geometry& fgeom,
+                           Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
+                           Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
+                           const IntVect& ratio,
+                           Interp* mapper,
+                           const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
+                           const PreInterpHook& pre_interp = {},
+                           const PostInterpHook& post_interp = {});
+
+    template <typename MF, typename BC, typename Interp,
+              typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
+              typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
+    EnableIf_t<IsFabArray<MF>::value>
+    InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Real time,
+                           const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
+                           const Geometry& cgeom, const Geometry& fgeom,
+                           Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
+                           Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
+                           const IntVect& ratio,
+                           Interp* mapper,
+                           const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
+                           const PreInterpHook& pre_interp = {},
+                           const PostInterpHook& post_interp = {});
+
 #ifndef BL_NO_FORT
     enum InterpEM_t { InterpE, InterpB};
 
