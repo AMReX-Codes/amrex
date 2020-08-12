@@ -425,7 +425,7 @@ BoxList::parallelComplementIn (const Box& b, BoxArray const& ba)
     }
     else
     {
-        BL_PROFILE("BoxList::pci");
+        BL_PROFILE_VAR("BoxList::pci", boxlistpci);
 
         Long npts_avgbox;
         Box mbox = ba.minimalBox(npts_avgbox);

@@ -168,54 +168,54 @@ class BLProfStats {
                               bool graphTopPct = true);
     virtual void AddCalcEndTime(double cet) { calcEndTime = cet; }
 
-    virtual void SetCPVersion(const int cpv) { }
-    virtual void SetCSSize(const int css) { }
-    virtual void InitCommDataBlock(const int proc, const long ncommstats,
-                               const std::string &filename, const long seekpos,
-			       const std::string &nodename = "",
-			       const int nodenumber = -1) { }
-    virtual void AddBarrier(long bnum, const std::string &bname, long index) { }
-    virtual void AddReduction(const long rnum, const long index) { }
-    virtual void AddTimeMinMax(const double tmin, const double tmax) { }
-    virtual void AddTimerTime(const double tt) { }
-    virtual void AddNameTag(const long ntnindex, const long seekindex) { }
-    virtual void AddNameTagName(const std::string &name) { }
-    virtual void AddTagRange(const long tmin, const long tmax) { }
-    virtual void AddGridLevel(const int level, const int ngrids) { }
-    virtual void AddGrid3D(int level, int xlo, int ylo, int zlo,
-                           int xhi, int yhi, int zhi,
-                           int xc,  int yc,  int zc,
-                           int xn,  int yn,  int zn, int proc) { }
-    virtual void AddFinestLevel(const int lev) { }
-    virtual void AddMaxLevel(const int lev) { }
-    virtual void AddRefRatio(const int lev, const amrex::IntVect &rr) { }
-    virtual void AddTopoCoord(const int nid, const int node,
-                      const int tx, const int ty, const int tz,
-                      const bool servicenode = false) { }
+    virtual void SetCPVersion(const int /*cpv*/) { }
+    virtual void SetCSSize(const int /*css*/) { }
+    virtual void InitCommDataBlock(const int /*proc*/, const long /*ncommstats*/,
+                               const std::string &/*filename*/, const long /*seekpos*/,
+			       const std::string &/*nodename*/ = "",
+			       const int /*nodenumber*/ = -1) { }
+    virtual void AddBarrier(long /*bnum*/, const std::string &/*bname*/, long /*index*/) { }
+    virtual void AddReduction(const long /*rnum*/, const long /*index*/) { }
+    virtual void AddTimeMinMax(const double /*tmin*/, const double /*tmax*/) { }
+    virtual void AddTimerTime(const double /*tt*/) { }
+    virtual void AddNameTag(const long /*ntnindex*/, const long /*seekindex*/) { }
+    virtual void AddNameTagName(const std::string &/*name*/) { }
+    virtual void AddTagRange(const long /*tmin*/, const long /*tmax*/) { }
+    virtual void AddGridLevel(const int /*level*/, const int /*ngrids*/) { }
+    virtual void AddGrid3D(int /*level*/, int /*xlo*/, int /*ylo*/, int /*zlo*/,
+                           int /*xhi*/,   int /*yhi*/, int /*zhi*/,
+                           int /*xc*/,    int /*yc*/,  int /*zc*/,
+                           int /*xn*/,    int /*yn*/,  int /*zn*/, int /*proc*/) { }
+    virtual void AddFinestLevel(const int /*lev*/) { }
+    virtual void AddMaxLevel(const int /*lev*/) { }
+    virtual void AddRefRatio(const int /*lev*/, const amrex::IntVect &/*rr*/) { }
+    virtual void AddTopoCoord(const int /*nid*/, const int /*node*/,
+                      const int /*tx*/, const int /*ty*/, const int /*tz*/,
+                      const bool /*servicenode*/ = false) { }
 
-    virtual void AddCommHeaderFileName(const std::string &hfn) { }
-    virtual void SetCSVersion(int csv)  { }
-    virtual void AddCStatsHeaderFileName(const std::string &hfn) { }
-    virtual void AddFunctionName(const std::string &fname, int fnumber) { }
-    virtual void InitCStatsDataBlock(int proc, long nrss, long ntracestats,
-                                     const std::string &filename, long seekpos) { }
+    virtual void AddCommHeaderFileName(const std::string &/*hfn*/) { }
+    virtual void SetCSVersion(int /*csv*/)  { }
+    virtual void AddCStatsHeaderFileName(const std::string &/*hfn*/) { }
+    virtual void AddFunctionName(const std::string &/*fname*/, int /*fnumber*/) { }
+    virtual void InitCStatsDataBlock(int /*proc*/, long /*nrss*/, long /*ntracestats*/,
+                                     const std::string &/*filename*/, long /*seekpos*/) { }
     static void SetInitDataBlocks(bool b) { bInitDataBlocks = b;    }
     static bool InitDBlocks()             { return bInitDataBlocks; }
 
     static void SetGPercent(Real p)  { gPercent = p/100.0; }
 
-    virtual void AddProbDomain(const int lev, const amrex::Box &pd) { }
-    virtual TimeRange MakeRegionPlt(amrex::FArrayBox &rFab, int noregionnumber,
-                               int width, int height,
-			       amrex::Vector<amrex::Vector<amrex::Box>> &regionBoxes)
+    virtual void AddProbDomain(const int /*lev*/, const amrex::Box &/*pd*/) { }
+    virtual TimeRange MakeRegionPlt(amrex::FArrayBox &/*rFab*/, int /*noregionnumber*/,
+                               int /*width*/, int /*height*/,
+			       amrex::Vector<amrex::Vector<amrex::Box>> &/*regionBoxes*/)
 			       { return TimeRange(); }
 
     static void OpenAllStreams(const std::string &dirname);
     static void CloseAllStreams();
 
-    virtual void AddEdisonPID(int X, int Y, int Z,
-                              int col, int row, int cage, int slot,
-                              int cpu, int pid) { }
+    virtual void AddEdisonPID(int /*X*/,   int /*Y*/, int /*Z*/,
+                              int /*col*/, int /*row*/, int /*cage*/, int /*slot*/,
+                              int /*cpu*/, int /*pid*/) { }
 
     static bool TimeRangeInitialized() { return bTimeRangeInitialized; }
 
