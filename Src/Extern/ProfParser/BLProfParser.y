@@ -645,7 +645,7 @@ word: WORD {
 
 %%
 
-int yyerror(void *outpptr, const char *s) {
+int yyerror(void * /*outpptr*/, const char * /*s*/) {
   cerr << "*** Unrecognized output at line " << yylineno << "  ::  " << yytext << endl;
   return -1;
 }
@@ -654,6 +654,7 @@ int yyerror(void *outpptr, const char *s) {
 
 void CPIV(amrex::IntVect &bliv, IVec &ivec) {
 #if (BL_SPACEDIM == 2)
+  amrex::ignore_unused(bliv, ivec);
 #else
   bliv[0] = ivec[0];
   bliv[1] = ivec[1];

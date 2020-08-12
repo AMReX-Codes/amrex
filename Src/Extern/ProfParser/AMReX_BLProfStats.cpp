@@ -243,7 +243,7 @@ void BLProfStats::MakeFilterFile(const std::string &ffname) {
 
 // ----------------------------------------------------------------------
 void BLProfStats::SetFilter(BLProfStats::FilterStatus fs,
-                            const std::string &ffname, int rnumber)
+                            const std::string &/*ffname*/, int rnumber)
 {
   if(fs == BLProfStats::FilterStatus::ON) {
     includeSet.insert(rnumber);
@@ -473,7 +473,7 @@ void BLProfStats::ReadBlock(BLPDataBlock &dBlock) {
 
 
 // ----------------------------------------------------------------------
-void BLProfStats::ReadBlockNoOpen(BLPDataBlock &dBlock)
+void BLProfStats::ReadBlockNoOpen(BLPDataBlock &/*dBlock*/)
 {
 amrex::Abort("not implemented yet.");
 }
@@ -513,7 +513,7 @@ void BLProfStats::CollectFuncStats(Vector<Vector<FuncStat> > &funcStats)
 
 
 // ----------------------------------------------------------------------
-void BLProfStats::WriteSummary(std::ostream &ios, bool bwriteavg,
+void BLProfStats::WriteSummary(std::ostream &ios, bool /*bwriteavg*/,
                                int whichProc, bool graphTopPct)
 {
   if( ! ParallelDescriptor::IOProcessor()) {
