@@ -751,7 +751,7 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
             bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
             MultiFab cfine;
             if (need_parallel_copy) {
-                const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
+                const BoxArray& ba = amrex::coarsen(fine.boxArray(), ratio);
                 cfine.define(ba, fine.DistributionMap(), 1, 0);
             }
 
@@ -796,19 +796,10 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
                     const Box& bx = mfi.tilebox();
                     Array4<Real> const& cfab = pcrse->array(mfi);
                     Array4<Real const> const& ffab = fine.const_array(mfi);
-                    if (idir != 0) {
-                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
-                        {
-                            mlndlap_avgdown_coeff_x(i,j,k,cfab,ffab);
-                        });
-                    } else {
-#if (AMREX_SPACEDIM >= 2)
-                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
-                        {
-                            mlndlap_avgdown_coeff_y(i,j,k,cfab,ffab);
-                        });
-#endif
-                    } 
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
+                    {
+                        mlndlap_semi_avgdown_coeff(i,j,k,cfab,ffab,idir);
+                    });
                 }
             }
             if (need_parallel_copy) {
