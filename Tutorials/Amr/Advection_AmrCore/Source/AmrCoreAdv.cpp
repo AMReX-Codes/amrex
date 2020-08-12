@@ -274,17 +274,21 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
 
     MultiFab& state = phi_new[lev];
 
-    GeometryData geomData = geom[lev].data();
+    const auto problo = Geom(lev).ProbLoArray();
+    const auto dx     = Geom(lev).CellSizeArray();
 
-    for (MFIter mfi(state); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(state,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         Array4<Real> fab = state[mfi].array();
-        const Box& box = mfi.validbox();
+        const Box& box = mfi.tilebox();
 
         amrex::launch(box,
         [=] AMREX_GPU_DEVICE (Box const& tbx)
         {
-            initdata(tbx, fab, geomData);
+            initdata(tbx, fab, problo, dx);
         });
     }
 }
