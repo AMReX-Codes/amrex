@@ -50,7 +50,7 @@ struct GeometryData
  //! Returns our rectangular domain.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const Box& Domain () const noexcept { return domain; }
- //! Returns whether the domain is periodic in the given direction.
+//! Returns whether the domain is periodic in the given direction.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int isPeriodic (const int i) const noexcept { return is_periodic[i]; }
  //! Coordinates type
@@ -104,11 +104,14 @@ public:
     void define (const Box& dom, const RealBox& rb, int coord, Array<int,AMREX_SPACEDIM> const& is_per) noexcept;
     //! Returns the problem domain.
     const RealBox& ProbDomain () const noexcept { return prob_domain; }
+    //! Returns the roundoff domain.
+    const RealBox& RoundoffDomain () const noexcept { return roundoff_domain; }
     //! Sets the problem domain.
     void ProbDomain (const RealBox& rb) noexcept
     {
         prob_domain = rb;
         SetOffset(rb.lo());
+        computeRoundoffDomain();
     }
     //! Returns the lo end of the problem domain in each dimension.
     const Real* ProbLo () const noexcept { return prob_domain.lo(); }
@@ -275,12 +278,41 @@ public:
         }
     }
 
+    /**
+    * \brief Returns true if a point is outside the roundoff domain.
+    *        All particles with positions inside the roundoff domain
+    *        are sure to be mapped to cells inside the Domain() box. Note that
+    *        the same need not be true for all points inside ProbDomain().
+    */
+    bool outsideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const;
+
+    /**
+    * \brief Returns true if a point is inside the roundoff domain.
+    *        All particles with positions inside the roundoff domain
+    *        are sure to be mapped to cells inside the Domain() box. Note that
+    *        the same need not be true for all points inside ProbDomain().
+    */
+    bool insideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const;
+
+    /**
+    * \brief Compute the roundoff domain. Public because it contains an
+    *        extended host / device lambda.
+    */
+    void computeRoundoffDomain ();
+
 private:
     void read_params ();
 
     // is_periodic and RealBox used to be static
     bool    is_periodic[AMREX_SPACEDIM] = {AMREX_D_DECL(false,false,false)};
     RealBox prob_domain;
+
+    // Due to round-off errors, not all floating point numbers for which plo >= x < phi
+    // will map to a cell that is inside "domain". "roundoff_domain" stores a phi
+    // that is very close to that in prob_domain, and for which all floating point numbers
+    // inside it according to a naive inequality check will map to a cell inside domain.
+    RealBox roundoff_domain;
+
     //
     Box     domain;
 };

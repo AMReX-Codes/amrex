@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include <AMReX_Algorithm.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_ParmParse.H>
@@ -108,6 +109,8 @@ Geometry::define (const Box& dom, const RealBox* rb, int coord,
         dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
 	inv_dx[k] = 1.0/dx[k];
     }
+
+    computeRoundoffDomain();
 }
 
 void
@@ -395,6 +398,57 @@ Geometry::growPeriodicDomain (int ngrow) const noexcept
         }
     }
     return b;
+}
+
+void
+Geometry::computeRoundoffDomain ()
+{
+    roundoff_domain = prob_domain;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        int ilo = Domain().smallEnd(idim);
+        int ihi = Domain().bigEnd(idim);
+        Real plo = ProbLo(idim);
+        Real phi = ProbHi(idim);
+        Real idx = InvCellSize(idim);
+        Real deltax = CellSize(idim);
+
+#ifdef AMREX_SINGLE_PRECISION_PARTICLES
+        Real tolerance = std::max(1.e-4*deltax, 1.e-10*phi);
+#else
+        Real tolerance = std::max(1.e-8*deltax, 1.e-14*phi);
+#endif
+        // bisect the point at which the cell no longer maps to inside the domain
+        Real lo = static_cast<Real>(phi) - Real(0.5)*static_cast<Real>(deltax);
+        Real hi = static_cast<Real>(phi) + Real(0.5)*static_cast<Real>(deltax);
+
+        Real mid = bisect(lo, hi,
+                          [=] AMREX_GPU_HOST_DEVICE (Real x) -> Real
+                          {
+                              int i = int(Math::floor((x - plo)*idx)) + ilo;
+                              bool inside = i >= ilo and i <= ihi;
+                              return static_cast<Real>(inside) - Real(0.5);
+                          }, tolerance);
+        roundoff_domain.setHi(idim, mid - tolerance);
+    }
+}
+
+bool
+Geometry::outsideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const
+{
+    bool outside = AMREX_D_TERM(x <  roundoff_domain.lo(0)
+                             || x >= roundoff_domain.hi(0),
+                             || y <  roundoff_domain.lo(1)
+                             || y >= roundoff_domain.hi(1),
+                             || z <  roundoff_domain.lo(2)
+                             || z >= roundoff_domain.hi(2));
+    return outside;
+}
+
+bool
+Geometry::insideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const
+{
+    return !outsideRoundoffDomain(AMREX_D_DECL(x, y, z));
 }
 
 }

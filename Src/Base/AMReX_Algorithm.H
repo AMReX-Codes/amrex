@@ -6,6 +6,7 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Extension.H>
 #include <AMReX_Dim3.H>
+#include <AMReX_BLassert.H>
 
 namespace amrex
 {
@@ -61,6 +62,43 @@ namespace amrex
     constexpr const T& Clamp (const T& v, const T& lo, const T& hi)
     {
         return (v < lo) ? lo : (hi < v) ? hi : v;
+    }
+
+    template <class T, class F>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T bisect (T lo, T hi, F f, T tol=1e-12, int max_iter=100)
+    {
+        AMREX_ASSERT_WITH_MESSAGE(hi > lo,
+            "Error - calling bisect but lo and hi don't describe a reasonable interval.");
+
+        T flo = f(lo);
+        T fhi = f(hi);
+
+        if (flo == T(0)) return flo;
+        if (fhi == T(0)) return fhi;
+
+        AMREX_ASSERT_WITH_MESSAGE(flo * fhi <= T(0),
+            "Error - calling bisect but lo and hi don't bracket a root.");
+
+        T mi = (lo + hi) / T(2);
+        T fmi = 0.0;
+        int n = 1;
+        while (n <= max_iter)
+        {
+            if (hi - lo < tol) break;
+            mi = (lo + hi) / T(2);
+            fmi = f(mi);
+            if (fmi == T(0)) break;
+            fmi*flo < T(0) ? hi = mi : lo = mi;
+            flo = f(lo);
+            fhi = f(hi);
+            ++n;
+        }
+
+        AMREX_ASSERT_WITH_MESSAGE(n < max_iter,
+            "Error - maximum number of iterations reached in bisect.");
+
+        return mi;
     }
 }
 
