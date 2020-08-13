@@ -289,12 +289,12 @@ to true if it hasn't already been set in the inputs file.
 
 ::
 
-void add_par () {
-   ParmParse pp("eb2");
-   if(not pp.contains("extend_domain_face")) {
-      pp.add("extend_domain_face",true);
-   }
-};
+    void add_par () {
+       ParmParse pp("eb2");
+       if(not pp.contains("extend_domain_face")) {
+          pp.add("extend_domain_face",true);
+       }
+    };
 
 Then we would pass :cpp:`add_par` into :cpp:`amrex::Initialize`:
 
@@ -302,7 +302,7 @@ Then we would pass :cpp:`add_par` into :cpp:`amrex::Initialize`:
 
 ::
 
-amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, add_par);
+    amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, add_par);
 
 This value replaces the current default value of false in AMReX itself, but
 can still be over-written by setting a value in the inputs file.
