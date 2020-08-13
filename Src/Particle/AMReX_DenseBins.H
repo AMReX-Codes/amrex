@@ -54,7 +54,6 @@ class DenseBins
 public:
 
     using BinIteratorFactory = DenseBinIteratorFactory<T>;
-    using bin_type = IntVect;
     using index_type = unsigned int;
 
     /**
@@ -96,7 +95,7 @@ public:
         index_type* pcount  = m_counts.dataPtr();
         amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (int i) noexcept
         {
-            bin_type iv = f(v[i]);
+            auto iv = f(v[i]);
             auto iv3 = iv.dim3();
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
@@ -105,6 +104,45 @@ public:
             index_type uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
             index_type uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
             pcell[i] = (uix * ny + uiy) * nz + uiz;
+            Gpu::Atomic::Add(&pcount[pcell[i]], index_type{ 1 });
+        });
+
+        Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
+
+        Gpu::copy(Gpu::deviceToDevice, m_offsets.begin(), m_offsets.end(), m_counts.begin());
+
+        index_type* pperm = m_perm.dataPtr();
+        constexpr index_type max_index = std::numeric_limits<index_type>::max();
+        amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (int i) noexcept
+        {
+            index_type index = Gpu::Atomic::Inc(&pcount[pcell[i]], max_index);
+            pperm[index] = i;
+        });
+
+        Gpu::Device::streamSynchronize();
+    }
+
+    template <typename N, typename F>
+    void build (N nitems, T const* v, int nbins, F&& f)
+    {
+        BL_PROFILE("DenseBins<T>::build");
+
+        m_items = v;
+
+        m_cells.resize(nitems);
+        m_perm.resize(nitems);
+
+        m_counts.resize(0);
+        m_counts.resize(nbins+1, 0);
+
+        m_offsets.resize(0);
+        m_offsets.resize(nbins+1);
+
+        index_type* pcell   = m_cells.dataPtr();
+        index_type* pcount  = m_counts.dataPtr();
+        amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (int i) noexcept
+        {
+            pcell[i] = f(v[i]);
             Gpu::Atomic::Add(&pcount[pcell[i]], index_type{ 1 });
         });
 

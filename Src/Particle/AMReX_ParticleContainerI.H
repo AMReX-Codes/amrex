@@ -1041,13 +1041,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
             ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
             ptile_tmp.resize(np);
 
-            const Box& box = mfi.tilebox();
-            IntVect lo = box.smallEnd();
+            const Box& box = mfi.validbox();
 
-            m_bins.build(np, pstruct_ptr, mfi.tilebox(),
-                       [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> IntVect
+            int ntiles = numTilesInBox(box, true, bin_size);
+
+            m_bins.build(np, pstruct_ptr, ntiles,
+                       [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> unsigned int
                        {
-                           return (getParticleCell(p, plo, dxi, domain) - lo) / bin_size;
+                           Box tbx;
+                           auto iv = getParticleCell(p, plo, dxi, domain);
+                           auto tid = getTileIndex(iv, box, true, bin_size, tbx);
+                           return static_cast<unsigned int>(tid);
                        });
 
             gatherParticles(ptile_tmp, ptile, np, m_bins.permutationPtr());

@@ -171,6 +171,32 @@ int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int numTilesInBox (const Box& box, const bool a_do_tiling, const IntVect& a_tile_size)
+{
+    if (a_do_tiling == false) {
+        return 1;
+    } else {
+        //
+        // This function must be consistent with FabArrayBase::buildTileArray function!!!
+        //
+        auto tiling_1d = [](int lo, int hi, int tilesize, int& ntile) {
+            int ncells = hi-lo+1;
+            ntile = amrex::max(ncells/tilesize, 1);
+        };
+
+        const IntVect& small = box.smallEnd();
+        const IntVect& big   = box.bigEnd();
+        IntVect ntiles;
+
+        AMREX_D_TERM(tiling_1d(small[0], big[0], a_tile_size[0], ntiles[0]);,
+		     tiling_1d(small[1], big[1], a_tile_size[1], ntiles[1]);,
+		     tiling_1d(small[2], big[2], a_tile_size[2], ntiles[2]););
+
+        return AMREX_D_TERM(ntiles[0], *=ntiles[1], *=ntiles[2]);
+    }
+}
+
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 IntVect getParticleCell (P const& p,
