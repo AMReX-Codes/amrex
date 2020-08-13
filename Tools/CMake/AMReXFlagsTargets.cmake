@@ -52,19 +52,19 @@ add_library(AMReX::Flags_CXX ALIAS Flags_CXX)
 
 target_compile_options( Flags_CXX
    INTERFACE
-   $<${_cxx_gnu_dbg}:-O0 -ggdb -Wall -Wno-sign-compare -Wno-unused-but-set-variable -Werror=return-type>
+   $<${_cxx_gnu_dbg}:-O0 -ggdb -Wall -Wno-sign-compare -Wno-unused-but-set-variable -Werror=return-type> $<$<BOOL:No>:-mic>>
 #    $<$<VERSION_GREATER:$<CXX_COMPILER_VERSION>,5.0>:-Wnull-dereference>
-   $<${_cxx_gnu_rel}:-Werror=return-type>
-   $<${_cxx_intel_dbg}:-O0 -traceback -Wcheck>
-   $<${_cxx_intel_rel}:-ip -qopt-report=5 -qopt-report-phase=vec>
-   $<${_cxx_pgi_dbg}:-O0 -Mbounds>
-   $<${_cxx_pgi_rel}:-gopt -fast>
-   $<${_cxx_cray_dbg}:-O0>
-   $<${_cxx_cray_rel}:>
-   $<${_cxx_clang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
-   $<${_cxx_clang_rel}:>
-   $<${_cxx_appleclang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
-   $<${_cxx_appleclang_rel}:>
+   # $<${_cxx_gnu_rel}:-Werror=return-type>
+   # $<${_cxx_intel_dbg}:-O0 -traceback -Wcheck>
+   # $<${_cxx_intel_rel}:-ip -qopt-report=5 -qopt-report-phase=vec>
+   # $<${_cxx_pgi_dbg}:-O0 -Mbounds>
+   # $<${_cxx_pgi_rel}:-gopt -fast>
+   # $<${_cxx_cray_dbg}:-O0>
+   # $<${_cxx_cray_rel}:>
+   # $<${_cxx_clang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
+   # $<${_cxx_clang_rel}:>
+   # $<${_cxx_appleclang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
+   # $<${_cxx_appleclang_rel}:>
    )
 
 #
@@ -75,15 +75,15 @@ add_library(AMReX::Flags_Fortran ALIAS Flags_Fortran)
 
 target_compile_options( Flags_Fortran
    INTERFACE
-   $<${_fortran_gnu_dbg}:-O0 -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused
-   -finit-real=snan -finit-integer=2147483647 -fimplicit-none>
-   $<${_fortran_gnu_rel}:-fimplicit-none>
-   $<${_fortran_intel_dbg}:-O0 -traceback -check bounds,uninit,pointers -implicitnone>
-   $<${_fortran_intel_rel}:-ip -qopt-report=5 -qopt-report-phase=vec -implicitnone>
-   $<${_fortran_pgi_dbg}:-O0 -Mbounds>
-   $<${_fortran_pgi_rel}:-gopt -fast>
-   $<${_fortran_cray_dbg}:-O0 -e i>
-   $<${_fortran_cray_rel}:>
+   # $<${_fortran_gnu_dbg}:-O0 -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused
+   # -finit-real=snan -finit-integer=2147483647 -fimplicit-none>
+   # $<${_fortran_gnu_rel}:-fimplicit-none>
+   # $<${_fortran_intel_dbg}:-O0 -traceback -check bounds,uninit,pointers -implicitnone>
+   # $<${_fortran_intel_rel}:-ip -qopt-report=5 -qopt-report-phase=vec -implicitnone>
+   # $<${_fortran_pgi_dbg}:-O0 -Mbounds>
+   # $<${_fortran_pgi_rel}:-gopt -fast>
+   # $<${_fortran_cray_dbg}:-O0 -e i>
+   # $<${_fortran_cray_rel}:>
    )
 
 #

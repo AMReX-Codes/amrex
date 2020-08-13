@@ -176,6 +176,46 @@ function (configure_amrex)
    #
    set_amrex_profilers()
 
+   # get_target_property( _cxx_flags Flags_CXX INTERFACE_COMPILE_OPTIONS)
+   # get_target_property( _fortran_flags Flags_Fortran INTERFACE_COMPILE_OPTIONS)
+   # set(_flags ${_cxx_flags} ${_fortran_flags})
+   # set(_flags "$<COMPILE_LANGUAGE_AND_ID:Fortran,Intel,GNU,Cray>$<CXX_COMPILER_ID:Intel,GNU,Cray>$<CXX_COMPILER_ID:PGI>")
+   # print_list(_flags)
+
+   # eval_genex( _out "${_flags}" Fortran Intel CONFIG Debug )
+
+
+   # print(_out)
+
+   # set(_test_str "$<IF:$<VERSION_LESS:10.0,2.8.9>,-mic84,-mire;-elmo> -fra")
+   # #set(_test_str "$<$<VERSION_GREATER:2.5.7,2.8.9>:-mic84> -fra $<$<VERSION_GREATER:3.0,2.8.9>:-mire -elmo> $<STREQUAL:mic,fra>")
+   # set(_test_str "$<$<VERSION_GREATER:2.5.7,2.8.9>:-mic84> -fra $<$<VERSION_GREATER:3.0,2.8.9>:-mire;-elmo>")
+   # print(_test_str)
+   # eval_string_comparisons(_test_str "${_test_str}")
+   # print(_test_str)
+   # eval_conditional_expressions(_test_str "${_test_str}")
+   # print(_test_str)
+   # set(_test_str "$<NOT:$<AND:$<BOOL:NOTFOUND>,$<BOOL:mic>>>")
+   # print(_test_str)
+   # eval_logical_operators(_test_str "${_test_str}")
+   # print(_test_str)
+   # set(_str mire elmo ceci)
+   # set(_test_str  "$<JOIN:${_str},miky>")
+   # print(_test_str)
+
+   # set(prop "$<TARGET_PROPERTY:amrex,INTERFACE_INCLUDE_DIRECTORIES>")
+   # set(lst "$<$<BOOL:${prop}>:-I$<JOIN:${prop},- I>>")
+   # add_custom_target(genexdebug COMMAND ${CMAKE_COMMAND} -E echo "${_lst}")
+
+   set(list mire mic fra $<UPPER_CASE:elmo> elmo mire fra)
+   set(str  fra)
+   set(_test_str "$<JOIN:-L${list}, -L> $<REMOVE_DUPLICATES:${list}> $<FILTER:${list},INCLUDE,^m(.*)>")
+   print(_test_str)
+   eval_string_transformations(_test_str "${_test_str}")
+   print(_test_str)
+
+
+
 endfunction ()
 
 #
