@@ -110,6 +110,10 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
         return;
     }
 
+    if (amrex::Verbose() > 0 && extend_domain_face == false) {
+        amrex::Print() << "AMReX WARNING: extend_domain_face=false is not recommended!\n";
+    }
+
     BL_PROFILE("EB2::GShopLevel()-fine");
 
     Real small_volfrac = 1.e-14;

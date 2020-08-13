@@ -417,11 +417,6 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 
     const Geometry& geom = m_geom[amrlev][mglev];
     const auto dxinv = geom.InvCellSizeArray();
-    const Box& domain = geom.Domain();
-    const auto dlo = amrex::lbound(domain);
-    const auto dhi = amrex::ubound(domain);
-    const GpuArray<int,AMREX_SPACEDIM>& is_periodic = geom.isPeriodicArray();
-    const auto& bcondloc = *m_bcondloc[amrlev][mglev];
 
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
@@ -480,30 +475,21 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 	  AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].const_array(mfi);,
 		       Array4<Real const> const kapyfab = kapmf[1].const_array(mfi);,
 		       Array4<Real const> const kapzfab = kapmf[2].const_array(mfi););
-
-          const auto & bdcv = bcondloc.bndryConds(mfi);
-          Array2D<BoundCond,0,2*AMREX_SPACEDIM-1,0,AMREX_SPACEDIM-1> bct;
-          for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
-              for (OrientationIter face; face; ++face) {
-                  Orientation ori = face();
-                  bct(ori,icomp) = bdcv[icomp][ori];
-              }
-          }
- 
+	  
 	  if (fabtyp == FabType::regular)
 	  {
 	      AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
 	      ( xbx, txbx,
 		{
-		  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv,dlo,dhi,bct,is_periodic[0]);
+		  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
 		}
 		, ybx, tybx,
 		{
-		  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv,dlo,dhi,bct,is_periodic[1]);
+		  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
 		}
 		, zbx, tzbx,
 		{
-		  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv,dlo,dhi,bct,is_periodic[2]);
+		  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
 		}
 	      );
 	  }
@@ -513,19 +499,19 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 			 Array4<Real const> const& apy = area[1]->const_array(mfi);,
 			 Array4<Real const> const& apz = area[2]->const_array(mfi););
 	    Array4<EBCellFlag const> const& flag = flags->const_array(mfi);
-	   
+	    
 	    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
 	    ( xbx, txbx,
 	      {
-		mlebtensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,apx,flag,dxinv,dlo,dhi,bct,is_periodic[0]);
+		mlebtensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,apx,flag,dxinv);
 	      }
 	      , ybx, tybx,
 	      {
-		mlebtensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,apy,flag,dxinv,dlo,dhi,bct,is_periodic[1]);
+		mlebtensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,apy,flag,dxinv);
 	      }
 	      , zbx, tzbx,
 	      {
-		mlebtensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,apz,flag,dxinv,dlo,dhi,bct,is_periodic[2]);
+		mlebtensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,apz,flag,dxinv);
 	      }
 	      );
 	  }
