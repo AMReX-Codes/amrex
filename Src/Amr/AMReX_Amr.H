@@ -15,19 +15,11 @@
 
 #include <AMReX_AmrCore.H>
 
-#ifdef USE_PERILLA
-#include <RegionGraph.H>
-#include <Perilla.H>
-#endif
-
 namespace amrex {
 
 class AmrLevel;
 class LevelBld;
 class BoxDomain;
-template <class T>
-class MFGraph;
-class AmrTask;
 #if defined(BL_USE_SENSEI_INSITU)
 class AmrInSituBridge;
 #endif
@@ -43,9 +35,6 @@ class AmrInSituBridge;
 class Amr
     : public AmrCore
 {
-  template <class T>
-  friend class MFGraph;
-  friend class AmrTask;
   typedef std::multimap< std::pair<int, int>, double >  BoundaryPointList;
 
 public:
@@ -481,12 +470,6 @@ protected:
 #endif
 
 public:
-#ifdef USE_PERILLA
-    std::vector<std::vector<RegionGraph*> > graphArray;
-    std::vector<RegionGraph*> amrGraphArray;
-    std::vector<RegionGraph*> &get_graphArray(int level){return graphArray[level];}
-#endif
-
     BoundaryPointList intersect_lox;
     BoundaryPointList intersect_loy;
     BoundaryPointList intersect_loz;

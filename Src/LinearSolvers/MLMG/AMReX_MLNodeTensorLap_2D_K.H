@@ -8,13 +8,13 @@ namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ts_interp_line_x (Array4<Real const> const& crse, int ic, int jc) noexcept
     {
-        return (crse(ic,jc,0)+crse(ic+1,jc,0))*0.5_rt;
+        return (crse(ic,jc,0)+crse(ic+1,jc,0))*Real(0.5);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ts_interp_line_y (Array4<Real const> const& crse, int ic, int jc) noexcept
     {
-        return (crse(ic,jc,0)+crse(ic,jc+1,0))*0.5_rt;
+        return (crse(ic,jc,0)+crse(ic,jc+1,0))*Real(0.5);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -23,7 +23,7 @@ namespace {
         return (ts_interp_line_y(crse,ic  ,jc  ) +
                 ts_interp_line_y(crse,ic+1,jc  ) +
                 ts_interp_line_x(crse,ic  ,jc  ) +
-                ts_interp_line_x(crse,ic  ,jc+1)) * 0.25_rt;
+                ts_interp_line_x(crse,ic  ,jc+1)) * Real(0.25);
     }
 }
 

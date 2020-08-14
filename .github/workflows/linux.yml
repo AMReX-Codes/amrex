@@ -155,7 +155,6 @@ jobs:
             -DCUDA_ARCH=6.0
         make -j 2 tutorials
 
-  # Build libamrex and all tutorials with DPC++
   tutorials-dpcpp:
     name: DPCPP@PubBeta GFortran@7.5 C++17 [tutorials]
     runs-on: ubuntu-latest
@@ -166,7 +165,7 @@ jobs:
     - name: Build & Install
       run: |
         set +e
-        source /opt/intel/inteloneapi/setvars.sh
+        source /opt/intel/oneapi/setvars.sh
         set -e
         mkdir build
         cd build
@@ -205,7 +204,7 @@ jobs:
     - name: Build & Install
       run: |
         ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no
-        make -j2 WARN_ALL=TRUE
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE
         make install
 
   # Build 3D libamrex with configure
@@ -219,5 +218,5 @@ jobs:
     - name: Build & Install
       run: |
         ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes
-        make -j2 WARN_ALL=TRUE
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE
         make install

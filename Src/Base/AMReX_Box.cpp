@@ -104,24 +104,24 @@ BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
 }
 
 void
-AllGatherBoxes (Vector<Box>& bxs)
+AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)
 {
 #ifdef BL_USE_MPI
-    const int count = bxs.size();
-    const auto& countvec = ParallelDescriptor::Gather(count, ParallelDescriptor::IOProcessorNumber());
-    
-    Long count_tot = 0L;
-    Vector<int> offset(countvec.size(),0);
-    if (ParallelDescriptor::IOProcessor())
-    {
-        count_tot = countvec[0];
-        for (int i = 1, N = offset.size(); i < N; ++i) {
-            offset[i] = offset[i-1] + countvec[i-1];
-            count_tot += countvec[i];
-        }
-    }
 
-    ParallelDescriptor::Bcast(&count_tot, 1, ParallelDescriptor::IOProcessorNumber());
+#if 0
+    // In principle, MPI_Allgather/MPI_Allgatherv should not be slower than
+    // MPI_Gather/MPI_Gatherv followed by MPI_Bcast.  But that's not true on Summit.
+    MPI_Comm comm = ParallelContext::CommunicatorSub();
+    const int count = bxs.size();
+    Vector<int> countvec(ParallelContext::NProcsSub());
+    MPI_Allgather(&count, 1, MPI_INT, countvec.data(), 1, MPI_INT, comm);
+
+    Vector<int> offset(countvec.size(),0);
+    Long count_tot = countvec[0];
+    for (int i = 1, N = offset.size(); i < N; ++i) {
+        offset[i] = offset[i-1] + countvec[i-1];
+        count_tot += countvec[i];
+    }
 
     if (count_tot == 0) return;
 
@@ -129,15 +129,55 @@ AllGatherBoxes (Vector<Box>& bxs)
         amrex::Abort("AllGatherBoxes: not many boxes");
     }
 
-    Vector<Box> recv_buffer(count_tot);
-    ParallelDescriptor::Gatherv(bxs.data(), count, recv_buffer.data(), countvec, offset,
-                                ParallelDescriptor::IOProcessorNumber());
+    Vector<Box> recv_buffer;
+    recv_buffer.reserve(count_tot+n_extra_reserve);
+    recv_buffer.resize(count_tot);
+    MPI_Allgatherv(bxs.data(), count, ParallelDescriptor::Mpi_typemap<Box>::type(),
+                   recv_buffer.data(), countvec.data(), offset.data(),
+                   ParallelDescriptor::Mpi_typemap<Box>::type(), comm);
 
-    ParallelDescriptor::Bcast(recv_buffer.data(), count_tot, ParallelDescriptor::IOProcessorNumber());
-
-    bxs = std::move(recv_buffer);
+    std::swap(bxs,recv_buffer);
 #else
-    amrex::ignore_unused(bxs);
+    MPI_Comm comm = ParallelContext::CommunicatorSub();
+    const int root = ParallelContext::IOProcessorNumberSub();
+    const int myproc = ParallelContext::MyProcSub();
+    const int nprocs = ParallelContext::NProcsSub();
+    const int count = bxs.size();
+    Vector<int> countvec(nprocs);
+    MPI_Gather(&count, 1, MPI_INT, countvec.data(), 1, MPI_INT, root, comm);
+
+    Long count_tot = 0L;
+    Vector<int> offset(countvec.size(),0);
+    if (myproc == root) {
+        count_tot = countvec[0];
+        for (int i = 1, N = offset.size(); i < N; ++i) {
+            offset[i] = offset[i-1] + countvec[i-1];
+            count_tot += countvec[i];
+        }
+    }
+
+    MPI_Bcast(&count_tot, 1, MPI_INT, root, comm);
+
+    if (count_tot == 0) return;
+
+    if (count_tot > static_cast<Long>(std::numeric_limits<int>::max())) {
+        amrex::Abort("AllGatherBoxes: not many boxes");
+    }
+
+    Vector<Box> recv_buffer;
+    recv_buffer.reserve(count_tot+n_extra_reserve);
+    recv_buffer.resize(count_tot);
+    MPI_Gatherv(bxs.data(), count, ParallelDescriptor::Mpi_typemap<Box>::type(),
+                recv_buffer.data(), countvec.data(), offset.data(),
+                ParallelDescriptor::Mpi_typemap<Box>::type(), root, comm);
+    MPI_Bcast(recv_buffer.data(), count_tot, ParallelDescriptor::Mpi_typemap<Box>::type(),
+              root, comm);
+
+    std::swap(bxs,recv_buffer);
+#endif
+
+#else
+    amrex::ignore_unused(bxs,n_extra_reserve);
 #endif
 }
 

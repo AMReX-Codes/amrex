@@ -324,6 +324,25 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
                              || p.pos(2) <  Geom(0).ProbLo(2)
                              || p.pos(2) >= Geom(0).ProbHi(2));
 
+    if (not outside)
+    {
+        if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
+        {
+            RealBox roundoff_domain = Geom(0).RoundoffDomain();
+            for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                if (p.pos(idim) <= roundoff_domain.lo(idim)) {
+                    p.pos(idim) = std::nextafter((ParticleReal) roundoff_domain.lo(idim), (ParticleReal) roundoff_domain.hi(idim));
+                }
+                if (p.pos(idim) >= roundoff_domain.hi(idim)) {
+                    p.pos(idim) = std::nextafter((ParticleReal) roundoff_domain.hi(idim), (ParticleReal) roundoff_domain.lo(idim));
+                }
+            }
+
+            AMREX_ASSERT(not Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))));
+        }
+    }
+
     bool success;
     if (outside)
     {
@@ -1022,13 +1041,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
             ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
             ptile_tmp.resize(np);
 
-            const Box& box = mfi.tilebox();
-            IntVect lo = box.smallEnd();
+            const Box& box = mfi.validbox();
 
-            m_bins.build(np, pstruct_ptr, mfi.tilebox(),
-                       [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> IntVect
+            int ntiles = numTilesInBox(box, true, bin_size);
+
+            m_bins.build(np, pstruct_ptr, ntiles,
+                       [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> unsigned int
                        {
-                           return (getParticleCell(p, plo, dxi, domain) - lo) / bin_size;
+                           Box tbx;
+                           auto iv = getParticleCell(p, plo, dxi, domain);
+                           auto tid = getTileIndex(iv, box, true, bin_size, tbx);
+                           return static_cast<unsigned int>(tid);
                        });
 
             gatherParticles(ptile_tmp, ptile, np, m_bins.permutationPtr());
@@ -1399,8 +1422,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                       char* dst = &particles_to_send[old_size] + particle_size;
                       for (int comp = 0; comp < NumRealComps(); comp++) {
                           if (communicate_real_comp[comp]) {
-                              std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(Real));
-                              dst += sizeof(Real);
+                              std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
+                              dst += sizeof(ParticleReal);
                           }
                       }
                       for (int comp = 0; comp < NumIntComps(); comp++) {
@@ -1806,9 +1829,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 ptile.push_back(p);
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
                     if (communicate_real_comp[comp]) {
-                        Real rdata;
-                        std::memcpy(&rdata, pbuf, sizeof(Real));
-                        pbuf += sizeof(Real);
+                        ParticleReal rdata;
+                        std::memcpy(&rdata, pbuf, sizeof(ParticleReal));
+                        pbuf += sizeof(ParticleReal);
                         ptile.push_back_real(comp, rdata);
                     } else {
                         ptile.push_back_real(comp, 0.0);

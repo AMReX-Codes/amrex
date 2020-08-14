@@ -230,7 +230,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                     Array4<Real const> const& intgarr = intg->const_array(mfi);
                     AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                     {
-                        mlndlap_divu_eb(i,j,k,rhsarr,velarr,vfracarr,intgarr,dmskarr,dxinvarr);
+                        mlndlap_divu_eb(i,j,k,rhsarr,velarr,vfracarr,intgarr,dmskarr,dxinvarr,nddom,lobc,hibc);
                     });
                 }
                 else
@@ -244,12 +244,14 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 #if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                 {
-                    mlndlap_divu(i,j,k,rhsarr,velarr,dmskarr,dxinvarr,is_rz);
+                    mlndlap_divu(i,j,k,rhsarr,velarr,dmskarr,dxinvarr,
+                                 nddom,lobc,hibc,is_rz);
                 });
 #else
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                 {
-                    mlndlap_divu(i,j,k,rhsarr,velarr,dmskarr,dxinvarr);
+                    mlndlap_divu(i,j,k,rhsarr,velarr,dmskarr,dxinvarr,
+                                 nddom,lobc,hibc);
                 });
 #endif
             }
@@ -303,6 +305,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         frhs[ilev]->setVal(0.0);
 
         const Box& cccdom = cgeom.Domain();
+        const Box& nddom = amrex::surroundingNodes(fgeom.Domain());
         const auto fdxinv = fgeom.InvCellSizeArray();
         const iMultiFab& fdmsk = *m_dirichlet_mask[ilev+1][0];
 
@@ -370,7 +373,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                     } else {
                         rarr(i,j,k) = 0.0;
                     }
-                    mlndlap_divu_compute_fine_contrib(i,j,k,fvbx,rarr,varr,is_rz,fdxinv);
+                    mlndlap_divu_compute_fine_contrib(i,j,k,fvbx,rarr,varr,fdxinv,
+                                                      nddom,lobc,hibc,is_rz);
                 });
 #else
                 AMREX_HOST_DEVICE_FOR_3D(bx_rhs, i, j, k,
@@ -380,7 +384,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                     } else {
                         rarr(i,j,k) = 0.0;
                     }
-                    mlndlap_divu_compute_fine_contrib(i,j,k,fvbx,rarr,varr,fdxinv);
+                    mlndlap_divu_compute_fine_contrib(i,j,k,fvbx,rarr,varr,fdxinv,
+                                                      nddom,lobc,hibc);
                 });
 #endif
 
@@ -746,7 +751,7 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
             bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
             MultiFab cfine;
             if (need_parallel_copy) {
-                const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
+                const BoxArray& ba = amrex::coarsen(fine.boxArray(), ratio);
                 cfine.define(ba, fine.DistributionMap(), 1, 0);
             }
 
@@ -791,19 +796,10 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
                     const Box& bx = mfi.tilebox();
                     Array4<Real> const& cfab = pcrse->array(mfi);
                     Array4<Real const> const& ffab = fine.const_array(mfi);
-                    if (idir != 0) {
-                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
-                        {
-                            mlndlap_avgdown_coeff_x(i,j,k,cfab,ffab);
-                        });
-                    } else {
-#if (AMREX_SPACEDIM >= 2)
-                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
-                        {
-                            mlndlap_avgdown_coeff_y(i,j,k,cfab,ffab);
-                        });
-#endif
-                    } 
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
+                    {
+                        mlndlap_semi_avgdown_coeff(i,j,k,cfab,ffab,idir);
+                    });
                 }
             }
             if (need_parallel_copy) {
@@ -1745,6 +1741,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     const BoxArray& ccba = m_grids[0][0];
     const BoxArray& ndba = amrex::convert(ccba, IntVect::TheNodeVector());
     const BoxArray& ccfba = amrex::convert(fine_grids, IntVect::TheZeroVector());
+
     const auto lobc = LoBC();
     const auto hibc = HiBC();
 
@@ -1895,7 +1892,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                         Array4<Real const> const& intgarr = intg->const_array(mfi);
                         AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                         {
-                            mlndlap_divu_eb(i,j,k,rhsarr,uarr,vfracarr,intgarr,dmskarr,dxinv);
+                            mlndlap_divu_eb(i,j,k,rhsarr,uarr,vfracarr,intgarr,dmskarr,dxinv,nddom,lobc,hibc);
                         });
                     }
                     else
@@ -1904,12 +1901,12 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 #if (AMREX_SPACEDIM == 2)
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                         {
-                            mlndlap_divu(i,j,k,rhsarr,uarr,dmskarr,dxinv,is_rz);
+                            mlndlap_divu(i,j,k,rhsarr,uarr,dmskarr,dxinv,nddom,lobc,hibc,is_rz);
                         });
 #else
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                         {
-                            mlndlap_divu(i,j,k,rhsarr,uarr,dmskarr,dxinv);
+                            mlndlap_divu(i,j,k,rhsarr,uarr,dmskarr,dxinv,nddom,lobc,hibc);
                         });
 #endif
                     }
@@ -2044,6 +2041,9 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
     const MultiFab& sigma_orig = *m_sigma[0][0][0];
     const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
 
+    const auto lobc = LoBC();
+    const auto hibc = HiBC();
+
 #ifdef AMREX_USE_EB
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
@@ -2053,6 +2053,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 
     const Geometry& geom = m_geom[0][0];
     const Box& ccdom = geom.Domain();
+    const Box& nddom = amrex::surroundingNodes(ccdom);
     const auto dxinv = geom.InvCellSizeArray();
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
@@ -2142,7 +2143,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                     Array4<Real const> const& intgarr = intg->const_array(mfi);
                     AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                     {
-                        mlndlap_divu_eb(i,j,k,rhsarr,uarr,vfracarr,intgarr,tmpmaskarr,dxinv);
+                        mlndlap_divu_eb(i,j,k,rhsarr,uarr,vfracarr,intgarr,tmpmaskarr,dxinv,nddom,lobc,hibc);
                     });
                 }
                 else
@@ -2151,12 +2152,12 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 #if (AMREX_SPACEDIM == 2)
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                     {
-                        mlndlap_divu(i,j,k,rhsarr,uarr,tmpmaskarr,dxinv,is_rz);
+                        mlndlap_divu(i,j,k,rhsarr,uarr,tmpmaskarr,dxinv,nddom,lobc,hibc,is_rz);
                     });
 #else
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                     {
-                        mlndlap_divu(i,j,k,rhsarr,uarr,tmpmaskarr,dxinv);
+                        mlndlap_divu(i,j,k,rhsarr,uarr,tmpmaskarr,dxinv,nddom,lobc,hibc);
                     });
 #endif
                 }

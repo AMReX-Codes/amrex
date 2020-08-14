@@ -38,10 +38,11 @@ else
 
 endif
 
+CXXFLAGS += -Wno-pass-failed  # disable this warning
+
 ifeq ($(WARN_ALL),TRUE)
   warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
   warning_flags += -Wfloat-conversion -Wextra-semi
-  warning_flags += -Wno-pass-failed  # disable this warning
 
   ifneq ($(USE_CUDA),TRUE)
     warning_flags += -Wpedantic
@@ -53,6 +54,11 @@ ifeq ($(WARN_ALL),TRUE)
 
   CXXFLAGS += $(warning_flags) -Woverloaded-virtual
   CFLAGS += $(warning_flags)
+endif
+
+ifeq ($(WARN_ERROR),TRUE)
+  CXXFLAGS += -Werror
+  CFLAGS += -Werror
 endif
 
 ########################################################################
