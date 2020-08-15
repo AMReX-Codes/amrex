@@ -978,7 +978,7 @@ namespace {
 
 #if (AMREX_SPACEDIM == 3)
 
-        constexpr int imin = -static_cast<int>(1 << 29);
+        constexpr int imin = -(1 << 29);
         AMREX_ASSERT_WITH_MESSAGE(AMREX_D_TERM(iv[0] >= imin && iv[0] < -imin,
                                             && iv[1] >= imin && iv[1] < -imin,
                                             && iv[2] >= imin && iv[2] < -imin),
@@ -1005,7 +1005,7 @@ namespace {
 
 #elif (AMREX_SPACEDIM == 2)
 
-        constexpr uint32_t offset = 1 << 31;
+        constexpr uint32_t offset = 1u << 31;
         static_assert(static_cast<uint32_t>(std::numeric_limits<int>::max())+1 == offset,
                       "INT_MAX != (1<<31)-1");
         uint32_t x = (iv[0] >= 0) ? static_cast<uint32_t>(iv[0]) + offset
@@ -1021,7 +1021,7 @@ namespace {
 
 #elif (AMREX_SPACEDIM == 1)
 
-        constexpr uint32_t offset = 1 << 31;
+        constexpr uint32_t offset = 1u << 31;
         static_assert(static_cast<uint32_t>(std::numeric_limits<int>::max())+1 == offset,
                       "INT_MAX != (1<<31)-1");
         token.m_morton[0] = (iv[0] >= 0) ? static_cast<uint32_t>(iv[0]) + offset
