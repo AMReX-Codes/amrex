@@ -10,16 +10,6 @@ AmrCoreAdv::DefineVelocityAllLevels (Real time)
 {
     for (int lev = 0; lev <= finest_level; ++lev)
         DefineVelocityAtLevel(lev,time);
-
-    // =======================================================
-    // Average down face velocities before using them
-    // =======================================================
-    for (int lev = finest_level; lev > 0; lev--)
-    {
-        average_down_faces(amrex::GetArrOfConstPtrs(facevel[lev  ]),
-                           amrex::GetArrOfPtrs     (facevel[lev-1]),
-                           MaxRefRatio(lev-1), 0);
-    }
 }
 
 void
