@@ -26,7 +26,7 @@ amr.v              = 1       # verbosity in Amr
 # Resolution and refinement
 # *****************************************************************
 amr.n_cell          = 64 64 8
-amr.max_level       = 0       # maximum level number allowed -- 
+amr.max_level       = 2       # maximum level number allowed -- 
                               # number of levels = max_level + 1
 
 amr.ref_ratio       = 2 2 2 2 # refinement ratio between levels
