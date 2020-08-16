@@ -70,7 +70,7 @@ public:
     void DefineVelocityAllLevels (amrex::Real time);
 
     // compute dt from CFL considerations
-    amrex::Real EstTimeStep (int lev, amrex::Real time, bool local=false);
+    amrex::Real EstTimeStep (int lev, amrex::Real time);
 
 private:
 
@@ -104,7 +104,7 @@ private:
     // Advance all levels by the same dt
     void timeStepNoSubcycling (amrex::Real time, int iteration);
 
-    // a wrapper for EstTimeStep(0
+    // a wrapper for EstTimeStep
     void ComputeDt ();
 
     // get plotfile name
@@ -124,9 +124,6 @@ private:
 
     // read checkpoint file from disk
     void ReadCheckpointFile ();
-
-    // utility to skip to next line in Header
-    static void GotoNextLine (std::istream& is);
 
     ////////////////
     // private data members
