@@ -192,6 +192,7 @@ namespace detail {
         });
         Array<T,2> tmp{v,v};
         Gpu::htod_memcpy(p, tmp.data(), sizeof(T)*2);
+        Gpu::synchronize();
     }
 #else
     template <typename T>
