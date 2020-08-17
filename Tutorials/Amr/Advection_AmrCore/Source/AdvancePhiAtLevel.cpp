@@ -338,9 +338,9 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
 
     // ======== CFL CHECK, MOVED OUTSIDE MFITER LOOP =========
 
-    AMREX_D_TERM(Real umax = facevel[lev][0].norm0(0,0,false);,
-                 Real vmax = facevel[lev][1].norm0(0,0,false);,
-                 Real wmax = facevel[lev][2].norm0(0,0,false));
+    AMREX_D_TERM(Real umax = facevel[lev][0].norminf(0,0,true);,
+                 Real vmax = facevel[lev][1].norminf(0,0,true);,
+                 Real wmax = facevel[lev][2].norminf(0,0,true));
 
     if (AMREX_D_TERM(umax*dt_lev > dx, ||
                      vmax*dt_lev > dy, ||

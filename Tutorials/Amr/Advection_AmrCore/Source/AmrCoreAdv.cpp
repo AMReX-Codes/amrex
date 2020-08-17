@@ -652,8 +652,7 @@ AmrCoreAdv::ComputeDt ()
 
     for (int lev = 0; lev <= finest_level; ++lev)
     {
-        bool local = false;
-        dt_tmp[lev] = EstTimeStep(lev, t_new[lev], local);
+        dt_tmp[lev] = EstTimeStep(lev, t_new[lev]);
     }
     ParallelDescriptor::ReduceRealMin(&dt_tmp[0], dt_tmp.size());
 
@@ -683,7 +682,7 @@ AmrCoreAdv::ComputeDt ()
 
 // compute dt from CFL considerations
 Real
-AmrCoreAdv::EstTimeStep (int lev, Real time, bool local)
+AmrCoreAdv::EstTimeStep (int lev, Real time)
 {
     BL_PROFILE("AmrCoreAdv::EstTimeStep()");
 
@@ -698,17 +697,10 @@ AmrCoreAdv::EstTimeStep (int lev, Real time, bool local)
        DefineVelocityAtLevel(lev,t_nph_predicted);
     }
 
-    const Vector<std::string> coord_dir {AMREX_D_DECL("x", "y", "z")};
-
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        Real est = facevel[lev][idim].norm0(0,0,local);
-        // amrex::Print() << "Max vel in " << coord_dir[idim] << "-direction is " << est << std::endl;
+        Real est = facevel[lev][idim].norminf(0,0,true);
         dt_est = amrex::min(dt_est, dx[idim]/est);
-    }
-
-    if (!local) {
-        ParallelDescriptor::ReduceRealMin(dt_est);
     }
 
     dt_est *= cfl;
@@ -836,6 +828,14 @@ AmrCoreAdv::WriteCheckpointFile () const
 
 }
 
+namespace {
+// utility to skip to next line in Header
+void GotoNextLine (std::istream& is)
+{
+    constexpr std::streamsize bl_ignore_max { 100000 };
+    is.ignore(bl_ignore_max, '\n');
+}
+}
 
 void
 AmrCoreAdv::ReadCheckpointFile ()
@@ -929,12 +929,4 @@ AmrCoreAdv::ReadCheckpointFile ()
                     amrex::MultiFabFileFullPrefix(lev, restart_chkfile, "Level_", "phi"));
     }
 
-}
-
-// utility to skip to next line in Header
-void
-AmrCoreAdv::GotoNextLine (std::istream& is)
-{
-    constexpr std::streamsize bl_ignore_max { 100000 };
-    is.ignore(bl_ignore_max, '\n');
 }
