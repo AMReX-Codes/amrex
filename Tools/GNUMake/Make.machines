@@ -9,7 +9,8 @@ ifdef $(HOSTNAME)
 else ifdef $(HOST)
   host_name := $(strip $(HOST))
 else
-  host_name := $(shell hostname)
+  host_name := $(shell hostname -f)
+  host_name_short := $(shell hostname -s)
 endif
 
 # MACHINES supported
@@ -123,8 +124,8 @@ ifeq ($(findstring raijin, $(host_name)), raijin)
   which_computer := raijin
 endif
 
-ifneq (,$(filter $(host_name),poplar redwood tulip))
+ifneq (,$(filter $(host_name_short),poplar redwood tulip))
   which_site := frontier-coe
-  which_computer := $(host_name)
+  which_computer := $(host_name_short)
 endif
 
