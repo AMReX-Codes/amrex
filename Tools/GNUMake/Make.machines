@@ -12,6 +12,7 @@ else
   host_name := $(shell hostname -f)
   host_name_short := $(shell hostname -s)
 endif
+host_name_short := $(shell hostname -s)
 
 # MACHINES supported
 
