@@ -239,6 +239,7 @@ dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz) noexcept
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("dtoh_memcpy: ")+ex.what()+"!!!!!");
     }
+    Gpu::synchronize(); // To mimic cuda behavior
 #else
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipMemcpy(p_h, p_d, sz, hipMemcpyDeviceToHost));,

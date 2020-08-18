@@ -11,7 +11,13 @@ namespace AsyncOut {
 
 namespace {
 
+#ifdef AMREX_USE_DPCPP
+int s_asyncout = true; // Have this on by default for DPC++ for now so that
+                       // I/O writing plotfile does not depend on unified
+                       // memory.
+#else
 int s_asyncout = false;
+#endif
 int s_noutfiles = 64;
 MPI_Comm s_comm = MPI_COMM_NULL;
 
