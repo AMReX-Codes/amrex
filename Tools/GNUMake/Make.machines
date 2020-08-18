@@ -4,9 +4,9 @@
 which_site := unknown
 which_computer := unknown
 
-ifdef $(HOSTNAME)
+ifdef HOSTNAME
   host_name := $(strip $(HOSTNAME))
-else ifdef $(HOST)
+else ifdef HOST
   host_name := $(strip $(HOST))
 else
   host_name := $(shell hostname -f)
