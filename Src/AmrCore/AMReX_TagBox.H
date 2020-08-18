@@ -225,6 +225,9 @@ public:
     */
     void collate (Vector<IntVect>& TheGlobalCollateSpace) const;
 
+    // \brief Are there tags in the region defined by bx?
+    bool hasTags (Box const& bx) const;
+
     void local_collate_cpu (Vector<IntVect>& v) const;
 #ifdef AMREX_USE_GPU
     void local_collate_gpu (Vector<IntVect>& v) const;

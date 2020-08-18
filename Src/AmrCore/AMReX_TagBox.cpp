@@ -716,5 +716,54 @@ TagBoxArray::coarsen (const IntVect & ratio)
     n_grow = new_n_grow;
 }
 
+bool
+TagBoxArray::hasTags (Box const& a_bx) const
+{
+    bool has_tags = false;
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpLogicalOr> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+
+        for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+        {
+            Box const& b = a_bx & mfi.fabbox();
+            if (b.ok()) {
+                const auto& arr = this->const_array(mfi);
+                reduce_op.eval(b, reduce_data,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+                {
+                    int tr = arr(i,j,k) != TagBox::CLEAR;
+                    return {tr};
+                });
+            }
+        }
+
+        ReduceTuple hv = reduce_data.value();
+        has_tags = static_cast<bool>(amrex::get<0>(hv));
+    } else
+#endif
+    {
+#ifdef _OPENMP
+#pragma omp parallel reduction(||:has_Tags)
+#endif
+        for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+        {
+            Box const& b = a_bx & mfi.fabbox();
+            if (b.ok()) {
+                Array4<char const> const& arr = this->const_array(mfi);
+                AMREX_LOOP_3D(b, i, j, k,
+                {
+                    has_tags = has_tags || (arr(i,j,k) != TagBox::CLEAR);
+                });
+            }
+        }
+    }
+
+    ParallelAllReduce::Or(has_tags, ParallelContext::CommunicatorSub());
+    return has_tags;
+}
+
 }
 
