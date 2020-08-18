@@ -300,6 +300,8 @@ endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
 	$(CXX) $(CXXDEPFLAGS) $< -o $@
+else ifeq ($(USE_HIP),TRUE)
+	$(CXX) $(CXXDEPFLAGS) $< -o $@
 else
 	$(CXX) $(CXXDEPFLAGS) $< > $@
 endif
@@ -312,6 +314,8 @@ ifeq ($(USE_GPU_PRAGMA),TRUE)
 endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
+	$(CC) $(CDEPFLAGS) $< -o $@
+else ifeq ($(USE_HIP),TRUE)
 	$(CC) $(CDEPFLAGS) $< -o $@
 else
 	$(CC) $(CDEPFLAGS) $< > $@
