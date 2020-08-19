@@ -19,11 +19,7 @@ void init_phi (int i, int j, int k,
     Real z = Real(0.);
 #endif
     Real r2 = ((x-Real(0.25))*(x-Real(0.25))+(y-Real(0.25))*(y-Real(0.25))+(z-Real(0.25))*(z-Real(0.25)))/Real(0.01);
-#ifdef AMREX_USE_HIP
-    phi(i,j,k) = Real(1.) + ::exp(-r2); // xxxxx HIP todo
-#else
     phi(i,j,k) = Real(1.) + std::exp(-r2);
-#endif
 }
 
 
