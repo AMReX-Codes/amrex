@@ -13,6 +13,11 @@ add_library( AMReX::amrex ALIAS amrex )
 #
 include(AMReXParallelBackends)
 
+#
+# Find and link third party libraries if needed
+#
+include(AMReXThirdPartyLibraries)
+
 # Where to store Fortran modules
 if (CMAKE_Fortran_COMPILER_LOADED)
    set_target_properties( amrex
