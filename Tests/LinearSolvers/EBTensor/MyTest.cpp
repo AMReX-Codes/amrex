@@ -131,10 +131,7 @@ MyTest::solve ()
         const MultiFab& vfrc = factory->getVolFrac();
         MultiFab::Multiply(error, vfrc, 0, 0, 1, 0);
         const auto dx = geom.CellSize();
-        error.mult(dx[0]*dx[1]);
-#if (AMREX_SPACEIDM == 3)
-        error.mult(dx[2]);
-#endif
+        error.mult(AMREX_D_TERM(dx[0],*dx[1],*dx[2]));
         amrex::Print() << "    1-norm error = " << error.norm1() << std::endl;
     }
 }
