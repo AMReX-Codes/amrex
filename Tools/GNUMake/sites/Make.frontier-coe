@@ -5,4 +5,15 @@ else
     CXXFLAGS += --amdgpu-target=gfx906,gfx908
     HIPCC_FLAGS += --amdgpu-target=gfx906,gfx908
   endif
+
+  ifeq ($(USE_MPI),TRUE)
+     INCLUDE_LOCATIONS += $(MPI_HOME)/include
+     LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+     mpicxx_link_flags := $(shell mpicxx -link_info)
+     LIBRARIES += $(filter -Wl%,$(mpicxx_link_flags))
+     ifneq ($(BL_NO_FORT),TRUE)
+       LIBRARIES += -lmpifort
+     endif
+     LIBRARIES += -lmpi
+  endif
 endif

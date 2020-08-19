@@ -44,6 +44,7 @@ else
 endif
 
 ifeq ($(USE_HIP),TRUE)
+  DEBUG := FALSE  # Currently there is a compiler bug for DEBUG=TRUE.
   USE_CUDA := FALSE
   COMP := hip
   HIP_PLATFORM = $(shell hipconfig --compiler)
@@ -347,9 +348,7 @@ SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
 
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
-ifneq ($(USE_HIP),TRUE)
-  DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
-endif
+DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
 
 FORTLINK  	= UNDERSCORE
 
@@ -644,30 +643,6 @@ endif
 ifeq ($(USE_HIP),TRUE)
 
     USE_GPU := TRUE
-    AMREX_FCOMP ?= gnu 
-    AMREX_CCOMP ?= hip
-
-    ifneq ($(lowercase_comp),gnu)
-    else ifneq ($(lowercase_comp),hip)
-        $(error HIP can only be used with COMP=hip)
-    endif
-
-#    include $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
-
-    ifeq ($(USE_MPI),TRUE)
-#      $(error MPI is not supported with HIP)
-
-      export OMPI_CC := hipcc 
-      export OMPI_CXX := hipcc
-      export OMPI_F77 := $(FC)
-      export OMPI_FC  := $(F90)
-
-      export MPICH_CC  := hipcc
-      export MPICH_CXX := hipcc
-      export MPICH_F77 := $(FC)
-      export MPICH_FC  := $(F90)
-
-    endif
 
     DEFINES += -DAMREX_USE_HIP -DAMREX_HIP_PLATFORM=$(HIP_PLATFORM)
 
