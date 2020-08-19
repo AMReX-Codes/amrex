@@ -52,3 +52,13 @@ ifeq ($(USE_MPI),TRUE)
     endif
   endif
 endif
+
+ifeq ($(USE_CUDA),TRUE)
+  ifneq ($(CUDA_HOME),)
+      SYSTEM_CUDA_PATH := $(CUDA_HOME)
+      COMPILE_CUDA_PATH := $(CUDA_HOME)
+  endif
+  CUDA_ARCH = 70
+  GPUS_PER_NODE = 2
+  GPUS_PER_SOCKET = 1
+endif
