@@ -300,7 +300,7 @@ endfunction ()
 
 
 #  _in must be a string  ### TODO: INTERFACE
-function ( eval_genex _out _in _lang _comp )
+function ( eval_genex _list _lang _comp )
 
    #
    # Optional arguments
@@ -308,6 +308,9 @@ function ( eval_genex _out _in _lang _comp )
    set(_option_arg STRING)
    set(_one_value_args COMP_VERSION CONFIG INTERFACE)
    cmake_parse_arguments( ARG "${_option_arg}" "${_one_value_args}" "" ${ARGN} )
+
+   # Auxiliary list
+   set(_in "${${_list}}")
 
    #
    # Loop to deal with nested genex if any are present
@@ -419,6 +422,6 @@ function ( eval_genex _out _in _lang _comp )
       string(STRIP "${_in}" _in)
    endif ()
 
-   set(${_out} "${_in}" PARENT_SCOPE)
+   set(${_list} "${_in}" PARENT_SCOPE)
 
 endfunction ()
