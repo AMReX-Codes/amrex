@@ -137,8 +137,7 @@ struct ParticleCopyPlan
         m_box_counts.resize(num_buckets+1, 0);
         m_box_offsets.resize(num_buckets+1);
         auto p_dst_box_counts = m_box_counts.dataPtr();
-        auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
-        auto p_box_perm = pc.BufferMap().levGridToBucketPtr();
+        auto getBucket = pc.BufferMap().getBucketFunctor();
 
         constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
 
@@ -163,7 +162,7 @@ struct ParticleCopyPlan
                     {
                         int dst_lev = p_levs[i];
                         int index = Gpu::Atomic::Inc(
-                            &p_dst_box_counts[p_box_perm[p_lev_offsets[dst_lev]+dst_box]], max_unsigned_int);
+                            &p_dst_box_counts[getBucket(dst_lev, dst_box)], max_unsigned_int);
                         p_dst_indices[i] = index;
                     }
                 });
@@ -223,23 +222,21 @@ struct GetSendBufferOffset
     const unsigned int* m_box_offsets;
     const std::size_t* m_pad_correction;
 
-    const int* m_lev_offsets;
-    const int* m_box_perm;
-    const int* m_buck_to_pid;
+    GetPID m_get_pid;
+    GetBucket m_get_bucket;
 
     GetSendBufferOffset (const ParticleCopyPlan& plan, const ParticleBufferMap& map)
         : m_box_offsets(plan.m_box_offsets.dataPtr()),
           m_pad_correction(plan.m_snd_pad_correction_d.dataPtr()),
-          m_lev_offsets(map.levelOffsetsPtr()),
-          m_box_perm(map.levGridToBucketPtr()),
-          m_buck_to_pid(map.bucketToPIDPtr())
+          m_get_pid(map.getPIDFunctor()),
+          m_get_bucket(map.getBucketFunctor())
     {}
 
     AMREX_FORCE_INLINE AMREX_GPU_HOST_DEVICE
     Long operator() (int dst_box, int dst_lev, std::size_t psize, int i) const
     {
-        int dst_pid = m_buck_to_pid[m_box_perm[m_lev_offsets[dst_lev]+dst_box]];
-        Long dst_offset = psize*(m_box_offsets[m_box_perm[m_lev_offsets[dst_lev]+dst_box]] + i);
+        int dst_pid = m_get_pid(dst_lev, dst_box);
+        Long dst_offset = psize*(m_box_offsets[m_get_bucket(dst_lev, dst_box)] + i);
         dst_offset += m_pad_correction[dst_pid];
         return dst_offset;
     }
@@ -321,7 +318,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
 template <class PC, class Buffer, class UnpackPolicy,
           EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
-void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, const UnpackPolicy policy)
+void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, const UnpackPolicy&& policy)
 {
     BL_PROFILE("amrex::unpackBuffer");
 
@@ -391,9 +388,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
 {
     BL_PROFILE("amrex::communicateParticlesStart");
 
-    Long psize = pc.superParticleSize();
-
 #ifdef AMREX_USE_MPI
+    Long psize = pc.superParticleSize();
     const int NProcs = ParallelContext::NProcsSub();
     const int MyProc = ParallelContext::MyProcSub();
 
@@ -497,6 +493,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
             amrex::Abort("TODO: message size is too big");
         }
     }
+#else
+    amrex::ignore_unused(pc,plan,snd_buffer,rcv_buffer);
 #endif // MPI
 }
 
@@ -504,7 +502,7 @@ void communicateParticlesFinish (const ParticleCopyPlan& plan);
 
 template <class PC, class Buffer, class UnpackPolicy,
           EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
-void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, const UnpackPolicy& policy)
+void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, UnpackPolicy&& policy)
 {
     BL_PROFILE("amrex::unpackRemotes");
 
@@ -520,12 +518,12 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
     {
         auto p_comm_real = pc.communicate_real_comp.dataPtr();
         auto p_comm_int  = pc.communicate_int_comp.dataPtr();
-	auto p_rcv_buffer = rcv_buffer.dataPtr();
+        auto p_rcv_buffer = rcv_buffer.dataPtr();
 
         std::vector<int> sizes;
         std::vector<PTile*> tiles;
-	for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
-	{
+        for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
+          {
             int copy_size = plan.m_rcv_box_counts[i];
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
@@ -540,8 +538,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
         Gpu::Device::synchronize();
         int uindex = 0;
         int procindex = 0, rproc = plan.m_rcv_box_pids[0];
-	for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
-	{
+        for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
+          {
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
             int tid = 0;
@@ -552,8 +550,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
             auto& tile = pc.DefineAndReturnParticleTile(lev, gid, tid);
             auto ptd = tile.getParticleTileData();
 
-            const int global_who = pc.ParticleDistributionMap(lev)[gid];
-            AMREX_ASSERT(MyProc == ParallelContext::global_to_local_rank(global_who));
+            AMREX_ASSERT(MyProc ==
+                ParallelContext::global_to_local_rank(pc.ParticleDistributionMap(lev)[gid]));
 
             int dst_offset = offsets[uindex];
             int size = sizes[uindex];
@@ -562,15 +560,16 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
             Long psize = pc.superParticleSize();
             auto p_pad_adjust = plan.m_rcv_pad_correction_d.dataPtr();
 
-            AMREX_FOR_1D ( size, ip,
-	    {
+            AMREX_FOR_1D ( size, ip, {
                 Long src_offset = psize*(offset + ip) + p_pad_adjust[procindex];
                 int dst_index = dst_offset + ip;
                 ptd.unpackParticleData(p_rcv_buffer, src_offset, dst_index,
                                        p_comm_real, p_comm_int);
-            });
-	}
+              });
+          }
     }
+#else
+    amrex::ignore_unused(pc,plan,rcv_buffer,policy);
 #endif // MPI
 }
 

@@ -15,8 +15,6 @@ namespace amrex {
 
 namespace
 {
-    std::string   aggregation_type   = "";
-    int           aggregation_buffer = 1;
     constexpr int GhostParticleID    = std::numeric_limits<int>::max();
     constexpr int VirtualParticleID  = std::numeric_limits<int>::max()-1;
     constexpr int LastParticleID     = std::numeric_limits<int>::max()-2;
@@ -50,76 +48,70 @@ struct Particle
       RealType pos[AMREX_SPACEDIM];
       RealType arr[AMREX_SPACEDIM+NReal];
     };
+    rm_t m_rdata;
 
     /**
     * The integer data. We always have id and cpu, and optionally we
     * have NInt additional integer attributes.
     */
-    union im_t
-    {
-      struct {int id; int cpu;};
-      int arr[2+NInt];
-    };
-
-    rm_t m_rdata;
-    im_t m_idata;
+    int m_idata[2+NInt];
 
     static int the_next_id;
 
-    AMREX_GPU_HOST_DEVICE int&  id ()       & {return m_idata.id;}
-    AMREX_GPU_HOST_DEVICE int   id () const & {return m_idata.id;}
-    AMREX_GPU_HOST_DEVICE int& cpu ()       & {return m_idata.cpu;}
-    AMREX_GPU_HOST_DEVICE int  cpu () const & {return m_idata.cpu;}
+    AMREX_GPU_HOST_DEVICE int&  id ()       & {return m_idata[0];}
+    AMREX_GPU_HOST_DEVICE int   id () const & {return m_idata[0];}
+    AMREX_GPU_HOST_DEVICE int& cpu ()       & {return m_idata[1];}
+    AMREX_GPU_HOST_DEVICE int  cpu () const & {return m_idata[1];}
 
     AMREX_GPU_HOST_DEVICE RealVect pos () const &
     {return RealVect(AMREX_D_DECL(m_rdata.pos[0], m_rdata.pos[1], m_rdata.pos[2]));}
 
-    AMREX_GPU_HOST_DEVICE RealType& pos (int index)       &
-	{
-		AMREX_ASSERT(index < AMREX_SPACEDIM);
-		return m_rdata.pos[index];
-	}
+    AMREX_GPU_HOST_DEVICE RealType& pos (int index) &
+    {
+        AMREX_ASSERT(index < AMREX_SPACEDIM);
+        return m_rdata.pos[index];
+    }
     AMREX_GPU_HOST_DEVICE RealType  pos (int index) const &
-	{
-		AMREX_ASSERT(index < AMREX_SPACEDIM);
-		return m_rdata.pos[index];
-	}
+    {
+        AMREX_ASSERT(index < AMREX_SPACEDIM);
+        return m_rdata.pos[index];
+    }
 
-    AMREX_GPU_HOST_DEVICE RealType& rdata (int index)       &
-	{
-		AMREX_ASSERT(index < NReal);
-		return m_rdata.arr[AMREX_SPACEDIM + index];
-	}
+    AMREX_GPU_HOST_DEVICE RealType& rdata (int index) &
+    {
+        AMREX_ASSERT(index < NReal);
+        return m_rdata.arr[AMREX_SPACEDIM + index];
+    }
     AMREX_GPU_HOST_DEVICE RealType  rdata (int index) const &
-	{
-		AMREX_ASSERT(index < NReal);
-		return m_rdata.arr[AMREX_SPACEDIM + index];
-	}
+    {
+        AMREX_ASSERT(index < NReal);
+        return m_rdata.arr[AMREX_SPACEDIM + index];
+    }
     AMREX_GPU_HOST_DEVICE RealVect  rvec (AMREX_D_DECL(int indx, int indy, int indz)) const &
-	{
-		AMREX_ASSERT(AMREX_D_TERM(indx < NReal, and indy < NReal, and indz < NReal));
-		return RealVect(AMREX_D_DECL(m_rdata.arr[AMREX_SPACEDIM + indx],
-                                 m_rdata.arr[AMREX_SPACEDIM + indy],
-                                 m_rdata.arr[AMREX_SPACEDIM + indz]));
-	}
+    {
+        AMREX_ASSERT(AMREX_D_TERM(indx < NReal, and indy < NReal, and indz < NReal));
+        return RealVect(AMREX_D_DECL(m_rdata.arr[AMREX_SPACEDIM + indx],
+                                     m_rdata.arr[AMREX_SPACEDIM + indy],
+                                     m_rdata.arr[AMREX_SPACEDIM + indz]));
+    }
     AMREX_GPU_HOST_DEVICE RealVect  rvec (const IntVect& indexes) const &
-	{
-		AMREX_ASSERT(indexes.max() < NReal);
-		return RealVect(AMREX_D_DECL(m_rdata.arr[AMREX_SPACEDIM + indexes[0]],
-                                 m_rdata.arr[AMREX_SPACEDIM + indexes[1]],
-                                 m_rdata.arr[AMREX_SPACEDIM + indexes[2]]));
-	}
+    {
+        AMREX_ASSERT(indexes.max() < NReal);
+        return RealVect(AMREX_D_DECL(m_rdata.arr[AMREX_SPACEDIM + indexes[0]],
+                                     m_rdata.arr[AMREX_SPACEDIM + indexes[1]],
+                                     m_rdata.arr[AMREX_SPACEDIM + indexes[2]]));
+    }
 
-    AMREX_GPU_HOST_DEVICE int& idata (int index)       &
-	{
-		AMREX_ASSERT(index < NInt);
-		return m_idata.arr[2 + index];
-	}
+    AMREX_GPU_HOST_DEVICE int& idata (int index) &
+    {
+        AMREX_ASSERT(index < NInt);
+        return m_idata[2 + index];
+    }
     AMREX_GPU_HOST_DEVICE int  idata (int index) const &
-	{
-		AMREX_ASSERT(index < NInt);
-		return m_idata.arr[2 + index];
-	}
+    {
+        AMREX_ASSERT(index < NInt);
+        return m_idata[2 + index];
+    }
 
     static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
 
@@ -375,9 +367,9 @@ Particle<NReal, NInt>::CIC_Cells_Fracs_Basic (const Particle<NReal, NInt>& p,
     //
     // "cells" should be dimensioned: IntVect cells[AMREX_D_TERM(2,+2,+4)]
     //
-    const Real len[AMREX_SPACEDIM] = { AMREX_D_DECL(static_cast<Real>((p.m_rdata.pos[0]-plo[0])/dx[0] + 0.5_rt),
-                                                    static_cast<Real>((p.m_rdata.pos[1]-plo[1])/dx[1] + 0.5_rt),
-                                                    static_cast<Real>((p.m_rdata.pos[2]-plo[2])/dx[2] + 0.5_rt)) };
+    const Real len[AMREX_SPACEDIM] = { AMREX_D_DECL(static_cast<Real>((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5)),
+                                                    static_cast<Real>((p.m_rdata.pos[1]-plo[1])/dx[1] + Real(0.5)),
+                                                    static_cast<Real>((p.m_rdata.pos[2]-plo[2])/dx[2] + Real(0.5))) };
 
     const IntVect cell(AMREX_D_DECL(static_cast<int>(amrex::Math::floor(len[0])),
                                     static_cast<int>(amrex::Math::floor(len[1])),
@@ -439,34 +431,34 @@ Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
     for (int xi = locell[0]; xi <= hicell[0]; xi++)
     {
         cells[i][0] = xi;
-        fracs[i] = (std::min(hilen[0]-xi,1_rt)-std::max(lolen[0]-xi,0_rt))*cell_density;
+        fracs[i] = (std::min(hilen[0]-xi,Real(1.0))-std::max(lolen[0]-xi,Real(0.0)))*cell_density;
         i++;
     }
 #elif (AMREX_SPACEDIM == 2)
     for (int yi = locell[1]; yi <= hicell[1]; yi++)
     {
-        const Real yf = std::min(hilen[1]-yi,1_rt)-std::max(lolen[1]-yi,0_rt);
+        const Real yf = std::min(hilen[1]-yi,Real(1.0))-std::max(lolen[1]-yi,Real(0.0));
         for (int xi = locell[0]; xi <= hicell[0]; xi ++)
         {
             cells[i][0] = xi;
             cells[i][1] = yi;
-            fracs[i] = yf * (std::min(hilen[0]-xi,1_rt)-std::max(lolen[0]-xi,0_rt))*cell_density;
+            fracs[i] = yf * (std::min(hilen[0]-xi,Real(1.0))-std::max(lolen[0]-xi,Real(0.0)))*cell_density;
             i++;
         }
     }
 #elif (AMREX_SPACEDIM == 3)
     for (int zi = locell[2]; zi <= hicell[2]; zi++)
     {
-        const Real zf = std::min(hilen[2]-zi,1_rt)-std::max(lolen[2]-zi,0_rt);
+        const Real zf = std::min(hilen[2]-zi,Real(1.0))-std::max(lolen[2]-zi,Real(0.0));
         for (int yi = locell[1]; yi <= hicell[1]; yi++)
         {
-            const Real yf = std::min(hilen[1]-yi,1_rt)-std::max(lolen[1]-yi,0_rt);
+            const Real yf = std::min(hilen[1]-yi,Real(1.0))-std::max(lolen[1]-yi,Real(0.0));
             for (int xi = locell[0]; xi <= hicell[0]; xi++)
             {
                 cells[i][0] = xi;
                 cells[i][1] = yi;
                 cells[i][2] = zi;
-                fracs[i] = zf * yf * (std::min(hilen[0]-xi,1_rt)-std::max(lolen[0]-xi,0_rt)) * cell_density;
+                fracs[i] = zf * yf * (std::min(hilen[0]-xi,Real(1.0))-std::max(lolen[0]-xi,Real(0.0))) * cell_density;
                 i++;
             }
         }
@@ -695,14 +687,14 @@ template <int NReal, int NInt>
 std::ostream&
 operator<< (std::ostream& os, const Particle<NReal, NInt>& p)
 {
-    os << p.m_idata.id   << ' '
-       << p.m_idata.cpu  << ' ';
+    os << p.id()   << ' '
+       << p.cpu()  << ' ';
 
     for (int i = 0; i < AMREX_SPACEDIM + NReal; i++)
         os << p.m_rdata.arr[i] << ' ';
 
     for (int i = 2; i < 2 + NInt; i++)
-        os << p.m_idata.arr[i] << ' ';
+        os << p.m_idata[i] << ' ';
 
     if (!os.good())
         amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");

@@ -455,7 +455,7 @@ FluxRegister::FineSetVal (int              dir,
                           int              destcomp,
                           int              numcomp,
                           Real             val,
-                          RunOn            runon) noexcept
+                          RunOn           /*runon*/) noexcept
 {
     Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
 

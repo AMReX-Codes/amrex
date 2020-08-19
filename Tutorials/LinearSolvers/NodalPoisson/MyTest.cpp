@@ -18,7 +18,13 @@ MyTest::solve ()
 {
     if (composite_solve)
     {
-        MLNodeLaplacian linop(geom, grids, dmap);
+        LPInfo info;
+        info.setAgglomeration(agglomeration);
+        info.setConsolidation(consolidation);
+        info.setSemicoarsening(semicoarsening);
+        info.setMaxSemicoarseningLevel(max_semicoarsening_level);
+
+        MLNodeLaplacian linop(geom, grids, dmap, info);
 
         linop.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
                                         LinOpBCType::Dirichlet,
@@ -139,6 +145,10 @@ MyTest::readParameters ()
     pp.query("reltol", reltol);
 
     pp.query("gpu_regtest", gpu_regtest);
+
+    pp.query("agglomeration", agglomeration);
+    pp.query("semicoarsening", semicoarsening);
+    pp.query("max_semicoarsening_level", max_semicoarsening_level);
 }
 
 void

@@ -89,8 +89,6 @@ public:
     static void PrintUsage ();
     static void Finalize ();
 
-protected:
-
 #if 0
     union Word
     {
@@ -103,6 +101,8 @@ protected:
 #endif
 
     static const std::size_t align_size = 16;
+
+protected:
 
     ArenaInfo arena_info;
 

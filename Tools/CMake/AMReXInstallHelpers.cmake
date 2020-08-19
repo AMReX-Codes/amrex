@@ -23,17 +23,29 @@ function ( generate_amrex_config_header )
 
    endforeach ()
 
-   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" )
-      set(COMPILER_ID_MACRO __GNUC__)
-   elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel" )
-      set(COMPILER_ID_MACRO __INTEL_COMPILER)
-   elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Cray" )
-      set(COMPILER_ID_MACRO  __CRAYC)
-   elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI" )
-      set(COMPILER_ID_MACRO  __PGI)
-   elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" )
-      set(COMPILER_ID_MACRO  __llvm__)
-   endif ()
+   set(COMP_DECLS)
+   if (NOT ALLOW_DIFFERENT_COMPILER)
+       if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" )
+           set(COMPILER_ID_MACRO __GNUC__)
+       elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel" )
+           set(COMPILER_ID_MACRO __INTEL_COMPILER)
+       elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Cray" )
+           set(COMPILER_ID_MACRO  __CRAYC)
+       elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI" )
+           set(COMPILER_ID_MACRO  __PGI)
+       elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" )
+           set(COMPILER_ID_MACRO  __llvm__)
+       elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" )
+           set(COMPILER_ID_MACRO  __llvm__)
+       elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC" )
+           set(COMPILER_ID_MACRO  _MSC_VER)
+       else ()
+           message(FATAL_ERROR "Compiler '${CMAKE_CXX_COMPILER_ID}' not supported by AMReX developers! "
+               "Try to configure with -DALLOW_DIFFERENT_COMPILER=ON")
+       endif ()
+       set(msg "libamrex was built with ${CMAKE_CXX_COMPILER_ID}. To avoid this error, reconfigure with -DALLOW_DIFFERENT_COMPILER=ON")
+       set(COMP_DECLS "\n#ifndef ${COMPILER_ID_MACRO}\nstatic_assert(false,\"${msg}\");\n#endif")
+   endif()
 
    if (ENABLE_OMP)
       set(OMP_DECLS "#ifndef _OPENMP\nstatic_assert(false,\"libamrex was built with OpenMP\");\n#endif")
@@ -55,7 +67,7 @@ endfunction ()
 #
 function (install_amrex)
 
-   # Check if the given arguments are vvalid targets
+   # Check if the given arguments are valid targets
    set(_targets amrex)
    foreach (_arg IN LISTS ARGV)
       if (TARGET ${_arg})
@@ -68,20 +80,35 @@ function (install_amrex)
    # Write and install configure file
    include(CMakePackageConfigHelpers)
 
+   #
+   # Setup for install and export of build tree
+   #
+   # Relative path to top level installation/build-tree
+   if(WIN32)
+       set(CMAKE_FILES_DIR   cmake)   
+   else()
+       set(CMAKE_FILES_DIR   lib/cmake/AMReX)
+   endif()
+   set(MODULE_PATH       Tools/CMake)       # Relative path to top level installation/build-tree
+
+   # Write Config file -- this is designed to work for both install and build trees
    configure_package_config_file(${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
-      ${PROJECT_BINARY_DIR}/export/AMReXConfig.cmake
-      INSTALL_DESTINATION bin/cmake/AMReX )
+      ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXConfig.cmake
+      INSTALL_DESTINATION ${CMAKE_FILES_DIR}
+      PATH_VARS MODULE_PATH)
 
    write_basic_package_version_file(
-       ${PROJECT_BINARY_DIR}/export/AMReXConfigVersion.cmake
+       ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXConfigVersion.cmake
        COMPATIBILITY AnyNewerVersion )
 
    install( FILES
-      ${PROJECT_BINARY_DIR}/export/AMReXConfig.cmake
-      ${PROJECT_BINARY_DIR}/export/AMReXConfigVersion.cmake
-      DESTINATION lib/cmake/AMReX )
+      ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXConfig.cmake
+      ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXConfigVersion.cmake
+      DESTINATION ${CMAKE_FILES_DIR} )
 
-   # Setup for target amrex installation
+   #
+   # Export install-tree
+   #
    install(
       TARGETS       ${_targets}
       EXPORT        AMReXTargets
@@ -91,7 +118,6 @@ function (install_amrex)
       PUBLIC_HEADER DESTINATION include
       )
 
-   # Setup for export AMReXtargets installation
    install( EXPORT AMReXTargets
       NAMESPACE AMReX::
       DESTINATION lib/cmake/AMReX )
@@ -107,13 +133,34 @@ function (install_amrex)
    generate_amrex_config_header()
 
    # Install Tools directory
-   install(DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/CMake
+   install(
+      DIRECTORY
+      ${PROJECT_SOURCE_DIR}/Tools/CMake
       ${PROJECT_SOURCE_DIR}/Tools/C_scripts
-      DESTINATION Tools
+      ${PROJECT_SOURCE_DIR}/Tools/typechecker
+      DESTINATION
+      Tools
       USE_SOURCE_PERMISSIONS
       )
 
    # Modify installed headers by calling external script: add #include<AMReX_Config.H>
    install(SCRIPT "${AMREX_CMAKE_MODULES_PATH}/modify_installed_headers.cmake" )
+
+   #
+   # Export build-tree
+   #
+   export( EXPORT AMReXTargets NAMESPACE AMReX::
+      FILE ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXTargets.cmake )
+
+   # Copy Tools directory to build tree
+   file(
+      COPY
+      ${PROJECT_SOURCE_DIR}/Tools/CMake
+      ${PROJECT_SOURCE_DIR}/Tools/C_scripts
+      ${PROJECT_SOURCE_DIR}/Tools/typechecker
+      DESTINATION
+      ${PROJECT_BINARY_DIR}/Tools
+      )
+
 
 endfunction ()

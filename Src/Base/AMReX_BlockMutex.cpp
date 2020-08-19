@@ -6,6 +6,7 @@ namespace amrex {
 
 void BlockMutex::init_states (state_t* state, int N) noexcept {
 #ifdef AMREX_USE_DPCPP
+    amrex::ignore_unused(state,N);
     amrex::Abort("xxxxx DPCPP todo");
 #else
     amrex::launch((N+255)/256, 256, Gpu::nullStream(),

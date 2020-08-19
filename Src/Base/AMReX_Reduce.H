@@ -192,6 +192,7 @@ namespace detail {
         });
         Array<T,2> tmp{v,v};
         Gpu::htod_memcpy(p, tmp.data(), sizeof(T)*2);
+        Gpu::synchronize();
     }
 #else
     template <typename T>
@@ -214,7 +215,7 @@ public:
     using Type = GpuTuple<Ts...>;
 
     template <typename... Ps>
-    explicit ReduceData (ReduceOps<Ps...> const& ops)
+    explicit ReduceData (ReduceOps<Ps...> const&)
         : m_host_tuple(),
           m_device_tuple((Type*)(The_Device_Arena()->alloc(2*sizeof(m_host_tuple))))
     {
@@ -596,9 +597,6 @@ bool AnyOf (Box const& box, P&& pred)
     Gpu::LaunchSafeGuard lsg(true);
     Gpu::DeviceScalar<int> ds(0);
     int* dp = ds.dataPtr();
-    int ncells = box.numPts();
-    const auto lo  = amrex::lbound(box);
-    const auto len = amrex::length(box);
 #ifdef AMREX_USE_DPCPP
     // xxxxx DPCPP todo: Anyof Box: better version
     amrex::ParallelFor(box, [=] (int i, int j, int k) noexcept
@@ -607,6 +605,9 @@ bool AnyOf (Box const& box, P&& pred)
         Gpu::Atomic::LogicalOr(dp, r);
     });
 #else
+    int ncells = box.numPts();
+    const auto lo  = amrex::lbound(box);
+    const auto len = amrex::length(box);
     auto ec = Gpu::ExecutionConfig(ncells);
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, 0,
@@ -648,7 +649,7 @@ public:
     using Type = GpuTuple<Ts...>;
 
     template <typename... Ps>
-    explicit ReduceData (ReduceOps<Ps...> const& ops)
+    explicit ReduceData (ReduceOps<Ps...> const&)
         : m_tuple()
     {
         Reduce::detail::for_each_init<0, Type, Ps...>(m_tuple);
@@ -677,7 +678,7 @@ private:
 
     template <typename D, typename F>
     AMREX_FORCE_INLINE
-    static auto call_f (Box const& box, D & reduce_data, F const& f)
+    static auto call_f (Box const& box, D & /*reduce_data*/, F const& f)
         noexcept -> decltype(f(0,0,0))
     {
         using ReduceTuple = typename D::Type;

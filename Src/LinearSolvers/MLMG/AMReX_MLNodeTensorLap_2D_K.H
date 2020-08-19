@@ -6,24 +6,24 @@ namespace amrex {
 namespace {
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real ts_interp_line_x (Array4<Real const> const& crse, int i, int j, int ic, int jc) noexcept
+    Real ts_interp_line_x (Array4<Real const> const& crse, int ic, int jc) noexcept
     {
-        return (crse(ic,jc,0)+crse(ic+1,jc,0))*0.5_rt;
+        return (crse(ic,jc,0)+crse(ic+1,jc,0))*Real(0.5);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real ts_interp_line_y (Array4<Real const> const& crse, int i, int j, int ic, int jc) noexcept
+    Real ts_interp_line_y (Array4<Real const> const& crse, int ic, int jc) noexcept
     {
-        return (crse(ic,jc,0)+crse(ic,jc+1,0))*0.5_rt;
+        return (crse(ic,jc,0)+crse(ic,jc+1,0))*Real(0.5);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real ts_interp_face_xy (Array4<Real const> const& crse, int i, int j, int ic, int jc) noexcept
+    Real ts_interp_face_xy (Array4<Real const> const& crse, int ic, int jc) noexcept
     {
-        return (ts_interp_line_y(crse,i-1,j  ,ic  ,jc  ) +
-                ts_interp_line_y(crse,i+1,j  ,ic+1,jc  ) +
-                ts_interp_line_x(crse,i  ,j-1,ic  ,jc  ) +
-                ts_interp_line_x(crse,i  ,j+1,ic  ,jc+1)) * 0.25_rt;
+        return (ts_interp_line_y(crse,ic  ,jc  ) +
+                ts_interp_line_y(crse,ic+1,jc  ) +
+                ts_interp_line_x(crse,ic  ,jc  ) +
+                ts_interp_line_x(crse,ic  ,jc+1)) * Real(0.25);
     }
 }
 
@@ -38,13 +38,13 @@ void mlndtslap_interpadd (int i, int j, int, Array4<Real> const& fine,
         bool j_is_odd = (jc*2 != j);
         if (i_is_odd and j_is_odd) {
             // Node on a X-Y face
-            fine(i,j,0) += ts_interp_face_xy(crse,i,j,ic,jc);
+            fine(i,j,0) += ts_interp_face_xy(crse,ic,jc);
         } else if (i_is_odd) {
             // Node on X line
-            fine(i,j,0) += ts_interp_line_x(crse,i,j,ic,jc);
+            fine(i,j,0) += ts_interp_line_x(crse,ic,jc);
         } else if (j_is_odd) {
             // Node on Y line
-            fine(i,j,0) += ts_interp_line_y(crse,i,j,ic,jc);
+            fine(i,j,0) += ts_interp_line_y(crse,ic,jc);
         } else {
             // Node coincident with coarse node
             fine(i,j,0) += crse(ic,jc,0);
@@ -54,7 +54,7 @@ void mlndtslap_interpadd (int i, int j, int, Array4<Real> const& fine,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndtslap_adotx (Box const& b, Array4<Real> const& y, Array4<Real const> const& x,
-                      Array4<int const> const& msk, GpuArray<Real,3> const& s,
+                      GpuArray<Real,3> const& s,
                       GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     const Real h00 = dxinv[0]*dxinv[0];

@@ -21,8 +21,6 @@ else ()
       message(FATAL_ERROR "HYPRE interfaces are not supported for 1D builds")
    endif ()
 
-   find_package(HYPRE 2.15 REQUIRED)
-
    target_compile_definitions( amrex
       PUBLIC
       $<BUILD_INTERFACE:AMREX_USE_HYPRE>)
@@ -42,7 +40,5 @@ else ()
       AMReX_HypreNodeLap.cpp
       AMReX_HypreNodeLap.H
       )
-
-   target_link_libraries( amrex PUBLIC HYPRE )
 
 endif ()

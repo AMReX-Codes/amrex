@@ -206,7 +206,7 @@ CoordSys::SetVolume (FArrayBox& a_volfab,
     AMREX_ASSERT(region.cellCentered());
 
     auto vol = a_volfab.array();
-    GpuArray<Real,AMREX_SPACEDIM> a_dx{AMREX_D_DECL(dx[0], dx[1], dx[2])};
+    GpuArray<Real,AMREX_SPACEDIM> a_dx{{AMREX_D_DECL(dx[0], dx[1], dx[2])}};
 
 #if (AMREX_SPACEDIM == 3)
     AMREX_ASSERT(IsCartesian());
@@ -216,7 +216,7 @@ CoordSys::SetVolume (FArrayBox& a_volfab,
         vol(i,j,k) = dv;
     });
 #else
-    GpuArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
+    GpuArray<Real,AMREX_SPACEDIM> a_offset{{AMREX_D_DECL(offset[0],offset[1],offset[2])}};
     int coord = (int) c_sys;
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
@@ -239,6 +239,8 @@ CoordSys::SetDLogA (FArrayBox& a_dlogafab,
                     const Box& region,
                     int        dir) const
 {
+    amrex::ignore_unused(dir);
+
     AMREX_ASSERT(ok);
     AMREX_ASSERT(region.cellCentered());
 
@@ -491,6 +493,7 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
 Real
 CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
 {
+    amrex::ignore_unused(point,dir);
 #if (AMREX_SPACEDIM==2)
     Real xlo[AMREX_SPACEDIM];
     switch (c_sys)
@@ -501,6 +504,7 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
         case 0: return dx[1];
         case 1: return dx[0];
         }
+        return 0.; // to silent compiler warning
     case RZ:
         LoNode(point,xlo);
         switch (dir)
@@ -508,6 +512,7 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
         case 0: return TWOPI*dx[1]*xlo[0];
         case 1: return ((xlo[0]+dx[0])*(xlo[0]+dx[0])-xlo[0]*xlo[0])*(0.5*TWOPI);
         }
+        return 0.; // to silent compiler warning
     default:
         AMREX_ASSERT(0);
     }
@@ -526,6 +531,7 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
 Real
 CoordSys::AreaHi (const IntVect& point, int dir) const noexcept
 {
+    amrex::ignore_unused(point,dir);
 #if (AMREX_SPACEDIM==2)
     Real xhi[AMREX_SPACEDIM];
     switch (c_sys)
@@ -536,6 +542,7 @@ CoordSys::AreaHi (const IntVect& point, int dir) const noexcept
         case 0: return dx[1];
         case 1: return dx[0];
         }
+        return 0.; // to silent compiler warning
     case RZ:
         HiNode(point,xhi);
         switch (dir)
@@ -543,6 +550,7 @@ CoordSys::AreaHi (const IntVect& point, int dir) const noexcept
         case 0: return TWOPI*dx[1]*xhi[0];
         case 1: return (xhi[0]*xhi[0]-(xhi[0]-dx[0])*(xhi[0]-dx[0]))*(TWOPI*0.5);
         }
+        return 0.; // to silent compiler warning
     default:
         AMREX_ASSERT(0);
     }

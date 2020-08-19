@@ -156,7 +156,7 @@ void CommProfStats::InitCommDataBlock(const int proc, const long ncommstats,
 
 
 // ----------------------------------------------------------------------
-int CommProfStats::AfterBarrier(const int proc, const double t) {
+int CommProfStats::AfterBarrier(const int /*proc*/, const double /*t*/) {
 /*
   if(bExitTimesDone) {
     if(barrierExitTimes[proc][0] > t) {
@@ -238,14 +238,14 @@ void CommProfStats::AddTimerTime(const double tt) {
 
 
 // ----------------------------------------------------------------------
-void CommProfStats::AddGridLevel(const int level, const int ngrids) {
+void CommProfStats::AddGridLevel(const int /*level*/, const int /*ngrids*/) {
 }
 
 
 // ----------------------------------------------------------------------
-void CommProfStats::AddGrid3D(int level, int xlo, int ylo, int zlo,
-			      int xhi, int yhi, int zhi,
-			      int xc,  int yc,  int zc,
+void CommProfStats::AddGrid3D(int /*level*/, int /*xlo*/, int /*ylo*/, int /*zlo*/,
+			      int /*xhi*/, int /*yhi*/, int /*zhi*/,
+			      int /*xc*/,  int /*yc*/,  int /*zc*/,
 			      int xn,  int yn,  int zn, int proc)
 {
   long nPoints(xn * yn * zn);
@@ -286,13 +286,14 @@ void CommProfStats::AddProbDomain(const int level, const Box &pd) {
 // ----------------------------------------------------------------------
 void CommProfStats::AddTopoCoord(const int nid, const int node,
                                  const int tx, const int ty, const int tz,
-                                 const bool servicenode)
+                                 const bool /*servicenode*/)
 {
 #if (BL_SPACEDIM == 2)
+  amrex::ignore_unused(nid, node, tx, ty, tz);
   cout << "**** Error:  CommProfStats::AddTopoCoord not supported for 2D" << endl;
 #else
   cout << "TopoMap.size() = " << TopoMap.size() << " nid node = " << nid << "  " << node << endl;
-  TopoMap[node].insert(std::pair<int, IntVect>(nid, IntVect(tx, ty, tz)));
+  TopoMap[node].insert(std::pair<int, IntVect>(nid, IntVect(AMREX_D_DECL(tx, ty, tz))));
   ++nTopPts;
   maxTopNodeNum = std::max(maxTopNodeNum, node);
 #endif
@@ -340,8 +341,8 @@ void CommProfStats::WriteTopoFab() {
 #if (BL_SPACEDIM == 2)
   cout << "**** Error:  CommProfStats::WriteTopoFab not supported for 2D" << endl;
 #else
-  IntVect ivmin(100000, 100000, 100000);
-  IntVect ivmax(-100000, -100000, -100000);
+  IntVect ivmin(AMREX_D_DECL(100000, 100000, 100000));
+  IntVect ivmax(AMREX_D_DECL(-100000, -100000, -100000));
   std::map<int, IntVect>::iterator it;
   for(int i(0); i < TopoMap.size(); ++i) {
     for(it = TopoMap[i].begin(); it != TopoMap[i].end(); ++it) {
@@ -867,6 +868,8 @@ void CommProfStats::ReportStats(long &totalSentData, long &totalNCommStats,
                                 Real &timeMin, Real &timeMax, Real &timerTime,
 				Vector<int> &rankNodeNumbers)
 {
+  amrex::ignore_unused(timerTime);
+
   amrex::Print(Print::AllProcs) << ParallelDescriptor::MyProc() << "::Processing "
                                 << dataBlocks.size() << " data blocks:" << endl;
 
@@ -956,6 +959,8 @@ void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
 {
   BL_PROFILE("CommProfStats::TimelineFAB()");
 
+  amrex::ignore_unused(rankMin, rankMax, ntnMultiplier, bnMultiplier);
+
   Real tlo = tr.startTime;
   Real thi = tr.stopTime;
   Real timeRangeAll(thi - tlo);
@@ -997,7 +1002,7 @@ void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
       BLProfiler::CommStats &cs = dBlock.vCommStats[i];
       Real ts(cs.timeStamp);
       if((ts <= fabTimeHi && ts >= fabTimeLo) && InTimeRange(dBlock.proc, ts)) {  // within time range
-        xi = nTimeSlotsFab * ((ts - fabTimeLo) * ooTimeRangeFab);
+        xi = long( nTimeSlotsFab * ((ts - fabTimeLo) * ooTimeRangeFab) );
 	if(xi == nTimeSlotsFab) {
 	  --xi;
 	}
@@ -1064,7 +1069,7 @@ void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
 	      cout << "::::  prevTs fabTimeLo = " << prevTs << "  " << fabTimeLo << endl;
 	      prevTs = fabTimeLo;
 	    }
-            long prevXi(nTimeSlotsFab * ((prevTs - fabTimeLo) * ooTimeRangeFab));
+            long prevXi = long(nTimeSlotsFab * ((prevTs - fabTimeLo) * ooTimeRangeFab));
             prevIndex = (((proc - fabRankLo) / rankStride) * nTimeSlotsFab) + prevXi;
 	    for(long idx(prevIndex); idx < index; ++idx) {
 	      if(idx < 0 || idx >= timelineFAB.box().numPts() || idx > index) {
@@ -1174,6 +1179,8 @@ void CommProfStats::SendRecvList(std::multimap<Real, SendRecvPairUnpaired> &srMM
 void CommProfStats::SendRecvData(const std::string &filenameprefix,
                                   const double tlo, const double thi)
 {
+  amrex::ignore_unused(filenameprefix, tlo, thi);
+
   double dstart(amrex::ParallelDescriptor::second());
   Real timeMin(std::numeric_limits<Real>::max());
   Real timeMax(-std::numeric_limits<Real>::max());
@@ -1234,7 +1241,7 @@ void CommProfStats::SendRecvData(const std::string &filenameprefix,
     for(int idb(0); idb < dataBlocks.size(); ++idb) {
       //cout << "idb dB.proc = " << idb << "  " << dataBlocks[idb].proc << endl;
       //cout << idb << "  " << dataBlocks[idb].proc << endl;
-      int t0(dataBlocks[idb].timeMin * 1.0);
+      int t0 = int(dataBlocks[idb].timeMin * 1.0);
       idbMM[t0].insert(std::pair<int, int>(dataBlocks[idb].proc, idb));
       ++countI;
     }
@@ -1265,7 +1272,9 @@ void CommProfStats::SendRecvData(const std::string &filenameprefix,
 
 
   while(anyDataLeft) {
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
   //for(idb = 0; idb < dataBlocks.size(); ++idb) {
   for(int idbII = 0; idbII < dataBlocks.size(); ++idbII) {
     int idb(idbIndex[idbII]);
@@ -1836,6 +1845,8 @@ void CommProfStats::AddEdisonPID(int X, int Y, int Z,
                                  int cab, int row, int cage, int slot,
                                  int cpu, int pid)
 {
+  amrex::ignore_unused(cage, slot);
+
   int ix, iy, iz, index;
   int ixGroup, ixCab, ixSlot, ixNode, iyCage, iySlot, izGroup, izNode;
 

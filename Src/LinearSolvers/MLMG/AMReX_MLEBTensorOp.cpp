@@ -146,7 +146,7 @@ MLEBTensorOp::prepareForSolve ()
             if (amrlev > 0) {
                 amrex::EB_average_down_faces(GetArrOfConstPtrs(m_kappa[amrlev  ].back()),
                                              GetArrOfPtrs     (m_kappa[amrlev-1].front()),
-                                             IntVect(mg_coarsen_ratio), 0);
+                                             IntVect(mg_coarsen_ratio), m_geom[amrlev-1][0]);
             }
         }
     } else {
@@ -545,9 +545,6 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
     auto area = (factory) ? factory->getAreaFrac()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
 
-    const Geometry& geom = m_geom[amrlev][mglev];
-    const auto dxinv = geom.InvCellSizeArray();
-
     Array<MultiFab,AMREX_SPACEDIM>& fluxmf = m_tauflux[amrlev][mglev];
     Real bscalar = m_b_scalar;
 
@@ -651,14 +648,11 @@ MLEBTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fl
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
-    auto area = (factory) ? factory->getAreaFrac()
-        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
 
     const Geometry& geom = m_geom[amrlev][mglev];
     const auto dxinv = geom.InvCellSizeArray();
 
     const int dim_fluxes = AMREX_SPACEDIM*AMREX_SPACEDIM;
-
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);

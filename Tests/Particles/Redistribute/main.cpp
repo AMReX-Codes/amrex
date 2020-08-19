@@ -93,10 +93,10 @@ public:
             const Box& tile_box  = mfi.tilebox();
 
             Gpu::HostVector<ParticleType> host_particles;
-            std::array<Gpu::HostVector<Real>, NAR> host_real;
+            std::array<Gpu::HostVector<ParticleReal>, NAR> host_real;
             std::array<Gpu::HostVector<int>, NAI> host_int;
 
-            std::vector<Gpu::HostVector<Real> > host_runtime_real(NumRuntimeRealComps());
+            std::vector<Gpu::HostVector<ParticleReal> > host_runtime_real(NumRuntimeRealComps());
             std::vector<Gpu::HostVector<int> > host_runtime_int(NumRuntimeIntComps());
 
             for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
@@ -183,7 +183,6 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            const Geometry& geom = Geom(lev);
             const auto dx = Geom(lev).CellSizeArray();
             auto& plev  = GetParticles(lev);
         
@@ -198,7 +197,7 @@ public:
 
                 if (do_random == 0)
                 {
-                    AMREX_FOR_1D ( np, i,
+                    amrex::ParallelFor( np, [=] AMREX_GPU_DEVICE (int i) noexcept
                     {
                         ParticleType& p = pstruct[i];
                         p.pos(0) += move_dir[0]*dx[0];
@@ -209,10 +208,10 @@ public:
                         p.pos(2) += move_dir[2]*dx[2];
 #endif
                     });
-                }            
+                }
                 else
                 {
-                    AMREX_FOR_1D ( np, i,
+                    amrex::ParallelFor( np, [=] AMREX_GPU_DEVICE (int i) noexcept
                     {
                         ParticleType& p = pstruct[i];
 
@@ -240,10 +239,7 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            const Geometry& geom = Geom(lev);
-            const auto dx = Geom(lev).CellSizeArray();
             auto& plev  = GetParticles(lev);
-            
             for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
             {
                 int gid = mfi.index();

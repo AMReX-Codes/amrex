@@ -818,7 +818,7 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
 
 void LSFactory::intersect_data (MultiFab & data, iMultiFab & valid,
                                 const MultiFab & data_in, const iMultiFab & valid_in,
-                                const Geometry & geom_ls) {
+                                const Geometry & /*geom_ls*/) {
 
     BL_PROFILE("LSFactory::intersect_data()");
 
@@ -845,7 +845,7 @@ void LSFactory::intersect_data (MultiFab & data, iMultiFab & valid,
 
 void LSFactory::union_data (MultiFab & data, iMultiFab & valid,
                             const MultiFab & data_in, const iMultiFab & valid_in,
-                            const Geometry & geom_ls) {
+                            const Geometry & /*geom_ls*/) {
 
     BL_PROFILE("LSFactory::union_data()");
 

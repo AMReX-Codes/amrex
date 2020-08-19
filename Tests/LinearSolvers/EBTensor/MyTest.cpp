@@ -1,5 +1,9 @@
 #include "MyTest.H"
-#include "MyTest_K.H"
+#if (AMREX_SPACEDIM == 2)
+#include "MyTest_2D_K.H"
+#elif (AMREX_SPACEDIM == 3)
+#include "MyTest_3D_K.H"
+#endif
 
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF.H>
@@ -56,21 +60,30 @@ MyTest::solve ()
                                                            LinOpBCType::Neumann)};
 
     std::string geom_type;
+#if (AMREX_SPACEDIM == 2)
+    {
+        ParmParse pp("eb2");
+        pp.get("geom_type", geom_type);
+    }
+#elif (AMREX_SPACEDIM == 3)
     int cylinder_direction;
     {
         ParmParse pp("eb2");
         pp.get("geom_type", geom_type);
         pp.get("cylinder_direction", cylinder_direction);
     }
+#endif
 
     if (geom_type == "all_regular") {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             v_lo_bc[idim] = LinOpBCType::Dirichlet;
             v_hi_bc[idim] = LinOpBCType::Dirichlet;
         }
+#if (AMREX_SPACEDIM == 3)
     } else {
-        v_lo_bc[cylinder_direction] = LinOpBCType::Dirichlet;
-        v_hi_bc[cylinder_direction] = LinOpBCType::Dirichlet;
+//      v_lo_bc[cylinder_direction] = LinOpBCType::Dirichlet;
+//      v_hi_bc[cylinder_direction] = LinOpBCType::Dirichlet;
+#endif
     }
 
     ebtensorop.setDomainBC({AMREX_D_DECL(v_lo_bc,v_lo_bc,v_lo_bc)},
@@ -118,7 +131,7 @@ MyTest::solve ()
         const MultiFab& vfrc = factory->getVolFrac();
         MultiFab::Multiply(error, vfrc, 0, 0, 1, 0);
         const auto dx = geom.CellSize();
-        error.mult(dx[0]*dx[1]*dx[2]);
+        error.mult(AMREX_D_TERM(dx[0],*dx[1],*dx[2]));
         amrex::Print() << "    1-norm error = " << error.norm1() << std::endl;
     }
 }
@@ -150,19 +163,25 @@ MyTest::initData ()
 
     factory = makeEBFabFactory(geom, grids, dmap, {2,2,2}, EBSupport::full);
 
-    solution.define(grids, dmap, 3, 1, MFInfo(), *factory);
-    exact.define(grids, dmap, 3, 1, MFInfo(), *factory);
-    rhs.define(grids, dmap, 3, 1, MFInfo(), *factory);
+    solution.define(grids, dmap, AMREX_SPACEDIM, 1, MFInfo(), *factory);
+    exact.define(grids, dmap, AMREX_SPACEDIM, 1, MFInfo(), *factory);
+    rhs.define(grids, dmap, AMREX_SPACEDIM, 1, MFInfo(), *factory);
     eta.define(grids, dmap, 1, 1, MFInfo(), *factory);
 
     const auto& dx = geom.CellSizeArray();
     const auto& problo = geom.ProbLo();
 
-    int cylinder_direction;
     amrex::Real R;
+
+#if (AMREX_SPACEDIM == 2)
+    ParmParse pp("eb2");
+    pp.get("sphere_radius", R);
+#elif (AMREX_SPACEDIM == 3)
+    int cylinder_direction;
     ParmParse pp("eb2");
     pp.get("cylinder_direction", cylinder_direction);
     pp.get("cylinder_radius", R);
+#endif
     amrex::Real R2 = R*R;
 
     for (MFIter mfi(exact); mfi.isValid(); ++mfi) {
@@ -175,10 +194,15 @@ MyTest::initData ()
         for         (int k = lo.z; k <= hi.z; ++k) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    Real x = (i+0.5)*dx[0] + problo[0];
-                    Real y = (j+0.5)*dx[1] + problo[1];
-                    Real z = (k+0.5)*dx[2] + problo[2];
-                    Real u,v,w,urhs,vrhs,wrhs,seta;
+                    AMREX_D_TERM(Real x = (i+0.5)*dx[0] + problo[0];,
+                                 Real y = (j+0.5)*dx[1] + problo[1];,
+                                 Real z = (k+0.5)*dx[2] + problo[2];)
+
+                    Real u,v,urhs,vrhs,seta;
+#if (AMREX_SPACEDIM == 2)
+                    init(x,y,R2,u,v,urhs,vrhs,seta);
+#elif (AMREX_SPACEDIM == 3)
+                    Real w,wrhs;
                     if (cylinder_direction == 2) {
                         init(x,y,z,R2,u,v,w,urhs,vrhs,wrhs,seta);
                     } else if (cylinder_direction == 0) {
@@ -186,20 +210,30 @@ MyTest::initData ()
                     } else {
                         init(z,x,y,R2,w,u,v,wrhs,urhs,vrhs,seta);
                     }
-                    velfab(i,j,k,0) = u;
-                    velfab(i,j,k,1) = v;
-                    velfab(i,j,k,2) = w;
-                    rhsfab(i,j,k,0) = urhs;
-                    rhsfab(i,j,k,1) = vrhs;
-                    rhsfab(i,j,k,2) = wrhs;
+#endif
+                    AMREX_D_TERM(velfab(i,j,k,0) = u;,
+                                 velfab(i,j,k,1) = v;,
+                                 velfab(i,j,k,2) = w;);
+                    AMREX_D_TERM(rhsfab(i,j,k,0) = urhs;,
+                                 rhsfab(i,j,k,1) = vrhs;,
+                                 rhsfab(i,j,k,2) = wrhs;);
                     etafab(i,j,k) = seta;
+
+#if (AMREX_SPACEDIM == 2)
+                    if (x < -1.0 or x > 1.0 or
+                        y < -1.0 or y > 1.0)
+#elif (AMREX_SPACEDIM == 3)
                     if (x < -1.0 or x > 1.0 or
                         y < -1.0 or y > 1.0 or
                         z < -1.0 or z > 1.0)
+#endif
                     {
-                        x = std::max(-1.0,std::min(1.0,x));
-                        y = std::max(-1.0,std::min(1.0,y));
-                        z = std::max(-1.0,std::min(1.0,z));
+                        AMREX_D_TERM(x = std::max(-1.0,std::min(1.0,x));,
+                                     y = std::max(-1.0,std::min(1.0,y));,
+                                     z = std::max(-1.0,std::min(1.0,z));)
+#if (AMREX_SPACEDIM == 2)
+                            init(x,y,R2,u,v,urhs,vrhs,seta);
+#elif (AMREX_SPACEDIM == 3)
                         if (cylinder_direction == 2) {
                             init(x,y,z,R2,u,v,w,urhs,vrhs,wrhs,seta);
                         } else if (cylinder_direction == 0) {
@@ -207,9 +241,10 @@ MyTest::initData ()
                         } else {
                             init(z,x,y,R2,w,u,v,wrhs,urhs,vrhs,seta);
                         }
-                        velfab(i,j,k,0) = u;
-                        velfab(i,j,k,1) = v;
-                        velfab(i,j,k,2) = w;
+#endif
+                        AMREX_D_TERM(velfab(i,j,k,0) = u;,
+                                     velfab(i,j,k,1) = v;,
+                                     velfab(i,j,k,2) = w;);
                     }
                 }
             }

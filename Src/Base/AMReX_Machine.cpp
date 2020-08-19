@@ -34,7 +34,7 @@ Coord read_df_node_coord (const std::string & name)
         std::ifstream ifs {"/proc/cray_xt/cname"};
         if (!ifs) {
             // not on a cray
-            return Coord {0,0,0,0}; // initializer_list
+            return Coord {{0,0,0,0}}; // initializer_list
         }
         char t0, t1, t2, t3, t4;
         ifs >> t0 >> cabx >> t1 >> caby >> t2 >> cab_chas >> t3 >> slot >> t4 >> node;
@@ -49,7 +49,7 @@ Coord read_df_node_coord (const std::string & name)
     }
     int chas = cab_chas + 3*(cabx & 1); // 2 cabinets per group (6 chassis per group)
 
-    return Coord {node, slot, chas, group};
+    return Coord {{node, slot, chas, group}};
 }
 #endif
 
@@ -80,7 +80,7 @@ Coord df_id_to_coord (int id)
     int slot = id % 16; id /= 16;
     int chas = id % 6;  id /= 6;
     int group = id;
-    return Coord {node, slot, chas, group};
+    return Coord {{node, slot, chas, group}};
 }
 
 template <class T, size_t N>
@@ -302,6 +302,7 @@ class Machine
 
         return result;
 #else
+        amrex::ignore_unused(flag_local_ranks);
         return Vector<int>(nbh_rank_n, 0);
 #endif
     }
@@ -548,21 +549,24 @@ class Machine
                     min_avg_dist = avg_dist;
                 }
             }
-            cur_node = std::move(*next_node);
-            next_node = nullptr;
-            candidates.erase(cur_node.id);
 
-            // add cur_node to result
-            result.push_back(cur_node.id);
-            total_rank_n += cur_node.rank_n;
-            total_pairs_dist += cur_node.sum_dist;
+            if (next_node) {
+                cur_node = std::move(*next_node);
+                next_node = nullptr;
+                candidates.erase(cur_node.id);
 
-            if (flag_verbose) {
-                Print() << "  Added " << cur_node.id
-                        << ": " << to_str(cur_node.coord)
-                        << ", ranks: " << cur_node.rank_n
-                        << ", total ranks: " << total_rank_n
-                        << ", avg dist: " << min_avg_dist << std::endl;
+                // add cur_node to result
+                result.push_back(cur_node.id);
+                total_rank_n += cur_node.rank_n;
+                total_pairs_dist += cur_node.sum_dist;
+
+                if (flag_verbose) {
+                    Print() << "  Added " << cur_node.id
+                            << ": " << to_str(cur_node.coord)
+                            << ", ranks: " << cur_node.rank_n
+                            << ", total ranks: " << total_rank_n
+                            << ", avg dist: " << min_avg_dist << std::endl;
+                }
             }
         }
 

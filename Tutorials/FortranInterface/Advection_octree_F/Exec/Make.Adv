@@ -1,0 +1,24 @@
+AMREX_HOME ?= ../../../../..
+TOP := $(AMREX_HOME)/Tutorials/FortranInterface/Advection_octree_F
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+
+Bdirs 	:= Source Source/Src_$(DIM)d
+Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
+Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
+
+include $(Bpack)
+
+INCLUDE_LOCATIONS += $(Blocs)
+VPATH_LOCATIONS   += $(Blocs)
+
+Pdirs 	:= Base Boundary AmrCore F_Interfaces/Base F_Interfaces/AmrCore F_Interfaces/Octree
+Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
+
+$(info $(Ppack))
+
+include $(Ppack)
+
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
+

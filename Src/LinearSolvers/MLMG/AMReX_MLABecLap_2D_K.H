@@ -52,7 +52,7 @@ void mlabeclap_adotx_os (Box const& box, Array4<Real> const& y,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            if (osm(i,j,0)) {
+            if (osm(i,j,0) == 0) {
                 y(i,j,0,n) = 0.0;
             } else {
                 y(i,j,0,n) = alpha*a(i,j,0)*x(i,j,0,n)
@@ -236,7 +236,7 @@ void abec_gsrb_os (Box const& box, Array4<Real> const& phi, Array4<Real const> c
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
                 if ((i+j+redblack)%2 == 0) {
-                    if (osm(i,j,0)) {
+                    if (osm(i,j,0) == 0) {
                         phi(i,j,0,n) = 0.0;
                     } else {
                         Real cf0 = (i == vlo.x and m0(vlo.x-1,j,0) > 0)
@@ -292,7 +292,7 @@ void abec_gsrb_with_line_solve (
     // idir is the direction in which we will do the tridiagonal solve --
     // it should be the direction in which the mesh spacing is much larger
     // than in the other directions
-    int idir = 1;
+    // int idir = 1;
 
     // This should be moved outside the kernel!
     if (dhy <= dhx) amrex::Abort("dhy is supposed to be much larger than dhx");

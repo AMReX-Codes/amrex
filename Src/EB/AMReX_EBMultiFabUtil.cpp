@@ -587,6 +587,35 @@ void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
     }
 }
 
+void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                            const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                            const IntVect& ratio, const Geometry& crse_geom)
+{
+    AMREX_ASSERT(crse[0]->nComp() == fine[0]->nComp());
+
+    if (!(*fine[0]).hasEBFabFactory())
+    {
+        amrex::average_down_faces(fine, crse, ratio, crse_geom);
+    }
+    else
+    {
+        int ngcrse = 0;
+        int ncomp = crse[0]->nComp();
+        Array<MultiFab,AMREX_SPACEDIM> ctmp;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            BoxArray cba = fine[idim]->boxArray();
+            cba.coarsen(ratio);
+            ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
+        }
+        EB_average_down_faces(fine, amrex::GetArrOfPtrs(ctmp), ratio, ngcrse);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            crse[idim]->ParallelCopy(ctmp[idim],0,0,ncomp,crse_geom.periodicity());
+        }
+    }
+}
+
 void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
                                  int ratio, int ngcrse)
 {
@@ -903,7 +932,6 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
             }
             else
             {
-                Array4<EBCellFlag const> const& flagfab = flags.const_array(mfi);
                 AMREX_D_TERM(Array4<Real const> const& apxfab = area[0]->const_array(mfi);,
                              Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
                              Array4<Real const> const& apzfab = area[2]->const_array(mfi););
@@ -914,7 +942,6 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
                 {
                     eb_interp_cc2facecent(thread_box, ccfab,
-                                          flagfab,
                                           AMREX_D_DECL(apxfab,apyfab,apzfab),
                                           AMREX_D_DECL(fcx,fcy,fcz),
                                           AMREX_D_DECL(edg_x,edg_y,edg_z),
@@ -1031,7 +1058,6 @@ EB_interp_CellCentroid_to_FaceCentroid (const MultiFab& phi_centroid,
             }
             else
             {
-                Array4<EBCellFlag const> const& flagfab = flags.const_array(mfi);
                 AMREX_D_TERM(Array4<Real const> const& apxfab = area[0]->const_array(mfi);,
                              Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
                              Array4<Real const> const& apzfab = area[2]->const_array(mfi););
@@ -1046,7 +1072,6 @@ EB_interp_CellCentroid_to_FaceCentroid (const MultiFab& phi_centroid,
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
                 {
                     eb_interp_centroid2facecent(thread_box, ccfab,
-                                                flagfab,
                                                 AMREX_D_DECL(apxfab,apyfab,apzfab),
                                                 cvol,
                                                 cct,

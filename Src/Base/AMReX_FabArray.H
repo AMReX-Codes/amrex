@@ -48,7 +48,7 @@
 namespace amrex {
 
 template <typename T, typename std::enable_if<!IsBaseFab<T>::value,int>::type = 0>
-Long nBytesOwned (T const& t) noexcept { return 0; }
+Long nBytesOwned (T const&) noexcept { return 0; }
 
 template <typename T>
 Long nBytesOwned (BaseFab<T> const& fab) noexcept { return fab.nBytesOwned(); }
@@ -136,26 +136,12 @@ struct MFInfo {
     }
 };
 
-    template <class T>
-    class MFGraph;
-#ifdef USE_PERILLA
-    class Perilla;
-#endif
-
 template <class FAB>
 class FabArray
     :
     public FabArrayBase
 {
 public:
-    friend class Action;
-    friend class AmrTask;
-    template <class T>
-    friend class MFGraph;
-#ifdef USE_PERILLA
-    friend class Perilla;
-#endif
-
 
     struct FABType {
         typedef FAB value_type;
@@ -270,7 +256,8 @@ public:
 
     /**
     * \brief Return true if the FabArray is well-defined.  That is,
-    * if FABs are allocated for each Box in the BoxArray and the
+    * the FabArray has a BoxArray and DistributionMapping, the
+    * FABs are allocated for each Box in the BoxArray and the
     * sizes of the FABs and the number of components are consistent
     * with the definition of the FabArray.
     */
@@ -837,7 +824,6 @@ private:
                    Vector<std::size_t>&                   recv_size,
                    Vector<int>&                           recv_from,
                    Vector<MPI_Request>&                   recv_reqs,
-                   int                                    icomp,
                    int                                    ncomp,
                    int                                    SeqNum);
 
@@ -938,6 +924,8 @@ FabArray<FAB>::prefetchToHost (const MFIter& mfi) const noexcept
 {
 #ifdef AMREX_USE_CUDA
     this->fabPtr(mfi)->prefetchToHost();
+#else
+    amrex::ignore_unused(mfi);
 #endif
 }
 
@@ -948,6 +936,8 @@ FabArray<FAB>::prefetchToDevice (const MFIter& mfi) const noexcept
 {
 #ifdef AMREX_USE_CUDA
     this->fabPtr(mfi)->prefetchToDevice();
+#else
+    amrex::ignore_unused(mfi);
 #endif
 }
 
@@ -1214,6 +1204,8 @@ template <class FAB>
 bool
 FabArray<FAB>::ok () const
 {
+    if (!define_function_called) return false;
+
     int isok = 1;
 
     for (MFIter fai(*this); fai.isValid() && isok; ++fai)
@@ -2003,8 +1995,8 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        CMD_local_setVal_gpu(val, thecmd, 0, ncomp);
-        CMD_remote_setVal_gpu(val, thecmd, 0, ncomp);
+        CMD_local_setVal_gpu(val, thecmd, scomp, ncomp);
+        CMD_remote_setVal_gpu(val, thecmd, scomp, ncomp);
     }
     else
 #endif
@@ -2017,7 +2009,7 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
 #endif
         for (int i = 0; i < N_locs; ++i) {
             const CopyComTag& tag = LocTags[i];
-            (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, 0, ncomp);
+            (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, scomp, ncomp);
         }
 
         for (auto it = RcvTags.begin(); it != RcvTags.end(); ++it) {
@@ -2027,7 +2019,7 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
 #endif
             for (int i = 0; i < N; ++i) {
                 const CopyComTag& tag = it->second[i];
-                (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, 0, ncomp);
+                (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, scomp, ncomp);
             }
         }
     }

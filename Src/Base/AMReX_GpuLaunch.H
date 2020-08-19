@@ -15,6 +15,7 @@
 #include <AMReX_Extension.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_GpuLaunchGlobal.H>
 #include <cstddef>
 #include <limits>
 #include <algorithm>
@@ -35,17 +36,14 @@
 
 namespace amrex {
 
-// Because of CUDA, we cannot take rvalue lambdas.
+// We cannot take rvalue lambdas.
 // ************************************************
 //  Variadic lambda function wrappers for C++ CUDA/HIP Kernel calls.
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-    template<class L>
-    AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
-
     template<class L, class... Lambdas>
     AMREX_GPU_GLOBAL void launch_global (L f0, Lambdas... fs) { f0(); call_device(fs...); }
-    
+
     template<class L>
     AMREX_GPU_DEVICE void call_device (L&& f0) noexcept { f0(); }
     
@@ -114,6 +112,7 @@ namespace Gpu {
         iv += bx.smallEnd();
         return (bx & Box(iv,iv,bx.type()));
 #else
+        amrex::ignore_unused(offset);
         return bx;
 #endif
     }
@@ -249,12 +248,12 @@ namespace Gpu {
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
-        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) AMREX_NOEXCEPT \
+        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
             block \
         ); \
     } \
     else { \
-        amrex::LoopConcurrentOnCpu(box, nc, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT \
+        amrex::LoopConcurrentOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
             block \
         ); \
     }
@@ -289,12 +288,12 @@ namespace Gpu {
 #define AMREX_HOST_DEVICE_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
-        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) AMREX_NOEXCEPT \
+        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
             block \
         ); \
     } \
     else { \
-        amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT \
+        amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
             block \
         ); \
     }

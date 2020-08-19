@@ -112,6 +112,7 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
 void
 MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
+    amrex::ignore_unused(amrlev,mglev,mf);
 #if (AMREX_SPACEDIM != 3)
     BL_PROFILE("MLPoisson::normalize()");
 
@@ -468,6 +469,9 @@ MLPoisson::makeNLinOp (int grid_size) const
     std::unique_ptr<MLLinOp> r{new MLALaplacian({geom}, {ba}, {dm}, minfo)};
 
     MLALaplacian* nop = dynamic_cast<MLALaplacian*>(r.get());
+    if (!nop) {
+        return std::unique_ptr<MLLinOp>{};
+    }
 
     nop->m_parent = this;
 

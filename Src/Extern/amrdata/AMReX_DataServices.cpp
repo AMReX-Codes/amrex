@@ -1586,7 +1586,7 @@ int DataServices::NumDeriveFunc() const {
 
 
 // ---------------------------------------------------------------
-void DataServices::PointValue(int pointBoxArraySize, Box *pointBoxArray,
+void DataServices::PointValue(int /*pointBoxArraySize*/, Box *pointBoxArray,
 		              const string &currentDerived,
 		              int coarsestLevelToSearch,
 			      int finestLevelToSearch,
@@ -1639,7 +1639,7 @@ void DataServices::PointValue(int pointBoxArraySize, Box *pointBoxArray,
 
 
 // ---------------------------------------------------------------
-void DataServices::LineValues(int lineBoxArraySize, Box *lineBoxArray, int whichDir,
+void DataServices::LineValues(int /*lineBoxArraySize*/, Box *lineBoxArray, int whichDir,
                               const string &currentDerived,
                               int coarsestLevelToSearch, int finestLevelToSearch,
                               XYPlotDataList *dataList, bool &bLineIsValid) {

@@ -155,33 +155,6 @@ MultiFab::Copy (MultiFab& dst, const MultiFab& src,
     amrex::Copy(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
-
-#ifdef USE_PERILLA
-void
-MultiFab::Copy (MultiFab&       dst,
-                const MultiFab& src,
-                int             f,
-                int             srccomp,
-                int             dstcomp,
-                int             numcomp,
-                const Box&      bx)
-{
-// don't have to    BL_ASSERT(dst.boxArray() == src.boxArray());
-    BL_ASSERT(dst.distributionMap == src.distributionMap);
-    //BL_ASSERT(dst.nGrow() >= nghost); // and src.nGrow() >= nghost);
-
-    int fis = src.IndexArray()[f];
-    int fid = dst.IndexArray()[f];
-    //const Box& bx = BoxLib::grow(dst[f].box(),nghost);
-    //const Box& bx = dst[fid].box();
-
-    if (bx.ok())
-      dst[fid].copy(src[fid], bx, srccomp, bx, dstcomp, numcomp);
-
-}
-#endif
-
-
 void
 MultiFab::Swap (MultiFab& dst, MultiFab& src,
                 int srccomp, int dstcomp, int numcomp, int nghost)
@@ -692,7 +665,7 @@ MultiFab::contains_inf (int scomp, int ncomp, IntVect const& ngrow, bool local) 
 bool 
 MultiFab::contains_inf (int scomp, int ncomp, int ngrow, bool local) const
 {
-    return contains_inf(0,ncomp,IntVect(ngrow),local);
+    return contains_inf(scomp,ncomp,IntVect(ngrow),local);
 }
 
 bool 
@@ -861,6 +834,8 @@ indexFromValue (MultiFab const& mf, int comp, int nghost, Real value, MPI_Op mml
         MPI_Allreduce(&in,  &out, 1, datatype, mmloc, comm);
         MPI_Bcast(&(loc[0]), AMREX_SPACEDIM, MPI_INT, out.rank, comm);
     }
+#else
+    amrex::ignore_unused(mmloc);
 #endif
 
     return loc;
@@ -907,6 +882,8 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 Real
 MultiFab::norm0 (int comp, int nghost, bool local, bool ignore_covered ) const
 {
+    amrex::ignore_unused(ignore_covered);
+
     Real nm0;
 
 #ifdef AMREX_USE_EB
@@ -1015,6 +992,8 @@ MultiFab::norm2 (const Vector<int>& comps) const
 Real
 MultiFab::norm1 (int comp, const Periodicity& period, bool ignore_covered ) const
 {
+    amrex::ignore_unused(ignore_covered);
+
     MultiFab tmpmf(this->boxArray(), this->DistributionMap(), 1, 0,
                    MFInfo(), this->Factory());
 
@@ -1268,7 +1247,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<Real> const& a) noexcept
     {
         Real* p = a.ptr(i,j,k,n);
-        Gpu::Atomic::Add(p, 1.0_rt);
+        Gpu::Atomic::Add(p, Real(1.0));
     });
 #endif
 

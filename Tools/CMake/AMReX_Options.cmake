@@ -189,12 +189,12 @@ print_option(ENABLE_SUNDIALS)
 
 # Hypre
 cmake_dependent_option(ENABLE_HYPRE "Enable Hypre interfaces" OFF
-   "ENABLE_FORTRAN;ENABLE_LINEAR_SOLVERS" OFF)
+   "ENABLE_LINEAR_SOLVERS" OFF)
 print_option(ENABLE_HYPRE)
 
 # PETSc
 cmake_dependent_option(ENABLE_PETSC "Enable PETSc interfaces" OFF
-   "ENABLE_FORTRAN;ENABLE_LINEAR_SOLVERS" OFF )
+   "ENABLE_LINEAR_SOLVERS" OFF )
 print_option(ENABLE_PETSC)
 
 # HDF5
@@ -273,3 +273,10 @@ if (  ( ( TP_PROFILE STREQUAL "CRAYPAT" ) OR
      (ENABLE_BASE_PROFILE OR ENABLE_TINY_PROFILE) )
    message(WARNING "This configuration should only be used to profile BL_PROFILE!")
 endif()
+
+
+#
+# Extra options  =========================================================
+#
+option(ALLOW_DIFFERENT_COMPILER
+    "Allow an application to use a different compiler than the one used to build AMReX" OFF)

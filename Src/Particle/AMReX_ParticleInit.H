@@ -1304,6 +1304,8 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdata)
 {
+    amrex::ignore_unused(y_off,z_off);
+
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitOnePerCell()");
 
     AMREX_ASSERT(m_gdb != 0);

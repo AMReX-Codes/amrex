@@ -99,6 +99,8 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
   string outfileName, delimString("\t");
   Vector<string> actFNames;
 
+  amrex::ignore_unused(bParseFilterFile);
+
   bParserProf = false;
 
   if(argc > 2) {  // parse the command line

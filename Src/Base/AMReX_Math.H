@@ -35,7 +35,8 @@ namespace amrex { namespace Math {
 
 //using sycl::abs;
 // We have to do this because somehow sycl::abs(int) return unsigned int.
-template <typename T> T abs (T a) { return sycl::abs(a); }
+//template <typename T> T abs (T a) { return sycl::abs(a); } // The compiler seems to have trouble with this on DG1.
+template <typename T> T abs (T a) { return (a >= T(0)) ? a : -a; }
 
 using sycl::ceil;
 using sycl::copysign;

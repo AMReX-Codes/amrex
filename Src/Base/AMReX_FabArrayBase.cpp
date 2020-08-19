@@ -116,11 +116,15 @@ FabArrayBase::Initialize ()
         MaxComp = 1;
     }
 
+#ifdef AMREX_USE_GPU
     if (ParallelDescriptor::UseGpuAwareMpi()) {
         the_fa_arena = The_Device_Arena();
     } else {
         the_fa_arena = The_Pinned_Arena();
     }
+#else
+    the_fa_arena = The_Cpu_Arena();
+#endif
 
     amrex::ExecOnFinalize(FabArrayBase::Finalize);
 
@@ -509,6 +513,7 @@ FabArrayBase::CPC::CPC (const BoxArray& ba, const IntVect& ng,
 void
 FabArrayBase::flushCPC (bool no_assertion) const
 {
+    amrex::ignore_unused(no_assertion);
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
     std::vector<CPCacheIter> others;
@@ -621,11 +626,12 @@ FabArrayBase::getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVe
 
 FabArrayBase::FB::FB (const FabArrayBase& fa, const IntVect& nghost,
                       bool cross, const Periodicity& period, 
-                      bool enforce_periodicity_only)
+                      bool enforce_periodicity_only,
+                      bool multi_ghost)
     : m_typ(fa.boxArray().ixType()), m_crse_ratio(fa.boxArray().crseRatio()),
       m_ngrow(nghost), m_cross(cross),
       m_epo(enforce_periodicity_only), m_period(period),
-      m_nuse(0)
+      m_nuse(0), m_multi_ghost(multi_ghost)
 {
     BL_PROFILE("FabArrayBase::FB::FB()");
 
@@ -646,6 +652,8 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, const IntVect& nghost,
 void
 FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 {
+    AMREX_ASSERT(m_multi_ghost ? fa.nGrow() >= 2 : true); // must have >= 2 ghost nodes
+    AMREX_ASSERT(m_multi_ghost ? !m_period.isAnyPeriodic() : true); // this only works for non-periodic
     const int                  MyProc   = ParallelDescriptor::MyProc();
     const BoxArray&            ba       = fa.boxArray();
     const DistributionMapping& dm       = fa.DistributionMap();
@@ -656,6 +664,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     
     const int nlocal = imap.size();
     const IntVect& ng = m_ngrow;
+    const IntVect ng_ng = m_ngrow - 1;
     std::vector< std::pair<int,Box> > isects;
     
     const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
@@ -666,7 +675,8 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     {
 	const int ksnd = imap[i];
 	const Box& vbx = ba[ksnd];
-	
+	const Box& vbx_ng  = amrex::grow(vbx,1);
+
 	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
 	    ba.intersections(vbx+(*pit), isects, false, ng);
@@ -680,7 +690,20 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 		if (ParallelDescriptor::sameTeam(dst_owner)) {
 		    continue;  // local copy will be dealt with later
 		} else if (MyProc == dm[ksnd]) {
-		    const BoxList& bl = amrex::boxDiff(bx, ba[krcv]);
+		    BoxList bl = amrex::boxDiff(bx, ba[krcv]);
+            if (m_multi_ghost)
+            {
+                // In the case where ngrow>1, augment the send/rcv box list
+                // with boxes for overlapping ghost nodes.
+                const Box& ba_krcv   = amrex::grow(ba[krcv],1);
+                const Box& dst_bx_ng = (amrex::grow(ba_krcv,ng_ng) & (vbx_ng + (*pit)));
+                const BoxList &bltmp = ba.complementIn(dst_bx_ng);
+                for (auto const& btmp : bltmp)
+                {
+                    bl.join(amrex::boxDiff(btmp,ba_krcv));
+                }
+                bl.simplify();
+            }
 		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
 			send_tags[dst_owner].push_back(CopyComTag(*lit, (*lit)-(*pit), krcv, ksnd));
 		}
@@ -713,6 +736,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     {
 	const int   krcv = imap[i];
 	const Box& vbx   = ba[krcv];
+	const Box& vbx_ng  = amrex::grow(vbx,1);
 	const Box& bxrcv = amrex::grow(vbx, ng);
 	
 	if (check_local) {
@@ -735,7 +759,22 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 		const Box& dst_bx   = isects[j].second - *pit;
 		const int src_owner = dm[ksnd];
 		
-		const BoxList& bl = amrex::boxDiff(dst_bx, vbx);
+		BoxList bl = amrex::boxDiff(dst_bx, vbx);
+		
+        if (m_multi_ghost) 
+        {
+            // In the case where ngrow>1, augment the send/rcv box list
+            // with boxes for overlapping ghost nodes.
+            Box ba_ksnd = ba[ksnd];
+            ba_ksnd.grow(1);
+            const Box dst_bx_ng = (ba_ksnd & (bxrcv + (*pit))) - (*pit);
+            const BoxList &bltmp = ba.complementIn(dst_bx_ng);
+            for (auto const& btmp : bltmp)
+            {
+                bl.join(amrex::boxDiff(btmp,vbx_ng));
+            }
+            bl.simplify();
+        }
 		for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
 		{
 		    const Box& blbx = *lit;
@@ -1010,6 +1049,7 @@ FabArrayBase::FB::~FB ()
 void
 FabArrayBase::flushFB (bool no_assertion) const
 {
+    amrex::ignore_unused(no_assertion);
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
     std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(m_bdkey);
     for (FBCacheIter it = er_it.first; it != er_it.second; ++it)
@@ -1051,6 +1091,7 @@ FabArrayBase::getFB (const IntVect& nghost, const Periodicity& period,
             it->second->m_crse_ratio == boxArray().crseRatio()   &&
 	    it->second->m_ngrow      == nghost                   &&
 	    it->second->m_cross      == cross                    &&
+	    it->second->m_multi_ghost== m_multi_ghost            &&
 	    it->second->m_epo        == enforce_periodicity_only &&
 	    it->second->m_period     == period              )
 	{
@@ -1061,7 +1102,7 @@ FabArrayBase::getFB (const IntVect& nghost, const Periodicity& period,
     }
 
     // Have to build a new one
-    FB* new_fb = new FB(*this, nghost, cross, period, enforce_periodicity_only);
+    FB* new_fb = new FB(*this, nghost, cross, period, enforce_periodicity_only,m_multi_ghost);
 
 #ifdef BL_PROFILE
     m_FBC_stats.bytes += new_fb->bytes();
@@ -1078,10 +1119,11 @@ FabArrayBase::getFB (const IntVect& nghost, const Periodicity& period,
 }
 
 FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
-			      const FabArrayBase& dstfa,
-			      const Box&          dstdomain,
-			      const IntVect&      dstng,
-			      const BoxConverter& coarsener,
+                              const FabArrayBase& dstfa,
+                              const Box&          dstdomain,
+                              const IntVect&      dstng,
+                              const BoxConverter& coarsener,
+                              const Box&          fdomain,
                               const Box&          cdomain,
                               const EB2::IndexSpace* index_space)
     : m_srcbdk   (srcfa.getBDKey()),
@@ -1090,88 +1132,191 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
       m_dstng    (dstng),
       m_coarsener(coarsener.clone()),
       m_nuse     (0)
-{ 
+{
+    amrex::ignore_unused(fdomain,cdomain,index_space);
     BL_PROFILE("FPinfo::FPinfo()");
+
     const BoxArray& srcba = srcfa.boxArray();
     const BoxArray& dstba = dstfa.boxArray();
     BL_ASSERT(srcba.ixType() == dstba.ixType());
 
+    BoxArray srcba_simplified = srcba.simplified();
+    BoxArray dstba_simplified = dstba.simplified();
+
     const IndexType& boxtype = dstba.ixType();
     BL_ASSERT(boxtype == dstdomain.ixType());
-     
+
     BL_ASSERT(dstng.allLE(dstfa.nGrowVect()));
 
-    const DistributionMapping& dstdm = dstfa.DistributionMap();
-    
-    const int myproc = ParallelDescriptor::MyProc();
-
     BoxList bl(boxtype);
-    Vector<int> iprocs;
-
-    for (int i = 0, N = dstba.size(); i < N; ++i)
-    {
-        Box bx = dstba[i];
+    const int Ndst = dstba_simplified.size();
+    const int nprocs = ParallelContext::NProcsSub();
+    int iboxlo, iboxhi;
+    bool parallel_ci;
+    if (Ndst > 8) {
+        parallel_ci = true;
+        const int navg = Ndst / nprocs;
+        const int nextra = Ndst - navg*nprocs;
+        const int myproc = ParallelContext::MyProcSub();
+        iboxlo = (myproc < nextra) ? myproc*(navg+1) : myproc*navg+nextra;
+        iboxhi = (myproc < nextra) ? iboxlo+navg+1-1 : iboxlo+navg-1;
+    } else {
+        parallel_ci = false;
+        iboxlo = 0;
+        iboxhi = Ndst-1;
+    }
+    for (int i = iboxlo; i <= iboxhi; ++i) {
+        Box bx = dstba_simplified[i];
         bx.grow(m_dstng);
         bx &= m_dstdomain;
-
-        BoxList leftover = srcba.complementIn(bx);
-
-        bool ismybox = (dstdm[i] == myproc);
-        for (BoxList::const_iterator bli = leftover.begin(); bli != leftover.end(); ++bli)
-        {
-            bl.push_back(m_coarsener->doit(*bli));
-            if (ismybox) {
-                dst_boxes.push_back(*bli);
-                dst_idxs.push_back(i);
-            }
-            iprocs.push_back(dstdm[i]);
+        BoxList const& leftover = srcba_simplified.complementIn(bx);
+        if (leftover.isNotEmpty()) {
+            bl.join(leftover);
         }
     }
 
-    if (!iprocs.empty()) {
-        ba_crse_patch.define(bl);
-        dm_crse_patch.define(std::move(iprocs));
-#ifdef AMREX_USE_EB
-        if (index_space)
-        {
-            fact_crse_patch = makeEBFabFactory(index_space,
-                                               index_space->getGeometry(cdomain),
-                                               ba_crse_patch,
-                                               dm_crse_patch,
-                                               {0,0,0}, EBSupport::basic);
-        }
-        else
+    if (parallel_ci) {
+        amrex::AllGatherBoxes(bl.data());
+    }
+
+    if (bl.isEmpty()) return;
+
+    Long ncells_total = 0L;
+    Long ncells_max = 0L;
+    for (auto const& b : bl) {
+        auto n = b.numPts();
+        ncells_total += n;
+        ncells_max = std::max(ncells_max, n);
+    }
+
+    Long ncells_avg = ncells_total / ParallelContext::NProcsSub();
+    Long ncells_target = std::max(2*ncells_avg, Long(8*8*8));
+    if (ncells_max > ncells_target) {
+        BoxList bltmp(boxtype);
+        Vector<Box>& bltmpvec = bltmp.data();
+        for (Box const& b : bl) {
+            Long const npts = b.numPts();
+            if (npts <= ncells_target) {
+                bltmp.push_back(b);
+            } else {
+                IntVect const len = b.length();
+                IntVect numblk{1};
+                while (npts > (AMREX_D_TERM(numblk[0],*numblk[1],*numblk[2])) * ncells_target) {
+#if (AMREX_SPACEDIM == 3)
+                    int longdir = (len[2] >= len[0] && len[2] >= len[1]) ? 2 :
+                        (len[1] >= len[0]) ? 1 : 0;
+#elif (AMREX_SPACEDIM == 2)
+                    int longdir = (len[1] >= len[0]) ? 1 : 0;
+#elif (AMREX_SPACEDIM == 1)
+                    int longdir = 0;
+#else
+                    static_assert(false, "FabArrayBase::FPinfo() unsupported AMREX_SPACEDIM");
 #endif
-        {
-            fact_crse_patch.reset(new FArrayBoxFactory());
+                    numblk[longdir] *= 2;
+                }
+                numblk.min(len);
+                IntVect sz, extra;
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    sz[idim] = len[idim] / numblk[idim];
+                    extra[idim] =  len[idim] - sz[idim] * numblk[idim];
+                }
+                if (numblk == 1) {
+                    bltmp.push_back(b);
+                } else {
+                    IntVect const& boxlo = b.smallEnd();
+#if (AMREX_SPACEDIM == 3)
+                    for (int k = 0; k < numblk[2]; ++k) {
+                        int klo = (k < extra[2]) ? k*(sz[2]+1) : (k*sz[2]+extra[2]);
+                        int khi = (k < extra[2]) ? klo+(sz[2]+1)-1 : klo+sz[2]-1;
+                        klo += boxlo[2];
+                        khi += boxlo[2];
+#endif
+#if (AMREX_SPACEDIM >= 2)
+                        for (int j = 0; j < numblk[1]; ++j) {
+                            int jlo = (j < extra[1]) ? j*(sz[1]+1) : (j*sz[1]+extra[1]);
+                            int jhi = (j < extra[1]) ? jlo+(sz[1]+1)-1 : jlo+sz[1]-1;
+                            jlo += boxlo[1];
+                            jhi += boxlo[1];
+#endif
+                            for (int i = 0; i < numblk[0]; ++i) {
+                                int ilo = (i < extra[0]) ? i*(sz[0]+1) : (i*sz[0]+extra[0]);
+                                int ihi = (i < extra[0]) ? ilo+(sz[0]+1)-1 : ilo+sz[0]-1;
+                                ilo += boxlo[0];
+                                ihi += boxlo[0];
+                                bltmpvec.emplace_back(IntVect(AMREX_D_DECL(ilo,jlo,klo)),
+                                                      IntVect(AMREX_D_DECL(ihi,jhi,khi)),
+                                                      boxtype);
+                    AMREX_D_TERM(},},})
+                }
+            }
         }
+        std::swap(bl,bltmp);
+    }
+
+    BoxList blcrse(boxtype);
+    blcrse.reserve(bl.size());
+    for (auto const& b : bl) {
+        blcrse.push_back(coarsener.doit(b));
+    }
+
+    ba_crse_patch.define(std::move(blcrse));
+    ba_fine_patch.define(std::move(bl));
+    dm_patch.KnapSackProcessorMap(ba_fine_patch, ParallelContext::NProcsSub());
+
+#ifdef AMREX_USE_EB
+    if (index_space)
+    {
+        fact_crse_patch = makeEBFabFactory(index_space,
+                                           index_space->getGeometry(cdomain),
+                                           ba_crse_patch,
+                                           dm_patch,
+                                           {0,0,0}, EBSupport::basic);
+        int ng = boxtype.cellCentered() ? 0 : 1; // to avoid dengerate box
+        fact_fine_patch = makeEBFabFactory(index_space,
+                                           index_space->getGeometry(fdomain),
+                                           ba_fine_patch,
+                                           dm_patch,
+                                           {ng,ng,ng}, EBSupport::basic);
+    }
+    else
+#endif
+    {
+        fact_crse_patch.reset(new FArrayBoxFactory());
+        fact_fine_patch.reset(new FArrayBoxFactory());
     }
 }
 
 FabArrayBase::FPinfo::~FPinfo ()
 {
-    delete m_coarsener;
 }
 
 Long
 FabArrayBase::FPinfo::bytes () const
 {
     Long cnt = sizeof(FabArrayBase::FPinfo);
-    cnt += sizeof(Box) * (ba_crse_patch.capacity() + dst_boxes.capacity());
-    cnt += sizeof(int) * (dm_crse_patch.capacity() + dst_idxs.capacity());
+    cnt += sizeof(Box) * (ba_crse_patch.capacity() + ba_fine_patch.capacity());
+    cnt += sizeof(int) * dm_patch.capacity();
     return cnt;
 }
 
 const FabArrayBase::FPinfo&
 FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
                          const FabArrayBase& dstfa,
-                         const Box&          dstdomain,
                          const IntVect&      dstng,
                          const BoxConverter& coarsener,
-                         const Box&          cdomain,
+                         const Geometry&     fgeom,
+                         const Geometry&     cgeom,
                          const EB2::IndexSpace* index_space)
 {
     BL_PROFILE("FabArrayBase::TheFPinfo()");
+
+    Box dstdomain = fgeom.Domain();
+    dstdomain.convert(dstfa.boxArray().ixType());
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+        if (fgeom.isPeriodic(i)) {
+            dstdomain.grow(i,dstng[i]);
+        }
+    }
 
     const BDKey& srckey = srcfa.getBDKey();
     const BDKey& dstkey = dstfa.getBDKey();
@@ -1194,7 +1339,8 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
     }
 
     // Have to build a new one
-    FPinfo* new_fpc = new FPinfo(srcfa, dstfa, dstdomain, dstng, coarsener, cdomain, index_space);
+    FPinfo* new_fpc = new FPinfo(srcfa, dstfa, dstdomain, dstng, coarsener,
+                                 fgeom.Domain(), cgeom.Domain(), index_space);
 
 #ifdef AMREX_MEM_PROFILING
     m_FPinfo_stats.bytes += new_fpc->bytes();
@@ -1215,6 +1361,7 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
 void
 FabArrayBase::flushFPinfo (bool no_assertion)
 {
+    amrex::ignore_unused(no_assertion);
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
     std::vector<FPinfoCacheIter> others;
@@ -1374,6 +1521,7 @@ FabArrayBase::TheCFinfo (const FabArrayBase& finefa,
 void
 FabArrayBase::flushCFinfo (bool no_assertion)
 {
+    amrex::ignore_unused(no_assertion);
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
     auto er_it = m_TheCrseFineCache.equal_range(m_bdkey);
     for (auto it = er_it.first; it != er_it.second; ++it)
@@ -1554,6 +1702,7 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 void
 FabArrayBase::flushTileArray (const IntVect& tileSize, bool no_assertion) const
 {
+    amrex::ignore_unused(no_assertion);
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
     TACache& tao = m_TheTileArrayCache;
@@ -1658,6 +1807,7 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
                                  Vector<char*>&       send_data,
                                  Vector<MPI_Status>&  stats)
 {
+    amrex::ignore_unused(send_data);
 #ifdef BL_USE_MPI
     BL_ASSERT(N_snds > 0);
 
@@ -1667,6 +1817,8 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
     BL_ASSERT(send_data.size() == N_snds);
 
     ParallelDescriptor::Waitall(send_reqs, stats);
+#else
+    amrex::ignore_unused(N_snds,send_reqs,stats);
 #endif /*BL_USE_MPI*/
 }
 

@@ -83,7 +83,7 @@ MLNodeLinOp::nodalSync (int amrlev, int mglev, MultiFab& mf) const
 
 void
 MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                               const MultiFab* crse_bcdata)
+                               const MultiFab* /*crse_bcdata*/)
 {
     const int mglev = 0;
     const int ncomp = b.nComp();
@@ -112,7 +112,7 @@ MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
 
 void
 MLNodeLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                                 BCMode bc_mode, const MultiFab* crse_bcdata)
+                                 BCMode /*bc_mode*/, const MultiFab* /*crse_bcdata*/)
 {
     apply(amrlev, mglev, resid, x, BCMode::Homogeneous, StateMode::Correction);
     int ncomp = b.nComp();
@@ -140,6 +140,7 @@ MLNodeLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 Real
 MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const
 {
+    amrex::ignore_unused(amrlev);
     AMREX_ASSERT(amrlev==0);
     AMREX_ASSERT(mglev+1==m_num_mg_levels[0] || mglev==0);
     const auto& mask = (mglev+1 == m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
@@ -160,6 +161,7 @@ MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
 void
 MLNodeLinOp::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
 {
+    amrex::ignore_unused(amrlev);
     int ncomp = rhs.nComp();
     for (int n = 0; n < ncomp; ++n)
     {
@@ -330,9 +332,20 @@ MLNodeLinOp::buildMasks ()
 }
 
 void
-MLNodeLinOp::setDirichletMask (int amrlev, const iMultiFab& a_dmask)
+MLNodeLinOp::setOversetMask (int amrlev, const iMultiFab& a_dmask)
 {
-    iMultiFab::Copy(*m_dirichlet_mask[amrlev][0], a_dmask, 0, 0, 1, 0);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(*m_dirichlet_mask[amrlev][0], TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        Array4<int const> const& omsk = a_dmask.const_array(mfi);
+        Array4<int> const& dmsk = m_dirichlet_mask[amrlev][0]->array(mfi);
+        Box const& bx = mfi.tilebox();
+        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+        {
+            dmsk(i,j,k) = 1 - omsk(i,j,k);
+        });
+    }
     m_overset_dirichlet_mask = true;
 }
 

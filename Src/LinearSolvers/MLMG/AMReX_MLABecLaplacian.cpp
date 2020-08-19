@@ -126,10 +126,10 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
     ParallelAllReduce::Min(max_overset_mask_coarsening_level, ParallelContext::CommunicatorSub());
     m_overset_mask[amrlev].resize(max_overset_mask_coarsening_level+1);
 
-    LPInfo info = a_info;
-    info.max_coarsening_level = std::min(a_info.max_coarsening_level,
-                                         max_overset_mask_coarsening_level);
-    define(a_geom, a_grids, a_dmap, info, a_factory);
+    LPInfo linfo = a_info;
+    linfo.max_coarsening_level = std::min(a_info.max_coarsening_level,
+                                          max_overset_mask_coarsening_level);
+    define(a_geom, a_grids, a_dmap, linfo, a_factory);
 
     amrlev = 0;
     for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev) {
@@ -141,9 +141,9 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
         }
     }
 
-    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+    for (amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
-            m_overset_mask[amrlev][mglev]->setBndry(0);
+            m_overset_mask[amrlev][mglev]->setBndry(1);
             m_overset_mask[amrlev][mglev]->FillBoundary(m_geom[amrlev][mglev].periodicity());
         }
     }
@@ -319,7 +319,7 @@ MLABecLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
 
     amrex::average_down_faces(amrex::GetArrOfConstPtrs(fine_b_coeffs),
                               amrex::GetArrOfPtrs(crse_b_coeffs),
-                              mg_coarsen_ratio, 0);
+                              IntVect(mg_coarsen_ratio), m_geom[flev-1][0]);
 }
 
 void
@@ -663,9 +663,9 @@ MLABecLaplacian::FFlux (int amrlev, const MFIter& mfi,
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
     const int ncomp = getNComp();
     FFlux(box, dxinv, m_b_scalar,
-          Array<FArrayBox const*,AMREX_SPACEDIM>{AMREX_D_DECL(&(m_b_coeffs[amrlev][mglev][0][mfi]),
-                                                              &(m_b_coeffs[amrlev][mglev][1][mfi]),
-                                                              &(m_b_coeffs[amrlev][mglev][2][mfi]))},
+          Array<FArrayBox const*,AMREX_SPACEDIM>{{AMREX_D_DECL(&(m_b_coeffs[amrlev][mglev][0][mfi]),
+                                                               &(m_b_coeffs[amrlev][mglev][1][mfi]),
+                                                               &(m_b_coeffs[amrlev][mglev][2][mfi]))}},
           flux, sol, face_only, ncomp);
 }
 
@@ -792,7 +792,7 @@ MLABecLaplacian::applyOverset (int amrlev, MultiFab& rhs) const
             Array4<int const> const& osm = m_overset_mask[amrlev][0]->const_array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
             {
-                if (osm(i,j,k)) rfab(i,j,k,n) = 0.0;
+                if (osm(i,j,k) == 0) rfab(i,j,k,n) = 0.0;
             });
         }
     }

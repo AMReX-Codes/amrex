@@ -89,6 +89,11 @@ namespace amrex
     void ExecOnFinalize (PTR_TO_VOID_FUNC);
     void ExecOnInitialize (PTR_TO_VOID_FUNC);
 
+    //! This shuts up the compiler about unused variables
+    template <class... Ts>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void ignore_unused (const Ts&...) {}
+
     //! Print out message to cerr and exit via amrex::Abort().
     void Error (const std::string& msg);
     namespace detail { void Error_host_doit (const char * msg); }

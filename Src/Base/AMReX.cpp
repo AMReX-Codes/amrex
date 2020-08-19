@@ -330,7 +330,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         }
     }
 
-#if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)
+#if defined(AMREX_USE_UPCXX)
     upcxx::init();
 #endif
 
@@ -430,7 +430,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             if (invalid)   curr_fpe_excepts |= FE_INVALID;
             if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
             if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
-#if !defined(__PGI) || (__PGIC__ >= 16)
+#if !defined(AMREX_USE_DPCPP) && (!defined(__PGI) || (__PGIC__ >= 16))
+            // xxxxx DPCPP todo: fpe trap
             prev_fpe_excepts = fegetexcept();
             if (curr_fpe_excepts != 0) {
                 feenableexcept(curr_fpe_excepts);  // trap floating point exceptions
@@ -479,6 +480,9 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     BL_PROFILE_INITPARAMS();
 #endif
     machine::Initialize();
+#ifdef AMREX_USE_CUDA
+    Gpu::Fuser::Initialize();
+#endif
 
     if (system::verbose > 0)
     {
@@ -608,7 +612,7 @@ amrex::Finalize (amrex::AMReX* pamrex)
     Gpu::Device::Finalize();
 #endif
 
-#if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)
+#if defined(AMREX_USE_UPCXX)
     upcxx::finalize();
 #endif
 

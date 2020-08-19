@@ -58,25 +58,24 @@ function (configure_amrex)
    endif()
 
    #
+   # Special flags for MSV compiler
+   #
+   set(_cxx_msvc   "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>")
+   set(_condition  "$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19.26>")
+
+   target_compile_options( amrex PRIVATE $<${_cxx_msvc}:/bigobj> )
+
+   target_compile_options( amrex PUBLIC
+      $<${_cxx_msvc}:$<IF:${_condition},/experimental:preprocessor,/Zc:preprocessor>>
+      )
+
+   unset(_condition)
+   unset(_cxx_msvc)
+
+   #
    # Setup OpenMP
    #
    if (ENABLE_OMP)
-
-      find_package(OpenMP REQUIRED)
-      target_link_libraries(amrex PUBLIC OpenMP::OpenMP_CXX)
-
-      # Make imported target "global" so that it can be seen
-      # from other directories in the project.
-      # This is especially useful when get_target_properties_flattened()
-      # (see module AMReXTargetHelpers.cmake) is called to recover dependecy tree info
-      # in projects that use amrex directly in the build (via add_subdirectory()).
-      set_target_properties(OpenMP::OpenMP_CXX PROPERTIES IMPORTED_GLOBAL True )
-
-      if (ENABLE_FORTRAN_INTERFACES OR ENABLE_HYPRE)
-         target_link_libraries(amrex PUBLIC OpenMP::OpenMP_Fortran )
-         set_target_properties(OpenMP::OpenMP_Fortran PROPERTIES IMPORTED_GLOBAL True )
-      endif ()
-
       # We have to manually pass OpenMP flags to host compiler if CUDA is enabled
       # Since OpenMP imported targets are generated only for the Compiler ID in use, i.e.
       # they do not provide flags for all possible compiler ids, we assume the same compiler use
@@ -108,17 +107,12 @@ function (configure_amrex)
          get_target_property( _amrex_flags_2 Flags_CXX INTERFACE_COMPILE_OPTIONS)
       endif()
 
-      get_target_property( _amrex_flags_3 Flags_CXX_REQUIRED INTERFACE_COMPILE_OPTIONS)
-
       set(_amrex_flags)
       if (_amrex_flags_1)
          list(APPEND _amrex_flags ${_amrex_flags_1})
       endif ()
       if (_amrex_flags_2)
          list(APPEND _amrex_flags ${_amrex_flags_2})
-      endif ()
-      if (_amrex_flags_3)
-         list(APPEND _amrex_flags ${_amrex_flags_3})
       endif ()
 
       eval_genex(_amrex_flags CXX  ${CMAKE_CXX_COMPILER_ID}
@@ -153,20 +147,6 @@ function (configure_amrex)
          target_link_options(amrex PUBLIC -Wl,--warn-unresolved-symbols)
       endif()
    endif()
-
-   #
-   # Setup HDF5 -- for now we do not create an imported target
-   #
-   if (ENABLE_HDF5)
-      set(HDF5_PREFER_PARALLEL TRUE)
-      find_package(HDF5 1.10.4 REQUIRED COMPONENTS CXX)
-      if (NOT HDF5_IS_PARALLEL)
-         message(FATAL_ERROR "\nHDF5 library does not support parallel I/O")
-      endif ()
-      target_include_directories(amrex PUBLIC ${HDF5_CXX_INCLUDE_DIRS})
-      target_compile_definitions(amrex PUBLIC ${HDF5_CXX_DEFINES})
-      target_link_libraries(amrex PUBLIC ${HDF5_CXX_LIBRARIES})
-   endif ()
 
    #
    # Setup third-party profilers

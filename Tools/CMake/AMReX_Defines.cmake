@@ -73,8 +73,7 @@ function ( set_amrex_defines )
    # Dimensionality
    add_amrex_define( AMREX_SPACEDIM=${DIM} )
 
-   # System -- not used anywhere in the source code but mentioned
-   # in /Src/AmrTask/ Makefiles
+   # System -- not used anywhere in the source code
    add_amrex_define( AMREX_${CMAKE_SYSTEM_NAME} )
 
    #  Assertions
@@ -93,11 +92,15 @@ function ( set_amrex_defines )
       # Fortran/C mangling scheme
       #
       include( FortranCInterface )
+      if(NOT FortranCInterface_GLOBAL_FOUND)
+          message(FATAL_ERROR "Failed to find the Fortan C Interface -- check the CMakeError.log")
+      endif()
       include( ${FortranCInterface_BINARY_DIR}/Output.cmake )
 
       set( FORTLINK "" )
 
-      if ( FortranCInterface_GLOBAL_SUFFIX STREQUAL "" )
+      if ( (FortranCInterface_GLOBAL_SUFFIX STREQUAL "" ) AND NOT
+          (FortranCInterface_GLOBAL_CASE STREQUAL "") )
          set(FORTLINK "${FortranCInterface_GLOBAL_CASE}CASE" )
          message(STATUS "Fortran name mangling scheme: ${FORTLINK} (no append underscore)")
       elseif ( (FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")  AND
@@ -105,7 +108,13 @@ function ( set_amrex_defines )
          set(FORTLINK "UNDERSCORE")
          message(STATUS "Fortran name mangling scheme: ${FORTLINK} (lower case, append underscore)")
       else ()
-         message(AUTHOR_WARNING "Fortran to C mangling not compatible with AMReX code")
+         # now we have to guess
+         if (CMAKE_Fortran_COMPILER_ID MATCHES XL) # old IBM prior to XLClang
+             set(FORTLINK "LOWERCASE")
+         else ()
+             set(FORTLINK "UNDERSCORE")
+         endif()
+         message(WARNING "Fortran to C mangling not compatible with AMReX code, assuming '${FORTLINK}'")
       endif ()
 
       add_amrex_define( BL_FORT_USE_${FORTLINK} )  # Only legacy form
@@ -134,24 +143,6 @@ function ( set_amrex_defines )
    add_amrex_define( AMREX_USE_NVML NO_LEGACY IF ENABLE_CUDA )
    add_amrex_define( AMREX_GPU_MAX_THREADS=${CUDA_MAX_THREADS} NO_LEGACY
       IF ENABLE_CUDA )
-
-   # Fortran macros used by application code only
-   # (they are not present in AMReX source code)
-   if (ENABLE_CUDA AND ENABLE_AMREX_FORTRAN )
-      target_compile_definitions( amrex PUBLIC
-         $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LAUNCH=attributes\(global\);
-         AMREX_DEVICE=attributes\(device\);
-         AMREX_CUDA_FORT_GLOBAL=attributes\(global\);
-         AMREX_CUDA_FORT_DEVICE=attributes\(device\);
-         AMREX_CUDA_FORT_HOST=attributes\(host\)>)
-   # else ()
-   #    target_compile_definitions( amrex PUBLIC
-   #       $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LAUNCH=\"\";
-   #       AMREX_DEVICE=\"\";
-   #       AMREX_CUDA_FORT_GLOBAL=\"\";
-   #       AMREX_CUDA_FORT_DEVICE=\"\";
-   #       AMREX_CUDA_FORT_HOST=\"\">)
-   endif ()
 
    #
    # OpenACC

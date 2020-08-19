@@ -527,7 +527,7 @@ FABio::read_header (std::istream& is,
 FABio*
 FABio::read_header (std::istream& is,
                     FArrayBox&    f,
-		    int           compIndex,
+		    int           /*compIndex*/,
 		    int&          nCompAvailable)
 {
 //    BL_PROFILE("FArrayBox::read_header_is_i");
@@ -718,9 +718,9 @@ FABio_ascii::skip (std::istream& is,
 }
 
 void
-FABio_ascii::skip (std::istream& is,
-                   FArrayBox&    f,
-		   int           nCompToSkip) const
+FABio_ascii::skip (std::istream& /*is*/,
+                   FArrayBox&    /*f*/,
+		   int           /*nCompToSkip*/) const
 {
     amrex::Error("FABio_ascii::skip(..., int nCompToSkip) not implemented");
 }
@@ -748,7 +748,7 @@ FABio_8bit::write (std::ostream&    os,
 {
     BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
 
-    const Real eps = 1.0e-8_rt; // FIXME - whats a better value?
+    const Real eps = 1.0e-8; // FIXME - whats a better value?
     const Long siz = f.box().numPts();
 
     unsigned char *c = new unsigned char[siz];

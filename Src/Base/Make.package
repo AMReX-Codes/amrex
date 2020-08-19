@@ -67,8 +67,11 @@ C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuPrint.H AMR
 
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosG.H AMReX_GpuLaunchFunctsG.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosC.H AMReX_GpuLaunchFunctsC.H
+C$(AMREX_BASE)_headers += AMReX_GpuLaunchGlobal.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunch.H
 C$(AMREX_BASE)_sources += AMReX_GpuLaunch.cpp
+C$(AMREX_BASE)_headers += AMReX_GpuFuse.H
+C$(AMREX_BASE)_sources += AMReX_GpuFuse.cpp
 
 C$(AMREX_BASE)_headers += AMReX_GpuControl.H
 C$(AMREX_BASE)_sources += AMReX_GpuControl.cpp
@@ -158,9 +161,6 @@ C$(AMREX_BASE)_headers += AMReX_MultiFabUtil.H AMReX_MultiFabUtil_C.H AMReX_Mult
 C$(AMREX_BASE)_sources += AMReX_MultiFabUtil.cpp
 C$(AMREX_BASE)_headers += AMReX_MultiFabUtilI.H
 
-C$(AMREX_BASE)_sources += AMReX_MultiFabUtil_Perilla.cpp
-C$(AMREX_BASE)_headers += AMReX_MultiFabUtil_Perilla.H
-
 #
 # Boundary-related 
 #
@@ -170,6 +170,8 @@ C$(AMREX_BASE)_sources += AMReX_PhysBCFunct.cpp AMReX_BCUtil.cpp
 C$(AMREX_BASE)_headers += AMReX_PhysBCFunct.H AMReX_BCUtil.H
 C$(AMREX_BASE)_sources += AMReX_FilCC_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilCC_C.H AMReX_FilCC_$(DIM)D_C.H
+C$(AMREX_BASE)_sources += AMReX_FilND_C.cpp
+C$(AMREX_BASE)_headers += AMReX_FilND_C.H
 
 #
 # Plotfile

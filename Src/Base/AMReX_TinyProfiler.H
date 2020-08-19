@@ -89,10 +89,6 @@ private:
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
     static double t_init;
 
-#ifdef AMREX_USE_CUDA
-    nvtxRangeId_t nvtx_id;
-#endif
-
     static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);
 };
 

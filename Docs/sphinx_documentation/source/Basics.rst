@@ -279,6 +279,34 @@ run with
 
 to change the value of :cpp:`ncells` and :cpp:`hydro.cfl`.
 
+Sometimes an application code may want to set a default that differs from the
+default in AMReX.  In this case, it is often convenient to define a function that
+sets the variable(s), and pass the name of that function to :cpp:`amrex::Initialize`.
+As an example, we may define :cpp:`add_par` to set :cpp:`extend_domain_face`
+to true if it hasn't already been set in the inputs file.
+
+.. highlight:: c++
+
+::
+
+    void add_par () {
+       ParmParse pp("eb2");
+       if(not pp.contains("extend_domain_face")) {
+          pp.add("extend_domain_face",true);
+       }
+    };
+
+Then we would pass :cpp:`add_par` into :cpp:`amrex::Initialize`:
+
+.. highlight:: c++
+
+::
+
+    amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, add_par);
+
+This value replaces the current default value of false in AMReX itself, but
+can still be over-written by setting a value in the inputs file.
+
 
 .. _sec:basics:initialize:
 
@@ -347,7 +375,7 @@ arguments.
     main2d*.exe inputs amrex.v=1 amrex.fpe_trap_invalid=1 -- -tao_monitor
 
 then AMReX will parse the inputs file and the optional AMReX's command
-line arguments, but will ignore everything after "--".
+line arguments, but will ignore everything after the double dashes.
 
 .. _sec:basics:amrgrids:
 
@@ -2486,8 +2514,8 @@ if supported.  Alternatively, one can always use runtime parameters to control t
 handling of floating point exceptions: ``amrex.fpe_trap_invalid`` for
 NaNs, ``amrex.fpe_trap_zero`` for division by zero and
 ``amrex.fpe_trap_overflow`` for overflow.  To more effectively trap the
-use of uninitialized values, AMReX also initializes ``FArrayBox``s in
-``MulitFab``s and arrays allocated by ``bl_allocate`` to signaling NaNs when it is compiled
+use of uninitialized values, AMReX also initializes ``FArrayBox``\ s in
+``MulitFab``\ s and arrays allocated by ``bl_allocate`` to signaling NaNs when it is compiled
 with ``TEST=TRUE`` or ``DEBUG=TRUE`` in GNU make, or with ``-DCMAKE_BUILD_TYPE=Debug`` in CMake.
 One can also control the setting for ``FArrayBox`` using the runtime parameter, ``fab.init_snan``.
 

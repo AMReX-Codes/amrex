@@ -3,15 +3,6 @@
 
 #if !defined(BL_LANG_FORT)
 
-// HIP FIX HERE - noexcept
-
-#ifdef AMREX_HIP_PLATFORM_HCC
-#define AMREX_NOEXCEPT
-#else
-#define AMREX_NOEXCEPT noexcept
-#endif
-
-
 // restrict
 
 #ifdef __cplusplus
@@ -126,6 +117,12 @@
 #define AMREX_INLINE inline
 #endif
 
+// no inline
+#if defined(__GNUC__)
+#define AMREX_NO_INLINE __attribute__((noinline))
+#else
+#define AMREX_NO_INLINE
+#endif
 
 // __attribute__((weak))
 
@@ -140,6 +137,17 @@
 #if defined(__cplusplus) && defined(_WIN32)
 #include <iso646.h>
 #endif
+
+#if (__cplusplus >= 201703L)
+#define AMREX_FALLTHROUGH [[fallthrough]]
+#elif defined(__clang__)
+#define AMREX_FALLTHROUGH [[clang::fallthrough]]
+#elif defined(__GNUC__) && (__GNUC__ >= 7)
+#define AMREX_FALLTHROUGH [[gnu::fallthrough]]
+#else
+#define AMREX_FALLTHROUGH ((void)0)
+#endif
+
 
 #endif /* !BL_LANG_FORT */
 

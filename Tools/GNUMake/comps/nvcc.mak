@@ -21,6 +21,16 @@ ifeq ($(shell expr $(nvcc_major_version) \>= 11),1)
   nvcc_forward_unknowns = 1
 endif
 
+ifeq ($(shell expr $(nvcc_major_version) \< 10),1)
+  DEPFLAGS = -M  # -MM not supported in < 10
+endif
+
+ifeq ($(shell expr $(nvcc_major_version) \= 10),1)
+ifeq ($(shell expr $(nvcc_minor_version) \= 0),1)
+  DEPFLAGS = -M  # -MM not supported in 10.0
+endif
+endif
+
 #
 # nvcc compiler driver does not always accept pgc++
 # as a host compiler at present. However, if we're using
@@ -132,6 +142,16 @@ NVCC_FLAGS += $(XTRA_NVCC_FLAGS)
 
 ifeq ($(nvcc_forward_unknowns),1)
   NVCC_FLAGS += --forward-unknown-to-host-compiler
+endif
+
+ifeq ($(shell expr $(nvcc_major_version) \>= 11),1)
+ifeq ($(GPU_ERROR_CAPTURE_THIS),TRUE)
+  NVCC_FLAGS += --Werror ext-lambda-captures-this
+else
+ifeq ($(GPU_WARN_CAPTURE_THIS),TRUE)
+  NVCC_FLAGS += --Wext-lambda-captures-this
+endif
+endif
 endif
 
 CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu

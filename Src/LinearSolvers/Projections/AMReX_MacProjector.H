@@ -37,7 +37,7 @@ public:
                   const LPInfo& a_lpinfo,
                   const Vector<MultiFab const*>& a_divu = {})
      : MacProjector(a_umac, a_umac_loc, a_beta, a_beta_loc, a_phi_loc,
-                    a_geom, a_lpinfo, a_divu, MLMG::Location::CellCenter) {};
+                    a_geom, a_lpinfo, a_divu, MLMG::Location::CellCenter) {}
 
 #ifndef AMREX_USE_EB
     MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
@@ -47,7 +47,7 @@ public:
                   const Vector<MultiFab const*>& a_divu = {}) 
      : MacProjector(a_umac, MLMG::Location::FaceCenter,
                     a_beta, MLMG::Location::FaceCenter, MLMG::Location::CellCenter,
-                    a_geom, a_lpinfo, a_divu, MLMG::Location::CellCenter) {};
+                    a_geom, a_lpinfo, a_divu, MLMG::Location::CellCenter) {}
 
     MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
                   const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
@@ -55,7 +55,7 @@ public:
                   const Vector<MultiFab const*>& a_divu = {})
      : MacProjector(a_umac, MLMG::Location::FaceCenter,
                     a_beta, MLMG::Location::FaceCenter, MLMG::Location::CellCenter,
-                    a_geom, LPInfo(), a_divu, MLMG::Location::CellCenter) {};
+                    a_geom, LPInfo(), a_divu, MLMG::Location::CellCenter) {}
 #endif
 
     //
@@ -95,6 +95,8 @@ private:
 
     void setOptions ();
 
+    void averageDownVelocity ();
+
     std::unique_ptr<MLABecLaplacian> m_abeclap;
 #ifdef AMREX_USE_EB
     std::unique_ptr<MLEBABecLap> m_eb_abeclap;
@@ -107,6 +109,7 @@ private:
     Vector<Array<MultiFab*,AMREX_SPACEDIM> > m_umac;
     Vector<MultiFab> m_rhs;
     Vector<MultiFab> m_phi;
+    Vector<MultiFab> m_divu;
     Vector<Array<MultiFab,AMREX_SPACEDIM> > m_fluxes;
 
     Vector<Geometry> m_geom;
