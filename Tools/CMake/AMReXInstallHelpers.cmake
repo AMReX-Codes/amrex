@@ -3,8 +3,8 @@
 #
 function ( generate_amrex_config_header )
 
-   get_target_property(_defines amrex COMPILE_DEFINITIONS)
-   evaluate_genex(_defines _defines_list )
+   get_target_property(_defines_list amrex COMPILE_DEFINITIONS)
+   eval_genex(_defines_list NONE NONE INTERFACE BUILD)
 
    # set variables from list of defines
    # configure_file() will use these variables to
