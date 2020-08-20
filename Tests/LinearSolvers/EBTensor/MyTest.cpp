@@ -81,8 +81,8 @@ MyTest::solve ()
         }
 #if (AMREX_SPACEDIM == 3)
     } else {
-//      v_lo_bc[cylinder_direction] = LinOpBCType::Dirichlet;
-//      v_hi_bc[cylinder_direction] = LinOpBCType::Dirichlet;
+        v_lo_bc[cylinder_direction] = LinOpBCType::Dirichlet;
+        v_hi_bc[cylinder_direction] = LinOpBCType::Dirichlet;
 #endif
     }
 
