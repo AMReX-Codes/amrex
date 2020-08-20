@@ -1,9 +1,42 @@
-function ( eval_conditional_expressions _out _in)
+#[=======================================================================[
+AMReXGenexHelpers
+-----------------
 
-   # IMPORTANT: the group "\\", i.e. quoted double backslash, is parsed as a single
-   # backslash. Therefore, "\\$" is parsed as just \$.
+Provides functions to evaluate generator expressions.
 
-   #
+The most important of these functions is
+
+  * eval_genex( _list _lang _comp )
+
+eval_genex(...) evaluates the generator expression in _list
+according to user-specified parameters such as compiler language (_lang)
+and compiler id (_comp).
+
+Other functions provided by this module are:
+
+  * eval_conditional_expressions( _out _in )
+  * eval_logical_operators( _out _in )
+  * eval_string_comparisons( _out _in )
+  * eval_string_transformations( _out _in )
+
+Each of these functions evaluate a specific type of genex in a list
+and therefore are rarely needed outside of this module.
+
+IMPORTANT NOTE:
+when specifying regex, be aware that the group "\\", i.e. quoted
+double backslash, is parsed as a single  backslash.Therefore, "\\$" is
+parsed as just \$.
+
+#]=======================================================================]
+
+#
+# Evaluate string-valued generator expressions that depend on a boolean condition
+# that must be 0 or 1.
+#
+function ( eval_conditional_expressions _list)
+
+   set(_in ${${_list}})
+
    # Genex in the form $<condition:true_string> where condition=<0|1>
    #
    string(REGEX REPLACE "\\$<1:([^\$>]*)>" "\\1" _in "${_in}")  # true (\\1 is first subexpression in the match)
@@ -15,15 +48,18 @@ function ( eval_conditional_expressions _out _in)
    string(REGEX REPLACE "\\$<IF:0,[^\$,]*,([^\$>]*)>"   "\\1" _in "${_in}")  # false
    string(REGEX REPLACE "(\\$<IF):1,([^\$,]*),[^\$>]*>" "\\2" _in "${_in}")  # true
 
-   set(${_out}  "${_in}" PARENT_SCOPE)
+   set(${_list}  "${_in}" PARENT_SCOPE)
 
 endfunction ()
 
 
+
 #
+# Evaluate boolean generator expressions that perform logical operations
 #
-#
-function (eval_logical_operators _out _in)
+function (eval_logical_operators _list)
+
+   set(_in ${${_list}})
 
    #
    # Genex in the form $<BOOL:string>
@@ -59,15 +95,16 @@ function (eval_logical_operators _out _in)
    string(REGEX REPLACE "\\$<NOT:1>" "0" _in "${_in}")
    string(REGEX REPLACE "\\$<NOT:0>" "1" _in "${_in}")
 
-   set(${_out} "${_in}" PARENT_SCOPE)
+   set(${_list} "${_in}" PARENT_SCOPE)
 
 endfunction ()
 
+#
+# Evaluate boolean generator expressions that perform string operations
+#
+function (eval_string_comparisons _list)
 
-#
-#
-#
-function (eval_string_comparisons _out _in)
+   set(_in ${${_list}})
 
    # To avoid confusing ";" with list separators when using REGEX MATCHALL
    set(_semicol "$SC$")
@@ -90,14 +127,17 @@ function (eval_string_comparisons _out _in)
    endforeach()
 
    string(REPLACE "${_semicol}" ";" _in "${_in}")
-   set(${_out} "${_in}" PARENT_SCOPE)
+   set(${_list} "${_in}" PARENT_SCOPE)
 
 endfunction ()
 
 #
+# Evaluate string-valued generator expressions that perform string
+# transformations
 #
-#
-function (eval_string_transformations _out _in)
+function (eval_string_transformations _list)
+
+   set(_in ${${_list}})
 
    # To avoid confusing ";" with list separators when using REGEX MATCHALL
    set(_semicol "$SC$")
@@ -138,7 +178,7 @@ function (eval_string_transformations _out _in)
    endforeach()
 
    string(REPLACE "${_semicol}" ";" _in "${_in}")
-   set(${_out} "${_in}" PARENT_SCOPE)
+   set(${_list} "${_in}" PARENT_SCOPE)
 
 endfunction ()
 
@@ -256,16 +296,16 @@ function ( eval_genex _list _lang _comp )
       string(REGEX REPLACE "\\$<LINK_LANGUAGE:[A-Za-z]*>" "0"  _in "${_in}")
 
       # String transformation
-      eval_string_transformations( _in "${_in}")
+      eval_string_transformations(_in)
 
       # String comparisons
-      eval_string_comparisons(_in "${_in}")
+      eval_string_comparisons(_in)
 
       # Logical operators
-      eval_logical_operators(_in "${_in}")
+      eval_logical_operators(_in)
 
       # Conditional expressions
-      eval_conditional_expressions(_in "${_in}")
+      eval_conditional_expressions(_in)
 
       # Deal with interface if present
       if (ARG_INTERFACE)
