@@ -1650,7 +1650,7 @@ BaseFab<T>::prefetchToHost () const noexcept
                                                   cudaCpuDeviceId,
                                                   Gpu::gpuStream()));
 #elif defined(AMREX_USE_HIP)
-        // HIP FIX HERE
+        // xxxxx HIP FIX HERE after managed memory is supported
 #endif
     }
 #endif
@@ -1672,7 +1672,7 @@ BaseFab<T>::prefetchToDevice () const noexcept
                                                   Gpu::Device::deviceId(),
                                                   Gpu::gpuStream()));
 #elif defined(AMREX_USE_HIP)
-        // HIP FIX HERE
+        // xxxxx HIP FIX HERE after managed memory is supported
 #endif
     }
 #endif

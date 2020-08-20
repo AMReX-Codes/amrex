@@ -16,7 +16,7 @@
 #elif defined(AMREX_USE_CUDA)
 #  define AMREX_DEVICE_PRINTF(...) std::printf(__VA_ARGS__);
 #elif defined(AMREX_USE_HIP)
-// HIP FIX HERE - printf
+// xxxxx HIP FIX HERE - printf
 #  define AMREX_DEVICE_PRINTF(...)
 #endif
 

@@ -875,7 +875,6 @@ Box::atOffset (Long offset) const noexcept
                                 static_cast<int>(k+lo[2])) };
 }
 
-// HIP FIX HERE - Initialization List: {{
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 GpuArray<int,3>

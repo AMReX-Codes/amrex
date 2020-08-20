@@ -53,16 +53,41 @@ endif  # BL_NO_FORT
 ifeq ($(HIP_PLATFORM),clang)
 
   ifeq ($(DEBUG),TRUE)
-    CXXFLAGS += -g -O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -ftrapv
-    CFLAGS   += -g -O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -ftrapv
+    CXXFLAGS += -g -O0 -ftrapv
+    CFLAGS   += -g -O0 -ftrapv
+
     FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
     F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
+
   else  # DEBUG=FALSE flags
+
     CXXFLAGS += -g -O3
     CFLAGS   += -g -O3
     FFLAGS   += -g -O3
     F90FLAGS += -g -O3
+
   endif
+
+  CXXFLAGS += -Wno-pass-failed  # disable this warning
+
+  ifeq ($(WARN_ALL),TRUE)
+    warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
+    warning_flags += -Wfloat-conversion -Wextra-semi
+
+    warning_flags += -Wpedantic
+
+    ifneq ($(WARN_SHADOW),FALSE)
+      warning_flags += -Wshadow
+    endif
+
+    CXXFLAGS += $(warning_flags) -Woverloaded-virtual
+    CFLAGS += $(warning_flags)
+  endif
+
+#  ifeq ($(WARN_ERROR),TRUE)
+#    CXXFLAGS += -Werror
+#    CFLAGS += -Werror
+#  endif
 
   # Generic HIP info
   ROC_PATH=$(realpath $(dir $(HIP_PATH)))
