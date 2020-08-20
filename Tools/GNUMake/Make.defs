@@ -652,9 +652,6 @@ else ifeq ($(USE_CUDA),TRUE)
 
     USE_GPU := TRUE
 
-    # The CUDA implementation is not currently threadsafe.
-    # Throw an error if the user tries to build with OpenMP and CUDA.
-
     ifeq ($(lowercase_comp),pgi)
         LINK_WITH_FORTRAN_COMPILER=TRUE
     else ifeq ($(lowercase_comp),hpcsdk)
