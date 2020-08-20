@@ -4,6 +4,10 @@
 
 os_type := $(shell uname)
 
+ifneq ($(MAKECMDGOALS),realclean)
+ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(MAKECMDGOALS),uninstall)
+ifneq ($(MAKECMDGOALS),distclean)
 ifneq ($(NO_MPI_CHECKING),TRUE)
 ifeq ($(USE_MPI),TRUE)
 
@@ -110,7 +114,10 @@ ifeq ($(USE_MPI),TRUE)
 
 endif
 endif
-
+endif
+endif
+endif
+endif
 
 ifneq ($(NO_CUDA_CHECKING),TRUE)
 ifeq ($(USE_CUDA),TRUE)
