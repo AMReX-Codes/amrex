@@ -119,7 +119,7 @@ ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
         int g_wid = g_tid / Gpu::Device::warp_size;
         if (g_wid >= ntotwarps) return;
 
-        int tag_id;
+        int tag_id = -10000;
         {
             int lo = 0;
             int hi = ntags;
@@ -287,7 +287,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         int g_wid = g_tid / Gpu::Device::warp_size;
         if (g_wid >= ntotwarps) return;
 
-        int tag_id;
+        int tag_id = -10000;
         {
             int lo = 0;
             int hi = N_locs;

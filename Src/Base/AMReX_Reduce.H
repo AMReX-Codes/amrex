@@ -265,6 +265,7 @@ namespace Reduce { namespace detail {
     auto call_f (F const& f, int i, int j, int k, IndexType t)
         noexcept -> decltype(f(Box()))
     {
+        AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0);
         return f(Box(IntVect(AMREX_D_DECL(i,j,k)),
                      IntVect(AMREX_D_DECL(i,j,k)),
                      t));

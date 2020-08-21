@@ -256,6 +256,7 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
             amrex::ParallelFor(face_boxes[0],
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
+                AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0);
                 IntVect const cell(AMREX_D_DECL(i,j,k));
                 filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
                            bcr_p, 0, orig_comp);
@@ -318,6 +319,7 @@ GpuBndryFuncFab<F>::ccdoit (Box const& bx, FArrayBox& dest,
             amrex::ParallelFor(edge_boxes[0],
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
+                AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0);
                 IntVect const cell(AMREX_D_DECL(i,j,k));
                 filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
                            bcr_p, 0, orig_comp);
