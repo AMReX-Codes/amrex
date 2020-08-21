@@ -18,7 +18,7 @@ add_executable( ${_exe_name} EXCLUDE_FROM_ALL "" )
 
 target_sources( ${_exe_name}
    PRIVATE
-   fmain.f90
+   fmain.F90
    init_phi.f90
    advance.f90
    )
