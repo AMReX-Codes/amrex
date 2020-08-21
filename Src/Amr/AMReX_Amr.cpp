@@ -1375,7 +1375,10 @@ Amr::restart (const std::string& filename)
     //
     int linit = false;
 
-    readProbinFile(linit);
+    if (!probin_file.empty()) {
+        readProbinFile(linit);
+    }
+
     //
     // Start calculation from given restart file.
     //
