@@ -1109,7 +1109,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
         const Geometry& geom = Geom(lev);
-        const BoxArray& ba   = ParticleBoxArray(lev);
 
         auto& plev = m_particles[lev];
         for (auto& kv : plev)

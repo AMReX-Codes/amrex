@@ -17,7 +17,7 @@
 #  define AMREX_DEVICE_PRINTF(...) std::printf(__VA_ARGS__);
 #elif defined(AMREX_USE_HIP)
 // xxxxx HIP FIX HERE - printf
-#  define AMREX_DEVICE_PRINTF(...)
+#  define AMREX_DEVICE_PRINTF(...) amrex::ignore_unused(__VA_ARGS__);
 #endif
 
 #endif  // !defined(__APPLE__)
