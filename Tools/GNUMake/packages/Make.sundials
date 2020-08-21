@@ -1,0 +1,52 @@
+SUNDIALS_ROOT ?= ../../../../sundials/instdir
+SUNDIALS_LIB_DIR ?= $(SUNDIALS_ROOT)/lib
+
+USE_CVODE_LIBS ?= TRUE
+USE_ARKODE_LIBS ?= TRUE
+
+CPPFLAGS += -DAMREX_USE_SUNDIALS
+INCLUDE_LOCATIONS += $(SUNDIALS_ROOT)/include
+
+ifeq ($(USE_CVODE_LIBS),TRUE)
+  LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_cvode
+endif
+
+ifeq ($(USE_ARKODE_LIBS),TRUE)
+  LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_arkode
+endif
+
+LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_nvecserial
+
+ifeq ($(USE_CUDA),TRUE)
+  LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_nveccuda
+endif
+
+ifeq ($(USE_OMP),TRUE)
+  LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_nvecopenmp
+endif
+
+ifeq ($(lowercase_comp),pgi)
+   USE_FORT_ODE = FALSE
+else
+   USE_FORT_ODE ?= TRUE
+endif
+
+ifeq (${USE_FORT_ODE},TRUE)
+  include $(AMREX_HOME)/Src/Extern/SUNDIALS/Make.package
+  INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SUNDIALS
+  INCLUDE_LOCATIONS += $(SUNDIALS_ROOT)/include $(SUNDIALS_ROOT)/fortran
+  VPATH_LOCATIONS += $(SUNDIALS_ROOT)/include $(SUNDIALS_ROOT)/fortran
+  VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/SUNDIALS
+
+  ifeq ($(USE_CVODE_LIBS),TRUE)
+    LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_fcvode_mod
+  endif
+  
+  ifeq ($(USE_ARKODE_LIBS),TRUE)
+    LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_farkode_mod
+  endif
+ 
+  LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_fnvecserial_mod
+endif
+
+LIBRARIES += -Wl,-rpath,${SUNDIALS_LIB_DIR}

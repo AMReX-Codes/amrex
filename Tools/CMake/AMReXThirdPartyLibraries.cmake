@@ -27,15 +27,7 @@ endif ()
 #
 if (ENABLE_SUNDIALS)
     # We link to libraries and always include nvecserial (in case app code needs it)
-    set(_sundials_components nvecserial;cvode;arkode)
-
-    if (ENABLE_OMP)
-        list(APPEND _sundials_components nvecopenmp)
-    endif ()
-
-    if (ENABLE_CUDA)
-        list(APPEND _sundials_components nveccuda)
-    endif ()
+    set(_sundials_components farkode_mod;fcvode_mod)
 
     find_package(SUNDIALS 4 REQUIRED COMPONENTS ${_sundials_components})
 
