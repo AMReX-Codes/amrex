@@ -71,6 +71,12 @@ class LSFactory {
         //! BoxArray and Geometry (at a coarser level of refinement)
         void init_geom(const BoxArray & ba, const Geometry & geom, const DistributionMapping & dm);
 
+
+        AMREX_GPU_HOST_DEVICE static bool neighbour_is_valid(
+                Box const & bx, Array4<Real const> const & phi,
+                int i, int j, int k, int n_pad
+            );
+
         void fill_valid_kernel();
         void fill_valid(int n);
         void fill_valid();

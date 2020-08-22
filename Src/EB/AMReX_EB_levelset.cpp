@@ -149,6 +149,38 @@ void LSFactory::init_geom(const BoxArray & ba, const Geometry & geom,
 
 
 
+AMREX_GPU_HOST_DEVICE bool LSFactory::neighbour_is_valid(
+        Box const & bx, Array4<Real const> const & phi, int i, int j, int k, int n_pad
+    ) {
+
+        GpuArray<int, 3> phlo = bx.loVect3d();
+        GpuArray<int, 3> phhi = bx.hiVect3d();
+
+        int ilo = std::max(i-n_pad, phlo[0]);
+        int ihi = std::min(i+n_pad, phhi[0]);
+
+        int jlo = std::max(j-n_pad, phlo[1]);
+        int jhi = std::min(j+n_pad, phhi[1]);
+
+        int klo = std::max(k-n_pad, phlo[2]);
+        int khi = std::min(k+n_pad, phhi[2]);
+
+        for (int kk=klo; kk<=khi; ++kk) {
+            for (int jj=jlo; jj<=jhi; ++jj){
+                AMREX_PRAGMA_SIMD
+                for (int ii=ilo; ii<ihi; ++ii){
+                    if(phi(ii, jj, kk) <= 0){
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+}
+
+
+
 void LSFactory::fill_valid_kernel(){
 
     BL_PROFILE("LSFactory::fill_valid_kernel()");
@@ -159,18 +191,21 @@ void LSFactory::fill_valid_kernel(){
 #pragma omp parallel
 #endif
     for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++ mfi) {
-        Box tile_box = mfi.tilebox();
-        const int * lo = tile_box.loVect();
-        const int * hi = tile_box.hiVect();
+        Box tile_box                          = mfi.tilebox();
+        Array4<Real const> const & ls_tile    = ls_grid->array(mfi);
+        Array4<int>        const & valid_tile = ls_valid->array(mfi);
 
-        const auto & ls_tile = (* ls_grid)[mfi];
-        auto & valid_tile    = (* ls_valid)[mfi];
+        ParallelFor(tile_box,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
-        amrex_eb_fill_valid(lo, hi,
-                            BL_TO_FORTRAN_3D(valid_tile),
-                            BL_TO_FORTRAN_3D(ls_tile),
-                            & search_radius);
+                    bool valid_cell = neighbour_is_valid(
+                            tile_box, ls_tile, i, j, k, search_radius
+                        );
 
+                    if (neighbour_is_valid) valid_tile(i, j, k) = 1;
+                    else                    valid_tile(i, j, k) = 0;
+                }
+            );
     }
 }
 
