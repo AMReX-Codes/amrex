@@ -11,7 +11,7 @@ namespace AsyncOut {
 
 namespace {
 
-#ifdef AMREX_USE_DPCPP
+#if defined(AMREX_USE_DPCPP) || defined(AMREX_USE_HIP)
 int s_asyncout = true; // Have this on by default for DPC++ for now so that
                        // I/O writing plotfile does not depend on unified
                        // memory.
