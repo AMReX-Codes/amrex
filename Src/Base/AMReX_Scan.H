@@ -655,6 +655,29 @@ T ExclusiveSum (N n, T const* in, T * out)
                  Type::exclusive);
 }
 
+#else
+
+// The return value is the total sum.
+template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T InclusiveSum (N n, T const* in, T * out)
+{
+    std::partial_sum(in, in+n, out);
+    return (n > 0) ? out[n-1] : T(0);
+}
+
+// The return value is the total sum.
+template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T ExclusiveSum (N n, T const* in, T * out)
+{
+    if (n > 0) {
+        out[0] = 0;
+        std::partial_sum(in, in+n-1, out+1);
+        return in[n-1]+out[n-1];
+    } else {
+        return 0;
+    }
+}
+
 #endif
 
 }
