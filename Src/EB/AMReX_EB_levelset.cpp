@@ -67,12 +67,14 @@ LSFactory::LSFactory(int lev, int ls_ref, int eb_ref, int ls_pad, int eb_pad,
     for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++mfi){
         // also initialize ghost cells => growntilebox. Note: if a direction is
         // not periodic, FillBoundary will never touch those ghost cells.
-        Box tile_box   = mfi.growntilebox();
-        auto & ls_tile = (* ls_grid)[mfi];
+        Box tile_box                 = mfi.growntilebox();
+        Array4<Real> const & ls_tile = ls_grid->array(mfi);
 
-        // Initialize in fortran land
-        amrex_eb_init_levelset(tile_box.loVect(), tile_box.hiVect(),
-                               ls_tile.dataPtr(), ls_tile.loVect(),  ls_tile.hiVect());
+        ParallelFor(tile_box,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    ls_tile(i, j, k) = std::numeric_limits<Real>::max();
+                }
+            );
     }
 }
 
