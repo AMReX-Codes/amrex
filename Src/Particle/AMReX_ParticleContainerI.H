@@ -1085,25 +1085,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     this->defineBufferMap();
 
-    int num_levels = numLevels();
-    if (num_levels == 1)
-    {
-        const auto& ba = ParticleBoxArray(0);
-        const auto& geom = Geom(0);
-        if ((ba.size() == 1) and geom.isAllPeriodic())
-        {
-            EnforcePeriodic();
-            AMREX_ASSERT(OK());
-            return;
-        }
-    }
-
     if (not m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
     m_particle_locator.setGeometry(GetParGDB());
     auto assign_grid = m_particle_locator.getGridAssignor();
 
     BL_PROFILE_VAR_START(blp_partition);
     ParticleCopyOp op;
+    int num_levels = numLevels();
     op.setNumLevels(num_levels);
     Vector<std::map<int, int> > new_sizes(num_levels);
     for (int lev = lev_min; lev <= lev_max; ++lev)
@@ -1226,34 +1214,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 #else
     amrex::ignore_unused(lev_min,lev_max,nGrow,local);
 #endif
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::EnforcePeriodic ()
-{
-    BL_PROFILE("ParticleContainer::EnforcePeriodic()");
-    const int lev = 0;
-    auto& plev = m_particles[lev];
-    const auto plo = Geom(lev).ProbLoArray();
-    const auto phi = Geom(lev).ProbHiArray();
-    const auto is_per = Geom(lev).isPeriodicArray();
-
-    for (auto& kv : plev)
-    {
-        int gid = kv.first.first;
-        int tid = kv.first.second;
-        auto index = std::make_pair(gid, tid);
-        auto& particles = plev[index];
-
-        const int np = particles.numParticles();
-        ParticleType* pstruct = &(particles.GetArrayOfStructs()[0]);
-        AMREX_FOR_1D ( np, i,
-        {
-            enforcePeriodic(pstruct[i], plo, phi, is_per);
-        });
-    }
 }
 
 //
