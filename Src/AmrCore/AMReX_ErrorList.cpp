@@ -383,32 +383,35 @@ operator << (std::ostream&    os,
         for (MFIter mfi(tba,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
           const auto& bx    = mfi.tilebox();
-          auto const& dat   = mf->array(mfi);
           auto tag          = tba.array(mfi);
 
           if (m_test == BOX)
           {
             AMRErrorTag_BOX(bx, tag, m_info.m_realbox, geom, tagval);
           }
-          else if (m_test == GRAD)
-          {
-            AMRErrorTag_GRAD(bx, dat, tag, m_value, tagval);
-          }
-          else if (m_test == LESS)
-          {
-            AMRErrorTag_LESS(bx, dat, tag, m_value, tagval);
-          }
-          else if (m_test == GREATER)
-          {
-            AMRErrorTag_GREATER(bx, dat, tag, m_value, tagval);
-          }
-          else if (m_test == VORT)
-          {
-            AMRErrorTag_VORT(bx, dat, tag, level, m_value, tagval);
-          }
           else
           {
-            Abort("Bad AMRErrorTag test flag");
+            auto const& dat   = mf->array(mfi);
+
+            if (m_test == GRAD)
+            {
+              AMRErrorTag_GRAD(bx, dat, tag, m_value, tagval);
+            }
+            else if (m_test == LESS)
+            {
+              AMRErrorTag_LESS(bx, dat, tag, m_value, tagval);
+            }
+            else if (m_test == GREATER)
+            {
+              AMRErrorTag_GREATER(bx, dat, tag, m_value, tagval);
+            }
+            else if (m_test == VORT)
+            {
+              AMRErrorTag_VORT(bx, dat, tag, level, m_value, tagval);
+            }
+            {
+              Abort("Bad AMRErrorTag test flag");
+            }
           }
         }
       }
