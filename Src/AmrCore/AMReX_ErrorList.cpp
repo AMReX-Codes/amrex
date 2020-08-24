@@ -409,6 +409,7 @@ operator << (std::ostream&    os,
             {
               AMRErrorTag_VORT(bx, dat, tag, level, m_value, tagval);
             }
+            else
             {
               Abort("Bad AMRErrorTag test flag");
             }
