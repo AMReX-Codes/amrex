@@ -301,7 +301,9 @@ that is viewed in the Nsight Systems GUI, typically on a local workstation or ma
 
 To generate a qdrep file, run nsys with the ``-o`` option:
 
-.. highlight:: c++
+.. highlight:: console 
+
+::
 
     nsys profile -o <file_name> ${EXE} ${INPUTS}
 
@@ -322,7 +324,9 @@ is the identification string for the of the NVTX region. The additional environm
 TinyProfiler's built-in NVTX regions use the same identification string as the timer itself. For
 example, to start an analysis at the ``do_hydro`` NVTX region, run:
 
-.. highlight:: c++
+.. highlight:: console
+
+::
 
     nsys profile -o <file_name> -c nvtx -p "do_hydro@*" -e NSYS_NVTX_PROFILER_REGISTER_ONLY=0 ${EXE} ${INPUTS}
 
@@ -348,6 +352,8 @@ Directly insert ``cudaProfilerStart\Stop`` around the region of code you want to
 
 .. highlight:: c++
 
+::
+
     cudaProfilerStart();
 
     // CODE TO PROFILE
@@ -357,7 +363,9 @@ Directly insert ``cudaProfilerStart\Stop`` around the region of code you want to
 
 Then, run with ``-c cudaProfilerApi``:
 
-.. highlight:: c++
+.. highlight:: console
+
+::
 
     nsys profile -o <file_name> -c cudaProfilerApi ${EXE} ${INPUTS}
 
@@ -375,7 +383,9 @@ Nsight Systems GUI Tips
 
   This feature can be found in the GUI's drop down menu, under:
 
-.. highlight:: c++
+.. highlight:: console
+
+::
 
  Tools -> Options -> Environment -> Rename CUDA Kernels by NVTX.
 
@@ -404,7 +414,9 @@ running with Nsight compute on an AMReX application, it is important to turn off
 point exception trap, as it causes a runtime error.  So, an entire AMReX application can be 
 analyzed with Nsight Compute by running:
 
-.. highlight:: c++
+.. highlight:: console
+
+::
 
     ncu -o <file_name> ${EXE} ${INPUTS} amrex.fpe_trap_invalid=0
 
@@ -414,7 +426,9 @@ kernels, AMReX users can use the Tiny Profiler's built-in NVTX regions to narrow
 the analysis.  Nsight Compute allows users to specify which NVTX regions to include and exclude
 through the ``--nvtx``, ``--nvtx-include`` and ``--nvtx-exclude`` flags. For example:
 
-.. highlight:: c++
+.. highlight:: console
+
+::
 
     ncu --nvtx --nvtx-include "Hydro()" --nvtx-exclude "StencilA(),StencilC()" -o kernels ${EXE} ${INPUTS} amrex.fpe_trap_invalid=0
 
