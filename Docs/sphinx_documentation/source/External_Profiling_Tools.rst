@@ -301,7 +301,9 @@ that is viewed in the Nsight Systems GUI, typically on a local workstation or ma
 
 To generate a qdrep file, run nsys with the ``-o`` option:
 
-.. highlight:: c++
+.. highlight:: console
+
+::
 
     nsys profile -o <file_name> ${EXE} ${INPUTS}
 
@@ -321,7 +323,9 @@ options that AMReX users may find helpful:
      TinyProfiler's built-in NVTX regions use the same identification string as the timer itself. For 
      example, to start an analysis at the ``do_hydro`` NVTX region, run: 
 
-.. highlight:: c++
+.. highlight:: console
+
+::
 
     nsys profile -o <file_name> -c nvtx -p "do_hydro@*" -e NSYS_NVTX_PROFILER_REGISTER_ONLY=0 ${EXE} ${INPUTS}
 ..
@@ -331,7 +335,9 @@ options that AMReX users may find helpful:
     remainder of the code.  To only analyze the specified NVTX region, add the flag ``-x true``, which
     will end the analysis at the end of the region:  
 
- .. highlight:: c++
+ .. highlight:: console
+
+::
 
     nsys profile -o <file_name> -c nvtx -p "do_hydro@*" -x true -e NSYS_NVTX_PROFILER_REGISTER_ONLY=0 ${EXE} ${INPUTS}
 ..
@@ -345,6 +351,8 @@ options that AMReX users may find helpful:
 
 .. highlight:: c++
 
+::
+
     cudaProfilerStart();
 
     CODE TO PROFILE
@@ -353,7 +361,9 @@ options that AMReX users may find helpful:
 
 ..
 
-.. highlight:: c++
+.. highlight:: console
+
+::
 
     nsys profile -o <file_name> -c cudaProfilerApi ${EXE} ${INPUTS}
 ..
@@ -372,7 +382,9 @@ Nsight Systems GUI Tips
 
   This feature can be found in the GUI's drop down menu, under:
 
-.. highlight:: c++
+.. highlight:: console
+
+::
 
  ``Tools -> Options -> Environment -> Rename CUDA Kernels by NVTX.``
 
@@ -401,7 +413,9 @@ running with Nsight compute on an AMReX application, it is important to turn off
 point exception trap, as it causes a runtime error.  So, an entire AMReX application can be 
 analyzed with Nsight Compute by running:
 
-.. highlight:: c++
+.. highlight:: console
+
+::
 
     ncu -o <file_name> ${EXE} ${INPUTS} amrex.fpe_trap_invalid=0
 
@@ -411,7 +425,9 @@ kernels, AMReX users can use the Tiny Profiler's built-in NVTX regions to narrow
 the analysis.  Nsight Compute allows users to specify which NVTX regions to include and exclude
 through the ``--nvtx``, ``--nvtx-include`` and ``--nvtx-exclude`` flags. For example:
 
-.. highlight:: c++
+.. highlight:: console
+
+::
 
     ncu --nvtx --nvtx-include "Hydro()" --nvtx-exclude "StencilA(),StencilC()" -o kernels ${EXE} ${INPUTS} amrex.fpe_trap_invalid=0
 
@@ -423,7 +439,9 @@ with ``TINY_PROFILE=TRUE`` and the NVTX region names are identical to the TinyPr
 Another helpful flag for selecting a reasonable subset of kernels for analysis is the ``-c`` option. This
 flag specifies the total number of kernels to be analyzed. For example:
 
- .. highlight:: c++
+ .. highlight:: console
+
+::
 
     ncu --nvtx --nvtx-include "GravitySolve()" -c 10 -o kernels ${EXE} ${INPUTS} amrex.fpe_trap_invalid=0
 
@@ -446,7 +464,9 @@ To run a roofline analysis on an AMReX application, run ``ncu`` with the flag
 ``--section SpeedOfLight_RooflineChart``. Again, using appropriate NVTX flags to limit the scope of the
 analysis will be critical to achieve results within a reasonable time. For example:
 
- .. highlight:: c++
+ .. highlight:: console
+
+::
 
     ncu --section SpeedOfLight_RooflineChart --nvtx --nvtx-include "MLMG()" -c 10 -o roofline ${EXE} ${INPUTS} amrex.fpe_trap_invalid=0
 
