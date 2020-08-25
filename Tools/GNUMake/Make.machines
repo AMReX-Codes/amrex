@@ -4,6 +4,14 @@
 which_site := unknown
 which_computer := unknown
 
+ifdef HOSTNAME
+  host_name_env := $(strip $(HOSTNAME))
+else ifdef HOST
+  host_name_env := $(strip $(HOST))
+else
+  host_name_env := unknown
+endif
+
 host_name := $(shell hostname -f)
 host_name_short := $(shell hostname -s)
 
@@ -118,8 +126,8 @@ ifeq ($(findstring raijin, $(host_name)), raijin)
   which_computer := raijin
 endif
 
-ifneq (,$(filter $(host_name_short),poplar redwood tulip))
+ifneq (,$(filter $(host_name_env),poplar redwood tulip))
   which_site := frontier-coe
-  which_computer := $(host_name_short)
+  which_computer := $(host_name_env)
 endif
 
