@@ -28,7 +28,7 @@ extern "C" {
 	dmo = new DistributionMapping(*dmi);
     }
 
-    void amrex_fi_distromap_get_pmap (DistributionMapping*& dm, int* pmap, const int plen)
+    void amrex_fi_distromap_get_pmap (const DistributionMapping* dm, int* pmap, const int plen)
     {
 	Long dmsize = dm->size();
 	AMREX_ASSERT(plen >= dmsize);

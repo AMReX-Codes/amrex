@@ -75,7 +75,7 @@ module amrex_distromap_module
      subroutine amrex_fi_distromap_get_pmap (dm,pmap,plen) bind(c)
        import
        implicit none
-       type(c_ptr) :: dm
+       type(c_ptr), value :: dm
        integer(c_int), intent(out) :: pmap(*)
        integer(c_int), value :: plen
      end subroutine amrex_fi_distromap_get_pmap
