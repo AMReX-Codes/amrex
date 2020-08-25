@@ -32,7 +32,7 @@ extern "C" {
     {
 	Long dmsize = dm->size();
 	AMREX_ASSERT(plen >= dmsize);
-	for (int i = 0; i < dmsize; ++i)
+	for (int i = 0; i < dmsize && i < plen; ++i)
             pmap[i] = (*dm)[i];
     }
 

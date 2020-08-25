@@ -147,7 +147,7 @@ contains
     class(amrex_distromap) :: dm
     integer, intent(out) :: pmap(:)
     call amrex_fi_distromap_get_pmap(dm%p,pmap, size(pmap))
-  end subroutine amrex_distromap_build_pmap
+  end subroutine amrex_distromap_get_pmap
 
   subroutine amrex_distromap_print (dm)
     type(amrex_distromap), intent(in) :: dm
