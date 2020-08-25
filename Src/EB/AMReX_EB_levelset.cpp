@@ -252,9 +252,116 @@ void LSFactory::fill_valid(){
 #pragma omp parallel
 #endif
     for(MFIter mfi( * ls_grid); mfi.isValid(); ++mfi){
-        auto & v_tile = (* ls_valid)[mfi];
-        amrex_eb_fill_valid_bcs(BL_TO_FORTRAN_3D(v_tile),
-                                periodic.getVect(), domain.loVect(), domain.hiVect());
+
+        Box                   tile_box = mfi.growntilebox();
+        Array4<int> const & valid_tile = ls_valid->array(mfi);
+
+        int lo, hi;
+
+        //_______________________________________________________________________
+        // Apply x-boundary condition
+
+        lo = domain.smallEnd(0);
+        hi = domain.bigEnd(0);
+
+        if (tile_box.smallEnd(0) < lo ) {
+            if (periodic[0] == 0){
+                ParallelFor(tile_box,
+                        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                            if (i < lo) {
+                                valid_tile(i, j, k) = 1;
+                            }
+                        }
+                    );
+            }
+        }
+
+        if (tile_box.bigEnd(0) > hi ) {
+            if (periodic[0] == 0) {
+                ParallelFor(tile_box,
+                        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                            if (i > hi) {
+                                valid_tile(i, j, k) = 1;
+                            }
+                        }
+                    );
+            }
+        }
+
+        //-----------------------------------------------------------------------
+
+#if (AMREX_SPACEDIM >= 2)
+
+        //_______________________________________________________________________
+        // Apply y-boundary condition
+
+        lo = domain.smallEnd(1);
+        hi = domain.bigEnd(1);
+
+        if (tile_box.smallEnd(1) < lo ) {
+            if (periodic[1] == 0){
+                ParallelFor(tile_box,
+                        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                            if (j < lo) {
+                                valid_tile(i, j, k) = 1;
+                            }
+                        }
+                    );
+            }
+        }
+
+        if (tile_box.bigEnd(1) > hi ) {
+            if (periodic[1] == 0) {
+                ParallelFor(tile_box,
+                        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                            if (j > hi) {
+                                valid_tile(i, j, k) = 1;
+                            }
+                        }
+                    );
+            }
+        }
+
+        //-----------------------------------------------------------------------
+
+#endif
+
+
+#if (AMREX_SPACEDIM >= 3)
+
+        //_______________________________________________________________________
+        // Apply z-boundary condition
+
+        lo = domain.smallEnd(2);
+        hi = domain.bigEnd(2);
+
+        if (tile_box.smallEnd(2) < lo ) {
+            if (periodic[2] == 0){
+                ParallelFor(tile_box,
+                        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                            if (k < lo) {
+                                valid_tile(i, j, k) = 1;
+                            }
+                        }
+                    );
+            }
+        }
+
+        if (tile_box.bigEnd(2) > hi ) {
+            if (periodic[2] == 0) {
+                ParallelFor(tile_box,
+                        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                            if (k > hi) {
+                                valid_tile(i, j, k) = 1;
+                            }
+                        }
+                    );
+            }
+        }
+
+        //-----------------------------------------------------------------------
+#endif
+
     }
 
     BL_PROFILE_REGION_STOP("LSFactory::fill_valid()::bcs");
