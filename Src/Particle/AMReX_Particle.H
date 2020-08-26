@@ -15,11 +15,11 @@ namespace amrex {
 
 namespace
 {
-    constexpr int GhostParticleID    = std::numeric_limits<int>::max();
-    constexpr int VirtualParticleID  = std::numeric_limits<int>::max()-1;
-    constexpr int LastParticleID     = std::numeric_limits<int>::max()-2;
-    constexpr int DoSplitParticleID  = std::numeric_limits<int>::max()-3;
-    constexpr int NoSplitParticleID  = std::numeric_limits<int>::max()-4;
+    constexpr Long GhostParticleID    = 549755813887L; // 2**39-1
+    constexpr Long VirtualParticleID  = GhostParticleID-1;
+    constexpr Long LastParticleID     = GhostParticleID-2;
+    constexpr Long DoSplitParticleID  = GhostParticleID-3;;
+    constexpr Long NoSplitParticleID  = GhostParticleID-4;;
 }
 
 struct ParticleIDWrapper
@@ -158,12 +158,12 @@ struct Particle
     */
     union im_t
     {
-        uint64_t ids;
+        uint64_t ids = 0;
         int arr[2+NInt];
     };
     im_t m_idata;
 
-    static int the_next_id;
+    static Long the_next_id;
 
     AMREX_GPU_HOST_DEVICE ParticleCPUWrapper cpu () & { return ParticleCPUWrapper(m_idata.ids); }
     AMREX_GPU_HOST_DEVICE ParticleIDWrapper id () & { return ParticleIDWrapper(m_idata.ids); }
@@ -245,13 +245,13 @@ struct Particle
     * across all processors must be checkpointed and then restored on restart
     * so that we don't reuse particle IDs.
     */
-    static int NextID ();
+    static Long NextID ();
 
 
     /**
     * \brief This version can only be used inside omp critical.
     */
-    static int UnprotectedNextID ();
+    static Long UnprotectedNextID ();
 
 
     /**
@@ -259,7 +259,7 @@ struct Particle
     *
     * \param nextid
     */
-    static void NextID (int nextid);
+    static void NextID (Long nextid);
 
     static void CIC_Fracs (const Real* frac, Real* fracs);
 
@@ -314,7 +314,7 @@ struct Particle
                                 Vector<Real>&                 fracs,
                                 Vector<IntVect>&              cells);
 };
-template <int NReal, int NInt> int Particle<NReal, NInt>::the_next_id = 1;
+template <int NReal, int NInt> Long Particle<NReal, NInt>::the_next_id = 1;
 
 template<int NReal, int NInt>
 inline
@@ -666,17 +666,17 @@ Particle<NReal, NInt>::Version ()
 }
 
 template <int NReal, int NInt>
-int
+Long
 Particle<NReal, NInt>::NextID ()
 {
-    int next;
+    Long next;
 // we should be able to test on _OPENMP < 201107 for capture (version 3.1)
 // but we must work around a bug in gcc < 4.9
 #if defined(_OPENMP) && _OPENMP < 201307
 #pragma omp critical (amrex_particle_nextid)
 #elif defined(_OPENMP)
 #pragma omp atomic capture
-#endif    
+#endif
     next = the_next_id++;
 
     if (next > LastParticleID)
@@ -686,10 +686,10 @@ Particle<NReal, NInt>::NextID ()
 }
 
 template <int NReal, int NInt>
-int
+Long
 Particle<NReal, NInt>::UnprotectedNextID ()
 {
-    int next = the_next_id++;
+    Long next = the_next_id++;
     if (next > LastParticleID)
 	amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
     return next;
@@ -697,7 +697,7 @@ Particle<NReal, NInt>::UnprotectedNextID ()
 
 template <int NReal, int NInt>
 void
-Particle<NReal, NInt>::NextID (int nextid)
+Particle<NReal, NInt>::NextID (Long nextid)
 {
     the_next_id = nextid;
 }
