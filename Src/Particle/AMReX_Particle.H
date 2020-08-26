@@ -18,8 +18,8 @@ namespace
     constexpr Long GhostParticleID    = 549755813887L; // 2**39-1
     constexpr Long VirtualParticleID  = GhostParticleID-1;
     constexpr Long LastParticleID     = GhostParticleID-2;
-    constexpr Long DoSplitParticleID  = GhostParticleID-3;;
-    constexpr Long NoSplitParticleID  = GhostParticleID-4;;
+    constexpr Long DoSplitParticleID  = GhostParticleID-3;
+    constexpr Long NoSplitParticleID  = GhostParticleID-4;
 }
 
 struct ParticleIDWrapper
