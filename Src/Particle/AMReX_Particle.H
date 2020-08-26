@@ -123,10 +123,10 @@ struct ConstParticleIDWrapper
 
 struct ConstParticleCPUWrapper
 {
-    const int64_t& m_idata;
+    const uint64_t& m_idata;
 
     AMREX_GPU_HOST_DEVICE
-    ConstParticleCPUWrapper (const int64_t& idata) noexcept
+    ConstParticleCPUWrapper (const uint64_t& idata) noexcept
         : m_idata(idata)
     {}
 
