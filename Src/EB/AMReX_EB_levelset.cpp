@@ -831,18 +831,27 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
         //_______________________________________________________________________
         // Don't do anything for the current tile if EB facets are ill-defined
         if (! bndrycent.ok(mfi)){
+
             auto & ls_tile = data[mfi];
+            // TODO: check if this still needs to run on the host only?
             ls_tile.setVal<RunOn::Host>( min_dx *( eb_pad + 1), tile_box );
 
-            // Ensure that tile-wise assignment is validated
-            const auto & if_tile = eb_impfunc[mfi];
-                  auto & v_tile  = eb_valid[mfi];
-
-            amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_ref,
-                                       BL_TO_FORTRAN_3D(if_tile),
-                                       BL_TO_FORTRAN_3D(v_tile),
-                                       BL_TO_FORTRAN_3D(ls_tile)   );
-
+            Array4<Real const> const & if_tile = eb_impfunc.array(mfi);
+            Array4<int const>  const &  v_tile = eb_valid.array(mfi);
+            Array4<Real      > const &     phi = data.array(mfi);
+            
+            ParallelFor(tile_box,
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                        if (v_tile(i, j, k) == 0) {
+                            Real levelset_node = Math::abs( phi(i, j, k) );
+                            if (if_tile(i, j, k) <= 0) {
+                                phi(i, j, k) = levelset_node;
+                            } else {
+                                phi(i, j, k) = -levelset_node;
+                            }
+                        }
+                    }
+                );
             continue;
         }
 
