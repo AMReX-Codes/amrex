@@ -22,6 +22,108 @@ namespace
     constexpr int NoSplitParticleID  = std::numeric_limits<int>::max()-4;
 }
 
+struct ParticleIDWrapper
+{
+    uint64_t& m_idata;
+
+    ParticleIDWrapper (uint64_t& idata)
+        : m_idata(idata)
+    {}
+
+    ParticleIDWrapper& operator= (const Long id)
+    {
+        // zero out the 40 leftmost bits, which store the sign and the abs of the id;
+        m_idata &= 0x00FFFFFF;
+
+        uint64_t val;
+        uint64_t sign = id >= 0;
+        if (sign)
+        {
+            // 2**39-1, the max value representible in this fashion
+            AMREX_ASSERT(id <= 549755813887L);
+            val = id;
+        }
+        else
+        {
+            // -2**39-1, the min value representible in this fashion
+            AMREX_ASSERT(id >= -549755813887L);
+            val = -id;
+        }
+
+        m_idata |= (sign << 63);  // put the sign in the leftmost bit
+        m_idata |= (val << 24);   // put the val in the next 39
+        return *this;
+    }
+
+    operator long ()
+    {
+        long r = 0;
+
+        uint64_t sign = m_idata >> 63;  // extract leftmost sign bit
+        uint64_t val  = ((m_idata >> 24) & 0x7FFFFFFFFF);  // extract next 39 id bits
+
+        r = sign ? val : -val;
+        return r;
+    }
+};
+
+struct ParticleCPUWrapper
+{
+    uint64_t& m_idata;
+
+    ParticleCPUWrapper (uint64_t& idata)
+        : m_idata(idata)
+    {}
+
+    ParticleCPUWrapper& operator= (const int cpu)
+    {
+        // zero out the first 24 bits, which are used to store the cpu number
+        m_idata &= (~ 0x00FFFFFF);
+
+        AMREX_ASSERT(cpu > 0);
+        AMREX_ASSERT(cpu <= 16777215);  // 2**24-1, the max representable number
+
+        m_idata |= cpu;
+        return *this;
+    }
+
+    operator int ()
+    {
+        return (m_idata & 0x00FFFFFF);
+    }
+};
+
+struct ConstParticleIDWrapper
+{
+    const uint64_t& m_idata;
+
+    ConstParticleIDWrapper (const uint64_t& idata)
+        : m_idata(idata)
+    {}
+
+    operator long ()
+    {
+        long r = 0;
+
+        uint64_t sign = m_idata >> 63;  // extract leftmost sign bit
+        uint64_t val  = ((m_idata >> 24) & 0x7FFFFFFFFF);  // extract next 39 id bits
+
+        r = (sign) ? val : -val;
+        return r;
+    }
+};
+
+struct ConstParticleCPUWrapper
+{
+    const int64_t& m_idata;
+
+    ConstParticleCPUWrapper (const int64_t& idata)
+        : m_idata(idata)
+    {}
+
+    operator int () { return (m_idata & 0x00FFFFFF); }
+};
+
 /** \brief The struct used to store particles.
  *
  * \tparam T_NReal The number of extra Real components
@@ -54,14 +156,19 @@ struct Particle
     * The integer data. We always have id and cpu, and optionally we
     * have NInt additional integer attributes.
     */
-    int m_idata[2+NInt];
+    union im_t
+    {
+        uint64_t ids;
+        int arr[2+NInt];
+    };
+    im_t m_idata;
 
     static int the_next_id;
 
-    AMREX_GPU_HOST_DEVICE int&  id ()       & {return m_idata[0];}
-    AMREX_GPU_HOST_DEVICE int   id () const & {return m_idata[0];}
-    AMREX_GPU_HOST_DEVICE int& cpu ()       & {return m_idata[1];}
-    AMREX_GPU_HOST_DEVICE int  cpu () const & {return m_idata[1];}
+    AMREX_GPU_HOST_DEVICE ParticleCPUWrapper cpu () & { return ParticleCPUWrapper(m_idata.ids); }
+    AMREX_GPU_HOST_DEVICE ParticleIDWrapper id () & { return ParticleIDWrapper(m_idata.ids); }
+    AMREX_GPU_HOST_DEVICE ConstParticleCPUWrapper cpu () const & { return ConstParticleCPUWrapper(m_idata.ids); }
+    AMREX_GPU_HOST_DEVICE ConstParticleIDWrapper id () const & { return ConstParticleIDWrapper(m_idata.ids); }
 
     AMREX_GPU_HOST_DEVICE RealVect pos () const &
     {return RealVect(AMREX_D_DECL(m_rdata.pos[0], m_rdata.pos[1], m_rdata.pos[2]));}
@@ -105,12 +212,12 @@ struct Particle
     AMREX_GPU_HOST_DEVICE int& idata (int index) &
     {
         AMREX_ASSERT(index < NInt);
-        return m_idata[2 + index];
+        return m_idata.arr[2 + index];
     }
     AMREX_GPU_HOST_DEVICE int  idata (int index) const &
     {
         AMREX_ASSERT(index < NInt);
-        return m_idata[2 + index];
+        return m_idata.arr[2 + index];
     }
 
     static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
@@ -694,7 +801,7 @@ operator<< (std::ostream& os, const Particle<NReal, NInt>& p)
         os << p.m_rdata.arr[i] << ' ';
 
     for (int i = 2; i < 2 + NInt; i++)
-        os << p.m_idata[i] << ' ';
+        os << p.m_idata.arr[i] << ' ';
 
     if (!os.good())
         amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
