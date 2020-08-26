@@ -26,11 +26,13 @@ struct ParticleIDWrapper
 {
     uint64_t& m_idata;
 
-    ParticleIDWrapper (uint64_t& idata)
+    AMREX_GPU_HOST_DEVICE
+    ParticleIDWrapper (uint64_t& idata) noexcept
         : m_idata(idata)
     {}
 
-    ParticleIDWrapper& operator= (const Long id)
+    AMREX_GPU_HOST_DEVICE
+    ParticleIDWrapper& operator= (const Long id) noexcept
     {
         // zero out the 40 leftmost bits, which store the sign and the abs of the id;
         m_idata &= 0x00FFFFFF;
@@ -55,7 +57,8 @@ struct ParticleIDWrapper
         return *this;
     }
 
-    operator long ()
+    AMREX_GPU_HOST_DEVICE
+    operator long () noexcept
     {
         long r = 0;
 
@@ -71,11 +74,13 @@ struct ParticleCPUWrapper
 {
     uint64_t& m_idata;
 
-    ParticleCPUWrapper (uint64_t& idata)
+    AMREX_GPU_HOST_DEVICE
+    ParticleCPUWrapper (uint64_t& idata) noexcept
         : m_idata(idata)
     {}
 
-    ParticleCPUWrapper& operator= (const int cpu)
+    AMREX_GPU_HOST_DEVICE
+    ParticleCPUWrapper& operator= (const int cpu) noexcept
     {
         // zero out the first 24 bits, which are used to store the cpu number
         m_idata &= (~ 0x00FFFFFF);
@@ -87,7 +92,8 @@ struct ParticleCPUWrapper
         return *this;
     }
 
-    operator int ()
+    AMREX_GPU_HOST_DEVICE
+    operator int () noexcept
     {
         return (m_idata & 0x00FFFFFF);
     }
@@ -97,11 +103,13 @@ struct ConstParticleIDWrapper
 {
     const uint64_t& m_idata;
 
-    ConstParticleIDWrapper (const uint64_t& idata)
+    AMREX_GPU_HOST_DEVICE
+    ConstParticleIDWrapper (const uint64_t& idata) noexcept
         : m_idata(idata)
     {}
 
-    operator long ()
+    AMREX_GPU_HOST_DEVICE
+    operator long () noexcept
     {
         long r = 0;
 
@@ -117,11 +125,13 @@ struct ConstParticleCPUWrapper
 {
     const int64_t& m_idata;
 
-    ConstParticleCPUWrapper (const int64_t& idata)
+    AMREX_GPU_HOST_DEVICE
+    ConstParticleCPUWrapper (const int64_t& idata) noexcept
         : m_idata(idata)
     {}
 
-    operator int () { return (m_idata & 0x00FFFFFF); }
+    AMREX_GPU_HOST_DEVICE
+    operator int () noexcept { return (m_idata & 0x00FFFFFF); }
 };
 
 /** \brief The struct used to store particles.
