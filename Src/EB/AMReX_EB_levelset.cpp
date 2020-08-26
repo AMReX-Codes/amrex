@@ -390,23 +390,63 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const FArrayBox & norm_tile,
     //   +-----------------------{px, py, pz} is the position vector of the facet centre
     std::unique_ptr<Vector<Real>> facet_list;
 
+
+    const Dim3 lo = amrex::lbound(eb_search);
+    const Dim3 hi = amrex::ubound(eb_search);
+
+    // TODO: This can probably be parallelized using ReduceSum -- but I think
+    // the advantages of parallelizing this rely on parallizing the next kernel
+    // also. This is something to revisit in the future
+
     int n_facets = 0;
-    // Need to count number of eb-facets (in order to allocate facet_list)
-    amrex_eb_count_facets(BL_TO_FORTRAN_BOX(eb_search),
-                          BL_TO_FORTRAN_3D(flag_tile),
-                          & n_facets);
+    Array4<EBCellFlag const> const & flag_array = flag_tile.array();
+    for (int k=lo.z; k<=hi.z; ++k) {
+        for (int j=lo.y; j<=hi.y; ++j) {
+            for (int i=lo.x; i<=hi.x; ++i) {
+                if (flag_array(i, j, k).isSingleValued()) {
+                    n_facets ++;
+                }
+            }
+        }
+    }
+
+
+    // TODO: Parallelizing this kenerl would require GPU atomics -- I don't
+    // know the status of how well they are implemented in AMReX. This is
+    // something to revisit in the future.
 
     int facet_list_size = 6 * n_facets;
     facet_list = std::unique_ptr<Vector<Real>>(new Vector<Real>(facet_list_size));
 
     if (n_facets > 0) {
-        int c_facets = 0;
-        amrex_eb_as_list(BL_TO_FORTRAN_BOX(eb_search), & c_facets,
-                         BL_TO_FORTRAN_3D(flag_tile),
-                         BL_TO_FORTRAN_3D(norm_tile),
-                         BL_TO_FORTRAN_3D(bcent_tile),
-                         facet_list->dataPtr(), & facet_list_size,
-                         dx_eb.dataPtr()                           );
+        int i_facet = 0;
+        Array4<Real const> const & norm_array  = norm_tile.array();
+        Array4<Real const> const & bcent_array = bcent_tile.array();
+        for (int k = lo.z; k <= hi.z; ++k) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    if (flag_array(i, j, k).isSingleValued()) {
+
+                        // Compute facet center
+                        RealVect eb_cent, cell_corner{(Real) i, (Real) j, (Real) k};
+                        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                            eb_cent[d] = bcent_array(i, j, k, d) 
+                                       + cell_corner[d]
+                                       + 0.5*dx_eb[d];
+                        }
+
+                        // Add data to eb facet vector
+                        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                            (* facet_list)[i_facet + d] = eb_cent[d];
+                            (* facet_list)[i_facet + AMREX_SPACEDIM + d] = norm_array(i, j, k, d);
+                        }
+
+                        // Increment facet counter by the facet data length
+                        i_facet += 2*AMREX_SPACEDIM;
+                    }
+                }
+            }
+        }
     }
 
     return facet_list;
