@@ -122,3 +122,40 @@ function (setup_target_for_cuda_compilation _target)
       )
    set_cpp_sources_to_cuda_language(${_target})
 endfunction ()
+
+
+#
+# Create target 'amrex-hip' by "cloning" target 'amrex' and
+# adding HIP specific settings
+#
+function (setup_target_for_hip_compilation _target)
+
+   # Make C++ files with HIP_SOURCE_PROPERTY_FORMAT
+   # This will trigger HIP compilation of those files
+   get_target_property(_sources ${_target} SOURCES)
+   list(FILTER _sources INCLUDE REGEX "\\.cpp")
+   set_source_files_properties(${_sources} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+
+   # Separate the sources from the options
+   # HIP_GET_SOURCES_AND_OPTIONS(_sources _cmake_options _hipcc_options _hcc_options _nvcc_options ${ARGN})
+   set(_cmake_options)
+   set(_hipcc_options)
+   set(_hcc_options)
+   set(_nvcc_options)
+   hip_prepare_target_commands(${_target}
+      OBJ _generated_files _source_files ${_sources} ${_cmake_options}
+      HIPCC_OPTIONS ${_hipcc_options}
+      HCC_OPTIONS ${_hcc_options}
+      NVCC_OPTIONS ${_nvcc_options})
+
+   if (_source_files)
+      list(REMOVE_ITEM _sources ${_source_files})
+   endif ()
+
+   # overwrite sources of _target with "new" sources
+   set_target_properties(${_target} PROPERTIES SOURCES ${_generated_files} ${_sources})
+
+   # set linker language
+   set_target_properties(${_target} PROPERTIES LINKER_LANGUAGE ${HIP_C_OR_CXX})
+
+endfunction ()

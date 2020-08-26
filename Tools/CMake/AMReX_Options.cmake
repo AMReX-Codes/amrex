@@ -129,6 +129,10 @@ cmake_dependent_option( ENABLE_CUDA "Enable GPU support via CUDA" OFF
    "NOT ENABLE_DPCPP" OFF)
 print_option( ENABLE_CUDA )
 
+cmake_dependent_option( ENABLE_HIP "Enable GPU support via HIP" OFF
+   "NOT ENABLE_DPCPP;NOT ENABLE_CUDA" OFF)
+print_option( ENABLE_HIP )
+
 option( ENABLE_ACC  "Enable GPU support via OpenACC" OFF )
 print_option( ENABLE_ACC )
 

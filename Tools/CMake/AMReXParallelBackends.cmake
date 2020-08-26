@@ -64,3 +64,34 @@ if (ENABLE_DPCPP)
    include(AMReXSYCL)
    target_link_libraries(amrex PUBLIC SYCL)
 endif ()
+
+
+#
+#
+# HIP
+#
+#
+if (ENABLE_HIP)
+   if(NOT DEFINED HIP_PATH)
+      if(NOT DEFINED ENV{HIP_PATH})
+         set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
+      else()
+         set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
+      endif()
+   endif()
+
+   set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
+
+   find_package(HIP REQUIRED)
+
+   if(HIP_FOUND)
+      message(STATUS "Found HIP: " ${HIP_VERSION})
+   else()
+      message(FATAL_ERROR "Could not find HIP."
+         " Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
+   endif()
+
+   # Let's put the defines here for the time being
+   target_compile_definitions( amrex PUBLIC AMREX_USE_HIP AMREX_HIP_PLATFORM=${HIP_PLATFORM} )
+
+endif ()
