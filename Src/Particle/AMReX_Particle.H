@@ -58,7 +58,7 @@ struct ParticleIDWrapper
     }
 
     AMREX_GPU_HOST_DEVICE
-    operator Long () noexcept
+    operator Long () const noexcept
     {
         Long r = 0;
 
@@ -109,7 +109,7 @@ struct ConstParticleIDWrapper
     {}
 
     AMREX_GPU_HOST_DEVICE
-    operator Long () noexcept
+    operator Long () const noexcept
     {
         Long r = 0;
 
