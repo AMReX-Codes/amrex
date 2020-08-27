@@ -200,7 +200,7 @@ contains
         implicit none
 
         real(amrex_real),               intent(  out) :: lambda_min, lambda_max
-        integer,      dimension(3), intent(in   ) :: id_cell
+        integer,          dimension(3), intent(in   ) :: id_cell
         real(amrex_real), dimension(3), intent(in   ) :: p0, v, dx
 
         ! c... are the preliminary boundaries
@@ -273,7 +273,7 @@ contains
         implicit none
 
         real(amrex_real), dimension(3)             :: facets_nearest_pt
-        integer,      dimension(3), intent(in) :: ind_pt, ind_loop
+        integer,          dimension(3), intent(in) :: ind_pt, ind_loop
         real(amrex_real), dimension(3), intent(in) :: r_vec, eb_normal, eb_p0, dx
 
         integer,      dimension(3) :: ind_facets
