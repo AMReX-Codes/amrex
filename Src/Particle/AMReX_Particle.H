@@ -65,7 +65,7 @@ struct ParticleIDWrapper
         uint64_t sign = m_idata >> 63;  // extract leftmost sign bit
         uint64_t val  = ((m_idata >> 24) & 0x7FFFFFFFFF);  // extract next 39 id bits
 
-        r = sign ? val : -val;
+        r = (sign) ? val : -val;
         return r;
     }
 };
