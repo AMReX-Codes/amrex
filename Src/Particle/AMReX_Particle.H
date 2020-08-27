@@ -85,7 +85,7 @@ struct ParticleCPUWrapper
         // zero out the first 24 bits, which are used to store the cpu number
         m_idata &= (~ 0x00FFFFFF);
 
-        AMREX_ASSERT(cpu > 0);
+        AMREX_ASSERT(cpu >= 0);
         AMREX_ASSERT(cpu <= 16777215);  // 2**24-1, the max representable number
 
         m_idata |= cpu;
