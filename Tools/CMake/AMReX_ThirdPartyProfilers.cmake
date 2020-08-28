@@ -50,6 +50,17 @@ function (set_amrex_profilers)
          target_link_libraries( amrex PUBLIC -L$ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/lib64 -littnotify )
       endif ()
 
+   elseif ( TP_PROFILE MATCHES "TIMEMORY" )
+
+      set(timemory_FIND_COMPONENTS_INTERFACE amrex-timemory-tpl)
+      # be aware, gperftools will add additional compile-flags
+      set(TIMEMORY_TP_COMPONENTS headers OPTIONAL_COMPONENTS
+          gperftools vtune allinea-map cuda craypat)
+      print_option( TIMEMORY_TP_COMPONENTS )
+      find_package(timemory REQUIRED COMPONENTS ${TIMEMORY_TP_COMPONENTS})
+      add_amrex_define( AMREX_TIMEMORY_TPL )
+      target_link_libraries(amrex PUBLIC amrex-timemory-tpl)
+
    endif ()
 
 endfunction ()

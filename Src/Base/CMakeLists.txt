@@ -253,3 +253,7 @@ endif ()
 if (ENABLE_TINY_PROFILE)
    target_sources(amrex PRIVATE AMReX_TinyProfiler.cpp AMReX_TinyProfiler.H )
 endif ()
+
+if (ENABLE_TIMEMORY)
+   target_sources(amrex PRIVATE AMReX_Timemory.cpp AMReX_Timemory.H )
+endif ()

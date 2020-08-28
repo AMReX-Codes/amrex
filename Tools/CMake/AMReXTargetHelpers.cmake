@@ -45,6 +45,15 @@ function (get_target_prop_recursive _target _lincludes _ldefines _lflags _llink_
       return()
    endif ()
 
+   # do not process previously processed targets. certain configurations
+   # of timemory produce infinite recursion if this is not in place
+   get_property(get_target_prop_recursive_processed DIRECTORY
+       PROPERTY get_target_prop_recursive_processed)
+   if (${_target} IN_LIST get_target_prop_recursive_processed)
+       return()
+   endif ()
+   set_property(DIRECTORY APPEND PROPERTY get_target_prop_recursive_processed ${_target})
+
    # defines
    get_target_property(_interface_defines ${_target} INTERFACE_COMPILE_DEFINITIONS)
    if (_interface_defines)

@@ -99,6 +99,80 @@ function (configure_amrex)
          $<$<CXX_COMPILER_ID:Cray>:-h;noomp> )
    endif ()
 
+   if (ENABLE_TIMEMORY)
+
+       set(_TIMEMORY_REQ_COMPONENTS headers)
+       set(_TIMEMORY_OPT_COMPONENTS )
+       # Timemory has many interface libraries, rule of thumb:
+       #
+       #    anything without a suffix is just the TPL flags and the pre-processor
+       #       flags to enable the component in timemory
+       #    anything ending in "-component" is a library with pre-compiled templates
+       #       for whatever preceded the suffix
+       #    anything ending in "-library" is a implementation of some tool
+       #       with simple library functions
+
+       if(ENABLE_MPI)
+           list(APPEND _TIMEMORY_REQ_COMPONENTS mpi)
+           list(APPEND _TIMEMORY_OPT_COMPONENTS mpip-library)
+       endif()
+
+       if(ENABLE_UPCXX)
+           list(APPEND _TIMEMORY_REQ_COMPONENTS upcxx)
+       endif()
+
+        if(ENABLE_OMP)
+            list(APPEND _TIMEMORY_OPT_COMPONENTS ompt ompt-library)
+        endif()
+
+        if(ENABLE_CUDA)
+            list(APPEND _TIMEMORY_OPT_COMPONENTS
+                cuda nvtx cupti cudart-device
+                cuda-component cupti-component)
+        endif()
+
+        # miscellaneous
+        list(APPEND _TIMEMORY_OPT_COMPONENTS
+            gotcha               # enables gotcha support
+            ert                  # empirical roofline toolkit
+            roofline             # enables CPU and GPU roofline support (PAPI and CUPTI)
+            cpu-roofline         # enables CPU roofline (requires PAPI)
+            gpu-roofline         # enables GPU roofline (requires CUPTI)
+            papi                 # enables PAPI hardware counters
+            papi-component
+            gperftools           # gperftools CPU sampler
+            gperftools-component
+            caliper              # enables Caliper support
+            caliper-component
+            likwid               # enables LIKWID marker API support
+            likwid-component
+            craypat              # enable CrayPat support
+            craypat-component
+            allinea-map          # enable AllineaMap support
+            allinea-map-component
+            vtune                # enables VTune support
+            vtune-component
+            tau                  # enables TAU support
+            tau-component
+            )
+
+        set(timemory_FIND_COMPONENTS_INTERFACE amrex-timemory)
+        set(TIMEMORY_COMPONENTS
+            "${_TIMEMORY_REQ_COMPONENTS};OPTIONAL_COMPONENTS;${_TIMEMORY_OPT_COMPONENTS}" CACHE STRING "timemory components")
+        if(ENABLE_TIMEMORY_COMPONENTS)
+            print_option( TIMEMORY_COMPONENTS )
+            find_package(timemory REQUIRED COMPONENTS ${TIMEMORY_COMPONENTS})
+        else()
+            find_package(timemory REQUIRED
+                COMPONENTS headers cxx OPTIONAL_COMPONENTS c)
+        endif()
+
+        target_link_libraries(amrex
+            PUBLIC
+            amrex-timemory)
+
+    endif ()
+
 
    if (ENABLE_CUDA)
       #

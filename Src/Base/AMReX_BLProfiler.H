@@ -469,6 +469,53 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 
 #endif
 
+#elif defined(AMREX_USE_TIMEMORY)
+
+#include <AMReX_timemory.H>
+
+#define BL_PROFILE_INITIALIZE() amrex::BL_timemory_initialize ();
+#define BL_PROFILE_INITPARAMS()
+#define BL_PROFILE_FINALIZE() amrex::BL_timemory_finalize ();
+#define BL_TINY_PROFILE_INITIALIZE()
+#define BL_TINY_PROFILE_FINALIZE()
+
+#define BL_PROFILE(fname) amrex::TimemoryProfiler (fname);
+#define BL_PROFILE_T(a, T)
+#define BL_PROFILE_S(fname)
+#define BL_PROFILE_T_S(fname, T)                                                         \
+    amrex::TimemoryProfiler (                                                            \
+        TIMEMORY_JOIN ("", fname, "/", tim::demangle<T> ().c_str ()));
+#define BL_PROFILE_TIMER(var, a)
+#define BL_PROFILE_START(var)
+#define BL_PROFILE_STOP(var)
+#define BL_PROFILE_THIS_NAME()
+
+#define BL_PROFILE_VAR(fname, vname)                                                     \
+    TIMEMORY_BLANK_CALIPER (vname, amrex::TimemoryProfiler, fname);
+#define BL_PROFILE_VAR_NS(fname, vname)                                                  \
+    TIMEMORY_BLANK_CALIPER (vname, amrex::TimemoryProfiler, fname);
+#define BL_PROFILE_VAR_START(vname) TIMEMORY_CALIPER_APPLY0 (vname, start);
+#define BL_PROFILE_VAR_STOP(vname) TIMEMORY_CALIPER_APPLY0 (vname, stop);
+#define BL_PROFILE_INIT_PARAMS(p, w, f)
+#define BL_PROFILE_ADD_STEP(snum)
+#define BL_PROFILE_SET_RUN_TIME(rtime)
+#define BL_PROFILE_REGION(rname)                                                         \
+    BL_timemory_get_regions ()[rname] =                                                  \
+        std::make_unique<amrex::TimemoryProfiler> (rname, false);
+#define BL_PROFILE_REGION_START(rname) BL_timemory_get_regions ()[rname]->start ()
+#define BL_PROFILE_REGION_STOP(rname) BL_timemory_get_regions ()[rname]->stop ()
+#define BL_PROFILE_REGION_VAR(fname, rvname)                                             \
+    BL_timemory_get_regions ()[##rvname] =                                               \
+        std::make_unique<amrex::TimemoryProfiler> (fname, false);
+#define BL_PROFILE_REGION_VAR_START(fname, rvname)                                       \
+    BL_timemory_get_regions ()[##rvname]->start ();
+#define BL_PROFILE_REGION_VAR_STOP(fname, rvname)                                        \
+    BL_timemory_get_regions ()[##rvname]->stop ();
+#define BL_PROFILE_TINY_FLUSH()
+#define BL_PROFILE_FLUSH()
+#define BL_TRACE_PROFILE_FLUSH()
+#define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize)
+#define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname)
 
 // --------------------------------------------
 #elif defined(AMREX_TINY_PROFILING)
@@ -626,7 +673,18 @@ amrex::Print() << "CrayPat regional recording has been stopped.\n";
 #define BL_TP_PROFILE_REGION_START()   allinea_start_sampling(); \
 amrex::Print() << "MAP regional recording has begun.\n";
 #define BL_TP_PROFILE_REGION_STOP()    allinea_stop_sampling(); \
-amrex::Print() << "MAP regional recording has begun.\n";
+amrex::Print() << "MAP regional recording has been stopped.\n";
+
+#elif defined(AMREX_TIMEMORY_TPL)
+
+#include "AMReX_timemory.H"
+
+#define BL_TP_PROFILE_REGION_START()                                                     \
+    TimemoryTplProfiler::start ();                                                       \
+    amrex::Print () << "Timemory regional recording has begun.\n";
+#define BL_TP_PROFILE_REGION_STOP()                                                      \
+    TimemoryTplProfiler::stop ();                                                        \
+    amrex::Print () << "Timemory regional recording has been stopped.\n";
 
 #else
 
