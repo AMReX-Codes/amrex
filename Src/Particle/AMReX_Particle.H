@@ -32,6 +32,12 @@ struct ParticleIDWrapper
     {}
 
     AMREX_GPU_HOST_DEVICE
+    ParticleIDWrapper& operator= (const ParticleIDWrapper& pidw) noexcept
+    {
+        return this->operator=(Long(pidw));
+    }
+
+    AMREX_GPU_HOST_DEVICE
     ParticleIDWrapper& operator= (const Long id) noexcept
     {
         // zero out the 40 leftmost bits, which store the sign and the abs of the id;
@@ -81,6 +87,12 @@ struct ParticleCPUWrapper
     {}
 
     AMREX_GPU_HOST_DEVICE
+    ParticleCPUWrapper& operator= (const ParticleCPUWrapper& pcpuw) noexcept
+    {
+        return this->operator=(int(pcpuw));
+    }
+
+    AMREX_GPU_HOST_DEVICE
     ParticleCPUWrapper& operator= (const int cpu) noexcept
     {
         // zero out the first 24 bits, which are used to store the cpu number
@@ -94,7 +106,7 @@ struct ParticleCPUWrapper
     }
 
     AMREX_GPU_HOST_DEVICE
-    operator int () noexcept
+    operator int () const noexcept
     {
         return (m_idata & 0x00FFFFFF);
     }
@@ -133,7 +145,7 @@ struct ConstParticleCPUWrapper
     {}
 
     AMREX_GPU_HOST_DEVICE
-    operator int () noexcept { return (m_idata & 0x00FFFFFF); }
+    operator int () const noexcept { return (m_idata & 0x00FFFFFF); }
 };
 
 /** \brief The struct used to store particles.
