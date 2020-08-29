@@ -1,4 +1,5 @@
 #include "AMReX_EB_levelset.H"
+#include "AMReX_EB_geom.H"
 
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
@@ -896,14 +897,40 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
         // Fill local level-set
         if (len_facets > 0) {
 
-            amrex_eb_fill_levelset(BL_TO_FORTRAN_BOX(tile_box),
-                                   facets->dataPtr(), & len_facets,
-                                   BL_TO_FORTRAN_3D(v_tile),
-                                   BL_TO_FORTRAN_3D(ls_tile),
-                                   dx.dataPtr(), dx_eb.dataPtr() );
+            // HACK: copyingg EB facet data so that the lambda function can
+            // capture it by value. Why by value? => In case we want to run
+            // this code on device.
+            auto facet_vect = *facets;
 
+            Array4<Real> const & ls_array = ls_tile.array();
+            Array4<int > const &  v_array = v_tile.array();
+
+            ParallelFor(tile_box,
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                        RealVect pos_node {AMREX_D_DECL( (Real) i, (Real) j, (Real) k)};
+                        for(int d=0; d<AMREX_SPACEDIM; ++d)
+                            pos_node[d] *= dx[d];
+
+
+                        Real min_dist;
+                        bool proj_valid;
+                        geom::closest_dist (min_dist, proj_valid,
+                                            facet_vect, dx_eb, pos_node);
+
+                        ls_array(i, j, k) = min_dist;
+                        if (proj_valid) {
+                            v_array(i, j, k) = 1;
+                        } else {
+                            v_array(i, j, k) = 0;
+                        }
+                    }
+                );
+
+
+            // TODO: check if this still needs to run on the host only?
             region_tile.setVal<RunOn::Host>(1);
         } else {
+            // TODO: check if this still needs to run on the host only?
             ls_tile.setVal<RunOn::Host>( min_dx * ( eb_pad + 1 ) , tile_box );
         }
 
