@@ -123,7 +123,7 @@ bool norm_all_eq (const RealVect & a, const RealVect & b) {
         diff += amrex::Math::abs(abs_a - abs_b);
     }
 
-    return diff <= 10*eps; // 10 = fudge factor
+    return diff <= AMREX_SPACEDIM*eps;
 }
 
 
@@ -245,8 +245,8 @@ void closest_dist (Real & min_dist, bool & proj_valid,
     min_dist   = std::numeric_limits<Real>::max();
     proj_valid = false;
 
-    Real min_dist2  = std::numeric_limits<Real>::max();
-    int i_nearest   = 0;
+    Real min_dist2 = std::numeric_limits<Real>::max();
+    int i_nearest  = 0;
 
 
 
@@ -255,7 +255,7 @@ void closest_dist (Real & min_dist, bool & proj_valid,
         RealVect eb_cent, eb_norm;
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             eb_cent[d] = eb_data[i + d];
-            eb_cent[d] = eb_data[i + d + AMREX_SPACEDIM];
+            eb_norm[d] = eb_data[i + d + AMREX_SPACEDIM];
         }
 
         Real dist2 = dot_3d_real( pos - eb_cent, pos - eb_cent );
