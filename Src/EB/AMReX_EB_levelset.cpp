@@ -728,6 +728,10 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
 
 
 
+
+
+
+
 void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
                            const EBFArrayBoxFactory & eb_factory,
                            const MultiFab & eb_impfunc,
@@ -839,7 +843,7 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
             Array4<Real const> const & if_tile = eb_impfunc.array(mfi);
             Array4<int const>  const &  v_tile = eb_valid.array(mfi);
             Array4<Real      > const &     phi = data.array(mfi);
-            
+
             ParallelFor(tile_box,
                     [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                         if (v_tile(i, j, k) == 0) {
@@ -852,6 +856,7 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
                         }
                     }
                 );
+
             continue;
         }
 

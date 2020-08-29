@@ -346,8 +346,8 @@ contains
       implicit none
 
       ! ** define I/O dummy variables
-      integer,                       intent(in   ) :: l_eb
-      logical,                       intent(  out) :: proj_valid
+      integer,                           intent(in   ) :: l_eb
+      logical,                           intent(  out) :: proj_valid
       real(amrex_real),                  intent(  out) :: min_dist
       real(amrex_real), dimension(3),    intent(in   ) :: pos, dx_eb
       real(amrex_real), dimension(l_eb), intent(in   ) :: eb_data
@@ -396,8 +396,8 @@ contains
 
 
       ! Test if pos "projects onto" the nearest EB facet's interior
-      eb_cent(:)   = eb_data(i_nearest     : i_nearest + 2)
-      eb_norm(:)   = eb_data(i_nearest + 3 : i_nearest + 5)
+      eb_cent(:) = eb_data(i_nearest     : i_nearest + 2)
+      eb_norm(:) = eb_data(i_nearest + 3 : i_nearest + 5)
 
       dist_proj = dot_product( pos(:) - eb_cent(:), -eb_norm(:) )
       eb_min_pt(:) = pos(:) + eb_norm(:) * dist_proj
