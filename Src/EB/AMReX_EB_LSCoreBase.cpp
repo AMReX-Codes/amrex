@@ -11,6 +11,7 @@
 #include <AMReX_EB_utils.H>
 #include <AMReX_EBAmrUtil.H>
 #include <AMReX_EB_F.H>
+#include <AMReX_EB_geom.H>
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
@@ -573,12 +574,27 @@ void LSCoreBase::FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
 
             if (bail) continue;
 
-            int n_facets = 0;
-            const auto & flag = flags[mfi];
             // Need to count number of eb-facets (in order to allocate facet_list)
-            amrex_eb_count_facets(BL_TO_FORTRAN_BOX(eb_search),
-                                  BL_TO_FORTRAN_3D(flag),
-                                  & n_facets);
+            int n_facets = 0;
+
+            const Dim3 lo = amrex::lbound(eb_search);
+            const Dim3 hi = amrex::ubound(eb_search);
+
+            // TODO: This can probably be parallelized using ReduceSum -- but I
+            // think the advantages of parallelizing this rely on parallizing
+            // the next kernel also. This is something to revisit in the future
+
+            Array4<EBCellFlag const> const & flag_array = flags.array(mfi);
+            for (int k=lo.z; k<=hi.z; ++k) {
+                for (int j=lo.y; j<=hi.y; ++j) {
+                    for (int i=lo.x; i<=hi.x; ++i) {
+                        if (flag_array(i, j, k).isSingleValued()) {
+                            n_facets ++;
+                        }
+                    }
+                }
+            }
+
 
             int facet_list_size = 6 * n_facets;
             Vector<Real> facet_list(facet_list_size);
@@ -589,23 +605,101 @@ void LSCoreBase::FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
             const auto & if_tile   = mf_impfunc[mfi];
 
             if (n_facets > 0) {
-                const auto & norm_tile = normal[mfi];
-                const auto & bcent_tile = bndrycent[mfi];
+                // const auto & norm_tile = normal[mfi];
+                // const auto & bcent_tile = bndrycent[mfi];
 
-                int c_facets = 0;
-                amrex_eb_as_list(BL_TO_FORTRAN_BOX(eb_search), & c_facets,
-                                 BL_TO_FORTRAN_3D(flag),
-                                 BL_TO_FORTRAN_3D(norm_tile),
-                                 BL_TO_FORTRAN_3D(bcent_tile),
-                                 facet_list.dataPtr(), & facet_list_size,
-                                 geom.CellSize()                          );
+                // int c_facets = 0;
+                // amrex_eb_as_list(BL_TO_FORTRAN_BOX(eb_search), & c_facets,
+                //                  BL_TO_FORTRAN_3D(flag),
+                //                  BL_TO_FORTRAN_3D(norm_tile),
+                //                  BL_TO_FORTRAN_3D(bcent_tile),
+                //                  facet_list.dataPtr(), & facet_list_size,
+                //                  geom.CellSize()                          );
 
-                amrex_eb_fill_levelset_loc(BL_TO_FORTRAN_BOX(tile_box),
-                                           facet_list.dataPtr(), & facet_list_size,
-                                           BL_TO_FORTRAN_3D(v_tile),
-                                           BL_TO_FORTRAN_3D(ls_tile_w),
-                                           BL_TO_FORTRAN_3D(ls_tile), & ls_threshold,
-                                           geom.CellSize(), geom.CellSize()         );
+
+                RealVect dx;
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                    dx[d] = geom.CellSize(d);
+
+                int i_facet = 0;
+
+                Array4<Real const> const & norm_array  = normal.array(mfi);
+                Array4<Real const> const & bcent_array = bndrycent.array(mfi);
+
+                // TODO: Parallelizing this kenerl would require GPU atomics --
+                // I don't know the status of how well they are implemented in
+                // AMReX. This is something to revisit in the future.
+
+                for (int k = lo.z; k <= hi.z; ++k) {
+                    for (int j = lo.y; j <= hi.y; ++j) {
+                        for (int i = lo.x; i <= hi.x; ++i) {
+                            if (flag_array(i, j, k).isSingleValued()) {
+
+                                // Compute facet center
+                                RealVect eb_cent, cell_corner{(Real) i, (Real) j, (Real) k};
+                                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                                    eb_cent[d] = bcent_array(i, j, k, d)
+                                               + cell_corner[d] + 0.5*dx[d];
+                                }
+
+                                // Add data to eb facet vector
+                                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                                    facet_list[i_facet + d] = eb_cent[d];
+                                    facet_list[i_facet + AMREX_SPACEDIM + d] = norm_array(i, j, k, d);
+                                }
+
+                                // Increment facet counter by the facet data length
+                                i_facet += 2*AMREX_SPACEDIM;
+                            }
+                        }
+                    }
+                }
+
+
+                // amrex_eb_fill_levelset_loc(BL_TO_FORTRAN_BOX(tile_box),
+                //                            facet_list.dataPtr(), & facet_list_size,
+                //                            BL_TO_FORTRAN_3D(v_tile),
+                //                            BL_TO_FORTRAN_3D(ls_tile_w),
+                //                            BL_TO_FORTRAN_3D(ls_tile), & ls_threshold,
+                //                            geom.CellSize(), geom.CellSize()         );
+
+                Array4<Real      > const & ls_array = level_set.array(mfi);
+                Array4<Real const> const & ls_guess = ls_crse.array(mfi);
+                Array4<int       > const &  v_array = eb_valid.array(mfi);
+
+                // TODO: this code is fairly branchy -- it probably needs to be
+                // improved to get good performances on device.
+
+                ParallelFor(tile_box,
+                        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                            RealVect pos_node {AMREX_D_DECL( (Real) i, (Real) j, (Real) k)};
+                            for(int d=0; d<AMREX_SPACEDIM; ++d)
+                                pos_node[d] = pos_node[d] * dx[d];
+
+                            if (amrex::Math::abs(ls_guess(i, j, k) < ls_threshold)) {
+                                Real min_dist=0;
+                                bool proj_valid=true;
+                                geom::closest_dist (min_dist, proj_valid,
+                                                    facet_list, dx, pos_node);
+
+                                ls_array(i, j, k) = min_dist;
+                                if (proj_valid) {
+                                    v_array(i, j, k) = 1;
+                                } else {
+                                    v_array(i, j, k) = 0;
+                                }
+                            } else if ( ls_guess(i, j, k) <= -ls_threshold ) {
+
+                                ls_array(i, j, k) = -ls_threshold;
+                                v_array(i, j, k)  = 0;
+
+                            } else if ( ls_guess(i, j, k) >= ls_threshold ) {
+
+                                ls_array(i, j, k) = ls_threshold;
+                                v_array(i, j, k)  = 0;
+                            }
+                        }
+                    );
 
             }
 

@@ -149,7 +149,7 @@ contains
       real(amrex_real),                  intent(in   ) :: ls_thres
 
       real(amrex_real),  intent(  out) :: phi     (  p_lo(1):p_hi(1),     p_lo(2):p_hi(2),     p_lo(3):p_hi(3)  )
-      integer,       intent(  out) :: valid   (  v_lo(1):v_hi(1),     v_lo(2):v_hi(2),     v_lo(3):v_hi(3)  )
+      integer,           intent(  out) :: valid   (  v_lo(1):v_hi(1),     v_lo(2):v_hi(2),     v_lo(3):v_hi(3)  )
       real(amrex_real),  intent(in   ) :: ls_guess(lsg_lo(1):lsg_hi(1), lsg_lo(2):lsg_hi(2), lsg_lo(3):lsg_hi(3))
 
       ! ** define internal variables
@@ -211,12 +211,12 @@ contains
         implicit none
 
         integer,      dimension(3), intent(in   ) :: philo, phihi, vlo, vhi, periodic, domlo, domhi
-        real(amrex_real),               intent(  out) :: phi(philo(1):phihi(1), philo(2):phihi(2), philo(3):phihi(3))
+        real(amrex_real),           intent(  out) :: phi(philo(1):phihi(1), philo(2):phihi(2), philo(3):phihi(3))
         integer,                    intent(  out) :: valid(vlo(1):vhi(1),     vlo(2):vhi(2),     vlo(3):vhi(3))
 
         ! ** extra data used by fill levelset operation
         real(amrex_real), dimension(3),    intent(in   ) :: dx, dx_eb
-        integer,                       intent(in   ) :: l_eb
+        integer,                           intent(in   ) :: l_eb
         real(amrex_real), dimension(l_eb), intent(in   ) :: eb_list
 
 

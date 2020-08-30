@@ -431,7 +431,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const FArrayBox & norm_tile,
                         // Compute facet center
                         RealVect eb_cent, cell_corner{(Real) i, (Real) j, (Real) k};
                         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                            eb_cent[d] = bcent_array(i, j, k, d) 
+                            eb_cent[d] = bcent_array(i, j, k, d)
                                        + cell_corner[d]
                                        + 0.5*dx_eb[d];
                         }
@@ -901,14 +901,6 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
             // capture it by value. Why by value? => In case we want to run
             // this code on device.
             auto facet_vect = *facets;
-
-            // amrex_eb_fill_levelset(BL_TO_FORTRAN_BOX(tile_box),
-            //                         facet_vect.dataPtr(), & len_facets,
-            //                         BL_TO_FORTRAN_3D(v_tile),
-            //                         BL_TO_FORTRAN_3D(ls_tile),
-            //                         dx.dataPtr(), dx_eb.dataPtr() );
-
-
 
             Array4<Real> const & ls_array = ls_tile.array();
             Array4<int > const &  v_array = v_tile.array();
