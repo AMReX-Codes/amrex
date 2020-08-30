@@ -36,7 +36,7 @@ void set_eb_data (const int i, const int j, const int k,
 
     Real dapx = axm - axp;
     Real dapy = aym - ayp;
-            Real dapz = azm - azp;
+    Real dapz = azm - azp;
     Real apnorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(apnorm != 0.0,
                                      "amrex::EB2:build_cells: apnorm==0");
