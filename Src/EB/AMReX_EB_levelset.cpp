@@ -431,9 +431,8 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const FArrayBox & norm_tile,
                         // Compute facet center
                         RealVect eb_cent, cell_corner{(Real) i, (Real) j, (Real) k};
                         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                            eb_cent[d] = bcent_array(i, j, k, d)
-                                       + cell_corner[d]
-                                       + 0.5*dx_eb[d];
+                            eb_cent[d] = ( bcent_array(i, j, k, d)
+                                          + cell_corner[d] + 0.5 )*dx_eb[d];
                         }
 
                         // Add data to eb facet vector

@@ -605,17 +605,6 @@ void LSCoreBase::FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
             const auto & if_tile   = mf_impfunc[mfi];
 
             if (n_facets > 0) {
-                // const auto & norm_tile = normal[mfi];
-                // const auto & bcent_tile = bndrycent[mfi];
-
-                // int c_facets = 0;
-                // amrex_eb_as_list(BL_TO_FORTRAN_BOX(eb_search), & c_facets,
-                //                  BL_TO_FORTRAN_3D(flag),
-                //                  BL_TO_FORTRAN_3D(norm_tile),
-                //                  BL_TO_FORTRAN_3D(bcent_tile),
-                //                  facet_list.dataPtr(), & facet_list_size,
-                //                  geom.CellSize()                          );
-
 
                 RealVect dx;
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
@@ -638,8 +627,8 @@ void LSCoreBase::FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
                                 // Compute facet center
                                 RealVect eb_cent, cell_corner{(Real) i, (Real) j, (Real) k};
                                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                                    eb_cent[d] = bcent_array(i, j, k, d)
-                                               + cell_corner[d] + 0.5*dx[d];
+                                    eb_cent[d] = ( bcent_array(i, j, k, d)
+                                                  + cell_corner[d] + 0.5)*dx[d];
                                 }
 
                                 // Add data to eb facet vector
@@ -655,14 +644,6 @@ void LSCoreBase::FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
                     }
                 }
 
-
-                // amrex_eb_fill_levelset_loc(BL_TO_FORTRAN_BOX(tile_box),
-                //                            facet_list.dataPtr(), & facet_list_size,
-                //                            BL_TO_FORTRAN_3D(v_tile),
-                //                            BL_TO_FORTRAN_3D(ls_tile_w),
-                //                            BL_TO_FORTRAN_3D(ls_tile), & ls_threshold,
-                //                            geom.CellSize(), geom.CellSize()         );
-
                 Array4<Real      > const & ls_array = level_set.array(mfi);
                 Array4<Real const> const & ls_guess = ls_crse.array(mfi);
                 Array4<int       > const &  v_array = eb_valid.array(mfi);
@@ -676,7 +657,7 @@ void LSCoreBase::FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
                             for(int d=0; d<AMREX_SPACEDIM; ++d)
                                 pos_node[d] = pos_node[d] * dx[d];
 
-                            if (amrex::Math::abs(ls_guess(i, j, k) < ls_threshold)) {
+                            if (amrex::Math::abs(ls_guess(i, j, k)) < ls_threshold) {
                                 Real min_dist=0;
                                 bool proj_valid=true;
                                 geom::closest_dist (min_dist, proj_valid,
