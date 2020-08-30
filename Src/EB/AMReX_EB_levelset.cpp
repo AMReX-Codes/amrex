@@ -902,6 +902,14 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
             // this code on device.
             auto facet_vect = *facets;
 
+            // amrex_eb_fill_levelset(BL_TO_FORTRAN_BOX(tile_box),
+            //                         facet_vect.dataPtr(), & len_facets,
+            //                         BL_TO_FORTRAN_3D(v_tile),
+            //                         BL_TO_FORTRAN_3D(ls_tile),
+            //                         dx.dataPtr(), dx_eb.dataPtr() );
+
+
+
             Array4<Real> const & ls_array = ls_tile.array();
             Array4<int > const &  v_array = v_tile.array();
 
@@ -909,11 +917,11 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
                     [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                         RealVect pos_node {AMREX_D_DECL( (Real) i, (Real) j, (Real) k)};
                         for(int d=0; d<AMREX_SPACEDIM; ++d)
-                            pos_node[d] *= dx[d];
+                            pos_node[d] = pos_node[d] * dx[d];
 
 
-                        Real min_dist;
-                        bool proj_valid;
+                        Real min_dist=0;
+                        bool proj_valid=true;
                         geom::closest_dist (min_dist, proj_valid,
                                             facet_vect, dx_eb, pos_node);
 

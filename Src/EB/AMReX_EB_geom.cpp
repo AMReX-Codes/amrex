@@ -14,7 +14,7 @@ namespace geom {
 
 
 inline Real dot_3d_real (const RealVect & v1, const RealVect & v2) {
-    return v1[0]*v2[0] + v1[1]*v2[1] * v1[2]*v2[2];
+    return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
 }
 
 
@@ -249,7 +249,6 @@ void closest_dist (Real & min_dist, bool & proj_valid,
     int i_nearest  = 0;
 
 
-
     for (int i=0; i<l_eb; i+=2*AMREX_SPACEDIM) {
 
         RealVect eb_cent, eb_norm;
@@ -271,7 +270,6 @@ void closest_dist (Real & min_dist, bool & proj_valid,
         eb_cent[d] = eb_data[i_nearest + d];
         eb_norm[d] = eb_data[i_nearest + d + AMREX_SPACEDIM];
     }
-
 
     Real dist_proj = dot_3d_real( pos - eb_cent, -eb_norm );
 
