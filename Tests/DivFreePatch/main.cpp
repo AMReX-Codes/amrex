@@ -18,21 +18,20 @@ void setupMF(MultiFab* mf)
 
         amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            c_x(i,j,k) = amrex::Random()*10;
+//            c_x(i,j,k) = amrex::Random()*10;
 //            c_x(i,j,k) = double(i)+double(j)+double(k);
+            c_x(i,j,k) = double(i)*double(i)+double(j)*double(j)+double(k)*double(k);
         });
     }
 }
 
 int main (int argc, char* argv[])
 {
-
     amrex::Initialize(argc,argv);
 
     main_main();
 
     amrex::Finalize();
-
 }
 
 void main_main ()
@@ -66,7 +65,7 @@ void main_main ()
 
     int ncomp = 1;
     IntVect ratio{AMREX_D_DECL(2,2,2)};  // For this stencil (octree), always 2.
-    IntVect ghost_c{AMREX_D_DECL(2,2,2)};  // For this stencil (octree), need 1 coarse ghost.
+    IntVect ghost_c{AMREX_D_DECL(1,1,1)};  // For this stencil (octree), need 1 coarse ghost.
     IntVect ghost_f{AMREX_D_DECL(2,2,2)};  // For this stencil (octree), need 2 fine ghost.
     Geometry c_geom, f_geom;
 
@@ -139,14 +138,6 @@ void main_main ()
         setupMF(&c_mf_faces[i]);
     }
 
-    amrex::UtilCreateDirectoryDestructive("pltfiles");
-
-// ***************************************************************
-
-//    Calc div
-//    Do TwoLevelFillPatch
-//    Compare/check div at fine level
-
 // ***************************************************************
 
     amrex::Print() << " Calculating coarse divergence. " << std::endl;
@@ -166,12 +157,13 @@ void main_main ()
                                        + face_z(i  ,j  ,k+1) - face_z(i,j,k)  );
         });
     }
-
     amrex::VisMF::Write(div_coarse, std::string("pltfiles/coarse"));
+
+// ***************************************************************
 
     amrex::Print() << " Copying coarse divergence to fine grid. " << std::endl;
     {
-        double time = 1;
+        double time = 0;
 
         Vector<BCRec> bcrec(ncomp);
         for (int n = 0; n < ncomp; ++n)
@@ -189,15 +181,17 @@ void main_main ()
         Geometry f_total_geom = c_geom;
         f_total_geom.refine(ratio);
 
-        InterpFromCoarseLevel(div_refined_coarse, ghost_f, time,
+        InterpFromCoarseLevel(div_refined_coarse, time,
                               div_coarse, 0, 0, 1,
                               c_geom, f_total_geom, 
                               phys_bc, 0, phys_bc, 0,
                               ratio, mapper, bcrec, 0);
     }
 
-    amrex::VisMF::Write(div_refined_coarse, std::string("pltfiles/coarsetofine"));
+// ***************************************************************
 
+    amrex::VisMF::Write(div_refined_coarse, std::string("pltfiles/coarsetofine"));
+/*
     amrex::Print() << " Starting InterpFromCoarse. " << std::endl;
     {
         double time = 1;
@@ -268,13 +262,13 @@ void main_main ()
     }
 
     amrex::Print() << " Checking Coarse vs. Fine Divergence. " << std::endl;
-    for (MFIter mfi(div_coarse); mfi.isValid(); ++mfi)
     {
+        div_fine.minus(div_refined_coarse, 0, 1, 0);
+        Real max_error = div_fine.max(0);
 
-
+        amrex::Print() << " Divergence error = " << max_error << std::endl;
     }
-
-
+*/
 
 /*
     amrex::Print() << " Performing DivFree FillPatch. " << std::endl;
@@ -328,26 +322,6 @@ void main_main ()
 
     }
 */
-    amrex::Print() << " Test fine divergence. " << std::endl;
-/*
-    for (MFIter mfi(div_coarse); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.validbox();
-        Array4<Real> div = div_coarse.array(mfi);
-
-        AMREX_D_TERM( Array4<Real> face_x = c_mf_faces[0].array(mfi);,
-                      Array4<Real> face_y = c_mf_faces[1].array(mfi);,
-                      Array4<Real> face_z = c_mf_faces[2].array(mfi);  );
-
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            div(i,j,k) = AMREX_D_TERM(   face_x(i+1,j  ,k  ) - face_x(i,j,k),
-                                       + face_y(i  ,j+1,k  ) - face_y(i,j,k),
-                                       + face_z(i  ,j  ,k+1) - face_z(i,j,k)  );
-        });
-    }
-*/
-
 
 // ***************************************************************
 
