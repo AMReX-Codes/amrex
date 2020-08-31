@@ -278,8 +278,8 @@ void closest_dist (Real & min_dist, bool & proj_valid,
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         eb_min_pt[d] = pos[d] + eb_norm[d] * dist_proj;
 
-        vi_cent[d] = amrex::Math::floor( eb_cent[d] * inv_dx[d]);
-        vi_pt[d]   = amrex::Math::floor( eb_min_pt[d] * inv_dx[d]);
+        vi_cent[d] = static_cast<int>(amrex::Math::floor( eb_cent[d] * inv_dx[d]));
+        vi_pt[d]   = static_cast<int>(amrex::Math::floor( eb_min_pt[d] * inv_dx[d]));
     }
 
 
@@ -296,9 +296,9 @@ void closest_dist (Real & min_dist, bool & proj_valid,
                                                  1.e-6*k_shift)};
 
                     for (int d=0; d<AMREX_SPACEDIM; ++d)
-                        vi_pt[d] = amrex::Math::floor(
+                        vi_pt[d] = static_cast<int>(amrex::Math::floor(
                                 (eb_min_pt[d] + shift[d]*dx_eb[d]) * inv_dx[d]
-                            );
+                            ));
 
                     if ( all_eq( vi_pt, vi_cent ) ) min_pt_valid = true;
                 }
