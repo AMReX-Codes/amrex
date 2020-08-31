@@ -93,6 +93,8 @@ if (ENABLE_FORTRAN)
          AMReX_EB_LSCore.H
          AMReX_EB_LSCoreI.H
          AMReX_EB_LSCore_F.H
+         AMReX_EB_geom.H
+         AMReX_EB_geom.cpp
          )
   endif ()
 
