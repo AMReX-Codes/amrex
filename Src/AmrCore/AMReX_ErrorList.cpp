@@ -315,9 +315,9 @@ operator << (std::ostream&    os,
       amrex::ParallelFor(bx,
       [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k) noexcept
       {
-          GpuArray<Real,AMREX_SPACEDIM> pt = {{AMREX_D_DECL(plo[0]+(Real(i)+0.5_rt)*dx[0],
-                                                            plo[1]+(Real(j)+0.5_rt)*dx[1],
-                                                            plo[2]+(Real(k)+0.5_rt)*dx[2])}};
+          GpuArray<Real,AMREX_SPACEDIM> pt = {{AMREX_D_DECL(plo[0]+(Real(i)+Real(0.5))*dx[0],
+                                                            plo[1]+(Real(j)+Real(0.5))*dx[1],
+                                                            plo[2]+(Real(k)+Real(0.5))*dx[2])}};
         if (tag_rb.contains(pt.data())) {
           tag(i,j,k) = tagval;
         }
@@ -383,32 +383,36 @@ operator << (std::ostream&    os,
         for (MFIter mfi(tba,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
           const auto& bx    = mfi.tilebox();
-          auto const& dat   = mf->array(mfi);
           auto tag          = tba.array(mfi);
 
           if (m_test == BOX)
           {
             AMRErrorTag_BOX(bx, tag, m_info.m_realbox, geom, tagval);
           }
-          else if (m_test == GRAD)
-          {
-            AMRErrorTag_GRAD(bx, dat, tag, m_value, tagval);
-          }
-          else if (m_test == LESS)
-          {
-            AMRErrorTag_LESS(bx, dat, tag, m_value, tagval);
-          }
-          else if (m_test == GREATER)
-          {
-            AMRErrorTag_GREATER(bx, dat, tag, m_value, tagval);
-          }
-          else if (m_test == VORT)
-          {
-            AMRErrorTag_VORT(bx, dat, tag, level, m_value, tagval);
-          }
           else
           {
-            Abort("Bad AMRErrorTag test flag");
+            auto const& dat   = mf->array(mfi);
+
+            if (m_test == GRAD)
+            {
+              AMRErrorTag_GRAD(bx, dat, tag, m_value, tagval);
+            }
+            else if (m_test == LESS)
+            {
+              AMRErrorTag_LESS(bx, dat, tag, m_value, tagval);
+            }
+            else if (m_test == GREATER)
+            {
+              AMRErrorTag_GREATER(bx, dat, tag, m_value, tagval);
+            }
+            else if (m_test == VORT)
+            {
+              AMRErrorTag_VORT(bx, dat, tag, level, m_value, tagval);
+            }
+            else
+            {
+              Abort("Bad AMRErrorTag test flag");
+            }
           }
         }
       }

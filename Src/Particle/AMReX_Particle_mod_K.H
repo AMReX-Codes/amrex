@@ -21,7 +21,7 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
     
     amrex::Real xint = lx - i;
     
-    amrex::Real sx[2] = {1.0_rt - xint, xint};
+    amrex::Real sx[2] = {Real(1.0) - xint, xint};
     
     for (int ii = 0; ii <= 1; ++ii) { 
         amrex::Gpu::Atomic::Add(&rho(i+ii-1, 0, 0, 0), static_cast<Real>(sx[ii]*p.rdata(0)));
@@ -43,8 +43,8 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
     amrex::Real xint = lx - i;
     amrex::Real yint = ly - j;
 
-    amrex::Real sx[2] = {1.0_rt - xint, xint};
-    amrex::Real sy[2] = {1.0_rt - yint, yint};
+    amrex::Real sx[2] = {Real(1.0) - xint, xint};
+    amrex::Real sy[2] = {Real(1.0) - yint, yint};
 
     for (int jj = 0; jj <= 1; ++jj) { 
         for (int ii = 0; ii <= 1; ++ii) { 
@@ -75,9 +75,9 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
     amrex::Real yint = ly - j;
     amrex::Real zint = lz - k;
 
-    amrex::Real sx[] = {1.0_rt - xint, xint};
-    amrex::Real sy[] = {1.0_rt - yint, yint};
-    amrex::Real sz[] = {1.0_rt - zint, zint};
+    amrex::Real sx[] = {Real(1.0) - xint, xint};
+    amrex::Real sy[] = {Real(1.0) - yint, yint};
+    amrex::Real sz[] = {Real(1.0) - zint, zint};
     
     for (int kk = 0; kk <= 1; ++kk) { 
         for (int jj = 0; jj <= 1; ++jj) { 
@@ -249,7 +249,7 @@ void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const>
     
     amrex::Real xint = lx - i;
     
-    amrex::Real sx[] = {1.0_rt-xint, xint};
+    amrex::Real sx[] = {Real(1.0)-xint, xint};
 
     for (int comp=0; comp < nc; ++comp) {    
         for (int ii = 0; ii <= 1; ++ii) { 
@@ -267,8 +267,8 @@ void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const>
     amrex::Real xint = lx - i;
     amrex::Real yint = ly - j;
     
-    amrex::Real sx[] = {1.0_rt-xint, xint};
-    amrex::Real sy[] = {1.0_rt-yint, yint};
+    amrex::Real sx[] = {Real(1.0)-xint, xint};
+    amrex::Real sy[] = {Real(1.0)-yint, yint};
 
     for (int comp=0; comp < nc; ++comp) {    
         for (int jj = 0; jj <= 1; ++jj) { 
@@ -291,9 +291,9 @@ void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const>
     amrex::Real yint = ly - j;
     amrex::Real zint = lz - k;
     
-    amrex::Real sx[] = {1.0_rt-xint, xint};
-    amrex::Real sy[] = {1.0_rt-yint, yint};
-    amrex::Real sz[] = {1.0_rt-zint, zint};
+    amrex::Real sx[] = {Real(1.0)-xint, xint};
+    amrex::Real sy[] = {Real(1.0)-yint, yint};
+    amrex::Real sz[] = {Real(1.0)-zint, zint};
 
     for (int comp=0; comp < nc; ++comp) {                    
         for (int kk = 0; kk <= 1; ++kk) { 

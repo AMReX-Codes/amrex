@@ -48,20 +48,27 @@ unset(_version_string CACHE)
 
 # Include directory is only the top level one, i.e. "include"
 # Find path by using directory "sundials" as reference
-find_path(_sundials_include_path NAMES sundials PATH_SUFFIXES include)
-
+find_path(_sundials_include_path     NAMES sundials PATH_SUFFIXES include)
+find_path(_sundials_fortran_mod_path NAMES fortran )
+if (_sundials_fortran_mod_path)
+   set(_sundials_fortran_mod_path ${_sundials_fortran_mod_path}/fortran)
+endif ()
 
 # Valid components
 set(_valid_components
    nvecserial
+   fnvecserial_mod
    nvecparallel
+   fnvecparallel_mod
    nvecopenmp
+   fnvecopenmp_mod
    nvecopenmpdev
    nveccuda
    cvode
+   fcvode_mod
    arkode
+   farkode_mod
    )
-
 
 # Search for a default library (nvecserial) or for all the
 # required components
@@ -78,7 +85,7 @@ list(REMOVE_DUPLICATES _sundials_findlist)
 #
 set(_SUNDIALS_REQUIRED_VARS)
 foreach(_comp IN LISTS _sundials_findlist)
-   
+
    string( TOLOWER "${_comp}" _comp_lower  )
    string( TOUPPER "${_comp}" _comp_upper  )
 
@@ -91,6 +98,14 @@ foreach(_comp IN LISTS _sundials_findlist)
    set(SUNDIALS_${_comp_upper}_INCLUDE_DIRS ${_sundials_include_path})
    find_library(SUNDIALS_${_comp_upper}_LIBRARIES NAMES sundials_${_comp_lower} PATH_SUFFIXES lib lib64)
 
+   # If this is a fortran library, add module search path to includes
+   if (_comp_lower MATCHES ".*_mod")
+      if (NOT _sundials_fortran_mod_path)
+         message(FATAL_ERROR "\\ No Fortran support found for SUNDIALS (required by ${_comp_lower})")
+      endif ()
+      list( APPEND SUNDIALS_${_comp_upper}_INCLUDE_DIRS ${_sundials_fortran_mod_path})
+   endif ()
+
    find_package_handle_standard_args(SUNDIALS_${_comp_upper}
       REQUIRED_VARS
       SUNDIALS_${_comp_upper}_LIBRARIES
@@ -101,7 +116,7 @@ foreach(_comp IN LISTS _sundials_findlist)
    mark_as_advanced(SUNDIALS_${_comp_upper}_LIBRARIES SUNDIALS_${_comp_upper}_INCLUDE_DIRS)
 
    list(APPEND _SUNDIALS_REQUIRED_VARS "SUNDIALS_${_comp_upper}_FOUND")
-   
+
    # Create imported target
    set(_target SUNDIALS::${_comp_lower})
    if (SUNDIALS_${_comp_upper}_FOUND AND NOT TARGET ${_target})
@@ -110,7 +125,7 @@ foreach(_comp IN LISTS _sundials_findlist)
          IMPORTED_LOCATION "${SUNDIALS_${_comp_upper}_LIBRARIES}"
          INTERFACE_INCLUDE_DIRECTORIES "${SUNDIALS_${_comp_upper}_INCLUDE_DIRS}"
          )
-   endif ()  
+   endif ()
 
 endforeach()
 

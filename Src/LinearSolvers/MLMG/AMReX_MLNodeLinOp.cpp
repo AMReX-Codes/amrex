@@ -332,9 +332,20 @@ MLNodeLinOp::buildMasks ()
 }
 
 void
-MLNodeLinOp::setDirichletMask (int amrlev, const iMultiFab& a_dmask)
+MLNodeLinOp::setOversetMask (int amrlev, const iMultiFab& a_dmask)
 {
-    iMultiFab::Copy(*m_dirichlet_mask[amrlev][0], a_dmask, 0, 0, 1, 0);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(*m_dirichlet_mask[amrlev][0], TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        Array4<int const> const& omsk = a_dmask.const_array(mfi);
+        Array4<int> const& dmsk = m_dirichlet_mask[amrlev][0]->array(mfi);
+        Box const& bx = mfi.tilebox();
+        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+        {
+            dmsk(i,j,k) = 1 - omsk(i,j,k);
+        });
+    }
     m_overset_dirichlet_mask = true;
 }
 

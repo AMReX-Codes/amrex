@@ -21,6 +21,16 @@ ifeq ($(shell expr $(nvcc_major_version) \>= 11),1)
   nvcc_forward_unknowns = 1
 endif
 
+ifeq ($(shell expr $(nvcc_major_version) \< 10),1)
+  DEPFLAGS = -M  # -MM not supported in < 10
+endif
+
+ifeq ($(shell expr $(nvcc_major_version) \= 10),1)
+ifeq ($(shell expr $(nvcc_minor_version) \= 0),1)
+  DEPFLAGS = -M  # -MM not supported in 10.0
+endif
+endif
+
 #
 # nvcc compiler driver does not always accept pgc++
 # as a host compiler at present. However, if we're using

@@ -43,7 +43,7 @@ void mlabeclap_adotx_os (Box const& box, Array4<Real> const& y,
     for (int n = 0; n < ncomp; ++n) {
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        if (osm(i,0,0)) {
+        if (osm(i,0,0) == 0) {
             y(i,0,0,n) = 0.0;
         } else {
             y(i,0,0,n) = alpha*a(i,0,0)*x(i,0,0,n)
@@ -165,7 +165,7 @@ void abec_gsrb_os (Box const& box, Array4<Real> const& phi, Array4<Real const> c
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             if ((i+redblack)%2 == 0) {
-                if (osm(i,0,0)) {
+                if (osm(i,0,0) == 0) {
                     phi(i,0,0) = 0.0;
                 } else {
                     Real cf0 = (i == vlo.x and m0(vlo.x-1,0,0) > 0)

@@ -1147,13 +1147,7 @@ public:
 
     void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
 
-    bool OKCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
-
-    bool OKGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
-
     Long superParticleSize() const { return superparticle_size; }
-
-    void EnforcePeriodic ();
 
     template <typename T,
               typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>

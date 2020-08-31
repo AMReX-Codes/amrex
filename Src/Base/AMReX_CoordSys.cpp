@@ -504,6 +504,7 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
         case 0: return dx[1];
         case 1: return dx[0];
         }
+        return 0.; // to silent compiler warning
     case RZ:
         LoNode(point,xlo);
         switch (dir)
@@ -511,6 +512,7 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
         case 0: return TWOPI*dx[1]*xlo[0];
         case 1: return ((xlo[0]+dx[0])*(xlo[0]+dx[0])-xlo[0]*xlo[0])*(0.5*TWOPI);
         }
+        return 0.; // to silent compiler warning
     default:
         AMREX_ASSERT(0);
     }
@@ -540,6 +542,7 @@ CoordSys::AreaHi (const IntVect& point, int dir) const noexcept
         case 0: return dx[1];
         case 1: return dx[0];
         }
+        return 0.; // to silent compiler warning
     case RZ:
         HiNode(point,xhi);
         switch (dir)
@@ -547,6 +550,7 @@ CoordSys::AreaHi (const IntVect& point, int dir) const noexcept
         case 0: return TWOPI*dx[1]*xhi[0];
         case 1: return (xhi[0]*xhi[0]-(xhi[0]-dx[0])*(xhi[0]-dx[0]))*(TWOPI*0.5);
         }
+        return 0.; // to silent compiler warning
     default:
         AMREX_ASSERT(0);
     }

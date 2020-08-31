@@ -139,7 +139,7 @@ amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
 
     amrex::ignore_unused(mean,stddev);
     assert(0);
-    rand = 0.0_rt;
+    rand = Real(0.0);
     return rand;
 
 #else
@@ -180,7 +180,7 @@ amrex::Random ()
 #elif defined(__SYCL_DEVICE_ONLY__)
 
     assert(0);
-    rand = 0.0_rt;
+    rand = Real(0.0);
     return rand;
 
 #else     // on the host
@@ -382,7 +382,7 @@ amrex::ResizeRandomSeed (int N)
     gpu_nstates_h = N;
     amrex::BlockMutex* d_mutex_h_ptr_local = d_mutex_h_ptr;
 
-    // HIP FIX HERE - hipMemcpyToSymbol doesn't work with pointers.
+    // xxxxx HIP FIX HERE - hipMemcpyToSymbol doesn't work with pointers.
     amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int)
     {
         d_states_d_ptr = new_data;

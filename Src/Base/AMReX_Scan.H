@@ -205,7 +205,11 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
         sycl::intel::sub_group const& sg = gh.item.get_sub_group();
         int lane = sg.get_local_id()[0];
         int warp = sg.get_group_id()[0];
+#if (__SYCL_COMPILER_VERSION <= 20200715)
         int nwarps = sg.get_group_range();
+#else
+        int nwarps = sg.get_group_range()[0];
+#endif
 
         int threadIdxx = gh.item.get_local_id(0);
         int blockDimx = gh.item.get_local_range(0);
@@ -221,7 +225,8 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
         if (gridDimx > 1) {
             int& virtual_block_id_shared = *((int*)(shared2+nwarps));
             if (threadIdxx == 0) {
-                unsigned int bid = Gpu::Atomic::Inc(virtual_block_id_p, gridDimx);
+                unsigned int bid = Gpu::Atomic::Inc<sycl::access::address_space::local_space>
+                    (virtual_block_id_p, gridDimx);
                 virtual_block_id_shared = bid;
             }
             gh.item.barrier(sycl::access::fence_space::local_space);
@@ -648,6 +653,29 @@ T ExclusiveSum (N n, T const* in, T * out)
                  [=] AMREX_GPU_DEVICE (int i) -> T { return in[i]; },
                  [=] AMREX_GPU_DEVICE (int i, T const& x) { out[i] = x; },
                  Type::exclusive);
+}
+
+#else
+
+// The return value is the total sum.
+template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T InclusiveSum (N n, T const* in, T * out)
+{
+    std::partial_sum(in, in+n, out);
+    return (n > 0) ? out[n-1] : T(0);
+}
+
+// The return value is the total sum.
+template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T ExclusiveSum (N n, T const* in, T * out)
+{
+    if (n > 0) {
+        out[0] = 0;
+        std::partial_sum(in, in+n-1, out+1);
+        return in[n-1]+out[n-1];
+    } else {
+        return 0;
+    }
 }
 
 #endif

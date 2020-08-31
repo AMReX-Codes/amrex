@@ -63,8 +63,7 @@ namespace Gpu {
     inline bool isDevicePtr (void const* p) noexcept {
 #if defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
-        // HIP FIX HERE: const_cast: earlier versions of hip have a bug
-        hipError_t r = hipPointerGetAttributes(&attrib, const_cast<void*>(p));
+        hipError_t r = hipPointerGetAttributes(&attrib, p);
         return r == hipSuccess && attrib.memoryType == hipMemoryTypeDevice;
 #elif defined(AMREX_USE_CUDA)
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
@@ -85,8 +84,7 @@ namespace Gpu {
     inline bool isPinnedPtr (void const* p) noexcept {
 #if defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
-        // HIP FIX HERE: const_cast: earlier versions of hip have a bug
-        hipError_t r = hipPointerGetAttributes(&attrib, const_cast<void*>(p));
+        hipError_t r = hipPointerGetAttributes(&attrib, p);
         return r == hipSuccess && attrib.memoryType == hipMemoryTypeHost;
 #elif defined(AMREX_USE_CUDA)
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
@@ -110,8 +108,7 @@ namespace Gpu {
             return true;
         } else {
             hipPointerAttribute_t attrib;
-            // HIP FIX HERE: const_cast: earlier versions of hip have a bug
-            hipError_t r = hipPointerGetAttributes(&attrib, const_cast<void*>(p));
+            hipError_t r = hipPointerGetAttributes(&attrib, p);
             return r == hipSuccess &&
                 (attrib.memoryType == hipMemoryTypeHost   ||
                  attrib.memoryType == hipMemoryTypeDevice);

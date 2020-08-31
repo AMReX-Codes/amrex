@@ -208,7 +208,7 @@ void amrex::RedistFiles() {
       iss.open(readCPHFile.c_str(), std::ios::in);
       iss.seekg(0, std::ios::end);
       long fileLength(iss.tellg());
-      char charBuf[fileLength];
+      char* charBuf = (char*) malloc(fileLength);
       iss.seekg(0, std::ios::beg);
       iss.read(charBuf, fileLength);
       iss.close();
@@ -216,13 +216,14 @@ void amrex::RedistFiles() {
       oss.open(writeCPHFile.c_str(), std::ios::out);
       oss.write(charBuf, fileLength);
       oss.close();
+      free(charBuf);
     }
 
     {  // header files
       iss.open(readHFile.c_str(), std::ios::in);
       iss.seekg(0, std::ios::end);
       long fileLength(iss.tellg());
-      char charBuf[fileLength];
+      char* charBuf = (char*) malloc(fileLength);
       iss.seekg(0, std::ios::beg);
       iss.read(charBuf, fileLength);
       iss.close();
@@ -230,13 +231,14 @@ void amrex::RedistFiles() {
       oss.open(writeHFile.c_str(), std::ios::out);
       oss.write(charBuf, fileLength);
       oss.close();
+      free(charBuf);
     }
 
     {  // data files
       iss.open(readDFile.c_str(), std::ios::in);
       iss.seekg(0, std::ios::end);
       long fileLength(iss.tellg());
-      char charBuf[fileLength];
+      char* charBuf = (char*) malloc(fileLength);
       iss.seekg(0, std::ios::beg);
       iss.read(charBuf, fileLength);
       iss.close();
@@ -244,6 +246,7 @@ void amrex::RedistFiles() {
       oss.open(writeDFile.c_str(), std::ios::out);
       oss.write(charBuf, fileLength);
       oss.close();
+      free(charBuf);
     }
 }
 

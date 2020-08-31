@@ -370,7 +370,7 @@ struct ImplicitIntegral
         Real x_max = xrange.max(e0);
         roots[0] = x_min;
         int nroots = 1;
-        if (phi.grad(e0) != 0.0_rt) {
+        if (phi.grad(e0) != Real(0.0)) {
             for (int i = 0; i < psiCount; ++i)
             {
                 for (int dim = 0; dim < N; ++dim) {

@@ -136,7 +136,7 @@ void main_main ()
                 Real rmax = -1.e30; // we should use numeric_limits.
                 Long lsum = 0;
                 amrex::Loop(bx,
-                [=,&rsum,&rmin,&rmax,&lsum] (int i, int j, int k) AMREX_NOEXCEPT {
+                [=,&rsum,&rmin,&rmax,&lsum] (int i, int j, int k) {
                     Real x =  fab(i,j,k);
                     Long ix = static_cast<Long>(ifab(i,j,k));
                     rsum += x;

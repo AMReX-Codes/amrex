@@ -470,16 +470,6 @@ public:
                       int             numcomp,
                       const IntVect&  nghost);
 
-#ifdef USE_PERILLA
-    static void Copy (MultiFab&       dst,
-                const MultiFab& src,
-                int             f,
-                int             srccomp,
-                int             dstcomp,
-                int             numcomp,
-                const Box&      bx);
-#endif
-
     /**
     * \brief Swap from src to dst including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.

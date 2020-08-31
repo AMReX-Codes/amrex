@@ -92,7 +92,8 @@ public:
 
     void buildMasks ();
 
-    void setDirichletMask (int amrlev, const iMultiFab& a_dmask);
+    // omask is either 0 or 1. 1 means the node is an unknown. 0 means it's known.
+    void setOversetMask (int amrlev, const iMultiFab& a_omask);
 
 #ifdef AMREX_USE_HYPRE
     virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const override;

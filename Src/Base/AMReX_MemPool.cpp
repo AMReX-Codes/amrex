@@ -17,10 +17,6 @@
 
 #include <AMReX_ParmParse.H>
 
-#ifdef USE_PERILLA_PTHREADS
-#include <WorkerThread.H>
-#endif
-
 using namespace amrex;
 
 namespace
@@ -47,18 +43,9 @@ void amrex_mempool_init ()
 
 	int nthreads = OpenMP::get_max_threads();
 
-#ifdef USE_PERILLA_PTHREADS
-#ifdef _OPENMP
-	//Just in case Perilla thread spawns multiple OMP threads
-        nthreads *= perilla::nThreads();
-#else
-	nthreads = perilla::nThreads();
-#endif
-#endif
-
 	the_memory_pool.resize(nthreads);
 	for (int i=0; i<nthreads; ++i) {
-// HIP FIX THIS - Default Arena w/o managed?
+// xxxxx HIP FIX THIS - Default Arena w/o managed?
 // Default arena is currently Device on HIP where there is no managed option.
 // Need to adjust to CPU specifically in that case.
 #ifdef AMREX_USE_HIP
@@ -99,29 +86,12 @@ void amrex_mempool_finalize ()
 void* amrex_mempool_alloc (size_t nbytes)
 {
   int tid = OpenMP::get_thread_num();
-
-#ifdef USE_PERILLA_PTHREADS
-#ifdef _OPENMP
-  tid = perilla::tid()*omp_get_max_threads()+tid;
-#else
-  tid = perilla::tid();
-#endif
-#endif
   return the_memory_pool[tid]->alloc(nbytes);
 }
 
 void amrex_mempool_free (void* p) 
 {
   int tid = OpenMP::get_thread_num();
-
-#ifdef USE_PERILLA_PTHREADS
-#ifdef _OPENMP
-  tid = perilla::tid()*omp_get_max_threads()+tid;
-#else
-  tid = perilla::tid();
-#endif
-#endif
-
   the_memory_pool[tid]->free(p);
 }
 

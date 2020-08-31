@@ -9,21 +9,21 @@ namespace {
     Real ts_interp_line_x (Array4<Real const> const& crse,
                            int ic, int jc, int kc) noexcept
     {
-        return (crse(ic,jc,kc)+crse(ic+1,jc,kc))*0.5_rt;
+        return (crse(ic,jc,kc)+crse(ic+1,jc,kc))*Real(0.5);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ts_interp_line_y (Array4<Real const> const& crse,
                            int ic, int jc, int kc) noexcept
     {
-        return (crse(ic,jc,kc)+crse(ic,jc+1,kc))*0.5_rt;
+        return (crse(ic,jc,kc)+crse(ic,jc+1,kc))*Real(0.5);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ts_interp_line_z (Array4<Real const> const& crse,
                            int ic, int jc, int kc) noexcept
     {
-        return (crse(ic,jc,kc)+crse(ic,jc,kc+1))*0.5_rt;
+        return (crse(ic,jc,kc)+crse(ic,jc,kc+1))*Real(0.5);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -33,7 +33,7 @@ namespace {
         return (ts_interp_line_y(crse,ic  ,jc  ,kc) +
                 ts_interp_line_y(crse,ic+1,jc  ,kc) +
                 ts_interp_line_x(crse,ic  ,jc  ,kc) +
-                ts_interp_line_x(crse,ic  ,jc+1,kc)) * 0.25_rt;
+                ts_interp_line_x(crse,ic  ,jc+1,kc)) * Real(0.25);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -43,7 +43,7 @@ namespace {
         return (ts_interp_line_z(crse,ic  ,jc,kc  ) +
                 ts_interp_line_z(crse,ic+1,jc,kc  ) +
                 ts_interp_line_x(crse,ic  ,jc,kc  ) +
-                ts_interp_line_x(crse,ic  ,jc,kc+1)) * 0.25_rt;
+                ts_interp_line_x(crse,ic  ,jc,kc+1)) * Real(0.25);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -53,7 +53,7 @@ namespace {
         return (ts_interp_line_z(crse,ic,jc  ,kc  ) +
                 ts_interp_line_z(crse,ic,jc+1,kc  ) +
                 ts_interp_line_y(crse,ic,jc  ,kc  ) +
-                ts_interp_line_y(crse,ic,jc  ,kc+1)) * 0.25_rt;
+                ts_interp_line_y(crse,ic,jc  ,kc+1)) * Real(0.25);
     }
 }
 
@@ -75,7 +75,7 @@ void mlndtslap_interpadd (int i, int j, int k, Array4<Real> const& fine,
                             ts_interp_face_xz(crse,ic  ,jc  ,kc  ) +
                             ts_interp_face_xz(crse,ic  ,jc+1,kc  ) +
                             ts_interp_face_xy(crse,ic  ,jc  ,kc  ) +
-                            ts_interp_face_xy(crse,ic  ,jc  ,kc+1)) * (1._rt/6._rt);
+                            ts_interp_face_xy(crse,ic  ,jc  ,kc+1)) * Real(1./6.);
         } else if (j_is_odd and k_is_odd) {
             // Node on a Y-Z face
             fine(i,j,k) += ts_interp_face_yz(crse,ic,jc,kc);

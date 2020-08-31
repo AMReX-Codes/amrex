@@ -805,7 +805,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 
 
 // ---------------------------------------------------------------
-bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filetype) {
+bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType /*filetype*/) {
   const int LevelZero(0), LevelOne(1), BoxZero(0), ComponentZero(0);
   const int NVarZero(0), FabZero(0), IndexZero(0);
   const int iopNum(ParallelDescriptor::IOProcessorNumber());
@@ -1572,7 +1572,7 @@ void AmrData::FillVar(Vector<FArrayBox *> &destFabs, const Vector<Box> &destBoxe
 
 
 // ---------------------------------------------------------------
-void AmrData::FillInterior(FArrayBox &dest, int level, const Box &subbox) {
+void AmrData::FillInterior(FArrayBox &/*dest*/, int /*level*/, const Box &/*subbox*/) {
    amrex::Abort("Error:  should not be in AmrData::FillInterior");
 }
 

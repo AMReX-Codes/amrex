@@ -13,6 +13,11 @@ add_library( AMReX::amrex ALIAS amrex )
 #
 include(AMReXParallelBackends)
 
+#
+# Find and link third party libraries if needed
+#
+include(AMReXThirdPartyLibraries)
+
 # Where to store Fortran modules
 if (CMAKE_Fortran_COMPILER_LOADED)
    set_target_properties( amrex
@@ -136,7 +141,7 @@ if (ENABLE_SENSEI_INSITU)
 endif ()
 
 if (ENABLE_SUNDIALS)
-   add_subdirectory(Extern/SUNDIALS4)
+   add_subdirectory(Extern/SUNDIALS)
 endif ()
 
 if (ENABLE_CONDUIT OR ENABLE_ASCENT)
