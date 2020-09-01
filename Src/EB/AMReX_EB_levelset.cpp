@@ -721,9 +721,6 @@ void LSFactory::invert() {
 #pragma omp parallel
 #endif
     for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++ mfi){
-        // FArrayBox & a_fab = (* ls_grid)[mfi];
-        // for(BoxIterator bit(mfi.tilebox()); bit.ok(); ++bit)
-        //     a_fab(bit(), 0) = - a_fab(bit(), 0);
         Array4<Real> const & fab = ls_grid->array(mfi);
         ParallelFor(mfi.tilebox(),
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -971,16 +968,38 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
         Real ls_threshold = min_dx * (eb_pad+1); //eb_pad => we know that any EB
                                                  //is _at least_ eb_pad away from
                                                  //the edge of the eb search box
-        amrex_eb_threshold_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_threshold,
-                                    BL_TO_FORTRAN_3D(ls_tile));
+
+        Array4<Real> const & phi = ls_tile.array();
+
+        Real phi_th = ls_threshold;
+        if (phi_th < 0) phi_th = std::numeric_limits<Real>::max();
+
+        ParallelFor(tile_box,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    if (phi(i, j, k) >  phi_th) phi(i, j, k) =  phi_th;
+                    if (phi(i, j, k) < -phi_th) phi(i, j, k) = -phi_th;
+                }
+            );
 
 
         //_______________________________________________________________________
         // Validate level-set (here so that tile-wise assignment is still validated)
-        amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_ref,
-                                   BL_TO_FORTRAN_3D(if_tile),
-                                   BL_TO_FORTRAN_3D(v_tile),
-                                   BL_TO_FORTRAN_3D(ls_tile)   );
+        Array4<Real const> const & if_array = if_tile.array();
+        Array4<int  const> const &  v_array = v_tile.array();
+
+        ParallelFor(tile_box,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    if (v_array(i, j, k) == 0) {
+                        Real levelset_node = Math::abs( phi(i, j, k) );
+                        if (if_array(i, j, k) <= 0) {
+                            phi(i, j, k) = levelset_node;
+                        } else {
+                            phi(i, j, k) = -levelset_node;
+                        }
+                    }
+                }
+            );
+
     }
 }
 

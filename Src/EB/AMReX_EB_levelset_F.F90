@@ -29,7 +29,7 @@ contains
 
         ! ** define I/O dummy variables
         integer,      dimension(3), intent(in   ) :: lo, hi, phlo, phhi
-        real(amrex_real),               intent(  out) :: phi ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
+        real(amrex_real),           intent(  out) :: phi ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
 
         ! ** define internal variables
         !    i, j, k: loop index variables
@@ -75,7 +75,7 @@ contains
         integer,      dimension(3),    intent(in   ) :: lo, hi, vlo, vhi, phlo, phhi
         real(amrex_real), dimension(l_eb), intent(in   ) :: eb_list
         real(amrex_real),                  intent(  out) :: phi     (phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3))
-        integer,                       intent(  out) :: valid   ( vlo(1):vhi(1),   vlo(2):vhi(2),   vlo(3):vhi(3) )
+        integer,                           intent(  out) :: valid   ( vlo(1):vhi(1),   vlo(2):vhi(2),   vlo(3):vhi(3) )
         real(amrex_real), dimension(3),    intent(in   ) :: dx, dx_eb
 
 
@@ -455,8 +455,8 @@ contains
       implicit none
 
       integer,      dimension(3), intent(in   ) :: lo, hi, phi_lo, phi_hi
-      real(amrex_real),               intent(in   ) :: threshold
-      real(amrex_real),               intent(inout) :: phi (phi_lo(1):phi_hi(1), &
+      real(amrex_real),           intent(in   ) :: threshold
+      real(amrex_real),           intent(inout) :: phi (phi_lo(1):phi_hi(1), &
                                                         phi_lo(2):phi_hi(2), &
                                                         phi_lo(3):phi_hi(3))
 
@@ -505,9 +505,9 @@ contains
 
         integer,      dimension(3), intent(in   ) :: lo, hi, imlo, imhi, vlo, vhi, phlo, phhi
         integer,                    intent(in   ) :: n_pad
-        real(amrex_real),               intent(in   ) :: impf  ( imlo(1):imhi(1), imlo(2):imhi(2), imlo(3):imhi(3) )
+        real(amrex_real),           intent(in   ) :: impf  ( imlo(1):imhi(1), imlo(2):imhi(2), imlo(3):imhi(3) )
         integer,                    intent(in   ) :: valid (  vlo(1):vhi(1),   vlo(2):vhi(2),   vlo(3):vhi(3)  )
-        real(amrex_real),               intent(inout) :: phi   ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
+        real(amrex_real),           intent(inout) :: phi   ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
 
         integer      :: ii, jj, kk
         real(amrex_real) :: levelset_node
@@ -541,8 +541,8 @@ contains
 
         integer, dimension(3), intent(in   ) :: phlo, phhi, vlo, vhi, periodic, domlo, domhi, imlo, imhi
         integer,               intent(in   ) :: valid (  vlo(1):vhi(1),   vlo(2):vhi(2),   vlo(3):vhi(3)  )
-        real(amrex_real),          intent(inout) :: phi   ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
-        real(amrex_real),          intent(in   ) :: impf(imlo(1):imhi(1), imlo(2):imhi(2), imlo(3):imhi(3))
+        real(amrex_real),      intent(inout) :: phi   ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
+        real(amrex_real),      intent(in   ) :: impf(imlo(1):imhi(1), imlo(2):imhi(2), imlo(3):imhi(3))
 
         integer, dimension(3) :: lo, hi
         !-------------------------------------------------------------------------------------------------------------
@@ -660,9 +660,9 @@ contains
 
         integer,      dimension(3), intent(in   ) :: lo, hi, vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi
         integer,                    intent(in   ) :: v_in  (vilo(1):vihi(1),vilo(2):vihi(2),vilo(3):vihi(3))
-        real(amrex_real),               intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
-        integer,                        intent(inout) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
-        real(amrex_real),               intent(inout) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+        real(amrex_real),           intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
+        integer,                    intent(inout) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
+        real(amrex_real),           intent(inout) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
 
         real(amrex_real) :: ls_node, in_node
         integer      :: ii, jj, kk
@@ -702,9 +702,9 @@ contains
 
         integer, dimension(3), intent(in   ) :: vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi, periodic, domlo, domhi
         integer,               intent(in   ) :: v_in  (vilo(1):vihi(1),vilo(2):vihi(2),vilo(3):vihi(3))
-        real(amrex_real),          intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
-        integer,                   intent(inout) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
-        real(amrex_real),          intent(inout) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+        real(amrex_real),      intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
+        integer,               intent(inout) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
+        real(amrex_real),      intent(inout) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
 
         integer, dimension(3) :: lo, hi
 
@@ -830,9 +830,9 @@ contains
 
         integer,      dimension(3), intent(in   ) :: lo, hi, vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi
         integer,                    intent(in   ) :: v_in  (vilo(1):vihi(1),vilo(2):vihi(2),vilo(3):vihi(3))
-        real(amrex_real),               intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
-        integer,                        intent(inout) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
-        real(amrex_real),               intent(inout) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+        real(amrex_real),           intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
+        integer,                    intent(inout) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
+        real(amrex_real),           intent(inout) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
 
         real(amrex_real) :: ls_node, in_node
         integer      :: ii, jj, kk
@@ -872,9 +872,9 @@ contains
 
         integer, dimension(3), intent(in   ) :: vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi, periodic, domlo, domhi
         integer,               intent(in   ) :: v_in  (vilo(1):vihi(1),vilo(2):vihi(2),vilo(3):vihi(3))
-        real(amrex_real),          intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
-        integer,                   intent(inout) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
-        real(amrex_real),          intent(inout) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+        real(amrex_real),      intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
+        integer,               intent(inout) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
+        real(amrex_real),      intent(inout) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
 
         !integer      :: i, j, k
         !real(amrex_real) :: ls_node, in_node
@@ -1123,7 +1123,7 @@ contains
 
         ! ** input types
         integer,      dimension(3), intent(in) :: phlo, phhi
-        real(amrex_real),               intent(in) :: phi( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
+        real(amrex_real),           intent(in) :: phi( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
         integer,                    intent(in) :: i, j, k, n_pad
 
 
