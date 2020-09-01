@@ -462,57 +462,72 @@ void LSFactory::update_intersection(const MultiFab & ls_in, const iMultiFab & va
 #pragma omp parallel
 #endif
     for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++mfi){
-        Box tile_box = mfi.tilebox();
+        // Operate on growntilebox instead of tilebox => then you don't have to
+        // "intersect" any non-periodic boundary values of manually (as was the
+        // case with old Fortran code)
+        Box tile_box = mfi.growntilebox();
 
-        const auto & valid_in_tile = valid_in[mfi];
-        const auto & ls_in_tile = ls_in[mfi];
-        auto & v_tile = (* ls_valid)[mfi];
-        auto & ls_tile = (* ls_grid)[mfi];
+        Array4<int  const> const & valid_in_tile = valid_in.array(mfi);
+        Array4<Real const> const & ls_in_tile    = ls_in.array(mfi);
+        Array4<Real      > const & ls_tile       = ls_grid->array(mfi);
+        Array4<int       > const & valid_tile    = ls_valid->array(mfi);
 
-        amrex_eb_update_levelset_intersection(tile_box.loVect(), tile_box.hiVect(),
-                                              BL_TO_FORTRAN_3D(valid_in_tile),
-                                              BL_TO_FORTRAN_3D(ls_in_tile),
-                                              BL_TO_FORTRAN_3D(v_tile),
-                                              BL_TO_FORTRAN_3D(ls_tile)              );
+        ParallelFor(tile_box,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    if (valid_in_tile(i, j, k) == 1) {
+                        Real in_node = ls_in_tile(i, j, k);
+                        Real ls_node = ls_tile(i, j, k);
+                        if (in_node < ls_node) {
+                            ls_tile(i, j, k) == in_node;
+                            if (ls_node <= 0) {
+                                valid_tile(i, j, k) = 1;
+                            }
+                        }
+                    }
+                }
+            );
+
     }
 
-   /****************************************************************************
-    * Set boundary values of ls_grid                                           *
-    ****************************************************************************/
-
-    BL_PROFILE_REGION_START("LSFactory::update_intersection()::bcs");
-
-    // Simulation domain
-    Box domain(geom_ls.Domain());
-
-    // Int array flagging periodic directions => no need to fill the periodic
-    // ones as they are filled by FillBoundary
-    IntVect periodic(
-            AMREX_D_DECL(
-                geom_ls.isPeriodic(0),
-                geom_ls.isPeriodic(1),
-                geom_ls.isPeriodic(2)
-            )
-        );
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for(MFIter mfi( * ls_grid); mfi.isValid(); ++mfi){
-        const auto & valid_in_tile = valid_in[mfi];
-        const auto & ls_in_tile = ls_in[mfi];
-        auto & v_tile = (* ls_valid)[mfi];
-        auto & ls_tile = (* ls_grid)[mfi];
-
-        amrex_eb_update_levelset_intersection_bcs( BL_TO_FORTRAN_3D(valid_in_tile),
-                                                   BL_TO_FORTRAN_3D(ls_in_tile),
-                                                   BL_TO_FORTRAN_3D(v_tile),
-                                                   BL_TO_FORTRAN_3D(ls_tile),
-                                                   periodic.getVect(),
-                                                   domain.loVect(), domain.hiVect()  );
-    }
-
-    BL_PROFILE_REGION_STOP("LSFactory::update_intersection()::bcs");
+// This is (probably) no longer needed -- I don't know why it was ever needed
+// (cf comment on grown tile boxes above)
+//    /****************************************************************************
+//     * Set boundary values of ls_grid                                           *
+//     ****************************************************************************/
+// 
+//     BL_PROFILE_REGION_START("LSFactory::update_intersection()::bcs");
+// 
+//     // Simulation domain
+//     Box domain(geom_ls.Domain());
+// 
+//     // Int array flagging periodic directions => no need to fill the periodic
+//     // ones as they are filled by FillBoundary
+//     IntVect periodic(
+//             AMREX_D_DECL(
+//                 geom_ls.isPeriodic(0),
+//                 geom_ls.isPeriodic(1),
+//                 geom_ls.isPeriodic(2)
+//             )
+//         );
+// 
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+//     for(MFIter mfi( * ls_grid); mfi.isValid(); ++mfi){
+//         const auto & valid_in_tile = valid_in[mfi];
+//         const auto & ls_in_tile = ls_in[mfi];
+//         auto & v_tile = (* ls_valid)[mfi];
+//         auto & ls_tile = (* ls_grid)[mfi];
+// 
+//         amrex_eb_update_levelset_intersection_bcs( BL_TO_FORTRAN_3D(valid_in_tile),
+//                                                    BL_TO_FORTRAN_3D(ls_in_tile),
+//                                                    BL_TO_FORTRAN_3D(v_tile),
+//                                                    BL_TO_FORTRAN_3D(ls_tile),
+//                                                    periodic.getVect(),
+//                                                    domain.loVect(), domain.hiVect()  );
+//     }
+// 
+//     BL_PROFILE_REGION_STOP("LSFactory::update_intersection()::bcs");
 
     BL_PROFILE_REGION_START("LSFactory::update_intersection()::FillBoundary");
     ls_grid->FillBoundary(geom_ls.periodicity());
@@ -531,56 +546,71 @@ void LSFactory::update_union(const MultiFab & ls_in, const iMultiFab & valid_in)
 #pragma omp parallel
 #endif
     for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++mfi){
-        Box tile_box = mfi.tilebox();
+        // Operate on growntilebox instead of tilebox => then you don't have to
+        // "intersect" any non-periodic boundary values of manually (as was the
+        // case with old Fortran code)
+        Box tile_box = mfi.growntilebox();
 
-        const auto & valid_in_tile = valid_in[mfi];
-        const auto & ls_in_tile = ls_in[mfi];
-        auto & v_tile = (* ls_valid)[mfi];
-        auto & ls_tile = (* ls_grid)[mfi];
+        Array4<int  const> const & valid_in_tile = valid_in.array(mfi);
+        Array4<Real const> const & ls_in_tile    = ls_in.array(mfi);
+        Array4<Real      > const & ls_tile       = ls_grid->array(mfi);
+        Array4<int       > const & valid_tile    = ls_valid->array(mfi);
 
-        amrex_eb_update_levelset_union(tile_box.loVect(), tile_box.hiVect(),
-                                       BL_TO_FORTRAN_3D(valid_in_tile),
-                                       BL_TO_FORTRAN_3D(ls_in_tile),
-                                       BL_TO_FORTRAN_3D(v_tile),
-                                       BL_TO_FORTRAN_3D(ls_tile)                  );
+        ParallelFor(tile_box,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    if (valid_in_tile(i, j, k) == 1) {
+                        Real in_node = ls_in_tile(i, j, k);
+                        Real ls_node = ls_tile(i, j, k);
+                        if (in_node > ls_node) {
+                            ls_tile(i, j, k) == in_node;
+                            if (ls_node <= 0) {
+                                valid_tile(i, j, k) = 1;
+                            }
+                        }
+                    }
+                }
+            );
+
     }
 
-   /****************************************************************************
-    * Set boundary values of ls_grid                                           *
-    ****************************************************************************/
-
-    BL_PROFILE_REGION_START("LSFactory::update_union()::bcs");
-
-    // Simulation domain
-    Box domain(geom_ls.Domain());
-
-    // Int array flagging periodic directions => no need to fill the periodic
-    // ones as they are filled by FillBoundary
-    IntVect periodic(
-            AMREX_D_DECL(
-                geom_ls.isPeriodic(0),
-                geom_ls.isPeriodic(1),
-                geom_ls.isPeriodic(2)
-            )
-        );
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for(MFIter mfi( * ls_grid); mfi.isValid(); ++mfi){
-        const auto & valid_in_tile = valid_in[mfi];
-        const auto & ls_in_tile = ls_in[mfi];
-        auto & v_tile = (* ls_valid)[mfi];
-        auto & ls_tile = (* ls_grid)[mfi];
-
-        amrex_eb_update_levelset_union_bcs( BL_TO_FORTRAN_3D(valid_in_tile),
-                                            BL_TO_FORTRAN_3D(ls_in_tile),
-                                            BL_TO_FORTRAN_3D(v_tile),
-                                            BL_TO_FORTRAN_3D(ls_tile),
-                                            periodic.getVect(),
-                                            domain.loVect(), domain.hiVect()  );
-    }
-    BL_PROFILE_REGION_STOP("LSFactory::update_union()::bcs");
+// This is (probably) no longer needed -- I don't know why it was ever needed
+// (cf comment on grown tile boxes above)
+//    /****************************************************************************
+//     * Set boundary values of ls_grid                                           *
+//     ****************************************************************************/
+// 
+//     BL_PROFILE_REGION_START("LSFactory::update_union()::bcs");
+// 
+//     // Simulation domain
+//     Box domain(geom_ls.Domain());
+// 
+//     // Int array flagging periodic directions => no need to fill the periodic
+//     // ones as they are filled by FillBoundary
+//     IntVect periodic(
+//             AMREX_D_DECL(
+//                 geom_ls.isPeriodic(0),
+//                 geom_ls.isPeriodic(1),
+//                 geom_ls.isPeriodic(2)
+//             )
+//         );
+// 
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+//     for(MFIter mfi( * ls_grid); mfi.isValid(); ++mfi){
+//         const auto & valid_in_tile = valid_in[mfi];
+//         const auto & ls_in_tile = ls_in[mfi];
+//         auto & v_tile = (* ls_valid)[mfi];
+//         auto & ls_tile = (* ls_grid)[mfi];
+// 
+//         amrex_eb_update_levelset_union_bcs( BL_TO_FORTRAN_3D(valid_in_tile),
+//                                             BL_TO_FORTRAN_3D(ls_in_tile),
+//                                             BL_TO_FORTRAN_3D(v_tile),
+//                                             BL_TO_FORTRAN_3D(ls_tile),
+//                                             periodic.getVect(),
+//                                             domain.loVect(), domain.hiVect()  );
+//     }
+//     BL_PROFILE_REGION_STOP("LSFactory::update_union()::bcs");
 
     BL_PROFILE_REGION_START("LSFactory::update_union()::FillBoundary");
     ls_grid->FillBoundary(geom_ls.periodicity());
