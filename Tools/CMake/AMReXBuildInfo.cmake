@@ -103,11 +103,11 @@ function (generate_buildinfo _target _git_dir)
       foreach( _p IN LISTS _prop )
 
          # _${_l}${_p} is a variable named as _lang_property,
-         evaluate_genex(${_p} _${_l}${_p}
-            LANG ${_l}
-            COMP ${CMAKE_${_l}_COMPILER_ID}
-            CONFIG ${CMAKE_BUILD_TYPE}
-            INTERFACE BUILD)
+         set(_${_l}${_p} "${${_p}}")
+         eval_genex( _${_l}${_p} ${_l} ${CMAKE_${_l}_COMPILER_ID}
+           COMP_VERSION ${CMAKE_${_l}_COMPILER_VERSION}
+           CONFIG       ${CMAKE_BUILD_TYPE}
+           INTERFACE    BUILD)
 
          if (_${_l}${_p})
             list(REMOVE_DUPLICATES _${_l}${_p})
