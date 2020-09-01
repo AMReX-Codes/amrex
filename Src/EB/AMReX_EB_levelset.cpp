@@ -203,8 +203,8 @@ void LSFactory::fill_valid_kernel(){
                             tile_box, ls_tile, i, j, k, search_radius
                         );
 
-                    if (neighbour_is_valid) valid_tile(i, j, k) = 1;
-                    else                    valid_tile(i, j, k) = 0;
+                    if (valid_cell) valid_tile(i, j, k) = 1;
+                    else            valid_tile(i, j, k) = 0;
                 }
             );
     }
