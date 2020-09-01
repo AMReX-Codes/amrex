@@ -62,21 +62,7 @@ LSFactory::LSFactory(int lev, int ls_ref, int eb_ref, int ls_pad, int eb_pad,
 
 
     // Initialize by setting all ls_phi = huge(c_real)
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++mfi){
-        // also initialize ghost cells => growntilebox. Note: if a direction is
-        // not periodic, FillBoundary will never touch those ghost cells.
-        Box tile_box                 = mfi.growntilebox();
-        Array4<Real> const & ls_tile = ls_grid->array(mfi);
-
-        ParallelFor(tile_box,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    ls_tile(i, j, k) = std::numeric_limits<Real>::max();
-                }
-            );
-    }
+    ls_grid->setVal(std::numeric_limits<Real>::max());
 }
 
 
@@ -717,19 +703,7 @@ void LSFactory::invert() {
 
    BL_PROFILE("LSFactory::invert()");
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++ mfi){
-        Array4<Real> const & fab = ls_grid->array(mfi);
-        ParallelFor(mfi.tilebox(),
-                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    fab(i, j, k) =  - fab(i, j, k);
-                }
-            );
-    }
-
-    ls_grid->FillBoundary(geom_ls.periodicity());
+    ls_grid->invert(1.0, 0, 1, ls_grid->nGrow());
 }
 
 
