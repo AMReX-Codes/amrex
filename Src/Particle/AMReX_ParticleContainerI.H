@@ -23,14 +23,32 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: SetParticleSize ()
 {
+    if (NArrayReal > 0 or NArrayInt > 0) {
+        if (NArrayReal > 0) {
+            d_communicate_real_comp.resize(NArrayReal);
+            Gpu::copyAsync(Gpu::hostToDevice,
+                           h_communicate_real_comp.begin(),
+                           h_communicate_real_comp.end(),
+                           d_communicate_real_comp.begin());
+        }
+        if (NArrayInt > 0) {
+            d_communicate_int_comp.resize(NArrayInt);
+            Gpu::copyAsync(Gpu::hostToDevice,
+                           h_communicate_int_comp.begin(),
+                           h_communicate_int_comp.end(),
+                           d_communicate_int_comp.begin());
+        }
+        Gpu::synchronize();
+    }
+
     num_real_comm_comps = 0;
     for (int i = 0; i < NumRealComps(); ++i) {
-        if (communicate_real_comp[i]) ++num_real_comm_comps;
+        if (h_communicate_real_comp[i]) ++num_real_comm_comps;
     }
 
     num_int_comm_comps = 0;
     for (int i = 0; i < NumIntComps(); ++i) {
-        if (communicate_int_comp[i]) ++num_int_comm_comps;
+        if (h_communicate_int_comp[i]) ++num_int_comm_comps;
     }
 
     particle_size = sizeof(ParticleType);
@@ -1381,13 +1399,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                       std::memcpy(&particles_to_send[old_size], &p, particle_size);
                       char* dst = &particles_to_send[old_size] + particle_size;
                       for (int comp = 0; comp < NumRealComps(); comp++) {
-                          if (communicate_real_comp[comp]) {
+                          if (h_communicate_real_comp[comp]) {
                               std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
                               dst += sizeof(ParticleReal);
                           }
                       }
                       for (int comp = 0; comp < NumIntComps(); comp++) {
-                          if (communicate_int_comp[comp]) {
+                          if (h_communicate_int_comp[comp]) {
 			      std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
                               dst += sizeof(int);
                           }
@@ -1788,7 +1806,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 pbuf += sizeof(ParticleType);
                 ptile.push_back(p);
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
-                    if (communicate_real_comp[comp]) {
+                    if (h_communicate_real_comp[comp]) {
                         ParticleReal rdata;
                         std::memcpy(&rdata, pbuf, sizeof(ParticleReal));
                         pbuf += sizeof(ParticleReal);
@@ -1799,7 +1817,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 }
 
                 for (int comp = 0; comp < NumIntComps(); ++comp) {
-                    if (communicate_int_comp[comp]) {
+                    if (h_communicate_int_comp[comp]) {
                         int idata;
                         std::memcpy(&idata, pbuf, sizeof(int));
                         pbuf += sizeof(int);
@@ -1851,7 +1869,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 	  
                 // add the real...
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
-                    if (communicate_real_comp[comp]) {
+                    if (h_communicate_real_comp[comp]) {
                         Real rdata;
                         std::memcpy(&rdata, pbuf, sizeof(Real));
                         pbuf += sizeof(Real);
@@ -1863,7 +1881,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 
                 // ... and int array data
                 for (int comp = 0; comp < NumIntComps(); ++comp) {
-                    if (communicate_int_comp[comp]) {
+                    if (h_communicate_int_comp[comp]) {
                         int idata;
                         std::memcpy(&idata, pbuf, sizeof(int));
                         pbuf += sizeof(int);
