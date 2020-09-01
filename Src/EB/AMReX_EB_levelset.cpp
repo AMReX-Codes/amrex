@@ -478,7 +478,7 @@ void LSFactory::update_intersection(const MultiFab & ls_in, const iMultiFab & va
                         Real in_node = ls_in_tile(i, j, k);
                         Real ls_node = ls_tile(i, j, k);
                         if (in_node < ls_node) {
-                            ls_tile(i, j, k) == in_node;
+                            ls_tile(i, j, k) = in_node;
                             if (ls_node <= 0) {
                                 valid_tile(i, j, k) = 1;
                             }
@@ -562,7 +562,7 @@ void LSFactory::update_union(const MultiFab & ls_in, const iMultiFab & valid_in)
                         Real in_node = ls_in_tile(i, j, k);
                         Real ls_node = ls_tile(i, j, k);
                         if (in_node > ls_node) {
-                            ls_tile(i, j, k) == in_node;
+                            ls_tile(i, j, k) = in_node;
                             if (ls_node <= 0) {
                                 valid_tile(i, j, k) = 1;
                             }
@@ -755,10 +755,6 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
                          IntVect{AMREX_D_DECL(ebt_size, ebt_size, ebt_size)},
                          ls_ref, eb_ref, geom, geom_eb);
 }
-
-
-
-
 
 
 
