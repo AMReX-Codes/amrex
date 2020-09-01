@@ -721,9 +721,15 @@ void LSFactory::invert() {
 #pragma omp parallel
 #endif
     for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++ mfi){
-        FArrayBox & a_fab = (* ls_grid)[mfi];
-        for(BoxIterator bit(mfi.tilebox()); bit.ok(); ++bit)
-            a_fab(bit(), 0) = - a_fab(bit(), 0);
+        // FArrayBox & a_fab = (* ls_grid)[mfi];
+        // for(BoxIterator bit(mfi.tilebox()); bit.ok(); ++bit)
+        //     a_fab(bit(), 0) = - a_fab(bit(), 0);
+        Array4<Real> const & fab = ls_grid->array(mfi);
+        ParallelFor(mfi.tilebox(),
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    fab(i, j, k) =  - fab(i, j, k);
+                }
+            );
     }
 
     ls_grid->FillBoundary(geom_ls.periodicity());
