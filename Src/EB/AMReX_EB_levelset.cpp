@@ -703,7 +703,7 @@ void LSFactory::invert() {
 
    BL_PROFILE("LSFactory::invert()");
 
-    ls_grid->invert(1.0, 0, 1, ls_grid->nGrow());
+   ls_grid->invert(1.0, 0, 1, ls_grid->nGrow());
 }
 
 
@@ -1011,13 +1011,16 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
 #pragma omp parallel
 #endif
     for (MFIter mfi(mf_impfunc, true); mfi.isValid(); ++ mfi) {
-        const FArrayBox & in_fab  = mf_impfunc[mfi];
-              FArrayBox & out_fab = data[mfi];
-
+        Array4<Real      > const & out_fab = data.array(mfi);
+        Array4<Real const> const &  in_fab = mf_impfunc.array(mfi);
+ 
         // NOTE: growntilebox => flip also the ghost cells. They don't get
         // flipped twice because we don't call FillBoundary.
-        for (BoxIterator bit(mfi.growntilebox()); bit.ok(); ++ bit)
-            out_fab(bit(), 0) = - in_fab(bit(), 0);
+        ParallelFor(mfi.growntilebox(),
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    out_fab(i, j, k) =  - in_fab(i, j, k);
+                }
+            );
     }
 
 
@@ -1045,8 +1048,17 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
             // Apply threshold to grown tile box => fill ghost cells as well
             Box tile_box = mfi.growntilebox();
 
-            amrex_eb_threshold_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_threshold,
-                                        BL_TO_FORTRAN_3D(ls_tile));
+            Array4<Real> const & phi = ls_tile.array();
+
+            Real phi_th = ls_threshold;
+            if (phi_th < 0) phi_th = std::numeric_limits<Real>::max();
+
+            ParallelFor(tile_box,
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                        if (phi(i, j, k) >  phi_th) phi(i, j, k) =  phi_th;
+                        if (phi(i, j, k) < -phi_th) phi(i, j, k) = -phi_th;
+                    }
+                );
 
 
             //___________________________________________________________________
@@ -1054,6 +1066,7 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
             // +/- ls_threshold
             for (BoxIterator bit(mfi.growntilebox()); bit.ok(); ++ bit) {
                 if (std::abs(ls_tile(bit(), 0)) <= ls_threshold) {
+                    // TODO: do we still need to restrict this to run on host?
                     v_tile.setVal<RunOn::Host>(1, tile_box);
                     break;
                 }
@@ -1077,16 +1090,26 @@ void LSFactory::intersect_data (MultiFab & data, iMultiFab & valid,
     for(MFIter mfi(data, true); mfi.isValid(); ++mfi){
         Box tile_box = mfi.growntilebox();
 
-        const auto & valid_in_tile = valid_in[mfi];
-        const auto & ls_in_tile = data_in[mfi];
-        auto & v_tile = valid[mfi];
-        auto & ls_tile = data[mfi];
+        Array4<int  const> const & valid_in_tile = valid_in.array(mfi);
+        Array4<Real const> const & ls_in_tile    = data_in.array(mfi);
+        Array4<Real      > const & ls_tile       = data.array(mfi);
+        Array4<int       > const & valid_tile    = valid.array(mfi);
 
-        amrex_eb_update_levelset_intersection(tile_box.loVect(), tile_box.hiVect(),
-                                              BL_TO_FORTRAN_3D(valid_in_tile),
-                                              BL_TO_FORTRAN_3D(ls_in_tile),
-                                              BL_TO_FORTRAN_3D(v_tile),
-                                              BL_TO_FORTRAN_3D(ls_tile)              );
+        ParallelFor(tile_box,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    if (valid_in_tile(i, j, k) == 1) {
+                        Real in_node = ls_in_tile(i, j, k);
+                        Real ls_node = ls_tile(i, j, k);
+                        if (in_node < ls_node) {
+                            ls_tile(i, j, k) = in_node;
+                            if (ls_node <= 0) {
+                                valid_tile(i, j, k) = 1;
+                            }
+                        }
+                    }
+                }
+            );
+
     }
 }
 
@@ -1104,16 +1127,27 @@ void LSFactory::union_data (MultiFab & data, iMultiFab & valid,
     for(MFIter mfi(data, true); mfi.isValid(); ++mfi){
         Box tile_box = mfi.growntilebox();
 
-        const auto & valid_in_tile = valid_in[mfi];
-        const auto & ls_in_tile = data_in[mfi];
-        auto & v_tile = valid[mfi];
-        auto & ls_tile = data[mfi];
+        Array4<int  const> const & valid_in_tile = valid_in.array(mfi);
+        Array4<Real const> const & ls_in_tile    = data_in.array(mfi);
+        Array4<Real      > const & ls_tile       = data.array(mfi);
+        Array4<int       > const & valid_tile    = valid.array(mfi);
 
-        amrex_eb_update_levelset_intersection(tile_box.loVect(), tile_box.hiVect(),
-                                              BL_TO_FORTRAN_3D(valid_in_tile),
-                                              BL_TO_FORTRAN_3D(ls_in_tile),
-                                              BL_TO_FORTRAN_3D(v_tile),
-                                              BL_TO_FORTRAN_3D(ls_tile)              );
+        ParallelFor(tile_box,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    if (valid_in_tile(i, j, k) == 1) {
+                        Real in_node = ls_in_tile(i, j, k);
+                        Real ls_node = ls_tile(i, j, k);
+                        if (in_node > ls_node) {
+                            ls_tile(i, j, k) = in_node;
+                            if (ls_node <= 0) {
+                                valid_tile(i, j, k) = 1;
+                            }
+                        }
+                    }
+                }
+            );
+
+
     }
 }
 
