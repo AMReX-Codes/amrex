@@ -32,6 +32,9 @@ struct ParticleIDWrapper
     {}
 
     AMREX_GPU_HOST_DEVICE
+    ParticleIDWrapper (const ParticleIDWrapper& rhs) = default;
+
+    AMREX_GPU_HOST_DEVICE
     ParticleIDWrapper& operator= (const ParticleIDWrapper& pidw) noexcept
     {
         return this->operator=(Long(pidw));
@@ -85,6 +88,9 @@ struct ParticleCPUWrapper
     ParticleCPUWrapper (uint64_t& idata) noexcept
         : m_idata(idata)
     {}
+
+    AMREX_GPU_HOST_DEVICE
+    ParticleCPUWrapper (const ParticleCPUWrapper& rhs) = default;
 
     AMREX_GPU_HOST_DEVICE
     ParticleCPUWrapper& operator= (const ParticleCPUWrapper& pcpuw) noexcept
