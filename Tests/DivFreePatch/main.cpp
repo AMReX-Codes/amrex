@@ -83,7 +83,7 @@ void main_main ()
         Box domain_f(IntVect{f_offset}, IntVect{f_cell_3d});
         domain_f.refine(ratio);
 
-        double scale = double(f_cell_3d[0]+1)/double(c_cell_3d[0]+1);
+        double scale = double(f_cell_3d[0]-f_offset+1)/double(c_cell_3d[0]+1);
         RealBox realbox_c({AMREX_D_DECL(-1.0,-1.0,-1.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
         RealBox realbox_f({AMREX_D_DECL(-scale,-scale,-scale)}, {AMREX_D_DECL(scale,scale,scale)});
         Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
@@ -258,6 +258,10 @@ void main_main ()
         AMREX_D_TERM( const Real& dx = f_geom.CellSize(0);,
                       const Real& dy = f_geom.CellSize(1);,
                       const Real& dz = f_geom.CellSize(2);  );
+
+        amrex::Print() << "coarse dx = " << c_geom.CellSize(0) << std::endl;
+        amrex::Print() << "fine dx = " << dx << std::endl;
+        amrex::Print() << "fine-to-coarse dx = " << dx*2 << std::endl;
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
