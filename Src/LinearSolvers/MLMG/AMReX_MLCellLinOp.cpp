@@ -763,6 +763,14 @@ MLCellLinOp::prepareForSolve ()
             BndryRegister& undrrelxr = m_undrrelxr[amrlev][mglev];
             MultiFab foo(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], ncomp, 0, MFInfo().SetAlloc(false));
 
+#ifdef AMREX_USE_EB
+            auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+            const FabArray<EBCellFlagFab>* flags =
+                (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+            auto area = (factory) ? factory->getAreaFrac()
+                : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+#endif
+
             MFItInfo mfi_info;
             if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 
@@ -775,6 +783,10 @@ MLCellLinOp::prepareForSolve ()
 
                 const auto & bdlv = bcondloc.bndryLocs(mfi);
                 const auto & bdcv = bcondloc.bndryConds(mfi);
+
+#ifdef AMREX_USE_EB
+                auto fabtyp = (flags) ? (*flags)[mfi].getType(vbx) : FabType::regular;
+#endif
 
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                 {
@@ -792,42 +804,86 @@ MLCellLinOp::prepareForSolve ()
                         const BoundCond bcthi = bdcv[icomp][ohi];
                         const Real bcllo = bdlv[icomp][olo];
                         const Real bclhi = bdlv[icomp][ohi];
-                        if (idim == 0) {
-                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                            blo, tboxlo, {
-                            mllinop_comp_interp_coef0_x
-                                (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
-                                 imaxorder, dxi, icomp);
-                            },
-                            bhi, tboxhi, {
-                            mllinop_comp_interp_coef0_x
-                                (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
-                                 imaxorder, dxi, icomp);
-                            });
-                        } else if (idim == 1) {
-                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                            blo, tboxlo, {
-                            mllinop_comp_interp_coef0_y
-                                (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
-                                 imaxorder, dyi, icomp);
-                            },
-                            bhi, tboxhi, {
-                            mllinop_comp_interp_coef0_y
-                                (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
-                                 imaxorder, dyi, icomp);
-                            });
-                        } else {
-                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                            blo, tboxlo, {
-                            mllinop_comp_interp_coef0_z
-                                (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
-                                 imaxorder, dzi, icomp);
-                            },
-                            bhi, tboxhi, {
-                            mllinop_comp_interp_coef0_z
-                                (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
-                                 imaxorder, dzi, icomp);
-                            });
+#ifdef AMREX_USE_EB
+                        if (fabtyp == FabType::singlevalued) {
+                            Array4<Real const> const& ap = area[idim]->const_array(mfi);
+                            if (idim == 0) {
+                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                                blo, tboxlo, {
+                                mllinop_comp_interp_coef0_x_eb
+                                    (0, tboxlo, blen, flo, mlo, ap, bctlo, bcllo,
+                                     imaxorder, dxi, icomp);
+                                },
+                                bhi, tboxhi, {
+                                mllinop_comp_interp_coef0_x_eb
+                                    (1, tboxhi, blen, fhi, mhi, ap, bcthi, bclhi,
+                                     imaxorder, dxi, icomp);
+                                });
+                            } else if (idim == 1) {
+                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                                blo, tboxlo, {
+                                mllinop_comp_interp_coef0_y_eb
+                                    (0, tboxlo, blen, flo, mlo, ap, bctlo, bcllo,
+                                     imaxorder, dyi, icomp);
+                                },
+                                bhi, tboxhi, {
+                                mllinop_comp_interp_coef0_y_eb
+                                    (1, tboxhi, blen, fhi, mhi, ap, bcthi, bclhi,
+                                     imaxorder, dyi, icomp);
+                                });
+                            } else {
+                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                                blo, tboxlo, {
+                                mllinop_comp_interp_coef0_z_eb
+                                    (0, tboxlo, blen, flo, mlo, ap, bctlo, bcllo,
+                                     imaxorder, dzi, icomp);
+                                },
+                                bhi, tboxhi, {
+                                mllinop_comp_interp_coef0_z_eb
+                                    (1, tboxhi, blen, fhi, mhi, ap, bcthi, bclhi,
+                                     imaxorder, dzi, icomp);
+                                });
+                            }
+                        } else
+#endif
+                        {
+                            if (idim == 0) {
+                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                                blo, tboxlo, {
+                                mllinop_comp_interp_coef0_x
+                                    (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
+                                     imaxorder, dxi, icomp);
+                                },
+                                bhi, tboxhi, {
+                                mllinop_comp_interp_coef0_x
+                                    (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
+                                     imaxorder, dxi, icomp);
+                                });
+                            } else if (idim == 1) {
+                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                                blo, tboxlo, {
+                                mllinop_comp_interp_coef0_y
+                                    (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
+                                     imaxorder, dyi, icomp);
+                                },
+                                bhi, tboxhi, {
+                                mllinop_comp_interp_coef0_y
+                                    (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
+                                     imaxorder, dyi, icomp);
+                                });
+                            } else {
+                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                                blo, tboxlo, {
+                                mllinop_comp_interp_coef0_z
+                                    (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
+                                     imaxorder, dzi, icomp);
+                                },
+                                bhi, tboxhi, {
+                                mllinop_comp_interp_coef0_z
+                                    (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
+                                     imaxorder, dzi, icomp);
+                                });
+                            }
                         }
                     }
                 }
