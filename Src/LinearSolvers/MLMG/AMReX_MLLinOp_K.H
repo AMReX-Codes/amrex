@@ -372,7 +372,7 @@ void mllinop_comp_interp_coef0_x_eb (int side, Box const& box, int blen,
         GpuArray<Real,4> x{{-bcl * dxinv, Real(0.5), Real(1.5), Real(2.5)}};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), &x[0], r+1, &coef(0,r));
+            poly_interp_coeff(-Real(0.5), &x[0], r+2, &coef(0,r));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
@@ -433,7 +433,7 @@ void mllinop_comp_interp_coef0_y_eb (int side, Box const& box, int blen,
         GpuArray<Real,4> x{{-bcl * dyinv, Real(0.5), Real(1.5), Real(2.5)}};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), &x[0], r+1, &coef(0,r));
+            poly_interp_coeff(-Real(0.5), &x[0], r+2, &coef(0,r));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
@@ -494,7 +494,7 @@ void mllinop_comp_interp_coef0_z_eb (int side, Box const& box, int blen,
         GpuArray<Real,4> x{{-bcl * dzinv, Real(0.5), Real(1.5), Real(2.5)}};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), &x[0], r+1, &coef(0,r));
+            poly_interp_coeff(-Real(0.5), &x[0], r+2, &coef(0,r));
         }
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
