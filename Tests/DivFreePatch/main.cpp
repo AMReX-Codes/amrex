@@ -19,8 +19,8 @@ void setupMF(MultiFab* mf)
         amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 //            c_x(i,j,k) = amrex::Random()*10;
-//            c_x(i,j,k) = double(i)+double(j)+double(k);
-            c_x(i,j,k) = double(i)*double(i)+double(j)*double(j)+double(k)*double(k);
+            c_x(i,j,k) = double(i)+double(j)+double(k);
+//            c_x(i,j,k) = double(i)*double(i)+double(j)*double(j)+double(k)*double(k);
         });
     }
 }
@@ -138,6 +138,11 @@ void main_main ()
         setupMF(&c_mf_faces[i]);
     }
 
+    amrex::UtilCreateDirectoryDestructive("pltfiles");
+    AMREX_D_TERM( amrex::VisMF::Write(c_mf_faces[0], std::string("pltfiles/cx"));,
+                  amrex::VisMF::Write(c_mf_faces[1], std::string("pltfiles/cy"));,
+                  amrex::VisMF::Write(c_mf_faces[2], std::string("pltfiles/cz"));  );
+
 // ***************************************************************
 
     amrex::Print() << " Calculating coarse divergence. " << std::endl;
@@ -146,20 +151,22 @@ void main_main ()
         const Box& bx = mfi.validbox();
         Array4<Real> div = div_coarse.array(mfi);
 
-        AMREX_D_TERM( Array4<Real> face_x = c_mf_faces[0].array(mfi);,
-                      Array4<Real> face_y = c_mf_faces[1].array(mfi);,
-                      Array4<Real> face_z = c_mf_faces[2].array(mfi);  );
+        AMREX_D_TERM( const Array4<Real>& face_x = c_mf_faces[0].array(mfi);,
+                      const Array4<Real>& face_y = c_mf_faces[1].array(mfi);,
+                      const Array4<Real>& face_z = c_mf_faces[2].array(mfi);  );
+
+        AMREX_D_TERM( const Real& dx = c_geom.CellSize(0);,
+                      const Real& dy = c_geom.CellSize(1);,
+                      const Real& dz = c_geom.CellSize(2);  );
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            div(i,j,k) = AMREX_D_TERM(   face_x(i+1,j  ,k  ) - face_x(i,j,k),
-                                       + face_y(i  ,j+1,k  ) - face_y(i,j,k),
-                                       + face_z(i  ,j  ,k+1) - face_z(i,j,k)  );
+            div(i,j,k) = AMREX_D_TERM(   (face_x(i+1,j  ,k  ) - face_x(i,j,k))/dx,
+                                       + (face_y(i  ,j+1,k  ) - face_y(i,j,k))/dy,
+                                       + (face_z(i  ,j  ,k+1) - face_z(i,j,k))/dz  );
         });
     }
     amrex::VisMF::Write(div_coarse, std::string("pltfiles/coarse"));
-
-// ***************************************************************
 
     amrex::Print() << " Copying coarse divergence to fine grid. " << std::endl;
     {
@@ -178,20 +185,16 @@ void main_main ()
         Interpolater* mapper = &pc_interp;
         PhysBCFunctNoOp phys_bc;
 
-        Geometry f_total_geom = c_geom;
-        f_total_geom.refine(ratio);
-
         InterpFromCoarseLevel(div_refined_coarse, time,
                               div_coarse, 0, 0, 1,
-                              c_geom, f_total_geom, 
+                              c_geom, f_geom,
                               phys_bc, 0, phys_bc, 0,
                               ratio, mapper, bcrec, 0);
     }
+    amrex::VisMF::Write(div_refined_coarse, std::string("pltfiles/coarsetofine"));
 
 // ***************************************************************
 
-    amrex::VisMF::Write(div_refined_coarse, std::string("pltfiles/coarsetofine"));
-/*
     amrex::Print() << " Starting InterpFromCoarse. " << std::endl;
     {
         double time = 1;
@@ -229,19 +232,18 @@ void main_main ()
 
         Array<PhysBCFunctNoOp, AMREX_SPACEDIM> phys_bc;
 
-        amrex::Print() << " Starting FillPatch. " << std::endl;
-
-        Geometry f_total_geom = c_geom;
-        f_total_geom.refine(ratio);
-
-        FillPatchTwoLevels(fine_faces, ghost_f, time,
-                           coarse_v, time_v,
-                           fine_v, time_v,
-                           0, 0, 1, c_geom, f_total_geom,
-                           phys_bc, 0, phys_bc, 0,
-                           ratio, mapper, bcrec, 0);
-
+        InterpFromCoarseLevel(fine_faces, time,
+                              coarse_faces, 0, 0, 1,
+                              c_geom, f_geom,
+                              phys_bc, 0, phys_bc, 0,
+                              ratio, mapper, bcrec, 0);
     }
+
+    AMREX_D_TERM( amrex::VisMF::Write(f_mf_faces[0], std::string("pltfiles/fx"));,
+                  amrex::VisMF::Write(f_mf_faces[1], std::string("pltfiles/fy"));,
+                  amrex::VisMF::Write(f_mf_faces[2], std::string("pltfiles/fz"));  );
+
+// ***************************************************************
 
     amrex::Print() << " Calculating Fine Divergence. " << std::endl;
     for (MFIter mfi(div_fine); mfi.isValid(); ++mfi)
@@ -253,22 +255,28 @@ void main_main ()
                       Array4<Real> face_y = f_mf_faces[1].array(mfi);,
                       Array4<Real> face_z = f_mf_faces[2].array(mfi);  );
 
+        AMREX_D_TERM( const Real& dx = f_geom.CellSize(0);,
+                      const Real& dy = f_geom.CellSize(1);,
+                      const Real& dz = f_geom.CellSize(2);  );
+
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            div(i,j,k) = AMREX_D_TERM(   face_x(i+1,j  ,k  ) - face_x(i,j,k),
-                                       + face_y(i  ,j+1,k  ) - face_y(i,j,k),
-                                       + face_z(i  ,j  ,k+1) - face_z(i,j,k)  );
+            div(i,j,k) = AMREX_D_TERM(   (face_x(i+1,j  ,k  ) - face_x(i,j,k))/dx,
+                                       + (face_y(i  ,j+1,k  ) - face_y(i,j,k))/dy,
+                                       + (face_z(i  ,j  ,k+1) - face_z(i,j,k))/dz  );
         });
     }
+    amrex::VisMF::Write(div_fine, std::string("pltfiles/fine"));
 
     amrex::Print() << " Checking Coarse vs. Fine Divergence. " << std::endl;
     {
         div_fine.minus(div_refined_coarse, 0, 1, 0);
+        amrex::VisMF::Write(div_fine, std::string("pltfiles/diff"));
         Real max_error = div_fine.max(0);
 
         amrex::Print() << " Divergence error = " << max_error << std::endl;
     }
-*/
+
 
 /*
     amrex::Print() << " Performing DivFree FillPatch. " << std::endl;

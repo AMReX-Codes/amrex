@@ -463,12 +463,13 @@ facediv_cubic (Box const& bx,
                 const Real& vNE = crse[1](i+1, j+1, 0, nu);
 
                 // Calc fine faces that fall on coarse faces
-                fine[0](fi,  fj  ,0,n) = (8.0_rt*uW + uNW - uSW)/8.0_rt;
-                fine[0](fi,  fj+1,0,n) = (8.0_rt*uW - uNW + uSW)/8.0_rt;
-                fine[0](fi+2,fj  ,0,n) = (8.0_rt*uE + uNE - uSE)/8.0_rt;
-                fine[0](fi+2,fj+1,0,n) = (8.0_rt*uE - uNE + uSE)/8.0_rt;
+                fine[0](fi,  fj  ,0,n) = (8.0_rt*uW - uNW + uSW)/8.0_rt;
+                fine[0](fi,  fj+1,0,n) = (8.0_rt*uW + uNW - uSW)/8.0_rt;
+                fine[0](fi+2,fj  ,0,n) = (8.0_rt*uE - uNE + uSE)/8.0_rt;
+                fine[0](fi+2,fj+1,0,n) = (8.0_rt*uE + uNE - uSE)/8.0_rt;
+
                 fine[1](fi,  fj  ,0,n) = (8.0_rt*vS + vSW - vSE)/8.0_rt;
-                fine[1](fi+1,fj  ,0,n) = (8.0_rt*vS - vSW + vSW)/8.0_rt;
+                fine[1](fi+1,fj  ,0,n) = (8.0_rt*vS - vSW + vSE)/8.0_rt;
                 fine[1](fi,  fj+2,0,n) = (8.0_rt*vN + vNW - vNE)/8.0_rt;
                 fine[1](fi+1,fj+2,0,n) = (8.0_rt*vN - vNW + vNE)/8.0_rt;
 
@@ -484,7 +485,6 @@ facediv_cubic (Box const& bx,
 
                 fine[1](fi+1,fj+1,0,n) = (8.0_rt*(vN+vS) - uSE + uSW + uNE - uNW
                                                          + vNE - vSW - vNW + vSE)/16.0_rt;
-
             }
         }
     }

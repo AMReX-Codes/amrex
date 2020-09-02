@@ -640,7 +640,7 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, Real time,
                        const PreInterpHook& pre_interp,
                        const PostInterpHook& post_interp)
 {
-    InterpFromCoarseLevel(mf,mf.nGrowVect(),time,cmf,scomp,dcomp,ncomp,cgeom,fgeom,
+    InterpFromCoarseLevel(mf,mf[0]->nGrowVect(),time,cmf,scomp,dcomp,ncomp,cgeom,fgeom,
                           cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
                           pre_interp,post_interp);
 }
@@ -756,8 +756,8 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
     using FAB = typename MF::FABType::value_type;
 
     const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
-    const BoxArray& ba = mf[0].boxArray();
-    const DistributionMapping& dm = mf[0].DistributionMap();
+    const BoxArray& ba = mf[0]->boxArray();
+    const DistributionMapping& dm = mf[0]->DistributionMap();
 
     // Change asserts.
     // If DM is different? Need to adjust or do all 3 seperately?
@@ -792,16 +792,18 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
     for (int i = 0; i<AMREX_SPACEDIM; ++i)
     {
         BoxArray ba_crse_idxed = amrex::convert(ba_crse_patch, mf[i]->boxArray().ixType());
- 
+
 #ifdef AMREX_USE_EB
         auto factory = makeEBFabFactory(cgeom, ba_crse_idxed, dm, {0,0,0}, EBSupport::basic);
         mf_crse_patch[i].define(ba_crse_idxed, dm, ncomp, 0, MFInfo(), *factory);
 #else
         mf_crse_patch[i].define(ba_crse_idxed, dm, ncomp, 0);
 #endif
-        mf_set_domain_bndry (mf_crse_patch[i], cgeom);
+        mf_set_domain_bndry(mf_crse_patch[i], cgeom);
 
-        mf_crse_patch[i].copy(cmf[i], scomp, 0, ncomp, cgeom.periodicity());
+        mf_crse_patch[i].copy(*(cmf[i]), scomp, 0, ncomp, cgeom.periodicity());
+//        Needed when fine region touches domain.
+//        mf_crse_patch[i].copy(*(cmf[i]), scomp, 0, ncomp, 1, 0, cgeom.periodicity());
 
         cbc[i](mf_crse_patch[i], 0, ncomp, mf_crse_patch[i].nGrowVect(), time, cbccomp);
     }
@@ -818,21 +820,21 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
             Array<FAB*, AMREX_SPACEDIM> sfab{ AMREX_D_DECL( &(mf_crse_patch[0][mfi]),
                                                             &(mf_crse_patch[1][mfi]),
                                                             &(mf_crse_patch[2][mfi]) )};
-            Array<FAB*, AMREX_SPACEDIM> dfab{ AMREX_D_DECL( &(mf[0][mfi]),
-                                                            &(mf[1][mfi]),
-                                                            &(mf[2][mfi]) )};
+            Array<FAB*, AMREX_SPACEDIM> dfab{ AMREX_D_DECL( &((*mf[0])[mfi]),
+                                                            &((*mf[1])[mfi]),
+                                                            &((*mf[2])[mfi]) )};
 
             const Box& sbx_cc = amrex::convert(sfab[0]->box(), IntVect::TheZeroVector());
-            Box& dfab_cc = amrex::convert(dfab[0]->box(), IntVect::TheZeroVector());
-            dfab_cc.grow(nghost-mf.nGrowVect());
+            Box dfab_cc = amrex::convert(dfab[0]->box(), IntVect::TheZeroVector());
+            dfab_cc.grow(nghost-mf[0]->nGrowVect());
             const Box& dbx_cc = dfab_cc & fdomain_g;
 
             for (int d=0; d<AMREX_SPACEDIM; ++d)
             {
                 Vector<BCRec> bcr_d(ncomp);
 
-                amrex::setBC(dfab[d]->box(), amrex::convert(fdomain, dfab[d]->boxArray().ixType()),
-                             bcscomp,0,ncomp,bcs,bcr_d);
+                amrex::setBC(dfab[d]->box(), amrex::convert(fdomain, dfab[d]->box().ixType()),
+                             bcscomp,0,ncomp,bcs[d],bcr_d);
 
                 for (int n=0; n<ncomp; ++n)
                     { bcr[n][d] = bcr_d[n]; }
@@ -840,8 +842,8 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
 
             pre_interp(sfab, sbx_cc, 0, ncomp);
 
-            mapper->interp(sfab, 0,  dfab, dcomp, ncomp, dbx_cc, ratio,
-                           cgeom, fgeom, bcr, idummy1, idummy2, RunOn::Gpu);
+            mapper->interp_arr(sfab, 0,  dfab, dcomp, ncomp, dbx_cc, ratio,
+                               cgeom, fgeom, bcr, idummy1, idummy2, RunOn::Gpu);
 
             post_interp(dfab, dbx_cc, dcomp, ncomp);
         }
