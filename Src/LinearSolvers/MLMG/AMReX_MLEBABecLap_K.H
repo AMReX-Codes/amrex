@@ -71,13 +71,19 @@ void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
             for (int j = lo.y; j <= hi.y; ++j) {
                 if (mask(i,j,k) == 0 and mask(i+s,j,k) == 1) {
                     int order = 1;
+                    bool has_cutfaces = false;
                     for (int r = 0; r <= NX-2; ++r) {
-                        if (area(i+(1-side)+s*r,j,k) > Real(0.0)) {
+                        Real a = area(i+(1-side)+s*r,j,k);
+                        if (a > Real(0.0)) {
                             ++order;
+                            if (a < Real(1.0)) {
+                                has_cutfaces = true;
+                            }
                         } else {
                             break;
                         }
                     }
+                    if (has_cutfaces) order = amrex::min(2,order);
                     if (order == 1) {
                         if (inhomog) {
                             phi(i,j,k,icomp) = bcval(i,j,k,icomp);
@@ -151,13 +157,19 @@ void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
             for (int i = lo.x; i <= hi.x; ++i) {
                 if (mask(i,j,k) == 0 and mask(i,j+s,k) == 1) {
                     int order = 1;
+                    bool has_cutfaces = false;
                     for (int r = 0; r <= NX-2; ++r) {
-                        if (area(i,j+(1-side)+s*r,k) > Real(0.0)) {
+                        Real a = area(i,j+(1-side)+s*r,k);
+                        if (a > Real(0.0)) {
                             ++order;
+                            if (a < Real(1.0)) {
+                                has_cutfaces = true;
+                            }
                         } else {
                             break;
                         }
                     }
+                    if (has_cutfaces) order = amrex::min(2,order);
                     if (order == 1) {
                         if (inhomog) {
                             phi(i,j,k,icomp) = bcval(i,j,k,icomp);
@@ -231,13 +243,19 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
             for (int i = lo.x; i <= hi.x; ++i) {
                 if (mask(i,j,k) == 0 and mask(i,j,k+s) == 1) {
                     int order = 1;
+                    bool has_cutfaces = false;
                     for (int r = 0; r <= NX-2; ++r) {
-                        if (area(i,j,k+(1-side)+s*r) > Real(0.0)) {
+                        Real a = area(i,j,k+(1-side)+s*r);
+                        if (a > Real(0.0)) {
                             ++order;
+                            if (a < Real(1.0)) {
+                                has_cutfaces = true;
+                            }
                         } else {
                             break;
                         }
                     }
+                    if (has_cutfaces) order = amrex::min(2,order);
                     if (order == 1) {
                         if (inhomog) {
                             phi(i,j,k,icomp) = bcval(i,j,k,icomp);

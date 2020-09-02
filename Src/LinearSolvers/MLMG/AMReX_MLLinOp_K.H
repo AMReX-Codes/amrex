@@ -378,13 +378,19 @@ void mllinop_comp_interp_coef0_x_eb (int side, Box const& box, int blen,
             for (int j = lo.y; j <= hi.y; ++j) {
                 int order = 1;
                 if (mask(ib,j,k) > 0) {
+                    bool has_cutfaces = false;
                     for (int r = 0; r <= NX-2; ++r) {
-                        if (area(ii+side+s*r,j,k) > Real(0.0)) {
+                        Real a = area(ii+side+s*r,j,k);
+                        if (a > Real(0.0)) {
                             ++order;
+                            if (a < Real(1.0)) {
+                                has_cutfaces = true;
+                            }
                         } else {
                             break;
                         }
                     }
+                    if (has_cutfaces) order = amrex::min(2,order);
                 }
                 f(ii,j,k,icomp) = (order==1) ? Real(0.0) : coef(1,order-2);
             }
@@ -439,13 +445,19 @@ void mllinop_comp_interp_coef0_y_eb (int side, Box const& box, int blen,
             for (int i = lo.x; i <= hi.x; ++i) {
                 int order = 1;
                 if (mask(i,jb,k) > 0) {
+                    bool has_cutfaces = false;
                     for (int r = 0; r <= NX-2; ++r) {
-                        if (area(i,ji+side+s*r,k) > Real(0.0)) {
+                        Real a = area(i,ji+side+s*r,k);
+                        if (a > Real(0.0)) {
                             ++order;
+                            if (a < Real(1.0)) {
+                                has_cutfaces = true;
+                            }
                         } else {
                             break;
                         }
                     }
+                    if (has_cutfaces) order = amrex::min(2,order);
                 }
                 f(i,ji,k,icomp) = (order==1) ? Real(0.0) : coef(1,order-2);
             }
@@ -500,13 +512,19 @@ void mllinop_comp_interp_coef0_z_eb (int side, Box const& box, int blen,
             for (int i = lo.x; i <= hi.x; ++i) {
                 int order = 1;
                 if (mask(i,j,kb) > 0) {
+                    bool has_cutfaces = false;
                     for (int r = 0; r <= NX-2; ++r) {
-                        if (area(i,j,ki+side+s*r) > Real(0.0)) {
+                        Real a = area(i,j,ki+side+s*r);
+                        if (a > Real(0.0)) {
                             ++order;
+                            if (a < Real(1.0)) {
+                                has_cutfaces = true;
+                            }
                         } else {
                             break;
                         }
                     }
+                    if (has_cutfaces) order = amrex::min(2,order);
                 }
                 f(i,j,ki,icomp) = (order==1) ? Real(0.0) : coef(1,order-2);
             }
