@@ -65,19 +65,25 @@ void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
         GpuArray<Real,4> x{-bcl * dxinv, Real(0.5), Real(1.5), Real(2.5)};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), &x[0], r+1, &(coef(0,r)));
+            poly_interp_coeff(-Real(0.5), &x[0], r+2, &(coef(0,r)));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
                 if (mask(i,j,k) == 0 and mask(i+s,j,k) == 1) {
                     int order = 1;
+                    bool has_cutfaces = false;
                     for (int r = 0; r <= NX-2; ++r) {
-                        if (area(i+(1-side)+s*r,j,k) > Real(0.0)) {
+                        Real a = area(i+(1-side)+s*r,j,k);
+                        if (a > Real(0.0)) {
                             ++order;
+                            if (a < Real(1.0)) {
+                                has_cutfaces = true;
+                            }
                         } else {
                             break;
                         }
                     }
+                    if (has_cutfaces) order = amrex::min(2,order);
                     if (order == 1) {
                         if (inhomog) {
                             phi(i,j,k,icomp) = bcval(i,j,k,icomp);
@@ -145,19 +151,25 @@ void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
         GpuArray<Real,4> x{-bcl * dyinv, Real(0.5), Real(1.5), Real(2.5)};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), &x[0], r+1, &(coef(0,r)));
+            poly_interp_coeff(-Real(0.5), &x[0], r+2, &(coef(0,r)));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 if (mask(i,j,k) == 0 and mask(i,j+s,k) == 1) {
                     int order = 1;
+                    bool has_cutfaces = false;
                     for (int r = 0; r <= NX-2; ++r) {
-                        if (area(i,j+(1-side)+s*r,k) > Real(0.0)) {
+                        Real a = area(i,j+(1-side)+s*r,k);
+                        if (a > Real(0.0)) {
                             ++order;
+                            if (a < Real(1.0)) {
+                                has_cutfaces = true;
+                            }
                         } else {
                             break;
                         }
                     }
+                    if (has_cutfaces) order = amrex::min(2,order);
                     if (order == 1) {
                         if (inhomog) {
                             phi(i,j,k,icomp) = bcval(i,j,k,icomp);
@@ -225,19 +237,25 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
         GpuArray<Real,4> x{-bcl * dzinv, Real(0.5), Real(1.5), Real(2.5)};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), &x[0], r+1, &(coef(0,r)));
+            poly_interp_coeff(-Real(0.5), &x[0], r+2, &(coef(0,r)));
         }
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 if (mask(i,j,k) == 0 and mask(i,j,k+s) == 1) {
                     int order = 1;
+                    bool has_cutfaces = false;
                     for (int r = 0; r <= NX-2; ++r) {
-                        if (area(i,j,k+(1-side)+s*r) > Real(0.0)) {
+                        Real a = area(i,j,k+(1-side)+s*r);
+                        if (a > Real(0.0)) {
                             ++order;
+                            if (a < Real(1.0)) {
+                                has_cutfaces = true;
+                            }
                         } else {
                             break;
                         }
                     }
+                    if (has_cutfaces) order = amrex::min(2,order);
                     if (order == 1) {
                         if (inhomog) {
                             phi(i,j,k,icomp) = bcval(i,j,k,icomp);

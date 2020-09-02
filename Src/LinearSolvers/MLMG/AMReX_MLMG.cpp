@@ -62,9 +62,13 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         bottom_solver = linop.getDefaultBottomSolver();
     }
 
-    if (bottom_solver == BottomSolver::hypre) {
+    if (bottom_solver == BottomSolver::hypre || bottom_solver == BottomSolver::petsc) {
         int mo = linop.getMaxOrder();
-        linop.setMaxOrder(std::min(3,mo));  // maxorder = 4 not supported
+        if (a_sol[0]->hasEBFabFactory()) {
+            linop.setMaxOrder(2);
+        } else {
+            linop.setMaxOrder(std::min(3,mo));  // maxorder = 4 not supported
+        }
     }
     
     bool is_nsolve = linop.m_parent;
