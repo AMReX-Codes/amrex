@@ -31,7 +31,6 @@ struct ParticleIDWrapper
         : m_idata(idata)
     {}
 
-    AMREX_GPU_HOST_DEVICE
     ParticleIDWrapper (const ParticleIDWrapper& rhs) = default;
 
     AMREX_GPU_HOST_DEVICE
