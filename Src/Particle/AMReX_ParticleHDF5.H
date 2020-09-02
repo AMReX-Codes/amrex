@@ -325,7 +325,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 
     Long nparticles = 0;
-    int maxnextid;
+    Long maxnextid;
     
     if(usePrePost)
     {
@@ -353,7 +353,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         
         ParallelDescriptor::ReduceLongSum(nparticles, IOProcNumber);
         ParticleType::NextID(maxnextid);
-        ParallelDescriptor::ReduceIntMax(maxnextid, IOProcNumber);
+        ParallelDescriptor::ReduceLongMax(maxnextid, IOProcNumber);
     }
 
     hid_t fapl, dxpl, fid, grp;
@@ -464,7 +464,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         CreateWriteHDF5AttrLong(fid, "nparticles", 1, &nparticles);
 
         // The value of nextid that we need to restore on restart.
-        CreateWriteHDF5AttrInt(fid, "maxnextid", 1, &maxnextid);
+        CreateWriteHDF5AttrLong(fid, "maxnextid", 1, &maxnextid);
 
         // Then the finest level of the AMR hierarchy.
         int finest_level = finestLevel();
@@ -975,8 +975,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     AMREX_ASSERT(nparticles >= 0);
     
     aname = "maxnextid";
-    int maxnextid;
-    ret = ReadHDF5AttrInt(fid, aname.c_str(), &maxnextid);
+    Long maxnextid;
+    ret = ReadHDF5AttrLong(fid, aname.c_str(), &maxnextid);
     if (ret < 0) {
         std::string msg("ParticleContainer::RestartHDF5(): unable to read attribute ");
         msg += aname;
