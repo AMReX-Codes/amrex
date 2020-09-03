@@ -32,7 +32,14 @@ list(TRANSFORM AMREX_TUTORIALS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
 #
 macro (setup_tutorial _sources  _input_files)
 
-   get_filename_component( _base_name ${CMAKE_CURRENT_LIST_DIR} NAME )
+   cmake_parse_arguments( "" "HAS_FORTRAN_MODULES" "BASE_NAME" "" ${ARGN} )
+
+   if (_BASE_NAME)
+      set(_base_name _BASE_NAME)
+      unset(_BASE_NAME)
+   else ()
+      get_filename_component( _base_name ${CMAKE_CURRENT_LIST_DIR} NAME )
+   endif()
 
    set( _test_name ${_base_name} )
    set( _exe_name  ${_base_name}.exe )
@@ -48,25 +55,23 @@ macro (setup_tutorial _sources  _input_files)
       get_filename_component( _include_dir ${_item} DIRECTORY)
       target_include_directories( ${_exe_name} PRIVATE  ${_include_dir} )
    endforeach()
+   unset(_includes)
 
    if (ENABLE_CUDA)
       set_cpp_sources_to_cuda_language( ${_exe_name} )
    endif ()
 
    # Extra arguments
-   foreach (_extra_arg ${ARGN})
-      if (_extra_arg MATCHES "HAS_FORTRAN_MODULES")
-         target_include_directories(${_exe_name}
-            PRIVATE
-            ${CMAKE_CURRENT_BINARY_DIR}/mod_files)
-         set_target_properties( ${_exe_name}
-            PROPERTIES
-            Fortran_MODULE_DIRECTORY
-            ${CMAKE_CURRENT_BINARY_DIR}/mod_files )
-      else ()
-         message("\n setup_tutorial(): unkwown argument ${_extra_arg} \n")
-      endif ()
-   endforeach ()
+   if (_HAS_FORTRAN_MODULES)
+      target_include_directories(${_exe_name}
+         PRIVATE
+         ${CMAKE_CURRENT_BINARY_DIR}/mod_files)
+      set_target_properties( ${_exe_name}
+         PROPERTIES
+         Fortran_MODULE_DIRECTORY
+         ${CMAKE_CURRENT_BINARY_DIR}/mod_files )
+      unset(_HAS_FORTRAN_MODULES)
+   endif ()
 
    target_link_libraries( ${_exe_name} amrex )
 
