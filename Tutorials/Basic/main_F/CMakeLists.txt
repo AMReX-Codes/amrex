@@ -2,7 +2,7 @@ if (NOT ENABLE_FORTRAN_INTERFACES)
    return()
 endif ()
 
-set(_sources ${CMAKE_CURRENT_LIST_DIR}/main.F90)
+set(_sources main.F90)
 set(_include_dirs)
 set(_input_files)
 

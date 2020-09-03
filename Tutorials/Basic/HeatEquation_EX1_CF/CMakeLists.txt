@@ -1,4 +1,4 @@
-if ( (DIM EQUAL 1) OR NOT ENABLE_FORTRAN)
+if ( (DIM EQUAL 1) OR NOT CMAKE_Fortran_COMPILER_LOADED)
    return()
 endif ()
 
@@ -10,10 +10,10 @@ set(_sources
    myfunc_F.H
    myfunc.H )
 
-list(TRANSFORM _sources PREPEND "${CMAKE_CURRENT_LIST_DIR}/Source/")
+list(TRANSFORM _sources PREPEND "Source/")
 
-set(_include_dirs ${CMAKE_CURRENT_LIST_DIR}/Source)
-set( _input_files ${CMAKE_CURRENT_LIST_DIR}/Exec/inputs_${DIM}d)
+set(_include_dirs Source)
+set(_input_files  Exec/inputs_${DIM}d)
 
 setup_tutorial(_sources _include_dirs _input_files HAS_FORTRAN_MODULES)
 

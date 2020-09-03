@@ -1,12 +1,11 @@
 # List of source files
-set(_sources main.cpp myfunc.cpp myfunc.H mykernel.H)
-list(TRANSFORM _sources PREPEND "Source/")
+set(_sources main.cpp)
 
 # List of include directories
-set(_include_dirs Source)
+set(_include_dirs)
 
 # List of input files
-file( GLOB_RECURSE _input_files LIST_DIRECTORIES false Exec/input* )
+set(_input_files)
 
 setup_tutorial(_sources _include_dirs _input_files)
 

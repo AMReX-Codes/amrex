@@ -1,4 +1,4 @@
-set(_sources ${CMAKE_CURRENT_LIST_DIR}/main.cpp)
+set(_sources main.cpp)
 set(_include_dirs)
 set(_input_files)
 
