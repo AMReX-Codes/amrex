@@ -153,7 +153,7 @@ function (setup_target_for_hip_compilation _target)
    endif ()
 
    # overwrite sources of _target with "new" sources
-   set_target_properties(${_target} PROPERTIES SOURCES ${_generated_files} ${_sources})
+   set_target_properties(${_target} PROPERTIES SOURCES "${_generated_files};${_sources}")
 
    # set linker language
    set_target_properties(${_target} PROPERTIES LINKER_LANGUAGE ${HIP_C_OR_CXX})
