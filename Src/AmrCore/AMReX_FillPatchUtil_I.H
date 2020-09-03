@@ -802,8 +802,6 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
         mf_set_domain_bndry(mf_crse_patch[i], cgeom);
 
         mf_crse_patch[i].copy(*(cmf[i]), scomp, 0, ncomp, cgeom.periodicity());
-//        Needed when fine region touches domain.
-//        mf_crse_patch[i].copy(*(cmf[i]), scomp, 0, ncomp, 1, 0, cgeom.periodicity());
 
         cbc[i](mf_crse_patch[i], 0, ncomp, mf_crse_patch[i].nGrowVect(), time, cbccomp);
     }

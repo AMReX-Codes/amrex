@@ -433,7 +433,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 facediv_cubic (Box const& bx,
                GpuArray<Array4<T const>, AMREX_SPACEDIM> crse,
                GpuArray<Array4<T>, AMREX_SPACEDIM> fine,
-               const int icomp, const int ncomp, IntVect const& ratio) noexcept
+               const int icomp, const int ncomp, IntVect const& ratio,
+               const GpuArray<Real, AMREX_SPACEDIM> cellSize) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -462,29 +463,40 @@ facediv_cubic (Box const& bx,
                 const Real& vNW = crse[1](i-1, j+1, 0, nu);
                 const Real& vNE = crse[1](i+1, j+1, 0, nu);
 
-                // Calc fine faces that fall on coarse faces
+                const Real dxdy = cellSize[0]/cellSize[1];
+
+                // Calc fine faces on negative exterior faces of coarse cells (W and S).
                 fine[0](fi,  fj  ,0,n) = (8.0_rt*uW - uNW + uSW)/8.0_rt;
                 fine[0](fi,  fj+1,0,n) = (8.0_rt*uW + uNW - uSW)/8.0_rt;
-                fine[0](fi+2,fj  ,0,n) = (8.0_rt*uE - uNE + uSE)/8.0_rt;
-                fine[0](fi+2,fj+1,0,n) = (8.0_rt*uE + uNE - uSE)/8.0_rt;
-
                 fine[1](fi,  fj  ,0,n) = (8.0_rt*vS + vSW - vSE)/8.0_rt;
                 fine[1](fi+1,fj  ,0,n) = (8.0_rt*vS - vSW + vSE)/8.0_rt;
-                fine[1](fi,  fj+2,0,n) = (8.0_rt*vN + vNW - vNE)/8.0_rt;
-                fine[1](fi+1,fj+2,0,n) = (8.0_rt*vN - vNW + vNE)/8.0_rt;
 
-                // Calc fine faces on interior coarse faces
-                fine[0](fi+1,fj  ,0,n) = (8.0_rt*(uE+uW) + uSE + uSW - uNE - uNW
-                                                         + vNE + vSW - vNW - vSE)/16.0_rt;
+                // Calc fine faces on interior of coarse cells.
+                fine[0](fi+1,fj  ,0,n) = (8.0_rt*(uW+uE) + uSE + uSW - uNE - uNW
+                                                   + dxdy*( vNE + vSW - vNW - vSE))/16.0_rt;
 
-                fine[0](fi+1,fj+1,0,n) = (8.0_rt*(uE+uW) - uSE - uSW + uNE + uNW
-                                                         + vNE + vSW - vNW - vSE)/16.0_rt;
+                fine[0](fi+1,fj+1,0,n) = (8.0_rt*(uW+uE) - uSE - uSW + uNE + uNW
+                                                   + dxdy*( vNE + vSW - vNW - vSE))/16.0_rt;
 
-                fine[1](fi,  fj+1,0,n) = (8.0_rt*(vN+vS) - uSE + uSW + uNE - uNW
-                                                         - vNE + vSW + vNW - vSE)/16.0_rt;
+                fine[1](fi,  fj+1,0,n) = (8.0_rt*(vN+vS) - vNE + vSW + vNW - vSE
+                                               + (1/dxdy)*(-uSE + uSW + uNE - uNW))/16.0_rt;
 
-                fine[1](fi+1,fj+1,0,n) = (8.0_rt*(vN+vS) - uSE + uSW + uNE - uNW
-                                                         + vNE - vSW - vNW + vSE)/16.0_rt;
+                fine[1](fi+1,fj+1,0,n) = (8.0_rt*(vN+vS) + vNE - vSW - vNW + vSE
+                                               + (1/dxdy)*(-uSE + uSW + uNE - uNW))/16.0_rt;
+
+                // Calc fine faces on positive exterior faces of coarse cells (E and N).
+                // On done by cells touching those boundaries. 
+                if (i == hi.x)
+                {
+                    fine[0](fi+2,fj  ,0,n) = (8.0_rt*uE - uNE + uSE)/8.0_rt;
+                    fine[0](fi+2,fj+1,0,n) = (8.0_rt*uE + uNE - uSE)/8.0_rt;
+                }
+                if (j == hi.y)
+                {
+                    fine[1](fi,  fj+2,0,n) = (8.0_rt*vN + vNW - vNE)/8.0_rt;
+                    fine[1](fi+1,fj+2,0,n) = (8.0_rt*vN - vNW + vNE)/8.0_rt;
+                }
+
             }
         }
     }

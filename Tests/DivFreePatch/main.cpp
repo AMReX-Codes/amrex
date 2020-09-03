@@ -25,6 +25,10 @@ void setupMF(MultiFab* mf)
     }
 }
 
+
+// ================================================
+
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
@@ -40,31 +44,37 @@ void main_main ()
 
     int n_cell = 0;
     int f_offset = 4;
-    amrex::Vector<int> c_cell_3d(AMREX_SPACEDIM, 32);
-    amrex::Vector<int> f_cell_3d(AMREX_SPACEDIM, 28);
+
+    amrex::Vector<int> c_lo(AMREX_SPACEDIM,  0);
+    amrex::Vector<int> c_hi(AMREX_SPACEDIM, 32);
+    amrex::Vector<int> f_lo(AMREX_SPACEDIM, 28);
+    amrex::Vector<int> f_hi(AMREX_SPACEDIM,  4);
     int max_grid_size = 64;
 
     {
         ParmParse pp;
         pp.query("n_cell", n_cell);
         pp.query("f_offset", f_offset);
-        pp.queryarr("c_cell_3d", c_cell_3d, 0, AMREX_SPACEDIM);
-        pp.queryarr("f_cell_3d", f_cell_3d, 0, AMREX_SPACEDIM);
         pp.query("max_grid_size", max_grid_size);
 
-        // inputs hierarchy:
-        // n_cell > c_cell_3d & f_cell_3d
+        pp.queryarr("c_hi",  c_hi, 0, AMREX_SPACEDIM);
+
+        pp.queryarr("f_lo",  f_lo, 0, AMREX_SPACEDIM);
+        pp.queryarr("f_hi",  f_hi, 0, AMREX_SPACEDIM);
 
         if (n_cell != 0)
         {
             for (int i=0; i < AMREX_SPACEDIM; ++i)
-            { c_cell_3d[i] = n_cell-1;
-              f_cell_3d[i] = n_cell-f_offset-1; }
+            { c_lo[i] = 0;
+              c_hi[i] = n_cell-1;
+
+              f_lo[i] = f_offset;
+              f_hi[i] = n_cell-f_offset-1; }
         }
     }
 
     int ncomp = 1;
-    IntVect ratio{AMREX_D_DECL(2,2,2)};  // For this stencil (octree), always 2.
+    IntVect ratio{AMREX_D_DECL(2,2,2)};    // For this stencil (octree), always 2.
     IntVect ghost_c{AMREX_D_DECL(1,1,1)};  // For this stencil (octree), need 1 coarse ghost.
     IntVect ghost_f{AMREX_D_DECL(2,2,2)};  // For this stencil (octree), need 2 fine ghost.
     Geometry c_geom, f_geom;
@@ -79,14 +89,22 @@ void main_main ()
 
     //  Create multifabs.
     {
-        Box domain  (IntVect{0}, IntVect{c_cell_3d});
-        Box domain_f(IntVect{f_offset}, IntVect{f_cell_3d});
+        Box domain  (IntVect{c_lo}, IntVect{c_hi});
+        Box domain_f(IntVect{f_lo}, IntVect{f_hi});
         domain_f.refine(ratio);
 
-        double scale = double(f_cell_3d[0]-f_offset+1)/double(c_cell_3d[0]+1);
-        RealBox realbox_c({AMREX_D_DECL(-1.0,-1.0,-1.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
-        RealBox realbox_f({AMREX_D_DECL(-scale,-scale,-scale)}, {AMREX_D_DECL(scale,scale,scale)});
+        amrex::Print() << domain << " / " << domain_f << std::endl;
+
+        RealBox realbox_c({AMREX_D_DECL(0.0,0.0,0.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
+        RealBox realbox_f({AMREX_D_DECL( double(f_lo[0])   / double(c_hi[0]+1),
+                                         double(f_lo[1])   / double(c_hi[1]+1),
+                                         double(f_lo[2])   / double(c_hi[2]+1) )},
+                          {AMREX_D_DECL( double(f_hi[0]+1) / double(c_hi[0]+1),
+                                         double(f_hi[1]+1) / double(c_hi[1]+1),
+                                         double(f_hi[2]+1) / double(c_hi[2]+1) )} );
         Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
+
+        amrex::Print() << realbox_c << " ? " << realbox_f << std::endl;
 
         // Build coarse and fine boxArrays and DistributionMappings.
         BoxArray ba_c(domain);
@@ -159,6 +177,14 @@ void main_main ()
                       const Real& dy = c_geom.CellSize(1);,
                       const Real& dz = c_geom.CellSize(2);  );
 
+        AMREX_D_TERM( amrex::Print() << " coarse dx = " << dx << std::endl;,
+                      amrex::Print() << " coarse dy = " << dy << std::endl;,
+                      amrex::Print() << " coarse dz = " << dz << std::endl;  );
+
+        AMREX_D_TERM( amrex::Print() << " fine dx = " << f_geom.CellSize(0) << std::endl;,
+                      amrex::Print() << " fine dy = " << f_geom.CellSize(1) << std::endl;,
+                      amrex::Print() << " fine dz = " << f_geom.CellSize(2) << std::endl;  );
+
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             div(i,j,k) = AMREX_D_TERM(   (face_x(i+1,j  ,k  ) - face_x(i,j,k))/dx,
@@ -209,8 +235,8 @@ void main_main ()
             {
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                 {
-                    bcrec[odim][n].setLo(idim, BCType::int_dir);
-                    bcrec[odim][n].setHi(idim, BCType::int_dir);
+                    bcrec[odim][n].setLo(idim, BCType::foextrap);
+                    bcrec[odim][n].setHi(idim, BCType::foextrap);
                 }
             }
         }
@@ -239,6 +265,15 @@ void main_main ()
                               ratio, mapper, bcrec, 0);
     }
 
+    // Check for errors
+    {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            if (f_mf_faces[i].contains_nan()) {
+                amrex::Print() << "******** Nans present in fine velocity in dimension " << i << std::endl; 
+            }
+        }
+    }
+
     AMREX_D_TERM( amrex::VisMF::Write(f_mf_faces[0], std::string("pltfiles/fx"));,
                   amrex::VisMF::Write(f_mf_faces[1], std::string("pltfiles/fy"));,
                   amrex::VisMF::Write(f_mf_faces[2], std::string("pltfiles/fz"));  );
@@ -258,10 +293,6 @@ void main_main ()
         AMREX_D_TERM( const Real& dx = f_geom.CellSize(0);,
                       const Real& dy = f_geom.CellSize(1);,
                       const Real& dz = f_geom.CellSize(2);  );
-
-        amrex::Print() << "coarse dx = " << c_geom.CellSize(0) << std::endl;
-        amrex::Print() << "fine dx = " << dx << std::endl;
-        amrex::Print() << "fine-to-coarse dx = " << dx*2 << std::endl;
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
