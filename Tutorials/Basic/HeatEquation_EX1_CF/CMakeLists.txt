@@ -12,13 +12,11 @@ set(_sources
 
 list(TRANSFORM _sources PREPEND "Source/")
 
-set(_include_dirs Source)
 set(_input_files  Exec/inputs_${DIM}d)
 
-setup_tutorial(_sources _include_dirs _input_files HAS_FORTRAN_MODULES)
+setup_tutorial(_sources _input_files HAS_FORTRAN_MODULES)
 
 unset( _sources )
-unset( _include_dirs )
 unset( _input_files  )
 
 

@@ -30,7 +30,7 @@ list(TRANSFORM AMREX_TUTORIALS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
 #
 # Macro to setup the tutorials
 #
-macro (setup_tutorial _sources _include_dirs _input_files)
+macro (setup_tutorial _sources  _input_files)
 
    get_filename_component( _base_name ${CMAKE_CURRENT_LIST_DIR} NAME )
 
@@ -41,9 +41,13 @@ macro (setup_tutorial _sources _include_dirs _input_files)
 
    target_sources( ${_exe_name} PRIVATE ${${_sources}} )
 
-   if ( ${_include_dirs})
-      target_include_directories( ${_exe_name} PRIVATE  ${${_include_dirs}} )
-   endif ()
+   # Find out which include directory is needed
+   set(_includes ${${_sources}})
+   list(FILTER _includes INCLUDE REGEX "\\.H")
+   foreach(_item IN LISTS _includes)
+      get_filename_component( _include_dir ${_item} DIRECTORY)
+      target_include_directories( ${_exe_name} PRIVATE  ${_include_dir} )
+   endforeach()
 
    if (ENABLE_CUDA)
       set_cpp_sources_to_cuda_language( ${_exe_name} )
@@ -52,9 +56,11 @@ macro (setup_tutorial _sources _include_dirs _input_files)
    # Extra arguments
    foreach (_extra_arg ${ARGN})
       if (_extra_arg MATCHES "HAS_FORTRAN_MODULES")
-         set_target_properties( ${_exe_name} PROPERTIES
-            INCLUDE_DIRECTORIES
-            ${CMAKE_CURRENT_BINARY_DIR}/mod_files
+         target_include_directories(${_exe_name}
+            PRIVATE
+            ${CMAKE_CURRENT_BINARY_DIR}/mod_files)
+         set_target_properties( ${_exe_name}
+            PROPERTIES
             Fortran_MODULE_DIRECTORY
             ${CMAKE_CURRENT_BINARY_DIR}/mod_files )
       else ()

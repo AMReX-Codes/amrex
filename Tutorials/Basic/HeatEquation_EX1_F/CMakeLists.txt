@@ -9,14 +9,10 @@ endif ()
 # List of source files
 set(_sources fmain.F90 init_phi.f90 advance.f90)
 
-# List of include directories
-set(_include_dirs ${CMAKE_CURRENT_LIST_DIR})
-
 # List of input files
 file( GLOB_RECURSE _input_files LIST_DIRECTORIES false input* )
 
-setup_tutorial(_sources _include_dirs _input_files HAS_FORTRAN_MODULES)
+setup_tutorial(_sources _input_files HAS_FORTRAN_MODULES)
 
 unset( _sources )
-unset( _include_dirs  )
 unset( _input_files   )

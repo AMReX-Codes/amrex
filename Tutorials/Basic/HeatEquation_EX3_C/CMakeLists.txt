@@ -9,14 +9,10 @@ endif ()
 set(_sources main.cpp advance.cpp myfunc_F.H myfunc.H init_phi_${DIM}d.f90)
 list(TRANSFORM _sources PREPEND "Source/")
 
-# List of include directories
-set(_include_dirs Source)
-
 # List of input files
 file( GLOB_RECURSE _input_files LIST_DIRECTORIES false Exec/input* )
 
-setup_tutorial(_sources _include_dirs _input_files HAS_FORTRAN_MODULES)
+setup_tutorial(_sources _input_files HAS_FORTRAN_MODULES)
 
 unset( _sources )
-unset( _include_dirs  )
 unset( _input_files   )
