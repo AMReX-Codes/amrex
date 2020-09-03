@@ -58,7 +58,7 @@ module amrex_particlecontainer_module
      subroutine amrex_fi_get_next_particle_id (id) bind(c)
        import
        implicit none
-       integer(c_long) id
+       integer(amrex_long) id
      end subroutine amrex_fi_get_next_particle_id
 
      subroutine amrex_fi_get_cpu (cpu) bind(c)
@@ -70,14 +70,14 @@ module amrex_particlecontainer_module
      subroutine amrex_fi_get_particle_id (id, p) bind(c)
        import
        implicit none
-       integer(c_long) id
+       integer(amrex_long) id
        type(c_ptr),    value :: p
      end subroutine amrex_fi_get_particle_id
 
      subroutine amrex_fi_set_particle_id (id, p) bind(c)
        import
        implicit none
-       integer(c_long) id
+       integer(amrex_long) id
        type(c_ptr),    value :: p
      end subroutine amrex_fi_set_particle_id
 
@@ -178,7 +178,7 @@ contains
   end subroutine amrex_particlecontainer_destroy
 
   function amrex_get_next_particle_id() result(id)
-    integer(c_long) :: id
+    integer(amrex_long) :: id
     call amrex_fi_get_next_particle_id(id)
   end function amrex_get_next_particle_id
 
@@ -188,7 +188,7 @@ contains
   end function amrex_get_cpu
 
   subroutine amrex_get_particle_id (id, particle)
-    integer(c_long), intent(inout) :: id
+    integer(amrex_long), intent(inout) :: id
     type(amrex_particle), intent(in), target :: particle
     type(amrex_particle), pointer :: ptr
     type(c_ptr) :: dp
@@ -198,7 +198,7 @@ contains
   end subroutine amrex_get_particle_id
 
   subroutine amrex_set_particle_id (id, particle)
-    integer(c_long), intent(in) :: id
+    integer(amrex_long), intent(in) :: id
     type(amrex_particle), intent(inout), target :: particle
     type(amrex_particle), pointer :: ptr
     type(c_ptr) :: dp
