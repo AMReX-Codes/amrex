@@ -1,4 +1,4 @@
-if ( (DIM EQUAL 1) OR NOT ENABLE_FORTRAN )
+if ( (DIM EQUAL 1) OR NOT CMAKE_Fortran_COMPILER_LOADE )
    return()
 endif ()
 
@@ -11,101 +11,61 @@ endif ()
 # 2) Uniform Velocity
 #
 
-set (SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/Source )
 
 #
 # Sources common to both cases
 #
-find_all_sources ( SRC1 INC1 ROOT ${SRC_DIR} )
-find_all_sources ( SRC2 INC2 ROOT ${SRC_DIR}/Src_${DIM}d )
-find_all_sources ( SRC3 INC3 ROOT ${SRC_DIR}/Src_nd )
+set(_sources Adv_F.H  AmrLevelAdv.cpp  AmrLevelAdv.H  LevelBldAdv.cpp  main.cpp)
+
+list(APPEND _sources Src_${DIM}d/Adv_${DIM}d.f90 Src_${DIM}d/compute_flux_${DIM}d.f90
+   Src_${DIM}d/slope_${DIM}d.f90 )
+
+list(APPEND _sources Src_nd/Adv_nd.f90  Src_nd/Tagging_nd.f90  Src_nd/tagging_params.f90)
+
+list(TRANSFORM _sources PREPEND Source/)
 
 
 ###############################################################################
 #
 # Single Vortex tutorial ------------------------------------------------------
 #
-################################################################################
-set ( EXENAME  "Advection_AmrLevel_SV.exe")
-set ( EXE_DIR ${CMAKE_CURRENT_LIST_DIR}/Exec/SingleVortex )
+###############################################################################
+set(_sv_exe_dir Exec/SingleVortex/)
 
+set(_sv_sources face_velocity_${DIM}d.f90  Prob.f90)
+list(TRANSFORM _sv_sources PREPEND ${_sv_exe_dir})
+list(APPEND _sv_sources ${_sources})
 
-add_executable ( ${EXENAME} EXCLUDE_FROM_ALL "" )
+set(_input_files inputs inputs.tracers probin)
+list(TRANSFORM _input_files PREPEND ${_sv_exe_dir})
 
-target_sources ( ${EXENAME}
-   PRIVATE
-   ${EXE_DIR}/Prob.f90 ${EXE_DIR}/face_velocity_${DIM}d.f90
-   ${SRC1} ${SRC2} ${SRC3} )
+setup_tutorial(_sv_sources _input_files
+   HAS_FORTRAN_MODULES
+   BASE_NAME Advection_AmrLevel_SV
+   RUNTIME_SUBDIR SingleVortex)
 
-set_target_properties ( ${EXENAME} PROPERTIES
-   INCLUDE_DIRECTORIES
-   "${INC1};${INC2};${INC3};${CMAKE_CURRENT_BINARY_DIR}/${EXENAME}_mod_files"
-   Fortran_MODULE_DIRECTORY
-   ${CMAKE_CURRENT_BINARY_DIR}/${EXENAME}_mod_files
-   RUNTIME_OUTPUT_DIRECTORY
-   ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex )
-
-target_link_libraries (${EXENAME} amrex)
-
-if (ENABLE_CUDA)
-   set_cpp_sources_to_cuda_language( ${EXENAME} )
-endif ()
-
-#
-# Find input files
-#
-file ( GLOB_RECURSE inputs LIST_DIRECTORIES false
-   ${EXE_DIR}/input* ${EXE_DIR}/probin)
-
-#
-# Copy input files to corresponding build dir
-#
-file ( COPY ${inputs} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex )
-
-add_tutorial (${EXENAME})
+unset(_sv_sources)
+unset(_sv_exe_dir)
 
 
 ###############################################################################
 #
-# Single Vortex tutorial ------------------------------------------------------
+# Uniform Velocity tutorial ---------------------------------------------------
 #
-################################################################################
-set ( EXENAME  "Advection_AmrLevel_UV.exe")
-set ( EXE_DIR ${CMAKE_CURRENT_LIST_DIR}/Exec/UniformVelocity)
+###############################################################################
+set(_uv_exe_dir Exec/UniformVelocity/)
 
+set(_uv_sources face_velocity_${DIM}d.f90  Prob.f90 probdata.f90)
+list(TRANSFORM _uv_sources PREPEND ${_uv_exe_dir})
+list(APPEND _uv_sources ${_sources})
 
-add_executable ( ${EXENAME} EXCLUDE_FROM_ALL "" )
+set(_input_files inputs inputs.regt probin)
+list(TRANSFORM _input_files PREPEND ${_uv_exe_dir})
 
+setup_tutorial(_uv_sources _input_files
+   HAS_FORTRAN_MODULES
+   BASE_NAME Advection_AmrLevel_UV
+   RUNTIME_SUBDIR UniformVelocity)
 
-target_sources ( ${EXENAME}
-   PRIVATE
-   ${EXE_DIR}/Prob.f90 ${EXE_DIR}/probdata.f90 ${EXE_DIR}/face_velocity_${DIM}d.f90
-   ${SRC1} ${SRC2} ${SRC3} )
-
-
-set_target_properties ( ${EXENAME} PROPERTIES
-   INCLUDE_DIRECTORIES
-   "${INC1};${INC2};${INC3};${CMAKE_CURRENT_BINARY_DIR}/${EXENAME}_mod_files"
-   Fortran_MODULE_DIRECTORY
-   ${CMAKE_CURRENT_BINARY_DIR}/${EXENAME}_mod_files
-   RUNTIME_OUTPUT_DIRECTORY
-   ${CMAKE_CURRENT_BINARY_DIR}/UniformVelocity )
-
-target_link_libraries (${EXENAME} amrex)
-
-if (ENABLE_CUDA)
-   set_cpp_sources_to_cuda_language( ${EXENAME} )
-endif ()
-
-#
-# Find input files
-#
-file ( GLOB_RECURSE inputs LIST_DIRECTORIES false
-   ${EXE_DIR}/input* ${EXE_DIR}/probin)
-
-#
-# Copy input files to corresponding build dir
-#
-file ( COPY ${inputs} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/UniformVelocity )
-
-add_tutorial (${EXENAME})
+unset(_uv_sources)
+unset(_uv_exe_dir)

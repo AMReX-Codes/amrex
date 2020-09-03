@@ -32,14 +32,21 @@ list(TRANSFORM AMREX_TUTORIALS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
 #
 macro (setup_tutorial _sources  _input_files)
 
-   cmake_parse_arguments( "" "HAS_FORTRAN_MODULES" "BASE_NAME" "" ${ARGN} )
+   cmake_parse_arguments( "" "HAS_FORTRAN_MODULES" "BASE_NAME;RUNTIME_SUBDIR" "" ${ARGN} )
 
    if (_BASE_NAME)
-      set(_base_name _BASE_NAME)
+      set(_base_name ${_BASE_NAME})
       unset(_BASE_NAME)
    else ()
       get_filename_component( _base_name ${CMAKE_CURRENT_LIST_DIR} NAME )
    endif()
+
+   if (_RUNTIME_SUBDIR)
+      set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/${_RUNTIME_SUBDIR})
+      unset(_RUNTIME_SUBDIR)
+   else ()
+      set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR})
+   endif ()
 
    set( _test_name ${_base_name} )
    set( _exe_name  ${_base_name}.exe )
@@ -47,6 +54,8 @@ macro (setup_tutorial _sources  _input_files)
    add_executable( ${_exe_name} )
 
    target_sources( ${_exe_name} PRIVATE ${${_sources}} )
+
+   set_target_properties( ${_exe_name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${_exe_dir} )
 
    # Find out which include directory is needed
    set(_includes ${${_sources}})
@@ -76,12 +85,13 @@ macro (setup_tutorial _sources  _input_files)
    target_link_libraries( ${_exe_name} amrex )
 
    if (${_input_files})
-      file( COPY ${${_input_files}} DESTINATION ${CMAKE_CURRENT_BINARY_DIR} )
+      file( COPY ${${_input_files}} DESTINATION ${_exe_dir} )
    endif ()
 
    unset(_base_name)
    unset(_test_name)
    unset(_exe_name)
+   unset(_exe_dir)
 
 endmacro ()
 
