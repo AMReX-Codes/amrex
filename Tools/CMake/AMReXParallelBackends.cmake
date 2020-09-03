@@ -88,7 +88,8 @@ if (ENABLE_HIP)
    endif()
 
    if(HIP_FOUND)
-      message(STATUS "Found HIP: " ${HIP_VERSION})
+      message(STATUS "Found HIP: ${HIP_VERSION}")
+      message(STATUS "HIP: Platform=${HIP_PLATFORM} Compiler=${HIP_COMPILER}")
    else()
       message(FATAL_ERROR "Could not find HIP."
          " Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
