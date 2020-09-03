@@ -83,6 +83,9 @@ if (ENABLE_HIP)
    set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
 
    find_package(HIP REQUIRED)
+   if("${HIP_COMPILER}" STREQUAL "hcc")
+      message(FATAL_ERROR "Using (deprecated) HCC compiler: please update ROCm")
+   endif()
 
    if(HIP_FOUND)
       message(STATUS "Found HIP: " ${HIP_VERSION})
