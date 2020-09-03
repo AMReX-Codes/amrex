@@ -255,5 +255,5 @@ if (ENABLE_TINY_PROFILE)
 endif ()
 
 if (ENABLE_TIMEMORY)
-   target_sources(amrex PRIVATE AMReX_Timemory.cpp AMReX_Timemory.H )
+   target_sources(amrex PRIVATE AMReX_timemory.cpp AMReX_timemory.H )
 endif ()

@@ -18,13 +18,13 @@
 extern "C"
 {
 #if defined(TIMEMORY_USE_MPIP_LIBRARY)
-    void timemory_register_mpip ();
-    void timemory_deregister_mpip ();
+    extern void timemory_register_mpip ();
+    extern void timemory_deregister_mpip ();
 #endif
 //
 #if defined(TIMEMORY_USE_OMPT_LIBRARY)
-    void timemory_register_ompt ();
-    void timemory_deregister_ompt ();
+    extern void timemory_register_ompt ();
+    extern void timemory_deregister_ompt ();
 #endif
 }
 
@@ -157,6 +157,10 @@ auto print_avail_impl (std::index_sequence<Idx...>)
 void
 BL_timemory_configure (int argc, char** argv)
 {
+    static bool _once = false;
+    if (_once)
+        return;
+    _once = true;
     if (argc < 1 || argv == nullptr)
     {
         char* _argv = new char[1];
@@ -421,19 +425,6 @@ namespace
 bool
 bl_timemory_load()
 {
-    std::string default_components = "wall_clock, ";
-#if defined(_OPENMP)
-    default_components += "ompt_bundle, ";
-#endif
-
-    auto functor = [=]() {
-        return tim::get_env("BL_PROFILE_COMPONENTS", default_components) + ", " +
-               tim::settings::global_components();
-    };
-
-    constexpr auto Idx = amrex::BL_timemory_bundle_idx;
-    tim::env::get_user_bundle_variables ()[Idx].push_back (functor);
-
     // default settings
     tim::settings::mpi_init()       = false;
     tim::settings::mpi_finalize()   = false;
@@ -455,7 +446,7 @@ bl_timemory_load()
 
     // the following only currently works on linux
     // via the /proc/<PID>/command_line procfs file
-    tim::config::read_command_line (amrex::BL_timemory_initialize);
+    tim::config::read_command_line (amrex::BL_timemory_configure);
 
     return true;
 }
