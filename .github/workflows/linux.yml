@@ -179,6 +179,29 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
         make -j 2 tutorials
 
+  tutorials-hip:
+    name: HIP ROCm@3.7 GFortran@7.5 C++17 [tutorials]
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_hip.sh
+    - name: Build & Install
+      run: |
+        source /etc/profile.d/rocm.sh
+        hipcc --version
+        mkdir build
+        cd build
+        cmake ..                                           \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DENABLE_TUTORIALS=ON                          \
+            -DENABLE_PARTICLES=ON                          \
+            -DENABLE_HIP=ON                                \
+            -DCMAKE_C_COMPILER=$(which hipcc)              \
+            -DCMAKE_CXX_COMPILER=$(which hipcc)            \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)
+        make -j 2 tutorials
+
   # Build 1D libamrex with configure
   configure-1d:
     name: GNU@7.5 Release [configure 1D]
