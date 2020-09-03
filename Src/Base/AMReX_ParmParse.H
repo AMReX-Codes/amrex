@@ -8,6 +8,7 @@
 #include <vector>
 #include <list>
 #include <array>
+#include <type_traits>
 #include <AMReX_BLassert.H>
 
 namespace amrex {
@@ -242,6 +243,10 @@ public:
     class Frame;
     class Record;
 
+    template <typename T, typename U = T>
+    using enable_if_integral_t =
+        typename std::enable_if<std::is_integral<T>::value, U>::type;
+
     enum { LAST = -1, FIRST = 0, ALL = -1 };
     /**
     * \brief Construct an additional ParmParse object sharing the same
@@ -319,15 +324,17 @@ public:
     * output and the program halts.   Note that ival == 0 is the first
     * value in the list.
     */
+    template <typename T, enable_if_integral_t<T> = 0>
     void getkth (const char* name,
-                 int         k,
-                 int&        ref,
-                 int         ival = FIRST) const;
+                 int k,
+                 T& ref,
+                 int ival = FIRST) const;
 
     //! Same as getkth() but searches for the last occurrence of name.
+    template <typename T, enable_if_integral_t<T> = 0>
     void get (const char* name,
-              int&        ref,
-              int         ival = FIRST) const;
+              T& ref,
+              int ival = FIRST) const;
     /**
     * Similar to getkth() but returns 0 if there is no kth occurrence
     * of name.  If successful, it returns 1 and stores the value in
@@ -335,87 +342,20 @@ public:
     * occurrence does not, or if there is a type mismatch, then the
     * program signals an error and halts.
     */
-    int querykth (const char* name,
-                  int         k,
-                  int&        ref,
-                  int         ival = FIRST) const;
+    template <typename T, enable_if_integral_t<T> = 0>
+    T querykth (const char* name,
+                int k,
+                T& ref,
+                int ival = FIRST) const;
     //! Same as querykth() but searches for the last occurrence of name.
-    int query (const char* name,
-               int&        ref,
-               int         ival = FIRST) const;
+    template <typename T, enable_if_integral_t<T> = 0>
+    T query (const char* name,
+             T& ref,
+             int ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
+    template <typename T, enable_if_integral_t<T> = 0>
     void add (const char* name,
-              const int  val);
-    /**
-    * \brief Get the ival'th value of kth occurrence of the requested name.
-    * If successful, the value is converted to an int and stored
-    * in reference ref.  If the kth occurrence does not exist or
-    * ival'th value does not exist, or if the printed representation
-    * of the value cannot be converted to an int, an error message is
-    * output and the program halts.   Note that ival == 0 is the first
-    * value in the list.
-    */
-    void getkth (const char* name,
-                 int         k,
-                 long&       ref,
-                 int         ival = FIRST) const;
-    //! Same as getkth() but searches for the last occurrence of name.
-    void get (const char* name,
-              long&       ref,
-              int         ival = FIRST) const;
-    /**
-    * \brief Similar to getkth() but returns 0 if there is no kth occurrence
-    * of name.  If successful, it returns 1 and stores the value in
-    * ref.  If the kth occurrence exists, but ival'th value of that
-    * occurrence does not, or if there is a type mismatch, then the
-    * program signals an error and halts.
-    */
-    int querykth (const char* name,
-                  int         k,
-                  long&       ref,
-                  int         ival = FIRST) const;
-    //! Same as querykth() but searches for the last occurrence of name.
-    int query (const char* name,
-               long&        ref,
-               int         ival = FIRST) const;
-    //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name,
-              const long  val);
-    /**
-    * \brief Get the ival'th value of kth occurrence of the requested name.
-    * If successful, the value is converted to an int and stored
-    * in reference ref.  If the kth occurrence does not exist or
-    * ival'th value does not exist, or if the printed representation
-    * of the value cannot be converted to an int, an error message is
-    * output and the program halts.   Note that ival == 0 is the first
-    * value in the list.
-    */
-    void getkth (const char* name,
-                 int         k,
-                 long long&  ref,
-                 int         ival = FIRST) const;
-    //! Same as getkth() but searches for the last occurrence of name.
-    void get (const char* name,
-              long long&  ref,
-              int         ival = FIRST) const;
-    /**
-    * \brief Similar to getkth() but returns 0 if there is no kth occurrence
-    * of name.  If successful, it returns 1 and stores the value in
-    * ref.  If the kth occurrence exists, but ival'th value of that
-    * occurrence does not, or if there is a type mismatch, then the
-    * program signals an error and halts.
-    */
-    int querykth (const char* name,
-                  int         k,
-                  long long&  ref,
-                  int         ival = FIRST) const;
-    //! Same as querykth() but searches for the last occurrence of name.
-    int query (const char* name,
-               long long&  ref,
-               int         ival = FIRST) const;
-    //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name,
-              const long long  val);
+              const T val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a float and stored
@@ -926,7 +866,7 @@ public:
     static void Finalize();
 
     static bool QueryUnusedInputs ();
-    
+
     struct PP_entry;
     typedef std::list<PP_entry> Table;
     static void appendTable(ParmParse::Table& tab);

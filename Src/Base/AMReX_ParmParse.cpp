@@ -81,7 +81,7 @@ ParmParse::PP_entry::~PP_entry ()
 {
     delete m_table;
 }
-    
+
 ParmParse::PP_entry&
 ParmParse::PP_entry::operator= (const PP_entry& pe)
 {
@@ -162,7 +162,7 @@ is (const std::string& str, std::string& val)
     return true;
 }
 
-template <> 
+template <>
 bool
 is (const std::string& str, bool& val)
 {
@@ -744,11 +744,11 @@ sgetval (const ParmParse::Table& table,
 template <class T>
 bool
 squeryarr (const ParmParse::Table& table,
-	   const std::string& name,
-	   std::vector<T>&    ptr,
-	   int          start_ix,
-	   int          num_val,
-	   int          occurence)
+           const std::string&      name,
+           std::vector<T>&         ptr,
+           int                     start_ix,
+           int                     num_val,
+           int                     occurence)
 {
     //
     // Get last occurrance of name in table.
@@ -1093,7 +1093,7 @@ ParmParse::QueryUnusedInputs ()
     }
     return false;
 }
-    
+
 void
 ParmParse::Finalize ()
 {
@@ -1183,48 +1183,73 @@ ParmParse::add (const char* name,
     saddval(prefixedName(name),val);
 }
 
-// INT
+// SHORT,       UNSIGNED SHORT,
+// INT,         UNSIGNED INT,
+// LONG,        UNSIGNED LONG,
+// LONG LONG,   UNSIGNED LONG LONG
+template <typename T, ParmParse::enable_if_integral_t<T>>
 void
 ParmParse::getkth (const char* name,
-                   int         k,
-                   int&        ptr,
-                   int         ival) const
+                   int k,
+                   T& ptr,
+                   int ival) const
 {
     sgetval(m_table, prefixedName(name),ptr,ival,k);
 }
 
+template <typename T, ParmParse::enable_if_integral_t<T>>
 void
 ParmParse::get (const char* name,
-                int&        ptr,
+                T& ptr,
                 int ival) const
 {
     sgetval(m_table, prefixedName(name),ptr,ival, LAST);
 }
 
-int
+template <typename T, ParmParse::enable_if_integral_t<T>>
+T
 ParmParse::querykth (const char* name,
-                     int         k,
-                     int&        ptr,
-                     int         ival) const
+                     int k,
+                     T& ptr,
+                     int ival) const
 {
     return squeryval(m_table, prefixedName(name),ptr,ival,k);
 }
 
-int
+template <typename T, ParmParse::enable_if_integral_t<T>>
+T
 ParmParse::query (const char* name,
-                  int&        ptr,
-                  int         ival) const
+                  T& ptr,
+                  int ival) const
 {
     return squeryval(m_table, prefixedName(name),ptr,ival, LAST);
 }
 
+template <typename T, ParmParse::enable_if_integral_t<T>>
 void
 ParmParse::add (const char* name,
-                const int  val)
+                const T val)
 {
     saddval(prefixedName(name),val);
 }
 
+#define INSTANTIATE_INTEGRAL(T)                                                          \
+    template void ParmParse::getkth<T> (const char*, int, T&, int) const;                \
+    template void ParmParse::get<T> (const char*, T&, int) const;                        \
+    template T    ParmParse::querykth<T> (const char*, int, T&, int) const;              \
+    template T    ParmParse::query<T> (const char*, T&, int) const;                      \
+    template void ParmParse::add<T> (const char*, const T);
+
+INSTANTIATE_INTEGRAL (short)
+INSTANTIATE_INTEGRAL (unsigned short)
+INSTANTIATE_INTEGRAL (int)
+INSTANTIATE_INTEGRAL (unsigned int)
+INSTANTIATE_INTEGRAL (long)
+INSTANTIATE_INTEGRAL (unsigned long)
+INSTANTIATE_INTEGRAL (long long)
+INSTANTIATE_INTEGRAL (unsigned long long)
+
+// vector of int
 void
 ParmParse::getktharr (const char* name,
                       int         k,
@@ -1273,47 +1298,6 @@ ParmParse::addarr (const char* name,
 
 // LONG
 void
-ParmParse::getkth (const char* name,
-                   int         k,
-                   long&       ptr,
-                   int         ival) const
-{
-    sgetval(m_table, prefixedName(name),ptr,ival,k);
-}
-
-void
-ParmParse::get (const char* name,
-                long&       ptr,
-                int         ival) const
-{
-    sgetval(m_table, prefixedName(name),ptr,ival, LAST);
-}
-
-int
-ParmParse::querykth (const char* name,
-                     int         k,
-                     long&       ptr,
-                     int         ival) const
-{
-    return squeryval(m_table, prefixedName(name),ptr,ival,k);
-}
-
-int
-ParmParse::query (const char* name,
-                  long&       ptr,
-                  int         ival) const
-{
-    return squeryval(m_table, prefixedName(name),ptr,ival, LAST);
-}
-
-void
-ParmParse::add (const char* name,
-                const long  val)
-{
-    saddval(prefixedName(name),val);
-}
-
-void
 ParmParse::getktharr (const char* name,
                       int         k,
                       std::vector<long>& ptr,
@@ -1359,47 +1343,6 @@ ParmParse::addarr (const char* name,
 }
 
 // long long
-void
-ParmParse::getkth (const char* name,
-                   int         k,
-                   long long&  ptr,
-                   int         ival) const
-{
-    sgetval(m_table, prefixedName(name),ptr,ival,k);
-}
-
-void
-ParmParse::get (const char* name,
-                long long&  ptr,
-                int         ival) const
-{
-    sgetval(m_table, prefixedName(name),ptr,ival, LAST);
-}
-
-int
-ParmParse::querykth (const char* name,
-                     int         k,
-                     long long&  ptr,
-                     int         ival) const
-{
-    return squeryval(m_table, prefixedName(name),ptr,ival,k);
-}
-
-int
-ParmParse::query (const char* name,
-                  long long&   ptr,
-                  int         ival) const
-{
-    return squeryval(m_table, prefixedName(name),ptr,ival, LAST);
-}
-
-void
-ParmParse::add (const char* name,
-                const long long val)
-{
-    saddval(prefixedName(name),val);
-}
-
 void
 ParmParse::getktharr (const char* name,
                       int         k,

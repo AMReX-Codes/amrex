@@ -115,6 +115,7 @@ function (configure_amrex)
        if(ENABLE_MPI)
            list(APPEND _TIMEMORY_REQ_COMPONENTS mpi)
            list(APPEND _TIMEMORY_OPT_COMPONENTS mpip-library)
+           list(APPEND _TIMEMORY_LIB_COMPONENTS mpip-library)
        endif()
 
        if(ENABLE_UPCXX)
@@ -123,6 +124,7 @@ function (configure_amrex)
 
         if(ENABLE_OMP)
             list(APPEND _TIMEMORY_OPT_COMPONENTS ompt ompt-library)
+            list(APPEND _TIMEMORY_LIB_COMPONENTS ompt-library)
         endif()
 
         if(ENABLE_CUDA)
@@ -164,7 +166,7 @@ function (configure_amrex)
             find_package(timemory REQUIRED COMPONENTS ${TIMEMORY_COMPONENTS})
         else()
             find_package(timemory REQUIRED
-                COMPONENTS headers cxx OPTIONAL_COMPONENTS c)
+                COMPONENTS headers cxx OPTIONAL_COMPONENTS c ${_TIMEMORY_LIB_COMPONENTS})
         endif()
 
         target_link_libraries(amrex

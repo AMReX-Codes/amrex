@@ -2,6 +2,14 @@
 #ifndef BL_TIMEMORY_H_
 #define BL_TIMEMORY_H_
 
+#if !defined(TIMEMORY_DISABLE_BANNER)
+#define TIMEMORY_DISABLE_BANNER
+#endif
+
+#if !defined(TIMEMORY_DEFAULT_PLOTTING)
+#define TIMEMORY_DEFAULT_PLOTTING false
+#endif
+
 #include <timemory/hash.hpp>
 #include <timemory/components/timing/wall_clock.hpp>
 #include <timemory/components/user_bundle.hpp>

@@ -1,5 +1,7 @@
 
 #include "AMReX_timemory.H"
+#include "AMReX_ParmParse.H"
+
 #include <timemory/timemory.hpp>
 #include <timemory/utility/argparse.hpp>
 
@@ -12,6 +14,19 @@
 #define AMREX_HDF5_WRAPPERS
 #include "hdf5.h"
 #endif
+
+extern "C"
+{
+#if defined(TIMEMORY_USE_MPIP_LIBRARY)
+    void timemory_register_mpip ();
+    void timemory_deregister_mpip ();
+#endif
+//
+#if defined(TIMEMORY_USE_OMPT_LIBRARY)
+    void timemory_register_ompt ();
+    void timemory_deregister_ompt ();
+#endif
+}
 
 namespace amrex
 {
@@ -72,6 +87,30 @@ get_use_hdf5_wrappers ()
     return _instance;
 }
 //
+static bool&
+get_use_mpip_wrappers ()
+{
+#if defined(TIMEMORY_USE_MPIP_LIBRARY)
+    static auto _instance = tim::get_env<bool> ("BL_PROFILE_MPI", true);
+    return _instance;
+#else
+    static auto _instance = false;
+    return _instance;
+#endif
+}
+//
+static bool&
+get_use_ompt_wrappers ()
+{
+#if defined(TIMEMORY_USE_OMPT_LIBRARY)
+    static auto _instance = tim::get_env<bool> ("BL_PROFILE_OMP", true);
+    return _instance;
+#else
+    static auto _instance = false;
+    return _instance;
+#endif
+}
+//
 }  // namespace
 //
 static auto
@@ -92,11 +131,32 @@ BL_timemory_get_regions ()
 //
 //--------------------------------------------------------------------------------------//
 //
+namespace
+{
+template <size_t Idx>
+void
+insert_avail_impl (std::vector<std::string>& _vec)
+{
+    using type           = typename tim::component::enumerator<Idx>::type;
+    constexpr bool value = tim::component::enumerator<Idx>::value;
+    if (value)
+        _vec.push_back (tim::component::properties<type>::id ());
+}
+//
+template <size_t... Idx>
+auto print_avail_impl (std::index_sequence<Idx...>)
+{
+    std::vector<std::string> _vec;
+    TIMEMORY_FOLD_EXPRESSION (insert_avail_impl<Idx> (_vec));
+    return _vec;
+}
+}  // namespace
+//
+//--------------------------------------------------------------------------------------//
+//
 void
 BL_timemory_configure (int argc, char** argv)
 {
-    using parser_t = tim::argparse::argument_parser;
-
     if (argc < 1 || argv == nullptr)
     {
         char* _argv = new char[1];
@@ -106,158 +166,6 @@ BL_timemory_configure (int argc, char** argv)
     }
 
     tim::timemory_init (argc, argv);
-    auto parser = parser_t (argv[0]);
-
-    parser.enable_help ();
-    parser.add_argument ({ "--blt-verbose" }, "Set the verbosity of profiler")
-        .max_count (1)
-        .action ([] (parser_t& p) {
-            if (p.get<std::string> ("blt-verbose").empty ())
-                tim::settings::verbose () = 1;
-            else
-                tim::settings::verbose () = p.get<int> ("blt-verbose");
-        });
-    parser
-        .add_argument ({ "--blt-debug" },
-                       "Enable debug output for profiler (also affected by verbosity")
-        .max_count (1)
-        .action ([] (parser_t& p) {
-            tim::settings::debug () = true;
-            // note: this intentionally sets verbose
-            if (p.get<std::string> ("blt-debug").empty ())
-                tim::settings::verbose () = 0;
-            else
-                tim::settings::verbose () = p.get<int> ("blt-debug");
-        });
-    parser.add_argument ({ "--blt-output" }, "Output directory for BL_timemory")
-        .max_count (1)
-        .action ([] (parser_t& p) {
-            tim::settings::output_path () = p.get<std::string> ("blt-output");
-        });
-    auto fmt =
-        parser
-            .add_argument (
-                { "--blt-format" },
-                "Output formats for BL_timemory (see `timemory-avail -S | grep OUTPUT`)")
-            .choices ({
-                "text",
-                "cout",
-                "plot",
-                "json",
-                "diff",
-                "time",
-                "dart",
-                "flamegraph",
-            })
-            .action ([] (parser_t& p) {
-                auto choices = p.get<std::set<std::string>> ("blt-format");
-                auto has     = [&] (const char* c) {
-                    return choices.find (c) != choices.end ();
-                };
-                tim::settings::text_output ()       = has ("text");
-                tim::settings::cout_output ()       = has ("cout");
-                tim::settings::plot_output ()       = has ("plot");
-                tim::settings::json_output ()       = has ("json");
-                tim::settings::diff_output ()       = has ("diff");
-                tim::settings::diff_output ()       = has ("time");
-                tim::settings::dart_output ()       = has ("dart");
-                tim::settings::flamegraph_output () = has ("flamegraph");
-            });
-    parser
-        .add_argument ({ "--blt-input" },
-                       "Input directory for BL_timemory (enable run comparison mode)")
-        .max_count (1)
-        .action ([] (parser_t& p) {
-            tim::settings::input_path ()  = p.get<std::string> ("blt-input");
-            tim::settings::time_output () = true;  // time-stamped folders for this run
-            tim::settings::diff_output () = true;  // difference between input folder
-                                                   // and time-stamp folder for run
-        });
-    parser
-        .add_argument (
-            { "--blt-per-process" },
-            "Output individual results for each process (i.e. rank) instead of "
-            "reporting the aggregation")
-        .count (0)
-        .action ([] (parser_t&) { tim::settings::collapse_processes () = false; });
-    parser
-        .add_argument (
-            { "--blt-per-process" },
-            "Output individual results for each process (i.e. rank) instead of "
-            "reporting the aggregation")
-        .count (0)
-        .action ([] (parser_t&) { tim::settings::collapse_processes () = false; });
-    parser
-        .add_argument ({ "--blt-per-thread" },
-                       "Output individual results for each thread instead of "
-                       "reporting the aggregation")
-        .count (0)
-        .action ([] (parser_t&) { tim::settings::collapse_threads () = false; });
-    parser
-        .add_argument ({ "--blt-flat-profile" },
-                       "All call-stack entries will have a depth of zero")
-        .count (0)
-        .action ([] (parser_t&) { tim::settings::flat_profile () = true; });
-    parser
-        .add_argument ({ "--blt-timeline-profile" },
-                       "All call-stack entries will be unique")
-        .count (0)
-        .action ([] (parser_t&) { tim::settings::flat_profile () = true; });
-    parser
-        .add_argument ({ "--blt-components" },
-                       "Components to profile (see `timemory-avail -Cs` for valid string "
-                       "identifier) ")
-        .action ([] (parser_t& p) {
-            tim::settings::flat_profile () = true;
-            auto vec = p.get<std::vector<std::string>> ("blt-components");
-            if (!vec.empty ())
-                tim::configure<BL_timemory_bundle> (vec);
-        });
-    parser
-        .add_argument ({ "--blt-papi" },
-                       "Enable collecting CPU HW counters via PAPI (see "
-                       "`timemory-avail -H` and `papi_native_avail`)")
-        .action ([] (parser_t& p) {
-            auto vec = p.get<std::vector<std::string>> ("blt-papi");
-            if (!vec.empty ())
-            {
-                auto& _evts = tim::settings::papi_events ();
-                for (const auto& itr : vec)
-                    _evts = TIMEMORY_JOIN (",", _evts, itr);
-                BL_timemory_bundle::configure<tim::component::papi_vector> ();
-            }
-        });
-    parser
-        .add_argument ({ "--blt-cupti" },
-                       "Enable collecting NVIDIA GPU HW counters via CUPTI (see "
-                       "`timemory-avail -H`)")
-        .action ([] (parser_t& p) {
-            auto vec = p.get<std::vector<std::string>> ("blt-cupti");
-            if (!vec.empty ())
-            {
-                auto& _evts = tim::settings::cupti_events ();
-                for (const auto& itr : vec)
-                    _evts = TIMEMORY_JOIN (",", _evts, itr);
-                BL_timemory_bundle::configure<tim::component::cupti_counters> ();
-            }
-        });
-    parser.add_argument ({ "--blt-hdf5" }, "Profile HDF5 functions")
-        .count (0)
-        .action ([] (parser_t&) { get_use_hdf5_wrappers () = true; });
-
-    // if CI=true (i.e. continuous integration) in set env
-    // (Travis sets this, for example) enable echoing the
-    // performance metrics for dashboard
-    if (tim::get_env<bool> ("CI", false))
-        fmt.set_default (std::string ("cout, dart"));
-
-    auto err = parser.parse (argc, argv);
-    if (err)
-    {
-        std::cerr << err << std::endl;
-        parser.print_help ();
-        exit (EXIT_FAILURE);
-    }
 }
 //
 //--------------------------------------------------------------------------------------//
@@ -265,13 +173,118 @@ BL_timemory_configure (int argc, char** argv)
 void
 BL_timemory_initialize (int argc, char** argv, bool parse_args)
 {
-    std::string default_components = "wall_clock, ";
-#if defined(_OPENMP)
-    default_components += "ompt_handle, ";
-#endif
-    auto _env = tim::get_env ("BL_PROFILE_COMPONENTS", default_components) + ", " +
+    std::string default_components = "wall_clock";
+    auto        _env = tim::get_env ("BL_PROFILE_COMPONENTS", default_components) + ", " +
                 tim::settings::global_components ();
-    tim::configure<BL_timemory_bundle> (tim::delimit (_env, ", \t:;"));
+
+    std::vector<std::string> components   = tim::delimit (_env, ", \t:;");
+    std::vector<std::string> papi_events  = {};
+    std::vector<std::string> cupti_events = {};
+    bool                     print_avail  = false;
+    bool                     per_thread   = !tim::settings::collapse_threads ();
+    bool                     per_process  = !tim::settings::collapse_processes ();
+
+    ParmParse pp ("timemory");
+    pp.query ("enabled", tim::settings::enabled ());
+    // diagnostic
+    pp.query ("verbose", tim::settings::verbose ());
+    pp.query ("debug", tim::settings::debug ());
+    pp.query ("print_available", print_avail);
+    // misc
+    pp.query ("output_path", tim::settings::output_path ());
+    pp.query ("input_path", tim::settings::input_path ());
+    // output formats
+    pp.query ("text_output", tim::settings::text_output ());
+    pp.query ("cout_output", tim::settings::cout_output ());
+    pp.query ("plot_output", tim::settings::plot_output ());
+    pp.query ("json_output", tim::settings::json_output ());
+    pp.query ("diff_output", tim::settings::diff_output ());
+    pp.query ("time_output", tim::settings::time_output ());
+    pp.query ("dart_output", tim::settings::dart_output ());
+    pp.query ("flamegraph_output", tim::settings::flamegraph_output ());
+    // collection schemes
+    pp.query ("flat_profile", tim::settings::flat_profile ());
+    pp.query ("timeline_profile", tim::settings::timeline_profile ());
+    pp.query ("per_process", per_process);
+    pp.query ("per_thread", per_thread);
+    // component collection configuration
+    pp.queryarr ("components", components);
+    pp.queryarr ("cpu_hw_counters", papi_events);
+    pp.queryarr ("gpu_hw_counters", cupti_events);
+    // output formatting
+    pp.query ("precision", tim::settings::precision ());
+    pp.query ("scientific", tim::settings::scientific ());
+    pp.query ("timing_units", tim::settings::timing_units ());
+    pp.query ("timing_precision", tim::settings::timing_precision ());
+    pp.query ("timing_scientific", tim::settings::timing_scientific ());
+    pp.query ("memory_units", tim::settings::memory_units ());
+    pp.query ("memory_precision", tim::settings::memory_precision ());
+    pp.query ("memory_scientific", tim::settings::memory_scientific ());
+    // empirical roofline toolkit (ERT) settings
+    pp.query ("ert_max_data_size", tim::settings::ert_max_data_size ());
+    pp.query ("ert_min_working_size", tim::settings::ert_min_working_size ());
+    pp.query ("ert_num_threads", tim::settings::ert_num_threads ());
+
+#if defined(AMREX_HDF5_WRAPPERS)
+    pp.query ("profile_hdf5", get_use_hdf5_wrappers ());
+#endif
+
+#if defined(TIMEMORY_USE_MPIP_LIBRARY)
+    pp.query ("profile_mpi", get_use_mpip_wrappers ());
+#endif
+
+#if defined(TIMEMORY_USE_OMPT_LIBRARY)
+    pp.query ("profile_omp", get_use_ompt_wrappers ());
+#endif
+
+    // only print on rank 0 for MPI and/or UPC++
+    if (print_avail && tim::dmp::rank () == 0)
+    {
+        auto available =
+            print_avail_impl (std::make_index_sequence<TIMEMORY_COMPONENTS_END>{});
+
+        std::stringstream sout;
+        sout << "Available timemory components:\n";
+        for (const auto& itr : available)
+            sout << "    - " << itr << '\n';
+        std::cout << sout.str () << std::flush;
+    }
+
+    tim::settings::collapse_processes () = !per_process;
+    tim::settings::collapse_threads ()   = !per_thread;
+
+    if (!components.empty ())
+    {
+        tim::configure<BL_timemory_bundle> (components);
+
+#if defined(TIMEMORY_USE_MPIP_LIBRARY)
+        tim::configure<tim::component::user_mpip_bundle> (components);
+#endif
+#if defined(TIMEMORY_USE_OMPT_LIBRARY)
+        tim::configure<tim::component::user_ompt_bundle> (components);
+#endif
+    }
+    else
+    {
+        // disable the component
+        tim::trait::runtime_enabled<BL_timemory_bundle>::set (false);
+    }
+
+    if (!papi_events.empty ())
+    {
+        auto& _evts = tim::settings::papi_events ();
+        for (const auto& itr : papi_events)
+            _evts = TIMEMORY_JOIN (",", _evts, itr);
+        BL_timemory_bundle::configure<tim::component::papi_vector> ();
+    }
+
+    if (!cupti_events.empty ())
+    {
+        auto& _evts = tim::settings::cupti_events ();
+        for (const auto& itr : cupti_events)
+            _evts = TIMEMORY_JOIN (",", _evts, itr);
+        BL_timemory_bundle::configure<tim::component::cupti_counters> ();
+    }
 
     if (argc > 0 && argv && parse_args)
     {
@@ -295,6 +308,16 @@ BL_timemory_initialize (int argc, char** argv, bool parse_args)
         // start the wrappers
         get_hdf5_wrapper ().start ();
     }
+
+#if defined(TIMEMORY_USE_MPIP_LIBRARY)
+    if (get_use_mpip_wrappers ())
+        timemory_register_mpip ();
+#endif
+
+#if defined(TIMEMORY_USE_OMPT_LIBRARY)
+    if (get_use_ompt_wrappers ())
+        timemory_register_ompt ();
+#endif
 }
 //
 void
@@ -305,6 +328,17 @@ BL_timemory_finalize ()
         // stop the wrappers
         get_hdf5_wrapper ().stop ();
     }
+
+#if defined(TIMEMORY_USE_MPIP_LIBRARY)
+    if (get_use_mpip_wrappers ())
+        timemory_deregister_mpip ();
+#endif
+
+#if defined(TIMEMORY_USE_OMPT_LIBRARY)
+    if (get_use_ompt_wrappers ())
+        timemory_deregister_ompt ();
+#endif
+
     BL_timemory_get_regions ().clear ();
     tim::timemory_finalize ();
 }
