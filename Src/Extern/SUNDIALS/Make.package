@@ -1,0 +1,7 @@
+ifeq ($(USE_ARKODE_LIBS), TRUE)
+f90EXE_sources += arkode_interface.f90
+endif
+
+ifeq ($(USE_CVODE_LIBS), TRUE)
+f90EXE_sources += cvode_interface.f90
+endif

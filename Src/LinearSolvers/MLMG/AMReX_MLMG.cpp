@@ -62,9 +62,13 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         bottom_solver = linop.getDefaultBottomSolver();
     }
 
-    if (bottom_solver == BottomSolver::hypre) {
+    if (bottom_solver == BottomSolver::hypre || bottom_solver == BottomSolver::petsc) {
         int mo = linop.getMaxOrder();
-        linop.setMaxOrder(std::min(3,mo));  // maxorder = 4 not supported
+        if (a_sol[0]->hasEBFabFactory()) {
+            linop.setMaxOrder(2);
+        } else {
+            linop.setMaxOrder(std::min(3,mo));  // maxorder = 4 not supported
+        }
     }
     
     bool is_nsolve = linop.m_parent;
@@ -107,7 +111,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         norm_name = "resid0";
         max_norm = resnorm0;
     }
-    const Real res_target = std::max(a_tol_abs, std::max(a_tol_rel,1.e-16_rt)*max_norm);
+    const Real res_target = std::max(a_tol_abs, std::max(a_tol_rel,Real(1.e-16))*max_norm);
 
     if (!is_nsolve && resnorm0 <= res_target) {
         composite_norminf = resnorm0;

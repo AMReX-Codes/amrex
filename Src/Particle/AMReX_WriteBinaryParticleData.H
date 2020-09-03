@@ -66,7 +66,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
     std::ofstream HdrFile;
 
     Long nparticles = 0;
-    int maxnextid;
+    Long maxnextid;
 
     // evaluate f for every particle to determine which ones to output
     Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int> > > particle_io_flags(pc.GetParticles().size());
@@ -114,7 +114,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
 
         ParallelDescriptor::ReduceLongSum(nparticles, IOProcNumber);
         PC::ParticleType::NextID(maxnextid);
-        ParallelDescriptor::ReduceIntMax(maxnextid, IOProcNumber);
+        ParallelDescriptor::ReduceLongMax(maxnextid, IOProcNumber);
     }
 
     if (ParallelDescriptor::IOProcessor())
@@ -438,8 +438,8 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     }
     ParallelDescriptor::Barrier();
 
-    int maxnextid = PC::ParticleType::NextID();
-    ParallelDescriptor::ReduceIntMax(maxnextid, IOProcNumber);
+    Long maxnextid = PC::ParticleType::NextID();
+    ParallelDescriptor::ReduceLongMax(maxnextid, IOProcNumber);
 
     Vector<Long> np_on_rank(NProcs, 0L);
     std::size_t psize = PSizeInFile<ParticleReal>(write_real_comp, write_int_comp);

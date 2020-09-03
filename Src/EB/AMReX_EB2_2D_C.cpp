@@ -64,14 +64,14 @@ void set_eb_data (const int i, const int j,
         bnorm(i,j,0,1) = signy;
         vfrac(i,j,0) = 0.5*(axm+axp);
         vcent(i,j,0,0) = 0.0;
-        vcent(i,j,0,1) = (0.125*(ayp-aym) + ny*0.5*bcent(i,j,0,1)*bcent(i,j,0,1)) / vfrac(i,j,0);
+        vcent(i,j,0,1) = (0.125*(ayp-aym) + ny*0.5*bcent(i,j,0,1)*bcent(i,j,0,1)) / (vfrac(i,j,0) + 1.e-30);
     } else if (nyabs < tiny or nxabs > almostone) {
         barea(i,j,0) = 1.0;
         bcent(i,j,0,1) = 0.0;
         bnorm(i,j,0,0) = signx;
         bnorm(i,j,0,1) = 0.0;
         vfrac(i,j,0) = 0.5*(aym+ayp);
-        vcent(i,j,0,0) = (0.125*(axp-axm) + nx*0.5*bcent(i,j,0,0)*bcent(i,j,0,0)) / vfrac(i,j,0);
+        vcent(i,j,0,0) = (0.125*(axp-axm) + nx*0.5*bcent(i,j,0,0)*bcent(i,j,0,0)) / (vfrac(i,j,0) + 1.e-30);
         vcent(i,j,0,1) = 0.0;
     } else {
         Real aa = nxabs/ny;
@@ -105,6 +105,25 @@ void set_eb_data (const int i, const int j,
         }
     }
 }
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void set_covered(const int i, const int j,
+                 Array4<EBCellFlag> const& cell,
+                 Array4<Real> const& vfrac, Array4<Real> const& vcent,
+                 Array4<Real> const& barea, Array4<Real> const& bcent,
+                 Array4<Real> const& bnorm) 
+{
+   vfrac(i,j,0) = 0.0;
+   vcent(i,j,0,0) = 0.0;
+   vcent(i,j,0,1) = 0.0;
+   barea(i,j,0) = 0.0;
+   bcent(i,j,0,0) = -1.0;
+   bcent(i,j,0,1) = -1.0;
+   bnorm(i,j,0,0) = 0.0;
+   bnorm(i,j,0,1) = 0.0;
+   cell(i,j,0).setCovered();
+}
+
 }
 
 void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
@@ -223,7 +242,8 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& apx, Array4<Real> const& apy,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm, Real small_volfrac)
+                  Array4<Real> const& bnorm, Real small_volfrac,
+                  Geometry const& geom, bool extend_domain_face)
 {
     const Box& bxg1 = amrex::grow(bx,1);
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
@@ -252,18 +272,63 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
 
             // remove small cells
             if (vfrac(i,j,0) < small_volfrac) {
-                vfrac(i,j,0) = 0.0;
-                vcent(i,j,0,0) = 0.0;
-                vcent(i,j,0,1) = 0.0;
-                barea(i,j,0) = 0.0;
-                bcent(i,j,0,0) = -1.0;
-                bcent(i,j,0,1) = -1.0;
-                bnorm(i,j,0,0) = 0.0;
-                bnorm(i,j,0,1) = 0.0;
-                cell(i,j,0).setCovered();
+               set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
             }
         }
     });
+
+    // set cells in the extended region to covered if the
+    // corresponding cell on the domain face is covered
+    if(extend_domain_face) {
+
+       Box gdomain = geom.Domain();
+       for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+           if (geom.isPeriodic(idim)) {
+               gdomain.setSmall(idim, std::min(gdomain.smallEnd(idim), bxg1.smallEnd(idim)));
+               gdomain.setBig(idim, std::max(gdomain.bigEnd(idim), bxg1.bigEnd(idim)));
+           }
+       }
+
+       if (not gdomain.contains(bxg1)) {
+       AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
+       {
+              const auto & dlo = gdomain.loVect();
+              const auto & dhi = gdomain.hiVect();
+
+              // find the cell(ii,jj,kk) on the corr. domain face
+              // this would have already been set to correct value
+              bool in_extended_domain = false;
+              int ii = i;
+              int jj = j;
+              int kk = k;
+              if(i < dlo[0]) {
+                  in_extended_domain = true;
+                  ii = dlo[0];
+              }
+              else if(i > dhi[0]) {
+                  in_extended_domain = true;
+                  ii = dhi[0];
+              }
+
+              if(j < dlo[1]) {
+                  in_extended_domain = true;
+                  jj = dlo[1];
+              }
+              else if(j > dhi[1]) {
+                  in_extended_domain = true;
+                  jj = dhi[1];
+              }
+
+              // set cell in extendable region to covered if necessary
+              if( in_extended_domain and (not cell(i,j,k).isCovered()) 
+                  and cell(ii,jj,kk).isCovered() ) 
+              {
+                  set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
+              }
+          });
+       }
+    }
+
 
     // fix face for small cells
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bxg1, tbx,

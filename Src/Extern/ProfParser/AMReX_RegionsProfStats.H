@@ -72,6 +72,8 @@ class RegionsProfStats : public BLProfStats {
     void SetMaxFNumber(int n)  { maxFNumber = n; }
     int  GetMaxFNumber() const  { return maxFNumber; }
 
+    void AddFunctionName(const std::string &/*fname*/)
+        { amrex::Abort("Wrong AddFunctionName for RegionsProfStats. Use (string, int)."); }
     virtual void AddFunctionName(const std::string &fname, int fnumber);
     virtual void AddTimeMinMax(double tmin, double tmax);
 

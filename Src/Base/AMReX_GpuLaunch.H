@@ -248,12 +248,12 @@ namespace Gpu {
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
-        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) AMREX_NOEXCEPT \
+        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
             block \
         ); \
     } \
     else { \
-        amrex::LoopConcurrentOnCpu(box, nc, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT \
+        amrex::LoopConcurrentOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
             block \
         ); \
     }
@@ -288,12 +288,12 @@ namespace Gpu {
 #define AMREX_HOST_DEVICE_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
-        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) AMREX_NOEXCEPT \
+        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
             block \
         ); \
     } \
     else { \
-        amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT \
+        amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
             block \
         ); \
     }

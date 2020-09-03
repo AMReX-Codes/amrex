@@ -17,6 +17,7 @@ module amrex_distromap_module
      generic   :: assignment(=) => amrex_distromap_assign, amrex_distromap_install   ! shallow copy
      procedure :: clone         => amrex_distromap_clone    ! deep copy
      procedure :: move          => amrex_distromap_move     ! transfer ownership
+     procedure :: get_pmap      => amrex_distromap_get_pmap ! fill caller-owned array of PEs
      procedure, private :: amrex_distromap_assign
      procedure, private :: amrex_distromap_install 
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
@@ -70,6 +71,14 @@ module amrex_distromap_module
        type(c_ptr), value :: dm
        integer(c_int), value :: n
      end subroutine amrex_fi_distromap_maxsize
+
+     subroutine amrex_fi_distromap_get_pmap (dm,pmap,plen) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: dm
+       integer(c_int), intent(out) :: pmap(*)
+       integer(c_int), value :: plen
+     end subroutine amrex_fi_distromap_get_pmap
 
      subroutine amrex_fi_print_distromap (dm) bind(c)
        import
@@ -133,6 +142,12 @@ contains
     src%owner = .false.
     src%p = c_null_ptr
   end subroutine amrex_distromap_move
+
+  subroutine amrex_distromap_get_pmap (dm, pmap)
+    class(amrex_distromap) :: dm
+    integer, intent(out) :: pmap(:)
+    call amrex_fi_distromap_get_pmap(dm%p,pmap, size(pmap))
+  end subroutine amrex_distromap_get_pmap
 
   subroutine amrex_distromap_print (dm)
     type(amrex_distromap), intent(in) :: dm

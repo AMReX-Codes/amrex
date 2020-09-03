@@ -1,6 +1,7 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_ParmParse.H>
 
 #include "MyKernel_F.H"
 
@@ -20,9 +21,14 @@ void main_main ()
 {
     BoxArray ba;
     {
-        Box domain_box(IntVect(0), IntVect(127));
+        int n_cell = 256;
+        int max_grid_size = 64;
+        ParmParse pp;
+        pp.query("n_cell", n_cell);
+        pp.query("max_grid_size", max_grid_size);
+        Box domain_box(IntVect(0), IntVect(n_cell-1));
         ba.define(domain_box);
-        ba.maxSize(64);
+        ba.maxSize(max_grid_size);
     }
 
     MultiFab mf(ba,DistributionMapping{ba},1,0);

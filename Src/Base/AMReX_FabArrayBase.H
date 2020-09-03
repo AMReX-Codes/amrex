@@ -23,11 +23,6 @@ class Geometry;
 class FArrayBox;
 template <typename FAB> class FabFactory;
 template <typename FAB> class FabArray;
-class AmrTask;
-#ifdef USE_PERILLA
-class Perilla;
-class RegionGraph;
-#endif
 
 namespace EB2 { class IndexSpace; }
 
@@ -35,11 +30,6 @@ class FabArrayBase
 {
     friend class MFIter;
     friend class MFGhostIter;
-    friend class AmrTask;
-#ifdef USE_PERILLA
-    friend class Perilla;
-    friend class RegionGraph;
-#endif
 
     template <class FAB> friend void FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period);
 
@@ -143,6 +133,7 @@ public:
     */
     bool is_cell_centered () const noexcept;
 
+    void setMultiGhost(bool a_multi_ghost) {m_multi_ghost = a_multi_ghost;}
 
     // These are provided for convenience to keep track of how many
     // ghost cells are up to date.  The number of filled ghost cells
@@ -324,6 +315,7 @@ public:
                 const Box&          dstdomain,
                 const IntVect&      dstng,
                 const BoxConverter& coarsener,
+                const Box&          fdomain,
                 const Box&          cdomain,
                 const EB2::IndexSpace* index_space);
 
@@ -332,16 +324,16 @@ public:
         Long bytes () const;
 
         BoxArray            ba_crse_patch;
-        DistributionMapping dm_crse_patch;
+        BoxArray            ba_fine_patch;
+        DistributionMapping dm_patch;
         std::unique_ptr<FabFactory<FArrayBox> > fact_crse_patch;
-        Vector<int>          dst_idxs;
-        Vector<Box>          dst_boxes;
+        std::unique_ptr<FabFactory<FArrayBox> > fact_fine_patch;
         //
         BDKey               m_srcbdk;
         BDKey               m_dstbdk;
         Box                 m_dstdomain;
         IntVect             m_dstng;
-        BoxConverter*       m_coarsener;
+        std::unique_ptr<BoxConverter> m_coarsener;
         //
         Long                m_nuse;
     };
@@ -355,10 +347,10 @@ public:
 
     static const FPinfo& TheFPinfo (const FabArrayBase& srcfa,
                                     const FabArrayBase& dstfa,
-                                    const Box&          dstdomain,
                                     const IntVect&      dstng,
                                     const BoxConverter& coarsener,
-                                    const Box&          cdomain,
+                                    const Geometry&     fgeom,
+                                    const Geometry&     cgeom,
                                     const EB2::IndexSpace*);
 
     void flushFPinfo (bool no_assertion=false);
@@ -466,6 +458,7 @@ public:
     int                 n_comp;
     mutable BDKey       m_bdkey;
     IntVect             n_filled;  // Note that IntVect is zero by default.
+    bool                m_multi_ghost = false;
 
     //
     // Tiling
@@ -501,7 +494,7 @@ public:
     {
         FB (const FabArrayBase& fa, const IntVect& nghost,
             bool cross, const Periodicity& period,
-	    bool enforce_periodicity_only);
+	    bool enforce_periodicity_only, bool multi_ghost = false);
         ~FB ();
 
         IndexType    m_typ;
@@ -512,6 +505,7 @@ public:
         Periodicity  m_period;
         //
         Long         m_nuse;
+        bool         m_multi_ghost = false;
         //
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
         CudaGraph<CopyMemory> m_localCopy;

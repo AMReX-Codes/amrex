@@ -1,8 +1,0 @@
-<sensei>
-  <!-- libsim 3D -->
-  <analysis type="libsim"
-    visitdir="/work/SENSEI/visit2.13.2-install" mode="batch"
-    session="sensei/render_iso_libsim_3d.session"
-    image-filename="ls_image_3d_%ts" image-width="1000" image-height="700"
-    image-format="png" frequency="1" enabled="1" />
-</sensei>

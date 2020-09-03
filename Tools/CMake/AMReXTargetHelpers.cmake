@@ -74,8 +74,7 @@ function (get_target_prop_recursive _target _lincludes _ldefines _lflags _llink_
 
    # Remove INTERFACE genex: choose build
    include(AMReXGenexHelpers)
-   evaluate_genex(_interface_link_libraries
-      _interface_link_libraries
+   eval_genex(_interface_link_libraries NONE NONE
       CONFIG ${CMAKE_BUILD_TYPE}
       INTERFACE BUILD)
 

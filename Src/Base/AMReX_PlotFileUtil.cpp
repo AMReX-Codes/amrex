@@ -144,14 +144,18 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
 	    HeaderFile << level << ' ' << bArray[level].size() << ' ' << time << '\n';
 	    HeaderFile << level_steps[level] << '\n';
 
-	    for (int i = 0; i < bArray[level].size(); ++i)
-	    {
-		const Box &b(bArray[level][i]);
-		RealBox loc = RealBox(b, geom[level].CellSize(), geom[level].ProbLo());
-		for (int n = 0; n < AMREX_SPACEDIM; ++n) {
-		    HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
-		}
-	    }
+            const IntVect& domain_lo = geom[level].Domain().smallEnd();
+            for (int i = 0; i < bArray[level].size(); ++i)
+            {
+                // Need to shift because the RealBox ctor we call takes the
+                // physical location of index (0,0,0).  This does not affect
+                // the usual cases where the domain index starts with 0.
+                const Box& b = amrex::shift(bArray[level][i], -domain_lo);
+                RealBox loc = RealBox(b, geom[level].CellSize(), geom[level].ProbLo());
+                for (int n = 0; n < AMREX_SPACEDIM; ++n) {
+                    HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
+                }
+            }
 
 	    HeaderFile << MultiFabHeaderPath(level, levelPrefix, mfPrefix) << '\n';
 	}
@@ -947,7 +951,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
                 for(int i(0); i < AMREX_SPACEDIM; ++i) {
                     vbox[(vbCount * 2 * AMREX_SPACEDIM) + i] = sortedGrids[b].smallEnd(i);
                     vbox[(vbCount * 2 * AMREX_SPACEDIM) + i + AMREX_SPACEDIM] = sortedGrids[b].bigEnd(i);
-                    centering[vbCount + i] = sortedGrids[b].ixType().test(i) ? 1 : 0;
+                    centering[vbCount * AMREX_SPACEDIM + i] = sortedGrids[b].ixType().test(i) ? 1 : 0;
                 }
                 ++vbCount;
             }

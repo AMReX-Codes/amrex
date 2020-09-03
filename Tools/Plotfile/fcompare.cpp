@@ -79,10 +79,9 @@ int main_main()
             << " variable.\n"
             << "\n"
             << " usage:\n"
-            << "    fcompare [-g|--ghost] [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-r|rel_tol] file1 file2\n"
+            << "    fcompare [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-r|rel_tol] file1 file2\n"
             << "\n"
             << " optional arguments:\n"
-            << "    -g|--ghost            : compare the ghost cells too (if stored)\n"
             << "    -n|--norm num         : what norm to use (default is 0 for inf norm)\n"
             << "    -d|--diffvar var      : output a plotfile showing the differences for\n"
             << "                            variable var\n"
@@ -268,10 +267,18 @@ int main_main()
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
                                << "< variable not present in both files > \n";
-            } else if (has_nan_a[icomp_a] or has_nan_b[icomp_a]) {
+            } else if (has_nan_a[icomp_a] and has_nan_b[icomp_a]) {
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
-                               << "< NaN present > \n";
+                               << "< NaN present in both A and B > \n";
+            } else if (has_nan_a[icomp_a]) {
+                amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
+                               << "  " << std::setw(50)
+                               << "< NaN present in A > \n";
+            } else if (has_nan_b[icomp_a]) {
+                amrex::Print() << " " << std::setw(24) << std::left << names_b[icomp_a]
+                               << "  " << std::setw(50)
+                               << "< NaN present in B > \n";
             } else {
                 Real aerr = 0., rerr = 0.;
                 if (aerror[icomp_a] > 0.) {

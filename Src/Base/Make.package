@@ -161,9 +161,6 @@ C$(AMREX_BASE)_headers += AMReX_MultiFabUtil.H AMReX_MultiFabUtil_C.H AMReX_Mult
 C$(AMREX_BASE)_sources += AMReX_MultiFabUtil.cpp
 C$(AMREX_BASE)_headers += AMReX_MultiFabUtilI.H
 
-C$(AMREX_BASE)_sources += AMReX_MultiFabUtil_Perilla.cpp
-C$(AMREX_BASE)_headers += AMReX_MultiFabUtil_Perilla.H
-
 #
 # Boundary-related 
 #

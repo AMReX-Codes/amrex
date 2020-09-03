@@ -8,7 +8,7 @@
 namespace amrex { namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real get_dx_eb (Real kappa) noexcept {
-        return amrex::max(0.3_rt,(kappa*kappa-0.25_rt)/(2.0_rt*kappa));
+        return amrex::max(Real(0.3),(kappa*kappa-Real(0.25))/(Real(2.0)*kappa));
     }
 }}
 
@@ -62,30 +62,36 @@ void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{-bcl * dxinv, 0.5_rt, 1.5_rt, 2.5_rt};
+        GpuArray<Real,4> x{-bcl * dxinv, Real(0.5), Real(1.5), Real(2.5)};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-0.5_rt, &x[0], NX, &(coef(0,r)));
+            poly_interp_coeff(-Real(0.5), &x[0], r+2, &(coef(0,r)));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
                 if (mask(i,j,k) == 0 and mask(i+s,j,k) == 1) {
                     int order = 1;
+                    bool has_cutfaces = false;
                     for (int r = 0; r <= NX-2; ++r) {
-                        if (area(i+(1-side)+s*r,j,k) > 0.0_rt) {
+                        Real a = area(i+(1-side)+s*r,j,k);
+                        if (a > Real(0.0)) {
                             ++order;
+                            if (a < Real(1.0)) {
+                                has_cutfaces = true;
+                            }
                         } else {
                             break;
                         }
                     }
+                    if (has_cutfaces) order = amrex::min(2,order);
                     if (order == 1) {
                         if (inhomog) {
                             phi(i,j,k,icomp) = bcval(i,j,k,icomp);
                         } else {
-                            phi(i,j,k,icomp) = 0.0_rt;
+                            phi(i,j,k,icomp) = Real(0.0);
                         }
                     } else {
-                        Real tmp = 0.0_rt;
+                        Real tmp = Real(0.0);
                         for (int m = 1; m < order; ++m) {
                             tmp += phi(i+m*s,j,k,icomp) * coef(m,order-2);
                         }
@@ -142,30 +148,36 @@ void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{-bcl * dyinv, 0.5_rt, 1.5_rt, 2.5_rt};
+        GpuArray<Real,4> x{-bcl * dyinv, Real(0.5), Real(1.5), Real(2.5)};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-0.5_rt, &x[0], NX, &(coef(0,r)));
+            poly_interp_coeff(-Real(0.5), &x[0], r+2, &(coef(0,r)));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 if (mask(i,j,k) == 0 and mask(i,j+s,k) == 1) {
                     int order = 1;
+                    bool has_cutfaces = false;
                     for (int r = 0; r <= NX-2; ++r) {
-                        if (area(i,j+(1-side)+s*r,k) > 0.0_rt) {
+                        Real a = area(i,j+(1-side)+s*r,k);
+                        if (a > Real(0.0)) {
                             ++order;
+                            if (a < Real(1.0)) {
+                                has_cutfaces = true;
+                            }
                         } else {
                             break;
                         }
                     }
+                    if (has_cutfaces) order = amrex::min(2,order);
                     if (order == 1) {
                         if (inhomog) {
                             phi(i,j,k,icomp) = bcval(i,j,k,icomp);
                         } else {
-                            phi(i,j,k,icomp) = 0.0_rt;
+                            phi(i,j,k,icomp) = Real(0.0);
                         }
                     } else {
-                        Real tmp = 0.0_rt;
+                        Real tmp = Real(0.0);
                         for (int m = 1; m < order; ++m) {
                             tmp += phi(i,j+m*s,k,icomp) * coef(m,order-2);
                         }
@@ -222,30 +234,36 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{-bcl * dzinv, 0.5_rt, 1.5_rt, 2.5_rt};
+        GpuArray<Real,4> x{-bcl * dzinv, Real(0.5), Real(1.5), Real(2.5)};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-0.5_rt, &x[0], NX, &(coef(0,r)));
+            poly_interp_coeff(-Real(0.5), &x[0], r+2, &(coef(0,r)));
         }
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 if (mask(i,j,k) == 0 and mask(i,j,k+s) == 1) {
                     int order = 1;
+                    bool has_cutfaces = false;
                     for (int r = 0; r <= NX-2; ++r) {
-                        if (area(i,j,k+(1-side)+s*r) > 0.0_rt) {
+                        Real a = area(i,j,k+(1-side)+s*r);
+                        if (a > Real(0.0)) {
                             ++order;
+                            if (a < Real(1.0)) {
+                                has_cutfaces = true;
+                            }
                         } else {
                             break;
                         }
                     }
+                    if (has_cutfaces) order = amrex::min(2,order);
                     if (order == 1) {
                         if (inhomog) {
                             phi(i,j,k,icomp) = bcval(i,j,k,icomp);
                         } else {
-                            phi(i,j,k,icomp) = 0.0_rt;
+                            phi(i,j,k,icomp) = Real(0.0);
                         }
                     } else {
-                        Real tmp = 0.0_rt;
+                        Real tmp = Real(0.0);
                         for (int m = 1; m < order; ++m) {
                             tmp += phi(i,j,k+m*s,icomp) * coef(m,order-2);
                         }

@@ -206,10 +206,10 @@ MyTest::initData ()
                                             + a * (std::cos(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z)
                                           + 0.25 * std::cos(fpi*x) * std::cos(fpi*y) * std::cos(fpi*z));
                 if (loverset and overset_box.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
-                    mask(i,j,k) = 1;
+                    mask(i,j,k) = 0;
                     phifab(i,j,k) = exact(i,j,k);
                 } else {
-                    mask(i,j,k) = 0;
+                    mask(i,j,k) = 1;
                 }
             }
         });

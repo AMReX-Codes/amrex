@@ -171,6 +171,32 @@ int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int numTilesInBox (const Box& box, const bool a_do_tiling, const IntVect& a_tile_size)
+{
+    if (a_do_tiling == false) {
+        return 1;
+    } else {
+        //
+        // This function must be consistent with FabArrayBase::buildTileArray function!!!
+        //
+        auto tiling_1d = [](int lo, int hi, int tilesize, int& ntile) {
+            int ncells = hi-lo+1;
+            ntile = amrex::max(ncells/tilesize, 1);
+        };
+
+        const IntVect& small = box.smallEnd();
+        const IntVect& big   = box.bigEnd();
+        IntVect ntiles;
+
+        AMREX_D_TERM(tiling_1d(small[0], big[0], a_tile_size[0], ntiles[0]);,
+		     tiling_1d(small[1], big[1], a_tile_size[1], ntiles[1]);,
+		     tiling_1d(small[2], big[2], a_tile_size[2], ntiles[2]););
+
+        return AMREX_D_TERM(ntiles[0], *=ntiles[1], *=ntiles[2]);
+    }
+}
+
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 IntVect getParticleCell (P const& p,
@@ -211,18 +237,18 @@ bool enforcePeriodic (P& p,
         if (not is_per[idim]) continue;
         if (p.pos(idim) >= phi[idim]) {
             while (p.pos(idim) >= phi[idim]) {
-                p.pos(idim) -= (phi[idim] - plo[idim]);
+                p.pos(idim) -= static_cast<ParticleReal>(phi[idim] - plo[idim]);
             }
             // clamp to avoid precision issues;
-            if (p.pos(idim) < plo[idim]) p.pos(idim) = plo[idim];
+            if (p.pos(idim) < plo[idim]) p.pos(idim) = static_cast<ParticleReal>(plo[idim]);
             shifted = true;
         }
         else if (p.pos(idim) < plo[idim]) {
             while (p.pos(idim) < plo[idim]) {
-                p.pos(idim) += (phi[idim] - plo[idim]);
+                p.pos(idim) += static_cast<ParticleReal>(phi[idim] - plo[idim]);
             }
             // clamp to avoid precision issues;
-            if (p.pos(idim) == phi[idim]) p.pos(idim) = plo[idim];
+            if (p.pos(idim) == phi[idim]) p.pos(idim) = static_cast<ParticleReal>(plo[idim]);
             if (p.pos(idim) > phi[idim]) p.pos(idim) = std::nextafter( (amrex::ParticleReal) phi[idim], (amrex::ParticleReal) plo[idim]);
             shifted = true;
         }
@@ -249,13 +275,11 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
 
     if (np == 0) return 0;
 
-    auto p_lev_offsets = pmap.levelOffsetsPtr();
-    auto p_box_perm = pmap.levGridToBucketPtr();
-    auto p_pids = pmap.bucketToPIDPtr();
+    auto getPID = pmap.getPIDFunctor();
     auto p_ptr = &(aos[0]);
 
     int pid = ParallelContext::MyProcSub();
-    int chunk_size = 256*256*256;
+    constexpr int chunk_size = 256*256*256;
     int num_chunks = std::max(1, (np + (chunk_size - 1)) / chunk_size);
 
     PTile ptile_tmp;
@@ -293,8 +317,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                     assigned_lev  = amrex::get<1>(tup);
                 }
 
-                return ((assigned_grid == gid) && (assigned_lev == lev)
-                        && (p_pids[p_box_perm[p_lev_offsets[lev]+gid]] == pid));
+                return ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid));
             };
 
             num_stay = Scan::PrefixSum<int> (this_chunk_size,

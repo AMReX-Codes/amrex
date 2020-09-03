@@ -33,11 +33,6 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Math.H>
 
-#ifdef USE_PERILLA
-#include <LocalConnection.H>
-#include <RemoteConnection.H>
-#endif
-
 namespace amrex
 {
 
@@ -1610,15 +1605,6 @@ protected:
     Long truesize = 0L;         //!< nvar*numpts that was allocated on heap.
     bool ptr_owner = false;     //!< Owner of T*?
     bool shared_memory = false; //!< Is the memory allocated in shared memory?
-
-#ifdef USE_PERILLA
-public:
-    LocalConnection l_con;
-    RemoteConnection r_con;
-    bool fireable;
-    int padding[1024];
-#endif
-
 };
 
 template <class T>
@@ -1664,7 +1650,7 @@ BaseFab<T>::prefetchToHost () const noexcept
                                                   cudaCpuDeviceId,
                                                   Gpu::gpuStream()));
 #elif defined(AMREX_USE_HIP)
-        // HIP FIX HERE
+        // xxxxx HIP FIX HERE after managed memory is supported
 #endif
     }
 #endif
@@ -1686,7 +1672,7 @@ BaseFab<T>::prefetchToDevice () const noexcept
                                                   Gpu::Device::deviceId(),
                                                   Gpu::gpuStream()));
 #elif defined(AMREX_USE_HIP)
-        // HIP FIX HERE
+        // xxxxx HIP FIX HERE after managed memory is supported
 #endif
     }
 #endif
@@ -2470,7 +2456,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
 #endif
     {
         T r = 0;
-        amrex::Loop(subbox, [=,&r] (int i, int j, int k) AMREX_NOEXCEPT
+        amrex::Loop(subbox, [=,&r] (int i, int j, int k) noexcept
         {
             r = amrex::max(r, amrex::Math::abs(a(i,j,k)));
         });
@@ -3943,7 +3929,7 @@ BaseFab<T>::sum (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
     } else
 #endif
     {
-        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
         {
             r += a(i,j,k,n+dcomp.i);
         });
@@ -3983,7 +3969,7 @@ BaseFab<T>::dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp d
     } else
 #endif
     {
-        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
         {
             r += d(i,j,k,n+dcomp.i) * s(i,j,k,n+scomp.i);
         });
@@ -4029,7 +4015,7 @@ BaseFab<T>::dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
     } else
 #endif
     {
-        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
         {
             r += a(i,j,k,n+dcomp.i)*a(i,j,k,n+dcomp.i);
         });
@@ -4073,7 +4059,7 @@ BaseFab<T>::dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& m
     } else
 #endif
     {
-        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
         {
             int mi = static_cast<int>(static_cast<bool>(m(i,j,k)));
             r += d(i,j,k,n+dcomp.i)*s(i,j,k,n+scomp.i)*mi;
