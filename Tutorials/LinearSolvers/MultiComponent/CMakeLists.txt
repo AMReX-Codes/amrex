@@ -1,34 +1,8 @@
-if ( (DIM EQUAL 1) OR ENABLE_CUDA)
-    return()
-endif ()
+set(_sources main.cpp MCNodalLinOp.cpp MCNodalLinOp.H)
 
-#
-# Use directory name as exe name
-#
-get_filename_component(exe_name ${CMAKE_CURRENT_LIST_DIR} NAME)
-set(exe_name "${exe_name}.exe")
+file( GLOB_RECURSE _input_files LIST_DIRECTORIES false inputs)
 
-#
-# This test works for both 2D and 3D builds
-#
-add_executable( ${exe_name} EXCLUDE_FROM_ALL "")
+setup_tutorial(_sources _input_files)
 
-target_sources( ${exe_name}
-    PRIVATE
-    main.cpp
-    MCNodalLinOp.cpp
-    MCNodalLinOp.H
-    )
-
-target_include_directories(${exe_name} PRIVATE ${CMAKE_CURRENT_LIST_DIR})
-
-target_link_libraries( ${exe_name} PRIVATE amrex )
-
-# Find input files
-file( GLOB_RECURSE inputs LIST_DIRECTORIES false ${CMAKE_CURRENT_LIST_DIR}/input* )
-
-# Copy input files to corresponding build dir
-file( COPY ${inputs} DESTINATION ${CMAKE_CURRENT_BINARY_DIR} )
-
-# Add to the "tutorial" target
-add_tutorial(${exe_name})
+unset(_sources)
+unset(_input_files)

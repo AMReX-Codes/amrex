@@ -69,3 +69,8 @@ setup_tutorial(_uv_sources _input_files
 
 unset(_uv_sources)
 unset(_uv_exe_dir)
+
+
+# Final clean up
+unset(_sources)
+unset(_input_files)

@@ -1,7 +1,4 @@
-#
-# This tutorial needs Fortran
-#
-if ( NOT CMAKE_Fortran_COMPILER_LOADED )
+if ( NOT ENABLE_FORTRAN_INTERFACES )
    return()
 endif ()
 
