@@ -234,11 +234,25 @@ struct Particle
         return this->m_rdata[index];
     }
 
+    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE RealType& rdata (int /*index*/) &
+    {
+        AMREX_ALWAYS_ASSERT(false);
+        return this->pos(0);  // bc we must return something
+    }
+
     template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE RealType  rdata (int index) const &
     {
         AMREX_ASSERT(index < NReal);
         return this->m_rdata[index];
+    }
+
+    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE RealType  rdata (int /*index*/) const &
+    {
+        AMREX_ALWAYS_ASSERT(false);
+        return this->pos(0);  // because we must return something
     }
 
     template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
@@ -250,6 +264,13 @@ struct Particle
                                      this->m_rdata[indz]));
     }
 
+    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE RealVect  rvec (AMREX_D_DECL(int /*indx*/, int /*indy*/, int /*indz*/)) const &
+    {
+        AMREX_ALWAYS_ASSERT(false);
+        return RealVect(AMREX_D_DECL(0.0, 0.0, 0.0)); // bc we must return something
+    }
+
     template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE RealVect  rvec (const IntVect& indices) const &
     {
@@ -259,6 +280,13 @@ struct Particle
                                      this->m_rdata[indices[2]]));
     }
 
+    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE RealVect  rvec (const IntVect& /*indices*/) const &
+    {
+        AMREX_ALWAYS_ASSERT(false);
+        return RealVect(AMREX_D_DECL(0.0, 0.0, 0.0)); // bc we must return something
+    }
+
     template <int U = T_NInt, typename std::enable_if<U != 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE int& idata (int index) &
     {
@@ -266,11 +294,25 @@ struct Particle
         return this->m_idata[index];
     }
 
+    template <int U = T_NInt, typename std::enable_if<U == 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE int& idata (int /*index*/) &
+    {
+        AMREX_ALWAYS_ASSERT(false);
+        return reinterpret_cast<int&>(this->m_idcpu);  //bc we must return something
+    }
+
     template <int U = T_NInt, typename std::enable_if<U != 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE int  idata (int index) const &
     {
         AMREX_ASSERT(index < NInt);
         return this->m_idata[index];
+    }
+
+    template <int U = T_NInt, typename std::enable_if<U == 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE int idata (int /*index*/) const &
+    {
+        AMREX_ALWAYS_ASSERT(false);
+        return this->m_idcpu;  //bc we must return something
     }
 
     static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
