@@ -23,16 +23,16 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: SetParticleSize ()
 {
-    if (NArrayReal > 0 or NArrayInt > 0) {
-        if (NArrayReal > 0) {
-            d_communicate_real_comp.resize(NArrayReal);
+    if (NumRealComps() > 0 or NumIntComps() > 0) {
+        if (NumRealComps() > 0) {
+            d_communicate_real_comp.resize(NumRealComps());
             Gpu::copyAsync(Gpu::hostToDevice,
                            h_communicate_real_comp.begin(),
                            h_communicate_real_comp.end(),
                            d_communicate_real_comp.begin());
         }
-        if (NArrayInt > 0) {
-            d_communicate_int_comp.resize(NArrayInt);
+        if (NumIntComps() > 0) {
+            d_communicate_int_comp.resize(NumIntComps());
             Gpu::copyAsync(Gpu::hostToDevice,
                            h_communicate_int_comp.begin(),
                            h_communicate_int_comp.end(),
