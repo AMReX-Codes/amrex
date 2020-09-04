@@ -1,4 +1,4 @@
-if (DIM EQUAL 1 OR NOT CMake_Fortran_COMPILER_LOADED)
+if (DIM EQUAL 1 OR NOT CMAKE_Fortran_COMPILER_LOADED)
    return()
 endif ()
 
