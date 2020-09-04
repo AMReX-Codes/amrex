@@ -1,4 +1,6 @@
-if (NOT DIM EQUAL 3)
+# This turorials requires some EB functionalities which are active
+# only if Fortran is enabled
+if (NOT DIM EQUAL 3 OR NOT CMAKE_Fortran_COMPILER_LOADED)
    return()
 endif ()
 

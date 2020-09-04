@@ -1,4 +1,4 @@
-if ( NOT (DIM EQUAL 3) )
+if ( NOT (DIM EQUAL 3) OR NOT CMake_Fortran_COMPILER_LOADED)
    return ()
 endif ()
 
