@@ -1,3 +1,7 @@
+if (NOT ENABLE_MPI)
+   return()
+endif ()
+
 set(_sources main.cpp)
 set(_input_files)
 
