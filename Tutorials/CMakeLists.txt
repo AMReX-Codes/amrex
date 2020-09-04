@@ -1,6 +1,6 @@
 #
 # List of subdirectories to search for CMakeLists.
-# For now, we do not include BluePrint, FOrkJoin, GPU, MUI, SDC, SWFFT
+# For now, we do not include BluePrint, ForkJoin, GPU, MUI, SDC, SWFFT
 #
 set( AMREX_TUTORIALS_SUBDIRS Amr Basic )
 
@@ -95,9 +95,6 @@ macro (setup_tutorial _sources  _input_files)
 
 endmacro ()
 
-macro (add_tutorial targets_list)
-endmacro ()
-
 
 #
 # Loop over subdirs and add to the build those containing CMakeLists.txt
@@ -112,33 +109,3 @@ foreach (_subdir IN LISTS AMREX_TUTORIALS_SUBDIRS)
    endforeach ()
 
 endforeach ()
-
-
-
-
-#
-# Create a target to build all tutorials and an indentical one for
-# test_install
-#
-# !!!!!! ATTENTION: target "tutorial" and "test_install" are the same for
-#  the time being until we decide what to do with test_install
-#
-# add_custom_target (tutorials)
-# add_custom_target (test_install)
-
-#
-# Here we define a macro to accumulate all the tutorial targets
-#
-set ( TUTORIAL_TARGETS )
-
-# macro (add_tutorial targets_list)
-#    # add_dependencies (tutorials ${targets_list})
-#    # add_dependencies (test_install ${targets_list})
-# endmacro ()
-
-
-
-# # Just write something if
-# add_custom_command(TARGET test_install POST_BUILD
-#                    COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan
-#                    "AMReX installation is working")
