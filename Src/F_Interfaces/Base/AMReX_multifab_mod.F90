@@ -44,7 +44,7 @@ module amrex_multifab_module
      procedure :: norm0         => amrex_multifab_norm0
      procedure :: norm1         => amrex_multifab_norm1
      procedure :: norm2         => amrex_multifab_norm2
-     procedure :: setval        => amrex_multifab_setval, amrex_multifab_setval_gv
+     generic :: setval        => amrex_multifab_setval, amrex_multifab_setval_gv
      procedure :: plus          => amrex_multifab_plus
      procedure :: mult          => amrex_multifab_mult
      procedure :: add           => amrex_multifab_add
@@ -53,13 +53,17 @@ module amrex_multifab_module
      procedure :: divide        => amrex_multifab_divide
      procedure :: saxpy         => amrex_multifab_saxpy
      procedure :: lincomb       => amrex_multifab_lincomb
-     procedure :: copy          => amrex_multifab_copy, amrex_multifab_copy_cgv ! This copies the data
+     generic :: copy          => amrex_multifab_copy, amrex_multifab_copy_cgv ! This copies the data
      generic   :: parallel_copy => amrex_multifab_parallel_copy, amrex_multifab_parallel_copy_c, &
           amrex_multifab_parallel_copy_cg, amrex_multifab_parallel_copy_cgv
      generic   :: fill_boundary => amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c
      generic   :: override_sync => amrex_multifab_override_sync, amrex_multifab_override_sync_mask
      generic   :: sum_boundary  => amrex_multifab_sum_boundary, amrex_multifab_sum_boundary_c
      procedure :: average_sync  => amrex_multifab_average_sync
+     procedure, private :: amrex_multifab_setval
+     procedure, private :: amrex_multifab_setval_gv
+     procedure, private :: amrex_multifab_copy
+     procedure, private :: amrex_multifab_copy_cgv
      procedure, private :: amrex_multifab_fill_boundary
      procedure, private :: amrex_multifab_fill_boundary_c
      procedure, private :: amrex_multifab_parallel_copy
@@ -99,8 +103,10 @@ module amrex_multifab_module
      procedure :: nghostvect    => amrex_imultifab_nghost_vect
      procedure :: nodal_type    => amrex_imultifab_nodal_type ! get index type
      procedure :: dataPtr       => amrex_imultifab_dataptr
-     procedure :: setval        => amrex_imultifab_setval, amrex_imultifab_setval_gv
+     generic   :: setval        => amrex_imultifab_setval, amrex_imultifab_setval_gv
      procedure, private :: amrex_imultifab_assign
+     procedure, private :: amrex_imultifab_setval_gv
+     procedure, private :: amrex_imultifab_setval
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_imultifab_destroy
 #endif
