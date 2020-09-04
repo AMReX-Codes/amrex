@@ -209,6 +209,9 @@ string(APPEND CMAKE_CUDA_FLAGS " --expt-relaxed-constexpr --expt-extended-lambda
 string(APPEND CMAKE_CUDA_FLAGS " -Wno-deprecated-gpu-targets ${NVCC_ARCH_FLAGS}")
 string(APPEND CMAKE_CUDA_FLAGS " -maxrregcount=${CUDA_MAXREGCOUNT}")
 
+# This is to work around a bug with nvcc, see: https://github.com/kokkos/kokkos/issues/1473
+string(APPEND CMAKE_CUDA_FLAGS " -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored")
+
 if (ENABLE_CUDA_FASTMATH)
    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --use_fast_math")
 endif ()
