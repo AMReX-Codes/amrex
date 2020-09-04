@@ -2,6 +2,8 @@ if ( NOT ENABLE_PARTICLES AND NOT (DIM EQUAL 1) )
    return ()
 endif ()
 
+message(WARNING "\nTutorial FortranInterfaces/Advection_F fails at runtime if ENABLE_EB=ON")
+
 set(_sources advect_${DIM}d_mod.F90 compute_flux_${DIM}d.f90 slope_${DIM}d.f90 )
 list(TRANSFORM _sources PREPEND Src_${DIM}d/ )
 

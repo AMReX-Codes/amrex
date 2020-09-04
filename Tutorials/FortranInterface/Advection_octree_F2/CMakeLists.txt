@@ -13,7 +13,7 @@ list(TRANSFORM _sources PREPEND Source/ )
 
 list(APPEND _sources
    Exec/SingleVortex/face_velocity_2d.F90
-   Exec/SingleVortex/Prob.F90
+   Exec/SingleVortex/Prob.f90
    )
 
 file(GLOB_RECURSE _input_files LIST_DIRECTORIES false

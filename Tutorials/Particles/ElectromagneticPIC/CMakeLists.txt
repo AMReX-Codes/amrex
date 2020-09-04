@@ -5,7 +5,7 @@
 #  * OpenMP
 #  * OpenACC (NOT supported anymore)
 #
-if (NOT ENABLE_CUDA AND NOT ENABLE_OMP AND NOT (DIM EQUAL 3))
+if ( (NOT ENABLE_CUDA AND NOT ENABLE_OMP) OR (NOT DIM EQUAL 3) )
    return()
 endif ()
 

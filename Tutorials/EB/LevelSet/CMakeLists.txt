@@ -1,3 +1,7 @@
+if (NOT DIM EQUAL 3)
+   return()
+endif ()
+
 set(_sources main.cpp make_cylinder.cpp make_eb.cpp make_poly.cpp make_shapes.H)
 list(TRANSFORM _sources PREPEND Src/)
 
