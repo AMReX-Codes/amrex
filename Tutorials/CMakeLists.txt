@@ -1,8 +1,8 @@
 #
 # List of subdirectories to search for CMakeLists.
-# For now, we do not include BluePrint, ForkJoin, GPU, MUI, SDC, SWFFT
+# For now, we do not include BluePrint, GPU, MUI, SDC, SWFFT
 #
-set( AMREX_TUTORIALS_SUBDIRS Amr Basic )
+set( AMREX_TUTORIALS_SUBDIRS Amr Basic ForkJoin)
 
 if (ENABLE_EB)
    list(APPEND AMREX_TUTORIALS_SUBDIRS EB)
