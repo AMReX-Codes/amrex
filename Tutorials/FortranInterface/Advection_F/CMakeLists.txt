@@ -16,8 +16,6 @@ list(APPEND _sources
    Exec/SingleVortex/Prob_${DIM}d.f90
    )
 
-print_list(_sources)
-
 file( GLOB_RECURSE _input_files LIST_DIRECTORIES false
    ${CMAKE_CURRENT_LIST_DIR}/input* )
 
