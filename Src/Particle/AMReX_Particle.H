@@ -295,10 +295,10 @@ struct Particle
     }
 
     template <int U = T_NInt, typename std::enable_if<U == 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE int& idata (int /*index*/) &
+    AMREX_GPU_HOST_DEVICE uint64_t& idata (int /*index*/) &
     {
         AMREX_ALWAYS_ASSERT(false);
-        return reinterpret_cast<int&>(this->m_idcpu);  //bc we must return something
+        return this->m_idcpu;  //bc we must return something
     }
 
     template <int U = T_NInt, typename std::enable_if<U != 0, int>::type = 0>
