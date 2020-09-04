@@ -33,13 +33,13 @@ def doit(defines, undefines, comp, allow_diff_comp, use_omp):
             comp_id    = "GNU"
         elif comp == "intel":
             comp_macro = "__INTEL_COMPILER"
-            comp_id    = Intel
+            comp_id    = "Intel"
         elif comp == "cray":
             comp_macro = "_CRAYC"
-            comp_id    = Cray
+            comp_id    = "Cray"
         elif comp == "pgi":
             comp_macro = "__PGI"
-            comp_id    = PGI
+            comp_id    = "PGI"
         elif comp == "llvm":
             comp_macro = "__llvm__"
             comp_id    = "Clang/LLVM"
