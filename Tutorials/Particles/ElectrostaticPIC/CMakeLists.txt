@@ -1,3 +1,7 @@
+if (DIM EQUAL 1)
+   return()
+endif ()
+
 set(_sources ElectrostaticParticleContainer.cpp ElectrostaticParticleContainer.H
    electrostatic_pic_${DIM}d.f90 electrostatic_pic_F.H main.cpp PhysConst.H)
 

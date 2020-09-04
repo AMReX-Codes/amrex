@@ -1,4 +1,4 @@
-if ( NOT ENABLE_PARTICLES AND NOT (DIM EQUAL 1) )
+if ( NOT ENABLE_PARTICLES OR (DIM EQUAL 1) )
    return ()
 endif ()
 

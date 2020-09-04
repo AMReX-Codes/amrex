@@ -1,3 +1,7 @@
+if (DIM EQUAL 1)
+   return()
+endif ()
+
 # List of source files
 set(_sources AdvancePhiAllLevels.cpp  AdvancePhiAtLevel.cpp  AmrCoreAdv.cpp  AmrCoreAdv.H bc_fill.H)
 list(APPEND _sources DefineVelocity.cpp  face_velocity.H  Kernels.H  main.cpp  Tagging.H)

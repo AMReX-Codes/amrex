@@ -1,3 +1,7 @@
+if (DIM EQUAL 1)
+   return()
+endif ()
+
 # List of source files
 set(_sources main.cpp myfunc.cpp myfunc.H mykernel.H)
 list(TRANSFORM _sources PREPEND "Source/")
