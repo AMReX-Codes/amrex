@@ -7,6 +7,7 @@
 #include <AMReX_GpuAssert.H>
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_Exception.H>
+#include <AMReX_Extension.H>
 #include <AMReX_INT.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Math.H>
@@ -96,64 +97,29 @@ namespace amrex
 
     //! Print out message to cerr and exit via amrex::Abort().
     void Error (const std::string& msg);
-    namespace detail { void Error_host_doit (const char * msg); }
-    AMREX_GPU_HOST_DEVICE inline
-    void Error (const char * msg = 0) {
-#if AMREX_DEVICE_COMPILE
-        if (msg) AMREX_DEVICE_PRINTF("Error %s\n", msg);
-        AMREX_DEVICE_ASSERT(0);
-#else
-        detail::Error_host_doit(msg);
-#endif
-    }
+
+    AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+    void Error (const char * msg = 0);
 
     //! Print out warning message to cerr.
     void Warning (const std::string& msg);
-    namespace detail { void Warning_host_doit (const char * msg); }
-    AMREX_GPU_HOST_DEVICE inline
-    void Warning (const char * msg) {
-#if AMREX_DEVICE_COMPILE
-        if (msg) AMREX_DEVICE_PRINTF("Warning %s\n", msg);
-#else
-        detail::Warning_host_doit(msg);
-#endif
-    }
+
+    AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+    void Warning (const char * msg);
 
     //! Print out message to cerr and exit via abort().
     void Abort (const std::string& msg);
-    namespace detail { void Abort_host_doit (const char * msg); }
-    AMREX_GPU_HOST_DEVICE inline
-    void Abort (const char * msg = 0) {
-#if AMREX_DEVICE_COMPILE
-        if (msg) AMREX_DEVICE_PRINTF("Abort %s\n", msg);
-        AMREX_DEVICE_ASSERT(0);
-#else
-        detail::Abort_host_doit(msg);
-#endif
-    }
+
+    AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+    void Abort (const char * msg = 0);
 
     /**
     * \brief Prints assertion failed messages to cerr and exits
     * via abort().  Intended for use by the BL_ASSERT() macro
     * in <AMReX_BLassert.H>.
     */
-    namespace detail { void Assert_host_doit (const char* EX, const char* file, int line,
-                                              const char* msg); }
-    AMREX_GPU_HOST_DEVICE inline
-    void Assert (const char* EX, const char* file, int line, const char* msg = nullptr) {
-#if AMREX_DEVICE_COMPILE
-        if (msg) {
-            AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
-                                EX, file, line, msg);
-        } else {
-            AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
-                                EX, file, line);
-        }
-        AMREX_DEVICE_ASSERT(0);
-#else
-        detail::Assert_host_doit(EX, file, line, msg);
-#endif
-    }
+    AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+    void Assert (const char* EX, const char* file, int line, const char* msg = nullptr);
 
     /**
     * \brief This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
