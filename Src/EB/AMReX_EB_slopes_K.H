@@ -15,7 +15,11 @@ namespace {
 
 // amrex_calc_slopes_eb calculates the slope in each coordinate direction using a 
 // least squares linear fit to the 9 in 2D / 27 in 3D nearest neighbors, with the function
-// going through the centroid of cell(i,j,k).  No boundary conditions are used in this call.
+// going through the centroid of cell(i,j,k).  This does not assume that the cell centroids,
+// where the data is assume to live, are the same as cell centers.
+//
+// No boundary conditions are used in this call.
+//
 // All the slopes are returned in one call.
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -223,7 +227,12 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
 
 // amrex_calc_slopes_extdir_eb calculates the slope in each coordinate direction using a 
 // least squares linear fit to the 9 in 2D / 27 in 3D nearest neighbors, with the function
-// going through the centroid of cell(i,j,k).  All the slopes are returned in one call.
+// going through the centroid of cell(i,j,k).  This does not assume that the cell centroids,
+// where the data is assume to live, are the same as cell centers.
+//
+// No boundary conditions are used in this call.
+//
+// All the slopes are returned in one call.
 //
 // This differs from the previous call in that it over-rides the slope in the direction
 // normal to a domain boundary when the boundary condition is imposed as external Dirichlet.
