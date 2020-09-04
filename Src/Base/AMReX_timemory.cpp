@@ -1,124 +1,77 @@
 
+#if defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP) && defined(TIMEMORY_USE_OMPT_LIBRARY)
+#   undef TIMEMORY_USE_OMPT_LIBRARY
+#endif
+
 #include "AMReX_timemory.H"
 #include "AMReX_ParmParse.H"
 
 #include <timemory/timemory.hpp>
-#include <timemory/utility/argparse.hpp>
+
+using api_t = amrex::BL_timemory_tag;
+
+#if defined(TIMEMORY_USE_MPI) && defined(TIMEMORY_USE_GOTCHA) && !defined(TIMEMORY_MPI_GOTCHA)
+#    define TIMEMORY_MPI_GOTCHA
+#endif
+
+#if defined(TIMEMORY_MPI_GOTCHA)
+#include <timemory/components/gotcha/mpip.hpp>
+
+// this component will track communication sizes
+// via the mpi_data_tracker_t component below
+TIMEMORY_DECLARE_COMPONENT(mpi_comm_data)
+
+using mpi_data_tracker_t = tim::component::data_tracker<float, api_t>;
+
+// TIMEMORY_STATISTICS_TYPE(mpi_data_tracker_t, float)
+TIMEMORY_DEFINE_CONCRETE_TRAIT(uses_memory_units, mpi_data_tracker_t, true_type)
+TIMEMORY_DEFINE_CONCRETE_TRAIT(is_memory_category, mpi_data_tracker_t, true_type)
+TIMEMORY_DEFINE_CONCRETE_TRAIT(base_has_last, mpi_data_tracker_t, true_type)
+TIMEMORY_DEFINE_CONCRETE_TRAIT(base_has_accum, mpi_data_tracker_t, true_type)
+
+using mpi_comm_data_t    = tim::component::mpi_comm_data;
+using mpip_bundle_t      = tim::component_tuple<mpi_comm_data_t,
+						AMREX_TIMEMORY_COMPONENTS>;
+
+#endif
+
+#if defined(TIMEMORY_USE_OMPT_LIBRARY)
+#include <timemory/components/ompt.hpp>
+
+extern "C" void timemory_register_ompt();
+extern "C" void timemory_deregister_ompt();
+#endif
 
 #include <unordered_map>
 #include <memory>
 #include <string>
 #include <set>
 
-#if defined(AMREX_USE_HDF5) && defined(TIMEMORY_USE_GOTCHA)
-#define AMREX_HDF5_WRAPPERS
-#include "hdf5.h"
-#endif
-
-extern "C"
-{
-#if defined(TIMEMORY_USE_MPIP_LIBRARY)
-    extern void timemory_register_mpip ();
-    extern void timemory_deregister_mpip ();
-#endif
-//
-#if defined(TIMEMORY_USE_OMPT_LIBRARY)
-    extern void timemory_register_ompt ();
-    extern void timemory_deregister_ompt ();
-#endif
-}
-
 namespace amrex
 {
 //
-#if defined(AMREX_HDF5_WRAPPERS)
-struct hdf5_wrappers
-{};
-using hdf5_bundle_t = tim::component_tuple<AMREX_TIMEMORY_COMPONENTS>;
-//
-// this component will wrap all hdf5 functions with 'hdf5_bundle_t'
-using hdf5_gotcha_t = tim::component::gotcha<20, hdf5_bundle_t, hdf5_wrappers>;
-//
-using hdf5_handle = tim::lightweight_tuple<hdf5_gotcha_t>;
-//
-static void
-configure_hdf5_wrappers ()
-{
-    hdf5_gotcha_t::get_initializer () = [] () {
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 0, H5Aclose);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 1, H5Awrite);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 2, H5Dclose);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 3, H5Fclose);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 4, H5Gclose);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 5, H5Pclose);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 6, H5Pset_alignment);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 7, H5Pset_all_coll_metadata_ops);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 8, H5Pset_coll_metadata_write);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 9, H5Pset_dxpl_async);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 10, H5Pset_dxpl_mpio);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 11, H5Pset_fapl_mpio);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 12, H5Pset_vol_async);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 13, H5Sclose);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 14, H5Sselect_hyperslab);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 15, H5Tclose);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 16, H5Tinsert);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 17, H5Tset_size);
-        TIMEMORY_C_GOTCHA (hdf5_gotcha_t, 18, H5Tset_strpad);
-    };
-}
-//
-#else
-using hdf5_handle = tim::lightweight_tuple<>;
-#endif
-//
 namespace
 {
-static hdf5_handle&
-get_hdf5_wrapper ()
-{
-    static hdf5_handle _instance{};
-    return _instance;
-}
 //
-static bool&
-get_use_hdf5_wrappers ()
-{
-    static auto _instance = tim::get_env<bool> ("BL_PROFILE_HDF5", false);
-    return _instance;
-}
-//
+#if defined(TIMEMORY_MPI_GOTCHA)
 static bool&
 get_use_mpip_wrappers ()
 {
-#if defined(TIMEMORY_USE_MPIP_LIBRARY)
     static auto _instance = tim::get_env<bool> ("BL_PROFILE_MPI", true);
     return _instance;
-#else
-    static auto _instance = false;
-    return _instance;
-#endif
 }
+#endif
 //
+#if defined(TIMEMORY_USE_OMPT_LIBRARY)
 static bool&
 get_use_ompt_wrappers ()
 {
-#if defined(TIMEMORY_USE_OMPT_LIBRARY)
     static auto _instance = tim::get_env<bool> ("BL_PROFILE_OMP", true);
     return _instance;
-#else
-    static auto _instance = false;
-    return _instance;
-#endif
 }
+#endif
 //
 }  // namespace
-//
-static auto
-configure_hdf5_wrappers ()
-{
-    fprintf (stderr, "Warning! Profiling HDF5 wrappers is not supported! "
-                     "Requires GOTCHA support in timemory.\n");
-}
 //
 //--------------------------------------------------------------------------------------//
 //
@@ -155,12 +108,31 @@ auto print_avail_impl (std::index_sequence<Idx...>)
 //--------------------------------------------------------------------------------------//
 //
 void
-BL_timemory_configure (int argc, char** argv)
+BL_timemory_initialize (int argc, char** argv)
 {
     static bool _once = false;
     if (_once)
         return;
     _once = true;
+
+    static auto _manager  = tim::manager::instance();
+    static auto _settings = tim::settings::instance();
+
+    // default settings
+    tim::settings::mpi_init()       = false;
+    tim::settings::mpi_finalize()   = false;
+    tim::settings::upcxx_init()     = false;
+    tim::settings::upcxx_finalize() = false;
+
+    // if CI=true (i.e. continuous integration) is set in env
+    // enable cout the performance metrics for logs
+    // and dart for dashboard
+    if(tim::get_env<bool>("CI", false))
+    {
+        tim::settings::cout_output() = true;
+        tim::settings::dart_output() = true;
+    }
+
     if (argc < 1 || argv == nullptr)
     {
         char* _argv = new char[1];
@@ -170,12 +142,17 @@ BL_timemory_configure (int argc, char** argv)
     }
 
     tim::timemory_init (argc, argv);
+    
+    tim::settings::cout_output () = false;
+    tim::settings::plot_output () = false;
+
+    tim::consume_parameters(_manager, _settings);
 }
 //
 //--------------------------------------------------------------------------------------//
 //
 void
-BL_timemory_initialize (int argc, char** argv, bool parse_args)
+BL_timemory_configure ()
 {
     std::string default_components = "wall_clock";
     auto        _env = tim::get_env ("BL_PROFILE_COMPONENTS", default_components) + ", " +
@@ -184,7 +161,10 @@ BL_timemory_initialize (int argc, char** argv, bool parse_args)
     std::vector<std::string> components   = tim::delimit (_env, ", \t:;");
     std::vector<std::string> papi_events  = {};
     std::vector<std::string> cupti_events = {};
+    std::vector<std::string> mpip_permit  = {};
+    std::vector<std::string> mpip_reject  = {};
     bool                     print_avail  = false;
+    bool                     mpip_comm    = true;
     bool                     per_thread   = !tim::settings::collapse_threads ();
     bool                     per_process  = !tim::settings::collapse_processes ();
 
@@ -229,12 +209,11 @@ BL_timemory_initialize (int argc, char** argv, bool parse_args)
     pp.query ("ert_min_working_size", tim::settings::ert_min_working_size ());
     pp.query ("ert_num_threads", tim::settings::ert_num_threads ());
 
-#if defined(AMREX_HDF5_WRAPPERS)
-    pp.query ("profile_hdf5", get_use_hdf5_wrappers ());
-#endif
-
-#if defined(TIMEMORY_USE_MPIP_LIBRARY)
+#if defined(TIMEMORY_MPI_GOTCHA)
     pp.query ("profile_mpi", get_use_mpip_wrappers ());
+    pp.query ("profile_mpi_comm_data", mpip_comm);
+    pp.queryarr ("profile_mpi_permit", mpip_permit);
+    pp.queryarr ("profile_mpi_reject", mpip_reject);
 #endif
 
 #if defined(TIMEMORY_USE_OMPT_LIBRARY)
@@ -261,9 +240,6 @@ BL_timemory_initialize (int argc, char** argv, bool parse_args)
     {
         tim::configure<BL_timemory_bundle> (components);
 
-#if defined(TIMEMORY_USE_MPIP_LIBRARY)
-        tim::configure<tim::component::user_mpip_bundle> (components);
-#endif
 #if defined(TIMEMORY_USE_OMPT_LIBRARY)
         tim::configure<tim::component::user_ompt_bundle> (components);
 #endif
@@ -290,32 +266,25 @@ BL_timemory_initialize (int argc, char** argv, bool parse_args)
         BL_timemory_bundle::configure<tim::component::cupti_counters> ();
     }
 
-    if (argc > 0 && argv && parse_args)
+    auto vec_to_set = [](const auto& _vec)
     {
-        BL_timemory_configure (argc, argv);
-    }
-    else if (argc < 1 || argv == nullptr)
-    {
-        char* _argv = new char[1];
-        _argv[0]    = '\0';
-        tim::timemory_init (1, &_argv);
-    }
-    else
-    {
-        tim::timemory_init (argc, argv);
-    }
-
-    if (get_use_hdf5_wrappers ())
-    {
-        // generate wrappers
-        configure_hdf5_wrappers ();
-        // start the wrappers
-        get_hdf5_wrapper ().start ();
-    }
-
-#if defined(TIMEMORY_USE_MPIP_LIBRARY)
+	using type       = std::decay_t<decltype(_vec)>;
+	using value_type = typename type::value_type;
+	std::set<value_type> _ret{};
+	for(const auto& itr : _vec)
+	    _ret.insert(itr);
+	return _ret;
+    };
+    
+#if defined(TIMEMORY_MPI_GOTCHA)
     if (get_use_mpip_wrappers ())
-        timemory_register_mpip ();
+    {
+	auto _permit = vec_to_set(mpip_permit);
+	auto _reject = vec_to_set(mpip_reject);
+	tim::component::configure_mpip<mpip_bundle_t, api_t>(_permit, _reject);
+	tim::component::activate_mpip<mpip_bundle_t, api_t>();
+	tim::trait::runtime_enabled<mpi_comm_data_t>::set(mpip_comm);
+    }
 #endif
 
 #if defined(TIMEMORY_USE_OMPT_LIBRARY)
@@ -327,22 +296,19 @@ BL_timemory_initialize (int argc, char** argv, bool parse_args)
 void
 BL_timemory_finalize ()
 {
-    if (get_use_hdf5_wrappers ())
-    {
-        // stop the wrappers
-        get_hdf5_wrapper ().stop ();
-    }
-
-#if defined(TIMEMORY_USE_MPIP_LIBRARY)
+#if defined(TIMEMORY_MPI_GOTCHA)
     if (get_use_mpip_wrappers ())
-        timemory_deregister_mpip ();
+    {
+	tim::component::deactivate_mpip<mpip_bundle_t, api_t>(0);
+        tim::trait::runtime_enabled<mpi_comm_data_t>::set(false);
+    }
 #endif
-
+    
 #if defined(TIMEMORY_USE_OMPT_LIBRARY)
     if (get_use_ompt_wrappers ())
         timemory_deregister_ompt ();
 #endif
-
+    
     BL_timemory_get_regions ().clear ();
     tim::timemory_finalize ();
 }
@@ -411,46 +377,198 @@ TimemoryTplProfiler::stop ()
 //
 }  // namespace amrex
 
-//--------------------------------------------------------------------------------------//
-//
-//  Everything after this is "unused"
-//
-//--------------------------------------------------------------------------------------//
-
 template class tim::component_tuple<AMREX_TIMEMORY_COMPONENTS>;
 template class tim::auto_tuple<AMREX_TIMEMORY_COMPONENTS>;
 
-namespace
+#if defined(TIMEMORY_MPI_GOTCHA)
+//
+namespace tim
 {
-bool
-bl_timemory_load()
+namespace component
 {
-    // default settings
-    tim::settings::mpi_init()       = false;
-    tim::settings::mpi_finalize()   = false;
-    tim::settings::upcxx_init()     = false;
-    tim::settings::upcxx_finalize() = false;
-    tim::settings::cout_output ()   = false;
+//
+struct mpi_comm_data : base<mpi_comm_data, void>
+{
+    using value_type = void;
+    using this_type  = mpi_comm_data;
+    using base_type  = base<this_type, value_type>;
+    using tracker_t  = tim::auto_tuple<mpi_data_tracker_t>;
+    using data_type  = float;
 
-    // if CI=true (i.e. continuous integration) is set in env
-    // enable cout the performance metrics for logs
-    // and dart for dashboard
-    if(tim::get_env<bool>("CI", false))
+    TIMEMORY_DEFAULT_OBJECT(mpi_comm_data)
+
+    static void preinit()
     {
-        tim::settings::cout_output() = true;
-        tim::settings::dart_output() = true;
+        mpi_data_tracker_t::label()       = "mpi_comm_data";
+        mpi_data_tracker_t::description() = "Tracks MPI communication data";
     }
 
-    // allow env overrides
-    tim::settings::parse();
+    // MPI_Send
+    void audit(const std::string& _name, const void*, int count, MPI_Datatype datatype,
+               int dst, int, MPI_Comm)
+    {
+        int size = 0;
+        MPI_Type_size(datatype, &size);
+	if(count * size == 0)
+	    return;
+	PRINT_HERE("Logging %s", _name.c_str());
+        tracker_t _t(_name);
+        add(_t, count * size);
+        add_secondary(_t, TIMEMORY_JOIN("_", _name, "dst", dst), count * size);
+    }
 
-    // the following only currently works on linux
-    // via the /proc/<PID>/command_line procfs file
-    tim::config::read_command_line (amrex::BL_timemory_configure);
+    // MPI_Recv
+    void audit(const std::string& _name, void*, int count, MPI_Datatype datatype, int dst,
+               int, MPI_Comm, MPI_Status*)
+    {
+        int size = 0;
+        MPI_Type_size(datatype, &size);
+	if(count * size == 0)
+	    return;
+	PRINT_HERE("Logging %s", _name.c_str());
+        tracker_t _t(_name);
+        add(_t, count * size);
+        add_secondary(_t, TIMEMORY_JOIN("_", _name, "dst", dst), count * size);
+    }
 
-    return true;
-}
+    // MPI_Bcast
+    void audit(const std::string& _name, void*, int count, MPI_Datatype datatype,
+               int root, MPI_Comm)
+    {
+        int size = 0;
+        MPI_Type_size(datatype, &size);
+	if(count * size == 0)
+	    return;
+	PRINT_HERE("Logging %s", _name.c_str());
+        add(_name, count * size, TIMEMORY_JOIN("_", _name, "root", root));
+    }
 
-// appends the configurations when the library is loaded
-auto bl_timemory_is_loaded = bl_timemory_load();
-}  // namespace
+    // MPI_Allreduce
+    void audit(const std::string& _name, const void*, void*, int count,
+               MPI_Datatype datatype, MPI_Op, MPI_Comm)
+    {
+        int size = 0;
+        MPI_Type_size(datatype, &size);
+	if(count * size == 0)
+	    return;
+	PRINT_HERE("Logging %s", _name.c_str());
+        add(_name, count * size);
+    }
+
+    // MPI_Sendrecv
+    void audit(const std::string& _name, const void*, int sendcount,
+               MPI_Datatype sendtype, int, int sendtag, void*, int recvcount,
+               MPI_Datatype recvtype, int, int recvtag, MPI_Comm, MPI_Status*)
+    {
+        int send_size = 0;
+        int recv_size = 0;
+        MPI_Type_size(sendtype, &send_size);
+        MPI_Type_size(recvtype, &recv_size);
+	if(sendcount * send_size == 0 || recvcount * recv_size == 0)
+	    return;
+	PRINT_HERE("Logging %s", _name.c_str());
+        tracker_t _t(_name);
+        add(_t, sendcount * send_size + recvcount * recv_size);
+        add_secondary(_t, TIMEMORY_JOIN("_", _name, "send"), sendcount * send_size,
+                      TIMEMORY_JOIN("_", _name, "send", "tag", sendtag));
+        add_secondary(_t, TIMEMORY_JOIN("_", _name, "recv"), recvcount * recv_size,
+                      TIMEMORY_JOIN("_", _name, "recv", "tag", recvtag));
+    }
+
+    // MPI_Gather
+    void audit(const std::string& _name, const void*, int sendcount,
+               MPI_Datatype sendtype, void*, int recvcount, MPI_Datatype recvtype,
+               int root, MPI_Comm)
+    {
+        int send_size = 0;
+        int recv_size = 0;
+        MPI_Type_size(sendtype, &send_size);
+        MPI_Type_size(recvtype, &recv_size);
+	if(sendcount * send_size == 0 || recvcount * recv_size == 0)
+	    return;
+	PRINT_HERE("Logging %s", _name.c_str());
+        tracker_t _t(_name);
+        add(_t, sendcount * send_size + recvcount * recv_size);
+        tracker_t _r(TIMEMORY_JOIN("_", _name, "root", root));
+        add(_r, sendcount * send_size + recvcount * recv_size);
+        add_secondary(_r, TIMEMORY_JOIN("_", _name, "root", root, "send"),
+                      sendcount * send_size);
+        add_secondary(_r, TIMEMORY_JOIN("_", _name, "root", root, "recv"),
+                      recvcount * recv_size);
+    }
+
+    // MPI_Scatter
+    void audit(const std::string& _name, void*, int sendcount, MPI_Datatype sendtype,
+               void*, int recvcount, MPI_Datatype recvtype, int root, MPI_Comm)
+    {
+        int send_size = 0;
+        int recv_size = 0;
+        MPI_Type_size(sendtype, &send_size);
+        MPI_Type_size(recvtype, &recv_size);
+	if(sendcount * send_size == 0 || recvcount * recv_size == 0)
+	    return;
+	PRINT_HERE("Logging %s", _name.c_str());
+        tracker_t _t(_name);
+        add(_t, sendcount * send_size + recvcount * recv_size);
+        tracker_t _r(TIMEMORY_JOIN("_", _name, "root", root));
+        add(_r, sendcount * send_size + recvcount * recv_size);
+        add_secondary(_r, TIMEMORY_JOIN("_", _name, "root", root, "send"),
+                      sendcount * send_size);
+        add_secondary(_r, TIMEMORY_JOIN("_", _name, "root", root, "recv"),
+                      recvcount * recv_size);
+    }
+
+    // MPI_Alltoall
+    void audit(const std::string& _name, void*, int sendcount, MPI_Datatype sendtype,
+               void*, int recvcount, MPI_Datatype recvtype, MPI_Comm)
+    {
+        int send_size = 0;
+        int recv_size = 0;
+        MPI_Type_size(sendtype, &send_size);
+        MPI_Type_size(recvtype, &recv_size);
+	if(sendcount * send_size == 0 || recvcount * recv_size == 0)
+	    return;
+	PRINT_HERE("Logging %s", _name.c_str());
+        tracker_t _t(_name);
+        add(_t, sendcount * send_size + recvcount * recv_size);
+        add_secondary(_t, TIMEMORY_JOIN("_", _name, "send"), sendcount * send_size);
+        add_secondary(_t, TIMEMORY_JOIN("_", _name, "recv"), recvcount * recv_size);
+    }
+
+private:
+    template <typename... Args>
+    void add(tracker_t& _t, data_type value, Args&&... args)
+    {
+	if(value <= 0.0)
+	    return;
+        _t.store(std::plus<data_type>{}, value);
+        TIMEMORY_FOLD_EXPRESSION(add_secondary(_t, std::forward<Args>(args), value));
+    }
+
+    template <typename... Args>
+    void add(const std::string& _name, data_type value, Args&&... args)
+    {
+	if(value <= 0.0)
+	    return;
+        tracker_t _t(_name);
+        add(_t, value, std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    void add_secondary(tracker_t&, const std::string& _name, data_type value,
+                       Args&&... args)
+    {
+        if(tim::settings::add_secondary() && value > 0.0)
+        {
+            tracker_t _s(_name);
+            add(_s, value, std::forward<Args>(args)...);
+        }
+    }
+};
+}  // namespace component
+}  // namespace tim
+//
+TIMEMORY_STORAGE_INITIALIZER(mpi_comm_data, mpi_comm_data)
+TIMEMORY_STORAGE_INITIALIZER(mpi_data_tracker_t, mpi_data_tracker_t)
+//
+#endif

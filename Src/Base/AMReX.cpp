@@ -307,6 +307,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     ParallelDescriptor::PMI_Initialize();
 #endif
 
+#if defined(AMREX_USE_TIMEMORY)
+    amrex::BL_timemory_initialize(argc, argv);
+#endif
+    
     //
     // Make sure to catch new failures.
     //
@@ -393,6 +397,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #ifdef AMREX_USE_CUPTI
     CuptiInitialize();
 #endif
+#endif
+
+#if defined(AMREX_USE_TIMEMORY)
+    // Configure after ParmParse so that we can read inputs.
+    amrex::BL_timemory_configure();
 #endif
 
     {

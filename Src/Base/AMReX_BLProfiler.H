@@ -473,7 +473,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 
 #include <AMReX_timemory.H>
 
-#define BL_PROFILE_INITIALIZE() amrex::BL_timemory_initialize ();
+#define BL_PROFILE_INITIALIZE()
 #define BL_PROFILE_INITPARAMS()
 #define BL_PROFILE_FINALIZE() amrex::BL_timemory_finalize ();
 #define BL_TINY_PROFILE_INITIALIZE()

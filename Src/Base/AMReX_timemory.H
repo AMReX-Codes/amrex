@@ -56,17 +56,24 @@ using BL_timemory_handle = tim::component_tuple<AMREX_TIMEMORY_COMPONENTS>;
 /// this handle scopes the start and stop via RAII
 using BL_timemory_auto_handle = tim::auto_tuple<AMREX_TIMEMORY_COMPONENTS>;
 
-/// \fn void BL_timemory_configure(int argc, char** argv)
+/// \fn void BL_timemory_initialize(int argc, char** argv)
 /// \param argc number of arguments
 /// \param argv arguments
 ///
-/// \brief This function support command line arguments processing
+/// \brief This function calls timemory_initialize
 void
-BL_timemory_configure (int argc, char** argv);
+BL_timemory_initialize (int argc, char** argv);
 
+/// \fn void BL_timemory_configure()
+///
+/// \brief This function configures timemory for amrex. Should be called
+/// after ParmParse has been created/initialized
 void
-BL_timemory_initialize (int argc = 0, char** argv = nullptr, bool parse_args = true);
+BL_timemory_configure ();
 
+/// \fn void BL_timemory_finalize()
+///
+/// \brief Finalizes data and generates output
 void
 BL_timemory_finalize ();
 
