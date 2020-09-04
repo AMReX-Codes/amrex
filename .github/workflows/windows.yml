@@ -14,4 +14,4 @@ jobs:
         mkdir build
         cd build
         cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_VERBOSE_MAKEFILE=ON -DENABLE_TUTORIALS=ON -DENABLE_FORTRAN=OFF -DENABLE_MPI=OFF
-        cmake --build . --config Debug --target tutorials
+        cmake --build . --config Debug --target all
