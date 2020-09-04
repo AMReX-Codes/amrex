@@ -1,3 +1,7 @@
+if (ENABLE_CUDA)
+   return()
+endif ()
+
 set(_sources main.cpp MCNodalLinOp.cpp MCNodalLinOp.H)
 
 file( GLOB_RECURSE _input_files LIST_DIRECTORIES false inputs)

@@ -18,22 +18,22 @@ list(TRANSFORM _sources PREPEND Source/)
 
 ##########################################################################################
 #
-# CUDA tutorial
+# CUDA tutorial  --- This does not work
 #
 ##########################################################################################
-if (ENABLE_CUDA)
-   set(_cuda_sources EMParticleContainer.cpp  em_pic_K.H  Evolve.cpp)
-   list(TRANSFORM _cuda_sources PREPEND Exec/CUDA/)
-   list(APPEND _cuda_sources ${_sources})
+# if (ENABLE_CUDA)
+#    set(_cuda_sources EMParticleContainer.cpp  em_pic_K.H  Evolve.cpp)
+#    list(TRANSFORM _cuda_sources PREPEND Exec/CUDA/)
+#    list(APPEND _cuda_sources ${_sources})
 
-   set(_input_files Exec/CUDA/inputs)
+#    set(_input_files Exec/CUDA/inputs)
 
-   setup_tutorial(_cuda_sources _input_files
-      BASE_NAME ElectromagneticPIC_CUDA
-      RUNTIME_SUBDIR CUDA)
+#    setup_tutorial(_cuda_sources _input_files
+#       BASE_NAME ElectromagneticPIC_CUDA
+#       RUNTIME_SUBDIR CUDA)
 
-   unset(_cuda_sources)
-endif ()
+#    unset(_cuda_sources)
+# endif ()
 
 
 ##########################################################################################
