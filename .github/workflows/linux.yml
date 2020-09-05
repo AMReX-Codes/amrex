@@ -63,7 +63,7 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DENABLE_TUTORIALS=ON       \
+            -DAMReX_BUILD_TUTORIALS=ON  \
             -DENABLE_PARTICLES=ON
         make -j 2
 
@@ -82,7 +82,7 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DENABLE_TUTORIALS=ON       \
+            -DAMReX_BUILD_TUTORIALS=ON  \
             -DENABLE_PARTICLES=ON       \
             -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_C_COMPILER=$(which gcc-10)              \
@@ -105,7 +105,7 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DENABLE_TUTORIALS=ON       \
+            -DAMReX_BUILD_TUTORIALS=ON  \
             -DENABLE_MPI=OFF            \
             -DENABLE_PARTICLES=ON
         make -j 2
@@ -125,7 +125,7 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DENABLE_TUTORIALS=ON       \
+            -DAMReX_BUILD_TUTORIALS=ON  \
             -DENABLE_PARTICLES=ON       \
             -DENABLE_FORTRAN=OFF        \
             -DCMAKE_CXX_STANDARD=11
@@ -145,7 +145,7 @@ jobs:
         cd build
         cmake ..                                         \
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
-            -DENABLE_TUTORIALS=ON                        \
+            -DAMReX_BUILD_TUTORIALS=ON                   \
             -DENABLE_PARTICLES=ON                        \
             -DENABLE_CUDA=ON                             \
             -DCMAKE_C_COMPILER=$(which gcc-4.8)              \
@@ -171,7 +171,7 @@ jobs:
         cd build
         cmake ..                                           \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
-            -DENABLE_TUTORIALS=ON                          \
+            -DAMReX_BUILD_TUTORIALS=ON                     \
             -DENABLE_PARTICLES=ON                          \
             -DENABLE_DPCPP=ON                              \
             -DCMAKE_C_COMPILER=$(which clang)              \

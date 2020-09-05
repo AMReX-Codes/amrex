@@ -142,9 +142,10 @@ add_subdirectory(Src)
 #
 # Tutorials and "test_install" target
 #
-option(ENABLE_TUTORIALS "Enable Tutorials" NO)
+option(AMReX_BUILD_TUTORIALS "Build tutorials" NO)
 
-if (ENABLE_TUTORIALS)
+if (AMReX_BUILD_TUTORIALS)
+   message(STATUS "Enabling Tutorials")
    add_subdirectory(Tutorials)
 endif ()
 
