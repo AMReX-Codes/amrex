@@ -148,10 +148,15 @@ amrex::write_to_stderr_without_buffering (const char* str)
     }
 }
 
-static
+namespace {
+//  Having both host and device versions to avoid compiler warning
+AMREX_GPU_HOST_DEVICE
 void
 write_lib_id(const char* msg)
 {
+#if AMREX_DEVICE_COMPILE
+    amrex::ignore_unused(msg);
+#else
     fflush(0);
     const char* const s = "amrex::";
     fwrite(s, strlen(s), 1, stderr);
@@ -160,20 +165,8 @@ write_lib_id(const char* msg)
 	fwrite(msg, strlen(msg), 1, stderr);
 	fwrite("::", 2, 1, stderr);
     }
+#endif
 }
-
-void
-amrex::detail::Error_host_doit (const char* msg)
-{
-    if (system::error_handler) {
-        system::error_handler(msg);
-    } else if (system::throw_exception) {
-        throw RuntimeError(msg);
-    } else {
-        write_lib_id("Error");
-        write_to_stderr_without_buffering(msg);
-        ParallelDescriptor::Abort();
-    }
 }
 
 void
@@ -183,8 +176,62 @@ amrex::Error (const std::string& msg)
 }
 
 void
-amrex::detail::Abort_host_doit (const char* msg)
+amrex::Abort (const std::string& msg)
 {
+    Abort(msg.c_str());
+}
+
+void
+amrex::Warning (const std::string& msg)
+{
+    Warning(msg.c_str());
+}
+
+AMREX_GPU_HOST_DEVICE
+void
+amrex::Error (const char * msg)
+{
+#if AMREX_DEVICE_COMPILE
+    if (msg) AMREX_DEVICE_PRINTF("Error %s\n", msg);
+    AMREX_DEVICE_ASSERT(0);
+#else
+    if (system::error_handler) {
+        system::error_handler(msg);
+    } else if (system::throw_exception) {
+        throw RuntimeError(msg);
+    } else {
+        write_lib_id("Error");
+        write_to_stderr_without_buffering(msg);
+#ifdef _OPENMP
+#pragma omp critical (amrex_abort_omp_critical)
+#endif
+        ParallelDescriptor::Abort();
+    }
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE
+void
+amrex::Warning (const char * msg)
+{
+#if AMREX_DEVICE_COMPILE
+    if (msg) AMREX_DEVICE_PRINTF("Warning %s\n", msg);
+#else
+    if (msg)
+    {
+	amrex::Print(Print::AllProcs,amrex::ErrorStream()) << msg << '!' << '\n';
+    }
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE
+void
+amrex::Abort (const char * msg)
+{
+#if AMREX_DEVICE_COMPILE
+    if (msg) AMREX_DEVICE_PRINTF("Abort %s\n", msg);
+    AMREX_DEVICE_ASSERT(0);
+#else
     if (system::error_handler) {
         system::error_handler(msg);
     } else if (system::throw_exception) {
@@ -197,32 +244,23 @@ amrex::detail::Abort_host_doit (const char* msg)
 #endif
        ParallelDescriptor::Abort();
    }
+#endif
 }
 
+AMREX_GPU_HOST_DEVICE
 void
-amrex::Abort (const std::string& msg)
+amrex::Assert (const char* EX, const char* file, int line, const char* msg)
 {
-    Abort(msg.c_str());
-}
-
-void
-amrex::detail::Warning_host_doit (const char* msg)
-{
-    if (msg)
-    {
-	amrex::Print(Print::AllProcs,amrex::ErrorStream()) << msg << '!' << '\n';
+#if AMREX_DEVICE_COMPILE
+    if (msg) {
+        AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
+                            EX, file, line, msg);
+    } else {
+        AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
+                            EX, file, line);
     }
-}
-
-void
-amrex::Warning (const std::string& msg)
-{
-    Warning(msg.c_str());
-}
-
-void
-amrex::detail::Assert_host_doit (const char* EX, const char* file, int line, const char* msg)
-{
+    AMREX_DEVICE_ASSERT(0);
+#else
     const int N = 512;
 
     char buf[N];
@@ -250,8 +288,12 @@ amrex::detail::Assert_host_doit (const char* EX, const char* file, int line, con
         throw RuntimeError(buf);
     } else {
        write_to_stderr_without_buffering(buf);
+#ifdef _OPENMP
+#pragma omp critical (amrex_abort_omp_critical)
+#endif
        ParallelDescriptor::Abort();
    }
+#endif
 }
 
 namespace
