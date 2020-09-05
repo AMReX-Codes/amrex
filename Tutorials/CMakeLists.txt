@@ -1,8 +1,12 @@
 #
 # List of subdirectories to search for CMakeLists.
-# For now, we do not include BluePrint, GPU, MUI, SDC, SWFFT
+# For now, we do not include GPU, MUI, SDC, SWFFT
 #
 set( AMREX_TUTORIALS_SUBDIRS Amr Basic ForkJoin)
+
+if (ENABLE_ASCENT)
+   list(APPEND AMREX_TUTORIALS_SUBDIRS Blueprint)
+endif ()
 
 if (ENABLE_EB)
    list(APPEND AMREX_TUTORIALS_SUBDIRS EB)
@@ -25,7 +29,6 @@ if (ENABLE_FORTRAN_INTERFACES)
 endif ()
 
 list(TRANSFORM AMREX_TUTORIALS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
-
 
 #
 # Macro to setup the tutorials
