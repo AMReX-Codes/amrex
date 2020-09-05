@@ -214,7 +214,7 @@ F90FLAGS += $(GENERIC_HPCSDK_FLAGS)
 
 ########################################################################
 
-override XTRALIBS += -lstdc++ -latomic
+override XTRALIBS += -lstdc++ -latomic -lnvf
 
 LINK_WITH_FORTRAN_COMPILER ?= $(USE_F_INTERFACES)
 
