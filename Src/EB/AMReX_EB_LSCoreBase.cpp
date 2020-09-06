@@ -326,14 +326,26 @@ void LSCoreBase::FillCoarsePatch (MultiFab & mf_fne, const MultiFab & mf_crse,
 
     BL_PROFILE("static LSCoreBase::FillCoarsePatch()");
 
-    BndryFuncArray bfunc(amrex_eb_phifill);
-    PhysBCFunct<BndryFuncArray> cphysbc(geom_crse, bcs, bfunc);
-    PhysBCFunct<BndryFuncArray> fphysbc(geom_fne,  bcs, bfunc);
 
     Interpolater * mapper = & node_bilinear_interp;
 
-    amrex::InterpFromCoarseLevel(mf_fne, 0, mf_crse, 0, icomp, ncomp, geom_crse, geom_fne,
-                                 cphysbc, 0, fphysbc, 0, ref, mapper, bcs, 0);
+    if(Gpu::inLaunchRegion()) {
+        GpuBndryFuncFab<AmrLSCoreFill> gpu_bndry_func(AmrLSCoreFill{});
+
+        PhysBCFunct<GpuBndryFuncFab<AmrLSCoreFill> > cphysbc(geom_crse, bcs, gpu_bndry_func);
+        PhysBCFunct<GpuBndryFuncFab<AmrLSCoreFill> > fphysbc(geom_fne,  bcs, gpu_bndry_func);
+
+        amrex::InterpFromCoarseLevel(mf_fne, 0, mf_crse, 0, icomp, ncomp, geom_crse, geom_fne,
+                                     cphysbc, 0, fphysbc, 0, ref, mapper, bcs, 0);
+    } else {
+        // BndryFuncArray bfunc(amrex_eb_phifill);
+        CpuBndryFuncFab bfunc(nullptr);
+        PhysBCFunct<CpuBndryFuncFab> cphysbc(geom_crse, bcs, bfunc);
+        PhysBCFunct<CpuBndryFuncFab> fphysbc(geom_fne,  bcs, bfunc);
+
+        amrex::InterpFromCoarseLevel(mf_fne, 0, mf_crse, 0, icomp, ncomp, geom_crse, geom_fne,
+                                     cphysbc, 0, fphysbc, 0, ref, mapper, bcs, 0);
+    }
 }
 
 
