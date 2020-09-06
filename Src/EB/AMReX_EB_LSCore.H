@@ -15,9 +15,7 @@
 #include <AMReX_ArrayLim.H>
 #include <AMReX_FluxRegister.H>
 
-#include <AMReX_EB_F.H>
 #include <AMReX_EB_utils.H>
-#include <AMReX_EB_LSCore_F.H>
 #include <AMReX_EB_LSCoreBase.H>
 #include <AMReX_EB_levelset.H>
 

@@ -12,7 +12,6 @@
 #include "AMReX_BoxIterator.H"
 #include <AMReX_EBCellFlag.H>
 
-#include <AMReX_EB_F.H>
 #include <AMReX_EB_utils.H>
 
 #include <AMReX_EB2.H>

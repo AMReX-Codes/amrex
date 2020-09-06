@@ -1258,13 +1258,13 @@ contains
         implicit none
 
         real(amrex_real), dimension(3), intent(in   ) :: pos, plo
-        integer,      dimension(3), intent(in   ) :: phlo, phhi
-        integer,                    intent(in   ) :: n_refine
+        integer,          dimension(3), intent(in   ) :: phlo, phhi
+        integer,                        intent(in   ) :: n_refine
         real(amrex_real),               intent(in   ) :: phi( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
         real(amrex_real), dimension(3), intent(in   ) :: dx
         real(amrex_real),               intent(  out) :: phi_interp
 
-        integer                    :: i, j, k
+        integer                        :: i, j, k
         real(amrex_real)               :: xp, yp, zp, lx, ly, lz, wx_lo, wx_hi, wy_lo, wy_hi, wz_lo, wz_hi
         real(amrex_real), dimension(3) :: inv_dx
 
@@ -1313,13 +1313,13 @@ contains
         implicit none
 
         real(amrex_real), dimension(3), intent(in   ) :: pos, plo
-        integer,      dimension(3), intent(in   ) :: phlo, phhi
-        integer,                    intent(in   ) :: n_refine
+        integer,          dimension(3), intent(in   ) :: phlo, phhi
+        integer,                        intent(in   ) :: n_refine
         real(amrex_real),               intent(in   ) :: phi( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
         real(amrex_real), dimension(3), intent(in   ) :: dx
         real(amrex_real), dimension(3), intent(  out) :: normal
 
-        integer                    :: i, j, k
+        integer                        :: i, j, k
         real(amrex_real)               :: xp, yp, zp, lx, ly, lz, wx_lo, wx_hi, wy_lo, wy_hi, wz_lo, wz_hi
         real(amrex_real), dimension(3) :: inv_dx
 

@@ -269,49 +269,34 @@ void LSCoreBase::FillLevelSetTags(int lev, TagBoxArray & tags, const Vector<Real
 
     if (lev >= phierr.size()) return;
 
-    const int clearval = TagBox::CLEAR;
-    const int   tagval = TagBox::SET;
+    const int tagval = TagBox::SET;
 
-    const Real * dx      = geom[lev].CellSize();
-    const Real * prob_lo = geom[lev].ProbLo();
+    GpuArray<Real, AMREX_SPACEDIM> dx  = geom[lev].CellSizeArray();
+    GpuArray<Real, AMREX_SPACEDIM> dxi = geom[lev].InvCellSizeArray();
+    GpuArray<Real, AMREX_SPACEDIM> plo = geom[lev].ProbLoArray();
 
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    {
-        Vector<int> itags;
+    for (MFIter mfi(levelset_data, true); mfi.isValid(); ++mfi) {
+        const Box &    tilebox = mfi.tilebox();
 
-        for (MFIter mfi(levelset_data, true); mfi.isValid(); ++mfi) {
-            const Box &    tilebox = mfi.tilebox();
-                  TagBox & tagfab  = tags[mfi];
+        Array4<char      > const & tag_array = tags.array(mfi);
+        Array4<Real const> const & state     = levelset_data.array(mfi);
 
-            // We cannot pass tagfab to Fortran because it is BaseFab<char>. So
-            // we are going to get a temporary integer array. set itags
-            // initially to 'untagged' everywhere we define itags over the
-            // tilebox region
-            tagfab.get_itags(itags, tilebox);
+        ParallelFor(tilebox,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    GpuArray<Real, AMREX_SPACEDIM> pos {AMREX_D_DECL(
+                            ((Real) i + 0.5)*dx[0],
+                            ((Real) j + 0.5)*dx[1],
+                            ((Real) k + 0.5)*dx[2])};
+                    Real ls = interp_level_set(pos, 1, state, plo, dxi);
 
-            // data pointer and index space
-            int *       tptr = itags.dataPtr();
-            const int * tlo  = tilebox.loVect();
-            const int * thi  = tilebox.hiVect();
-
-            //-------------------------------------------------------------------
-            // Tag cells for refinement
-            Real time = 0; // Temporary storing "time" => not needed for level-set tagging
-            amrex_eb_levelset_error ( tptr, AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
-                                      BL_TO_FORTRAN_3D(levelset_data[mfi]),
-                                      & tagval, & clearval,
-                                      BL_TO_FORTRAN_BOX(tilebox),
-                                      AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo),
-                                      & time, & phierr[lev]);
-
-            //___________________________________________________________________
-            // Update the tags in the TagBox in the tilebox region to be equal
-            // to itags
-            tagfab.tags_and_untags(itags, tilebox);
-        }
+                    if (amrex::Math::abs(ls) <= phierr[lev])
+                        tag_array(i, j, k) = tagval;
+                }
+            );
     }
 }
 
