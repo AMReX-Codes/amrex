@@ -1,12 +1,11 @@
-#n_cell = 32 
-#f_offset = 4 
+n_cell = 64
+f_offset = 4
 
-max_grid_size = 64 
+max_grid_size = 128
 
-c_hi = 64 64 64
-
-f_lo = 4 8 16
-f_hi = 32 36 40
+#c_hi = 64 64
+#f_lo = 4 4
+#f_hi = 16 16
 
 amrex.v = 1
 amrex.async_out = 0  # If we use more than 64 processes, async_out will require MPI_THREAD_MULTIPLE

@@ -8,7 +8,7 @@ MPI_THREAD_MULTIPLE = FALSE  # amrex.async_out=1 with more than 64 processes req
 USE_OMP      = FALSE
 #USE_CUDA     = TRUE
 COMP         = gnu
-DIM          = 2 
+DIM          = 3
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 

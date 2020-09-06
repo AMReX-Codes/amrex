@@ -93,8 +93,6 @@ void main_main ()
         Box domain_f(IntVect{f_lo}, IntVect{f_hi});
         domain_f.refine(ratio);
 
-        amrex::Print() << domain << " / " << domain_f << std::endl;
-
         RealBox realbox_c({AMREX_D_DECL(0.0,0.0,0.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
         RealBox realbox_f({AMREX_D_DECL( double(f_lo[0])   / double(c_hi[0]+1),
                                          double(f_lo[1])   / double(c_hi[1]+1),
@@ -103,8 +101,6 @@ void main_main ()
                                          double(f_hi[1]+1) / double(c_hi[1]+1),
                                          double(f_hi[2]+1) / double(c_hi[2]+1) )} );
         Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
-
-        amrex::Print() << realbox_c << " ? " << realbox_f << std::endl;
 
         // Build coarse and fine boxArrays and DistributionMappings.
         BoxArray ba_c(domain);
@@ -176,14 +172,6 @@ void main_main ()
         AMREX_D_TERM( const Real& dx = c_geom.CellSize(0);,
                       const Real& dy = c_geom.CellSize(1);,
                       const Real& dz = c_geom.CellSize(2);  );
-
-        AMREX_D_TERM( amrex::Print() << " coarse dx = " << dx << std::endl;,
-                      amrex::Print() << " coarse dy = " << dy << std::endl;,
-                      amrex::Print() << " coarse dz = " << dz << std::endl;  );
-
-        AMREX_D_TERM( amrex::Print() << " fine dx = " << f_geom.CellSize(0) << std::endl;,
-                      amrex::Print() << " fine dy = " << f_geom.CellSize(1) << std::endl;,
-                      amrex::Print() << " fine dz = " << f_geom.CellSize(2) << std::endl;  );
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -311,7 +299,6 @@ void main_main ()
 
         amrex::Print() << " Divergence error = " << max_error << std::endl;
     }
-
 
 /*
     amrex::Print() << " Performing DivFree FillPatch. " << std::endl;

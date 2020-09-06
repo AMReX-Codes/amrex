@@ -571,62 +571,220 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 facediv_cubic (Box const& bx,
                GpuArray<Array4<T const>, AMREX_SPACEDIM> crse,
                GpuArray<Array4<T>, AMREX_SPACEDIM> fine,
-               const int icomp, const int ncomp, IntVect const& ratio) noexcept
+               const int icomp, const int ncomp, IntVect const& ratio,
+               const GpuArray<Real, AMREX_SPACEDIM> cellSize) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
+    if ((cellSize[0] != cellSize[1]) || (cellSize[1] != cellSize[2]))
+    {
+        amrex::Abort( "FaceDivFree 3D stencil only built for dx=dy=dz: "
+                           + std::to_string(cellSize[0]) + " / "
+                           + std::to_string(cellSize[1]) + " / "
+                           + std::to_string(cellSize[2]) );
+    }
+
     for (int n = 0; n < ncomp; ++n) {
         const int nu = n + icomp;
         for (int k = lo.z; k <= hi.z; ++k) {
-            //const int fk = k*ratio[2];
+            const int fk = k*ratio[2];
             for (int j = lo.y; j <= hi.y; ++j) {
                 const int fj = j*ratio[1];
+
                 AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
                     const int fi = i*ratio[0];
 
-                    // Create references to coarse values.
-                    // North = positive y direction,
-                    // East = positive x direction.
-                    const Real& uW  = crse[0](i,   j,   0, nu);
-                    const Real& uNW = crse[0](i,   j+1, 0, nu);
-                    const Real& uSW = crse[0](i,   j-1, 0, nu);
+                    // References to coarse values.
+                    // Note the "origin" for each velocity
+                    //     is the "negative" direction face of the current cell.
+                    const Real& uW   = crse[0](i,   j,   k,   nu);
+                    const Real& uWF  = crse[0](i,   j,   k+1, nu);
+                    const Real& uWB  = crse[0](i,   j,   k-1, nu);
+                    const Real& uNW  = crse[0](i,   j+1, k,   nu);
+                    const Real& uNWF = crse[0](i,   j+1, k+1, nu);
+                    const Real& uNWB = crse[0](i,   j+1, k-1, nu);
+                    const Real& uSW  = crse[0](i,   j-1, k,   nu);
+                    const Real& uSWF = crse[0](i,   j-1, k+1, nu);
+                    const Real& uSWB = crse[0](i,   j-1, k-1, nu);
 
-                    const Real& uE  = crse[0](i+1, j,   0, nu);
-                    const Real& uNE = crse[0](i+1, j+1, 0, nu);
-                    const Real& uSE = crse[0](i+1, j-1, 0, nu);
+                    const Real& uE   = crse[0](i+1, j,   k,   nu);
+                    const Real& uEF  = crse[0](i+1, j,   k+1, nu);
+                    const Real& uEB  = crse[0](i+1, j,   k-1, nu);
+                    const Real& uNE  = crse[0](i+1, j+1, k,   nu);
+                    const Real& uNEF = crse[0](i+1, j+1, k+1, nu);
+                    const Real& uNEB = crse[0](i+1, j+1, k-1, nu);
+                    const Real& uSE  = crse[0](i+1, j-1, k,   nu);
+                    const Real& uSEF = crse[0](i+1, j-1, k+1, nu);
+                    const Real& uSEB = crse[0](i+1, j-1, k-1, nu);
 
-                    const Real& vS  = crse[1](i,   j,   0, nu);
-                    const Real& vSW = crse[1](i-1, j,   0, nu);
-                    const Real& vSE = crse[1](i+1, j,   0, nu);
+                    const Real& vS   = crse[1](i,   j,   k,   nu);
+                    const Real& vSF  = crse[1](i,   j,   k+1, nu);
+                    const Real& vSB  = crse[1](i,   j,   k-1, nu);
+                    const Real& vSW  = crse[1](i-1, j,   k,   nu);
+                    const Real& vSWF = crse[1](i-1, j,   k+1, nu);
+                    const Real& vSWB = crse[1](i-1, j,   k-1, nu);
+                    const Real& vSE  = crse[1](i+1, j,   k,   nu);
+                    const Real& vSEF = crse[1](i+1, j,   k+1, nu);
+                    const Real& vSEB = crse[1](i+1, j,   k-1, nu);
 
-                    const Real& vN  = crse[1](i,   j+1, 0, nu);
-                    const Real& vNW = crse[1](i-1, j+1, 0, nu);
-                    const Real& vNE = crse[1](i+1, j+1, 0, nu);
+                    const Real& vN   = crse[1](i,   j+1, k,   nu);
+                    const Real& vNF  = crse[1](i,   j+1, k+1, nu);
+                    const Real& vNB  = crse[1](i,   j+1, k-1, nu);
+                    const Real& vNW  = crse[1](i-1, j+1, k,   nu);
+                    const Real& vNWF = crse[1](i-1, j+1, k+1, nu);
+                    const Real& vNWB = crse[1](i-1, j+1, k-1, nu);
+                    const Real& vNE  = crse[1](i+1, j+1, k,   nu);
+                    const Real& vNEF = crse[1](i+1, j+1, k+1, nu);
+                    const Real& vNEB = crse[1](i+1, j+1, k-1, nu);
 
-                    // Calc fine faces that fall on coarse faces
-                    fine[0](fi,    fj,0,n) = (8.0_rt*uW + uNW - uSW)/8.0_rt;
-                    fine[0](fi,  fj+2,0,n) = (8.0_rt*uW - uNW + uSW)/8.0_rt;
-                    fine[0](fi+2,  fj,0,n) = (8.0_rt*uE + uNE - uSE)/8.0_rt;
-                    fine[0](fi+2,fj+2,0,n) = (8.0_rt*uE - uNE + uSE)/8.0_rt;
-                    fine[1](fi,    fj,0,n) = (8.0_rt*vS + vSW - vSE)/8.0_rt;
-                    fine[1](fi+2,  fj,0,n) = (8.0_rt*vS - vSW + vSW)/8.0_rt;
-                    fine[1](fi,  fj+2,0,n) = (8.0_rt*vN + vNW - vNE)/8.0_rt;
-                    fine[1](fi+2,fj+2,0,n) = (8.0_rt*vN - vNW + vNE)/8.0_rt;
+                    const Real& wB   = crse[2](i,     j,   k, nu);
+                    const Real& wWB  = crse[2](i-1,   j,   k, nu);
+                    const Real& wEB  = crse[2](i+1,   j,   k, nu);
+                    const Real& wNB  = crse[2](i,   j+1,   k, nu);
+                    const Real& wNWB = crse[2](i-1, j+1,   k, nu);
+                    const Real& wNEB = crse[2](i+1, j+1,   k, nu);
+                    const Real& wSB  = crse[2](i,   j-1,   k, nu);
+                    const Real& wSWB = crse[2](i-1, j-1,   k, nu);
+                    const Real& wSEB = crse[2](i+1, j-1,   k, nu);
 
-                    // Calc fine faces on interior coarse faces
-                    fine[0](fi+1,  fj,0,n) = (8.0_rt*(uE+uW) + uSE + uSW - uNE - uNW
-                                                             + vNE + vSW - vNW - vSE)/16.0_rt;
+                    const Real& wF   = crse[2](i,     j, k+1, nu);
+                    const Real& wWF  = crse[2](i-1,   j, k+1, nu);
+                    const Real& wEF  = crse[2](i+1,   j, k+1, nu);
+                    const Real& wNF  = crse[2](i,   j+1, k+1, nu);
+                    const Real& wNWF = crse[2](i-1, j+1, k+1, nu);
+                    const Real& wNEF = crse[2](i+1, j+1, k+1, nu);
+                    const Real& wSF  = crse[2](i,   j-1, k+1, nu);
+                    const Real& wSWF = crse[2](i-1, j-1, k+1, nu);
+                    const Real& wSEF = crse[2](i+1, j-1, k+1, nu);
 
-                    fine[0](fi+1,fj+1,0,n) = (8.0_rt*(uE+uW) - uSE - uSW + uNE + uNW
-                                                             + vNE + vSW - vNW - vSE)/16.0_rt;
+                    // Calc fine faces that fall on coarse faces (exterior faces)
+                    // All cells calc S and W and B exterior faces.
+                    // N and E and F exterior faces only calced by edge cells.
+                    fine[0](fi,  fj,  fk,  n) = (64.0_rt*uW + 8.0_rt*(-uNW + uSW - uWF + uWB) + uNWF - uNWB - uSWF + uSWB)/64.0_rt;
+                    fine[0](fi,  fj+1,fk,  n) = (64.0_rt*uW + 8.0_rt*( uNW - uSW - uWF + uWB) - uNWF + uNWB + uSWF - uSWB)/64.0_rt;
+                    fine[0](fi,  fj,  fk+1,n) = (64.0_rt*uW + 8.0_rt*(-uNW + uSW + uWF - uWB) - uNWF + uNWB + uSWF - uSWB)/64.0_rt;
+                    fine[0](fi,  fj+1,fk+1,n) = (64.0_rt*uW + 8.0_rt*( uNW - uSW + uWF - uWB) + uNWF - uNWB - uSWF + uSWB)/64.0_rt;
 
-                    fine[1](fi,  fj+1,0,n) = (8.0_rt*(vN+vS) - uSE + uSW + uNE - uNW
-                                                             - vNE + vSW + vNW - vSE)/16.0_rt;
+                    fine[1](fi,  fj,  fk  ,n) = (64.0_rt*vS + 8.0_rt*( vSW - vSE - vSF + vSB) + vSWB - vSEB - vSWF + vSEF)/64.0_rt;
+                    fine[1](fi+1,fj,  fk  ,n) = (64.0_rt*vS + 8.0_rt*(-vSW + vSE - vSF + vSB) - vSWB + vSEB + vSWF - vSEF)/64.0_rt;
+                    fine[1](fi,  fj,  fk+1,n) = (64.0_rt*vS + 8.0_rt*( vSW - vSE + vSF - vSB) - vSWB + vSEB + vSWF - vSEF)/64.0_rt;
+                    fine[1](fi+1,fj,  fk+1,n) = (64.0_rt*vS + 8.0_rt*(-vSW + vSE + vSF - vSB) + vSWB - vSEB - vSWF + vSEF)/64.0_rt;
 
-                    fine[1](fi+1,fj+1,0,n) = (8.0_rt*(vN+vS) - uSE + uSW + uNE - uNW
-                                                             + vNE - vSW - vNW + vSE)/16.0_rt;
+                    fine[2](fi,  fj,  fk  ,n) = (64.0_rt*wB + 8.0_rt*(-wNB + wSB + wWB - wEB) - wNWB + wNEB + wSWB - wSEB)/64.0_rt;
+                    fine[2](fi,  fj+1,fk  ,n) = (64.0_rt*wB + 8.0_rt*( wNB - wSB + wWB - wEB) + wNWB - wNEB - wSWB + wSEB)/64.0_rt;
+                    fine[2](fi+1,fj,  fk  ,n) = (64.0_rt*wB + 8.0_rt*(-wNB + wSB - wWB + wEB) + wNWB - wNEB - wSWB + wSEB)/64.0_rt;
+                    fine[2](fi+1,fj+1,fk  ,n) = (64.0_rt*wB + 8.0_rt*( wNB - wSB - wWB + wEB) - wNWB + wNEB + wSWB - wSEB)/64.0_rt;
+
+                    // Calc interior fine faces from exterior values.
+//                    const Real dxdy = cellSize[0]/cellSize[1];
+
+                    fine[0](fi+1,fj  ,fk  ,n) = (1/256.0_rt)*(128.0_rt*(uW+uE)
+                                                             + 16.0_rt*(  uWB +  uEB +  uSE +  uSW -  uEF -  uNE -  uNW -  uWF
+                                                                        + vNE +  vSW -  vNW -  vSE +  wEF +  wWB -  wEB -  wWF)
+                                                             +  2.0_rt*( uNEF + uNWF + uSEB + uSWB - uNEB - uNWB - uSEF - uSWF)
+                                                             +         ( vNEB + vNWF + vSEF + vSWB - vNEF - vNWB - vSEB - vSWF)
+                                                             +         ( wNEB + wNWF + wSEF + wSWB - wNEF - wNWB - wSEB - wSWF));
+
+                    fine[0](fi+1,fj+1,fk  ,n) = (1/256.0_rt)*(128.0_rt*(uW+uE)
+                                                             + 16.0_rt*(  uWB +  uEB -  uSE -  uSW -  uEF +  uNE +  uNW -  uWF
+                                                                        + vNE +  vSW -  vNW -  vSE +  wEF +  wWB -  wEB -  wWF)
+                                                             -  2.0_rt*( uNEF + uNWF + uSEB + uSWB - uNEB - uNWB - uSEF - uSWF)
+                                                             +         ( vNEB + vNWF + vSEF + vSWB - vNEF - vNWB - vSEB - vSWF)
+                                                             -         ( wNEB + wNWF + wSEF + wSWB - wNEF - wNWB - wSEB - wSWF));
+
+                    fine[0](fi+1,fj  ,fk+1,n) = (1/256.0_rt)*(128.0_rt*(uW+uE)
+                                                             + 16.0_rt*( -uWB -  uEB +  uSE +  uSW +  uEF -  uNE -  uNW +  uWF
+                                                                        + vNE +  vSW -  vNW -  vSE +  wEF +  wWB -  wEB -  wWF)
+                                                             -  2.0_rt*( uNEF + uNWF + uSEB + uSWB - uNEB - uNWB - uSEF - uSWF)
+                                                             -         ( vNEB + vNWF + vSEF + vSWB - vNEF - vNWB - vSEB - vSWF)
+                                                             +         ( wNEB + wNWF + wSEF + wSWB - wNEF - wNWB - wSEB - wSWF));
+
+                    fine[0](fi+1,fj+1,fk+1,n) = (1/256.0_rt)*(128.0_rt*(uW+uE)
+                                                             + 16.0_rt*( -uWB -  uEB -  uSE -  uSW +  uEF +  uNE +  uNW +  uWF
+                                                                        + vNE +  vSW -  vNW -  vSE +  wEF +  wWB -  wEB -  wWF)
+                                                             +  2.0_rt*( uNEF + uNWF + uSEB + uSWB - uNEB - uNWB - uSEF - uSWF)
+                                                             +         ( vNEB + vNWF + vSEF + vSWB - vNEF - vNWB - vSEB - vSWF)
+                                                             +         ( wNEB + wNWF + wSEF + wSWB - wNEF - wNWB - wSEB - wSWF));
+
+                    fine[1](fi  ,fj+1,fk  ,n) = (1/256.0_rt)*(128.0_rt*(vN+vS)
+                                                             + 16.0_rt*(  vNB +  vNW +  vSB +  vSW -  vNF -  vNE -  vSF -  vSE
+                                                                        + uNE +  uSW -  uNW -  uSE +  wNF +  wSB -  wNB -  wSF)
+                                                             +  2.0_rt*( vNEF + vNWB + vSEF + vSWB - vNEB - vNWF - vSEB - vSWF)
+                                                             +         ( uNEB + uNWF + uSEF + uSWB - uNEF - uNWB - uSEB - uSWF)
+                                                             +         ( wNEB + wNWF + wSEF + wSWB - wNEF - wNWB - wSEB - wSWF));
+
+                    fine[1](fi  ,fj+1,fk+1,n) = (1/256.0_rt)*(128.0_rt*(vN+vS)
+                                                             + 16.0_rt*( -vNB +  vNW -  vSB +  vSW +  vNF -  vNE +  vSF -  vSE
+                                                                        + uNE +  uSW -  uNW -  uSE +  wNF +  wSB -  wNB -  wSF)
+                                                             -  2.0_rt*( vNEF + vNWB + vSEF + vSWB - vNEB - vNWF - vSEB - vSWF)
+                                                             +         ( uNEB + uNWF + uSEF + uSWB - uNEF - uNWB - uSEB - uSWF)
+                                                             -         ( wNEB + wNWF + wSEF + wSWB - wNEF - wNWB - wSEB - wSWF));
+
+                    fine[1](fi+1,fj+1,fk  ,n) = (1/256.0_rt)*(128.0_rt*(vN+vS)
+                                                             + 16.0_rt*(  vNB -  vNW +  vSB -  vSW -  vNF +  vNE -  vSF +  vSE
+                                                                        + uNE +  uSW -  uNW -  uSE +  wNF +  wSB -  wNB -  wSF)
+                                                             -  2.0_rt*( vNEF + vNWB + vSEF + vSWB - vNEB - vNWF - vSEB - vSWF)
+                                                             -         ( uNEB + uNWF + uSEF + uSWB - uNEF - uNWB - uSEB - uSWF)
+                                                             +         ( wNEB + wNWF + wSEF + wSWB - wNEF - wNWB - wSEB - wSWF));
+
+                    fine[1](fi+1,fj+1,fk+1,n) = (1/256.0_rt)*(128.0_rt*(vN+vS)
+                                                             + 16.0_rt*( -vNB -  vNW -  vSB -  vSW +  vNF +  vNE +  vSF +  vSE
+                                                                        + uNE +  uSW -  uNW -  uSE +  wNF +  wSB -  wNB -  wSF)
+                                                             +  2.0_rt*( vNEF + vNWB + vSEF + vSWB - vNEB - vNWF - vSEB - vSWF)
+                                                             -         ( uNEB + uNWF + uSEF + uSWB - uNEF - uNWB - uSEB - uSWF)
+                                                             -         ( wNEB + wNWF + wSEF + wSWB - wNEF - wNWB - wSEB - wSWF));
+
+                    fine[2](fi  ,fj  ,fk+1,n) = (1/256.0_rt)*(128.0_rt*(wF+wB)
+                                                             + 16.0_rt*(  wSF +  wSB +  wWF +  wWB -  wEF -  wEB -  wNF -  wNB
+                                                                        + uEF +  uWB -  uEB -  uWF +  vNF +  vSB -  vNB -  vSF)
+                                                             +  2.0_rt*( wNEF + wNEB + wSWF + wSWB - wNWF - wNWB - wSEF - wSEB)
+                                                             +         ( uNEB + uNWF + uSEF + uSWB - uNEF - uNWB - uSEB - uSWF)
+                                                             +         ( vNEB + vNWF + vSEF + vSWB - vNEF - vNWB - vSEB - vSWF));
+
+                    fine[2](fi  ,fj+1,fk+1,n) = (1/256.0_rt)*(128.0_rt*(wF+wB)
+                                                             + 16.0_rt*( -wSF -  wSB +  wWF +  wWB -  wEF -  wEB +  wNF +  wNB
+                                                                        + uEF +  uWB -  uEB -  uWF +  vNF +  vSB -  vNB -  vSF)
+                                                             -  2.0_rt*( wNEF + wNEB + wSWF + wSWB - wNWF - wNWB - wSEF - wSEB)
+                                                             +         ( uNEB + uNWF + uSEF + uSWB - uNEF - uNWB - uSEB - uSWF)
+                                                             -         ( vNEB + vNWF + vSEF + vSWB - vNEF - vNWB - vSEB - vSWF));
+
+                    fine[2](fi+1,fj  ,fk+1,n) = (1/256.0_rt)*(128.0_rt*(wF+wB)
+                                                             + 16.0_rt*(  wSF +  wSB -  wWF -  wWB +  wEF +  wEB -  wNF -  wNB
+                                                                        + uEF +  uWB -  uEB -  uWF +  vNF +  vSB -  vNB -  vSF)
+                                                             -  2.0_rt*( wNEF + wNEB + wSWF + wSWB - wNWF - wNWB - wSEF - wSEB)
+                                                             -         ( uNEB + uNWF + uSEF + uSWB - uNEF - uNWB - uSEB - uSWF)
+                                                             +         ( vNEB + vNWF + vSEF + vSWB - vNEF - vNWB - vSEB - vSWF));
+
+                    fine[2](fi+1,fj+1,fk+1,n) = (1/256.0_rt)*(128.0_rt*(wF+wB)
+                                                             + 16.0_rt*( -wSF -  wSB -  wWF -  wWB +  wEF +  wEB +  wNF +  wNB
+                                                                        + uEF +  uWB -  uEB -  uWF +  vNF +  vSB -  vNB -  vSF)
+                                                             +  2.0_rt*( wNEF + wNEB + wSWF + wSWB - wNWF - wNWB - wSEF - wSEB)
+                                                             -         ( uNEB + uNWF + uSEF + uSWB - uNEF - uNWB - uSEB - uSWF)
+                                                             -         ( vNEB + vNWF + vSEF + vSWB - vNEF - vNWB - vSEB - vSWF));
+
+                    if (i == hi.x)
+                    {
+                        fine[0](fi+2,fj,  fk,  n) = (64.0_rt*uE + 8.0_rt*(-uNE + uSE - uEF + uEB) + uNEF - uNEB - uSEF + uSEB)/64.0_rt;
+                        fine[0](fi+2,fj+1,fk,  n) = (64.0_rt*uE + 8.0_rt*( uNE - uSE - uEF + uEB) - uNEF + uNEB + uSEF - uSEB)/64.0_rt;
+                        fine[0](fi+2,fj,  fk+1,n) = (64.0_rt*uE + 8.0_rt*(-uNE + uSE + uEF - uEB) - uNEF + uNEB + uSEF - uSEB)/64.0_rt;
+                        fine[0](fi+2,fj+1,fk+1,n) = (64.0_rt*uE + 8.0_rt*( uNE - uSE + uEF - uEB) + uNEF - uNEB - uSEF + uSEB)/64.0_rt;
+                    }
+                    if (j == hi.y)
+                    {
+                        fine[1](fi,  fj+2,fk  ,n) = (64.0_rt*vN + 8.0_rt*( vNW - vNE - vNF + vNB) + vNWB - vNEB - vNWF + vNEF)/64.0_rt;
+                        fine[1](fi+1,fj+2,fk  ,n) = (64.0_rt*vN + 8.0_rt*(-vNW + vNE - vNF + vNB) - vNWB + vNEB + vNWF - vNEF)/64.0_rt;
+                        fine[1](fi,  fj+2,fk+1,n) = (64.0_rt*vN + 8.0_rt*( vNW - vNE + vNF - vNB) - vNWB + vNEB + vNWF - vNEF)/64.0_rt;
+                        fine[1](fi+1,fj+2,fk+1,n) = (64.0_rt*vN + 8.0_rt*(-vNW + vNE + vNF - vNB) + vNWB - vNEB - vNWF + vNEF)/64.0_rt;
+                    }
+                    if (k == hi.z)
+                    {
+                        fine[2](fi,  fj,  fk+2,n) = (64.0_rt*wF + 8.0_rt*(-wNF + wSF + wWF - wEF) - wNWF + wNEF + wSWF - wSEF)/64.0_rt;
+                        fine[2](fi,  fj+1,fk+2,n) = (64.0_rt*wF + 8.0_rt*( wNF - wSF + wWF - wEF) + wNWF - wNEF - wSWF + wSEF)/64.0_rt;
+                        fine[2](fi+1,fj,  fk+2,n) = (64.0_rt*wF + 8.0_rt*(-wNF + wSF - wWF + wEF) + wNWF - wNEF - wSWF + wSEF)/64.0_rt;
+                        fine[2](fi+1,fj+1,fk+2,n) = (64.0_rt*wF + 8.0_rt*( wNF - wSF - wWF + wEF) - wNWF + wNEF + wSWF - wSEF)/64.0_rt;
+                    }
                 }
             }
         }

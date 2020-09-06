@@ -485,7 +485,7 @@ facediv_cubic (Box const& bx,
                                                + (1/dxdy)*(-uSE + uSW + uNE - uNW))/16.0_rt;
 
                 // Calc fine faces on positive exterior faces of coarse cells (E and N).
-                // On done by cells touching those boundaries. 
+                // Only done by cells touching those boundaries.
                 if (i == hi.x)
                 {
                     fine[0](fi+2,fj  ,0,n) = (8.0_rt*uE - uNE + uSE)/8.0_rt;
