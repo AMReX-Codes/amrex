@@ -341,13 +341,13 @@ amrex::Real amrex_calc_zslope_extdir (int i, int j, int k, int n, int order,
     if (order == 2)
     {
 
-        amrex::Real dl = 2.0*(vcc(i,j,k  ,n) - vcc(i,j,k-1,n));
-        amrex::Real dr = 2.0*(vcc(i,j,k+1,n) - vcc(i,j,k  ,n));
-        amrex::Real dc = 0.5*(vcc(i,j,k+1,n) - vcc(i,j,k-1,n));
+        amrex::Real dl = 2.0*(q(i,j,k  ,n) - q(i,j,k-1,n));
+        amrex::Real dr = 2.0*(q(i,j,k+1,n) - q(i,j,k  ,n));
+        amrex::Real dc = 0.5*(q(i,j,k+1,n) - q(i,j,k-1,n));
         if (edlo and k == domlo) {
-            dc = (vcc(i,j,k+1,n)+3.0*vcc(i,j,k,n)-4.0*vcc(i,j,k-1,n))/3.0;
+            dc = (q(i,j,k+1,n)+3.0*q(i,j,k,n)-4.0*q(i,j,k-1,n))/3.0;
         } else if (edhi and k == domhi) {
-            dc = (4.0*vcc(i,j,k+1,n)-3.0*vcc(i,j,k,n)-vcc(i,j,k-1,n))/3.0;
+            dc = (4.0*q(i,j,k+1,n)-3.0*q(i,j,k,n)-q(i,j,k-1,n))/3.0;
         }
         amrex::Real slope = amrex::min(amrex::Math::abs(dl),amrex::Math::abs(dc),amrex::Math::abs(dr));
         slope = (dr*dl > 0.0) ? slope : 0.0;
