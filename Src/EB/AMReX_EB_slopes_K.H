@@ -15,6 +15,12 @@ namespace {
 #if (AMREX_SPACEDIM > 1)
 #ifdef AMREX_USE_EB
 
+#if (AMREX_SPACEDIM == 2)
+#define DIMA  9  
+#elif (AMREX_SPACEDIM == 3)
+#define DIMA 27  
+#endif
+
 // amrex_calc_slopes_eb calculates the slope in each coordinate direction using a 
 // least squares linear fit to the 9 in 2D / 27 in 3D nearest neighbors, with the function
 // going through the centroid of cell(i,j,k).  This does not assume that the cell centroids,
@@ -24,13 +30,6 @@ namespace {
 // defined on faces use the face centroid location.
 //
 // All the slopes are returned in one call.
-
-#if (AMREX_SPACEDIM == 2)
-#define DIMA  9  
-#elif (AMREX_SPACEDIM == 3)
-#define DIMA 27  
-#endif
-
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
@@ -65,6 +64,8 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
               du[lc] = 0.0;
             }
 
+//          if (i == 3 and j == 17 and k == 16) amrex::Print() << "DU " << 
+//                    ii << " " <<       jj << " " <<      kk  <<  " " << du[lc]  << std::endl; 
             lc++;
           }
         }
@@ -189,13 +190,13 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
 {
     amrex::Real A[DIMA][AMREX_SPACEDIM];
 
-    {
-      int lc=0;
+    int lc=0;
 #if (AMREX_SPACEDIM == 3)
-      for(int kk(-1); kk<=1; kk++){
+    for(int kk(-1); kk<=1; kk++)
 #else
-      int kk = 0;
+    int kk = 0;
 #endif
+    {
         for(int jj(-1); jj<=1; jj++){
           for(int ii(-1); ii<=1; ii++){
 
@@ -219,12 +220,14 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
                            A[lc][2] = 0.0;);
             }
 
+#if 0
+            if (i == 3 and j == 17 and k == 16) amrex::Print() << "A " << 
+                      ii << " " <<       jj << " " <<      kk  <<  " "  <<
+                A[lc][0] << " " << A[lc][1] << " " << A[lc][2] << std::endl; 
+#endif
             lc++;
           }
         }
-#if (AMREX_SPACEDIM == 3)
-      }
-#endif
     }
 
     // 
@@ -255,7 +258,7 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
 
 #if (AMREX_SPACEDIM == 3)
     // Z direction
-    if (flag(i,j,k).isRegular() and flag(i,j,k-1).isRegular() and flag(i,j,k).isRegular()) 
+    if (flag(i,j,k).isRegular() and flag(i,j,k-1).isRegular() and flag(i,j,k+1).isRegular()) 
     {
         int order = 2;
         zslope = amrex_calc_zslope(i,j,k,n,order,state);
@@ -369,8 +372,10 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
                                  A[lc][1] = 0.0;,
                                  A[lc][2] = 0.0;);
                 }
-//                    if (i == 0 and j == 14)
-//                    amrex::Print() << "STATE " << ii << " " << jj << " " << state(i+ii,j+jj,k) << std::endl;
+#if 0
+                      if (i == 0 and j == 4)
+                      amrex::Print() << "STATE " << ii << " " << jj << " " << state(i+ii,j+jj,k) << std::endl;
+#endif
 
                 lc++;
               }
@@ -379,7 +384,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
         }
 #endif
 #if 0
-        if (i == 0 and j == 15)
+        if (i == 0 and j == 4)
         for (int nn = 0; nn < 9; nn++) 
         {
            amrex::Print() << "A " << nn << " " << A[nn][0] << " " << A[nn][1] << std::endl;  
@@ -454,11 +459,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     if ( (edlo_z and k == domlo_z) or (edlo_z and k == domhi_z) )
     {
         int lc=0;
-#if (AMREX_SPACEDIM == 3)
         for(int kk(-1); kk<=1; kk++) {
-#else
-            int kk = 0;
-#endif
             for(int jj(-1); jj<=1; jj++){
               for(int ii(-1); ii<=1; ii++){
 
@@ -471,24 +472,18 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
 
                     if (edlo_z and k == domlo_z and kk == -1) {
                         A[lc][0] = ii + fcz(i+ii,j+jj,k   ,0) - ccent(i,j,k,1);
-                        A[lc][1] = jj + fcz(i+ik,j+jj,k   ,1) - ccent(i,j,k,1);
-#if (AMREX_SPACEDIM == 3)
+                        A[lc][1] = jj + fcz(i+ii,j+jj,k   ,1) - ccent(i,j,k,1);
                         A[lc][2] = -0.5                       - ccent(i,j,k,2);
-#endif
                     } 
                     else if (edhi_z and k == domhi_z and kk == 1) 
                     {
                         A[lc][0] = ii + fcz(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
-                        A[lc][1] = jj + fcz(i+ik,j+jj,k+kk,1) - ccent(i,j,k,1);
-#if (AMREX_SPACEDIM == 3)
+                        A[lc][1] = jj + fcz(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
                         A[lc][2] = 0.5                        - ccent(i,j,k,2);
-#endif
                     } else {
                         A[lc][0] = ii + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
                         A[lc][1] = jj + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
-#if (AMREX_SPACEDIM == 3)
                         A[lc][2] = kk + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2);
-#endif
                     }
 
                  } else {
@@ -500,9 +495,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
                 lc++;
               }
             }
-#if (AMREX_SPACEDIM == 3)
         }
-#endif
         const auto& slopes = amrex_calc_slopes_eb_given_A (i,j,k,n,A,state,flag);
 
         AMREX_D_TERM(xslope = slopes[0];,
@@ -526,7 +519,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
            yslope = amrex_calc_yslope(i,j,k,n,order,state);
          }
 #if (AMREX_SPACEDIM == 3)
-         if ( !( (edlo_z and k == domlo_z) or (edlo_z and k == domhi_k) ) and 
+         if ( !( (edlo_z and k == domlo_z) or (edlo_z and k == domhi_z) ) and 
                (flag(i,j,k).isRegular() and flag(i,j,k-1).isRegular() and flag(i,j,k+1).isRegular()) ) 
          {
            int order = 2;
@@ -546,7 +539,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
            xslope = amrex_calc_xslope(i,j,k,n,order,state);
          }
 #if (AMREX_SPACEDIM == 3)
-         if ( !( (edlo_z and k == domlo_z) or (edlo_z and k == domhi_k) ) and 
+         if ( !( (edlo_z and k == domlo_z) or (edlo_z and k == domhi_z) ) and 
                (flag(i,j,k).isRegular() and flag(i,j,k-1).isRegular() and flag(i,j,k+1).isRegular()) ) 
          {
            int order = 2;
