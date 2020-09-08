@@ -45,8 +45,9 @@ void Initialize ()
         MPI_Query_thread(&provided);
         if (provided < MPI_THREAD_MULTIPLE)
             amrex::Abort("AsyncOut with " + std::to_string(s_noutfiles) + " and "
-                         +std::to_string(nprocs) + " processes requires "
-                         +"MPI_THREAD_MULTIPLE at runtime");
+                         + std::to_string(nprocs) + " processes requires "
+                         + "MPI_THREAD_MULTIPLE at runtime, but got "
+                         + ParallelDescriptor::mpi_level_to_string(provided));
 
         int myproc = ParallelDescriptor::MyProc();
         s_info = GetWriteInfo(myproc);
