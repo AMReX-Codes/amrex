@@ -579,10 +579,7 @@ facediv_cubic (Box const& bx,
 
     if ((cellSize[0] != cellSize[1]) || (cellSize[1] != cellSize[2]))
     {
-        amrex::Abort( "FaceDivFree 3D stencil only built for dx=dy=dz: "
-                           + std::to_string(cellSize[0]) + " / "
-                           + std::to_string(cellSize[1]) + " / "
-                           + std::to_string(cellSize[2]) );
+        amrex::Abort( "FaceDivFree 3D stencil only built for dx=dy=dz." );
     }
 
     for (int n = 0; n < ncomp; ++n) {

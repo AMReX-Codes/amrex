@@ -281,6 +281,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const int ncomp,
                   Array4<T const> const& slope, Array4<T const> const& crse,
                   const int ccomp, IntVect const& ratio) noexcept
+
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -301,7 +302,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 facediv_cubic (Box const& bx,
                GpuArray<Array4<T const>, AMREX_SPACEDIM> crse,
                GpuArray<Array4<T>, AMREX_SPACEDIM> fine,
-               const int icomp, const int ncomp, IntVect const& ratio) noexcept
+               const int icomp, const int ncomp, IntVect const& ratio,
+               const GpuArray<Real, AMREX_SPACEDIM> cellSize) noexcept
 {
     amrex::Abort("No 1D version of FaceDiv exists.\n"); 
 }
