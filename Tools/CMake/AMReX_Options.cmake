@@ -144,7 +144,7 @@ endif ()
 #
 # AMReX components selection  ================================================
 #
-cmake_dependent_option( ENABLE_EB "Build EB code" OFF
+cmake_dependent_option( ENABLE_EB "Build with Embedded Boundary support" OFF
    "NOT DIM EQUAL 1" OFF )
 print_option(ENABLE_EB)
 
