@@ -479,7 +479,7 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_MEM_PROFILE           |  Build with memory-profiling support            | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_MPI_THREAD_MULTIPLE   |  Multiple threads can make MPI concurrently     | NO          | YES, NO         |
+   | ENABLE_MPI_THREAD_MULTIPLE   |  Concurrent MPI calls from multiple threads     | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_PROFPARSER            |  Build with profile parser support              | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
