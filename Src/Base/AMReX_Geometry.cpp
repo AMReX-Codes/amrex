@@ -103,13 +103,6 @@ Geometry::define (const Box& dom, const RealBox* rb, int coord,
     domain = dom;
     ok     = true;
 
-    for (int k = 0; k < AMREX_SPACEDIM; k++)
-    {
-        offset[k] = prob_domain.lo(k);
-        dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
-	inv_dx[k] = 1.0/dx[k];
-    }
-
     computeRoundoffDomain();
 }
 
@@ -403,6 +396,13 @@ Geometry::growPeriodicDomain (int ngrow) const noexcept
 void
 Geometry::computeRoundoffDomain ()
 {
+    for (int k = 0; k < AMREX_SPACEDIM; k++)
+    {
+        offset[k] = prob_domain.lo(k);
+        dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
+        inv_dx[k] = 1.0/dx[k];
+    }
+
     roundoff_domain = prob_domain;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
