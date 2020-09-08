@@ -70,11 +70,6 @@ macro (setup_tutorial _sources  _input_files)
    endforeach()
    unset(_includes)
 
-   if (ENABLE_CUDA)
-      set_cpp_sources_to_cuda_language( ${_exe_name} )
-   endif ()
-
-   # Extra arguments
    if (_HAS_FORTRAN_MODULES)
       target_include_directories(${_exe_name}
          PRIVATE
@@ -87,6 +82,10 @@ macro (setup_tutorial _sources  _input_files)
    endif ()
 
    target_link_libraries( ${_exe_name} amrex )
+
+   if (ENABLE_CUDA)
+      setup_target_for_cuda_compilation( ${_exe_name} )
+   endif ()
 
    if (${_input_files})
       file( COPY ${${_input_files}} DESTINATION ${_exe_dir} )
