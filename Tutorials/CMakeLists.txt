@@ -1,6 +1,6 @@
 #
 # List of subdirectories to search for CMakeLists.
-# For now, we do not include GPU, MUI, SDC, SWFFT
+# For now, we do not include MUI, SDC, SWFFT
 #
 set( AMREX_TUTORIALS_SUBDIRS Amr Basic ForkJoin)
 
@@ -28,6 +28,10 @@ if (ENABLE_FORTRAN_INTERFACES)
    list(APPEND AMREX_TUTORIALS_SUBDIRS FortranInterface)
 endif ()
 
+if (ENABLE_CUDA)
+   list(APPEND AMREX_TUTORIALS_SUBDIRS GPU)
+endif ()
+
 list(TRANSFORM AMREX_TUTORIALS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
 
 #
@@ -35,7 +39,7 @@ list(TRANSFORM AMREX_TUTORIALS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
 #
 macro (setup_tutorial _sources  _input_files)
 
-   cmake_parse_arguments( "" "HAS_FORTRAN_MODULES" "BASE_NAME;RUNTIME_SUBDIR" "" ${ARGN} )
+   cmake_parse_arguments( "" "HAS_FORTRAN_MODULES" "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS" "" ${ARGN} )
 
    if (_BASE_NAME)
       set(_base_name ${_BASE_NAME})
@@ -60,6 +64,11 @@ macro (setup_tutorial _sources  _input_files)
    target_sources( ${_exe_name} PRIVATE ${${_sources}} )
 
    set_target_properties( ${_exe_name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${_exe_dir} )
+
+   if (_EXTRA_DEFINITIONS)
+      target_compile_definitions(${_exe_name} PRIVATE ${_EXTRA_DEFINITIONS})
+      unset(_EXTRA_DEFINITIONS)
+   endif ()
 
    # Find out which include directory is needed
    set(_includes ${${_sources}})
