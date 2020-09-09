@@ -15,12 +15,6 @@ namespace {
 #if (AMREX_SPACEDIM > 1)
 #ifdef AMREX_USE_EB
 
-#if (AMREX_SPACEDIM == 2)
-#define DIMA  9  
-#elif (AMREX_SPACEDIM == 3)
-#define DIMA 27  
-#endif
-
 // amrex_calc_slopes_eb calculates the slope in each coordinate direction using a 
 // least squares linear fit to the 9 in 2D / 27 in 3D nearest neighbors, with the function
 // going through the centroid of cell(i,j,k).  This does not assume that the cell centroids,
@@ -31,31 +25,97 @@ namespace {
 //
 // All the slopes are returned in one call.
 
+#if (AMREX_SPACEDIM == 2) 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
 amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
-                              amrex::Real A[DIMA][AMREX_SPACEDIM],
+                              amrex::Real A[9][AMREX_SPACEDIM],
                               amrex::Array4<amrex::Real const> const& state,
                               amrex::Array4<amrex::EBCellFlag const> const& flag) noexcept
 {
-    amrex::Real du[DIMA];
+    amrex::Real du[9];
 
     int lc=0;
-#if (AMREX_SPACEDIM == 3)
+    {
+        for(int jj(-1); jj<=1; jj++){
+          for(int ii(-1); ii<=1; ii++){
+
+            if( flag(i,j,0).isConnected(ii,jj,0) and
+                not (ii==0 and jj==0)) {
+
+              du[lc] = state(i+ii,j+jj,0,n) - state(i,j,0,n);
+
+            } else {
+
+              du[lc] = 0.0;
+            }
+            lc++;
+          }
+        }
+    }
+
+    amrex::Real AtA[AMREX_SPACEDIM][AMREX_SPACEDIM];
+    amrex::Real Atb[AMREX_SPACEDIM];
+
+    for(int jj(0); jj<AMREX_SPACEDIM; ++jj)
+    {
+      for(int ii(0); ii<AMREX_SPACEDIM; ++ii){
+        AtA[ii][jj] = 0.0;
+      }
+      Atb[jj] = 0.0;
+    }
+
+    for(int lc(0); lc<9; ++lc)
+    {
+        AtA[0][0] += A[lc][0]* A[lc][0];
+        AtA[0][1] += A[lc][0]* A[lc][1];
+        AtA[1][1] += A[lc][1]* A[lc][1];
+
+        Atb[0] += A[lc][0]*du[lc];
+        Atb[1] += A[lc][1]*du[lc];
+    }
+
+    // Fill in symmetric
+    AtA[1][0] = AtA[0][1];
+
+    amrex::Real detAtA =
+      (AtA[0][0]*AtA[1][1])-
+      (AtA[0][1]*AtA[1][0]);
+
+    amrex::Real detAtA_x =
+        (Atb[0]   *AtA[1][1]) -
+        (AtA[0][1]*Atb[1]); 
+
+    // Slope at centroid of (i,j,k)
+    amrex::Real xs = detAtA_x / detAtA;
+
+    amrex::Real detAtA_y =
+        (AtA[0][0]*Atb[1]) -
+        (Atb[0] * AtA[1][0]);
+
+    // Slope at centroid of (i,j,k)
+    amrex::Real ys = detAtA_y / detAtA;
+
+   return {xs,ys};
+}
+#elif (AMREX_SPACEDIM == 3)
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
+amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
+                              amrex::Real A[27][AMREX_SPACEDIM],
+                              amrex::Array4<amrex::Real const> const& state,
+                              amrex::Array4<amrex::EBCellFlag const> const& flag) noexcept
+{
+    amrex::Real du[27];
+
+    int lc=0;
     for(int kk(-1); kk<=1; kk++)
-#else
-    int kk = 0;
-#endif
     {
         for(int jj(-1); jj<=1; jj++){
           for(int ii(-1); ii<=1; ii++){
 
             if( flag(i,j,k).isConnected(ii,jj,kk) and
                 not (ii==0 and jj==0 and kk==0)) {
-
-            // Not multplying by dx to be consistent with how the
-            // slope is stored. Also not including the global shift
-            // wrt plo or i,j,k. We only need relative distance.
 
               du[lc] = state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
 
@@ -78,89 +138,57 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
       Atb[jj] = 0.0;
     }
 
+    for(int lc(0); lc < 27; ++lc)
     {
-
-      for(int lc(0); lc<DIMA; ++lc){
         AtA[0][0] += A[lc][0]* A[lc][0];
         AtA[0][1] += A[lc][0]* A[lc][1];
-#if (AMREX_SPACEDIM == 3)
         AtA[0][2] += A[lc][0]* A[lc][2];
-#endif
         AtA[1][1] += A[lc][1]* A[lc][1];
-#if (AMREX_SPACEDIM == 3)
         AtA[1][2] += A[lc][1]* A[lc][2];
         AtA[2][2] += A[lc][2]* A[lc][2];
-#endif
 
         Atb[0] += A[lc][0]*du[lc];
         Atb[1] += A[lc][1]*du[lc];
-#if (AMREX_SPACEDIM == 3)
         Atb[2] += A[lc][2]*du[lc];
-#endif
-      }
     }
 
     // Fill in symmetric
     AtA[1][0] = AtA[0][1];
-#if (AMREX_SPACEDIM == 3)
     AtA[2][0] = AtA[0][2];
     AtA[2][1] = AtA[1][2];
-#endif
 
-#if (AMREX_SPACEDIM == 3)
     amrex::Real detAtA =
       AtA[0][0]*(AtA[1][1]*AtA[2][2] - AtA[1][2]*AtA[2][1]) -
       AtA[0][1]*(AtA[1][0]*AtA[2][2] - AtA[1][2]*AtA[2][0]) +
       AtA[0][2]*(AtA[1][0]*AtA[2][1] - AtA[1][1]*AtA[2][0]);
-#else
-    amrex::Real detAtA =
-      (AtA[0][0]*AtA[1][1])-
-      (AtA[0][1]*AtA[1][0]);
-#endif
 
-    AMREX_D_TERM(amrex::Real xs = 0.0;,
-                 amrex::Real ys = 0.0;,
-                 amrex::Real zs = 0.0;);
-
-#if (AMREX_SPACEDIM == 3)
     amrex::Real detAtA_x =
         Atb[0]   *(AtA[1][1]*AtA[2][2] - AtA[1][2]*AtA[1][2]) -
         AtA[0][1]*(Atb[1] *  AtA[2][2] - AtA[1][2]*Atb[2]   ) +
         AtA[0][2]*(Atb[1] *  AtA[2][1] - AtA[1][1]*Atb[2]   );
-#else
-    amrex::Real detAtA_x =
-        (Atb[0]   *AtA[1][1]) -
-        (AtA[0][1]*Atb[1]); 
-#endif
 
     // Slope at centroid of (i,j,k)
-    xs = detAtA_x / detAtA;
+    amrex::Real xs = detAtA_x / detAtA;
 
-#if (AMREX_SPACEDIM == 3)
-      amrex::Real detAtA_y =
+    amrex::Real detAtA_y =
         AtA[0][0]*(Atb[1]  * AtA[2][2] - AtA[1][2]*Atb[2]   ) -
         Atb[0] *  (AtA[1][0]*AtA[2][2] - AtA[1][2]*AtA[2][0]) +
         AtA[0][2]*(AtA[1][0]*Atb[2]    - Atb[1]   *AtA[2][0]);
-#else
-      amrex::Real detAtA_y =
-        (AtA[0][0]*Atb[1]) -
-        (Atb[0] * AtA[1][0]);
-#endif
 
-      // Slope at centroid of (i,j,k)
-      ys = detAtA_y / detAtA;
+    // Slope at centroid of (i,j,k)
+    amrex::Real ys = detAtA_y / detAtA;
 
-#if (AMREX_SPACEDIM == 3)
-      amrex::Real detAtA_z =
+    amrex::Real detAtA_z =
         AtA[0][0]*(AtA[1][1]*Atb[2]    - Atb[1]   *AtA[1][2]) -
         AtA[0][1]*(AtA[1][0]*Atb[2]    - Atb[1]   *AtA[2][0]) +
         Atb[0]   *(AtA[1][0]*AtA[2][1] - AtA[1][1]*AtA[2][0]);
 
-      zs = detAtA_z / detAtA;
-#endif
+    // Slope at centroid of (i,j,k)
+    amrex::Real zs = detAtA_z / detAtA;
 
-   return {AMREX_D_DECL(xs,ys,zs)};
+    return {xs,ys,zs};
 }
+#endif
 
 // amrex_calc_slopes_eb calculates the slope in each coordinate direction using a 
 // 1) standard 2nd order limited slope if all three cells in the stencil are regular cells
@@ -182,7 +210,12 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
                       amrex::Array4<amrex::Real const> const& ccent,
                       amrex::Array4<amrex::EBCellFlag const> const& flag) noexcept
 {
-    amrex::Real A[DIMA][AMREX_SPACEDIM];
+#if (AMREX_SPACEDIM == 2)
+    constexpr int dim_a = 9;
+#elif (AMREX_SPACEDIM == 3)
+    constexpr int dim_a = 27;
+#endif
+    amrex::Real A[dim_a][AMREX_SPACEDIM];
 
     int lc=0;
 #if (AMREX_SPACEDIM == 3)
@@ -283,6 +316,12 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
                              AMREX_D_DECL(int domlo_x, int domlo_y, int domlo_z),
                              AMREX_D_DECL(int domhi_x, int domhi_y, int domhi_z)) noexcept
 {
+#if (AMREX_SPACEDIM == 2)
+    constexpr int dim_a = 9;
+#elif (AMREX_SPACEDIM == 3)
+    constexpr int dim_a = 27;
+#endif
+
     AMREX_D_TERM(amrex::Real xslope;,
                  amrex::Real yslope;,
                  amrex::Real zslope;);
@@ -308,7 +347,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
 
     } else {
 
-    amrex::Real A[DIMA][AMREX_SPACEDIM];
+    amrex::Real A[dim_a][AMREX_SPACEDIM];
 
     //
     // Correct only those cells which are affected by extdir:
