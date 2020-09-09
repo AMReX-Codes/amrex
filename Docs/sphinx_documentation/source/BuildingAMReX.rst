@@ -101,6 +101,8 @@ to FALSE.  The meaning of these variables should
 be obvious.  When ``DEBUG=TRUE``, aggressive compiler optimization flags are
 turned off and assertions in source code are turned on. For production runs,
 ``DEBUG`` should be set to FALSE.
+An advanced variable, ``MPI_THREAD_MULTIPLE``, can be set to TRUE to initialize
+MPI with support for concurrent MPI calls from multiple threads.
 
 Variables ``USE_CUDA``, ``USE_HIP`` and ``USE_DPCPP`` are used for
 targeting Nvidia, AMD and Intel GPUs, respectively.  At most one of
@@ -476,6 +478,8 @@ below.
    | ENABLE_COMM_PROFILE          |  Build with comm-profiling support              | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_MEM_PROFILE           |  Build with memory-profiling support            | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_MPI_THREAD_MULTIPLE   |  Concurrent MPI calls from multiple threads     | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_PROFPARSER            |  Build with profile parser support              | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
