@@ -914,10 +914,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
         {
             const IntVect& iv = Index(aos[pindex], level+1);
-            fine.intersections(Box(iv,iv),isects,false,nGrow);
-            for (const auto& isec : isects)
+            fine.intersections(Box(iv,iv),isects,true,nGrow);
+            if (isects.size() > 0)
             {
-                amrex::ignore_unused(isec);
                 SuperParticleType p = src.getSuperParticle(pindex);
                 p.id() = GhostParticleID;
                 ghosts.push_back(p);
