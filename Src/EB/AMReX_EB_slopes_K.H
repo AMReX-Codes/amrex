@@ -518,68 +518,23 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
 #endif
 
     //
-    // Correct only those cells which are affected by extdir:
+    // Correct only those cells which are affected by extdir but not by EB:
     //    2) If all the cells are regular we use the "regular slope" in the extdir direction
     //
 
-    // Overwrite the tangential slope from the regular stencils if we can compute from regular cells
-#if 0
-    if ( (edlo_x and i == domlo_x) or (edlo_x and i == domhi_x) ) 
-    {
-         if ( !( (edlo_y and j == domlo_y) or (edlo_y and j == domhi_y) ) and 
-               (flag(i,j,k).isRegular() and flag(i,j-1,k).isRegular() and flag(i,j+1,k).isRegular()) )
-         {
-           int order = 2;
-           yslope = amrex_calc_yslope(i,j,k,n,order,state);
-         }
-#if (AMREX_SPACEDIM == 3)
-         if ( !( (edlo_z and k == domlo_z) or (edlo_z and k == domhi_z) ) and 
-               (flag(i,j,k).isRegular() and flag(i,j,k-1).isRegular() and flag(i,j,k+1).isRegular()) ) 
-         {
-           int order = 2;
-           zslope = amrex_calc_zslope(i,j,k,n,order,state);
-         }
-#endif
-    }
-#endif
+    int order = 2;
 
+    // Overwrite the tangential slope with the regular stencils if we can compute from non-EB cells
+    if ( flag(i,j,k).isRegular() and flag(i-1,j,k).isRegular() and flag(i+1,j,k).isRegular() )
+      xslope = amrex_calc_xslope_extdir(i,j,k,n,order,state,edlo_x,edhi_x,domlo_x,domhi_x);
 
-    // Overwrite the slope from the EB stencil if we can compute it from regular cells
-    if ( (edlo_y and j == domlo_y) or (edlo_y and j == domhi_y) ) {
-         if ( !( (edlo_x and i == domlo_x) or (edlo_x and i == domhi_x) ) and 
-               (flag(i,j,k).isRegular() and flag(i-1,j,k).isRegular() and flag(i+1,j,k).isRegular()) )
-         {
-           int order = 2;
-           xslope = amrex_calc_xslope(i,j,k,n,order,state);
-         }
-#if (AMREX_SPACEDIM == 3)
-         if ( !( (edlo_z and k == domlo_z) or (edlo_z and k == domhi_z) ) and 
-               (flag(i,j,k).isRegular() and flag(i,j,k-1).isRegular() and flag(i,j,k+1).isRegular()) ) 
-         {
-           int order = 2;
-           zslope = amrex_calc_zslope(i,j,k,n,order,state);
-         }
-#endif
-    }
+    if ( flag(i,j,k).isRegular() and flag(i,j-1,k).isRegular() and flag(i,j+1,k).isRegular() ) 
+      yslope = amrex_calc_yslope_extdir(i,j,k,n,order,state,edlo_y,edhi_y,domlo_y,domhi_y);
 
 #if (AMREX_SPACEDIM == 3)
-    if ( (edlo_z and k == domlo_z) or (edlo_z and k == domhi_z) )
-    {
-         if ( !( (edlo_x and i == domlo_x) or (edlo_x and i == domhi_x) ) and 
-               (flag(i,j,k).isRegular() and flag(i-1,j,k).isRegular() and flag(i+1,j,k).isRegular()) )
-         {
-           int order = 2;
-           xslope = amrex_calc_xslope(i,j,k,n,order,state);
-         }
-         if ( !( (edlo_y and j == domlo_y) or (edlo_y and j == domhi_y) ) and 
-               (flag(i,j,k).isRegular() and flag(i,j-1,k).isRegular() and flag(i,j+1,k).isRegular()) )
-         {
-           int order = 2;
-           yslope = amrex_calc_yslope(i,j,k,n,order,state);
-         }
-    }
+    if ( flag(i,j,k).isRegular() and flag(i,j,k-1).isRegular() and flag(i,j,k+1).isRegular() ) 
+      zslope = amrex_calc_zslope_extdir(i,j,k,n,order,state,edlo_z,edhi_z,domlo_z,domhi_z);
 #endif
-
     }
 
     // Zero out slopes outside of an extdir (or hoextrap) boundary
