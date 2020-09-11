@@ -155,6 +155,8 @@ jobs:
             -DCUDA_ARCH=6.0
         make -j 2 tutorials
 
+  # quick-fix for beta09: activate beta08 compiler
+  # bug report: 04801443 on https://supporttickets.intel.com
   tutorials-dpcpp:
     name: DPCPP@PubBeta GFortran@7.5 C++17 [tutorials]
     runs-on: ubuntu-latest
@@ -166,6 +168,7 @@ jobs:
       run: |
         set +e
         source /opt/intel/oneapi/setvars.sh
+        source /opt/intel/oneapi/compiler/2021.1-beta08/env/vars.sh
         set -e
         mkdir build
         cd build
