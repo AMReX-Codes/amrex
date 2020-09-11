@@ -482,7 +482,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
                     Array4<Real const> const& vfrc = vfrac_fine.const_array(mfi);
                     AMREX_HOST_DEVICE_FOR_3D(tbx, i, j, k,
                     {
-                        eb_avgdown(i,j,k,fine_arr,scomp,crse_arr,scomp,vfrc,dratio,ncomp);
+                        eb_avgdown(i,j,k,fine_arr,scomp,crse_arr,0,vfrc,dratio,ncomp);
                     });
                 }
                 else
