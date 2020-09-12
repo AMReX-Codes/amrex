@@ -38,7 +38,7 @@ set( AMREX_TESTS_SUBDIRS )
 #
 macro (setup_test _sources  _input_files)
 
-   cmake_parse_arguments( "" "HAS_FORTRAN_MODULES" "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS" "" ${ARGN} )
+   cmake_parse_arguments( "" "HAS_FORTRAN_MODULES" "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS;CMDLINE_PARAMS" "" ${ARGN} )
 
    if (_BASE_NAME)
       set(_base_name ${_BASE_NAME})
@@ -97,9 +97,14 @@ macro (setup_test _sources  _input_files)
       file( COPY ${${_input_files}} DESTINATION ${_exe_dir} )
    endif ()
 
+   set(_extra_args)
+   if (_CMDLINE_PARAMS)
+      set(_extra_args ${_CMDLINE_PARAMS})
+   endif ()
+
    add_test(
       NAME                 ${_test_name}
-      COMMAND              ${_exe_name} ${${_input_files}}
+      COMMAND              ${_exe_name} ${_extra_args} ${${_input_files}}
       WORKING_DIRECTORY    ${_exe_dir}
       )
 
@@ -107,6 +112,7 @@ macro (setup_test _sources  _input_files)
    unset(_test_name)
    unset(_exe_name)
    unset(_exe_dir)
+   unset(_extra_args)
 
 endmacro ()
 
