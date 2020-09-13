@@ -13,18 +13,6 @@ F90FLAGS =
 
 ########################################################################
 
-#clang_version       = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/')
-#clang_major_version = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' | sed -e 's;\..*;;')
-#clang_minor_version = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
-#
-#COMP_VERSION = $(clang_version)
-#
-#DEFINES += -DBL_CLANG_VERSION='$(clang_version)'
-#DEFINES += -DBL_CLANG_MAJOR_VERSION='$(clang_major_version)'
-#DEFINES += -DBL_CLANG_MINOR_VERSION='$(clang_minor_version)'
-
-########################################################################
-
 ifeq ($(DEBUG),TRUE)
 
   CXXFLAGS += -g -O0 #-ftrapv
@@ -156,6 +144,7 @@ override XTRALIBS += -lgfortran -lquadmath
 
 endif
 
+DPCPP_DIR = $(shell dpcpp --version | tail -1 | sed -e 's/InstalledDir: //' | sed -e 's/linux\/bin/linux/')
 override XTRAOBJS += $(DPCPP_DIR)/lib/libsycl-glibc.o
 LDFLAGS += -device-math-lib=fp32,fp64
 
