@@ -5,8 +5,8 @@
 
 using namespace amrex;
 
-static constexpr int NSR = 4;
-static constexpr int NSI = 3;
+static constexpr int NSR = 0;
+static constexpr int NSI = 0;
 static constexpr int NAR = 2;
 static constexpr int NAI = 1;
 
@@ -116,8 +116,11 @@ public:
                     p.pos(2) = plo[2] + (iv[2] + r[2])*dx[2];
 #endif
                     
-                    for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
-                    for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
+                    amrex::Print() << p << "\n";
+
+                    
+                    //                    for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
+                    //                    for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
                     
                     host_particles.push_back(p);
                     for (int i = 0; i < NAR; ++i)
@@ -252,11 +255,11 @@ public:
                 {
                     for (int j = 0; j < NSR; ++j)
                     {
-                        AMREX_ALWAYS_ASSERT(ptd.m_aos[i].rdata(j) == ptd.m_aos[i].id());
+                        //AMREX_ALWAYS_ASSERT(ptd.m_aos[i].rdata(j) == ptd.m_aos[i].id());
                     }
                     for (int j = 0; j < NSI; ++j)
                     {
-                        AMREX_ALWAYS_ASSERT(ptd.m_aos[i].idata(j) == ptd.m_aos[i].id());
+                        //                        AMREX_ALWAYS_ASSERT(ptd.m_aos[i].idata(j) == ptd.m_aos[i].id());
                     }
                     for (int j = 0; j < NAR; ++j)
                     {

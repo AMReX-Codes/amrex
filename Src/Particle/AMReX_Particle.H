@@ -154,100 +154,165 @@ struct ConstParticleCPUWrapper
     operator int () const noexcept { return (m_idata & 0x00FFFFFF); }
 };
 
+
+template <typename T, int NReal, int NInt>
+struct ParticleBase
+{
+    uint64_t m_idcpu = 0;
+    T m_pos[AMREX_SPACEDIM];
+    T m_rdata[NReal];
+    int m_idata[NInt];
+};
+
+template <typename T, int NInt>
+struct ParticleBase<T,0,NInt>
+{
+    uint64_t m_idcpu = 0;
+    T m_pos[AMREX_SPACEDIM];
+    int m_idata[NInt];
+};
+
+template <typename T, int NReal>
+struct ParticleBase<T,NReal,0>
+{
+    uint64_t m_idcpu = 0;
+    T m_pos[AMREX_SPACEDIM];
+    T m_rdata[NReal];
+};
+
+template <typename T>
+struct ParticleBase<T,0,0>
+{
+    uint64_t m_idcpu = 0;
+    T m_pos[AMREX_SPACEDIM];
+};
+
+
 /** \brief The struct used to store particles.
  *
  * \tparam T_NReal The number of extra Real components
  * \tparam T_NInt The number of extra integer components
  */
-template<int T_NReal, int T_NInt=0>
+template <int T_NReal, int T_NInt=0>
 struct Particle
+    : ParticleBase<ParticleReal,T_NReal,T_NInt>
 {
     //! \brief number of extra Real components in the particle struct
     static constexpr int NReal = T_NReal;
+
     //! \brief number of extra integer components in the particle struct
     static constexpr int NInt = T_NInt;
 
-    //
     //! The floating point type used for the particles.
     using RealType = ParticleReal;
 
-    /**
-    * The real data. We always have SPACEDIM position coordinates,
-    * and optionally we have NReal additional real attributes.
-    */
-    union rm_t
-    {
-      RealType pos[AMREX_SPACEDIM];
-      RealType arr[AMREX_SPACEDIM+NReal];
-    };
-    rm_t m_rdata;
-
-    /**
-    * The integer data. We always have id and cpu, and optionally we
-    * have NInt additional integer attributes.
-    */
-    union im_t
-    {
-        uint64_t ids = 0;
-        int arr[2+NInt];
-    };
-    im_t m_idata;
-
     static Long the_next_id;
 
-    AMREX_GPU_HOST_DEVICE ParticleCPUWrapper cpu () & { return ParticleCPUWrapper(m_idata.ids); }
-    AMREX_GPU_HOST_DEVICE ParticleIDWrapper id () & { return ParticleIDWrapper(m_idata.ids); }
-    AMREX_GPU_HOST_DEVICE ConstParticleCPUWrapper cpu () const & { return ConstParticleCPUWrapper(m_idata.ids); }
-    AMREX_GPU_HOST_DEVICE ConstParticleIDWrapper id () const & { return ConstParticleIDWrapper(m_idata.ids); }
+    AMREX_GPU_HOST_DEVICE ParticleCPUWrapper cpu () & { return ParticleCPUWrapper(this->m_idcpu); }
+    AMREX_GPU_HOST_DEVICE ParticleIDWrapper id () & { return ParticleIDWrapper(this->m_idcpu); }
+    AMREX_GPU_HOST_DEVICE ConstParticleCPUWrapper cpu () const & { return ConstParticleCPUWrapper(this->m_idcpu); }
+    AMREX_GPU_HOST_DEVICE ConstParticleIDWrapper id () const & { return ConstParticleIDWrapper(this->m_idcpu); }
 
-    AMREX_GPU_HOST_DEVICE RealVect pos () const &
-    {return RealVect(AMREX_D_DECL(m_rdata.pos[0], m_rdata.pos[1], m_rdata.pos[2]));}
+    AMREX_GPU_HOST_DEVICE RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_pos[0], this->m_pos[1], this->m_pos[2]));}
 
     AMREX_GPU_HOST_DEVICE RealType& pos (int index) &
     {
         AMREX_ASSERT(index < AMREX_SPACEDIM);
-        return m_rdata.pos[index];
+        return this->m_pos[index];
     }
+
     AMREX_GPU_HOST_DEVICE RealType  pos (int index) const &
     {
         AMREX_ASSERT(index < AMREX_SPACEDIM);
-        return m_rdata.pos[index];
+        return this->m_pos[index];
     }
 
+    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE RealType& rdata (int index) &
     {
         AMREX_ASSERT(index < NReal);
-        return m_rdata.arr[AMREX_SPACEDIM + index];
+        return this->m_rdata[index];
     }
+
+    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE RealType& rdata (int /*index*/) &
+    {
+        AMREX_ALWAYS_ASSERT(false);
+        return this->pos(0);  // bc we must return something
+    }
+
+    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE RealType  rdata (int index) const &
     {
         AMREX_ASSERT(index < NReal);
-        return m_rdata.arr[AMREX_SPACEDIM + index];
+        return this->m_rdata[index];
     }
+
+    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE RealType  rdata (int /*index*/) const &
+    {
+        AMREX_ALWAYS_ASSERT(false);
+        return this->pos(0);  // because we must return something
+    }
+
+    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE RealVect  rvec (AMREX_D_DECL(int indx, int indy, int indz)) const &
     {
         AMREX_ASSERT(AMREX_D_TERM(indx < NReal, and indy < NReal, and indz < NReal));
-        return RealVect(AMREX_D_DECL(m_rdata.arr[AMREX_SPACEDIM + indx],
-                                     m_rdata.arr[AMREX_SPACEDIM + indy],
-                                     m_rdata.arr[AMREX_SPACEDIM + indz]));
-    }
-    AMREX_GPU_HOST_DEVICE RealVect  rvec (const IntVect& indexes) const &
-    {
-        AMREX_ASSERT(indexes.max() < NReal);
-        return RealVect(AMREX_D_DECL(m_rdata.arr[AMREX_SPACEDIM + indexes[0]],
-                                     m_rdata.arr[AMREX_SPACEDIM + indexes[1]],
-                                     m_rdata.arr[AMREX_SPACEDIM + indexes[2]]));
+        return RealVect(AMREX_D_DECL(this->m_rdata[indx],
+                                     this->m_rdata[indy],
+                                     this->m_rdata[indz]));
     }
 
+    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE RealVect  rvec (AMREX_D_DECL(int /*indx*/, int /*indy*/, int /*indz*/)) const &
+    {
+        AMREX_ALWAYS_ASSERT(false);
+        return RealVect(AMREX_D_DECL(0.0, 0.0, 0.0)); // bc we must return something
+    }
+
+    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE RealVect  rvec (const IntVect& indices) const &
+    {
+        AMREX_ASSERT(indices.max() < NReal);
+        return RealVect(AMREX_D_DECL(this->m_rdata[indices[0]],
+                                     this->m_rdata[indices[1]],
+                                     this->m_rdata[indices[2]]));
+    }
+
+    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE RealVect  rvec (const IntVect& /*indices*/) const &
+    {
+        AMREX_ALWAYS_ASSERT(false);
+        return RealVect(AMREX_D_DECL(0.0, 0.0, 0.0)); // bc we must return something
+    }
+
+    template <int U = T_NInt, typename std::enable_if<U != 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE int& idata (int index) &
     {
         AMREX_ASSERT(index < NInt);
-        return m_idata.arr[2 + index];
+        return this->m_idata[index];
     }
+
+    template <int U = T_NInt, typename std::enable_if<U == 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE uint64_t& idata (int /*index*/) &
+    {
+        AMREX_ALWAYS_ASSERT(false);
+        return this->m_idcpu;  //bc we must return something
+    }
+
+    template <int U = T_NInt, typename std::enable_if<U != 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE int  idata (int index) const &
     {
         AMREX_ASSERT(index < NInt);
-        return m_idata.arr[2 + index];
+        return this->m_idata[index];
+    }
+
+    template <int U = T_NInt, typename std::enable_if<U == 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE int idata (int /*index*/) const &
+    {
+        AMREX_ALWAYS_ASSERT(false);
+        return this->m_idcpu;  //bc we must return something
     }
 
     static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
@@ -266,7 +331,6 @@ struct Particle
 
     static Long MaxParticlesPerRead ();
 
-
     /**
     * \brief Returns the next particle ID for this processor.
     * Particle IDs start at 1 and are never reused.
@@ -277,12 +341,10 @@ struct Particle
     */
     static Long NextID ();
 
-
     /**
     * \brief This version can only be used inside omp critical.
     */
     static Long UnprotectedNextID ();
-
 
     /**
     * \brief Reset on restart.
@@ -294,7 +356,6 @@ struct Particle
     static void CIC_Fracs (const Real* frac, Real* fracs);
 
     static void CIC_Cells (const IntVect& hicell, IntVect* cells);
-
 
     /**
     * \brief Old, *-based CIC for use in Interp.
@@ -310,7 +371,6 @@ struct Particle
                                        const Real*                  dx,
                                        Real*                        fracs,
                                        IntVect*                     cells);
-
 
     /**
     * \brief Wraps the arbitrary dx function.
@@ -504,9 +564,9 @@ Particle<NReal, NInt>::CIC_Cells_Fracs_Basic (const Particle<NReal, NInt>& p,
     //
     // "cells" should be dimensioned: IntVect cells[AMREX_D_TERM(2,+2,+4)]
     //
-    const Real len[AMREX_SPACEDIM] = { AMREX_D_DECL(static_cast<Real>((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5)),
-                                                    static_cast<Real>((p.m_rdata.pos[1]-plo[1])/dx[1] + Real(0.5)),
-                                                    static_cast<Real>((p.m_rdata.pos[2]-plo[2])/dx[2] + Real(0.5))) };
+    const Real len[AMREX_SPACEDIM] = { AMREX_D_DECL(static_cast<Real>((p.m_pos[0]-plo[0])/dx[0] + Real(0.5)),
+                                                    static_cast<Real>((p.m_pos[1]-plo[1])/dx[1] + Real(0.5)),
+                                                    static_cast<Real>((p.m_pos[2]-plo[2])/dx[2] + Real(0.5))) };
 
     const IntVect cell(AMREX_D_DECL(static_cast<int>(amrex::Math::floor(len[0])),
                                     static_cast<int>(amrex::Math::floor(len[1])),
@@ -540,13 +600,13 @@ Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
     //
     // The first element in fracs and cells is the lowest corner, the last is the highest.
     //
-    const Real hilen[AMREX_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0]+dx_part[0]/2)/dx_geom[0],
-                                             (p.m_rdata.pos[1]-plo[1]+dx_part[1]/2)/dx_geom[1],
-                                             (p.m_rdata.pos[2]-plo[2]+dx_part[2]/2)/dx_geom[2]) };
+    const Real hilen[AMREX_SPACEDIM] = { AMREX_D_DECL((p.m_pos[0]-plo[0]+dx_part[0]/2)/dx_geom[0],
+                                             (p.m_pos[1]-plo[1]+dx_part[1]/2)/dx_geom[1],
+                                             (p.m_pos[2]-plo[2]+dx_part[2]/2)/dx_geom[2]) };
 
-    const Real lolen[AMREX_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0]-dx_part[0]/2)/dx_geom[0],
-                                             (p.m_rdata.pos[1]-plo[1]-dx_part[1]/2)/dx_geom[1],
-                                             (p.m_rdata.pos[2]-plo[2]-dx_part[2]/2)/dx_geom[2]) };
+    const Real lolen[AMREX_SPACEDIM] = { AMREX_D_DECL((p.m_pos[0]-plo[0]-dx_part[0]/2)/dx_geom[0],
+                                             (p.m_pos[1]-plo[1]-dx_part[1]/2)/dx_geom[1],
+                                             (p.m_pos[2]-plo[2]-dx_part[2]/2)/dx_geom[2]) };
 
     const IntVect hicell(AMREX_D_DECL(static_cast<int>(amrex::Math::floor(hilen[0])),
                                       static_cast<int>(amrex::Math::floor(hilen[1])),
@@ -827,11 +887,68 @@ operator<< (std::ostream& os, const Particle<NReal, NInt>& p)
     os << p.id()   << ' '
        << p.cpu()  << ' ';
 
-    for (int i = 0; i < AMREX_SPACEDIM + NReal; i++)
-        os << p.m_rdata.arr[i] << ' ';
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+        os << p.pos(i) << ' ';
 
-    for (int i = 2; i < 2 + NInt; i++)
-        os << p.m_idata.arr[i] << ' ';
+    for (int i = 0; i < NReal; i++)
+        os << p.rdata(i) << ' ';
+
+    for (int i = 2; i < NInt; i++)
+        os << p.idata(i) << ' ';
+
+    if (!os.good())
+        amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+
+    return os;
+}
+
+template <int NReal>
+std::ostream&
+operator<< (std::ostream& os, const Particle<NReal, 0>& p)
+{
+    os << p.id()   << ' '
+       << p.cpu()  << ' ';
+
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+        os << p.pos(i) << ' ';
+
+    for (int i = 0; i < NReal; i++)
+        os << p.rdata(i) << ' ';
+
+    if (!os.good())
+        amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+
+    return os;
+}
+
+template <int NInt>
+std::ostream&
+operator<< (std::ostream& os, const Particle<0, NInt>& p)
+{
+    os << p.id()   << ' '
+       << p.cpu()  << ' ';
+
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+        os << p.pos(i) << ' ';
+
+    for (int i = 2; i < NInt; i++)
+        os << p.idata(i) << ' ';
+
+    if (!os.good())
+        amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+
+    return os;
+}
+
+template <int NReal=0, int NInt=0>
+std::ostream&
+operator<< (std::ostream& os, const Particle<0, 0>& p)
+{
+    os << p.id()   << ' '
+       << p.cpu()  << ' ';
+
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+        os << p.pos(i) << ' ';
 
     if (!os.good())
         amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
