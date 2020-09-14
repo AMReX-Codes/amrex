@@ -1,7 +1,3 @@
-if (NOT ENABLE_AMRDATA)
-   return()
-endif ()
-
 set(_sources     DataServicesTest0.cpp)
 set(_input_files )
 

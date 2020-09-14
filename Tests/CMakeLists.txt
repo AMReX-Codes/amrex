@@ -1,37 +1,44 @@
 #
 # List of subdirectories to search for CMakeLists.
 #
-set( AMREX_TESTS_SUBDIRS )
+# CUrrently missing C_BaseLib, GPU, IOBENCHMARK
+set( AMREX_TESTS_SUBDIRS
+   AsyncOut BaseFabTesting BBIOBenchmark complementIn FillBoundaryComparison
+    )
 
 # if (ENABLE_ASCENT)
-#    list(APPEND AMREX_TUTORIALS_SUBDIRS Blueprint)
+#    list(APPEND AMREX_TESTS_SUBDIRS Blueprint)
 # endif ()
 
 # if (ENABLE_EB)
-#    list(APPEND AMREX_TUTORIALS_SUBDIRS EB)
+#    list(APPEND AMREX_TESTS_SUBDIRS Algoim)
 # endif ()
 
 # if (ENABLE_LINEAR_SOLVERS)
-#    list(APPEND AMREX_TUTORIALS_SUBDIRS LinearSolvers)
+#    list(APPEND AMREX_TESTS_SUBDIRS LinearSolvers)
 # endif ()
 
 # if (ENABLE_PARTICLES)
-#    list(APPEND AMREX_TUTORIALS_SUBDIRS Particles)
+#    list(APPEND AMREX_TESTS_SUBDIRS Particles HDF5Benchmark)
 # endif ()
 
 # if (ENABLE_SUNDIALS)
-#    list(APPEND AMREX_TUTORIALS_SUBDIRS CVODE SUNDIALS)
+#    list(APPEND AMREX_TESTS_SUBDIRS CVODE SUNDIALS)
 # endif ()
 
 # if (ENABLE_FORTRAN_INTERFACES)
-#    list(APPEND AMREX_TUTORIALS_SUBDIRS FortranInterface)
+#    list(APPEND AMREX_TESTS_SUBDIRS FortranInterface)
 # endif ()
 
 # if (ENABLE_CUDA)
-#    list(APPEND AMREX_TUTORIALS_SUBDIRS GPU)
+#    list(APPEND AMREX_TESTS_SUBDIRS GPU)
 # endif ()
 
-#list(TRANSFORM AMREX_TUTORIALS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
+if (ENABLE_AMRDATA)
+   list(APPEND AMREX_TESTS_SUBDIRS DataServicesTest0)
+endif ()
+
+list(TRANSFORM AMREX_TESTS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
 
 #
 # Function to setup the tutorials
@@ -107,9 +114,9 @@ function (setup_test _srcs  _inputs)
    # Add the test
    #
    add_test(
-      NAME                 ${_test_name}
-      COMMAND              ${_cmd}
-      WORKING_DIRECTORY    ${_exe_dir}
+      NAME               ${_test_name}
+      COMMAND            ${_cmd}
+      WORKING_DIRECTORY  ${_exe_dir}
       )
 
 endfunction ()
@@ -118,15 +125,13 @@ endfunction ()
 #
 # Loop over subdirs and add to the build those containing CMakeLists.txt
 #
-#foreach (_subdir IN LISTS AMREX_TUTORIALS_SUBDIRS)
+foreach (_subdir IN LISTS AMREX_TESTS_SUBDIRS)
 
-   # file( GLOB_RECURSE _tutorials "${_subdir}/*CMakeLists.txt" )
-   file( GLOB_RECURSE _tests "${CMAKE_CURRENT_LIST_DIR}/*CMakeLists.txt" )
-   list(REMOVE_ITEM _tests ${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt)
-   print_list(_tests)
+   file( GLOB_RECURSE _tests "${_subdir}/*CMakeLists.txt" )
+
    foreach ( _item  IN LISTS _tests)
       get_filename_component(_dir ${_item} DIRECTORY )
       add_subdirectory(${_dir})
    endforeach ()
 
-#endforeach ()
+endforeach ()
