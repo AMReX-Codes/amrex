@@ -528,6 +528,36 @@ are defined, AMReX default flags are used.
 For a detailed explanation of GPU support in AMReX CMake, refer to section :ref:`sec:gpu:build`.
 
 
+Building Tutorials
+------------------
+
+In order to build the tutorials provided in ``Tutorials/`` alongside the AMReX library,
+follows these steps:
+
+.. highlight:: console
+
+::
+
+    mkdir /path/to/builddir
+    cd    /path/to/builddir
+    cmake [options]  -DAMReX_BUILD_TUTORIALS=YES  /path/to/amrex
+    make
+
+
+Note that only the tutorials compatible with ``[options]`` will be built.
+To run one of the tutorials, do:
+
+.. highlight:: console
+
+::
+
+    cd  /path/to/builddir/Tutorials/group/name
+    ./Tutorial_group_name [input_file]
+
+
+``[input_file]`` is any of the input files required by the tutorials and located in
+``/path/to/builddir/Tutorials/group/name/``
+
 
 CMake and macOS
 ---------------
