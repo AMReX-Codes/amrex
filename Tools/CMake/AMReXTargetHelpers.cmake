@@ -131,9 +131,14 @@ function (setup_target_for_hip_compilation _target)
 
    # Make C++ files with HIP_SOURCE_PROPERTY_FORMAT
    # This will trigger HIP compilation of those files
+   # The cpp files will become the "generated" sources from  hip_prepare_target_commands
    get_target_property(_sources ${_target} SOURCES)
-   list(FILTER _sources INCLUDE REGEX "\\.cpp")
-   set_source_files_properties(${_sources} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+   set(_cpp_sources     ${_sources})
+   set(_non_cpp_sources ${_sources})
+
+   list(FILTER _cpp_sources INCLUDE REGEX "\\.cpp")
+   set_source_files_properties(${_cpp_sources} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+   list(REMOVE_ITEM _non_cpp_sources ${_cpp_sources})
 
    # Separate the sources from the options
    # HIP_GET_SOURCES_AND_OPTIONS(_sources _cmake_options _hipcc_options _hcc_options _nvcc_options ${ARGN})
@@ -142,17 +147,22 @@ function (setup_target_for_hip_compilation _target)
    set(_hcc_options)
    set(_nvcc_options)
    hip_prepare_target_commands(${_target}
-      OBJ _generated_files _source_files ${_sources} ${_cmake_options}
+      OBJ _generated_files _source_files ${_cpp_sources} ${_cmake_options}
       HIPCC_OPTIONS ${_hipcc_options}
       HCC_OPTIONS ${_hcc_options}
       NVCC_OPTIONS ${_nvcc_options})
 
    if (_source_files)
-      list(REMOVE_ITEM _sources ${_source_files})
+      list(REMOVE_ITEM _cpp_sources ${_source_files})
    endif ()
 
+   print_list(_generated_files)
+   print_list(_source_files)
+   print_list(_cpp_files)
+   print_list(_non_cpp_sources)
+
    # overwrite sources of _target with "new" sources
-   set_target_properties(${_target} PROPERTIES SOURCES "${_generated_files};${_sources}")
+   set_target_properties(${_target} PROPERTIES SOURCES "${_generated_files};${_non_cpp_sources}")
 
    # set linker language
    set_target_properties(${_target} PROPERTIES LINKER_LANGUAGE ${HIP_C_OR_CXX})
