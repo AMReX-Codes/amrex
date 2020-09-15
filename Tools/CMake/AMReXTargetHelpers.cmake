@@ -136,7 +136,7 @@ function (setup_target_for_hip_compilation _target)
    set(_cpp_sources     ${_sources})
    set(_non_cpp_sources ${_sources})
 
-   list(FILTER _cpp_sources INCLUDE REGEX "\\.cpp")
+   list(FILTER _cpp_sources INCLUDE REGEX "\\.cpp$")
    set_source_files_properties(${_cpp_sources} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
    list(REMOVE_ITEM _non_cpp_sources ${_cpp_sources})
 
@@ -158,7 +158,7 @@ function (setup_target_for_hip_compilation _target)
 
    print_list(_generated_files)
    print_list(_source_files)
-   print_list(_cpp_files)
+   print_list(_cpp_sources)
    print_list(_non_cpp_sources)
 
    # overwrite sources of _target with "new" sources
