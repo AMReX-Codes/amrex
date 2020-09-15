@@ -182,8 +182,8 @@ public:
     //!  of a level hierarchy. Must be properly initialized later.
     ParticleContainer ()
       :
-      communicate_real_comp(NArrayReal, true),
-      communicate_int_comp(NArrayInt, true),
+      h_communicate_real_comp(NArrayReal, true),
+      h_communicate_int_comp(NArrayInt, true),
       m_verbose(0),
       m_gdb(nullptr),
       m_runtime_comps_defined(false),
@@ -202,8 +202,8 @@ public:
     //!
     ParticleContainer (ParGDBBase* gdb)
         :
-        communicate_real_comp(NArrayReal, true),
-        communicate_int_comp(NArrayInt, true),
+        h_communicate_real_comp(NArrayReal, true),
+        h_communicate_int_comp(NArrayInt, true),
 	m_verbose(0),
 	m_gdb(gdb),
         m_runtime_comps_defined(false),
@@ -226,8 +226,8 @@ public:
 		       const DistributionMapping & dmap,
 		       const BoxArray            & ba)
 	:
-        communicate_real_comp(NArrayReal, true),
-        communicate_int_comp(NArrayInt, true),
+        h_communicate_real_comp(NArrayReal, true),
+        h_communicate_int_comp(NArrayInt, true),
         m_verbose(0),
 	m_gdb_object(geom,dmap,ba),
         m_runtime_comps_defined(false),
@@ -254,8 +254,8 @@ public:
 		       const Vector<BoxArray>            & ba,
 		       const Vector<int>                 & rr)
 	:
-        communicate_real_comp(NArrayReal, true),
-        communicate_int_comp(NArrayInt, true),
+        h_communicate_real_comp(NArrayReal, true),
+        h_communicate_int_comp(NArrayInt, true),
         m_verbose(0),
 	m_gdb_object(geom,dmap,ba,rr),
         m_runtime_comps_defined(false),
@@ -281,8 +281,8 @@ public:
 		       const Vector<BoxArray>            & ba,
 		       const Vector<IntVect>             & rr)
 	:
-        communicate_real_comp(NArrayReal, true),
-        communicate_int_comp(NArrayInt, true),
+        h_communicate_real_comp(NArrayReal, true),
+        h_communicate_int_comp(NArrayInt, true),
         m_verbose(0),
 	m_gdb_object(geom,dmap,ba, [&]() -> Vector<int> {
                 Vector<int> ref_ratio;
@@ -1115,8 +1115,10 @@ public:
 
 
     //! struct-of-array stuff
-    Gpu::DeviceVector<int> communicate_real_comp;
-    Gpu::DeviceVector<int> communicate_int_comp;
+    Vector<int> h_communicate_real_comp;
+    Vector<int> h_communicate_int_comp;
+    Gpu::DeviceVector<int> d_communicate_real_comp;
+    Gpu::DeviceVector<int> d_communicate_int_comp;
 
     static bool do_tiling;
     static IntVect tile_size;
@@ -1155,7 +1157,7 @@ public:
     {
         m_runtime_comps_defined = true;
         m_num_runtime_real++;
-        communicate_real_comp.push_back(communicate);
+        h_communicate_real_comp.push_back(communicate);
         SetParticleSize();
     }
 
@@ -1165,7 +1167,7 @@ public:
     {
         m_runtime_comps_defined = true;
         m_num_runtime_int++;
-        communicate_int_comp.push_back(communicate);
+        h_communicate_int_comp.push_back(communicate);
         SetParticleSize();
     }
 

@@ -34,6 +34,7 @@ target_sources( amrex
    AMReX_Partition.H
    AMReX_Random.H
    AMReX_Random.cpp
+   AMReX_Slopes_K.H
    AMReX_BLassert.H
    AMReX_ArrayLim.H
    AMReX_REAL.H

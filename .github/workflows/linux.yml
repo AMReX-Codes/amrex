@@ -161,7 +161,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
-      run: .github/workflows/cmake/dependencies_dpcpp.sh
+      run: .github/workflows/dependencies/dependencies_dpcpp.sh
     - name: Build & Install
       run: |
         set +e

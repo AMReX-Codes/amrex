@@ -257,8 +257,8 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
     Long total_buffer_size = (plan.m_snd_offsets.size() == 0) ? plan.m_box_offsets[num_buckets]*psize : plan.m_snd_offsets.back();
     snd_buffer.resize(total_buffer_size);
 
-    auto p_comm_real = pc.communicate_real_comp.dataPtr();
-    auto p_comm_int  = pc.communicate_int_comp.dataPtr();
+    auto p_comm_real = pc.d_communicate_real_comp.dataPtr();
+    auto p_comm_int  = pc.d_communicate_int_comp.dataPtr();
 
     for (int lev = 0; lev < num_levels; ++lev)
     {
@@ -347,8 +347,8 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
     std::vector<int> offsets;
     policy.resizeTiles(tiles, sizes, offsets);
 
-    auto p_comm_real = pc.communicate_real_comp.dataPtr();
-    auto p_comm_int  = pc.communicate_int_comp.dataPtr();
+    auto p_comm_real = pc.d_communicate_real_comp.dataPtr();
+    auto p_comm_int  = pc.d_communicate_int_comp.dataPtr();
 
     // local unpack
     int uindex = 0;
@@ -516,8 +516,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
 
     if (plan.m_nrcvs > 0)
     {
-        auto p_comm_real = pc.communicate_real_comp.dataPtr();
-        auto p_comm_int  = pc.communicate_int_comp.dataPtr();
+        auto p_comm_real = pc.d_communicate_real_comp.dataPtr();
+        auto p_comm_int  = pc.d_communicate_int_comp.dataPtr();
         auto p_rcv_buffer = rcv_buffer.dataPtr();
 
         std::vector<int> sizes;
@@ -566,6 +566,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
                 ptd.unpackParticleData(p_rcv_buffer, src_offset, dst_index,
                                        p_comm_real, p_comm_int);
               });
+
+            Gpu::synchronize();
           }
     }
 #else

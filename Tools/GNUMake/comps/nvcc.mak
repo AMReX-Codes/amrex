@@ -115,6 +115,8 @@ else
 endif
 
 NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT) --expt-relaxed-constexpr --expt-extended-lambda
+# This is to work around a bug with nvcc, see: https://github.com/kokkos/kokkos/issues/1473
+NVCC_FLAGS += -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored
 # Unfortunately, on cori with cuda 10.0 this fails in thrust code
 # NVCC_FLAGS += --Werror=cross-execution-space-call
 
