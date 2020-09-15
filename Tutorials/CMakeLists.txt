@@ -35,49 +35,48 @@ endif ()
 list(TRANSFORM AMREX_TUTORIALS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
 
 #
-# Macro to setup the tutorials
+# Function to setup the tutorials
 #
-macro (setup_tutorial _sources  _input_files)
+function (setup_tutorial _srcs  _inputs)
 
-   cmake_parse_arguments( "" "HAS_FORTRAN_MODULES" "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS" "" ${ARGN} )
+   cmake_parse_arguments( "" "HAS_FORTRAN_MODULES"
+      "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS" "" ${ARGN} )
 
    if (_BASE_NAME)
       set(_base_name ${_BASE_NAME})
-      unset(_BASE_NAME)
    else ()
       string(REGEX REPLACE ".*Tutorials/" "" _base_name ${CMAKE_CURRENT_LIST_DIR})
       string(REPLACE "/" "_" _base_name ${_base_name})
-   endif()
+   endif ()
+
+   # Prepend "Tutorial_" to base name
+   set(_base_name "Tutorial_${_base_name}")
 
    if (_RUNTIME_SUBDIR)
       set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/${_RUNTIME_SUBDIR})
-      unset(_RUNTIME_SUBDIR)
    else ()
       set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR})
    endif ()
 
-   set( _test_name ${_base_name} )
-   set( _exe_name  ${_base_name}.exe )
+   set( _exe_name  ${_base_name} )
 
    add_executable( ${_exe_name} )
 
-   target_sources( ${_exe_name} PRIVATE ${${_sources}} )
+   target_sources( ${_exe_name} PRIVATE ${${_srcs}} )
 
    set_target_properties( ${_exe_name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${_exe_dir} )
 
    if (_EXTRA_DEFINITIONS)
       target_compile_definitions(${_exe_name} PRIVATE ${_EXTRA_DEFINITIONS})
-      unset(_EXTRA_DEFINITIONS)
    endif ()
 
    # Find out which include directory is needed
-   set(_includes ${${_sources}})
+   set(_includes ${${_srcs}})
    list(FILTER _includes INCLUDE REGEX "\\.H")
    foreach(_item IN LISTS _includes)
       get_filename_component( _include_dir ${_item} DIRECTORY)
       target_include_directories( ${_exe_name} PRIVATE  ${_include_dir} )
    endforeach()
-   unset(_includes)
 
    if (_HAS_FORTRAN_MODULES)
       target_include_directories(${_exe_name}
@@ -87,7 +86,6 @@ macro (setup_tutorial _sources  _input_files)
          PROPERTIES
          Fortran_MODULE_DIRECTORY
          ${CMAKE_CURRENT_BINARY_DIR}/mod_files )
-      unset(_HAS_FORTRAN_MODULES)
    endif ()
 
    target_link_libraries( ${_exe_name} amrex )
@@ -96,16 +94,11 @@ macro (setup_tutorial _sources  _input_files)
       setup_target_for_cuda_compilation( ${_exe_name} )
    endif ()
 
-   if (${_input_files})
-      file( COPY ${${_input_files}} DESTINATION ${_exe_dir} )
+   if (${_inputs})
+      file( COPY ${${_inputs}} DESTINATION ${_exe_dir} )
    endif ()
 
-   unset(_base_name)
-   unset(_test_name)
-   unset(_exe_name)
-   unset(_exe_dir)
-
-endmacro ()
+endfunction ()
 
 
 #
