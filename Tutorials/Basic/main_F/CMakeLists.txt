@@ -1,9 +1,9 @@
-if ( (NOT ENABLE_EB) OR NOT (DIM EQUAL 3))
+if (NOT ENABLE_FORTRAN_INTERFACES OR NOT ENABLE_MPI)
    return()
 endif ()
 
-set(_sources main.cpp)
-set(_input_files inputs_3d)
+set(_sources main.F90)
+set(_input_files)
 
 setup_tutorial(_sources _input_files)
 

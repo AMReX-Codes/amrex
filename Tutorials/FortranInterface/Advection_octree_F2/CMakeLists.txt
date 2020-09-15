@@ -1,4 +1,4 @@
-if ( NOT DIM EQUAL 2)
+if ( NOT DIM EQUAL 2 )
    return ()
 endif ()
 
