@@ -218,7 +218,7 @@ MultiFab::Swap (MultiFab& dst, MultiFab& src,
             if (bx.ok()) {
                 auto sfab = src.array(mfi);
                 auto dfab = dst.array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSABLE ( bx, numcomp, i, j, k, n,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
                 {
                     const amrex::Real tmp = dfab(i,j,k,n+dstcomp);
                     dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp);
@@ -318,7 +318,7 @@ MultiFab::Saxpy (MultiFab& dst, Real a, const MultiFab& src,
         if (bx.ok()) {
             auto const sfab = src.array(mfi);
             auto       dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSABLE ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,dstcomp+n) += a * sfab(i,j,k,srccomp+n);
             });
@@ -352,7 +352,7 @@ MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
         if (bx.ok()) {
             auto const sfab = src.array(mfi);
             auto       dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSABLE ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp) + a * dfab(i,j,k,n+dstcomp);
             });
@@ -394,7 +394,7 @@ MultiFab::LinComb (MultiFab& dst,
             auto const xfab =   x.array(mfi);
             auto const yfab =   y.array(mfi);
             auto       dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSABLE ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,dstcomp+n) = a*xfab(i,j,k,xcomp+n) + b*yfab(i,j,k,ycomp+n);
             });
@@ -435,7 +435,7 @@ MultiFab::AddProduct (MultiFab& dst,
             auto const s1fab = src1.array(mfi);
             auto const s2fab = src2.array(mfi);
             auto        dfab =  dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSABLE ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,n+dstcomp) += s1fab(i,j,k,n+comp1) * s2fab(i,j,k,n+comp2);
             });

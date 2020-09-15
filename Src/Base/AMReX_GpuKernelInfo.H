@@ -7,10 +7,10 @@ namespace Gpu {
 class KernelInfo
 {
 public:
-    KernelInfo& setFusable (bool flag) { fusable = flag; return *this; }
-    bool isFusable () const { return fusable; }
+    KernelInfo& setFusible (bool flag) { fusible = flag; return *this; }
+    bool isFusible () const { return fusible; }
 private:
-    bool fusable = false;
+    bool fusible = false;
 };
 
 }}

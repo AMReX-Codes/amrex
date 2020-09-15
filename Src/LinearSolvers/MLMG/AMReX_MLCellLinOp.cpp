@@ -314,7 +314,7 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
         const Box& bx    = mfi.tilebox();
         Array4<Real const> const& cfab = crse.const_array(mfi);
         Array4<Real> const& ffab = fine.array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSABLE ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, ncomp, i, j, k, n,
         {
             int ic = amrex::coarsen(i,ratio3.x);
             int jc = amrex::coarsen(j,ratio3.y);
@@ -505,7 +505,7 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                     const Real bcllo = bdlv[icomp][olo];
                     const Real bclhi = bdlv[icomp][ohi];
                     if (idim == 0) {
-                        AMREX_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA (
+                        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (
                         blo, tboxlo, {
                         mllinop_apply_bc_x(0, tboxlo, blen, iofab, mlo,
                                            bctlo, bcllo, bvlo,
@@ -517,7 +517,7 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                                            imaxorder, dxi, flagbc, icomp);
                         });
                     } else if (idim == 1) {
-                        AMREX_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA (
+                        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (
                         blo, tboxlo, {
                         mllinop_apply_bc_y(0, tboxlo, blen, iofab, mlo,
                                            bctlo, bcllo, bvlo,
@@ -529,7 +529,7 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                                            imaxorder, dyi, flagbc, icomp);
                         });
                     } else {
-                        AMREX_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA (
+                        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (
                         blo, tboxlo, {
                         mllinop_apply_bc_z(0, tboxlo, blen, iofab, mlo,
                                            bctlo, bcllo, bvlo,

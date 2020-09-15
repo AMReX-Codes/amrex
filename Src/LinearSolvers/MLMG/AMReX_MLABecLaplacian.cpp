@@ -410,13 +410,13 @@ MLABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
                      const auto& bzfab = bzcoef.array(mfi););
         if (m_overset_mask[amrlev][mglev]) {
             const auto& osm = m_overset_mask[amrlev][mglev]->array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA ( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
             {
                 mlabeclap_adotx_os(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
                                    osm, dxinv, ascalar, bscalar, ncomp);
             });
         } else {
-            AMREX_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA ( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
             {
                 mlabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
                                 dxinv, ascalar, bscalar, ncomp);
@@ -454,7 +454,7 @@ MLABecLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
                      const auto& byfab = bycoef.array(mfi);,
                      const auto& bzfab = bzcoef.array(mfi););
 
-        AMREX_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA ( bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
         {
             mlabeclap_normalize(tbx, fab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
                                 dxinv, ascalar, bscalar, ncomp);
@@ -609,7 +609,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #else
         if (m_overset_mask[amrlev][mglev]) {
             const auto& osm = m_overset_mask[amrlev][mglev]->array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA ( tbx, thread_box,
+            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( tbx, thread_box,
             {
                 abec_gsrb_os(thread_box, solnfab, rhsfab, alpha, afab,
                              AMREX_D_DECL(dhx, dhy, dhz),
@@ -621,7 +621,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                              osm, vbx, redblack, nc);
             });
         } else if (regular_coarsening) {
-            AMREX_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA ( tbx, thread_box,
+            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( tbx, thread_box,
             {
                 abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
                           AMREX_D_DECL(dhx, dhy, dhz),
@@ -688,7 +688,7 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
         Real fac = bscalar*dxinv[0];
         Box blo = amrex::bdryLo(box, 0);
         int blen = box.length(0);
-        AMREX_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA ( blo, tbox,
+        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( blo, tbox,
         {
             mlabeclap_flux_xface(tbox, fxarr, solarr, bx, fac, blen, ncomp);
         });
@@ -696,7 +696,7 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
         fac = bscalar*dxinv[1];
         blo = amrex::bdryLo(box, 1);
         blen = box.length(1);
-        AMREX_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA ( blo, tbox,
+        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( blo, tbox,
         {
             mlabeclap_flux_yface(tbox, fyarr, solarr, by, fac, blen, ncomp);
         });
@@ -705,7 +705,7 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
         fac = bscalar*dxinv[2];
         blo = amrex::bdryLo(box, 2);
         blen = box.length(2);
-        AMREX_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA ( blo, tbox,
+        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( blo, tbox,
         {
             mlabeclap_flux_zface(tbox, fzarr, solarr, bz, fac, blen, ncomp);
         });
@@ -715,14 +715,14 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
     {
         Real fac = bscalar*dxinv[0];
         Box bflux = amrex::surroundingNodes(box, 0);
-        AMREX_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA ( bflux, tbox,
+        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bflux, tbox,
         {
             mlabeclap_flux_x(tbox, fxarr, solarr, bx, fac, ncomp);
         });
 #if (AMREX_SPACEDIM >= 2)
         fac = bscalar*dxinv[1];
         bflux = amrex::surroundingNodes(box, 1);
-        AMREX_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA ( bflux, tbox,
+        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bflux, tbox,
         {
             mlabeclap_flux_y(tbox, fyarr, solarr, by, fac, ncomp);
         });
@@ -730,7 +730,7 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
 #if (AMREX_SPACEDIM == 3)
         fac = bscalar*dxinv[2];
         bflux = amrex::surroundingNodes(box, 2);
-        AMREX_LAUNCH_HOST_DEVICE_FUSABLE_LAMBDA ( bflux, tbox,
+        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bflux, tbox,
         {
             mlabeclap_flux_z(tbox, fzarr, solarr, bz, fac, ncomp);
         });

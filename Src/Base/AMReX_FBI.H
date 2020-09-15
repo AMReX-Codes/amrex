@@ -688,7 +688,7 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
             BaseFab<int>& mskfab = maskfabs[sit()];
             const Array4<int>& msk = mskfab.array();
             const Box& bx = mskfab.box();
-            amrex::ParallelFor(Gpu::KernelInfo{}.setFusable(true), bx,
+            amrex::ParallelFor(Gpu::KernelInfo{}.setFusible(true), bx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 msk(i,j,k) = 0;
@@ -1237,7 +1237,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
             BaseFab<int>& mskfab = maskfabs[sit()];
             const Array4<int>& msk = mskfab.array();
             const Box& bx = mskfab.box();
-            amrex::ParallelFor(Gpu::KernelInfo().setFusable(true), bx,
+            amrex::ParallelFor(Gpu::KernelInfo().setFusible(true), bx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 msk(i,j,k) = 0;

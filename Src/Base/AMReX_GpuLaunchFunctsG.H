@@ -636,7 +636,7 @@ ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 {
     if (amrex::isEmpty(n)) return;
 #ifdef AMREX_USE_CUDA
-    if (Gpu::inFuseRegion() && info.isFusable() && n <= Gpu::getFuseSizeThreshold()) {
+    if (Gpu::inFuseRegion() && info.isFusible() && n <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(n, f);
     } else
 #endif
@@ -661,7 +661,7 @@ ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
 #ifdef AMREX_USE_CUDA
-    if (Gpu::inFuseRegion() && info.isFusable() && ncells <= Gpu::getFuseSizeThreshold()) {
+    if (Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(box, f);
     } else
 #endif
@@ -694,7 +694,7 @@ ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexce
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
 #ifdef AMREX_USE_CUDA
-    if (Gpu::inFuseRegion() && info.isFusable() && ncells <= Gpu::getFuseSizeThreshold()) {
+    if (Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(box, ncomp, f);
     } else
 #endif
@@ -732,7 +732,7 @@ ParallelFor (Gpu::KernelInfo const& info,
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
 #ifdef AMREX_USE_CUDA
-    if (Gpu::inFuseRegion() && info.isFusable() && ncells <= Gpu::getFuseSizeThreshold()) {
+    if (Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(box1, f1);
         Gpu::Register(box2, f2);
     } else
@@ -784,7 +784,7 @@ ParallelFor (Gpu::KernelInfo const& info,
     int ncells3 = box3.numPts();
     int ncells = amrex::max(ncells1, ncells2, ncells3);
 #ifdef AMREX_USE_CUDA
-    if (Gpu::inFuseRegion() && info.isFusable() && ncells <= Gpu::getFuseSizeThreshold()) {
+    if (Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(box1, f1);
         Gpu::Register(box2, f2);
         Gpu::Register(box3, f3);
@@ -849,7 +849,7 @@ ParallelFor (Gpu::KernelInfo const& info,
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
 #ifdef AMREX_USE_CUDA
-    if (Gpu::inFuseRegion() && info.isFusable() && ncells <= Gpu::getFuseSizeThreshold()) {
+    if (Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(box1, ncomp1, f1);
         Gpu::Register(box2, ncomp2, f2);
     } else
@@ -909,7 +909,7 @@ ParallelFor (Gpu::KernelInfo const& info,
     int ncells3 = box3.numPts();
     int ncells = amrex::max(ncells1, ncells2, ncells3);
 #ifdef AMREX_USE_CUDA
-    if (Gpu::inFuseRegion() && info.isFusable() && ncells <= Gpu::getFuseSizeThreshold()) {
+    if (Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(box1, ncomp1, f1);
         Gpu::Register(box2, ncomp2, f2);
         Gpu::Register(box3, ncomp3, f3);
