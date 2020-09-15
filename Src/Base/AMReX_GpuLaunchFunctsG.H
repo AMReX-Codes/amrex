@@ -94,7 +94,7 @@ void launch (T const& n, L&& f) noexcept
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
+void ParallelFor (Gpu::KernelInfo const& /*info*/, T n, L&& f) noexcept
 {
     if (amrex::isEmpty(n)) return;
     const auto ec = Gpu::ExecutionConfig(n);
@@ -122,7 +122,7 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 }
 
 template <typename L>
-void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
+void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box, L&& f) noexcept
 {
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
@@ -159,7 +159,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexcept
+void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box, T ncomp, L&& f) noexcept
 {
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
@@ -198,7 +198,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) n
 }
 
 template <typename L1, typename L2>
-void ParallelFor (Gpu::KernelInfo const& info, Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
+void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
     // xxxxx DPCPP todo: launch separate kernel to reduce kernel size
     ParallelFor(box1, std::forward<L1>(f1));
@@ -255,7 +255,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box1, Box const& box2,
 }
 
 template <typename L1, typename L2, typename L3>
-void ParallelFor (Gpu::KernelInfo const& info,
+void ParallelFor (Gpu::KernelInfo const& /*info*/,
                   Box const& box1, Box const& box2, Box const& box3,
                   L1&& f1, L2&& f2, L3&& f3) noexcept
 {
@@ -329,7 +329,7 @@ void ParallelFor (Gpu::KernelInfo const& info,
 template <typename T1, typename T2, typename L1, typename L2,
           typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
           typename M2=amrex::EnableIf_t<std::is_integral<T2>::value> >
-void ParallelFor (Gpu::KernelInfo const& info,
+void ParallelFor (Gpu::KernelInfo const& /*info*/,
                   Box const& box1, T1 ncomp1, L1&& f1,
                   Box const& box2, T2 ncomp2, L2&& f2) noexcept
 {
@@ -395,7 +395,7 @@ template <typename T1, typename T2, typename T3, typename L1, typename L2, typen
           typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
           typename M2=amrex::EnableIf_t<std::is_integral<T2>::value>,
           typename M3=amrex::EnableIf_t<std::is_integral<T3>::value> >
-void ParallelFor (Gpu::KernelInfo const& info,
+void ParallelFor (Gpu::KernelInfo const& /*info*/,
                   Box const& box1, T1 ncomp1, L1&& f1,
                   Box const& box2, T2 ncomp2, L2&& f2,
                   Box const& box3, T3 ncomp3, L3&& f3) noexcept
@@ -641,15 +641,16 @@ ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
     } else
 #endif
     {
-    const auto ec = Gpu::ExecutionConfig(n);
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
-    [=] AMREX_GPU_DEVICE () noexcept {
-        for (T i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
-             i < n; i += stride) {
-            f(i);
-        }
-    });
-    AMREX_GPU_ERROR_CHECK();
+        amrex::ignore_unused(info);
+        const auto ec = Gpu::ExecutionConfig(n);
+        AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            for (T i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+                 i < n; i += stride) {
+                f(i);
+            }
+        });
+        AMREX_GPU_ERROR_CHECK();
     }
 }
 
@@ -665,23 +666,24 @@ ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
     } else
 #endif
     {
-    const auto lo  = amrex::lbound(box);
-    const auto len = amrex::length(box);
-    const auto ec = Gpu::ExecutionConfig(ncells);
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
-    [=] AMREX_GPU_DEVICE () noexcept {
-        for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
-             icell < ncells; icell += stride) {
-            int k =  icell /   (len.x*len.y);
-            int j = (icell - k*(len.x*len.y)) /   len.x;
-            int i = (icell - k*(len.x*len.y)) - j*len.x;
-            i += lo.x;
-            j += lo.y;
-            k += lo.z;
-            f(i,j,k);
-        }
-    });
-    AMREX_GPU_ERROR_CHECK();
+        amrex::ignore_unused(info);
+        const auto lo  = amrex::lbound(box);
+        const auto len = amrex::length(box);
+        const auto ec = Gpu::ExecutionConfig(ncells);
+        AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+                 icell < ncells; icell += stride) {
+                int k =  icell /   (len.x*len.y);
+                int j = (icell - k*(len.x*len.y)) /   len.x;
+                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                i += lo.x;
+                j += lo.y;
+                k += lo.z;
+                f(i,j,k);
+            }
+        });
+        AMREX_GPU_ERROR_CHECK();
     }
 }
 
@@ -697,25 +699,26 @@ ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexce
     } else
 #endif
     {
-    const auto lo  = amrex::lbound(box);
-    const auto len = amrex::length(box);
-    const auto ec = Gpu::ExecutionConfig(ncells);
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
-    [=] AMREX_GPU_DEVICE () noexcept {
-        for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
-             icell < ncells; icell += stride) {
-            int k =  icell /   (len.x*len.y);
-            int j = (icell - k*(len.x*len.y)) /   len.x;
-            int i = (icell - k*(len.x*len.y)) - j*len.x;
-            i += lo.x;
-            j += lo.y;
-            k += lo.z;
-            for (T n = 0; n < ncomp; ++n) {
-                f(i,j,k,n);
+        amrex::ignore_unused(info);
+        const auto lo  = amrex::lbound(box);
+        const auto len = amrex::length(box);
+        const auto ec = Gpu::ExecutionConfig(ncells);
+        AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+                 icell < ncells; icell += stride) {
+                int k =  icell /   (len.x*len.y);
+                int j = (icell - k*(len.x*len.y)) /   len.x;
+                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                i += lo.x;
+                j += lo.y;
+                k += lo.z;
+                for (T n = 0; n < ncomp; ++n) {
+                    f(i,j,k,n);
+                }
             }
-        }
-    });
-    AMREX_GPU_ERROR_CHECK();
+        });
+        AMREX_GPU_ERROR_CHECK();
     }
 }
 
@@ -735,36 +738,37 @@ ParallelFor (Gpu::KernelInfo const& info,
     } else
 #endif
     {
-    const auto lo1  = amrex::lbound(box1);
-    const auto lo2  = amrex::lbound(box2);
-    const auto len1 = amrex::length(box1);
-    const auto len2 = amrex::length(box2);
-    const auto ec = Gpu::ExecutionConfig(ncells);
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
-    [=] AMREX_GPU_DEVICE () noexcept {
-        for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
-             icell < ncells; icell += stride) {
-            if (icell < ncells1) {
-                int k =  icell /   (len1.x*len1.y);
-                int j = (icell - k*(len1.x*len1.y)) /   len1.x;
-                int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
-                i += lo1.x;
-                j += lo1.y;
-                k += lo1.z;
-                f1(i,j,k);
+        amrex::ignore_unused(info);
+        const auto lo1  = amrex::lbound(box1);
+        const auto lo2  = amrex::lbound(box2);
+        const auto len1 = amrex::length(box1);
+        const auto len2 = amrex::length(box2);
+        const auto ec = Gpu::ExecutionConfig(ncells);
+        AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+                 icell < ncells; icell += stride) {
+                if (icell < ncells1) {
+                    int k =  icell /   (len1.x*len1.y);
+                    int j = (icell - k*(len1.x*len1.y)) /   len1.x;
+                    int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                    i += lo1.x;
+                    j += lo1.y;
+                    k += lo1.z;
+                    f1(i,j,k);
+                }
+                if (icell < ncells2) {
+                    int k =  icell /   (len2.x*len2.y);
+                    int j = (icell - k*(len2.x*len2.y)) /   len2.x;
+                    int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                    i += lo2.x;
+                    j += lo2.y;
+                    k += lo2.z;
+                    f2(i,j,k);
+                }
             }
-            if (icell < ncells2) {
-                int k =  icell /   (len2.x*len2.y);
-                int j = (icell - k*(len2.x*len2.y)) /   len2.x;
-                int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
-                i += lo2.x;
-                j += lo2.y;
-                k += lo2.z;
-                f2(i,j,k);
-            }
-        }
-    });
-    AMREX_GPU_ERROR_CHECK();
+        });
+        AMREX_GPU_ERROR_CHECK();
     }
 }
 
@@ -787,47 +791,48 @@ ParallelFor (Gpu::KernelInfo const& info,
     } else
 #endif
     {
-    const auto lo1  = amrex::lbound(box1);
-    const auto lo2  = amrex::lbound(box2);
-    const auto lo3  = amrex::lbound(box3);
-    const auto len1 = amrex::length(box1);
-    const auto len2 = amrex::length(box2);
-    const auto len3 = amrex::length(box3);
-    const auto ec = Gpu::ExecutionConfig(ncells);
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
-    [=] AMREX_GPU_DEVICE () noexcept {
-        for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
-             icell < ncells; icell += stride) {
-            if (icell < ncells1) {
-                int k =  icell /   (len1.x*len1.y);
-                int j = (icell - k*(len1.x*len1.y)) /   len1.x;
-                int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
-                i += lo1.x;
-                j += lo1.y;
-                k += lo1.z;
-                f1(i,j,k);
+        amrex::ignore_unused(info);
+        const auto lo1  = amrex::lbound(box1);
+        const auto lo2  = amrex::lbound(box2);
+        const auto lo3  = amrex::lbound(box3);
+        const auto len1 = amrex::length(box1);
+        const auto len2 = amrex::length(box2);
+        const auto len3 = amrex::length(box3);
+        const auto ec = Gpu::ExecutionConfig(ncells);
+        AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+                 icell < ncells; icell += stride) {
+                if (icell < ncells1) {
+                    int k =  icell /   (len1.x*len1.y);
+                    int j = (icell - k*(len1.x*len1.y)) /   len1.x;
+                    int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                    i += lo1.x;
+                    j += lo1.y;
+                    k += lo1.z;
+                    f1(i,j,k);
+                }
+                if (icell < ncells2) {
+                    int k =  icell /   (len2.x*len2.y);
+                    int j = (icell - k*(len2.x*len2.y)) /   len2.x;
+                    int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                    i += lo2.x;
+                    j += lo2.y;
+                    k += lo2.z;
+                    f2(i,j,k);
+                }
+                if (icell < ncells3) {
+                    int k =  icell /   (len3.x*len3.y);
+                    int j = (icell - k*(len3.x*len3.y)) /   len3.x;
+                    int i = (icell - k*(len3.x*len3.y)) - j*len3.x;
+                    i += lo3.x;
+                    j += lo3.y;
+                    k += lo3.z;
+                    f3(i,j,k);
+                }
             }
-            if (icell < ncells2) {
-                int k =  icell /   (len2.x*len2.y);
-                int j = (icell - k*(len2.x*len2.y)) /   len2.x;
-                int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
-                i += lo2.x;
-                j += lo2.y;
-                k += lo2.z;
-                f2(i,j,k);
-            }
-            if (icell < ncells3) {
-                int k =  icell /   (len3.x*len3.y);
-                int j = (icell - k*(len3.x*len3.y)) /   len3.x;
-                int i = (icell - k*(len3.x*len3.y)) - j*len3.x;
-                i += lo3.x;
-                j += lo3.y;
-                k += lo3.z;
-                f3(i,j,k);
-            }
-        }
-    });
-    AMREX_GPU_ERROR_CHECK();
+        });
+        AMREX_GPU_ERROR_CHECK();
     }
 }
 
@@ -850,40 +855,41 @@ ParallelFor (Gpu::KernelInfo const& info,
     } else
 #endif
     {
-    const auto lo1  = amrex::lbound(box1);
-    const auto lo2  = amrex::lbound(box2);
-    const auto len1 = amrex::length(box1);
-    const auto len2 = amrex::length(box2);
-    const auto ec = Gpu::ExecutionConfig(ncells);
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
-    [=] AMREX_GPU_DEVICE () noexcept {
-        for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
-             icell < ncells; icell += stride) {
-            if (icell < ncells1) {
-                int k =  icell /   (len1.x*len1.y);
-                int j = (icell - k*(len1.x*len1.y)) /   len1.x;
-                int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
-                i += lo1.x;
-                j += lo1.y;
-                k += lo1.z;
-                for (T1 n = 0; n < ncomp1; ++n) {
-                    f1(i,j,k,n);
+        amrex::ignore_unused(info);
+        const auto lo1  = amrex::lbound(box1);
+        const auto lo2  = amrex::lbound(box2);
+        const auto len1 = amrex::length(box1);
+        const auto len2 = amrex::length(box2);
+        const auto ec = Gpu::ExecutionConfig(ncells);
+        AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+                 icell < ncells; icell += stride) {
+                if (icell < ncells1) {
+                    int k =  icell /   (len1.x*len1.y);
+                    int j = (icell - k*(len1.x*len1.y)) /   len1.x;
+                    int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                    i += lo1.x;
+                    j += lo1.y;
+                    k += lo1.z;
+                    for (T1 n = 0; n < ncomp1; ++n) {
+                        f1(i,j,k,n);
+                    }
+                }
+                if (icell < ncells2) {
+                    int k =  icell /   (len2.x*len2.y);
+                    int j = (icell - k*(len2.x*len2.y)) /   len2.x;
+                    int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                    i += lo2.x;
+                    j += lo2.y;
+                    k += lo2.z;
+                    for (T2 n = 0; n < ncomp2; ++n) {
+                        f2(i,j,k,n);
+                    }
                 }
             }
-            if (icell < ncells2) {
-                int k =  icell /   (len2.x*len2.y);
-                int j = (icell - k*(len2.x*len2.y)) /   len2.x;
-                int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
-                i += lo2.x;
-                j += lo2.y;
-                k += lo2.z;
-                for (T2 n = 0; n < ncomp2; ++n) {
-                    f2(i,j,k,n);
-                }
-            }
-        }
-    });
-    AMREX_GPU_ERROR_CHECK();
+        });
+        AMREX_GPU_ERROR_CHECK();
     }
 }
 
@@ -910,53 +916,54 @@ ParallelFor (Gpu::KernelInfo const& info,
     } else
 #endif
     {
-    const auto lo1  = amrex::lbound(box1);
-    const auto lo2  = amrex::lbound(box2);
-    const auto lo3  = amrex::lbound(box3);
-    const auto len1 = amrex::length(box1);
-    const auto len2 = amrex::length(box2);
-    const auto len3 = amrex::length(box3);
-    const auto ec = Gpu::ExecutionConfig(ncells);
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
-    [=] AMREX_GPU_DEVICE () noexcept {
-        for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
-             icell < ncells; icell += stride) {
-            if (icell < ncells1) {
-                int k =  icell /   (len1.x*len1.y);
-                int j = (icell - k*(len1.x*len1.y)) /   len1.x;
-                int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
-                i += lo1.x;
-                j += lo1.y;
-                k += lo1.z;
-                for (T1 n = 0; n < ncomp1; ++n) {
-                    f1(i,j,k,n);
+        amrex::ignore_unused(info);
+        const auto lo1  = amrex::lbound(box1);
+        const auto lo2  = amrex::lbound(box2);
+        const auto lo3  = amrex::lbound(box3);
+        const auto len1 = amrex::length(box1);
+        const auto len2 = amrex::length(box2);
+        const auto len3 = amrex::length(box3);
+        const auto ec = Gpu::ExecutionConfig(ncells);
+        AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+                 icell < ncells; icell += stride) {
+                if (icell < ncells1) {
+                    int k =  icell /   (len1.x*len1.y);
+                    int j = (icell - k*(len1.x*len1.y)) /   len1.x;
+                    int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                    i += lo1.x;
+                    j += lo1.y;
+                    k += lo1.z;
+                    for (T1 n = 0; n < ncomp1; ++n) {
+                        f1(i,j,k,n);
+                    }
+                }
+                if (icell < ncells2) {
+                    int k =  icell /   (len2.x*len2.y);
+                    int j = (icell - k*(len2.x*len2.y)) /   len2.x;
+                    int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                    i += lo2.x;
+                    j += lo2.y;
+                    k += lo2.z;
+                    for (T2 n = 0; n < ncomp2; ++n) {
+                        f2(i,j,k,n);
+                    }
+                }
+                if (icell < ncells3) {
+                    int k =  icell /   (len3.x*len3.y);
+                    int j = (icell - k*(len3.x*len3.y)) /   len3.x;
+                    int i = (icell - k*(len3.x*len3.y)) - j*len3.x;
+                    i += lo3.x;
+                    j += lo3.y;
+                    k += lo3.z;
+                    for (T3 n = 0; n < ncomp3; ++n) {
+                        f3(i,j,k,n);
+                    }
                 }
             }
-            if (icell < ncells2) {
-                int k =  icell /   (len2.x*len2.y);
-                int j = (icell - k*(len2.x*len2.y)) /   len2.x;
-                int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
-                i += lo2.x;
-                j += lo2.y;
-                k += lo2.z;
-                for (T2 n = 0; n < ncomp2; ++n) {
-                    f2(i,j,k,n);
-                }
-            }
-            if (icell < ncells3) {
-                int k =  icell /   (len3.x*len3.y);
-                int j = (icell - k*(len3.x*len3.y)) /   len3.x;
-                int i = (icell - k*(len3.x*len3.y)) - j*len3.x;
-                i += lo3.x;
-                j += lo3.y;
-                k += lo3.z;
-                for (T3 n = 0; n < ncomp3; ++n) {
-                    f3(i,j,k,n);
-                }
-            }
-        }
-    });
-    AMREX_GPU_ERROR_CHECK();
+        });
+        AMREX_GPU_ERROR_CHECK();
     }
 }
 
