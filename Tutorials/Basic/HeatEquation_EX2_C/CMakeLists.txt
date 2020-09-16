@@ -1,9 +1,5 @@
-if ( NOT CMAKE_Fortran_COMPILER_LOADED OR ( DIM EQUAL 1) )
-   return()
-endif ()
-
 # List of source files
-set(_sources main.cpp advance.cpp myfunc_F.H myfunc.H init_phi_${DIM}d.f90 advance_${DIM}d.f90)
+set(_sources main.cpp myfunc.cpp myfunc.H mykernel.H)
 list(TRANSFORM _sources PREPEND "Source/")
 
 # List of input files

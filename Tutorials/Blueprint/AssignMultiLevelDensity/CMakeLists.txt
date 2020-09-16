@@ -1,9 +1,9 @@
-if ( (NOT ENABLE_EB) OR NOT (DIM EQUAL 3))
+if (NOT CMAKE_Fortran_COMPILER_LOADED OR NOT ENABLE_PARTICLES)
    return()
 endif ()
 
 set(_sources main.cpp)
-set(_input_files inputs_3d)
+set(_input_files inputs)
 
 setup_tutorial(_sources _input_files)
 
