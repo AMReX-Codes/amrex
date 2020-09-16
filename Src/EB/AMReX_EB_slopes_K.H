@@ -15,7 +15,7 @@ namespace {
 #if (AMREX_SPACEDIM > 1)
 #ifdef AMREX_USE_EB
 
-// amrex_calc_slopes_eb calculates the slope in each coordinate direction using a
+// amrex_calc_slopes_eb calculates the slope in each coordinate direction using a 
 // least squares linear fit to the 9 in 2D / 27 in 3D nearest neighbors, with the function
 // going through the centroid of cell(i,j,k).  This does not assume that the cell centroids,
 // where the data is assume to live, are the same as cell centers.  Note that this routine
@@ -25,7 +25,7 @@ namespace {
 //
 // All the slopes are returned in one call.
 
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2) 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
 amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
@@ -84,7 +84,7 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
 
     amrex::Real detAtA_x =
         (Atb[0]   *AtA[1][1]) -
-        (AtA[0][1]*Atb[1]);
+        (AtA[0][1]*Atb[1]); 
 
     // Slope at centroid of (i,j,k)
     amrex::Real xs = detAtA_x / detAtA;
@@ -190,7 +190,7 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
 }
 #endif
 
-// amrex_calc_slopes_eb calculates the slope in each coordinate direction using a
+// amrex_calc_slopes_eb calculates the slope in each coordinate direction using a 
 // 1) standard 2nd order limited slope if all three cells in the stencil are regular cells
 // OR
 // 2) least squares linear fit to the at-most 9 in 2D / 27 in 3D nearest neighbors, with the function
@@ -198,7 +198,7 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
 // where the data is assume to live, are the same as cell centers.  Note that calc_slopes_eb
 // defines the matrix A and passes this A to amrex_calc_slopes_eb_given_A.
 //
-// This routine assumes that there are no relevant hoextrap/extdir domain boundary conditions for this cell --
+// This routine assumes that there are no relevant hoextrap/extdir domain boundary conditions for this cell -- 
 //     it does not test for them so this should not be called if such boundaries might be present
 //
 // All the slopes are returned in one call.
@@ -251,27 +251,27 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
         }
     }
 
-    //
+    // 
     // These slopes use the EB stencil without testing whether it is actually needed
-    //
+    // 
     const auto& slopes = amrex_calc_slopes_eb_given_A (i,j,k,n,A,state,flag);
     AMREX_D_TERM(amrex::Real xslope = slopes[0];,
                  amrex::Real yslope = slopes[1];,
                  amrex::Real zslope = slopes[2];);
 
-    //
+    // 
     // Here we over-write -- if possible -- with a stencil not using the EB stencil
-    //
+    // 
 
     // X direction
-    if (flag(i,j,k).isRegular() and flag(i-1,j,k).isRegular() and flag(i+1,j,k).isRegular())
+    if (flag(i,j,k).isRegular() and flag(i-1,j,k).isRegular() and flag(i+1,j,k).isRegular()) 
     {
         int order = 2;
         xslope = amrex_calc_xslope(i,j,k,n,order,state);
     }
 
     // Y direction
-    if (flag(i,j,k).isRegular() and flag(i,j-1,k).isRegular() and flag(i,j+1,k).isRegular())
+    if (flag(i,j,k).isRegular() and flag(i,j-1,k).isRegular() and flag(i,j+1,k).isRegular()) 
     {
         int order = 2;
         yslope = amrex_calc_yslope(i,j,k,n,order,state);
@@ -279,17 +279,17 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
 
 #if (AMREX_SPACEDIM == 3)
     // Z direction
-    if (flag(i,j,k).isRegular() and flag(i,j,k-1).isRegular() and flag(i,j,k+1).isRegular())
+    if (flag(i,j,k).isRegular() and flag(i,j,k-1).isRegular() and flag(i,j,k+1).isRegular()) 
     {
         int order = 2;
         zslope = amrex_calc_zslope(i,j,k,n,order,state);
     }
 #endif
-
+    
     return {AMREX_D_DECL(xslope,yslope,zslope)};
 }
 
-// amrex_calc_slopes_extdir_eb calculates the slope in each coordinate direction using a
+// amrex_calc_slopes_extdir_eb calculates the slope in each coordinate direction using a 
 // 1) standard limited slope if all three cells in the stencil are regular cells
 //    (this stencil sees the extdir/hoextrap boundary condition if there is one)
 // OR
@@ -307,12 +307,12 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
                              amrex::Array4<amrex::Real const> const& state,
                              amrex::Array4<amrex::Real const> const& ccent,
                              AMREX_D_DECL(
-                             amrex::Array4<amrex::Real const> const& fcx,
+                             amrex::Array4<amrex::Real const> const& fcx, 
                              amrex::Array4<amrex::Real const> const& fcy,
                              amrex::Array4<amrex::Real const> const& fcz),
                              amrex::Array4<amrex::EBCellFlag const> const& flag,
                              AMREX_D_DECL(bool edlo_x, bool edlo_y, bool edlo_z),
-                             AMREX_D_DECL(bool edhi_x, bool edhi_y, bool edhi_z),
+                             AMREX_D_DECL(bool edhi_x, bool edhi_y, bool edhi_z), 
                              AMREX_D_DECL(int domlo_x, int domlo_y, int domlo_z),
                              AMREX_D_DECL(int domhi_x, int domhi_y, int domhi_z)) noexcept
 {
@@ -330,7 +330,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     bool needs_bdry_stencil = (edlo_x and i <= domlo_x) or (edhi_x and i >= domhi_x) or
                               (edlo_y and j <= domlo_y) or (edhi_y and j >= domhi_y);
 #if (AMREX_SPACEDIM == 3)
-         needs_bdry_stencil = needs_bdry_stencil or
+         needs_bdry_stencil = needs_bdry_stencil or 
                               (edlo_z and k <= domlo_z) or (edhi_z and k >= domhi_z);
 #endif
 
@@ -340,7 +340,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     if (!needs_bdry_stencil)
     {
         // This returns slopes calculated with the regular 1-d approach if all cells in the stencil
-        //      are regular.  If not, it uses the EB-aware least squares approach to fit a linear profile
+        //      are regular.  If not, it uses the EB-aware least squares approach to fit a linear profile 
         //      using the neighboring un-covered cells.
         const auto& slopes = amrex_calc_slopes_eb (i,j,k,n,state,ccent,flag);
         return slopes;
@@ -358,7 +358,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     {
         int lc=0;
 #if (AMREX_SPACEDIM == 3)
-        for(int kk(-1); kk<=1; kk++)
+        for(int kk(-1); kk<=1; kk++) 
 #else
         int kk = 0;
 #endif
@@ -368,7 +368,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
 
                 if( flag(i,j,k).isConnected(ii,jj,kk) and
                     not (ii==0 and jj==0 and kk==0)) {
-
+    
                     // Not multplying by dx to be consistent with how the
                     // slope is stored. Also not including the global shift
                     // wrt plo or i,j,k. We only need relative distance.
@@ -379,8 +379,8 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
 #if (AMREX_SPACEDIM == 3)
                         A[lc][2] = kk + fcx(i   ,j+jj,k+kk,1) - ccent(i,j,k,2);
 #endif
-                    }
-                    else if ( (edhi_x and i == domhi_x) and ii == 1)
+                    } 
+                    else if ( (edhi_x and i == domhi_x) and ii == 1) 
                     {
                         A[lc][0] = 0.5                        - ccent(i,j,k,0);
                         A[lc][1] = jj + fcx(i+ii,j+jj,k+kk,0) - ccent(i,j,k,1);
@@ -414,7 +414,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     {
         int lc=0;
 #if (AMREX_SPACEDIM == 3)
-        for(int kk(-1); kk<=1; kk++)
+        for(int kk(-1); kk<=1; kk++) 
 #else
         int kk = 0;
 #endif
@@ -424,7 +424,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
 
                 if( flag(i,j,k).isConnected(ii,jj,kk) and
                     not (ii==0 and jj==0 and kk==0)) {
-
+    
                     // Not multplying by dx to be consistent with how the
                     // slope is stored. Also not including the global shift
                     // wrt plo or i,j,k. We only need relative distance.
@@ -435,8 +435,8 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
 #if (AMREX_SPACEDIM == 3)
                         A[lc][2] = kk + fcy(i+ii,j   ,k+kk,1) - ccent(i,j,k,2);
 #endif
-                    }
-                    else if (edhi_y and j == domhi_y and jj == 1)
+                    } 
+                    else if (edhi_y and j == domhi_y and jj == 1) 
                     {
                         A[lc][0] = ii + fcy(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
                         A[lc][1] = 0.5                        - ccent(i,j,k,1);
@@ -477,7 +477,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
               for(int ii(-1); ii<=1; ii++){
 
                 if( flag(i,j,k).isConnected(ii,jj,kk) and
-                    not (ii==0 and jj==0 and kk==0))
+                    not (ii==0 and jj==0 and kk==0)) 
                 {
                     // Not multplying by dx to be consistent with how the
                     // slope is stored. Also not including the global shift
@@ -487,8 +487,8 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
                         A[lc][0] = ii + fcz(i+ii,j+jj,k   ,0) - ccent(i,j,k,0);
                         A[lc][1] = jj + fcz(i+ii,j+jj,k   ,1) - ccent(i,j,k,1);
                         A[lc][2] = -0.5                       - ccent(i,j,k,2);
-                    }
-                    else if (edhi_z and k == domhi_z and kk == 1)
+                    } 
+                    else if (edhi_z and k == domhi_z and kk == 1) 
                     {
                         A[lc][0] = ii + fcz(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
                         A[lc][1] = jj + fcz(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
@@ -528,11 +528,11 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     if ( flag(i,j,k).isRegular() and flag(i-1,j,k).isRegular() and flag(i+1,j,k).isRegular() )
       xslope = amrex_calc_xslope_extdir(i,j,k,n,order,state,edlo_x,edhi_x,domlo_x,domhi_x);
 
-    if ( flag(i,j,k).isRegular() and flag(i,j-1,k).isRegular() and flag(i,j+1,k).isRegular() )
+    if ( flag(i,j,k).isRegular() and flag(i,j-1,k).isRegular() and flag(i,j+1,k).isRegular() ) 
       yslope = amrex_calc_yslope_extdir(i,j,k,n,order,state,edlo_y,edhi_y,domlo_y,domhi_y);
 
 #if (AMREX_SPACEDIM == 3)
-    if ( flag(i,j,k).isRegular() and flag(i,j,k-1).isRegular() and flag(i,j,k+1).isRegular() )
+    if ( flag(i,j,k).isRegular() and flag(i,j,k-1).isRegular() and flag(i,j,k+1).isRegular() ) 
       zslope = amrex_calc_zslope_extdir(i,j,k,n,order,state,edlo_z,edhi_z,domlo_z,domhi_z);
 #endif
     }
@@ -541,19 +541,19 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     // TODO:  is this the right thing to do at a HOEXTRAP boundary??
 #if (AMREX_SPACEDIM == 2)
     if ( (edlo_x and i < domlo_x) or (edhi_x and i > domhi_x)   or
-         (edlo_y and j < domlo_y) or (edhi_y and j > domhi_y) )
-    {
-          AMREX_D_TERM(xslope = 0.;,
-                       xslope = 0.; yslope = 0.;,
+         (edlo_y and j < domlo_y) or (edhi_y and j > domhi_y) )  
+    { 
+          AMREX_D_TERM(xslope = 0.;,  
+                       xslope = 0.; yslope = 0.;, 
                        xslope = 0.; yslope = 0.; zslope = 0.;);
-    }
+    } 
 #elif (AMREX_SPACEDIM == 3)
     if ( (edlo_x and i < domlo_x) or (edhi_x and i > domhi_x) or
          (edlo_y and j < domlo_y) or (edhi_y and j > domhi_y) or
          (edlo_z and k < domlo_z) or (edhi_z and k > domhi_z) )
     {
-          AMREX_D_TERM(xslope = 0.;,
-                       xslope = 0.; yslope = 0.;,
+          AMREX_D_TERM(xslope = 0.;,  
+                       xslope = 0.; yslope = 0.;, 
                        xslope = 0.; yslope = 0.; zslope = 0.;);
     }
 #endif
