@@ -42,12 +42,12 @@ ifeq ($(USE_HIP),TRUE)
   DEBUG := FALSE  # Currently there is a compiler bug for DEBUG=TRUE.
   USE_CUDA := FALSE
   COMP := hip
-  HIP_PLATFORM = $(shell hipconfig --compiler)
-  ifeq ($(HIP_PLATFORM),nvcc)
-    $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
-  else ifeq ($(HIP_PLATFORM),hcc)
-    $(error HIP_PLATFORM=hcc is no longer supported)
-  else ifeq ($(HIP_PLATFORM),clang)
+  HIP_COMPILER = $(shell hipconfig --compiler)
+  ifeq ($(HIP_COMPILER),nvcc)
+    $(error HIP_COMPILER=nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
+  else ifeq ($(HIP_COMPILER),hcc)
+    $(error HIP_COMPILER=hcc is no longer supported)
+  else ifeq ($(HIP_COMPILER),clang)
   else
     $(error Unknown HIP_PLATFORM=$(HIP_PLATFORM))
   endif
