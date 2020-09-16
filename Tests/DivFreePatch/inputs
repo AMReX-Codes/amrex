@@ -1,5 +1,5 @@
 n_cell = 64
-f_offset = 4
+f_offset = 8
 
 max_grid_size = 128
 

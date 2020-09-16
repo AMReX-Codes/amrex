@@ -77,7 +77,7 @@ void main_main ()
     IntVect ratio{AMREX_D_DECL(2,2,2)};    // For this stencil (octree), always 2.
     IntVect ghost_c{AMREX_D_DECL(1,1,1)};  // For this stencil (octree), need 1 coarse ghost.
     IntVect ghost_f{AMREX_D_DECL(2,2,2)};  // For this stencil (octree), need 2 fine ghost.
-    Geometry c_geom, f_geom;
+    Geometry c_geom, f_geom, f_geom_wghost;
 
     Array<MultiFab, AMREX_SPACEDIM> c_mf_faces;
     Array<MultiFab, AMREX_SPACEDIM> f_mf_faces;
@@ -89,9 +89,12 @@ void main_main ()
 
     //  Create multifabs.
     {
-        Box domain  (IntVect{c_lo}, IntVect{c_hi});
-        Box domain_f(IntVect{f_lo}, IntVect{f_hi});
+        Box domain   (IntVect{c_lo},         IntVect{c_hi});
+        Box domain_f (IntVect{f_lo},         IntVect{f_hi});
+        Box domain_fg(IntVect{f_lo}-ghost_f, IntVect{f_hi}+ghost_f);
+
         domain_f.refine(ratio);
+        domain_fg.refine(ratio);
 
         RealBox realbox_c({AMREX_D_DECL(0.0,0.0,0.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
         RealBox realbox_f({AMREX_D_DECL( double(f_lo[0])   / double(c_hi[0]+1),
@@ -100,6 +103,13 @@ void main_main ()
                           {AMREX_D_DECL( double(f_hi[0]+1) / double(c_hi[0]+1),
                                          double(f_hi[1]+1) / double(c_hi[1]+1),
                                          double(f_hi[2]+1) / double(c_hi[2]+1) )} );
+        RealBox realbox_fg({AMREX_D_DECL( double(f_lo[0]-ghost_f[0])   / double(c_hi[0]+1),
+                                          double(f_lo[1]-ghost_f[1])   / double(c_hi[1]+1),
+                                          double(f_lo[2]-ghost_f[2])   / double(c_hi[2]+1) )},
+                           {AMREX_D_DECL( double(f_hi[0]+ghost_f[0]+1) / double(c_hi[0]+1),
+                                          double(f_hi[1]+ghost_f[1]+1) / double(c_hi[1]+1),
+                                          double(f_hi[2]+ghost_f[1]+1) / double(c_hi[2]+1) )} );
+
         Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
 
         // Build coarse and fine boxArrays and DistributionMappings.
@@ -112,8 +122,9 @@ void main_main ()
         DistributionMapping dm_c(ba_c);
         DistributionMapping dm_f(ba_f);
 
-        c_geom.define(domain,   realbox_c, CoordSys::cartesian, is_periodic);
-        f_geom.define(domain_f, realbox_f, CoordSys::cartesian, is_periodic);
+        c_geom.define(domain,    realbox_c,  CoordSys::cartesian, is_periodic);
+        f_geom.define(domain_f,  realbox_f,  CoordSys::cartesian, is_periodic);
+        f_geom_wghost.define(domain_fg, realbox_fg, CoordSys::cartesian, is_periodic);
 
         AMREX_D_TERM( c_mf_faces[0].define( amrex::convert( ba_c,x_face ), dm_c, ncomp, ghost_c);,
                       c_mf_faces[1].define( amrex::convert( ba_c,y_face ), dm_c, ncomp, ghost_c);,
@@ -300,12 +311,30 @@ void main_main ()
         amrex::Print() << " Divergence error = " << max_error << std::endl;
     }
 
-/*
+    // Check ghost cell values.
+    for (MFIter mfi(f_mf_faces[0]); mfi.isValid(); ++mfi)
+    {
+        const Box& vbx = mfi.validbox();
+        const Box& fbx = mfi.fabbox();
+
+        Array4<Real> face_x = f_mf_faces[0].array(mfi);
+
+        amrex::Print() << "bx = " << vbx << " " << fbx << std::endl;
+ 
+        amrex::ParallelFor(fbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            if ( !vbx.contains({i,j}) )
+            {
+                amrex::Print() << "(" << i << " " << j << ") = " << face_x(i,j,k) << std::endl;
+            }
+        });
+
+    }
+
     amrex::Print() << " Performing DivFree FillPatch. " << std::endl;
     {
-        double time = 1;
-        Vector<Real> time_v;
-        time_v.push_back(time);
+        Real time = 1;
+        Vector<Real> time_v(1,1);
 
         Array<Vector<BCRec>, AMREX_SPACEDIM> bcrec;
         for (int odim=0; odim < AMREX_SPACEDIM; ++odim)
@@ -340,19 +369,34 @@ void main_main ()
 
         amrex::Print() << " Starting FillPatch. " << std::endl;
 
-        Geometry f_total_geom = c_geom;
-        f_total_geom.refine(ratio);
-
-        FillPatchTwoLevels(fine_faces, ghost, time,
+        FillPatchTwoLevels(fine_faces, ghost_f, time,
                            coarse_v, time_v,
                            fine_v, time_v,
-                           0, 0, 1, c_geom, f_total_geom,
+                           0, 0, 1, c_geom, f_geom_wghost,
                            phys_bc, 0, phys_bc, 0,
                            ratio, mapper, bcrec, 0);
+    }
+/*
+    // Check ghost cell values.
+    for (MFIter mfi(f_mf_faces[0]); mfi.isValid(); ++mfi)
+    {
+        const Box& vbx = mfi.validbox();
+        const Box& fbx = mfi.fabbox();
+
+        Array4<Real> face_x = f_mf_faces[0].array(mfi);
+
+        amrex::Print() << "bxs: " << vbx << " " << fbx << std::endl;
+ 
+        amrex::ParallelFor(fbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            if ( !vbx.contains({i,j}) )
+            {
+                amrex::Print() << "(" << i << " " << j << ") = " << face_x(i,j,k) << std::endl;
+            }
+        });
 
     }
 */
-
 // ***************************************************************
 
 
