@@ -156,13 +156,19 @@ function (setup_target_for_hip_compilation _target)
       list(REMOVE_ITEM _cpp_sources ${_source_files})
    endif ()
 
-   print_list(_generated_files)
-   print_list(_source_files)
-   print_list(_cpp_sources)
-   print_list(_non_cpp_sources)
+   # Trying this to debug problem
+   set_target_properties(${_target} PROPERTIES SOURCES "")
+
+   foreach (_src IN LISTS ${_generated_files})
+      message(STATUS "Adding generated source ${_src}")
+      target_sources(${_target} PRIVATE ${_src})
+   endforeach ()
+   message(STATUS "Done adding generated sources. Now adding non-cpp sources")
+   target_sources(${_target} PRIVATE ${_non_cpp_sources})
+
 
    # overwrite sources of _target with "new" sources
-   set_target_properties(${_target} PROPERTIES SOURCES "${_generated_files};${_non_cpp_sources}")
+   # set_target_properties(${_target} PROPERTIES SOURCES "${_generated_files};${_non_cpp_sources}")
 
    # set linker language
    set_target_properties(${_target} PROPERTIES LINKER_LANGUAGE ${HIP_C_OR_CXX})
