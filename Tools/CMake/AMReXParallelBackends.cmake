@@ -95,8 +95,8 @@ if (ENABLE_HIP)
          " Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
    endif()
 
-   # Now let's find rocrand -- link against both rocrand and hiprand
-   find_package(rocrand REQUIRED CONFIG)
-   target_link_libraries(amrex PUBLIC roc::rocrand roc::hiprand)
+   # Link to hiprand
+   find_package(hiprand REQUIRED CONFIG)
+   target_link_libraries(amrex PUBLIC hip::hiprand)
 
 endif ()
