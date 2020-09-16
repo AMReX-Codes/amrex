@@ -136,7 +136,7 @@ print_option( ENABLE_HIP )
 option( ENABLE_ACC  "Enable GPU support via OpenACC" OFF )
 print_option( ENABLE_ACC )
 
-if (ENABLE_CUDA OR ENABLE_ACC)
+if (ENABLE_CUDA OR ENABLE_ACC OR ENABLE_HIP)
    set(GPUS_PER_SOCKET "IGNORE" CACHE STRING "Number of GPUs per socket" )
    print_option(GPUS_PER_SOCKET)
 
