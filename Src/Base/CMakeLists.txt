@@ -16,8 +16,6 @@ target_sources( amrex
    AMReX_error_fi.cpp
    AMReX.H
    AMReX_Exception.H
-   AMReX.cpp
-   AMReX_error_fi.cpp
    AMReX_Extension.H
    AMReX_IndexSequence.H
    AMReX_PODVector.H
