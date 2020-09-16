@@ -95,7 +95,7 @@ if (ENABLE_HIP)
          " Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
    endif()
 
-   # Let's put the defines here for the time being
-   target_compile_definitions( amrex PUBLIC AMREX_USE_HIP AMREX_HIP_PLATFORM=${HIP_PLATFORM} )
+   # Let's put the defines here for the time being -- What we call PLATFORM is actually the COMPILER
+   target_compile_definitions( amrex PUBLIC AMREX_USE_HIP AMREX_HIP_PLATFORM=${HIP_COMPILER} )
 
 endif ()
