@@ -65,6 +65,9 @@ function ( set_amrex_defines )
    add_amrex_define( AMREX_USE_DPCPP NO_LEGACY IF ENABLE_DPCPP )
    add_amrex_define( AMREX_USE_GPU NO_LEGACY IF ENABLE_DPCPP )
 
+   # HIP
+   add_amrex_define( AMREX_USE_HIP NO_LEGACY IF ENABLE_HIP )
+
    # Precision
    if (NOT ENABLE_DP)
       add_amrex_define(AMREX_USE_FLOAT)
