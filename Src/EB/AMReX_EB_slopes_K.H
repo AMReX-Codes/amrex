@@ -322,9 +322,9 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     constexpr int dim_a = 27;
 #endif
 
-    AMREX_D_TERM(amrex::Real xslope;,
-                 amrex::Real yslope;,
-                 amrex::Real zslope;);
+    AMREX_D_TERM(amrex::Real xslope = 0.0;,
+                 amrex::Real yslope = 0.0;,
+                 amrex::Real zslope = 0.0;);
 
     // First get EB-aware slope that doesn't know about extdir
     bool needs_bdry_stencil = (edlo_x and i <= domlo_x) or (edhi_x and i >= domhi_x) or
