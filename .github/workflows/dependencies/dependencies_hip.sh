@@ -36,3 +36,17 @@ sudo apt-get install -y --no-install-recommends \
     openmpi-bin     \
     rocm-dev
 
+# activate
+#
+source /etc/profile.d/rocm.sh
+hipcc --version
+
+# cmake-easyinstall
+#
+sudo curl -L -o /usr/local/bin/cmake-easyinstall https://git.io/JvLxY
+sudo chmod a+x /usr/local/bin/cmake-easyinstall
+export CEI_SUDO="sudo"
+
+# rocRAND comes separately
+#
+cmake-easyinstall --prefix=/usr/local git+https://github.com/ROCmSoftwarePlatform/rocRAND.git -DCMAKE_CXX_COMPILER=$(which hipcc)
