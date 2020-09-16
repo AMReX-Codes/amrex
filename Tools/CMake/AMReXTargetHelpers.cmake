@@ -129,16 +129,19 @@ endfunction ()
 #
 function (setup_target_for_hip_compilation _target)
 
+   if (NOT HIP_FOUND)
+      message(FATAL_ERROR "setup_target_for_hip_compilation() requires HIP")
+   endif ()
+
    # Make C++ files with HIP_SOURCE_PROPERTY_FORMAT
    # This will trigger HIP compilation of those files
    # The cpp files will become the "generated" sources from  hip_prepare_target_commands
    get_target_property(_sources ${_target} SOURCES)
    set(_cpp_sources     ${_sources})
-   set(_non_cpp_sources ${_sources})
-
    list(FILTER _cpp_sources INCLUDE REGEX "\\.cpp$")
    set_source_files_properties(${_cpp_sources} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
-   list(REMOVE_ITEM _non_cpp_sources ${_cpp_sources})
+   set(_non_cpp_sources ${_sources})
+   list(FILTER _non_cpp_sources EXCLUDE REGEX "\\.cpp$")
 
    # Separate the sources from the options
    # HIP_GET_SOURCES_AND_OPTIONS(_sources _cmake_options _hipcc_options _hcc_options _nvcc_options ${ARGN})
@@ -152,6 +155,8 @@ function (setup_target_for_hip_compilation _target)
       HCC_OPTIONS ${_hcc_options}
       NVCC_OPTIONS ${_nvcc_options})
 
+   print_list(_cpp_sources)
+
    if (_source_files)
       list(REMOVE_ITEM _cpp_sources ${_source_files})
    endif ()
@@ -159,14 +164,14 @@ function (setup_target_for_hip_compilation _target)
    # Trying this to debug problem
    set_target_properties(${_target} PROPERTIES SOURCES "")
 
-   foreach (_src IN LISTS _generated_files)
-      message(STATUS "Adding generated source ${_src}")
-      target_sources(${_target} PRIVATE ${_src})
-   endforeach ()
-   message(STATUS "Done adding generated sources. Now adding non-cpp sources")
-   print_list(_non_cpp_sources)
-   target_sources(${_target} PRIVATE ${_non_cpp_sources})
-   message(STATUS "Done adding non-cpp sources")
+   # foreach (_src IN LISTS _generated_files)
+   #    message(STATUS "Adding generated source ${_src}")
+   #    target_sources(${_target} PRIVATE ${_src})
+   # endforeach ()
+   # message(STATUS "Done adding generated sources. Now adding non-cpp sources")
+   # print_list(_non_cpp_sources)
+   # target_sources(${_target} PRIVATE ${_non_cpp_sources})
+   # message(STATUS "Done adding non-cpp sources")
 
    # overwrite sources of _target with "new" sources
    # set_target_properties(${_target} PROPERTIES SOURCES "${_generated_files};${_non_cpp_sources}")
