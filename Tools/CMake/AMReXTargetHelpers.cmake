@@ -159,13 +159,14 @@ function (setup_target_for_hip_compilation _target)
    # Trying this to debug problem
    set_target_properties(${_target} PROPERTIES SOURCES "")
 
-   foreach (_src IN LISTS ${_generated_files})
+   foreach (_src IN LISTS _generated_files)
       message(STATUS "Adding generated source ${_src}")
       target_sources(${_target} PRIVATE ${_src})
    endforeach ()
    message(STATUS "Done adding generated sources. Now adding non-cpp sources")
+   print_list(_non_cpp_sources)
    target_sources(${_target} PRIVATE ${_non_cpp_sources})
-
+   message(STATUS "Done adding non-cpp sources")
 
    # overwrite sources of _target with "new" sources
    # set_target_properties(${_target} PROPERTIES SOURCES "${_generated_files};${_non_cpp_sources}")
