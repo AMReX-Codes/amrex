@@ -98,4 +98,10 @@ if (ENABLE_HIP)
    # Let's put the defines here for the time being -- What we call PLATFORM is actually the COMPILER
    target_compile_definitions( amrex PUBLIC AMREX_USE_HIP AMREX_HIP_PLATFORM=${HIP_COMPILER} )
 
+   # Now let's find rocrand
+   find_package(rocrand REQUIRED CONFIG)
+   target_link_libraries(amrex PUBLIC roc::rocrand)
+
+
+
 endif ()
