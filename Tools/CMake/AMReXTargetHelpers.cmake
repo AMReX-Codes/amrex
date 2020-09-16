@@ -124,8 +124,7 @@ endfunction ()
 
 
 #
-# Create target 'amrex-hip' by "cloning" target 'amrex' and
-# adding HIP specific settings
+# Setup a target for HIP compilation
 #
 function (setup_target_for_hip_compilation _target)
 

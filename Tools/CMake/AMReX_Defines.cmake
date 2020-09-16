@@ -152,7 +152,7 @@ function ( set_amrex_defines )
    #
    # General setup for any GPUs
    #
-   if (ENABLE_CUDA OR ENABLE_ACC)
+   if (ENABLE_CUDA OR ENABLE_ACC OR ENABLE_HIP)
       add_amrex_define( AMREX_USE_GPU  NO_LEGACY )
       add_amrex_define( BL_COALESCE_FABS )
 
