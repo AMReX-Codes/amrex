@@ -158,9 +158,6 @@ function (setup_target_for_hip_compilation _target)
       list(REMOVE_ITEM _sources ${_source_files})
    endif ()
 
-   # Trying this to debug problem
-   set_target_properties(${_target} PROPERTIES SOURCES "")
-
    # foreach (_src IN LISTS _generated_files)
    #    message(STATUS "Adding generated source ${_src}")
    #    target_sources(${_target} PRIVATE ${_src})
