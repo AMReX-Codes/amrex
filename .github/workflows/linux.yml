@@ -196,7 +196,7 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
             -DAMReX_BUILD_TUTORIALS=ON                     \
             -DENABLE_PARTICLES=OFF                         \
-            -DENABLE_FORTRAN=OFF                           \
+            -DENABLE_FORTRAN=ON                            \
             -DENABLE_LINEAR_SOLVERS=OFF                    \
             -DENABLE_HIP=ON                                \
             -DCMAKE_C_COMPILER=$(which hipcc)              \
