@@ -128,9 +128,9 @@ endfunction ()
 #
 function (setup_target_for_hip_compilation _target)
 
-   # This is to make sure we have access to hip_prepare_target_commands()
-   # provided by FindHIP.cmake
-   find_package(HIP REQUIRED)
+   if (NOT HIP_FOUND)
+      message(FATAL_ERROR "setup_target_for_hip_compilation() requires HIP")
+   endif ()
 
    # Make C++ files with HIP_SOURCE_PROPERTY_FORMAT
    # This will trigger HIP compilation of those files
