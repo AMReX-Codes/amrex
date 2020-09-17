@@ -49,7 +49,7 @@ ifeq ($(USE_HIP),TRUE)
     $(error HIP_COMPILER=hcc is no longer supported)
   else ifeq ($(HIP_COMPILER),clang)
   else
-    $(error Unknown HIP_PLATFORM=$(HIP_PLATFORM))
+    $(error Unknown HIP_COMPILER=$(HIP_COMPILER))
   endif
 endif
 
