@@ -104,6 +104,13 @@ function (setup_tutorial _srcs  _inputs)
 
 endfunction ()
 
+#
+# Find HIP
+# HIP stuff are not transitive, i.e. will not be inherited from amrex.
+# Also, HIP is not yet a firt-class language in CMake, like CUDA.
+if (ENABLE_HIP)
+   find_package(HIP REQUIRED)
+endif ()
 
 #
 # Loop over subdirs and add to the build those containing CMakeLists.txt
