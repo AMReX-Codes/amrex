@@ -45,7 +45,7 @@ target_link_options( SYCL
 #   https://github.com/intel/llvm/issues/2187
 target_compile_options( SYCL
    INTERFACE
-   $<${_cxx_clang}:-mlong-double-64>)
+   $<${_cxx_clang}:-mlong-double-64 -Xclang -mlong-double-64>)
 
 if (ENABLE_DPCPP_AOT)
    message(FATAL_ERROR "\nAhead-of-time (AOT) compilation support not available yet.\nRe-configure with ENABLE_DPCPP_AOT=OFF.")
