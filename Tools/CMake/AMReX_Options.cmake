@@ -145,7 +145,7 @@ if (ENABLE_HIP)
    set(AMREX_HIPCC_FLAGS_REQUIRED "-m64 --amdgpu-target=${AMD_ARCH}" CACHE
       INTERNAL "Flags required by AMReX for HIPCC builds for all build types")
 
-   set(AMREX_HIPCC_FLAGS "" CACHE STRING "Flags used by the HIPCC compiler during all build types."
+   set(AMREX_HIPCC_FLAGS "" CACHE STRING "Flags used by the HIPCC compiler during all build types.")
 endif ()
 
 option( ENABLE_ACC  "Enable GPU support via OpenACC" OFF )
