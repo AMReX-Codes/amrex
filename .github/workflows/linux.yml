@@ -197,7 +197,7 @@ jobs:
             -DAMReX_BUILD_TUTORIALS=ON                     \
             -DENABLE_PARTICLES=ON                          \
             -DENABLE_FORTRAN=OFF                           \
-            -DENABLE_LINEAR_SOLVERS=ON                     \
+            -DENABLE_LINEAR_SOLVERS=OFF                    \
             -DENABLE_HIP=ON                                \
             -DCMAKE_C_COMPILER=$(which hipcc)              \
             -DCMAKE_CXX_COMPILER=$(which hipcc)            \
