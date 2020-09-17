@@ -94,6 +94,10 @@ function (setup_tutorial _srcs  _inputs)
       setup_target_for_cuda_compilation( ${_exe_name} )
    endif ()
 
+   if (ENABLE_HIP)
+      setup_target_for_hip_compilation( ${_exe_name})
+   endif ()
+
    if (${_inputs})
       file( COPY ${${_inputs}} DESTINATION ${_exe_dir} )
    endif ()
