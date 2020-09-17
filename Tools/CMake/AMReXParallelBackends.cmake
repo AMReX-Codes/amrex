@@ -99,5 +99,4 @@ if (ENABLE_HIP)
    find_package(rocrand REQUIRED CONFIG)
    find_package(hiprand REQUIRED CONFIG)
    target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand)
-
 endif ()

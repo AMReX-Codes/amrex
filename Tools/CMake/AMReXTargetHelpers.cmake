@@ -141,9 +141,7 @@ function (setup_target_for_hip_compilation _target)
    set_source_files_properties(${_cpp_sources} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
 
    # Separate the sources from the options
-   set(_cmake_options)
-   set(_hipcc_options)
-   set(_hcc_options)
+   set(_hipcc_options ${AMREX_HIPCC_FLAGS_REQUIRED} ${AMREX_HIPCC_FLAGS})
    set(_nvcc_options)
    hip_prepare_target_commands(${_target}
       OBJ  _generated_files _source_files ${_sources}

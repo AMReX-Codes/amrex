@@ -199,6 +199,7 @@ jobs:
             -DENABLE_FORTRAN=OFF                           \
             -DENABLE_LINEAR_SOLVERS=OFF                    \
             -DENABLE_HIP=ON                                \
+            -DAMD_ARCH=gfx900                              \
             -DCMAKE_C_COMPILER=$(which hipcc)              \
             -DCMAKE_CXX_COMPILER=$(which hipcc)            \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
