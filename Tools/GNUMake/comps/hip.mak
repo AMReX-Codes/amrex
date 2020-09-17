@@ -50,7 +50,7 @@ endif  # BL_NO_FORT
 
 # =============================================================================================
 
-ifeq ($(HIP_PLATFORM),clang)
+ifeq ($(HIP_COMPILER),clang)
 
   ifeq ($(DEBUG),TRUE)
     CXXFLAGS += -g -O0 -ftrapv
@@ -106,8 +106,8 @@ ifeq ($(HIP_PLATFORM),clang)
 
 # =============================================================================================
 
-else ifeq ($(HIP_PLATFORM),nvcc)
-  $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms.)
+else ifeq ($(HIP_COMPILER),nvcc)
+  $(error HIP_COMPILER nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms.)
 endif
 
 # =============================================================================================
