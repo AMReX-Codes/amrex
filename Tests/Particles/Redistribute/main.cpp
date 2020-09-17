@@ -175,6 +175,8 @@ public:
                           host_runtime_int[i].end(),
                           soa.GetIntData(NAI+i).begin() + old_size);
             }
+
+            Gpu::synchronize();
         }
 
         RedistributeLocal();
