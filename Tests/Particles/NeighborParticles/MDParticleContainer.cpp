@@ -100,6 +100,8 @@ InitParticles(const IntVect& a_num_particles_per_cell,
         
         Gpu::copy(Gpu::hostToDevice, host_particles.begin(), host_particles.end(),
                   particle_tile.GetArrayOfStructs().begin() + old_size);        
+
+        Gpu::synchronize();
     }
     
     amrex::PrintToFile("neighbor_test") << " Number of particles is " << this->TotalNumberOfParticles()<< " \n";
