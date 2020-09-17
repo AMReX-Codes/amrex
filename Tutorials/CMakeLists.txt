@@ -104,7 +104,6 @@ function (setup_tutorial _srcs  _inputs)
 
 endfunction ()
 
-
 #
 # Loop over subdirs and add to the build those containing CMakeLists.txt
 #
