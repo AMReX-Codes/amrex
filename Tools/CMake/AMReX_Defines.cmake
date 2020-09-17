@@ -67,6 +67,7 @@ function ( set_amrex_defines )
 
    # HIP
    add_amrex_define( AMREX_USE_HIP NO_LEGACY IF ENABLE_HIP )
+   add_amrex_define( NDEBUG IF ENABLE_HIP)  # This address a bug that causes slow build times
 
    # Precision
    if (NOT ENABLE_DP)
