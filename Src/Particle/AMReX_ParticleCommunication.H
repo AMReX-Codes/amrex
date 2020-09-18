@@ -238,7 +238,7 @@ struct GetSendBufferOffset
           m_get_bucket(map.getBucketFunctor())
     {}
 
-    AMREX_FORCE_INLINE AMREX_GPU_HOST_DEVICE
+    AMREX_FORCE_INLINE AMREX_GPU_DEVICE
     Long operator() (int dst_box, int dst_lev, std::size_t psize, int i) const
     {
         int dst_pid = m_get_pid(dst_lev, dst_box);
