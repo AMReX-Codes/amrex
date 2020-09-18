@@ -99,15 +99,15 @@ function (setup_test _srcs  _inputs)
    #
    # Assemble the commands sequence to launch the test
    #
-   set(_cmd ${_exe_name})
+   set(_cmd ${_test_name})
 
    if (_CMDLINE_PARAMS)
-      set(_cmd "${_cmd} ${_CMDLINE_PARAMS}")
+      list(APPEND _cmd ${_CMDLINE_PARAMS})
    endif ()
 
    if (${_inputs})
       file( COPY ${${_inputs}} DESTINATION ${_exe_dir} )
-      set(_cmd "${_cmd} ${${_inputs}}")
+      list(APPEND _cmd ${${_inputs}})
    endif ()
 
    #
