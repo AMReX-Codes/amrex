@@ -61,7 +61,7 @@ function (setup_test _srcs  _inputs)
       set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR})
    endif ()
 
-   set( _exe_name  ${_base_name} )
+   set( _exe_name  Test_${_base_name} )
    set( _test_name ${_base_name} )
 
    add_executable( ${_exe_name} )
@@ -99,7 +99,7 @@ function (setup_test _srcs  _inputs)
    #
    # Assemble the commands sequence to launch the test
    #
-   set(_cmd ${_test_name})
+   set(_cmd ${_exe_name})
 
    if (_CMDLINE_PARAMS)
       list(APPEND _cmd ${_CMDLINE_PARAMS})
