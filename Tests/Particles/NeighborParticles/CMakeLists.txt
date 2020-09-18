@@ -2,7 +2,7 @@ set(_sources CheckPair.H Constants.H main.cpp  MDParticleContainer.cpp MDParticl
 
 set(_input_files inputs  )
 
-setup_test(_sources _input_files)
+setup_test(_sources _input_files NTASKS 2)
 
 unset(_sources)
 unset(_input_files)

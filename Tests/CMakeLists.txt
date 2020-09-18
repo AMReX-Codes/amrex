@@ -24,7 +24,7 @@ list(TRANSFORM AMREX_TESTS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
 function (setup_test _srcs  _inputs)
 
    cmake_parse_arguments( "" "HAS_FORTRAN_MODULES"
-      "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS;CMDLINE_PARAMS" "" ${ARGN} )
+      "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS;CMDLINE_PARAMS;NTASKS;NTHREADS" "" ${ARGN} )
 
    if (_BASE_NAME)
       set(_base_name ${_BASE_NAME})
@@ -77,7 +77,7 @@ function (setup_test _srcs  _inputs)
    #
    # Assemble the commands sequence to launch the test
    #
-   set(_cmd ${_exe_name})
+   set(_cmd ${_exe_dir}/${_exe_name})
 
    if (_CMDLINE_PARAMS)
       list(APPEND _cmd ${_CMDLINE_PARAMS})
@@ -96,6 +96,37 @@ function (setup_test _srcs  _inputs)
       COMMAND            ${_cmd}
       WORKING_DIRECTORY  ${_exe_dir}
       )
+
+   #
+   # Add MPI test
+   #
+   if (ENABLE_MPI AND _NTASKS)
+      if (_NTASKS GREATER 2)
+         message(FATAL_ERROR "\nsetup_tests(): number of MPI tasks exceeds CI limit of 2")
+      endif ()
+
+      add_test(
+         NAME               ${_test_name}_MPI
+         COMMAND            mpiexec -n ${_NTASKS} ${_cmd}
+         WORKING_DIRECTORY  ${_exe_dir}
+         )
+
+      set_tests_properties(${_test_name}_MPI PROPERTIES ENVIRONMENT OMP_NUM_THREADS=1 )
+   endif ()
+
+   if (ENABLE_OMP AND _NTHREADS)
+      if (_NTHREADS GREATER 2)
+         message(FATAL_ERROR "\nsetup_tests(): number of OpenMP threads exceeds CI limit of 2")
+      endif ()
+
+      add_test(
+         NAME               ${_test_name}_OpenMP
+         COMMAND            ${_cmd}
+         WORKING_DIRECTORY  ${_exe_dir}
+         )
+
+      set_tests_properties(${_test_name}_OpenMP PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${_NTHREADS} )
+   endif ()
 
 endfunction ()
 
