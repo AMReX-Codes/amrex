@@ -1,19 +1,10 @@
 #
 # List of subdirectories to search for CMakeLists.
 #
-set( AMREX_TESTS_SUBDIRS
-   AsyncOut
-   BaseFabTesting
-   BBIOBenchmark
-   FillBoundaryComparison
-   )
+set( AMREX_TESTS_SUBDIRS AsyncOut )
 
 if (ENABLE_PARTICLES)
    list(APPEND AMREX_TESTS_SUBDIRS Particles)
-endif ()
-
-if (ENABLE_AMRDATA)
-   list(APPEND AMREX_TESTS_SUBDIRS DataServicesTest0)
 endif ()
 
 list(TRANSFORM AMREX_TESTS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
