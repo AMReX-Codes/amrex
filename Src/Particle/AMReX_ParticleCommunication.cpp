@@ -34,7 +34,8 @@ void ParticleCopyOp::resize (const int gid, const int lev, const int size)
 void ParticleCopyPlan::clear ()
 {
     m_dst_indices.clear();
-    m_box_counts.clear();
+    m_box_counts_d.clear();
+    m_box_counts_h.clear();
     m_box_offsets.clear();
 
     m_rcv_box_counts.clear();
@@ -65,8 +66,6 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
     m_rcv_num_particles.resize(0);
     m_rcv_num_particles.resize(NProcs, 0);
 
-    Gpu::HostVector<unsigned int> box_counts(m_box_counts.size());
-    Gpu::copy(Gpu::deviceToHost, m_box_counts.begin(), m_box_counts.end(), box_counts.begin());
     std::map<int, Vector<int> > snd_data;
 
     m_NumSnds = 0;
@@ -78,8 +77,8 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
 	{
             int dst = map.bucketToGrid(bucket);
             int lev = map.bucketToLevel(bucket);
-            AMREX_ASSERT(box_counts[bucket] <= std::numeric_limits<int>::max());
-            int npart = static_cast<int>(box_counts[bucket]);
+            AMREX_ASSERT(m_box_counts_h[bucket] <= std::numeric_limits<int>::max());
+            int npart = static_cast<int>(m_box_counts_h[bucket]);
             if (npart == 0) continue;
             m_snd_num_particles[i] += npart;
             if (i == MyProc) continue;
