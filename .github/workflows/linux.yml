@@ -255,4 +255,4 @@ jobs:
         make -j 2
     - name: Run tests
       run: |
-        ctest --output-on-failure
+        ctest --output-on-failure -R
