@@ -1,8 +1,0 @@
-
-This tests how AMReX can be used as a third-party library.  In this
-simple example, the user's code is in main.c and it has no direct
-interaction with AMReX.  It uses libfoo_cxx and libbar_f that in turn
-use AMReX C++ and Fortran interfaces, respectively.
-
-To build libamrex, follow the instruction at amrex/INSTALL.
-
