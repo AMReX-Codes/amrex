@@ -506,7 +506,7 @@ struct ParticleTile
 
         index = NArrayInt;
 #ifdef AMREX_USE_GPU
-        Gpu::HostVector<int*> h_runtime_i_ptrs;
+        Gpu::HostVector<int*> h_runtime_i_ptrs(m_runtime_i_ptrs.size());
         for (auto& i_ptr : h_runtime_i_ptrs) {
             i_ptr = m_soa_tile.GetIntData(index++).dataPtr();
         }
