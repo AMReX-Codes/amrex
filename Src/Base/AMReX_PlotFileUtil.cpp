@@ -821,10 +821,27 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
  
     fapl = H5Pcreate (H5P_FILE_ACCESS);
     H5Pset_fapl_mpio(fapl,  ParallelDescriptor::Communicator(), MPI_INFO_NULL);
+
+    // Alignment and metadata block size
     int alignment = 16 * 1024 * 1024;
     H5Pset_alignment(fapl, alignment, alignment);
+    H5Pset_meta_block_size(fapl, 8388608);
+
+    // Collective metadata ops
     H5Pset_coll_metadata_write(fapl, true);
     H5Pset_all_coll_metadata_ops(fapl, true);
+
+    // Defer cache flush
+    H5AC_cache_config_t cache_config;
+    cache_config.version = H5AC__CURR_CACHE_CONFIG_VERSION;
+    H5Pget_mdc_config(fapl, &cache_config);
+    cache_config.set_initial_size = 1;
+    cache_config.initial_size = 16 * 1024 * 1024;
+    cache_config.evictions_enabled = 0;
+    cache_config.incr_mode = H5C_incr__off;
+    cache_config.flash_incr_mode = H5C_flash_incr__off;
+    cache_config.decr_mode = H5C_decr__off;
+    H5Pset_mdc_config (fapl, &cache_config);
 
     dxpl = H5Pcreate(H5P_DATASET_XFER);
     H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_INDEPENDENT);
