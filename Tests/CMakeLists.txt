@@ -1,38 +1,16 @@
 #
 # List of subdirectories to search for CMakeLists.
 #
-# CUrrently missing C_BaseLib, GPU, IOBENCHMARK
 set( AMREX_TESTS_SUBDIRS
-   AsyncOut BaseFabTesting BBIOBenchmark complementIn FillBoundaryComparison
-    )
+   AsyncOut
+   BaseFabTesting
+   BBIOBenchmark
+   FillBoundaryComparison
+   )
 
-# if (ENABLE_ASCENT)
-#    list(APPEND AMREX_TESTS_SUBDIRS Blueprint)
-# endif ()
-
-# if (ENABLE_EB)
-#    list(APPEND AMREX_TESTS_SUBDIRS Algoim)
-# endif ()
-
-# if (ENABLE_LINEAR_SOLVERS)
-#    list(APPEND AMREX_TESTS_SUBDIRS LinearSolvers)
-# endif ()
-
-# if (ENABLE_PARTICLES)
-#    list(APPEND AMREX_TESTS_SUBDIRS Particles HDF5Benchmark)
-# endif ()
-
-# if (ENABLE_SUNDIALS)
-#    list(APPEND AMREX_TESTS_SUBDIRS CVODE SUNDIALS)
-# endif ()
-
-# if (ENABLE_FORTRAN_INTERFACES)
-#    list(APPEND AMREX_TESTS_SUBDIRS FortranInterface)
-# endif ()
-
-# if (ENABLE_CUDA)
-#    list(APPEND AMREX_TESTS_SUBDIRS GPU)
-# endif ()
+if (ENABLE_PARTICLES)
+   list(APPEND AMREX_TESTS_SUBDIRS Particles)
+endif ()
 
 if (ENABLE_AMRDATA)
    list(APPEND AMREX_TESTS_SUBDIRS DataServicesTest0)

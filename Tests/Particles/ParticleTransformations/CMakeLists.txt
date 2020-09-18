@@ -1,5 +1,4 @@
-set(_sources CheckPair.H Constants.H main.cpp  MDParticleContainer.cpp MDParticleContainer.H )
-
+set(_sources     main.cpp)
 set(_input_files inputs  )
 
 setup_test(_sources _input_files)
