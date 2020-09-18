@@ -253,4 +253,6 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON     \
             -DENABLE_PARTICLES=ON
         make -j 2
+    - name: Run tests
+      run: |
         ctest --output-on-failure
