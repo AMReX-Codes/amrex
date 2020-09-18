@@ -13,6 +13,8 @@ namespace amrex {
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleTileData
 {
+    static constexpr int NAR = NArrayReal;
+    static constexpr int NAI = NArrayInt;
     using ParticleType = Particle<NStructReal, NStructInt>;
     using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
 
@@ -151,6 +153,8 @@ struct ParticleTileData
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ConstParticleTileData
 {
+    static constexpr int NAR = NArrayReal;
+    static constexpr int NAI = NArrayInt;
     using ParticleType = Particle<NStructReal, NStructInt>;
     using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
 
@@ -232,6 +236,9 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
 struct ParticleTile
 {
     using ParticleType = Particle<NStructReal, NStructInt>;
+    static constexpr int NAR = NArrayReal;
+    static constexpr int NAI = NArrayInt;
+
     using SuperParticleType = Particle<NStructReal + NArrayReal, NStructInt + NArrayInt>;
 
     using AoS = ArrayOfStructs<NStructReal, NStructInt, Allocator>;
