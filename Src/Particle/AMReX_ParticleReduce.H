@@ -105,7 +105,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-				const auto ptd = tile.getConstParticleTileData();
+                const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                 [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
             }

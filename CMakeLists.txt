@@ -142,9 +142,10 @@ add_subdirectory(Src)
 #
 # Tutorials and "test_install" target
 #
-option(ENABLE_TUTORIALS "Enable Tutorials" NO)
+option(AMReX_BUILD_TUTORIALS "Build tutorials" NO)
 
-if (ENABLE_TUTORIALS)
+if (AMReX_BUILD_TUTORIALS)
+   message(STATUS "Enabling Tutorials")
    add_subdirectory(Tutorials)
 endif ()
 
@@ -157,4 +158,14 @@ if (ENABLE_PLOTFILE_TOOLS)
    # If this get executed, it cannot be EXCLUDED_FROM_ALL
    # because it needs to get installed
    add_subdirectory(Tools/Plotfile)
+endif ()
+
+
+#
+# Enable CTests
+#
+option(AMReX_ENABLE_TESTS "Enable CTest suite for AMReX"  NO)
+if (AMReX_ENABLE_TESTS)
+   enable_testing()
+   add_subdirectory(Tests)
 endif ()

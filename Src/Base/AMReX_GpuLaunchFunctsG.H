@@ -977,6 +977,12 @@ VecReduce (N n, T const& init_val, L1&& f1, L2&& f2) noexcept
 
 #endif
 
+template <typename L>
+void single_task (L&& f) noexcept
+{
+    single_task(Gpu::gpuStream(), std::forward<L>(f));
+}
+
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
 void For (T n, L&& f) noexcept
 {

@@ -23,11 +23,6 @@ else
 endif
 
 ifeq ($(USE_DPCPP),TRUE)
-  ifdef DPCPPROOT
-    DPCPP_DIR ?= $(DPCPPROOT)
-  else
-    DPCPP_DIR ?= /opt/intel/inteloneapi/compiler/latest/linux
-  endif
   override COMP = dpcpp
   DEFINES += -DAMREX_USE_DPCPP -DAMREX_USE_GPU
   USE_CUDA := FALSE
@@ -47,14 +42,14 @@ ifeq ($(USE_HIP),TRUE)
   DEBUG := FALSE  # Currently there is a compiler bug for DEBUG=TRUE.
   USE_CUDA := FALSE
   COMP := hip
-  HIP_PLATFORM = $(shell hipconfig --compiler)
-  ifeq ($(HIP_PLATFORM),nvcc)
-    $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
-  else ifeq ($(HIP_PLATFORM),hcc)
-    $(error HIP_PLATFORM=hcc is no longer supported)
-  else ifeq ($(HIP_PLATFORM),clang)
+  HIP_COMPILER = $(shell hipconfig --compiler)
+  ifeq ($(HIP_COMPILER),nvcc)
+    $(error HIP_COMPILER=nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
+  else ifeq ($(HIP_COMPILER),hcc)
+    $(error HIP_COMPILER=hcc is no longer supported)
+  else ifeq ($(HIP_COMPILER),clang)
   else
-    $(error Unknown HIP_PLATFORM=$(HIP_PLATFORM))
+    $(error Unknown HIP_COMPILER=$(HIP_COMPILER))
   endif
 endif
 
@@ -644,7 +639,7 @@ ifeq ($(USE_HIP),TRUE)
 
     USE_GPU := TRUE
 
-    DEFINES += -DAMREX_USE_HIP -DAMREX_HIP_PLATFORM=$(HIP_PLATFORM)
+    DEFINES += -DAMREX_USE_HIP
 
     GPUSuffix := .HIP
 

@@ -110,7 +110,6 @@ public:
     void ProbDomain (const RealBox& rb) noexcept
     {
         prob_domain = rb;
-        SetOffset(rb.lo());
         computeRoundoffDomain();
     }
     //! Returns the lo end of the problem domain in each dimension.
@@ -140,7 +139,11 @@ public:
     //! Returns our rectangular domain.
     const Box& Domain () const noexcept { return domain; }
     //! Sets our rectangular domain.
-    void Domain (const Box& bx) noexcept { domain = bx; }
+    void Domain (const Box& bx) noexcept
+    {
+        domain = bx;
+        computeRoundoffDomain();
+    }
     //! Define a multifab of areas and volumes with given grow factor.
     void GetVolume (MultiFab&       vol,
                     const BoxArray& grds,

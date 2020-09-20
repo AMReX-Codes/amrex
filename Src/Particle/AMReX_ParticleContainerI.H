@@ -23,16 +23,16 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: SetParticleSize ()
 {
-    if (NArrayReal > 0 or NArrayInt > 0) {
-        if (NArrayReal > 0) {
-            d_communicate_real_comp.resize(NArrayReal);
+    if (NumRealComps() > 0 or NumIntComps() > 0) {
+        if (NumRealComps() > 0) {
+            d_communicate_real_comp.resize(NumRealComps());
             Gpu::copyAsync(Gpu::hostToDevice,
                            h_communicate_real_comp.begin(),
                            h_communicate_real_comp.end(),
                            d_communicate_real_comp.begin());
         }
-        if (NArrayInt > 0) {
-            d_communicate_int_comp.resize(NArrayInt);
+        if (NumIntComps() > 0) {
+            d_communicate_int_comp.resize(NumIntComps());
             Gpu::copyAsync(Gpu::hostToDevice,
                            h_communicate_int_comp.begin(),
                            h_communicate_int_comp.end(),
@@ -471,10 +471,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
         for (const auto& kv : GetParticles(lev)) {
             const auto& ptile = kv.second;
             if (only_valid) {
+#if defined(AMREX_USE_DPCPP) || defined(AMREX_USE_HIP)
+                auto const& ptaos = ptile.GetArrayOfStructs();
+                ParticleType const* pp = ptaos().data();
+                int np = amrex::Reduce::Sum<int>(ptaos.numParticles(), pp, 0,
+                         [=] AMREX_GPU_DEVICE (int s, ParticleType const& p) noexcept
+                         {
+                             return (p.id() > 0) ? s+1 : s;
+                         });
+                nparticles += np;
+#else
                 for (int k = 0; k < ptile.GetArrayOfStructs().numParticles(); ++k) {
                     const ParticleType& p = ptile.GetArrayOfStructs()[k];
                     if (p.id() > 0) ++nparticles;
                 }
+#endif
             } else {
                 nparticles += ptile.numParticles();
             }
@@ -914,10 +925,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
         {
             const IntVect& iv = Index(aos[pindex], level+1);
-            fine.intersections(Box(iv,iv),isects,false,nGrow);
-            for (const auto& isec : isects)
+            fine.intersections(Box(iv,iv),isects,true,nGrow);
+            if (isects.size() > 0)
             {
-                amrex::ignore_unused(isec);
                 SuperParticleType p = src.getSuperParticle(pindex);
                 p.id() = GhostParticleID;
                 ghosts.push_back(p);

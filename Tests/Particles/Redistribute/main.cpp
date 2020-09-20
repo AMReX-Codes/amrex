@@ -5,8 +5,8 @@
 
 using namespace amrex;
 
-static constexpr int NSR = 4;
-static constexpr int NSI = 3;
+static constexpr int NSR = 0;
+static constexpr int NSI = 0;
 static constexpr int NAR = 2;
 static constexpr int NAI = 1;
 
@@ -115,10 +115,10 @@ public:
 #if AMREX_SPACEDIM > 2
                     p.pos(2) = plo[2] + (iv[2] + r[2])*dx[2];
 #endif
-                    
+
                     for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
                     for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
-                    
+
                     host_particles.push_back(p);
                     for (int i = 0; i < NAR; ++i)
                         host_real[i].push_back(p.id());
@@ -172,6 +172,8 @@ public:
                           host_runtime_int[i].end(),
                           soa.GetIntData(NAI+i).begin() + old_size);
             }
+
+            Gpu::synchronize();
         }
 
         RedistributeLocal();

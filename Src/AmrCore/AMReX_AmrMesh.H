@@ -249,6 +249,7 @@ protected:
     Vector<BoxArray>            grids;
 
     unsigned int num_setdm = 0;
+    unsigned int num_setba = 0;
 
     void checkInput();
 

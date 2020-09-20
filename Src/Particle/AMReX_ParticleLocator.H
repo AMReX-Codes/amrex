@@ -250,11 +250,23 @@ public:
         int num_levels = a_ba.size();
         m_locators.resize(num_levels);
         m_grid_assignors.resize(num_levels);
+#ifdef AMREX_USE_GPU
+        Gpu::HostVector<AssignGrid<BinIteratorFactory> > h_grid_assignors(num_levels);
+        for (int lev = 0; lev < num_levels; ++lev)
+        {
+            m_locators[lev].build(a_ba[lev], a_geom[lev]);
+            h_grid_assignors[lev] = m_locators[lev].getGridAssignor();
+        }
+        Gpu::htod_memcpy(m_grid_assignors.data(), h_grid_assignors.data(),
+                         sizeof(AssignGrid<BinIteratorFactory>)*num_levels);
+        Gpu::synchronize();
+#else
         for (int lev = 0; lev < num_levels; ++lev)
         {
             m_locators[lev].build(a_ba[lev], a_geom[lev]);
             m_grid_assignors[lev] = m_locators[lev].getGridAssignor();
         }
+#endif
     }
 
     void build (const ParGDBBase* a_gdb)
@@ -293,11 +305,23 @@ public:
     void setGeometry (const ParGDBBase* a_gdb)
     {
         int num_levels = a_gdb->finestLevel()+1;
+#ifdef AMREX_USE_GPU
+        Gpu::HostVector<AssignGrid<BinIteratorFactory> > h_grid_assignors(num_levels);
+        for (int lev = 0; lev < num_levels; ++lev)
+        {
+            m_locators[lev].setGeometry(a_gdb->Geom(lev));
+            h_grid_assignors[lev] = m_locators[lev].getGridAssignor();
+        }
+        Gpu::htod_memcpy(m_grid_assignors.data(), h_grid_assignors.data(),
+                         sizeof(AssignGrid<BinIteratorFactory>)*num_levels);
+        Gpu::synchronize();
+#else
         for (int lev = 0; lev < num_levels; ++lev)
         {
             m_locators[lev].setGeometry(a_gdb->Geom(lev));
             m_grid_assignors[lev] = m_locators[lev].getGridAssignor();
         }
+#endif
     }
 
     AmrAssignGrid<BinIteratorFactory> getGridAssignor () const noexcept

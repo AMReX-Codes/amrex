@@ -1,57 +1,26 @@
-#
-# This test requires a 2D build
-# 
-if ( NOT (${DIM} EQUAL 2) OR (NOT ENABLE_FORTRAN_INTERFACES) )
+if ( NOT DIM EQUAL 2)
    return ()
 endif ()
 
-set ( EXENAME  "Advection_octreeF_SingleVortex.exe" )
-set ( EXE_DIR ${CMAKE_CURRENT_LIST_DIR}/Exec/SingleVortex)
-set ( SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/Source )
+set(_sources advect_2d_mod.F90 compute_flux_2d.f90 slope_2d.f90)
+list(TRANSFORM _sources PREPEND Src_2d/ )
 
+list(APPEND _sources amr_data_mod.F90 averagedown_mod.F90 bc_mod.F90
+   compute_dt_mod.F90 evolve_mod.F90 fillpatch_mod.F90 fmain.F90
+   initdata.F90 my_amr_mod.F90 plotfile_mod.F90 tagging_mod.F90)
 
-add_executable ( ${EXENAME} EXCLUDE_FROM_ALL "" )
+list(TRANSFORM _sources PREPEND Source/ )
 
-#
-# Find sources and include paths
-#
-find_all_sources ( SRC1 INC1 ROOT ${SRC_DIR} )
-find_all_sources ( SRC2 INC2 ROOT ${SRC_DIR}/Src_${DIM}d )
-
-#
-# Add sources to target
-# 
-target_sources ( ${EXENAME}
-   PRIVATE
-   ${EXE_DIR}/Prob.f90 ${EXE_DIR}/face_velocity_${DIM}d.F90
-   ${SRC1} ${SRC2} ${SRC3} )
-
-if ("${INC1} ${INC2} ${INC3}")
-   target_include_directories ( ${EXENAME} PRIVATE ${INC1} ${INC2} ${INC3} )
-endif ()
-
-set_target_properties ( ${EXENAME} PROPERTIES      
-   Fortran_MODULE_DIRECTORY
-   ${CMAKE_CURRENT_BINARY_DIR}/mod_files
-   RUNTIME_OUTPUT_DIRECTORY
-   ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex
-   LINKER_LANGUAGE
-   Fortran
+list(APPEND _sources
+   Exec/SingleVortex/face_velocity_2d.F90
+   Exec/SingleVortex/Prob.f90
    )
 
-target_link_libraries (${EXENAME} amrex)
-
-#
-# Find input files 
-#
-file ( GLOB_RECURSE inputs LIST_DIRECTORIES false 
+file(GLOB_RECURSE _input_files LIST_DIRECTORIES false
    ${CMAKE_CURRENT_LIST_DIR}/input* )
 
-#
-# Copy input files to corresponding build dir
-#
-file ( COPY ${inputs} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex ) 
 
+setup_tutorial(_sources _input_files HAS_FORTRAN_MODULES)
 
-add_tutorial (${EXENAME})   
-
+unset(_sources)
+unset(_input_files)

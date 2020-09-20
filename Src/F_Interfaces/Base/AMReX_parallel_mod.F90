@@ -1,8 +1,8 @@
 
 #ifdef BL_USE_MPI
 module amrex_fi_mpi
+  use mpi
   implicit none
-  include 'mpif.h'
 end module amrex_fi_mpi
 #endif
 
