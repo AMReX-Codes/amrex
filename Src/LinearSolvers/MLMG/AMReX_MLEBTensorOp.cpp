@@ -402,14 +402,12 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         }
     }
 
-    vel.EnforcePeriodicity(0, AMREX_SPACEDIM, IntVect(1),
-                           m_geom[amrlev][mglev].periodicity());
+    // Notet that it is incorrect to call EnforcePeriodicity on vel.
 }
 
 void
 MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 {
-
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()

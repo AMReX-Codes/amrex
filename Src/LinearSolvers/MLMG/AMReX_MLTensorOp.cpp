@@ -384,8 +384,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 #endif
     }
 
-    vel.EnforcePeriodicity(0, AMREX_SPACEDIM, IntVect(1),
-                           m_geom[amrlev][mglev].periodicity());
+    // Notet that it is incorrect to call EnforcePeriodicity on vel.
 #endif
 }
 
