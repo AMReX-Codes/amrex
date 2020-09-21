@@ -27,7 +27,7 @@ C$(AMREX_BASE)_headers += AMReX_Functional.H AMReX_Reduce.H AMReX_Scan.H AMReX_P
 C$(AMREX_BASE)_headers += AMReX_FileSystem.H
 C$(AMREX_BASE)_sources += AMReX_FileSystem.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Random.H
+C$(AMREX_BASE)_headers += AMReX_Random.H AMReX_RandomEngine.H
 C$(AMREX_BASE)_sources += AMReX_Random.cpp
 
 C$(AMREX_BASE)_headers += AMReX_Slopes_K.H

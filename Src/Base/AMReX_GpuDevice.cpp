@@ -58,7 +58,7 @@ int Device::max_gpu_streams = 1;
 dim3 Device::numThreadsMin      = dim3(1, 1, 1);
 dim3 Device::numThreadsOverride = dim3(0, 0, 0);
 dim3 Device::numBlocksOverride  = dim3(0, 0, 0);
-int  Device::max_blocks_per_launch = 640;
+unsigned int Device::max_blocks_per_launch = 2560;
 
 gpuStream_t         Device::gpu_default_stream;
 Vector<gpuStream_t> Device::gpu_stream_pool;
@@ -525,9 +525,9 @@ Device::initialize_gpu ()
     }
 
 #ifdef AMREX_USE_DPCPP
-    max_blocks_per_launch = 1000000; // xxxxx DPCPP todo
+    // max_blocks_per_launch = 100000; // xxxxx DPCPP todo
 #else
-    max_blocks_per_launch = numMultiProcessors() * maxThreadsPerMultiProcessor() / AMREX_GPU_MAX_THREADS;
+    max_blocks_per_launch = 4 * numMultiProcessors() * maxThreadsPerMultiProcessor() / AMREX_GPU_MAX_THREADS;
 #endif
 
 #endif

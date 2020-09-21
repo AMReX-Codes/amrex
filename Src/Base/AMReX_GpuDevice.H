@@ -120,7 +120,7 @@ public:
 #ifdef AMREX_USE_GPU
     static constexpr int warp_size = AMREX_HIP_OR_CUDA_OR_DPCPP(64,32,16);
 
-    static int maxBlocksPerLaunch () noexcept { return max_blocks_per_launch; }
+    static unsigned int maxBlocksPerLaunch () noexcept { return max_blocks_per_launch; }
 
 #ifdef AMREX_USE_DPCPP
     static Long maxMemAllocSize () noexcept { return device_prop.maxMemAllocSize; }
@@ -146,7 +146,7 @@ private:
     static Vector<gpuStream_t> gpu_stream_pool;
     static Vector<gpuStream_t> gpu_stream;
     static gpuDeviceProp_t device_prop;
-    static int max_blocks_per_launch;
+    static unsigned int max_blocks_per_launch;
 
 #ifdef AMREX_USE_DPCPP
     static std::unique_ptr<sycl::context> sycl_context;

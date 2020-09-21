@@ -1,2 +1,1 @@
-num_states = 100
-num_draw = 10000
+num_draw = 1000000

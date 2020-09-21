@@ -197,6 +197,130 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box, T ncomp, L&& 
     }
 }
 
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void ParallelForRNG (T n, L&& f) noexcept
+{
+    if (amrex::isEmpty(n)) return;
+    const auto ec = Gpu::ExecutionConfig(n);
+    // If we are on default queue, block all other streams
+    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
+    int nthreads_per_block = ec.numThreads.x;
+    int nthreads_total = nthreads_per_block * amrex::min(ec.numBlocks.x,Gpu::Device::maxBlocksPerLaunch());
+    auto& q = Gpu::Device::nullQueue();
+    auto& engdescr = *(getRandEngineDescriptor());
+    try {
+        q.submit([&] (sycl::handler& h) {
+            auto engine_acc = engdescr.get_access(h);
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
+            [=] (sycl::nd_item<1> item)
+            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+            {
+                int tid = item.get_global_id(0);
+                auto engine = engine_acc.load(tid);
+                RandomEngine rand_eng{&engine};
+                for (T i = tid, stride = item.get_global_range(0); i < n; i += stride) {
+                    f(i,rand_eng);
+                }
+                engine_acc.store(engine, tid);
+            });
+        });
+        q.wait_and_throw(); // because next launch might be on a different queue
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(std::string("ParallelFor: ")+ex.what()+"!!!!!");
+    }
+}
+
+template <typename L>
+void ParallelForRNG (Box const& box, L&& f) noexcept
+{
+    if (amrex::isEmpty(box)) return;
+    int ncells = box.numPts();
+    const auto lo  = amrex::lbound(box);
+    const auto len = amrex::length(box);
+    const auto ec = Gpu::ExecutionConfig(ncells);
+    // If we are on default queue, block all other streams
+    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
+    int nthreads_per_block = ec.numThreads.x;
+    int nthreads_total = nthreads_per_block * amrex::min(ec.numBlocks.x,Gpu::Device::maxBlocksPerLaunch());
+    auto& q = Gpu::Device::nullQueue();
+    auto& engdescr = *(getRandEngineDescriptor());
+    try {
+        q.submit([&] (sycl::handler& h) {
+            auto engine_acc = engdescr.get_access(h);
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
+            [=] (sycl::nd_item<1> item)
+            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+            {
+                int tid = item.get_global_id(0);
+                auto engine = engine_acc.load(tid);
+                RandomEngine rand_eng{&engine};
+                for (int icell = tid, stride = item.get_global_range(0);
+                     icell < ncells; icell += stride) {
+                    int k =  icell /   (len.x*len.y);
+                    int j = (icell - k*(len.x*len.y)) /   len.x;
+                    int i = (icell - k*(len.x*len.y)) - j*len.x;
+                    i += lo.x;
+                    j += lo.y;
+                    k += lo.z;
+                    f(i,j,k,rand_eng);
+                }
+                engine_acc.store(engine, tid);
+            });
+        });
+        q.wait_and_throw(); // because next launch might be on a different queue
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(std::string("ParallelFor: ")+ex.what()+"!!!!!");
+    }
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
+{
+    if (amrex::isEmpty(box)) return;
+    int ncells = box.numPts();
+    const auto lo  = amrex::lbound(box);
+    const auto len = amrex::length(box);
+    const auto ec = Gpu::ExecutionConfig(ncells);
+    // If we are on default queue, block all other streams
+    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
+    int nthreads_per_block = ec.numThreads.x;
+    int nthreads_total = nthreads_per_block * amrex::min(ec.numBlocks.x,Gpu::Device::maxBlocksPerLaunch());
+    auto& q = Gpu::Device::streamQueue();
+    auto& engdescr = *(getRandEngineDescriptor());
+    try {
+        q.submit([&] (sycl::handler& h) {
+            auto engine_acc = engdescr.get_access(h);
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
+            [=] (sycl::nd_item<1> item)
+            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+            {
+                int tid = item.get_global_id(0);
+                auto engine = engine_acc.load(tid);
+                RandomEngine rand_eng{&engine};
+                for (int icell = tid, stride = item.get_global_range(0);
+                     icell < ncells; icell += stride) {
+                    int k =  icell /   (len.x*len.y);
+                    int j = (icell - k*(len.x*len.y)) /   len.x;
+                    int i = (icell - k*(len.x*len.y)) - j*len.x;
+                    i += lo.x;
+                    j += lo.y;
+                    k += lo.z;
+                    for (T n = 0; n < ncomp; ++n) {
+                        f(i,j,k,n,rand_eng);
+                    }
+                }
+                engine_acc.store(engine, tid);
+            });
+        });
+        q.wait_and_throw(); // because next launch might be on a different queue
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(std::string("ParallelFor: ")+ex.what()+"!!!!!");
+    }
+}
+
 template <typename L1, typename L2>
 void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
@@ -481,7 +605,7 @@ void FabReduce (Box const& box, T const& init_val, L1&& f1, L2&& f2) noexcept
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
     auto ec = Gpu::ExecutionConfig(ncells);
-    ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
+    ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
@@ -522,7 +646,7 @@ void FabReduce (Box const& box, N ncomp, T const& init_val, L1&& f1, L2&& f2) no
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
     auto ec = Gpu::ExecutionConfig(ncells);
-    ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
+    ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
@@ -562,7 +686,7 @@ void VecReduce (N n, T const& init_val, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(n)) return;
     auto ec = Gpu::ExecutionConfig(n);
-    ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
+    ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
@@ -720,6 +844,83 @@ ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexce
         });
         AMREX_GPU_ERROR_CHECK();
     }
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+amrex::EnableIf_t<MaybeDeviceRunnable<L>::value>
+ParallelForRNG (T n, L&& f) noexcept
+{
+    if (amrex::isEmpty(n)) return;
+    randState_t* rand_state = getRandState();
+    const auto ec = Gpu::ExecutionConfig(n);
+    AMREX_LAUNCH_KERNEL(amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
+                        ec.numThreads, 0, Gpu::nullStream(),  // use null stream
+    [=] AMREX_GPU_DEVICE () noexcept {
+        int tid = blockDim.x*blockIdx.x+threadIdx.x;
+        RandomEngine engine{&(rand_state[tid])};
+        for (T i = tid, stride = blockDim.x*gridDim.x; i < n; i += stride) {
+            f(i,engine);
+        }
+    });
+    AMREX_GPU_ERROR_CHECK();
+}
+
+template <typename L>
+amrex::EnableIf_t<MaybeDeviceRunnable<L>::value>
+ParallelForRNG (Box const& box, L&& f) noexcept
+{
+    if (amrex::isEmpty(box)) return;
+    randState_t* rand_state = getRandState();
+    int ncells = box.numPts();
+    const auto lo  = amrex::lbound(box);
+    const auto len = amrex::length(box);
+    const auto ec = Gpu::ExecutionConfig(ncells);
+    AMREX_LAUNCH_KERNEL(amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
+                        ec.numThreads, 0, Gpu::nullStream(),  // use null stream
+    [=] AMREX_GPU_DEVICE () noexcept {
+        int tid = blockDim.x*blockIdx.x+threadIdx.x;
+        RandomEngine engine{&(rand_state[tid])};
+        for (int icell = tid, stride = blockDim.x*gridDim.x; icell < ncells; icell += stride) {
+            int k =  icell /   (len.x*len.y);
+            int j = (icell - k*(len.x*len.y)) /   len.x;
+            int i = (icell - k*(len.x*len.y)) - j*len.x;
+            i += lo.x;
+            j += lo.y;
+            k += lo.z;
+            f(i,j,k,engine);
+        }
+    });
+    AMREX_GPU_ERROR_CHECK();
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+amrex::EnableIf_t<MaybeDeviceRunnable<L>::value>
+ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
+{
+    if (amrex::isEmpty(box)) return;
+    randState_t* rand_state = getRandState();
+    int ncells = box.numPts();
+    const auto lo  = amrex::lbound(box);
+    const auto len = amrex::length(box);
+    const auto ec = Gpu::ExecutionConfig(ncells);
+    AMREX_LAUNCH_KERNEL(amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
+                        ec.numThreads, 0, Gpu::nullStream(), // use null stream
+    [=] AMREX_GPU_DEVICE () noexcept {
+        int tid = blockDim.x*blockIdx.x+threadIdx.x;
+        RandomEngine engine{&(rand_state[tid])};
+        for (int icell = tid, stride = blockDim.x*gridDim.x; icell < ncells; icell += stride) {
+            int k =  icell /   (len.x*len.y);
+            int j = (icell - k*(len.x*len.y)) /   len.x;
+            int i = (icell - k*(len.x*len.y)) - j*len.x;
+            i += lo.x;
+            j += lo.y;
+            k += lo.z;
+            for (T n = 0; n < ncomp; ++n) {
+                f(i,j,k,n,engine);
+            }
+        }
+    });
+    AMREX_GPU_ERROR_CHECK();
 }
 
 template <typename L1, typename L2>
@@ -976,7 +1177,7 @@ FabReduce (Box const& box, T const& init_val, L1&& f1, L2&& f2) noexcept
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
     auto ec = Gpu::ExecutionConfig(ncells);
-    ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
+    ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto r = init_val;
@@ -1005,7 +1206,7 @@ FabReduce (Box const& box, N ncomp, T const& init_val, L1&& f1, L2&& f2) noexcep
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
     auto ec = Gpu::ExecutionConfig(ncells);
-    ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
+    ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto r = init_val;
@@ -1033,7 +1234,7 @@ VecReduce (N n, T const& init_val, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(n)) return;
     auto ec = Gpu::ExecutionConfig(n);
-    ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
+    ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto r = init_val;
