@@ -309,6 +309,22 @@ public:
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r, gh);
         });
 #else
+#ifdef AMREX_USE_CUDA
+        if (Gpu::inFuseRegion() && Gpu::inFuseReductionRegion()
+            && ec.numBlocks.x*ec.numThreads.x <= Gpu::getFuseSizeThreshold())
+        {
+            Gpu::Register(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                ReduceTuple r = *(dp+1);
+                if (box.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                    auto pr = Reduce::detail::call_f(f,i,j,k,ixtype);
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
+                }
+                Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
+            });
+        } else
+#endif
+        {
         amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             ReduceTuple r = *(dp+1);
@@ -325,6 +341,7 @@ public:
             }
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
         });
+        }
 #endif
     }
 
