@@ -166,6 +166,7 @@ jobs:
       run: |
         set +e
         source /opt/intel/oneapi/setvars.sh
+        source /opt/intel/oneapi/mkl/latest/env/vars.sh
         set -e
         mkdir build
         cd build
