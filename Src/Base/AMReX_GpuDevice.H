@@ -56,7 +56,7 @@ public:
 #ifdef AMREX_USE_DPCPP
     static sycl::queue& nullQueue () noexcept { return *(gpu_default_stream.queue); }
     static sycl::queue& streamQueue () noexcept { return *(gpu_stream[OpenMP::get_thread_num()].queue); }
-    static sycl::queue& streamQueue (int i) noexcept { return *(gpu_streams[i].queue); }
+    static sycl::queue& streamQueue (int i) noexcept { return *(gpu_stream_pool[i].queue); }
     static bool onNullStream () noexcept { return gpu_stream[OpenMP::get_thread_num()] == gpu_default_stream; }
     static bool onNullStream (gpuStream_t stream) noexcept { return stream == gpu_default_stream; }
 #endif
@@ -136,21 +136,14 @@ private:
     static int device_id;
     static int num_devices_used;
     static int verbose;
-
-#ifdef AMREX_USE_GPU
-    static constexpr int max_gpu_streams = 4;
-#else
-    // Equivalent to "single dependent stream". Fits best
-    //  with math this is used in ("x/max_streams").
-    static constexpr int max_gpu_streams = 1;
-#endif
+    static int max_gpu_streams;
 
 #ifdef AMREX_USE_GPU
     static dim3 numThreadsMin;
     static dim3 numBlocksOverride, numThreadsOverride;
 
-    static std::array<gpuStream_t,max_gpu_streams> gpu_streams;
     static gpuStream_t gpu_default_stream;
+    static Vector<gpuStream_t> gpu_stream_pool;
     static Vector<gpuStream_t> gpu_stream;
     static gpuDeviceProp_t device_prop;
     static int max_blocks_per_launch;

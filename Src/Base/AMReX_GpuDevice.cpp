@@ -48,20 +48,24 @@ namespace Gpu {
 int Device::device_id = 0;
 int Device::num_devices_used = 0;
 int Device::verbose = 0;
+#ifdef AMREX_USE_GPU
+int Device::max_gpu_streams = 4;
+#else
+int Device::max_gpu_streams = 1;
+#endif
 
 #ifdef AMREX_USE_GPU
-constexpr int Device::max_gpu_streams;
 dim3 Device::numThreadsMin      = dim3(1, 1, 1);
 dim3 Device::numThreadsOverride = dim3(0, 0, 0);
 dim3 Device::numBlocksOverride  = dim3(0, 0, 0);
 int  Device::max_blocks_per_launch = 640;
 
-std::array<gpuStream_t,Device::max_gpu_streams> Device::gpu_streams;
-gpuStream_t                                     Device::gpu_default_stream;
-Vector<gpuStream_t>                             Device::gpu_stream;
-gpuDeviceProp_t                                 Device::device_prop;
+gpuStream_t         Device::gpu_default_stream;
+Vector<gpuStream_t> Device::gpu_stream_pool;
+Vector<gpuStream_t> Device::gpu_stream;
+gpuDeviceProp_t     Device::device_prop;
 
-constexpr int                                   Device::warp_size;
+constexpr int Device::warp_size;
 
 #ifdef AMREX_USE_DPCPP
 std::unique_ptr<sycl::context> Device::sycl_context;
@@ -116,6 +120,9 @@ Device::Initialize ()
     const char* pname = "initialize_device";
     nvtx_init = nvtxRangeStartA(pname);
 #endif
+
+    ParmParse ppamrex("amrex");
+    ppamrex.query("max_gpu_streams", max_gpu_streams);
 
     ParmParse pp("device");
 
@@ -350,14 +357,14 @@ Device::Finalize ()
 
     for (int i = 0; i < max_gpu_streams; ++i)
     {
-        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL( hipStreamDestroy(gpu_streams[i]));,
-                          AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(gpu_streams[i])); );
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL( hipStreamDestroy(gpu_stream_pool[i]));,
+                          AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(gpu_stream_pool[i])); );
     }
 
 #ifdef AMREX_USE_DPCPP
     sycl_context.reset();
     sycl_device.reset();
-    for (auto& s : gpu_streams) {
+    for (auto& s : gpu_stream_pool) {
         delete s.queue;
         s.queue = nullptr;
     }
@@ -376,6 +383,8 @@ Device::initialize_gpu ()
 {
 #ifdef AMREX_USE_GPU
 
+    gpu_stream_pool.resize(max_gpu_streams);
+
 #ifdef AMREX_USE_HIP
 
     AMREX_HIP_SAFE_CALL(hipGetDeviceProperties(&device_prop, device_id));
@@ -390,7 +399,7 @@ Device::initialize_gpu ()
 
     gpu_default_stream = 0;
     for (int i = 0; i < max_gpu_streams; ++i) {
-        AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_streams[i]));
+        AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_stream_pool[i]));
     }
 
 #elif defined(AMREX_USE_CUDA)
@@ -409,9 +418,9 @@ Device::initialize_gpu ()
 
     gpu_default_stream = 0;
     for (int i = 0; i < max_gpu_streams; ++i) {
-        AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_streams[i]));
+        AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_stream_pool[i]));
 #ifdef AMREX_USE_ACC
-        acc_set_cuda_stream(i, gpu_streams[i]);
+        acc_set_cuda_stream(i, gpu_stream_pool[i]);
 #endif
     }
 
@@ -425,7 +434,7 @@ Device::initialize_gpu ()
         gpu_default_stream.queue = new sycl::queue(*sycl_context, device_selector,
                                          sycl::property_list{sycl::property::queue::in_order{}});
         for (int i = 0; i < max_gpu_streams; ++i) {
-            gpu_streams[i].queue = new sycl::queue(*sycl_context, device_selector,
+            gpu_stream_pool[i].queue = new sycl::queue(*sycl_context, device_selector,
                                          sycl::property_list{sycl::property::queue::in_order{}});
         }
     }
@@ -548,7 +557,7 @@ Device::setStreamIndex (const int idx) noexcept
         amrex_set_acc_stream(acc_async_sync);
 #endif
     } else {
-        gpu_stream[OpenMP::get_thread_num()] = gpu_streams[idx % max_gpu_streams];
+        gpu_stream[OpenMP::get_thread_num()] = gpu_stream_pool[idx % max_gpu_streams];
 
 #ifdef AMREX_USE_ACC
         amrex_set_acc_stream(idx % max_gpu_streams);
@@ -611,7 +620,7 @@ Device::streamSynchronize () noexcept
 void
 Device::nonNullStreamSynchronize () noexcept
 {
-    for (auto const& s : gpu_streams) {
+    for (auto const& s : gpu_stream_pool) {
         try {
             s.queue->wait_and_throw();
         } catch (sycl::exception const& ex) {
