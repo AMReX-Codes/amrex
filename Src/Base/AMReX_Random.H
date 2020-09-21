@@ -95,6 +95,7 @@ namespace amrex
 #elif defined(__HIP_DEVICE_COMPILE__)
         return hiprand_poisson(random_engine.rand_state, lambda);
 #elif defined (__SYCL_DEVICE_ONLY__)
+        amrex::Abort("RandomPossion not supported in DPC++ device code");
         return 0; // xxxxx DPCPP todo: Poisson distribution
 #else
         amrex::ignore_unused(random_engine);
@@ -120,6 +121,7 @@ namespace amrex
             mkl::rng::device::uniform<std::int32_t> distr(0,static_cast<std::int32_t>(n));
             return mkl::rng::device::generate(distr, *random_engine.engine);
         } else {
+            amrex::Abort("Random_int not supported in DPC++ device code, if n > INT_MAX");
             return 0; // xxxxx DPCPP todo: unsigned uniform distribution
         }
 #else

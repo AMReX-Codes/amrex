@@ -51,7 +51,7 @@ namespace amrex
     randState_t* getRandState () { return d_states_h_ptr; }
 
     struct RandomEngine {
-        randState_t* rand_state = nullptr;
+        randState_t* rand_state;
     };
 
 #endif
