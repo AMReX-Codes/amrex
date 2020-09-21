@@ -77,30 +77,30 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
         const auto& yfab = out.array(mfi);
 
 #if (AMREX_SPACEDIM == 3)
-        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
         {
             mlpoisson_adotx(i, j, k, yfab, xfab, dhx, dhy, dhz);
         });
 #elif (AMREX_SPACEDIM == 2)
         if (m_has_metric_term) {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
             {
                 mlpoisson_adotx_m(i, j, yfab, xfab, dhx, dhy, dx, probxlo);
             });
         } else {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
             {
                 mlpoisson_adotx(i, j, yfab, xfab, dhx, dhy);
             });
         }
 #elif (AMREX_SPACEDIM == 1)
         if (m_has_metric_term) {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
             {
                 mlpoisson_adotx_m(i, yfab, xfab, dhx, dx, probxlo);
             });
         } else {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
             {
                 mlpoisson_adotx(i, yfab, xfab, dhx);
             });
@@ -134,12 +134,12 @@ MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
         const auto& fab = mf.array(mfi);
 
 #if (AMREX_SPACEDIM == 2)
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
         {
             mlpoisson_normalize(tbx, fab, dhx, dhy, dx, probxlo);
         });
 #else
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
         {
             mlpoisson_normalize(tbx, fab, dhx, dx, probxlo);
         });

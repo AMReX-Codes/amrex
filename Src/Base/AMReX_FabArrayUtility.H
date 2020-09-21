@@ -153,11 +153,13 @@ ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     using value_type = typename FAB1::value_type;
     value_type sm = 0;
 
+    BL_PROFILE("ReduceSum_device");
+
     {
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<value_type> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
-
+        Gpu::FuseReductionSafeGuard rsg(true);
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
@@ -1467,7 +1469,7 @@ Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,n+dstcomp) += srcFab(i,j,k,n+srccomp);
             });
@@ -1499,7 +1501,7 @@ Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, in
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
             });
@@ -1531,7 +1533,7 @@ Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,n+dstcomp) -= srcFab(i,j,k,n+srccomp);
             });
@@ -1563,7 +1565,7 @@ Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,n+dstcomp) *= srcFab(i,j,k,n+srccomp);
             });
@@ -1595,7 +1597,7 @@ Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, 
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,n+dstcomp) /= srcFab(i,j,k,n+srccomp);
             });
@@ -1625,7 +1627,7 @@ Abs (FabArray<FAB>& fa, int icomp, int numcomp, const IntVect& nghost)
         if (bx.ok())
         {
             auto const& fab = fa.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
             {
                 fab(i,j,k,n+icomp) = amrex::Math::abs(fab(i,j,k,n+icomp));
             });
@@ -1682,7 +1684,7 @@ OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& 
         const Box& bx = mfi.tilebox();
         auto fab = fa.array(mfi);
         auto const ifab = msk.array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, ncomp, i, j, k, n,
         {
             if (!ifab(i,j,k)) fab(i,j,k,n) = 0;
         });
