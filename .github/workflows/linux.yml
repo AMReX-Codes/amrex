@@ -180,7 +180,7 @@ jobs:
   #       make -j 2 tutorials
 
   tutorials-hip:
-    name: HIP ROCm@3.7 GFortran@9.3 C++17 [tutorials]
+    name: HIP ROCm@3.8 GFortran@9.3 C++17 [tutorials]
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
