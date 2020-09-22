@@ -189,7 +189,7 @@ find_package_handle_standard_args(
 macro(HIP_FIND_HELPER_FILE _name _extension)
     set(_hip_full_name "${_name}.${_extension}")
     get_filename_component(CMAKE_CURRENT_LIST_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-    set(HIP_${_name} "${CMAKE_CURRENT_LIST_DIR}/FindHIP/${_hip_full_name}")
+    set(HIP_${_name} "${HIP_PATH}/cmake/FindHIP/${_hip_full_name}")
     if(NOT EXISTS "${HIP_${_name}}")
         set(error_message "${_hip_full_name} not found in ${CMAKE_CURRENT_LIST_DIR}/FindHIP")
         if(HIP_FIND_REQUIRED)
