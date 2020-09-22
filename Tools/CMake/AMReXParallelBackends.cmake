@@ -80,7 +80,7 @@ if (ENABLE_HIP)
       endif()
    endif()
 
-   set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
+#   set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
 
    find_package(HIP REQUIRED)
    if("${HIP_COMPILER}" STREQUAL "hcc")
