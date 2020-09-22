@@ -153,8 +153,6 @@ Device::Initialize ()
         gpu_device_count = gpu_devices.size();
         if (gpu_device_count <= 0) {
             amrex::Abort("No GPU device found");
-        } else if (gpu_device_count > 1) {
-            amrex::Abort("DPCPP TODO: more than one device not supported yet");
         }
     }
 #else
@@ -207,9 +205,11 @@ Device::Initialize ()
         // this is if the number of visible devices is smaller than
         // the known number of GPUs per socket.
 
+#if defined(AMREX_USE_CUDA)
 #if (!defined(AMREX_GPUS_PER_SOCKET) && !defined(AMREX_GPUS_PER_NODE))
         amrex::Warning("Multiple GPUs are visible to each MPI rank, but the number of GPUs per socket or node has not been provided.\n"
                        "This may lead to incorrect or suboptimal rank-to-GPU mapping.");
+#endif
 #endif
 
         MPI_Comm local_comm;
@@ -428,13 +428,15 @@ Device::initialize_gpu ()
 
 #elif defined(AMREX_USE_DPCPP)
     { // create device, context and queues
-        sycl::gpu_selector device_selector;
-        sycl_device.reset(new sycl::device(device_selector));
+        sycl::gpu_selector gpu_device_selector;
+        sycl::platform platform(gpu_device_selector);
+        auto const& gpu_devices = platform.get_devices();
+        sycl_device.reset(new sycl::device(gpu_devices[device_id]));
         sycl_context.reset(new sycl::context(*sycl_device, amrex_sycl_error_handler));
-        gpu_default_stream.queue = new sycl::queue(*sycl_context, device_selector,
+        gpu_default_stream.queue = new sycl::queue(*sycl_context, *sycl_device,
                                          sycl::property_list{sycl::property::queue::in_order{}});
         for (int i = 0; i < max_gpu_streams; ++i) {
-            gpu_stream_pool[i].queue = new sycl::queue(*sycl_context, device_selector,
+            gpu_stream_pool[i].queue = new sycl::queue(*sycl_context, *sycl_device,
                                          sycl::property_list{sycl::property::queue::in_order{}});
         }
     }
