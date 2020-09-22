@@ -54,19 +54,26 @@ ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
     }
     nwarps.push_back(ntotwarps);
 
-    std::size_t nbytes = ntags*sizeof(TagType);
-    auto d_tags = static_cast<TagType*>(The_Device_Arena()->alloc(nbytes));
-    Gpu::htod_memcpy(d_tags, tags.data(), nbytes);
+    std::size_t sizeof_tags = ntags*sizeof(TagType);
+    std::size_t offset_nwarps = Arena::align(sizeof_tags);
+    std::size_t sizeof_nwarps = (ntags+1)*sizeof(int);
+    std::size_t total_buf_size = offset_nwarps + sizeof_nwarps;
 
-    nbytes = (ntags+1)*sizeof(int);
-    auto d_nwarps = static_cast<int*>(The_Device_Arena()->alloc(nbytes));
-    Gpu::htod_memcpy(d_nwarps, nwarps.data(), nbytes);
+    char* h_buffer = (char*)The_Pinned_Arena()->alloc(total_buf_size);
+    char* d_buffer = (char*)The_Arena()->alloc(total_buf_size);
 
-    constexpr int nthreads = 128;
+    std::memcpy(h_buffer, tags.data(), sizeof_tags);
+    std::memcpy(h_buffer+offset_nwarps, nwarps.data(), sizeof_nwarps);
+    Gpu::htod_memcpy_async(d_buffer, h_buffer, total_buf_size);
+
+    auto d_tags = reinterpret_cast<TagType*>(d_buffer);
+    auto d_nwarps = reinterpret_cast<int*>(d_buffer+offset_nwarps);
+
+    constexpr int nthreads = 256;
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
 #ifdef AMREX_USE_DPCPP
-    amrex::launch(nblocks, nthreads, Gpu::nullStream(),
+    amrex::launch(nblocks, nthreads, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
     AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
     {
@@ -112,7 +119,7 @@ ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
         }
     });
 #else
-    amrex::launch(nblocks, nthreads, Gpu::nullStream(),
+    amrex::launch(nblocks, nthreads, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept
     {
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
@@ -159,8 +166,8 @@ ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
 #endif
 
     Gpu::synchronize();
-    The_Device_Arena()->free(d_nwarps);
-    The_Device_Arena()->free(d_tags);
+    The_Pinned_Arena()->free(h_buffer);
+    The_Arena()->free(d_buffer);
 }
 #endif
 
@@ -221,19 +228,27 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     }
     nwarps.push_back(ntotwarps);
 
-    std::size_t nbytes = N_locs*sizeof(TagType);
-    auto d_tags = static_cast<TagType*>(The_Device_Arena()->alloc(nbytes));
-    Gpu::htod_memcpy(d_tags, copy_tags.data(), nbytes);
+    const int ntags = copy_tags.size();
+    std::size_t sizeof_tags = ntags*sizeof(TagType);
+    std::size_t offset_nwarps = Arena::align(sizeof_tags);
+    std::size_t sizeof_nwarps = (ntags+1)*sizeof(int);
+    std::size_t total_buf_size = offset_nwarps + sizeof_nwarps;
 
-    nbytes = (N_locs+1)*sizeof(int);
-    auto d_nwarps = static_cast<int*>(The_Device_Arena()->alloc(nbytes));
-    Gpu::htod_memcpy(d_nwarps, nwarps.data(), nbytes);
+    char* h_buffer = (char*)The_Pinned_Arena()->alloc(total_buf_size);
+    char* d_buffer = (char*)The_Arena()->alloc(total_buf_size);
 
-    constexpr int nthreads = 128;
+    std::memcpy(h_buffer, copy_tags.data(), sizeof_tags);
+    std::memcpy(h_buffer+offset_nwarps, nwarps.data(), sizeof_nwarps);
+    Gpu::htod_memcpy_async(d_buffer, h_buffer, total_buf_size);
+
+    auto d_tags = reinterpret_cast<TagType*>(d_buffer);
+    auto d_nwarps = reinterpret_cast<int*>(d_buffer+offset_nwarps);
+
+    constexpr int nthreads = 256;
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
 #ifdef AMREX_USE_DPCPP
-    amrex::launch(nblocks, nthreads, Gpu::nullStream(),
+    amrex::launch(nblocks, nthreads, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
     AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
     {
@@ -280,7 +295,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         }
     });
 #else
-    amrex::launch(nblocks, nthreads, Gpu::nullStream(),
+    amrex::launch(nblocks, nthreads, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept
     {
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
@@ -328,8 +343,8 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
 #endif
 
     Gpu::synchronize();
-    The_Device_Arena()->free(d_nwarps);
-    The_Device_Arena()->free(d_tags);
+    The_Pinned_Arena()->free(h_buffer);
+    The_Arena()->free(d_buffer);
 }
 
 template <class T, class F>
@@ -353,23 +368,31 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     }
     nwarps.push_back(ntotwarps);
 
-    std::size_t nbytes = N_locs*sizeof(TagType);
-    auto d_tags = static_cast<TagType*>(The_Device_Arena()->alloc(nbytes));
-    Gpu::htod_memcpy(d_tags, copy_tags.data(), nbytes);
+    const int ntags = copy_tags.size();
+    std::size_t sizeof_tags = ntags*sizeof(TagType);
+    std::size_t offset_nwarps = Arena::align(sizeof_tags);
+    std::size_t sizeof_nwarps = (ntags+1)*sizeof(int);
+    std::size_t offset_masks = Arena::align(offset_nwarps+sizeof_nwarps);
+    std::size_t sizeof_masks = masks.size()*sizeof(Array4<int>);
+    std::size_t total_buf_size = offset_masks + sizeof_masks;
 
-    nbytes = (N_locs+1)*sizeof(int);
-    auto d_nwarps = static_cast<int*>(The_Device_Arena()->alloc(nbytes));
-    Gpu::htod_memcpy(d_nwarps, nwarps.data(), nbytes);
+    char* h_buffer = (char*)The_Pinned_Arena()->alloc(total_buf_size);
+    char* d_buffer = (char*)The_Arena()->alloc(total_buf_size);
 
-    nbytes = masks.size()*sizeof(Array4<int>);
-    auto d_masks = static_cast<Array4<int>*>(The_Device_Arena()->alloc(nbytes));
-    Gpu::htod_memcpy(d_masks, masks.data(), nbytes);
+    std::memcpy(h_buffer, copy_tags.data(), sizeof_tags);
+    std::memcpy(h_buffer+offset_nwarps, nwarps.data(), sizeof_nwarps);
+    std::memcpy(h_buffer+offset_masks, masks.data(), sizeof_masks);
+    Gpu::htod_memcpy_async(d_buffer, h_buffer, total_buf_size);
 
-    constexpr int nthreads = 128;
+    auto d_tags = reinterpret_cast<TagType*>(d_buffer);
+    auto d_nwarps = reinterpret_cast<int*>(d_buffer+offset_nwarps);
+    auto d_masks = reinterpret_cast<Array4<int>*>(d_buffer+offset_masks);
+
+    constexpr int nthreads = 256;
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
 #ifdef AMREX_USE_DPCPP
-    amrex::launch(nblocks, nthreads, Gpu::nullStream(),
+    amrex::launch(nblocks, nthreads, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
     {
         int g_tid = item.get_global_id(0);
@@ -437,7 +460,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         if (m) *m = 0;
     });
 #else
-    amrex::launch(nblocks, nthreads, Gpu::nullStream(),
+    amrex::launch(nblocks, nthreads, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept
     {
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
@@ -515,9 +538,8 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
 #endif
 
     Gpu::synchronize();
-    The_Device_Arena()->free(d_masks);
-    The_Device_Arena()->free(d_nwarps);
-    The_Device_Arena()->free(d_tags);
+    The_Pinned_Arena()->free(h_buffer);
+    The_Arena()->free(d_buffer);
 }
 
 template <typename T, amrex::EnableIf_t<amrex::IsStoreAtomic<T>::value,int> = 0>
@@ -661,16 +683,18 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
     }
 
     if (maskfabs.size() > 0) {
+        Gpu::FuseSafeGuard fsg(maskfabs.size() >= Gpu::getFuseNumKernelsThreshold());
         for (Gpu::StreamIter sit(maskfabs.size()); sit.isValid(); ++sit) {
             BaseFab<int>& mskfab = maskfabs[sit()];
             const Array4<int>& msk = mskfab.array();
             const Box& bx = mskfab.box();
-            amrex::ParallelFor(bx,
+            amrex::ParallelFor(Gpu::KernelInfo{}.setFusible(true), bx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 msk(i,j,k) = 0;
             });
         }
+        Gpu::LaunchFusedKernels();
     }
 
     if (is_thread_safe) {
@@ -923,7 +947,7 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int n
         // Is the conditional ever expected false?
         int launches = 0;
         for (int send = 0; send < N_snds; ++send) {
-            if (send_data[send] != nullptr) {
+            if (send_size[send] > 0) {
                 launches += send_cctc[send]->size();
             }
         }
@@ -940,8 +964,7 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int n
                                                      std::size_t(sizeof(CopyMemory)*launches) );
 
             const int j = sit();
-            char* dptr = send_data[j];
-            if (dptr != nullptr)
+            if (send_size[j] > 0)
             {
                 auto const& cctc = *send_cctc[j];
                 for (auto const& tag : cctc)
@@ -971,9 +994,9 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int n
     for (int send = 0; send < N_snds; ++send)
     {
         const int j = send;
-        char* dptr = send_data[j];
-        if (dptr != nullptr)
+        if (send_size[j] > 0)
         {
+            char* dptr = send_data[j];
             auto const& cctc = *send_cctc[j];
             for (auto const& tag : cctc)
             {
@@ -1009,9 +1032,9 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
     LayoutData<Vector<VoidCopyTag> > recv_copy_tags(boxArray(),DistributionMap());
     for (int k = 0; k < N_rcvs; ++k)
     {
-        const char* dptr = recv_data[k];
-        if (dptr != nullptr)
+        if (recv_size[k] > 0)
         {
+            const char* dptr = recv_data[k];
             auto const& cctc = *recv_cctc[k];
             for (auto const& tag : cctc)
             {
@@ -1082,7 +1105,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
 template <class FAB>
 void
 FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
-                                     Vector<char*>& send_data,
+                                     Vector<char*> const& send_data,
                                      Vector<std::size_t> const& send_size,
                                      Vector<CopyComTagsContainer const*> const& send_cctc)
 {
@@ -1091,16 +1114,26 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
     const int N_snds = send_data.size();
     if (N_snds == 0) return;
 
+    char* pbuffer = send_data[0];
+    std::size_t szbuffer = 0;
+#if 0
+    // For linear solver test on summit, this is slower than writing to
+    // pinned memory directly on device.
+    if (not ParallelDescriptor::UseGpuAwareMpi()) {
+        // Memory in send_data is pinned.
+        szbuffer = (send_data[N_snds-1]-send_data[0]) + send_size[N_snds-1];
+        pbuffer = (char*)The_Arena()->alloc(szbuffer);
+    }
+#endif
+
     typedef Array4CopyTag<value_type> TagType;
     Vector<TagType> snd_copy_tags;
-    // FIX HIP HERE -- Dim3
-    Dim3 zero;
-    zero.x = 0; zero.y = 0; zero.z = 0;
     for (int j = 0; j < N_snds; ++j)
     {
-        char* dptr = send_data[j];
-        if (dptr != nullptr)
+        if (send_size[j] > 0)
         {
+            std::size_t offset = send_data[j]-send_data[0];
+            char* dptr = pbuffer + offset;
             auto const& cctc = *send_cctc[j];
             for (auto const& tag : cctc)
             {
@@ -1108,16 +1141,24 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
                     amrex::makeArray4((value_type*)(dptr), tag.sbox, ncomp),
                     src.array(tag.srcIndex),
                     tag.sbox,
-                    zero
+                    Dim3{0,0,0}
                 });
                 dptr += (tag.sbox.numPts() * ncomp * sizeof(value_type));
             }
-            BL_ASSERT(dptr <= send_data[j] + send_size[j]);
+            BL_ASSERT(dptr <= pbuffer + offset + send_size[j]);
         }
     }
 
     detail::fab_to_fab<value_type>(snd_copy_tags, scomp, 0, ncomp,
                                    detail::CellStore<value_type>());
+
+    // There is Gpu::synchronize in fab_to_fab.
+
+    if (pbuffer != send_data[0]) {
+        Gpu::copyAsync(Gpu::deviceToHost,pbuffer,pbuffer+szbuffer,send_data[0]);
+        Gpu::synchronize();
+        The_Arena()->free(pbuffer);
+    }
 }
 
 template <class FAB>
@@ -1132,6 +1173,20 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
 
     const int N_rcvs = recv_cctc.size();
     if (N_rcvs == 0) return;
+
+    char* pbuffer = recv_data[0];
+    std::size_t szbuffer = 0;
+#if 0
+    // For linear solver test on summit, this is slower than writing to
+    // pinned memory directly on device.
+    if (not ParallelDescriptor::UseGpuAwareMpi()) {
+        // Memory in recv_data is pinned.
+        szbuffer = (recv_data[N_rcvs-1]-recv_data[0]) + recv_size[N_rcvs-1];
+        pbuffer = (char*)The_Arena()->alloc(szbuffer);
+        Gpu::copyAsync(Gpu::hostToDevice,recv_data[0],recv_data[0]+szbuffer,pbuffer);
+        Gpu::synchronize();
+    }
+#endif
 
     typedef Array4CopyTag<value_type> TagType;
     Vector<TagType> recv_copy_tags;
@@ -1149,9 +1204,10 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
 
     for (int k = 0; k < N_rcvs; ++k)
     {
-        const char* dptr = recv_data[k];
-        if (dptr != nullptr)
+        if (recv_size[k] > 0)
         {
+            std::size_t offset = recv_data[k]-recv_data[0];
+            const char* dptr = pbuffer + offset;
             auto const& cctc = *recv_cctc[k];
             for (auto const& tag : cctc)
             {
@@ -1171,21 +1227,23 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     masks.push_back(maskfabs[li].array());
                 }
             }
-            BL_ASSERT(dptr <= recv_data[k] + recv_size[k]);
+            BL_ASSERT(dptr <= pbuffer + offset + recv_size[k]);
         }
     }
 
     if (maskfabs.size() > 0) {
+        Gpu::FuseSafeGuard fsg(maskfabs.size() >= Gpu::getFuseNumKernelsThreshold());
         for (Gpu::StreamIter sit(maskfabs.size()); sit.isValid(); ++sit) {
             BaseFab<int>& mskfab = maskfabs[sit()];
             const Array4<int>& msk = mskfab.array();
             const Box& bx = mskfab.box();
-            amrex::ParallelFor(bx,
+            amrex::ParallelFor(Gpu::KernelInfo().setFusible(true), bx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 msk(i,j,k) = 0;
             });
         }
+        Gpu::LaunchFusedKernels();
     }
 
     if (op == FabArrayBase::COPY)
@@ -1206,6 +1264,12 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
             detail::fab_to_fab_atomic_add<value_type>(recv_copy_tags, 0, dcomp, ncomp, masks);
         }
     }
+
+    // There is Gpu::synchronize in fab_to_fab.
+
+    if (pbuffer != recv_data[0]) {
+        The_Arena()->free(pbuffer);
+    }
 }
 
 #endif /* AMREX_USE_GPU */
@@ -1213,7 +1277,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
 template <class FAB>
 void
 FabArray<FAB>::pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int ncomp,
-                                     Vector<char*>& send_data,
+                                     Vector<char*> const& send_data,
                                      Vector<std::size_t> const& send_size,
                                      Vector<CopyComTagsContainer const*> const& send_cctc)
 {
@@ -1227,9 +1291,9 @@ FabArray<FAB>::pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int nc
 #endif
     for (int j = 0; j < N_snds; ++j)
     {
-        char* dptr = send_data[j];
-        if (dptr != nullptr)
+        if (send_size[j] > 0)
         {
+            char* dptr = send_data[j];
             auto const& cctc = *send_cctc[j];
             for (auto const& tag : cctc)
             {
@@ -1268,9 +1332,9 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
 #endif
         for (int k = 0; k < N_rcvs; ++k)
         {
-            const char* dptr = recv_data[k];
-            if (dptr != nullptr)
+            if (recv_size[k] > 0)
             {
+                const char* dptr = recv_data[k];
                 auto const& cctc = *recv_cctc[k];
                 for (auto const& tag : cctc)
                 {
@@ -1296,9 +1360,9 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
         recv_copy_tags.define(dst.boxArray(),dst.DistributionMap());
         for (int k = 0; k < N_rcvs; ++k)
         {
-            const char* dptr = recv_data[k];
-            if (dptr != nullptr)
+            if (recv_size[k] > 0)
             {
+                const char* dptr = recv_data[k];
                 auto const& cctc = *recv_cctc[k];
                 for (auto const& tag : cctc)
                 {

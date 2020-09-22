@@ -118,7 +118,7 @@ FabArrayBase::Initialize ()
 
 #ifdef AMREX_USE_GPU
     if (ParallelDescriptor::UseGpuAwareMpi()) {
-        the_fa_arena = The_Device_Arena();
+        the_fa_arena = The_Arena();
     } else {
         the_fa_arena = The_Pinned_Arena();
     }

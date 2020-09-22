@@ -222,6 +222,10 @@ protected:
     mutable Vector<Vector<Real*> > real_device_reduce_list;
 #endif
 
+#ifdef AMREX_USE_GPU
+    std::unique_ptr<Gpu::FuseSafeGuard> gpu_fsg;
+#endif
+
     static int nextDynamicIndex;
 
     void Initialize ();

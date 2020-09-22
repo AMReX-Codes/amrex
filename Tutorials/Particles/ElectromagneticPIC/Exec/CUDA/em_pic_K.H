@@ -3,7 +3,7 @@
 
 #include "Constants.H"
 #include "EMParticleContainer.H"
-#include <AMReX_FArrayBox.H>
+#include <AMReX_Array4.H>
 #include <cmath>
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -303,12 +303,11 @@ void push_magnetic_field_z (int j, int k, int l,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 amrex::Real
 check_langmuir_solution (amrex::Box const& bx, amrex::Box const& test_box,
-                         amrex::FArrayBox const& jxfab, amrex::Real j_exact)
+                         amrex::Array4<amrex::Real const> const& jx, amrex::Real j_exact)
 {
     amrex::Real error = 0.0;
 
     const amrex::Box b = bx & test_box;
-    const auto jx = jxfab.const_array();
     amrex::Loop(bx, [=,&error] (int j, int k, int l) noexcept
     {
         error = amrex::max(error, std::abs((jx(j,k,l) - j_exact) / j_exact));

@@ -74,7 +74,8 @@ struct ParticleCopyPlan
 {
     Vector<std::map<int, Gpu::DeviceVector<int> > > m_dst_indices;
 
-    Gpu::DeviceVector<unsigned int> m_box_counts;
+    Gpu::DeviceVector<unsigned int> m_box_counts_d;
+    Gpu::HostVector<unsigned int>   m_box_counts_h;
     Gpu::DeviceVector<unsigned int> m_box_offsets;
 
     Gpu::DeviceVector<int> m_rcv_box_counts;
@@ -133,10 +134,10 @@ struct ParticleCopyPlan
             std::iota(m_neighbor_procs.begin(), m_neighbor_procs.end(), 0);
         }
 
-        m_box_counts.resize(0);
-        m_box_counts.resize(num_buckets+1, 0);
+        m_box_counts_d.resize(0);
+        m_box_counts_d.resize(num_buckets+1, 0);
         m_box_offsets.resize(num_buckets+1);
-        auto p_dst_box_counts = m_box_counts.dataPtr();
+        auto p_dst_box_counts = m_box_counts_d.dataPtr();
         auto getBucket = pc.BufferMap().getBucketFunctor();
 
         constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
@@ -169,7 +170,12 @@ struct ParticleCopyPlan
             }
         }
 
-        amrex::Gpu::exclusive_scan(m_box_counts.begin(), m_box_counts.end(), m_box_offsets.begin());
+        amrex::Gpu::exclusive_scan(m_box_counts_d.begin(), m_box_counts_d.end(),
+                                   m_box_offsets.begin());
+
+        m_box_counts_h.resize(m_box_counts_d.size());
+        Gpu::copy(Gpu::deviceToHost, m_box_counts_d.begin(), m_box_counts_d.end(),
+                  m_box_counts_h.begin());
 
         m_snd_pad_correction_h.resize(0);
         m_snd_pad_correction_h.resize(ParallelContext::NProcsSub()+1, 0);
@@ -232,7 +238,7 @@ struct GetSendBufferOffset
           m_get_bucket(map.getBucketFunctor())
     {}
 
-    AMREX_FORCE_INLINE AMREX_GPU_HOST_DEVICE
+    AMREX_FORCE_INLINE AMREX_GPU_DEVICE
     Long operator() (int dst_box, int dst_lev, std::size_t psize, int i) const
     {
         int dst_pid = m_get_pid(dst_lev, dst_box);
@@ -254,11 +260,23 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
     int num_levels = pc.BufferMap().numLevels();
     int num_buckets = pc.BufferMap().numBuckets();
-    Long total_buffer_size = (plan.m_snd_offsets.size() == 0) ? plan.m_box_offsets[num_buckets]*psize : plan.m_snd_offsets.back();
+
+    Long total_buffer_size = 0;
+    if (plan.m_snd_offsets.size() == 0)
+    {
+        unsigned int np = 0;
+        Gpu::copy(Gpu::deviceToHost, plan.m_box_offsets.begin() + num_buckets,
+                  plan.m_box_offsets.begin() + num_buckets + 1, &np);
+        total_buffer_size = np*psize;
+    }
+    else
+    {
+        total_buffer_size = plan.m_snd_offsets.back();
+    }
     snd_buffer.resize(total_buffer_size);
 
-    auto p_comm_real = pc.communicate_real_comp.dataPtr();
-    auto p_comm_int  = pc.communicate_int_comp.dataPtr();
+    auto p_comm_real = pc.d_communicate_real_comp.dataPtr();
+    auto p_comm_int  = pc.d_communicate_int_comp.dataPtr();
 
     for (int lev = 0; lev < num_levels; ++lev)
     {
@@ -337,7 +355,7 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
             int gid = mfi.index();
             int tid = mfi.LocalTileIndex();
             auto& tile = pc.DefineAndReturnParticleTile(lev, gid, tid);
-            int num_copies = plan.m_box_counts[pc.BufferMap().gridAndLevToBucket(gid, lev)];
+            int num_copies = plan.m_box_counts_h[pc.BufferMap().gridAndLevToBucket(gid, lev)];
             sizes.push_back(num_copies);
             tiles.push_back(&tile);
         }
@@ -347,8 +365,8 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
     std::vector<int> offsets;
     policy.resizeTiles(tiles, sizes, offsets);
 
-    auto p_comm_real = pc.communicate_real_comp.dataPtr();
-    auto p_comm_int  = pc.communicate_int_comp.dataPtr();
+    auto p_comm_real = pc.d_communicate_real_comp.dataPtr();
+    auto p_comm_int  = pc.d_communicate_int_comp.dataPtr();
 
     // local unpack
     int uindex = 0;
@@ -516,8 +534,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
 
     if (plan.m_nrcvs > 0)
     {
-        auto p_comm_real = pc.communicate_real_comp.dataPtr();
-        auto p_comm_int  = pc.communicate_int_comp.dataPtr();
+        auto p_comm_real = pc.d_communicate_real_comp.dataPtr();
+        auto p_comm_int  = pc.d_communicate_int_comp.dataPtr();
         auto p_rcv_buffer = rcv_buffer.dataPtr();
 
         std::vector<int> sizes;
@@ -566,6 +584,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
                 ptd.unpackParticleData(p_rcv_buffer, src_offset, dst_index,
                                        p_comm_real, p_comm_int);
               });
+
+            Gpu::synchronize();
           }
     }
 #else

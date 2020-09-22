@@ -118,7 +118,7 @@
 #endif
 
 // no inline
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIP__) || defined(__SYCL_COMPILER_VERSION)
 #define AMREX_NO_INLINE __attribute__((noinline))
 #else
 #define AMREX_NO_INLINE
@@ -142,13 +142,20 @@
 #define AMREX_FALLTHROUGH [[fallthrough]]
 #elif defined(__clang__)
 #define AMREX_FALLTHROUGH [[clang::fallthrough]]
-#elif defined(__GNUC__) && (__GNUC__ >= 7)
+#elif defined(__GNUC__) && (__GNUC__ >= 7) && !defined(__INTEL_COMPILER)
 #define AMREX_FALLTHROUGH [[gnu::fallthrough]]
 #else
 #define AMREX_FALLTHROUGH ((void)0)
 #endif
 
-
 #endif /* !BL_LANG_FORT */
 
 #endif
+
+/*
+ * DPCPP version strings
+ * beta8 #define __SYCL_COMPILER_VERSION=20200715
+ * beta9 #define __SYCL_COMPILER_VERSION 20200827
+ *       #define __INTEL_CLANG_COMPILER 202110
+ *       #define __INTEL_LLVM_COMPILER  202110
+*/

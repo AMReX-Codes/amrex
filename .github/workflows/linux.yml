@@ -63,9 +63,9 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DENABLE_TUTORIALS=ON       \
+            -DAMReX_BUILD_TUTORIALS=ON  \
             -DENABLE_PARTICLES=ON
-        make -j 2 tutorials
+        make -j 2
 
   # Build libamrex and all tutorials
   tutorials_cxx20:
@@ -82,13 +82,13 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DENABLE_TUTORIALS=ON       \
+            -DAMReX_BUILD_TUTORIALS=ON  \
             -DENABLE_PARTICLES=ON       \
             -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_C_COMPILER=$(which gcc-10)              \
             -DCMAKE_CXX_COMPILER=$(which g++-10)            \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-10)
-        make -j 2 tutorials
+        make -j 2
 
   # Build libamrex and all tutorials w/o MPI
   tutorials-nonmpi:
@@ -105,10 +105,10 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DENABLE_TUTORIALS=ON       \
+            -DAMReX_BUILD_TUTORIALS=ON  \
             -DENABLE_MPI=OFF            \
             -DENABLE_PARTICLES=ON
-        make -j 2 tutorials
+        make -j 2
 
   # Build libamrex and all tutorials
   tutorials-nofortran:
@@ -125,11 +125,11 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DENABLE_TUTORIALS=ON       \
+            -DAMReX_BUILD_TUTORIALS=ON  \
             -DENABLE_PARTICLES=ON       \
             -DENABLE_FORTRAN=OFF        \
             -DCMAKE_CXX_STANDARD=11
-        make -j 2 tutorials
+        make -j 2
 
   # Build libamrex and all tutorials with CUDA
   tutorials-cuda:
@@ -145,7 +145,7 @@ jobs:
         cd build
         cmake ..                                         \
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
-            -DENABLE_TUTORIALS=ON                        \
+            -DAMReX_BUILD_TUTORIALS=ON                   \
             -DENABLE_PARTICLES=ON                        \
             -DENABLE_CUDA=ON                             \
             -DCMAKE_C_COMPILER=$(which gcc-4.8)              \
@@ -153,7 +153,7 @@ jobs:
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++-4.8)      \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-4.8)   \
             -DCUDA_ARCH=6.0
-        make -j 2 tutorials
+        make -j 2
 
   tutorials-dpcpp:
     name: DPCPP@PubBeta GFortran@7.5 C++17 [tutorials]
@@ -161,7 +161,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
-      run: .github/workflows/cmake/dependencies_dpcpp.sh
+      run: .github/workflows/dependencies/dependencies_dpcpp.sh
     - name: Build & Install
       run: |
         set +e
@@ -171,13 +171,13 @@ jobs:
         cd build
         cmake ..                                           \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
-            -DENABLE_TUTORIALS=ON                          \
+            -DAMReX_BUILD_TUTORIALS=ON                     \
             -DENABLE_PARTICLES=ON                          \
             -DENABLE_DPCPP=ON                              \
             -DCMAKE_C_COMPILER=$(which clang)              \
             -DCMAKE_CXX_COMPILER=$(which dpcpp)            \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
-        make -j 2 tutorials
+        make -j 2
 
   # Build 1D libamrex with configure
   configure-1d:
@@ -234,3 +234,26 @@ jobs:
         ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes --with-omp yes --debug yes
         make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE
         make install
+
+  # Build libamrex and run all tests
+  tests:
+    name: GNU@7.5 C++14 [tests]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                        \
+            -DENABLE_OMP=ON             \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DENABLE_PARTICLES=ON
+        make -j 2
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure -R

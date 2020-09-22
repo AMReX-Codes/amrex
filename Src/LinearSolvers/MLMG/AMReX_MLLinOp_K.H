@@ -332,6 +332,210 @@ void mllinop_comp_interp_coef0_z (int side, Box const& box, int blen,
     }
 }
 
+#ifdef AMREX_USE_EB
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_comp_interp_coef0_x_eb (int side, Box const& box, int blen,
+                                     Array4<Real> const& f,
+                                     Array4<int const> const& mask,
+                                     Array4<Real const> const& area,
+                                     BoundCond bct, Real bcl,
+                                     int maxorder, Real dxinv, int icomp) noexcept
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    const int ib = lo.x; // boundary cell
+    const int s = 1-2*side;  // +1 for lo and -1 for hi
+    const int ii = lo.x + s; // interior cell
+    switch (bct) {
+    case AMREX_LO_NEUMANN:
+    {
+        for     (int k = lo.z; k <= hi.z; ++k) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+                f(ii,j,k,icomp) = Real(1.0);
+            }
+        }
+        break;
+    }
+    case AMREX_LO_REFLECT_ODD:
+    {
+        for     (int k = lo.z; k <= hi.z; ++k) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+                f(ii,j,k,icomp) = (mask(ib,j,k) > 0) ? Real(1.0) : Real(0.0);
+            }
+        }
+        break;
+    }
+    case AMREX_LO_DIRICHLET:
+    {
+        const int NX = amrex::min(blen+1, maxorder);
+        GpuArray<Real,4> x{{-bcl * dxinv, Real(0.5), Real(1.5), Real(2.5)}};
+        Array2D<Real, 0, 3, 0, 2> coef{};
+        for (int r = 0; r <= maxorder-2; ++r) {
+            poly_interp_coeff(-Real(0.5), &x[0], r+2, &coef(0,r));
+        }
+        for     (int k = lo.z; k <= hi.z; ++k) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+                int order = 1;
+                if (mask(ib,j,k) > 0) {
+                    bool has_cutfaces = false;
+                    for (int r = 0; r <= NX-2; ++r) {
+                        Real a = area(ii+side+s*r,j,k);
+                        if (a > Real(0.0)) {
+                            ++order;
+                            if (a < Real(1.0)) {
+                                has_cutfaces = true;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    if (has_cutfaces) order = amrex::min(2,order);
+                }
+                f(ii,j,k,icomp) = (order==1) ? Real(0.0) : coef(1,order-2);
+            }
+        }
+        break;
+    }
+    default: {}
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_comp_interp_coef0_y_eb (int side, Box const& box, int blen,
+                                     Array4<Real> const& f,
+                                     Array4<int const> const& mask,
+                                     Array4<Real const> const& area,
+                                     BoundCond bct, Real bcl,
+                                     int maxorder, Real dyinv, int icomp) noexcept
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    const int jb = lo.y; // boundary cell
+    const int s = 1-2*side;  // +1 for lo and -1 for hi
+    const int ji = lo.y + s; // interior cell
+    switch (bct) {
+    case AMREX_LO_NEUMANN:
+    {
+        for     (int k = lo.z; k <= hi.z; ++k) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                f(i,ji,k,icomp) = Real(1.0);
+            }
+        }
+        break;
+    }
+    case AMREX_LO_REFLECT_ODD:
+    {
+        for     (int k = lo.z; k <= hi.z; ++k) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                f(i,ji,k,icomp) = (mask(i,jb,k) > 0) ? Real(1.0) : Real(0.0);
+            }
+        }
+        break;
+    }
+    case AMREX_LO_DIRICHLET:
+    {
+        const int NX = amrex::min(blen+1, maxorder);
+        GpuArray<Real,4> x{{-bcl * dyinv, Real(0.5), Real(1.5), Real(2.5)}};
+        Array2D<Real, 0, 3, 0, 2> coef{};
+        for (int r = 0; r <= maxorder-2; ++r) {
+            poly_interp_coeff(-Real(0.5), &x[0], r+2, &coef(0,r));
+        }
+        for     (int k = lo.z; k <= hi.z; ++k) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                int order = 1;
+                if (mask(i,jb,k) > 0) {
+                    bool has_cutfaces = false;
+                    for (int r = 0; r <= NX-2; ++r) {
+                        Real a = area(i,ji+side+s*r,k);
+                        if (a > Real(0.0)) {
+                            ++order;
+                            if (a < Real(1.0)) {
+                                has_cutfaces = true;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    if (has_cutfaces) order = amrex::min(2,order);
+                }
+                f(i,ji,k,icomp) = (order==1) ? Real(0.0) : coef(1,order-2);
+            }
+        }
+        break;
+    }
+    default: {}
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_comp_interp_coef0_z_eb (int side, Box const& box, int blen,
+                                     Array4<Real> const& f,
+                                     Array4<int const> const& mask,
+                                     Array4<Real const> const& area,
+                                     BoundCond bct, Real bcl,
+                                     int maxorder, Real dzinv, int icomp) noexcept
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    const int kb = lo.z; // bound cell
+    const int s = 1-2*side;  // +1 for lo and -1 for hi
+    const int ki = lo.z + s; // interior cell
+    switch (bct) {
+    case AMREX_LO_NEUMANN:
+    {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                f(i,j,ki,icomp) = Real(1.0);
+            }
+        }
+        break;
+    }
+    case AMREX_LO_REFLECT_ODD:
+    {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                f(i,j,ki,icomp) = (mask(i,j,kb) > 0) ? Real(1.0) : Real(0.0);
+            }
+        }
+        break;
+    }
+    case AMREX_LO_DIRICHLET:
+    {
+        const int NX = amrex::min(blen+1, maxorder);
+        GpuArray<Real,4> x{{-bcl * dzinv, Real(0.5), Real(1.5), Real(2.5)}};
+        Array2D<Real, 0, 3, 0, 2> coef{};
+        for (int r = 0; r <= maxorder-2; ++r) {
+            poly_interp_coeff(-Real(0.5), &x[0], r+2, &coef(0,r));
+        }
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                int order = 1;
+                if (mask(i,j,kb) > 0) {
+                    bool has_cutfaces = false;
+                    for (int r = 0; r <= NX-2; ++r) {
+                        Real a = area(i,j,ki+side+s*r);
+                        if (a > Real(0.0)) {
+                            ++order;
+                            if (a < Real(1.0)) {
+                                has_cutfaces = true;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    if (has_cutfaces) order = amrex::min(2,order);
+                }
+                f(i,j,ki,icomp) = (order==1) ? Real(0.0) : coef(1,order-2);
+            }
+        }
+        break;
+    }
+    default: {}
+    }
+}
+#endif
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_innu_xlo (int i, int j, int k,
                              Array4<Real> const& rhs,

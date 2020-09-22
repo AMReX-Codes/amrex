@@ -26,7 +26,7 @@ extern "C" {
 	delete particlecontainer;
     }
 
-    void amrex_fi_get_next_particle_id (int& id)
+    void amrex_fi_get_next_particle_id (Long& id)
     {
         id = FParticleContainer::ParticleType::NextID();
     }
@@ -35,7 +35,27 @@ extern "C" {
     {
         cpu = ParallelDescriptor::MyProc();
     }
-    
+
+    void amrex_fi_get_particle_id(Long& id, const FParticleContainer::ParticleType* p)
+    {
+        id = p->id();
+    }
+
+    void amrex_fi_set_particle_id(const Long& id, FParticleContainer::ParticleType* p)
+    {
+        p->id() = id;
+    }
+
+    void amrex_fi_get_particle_cpu(int& cpu, const FParticleContainer::ParticleType* p)
+    {
+        cpu = p->cpu();
+    }
+
+    void amrex_fi_set_particle_cpu(const int& cpu, FParticleContainer::ParticleType* p)
+    {
+        p->cpu() = cpu;
+    }
+
     void amrex_fi_write_particles(FParticleContainer* particlecontainer,
                                   const char* dirname, const char* pname, int is_checkpoint)
     {
@@ -69,7 +89,7 @@ extern "C" {
             dp = nullptr;
         }
     }
-    
+
     void amrex_fi_add_particle_mfi(FParticleContainer* particlecontainer,
                                    int lev, MFIter* mfi, FParticleContainer::ParticleType* p)
     {
@@ -79,7 +99,7 @@ extern "C" {
         auto& particle_tile  = particle_level[std::make_pair(grid, tile)];
         particle_tile.push_back(*p);
     }
-    
+
     void amrex_fi_num_particles_mfi(FParticleContainer* particlecontainer,
                                     int lev, MFIter* mfi, Long& np)
     {
@@ -87,7 +107,7 @@ extern "C" {
         const int tile = mfi->LocalTileIndex();
         auto& particle_level = particlecontainer->GetParticles(lev);
         auto search = particle_level.find(std::make_pair(grid, tile));
-        if (search != particle_level.end()) {            
+        if (search != particle_level.end()) {
             auto& particle_tile = search->second;
             np = particle_tile.numParticles();
         } else {
@@ -114,7 +134,7 @@ extern "C" {
             dp = nullptr;
         }
     }
-    
+
     void amrex_fi_add_particle_i(FParticleContainer* particlecontainer,
                                  int lev, int grid, int tile, FParticleContainer::ParticleType* p)
     {
@@ -122,17 +142,17 @@ extern "C" {
         auto& particle_tile  = particle_level[std::make_pair(grid, tile)];
         particle_tile.push_back(*p);
     }
-    
+
     void amrex_fi_num_particles_i(FParticleContainer* particlecontainer,
                                   int lev, int grid, int tile, Long& np)
     {
         auto& particle_level = particlecontainer->GetParticles(lev);
         auto search = particle_level.find(std::make_pair(grid, tile));
-        if (search != particle_level.end()) {            
+        if (search != particle_level.end()) {
             auto& particle_tile = search->second;
             np = particle_tile.numParticles();
         } else {
             np = 0;
         }
-    }    
+    }
 }

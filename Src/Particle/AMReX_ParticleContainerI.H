@@ -23,14 +23,32 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: SetParticleSize ()
 {
+    if (NumRealComps() > 0 or NumIntComps() > 0) {
+        if (NumRealComps() > 0) {
+            d_communicate_real_comp.resize(NumRealComps());
+            Gpu::copyAsync(Gpu::hostToDevice,
+                           h_communicate_real_comp.begin(),
+                           h_communicate_real_comp.end(),
+                           d_communicate_real_comp.begin());
+        }
+        if (NumIntComps() > 0) {
+            d_communicate_int_comp.resize(NumIntComps());
+            Gpu::copyAsync(Gpu::hostToDevice,
+                           h_communicate_int_comp.begin(),
+                           h_communicate_int_comp.end(),
+                           d_communicate_int_comp.begin());
+        }
+        Gpu::synchronize();
+    }
+
     num_real_comm_comps = 0;
     for (int i = 0; i < NumRealComps(); ++i) {
-        if (communicate_real_comp[i]) ++num_real_comm_comps;
+        if (h_communicate_real_comp[i]) ++num_real_comm_comps;
     }
 
     num_int_comm_comps = 0;
     for (int i = 0; i < NumIntComps(); ++i) {
-        if (communicate_int_comp[i]) ++num_int_comm_comps;
+        if (h_communicate_int_comp[i]) ++num_int_comm_comps;
     }
 
     particle_size = sizeof(ParticleType);
@@ -453,10 +471,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
         for (const auto& kv : GetParticles(lev)) {
             const auto& ptile = kv.second;
             if (only_valid) {
+#if defined(AMREX_USE_DPCPP) || defined(AMREX_USE_HIP)
+                auto const& ptaos = ptile.GetArrayOfStructs();
+                ParticleType const* pp = ptaos().data();
+                int np = amrex::Reduce::Sum<int>(ptaos.numParticles(), pp, 0,
+                         [=] AMREX_GPU_DEVICE (int s, ParticleType const& p) noexcept
+                         {
+                             return (p.id() > 0) ? s+1 : s;
+                         });
+                nparticles += np;
+#else
                 for (int k = 0; k < ptile.GetArrayOfStructs().numParticles(); ++k) {
                     const ParticleType& p = ptile.GetArrayOfStructs()[k];
                     if (p.id() > 0) ++nparticles;
                 }
+#endif
             } else {
                 nparticles += ptile.numParticles();
             }
@@ -896,10 +925,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
         {
             const IntVect& iv = Index(aos[pindex], level+1);
-            fine.intersections(Box(iv,iv),isects,false,nGrow);
-            for (const auto& isec : isects)
+            fine.intersections(Box(iv,iv),isects,true,nGrow);
+            if (isects.size() > 0)
             {
-                amrex::ignore_unused(isec);
                 SuperParticleType p = src.getSuperParticle(pindex);
                 p.id() = GhostParticleID;
                 ghosts.push_back(p);
@@ -1381,13 +1409,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                       std::memcpy(&particles_to_send[old_size], &p, particle_size);
                       char* dst = &particles_to_send[old_size] + particle_size;
                       for (int comp = 0; comp < NumRealComps(); comp++) {
-                          if (communicate_real_comp[comp]) {
+                          if (h_communicate_real_comp[comp]) {
                               std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
                               dst += sizeof(ParticleReal);
                           }
                       }
                       for (int comp = 0; comp < NumIntComps(); comp++) {
-                          if (communicate_int_comp[comp]) {
+                          if (h_communicate_int_comp[comp]) {
 			      std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
                               dst += sizeof(int);
                           }
@@ -1788,7 +1816,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 pbuf += sizeof(ParticleType);
                 ptile.push_back(p);
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
-                    if (communicate_real_comp[comp]) {
+                    if (h_communicate_real_comp[comp]) {
                         ParticleReal rdata;
                         std::memcpy(&rdata, pbuf, sizeof(ParticleReal));
                         pbuf += sizeof(ParticleReal);
@@ -1799,7 +1827,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 }
 
                 for (int comp = 0; comp < NumIntComps(); ++comp) {
-                    if (communicate_int_comp[comp]) {
+                    if (h_communicate_int_comp[comp]) {
                         int idata;
                         std::memcpy(&idata, pbuf, sizeof(int));
                         pbuf += sizeof(int);
@@ -1851,7 +1879,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 	  
                 // add the real...
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
-                    if (communicate_real_comp[comp]) {
+                    if (h_communicate_real_comp[comp]) {
                         Real rdata;
                         std::memcpy(&rdata, pbuf, sizeof(Real));
                         pbuf += sizeof(Real);
@@ -1863,7 +1891,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 
                 // ... and int array data
                 for (int comp = 0; comp < NumIntComps(); ++comp) {
-                    if (communicate_int_comp[comp]) {
+                    if (h_communicate_int_comp[comp]) {
                         int idata;
                         std::memcpy(&idata, pbuf, sizeof(int));
                         pbuf += sizeof(int);

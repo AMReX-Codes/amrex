@@ -1,2 +1,0 @@
-CEXE_headers += myfunc.H mykernel.H
-CEXE_sources += myfunc.cpp

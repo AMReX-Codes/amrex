@@ -38,17 +38,22 @@ void Initialize ()
     int nprocs = ParallelDescriptor::NProcs();
     s_noutfiles = std::min(s_noutfiles, nprocs);
 
+#ifdef AMREX_USE_MPI
     if (s_asyncout and s_noutfiles < nprocs)
     {
-#ifdef AMREX_MPI_THREAD_MULTIPLE
+        int provided = -1;
+        MPI_Query_thread(&provided);
+        if (provided < MPI_THREAD_MULTIPLE)
+            amrex::Abort("AsyncOut with " + std::to_string(s_noutfiles) + " and "
+                         + std::to_string(nprocs) + " processes requires "
+                         + "MPI_THREAD_MULTIPLE at runtime, but got "
+                         + ParallelDescriptor::mpi_level_to_string(provided));
+
         int myproc = ParallelDescriptor::MyProc();
         s_info = GetWriteInfo(myproc);
         MPI_Comm_split(ParallelDescriptor::Communicator(), s_info.ifile, myproc, &s_comm);
-#else
-        amrex::Abort("AsyncOut with " + std::to_string(s_noutfiles) + " and "
-                     +std::to_string(nprocs) + " processes requires MPI_THREAD_MULTIPLE");
-#endif
     }
+#endif
 
     if (s_asyncout) s_thread.reset(new BackgroundThread());
 

@@ -25,6 +25,7 @@ target_sources(amrex
    AMReX_EBFluxRegister.cpp
    AMReX_EBAmrUtil.H
    AMReX_EBAmrUtil.cpp
+   AMReX_EB_slopes_K.H
    AMReX_EB_utils.H
    AMReX_EB_utils.cpp
    AMReX_algoim.H
