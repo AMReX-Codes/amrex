@@ -2,7 +2,7 @@
 # FindHIP.cmake
 ###############################################################################
 
-message( AUTHOR_WARNING "Using custom FindHIP.cmake" )
+message( STATUS "\nUsing custom FindHIP.cmake\n" )
 
 ###############################################################################
 # SET: Variable defaults
