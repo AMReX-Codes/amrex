@@ -47,7 +47,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         sm = amrex::ReduceSum(x, y, nghost,
-        [=] AMREX_GPU_DEVICE (Box const& bx, Array4<Real const> const& xfab, Array4<Real const> const& yfab) -> Real
+        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& xfab, Array4<Real const> const& yfab) -> Real
         {
             Real t = 0.0;
             AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
