@@ -70,7 +70,7 @@ BoxList::clear ()
 void
 BoxList::join (const BoxList& blist)
 {
-    BL_ASSERT(ixType() == blist.ixType());
+    BL_ASSERT(blist.size() == 0 || ixType() == blist.ixType());
     m_lbox.insert(std::end(m_lbox), std::begin(blist), std::end(blist));
 }
 
@@ -84,7 +84,7 @@ BoxList::join (const Vector<Box>& barr)
 void
 BoxList::catenate (BoxList& blist)
 {
-    BL_ASSERT(ixType() == blist.ixType());
+    BL_ASSERT(blist.size() == 0 || ixType() == blist.ixType());
     m_lbox.insert(std::end(m_lbox), std::begin(blist), std::end(blist));
     blist.m_lbox.clear();
 }
