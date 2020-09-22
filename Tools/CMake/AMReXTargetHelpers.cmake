@@ -132,32 +132,35 @@ function (setup_target_for_hip_compilation _target)
       message(FATAL_ERROR "setup_target_for_hip_compilation() requires HIP")
    endif ()
 
-   # Set property HIP_SOURCE_PROPERTY_FORMAT for C++ sources
-   # This will trigger HIP compilation of those files
-   # The cpp files will become the "generated" sources from hip_prepare_target_commands
-   get_target_property(_sources ${_target} SOURCES)
-   set(_cpp_sources     ${_sources})
-   list(FILTER _cpp_sources INCLUDE REGEX "\\.cpp$")
-   set_source_files_properties(${_cpp_sources} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+   target_compile_options(${_target} PRIVATE
+      $<$<COMPILE_LANGUAGE:CXX>:${AMREX_HIPCC_FLAGS_REQUIRED} ${AMREX_HIPCC_FLAGS}>)
 
-   # Separate the sources from the options
-   set(_hipcc_options ${AMREX_HIPCC_FLAGS_REQUIRED} ${AMREX_HIPCC_FLAGS})
-   set(_nvcc_options)
-   hip_prepare_target_commands(${_target}
-      OBJ  _generated_files _source_files ${_sources}
-      HIPCC_OPTIONS ${_hipcc_options}
-      NVCC_OPTIONS ${_nvcc_options})
+   # # Set property HIP_SOURCE_PROPERTY_FORMAT for C++ sources
+   # # This will trigger HIP compilation of those files
+   # # The cpp files will become the "generated" sources from hip_prepare_target_commands
+   # get_target_property(_sources ${_target} SOURCES)
+   # set(_cpp_sources     ${_sources})
+   # list(FILTER _cpp_sources INCLUDE REGEX "\\.cpp$")
+   # set_source_files_properties(${_cpp_sources} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
 
-   if (_source_files)
-      list(REMOVE_ITEM _sources ${_source_files})
-   endif ()
+   # # Separate the sources from the options
+   # set(_hipcc_options ${AMREX_HIPCC_FLAGS_REQUIRED} ${AMREX_HIPCC_FLAGS})
+   # set(_nvcc_options)
+   # hip_prepare_target_commands(${_target}
+   #    OBJ  _generated_files _source_files ${_sources}
+   #    HIPCC_OPTIONS ${_hipcc_options}
+   #    NVCC_OPTIONS ${_nvcc_options})
 
-   # overwrite sources of _target with "new" sources
-   print_list(_generated_files)
-   print_list(_sources)
-   set_target_properties(${_target} PROPERTIES SOURCES "${_generated_files};${_sources}")
+   # if (_source_files)
+   #    list(REMOVE_ITEM _sources ${_source_files})
+   # endif ()
 
-   # set linker language
-   set_target_properties(${_target} PROPERTIES LINKER_LANGUAGE ${HIP_C_OR_CXX})
+   # # overwrite sources of _target with "new" sources
+   # print_list(_generated_files)
+   # print_list(_sources)
+   # set_target_properties(${_target} PROPERTIES SOURCES "${_generated_files};${_sources}")
+
+   # # set linker language
+   # set_target_properties(${_target} PROPERTIES LINKER_LANGUAGE ${HIP_C_OR_CXX})
 
 endfunction ()

@@ -181,9 +181,9 @@ endif ()
 #
 # If ENABLE_HIP, target 'amrex' requires a special treatment
 #
-# if (ENABLE_HIP)
-#    setup_target_for_hip_compilation( amrex )
-# endif ()
+if (ENABLE_HIP)
+   setup_target_for_hip_compilation( amrex )
+endif ()
 
 
 #
