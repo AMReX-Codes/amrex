@@ -67,7 +67,7 @@ namespace amrex
             Array4<Real> const& ccarr = cc.array(mfi);
             Array4<Real const> const& ndarr = nd.const_array(mfi);
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
             {
                 amrex_avg_nd_to_cc(tbx, ccarr, ndarr, dcomp, scomp, ncomp);
             });
@@ -91,7 +91,7 @@ namespace amrex
                          Array4<Real const> const& eyarr = edge[1]->const_array(mfi);,
                          Array4<Real const> const& ezarr = edge[2]->const_array(mfi););
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
             {
                 amrex_avg_eg_to_cc(tbx, ccarr, AMREX_D_DECL(exarr,eyarr,ezarr), dcomp);
             });
@@ -133,12 +133,12 @@ namespace amrex
                          Array4<Real const> const& fzarr = fc[2]->const_array(mfi););
 
 #if (AMREX_SPACEDIM == 1)
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
             {
                 amrex_avg_fc_to_cc(tbx, ccarr, fxarr, dcomp, GeometryData());
             });
 #else
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
             {
                 amrex_avg_fc_to_cc(tbx, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), dcomp);
             });
@@ -168,12 +168,12 @@ namespace amrex
                          Array4<Real const> const& fzarr = fc[2]->const_array(mfi););
 
 #if (AMREX_SPACEDIM == 1)
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
             {
                 amrex_avg_fc_to_cc(tbx, ccarr, fxarr, 0, gd);
             });
 #else
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
             {
                 amrex_avg_fc_to_cc(tbx, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), 0);
             });
@@ -218,12 +218,12 @@ namespace amrex
             Array4<Real const> const& ccarr = cc.const_array(mfi);
 
 #if (AMREX_SPACEDIM == 1)
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (index_bounds, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (index_bounds, tbx,
             {
                 amrex_avg_cc_to_fc(tbx, xbx, fxarr, ccarr, gd);
             });
 #else
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (index_bounds, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (index_bounds, tbx,
             {
                 amrex_avg_cc_to_fc(tbx, AMREX_D_DECL(xbx,ybx,zbx),
                                    AMREX_D_DECL(fxarr,fyarr,fzarr), ccarr);
@@ -288,7 +288,7 @@ namespace amrex
             Array4<Real const> const& finearr = S_fine.const_array(mfi);
             Array4<Real const> const& finevolarr = fvolume.const_array(mfi);
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
             {
                 amrex_avgdown_with_vol(tbx,crsearr,finearr,finevolarr,
                                        0,scomp,ncomp,ratio);
@@ -337,7 +337,7 @@ namespace amrex
             Array4<Real> const& crsearr = crse_S_fine.array(mfi);
             Array4<Real const> const& finearr = S_fine.const_array(mfi);
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
             {
                 amrex_avgdown(tbx,crsearr,finearr,0,scomp,ncomp,ratio);
             });
@@ -375,12 +375,12 @@ namespace amrex
                 Array4<Real const> const& finearr = S_fine.const_array(mfi);
 
                 if (is_cell_centered) {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
                     {
                         amrex_avgdown(tbx,crsearr,finearr,scomp,scomp,ncomp,ratio);
                     });
                 } else {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
                     {
                         amrex_avgdown_nodes(tbx,crsearr,finearr,scomp,scomp,ncomp,ratio);
                     });
@@ -406,12 +406,12 @@ namespace amrex
                 //        not part of the actual crse multifab which came in.
 
                 if (is_cell_centered) {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
                     {
                         amrex_avgdown(tbx,crsearr,finearr,0,scomp,ncomp,ratio);
                     });
                 } else {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
                     {
                         amrex_avgdown_nodes(tbx,crsearr,finearr,0,scomp,ncomp,ratio);
                     });
@@ -486,7 +486,7 @@ namespace amrex
                 Array4<Real> const& crsearr = crse.array(mfi);
                 Array4<Real const> const& finearr = fine.const_array(mfi);
 
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
                 {
                     amrex_avgdown_faces(tbx, crsearr, finearr, 0, 0, ncomp, ratio, dir);
                 });
@@ -568,7 +568,7 @@ namespace amrex
                 Array4<Real> const& crsearr = crse.array(mfi);
                 Array4<Real const> const& finearr = fine.const_array(mfi);
 
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
                 {
                     amrex_avgdown_edges(tbx, crsearr, finearr, 0, 0, ncomp, ratio, dir);
                 });
@@ -640,7 +640,7 @@ namespace amrex
 
             if (interpolate)
             {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tile_box, thread_box,
+                AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( tile_box, thread_box,
                 {
                     amrex_fill_slice_interp(thread_box, slice_arr, full_arr,
                                             0, start_comp, ncomp,

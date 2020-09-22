@@ -718,7 +718,7 @@ public:
 #endif
 
     static void pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
-                                      Vector<char*>& send_data,
+                                      Vector<char*> const& send_data,
                                       Vector<std::size_t> const& send_size,
                                       Vector<const CopyComTagsContainer*> const& send_cctc);
 
@@ -731,7 +731,7 @@ public:
 #endif
 
     static void pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int ncomp,
-                                      Vector<char*>& send_data,
+                                      Vector<char*> const& send_data,
                                       Vector<std::size_t> const& send_size,
                                       Vector<const CopyComTagsContainer*> const& send_cctc);
 
@@ -1582,7 +1582,7 @@ FabArray<FAB>::setVal (value_type val,
     {
 	const Box& bx = fai.growntilebox(nghost);
         auto fab = this->array(fai);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, ncomp, i, j, k, n,
         {
             fab(i,j,k,n+comp) = val;
         });
@@ -1625,7 +1625,7 @@ FabArray<FAB>::setVal (value_type val,
 
         if (b.ok()) {
             auto fab = this->array(fai);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( b, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( b, ncomp, i, j, k, n,
             {
                 fab(i,j,k,n+comp) = val;
             });
@@ -1655,7 +1655,7 @@ FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
     {
         const Box& bx = mfi.growntilebox(nghost);
         auto fab = this->array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, ncomp, i, j, k, n,
         {
             fab(i,j,k,n+comp) = amrex::Math::abs(fab(i,j,k,n+comp));
         });
@@ -1674,7 +1674,7 @@ FabArray<FAB>::plus (value_type val, int comp, int num_comp, int nghost)
     {
         const Box& bx = mfi.growntilebox(nghost);
         auto fab = this->array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, num_comp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
         {
             fab(i,j,k,n+comp) += val;
         });
@@ -1694,7 +1694,7 @@ FabArray<FAB>::plus (value_type val, const Box& region, int comp, int num_comp, 
         const Box& bx = mfi.growntilebox(nghost) & region;
         if (bx.ok()) {
             auto fab = this->array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, num_comp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
             {
                 fab(i,j,k,n+comp) += val;
             });
@@ -1714,7 +1714,7 @@ FabArray<FAB>::mult (value_type val, int comp, int num_comp, int nghost)
     {
         const Box& bx = mfi.growntilebox(nghost);
         auto fab = this->array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, num_comp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
         {
             fab(i,j,k,n+comp) *= val;
         });
@@ -1734,7 +1734,7 @@ FabArray<FAB>::mult (value_type val, const Box& region, int comp, int num_comp, 
         const Box& bx = mfi.growntilebox(nghost) & region;
         if (bx.ok()) {
             auto fab = this->array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, num_comp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
             {
                 fab(i,j,k,n+comp) *= val;
             });
@@ -1754,7 +1754,7 @@ FabArray<FAB>::invert (value_type numerator, int comp, int num_comp, int nghost)
     {
         const Box& bx = mfi.growntilebox(nghost);
         auto fab = this->array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, num_comp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
         {
             fab(i,j,k,n+comp) = numerator / fab(i,j,k,n+comp);
         });
@@ -1774,7 +1774,7 @@ FabArray<FAB>::invert (value_type numerator, const Box& region, int comp, int nu
         const Box& bx = mfi.growntilebox(nghost) & region;
         if (bx.ok()) {
             auto fab = this->array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, num_comp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
             {
                 fab(i,j,k,n+comp) = numerator / fab(i,j,k,n+comp);
             });
@@ -1970,7 +1970,7 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
         Box const& fbx = mfi.growntilebox();
         Box const& gbx = fbx & domain;
         Box const& vbx = mfi.validbox();
-        AMREX_HOST_DEVICE_FOR_4D(fbx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_FOR_4D_FUSIBLE(fbx, ncomp, i, j, k, n,
         {
             IntVect iv(AMREX_D_DECL(i,j,k));
             if (vbx.contains(iv)) {

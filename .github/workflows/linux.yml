@@ -247,16 +247,39 @@ jobs:
   #       make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE
   #       make install
 
-  # # Build 3D libamrex debug omp build with configure
-  # configure-3d-omp-debug:
-  #   name: GNU@7.5 OMP Debug [configure 3D]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - uses: actions/checkout@v2
-  #   - name: Dependencies
-  #     run: .github/workflows/dependencies/dependencies.sh
-  #   - name: Build & Install
-  #     run: |
-  #       ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes --with-omp yes --debug yes
-  #       make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE
-  #       make install
+  # Build 3D libamrex debug omp build with configure
+  configure-3d-omp-debug:
+    name: GNU@7.5 OMP Debug [configure 3D]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes --with-omp yes --debug yes
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE
+        make install
+
+  # Build libamrex and run all tests
+  tests:
+    name: GNU@7.5 C++14 [tests]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                        \
+            -DENABLE_OMP=ON             \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_ENABLE_TESTS=ON     \
+            -DENABLE_PARTICLES=ON
+        make -j 2
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure -R

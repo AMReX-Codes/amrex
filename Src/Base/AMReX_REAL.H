@@ -68,63 +68,6 @@ namespace amrex {
     using Real = amrex_real;
     using ParticleReal = amrex_particle_real;
 
-#ifdef AMREX_USE_DPCPP
-namespace detail {
-    constexpr double atof (const char* p)
-    {
-        while (*p == ' ' || *p == '\t') ++p;
-
-        double sign = (*p == '-') ? -1.0 : 1.0;
-        if (*p == '-' || *p == '+') ++p;
-
-        double r = 0.;
-        while (*p >= '0' && *p <= '9') {
-            r = r*10. + double(*(p++) - '0');
-        }
-
-        if (*p == '.') {
-            ++p;
-            double r2 = 0.;
-            double d = 1.;
-            while (*p >= '0' && *p <= '9') {
-                r2 = r2*10. + double(*(p++) - '0');
-                d *= 10;
-            }
-            r += r2/d;
-        }
-
-        if (*p == 'e') {
-            ++p;
-            int sexp = (*p == '-') ? -1 : 1;
-            if (*p == '-' || *p == '+') ++p;
-            int iexp = 0;
-            while (*p >= '0' && *p <= '9') {
-                iexp = iexp*10 + (*(p++) - '0');
-            }
-            // need to compute 10**iexp = 10**(\sum 2**n) = \prod 10**(2**n)
-            int nmax = 0;
-            unsigned short int tmp = iexp;
-            while (tmp >>= 1) ++nmax;
-            double d = 1.0;
-            constexpr double powers[] = {10.,100.,1.e4,1.e8,1.e16,1.e32,1.e64,1.e128,1.e256};
-            for (int n = 0; n <= nmax; ++n) {
-                if (iexp & 0x1) {
-                    d *= powers[n];
-                }
-                iexp >>= 1;
-            }
-            if (sexp == -1) {
-                r /= d;
-            } else {
-                r *= d;
-            }
-        }
-
-        return sign*r;
-    }
-}
-#endif
-
 inline namespace literals {
 
     /** @{
@@ -136,19 +79,11 @@ inline namespace literals {
       auto const sphere_volume = 4_rt / 3_rt * pow(r, 3) * mypi;
       ```
     */
-#ifdef AMREX_USE_DPCPP
-    constexpr Real
-    operator"" _rt( const char* x )
-    {
-        return Real( detail::atof(x) );
-    }
-#else
     constexpr Real
     operator"" _rt( long double x )
     {
         return Real( x );
     }
-#endif
 
     constexpr Real
     operator"" _rt( unsigned long long int x )
@@ -156,19 +91,11 @@ inline namespace literals {
         return Real( x );
     }
 
-#ifdef AMREX_USE_DPCPP
-    constexpr ParticleReal
-    operator"" _prt( const char* x )
-    {
-        return ParticleReal( detail::atof(x) );
-    }
-#else
     constexpr ParticleReal
     operator"" _prt( long double x )
     {
         return ParticleReal( x );
     }
-#endif
 
     constexpr ParticleReal
     operator"" _prt( unsigned long long int x )

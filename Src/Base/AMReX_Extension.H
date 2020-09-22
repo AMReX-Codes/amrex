@@ -148,7 +148,14 @@
 #define AMREX_FALLTHROUGH ((void)0)
 #endif
 
-
 #endif /* !BL_LANG_FORT */
 
 #endif
+
+/*
+ * DPCPP version strings
+ * beta8 #define __SYCL_COMPILER_VERSION=20200715
+ * beta9 #define __SYCL_COMPILER_VERSION 20200827
+ *       #define __INTEL_CLANG_COMPILER 202110
+ *       #define __INTEL_LLVM_COMPILER  202110
+*/

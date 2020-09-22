@@ -115,13 +115,10 @@ public:
 #if AMREX_SPACEDIM > 2
                     p.pos(2) = plo[2] + (iv[2] + r[2])*dx[2];
 #endif
-                    
-                    amrex::Print() << p << "\n";
 
-                    
-                    //                    for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
-                    //                    for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
-                    
+                    for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
+                    for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
+
                     host_particles.push_back(p);
                     for (int i = 0; i < NAR; ++i)
                         host_real[i].push_back(p.id());
@@ -175,6 +172,8 @@ public:
                           host_runtime_int[i].end(),
                           soa.GetIntData(NAI+i).begin() + old_size);
             }
+
+            Gpu::synchronize();
         }
 
         RedistributeLocal();
@@ -214,16 +213,17 @@ public:
                 }
                 else
                 {
-                    amrex::ParallelFor( np, [=] AMREX_GPU_DEVICE (int i) noexcept
+                    amrex::ParallelForRNG( np,
+                    [=] AMREX_GPU_DEVICE (int i, RandomEngine const& engine) noexcept
                     {
                         ParticleType& p = pstruct[i];
 
-                        p.pos(0) += (2*amrex::Random()-1)*move_dir[0]*dx[0];
+                        p.pos(0) += (2*amrex::Random(engine)-1)*move_dir[0]*dx[0];
 #if AMREX_SPACEDIM > 1
-                        p.pos(1) += (2*amrex::Random()-1)*move_dir[1]*dx[1];
+                        p.pos(1) += (2*amrex::Random(engine)-1)*move_dir[1]*dx[1];
 #endif
 #if AMREX_SPACEDIM > 2
-                        p.pos(2) += (2*amrex::Random()-1)*move_dir[2]*dx[2];
+                        p.pos(2) += (2*amrex::Random(engine)-1)*move_dir[2]*dx[2];
 #endif
                     });
                 }
@@ -255,11 +255,11 @@ public:
                 {
                     for (int j = 0; j < NSR; ++j)
                     {
-                        //AMREX_ALWAYS_ASSERT(ptd.m_aos[i].rdata(j) == ptd.m_aos[i].id());
+                        AMREX_ALWAYS_ASSERT(ptd.m_aos[i].rdata(j) == ptd.m_aos[i].id());
                     }
                     for (int j = 0; j < NSI; ++j)
                     {
-                        //                        AMREX_ALWAYS_ASSERT(ptd.m_aos[i].idata(j) == ptd.m_aos[i].id());
+                        AMREX_ALWAYS_ASSERT(ptd.m_aos[i].idata(j) == ptd.m_aos[i].id());
                     }
                     for (int j = 0; j < NAR; ++j)
                     {
