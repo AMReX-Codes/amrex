@@ -12,7 +12,13 @@
 #elif defined(AMREX_USE_DPCPP)
 #include <CL/sycl.hpp>
 namespace sycl = cl::sycl;
+// Disable warnings in mkl's rng header.  Too many noises.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-braces"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#pragma clang diagnostic ignored "-Wextra-semi"
 #include <mkl_rng_sycl_device.hpp>
+#pragma clang diagnostic pop
 #if (__SYCL_COMPILER_VERSION >= 20200827)
 namespace mkl = oneapi::mkl;
 #endif

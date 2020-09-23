@@ -57,11 +57,7 @@ endif
 
 ########################################################################
 
-ifdef CXXSTD
-  CXXFLAGS += -std=$(strip $(CXXSTD))
-endif
-
-CXXFLAGS += -Wno-error=sycl-strict -fsycl
+CXXFLAGS += -std=c++17 -Wno-error=sycl-strict -fsycl
 CFLAGS   += -std=c99
 
 ifneq ($(DEBUG),TRUE)  # There is currently a bug that DEBUG build will crash.
