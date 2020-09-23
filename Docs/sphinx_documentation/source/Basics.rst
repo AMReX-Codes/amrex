@@ -38,7 +38,7 @@ It is used throughout AMReX, however its functions are not defined
 for device code. :cpp:`GpuArray` is AMReX's built-in alternative.  It
 is a trivial type that works on both host and device.  It also works
 when compiled just for CPU.  Besides :cpp:`GpuArray`, AMReX also
-provides GPU safe :cpp:`Array1D`, :cpp:`Array2D` and :cpp:`Array3d` that are
+provides GPU safe :cpp:`Array1D`, :cpp:`Array2D` and :cpp:`Array3D` that are
 1, 2 and 3-dimensional fixed size arrays, respectively.  These three
 class templates can have non-zero based indexing.
 
