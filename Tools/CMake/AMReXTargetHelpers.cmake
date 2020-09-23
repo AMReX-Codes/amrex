@@ -133,7 +133,7 @@ function (setup_target_for_hip_compilation _target)
    endif ()
 
    target_compile_options(${_target} PRIVATE
-      $<$<COMPILE_LANGUAGE:CXX>:${AMREX_HIPCC_FLAGS_REQUIRED} ${AMREX_HIPCC_FLAGS}>)
+      $<$<COMPILE_LANGUAGE:CXX>:-m64 --amdgpu-target=${AMD_ARCH}> )
 
    # # Set property HIP_SOURCE_PROPERTY_FORMAT for C++ sources
    # # This will trigger HIP compilation of those files
