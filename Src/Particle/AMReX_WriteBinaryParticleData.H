@@ -24,6 +24,26 @@ std::size_t PSizeInFile (const Vector<int>& wrc, const Vector<int>& wic)
     return rsize + isize + AMREX_SPACEDIM*sizeof(ParticleReal) + 2*sizeof(int);
 }
 
+namespace particle_detail {
+
+template <typename F, typename P>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P const& p, amrex::RandomEngine const& engine) noexcept
+    -> decltype(f(P{},RandomEngine{}))
+{
+    return f(p,engine);
+}
+
+template <typename F, typename P>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P const& p, amrex::RandomEngine const&) noexcept
+    -> decltype(f(P{}))
+{
+    return f(p);
+}
+
+}
+
 template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 void WriteBinaryParticleDataSync (PC const& pc,
                                   const std::string& dir, const std::string& name,
@@ -79,10 +99,11 @@ void WriteBinaryParticleDataSync (PC const& pc,
             const auto np = kv.second.numParticles();
             particle_io_flags[lev][kv.first].resize(np, 0);
             auto pflags = particle_io_flags[lev][kv.first].data();
-            AMREX_HOST_DEVICE_FOR_1D( np, k,
+            amrex::ParallelForRNG(np,
+            [=] AMREX_GPU_DEVICE (int k, amrex::RandomEngine const& engine) noexcept
             {
                 const auto p = ptd.getSuperParticle(k);
-                pflags[k] = f(p);
+                pflags[k] = particle_detail::call_f(f,p,engine);
             });
         }
     }
