@@ -251,7 +251,7 @@ struct ParticleTile
     using ParticleTileDataType = ParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ConstParticleTileDataType = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
-    ParticleTile()
+    ParticleTile ()
         : m_defined(false)
     {}
 

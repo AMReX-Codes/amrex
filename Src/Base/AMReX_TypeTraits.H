@@ -58,13 +58,16 @@ namespace amrex
     template <> struct HasAtomicAdd<double> : std::true_type {};
 
 #ifdef AMREX_PARTICLES
-    template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+    template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+              template<class> class Allocator>
     class ParIterBase;
 
-    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+              template<class> class Allocator>
     class ParIter;
 
-    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+              template<class> class Allocator>
     class ParConstIter;
 
     class MFIter;

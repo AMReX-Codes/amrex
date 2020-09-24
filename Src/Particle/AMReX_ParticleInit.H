@@ -29,9 +29,10 @@
                 across the domain so that you only need to specify a sub-volume of
                 them. By default particles are not replicated.
  */
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
 {
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitFromAsciiFile()");
@@ -448,10 +449,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 // Note that there is nothing separating all these values.
 // They're packed into the binary file like sardines.
 //
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile (const std::string& file,
-                                                                                       int                extradata)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+InitFromBinaryFile (const std::string& file,
+                    int                extradata)
 {
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitFromBinaryFile()");
     AMREX_ASSERT(!file.empty());
@@ -880,10 +883,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 // one file name per line.
 //
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryMetaFile (const std::string& metafile,
-                                                       int                extradata)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+InitFromBinaryMetaFile (const std::string& metafile,
+                        int                extradata)
 {
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitFromBinaryMetaFile()");
     const Real strttime = amrex::second();
@@ -916,9 +921,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
 InitRandom (Long                    icount,
             ULong                   iseed,
             const ParticleInitData& pdata,
@@ -1202,9 +1208,10 @@ InitRandom (Long                    icount,
     Gpu::streamSynchronize();
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::InitRandomPerBox (Long                    icount_per_box,
                     ULong                   iseed,
                     const ParticleInitData& pdata)
@@ -1299,9 +1306,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
 InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdata)
 {
     amrex::ignore_unused(y_off,z_off);
@@ -1386,9 +1394,10 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
 InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 {
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitNRandomPerCell()");

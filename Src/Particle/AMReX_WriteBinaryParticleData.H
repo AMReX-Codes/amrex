@@ -7,7 +7,7 @@
 // note - namespace
 
 struct KeepValidFilter
-{    
+{
     template <typename SrcData>
     AMREX_GPU_HOST_DEVICE
     int operator() (const SrcData& src, int i) const noexcept

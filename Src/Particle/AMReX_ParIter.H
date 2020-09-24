@@ -7,16 +7,18 @@
 namespace amrex
 {
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 class ParticleContainer;
 
-template <bool is_const, int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
+template <bool is_const, int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator>
 class ParIterBase
     : public MFIter
 {
 private:
 
-    using PCType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using PCType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
     using ContainerRef    = typename std::conditional<is_const, PCType const&, PCType&>::type;
     using ParticleTileRef = typename std::conditional
         <is_const, typename PCType::ParticleTileType const&, typename PCType::ParticleTileType &>::type;
@@ -29,7 +31,7 @@ private:
 
 public:
 
-    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;
@@ -96,13 +98,15 @@ protected:
     ContainerRef m_pc;
 };
 
-template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
+template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator>
 class ParIter
-    : public ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>
+    : public ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt, Allocator>
 {
 public:
 
-    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt,
+                                               Allocator>;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;
@@ -125,13 +129,15 @@ public:
                                    const Container& z)) const;
 };
 
-template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
+template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator>
 class ParConstIter
-    : public ParIterBase<true,NStructReal,NStructInt, NArrayReal, NArrayInt>
+    : public ParIterBase<true,NStructReal,NStructInt, NArrayReal, NArrayInt, Allocator>
 {
 public:
 
-    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt,
+                                               Allocator>;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;
@@ -149,10 +155,11 @@ public:
 
 };
 
-template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBase 
+template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
+ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::ParIterBase
   (ContainerRef pc, int level, MFItInfo& info)
-    : 
+    :
       MFIter(*pc.m_dummy_mf[level], pc.do_tiling ? info.EnableTiling(pc.tile_size) : info),
       m_level(level),
       m_pariter_index(0),
@@ -182,7 +189,7 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBa
     {
         currentIndex = beginIndex = m_valid_index.front();
         if (dynamic) {
-#ifdef _OPENMP            
+#ifdef _OPENMP
             int ind = omp_get_thread_num();
             m_pariter_index += ind;
             if (ind < m_valid_index.size()) {
@@ -199,10 +206,11 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBa
     }
 }
 
-template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBase 
+template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
+ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::ParIterBase
   (ContainerRef pc, int level)
-    : 
+    :
     MFIter(*pc.m_dummy_mf[level],
            pc.do_tiling ? pc.tile_size : IntVect::TheZeroVector()),
     m_level(level),
@@ -210,7 +218,7 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBa
     m_pc(pc)
 {
     auto& particles = pc.GetParticles(level);
-    
+
     for (int i = beginIndex; i < endIndex; ++i)
     {
         int grid = (*index_map)[i];
@@ -235,23 +243,24 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBa
     }
 }
 
-template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 template <typename Container>
 void
-ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPosition
+ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::GetPosition
 (AMREX_D_DECL(Container& x, Container& y, Container& z)) const
 {
     const auto& aos = GetArrayOfStructs();
     const auto np = aos.numParticles();
 
     AMREX_D_TERM(x.resize(np);, y.resize(np);, z.resize(np););
-    
+
     const auto pstruct_ptr = aos().data();
 
     AMREX_D_TERM(auto x_ptr = x.data();,
                  auto y_ptr = y.data();,
                  auto z_ptr = z.data();)
-    
+
     AMREX_FOR_1D( np, i,
     {
         AMREX_D_TERM(x_ptr[i] = pstruct_ptr[i].pos(0);,
@@ -262,10 +271,11 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPositi
     Gpu::streamSynchronize();
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 template <typename Container>
 void
-ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
+ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::SetPosition
 (AMREX_D_DECL(const Container& x, const Container& y, const Container& z)) const
 {
     auto& aos = this->GetArrayOfStructs();
@@ -276,9 +286,9 @@ ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
     AMREX_D_TERM(const auto x_ptr = x.data();,
                  const auto y_ptr = y.data();,
                  const auto z_ptr = z.data();)
-    
+
     AMREX_ASSERT(AMREX_D_TERM(x.size() == np, && y.size() == np, && z.size() == np));
-    
+
     AMREX_FOR_1D( np, i,
     {
         AMREX_D_TERM(pstruct_ptr[i].pos(0) = x_ptr[i];,

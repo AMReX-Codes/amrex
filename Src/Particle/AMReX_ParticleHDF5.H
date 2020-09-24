@@ -8,7 +8,8 @@
 #include "h5_vol_external_async_native.h"
 #endif
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::CheckpointHDF5 (const std::string& dir,
@@ -55,7 +56,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::CheckpointHDF5 (const std::string& dir, const std::string& name) const
@@ -272,7 +274,8 @@ static int ReadHDF5AttrLong(hid_t loc, const char *name, void *data)
     return 1;
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::WriteHDF5ParticleData (const std::string& dir, const std::string& name,
@@ -595,7 +598,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::WriteParticlesHDF5 ( hid_t grp, int lev, Vector<int>& count, Vector<Long>& where) const
@@ -832,7 +836,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
 } // End WriteParticlesHDF5
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::RestartHDF5 (const std::string& dir, const std::string& file, bool is_checkpoint)
@@ -840,7 +845,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     Restart(dir, file);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::RestartHDF5 (const std::string& dir, const std::string& file)
@@ -1203,7 +1209,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 }
 
 // Read a batch of particles from the checkpoint file
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 template <class RTYPE>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
