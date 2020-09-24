@@ -46,7 +46,7 @@ auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const& eng
 
 template <typename F, typename SrcData, typename N>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const& engine) noexcept
+auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const&) noexcept
     -> decltype(f(SrcData{},N{}))
 {
     return f(src,i);
