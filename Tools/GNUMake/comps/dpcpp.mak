@@ -59,6 +59,8 @@ endif
 
 ifdef CXXSTD
   CXXFLAGS += -std=$(strip $(CXXSTD))
+else
+  CXXFLAGS += -std=c++17
 endif
 
 CXXFLAGS += -Wno-error=sycl-strict -fsycl
