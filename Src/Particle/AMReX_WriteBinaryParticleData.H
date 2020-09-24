@@ -3,11 +3,10 @@
 
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Particles.H>
-
-// note - namespace
+#include <AMReX_ParticleUtil.H>
 
 struct KeepValidFilter
-{    
+{
     template <typename SrcData>
     AMREX_GPU_HOST_DEVICE
     int operator() (const SrcData& src, int i) const noexcept
@@ -22,26 +21,6 @@ std::size_t PSizeInFile (const Vector<int>& wrc, const Vector<int>& wic)
     std::size_t rsize = sizeof(ParticleReal)*std::accumulate(wrc.begin(), wrc.end(), 0);
     std::size_t isize = sizeof(int)*std::accumulate(wic.begin(), wic.end(), 0);
     return rsize + isize + AMREX_SPACEDIM*sizeof(ParticleReal) + 2*sizeof(int);
-}
-
-namespace particle_detail {
-
-template <typename F, typename P>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, P const& p, amrex::RandomEngine const& engine) noexcept
-    -> decltype(f(P{},RandomEngine{}))
-{
-    return f(p,engine);
-}
-
-template <typename F, typename P>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, P const& p, amrex::RandomEngine const&) noexcept
-    -> decltype(f(P{}))
-{
-    return f(p);
-}
-
 }
 
 template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
