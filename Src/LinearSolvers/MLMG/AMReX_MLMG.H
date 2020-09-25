@@ -87,9 +87,6 @@ public:
     void setBottomTolerance (Real t) noexcept { bottom_reltol = t; }
     void setBottomToleranceAbs (Real t) noexcept { bottom_abstol = t;}
     Real getBottomToleranceAbs () noexcept{ return bottom_abstol; }
-    void setCGVerbose (int v) noexcept { bottom_verbose = v; }
-    void setCGMaxIter (int n) noexcept { bottom_maxiter = n; }
-    void setCGTolerance (Real t) noexcept { bottom_reltol = t; }
 
     void setAlwaysUseBNorm (int flag) noexcept { always_use_bnorm = flag; }
 

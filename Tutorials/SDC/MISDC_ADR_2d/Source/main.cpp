@@ -261,8 +261,8 @@ void main_main ()
   mlmg.setMaxFmgIter(max_fmg_iter);
   int verbose = 1;
   mlmg.setVerbose(verbose);
-  int cg_verbose = 0;
-  mlmg.setCGVerbose(cg_verbose);
+  int bottom_verbose = 0;
+  mlmg.setBottomVerbose(bottom_verbose);
   
 
   //  Do the time stepp[ing
