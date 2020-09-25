@@ -258,6 +258,13 @@ public:
         return neighbors[lev][std::make_pair(grid,tile)];
     }
 
+    void Redistribute (int lev_min=0, int lev_max=-1, int nGrow=0, int local=0)
+    {
+        clearNeighbors();
+        ParticleContainer<NStructReal, NStructInt, 0, 0>::Redistribute(lev_min, lev_max,
+                                                                       nGrow, local);
+    }
+
     void RedistributeLocal ()
     {
         const int lev_min = 0;
