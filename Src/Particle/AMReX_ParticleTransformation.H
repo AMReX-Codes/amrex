@@ -376,7 +376,7 @@ auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
 template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N>
 auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
                       Index src_start, Index dst_start, N n) noexcept
-    -> decltype(p(typename SrcTile::ConstParticleTileDataType(), 0))
+    -> decltype(particle_detail::call_f(p, typename SrcTile::ConstParticleTileDataType(), int{}, RandomEngine{}))
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> mask(np);
