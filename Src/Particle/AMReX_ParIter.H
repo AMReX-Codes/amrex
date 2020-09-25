@@ -72,11 +72,6 @@ public:
 
     SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
 
-    template <typename Container>
-    void GetPosition (AMREX_D_DECL(Container& x,
-                                   Container& y,
-                                   Container& z)) const;
-
     int numParticles () const { return GetArrayOfStructs().numParticles(); }
 
     int numRealParticles () const { return GetArrayOfStructs().numRealParticles(); }
@@ -121,12 +116,6 @@ public:
     ParIter (ContainerType& pc, int level, MFItInfo& info)
         : ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
         {}
-
-    template <typename Container>
-
-    void SetPosition (AMREX_D_DECL(const Container& x,
-                                   const Container& y,
-                                   const Container& z)) const;
 };
 
 template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0,
@@ -152,7 +141,6 @@ public:
     ParConstIter (ContainerType const& pc, int level, MFItInfo& info)
         : ParIterBase<true,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
         {}
-
 };
 
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
@@ -241,62 +229,6 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         currentIndex = beginIndex = m_valid_index.front();
         m_valid_index.push_back(endIndex);
     }
-}
-
-template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-template <typename Container>
-void
-ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::GetPosition
-(AMREX_D_DECL(Container& x, Container& y, Container& z)) const
-{
-    const auto& aos = GetArrayOfStructs();
-    const auto np = aos.numParticles();
-
-    AMREX_D_TERM(x.resize(np);, y.resize(np);, z.resize(np););
-
-    const auto pstruct_ptr = aos().data();
-
-    AMREX_D_TERM(auto x_ptr = x.data();,
-                 auto y_ptr = y.data();,
-                 auto z_ptr = z.data();)
-
-    AMREX_FOR_1D( np, i,
-    {
-        AMREX_D_TERM(x_ptr[i] = pstruct_ptr[i].pos(0);,
-                     y_ptr[i] = pstruct_ptr[i].pos(1);,
-                     z_ptr[i] = pstruct_ptr[i].pos(2);)
-    });
-
-    Gpu::streamSynchronize();
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-template <typename Container>
-void
-ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::SetPosition
-(AMREX_D_DECL(const Container& x, const Container& y, const Container& z)) const
-{
-    auto& aos = this->GetArrayOfStructs();
-    const auto np = aos.numParticles();
-
-    auto pstruct_ptr = aos().data();
-
-    AMREX_D_TERM(const auto x_ptr = x.data();,
-                 const auto y_ptr = y.data();,
-                 const auto z_ptr = z.data();)
-
-    AMREX_ASSERT(AMREX_D_TERM(x.size() == np, && y.size() == np, && z.size() == np));
-
-    AMREX_FOR_1D( np, i,
-    {
-        AMREX_D_TERM(pstruct_ptr[i].pos(0) = x_ptr[i];,
-                     pstruct_ptr[i].pos(1) = y_ptr[i];,
-                     pstruct_ptr[i].pos(2) = z_ptr[i];)
-    });
-
-    Gpu::streamSynchronize();
 }
 
 }

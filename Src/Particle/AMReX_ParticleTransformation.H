@@ -6,6 +6,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_ParticleUtil.H>
 
 namespace amrex
 {
@@ -371,21 +372,22 @@ auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
  * \param dst_start the offset at which to start writing particles to dst
  * \param n the number of particles to apply the operation to
  *
- */    
+ */
 template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N>
 auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
                       Index src_start, Index dst_start, N n) noexcept
-    -> decltype(p(typename SrcTile::ConstParticleTileDataType(), 0))
+    -> decltype(particle_detail::call_f(p, typename SrcTile::ConstParticleTileDataType(), int{}, RandomEngine{}))
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> mask(np);
 
     auto p_mask = mask.dataPtr();
     const auto src_data = src.getConstParticleTileData();
-    
-    AMREX_HOST_DEVICE_FOR_1D(np, i,
+
+    amrex::ParallelForRNG(np,
+    [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        p_mask[i] = p(src_data, i);
+        p_mask[i] = particle_detail::call_f(p, src_data, i, engine);
     });
 
     return filterParticles(dst, src, mask.dataPtr(), src_start, dst_start, n);
@@ -394,7 +396,7 @@ auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
 /**
  * \brief Conditionally copy particles from src to dst based on the value of mask.
  * A transformation will also be applied to the particles on copy.
- * 
+ *
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
@@ -457,10 +459,11 @@ auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&
 
     auto p_mask = mask.dataPtr();
     const auto src_data = src.getConstParticleTileData();
-    
-    AMREX_HOST_DEVICE_FOR_1D(np, i,
+
+    amrex::ParallelForRNG(np,
+    [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        p_mask[i] = p(src_data, i);
+        p_mask[i] = particle_detail::call_f(p, src_data, i, engine);
     });
 
     return filterAndTransformParticles(dst, src, mask.dataPtr(), std::forward<F>(f));
@@ -540,10 +543,11 @@ auto filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile&
 
     auto p_mask = mask.dataPtr();
     const auto src_data = src.getConstParticleTileData();
-    
-    AMREX_HOST_DEVICE_FOR_1D(np, i,
+
+    amrex::ParallelForRNG(np,
+    [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        p_mask[i] = p(src_data, i);
+        p_mask[i] = particle_detail::call_f(p, src_data, i, engine);
     });
 
     return filterAndTransformParticles(dst1, dst2, src, mask.dataPtr(), std::forward<F>(f));
