@@ -652,8 +652,8 @@ the index type. Some examples are shown below.
       Print() << facebx.coarsen(2);      // ((16,16,16) (32,31,31) (1,0,0))
 
       Box uncoarsenable ({16,16,16}, {30,30,30});
-      print() << uncoarsenable.coarsen(2); // ((8,8,8}, {15,15,15));
-      print() << uncoarsenable.refine(2);  // ((16,16,16}, {31,31,31));
+      Print() << uncoarsenable.coarsen(2); // ((8,8,8), (15,15,15));
+      Print() << uncoarsenable.refine(2);  // ((16,16,16), (31,31,31));
                                            // Different from the original!
 
 Note that the behavior of refinement and coarsening depends on the
