@@ -71,7 +71,7 @@ int main (int argc, char* argv[])
     //
     struct {
         int verbose = -1;
-        int cg_verbose = -1;
+        int bottom_verbose = -1;
         int max_iter = -1;
         int fixed_iter = -1;
         int max_fmg_iter = -1;
@@ -83,7 +83,7 @@ int main (int argc, char* argv[])
     {
         ParmParse pp("mlmg");
         pp.query("verbose",mlmg.verbose);
-        pp.query("cg_verbose",mlmg.cg_verbose );
+        pp.query("bottom_verbose",mlmg.bottom_verbose );
         pp.query("max_iter",mlmg.max_iter);
         pp.query("max_fmg_iter",mlmg.max_fmg_iter);
         pp.query("agglomeration",mlmg.agglomeration);
@@ -209,7 +209,7 @@ int main (int argc, char* argv[])
     //
     MLMG solver(linop);
     if (mlmg.verbose >= 0)     solver.setVerbose(mlmg.verbose);
-    if (mlmg.cg_verbose >= 0)  solver.setCGVerbose(mlmg.cg_verbose);
+    if (mlmg.bottom_verbose >= 0)  solver.setBottomVerbose(mlmg.bottom_verbose);
     if (mlmg.fixed_iter >= 0)  solver.setFixedIter(mlmg.fixed_iter);
     if (mlmg.max_iter >= 0)    solver.setMaxIter(mlmg.max_iter);
     if (mlmg.max_fmg_iter >= 0)solver.setMaxFmgIter(mlmg.max_fmg_iter);

@@ -238,7 +238,7 @@ There are many parameters that can be set.  Here we discuss some
 commonly used ones.
 
 :cpp:`MLLinOp::setVerbose(int)`, :cpp:`MLMG::setVerbose(int)` and
-:cpp:`MLMG:setBottomVerbose(int)` can be control the verbosity of the
+:cpp:`MLMG:setBottomVerbose(int)` control the verbosity of the
 linear operator, multigrid solver and the bottom solver, respectively.
 
 The multigrid solver is an iterative solver.  The maximal number of
@@ -266,8 +266,9 @@ operators for the multigrid.
     // out = L(in)
     mlmg.apply(out, in);  // here both in and out are const Vector<MultiFab*>&
 
-At the bottom of the multigrid cycles, we use the biconjugate gradient
-stabilized method as the bottom solver.  :cpp:`MLMG` member method
+At the bottom of the multigrid cycles, we use a ``bottom solver`` which may be
+different than the relaxation used at the other levels. The default bottom solver is the
+biconjugate gradient stabilized method, but can easily be changed with the :cpp:`MLMG` member method
 
 .. highlight:: c++
 
@@ -275,7 +276,7 @@ stabilized method as the bottom solver.  :cpp:`MLMG` member method
 
     void setBottomSolver (BottomSolver s);
 
-can be used to change the bottom solver.  Available choices are
+Available choices are
 
 - :cpp:`MLMG::BottomSolver::bicgstab`: The default.
 
@@ -293,6 +294,27 @@ can be used to change the bottom solver.  Available choices are
 - :cpp:`MLMG::BottomSolver::hypre`: BoomerAMG in hypre.
 
 - :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
+
+Boundary Stencils for Cell-Centered Solvers
+===========================================
+
+We have the option using the :cpp:`MLMG` member method
+
+.. highlight:: c++
+
+::
+
+    void setMaxOrder (int maxorder);
+
+to set the order of the cell-centered linear operator stencil at physical boundaries 
+with Dirichlet boundary conditions and at coarse-fine boundaries.  In both of these
+cases, the boundary value is not defined at the center of the ghost cell. 
+The order determines the number of interior cells that are used in the extrapolation
+of the boundary value from the cell face to the center of the ghost cell, where 
+the extrapolated value is then used in the regular stencil.  For example, 
+:cpp:`maxorder = 2` uses the boundary value and the first interior value to extrapolate
+to the ghost cell center; :cpp:`maxorder = 3` uses the boundary value and the first two interior values.
+
 
 Curvilinear Coordinates
 =======================
@@ -546,7 +568,7 @@ the MACProjector object and use it to perform a MAC projection.
                                       LinOpBCType::Periodic)});
 
     macproj.setVerbose(mg_verbose);
-    macproj.setCGVerbose(cg_verbose);
+    macproj.setBottomVerbose(bottom_verbose);
 
     // Define the relative tolerance
     Real reltol = 1.e-8;
@@ -703,10 +725,10 @@ gradient term to make the vector field result satisfy the divergence constraint.
 
    // We can specify the maximum number of iterations
    nodal_solver.setMaxIter(mg_maxiter);
-   nodal_solver.setCGMaxIter(mg_cg_maxiter);
+   nodal_solver.setBottomMaxIter(mg_bottom_maxiter);
 
    nodal_solver.setVerbose(mg_verbose);
-   nodal_solver.setCGVerbose(mg_cg_verbose);
+   nodal_solver.setBottomVerbose(mg_bottom_verbose);
 
    // Set bottom-solver to use hypre instead of native BiCGStab 
    //   ( we could also have set this to cg, bicgcg, cgbicg)

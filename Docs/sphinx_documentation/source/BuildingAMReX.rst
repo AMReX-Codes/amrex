@@ -35,8 +35,8 @@ list of important variables.
    +------------+-------------------------------------+--------------------+
    | COMP       | gnu, cray, ibm, intel, llvm, or pgi | none               |
    +------------+-------------------------------------+--------------------+
-   | CXXSTD     | C++ standard (``c++11``, ``c++14``) | compiler default,  |
-   |            |                                     | at least ``c++11`` |
+   | CXXSTD     | C++ standard (``c++11``, ``c++14``, | compiler default,  |
+   |            | ``c++17``, ``c++20``)               | at least ``c++11`` |
    +------------+-------------------------------------+--------------------+
    | DEBUG      | TRUE or FALSE                       | FALSE              |
    +------------+-------------------------------------+--------------------+
@@ -52,7 +52,7 @@ list of important variables.
    +------------+-------------------------------------+--------------------+
    | USE_HIP    | TRUE or FALSE                       | FALSE              |
    +------------+-------------------------------------+--------------------+
-   | USE_DPC++  | TRUE or FALSE                       | FALSE              |
+   | USE_DPCPP  | TRUE or FALSE                       | FALSE              |
    +------------+-------------------------------------+--------------------+
    | USE_RPATH  | TRUE or FALSE                       | FALSE              |
    +------------+-------------------------------------+--------------------+
@@ -95,6 +95,7 @@ One could set the ``DIM`` variable to either 1, 2, or 3, depending on
 the dimensionality of the problem.  The default dimensionality is 3.
 AMReX uses double precision by default.  One can change to single
 precision by setting ``PRECISION=FLOAT``.
+(Particles have an equivalent flag ``USE_SINGLE_PRECISION_PARTICLES=TRUE/FALSE``.)
 
 Variables ``DEBUG``, ``USE_MPI`` and ``USE_OMP`` are optional with default set
 to FALSE.  The meaning of these variables should
