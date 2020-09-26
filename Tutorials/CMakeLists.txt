@@ -94,24 +94,11 @@ function (setup_tutorial _srcs  _inputs)
       setup_target_for_cuda_compilation( ${_exe_name} )
    endif ()
 
-   if (ENABLE_HIP)
-      setup_target_for_hip_compilation( ${_exe_name})
-   endif ()
-
    if (${_inputs})
       file( COPY ${${_inputs}} DESTINATION ${_exe_dir} )
    endif ()
 
 endfunction ()
-
-#
-# Find HIP
-# HIP stuff are not transitive, i.e. will not be inherited from amrex.
-# Also, HIP is not yet a first-class language in CMake, like CUDA.
-#
-if (ENABLE_HIP)
-   find_package(HIP REQUIRED)
-endif ()
 
 #
 # Loop over subdirs and add to the build those containing CMakeLists.txt
