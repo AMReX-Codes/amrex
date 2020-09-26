@@ -72,6 +72,7 @@ endif ()
 #
 #
 if (ENABLE_HIP)
+
    if(NOT DEFINED HIP_PATH)
       if(NOT DEFINED ENV{HIP_PATH})
          set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
@@ -80,9 +81,10 @@ if (ENABLE_HIP)
       endif()
    endif()
 
-#   set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
+   set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
 
    find_package(HIP REQUIRED)
+
    if("${HIP_COMPILER}" STREQUAL "hcc")
       message(FATAL_ERROR "Using (deprecated) HCC compiler: please update ROCm")
    endif()
@@ -99,4 +101,5 @@ if (ENABLE_HIP)
    find_package(rocrand REQUIRED CONFIG)
    find_package(hiprand REQUIRED CONFIG)
    target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand)
+
 endif ()
