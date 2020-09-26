@@ -132,9 +132,6 @@ function (setup_target_for_hip_compilation _target)
       message(FATAL_ERROR "setup_target_for_hip_compilation() requires HIP")
    endif ()
 
-   target_compile_options(${_target} PRIVATE
-      $<$<COMPILE_LANGUAGE:CXX>:-m64 --amdgpu-target=${AMD_ARCH}> )
-
    # # Set property HIP_SOURCE_PROPERTY_FORMAT for C++ sources
    # # This will trigger HIP compilation of those files
    # # The cpp files will become the "generated" sources from hip_prepare_target_commands

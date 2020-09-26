@@ -102,4 +102,11 @@ if (ENABLE_HIP)
    find_package(hiprand REQUIRED CONFIG)
    target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand)
 
+   # ARCH flags -- these must be PUBLIC for all downstream targets to use,
+   # else it will generate a run time issue (it complains it cannot find
+   # missing gpu devices)
+   target_compile_options(amrex
+      PRIVATE
+      $<$<COMPILE_LANGUAGE:CXX>:-m64 --amdgpu-target=${AMD_ARCH}> )
+
 endif ()
