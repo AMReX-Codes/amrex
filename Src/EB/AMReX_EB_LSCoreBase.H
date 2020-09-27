@@ -15,7 +15,6 @@
 #include <AMReX_TagBox.H>
 #include <AMReX_AmrCore.H>
 
-#include <AMReX_EB_LSCore_F.H>
 #include <AMReX_EB_levelset.H>
 
 

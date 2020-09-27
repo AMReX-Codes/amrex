@@ -10,7 +10,6 @@
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_EB_utils.H>
 #include <AMReX_EBAmrUtil.H>
-#include <AMReX_EB_F.H>
 #include <AMReX_EB_geom.H>
 
 #ifdef BL_USE_SENSEI_INSITU
@@ -338,7 +337,6 @@ void LSCoreBase::FillCoarsePatch (MultiFab & mf_fne, const MultiFab & mf_crse,
         amrex::InterpFromCoarseLevel(mf_fne, 0, mf_crse, 0, icomp, ncomp, geom_crse, geom_fne,
                                      cphysbc, 0, fphysbc, 0, ref, mapper, bcs, 0);
     } else {
-        // BndryFuncArray bfunc(amrex_eb_phifill);
         CpuBndryFuncFab bfunc(nullptr);
         PhysBCFunct<CpuBndryFuncFab> cphysbc(geom_crse, bcs, bfunc);
         PhysBCFunct<CpuBndryFuncFab> fphysbc(geom_fne,  bcs, bfunc);
@@ -481,27 +479,64 @@ void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int nco
 
     if (lev == 0) {
 
-        BndryFuncArray bfunc(amrex_eb_phifill);
-        PhysBCFunct<BndryFuncArray> physbc(geom[lev], bcs, bfunc);
+        if(Gpu::inLaunchRegion()) {
+            GpuBndryFuncFab<AmrLSCoreFill> gpu_bndry_func(AmrLSCoreFill{});
+            PhysBCFunct<GpuBndryFuncFab<AmrLSCoreFill>> physbc(
+                    geom[lev],bcs, gpu_bndry_func
+                );
 
-        // NOTE: if source MultiFab vector as size = 1 => no interpolation
-        amrex::FillPatchSingleLevel(mf, time, {& level_set[0]}, {0.}, 0, icomp, ncomp,
-                                              geom[lev], physbc, 0);
+            // NOTE: if source MultiFab vector as size = 1 => no interpolation
+            amrex::FillPatchSingleLevel(
+                    mf, time, {& level_set[0]}, {0.}, 0, icomp, ncomp,
+                    geom[lev], physbc, 0
+                );
+        } else {
+            CpuBndryFuncFab bndry_func(nullptr);  // Without EXT_DIR, we can pass a nullptr.
+            PhysBCFunct<CpuBndryFuncFab> physbc(geom[lev], bcs, bndry_func);
+
+            // NOTE: if source MultiFab vector as size = 1 => no interpolation
+            amrex::FillPatchSingleLevel(
+                    mf, time, {& level_set[0]}, {0.}, 0, icomp, ncomp,
+                    geom[lev], physbc, 0
+                );
+        }
 
     } else {
-
-        BndryFuncArray bfunc(amrex_eb_phifill);
-        PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1], bcs, bfunc);
-        PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ], bcs, bfunc);
 
         Interpolater * mapper = & node_bilinear_interp;
 
 
-        amrex::FillPatchTwoLevels(mf, time, {& level_set[lev - 1]}, {0.}, {& level_set[lev]}, {0.},
-                                  0, icomp, ncomp, geom[lev-1], geom[lev],
-                                  cphysbc, 0, fphysbc, 0,
-                                  refRatio(lev-1), mapper, bcs, 0);
+        if(Gpu::inLaunchRegion()) {
+            GpuBndryFuncFab<AmrLSCoreFill> gpu_bndry_func(AmrLSCoreFill{});
+            PhysBCFunct<GpuBndryFuncFab<AmrLSCoreFill>> cphysbc(
+                    geom[lev-1], bcs, gpu_bndry_func
+                );
+            PhysBCFunct<GpuBndryFuncFab<AmrLSCoreFill>> fphysbc(
+                    geom[lev  ], bcs, gpu_bndry_func
+                );
 
+            amrex::FillPatchTwoLevels(
+                    mf, time,
+                    {& level_set[lev-1]}, {0.}, {& level_set[lev]}, {0.},
+                    0, icomp, ncomp, geom[lev-1], geom[lev],
+                    cphysbc, 0, fphysbc, 0, refRatio(lev-1),
+                    mapper, bcs, 0
+                );
+        }
+        else
+        {
+            CpuBndryFuncFab bndry_func(nullptr);  // Without EXT_DIR, we can pass a nullptr.
+            PhysBCFunct<CpuBndryFuncFab> cphysbc(geom[lev-1], bcs, bndry_func);
+            PhysBCFunct<CpuBndryFuncFab> fphysbc(geom[lev  ], bcs, bndry_func);
+
+            amrex::FillPatchTwoLevels(
+                    mf, time,
+                    {& level_set[lev-1]}, {0.}, {& level_set[lev]}, {0.},
+                    0, icomp, ncomp, geom[lev-1], geom[lev],
+                    cphysbc, 0, fphysbc, 0, refRatio(lev-1),
+                    mapper, bcs, 0
+                );
+        }
     }
 }
 
@@ -597,9 +632,8 @@ void LSCoreBase::FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
             Vector<Real> facet_list(facet_list_size);
 
 
-                  auto & ls_tile_w = level_set[mfi];
-                  auto & v_tile    = eb_valid[mfi];
-            const auto & if_tile   = mf_impfunc[mfi];
+            auto & ls_tile_w = level_set[mfi];
+            auto & v_tile    = eb_valid[mfi];
 
             if (n_facets > 0) {
 
@@ -682,19 +716,46 @@ void LSCoreBase::FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
             }
 
 
-            //_______________________________________________________________________
+            //___________________________________________________________________
             // Enforce threshold of local level-set
-            amrex_eb_threshold_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_threshold,
-                                        BL_TO_FORTRAN_3D(ls_tile_w));
+            // NOTE: this is called on the entire MultiFab -- as opposed to an
+            // else statement above -- because the code above thresholds based
+            // on the coarse levelset => here we reapply threshold based on the
+            // fine levelset
+            Array4<Real> const & ls_array = level_set.array(mfi);
+            Array4<int > const &  v_array = eb_valid.array(mfi);
+
+            ParallelFor(tile_box,
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                        if ( ls_array(i, j, k) <= -ls_threshold ) {
+
+                            ls_array(i, j, k) = -ls_threshold;
+                            v_array(i, j, k)  = 0;
+
+                        } else if ( ls_array(i, j, k) >= ls_threshold ) {
+
+                            ls_array(i, j, k) = ls_threshold;
+                            v_array(i, j, k)  = 0;
+                        }
+                    }
+                );
 
 
             //_______________________________________________________________________
             // Validate level-set
-            const int ls_grid_ref = 1;
-            amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_grid_ref,
-                                       BL_TO_FORTRAN_3D(if_tile),
-                                       BL_TO_FORTRAN_3D(v_tile),
-                                       BL_TO_FORTRAN_3D(ls_tile_w)   );
+            Array4<Real const> const & if_array = mf_impfunc.array(mfi);
+            ParallelFor(tile_box,
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                        if (v_array(i, j, k) == 0) {
+                            Real levelset_node = Math::abs( ls_array(i, j, k) );
+                            if (if_array(i, j, k) <= 0) {
+                                ls_array(i, j, k) = levelset_node;
+                            } else {
+                                ls_array(i, j, k) = -levelset_node;
+                            }
+                        }
+                    }
+                );
         }
 
     level_set.FillBoundary(geom.periodicity());
