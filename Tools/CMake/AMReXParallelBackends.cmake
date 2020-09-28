@@ -103,7 +103,7 @@ if (ENABLE_HIP)
    target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand)
 
    # ARCH flags -- these must be PUBLIC for all downstream targets to use,
-   # else it will generate a run time issue (it complains it cannot find
+   # else there will be a runtime issue (cannot find
    # missing gpu devices)
    target_compile_options(amrex
       PRIVATE
