@@ -89,6 +89,11 @@ if (ENABLE_HIP)
       message(FATAL_ERROR "Using (deprecated) HCC compiler: please update ROCm")
    endif()
 
+   if (NOT (CMAKE_CXX_COMPILER STREQUAL HIP_COMPILER))
+      message(FATAL_ERROR "\nHIP compiler is ${HIP_COMPILER} but CMAKE_CXX_COMPILER is set to ${CMAKE_CXX_COMPILER}\n"
+         "Re-configure with  -DCMAKE_CXX_COMPILER=${HIP_COMPILER}")
+   endif ()
+
    if(HIP_FOUND)
       message(STATUS "Found HIP: ${HIP_VERSION}")
       message(STATUS "HIP: Platform=${HIP_PLATFORM} Compiler=${HIP_COMPILER}")
