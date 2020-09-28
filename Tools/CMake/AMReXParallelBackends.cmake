@@ -73,6 +73,17 @@ endif ()
 #
 if (ENABLE_HIP)
 
+   set(_valid_hip_compilers hipcc nvcc)
+   get_filename_component(_this_comp ${CMAKE_CXX_COMPILER} NAME)
+
+   if (NOT (_this_comp IN_LIST _valid_hip_compilers) )
+      message(FATAL_ERROR "\nCMAKE_CXX_COMPILER is incompatible with HIP.\n"
+         "Set CMAKE_CXX_COMPILER to either hipcc or nvcc for HIP builds.\n")
+   endif ()
+
+   unset(_hip_compiler)
+   unset(_valid_hip_compilers)
+
    if(NOT DEFINED HIP_PATH)
       if(NOT DEFINED ENV{HIP_PATH})
          set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
@@ -88,11 +99,6 @@ if (ENABLE_HIP)
    if("${HIP_COMPILER}" STREQUAL "hcc")
       message(FATAL_ERROR "Using (deprecated) HCC compiler: please update ROCm")
    endif()
-
-   if (NOT (CMAKE_CXX_COMPILER STREQUAL HIP_COMPILER))
-      message(FATAL_ERROR "\nHIP compiler is ${HIP_COMPILER} but CMAKE_CXX_COMPILER is set to ${CMAKE_CXX_COMPILER}\n"
-         "Re-configure with  -DCMAKE_CXX_COMPILER=${HIP_COMPILER}")
-   endif ()
 
    if(HIP_FOUND)
       message(STATUS "Found HIP: ${HIP_VERSION}")
