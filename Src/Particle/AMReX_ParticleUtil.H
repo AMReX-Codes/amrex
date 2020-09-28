@@ -21,7 +21,7 @@ namespace amrex
 namespace particle_detail {
 
 template <typename F, typename P>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 auto call_f (F const& f, P const& p, amrex::RandomEngine const& engine) noexcept
     -> decltype(f(P{},RandomEngine{}))
 {
@@ -29,7 +29,7 @@ auto call_f (F const& f, P const& p, amrex::RandomEngine const& engine) noexcept
 }
 
 template <typename F, typename P>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 auto call_f (F const& f, P const& p, amrex::RandomEngine const&) noexcept
     -> decltype(f(P{}))
 {
@@ -37,7 +37,7 @@ auto call_f (F const& f, P const& p, amrex::RandomEngine const&) noexcept
 }
 
 template <typename F, typename SrcData, typename N>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const& engine) noexcept
     -> decltype(f(SrcData{},N{},RandomEngine{}))
 {
@@ -45,7 +45,7 @@ auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const& eng
 }
 
 template <typename F, typename SrcData, typename N>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const&) noexcept
     -> decltype(f(SrcData{},N{}))
 {
