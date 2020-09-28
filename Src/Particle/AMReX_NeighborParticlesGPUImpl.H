@@ -294,7 +294,7 @@ clearNeighborsGPU()
     {
         for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-            auto& ptile = this->DefineAndReturnParticleTile(lev, mfi)
+            auto& ptile = this->DefineAndReturnParticleTile(lev, mfi);
             ptile.setNumNeighbors(0);
         }
     }
