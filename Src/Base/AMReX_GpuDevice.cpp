@@ -264,8 +264,6 @@ Device::Initialize ()
 
     AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipSetDevice(device_id));,
                       AMREX_CUDA_SAFE_CALL(cudaSetDevice(device_id)); );
-    AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipSetDeviceFlags(hipDeviceMapHost));,
-                      AMREX_CUDA_SAFE_CALL(cudaSetDeviceFlags(cudaDeviceMapHost)); );
 
 #ifdef AMREX_USE_ACC
     amrex_initialize_acc(device_id);
