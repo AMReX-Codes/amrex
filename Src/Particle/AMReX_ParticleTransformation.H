@@ -160,6 +160,8 @@ void copyParticles (DstTile& dst, const SrcTile& src,
     {
         copyParticle(dst_data, src_data, src_start+i, dst_start+i);
     });
+
+    Gpu::synchronize();
 }
 
 /**
@@ -212,6 +214,8 @@ void transformParticles (DstTile& dst, const SrcTile& src,
     {
         f(dst_data, src_data, src_start+i, dst_start+i);
     });
+
+    Gpu::synchronize();
 }
 
 /**
@@ -271,6 +275,8 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
     {
         f(dst1_data, dst2_data, src_data, src_start+i, dst1_start+i, dst2_start+i);
     });
+
+    Gpu::synchronize();
 }
 
 /**
@@ -333,7 +339,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
                                             dst_start+p_offsets[src_start+i]);
     });
 
-    Gpu::streamSynchronize();
+    Gpu::synchronize();
     return last_mask + last_offset;
 }
 
@@ -430,7 +436,7 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
         if (mask[i]) f(dst_data, src_data, i, p_offsets[i]);
     });
 
-    Gpu::streamSynchronize();
+    Gpu::synchronize();
     return last_mask + last_offset;
 }
 
@@ -510,7 +516,7 @@ Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
         if (mask[i]) f(dst_data1, dst_data2, src_data, i, p_offsets[i], p_offsets[i]);
     });
 
-    Gpu::streamSynchronize();
+    Gpu::synchronize();
     return last_mask + last_offset;
 }
 
@@ -579,6 +585,8 @@ void gatherParticles (PTile& dst, const PTile& src, N np, const Index* inds)
     {
         copyParticle(dst_data, src_data, inds[i], i);
     });
+
+    Gpu::synchronize();
 }
 
 /**
@@ -607,6 +615,8 @@ void scatterParticles (PTile& dst, const PTile& src, N np, const Index* inds)
     {
         copyParticle(dst_data, src_data, i, inds[i]);
     });
+
+    Gpu::synchronize();
 }
 
 }
