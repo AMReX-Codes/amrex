@@ -62,7 +62,7 @@
       const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_tn); \
       if (amrex::Gpu::inFuseRegion() && amrex_i_ec.numBlocks.x*amrex_i_ec.numThreads.x <= amrex::Gpu::getFuseSizeThreshold()) { \
         amrex::Gpu::Register(amrex_i_tn, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { \
-            amrex::Box TI(amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))); \
+            amrex::Box TI{amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))}; \
             block \
         }); \
       } else { \
@@ -175,11 +175,11 @@
       amrex_i_nblocks.y = 2; \
       if (amrex::Gpu::inFuseRegion() && amrex_i_nblocks.x*amrex_i_nblocks.y*amrex_i_ec1.numThreads.x <= amrex::Gpu::getFuseSizeThreshold()) { \
         amrex::Gpu::Register(amrex_i_tn1, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { \
-            amrex::Box TI1(amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))); \
+            amrex::Box TI1{amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))}; \
             block1 \
         }); \
         amrex::Gpu::Register(amrex_i_tn2, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { \
-            amrex::Box TI2(amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))); \
+            amrex::Box TI2{amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))}; \
             block2 \
         }); \
       } else { \
@@ -321,15 +321,15 @@
       amrex_i_nblocks.y = 3; \
       if (amrex::Gpu::inFuseRegion() && amrex_i_nblocks.x*amrex_i_nblocks.y*amrex_i_ec1.numThreads.x <= amrex::Gpu::getFuseSizeThreshold()) { \
         amrex::Gpu::Register(amrex_i_tn1, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { \
-            amrex::Box TI1(amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))); \
+            amrex::Box TI1{amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))}; \
             block1 \
         }); \
         amrex::Gpu::Register(amrex_i_tn2, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { \
-            amrex::Box TI2(amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))); \
+            amrex::Box TI2{amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))}; \
             block2 \
         }); \
         amrex::Gpu::Register(amrex_i_tn3, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { \
-            amrex::Box TI3(amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))); \
+            amrex::Box TI3{amrex::IntVect(AMREX_D_DECL(i,j,k)),amrex::IntVect(AMREX_D_DECL(i,j,k))}; \
             block3 \
         }); \
       } else {                                                             \
