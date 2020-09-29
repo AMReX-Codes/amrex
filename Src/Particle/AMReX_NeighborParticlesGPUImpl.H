@@ -288,11 +288,13 @@ clearNeighborsGPU()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::clearNeighborsGPU");
 
+    this->reserveData();
+    this->resizeData();
     for (int lev = 0; lev < this->numLevels(); ++lev)
     {
         for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-            auto& ptile = this->ParticlesAt(lev, mfi);
+            auto& ptile = this->DefineAndReturnParticleTile(lev, mfi);
             ptile.setNumNeighbors(0);
         }
     }
