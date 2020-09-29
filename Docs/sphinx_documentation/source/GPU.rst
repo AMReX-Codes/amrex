@@ -235,8 +235,8 @@ check the :ref:`table <tab:cmakecudavar>` below.
 
 The target architecture to build for can be specified via the configuration option
 ``-DCUDA_ARCH=<target-architecture>``, where ``<target-architecture>`` can be either
-the name of the NVIDIA GPU, i.e. ``Turing``, ``Volta``, ``...`` , or its
-version number, i.e. ``10.0``, ``9.0``,  ``...`` .
+the name of the NVIDIA GPU generation, i.e. ``Turing``, ``Volta``, ``Ampere``, ``...`` , or its
+`compute capability <https://developer.nvidia.com/cuda-gpus>`_, i.e. ``10.0``, ``9.0``,  ``...`` .
 For example, on Cori GPUs you can specify the architecture as follows:
 
 .. highlight:: console
