@@ -73,6 +73,17 @@ endif ()
 #
 if (ENABLE_HIP)
 
+   set(_valid_hip_compilers hipcc nvcc)
+   get_filename_component(_this_comp ${CMAKE_CXX_COMPILER} NAME)
+
+   if (NOT (_this_comp IN_LIST _valid_hip_compilers) )
+      message(FATAL_ERROR "\nCMAKE_CXX_COMPILER is incompatible with HIP.\n"
+         "Set CMAKE_CXX_COMPILER to either hipcc or nvcc for HIP builds.\n")
+   endif ()
+
+   unset(_hip_compiler)
+   unset(_valid_hip_compilers)
+
    if(NOT DEFINED HIP_PATH)
       if(NOT DEFINED ENV{HIP_PATH})
          set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
@@ -103,7 +114,7 @@ if (ENABLE_HIP)
    target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand)
 
    # ARCH flags -- these must be PUBLIC for all downstream targets to use,
-   # else it will generate a run time issue (it complains it cannot find
+   # else there will be a runtime issue (cannot find
    # missing gpu devices)
    target_compile_options(amrex
       PUBLIC

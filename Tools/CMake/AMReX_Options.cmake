@@ -133,20 +133,15 @@ cmake_dependent_option( ENABLE_HIP "Enable GPU support via HIP" OFF
    "NOT ENABLE_DPCPP;NOT ENABLE_CUDA" OFF)
 print_option( ENABLE_HIP )
 
-
 # HIP-specific options
 if (ENABLE_HIP)
-   set(AMD_ARCH "IGNORE" CACHE STRING "AMD GPU architecture (Must be provided if ENABLE_HIP=ON)")
-
+   set(AMD_ARCH "IGNORE" CACHE STRING
+      "AMD GPU architecture (Must be provided if ENABLE_HIP=ON)")
    if (NOT AMD_ARCH)
       message(FATAL_ERROR "\n Must specify AMD_ARCH if ENABLE_HIP=ON\n")
    endif ()
-
-   set(AMREX_HIPCC_FLAGS_REQUIRED "-m64 --amdgpu-target=${AMD_ARCH}" CACHE
-      INTERNAL "Flags required by AMReX for HIPCC builds for all build types")
-
-   set(AMREX_HIPCC_FLAGS "" CACHE STRING "Flags used by the HIPCC compiler during all build types.")
 endif ()
+
 
 option( ENABLE_ACC  "Enable GPU support via OpenACC" OFF )
 print_option( ENABLE_ACC )
