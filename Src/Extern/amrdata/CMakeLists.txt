@@ -12,6 +12,6 @@ target_sources(amrex
    AMReX_FABUTIL_${DIM}D.F
    )
 
-if (ENABLE_PROPARSER)
+if (ENABLE_PROFPARSER)
    target_sources( amrex PRIVATE AMReX_XYPlotDataList.cpp AMReX_XYPlotDataList.H )
 endif ()
