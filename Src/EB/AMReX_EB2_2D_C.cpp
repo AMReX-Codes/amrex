@@ -64,14 +64,14 @@ void set_eb_data (const int i, const int j,
         bnorm(i,j,0,1) = signy;
         vfrac(i,j,0) = 0.5*(axm+axp);
         vcent(i,j,0,0) = 0.0;
-        vcent(i,j,0,1) = (0.125*(ayp-aym) + ny*0.5*bcent(i,j,0,1)*bcent(i,j,0,1)) / vfrac(i,j,0);
+        vcent(i,j,0,1) = (0.125*(ayp-aym) + ny*0.5*bcent(i,j,0,1)*bcent(i,j,0,1)) / (vfrac(i,j,0) + 1.e-30);
     } else if (nyabs < tiny or nxabs > almostone) {
         barea(i,j,0) = 1.0;
         bcent(i,j,0,1) = 0.0;
         bnorm(i,j,0,0) = signx;
         bnorm(i,j,0,1) = 0.0;
         vfrac(i,j,0) = 0.5*(aym+ayp);
-        vcent(i,j,0,0) = (0.125*(axp-axm) + nx*0.5*bcent(i,j,0,0)*bcent(i,j,0,0)) / vfrac(i,j,0);
+        vcent(i,j,0,0) = (0.125*(axp-axm) + nx*0.5*bcent(i,j,0,0)*bcent(i,j,0,0)) / (vfrac(i,j,0) + 1.e-30);
         vcent(i,j,0,1) = 0.0;
     } else {
         Real aa = nxabs/ny;

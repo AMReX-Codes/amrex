@@ -299,6 +299,9 @@ ifeq ($(USE_GPU_PRAGMA),TRUE)
 endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
+        # Use > $@2 to filter out unnecessary messages
+	$(CXX) $(CXXDEPFLAGS) $< -o $@ > $@2
+else ifeq ($(USE_HIP),TRUE)
 	$(CXX) $(CXXDEPFLAGS) $< -o $@
 else
 	$(CXX) $(CXXDEPFLAGS) $< > $@
@@ -312,6 +315,8 @@ ifeq ($(USE_GPU_PRAGMA),TRUE)
 endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
+	$(CC) $(CDEPFLAGS) $< -o $@
+else ifeq ($(USE_HIP),TRUE)
 	$(CC) $(CDEPFLAGS) $< -o $@
 else
 	$(CC) $(CDEPFLAGS) $< > $@

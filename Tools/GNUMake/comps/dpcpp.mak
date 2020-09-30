@@ -13,18 +13,6 @@ F90FLAGS =
 
 ########################################################################
 
-#clang_version       = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/')
-#clang_major_version = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' | sed -e 's;\..*;;')
-#clang_minor_version = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
-#
-#COMP_VERSION = $(clang_version)
-#
-#DEFINES += -DBL_CLANG_VERSION='$(clang_version)'
-#DEFINES += -DBL_CLANG_MAJOR_VERSION='$(clang_major_version)'
-#DEFINES += -DBL_CLANG_MINOR_VERSION='$(clang_minor_version)'
-
-########################################################################
-
 ifeq ($(DEBUG),TRUE)
 
   CXXFLAGS += -g -O0 #-ftrapv
@@ -36,7 +24,7 @@ ifeq ($(DEBUG),TRUE)
 else
 
   CXXFLAGS += -O3 # // xxxx DPCPP: todo -g in beta6 causes a lot of warning messages
-  CFLAGS   += -O3
+  CFLAGS   += -O3 #                       and makes linking much slower
 #  CXXFLAGS += -g -O3
 #  CFLAGS   += -g -O3
   FFLAGS   += -g -O3
@@ -71,9 +59,11 @@ endif
 
 ifdef CXXSTD
   CXXFLAGS += -std=$(strip $(CXXSTD))
+else
+  CXXFLAGS += -std=c++17
 endif
 
-CXXFLAGS += -Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda
+CXXFLAGS += -Wno-error=sycl-strict -fsycl
 CFLAGS   += -std=c99
 
 ifneq ($(DEBUG),TRUE)  # There is currently a bug that DEBUG build will crash.
@@ -103,7 +93,11 @@ endif
 # temporary work-around for DPC++ beta08 bug
 #   define "long double" as 64bit for C++ user-defined literals
 #   https://github.com/intel/llvm/issues/2187
-CXXFLAGS += -mlong-double-64
+CXXFLAGS += -mlong-double-64 -Xclang -mlong-double-64
+
+# Beta09 has enabled early optimizations by default.  But this causes many
+# tests to crash.  So we disable it.
+CXXFLAGS += -fno-sycl-early-optimizations
 
 FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore
 F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
@@ -156,6 +150,7 @@ override XTRALIBS += -lgfortran -lquadmath
 
 endif
 
+DPCPP_DIR = $(shell dpcpp --version | tail -1 | sed -e 's/InstalledDir: //' | sed -e 's/linux\/bin/linux/')
 override XTRAOBJS += $(DPCPP_DIR)/lib/libsycl-glibc.o
 LDFLAGS += -device-math-lib=fp32,fp64
 

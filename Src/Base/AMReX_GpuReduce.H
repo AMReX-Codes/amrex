@@ -109,15 +109,11 @@ struct warpReduce
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T operator() (T x) const noexcept
     {
-// HIP FIX HERE - __shfl_down_sync -> type of HIP intrinsics don't match. 
-//                e.g. need to figure a work around for longs and Real2.
-//#ifdef AMREX_USE_CUDA
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
             AMREX_HIP_OR_CUDA(T y = __shfl_down(x, offset);,
                               T y = __shfl_down_sync(0xffffffff, x, offset); )
             x = F()(x,y);
         }
-//#endif
         return x;
     }
 };
@@ -259,6 +255,8 @@ void amdWarpReduceSum (volatile T* data, int tid) noexcept
     if (blockSize >=  8) data[tid] += data[tid + 4];
     if (blockSize >=  4) data[tid] += data[tid + 2];
     if (blockSize >=  2) data[tid] += data[tid + 1];
+#else
+    amrex::ignore_unused(data,tid);
 #endif
 }
 
@@ -273,6 +271,8 @@ void cudaWarpReduceSum_lt7 (volatile T* data, int tid) noexcept
     if (blockSize >=  8) data[tid] += data[tid + 4];
     if (blockSize >=  4) data[tid] += data[tid + 2];
     if (blockSize >=  2) data[tid] += data[tid + 1];
+#else
+    amrex::ignore_unused(data,tid);
 #endif
 }
 
@@ -287,6 +287,8 @@ void cudaWarpReduceSum_ge7 (T* data, int tid) noexcept
     if (blockSize >=  8) { if (tid <  4) { data[tid] += data[tid +  4]; } __syncwarp(); }
     if (blockSize >=  4) { if (tid <  2) { data[tid] += data[tid +  2]; } __syncwarp(); }
     if (blockSize >=  2) { if (tid <  1) { data[tid] += data[tid +  1]; } __syncwarp(); }
+#else
+    amrex::ignore_unused(data,tid);
 #endif
 }
 
@@ -339,6 +341,8 @@ void amdWarpReduceMin (volatile T* data, int tid) noexcept
     if (blockSize >=  8) data[tid] = amrex::min(data[tid],data[tid +  4]);
     if (blockSize >=  4) data[tid] = amrex::min(data[tid],data[tid +  2]);
     if (blockSize >=  2) data[tid] = amrex::min(data[tid],data[tid +  1]);
+#else
+    amrex::ignore_unused(data,tid);
 #endif
 }
 
@@ -353,6 +357,8 @@ void cudaWarpReduceMin_lt7 (volatile T* data, int tid) noexcept
     if (blockSize >=  8) data[tid] = amrex::min(data[tid],data[tid +  4]);
     if (blockSize >=  4) data[tid] = amrex::min(data[tid],data[tid +  2]);
     if (blockSize >=  2) data[tid] = amrex::min(data[tid],data[tid +  1]);
+#else
+    amrex::ignore_unused(data,tid);
 #endif
 }
 
@@ -367,6 +373,8 @@ void cudaWarpReduceMin_ge7 (T* data, int tid) noexcept
     if (blockSize >=  8) { if (tid <  4) { data[tid] = amrex::min(data[tid],data[tid +  4]); } __syncwarp(); }
     if (blockSize >=  4) { if (tid <  2) { data[tid] = amrex::min(data[tid],data[tid +  2]); } __syncwarp(); }
     if (blockSize >=  2) { if (tid <  1) { data[tid] = amrex::min(data[tid],data[tid +  1]); } __syncwarp(); }
+#else
+    amrex::ignore_unused(data,tid);
 #endif
 }
 
@@ -419,6 +427,8 @@ void amdWarpReduceMax (volatile T* data, int tid) noexcept
     if (blockSize >=  8) data[tid] = amrex::max(data[tid],data[tid +  4]);
     if (blockSize >=  4) data[tid] = amrex::max(data[tid],data[tid +  2]);
     if (blockSize >=  2) data[tid] = amrex::max(data[tid],data[tid +  1]);
+#else
+    amrex::ignore_unused(data,tid);
 #endif
 }
 
@@ -433,6 +443,8 @@ void cudaWarpReduceMax_lt7 (volatile T* data, int tid) noexcept
     if (blockSize >=  8) data[tid] = amrex::max(data[tid],data[tid +  4]);
     if (blockSize >=  4) data[tid] = amrex::max(data[tid],data[tid +  2]);
     if (blockSize >=  2) data[tid] = amrex::max(data[tid],data[tid +  1]);
+#else
+    amrex::ignore_unused(data,tid);
 #endif
 }
 
@@ -447,6 +459,8 @@ void cudaWarpReduceMax_ge7 (T* data, int tid) noexcept
     if (blockSize >=  8) { if (tid <  4) { data[tid] = amrex::max(data[tid],data[tid +  4]); } __syncwarp(); }
     if (blockSize >=  4) { if (tid <  2) { data[tid] = amrex::max(data[tid],data[tid +  2]); } __syncwarp(); }
     if (blockSize >=  2) { if (tid <  1) { data[tid] = amrex::max(data[tid],data[tid +  1]); } __syncwarp(); }
+#else
+    amrex::ignore_unused(data,tid);
 #endif
 }
 
@@ -499,6 +513,8 @@ void amdWarpReduceAnd (volatile T* data, int tid) noexcept
     if (blockSize >=  8) data[tid] = data[tid] && data[tid +  4];
     if (blockSize >=  4) data[tid] = data[tid] && data[tid +  2];
     if (blockSize >=  2) data[tid] = data[tid] && data[tid +  1];
+#else
+    amrex::ignore_unused(data,tid);
 #endif
 }
 
@@ -513,6 +529,8 @@ void cudaWarpReduceAnd_lt7 (volatile T* data, int tid) noexcept
     if (blockSize >=  8) data[tid] = data[tid] && data[tid +  4];
     if (blockSize >=  4) data[tid] = data[tid] && data[tid +  2];
     if (blockSize >=  2) data[tid] = data[tid] && data[tid +  1];
+#else
+    amrex::ignore_unused(data,tid);
 #endif
 }
 
@@ -527,6 +545,8 @@ void cudaWarpReduceAnd_ge7 (T* data, int tid) noexcept
     if (blockSize >=  8) { if (tid <  4) { data[tid] = data[tid] && data[tid +  4]; } __syncwarp(); }
     if (blockSize >=  4) { if (tid <  2) { data[tid] = data[tid] && data[tid +  2]; } __syncwarp(); }
     if (blockSize >=  2) { if (tid <  1) { data[tid] = data[tid] && data[tid +  1]; } __syncwarp(); }
+#else
+    amrex::ignore_unused(data,tid);
 #endif
 }
 
@@ -579,6 +599,8 @@ void amdWarpReduceOr (volatile T* data, int tid) noexcept
     if (blockSize >=  8) data[tid] = data[tid] || data[tid +  4];
     if (blockSize >=  4) data[tid] = data[tid] || data[tid +  2];
     if (blockSize >=  2) data[tid] = data[tid] || data[tid +  1];
+#else
+    amrex::ignore_unused(data,tid);
 #endif
 }
 
@@ -593,6 +615,8 @@ void cudaWarpReduceOr_lt7 (volatile T* data, int tid) noexcept
     if (blockSize >=  8) data[tid] = data[tid] || data[tid +  4];
     if (blockSize >=  4) data[tid] = data[tid] || data[tid +  2];
     if (blockSize >=  2) data[tid] = data[tid] || data[tid +  1];
+#else
+    amrex::ignore_unused(data,tid);
 #endif
 }
 
@@ -607,6 +631,8 @@ void cudaWarpReduceOr_ge7 (T* data, int tid) noexcept
     if (blockSize >=  8) { if (tid <  4) { data[tid] = data[tid] || data[tid +  4]; } __syncwarp(); }
     if (blockSize >=  4) { if (tid <  2) { data[tid] = data[tid] || data[tid +  2]; } __syncwarp(); }
     if (blockSize >=  2) { if (tid <  1) { data[tid] = data[tid] || data[tid +  1]; } __syncwarp(); }
+#else
+    amrex::ignore_unused(data,tid);
 #endif
 }
 

@@ -380,6 +380,7 @@ AmrMesh::SetDistributionMap (int lev, const DistributionMapping& dmap_in) noexce
 void
 AmrMesh::SetBoxArray (int lev, const BoxArray& ba_in) noexcept
 {
+    ++num_setba;
     if (grids[lev] != ba_in) grids[lev] = ba_in;
 }
 
@@ -791,10 +792,13 @@ AmrMesh::MakeNewGrids (Real time)
 	const BoxArray& ba = MakeBaseGrids();
 	DistributionMapping dm(ba);
         const auto old_num_setdm = num_setdm;
+        const auto old_num_setba = num_setba;
 
 	MakeNewLevelFromScratch(0, time, ba, dm);
 
-        SetBoxArray(0, ba);
+        if (old_num_setba == num_setba) {
+            SetBoxArray(0, ba);
+        }
         if (old_num_setdm == num_setdm) {
             SetDistributionMap(0, dm);
         }

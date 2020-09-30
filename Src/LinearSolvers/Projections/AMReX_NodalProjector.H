@@ -8,21 +8,40 @@
 #include <AMReX_MLMG.H>
 
 //
+//
+// ***************************  DEFAULT MODE  ***************************
+//
 // Solves
 //
 //     div(sigma*grad(phi)) = div(vel) + S_nd + S_cc
 //
 // and  performs the projection
 //
-//     vel = vel - ( sigma / alpha ) * grad(phi)
+//     vel = vel - sigma * grad(phi)
 //
-// vel, sigma, alpha, and S_cc are cell-centered variables, while
+// vel, sigma, and S_cc are cell-centered variables, while
 // phi and S_nd are nodal-centered variables.
+//
+// ***************************  CUSTOM MODE   ***************************
+//
+// Solves
+//
+//     div(sigma*grad(phi)) = rhs
+//
+// and performs the projection
+//
+//     vel = vel - (sigma/alpha) * grad(phi)
+//
+// alpha is a cell-centered variable, while rhs is nodal-centered.
+//
+// In this mode, the user provides rhs and alpha
 //
 // By default alpha is assumed to be 1. Use setAlpha to change the default.
 //
-// The user can provide a custom RHS instead of letting NodalProjector to compute
-// one. Use setCustomRHS to provide a custom RHS.
+// Use setCustomRHS to provide a custom RHS, else "div(vel) + S_nd + S_cc"
+// is used.
+//
+// Example: rhs = div(alpha*vel)
 //
 namespace amrex {
 

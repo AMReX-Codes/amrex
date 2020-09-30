@@ -82,7 +82,7 @@ Now you are free to play with your fork (for additional information, you can vis
 > on your fork with
 > ```
 > git checkout development
-> git pull development
+> git pull
 > ```
 
 Make sure you are on the `development` branch with

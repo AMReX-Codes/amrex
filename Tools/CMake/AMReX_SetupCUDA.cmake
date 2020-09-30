@@ -125,9 +125,9 @@ cuda_print_option(CUDA_KEEP_FILES)
 #
 # Error if NVCC is too old
 #
-if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS "8.0")
+if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS "9.0")
    message(FATAL_ERROR "Your nvcc version is ${CMAKE_CUDA_COMPILER_VERSION}."
-      "This is unsupported. Please use CUDA toolkit version 8.0 or newer.")
+      "This is unsupported. Please use CUDA toolkit version 9.0 or newer.")
 endif ()
 
 #
@@ -208,6 +208,9 @@ endif ()
 string(APPEND CMAKE_CUDA_FLAGS " --expt-relaxed-constexpr --expt-extended-lambda")
 string(APPEND CMAKE_CUDA_FLAGS " -Wno-deprecated-gpu-targets ${NVCC_ARCH_FLAGS}")
 string(APPEND CMAKE_CUDA_FLAGS " -maxrregcount=${CUDA_MAXREGCOUNT}")
+
+# This is to work around a bug with nvcc, see: https://github.com/kokkos/kokkos/issues/1473
+string(APPEND CMAKE_CUDA_FLAGS " -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored")
 
 if (ENABLE_CUDA_FASTMATH)
    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --use_fast_math")

@@ -3,11 +3,10 @@
 
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Particles.H>
-
-// note - namespace
+#include <AMReX_ParticleUtil.H>
 
 struct KeepValidFilter
-{    
+{
     template <typename SrcData>
     AMREX_GPU_HOST_DEVICE
     int operator() (const SrcData& src, int i) const noexcept
@@ -66,7 +65,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
     std::ofstream HdrFile;
 
     Long nparticles = 0;
-    int maxnextid;
+    Long maxnextid;
 
     // evaluate f for every particle to determine which ones to output
     Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int> > > particle_io_flags(pc.GetParticles().size());
@@ -79,10 +78,11 @@ void WriteBinaryParticleDataSync (PC const& pc,
             const auto np = kv.second.numParticles();
             particle_io_flags[lev][kv.first].resize(np, 0);
             auto pflags = particle_io_flags[lev][kv.first].data();
-            AMREX_HOST_DEVICE_FOR_1D( np, k,
+            amrex::ParallelForRNG(np,
+            [=] AMREX_GPU_DEVICE (int k, amrex::RandomEngine const& engine) noexcept
             {
                 const auto p = ptd.getSuperParticle(k);
-                pflags[k] = f(p);
+                pflags[k] = particle_detail::call_f(f,p,engine);
             });
         }
     }
@@ -114,7 +114,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
 
         ParallelDescriptor::ReduceLongSum(nparticles, IOProcNumber);
         PC::ParticleType::NextID(maxnextid);
-        ParallelDescriptor::ReduceIntMax(maxnextid, IOProcNumber);
+        ParallelDescriptor::ReduceLongMax(maxnextid, IOProcNumber);
     }
 
     if (ParallelDescriptor::IOProcessor())
@@ -438,8 +438,8 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     }
     ParallelDescriptor::Barrier();
 
-    int maxnextid = PC::ParticleType::NextID();
-    ParallelDescriptor::ReduceIntMax(maxnextid, IOProcNumber);
+    Long maxnextid = PC::ParticleType::NextID();
+    ParallelDescriptor::ReduceLongMax(maxnextid, IOProcNumber);
 
     Vector<Long> np_on_rank(NProcs, 0L);
     std::size_t psize = PSizeInFile<ParticleReal>(write_real_comp, write_int_comp);

@@ -565,6 +565,14 @@ while ( false )
     void IProbe(int src_pid, int tag, int &mflag, MPI_Status &status);
     void IProbe(int src_pid, int tag, MPI_Comm comm, int &mflag, MPI_Status &status);
 
+    /** Convert an MPI_THREAD_<X> level to string
+     *
+     * @param mtlev MPI_THREAD_<X> level
+     * @return string representation of the equivalent MPI macro name
+     */
+    std::string
+    mpi_level_to_string (int mtlev);
+
     // PMI = Process Management Interface, available on Crays. Provides API to
     // query topology of the job.
 #ifdef AMREX_PMI

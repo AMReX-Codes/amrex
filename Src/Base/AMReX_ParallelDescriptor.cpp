@@ -327,26 +327,14 @@ ParallelDescriptor::StartParallel (int*    argc,
     amrex::ignore_unused(tfoo);
 
 #ifdef AMREX_MPI_THREAD_MULTIPLE
-    {
+    if ( ! sflag) {  // we initialized
         int requested = MPI_THREAD_MULTIPLE;
         int provided = -1;
         MPI_Query_thread(&provided);
 
         if (provided < requested)
         {
-            auto f = [] (int tlev) -> std::string {
-                if (tlev == MPI_THREAD_SINGLE) {
-                    return std::string("MPI_THREAD_SINGLE");
-                } else if (tlev == MPI_THREAD_FUNNELED) {
-                    return std::string("MPI_THREAD_FUNNELED");
-                } else if (tlev == MPI_THREAD_SERIALIZED) {
-                    return std::string("MPI_THREAD_SERIALIZED");
-                } else if (tlev == MPI_THREAD_MULTIPLE) {
-                    return std::string("MPI_THREAD_MULTIPLE");
-                } else {
-                    return std::string("UNKNOWN");
-                }
-            };
+            auto f = ParallelDescriptor::mpi_level_to_string;
             std::cout << "MPI provided < requested: " << f(provided) << " < "
                       << f(requested) << std::endl;;
             std::abort();
@@ -2230,6 +2218,25 @@ void
 ParallelDescriptor::EndTeams ()
 {
     m_Team.clear();
+}
+
+std::string
+ParallelDescriptor::mpi_level_to_string (int mtlev)
+{
+    switch (mtlev) {
+#ifdef AMREX_USE_MPI
+        case MPI_THREAD_SINGLE:
+            return std::string("MPI_THREAD_SINGLE");
+        case MPI_THREAD_FUNNELED:
+            return std::string("MPI_THREAD_FUNNELED");
+        case MPI_THREAD_SERIALIZED:
+            return std::string("MPI_THREAD_SERIALIZED");
+        case MPI_THREAD_MULTIPLE:
+            return std::string("MPI_THREAD_MULTIPLE");
+#endif
+        default:
+            return std::string("UNKNOWN");
+    }
 }
 
 #ifdef BL_USE_MPI

@@ -48,20 +48,24 @@ namespace Gpu {
 int Device::device_id = 0;
 int Device::num_devices_used = 0;
 int Device::verbose = 0;
+#ifdef AMREX_USE_GPU
+int Device::max_gpu_streams = 4;
+#else
+int Device::max_gpu_streams = 1;
+#endif
 
 #ifdef AMREX_USE_GPU
-constexpr int Device::max_gpu_streams;
 dim3 Device::numThreadsMin      = dim3(1, 1, 1);
 dim3 Device::numThreadsOverride = dim3(0, 0, 0);
 dim3 Device::numBlocksOverride  = dim3(0, 0, 0);
-int  Device::max_blocks_per_launch = 640;
+unsigned int Device::max_blocks_per_launch = 2560;
 
-std::array<gpuStream_t,Device::max_gpu_streams> Device::gpu_streams;
-gpuStream_t                                     Device::gpu_default_stream;
-Vector<gpuStream_t>                             Device::gpu_stream;
-gpuDeviceProp_t                                 Device::device_prop;
+gpuStream_t         Device::gpu_default_stream;
+Vector<gpuStream_t> Device::gpu_stream_pool;
+Vector<gpuStream_t> Device::gpu_stream;
+gpuDeviceProp_t     Device::device_prop;
 
-constexpr int                                   Device::warp_size;
+constexpr int Device::warp_size;
 
 #ifdef AMREX_USE_DPCPP
 std::unique_ptr<sycl::context> Device::sycl_context;
@@ -117,6 +121,9 @@ Device::Initialize ()
     nvtx_init = nvtxRangeStartA(pname);
 #endif
 
+    ParmParse ppamrex("amrex");
+    ppamrex.query("max_gpu_streams", max_gpu_streams);
+
     ParmParse pp("device");
 
     pp.query("v", verbose);
@@ -146,8 +153,6 @@ Device::Initialize ()
         gpu_device_count = gpu_devices.size();
         if (gpu_device_count <= 0) {
             amrex::Abort("No GPU device found");
-        } else if (gpu_device_count > 1) {
-            amrex::Abort("DPCPP TODO: more than one device not supported yet");
         }
     }
 #else
@@ -200,9 +205,11 @@ Device::Initialize ()
         // this is if the number of visible devices is smaller than
         // the known number of GPUs per socket.
 
+#if defined(AMREX_USE_CUDA)
 #if (!defined(AMREX_GPUS_PER_SOCKET) && !defined(AMREX_GPUS_PER_NODE))
         amrex::Warning("Multiple GPUs are visible to each MPI rank, but the number of GPUs per socket or node has not been provided.\n"
                        "This may lead to incorrect or suboptimal rank-to-GPU mapping.");
+#endif
 #endif
 
         MPI_Comm local_comm;
@@ -257,8 +264,6 @@ Device::Initialize ()
 
     AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipSetDevice(device_id));,
                       AMREX_CUDA_SAFE_CALL(cudaSetDevice(device_id)); );
-    AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipSetDeviceFlags(hipDeviceMapHost));,
-                      AMREX_CUDA_SAFE_CALL(cudaSetDeviceFlags(cudaDeviceMapHost)); );
 
 #ifdef AMREX_USE_ACC
     amrex_initialize_acc(device_id);
@@ -350,14 +355,14 @@ Device::Finalize ()
 
     for (int i = 0; i < max_gpu_streams; ++i)
     {
-        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL( hipStreamDestroy(gpu_streams[i]));,
-                          AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(gpu_streams[i])); );
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL( hipStreamDestroy(gpu_stream_pool[i]));,
+                          AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(gpu_stream_pool[i])); );
     }
 
 #ifdef AMREX_USE_DPCPP
     sycl_context.reset();
     sycl_device.reset();
-    for (auto& s : gpu_streams) {
+    for (auto& s : gpu_stream_pool) {
         delete s.queue;
         s.queue = nullptr;
     }
@@ -376,6 +381,8 @@ Device::initialize_gpu ()
 {
 #ifdef AMREX_USE_GPU
 
+    gpu_stream_pool.resize(max_gpu_streams);
+
 #ifdef AMREX_USE_HIP
 
     AMREX_HIP_SAFE_CALL(hipGetDeviceProperties(&device_prop, device_id));
@@ -390,7 +397,7 @@ Device::initialize_gpu ()
 
     gpu_default_stream = 0;
     for (int i = 0; i < max_gpu_streams; ++i) {
-        AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_streams[i]));
+        AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_stream_pool[i]));
     }
 
 #elif defined(AMREX_USE_CUDA)
@@ -409,9 +416,9 @@ Device::initialize_gpu ()
 
     gpu_default_stream = 0;
     for (int i = 0; i < max_gpu_streams; ++i) {
-        AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_streams[i]));
+        AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_stream_pool[i]));
 #ifdef AMREX_USE_ACC
-        acc_set_cuda_stream(i, gpu_streams[i]);
+        acc_set_cuda_stream(i, gpu_stream_pool[i]);
 #endif
     }
 
@@ -419,13 +426,15 @@ Device::initialize_gpu ()
 
 #elif defined(AMREX_USE_DPCPP)
     { // create device, context and queues
-        sycl::gpu_selector device_selector;
-        sycl_device.reset(new sycl::device(device_selector));
+        sycl::gpu_selector gpu_device_selector;
+        sycl::platform platform(gpu_device_selector);
+        auto const& gpu_devices = platform.get_devices();
+        sycl_device.reset(new sycl::device(gpu_devices[device_id]));
         sycl_context.reset(new sycl::context(*sycl_device, amrex_sycl_error_handler));
-        gpu_default_stream.queue = new sycl::queue(*sycl_context, device_selector,
+        gpu_default_stream.queue = new sycl::queue(*sycl_context, *sycl_device,
                                          sycl::property_list{sycl::property::queue::in_order{}});
         for (int i = 0; i < max_gpu_streams; ++i) {
-            gpu_streams[i].queue = new sycl::queue(*sycl_context, device_selector,
+            gpu_stream_pool[i].queue = new sycl::queue(*sycl_context, *sycl_device,
                                          sycl::property_list{sycl::property::queue::in_order{}});
         }
     }
@@ -516,9 +525,9 @@ Device::initialize_gpu ()
     }
 
 #ifdef AMREX_USE_DPCPP
-    max_blocks_per_launch = 1000000; // xxxxx DPCPP todo
+    // max_blocks_per_launch = 100000; // xxxxx DPCPP todo
 #else
-    max_blocks_per_launch = numMultiProcessors() * maxThreadsPerMultiProcessor() / AMREX_GPU_MAX_THREADS;
+    max_blocks_per_launch = 4 * numMultiProcessors() * maxThreadsPerMultiProcessor() / AMREX_GPU_MAX_THREADS;
 #endif
 
 #endif
@@ -548,7 +557,7 @@ Device::setStreamIndex (const int idx) noexcept
         amrex_set_acc_stream(acc_async_sync);
 #endif
     } else {
-        gpu_stream[OpenMP::get_thread_num()] = gpu_streams[idx % max_gpu_streams];
+        gpu_stream[OpenMP::get_thread_num()] = gpu_stream_pool[idx % max_gpu_streams];
 
 #ifdef AMREX_USE_ACC
         amrex_set_acc_stream(idx % max_gpu_streams);
@@ -611,7 +620,7 @@ Device::streamSynchronize () noexcept
 void
 Device::nonNullStreamSynchronize () noexcept
 {
-    for (auto const& s : gpu_streams) {
+    for (auto const& s : gpu_stream_pool) {
         try {
             s.queue->wait_and_throw();
         } catch (sycl::exception const& ex) {
@@ -1043,11 +1052,13 @@ std::size_t
 Device::freeMemAvailable ()
 {
 #ifdef AMREX_USE_GPU
-    std::size_t f, t;
+    std::size_t f;
+#ifndef AMREX_USE_DPCPP
+    std::size_t t;
+#endif
     AMREX_HIP_OR_CUDA_OR_DPCPP( AMREX_HIP_SAFE_CALL(hipMemGetInfo(&f,&t));,
                                 AMREX_CUDA_SAFE_CALL(cudaMemGetInfo(&f,&t));,
                                 f = device_prop.totalGlobalMem; ); // xxxxx DPCPP todo
-    amrex::ignore_unused(t);
     return f;
 #else
     return 0;

@@ -143,9 +143,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         {
             the_send_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume));
             for (int i = 0, N = send_size.size(); i < N; ++i) {
-                if (send_size[i] > 0) {
-                    send_data[i] = the_send_data + offset[i];
-                }
+                send_data[i] = the_send_data + offset[i];
             }
         } else {
             the_send_data = nullptr;
@@ -495,9 +493,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             {
                 the_send_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume));
                 for (int i = 0, N = send_size.size(); i < N; ++i) {
-                    if (send_size[i] > 0) {
-                        send_data[i] = the_send_data + offset[i];
-                    }
+                    send_data[i] = the_send_data + offset[i];
                 }
             }
 
@@ -749,9 +745,9 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
 
         for (int i = 0; i < nrecv; ++i)
         {
+            recv_data[i] = the_recv_data + offset[i];
             if (recv_size[i] > 0)
             {
-                recv_data[i] = the_recv_data + offset[i];
                 const int rank = ParallelContext::global_to_local_rank(recv_from[i]);
                 const int comm_data_type = ParallelDescriptor::select_comm_data_type(recv_size[i]);
                 if (comm_data_type == 1) {

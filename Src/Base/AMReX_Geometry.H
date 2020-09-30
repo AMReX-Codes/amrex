@@ -110,7 +110,6 @@ public:
     void ProbDomain (const RealBox& rb) noexcept
     {
         prob_domain = rb;
-        SetOffset(rb.lo());
         computeRoundoffDomain();
     }
     //! Returns the lo end of the problem domain in each dimension.
@@ -140,7 +139,11 @@ public:
     //! Returns our rectangular domain.
     const Box& Domain () const noexcept { return domain; }
     //! Sets our rectangular domain.
-    void Domain (const Box& bx) noexcept { domain = bx; }
+    void Domain (const Box& bx) noexcept
+    {
+        domain = bx;
+        computeRoundoffDomain();
+    }
     //! Define a multifab of areas and volumes with given grow factor.
     void GetVolume (MultiFab&       vol,
                     const BoxArray& grds,
@@ -198,22 +201,9 @@ public:
                               static_cast<int>(is_periodic[2]))}};
     }
     GpuArray<int,AMREX_SPACEDIM> isPeriodicArray () const noexcept {
-// HIP FIX HERE - Initialization List
-#ifdef AMREX_USE_HIP
-        GpuArray<int, AMREX_SPACEDIM> arr;
-        for (int i=0; i<AMREX_SPACEDIM; ++i)
-        { arr[i] = static_cast<int>(is_periodic[i]); }
-        return arr;
-/*
-        return {(int[AMREX_SPACEDIM]){AMREX_D_DECL(static_cast<int>(is_periodic[0]),
-                                                   static_cast<int>(is_periodic[1]),
-                                                   static_cast<int>(is_periodic[2]))}};
-*/
-#else
         return {{AMREX_D_DECL(static_cast<int>(is_periodic[0]),
                               static_cast<int>(is_periodic[1]),
                               static_cast<int>(is_periodic[2]))}};
-#endif
     }
     //! What's period in specified direction?
     int period (int dir) const noexcept { BL_ASSERT(is_periodic[dir]); return domain.length(dir); }

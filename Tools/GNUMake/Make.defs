@@ -23,11 +23,6 @@ else
 endif
 
 ifeq ($(USE_DPCPP),TRUE)
-  ifdef DPCPPROOT
-    DPCPP_DIR ?= $(DPCPPROOT)
-  else
-    DPCPP_DIR ?= /opt/intel/inteloneapi/compiler/latest/linux
-  endif
   override COMP = dpcpp
   DEFINES += -DAMREX_USE_DPCPP -DAMREX_USE_GPU
   USE_CUDA := FALSE
@@ -44,16 +39,17 @@ else
 endif
 
 ifeq ($(USE_HIP),TRUE)
+  DEBUG := FALSE  # Currently there is a compiler bug for DEBUG=TRUE.
   USE_CUDA := FALSE
   COMP := hip
-  HIP_PLATFORM = $(shell hipconfig --compiler)
-  ifeq ($(HIP_PLATFORM),nvcc)
-    $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
-  else ifeq ($(HIP_PLATFORM),hcc)
-    $(error HIP_PLATFORM=hcc is no longer supported)
-  else ifeq ($(HIP_PLATFORM),clang)
+  HIP_COMPILER = $(shell hipconfig --compiler)
+  ifeq ($(HIP_COMPILER),nvcc)
+    $(error HIP_COMPILER=nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
+  else ifeq ($(HIP_COMPILER),hcc)
+    $(error HIP_COMPILER=hcc is no longer supported)
+  else ifeq ($(HIP_COMPILER),clang)
   else
-    $(error Unknown HIP_PLATFORM=$(HIP_PLATFORM))
+    $(error Unknown HIP_COMPILER=$(HIP_COMPILER))
   endif
 endif
 
@@ -347,9 +343,7 @@ SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
 
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
-ifneq ($(USE_HIP),TRUE)
-  DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
-endif
+DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
 
 FORTLINK  	= UNDERSCORE
 
@@ -644,41 +638,14 @@ endif
 ifeq ($(USE_HIP),TRUE)
 
     USE_GPU := TRUE
-    AMREX_FCOMP ?= gnu 
-    AMREX_CCOMP ?= hip
 
-    ifneq ($(lowercase_comp),gnu)
-    else ifneq ($(lowercase_comp),hip)
-        $(error HIP can only be used with COMP=hip)
-    endif
-
-#    include $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
-
-    ifeq ($(USE_MPI),TRUE)
-#      $(error MPI is not supported with HIP)
-
-      export OMPI_CC := hipcc 
-      export OMPI_CXX := hipcc
-      export OMPI_F77 := $(FC)
-      export OMPI_FC  := $(F90)
-
-      export MPICH_CC  := hipcc
-      export MPICH_CXX := hipcc
-      export MPICH_F77 := $(FC)
-      export MPICH_FC  := $(F90)
-
-    endif
-
-    DEFINES += -DAMREX_USE_HIP -DAMREX_HIP_PLATFORM=$(HIP_PLATFORM)
+    DEFINES += -DAMREX_USE_HIP
 
     GPUSuffix := .HIP
 
 else ifeq ($(USE_CUDA),TRUE)
 
     USE_GPU := TRUE
-
-    # The CUDA implementation is not currently threadsafe.
-    # Throw an error if the user tries to build with OpenMP and CUDA.
 
     ifeq ($(lowercase_comp),pgi)
         LINK_WITH_FORTRAN_COMPILER=TRUE
@@ -944,14 +911,9 @@ ifeq ($(USE_UPCXX),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.upcxx
 endif
 
-ifeq ($(USE_SUNDIALS_3x4x),TRUE)
-  ifeq ("$(SUNDIALS_VERSION)","4")
-    $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials4...)
-    include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials4
-  else
-    $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3...)
-    include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3
-  endif
+ifeq ($(USE_SUNDIALS),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials
 endif
 
 ifeq ($(USE_CVODE),TRUE)

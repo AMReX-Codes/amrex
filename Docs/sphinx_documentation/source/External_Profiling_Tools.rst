@@ -290,8 +290,8 @@ on Summit and Cori in a system module.
 
 Nsight Systems provides a variety of profiling options.  This documentation will cover the
 most commonly used options for AMReX users to keep track of useful flags and analysis
-patterns. For the complete details of using Nsight Systems, refer to the `official documentation
-<https://docs.nvidia.com/nsight-systems/index.html>`_.
+patterns. For the complete details of using Nsight Systems, refer to the `Nsight Systems
+official documentation <https://docs.nvidia.com/nsight-systems/index.html>`_.
 
 Profile Analysis
 ----------------
@@ -301,7 +301,9 @@ that is viewed in the Nsight Systems GUI, typically on a local workstation or ma
 
 To generate a qdrep file, run nsys with the ``-o`` option:
 
-.. highlight:: c++
+.. highlight:: console 
+
+::
 
     nsys profile -o <file_name> ${EXE} ${INPUTS}
 
@@ -311,55 +313,64 @@ which can be used to mark the respective section of the Nsight Systems timeline.
 built-in Tiny Profiler NVTX regions in Nsight Systems outputs, compile AMReX with ``TINY_PROFILE=TRUE``.
 
 Nsight Systems timelines only profile a single, contiguous block of time. There are a variety of
-methods to specify the specific region you would like to analyze. Listed here are a few common
-options that AMReX users may find helpful:
+methods to specify the specific region you would like to analyze. The most common options that AMReX users
+may find helpful are:
 
-#. A NVTX region can be specified as the starting point of the analysis. This is done using
-     ``-c nvtx -p "region_name@*" -e NSYS_NVTX_PROFILER_REGISTER_ONLY=0``, where ``region_name``
-     is the identification string for the of the NVTX region. The additional environment variable,
-     ``-e ...`` is needed because AMReX's NVTX region names currently do not use a registered string.
-     TinyProfiler's built-in NVTX regions use the same identification string as the timer itself. For 
-     example, to start an analysis at the ``do_hydro`` NVTX region, run: 
+1. **Specify an NVTX region as the starting point of the analysis.**
 
-.. highlight:: c++
+This is done using ``-c nvtx -p "region_name@*" -e NSYS_NVTX_PROFILER_REGISTER_ONLY=0``, where ``region_name``
+is the identification string for the of the NVTX region. The additional environment variable,
+``-e ...`` is needed because AMReX's NVTX region names currently do not use a registered string.
+TinyProfiler's built-in NVTX regions use the same identification string as the timer itself. For
+example, to start an analysis at the ``do_hydro`` NVTX region, run:
+
+.. highlight:: console
+
+::
 
     nsys profile -o <file_name> -c nvtx -p "do_hydro@*" -e NSYS_NVTX_PROFILER_REGISTER_ONLY=0 ${EXE} ${INPUTS}
-..
 
-    This will profile from the first instance of the specified NVTX region until the end of the
-    application.  In AMReX applications, this can be helpful to skip initialization and analyze the
-    remainder of the code.  To only analyze the specified NVTX region, add the flag ``-x true``, which
-    will end the analysis at the end of the region:  
+This will profile from the first instance of the specified NVTX region until the end of the
+application.  In AMReX applications, this can be helpful to skip initialization and analyze the
+remainder of the code.  To only analyze the specified NVTX region, add the flag ``-x true``, which
+will end the analysis at the end of the region:
 
- .. highlight:: c++
+.. highlight:: console
+
+::
 
     nsys profile -o <file_name> -c nvtx -p "do_hydro@*" -x true -e NSYS_NVTX_PROFILER_REGISTER_ONLY=0 ${EXE} ${INPUTS}
-..
 
-    Again, it's important to remember that Nsight Systems only analyzes a single contiguous block of
-    time. So, this will only give you a profile for the first instance of the named region.  Plan your
-    Nsight System analyses accordingly. 
+Again, it's important to remember that Nsight Systems only analyzes a single contiguous block of
+time. So, this will only give you a profile for the first instance of the named region.  Plan your
+Nsight System analyses accordingly.
 
-#. Directly insert ``cudaProfilerStart\Stop`` around the region of code you want to
-   analyze.  Then, run with ``-c cudaProfilerApi``:
+2. **Specify a region with cuda profiler function calls.**
+
+This requires manually altering your source code, but can provide better specificity in what you analyze.
+Directly insert ``cudaProfilerStart\Stop`` around the region of code you want to analyze:
 
 .. highlight:: c++
+
+::
 
     cudaProfilerStart();
 
-    CODE TO PROFILE
+    // CODE TO PROFILE
 
     cudaProfilerStop();
 
-..
 
-.. highlight:: c++
+Then, run with ``-c cudaProfilerApi``:
+
+.. highlight:: console
+
+::
 
     nsys profile -o <file_name> -c cudaProfilerApi ${EXE} ${INPUTS}
-..
 
-   As with NVTX regions, Nsight Systems will only profile from the first call to ``cudaProfilerStart()``
-   to the first call to ``cudaProfilerStop()``, so be sure to add these markers appropriately. 
+As with NVTX regions, Nsight Systems will only profile from the first call to ``cudaProfilerStart()``
+to the first call to ``cudaProfilerStop()``, so be sure to add these markers appropriately.
 
 
 Nsight Systems GUI Tips
@@ -372,23 +383,25 @@ Nsight Systems GUI Tips
 
   This feature can be found in the GUI's drop down menu, under:
 
-.. highlight:: c++
+.. highlight:: console
 
- ``Tools -> Options -> Environment -> Rename CUDA Kernels by NVTX.``
+::
+
+ Tools -> Options -> Environment -> Rename CUDA Kernels by NVTX.
 
 
 Nsight Compute
 ==============
 
-The Nsight Compute tool provides a detailed, fine-grained analysis of your CUDA kernels, 
+The Nsight Compute tool provides a detailed, fine-grained analysis of your CUDA kernels,
 giving details about the kernel launch, occupancy, and limitations while suggesting possible
 improvements to maximize the use of the GPU.  It analyzes CUDA-based GPU codes and is available
 on Summit and Cori in system modules.
 
 Nsight Compute provides a variety of profiling options.  This documentation will focus on the
 most commonly used options for AMReX users, primarily to keep track of useful flags and analysis
-patterns.  For the complete details of using Nsight Compute, refer to the `official documentation
-<https://docs.nvidia.com/nsight-compute/index.html>`_.
+patterns.  For the complete details of using Nsight Compute, refer to the `Nsight compute
+official documentation <https://docs.nvidia.com/nsight-compute/index.html>`_.
 
 
 Kernel Analysis
@@ -401,7 +414,9 @@ running with Nsight compute on an AMReX application, it is important to turn off
 point exception trap, as it causes a runtime error.  So, an entire AMReX application can be 
 analyzed with Nsight Compute by running:
 
-.. highlight:: c++
+.. highlight:: console
+
+::
 
     ncu -o <file_name> ${EXE} ${INPUTS} amrex.fpe_trap_invalid=0
 
@@ -411,7 +426,9 @@ kernels, AMReX users can use the Tiny Profiler's built-in NVTX regions to narrow
 the analysis.  Nsight Compute allows users to specify which NVTX regions to include and exclude
 through the ``--nvtx``, ``--nvtx-include`` and ``--nvtx-exclude`` flags. For example:
 
-.. highlight:: c++
+.. highlight:: console
+
+::
 
     ncu --nvtx --nvtx-include "Hydro()" --nvtx-exclude "StencilA(),StencilC()" -o kernels ${EXE} ${INPUTS} amrex.fpe_trap_invalid=0
 
@@ -423,7 +440,9 @@ with ``TINY_PROFILE=TRUE`` and the NVTX region names are identical to the TinyPr
 Another helpful flag for selecting a reasonable subset of kernels for analysis is the ``-c`` option. This
 flag specifies the total number of kernels to be analyzed. For example:
 
- .. highlight:: c++
+.. highlight:: console
+
+::
 
     ncu --nvtx --nvtx-include "GravitySolve()" -c 10 -o kernels ${EXE} ${INPUTS} amrex.fpe_trap_invalid=0
 
@@ -446,7 +465,9 @@ To run a roofline analysis on an AMReX application, run ``ncu`` with the flag
 ``--section SpeedOfLight_RooflineChart``. Again, using appropriate NVTX flags to limit the scope of the
 analysis will be critical to achieve results within a reasonable time. For example:
 
- .. highlight:: c++
+.. highlight:: console
+
+::
 
     ncu --section SpeedOfLight_RooflineChart --nvtx --nvtx-include "MLMG()" -c 10 -o roofline ${EXE} ${INPUTS} amrex.fpe_trap_invalid=0
 
@@ -454,6 +475,6 @@ will perform a roofline analysis of the first ten kernels inside of the region `
 their relative performance in the file ``roofline``, which can be read by the Nsight Compute GUI. 
 
 For further information on the roofline model, refer to the scientific literature, `Wikipedia 
-overview <https://en.wikipedia.org/wiki/Roofline_model>`_ and NERSC
+overview <https://en.wikipedia.org/wiki/Roofline_model>`_, NERSC
 `documentation <https://docs.nersc.gov/development/performance-debugging-tools/roofline/>`_ and 
 `tutorials <https://www.nersc.gov/users/training/events/roofline-on-nvidia-gpus-hackathon/>`_. 

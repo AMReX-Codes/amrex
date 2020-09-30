@@ -450,12 +450,16 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
         }
     }
 
+    MF mf_crse_patch;
 #ifdef AMREX_USE_EB
-    auto factory = makeEBFabFactory(cgeom, ba_crse_patch, dm, {0,0,0}, EBSupport::basic);
-    MF mf_crse_patch(ba_crse_patch, dm, ncomp, 0, MFInfo(), *factory);
-#else
-    MF mf_crse_patch(ba_crse_patch, dm, ncomp, 0);
+    if (EB2::TopIndexSpaceIfPresent()) {
+        auto factory = makeEBFabFactory(cgeom, ba_crse_patch, dm, {0,0,0}, EBSupport::basic);
+        mf_crse_patch.define(ba_crse_patch, dm, ncomp, 0, MFInfo(), *factory);
+    } else
 #endif
+    {
+        mf_crse_patch.define(ba_crse_patch, dm, ncomp, 0);
+    }
     mf_set_domain_bndry (mf_crse_patch, cgeom);
 
     mf_crse_patch.copy(cmf, scomp, 0, ncomp, cgeom.periodicity());

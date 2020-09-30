@@ -142,7 +142,7 @@ void check_solution(const MultiFab& jx, const Geometry& geom, Real time)
     const Real j_exact = -n0*PhysConst::q_e*PhysConst::c*u*std::cos(wp*time);
 
     Real max_error = amrex::ReduceMax(jx, 0,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& jxfab) -> Real
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<const Real> const& jxfab) -> Real
     {
         return check_langmuir_solution(bx, test_box, jxfab, j_exact);
     });

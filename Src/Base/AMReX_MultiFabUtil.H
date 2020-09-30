@@ -99,7 +99,8 @@ namespace amrex
     void average_down_nodal (const FabArray<FAB>& S_fine,
                              FabArray<FAB>& S_crse,
                              const IntVect& ratio,
-                             int ngcrse = 0);
+                             int ngcrse = 0,
+                             bool mfiter_is_definitely_safe=false);
 
     //! Average fine cell-based MultiFab onto crse cell-centered MultiFab using
     //! volume-weighting. This routine DOES NOT assume that the crse BoxArray is
@@ -271,7 +272,7 @@ makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
 //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
 template <typename FAB>
 void average_down_nodal (const FabArray<FAB>& fine, FabArray<FAB>& crse,
-                         const IntVect& ratio, int ngcrse)
+                         const IntVect& ratio, int ngcrse, bool mfiter_is_definitely_safe)
 {
     AMREX_ASSERT(fine.is_nodal());
     AMREX_ASSERT(crse.is_nodal());
@@ -280,7 +281,7 @@ void average_down_nodal (const FabArray<FAB>& fine, FabArray<FAB>& crse,
     int ncomp = crse.nComp();
     using value_type = typename FAB::value_type;
 
-    if (isMFIterSafe(fine, crse))
+    if (mfiter_is_definitely_safe || isMFIterSafe(fine, crse))
     {
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())

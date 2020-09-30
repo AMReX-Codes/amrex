@@ -741,7 +741,7 @@ Real
 RealVect::vectorLength () const noexcept
 {
   Real len = this->radSquared();
-  len = amrex::Math::sqrt(len);
+  len = std::sqrt(len);
   return len;
 }
 

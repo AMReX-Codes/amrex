@@ -144,7 +144,8 @@ endif ()
 #
 # AMReX components selection  ================================================
 #
-option( ENABLE_EB "Build EB Code" OFF )
+cmake_dependent_option( ENABLE_EB "Build with Embedded Boundary support" OFF
+   "NOT DIM EQUAL 1" OFF )
 print_option(ENABLE_EB)
 
 cmake_dependent_option( ENABLE_FORTRAN_INTERFACES "Build Fortran API" OFF

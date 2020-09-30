@@ -69,7 +69,7 @@ end subroutine init_prob_data
 
     use amrex_fort_module, only : amrex_spacedim, amrex_real
     use amrex_particlecontainer_module, only: amrex_particlecontainer, amrex_particle, &
-         amrex_get_next_particle_id, amrex_get_cpu
+         amrex_get_next_particle_id, amrex_get_cpu, amrex_set_particle_id, amrex_set_particle_cpu
     use amrex_multifab_module, only : amrex_mfiter
     
     implicit none
@@ -93,18 +93,18 @@ end subroutine init_prob_data
              p%pos(1) = x
              p%pos(2) = y
              p%pos(3) = x
-             
+
              p%vel = 0.d0
 
-             p%id  = amrex_get_next_particle_id()
-             p%cpu = amrex_get_cpu()
-             
+             call amrex_set_particle_id(amrex_get_next_particle_id(), p)
+             call amrex_set_particle_cpu(amrex_get_cpu(), p)
+
              call pc%add_particle(lev, mfi, p)
-             
+
           end do
        end do
     end do
-    
+
   end subroutine init_part_data
 
 end module prob_module

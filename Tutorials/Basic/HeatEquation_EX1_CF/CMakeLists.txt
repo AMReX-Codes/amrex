@@ -1,68 +1,47 @@
-if ( (DIM EQUAL 1) OR NOT ENABLE_FORTRAN)
+if ( (DIM EQUAL 1) OR NOT CMAKE_Fortran_COMPILER_LOADED)
    return()
 endif ()
 
-get_filename_component ( DIRNAME ${CMAKE_CURRENT_LIST_DIR} NAME )
+set(_sources
+   advance_${DIM}d.f90
+   advance.cpp
+   init_phi_${DIM}d.f90
+   main.cpp
+   myfunc_F.H
+   myfunc.H )
 
-set ( TESTNAME ${DIRNAME} )
-set ( EXENAME  ${DIRNAME}.exe )
-set ( SRC_DIR  ${CMAKE_CURRENT_LIST_DIR}/Source )
-set ( EXE_DIR  ${CMAKE_CURRENT_LIST_DIR}/Exec )
+list(TRANSFORM _sources PREPEND "Source/")
 
-#
-# Create target (executable) for this tutorial
-#
-add_executable ( ${EXENAME} EXCLUDE_FROM_ALL "" )
+set(_input_files  Exec/inputs_${DIM}d)
 
-target_sources ( ${EXENAME}
-   PRIVATE
-   ${SRC_DIR}/advance_${DIM}d.f90
-   ${SRC_DIR}/advance.cpp
-   ${SRC_DIR}/init_phi_${DIM}d.f90
-   ${SRC_DIR}/main.cpp
-   ${SRC_DIR}/myfunc_F.H
-   ${SRC_DIR}/myfunc.H )
+setup_tutorial(_sources _input_files)
 
-set_target_properties ( ${EXENAME} PROPERTIES
-   INCLUDE_DIRECTORIES
-   "${SRC_DIR};${CMAKE_CURRENT_BINARY_DIR}/mod_files"
-   Fortran_MODULE_DIRECTORY
-   ${CMAKE_CURRENT_BINARY_DIR}/mod_files
-   RUNTIME_OUTPUT_DIRECTORY
-   ${CMAKE_CURRENT_BINARY_DIR} )
+unset( _sources )
+unset( _input_files  )
 
-target_link_libraries ( ${EXENAME} amrex )
 
-if (ENABLE_CUDA)
-   set_cpp_sources_to_cuda_language( ${EXENAME} )
-endif ()
 
-#
-# Copy input files to corresponding build dir
-# First copy operation is run when builddir is setup
-set (INPUT_FILES ${EXE_DIR}/inputs_${DIM}d )
+# if ( (NOT ENABLE_CUDA) AND (NOT ENABLE_DPCPP) )
 
-file ( COPY ${INPUT_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR} )
+#    add_custom_target( run_${EXENAME}
+#       COMMAND
+#       cp ${INPUT_FILES} ${CMAKE_CURRENT_BINARY_DIR}
+#       COMMAND
+#       ${EXENAME} inputs_${DIM}d  nsteps = 10
+#       DEPENDS
+#       ${INPUT_FILES}
+#       WORKING_DIRECTORY
+#       ${CMAKE_CURRENT_BINARY_DIR}
+#       COMMENT
+#       "Running ${EXENAME}"
+#       VERBATIM
+#       )
 
-if ( (NOT ENABLE_CUDA) AND (NOT ENABLE_DPCPP) )
 
-   add_custom_target( run_${EXENAME}
-      COMMAND
-      cp ${INPUT_FILES} ${CMAKE_CURRENT_BINARY_DIR}
-      COMMAND
-      ${EXENAME} inputs_${DIM}d  nsteps = 10
-      DEPENDS
-      ${INPUT_FILES}
-      WORKING_DIRECTORY
-      ${CMAKE_CURRENT_BINARY_DIR}
-      COMMENT
-      "Running ${EXENAME}"
-      VERBATIM
-      )
 
-   #
-   # Add to the "tutorial" target
-   #
-   add_tutorial (run_${EXENAME})
+#    #
+#    # Add to the "tutorial" target
+#    #
+#    add_tutorial (run_${EXENAME})
 
-endif ()
+# endif ()

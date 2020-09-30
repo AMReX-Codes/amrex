@@ -38,7 +38,7 @@ It is used throughout AMReX, however its functions are not defined
 for device code. :cpp:`GpuArray` is AMReX's built-in alternative.  It
 is a trivial type that works on both host and device.  It also works
 when compiled just for CPU.  Besides :cpp:`GpuArray`, AMReX also
-provides GPU safe :cpp:`Array1D`, :cpp:`Array2D` and :cpp:`Array3d` that are
+provides GPU safe :cpp:`Array1D`, :cpp:`Array2D` and :cpp:`Array3D` that are
 1, 2 and 3-dimensional fixed size arrays, respectively.  These three
 class templates can have non-zero based indexing.
 
@@ -283,7 +283,7 @@ Sometimes an application code may want to set a default that differs from the
 default in AMReX.  In this case, it is often convenient to define a function that
 sets the variable(s), and pass the name of that function to :cpp:`amrex::Initialize`.
 As an example, we may define :cpp:`add_par` to set :cpp:`extend_domain_face`
-to true if it hasn't already been set in the inputs file.
+to false if it hasn't already been set in the inputs file.
 
 .. highlight:: c++
 
@@ -292,7 +292,7 @@ to true if it hasn't already been set in the inputs file.
     void add_par () {
        ParmParse pp("eb2");
        if(not pp.contains("extend_domain_face")) {
-          pp.add("extend_domain_face",true);
+          pp.add("extend_domain_face",false);
        }
     };
 
@@ -304,7 +304,7 @@ Then we would pass :cpp:`add_par` into :cpp:`amrex::Initialize`:
 
     amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, add_par);
 
-This value replaces the current default value of false in AMReX itself, but
+This value replaces the current default value of true in AMReX itself, but
 can still be over-written by setting a value in the inputs file.
 
 
@@ -652,8 +652,8 @@ the index type. Some examples are shown below.
       Print() << facebx.coarsen(2);      // ((16,16,16) (32,31,31) (1,0,0))
 
       Box uncoarsenable ({16,16,16}, {30,30,30});
-      print() << uncoarsenable.coarsen(2); // ({8,8,8}, {15,15,15});
-      print() << uncoarsenable.refine(2);  // ({16,16,16}, {31,31,31});
+      Print() << uncoarsenable.coarsen(2); // ((8,8,8), (15,15,15));
+      Print() << uncoarsenable.refine(2);  // ((16,16,16), (31,31,31));
                                            // Different from the original!
 
 Note that the behavior of refinement and coarsening depends on the
@@ -1287,7 +1287,7 @@ will be :cpp:`Box{(6,6,6) (16,16,16)}` in this example. For cells in
 :cpp:`FArrayBox`, we call those in the original :cpp:`Box` **valid cells** and
 the grown part **ghost cells**. Note that :cpp:`FArrayBox` itself does not have
 the concept of ghost cells.  Ghost cells are a key concept of
-:cpp:`MultiFab`,however, that allows for local operations on ghost cell data
+:cpp:`MultiFab`, however, that allows for local operations on ghost cell data
 originated from remote processes. We will discuss how to fill ghost cells with
 data from valid cells later in this section.  :cpp:`MultiFab` also has a
 default constructor. One can define an empty :cpp:`MultiFab` first and then
@@ -1363,7 +1363,7 @@ face averaged variables.
       MultiFab zflux(amrex::convert(ba, IntVect{0,0,1}), dm, ncomp, 0);
 
 Here all :cpp:`MultiFab`\ s  use the same :cpp:`DistributionMapping`, but their
-:cpp:`BoxArrays` have different index types. The state is cell-based, whereas
+:cpp:`BoxArray`\ s have different index types. The state is cell-based, whereas
 the fluxes are on the faces. Suppose the cell based :cpp:`BoxArray` contains a
 :cpp:`Box{(8,8,16), (15,15,31)}`. The state on that :cpp:`Box` is conceptually
 a Fortran Array with the dimension of :fortran:`(8:15,8:15,16:31,0:2)`. The

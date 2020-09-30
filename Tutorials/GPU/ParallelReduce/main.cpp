@@ -45,19 +45,11 @@ void main_main ()
         auto const& fab = mf.array(mfi);
         auto const& ifab = imf.array(mfi);
 
-        amrex::ParallelFor(bx,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
+        amrex::ParallelForRNG(bx,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
         {
-
-#if defined(AMREX_USE_HIP) || defined(AMREX_USE_DPCPP)
-//          Currently needed for HIP to work correctly.
-//          Random lock is under investigation.
-            fab(i,j,k) = 1.0;
-            ifab(i,j,k) = 1;
-#else
-            fab(i,j,k) = amrex::Random();
-            ifab(i,j,k) = (amrex::Random() > 0.5) ? 1 : 0;
-#endif
+            fab(i,j,k) = amrex::Random(engine);
+            ifab(i,j,k) = amrex::Random_int(2,engine);
         });
     }
 
@@ -136,7 +128,7 @@ void main_main ()
                 Real rmax = -1.e30; // we should use numeric_limits.
                 Long lsum = 0;
                 amrex::Loop(bx,
-                [=,&rsum,&rmin,&rmax,&lsum] (int i, int j, int k) AMREX_NOEXCEPT {
+                [=,&rsum,&rmin,&rmax,&lsum] (int i, int j, int k) {
                     Real x =  fab(i,j,k);
                     Long ix = static_cast<Long>(ifab(i,j,k));
                     rsum += x;
@@ -259,12 +251,10 @@ void main_main ()
     int N = 1000000;
     Gpu::DeviceVector<Real> vec(N);
     Real* pvec = vec.dataPtr();
-    amrex::ParallelFor(N, [=] AMREX_GPU_DEVICE (int i) noexcept {
-#if defined(AMREX_USE_HIP) || defined(AMREX_USE_DPCPP)
-           pvec[i] = 1.5;
-#else
-           pvec[i] = amrex::Random() - 0.5;
-#endif
+    amrex::ParallelForRNG( N,
+    [=] AMREX_GPU_DEVICE (int i, RandomEngine const& engine) noexcept
+    {
+        pvec[i] = amrex::Random(engine) - 0.5;
     });
 
     {

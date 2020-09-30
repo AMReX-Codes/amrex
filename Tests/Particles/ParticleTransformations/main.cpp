@@ -107,6 +107,8 @@ public:
                 Gpu::copy(Gpu::hostToDevice, host_int[i].begin(), host_int[i].end(),
                           soa.GetIntData(i).begin() + old_size);
             }
+
+            Gpu::synchronize();
         }
     }
 };

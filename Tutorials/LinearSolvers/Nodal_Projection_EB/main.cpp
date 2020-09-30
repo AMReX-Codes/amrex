@@ -39,7 +39,7 @@ int main (int argc, char* argv[])
     
     {
         int mg_verbose = 0;
-        int cg_verbose = 0;
+        int bottom_verbose = 0;
         int n_cell = 128;
         int max_grid_size = 32;
         int use_hypre  = 0;
@@ -50,7 +50,7 @@ int main (int argc, char* argv[])
         {
             ParmParse pp;
             pp.query("mg_verbose", mg_verbose);
-            pp.query("cg_verbose", cg_verbose);
+            pp.query("bottom_verbose", bottom_verbose);
             pp.query("n_cell", n_cell);
             pp.query("max_grid_size", max_grid_size);
             pp.query("use_hypre", use_hypre);
@@ -236,10 +236,10 @@ int main (int argc, char* argv[])
  
         // We can specify the maximum number of iterations
         // nodal_solver.setMaxIter(nodal_mg_maxiter);
-        // nodal_solver.setCGMaxIter(nodal_mg_cg_maxiter);
+        // nodal_solver.setBottomMaxIter(nodal_mg_bottom_maxiter);
  
         nodal_solver.setVerbose(mg_verbose);
-        nodal_solver.setCGVerbose(cg_verbose);
+        nodal_solver.setBottomVerbose(bottom_verbose);
 
         // Set bottom-solver to use hypre instead of native BiCGStab 
         //   ( we could also have set this to cg, bicgcg, cgbicg)

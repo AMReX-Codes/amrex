@@ -6,21 +6,8 @@
 #include <AMReX_Print.H>
 #include <AMReX_Random.H>
 #include <AMReX_BlockMutex.H>
-#include <AMReX_GpuLaunch.H>
-#include <AMReX_GpuDevice.H>
+#include <AMReX_Gpu.H>
 #include <AMReX_OpenMP.H>
-
-#ifdef AMREX_USE_HIP
-#include <hiprand.hpp>
-#endif
-
-#ifdef AMREX_USE_HIP
-using randState_t = hiprandState_t;
-#elif defined(AMREX_USE_CUDA)
-using randState_t =  curandState_t;
-#elif defined(AMREX_USE_DPCPP)
-struct randState_t {};
-#endif
 
 namespace
 {
@@ -28,31 +15,77 @@ namespace
 
     amrex::Vector<std::mt19937> generators;
 
-#ifdef AMREX_USE_GPU
-    // This seems to be a good default value on NVIDIA V100 GPUs
-    constexpr int gpu_nstates_default = 1e5;
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    AMREX_GPU_DEVICE int gpu_nstates_d;
 
-    int gpu_nstates_h = 0;
-#ifndef AMREX_USE_DPCPP
-    AMREX_GPU_DEVICE int gpu_nstates_d = 0;
-#endif
-
-    randState_t* d_states_h_ptr = nullptr;
-#ifndef AMREX_USE_DPCPP
-    AMREX_GPU_DEVICE randState_t* d_states_d_ptr;
-#endif
+    AMREX_GPU_DEVICE amrex::randState_t* d_states_d_ptr;
 
     amrex::BlockMutex* h_mutex_h_ptr = nullptr;
     amrex::BlockMutex* d_mutex_h_ptr = nullptr;
-
-#ifndef AMREX_USE_DPCPP
-    AMREX_GPU_DEVICE
-    amrex::BlockMutex* d_mutex_d_ptr = nullptr;
+    AMREX_GPU_DEVICE amrex::BlockMutex* d_mutex_d_ptr = nullptr;
 #endif
-
-#endif
-
 }
+
+#ifdef AMREX_USE_GPU
+namespace amrex {
+#ifdef AMREX_USE_DPCPP
+    dpcpp_rng_descr* rand_engine_descr = nullptr;
+#else
+    amrex::randState_t* d_states_h_ptr = nullptr;
+#endif
+}
+#endif
+
+#ifdef AMREX_USE_GPU
+namespace {
+void ResizeRandomSeed ()
+{
+    BL_PROFILE("ResizeRandomSeed");
+
+    using namespace amrex;
+
+    DeallocateRandomSeedDevArray();
+
+    const int N = Gpu::Device::maxBlocksPerLaunch() * AMREX_GPU_MAX_THREADS;
+
+#ifdef AMREX_USE_DPCPP
+
+    rand_engine_descr = new dpcpp_rng_descr
+        (Gpu::Device::nullQueue(), sycl::range<1>(N),
+         ParallelDescriptor::MyProc()*1234567ULL + 12345ULL, 1);
+
+#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+
+    d_states_h_ptr =  static_cast<randState_t*>(The_Arena()->alloc(N*sizeof(randState_t)));
+
+    h_mutex_h_ptr = new amrex::BlockMutex(N);
+    d_mutex_h_ptr = static_cast<amrex::BlockMutex*> (The_Arena()->alloc(sizeof(amrex::BlockMutex)));
+    amrex::Gpu::htod_memcpy(d_mutex_h_ptr, h_mutex_h_ptr, sizeof(amrex::BlockMutex));
+
+    randState_t* d_states_h_ptr_local = d_states_h_ptr;
+    amrex::BlockMutex* d_mutex_h_ptr_local = d_mutex_h_ptr;
+
+    amrex::single_task([=] AMREX_GPU_DEVICE () noexcept
+    {
+        d_states_d_ptr = d_states_h_ptr_local;
+        d_mutex_d_ptr = d_mutex_h_ptr_local;
+        gpu_nstates_d = N;
+    });
+
+    const int MyProc = amrex::ParallelDescriptor::MyProc();
+    amrex::ParallelFor(N, [=] AMREX_GPU_DEVICE (int idx) noexcept
+    {
+        amrex::ULong seed = MyProc*1234567ULL + 12345ULL ;
+        int seqstart = idx + 10 * idx ;
+        AMREX_HIP_OR_CUDA( hiprand_init(seed, seqstart, 0, &d_states_d_ptr[idx]);,
+                            curand_init(seed, seqstart, 0, &d_states_d_ptr[idx]); )
+    });
+#endif
+
+    Gpu::synchronize();
+}
+}
+#endif
 
 void
 amrex::InitRandom (amrex::ULong seed, int nprocs)
@@ -70,8 +103,7 @@ amrex::InitRandom (amrex::ULong seed, int nprocs)
     }
 
 #ifdef AMREX_USE_GPU
-    DeallocateRandomSeedDevArray();
-    ResizeRandomSeed(gpu_nstates_default);
+    ResizeRandomSeed();
 #endif
 }
 
@@ -337,81 +369,19 @@ void amrex::ResetRandomSeed (amrex::ULong seed)
 }
 
 void
-amrex::ResizeRandomSeed (int N)
-{
-    amrex::ignore_unused(N);
-
-    BL_PROFILE("ResizeRandomSeed");
-
-#ifdef AMREX_USE_DPCPP
-    // xxxxx DPCPP todo
-
-#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-
-    if (N <= gpu_nstates_h) return;
-
-    int PrevSize = gpu_nstates_h;
-    int SizeDiff = N - PrevSize;
-
-    randState_t* new_data;
-    new_data = static_cast<randState_t*>  (The_Device_Arena()->alloc(N*sizeof(randState_t)));
-
-    if (h_mutex_h_ptr != nullptr)
-    {
-        delete h_mutex_h_ptr;
-        h_mutex_h_ptr = nullptr;
-    }
-
-    if (d_mutex_h_ptr != nullptr)
-    {
-        The_Device_Arena()->free(d_mutex_h_ptr);
-        d_mutex_h_ptr = nullptr;
-    }
-
-    h_mutex_h_ptr = new amrex::BlockMutex(N);
-    d_mutex_h_ptr = static_cast<amrex::BlockMutex*> (The_Device_Arena()->alloc(sizeof(amrex::BlockMutex)));
-    amrex::Gpu::htod_memcpy(d_mutex_h_ptr, h_mutex_h_ptr, sizeof(amrex::BlockMutex));
-
-    if (d_states_h_ptr != nullptr)
-    {
-        amrex::Gpu::dtod_memcpy(new_data, d_states_h_ptr, PrevSize*sizeof(randState_t));
-        The_Device_Arena()->free(d_states_h_ptr);
-    }
-
-    d_states_h_ptr = new_data;
-    gpu_nstates_h = N;
-    amrex::BlockMutex* d_mutex_h_ptr_local = d_mutex_h_ptr;
-
-    // HIP FIX HERE - hipMemcpyToSymbol doesn't work with pointers.
-    amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int)
-    {
-        d_states_d_ptr = new_data;
-        d_mutex_d_ptr = d_mutex_h_ptr_local;
-        gpu_nstates_d = N;
-    });
-
-    const int MyProc = amrex::ParallelDescriptor::MyProc();
-    amrex::ParallelFor (SizeDiff, [=] AMREX_GPU_DEVICE (int idx) noexcept
-    {
-        amrex::ULong seed = MyProc*1234567ULL + 12345ULL ;
-        int seqstart = idx + 10 * idx ;
-        int loc = idx + PrevSize;
-
-        AMREX_HIP_OR_CUDA( hiprand_init(seed, seqstart, 0, &d_states_d_ptr[loc]);,
-                            curand_init(seed, seqstart, 0, &d_states_d_ptr[loc]); )
-    });
-
-#endif
-
-}
-
-void
 amrex::DeallocateRandomSeedDevArray ()
 {
 #ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_DPCPP
+    if (rand_engine_descr) {
+        delete rand_engine_descr;
+        Gpu::synchronize();
+        rand_engine_descr = nullptr;
+    }
+#else
     if (d_states_h_ptr != nullptr)
     {
-        The_Device_Arena()->free(d_states_h_ptr);
+        The_Arena()->free(d_states_h_ptr);
         d_states_h_ptr = nullptr;
     }
 
@@ -423,11 +393,10 @@ amrex::DeallocateRandomSeedDevArray ()
 
     if (d_mutex_h_ptr != nullptr)
     {
-        The_Device_Arena()->free(d_mutex_h_ptr);
+        The_Arena()->free(d_mutex_h_ptr);
         d_mutex_h_ptr = nullptr;
     }
-
-    gpu_nstates_h = 0;
+#endif
 #endif
 }
 

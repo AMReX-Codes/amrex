@@ -746,7 +746,7 @@ TagBoxArray::hasTags (Box const& a_bx) const
 #endif
     {
 #ifdef _OPENMP
-#pragma omp parallel reduction(||:has_Tags)
+#pragma omp parallel reduction(||:has_tags)
 #endif
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
         {

@@ -31,7 +31,7 @@ target_link_libraries(SYCL INTERFACE ${LIBSYCL_GLIBC_OBJ})
 
 target_compile_options( SYCL
    INTERFACE
-   $<${_cxx_clang}:-Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda>
+   $<${_cxx_clang}:-Wno-error=sycl-strict -fsycl>
    $<${_cxx_clang}:$<$<BOOL:${ENABLE_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
 
 # TODO: use $<LINK_LANG_AND_ID:> genex for CMake >=3.17
@@ -45,7 +45,13 @@ target_link_options( SYCL
 #   https://github.com/intel/llvm/issues/2187
 target_compile_options( SYCL
    INTERFACE
-   $<${_cxx_clang}:-mlong-double-64>)
+   $<${_cxx_clang}:-mlong-double-64 "SHELL:-Xclang -mlong-double-64">)
+
+# Beta09 has enabled eary optimizations by default.  But this causes many
+# tests to crash.  So we disable it.
+target_compile_options( SYCL
+   INTERFACE
+   $<${_cxx_clang}:-fno-sycl-early-optimizations>)
 
 if (ENABLE_DPCPP_AOT)
    message(FATAL_ERROR "\nAhead-of-time (AOT) compilation support not available yet.\nRe-configure with ENABLE_DPCPP_AOT=OFF.")
