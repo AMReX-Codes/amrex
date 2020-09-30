@@ -106,7 +106,7 @@ if (ENABLE_HIP)
    # else it will generate a run time issue (it complains it cannot find
    # missing gpu devices)
    target_compile_options(amrex
-      PRIVATE
+      PUBLIC
       $<$<COMPILE_LANGUAGE:CXX>:-m64 --amdgpu-target=${AMD_ARCH}> )
 
 endif ()
