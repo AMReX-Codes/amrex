@@ -751,6 +751,8 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>::
 resizeContainers (const int num_levels)
 {
+    this->reserveData();
+    this->resizeData();
     if ( static_cast<int>(neighbors.size()) <= num_levels )
     {
         neighbors.resize(num_levels);

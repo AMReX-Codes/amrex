@@ -288,17 +288,15 @@ clearNeighborsGPU()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::clearNeighborsGPU");
 
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
-    const int lev = 0;
-
-    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    this->reserveData();
+    this->resizeData();
+    for (int lev = 0; lev < this->numLevels(); ++lev)
     {
-        int src_grid = mfi.index();
-        int src_tile = mfi.LocalTileIndex();
-        AMREX_ASSERT(src_tile == 0);
-        auto index = std::make_pair(src_grid, src_tile);
-        auto& ptile = this->GetParticles(lev)[index];
-        ptile.setNumNeighbors(0);
+        for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            auto& ptile = this->DefineAndReturnParticleTile(lev, mfi);
+            ptile.setNumNeighbors(0);
+        }
     }
 }
 

@@ -389,8 +389,7 @@ Configuration variables requiring a boolen value are evaluated to true if they
 are assigned a value of ``1``, ``ON``, ``YES``, ``TRUE``, ``Y``. Conversely they are evaluated to false
 if they are assigned a value of ``0``, ``OFF``, ``NO``, ``FALSE``, ``N``.
 Boolean configuration variables are case-insensitive.
-The list of available options is reported in the table on :ref:`tab:cmakevar`
-below.
+The list of available options is reported in the :ref:`table <tab:cmakevar>` below.
 
 
 .. raw:: latex
@@ -399,7 +398,7 @@ below.
 
 .. _tab:cmakevar:
 
-.. table:: AMReX build options
+.. table:: AMReX build options (refer to section :ref:`sec:gpu:build` for GPU-related options).
 
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | Variable Name                | Description                                     | Default     | Possible values |
@@ -427,34 +426,6 @@ below.
    | ENABLE_MPI                   |  Build with MPI support                         | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_OMP                   |  Build with OpenMP support                      | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_CUDA                  |  Build with CUDA support                        | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_ARCH                    |  CUDA target architecture                       | Auto        | User-defined    |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_BACKTRACE               |  Host function symbol names (e.g. cuda-memcheck)| Auto        | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_COMPILATION_TIMER       |  CSV table with time for each compilation phase | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_DEBUG                   |  Device debug information (optimizations: off)  | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_ERROR_CAPTURE_THIS      |  Error if a CUDA lambda captures a class' this  | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_KEEP_FILES              |  Keep intermediately files (folder: nvcc_tmp)   | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_LTO                     |  Enable CUDA link-time-optimization             | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_MAX_THREADS             |  Max number of CUDA threads per block           | 256         | User-defined    |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_MAXREGCOUNT             |  Limits the number of CUDA registers available  | 255         | User-defined    |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_PTX_VERBOSE             |  Verbose code generation statistics in ptxas    | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_SHOW_CODELINES          |  Source information in PTX (optimizations: on)  | Auto        | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_SHOW_LINENUMBERS        |  Line-number information (optimizations: on)    | Auto        | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_WARN_CAPTURE_THIS       |  Warn if a CUDA lambda captures a class' this   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_CUDA_FASTMATH         |  Enable CUDA fastmath library                   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+

@@ -41,7 +41,7 @@
 AmrCore Source Code: Details
 ============================
 
-Here we provide more information about the source code in ``amrex/Src/AmrCore.``
+Here we provide more information about the source code in ``amrex/Src/AmrCore``.
 
 AmrMesh and AmrCore
 -------------------
@@ -219,7 +219,7 @@ of using :cpp:`MultiFab::FillBoundary` and :cpp:`FillDomainBoundary()`.
 A :cpp:`FillPatchUtil` uses an :cpp:`Interpolator`. This is largely hidden from application codes.
 AMReX_Interpolater.cpp/H contains the virtual base class :cpp:`Interpolater`, which provides
 an interface for coarse-to-fine spatial interpolation operators. The fillpatch routines described
-above require an Interpolater for FillPatchTwoLevels()
+above require an Interpolater for FillPatchTwoLevels().
 Within AMReX_Interpolater.cpp/H are the derived classes:
 
 -  :cpp:`NodeBilinear`
@@ -449,7 +449,7 @@ Here is a high-level pseudo-code of the flow of the program:
             AmrCoreAdv::MakeNewLevelFromScratch()
                   /* allocate phi_old, phi_new, t_new, and flux registers */
                   initdata()  // fill phi
-          } (while (finest_level < max_level);
+          } while (finest_level < max_level);
         }
       amr_core_adv.Evolve()
         loop over time steps {

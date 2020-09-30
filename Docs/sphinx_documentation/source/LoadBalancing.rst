@@ -47,10 +47,10 @@ Distribution options supported by AMReX include the following; the default is SF
 
 - Knapsack: the default weight of a grid in the knapsack algorithm is the number of grid cells, 
   but AMReX supports the option to pass an array of weights -- one per grid -- or alternatively 
-  to pass in a MultiFab of weights per cell which is used to compute the weight per grid
+  to pass in a MultiFab of weights per cell which is used to compute the weight per grid.
 
 - SFC: enumerate grids with a space-filling Z-morton curve, then partition the 
-  resulting ordering across ranks in a way that balances the load
+  resulting ordering across ranks in a way that balances the load.
 
 - Round-robin: sort grids and assign them to ranks in round-robin fashion -- specifically
   FAB i is owned by CPU i%N where N is the total number of MPI ranks.
