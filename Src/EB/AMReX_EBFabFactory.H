@@ -71,6 +71,7 @@ public:
 
     const DistributionMapping& DistributionMap () const noexcept;
     const BoxArray& boxArray () const noexcept;
+    const Geometry& Geom () const noexcept { return m_geom; }
 
 private:
 
