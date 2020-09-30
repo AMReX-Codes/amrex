@@ -308,7 +308,7 @@ Enabling HIP support (experimental)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To build AMReX with HIP support in CMake, add
-``-DENABLE_CUDA=YES -DAMD_ARCH=<target-arch> -DCMAKE_CXX_COMPILER=<your-hip-compiler>`` to the
+``-DENABLE_HIP=YES -DAMD_ARCH=<target-arch> -DCMAKE_CXX_COMPILER=<your-hip-compiler>`` to the
 ``cmake`` invocation. For a full list of HIP-specific configuration options,
 check the :ref:`table <tab:cmakehipvar>` below.
 
