@@ -31,11 +31,6 @@ namespace amrex {
     { single_level_weighted_redistribute(div_tmp_in, div_out, weights, div_comp, ncomp, geom[lev]); }
 #endif
 
-#ifndef BL_NO_FORT
-    void FillEBNormals(MultiFab & normals, const EBFArrayBoxFactory & eb_factory,
-                       const Geometry & geom);
-#endif
-
     template <typename G>
     void FillImpFunc (MultiFab& mf, G const& gshop, Geometry const& geom)
     {
