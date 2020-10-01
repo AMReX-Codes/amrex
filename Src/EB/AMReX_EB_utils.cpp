@@ -584,11 +584,13 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                                          vi_z = static_cast<int>(amrex::Math::floor((eb_min_z+k_shift*1.e-6_rt*dx_eb[2])*dzinv)));
                             if (AMREX_D_TERM(vi_cx == vi_x, && vi_cy == vi_y, && vi_cz == vi_z)) {
                                 min_pt_valid = true;
+                                goto after_loops;
                             }
                         }}
 #if (AMREX_SPACEDIM == 3)
                         }
 #endif
+                        after_loops:;
                     }
 
                     // If projects onto nearest EB facet, then return projected distance
@@ -599,9 +601,10 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                         min_dist = dist_proj;
                     } else {
                         // fallback: find the nearest point on the EB edge
-//                        AMREX_D_TERM(vi_x = static_cast<int>(amrex::Math::floor(eb_min_x * dxinv));,
-//                                     vi_y = static_cast<int>(amrex::Math::floor(eb_min_y * dyinv));,
-//                                     vi_z = static_cast<int>(amrex::Math::floor(eb_min_z * dzinv)));
+                        // revert the value of vi_x, vi_y and vi_z
+                        AMREX_D_TERM(vi_x = static_cast<int>(amrex::Math::floor(eb_min_x * dxinv));,
+                                     vi_y = static_cast<int>(amrex::Math::floor(eb_min_y * dyinv));,
+                                     vi_z = static_cast<int>(amrex::Math::floor(eb_min_z * dzinv)));
                         auto c_vec = detail::facets_nearest_pt
                             ({AMREX_D_DECL(vi_x,vi_y,vi_z)}, {AMREX_D_DECL(vi_cx, vi_cy, vi_cz)},
                              {AMREX_D_DECL(x,y,z)}, {AMREX_D_DECL(nx,ny,nz)},
