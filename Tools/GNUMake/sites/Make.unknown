@@ -77,6 +77,8 @@ ifeq ($(USE_MPI),TRUE)
       LIBRARIES += $(filter -l%,$(mpicxx_link_flags))
 #    endif
 
+     DEFINES += -DOMPI_SKIP_MPICXX
+
   else ifneq ($(findstring Spectrum MPI, $(shell $(MPI_OTHER_COMP) -showme:version 2>&1)),)
 
     #
