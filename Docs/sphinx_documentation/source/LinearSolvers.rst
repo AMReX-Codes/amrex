@@ -81,7 +81,7 @@ one needs to call the member function
 
 The :cpp:`int amrlev` parameter should be zero for single-level
 solves.  For multi-level solves, each level needs to be provided with
-``alpha`` and ``beta``, or ``Sigma``.  For composite solves, :cpp:`amrlev` 0 will
+``alpha`` and ``beta``, or ``sigma``.  For composite solves, :cpp:`amrlev` 0 will
 mean the lowest level for the solver, which is not necessarily the lowest
 level in the AMR hierarchy. This is so solves can be done on different sections
 of the AMR hierarchy, e.g. on AMR levels 3 to 5.

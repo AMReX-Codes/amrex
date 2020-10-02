@@ -1036,7 +1036,7 @@ addParticles (const ParticleContainerType& other, F&& f, bool local)
             auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
             if(plevel_other.find(index) == plevel_other.end()) continue;
 
-            auto& ptile = plevel[index];
+            auto& ptile = DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
             const auto& ptile_other = plevel_other.at(index);
             auto np = ptile_other.numParticles();
             if (np == 0) continue;

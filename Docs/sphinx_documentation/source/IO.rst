@@ -55,7 +55,7 @@ making such strings.
       const std::string& pfname2 = amrex::Concatenate("plt",istep,4); // plt0258  
 
       istep =1234567;  // Having more than 5 digits is OK.
-      const std::string& pfname3 = amrex::Concatenate("plt",istep); // plt12344567
+      const std::string& pfname3 = amrex::Concatenate("plt",istep); // plt1234567
 
 The argument :cpp:`mf` above (:cpp:`MultiFab` for single level and
 :cpp:`Vector<const MultiFab*>` for multi-level) is the data to be written

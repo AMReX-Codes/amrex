@@ -2667,7 +2667,7 @@ domain, the physical coordinates of the box, and the periodicity:
         IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
         Box domain(dom_lo, dom_hi);
 
-        // Initialize the boxarray "ba" from the single box "bx"
+        // Initialize the boxarray "ba" from the single box "domain"
         ba.define(domain);
         // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
         ba.maxSize(max_grid_size);
@@ -2716,7 +2716,7 @@ We demonstrate how to build an array of face-based ``MultiFabs`` :
         flux[dir].define(edge_ba, dm, 1, 0);
     }
 
-To access and/or modify data n a ``MultiFab`` we use the ``MFIter``, where each
+To access and/or modify data in a ``MultiFab`` we use the ``MFIter``, where each
 processor loops over grids it owns to access and/or modify data on that grid:
 
 ::

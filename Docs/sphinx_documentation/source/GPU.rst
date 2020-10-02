@@ -182,15 +182,61 @@ can run it and that will generate results like:
 
 Building with CMake
 -------------------
-To build AMReX with GPU support in CMake, add ``-DENABLE_CUDA=YES`` to the
-``cmake`` invocation. By default, CMake will try to determine which GPU
-architecture is supported by the system. If more than one is found, CMake
-will build for all of them. This will generally results in a larger library and longer build times.
-If autodetection fails, a set of "common" architectures is assumed.
-You can specify the target architecture to build for via the configuration option
+
+Enabling CUDA support
+^^^^^^^^^^^^^^^^^^^^^
+
+To build AMReX with CUDA support in CMake, add ``-DENABLE_CUDA=YES`` to the
+``cmake`` invocation. For a full list of CUDA-specific configuration options,
+check the :ref:`table <tab:cmakecudavar>` below.
+
+.. raw:: latex
+
+   \begin{center}
+
+.. _tab:cmakecudavar:
+
+.. table:: AMReX CUDA-specific build options
+
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | Variable Name                | Description                                     | Default     | Possible values |
+   +==============================+=================================================+=============+=================+
+   | ENABLE_CUDA                  |  Build with CUDA support                        | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_ARCH                    |  CUDA target architecture                       | Auto        | User-defined    |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_BACKTRACE               |  Host function symbol names (e.g. cuda-memcheck)| Auto        | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_COMPILATION_TIMER       |  CSV table with time for each compilation phase | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_DEBUG                   |  Device debug information (optimizations: off)  | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_ERROR_CAPTURE_THIS      |  Error if a CUDA lambda captures a class' this  | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_KEEP_FILES              |  Keep intermediately files (folder: nvcc_tmp)   | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_LTO                     |  Enable CUDA link-time-optimization             | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_MAX_THREADS             |  Max number of CUDA threads per block           | 256         | User-defined    |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_MAXREGCOUNT             |  Limits the number of CUDA registers available  | 255         | User-defined    |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_PTX_VERBOSE             |  Verbose code generation statistics in ptxas    | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_SHOW_CODELINES          |  Source information in PTX (optimizations: on)  | Auto        | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_SHOW_LINENUMBERS        |  Line-number information (optimizations: on)    | Auto        | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_WARN_CAPTURE_THIS       |  Warn if a CUDA lambda captures a class' this   | YES         | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+.. raw:: latex
+
+   \end{center}
+
+The target architecture to build for can be specified via the configuration option
 ``-DCUDA_ARCH=<target-architecture>``, where ``<target-architecture>`` can be either
-the name of the NVIDIA GPU, i.e. ``Turing``, ``Volta``, ``Pascal``, ``...`` , or its
-version number, i.e. ``10.0``, ``9.0``, ``8.0``, ``...`` .
+the name of the NVIDIA GPU generation, i.e. ``Turing``, ``Volta``, ``Ampere``, ``...`` , or its
+`compute capability <https://developer.nvidia.com/cuda-gpus>`_, i.e. ``10.0``, ``9.0``,  ``...`` .
 For example, on Cori GPUs you can specify the architecture as follows:
 
 .. highlight:: console
@@ -200,28 +246,61 @@ For example, on Cori GPUs you can specify the architecture as follows:
    cmake [options] -DENABLE_CUDA=yes -DCUDA_ARCH=Volta /path/to/amrex/source
 
 
-Note that AMReX only supports GPU architectures with version number ``6.0`` or higher.
+If no architecture is specified, CMake will try to determine which GPU architecture is
+supported by the system.
+If more than one is found, CMake will build for all of them.
+This will generally results in a larger library and longer build times.
+If autodetection fails, a set of "common" architectures is assumed.
+**Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
+CUDA Toolkit version 9.0 or higher**.
 
 
-In order to import CUDA-enabled AMReX into your CMake project, you need to include
+In order to import the CUDA-enabled AMReX library into your CMake project, you need to include
 the following code into the appropriate CMakeLists.txt file:
 
 .. highlight:: console
-               
+
 ::
 
    # Find CUDA-enabled AMReX installation
    find_package(AMReX REQUIRED CUDA)
 
-   # Add custom CUDA flags
-   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}  <your-CUDA-flags>")
+
+If instead of using an external installation of AMReX you prefer to include AMReX as a subproject
+in your CMake setup, we strongly encourage you to use the ``AMReX_SetupCUDA`` module as shown below:
+
+.. highlight:: console
+
+::
+
+   # Enable CUDA in your CMake project
+   enable_language(CUDA)
+
+   # Include the AMReX-provided CUDA setup module
+   include(AMReX_SetupCUDA)
+
+   # Include AMReX source directory ONLY AFTER the two steps above
+   add_subdirectory(/path/to/amrex/source/dir)
 
 
-The snippet of code above will find a CUDA-enabled installation of AMReX and setup
-the CUDA support in the host project CMake via the AMReX-provided macro ``setup_cuda()``.
-The host project should **not call directly** ``enable_language(CUDA)``.
+
+To ensure consistency between CUDA-enabled AMReX and any CMake target that links against it,
+we provide the helper function ``setup_target_for_cuda_compilation()``:
 
 
+.. highlight:: console
+
+::
+
+   # Set all sources for my_target
+   target_sources(my_target source1 source2 source3 ...)
+
+   # Setup my_target to be compiled with CUDA and be linked against CUDA-enabled AMReX
+   # MUST be done AFTER all sources have been assigned to my_target
+   setup_target_for_cuda_compilation(my_target)
+
+   # Link against amrex
+   target_link_libraries(my_target AMReX::amrex)
 
 .. ===================================================================
 
