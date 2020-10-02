@@ -18,8 +18,8 @@ module amrex_particlecontainer_module
   type, bind(C), public :: amrex_particle
      real(amrex_particle_real)    :: pos(AMREX_SPACEDIM) !< Position
      real(amrex_particle_real)    :: vel(AMREX_SPACEDIM) !< Particle velocity
-     integer(c_int)               :: id
-     integer(c_int)               :: cpu
+     integer(c_int), private      :: id
+     integer(c_int), private      :: cpu
   end type amrex_particle
 
   type, public :: amrex_particlecontainer
