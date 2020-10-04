@@ -30,7 +30,7 @@ namespace amrex
         typename std::enable_if<!RunOnGpu<T>::value>::type
         uninitializedFillNImpl (U* data, Size count, const Value& value)
         {
-            std::uninitialized_fill_n<U*, U>(data, count, value);
+            std::uninitialized_fill_n<U*, Size, Value>(data, count, value);
         }
 
         template <typename T>
