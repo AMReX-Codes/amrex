@@ -202,7 +202,9 @@ void HypreIJIface::init_solver(
         bicgstab_solver_configure(prefix);
     } else if (name == "PCG") {
         pcg_solver_configure(prefix);
-    } else {
+    } else if (name == "Hybrid") {
+        hybrid_solver_configure(prefix);
+    }else {
         amrex::Abort("Invalid HYPRE solver specified: " + name);
     }
 }
@@ -508,6 +510,41 @@ void HypreIJIface::pcg_solver_configure(const std::string& prefix)
     hpp("max_iterations", HYPRE_ParCSRPCGSetMaxIter, 200);
     hpp.set<amrex::Real>("rtol", HYPRE_ParCSRPCGSetTol);
     hpp.set<amrex::Real>("atol", HYPRE_ParCSRPCGSetAbsoluteTol);
+}
+
+void HypreIJIface::hybrid_solver_configure(const std::string& prefix)
+{
+    HYPRE_ParCSRHybridCreate(&m_solver);
+
+    // Setup pointers
+    m_solverDestroyPtr = &HYPRE_ParCSRHybridDestroy;
+    m_solverSetupPtr = &HYPRE_ParCSRHybridSetup;
+    m_solverPrecondPtr = &HYPRE_ParCSRHybridSetPrecond;
+    m_solverSolvePtr = &HYPRE_ParCSRHybridSolve;
+
+    m_solverSetTolPtr = &HYPRE_ParCSRHybridSetTol;
+    m_solverSetAbsTolPtr = &HYPRE_ParCSRHybridSetAbsoluteTol;
+    m_solverSetMaxIterPtr = &HYPRE_ParCSRHybridSetDSCGMaxIter;
+    m_solverNumItersPtr = &HYPRE_ParCSRHybridGetNumIterations;
+    m_solverFinalResidualNormPtr = &HYPRE_ParCSRHybridGetFinalRelativeResidualNorm;
+
+    // Parse options
+    HypreOptParse hpp(prefix, m_solver);
+    hpp("verbose", HYPRE_ParCSRHybridSetPrintLevel, m_verbose);
+    hpp("logging", HYPRE_ParCSRHybridSetLogging);
+
+    hpp.set<amrex::Real>("rtol", HYPRE_ParCSRHybridSetTol);
+    hpp.set<amrex::Real>("atol", HYPRE_ParCSRHybridSetAbsoluteTol);
+
+    hpp("num_krylov", HYPRE_ParCSRHybridSetKDim, 50);
+    hpp("hybrid_dscg_max_iter", HYPRE_ParCSRHybridSetDSCGMaxIter);
+    hpp("hybrid_pcg_max_iter", HYPRE_ParCSRHybridSetPCGMaxIter);
+    hpp("hybrid_setup_type", HYPRE_ParCSRHybridSetSetupType);
+    hpp("hybrid_solver_type", HYPRE_ParCSRHybridSetSolverType);
+    hpp.set<HypreRealType>(
+        "hybrid_set_strong_threshold", HYPRE_ParCSRHybridSetStrongThreshold);
+    hpp("hybrid_recompute_residual", HYPRE_ParCSRHybridSetRecomputeResidual);
+    hpp("hybrid_recompute_residual_period", HYPRE_ParCSRHybridSetRecomputeResidualP);
 }
 
 } // namespace amrex

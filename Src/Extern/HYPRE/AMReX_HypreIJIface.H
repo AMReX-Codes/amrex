@@ -57,6 +57,7 @@ private:
     void flex_gmres_solver_configure(const std::string& prefix);
     void bicgstab_solver_configure(const std::string& prefix);
     void pcg_solver_configure(const std::string& prefix);
+    void hybrid_solver_configure(const std::string& prefix);
 
 
     MPI_Comm m_comm{MPI_COMM_NULL};
