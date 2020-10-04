@@ -235,6 +235,7 @@ HypreABecLap3::prepareSolver ()
     HYPRE_Int iupper = proc_end-1;
 
     hypre_ij.reset(new HypreIJIface(comm, ilower, iupper, verbose));
+    hypre_ij->parse_inputs(options_namespace);
 
     // Obtain non-owning references to the matrix, rhs, and solution data
     A = hypre_ij->A();

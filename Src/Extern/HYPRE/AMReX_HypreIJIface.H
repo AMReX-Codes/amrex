@@ -22,6 +22,8 @@ public:
 
     ~HypreIJIface();
 
+    void parse_inputs(const std::string& prefix = "hypre");
+
     void solve(const HypreRealType rel_tol, const HypreRealType abs_tol, const HypreIntType max_iter);
 
     //! IJ matrix instance
@@ -40,8 +42,6 @@ public:
     HypreRealType getFinalResidualNorm() { return m_final_res_norm; }
 
 private:
-    void parse_inputs(const std::string& prefix = "hypre");
-
     void init_preconditioner(const std::string& prefix, const std::string& name);
     void init_solver(const std::string& prefix, const std::string& name);
 

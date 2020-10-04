@@ -33,6 +33,9 @@ public:
 
     void fill_node_id (LayoutData<Int>& offset);
 
+    void setHypreOptionsNamespace(const std::string& ns)
+    { options_namespace = ns; }
+
 private:
 
     BoxArray grids;
@@ -56,6 +59,8 @@ private:
     LayoutData<Vector<Int> > node_id_vec;
     FabArray<BaseFab<Int> > node_id;
     MultiFab tmpsoln;
+
+    std::string options_namespace{"hypre"};
 
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
     void getSolution (MultiFab& soln);
