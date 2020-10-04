@@ -231,7 +231,8 @@ void HypreIJIface::boomeramg_precond_configure(const std::string& prefix)
     hpp("bamg_relax_order", HYPRE_BoomerAMGSetRelaxOrder, 1);
     hpp("bamg_num_sweeps", HYPRE_BoomerAMGSetNumSweeps, 2);
     hpp("bamg_max_levels", HYPRE_BoomerAMGSetMaxLevels, 20);
-    hpp("bamg_strong_threshold", HYPRE_BoomerAMGSetStrongThreshold, 0.57);
+    hpp("bamg_strong_threshold", HYPRE_BoomerAMGSetStrongThreshold,
+        (AMREX_SPACEDIM == 3) ? 0.57 : 0.25);
     hpp("bamg_interp_type", HYPRE_BoomerAMGSetInterpType, 0);
 
     hpp("bamg_variant", HYPRE_BoomerAMGSetVariant);
@@ -331,13 +332,14 @@ void HypreIJIface::boomeramg_solver_configure(const std::string& prefix)
     hpp("verbose", HYPRE_BoomerAMGSetPrintLevel, m_verbose);
     hpp("logging", HYPRE_BoomerAMGSetLogging);
 
-    hpp("bamg_coarsen_type", HYPRE_BoomerAMGSetCoarsenType, 6);
     hpp("bamg_relax_type", HYPRE_BoomerAMGSetRelaxType, 6);
-    hpp("bamg_cycle_type", HYPRE_BoomerAMGSetCycleType, 1);
     hpp("bamg_relax_order", HYPRE_BoomerAMGSetRelaxOrder, 1);
     hpp("bamg_num_sweeps", HYPRE_BoomerAMGSetNumSweeps, 2);
-    hpp("bamg_max_levels", HYPRE_BoomerAMGSetMaxLevels, 20);
-    hpp("bamg_strong_threshold", HYPRE_BoomerAMGSetStrongThreshold, 0.6);
+    hpp("bamg_strong_threshold", HYPRE_BoomerAMGSetStrongThreshold,
+        (AMREX_SPACEDIM == 3) ? 0.57 : 0.25);
+    hpp("bamg_coarsen_type", HYPRE_BoomerAMGSetCoarsenType);
+    hpp("bamg_cycle_type", HYPRE_BoomerAMGSetCycleType);
+    hpp("bamg_max_levels", HYPRE_BoomerAMGSetMaxLevels);
 
     bool use_old_default = true;
     hpp.pp.query("bamg_use_old_default", use_old_default);
