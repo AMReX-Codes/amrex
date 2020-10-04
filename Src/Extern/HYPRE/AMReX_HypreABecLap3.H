@@ -5,9 +5,7 @@
 
 #include <AMReX_iMultiFab.H>
 #include <AMReX_LayoutData.H>
-
-#include "HYPRE_parcsr_ls.h"
-#include "_hypre_parcsr_mv.h"
+#include <AMReX_HypreIJIface.H>
 
 #include <algorithm>
 
@@ -31,11 +29,12 @@ public:
 #endif
 
 private :
+    std::unique_ptr<HypreIJIface> hypre_ij;
 
+    // Non-owning references to hypre matrix, rhs, and solution data
     HYPRE_IJMatrix A = NULL;
     HYPRE_IJVector b = NULL;
     HYPRE_IJVector x = NULL;
-    HYPRE_Solver solver = NULL;
 
     LayoutData<HYPRE_Int> ncells_grid;
     LayoutData<Gpu::ManagedDeviceVector<HYPRE_Int> > cell_id_vec;
