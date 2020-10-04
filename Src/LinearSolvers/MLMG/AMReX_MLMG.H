@@ -217,8 +217,8 @@ private:
 #else
 
     // Hypre::Interface hypre_interface = Hypre::Interface::structed;
-    // Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
-   Hypre::Interface hypre_interface = Hypre::Interface::ij;
+    Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
+    // Hypre::Interface hypre_interface = Hypre::Interface::ij;
 #endif
     std::unique_ptr<Hypre> hypre_solver;
     std::unique_ptr<MLMGBndry> hypre_bndry;
