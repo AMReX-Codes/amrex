@@ -10,11 +10,8 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_BndryData.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_HypreIJIface.H>
 
-#include "HYPRE.h"
-#include "_hypre_utilities.h"
-#include "HYPRE_parcsr_ls.h"
-#include "_hypre_parcsr_mv.h"
 
 namespace amrex {
 
@@ -48,10 +45,12 @@ private:
     MLNodeLinOp const* linop = nullptr;
     int verbose = 0;
 
+    std::unique_ptr<HypreIJIface> hypre_ij;
+
+    // Non-owning references to Hypre matrix, rhs, and solution data
     HYPRE_IJMatrix A = NULL;
     HYPRE_IJVector b = NULL;
     HYPRE_IJVector x = NULL;
-    HYPRE_Solver solver = NULL;
 
     LayoutData<Int> nnodes_grid;
     LayoutData<Vector<Int> > node_id_vec;
