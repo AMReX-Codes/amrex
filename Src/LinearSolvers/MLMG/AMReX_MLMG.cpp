@@ -1842,12 +1842,17 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         if (hypre_solver == nullptr)  // We should reuse the setup
         {
             hypre_solver = linop.makeHypre(hypre_interface);
+
             hypre_solver->setVerbose(bottom_verbose);
-            hypre_solver->setHypreOldDefault(hypre_old_default);
-            hypre_solver->setHypreRelaxType(hypre_relax_type);
-            hypre_solver->setHypreRelaxOrder(hypre_relax_order);
-            hypre_solver->setHypreNumSweeps(hypre_num_sweeps);
-            hypre_solver->setHypreStrongThreshold(hypre_strong_threshold);
+            if (hypre_interface == amrex::Hypre::Interface::ij) {
+                hypre_solver->setHypreOptionsNamespace(hypre_options_namespace);
+            } else {
+                hypre_solver->setHypreOldDefault(hypre_old_default);
+                hypre_solver->setHypreRelaxType(hypre_relax_type);
+                hypre_solver->setHypreRelaxOrder(hypre_relax_order);
+                hypre_solver->setHypreNumSweeps(hypre_num_sweeps);
+                hypre_solver->setHypreStrongThreshold(hypre_strong_threshold);
+            }
 
             const BoxArray& ba = linop.m_grids[amrlev].back();
             const DistributionMapping& dm = linop.m_dmap[amrlev].back();
@@ -1863,15 +1868,22 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
             hypre_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
         }
 
-        hypre_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter, *hypre_bndry, linop.getMaxOrder());
+        // IJ interface understands absolute tolerance API of hypre
+        amrex::Real hypre_abstol =
+            (hypre_interface == amrex::Hypre::Interface::ij)
+            ? bottom_abstol : -1.0;
+        hypre_solver->solve(
+            x, b, bottom_reltol, hypre_abstol, bottom_maxiter, *hypre_bndry,
+            linop.getMaxOrder());
     }
     else
     {
         if (hypre_node_solver == nullptr)
         {
             hypre_node_solver = linop.makeHypreNodeLap(bottom_verbose);
+            hypre_node_solver->setHypreOptionsNamespace(hypre_options_namespace);
         }
-        hypre_node_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter);
+        hypre_node_solver->solve(x, b, bottom_reltol, bottom_abstol, bottom_maxiter);
     }
 
     // For singular problems there may be a large constant added to all values of the solution
