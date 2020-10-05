@@ -18,7 +18,8 @@ class HypreABecLap3
 public:
 
     HypreABecLap3 (const BoxArray& grids, const DistributionMapping& dmap,
-                   const Geometry& geom_, MPI_Comm comm_);
+                   const Geometry& geom_, MPI_Comm comm_,
+                   const iMultiFab* overset_mask = nullptr);
     virtual ~HypreABecLap3 ();
 
     virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
@@ -41,7 +42,9 @@ private :
     FabArray<BaseFab<HYPRE_Int> > cell_id;
 
     MultiFab const* m_eb_b_coeffs = nullptr;
-    
+
+    iMultiFab const* m_overset_mask = nullptr;
+
     void prepareSolver ();
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
     void getSolution (MultiFab& soln);

@@ -90,7 +90,8 @@ protected:
 };
 
 std::unique_ptr<Hypre> makeHypre (const BoxArray& grids, const DistributionMapping& damp,
-                                  const Geometry& geom, MPI_Comm comm_, Hypre::Interface interface);
+                                  const Geometry& geom, MPI_Comm comm_, Hypre::Interface interface,
+                                  const iMultiFab* overset_mask = nullptr);
 
 }
 

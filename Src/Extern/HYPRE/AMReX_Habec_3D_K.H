@@ -174,19 +174,20 @@ void amrex_hpmat (Box const& box,
 
 template<typename T> AMREX_FORCE_INLINE
 void amrex_hpijmatrix (Box const& box,
-                       const T& nrows, 
+                       const T& /*nrows*/,
                        T* ncols,
-                       T* rows, 
+                       T* rows,
                        T* colsg,
-                       Real* matg, 
+                       Real* matg,
                        BaseFab<T>& cell_id,
-                       T& offset, FArrayBox& diaginv,
+                       T& /*offset*/, FArrayBox& diaginv,
                        FArrayBox& acoefs, FArrayBox& bcoefsx,
                        FArrayBox& bcoefsy, FArrayBox& bcoefsz,
-                       Real& sa, Real& sb, const Real* dx, 
+                       Real& sa, Real& sb, const Real* dx,
                        GpuArray<int,AMREX_SPACEDIM*2>& bct,
                        GpuArray<Real,AMREX_SPACEDIM*2> bcl,
-                       const int& bho)
+                       const int& bho,
+                       IArrayBox const* osmsk)
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -236,6 +237,7 @@ void amrex_hpijmatrix (Box const& box,
     Array4<Real const> const& by_arr = bcoefsy.const_array();
     Array4<Real const> const& bz_arr = bcoefsz.const_array();
     Array4<Real> const& diag_arr = diaginv.array();
+    Array4<int const> const osm = osmsk ? osmsk->const_array() : Array4<int const>{};
 
     auto cols_tmpPtr = cols_tmp.dataPtr();
     auto mat_tmpPtr = mat_tmp.dataPtr();
@@ -247,71 +249,81 @@ void amrex_hpijmatrix (Box const& box,
         rows[irow]  = cell_id_arr(i,j,k);
         ncols[irow] = 0;
 
-        cols_tmpPtr[0] = cell_id_arr(i,j,k);
-        mat_tmpPtr[0]  = sa*a_arr(i,j,k) + fac[0]*(bx_arr(i,j,k)+bx_arr(i+1,j,k)) 
-                                      + fac[1]*(by_arr(i,j,k)+by_arr(i,j+1,k)) 
-                                      + fac[2]*(bz_arr(i,j,k)+bz_arr(i,j,k+1));
+        if (osm) {
+            cols_tmpPtr[0] = cell_id_arr(i,j,k);
+            mat_tmpPtr[0]  = sa*a_arr(i,j,k) + fac[0]*(bx_arr(i,j,k)+bx_arr(i+1,j,k))
+                                             + fac[1]*(by_arr(i,j,k)+by_arr(i,j+1,k))
+                                             + fac[2]*(bz_arr(i,j,k)+bz_arr(i,j,k+1));
 
-        cols_tmpPtr[1] = cell_id_arr(i-1,j,k);
-        mat_tmpPtr[1]  = -fac[0]*bx_arr(i,j,k);
+            cols_tmpPtr[1] = cell_id_arr(i-1,j,k);
+            mat_tmpPtr[1]  = -fac[0]*bx_arr(i,j,k);
 
-        cols_tmpPtr[2] = cell_id_arr(i+1,j,k);
-        mat_tmpPtr[2]  = -fac[0]*bx_arr(i+1,j,k);
+            cols_tmpPtr[2] = cell_id_arr(i+1,j,k);
+            mat_tmpPtr[2]  = -fac[0]*bx_arr(i+1,j,k);
 
-        cols_tmpPtr[3] = cell_id_arr(i,j-1,k);
-        mat_tmpPtr[3]  = -fac[1]*by_arr(i,j,k);
+            cols_tmpPtr[3] = cell_id_arr(i,j-1,k);
+            mat_tmpPtr[3]  = -fac[1]*by_arr(i,j,k);
 
-        cols_tmpPtr[4] = cell_id_arr(i,j+1,k);
-        mat_tmpPtr[4]  = -fac[1]*by_arr(i,j+1,k);
+            cols_tmpPtr[4] = cell_id_arr(i,j+1,k);
+            mat_tmpPtr[4]  = -fac[1]*by_arr(i,j+1,k);
 
-        cols_tmpPtr[5] = cell_id_arr(i,j,k-1);
-        mat_tmpPtr[5]  = -fac[2]*bz_arr(i,j,k);
+            cols_tmpPtr[5] = cell_id_arr(i,j,k-1);
+            mat_tmpPtr[5]  = -fac[2]*bz_arr(i,j,k);
 
-        cols_tmpPtr[6] = cell_id_arr(i,j,k+1);
-        mat_tmpPtr[6]  = -fac[2]*bz_arr(i,j,k+1);
+            cols_tmpPtr[6] = cell_id_arr(i,j,k+1);
+            mat_tmpPtr[6]  = -fac[2]*bz_arr(i,j,k+1);
 
-        if (i == lo.x && cell_id_arr(i-1,j,k)<0) {
-           mat_tmpPtr[0] += bf1[0]*bx_arr(i,j,k);
-           mat_tmpPtr[2] += bf2[0]*bx_arr(i,j,k);
-        }
-
-        if (i == hi.x && cell_id_arr(i+1,j,k)<0) {
-           mat_tmpPtr[0] += bf1[3]*bx_arr(i+1,j,k);
-           mat_tmpPtr[1] += bf2[3]*bx_arr(i+1,j,k);
-        }
-
-        if (j == lo.y && cell_id_arr(i,j-1,k)<0) {
-           mat_tmpPtr[0] += bf1[1]*by_arr(i,j,k);
-           mat_tmpPtr[4] += bf2[1]*by_arr(i,j,k);
-        }
-
-        if (j == hi.y && cell_id_arr(i,j+1,k)<0) {
-           mat_tmpPtr[0] += bf1[4]*by_arr(i,j+1,k);
-           mat_tmpPtr[3] += bf2[4]*by_arr(i,j+1,k);
-        }
-
-        if (k == lo.z && cell_id_arr(i,j,k-1)<0) {
-           mat_tmpPtr[0] += bf1[2]*bz_arr(i,j,k);
-           mat_tmpPtr[6] += bf2[2]*bz_arr(i,j,k);
-        }
-
-        if (k == hi.z && cell_id_arr(i,j,k+1)<0) {
-           mat_tmpPtr[0] += bf1[5]*bz_arr(i,j,k+1);
-           mat_tmpPtr[5] += bf2[5]*bz_arr(i,j,k+1);
-        }
-
-        diag_arr(i,j,k) = 1.0/mat_tmpPtr[0];
-
-        for (int ic=0; ic<=6; ic++){
-            if (cols_tmpPtr[ic] >= 0){
-                int imat = iterPtr[1];
-                ncols[irow]  = ncols[irow] +1;
-                colsg[imat]  = cols_tmpPtr[ic];
-                matg[imat]   = mat_tmpPtr[ic]*diag_arr(i,j,k);
-                Gpu::Atomic::Add(&iterPtr[1], 1);
+            if (i == lo.x && cell_id_arr(i-1,j,k)<0) {
+                mat_tmpPtr[0] += bf1[0]*bx_arr(i,j,k);
+                mat_tmpPtr[2] += bf2[0]*bx_arr(i,j,k);
             }
+
+            if (i == hi.x && cell_id_arr(i+1,j,k)<0) {
+                mat_tmpPtr[0] += bf1[3]*bx_arr(i+1,j,k);
+                mat_tmpPtr[1] += bf2[3]*bx_arr(i+1,j,k);
+            }
+
+            if (j == lo.y && cell_id_arr(i,j-1,k)<0) {
+                mat_tmpPtr[0] += bf1[1]*by_arr(i,j,k);
+                mat_tmpPtr[4] += bf2[1]*by_arr(i,j,k);
+            }
+
+            if (j == hi.y && cell_id_arr(i,j+1,k)<0) {
+                mat_tmpPtr[0] += bf1[4]*by_arr(i,j+1,k);
+                mat_tmpPtr[3] += bf2[4]*by_arr(i,j+1,k);
+            }
+
+            if (k == lo.z && cell_id_arr(i,j,k-1)<0) {
+                mat_tmpPtr[0] += bf1[2]*bz_arr(i,j,k);
+                mat_tmpPtr[6] += bf2[2]*bz_arr(i,j,k);
+            }
+
+            if (k == hi.z && cell_id_arr(i,j,k+1)<0) {
+                mat_tmpPtr[0] += bf1[5]*bz_arr(i,j,k+1);
+                mat_tmpPtr[5] += bf2[5]*bz_arr(i,j,k+1);
+            }
+
+            diag_arr(i,j,k) = 1.0/mat_tmpPtr[0];
+
+            for (int ic=0; ic<=6; ic++){
+                if (cols_tmpPtr[ic] >= 0){
+                    int imat = iterPtr[1];
+                    ncols[irow]  = ncols[irow] +1;
+                    colsg[imat]  = cols_tmpPtr[ic];
+                    matg[imat]   = mat_tmpPtr[ic]*diag_arr(i,j,k);
+                    Gpu::Atomic::Add(&iterPtr[1], 1);
+                }
+            }
+            Gpu::Atomic::Add(&iterPtr[0], 1);
+        } else {
+            diag_arr(i,j,k) = 1.0_rt;
+            int imat = iterPtr[1];
+            ++(ncols[irow]);
+            colsg[imat] = cell_id_arr(i,j,k);
+            matg[imat] = 1.0;
+            Gpu::Atomic::Add(&iterPtr[1], 1);
+            Gpu::Atomic::Add(&iterPtr[0], 1);
         }
-        Gpu::Atomic::Add(&iterPtr[0], 1);
     });
 }
 

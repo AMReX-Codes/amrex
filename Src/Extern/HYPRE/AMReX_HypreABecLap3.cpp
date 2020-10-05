@@ -18,8 +18,10 @@
 namespace amrex {
 
 HypreABecLap3::HypreABecLap3 (const BoxArray& grids, const DistributionMapping& dmap,
-                              const Geometry& geom_, MPI_Comm comm_)
-    : Hypre(grids, dmap, geom_, comm_)
+                              const Geometry& geom_, MPI_Comm comm_,
+                              const iMultiFab* overset_mask)
+    : Hypre(grids, dmap, geom_, comm_),
+      m_overset_mask(overset_mask)
 {}
 
 HypreABecLap3::~HypreABecLap3 ()
@@ -143,6 +145,8 @@ HypreABecLap3::prepareSolver ()
 
 #ifdef AMREX_USE_EB
     auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_overset_mask == nullptr || ebfactory == nullptr,
+                                     "Cannot have both EB and overset");
     const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* vfrac = (ebfactory) ? &(ebfactory->getVolFrac()) : nullptr;
     auto area = (ebfactory) ? ebfactory->getAreaFrac()
@@ -157,12 +161,12 @@ HypreABecLap3::prepareSolver ()
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:ncells_proc)
 #endif
-    {  BaseFab<HYPRE_Int> ifab;
     for (MFIter mfi(cell_id); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
         BaseFab<HYPRE_Int>& cid_fab = cell_id[mfi];
         cid_fab.setVal<RunOn::Host>(std::numeric_limits<HYPRE_Int>::lowest());
+        Array4<HYPRE_Int> const& cid_arr = cid_fab.array();
 #ifdef AMREX_USE_EB
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
         if (fabtyp == FabType::covered)
@@ -185,14 +189,12 @@ HypreABecLap3::prepareSolver ()
             ncells_grid[mfi] = npts;
             ncells_proc += npts;
 
-            ifab.resize(bx);
-            HYPRE_Int* p = ifab.dataPtr();
-            for (Long i = 0; i < npts; ++i) {
-                *p++ = i;
-            }
-            cid_fab.copy<RunOn::Host>(ifab,bx);
+            AMREX_LOOP_3D(bx, i, j, k,
+            {
+                cid_arr(i,j,k) = bx.index(IntVect{AMREX_D_DECL(i,j,k)});
+            });
         }
-    }}
+    }
 
     Vector<HYPRE_Int> ncells_allprocs(num_procs);
     MPI_Allgather(&ncells_proc, sizeof(HYPRE_Int), MPI_CHAR,
@@ -245,7 +247,9 @@ HypreABecLap3::prepareSolver ()
     const Real* dx = geom.CellSize();
     const int bho = (m_maxorder > 2) ? 1 : 0;
     FArrayBox foo(Box::TheUnitBox());
+#ifdef AMREX_USE_EB
     const int is_eb_dirichlet = m_eb_b_coeffs != nullptr;
+#endif
 
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
@@ -275,9 +279,10 @@ HypreABecLap3::prepareSolver ()
                 bctype[cdir] = bcs_i[cdir][0];
                 bcl[cdir]  = bcl_i[cdir];
             }
-            
+
             if (fabtyp == FabType::regular)
             {
+                IArrayBox const* osmsk = (m_overset_mask) ? &((*m_overset_mask)[mfi]) : nullptr;
                 amrex_hpijmatrix(bx,
                                  nrows, ncolsg.dataPtr(), 
                                  cell_id_vec[mfi].dataPtr(), 
@@ -292,8 +297,8 @@ HypreABecLap3::prepareSolver ()
                                  bcoefs[2][mfi],
 #endif
                                  scalar_a, scalar_b, dx,
-                                 bctype, bcl, bho);
-
+                                 bctype, bcl, bho,
+                                 osmsk);
             }
 #ifdef AMREX_USE_EB
             else
