@@ -1,44 +1,11 @@
 #
-# For titan at OLCF
+# For Summit et al. at OLCF
 #
 
-OLCF_MACHINES := titan summitdev summit ascent peak
+OLCF_MACHINES := summitdev summit ascent peak
 
 ifneq ($(which_computer), $(findstring $(which_computer), $(OLCF_MACHINES)))
   $(error Unknown OLCF computer, $(which_computer))
-endif
-
-ifeq ($(which_computer),$(filter $(which_computer),titan))
-
-  ifdef PE_ENV
-    lowercase_peenv := $(shell echo $(PE_ENV) | tr A-Z a-z)
-    ifneq ($(lowercase_peenv),$(lowercase_comp))
-      has_compiler_mismatch = COMP=$(COMP) does not match PrgEnv-$(lowercase_peenv)
-    endif
-  endif
-
-  ifeq ($(USE_MPI),TRUE)
-    CC  = cc
-    CXX = CC
-    FC  = ftn
-    F90 = ftn
-    LIBRARIES += -lmpichf90
-  endif
-
-  # If the cudatoolkit module is loaded, CRAY_CUDATOOLKIT_DIR is set as the toolkit location.
-
-  SYSTEM_CUDA_PATH=$(CRAY_CUDATOOLKIT_DIR)
-
-  # Specify that we want to build for Kepler
-
-  CUDA_ARCH = 35
-  COMPILE_CUDA_PATH=$(CRAY_CUDATOOLKIT_DIR)
-
-  # Provide system configuration information.
-
-  GPUS_PER_NODE=1
-  GPUS_PER_SOCKET=1
-
 endif
 
 
