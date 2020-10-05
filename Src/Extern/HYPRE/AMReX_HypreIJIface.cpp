@@ -222,7 +222,7 @@ void HypreIJIface::boomeramg_precond_configure(const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_precond);
-    hpp("bamg_verbose", HYPRE_BoomerAMGSetPrintLevel, m_verbose);
+    hpp("bamg_verbose", HYPRE_BoomerAMGSetPrintLevel);
     hpp("bamg_logging", HYPRE_BoomerAMGSetLogging);
 
     hpp("bamg_coarsen_type", HYPRE_BoomerAMGSetCoarsenType, 6);
@@ -329,7 +329,7 @@ void HypreIJIface::boomeramg_solver_configure(const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_BoomerAMGSetPrintLevel, m_verbose);
+    hpp("verbose", HYPRE_BoomerAMGSetPrintLevel);
     hpp("logging", HYPRE_BoomerAMGSetLogging);
 
     hpp("bamg_relax_type", HYPRE_BoomerAMGSetRelaxType, 6);
@@ -368,7 +368,7 @@ void HypreIJIface::gmres_solver_configure(const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_ParCSRGMRESSetPrintLevel, m_verbose);
+    hpp("verbose", HYPRE_ParCSRGMRESSetPrintLevel);
     hpp("logging", HYPRE_ParCSRGMRESSetLogging);
 
     hpp("num_krylov", HYPRE_ParCSRGMRESSetKDim, 50);
@@ -396,7 +396,7 @@ void HypreIJIface::cogmres_solver_configure(const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_ParCSRCOGMRESSetPrintLevel, m_verbose);
+    hpp("verbose", HYPRE_ParCSRCOGMRESSetPrintLevel);
     hpp("logging", HYPRE_ParCSRCOGMRESSetLogging);
 
     hpp("num_krylov", HYPRE_ParCSRCOGMRESSetKDim, 50);
@@ -424,7 +424,7 @@ void HypreIJIface::lgmres_solver_configure(const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_ParCSRLGMRESSetPrintLevel, m_verbose);
+    hpp("verbose", HYPRE_ParCSRLGMRESSetPrintLevel);
     hpp("logging", HYPRE_ParCSRLGMRESSetLogging);
 
     hpp("num_krylov", HYPRE_ParCSRLGMRESSetKDim, 50);
@@ -452,7 +452,7 @@ void HypreIJIface::flex_gmres_solver_configure(const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_ParCSRFlexGMRESSetPrintLevel, m_verbose);
+    hpp("verbose", HYPRE_ParCSRFlexGMRESSetPrintLevel);
     hpp("logging", HYPRE_ParCSRFlexGMRESSetLogging);
 
     hpp("num_krylov", HYPRE_ParCSRFlexGMRESSetKDim, 50);
@@ -480,7 +480,7 @@ void HypreIJIface::bicgstab_solver_configure(const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_ParCSRBiCGSTABSetPrintLevel, m_verbose);
+    hpp("verbose", HYPRE_ParCSRBiCGSTABSetPrintLevel);
     hpp("logging", HYPRE_ParCSRBiCGSTABSetLogging);
 
     hpp("max_iterations", HYPRE_ParCSRBiCGSTABSetMaxIter, 200);
@@ -506,7 +506,7 @@ void HypreIJIface::pcg_solver_configure(const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_ParCSRPCGSetPrintLevel, m_verbose);
+    hpp("verbose", HYPRE_ParCSRPCGSetPrintLevel);
     hpp("logging", HYPRE_ParCSRPCGSetLogging);
 
     hpp("max_iterations", HYPRE_ParCSRPCGSetMaxIter, 200);
@@ -532,7 +532,7 @@ void HypreIJIface::hybrid_solver_configure(const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_ParCSRHybridSetPrintLevel, m_verbose);
+    hpp("verbose", HYPRE_ParCSRHybridSetPrintLevel);
     hpp("logging", HYPRE_ParCSRHybridSetLogging);
 
     hpp.set<amrex::Real>("rtol", HYPRE_ParCSRHybridSetTol);
