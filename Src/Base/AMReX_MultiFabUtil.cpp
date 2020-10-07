@@ -848,8 +848,8 @@ namespace amrex
 #endif
 
 #if (AMREX_SPACEDIM==2)
-        const auto& ba = grad.boxArray();
-        const auto& dm = grad.DistributionMap();
+        const auto& ba = mf.boxArray();
+        const auto& dm = mf.DistributionMap();
         MultiFab volume, areax, areay;
         if (geom.IsRZ()) {
             geom.GetVolume(volume, ba, dm, 0);
