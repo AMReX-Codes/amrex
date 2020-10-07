@@ -249,7 +249,7 @@ void amrex_hpijmatrix (Box const& box,
         rows[irow]  = cell_id_arr(i,j,k);
         ncols[irow] = 0;
 
-        if (osm) {
+        if (!osm or osm(i,j,k) != 0) {
             cols_tmpPtr[0] = cell_id_arr(i,j,k);
             mat_tmpPtr[0]  = sa*a_arr(i,j,k) + fac[0]*(bx_arr(i,j,k)+bx_arr(i+1,j,k))
                                              + fac[1]*(by_arr(i,j,k)+by_arr(i,j+1,k))

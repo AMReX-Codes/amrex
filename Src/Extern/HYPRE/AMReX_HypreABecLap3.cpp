@@ -114,6 +114,17 @@ HypreABecLap3::getSolution (MultiFab& soln)
                                          (*flags)[mfi]);
             }
 #endif
+
+            if (m_overset_mask) {
+                Array4<int const> const& omsk_arr = m_overset_mask->const_array(mfi);
+                Array4<Real> const& soln_arr = soln.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    if (omsk_arr(i,j,k) == 0) {
+                        soln_arr(i,j,k) = 0._rt;
+                    }
+                });
+            }
         }
     }
 }
