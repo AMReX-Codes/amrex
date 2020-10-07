@@ -430,11 +430,59 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_cubic (Box const& bx,
-               GpuArray<Array4<T const>, AMREX_SPACEDIM> crse,
-               GpuArray<Array4<T>, AMREX_SPACEDIM> fine,
-               const int icomp, const int ncomp, IntVect const& ratio,
-               const GpuArray<Real, AMREX_SPACEDIM> cellSize) noexcept
+facediv_avgcrse_x (Box const& bx,
+                   Array4<T> crse, Array4<T const> fine_val,
+                   const int icomp, const int ncomp, IntVect const& ratio) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+
+    for (int n = 0; n < ncomp; ++n) {
+        const int nu = n + icomp;
+        for (int j = lo.y; j <= hi.y; ++j) {
+            const int fj = j*ratio[1];
+
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                const int fi = i*ratio[0];
+
+                crse(i,j,0,nu) = ( fine_val(fi,fj,0,n) + fine_val(fi,fj+1,0,n) ) / 2.0_rt;
+ 
+            }
+        }
+    }
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_avgcrse_y (Box const& bx,
+                   Array4<T> crse, Array4<T const> fine_val,
+                   const int icomp, const int ncomp, IntVect const& ratio) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+
+    for (int n = 0; n < ncomp; ++n) {
+        const int nu = n + icomp;
+        for (int j = lo.y; j <= hi.y; ++j) {
+            const int fj = j*ratio[1];
+
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                const int fi = i*ratio[0];
+                crse(i,j,0,nu) = ( fine_val(fi,fj,0,n) + fine_val(fi+1,fj,0,n) ) / 2.0_rt;
+            }
+        }
+    }
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_ext (Box const& bx,
+             GpuArray<Array4<T const>, AMREX_SPACEDIM> crse,
+             GpuArray<Array4<T>, AMREX_SPACEDIM> fine,
+             const int icomp, const int ncomp, IntVect const& ratio,
+             const GpuArray<Real, AMREX_SPACEDIM> /*cellSize*/) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -463,26 +511,11 @@ facediv_cubic (Box const& bx,
                 const Real& vNW = crse[1](i-1, j+1, 0, nu);
                 const Real& vNE = crse[1](i+1, j+1, 0, nu);
 
-                const Real dxdy = cellSize[0]/cellSize[1];
-
                 // Calc fine faces on negative exterior faces of coarse cells (W and S).
                 fine[0](fi,  fj  ,0,n) = (8.0_rt*uW - uNW + uSW)/8.0_rt;
                 fine[0](fi,  fj+1,0,n) = (8.0_rt*uW + uNW - uSW)/8.0_rt;
                 fine[1](fi,  fj  ,0,n) = (8.0_rt*vS + vSW - vSE)/8.0_rt;
                 fine[1](fi+1,fj  ,0,n) = (8.0_rt*vS - vSW + vSE)/8.0_rt;
-
-                // Calc fine faces on interior of coarse cells.
-                fine[0](fi+1,fj  ,0,n) = (8.0_rt*(uW+uE) + uSE + uSW - uNE - uNW
-                                                   + dxdy*( vNE + vSW - vNW - vSE))/16.0_rt;
-
-                fine[0](fi+1,fj+1,0,n) = (8.0_rt*(uW+uE) - uSE - uSW + uNE + uNW
-                                                   + dxdy*( vNE + vSW - vNW - vSE))/16.0_rt;
-
-                fine[1](fi,  fj+1,0,n) = (8.0_rt*(vN+vS) - vNE + vSW + vNW - vSE
-                                               + (1/dxdy)*(-uSE + uSW + uNE - uNW))/16.0_rt;
-
-                fine[1](fi+1,fj+1,0,n) = (8.0_rt*(vN+vS) + vNE - vSW - vNW + vSE
-                                               + (1/dxdy)*(-uSE + uSW + uNE - uNW))/16.0_rt;
 
                 // Calc fine faces on positive exterior faces of coarse cells (E and N).
                 // Only done by cells touching those boundaries.
@@ -496,11 +529,57 @@ facediv_cubic (Box const& bx,
                     fine[1](fi,  fj+2,0,n) = (8.0_rt*vN + vNW - vNE)/8.0_rt;
                     fine[1](fi+1,fj+2,0,n) = (8.0_rt*vN - vNW + vNE)/8.0_rt;
                 }
-
             }
         }
     }
 }
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_int (Box const& bx,
+             GpuArray<Array4<T const>, AMREX_SPACEDIM> /*crse*/,
+             GpuArray<Array4<T>, AMREX_SPACEDIM> fine,
+             const int icomp, const int ncomp, IntVect const& ratio,
+             const GpuArray<Real, AMREX_SPACEDIM> cellSize) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+
+    for (int n = 0; n < ncomp; ++n) {
+        const int nu = n + icomp;
+        for (int j = lo.y; j <= hi.y; ++j) {
+            const int fj = j*ratio[1];
+
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                const int fi = i*ratio[0];
+
+                // References to fine exterior values.
+                const Real& umm = fine[0](fi,   fj,   0, nu);
+                const Real& ump = fine[0](fi,   fj+1, 0, nu);
+                const Real& upm = fine[0](fi+2, fj,   0, nu);
+                const Real& upp = fine[0](fi+2, fj+1, 0, nu);
+
+                const Real& vmm = fine[1](fi,   fj,   0, nu);
+                const Real& vmp = fine[1](fi+1, fj,   0, nu);
+                const Real& vpm = fine[1](fi,   fj+2, 0, nu);
+                const Real& vpp = fine[1](fi+1, fj+2, 0, nu);
+
+                const Real dxdy = cellSize[0]/cellSize[1];
+                const Real x_corr =   (dxdy/4.0_rt) * (vpp+vmm-vmp-vpm);
+                const Real y_corr = 1/(dxdy*4.0_rt) * (upp+umm-ump-upm);
+
+                // Calc fine faces on interior of coarse cells.
+                fine[0](fi+1,fj  ,0,n) = (umm+upm)/2.0_rt + x_corr; 
+                fine[0](fi+1,fj+1,0,n) = (ump+upp)/2.0_rt + x_corr; 
+                fine[1](fi,  fj+1,0,n) = (vmm+vpm)/2.0_rt + y_corr;
+                fine[1](fi+1,fj+1,0,n) = (vmp+vpp)/2.0_rt + y_corr;
+            }
+        }
+    }
+}
+
+
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void

@@ -92,6 +92,8 @@ public:
     * \param fine_comp
     * \param ncomp
     * \param fine_region
+    * \param fine_values
+    * \param fine_known
     * \param ratio
     * \param crse_geom
     * \param fine_geom
@@ -99,16 +101,18 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    virtual void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& /*crse*/,
+    virtual void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM>& /*crse*/,
                              int               /*crse_comp*/,
                              Array<FArrayBox*, AMREX_SPACEDIM> const& /*fine*/,
                              int               /*fine_comp*/,
                              int               /*ncomp*/,
                              const Box&        /*fine_region*/,
+                             const Array<FArrayBox*, AMREX_SPACEDIM>& /*fab_fine_values*/,
+                             const Array<BoxArray, AMREX_SPACEDIM>& /*ba_fine_values*/,
                              const IntVect&    /*ratio*/,
                              const Geometry&   /*crse_geom*/,
                              const Geometry&   /*fine_geom*/,
-                             Vector<Array<BCRec, AMREX_SPACEDIM> > const & /*bcr*/,
+                             Vector<Array<BCRec, AMREX_SPACEDIM> > const& /*bcr*/,
                              int               /*actual_comp*/,
                              int               /*actual_state*/,
                              RunOn             /*gpu_or_cpu*/)
@@ -753,6 +757,8 @@ public:
     * \param fine_comp
     * \param ncomp
     * \param fine_region
+    * \param fine_values
+    * \param fine_known
     * \param ratio
     * \param crse_geom
     * \param fine_geom
@@ -760,16 +766,18 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    virtual void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
+    virtual void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM>& crse,
                              int               crse_comp,
                              Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
                              int               fine_comp,
                              int               ncomp,
                              const Box&        fine_region,
+                             const Array<FArrayBox*, AMREX_SPACEDIM>& fab_fine_values,
+                             const Array<BoxArray, AMREX_SPACEDIM>& ba_fine_values,
                              const IntVect&    ratio,
                              const Geometry& crse_geom,
                              const Geometry& fine_geom,
-                             Vector<Array<BCRec, AMREX_SPACEDIM> > const & bcr,
+                             Vector<Array<BCRec, AMREX_SPACEDIM> > const& bcr,
                              int               actual_comp,
                              int               actual_state,
                              RunOn             runon) override;

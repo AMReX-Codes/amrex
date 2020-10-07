@@ -297,13 +297,36 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
     }
 }
 
+// Or, compile time error this?
+// Remove these functions in a way that gives a good error message?
+
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_cubic (Box const& bx,
-               GpuArray<Array4<T const>, AMREX_SPACEDIM> crse,
-               GpuArray<Array4<T>, AMREX_SPACEDIM> fine,
-               const int icomp, const int ncomp, IntVect const& ratio,
-               const GpuArray<Real, AMREX_SPACEDIM> cellSize) noexcept
+facediv_avgcrse_x (Box const& bx,
+                   Array4<T> crse, Array4<T const> fine_val,
+                   const int icomp, const int ncomp, IntVect const& ratio) noexcept
+{
+    amrex::Abort("No 1D version of FaceDiv exists.\n");
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_ext (Box const& bx,
+             GpuArray<Array4<T const>, AMREX_SPACEDIM> crse,
+             GpuArray<Array4<T>, AMREX_SPACEDIM> fine,
+             const int icomp, const int ncomp, IntVect const& ratio,
+             const GpuArray<Real, AMREX_SPACEDIM> cellSize) noexcept
+{
+    amrex::Abort("No 1D version of FaceDiv exists.\n"); 
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_int (Box const& bx,
+             GpuArray<Array4<T const>, AMREX_SPACEDIM> crse,
+             GpuArray<Array4<T>, AMREX_SPACEDIM> fine,
+             const int icomp, const int ncomp, IntVect const& ratio,
+             const GpuArray<Real, AMREX_SPACEDIM> cellSize) noexcept
 {
     amrex::Abort("No 1D version of FaceDiv exists.\n"); 
 }

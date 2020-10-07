@@ -965,12 +965,14 @@ FaceDivFree::interp (const FArrayBox&  /*crse*/,
 }
 
 void
-FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
+FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM>& crse,
                          int               crse_comp,
                          Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
                          int               /*fine_comp*/,
                          int               ncomp,
                          const Box&        fine_region,
+                         const Array<FArrayBox*, AMREX_SPACEDIM>& fab_fine_values,
+                         const Array<BoxArray, AMREX_SPACEDIM>& ba_fine_values, 
                          const IntVect&    ratio,
                          const Geometry& /*crse_geom */,
                          const Geometry&   fine_geom,
@@ -986,22 +988,81 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
     // If fine_region has less than 2 elements in each direction?
     AMREX_ALWAYS_ASSERT(ratio == 2);
 
-    const Box c_fine_region = amrex::coarsen(fine_region, ratio);
+// ===================================
 
-    GpuArray<Array4<Real const>, AMREX_SPACEDIM> crsearr;
+    for (int b=0; b<ba_fine_values[0].size(); ++b)
+    {
+        const Box& c_faces = amrex::coarsen(ba_fine_values[0][b], ratio);
+        Array4<Real> crsearr = crse[0]->array();
+        Array4<Real> valarr = fab_fine_values[0]->array();
+
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, c_faces, tbx,
+        {
+            amrex::facediv_avgcrse_x<Real>(tbx, crsearr, valarr, crse_comp, ncomp, ratio);
+        });
+    }
+
+    for (int b=0; b<ba_fine_values[1].size(); ++b)
+    {
+        const Box& c_faces = amrex::coarsen(ba_fine_values[1][b], ratio);
+        Array4<Real> crsearr = crse[1]->array();
+        Array4<Real> valarr = fab_fine_values[1]->array();
+
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, c_faces, tbx,
+        {
+            amrex::facediv_avgcrse_y<Real>(tbx, crsearr, valarr, crse_comp, ncomp, ratio);
+        });
+    }
+
+#if (AMREX_SPACEDIM == 3)
+
+    for (int b=0; b<ba_fine_values[2].size(); ++b)
+    {
+        const Box& c_faces = amrex::coarsen(ba_fine_values[2][b], ratio);
+        Array4<Real> crsearr = crse[2]->array();
+        Array4<Real> valarr = fab_fine_values[2]->array();
+
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, c_faces, tbx,
+        {
+            amrex::facediv_avgcrse_z<Real>(tbx, crsearr, valarr, crse_comp, ncomp, ratio);
+        });
+    }
+
+#endif
+
+// ====================================
+
+    GpuArray<Array4<const Real>, AMREX_SPACEDIM> crsearr;
     GpuArray<Array4<Real>, AMREX_SPACEDIM> finearr;
+    GpuArray<Real,         AMREX_SPACEDIM> cell_size = fine_geom.CellSizeArray();
+
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
         crsearr[i] = crse[i]->const_array();
         finearr[i] = fine[i]->array();
     }
 
-    GpuArray<Real, AMREX_SPACEDIM> cell_size = fine_geom.CellSizeArray();
+    const Box c_fine_region = amrex::coarsen(fine_region, ratio);
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, c_fine_region, tbx,
     {
-        amrex::facediv_cubic<Real>(tbx, crsearr, finearr, crse_comp, ncomp, ratio, cell_size);
+        amrex::facediv_ext<Real>(tbx, crsearr, finearr, crse_comp, ncomp, ratio, cell_size);
     });
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i)
+    {
+        const BoxArray ba_copy = amrex::intersect(ba_fine_values[i], fine[i]->box());
+        for (int b=0; b<ba_copy.size(); ++b)
+        {
+            fine[i]->copy(*(fab_fine_values[i]), ba_copy[b]); 
+        }
+    }
+
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, c_fine_region, tbx,
+    {
+        amrex::facediv_int<Real>(tbx, crsearr, finearr, crse_comp, ncomp, ratio, cell_size);
+    });
+
 }
 
 }

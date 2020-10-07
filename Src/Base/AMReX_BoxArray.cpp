@@ -1723,6 +1723,22 @@ coarsen (const BoxArray& ba, const IntVect& ratio)
     return ba2;
 }
 
+BoxArray
+refine (const BoxArray& ba, int ratio)
+{
+    BoxArray ba2 = ba;
+    ba2.refine(ratio);
+    return ba2;
+}
+
+BoxArray
+refine (const BoxArray& ba, const IntVect& ratio)
+{
+    BoxArray ba2 = ba;
+    ba2.refine(ratio);
+    return ba2;
+}
+
 BoxList
 GetBndryCells (const BoxArray& ba,
                int             ngrow)
