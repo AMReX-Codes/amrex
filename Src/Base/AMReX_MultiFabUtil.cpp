@@ -841,10 +841,10 @@ namespace amrex
     {
         AMREX_ASSERT(mf.nComp() == 1);
 
-        AMREX_ASSERT(grad[0].nComp() == mf.nComp());
-        AMREX_ASSERT(grad[1].nComp() == mf.nComp());
+        AMREX_ASSERT(grad[0]->nComp() == mf.nComp());
+        AMREX_ASSERT(grad[1]->nComp() == mf.nComp());
 #if (AMREX_SPACEDIM==3)
-        AMREX_ASSERT(grad[2].nComp() == mf.nComp());
+        AMREX_ASSERT(grad[2]->nComp() == mf.nComp());
 #endif
 
 #if (AMREX_SPACEDIM==2)
