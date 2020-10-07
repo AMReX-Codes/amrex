@@ -836,6 +836,63 @@ namespace amrex
         }
     }
 
+    void computeGradient (const Array<MultiFab*,AMREX_SPACEDIM>& grad, const MultiFab& mf,
+                          const Geometry& geom)
+    {
+        AMREX_ASSERT(mf.nComp() == 1);
+
+        AMREX_ASSERT(grad[0].nComp() == mf.nComp());
+        AMREX_ASSERT(grad[1].nComp() == mf.nComp());
+#if (AMREX_SPACEDIM==3)
+        AMREX_ASSERT(grad[2].nComp() == mf.nComp());
+#endif
+
+#if (AMREX_SPACEDIM==2)
+        const auto& ba = grad.boxArray();
+        const auto& dm = grad.DistributionMap();
+        MultiFab volume, areax, areay;
+        if (geom.IsRZ()) {
+            geom.GetVolume(volume, ba, dm, 0);
+            geom.GetFaceArea(areax, ba, dm, 0, 0);
+            geom.GetFaceArea(areay, ba, dm, 1, 0);
+        }
+#endif
+
+        const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            const auto& mfarr = mf.const_array(mfi);
+            AMREX_D_TERM(const auto& gradxarr = grad[0]->array(mfi);,
+                         const auto& gradyarr = grad[1]->array(mfi);,
+                         const auto& gradzarr = grad[2]->array(mfi););
+#if (AMREX_SPACEDIM==2)
+            if (geom.IsRZ()) {
+                Array4<Real const> const&  ax =  areax.array(mfi);
+                Array4<Real const> const&  ay =  areay.array(mfi);
+                Array4<Real const> const& vol = volume.array(mfi);
+
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    amrex_compute_gradient_rz(tbx,
+                      AMREX_D_DECL(gradxarr,gradyarr,gradzarr),mfarr,ax,ay,vol);
+                });
+            } else
+#endif
+            {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    amrex_compute_gradient(tbx,
+                      AMREX_D_DECL(gradxarr,gradyarr,gradzarr),mfarr,dxinv);
+                });
+            }
+        }
+    }
+
     MultiFab periodicShift (MultiFab const& mf, IntVect const& offset,
                             Periodicity const& period)
     {

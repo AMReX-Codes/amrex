@@ -330,6 +330,119 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_compute_gradient (int i, int j, int k, int n, Array4<Real> const& gradx,
+                          Array4<Real> const& grady, Array4<Real> const& gradz,
+                          Array4<Real const> const& mf, Array4<int const> const& ccm,
+                          Array4<EBCellFlag const> const& flag, Array4<Real const> const& vfrc,
+                          Array4<Real const> const& apx, Array4<Real const> const& apy,
+                          Array4<Real const> const& apz, Array4<Real const> const& fcx,
+                          Array4<Real const> const& fcy, Array4<Real const> const& fcz,
+                          GpuArray<Real,3> const& dxinv, bool already_on_centroids)
+{
+    if (flag(i,j,k).isCovered())
+    {
+        gradx(i,j,k,n) = 0.0;
+        grady(i,j,k,n) = 0.0;
+        gradz(i,j,k,n) = 0.0;
+    }
+    else if (flag(i,j,k).isRegular())
+    {
+        const Real val = mf(i,j,k,n);
+        gradx(i,j,k,n) = dxinv[0] * (mf(i+1,j,k,n)-val);
+        grady(i,j,k,n) = dxinv[1] * (mf(i,j+1,k,n)-val);
+        gradz(i,j,k,n) = dxinv[2] * (mf(i,j,k+1,n)-val);
+    }
+    else if (already_on_centroids)
+    {
+        const Real val = mf(i,j,k,n);
+        const Real coeff = 1.0/vfrc(i,j,k);
+        gradx(i,j,k,n) = coeff * dxinv[0] * (apx(i+1,j,k)*mf(i+1,j,k,n)-apx(i,j,k)*val);
+        grady(i,j,k,n) = coeff * dxinv[1] * (apy(i,j+1,k)*mf(i,j+1,k,n)-apy(i,j,k)*val);
+        gradz(i,j,k,n) = coeff * dxinv[2] * (apz(i,j,k+1)*mf(i,j,k+1,n)-apz(i,j,k)*val);
+    }
+    else
+    {
+        Real fxm = mf(i,j,k,n);
+        if (apx(i,j,k) != 0.0 and apx(i,j,k) != 1.0) {
+            int jj = j + static_cast<int>(amrex::Math::copysign(1.0, fcx(i,j,k,0)));
+            int kk = k + static_cast<int>(amrex::Math::copysign(1.0, fcx(i,j,k,1)));
+            Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k,0)) : 0.0;
+            Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcx(i,j,k,1)) : 0.0;
+            fxm = (1.0-fracy)*(1.0-fracz)*fxm
+                +      fracy *(1.0-fracz)*mf(i,jj,k ,n)
+                +      fracz *(1.0-fracy)*mf(i,j ,kk,n)
+                +      fracy *     fracz *mf(i,jj,kk,n);
+        }
+
+        Real fxp = mf(i+1,j,k,n);
+        if (apx(i+1,j,k) != 0.0 and apx(i+1,j,k) != 1.0) {
+            int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i+1,j,k,0)));
+            int kk = k + static_cast<int>(amrex::Math::copysign(1.0,fcx(i+1,j,k,1)));
+            Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? amrex::Math::abs(fcx(i+1,j,k,0)) : 0.0;
+            Real fracz = (ccm(i,j,kk) || ccm(i+1,j,kk)) ? amrex::Math::abs(fcx(i+1,j,k,1)) : 0.0;
+            fxp = (1.0-fracy)*(1.0-fracz)*fxp
+                +      fracy *(1.0-fracz)*mf(i+1,jj,k ,n)
+                +      fracz *(1.0-fracy)*mf(i+1,j ,kk,n)
+                +      fracy *     fracz *mf(i+1,jj,kk,n);
+        }
+
+        Real fym = fxm;
+        if (apy(i,j,k) != 0.0 and apy(i,j,k) != 1.0) {
+            int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j,k,0)));
+            int kk = k + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j,k,1)));
+            Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k,0)) : 0.0;
+            Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? amrex::Math::abs(fcy(i,j,k,1)) : 0.0;
+            fym = (1.0-fracx)*(1.0-fracz)*fym
+                +      fracx *(1.0-fracz)*mf(ii,j,k ,n)
+                +      fracz *(1.0-fracx)*mf(i ,j,kk,n)
+                +      fracx *     fracz *mf(ii,j,kk,n);
+        }
+
+        Real fyp = mf(i,j+1,k,n);
+        if (apy(i,j+1,k) != 0.0 and apy(i,j+1,k) != 1.0) {
+            int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j+1,k,0)));
+            int kk = k + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j+1,k,1)));
+            Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? amrex::Math::abs(fcy(i,j+1,k,0)) : 0.0;
+            Real fracz = (ccm(i,j,kk) || ccm(i,j+1,kk)) ? amrex::Math::abs(fcy(i,j+1,k,1)) : 0.0;
+            fyp = (1.0-fracx)*(1.0-fracz)*fyp
+                +      fracx *(1.0-fracz)*mf(ii,j+1,k ,n)
+                +      fracz *(1.0-fracx)*mf(i ,j+1,kk,n)
+                +      fracx *     fracz *mf(ii,j+1,kk,n);
+        }
+
+        Real fzm = fxm;
+        if (apz(i,j,k) != 0.0 and apz(i,j,k) != 1.0) {
+            int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcz(i,j,k,0)));
+            int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcz(i,j,k,1)));
+            Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? amrex::Math::abs(fcz(i,j,k,0)) : 0.0;
+            Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? amrex::Math::abs(fcz(i,j,k,1)) : 0.0;
+            fzm = (1.0-fracx)*(1.0-fracy)*fzm
+                +      fracx *(1.0-fracy)*mf(ii,j ,k,n)
+                +      fracy *(1.0-fracx)*mf(i ,jj,k,n)
+                +      fracx *     fracy *mf(ii,jj,k,n);
+        }
+
+        Real fzp = mf(i,j,k+1,n);
+        if (apz(i,j,k+1) != 0.0 and apz(i,j,k+1) != 1.0) {
+            int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcz(i,j,k+1,0)));
+            int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcz(i,j,k+1,1)));
+            Real fracx = (ccm(ii,j,k) || ccm(ii,j,k+1)) ? amrex::Math::abs(fcz(i,j,k+1,0)) : 0.0;
+            Real fracy = (ccm(i,jj,k) || ccm(i,jj,k+1)) ? amrex::Math::abs(fcz(i,j,k+1,1)) : 0.0;
+            fzp = (1.0-fracx)*(1.0-fracy)*fzp
+                +      fracx *(1.0-fracy)*mf(ii,j ,k+1,n)
+                +      fracy *(1.0-fracx)*mf(i ,jj,k+1,n)
+                +      fracx *     fracy *mf(ii,jj,k+1,n);
+        }
+
+        const Real coeff = 1.0/vfrc(i,j,k);
+
+        gradx(i,j,k,n) = coeff * dxinv[0] * (apx(i+1,j,k)*fxp-apx(i,j,k)*fxm);
+        grady(i,j,k,n) = coeff * dxinv[1] * (apy(i,j+1,k)*fyp-apy(i,j,k)*fym);
+        gradz(i,j,k,n) = coeff * dxinv[2] * (apz(i,j,k+1)*fzp-apz(i,j,k)*fzm);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_avg_fc_to_cc (int i, int j, int k, int n, Array4<Real> const& cc,
                       Array4<Real const> const& fx, Array4<Real const> const& fy,
                       Array4<Real const> const& fz, Array4<Real const> const& ax,

@@ -179,6 +179,10 @@ namespace amrex
     void computeGradient (MultiFab& grad, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                           const Geometry& geom);
 
+    //! Computes gradient of face-data stored in the umac MultiFab.
+    void computeGradient (const Array<MultiFab*,AMREX_SPACEDIM>& grad, const MultiFab& mf, 
+                          const Geometry& geom);
+
     //! Convert iMultiFab to MultiFab
     MultiFab ToMultiFab (const iMultiFab& imf);
     //! Convert iMultiFab to Long

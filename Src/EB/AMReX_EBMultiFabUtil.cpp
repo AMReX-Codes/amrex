@@ -753,6 +753,84 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
     }
 }
 
+void EB_computeGradient (const Array<MultiFab*,AMREX_SPACEDIM>& grad, const MultiFab& mf, 
+                         const Geometry& geom, bool already_on_centroids)
+{
+    AMREX_ASSERT(mf.nComp()==grad[0]->nComp());
+    AMREX_ASSERT(mf.nComp()==grad[1]->nComp());
+#if (AMREX_SPACEDIM == 3)
+    AMREX_ASSERT(mf.nComp()==grad[2]->nComp());
+#endif
+    
+    if (!mf.hasEBFabFactory())
+    {
+        amrex::computeGradient(grad, mf, geom);
+    }
+    else
+    {
+        const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(mf.Factory());
+        const auto& flags = factory.getMultiEBCellFlagFab();
+        const auto& vfrac = factory.getVolFrac();
+        const auto& area = factory.getAreaFrac();
+        const auto& fcent = factory.getFaceCent();
+
+        iMultiFab cc_mask;
+        if (!already_on_centroids) {
+            cc_mask.define(mf.boxArray(), mf.DistributionMap(), 1, 1);
+            cc_mask.BuildMask(geom.Domain(), geom.periodicity(), 1, 0, 0, 1);
+        }
+
+        const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
+        MFItInfo info;
+        if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(mf,info); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            const auto& flagfab = flags[mfi];
+            AMREX_D_TERM(Array4<Real> const& gradxarr = grad[0]->array(mfi);,
+                         Array4<Real> const& gradyarr = grad[1]->array(mfi);,
+                         Array4<Real> const& gradzarr = grad[2]->array(mfi););
+            Array4<const Real> const& mfarr = mf.const_array(mfi);
+
+            const auto fabtyp = flagfab.getType(bx);
+            if (fabtyp == FabType::covered) {
+                AMREX_HOST_DEVICE_FOR_4D(bx,mf.nComp(),i,j,k,n,
+                {
+                    AMREX_D_TERM(gradxarr(i,j,k,n) = 0.0;,
+                                 gradyarr(i,j,k,n) = 0.0;,
+                                 gradzarr(i,j,k,n) = 0.0;);
+                });
+            } else if (fabtyp == FabType::regular) {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, b,
+                {
+                    amrex_compute_gradient(b,
+                      AMREX_D_DECL(gradxarr,gradyarr,gradzarr),mfarr,dxinv);
+                });
+            } else {
+                Array4<int const> const& ccm = (already_on_centroids) ?
+                    Array4<int const>{} : cc_mask.const_array(mfi);
+                Array4<Real const> const& vol = vfrac.const_array(mfi);
+                AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
+                             Array4<Real const> const& apy = area[1]->const_array(mfi);,
+                             Array4<Real const> const& apz = area[2]->const_array(mfi););
+                AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->const_array(mfi);,
+                             Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
+                             Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
+                Array4<EBCellFlag const> const& flagarr = flagfab.const_array();
+                AMREX_HOST_DEVICE_FOR_4D(bx,mf.nComp(),i,j,k,n,
+                {
+                    eb_compute_gradient(i,j,k,n,AMREX_D_DECL(gradxarr,gradyarr,gradzarr),mfarr,
+                                        ccm, flagarr, vol, AMREX_D_DECL(apx,apy,apz),
+                                        AMREX_D_DECL(fcx,fcy,fcz), dxinv, already_on_centroids);
+                });
+            }
+        }
+    }
+}
+
 void
 EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
                                const Array<MultiFab const*,AMREX_SPACEDIM>& fmf)

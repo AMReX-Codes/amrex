@@ -419,6 +419,33 @@ void amrex_compute_gradient (Box const& bx, Array4<Real> const& grad,
 
 AMREX_GPU_HOST_DEVICE
 inline
+void amrex_compute_gradient (Box const& bx, Array4<Real const> const& mf,
+                             Array4<Real> const& gradx,
+                             Array4<Real> const& grady,
+                             Array4<Real> const& gradz,
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const auto lo = lbound(bx);
+    const auto hi = ubound(bx);
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                const Real val = mf(i,j,k,0);
+                gradx(i,j,k,0) = dxi * (mf(i+1,j,k,0)-val);
+                grady(i,j,k,0) = dyi * (mf(i,j+1,k,0)-val);
+                gradz(i,j,k,0) = dzi * (mf(i,j,k+1,0)-val);
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
 void amrex_compute_convective_difference (Box const& bx, Array4<Real> const& diff,
                                           Array4<Real const> const& u_face,
                                           Array4<Real const> const& v_face,
