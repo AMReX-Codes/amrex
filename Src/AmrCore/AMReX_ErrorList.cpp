@@ -395,19 +395,19 @@ operator << (std::ostream&    os,
 
             if (m_test == GRAD)
             {
-              AMRErrorTag_GRAD(bx, dat, tag, m_value, tagval);
+              AMRErrorTag_GRAD(bx, dat, tag, m_value[level], tagval);
             }
             else if (m_test == LESS)
             {
-              AMRErrorTag_LESS(bx, dat, tag, m_value, tagval);
+              AMRErrorTag_LESS(bx, dat, tag, m_value[level], tagval);
             }
             else if (m_test == GREATER)
             {
-              AMRErrorTag_GREATER(bx, dat, tag, m_value, tagval);
+              AMRErrorTag_GREATER(bx, dat, tag, m_value[level], tagval);
             }
             else if (m_test == VORT)
             {
-              AMRErrorTag_VORT(bx, dat, tag, level, m_value, tagval);
+              AMRErrorTag_VORT(bx, dat, tag, level, m_value[level], tagval);
             }
             else
             {

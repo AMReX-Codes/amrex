@@ -38,7 +38,7 @@ It is used throughout AMReX, however its functions are not defined
 for device code. :cpp:`GpuArray` is AMReX's built-in alternative.  It
 is a trivial type that works on both host and device.  It also works
 when compiled just for CPU.  Besides :cpp:`GpuArray`, AMReX also
-provides GPU safe :cpp:`Array1D`, :cpp:`Array2D` and :cpp:`Array3d` that are
+provides GPU safe :cpp:`Array1D`, :cpp:`Array2D` and :cpp:`Array3D` that are
 1, 2 and 3-dimensional fixed size arrays, respectively.  These three
 class templates can have non-zero based indexing.
 
@@ -652,8 +652,8 @@ the index type. Some examples are shown below.
       Print() << facebx.coarsen(2);      // ((16,16,16) (32,31,31) (1,0,0))
 
       Box uncoarsenable ({16,16,16}, {30,30,30});
-      print() << uncoarsenable.coarsen(2); // ({8,8,8}, {15,15,15});
-      print() << uncoarsenable.refine(2);  // ({16,16,16}, {31,31,31});
+      Print() << uncoarsenable.coarsen(2); // ((8,8,8), (15,15,15));
+      Print() << uncoarsenable.refine(2);  // ((16,16,16), (31,31,31));
                                            // Different from the original!
 
 Note that the behavior of refinement and coarsening depends on the
@@ -1287,7 +1287,7 @@ will be :cpp:`Box{(6,6,6) (16,16,16)}` in this example. For cells in
 :cpp:`FArrayBox`, we call those in the original :cpp:`Box` **valid cells** and
 the grown part **ghost cells**. Note that :cpp:`FArrayBox` itself does not have
 the concept of ghost cells.  Ghost cells are a key concept of
-:cpp:`MultiFab`,however, that allows for local operations on ghost cell data
+:cpp:`MultiFab`, however, that allows for local operations on ghost cell data
 originated from remote processes. We will discuss how to fill ghost cells with
 data from valid cells later in this section.  :cpp:`MultiFab` also has a
 default constructor. One can define an empty :cpp:`MultiFab` first and then
@@ -1363,7 +1363,7 @@ face averaged variables.
       MultiFab zflux(amrex::convert(ba, IntVect{0,0,1}), dm, ncomp, 0);
 
 Here all :cpp:`MultiFab`\ s  use the same :cpp:`DistributionMapping`, but their
-:cpp:`BoxArrays` have different index types. The state is cell-based, whereas
+:cpp:`BoxArray`\ s have different index types. The state is cell-based, whereas
 the fluxes are on the faces. Suppose the cell based :cpp:`BoxArray` contains a
 :cpp:`Box{(8,8,16), (15,15,31)}`. The state on that :cpp:`Box` is conceptually
 a Fortran Array with the dimension of :fortran:`(8:15,8:15,16:31,0:2)`. The
@@ -2667,7 +2667,7 @@ domain, the physical coordinates of the box, and the periodicity:
         IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
         Box domain(dom_lo, dom_hi);
 
-        // Initialize the boxarray "ba" from the single box "bx"
+        // Initialize the boxarray "ba" from the single box "domain"
         ba.define(domain);
         // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
         ba.maxSize(max_grid_size);
@@ -2716,7 +2716,7 @@ We demonstrate how to build an array of face-based ``MultiFabs`` :
         flux[dir].define(edge_ba, dm, 1, 0);
     }
 
-To access and/or modify data n a ``MultiFab`` we use the ``MFIter``, where each
+To access and/or modify data in a ``MultiFab`` we use the ``MFIter``, where each
 processor loops over grids it owns to access and/or modify data on that grid:
 
 ::

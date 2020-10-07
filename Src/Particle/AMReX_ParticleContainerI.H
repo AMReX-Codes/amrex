@@ -966,7 +966,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 addParticles (const ParticleContainerType& other, bool local)
 {
-    using PData = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>; 
+    using PData = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     addParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
@@ -1000,7 +1000,7 @@ addParticles (const ParticleContainerType& other, F&& f, bool local)
             auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
             if(plevel_other.find(index) == plevel_other.end()) continue;
 
-            auto& ptile = plevel[index];
+            auto& ptile = DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
             const auto& ptile_other = plevel_other.at(index);
             auto np = ptile_other.numParticles();
             if (np == 0) continue;

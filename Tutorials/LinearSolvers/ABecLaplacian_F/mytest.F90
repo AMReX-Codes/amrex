@@ -20,7 +20,7 @@ module mytest_module
   integer, save :: prob_type = 1
 
   integer, save :: verbose = 2
-  integer, save :: cg_verbose = 0
+  integer, save :: bottom_verbose = 0
   integer, save :: max_iter = 100
   integer, save :: max_fmg_iter = 0
   integer, save :: bottom_solver = amrex_bottom_default
@@ -68,7 +68,7 @@ contains
     call pp % query("prob_type", prob_type)
 
     call pp % query("verbose", verbose)
-    call pp % query("cg_verbose", cg_verbose)
+    call pp % query("bottom_verbose", bottom_verbose)
     call pp % query("max_iter", max_iter)
     call pp % query("max_fmg_iter", max_fmg_iter)
     call pp % query("bottom_solver", bottom_solver)
@@ -201,7 +201,7 @@ contains
 
        call amrex_multigrid_build(multigrid, poisson)
        call multigrid % set_verbose(verbose)
-       call multigrid % set_cg_verbose(cg_verbose)
+       call multigrid % set_bottom_verbose(bottom_verbose)
        call multigrid % set_max_iter(max_iter)
        call multigrid % set_max_fmg_iter(max_fmg_iter)
        call multigrid % set_bottom_solver(bottom_solver)
@@ -241,7 +241,7 @@ contains
 
           call amrex_multigrid_build(multigrid, poisson);
           call multigrid % set_verbose(verbose)
-          call multigrid % set_cg_verbose(cg_verbose)
+          call multigrid % set_bottom_verbose(bottom_verbose)
           call multigrid % set_max_iter(max_iter)
           call multigrid % set_max_fmg_iter(max_fmg_iter)
           call multigrid % set_bottom_solver(bottom_solver)
@@ -303,7 +303,7 @@ contains
 
        call amrex_multigrid_build(multigrid, abeclap)
        call multigrid % set_verbose(verbose)
-       call multigrid % set_cg_verbose(cg_verbose)
+       call multigrid % set_bottom_verbose(bottom_verbose)
        call multigrid % set_max_iter(max_iter)
        call multigrid % set_max_fmg_iter(max_fmg_iter)
        call multigrid % set_bottom_solver(bottom_solver)
@@ -340,7 +340,7 @@ contains
 
        call amrex_multigrid_build(multigrid, abeclap)
        call multigrid % set_verbose(verbose)
-       call multigrid % set_cg_verbose(cg_verbose)
+       call multigrid % set_bottom_verbose(bottom_verbose)
        call multigrid % set_max_iter(max_iter)
        call multigrid % set_max_fmg_iter(max_fmg_iter)
        call multigrid % set_bottom_solver(bottom_solver)

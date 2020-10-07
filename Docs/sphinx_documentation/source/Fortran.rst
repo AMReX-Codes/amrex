@@ -276,7 +276,7 @@ example,
                   ! mf1 is still the owner of the data.
       call amrex_multifab_destroy(mf1)
       ! mf2 no longer contains a valid pointer because mf1 has been destroyed. 
-      call amrex_multifab_destroyed(mf2)  ! But we still need to destroy it.
+      call amrex_multifab_destroy(mf2)  ! But we still need to destroy it.
 
 If we need to transfer the ownership, :fortran:`amrex_multifab`,
 :fortran:`amrex_boxarray` and :fortran:`amrex_distromap` provide type-bound
@@ -290,7 +290,7 @@ If we need to transfer the ownership, :fortran:`amrex_multifab`,
       call amrex_multifab_build(mf1, ...)
       call mf2%move(mf1)   ! mf2 is now the data owner and mf1 is not.
       call amrex_multifab_destroy(mf1)
-      call amrex_multifab_destroyed(mf2)
+      call amrex_multifab_destroy(mf2)
 
 :fortran:`amrex_multifab` also has a type-bound :fortran:`swap` procedure for
 exchanging the data.

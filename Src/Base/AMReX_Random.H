@@ -95,6 +95,7 @@ namespace amrex
 #elif defined(__HIP_DEVICE_COMPILE__)
         return hiprand_poisson(random_engine.rand_state, lambda);
 #elif defined (__SYCL_DEVICE_ONLY__)
+        amrex::ignore_unused(lambda,random_engine);
         amrex::Abort("RandomPossion not supported in DPC++ device code");
         return 0; // xxxxx DPCPP todo: Poisson distribution
 #else

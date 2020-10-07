@@ -3,11 +3,10 @@
 
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Particles.H>
-
-// note - namespace
+#include <AMReX_ParticleUtil.H>
 
 struct KeepValidFilter
-{    
+{
     template <typename SrcData>
     AMREX_GPU_HOST_DEVICE
     int operator() (const SrcData& src, int i) const noexcept
@@ -79,10 +78,11 @@ void WriteBinaryParticleDataSync (PC const& pc,
             const auto np = kv.second.numParticles();
             particle_io_flags[lev][kv.first].resize(np, 0);
             auto pflags = particle_io_flags[lev][kv.first].data();
-            AMREX_HOST_DEVICE_FOR_1D( np, k,
+            amrex::ParallelForRNG(np,
+            [=] AMREX_GPU_DEVICE (int k, amrex::RandomEngine const& engine) noexcept
             {
                 const auto p = ptd.getSuperParticle(k);
-                pflags[k] = f(p);
+                pflags[k] = particle_detail::call_f(f,p,engine);
             });
         }
     }

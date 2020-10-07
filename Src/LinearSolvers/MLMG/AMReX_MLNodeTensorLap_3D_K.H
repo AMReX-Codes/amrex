@@ -220,7 +220,7 @@ void mlndtslap_fill_ijmatrix (Box const& ndbx, Array4<HypreNodeLap::Int const> c
                               Array4<int const> const& owner,
                               Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
                               Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat,
-                              Array4<int const> const& msk, GpuArray<Real,6> const& s,
+                              Array4<int const> const& /*msk*/, GpuArray<Real,6> const& s,
                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     const Real h00 = dxinv[0]*dxinv[0];

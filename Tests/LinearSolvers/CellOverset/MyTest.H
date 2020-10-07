@@ -43,6 +43,8 @@ private:
 
     int do_overset = 1;
     amrex::iMultiFab oversetmask;
+
+    int use_hypre = 0;
 };
 
 #endif

@@ -241,7 +241,7 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
     // phi comes out already averaged-down and ready to be used by caller if needed
     m_mlmg -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(m_rhs), a_rtol, a_atol );
 
-    // Get fluxes -- fluxes = -  (alpha/beta) * grad(phi)
+    // Get fluxes -- fluxes = - sigma * grad(phi)
     m_mlmg -> getFluxes( GetVecOfPtrs(m_fluxes) );
 
     // At this time, the fluxes are "correct" only on regions not covered by finer grids.
@@ -258,7 +258,7 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
     {
         if (m_has_alpha)
         {
-            // fluxes -> fluxes/alpha = -grad(phi)/beta
+            // fluxes -> fluxes/alpha = - ( sigma / alpha ) * grad(phi)
             for (int n = 0; n < AMREX_SPACEDIM; ++n)
             {
                 MultiFab::Divide( m_fluxes[lev], *m_alpha[lev], 0, n, 1, 0 );
@@ -266,7 +266,7 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
         }
 
         //
-        // vel = vel + fluxes = vel - grad(phi) / beta
+        // vel = vel + fluxes = vel - ( sigma / alpha ) * grad(phi)
         //
         // Since we already averaged-down the velocity field and -grad(phi),
         // we perform the projection by simply adding the two of them.

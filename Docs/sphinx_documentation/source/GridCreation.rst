@@ -42,21 +42,21 @@ Note that :cpp:`n_cell` must be given as three separate integers, one for each c
 However, :cpp:`max_grid_size` and :cpp:`blocking_factor` can be specified as a single value 
 applying to all coordinate directions, or as separate values for each direction.  
 
- - if :cpp:`max_grid_size` (or :cpp:`blocking_factor`) is specified as multiple integers then the first 
+ - If :cpp:`max_grid_size` (or :cpp:`blocking_factor`) is specified as multiple integers then the first 
    integer applies to level 0, the second to level 1, etc.  If you don't specify as many
    integers as there are levels, the final value will be used for the remaining levels.
 
- - if different values of :cpp:`max_grid_size` (or :cpp:`blocking_factor`) are wanted for each coordinate direction, 
+ - If different values of :cpp:`max_grid_size` (or :cpp:`blocking_factor`) are wanted for each coordinate direction, 
    then :cpp:`max_grid_size_x`, :cpp:`max_grid_size_y` and :cpp:`max_grid_size_z` 
    (or :cpp:`blocking_factor_x`, :cpp:`blocking_factor_y` and :cpp:`blocking_factor_z`) must be used.  
    If you don't specify as many integers as there are levels, the final value will be used for the remaining levels.
 
 Additional notes:
 
- - to create identical grids of a specific size, e.g. of length *m* in each direction, 
+ - To create identical grids of a specific size, e.g. of length *m* in each direction, 
    then set :cpp:`max_grid_size` = *m* and :cpp:`blocking_factor` = *m*.
 
- - note that :cpp:`max_grid_size` is just an upper bound; with :cpp:`n_cell = 48` 
+ - Note that :cpp:`max_grid_size` is just an upper bound; with :cpp:`n_cell = 48` 
    and :cpp:`max_grid_size = 32`, we will typically have one grid of length 32 and one of length 16.
 
 The grid creation process at level 0 proceeds as follows (if not using the KD-tree approach):

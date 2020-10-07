@@ -71,30 +71,10 @@ if (ENABLE_FORTRAN)
       PRIVATE
       AMReX_ebcellflag_mod.F90
       AMReX_EBFluxRegister_nd.F90
-      AMReX_compute_normals.F90
-      AMReX_EB_F.H
       AMReX_WriteEBSurface.cpp
       AMReX_WriteEBSurface.H
       AMReX_WriteEB_F.H
       AMReX_eb_to_pvd.F90
-      # LS
-      AMReX_EB_geometry.F90
-      AMReX_EB_bc_fill_nd.F90
-      AMReX_EB_Tagging.F90
-      AMReX_EB_levelset_F.F90
-      AMReX_EB_levelset.H
-      AMReX_EB_levelset.cpp
       )
-
-   if (DIM EQUAL 3)
-      target_sources(amrex
-         PRIVATE
-         AMReX_EB_LSCoreBase.H
-         AMReX_EB_LSCoreBase.cpp
-         AMReX_EB_LSCore.H
-         AMReX_EB_LSCoreI.H
-         AMReX_EB_LSCore_F.H
-         )
-  endif ()
 
 endif ()

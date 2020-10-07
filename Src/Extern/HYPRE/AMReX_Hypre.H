@@ -51,7 +51,10 @@ public:
                              static_cast<HYPRE_Int>(v[1]),
                              static_cast<HYPRE_Int>(v[2]))};
     }
-    
+
+
+    void setHypreOptionsNamespace (const std::string& ns) noexcept
+    { options_namespace = ns; }
     void setHypreOldDefault (bool l) noexcept {old_default = l;}
     void setHypreRelaxType (int n) noexcept {relax_type = n;}
     void setHypreRelaxOrder (int n) noexcept {relax_order = n;}
@@ -73,6 +76,8 @@ protected:
     int num_sweeps = 2;  // Sweeeps on each level
     Real strong_threshold = 0.25; // Hypre default is 0.25
 
+    std::string options_namespace{"hypre"};
+
     MultiFab acoefs;
     Array<MultiFab,AMREX_SPACEDIM> bcoefs;
     Real scalar_a, scalar_b;
@@ -85,7 +90,8 @@ protected:
 };
 
 std::unique_ptr<Hypre> makeHypre (const BoxArray& grids, const DistributionMapping& damp,
-                                  const Geometry& geom, MPI_Comm comm_, Hypre::Interface interface);
+                                  const Geometry& geom, MPI_Comm comm_, Hypre::Interface interface,
+                                  const iMultiFab* overset_mask = nullptr);
 
 }
 
