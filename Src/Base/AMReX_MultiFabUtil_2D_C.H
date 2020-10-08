@@ -323,9 +323,9 @@ void amrex_compute_gradient (Box const& bx, Array4<Real> const& grad,
 AMREX_GPU_HOST_DEVICE
 inline
 void amrex_compute_gradient (Box const& bx, const int nComps,
-                             Array4<Real const> const& mf,
                              Array4<Real> const& gradx,
                              Array4<Real> const& grady,
+                             Array4<Real const> const& mf,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     const auto lo = lbound(bx);
