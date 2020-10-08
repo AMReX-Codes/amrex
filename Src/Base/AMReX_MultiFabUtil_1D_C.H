@@ -301,6 +301,25 @@ void amrex_compute_gradient (Box const& bx, Array4<Real> const& grad,
     }
 }
 
+AMREX_GPU_HOST_DEVICE
+inline
+void amrex_compute_gradient (Box const& bx, const int nComps,
+                             Array4<Real> const& grad,
+                             Array4<Real const> const& mf,
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const auto lo = lbound(bx);
+    const auto hi = ubound(bx);
+    const Real dxi = dxinv[0];
+
+    for (int n = 0; n < nComps; ++n) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            grad(i,0,0,n) = dxi * (mf(i+1,0,0,n)-mf(i,0,0,n));
+        }
+    }
+}
+
 }
 
 #endif

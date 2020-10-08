@@ -806,7 +806,7 @@ void EB_computeGradient (const Array<MultiFab*,AMREX_SPACEDIM>& grad, const Mult
             } else if (fabtyp == FabType::regular) {
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, b,
                 {
-                    amrex_compute_gradient(b,
+                    amrex_compute_gradient(b,mf.nComp(),
                       AMREX_D_DECL(gradxarr,gradyarr,gradzarr),mfarr,dxinv);
                 });
             } else {

@@ -839,8 +839,6 @@ namespace amrex
     void computeGradient (const Array<MultiFab*,AMREX_SPACEDIM>& grad, const MultiFab& mf,
                           const Geometry& geom)
     {
-        AMREX_ASSERT(mf.nComp() == 1);
-
         AMREX_ASSERT(grad[0]->nComp() == mf.nComp());
         AMREX_ASSERT(grad[1]->nComp() == mf.nComp());
 #if (AMREX_SPACEDIM==3)
@@ -866,10 +864,10 @@ namespace amrex
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            const auto& mfarr = mf.const_array(mfi);
             AMREX_D_TERM(const auto& gradxarr = grad[0]->array(mfi);,
                          const auto& gradyarr = grad[1]->array(mfi);,
                          const auto& gradzarr = grad[2]->array(mfi););
+            const auto& mfarr = mf.const_array(mfi);
 #if (AMREX_SPACEDIM==2)
             if (geom.IsRZ()) {
                 Array4<Real const> const&  ax =  areax.array(mfi);
@@ -878,7 +876,7 @@ namespace amrex
 
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
                 {
-                    amrex_compute_gradient_rz(tbx,
+                    amrex_compute_gradient_rz(tbx,mf.nComp(),
                       AMREX_D_DECL(gradxarr,gradyarr,gradzarr),mfarr,ax,ay,vol);
                 });
             } else
@@ -886,7 +884,7 @@ namespace amrex
             {
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
                 {
-                    amrex_compute_gradient(tbx,
+                    amrex_compute_gradient(tbx,mf.nComp(),
                       AMREX_D_DECL(gradxarr,gradyarr,gradzarr),mfarr,dxinv);
                 });
             }

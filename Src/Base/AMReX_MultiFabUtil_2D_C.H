@@ -322,7 +322,8 @@ void amrex_compute_gradient (Box const& bx, Array4<Real> const& grad,
 
 AMREX_GPU_HOST_DEVICE
 inline
-void amrex_compute_gradient (Box const& bx, Array4<Real const> const& mf,
+void amrex_compute_gradient (Box const& bx, const int nComps,
+                             Array4<Real const> const& mf,
                              Array4<Real> const& gradx,
                              Array4<Real> const& grady,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
@@ -332,12 +333,14 @@ void amrex_compute_gradient (Box const& bx, Array4<Real const> const& mf,
     const Real dxi = dxinv[0];
     const Real dyi = dxinv[1];
 
-    for     (int j = lo.y; j <= hi.y; ++j) {
-        AMREX_PRAGMA_SIMD
-        for (int i = lo.x; i <= hi.x; ++i) {
-            const Real val = mf(i,j,0);
-            gradx(i,j,0,0) = dxi * (mf(i+1,j,0)-val);
-            grady(i,j,0,0) = dyi * (mf(i,j+1,0)-val);
+    for         (int n = 0; n < nComps; ++n) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                const Real val = mf(i,j,0,n);
+                gradx(i,j,0,n) = dxi * (mf(i+1,j,0,n)-val);
+                grady(i,j,0,n) = dyi * (mf(i,j+1,0,n)-val);
+            }
         }
     }
 }
@@ -410,6 +413,31 @@ void amrex_compute_gradient_rz (Box const& bx, Array4<Real> const& grad,
         for (int i = lo.x; i <= hi.x; ++i) {
             grad(i,j,0,0) = (ax(i+1,j,0,0)*u(i+1,j,0)-ax(i,j,0,0)*u(i,j,0))/vol(i,j,0,0);
             grad(i,j,0,1) = (ay(i,j+1,0,0)*v(i,j+1,0)-ay(i,j,0,0)*v(i,j,0))/vol(i,j,0,0);
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+void amrex_compute_gradient_rz (Box const& bx, const int nComps,
+                                Array4<Real> const& gradx,
+                                Array4<Real> const& grady,
+                                Array4<Real const> const& mf,
+                                Array4<Real const> const& ax,
+                                Array4<Real const> const& ay,
+                                Array4<Real const> const& vol) noexcept
+{
+    const auto lo = lbound(bx);
+    const auto hi = ubound(bx);
+
+    for         (int n = 0; n < nComps; ++n) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                const Real val = mf(i,j,0,n);
+                gradx(i,j,0,n) = (ax(i+1,j,0,0)*mf(i+1,j,n)-ax(i,j,0,0)*val)/vol(i,j,0,0);
+                grady(i,j,0,n) = (ay(i,j+1,0,0)*mf(i,j+1,n)-ay(i,j,0,0)*val)/vol(i,j,0,0);
+            }
         }
     }
 }
