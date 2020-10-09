@@ -61,7 +61,7 @@ AmrParGDB::ParticleGeom (int level) const
     if (m_has_geom[level]) {
         return m_amrcore->Geom(level);
     } else {
-        m_geom[level];
+        return m_geom[level];
     }
 }
 
