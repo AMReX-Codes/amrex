@@ -58,7 +58,7 @@ inline
 const Geometry&
 AmrParGDB::ParticleGeom (int level) const
 {
-    if (m_has_geom[level]) {
+    if (not m_has_geom[level]) {
         return m_amrcore->Geom(level);
     } else {
         return m_geom[level];
