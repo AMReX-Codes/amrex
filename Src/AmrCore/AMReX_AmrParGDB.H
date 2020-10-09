@@ -123,7 +123,7 @@ void AmrParGDB::SetParticleDistributionMap (int level, const DistributionMapping
 inline
 void AmrParGDB::SetParticleGeometry (int level, const Geometry& new_geom)
 {
-    m_has_geom[lev] = 1;
+    m_has_geom[level] = 1;
     m_geom[level] = new_geom;
 }
 
