@@ -387,6 +387,16 @@ public:
     void SetParticleDistributionMap (int lev, const DistributionMapping& new_dmap)
 	{ m_gdb->SetParticleDistributionMap(lev, new_dmap); }
 
+    //! \brief Set the particle Geometry. If the container was previously set to
+    //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
+    //! will be broken here.
+    //!
+    //! \param lev The level on which to set the Geometry.
+    //! \param new_geom The new Geometry to use.
+    //!
+    void SetParticleGeometry (int lev, const Geometry& new_geom)
+	{ m_gdb->SetParticleGeometry(lev, new_geom); }
+
     //! \brief Get the BoxArray for a given level
     //!
     //! \param lev The level.
@@ -407,24 +417,30 @@ public:
     //!
     const Geometry& Geom (int lev) const { return m_gdb->Geom(lev); }
 
+    //! \brief Get the particle Geometry for a given level
+    //!
+    //! \param lev The level.
+    //!
+    const Geometry& ParticleGeom (int lev) const { return m_gdb->ParticleGeom(lev); }
+
     //! \brief the finest level actually defined for the ParticleContainer
     int finestLevel () const { return m_gdb->finestLevel(); }
 
     //! \brief the finest allowed level in the ParticleContainer, whether it is defined or not.
     int maxLevel ()    const { return m_gdb->maxLevel(); }
 
-    //! \brief the number of defined levels in the ParticleContainer    
+    //! \brief the number of defined levels in the ParticleContainer
     int numLevels()    const { return finestLevel() + 1; }
 
-    //! \brief The total number of tiles on this rank on this level     
+    //! \brief The total number of tiles on this rank on this level
     int numLocalTilesAtLevel (int lev) const { return m_particles[lev].size(); }
 
-    //! \brief Get the ParGDB object used to define this container (const version)    
+    //! \brief Get the ParGDB object used to define this container (const version)
     const ParGDBBase* GetParGDB () const { return m_gdb; }
 
     //! \brief Get the ParGDB object used to define this container
           ParGDBBase* GetParGDB ()       { return m_gdb; }
-    
+
     void reserveData ();
     void resizeData ();
 
