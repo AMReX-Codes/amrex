@@ -16,7 +16,7 @@ endif ()
 #
 # Sensei
 #
-if (ENABLE_SENSEI_INSITU)
+if (ENABLE_SENSEI)
     find_package(SENSEI REQUIRED)
     target_link_libraries( amrex PUBLIC sensei )
 endif ()

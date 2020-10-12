@@ -82,6 +82,10 @@ public:
         return std::unique_ptr<MLLinOp>{};
     }
 
+    virtual iMultiFab const* getOversetMask (int amrlev, int mglev) const override {
+        return m_overset_mask[amrlev][mglev].get();
+    }
+
     virtual void applyOverset (int amlev, MultiFab& rhs) const override;
 
     void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,

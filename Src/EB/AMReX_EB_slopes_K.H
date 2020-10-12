@@ -354,7 +354,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     //    1) Here if any of the cells are not regular we use the face and cell centroids
     //
 
-    if ( (edlo_x and i == domlo_x) or (edlo_x and i == domhi_x) )
+    if ( (edlo_x and i == domlo_x) or (edhi_x and i == domhi_x) )
     {
         int lc=0;
 #if (AMREX_SPACEDIM == 3)
@@ -410,7 +410,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
                      zslope = slopes[2];);
     }
 
-    if ( (edlo_y and j == domlo_y) or (edlo_y and j == domhi_y) )
+    if ( (edlo_y and j == domlo_y) or (edhi_y and j == domhi_y) )
     {
         int lc=0;
 #if (AMREX_SPACEDIM == 3)

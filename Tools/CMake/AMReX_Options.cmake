@@ -171,8 +171,8 @@ print_option( ENABLE_DP_PARTICLES )
 #
 
 # sensei
-option( ENABLE_SENSEI_INSITU "Enable SENSEI in situ infrastructure" OFF )
-print_option( ENABLE_SENSEI_INSITU )
+option( ENABLE_SENSEI "Enable SENSEI in situ infrastructure" OFF )
+print_option( ENABLE_SENSEI )
 
 # Conduit (requires CONDUIT_DIR)
 option( ENABLE_CONDUIT "Enable Conduit support" OFF )

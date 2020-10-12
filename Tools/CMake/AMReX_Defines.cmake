@@ -125,7 +125,7 @@ function ( set_amrex_defines )
    endif ()
 
    # SENSEI Insitu -- only legacy
-   add_amrex_define( BL_USE_SENSEI_INSITU IF ENABLE_SENSEI_INSITU )
+   add_amrex_define( BL_USE_SENSEI_INSITU IF ENABLE_SENSEI )
 
    # Conduit Support
    add_amrex_define( AMREX_USE_CONDUIT NO_LEGACY IF ENABLE_CONDUIT )

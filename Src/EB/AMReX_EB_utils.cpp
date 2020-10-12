@@ -1,4 +1,3 @@
-#include <AMReX_EB_F.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_EB_utils.H>
 #include <AMReX_Geometry.H>
@@ -7,57 +6,6 @@
 #include <AMReX_EBFArrayBox.H>
 
 namespace amrex {
-
-#ifndef BL_NO_FORT
-    //
-    // Fill EB normals
-    //
-    void FillEBNormals(MultiFab & normals, const EBFArrayBoxFactory & eb_factory,
-                       const Geometry & geom) {
-
-        BL_PROFILE("amrex::FillEBNormals()");
-
-        BoxArray ba = normals.boxArray();
-        DistributionMapping dm = normals.DistributionMap();
-        int n_grow = normals.nGrow();
-
-        // Dummy array for MFIter
-        MultiFab dummy(ba, dm, 1, n_grow, MFInfo(), eb_factory);
-        // Area fraction data
-        std::array<const MultiCutFab*, AMREX_SPACEDIM> areafrac = eb_factory.getAreaFrac();
-
-        const auto & flags = eb_factory.getMultiEBCellFlagFab();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for(MFIter mfi(dummy, true); mfi.isValid(); ++mfi) {
-            Box tile_box = mfi.growntilebox();
-            const int * lo = tile_box.loVect();
-            const int * hi = tile_box.hiVect();
-
-            const auto & flag = flags[mfi];
-
-            if (flag.getType(tile_box) == FabType::singlevalued) {
-                // Target for compute_normals(...)
-                auto & norm_tile = normals[mfi];
-                // Area fractions in x, y, and z directions
-                const auto & af_x_tile = (* areafrac[0])[mfi];
-                const auto & af_y_tile = (* areafrac[1])[mfi];
-                const auto & af_z_tile = (* areafrac[2])[mfi];
-
-                amrex_eb_compute_normals(lo, hi,
-                                         BL_TO_FORTRAN_3D(flag),
-                                         BL_TO_FORTRAN_3D(norm_tile),
-                                         BL_TO_FORTRAN_3D(af_x_tile),
-                                         BL_TO_FORTRAN_3D(af_y_tile),
-                                         BL_TO_FORTRAN_3D(af_z_tile)  );
-            }
-        }
-
-        normals.FillBoundary(geom.periodicity());
-    }
-#endif
 
 #if (AMREX_SPACEDIM > 1)
     //
@@ -636,11 +584,13 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                                          vi_z = static_cast<int>(amrex::Math::floor((eb_min_z+k_shift*1.e-6_rt*dx_eb[2])*dzinv)));
                             if (AMREX_D_TERM(vi_cx == vi_x, && vi_cy == vi_y, && vi_cz == vi_z)) {
                                 min_pt_valid = true;
+                                goto after_loops;
                             }
                         }}
 #if (AMREX_SPACEDIM == 3)
                         }
 #endif
+                        after_loops:;
                     }
 
                     // If projects onto nearest EB facet, then return projected distance
@@ -651,9 +601,10 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                         min_dist = dist_proj;
                     } else {
                         // fallback: find the nearest point on the EB edge
-//                        AMREX_D_TERM(vi_x = static_cast<int>(amrex::Math::floor(eb_min_x * dxinv));,
-//                                     vi_y = static_cast<int>(amrex::Math::floor(eb_min_y * dyinv));,
-//                                     vi_z = static_cast<int>(amrex::Math::floor(eb_min_z * dzinv)));
+                        // revert the value of vi_x, vi_y and vi_z
+                        AMREX_D_TERM(vi_x = static_cast<int>(amrex::Math::floor(eb_min_x * dxinv));,
+                                     vi_y = static_cast<int>(amrex::Math::floor(eb_min_y * dyinv));,
+                                     vi_z = static_cast<int>(amrex::Math::floor(eb_min_z * dzinv)));
                         auto c_vec = detail::facets_nearest_pt
                             ({AMREX_D_DECL(vi_x,vi_y,vi_z)}, {AMREX_D_DECL(vi_cx, vi_cy, vi_cz)},
                              {AMREX_D_DECL(x,y,z)}, {AMREX_D_DECL(nx,ny,nz)},

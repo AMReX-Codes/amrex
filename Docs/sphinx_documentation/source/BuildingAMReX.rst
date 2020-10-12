@@ -461,7 +461,7 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_SUNDIALS              |  Enable SUNDIALS 4 interfaces                   | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_SENSEI_IN_SITU        |  Enable SENSEI_IN_SITU infrastucture            | NO          | YES, NO         |
+   | ENABLE_SENSEI                |  Enable SENSEI_IN_SITU infrastucture            | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_CONDUIT               |  Enable Conduit support                         | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -666,7 +666,7 @@ A list of AMReX component names and related configure options are shown in the t
    +------------------------------+-----------------+
    | ENABLE_SUNDIALS              | SUNDIALS        |
    +------------------------------+-----------------+
-   | ENABLE_SENSEI_IN_SITU        | SENSEI          |
+   | ENABLE_SENSEI                | SENSEI          |
    +------------------------------+-----------------+
    | ENABLE_CONDUIT               | CONDUIT         |
    +------------------------------+-----------------+

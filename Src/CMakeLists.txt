@@ -136,7 +136,7 @@ if (ENABLE_PROFPARSER)
     add_subdirectory(Extern/ProfParser)
 endif ()
 
-if (ENABLE_SENSEI_INSITU)
+if (ENABLE_SENSEI)
    add_subdirectory(Extern/SENSEI)
 endif ()
 
