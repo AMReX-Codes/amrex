@@ -18,7 +18,7 @@ sudo apt-get update
 
 sudo apt-get install -y --no-install-recommends \
     build-essential \
-    intel-oneapi-dpcpp-compiler intel-oneapi-mkl \
+    intel-oneapi-dpcpp-cpp-compiler intel-oneapi-mkl-devel \
     g++ gfortran    \
     libopenmpi-dev  \
     openmpi-bin

@@ -237,11 +237,14 @@ MLCellABecLap::makeHypre (Hypre::Interface hypre_interface) const
     const auto& factory = *(m_factory[0].back());
     MPI_Comm comm = BottomCommunicator();
 
-    auto hypre_solver = amrex::makeHypre(ba, dm, geom, comm, hypre_interface);
+    const int mglev = NMGLevels(0)-1;
+
+    auto om = getOversetMask(0, mglev);
+
+    auto hypre_solver = amrex::makeHypre(ba, dm, geom, comm, hypre_interface, om);
 
     hypre_solver->setScalars(getAScalar(), getBScalar());
 
-    const int mglev = NMGLevels(0)-1;
     auto ac = getACoeffs(0, mglev);
     if (ac)
     {

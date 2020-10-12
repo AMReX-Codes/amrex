@@ -31,6 +31,7 @@ target_sources( amrex
    AMReX_Scan.H
    AMReX_Partition.H
    AMReX_Random.H
+   AMReX_RandomEngine.H
    AMReX_Random.cpp
    AMReX_Slopes_K.H
    AMReX_BLassert.H
@@ -173,6 +174,7 @@ target_sources( amrex
    # GPU --------------------------------------------------------------------
    AMReX_Gpu.H
    AMReX_GpuQualifiers.H
+   AMReX_GpuKernelInfo.H
    AMReX_GpuPrint.H
    AMReX_GpuAssert.H
    AMReX_GpuTypes.H

@@ -125,7 +125,7 @@ cells, number of components, and the interlevel interpolation (See
 AMReX_Interpolator for various interpolation types. We also see how to specify
 physical boundary functions by providing a function (in this case,
 :cpp:`nullfill` since we are not using physical boundary conditions), where
-:cpp:`nullfill` is defined in a fortran routine in the tutorial source code.
+:cpp:`nullfill` is defined in a Fortran routine in the tutorial source code.
 
 Example: Advection_AmrLevel
 ===========================

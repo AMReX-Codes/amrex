@@ -327,7 +327,7 @@ ParallelDescriptor::StartParallel (int*    argc,
     amrex::ignore_unused(tfoo);
 
 #ifdef AMREX_MPI_THREAD_MULTIPLE
-    {
+    if ( ! sflag) {  // we initialized
         int requested = MPI_THREAD_MULTIPLE;
         int provided = -1;
         MPI_Query_thread(&provided);

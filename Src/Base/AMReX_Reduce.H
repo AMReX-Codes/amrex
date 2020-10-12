@@ -287,7 +287,7 @@ public:
         const auto len = amrex::length(box);
         IndexType ixtype = box.ixType();
         auto ec = Gpu::ExecutionConfig(ncells);
-        ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
+        ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
 #ifdef AMREX_USE_DPCPP
         // device reduce needs local(i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
@@ -309,6 +309,22 @@ public:
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r, gh);
         });
 #else
+#ifdef AMREX_USE_CUDA
+        if (Gpu::inFuseRegion() && Gpu::inFuseReductionRegion()
+            && ec.numBlocks.x*ec.numThreads.x <= Gpu::getFuseSizeThreshold())
+        {
+            Gpu::Register(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                ReduceTuple r = *(dp+1);
+                if (box.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                    auto pr = Reduce::detail::call_f(f,i,j,k,ixtype);
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
+                }
+                Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
+            });
+        } else
+#endif
+        {
         amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             ReduceTuple r = *(dp+1);
@@ -325,6 +341,7 @@ public:
             }
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
         });
+        }
 #endif
     }
 
@@ -338,7 +355,7 @@ public:
         const auto lo  = amrex::lbound(box);
         const auto len = amrex::length(box);
         auto ec = Gpu::ExecutionConfig(ncells);
-        ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
+        ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
 #ifdef AMREX_USE_DPCPP
         // device reduce needs local(i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
@@ -390,7 +407,7 @@ public:
         using ReduceTuple = typename D::Type;
         auto dp = reduce_data.devicePtr();
         auto ec = Gpu::ExecutionConfig(n);
-        ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
+        ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
 #ifdef AMREX_USE_DPCPP
         // device reduce needs local(i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
@@ -568,7 +585,7 @@ bool AnyOf (N n, T const* v, P&& pred)
     });
 #else
     auto ec = Gpu::ExecutionConfig(n);
-    ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
+    ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
     amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, 0,
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
@@ -610,7 +627,7 @@ bool AnyOf (Box const& box, P&& pred)
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
     auto ec = Gpu::ExecutionConfig(ncells);
-    ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
+    ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, 0,
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;

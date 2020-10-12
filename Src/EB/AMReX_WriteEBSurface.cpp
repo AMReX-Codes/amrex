@@ -1,23 +1,10 @@
 #include <AMReX.H>
-
 #include <AMReX_ParmParse.H>
-
-#include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_BoxArray.H>
+#include <AMReX_MultiFab.H>
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_EBFArrayBox.H>
-#include <AMReX_EBFabFactory.H>
-#include <AMReX_DistributionMapping.H>
-
 #include <AMReX_EB2.H>
-#include <AMReX_EB2_IF_Torus.H>
-#include <AMReX_EB2_IF_Union.H>
-#include <AMReX_EB2_IF_Cylinder.H>
-#include <AMReX_EB2_IF_Difference.H>
-#include <AMReX_EB2_GeometryShop.H>
-
-#include <AMReX_EB_LSCore.H>
 #include <AMReX_WriteEBSurface.H>
 #include <AMReX_WriteEB_F.H>
 

@@ -87,9 +87,6 @@ public:
     void setBottomTolerance (Real t) noexcept { bottom_reltol = t; }
     void setBottomToleranceAbs (Real t) noexcept { bottom_abstol = t;}
     Real getBottomToleranceAbs () noexcept{ return bottom_abstol; }
-    void setCGVerbose (int v) noexcept { bottom_verbose = v; }
-    void setCGMaxIter (int n) noexcept { bottom_maxiter = n; }
-    void setCGTolerance (Real t) noexcept { bottom_reltol = t; }
 
     void setAlwaysUseBNorm (int flag) noexcept { always_use_bnorm = flag; }
 
@@ -106,6 +103,12 @@ public:
 #ifndef AMREX_USE_EB
         hypre_interface = f;
 #endif
+    }
+
+    //! Set the namespace in input file for parsing HYPRE specific options
+    void setHypreOptionsNamespace(const std::string& prefix) noexcept
+    {
+        hypre_options_namespace = prefix;
     }
 
     void setHypreOldDefault (bool l) noexcept {hypre_old_default = l;}
@@ -215,12 +218,13 @@ private:
 
     // Hypre::Interface hypre_interface = Hypre::Interface::structed;
     Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
-//    Hypre::Interface hypre_interface = Hypre::Interface::ij;
+    // Hypre::Interface hypre_interface = Hypre::Interface::ij;
 #endif
     std::unique_ptr<Hypre> hypre_solver;
     std::unique_ptr<MLMGBndry> hypre_bndry;
     std::unique_ptr<HypreNodeLap> hypre_node_solver;
 
+    std::string hypre_options_namespace = "hypre";
     bool hypre_old_default = true; // Falgout coarsening with modified classical interpolation
     int hypre_relax_type = 6;  // G-S/Jacobi hybrid relaxation
     int hypre_relax_order = 1; // uses C/F relaxation

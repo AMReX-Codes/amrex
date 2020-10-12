@@ -125,9 +125,9 @@ cuda_print_option(CUDA_KEEP_FILES)
 #
 # Error if NVCC is too old
 #
-if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS "8.0")
+if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS "9.0")
    message(FATAL_ERROR "Your nvcc version is ${CMAKE_CUDA_COMPILER_VERSION}."
-      "This is unsupported. Please use CUDA toolkit version 8.0 or newer.")
+      "This is unsupported. Please use CUDA toolkit version 9.0 or newer.")
 endif ()
 
 #

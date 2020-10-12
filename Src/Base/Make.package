@@ -27,7 +27,7 @@ C$(AMREX_BASE)_headers += AMReX_Functional.H AMReX_Reduce.H AMReX_Scan.H AMReX_P
 C$(AMREX_BASE)_headers += AMReX_FileSystem.H
 C$(AMREX_BASE)_sources += AMReX_FileSystem.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Random.H
+C$(AMREX_BASE)_headers += AMReX_Random.H AMReX_RandomEngine.H
 C$(AMREX_BASE)_sources += AMReX_Random.cpp
 
 C$(AMREX_BASE)_headers += AMReX_Slopes_K.H
@@ -66,6 +66,7 @@ C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
 C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuPrint.H AMReX_GpuAssert.H AMReX_GpuTypes.H AMReX_GpuError.H
+C$(AMREX_BASE)_headers += AMReX_GpuKernelInfo.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosG.H AMReX_GpuLaunchFunctsG.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosC.H AMReX_GpuLaunchFunctsC.H
