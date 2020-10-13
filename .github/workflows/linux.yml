@@ -171,7 +171,7 @@ jobs:
         cd build
         cmake ..                                           \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
-            -DENABLE_TUTORIALS=ON                          \
+            -DAMReX_BUILD_TUTORIALS=ON                          \
             -DENABLE_PARTICLES=ON                          \
             -DENABLE_DPCPP=ON                              \
             -DCMAKE_C_COMPILER=$(which clang)              \
