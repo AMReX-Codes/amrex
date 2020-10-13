@@ -177,7 +177,7 @@ jobs:
             -DCMAKE_C_COMPILER=$(which clang)              \
             -DCMAKE_CXX_COMPILER=$(which dpcpp)            \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
-        make -j 2 tutorials
+        make -j 2 
 
   tutorials-hip:
     name: HIP ROCm@3.8 GFortran@9.3 C++17 [tutorials]
