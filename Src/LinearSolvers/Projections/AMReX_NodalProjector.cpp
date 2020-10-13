@@ -478,7 +478,7 @@ NodalProjector::averageDown (const amrex::Vector<amrex::MultiFab*> a_var)
 #ifdef AMREX_USE_EB
         const auto ebf = dynamic_cast<EBFArrayBoxFactory const&>(a_var[lev+1]->Factory());
 
-        amrex::MultiFab volume;
+        amrex::MultiFab volume(a_var[lev+1]->boxArray(),a_var[lev+1]->DistributionMap(),1,0);
         m_geom[lev+1].GetVolume(volume);
 
         EB_average_down(*a_var[lev+1], *a_var[lev], volume, ebf.getVolFrac(),
