@@ -130,9 +130,6 @@ HypreABecLap::prepareSolver ()
 {
     BL_PROFILE("HypreABecLap::prepareSolver()");
 
-    const BoxArray& ba = acoefs.boxArray();
-    const DistributionMapping& dm = acoefs.DistributionMap();
-
     HYPRE_StructGridCreate(comm, AMREX_SPACEDIM, &grid);
 
     Array<HYPRE_Int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(0,0,0)};

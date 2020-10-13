@@ -417,31 +417,17 @@ void eb_interp_cc2cent (Box const& box,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void eb_interp_cc2facecent (Box const& box,
-                            Array4<Real const> const& phi,
-                            Array4<Real const> const& apx,
-                            Array4<Real const> const& apy,
-                            Array4<Real const> const& apz,
-                            Array4<Real const> const& fcx,
-                            Array4<Real const> const& fcy,
-                            Array4<Real const> const& fcz,
-                            Array4<Real> const& edg_x,
-                            Array4<Real> const& edg_y,
-                            Array4<Real> const& edg_z,
-                            int ncomp,
-                            const Box& domain,
-                            const BCRec* bc) noexcept
+void eb_interp_cc2facecent_x (Box const& ubx,
+                              Array4<Real const> const& phi,
+                              Array4<Real const> const& apx,
+                              Array4<Real const> const& fcx,
+                              Array4<Real> const& edg_x,
+                              int ncomp,
+                              const Box& domain,
+                              const BCRec* bc) noexcept
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
-
-  const Box ubx = amrex::surroundingNodes(box,0);
-  const Box vbx = amrex::surroundingNodes(box,1);
-  const Box wbx = amrex::surroundingNodes(box,2);
-
-  //
-  // ===================== X =====================
-  //
   amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n) noexcept
   {
     if (apx(i,j,k) == 0)
@@ -491,10 +477,20 @@ void eb_interp_cc2facecent (Box const& box,
       } 
     }
   });
+}
 
-  //
-  // ===================== Y =====================
-  //
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_interp_cc2facecent_y (Box const& vbx,
+                              Array4<Real const> const& phi,
+                              Array4<Real const> const& apy,
+                              Array4<Real const> const& fcy,
+                              Array4<Real> const& edg_y,
+                              int ncomp,
+                              const Box& domain,
+                              const BCRec* bc) noexcept
+{
+  const Dim3 domlo = amrex::lbound(domain);
+  const Dim3 domhi = amrex::ubound(domain);
   amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n) noexcept
   {
     if (apy(i,j,k) == 0)
@@ -544,10 +540,20 @@ void eb_interp_cc2facecent (Box const& box,
       } 
     }
   });
+}
 
-  //
-  // ===================== Z =====================
-  //
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_interp_cc2facecent_z (Box const& wbx,
+                              Array4<Real const> const& phi,
+                              Array4<Real const> const& apz,
+                              Array4<Real const> const& fcz,
+                              Array4<Real> const& edg_z,
+                              int ncomp,
+                              const Box& domain,
+                              const BCRec* bc) noexcept
+{
+  const Dim3 domlo = amrex::lbound(domain);
+  const Dim3 domhi = amrex::ubound(domain);
   amrex::Loop(wbx, ncomp, [=] (int i, int j, int k, int n) noexcept
   {
     if (apz(i,j,k) == 0)
@@ -600,38 +606,21 @@ void eb_interp_cc2facecent (Box const& box,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void eb_interp_centroid2facecent (Box const& bx,
-                                  Array4<Real const> const& phi,
-                                  Array4<Real const> const& apx,
-                                  Array4<Real const> const& apy,
-                                  Array4<Real const> const& apz,
-                                  Array4<Real const> const& cvol,
-                                  Array4<Real const> const& ccent,
-                                  Array4<Real const> const& fcx,
-                                  Array4<Real const> const& fcy,
-                                  Array4<Real const> const& fcz,
-                                  Array4<Real> const& phi_x,
-                                  Array4<Real> const& phi_y,
-                                  Array4<Real> const& phi_z,
-                                  int ncomp,
-                                  const Box& domain,
-                                  const BCRec* bc) noexcept
+void eb_interp_centroid2facecent_x (Box const& ubx,
+                                    Array4<Real const> const& phi,
+                                    Array4<Real const> const& apx,
+                                    Array4<Real const> const& cvol,
+                                    Array4<Real const> const& ccent,
+                                    Array4<Real const> const& fcx,
+                                    Array4<Real> const& phi_x,
+                                    int ncomp,
+                                    const Box& domain,
+                                    const BCRec* bc) noexcept
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
-
-  const Box ubx = amrex::surroundingNodes(bx,0);
-  const Box vbx = amrex::surroundingNodes(bx,1);
-  const Box wbx = amrex::surroundingNodes(bx,2);
-
   // Note that ccent holds (x,y,z) of the cell centroids  as components (0/1/2)
   //           fcx   holds (  y,z) of the x-face centroid as components ( /0/1)
-  //           fcy   holds (x,  z) of the y-face centroid as components (0/ /1)
-  //           fcz   holds (x,y  ) of the z-face centroid as components (0/1  )
-
-  //
-  // ===================== X =====================
-  //
   amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
       if (apx(i,j,k) == 0)
@@ -804,10 +793,24 @@ void eb_interp_centroid2facecent (Box const& bx,
           }
        }
     });
+}
   
-  //
-  // ===================== Y =====================
-  //
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_interp_centroid2facecent_y (Box const& vbx,
+                                    Array4<Real const> const& phi,
+                                    Array4<Real const> const& apy,
+                                    Array4<Real const> const& cvol,
+                                    Array4<Real const> const& ccent,
+                                    Array4<Real const> const& fcy,
+                                    Array4<Real> const& phi_y,
+                                    int ncomp,
+                                    const Box& domain,
+                                    const BCRec* bc) noexcept
+{
+  const Dim3 domlo = amrex::lbound(domain);
+  const Dim3 domhi = amrex::ubound(domain);
+  // Note that ccent holds (x,y,z) of the cell centroids  as components (0/1/2)
+  //           fcy   holds (x,  z) of the y-face centroid as components (0/ /1)
   amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if (apy(i,j,k) == 0)
@@ -977,10 +980,24 @@ void eb_interp_centroid2facecent (Box const& bx,
           }
         }
     });
+}
 
-  //
-  // ===================== Z =====================
-  //
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_interp_centroid2facecent_z (Box const& wbx,
+                                    Array4<Real const> const& phi,
+                                    Array4<Real const> const& apz,
+                                    Array4<Real const> const& cvol,
+                                    Array4<Real const> const& ccent,
+                                    Array4<Real const> const& fcz,
+                                    Array4<Real> const& phi_z,
+                                    int ncomp,
+                                    const Box& domain,
+                                    const BCRec* bc) noexcept
+{
+  const Dim3 domlo = amrex::lbound(domain);
+  const Dim3 domhi = amrex::ubound(domain);
+  // Note that ccent holds (x,y,z) of the cell centroids  as components (0/1/2)
+  //           fcz   holds (x,y  ) of the z-face centroid as components (0/1  )
   amrex::Loop(wbx, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if (apz(i,j,k) == 0)
@@ -1153,25 +1170,15 @@ void eb_interp_centroid2facecent (Box const& bx,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void eb_interp_cc2face (Box const& box,
-                        Array4<Real const> const& phi,
-                        Array4<Real> const& edg_x,
-                        Array4<Real> const& edg_y,
-                        Array4<Real> const& edg_z,
-                        int ncomp,
-                        const Box& domain,
-                        const BCRec* bc) noexcept
+void eb_interp_cc2face_x (Box const& ubx,
+                          Array4<Real const> const& phi,
+                          Array4<Real> const& edg_x,
+                          int ncomp,
+                          const Box& domain,
+                          const BCRec* bc) noexcept
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
-
-  const Box ubx = amrex::surroundingNodes(box,0);
-  const Box vbx = amrex::surroundingNodes(box,1);
-  const Box wbx = amrex::surroundingNodes(box,2);
-
-  //
-  //===================== X =====================
-  //
   amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n) noexcept
   {
     if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
@@ -1187,10 +1194,18 @@ void eb_interp_cc2face (Box const& box,
       edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
     } 
   });
+}
 
-  //
-  //===================== Y =====================
-  //
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_interp_cc2face_y (Box const& vbx,
+                          Array4<Real const> const& phi,
+                          Array4<Real> const& edg_y,
+                          int ncomp,
+                          const Box& domain,
+                          const BCRec* bc) noexcept
+{
+  const Dim3 domlo = amrex::lbound(domain);
+  const Dim3 domhi = amrex::ubound(domain);
   amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n) noexcept
   {
     if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
@@ -1206,10 +1221,18 @@ void eb_interp_cc2face (Box const& box,
       edg_y(i,j,k,n) = 0.5 * (phi(i,j  ,k,n) + phi(i,j-1,k,n));
     }
   });
+}
 
-  //
-  //===================== Z =====================
-  //
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_interp_cc2face_z (Box const& wbx,
+                          Array4<Real const> const& phi,
+                          Array4<Real> const& edg_z,
+                          int ncomp,
+                          const Box& domain,
+                          const BCRec* bc) noexcept
+{
+  const Dim3 domlo = amrex::lbound(domain);
+  const Dim3 domhi = amrex::ubound(domain);
   amrex::Loop(wbx, ncomp, [=] (int i, int j, int k, int n) noexcept
   {
     if ( (k == domlo.z) and (bc[n].lo(2) == BCType::ext_dir) )

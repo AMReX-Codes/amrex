@@ -167,6 +167,9 @@ Device::Initialize ()
     // or only one MPI rank, this is easy. Otherwise, we
     // need to do a little more work.
 
+    int n_local_procs = 1;
+    amrex::ignore_unused(n_local_procs);
+
     if (ParallelDescriptor::NProcs() == 1) {
         device_id = 0;
     }
@@ -231,8 +234,7 @@ Device::Initialize ()
         MPI_Comm_split_type(ParallelDescriptor::Communicator(), split_type, key, MPI_INFO_NULL, &local_comm);
 
         // Get rank within the local communicator, and number of ranks.
-        int n_procs;
-        MPI_Comm_size(local_comm, &n_procs);
+        MPI_Comm_size(local_comm, &n_local_procs);
 
         int my_rank;
         MPI_Comm_rank(local_comm, &my_rank);
@@ -251,7 +253,7 @@ Device::Initialize ()
         // that this will fail in the case where the devices are
         // set to exclusive process mode and MPS is not enabled.
 
-        if (n_procs > gpu_device_count) {
+        if (n_local_procs > gpu_device_count) {
             amrex::Print() << "Mapping more than one rank per GPU. This will fail if the GPUs are in exclusive process mode\n"
                            << "and MPS is not enabled. In that case you will see an error such as: 'all CUDA-capable devices are\n"
                            << "busy'. To resolve that issue, set the GPUs to the default compute mode, or enable MPS. If you are\n"
@@ -336,7 +338,14 @@ Device::Initialize ()
 
 #elif defined(AMREX_USE_HIP) 
     if (amrex::Verbose()) {
-        amrex::Print() << "HIP initialized.\n";
+        if (ParallelDescriptor::NProcs() > 1) {
+#ifdef BL_USE_MPI
+            amrex::Print() << "HIP initialized.  On the first node/socket, there are "
+                           << n_local_procs << " processes and " << gpu_device_count << " GPUs\n";
+#endif
+        } else {
+            amrex::Print() << "HIP initialized.\n";
+        }
     }
 #elif defined(AMREX_USE_DPCPP)
     if (amrex::Verbose()) {

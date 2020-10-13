@@ -10,11 +10,8 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_BndryData.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_HypreIJIface.H>
 
-#include "HYPRE.h"
-#include "_hypre_utilities.h"
-#include "HYPRE_parcsr_ls.h"
-#include "_hypre_parcsr_mv.h"
 
 namespace amrex {
 
@@ -36,6 +33,9 @@ public:
 
     void fill_node_id (LayoutData<Int>& offset);
 
+    void setHypreOptionsNamespace(const std::string& ns)
+    { options_namespace = ns; }
+
 private:
 
     BoxArray grids;
@@ -48,15 +48,19 @@ private:
     MLNodeLinOp const* linop = nullptr;
     int verbose = 0;
 
+    std::unique_ptr<HypreIJIface> hypre_ij;
+
+    // Non-owning references to Hypre matrix, rhs, and solution data
     HYPRE_IJMatrix A = NULL;
     HYPRE_IJVector b = NULL;
     HYPRE_IJVector x = NULL;
-    HYPRE_Solver solver = NULL;
 
     LayoutData<Int> nnodes_grid;
     LayoutData<Vector<Int> > node_id_vec;
     FabArray<BaseFab<Int> > node_id;
     MultiFab tmpsoln;
+
+    std::string options_namespace{"hypre"};
 
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
     void getSolution (MultiFab& soln);

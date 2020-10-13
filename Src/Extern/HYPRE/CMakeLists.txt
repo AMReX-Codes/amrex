@@ -39,6 +39,8 @@ else ()
       AMReX_Habec_K.H
       AMReX_HypreNodeLap.cpp
       AMReX_HypreNodeLap.H
+      AMReX_HypreIJIface.cpp
+      AMReX_HypreIJIface.H
       )
 
 endif ()

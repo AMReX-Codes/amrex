@@ -54,7 +54,7 @@ set(AMReX_LSOLVERS_FOUND            @ENABLE_LINEAR_SOLVERS@)
 set(AMReX_AMRDATA_FOUND             @ENABLE_AMRDATA@)
 set(AMReX_PARTICLES_FOUND           @ENABLE_PARTICLES@)
 set(AMReX_DPARTICLES_FOUND          @ENABLE_DP_PARTICLES@)
-set(AMReX_SENSEI_FOUND              @ENABLE_SENSEI_INSITU@)
+set(AMReX_SENSEI_FOUND              @ENABLE_SENSEI@)
 set(AMReX_CONDUIT_FOUND             @ENABLE_CONDUIT@)
 set(AMReX_SUNDIALS_FOUND            @ENABLE_SUNDIALS@)
 set(AMReX_ASCENT_FOUND              @ENABLE_ASCENT@)
@@ -100,7 +100,7 @@ endif ()
 #
 # Third party libraries
 #
-if (@ENABLE_SENSEI_INSITU@)
+if (@ENABLE_SENSEI@)
    find_dependency(SENSEI REQUIRED)
 endif ()
 

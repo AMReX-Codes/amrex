@@ -329,7 +329,7 @@ PETScABecLap::prepareSolver ()
                                  bcoefs[2][mfi],
 #endif
                                  scalar_a, scalar_b, dx,
-                                 bctype, bcl, bho);
+                                 bctype, bcl, bho, nullptr);
             }
 #ifdef AMREX_USE_EB
             else
