@@ -568,9 +568,9 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_avgcrse_x (Box const& bx,
-                   Array4<T> crse, Array4<T const> fine_val,
-                   const int icomp, const int ncomp, IntVect const& ratio) noexcept
+facediv_avgcrse_x (Box const& /*bx*/,
+                   Array4<T> /*crse*/, Array4<T const> /*fine_val*/,
+                   const int /*icomp*/, const int /*ncomp*/, IntVect const& /*ratio*/) noexcept
 {
 /*  2D Copy (+ z loop added)
 
@@ -598,17 +598,17 @@ facediv_avgcrse_x (Box const& bx,
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_avgcrse_y (Box const& bx,
-                   Array4<T> crse, Array4<T const> fine_val,
-                   const int icomp, const int ncomp, IntVect const& ratio) noexcept
+facediv_avgcrse_y (Box const& /*bx*/,
+                   Array4<T> /*crse*/, Array4<T const> /*fine_val*/,
+                   const int /*icomp*/, const int /*ncomp*/, IntVect const& /*ratio*/) noexcept
 {
 }
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_avgcrse_z (Box const& bx,
-                   Array4<T> crse, Array4<T const> fine_val,
-                   const int icomp, const int ncomp, IntVect const& ratio) noexcept
+facediv_avgcrse_z (Box const& /*bx*/,
+                   Array4<T> /*crse*/, Array4<T const> /*fine_val*/,
+                   const int /*icomp*/, const int /*ncomp*/, IntVect const& /*ratio*/) noexcept
 {
 }
 

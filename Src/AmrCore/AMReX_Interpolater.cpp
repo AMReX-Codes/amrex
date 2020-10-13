@@ -1002,6 +1002,8 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM>& crse,
         });
     }
 
+#if (AMREX_SPACEDIM == 2)
+
     for (int b=0; b<ba_fine_values[1].size(); ++b)
     {
         const Box& c_faces = amrex::coarsen(ba_fine_values[1][b], ratio);
@@ -1014,6 +1016,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM>& crse,
         });
     }
 
+#endif
 #if (AMREX_SPACEDIM == 3)
 
     for (int b=0; b<ba_fine_values[2].size(); ++b)
@@ -1036,10 +1039,10 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM>& crse,
     GpuArray<Array4<Real>, AMREX_SPACEDIM> finearr;
     GpuArray<Real,         AMREX_SPACEDIM> cell_size = fine_geom.CellSizeArray();
 
-    for (int i=0; i<AMREX_SPACEDIM; ++i)
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
-        crsearr[i] = crse[i]->const_array();
-        finearr[i] = fine[i]->array();
+        crsearr[d] = crse[d]->const_array();
+        finearr[d] = fine[d]->array();
     }
 
     const Box c_fine_region = amrex::coarsen(fine_region, ratio);
@@ -1049,12 +1052,12 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM>& crse,
         amrex::facediv_ext<Real>(tbx, crsearr, finearr, crse_comp, ncomp, ratio, cell_size);
     });
 
-    for (int i=0; i<AMREX_SPACEDIM; ++i)
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
-        const BoxArray ba_copy = amrex::intersect(ba_fine_values[i], fine[i]->box());
+        const BoxArray ba_copy = amrex::intersect(ba_fine_values[d], fine[d]->box());
         for (int b=0; b<ba_copy.size(); ++b)
         {
-            fine[i]->copy(*(fab_fine_values[i]), ba_copy[b]); 
+            fine[d]->copy(*(fab_fine_values[d]), ba_copy[b]); 
         }
     }
 

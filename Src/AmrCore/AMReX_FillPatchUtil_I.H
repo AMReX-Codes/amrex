@@ -417,42 +417,42 @@ namespace {
                 Array<MF, AMREX_SPACEDIM> mf_fine_values;       // Copy of fine values.
                 Array<BoxArray, AMREX_SPACEDIM> ba_fine_values; // Holds location of known values.
 
-                for (int i=0; i<AMREX_SPACEDIM; ++i)
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
-                    mf_crse_patch[i]  = make_mf_crse_patch<MF>(fpc, ncomp, mf[i]->boxArray().ixType());
-                    mf_fine_patch[i]  = make_mf_fine_patch<MF>(fpc, ncomp, mf[i]->boxArray().ixType());
-                    mf_fine_values[i] = make_mf_fine_values<MF>(fpc, ncomp, mf[i]->boxArray().ixType(), ratio);
+                    mf_crse_patch[d]  = make_mf_crse_patch<MF>(fpc, ncomp, mf[d]->boxArray().ixType());
+                    mf_fine_patch[d]  = make_mf_fine_patch<MF>(fpc, ncomp, mf[d]->boxArray().ixType());
+                    mf_fine_values[d] = make_mf_fine_values<MF>(fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
 
 //                    amrex::Print() << "   crse_patch  " << i << ": " << mf_crse_patch[i].boxArray();
 //                    amrex::Print() << "   fine_patch  " << i << ": " << mf_fine_patch[i].boxArray();
 //                    amrex::Print() << "   fine_values " << i << ": " << mf_fine_values[i].boxArray();
 
-                    mf_set_domain_bndry(mf_crse_patch[i], cgeom);
+                    mf_set_domain_bndry(mf_crse_patch[d], cgeom);
 
                     Vector<MF*> cmf_time;
                     for (const auto & mfab : cmf)
-                        { cmf_time.push_back(mfab[i]); }
+                        { cmf_time.push_back(mfab[d]); }
 
-                    FillPatchSingleLevel(mf_crse_patch[i], time, cmf_time, ct, scomp, 0, ncomp,
-                                         cgeom, cbc[i], cbccomp);
+                    FillPatchSingleLevel(mf_crse_patch[d], time, cmf_time, ct, scomp, 0, ncomp,
+                                         cgeom, cbc[d], cbccomp);
 
 
                     // Put current fine values into fine_patch for potential use in mapper.
-                    mf_set_domain_bndry(mf_fine_values[i], fgeom);
+                    mf_set_domain_bndry(mf_fine_values[d], fgeom);
 
                     Vector<MF*> fmf_time;
                     for (const auto & mfab : fmf)
-                        { fmf_time.push_back(mfab[i]); }
+                        { fmf_time.push_back(mfab[d]); }
 
-                    FillPatchSingleLevel(mf_fine_values[i], time, fmf_time, ft, scomp, 0, ncomp,
-                                         fgeom, fbc[i], fbccomp);
+                    FillPatchSingleLevel(mf_fine_values[d], time, fmf_time, ft, scomp, 0, ncomp,
+                                         fgeom, fbc[d], fbccomp);
 
                     // Calc BoxArrays describing location of known fine values to be replaced.
                     BoxArray ba_ctof_patch = fpc.ba_crse_patch;
                     ba_ctof_patch.refine(ratio);
-                    ba_ctof_patch.convert(fmf[0][i]->boxArray().ixType());
+                    ba_ctof_patch.convert(fmf[0][d]->boxArray().ixType());
 
-                    ba_fine_values[i] = amrex::intersect(fmf[0][i]->boxArray(), ba_ctof_patch);
+                    ba_fine_values[d] = amrex::intersect(fmf[0][d]->boxArray(), ba_ctof_patch);
 //                    amrex::Print() << "   Intersection " << i << ": " << ba_fine_values[i];
                 }
 
@@ -505,21 +505,21 @@ namespace {
                     }
                 }
 
-                for (int i=0; i<AMREX_SPACEDIM; ++i)
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
-                    mf[i]->ParallelCopy(mf_fine_patch[i], 0, dcomp, ncomp, IntVect{0}, nghost);
+                    mf[d]->ParallelCopy(mf_fine_patch[d], 0, dcomp, ncomp, IntVect{0}, nghost);
                 }
 	    }
 	}
 
-        for (int i=0; i<AMREX_SPACEDIM; ++i)
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
         {
             Vector<MF*> fmf_time;
             for (auto ffab : fmf)
-                 { fmf_time.push_back(ffab[i]); }
+                 { fmf_time.push_back(ffab[d]); }
 
-	    FillPatchSingleLevel(*mf[i], nghost, time, fmf_time, ft, scomp, dcomp, ncomp,
-                                 fgeom, fbc[i], fbccomp);
+	    FillPatchSingleLevel(*mf[d], nghost, time, fmf_time, ft, scomp, dcomp, ncomp,
+                                 fgeom, fbc[d], fbccomp);
         }
     }
 
@@ -846,9 +846,9 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
     // Convert this boxArray and domain as needed.
     Box fdomain = amrex::convert(fgeom.Domain(), IntVect::TheZeroVector());
     Box fdomain_g(fdomain);
-    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-        if (fgeom.isPeriodic(i)) {
-            fdomain_g.grow(i,nghost[i]);
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        if (fgeom.isPeriodic(d)) {
+            fdomain_g.grow(d,nghost[d]);
         }
     }
 
@@ -863,39 +863,57 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
     }
 
     Array<MF, AMREX_SPACEDIM> mf_crse_patch;
-//    Array<MF, AMREX_SPACEDIM> mf_fine_patch;
-    for (int i = 0; i<AMREX_SPACEDIM; ++i)
+    Array<MF, AMREX_SPACEDIM> mf_fine_patch;
+    for (int d = 0; d<AMREX_SPACEDIM; ++d)
     {
-        BoxArray ba_crse_idxed = amrex::convert(ba_crse_patch, mf[i]->boxArray().ixType());
+        IndexType typ = mf[d]->boxArray().ixType();
+
+        BoxArray ba_crse_idxed = amrex::convert(ba_crse_patch, typ);
+        BoxArray ba_fine_idxed = amrex::convert(mf[d]->boxArray(), typ);
 
 #ifdef AMREX_USE_EB
-        auto factory = makeEBFabFactory(cgeom, ba_crse_idxed, dm, {0,0,0}, EBSupport::basic);
-        mf_crse_patch[i].define(ba_crse_idxed, dm, ncomp, 0, MFInfo(), *factory);
+        auto crse_factory = makeEBFabFactory(cgeom, ba_crse_idxed, dm, {0,0,0}, EBSupport::basic);
+        mf_crse_patch[d].define(ba_crse_idxed, dm, ncomp, 0, MFInfo(), *crse_factory);
 #else
-        mf_crse_patch[i].define(ba_crse_idxed, dm, ncomp, 0);
+        mf_crse_patch[d].define(ba_crse_idxed, dm, ncomp, 0);
 #endif
-        mf_set_domain_bndry(mf_crse_patch[i], cgeom);
+        mf_set_domain_bndry(mf_crse_patch[d], cgeom);
 
-        mf_crse_patch[i].copy(*(cmf[i]), scomp, 0, ncomp, cgeom.periodicity());
+        mf_crse_patch[d].copy(*(cmf[d]), scomp, 0, ncomp, cgeom.periodicity());
 
-        cbc[i](mf_crse_patch[i], 0, ncomp, mf_crse_patch[i].nGrowVect(), time, cbccomp);
+        cbc[d](mf_crse_patch[d], 0, ncomp, mf_crse_patch[d].nGrowVect(), time, cbccomp);
+
+#ifdef AMREX_USE_EB
+            auto fine_factory = makeEBFabFactory(fgeom, ba, dm, {0,0,0}, EBSupport::basic);
+            mf_fine_patch[d].define(ba_fine_idxed, dm, ncomp, 0, MFInfo(), *fine_factory);
+#else
+            mf_fine_patch[d].define(ba_fine_idxed, dm, ncomp, 0);
+#endif
+
     }
 
     int idummy1=0, idummy2=0;
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
+//  No OpenMP while race in face cells.
+//  Just remove this altogether?
+
+//#ifdef _OPENMP
+//#pragma omp parallel if (Gpu::notInLaunchRegion())
+//#endif
     {
         Vector<Array<BCRec, AMREX_SPACEDIM> > bcr(ncomp);
+
+        // Empty containers describing that there is no "solved" fine data.
+        Array<BoxArray, AMREX_SPACEDIM> empty_ba;
+        Array<FAB*, AMREX_SPACEDIM> ffab{ AMREX_D_DECL( nullptr, nullptr, nullptr ) };
 
         for (MFIter mfi(mf_crse_patch[0]); mfi.isValid(); ++mfi)
         {
             Array<FAB*, AMREX_SPACEDIM> sfab{ AMREX_D_DECL( &(mf_crse_patch[0][mfi]),
                                                             &(mf_crse_patch[1][mfi]),
                                                             &(mf_crse_patch[2][mfi]) )};
-            Array<FAB*, AMREX_SPACEDIM> dfab{ AMREX_D_DECL( &((*mf[0])[mfi]),
-                                                            &((*mf[1])[mfi]),
-                                                            &((*mf[2])[mfi]) )};
+            Array<FAB*, AMREX_SPACEDIM> dfab{ AMREX_D_DECL( &(mf_fine_patch[0])[mfi],
+                                                            &(mf_fine_patch[1])[mfi],
+                                                            &(mf_fine_patch[2])[mfi] )};
 
             const Box& sbx_cc = amrex::convert(sfab[0]->box(), IntVect::TheZeroVector());
             Box dfab_cc = amrex::convert(dfab[0]->box(), IntVect::TheZeroVector());
@@ -913,10 +931,6 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
                     { bcr[n][d] = bcr_d[n]; }
             }
 
-            // Empty containers describing that there is no "solved" fine data.
-            Array<BoxArray, AMREX_SPACEDIM> empty_ba;
-            Array<FAB*, AMREX_SPACEDIM> ffab{ AMREX_D_DECL( nullptr, nullptr, nullptr ) };
-
             pre_interp(sfab, sbx_cc, 0, ncomp);
 
             mapper->interp_arr(sfab, 0, dfab, dcomp, ncomp, dbx_cc, ffab, empty_ba, ratio,
@@ -929,6 +943,7 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
         fbc[d](*mf[d], dcomp, ncomp, nghost, time, fbccomp);
+        mf[d]->ParallelCopy(mf_fine_patch[d], 0, dcomp, ncomp, IntVect{0}, nghost);
     }
 }
 
