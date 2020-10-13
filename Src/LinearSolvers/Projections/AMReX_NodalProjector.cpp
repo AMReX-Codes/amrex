@@ -467,10 +467,6 @@ NodalProjector::setCoarseBoundaryVelocityForSync ()
 void
 NodalProjector::averageDown (const amrex::Vector<amrex::MultiFab*> a_var)
 {
-    // If not cartesian, we should average down by using volume weighting
-    // We check that coord sys is Cartesian only for coarsest level and assume
-    // geom for all other levels are Cartesian as well
-    AMREX_ALWAYS_ASSERT(m_geom[0].IsCartesian());
 
     int f_lev = a_var.size()-1;
     int c_lev = 0;
@@ -480,12 +476,20 @@ NodalProjector::averageDown (const amrex::Vector<amrex::MultiFab*> a_var)
         IntVect rr   = m_geom[lev+1].Domain().size() / m_geom[lev].Domain().size();
 
 #ifdef AMREX_USE_EB
-        EB_average_down(*a_var[lev+1], *a_var[lev], 0, a_var[lev]->nComp(), rr);
+        const auto ebf = dynamic_cast<EBFArrayBoxFactory const&>(a_var[lev+1]->Factory());
+
+        amrex::MultiFab volume;
+        m_geom[lev+1].GetVolume(volume);
+
+        EB_average_down(*a_var[lev+1], *a_var[lev], volume, ebf.getVolFrac(),
+                        0, a_var[lev]->nComp(), rr);
 #else
-        average_down(*a_var[lev+1], *a_var[lev], 0, a_var[lev]->nComp(), rr);
+        average_down(*a_var[lev+1], *a_var[lev], m_geom[lev+1], m_geom[lev],
+                     0, a_var[lev]->nComp(), rr);
 #endif
 
     }
+
 
 }
 
