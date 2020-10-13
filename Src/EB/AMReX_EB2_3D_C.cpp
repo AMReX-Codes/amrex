@@ -764,14 +764,14 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             if (vfrac(i-1,j,k) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
                 fx(i,j,k) = Type::covered;
                 apx(i,j,k) = 0.0;
-                if (cell(i  ,j,k).isRegular())
+                if (not cell(i  ,j,k).isCovered())
                 {
                     cell(i  ,j,k).setSingleValued();
                     set_eb_data(i,j,k,apx,apy,apz,
                                 fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
                                 barea,bcent,bnorm);
                 }
-                if (cell(i-1,j,k).isRegular())
+                if (not cell(i-1,j,k).isCovered())
                 {
                     cell(i-1,j,k).setSingleValued();
                     set_eb_data(i-1,j,k,apx,apy,apz,
@@ -790,14 +790,14 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             if (vfrac(i,j-1,k) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
                 fy(i,j,k) = Type::covered;
                 apy(i,j,k) = 0.0;
-                if (cell(i,j  ,k).isRegular())
+                if (not cell(i,j  ,k).isCovered())
                 {
                     cell(i,j  ,k).setSingleValued();
                     set_eb_data(i,j,k,apx,apy,apz,
                                 fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
                                 barea,bcent,bnorm);
                 }
-                if (cell(i,j-1,k).isRegular())
+                if (not cell(i,j-1,k).isCovered())
                 {
                     cell(i,j-1,k).setSingleValued();
                     set_eb_data(i,j-1,k,apx,apy,apz,
@@ -817,14 +817,14 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                 fz(i,j,k) = Type::covered;
                 apz(i,j,k) = 0.0;
 
-                if (cell(i,j,k  ).isRegular())
+                if (not cell(i,j,k  ).isCovered())
                 {
                     cell(i,j,k  ).setSingleValued();
                     set_eb_data(i,j,k,apx,apy,apz,
                                 fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
                                 barea,bcent,bnorm);
                 }
-                if (cell(i,j,k-1).isRegular())
+                if (not cell(i,j,k-1).isCovered())
                 {
                     cell(i,j,k-1).setSingleValued();
                     set_eb_data(i,j,k-1,apx,apy,apz,
