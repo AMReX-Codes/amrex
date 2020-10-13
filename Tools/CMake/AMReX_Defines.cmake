@@ -65,6 +65,10 @@ function ( set_amrex_defines )
    add_amrex_define( AMREX_USE_DPCPP NO_LEGACY IF ENABLE_DPCPP )
    add_amrex_define( AMREX_USE_GPU NO_LEGACY IF ENABLE_DPCPP )
 
+   # HIP
+   add_amrex_define( AMREX_USE_HIP NO_LEGACY IF ENABLE_HIP )
+   add_amrex_define( NDEBUG IF ENABLE_HIP)  # This address a bug that causes slow build times
+
    # Precision
    if (NOT ENABLE_DP)
       add_amrex_define(AMREX_USE_FLOAT)
@@ -152,7 +156,7 @@ function ( set_amrex_defines )
    #
    # General setup for any GPUs
    #
-   if (ENABLE_CUDA OR ENABLE_ACC)
+   if (ENABLE_CUDA OR ENABLE_ACC OR ENABLE_HIP)
       add_amrex_define( AMREX_USE_GPU  NO_LEGACY )
       add_amrex_define( BL_COALESCE_FABS )
 

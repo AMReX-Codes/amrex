@@ -64,3 +64,60 @@ if (ENABLE_DPCPP)
    include(AMReXSYCL)
    target_link_libraries(amrex PUBLIC SYCL)
 endif ()
+
+
+#
+#
+# HIP
+#
+#
+if (ENABLE_HIP)
+
+   set(_valid_hip_compilers hipcc nvcc)
+   get_filename_component(_this_comp ${CMAKE_CXX_COMPILER} NAME)
+
+   if (NOT (_this_comp IN_LIST _valid_hip_compilers) )
+      message(FATAL_ERROR "\nCMAKE_CXX_COMPILER is incompatible with HIP.\n"
+         "Set CMAKE_CXX_COMPILER to either hipcc or nvcc for HIP builds.\n")
+   endif ()
+
+   unset(_hip_compiler)
+   unset(_valid_hip_compilers)
+
+   if(NOT DEFINED HIP_PATH)
+      if(NOT DEFINED ENV{HIP_PATH})
+         set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
+      else()
+         set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
+      endif()
+   endif()
+
+   set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
+
+   find_package(HIP REQUIRED)
+
+   if("${HIP_COMPILER}" STREQUAL "hcc")
+      message(FATAL_ERROR "Using (deprecated) HCC compiler: please update ROCm")
+   endif()
+
+   if(HIP_FOUND)
+      message(STATUS "Found HIP: ${HIP_VERSION}")
+      message(STATUS "HIP: Platform=${HIP_PLATFORM} Compiler=${HIP_COMPILER}")
+   else()
+      message(FATAL_ERROR "Could not find HIP."
+         " Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
+   endif()
+
+   # Link to hiprand -- must include rocrand too
+   find_package(rocrand REQUIRED CONFIG)
+   find_package(hiprand REQUIRED CONFIG)
+   target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand)
+
+   # ARCH flags -- these must be PUBLIC for all downstream targets to use,
+   # else there will be a runtime issue (cannot find
+   # missing gpu devices)
+   target_compile_options(amrex
+      PUBLIC
+      $<$<COMPILE_LANGUAGE:CXX>:-m64 --amdgpu-target=${AMD_ARCH}> )
+
+endif ()
