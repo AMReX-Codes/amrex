@@ -29,6 +29,9 @@ public:
     void setEBDirichlet (MultiFab const* beb) { m_eb_b_coeffs = beb; }
 #endif
 
+    // public for CUDA
+    void getSolution (MultiFab& soln);
+
 private :
     std::unique_ptr<HypreIJIface> hypre_ij;
 
@@ -47,7 +50,6 @@ private :
 
     void prepareSolver ();
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
-    void getSolution (MultiFab& soln);
 };
 
 }
