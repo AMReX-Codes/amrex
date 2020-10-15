@@ -77,7 +77,7 @@ enum {
 #define DEBUG_CONDITION false
 
 // return comma or period depending on position in a list
-static inline char *separator(int i, int n)
+static inline char const *separator(int i, int n)
 {
   return i == (n - 1) ? "." : ", ";
 }
