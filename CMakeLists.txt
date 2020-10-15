@@ -1,5 +1,16 @@
 cmake_minimum_required(VERSION 3.14)
 
+#
+# Prevent in-source builds
+#
+if (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
+   message(FATAL_ERROR
+      "\nin-source builds are not allowed: "
+      "build directory cannot be in the source directory path!\n"
+      "Remove CMakeCache.txt and CMakeFiles/ to clean up the source directory." )
+endif ()
+
+
 ########################################################################
 #
 # Set variables for AMReX versioning
