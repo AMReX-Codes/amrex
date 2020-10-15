@@ -202,7 +202,11 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
     amrex::launch(nblocks, nthreads, sm, stream,
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
     {
+#if (__SYCL_COMPILER_VERSION <= 20200827)
         sycl::intel::sub_group const& sg = gh.item.get_sub_group();
+#else
+        sycl::ONEAPI::sub_group const& sg = gh.item.get_sub_group();
+#endif
         int lane = sg.get_local_id()[0];
         int warp = sg.get_group_id()[0];
 #if (__SYCL_COMPILER_VERSION <= 20200715)
