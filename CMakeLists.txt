@@ -7,7 +7,8 @@ if (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
    message(FATAL_ERROR
       "\nin-source builds are not allowed: "
       "build directory cannot be in the source directory path!\n"
-      "Remove CMakeCache.txt and CMakeFiles/ to clean up the source directory." )
+      "You MUST remove the file ${CMAKE_BINARY_DIR}/CMakeCache.txt and "
+      " the directory ${CMAKE_BINARY_DIR}/CMakeFiles/ to be able to build again.")
 endif ()
 
 
