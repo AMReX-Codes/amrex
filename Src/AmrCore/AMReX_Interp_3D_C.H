@@ -568,58 +568,14 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_avgcrse_x (Box const& /*bx*/,
-                   Array4<T> /*crse*/, Array4<T const> /*fine_val*/,
-                   const int /*icomp*/, const int /*ncomp*/, IntVect const& /*ratio*/) noexcept
+facediv_ext (int ci, int cj, int /*ck*/,
+             int nc, int nf,
+             GpuArray<Array4<T const>, AMREX_SPACEDIM> const& crse,
+             GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
+             Dim3 const& bounds,
+             IntVect const& ratio) noexcept
 {
-/*  2D Copy (+ z loop added)
-
-    const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubound(bx);
-
-    for (int n = 0; n < ncomp; ++n) {
-        const int nu = n + icomp;
-        for (int k = lo.z; k <= hi.z; ++k) {
-            const int fk = k*ratio[2];
-            for (int j = lo.y; j <= hi.y; ++j) {
-                const int fj = j*ratio[1];
-
-                AMREX_PRAGMA_SIMD
-                for (int i = lo.x; i <= hi.x; ++i) {
-                    const int fi = i*ratio[0];
-
-                    crse(i,j,0,nu) = ( fine_val(fi,fj,0,n) + fine_val(fi,fj+1,0,n) ) / 2.0_rt;
-                }
-            }
-        }
-    }
-*/
-}
-
-template<typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_avgcrse_y (Box const& /*bx*/,
-                   Array4<T> /*crse*/, Array4<T const> /*fine_val*/,
-                   const int /*icomp*/, const int /*ncomp*/, IntVect const& /*ratio*/) noexcept
-{
-}
-
-template<typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_avgcrse_z (Box const& /*bx*/,
-                   Array4<T> /*crse*/, Array4<T const> /*fine_val*/,
-                   const int /*icomp*/, const int /*ncomp*/, IntVect const& /*ratio*/) noexcept
-{
-}
-
-template<typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_ext (Box const& bx,
-             GpuArray<Array4<T const>, AMREX_SPACEDIM> crse,
-             GpuArray<Array4<T>, AMREX_SPACEDIM> fine,
-             const int icomp, const int ncomp, IntVect const& ratio,
-             const GpuArray<Real, AMREX_SPACEDIM> cellSize) noexcept
-{
+/*
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
@@ -745,16 +701,17 @@ facediv_ext (Box const& bx,
             }
         }
     }
+*/
 }
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_int (Box const& bx,
-             GpuArray<Array4<T const>, AMREX_SPACEDIM> crse,
-             GpuArray<Array4<T>, AMREX_SPACEDIM> fine,
-             const int icomp, const int ncomp, IntVect const& ratio,
-             const GpuArray<Real, AMREX_SPACEDIM> cellSize) noexcept
+facediv_int (int ci, int cj, int /*ck*/, int nf,
+             GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
+             IntVect const& ratio,
+             GpuArray<Real, AMREX_SPACEDIM> const& cellSize) noexcept
 {
+/*
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
@@ -927,6 +884,7 @@ facediv_int (Box const& bx,
             }
         }
     }
+*/
 }
 
 template<typename T>

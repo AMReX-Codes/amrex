@@ -5,6 +5,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_Interp_C.H>
+#include <AMReX_MultiFabUtil.H>
 
 #ifndef BL_NO_FORT
 #include <AMReX_INTERP_F.H>
@@ -905,22 +906,6 @@ FaceDivFree::CoarseBox (const Box& fine,
                         int        ratio)
 {
     Box b = amrex::coarsen(fine,ratio).grow(1);
-
-    // if fine box is not divisible by ratio?
-
-/*  NEEDED FOR FACE-DIVERGENCE FREE?
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
-    {
-        if (b.length(i) < 2)
-        {
-            //
-            // Don't want degenerate boxes.
-            //
-            b.growHi(i,1);
-        }
-    }
-*/
-
     return b;
 }
 
@@ -929,20 +914,6 @@ FaceDivFree::CoarseBox (const Box&     fine,
                         const IntVect& ratio)
 {
     Box b = amrex::coarsen(fine,ratio).grow(1);
-
-/*  NEEDED FOR FACE-DIVERGENCE FREE?
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
-    {
-        if (b.length(i) < 2)
-        {
-            //
-            // Don't want degenerate boxes.
-            //
-            b.growHi(i,1);
-        }
-    }
-*/
-
     return b;
 }
 
@@ -961,20 +932,21 @@ FaceDivFree::interp (const FArrayBox&  /*crse*/,
                      int               /*actual_state*/,
                      RunOn             /*runon*/)
 {
-    amrex::Abort("FaceDivFree does not work on a single MultiFab. Call with AMREX_SPACEDIM MultiFabs instead.");
+    amrex::Abort("FaceDivFree does not work on a single MultiFab. Call 'interp_arr' instead.");
 }
 
 void
-FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM>& crse,
+FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                          int               crse_comp,
                          Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
-                         int               /*fine_comp*/,
+                         int               fine_comp,
                          int               ncomp,
                          const Box&        fine_region,
-                         const Array<FArrayBox*, AMREX_SPACEDIM>& fab_fine_values,
-                         const Array<BoxArray, AMREX_SPACEDIM>& ba_fine_values, 
+                         Array<FArrayBox*, AMREX_SPACEDIM> const& fab_fine_values,
+                         Array<BoxArray, AMREX_SPACEDIM> const& ba_fine_values,
+                         int               values_comp,
                          const IntVect&    ratio,
-                         const Geometry& /*crse_geom */,
+                         const Geometry&   /*crse_geom */,
                          const Geometry&   fine_geom,
                          Vector<Array<BCRec, AMREX_SPACEDIM> > const& /*bcr*/,
                          int               /*actual_comp*/,
@@ -984,74 +956,66 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM>& crse,
     BL_PROFILE("FaceDivFree::interp()");
 
     // This is currently only designed for octree, where ratio = 2.
-    // Also, if fine_region has odd number of items in each direction?
     // If fine_region has less than 2 elements in each direction?
     AMREX_ALWAYS_ASSERT(ratio == 2);
 
 // ===================================
-
-    for (int b=0; b<ba_fine_values[0].size(); ++b)
-    {
-        const Box& c_faces = amrex::coarsen(ba_fine_values[0][b], ratio);
-        Array4<Real> crsearr = crse[0]->array();
-        Array4<Real> valarr = fab_fine_values[0]->array();
-
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, c_faces, tbx,
-        {
-            amrex::facediv_avgcrse_x<Real>(tbx, crsearr, valarr, crse_comp, ncomp, ratio);
-        });
-    }
-
-#if (AMREX_SPACEDIM == 2)
-
-    for (int b=0; b<ba_fine_values[1].size(); ++b)
-    {
-        const Box& c_faces = amrex::coarsen(ba_fine_values[1][b], ratio);
-        Array4<Real> crsearr = crse[1]->array();
-        Array4<Real> valarr = fab_fine_values[1]->array();
-
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, c_faces, tbx,
-        {
-            amrex::facediv_avgcrse_y<Real>(tbx, crsearr, valarr, crse_comp, ncomp, ratio);
-        });
-    }
-
-#endif
-#if (AMREX_SPACEDIM == 3)
-
-    for (int b=0; b<ba_fine_values[2].size(); ++b)
-    {
-        const Box& c_faces = amrex::coarsen(ba_fine_values[2][b], ratio);
-        Array4<Real> crsearr = crse[2]->array();
-        Array4<Real> valarr = fab_fine_values[2]->array();
-
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, c_faces, tbx,
-        {
-            amrex::facediv_avgcrse_z<Real>(tbx, crsearr, valarr, crse_comp, ncomp, ratio);
-        });
-    }
-
-#endif
-
-// ====================================
-
-    GpuArray<Array4<const Real>, AMREX_SPACEDIM> crsearr;
-    GpuArray<Array4<Real>, AMREX_SPACEDIM> finearr;
-    GpuArray<Real,         AMREX_SPACEDIM> cell_size = fine_geom.CellSizeArray();
+    // For fine faces with calculated values, set the equivalent crse_patch faces
+    // equal to the average of the fine values.
 
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
-        crsearr[d] = crse[d]->const_array();
-        finearr[d] = fine[d]->array();
+        for (int b=0; b<ba_fine_values[d].size(); ++b)
+        {
+            const Box& cfbx = amrex::coarsen(ba_fine_values[d][b], ratio);
+            Array4<Real> const& crsearr = crse[d]->array();
+            Array4<Real const> const& finearr = fab_fine_values[d]->const_array();
+
+            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA(cfbx, tbx,
+            {
+                amrex_avgdown_faces(tbx, crsearr, finearr, crse_comp, values_comp, ncomp, ratio, d);
+            });
+        }
     }
 
-    const Box c_fine_region = amrex::coarsen(fine_region, ratio);
+// ====================================
 
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, c_fine_region, tbx,
+    const Box c_fine_region = amrex::coarsen(fine_region, ratio);
+    const Dim3 hi = amrex::ubound(c_fine_region); 
+    GpuArray<Real, AMREX_SPACEDIM> cell_size = fine_geom.CellSizeArray();
+
+    GpuArray<Array4<const Real>, AMREX_SPACEDIM> crsearr;
+    GpuArray<Array4<Real>, AMREX_SPACEDIM> finearr;
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
-        amrex::facediv_ext<Real>(tbx, crsearr, finearr, crse_comp, ncomp, ratio, cell_size);
+        crsearr[d] = crse[d]->const_array(crse_comp);
+        finearr[d] = fine[d]->array(fine_comp);
+    }
+
+/*
+    for (int d=0, d<AMREX_SPACEDIM; ++d)
+    {
+        const BoxArray ba_c_faces = amrex::complementIn(fine[d]->box(), ba_fine_values[d]i);
+
+        for (int b=0; b<ba_copy.size(); ++b)
+        {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
+            {
+
+                amrex::facediv_face_interp<Real> (i, j, k, crse_comp+n, fine_comp+n, d,
+                                                  crsearr[d], finearr[d], ratio);
+            });
+        }
+    }
+*/
+
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
+    {
+        amrex::facediv_ext<Real>(i, j, k, crse_comp+n, fine_comp+n, crsearr, finearr, hi, ratio);
     });
 
+    // "ext" works on all faces in fine_region.
+    // Replace any known values that were overridden before calculating "int".
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
         const BoxArray ba_copy = amrex::intersect(ba_fine_values[d], fine[d]->box());
@@ -1061,9 +1025,9 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM>& crse,
         }
     }
 
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, c_fine_region, tbx,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
     {
-        amrex::facediv_int<Real>(tbx, crsearr, finearr, crse_comp, ncomp, ratio, cell_size);
+        amrex::facediv_int<Real>(i, j, k, fine_comp+n, finearr, ratio, cell_size);
     });
 
 }

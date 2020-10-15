@@ -18,29 +18,24 @@ void setupMF(MultiFab& mf, const int type = 0, const BoxArray& exclude = BoxArra
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        Array4<Real> c_x = mf.array(mfi);
+        Box fbx = mfi.fabbox();
+        Array4<Real> arr = mf.array(mfi);
 
         BoxArray ba;
-        if (exclude.empty())
-        {
-            ba.define( mfi.fabbox() );
-        }
-        else
-        {
-            ba = amrex::complementIn(mf.boxArray().minimalBox(), exclude);
-        }
+        ba = amrex::complementIn(fbx, exclude);
 
         for (int bid=0; bid<ba.size(); ++bid)
         {
             Box bx = ba[bid];
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (type == 0)
-                    { c_x(i,j,k) = amrex::Random()*10; }
+                    { arr(i,j,k) = amrex::Random()*10; }
                 else if (type == 1)
-                    { c_x(i,j,k) = double(i)+double(j)+double(k); }
+                    { arr(i,j,k) = double(i)+double(j)+double(k); }
                 else if (type == 2)
-                    { c_x(i,j,k) = double(i)*double(i)+double(j)*double(j)+double(k)*double(k); }
+                    { arr(i,j,k) = double(i)*double(i)+double(j)*double(j)+double(k)*double(k); }
             });
         }
     }
@@ -189,7 +184,6 @@ void main_main ()
     {
         Box domain   (IntVect{c_lo},         IntVect{c_hi});
         Box domain_f (IntVect{f_lo},         IntVect{f_hi});
-//        Box domain_fg(IntVect{f_lo}-ghost_f, IntVect{f_hi}+ghost_f);
         Box domain_fg(IntVect{f_lo}-ghost_c, IntVect{f_hi}+ghost_c);
 
         amrex::Print() << " Testing on coarse: " << domain << std::endl;
@@ -227,6 +221,7 @@ void main_main ()
 
         DistributionMapping dm_c(ba_c);
         DistributionMapping dm_f(ba_f);
+        DistributionMapping dm_fg(ba_fg);
 
         c_geom.define(domain,    realbox_c,  CoordSys::cartesian, is_periodic);
         f_geom.define(domain_f,  realbox_f,  CoordSys::cartesian, is_periodic);
@@ -258,16 +253,15 @@ void main_main ()
         div_fine.define(ba_f, dm_f, ncomp, ghost_f);
         div_fine.setVal(0.0);
 
-
-        AMREX_D_TERM( f_mf_faces_wg[0].define( amrex::convert( ba_fg,x_face ), dm_f, ncomp, 0);,
-                      f_mf_faces_wg[1].define( amrex::convert( ba_fg,y_face ), dm_f, ncomp, 0);,
-                      f_mf_faces_wg[2].define( amrex::convert( ba_fg,z_face ), dm_f, ncomp, 0); );
+        AMREX_D_TERM( f_mf_faces_wg[0].define( amrex::convert( ba_fg,x_face ), dm_fg, ncomp, 0);,
+                      f_mf_faces_wg[1].define( amrex::convert( ba_fg,y_face ), dm_fg, ncomp, 0);,
+                      f_mf_faces_wg[2].define( amrex::convert( ba_fg,z_face ), dm_fg, ncomp, 0); );
 
         AMREX_D_TERM( f_mf_faces_wg[0].setVal(0.0);,
                       f_mf_faces_wg[1].setVal(0.0);,
                       f_mf_faces_wg[2].setVal(0.0);  );
 
-        div_fine_wg.define(ba_fg, dm_f, ncomp, 0);
+        div_fine_wg.define(ba_fg, dm_fg, ncomp, 0);
         div_fine_wg.setVal(0.0);
 
         amrex::Print() << " Testing Face FreeDiv FillPatch with: "

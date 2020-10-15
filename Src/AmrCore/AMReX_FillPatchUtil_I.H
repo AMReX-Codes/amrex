@@ -376,10 +376,6 @@ namespace {
     {
 	BL_PROFILE("FillPatchTwoLevels-SPACEDIM");
 
-        // Appropriate ASSERTs here?
-        // BoxArray's equal except for IndexType?
-        // IndexType?
-
         using FAB = typename MF::FABType::value_type;
 
         // Test all of them?
@@ -400,16 +396,6 @@ namespace {
                                                                       cgeom,
                                                                       index_space);
 
-//            amrex::Print() << "   mf_cc.ba = " << mf_cc_dummy.boxArray() << std::endl;
-//            amrex::Print() << "   fpc.ba_c = " << fpc.ba_crse_patch << std::endl;
-//            amrex::Print() << "   fpc.ba_f = " << fpc.ba_fine_patch << std::endl;
-
-//            amrex::Print() << "   cmf.ba = " << cmf[0][0]->boxArray() << std::endl;
-//            amrex::Print() << "   fmf.ba = " << fmf[0][0]->boxArray() << std::endl;
-
-//            amrex::Print() << "   cgeom = " << cgeom.Domain() << std::endl;
-//            amrex::Print() << "   fgeom = " << fgeom.Domain() << std::endl;
-
 	    if ( !fpc.ba_crse_patch.empty() )
 	    {
                 Array<MF, AMREX_SPACEDIM> mf_crse_patch;
@@ -422,10 +408,6 @@ namespace {
                     mf_crse_patch[d]  = make_mf_crse_patch<MF>(fpc, ncomp, mf[d]->boxArray().ixType());
                     mf_fine_patch[d]  = make_mf_fine_patch<MF>(fpc, ncomp, mf[d]->boxArray().ixType());
                     mf_fine_values[d] = make_mf_fine_values<MF>(fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
-
-//                    amrex::Print() << "   crse_patch  " << i << ": " << mf_crse_patch[i].boxArray();
-//                    amrex::Print() << "   fine_patch  " << i << ": " << mf_fine_patch[i].boxArray();
-//                    amrex::Print() << "   fine_values " << i << ": " << mf_fine_values[i].boxArray();
 
                     mf_set_domain_bndry(mf_crse_patch[d], cgeom);
 
@@ -453,7 +435,6 @@ namespace {
                     ba_ctof_patch.convert(fmf[0][d]->boxArray().ixType());
 
                     ba_fine_values[d] = amrex::intersect(fmf[0][d]->boxArray(), ba_ctof_patch);
-//                    amrex::Print() << "   Intersection " << i << ": " << ba_fine_values[i];
                 }
 
                 int idummy=0;
@@ -481,10 +462,6 @@ namespace {
                                                                                amrex::intersect(ba_fine_values[1], ffab[1]->box()),
                                                                                amrex::intersect(ba_fine_values[2], ffab[2]->box())  ) };
 
-                        // Way to simplify these BoxArrays for a given box? Is it cost effective? Remove unneeded repeat of work in Interpolater?
-                        // amrex::Print() << " ++++ Fine values box: " << ffab[0]->box() << std::endl
-                        //                << " ++++ This box's fine values: " << ffab_ba[0] << std::endl;
-
                         for (int d=0; d<AMREX_SPACEDIM; ++d)
                         {
                             Vector<BCRec> bcr_d(ncomp);
@@ -498,7 +475,7 @@ namespace {
 
                         pre_interp(sfab, sbx_cc, 0, ncomp);
 
-                        mapper->interp_arr(sfab, 0, dfab, 0, ncomp, dbx_cc, ffab, ffab_ba, ratio,
+                        mapper->interp_arr(sfab, 0, dfab, 0, ncomp, dbx_cc, ffab, ffab_ba, 0, ratio,
                                            cgeom, fgeom, bcr, dcomp, idummy, RunOn::Gpu);
 
                         post_interp(dfab, dbx_cc, 0, ncomp);
@@ -832,15 +809,18 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
     const BoxArray& ba = mf[0]->boxArray();
     const DistributionMapping& dm = mf[0]->DistributionMap();
 
-    // Change asserts.
-    // If DM is different? Need to adjust or do all 3 seperately?
-    // End with copy?
-
-    // Confirm each mf boxArray is equal except for indexing?
-    //     Note: if this is not true, have to setup all 3 directions separately.
+#if AMREX_DEBUG
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+    {
+        IndexType dface;
+        dface.set(d);
+        AMREX_ASSERT( (dface == mf[d]->boxArray().ixType()) && (dface == cmf[d]->boxArray().ixType()) );
+    }
+#endif
 
     // const IndexType& typ = ba.ixType();
     // BL_ASSERT(typ == cmf.boxArray().ixType());
+    // do for all cmf -> mf.
 
     // Create a cell-centered boxArray of the region to interp.
     // Convert this boxArray and domain as needed.
@@ -893,12 +873,9 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
     }
 
     int idummy1=0, idummy2=0;
-//  No OpenMP while race in face cells.
-//  Just remove this altogether?
-
-//#ifdef _OPENMP
-//#pragma omp parallel if (Gpu::notInLaunchRegion())
-//#endif
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
     {
         Vector<Array<BCRec, AMREX_SPACEDIM> > bcr(ncomp);
 
@@ -933,7 +910,7 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
 
             pre_interp(sfab, sbx_cc, 0, ncomp);
 
-            mapper->interp_arr(sfab, 0, dfab, dcomp, ncomp, dbx_cc, ffab, empty_ba, ratio,
+            mapper->interp_arr(sfab, 0, dfab, 0, ncomp, dbx_cc, ffab, empty_ba, 0, ratio,
                                cgeom, fgeom, bcr, idummy1, idummy2, RunOn::Gpu);
 
             post_interp(dfab, dbx_cc, dcomp, ncomp);

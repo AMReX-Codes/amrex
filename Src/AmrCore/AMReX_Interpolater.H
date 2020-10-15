@@ -101,23 +101,24 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    virtual void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM>& /*crse*/,
-                             int               /*crse_comp*/,
+    virtual void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& /*crse*/,
+                             const int         /*crse_comp*/,
                              Array<FArrayBox*, AMREX_SPACEDIM> const& /*fine*/,
-                             int               /*fine_comp*/,
-                             int               /*ncomp*/,
+                             const int         /*fine_comp*/,
+                             const int         /*ncomp*/,
                              const Box&        /*fine_region*/,
-                             const Array<FArrayBox*, AMREX_SPACEDIM>& /*fab_fine_values*/,
-                             const Array<BoxArray, AMREX_SPACEDIM>& /*ba_fine_values*/,
+                             Array<FArrayBox*, AMREX_SPACEDIM> const& /*fab_fine_values*/,
+                             Array<BoxArray, AMREX_SPACEDIM> const& /*ba_fine_values*/,
+                             const int         /*values_comp*/,
                              const IntVect&    /*ratio*/,
                              const Geometry&   /*crse_geom*/,
                              const Geometry&   /*fine_geom*/,
                              Vector<Array<BCRec, AMREX_SPACEDIM> > const& /*bcr*/,
-                             int               /*actual_comp*/,
-                             int               /*actual_state*/,
+                             const int         /*actual_comp*/,
+                             const int         /*actual_state*/,
                              RunOn             /*gpu_or_cpu*/)
 
-    { amrex::Abort("The Array<FArrayBox*, AMREX_SPACEDIM> version of this Interpolater is not implemented or does not apply. Call the FArrayBox version instead."); }
+    { amrex::Abort("The Array<FArrayBox*, AMREX_SPACEDIM> version of this Interpolater is not implemented or does not apply. Call 'interp' instead."); }
 
     /**
     * \brief Re-visit the interpolation to protect against under- or overshoots.
@@ -766,7 +767,7 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    virtual void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM>& crse,
+    virtual void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                              int               crse_comp,
                              Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
                              int               fine_comp,
@@ -774,6 +775,7 @@ public:
                              const Box&        fine_region,
                              const Array<FArrayBox*, AMREX_SPACEDIM>& fab_fine_values,
                              const Array<BoxArray, AMREX_SPACEDIM>& ba_fine_values,
+                             int               values_comp,
                              const IntVect&    ratio,
                              const Geometry& crse_geom,
                              const Geometry& fine_geom,

@@ -1,7 +1,7 @@
-n_cell = 64
+n_cell = 64 
 f_offset = 8
 
-max_grid_size = 128
+max_grid_size = 128 
 
 #c_hi = 64 64
 #f_lo = 4 4
