@@ -28,12 +28,6 @@ if (DPCPP_BETA_VERSION LESS "09")
 endif ()
 
 
-
-find_file(LIBSYCL_GLIBC_OBJ libsycl-glibc.o
-   PATHS ${DPCPP_ROOT} ENV LD_LIBRARY_PATH
-   PATH_SUFFIXES lib
-   DOC "Full path to libsycl-glibc.o")
-
 set(_cxx_clang "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>") # Only Clang for now
 
 #
@@ -44,17 +38,13 @@ add_library(AMReX::SYCL ALIAS SYCL)
 
 target_compile_features(SYCL INTERFACE cxx_std_17)
 
-target_link_libraries(SYCL INTERFACE ${LIBSYCL_GLIBC_OBJ})
 
+#
+# Compiler options
+#
 target_compile_options( SYCL
    INTERFACE
    $<${_cxx_clang}:-Wno-error=sycl-strict -fsycl>
-   $<${_cxx_clang}:$<$<BOOL:${ENABLE_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
-
-# TODO: use $<LINK_LANG_AND_ID:> genex for CMake >=3.17
-target_link_options( SYCL
-   INTERFACE
-   $<${_cxx_clang}:-fsycl -device-math-lib=fp32,fp64>
    $<${_cxx_clang}:$<$<BOOL:${ENABLE_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
 
 # temporary work-around for DPC++ beta08 bug
@@ -69,6 +59,39 @@ target_compile_options( SYCL
 target_compile_options( SYCL
    INTERFACE
    $<${_cxx_clang}:-fno-sycl-early-optimizations>)
+
+
+#
+# Link options
+#
+if (DPCPP_BETA_VERSION LESS "10")   # If beta < 10
+
+   find_file(LIBSYCL_GLIBC_OBJ libsycl-glibc.o
+      PATHS ${DPCPP_ROOT} ENV LD_LIBRARY_PATH
+      PATH_SUFFIXES lib
+      DOC "Full path to libsycl-glibc.o")
+
+   target_link_libraries(SYCL INTERFACE ${LIBSYCL_GLIBC_OBJ})
+
+   target_link_options( SYCL
+      INTERFACE
+      $<${_cxx_clang}:-fsycl -device-math-lib=fp32,fp64> )
+
+else ()  # for beta >= 10
+
+   target_link_options( SYCL
+      INTERFACE
+      $<${_cxx_clang}:-fsycl -fsycl-device-lib=libc,libm-fp32,libm-fp64> )
+
+endif ()
+
+
+
+# TODO: use $<LINK_LANG_AND_ID:> genex for CMake >=3.17
+target_link_options( SYCL
+   INTERFACE
+   $<${_cxx_clang}:$<$<BOOL:${ENABLE_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
+
 
 if (ENABLE_DPCPP_AOT)
    message(FATAL_ERROR "\nAhead-of-time (AOT) compilation support not available yet.\nRe-configure with ENABLE_DPCPP_AOT=OFF.")
