@@ -17,7 +17,7 @@ struct BinIterator
     {
         AMREX_GPU_HOST_DEVICE
         iterator (index_type start, index_type stop, const index_type* a_perm, const T* a_items) 
-            : m_index(start), m_stop(stop), m_perm(a_perm), m_items(a_items)   
+            : m_items(a_items), m_perm(a_perm), m_index(start), m_stop(stop)
         {}
         
         AMREX_GPU_HOST_DEVICE

@@ -17,7 +17,11 @@ namespace amrex
     *  distribution between 0.0 and 1.0 (0.0 included, 1.0 excluded)
     *
     */
-    AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE Real Random ();
+#ifdef AMREX_USE_CUDA
+    AMREX_GPU_HOST_DEVICE Real Random ();
+#else
+    Real Random ();
+#endif
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real Random (RandomEngine const& random_engine)
@@ -50,7 +54,11 @@ namespace amrex
     *  distribution with mean 'mean' and standard deviation 'stddev'.
     *
     */
-    AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE Real RandomNormal (Real mean, Real stddev);
+#ifdef AMREX_USE_CUDA
+    AMREX_GPU_HOST_DEVICE Real RandomNormal (Real mean, Real stddev);
+#else
+    Real RandomNormal (Real mean, Real stddev);
+#endif
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real RandomNormal (Real mean, Real stddev, RandomEngine const& random_engine)
@@ -85,7 +93,11 @@ namespace amrex
     *  The GPU version of this function relies on the cuRAND library
     *
     */
-    AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE unsigned int RandomPoisson (Real lambda);
+#ifdef AMREX_USE_CUDA
+    AMREX_GPU_HOST_DEVICE unsigned int RandomPoisson (Real lambda);
+#else
+    unsigned int RandomPoisson (Real lambda);
+#endif
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     unsigned int RandomPoisson (Real lambda, RandomEngine const& random_engine)
@@ -111,7 +123,11 @@ namespace amrex
     * The CPU version of this function uses C++11's mt19937.
     * The GPU version uses CURAND's XORWOW generator.
     */
-    AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE unsigned int Random_int (unsigned int n); // [0,n-1]
+#ifdef AMREX_USE_CUDA
+    AMREX_GPU_HOST_DEVICE unsigned int Random_int (unsigned int n); // [0,n-1]
+#else
+    unsigned int Random_int (unsigned int n); // [0,n-1]
+#endif
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     unsigned int Random_int (unsigned int n, RandomEngine const& random_engine)
