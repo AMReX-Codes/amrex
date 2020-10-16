@@ -1,7 +1,7 @@
 #
 # This module defines the INTERFACE target SYCL and its alias AMReX::SYCL.
 # These targets provides build/link requirements for the SYCL language.
-# For the time being, only dpc++  is supported
+# For the time being, only dpc++ is supported
 #
 
 # Provide a cache variable for the dpc++ root directory installation by probing
@@ -11,6 +11,23 @@ string(REGEX MATCH "InstalledDir: (.*)" _tmp "${_tmp}")
 unset(_tmp)
 
 get_filename_component(DPCPP_ROOT ${CMAKE_MATCH_1} DIRECTORY CACHE)
+message(STATUS "dpc++ root directory: ${DPCPP_ROOT}")
+
+# Provide cache variable to identify the dpc++ version, including the "beta"
+string(REGEX MATCH "[^//]*beta(.[^//])" DPCPP_VERSION "${DPCPP_ROOT}")
+set(DPCPP_VERSION ${DPCPP_VERSION} CACHE INTERNAL "dpc++ version")
+set(DPCPP_BETA_VERSION ${CMAKE_MATCH_1} CACHE INTERNAL "dpc++ beta version")
+message(STATUS "dpc++ version: ${DPCPP_VERSION}")
+
+# We do not support anything lower than beta09
+if (DPCPP_BETA_VERSION LESS "09")
+   message(FATAL_ERROR
+      "\nUnsupported dpc++ compiler version."
+      "\nAMReX requires dpc++ \"beta\" version >= 08. "
+      "The current compiler \"beta\" version is ${DPCPP_BETA_VERSION}.\n")
+endif ()
+
+
 
 find_file(LIBSYCL_GLIBC_OBJ libsycl-glibc.o
    PATHS ${DPCPP_ROOT} ENV LD_LIBRARY_PATH
