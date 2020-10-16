@@ -428,7 +428,7 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
       : m_test(test), m_field(field), m_info(info)
       {
           m_value.resize(info.m_max_level);
-          for (int i = 0; i < info.m_max_level; ++i) {
+          for (int i = 0; i < m_value.size(); ++i) {
               m_value[i] = value;
           }
           m_ngrow = SetNGrow();
@@ -442,7 +442,7 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
       {
           AMREX_ASSERT(value.size() > 0);
           m_value.resize(info.m_max_level);
-          for (int i = 0; i < value.size(); ++i) {
+          for (int i = 0; i < m_value.size(); ++i) {
               m_value[i] = value[i];
           }
           // If the user didn't provided a value for every level,
