@@ -12,50 +12,18 @@ if (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
 endif ()
 
 
-########################################################################
 #
-# Set variables for AMReX versioning
+# Set search path for AMReX-specific CMake modules
 #
-########################################################################
-find_package (Git QUIET)
+set( AMREX_CMAKE_MODULES_PATH "${CMAKE_CURRENT_LIST_DIR}/Tools/CMake" CACHE INTERNAL "" )
+set( CMAKE_MODULE_PATH ${AMREX_CMAKE_MODULES_PATH} )
 
-set( _tmp "" )
+#
+# Retrieve amrex version
+#
+include( AMReX_Utils )
+get_amrex_version()
 
-# Try to inquire software version from git
-if ( EXISTS ${CMAKE_CURRENT_LIST_DIR}/.git AND ${GIT_FOUND} )
-   execute_process ( COMMAND git describe --abbrev=12 --dirty --always --tags
-      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-      OUTPUT_VARIABLE _tmp )
-   string( STRIP ${_tmp} _tmp )
-   # filter invalid descriptions in shallow git clones
-   if (NOT _tmp MATCHES "^([0-9]+)\\.([0-9]+)(\\.([0-9]+))*(-.*)*$")
-       set( _tmp "")
-   endif ()
-endif()
-
-# Grep first line from file CHANGES if cannot find version from Git
-if (NOT _tmp)
-   file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/CHANGES ALL_VERSIONS REGEX "#")
-   list(GET ALL_VERSIONS 0 _tmp)
-   string(REPLACE "#" "" _tmp "${_tmp}")
-   string(STRIP "${_tmp}" _tmp )
-   set(_tmp "${_tmp}.0")
-endif ()
-
-set( AMREX_GIT_VERSION "${_tmp}" CACHE INTERNAL "" )
-unset(_tmp)
-
-# Package version is a modified form of AMREX_GIT_VERSION
-if (AMREX_GIT_VERSION)
-    string(FIND "${AMREX_GIT_VERSION}" "-" _idx REVERSE)
-    string(SUBSTRING "${AMREX_GIT_VERSION}" 0 "${_idx}" _pkg_version )
-    string(FIND "${_pkg_version}" "-" _idx REVERSE)
-    string(SUBSTRING "${_pkg_version}" 0 "${_idx}" _pkg_version )
-    string(REPLACE "-" "." _pkg_version "${_pkg_version}")
-endif ()
-
-set( AMREX_PKG_VERSION "${_pkg_version}" CACHE INTERNAL "" )
-unset(_pkg_version)
 
 #
 # For the time being, set this option here.
@@ -86,11 +54,6 @@ project( AMReX
 
 message(STATUS "CMake version: ${CMAKE_VERSION}")
 
-#
-# Load required modules
-#
-set( AMREX_CMAKE_MODULES_PATH "${CMAKE_CURRENT_LIST_DIR}/Tools/CMake" CACHE INTERNAL "" )
-set( CMAKE_MODULE_PATH ${AMREX_CMAKE_MODULES_PATH} )
 
 #
 # Provide a default install directory
@@ -117,7 +80,6 @@ endif()
 #
 # Include options, utilities and other stuff we need
 #
-include( AMReX_Utils )
 include( AMReX_Options )
 
 #
