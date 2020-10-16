@@ -282,7 +282,6 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
     {
         const auto& geom = pc.Geom(lev);
         auto& plev = pc.GetParticles(lev);
-        auto& ba = pc.ParticleBoxArray(lev);
         const auto plo = geom.ProbLoArray();
         const auto phi = geom.ProbHiArray();
         const auto is_per = geom.isPeriodicArray();
@@ -294,7 +293,6 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             auto index = std::make_pair(gid, tid);
 
             auto& src_tile = plev.at(index);
-            auto& aos   = src_tile.GetArrayOfStructs();
             const auto ptd = src_tile.getConstParticleTileData();
 
             int num_copies = op.numCopies(gid, lev);
@@ -380,7 +378,6 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
             auto index = std::make_pair(gid, tid);
 
             auto& tile = plev[index];
-            auto& aos   = tile.GetArrayOfStructs();
 
             GetSendBufferOffset get_offset(plan, pc.BufferMap());
             auto p_snd_buffer = snd_buffer.dataPtr();

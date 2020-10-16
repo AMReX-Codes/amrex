@@ -151,8 +151,12 @@ override XTRALIBS += -lgfortran -lquadmath
 endif
 
 DPCPP_DIR = $(shell dpcpp --version | tail -1 | sed -e 's/InstalledDir: //' | sed -e 's/linux\/bin/linux/')
-override XTRAOBJS += $(DPCPP_DIR)/lib/libsycl-glibc.o
-LDFLAGS += -device-math-lib=fp32,fp64
+ifeq ($(findstring beta09, $(DPCPP_DIR)), beta09)
+  override XTRAOBJS += $(DPCPP_DIR)/lib/libsycl-glibc.o
+  LDFLAGS += -device-math-lib=fp32,fp64
+else
+  LDFLAGS += -fsycl-device-lib=libc,libm-fp32,libm-fp64
+endif
 
 ifeq ($(FSANITIZER),TRUE)
   override XTRALIBS += -lubsan

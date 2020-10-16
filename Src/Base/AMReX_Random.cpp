@@ -143,13 +143,13 @@ void amrex::free_state (int tid)
 }
 #endif
 
-AMREX_GPU_HOST_DEVICE amrex::Real
-amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
+#ifdef AMREX_USE_CUDA
+AMREX_GPU_HOST_DEVICE
+#endif
+amrex::Real amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
 {
-
     amrex::Real rand;
-
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__)
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
@@ -158,21 +158,12 @@ amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
 
     int i = get_state(tid);
 #ifdef BL_USE_FLOAT
-    AMREX_HIP_OR_CUDA( rand = stddev * hiprand_normal(&d_states_d_ptr[i]) + mean;,
-                       rand = stddev *  curand_normal(&d_states_d_ptr[i]) + mean; )
+    rand = stddev *  curand_normal(&d_states_d_ptr[i]) + mean;
 #else
-    AMREX_HIP_OR_CUDA( rand = stddev * hiprand_normal_double(&d_states_d_ptr[i]) + mean;,
-                       rand = stddev *  curand_normal_double(&d_states_d_ptr[i]) + mean; )
+    rand = stddev *  curand_normal_double(&d_states_d_ptr[i]) + mean;
 #endif
     __threadfence();
     free_state(tid);
-
-#elif defined(__SYCL_DEVICE_ONLY__)
-
-    amrex::ignore_unused(mean,stddev);
-    assert(0);
-    rand = Real(0.0);
-    return rand;
 
 #else
 
@@ -184,11 +175,13 @@ amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
     return rand;
 }
 
-AMREX_GPU_HOST_DEVICE amrex::Real
-amrex::Random ()
+#ifdef AMREX_USE_CUDA
+AMREX_GPU_HOST_DEVICE
+#endif
+amrex::Real amrex::Random ()
 {
     amrex::Real rand;
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)    // on the device
+#if defined(__CUDA_ARCH__)   // on the device
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
@@ -199,21 +192,13 @@ amrex::Random ()
     // curand_uniform generates numbers in (0.0,1], while
     // std::uniform_real_distribution in [0.0, 1.0)
 #ifdef BL_USE_FLOAT
-    AMREX_HIP_OR_CUDA( rand = 1.0f - hiprand_uniform(&d_states_d_ptr[i]);,
-                       rand = 1.0f - curand_uniform(&d_states_d_ptr[i]); )
+    rand = 1.0f - curand_uniform(&d_states_d_ptr[i]);
 #else
-    AMREX_HIP_OR_CUDA( rand = 1.0 - hiprand_uniform_double(&d_states_d_ptr[i]);,
-                       rand = 1.0 - curand_uniform_double(&d_states_d_ptr[i]); )
+    rand = 1.0 - curand_uniform_double(&d_states_d_ptr[i]);
 #endif
 
     __threadfence();
     free_state(tid);
-
-#elif defined(__SYCL_DEVICE_ONLY__)
-
-    assert(0);
-    rand = Real(0.0);
-    return rand;
 
 #else     // on the host
 
@@ -226,12 +211,14 @@ amrex::Random ()
     return rand;
 }
 
-AMREX_GPU_HOST_DEVICE unsigned int
-amrex::RandomPoisson (amrex::Real lambda)
+#ifdef AMREX_USE_CUDA
+AMREX_GPU_HOST_DEVICE
+#endif
+unsigned int amrex::RandomPoisson (amrex::Real lambda)
 {
     unsigned int rand;
 
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__)
     const auto blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 
     const auto tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
@@ -240,18 +227,10 @@ amrex::RandomPoisson (amrex::Real lambda)
 
     const auto i = get_state(tid);
 
-    AMREX_HIP_OR_CUDA( rand = hiprand_poisson(&d_states_d_ptr[i], lambda);,
-                       rand = curand_poisson(&d_states_d_ptr[i], lambda);)
+    rand = curand_poisson(&d_states_d_ptr[i], lambda);
 
     __threadfence();
     free_state(tid);
-
-#elif defined(__SYCL_DEVICE_ONLY__)
-
-    amrex::ignore_unused(lambda);
-    assert(0);
-    rand = 0;
-    return rand;
 
 #else
 
@@ -263,10 +242,12 @@ amrex::RandomPoisson (amrex::Real lambda)
     return rand;
 }
 
-AMREX_GPU_HOST_DEVICE unsigned int
-amrex::Random_int (unsigned int n)
+#ifdef AMREX_USE_CUDA
+AMREX_GPU_HOST_DEVICE
+#endif
+unsigned int amrex::Random_int (unsigned int n)
 {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)  // on the device
+#if defined(__CUDA_ARCH__)  // on the device
     constexpr unsigned int RAND_M = 4294967295; // 2**32-1
 
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
@@ -278,19 +259,12 @@ amrex::Random_int (unsigned int n)
     unsigned int rand;
     int i = get_state(tid);
     do {
-        AMREX_HIP_OR_CUDA( rand = hiprand(&d_states_d_ptr[i]);,
-                           rand =  curand(&d_states_d_ptr[i]); )
+        rand =  curand(&d_states_d_ptr[i]);
     } while (rand > (RAND_M - RAND_M % n));
     __threadfence();
     free_state(tid);
 
     return rand % n;
-
-#elif defined(__SYCL_DEVICE_ONLY__)
-
-    amrex::ignore_unused(n);
-    assert(0);
-    return 0;
 
 #else // on the host
 
