@@ -1,8 +1,9 @@
 #
 #
-# Function to retrieve AMReX version informations
+# FUNCTION: get_amrex_version
 #
-# It sets internal cache variables AMREX_GIT_VERSION and AMREX_PKG_VERSION
+# Retrieves AMReX version info and sets internal cache variables
+# AMREX_GIT_VERSION and AMREX_PKG_VERSION
 #
 #
 function (get_amrex_version)
@@ -50,281 +51,54 @@ function (get_amrex_version)
 endfunction ()
 
 
-###################################################################
-# Check if dir or file given by path exists and issue a warning or
-#  error if not
-##################################################################
-function ( check_path  path  message_type )
-  if ( EXISTS ${path} )
-  else ()
-    message(${message_type} ${path} " does not exist!")
-  endif ( EXISTS ${path} )
-endfunction ()
-
-
 #
-# This function turns a list into a string
 #
-function ( list_to_string list )
-  string (REPLACE ";" " " tmp "${${list}}")
-  set ( ${list} "${tmp}" PARENT_SCOPE)
-endfunction ()
-
+# FUNCTION: print
 #
-# Create list of all include directories
-# cmake must be re-run if new dirs with Headers are introduced
+# Debug function to print a variable
 #
 # Arguments:
 #
-#  dirlist  = the list of subdir
-#  ROOT     = top level directory from where to start search
-#             If not given, default is CMAKE_CURRENT_LIST_DIR
-#  EXCLUDE  = list of path to exclude from search
+#    _var = the variable to print
 #
-function ( find_include_paths dirlist )
+#
+function ( print _var )
+   message(" ${_var} = ${${_var}}" )
+endfunction ()
 
-  cmake_parse_arguments ( ARG "" "ROOT" "EXCLUDE"  ${ARGN} )
+#
+#
+# FUNCTION: print_list
+#
+# Debug function to print a list as an columns of entries
+#
+# Arguments:
+#
+#    _list = the list to print
+#
+#
+function ( print_list _list )
 
-  if (NOT ARG_ROOT)
-    set ( ARG_ROOT ${CMAKE_CURRENT_LIST_DIR} )
-  endif ()
+   list( LENGTH ${_list} _len )
 
-  # Check that root and exclude dir exist
-  set ( alldirs ${ARG_ROOT} )
-  if ( ARG_EXCLUDE )
-    list (APPEND alldirs ${ARG_EXCLUDE} )
-  endif ()
-
-  foreach ( dir ${alldirs} )
-    if ( NOT EXISTS ${dir} )
-      message (WARNING "${dir} is not a valid path")
-    endif ()
-  endforeach ()
-
-  # This list all the directories containing headers
-  file ( GLOB_RECURSE includes LIST_DIRECTORIES true
-    ${ARG_ROOT}/*.h ${ARG_ROOT}/*.H )
-
-
-  foreach (item ${includes})
-
-    get_filename_component ( path ${item} PATH )
-
-    if (IS_DIRECTORY ${path})
-
-      # Check first if it is a valid path
-      set (path_is_valid "YES")
-
-      foreach ( exclude ${ARG_EXCLUDE})
-	string (FIND ${path} ${exclude} out )
-	if ( NOT (${out} EQUAL -1) )
-	  set (path_is_valid "NO")
-	endif ()
+   if ( ${_len} GREATER 0 )
+      message("")
+      message( STATUS "LIST NAME:  ${_list}")
+      foreach ( _item ${${_list}})
+         message ( STATUS "  ${_item}")
       endforeach ()
-
-
-      if ( NOT (${path} IN_LIST tmp ) AND path_is_valid )
-	list ( APPEND tmp ${path} )
-      endif ()
-
-    endif ()
-
-  endforeach ()
-
-
-
-  set ( ${dirlist} ${tmp} PARENT_SCOPE )
+      message("")
+   endif ()
 
 endfunction ()
 
 
 #
-# Append new_var to all_var
 #
-function ( append new_var all_var )
-  if ( ${new_var} )
-    set ( tmp  "${${all_var}} ${${new_var}}" )
-
-    # Since I am OCD, remove the double spaces.
-    string ( REPLACE "  " " " tmp ${tmp} )
-    set ( ${all_var}  ${tmp} PARENT_SCOPE )
-  endif ()
-endfunction ()
-
-
+# FUNCTION: set_default_config_flags
 #
-# Print variable (useful for debugging)
 #
-function ( print var )
-  message (" ${var} = ${${var}}" )
-endfunction ()
-
-#
-# Print list
-#
-function ( print_list list )
-
-  list ( LENGTH ${list} len )
-
-  if ( ${len} GREATER 0 )
-    message ("")
-    message ( STATUS " LIST NAME:  ${list}")
-    foreach ( item ${${list}})
-      message ( STATUS "  ${item}")
-    endforeach ()
-    message ("")
-  endif ()
-
-endfunction ()
-
-
-#
-# Function to append to link line
-#
-function ( append_to_link_line libs link_line )
-
-  if ( ${ARGC} EQUAL 3 )  # Third one is optional flags
-    set ( flags  ${ARGV2} )
-  else ()
-    set ( flags )
-  endif ()
-
-  set ( tmp "${${link_line}} ${${flags}} ${${libs}} " )
-  string ( STRIP "${tmp}" tmp )
-  set ( ${link_line} ${tmp} PARENT_SCOPE )
-
-endfunction ()
-
-
-#
-# Function to install include files
-#
-function ( install_include_files )
-  foreach (file ${ARGV})
-    install ( FILES ${file} DESTINATION include )
-  endforeach()
-endfunction ()
-
-#
-# Function to prepend path to list items
-#
-function (prepend list prefix)
-
-  set ( tmp "" )
-  foreach (item ${${list}})
-    set ( name   ${prefix}/${item} )
-    string ( REPLACE "//" "/" name ${name})
-    list ( APPEND tmp ${name} )
-  endforeach ()
-
-  set ( ${list} ${tmp}  PARENT_SCOPE )
-
-endfunction ()
-
-
-
-#
-#  USE AT YOUR OWN RISK
-#
-function (scan_for_sources f90src f77src cxxsrc allheaders)
-
-  cmake_parse_arguments ( ARG "" "ROOT" ""  ${ARGN} )
-
-  if (NOT (ARG_ROOT))
-    set (ARG_ROOT ${CMAKE_CURRENT_LIST_DIR})
-  endif ()
-
-  file (GLOB_RECURSE tmp  "${ARG_ROOT}/*.f90"
-    "${ARG_ROOT}/*.F90")
-  set (${f90src} ${tmp} PARENT_SCOPE)
-
-
-  file (GLOB_RECURSE f77src  "${ARG_ROOT}/*.f"
-    "${ARG_ROOT}/*.F")
-
-  file (GLOB_RECURSE cxxsrc  "${ARG_ROOT}/*.cpp" )
-
-  file (GLOB_RECURSE allheaders  "${ARG_ROOT}/*.H"
-    "${ARG_ROOT}/*.H")
-
-  set (f90src)
-
-endfunction ()
-
-
-#
-# Find all source files ( Fortran, C++, Headers )
-# in CMAKE_CURRENT_LIST_DIR.
-#
-# Arguments:
-#
-#  source_list  = the list of sources (prefixed with their absolute path)
-#  ROOT         = directory to search.
-#                 If not given, default is CMAKE_CURRENT_LIST_DIR
-#  RECURSE      = if given, enables search for subdirectories
-#
-# This macro returns a list of files with their absolute paths
-#
-# WARNING: it is dangerous and definitely discouraged to use
-#          GLOBBING to find sources. Use at your own risk.
-#
-macro ( find_all_sources sources_list include_paths )
-
-  cmake_parse_arguments ( ARG "RECURSE" "ROOT" ""  ${ARGN} )
-
-  if ( NOT (ARG_ROOT) )
-    set (ARG_ROOT ${CMAKE_CURRENT_LIST_DIR})
-  endif ()
-
-  if (ARG_RECURSE)
-    set ( search_type GLOB_RECURSE )
-  else ()
-    set ( search_type GLOB )
-  endif ()
-
-  file ( ${search_type} ${sources_list}
-    "${ARG_ROOT}/*.f90"
-    "${ARG_ROOT}/*.F90"
-    "${ARG_ROOT}/*.F"
-    "${ARG_ROOT}/*.cpp"
-    "${ARG_ROOT}/*.H"
-    "${ARG_ROOT}/*.h"
-    )
-
-  unset (search_type)
-
-  # Find include paths
-  if ( ${sources_list} )
-
-    set ( include_paths )
-
-    foreach ( file IN LISTS ${sources_list} )
-
-      get_filename_component ( ext ${file} EXT )
-
-      if ( ("${ext}" STREQUAL ".h") OR ("${ext}" STREQUAL ".H") )
-
-	get_filename_component (path ${file} DIRECTORY)
-	list ( APPEND ${include_paths} ${path} )
-
-      endif()
-
-    endforeach ()
-
-    unset (path)
-
-    if ( ${include_paths} )
-      list ( REMOVE_DUPLICATES ${include_paths} )
-    endif ()
-
-  endif ()
-
-endmacro ()
-
-
-
-#
-# This sets CMake_<LANG>_FLAGS_<CONFIG> to default values
+# Set CMake_<LANG>_FLAGS_<CONFIG> to default values
 # if the variable is empty
 #
 macro ( set_default_config_flags )
@@ -347,19 +121,6 @@ macro ( set_default_config_flags )
 
 endmacro ()
 
-
-
-#
-# Strip string from trailing and leading whitespace
-# after veryfing it is not empty
-#
-macro (strip var)
-  if (${var})
-    string ( STRIP "${${var}}" ${var} )
-  endif ()
-endmacro ()
-
-
 #
 #
 # FUNCTION: add_amrex_define
@@ -379,8 +140,6 @@ endmacro ()
 #
 #    IF <cond-var> = new_define is added only if <cond-var> is true
 #
-# Author: Michele Rosso
-# Date  : June 26, 2018
 #
 function ( add_amrex_define new_define )
 
@@ -432,8 +191,6 @@ endfunction ()
 #    _comp_id         = the compiler ID
 #    _minimum_version = the minimum version required for _comp_id
 #
-# Author: Michele Rosso
-# Date  : June 8, 2020
 #
 function (set_mininum_cxx_compiler_version _comp_id  _minimum_version)
    if (  (CMAKE_CXX_COMPILER_ID STREQUAL _comp_id ) AND
