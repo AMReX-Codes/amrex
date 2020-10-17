@@ -341,12 +341,12 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             if (vfrac(i-1,j,0) < small_volfrac or vfrac(i,j,0) < small_volfrac) {
                 fx(i,j,0) = Type::covered;
                 apx(i,j,0) = 0.0;
-                if (cell(i,j,0).isRegular())
+                if (not cell(i,j,0).isCovered())
                 {
                     cell(i,j,0).setSingleValued();
                     set_eb_data(i,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
                 }
-                if (cell(i-1,j,0).isRegular())
+                if (not cell(i-1,j,0).isCovered())
                 {
                     cell(i-1,j,0).setSingleValued();
                     set_eb_data(i-1,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
@@ -362,12 +362,12 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             if (vfrac(i,j-1,0) < small_volfrac or vfrac(i,j,0) < small_volfrac) {
                 fy(i,j,0) = Type::covered;
                 apy(i,j,0) = 0.0;
-                if (cell(i,j,0).isRegular())
+                if (not cell(i,j,0).isCovered())
                 {
                     cell(i,j,0).setSingleValued();
                     set_eb_data(i,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
                 }
-                if (cell(i,j-1,0).isRegular())
+                if (not cell(i,j-1,0).isCovered())
                 {
                     cell(i,j-1,0).setSingleValued();
                     set_eb_data(i,j-1,apx,apy,vfrac,vcent,barea,bcent,bnorm);

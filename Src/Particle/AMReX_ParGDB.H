@@ -15,6 +15,7 @@ public:
     ParGDBBase () {;}
     virtual ~ParGDBBase () {;}
 
+    virtual const Geometry& ParticleGeom (int level) const = 0;
     virtual const Geometry& Geom (int level) const = 0;
     virtual const DistributionMapping& ParticleDistributionMap
                                              (int level) const = 0;
@@ -25,9 +26,11 @@ public:
 
     virtual void SetParticleBoxArray (int level, const BoxArray& new_ba) = 0;
     virtual void SetParticleDistributionMap (int level, const DistributionMapping& new_dm) = 0;
+    virtual void SetParticleGeometry (int level, const Geometry& new_geom) = 0;
 
     virtual void ClearParticleBoxArray (int level) = 0;
     virtual void ClearParticleDistributionMap (int level) = 0;
+    virtual void ClearParticleGeometry (int level) = 0;
 
     virtual bool LevelDefined (int level) const = 0;
     virtual int finestLevel () const = 0;
@@ -59,6 +62,7 @@ public:
 
     virtual ~ParGDB () {;}
 
+    virtual const Geometry& ParticleGeom (int level) const override;
     virtual const Geometry& Geom (int level) const override;
     virtual const DistributionMapping& ParticleDistributionMap
                                              (int level) const override;
@@ -69,9 +73,11 @@ public:
 
     virtual void SetParticleBoxArray (int level, const BoxArray& new_ba) override;
     virtual void SetParticleDistributionMap (int level,	const DistributionMapping& new_dm) override;
+    virtual void SetParticleGeometry (int level, const Geometry& new_geom) override;
 
     virtual void ClearParticleBoxArray (int level) override;
     virtual void ClearParticleDistributionMap (int level) override;
+    virtual void ClearParticleGeometry (int level) override;
 
     virtual bool LevelDefined (int level) const override;
     virtual int finestLevel () const override;
@@ -86,7 +92,7 @@ protected:
     Vector<DistributionMapping> m_dmap;
     Vector<BoxArray>            m_ba;
     Vector<int>                 m_rr;
-    int                        m_nlevels;
+    int                         m_nlevels;
 
 };
 
@@ -125,6 +131,13 @@ ParGDB::ParGDB (const Vector<Geometry>            & geom,
 inline
 const Geometry&
 ParGDB::Geom (int level) const
+{
+    return m_geom[level];
+}
+
+inline
+const Geometry&
+ParGDB::ParticleGeom (int level) const
 {
     return m_geom[level];
 }
@@ -175,6 +188,14 @@ ParGDB::SetParticleDistributionMap (int level, const DistributionMapping& new_dm
 
 inline
 void
+ParGDB::SetParticleGeometry (int level, const Geometry& new_geom)
+{
+    AMREX_ASSERT(level < m_nlevels);
+    m_geom[level] = new_geom;
+}
+
+inline
+void
 ParGDB::ClearParticleBoxArray (int level)
 {
     AMREX_ASSERT(level < m_nlevels);
@@ -187,6 +208,14 @@ ParGDB::ClearParticleDistributionMap (int level)
 {
     AMREX_ASSERT(level < m_nlevels);
     m_dmap[level] = DistributionMapping();
+}
+
+inline
+void
+ParGDB::ClearParticleGeometry (int level)
+{
+    AMREX_ASSERT(level < m_nlevels);
+    m_geom[level] = Geometry();
 }
 
 inline

@@ -1,5 +1,5 @@
 #
-# Fist, define the library we want to add
+# First, define the library we want to add
 # Think of this as a constructor for object "amrex"
 # In the following, we will use setters to change
 # the properties of this object, like setting the sources,
@@ -177,7 +177,6 @@ set_target_properties( amrex PROPERTIES PUBLIC_HEADER "${AMREX_PUBLIC_HEADERS}")
 if (ENABLE_CUDA)
    setup_target_for_cuda_compilation( amrex )
 endif ()
-
 
 #
 # Install amrex  -- Export

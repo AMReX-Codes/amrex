@@ -994,7 +994,6 @@ addParticles (const ParticleContainerType& other, F&& f, bool local)
     for (int lev = 0; lev < other.numLevels(); ++lev)
     {
         const auto& plevel_other = other.GetParticles(lev);
-        auto& plevel = GetParticles(lev);
         for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());

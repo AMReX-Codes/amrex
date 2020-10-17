@@ -72,7 +72,7 @@ function (setup_tutorial _srcs  _inputs)
 
    # Find out which include directory is needed
    set(_includes ${${_srcs}})
-   list(FILTER _includes INCLUDE REGEX "\\.H")
+   list(FILTER _includes INCLUDE REGEX "\\.H$")
    foreach(_item IN LISTS _includes)
       get_filename_component( _include_dir ${_item} DIRECTORY)
       target_include_directories( ${_exe_name} PRIVATE  ${_include_dir} )
@@ -99,7 +99,6 @@ function (setup_tutorial _srcs  _inputs)
    endif ()
 
 endfunction ()
-
 
 #
 # Loop over subdirs and add to the build those containing CMakeLists.txt

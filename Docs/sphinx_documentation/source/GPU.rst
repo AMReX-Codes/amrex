@@ -302,6 +302,55 @@ we provide the helper function ``setup_target_for_cuda_compilation()``:
    # Link against amrex
    target_link_libraries(my_target AMReX::amrex)
 
+
+
+Enabling HIP support (experimental)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To build AMReX with HIP support in CMake, add
+``-DENABLE_HIP=YES -DAMD_ARCH=<target-arch> -DCMAKE_CXX_COMPILER=<your-hip-compiler>`` to the
+``cmake`` invocation. For a full list of HIP-specific configuration options,
+check the :ref:`table <tab:cmakehipvar>` below.
+
+
+In AMReX CMake, the HIP compiler is treated as a special C++ compiler and therefore
+the standard CMake variables used to customize the compilation process for C++,
+for example ``CMAKE_CXX_FLAGS``, can be used for HIP as well.
+
+
+Since CMake does not support autodetection of HIP compilers/target architectures
+yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``hipcc`` or ``nvcc``,
+and ``AMD_ARCH`` to the target architecture you are building for.
+Thus **``AMD_ARCH`` and ``CMAKE_CXX_COMPILER`` are required user-inputs when ``ENABLE_HIP=ON``**.
+Below is an example configuration for HIP on Tulip:
+
+.. highlight:: console
+
+::
+
+   cmake -DENABLE_HIP=ON -DCMAKE_CXX_COMPILER=$(which hipcc) -DAMD_ARCH="gfx906,gfx908"  [other options] /path/to/amrex/source
+
+.. raw:: latex
+
+   \begin{center}
+
+.. _tab:cmakehipvar:
+
+.. table:: AMReX HIP-specific build options
+
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | Variable Name                | Description                                     | Default     | Possible values |
+   +==============================+=================================================+=============+=================+
+   | ENABLE_HIP                   |  Build with HIP support                         | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | AMD_ARCH                     |  AMD  target architecture  (required)           |             | User-defined    |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+
+.. raw:: latex
+
+   \end{center}
+
+
 .. ===================================================================
 
 .. _sec:gpu:namespace:
@@ -592,7 +641,7 @@ implementation is reproduced here:
 .. highlight:: c++
 
 ::
-   
+
     Real MultiFab::Dot (const MultiFab& x, int xcomp,
 	       const MultiFab& y, int ycomp,
 	       int numcomp, int nghost, bool local) {
@@ -945,9 +994,9 @@ prepares the device launch based on a :cpp:`Box`, launches with an appropriate s
 GPU kernel and constructs a thread :cpp:`Box` that defines the work for each thread.
 On the CPU, the thread :cpp:`Box` is set equal to the total launch :cpp:`Box`, so
 tiling works as expected.  On the GPU, the thread :cpp:`Box` usually
-contains a single cell to allow all GPU threads to be utilized effectively. 
+contains a single cell to allow all GPU threads to be utilized effectively.
 
-An example of a generic function launch is shown here: 
+An example of a generic function launch is shown here:
 
 .. highlight:: c++
 
@@ -1150,7 +1199,7 @@ as:
                                                  and "b; }" as
                                                  another.
         Real a;      <---- OK
-        Real b;      
+        Real b;
     });
 
 Users that choose to implement the macro launches should be aware of the limitations
@@ -1278,20 +1327,20 @@ To help debugging, we often use :cpp:`amrex::Assert` and
 GPU kernels.  However, implementing these functions requires additional
 GPU registers, which will reduce overall performance.  Therefore, it
 is preferred to implement such calls in debug mode only by wrapping the
-calls using ``#ifdef AMREX_DEBUG``. 
+calls using ``#ifdef AMREX_DEBUG``.
 
 In CPU code, :cpp:`AMREX_GPU_ERROR_CHECK()` can be called
 to check the health of previous GPU launches.  This call
 looks up the return message from the most recently completed GPU
 launch and aborts if it was not successful. Many kernel
-launch macros as well as the :cpp:`MFIter` destructor include a call 
+launch macros as well as the :cpp:`MFIter` destructor include a call
 to :cpp:`AMREX_GPU_ERROR_CHECK()`. This prevents additional launches
 from being called if a previous launch caused an error and ensures
 all GPU launches within an :cpp:`MFIter` loop completed successfully
 before continuing work.
 
-However, due to asynchronicity, determining the source of the error 
-can be difficult.  Even if GPU kernels launched earlier in the code 
+However, due to asynchronicity, determining the source of the error
+can be difficult.  Even if GPU kernels launched earlier in the code
 result in a CUDA error, the error may not be output at a nearby call to
 :cpp:`AMREX_GPU_ERROR_CHECK()` by the CPU.  When tracking down a CUDA
 launch error, :cpp:`Gpu::synchronize()` and
@@ -1350,7 +1399,7 @@ to GPUs using Cuda, OpenACC, and OpenMP, please see :cpp:`Tutorials/Particles/El
 GPU-aware implementations of many common particle operations are provided with AMReX, including neighbor list
 construction and traversal, particle-mesh deposition and interpolation, parallel reductions of particle data,
 and a set of transformation and filtering operations that are useful when operating on sets of particles. For
-examples of these features in use, please see :cpp:`Tests/Particles/`. 
+examples of these features in use, please see :cpp:`Tests/Particles/`.
 
 Finally, the parallel communication of particle data has been ported and optimized for performance on GPU
 platforms. This includes :cpp:`Redistribute()`, which moves particles back to the proper grids after their positions
@@ -1503,7 +1552,7 @@ Cuda-specific tests
 
 - Run under ``nvprof -o profile%p.nvvp ./main3d.xxxx`` for
   a small problem and examine page faults using nvvp
-		  
+
 - Run under ``cuda-memcheck``
 
 - Run under ``cuda-gdb``
@@ -1511,8 +1560,8 @@ Cuda-specific tests
 - Run with ``CUDA_LAUNCH_BLOCKING=1``.  This means that only one
   kernel will run at a time.  This can help identify if there are race
   conditions.
-	
-   
+
+
 Limitations
 ===========
 
