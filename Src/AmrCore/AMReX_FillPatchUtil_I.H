@@ -429,7 +429,7 @@ namespace {
                     FillPatchSingleLevel(mf_fine_values[d], time, fmf_time, ft, scomp, 0, ncomp,
                                          fgeom, fbc[d], fbccomp);
 
-                    // Calc BoxArrays describing location of known fine values to be replaced.
+                    // Calc BoxArrays describing location of known fine values.
                     BoxArray ba_ctof_patch = fpc.ba_crse_patch;
                     ba_ctof_patch.refine(ratio);
                     ba_ctof_patch.convert(fmf[0][d]->boxArray().ixType());
@@ -439,7 +439,8 @@ namespace {
 
                 int idummy=0;
 #ifdef _OPENMP
-                bool cc = fpc.ba_crse_patch.ixType().cellCentered();   // What do we do here?
+//              bool cc = fpc.ba_crse_patch.ixType().cellCentered();
+                bool cc = false;        // can anything be done to allow threading, or can the OpenMP just be removed?
 #pragma omp parallel if (cc && Gpu::notInLaunchRegion() )
 #endif
                 {
@@ -817,10 +818,6 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
         AMREX_ASSERT( (dface == mf[d]->boxArray().ixType()) && (dface == cmf[d]->boxArray().ixType()) );
     }
 #endif
-
-    // const IndexType& typ = ba.ixType();
-    // BL_ASSERT(typ == cmf.boxArray().ixType());
-    // do for all cmf -> mf.
 
     // Create a cell-centered boxArray of the region to interp.
     // Convert this boxArray and domain as needed.

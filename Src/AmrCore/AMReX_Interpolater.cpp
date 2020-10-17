@@ -955,19 +955,30 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
 {
     BL_PROFILE("FaceDivFree::interp()");
 
+    Array<IndexType, AMREX_SPACEDIM> types;
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        { types[d].set(d); }
+
     // This is currently only designed for octree, where ratio = 2.
     // If fine_region has less than 2 elements in each direction?
     AMREX_ALWAYS_ASSERT(ratio == 2);
 
 // ===================================
-    // For fine faces with calculated values, set the equivalent crse_patch faces
-    // equal to the average of the fine values.
+    // For fine faces with calculated values, set the matching crse_patch faces
+    // equal to the average of it's fine face values.
+
+    GpuArray<BoxArray, AMREX_SPACEDIM> ba_crse_values;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
-        for (int b=0; b<ba_fine_values[d].size(); ++b)
+        ba_crse_values[d] = amrex::convert(ba_fine_values[d], IntVect::TheZeroVector());
+        ba_crse_values[d].coarsen(ratio);
+        ba_crse_values[d].convert(types[d]);
+
+        for (int b=0; b<ba_crse_values[d].size(); ++b)
         {
-            const Box& cfbx = amrex::coarsen(ba_fine_values[d][b], ratio);
+            const Box& cfbx = ba_crse_values[d][b];
+
             Array4<Real> const& crsearr = crse[d]->array();
             Array4<Real const> const& finearr = fab_fine_values[d]->const_array();
 
@@ -981,7 +992,6 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
 // ====================================
 
     const Box c_fine_region = amrex::coarsen(fine_region, ratio);
-    const Dim3 hi = amrex::ubound(c_fine_region); 
     GpuArray<Real, AMREX_SPACEDIM> cell_size = fine_geom.CellSizeArray();
 
     GpuArray<Array4<const Real>, AMREX_SPACEDIM> crsearr;
@@ -992,22 +1002,44 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
         finearr[d] = fine[d]->array(fine_comp);
     }
 
-/*
-    for (int d=0, d<AMREX_SPACEDIM; ++d)
+#if 1 
+
+// OPTION #1: Cut the box array to exactly the coarse faces that need their fine values calculated.
+//            Parallelize over each coarse face.
+//            This also removes the need for separate fine and fine_values FABs.
+//               (just use bigger values FAB with data, update only on unknown faces, and copy whole FAB back into place).
+//            Personally, I also like the "interp" function better than the "ext" function.
+//                but:
+//            More likely to have edge cases from additional boxarray math.
+//            Always unique? Or possibility of race conditions from overlapping boxes?
+//            and, what do we want the function interface to be in the general case?
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
-        const BoxArray ba_c_faces = amrex::complementIn(fine[d]->box(), ba_fine_values[d]i);
+        const BoxArray ba_cfaces = amrex::complementIn( amrex::convert(c_fine_region, types[d]), ba_crse_values[d] );
 
-        for (int b=0; b<ba_copy.size(); ++b)
+        amrex::Print() << " fine_region: " << fine_region << std::endl;
+        amrex::Print() << " c_fine_region: " << c_fine_region << std::endl;
+        amrex::Print() << " ba_cfaces: << " << ba_cfaces << std::endl;
+
+        for (int b=0; b<ba_cfaces.size(); ++b)
         {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,ba_cfaces[b],ncomp,i,j,k,n,
             {
-
                 amrex::facediv_face_interp<Real> (i, j, k, crse_comp+n, fine_comp+n, d,
                                                   crsearr[d], finearr[d], ratio);
             });
         }
     }
-*/
+
+#else
+
+//   OPTION #2: Do the work based on all coarse cells that need any faces updates.
+//              Afterwards, copy the correct fine data over the data to "correct" faces that already had values.
+//              Parallelizes over coarse cells.
+//              Less likely to have edge cases, but additional launches and memory required. 
+
+    const Dim3 hi = amrex::ubound(c_fine_region); 
 
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
     {
@@ -1024,6 +1056,8 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
             fine[d]->copy(*(fab_fine_values[d]), ba_copy[b]); 
         }
     }
+
+#endif
 
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
     {
