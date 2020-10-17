@@ -49,4 +49,4 @@ export CEI_SUDO="sudo"
 
 # rocRAND comes separately
 #
-cmake-easyinstall --prefix=/usr/local git+https://github.com/ROCmSoftwarePlatform/rocRAND.git -DCMAKE_CXX_COMPILER=$(which hipcc)
+cmake-easyinstall --prefix=/usr/local git+https://github.com/ROCmSoftwarePlatform/rocRAND.git@v1.8.2 -DCMAKE_CXX_COMPILER=$(which hipcc)
