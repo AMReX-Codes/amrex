@@ -229,7 +229,7 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
         if (gridDimx > 1) {
             int& virtual_block_id_shared = *((int*)(shared2+nwarps));
             if (threadIdxx == 0) {
-                unsigned int bid = Gpu::Atomic::Inc<sycl::access::address_space::local_space>
+                unsigned int bid = Gpu::Atomic::Inc<sycl::access::address_space::global_space>
                     (virtual_block_id_p, gridDimx);
                 virtual_block_id_shared = bid;
             }
