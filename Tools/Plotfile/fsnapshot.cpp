@@ -117,6 +117,7 @@ void main_main()
             }
         }
     }
+    amrex::ignore_unused(numElements);
 
     PlotFileData pf(pltfile);
     int dim = pf.spaceDim();
@@ -178,6 +179,7 @@ void main_main()
         ndir_end = ndir_begin+1;
         ndirs = 1;
     }
+    amrex::ignore_unused(ndirs);
 
     Vector<Box> finebox(3, finedomainbox);
     Vector<MultiFab> datamf(3);
