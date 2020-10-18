@@ -150,8 +150,6 @@ amrex::write_to_stderr_without_buffering (const char* str)
 
 #if !AMREX_DEVICE_COMPILE
 namespace {
-//  Having both host and device versions to avoid compiler warning
-AMREX_GPU_HOST_DEVICE
 void
 write_lib_id(const char* msg)
 {
