@@ -7,9 +7,9 @@ if (ENABLE_HDF5)
     if (NOT HDF5_IS_PARALLEL)
         message(FATAL_ERROR "\nHDF5 library does not support parallel I/O")
     endif ()
-    target_include_directories(amrex PUBLIC ${HDF5_CXX_INCLUDE_DIRS})
-    target_compile_definitions(amrex PUBLIC ${HDF5_CXX_DEFINES})
-    target_link_libraries(amrex PUBLIC ${HDF5_CXX_LIBRARIES})
+    target_include_directories(amrex PUBLIC ${HDF5_C_INCLUDE_DIRS})
+    target_compile_definitions(amrex PUBLIC ${HDF5_C_DEFINES})
+    target_link_libraries(amrex PUBLIC ${HDF5_C_LIBRARIES})
 endif ()
 
 
