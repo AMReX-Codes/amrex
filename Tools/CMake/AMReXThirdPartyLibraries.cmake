@@ -3,7 +3,7 @@
 #
 if (ENABLE_HDF5)
     set(HDF5_PREFER_PARALLEL TRUE)
-    find_package(HDF5 1.10.4 REQUIRED COMPONENTS CXX)
+    find_package(HDF5 1.10.4 REQUIRED)
     if (NOT HDF5_IS_PARALLEL)
         message(FATAL_ERROR "\nHDF5 library does not support parallel I/O")
     endif ()
