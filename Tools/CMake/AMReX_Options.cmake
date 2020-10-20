@@ -143,10 +143,7 @@ if (AMReX_HIP)
 endif ()
 
 
-option( ENABLE_ACC  "Enable GPU support via OpenACC" OFF )
-print_option( ENABLE_ACC )
-
-if (AMReX_CUDA OR ENABLE_ACC OR AMReX_HIP)
+if (AMReX_CUDA OR AMReX_HIP)
    set(GPUS_PER_SOCKET "IGNORE" CACHE STRING "Number of GPUs per socket" )
    print_option(GPUS_PER_SOCKET)
 

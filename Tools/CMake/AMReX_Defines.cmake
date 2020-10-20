@@ -149,14 +149,9 @@ function ( set_amrex_defines )
       IF AMReX_CUDA )
 
    #
-   # OpenACC
-   #
-   add_amrex_define( AMREX_USE_ACC NO_LEGACY IF ENABLE_ACC )
-
-   #
    # General setup for any GPUs
    #
-   if (AMReX_CUDA OR ENABLE_ACC OR AMReX_HIP)
+   if (AMReX_CUDA OR AMReX_HIP)
       add_amrex_define( AMREX_USE_GPU  NO_LEGACY )
       add_amrex_define( BL_COALESCE_FABS )
 
