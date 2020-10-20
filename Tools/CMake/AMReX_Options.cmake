@@ -21,12 +21,14 @@ endmacro ()
 #
 # Dimensionality of the build  ===============================================
 #
-set(AMReX_SPACEDIM 3 CACHE STRING "Dimension of AMReX build")
-if ( (AMReX_SPACEDIM GREATER 3) OR (AMReX_SPACEDIM LESS 1) )
-   message( FATAL_ERROR "AMReX_SPACEDIM must be either 1, 2 or 3.")
-endif ()
+set(AMReX_SPACEDIM_VALUES 1 2 3)
+set(AMReX_SPACEDIM 3 CACHE STRING "Dimension of AMReX build: <1,2,3>")
+set_property(CACHE AMReX_SPACEDIM PROPERTY STRINGS ${AMReX_SPACEDIM_VALUES})
+if(NOT AMReX_SPACEDIM IN_LIST AMReX_SPACEDIM_VALUES)
+   message(FATAL_ERROR "AMReX_SPACEDIM=${AMReX_SPACEDIM} is not allowed."
+      " Must be one of ${AMReX_SPACEDIM_VALUES}")
+endif()
 message( STATUS "Building AMReX with AMReX_SPACEDIM = ${AMReX_SPACEDIM}")
-
 
 #
 # Populate the cache and check the value of the user-definable options
