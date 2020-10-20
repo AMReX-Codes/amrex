@@ -1,6 +1,6 @@
 target_compile_definitions(amrex PUBLIC $<BUILD_INTERFACE:AMREX_PARTICLES>)
 
-if (NOT ENABLE_DP_PARTICLES)
+if (NOT AMReX_DP_PARTICLES)
    target_compile_definitions(amrex PUBLIC $<BUILD_INTERFACE:AMREX_SINGLE_PRECISION_PARTICLES>)
 endif ()
 

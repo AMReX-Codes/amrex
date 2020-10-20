@@ -44,49 +44,49 @@ function ( set_amrex_defines )
    endif ()
 
    # Base profiling options
-   add_amrex_define( AMREX_PROFILING       IF ENABLE_BASE_PROFILE )
-   add_amrex_define( AMREX_TRACE_PROFILING IF ENABLE_TRACE_PROFILE )
-   add_amrex_define( AMREX_COMM_PROFILING  IF ENABLE_COMM_PROFILE )
+   add_amrex_define( AMREX_PROFILING       IF AMReX_BASE_PROFILE )
+   add_amrex_define( AMREX_TRACE_PROFILING IF AMReX_TRACE_PROFILE )
+   add_amrex_define( AMREX_COMM_PROFILING  IF AMReX_COMM_PROFILE )
 
    # Tiny profiler
-   add_amrex_define( AMREX_TINY_PROFILING NO_LEGACY IF ENABLE_TINY_PROFILE )
+   add_amrex_define( AMREX_TINY_PROFILING NO_LEGACY IF AMReX_TINY_PROFILE )
 
    # Mem profiler
-   add_amrex_define( AMREX_MEM_PROFILING NO_LEGACY IF ENABLE_MEM_PROFILE )
+   add_amrex_define( AMREX_MEM_PROFILING NO_LEGACY IF AMReX_MEM_PROFILE )
 
    # MPI
-   add_amrex_define( AMREX_USE_MPI IF ENABLE_MPI )
-   add_amrex_define( AMREX_MPI_THREAD_MULTIPLE NO_LEGACY IF ENABLE_MPI_THREAD_MULTIPLE)
+   add_amrex_define( AMREX_USE_MPI IF AMReX_MPI )
+   add_amrex_define( AMREX_MPI_THREAD_MULTIPLE NO_LEGACY IF AMReX_MPI_THREAD_MULTIPLE)
 
    # OpenMP -- This one has legacy definition only in Base/AMReX_omp_mod.F90
-   add_amrex_define( AMREX_USE_OMP IF ENABLE_OMP )
+   add_amrex_define( AMREX_USE_OMP IF AMReX_OMP )
 
    # DPCPP
-   add_amrex_define( AMREX_USE_DPCPP NO_LEGACY IF ENABLE_DPCPP )
-   add_amrex_define( AMREX_USE_GPU NO_LEGACY IF ENABLE_DPCPP )
+   add_amrex_define( AMREX_USE_DPCPP NO_LEGACY IF AMReX_DPCPP )
+   add_amrex_define( AMREX_USE_GPU NO_LEGACY IF AMReX_DPCPP )
 
    # HIP
-   add_amrex_define( AMREX_USE_HIP NO_LEGACY IF ENABLE_HIP )
-   add_amrex_define( NDEBUG IF ENABLE_HIP)  # This address a bug that causes slow build times
+   add_amrex_define( AMREX_USE_HIP NO_LEGACY IF AMReX_HIP )
+   add_amrex_define( NDEBUG IF AMReX_HIP)  # This address a bug that causes slow build times
 
    # Precision
-   if (NOT ENABLE_DP)
+   if (NOT AMReX_DP)
       add_amrex_define(AMREX_USE_FLOAT)
    endif ()
 
    # Dimensionality
-   add_amrex_define( AMREX_SPACEDIM=${DIM} )
+   add_amrex_define( AMREX_SPACEDIM=${AMReX_SPACEDIM} )
 
    # System -- not used anywhere in the source code
    add_amrex_define( AMREX_${CMAKE_SYSTEM_NAME} )
 
    #  Assertions
-   add_amrex_define( AMREX_USE_ASSERTION NO_LEGACY IF ENABLE_ASSERTIONS )
+   add_amrex_define( AMREX_USE_ASSERTION NO_LEGACY IF AMReX_ASSERTIONS )
 
    #
    # Fortran-specific defines: BL_LANG_FORT and AMREX_LANG_FORT
    #
-   if (ENABLE_FORTRAN)
+   if (AMReX_FORTRAN)
       target_compile_definitions ( amrex PUBLIC
          $<$<COMPILE_LANGUAGE:Fortran>:BL_LANG_FORT> )
       target_compile_definitions ( amrex PUBLIC
@@ -129,24 +129,24 @@ function ( set_amrex_defines )
    endif ()
 
    # SENSEI Insitu -- only legacy
-   add_amrex_define( BL_USE_SENSEI_INSITU IF ENABLE_SENSEI )
+   add_amrex_define( BL_USE_SENSEI_INSITU IF AMReX_SENSEI )
 
    # Conduit Support
-   add_amrex_define( AMREX_USE_CONDUIT NO_LEGACY IF ENABLE_CONDUIT )
+   add_amrex_define( AMREX_USE_CONDUIT NO_LEGACY IF AMReX_CONDUIT )
 
    # Ascent Support
-   add_amrex_define( AMREX_USE_ASCENT NO_LEGACY IF ENABLE_ASCENT )
+   add_amrex_define( AMREX_USE_ASCENT NO_LEGACY IF AMReX_ASCENT )
 
    # EB
-   add_amrex_define( AMREX_USE_EB NO_LEGACY IF ENABLE_EB )
+   add_amrex_define( AMREX_USE_EB NO_LEGACY IF AMReX_EB )
 
    #
    # CUDA
    #
-   add_amrex_define( AMREX_USE_CUDA NO_LEGACY IF ENABLE_CUDA )
-   add_amrex_define( AMREX_USE_NVML NO_LEGACY IF ENABLE_CUDA )
-   add_amrex_define( AMREX_GPU_MAX_THREADS=${CUDA_MAX_THREADS} NO_LEGACY
-      IF ENABLE_CUDA )
+   add_amrex_define( AMREX_USE_CUDA NO_LEGACY IF AMReX_CUDA )
+   add_amrex_define( AMREX_USE_NVML NO_LEGACY IF AMReX_CUDA )
+   add_amrex_define( AMREX_GPU_MAX_THREADS=${AMReX_CUDA_MAX_THREADS} NO_LEGACY
+      IF AMReX_CUDA )
 
    #
    # OpenACC
@@ -156,7 +156,7 @@ function ( set_amrex_defines )
    #
    # General setup for any GPUs
    #
-   if (ENABLE_CUDA OR ENABLE_ACC OR ENABLE_HIP)
+   if (AMReX_CUDA OR ENABLE_ACC OR AMReX_HIP)
       add_amrex_define( AMREX_USE_GPU  NO_LEGACY )
       add_amrex_define( BL_COALESCE_FABS )
 
@@ -170,7 +170,7 @@ function ( set_amrex_defines )
    #
    # HDF5
    #
-   add_amrex_define(AMREX_USE_HDF5 NO_LEGACY IF ENABLE_HDF5)
-   add_amrex_define(AMREX_USE_HDF5_ASYNC NO_LEGACY IF ENABLE_HDF5_ASYNC)
+   add_amrex_define(AMREX_USE_HDF5 NO_LEGACY IF AMReX_HDF5)
+   add_amrex_define(AMREX_USE_HDF5_ASYNC NO_LEGACY IF AMReX_HDF5_ASYNC)
 
 endfunction ()

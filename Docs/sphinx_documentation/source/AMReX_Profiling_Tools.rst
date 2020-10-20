@@ -26,10 +26,10 @@ in your GNUMakefile.   If using cmake then set the following cmake flags
 
 ::
 
-  AMREX_ENABLE_TINY_PROFILE = ON
-  AMREX_ENABLE_BASE_PROFILE = OFF
+  AMREX_AMReX_TINY_PROFILE = ON
+  AMREX_AMReX_BASE_PROFILE = OFF
 
-Note that if you set ``PROFILE = TRUE``  (or ``AMREX_ENABLE_BASE_PROFILE =
+Note that if you set ``PROFILE = TRUE``  (or ``AMREX_AMReX_BASE_PROFILE =
 ON``) then this will override the ``TINY_PROFILE`` flag and tiny profiling will
 be disabled.
 

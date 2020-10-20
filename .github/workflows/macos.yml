@@ -19,5 +19,5 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_BUILD_TUTORIALS=ON  \
-            -DENABLE_PARTICLES=ON
+            -DAMReX_PARTICLES=ON
         make -j 2

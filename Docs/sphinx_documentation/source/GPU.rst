@@ -186,7 +186,7 @@ Building with CMake
 Enabling CUDA support
 ^^^^^^^^^^^^^^^^^^^^^
 
-To build AMReX with CUDA support in CMake, add ``-DENABLE_CUDA=YES`` to the
+To build AMReX with CUDA support in CMake, add ``-DAMReX_CUDA=YES`` to the
 ``cmake`` invocation. For a full list of CUDA-specific configuration options,
 check the :ref:`table <tab:cmakecudavar>` below.
 
@@ -201,35 +201,35 @@ check the :ref:`table <tab:cmakecudavar>` below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | Variable Name                | Description                                     | Default     | Possible values |
    +==============================+=================================================+=============+=================+
-   | ENABLE_CUDA                  |  Build with CUDA support                        | NO          | YES, NO         |
+   | AMReX_CUDA                   |  Build with CUDA support                        | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_ARCH                    |  CUDA target architecture                       | Auto        | User-defined    |
+   | AMReX_CUDA_ARCH              |  CUDA target architecture                       | Auto        | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_CUDA_FASTMATH         |  Enable CUDA fastmath library                   | YES         | YES, NO         |
+   | AMReX_CUDA_FASTMATH          |  Enable CUDA fastmath library                   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_BACKTRACE               |  Host function symbol names (e.g. cuda-memcheck)| Auto        | YES, NO         |
+   | AMReX_CUDA_BACKTRACE         |  Host function symbol names (e.g. cuda-memcheck)| Auto        | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_COMPILATION_TIMER       |  CSV table with time for each compilation phase | NO          | YES, NO         |
+   | AMReX_CUDA_COMPILATION_TIMER |  CSV table with time for each compilation phase | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_DEBUG                   |  Device debug information (optimizations: off)  | NO          | YES, NO         |
+   | AMReX_CUDA_DEBUG             |  Device debug information (optimizations: off)  | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_ERROR_CAPTURE_THIS      |  Error if a CUDA lambda captures a class' this  | NO          | YES, NO         |
+   | AMReX_CUDA_ERROR_CAPTURE_THIS|  Error if a CUDA lambda captures a class' this  | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_KEEP_FILES              |  Keep intermediately files (folder: nvcc_tmp)   | NO          | YES, NO         |
+   | AMReX_CUDA_KEEP_FILES        |  Keep intermediately files (folder: nvcc_tmp)   | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_LTO                     |  Enable CUDA link-time-optimization             | NO          | YES, NO         |
+   | AMReX_CUDA_LTO               |  Enable CUDA link-time-optimization             | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_MAX_THREADS             |  Max number of CUDA threads per block           | 256         | User-defined    |
+   | AMReX_CUDA_MAX_THREADS       |  Max number of CUDA threads per block           | 256         | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_MAXREGCOUNT             |  Limits the number of CUDA registers available  | 255         | User-defined    |
+   | AMReX_CUDA_MAXREGCOUNT       |  Limits the number of CUDA registers available  | 255         | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_PTX_VERBOSE             |  Verbose code generation statistics in ptxas    | NO          | YES, NO         |
+   | AMReX_CUDA_PTX_VERBOSE       |  Verbose code generation statistics in ptxas    | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_SHOW_CODELINES          |  Source information in PTX (optimizations: on)  | Auto        | YES, NO         |
+   | AMReX_CUDA_SHOW_CODELINES    |  Source information in PTX (optimizations: on)  | Auto        | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_SHOW_LINENUMBERS        |  Line-number information (optimizations: on)    | Auto        | YES, NO         |
+   | AMReX_CUDA_SHOW_LINENUMBERS  |  Line-number information (optimizations: on)    | Auto        | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_WARN_CAPTURE_THIS       |  Warn if a CUDA lambda captures a class' this   | YES         | YES, NO         |
+   | AMReX_CUDA_WARN_CAPTURE_THIS |  Warn if a CUDA lambda captures a class' this   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
 .. raw:: latex
 
@@ -245,7 +245,7 @@ For example, on Cori GPUs you can specify the architecture as follows:
 
 ::
 
-   cmake [options] -DENABLE_CUDA=yes -DCUDA_ARCH=Volta /path/to/amrex/source
+   cmake [options] -DAMReX_CUDA=yes -DAMReX_CUDA_ARCH=Volta /path/to/amrex/source
 
 
 If no architecture is specified, CMake will try to determine which GPU architecture is
@@ -310,7 +310,7 @@ Enabling HIP support (experimental)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To build AMReX with HIP support in CMake, add
-``-DENABLE_HIP=YES -DAMD_ARCH=<target-arch> -DCMAKE_CXX_COMPILER=<your-hip-compiler>`` to the
+``-DAMReX_HIP=YES -DAMReX_AMD_ARCH=<target-arch> -DCMAKE_CXX_COMPILER=<your-hip-compiler>`` to the
 ``cmake`` invocation. For a full list of HIP-specific configuration options,
 check the :ref:`table <tab:cmakehipvar>` below.
 
@@ -322,15 +322,15 @@ for example ``CMAKE_CXX_FLAGS``, can be used for HIP as well.
 
 Since CMake does not support autodetection of HIP compilers/target architectures
 yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``hipcc`` or ``nvcc``,
-and ``AMD_ARCH`` to the target architecture you are building for.
-Thus **``AMD_ARCH`` and ``CMAKE_CXX_COMPILER`` are required user-inputs when ``ENABLE_HIP=ON``**.
+and ``AMReX_AMD_ARCH`` to the target architecture you are building for.
+Thus **``AMReX_AMD_ARCH`` and ``CMAKE_CXX_COMPILER`` are required user-inputs when ``AMReX_HIP=ON``**.
 Below is an example configuration for HIP on Tulip:
 
 .. highlight:: console
 
 ::
 
-   cmake -DENABLE_HIP=ON -DCMAKE_CXX_COMPILER=$(which hipcc) -DAMD_ARCH="gfx906,gfx908"  [other options] /path/to/amrex/source
+   cmake -DAMReX_HIP=ON -DCMAKE_CXX_COMPILER=$(which hipcc) -DAMReX_AMD_ARCH="gfx906,gfx908"  [other options] /path/to/amrex/source
 
 .. raw:: latex
 
@@ -343,9 +343,9 @@ Below is an example configuration for HIP on Tulip:
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | Variable Name                | Description                                     | Default     | Possible values |
    +==============================+=================================================+=============+=================+
-   | ENABLE_HIP                   |  Build with HIP support                         | NO          | YES, NO         |
+   | AMReX_HIP                    |  Build with HIP support                         | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMD_ARCH                     |  AMD  target architecture  (required)           |             | User-defined    |
+   | AMReX_AMD_ARCH               |  AMD target architecture  (required)            |             | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
 
 .. raw:: latex

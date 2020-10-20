@@ -8,7 +8,7 @@ target_sources(amrex
    AMReX_EBFabFactory.cpp
    AMReX_EBMultiFabUtil.H
    AMReX_EBMultiFabUtil_C.H
-   AMReX_EBMultiFabUtil_${DIM}D_C.H
+   AMReX_EBMultiFabUtil_${AMReX_SPACEDIM}D_C.H
    AMReX_EBMultiFabUtil.cpp
    AMReX_EBCellFlag.H
    AMReX_EBCellFlag.cpp
@@ -21,7 +21,7 @@ target_sources(amrex
    AMReX_EBInterpolater.cpp
    AMReX_EBFluxRegister.H
    AMReX_EBFluxRegister_C.H
-   AMReX_EBFluxRegister_${DIM}D_C.H
+   AMReX_EBFluxRegister_${AMReX_SPACEDIM}D_C.H
    AMReX_EBFluxRegister.cpp
    AMReX_EBAmrUtil.H
    AMReX_EBAmrUtil.cpp
@@ -62,11 +62,11 @@ target_sources(amrex
    AMReX_EB2.cpp
    AMReX_EB2_Level.cpp
    AMReX_EB2_MultiGFab.cpp
-   AMReX_EB2_${DIM}D_C.cpp
-   AMReX_EB2_C.H AMReX_EB2_${DIM}D_C.H
+   AMReX_EB2_${AMReX_SPACEDIM}D_C.cpp
+   AMReX_EB2_C.H AMReX_EB2_${AMReX_SPACEDIM}D_C.H
    )
 
-if (ENABLE_FORTRAN)
+if (AMReX_FORTRAN)
    target_sources(amrex
       PRIVATE
       AMReX_ebcellflag_mod.F90

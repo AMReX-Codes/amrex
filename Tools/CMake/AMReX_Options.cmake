@@ -21,11 +21,11 @@ endmacro ()
 #
 # Dimensionality of the build  ===============================================
 #
-set (DIM 3 CACHE STRING "Dimension of AMReX build")
-if ( (DIM GREATER 3) OR (DIM LESS 1) )
-   message( FATAL_ERROR "DIM must be either 1, 2 or 3.")
+set(AMReX_SPACEDIM 3 CACHE STRING "Dimension of AMReX build")
+if ( (AMReX_SPACEDIM GREATER 3) OR (AMReX_SPACEDIM LESS 1) )
+   message( FATAL_ERROR "AMReX_SPACEDIM must be either 1, 2 or 3.")
 endif ()
-message( STATUS "Building AMReX with DIM = ${DIM}")
+message( STATUS "Building AMReX with AMReX_SPACEDIM = ${AMReX_SPACEDIM}")
 
 
 #
@@ -41,9 +41,9 @@ message(STATUS "Configuring AMReX with the following options enabled: ")
 # Under policy CMP0077, normal variables prevent option()
 # to set internal variables of the same name.
 # Example: if XSDK mode is ON and XSDK_ENABLE_Fortran=ON, a normal
-# variable ENABLE_FORTRAN will be created and set to ON.
-# This will stop the subsequent option( ENABLE_FORTRAN "Enable Fortran language" ON )
-# from being executed and no entry ENABLE_FORTRAN will be created in the cache
+# variable AMReX_FORTRAN will be created and set to ON.
+# This will stop the subsequent option( AMReX_FORTRAN "Enable Fortran language" ON )
+# from being executed and no entry AMReX_FORTRAN will be created in the cache
 #
 option( USE_XSDK_DEFAULTS "Enable xSDK mode"  OFF )
 print_option( USE_XSDK_DEFAULTS )
@@ -65,12 +65,12 @@ print_option( BUILD_SHARED_LIBS )
 #
 if ( USE_XSDK_DEFAULTS )
    option( XSDK_ENABLE_Fortran "Enable Fortran language" OFF )
-   set( ENABLE_FORTRAN ${XSDK_ENABLE_Fortran} )
+   set( AMReX_FORTRAN ${XSDK_ENABLE_Fortran} )
    print_option(XSDK_ENABLE_Fortran)
 endif ()
 
-option( ENABLE_FORTRAN "Enable Fortran language" ON )
-print_option( ENABLE_FORTRAN )
+option( AMReX_FORTRAN "Enable Fortran language" ON )
+print_option( AMReX_FORTRAN )
 
 #
 # Option to control precision of the build  ==================================
@@ -78,19 +78,19 @@ print_option( ENABLE_FORTRAN )
 if ( USE_XSDK_DEFAULTS )
    set( XSDK_PRECISION "DOUBLE" CACHE STRING "Precision:<SINGLE,DOUBLE>" )
    if ( XSDK_PRECISION STREQUAL "DOUBLE" )
-      set( ENABLE_DP ON )
-      set( ENABLE_DP_PARTICLES ON )
+      set( AMReX_DP ON )
+      set( AMReX_DP_PARTICLES ON )
    elseif ( XSDK_PRECISION STREQUAL "SINGLE" )
-      set( ENABLE_DP OFF )
-      set( ENABLE_DP_PARTICLES OFF )
+      set( AMReX_DP OFF )
+      set( AMReX_DP_PARTICLES OFF )
    else ()
       message( FATAL_ERROR "\nUnsupported precision ${XSDK_PRECISION}\n" )
    endif ()
    print_option( XSDK_PRECISION )
 endif ()
 
-option( ENABLE_DP "Enable double precision" ON )
-print_option( ENABLE_DP )
+option( AMReX_DP "Enable double precision" ON )
+print_option( AMReX_DP )
 
 
 
@@ -98,47 +98,47 @@ print_option( ENABLE_DP )
 # Parallel backends    ========================================================
 #
 
-# For the time being ENABLE_DPCPP is defined before project() is called
+# For the time being AMReX_DPCPP is defined before project() is called
 # Check whether the C++ compiler is dpcpp
-print_option(ENABLE_DPCPP)
-if (ENABLE_DPCPP AND (NOT (CMAKE_CXX_COMPILER MATCHES "dpcpp") ) )
-   message(FATAL_ERROR "\nENABLE_DPCPP=${ENABLE_DPCPP} but CXX compiler is not dpcpp\n")
+print_option(AMReX_DPCPP)
+if (AMReX_DPCPP AND (NOT (CMAKE_CXX_COMPILER MATCHES "dpcpp") ) )
+   message(FATAL_ERROR "\nAMReX_DPCPP=${AMReX_DPCPP} but CXX compiler is not dpcpp\n")
 endif ()
 
-cmake_dependent_option( ENABLE_DPCPP_AOT  "Enable DPCPP ahead-of-time compilation (WIP)"  OFF
-   "ENABLE_DPCPP" OFF)
-print_option( ENABLE_DPCPP_AOT )
+cmake_dependent_option( AMReX_DPCPP_AOT  "Enable DPCPP ahead-of-time compilation (WIP)"  OFF
+   "AMReX_DPCPP" OFF)
+print_option( AMReX_DPCPP_AOT )
 
-cmake_dependent_option( ENABLE_DPCPP_SPLIT_KERNEL "Enable DPCPP kernel splitting"  ON
-   "ENABLE_DPCPP" OFF)
-print_option(  ENABLE_DPCPP_SPLIT_KERNEL )
+cmake_dependent_option( AMReX_DPCPP_SPLIT_KERNEL "Enable DPCPP kernel splitting"  ON
+   "AMReX_DPCPP" OFF)
+print_option(  AMReX_DPCPP_SPLIT_KERNEL )
 
-cmake_dependent_option( ENABLE_MPI  "Enable MPI"  ON
-   "NOT ENABLE_DPCPP" OFF)
-print_option( ENABLE_MPI )
+cmake_dependent_option( AMReX_MPI  "Enable MPI"  ON
+   "NOT AMReX_DPCPP" OFF)
+print_option( AMReX_MPI )
 
-cmake_dependent_option( ENABLE_MPI_THREAD_MULTIPLE
+cmake_dependent_option( AMReX_MPI_THREAD_MULTIPLE
    "whether to initialize MPI so that multiple threads can make MPI calls at the same time"  OFF
-   "ENABLE_MPI" OFF)
-print_option( ENABLE_MPI_THREAD_MULTIPLE )
+   "AMReX_MPI" OFF)
+print_option( AMReX_MPI_THREAD_MULTIPLE )
 
-option( ENABLE_OMP  "Enable OpenMP" OFF)
-print_option( ENABLE_OMP )
+option( AMReX_OMP  "Enable OpenMP" OFF)
+print_option( AMReX_OMP )
 
-cmake_dependent_option( ENABLE_CUDA "Enable GPU support via CUDA" OFF
-   "NOT ENABLE_DPCPP" OFF)
-print_option( ENABLE_CUDA )
+cmake_dependent_option( AMReX_CUDA "Enable GPU support via CUDA" OFF
+   "NOT AMReX_DPCPP" OFF)
+print_option( AMReX_CUDA )
 
-cmake_dependent_option( ENABLE_HIP "Enable GPU support via HIP" OFF
-   "NOT ENABLE_DPCPP;NOT ENABLE_CUDA" OFF)
-print_option( ENABLE_HIP )
+cmake_dependent_option( AMReX_HIP "Enable GPU support via HIP" OFF
+   "NOT AMReX_DPCPP;NOT AMReX_CUDA" OFF)
+print_option( AMReX_HIP )
 
 # HIP-specific options
-if (ENABLE_HIP)
-   set(AMD_ARCH "IGNORE" CACHE STRING
-      "AMD GPU architecture (Must be provided if ENABLE_HIP=ON)")
-   if (NOT AMD_ARCH)
-      message(FATAL_ERROR "\n Must specify AMD_ARCH if ENABLE_HIP=ON\n")
+if (AMReX_HIP)
+   set(AMReX_AMD_ARCH "IGNORE" CACHE STRING
+      "AMD GPU architecture (Must be provided if AMReX_HIP=ON)")
+   if (NOT AMReX_AMD_ARCH)
+      message(FATAL_ERROR "\n Must specify AMReX_AMD_ARCH if AMReX_HIP=ON\n")
    endif ()
 endif ()
 
@@ -146,7 +146,7 @@ endif ()
 option( ENABLE_ACC  "Enable GPU support via OpenACC" OFF )
 print_option( ENABLE_ACC )
 
-if (ENABLE_CUDA OR ENABLE_ACC OR ENABLE_HIP)
+if (AMReX_CUDA OR ENABLE_ACC OR AMReX_HIP)
    set(GPUS_PER_SOCKET "IGNORE" CACHE STRING "Number of GPUs per socket" )
    print_option(GPUS_PER_SOCKET)
 
@@ -158,26 +158,26 @@ endif ()
 #
 # AMReX components selection  ================================================
 #
-cmake_dependent_option( ENABLE_EB "Build with Embedded Boundary support" OFF
-   "NOT DIM EQUAL 1" OFF )
-print_option(ENABLE_EB)
+cmake_dependent_option( AMReX_EB "Build with Embedded Boundary support" OFF
+   "NOT AMReX_SPACEDIM EQUAL 1" OFF )
+print_option(AMReX_EB)
 
-cmake_dependent_option( ENABLE_FORTRAN_INTERFACES "Build Fortran API" OFF
-   "ENABLE_FORTRAN" OFF )
-print_option(ENABLE_FORTRAN_INTERFACES)
+cmake_dependent_option( AMReX_FORTRAN_INTERFACES "Build Fortran API" OFF
+   "AMReX_FORTRAN" OFF )
+print_option(AMReX_FORTRAN_INTERFACES)
 
-option( ENABLE_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
-print_option( ENABLE_LINEAR_SOLVERS )
+option( AMReX_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
+print_option( AMReX_LINEAR_SOLVERS )
 
-option( ENABLE_AMRDATA "Build data services" OFF)
-print_option( ENABLE_AMRDATA )
+option( AMReX_AMRDATA "Build data services" OFF)
+print_option( AMReX_AMRDATA )
 
-option( ENABLE_PARTICLES "Build particle classes" OFF)
-print_option( ENABLE_PARTICLES )
+option( AMReX_PARTICLES "Build particle classes" OFF)
+print_option( AMReX_PARTICLES )
 
-cmake_dependent_option( ENABLE_DP_PARTICLES "Enable double-precision particle data" ON
-   "ENABLE_PARTICLES" OFF )
-print_option( ENABLE_DP_PARTICLES )
+cmake_dependent_option( AMReX_DP_PARTICLES "Enable double-precision particle data" ON
+   "AMReX_PARTICLES" OFF )
+print_option( AMReX_DP_PARTICLES )
 
 
 #
@@ -185,88 +185,88 @@ print_option( ENABLE_DP_PARTICLES )
 #
 
 # sensei
-option( ENABLE_SENSEI "Enable SENSEI in situ infrastructure" OFF )
-print_option( ENABLE_SENSEI )
+option( AMReX_SENSEI "Enable SENSEI in situ infrastructure" OFF )
+print_option( AMReX_SENSEI )
 
 # Conduit (requires CONDUIT_DIR)
-option( ENABLE_CONDUIT "Enable Conduit support" OFF )
-print_option( ENABLE_CONDUIT )
+option( AMReX_CONDUIT "Enable Conduit support" OFF )
+print_option( AMReX_CONDUIT )
 
 # Ascent
-cmake_dependent_option( ENABLE_ASCENT "Enable Ascent support" OFF
-   "ENABLE_CONDUIT" OFF )
-print_option( ENABLE_ASCENT )
+cmake_dependent_option( AMReX_ASCENT "Enable Ascent support" OFF
+   "AMReX_CONDUIT" OFF )
+print_option( AMReX_ASCENT )
 
 # SUNDIALS
-cmake_dependent_option(ENABLE_SUNDIALS "Enable SUNDIALS4 interfaces" OFF
-   "ENABLE_FORTRAN_INTERFACES" OFF)
-print_option(ENABLE_SUNDIALS)
+cmake_dependent_option(AMReX_SUNDIALS "Enable SUNDIALS4 interfaces" OFF
+   "AMReX_FORTRAN_INTERFACES" OFF)
+print_option(AMReX_SUNDIALS)
 
 # Hypre
-cmake_dependent_option(ENABLE_HYPRE "Enable Hypre interfaces" OFF
-   "ENABLE_LINEAR_SOLVERS" OFF)
-print_option(ENABLE_HYPRE)
+cmake_dependent_option(AMReX_HYPRE "Enable Hypre interfaces" OFF
+   "AMReX_LINEAR_SOLVERS" OFF)
+print_option(AMReX_HYPRE)
 
 # PETSc
-cmake_dependent_option(ENABLE_PETSC "Enable PETSc interfaces" OFF
-   "ENABLE_LINEAR_SOLVERS" OFF )
-print_option(ENABLE_PETSC)
+cmake_dependent_option(AMReX_PETSC "Enable PETSc interfaces" OFF
+   "AMReX_LINEAR_SOLVERS" OFF )
+print_option(AMReX_PETSC)
 
 # HDF5
-option(ENABLE_HDF5 "Enable HDF5-based I/O" OFF)
-print_option(ENABLE_HDF5)
+option(AMReX_HDF5 "Enable HDF5-based I/O" OFF)
+print_option(AMReX_HDF5)
 
-cmake_dependent_option(ENABLE_HDF5_ASYNC "Enable asynchronous writes in the HDF5-based IO" OFF
-   "ENABLE_HDF5" OFF )
-print_option(ENABLE_HDF5_ASYNC)
+cmake_dependent_option(AMReX_HDF5_ASYNC "Enable asynchronous writes in the HDF5-based IO" OFF
+   "AMReX_HDF5" OFF )
+print_option(AMReX_HDF5_ASYNC)
 
-if (ENABLE_HDF5_ASYNC)
-   message(FATAL_ERROR "\nENABLE_HDF5_ASYNC not yet supported\n")
+if (AMReX_HDF5_ASYNC)
+   message(FATAL_ERROR "\nAMReX_HDF5_ASYNC not yet supported\n")
 endif ()
 
 
 #
 # Miscellanoues options  =====================================================
 #
-option( ENABLE_PIC "Build position-independent code" OFF)
-print_option( ENABLE_PIC )
+option( AMReX_PIC "Build position-independent code" OFF)
+print_option( AMReX_PIC )
 
-option(ENABLE_FPE "Enable Floating Point Exceptions checks" OFF)
-print_option( ENABLE_FPE )
+option(AMReX_FPE "Enable Floating Point Exceptions checks" OFF)
+print_option( AMReX_FPE )
 
 if ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" )
-   option( ENABLE_ASSERTIONS "Enable assertions" ON)
+   option( AMReX_ASSERTIONS "Enable assertions" ON)
 else ()
-   option( ENABLE_ASSERTIONS "Enable assertions" OFF)
+   option( AMReX_ASSERTIONS "Enable assertions" OFF)
 endif ()
 
-print_option( ENABLE_ASSERTIONS )
+print_option( AMReX_ASSERTIONS )
 
 
 #
 # Profiling options  =========================================================
 #
-option( ENABLE_BASE_PROFILE "Enable basic profiling" OFF )
-print_option( ENABLE_BASE_PROFILE )
+option( AMReX_BASE_PROFILE "Enable basic profiling" OFF )
+print_option( AMReX_BASE_PROFILE )
 
-cmake_dependent_option( ENABLE_TINY_PROFILE "Enable tiny profiling" OFF
-   "NOT ENABLE_BASE_PROFILE" OFF)
-print_option( ENABLE_TINY_PROFILE )
+cmake_dependent_option( AMReX_TINY_PROFILE "Enable tiny profiling" OFF
+   "NOT AMReX_BASE_PROFILE" OFF)
+print_option( AMReX_TINY_PROFILE )
 
-cmake_dependent_option( ENABLE_TRACE_PROFILE "Enable trace-profiling" OFF
-   "ENABLE_BASE_PROFILE" OFF)
-print_option( ENABLE_TRACE_PROFILE )
+cmake_dependent_option( AMReX_TRACE_PROFILE "Enable trace-profiling" OFF
+   "AMReX_BASE_PROFILE" OFF)
+print_option( AMReX_TRACE_PROFILE )
 
-option( ENABLE_MEM_PROFILE   "Enable memory profiling" OFF )
-print_option( ENABLE_MEM_PROFILE )
+option( AMReX_MEM_PROFILE   "Enable memory profiling" OFF )
+print_option( AMReX_MEM_PROFILE )
 
-cmake_dependent_option( ENABLE_COMM_PROFILE  "Enable communicator-profiling" OFF
-   "ENABLE_BASE_PROFILE" OFF)
-print_option( ENABLE_COMM_PROFILE )
+cmake_dependent_option( AMReX_COMM_PROFILE  "Enable communicator-profiling" OFF
+   "AMReX_BASE_PROFILE" OFF)
+print_option( AMReX_COMM_PROFILE )
 
-cmake_dependent_option(ENABLE_PROFPARSER "Enable profile parser" OFF
-   "ENABLE_BASE_PROFILE;ENABLE_TRACE_PROFILE;ENABLE_AMRDATA" OFF)
-print_option( ENABLE_PROFPARSER )
+cmake_dependent_option(AMReX_PROFPARSER "Enable profile parser" OFF
+   "AMReX_BASE_PROFILE;AMReX_TRACE_PROFILE;AMReX_AMRDATA" OFF)
+print_option( AMReX_PROFPARSER )
 
 set(TP_PROFILE_VALUES IGNORE CRAYPAT FORGE VTUNE)
 set(TP_PROFILE IGNORE CACHE STRING "Third-party profiling options: <CRAYPAT,FORGE,VTUNE>")
@@ -285,7 +285,7 @@ endif ()
 if (  ( ( TP_PROFILE STREQUAL "CRAYPAT" ) OR
         ( TP_PROFILE STREQUAL "FORGE"   ) OR
         ( TP_PROFILE STREQUAL "VTUNE"   )   ) AND
-     (ENABLE_BASE_PROFILE OR ENABLE_TINY_PROFILE) )
+     (AMReX_BASE_PROFILE OR AMReX_TINY_PROFILE) )
    message(WARNING "This configuration should only be used to profile BL_PROFILE!")
 endif()
 
@@ -293,5 +293,5 @@ endif()
 #
 # Extra options  =========================================================
 #
-option(ALLOW_DIFFERENT_COMPILER
+option(AMReX_DIFFERENT_COMPILER
     "Allow an application to use a different compiler than the one used to build AMReX" OFF)

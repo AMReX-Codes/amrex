@@ -1,4 +1,4 @@
-if (NOT DIM EQUAL 3)
+if (NOT AMReX_SPACEDIM EQUAL 3)
    return()
 endif ()
 

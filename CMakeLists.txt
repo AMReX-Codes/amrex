@@ -29,8 +29,8 @@ get_amrex_version()
 # For the time being, set this option here.
 # We must do this because we need to provide a default for CMAKE_CXX_COMPILER
 #
-option( ENABLE_DPCPP  "Enable DPCPP support" OFF )
-if (ENABLE_DPCPP)
+option( AMReX_DPCPP  "Enable DPCPP support" OFF )
+if (AMReX_DPCPP)
    if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
       # Set default for CMAKE_CXX_COMPILER only if amrex
       # is not a subproject
@@ -85,14 +85,14 @@ include( AMReX_Options )
 #
 # Enable Fortran if requested
 #
-if(ENABLE_FORTRAN)
+if(AMReX_FORTRAN)
    enable_language(Fortran)
 endif ()
 
 #
 # Enable CUDA if requested
 #
-if (ENABLE_CUDA)
+if (AMReX_CUDA)
     enable_language(CUDA)
     include(AMReX_SetupCUDA)
 endif ()
@@ -126,9 +126,9 @@ endif ()
 #
 # Plotfile tools
 #
-option(ENABLE_PLOTFILE_TOOLS "Enable Plotfile tools" NO)
+option(AMReX_PLOTFILE_TOOLS "Enable Plotfile tools" NO)
 
-if (ENABLE_PLOTFILE_TOOLS)
+if (AMReX_PLOTFILE_TOOLS)
    # If this get executed, it cannot be EXCLUDED_FROM_ALL
    # because it needs to get installed
    add_subdirectory(Tools/Plotfile)
