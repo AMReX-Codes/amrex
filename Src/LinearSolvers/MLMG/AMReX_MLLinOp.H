@@ -174,7 +174,7 @@ public:
     void setMaxOrder (int o) noexcept { maxorder = o; }
     int getMaxOrder () const noexcept { return maxorder; }
 
-    void setEnforceSingularSolvable (int o) noexcept { enforceSingularSolvable = o; }
+    void setEnforceSingularSolvable (bool o) noexcept { enforceSingularSolvable = o; }
     bool getEnforceSingularSolvable () const noexcept { return enforceSingularSolvable; }
 
     virtual BottomSolver getDefaultBottomSolver () const { return BottomSolver::bicgstab; }
