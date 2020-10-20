@@ -247,7 +247,7 @@ void MLMG::oneIter (int iter)
     // coarsest amr level
     {
         // enforce solvability if appropriate
-        if (linop.isSingular(0))
+        if (linop.isSingular(0) && linop.getEnforceSingularSolvable())
         {
             makeSolvable(0,0,res[0][0]);
         }
@@ -929,7 +929,7 @@ MLMG::actualBottomSolve ()
     {
         MultiFab* bottom_b = &b;
         MultiFab raii_b;
-        if (linop.isBottomSingular())
+        if (linop.isBottomSingular() && linop.getEnforceSingularSolvable())
         {
             raii_b.define(b.boxArray(), b.DistributionMap(), ncomp, b.nGrow(),
                           MFInfo(), *linop.Factory(amrlev,mglev));
@@ -1210,7 +1210,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     }
     
     // enforce solvability if appropriate
-    if (linop.isSingular(0))
+    if (linop.isSingular(0) && linop.getEnforceSingularSolvable())
     {
         computeVolInv();
         makeSolvable();
@@ -1888,7 +1888,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
 
     // For singular problems there may be a large constant added to all values of the solution
     // For precision reasons we enforce that the average of the correction from hypre is 0
-    if (linop.isSingular(amrlev))
+    if (linop.isSingular(amrlev) && linop.getEnforceSingularSolvable())
     {
         makeSolvable(amrlev, mglev, x);
     }
