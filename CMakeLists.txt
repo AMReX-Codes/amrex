@@ -80,7 +80,7 @@ endif()
 #
 # Include options, utilities and other stuff we need
 #
-include( AMReX_Options )
+include( AMReXOptions )
 
 #
 # Enable Fortran if requested
