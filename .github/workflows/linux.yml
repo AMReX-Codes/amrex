@@ -147,7 +147,7 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DAMReX_BUILD_TUTORIALS=ON                   \
             -DAMReX_PARTICLES=ON                        \
-            -DAMReX_CUDA=ON                             \
+            -DAMReX_GPU_BACKEND=CUDA                         \
             -DCMAKE_C_COMPILER=$(which gcc-4.8)              \
             -DCMAKE_CXX_COMPILER=$(which g++-4.8)            \
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++-4.8)      \
@@ -173,7 +173,7 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
             -DAMReX_BUILD_TUTORIALS=ON                          \
             -DAMReX_PARTICLES=ON                          \
-            -DAMReX_DPCPP=ON                              \
+            -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which clang)              \
             -DCMAKE_CXX_COMPILER=$(which dpcpp)            \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
@@ -198,7 +198,7 @@ jobs:
             -DAMReX_PARTICLES=ON                          \
             -DAMReX_FORTRAN=ON                            \
             -DAMReX_LINEAR_SOLVERS=ON                     \
-            -DAMReX_HIP=ON                                \
+            -DAMReX_GPU_BACKEND=HIP                       \
             -DAMReX_AMD_ARCH=gfx900                              \
             -DCMAKE_C_COMPILER=$(which hipcc)              \
             -DCMAKE_CXX_COMPILER=$(which hipcc)            \

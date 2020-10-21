@@ -99,24 +99,7 @@ print_option( AMReX_DP )
 #
 # Parallel backends    ========================================================
 #
-
-# For the time being AMReX_DPCPP is defined before project() is called
-# Check whether the C++ compiler is dpcpp
-print_option(AMReX_DPCPP)
-if (AMReX_DPCPP AND (NOT (CMAKE_CXX_COMPILER MATCHES "dpcpp") ) )
-   message(FATAL_ERROR "\nAMReX_DPCPP=${AMReX_DPCPP} but CXX compiler is not dpcpp\n")
-endif ()
-
-cmake_dependent_option( AMReX_DPCPP_AOT  "Enable DPCPP ahead-of-time compilation (WIP)"  OFF
-   "AMReX_DPCPP" OFF)
-print_option( AMReX_DPCPP_AOT )
-
-cmake_dependent_option( AMReX_DPCPP_SPLIT_KERNEL "Enable DPCPP kernel splitting"  ON
-   "AMReX_DPCPP" OFF)
-print_option(  AMReX_DPCPP_SPLIT_KERNEL )
-
-cmake_dependent_option( AMReX_MPI  "Enable MPI"  ON
-   "NOT AMReX_DPCPP" OFF)
+option( AMReX_MPI  "Enable MPI"  ON )
 print_option( AMReX_MPI )
 
 cmake_dependent_option( AMReX_MPI_THREAD_MULTIPLE
@@ -127,15 +110,54 @@ print_option( AMReX_MPI_THREAD_MULTIPLE )
 option( AMReX_OMP  "Enable OpenMP" OFF)
 print_option( AMReX_OMP )
 
-cmake_dependent_option( AMReX_CUDA "Enable GPU support via CUDA" OFF
-   "NOT AMReX_DPCPP" OFF)
-print_option( AMReX_CUDA )
 
-cmake_dependent_option( AMReX_HIP "Enable GPU support via HIP" OFF
-   "NOT AMReX_DPCPP;NOT AMReX_CUDA" OFF)
-print_option( AMReX_HIP )
+#
+# GPU backends
+#
+set(AMReX_GPU_BACKEND_VALUES NONE SYCL CUDA HIP)
+set(AMReX_GPU_BACKEND NONE CACHE STRING "On-node, accelerated GPU backend: <NONE,SYCL,CUDA,HIP>")
+set_property(CACHE AMReX_GPU_BACKEND PROPERTY STRINGS ${AMReX_GPU_BACKEND_VALUES})
+if(NOT AMReX_GPU_BACKEND IN_LIST AMReX_GPU_BACKEND_VALUES)
+   message(FATAL_ERROR "AMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is not allowed."
+      " Must be one of ${AMReX_GPU_BACKEND_VALUES}")
+endif()
+print_option(AMReX_GPU_BACKEND)
 
-# HIP-specific options
+if (AMReX_GPU_BACKEND STREQUAL SYCL)
+   set(AMReX_CUDA  OFF CACHE INTERNAL "")
+   set(AMReX_DPCPP ON  CACHE INTERNAL "")
+   set(AMReX_HIP   OFF CACHE INTERNAL "")
+elseif (AMReX_GPU_BACKEND STREQUAL CUDA)
+   set(AMReX_CUDA  ON  CACHE INTERNAL "")
+   set(AMReX_DPCPP OFF CACHE INTERNAL "")
+   set(AMReX_HIP   OFF CACHE INTERNAL "")
+elseif (AMReX_GPU_BACKEND STREQUAL HIP)
+   set(AMReX_CUDA  OFF CACHE INTERNAL "")
+   set(AMReX_DPCPP OFF CACHE INTERNAL "")
+   set(AMReX_HIP   ON  CACHE INTERNAL "")
+endif ()
+
+
+# --- SYCL ---
+if (AMReX_DPCPP)
+   if (NOT (CMAKE_CXX_COMPILER MATCHES "dpcpp") )
+      message(FATAL_ERROR "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} supports dpcpp compiler only."
+         "Set CMAKE_CXX_COMPILER=dpccp and try again.")
+   endif ()
+   if (AMReX_MPI)
+      message(FATAL_ERROR "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is incompatible with AMReX_MPI=${AMReX_MPI}.")
+   endif ()
+endif ()
+
+cmake_dependent_option( AMReX_DPCPP_AOT  "Enable DPCPP ahead-of-time compilation (WIP)"  OFF
+   "AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
+print_option( AMReX_DPCPP_AOT )
+
+cmake_dependent_option( AMReX_DPCPP_SPLIT_KERNEL "Enable DPCPP kernel splitting"  ON
+   "AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
+print_option(  AMReX_DPCPP_SPLIT_KERNEL )
+
+# --- HIP ----
 if (AMReX_HIP)
    set(AMReX_AMD_ARCH "IGNORE" CACHE STRING
       "AMD GPU architecture (Must be provided if AMReX_HIP=ON)")
@@ -144,7 +166,6 @@ if (AMReX_HIP)
    endif ()
 endif ()
 
-
 if (AMReX_CUDA OR AMReX_HIP)
    set(GPUS_PER_SOCKET "IGNORE" CACHE STRING "Number of GPUs per socket" )
    print_option(GPUS_PER_SOCKET)
@@ -152,6 +173,7 @@ if (AMReX_CUDA OR AMReX_HIP)
    set(GPUS_PER_NODE "IGNORE" CACHE STRING "Number of GPUs per node" )
    print_option(GPUS_PER_NODE)
 endif ()
+
 
 
 #

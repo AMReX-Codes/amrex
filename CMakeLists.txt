@@ -25,21 +25,6 @@ include( AMReX_Utils )
 get_amrex_version()
 
 
-#
-# For the time being, set this option here.
-# We must do this because we need to provide a default for CMAKE_CXX_COMPILER
-#
-option( AMReX_DPCPP  "Enable DPCPP support" OFF )
-if (AMReX_DPCPP)
-   if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-      # Set default for CMAKE_CXX_COMPILER only if amrex
-      # is not a subproject
-      set(CMAKE_CXX_COMPILER dpcpp)
-   endif ()
-   message(STATUS "Enabling experimental support for dpc++")
-endif ()
-
-
 ########################################################################
 #
 # AMReX project
