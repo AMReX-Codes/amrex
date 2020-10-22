@@ -98,8 +98,7 @@ namespace amrex {
             for (int kk(ks); kk <= ke; ++kk) {
               for (int jj(-1); jj <= 1; ++jj) {
                 for (int ii(-1); ii <= 1; ++ii) {
-		        if( (ii != 0 or jj != 0 or kk != 0) and
-			    flags(i,j,k).isConnected(ii,jj,kk) and
+		        if( flags(i,j,k).isConnected(ii,jj,kk) and
 			    dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
                         {
 
