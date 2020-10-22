@@ -291,7 +291,8 @@ Available choices are
 - :cpp:`MLMG::BottomSolver::cgbicg`: Start with cg. Switch to bicgstab
   if cg fails.  The matrix must be symmetric.
 
-- :cpp:`MLMG::BottomSolver::hypre`: BoomerAMG in hypre.
+- :cpp:`MLMG::BottomSolver::hypre`: One of the solvers available through hypre; see the 
+section below on External Solvers 
 
 - :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
 
@@ -404,11 +405,13 @@ as living at face centroids, modify the setBCoeffs command to be
 External Solvers
 ================
 
-AMReX can use the `hypre <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ algebraic multigrid solver, BoomerAMG, 
-as a bottom solver for both cell-centered and node-based problems.
-For challenging problems, our geometric multigrid solver may have difficulty solving,
-whereas an algebraic multigrid method might be more robust.  
-We note that by default our solver always tries to geometrically coarsen the
+AMReX provides interfaces to the
+ `hypre <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ 
+preconditioners and solvers, including BoomerAMG, GMRES (all variants), PCG, and BICGStab as
+solvers, and BoomerAMG and Euclid as preconditioners.  These can be called as 
+as bottom solvers for both cell-centered and node-based problems.
+
+By default the AMReX linear solver code always tries to geometrically coarsen the
 problem as much as possible.  However, as we have mentioned, we can
 call :cpp:`setMaxCoarseningLevel(0)` on the :cpp:`LPInfo` object
 passed to the constructor of a linear operator to disable the
