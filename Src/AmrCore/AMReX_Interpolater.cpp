@@ -1002,7 +1002,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
         finearr[d] = fine[d]->array(fine_comp);
     }
 
-#if 1 
+#if 0 
 
 // OPTION #1: Cut the box array to exactly the coarse faces that need their fine values calculated.
 //            Parallelize over each coarse face.
@@ -1017,10 +1017,6 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
         const BoxArray ba_cfaces = amrex::complementIn( amrex::convert(c_fine_region, types[d]), ba_crse_values[d] );
-
-        amrex::Print() << " fine_region: " << fine_region << std::endl;
-        amrex::Print() << " c_fine_region: " << c_fine_region << std::endl;
-        amrex::Print() << " ba_cfaces: << " << ba_cfaces << std::endl;
 
         for (int b=0; b<ba_cfaces.size(); ++b)
         {

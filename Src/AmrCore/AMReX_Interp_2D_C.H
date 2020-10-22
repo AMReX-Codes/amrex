@@ -441,26 +441,26 @@ facediv_face_interp (int ci, int cj, int /*ck*/,
     const int fj = cj*ratio[1];
 
     switch (idir) {
-    case 0:
-    {
-        const Real& neg = crse(ci, cj-1, 0, nc);
-        const Real& cen = crse(ci, cj  , 0, nc);
-        const Real& pos = crse(ci, cj+1, 0, nc);
+        case 0:
+        {
+            const Real& neg = crse(ci, cj-1, 0, nc);
+            const Real& cen = crse(ci, cj  , 0, nc);
+            const Real& pos = crse(ci, cj+1, 0, nc);
 
-        fine(fi, fj  , 0, nf) = (8.0_rt*cen + neg - pos)/8.0_rt;
-        fine(fi, fj+1, 0, nf) = (8.0_rt*cen + pos - neg)/8.0_rt;
-        break;
-    }
-    case 1:
-    {
-        const Real& neg = crse(ci-1, cj, 0, nc);
-        const Real& cen = crse(ci  , cj, 0, nc);
-        const Real& pos = crse(ci+1, cj, 0, nc);
+            fine(fi, fj  , 0, nf) = (8.0_rt*cen + neg - pos)/8.0_rt;
+            fine(fi, fj+1, 0, nf) = (8.0_rt*cen + pos - neg)/8.0_rt;
+            break;
+        }
+        case 1:
+        {
+            const Real& neg = crse(ci-1, cj, 0, nc);
+            const Real& cen = crse(ci  , cj, 0, nc);
+            const Real& pos = crse(ci+1, cj, 0, nc);
 
-        fine(fi  , fj, 0, nf) = (8.0_rt*cen + neg - pos)/8.0_rt;
-        fine(fi+1, fj, 0, nf) = (8.0_rt*cen + pos - neg)/8.0_rt;
-        break;
-    }
+            fine(fi  , fj, 0, nf) = (8.0_rt*cen + neg - pos)/8.0_rt;
+            fine(fi+1, fj, 0, nf) = (8.0_rt*cen + pos - neg)/8.0_rt;
+            break;
+        }
     }
 }
    

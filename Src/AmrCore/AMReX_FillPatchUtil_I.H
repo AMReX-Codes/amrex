@@ -209,11 +209,22 @@ namespace {
               typename std::enable_if<std::is_same<typename MF::FABType::value_type,
                                                    FArrayBox>::value,
                                       int>::type = 0>
+    MF make_mf_refined_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
+    {
+        MF mf_refined_patch(amrex::convert( amrex::refine( amrex::coarsen(fpc.ba_fine_patch, ratio), ratio), idx_type),
+                            fpc.dm_patch, ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
+        return mf_refined_patch;
+    }
+
+    template <typename MF,
+              typename std::enable_if<std::is_same<typename MF::FABType::value_type,
+                                                   FArrayBox>::value,
+                                      int>::type = 0>
     MF make_mf_fine_values (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
-        MF mf_fine_patch(amrex::convert( amrex::refine(fpc.ba_crse_patch, ratio), idx_type), fpc.dm_patch,
-                         ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
-        return mf_fine_patch;
+        MF mf_fine_vals(amrex::convert( amrex::refine(fpc.ba_crse_patch, ratio), idx_type), fpc.dm_patch,
+                        ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
+        return mf_fine_vals;
     }
 
 
@@ -267,13 +278,24 @@ namespace {
 
     template <typename MF,
               typename std::enable_if<!std::is_same<typename MF::FABType::value_type,
+                                                   FArrayBox>::value,
+                                      int>::type = 0>
+    MF make_mf_refined_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
+    {
+        MF mf_refined_patch(amrex::convert( amrex::refine( amrex::coarsen(fpc.ba_fine_patch, ratio), ratio), idx_type),
+                            fpc.dm_patch, ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
+        return mf_refined_patch;
+    }
+
+    template <typename MF,
+              typename std::enable_if<!std::is_same<typename MF::FABType::value_type,
                                                     FArrayBox>::value,
                                       int>::type = 0>
     MF make_mf_fine_values (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
-        MF mf_fine_patch(amrex::convert( amrex::refine(fpc.ba_crse_patch, ratio), idx_type), fpc.dm_patch,
+        MF mf_fine_vals(amrex::convert( amrex::refine(fpc.ba_crse_patch, ratio), idx_type), fpc.dm_patch,
                          ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
-        return mf_fine_patch;
+        return mf_fine_vals;
     }
 
     template <typename MF,
@@ -399,15 +421,18 @@ namespace {
 	    if ( !fpc.ba_crse_patch.empty() )
 	    {
                 Array<MF, AMREX_SPACEDIM> mf_crse_patch;
-                Array<MF, AMREX_SPACEDIM> mf_fine_patch;
+                Array<MF, AMREX_SPACEDIM> mf_refined_patch;
                 Array<MF, AMREX_SPACEDIM> mf_fine_values;       // Copy of fine values.
                 Array<BoxArray, AMREX_SPACEDIM> ba_fine_values; // Holds location of known values.
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
-                    mf_crse_patch[d]  = make_mf_crse_patch<MF>(fpc, ncomp, mf[d]->boxArray().ixType());
-                    mf_fine_patch[d]  = make_mf_fine_patch<MF>(fpc, ncomp, mf[d]->boxArray().ixType());
-                    mf_fine_values[d] = make_mf_fine_values<MF>(fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
+                    mf_crse_patch[d]     = make_mf_crse_patch<MF>   (fpc, ncomp, mf[d]->boxArray().ixType());
+                    mf_refined_patch[d]  = make_mf_refined_patch<MF>(fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
+                    mf_fine_values[d]    = make_mf_fine_values<MF>  (fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
+
+//                    amrex::Print() << " crse box (" << d << "): " << mf_crse_patch[0].boxArray() << std::endl
+//                                   << " fine box (" << d << "): " << mf_refined_patch[0].boxArray() << std::endl;
 
                     mf_set_domain_bndry(mf_crse_patch[d], cgeom);
 
@@ -445,14 +470,14 @@ namespace {
 #endif
                 {
                     Vector<Array<BCRec, AMREX_SPACEDIM> > bcr(ncomp);
-                    for (MFIter mfi(mf_fine_patch[0]); mfi.isValid(); ++mfi)
+                    for (MFIter mfi(mf_refined_patch[0]); mfi.isValid(); ++mfi)
                     {
                         Array<FAB*, AMREX_SPACEDIM> sfab{ AMREX_D_DECL( &(mf_crse_patch[0][mfi]),
                                                                         &(mf_crse_patch[1][mfi]),
                                                                         &(mf_crse_patch[2][mfi])  )};
-                        Array<FAB*, AMREX_SPACEDIM> dfab{ AMREX_D_DECL( &(mf_fine_patch[0][mfi]),
-                                                                        &(mf_fine_patch[1][mfi]),
-                                                                        &(mf_fine_patch[2][mfi])  )};
+                        Array<FAB*, AMREX_SPACEDIM> dfab{ AMREX_D_DECL( &(mf_refined_patch[0][mfi]),
+                                                                        &(mf_refined_patch[1][mfi]),
+                                                                        &(mf_refined_patch[2][mfi])  )};
                         Array<FAB*, AMREX_SPACEDIM> ffab{ AMREX_D_DECL( &(mf_fine_values[0][mfi]),
                                                                         &(mf_fine_values[1][mfi]),
                                                                         &(mf_fine_values[2][mfi]) )};
@@ -485,7 +510,7 @@ namespace {
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
-                    mf[d]->ParallelCopy(mf_fine_patch[d], 0, dcomp, ncomp, IntVect{0}, nghost);
+                    mf[d]->ParallelCopy(mf_refined_patch[d], 0, dcomp, ncomp, IntVect{0}, nghost);
                 }
 	    }
 	}
@@ -830,11 +855,15 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
     }
 
     BoxArray ba_crse_patch(ba.size());
+    BoxArray ba_fine_patch(ba.size());
+    BoxArray ba_target_patch(ba.size());
     {  // TODO: later we might want to cache this
         for (int i = 0, N = ba.size(); i < N; ++i)
         {
             Box bx = amrex::convert(amrex::grow(ba[i], nghost), IntVect::TheZeroVector());
             bx &= fdomain_g;
+            ba_target_patch.set(i, bx);
+            ba_fine_patch.set(i, amrex::refine(amrex::coarsen(bx, ratio), ratio));
             ba_crse_patch.set(i, coarsener.doit(bx));
         }
     }
@@ -846,7 +875,7 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
         IndexType typ = mf[d]->boxArray().ixType();
 
         BoxArray ba_crse_idxed = amrex::convert(ba_crse_patch, typ);
-        BoxArray ba_fine_idxed = amrex::convert(mf[d]->boxArray(), typ);
+        BoxArray ba_fine_idxed = amrex::convert(ba_fine_patch, typ);
 
 #ifdef AMREX_USE_EB
         auto crse_factory = makeEBFabFactory(cgeom, ba_crse_idxed, dm, {0,0,0}, EBSupport::basic);
@@ -861,12 +890,11 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
         cbc[d](mf_crse_patch[d], 0, ncomp, mf_crse_patch[d].nGrowVect(), time, cbccomp);
 
 #ifdef AMREX_USE_EB
-            auto fine_factory = makeEBFabFactory(fgeom, ba, dm, {0,0,0}, EBSupport::basic);
-            mf_fine_patch[d].define(ba_fine_idxed, dm, ncomp, 0, MFInfo(), *fine_factory);
+        auto fine_factory = makeEBFabFactory(fgeom, ba, dm, {0,0,0}, EBSupport::basic);
+        mf_fine_patch[d].define(ba_fine_idxed, dm, ncomp, 0, MFInfo(), *fine_factory);
 #else
-            mf_fine_patch[d].define(ba_fine_idxed, dm, ncomp, 0);
+        mf_fine_patch[d].define(ba_fine_idxed, dm, ncomp, 0);
 #endif
-
     }
 
     int idummy1=0, idummy2=0;

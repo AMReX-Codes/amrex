@@ -82,8 +82,10 @@ void CoarsenToFine(MultiFab& div_refined_coarse,
     Interpolater* mapper = &pc_interp;
     PhysBCFunctNoOp phys_bc;
 
-    InterpFromCoarseLevel(div_refined_coarse, 0,
-                          div_coarse, 0, 0, 1,
+    const int time = 0; // No time extrapolation, so just use 0.
+
+    InterpFromCoarseLevel(div_refined_coarse, time,
+                          div_coarse, 0, 0, ncomp,
                           c_geom, f_geom,
                           phys_bc, 0, phys_bc, 0,
                           ratio, mapper, bcrec, 0);
@@ -101,7 +103,6 @@ Real MFdiff(const MultiFab& lhs, const MultiFab& rhs,
         { amrex::VisMF::Write(temp, std::string("pltfiles/" + name)); }
 
     Real max_diff = 0;
-
     for (int i=0; i<num_comp; ++i)
     {
         Real max_i = std::abs(temp.max(i));
@@ -112,7 +113,6 @@ Real MFdiff(const MultiFab& lhs, const MultiFab& rhs,
 }
 
 // ================================================
-
 
 int main (int argc, char* argv[])
 {
@@ -129,6 +129,8 @@ void main_main ()
 
     int n_cell = 0;
     int f_offset = 4;
+    int nghost_c = 1; 
+    int nghost_f = 2;
 
     amrex::Vector<int> c_lo(AMREX_SPACEDIM,  0);
     amrex::Vector<int> c_hi(AMREX_SPACEDIM, 32);
@@ -141,9 +143,10 @@ void main_main ()
         pp.query("n_cell", n_cell);
         pp.query("f_offset", f_offset);
         pp.query("max_grid_size", max_grid_size);
+        pp.query("nghost_c", nghost_c);
+        pp.query("nghost_f", nghost_f);
 
         pp.queryarr("c_hi",  c_hi, 0, AMREX_SPACEDIM);
-
         pp.queryarr("f_lo",  f_lo, 0, AMREX_SPACEDIM);
         pp.queryarr("f_hi",  f_hi, 0, AMREX_SPACEDIM);
 
@@ -159,11 +162,9 @@ void main_main ()
     }
 
     int ncomp = 1;
-//    int nghost_c = 1;
-    int nghost_f = 2;
     IntVect ratio{AMREX_D_DECL(2,2,2)};    // For this stencil (octree), always 2.
-    IntVect ghost_c{AMREX_D_DECL(1,1,1)};  // For this stencil (octree), need 1 coarse ghost.
-    IntVect ghost_f{AMREX_D_DECL(2,2,2)};  // For this stencil (octree), need 2 fine ghost.
+    IntVect ghost_c{AMREX_D_DECL(nghost_c, nghost_c, nghost_c)};  // For this stencil (octree), need 1 coarse ghost.
+    IntVect ghost_f{AMREX_D_DECL(nghost_f, nghost_f, nghost_f)};  // For this stencil (octree), need 1 fine ghost.
     Geometry c_geom, f_geom, f_geom_wghost, f_geom_all;
 
     Array<MultiFab, AMREX_SPACEDIM> c_mf_faces;
@@ -182,15 +183,16 @@ void main_main ()
 // ***************************************************************
     // Build the Multifabs and Geometries.
     {
-        Box domain   (IntVect{c_lo},         IntVect{c_hi});
-        Box domain_f (IntVect{f_lo},         IntVect{f_hi});
-        Box domain_fg(IntVect{f_lo}-ghost_c, IntVect{f_hi}+ghost_c);
+        Box domain   (IntVect{c_lo}, IntVect{c_hi});
+        Box domain_f (IntVect{f_lo}, IntVect{f_hi});
+        Box domain_fg = domain_f;
 
         amrex::Print() << " Testing on coarse: " << domain << std::endl;
         amrex::Print() << "  w/ fine area covering: " << domain_f << std::endl;
 
         domain_f.refine(ratio);
         domain_fg.refine(ratio);
+        domain_fg.grow(ghost_f);
 
         RealBox realbox_c    ({AMREX_D_DECL(0.0,0.0,0.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
         RealBox realbox_f_all({AMREX_D_DECL(0.0,0.0,0.0)}, {AMREX_D_DECL(2.0,2.0,2.0)}); 
@@ -253,9 +255,9 @@ void main_main ()
         div_fine.define(ba_f, dm_f, ncomp, ghost_f);
         div_fine.setVal(0.0);
 
-        AMREX_D_TERM( f_mf_faces_wg[0].define( amrex::convert( ba_fg,x_face ), dm_fg, ncomp, 0);,
-                      f_mf_faces_wg[1].define( amrex::convert( ba_fg,y_face ), dm_fg, ncomp, 0);,
-                      f_mf_faces_wg[2].define( amrex::convert( ba_fg,z_face ), dm_fg, ncomp, 0); );
+        AMREX_D_TERM( f_mf_faces_wg[0].define( amrex::convert( ba_fg,x_face ), dm_fg, ncomp, 0 );,
+                      f_mf_faces_wg[1].define( amrex::convert( ba_fg,y_face ), dm_fg, ncomp, 0 );,
+                      f_mf_faces_wg[2].define( amrex::convert( ba_fg,z_face ), dm_fg, ncomp, 0 ); );
 
         AMREX_D_TERM( f_mf_faces_wg[0].setVal(0.0);,
                       f_mf_faces_wg[1].setVal(0.0);,
@@ -299,6 +301,9 @@ void main_main ()
     amrex::Print() << " Copying coarse divergence to fine grid. " << std::endl;
     CoarsenToFine(div_refined_coarse, div_coarse, c_geom, f_geom_all, ratio);
     amrex::VisMF::Write(div_refined_coarse, std::string("pltfiles/coarsetofine"));
+
+    div_fine_wg.ParallelCopy(div_refined_coarse, 0, 0, 1, ghost_f, IntVect::TheZeroVector());
+    amrex::VisMF::Write(div_fine_wg, std::string("pltfiles/coarsetofine_wg"));
 
 // ***************************************************************
 //  Interp initial coarse values to the fine grid.
@@ -365,13 +370,13 @@ void main_main ()
     amrex::Print() << " Calculating Fine Divergence. " << std::endl;
     calcDiv(f_mf_faces, div_fine, f_geom.CellSizeArray());
 
-    div_fine_wg.ParallelCopy(div_fine, 0, 0, 1, 2, 0);
+    div_fine_wg.ParallelCopy(div_fine, 0, 0, 1, ghost_f, IntVect::TheZeroVector());
     amrex::VisMF::Write(div_fine, std::string("pltfiles/fine"));
     amrex::VisMF::Write(div_fine_wg, std::string("pltfiles/finewg"));
 
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
-        f_mf_faces_wg[i].ParallelCopy(f_mf_faces[i], 0, 0, 1, 2, 0); 
+       f_mf_faces_wg[i].ParallelCopy(f_mf_faces[i], 0, 0, 1, ghost_f, IntVect::TheZeroVector());
     }
 
     AMREX_D_TERM( amrex::VisMF::Write(f_mf_faces_wg[0], std::string("pltfiles/fwgx"));,
@@ -475,7 +480,7 @@ void main_main ()
 
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
-        f_mf_faces_wg[i].ParallelCopy(f_mf_faces[i], 0, 0, 1, 2, 0); 
+        f_mf_faces_wg[i].ParallelCopy(f_mf_faces[i], 0, 0, 1, ghost_f, IntVect::TheZeroVector());
     }
 
     AMREX_D_TERM( amrex::VisMF::Write(f_mf_faces_wg[0], std::string("pltfiles/fwgxFP"));,
