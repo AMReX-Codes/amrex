@@ -43,8 +43,8 @@ public:
           m_inside(a_inside),
           m_sign( a_inside ? 1.0 : -1.0 ),
           m_size(m_polynomial.size()),
-          m_dp(static_cast<PolyTerm*>(The_Device_Arena()->alloc(sizeof(PolyTerm)*m_size))),
-          m_sp(m_dp,Gpu::Deleter(The_Device_Arena()))
+          m_dp(static_cast<PolyTerm*>(The_Device_Arena()->alloc(sizeof(PolyTerm)*m_size)))
+          //m_sp(m_dp,Gpu::Deleter(The_Device_Arena()))
     {
 #ifdef AMREX_USE_GPU
         Gpu::htod_memcpy(m_dp, m_polynomial.data(), m_size*sizeof(PolyTerm));
@@ -84,7 +84,7 @@ protected:
     Real             m_sign;
     int              m_size;
     PolyTerm*        m_dp;
-    std::shared_ptr<PolyTerm> m_sp;
+    //std::shared_ptr<PolyTerm> m_sp;
 };
 
 }}
