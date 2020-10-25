@@ -480,7 +480,7 @@ namespace {
                                                                         &(mf_refined_patch[2][mfi])  )};
                         Array<FAB*, AMREX_SPACEDIM> ffab{ AMREX_D_DECL( &(mf_fine_values[0][mfi]),
                                                                         &(mf_fine_values[1][mfi]),
-                                                                        &(mf_fine_values[2][mfi]) )};
+                                                                        &(mf_fine_values[2][mfi])  )};
 
                         const Box& sbx_cc = amrex::convert(sfab[0]->box(), IntVect::TheZeroVector());
                         const Box& dbx_cc = amrex::convert(dfab[0]->box(), IntVect::TheZeroVector());
@@ -879,22 +879,19 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
 
 #ifdef AMREX_USE_EB
         auto crse_factory = makeEBFabFactory(cgeom, ba_crse_idxed, dm, {0,0,0}, EBSupport::basic);
+        auto fine_factory = makeEBFabFactory(fgeom, ba_fine_idxed, dm, {0,0,0}, EBSupport::basic);
+
         mf_crse_patch[d].define(ba_crse_idxed, dm, ncomp, 0, MFInfo(), *crse_factory);
+        mf_fine_patch[d].define(ba_fine_idxed, dm, ncomp, 0, MFInfo(), *fine_factory);
 #else
         mf_crse_patch[d].define(ba_crse_idxed, dm, ncomp, 0);
+        mf_fine_patch[d].define(ba_fine_idxed, dm, ncomp, 0);
 #endif
         mf_set_domain_bndry(mf_crse_patch[d], cgeom);
 
         mf_crse_patch[d].copy(*(cmf[d]), scomp, 0, ncomp, cgeom.periodicity());
 
         cbc[d](mf_crse_patch[d], 0, ncomp, mf_crse_patch[d].nGrowVect(), time, cbccomp);
-
-#ifdef AMREX_USE_EB
-        auto fine_factory = makeEBFabFactory(fgeom, ba, dm, {0,0,0}, EBSupport::basic);
-        mf_fine_patch[d].define(ba_fine_idxed, dm, ncomp, 0, MFInfo(), *fine_factory);
-#else
-        mf_fine_patch[d].define(ba_fine_idxed, dm, ncomp, 0);
-#endif
     }
 
     int idummy1=0, idummy2=0;
@@ -942,10 +939,25 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
         }
     }
 
+    Array<MF, AMREX_SPACEDIM> mf_target_patch;
+    for (int d = 0; d<AMREX_SPACEDIM; ++d)
+    {
+        IndexType typ = mf[d]->boxArray().ixType();
+        BoxArray ba_target_idxed = amrex::convert(ba_fine_patch, typ);
+
+#ifdef AMREX_USE_EB
+        auto target_factory = makeEBFabFactory(fgeom, ba_target_idxed, dm, {0,0,0}, EBSupport::basic);
+        mf_target_patch[d].define(ba_target_idxed, dm, ncomp, 0, MFInfo(), *target_factory);
+#else
+        mf_target_patch[d].define(ba_target_idxed, dm, ncomp, 0);
+#endif
+        amrex::Copy(mf_target_patch[d], mf_fine_patch[d], 0, 0, ncomp, 0);
+    }
+
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
-        fbc[d](*mf[d], dcomp, ncomp, nghost, time, fbccomp);
         mf[d]->ParallelCopy(mf_fine_patch[d], 0, dcomp, ncomp, IntVect{0}, nghost);
+        fbc[d](*mf[d], dcomp, ncomp, nghost, time, fbccomp);
     }
 }
 

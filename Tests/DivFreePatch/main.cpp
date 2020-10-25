@@ -165,7 +165,7 @@ void main_main ()
     IntVect ratio{AMREX_D_DECL(2,2,2)};    // For this stencil (octree), always 2.
     IntVect ghost_c{AMREX_D_DECL(nghost_c, nghost_c, nghost_c)};  // For this stencil (octree), need 1 coarse ghost.
     IntVect ghost_f{AMREX_D_DECL(nghost_f, nghost_f, nghost_f)};  // For this stencil (octree), need 1 fine ghost.
-    Geometry c_geom, f_geom, f_geom_wghost, f_geom_all;
+    Geometry c_geom, f_geom, f_geom_wghost, f_geom_all, f_geom_partial;
 
     Array<MultiFab, AMREX_SPACEDIM> c_mf_faces;
     Array<MultiFab, AMREX_SPACEDIM> f_mf_faces;
@@ -185,7 +185,7 @@ void main_main ()
     {
         Box domain   (IntVect{c_lo}, IntVect{c_hi});
         Box domain_f (IntVect{f_lo}, IntVect{f_hi});
-        Box domain_fg = domain_f;
+        Box domain_fg(domain_f);
 
         amrex::Print() << " Testing on coarse: " << domain << std::endl;
         amrex::Print() << "  w/ fine area covering: " << domain_f << std::endl;
@@ -194,20 +194,37 @@ void main_main ()
         domain_fg.refine(ratio);
         domain_fg.grow(ghost_f);
 
+        const IntVect& crse_hi = domain.bigEnd()*ratio + (ratio-1);
+        const IntVect& fine_lo = domain_f.smallEnd();
+        const IntVect& fine_hi = domain_f.bigEnd();
+
+        const IntVect& fine_len = domain_f.size();
+        const IntVect& fine_lo_partial = fine_lo+(fine_len/6);
+        const IntVect& fine_hi_partial = fine_hi-(fine_len/3);
+
+        Box domain_p(fine_lo_partial, fine_hi_partial);
+        amrex::Print() << "Partial region: " << domain_p << std::endl;
+
         RealBox realbox_c    ({AMREX_D_DECL(0.0,0.0,0.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
-        RealBox realbox_f_all({AMREX_D_DECL(0.0,0.0,0.0)}, {AMREX_D_DECL(2.0,2.0,2.0)}); 
-        RealBox realbox_f({AMREX_D_DECL( double(f_lo[0])   / double(c_hi[0]+1),
-                                         double(f_lo[1])   / double(c_hi[1]+1),
-                                         double(f_lo[2])   / double(c_hi[2]+1) )},
-                          {AMREX_D_DECL( double(f_hi[0]+1) / double(c_hi[0]+1),
-                                         double(f_hi[1]+1) / double(c_hi[1]+1),
-                                         double(f_hi[2]+1) / double(c_hi[2]+1) )} );
-        RealBox realbox_fg({AMREX_D_DECL( double(f_lo[0]-ghost_f[0])   / double(c_hi[0]+1),
-                                          double(f_lo[1]-ghost_f[1])   / double(c_hi[1]+1),
-                                          double(f_lo[2]-ghost_f[2])   / double(c_hi[2]+1) )},
-                           {AMREX_D_DECL( double(f_hi[0]+ghost_f[0]+1) / double(c_hi[0]+1),
-                                          double(f_hi[1]+ghost_f[1]+1) / double(c_hi[1]+1),
-                                          double(f_hi[2]+ghost_f[1]+1) / double(c_hi[2]+1) )} );
+        RealBox realbox_f_all({AMREX_D_DECL(0.0,0.0,0.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
+        RealBox realbox_f({AMREX_D_DECL( double(fine_lo[0])   / double(crse_hi[0]+1),
+                                         double(fine_lo[1])   / double(crse_hi[1]+1),
+                                         double(fine_lo[2])   / double(crse_hi[2]+1) )},
+                          {AMREX_D_DECL( double(fine_hi[0]+1) / double(crse_hi[0]+1),
+                                         double(fine_hi[1]+1) / double(crse_hi[1]+1),
+                                         double(fine_hi[2]+1) / double(crse_hi[2]+1) )} );
+        RealBox realbox_fg({AMREX_D_DECL( double(fine_lo[0]-ghost_f[0])   / double(crse_hi[0]+1),
+                                          double(fine_lo[1]-ghost_f[1])   / double(crse_hi[1]+1),
+                                          double(fine_lo[2]-ghost_f[2])   / double(crse_hi[2]+1) )},
+                           {AMREX_D_DECL( double(fine_hi[0]+ghost_f[0]+1) / double(crse_hi[0]+1),
+                                          double(fine_hi[1]+ghost_f[1]+1) / double(crse_hi[1]+1),
+                                          double(fine_hi[2]+ghost_f[1]+1) / double(crse_hi[2]+1) )} );
+        RealBox realbox_fp({AMREX_D_DECL( double(fine_lo_partial[0])   / double (crse_hi[0]+1),
+                                          double(fine_lo_partial[1])   / double (crse_hi[1]+1),
+                                          double(fine_lo_partial[2])   / double (crse_hi[2]+1) )},
+                           {AMREX_D_DECL( double(fine_hi_partial[0]+1) / double (crse_hi[0]+1),
+                                          double(fine_hi_partial[1]+1) / double (crse_hi[1]+1),
+                                          double(fine_hi_partial[2]+1) / double (crse_hi[2]+1) )} );
 
         Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
 
@@ -225,10 +242,11 @@ void main_main ()
         DistributionMapping dm_f(ba_f);
         DistributionMapping dm_fg(ba_fg);
 
-        c_geom.define(domain,    realbox_c,  CoordSys::cartesian, is_periodic);
-        f_geom.define(domain_f,  realbox_f,  CoordSys::cartesian, is_periodic);
-        f_geom_wghost.define(domain_fg, realbox_fg, CoordSys::cartesian, is_periodic);
-        f_geom_all.define(amrex::refine(domain, ratio), realbox_f_all, CoordSys::cartesian, is_periodic);
+        c_geom.define        (domain,    realbox_c,  CoordSys::cartesian, is_periodic);
+        f_geom.define        (domain_f,  realbox_f,  CoordSys::cartesian, is_periodic);
+        f_geom_wghost.define (domain_fg, realbox_fg, CoordSys::cartesian, is_periodic);
+        f_geom_all.define    (amrex::refine(domain, ratio), realbox_f_all, CoordSys::cartesian, is_periodic);
+        f_geom_partial.define(domain_p,  realbox_fp, CoordSys::cartesian, is_periodic);
 
         AMREX_D_TERM( c_mf_faces[0].define( amrex::convert( ba_c,x_face ), dm_c, ncomp, ghost_c);,
                       c_mf_faces[1].define( amrex::convert( ba_c,y_face ), dm_c, ncomp, ghost_c);,
@@ -347,6 +365,7 @@ void main_main ()
 
         InterpFromCoarseLevel(fine_faces, time,
                               coarse_faces, 0, 0, 1,
+//                              c_geom, f_geom_partial,
                               c_geom, f_geom_all,
                               phys_bc, 0, phys_bc, 0,
                               ratio, mapper, bcrec, 0);
@@ -402,7 +421,7 @@ void main_main ()
                   amrex::VisMF::Write(c_mf_faces[2], std::string("pltfiles/czFP"));  );
 
     calcDiv(c_mf_faces, div_coarse, c_geom.CellSizeArray());
-    CoarsenToFine(div_refined_coarse, div_coarse, c_geom, f_geom_wghost, ratio);
+    CoarsenToFine(div_refined_coarse, div_coarse, c_geom, f_geom_all, ratio);
     amrex::VisMF::Write(div_coarse, std::string("pltfiles/coarsetofineB"));
 
     amrex::Print() << " Checking new adjustment hasn't changed solution on fine region: "
