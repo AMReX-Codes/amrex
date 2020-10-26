@@ -127,6 +127,33 @@ namespace detail {
     }
 
 ////////////////////////////////////////////////////////////////////////
+//  AddNoRet
+////////////////////////////////////////////////////////////////////////
+
+    template<class T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void AddNoRet (T* const sum, T const value) noexcept
+    {
+#if AMREX_DEVICE_COMPILE
+        Add_device(sum, value);
+#else
+        *sum += value;
+#endif
+    }
+
+#if defined(AMREX_USE_HIP)
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void AddNoRet (float* const sum, float const value) noexcept
+    {
+#if AMREX_DEVICE_COMPILE
+        atomicAddNoRet(sum, value);
+#else
+        *sum += value;
+#endif
+    }
+#endif
+
+////////////////////////////////////////////////////////////////////////
 //  Min
 ////////////////////////////////////////////////////////////////////////
 
@@ -403,7 +430,7 @@ namespace HostDevice { namespace Atomic {
     void Add (T* const sum, T const value) noexcept
     {
 #if AMREX_DEVICE_COMPILE
-        Gpu::Atomic::Add(sum,value);
+        Gpu::Atomic::AddNoRet(sum,value);
 #else
 #ifdef _OPENMP
 #pragma omp atomic update

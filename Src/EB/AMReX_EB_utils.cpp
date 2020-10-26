@@ -159,7 +159,7 @@ namespace amrex {
                             (flags(i,j,k).isConnected(ii,jj,kk)) and
                             bx.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))) )
                         {
-                            Gpu::Atomic::Add(&optmp(i+ii,j+jj,k+kk,n),
+                            Gpu::Atomic::AddNoRet(&optmp(i+ii,j+jj,k+kk,n),
                                              delm(i,j,k,n) * wtot * mask(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk));
                         }
                 }}}

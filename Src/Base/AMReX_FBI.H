@@ -203,7 +203,7 @@ struct CellAtomicAdd
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator() (U* d, U s) const noexcept
     {
-        Gpu::Atomic::Add(d,s);
+        Gpu::Atomic::AddNoRet(d,s);
     }
 };
 
@@ -1183,8 +1183,8 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
     if (N_rcvs == 0) return;
 
     char* pbuffer = recv_data[0];
-    std::size_t szbuffer = 0;
 #if 0
+    std::size_t szbuffer = 0;
     // For linear solver test on summit, this is slower than writing to
     // pinned memory directly on device.
     if (not ParallelDescriptor::UseGpuAwareMpi()) {

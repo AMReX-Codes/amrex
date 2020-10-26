@@ -1267,7 +1267,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<Real> const& a) noexcept
     {
         Real* p = a.ptr(i,j,k,n);
-        Gpu::Atomic::Add(p, Real(1.0));
+        Gpu::Atomic::AddNoRet(p, Real(1.0));
     });
 #endif
 

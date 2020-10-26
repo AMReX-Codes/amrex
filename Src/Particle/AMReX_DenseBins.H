@@ -104,7 +104,7 @@ public:
             index_type uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
             index_type uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
             pcell[i] = (uix * ny + uiy) * nz + uiz;
-            Gpu::Atomic::Add(&pcount[pcell[i]], index_type{ 1 });
+            Gpu::Atomic::AddNoRet(&pcount[pcell[i]], index_type{ 1 });
         });
 
         Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
@@ -143,7 +143,7 @@ public:
         amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (int i) noexcept
         {
             pcell[i] = f(v[i]);
-            Gpu::Atomic::Add(&pcount[pcell[i]], index_type{ 1 });
+            Gpu::Atomic::AddNoRet(&pcount[pcell[i]], index_type{ 1 });
         });
 
         Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
