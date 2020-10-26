@@ -181,10 +181,15 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
         const Box& bx = mfi.validbox();
         auto afab = bdrya.array(mfi);
         auto bfab = bdryb.array(mfi);
+#ifdef AMREX_USE_FLOAT
+        const Real huge = 1.e30f;
+#else
+        const Real huge = 1.e200;
+#endif
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
-            afab(i,j,k,n) = 1.e200;
-            bfab(i,j,k,n) = 1.e200;
+            afab(i,j,k,n) = huge;
+            bfab(i,j,k,n) = huge;
         });
     }
 
