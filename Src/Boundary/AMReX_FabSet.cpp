@@ -182,9 +182,9 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
         auto afab = bdrya.array(mfi);
         auto bfab = bdryb.array(mfi);
 #ifdef AMREX_USE_FLOAT
-        Real huge = 1.e30f;
+        const Real huge = 1.e30f;
 #else
-        Real huge = 1.e200;
+        const Real huge = 1.e200;
 #endif
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
