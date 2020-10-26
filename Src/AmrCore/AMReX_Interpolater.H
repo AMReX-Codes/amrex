@@ -116,7 +116,7 @@ public:
                              Vector<Array<BCRec, AMREX_SPACEDIM> > const& /*bcr*/,
                              const int         /*actual_comp*/,
                              const int         /*actual_state*/,
-                             RunOn             /*gpu_or_cpu*/)
+                             const RunOn       /*gpu_or_cpu*/)
 
     { amrex::Abort("The Array<FArrayBox*, AMREX_SPACEDIM> version of this Interpolater is not implemented or does not apply. Call 'interp' instead."); }
 
@@ -782,7 +782,7 @@ public:
                              Vector<Array<BCRec, AMREX_SPACEDIM> > const& bcr,
                              int               actual_comp,
                              int               actual_state,
-                             RunOn             runon) override;
+                             const RunOn       runon) override;
 };
 
 

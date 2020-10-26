@@ -568,12 +568,12 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_ext (int ci, int cj, int /*ck*/,
-             int nc, int nf,
-             GpuArray<Array4<T const>, AMREX_SPACEDIM> const& crse,
-             GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
-             Dim3 const& bounds,
-             IntVect const& ratio) noexcept
+facediv_ext (int /*ci*/, int /*cj*/, int /*ck*/,
+             int /*nc*/, int /*nf*/,
+             GpuArray<Array4<T const>, AMREX_SPACEDIM> const& /*crse*/,
+             GpuArray<Array4<T>, AMREX_SPACEDIM> const& /*fine*/,
+             Dim3 const& /*bounds*/,
+             IntVect const& /*ratio*/) noexcept
 {
 /*
     const auto lo = amrex::lbound(bx);
@@ -706,10 +706,10 @@ facediv_ext (int ci, int cj, int /*ck*/,
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_int (int ci, int cj, int /*ck*/, int nf,
-             GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
-             IntVect const& ratio,
-             GpuArray<Real, AMREX_SPACEDIM> const& cellSize) noexcept
+facediv_int (int /*ci*/, int /*cj*/, int /*ck*/, int /*nf*/,
+             GpuArray<Array4<T>, AMREX_SPACEDIM> const& /*fine*/,
+             IntVect const& /*ratio*/,
+             GpuArray<Real, AMREX_SPACEDIM> const& /*cellSize*/) noexcept
 {
 /*
     const auto lo = amrex::lbound(bx);

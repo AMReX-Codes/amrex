@@ -951,7 +951,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                          Vector<Array<BCRec, AMREX_SPACEDIM> > const& /*bcr*/,
                          int               /*actual_comp*/,
                          int               /*actual_state*/,
-                         RunOn             runon)
+                         const RunOn       runon)
 {
     BL_PROFILE("FaceDivFree::interp()");
 
@@ -1049,7 +1049,10 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
         const BoxArray ba_copy = amrex::intersect(ba_fine_values[d], fine[d]->box());
         for (int b=0; b<ba_copy.size(); ++b)
         {
-            fine[d]->copy(*(fab_fine_values[d]), ba_copy[b]); 
+            if (runon == RunOn::Cpu)
+                { fine[d]->copy<RunOn::Cpu>(*(fab_fine_values[d]), ba_copy[b]); }
+            else
+                { fine[d]->copy<RunOn::Gpu>(*(fab_fine_values[d]), ba_copy[b]); }
         }
     }
 
