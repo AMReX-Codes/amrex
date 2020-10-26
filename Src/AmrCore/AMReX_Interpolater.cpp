@@ -960,7 +960,6 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
         { types[d].set(d); }
 
     // This is currently only designed for octree, where ratio = 2.
-    // If fine_region has less than 2 elements in each direction?
     AMREX_ALWAYS_ASSERT(ratio == 2);
 
 // ===================================

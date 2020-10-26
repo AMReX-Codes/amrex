@@ -1145,6 +1145,7 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 
     const IndexType& boxtype = dstba.ixType();
     BL_ASSERT(boxtype == dstdomain.ixType());
+
     BL_ASSERT(dstng.allLE(dstfa.nGrowVect()));
 
     BoxList bl(boxtype);

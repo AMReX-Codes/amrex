@@ -396,7 +396,7 @@ namespace {
                              const PostInterpHook& post_interp,
                              EB2::IndexSpace const* index_space)
     {
-	BL_PROFILE("FillPatchTwoLevels-SPACEDIM");
+	BL_PROFILE("FillPatchTwoLevels (Array<MF*>)");
 
         using FAB = typename MF::FABType::value_type;
 
@@ -431,9 +431,6 @@ namespace {
                     mf_refined_patch[d]  = make_mf_refined_patch<MF>(fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
                     mf_fine_values[d]    = make_mf_fine_values<MF>  (fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
 
-//                    amrex::Print() << " crse box (" << d << "): " << mf_crse_patch[0].boxArray() << std::endl
-//                                   << " fine box (" << d << "): " << mf_refined_patch[0].boxArray() << std::endl;
-
                     mf_set_domain_bndry(mf_crse_patch[d], cgeom);
 
                     Vector<MF*> cmf_time;
@@ -444,7 +441,7 @@ namespace {
                                          cgeom, cbc[d], cbccomp);
 
 
-                    // Put current fine values into fine_patch for potential use in mapper.
+                    // Put current fine values into fine_patch for potential use in interp_arr.
                     mf_set_domain_bndry(mf_fine_values[d], fgeom);
 
                     Vector<MF*> fmf_time;
@@ -521,7 +518,7 @@ namespace {
             for (auto ffab : fmf)
                  { fmf_time.push_back(ffab[d]); }
 
-	    FillPatchSingleLevel(*mf[d], nghost, time, fmf_time, ft, scomp, dcomp, ncomp,
+            FillPatchSingleLevel(*mf[d], nghost, time, fmf_time, ft, scomp, dcomp, ncomp,
                                  fgeom, fbc[d], fbccomp);
         }
     }
