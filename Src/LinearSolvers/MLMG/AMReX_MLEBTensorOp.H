@@ -1,7 +1,7 @@
 #ifndef AMREX_ML_EB_TENSOROP_H_
 #define AMREX_ML_EB_TENSOROP_H_
 
-#include <AMReX_MLEBABecLap.H>
+#include "AMReX_MLEBABecLap.H"
 
 namespace amrex {
 

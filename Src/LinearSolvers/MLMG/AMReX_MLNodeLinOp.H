@@ -1,11 +1,11 @@
 #ifndef AMREX_ML_NODE_LINOP_H_H
 #define AMREX_ML_NODE_LINOP_H_H
 
-#include <AMReX_MLLinOp.H>
-#include <AMReX_iMultiFab.H>
+#include "AMReX_MLLinOp.H"
+#include "AMReX_iMultiFab.H"
 
 #ifdef AMREX_USE_HYPRE
-#include <AMReX_HypreNodeLap.H>
+#include "AMReX_HypreNodeLap.H"
 #endif
 
 namespace amrex {

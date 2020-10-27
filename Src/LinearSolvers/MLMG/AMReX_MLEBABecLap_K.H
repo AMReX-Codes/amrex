@@ -1,9 +1,9 @@
 #ifndef AMREX_MLEBABECLAP_K_H_
 #define AMREX_MLEBABECLAP_K_H_
 
-#include <AMReX_MLLinOp_K.H>
+#include "AMReX_MLLinOp_K.H"
 
-#include <AMReX_EBCellFlag.H>
+#include "AMReX_EBCellFlag.H"
 
 namespace amrex { namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -13,9 +13,9 @@ namespace amrex { namespace {
 }}
 
 #if (AMREX_SPACEDIM == 2)
-#include <AMReX_MLEBABecLap_2D_K.H>
+#include "AMReX_MLEBABecLap_2D_K.H"
 #else
-#include <AMReX_MLEBABecLap_3D_K.H>
+#include "AMReX_MLEBABecLap_3D_K.H"
 #endif
 
 namespace amrex {

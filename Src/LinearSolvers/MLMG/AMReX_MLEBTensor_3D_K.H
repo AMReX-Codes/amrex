@@ -1,7 +1,7 @@
 #ifndef AMREX_ML_EB_TENSOR_3D_K_H_
 #define AMREX_ML_EB_TENSOR_3D_K_H_
 
-#include <AMReX_MLEBABecLap_K.H>
+#include "AMReX_MLEBABecLap_K.H"
 
 namespace amrex {
 

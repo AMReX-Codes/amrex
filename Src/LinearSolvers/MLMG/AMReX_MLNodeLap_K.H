@@ -1,10 +1,10 @@
 #ifndef AMREX_MLNODELAP_K_H_
 #define AMREX_MLNODELAP_K_H_
 
-#include <AMReX_FArrayBox.H>
-#include <AMReX_LO_BCTYPES.H>
+#include "AMReX_FArrayBox.H"
+#include "AMReX_LO_BCTYPES.H"
 #ifdef AMREX_USE_EB
-#include <AMReX_EBCellFlag.H>
+#include "AMReX_EBCellFlag.H"
 #endif
 
 namespace amrex {
@@ -72,11 +72,11 @@ mlndlap_unimpose_neumann_bc (Box const& bx, Array4<Real> const& rhs, Box const& 
 }
 
 #if (AMREX_SPACEDIM == 1)
-#include <AMReX_MLNodeLap_1D_K.H>
+#include "AMReX_MLNodeLap_1D_K.H"
 #elif (AMREX_SPACEDIM == 2)
-#include <AMReX_MLNodeLap_2D_K.H>
+#include "AMReX_MLNodeLap_2D_K.H"
 #else
-#include <AMReX_MLNodeLap_3D_K.H>
+#include "AMReX_MLNodeLap_3D_K.H"
 #endif
 
 namespace amrex {

@@ -1,7 +1,7 @@
 #ifndef AMREX_ML_NODE_LAPLACIAN_H_
 #define AMREX_ML_NODE_LAPLACIAN_H_
 
-#include <AMReX_MLNodeLinOp.H>
+#include "AMReX_MLNodeLinOp.H"
 
 namespace amrex {
 
