@@ -3,7 +3,7 @@ name: macos
 on: [push, pull_request]
 
 env:
-  CXXFLAGS: "-Werror"
+  CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code"
 
 jobs:
   # Build libamrex and all tutorials
