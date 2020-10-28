@@ -117,7 +117,7 @@ void main_main ()
         int reverse;
         Real exclusive_sum;
 
-        GidLo(Long id, int smallend, int reverse_order) : gid(id), lo(smallend), reverse(reverse_order), exclusive_sum(0.0) {};
+        GidLo(Long id, int smallend, int reverse_order) : gid(id), lo(smallend), reverse(reverse_order), exclusive_sum(0.0) {}
 
         // sort grids either increasing (forward) or decreasing (reverse) by their lo index
         bool operator<(const GidLo& other) const
