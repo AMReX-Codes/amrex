@@ -265,8 +265,6 @@ Real MDParticleContainer::computeStepSize(amrex::Real& cfl)
 {
     BL_PROFILE("MDParticleContainer::computeStepSize");
 
-    using ParticleType = MDParticleContainer::ParticleType;
-
     Real maxVel = amrex::ReduceMax(*this, 0,
     [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> Real
                               {
