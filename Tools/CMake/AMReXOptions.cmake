@@ -95,24 +95,8 @@ option( AMReX_DP "Enable double precision" ON )
 print_option( AMReX_DP )
 
 
-
 #
-# Parallel backends    ========================================================
-#
-option( AMReX_MPI  "Enable MPI"  ON )
-print_option( AMReX_MPI )
-
-cmake_dependent_option( AMReX_MPI_THREAD_MULTIPLE
-   "whether to initialize MPI so that multiple threads can make MPI calls at the same time"  OFF
-   "AMReX_MPI" OFF)
-print_option( AMReX_MPI_THREAD_MULTIPLE )
-
-option( AMReX_OMP  "Enable OpenMP" OFF)
-print_option( AMReX_OMP )
-
-
-#
-# GPU backends
+# GPU backends    =============================================================
 #
 set(AMReX_GPU_BACKEND_VALUES NONE SYCL CUDA HIP)
 set(AMReX_GPU_BACKEND NONE CACHE STRING "On-node, accelerated GPU backend: <NONE,SYCL,CUDA,HIP>")
@@ -174,6 +158,20 @@ if (AMReX_CUDA OR AMReX_HIP)
    print_option(GPUS_PER_NODE)
 endif ()
 
+
+#
+# Parallel backends    ========================================================
+#
+cmake_dependent_option( AMReX_MPI  "Enable MPI"  ON "NOT AMReX_GPU_BACKEND STREQUAL HIP" OFF)
+print_option( AMReX_MPI )
+
+cmake_dependent_option( AMReX_MPI_THREAD_MULTIPLE
+   "whether to initialize MPI so that multiple threads can make MPI calls at the same time"  OFF
+   "AMReX_MPI" OFF)
+print_option( AMReX_MPI_THREAD_MULTIPLE )
+
+option( AMReX_OMP  "Enable OpenMP" OFF)
+print_option( AMReX_OMP )
 
 
 #
