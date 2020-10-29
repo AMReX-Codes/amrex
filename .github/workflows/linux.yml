@@ -41,8 +41,8 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex      \
             -DAMReX_MPI=OFF                           \
             -DAMReX_PARTICLES=ON                      \
-            -DAMReX_DP=OFF                            \
-            -DAMReX_DP_PARTICLES=OFF                  \
+            -DAMReX_PRECISION=SINGLE                  \
+            -DAMReX_PARTICLES_PRECISION=SINGLE        \
             -DCMAKE_CXX_STANDARD=14                   \
             -DCMAKE_C_COMPILER=$(which clang)         \
             -DCMAKE_CXX_COMPILER=$(which clang++)     \

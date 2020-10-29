@@ -79,20 +79,20 @@ print_option( AMReX_FORTRAN )
 #
 if ( USE_XSDK_DEFAULTS )
    set( XSDK_PRECISION "DOUBLE" CACHE STRING "Precision:<SINGLE,DOUBLE>" )
-   if ( XSDK_PRECISION STREQUAL "DOUBLE" )
-      set( AMReX_DP ON )
-      set( AMReX_DP_PARTICLES ON )
-   elseif ( XSDK_PRECISION STREQUAL "SINGLE" )
-      set( AMReX_DP OFF )
-      set( AMReX_DP_PARTICLES OFF )
-   else ()
-      message( FATAL_ERROR "\nUnsupported precision ${XSDK_PRECISION}\n" )
-   endif ()
+   set( AMReX_PRECISION ${XSDK_PRECISION})
+   set( AMReX_PARTICLES_PRECISION ${XSDK_PRECISION})
    print_option( XSDK_PRECISION )
 endif ()
 
-option( AMReX_DP "Enable double precision" ON )
-print_option( AMReX_DP )
+
+set(AMReX_PRECISION_VALUES SINGLE DOUBLE)
+set(AMReX_PRECISION DOUBLE CACHE STRING "Precision of AMReX build: <SINGLE,DOUBLE>")
+set_property(CACHE AMReX_PRECISION PROPERTY STRINGS ${AMReX_PRECISION_VALUES})
+if(NOT AMReX_PRECISION IN_LIST AMReX_PRECISION_VALUES)
+   message(FATAL_ERROR "AMReX_PRECISION=${AMReX_PRECISION} not supported."
+      " Must be one of ${AMReX_PRECISION_VALUES}")
+endif()
+print_option( AMReX_PRECISION )
 
 
 #
@@ -146,7 +146,7 @@ if (AMReX_HIP)
    set(AMReX_AMD_ARCH "IGNORE" CACHE STRING
       "AMD GPU architecture (Must be provided if AMReX_HIP=ON)")
    if (NOT AMReX_AMD_ARCH)
-      message(FATAL_ERROR "\n Must specify AMReX_AMD_ARCH if AMReX_HIP=ON\n")
+      message(FATAL_ERROR "\nMust specify AMReX_AMD_ARCH if AMReX_HIP=ON\n")
    endif ()
 endif ()
 
@@ -194,9 +194,17 @@ print_option( AMReX_AMRDATA )
 option( AMReX_PARTICLES "Build particle classes" OFF)
 print_option( AMReX_PARTICLES )
 
-cmake_dependent_option( AMReX_DP_PARTICLES "Enable double-precision particle data" ON
-   "AMReX_PARTICLES" OFF )
-print_option( AMReX_DP_PARTICLES )
+if (AMReX_PARTICLES)
+   set(AMReX_PARTICLES_PRECISION_VALUES SINGLE DOUBLE)
+   set(AMReX_PARTICLES_PRECISION ${AMReX_PRECISION}
+      CACHE STRING "Precision of reals in particle classes: <SINGLE,DOUBLE>")
+   set_property(CACHE AMReX_PARTICLES_PRECISION PROPERTY STRINGS ${AMReX_PARTICLES_PRECISION_VALUES})
+   if(NOT AMReX_PARTICLES_PRECISION IN_LIST AMReX_PARTICLES_PRECISION_VALUES)
+      message(FATAL_ERROR "AMReX_PARTICLES_PRECISION=${AMReX_PRECISION} not supported."
+         " Must be one of ${AMReX_PARTICLES_PRECISION_VALUES}")
+   endif()
+   print_option( AMReX_PARTICLES_PRECISION )
+endif ()
 
 
 #

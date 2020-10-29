@@ -70,7 +70,7 @@ function ( set_amrex_defines )
    add_amrex_define( NDEBUG IF AMReX_HIP)  # This address a bug that causes slow build times
 
    # Precision
-   if (NOT AMReX_DP)
+   if (AMReX_PRECISION STREQUAL SINGLE)
       add_amrex_define(AMREX_USE_FLOAT)
    endif ()
 
