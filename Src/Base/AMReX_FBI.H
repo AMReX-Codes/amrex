@@ -203,7 +203,7 @@ struct CellAtomicAdd
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator() (U* d, U s) const noexcept
     {
-        Gpu::Atomic::Add(d,s);
+        Gpu::Atomic::AddNoRet(d,s);
     }
 };
 

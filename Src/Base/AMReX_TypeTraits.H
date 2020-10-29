@@ -50,8 +50,8 @@ namespace amrex
 
     template <class T, class Enable = void>
     struct HasAtomicAdd : std::false_type {};
-    // CUDA supports atomicAdd for the following types
     template <> struct HasAtomicAdd<int> : std::true_type {};
+    template <> struct HasAtomicAdd<long> : std::true_type {};
     template <> struct HasAtomicAdd<unsigned int> : std::true_type {};
     template <> struct HasAtomicAdd<unsigned long long> : std::true_type {};
     template <> struct HasAtomicAdd<float> : std::true_type {};

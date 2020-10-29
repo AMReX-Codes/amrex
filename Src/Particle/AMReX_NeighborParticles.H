@@ -417,7 +417,7 @@ protected:
 
     Vector<std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > > m_neighbor_list;
 
-    bool hasNeighbors() const { return m_has_neighbors; };
+    bool hasNeighbors() const { return m_has_neighbors; }
 
     bool m_has_neighbors = false;
 };

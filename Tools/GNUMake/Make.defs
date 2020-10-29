@@ -41,7 +41,7 @@ endif
 ifeq ($(USE_HIP),TRUE)
   DEBUG := FALSE  # Currently there is a compiler bug for DEBUG=TRUE.
   USE_CUDA := FALSE
-  COMP := hip
+  override COMP = hip
   HIP_COMPILER = $(shell hipconfig --compiler)
   ifeq ($(HIP_COMPILER),nvcc)
     $(error HIP_COMPILER=nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)

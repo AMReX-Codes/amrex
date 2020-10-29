@@ -174,6 +174,9 @@ public:
     void setMaxOrder (int o) noexcept { maxorder = o; }
     int getMaxOrder () const noexcept { return maxorder; }
 
+    void setEnforceSingularSolvable (bool o) noexcept { enforceSingularSolvable = o; }
+    bool getEnforceSingularSolvable () const noexcept { return enforceSingularSolvable; }
+
     virtual BottomSolver getDefaultBottomSolver () const { return BottomSolver::bicgstab; }
     virtual int getNComp () const { return 1; }
     virtual int getNGrow () const { return 0; }
@@ -272,6 +275,8 @@ protected:
     int verbose = 0;
 
     int maxorder = 3;
+
+    bool enforceSingularSolvable = true;
 
     int m_num_amr_levels;
     Vector<int> m_amr_ref_ratio;
