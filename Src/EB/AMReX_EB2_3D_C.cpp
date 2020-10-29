@@ -734,10 +734,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
        }
     }
 
-    // fix faces for small cells
-    const auto bxlo = amrex::lbound(bx);
-    const auto bxhi = amrex::ubound(bx);
-
+    // fix faces for small cells whose vfrac has been set to zero
 #ifdef AMREX_USE_DPCPP
     // xxxxx DPCPP todo: kernel parameter size
     Vector<Array4<Real const> > htmp = {fcx,fcy,fcz,m2x,m2y,m2z};
@@ -745,94 +742,91 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     if (Gpu::inLaunchRegion()) dtmp.reset(new Gpu::AsyncArray<Array4<Real const> >(htmp.data(), 6));
     Array4<Real const>* ptmp = (Gpu::inLaunchRegion()) ? dtmp->data() : htmp.data();
 #endif
-
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bxg1, tbx,
+    const Box xbx = Box(bx).surroundingNodes(0).grow(1,1).grow(2,1);
+    AMREX_HOST_DEVICE_FOR_3D ( xbx, i, j, k,
     {
-        AMREX_DPCPP_ONLY(auto fcx = ptmp[0]);
-        AMREX_DPCPP_ONLY(auto fcy = ptmp[1]);
-        AMREX_DPCPP_ONLY(auto fcz = ptmp[2]);
-        AMREX_DPCPP_ONLY(auto m2x = ptmp[3]);
-        AMREX_DPCPP_ONLY(auto m2y = ptmp[4]);
-        AMREX_DPCPP_ONLY(auto m2z = ptmp[5]);
-
-        auto lo = amrex::max_lbound(tbx, Dim3{bxlo.x  ,bxlo.y-1,bxlo.z-1});
-        auto hi = amrex::min_ubound(tbx, Dim3{bxhi.x+1,bxhi.y+1,bxhi.z+1});
-        for (int k = lo.z; k <= hi.z; ++k) {
-        for (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i)
-        {
-            if (vfrac(i-1,j,k) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
-                fx(i,j,k) = Type::covered;
-                apx(i,j,k) = 0.0;
-                if (not cell(i  ,j,k).isCovered())
-                {
-                    cell(i  ,j,k).setSingleValued();
-                    set_eb_data(i,j,k,apx,apy,apz,
-                                fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
-                                barea,bcent,bnorm);
-                }
-                if (not cell(i-1,j,k).isCovered())
-                {
-                    cell(i-1,j,k).setSingleValued();
-                    set_eb_data(i-1,j,k,apx,apy,apz,
-                                fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
-                                barea,bcent,bnorm);
-                }
+        if (vfrac(i-1,j,k) == 0._rt or vfrac(i,j,k) == 0._rt) {
+            AMREX_DPCPP_ONLY(auto fcx = ptmp[0]);
+            AMREX_DPCPP_ONLY(auto fcy = ptmp[1]);
+            AMREX_DPCPP_ONLY(auto fcz = ptmp[2]);
+            AMREX_DPCPP_ONLY(auto m2x = ptmp[3]);
+            AMREX_DPCPP_ONLY(auto m2y = ptmp[4]);
+            AMREX_DPCPP_ONLY(auto m2z = ptmp[5]);
+            fx(i,j,k) = Type::covered;
+            apx(i,j,k) = 0.0;
+            if (not cell(i  ,j,k).isCovered())
+            {
+                cell(i  ,j,k).setSingleValued();
+                set_eb_data(i,j,k,apx,apy,apz,
+                            fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
+                            barea,bcent,bnorm);
             }
-        }}}
-
-        lo = amrex::max_lbound(tbx, Dim3{bxlo.x-1,bxlo.y  ,bxlo.z-1});
-        hi = amrex::min_ubound(tbx, Dim3{bxhi.x+1,bxhi.y+1,bxhi.z+1});
-        for (int k = lo.z; k <= hi.z; ++k) {
-        for (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i)
-        {
-            if (vfrac(i,j-1,k) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
-                fy(i,j,k) = Type::covered;
-                apy(i,j,k) = 0.0;
-                if (not cell(i,j  ,k).isCovered())
-                {
-                    cell(i,j  ,k).setSingleValued();
-                    set_eb_data(i,j,k,apx,apy,apz,
-                                fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
-                                barea,bcent,bnorm);
-                }
-                if (not cell(i,j-1,k).isCovered())
-                {
-                    cell(i,j-1,k).setSingleValued();
-                    set_eb_data(i,j-1,k,apx,apy,apz,
-                                fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
-                                barea,bcent,bnorm);
-                }
+            if (not cell(i-1,j,k).isCovered())
+            {
+                cell(i-1,j,k).setSingleValued();
+                set_eb_data(i-1,j,k,apx,apy,apz,
+                            fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
+                            barea,bcent,bnorm);
             }
-        }}}
-
-        lo = amrex::max_lbound(tbx, Dim3{bxlo.x-1,bxlo.y-1,bxlo.z  });
-        hi = amrex::min_ubound(tbx, Dim3{bxhi.x+1,bxhi.y+1,bxhi.z+1});
-        for (int k = lo.z; k <= hi.z; ++k) {
-        for (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i)
-        {
-            if (vfrac(i,j,k-1) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
-                fz(i,j,k) = Type::covered;
-                apz(i,j,k) = 0.0;
-
-                if (not cell(i,j,k  ).isCovered())
-                {
-                    cell(i,j,k  ).setSingleValued();
-                    set_eb_data(i,j,k,apx,apy,apz,
-                                fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
-                                barea,bcent,bnorm);
-                }
-                if (not cell(i,j,k-1).isCovered())
-                {
-                    cell(i,j,k-1).setSingleValued();
-                    set_eb_data(i,j,k-1,apx,apy,apz,
-                                fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
-                                barea,bcent,bnorm);
-                }
+        }
+    });
+    //
+    const Box ybx = Box(bx).surroundingNodes(1).grow(0,1).grow(2,1);
+    AMREX_HOST_DEVICE_FOR_3D ( ybx, i, j, k,
+    {
+        if (vfrac(i,j-1,k) == 0._rt or vfrac(i,j,k) == 0._rt) {
+            AMREX_DPCPP_ONLY(auto fcx = ptmp[0]);
+            AMREX_DPCPP_ONLY(auto fcy = ptmp[1]);
+            AMREX_DPCPP_ONLY(auto fcz = ptmp[2]);
+            AMREX_DPCPP_ONLY(auto m2x = ptmp[3]);
+            AMREX_DPCPP_ONLY(auto m2y = ptmp[4]);
+            AMREX_DPCPP_ONLY(auto m2z = ptmp[5]);
+            fy(i,j,k) = Type::covered;
+            apy(i,j,k) = 0.0;
+            if (not cell(i,j  ,k).isCovered())
+            {
+                cell(i,j  ,k).setSingleValued();
+                set_eb_data(i,j,k,apx,apy,apz,
+                            fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
+                            barea,bcent,bnorm);
             }
-        }}}
+            if (not cell(i,j-1,k).isCovered())
+            {
+                cell(i,j-1,k).setSingleValued();
+                set_eb_data(i,j-1,k,apx,apy,apz,
+                            fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
+                            barea,bcent,bnorm);
+            }
+        }
+    });
+    //
+    const Box zbx = Box(bx).surroundingNodes(2).grow(0,1).grow(1,1);
+    AMREX_HOST_DEVICE_FOR_3D ( zbx, i, j, k,
+    {
+        if (vfrac(i,j,k-1) == 0._rt or vfrac(i,j,k) == 0._rt) {
+            AMREX_DPCPP_ONLY(auto fcx = ptmp[0]);
+            AMREX_DPCPP_ONLY(auto fcy = ptmp[1]);
+            AMREX_DPCPP_ONLY(auto fcz = ptmp[2]);
+            AMREX_DPCPP_ONLY(auto m2x = ptmp[3]);
+            AMREX_DPCPP_ONLY(auto m2y = ptmp[4]);
+            AMREX_DPCPP_ONLY(auto m2z = ptmp[5]);
+            fz(i,j,k) = Type::covered;
+            apz(i,j,k) = 0.0;
+            if (not cell(i,j,k  ).isCovered())
+            {
+                cell(i,j,k  ).setSingleValued();
+                set_eb_data(i,j,k,apx,apy,apz,
+                            fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
+                            barea,bcent,bnorm);
+            }
+            if (not cell(i,j,k-1).isCovered())
+            {
+                cell(i,j,k-1).setSingleValued();
+                set_eb_data(i,j,k-1,apx,apy,apz,
+                            fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
+                            barea,bcent,bnorm);
+            }
+        }
     });
 
     // Build neighbors.  By default all 26 neighbors are already set.
