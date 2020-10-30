@@ -121,7 +121,6 @@ elseif (AMReX_GPU_BACKEND STREQUAL HIP)
    set(AMReX_HIP   ON  CACHE INTERNAL "")
 endif ()
 
-
 # --- SYCL ---
 if (AMReX_DPCPP)
    if (NOT (CMAKE_CXX_COMPILER MATCHES "dpcpp") )
@@ -295,23 +294,23 @@ cmake_dependent_option(AMReX_PROFPARSER "Enable profile parser" OFF
    "AMReX_BASE_PROFILE;AMReX_TRACE_PROFILE;AMReX_AMRDATA" OFF)
 print_option( AMReX_PROFPARSER )
 
-set(TP_PROFILE_VALUES IGNORE CRAYPAT FORGE VTUNE)
-set(TP_PROFILE IGNORE CACHE STRING "Third-party profiling options: <CRAYPAT,FORGE,VTUNE>")
-set_property(CACHE TP_PROFILE PROPERTY STRINGS ${TP_PROFILE_VALUES})
-if(NOT TP_PROFILE IN_LIST TP_PROFILE_VALUES)
-    message(FATAL_ERROR "TP_PROFILE (${TP_PROFILE}) must be one of ${TP_PROFILE_VALUES}")
+set(AMReX_TP_PROFILE_VALUES IGNORE CRAYPAT FORGE VTUNE)
+set(AMReX_TP_PROFILE IGNORE CACHE STRING "Third-party profiling options: <CRAYPAT,FORGE,VTUNE>")
+set_property(CACHE AMReX_TP_PROFILE PROPERTY STRINGS ${AMReX_TP_PROFILE_VALUES})
+if(NOT AMReX_TP_PROFILE IN_LIST AMReX_TP_PROFILE_VALUES)
+    message(FATAL_ERROR "AMReX_TP_PROFILE (${AMReX_TP_PROFILE}) must be one of ${AMReX_TP_PROFILE_VALUES}")
 endif()
-print_option( TP_PROFILE )
+print_option( AMReX_TP_PROFILE )
 
 # Check profile options
 if ( NOT ( CMAKE_C_COMPILER_ID STREQUAL "Intel" ) AND
-      ( TP_PROFILE STREQUAL "VTUNE") )
+      ( AMReX_TP_PROFILE STREQUAL "VTUNE") )
    message( FATAL_ERROR "VTUNE cannot be used with ${CMAKE_C_COMPILER_ID} compiler" )
 endif ()
 
-if (  ( ( TP_PROFILE STREQUAL "CRAYPAT" ) OR
-        ( TP_PROFILE STREQUAL "FORGE"   ) OR
-        ( TP_PROFILE STREQUAL "VTUNE"   )   ) AND
+if (  ( ( AMReX_TP_PROFILE STREQUAL "CRAYPAT" ) OR
+        ( AMReX_TP_PROFILE STREQUAL "FORGE"   ) OR
+        ( AMReX_TP_PROFILE STREQUAL "VTUNE"   )   ) AND
      (AMReX_BASE_PROFILE OR AMReX_TINY_PROFILE) )
    message(WARNING "This configuration should only be used to profile BL_PROFILE!")
 endif()
