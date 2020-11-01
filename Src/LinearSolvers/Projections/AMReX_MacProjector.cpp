@@ -8,6 +8,21 @@
 
 namespace amrex {
 
+MacProjector::MacProjector(
+    const Vector<Geometry>& a_geom,
+    MLMG::Location a_umac_loc,
+    MLMG::Location a_beta_loc,
+    MLMG::Location a_phi_loc,
+    MLMG::Location a_divu_loc)
+    : m_geom(a_geom),
+      m_umac_loc(a_umac_loc),
+      m_beta_loc(a_beta_loc),
+      m_phi_loc(a_phi_loc),
+      m_divu_loc(a_divu_loc)
+{
+    amrex::ignore_unused(m_divu_loc, m_beta_loc, m_phi_loc, m_umac_loc);
+}
+
 MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
                             MLMG::Location a_umac_loc,
                             const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
@@ -21,15 +36,27 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
     : m_umac(a_umac),
       m_geom(a_geom),
       m_umac_loc(a_umac_loc),
+      m_beta_loc(a_beta_loc),
+      m_phi_loc(a_phi_loc),
       m_divu_loc(a_divu_loc)
 {
-    amrex::ignore_unused(m_divu_loc,a_beta_loc,a_phi_loc);
-    int nlevs = a_umac.size();
+    amrex::ignore_unused(m_divu_loc, m_beta_loc, m_phi_loc, m_umac_loc);
+    initProjector(a_lpinfo, a_beta, a_overset_mask);
+    setDivU(a_divu);
+}
+
+void MacProjector::initProjector(
+    const LPInfo& a_lpinfo,
+    const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
+    const Vector<iMultiFab const*>& a_overset_mask)
+{
+    const int nlevs = a_beta.size();
     Vector<BoxArray> ba(nlevs);
     Vector<DistributionMapping> dm(nlevs);
     for (int ilev = 0; ilev < nlevs; ++ilev) {
-        ba[ilev] = amrex::convert(a_umac[ilev][0]->boxArray(), IntVect::TheZeroVector());
-        dm[ilev] = a_umac[ilev][0]->DistributionMap();
+        ba[ilev] = amrex::convert(
+            a_beta[ilev][0]->boxArray(), IntVect::TheZeroVector());
+        dm[ilev] = a_beta[ilev][0]->DistributionMap();
     }
 
     m_rhs.resize(nlevs);
@@ -38,50 +65,56 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
     m_divu.resize(nlevs);
 
 #ifdef AMREX_USE_EB
-    bool has_eb = a_umac[0][0]->hasEBFabFactory();
-    if (has_eb)
-    {
-        m_eb_factory.resize(nlevs,nullptr);
+    bool has_eb = a_beta[0][0]->hasEBFabFactory();
+    if (has_eb) {
+        m_eb_factory.resize(nlevs, nullptr);
         for (int ilev = 0; ilev < nlevs; ++ilev) {
-            m_eb_factory[ilev] = dynamic_cast<EBFArrayBoxFactory const*>(&(a_umac[ilev][0]->Factory()));
-            m_rhs[ilev].define(ba[ilev],dm[ilev],1,0,MFInfo(),a_umac[ilev][0]->Factory());
-            m_phi[ilev].define(ba[ilev],dm[ilev],1,1,MFInfo(),a_umac[ilev][0]->Factory());
+            m_eb_factory[ilev] = dynamic_cast<EBFArrayBoxFactory const*>(
+                &(a_beta[ilev][0]->Factory()));
+            m_rhs[ilev].define(
+                ba[ilev], dm[ilev], 1, 0, MFInfo(), a_beta[ilev][0]->Factory());
+            m_phi[ilev].define(
+                ba[ilev], dm[ilev], 1, 1, MFInfo(), a_beta[ilev][0]->Factory());
             m_rhs[ilev].setVal(0.0);
             m_phi[ilev].setVal(0.0);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                m_fluxes[ilev][idim].define(amrex::convert(ba[ilev],IntVect::TheDimensionVector(idim)),
-                                            dm[ilev],1,0,MFInfo(),a_umac[ilev][0]->Factory());
+                m_fluxes[ilev][idim].define(
+                    amrex::convert(ba[ilev], IntVect::TheDimensionVector(idim)),
+                    dm[ilev], 1, 0, MFInfo(), a_beta[ilev][0]->Factory());
             }
         }
 
-        m_eb_abeclap.reset(new MLEBABecLap(a_geom, ba, dm, a_lpinfo, m_eb_factory));
+        m_eb_abeclap.reset(
+            new MLEBABecLap(m_geom, ba, dm, a_lpinfo, m_eb_factory));
         m_linop = m_eb_abeclap.get();
 
-        if (a_phi_loc == MLMG::Location::CellCentroid) m_eb_abeclap->setPhiOnCentroid();
+        if (m_phi_loc == MLMG::Location::CellCentroid)
+            m_eb_abeclap->setPhiOnCentroid();
 
         m_eb_abeclap->setScalars(0.0, 1.0);
         for (int ilev = 0; ilev < nlevs; ++ilev) {
-	  m_eb_abeclap->setBCoeffs(ilev, a_beta[ilev], a_beta_loc);
+            m_eb_abeclap->setBCoeffs(ilev, a_beta[ilev], m_beta_loc);
         }
-    }
-    else
+    } else
 #endif
     {
         for (int ilev = 0; ilev < nlevs; ++ilev) {
-            m_rhs[ilev].define(ba[ilev],dm[ilev],1,0);
-            m_phi[ilev].define(ba[ilev],dm[ilev],1,1);
+            m_rhs[ilev].define(ba[ilev], dm[ilev], 1, 0);
+            m_phi[ilev].define(ba[ilev], dm[ilev], 1, 1);
             m_rhs[ilev].setVal(0.0);
             m_phi[ilev].setVal(0.0);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                m_fluxes[ilev][idim].define(amrex::convert(ba[ilev],IntVect::TheDimensionVector(idim)),
-                                            dm[ilev],1,0);
+                m_fluxes[ilev][idim].define(
+                    amrex::convert(ba[ilev], IntVect::TheDimensionVector(idim)),
+                    dm[ilev], 1, 0);
             }
         }
 
-        if(a_overset_mask.empty())
-            m_abeclap.reset(new MLABecLaplacian(a_geom, ba, dm, a_lpinfo));
+        if (a_overset_mask.empty())
+            m_abeclap.reset(new MLABecLaplacian(m_geom, ba, dm, a_lpinfo));
         else
-            m_abeclap.reset(new MLABecLaplacian(a_geom, ba, dm, a_overset_mask, a_lpinfo));
+            m_abeclap.reset(
+                new MLABecLaplacian(m_geom, ba, dm, a_overset_mask, a_lpinfo));
 
         m_linop = m_abeclap.get();
 
@@ -91,21 +124,63 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
         }
     }
 
-    for (int ilev = 0, N = a_divu.size(); ilev < N; ++ilev) {
-        if (a_divu[ilev])
-        {
-#ifdef AMREX_USE_EB
-            m_divu[ilev].define(ba[ilev],dm[ilev],1,0,MFInfo(),a_umac[ilev][0]->Factory());
-#else
-            m_divu[ilev].define(ba[ilev],dm[ilev],1,0);
-#endif
-            MultiFab::Copy(m_divu[ilev], *a_divu[ilev], 0, 0, 1, 0);
-        }
-    }
-
     m_mlmg.reset(new MLMG(*m_linop));
 
     setOptions();
+
+    m_needs_init = false;
+}
+
+void MacProjector::updateBeta(
+    const Vector<Array<MultiFab const*, AMREX_SPACEDIM>>& a_beta)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        m_linop == nullptr,
+        "MacProjector::updateBeta: initProjector must be called before calling this method");
+
+    const int nlevs = a_beta.size();
+#ifdef AMREX_USE_EB
+    const bool has_eb = a_beta[0][0]->hasEBFabFactory();
+    if (has_eb) {
+        for (int ilev=0; ilev < nlevs; ++ilev)
+            m_eb_abeclap->setBCoeffs(ilev, a_beta[ilev], m_beta_loc);
+    } else
+#endif
+    {
+        for (int ilev=0; ilev < nlevs; ++ilev)
+            m_abeclap->setBCoeffs(ilev, a_beta[ilev]);
+    }
+}
+
+void MacProjector::setUMAC(
+    const Vector<Array<MultiFab*, AMREX_SPACEDIM>>& a_umac)
+{
+    m_umac = a_umac;
+}
+
+void MacProjector::setDivU(const Vector<MultiFab const*>& a_divu)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        m_linop == nullptr,
+        "MacProjector::setDivU: initProjector must be called before calling this method");
+
+    for (int ilev = 0, N = a_divu.size(); ilev < N; ++ilev) {
+        if (a_divu[ilev]) {
+            if (!m_divu[ilev].ok()) {
+#ifdef AMREX_USE_EB
+                m_divu[ilev].define(
+                    a_divu[ilev]->boxArray(),
+                    a_divu[ilev]->DistributionMap(),
+                    1,0,MFInfo(), a_divu[ilev]->Factory());
+#else
+                m_divu[ilev].define(
+                    a_divu[ilev]->boxArray(),
+                    a_divu[ilev]->DistributionMap(), 1, 0);
+#endif
+            }
+            MultiFab::Copy(m_divu[ilev], *a_divu[ilev], 0, 0, 1, 0);
+        }
+    }
 }
 
 void
