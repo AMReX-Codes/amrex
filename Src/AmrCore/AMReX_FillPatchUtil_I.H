@@ -338,8 +338,8 @@ namespace {
                                                                       cgeom,
                                                                       index_space);
 
-	    if ( ! fpc.ba_crse_patch.empty())
-	    {
+            if ( ! fpc.ba_crse_patch.empty())
+            {
                 MF mf_crse_patch = make_mf_crse_patch<MF>(fpc, ncomp);
                 mf_set_domain_bndry (mf_crse_patch, cgeom);
 
@@ -383,14 +383,14 @@ namespace {
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
     EnableIf_t<IsFabArray<MF>::value>
     FillPatchTwoLevels_doit (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
-			     const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
-			     const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
-			     int scomp, int dcomp, int ncomp,
-			     const Geometry& cgeom, const Geometry& fgeom,
-			     Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
+                             const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
+                             const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
+                             int scomp, int dcomp, int ncomp,
+                             const Geometry& cgeom, const Geometry& fgeom,
+                             Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
                              Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
-			     const IntVect& ratio,
-			     Interp* mapper,
+                             const IntVect& ratio,
+                             Interp* mapper,
                              const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
                              const PreInterpHook& pre_interp,
                              const PostInterpHook& post_interp,
