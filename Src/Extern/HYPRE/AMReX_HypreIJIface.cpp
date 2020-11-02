@@ -68,8 +68,6 @@ HypreIJIface::HypreIJIface(
     HYPRE_IJVectorCreate(m_comm, m_ilower, m_iupper, &m_sln);
     HYPRE_IJVectorSetObjectType(m_sln, HYPRE_PARCSR);
     HYPRE_IJVectorInitialize(m_sln);
-
-    parse_inputs();
 }
 
 HypreIJIface::~HypreIJIface()
@@ -225,6 +223,8 @@ void HypreIJIface::boomeramg_precond_configure(const std::string& prefix)
     hpp("bamg_verbose", HYPRE_BoomerAMGSetPrintLevel);
     hpp("bamg_logging", HYPRE_BoomerAMGSetLogging);
 
+    hpp("bamg_max_iterations", HYPRE_BoomerAMGSetMaxIter, 1);
+    hpp("bamg_precond_tolerance", HYPRE_BoomerAMGSetTol, 0.0);
     hpp("bamg_coarsen_type", HYPRE_BoomerAMGSetCoarsenType, 6);
     hpp("bamg_cycle_type", HYPRE_BoomerAMGSetCycleType, 1);
     hpp("bamg_relax_type", HYPRE_BoomerAMGSetRelaxType, 6);
