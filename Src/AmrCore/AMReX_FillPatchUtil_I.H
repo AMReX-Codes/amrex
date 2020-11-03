@@ -400,6 +400,10 @@ namespace {
 
         using FAB = typename MF::FABType::value_type;
 
+        AMREX_ASSERT(AMREX_D_TERM(mf[0]->ixType().nodeCentered(0),
+                               && mf[1]->ixType().nodeCentered(1),
+                               && mf[2]->ixType().nodeCentered(2)));
+
         // Test all of them?
 	if (nghost.max() > 0 || mf[0]->getBDKey() != fmf[0][0]->getBDKey())
 	{
@@ -832,14 +836,9 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Re
     const BoxArray& ba = mf[0]->boxArray();
     const DistributionMapping& dm = mf[0]->DistributionMap();
 
-#if AMREX_DEBUG
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-    {
-        IndexType dface;
-        dface.set(d);
-        AMREX_ASSERT( (dface == mf[d]->boxArray().ixType()) && (dface == cmf[d]->boxArray().ixType()) );
-    }
-#endif
+    AMREX_ASSERT(AMREX_D_TERM(mf[0]->ixType().nodeCentered(0),
+                           && mf[1]->ixType().nodeCentered(1),
+                           && mf[2]->ixType().nodeCentered(2)));
 
     // Create a cell-centered boxArray of the region to interp.
     // Convert this boxArray and domain as needed.
