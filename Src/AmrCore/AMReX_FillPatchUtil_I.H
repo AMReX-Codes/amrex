@@ -584,7 +584,7 @@ FillPatchTwoLevels (MF& mf, Real time,
 
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 EnableIf_t<IsFabArray<MF>::value>
-FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Real time,
+FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                     const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                     const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                     int scomp, int dcomp, int ncomp,
@@ -611,7 +611,7 @@ FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Real 
 
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 EnableIf_t<IsFabArray<MF>::value>
-FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM>& mf, Real time,
+FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
                     const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                     const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                     int scomp, int dcomp, int ncomp,
@@ -702,7 +702,7 @@ InterpFromCoarseLevel (MF& mf, Real time,
 
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 EnableIf_t<IsFabArray<MF>::value>
-InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, Real time,
+InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
                        const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
                        const Geometry& cgeom, const Geometry& fgeom,
                        Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
@@ -819,7 +819,7 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
 
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 EnableIf_t<IsFabArray<MF>::value>
-InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM>& mf, IntVect const& nghost, Real time,
+InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                        const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
                        const Geometry& cgeom, const Geometry& fgeom,
                        Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
