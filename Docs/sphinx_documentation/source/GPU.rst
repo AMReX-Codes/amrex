@@ -233,6 +233,7 @@ check the :ref:`table <tab:cmakecudavar>` below.
 
    \end{center}
 
+
 The target architecture to build for can be specified via the configuration option
 ``-DAMReX_CUDA_ARCH=<target-architecture>``, where ``<target-architecture>`` can be either
 the name of the NVIDIA GPU generation, i.e. ``Turing``, ``Volta``, ``Ampere``, ``...`` , or its
@@ -246,9 +247,9 @@ For example, on Cori GPUs you can specify the architecture as follows:
    cmake [options] -DAMReX_GPU_BACKEND=CUDA -DAMReX_CUDA_ARCH=Volta /path/to/amrex/source
 
 
-If no architecture is specified, CMake will try to determine which GPU architecture is
-supported by the system.
-If more than one is found, CMake will build for all of them.
+If no architecture is specified, CMake will default to the architecture defined in the environmental
+variable ``AMReX_CUDA_ARCH``. If the latter is not defined, CMake will try to determine which GPU
+architecture is supported by the system. If more than one is found, CMake will build for all of them.
 This will generally results in a larger library and longer build times.
 If autodetection fails, a set of "common" architectures is assumed.
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
