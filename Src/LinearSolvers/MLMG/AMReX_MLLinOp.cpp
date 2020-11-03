@@ -892,6 +892,7 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
 void
 MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
 {
+#ifdef AMREX_USE_MPI
     BL_PROFILE("MLLinOp::remapNeighborhoods()");
 
     if (flag_verbose_linop) {
@@ -925,6 +926,9 @@ MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
             dms[j] = DistributionMapping(std::move(nbh_pmap));
         }
     }
+#else
+    amrex::ignore_unused(dms);
+#endif
 }
 
 #ifdef AMREX_USE_PETSC
