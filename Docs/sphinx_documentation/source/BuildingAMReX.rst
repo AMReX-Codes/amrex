@@ -628,7 +628,7 @@ A list of AMReX component names and related configure options are shown in the t
    +------------------------------+-----------------+
    | Option                       | Component       |
    +==============================+=================+
-   | DIM                          | 1D, 2D, 3D      |
+   | AMReX_SPACEDIM               | 1D, 2D, 3D      |
    +------------------------------+-----------------+
    | AMReX_PRECISION              | DOUBLE, SINGLE  |
    +------------------------------+-----------------+
