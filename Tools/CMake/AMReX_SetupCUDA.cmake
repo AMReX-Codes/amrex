@@ -53,7 +53,11 @@ endif ()
 #
 message(STATUS "Enabled CUDA options:")
 
-set(AMReX_CUDA_ARCH "Auto" CACHE STRING "CUDA architecture (Use 'Auto' for automatic detection)")
+set(AMReX_CUDA_ARCH_DEFAULT "Auto")
+if(DEFINED $ENV{AMReX_CUDA_ARCH})
+    set(AMReX_CUDA_ARCH_DEFAULT "$ENV{AMReX_CUDA_ARCH}")
+endif()
+set(AMReX_CUDA_ARCH ${AMReX_CUDA_ARCH_DEFAULT} CACHE STRING "CUDA architecture (Use 'Auto' for automatic detection)")
 
 option(AMReX_CUDA_FASTMATH "Enable CUDA fastmath" ON)
 cuda_print_option( AMReX_CUDA_FASTMATH )
