@@ -75,7 +75,7 @@ endif ()
 # HYPRE
 #
 if (ENABLE_HYPRE)
-    find_package(HYPRE 2.15 REQUIRED)
+    find_package(HYPRE 2.18.2 REQUIRED)
     target_link_libraries( amrex PUBLIC HYPRE )
 endif ()
 
