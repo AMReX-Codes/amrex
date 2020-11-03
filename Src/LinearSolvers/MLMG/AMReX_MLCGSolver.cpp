@@ -1,9 +1,4 @@
 
-#include <limits>
-#include <algorithm>
-#include <iomanip>
-#include <cmath>
-
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
 #include <AMReX_LO_BCTYPES.H>
@@ -15,6 +10,12 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+
+#include <limits>
+#include <algorithm>
+#include <iomanip>
+#include <cmath>
+
 
 namespace amrex {
 

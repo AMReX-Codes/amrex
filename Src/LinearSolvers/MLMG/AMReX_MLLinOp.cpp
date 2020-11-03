@@ -1,8 +1,4 @@
 
-#include <cmath>
-#include <algorithm>
-#include <unordered_map>
-#include <set>
 #include <AMReX_Utility.H>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLCellLinOp.H>
@@ -18,6 +14,12 @@
 #include <petscksp.h>
 #include <AMReX_PETSc.H>
 #endif
+
+#include <algorithm>
+#include <cmath>
+#include <set>
+#include <unordered_map>
+
 
 namespace amrex {
 
