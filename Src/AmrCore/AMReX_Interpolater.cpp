@@ -981,7 +981,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
             Array4<Real> const& crsearr = crse[d]->array();
             Array4<Real const> const& finearr = fab_fine_values[d]->const_array();
 
-            AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA(cfbx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(cfbx, tbx,
             {
                 amrex_avgdown_faces(tbx, crsearr, finearr, crse_comp, values_comp, ncomp, ratio, d);
             });
