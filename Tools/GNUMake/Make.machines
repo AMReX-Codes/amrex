@@ -17,14 +17,16 @@ host_name_short := $(shell hostname -s)
 
 # MACHINES supported
 
+ifdef NERSC_HOST
 ifeq ($(findstring cgpu, $(host_name)), cgpu)
   which_site := nersc
   which_computer := cgpu
-else ifdef NERSC_HOST
-  ifeq ($(NERSC_HOST), cori)
-    which_site := nersc
-    which_computer := cori
-  endif
+else
+ifeq ($(NERSC_HOST), cori)
+  which_site := nersc
+  which_computer := cori
+endif
+endif
 endif
 
 ifeq ($(findstring summit, $(host_name)), summit)
