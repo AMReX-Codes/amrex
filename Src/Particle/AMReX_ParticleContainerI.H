@@ -1349,7 +1349,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           ParticleLocData pld;
           if (npart != 0) {
               Long last = npart - 1;
-              unsigned pindex = 0;
+              Long pindex = 0;
               while (pindex <= last) {
                   ParticleType& p = aos[pindex];
 
