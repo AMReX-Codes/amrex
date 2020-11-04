@@ -28,37 +28,40 @@ list of important variables.
 
 .. table:: Important make variables
 
-   +------------+-------------------------------------+--------------------+
-   | Variable   | Value                               | Default            |
-   +============+=====================================+====================+
-   | AMREX_HOME | Path to amrex                       | environment        |
-   +------------+-------------------------------------+--------------------+
-   | COMP       | gnu, cray, ibm, intel, llvm, or pgi | none               |
-   +------------+-------------------------------------+--------------------+
-   | CXXSTD     | C++ standard (``c++11``, ``c++14``, | compiler default,  |
-   |            | ``c++17``, ``c++20``)               | at least ``c++11`` |
-   +------------+-------------------------------------+--------------------+
-   | DEBUG      | TRUE or FALSE                       | FALSE              |
-   +------------+-------------------------------------+--------------------+
-   | DIM        | 1 or 2 or 3                         | 3                  |
-   +------------+-------------------------------------+--------------------+
-   | PRECISION  | DOUBLE or FLOAT                     | DOUBLE             |
-   +------------+-------------------------------------+--------------------+
-   | USE_MPI    | TRUE or FALSE                       | FALSE              |
-   +------------+-------------------------------------+--------------------+
-   | USE_OMP    | TRUE or FALSE                       | FALSE              |
-   +------------+-------------------------------------+--------------------+
-   | USE_CUDA   | TRUE or FALSE                       | FALSE              |
-   +------------+-------------------------------------+--------------------+
-   | USE_HIP    | TRUE or FALSE                       | FALSE              |
-   +------------+-------------------------------------+--------------------+
-   | USE_DPCPP  | TRUE or FALSE                       | FALSE              |
-   +------------+-------------------------------------+--------------------+
-   | USE_RPATH  | TRUE or FALSE                       | FALSE              |
-   +------------+-------------------------------------+--------------------+
-   | WARN_ALL   | TRUE or FALSE                       | TRUE for DEBUG     |
-   |            |                                     | FALSE otherwise    |
-   +------------+-------------------------------------+--------------------+
+   +-----------------+-------------------------------------+--------------------+
+   | Variable        | Value                               | Default            |
+   +=================+=====================================+====================+
+   | AMREX_HOME      | Path to amrex                       | environment        |
+   +-----------------+-------------------------------------+--------------------+
+   | COMP            | gnu, cray, ibm, intel, llvm, or pgi | none               |
+   +-----------------+-------------------------------------+--------------------+
+   | CXXSTD          | C++ standard (``c++11``, ``c++14``, | compiler default,  |
+   |                 | ``c++17``, ``c++20``)               | at least ``c++11`` |
+   +-----------------+-------------------------------------+--------------------+
+   | DEBUG           | TRUE or FALSE                       | FALSE              |
+   +-----------------+-------------------------------------+--------------------+
+   | DIM             | 1 or 2 or 3                         | 3                  |
+   +-----------------+-------------------------------------+--------------------+
+   | PRECISION       | DOUBLE or FLOAT                     | DOUBLE             |
+   +-----------------+-------------------------------------+--------------------+
+   | USE_MPI         | TRUE or FALSE                       | FALSE              |
+   +-----------------+-------------------------------------+--------------------+
+   | USE_OMP         | TRUE or FALSE                       | FALSE              |
+   +-----------------+-------------------------------------+--------------------+
+   | USE_CUDA        | TRUE or FALSE                       | FALSE              |
+   +-----------------+-------------------------------------+--------------------+
+   | USE_HIP         | TRUE or FALSE                       | FALSE              |
+   +-----------------+-------------------------------------+--------------------+
+   | USE_DPCPP       | TRUE or FALSE                       | FALSE              |
+   +-----------------+-------------------------------------+--------------------+
+   | USE_RPATH       | TRUE or FALSE                       | FALSE              |
+   +-----------------+-------------------------------------+--------------------+
+   | WARN_ALL        | TRUE or FALSE                       | TRUE for DEBUG     |
+   |                 |                                     | FALSE otherwise    |
+   +-----------------+-------------------------------------+--------------------+
+   | AMREX_CUDA_ARCH | CUDA arch such as 70                | 70 if not set      |
+   |    or CUDA_ARCH |                                     | or detected        |
+   +-----------------+-------------------------------------+--------------------+
 
 .. raw:: latex
 
@@ -117,6 +120,13 @@ hints at runtime.
 
 For GCC and Clang, the variable ``WARN_ALL`` controls the compiler's warning options.  There is
 also a make variable ``WARN_ERROR`` (with default of ``FALSE``) to turn warnings into errors.
+
+When ``USE_CUDA`` is ``TRUE``, the make system will try to detect what CUDA
+arch should be used by running
+``$(CUDA_HOME)/extras/demo_suite/deviceQuery`` if your computer is unknown.
+If it fails to detect the CUDA arch, the default value of 70 will be used.
+The user could override it by ``make USE_CUDA=TRUE CUDA_ARCH=80`` or ``make
+USE_CUDA=TRUE AMREX_CUDA_ARCH=80``.
 
 After defining these make variables, a number of files, ``Make.defs,
 Make.package`` and ``Make.rules``, are included in the GNUmakefile. AMReX-based
