@@ -88,7 +88,7 @@ private:
     static std::deque<std::tuple<double,double,std::string*> > ttstack;
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
     static double t_init;
-    static int device_synchronize_on_region_end;
+    static int device_synchronize_around_region;
 
     static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);
 };
