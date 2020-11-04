@@ -1,5 +1,3 @@
-#include <limits>
-
 #include <AMReX_MLMG.H>
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_MLNodeLap_K.H>
@@ -13,6 +11,9 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+
+#include <limits>
+
 
 namespace amrex {
 

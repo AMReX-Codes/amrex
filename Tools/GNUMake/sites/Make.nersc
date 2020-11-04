@@ -71,7 +71,11 @@ ifeq ($(which_computer),$(filter $(which_computer),cgpu))
         COMPILE_CUDA_PATH := $(CUDA_HOME)
     endif
 
-    CUDA_ARCH = 70
+    ifeq ($(findstring :dgx, $(LOADEDMODULES)), :dgx)
+      CUDA_ARCH = 80
+    else
+      CUDA_ARCH = 70
+    endif
     GPUS_PER_NODE = 8
     GPUS_PER_SOCKET = 4
   endif

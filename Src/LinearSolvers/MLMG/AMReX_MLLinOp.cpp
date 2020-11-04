@@ -1,8 +1,4 @@
 
-#include <cmath>
-#include <algorithm>
-#include <unordered_map>
-#include <set>
 #include <AMReX_Utility.H>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLCellLinOp.H>
@@ -18,6 +14,12 @@
 #include <petscksp.h>
 #include <AMReX_PETSc.H>
 #endif
+
+#include <algorithm>
+#include <cmath>
+#include <set>
+#include <unordered_map>
+
 
 namespace amrex {
 
@@ -890,6 +892,7 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
 void
 MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
 {
+#ifdef AMREX_USE_MPI
     BL_PROFILE("MLLinOp::remapNeighborhoods()");
 
     if (flag_verbose_linop) {
@@ -923,6 +926,9 @@ MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
             dms[j] = DistributionMapping(std::move(nbh_pmap));
         }
     }
+#else
+    amrex::ignore_unused(dms);
+#endif
 }
 
 #ifdef AMREX_USE_PETSC
