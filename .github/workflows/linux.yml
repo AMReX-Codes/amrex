@@ -7,6 +7,7 @@ jobs:
   library:
     name: GNU@7.5 C++17 Release [lib]
     runs-on: ubuntu-latest
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -25,6 +26,7 @@ jobs:
   library_clang:
     name: Clang@6.0 C++14 SP NOMPI Debug [lib]
     runs-on: ubuntu-latest
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -52,6 +54,7 @@ jobs:
   tutorials:
     name: GNU@7.5 C++14 [tutorials]
     runs-on: ubuntu-latest
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -71,6 +74,7 @@ jobs:
   tutorials_cxx20:
     name: GNU@10.1 C++20 [tutorials]
     runs-on: ubuntu-latest
+    env: {CXXFLAGS: "-Werror -Wno-error=deprecated-declarations -Wshadow -Woverloaded-virtual -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -94,6 +98,7 @@ jobs:
   tutorials-nonmpi:
     name: GNU@7.5 C++14 NOMPI [tutorials]
     runs-on: ubuntu-latest
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -114,6 +119,7 @@ jobs:
   tutorials-nofortran:
     name: GNU@7.5 C++11 w/o Fortran [tutorials]
     runs-on: ubuntu-latest
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -171,11 +177,37 @@ jobs:
         cd build
         cmake ..                                           \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
-            -DAMReX_BUILD_TUTORIALS=ON                     \
+            -DAMReX_BUILD_TUTORIALS=ON                          \
             -DENABLE_PARTICLES=ON                          \
             -DENABLE_DPCPP=ON                              \
             -DCMAKE_C_COMPILER=$(which clang)              \
             -DCMAKE_CXX_COMPILER=$(which dpcpp)            \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)
+        make -j 2 
+
+  tutorials-hip:
+    name: HIP ROCm@3.8 GFortran@9.3 C++17 [tutorials]
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_hip.sh
+    - name: Build & Install
+      run: |
+        source /etc/profile.d/rocm.sh
+        hipcc --version
+        mkdir build
+        cd build
+        cmake ..                                           \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DAMReX_BUILD_TUTORIALS=ON                     \
+            -DENABLE_PARTICLES=ON                          \
+            -DENABLE_FORTRAN=ON                            \
+            -DENABLE_LINEAR_SOLVERS=ON                     \
+            -DENABLE_HIP=ON                                \
+            -DAMD_ARCH=gfx900                              \
+            -DCMAKE_C_COMPILER=$(which hipcc)              \
+            -DCMAKE_CXX_COMPILER=$(which hipcc)            \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
         make -j 2
 
@@ -239,6 +271,7 @@ jobs:
   tests:
     name: GNU@7.5 C++14 [tests]
     runs-on: ubuntu-latest
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies

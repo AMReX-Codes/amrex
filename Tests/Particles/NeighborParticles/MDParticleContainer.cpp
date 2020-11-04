@@ -236,7 +236,7 @@ void MDParticleContainer::checkNeighborParticles()
         for (int i = 0; i < np; i++)
         {
             ParticleType& p1 = pstruct[i];
-            Gpu::Atomic::Add(&(p_num_per_grid[p1.idata(0)]),1);
+            Gpu::Atomic::AddNoRet(&(p_num_per_grid[p1.idata(0)]),1);
         }
 
         amrex::AllPrintToFile("neighbor_test") << "FOR GRID " << gid << "\n";;
@@ -274,9 +274,9 @@ void MDParticleContainer::checkNeighborParticles()
         {
             ParticleType& p1 = pstruct[i];
 
-            // Gpu::Atomic::Add(p_mine,1);
+            // Gpu::Atomic::AddNoRet(p_mine,1);
 
-            Gpu::Atomic::Add(&(p_num_per_grid[p1.idata(0)]),1);
+            Gpu::Atomic::AddNoRet(&(p_num_per_grid[p1.idata(0)]),1);
         });
 
         Gpu::Device::synchronize();
@@ -359,14 +359,14 @@ void MDParticleContainer::checkNeighborList()
 
 		if (r2 <= cutoff_sq)
 		{
-                   Gpu::Atomic::Add(&(p_full_count[i]),1);
+                   Gpu::Atomic::AddNoRet(&(p_full_count[i]),1);
                    full_nbors.push_back(p2.id());
 		}
             }
 
             for (const auto& p2 : nbor_data.getNeighbors(i))
             {               
-                Gpu::Atomic::Add(&(p_neighbor_count[i]),1);
+                Gpu::Atomic::AddNoRet(&(p_neighbor_count[i]),1);
                 nbor_nbors.push_back(p2.id());
             }
 

@@ -20,7 +20,11 @@ template <int warpSize, typename T, typename F>
 struct warpReduce
 {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+#if (__SYCL_COMPILER_VERSION <= 20200827)
     T operator() (T x, sycl::intel::sub_group const& sg) const noexcept
+#else
+    T operator() (T x, sycl::ONEAPI::sub_group const& sg) const noexcept
+#endif
     {
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
             T y = sg.shuffle_down(x, offset);
@@ -36,7 +40,11 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
 {
     T* shared = (T*)h.local;
     int tid = h.item.get_local_id(0);
+#if (__SYCL_COMPILER_VERSION <= 20200827)
     sycl::intel::sub_group const& sg = h.item.get_sub_group();
+#else
+    sycl::ONEAPI::sub_group const& sg = h.item.get_sub_group();
+#endif
     int lane = sg.get_local_id()[0];
     int wid = sg.get_group_id()[0];
 #if (__SYCL_COMPILER_VERSION <= 20200715)
@@ -64,7 +72,7 @@ void deviceReduceSum (T * dest, T source, Gpu::Handler const& h) noexcept
 {
     source = Gpu::blockReduce<Gpu::Device::warp_size>
         (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Plus<T> >(), (T)0, h);
-    if (h.item.get_local_id(0) == 0) Gpu::Atomic::Add(dest, source);
+    if (h.item.get_local_id(0) == 0) Gpu::Atomic::AddNoRet(dest, source);
 }
 
 template <typename T>
@@ -145,7 +153,7 @@ void deviceReduceSum (T * dest, T source) noexcept
 {
     source = Gpu::blockReduce<Gpu::Device::warp_size>
         (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Plus<T> >(), (T)0);
-    if (threadIdx.x == 0) Gpu::Atomic::Add(dest, source);
+    if (threadIdx.x == 0) Gpu::Atomic::AddNoRet(dest, source);
 }
 
 template <typename T>

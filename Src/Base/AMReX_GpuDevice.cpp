@@ -87,7 +87,7 @@ namespace {
         BL_PROFILE("InitGraph");
 
         int streams = Gpu::Device::numGpuStreams();
-        cudaGraphExec_t graphExec;
+        cudaGraphExec_t graphExec{};
         for (int n=0; n<(graph_size); ++n)
         {
             Gpu::Device::startGraphRecording((n == 0), NULL, NULL, 0);
@@ -679,7 +679,7 @@ Device::startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz
 cudaGraphExec_t
 Device::stopGraphRecording(bool last_iter)
 {
-    cudaGraphExec_t graphExec;
+    cudaGraphExec_t graphExec{};
 
     if (last_iter && inLaunchRegion() && inGraphRegion())
     {

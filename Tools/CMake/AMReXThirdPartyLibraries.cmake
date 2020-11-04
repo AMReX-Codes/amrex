@@ -3,13 +3,19 @@
 #
 if (ENABLE_HDF5)
     set(HDF5_PREFER_PARALLEL TRUE)
-    find_package(HDF5 1.10.4 REQUIRED COMPONENTS CXX)
+    find_package(HDF5 1.10.4 REQUIRED)
     if (NOT HDF5_IS_PARALLEL)
         message(FATAL_ERROR "\nHDF5 library does not support parallel I/O")
+     endif ()
+
+    if (TARGET hdf5::hdf5)  # CMake >= 3.19
+       target_link_libraries(amrex PUBLIC hdf5::hdf5)
+    else ()  # CMake < 3.19 -- Remove when minimum cmake version is bumped up
+       target_include_directories(amrex PUBLIC ${HDF5_INCLUDE_DIRS})
+       target_compile_definitions(amrex PUBLIC ${HDF5_DEFINITIONS})
+       target_link_libraries(amrex PUBLIC ${HDF5_LIBRARIES})
     endif ()
-    target_include_directories(amrex PUBLIC ${HDF5_CXX_INCLUDE_DIRS})
-    target_compile_definitions(amrex PUBLIC ${HDF5_CXX_DEFINES})
-    target_link_libraries(amrex PUBLIC ${HDF5_CXX_LIBRARIES})
+
 endif ()
 
 
@@ -69,7 +75,7 @@ endif ()
 # HYPRE
 #
 if (ENABLE_HYPRE)
-    find_package(HYPRE 2.15 REQUIRED)
+    find_package(HYPRE 2.18.2 REQUIRED)
     target_link_libraries( amrex PUBLIC HYPRE )
 endif ()
 

@@ -220,9 +220,9 @@ void deposit_current (amrex::Array4<amrex::Real> const& jx,
     for         (int loff = 0; loff < 2; ++loff) {
         for     (int koff = 0; koff < 2; ++koff) {
             for (int joff = 0; joff < 2; ++joff) {
-                amrex::Gpu::Atomic::Add(&jx(j0+joff,k +koff,l +loff), sx0[joff]*sy [koff]*sz [loff]*wqx);
-                amrex::Gpu::Atomic::Add(&jy(j +joff,k0+koff,l +loff), sx [joff]*sy0[koff]*sz [loff]*wqy);
-                amrex::Gpu::Atomic::Add(&jz(j +joff,k +koff,l0+loff), sx [joff]*sy [koff]*sz0[loff]*wqz);
+                amrex::Gpu::Atomic::AddNoRet(&jx(j0+joff,k +koff,l +loff), sx0[joff]*sy [koff]*sz [loff]*wqx);
+                amrex::Gpu::Atomic::AddNoRet(&jy(j +joff,k0+koff,l +loff), sx [joff]*sy0[koff]*sz [loff]*wqy);
+                amrex::Gpu::Atomic::AddNoRet(&jz(j +joff,k +koff,l0+loff), sx [joff]*sy [koff]*sz0[loff]*wqz);
             }
         }
     }

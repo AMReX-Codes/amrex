@@ -231,7 +231,7 @@ void AddFabGhostIndicatorField (const FArrayBox& fab,
                                 int ngrow,
                                 Node &res)
 {
-    Node &n_field = res["fields/ghost_indicator"];
+    Node &n_field = res["fields/ascent_ghosts"];
     n_field["association"] = "element";
     n_field["topology"] = "topo";
     n_field["values"].set(DataType::float64(fab.box().numPts()));

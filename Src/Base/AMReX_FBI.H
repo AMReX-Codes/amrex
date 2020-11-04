@@ -203,7 +203,7 @@ struct CellAtomicAdd
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator() (U* d, U s) const noexcept
     {
-        Gpu::Atomic::Add(d,s);
+        Gpu::Atomic::AddNoRet(d,s);
     }
 };
 
@@ -399,7 +399,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         int g_wid = g_tid / Gpu::Device::warp_size;
         if (g_wid >= ntotwarps) return;
 
-        int tag_id;
+        int tag_id = -1;
         {
             int lo = 0;
             int hi = N_locs;
@@ -437,10 +437,18 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         int to_try  = 1;
         while (true) {
             int msk = (m && to_try) ? Gpu::Atomic::CAS(m, 0, mypriority) : 0;
+#if (__SYCL_COMPILER_VERSION <= 20200827)
             if (sycl::intel::all_of(item.get_sub_group(), msk == 0)) {  // 0 means lock acquired
+#else
+            if (sycl::ONEAPI::all_of(item.get_sub_group(), msk == 0)) {  // 0 means lock acquired
+#endif
                 break; // all threads have acquired.
             } else {
+#if (__SYCL_COMPILER_VERSION <= 20200827)
                 if (sycl::intel::any_of(item.get_sub_group(), msk > mypriority)) {
+#else
+                if (sycl::ONEAPI::any_of(item.get_sub_group(), msk > mypriority)) {
+#endif
                     if (m) *m = 0; // yield
                     item.mem_fence(); // xxxxx DPCPP todo: This is block level, but needs to be device level fence, which is currently a PR in intel/llvm
                     to_try = 1;
@@ -1175,8 +1183,8 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
     if (N_rcvs == 0) return;
 
     char* pbuffer = recv_data[0];
-    std::size_t szbuffer = 0;
 #if 0
+    std::size_t szbuffer = 0;
     // For linear solver test on summit, this is slower than writing to
     // pinned memory directly on device.
     if (not ParallelDescriptor::UseGpuAwareMpi()) {
