@@ -470,6 +470,17 @@ T Sum (N n, T const* v, T init_val = 0)
     return Reduce::Sum(n, v, init_val, amrex::Plus<T>());
 }
 
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Sum (N n, F&& f)
+{
+    ReduceOps<ReduceOpSum> reduce_op;
+    ReduceData<T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    reduce_op.eval(n, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple { return {f(i)}; });
+    return amrex::get<0>(reduce_data.value());
+}
+
 template <typename T, typename N, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T Min (N n, U const* v, T init_val, BOP bop)
 {
@@ -791,6 +802,20 @@ template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<
 T Sum (N n, T const* v, T init_val = 0)
 {
     return Reduce::Sum(n, v, init_val, amrex::Plus<T>());
+}
+
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Sum (N n, F&& f)
+{
+    T r = 0;
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:r)
+#endif
+    for (N i = 0; i < n; ++i) {
+        r += f(i);
+    }
+    return r;
 }
 
 template <typename N, typename T, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
