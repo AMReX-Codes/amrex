@@ -212,6 +212,7 @@ htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("htod_memcpy: ")+ex.what()+"!!!!!");
     }
+    if (Device::onNullStream()) Gpu::synchronize();
 #else
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipMemcpy(p_d, p_h, sz, hipMemcpyHostToDevice));,

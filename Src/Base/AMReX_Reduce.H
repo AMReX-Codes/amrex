@@ -192,7 +192,6 @@ namespace detail {
         });
         Array<T,2> tmp{v,v};
         Gpu::htod_memcpy(p, tmp.data(), sizeof(T)*2);
-        Gpu::synchronize();
     }
 #else
     template <typename T>
@@ -549,7 +548,7 @@ std::pair<T,T> MinMax (N n, U const* v, MINOP minop, MAXOP maxop)
     Gpu::LaunchSafeGuard lsg(true);
     Array<T,2> hv{std::numeric_limits<T>::max(), std::numeric_limits<T>::lowest()};
     T* dp = (T*)(The_Device_Arena()->alloc(2*sizeof(T)));
-    Gpu::htod_memcpy(dp, hv.data(), 2*sizeof(T));
+    Gpu::htod_memcpy_async(dp, hv.data(), 2*sizeof(T));
     typedef GpuArray<T,2> Real2;
     amrex::VecReduce(n, Real2{hv[0],hv[1]},
     [=] AMREX_GPU_DEVICE (N i, Real2* r) noexcept
