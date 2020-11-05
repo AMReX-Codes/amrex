@@ -1645,10 +1645,12 @@ BaseFab<T>::prefetchToHost () const noexcept
         // auto& q = Gpu::Device::streamQueue();
         // q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
 #elif defined(AMREX_USE_CUDA)
-        std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-        AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
-                                                  cudaCpuDeviceId,
-                                                  Gpu::gpuStream()));
+        if (Gpu::Device::devicePropMajor() >= 6) {
+            std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
+                                                      cudaCpuDeviceId,
+                                                      Gpu::gpuStream()));
+        }
 #elif defined(AMREX_USE_HIP)
         // xxxxx HIP FIX HERE after managed memory is supported
 #endif
@@ -1667,10 +1669,12 @@ BaseFab<T>::prefetchToDevice () const noexcept
         auto& q = Gpu::Device::streamQueue();
         q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
 #elif defined(AMREX_USE_CUDA)
-        std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-        AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
-                                                  Gpu::Device::deviceId(),
-                                                  Gpu::gpuStream()));
+        if (Gpu::Device::devicePropMajor() >= 6) {
+            std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
+                                                      Gpu::Device::deviceId(),
+                                                      Gpu::gpuStream()));
+        }
 #elif defined(AMREX_USE_HIP)
         // xxxxx HIP FIX HERE after managed memory is supported
 #endif
