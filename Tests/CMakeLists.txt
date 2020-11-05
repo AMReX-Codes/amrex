@@ -7,7 +7,7 @@ if (AMReX_PARTICLES)
    list(APPEND AMREX_TESTS_SUBDIRS Particles)
 endif ()
 
-if (ENABLE_HDF5)
+if (AMReX_HDF5)
    list(APPEND AMREX_TESTS_SUBDIRS HDF5Benchmark)
 endif ()
 
