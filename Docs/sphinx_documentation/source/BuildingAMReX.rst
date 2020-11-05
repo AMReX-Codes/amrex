@@ -642,6 +642,8 @@ A list of AMReX component names and related configure options are shown in the t
    +------------------------------+-----------------+
    | AMReX_PRECISION              | DOUBLE, SINGLE  |
    +------------------------------+-----------------+
+   | AMReX_FORTRAN                | FORTRAN         |
+   +------------------------------+-----------------+
    | AMReX_PIC                    | PIC             |
    +------------------------------+-----------------+
    | AMReX_MPI                    | MPI             |
