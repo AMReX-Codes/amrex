@@ -140,6 +140,8 @@ public:
                 const amrex::Box& bx, const amrex::Geometry& geom,
                 CheckPair&& check_pair, int num_cells=1)
     {
+        BL_PROFILE("NeighborList::build()");
+
         auto& vec = ptile.GetArrayOfStructs()();
         m_pstruct = vec.dataPtr();
 
