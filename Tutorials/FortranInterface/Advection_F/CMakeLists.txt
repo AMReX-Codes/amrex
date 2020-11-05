@@ -1,9 +1,9 @@
-if ( NOT ENABLE_PARTICLES OR (DIM EQUAL 1) )
+if ( NOT AMReX_PARTICLES OR (AMReX_SPACEDIM EQUAL 1) )
    return ()
 endif ()
 
-set(_sources advect_${DIM}d_mod.F90 compute_flux_${DIM}d.f90 slope_${DIM}d.f90 )
-list(TRANSFORM _sources PREPEND Src_${DIM}d/ )
+set(_sources advect_${AMReX_SPACEDIM}d_mod.F90 compute_flux_${AMReX_SPACEDIM}d.f90 slope_${AMReX_SPACEDIM}d.f90 )
+list(TRANSFORM _sources PREPEND Src_${AMReX_SPACEDIM}d/ )
 
 list(APPEND _sources amr_data_mod.F90 averagedown_mod.F90 bc_mod.F90 compute_dt_mod.F90
    evolve_mod.F90 fillpatch_mod.F90 fmain.F90 initdata.F90 Make.package my_amr_mod.F90
@@ -12,8 +12,8 @@ list(APPEND _sources amr_data_mod.F90 averagedown_mod.F90 bc_mod.F90 compute_dt_
 list(TRANSFORM _sources PREPEND Source/ )
 
 list(APPEND _sources
-   Exec/SingleVortex/face_velocity_${DIM}d.F90
-   Exec/SingleVortex/Prob_${DIM}d.f90
+   Exec/SingleVortex/face_velocity_${AMReX_SPACEDIM}d.F90
+   Exec/SingleVortex/Prob_${AMReX_SPACEDIM}d.f90
    )
 
 file( GLOB_RECURSE _input_files LIST_DIRECTORIES false

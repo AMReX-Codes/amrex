@@ -392,9 +392,9 @@ For example, one can enable OpenMP support as follows:
 
 ::
 
-    cmake -DENABLE_OMP=YES -DCMAKE_INSTALL_PREFIX=/path/to/installdir  /path/to/amrex
+    cmake -DAMReX_OMP=YES -DCMAKE_INSTALL_PREFIX=/path/to/installdir  /path/to/amrex
 
-In the example above ``<var>=ENABLE_OMP`` and ``<value>=YES``.
+In the example above ``<var>=AMReX_OMP`` and ``<value>=YES``.
 Configuration variables requiring a boolen value are evaluated to true if they
 are assigned a value of ``1``, ``ON``, ``YES``, ``TRUE``, ``Y``. Conversely they are evaluated to false
 if they are assigned a value of ``0``, ``OFF``, ``NO``, ``FALSE``, ``N``.
@@ -410,89 +410,93 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
 
 .. table:: AMReX build options (refer to section :ref:`sec:gpu:build` for GPU-related options).
 
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | Variable Name                | Description                                     | Default     | Possible values |
-   +==============================+=================================================+=============+=================+
-   | CMAKE_Fortran_COMPILER       |  User-defined Fortran compiler                  |             | user-defined    |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CMAKE_CXX_COMPILER           |  User-defined C++ compiler                      |             | user-defined    |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CMAKE_Fortran_FLAGS          |  User-defined Fortran flags                     |             | user-defined    |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CMAKE_CXX_FLAGS              |  User-defined C++ flags                         |             | user-defined    |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CMAKE_CXX_STANDARD           |  C++ standard                                   | compiler/11 | 11, 14, 17, 20  |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | DIM                          |  Dimension of AMReX build                       | 3           | 1, 2, 3         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | USE_XSDK_DEFAULTS            |  Use XSDK defaults settings                     | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_FORTRAN               |  Enable Fortran language                        | YES         | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_DP                    |  Build with double-precision reals              | YES         | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_PIC                   |  Build Position Independent Code                | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_MPI                   |  Build with MPI support                         | YES         | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_OMP                   |  Build with OpenMP support                      | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_CUDA_FASTMATH         |  Enable CUDA fastmath library                   | YES         | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_FORTRAN_INTERFACES    |  Build Fortran API                              | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_LINEAR_SOLVERS        |  Build AMReX linear solvers                     | YES         | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_AMRDATA               |  Build data services                            | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_EB                    |  Build Embedded Boundary support                | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_PARTICLES             |  Build particle classes                         | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_DP_PARTICLES          |  Use double-precision reals in particle classes | YES         | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_BASE_PROFILE          |  Build with basic profiling support             | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_TINY_PROFILE          |  Build with tiny profiling support              | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_TRACE_PROFILE         |  Build with trace-profiling support             | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_COMM_PROFILE          |  Build with comm-profiling support              | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_MEM_PROFILE           |  Build with memory-profiling support            | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_MPI_THREAD_MULTIPLE   |  Concurrent MPI calls from multiple threads     | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_PROFPARSER            |  Build with profile parser support              | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_FPE                   |  Build with Floating Point Exceptions checks    | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_ASSERTIONS            |  Build with assertions turned on                | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_SUNDIALS              |  Enable SUNDIALS 4 interfaces                   | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_SENSEI                |  Enable SENSEI_IN_SITU infrastucture            | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_CONDUIT               |  Enable Conduit support                         | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_ASCENT                |  Enable Ascent support                          | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_HYPRE                 |  Enable HYPRE interfaces                        | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_HDF5                  |  Enable HDF5-based I/O                          | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_PLOTFILE_TOOLS        |  Build and install plotfile postprocessing tools| NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_BUILD_TUTORIALS        |  Build tutorials                                | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ALLOW_DIFFERENT_COMPILER     |  Allow an app to use a different compiler       | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | Variable Name                | Description                                     | Default                 | Possible values       |
+   +==============================+=================================================+=========================+=======================+
+   | CMAKE_Fortran_COMPILER       |  User-defined Fortran compiler                  |                         | user-defined          |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | CMAKE_CXX_COMPILER           |  User-defined C++ compiler                      |                         | user-defined          |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | CMAKE_Fortran_FLAGS          |  User-defined Fortran flags                     |                         | user-defined          |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | CMAKE_CXX_FLAGS              |  User-defined C++ flags                         |                         | user-defined          |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | CMAKE_CXX_STANDARD           |  C++ standard                                   | compiler/11             | 11, 14, 17, 20        |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_SPACEDIM               |  Dimension of AMReX build                       | 3                       | 1, 2, 3               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | USE_XSDK_DEFAULTS            |  Use XSDK defaults settings                     | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_FORTRAN                |  Enable Fortran language                        | YES                     | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_PRECISION              |  Set the precision of reals                     | DOUBLE                  | DOUBLE, SINGLE        |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_PIC                    |  Build Position Independent Code                | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_MPI                    |  Build with MPI support                         | YES                     | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_OMP                    |  Build with OpenMP support                      | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_GPU_BACKEND            |  Build with on-node, accelerated GPU backend    | NONE                    | NONE, SYCL, HIP, CUDA |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_FORTRAN_INTERFACES     |  Build Fortran API                              | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_LINEAR_SOLVERS         |  Build AMReX linear solvers                     | YES                     | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_AMRDATA                |  Build data services                            | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_EB                     |  Build Embedded Boundary support                | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_PARTICLES              |  Build particle classes                         | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_PARTICLES_PRECISION    |  Set reals precision in particle classes        | Same as AMReX_PRECISION | DOUBLE, SINGLE        |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_BASE_PROFILE           |  Build with basic profiling support             | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_TINY_PROFILE           |  Build with tiny profiling support              | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_TRACE_PROFILE          |  Build with trace-profiling support             | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_COMM_PROFILE           |  Build with comm-profiling support              | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_MEM_PROFILE            |  Build with memory-profiling support            | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_MPI_THREAD_MULTIPLE    |  Concurrent MPI calls from multiple threads     | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_PROFPARSER             |  Build with profile parser support              | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_FPE                    |  Build with Floating Point Exceptions checks    | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_ASSERTIONS             |  Build with assertions turned on                | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_SUNDIALS               |  Enable SUNDIALS 4 interfaces                   | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_SENSEI                 |  Enable SENSEI_IN_SITU infrastucture            | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_CONDUIT                |  Enable Conduit support                         | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_ASCENT                 |  Enable Ascent support                          | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_HYPRE                  |  Enable HYPRE interfaces                        | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_PETSC                  |  Enable PETSc interfaces                        | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_HDF5                   |  Enable HDF5-based I/O                          | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_PLOTFILE_TOOLS         |  Build and install plotfile postprocessing tools| NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_BUILD_TUTORIALS        |  Build tutorials                                | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_ENABLE_TESTS           |  Enable CTest suite                             | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_DIFFERENT_COMPILER     |  Allow an app to use a different compiler       | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
 .. raw:: latex
 
    \end{center}
 
-The option ``CMAKE_BUILD_TYPE=Debug`` implies ``ENABLE_ASSERTIONS=YES``. In order to turn off
-assertions in debug mode, ``ENABLE_ASSERTIONS=NO`` must be set explicitly while
+The option ``CMAKE_BUILD_TYPE=Debug`` implies ``AMReX_ASSERTIONS=YES``. In order to turn off
+assertions in debug mode, ``AMReX_ASSERTIONS=NO`` must be set explicitly while
 invoking CMake.
 
 
@@ -606,7 +610,7 @@ In the above snippet, ``<amrex-target-name>`` is any of the targets listed in th
 
 
 The options used to configure the AMReX build may result in certain parts, or ``components``, of the AMReX source code
-to be excluded from compilation. For example, setting ``-DENABLE_LINEAR_SOLVERS=no`` at configure time
+to be excluded from compilation. For example, setting ``-DAMReX_LINEAR_SOLVERS=no`` at configure time
 prevents the compilation of AMReX linear solvers code.
 Your CMake project can check which component is included in the AMReX library via `find_package`:
 
@@ -634,55 +638,55 @@ A list of AMReX component names and related configure options are shown in the t
    +------------------------------+-----------------+
    | Option                       | Component       |
    +==============================+=================+
-   | DIM                          | 1D, 2D, 3D      |
+   | AMReX_SPACEDIM               | 1D, 2D, 3D      |
    +------------------------------+-----------------+
-   | ENABLE_DP                    | DP              |
+   | AMReX_PRECISION              | DOUBLE, SINGLE  |
    +------------------------------+-----------------+
-   | ENABLE_PIC                   | PIC             |
+   | AMReX_PIC                    | PIC             |
    +------------------------------+-----------------+
-   | ENABLE_MPI                   | MPI             |
+   | AMReX_MPI                    | MPI             |
    +------------------------------+-----------------+
-   | ENABLE_OMP                   | OMP             |
+   | AMReX_OMP                    | OMP             |
    +------------------------------+-----------------+
-   | ENABLE_CUDA                  | CUDA            |
+   | AMReX_CUDA                   | CUDA            |
    +------------------------------+-----------------+
-   | ENABLE_FORTRAN_INTERFACES    | FINTERFACES     |
+   | AMReX_FORTRAN_INTERFACES     | FINTERFACES     |
    +------------------------------+-----------------+
-   | ENABLE_LINEAR_SOLVERS        | LSOLVERS        |
+   | AMReX_LINEAR_SOLVERS         | LSOLVERS        |
    +------------------------------+-----------------+
-   | ENABLE_AMRDATA               | AMRDATA         |
+   | AMReX_AMRDATA                | AMRDATA         |
    +------------------------------+-----------------+
-   | ENABLE_EB                    | EB              |
+   | AMReX_EB                     | EB              |
    +------------------------------+-----------------+
-   | ENABLE_PARTICLES             | PARTICLES       |
+   | AMReX_PARTICLES              | PARTICLES       |
    +------------------------------+-----------------+
-   | ENABLE_DP_PARTICLES          | DPARTICLES      |
+   | AMReX_PARTICLES_PRECISION    | PDOUBLE, PSINGLE|
    +------------------------------+-----------------+
-   | ENABLE_BASE_PROFILE          | BASEP           |
+   | AMReX_BASE_PROFILE           | BASEP           |
    +------------------------------+-----------------+
-   | ENABLE_TINY_PROFILE          | TINYP           |
+   | AMReX_TINY_PROFILE           | TINYP           |
    +------------------------------+-----------------+
-   | ENABLE_TRACE_PROFILE         | TRACEP          |
+   | AMReX_TRACE_PROFILE          | TRACEP          |
    +------------------------------+-----------------+
-   | ENABLE_COMM_PROFILE          | COMMP           |
+   | AMReX_COMM_PROFILE           | COMMP           |
    +------------------------------+-----------------+
-   | ENABLE_MEM_PROFILE           | MEMP            |
+   | AMReX_MEM_PROFILE            | MEMP            |
    +------------------------------+-----------------+
-   | ENABLE_PROFPARSER            | PROFPARSER      |
+   | AMReX_PROFPARSER             | PROFPARSER      |
    +------------------------------+-----------------+
-   | ENABLE_FPE                   | FPE             |
+   | AMReX_FPE                    | FPE             |
    +------------------------------+-----------------+
-   | ENABLE_ASSERTIONS            | ASSERTIONS      |
+   | AMReX_ASSERTIONS             | ASSERTIONS      |
    +------------------------------+-----------------+
-   | ENABLE_SUNDIALS              | SUNDIALS        |
+   | AMReX_SUNDIALS               | SUNDIALS        |
    +------------------------------+-----------------+
-   | ENABLE_SENSEI                | SENSEI          |
+   | AMReX_SENSEI                 | SENSEI          |
    +------------------------------+-----------------+
-   | ENABLE_CONDUIT               | CONDUIT         |
+   | AMReX_CONDUIT                | CONDUIT         |
    +------------------------------+-----------------+
-   | ENABLE_ASCENT                | ASCENT          |
+   | AMReX_ASCENT                 | ASCENT          |
    +------------------------------+-----------------+
-   | ENABLE_HYPRE                 | HYPRE           |
+   | AMReX_HYPRE                  | HYPRE           |
    +------------------------------+-----------------+
 
 .. raw:: latex

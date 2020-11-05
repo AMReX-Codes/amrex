@@ -74,7 +74,7 @@ target_sources( amrex PRIVATE Octree/AMReX_octree_mod.F90  Octree/AMReX_octree_f
 #
 # LINEARSOLVERS subdir
 #
-if (ENABLE_LINEAR_SOLVERS)
+if (AMReX_LINEAR_SOLVERS)
    target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/LinearSolvers>)
 
    target_sources( amrex PRIVATE
@@ -93,7 +93,7 @@ endif ()
 #
 # PARTICLE subdir
 #
-if ( ENABLE_PARTICLES )
+if ( AMReX_PARTICLES )
    target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/Particle>)
    target_sources( amrex PRIVATE
       Particle/AMReX_particlecontainer_fi.cpp Particle/AMReX_particlecontainer_mod.F90 )

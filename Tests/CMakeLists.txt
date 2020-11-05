@@ -3,7 +3,7 @@
 #
 set( AMREX_TESTS_SUBDIRS AsyncOut )
 
-if (ENABLE_PARTICLES)
+if (AMReX_PARTICLES)
    list(APPEND AMREX_TESTS_SUBDIRS Particles)
 endif ()
 
@@ -65,7 +65,7 @@ function (setup_test _srcs  _inputs)
 
    target_link_libraries( ${_exe_name} amrex )
 
-   if (ENABLE_CUDA)
+   if (AMReX_CUDA)
       setup_target_for_cuda_compilation( ${_exe_name} )
    endif ()
 
@@ -95,7 +95,7 @@ function (setup_test _srcs  _inputs)
    #
    # Add MPI test
    #
-   if (ENABLE_MPI AND _NTASKS)
+   if (AMReX_MPI AND _NTASKS)
       if (_NTASKS GREATER 2)
          message(FATAL_ERROR "\nsetup_tests(): number of MPI tasks exceeds CI limit of 2")
       endif ()
@@ -109,7 +109,7 @@ function (setup_test _srcs  _inputs)
       set_tests_properties(${_test_name}_MPI PROPERTIES ENVIRONMENT OMP_NUM_THREADS=1 )
    endif ()
 
-   if (ENABLE_OMP AND _NTHREADS)
+   if (AMReX_OMP AND _NTHREADS)
       if (_NTHREADS GREATER 2)
          message(FATAL_ERROR "\nsetup_tests(): number of OpenMP threads exceeds CI limit of 2")
       endif ()

@@ -1,4 +1,4 @@
-if (DIM EQUAL 1)
+if (AMReX_SPACEDIM EQUAL 1)
    message(FATAL_ERROR "PETSc interfaces are not supported for 1D builds")
 endif ()
 
