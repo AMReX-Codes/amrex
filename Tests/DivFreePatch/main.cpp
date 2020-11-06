@@ -5,6 +5,7 @@
 #include <AMReX_BLProfiler.H>
 
 #include <AMReX_FillPatchUtil.H>
+#include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
 void main_main ();
@@ -411,7 +412,6 @@ void main_main ()
     //   the final result.
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
-//        amrex::Print() << " Exclude: " << amrex::coarsen(f_geom.Domain(), ratio).convert(c_mf_faces[i].ixType()) << std::endl;
         setupMF(c_mf_faces[i], 2, BoxArray(amrex::coarsen(f_geom.Domain(), ratio).convert(c_mf_faces[i].ixType())));
         Copy(f_mf_copy[i], f_mf_faces[i], 0, 0, 1, 0);
     }
@@ -461,6 +461,9 @@ void main_main ()
             fine_faces[i] = &(f_mf_faces[i]);
             coarse_faces[i] = &(c_mf_faces[i]);
         }
+
+        // Make sure coarse & fine are properly setup for the interpolation stencil.
+        amrex::average_down_faces( {AMREX_D_DECL(&f_mf_faces[0], &f_mf_faces[1], &f_mf_faces[2])}, coarse_faces, ratio, 0);
 
         Vector<Array<MultiFab*, AMREX_SPACEDIM> > fine_v;
         Vector<Array<MultiFab*, AMREX_SPACEDIM> > coarse_v;

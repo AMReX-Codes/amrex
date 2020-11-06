@@ -5,7 +5,6 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_Interp_C.H>
-#include <AMReX_MultiFabUtil.H>
 
 #ifndef BL_NO_FORT
 #include <AMReX_INTERP_F.H>
@@ -944,7 +943,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                          const Box&        fine_region,
                          Array<FArrayBox*, AMREX_SPACEDIM> const& fab_fine_values,
                          Array<BoxArray, AMREX_SPACEDIM> const& ba_fine_values,
-                         int               values_comp,
+                         int               /*values_comp*/,
                          const IntVect&    ratio,
                          const Geometry&   /*crse_geom */,
                          const Geometry&   fine_geom,
@@ -966,6 +965,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
     // For fine faces with calculated values, set the matching crse_patch faces
     // equal to the average of it's fine face values.
 
+/*
     GpuArray<BoxArray, AMREX_SPACEDIM> ba_crse_values;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d)
@@ -987,7 +987,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
             });
         }
     }
-
+*/
 // ====================================
 
     const Box c_fine_region = amrex::coarsen(fine_region, ratio);
