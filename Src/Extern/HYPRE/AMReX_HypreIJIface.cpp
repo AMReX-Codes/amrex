@@ -155,6 +155,7 @@ void HypreIJIface::parse_inputs(const std::string& prefix)
     pp.query("recompute_preconditioner", m_recompute_preconditioner);
     pp.query("write_matrix_files", m_write_files);
     pp.query("overwrite_existing_matrix_files", m_overwrite_files);
+    pp.query("adjust_singular_matrix", m_adjust_singular_matrix);
 
     if (m_verbose > 2)
         amrex::Print() << "HYPRE: solver = " << m_solver_name
