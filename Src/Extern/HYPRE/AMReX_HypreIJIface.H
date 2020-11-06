@@ -123,7 +123,7 @@ private:
     bool m_recompute_preconditioner{true};
 
     //! Should singular matrix be adjusted to fix solution on a node/cell?
-    bool m_adjust_singular_matrix{true};
+    bool m_adjust_singular_matrix{false};
 
     //! Flag indicating whether to dump matrix files
     bool m_write_files{false};
