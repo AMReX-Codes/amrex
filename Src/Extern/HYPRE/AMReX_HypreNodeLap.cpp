@@ -228,6 +228,14 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
             }
 #endif
 
+            if (hypre_ij->adjustSingularMatrix()
+                && linop->isBottomSingular()
+                && (rows[0] == 0)) {
+                const int num_cols = ncols[0];
+                for (int ic = 0; ic < num_cols; ++ic)
+                    mat[ic] = (cols[ic] == rows[0]) ? mat[ic] : 0.0;
+            }
+
             HYPRE_IJMatrixSetValues(A, nrows, ncols.data(), rows.data(), cols.data(), mat.data());
         }
     }
@@ -309,7 +317,13 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     }
                 }
             }
-            
+
+            if (hypre_ij->adjustSingularMatrix()
+                && linop->isBottomSingular()
+                && (rows[0] == 0)) {
+                bvec[0] = 0.0;
+            }
+
             HYPRE_IJVectorSetValues(b, nrows, rows.data(), bvec.data());
         }
     }
