@@ -18,10 +18,12 @@ namespace amrex {
 HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& dmap_,
                             const Geometry& geom_, const FabFactory<FArrayBox>& factory_,
                             const iMultiFab& owner_mask_, const iMultiFab& dirichlet_mask_,
-                            MPI_Comm comm_, MLNodeLinOp const* linop_, int verbose_)
+                            MPI_Comm comm_, MLNodeLinOp const* linop_, int verbose_,
+                            const std::string& options_namespace_)
     : grids(grids_), dmap(dmap_), geom(geom_), factory(&factory_),
       owner_mask(&owner_mask_), dirichlet_mask(&dirichlet_mask_),
-      comm(comm_), linop(linop_), verbose(verbose_)
+      comm(comm_), linop(linop_), verbose(verbose_),
+      options_namespace(options_namespace_)
 {
     Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
 

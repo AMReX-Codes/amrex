@@ -379,7 +379,7 @@ MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/, 
 
 #ifdef AMREX_USE_HYPRE
 std::unique_ptr<HypreNodeLap>
-MLNodeLinOp::makeHypreNodeLap (int bottom_verbose) const
+MLNodeLinOp::makeHypreNodeLap (int bottom_verbose, const std::string& options_namespace) const
 {
     const BoxArray& ba = m_grids[0].back();
     const DistributionMapping& dm = m_dmap[0].back();
@@ -391,7 +391,7 @@ MLNodeLinOp::makeHypreNodeLap (int bottom_verbose) const
 
     std::unique_ptr<HypreNodeLap> hypre_solver
         (new amrex::HypreNodeLap(ba, dm, geom, factory, owner_mask, dirichlet_mask,
-                                 comm, this, bottom_verbose));
+                                 comm, this, bottom_verbose, options_namespace));
 
     return hypre_solver;
 }

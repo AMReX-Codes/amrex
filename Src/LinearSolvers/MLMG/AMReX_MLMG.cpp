@@ -1880,8 +1880,8 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
     {
         if (hypre_node_solver == nullptr)
         {
-            hypre_node_solver = linop.makeHypreNodeLap(bottom_verbose);
-            hypre_node_solver->setHypreOptionsNamespace(hypre_options_namespace);
+            hypre_node_solver =
+                linop.makeHypreNodeLap(bottom_verbose, hypre_options_namespace);
         }
         hypre_node_solver->solve(x, b, bottom_reltol, bottom_abstol, bottom_maxiter);
     }
