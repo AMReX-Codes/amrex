@@ -46,6 +46,7 @@ set(AMReX_OMP_FOUND                 @AMReX_OMP@)
 set(AMReX_CUDA_FOUND                @AMReX_CUDA@)
 set(AMReX_DPCPP_FOUND               @AMReX_DPCPP@)
 set(AMReX_@AMReX_PRECISION@_FOUND  ON)
+set(AMReX_FORTRAN_FOUND             @AMReX_FORTRAN@)
 
 # Actual components selection
 set(AMReX_EB_FOUND                  @AMReX_EB@)
