@@ -9,6 +9,12 @@ ifneq (,$(findstring ~,$(AMREX_HOME)))
   AMREX_HOME := $(shell echo $(AMREX_HOME))
 endif
 
+ifneq ($(MAKECMDGOALS),)
+ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),realclean clean cleanconfig uninstall distclean))
+  NO_CONFIG_CHECKING = TRUE
+endif
+endif
+
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local-pre)","")
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local-pre...)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local-pre
@@ -42,14 +48,16 @@ ifeq ($(USE_HIP),TRUE)
   DEBUG := FALSE  # Currently there is a compiler bug for DEBUG=TRUE.
   USE_CUDA := FALSE
   override COMP = hip
-  HIP_COMPILER = $(shell hipconfig --compiler)
-  ifeq ($(HIP_COMPILER),nvcc)
-    $(error HIP_COMPILER=nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
-  else ifeq ($(HIP_COMPILER),hcc)
-    $(error HIP_COMPILER=hcc is no longer supported)
-  else ifeq ($(HIP_COMPILER),clang)
-  else
-    $(error Unknown HIP_COMPILER=$(HIP_COMPILER))
+  ifneq ($(NO_CONFIG_CHECKING),TRUE)
+    HIP_COMPILER = $(shell hipconfig --compiler)
+    ifeq ($(HIP_COMPILER),nvcc)
+      $(error HIP_COMPILER=nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
+    else ifeq ($(HIP_COMPILER),hcc)
+      $(error HIP_COMPILER=hcc is no longer supported)
+    else ifeq ($(HIP_COMPILER),clang)
+    else
+      $(error Unknown HIP_COMPILER=$(HIP_COMPILER))
+    endif
   endif
 endif
 

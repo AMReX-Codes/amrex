@@ -1,8 +1,10 @@
 # Setup for HIP, using hipcc (HCC and clang will use the same compiler name).
 
-HIP_PATH=$(shell hipconfig --path)
-ifeq ($(HIP_PATH),)
-  $(error hipconfig failed. Is the HIP toolkit available?)
+ifneq ($(NO_CONFIG_CHECKING),TRUE)
+  HIP_PATH=$(shell hipconfig --path)
+  ifeq ($(HIP_PATH),)
+    $(error hipconfig failed. Is the HIP toolkit available?)
+  endif
 endif
 
 CXX = $(HIP_PATH)/bin/hipcc
