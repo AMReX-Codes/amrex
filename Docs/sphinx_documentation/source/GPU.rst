@@ -247,8 +247,9 @@ For example, on Cori GPUs you can specify the architecture as follows:
    cmake [options] -DAMReX_GPU_BACKEND=CUDA -DAMReX_CUDA_ARCH=Volta /path/to/amrex/source
 
 
-If no architecture is specified, CMake will default to the architecture defined in the environmental
-variable ``AMReX_CUDA_ARCH``. If the latter is not defined, CMake will try to determine which GPU
+If no architecture is specified, CMake will default to the architecture defined in the
+*environment variable* ``AMREX_CUDA_ARCH`` (note: all caps).
+If the latter is not defined, CMake will try to determine which GPU
 architecture is supported by the system. If more than one is found, CMake will build for all of them.
 This will generally results in a larger library and longer build times.
 If autodetection fails, a set of "common" architectures is assumed.

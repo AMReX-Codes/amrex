@@ -54,8 +54,8 @@ endif ()
 message(STATUS "Enabled CUDA options:")
 
 set(AMReX_CUDA_ARCH_DEFAULT "Auto")
-if(DEFINED ENV{AMReX_CUDA_ARCH})
-    set(AMReX_CUDA_ARCH_DEFAULT "$ENV{AMReX_CUDA_ARCH}")
+if(DEFINED ENV{AMREX_CUDA_ARCH})
+    set(AMReX_CUDA_ARCH_DEFAULT "$ENV{AMREX_CUDA_ARCH}")
 endif()
 set(AMReX_CUDA_ARCH ${AMReX_CUDA_ARCH_DEFAULT} CACHE STRING "CUDA architecture (Use 'Auto' for automatic detection)")
 
