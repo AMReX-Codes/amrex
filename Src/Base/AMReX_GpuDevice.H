@@ -115,6 +115,11 @@ public:
     static std::string deviceName () noexcept { return std::string(device_prop.name); }
 #endif
 
+#ifdef AMREX_USE_CUDA
+    static int devicePropMajor () noexcept { return device_prop.major; }
+    static int devicePropMinor () noexcept { return device_prop.minor; }
+#endif
+
     static std::size_t freeMemAvailable ();
 
 #ifdef AMREX_USE_GPU
