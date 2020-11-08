@@ -99,8 +99,6 @@ namespace Gpu {
 
 // ************************************************
 
-    void getGridSize (FabArrayBase const& fa, int ngrow, LayoutData<GridSize>& gs, int& ntotblocks);
-
     AMREX_GPU_HOST_DEVICE
     inline
     Box getThreadBox (const Box& bx, Long offset) noexcept
@@ -129,8 +127,8 @@ namespace Gpu {
             Gpu::Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
         }
         ExecutionConfig (const Box& box) noexcept {
-            // If we change this, we must make sure it doesn't break say getGridSize, which
-            // assumes the decomposition is 1D.  FabArrayUtility Reduce* as well.
+            // If we change this, we must make sure it doesn't break FabArrayUtility Reduce*,
+            // which assumes the decomposition is 1D.
             Gpu::Device::n_threads_and_blocks( ((box.numPts()+AMREX_GPU_NCELLS_PER_THREAD-1)/AMREX_GPU_NCELLS_PER_THREAD), numBlocks, numThreads );
 #if 0
             Box b = amrex::surroundingNodes(box);
