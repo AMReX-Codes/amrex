@@ -90,7 +90,7 @@ AmrParGDB::ParticleGeom () const
     if (not m_has_geom[0]) {
         return m_amrcore->Geom();
     } else {
-        return m_geom[];
+        return m_geom;
     }
 }
 
