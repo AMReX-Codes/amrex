@@ -1,6 +1,8 @@
 #ifndef AMREX_FillPatchUtil_I_H_
 #define AMREX_FillPatchUtil_I_H_
 
+#include <AMReX_iMultiFab.H>
+
 namespace amrex {
 
 template <typename Interp>
@@ -283,7 +285,7 @@ namespace {
     MF make_mf_refined_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
         MF mf_refined_patch(amrex::convert( amrex::refine( amrex::coarsen(fpc.ba_fine_patch, ratio), ratio), idx_type),
-                            fpc.dm_patch, ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
+                            fpc.dm_patch, ncomp, 0);
         return mf_refined_patch;
     }
 
@@ -294,7 +296,7 @@ namespace {
     MF make_mf_fine_values (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
         MF mf_fine_vals(amrex::convert( amrex::refine(fpc.ba_crse_patch, ratio), idx_type), fpc.dm_patch,
-                         ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
+                         ncomp, 0);
         return mf_fine_vals;
     }
 
@@ -426,14 +428,16 @@ namespace {
 	    {
                 Array<MF, AMREX_SPACEDIM> mf_crse_patch;
                 Array<MF, AMREX_SPACEDIM> mf_refined_patch;
+                Array<iMultiFab, AMREX_SPACEDIM> known_mask;
                 Array<MF, AMREX_SPACEDIM> mf_fine_values;       // Copy of fine values.
                 Array<BoxArray, AMREX_SPACEDIM> ba_fine_values; // Holds location of known values.
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
-                    mf_crse_patch[d]     = make_mf_crse_patch<MF>   (fpc, ncomp, mf[d]->boxArray().ixType());
-                    mf_refined_patch[d]  = make_mf_refined_patch<MF>(fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
-                    mf_fine_values[d]    = make_mf_fine_values<MF>  (fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
+                    mf_crse_patch[d]    = make_mf_crse_patch<MF>   (fpc, ncomp, mf[d]->boxArray().ixType());
+                    mf_refined_patch[d] = make_mf_refined_patch<MF>(fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
+                    mf_fine_values[d]   = make_mf_fine_values<MF>  (fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
+                    known_mask[d]       = make_mf_refined_patch<iMultiFab>(fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
 
                     mf_set_domain_bndry(mf_crse_patch[d], cgeom);
 
@@ -461,6 +465,14 @@ namespace {
                     ba_ctof_patch.convert(fmf[0][d]->boxArray().ixType());
 
                     ba_fine_values[d] = amrex::intersect(fmf[0][d]->boxArray(), ba_ctof_patch);
+
+
+                    const FabArrayBase::CPC mask_cpc( mf_refined_patch[d], IntVect::TheZeroVector(), 
+                                                      *(fmf[0][d]), nghost, 
+                                                      fgeom.periodicity() );
+
+                    known_mask[d].setVal(0);
+                    known_mask[d].setVal(1, mask_cpc, 0, 1);
                 }
 
                 int idummy=0;
