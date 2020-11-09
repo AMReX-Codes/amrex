@@ -70,11 +70,7 @@ namespace
     const std::string CheckPointVersion("CheckPointVersion_1.0");
 
     bool initialized = false;
-}
 
-//Tan Nov 24, 2017 : I removed this anonymous namespace so I could access the inner variables from other source files 
-//namespace   
-//{
     //
     // These are all ParmParse'd in.  Set defaults in Initialize()!!!
     //
@@ -94,7 +90,7 @@ namespace
     bool prereadFAHeaders;
     VisMF::Header::Version plot_headerversion(VisMF::Header::Version_v1);
     VisMF::Header::Version checkpoint_headerversion(VisMF::Header::Version_v1);
-//}
+}
 
 
 
