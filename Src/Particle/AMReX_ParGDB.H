@@ -339,10 +339,7 @@ ParGDB::MaxRefRatio (int /*level*/) const
 {
     int max_ref_ratio = 0;
     for (int lev = 0; lev < m_nlevels-1; lev++)
-        max_ref_ratio = std::max(max_ref_ratio,
-                                 amrex::max(AMREX_D_DECL(m_rr[lev][0],
-                                                         m_rr[lev][1],
-                                                         m_rr[lev][2])));
+        max_ref_ratio = std::max(max_ref_ratio, m_rr[lev].max());
     return max_ref_ratio;
 }
 
