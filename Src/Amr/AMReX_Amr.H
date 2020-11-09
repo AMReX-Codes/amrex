@@ -178,6 +178,8 @@ public:
     static void fillDerivePlotVarList ();
     static void fillDeriveSmallPlotVarList ();
 
+    static void setComputeNewDtOnRegrid (int flag) { compute_new_dt_on_regrid = flag; }
+
     static void Initialize ();
     static void Finalize ();
     //! AmrLevel lev.
