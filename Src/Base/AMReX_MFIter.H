@@ -227,6 +227,7 @@ protected:
 #endif
 
     static int nextDynamicIndex;
+    static int depth;
 
     void Initialize ();
 };

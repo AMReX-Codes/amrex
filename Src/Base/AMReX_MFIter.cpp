@@ -7,6 +7,7 @@
 namespace amrex {
 
 int MFIter::nextDynamicIndex = std::numeric_limits<int>::min();
+int MFIter::depth = 0;
 
 MFIter::MFIter (const FabArrayBase& fabarray_, 
 		unsigned char       flags_)
@@ -200,6 +201,13 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
 
 MFIter::~MFIter ()
 {
+#ifdef _OPENMP
+#pragma omp master
+#endif
+    {
+        depth = 0;
+    }
+
 #ifdef BL_USE_TEAM
     if ( ! (flags & NoTeamBarrier) )
 	ParallelDescriptor::MyTeam().MemoryBarrier();
@@ -242,6 +250,14 @@ MFIter::~MFIter ()
 void
 MFIter::Initialize ()
 {
+#ifdef _OPENMP
+#pragma omp master
+#endif
+    {
+        ++depth;
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(depth == 1, "Nested MFIter is not supported");
+    }
+
     if (flags & SkipInit) {
 	return;
     }
