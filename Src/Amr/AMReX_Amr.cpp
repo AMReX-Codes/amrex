@@ -61,6 +61,7 @@ bool                   Amr::first_plotfile;
 bool                   Amr::first_smallplotfile;
 Vector<BoxArray>       Amr::initial_ba;
 Vector<BoxArray>       Amr::regrid_ba;
+int                    Amr::compute_new_dt_on_regrid;
 #ifdef BL_USE_SENSEI_INSITU
 AmrInSituBridge*       Amr::insitu_bridge;
 #endif
@@ -85,7 +86,6 @@ namespace
     int  insitu_on_restart;
     int  checkpoint_on_restart;
     bool checkpoint_files_output;
-    int  compute_new_dt_on_regrid;
     bool precreateDirectories;
     bool prereadFAHeaders;
     VisMF::Header::Version plot_headerversion(VisMF::Header::Version_v1);
