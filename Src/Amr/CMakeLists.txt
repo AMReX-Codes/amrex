@@ -19,5 +19,5 @@ target_sources(amrex
    AMReX_Extrapolater.H
    AMReX_Extrapolater.cpp
    AMReX_extrapolater_K.H
-   AMReX_extrapolater_${DIM}D_K.H
+   AMReX_extrapolater_${AMReX_SPACEDIM}D_K.H
    )

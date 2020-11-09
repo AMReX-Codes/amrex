@@ -1,7 +1,7 @@
 # #
 # # This test requires CUDA and Particles to be enabled
 # #
-# if (NOT ENABLE_CUDA OR NOT ENABLE_PARTICLES)
+# if (NOT AMReX_CUDA OR NOT AMReX_PARTICLES)
 #    return ()
 # endif ()
 set(_sources CheckPair.H Constants.H main.cpp MDParticleContainer.cpp MDParticleContainer.H)

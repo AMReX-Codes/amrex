@@ -29,24 +29,16 @@ endif
 endif
 endif
 
-ifeq ($(findstring summit, $(host_name)), summit)
-  which_site := olcf
-  which_computer := summit
-endif
+ifdef OLCF_MODULEPATH_ROOT
+  ifeq ($(findstring summit, $(host_name)), summit)
+    which_site := olcf
+    which_computer := summit
+  endif
 
-ifeq ($(findstring summitdev, $(host_name)), summitdev)
-  which_site := olcf
-  which_computer := summitdev
-endif
-
-ifeq ($(findstring ascent, $(host_name)), ascent)
-  which_site := olcf
-  which_computer := ascent
-endif
-
-ifeq ($(findstring peak, $(host_name)), peak)
-  which_site := olcf
-  which_computer := peak
+  ifeq ($(findstring ascent, $(host_name)), ascent)
+    which_site := olcf
+    which_computer := ascent
+  endif
 endif
 
 ifeq ($(findstring sierra, $(host_name)), sierra)

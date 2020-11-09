@@ -1,5 +1,5 @@
 # This tests requires particle support
-if (NOT ENABLE_PARTICLES)
+if (NOT AMReX_PARTICLES)
    return()
 endif ()
 

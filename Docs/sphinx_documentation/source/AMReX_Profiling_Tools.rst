@@ -26,10 +26,10 @@ in your GNUMakefile.   If using cmake then set the following cmake flags
 
 ::
 
-  AMREX_ENABLE_TINY_PROFILE = ON
-  AMREX_ENABLE_BASE_PROFILE = OFF
+  AMReX_TINY_PROFILE = ON
+  AMReX_BASE_PROFILE = OFF
 
-Note that if you set ``PROFILE = TRUE``  (or ``AMREX_ENABLE_BASE_PROFILE =
+Note that if you set ``PROFILE = TRUE``  (or ``AMReX_BASE_PROFILE =
 ON``) then this will override the ``TINY_PROFILE`` flag and tiny profiling will
 be disabled.
 
@@ -245,4 +245,3 @@ parser itself. It has been integrated into Amrvis for visual interpretation of
 the data allowing Amrvis to open the bl_prof database like a plotfile but with
 interfaces appropriate to profiling data. AMRProfParser and Amrvis can be run
 in parallel both interactively and in batch mode.
-

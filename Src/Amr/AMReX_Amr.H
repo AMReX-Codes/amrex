@@ -178,6 +178,8 @@ public:
     static void fillDerivePlotVarList ();
     static void fillDeriveSmallPlotVarList ();
 
+    static void setComputeNewDtOnRegrid (int flag) { compute_new_dt_on_regrid = flag; }
+
     static void Initialize ();
     static void Finalize ();
     //! AmrLevel lev.
@@ -464,6 +466,7 @@ protected:
     static Vector<BoxArray> initial_ba;
     //! Array of BoxArrays read in to externally define grid hierarchy at each regrid
     static Vector<BoxArray> regrid_ba;
+    static int compute_new_dt_on_regrid;
 
 #if defined(BL_USE_SENSEI_INSITU)
     static AmrInSituBridge *insitu_bridge;

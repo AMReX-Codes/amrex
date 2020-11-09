@@ -45,7 +45,7 @@ target_compile_features(SYCL INTERFACE cxx_std_17)
 target_compile_options( SYCL
    INTERFACE
    $<${_cxx_clang}:-Wno-error=sycl-strict -fsycl>
-   $<${_cxx_clang}:$<$<BOOL:${ENABLE_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
+   $<${_cxx_clang}:$<$<BOOL:${AMReX_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
 
 # temporary work-around for DPC++ beta08 bug
 #   define "long double" as 64bit for C++ user-defined literals
@@ -90,11 +90,11 @@ endif ()
 # TODO: use $<LINK_LANG_AND_ID:> genex for CMake >=3.17
 target_link_options( SYCL
    INTERFACE
-   $<${_cxx_clang}:$<$<BOOL:${ENABLE_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
+   $<${_cxx_clang}:$<$<BOOL:${AMReX_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
 
 
-if (ENABLE_DPCPP_AOT)
-   message(FATAL_ERROR "\nAhead-of-time (AOT) compilation support not available yet.\nRe-configure with ENABLE_DPCPP_AOT=OFF.")
+if (AMReX_DPCPP_AOT)
+   message(FATAL_ERROR "\nAhead-of-time (AOT) compilation support not available yet.\nRe-configure with AMReX_DPCPP_AOT=OFF.")
 
    #
    # TODO: remove comments to enable AOT support when the time comes
@@ -104,7 +104,7 @@ if (ENABLE_DPCPP_AOT)
    #    ## TODO: use file(READ)
    #    execute_process( COMMAND cat /sys/devices/cpu/caps/pmu_name OUTPUT_VARIABLE _cpu_long_name )
    # else ()
-   #    message(FATAL_ERROR "\nENABLE_DPCPP_AOT is not supported on ${CMAKE_SYSTEM_NAME}\n")
+   #    message(FATAL_ERROR "\nAMReX_DPCPP_AOT is not supported on ${CMAKE_SYSTEM_NAME}\n")
    # endif ()
 
    # string(STRIP "${_cpu_long_name}" _cpu_long_name)
@@ -116,7 +116,7 @@ if (ENABLE_DPCPP_AOT)
    #    set(_cpu_short_name "cfl")
    # else ()
    #    message(FATAL_ERROR "\n Ahead-of-time compilation for CPU ${_cpu_long_name} is not yet supported\n"
-   #       "Maybe set ENABLE_DPCPP_AOT to OFF?\n")
+   #       "Maybe set AMReX_DPCPP_AOT to OFF?\n")
    # endif ()
 
    # target_compile_options( amrex

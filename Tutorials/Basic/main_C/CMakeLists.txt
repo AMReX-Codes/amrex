@@ -1,4 +1,4 @@
-if (NOT ENABLE_MPI)
+if (NOT AMReX_MPI)
    return()
 endif ()
 

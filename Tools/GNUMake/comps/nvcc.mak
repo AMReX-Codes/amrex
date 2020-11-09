@@ -1,8 +1,14 @@
 # Store the CUDA toolkit version.
 
-nvcc_version       := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}')
-nvcc_major_version := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$1}')
-nvcc_minor_version := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$2}')
+ifneq ($(NO_CONFIG_CHECKING),TRUE)
+  nvcc_version       := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}')
+  nvcc_major_version := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$1}')
+  nvcc_minor_version := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$2}')
+else
+  nvcc_version       := 99.9
+  nvcc_major_version := 99
+  nvcc_minor_version := 9
+endif
 
 # Disallow CUDA toolkit versions < 8.0.
 
