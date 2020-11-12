@@ -415,9 +415,6 @@ Device::initialize_gpu ()
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 4 || (device_prop.major == 3 && device_prop.minor >= 5),
                                      "Compute capability must be >= 3.5");
 
-    // Prefer L1 cache to shared memory (this has no effect on GPUs with a fixed L1 cache size).
-    AMREX_CUDA_SAFE_CALL(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
-
     if (sizeof(Real) == 8) {
         AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
     } else if (sizeof(Real) == 4) {
