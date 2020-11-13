@@ -1,7 +1,7 @@
 #
 # Does not work if amrex is built in shared mode
 #
-if (NOT (ENABLE_SUNDIALS) )
+if (NOT (AMReX_SUNDIALS) )
   return()
 endif ()
 

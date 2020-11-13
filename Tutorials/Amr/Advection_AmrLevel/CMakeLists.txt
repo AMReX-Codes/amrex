@@ -1,4 +1,4 @@
-if ( (DIM EQUAL 1) OR NOT CMAKE_Fortran_COMPILER_LOADED )
+if ( (AMReX_SPACEDIM EQUAL 1) OR NOT CMAKE_Fortran_COMPILER_LOADED )
    return()
 endif ()
 
@@ -17,8 +17,8 @@ endif ()
 #
 set(_sources Adv_F.H  AmrLevelAdv.cpp  AmrLevelAdv.H  LevelBldAdv.cpp  main.cpp)
 
-list(APPEND _sources Src_${DIM}d/Adv_${DIM}d.f90 Src_${DIM}d/compute_flux_${DIM}d.f90
-   Src_${DIM}d/slope_${DIM}d.f90 )
+list(APPEND _sources Src_${AMReX_SPACEDIM}d/Adv_${AMReX_SPACEDIM}d.f90 Src_${AMReX_SPACEDIM}d/compute_flux_${AMReX_SPACEDIM}d.f90
+   Src_${AMReX_SPACEDIM}d/slope_${AMReX_SPACEDIM}d.f90 )
 
 list(APPEND _sources Src_nd/Adv_nd.f90  Src_nd/Tagging_nd.f90  Src_nd/tagging_params.f90)
 
@@ -32,7 +32,7 @@ list(TRANSFORM _sources PREPEND Source/)
 ###############################################################################
 set(_sv_exe_dir Exec/SingleVortex/)
 
-set(_sv_sources face_velocity_${DIM}d.f90  Prob.f90)
+set(_sv_sources face_velocity_${AMReX_SPACEDIM}d.f90  Prob.f90)
 list(TRANSFORM _sv_sources PREPEND ${_sv_exe_dir})
 list(APPEND _sv_sources ${_sources})
 
@@ -55,7 +55,7 @@ unset(_sv_exe_dir)
 ###############################################################################
 set(_uv_exe_dir Exec/UniformVelocity/)
 
-set(_uv_sources face_velocity_${DIM}d.f90  Prob.f90 probdata.f90)
+set(_uv_sources face_velocity_${AMReX_SPACEDIM}d.f90  Prob.f90 probdata.f90)
 list(TRANSFORM _uv_sources PREPEND ${_uv_exe_dir})
 list(APPEND _uv_sources ${_sources})
 

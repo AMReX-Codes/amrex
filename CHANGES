@@ -329,7 +329,7 @@
 
   -- Add CUPTI trace for CUDA kernel timing.
 
-  -- Implement ENABLE_FORTRAN (BL_NO_FORT) option in CMake.
+  -- Implement AMReX_FORTRAN (BL_NO_FORT) option in CMake.
 
   -- Fix CUDA build of tools.
 

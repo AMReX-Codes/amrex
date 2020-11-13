@@ -35,43 +35,37 @@ struct BlockStatus<T, true>
     Data<T> d;
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-#if defined(AMREX_USE_DPCPP) || defined(AMREX_USE_CUDA)
-    void write (char a_status, T a_value
-#if defined(AMREX_USE_DPCPP)
-                , sycl::nd_item<1> const& /*item*/
-#endif
-                ) {
+    void write (char a_status, T a_value) {
+#if defined(AMREX_USE_CUDA)
         volatile uint64_t tmp;
         reinterpret_cast<STVA<T> volatile&>(tmp).status = a_status;
         reinterpret_cast<STVA<T> volatile&>(tmp).value  = a_value;
         reinterpret_cast<uint64_t&>(d.s) = tmp;
-    }
-#elif defined(AMREX_USE_HIP)
-    void write (char a_status, T a_value) {
+#else
         Data<T> tmp;
         tmp.s = {a_status, a_value};
         static_assert(sizeof(unsigned long long) == sizeof(uint64_t),
-                      "HIP: unsigned long long must be 64 bits");
+                      "HIP/DPCPP: unsigned long long must be 64 bits");
         Gpu::Atomic::Exch(reinterpret_cast<unsigned long long*>(&d),
                           reinterpret_cast<unsigned long long&>(tmp));
-    }
 #endif
+    }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T get_aggregate() const { return d.s.value; }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     STVA<T> read () volatile {
-#ifdef AMREX_USE_HIP
-        static_assert(sizeof(unsigned long long) == sizeof(uint64_t),
-                      "HIP: unsigned long long must be 64 bits");
-        unsigned long long tmp = Gpu::Atomic::Add
-            (reinterpret_cast<unsigned long long*>(const_cast<Data<T>*>(&d)), 0ull);
-        return (*reinterpret_cast<Data<T>*>(&tmp)).s;
-#else
+#if defined(AMREX_USE_CUDA)
         volatile uint64_t tmp = reinterpret_cast<uint64_t volatile&>(d);
         return {reinterpret_cast<STVA<T> volatile&>(tmp).status,
                 reinterpret_cast<STVA<T> volatile&>(tmp).value };
+#else
+        static_assert(sizeof(unsigned long long) == sizeof(uint64_t),
+                      "HIP/DPCPP: unsigned long long must be 64 bits");
+        unsigned long long tmp = Gpu::Atomic::Add
+            (reinterpret_cast<unsigned long long*>(const_cast<Data<T>*>(&d)), 0ull);
+        return (*reinterpret_cast<Data<T>*>(&tmp)).s;
 #endif
     }
 
@@ -306,7 +300,7 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
         // sum_prev_chunk now holds the sum of the whole block.
         if (threadIdxx == 0 && gridDimx > 1) {
             block_status.write((virtual_block_id == 0) ? 'p' : 'a',
-                               sum_prev_chunk, gh.item);
+                               sum_prev_chunk);
         }
 
         if (virtual_block_id == 0) {
@@ -365,8 +359,7 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
                 }
 
                 if (lane == 0) {
-                    block_status.write('p', block_status.get_aggregate() + exclusive_prefix,
-                                       gh.item);
+                    block_status.write('p', block_status.get_aggregate() + exclusive_prefix);
                     shared[0] = exclusive_prefix;
                 }
             }

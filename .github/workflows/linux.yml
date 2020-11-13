@@ -38,12 +38,12 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
-            -DENABLE_MPI=OFF            \
-            -DENABLE_PARTICLES=ON       \
-            -DENABLE_DP=OFF             \
-            -DENABLE_DP_PARTICLES=OFF   \
-            -DCMAKE_CXX_STANDARD=14     \
+            -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex      \
+            -DAMReX_MPI=OFF                           \
+            -DAMReX_PARTICLES=ON                      \
+            -DAMReX_PRECISION=SINGLE                  \
+            -DAMReX_PARTICLES_PRECISION=SINGLE        \
+            -DCMAKE_CXX_STANDARD=14                   \
             -DCMAKE_C_COMPILER=$(which clang)         \
             -DCMAKE_CXX_COMPILER=$(which clang++)     \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
@@ -67,7 +67,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_BUILD_TUTORIALS=ON  \
-            -DENABLE_PARTICLES=ON
+            -DAMReX_PARTICLES=ON
         make -j 2
 
   # Build libamrex and all tutorials
@@ -87,7 +87,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_BUILD_TUTORIALS=ON  \
-            -DENABLE_PARTICLES=ON       \
+            -DAMReX_PARTICLES=ON        \
             -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_C_COMPILER=$(which gcc-10)              \
             -DCMAKE_CXX_COMPILER=$(which g++-10)            \
@@ -111,8 +111,8 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_BUILD_TUTORIALS=ON  \
-            -DENABLE_MPI=OFF            \
-            -DENABLE_PARTICLES=ON
+            -DAMReX_MPI=OFF             \
+            -DAMReX_PARTICLES=ON
         make -j 2
 
   # Build libamrex and all tutorials
@@ -132,8 +132,8 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_BUILD_TUTORIALS=ON  \
-            -DENABLE_PARTICLES=ON       \
-            -DENABLE_FORTRAN=OFF        \
+            -DAMReX_PARTICLES=ON       \
+            -DAMReX_FORTRAN=OFF        \
             -DCMAKE_CXX_STANDARD=11
         make -j 2
 
@@ -152,13 +152,13 @@ jobs:
         cmake ..                                         \
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DAMReX_BUILD_TUTORIALS=ON                   \
-            -DENABLE_PARTICLES=ON                        \
-            -DENABLE_CUDA=ON                             \
+            -DAMReX_PARTICLES=ON                        \
+            -DAMReX_GPU_BACKEND=CUDA                         \
             -DCMAKE_C_COMPILER=$(which gcc-4.8)              \
             -DCMAKE_CXX_COMPILER=$(which g++-4.8)            \
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++-4.8)      \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-4.8)   \
-            -DCUDA_ARCH=6.0
+            -DAMReX_CUDA_ARCH=6.0
         make -j 2
 
   tutorials-dpcpp:
@@ -178,12 +178,12 @@ jobs:
         cmake ..                                           \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
             -DAMReX_BUILD_TUTORIALS=ON                          \
-            -DENABLE_PARTICLES=ON                          \
-            -DENABLE_DPCPP=ON                              \
+            -DAMReX_PARTICLES=ON                          \
+            -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which clang)              \
             -DCMAKE_CXX_COMPILER=$(which dpcpp)            \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
-        make -j 2 
+        make -j 2
 
   tutorials-hip:
     name: HIP ROCm@3.8 GFortran@9.3 C++17 [tutorials]
@@ -201,11 +201,11 @@ jobs:
         cmake ..                                           \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
             -DAMReX_BUILD_TUTORIALS=ON                     \
-            -DENABLE_PARTICLES=ON                          \
-            -DENABLE_FORTRAN=ON                            \
-            -DENABLE_LINEAR_SOLVERS=ON                     \
-            -DENABLE_HIP=ON                                \
-            -DAMD_ARCH=gfx900                              \
+            -DAMReX_PARTICLES=ON                          \
+            -DAMReX_FORTRAN=ON                            \
+            -DAMReX_LINEAR_SOLVERS=ON                     \
+            -DAMReX_GPU_BACKEND=HIP                       \
+            -DAMReX_AMD_ARCH=gfx900                              \
             -DCMAKE_C_COMPILER=$(which hipcc)              \
             -DCMAKE_CXX_COMPILER=$(which hipcc)            \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
@@ -281,10 +281,10 @@ jobs:
         mkdir build
         cd build
         cmake ..                        \
-            -DENABLE_OMP=ON             \
+            -DAMReX_OMP=ON             \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_ENABLE_TESTS=ON     \
-            -DENABLE_PARTICLES=ON
+            -DAMReX_PARTICLES=ON
         make -j 2
     - name: Run tests
       run: |

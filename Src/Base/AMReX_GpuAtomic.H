@@ -111,6 +111,16 @@ namespace detail {
 
 #endif
 
+#if defined(AMREX_USE_CUDA) && (__CUDA_ARCH__ < 600)
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    Long Add_device (double* const sum, double const value) noexcept
+    {
+        return detail::atomic_op<double, unsigned long long>(sum, value, amrex::Plus<double>());
+    }
+
+#endif
+
 #endif
 
     template<class T>

@@ -96,7 +96,9 @@ public:
     void setOversetMask (int amrlev, const iMultiFab& a_omask);
 
 #ifdef AMREX_USE_HYPRE
-    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const override;
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
+        int bottom_verbose,
+        const std::string& options_namespace) const override;
 
     virtual void fillIJMatrix (MFIter const& /*mfi*/, Array4<HypreNodeLap::Int const> const& /*nid*/,
                                Array4<int const> const& /*owner*/,

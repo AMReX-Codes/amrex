@@ -273,6 +273,7 @@ MLCellABecLap::makeHypre (Hypre::Interface hypre_interface) const
         }
         hypre_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
     }
+    hypre_solver->setIsMatrixSingular(this->isBottomSingular());
 
     return hypre_solver;
 }

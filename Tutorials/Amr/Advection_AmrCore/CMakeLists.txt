@@ -1,11 +1,11 @@
-if (DIM EQUAL 1)
+if (AMReX_SPACEDIM EQUAL 1)
    return()
 endif ()
 
 # List of source files
 set(_sources AdvancePhiAllLevels.cpp  AdvancePhiAtLevel.cpp  AmrCoreAdv.cpp  AmrCoreAdv.H bc_fill.H)
 list(APPEND _sources DefineVelocity.cpp  face_velocity.H  Kernels.H  main.cpp  Tagging.H)
-list(APPEND _sources Src_K/Adv_K.H  Src_K/compute_flux_${DIM}D_K.H  Src_K/slope_K.H)
+list(APPEND _sources Src_K/Adv_K.H  Src_K/compute_flux_${AMReX_SPACEDIM}D_K.H  Src_K/slope_K.H)
 list(TRANSFORM _sources PREPEND Source/)
 list(APPEND _sources Exec/Prob.H)
 

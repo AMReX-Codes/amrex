@@ -1,4 +1,4 @@
-if (NOT CMAKE_Fortran_COMPILER_LOADED OR NOT (DIM EQUAL 3))
+if (NOT CMAKE_Fortran_COMPILER_LOADED OR NOT (AMReX_SPACEDIM EQUAL 3))
    return()
 endif ()
 

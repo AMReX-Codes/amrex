@@ -92,7 +92,7 @@ MyTest::readParameters ()
     int n_comp_all;
     pp.get("n_comp_all",n_comp_all);
 
-    Box domain(IntVect(D_DECL(0,0,0)),IntVect(n_cell-1,n_cell-1,n_cell-1));
+    Box domain(IntVect(D_DECL(0,0,0)),IntVect(D_DECL(n_cell-1,n_cell-1,n_cell-1)));
     BoxArray grids(domain);
     grids.maxSize(max_grid_size);
 
