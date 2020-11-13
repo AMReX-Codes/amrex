@@ -10,6 +10,7 @@ namespace amrex {
 
 class Geometry;
 class FArrayBox;
+class IArrayBox;
 class InterpolaterBoxCoarsener;
 
 
@@ -107,6 +108,7 @@ public:
                              const int         /*fine_comp*/,
                              const int         /*ncomp*/,
                              const Box&        /*fine_region*/,
+                             Array<IArrayBox*, AMREX_SPACEDIM> const& /*solve_mask*/,
                              Array<FArrayBox*, AMREX_SPACEDIM> const& /*fab_fine_values*/,
                              Array<BoxArray, AMREX_SPACEDIM> const& /*ba_fine_values*/,
                              const int         /*values_comp*/,
@@ -768,20 +770,21 @@ public:
     * \param actual_state
     */
     virtual void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
-                             int               crse_comp,
+                             const int         crse_comp,
                              Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
-                             int               fine_comp,
-                             int               ncomp,
+                             const int         fine_comp,
+                             const int         ncomp,
                              const Box&        fine_region,
-                             const Array<FArrayBox*, AMREX_SPACEDIM>& fab_fine_values,
-                             const Array<BoxArray, AMREX_SPACEDIM>& ba_fine_values,
-                             int               values_comp,
+                             Array<IArrayBox*, AMREX_SPACEDIM> const& solve_mask,
+                             Array<FArrayBox*, AMREX_SPACEDIM> const& fab_fine_values,
+                             Array<BoxArray, AMREX_SPACEDIM> const& ba_fine_values,
+                             const int         values_comp,
                              const IntVect&    ratio,
-                             const Geometry& crse_geom,
-                             const Geometry& fine_geom,
+                             const Geometry&   crse_geom,
+                             const Geometry&   fine_geom,
                              Vector<Array<BCRec, AMREX_SPACEDIM> > const& bcr,
-                             int               actual_comp,
-                             int               actual_state,
+                             const int         actual_comp,
+                             const int         actual_state,
                              const RunOn       runon) override;
 };
 

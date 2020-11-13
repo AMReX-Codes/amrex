@@ -434,8 +434,13 @@ facediv_face_interp (int ci, int cj, int /*ck*/,
                      int nc, int nf, int idir,
                      Array4<T const> const& crse,
                      Array4<T> const& fine,
+                     Array4<int const> const& mask,
                      IntVect const& ratio) noexcept
 {
+    if (mask) {
+        if (!mask(ci, cj, 0, nc))
+            { return; }
+    }
 
     const int fi = ci*ratio[0];
     const int fj = cj*ratio[1];
@@ -449,6 +454,7 @@ facediv_face_interp (int ci, int cj, int /*ck*/,
 
             fine(fi, fj  , 0, nf) = (8.0_rt*cen + neg - pos)/8.0_rt;
             fine(fi, fj+1, 0, nf) = (8.0_rt*cen + pos - neg)/8.0_rt;
+
             break;
         }
         case 1:
@@ -459,6 +465,7 @@ facediv_face_interp (int ci, int cj, int /*ck*/,
 
             fine(fi  , fj, 0, nf) = (8.0_rt*cen + neg - pos)/8.0_rt;
             fine(fi+1, fj, 0, nf) = (8.0_rt*cen + pos - neg)/8.0_rt;
+
             break;
         }
     }

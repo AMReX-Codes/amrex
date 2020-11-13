@@ -2,6 +2,7 @@
 #include <climits>
 
 #include <AMReX_FArrayBox.H>
+#include <AMReX_IArrayBox.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_Interp_C.H>
@@ -936,20 +937,21 @@ FaceDivFree::interp (const FArrayBox&  /*crse*/,
 
 void
 FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
-                         int               crse_comp,
+                         const int         crse_comp,
                          Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
-                         int               fine_comp,
-                         int               ncomp,
+                         const int         fine_comp,
+                         const int         ncomp,
                          const Box&        fine_region,
+                         Array<IArrayBox*, AMREX_SPACEDIM> const& solve_mask,
                          Array<FArrayBox*, AMREX_SPACEDIM> const& fab_fine_values,
                          Array<BoxArray, AMREX_SPACEDIM> const& ba_fine_values,
-                         int               /*values_comp*/,
+                         const int         /*values_comp*/,
                          const IntVect&    ratio,
                          const Geometry&   /*crse_geom */,
                          const Geometry&   fine_geom,
                          Vector<Array<BCRec, AMREX_SPACEDIM> > const& /*bcr*/,
-                         int               /*actual_comp*/,
-                         int               /*actual_state*/,
+                         const int         /*actual_comp*/,
+                         const int         /*actual_state*/,
                          const RunOn       runon)
 {
     BL_PROFILE("FaceDivFree::interp()");
@@ -995,13 +997,16 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
 
     GpuArray<Array4<const Real>, AMREX_SPACEDIM> crsearr;
     GpuArray<Array4<Real>, AMREX_SPACEDIM> finearr;
+    GpuArray<Array4<const int>, AMREX_SPACEDIM> maskarr;
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
         crsearr[d] = crse[d]->const_array(crse_comp);
         finearr[d] = fine[d]->array(fine_comp);
+        if (solve_mask[d] != nullptr)
+            { maskarr[d] = solve_mask[d]->const_array(0); }
     }
 
-#if 0 
+#if 1
 
 // OPTION #1: Cut the box array to exactly the coarse faces that need their fine values calculated.
 //            Parallelize over each coarse face.
@@ -1013,18 +1018,26 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
 //            Always unique? Or possibility of race conditions from overlapping boxes?
 //            and, what do we want the function interface to be in the general case?
 
+/*  Manually fused w/ HOST DEVICE & FLAG?
+
+    amrex::ParallelFor( amrex::convert(c_fine_region, types[0]), ncomp,
+                        [=] AMREX_GPU_HOST_DEVICE ( ) {},
+                        amrex::convert(c_fine_region, types[1]), ncomp,
+                        [=] AMREX_GPU_HOST_DEVICE ( ) {},
+                        amrex::convert(c_fine_region, types[2]), ncomp,
+                        [=] AMREX_GPU_HOST_DEVICE ( ) {}
+                      );
+*/
+
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
-        const BoxArray ba_cfaces = amrex::complementIn( amrex::convert(c_fine_region, types[d]), ba_crse_values[d] );
+        const Box& c_fine_idxed = amrex::convert(c_fine_region, types[d]);
 
-        for (int b=0; b<ba_cfaces.size(); ++b)
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_idxed,ncomp,i,j,k,n,
         {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,ba_cfaces[b],ncomp,i,j,k,n,
-            {
-                amrex::facediv_face_interp<Real> (i, j, k, crse_comp+n, fine_comp+n, d,
-                                                  crsearr[d], finearr[d], ratio);
-            });
-        }
+            amrex::facediv_face_interp<Real> (i, j, k, crse_comp+n, fine_comp+n, d,
+                                              crsearr[d], finearr[d], maskarr[d], ratio);
+        });
     }
 
 #else

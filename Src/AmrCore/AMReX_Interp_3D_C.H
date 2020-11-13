@@ -573,8 +573,14 @@ facediv_face_interp (int ci, int cj, int ck,
                      int nc, int nf, int idir,
                      Array4<T const> const& crse,
                      Array4<T> const& fine,
+                     Array4<int const> const& mask,
                      IntVect const& ratio) noexcept
 {
+
+    if (mask) {
+        if (!mask(ci, cj, ck, nc))
+            { return; }
+    }
 
     const int fi = ci*ratio[0];
     const int fj = cj*ratio[1];
