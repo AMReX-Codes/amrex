@@ -816,20 +816,35 @@ private:
     void AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
                     const Vector<std::string>& tags);
 
+public:
+
 #ifdef BL_USE_MPI
     //! Prepost nonblocking receives
-    void PostRcvs (const MapOfCopyComTagContainers&       m_RcvTags,
+    void PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
                    char*&                                 the_recv_data,
                    Vector<char*>&                         recv_data,
                    Vector<std::size_t>&                   recv_size,
                    Vector<int>&                           recv_from,
                    Vector<MPI_Request>&                   recv_reqs,
                    int                                    ncomp,
-                   int                                    SeqNum);
+                   int                                    SeqNum) const;
 
+    void PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
+                             char*&                               the_send_data,
+                             Vector<char*>&                       send_data,
+                             Vector<std::size_t>&                 send_size,
+                             Vector<int>&                         send_rank,
+                             Vector<MPI_Request>&                 send_reqs,
+                             Vector<const CopyComTagsContainer*>& send_cctc,
+                             int                                  ncomp) const;
+
+    static void PostSnds (Vector<char*> const&       send_data,
+                          Vector<std::size_t> const& send_size,
+                          Vector<int> const&         send_rank,
+                          Vector<MPI_Request>&       send_reqs,
+                          int                        SeqNum);
 #endif
 
-public:
     //! Data used in non-blocking FillBoundary
     bool fb_cross, fb_epo;
     int fb_scomp, fb_ncomp;
