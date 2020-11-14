@@ -4,8 +4,6 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_KernelTimer.H>
 
-#include "MyKernel_F.H"
-
 using namespace amrex;
 
 void main_main();
