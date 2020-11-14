@@ -17,5 +17,3 @@ run on NVIDIA V100 GPU:
 
     I measured 4227657714601 cycles over all threads.
     I measured 273340022106357 cycles over all threads.
-
-
