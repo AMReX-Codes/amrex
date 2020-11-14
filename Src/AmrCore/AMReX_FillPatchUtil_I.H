@@ -233,18 +233,6 @@ namespace {
               typename std::enable_if<std::is_same<typename MF::FABType::value_type,
                                                    FArrayBox>::value,
                                       int>::type = 0>
-    MF make_mf_fine_values (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
-    {
-        MF mf_fine_vals(amrex::convert( amrex::refine(fpc.ba_crse_patch, ratio), idx_type), fpc.dm_patch,
-                        ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
-        return mf_fine_vals;
-    }
-
-
-    template <typename MF,
-              typename std::enable_if<std::is_same<typename MF::FABType::value_type,
-                                                   FArrayBox>::value,
-                                      int>::type = 0>
     void mf_set_domain_bndry (MF &mf, Geometry const & geom)
     {
         mf.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), geom);
@@ -305,15 +293,6 @@ namespace {
     MF make_mf_crse_mask (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
         return MF(amrex::convert(amrex::coarsen(fpc.ba_fine_patch, ratio), idx_type), fpc.dm_patch, ncomp, 0);
-    }
-
-    template <typename MF,
-              typename std::enable_if<!std::is_same<typename MF::FABType::value_type,
-                                                    FArrayBox>::value,
-                                      int>::type = 0>
-    MF make_mf_fine_values (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
-    {
-        return MF(amrex::convert( amrex::refine(fpc.ba_crse_patch, ratio), idx_type), fpc.dm_patch, ncomp, 0);
     }
 
     template <typename MF,
@@ -446,18 +425,14 @@ namespace {
                 Array<MF, AMREX_SPACEDIM> mf_crse_patch;
                 Array<MF, AMREX_SPACEDIM> mf_refined_patch;
                 Array<iMultiFab, AMREX_SPACEDIM> solve_mask;
-                Array<MF, AMREX_SPACEDIM> mf_fine_values;       // Copy of fine values.
-                Array<BoxArray, AMREX_SPACEDIM> ba_fine_values; // Holds location of known values.
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
                     mf_crse_patch[d]    = make_mf_crse_patch<MF>      (fpc, ncomp, mf[d]->boxArray().ixType());
                     mf_refined_patch[d] = make_mf_refined_patch<MF>   (fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
-                    mf_fine_values[d]   = make_mf_fine_values<MF>     (fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
                     solve_mask[d]       = make_mf_crse_mask<iMultiFab>(fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
 
                     mf_set_domain_bndry(mf_crse_patch[d], cgeom);
-
                     Vector<MF*> cmf_time;
                     for (const auto & mfab : cmf)
                         { cmf_time.push_back(mfab[d]); }
@@ -465,25 +440,14 @@ namespace {
                     FillPatchSingleLevel(mf_crse_patch[d], time, cmf_time, ct, scomp, 0, ncomp,
                                          cgeom, cbc[d], cbccomp);
 
-
-                    // Put current fine values into fine_patch for potential use in interp_arr.
-                    mf_set_domain_bndry(mf_fine_values[d], fgeom);
-
+                    mf_set_domain_bndry(mf_refined_patch[d], fgeom);
                     Vector<MF*> fmf_time;
                     for (const auto & mfab : fmf)
                         { fmf_time.push_back(mfab[d]); }
 
-                    FillPatchSingleLevel(mf_fine_values[d], time, fmf_time, ft, scomp, 0, ncomp,
+                    FillPatchSingleLevel(mf_refined_patch[d], time, fmf_time, ft, scomp, 0, ncomp,
                                          fgeom, fbc[d], fbccomp);
-// ==============================
-// THIS WILL BE REMOVED. ABOVE FILLPATCH SHOULD BE DONE ON REFINED_PATCH. REMOVE FINE_VALUES AND ASSOCIATED MAKE_ FUNC.
-                    // Calc BoxArrays describing location of known fine values.
-                    BoxArray ba_ctof_patch = fpc.ba_crse_patch;
-                    ba_ctof_patch.refine(ratio);
-                    ba_ctof_patch.convert(fmf[0][d]->boxArray().ixType());
 
-                    ba_fine_values[d] = amrex::intersect(fmf[0][d]->boxArray(), ba_ctof_patch);
-// ==============================
 
                     // Aliased MFs, used to allow CPC caching.
                     MF mf_known( amrex::coarsen(fmf[0][d]->boxArray(), ratio), fmf[0][d]->DistributionMap(),
@@ -515,18 +479,12 @@ namespace {
                         Array<FAB*, AMREX_SPACEDIM> dfab{ AMREX_D_DECL( &(mf_refined_patch[0][mfi]),
                                                                         &(mf_refined_patch[1][mfi]),
                                                                         &(mf_refined_patch[2][mfi])  )};
-                        Array<FAB*, AMREX_SPACEDIM> ffab{ AMREX_D_DECL( &(mf_fine_values[0][mfi]),
-                                                                        &(mf_fine_values[1][mfi]),
-                                                                        &(mf_fine_values[2][mfi])  )};
                         Array<iFAB*, AMREX_SPACEDIM> mfab{ AMREX_D_DECL( &(solve_mask[0][mfi]),
                                                                          &(solve_mask[1][mfi]),
                                                                          &(solve_mask[2][mfi])  )};
 
                         const Box& sbx_cc = amrex::convert(sfab[0]->box(), IntVect::TheZeroVector());
                         const Box& dbx_cc = amrex::convert(dfab[0]->box(), IntVect::TheZeroVector());
-                        Array<BoxArray, AMREX_SPACEDIM> ffab_ba{ AMREX_D_DECL( amrex::intersect(ba_fine_values[0], ffab[0]->box()),
-                                                                               amrex::intersect(ba_fine_values[1], ffab[1]->box()),
-                                                                               amrex::intersect(ba_fine_values[2], ffab[2]->box())  ) };
 
                         for (int d=0; d<AMREX_SPACEDIM; ++d)
                         {
@@ -541,7 +499,7 @@ namespace {
 
                         pre_interp(sfab, sbx_cc, 0, ncomp);
 
-                        mapper->interp_arr(sfab, 0, dfab, 0, ncomp, dbx_cc, mfab, ffab, ffab_ba, 0, ratio,
+                        mapper->interp_arr(sfab, 0, dfab, 0, ncomp, dbx_cc, ratio, mfab,
                                            cgeom, fgeom, bcr, dcomp, idummy, RunOn::Gpu);
 
                         post_interp(dfab, dbx_cc, 0, ncomp);
@@ -937,9 +895,8 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
     {
         Vector<Array<BCRec, AMREX_SPACEDIM> > bcr(ncomp);
 
-        // Empty containers describing that there is no "solved" fine data.
-        Array<BoxArray, AMREX_SPACEDIM> empty_ba;
-        Array<FAB*, AMREX_SPACEDIM> ffab{ AMREX_D_DECL( nullptr, nullptr, nullptr ) };
+        // Empty containers describing that all points must be solved (no mask).
+        Array<iFAB*, AMREX_SPACEDIM> mfab{ AMREX_D_DECL( nullptr, nullptr, nullptr ) };
 
         for (MFIter mfi(mf_crse_patch[0]); mfi.isValid(); ++mfi)
         {
@@ -949,7 +906,6 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
             Array<FAB*, AMREX_SPACEDIM>  dfab{ AMREX_D_DECL( &(mf_fine_patch[0])[mfi],
                                                              &(mf_fine_patch[1])[mfi],
                                                              &(mf_fine_patch[2])[mfi] )};
-            Array<iFAB*, AMREX_SPACEDIM> mfab{ AMREX_D_DECL( nullptr, nullptr, nullptr ) };
 
             const Box& sbx_cc = amrex::convert(sfab[0]->box(), IntVect::TheZeroVector());
             Box dfab_cc = amrex::convert(dfab[0]->box(), IntVect::TheZeroVector());
@@ -969,7 +925,7 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
 
             pre_interp(sfab, sbx_cc, 0, ncomp);
 
-            mapper->interp_arr(sfab, 0, dfab, 0, ncomp, dbx_cc, mfab, ffab, empty_ba, 0, ratio,
+            mapper->interp_arr(sfab, 0, dfab, 0, ncomp, dbx_cc, ratio, mfab,
                                cgeom, fgeom, bcr, idummy1, idummy2, RunOn::Gpu);
 
             post_interp(dfab, dbx_cc, dcomp, ncomp);

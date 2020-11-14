@@ -471,56 +471,6 @@ facediv_face_interp (int ci, int cj, int /*ck*/,
     }
 }
    
-
-template<typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_ext (int ci, int cj, int /*ck*/,
-             int nc, int nf,
-             GpuArray<Array4<T const>, AMREX_SPACEDIM> const& crse,
-             GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
-             Dim3 const& bounds,
-             IntVect const& ratio) noexcept
-{
-    const int fi = ci*ratio[0];
-    const int fj = cj*ratio[1];
-
-    // References to coarse values.
-    const Real& uW  = crse[0](ci,   cj,   0, nc);
-    const Real& uNW = crse[0](ci,   cj+1, 0, nc);
-    const Real& uSW = crse[0](ci,   cj-1, 0, nc);
-    const Real& vS  = crse[1](ci,   cj,   0, nc);
-    const Real& vSW = crse[1](ci-1, cj,   0, nc);
-    const Real& vSE = crse[1](ci+1, cj,   0, nc);
-
-    // Calc fine faces on negative exterior faces of coarse cells (W and S).
-    fine[0](fi,  fj  ,0,nf) = (8.0_rt*uW - uNW + uSW)/8.0_rt;
-    fine[0](fi,  fj+1,0,nf) = (8.0_rt*uW + uNW - uSW)/8.0_rt;
-    fine[1](fi,  fj  ,0,nf) = (8.0_rt*vS + vSW - vSE)/8.0_rt;
-    fine[1](fi+1,fj  ,0,nf) = (8.0_rt*vS - vSW + vSE)/8.0_rt;
-
-    // Calc fine faces on positive exterior faces of coarse cells (E and N).
-    // Only done by cells touching those boundaries.
-    if (ci == bounds.x)
-    {
-        const Real& uE  = crse[0](ci+1, cj,   0, nc);
-        const Real& uNE = crse[0](ci+1, cj+1, 0, nc);
-        const Real& uSE = crse[0](ci+1, cj-1, 0, nc);
-
-        fine[0](fi+2,fj  ,0,nf) = (8.0_rt*uE - uNE + uSE)/8.0_rt;
-        fine[0](fi+2,fj+1,0,nf) = (8.0_rt*uE + uNE - uSE)/8.0_rt;
-    }
-    if (cj == bounds.y)
-    {
-        const Real& vN  = crse[1](ci,   cj+1, 0, nc);
-        const Real& vNW = crse[1](ci-1, cj+1, 0, nc);
-        const Real& vNE = crse[1](ci+1, cj+1, 0, nc);
-
-        fine[1](fi,  fj+2,0,nf) = (8.0_rt*vN + vNW - vNE)/8.0_rt;
-        fine[1](fi+1,fj+2,0,nf) = (8.0_rt*vN - vNW + vNE)/8.0_rt;
-    }
-
-}
-
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 facediv_int (int ci, int cj, int /*ck*/, int nf,

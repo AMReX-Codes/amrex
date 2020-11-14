@@ -301,25 +301,14 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_face_interp (int ci, int cj, int /*ck*/,
+facediv_face_interp (int ci, int cj, int ck,
                      int nc, int nf, int idir,
                      Array4<T const> const& crse,
                      Array4<T> const& fine,
+                     Array4<const int> const& mask,
                      IntVect const& ratio) noexcept
 {
     amrex::Abort("No 1D version of FaceDiv exists.\n");
-}
-
-template<typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_ext (int /*ci*/, int /*cj*/, int /*ck*/,
-             int /*nc*/, int /*nf*/,
-             GpuArray<Array4<T const>, AMREX_SPACEDIM> const& /*crse*/,
-             GpuArray<Array4<T>, AMREX_SPACEDIM> const& /*fine*/,
-             Dim3 const& /*bounds*/,
-             IntVect const& /*ratio*/) noexcept
-{
-    amrex::Abort("No 1D version of FaceDiv exists.\n"); 
 }
 
 template<typename T>
