@@ -245,6 +245,12 @@ else
   USE_CUPTI := FALSE
 endif
 
+ifdef USE_KERNEL_TIMER
+  USE_KERNEL_TIMER := $(strip $(USE_KERNEL_TIMER))
+else
+  USE_KERNEL_TIMER := FALSE
+endif
+
 ifeq ($(USE_CUDA),TRUE)
   # Set the default CUDA architecture version.
   CUDA_ARCH ?= 70
@@ -640,6 +646,14 @@ ifeq ($(USE_CUPTI),TRUE)
     CUPTISuffix := .CUPTI
   else
     $(error CUPTI can only be used with USE_CUDA=TRUE)
+  endif
+endif
+
+ifeq ($(USE_KERNEL_TIMER),TRUE)
+  ifeq (TRUE,$(filter TRUE,$(USE_CUDA) $(USE_HIP))) 
+    DEFINES += -DAMREX_USE_KERNEL_TIMER
+  else
+    $(error KERNEL TIMER can only be used with USE_CUDA=TRUE or USE_HIP=TRUE)
   endif
 endif
 
