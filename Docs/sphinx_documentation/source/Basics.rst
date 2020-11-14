@@ -2507,9 +2507,9 @@ overflow).  The handling of seg fault, assertion errors and
 interruption by control-C are enabled by default.  Note that
 ``AMREX_ASSERT()`` is only on when compiled with ``DEBUG=TRUE`` or
 ``USE_ASSERTION=TRUE`` in GNU make, or with ``-DCMAKE_BUILD_TYPE=Debug`` or
-``-DENABLE_ASSERTIONS=YES`` in CMake.  The trapping of floating point exceptions is not
+``-DAMReX_ASSERTIONS=YES`` in CMake.  The trapping of floating point exceptions is not
 enabled by default unless the code is compiled with ``DEBUG=TRUE`` in GNU make, or with
-``-DCMAKE_BUILD_TYPE=Debug`` or ``-DENABLE_FPE=YES`` in CMake to turn on compiler flags
+``-DCMAKE_BUILD_TYPE=Debug`` or ``-DAMReX_FPE=YES`` in CMake to turn on compiler flags
 if supported.  Alternatively, one can always use runtime parameters to control the
 handling of floating point exceptions: ``amrex.fpe_trap_invalid`` for
 NaNs, ``amrex.fpe_trap_zero`` for division by zero and

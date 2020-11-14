@@ -11,6 +11,10 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParallelReduce.H>
 #include <AMReX_Utility.H>
+#include <AMReX_ParmParse.H>
+#ifdef AMREX_USE_GPU
+#include <AMReX_GpuDevice.H>
+#endif
 #include <AMReX_Print.H>
 
 #ifdef AMREX_USE_CUPTI
@@ -29,6 +33,7 @@ std::vector<std::string>          TinyProfiler::regionstack;
 std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
 std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
 double TinyProfiler::t_init = std::numeric_limits<double>::max();
+int TinyProfiler::device_synchronize_around_region = 0;
 
 namespace {
     std::set<std::string> improperly_nested_timers;
@@ -88,6 +93,9 @@ TinyProfiler::start () noexcept
 	global_depth = ttstack.size();
 
 #ifdef AMREX_USE_CUDA
+        if (device_synchronize_around_region) {
+            amrex::Gpu::Device::synchronize();
+        }
 	nvtxRangePush(fname.c_str());
 #endif
 
@@ -163,6 +171,9 @@ TinyProfiler::stop () noexcept
         }
 
 #ifdef AMREX_USE_CUDA
+        if (device_synchronize_around_region) {
+            amrex::Gpu::Device::synchronize();
+        }
         nvtxRangePop();
 #endif
 	} else {
@@ -231,6 +242,9 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
             }
 
 #ifdef AMREX_USE_CUDA
+            if (device_synchronize_around_region) {
+                amrex::Gpu::Device::synchronize();
+            }
             nvtxRangePop();
 #endif
         } else 
@@ -248,6 +262,11 @@ TinyProfiler::Initialize () noexcept
 {
     regionstack.push_back(mainregion);
     t_init = amrex::second();
+
+    {
+        amrex::ParmParse pp("tiny_profiler");
+        pp.query("device_synchronize_around_region", device_synchronize_around_region);
+    }
 }
 
 void

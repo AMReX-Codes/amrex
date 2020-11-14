@@ -23,8 +23,8 @@ function (configure_amrex)
    #
    # Check that needed options have already been defined
    #
-   if ( ( NOT ( DEFINED ENABLE_MPI ) ) OR ( NOT (DEFINED ENABLE_OMP) )
-	 OR ( NOT (DEFINED ENABLE_PIC) ) OR (NOT (DEFINED ENABLE_FPE)))
+   if ( ( NOT ( DEFINED AMReX_MPI ) ) OR ( NOT (DEFINED AMReX_OMP) )
+	 OR ( NOT (DEFINED AMReX_PIC) ) OR (NOT (DEFINED AMReX_FPE)))
       message ( AUTHOR_WARNING "Required options are not defined" )
    endif ()
 
@@ -49,13 +49,13 @@ function (configure_amrex)
    #
    set_target_properties(amrex PROPERTIES CXX_EXTENSIONS OFF)
    # minimum: C++11 on Linux, C++17 on Windows, C++17 for dpc++
-   if (ENABLE_DPCPP)
+   if (AMReX_DPCPP)
       target_compile_features(amrex PUBLIC cxx_std_17)
    else ()
       target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cxx_std_17,cxx_std_11>)
    endif ()
 
-   if (ENABLE_CUDA AND (CMAKE_VERSION VERSION_GREATER_EQUAL 3.17) )
+   if (AMReX_CUDA AND (CMAKE_VERSION VERSION_GREATER_EQUAL 3.17) )
       set_target_properties(amrex PROPERTIES CUDA_EXTENSIONS OFF)
       # minimum: C++11 on Linux, C++17 on Windows
       target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cuda_std_17,cuda_std_11>)
@@ -79,12 +79,12 @@ function (configure_amrex)
    #
    # Setup OpenMP
    #
-   if (ENABLE_OMP)
+   if (AMReX_OMP)
       # We have to manually pass OpenMP flags to host compiler if CUDA is enabled
       # Since OpenMP imported targets are generated only for the Compiler ID in use, i.e.
       # they do not provide flags for all possible compiler ids, we assume the same compiler use
       # for building amrex will be used to build the application code
-      if (ENABLE_CUDA)
+      if (AMReX_CUDA)
          get_target_property(_omp_flags OpenMP::OpenMP_CXX INTERFACE_COMPILE_OPTIONS)
 
          eval_genex(_omp_flags CXX ${_comp} INTERFACE BUILD STRING )
@@ -99,7 +99,7 @@ function (configure_amrex)
    endif ()
 
 
-   if (ENABLE_CUDA)
+   if (AMReX_CUDA)
       #
       # Retrieve compile flags for the current configuration
       # I haven't find a way to set host compiler flags for all the
@@ -133,18 +133,18 @@ function (configure_amrex)
       # Add manually nvToolsExt if tiny profiler or base profiler are on.n
       # CMake >= 3.17 provides the module FindCUDAToolkit to do this natively.
       #
-      if (ENABLE_TINY_PROFILE OR ENABLE_BASE_PROFILE )
+      if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE )
           find_library(LIBNVTOOLSEXT nvToolsExt PATHS ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
           target_link_libraries(amrex PUBLIC ${LIBNVTOOLSEXT})
       endif ()
 
    endif ()
 
-   if ( ENABLE_PIC OR BUILD_SHARED_LIBS )
+   if ( AMReX_PIC OR BUILD_SHARED_LIBS )
       set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
    endif ()
 
-   if ( BUILD_SHARED_LIBS OR ENABLE_CUDA )
+   if ( BUILD_SHARED_LIBS OR AMReX_CUDA )
       if(APPLE)
          target_link_options(amrex PUBLIC -Wl,-undefined,warning)
       else()
@@ -234,7 +234,7 @@ function (print_amrex_configuration_summary)
    if (CMAKE_Fortran_COMPILER_LOADED)
       message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
    endif ()
-   if (ENABLE_CUDA)
+   if (AMReX_CUDA)
       message( STATUS "   CUDA compiler            = ${CMAKE_CUDA_COMPILER}")
    endif ()
 
@@ -247,7 +247,7 @@ function (print_amrex_configuration_summary)
    if (CMAKE_Fortran_COMPILER_LOADED)
       message( STATUS "   Fortran flags            = ${_fortran_flags}")
    endif ()
-   if (ENABLE_CUDA)
+   if (AMReX_CUDA)
       message( STATUS "   CUDA flags               = ${CMAKE_CUDA_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CUDA_FLAGS}"
          "${AMREX_CUDA_FLAGS}")
    endif ()

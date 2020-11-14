@@ -192,7 +192,6 @@ namespace detail {
         });
         Array<T,2> tmp{v,v};
         Gpu::htod_memcpy(p, tmp.data(), sizeof(T)*2);
-        Gpu::synchronize();
     }
 #else
     template <typename T>
@@ -470,6 +469,17 @@ T Sum (N n, T const* v, T init_val = 0)
     return Reduce::Sum(n, v, init_val, amrex::Plus<T>());
 }
 
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Sum (N n, F&& f)
+{
+    ReduceOps<ReduceOpSum> reduce_op;
+    ReduceData<T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    reduce_op.eval(n, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple { return {f(i)}; });
+    return amrex::get<0>(reduce_data.value());
+}
+
 template <typename T, typename N, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T Min (N n, U const* v, T init_val, BOP bop)
 {
@@ -538,7 +548,7 @@ std::pair<T,T> MinMax (N n, U const* v, MINOP minop, MAXOP maxop)
     Gpu::LaunchSafeGuard lsg(true);
     Array<T,2> hv{std::numeric_limits<T>::max(), std::numeric_limits<T>::lowest()};
     T* dp = (T*)(The_Device_Arena()->alloc(2*sizeof(T)));
-    Gpu::htod_memcpy(dp, hv.data(), 2*sizeof(T));
+    Gpu::htod_memcpy_async(dp, hv.data(), 2*sizeof(T));
     typedef GpuArray<T,2> Real2;
     amrex::VecReduce(n, Real2{hv[0],hv[1]},
     [=] AMREX_GPU_DEVICE (N i, Real2* r) noexcept
@@ -791,6 +801,20 @@ template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<
 T Sum (N n, T const* v, T init_val = 0)
 {
     return Reduce::Sum(n, v, init_val, amrex::Plus<T>());
+}
+
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Sum (N n, F&& f)
+{
+    T r = 0;
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:r)
+#endif
+    for (N i = 0; i < n; ++i) {
+        r += f(i);
+    }
+    return r;
 }
 
 template <typename N, typename T, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >

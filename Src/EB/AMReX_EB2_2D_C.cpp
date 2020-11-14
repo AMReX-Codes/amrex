@@ -330,50 +330,44 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     }
 
 
-    // fix face for small cells
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bxg1, tbx,
+    // fix face for small cells whose vfrac has been set to zero
+    const Box xbx = Box(bx).surroundingNodes(0).grow(1,1);
+    AMREX_HOST_DEVICE_FOR_3D ( xbx, i, j, k,
     {
-        Box lbx = amrex::grow(amrex::surroundingNodes(bx,0),1,1);
-        auto lo = amrex::max_lbound(tbx, lbx);
-        auto hi = amrex::min_ubound(tbx, lbx);
-        for (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i) {
-            if (vfrac(i-1,j,0) < small_volfrac or vfrac(i,j,0) < small_volfrac) {
-                fx(i,j,0) = Type::covered;
-                apx(i,j,0) = 0.0;
-                if (not cell(i,j,0).isCovered())
-                {
-                    cell(i,j,0).setSingleValued();
-                    set_eb_data(i,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
-                }
-                if (not cell(i-1,j,0).isCovered())
-                {
-                    cell(i-1,j,0).setSingleValued();
-                    set_eb_data(i-1,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
-                }
+        if (vfrac(i-1,j,0) == 0._rt or vfrac(i,j,0) == 0._rt) {
+            fx(i,j,0) = Type::covered;
+            apx(i,j,0) = 0.0;
+            // race conditions do not happeen because multiple cuts are not allowed
+            if (not cell(i,j,0).isCovered())
+            {
+                cell(i,j,0).setSingleValued();
+                set_eb_data(i,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
             }
-        }}
-
-        lbx = amrex::grow(amrex::surroundingNodes(bx,1),0,1);
-        lo = amrex::max_lbound(tbx, lbx);
-        hi = amrex::min_ubound(tbx, lbx);
-        for (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i) {
-            if (vfrac(i,j-1,0) < small_volfrac or vfrac(i,j,0) < small_volfrac) {
-                fy(i,j,0) = Type::covered;
-                apy(i,j,0) = 0.0;
-                if (not cell(i,j,0).isCovered())
-                {
-                    cell(i,j,0).setSingleValued();
-                    set_eb_data(i,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
-                }
-                if (not cell(i,j-1,0).isCovered())
-                {
-                    cell(i,j-1,0).setSingleValued();
-                    set_eb_data(i,j-1,apx,apy,vfrac,vcent,barea,bcent,bnorm);
-                }
+            if (not cell(i-1,j,0).isCovered())
+            {
+                cell(i-1,j,0).setSingleValued();
+                set_eb_data(i-1,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
             }
-        }}
+        }
+    });
+    //
+    const Box ybx = Box(bx).surroundingNodes(1).grow(0,1);
+    AMREX_HOST_DEVICE_FOR_3D ( ybx, i, j, k,
+    {
+        if (vfrac(i,j-1,0) == 0._rt or vfrac(i,j,0) == 0._rt) {
+            fy(i,j,0) = Type::covered;
+            apy(i,j,0) = 0.0;
+            if (not cell(i,j,0).isCovered())
+            {
+                cell(i,j,0).setSingleValued();
+                set_eb_data(i,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
+            }
+            if (not cell(i,j-1,0).isCovered())
+            {
+                cell(i,j-1,0).setSingleValued();
+                set_eb_data(i,j-1,apx,apy,vfrac,vcent,barea,bcent,bnorm);
+            }
+        }
     });
 
     // Build neighbors.  By default, all neighbors are already set.

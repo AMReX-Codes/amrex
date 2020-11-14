@@ -87,7 +87,7 @@ namespace {
         BL_PROFILE("InitGraph");
 
         int streams = Gpu::Device::numGpuStreams();
-        cudaGraphExec_t graphExec;
+        cudaGraphExec_t graphExec{};
         for (int n=0; n<(graph_size); ++n)
         {
             Gpu::Device::startGraphRecording((n == 0), NULL, NULL, 0);
@@ -412,10 +412,8 @@ Device::initialize_gpu ()
 #elif defined(AMREX_USE_CUDA)
     AMREX_CUDA_SAFE_CALL(cudaGetDeviceProperties(&device_prop, device_id));
 
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 6, "Compute capability must be >= 6");
-
-    // Prefer L1 cache to shared memory (this has no effect on GPUs with a fixed L1 cache size).
-    AMREX_CUDA_SAFE_CALL(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 4 || (device_prop.major == 3 && device_prop.minor >= 5),
+                                     "Compute capability must be >= 3.5");
 
     if (sizeof(Real) == 8) {
         AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
@@ -679,7 +677,7 @@ Device::startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz
 cudaGraphExec_t
 Device::stopGraphRecording(bool last_iter)
 {
-    cudaGraphExec_t graphExec;
+    cudaGraphExec_t graphExec{};
 
     if (last_iter && inLaunchRegion() && inGraphRegion())
     {

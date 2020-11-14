@@ -64,9 +64,9 @@ else
 
 # multiple executables
 %.$(machineSuffix).ex:%.cpp $(objForExecs)
-	$(SLIENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< -o $(objEXETempDir)/$<.o
+	$(SLIENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
 	@echo "Linking $@ ..."
-	$(SLIENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$<.o $(objForExecs) $(libraries)
+	$(SLIENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$(subst /,_,$<).o $(objForExecs) $(libraries)
 
 endif
 
@@ -139,7 +139,7 @@ $(amrexIncludeDir)/AMReX_Config.H: FORCE
 	              --use-omp="$(USE_OMP)" \
 	              > $@
 
-clean::
+cleanconfig::
 	@echo Cleaning...
 	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(f77EXETempDir)/*.F90
 	$(SILENT) $(RM) $(srcTempDir)/* $(objEXETempDir)/*.o $(objEXETempDir)/*.mod
@@ -148,7 +148,7 @@ clean::
 	$(SILENT) $(RM) $(executable)
 	$(SILENT) $(RM) -r $(executable).dSYM
 
-realclean:: clean
+clean:: cleanconfig
 	@echo Cleaning ...
 	$(SILENT) $(RM) TAGS tags
 	$(SILENT) $(RM) -r $(TmpBuildDir) *~
@@ -157,6 +157,8 @@ realclean:: clean
 	$(SILENT) $(RM) BLProfParser.lex.yy.cpp
 	$(SILENT) $(RM) BLProfParser.tab.cpp
 	$(SILENT) $(RM) BLProfParser.tab.H
+
+realclean:: clean
 
 file_locations:
 	$(AMREX_HOME)/Tools/F_scripts/find_files_vpath.py --vpath "$(FINAL_VPATH_LOCATIONS)" --files "$(CEXE_sources) $(FEXE_sources) $(cEXE_sources) $(fEXE_sources) $(f90EXE_sources) $(F90EXE_sources) $(CEXE_headers) $(cEXE_headers) $(fEXE_headers) $(FEXE_headers)"
@@ -178,7 +180,7 @@ clang-tidy: $(CEXE_sources)
 
 FORCE:
 
-.PHONY:	all clean realclean file_locations tags TAGS clang-analyze clang-tidy install_lib install_headers install_fortran_modules install_pkg_config
+.PHONY:	all cleanconfig clean realclean file_locations tags TAGS clang-analyze clang-tidy install_lib install_headers install_fortran_modules install_pkg_config
 
 #
 # Rules for objects.
@@ -450,10 +452,7 @@ typecheck: $(fortran_ir_sources) $(fortran_fdecl_headers_cppd)
 # Now load/build the dependency files.
 # Also handle any necessary preprocessing.
 #
-ifneq ($(MAKECMDGOALS),realclean)
-ifneq ($(MAKECMDGOALS),clean)
-ifneq ($(MAKECMDGOALS),uninstall)
-ifneq ($(MAKECMDGOALS),distclean)
+ifneq ($(NO_CONFIG_CHECKING),TRUE)
 ifneq ($(findstring print-,$(MAKECMDGOALS)),print-)
 ifneq ($(MAKECMDGOALS),help)
 
@@ -484,14 +483,13 @@ endif
 endif
 endif
 endif
-endif
-endif
-endif
 
-ifneq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),clean realclean file_locations tags TAGS uninstall distclean))
+ifneq ($(NO_CONFIG_CHECKING),TRUE)
+ifneq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),file_locations tags TAGS))
   ifdef has_compiler_mismatch
     $(error $(has_compiler_mismatch))
   endif
+endif
 endif
 
 #-----------------------------------------------------------------------------

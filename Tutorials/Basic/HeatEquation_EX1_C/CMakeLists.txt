@@ -1,4 +1,4 @@
-if (DIM EQUAL 1)
+if (AMReX_SPACEDIM EQUAL 1)
    return()
 endif ()
 

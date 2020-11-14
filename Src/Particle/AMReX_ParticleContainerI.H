@@ -1137,6 +1137,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto& aos = src_tile.GetArrayOfStructs();
             const size_t np = aos.numParticles();
 
+            AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 and NumIntComps() == 0) or
+                                      aos.size() == src_tile.GetStructOfArrays().size(),
+                "The AoS and SoA data on this tile are different sizes - "
+                "perhaps particles have not been initialized correctly?");
+
             int num_stay = partitionParticlesByDest(src_tile, assign_grid, BufferMap(),
                                                     geom, lev, gid, tid,
                                                     lev_min, lev_max, nGrow);
@@ -1150,14 +1155,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto p_src_indices = op.m_src_indices[lev][gid].dataPtr();
             auto p_periodic_shift = op.m_periodic_shift[lev][gid].dataPtr();
             auto p_ptr = &(aos[0]);
-            
+
 	    AMREX_FOR_1D ( num_move, i,
             {
                 const auto& p = p_ptr[i + num_stay];
                 if (p.id() < 0)
                 {
                     p_boxes[i] = -1;
-                    p_levs[i]  = -1;                    
+                    p_levs[i]  = -1;
                 }
                 else
                 {
@@ -1173,7 +1178,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     BL_PROFILE_VAR_STOP(blp_partition);
 
     ParticleCopyPlan plan;
-    
+
     plan.build(*this, op, local);
 
     Gpu::DeviceVector<char> snd_buffer;
@@ -1345,11 +1350,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           int tile = grid_tile_ids[pmap_it].second;
           auto& aos = ptile_ptrs[pmap_it]->GetArrayOfStructs();
           auto& soa = ptile_ptrs[pmap_it]->GetStructOfArrays();
+          AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 and NumIntComps() == 0)
+                                    or aos.size() == soa.size(),
+              "The AoS and SoA data on this tile are different sizes - "
+              "perhaps particles have not been initialized correctly?");
           unsigned npart = aos.numParticles();
           ParticleLocData pld;
           if (npart != 0) {
               Long last = npart - 1;
-              unsigned pindex = 0;
+              Long pindex = 0;
               while (pindex <= last) {
                   ParticleType& p = aos[pindex];
 

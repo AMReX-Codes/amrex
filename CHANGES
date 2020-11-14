@@ -1,3 +1,66 @@
+# 20.11
+
+  -- The default hypre interface in MLMG is now IJ matrix for both EB and
+     non-EB.  Previously, it was semi-struct for non-EB. (#1492)
+
+  -- USE_SAVE_TEMPS option in GNU Make system for HIP. (#1492)
+
+  -- The device version of `Error`, `Abort` and `Warning` is no-op, unless
+     `NDEBUG` is defined. (#1492)
+
+  -- Ascent: Use Default Name for Mesh Ghost (#1488)
+
+  -- Add fill method to GpuArray (#1472)
+
+  -- Add Gpu::Atomic::AddNoRet (#1469)
+
+  -- Option to make the code NOT enforce solvability in MLMG for singular
+     problems. (#1471)
+
+  -- CMake: improve HDF5 support (#1468)
+
+  -- CMake: FindPETSc must not overwrite CMAKE_Fortran_FLAGS (#1464)
+
+  -- CMake: prevent in-source builds (#1453)
+
+  -- change char * to char const* so SWFFT code compiles with USE_CUDA=TRUE
+     (#1454)
+
+  -- Fix when small_volfrac is used -- we need to adjust the data in cut
+     cell neighbors as well as regular neighbors. (#1451)
+
+  -- Allow users to set a Geometry object for ParticleContainer
+     independently of the AmrCore / AmrLevel object. (#1446)
+
+  -- HDF5 plotfile write bug fix and performance improvement (#1448)
+
+  -- CMake: add HIP support (#1316)
+
+  -- NodalProjector: use volume-weighted average down (#1444)
+
+  -- Fix race conditions in EB interpolation from cell centers to faces
+     (#1443)
+
+  -- Allow tagging value to vary by level (#1441)
+
+  -- Hypre with overset (#1439)
+
+  -- Hypre IJ interface: Enable access to additional solvers and
+     preconditioners available in Hypre (#1437)
+
+  -- Fix CPU version of uninitailiedFillNImpl in PODVector (#1435)
+
+  -- CMake: Fix missing compile time definitions for HYPRE/PETSc (#1436)
+
+  -- Fix bug in EB extdir slopes (#1434)
+
+  -- Make the id and cpu members of amrex_particle private, as they should
+     no longer be accessed directly. (#1433)
+
+  -- Disable OpenMPI C++ binding in GNU make system (#1398)
+
+  -- Fix a long standing bug in eb levelset (#1432)
+
 # 20.10
 
   -- CMake: fix ENABLE_PROFPARSER and ENABLE_SENSEI options (#1428)
@@ -266,7 +329,7 @@
 
   -- Add CUPTI trace for CUDA kernel timing.
 
-  -- Implement ENABLE_FORTRAN (BL_NO_FORT) option in CMake.
+  -- Implement AMReX_FORTRAN (BL_NO_FORT) option in CMake.
 
   -- Fix CUDA build of tools.
 

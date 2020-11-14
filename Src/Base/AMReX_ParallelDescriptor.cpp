@@ -39,6 +39,11 @@
 namespace
 {
     static int call_mpi_finalize = 0;
+    static int num_startparallel_called = 0;
+    static MPI_Datatype mpi_type_intvect   = MPI_DATATYPE_NULL;
+    static MPI_Datatype mpi_type_indextype = MPI_DATATYPE_NULL;
+    static MPI_Datatype mpi_type_box       = MPI_DATATYPE_NULL;
+    static MPI_Datatype mpi_type_lull_t    = MPI_DATATYPE_NULL;
 }
 #endif
 
@@ -370,11 +375,25 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     // Wait until all other processes are properly started.
 //    BL_MPI_REQUIRE( MPI_Barrier(Communicator()) );
+
+    ++num_startparallel_called;
 }
 
 void
 ParallelDescriptor::EndParallel ()
 {
+    --num_startparallel_called;
+    if (num_startparallel_called == 0) {
+        BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_intvect) );
+        BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_indextype) );
+        BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_box) );
+        BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_lull_t) );
+        mpi_type_intvect   = MPI_DATATYPE_NULL;
+        mpi_type_indextype = MPI_DATATYPE_NULL;
+        mpi_type_box       = MPI_DATATYPE_NULL;
+        mpi_type_lull_t    = MPI_DATATYPE_NULL;
+    }
+
     if (!call_mpi_finalize) {
         BL_MPI_REQUIRE( MPI_Comm_free(&m_comm) );
     }
@@ -1652,13 +1671,12 @@ template <>
 MPI_Datatype
 ParallelDescriptor::Mpi_typemap<ParallelDescriptor::lull_t>::type ()
 {
-    static MPI_Datatype mine = MPI_DATATYPE_NULL;
-    if (mine == MPI_DATATYPE_NULL)
+    if (mpi_type_lull_t == MPI_DATATYPE_NULL)
     {
-        BL_MPI_REQUIRE( MPI_Type_contiguous(sizeof(lull_t), MPI_CHAR, &mine) );
-        BL_MPI_REQUIRE( MPI_Type_commit(&mine) );
+        BL_MPI_REQUIRE( MPI_Type_contiguous(sizeof(lull_t), MPI_CHAR, &mpi_type_lull_t) );
+        BL_MPI_REQUIRE( MPI_Type_commit(&mpi_type_lull_t) );
     }
-    return mine;
+    return mpi_type_lull_t;
 }
 
 void
@@ -2005,23 +2023,22 @@ template <> MPI_Datatype Mpi_typemap<IntVect>::type()
     static_assert(AMREX_IS_TRIVIALLY_COPYABLE(IntVect), "IntVect must be trivially copyable");
     static_assert(std::is_standard_layout<IntVect>::value, "IntVect must be standard layout");
 
-    static MPI_Datatype mine(MPI_DATATYPE_NULL);
-    if ( mine == MPI_DATATYPE_NULL )
+    if ( mpi_type_intvect == MPI_DATATYPE_NULL )
     {
 	MPI_Datatype types[] = { MPI_INT };
 	int blocklens[] = { AMREX_SPACEDIM };
 	MPI_Aint disp[] = { 0 };
-	BL_MPI_REQUIRE( MPI_Type_create_struct(1, blocklens, disp, types, &mine) );
+	BL_MPI_REQUIRE( MPI_Type_create_struct(1, blocklens, disp, types, &mpi_type_intvect) );
         MPI_Aint lb, extent;
-        BL_MPI_REQUIRE( MPI_Type_get_extent(mine, &lb, &extent) );
+        BL_MPI_REQUIRE( MPI_Type_get_extent(mpi_type_intvect, &lb, &extent) );
         if (extent != sizeof(IntVect)) {
-            MPI_Datatype tmp = mine;
-            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(IntVect), &mine) );
+            MPI_Datatype tmp = mpi_type_intvect;
+            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(IntVect), &mpi_type_intvect) );
             BL_MPI_REQUIRE( MPI_Type_free(&tmp) );
         }
-	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
+	BL_MPI_REQUIRE( MPI_Type_commit( &mpi_type_intvect ) );
     }
-    return mine;
+    return mpi_type_intvect;
 }
 
 template <> MPI_Datatype Mpi_typemap<IndexType>::type()
@@ -2029,23 +2046,22 @@ template <> MPI_Datatype Mpi_typemap<IndexType>::type()
     static_assert(AMREX_IS_TRIVIALLY_COPYABLE(IndexType), "IndexType must be trivially copyable");
     static_assert(std::is_standard_layout<IndexType>::value, "IndexType must be standard layout");
 
-    static MPI_Datatype mine(MPI_DATATYPE_NULL);
-    if ( mine == MPI_DATATYPE_NULL )
+    if ( mpi_type_indextype == MPI_DATATYPE_NULL )
     {
 	MPI_Datatype types[] = { MPI_UNSIGNED };
 	int blocklens[] = { 1 };
 	MPI_Aint disp[] = { 0 };
-        BL_MPI_REQUIRE( MPI_Type_create_struct(1, blocklens, disp, types, &mine) );
+        BL_MPI_REQUIRE( MPI_Type_create_struct(1, blocklens, disp, types, &mpi_type_indextype) );
         MPI_Aint lb, extent;
-        BL_MPI_REQUIRE( MPI_Type_get_extent(mine, &lb, &extent) );
+        BL_MPI_REQUIRE( MPI_Type_get_extent(mpi_type_indextype, &lb, &extent) );
         if (extent != sizeof(IndexType)) {
-            MPI_Datatype tmp = mine;
-            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(IndexType), &mine) );
+            MPI_Datatype tmp = mpi_type_indextype;
+            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(IndexType), &mpi_type_indextype) );
             BL_MPI_REQUIRE( MPI_Type_free(&tmp) );
         }
-	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
+	BL_MPI_REQUIRE( MPI_Type_commit( &mpi_type_indextype ) );
     }
-    return mine;
+    return mpi_type_indextype;
 }
 
 template <> MPI_Datatype Mpi_typemap<Box>::type()
@@ -2053,8 +2069,7 @@ template <> MPI_Datatype Mpi_typemap<Box>::type()
     static_assert(AMREX_IS_TRIVIALLY_COPYABLE(Box), "Box must be trivially copyable");
     static_assert(std::is_standard_layout<Box>::value, "Box must be standard layout");
 
-    static MPI_Datatype mine(MPI_DATATYPE_NULL);
-    if ( mine == MPI_DATATYPE_NULL )
+    if ( mpi_type_box == MPI_DATATYPE_NULL )
     {
 	Box bx[2];
 	MPI_Datatype types[] = {
@@ -2070,17 +2085,17 @@ template <> MPI_Datatype Mpi_typemap<Box>::type()
         disp[2] -= disp[0];
         disp[1] -= disp[0];
         disp[0] = 0;
-        BL_MPI_REQUIRE( MPI_Type_create_struct(3, blocklens, disp, types, &mine) );
+        BL_MPI_REQUIRE( MPI_Type_create_struct(3, blocklens, disp, types, &mpi_type_box) );
         MPI_Aint lb, extent;
-        BL_MPI_REQUIRE( MPI_Type_get_extent(mine, &lb, &extent) );
+        BL_MPI_REQUIRE( MPI_Type_get_extent(mpi_type_box, &lb, &extent) );
         if (extent != sizeof(bx[0])) {
-            MPI_Datatype tmp = mine;
-            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(bx[0]), &mine) );
+            MPI_Datatype tmp = mpi_type_box;
+            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(bx[0]), &mpi_type_box) );
             BL_MPI_REQUIRE( MPI_Type_free(&tmp) );
         }
-	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
+	BL_MPI_REQUIRE( MPI_Type_commit( &mpi_type_box ) );
     }
-    return mine;
+    return mpi_type_box;
 }
 #endif
 }

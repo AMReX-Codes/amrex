@@ -755,7 +755,7 @@ and point to the CMake configuration installed with SENSEI.
 
 .. code-block:: bash
 
-   cmake -DENABLE_SENSEI=ON -DSENSEI_DIR=<path to install>/lib/cmake ..
+   cmake -DAMReX_SENSEI=ON -DSENSEI_DIR=<path to install>/lib/cmake ..
 
 When CMake generates the make files proceed as usual.
 
