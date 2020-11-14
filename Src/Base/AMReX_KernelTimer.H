@@ -14,14 +14,14 @@ class KernelTimer
 public:
     /** Constructor.
      * \param[in] do_timing Controls whether timer is active.
-     * \param[in,out] cost Pointer to cost of corresponding box.
+     * \param[in,out] cost Pointer to cost which holds summed thread cycles.
      */
     AMREX_GPU_DEVICE
     KernelTimer (const bool do_timing, amrex::Real* cost)
 	: m_do_timing(do_timing), m_cost(cost) {
 	if (do_timing && cost) {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-	    // To store present thread's time for deposition
+	    // Store threads' accumulated cycles for present block
 	    __shared__ amrex::Real cost_shared;
 	    cost_shared = 0.;
 	    m_cost_shared = &cost_shared;
@@ -45,10 +45,10 @@ public:
 	m_wt = clock64() - m_wt;
 	amrex::Gpu::Atomic::Add( m_cost_shared, amrex::Real(m_wt));
 
-	// Make sure everyone finished current deposit
+	// Make sure everyone finished
 	__syncthreads();
 
-	// Copy temp smem arrays back to global
+	// Copy accumulated cycles from each block's smem back to input cost location
 	if (threadIdx.x == 0) {
 	    amrex::Gpu::Atomic::Add( m_cost, *m_cost_shared);
 	}
