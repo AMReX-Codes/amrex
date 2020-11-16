@@ -2,7 +2,9 @@
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_Arena.H>
 #include <AMReX_KernelTimer.H>
+
 
 using namespace amrex;
 
@@ -21,7 +23,7 @@ void main_main ()
     BoxArray ba;
     {
         // This parameter can control GPU compute work
-        int n_cell = 256;
+        int n_cell = 1024;
         int max_grid_size = 64;
         ParmParse pp;
         pp.query("n_cell", n_cell);
@@ -36,9 +38,11 @@ void main_main ()
 
     // Sample KernelTimer instrumentation of amrex::ParallelFor function
     {
-	// We pass this to KernelTimer to store accumulated thread cycles,
-	// as a proxy for GPU compute work
-	amrex::Real* cost = new amrex::Real(0.);
+        // We pass this to KernelTimer to store accumulated thread cycles,
+        // as a proxy for GPU compute work; for good performance, we allocate
+        // pinned host memory
+        amrex::Real* cost = (amrex::Real*) The_Managed_Arena()->alloc(sizeof(amrex::Real));
+        *cost = 0.;
 	
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
@@ -55,9 +59,8 @@ void main_main ()
                 fab(i,j,k) += 1.;
             });
         }
-	// Now cost is filled with thread-wise summed cycles
-	printf("I measured %.0f cycles over all threads.\n", *cost);
-	delete cost;
+        // Now cost is filled with thread-wise summed cycles
+        printf("I measured %.0f cycles over all threads.\n", *cost);
+        The_Managed_Arena()->free(cost);
     }
-
 }

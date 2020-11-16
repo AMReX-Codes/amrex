@@ -15,5 +15,5 @@ which the measured number of cycles should increase.  Here is sample output for
 cases with `n_cells=256` and `n_cells=1024`, respectively,  when this code is 
 run on NVIDIA V100 GPU:
 
-    I measured 4227657714601 cycles over all threads.
-    I measured 273340022106357 cycles over all threads.
+    I measured 5022346338400 cycles over all threads.
+    I measured 282275663775232 cycles over all threads.

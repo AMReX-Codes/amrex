@@ -14,48 +14,36 @@ class KernelTimer
 public:
     /** Constructor.
      * \param[in] do_timing Controls whether timer is active.
-     * \param[in,out] cost Pointer to cost which holds summed thread cycles.
+     * \param[in,out] cost Pointer to cost which holds summed thread cycles
+     * (for performance, it is recommended to allocate pinned host memory).
      */
     AMREX_GPU_DEVICE
     KernelTimer (const bool do_timing, amrex::Real* cost)
-	: m_do_timing(do_timing), m_cost(cost) {
-	if (do_timing && cost) {
+        : m_do_timing(do_timing), m_cost(cost) {
+        if (do_timing && cost) {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-	    // Store threads' accumulated cycles for present block
-	    __shared__ amrex::Real cost_shared;
-	    cost_shared = 0.;
-	    m_cost_shared = &cost_shared;
-
-	    // Start the timer
-	    m_wt = clock64();
+            // Start the timer
+            m_wt = clock64();
 
 #elif defined(AMREX_USE_DPCPP)
-	    // To be updated
-	    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( do_timing == false,
-					      "KernelTimer not yet supported for this hardware." );
+            // To be updated
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE( do_timing == false,
+                                              "KernelTimer not yet supported for this hardware." );
 #endif
-	}
+        }
     }
 
     //! Destructor.
     AMREX_GPU_DEVICE
     ~KernelTimer () {
-	if (m_do_timing && m_cost) {
+        if (m_do_timing && m_cost) {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-	m_wt = clock64() - m_wt;
-	amrex::Gpu::Atomic::Add( m_cost_shared, amrex::Real(m_wt));
-
-	// Make sure everyone finished
-	__syncthreads();
-
-	// Copy accumulated cycles from each block's smem back to input cost location
-	if (threadIdx.x == 0) {
-	    amrex::Gpu::Atomic::Add( m_cost, *m_cost_shared);
-	}
+            m_wt = clock64() - m_wt;
+            amrex::Gpu::Atomic::Add( m_cost, amrex::Real(m_wt));
 #elif defined(AMREX_USE_DPCPP)
-	// To be updated
+            // To be updated
 #endif
-	}
+        }
     }
 
 private:
@@ -67,11 +55,6 @@ private:
 
     //! Store the time difference (cost) from a single thread.
     long long int m_wt;
-
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-    //! Location in which which to accumulate from each thread.
-    amrex::Real* m_cost_shared;
-#endif
 };
     
 }
