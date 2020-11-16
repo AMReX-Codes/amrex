@@ -4,13 +4,13 @@
 namespace detail
 {
     inline Vector<Box> getBoundaryBoxes(const Box& box, const int ncells)
-    {            
+    {
         AMREX_ASSERT_WITH_MESSAGE(box.size() > 2*IntVect(AMREX_D_DECL(ncells, ncells, ncells)),
                                   "Too many cells requested in getBoundaryBoxes");
-        
-        AMREX_ASSERT_WITH_MESSAGE(box.ixType().cellCentered(), 
+
+        AMREX_ASSERT_WITH_MESSAGE(box.ixType().cellCentered(),
                                   "Box must be cell-centered");
-        
+
         Vector<Box> bl;
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             BoxList face_boxes;
@@ -26,7 +26,7 @@ namespace detail
                     Box lo_edge_box = adjCellLo(face_box, j, ncells);
                     edge_boxes.push_back(hi_edge_box); bl.push_back(hi_edge_box);
                     edge_boxes.push_back(lo_edge_box); bl.push_back(lo_edge_box);
-                    for (auto edge_box : edge_boxes) {                    
+                    for (auto edge_box : edge_boxes) {
                         for (int k = 0; k < AMREX_SPACEDIM; ++k) {
                             if ((j == k) or (i == k)) continue;
                             Box hi_corner_box = adjCellHi(edge_box, k, ncells);
@@ -44,12 +44,12 @@ namespace detail
     }
 }
 
-template <int NStructReal, int NStructInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt>::
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 buildNeighborMask ()
 {
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::buildNeighborMask");
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::buildNeighborMask");
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
     m_neighbor_mask_initialized = true;
     const int lev = 0;
@@ -135,12 +135,12 @@ buildNeighborMask ()
     }
 }
 
-template <int NStructReal, int NStructInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt>::
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 buildNeighborCopyOp ()
 {
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::buildNeighborCopyOp()");
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::buildNeighborCopyOp()");
 
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
     AMREX_ASSERT(hasNeighbors() == false);
@@ -174,10 +174,10 @@ buildNeighborCopyOp ()
 
         ParticleType* p_ptr = &(aos[0]);
 	auto p_code_array = m_code_array[gid].dataPtr();
-	auto p_code_offsets = m_code_offsets[gid].dataPtr();	
+	auto p_code_offsets = m_code_offsets[gid].dataPtr();
 	AMREX_FOR_1D ( np, i,
         {
-            IntVect iv = getParticleCell(p_ptr[i], plo, dxi, domain);            
+            IntVect iv = getParticleCell(p_ptr[i], plo, dxi, domain);
 	    int code = mask_arr(iv);
 	    if (code >= 0)
             {
@@ -201,7 +201,7 @@ buildNeighborCopyOp ()
 
 	AMREX_FOR_1D ( np, i,
         {
-            IntVect iv = getParticleCell(p_ptr[i], plo, dxi, domain);            
+            IntVect iv = getParticleCell(p_ptr[i], plo, dxi, domain);
 	    int code = mask_arr(iv);
 	    if (code >= 0)
 	    {
@@ -224,16 +224,16 @@ buildNeighborCopyOp ()
     }
 }
 
-template <int NStructReal, int NStructInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt>::
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 fillNeighborsGPU ()
 {
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::fillNeighbors");
+    BL_PROFILE("NeighborParticleContainer::fillNeighbors");
 
     AMREX_ASSERT(this->numLevels() == 1);
     AMREX_ASSERT(numParticlesOutOfRange(*this, 0) == 0);
-    
+
     buildNeighborMask();
     this->defineBufferMap();
 
@@ -244,12 +244,12 @@ fillNeighborsGPU ()
     updateNeighborsGPU();
 }
 
-template <int NStructReal, int NStructInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt>::
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 updateNeighborsGPU ()
 {
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::updateNeighborsGPU");
+    BL_PROFILE("NeighborParticleContainer::updateNeighborsGPU");
 
     AMREX_ASSERT(this->numLevels() == 1);
 
@@ -281,12 +281,12 @@ updateNeighborsGPU ()
     Gpu::Device::synchronize();
 }
 
-template <int NStructReal, int NStructInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt>::
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 clearNeighborsGPU()
 {
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::clearNeighborsGPU");
+    BL_PROFILE("NeighborParticleContainer::clearNeighborsGPU");
 
     this->reserveData();
     this->resizeData();

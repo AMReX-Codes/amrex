@@ -1,7 +1,7 @@
 #ifndef AMREX_NEIGHBORPARTICLESCPUIMPL_H_
 #define AMREX_NEIGHBORPARTICLESCPUIMPL_H_
 
-template <int NStructReal, int NStructInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::fillNeighborsCPU () {
@@ -12,7 +12,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
     updateNeighborsCPU(false);
 }
 
-template <int NStructReal, int NStructInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::sumNeighborsCPU (int real_start_comp, int real_num_comp,
@@ -99,9 +99,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
     sumNeighborsMPI(isend_data, real_start_comp, real_num_comp, int_start_comp, int_num_comp);
 }
 
-template <int NStructReal, int NStructInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt>::
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
                  int real_start_comp, int real_num_comp,
                  int int_start_comp, int int_num_comp)
@@ -227,7 +227,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
         }
 
         int npart = recvdata.size() / data_size;
-        
+
         char* buffer = recvdata.data();
         for (int j = 0; j < npart; ++j)
         {
@@ -262,7 +262,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
 #endif
 }
 
-template <int NStructReal, int NStructInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::updateNeighborsCPU (bool reuse_rcv_counts) {
@@ -376,7 +376,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
 }
 
-template <int NStructReal, int NStructInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::clearNeighborsCPU ()
@@ -402,9 +402,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
     send_data.clear();
 }
 
-template <int NStructReal, int NStructInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt>::
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 getRcvCountsMPI () {
 
     BL_PROFILE("NeighborParticleContainer::getRcvCountsMPI");
@@ -462,9 +462,9 @@ getRcvCountsMPI () {
 #endif // AMREX_USE_MPI
 }
 
-template <int NStructReal, int NStructInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt>::
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 fillNeighborsMPI (bool reuse_rcv_counts) {
 
     BL_PROFILE("NeighborParticleContainer::fillNeighborsMPI");
