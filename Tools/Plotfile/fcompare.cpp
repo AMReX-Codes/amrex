@@ -370,9 +370,6 @@ int main_main()
                        << "absolute = " << atol
                        << " relative = " << rtol << std::endl;
         return EXIT_SUCCESS;
-    } else if (global_rerror <= rtol) {
-        amrex::Print() << " PLOTFILE AGREE to relative tolerance " << rtol << std::endl;
-        return EXIT_SUCCESS;
     } else {
         return EXIT_FAILURE;
     }
