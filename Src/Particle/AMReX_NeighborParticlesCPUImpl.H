@@ -3,7 +3,7 @@
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt>
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::fillNeighborsCPU () {
     BL_PROFILE("NeighborParticleContainer::fillNeighborsCPU");
     BuildMasks();
@@ -14,7 +14,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt>
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::sumNeighborsCPU (int real_start_comp, int real_num_comp,
                    int int_start_comp,  int int_num_comp)
 {
