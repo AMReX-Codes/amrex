@@ -264,7 +264,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt>
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::updateNeighborsCPU (bool reuse_rcv_counts) {
 
     BL_PROFILE_VAR("NeighborParticleContainer::updateNeighborsCPU", update);
@@ -378,7 +378,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt>
+NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::clearNeighborsCPU ()
 {
     BL_PROFILE("NeighborParticleContainer::clearNeighborsCPU");
