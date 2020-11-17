@@ -2460,7 +2460,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
 #endif
     {
         T r = 0;
-        amrex::Loop(subbox, [=,&r] (int i, int j, int k) noexcept
+        amrex::LoopOnCpu(subbox, [=,&r] (int i, int j, int k) noexcept
         {
             r = amrex::max(r, amrex::Math::abs(a(i,j,k)));
         });
