@@ -505,6 +505,13 @@ void main_main ()
         f_mf_faces_wg[i].ParallelCopy(f_mf_faces[i], 0, 0, 1, ghost_f, IntVect::TheZeroVector());
     }
 
+    // Check for errors
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        if (f_mf_faces_wg[i].contains_nan()) {
+            amrex::Print() << "******** Nans present in fine velocity after FillPatch (including ghosts)  in dimension " << i << std::endl; 
+        }
+    }
+
     AMREX_D_TERM( amrex::VisMF::Write(f_mf_faces_wg[0], std::string("pltfiles/fwgxFP"));,
                   amrex::VisMF::Write(f_mf_faces_wg[1], std::string("pltfiles/fwgyFP"));,
                   amrex::VisMF::Write(f_mf_faces_wg[2], std::string("pltfiles/fwgzFP"));  );

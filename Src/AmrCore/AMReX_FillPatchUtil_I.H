@@ -456,7 +456,7 @@ namespace {
                                     ncomp, 0, MFInfo().SetAlloc(false) );
 
                     const FabArrayBase::CPC mask_cpc( mf_solution, IntVect::TheZeroVector(),
-                                                      mf_known, nghost,
+                                                      mf_known, IntVect::TheZeroVector(),
                                                       fgeom.periodicity() );
 
                     solve_mask[d].setVal(1);                   // Values to solve.
