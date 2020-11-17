@@ -364,14 +364,11 @@ int main_main()
     if (global_error == 0.0 and !any_nans) {
         amrex::Print() << " PLOTFILE AGREE" << std::endl;
         return EXIT_SUCCESS;
-    } else if ((abserr_for_global_rerror <= atol) &&
+    } else if ((abserr_for_global_rerror <= atol) ||
                (global_rerror <= rtol)) {
         amrex::Print() << " PLOTFILE AGREE to specified tolerances: "
                        << "absolute = " << atol
                        << " relative = " << rtol << std::endl;
-        return EXIT_SUCCESS;
-    } else if (global_rerror <= rtol) {
-        amrex::Print() << " PLOTFILE AGREE to relative tolerance " << rtol << std::endl;
         return EXIT_SUCCESS;
     } else {
         return EXIT_FAILURE;
