@@ -46,6 +46,7 @@ ifeq ($(which_computer),$(filter $(which_computer),cgpu))
     CXX = mpic++
     FC  = mpif90
     F90 = mpif90
+    CXXFLAGS += $(FFTW)
 
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
       ifneq ($(findstring mvapich,$(shell mpif90 -show 2>&1 | tr A-Z a-z)),)
