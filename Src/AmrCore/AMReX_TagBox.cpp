@@ -683,9 +683,9 @@ TagBoxArray::setVal (const BoxArray& ba, TagBox::TagVal val)
 
 #ifdef AMREX_USE_GPU
     amrex::ParallelFor(tags, 1,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k, int /*n*/, Array4<char> const& a) noexcept
+    [=] AMREX_GPU_DEVICE (int i, int j, int k, int /*n*/, Array4BoxTag<char> const& tag) noexcept
     {
-        a(i,j,k) = val;
+        tag.dfab(i,j,k) = val;
     });
 #endif
 }

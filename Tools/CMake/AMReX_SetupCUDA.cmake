@@ -86,6 +86,10 @@ cmake_dependent_option(AMReX_CUDA_ERROR_CAPTURE_THIS
 cuda_print_option(AMReX_CUDA_WARN_CAPTURE_THIS)
 cuda_print_option(AMReX_CUDA_ERROR_CAPTURE_THIS)
 
+option(AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL
+       "Error if a CUDA host function is called from a host device funtion" OFF)
+cuda_print_option(AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL)
+
 # makes things more robust for -Xcompiler pre-fixing unknown nvcc flags
 # note: available with NVCC 10.2.89+; default in CMake 3.17.0+ for supporting NVCCs
 #       https://gitlab.kitware.com/cmake/cmake/-/blob/v3.17.0/Modules/Compiler/NVIDIA-CUDA.cmake
@@ -224,6 +228,10 @@ if (AMReX_CUDA_ERROR_CAPTURE_THIS)
     # note: prefer double-dash --Werror!
     # https://github.com/ccache/ccache/issues/598
     string(APPEND CMAKE_CUDA_FLAGS " --Werror ext-lambda-captures-this")
+endif()
+
+if (AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL)
+    string(APPEND CMAKE_CUDA_FLAGS " --Werror cross-execution-space-call")
 endif()
 
 #
