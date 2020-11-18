@@ -678,8 +678,6 @@ A list of AMReX component names and related configure options are shown in the t
    +------------------------------+-----------------+
    | AMReX_ASSERTIONS             | ASSERTIONS      |
    +------------------------------+-----------------+
-   | AMReX_SUNDIALS               | SUNDIALS        |
-   +------------------------------+-----------------+
    | AMReX_SENSEI                 | SENSEI          |
    +------------------------------+-----------------+
    | AMReX_CONDUIT                | CONDUIT         |
