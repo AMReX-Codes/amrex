@@ -661,7 +661,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 template <class CheckPair>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-buildNeighborList (CheckPair&& check_pair, bool sort)
+buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
 {
     AMREX_ASSERT(numParticlesOutOfRange(*this, m_num_neighbor_cells) == 0);
 
