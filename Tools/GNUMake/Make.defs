@@ -33,9 +33,10 @@ ifeq ($(USE_DPCPP),TRUE)
   DEFINES += -DAMREX_USE_DPCPP -DAMREX_USE_GPU
   USE_CUDA := FALSE
   USE_HIP := FALSE
-  # disable mpi, fortran and ccache for now
-  USE_MPI := FALSE
+  # disable ccache for now
   USE_CCACHE := FALSE
+  # Make.unknown's mpi checking does not work with mpiipx
+  NO_MPI_CHECKING := TRUE
 endif
 
 ifdef USE_HIP
@@ -970,7 +971,18 @@ ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local
 endif
 
-ifeq ($(USE_HIP),TRUE)
+ifeq ($(USE_DPCPP),TRUE)
+
+    ifeq ($(USE_MPI),TRUE)
+        CC  = mpiicx
+        CXX = mpiicpx
+        FC  = mpiifx
+        F90 = mpiifx
+        # current version of mpiicpx does not have this on by default
+        CXXFLAGS += -fsycl-unnamed-lambda
+    endif
+
+else ifeq ($(USE_HIP),TRUE)
 
     LINKFLAGS = $(HIPCC_FLAGS)
     AMREX_LINKER = hipcc
