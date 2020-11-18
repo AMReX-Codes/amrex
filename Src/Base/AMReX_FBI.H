@@ -975,6 +975,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
 
     typedef Array4CopyTag<value_type> TagType;
     Vector<TagType> recv_copy_tags;
+    recv_copy_tags.reserve(N_rcvs);
 
     Vector<BaseFab<int> > maskfabs;
     Vector<Array4<int> > masks;
@@ -999,7 +1000,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                 const int li = dst.localindex(tag.dstIndex);
                 recv_copy_tags.emplace_back(TagType{
                     dst.atLocalIdx(li).array(),
-                    amrex::makeArray4((value_type*)(dptr), tag.dbox, ncomp),
+                    amrex::makeArray4((value_type const*)(dptr), tag.dbox, ncomp),
                     tag.dbox,
                     Dim3{0,0,0}
                 });

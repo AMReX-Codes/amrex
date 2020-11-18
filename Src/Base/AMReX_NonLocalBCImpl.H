@@ -211,6 +211,104 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int scomp, int ncomp,
     }
 }
 
+#ifdef AMREX_USE_GPU
+template <class T>
+struct Array4Array4Box {
+    Array4<T      > dfab;
+    Array4<T const> sfab;
+    Box dbox;
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Box const& box () const noexcept { return dbox; }
+};
+
+template <class FAB, class DTOS>
+void
+local_copy_gpu (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData const& cmd,
+                DTOS dtos)
+{
+    auto const& LocTags = *(cmd.m_LocTags);
+    int N_locs = LocTags.size();
+    if (N_locs == 0) return;
+
+    using T = typename FAB::value_type;
+    Vector<Array4Array4Box<T> > loc_copy_tags;
+    loc_copy_tags.reserve(N_locs);
+    for (int itag = 0; itag < N_locs; ++itag) {
+        const auto& tag = LocTags[itag];
+        loc_copy_tags.push_back({mf.array(tag.dstIndex), mf.const_array(tag.srcIndex), tag.dbox});
+    }
+
+    ParallelFor(loc_copy_tags, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n,
+                                                            Array4Array4Box<T> const& tag) noexcept
+    {
+        auto const si = dtos(Dim3{i,j,k});
+        tag.dfab(i,j,k,scomp+n) = tag.sfab(si.x,si.y,si.z,scomp+n);
+    });
+}
+
+template <class FAB, class DTOS>
+void
+unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
+                        Vector<char*> const& recv_data,
+                        Vector<std::size_t> const& recv_size,
+                        Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
+                        DTOS dtos)
+{
+    amrex::ignore_unused(recv_size);
+
+    const int N_rcvs = recv_cctc.size();
+    if (N_rcvs == 0) return;
+
+    char* pbuffer = recv_data[0];
+#if 0
+    std::size_t szbuffer = 0;
+    // For linear solver test on summit, this is slower than writing to
+    // pinned memory directly on device.
+    if (not ParallelDescriptor::UseGpuAwareMpi()) {
+        // Memory in recv_data is pinned.
+        szbuffer = (recv_data[N_rcvs-1]-recv_data[0]) + recv_size[N_rcvs-1];
+        pbuffer = (char*)The_Arena()->alloc(szbuffer);
+        Gpu::copyAsync(Gpu::hostToDevice,recv_data[0],recv_data[0]+szbuffer,pbuffer);
+        Gpu::synchronize();
+    }
+#endif
+
+    using T = typename FAB::value_type;
+    using TagType = Array4Array4Box<T>;
+    Vector<TagType> tags;
+    tags.reserve(N_rcvs);
+
+    for (int k = 0; k < N_rcvs; ++k)
+    {
+        std::size_t offset = recv_data[k]-recv_data[0];
+        const char* dptr = pbuffer + offset;
+        auto const& cctc = *recv_cctc[k];
+        for (auto const& tag : cctc)
+        {
+            tags.emplace_back(TagType{mf.array(tag.dstIndex),
+                                      amrex::makeArray4((T const*)dptr, tag.sbox, ncomp),
+                                      tag.dbox});
+            dptr += tag.dbox.numPts() * ncomp * sizeof(T);
+            BL_ASSERT(dptr <= pbuffer + offset + recv_size[k]);
+        }
+    }
+
+    ParallelFor(tags, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n,
+                                                   Array4Array4Box<T> const& tag) noexcept
+    {
+        auto const si = dtos(Dim3{i,j,k});
+        tag.dfab(i,j,k,scomp+n) = tag.sfab(si.x,si.y,si.z,n);
+    });
+
+    // There is Gpu::synchronize in ParalleFor above
+
+    if (pbuffer != recv_data[0]) {
+        The_Arena()->free(pbuffer);
+    }
+}
+#endif
+
 struct CommHandler
 {
 #ifdef AMREX_USE_MPI
@@ -241,8 +339,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
         if (N_locs == 0) return CommHandler{};
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
-            amrex::Abort("xxxxx TODO local_copy_gpu");
-            // local_copy_gpu(mf, scomp, ncomp, cmd);
+            local_copy_gpu(mf, scomp, ncomp, cmd, dtos);
         } else
 #endif
         {
@@ -285,8 +382,8 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
-            amrex::Abort("pack_send_buffer_gpu");
-            // pack_send_buffer_gpu
+            FabArray<FAB>::pack_send_buffer_gpu(mf, scomp, ncomp, handler.send_data,
+                                                send_size, send_cctc);
         } else
 #endif
         {
@@ -301,8 +398,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
     {
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
-            amrex::Abort("xxxxx TODO local_copy_gpu");
-            // local_copy_gpu(mf, scomp, ncomp, cmd);
+            local_copy_gpu(mf, scomp, ncomp, cmd, dtos);
         } else
 #endif
         {
@@ -342,8 +438,8 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            amrex::Abort("xxxxx TODO unpack_recv_buffer_gpu");
-            // unpack_recv_buffer_gpu
+            unpack_recv_buffer_gpu(mf, scomp, ncomp, handler.recv_data,
+                                   handler.recv_size, recv_cctc, dtos);
         } else
 #endif
         {
