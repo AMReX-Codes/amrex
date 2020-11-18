@@ -215,6 +215,14 @@ function (generate_buildinfo _target _git_dir)
       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${_target}/
    )
 
-   target_link_libraries(${_target} PRIVATE buildInfo${_target})
+   target_link_libraries(${_target}
+      PUBLIC
+      $<BUILD_INTERFACE:buildInfo${_target}> )
+
+   # Set PIC property to be consistent with AMReX'
+   get_target_property(_pic AMReX::amrex POSITION_INDEPENDENT_CODE)
+   set_target_properties(buildInfo${_target}
+      PROPERTIES
+      POSITION_INDEPENDENT_CODE ${_pic} )
 
 endfunction ()
