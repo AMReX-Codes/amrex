@@ -37,7 +37,7 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
         MultiFab Sborder(grids[lev], dmap[lev], phi_new[lev].nComp(), num_grow);
         FillPatch(lev, time, Sborder, 0, Sborder.nComp());
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
@@ -297,7 +297,7 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
     for (int lev = 0; lev <= finest_level; lev++)
     {
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {

@@ -624,7 +624,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::MoveRandom (i
     for (auto& kv : pmap) {
         auto& aos = kv.second.GetArrayOfStructs();
         const int n = aos.numParticles();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < n; i++)
@@ -1343,7 +1343,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           ptile_ptrs.push_back(&(kv.second));
       }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
       for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
@@ -1492,7 +1492,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           pvec_ptrs.push_back(&(pmap_it->second));
       }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
       for (int pit = 0; pit < static_cast<int>(pvec_ptrs.size()); ++pit)
@@ -1535,7 +1535,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
       pbuff_ptrs.push_back(&(kv.second));
   }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
   for (int pmap_it = 0; pmap_it < static_cast<int>(pbuff_ptrs.size()); ++pmap_it)
@@ -1633,7 +1633,7 @@ BuildRedistributeMask (int lev, int nghost) const
 
         const auto tile_size_do = this->do_tiling ? this->tile_size : IntVect::TheZeroVector();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(*redistribute_mask_ptr, tile_size_do); mfi.isValid(); ++mfi)
@@ -2073,7 +2073,7 @@ AssignCellDensitySingleLevel (int rho_index,
 
     using ParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
@@ -2084,7 +2084,7 @@ AssignCellDensitySingleLevel (int rho_index,
             const Long np = pti.numParticles();
             FArrayBox& fab = (*mf_pointer)[pti];
             auto rhoarr = fab.array();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
             Box tile_box;
             if (Gpu::notInLaunchRegion())
             {
@@ -2111,7 +2111,7 @@ AssignCellDensitySingleLevel (int rho_index,
                 });
             }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
             if (Gpu::notInLaunchRegion())
             {
                 fab.atomicAdd<RunOn::Host>(local_rho, tile_box, tile_box, 0, 0, ncomp);
@@ -2188,7 +2188,7 @@ InterpolateSingleLevel (MultiFab& mesh_data, int lev)
 
     using ParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (ParIter pti(*this, lev); pti.isValid(); ++pti)

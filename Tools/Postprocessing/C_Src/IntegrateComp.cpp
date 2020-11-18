@@ -164,7 +164,7 @@ main (int   argc,
         MultiFab::Copy(mf,pfData,0,0,1,nGrow);
 
         Real sm = 0;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(+:sm)
 #endif
         for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {

@@ -9,7 +9,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -879,7 +879,7 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
     bool run_on_gpu = statedata->desc->RunOnGPU() && Gpu::inLaunchRegion();
 
 #if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
 #endif
 #endif

@@ -346,7 +346,7 @@ void MCNodalLinOp::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
 
 	const iMultiFab& cfmask = *m_nd_fine_mask[amrlev];
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
 	for (MFIter mfi(resmsk,true); mfi.isValid(); ++mfi)

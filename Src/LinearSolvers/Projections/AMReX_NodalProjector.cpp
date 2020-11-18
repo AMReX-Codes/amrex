@@ -438,7 +438,7 @@ NodalProjector::setCoarseBoundaryVelocityForSync ()
         }
         else
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*m_vel[0]); mfi.isValid(); ++mfi)

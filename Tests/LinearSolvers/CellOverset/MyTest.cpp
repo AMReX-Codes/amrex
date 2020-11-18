@@ -144,7 +144,7 @@ MyTest::initData ()
     auto a = ascalar;
     auto b = bscalar;
     auto loverset = do_overset;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(rhs, TilingIfNotGPU()); mfi.isValid(); ++mfi)

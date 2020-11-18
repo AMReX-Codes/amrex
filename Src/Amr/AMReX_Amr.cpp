@@ -8,7 +8,7 @@
 #include <limits>
 #include <cmath>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 

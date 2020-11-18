@@ -92,7 +92,7 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
 	setBndryConds(bc, ref_ratio, n);
     }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
@@ -182,7 +182,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
 
         MFItInfo info;
         if (Gpu::notInLaunchRegion()) info.SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(foo,info); mfi.isValid(); ++mfi)

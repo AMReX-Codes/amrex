@@ -443,7 +443,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
     const auto dx_eb = eb_factory.Geom().CellSizeArray();
     Real ls_roof = amrex::min(AMREX_D_DECL(dx_eb[0],dx_eb[1],dx_eb[2])) * (flags.nGrow()+1);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)

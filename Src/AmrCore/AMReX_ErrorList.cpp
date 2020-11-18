@@ -359,7 +359,7 @@ operator << (std::ostream&    os,
     {
       AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_userfunc!=nullptr,"UserFunc not properly set in AMRErrorTag");
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
       for (MFIter mfi(tba,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -377,7 +377,7 @@ operator << (std::ostream&    os,
           (time  <= m_info.m_max_time ) )
       {
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(tba,TilingIfNotGPU()); mfi.isValid(); ++mfi)

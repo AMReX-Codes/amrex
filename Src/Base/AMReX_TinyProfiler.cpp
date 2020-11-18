@@ -22,7 +22,7 @@
 #include <cupti.h>
 #endif
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -72,7 +72,7 @@ TinyProfiler::~TinyProfiler ()
 void
 TinyProfiler::start () noexcept
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
     if (stats.empty() && !regionstack.empty())
@@ -111,7 +111,7 @@ TinyProfiler::start () noexcept
 void
 TinyProfiler::stop () noexcept
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
     if (!stats.empty()) 
@@ -188,7 +188,7 @@ TinyProfiler::stop () noexcept
 void
 TinyProfiler::stop (unsigned boxUintID) noexcept
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
     if (!stats.empty()) 

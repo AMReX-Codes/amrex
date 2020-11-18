@@ -59,7 +59,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     if (ebfactory)
     {
         const FabArray<EBCellFlagFab>& flags = ebfactory->getMultiEBCellFlagFab();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(+:nnodes_proc)
 #endif
         for (MFIter mfi(node_id); mfi.isValid(); ++mfi)
@@ -112,7 +112,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     else
 #endif
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(+:nnodes_proc)
 #endif
         for (MFIter mfi(node_id); mfi.isValid(); ++mfi)
@@ -169,7 +169,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(proc_end == proc_begin+nnodes_proc,
                                      "HypreNodeLap: how did this happen?");
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 

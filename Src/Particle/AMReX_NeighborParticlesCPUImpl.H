@@ -284,7 +284,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             for (int j = 0; j < num_threads; ++j) {
                 auto& tags = buffer_tag_cache[lev][src_index][j];
                 int num_tags = tags.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
                 for (int i = 0; i < num_tags; ++i) {
@@ -374,7 +374,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             }
         }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {

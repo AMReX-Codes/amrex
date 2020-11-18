@@ -66,7 +66,7 @@ BndryRegister::init (const BndryRegister& src)
         const int ncomp = src.bndry[idim].nComp();
         bndry[idim].define(src.bndry[idim].boxArray(), src.DistributionMap(), ncomp);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (FabSetIter mfi(src.bndry[idim]); mfi.isValid(); ++mfi)
@@ -160,7 +160,7 @@ BndryRegister::operator+= (const BndryRegister& rhs)
     for (OrientationIter face; face; ++face) {
         const auto f = face();
         const int ncomp = bndry[f].nComp();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 	for (FabSetIter bfsi(rhs[f]); bfsi.isValid(); ++bfsi) {

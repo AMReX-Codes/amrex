@@ -1240,7 +1240,7 @@ off using the conditional pragma and :cpp:`Gpu::notInLaunchRegion()`, as shown b
 
 ::
 
-    #ifdef _OPENMP
+    #ifdef AMREX_USE_OMP
     #pragma omp parallel if (Gpu::notInLaunchRegion())
     #endif
 
@@ -1262,7 +1262,7 @@ of common AMReX patterns, such as the one below:
 ::
 
    // Given MultiFab uin and uout
-   #ifdef _OPENMP
+   #ifdef AMREX_USE_OMP
    #pragma omp parallel
    #endif
    {
@@ -1309,7 +1309,7 @@ portable way.
 ::
 
    // Given MultiFab uin and uout
-   #ifdef _OPENMP
+   #ifdef AMREX_USE_OMP
    #pragma omp parallel if (Gpu::notInLaunchRegion())
    #endif
    {

@@ -59,7 +59,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
     } else
 #endif
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(+:sm)
 #endif
         for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
@@ -209,7 +209,7 @@ MultiFab::Swap (MultiFab& dst, MultiFab& src,
 
     } else {
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -308,7 +308,7 @@ MultiFab::Saxpy (MultiFab& dst, Real a, const MultiFab& src,
 
     BL_PROFILE("MultiFab::Saxpy()");
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -343,7 +343,7 @@ MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
 
     BL_PROFILE("MultiFab::Xpay()");
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -383,7 +383,7 @@ MultiFab::LinComb (MultiFab& dst,
 
     BL_PROFILE("MultiFab::LinComb()");
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -425,7 +425,7 @@ MultiFab::AddProduct (MultiFab& dst,
 
     BL_PROFILE("MultiFab::AddProduct()");
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -605,7 +605,7 @@ MultiFab::define (const BoxArray&            bxs,
 void
 MultiFab::initVal ()
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
@@ -1227,7 +1227,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
     Vector<Array4BoxTag<Real> > tags;
 
     bool run_on_gpu = Gpu::inLaunchRegion();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
 #endif
     {

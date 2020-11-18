@@ -55,7 +55,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (ParIterType pti(*this, lev); pti.isValid(); ++pti)
@@ -140,7 +140,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (ParIterType pti(*this, lev); pti.isValid(); ++pti)

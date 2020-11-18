@@ -12,7 +12,7 @@
 
 #include <AMReX_Gpu.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 

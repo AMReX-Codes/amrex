@@ -185,7 +185,7 @@ PETScABecLap::prepareSolver ()
 #endif
 
     PetscInt ncells_proc = 0;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(+:ncells_proc)
 #endif
     for (MFIter mfi(cell_id); mfi.isValid(); ++mfi)
@@ -244,7 +244,7 @@ PETScABecLap::prepareSolver ()
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(proc_end == proc_begin+ncells_proc,
                                      "PETScABecLap::prepareSolver: how did this happen?");
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(cell_id,TilingIfNotGPU()); mfi.isValid(); ++mfi)

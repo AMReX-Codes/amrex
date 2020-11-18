@@ -1786,7 +1786,7 @@ parallel region:
   // Dynamic tiling, one box per OpenMP thread.
   // No further tiling details,
   //   so each thread works on a single tilebox.
-  #ifdef _OPENMP
+  #ifdef AMREX_USE_OMP
   #pragma omp parallel
   #endif
       for (MFIter mfi(mf,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
@@ -1803,7 +1803,7 @@ Dynamic tiling also allows explicit definition of a tile size:
 
   // Dynamic tiling, one box per OpenMP thread.
   // No tiling in x-direction. Tile size is 16 for y and 32 for z.
-  #ifdef _OPENMP
+  #ifdef AMREX_USE_OMP
   #pragma omp parallel
   #endif
       for (MFIter mfi(mf,MFItInfo().SetDynamic(true).EnableTiling(1024000,16,32)); mfi.isValid(); ++mfi)
@@ -2232,7 +2232,7 @@ like below,
 
 ::
 
-  #ifdef _OPENMP
+  #ifdef AMREX_USE_OMP
   #pragma omp parallel if (Gpu::notInLaunchRegion())
   #endif
     for (MFIter mfi(mfa,TilingIfNotGPU()); mfi.isValid(); ++mfi)

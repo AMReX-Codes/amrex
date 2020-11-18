@@ -306,7 +306,7 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
                  ratio3.y = ratio[1];,
                  ratio3.z = ratio[2];);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -475,7 +475,7 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cross || tensorop || Gpu::notInLaunchRegion(),
                                      "non-cross stencil not support for gpu");
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(in, mfi_info); mfi.isValid(); ++mfi)
@@ -677,7 +677,7 @@ MLCellLinOp::reflux (int crse_amrlev,
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
@@ -702,7 +702,7 @@ MLCellLinOp::reflux (int crse_amrlev,
             }
         }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp barrier
 #endif
 
@@ -742,7 +742,7 @@ MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
@@ -790,7 +790,7 @@ MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
     AMREX_D_TERM(const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);,
                  const Real dyi = m_geom[amrlev][mglev].InvCellSize(1);,
                  const Real dzi = m_geom[amrlev][mglev].InvCellSize(2););
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(sol, TilingIfNotGPU());  mfi.isValid(); ++mfi)
@@ -854,7 +854,7 @@ MLCellLinOp::prepareForSolve ()
             MFItInfo mfi_info;
             if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(foo, mfi_info); mfi.isValid(); ++mfi)
@@ -1162,7 +1162,7 @@ MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx
 {
     const Box& domain = geom.Domain();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(bcloc); mfi.isValid(); ++mfi)
@@ -1210,7 +1210,7 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
     const Real dx = geom.CellSize(0);
     const Real probxlo = geom.ProbLo(0);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(rhs,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -1266,7 +1266,7 @@ MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
     const Real dx = geom.CellSize(0);
     const Real probxlo = geom.ProbLo(0);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(rhs,TilingIfNotGPU()); mfi.isValid(); ++mfi)

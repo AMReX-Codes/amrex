@@ -199,7 +199,7 @@ Geometry::GetVolume (MultiFab&       vol,
 void
 Geometry::GetVolume (MultiFab&       vol) const
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(vol,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -226,7 +226,7 @@ Geometry::GetDLogA (MultiFab&       dloga,
                     int             ngrow) const
 {
     dloga.define(grds,dm,1,ngrow,MFInfo(),FArrayBoxFactory());
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dloga,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -254,7 +254,7 @@ void
 Geometry::GetFaceArea (MultiFab&       area,
                        int             dir) const
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(area,TilingIfNotGPU()); mfi.isValid(); ++mfi)

@@ -842,7 +842,7 @@ template <typename T, typename N, typename F,
 T Sum (N n, F&& f, T init_val = 0)
 {
     T r = init_val;
-#ifdef _OPENMP
+#ifdef _OPENMP // Note: intentionally not AMREX_USE_OMP
 #pragma omp parallel for reduction(+:r)
 #endif
     for (N i = 0; i < n; ++i) {
@@ -879,7 +879,7 @@ template <typename T, typename N, typename F,
 T Min (N n, F&& f, T init_val = std::numeric_limits<T>::max())
 {
     T r = init_val;
-#ifdef _OPENMP
+#ifdef _OPENMP // Note: intentionally not AMREX_USE_OMP
 #pragma omp parallel for reduction(min:r)
 #endif
     for (N i = 0; i < n; ++i) {
@@ -916,7 +916,7 @@ template <typename T, typename N, typename F,
 T Max (N n, F&& f, T init_val = std::numeric_limits<T>::lowest())
 {
     T r = init_val;
-#ifdef _OPENMP
+#ifdef _OPENMP // Note: intentionally not AMREX_USE_OMP
 #pragma omp parallel for reduction(max:r)
 #endif
     for (N i = 0; i < n; ++i) {
@@ -957,7 +957,7 @@ std::pair<T,T> Min (N n, F&& f)
 {
     T r_min = std::numeric_limits<T>::max();
     T r_max = std::numeric_limits<T>::lowest();
-#ifdef _OPENMP
+#ifdef _OPENMP // Note: intentionally not AMREX_USE_OMP
 #pragma omp parallel for reduction(min:r_min) reduction(max:r_max)
 #endif
     for (N i = 0; i < n; ++i) {

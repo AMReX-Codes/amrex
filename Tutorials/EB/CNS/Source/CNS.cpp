@@ -98,7 +98,7 @@ CNS::initData ()
     MultiFab& S_new = get_new_data(State_Type);
     Real cur_time   = state[State_Type].curTime();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
@@ -318,7 +318,7 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
         const Real* problo = geom.ProbLo();
         const Real* dx = geom.CellSize();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(tags); mfi.isValid(); ++mfi)
@@ -352,7 +352,7 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
         auto const& fact = dynamic_cast<EBFArrayBoxFactory const&>(S_new.Factory());
         auto const& flags = fact.getMultiEBCellFlagFab();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(*rho,true); mfi.isValid(); ++mfi)
@@ -475,7 +475,7 @@ CNS::estTimeStep ()
     auto const& fact = dynamic_cast<EBFArrayBoxFactory const&>(S.Factory());
     auto const& flags = fact.getMultiEBCellFlagFab();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(min:estdt)
 #endif
     {
@@ -515,7 +515,7 @@ CNS::computeTemp (MultiFab& State, int ng)
     auto const& flags = fact.getMultiEBCellFlagFab();
 
     // This will reset Eint and compute Temperature 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(State,true); mfi.isValid(); ++mfi)

@@ -202,7 +202,7 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
             const Real fac = static_cast<Real>(1 << mglev); // 2**mglev
             const Real osfac = Real(2.0)*fac/(fac+Real(1.0));
             const int ncomp = getNComp();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(a[mglev],TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -325,7 +325,7 @@ MLABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 
     const int ncomp = getNComp();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -371,7 +371,7 @@ MLABecLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 
     const int ncomp = getNComp();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -442,7 +442,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(sol,mfi_info); mfi.isValid(); ++mfi)

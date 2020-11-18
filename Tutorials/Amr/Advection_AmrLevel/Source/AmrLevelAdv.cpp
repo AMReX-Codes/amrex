@@ -284,7 +284,7 @@ AmrLevelAdv::advance (Real time,
       Umac[i].define(ba, dmap, 1, iteration);
     }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     {
@@ -366,7 +366,7 @@ AmrLevelAdv::estTimeStep (Real)
     const Real cur_time = state[Phi_Type].curTime();
     const MultiFab& S_new = get_new_data(Phi_Type);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(min:dt_est)
 #endif
     {
@@ -628,7 +628,7 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
 
     MultiFab& S_new = get_new_data(Phi_Type);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     {
