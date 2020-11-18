@@ -392,9 +392,9 @@ For example, one can enable OpenMP support as follows:
 
 ::
 
-    cmake -DAMReX_OMP=YES -DCMAKE_INSTALL_PREFIX=/path/to/installdir  /path/to/amrex
+    cmake -DAMReX_COMPUTE=OMP -DCMAKE_INSTALL_PREFIX=/path/to/installdir  /path/to/amrex
 
-In the example above ``<var>=AMReX_OMP`` and ``<value>=YES``.
+In the example above ``<var>=AMReX_COMPUTE`` and ``<value>=OMP``.
 Configuration variables requiring a boolen value are evaluated to true if they
 are assigned a value of ``1``, ``ON``, ``YES``, ``TRUE``, ``Y``. Conversely they are evaluated to false
 if they are assigned a value of ``0``, ``OFF``, ``NO``, ``FALSE``, ``N``.
@@ -435,9 +435,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_MPI                    |  Build with MPI support                         | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_OMP                    |  Build with OpenMP support                      | NO                      | YES, NO               |
-   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_GPU_BACKEND            |  Build with on-node, accelerated GPU backend    | NONE                    | NONE, SYCL, HIP, CUDA |
+   | AMReX_COMPUTE                |  Build with on-node, accelerated computing \    | NONE                    | NONE, OMP, SYCL, \    |
+   |                              |  backend                                        |                         | HIP, CUDA             |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FORTRAN_INTERFACES     |  Build Fortran API                              | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -648,9 +647,13 @@ A list of AMReX component names and related configure options are shown in the t
    +------------------------------+-----------------+
    | AMReX_MPI                    | MPI             |
    +------------------------------+-----------------+
-   | AMReX_OMP                    | OMP             |
+   | AMReX_COMPUTE=OMP            | OMP             |
    +------------------------------+-----------------+
-   | AMReX_CUDA                   | CUDA            |
+   | AMReX_COMPUTE=CUDA           | CUDA            |
+   +------------------------------+-----------------+
+   | AMReX_COMPUTE=SYCL           | SYCL            |
+   +------------------------------+-----------------+
+   | AMReX_COMPUTE=HIP            | HIP             |
    +------------------------------+-----------------+
    | AMReX_FORTRAN_INTERFACES     | FINTERFACES     |
    +------------------------------+-----------------+

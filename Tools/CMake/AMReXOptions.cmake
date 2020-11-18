@@ -96,48 +96,62 @@ message( STATUS "   AMReX_PRECISION = ${AMReX_PRECISION}")
 
 
 #
-# GPU backends    =============================================================
+# On-node parallel backends    =============================================================
 #
-set(AMReX_GPU_BACKEND_VALUES NONE SYCL CUDA HIP)
-set(AMReX_GPU_BACKEND NONE CACHE STRING "On-node, accelerated GPU backend: <NONE,SYCL,CUDA,HIP>")
-set_property(CACHE AMReX_GPU_BACKEND PROPERTY STRINGS ${AMReX_GPU_BACKEND_VALUES})
-if (NOT AMReX_GPU_BACKEND IN_LIST AMReX_GPU_BACKEND_VALUES)
-   message(FATAL_ERROR "AMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is not allowed."
-      " Must be one of ${AMReX_GPU_BACKEND_VALUES}")
+set(AMReX_COMPUTE_VALUES NONE OMP SYCL CUDA HIP)
+set(AMReX_COMPUTE NONE CACHE STRING "On-node, accelerated computing backend: <NONE,OMP,SYCL,CUDA,HIP>")
+set_property(CACHE AMReX_COMPUTE PROPERTY STRINGS ${AMReX_COMPUTE_VALUES})
+if (NOT AMReX_COMPUTE IN_LIST AMReX_COMPUTE_VALUES)
+   message(FATAL_ERROR "AMReX_COMPUTE=${AMReX_COMPUTE} is not allowed."
+      " Must be one of ${AMReX_COMPUTE_VALUES}")
 endif ()
 
-if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
-   message( STATUS "   AMReX_GPU_BACKEND = ${AMReX_GPU_BACKEND}")
+if (NOT AMReX_COMPUTE STREQUAL NONE)
+   message( STATUS "   AMReX_COMPUTE = ${AMReX_COMPUTE}")
 endif ()
 
-if (AMReX_GPU_BACKEND STREQUAL SYCL)
-   set(AMReX_CUDA  OFF CACHE INTERNAL "")
-   set(AMReX_DPCPP ON  CACHE INTERNAL "")
-   set(AMReX_HIP   OFF CACHE INTERNAL "")
-elseif (AMReX_GPU_BACKEND STREQUAL CUDA)
-   set(AMReX_CUDA  ON  CACHE INTERNAL "")
-   set(AMReX_DPCPP OFF CACHE INTERNAL "")
-   set(AMReX_HIP   OFF CACHE INTERNAL "")
-elseif (AMReX_GPU_BACKEND STREQUAL HIP)
-   set(AMReX_CUDA  OFF CACHE INTERNAL "")
-   set(AMReX_DPCPP OFF CACHE INTERNAL "")
-   set(AMReX_HIP   ON  CACHE INTERNAL "")
+# Set legacy variables for internal use only
+if (AMReX_COMPUTE STREQUAL "OMP")
+   set(AMReX_OMP   ON )
+   set(AMReX_DPCPP OFF)
+   set(AMReX_CUDA  OFF)
+   set(AMReX_HIP   OFF)
+elseif (AMReX_COMPUTE STREQUAL "SYCL")
+   set(AMReX_OMP   OFF)
+   set(AMReX_DPCPP ON )
+   set(AMReX_CUDA  OFF)
+   set(AMReX_HIP   OFF)
+elseif (AMReX_COMPUTE STREQUAL "CUDA")
+   set(AMReX_OMP   OFF)
+   set(AMReX_DPCPP OFF)
+   set(AMReX_CUDA  ON )
+   set(AMReX_HIP   OFF)
+elseif (AMReX_COMPUTE STREQUAL "HIP")
+   set(AMReX_OMP   OFF)
+   set(AMReX_DPCPP OFF)
+   set(AMReX_CUDA  OFF)
+   set(AMReX_HIP   ON )
+else ()
+   set(AMReX_OMP   OFF)
+   set(AMReX_DPCPP OFF)
+   set(AMReX_CUDA  OFF)
+   set(AMReX_HIP   OFF)
 endif ()
 
 # --- SYCL ---
 if (AMReX_DPCPP)
    if (NOT (CMAKE_CXX_COMPILER MATCHES "dpcpp") )
-      message(FATAL_ERROR "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} supports dpcpp compiler only."
+      message(FATAL_ERROR "\nAMReX_COMPUTE=${AMReX_COMPUTE} supports dpcpp compiler only."
          "Set CMAKE_CXX_COMPILER=dpccp and try again.")
    endif ()
 endif ()
 
 cmake_dependent_option( AMReX_DPCPP_AOT  "Enable DPCPP ahead-of-time compilation (WIP)"  OFF
-   "AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
+   "AMReX_COMPUTE STREQUAL SYCL" OFF)
 print_option( AMReX_DPCPP_AOT )
 
 cmake_dependent_option( AMReX_DPCPP_SPLIT_KERNEL "Enable DPCPP kernel splitting"  ON
-   "AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
+   "AMReX_COMPUTE STREQUAL SYCL" OFF)
 print_option(  AMReX_DPCPP_SPLIT_KERNEL )
 
 # --- HIP ----
@@ -159,18 +173,15 @@ endif ()
 
 
 #
-# Parallel backends    ========================================================
+# Inter-node Parallel backends    ========================================================
 #
-cmake_dependent_option( AMReX_MPI  "Enable MPI"  ON "NOT AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
+cmake_dependent_option( AMReX_MPI  "Enable MPI"  ON "NOT AMReX_COMPUTE STREQUAL SYCL" OFF)
 print_option( AMReX_MPI )
 
 cmake_dependent_option( AMReX_MPI_THREAD_MULTIPLE
    "whether to initialize MPI so that multiple threads can make MPI calls at the same time"  OFF
    "AMReX_MPI" OFF)
 print_option( AMReX_MPI_THREAD_MULTIPLE )
-
-option( AMReX_OMP  "Enable OpenMP" OFF)
-print_option( AMReX_OMP )
 
 
 #

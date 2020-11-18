@@ -186,7 +186,7 @@ Building with CMake
 Enabling CUDA support
 ^^^^^^^^^^^^^^^^^^^^^
 
-To build AMReX with CUDA support in CMake, add ``-DAMReX_GPU_BACKEND=CUDA`` to the
+To build AMReX with CUDA support in CMake, add ``-DAMReX_COMPUTE=CUDA`` to the
 ``cmake`` invocation. For a full list of CUDA-specific configuration options,
 check the :ref:`table <tab:cmakecudavar>` below.
 
@@ -247,7 +247,7 @@ For example, on Cori GPUs you can specify the architecture as follows:
 
 ::
 
-   cmake [options] -DAMReX_GPU_BACKEND=CUDA -DAMReX_CUDA_ARCH=Volta /path/to/amrex/source
+   cmake [options] -DAMReX_COMPUTE=CUDA -DAMReX_CUDA_ARCH=Volta /path/to/amrex/source
 
 
 If no architecture is specified, CMake will default to the architecture defined in the
@@ -313,7 +313,7 @@ Enabling HIP support (experimental)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To build AMReX with HIP support in CMake, add
-``-DAMReX_GPU_BACKEND=HIP -DAMReX_AMD_ARCH=<target-arch> -DCMAKE_CXX_COMPILER=<your-hip-compiler>``
+``-DAMReX_COMPUTE=HIP -DAMReX_AMD_ARCH=<target-arch> -DCMAKE_CXX_COMPILER=<your-hip-compiler>``
 to the ``cmake`` invocation.
 
 In AMReX CMake, the HIP compiler is treated as a special C++ compiler and therefore
@@ -324,21 +324,21 @@ for example ``CMAKE_CXX_FLAGS``, can be used for HIP as well.
 Since CMake does not support autodetection of HIP compilers/target architectures
 yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``hipcc`` or ``nvcc``,
 and ``AMReX_AMD_ARCH`` to the target architecture you are building for.
-Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user-inputs when AMReX_GPU_BACKEND=HIP**.
+Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user-inputs when AMReX_COMPUTE=HIP**.
 Below is an example configuration for HIP on Tulip:
 
 .. highlight:: console
 
 ::
 
-   cmake -DAMReX_GPU_BACKEND=HIP -DCMAKE_CXX_COMPILER=$(which hipcc) -DAMReX_AMD_ARCH="gfx906,gfx908"  [other options] /path/to/amrex/source
+   cmake -DAMReX_COMPUTE=HIP -DCMAKE_CXX_COMPILER=$(which hipcc) -DAMReX_AMD_ARCH="gfx906,gfx908"  [other options] /path/to/amrex/source
 
 
 Enabling SYCL support (experimental)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To build AMReX with SYCL support in CMake, add
-``-DAMReX_GPU_BACKEND=SYCL -DCMAKE_CXX_COMPILER=<your-sycl-compiler>``
+``-DAMReX_COMPUTE=SYCL -DCMAKE_CXX_COMPILER=<your-sycl-compiler>``
 to the ``cmake`` invocation.
 For a full list of SYCL-specific configuration options,
 check the :ref:`table <tab:cmakesyclvar>` below.
@@ -351,7 +351,7 @@ for example ``CMAKE_CXX_FLAGS``, can be used for DPCPP as well.
 
 Since CMake does not support autodetection of SYCL compilers yet,
 ``CMAKE_CXX_COMPILER`` must be set to a valid SYCL compiler. i.e. ``dpcpp``.
-Thus **CMAKE_CXX_COMPILER is a required user-input when AMReX_GPU_BACKEND=SYCL**.
+Thus **CMAKE_CXX_COMPILER is a required user-input when AMReX_COMPUTE=SYCL**.
 At this time, **the only supported SYCL compiler is dpcpp**.
 Below is an example configuration for SYCL:
 
@@ -359,7 +359,7 @@ Below is an example configuration for SYCL:
 
 ::
 
-   cmake -DAMReX_GPU_BACKEND=SYCL -DCMAKE_CXX_COMPILER=$(which dpcpp)  [other options] /path/to/amrex/source
+   cmake -DAMReX_COMPUTE=SYCL -DCMAKE_CXX_COMPILER=$(which dpcpp)  [other options] /path/to/amrex/source
 
 
 .. raw:: latex
