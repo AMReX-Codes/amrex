@@ -20,8 +20,7 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
-                 const Vector<EBFArrayBoxFactory const*>& a_factory,
-                 const int ncomp = 1);
+                 const Vector<EBFArrayBoxFactory const*>& a_factory);
 
     virtual ~MLEBABecLap ();
 

@@ -24,10 +24,8 @@ MLEBABecLap::MLEBABecLap (const Vector<Geometry>& a_geom,
                           const Vector<BoxArray>& a_grids,
                           const Vector<DistributionMapping>& a_dmap,
                           const LPInfo& a_info,
-                          const Vector<EBFArrayBoxFactory const*>& a_factory,
-                          const int ncomp)
+                          const Vector<EBFArrayBoxFactory const*>& a_factory)
 {
-    setNComp(ncomp);
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
