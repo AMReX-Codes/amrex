@@ -327,7 +327,7 @@ ifdef GPU_ERROR_CHECK
   GPU_ERROR_CHECK := $(strip $(GPU_ERROR_CHECK))
 else
   GPU_ERROR_CHECK := TRUE
-endif 
+endif
 
 ifdef FIX_NVCC_PTHREAD
   FIX_NVCC_PTHREAD := $(strip $(FIX_NVCC_PTHREAD))
@@ -364,7 +364,7 @@ FORTLINK  	= UNDERSCORE
 FORT_CPP        = cpp -E -traditional-cpp -P
 FORTPREP  	= perl $(AMREX_HOME)/Tools/C_scripts/strip72 -c
 F90PREP  	= cat  # a placeholder in case we have to write something later
-CPP_PREFIX      = 
+CPP_PREFIX      =
 MKDEP		= perl $(AMREX_HOME)/Tools/C_scripts/mkdep
 MODDEP		= $(AMREX_HOME)/Tools/F_scripts/dep.py
 CHECKFORT       = $(AMREX_HOME)/Tools/typechecker/typechecker.py
@@ -482,7 +482,7 @@ else ifeq ($(lowercase_comp),nec)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak
 else ifeq ($(lowercase_comp),hip)
-  AMREX_FCOMP ?= gnu 
+  AMREX_FCOMP ?= gnu
   AMREX_CCOMP ?= hip
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
@@ -641,7 +641,7 @@ ifeq ($(USE_ACC),TRUE)
 endif
 
 ifeq ($(USE_CUPTI),TRUE)
-  ifeq ($(USE_CUDA),TRUE)	
+  ifeq ($(USE_CUDA),TRUE)
     DEFINES += -DAMREX_USE_CUPTI
     CUPTISuffix := .CUPTI
   else
@@ -923,16 +923,6 @@ endif
 ifeq ($(USE_UPCXX),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.upcxx...)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.upcxx
-endif
-
-ifeq ($(USE_SUNDIALS),TRUE)
-  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials...)
-  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials
-endif
-
-ifeq ($(USE_CVODE),TRUE)
-  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode...)
-  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode
 endif
 
 ifeq ($(USE_HYPRE),TRUE)
