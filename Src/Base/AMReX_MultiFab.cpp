@@ -1264,9 +1264,9 @@ MultiFab::OverlapMask (const Periodicity& period) const
 
 #ifdef AMREX_USE_GPU
     amrex::ParallelFor(tags, 1,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<Real> const& a) noexcept
+    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4BoxTag<Real> const& tag) noexcept
     {
-        Real* p = a.ptr(i,j,k,n);
+        Real* p = tag.dfab.ptr(i,j,k,n);
         Gpu::Atomic::AddNoRet(p, Real(1.0));
     });
 #endif
