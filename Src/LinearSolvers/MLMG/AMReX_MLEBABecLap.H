@@ -20,7 +20,8 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
-                 const Vector<EBFArrayBoxFactory const*>& a_factory);
+                 const Vector<EBFArrayBoxFactory const*>& a_factory,
+                 const int a_ncomp = 1);
 
     virtual ~MLEBABecLap ();
 
@@ -58,6 +59,8 @@ public:
     void setEBHomogDirichlet (int amrlev,                      const MultiFab& beta);
     void setEBHomogDirichlet (int amrlev,                      Real beta);
     void setEBHomogDirichlet (int amrlev,                      Vector<Real> const& beta);
+
+    virtual int getNComp () const { return m_ncomp; }
 
     virtual bool needsUpdate () const override {
         return (m_needs_update || MLCellABecLap::needsUpdate());
@@ -118,6 +121,8 @@ public:
 #endif
 
 protected:
+
+    int m_ncomp;
 
     bool m_needs_update = true;
 
