@@ -31,7 +31,7 @@ endif ()
 #
 if (AMReX_OMP)
    set(_omp_comps CXX)
-   if (AMReX_FORTRAN_INTERFACES)
+   if (AMReX_FORTRAN_INTERFACES OR AMReX_FORTRAN)
       list(APPEND _omp_comps Fortran)
    endif ()
    find_package(OpenMP REQUIRED ${_omp_comps})
