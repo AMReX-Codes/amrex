@@ -578,9 +578,12 @@ public:
 
     /**
      * \brief Sort the particles on each tile by groups of cells, given an IntVect bin_size
+     *
+     *        If bin_size is the zero vector, this operation is a no-op.
+     *
      */
     void SortParticlesByBin (IntVect bin_size);
-	
+
     /**
     * \brief OK checks that all particles are in the right places (for some value of right)
     *
