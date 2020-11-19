@@ -710,9 +710,10 @@ namespace amrex
 
 #ifdef AMREX_USE_GPU
         amrex::ParallelFor(tags, 1,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<value_type> const& a) noexcept
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n,
+                              Array4BoxTag<value_type> const& tag) noexcept
         {
-            a(i,j,k,n) = fine_value;
+            tag.dfab(i,j,k,n) = fine_value;
         });
 #endif
     }

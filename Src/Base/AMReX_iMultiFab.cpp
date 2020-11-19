@@ -589,9 +589,9 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngr
 
 #ifdef AMREX_USE_GPU
     amrex::ParallelFor(tags, 1,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<int> const& a) noexcept
+    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4BoxTag<int> const& tag) noexcept
     {
-        a(i,j,k,n) = nonowner;
+        tag.dfab(i,j,k,n) = nonowner;
     });
 #endif
 

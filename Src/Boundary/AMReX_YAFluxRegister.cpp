@@ -211,9 +211,9 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
 
 #ifdef AMREX_USE_GPU
         amrex::ParallelFor(tags, 1,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<Real> const& a) noexcept
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4BoxTag<Real> const& tag) noexcept
         {
-            a(i,j,k,n) = 0.0;
+            tag.dfab(i,j,k,n) = 0.0;
         });
 #endif
     }
