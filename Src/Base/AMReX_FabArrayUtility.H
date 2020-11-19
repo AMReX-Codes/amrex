@@ -352,7 +352,7 @@ ReduceMin_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
 
-#ifdef _OPENMP
+#if defined(_OPENMP) && !defined(_MSC_VER)
 #pragma omp parallel reduction(min:r)
 #endif
     for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
@@ -456,7 +456,7 @@ ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
 
-#ifdef _OPENMP
+#if defined(_OPENMP) && !defined(_MSC_VER)
 #pragma omp parallel reduction(min:r)
 #endif
     for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
@@ -569,7 +569,7 @@ ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
 
-#ifdef _OPENMP
+#if defined(_OPENMP) && !defined(_MSC_VER)
 #pragma omp parallel reduction(min:r)
 #endif
     for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
@@ -682,7 +682,7 @@ ReduceMax_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
 
-#ifdef _OPENMP
+#if defined(_OPENMP) && !defined(_MSC_VER)
 #pragma omp parallel reduction(max:r)
 #endif
     for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
@@ -787,7 +787,7 @@ ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
 
-#ifdef _OPENMP
+#if defined(_OPENMP) && !defined(_MSC_VER)
 #pragma omp parallel reduction(max:r)
 #endif
     for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
@@ -900,7 +900,7 @@ ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
 
-#ifdef _OPENMP
+#if defined(_OPENMP) && !defined(_MSC_VER)
 #pragma omp parallel reduction(max:r)
 #endif
     for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)

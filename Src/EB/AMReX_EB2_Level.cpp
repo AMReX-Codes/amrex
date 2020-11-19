@@ -97,7 +97,7 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
 
     if (Gpu::notInLaunchRegion())
     {
-#ifdef _OPENMP
+#if defined(_OPENMP) && !defined(_MSC_VER)
 #pragma omp parallel reduction(max:mvmc_error)
 #endif
         for (MFIter mfi(m_levelset,true); mfi.isValid(); ++mfi)
@@ -248,7 +248,7 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
 
     if (Gpu::notInLaunchRegion())
     {
-#ifdef _OPENMP
+#if defined(_OPENMP) && !defined(_MSC_VER)
 #pragma omp parallel reduction(max:error)
 #endif
         for (MFIter mfi(m_volfrac,true); mfi.isValid(); ++mfi)

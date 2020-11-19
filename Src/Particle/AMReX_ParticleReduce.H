@@ -243,7 +243,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef _OPENMP
+#if defined(_OPENMP) && !defined(_MSC_VER)
 #pragma omp parallel if (!system::regtest_reduction) reduction(max:r)
 #endif
             for(ParIter pti(pc, lev); pti.isValid(); ++pti)
@@ -367,7 +367,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef _OPENMP
+#if defined(_OPENMP) && !defined(_MSC_VER)
 #pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
 #endif
             for(ParIter pti(pc, lev); pti.isValid(); ++pti)
