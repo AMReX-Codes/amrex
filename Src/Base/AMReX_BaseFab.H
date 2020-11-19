@@ -40,15 +40,22 @@ extern std::atomic<Long> atomic_total_bytes_allocated_in_fabs;
 extern std::atomic<Long> atomic_total_bytes_allocated_in_fabs_hwm;
 extern std::atomic<Long> atomic_total_cells_allocated_in_fabs;
 extern std::atomic<Long> atomic_total_cells_allocated_in_fabs_hwm;
+#ifdef _MSC_VER
+extern __declspec(thread) Long private_total_bytes_allocated_in_fabs;
+extern __declspec(thread) Long private_total_bytes_allocated_in_fabs_hwm;
+extern __declspec(thread) Long private_total_cells_allocated_in_fabs;
+extern __declspec(thread) Long private_total_cells_allocated_in_fabs_hwm;
+#else
 extern Long private_total_bytes_allocated_in_fabs;     //!< total bytes at any given time
 extern Long private_total_bytes_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
 extern Long private_total_cells_allocated_in_fabs;     //!< total cells at any given time
 extern Long private_total_cells_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
-#ifdef _OPENMP
-#pragma omp threadprivate(private_total_bytes_allocated_in_fabs)
-#pragma omp threadprivate(private_total_bytes_allocated_in_fabs_hwm)
-#pragma omp threadprivate(private_total_cells_allocated_in_fabs)
-#pragma omp threadprivate(private_total_cells_allocated_in_fabs_hwm)
+#   ifdef _OPENMP
+#       pragma omp threadprivate(private_total_bytes_allocated_in_fabs)
+#       pragma omp threadprivate(private_total_bytes_allocated_in_fabs_hwm)
+#       pragma omp threadprivate(private_total_cells_allocated_in_fabs)
+#       pragma omp threadprivate(private_total_cells_allocated_in_fabs_hwm)
+#   endif
 #endif
 
 Long TotalBytesAllocatedInFabs () noexcept;
