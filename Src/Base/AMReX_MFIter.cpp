@@ -497,7 +497,7 @@ MFIter::grownnodaltilebox (int dir, IntVect const& a_ng) const noexcept
 void
 MFIter::operator++ () noexcept
 {
-#ifdef _OPENMP
+#if defined(_OPENMP) && !defined(_MSC_VER)
     if (dynamic)
     {
 #pragma omp atomic capture

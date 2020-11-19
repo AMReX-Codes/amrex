@@ -42,7 +42,7 @@ public:
 
     ParIterBase (ContainerRef pc, int level, MFItInfo& info);
 
-#ifdef _OPENMP
+#if defined(_OPENMP) && !defined(_MSC_VER)
     void operator++ ()
     {
         if (dynamic) {
