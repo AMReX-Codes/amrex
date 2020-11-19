@@ -15,7 +15,7 @@ target_link_libraries( amrex PUBLIC Threads::Threads )
 #
 if (AMReX_MPI)
    set(_mpi_comps C CXX)  # Do we need MPI_C ?
-   if (AMReX_FORTRAN_INTERFACES)
+   if (AMReX_FORTRAN)
       list(APPEND _mpi_comps Fortran)
    endif ()
    find_package(MPI REQUIRED ${_mpi_comps})

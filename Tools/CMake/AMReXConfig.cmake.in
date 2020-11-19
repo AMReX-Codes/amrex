@@ -83,7 +83,7 @@ find_dependency(Threads REQUIRED)
 
 if (@AMReX_MPI@)
    set( _mpi_components C CXX )
-   if (@AMReX_FORTRAN_INTERFACES@)
+   if (@AMReX_FORTRAN@)
       list(APPEND _mpi_components Fortran)
    endif ()
    find_dependency(MPI REQUIRED ${_mpi_components})
