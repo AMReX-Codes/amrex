@@ -92,7 +92,7 @@ endif()
 
 if (@AMReX_OMP@)
    set( _omp_components CXX )
-   if (@AMReX_FORTRAN_INTERFACES@)
+   if (@AMReX_FORTRAN@)
       list(APPEND _omp_components Fortran)
    endif ()
    find_dependency(OpenMP REQUIRED ${_omp_components})
