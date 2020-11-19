@@ -1526,8 +1526,12 @@ BoxArray::getHashMap () const
 #endif
 
 #ifdef _OPENMP
-#pragma omp flush
-#pragma omp atomic write
+#   pragma omp flush
+#   ifdef _MSC_VER
+#       pragma omp critical
+#   else
+#       pragma omp atomic write
+#   endif
 #endif
             m_ref->has_hashmap = true;
         }
