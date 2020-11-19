@@ -14,6 +14,13 @@ namespace OpenMP {
 
 }}
 
+// work-arounds
+#   ifdef _MSC_VER
+#       define AMREX_OMP_ATOMIC_READ __pragma(omp atomic)
+#   else
+#       define AMREX_OMP_ATOMIC_READ _Pragma("omp atomic read")
+#   endif
+
 #else
 
 namespace amrex {
@@ -26,6 +33,9 @@ namespace OpenMP {
 
 }}
 
-#endif
+// work-arounds
+#   define AMREX_OMP_ATOMIC_READ
 
-#endif
+#endif // _OPENMP
+
+#endif // AMREX_OPENMP_H_

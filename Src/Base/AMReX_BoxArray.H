@@ -2,15 +2,17 @@
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
 
+#include <AMReX_Array.H>
+#include <AMReX_BoxList.H>
+#include <AMReX_IndexType.H>
+#include <AMReX_OpenMP.H>
+#include <AMReX_Vector.H>
+
 #include <iostream>
 #include <cstddef>
 #include <map>
 #include <unordered_map>
 
-#include <AMReX_IndexType.H>
-#include <AMReX_BoxList.H>
-#include <AMReX_Array.H>
-#include <AMReX_Vector.H>
 
 namespace amrex
 {
@@ -74,12 +76,17 @@ struct BARef
 #endif
 
     inline bool HasHashMap () const {
+#ifdef _MSC_VER
+        int r = 0;
+        AMREX_OMP_ATOMIC_READ
+        r += has_hashmap;
+        return bool(r);
+#else
         bool r;
-#ifdef _OPENMP
-#pragma omp atomic read
-#endif
+        AMREX_OMP_ATOMIC_READ
         r = has_hashmap;
         return r;
+#endif
     }
 
     //
