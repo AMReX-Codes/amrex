@@ -443,7 +443,11 @@ namespace HostDevice { namespace Atomic {
         Gpu::Atomic::AddNoRet(sum,value);
 #else
 #ifdef _OPENMP
-#pragma omp atomic update
+#   ifdef _MSC_VER
+#       pragma omp atomic
+#   else
+#       pragma omp atomic update
+#   endif
 #endif
         *sum += value;
 #endif
