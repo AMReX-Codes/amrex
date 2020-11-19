@@ -650,7 +650,7 @@ A list of AMReX component names and related configure options are shown in the t
    +------------------------------+-----------------+
    | AMReX_OMP                    | OMP             |
    +------------------------------+-----------------+
-   | AMReX_CUDA                   | CUDA            |
+   | AMReX_GPU_BACKEND            | CUDA, HIP, SYCL |
    +------------------------------+-----------------+
    | AMReX_FORTRAN_INTERFACES     | FINTERFACES     |
    +------------------------------+-----------------+
