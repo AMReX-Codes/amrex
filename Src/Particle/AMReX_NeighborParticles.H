@@ -7,6 +7,7 @@
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_NeighborList.H>
 #include <AMReX_OpenMP.H>
+#include <AMReX_ParticleTile.H>
 
 namespace amrex {
 
@@ -258,6 +259,24 @@ public:
         return neighbors[lev][std::make_pair(grid,tile)];
     }
 
+    template <typename T,
+              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+    void AddRealComp (T communicate=true)
+    {
+        this->AddRealComp(communicate);
+        rc.push_back(communicate);
+        calcCommSize();
+    }
+
+    template <typename T,
+              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+    void AddIntComp (T communicate=true)
+    {
+        this->AddIntComp(communicate);
+        ic.push_back(communicate);
+        calcCommSize();
+    }
+
     void Redistribute (int lev_min=0, int lev_max=-1, int nGrow=0, int local=0)
     {
         clearNeighbors();
@@ -345,7 +364,7 @@ protected:
     IntVect computeRefFac (const int src_lev, const int lev);
 
     Vector<std::map<PairIndex, Vector<InverseCopyTag> > > inverse_tags;
-    Vector<std::map<PairIndex, ParticleVector> > neighbors;
+    Vector<std::map<PairIndex, ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt> > > neighbors;
     Vector<std::map<PairIndex, IntVector> >      neighbor_list;
     const size_t pdata_size = sizeof(ParticleType);
 
@@ -365,8 +384,8 @@ protected:
     Long num_snds;
     std::map<int, Vector<char> > send_data;
 
-    std::array<bool, AMREX_SPACEDIM + NStructReal> rc;
-    std::array<bool, 2 + NStructInt>  ic;
+    Vector<int> rc;
+    Vector<int> ic;
 
     static bool use_mask;
 

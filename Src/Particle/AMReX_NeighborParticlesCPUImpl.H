@@ -279,7 +279,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
             PairIndex src_index(pti.index(), pti.LocalTileIndex());
-            auto& particles = pti.GetArrayOfStructs();
+            auto& aos = pti.GetArrayOfStructs();
+            auto& soa = pti.GetStructOfArrays();
             for (int j = 0; j < num_threads; ++j) {
                 auto& tags = buffer_tag_cache[lev][src_index][j];
                 int num_tags = tags.size();
@@ -290,21 +291,23 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     const NeighborCopyTag& tag = tags[i];
                     const int global_who = this->ParticleDistributionMap(tag.level)[tag.grid];
                     const int who = ParallelContext::global_to_local_rank(global_who);
-                    ParticleType p = particles[tag.src_index];  // copy
-                    if (periodicity.isAnyPeriodic()) {
-                        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                            if (not periodicity.isPeriodic(dir)) continue;
-                            if (tag.periodic_shift[dir] < 0)
-                                p.pos(dir) += prob_domain.length(dir);
-                            else if (tag.periodic_shift[dir] > 0)
-                                p.pos(dir) -= prob_domain.length(dir);
-                        }
-                    }
                     if (who == MyProc) {
                         PairIndex dst_index(tag.grid, tag.tile);
-                        ParticleVector& buffer = neighbors[tag.level][dst_index];
+                        auto& dst = neighbors[tag.level][dst_index].GetParticleTileData();
                         AMREX_ASSERT(tag.dst_index < buffer.size());
-                        std::memcpy(&buffer[tag.dst_index], &p, pdata_size);
+                        copyParticle(dst, src, tag.src_index, tag.dst_index);
+                        if (periodicity.isAnyPeriodic()) {
+                            auto& aos = neighbors[tag.level][dst_index].GetArrayOfStructs();
+                            ParticleType& p = aos[tag.src_index];
+                            for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                                if (not periodicity.isPeriodic(dir)) continue;
+                                if (tag.periodic_shift[dir] < 0)
+                                    p.pos(dir) += prob_domain.length(dir);
+                                else if (tag.periodic_shift[dir] > 0)
+                                    p.pos(dir) -= prob_domain.length(dir);
+                            }
+                        }
+
                         if ( enableInverse() )
                         {
                             auto& itags = inverse_tags[tag.level][dst_index];
@@ -315,6 +318,17 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             itags[tag.dst_index].src_level = lev;
                         }
                     } else {
+                        ParticleType p = aos[tag.src_index];  // copy
+                        if (periodicity.isAnyPeriodic()) {
+                            for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                                if (not periodicity.isPeriodic(dir)) continue;
+                                if (tag.periodic_shift[dir] < 0)
+                                    p.pos(dir) += prob_domain.length(dir);
+                                else if (tag.periodic_shift[dir] > 0)
+                                    p.pos(dir) -= prob_domain.length(dir);
+                            }
+                        }
+
                         char* dst = &send_data[who][tag.dst_index];
                         char* src = (char *) &p;
                         for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii) {

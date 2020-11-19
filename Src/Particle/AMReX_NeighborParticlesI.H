@@ -42,10 +42,10 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::initializeCommComps () {
-    for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii)
-        rc[ii] = true;
-    for (int ii = 0; ii < 2 + NStructInt; ++ii)
-        ic[ii] = true;
+    for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal + this->NumRealComps(); ++ii)
+        rc.push_back(1);
+    for (int ii = 0; ii < 2 + NStructInt + this->NumIntComps(); ++ii)
+        ic.push_back(1);
     calcCommSize();
 }
 
@@ -70,12 +70,12 @@ void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::calcCommSize () {
     size_t comm_size = 0;
-    for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii) {
+    for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal + this->NumRealComps(); ++ii) {
         if (rc[ii]) {
             comm_size += sizeof(typename ParticleType::RealType);
         }
     }
-    for (int ii = 0; ii < 2 + NStructInt; ++ii) {
+    for (int ii = 0; ii < 2 + NStructInt + this->NumIntComps(); ++ii) {
         if (ic[ii]) {
             comm_size += sizeof(int);
         }
