@@ -28,8 +28,8 @@ struct BLBackTrace
     static void print_backtrace_info (const std::string& filename);
 
     static std::stack<std::pair<std::string, std::string> > bt_stack;
-// threadprivate here doesn't work with Cray and Intel
-#if defined(_OPENMP) && !defined(_CRAYC) && !defined(__INTEL_COMPILER) && !defined(__PGI)
+// threadprivate here doesn't work with Cray, Intel, PGI and MSVC
+#if defined(_OPENMP) && !defined(_CRAYC) && !defined(__INTEL_COMPILER) && !defined(__PGI) && !defined(_MSC_VER)
 #pragma omp threadprivate(bt_stack)
 #endif
 };
