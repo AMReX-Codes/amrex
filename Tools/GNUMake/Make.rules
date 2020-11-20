@@ -42,7 +42,7 @@ endif
 endif
 
 CXXDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(includes)
-CDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(includes)
+CDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes)
 
 #
 # Rules for building executable.
@@ -211,9 +211,9 @@ $(objEXETempDir)/%.o: %.c
 	@echo Compiling $*.c ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(USE_GPU_PRAGMA),TRUE)
-	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
 else
-	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(includes) -c $< $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
 endif
 
 $(objEXETempDir)/%.o: %.f
@@ -516,7 +516,7 @@ print-%:
 help:
 	@echo ""
 	@echo "The rule for compiling foo.cpp  is: \$$(CXX) \$$(CXXFLAGS) \$$(EXTRACXXFLAGS) \$$(includes) -c foo.o foo.cpp"
-	@echo "The rule for compiling foo.c    is: \$$(CC) \$$(CFLAGS) \$$(includes) -c foo.o foo.c"
+	@echo "The rule for compiling foo.c    is: \$$(CC) \$$(CFLAGS) \$$(CPPFLAGS) \$$(includes) -c foo.o foo.c"
 	@echo "The rule for compiling foo.f90  is: \$$(F90) \$$(F90FLAGS) \$$(FMODULES) \$$(fincludes) -c foo.o foo.f90"
 	@echo "The rule for compiling foo.F90  is: \$$(F90) \$$(F90FLAGS) \$$(FMODULES) \$$(FCPPFLAGS) \$$(fincludes) -c foo.o foo.F90"
 	@echo "The rule for compiling foo.[fF] is: \$$(FC) \$$(FFLAGS) \$$(FMODULES) \$$(fincludes) -c foo.o foo.f"
