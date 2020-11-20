@@ -21,6 +21,7 @@ int main_main()
 
     Real global_error = 0.0;
     Real global_rerror = 0.0;
+    Real abserr_for_global_rerror = 0.0;
     bool any_nans = false;
     ErrZone err_zone;
     bool all_variables_found = true;
@@ -33,6 +34,7 @@ int main_main()
     int zone_info = false;
     int allow_diff_grids = false;
     Real rtol = 0.0;
+    Real atol = 0.0;
     std::string zone_info_var_name;
     Vector<std::string> plot_names(1);
     bool abort_if_not_all_found = false;
@@ -56,6 +58,8 @@ int main_main()
             allow_diff_grids = true;
         } else if (fname == "-r" or fname == "--rel_tol") {
             rtol = std::stod(amrex::get_command_argument(++farg));
+        } else if (fname == "--abs_tol") {
+            atol = std::stod(amrex::get_command_argument(++farg));
         } else if (fname == "--abort_if_not_all_found") {
             abort_if_not_all_found = true;            
         } else {
@@ -79,7 +83,7 @@ int main_main()
             << " variable.\n"
             << "\n"
             << " usage:\n"
-            << "    fcompare [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-r|rel_tol] file1 file2\n"
+            << "    fcompare [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-r|rel_tol] [--abs_tol] file1 file2\n"
             << "\n"
             << " optional arguments:\n"
             << "    -n|--norm num         : what norm to use (default is 0 for inf norm)\n"
@@ -89,6 +93,7 @@ int main_main()
             << "                            to the maximum error for the given variable\n"
             << "    -a|--allow_diff_grids : allow different BoxArrays covering the same domain\n"
             << "    -r|--rel_tol rtol     : relative tolerance (default is 0)\n"
+            << "    --abs_tol atol        : absolute tolerance (default is 0)\n"
             << std::endl;
         return 0;
     }
@@ -298,9 +303,12 @@ int main_main()
         global_error = std::max(global_error,
                                 *(std::max_element(aerror.begin(),
                                                    aerror.end())));
-        global_rerror = std::max(global_rerror,
-                                 *(std::max_element(rerror.begin(),
-                                                    rerror.end())));
+
+        const auto max_rerr = std::max_element(rerror.begin(), rerror.end());
+        global_rerror = std::max(global_rerror, *max_rerr);
+        const auto idx = std::distance(rerror.begin(), max_rerr);
+        abserr_for_global_rerror = std::max(
+            abserr_for_global_rerror, aerror[idx]);
         for (int icomp_a = 0; icomp_a < ncomp_a; ++icomp_a) {
             any_nans = any_nans or has_nan_a[icomp_a] or has_nan_b[icomp_a];
         }
@@ -356,8 +364,11 @@ int main_main()
     if (global_error == 0.0 and !any_nans) {
         amrex::Print() << " PLOTFILE AGREE" << std::endl;
         return EXIT_SUCCESS;
-    } else if (global_rerror <= rtol) {
-        amrex::Print() << " PLOTFILE AGREE to relative tolerance " << rtol << std::endl;
+    } else if ((abserr_for_global_rerror <= atol) ||
+               (global_rerror <= rtol)) {
+        amrex::Print() << " PLOTFILE AGREE to specified tolerances: "
+                       << "absolute = " << atol
+                       << " relative = " << rtol << std::endl;
         return EXIT_SUCCESS;
     } else {
         return EXIT_FAILURE;
