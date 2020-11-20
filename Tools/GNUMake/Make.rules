@@ -11,6 +11,10 @@ vpath %.h    $(FINAL_VPATH_LOCATIONS)
 vpath %.H    $(FINAL_VPATH_LOCATIONS)
 vpath %.hpp  $(FINAL_VPATH_LOCATIONS)
 
+# AMReX_Config.H
+vpath AMReX_Config.H $(srcTempDir)
+CEXE_headers += $(srcTempDir)/AMReX_Config.H
+
 FCPPFLAGS := $(addprefix $(CPP_PREFIX), $(CPPFLAGS))
 
 # Suppress display of executed commands.  Default verbose
@@ -37,8 +41,8 @@ else
 endif
 endif
 
-CXXDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(CPPFLAGS) $(includes)
-CDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes)
+CXXDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(includes)
+CDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(includes)
 
 #
 # Rules for building executable.
@@ -52,7 +56,7 @@ ifneq ($(SKIP_LINKING),TRUE)
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
 	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(FCPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(libraries)
 else
-	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
+	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
 endif
 #	@echo SUCCESS
 endif
@@ -64,11 +68,20 @@ else
 
 # multiple executables
 %.$(machineSuffix).ex:%.cpp $(objForExecs)
-	$(SLIENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
+	$(SLIENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(includes) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
 	@echo "Linking $@ ..."
-	$(SLIENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$(subst /,_,$<).o $(objForExecs) $(libraries)
+	$(SLIENT) $(AMREX_LINKER) $(LINKFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$(subst /,_,$<).o $(objForExecs) $(libraries)
 
 endif
+
+$(srcTempDir)/AMReX_Config.H:
+	@echo Generating AMReX_Config.H ...
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@ $(MKCONFIG) --defines="$(CPPFLAGS)" --undefine="BL_LANG_FORT" \
+	              --comp="$(lowercase_comp)" \
+	              --allow-different-compiler="$(ALLOW_DIFFERENT_COMP)" \
+	              --use-omp="$(USE_OMP)" \
+	              > $@
 
 ifeq ($(USE_PROFPARSER),TRUE)
 BLProfParser.tab.H BLProfParser.tab.cpp: $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.y
@@ -173,10 +186,10 @@ TAGS:	$(allSources)
 	$(SILENT) etags $(abspath $^)
 
 clang-analyze: $(CEXE_sources)
-	clang++ --analyze --analyzer-output html $(CXXFLAGS) $(CPPFLAGS) $(includes) $^
+	clang++ --analyze --analyzer-output html $(CXXFLAGS) $(includes) $^
 
 clang-tidy: $(CEXE_sources)
-	clang-tidy $^ -checks=clang-diagnostic-*,performance-*,mpi-* -- $(CXXFLAGS) $(CPPFLAGS) $(includes)
+	clang-tidy $^ -checks=clang-diagnostic-*,performance-*,mpi-* -- $(CXXFLAGS) $(includes)
 
 FORCE:
 
@@ -189,18 +202,18 @@ $(objEXETempDir)/%.o: %.cpp
 	@echo Compiling $*.cpp ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(USE_GPU_PRAGMA),TRUE)
-	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
 else
-	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
 endif
 
 $(objEXETempDir)/%.o: %.c
 	@echo Compiling $*.c ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(USE_GPU_PRAGMA),TRUE)
-	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
 else
-	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(includes) -c $< $(EXE_OUTPUT_OPTION)
 endif
 
 $(objEXETempDir)/%.o: %.f
@@ -294,11 +307,9 @@ endif
 # Rules for dependencies in bare object files.
 #
 
-$(depEXETempDir)/%.d: %.cpp
+$(depEXETempDir)/%.d: %.cpp $(srcTempDir)/AMReX_Config.H
 	@echo Depending $< ...
-ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
         # Use > $@2 to filter out unnecessary messages
@@ -310,11 +321,9 @@ else
 endif
 	@$(SHELL) -ec 'sed -i -e '\''s,$*\.o,$(objEXETempDir)/& $@,g'\'' $@'
 
-$(depEXETempDir)/%.d: %.c
+$(depEXETempDir)/%.d: %.c $(srcTempDir)/AMReX_Config.H
 	@echo Depending $< ...
-ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
 	$(CC) $(CDEPFLAGS) $< -o $@
@@ -357,15 +366,17 @@ endif
 # The final result is `$(objEXETempDir)/x.o $(depEXETempDir)/x.d: /path/to/y.cpp`.
 #
 
-$(depEXETempDir)/%.d: %.F
+$(depEXETempDir)/%.d: %.F $(srcTempDir)/AMReX_Config.H
 	@echo Depending $< ...
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*\.o,$(objEXETempDir)/& $@,'\'' > $@'
 
-$(depEXETempDir)/%.d: %.f
+$(depEXETempDir)/%.d: %.f $(srcTempDir)/AMReX_Config.H
 	@echo Depending $< ...
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
@@ -504,8 +515,8 @@ print-%:
 .PHONY: help
 help:
 	@echo ""
-	@echo "The rule for compiling foo.cpp  is: \$$(CXX) \$$(CXXFLAGS) \$$(EXTRACXXFLAGS) \$$(CPPFLAGS) \$$(includes) -c foo.o foo.cpp"
-	@echo "The rule for compiling foo.c    is: \$$(CC) \$$(CFLAGS) \$$(CPPFLAGS) \$$(includes) -c foo.o foo.c"
+	@echo "The rule for compiling foo.cpp  is: \$$(CXX) \$$(CXXFLAGS) \$$(EXTRACXXFLAGS) \$$(includes) -c foo.o foo.cpp"
+	@echo "The rule for compiling foo.c    is: \$$(CC) \$$(CFLAGS) \$$(includes) -c foo.o foo.c"
 	@echo "The rule for compiling foo.f90  is: \$$(F90) \$$(F90FLAGS) \$$(FMODULES) \$$(fincludes) -c foo.o foo.f90"
 	@echo "The rule for compiling foo.F90  is: \$$(F90) \$$(F90FLAGS) \$$(FMODULES) \$$(FCPPFLAGS) \$$(fincludes) -c foo.o foo.F90"
 	@echo "The rule for compiling foo.[fF] is: \$$(FC) \$$(FFLAGS) \$$(FMODULES) \$$(fincludes) -c foo.o foo.f"
@@ -513,7 +524,7 @@ help:
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
 	@echo "The rule for linking            is: \$$(F90) \$$(LINKFLAGS) \$$(FCPPFLAGS) \$$(fincludes) \$$(LDFLAGS) -o \$$(executable) *.o \$$(libraries)"
 else
-	@echo "The rule for linking            is: \$$(CXX) \$$(LINKFLAGS) \$$(CPPFLAGS) \$$(includes) \$$(LDFLAGS) -o \$$(executable) *.o \$$(libraries)"
+	@echo "The rule for linking            is: \$$(CXX) \$$(LINKFLAGS) \$$(includes) \$$(LDFLAGS) -o \$$(executable) *.o \$$(libraries)"
 endif
 	@echo ""
 	@echo "Here the variables are set to:"
