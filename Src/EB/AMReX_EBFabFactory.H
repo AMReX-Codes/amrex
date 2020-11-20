@@ -1,5 +1,6 @@
 #ifndef AMREX_EBFABFACTORY_H_
 #define AMREX_EBFABFACTORY_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FabFactory.H>
 

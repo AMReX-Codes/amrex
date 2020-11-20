@@ -1,5 +1,6 @@
 #ifndef AMREX_HypreABecLap_H_
 #define AMREX_HypreABecLap_H_
+#include <AMReX_Config.H>
 
 #include <iomanip>
 #include <iostream>

@@ -1,5 +1,6 @@
 #ifndef AMREX_BACKGROUND_THREAD_H_
 #define AMREX_BACKGROUND_THREAD_H_
+#include <AMReX_Config.H>
 
 #include <algorithm>
 #include <condition_variable>

@@ -1,5 +1,6 @@
 #ifndef AMREX_MLABECLAP_1D_K_H_
 #define AMREX_MLABECLAP_1D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 

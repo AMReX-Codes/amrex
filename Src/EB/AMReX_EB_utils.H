@@ -1,5 +1,6 @@
 #ifndef AMREX_EB_UTILS_H_
 #define AMREX_EB_UTILS_H_
+#include <AMReX_Config.H>
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>

@@ -1,5 +1,6 @@
 #ifndef AMREX_ARRAY_H_
 #define AMREX_ARRAY_H_
+#include <AMReX_Config.H>
 
 #include <array>
 #include <memory>

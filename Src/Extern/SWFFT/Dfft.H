@@ -56,6 +56,7 @@
 
 #ifndef HACC_DFFT_HPP
 #define HACC_DFFT_HPP
+#include <AMReX_Config.H>
 
 #ifdef ESSL_FFTW
 #include <fftw3_essl.h>

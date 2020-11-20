@@ -1,5 +1,6 @@
 #ifndef AMREX_MULTICUTFAB_H_
 #define AMREX_MULTICUTFAB_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FabArray.H>
 #include <AMReX_EBCellFlag.H>

@@ -1,6 +1,7 @@
 
 #ifndef BL_AMREX_H
 #define BL_AMREX_H
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuPrint.H>

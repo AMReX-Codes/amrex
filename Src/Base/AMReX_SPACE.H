@@ -1,6 +1,7 @@
 
 #ifndef AMREX_SPACE_H
 #define AMREX_SPACE_H
+#include <AMReX_Config.H>
 
 /* for backward compatibility */
 #if defined(BL_SPACEDIM) && !defined(AMREX_SPACEDIM)

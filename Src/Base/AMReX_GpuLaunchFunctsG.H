@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_LAUNCH_FUNCTS_G_H_
 #define AMREX_GPU_LAUNCH_FUNCTS_G_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 

@@ -1,5 +1,6 @@
 #ifndef AMREX_GPUALLOCATORS_H_
 #define AMREX_GPUALLOCATORS_H_
+#include <AMReX_Config.H>
 
 #include <map>
 #include <memory>

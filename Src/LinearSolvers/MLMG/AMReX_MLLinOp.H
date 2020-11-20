@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_LINOP_H_
 #define AMREX_ML_LINOP_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_SPACE.H>
 #include <AMReX_MultiFab.H>

@@ -3,6 +3,7 @@
 // ----------------------------------------------------------------------
 #ifndef BL_COMMPROFSTATS_H
 #define BL_COMMPROFSTATS_H
+#include <AMReX_Config.H>
 
 #include <AMReX_BLProfStats.H>
 #include <AMReX_BLProfiler.H>

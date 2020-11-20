@@ -1,5 +1,6 @@
 #ifndef AMREX_MACHINE_H
 #define AMREX_MACHINE_H
+#include <AMReX_Config.H>
 
 #include <AMReX_Vector.H>
 

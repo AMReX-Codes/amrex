@@ -1,6 +1,7 @@
 
 #ifndef AMREX_MLCGSOLVER_H_
 #define AMREX_MLCGSOLVER_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>

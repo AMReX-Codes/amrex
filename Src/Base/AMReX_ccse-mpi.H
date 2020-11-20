@@ -1,6 +1,7 @@
 
 #ifndef BL_CCSE_MPI_H_
 #define BL_CCSE_MPI_H_
+#include <AMReX_Config.H>
 
 //
 // This header encapsulates the MPI header.

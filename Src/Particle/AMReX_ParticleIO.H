@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLEIO_H
 #define AMREX_PARTICLEIO_H
+#include <AMReX_Config.H>
 
 #include <AMReX_WriteBinaryParticleData.H>
 

@@ -1,5 +1,6 @@
 #ifndef AMREX_DENSEBINS_H_
 #define AMREX_DENSEBINS_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Gpu.H>
 #include <AMReX_IntVect.H>

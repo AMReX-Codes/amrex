@@ -1,6 +1,7 @@
 
 #ifndef AMREX_MASK_H_
 #define AMREX_MASK_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_BaseFab.H>
 #include <AMReX_FArrayBox.H>

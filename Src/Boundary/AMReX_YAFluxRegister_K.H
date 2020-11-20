@@ -1,5 +1,6 @@
 #ifndef AMREX_YAFLUXREGISTER_K_H_
 #define AMREX_YAFLUXREGISTER_K_H_
+#include <AMReX_Config.H>
 
 namespace {
     // must be same as in AMReX_YAFluxRegister.H

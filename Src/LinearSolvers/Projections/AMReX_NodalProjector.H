@@ -1,5 +1,6 @@
 #ifndef NODAL_PROJECTION_H
 #define NODAL_PROJECTION_H
+#include <AMReX_Config.H>
 
 #include <AMReX.H>
 #include <AMReX_Vector.H>

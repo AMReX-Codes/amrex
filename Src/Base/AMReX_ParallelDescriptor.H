@@ -1,5 +1,6 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
+#include <AMReX_Config.H>
 
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_ParallelContext.H>

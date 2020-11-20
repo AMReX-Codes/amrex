@@ -1,5 +1,6 @@
 #ifndef AMREX_EXTENSION_H_
 #define AMREX_EXTENSION_H_
+#include <AMReX_Config.H>
 
 #if !defined(BL_LANG_FORT)
 

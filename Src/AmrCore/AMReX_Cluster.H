@@ -1,6 +1,7 @@
 
 #ifndef AMREX_Cluster_H_
 #define AMREX_Cluster_H_
+#include <AMReX_Config.H>
 
 #include <list>
 #include <AMReX_IntVect.H>

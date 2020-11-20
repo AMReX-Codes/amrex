@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_ASSERT_H_
 #define AMREX_GPU_ASSERT_H_
+#include <AMReX_Config.H>
 
 #if !defined(__APPLE__)
 

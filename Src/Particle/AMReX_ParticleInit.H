@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLEINIT_H
 #define AMREX_PARTICLEINIT_H
+#include <AMReX_Config.H>
 
 /*
   \brief Initialize particles from an Ascii file in the following format:

@@ -1,5 +1,6 @@
 #ifndef AMREX_FAMRCORE_H_
 #define AMREX_FAMRCORE_H_
+#include <AMReX_Config.H>
 
 #include <functional>
 

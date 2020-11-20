@@ -1,5 +1,6 @@
 #ifndef AMREX_ALGORITHM_H_
 #define AMREX_ALGORITHM_H_
+#include <AMReX_Config.H>
 
 #include <algorithm>
 

@@ -56,6 +56,7 @@
 
 #ifndef HACC_DISTRIBUTION_HPP
 #define HACC_DISTRIBUTION_HPP
+#include <AMReX_Config.H>
 
 #include <vector>
 

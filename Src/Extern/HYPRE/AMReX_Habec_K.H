@@ -1,5 +1,6 @@
 #ifndef AMREX_Habec_K_H_
 #define AMREX_Habec_K_H_
+#include <AMReX_Config.H>
 
 #if (AMREX_SPACEDIM == 2)
 #include <AMReX_Habec_2D_K.H>

@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_LEVEL_H_
 #define AMREX_EB2_LEVEL_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_Geometry.H>
