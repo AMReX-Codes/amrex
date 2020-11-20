@@ -23,7 +23,8 @@ def doit(defines, undefines, comp, allow_diff_comp, use_omp):
             else:
                 print("#define",v[0],1)
 
-    print("#undef",undefines)
+    for ud in undefines:
+        print("#undef",ud)
 
     print("#ifdef __cplusplus");
 

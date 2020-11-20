@@ -77,7 +77,7 @@ endif
 $(srcTempDir)/AMReX_Config.H:
 	@echo Generating AMReX_Config.H ...
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-	@ $(MKCONFIG) --defines="$(CPPFLAGS)" --undefine="BL_LANG_FORT" \
+	@ $(MKCONFIG) --defines="$(CPPFLAGS)" --undefines="" \
 	              --comp="$(lowercase_comp)" \
 	              --allow-different-compiler="$(ALLOW_DIFFERENT_COMP)" \
 	              --use-omp="$(USE_OMP)" \
