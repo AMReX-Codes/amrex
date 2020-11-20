@@ -59,11 +59,11 @@ def doit(defines, undefines, comp, allow_diff_comp):
         print('static_assert(false,"'+msg+'");')
         print("#endif")
 
-    print("#if defined(AMREX_USE_OMP) && !defined(_OPENMP)")
-    print('static_assert(false,"libamrex was built with OpenMP");')
-    print("#endif")
-
     print("#endif") #  ifdef __cplusplus
+
+    print("#if defined(AMREX_USE_OMP) && !defined(_OPENMP)")
+    print('#error libamrex was built with OpenMP')
+    print("#endif")
 
     print("#endif")
 
