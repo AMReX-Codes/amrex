@@ -78,7 +78,6 @@ $(srcTempDir)/AMReX_Config.H:
 	@ $(MKCONFIG) --defines="$(CPPFLAGS)" --undefines="" \
 	              --comp="$(lowercase_comp)" \
 	              --allow-different-compiler="$(ALLOW_DIFFERENT_COMP)" \
-	              --use-omp="$(USE_OMP)" \
 	              > $@
 
 ifeq ($(USE_PROFPARSER),TRUE)
