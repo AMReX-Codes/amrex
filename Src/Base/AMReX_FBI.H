@@ -1,6 +1,5 @@
 #ifndef AMREX_FBI_H_
 #define AMREX_FBI_H_
-#include <AMReX_Config.H>
 
 template <class FAB>
 struct FabCopyTag {

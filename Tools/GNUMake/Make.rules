@@ -39,7 +39,7 @@ else
 endif
 endif
 
-CXXDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(includes)
+CXXDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(CPPFLAGS) $(includes)
 CDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes)
 
 #
@@ -174,10 +174,10 @@ TAGS:	$(allSources)
 	$(SILENT) etags $(abspath $^)
 
 clang-analyze: $(CEXE_sources)
-	clang++ --analyze --analyzer-output html $(CXXFLAGS) $(includes) $^
+	clang++ --analyze --analyzer-output html $(CXXFLAGS) $(CPPFLAGS) $(includes) $^
 
 clang-tidy: $(CEXE_sources)
-	clang-tidy $^ -checks=clang-diagnostic-*,performance-*,mpi-* -- $(CXXFLAGS) $(includes)
+	clang-tidy $^ -checks=clang-diagnostic-*,performance-*,mpi-* -- $(CXXFLAGS) $(CPPFLAGS) $(includes)
 
 FORCE:
 
@@ -297,7 +297,6 @@ endif
 
 $(depEXETempDir)/%.d: %.cpp $(srcTempDir)/AMReX_Config.H
 	@echo Depending $< ...
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
         # Use > $@2 to filter out unnecessary messages
@@ -311,7 +310,6 @@ endif
 
 $(depEXETempDir)/%.d: %.c $(srcTempDir)/AMReX_Config.H
 	@echo Depending $< ...
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
 	$(CC) $(CDEPFLAGS) $< -o $@
@@ -356,7 +354,6 @@ endif
 
 $(depEXETempDir)/%.d: %.F $(srcTempDir)/AMReX_Config.H
 	@echo Depending $< ...
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
@@ -364,7 +361,6 @@ $(depEXETempDir)/%.d: %.F $(srcTempDir)/AMReX_Config.H
 
 $(depEXETempDir)/%.d: %.f $(srcTempDir)/AMReX_Config.H
 	@echo Depending $< ...
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
@@ -523,7 +519,7 @@ endif
 	@echo "    CPPFLAGS      = $(CPPFLAGS)"
 	@echo "    FCPPFLAGS     = $(FCPPFLAGS)"
 	@echo "    CXXFLAGS      = $(CXXFLAGS)"
-	@echo "    EXTRACXXFLAGS = $(CXXFLAGS)"
+	@echo "    EXTRACXXFLAGS = $(EXTRACXXFLAGS)"
 	@echo "    CFLAGS        = $(CFLAGS)"
 	@echo "    LINKFLAGS     = $(LINKFLAGS)"
 	@echo "    includes      = $(includes)"
