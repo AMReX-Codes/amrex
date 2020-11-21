@@ -66,7 +66,7 @@ else
 
 # multiple executables
 %.$(machineSuffix).ex:%.cpp $(objForExecs)
-	$(SLIENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(DEFINES) $(includes) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
+	$(SLIENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(includes) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
 	@echo "Linking $@ ..."
 	$(SLIENT) $(AMREX_LINKER) $(LINKFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$(subst /,_,$<).o $(objForExecs) $(libraries)
 
@@ -190,9 +190,9 @@ $(objEXETempDir)/%.o: %.cpp
 	@echo Compiling $*.cpp ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(USE_GPU_PRAGMA),TRUE)
-	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(DEFINES) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
 else
-	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(DEFINES) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
 endif
 
 $(objEXETempDir)/%.o: %.c
@@ -499,7 +499,7 @@ print-%:
 .PHONY: help
 help:
 	@echo ""
-	@echo "The rule for compiling foo.cpp  is: \$$(CXX) \$$(CXXFLAGS) \$$(EXTRACXXFLAGS) \$$(DEFINES) \$$(includes) -c foo.o foo.cpp"
+	@echo "The rule for compiling foo.cpp  is: \$$(CXX) \$$(CXXFLAGS) \$$(EXTRACXXFLAGS) \$$(includes) -c foo.o foo.cpp"
 	@echo "The rule for compiling foo.c    is: \$$(CC) \$$(CFLAGS) \$$(CPPFLAGS) \$$(includes) -c foo.o foo.c"
 	@echo "The rule for compiling foo.f90  is: \$$(F90) \$$(F90FLAGS) \$$(FMODULES) \$$(fincludes) -c foo.o foo.f90"
 	@echo "The rule for compiling foo.F90  is: \$$(F90) \$$(F90FLAGS) \$$(FMODULES) \$$(FCPPFLAGS) \$$(fincludes) -c foo.o foo.F90"
@@ -522,7 +522,6 @@ endif
 	@echo "    EXTRACXXFLAGS = $(EXTRACXXFLAGS)"
 	@echo "    CFLAGS        = $(CFLAGS)"
 	@echo "    LINKFLAGS     = $(LINKFLAGS)"
-	@echo "    DEFINES       = $(DEFINES)"
 	@echo "    includes      = $(includes)"
 	@echo "    FFLAGS        = $(FFLAGS)"
 	@echo "    F90FLAGS      = $(F90FLAGS)"

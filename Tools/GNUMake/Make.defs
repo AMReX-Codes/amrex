@@ -30,7 +30,7 @@ endif
 
 ifeq ($(USE_DPCPP),TRUE)
   override COMP = dpcpp
-  AMREX_DEFINES += -DAMREX_USE_DPCPP -DAMREX_USE_GPU
+  DEFINES += -DAMREX_USE_DPCPP -DAMREX_USE_GPU
   USE_CUDA := FALSE
   USE_HIP := FALSE
   # disable mpi, fortran and ccache for now
@@ -70,7 +70,7 @@ endif
 ifdef BL_NO_FORT
   BL_NO_FORT := $(strip $(BL_NO_FORT))
   ifeq ($(BL_NO_FORT),TRUE)
-    AMREX_DEFINES += -DBL_NO_FORT
+    DEFINES += -DBL_NO_FORT
   endif
 else
   BL_NO_FORT := FALSE
@@ -212,7 +212,7 @@ else
 endif
 
 ifeq ($(USE_PMI), TRUE)
-  AMREX_DEFINES += -DAMREX_PMI
+  DEFINES += -DAMREX_PMI
 endif
 
 ifdef USE_UPCXX
@@ -358,7 +358,7 @@ SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
 
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
-AMREX_DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
+DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
 
 FORTLINK  	= UNDERSCORE
 
@@ -574,7 +574,7 @@ ifeq ($(LAZY),TRUE)
 endif
 
 ifeq ($(USE_ARRAYVIEW), TRUE)
-  AMREX_DEFINES += -DBL_USE_ARRAYVIEW -DAMREX_USE_ARRAYVIEW
+  DEFINES += -DBL_USE_ARRAYVIEW -DAMREX_USE_ARRAYVIEW
   ARRAYVIEWDIR ?= $(AMREX_HOME)/../ArrayView
   INCLUDE_LOCATIONS += $(ARRAYVIEWDIR)
   LIBRARY_LOCATIONS += $(ARRAYVIEWDIR)
@@ -623,7 +623,7 @@ else
 endif
 
 ifeq ($(USE_OMP_OFFLOAD),TRUE)
-  AMREX_DEFINES += -DAMREX_USE_OMP_OFFLOAD
+  DEFINES += -DAMREX_USE_OMP_OFFLOAD
   OMPSuffix := $(OMPSuffix).OMP_OFFLOAD
 endif
 
@@ -637,13 +637,13 @@ ifeq ($(USE_ACC),TRUE)
 
   USE_GPU := TRUE
   ACCSuffix := .ACC
-  AMREX_DEFINES += -DAMREX_USE_ACC
+  DEFINES += -DAMREX_USE_ACC
 
 endif
 
 ifeq ($(USE_CUPTI),TRUE)
   ifeq ($(USE_CUDA),TRUE)	
-    AMREX_DEFINES += -DAMREX_USE_CUPTI
+    DEFINES += -DAMREX_USE_CUPTI
     CUPTISuffix := .CUPTI
   else
     $(error CUPTI can only be used with USE_CUDA=TRUE)
@@ -654,7 +654,7 @@ ifeq ($(USE_HIP),TRUE)
 
     USE_GPU := TRUE
 
-    AMREX_DEFINES += -DAMREX_USE_HIP
+    DEFINES += -DAMREX_USE_HIP
 
     GPUSuffix := .HIP
 
@@ -692,65 +692,65 @@ else ifeq ($(USE_CUDA),TRUE)
       export MPICH_FC  := $(F90)
     endif
 
-    AMREX_DEFINES += -DAMREX_USE_CUDA
+    DEFINES += -DAMREX_USE_CUDA
 
     ifeq ($(USE_GPU_PRAGMA),TRUE)
-        AMREX_DEFINES += -DAMREX_USE_GPU_PRAGMA
+        DEFINES += -DAMREX_USE_GPU_PRAGMA
         GPU_PRAGMA_DEVICE_SUFFIX ?= _device
 
         ifeq ($(GPU_PRAGMA_NO_HOST_VERSION),FALSE)
           GPU_PRAGMA_NO_HOST_VERSION_ARG :=
         else
           GPU_PRAGMA_NO_HOST_VERSION_ARG := --no_host_version
-          AMREX_DEFINES += -DAMREX_GPU_PRAGMA_NO_HOST
+          DEFINES += -DAMREX_GPU_PRAGMA_NO_HOST
         endif
     endif
 
     GPUSuffix := .CUDA
 
     ifeq ($(lowercase_comp),$(filter $(lowercase_comp),ibm pgi hpcsdk))
-      AMREX_DEFINES += -DAMREX_LAUNCH='attributes(global)'
-      AMREX_DEFINES += -DAMREX_DEVICE='attributes(device)'
-      AMREX_DEFINES += -DAMREX_CUDA_FORT_GLOBAL='attributes(global)'
-      AMREX_DEFINES += -DAMREX_CUDA_FORT_DEVICE='attributes(device)'
-      AMREX_DEFINES += -DAMREX_CUDA_FORT_HOST='attributes(host)'
-      AMREX_DEFINES += -DAMREX_CUDA_FORT_HOST_DEVICE='attributes(host) attributes(device)'
+      DEFINES += -DAMREX_LAUNCH='attributes(global)'
+      DEFINES += -DAMREX_DEVICE='attributes(device)'
+      DEFINES += -DAMREX_CUDA_FORT_GLOBAL='attributes(global)'
+      DEFINES += -DAMREX_CUDA_FORT_DEVICE='attributes(device)'
+      DEFINES += -DAMREX_CUDA_FORT_HOST='attributes(host)'
+      DEFINES += -DAMREX_CUDA_FORT_HOST_DEVICE='attributes(host) attributes(device)'
     else
-      AMREX_DEFINES += -DAMREX_LAUNCH=""
-      AMREX_DEFINES += -DAMREX_DEVICE=""
-      AMREX_DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
-      AMREX_DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
-      AMREX_DEFINES += -DAMREX_CUDA_FORT_HOST=""
-      AMREX_DEFINES += -DAMREX_CUDA_FORT_HOST_DEVICE=""
+      DEFINES += -DAMREX_LAUNCH=""
+      DEFINES += -DAMREX_DEVICE=""
+      DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
+      DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
+      DEFINES += -DAMREX_CUDA_FORT_HOST=""
+      DEFINES += -DAMREX_CUDA_FORT_HOST_DEVICE=""
     endif
 
 else
-    AMREX_DEFINES += -DAMREX_LAUNCH=""
-    AMREX_DEFINES += -DAMREX_DEVICE=""
-    AMREX_DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
-    AMREX_DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
-    AMREX_DEFINES += -DAMREX_CUDA_FORT_HOST=""
-    AMREX_DEFINES += -DAMREX_CUDA_FORT_HOST_DEVICE=""
+    DEFINES += -DAMREX_LAUNCH=""
+    DEFINES += -DAMREX_DEVICE=""
+    DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
+    DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
+    DEFINES += -DAMREX_CUDA_FORT_HOST=""
+    DEFINES += -DAMREX_CUDA_FORT_HOST_DEVICE=""
 
     GPUSuffix :=
 endif
 
 ifeq ($(USE_GPU),TRUE)
-    AMREX_DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS
+    DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS
     ifeq ($(GPU_ERROR_CHECK),FALSE)
-        AMREX_DEFINES += -DAMREX_GPU_NO_ERROR_CHECK
+        DEFINES += -DAMREX_GPU_NO_ERROR_CHECK
     endif
 endif
 
 ifeq ($(USE_SINGLE_PRECISION_PARTICLES), TRUE)
-  AMREX_DEFINES += -DBL_SINGLE_PRECISION_PARTICLES -DAMREX_SINGLE_PRECISION_PARTICLES
+  DEFINES += -DBL_SINGLE_PRECISION_PARTICLES -DAMREX_SINGLE_PRECISION_PARTICLES
   amrex_particle_real = float
 else
   amrex_particle_real = double
 endif
 
 ifeq ($(PRECISION),FLOAT)
-    AMREX_DEFINES += -DBL_USE_FLOAT -DAMREX_USE_FLOAT
+    DEFINES += -DBL_USE_FLOAT -DAMREX_USE_FLOAT
     PrecisionSuffix := .$(PRECISION)
     amrex_real = float
 else
@@ -791,49 +791,49 @@ fortran_fdecl_headers_cppd = $(addprefix $(tmpEXETempDir)/, $(fortran_fdecl_head
 # </typecheck>
 #
 
-AMREX_DEFINES += -DBL_SPACEDIM=$(DIM)         \
-                 -DAMREX_SPACEDIM=$(DIM)      \
-                 -DBL_FORT_USE_$(FORTLINK)    \
-                 -DAMREX_FORT_USE_$(FORTLINK) \
-                 -DBL_$(shell uname)          \
-                 -DAMREX_$(shell uname)
+DEFINES	+= -DBL_SPACEDIM=$(DIM)				\
+           -DAMREX_SPACEDIM=$(DIM)                      \
+           -DBL_FORT_USE_$(FORTLINK)			\
+           -DAMREX_FORT_USE_$(FORTLINK)			\
+           -DBL_$(shell uname)                          \
+           -DAMREX_$(shell uname)
 
 
 ifeq ($(DIMENSION_AGNOSTIC),TRUE)
-AMREX_DEFINES += -DAMREX_DIMENSION_AGNOSTIC
+DEFINES += -DAMREX_DIMENSION_AGNOSTIC
 endif
 
 ifeq ($(DEBUG),TRUE)
-  AMREX_DEFINES += -DBL_USE_ASSERTION -DAMREX_USE_ASSERTION
+  DEFINES += -DBL_USE_ASSERTION -DAMREX_USE_ASSERTION
 else
 ifeq ($(USE_ASSERTION),TRUE)
-  AMREX_DEFINES += -DBL_USE_ASSERTION -DAMREX_USE_ASSERTION
+  DEFINES += -DBL_USE_ASSERTION -DAMREX_USE_ASSERTION
 endif
 endif
 
 ifeq ($(BOUND_CHECK),TRUE)
-  AMREX_DEFINES += -DAMREX_BOUND_CHECK
+  DEFINES += -DAMREX_BOUND_CHECK
 endif
 
 ifeq ($(USE_PARTICLES),TRUE)
-  AMREX_DEFINES += -DAMREX_PARTICLES
+  DEFINES += -DAMREX_PARTICLES
 endif
 
 ifeq ($(USE_EB),TRUE)
-    AMREX_DEFINES += -DAMREX_USE_EB
+    DEFINES += -DAMREX_USE_EB
 endif
 
 ifeq ($(AMREX_XSDK),TRUE)
-   AMREX_DEFINES += -DAMREX_XSDK
+   DEFINES += -DAMREX_XSDK
 endif
 
 ifneq ($(DEBUG),TRUE)
 ifneq ($(USE_ASSERTION),TRUE)
-  AMREX_DEFINES += -DNDEBUG
+  DEFINES += -DNDEBUG
 endif
 endif
 
-CPPFLAGS	+= $(AMREX_DEFINES) $(DEFINES)
+CPPFLAGS	+= $(DEFINES)
 
 libraries	= $(XTRAOBJS) $(LIBRARIES) $(XTRALIBS)
 
@@ -1033,23 +1033,23 @@ else ifeq ($(USE_CUDA),TRUE)
 
        LIBRARIES += -lnvidia-ml
        LIBRARY_LOCATIONS += $(MAKE_NVML_PATH)
-       AMREX_DEFINES += -DAMREX_USE_NVML
+       DEFINES += -DAMREX_USE_NVML
 
     endif
 
     # Provide system configuration, if available.
 
     ifdef GPUS_PER_SOCKET
-       AMREX_DEFINES += -DAMREX_GPUS_PER_SOCKET=$(GPUS_PER_SOCKET)
+       DEFINES += -DAMREX_GPUS_PER_SOCKET=$(GPUS_PER_SOCKET)
     endif
 
     ifdef GPUS_PER_NODE
-       AMREX_DEFINES += -DAMREX_GPUS_PER_NODE=$(GPUS_PER_NODE)
+       DEFINES += -DAMREX_GPUS_PER_NODE=$(GPUS_PER_NODE)
     endif
 
     # Set the CUDA threads define in case the user updated it.
 
-    AMREX_DEFINES += -DAMREX_GPU_MAX_THREADS=$(CUDA_MAX_THREADS)
+    DEFINES += -DAMREX_GPU_MAX_THREADS=$(CUDA_MAX_THREADS)
 
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
       LINKFLAGS = $(NVCC_FLAGS)
