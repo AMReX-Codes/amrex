@@ -14,6 +14,11 @@ add_library( AMReX::amrex ALIAS amrex )
 include(AMReXParallelBackends)
 
 #
+# Add definitions
+#
+include(AMReXSetDefines)
+
+#
 # Find and link third party libraries if needed
 #
 include(AMReXThirdPartyLibraries)
@@ -58,7 +63,7 @@ if (AMReX_FPE)
 endif ()
 
 # General configuration
-include ( AMReX_Config )
+include( AMReX_Config )
 configure_amrex ()
 
 #
@@ -177,6 +182,12 @@ set_target_properties( amrex PROPERTIES PUBLIC_HEADER "${AMREX_PUBLIC_HEADERS}")
 if (AMReX_CUDA)
    setup_target_for_cuda_compilation( amrex )
 endif ()
+
+#
+# Generate config header
+#
+include(AMReXGenerateConfigHeader)
+generate_config_header()
 
 #
 # Install amrex  -- Export
