@@ -10,8 +10,8 @@ if sys.version_info < (2, 7):
 import argparse
 
 def doit(defines, undefines, comp, allow_diff_comp):
-    print("#ifndef AMREX_CONFIG_H_")
-    print("#define AMREX_CONFIG_H_")
+    print("#ifndef AMREX_HAVE_NO_CONFIG_H")
+    print("#define AMREX_HAVE_NO_CONFIG_H")
 
     defs = defines.split("-D")
     for d in defs:
