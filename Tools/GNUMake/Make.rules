@@ -39,7 +39,7 @@ else
 endif
 endif
 
-CXXDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(CPPFLAGS) $(includes)
+CXXDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(DEFINES) $(includes)
 CDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes)
 
 #
