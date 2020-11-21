@@ -1,5 +1,5 @@
 # enable the SENSEI bridge and data adaptor in AMReX
-DEFINES += -DBL_USE_SENSEI_INSITU
+AMREX_DEFINES += -DBL_USE_SENSEI_INSITU
 
 # in the GNU Make build system linking error ensue when
 # only using AmrCore because of the externs referenced from

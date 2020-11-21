@@ -1,4 +1,4 @@
-DEFINES += -DAMREX_FORGE
+AMREX_DEFINES += -DAMREX_FORGE
 
 ifeq ($(which_site),nersc)
 
