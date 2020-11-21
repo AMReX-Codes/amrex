@@ -18,11 +18,12 @@ def doit(defines, undefines, comp, allow_diff_comp):
         dd = d.strip()
         if dd:
             v = dd.split("=")
-            print("#undef",v[0])
+            print("#ifndef",v[0])
             if len(v) == 2:
                 print("#define",v[0],v[1])
             else:
                 print("#define",v[0],1)
+            print("#endif")
 
     for ud in undefines:
         print("#undef",ud)
