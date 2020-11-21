@@ -107,6 +107,7 @@ install_lib:
 
 install_headers:
 	@echo Installing headers at $(amrexIncludeDir) ...
+	@if [ ! -d $(amrexIncludeDir) ]; then mkdir -p $(amrexIncludeDir); fi
 	@for d in $(Pdirs); do \
 	  for h in $(CEXE_headers) $(cEXE_headers); do \
 	    f=Src/$$d/$$h; \
