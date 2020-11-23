@@ -32,7 +32,7 @@ else
 
 endif
 
-CXXFLAGS += -Wno-pass-failed  # disable this warning
+CXXFLAGS += -Wno-pass-failed # disable this warning
 
 ifeq ($(WARN_ALL),TRUE)
   warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
