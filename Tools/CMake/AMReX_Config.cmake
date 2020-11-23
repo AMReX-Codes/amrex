@@ -68,6 +68,7 @@ function (configure_amrex)
    set(_condition  "$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19.26>")
 
    target_compile_options( amrex PRIVATE $<${_cxx_msvc}:/bigobj> )
+   target_compile_options( amrex PRIVATE $<${_cxx_msvc}:-wd4244;-wd4267;-wd4996> )
 
    target_compile_options( amrex PUBLIC
       $<${_cxx_msvc}:$<IF:${_condition},/experimental:preprocessor,/Zc:preprocessor>>
