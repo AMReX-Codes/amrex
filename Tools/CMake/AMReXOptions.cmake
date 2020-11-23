@@ -223,11 +223,6 @@ cmake_dependent_option( AMReX_ASCENT "Enable Ascent support" OFF
    "AMReX_CONDUIT" OFF )
 print_option( AMReX_ASCENT )
 
-# SUNDIALS
-cmake_dependent_option(AMReX_SUNDIALS "Enable SUNDIALS4 interfaces" OFF
-   "AMReX_FORTRAN_INTERFACES" OFF)
-print_option(AMReX_SUNDIALS)
-
 # Hypre
 cmake_dependent_option(AMReX_HYPRE "Enable Hypre interfaces" OFF
    "AMReX_LINEAR_SOLVERS" OFF)
