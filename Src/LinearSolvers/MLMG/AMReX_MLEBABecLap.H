@@ -60,7 +60,7 @@ public:
     void setEBHomogDirichlet (int amrlev,                      Real beta);
     void setEBHomogDirichlet (int amrlev,                      Vector<Real> const& beta);
 
-    virtual int getNComp () const { return m_ncomp; }
+    virtual int getNComp () const override { return m_ncomp; }
 
     virtual bool needsUpdate () const override {
         return (m_needs_update || MLCellABecLap::needsUpdate());
