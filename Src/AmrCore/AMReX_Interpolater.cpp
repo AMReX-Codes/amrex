@@ -974,27 +974,23 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
             { maskarr[d] = solve_mask[d]->const_array(0); }
     }
 
-/*  Manually fused w/ HOST DEVICE & FLAG?
-
-    amrex::ParallelFor( amrex::convert(c_fine_region, types[0]), ncomp,
-                        [=] AMREX_GPU_HOST_DEVICE ( ) {},
-                        amrex::convert(c_fine_region, types[1]), ncomp,
-                        [=] AMREX_GPU_HOST_DEVICE ( ) {},
-                        amrex::convert(c_fine_region, types[2]), ncomp,
-                        [=] AMREX_GPU_HOST_DEVICE ( ) {}
-                      );
-*/
-
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-    {
-        const Box& c_fine_idxed = amrex::convert(c_fine_region, types[d]);
-
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_idxed,ncomp,i,j,k,n,
-        {
-            amrex::facediv_face_interp<Real> (i, j, k, crse_comp+n, fine_comp+n, d,
-                                              crsearr[d], finearr[d], maskarr[d], ratio);
-        });
-    }
+    // Fuse the launches, 1 for each dimension, into a single launch.
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
+                                             amrex::convert(c_fine_region, types[0]), ncomp,
+                                             {
+                                                 amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 0,
+                                                                                   crsearr[0], finearr[0], maskarr[0], ratio);
+                                             },
+                                             amrex::convert(c_fine_region, types[1]), ncomp,
+                                             {
+                                                 amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 1,
+                                                                                   crsearr[1], finearr[1], maskarr[1], ratio);
+                                             },
+                                             amrex::convert(c_fine_region, types[2]), ncomp,
+                                             {
+                                                 amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 2,
+                                                                                   crsearr[2], finearr[2], maskarr[2], ratio);
+                                             });
 
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
     {
