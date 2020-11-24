@@ -62,7 +62,7 @@ function (configure_amrex)
    endif()
 
    #
-   # Special flags for MSV compiler
+   # Special flags for MSVC compiler
    #
    set(_cxx_msvc   "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>")
    set(_condition  "$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19.26>")
@@ -148,6 +148,8 @@ function (configure_amrex)
    if ( BUILD_SHARED_LIBS OR AMReX_CUDA )
       if(APPLE)
          target_link_options(amrex PUBLIC -Wl,-undefined,warning)
+      elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR
+             CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
       else()
          target_link_options(amrex PUBLIC -Wl,--warn-unresolved-symbols)
       endif()
