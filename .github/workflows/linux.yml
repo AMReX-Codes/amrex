@@ -170,7 +170,9 @@ jobs:
       run: .github/workflows/dependencies/dependencies_dpcpp.sh
     - name: Build & Install
       run: |
+        set +e
         source /opt/intel/oneapi/setvars.sh
+        set -e
         cmake -S . -B build                                \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
             -DAMReX_BUILD_TUTORIALS=ON                     \
