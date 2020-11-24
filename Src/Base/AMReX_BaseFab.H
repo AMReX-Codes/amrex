@@ -400,6 +400,12 @@ public:
     }
 
     AMREX_FORCE_INLINE
+    Array4<T const> array (int start_comp, int num_comps) const noexcept
+    {
+        return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
+    }
+
+    AMREX_FORCE_INLINE
     Array4<T> array () noexcept
     {
         return makeArray4<T>(this->dptr, this->domain, this->nvar);
@@ -412,6 +418,12 @@ public:
     }
 
     AMREX_FORCE_INLINE
+    Array4<T> array (int start_comp, int num_comps) noexcept
+    {
+        return Array4<T>(makeArray4<T>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
+    }
+
+    AMREX_FORCE_INLINE
     Array4<T const> const_array () const noexcept
     {
         return makeArray4<T const>(this->dptr, this->domain, this->nvar);
@@ -421,6 +433,12 @@ public:
     Array4<T const> const_array (int start_comp) const noexcept
     {
         return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar),start_comp);
+    }
+
+    AMREX_FORCE_INLINE
+    Array4<T const> const_array (int start_comp, int num_comps) const noexcept
+    {
+        return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
     }
 
     //! Returns true if the data for the FAB has been allocated.

@@ -1325,15 +1325,4 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
     amrex::OverrideSync(*this, msk, period);
 }
 
-void
-FillBoundary (Vector<MultiFab*> const& mf, const Periodicity& period)
-{
-    for (auto x : mf) {
-        x->FillBoundary(period);
-    }
-// The following is actually slower on summit
-//    Vector<FabArray<FArrayBox>*> fa{mf.begin(),mf.end()};
-//    FillBoundary(fa,period);
-}
-
 }

@@ -405,12 +405,6 @@ public:
 
     const TileArray* getTileArray (const IntVect& tilesize) const;
 
-    //! Block until all send requests complete
-    static void WaitForAsyncSends (int                 N_snds,
-                                   Vector<MPI_Request>& send_reqs,
-                                   Vector<char*>&       send_data,
-                                   Vector<MPI_Status>&  stats);
-
     // Memory Usage Tags
     struct meminfo {
         Long nbytes = 0L;
