@@ -20,7 +20,7 @@ public:
     AMREX_GPU_DEVICE
     KernelTimer (const bool do_timing, amrex::Real* cost)
         : m_do_timing(do_timing), m_cost(cost) {
-        if (do_timing && cost) {
+	if (do_timing && cost) {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
             // Start the timer
             m_wt = clock64();
@@ -30,20 +30,20 @@ public:
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE( do_timing == false,
                                               "KernelTimer not yet supported for this hardware." );
 #endif
-        }
+	}
     }
 
     //! Destructor.
     AMREX_GPU_DEVICE
     ~KernelTimer () {
-        if (m_do_timing && m_cost) {
+	if (m_do_timing && m_cost) {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
             m_wt = clock64() - m_wt;
             amrex::Gpu::Atomic::Add( m_cost, amrex::Real(m_wt));
 #elif defined(AMREX_USE_DPCPP)
             // To be updated
 #endif
-        }
+	}
     }
 
 private:
