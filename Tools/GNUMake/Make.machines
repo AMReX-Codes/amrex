@@ -41,6 +41,11 @@ ifdef OLCF_MODULEPATH_ROOT
   endif
 endif
 
+ifeq ($(findstring theta, $(host_name)), theta)
+  which_site := alcf
+  which_computer := theta
+endif
+
 ifeq ($(findstring sierra, $(host_name)), sierra)
   which_site := llnl
   which_computer := sierra
@@ -69,16 +74,6 @@ endif
 ifeq ($(findstring rzansel, $(host_name)), rzansel)
   which_site := llnl
   which_computer := rzansel
-endif
-
-ifeq ($(findstring mira, $(host_name)), mira)
-  which_site := alcf
-  which_computer := mira
-endif
-
-ifeq ($(findstring theta, $(host_name)), theta)
-  which_site := alcf
-  which_computer := theta
 endif
 
 ifeq ($(findstring asterix, $(host_name)), asterix)

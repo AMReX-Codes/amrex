@@ -140,10 +140,6 @@ if (AMReX_SENSEI)
    add_subdirectory(Extern/SENSEI)
 endif ()
 
-if (AMReX_SUNDIALS)
-   add_subdirectory(Extern/SUNDIALS)
-endif ()
-
 if (AMReX_CONDUIT OR AMReX_ASCENT)
    add_subdirectory(Extern/Conduit)
 endif ()

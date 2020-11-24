@@ -1051,6 +1051,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
 {
     BL_PROFILE("ParticleContainer::SortParticlesByBin()");
 
+    if (bin_size == IntVect::TheZeroVector()) return;
+
     for (int lev = 0; lev < numLevels(); ++lev)
     {
         const Geometry& geom = Geom(lev);

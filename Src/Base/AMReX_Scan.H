@@ -159,15 +159,17 @@ enum class Type { inclusive, exclusive };
 
 #if defined(AMREX_USE_DPCPP)
 
-template <typename T, typename FIN, typename FOUT>
-T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
+template <typename T, typename N, typename FIN, typename FOUT,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
 {
     if (n <= 0) return 0;
     constexpr int nwarps_per_block = 8;
     constexpr int nthreads = nwarps_per_block*Gpu::Device::warp_size;
     constexpr int nchunks = 12;
     constexpr int nelms_per_block = nthreads * nchunks;
-    int nblocks = (n + nelms_per_block - 1) / nelms_per_block;
+    AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(std::numeric_limits<int>::max())*nelms_per_block);
+    int nblocks = (static_cast<Long>(n) + nelms_per_block - 1) / nelms_per_block;
     std::size_t sm = sizeof(T) * (Gpu::Device::warp_size + nwarps_per_block) + sizeof(int);
     auto stream = Gpu::gpuStream();
 
@@ -232,8 +234,8 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
         }
 
         // Each block processes [ibegin,iend).
-        int ibegin = nelms_per_block * virtual_block_id;
-        int iend = amrex::min(ibegin+nelms_per_block, n);
+        N ibegin = nelms_per_block * virtual_block_id;
+        N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
         BlockStatusT& block_status = block_status_p[virtual_block_id];
 
         //
@@ -248,7 +250,7 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
         T sum_prev_chunk = 0; // inclusive sum from previous chunks.
         T tmp_out[nchunks]; // block-wide inclusive sum for chunks
         for (int ichunk = 0; ichunk < nchunks; ++ichunk) {
-            int offset = ibegin + ichunk*blockDimx;
+            N offset = ibegin + ichunk*blockDimx;
             if (offset >= iend) break;
 
             offset += threadIdxx;
@@ -305,7 +307,7 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
 
         if (virtual_block_id == 0) {
             for (int ichunk = 0; ichunk < nchunks; ++ichunk) {
-                int offset = ibegin + ichunk*blockDimx + threadIdxx;
+                N offset = ibegin + ichunk*blockDimx + threadIdxx;
                 if (offset >= iend) break;
                 fout(offset, tmp_out[ichunk]);
                 if (offset == n-1) {
@@ -369,7 +371,7 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
             T exclusive_prefix = shared[0];
 
             for (int ichunk = 0; ichunk < nchunks; ++ichunk) {
-                int offset = ibegin + ichunk*blockDimx + threadIdxx;
+                N offset = ibegin + ichunk*blockDimx + threadIdxx;
                 if (offset >= iend) break;
                 T t = tmp_out[ichunk] + exclusive_prefix;
                 fout(offset, t);
@@ -393,15 +395,17 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
 
 #else
 
-template <typename T, typename FIN, typename FOUT>
-T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
+template <typename T, typename N, typename FIN, typename FOUT,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
 {
     if (n <= 0) return 0;
     constexpr int nwarps_per_block = 4;
     constexpr int nthreads = nwarps_per_block*Gpu::Device::warp_size;
     constexpr int nchunks = 12;
     constexpr int nelms_per_block = nthreads * nchunks;
-    int nblocks = (n + nelms_per_block - 1) / nelms_per_block;
+    AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(std::numeric_limits<int>::max())*nelms_per_block);
+    int nblocks = (static_cast<Long>(n) + nelms_per_block - 1) / nelms_per_block;
     std::size_t sm = sizeof(T) * (Gpu::Device::warp_size + nwarps_per_block) + sizeof(int);
     auto stream = Gpu::gpuStream();
 
@@ -453,8 +457,8 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
         }
 
         // Each block processes [ibegin,iend).
-        int ibegin = nelms_per_block * virtual_block_id;
-        int iend = amrex::min(ibegin+nelms_per_block, n);
+        N ibegin = nelms_per_block * virtual_block_id;
+        N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
         BlockStatusT& block_status = block_status_p[virtual_block_id];
 
         //
@@ -469,7 +473,7 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
         T sum_prev_chunk = 0; // inclusive sum from previous chunks.
         T tmp_out[nchunks]; // block-wide inclusive sum for chunks
         for (int ichunk = 0; ichunk < nchunks; ++ichunk) {
-            int offset = ibegin + ichunk*blockDim.x;
+            N offset = ibegin + ichunk*blockDim.x;
             if (offset >= iend) break;
 
             offset += threadIdx.x;
@@ -544,7 +548,7 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
 
         if (virtual_block_id == 0) {
             for (int ichunk = 0; ichunk < nchunks; ++ichunk) {
-                int offset = ibegin + ichunk*blockDim.x + threadIdx.x;
+                N offset = ibegin + ichunk*blockDim.x + threadIdx.x;
                 if (offset >= iend) break;
                 fout(offset, tmp_out[ichunk]);
                 if (offset == n-1) {
@@ -606,7 +610,7 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
             T exclusive_prefix = shared[0];
 
             for (int ichunk = 0; ichunk < nchunks; ++ichunk) {
-                int offset = ibegin + ichunk*blockDim.x + threadIdx.x;
+                N offset = ibegin + ichunk*blockDim.x + threadIdx.x;
                 if (offset >= iend) break;
                 T t = tmp_out[ichunk] + exclusive_prefix;
                 fout(offset, t);
@@ -634,22 +638,34 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
 template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T InclusiveSum (N n, T const* in, T * out)
 {
-    AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(std::numeric_limits<int>::max()));
-    return PrefixSum<T>(n,
-                 [=] AMREX_GPU_DEVICE (int i) -> T { return in[i]; },
-                 [=] AMREX_GPU_DEVICE (int i, T const& x) { out[i] = x; },
-                 Type::inclusive);
+    if (static_cast<Long>(n) <= static_cast<Long>(std::numeric_limits<int>::max())) {
+        return PrefixSum<T>(static_cast<int>(n),
+                            [=] AMREX_GPU_DEVICE (N i) -> T { return in[i]; },
+                            [=] AMREX_GPU_DEVICE (N i, T const& x) { out[i] = x; },
+                            Type::inclusive);
+    } else {
+        return PrefixSum<T>(n,
+                            [=] AMREX_GPU_DEVICE (N i) -> T { return in[i]; },
+                            [=] AMREX_GPU_DEVICE (N i, T const& x) { out[i] = x; },
+                            Type::inclusive);
+    }
 }
 
 // The return value is the total sum.
 template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T ExclusiveSum (N n, T const* in, T * out)
 {
-    AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(std::numeric_limits<int>::max()));
-    return PrefixSum<T>(n,
-                 [=] AMREX_GPU_DEVICE (int i) -> T { return in[i]; },
-                 [=] AMREX_GPU_DEVICE (int i, T const& x) { out[i] = x; },
+    if (static_cast<Long>(n) <= static_cast<Long>(std::numeric_limits<int>::max())) {
+        return PrefixSum<T>(static_cast<int>(n),
+                 [=] AMREX_GPU_DEVICE (N i) -> T { return in[i]; },
+                 [=] AMREX_GPU_DEVICE (N i, T const& x) { out[i] = x; },
                  Type::exclusive);
+    } else {
+        return PrefixSum<T>(n,
+                            [=] AMREX_GPU_DEVICE (N i) -> T { return in[i]; },
+                            [=] AMREX_GPU_DEVICE (N i, T const& x) { out[i] = x; },
+                            Type::exclusive);
+    }
 }
 
 #else

@@ -148,7 +148,7 @@ struct StructOfArrays {
         GpuArray<int*, NInt> arr;
         for (int i = 0; i < NInt; ++i)
         {
-            arr[i] = m_rdata[i].dataPtr();
+            arr[i] = m_idata[i].dataPtr();
         }
         return arr;
     }

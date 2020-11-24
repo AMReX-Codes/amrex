@@ -130,9 +130,6 @@ if (AMReX_DPCPP)
       message(FATAL_ERROR "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} supports dpcpp compiler only."
          "Set CMAKE_CXX_COMPILER=dpccp and try again.")
    endif ()
-   if (AMReX_MPI)
-      message(FATAL_ERROR "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is incompatible with AMReX_MPI=${AMReX_MPI}.")
-   endif ()
 endif ()
 
 cmake_dependent_option( AMReX_DPCPP_AOT  "Enable DPCPP ahead-of-time compilation (WIP)"  OFF
@@ -164,7 +161,7 @@ endif ()
 #
 # Parallel backends    ========================================================
 #
-cmake_dependent_option( AMReX_MPI  "Enable MPI"  ON "NOT AMReX_GPU_BACKEND STREQUAL HIP" OFF)
+cmake_dependent_option( AMReX_MPI  "Enable MPI"  ON "NOT AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
 print_option( AMReX_MPI )
 
 cmake_dependent_option( AMReX_MPI_THREAD_MULTIPLE
@@ -225,11 +222,6 @@ print_option( AMReX_CONDUIT )
 cmake_dependent_option( AMReX_ASCENT "Enable Ascent support" OFF
    "AMReX_CONDUIT" OFF )
 print_option( AMReX_ASCENT )
-
-# SUNDIALS
-cmake_dependent_option(AMReX_SUNDIALS "Enable SUNDIALS4 interfaces" OFF
-   "AMReX_FORTRAN_INTERFACES" OFF)
-print_option(AMReX_SUNDIALS)
 
 # Hypre
 cmake_dependent_option(AMReX_HYPRE "Enable Hypre interfaces" OFF
