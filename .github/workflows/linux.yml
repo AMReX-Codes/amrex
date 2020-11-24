@@ -170,20 +170,16 @@ jobs:
       run: .github/workflows/dependencies/dependencies_dpcpp.sh
     - name: Build & Install
       run: |
-        set +e
         source /opt/intel/oneapi/setvars.sh
-        set -e
-        mkdir build
-        cd build
-        cmake ..                                           \
+        cmake -S . -B build                                \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
-            -DAMReX_BUILD_TUTORIALS=ON                          \
-            -DAMReX_PARTICLES=ON                          \
+            -DAMReX_BUILD_TUTORIALS=ON                     \
+            -DAMReX_PARTICLES=ON                           \
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which clang)              \
             -DCMAKE_CXX_COMPILER=$(which dpcpp)            \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
-        make -j 2
+        cmake --build build --parallel 2
 
   tutorials-hip:
     name: HIP ROCm@3.8 GFortran@9.3 C++17 [tutorials]
