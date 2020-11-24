@@ -345,51 +345,34 @@ namespace Gpu {
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_FLAG(where_to_run,bx1,nc1,block1) \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
-        amrex::ParallelFor(bx1, nc1, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
-            block1 \
-        ); \
+        amrex::ParallelFor(bx1, nc1, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept block1); \
     } \
     else { \
-        amrex::ParallelFor(bx1, nc1, [=] (int i, int j, int k, int n) noexcept \
-            block1 \
-        ); \
+        amrex::LoopOnCpu(bx1, nc1, [=] (int i, int j, int k, int n) noexcept block1); \
     }
 
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2_FLAG(where_to_run,bx1,nc1,block1,bx2,nc2,block2) \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
-        amrex::ParallelFor(bx1, nc1, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
-                           block1, \
-                           bx2, nc2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
-                           block2, \
-        ); \
+        amrex::ParallelFor(bx1, nc1, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept block1,  \
+                           bx2, nc2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept block2); \
     } \
     else { \
-        amrex::ParallelFor(bx1, nc1, [=] (int i, int j, int k, int n) noexcept \
-                           block1, \
-                           bx2, nc2, [=] (int i, int j, int k, int n) noexcept \
-                           block2, \
-        ); \
+        amrex::LoopOnCpu(bx1, nc1, [=] (int i, int j, int k, int n) noexcept block1); \
+        amrex::LoopOnCpu(bx2, nc2, [=] (int i, int j, int k, int n) noexcept block2); \
     }
 
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3_FLAG(where_to_run,bx1,nc1,block1,bx2,nc2,block2,bx3,nc3,block3) \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
-        amrex::ParallelFor(bx1, nc1, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
-                           block1, \
-                           bx2, nc2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
-                           block2, \
-                           bx3, nc3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
-                           block3, \
-        ); \
+        amrex::ParallelFor(bx1, nc1, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept block1,  \
+                           bx2, nc2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept block2,  \
+                           bx3, nc3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept block3); \
     } \
     else { \
-        amrex::ParallelFor(bx1, nc1, [=] (int i, int j, int k, int n) noexcept \
-                           block1, \
-                           bx2, nc2, [=] (int i, int j, int k, int n) noexcept \
-                           block2, \
-                           bx3, nc3, [=] (int i, int j, int k, int n) noexcept \
-                           block3, \
+        amrex::LoopOnCpu(bx1, nc1, [=] (int i, int j, int k, int n) noexcept block1); \
+        amrex::LoopOnCpu(bx2, nc2, [=] (int i, int j, int k, int n) noexcept block2); \
+        amrex::LoopOnCpu(bx3, nc3, [=] (int i, int j, int k, int n) noexcept block3); \
     }
 
 #else
@@ -442,30 +425,18 @@ namespace Gpu {
 
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_FLAG(where_to_run,bx1,nc1,block1) \
     amrex::ignore_unused(where_to_run); \
-    amrex::LoopOnCpu(bx1, nc1, [=] (int i, int j, int k, int n) noexcept \
-        block1 \
-    );
+    amrex::LoopOnCpu(bx1, nc1, [=] (int i, int j, int k, int n) noexcept block1);
 
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2_FLAG(where_to_run,bx1,nc1,block1,bx2,nc2,block2) \
     amrex::ignore_unused(where_to_run); \
-    amrex::LoopOnCpu(bx1, nc1, [=] (int i, int j, int k, int n) noexcept \
-        block1 \
-    ); \
-    amrex::LoopOnCpu(bx2, nc2, [=] (int i, int j, int k, int n) noexcept \
-        block2 \
-    );
+    amrex::LoopOnCpu(bx1, nc1, [=] (int i, int j, int k, int n) noexcept block1); \
+    amrex::LoopOnCpu(bx2, nc2, [=] (int i, int j, int k, int n) noexcept block2);
 
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3_FLAG(where_to_run,bx1,nc1,block1,bx2,nc2,block2,bx3,nc3,block3) \
     amrex::ignore_unused(where_to_run); \
-    amrex::LoopOnCpu(bx1, nc1, [=] (int i, int j, int k, int n) noexcept \
-        block1 \
-    ); \
-    amrex::LoopOnCpu(bx2, nc2, [=] (int i, int j, int k, int n) noexcept \
-        block2 \
-    ); \
-    amrex::LoopOnCpu(bx3, nc3, [=] (int i, int j, int k, int n) noexcept \
-        block3 \
-    );
+    amrex::LoopOnCpu(bx1, nc1, [=] (int i, int j, int k, int n) noexcept block1); \
+    amrex::LoopOnCpu(bx2, nc2, [=] (int i, int j, int k, int n) noexcept block2); \
+    amrex::LoopOnCpu(bx3, nc3, [=] (int i, int j, int k, int n) noexcept block3);
 
 #endif
 
