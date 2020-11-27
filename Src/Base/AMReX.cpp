@@ -48,11 +48,16 @@
 #include <xmmintrin.h>
 #endif
 
+#if !(defined(_MSC_VER) && defined(__CUDACC__))
+//MSVC can't pre-processor cfenv with `Zc:preprocessor`
+//https://developercommunity.visualstudio.com/content/problem/1271183/zcpreprocessor-e-crashes-when-given.html
+#include <cfenv>
+#endif
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <csignal>
-#include <cfenv>
 #include <iostream>
 #include <iomanip>
 #include <new>
