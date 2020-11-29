@@ -105,7 +105,7 @@ public:
     /**
      *  \brief Return the ArenaInfo object for querying
      */
-    const ArenaInfo& the_arena_info() const { return arena_info; }
+    const ArenaInfo& arenaInfo () const { return arena_info; }
 
 protected:
 
