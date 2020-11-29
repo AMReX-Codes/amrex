@@ -13,6 +13,20 @@ namespace amrex {
 class MacProjector
 {
 public:
+    MacProjector(
+        const Vector<Geometry>& a_geom,
+#ifndef AMREX_USE_EB
+        MLMG::Location a_umac_loc = MLMG::Location::FaceCenter,
+        MLMG::Location a_beta_loc = MLMG::Location::FaceCenter,
+        MLMG::Location a_phi_loc = MLMG::Location::CellCenter,
+        MLMG::Location a_divu_loc = MLMG::Location::CellCenter
+#else
+        MLMG::Location a_umac_loc,
+        MLMG::Location a_beta_loc,
+        MLMG::Location a_phi_loc,
+        MLMG::Location a_divu_loc = MLMG::Location::CellCenter
+#endif
+    );
 
     //
     // Constructors
@@ -58,6 +72,22 @@ public:
                     a_geom, LPInfo(), a_divu, MLMG::Location::CellCenter) {}
 #endif
 
+    /** Initialize the underlying linear operator and MLMG instances
+     */
+    void initProjector(
+        const LPInfo& a_lpinfo,
+        const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
+        const Vector<iMultiFab const*>& a_overset_mask = {});
+
+    //! Update Bcoeffs for the linear operator
+    void updateBeta(const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >&);
+
+    //! Set Umac before calling the projection step
+    void setUMAC(const Vector<Array<MultiFab*, AMREX_SPACEDIM> >&);
+
+    //! Set div(U)
+    void setDivU(const Vector<MultiFab const*>&);
+
     //
     // Methods to set BCs and coarse/fine values
     //
@@ -91,8 +121,9 @@ public:
     MLLinOp& getLinOp () noexcept { return *m_linop; }
     MLMG&    getMLMG  () noexcept { return *m_mlmg;  }
 
-private:
+    bool needInitialization()  const noexcept { return m_needs_init; }
 
+private:
     void setOptions ();
 
     void averageDownVelocity ();
@@ -121,9 +152,14 @@ private:
     // Location of umac -- face center vs face centroid
     MLMG::Location m_umac_loc;
 
+    MLMG::Location m_beta_loc;
+
+    MLMG::Location m_phi_loc;
+
     // Location of divu (RHS -- optional) -- cell center vs cell centroid
     MLMG::Location m_divu_loc;
 
+    bool m_needs_init = true;
 };
 
 }
