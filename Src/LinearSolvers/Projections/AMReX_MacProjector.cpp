@@ -135,7 +135,7 @@ void MacProjector::updateBeta(
     const Vector<Array<MultiFab const*, AMREX_SPACEDIM>>& a_beta)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        m_linop == nullptr,
+        m_linop != nullptr,
         "MacProjector::updateBeta: initProjector must be called before calling this method");
 
     const int nlevs = a_beta.size();
@@ -161,7 +161,7 @@ void MacProjector::setUMAC(
 void MacProjector::setDivU(const Vector<MultiFab const*>& a_divu)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        m_linop == nullptr,
+        m_linop != nullptr,
         "MacProjector::setDivU: initProjector must be called before calling this method");
 
     for (int ilev = 0, N = a_divu.size(); ilev < N; ++ilev) {
