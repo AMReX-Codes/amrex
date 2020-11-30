@@ -471,7 +471,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
         for (const auto& kv : GetParticles(lev)) {
             const auto& ptile = kv.second;
             if (only_valid) {
-#if defined(AMREX_USE_DPCPP) || defined(AMREX_USE_HIP)
                 auto const& ptaos = ptile.GetArrayOfStructs();
                 ParticleType const* pp = ptaos().data();
                 int np = amrex::Reduce::Sum<int>(ptaos.numParticles(), pp, 0,
@@ -480,12 +479,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
                              return (p.id() > 0) ? s+1 : s;
                          });
                 nparticles += np;
-#else
-                for (int k = 0; k < ptile.GetArrayOfStructs().numParticles(); ++k) {
-                    const ParticleType& p = ptile.GetArrayOfStructs()[k];
-                    if (p.id() > 0) ++nparticles;
-                }
-#endif
             } else {
                 nparticles += ptile.numParticles();
             }
