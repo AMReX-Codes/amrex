@@ -975,7 +975,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
     }
 
     // Fuse the launches, 1 for each dimension, into a single launch.
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
+    AMREX_LAUNCH_HOST_DEVICE_PARALLEL_FOR_DIM_FLAG(runon,
                                              amrex::convert(c_fine_region, types[0]), ncomp,
                                              {
                                                  amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 0,
