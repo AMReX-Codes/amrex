@@ -25,7 +25,7 @@ struct AmrInfo {
     // Buffer cells around each tagged cell.
     Vector<IntVect> n_error_buf {{IntVect(1)}};
     // Grid efficiency.
-    Real grid_eff = 0.7;
+    Real grid_eff = static_cast<Real>(0.7);
     // Cells required for proper nesting.
     int n_proper = 1;
     int use_fixed_upto_level = 0;
