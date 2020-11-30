@@ -441,7 +441,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
             np_per_grid_local[gid] += pti.numParticles();
         }
     }
-        
+
     Vector<Long> nparticles(np_per_grid_local.size(), 0);
     if (only_local)
     {
@@ -449,12 +449,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
         {
             nparticles[pti.index()] = np_per_grid_local[pti.index()];
         }
-    } 
+    }
     else
     {
         ParallelDescriptor::GatherLayoutDataToVector(np_per_grid_local, nparticles,
                                                      ParallelContext::IOProcessorNumberSub());
-        ParallelDescriptor::Bcast(&nparticles[0], nparticles.size(), 
+        ParallelDescriptor::Bcast(&nparticles[0], nparticles.size(),
                                   ParallelContext::IOProcessorNumberSub());
     }
 
@@ -467,21 +467,30 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
 {
     Long nparticles = 0;
 
-    if (lev >= 0 && lev < int(m_particles.size())) {
+    if (lev < 0 or lev >= int(m_particles.size())) return nparticles;
+
+    if (only_valid) {
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<Long> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+
         for (const auto& kv : GetParticles(lev)) {
             const auto& ptile = kv.second;
-            if (only_valid) {
-                auto const& ptaos = ptile.GetArrayOfStructs();
-                ParticleType const* pp = ptaos().data();
-                int np = amrex::Reduce::Sum<int>(ptaos.numParticles(), pp, 0,
-                         [=] AMREX_GPU_DEVICE (int s, ParticleType const& p) noexcept
-                         {
-                             return (p.id() > 0) ? s+1 : s;
-                         });
-                nparticles += np;
-            } else {
-                nparticles += ptile.numParticles();
-            }
+            auto const& ptaos = ptile.GetArrayOfStructs();
+            ParticleType const* pp = ptaos().data();
+
+            reduce_op.eval(ptaos.numParticles(), reduce_data,
+                           [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
+                           {
+                               return (pp[i].id() > 0) ? 1 : 0;
+                           });
+        }
+        nparticles  = amrex::get<0>(reduce_data.value());
+    }
+    else {
+        for (const auto& kv : GetParticles(lev)) {
+            const auto& ptile = kv.second;
+            nparticles += ptile.numParticles();
         }
     }
 
