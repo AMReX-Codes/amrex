@@ -25,6 +25,7 @@ ifndef LINKFLAGS
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
   LINKFLAGS = $(F90FLAGS) $(FMODULES)
 else
+  # $(EXTRACXXFLAGS) does not go into LINKFLAGS
   LINKFLAGS = $(CXXFLAGS)
 endif
 endif
