@@ -1442,7 +1442,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
                         r = amrex::Random();
                         p.pos(i) = grid_box.lo(i) + (r + cell[i]-beg[i])*dx[i];
                         if (p.pos(i) < grid_box.hi(i)) break;
-                        iter++
+                        iter++;
                     }
                     AMREX_ASSERT(p.pos(i) < grid_box.hi(i));
                 }
