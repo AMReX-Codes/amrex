@@ -102,6 +102,11 @@ public:
 
     static const std::size_t align_size = 16;
 
+    /**
+     *  \brief Return the ArenaInfo object for querying
+     */
+    const ArenaInfo& arenaInfo () const { return arena_info; }
+
 protected:
 
     ArenaInfo arena_info;
