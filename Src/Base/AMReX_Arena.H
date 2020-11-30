@@ -11,7 +11,15 @@ namespace amrex {
  * \brief Given a minimum required size of size bytes, this returns
  * the next largest arena size that will align to align_requirement bytes
  */
-std::size_t aligned_size (std::size_t align_requirement, std::size_t size);
+inline std::size_t aligned_size (std::size_t align_requirement, std::size_t size) noexcept
+{
+    return ((size + (align_requirement-1)) / align_requirement) * align_requirement;
+}
+
+inline bool is_aligned (const void* p, std::size_t alignment) noexcept
+{
+    return (reinterpret_cast<std::size_t>(p) % alignment) == 0;
+}
 
 class Arena;
 
@@ -101,6 +109,11 @@ public:
 #endif
 
     static const std::size_t align_size = 16;
+
+    /**
+     *  \brief Return the ArenaInfo object for querying
+     */
+    const ArenaInfo& arenaInfo () const { return arena_info; }
 
 protected:
 

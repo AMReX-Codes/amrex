@@ -192,9 +192,9 @@ void main_main()
                                     if (m(i,j,k) == 0) { // not covered by fine
                                         if (pos.size() == data[ivar].size()) {
                                             Array<Real,AMREX_SPACEDIM> p
-                                                = {AMREX_D_DECL(problo[0]+(i+0.5)*dx[0],
-                                                                problo[1]+(j+0.5)*dx[1],
-                                                                problo[2]+(k+0.5)*dx[2])};
+                                                = {AMREX_D_DECL(problo[0]+static_cast<Real>(i+0.5)*dx[0],
+                                                                problo[1]+static_cast<Real>(j+0.5)*dx[1],
+                                                                problo[2]+static_cast<Real>(k+0.5)*dx[2])};
                                             pos.push_back(p[idir]);
                                         }
                                         data[ivar].push_back(fab(i,j,k));
@@ -220,9 +220,9 @@ void main_main()
                                 for (int i = lo.x; i <= hi.x; ++i) {
                                     if (pos.size() == data[ivar].size()) {
                                         Array<Real,AMREX_SPACEDIM> p
-                                            = {AMREX_D_DECL(problo[0]+(i+0.5)*dx[0],
-                                                            problo[1]+(j+0.5)*dx[1],
-                                                            problo[2]+(k+0.5)*dx[2])};
+                                            = {AMREX_D_DECL(problo[0]+static_cast<Real>(i+0.5)*dx[0],
+                                                            problo[1]+static_cast<Real>(j+0.5)*dx[1],
+                                                            problo[2]+static_cast<Real>(k+0.5)*dx[2])};
                                         pos.push_back(p[idir]);
                                     }
                                     data[ivar].push_back(fab(i,j,k));
