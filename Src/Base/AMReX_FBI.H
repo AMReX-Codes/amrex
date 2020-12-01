@@ -215,7 +215,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     detail::ParallelFor_doit(copy_tags,
         [=] AMREX_GPU_DEVICE (
 #ifdef AMREX_USE_DPCPP
-            sycl::nd_item<1> const& item,
+            sycl::nd_item<1> const& /*item*/,
 #endif
             int icell, int ncells, int i, int j, int k, Array4CopyTag<T> const tag) noexcept
         {

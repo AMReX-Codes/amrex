@@ -16,7 +16,12 @@
 #include <cstring>
 #include <cstdio>
 #include <csignal>
+
+#if !(defined(_MSC_VER) && defined(__CUDACC__))
+//MSVC can't pre-processor cfenv with `Zc:preprocessor`
+//https://developercommunity.visualstudio.com/content/problem/1271183/zcpreprocessor-e-crashes-when-given.html
 #include <cfenv>
+#endif
 
 #if defined(AMREX_EXPORT_DYNAMIC) && defined(__APPLE__)
 #include <cxxabi.h>

@@ -983,7 +983,7 @@ ifeq ($(USE_DPCPP),TRUE)
         FC  = mpiifx
         F90 = mpiifx
         # current version of mpiicpx does not have this on by default
-        CXXFLAGS += -fsycl-unnamed-lambda
+        EXTRACXXFLAGS += -fsycl-unnamed-lambda
     endif
 
 else ifeq ($(USE_HIP),TRUE)

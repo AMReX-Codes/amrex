@@ -218,6 +218,7 @@ namespace amrex
     */
     std::string get_command_argument (int number);
 
+#ifndef _MSC_VER
     inline void GccPlacater ()
     {
         std::allocator<bool> a_b;
@@ -233,6 +234,7 @@ namespace amrex
         std::allocator<double> a_d;
         std::allocator<std::string> a_s;
     }
+#endif
 
     class Geometry;
 
