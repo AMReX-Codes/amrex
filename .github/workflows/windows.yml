@@ -139,3 +139,38 @@ jobs:
   #        name: pr_number
   #        path: pr_number.txt
   #        retention-days: 1
+
+  # Build libamrex and all tutorials with CUDA
+  tutorials-cuda:
+    name: MSVC C++17 w/ CUDA@11.1.1 w/o Fortran w/o MPI
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - uses: seanmiddleditch/gha-setup-ninja@master
+    - name: Windows CUDA Cache
+      uses: actions/cache@v2
+      with:
+        path: "C:/Program Files/NVIDIA GPU Computing Toolkit/"
+        key: msvc_cxx17_cuda111
+    - name: Download CUDA
+      run: |
+        if (Test-Path "C:\Program Files\NVIDIA GPU Computing Toolkit\") { exit }
+        New-item -ItemType directory -Name cuda
+        Set-Location -Path cuda -PassThru
+        Invoke-WebRequest -Uri 'https://developer.download.nvidia.com/compute/cuda/11.1.1/network_installers/cuda_11.1.1_win10_network.exe' -OutFile 'cuda_install.exe'
+        Start-Process -FilePath '.\cuda_install.exe' -ArgumentList '-s' -Wait -NoNewWindow
+    - name: Build & Install
+      run: |
+        cmake -S . -B build `
+              -G "Ninja"    `
+              -DAMReX_BUILD_TUTORIALS=ON `
+              -DAMReX_FORTRAN=OFF        `
+              -DAMReX_MPI=OFF            `
+              -DAMReX_GPU_BACKEND=CUDA   `
+              -DCMAKE_CXX_STANDARD=17    `
+              -DCMAKE_CUDA_STANDARD=17   `
+              -DAMReX_CUDA_ARCH=6.0      `
+              -DCMAKE_CUDA_COMPILER="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.1/bin/nvcc.exe"
+        cmake --build build -j 2
+    # use "cmd", see https://gitlab.kitware.com/cmake/cmake/-/issues/20281
+    # -DAMReX_PARTICLES=ON
