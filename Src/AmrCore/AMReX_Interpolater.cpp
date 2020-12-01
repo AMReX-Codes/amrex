@@ -958,9 +958,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
         { types[d].set(d); }
 
     // This is currently only designed for octree, where ratio = 2.
-    // Limited to 1 component for now. Can be changed, but new launch needed to properly fuse.
     AMREX_ALWAYS_ASSERT(ratio == 2);
-    AMREX_ALWAYS_ASSERT(ncomp == 1);
 
     const Box c_fine_region = amrex::coarsen(fine_region, ratio);
     GpuArray<Real, AMREX_SPACEDIM> cell_size = fine_geom.CellSizeArray();
@@ -982,24 +980,33 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                                              {
                                                  AMREX_LOOP_3D(bx0, i, j, k,
                                                  {
-                                                     amrex::facediv_face_interp<Real> (i,j,k,crse_comp,fine_comp, 0,
-                                                                                       crsearr[0], finearr[0], maskarr[0], ratio);
+                                                     for (int n=0; n<ncomp; ++n)
+                                                     {
+                                                         amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 0,
+                                                                                           crsearr[0], finearr[0], maskarr[0], ratio);
+                                                     }
                                                  });
                                              },
                                              amrex::convert(c_fine_region,types[1]), bx1,
                                              {
                                                  AMREX_LOOP_3D(bx1, i, j, k,
                                                  {
-                                                     amrex::facediv_face_interp<Real> (i,j,k,crse_comp,fine_comp, 1,
-                                                                                       crsearr[1], finearr[1], maskarr[1], ratio);
+                                                     for (int n=0; n<ncomp; ++n)
+                                                     {
+                                                         amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 1,
+                                                                                           crsearr[1], finearr[1], maskarr[1], ratio);
+                                                     }
                                                  });
                                              },
                                              amrex::convert(c_fine_region,types[2]), bx2,
                                              {
                                                  AMREX_LOOP_3D(bx2, i, j, k,
                                                  {
-                                                     amrex::facediv_face_interp<Real> (i,j,k,crse_comp,fine_comp, 2,
-                                                                                       crsearr[2], finearr[2], maskarr[2], ratio);
+                                                     for (int n=0; n<ncomp; ++n)
+                                                     {
+                                                         amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 2,
+                                                                                           crsearr[2], finearr[2], maskarr[2], ratio);
+                                                     }
                                                  });
                                              });
 
