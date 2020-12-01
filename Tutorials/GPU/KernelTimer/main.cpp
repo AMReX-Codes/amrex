@@ -25,7 +25,7 @@ void main_main ()
     {
         // This parameter can control GPU compute work
         int n_cell = 256;
-        int max_grid_size = 64;
+        int max_grid_size = 16;
         ParmParse pp;
         pp.query("n_cell", n_cell);
         pp.query("max_grid_size", max_grid_size);
@@ -35,6 +35,9 @@ void main_main ()
     }
 
     MultiFab mf(ba,DistributionMapping{ba},1,0);
+
+    // Costs for each box of boxarray
+    std::unique_ptr<amrex::Real> costs( (amrex::Real*) The_Managed_Arena()->alloc(ba.size()*sizeof(amrex::Real)) );
 
     // Now compared different 'timer' instrumentation
 
@@ -78,9 +81,9 @@ void main_main ()
         amrex::Gpu::Device::synchronize();
     }
 
-    //////////////////
-    // 1) GPU clock //
-    //////////////////
+    ////////////////////
+    // 1.0) GPU clock //
+    ////////////////////
     // Sample KernelTimer instrumentation of amrex::ParallelFor function;
     // we pass this to KernelTimer to store accumulated thread cycles,
     // as a proxy for GPU compute work; for good performance, we allocate
@@ -88,13 +91,12 @@ void main_main ()
     mf.setVal(0.0);
     {
         BL_PROFILE("gpu_clock");
-        amrex::Real* cost = (amrex::Real*) The_Managed_Arena()->alloc(sizeof(amrex::Real));
-        *cost = 0.;
 
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
             Array4<Real> const& fab = mf.array(mfi);
+            amrex::Real* cost = &costs.get()[mfi.index()];
             amrex::ParallelFor(bx,
                                [=] AMREX_GPU_DEVICE (int i, int j, int k)
                                {
@@ -106,15 +108,78 @@ void main_main ()
                                    fab(i,j,k) += 1.;
                                });
         }
-        // Now cost is filled with thread-wise summed cycles
-        The_Managed_Arena()->free(cost);
-
+        // Now costs is filled with thread-wise summed cycles
+        
         amrex::Gpu::Device::synchronize();
     }
 
-    ///////////////////
-    // 2) Reduce sum //
-    ///////////////////
+    ////////////////////////////////
+    // 1.1) GPU clock shared memory //
+    ////////////////////////////////
+    // Sample KernelTimer instrumentation of amrex::ParallelFor function;
+    // we pass this to KernelTimer to store accumulated thread cycles,
+    // as a proxy for GPU compute work; for good performance, we allocate
+    // pinned host memory
+    mf.setVal(0.0);
+    {
+        BL_PROFILE("gpu_clock_shared");
+
+        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<Real> const& fab = mf.array(mfi);
+            amrex::Real* cost = &costs.get()[mfi.index()];
+            amrex::ParallelFor(bx,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                               {
+                                   // GPU timer instrumentation; constructor takes two
+                                   // arguments, first controls whether timer is active
+                                   // and second is a pointer to the Real that stores 
+                                   // accumulated GPU thread cycles
+                                   amrex::KernelTimerShared KnlTimer(true, cost);
+                                   fab(i,j,k) += 1.;
+                               });
+        }
+        // Now costs is filled with thread-wise summed cycles
+        
+        amrex::Gpu::Device::synchronize();
+    }
+
+    //////////////////////////////////////
+    // 1.2) GPU clock shared memory PTX //
+    //////////////////////////////////////
+    // Sample KernelTimer instrumentation of amrex::ParallelFor function;
+    // we pass this to KernelTimer to store accumulated thread cycles,
+    // as a proxy for GPU compute work; for good performance, we allocate
+    // pinned host memory
+    mf.setVal(0.0);
+    {
+        BL_PROFILE("gpu_clock_shared_PTX");
+
+        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<Real> const& fab = mf.array(mfi);
+            amrex::Real* cost = &costs.get()[mfi.index()];
+            amrex::ParallelFor(bx,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                               {
+                                   // GPU timer instrumentation; constructor takes two
+                                   // arguments, first controls whether timer is active
+                                   // and second is a pointer to the Real that stores 
+                                   // accumulated GPU thread cycles
+                                   amrex::KernelTimerSharedPTX KnlTimer(true, cost);
+                                   fab(i,j,k) += 1.;
+                               });
+        }
+        // Now costs is filled with thread-wise summed cycles
+        
+        amrex::Gpu::Device::synchronize();
+    }
+
+    /////////////////////
+    // 2.0) Reduce sum //
+    /////////////////////
     mf.setVal(0.0);
     {
         BL_PROFILE("reduce_sum");
@@ -141,9 +206,9 @@ void main_main ()
         amrex::Gpu::Device::synchronize();
     }
 
-    ///////////////////////////////
-    // 3) PTX timer + reduce sum //
-    ///////////////////////////////
+    /////////////////////////////////
+    // 2.1) PTX timer + reduce sum //
+    /////////////////////////////////
     mf.setVal(0.0);
     {
         BL_PROFILE("reduce_sum_with_PTX");
@@ -163,7 +228,7 @@ void main_main ()
                                fab(i,j,k) += 1.;
                                asm(".reg .u32 t1;\n\t"         // temp reg t1
                                    " mov.u32 t1, %%clock;\n\t" // t1 = clock
-                                   " sub.u32 %0, t1, %1;"  // cost = t1 - cost
+                                   " sub.u32 %0, t1, %1;"      // cost = t1 - cost
                                    : "=r"(cost) : "r" (cost));
                                return {amrex::Real(cost)};
                            });
@@ -175,14 +240,16 @@ void main_main ()
     }
 
     ////////////////////////
-    // 4) Synchronization //
+    // 3) Synchronization //
     ////////////////////////
-    mf.setVal(0.0);        
+    mf.setVal(0.0);
     {
         BL_PROFILE("synchronization");
-        auto t0 = clock();
+
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
+            auto t0 = clock();
+            
             const Box& bx = mfi.tilebox();
             Array4<Real> const& fab = mf.array(mfi);
             amrex::ParallelFor(bx,
@@ -191,25 +258,34 @@ void main_main ()
                                    fab(i,j,k) += 1.;
                                });
             amrex::Gpu::Device::synchronize();
+            
+            auto t1 = clock();
+
+            costs.get()[mfi.index()] = amrex::Real(t1 - t0);
         }
-        auto t1 = clock();
 
         amrex::Gpu::Device::synchronize();
     }
 
     ////////////////////
-    // 5) CUDA events //
+    // 4) CUDA events //
     ////////////////////
-    mf.setVal(0.0);        
+    mf.setVal(0.0);
     {
         BL_PROFILE("CUDA_events");
-        cudaEvent_t start, stop;
-        cudaEventCreate(&start);
-        cudaEventCreate(&stop);
 
-        cudaEventRecord(start);
+        cudaEvent_t starts[ba.size()], stops[ba.size()];
+        for (int i=0; i<ba.size(); i++)
+        {
+            cudaEventCreate(&starts[i]);
+            cudaEventCreate(&stops[i]);
+        }
+        
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
+            
+            cudaEventRecord(starts[mfi.index()]);
+        
             const Box& bx = mfi.tilebox();
             Array4<Real> const& fab = mf.array(mfi);
             amrex::ParallelFor(bx,
@@ -217,11 +293,21 @@ void main_main ()
                                {
                                    fab(i,j,k) += 1.;
                                });
+
+            cudaEventRecord(stops[mfi.index()]);
         }
-        cudaEventRecord(stop);
-        cudaEventSynchronize(stop);
+
+        for (int i=0; i<ba.size(); i++)
+        {
+            cudaEventSynchronize(stops[i]);
+            float milliseconds;
+            cudaEventElapsedTime(&milliseconds, starts[i], stops[i]);
+            costs.get()[i] = amrex::Real(milliseconds);
+        }
 
         amrex::Gpu::Device::synchronize();
     }
-    
+
+    // Managed memory cleanup
+    costs.release();
 }
