@@ -137,7 +137,7 @@
 #endif
 
 #if defined(__cplusplus) && defined(_WIN32)
-#include <iso646.h>
+#include <ciso646>
 #endif
 
 #if (__cplusplus >= 201703L)
