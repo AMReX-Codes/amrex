@@ -13,8 +13,8 @@ void main_main();
 void CUDART_CB getTimer (cudaStream_t stream, cudaError_t status, void* data);
 
 ReduceOps<ReduceOpSum> a_reduce_op;
-ReduceData<Real> a_reduce_data(a_reduce_op);
-using ReduceTuple = typename decltype(a_reduce_data)::Type;
+using ReduceTuple = typename ReduceData<Real>::Type;
+
 
 struct myData {
     
@@ -33,16 +33,10 @@ int main (int argc, char* argv[])
     amrex::Finalize();
 }
 
-// void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *data)
-// {
-//     printf("Inside callback %d\n", (size_t)data);
-// }
-
-
-// void CUDART_CB getTimer (cudaStream_t stream, cudaError_t status, void *data)
-// {
-//     ((myData*)data)->cost = amrex::get<0>( ((myData*)data)->hv);
-// }
+void CUDART_CB getTimer (cudaStream_t stream, cudaError_t status, void *data)
+{
+    ((myData*)data)->cost = amrex::get<0>( ((myData*)data)->hv);
+}
 
 void main_main ()
 {
@@ -167,7 +161,7 @@ void main_main ()
                                });
         }
         // Now costs is filled with thread-wise summed cycles
-        
+                
         amrex::Gpu::Device::synchronize();
     }
 
@@ -227,18 +221,20 @@ void main_main ()
                                return {amrex::Real(t1-t0)};
                            });
 
-            ReduceTuple hv = reduce_data.value();
-            //myData* data = new myData(costs.get()[mfi.index()], hv);
-            //cudaLaunchHostFunc(amrex::Gpu::gpuStream(), getTimer, data, 0);
-            //myData data(costs.get()[mfi.index()], hv);
-            //cudaLaunchHostFunc(amrex::Gpu::gpuStream(), MyCallback, (void*)&data);
-            //size_t jj = 0;
-            //cudaLaunchHostFunc(amrex::Gpu::gpuStream(), MyCallback, (void*)jj);
-            //cudaStreamAddCallback(amrex::Gpu::gpuStream(), getTimer, (void*)&data, 0);
-        }
-        //ReduceTuple hv = reduce_data.value();
-        //auto result = amrex::get<0>(hv);
 
+            ReduceTuple hv = reduce_data.value();
+            myData data(costs.get()[mfi.index()], hv);
+            cudaStreamAddCallback(amrex::Gpu::gpuStream(), getTimer, (void*)&data, 0);
+        }
+
+        amrex::Gpu::Device::synchronize();
+
+        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            auto x = costs.get()[mfi.index()];
+            amrex::Print() << mfi.index() << ": cost is " << x << "\n";
+        }
+        
         amrex::Gpu::Device::synchronize();
     }
 
