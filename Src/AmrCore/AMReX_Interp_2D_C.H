@@ -448,23 +448,23 @@ facediv_face_interp (int ci, int cj, int /*ck*/,
     switch (idir) {
         case 0:
         {
-            const Real& neg = crse(ci, cj-1, 0, nc);
-            const Real& cen = crse(ci, cj  , 0, nc);
-            const Real& pos = crse(ci, cj+1, 0, nc);
+            const Real neg = crse(ci, cj-1, 0, nc);
+            const Real cen = crse(ci, cj  , 0, nc);
+            const Real pos = crse(ci, cj+1, 0, nc);
 
-            fine(fi, fj  , 0, nf) = (8.0_rt*cen + neg - pos)/8.0_rt;
-            fine(fi, fj+1, 0, nf) = (8.0_rt*cen + pos - neg)/8.0_rt;
+            fine(fi, fj  , 0, nf) = Real(0.125)*(8*cen + neg - pos);
+            fine(fi, fj+1, 0, nf) = Real(0.125)*(8*cen + pos - neg);
 
             break;
         }
         case 1:
         {
-            const Real& neg = crse(ci-1, cj, 0, nc);
-            const Real& cen = crse(ci  , cj, 0, nc);
-            const Real& pos = crse(ci+1, cj, 0, nc);
+            const Real neg = crse(ci-1, cj, 0, nc);
+            const Real cen = crse(ci  , cj, 0, nc);
+            const Real pos = crse(ci+1, cj, 0, nc);
 
-            fine(fi  , fj, 0, nf) = (8.0_rt*cen + neg - pos)/8.0_rt;
-            fine(fi+1, fj, 0, nf) = (8.0_rt*cen + pos - neg)/8.0_rt;
+            fine(fi  , fj, 0, nf) = Real(0.125)*(8*cen + neg - pos);
+            fine(fi+1, fj, 0, nf) = Real(0.125)*(8*cen + pos - neg);
 
             break;
         }
@@ -482,25 +482,25 @@ facediv_int (int ci, int cj, int /*ck*/, int nf,
     const int fj = cj*ratio[1];
 
     // References to fine exterior values.
-    const Real& umm = fine[0](fi,   fj,   0, nf);
-    const Real& ump = fine[0](fi,   fj+1, 0, nf);
-    const Real& upm = fine[0](fi+2, fj,   0, nf);
-    const Real& upp = fine[0](fi+2, fj+1, 0, nf);
+    const Real umm = fine[0](fi,   fj,   0, nf);
+    const Real ump = fine[0](fi,   fj+1, 0, nf);
+    const Real upm = fine[0](fi+2, fj,   0, nf);
+    const Real upp = fine[0](fi+2, fj+1, 0, nf);
 
-    const Real& vmm = fine[1](fi,   fj,   0, nf);
-    const Real& vmp = fine[1](fi+1, fj,   0, nf);
-    const Real& vpm = fine[1](fi,   fj+2, 0, nf);
-    const Real& vpp = fine[1](fi+1, fj+2, 0, nf);
+    const Real vmm = fine[1](fi,   fj,   0, nf);
+    const Real vmp = fine[1](fi+1, fj,   0, nf);
+    const Real vpm = fine[1](fi,   fj+2, 0, nf);
+    const Real vpp = fine[1](fi+1, fj+2, 0, nf);
 
     const Real dxdy = cellSize[0]/cellSize[1];
-    const Real x_corr =   (dxdy/4.0_rt) * (vpp+vmm-vmp-vpm);
-    const Real y_corr = 1/(dxdy*4.0_rt) * (upp+umm-ump-upm);
+    const Real x_corr = Real(0.25)*dxdy * (vpp+vmm-vmp-vpm);
+    const Real y_corr = Real(0.25)/dxdy * (upp+umm-ump-upm);
 
     // Calc fine faces on interior of coarse cells.
-    fine[0](fi+1,fj  ,0,nf) = (umm+upm)/2.0_rt + x_corr; 
-    fine[0](fi+1,fj+1,0,nf) = (ump+upp)/2.0_rt + x_corr; 
-    fine[1](fi,  fj+1,0,nf) = (vmm+vpm)/2.0_rt + y_corr;
-    fine[1](fi+1,fj+1,0,nf) = (vmp+vpp)/2.0_rt + y_corr;
+    fine[0](fi+1,fj  ,0,nf) = Real(0.5)*(umm+upm) + x_corr;
+    fine[0](fi+1,fj+1,0,nf) = Real(0.5)*(ump+upp) + x_corr;
+    fine[1](fi,  fj+1,0,nf) = Real(0.5)*(vmm+vpm) + y_corr;
+    fine[1](fi+1,fj+1,0,nf) = Real(0.5)*(vmp+vpp) + y_corr;
 }
 
 
