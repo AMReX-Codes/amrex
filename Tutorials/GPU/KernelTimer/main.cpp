@@ -246,19 +246,21 @@ void main_main ()
         BL_PROFILE("reduce_sum_no_callback");
 
         ReduceOps<ReduceOpSum> reduce_op;
-        Vector< std::unique_ptr<ReduceData<Real>> > reduce_data;
-        for (int i=0; i<mf.size(); ++i)
-        {
-            reduce_data.push_back(std::unique_ptr<ReduceData<Real>>
-                                  (new ReduceOps<ReduceOpSum>) );
-        }
-        // using ReduceTuple = typename ReduceData<Real>::Type;
+        using ReduceTuple = typename ReduceData<Real>::Type;
+        Vector<ReduceTuple*> reduce_data;
+
+        //auto x = ReduceTuple(reduce_op);
+        
+        // for (int i=0; i<mf.size(); ++i)
+        // {
+        //     reduce_data.push_back(new ReduceTuple(reduce_op));
+        // }
  
         // for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         // {
         //     const Box& bx = mfi.tilebox();
         //     Array4<Real> const& fab = mf.array(mfi);
-        //     reduce_op.eval(bx, reduce_data[mfi.index()],
+        //     reduce_op.eval(bx, *reduce_data[mfi.index()],
         //                    [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         //                    {
         //                        auto t0 = clock64();
@@ -273,11 +275,11 @@ void main_main ()
         //     //cudaStreamAddCallback(amrex::Gpu::gpuStream(), getTimer, (void*)&data, 0);
         // }
 
-        // for (int i=0; i<mf.size(); ++i)
-        // {
-        //     //ReduceTuple hv = reduce_data.value();
-        //     //costs.get()[i] = amrex::get<0>(hv);
-        // }
+        for (int i=0; i<mf.size(); ++i)
+        {
+            //ReduceTuple hv = reduce_data.value();
+            //costs.get()[i] = amrex::get<0>(hv);
+        }
         
         amrex::Gpu::Device::synchronize();
     }
