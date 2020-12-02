@@ -10,6 +10,22 @@ using namespace amrex;
 
 void main_main();
 
+void CUDART_CB getTimer (cudaStream_t stream, cudaError_t status, void* data);
+
+ReduceOps<ReduceOpSum> a_reduce_op;
+ReduceData<Real> a_reduce_data(a_reduce_op);
+using ReduceTuple = typename decltype(a_reduce_data)::Type;
+
+struct myData {
+    
+    ReduceTuple hv;
+    Real cost;
+    
+    myData (Real& a_cost, ReduceTuple& a_hv) : cost{a_cost}, hv{a_hv} {}
+    
+};
+
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
@@ -17,6 +33,16 @@ int main (int argc, char* argv[])
     amrex::Finalize();
 }
 
+// void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *data)
+// {
+//     printf("Inside callback %d\n", (size_t)data);
+// }
+
+
+// void CUDART_CB getTimer (cudaStream_t stream, cudaError_t status, void *data)
+// {
+//     ((myData*)data)->cost = amrex::get<0>( ((myData*)data)->hv);
+// }
 
 void main_main ()
 {
@@ -113,9 +139,9 @@ void main_main ()
         amrex::Gpu::Device::synchronize();
     }
 
-    ////////////////////////////////
+    //////////////////////////////////
     // 1.1) GPU clock shared memory //
-    ////////////////////////////////
+    //////////////////////////////////
     // Sample KernelTimer instrumentation of amrex::ParallelFor function;
     // we pass this to KernelTimer to store accumulated thread cycles,
     // as a proxy for GPU compute work; for good performance, we allocate
@@ -187,6 +213,7 @@ void main_main ()
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<Real> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
+ 
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
@@ -199,9 +226,18 @@ void main_main ()
                                auto t1 = clock64();
                                return {amrex::Real(t1-t0)};
                            });
+
+            ReduceTuple hv = reduce_data.value();
+            //myData* data = new myData(costs.get()[mfi.index()], hv);
+            //cudaLaunchHostFunc(amrex::Gpu::gpuStream(), getTimer, data, 0);
+            //myData data(costs.get()[mfi.index()], hv);
+            //cudaLaunchHostFunc(amrex::Gpu::gpuStream(), MyCallback, (void*)&data);
+            //size_t jj = 0;
+            //cudaLaunchHostFunc(amrex::Gpu::gpuStream(), MyCallback, (void*)jj);
+            //cudaStreamAddCallback(amrex::Gpu::gpuStream(), getTimer, (void*)&data, 0);
         }
-        ReduceTuple hv = reduce_data.value();
-        auto result = amrex::get<0>(hv);
+        //ReduceTuple hv = reduce_data.value();
+        //auto result = amrex::get<0>(hv);
 
         amrex::Gpu::Device::synchronize();
     }
