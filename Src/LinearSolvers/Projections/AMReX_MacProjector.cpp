@@ -187,8 +187,12 @@ void
 MacProjector::setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,
                            const Array<LinOpBCType,AMREX_SPACEDIM>& hibc)
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        m_linop != nullptr,
+        "MacProjector::setDomainBC: initProjector must be called before calling this method");
+
     m_linop->setDomainBC(lobc, hibc);
-    for (int ilev = 0, N = m_umac.size(); ilev < N; ++ilev) {
+    for (int ilev = 0, N = m_geom.size(); ilev < N; ++ilev) {
         m_linop->setLevelBC(ilev, nullptr);
     }
 
