@@ -561,6 +561,235 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     return {AMREX_D_DECL(xslope,yslope,zslope)};
 }
 
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+amrex::Real 
+amrex_calc_alpha_stencil(amrex::Real q_hat, amrex::Real q_max,
+                         amrex::Real q_min, amrex::Real state, amrex::Real alpha) noexcept
+{   
+    amrex::Real alpha_temp = 0.0;
+    amrex::Real small_vel  = 1.0e-13;
+
+    if ((q_hat-state) > small_vel) {
+        alpha_temp = amrex::min(1.0,(q_max-state)/(q_hat-state));
+    } else if ((q_hat-state) < -small_vel) {
+        alpha_temp = amrex::min(1.0,(q_min-state)/(q_hat-state));
+    } else {
+        alpha_temp = 1.0;
+    }
+    return amrex::min(alpha, alpha_temp);
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
+amrex_calc_alpha_limiter(int i, int j, int k, int n, int dir,
+                         amrex::Array4<amrex::Real const> const& state,
+                         amrex::Array4<amrex::EBCellFlag const> const& flag,
+                         const amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>& slopes,
+                         AMREX_D_DECL(amrex::Array4<amrex::Real const> const& fcx,
+                                      amrex::Array4<amrex::Real const> const& fcy,
+                                      amrex::Array4<amrex::Real const> const& fcz),
+                         amrex::Array4<amrex::Real const> const& ccent) noexcept
+{   
+    amrex::Real alpha = 2.0;
+    amrex::Real q_min = state(i,j,k,n);
+    amrex::Real q_max = state(i,j,k,n);
+
+    AMREX_D_TERM(int cuts_x = 0;,
+                 int cuts_y = 0;,
+                 int cuts_z = 0;);
+
+#if (AMREX_SPACEDIM == 3)
+    for(int kk(-1); kk<=1; kk++)
+#else   
+    int kk = 0;
+#endif  
+    {   
+        for(int jj(-1); jj<=1; jj++){
+          for(int ii(-1); ii<=1; ii++){
+            if( flag(i,j,k).isConnected(ii,jj,kk) and
+                not (ii==0 and jj==0 and kk==0)) {
+                if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
+                if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
+
+                if ((ii==-1 or ii==1) and jj==0 and kk==0) cuts_x++;
+                if ((jj==-1 or jj==1) and ii==0 and kk==0) cuts_y++;
+#if (AMREX_SPACEDIM == 3)
+                if ((kk==-1 or kk==1) and ii==0 and jj==0) cuts_z++;
+#endif
+            }
+          }
+        }
+    }
+
+    AMREX_D_TERM(amrex::Real xc = ccent(i,j,k,0);, // centroid of cell (i,j,k)
+                 amrex::Real yc = ccent(i,j,k,1);,
+                 amrex::Real zc = ccent(i,j,k,2););
+
+    if (dir){
+        if(flag(i,j,k).isConnected(0,1,0)) {
+               amrex::Real xf = fcy(i,j+1,k,0); // local (x,z) of centroid of z-face we are extrapolating to
+               amrex::Real zf = fcy(i,j+1,k,1); // local (x,z) of centroid of z-face we are extrapolating to
+
+               AMREX_D_TERM(amrex::Real delta_x = xf  - xc;,
+                            amrex::Real delta_y = 0.5 - yc;,
+                            amrex::Real delta_z = zf  - zc;);
+
+               amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
+                                                  + delta_y * slopes[1];
+
+               alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+        }
+        if (flag(i,j,k).isConnected(0,-1,0)){
+               amrex::Real xf = fcy(i,j,k,0); // local (x,z) of centroid of z-face we are extrapolating to
+               amrex::Real zf = fcy(i,j,k,1); // local (x,z) of centroid of z-face we are extrapolating to
+
+               AMREX_D_TERM(amrex::Real delta_x = xf  - xc;,
+                            amrex::Real delta_y = 0.5 + yc;,
+                            amrex::Real delta_z = zf  - zc;);
+
+               amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
+                                                  - delta_y * slopes[1];
+
+               alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+        }
+        if(flag(i,j,k).isConnected(1,0,0)) {
+               amrex::Real yf = fcx(i+1,j,k,0); // local (y,z) of centroid of z-face we are extrapolating to
+               amrex::Real zf = fcx(i+1,j,k,1); // local (y,z) of centroid of z-face we are extrapolating to
+
+               AMREX_D_TERM(amrex::Real delta_x = 0.5 - xc;,
+                            amrex::Real delta_y = yf  - yc;,
+                            amrex::Real delta_z = zf  - zc;);
+
+               amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
+                                                  + delta_y * slopes[1];
+
+               alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+        }
+        if(flag(i,j,k).isConnected(-1,0,0)) {
+               amrex::Real yf = fcx(i,j,k,0); // local (y,z) of centroid of z-face we are extrapolating to
+               amrex::Real zf = fcx(i,j,k,1); // local (y,z) of centroid of z-face we are extrapolating to
+
+               AMREX_D_TERM(amrex::Real delta_x = 0.5 + xc;,
+                            amrex::Real delta_y = yf  - yc;,
+                            amrex::Real delta_z = zf  - zc;);
+
+               amrex::Real q_hat = state(i,j,k,n) - delta_x * slopes[0]
+                                                  + delta_y * slopes[1];
+
+               alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+        }
+    }else{
+        if(flag(i,j,k).isConnected(1,0,0)) {
+               amrex::Real yf = fcx(i+1,j,k,0); // local (y,z) of centroid of z-face we are extrapolating to
+               amrex::Real zf = fcx(i+1,j,k,1); // local (y,z) of centroid of z-face we are extrapolating to
+
+               AMREX_D_TERM(amrex::Real delta_x = 0.5 - xc;,
+                            amrex::Real delta_y = yf  - yc;,
+                            amrex::Real delta_z = zf  - zc;);
+
+               amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
+                                                  + delta_y * slopes[1];
+
+               alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+        }
+        if (flag(i,j,k).isConnected(-1,0,0)) {
+               amrex::Real yf = fcx(i,j,k,0); // local (y,z) of centroid of z-face we are extrapolating to
+               amrex::Real zf = fcx(i,j,k,1); // local (y,z) of centroid of z-face we are extrapolating to
+
+               AMREX_D_TERM(amrex::Real delta_x = 0.5 + xc;,
+                            amrex::Real delta_y = yf  - yc;,
+                            amrex::Real delta_z = zf  - zc;);
+
+               amrex::Real q_hat = state(i,j,k,n) - delta_x * slopes[0]
+                                                  + delta_y * slopes[1];
+
+               alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+        }
+        if(flag(i,j,k).isConnected(0,1,0)) {
+               amrex::Real xf = fcy(i,j+1,k,0); // local (x,z) of centroid of z-face we are extrapolating to
+               amrex::Real zf = fcy(i,j+1,k,1); // local (x,z) of centroid of z-face we are extrapolating to
+
+               AMREX_D_TERM(amrex::Real delta_x = xf  - xc;,
+                            amrex::Real delta_y = 0.5 - yc;,
+                            amrex::Real delta_z = zf  - zc;);
+
+               amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
+                                                  + delta_y * slopes[1];
+
+               alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+        }
+        if(flag(i,j,k).isConnected(0,-1,0)) {
+               amrex::Real xf = fcy(i,j,k,0); // local (x,z) of centroid of z-face we are extrapolating to
+               amrex::Real zf = fcy(i,j,k,1); // local (x,z) of centroid of z-face we are extrapolating to
+
+               AMREX_D_TERM(amrex::Real delta_x = xf  - xc;,
+                            amrex::Real delta_y = 0.5 + yc;,
+                            amrex::Real delta_z = zf  - zc;);
+
+               amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
+                                                  - delta_y * slopes[1];
+
+               alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+        }
+    }
+
+    AMREX_D_TERM(amrex::Real xalpha = alpha;,
+                 amrex::Real yalpha = alpha;,
+                 amrex::Real zalpha = alpha;);
+
+    if (cuts_x<2) xalpha = 0;
+    if (cuts_y<2) yalpha = 0;
+
+    return {AMREX_D_DECL(xalpha,yalpha,zalpha)};
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
+amrex_lim_slopes_eb (int i, int j, int k, int n, int dir,
+                     amrex::Array4<amrex::Real const> const& state,
+                     amrex::Array4<amrex::Real const> const& ccent,
+                     AMREX_D_DECL(amrex::Array4<amrex::Real const> const& fcx,
+                                  amrex::Array4<amrex::Real const> const& fcy,
+                                  amrex::Array4<amrex::Real const> const& fcz),
+                     amrex::Array4<amrex::EBCellFlag const> const& flag) noexcept
+{
+
+    amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes;
+    amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> alpha_lim;
+
+    slopes = amrex_calc_slopes_eb(i,j,k,n,state,ccent,flag);    
+    alpha_lim = amrex_calc_alpha_limiter(i,j,k,n,dir,state,flag,slopes,AMREX_D_DECL(fcx,fcy,fcz),ccent);    
+
+    return {AMREX_D_DECL(alpha_lim[0]*slopes[0],alpha_lim[1]*slopes[1],alpha_lim[2]*slopes[2])};
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
+amrex_lim_slopes_extdir_eb (int i, int j, int k, int n, int dir,
+                            amrex::Array4<amrex::Real const> const& state,
+                            amrex::Array4<amrex::Real const> const& ccent,
+                            AMREX_D_DECL(
+                            amrex::Array4<amrex::Real const> const& fcx,
+                            amrex::Array4<amrex::Real const> const& fcy,
+                            amrex::Array4<amrex::Real const> const& fcz),
+                            amrex::Array4<amrex::EBCellFlag const> const& flag,
+                            AMREX_D_DECL(bool edlo_x, bool edlo_y, bool edlo_z),
+                            AMREX_D_DECL(bool edhi_x, bool edhi_y, bool edhi_z),
+                            AMREX_D_DECL(int domlo_x, int domlo_y, int domlo_z),
+                            AMREX_D_DECL(int domhi_x, int domhi_y, int domhi_z)) noexcept
+{   
+
+    amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes;
+    amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> alpha_lim;
+
+    slopes = amrex_calc_slopes_extdir_eb(i,j,k,n,state,ccent,AMREX_D_DECL(fcx,fcy,fcz),flag,
+                                         AMREX_D_DECL(edlo_x,edlo_y,edlo_z),AMREX_D_DECL(edhi_x,edhi_y,edhi_z),
+                                         AMREX_D_DECL(domlo_x,domlo_y,domlo_z),AMREX_D_DECL(domhi_x,domhi_y,domhi_z));
+    alpha_lim = amrex_calc_alpha_limiter(i,j,k,n,dir,state,flag,slopes,AMREX_D_DECL(fcx,fcy,fcz),ccent);
+
+    return {AMREX_D_DECL(alpha_lim[0]*slopes[0],alpha_lim[1]*slopes[1],alpha_lim[2]*slopes[2])};
+}
+
 #endif
 #endif
 
