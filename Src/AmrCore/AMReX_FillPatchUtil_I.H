@@ -848,6 +848,10 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
         }
     }
 
+    const bool nested = ( AMREX_D_TERM(nghost[0] % ratio[0] == 0,
+                                    && nghost[1] % ratio[1] == 0,
+                                    && nghost[2] % ratio[2] == 0));
+
     BoxArray ba_crse_patch(ba.size());
     BoxArray ba_fine_patch(ba.size());
     BoxArray ba_target_patch(ba.size());
@@ -932,24 +936,33 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
         }
     }
 
+
     Array<MF, AMREX_SPACEDIM> mf_target_patch;
-    for (int d = 0; d<AMREX_SPACEDIM; ++d)
+    if (!nested)
     {
-        IndexType typ = mf[d]->boxArray().ixType();
-        BoxArray ba_target_idxed = amrex::convert(ba_fine_patch, typ);
+        for (int d = 0; d<AMREX_SPACEDIM; ++d)
+        {
+            IndexType typ = mf[d]->boxArray().ixType();
+            BoxArray ba_target_idxed = amrex::convert(ba_target_patch, typ);
 
 #ifdef AMREX_USE_EB
-        auto target_factory = makeEBFabFactory(fgeom, ba_target_idxed, dm, {0,0,0}, EBSupport::basic);
-        mf_target_patch[d].define(ba_target_idxed, dm, ncomp, 0, MFInfo(), *target_factory);
+            auto target_factory = makeEBFabFactory(fgeom, ba_target_idxed, dm, {0,0,0}, EBSupport::basic);
+            mf_target_patch[d].define(ba_target_idxed, dm, ncomp, 0, MFInfo(), *target_factory);
 #else
-        mf_target_patch[d].define(ba_target_idxed, dm, ncomp, 0);
+            mf_target_patch[d].define(ba_target_idxed, dm, ncomp, 0);
 #endif
-        amrex::Copy(mf_target_patch[d], mf_fine_patch[d], 0, 0, ncomp, 0);
+            amrex::Copy(mf_target_patch[d], mf_fine_patch[d], 0, 0, ncomp, 0);
+        }
     }
 
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
-        mf[d]->ParallelCopy(mf_fine_patch[d], 0, dcomp, ncomp, IntVect{0}, nghost);
+        if (!nested) {
+            mf[d]->ParallelCopy(mf_target_patch[d], 0, dcomp, ncomp, IntVect{0}, nghost);
+        } else {
+            mf[d]->ParallelCopy(mf_fine_patch[d], 0, dcomp, ncomp, IntVect{0}, nghost);
+        }
+
         fbc[d](*mf[d], dcomp, ncomp, nghost, time, fbccomp);
     }
 }
