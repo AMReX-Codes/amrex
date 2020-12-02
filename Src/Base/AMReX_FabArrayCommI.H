@@ -632,25 +632,8 @@ FabArray<FAB>::PostSnds (Vector<char*> const&       send_data,
     {
         if (send_size[j] > 0) {
             const int rank = ParallelContext::global_to_local_rank(send_rank[j]);
-            const int comm_data_type = ParallelDescriptor::select_comm_data_type(send_size[j]);
-            if (comm_data_type == 1) {
-                send_reqs[j] = ParallelDescriptor::Asend
-                    (send_data[j],
-                     send_size[j],
-                     rank, SeqNum, comm).req();
-            } else if (comm_data_type == 2) {
-                send_reqs[j] = ParallelDescriptor::Asend
-                    ((unsigned long long *)send_data[j],
-                     send_size[j]/sizeof(unsigned long long),
-                     rank, SeqNum, comm).req();
-            } else if (comm_data_type == 3) {
-                send_reqs[j] = ParallelDescriptor::Asend
-                    ((ParallelDescriptor::lull_t *)send_data[j],
-                     send_size[j]/sizeof(ParallelDescriptor::lull_t),
-                     rank, SeqNum, comm).req();
-            } else {
-                amrex::Abort("TODO: message size is too big");
-            }
+            send_reqs[j] = ParallelDescriptor::Asend
+                (send_data[j], send_size[j], rank, SeqNum, comm).req();
         }
     }
 }
@@ -715,25 +698,8 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  RcvTags,
             if (recv_size[i] > 0)
             {
                 const int rank = ParallelContext::global_to_local_rank(recv_from[i]);
-                const int comm_data_type = ParallelDescriptor::select_comm_data_type(recv_size[i]);
-                if (comm_data_type == 1) {
-                    recv_reqs[i] = ParallelDescriptor::Arecv
-                        (recv_data[i],
-                         recv_size[i],
-                         rank, SeqNum, comm).req();
-                } else if (comm_data_type == 2) {
-                    recv_reqs[i] = ParallelDescriptor::Arecv
-                        ((unsigned long long *)recv_data[i],
-                         recv_size[i]/sizeof(unsigned long long),
-                         rank, SeqNum, comm).req();
-                } else if (comm_data_type == 3) {
-                    recv_reqs[i] = ParallelDescriptor::Arecv
-                        ((ParallelDescriptor::lull_t *)recv_data[i],
-                         recv_size[i]/sizeof(ParallelDescriptor::lull_t),
-                         rank, SeqNum, comm).req();
-                } else {
-                    amrex::Abort("TODO: message size is too big");
-                }
+                recv_reqs[i] = ParallelDescriptor::Arecv
+                    (recv_data[i], recv_size[i], rank, SeqNum, comm).req();
             }
         }
     }
