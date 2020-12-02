@@ -246,39 +246,42 @@ void main_main ()
         BL_PROFILE("reduce_sum_no_callback");
 
         ReduceOps<ReduceOpSum> reduce_op;
+        Vector<ReduceData<Real>*> reduce_data(mf.size());
         using ReduceTuple = typename ReduceData<Real>::Type;
-        Vector<ReduceTuple*> reduce_data;
 
-        //auto x = ReduceTuple(reduce_op);
-        
-        // for (int i=0; i<mf.size(); ++i)
-        // {
-        //     reduce_data.push_back(new ReduceTuple(reduce_op));
-        // }
+        for (int i=0; i<mf.size(); ++i)
+        {
+            reduce_data[i] = new ReduceData<Real>(reduce_op);
+        }
  
-        // for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-        // {
-        //     const Box& bx = mfi.tilebox();
-        //     Array4<Real> const& fab = mf.array(mfi);
-        //     reduce_op.eval(bx, *reduce_data[mfi.index()],
-        //                    [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
-        //                    {
-        //                        auto t0 = clock64();
-        //                        fab(i,j,k) += 1.;   
-        //                        auto t1 = clock64();
-        //                        return {amrex::Real(t1-t0)};
-        //                    });
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<Real> const& fab = mf.array(mfi);
+            reduce_op.eval(bx, *reduce_data[mfi.index()],
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+                           {
+                               auto t0 = clock64();
+                               fab(i,j,k) += 1.;   
+                               auto t1 = clock64();
+                               return {amrex::Real(t1-t0)};
+                           });
 
 
         //     //ReduceTuple hv = reduce_data.value();
         //     //myData data(costs.get()[mfi.index()], hv);
         //     //cudaStreamAddCallback(amrex::Gpu::gpuStream(), getTimer, (void*)&data, 0);
-        // }
+        }
+
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+            ReduceTuple hv = reduce_data[mfi.index()]->value();
+            costs.get()[mfi.index()] = amrex::get<0>(hv);
+        }
 
         for (int i=0; i<mf.size(); ++i)
         {
-            //ReduceTuple hv = reduce_data.value();
-            //costs.get()[i] = amrex::get<0>(hv);
+            delete reduce_data[i];
         }
         
         amrex::Gpu::Device::synchronize();
