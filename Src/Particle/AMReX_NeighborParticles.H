@@ -263,7 +263,8 @@ public:
               typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
     void AddRealComp (T communicate=true)
     {
-        this->AddRealComp(communicate);
+        ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+            AddRealComp(communicate);
         rc.push_back(communicate);
         calcCommSize();
     }
@@ -272,7 +273,8 @@ public:
               typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
     void AddIntComp (T communicate=true)
     {
-        this->AddIntComp(communicate);
+        ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+            AddIntComp(communicate);
         ic.push_back(communicate);
         calcCommSize();
     }

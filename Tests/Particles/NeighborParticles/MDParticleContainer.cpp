@@ -56,8 +56,8 @@ InitParticles(const IntVect& a_num_particles_per_cell,
         const Box& tile_box  = mfi.tilebox();
 
         Gpu::HostVector<ParticleType> host_particles;
-        std::array<Gpu::HostVector<ParticleReal>, NArrayReal> host_real;
-        std::array<Gpu::HostVector<int>, NArrayInt> host_int;
+        std::vector<Gpu::HostVector<ParticleReal> > host_real(NumRealComps());
+        std::vector<Gpu::HostVector<int> > host_int(NumIntComps());
 
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) {
             for (int i_part=0; i_part<num_ppc;i_part++) {
@@ -91,15 +91,15 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 p.idata(0) = mfi.index();
 
                 host_particles.push_back(p);
-                for (int i = 0; i < NArrayReal; ++i)
+                for (int i = 0; i < NumRealComps(); ++i)
                     host_real[i].push_back(mfi.index());
-                for (int i = 0; i < NArrayInt; ++i)
+                for (int i = 0; i < NumIntComps(); ++i)
                     host_int[i].push_back(mfi.index());
             }
         }
 
         auto& particles = GetParticles(lev);
-        auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
+        auto& particle_tile = DefineAndReturnParticleTile(lev, mfi);
         auto old_size = particle_tile.GetArrayOfStructs().size();
         auto new_size = old_size + host_particles.size();
         particle_tile.resize(new_size);
@@ -108,7 +108,7 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                   particle_tile.GetArrayOfStructs().begin() + old_size);
 
         auto& soa = particle_tile.GetStructOfArrays();
-        for (int i = 0; i < NArrayReal; ++i)
+        for (int i = 0; i < NumRealComps(); ++i)
         {
             Gpu::copy(Gpu::hostToDevice,
                       host_real[i].begin(),
@@ -116,7 +116,7 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                       soa.GetRealData(i).begin() + old_size);
         }
 
-        for (int i = 0; i < NArrayInt; ++i)
+        for (int i = 0; i < NumIntComps(); ++i)
         {
             Gpu::copy(Gpu::hostToDevice,
                       host_int[i].begin(),

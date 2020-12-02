@@ -427,6 +427,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             PairIndex dst_index(grid, tile);
             const Vector<NeighborIndexMap>& map = local_map[lev][dst_index];
             const int num_ghosts = map.size();
+            neighbors[lev][dst_index].define(this->NumRuntimeRealComps(),
+                                             this->NumRuntimeIntComps());
             neighbors[lev][dst_index].resize(num_ghosts);
             local_neighbor_sizes[lev][dst_index] = neighbors[lev][dst_index].size();
         }

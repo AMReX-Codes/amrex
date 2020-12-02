@@ -24,7 +24,18 @@ public:
                          const amrex::BoxArray            & a_ba,
                          int                                a_numcells)
         : NeighborParticleContainer<PIdx::ncomps, 1, 1, 1>(a_geom, a_dmap, a_ba, a_numcells)
-    {}
+    {
+        int num_runtime_real = 1;
+        int num_runtime_int  = 1;
+        for (int i = 0; i < num_runtime_real; ++i)
+        {
+            AddRealComp(true);
+        }
+        for (int i = 0; i < num_runtime_int; ++i)
+        {
+            AddIntComp(true);
+        }
+    }
 
     void InitParticles (const amrex::IntVect& a_num_particles_per_cell,
                         const amrex::Real     a_thermal_momentum_std,
