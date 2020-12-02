@@ -247,37 +247,35 @@ void main_main ()
 
         ReduceOps<ReduceOpSum> reduce_op;
         using ReduceTuple = typename ReduceData<Real>::Type;
-        Vector<ReduceTuple*> reduce_data;
-
-        //auto x = ReduceTuple(reduce_op);
-        
-        // for (int i=0; i<mf.size(); ++i)
-        // {
-        //     reduce_data.push_back(new ReduceTuple(reduce_op));
-        // }
- 
-        // for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-        // {
-        //     const Box& bx = mfi.tilebox();
-        //     Array4<Real> const& fab = mf.array(mfi);
-        //     reduce_op.eval(bx, *reduce_data[mfi.index()],
-        //                    [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
-        //                    {
-        //                        auto t0 = clock64();
-        //                        fab(i,j,k) += 1.;   
-        //                        auto t1 = clock64();
-        //                        return {amrex::Real(t1-t0)};
-        //                    });
-
-
-        //     //ReduceTuple hv = reduce_data.value();
-        //     //myData data(costs.get()[mfi.index()], hv);
-        //     //cudaStreamAddCallback(amrex::Gpu::gpuStream(), getTimer, (void*)&data, 0);
-        // }
+        Vector<ReduceData<Real>*> reduce_data;
 
         for (int i=0; i<mf.size(); ++i)
         {
+            reduce_data.push_back(new ReduceData<Real>(reduce_op));
+        }
+ 
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<Real> const& fab = mf.array(mfi);
+            reduce_op.eval(bx, *(reduce_data[mfi.index()]),
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+                           {
+                               auto t0 = clock64();
+                               fab(i,j,k) += 1.;   
+                               auto t1 = clock64();
+                               return {amrex::Real(t1-t0)};
+                           });
+
+
             //ReduceTuple hv = reduce_data.value();
+            //myData data(costs.get()[mfi.index()], hv);
+            //cudaStreamAddCallback(amrex::Gpu::gpuStream(), getTimer, (void*)&data, 0);
+        }
+
+        for (int i=0; i<mf.size(); ++i)
+        {
+            ReduceTuple hv = (*(reduce_data[i])).value();
             //costs.get()[i] = amrex::get<0>(hv);
         }
         
