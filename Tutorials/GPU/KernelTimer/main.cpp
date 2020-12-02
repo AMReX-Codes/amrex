@@ -35,7 +35,7 @@ int main (int argc, char* argv[])
 
 void CUDART_CB getTimer (cudaStream_t stream, cudaError_t status, void *data)
 {
-    ((myData*)data)->cost = amrex::get<0>( ((myData*)data)->hv);
+    //((myData*)data)->cost = amrex::get<0>( ((myData*)data)->hv);
 }
 
 void main_main ()
@@ -202,7 +202,7 @@ void main_main ()
     /////////////////////
     mf.setVal(0.0);
     {
-        BL_PROFILE("reduce_sum");
+        BL_PROFILE("reduce_sum_callback");
 
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<Real> reduce_data(reduce_op);
@@ -227,19 +227,69 @@ void main_main ()
             cudaStreamAddCallback(amrex::Gpu::gpuStream(), getTimer, (void*)&data, 0);
         }
 
-        amrex::Gpu::Device::synchronize();
+        // amrex::Gpu::Device::synchronize();
 
-        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            auto x = costs.get()[mfi.index()];
-            amrex::Print() << mfi.index() << ": cost is " << x << "\n";
-        }
+        // for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        // {
+        //     auto x = costs.get()[mfi.index()];
+        //     amrex::Print() << mfi.index() << ": cost is " << x << "\n";
+        // }
         
         amrex::Gpu::Device::synchronize();
     }
 
     /////////////////////////////////
-    // 2.1) PTX timer + reduce sum //
+    // 2.1) Reduce sum no callback //
+    /////////////////////////////////
+    mf.setVal(0.0);
+    {
+        BL_PROFILE("reduce_sum_no_callback");
+
+        ReduceOps<ReduceOpSum> reduce_op;
+        Vector< std::unique_ptr<ReduceData<Real>> > reduce_data;
+        for (int i=0; i<mf.size(); ++i)
+        {
+            reduce_data.push_back(std::unique_ptr<ReduceData<Real>>
+                                  (new ReduceOps<ReduceOpSum>) );
+        }
+        // using ReduceTuple = typename ReduceData<Real>::Type;
+ 
+        // for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        // {
+        //     const Box& bx = mfi.tilebox();
+        //     Array4<Real> const& fab = mf.array(mfi);
+        //     reduce_op.eval(bx, reduce_data[mfi.index()],
+        //                    [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        //                    {
+        //                        auto t0 = clock64();
+        //                        fab(i,j,k) += 1.;   
+        //                        auto t1 = clock64();
+        //                        return {amrex::Real(t1-t0)};
+        //                    });
+
+
+        //     //ReduceTuple hv = reduce_data.value();
+        //     //myData data(costs.get()[mfi.index()], hv);
+        //     //cudaStreamAddCallback(amrex::Gpu::gpuStream(), getTimer, (void*)&data, 0);
+        // }
+
+        // for (int i=0; i<mf.size(); ++i)
+        // {
+        //     //ReduceTuple hv = reduce_data.value();
+        //     //costs.get()[i] = amrex::get<0>(hv);
+        // }
+        
+        amrex::Gpu::Device::synchronize();
+    }
+
+    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        auto x = costs.get()[mfi.index()];
+        amrex::Print() << mfi.index() << ": cost is " << x << "\n";
+    }
+    
+    /////////////////////////////////
+    // 2.2) PTX timer + reduce sum //
     /////////////////////////////////
     mf.setVal(0.0);
     {
