@@ -64,7 +64,7 @@ int main (int argc, char* argv[])
         Real plo_arr[]={plo[0],plo[1],plo[2]};
         Real po_arr[]={pointoutside[0],pointoutside[1],pointoutside[2]};
 
-        stlobj.stl_to_markerfab(marker,plo_arr,dx,po_arr);
+        stlobj.stl_to_markerfab(marker,geom,po_arr);
 
         marker.FillBoundary(geom.periodicity());
 

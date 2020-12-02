@@ -35,8 +35,8 @@ class STLtools
     public:
 
         void read_ascii_stl_file(std::string fname);
-        void stl_to_markerfab(MultiFab& markerfab,Real problo[],
-                Real dxyz[],Real point_outside[]);
+        void stl_to_markerfab(MultiFab& markerfab,
+                Geometry geom,Real *point_outside);
 
 };
 #endif

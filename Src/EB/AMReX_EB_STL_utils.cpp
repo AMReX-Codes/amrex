@@ -83,17 +83,18 @@ void STLtools::read_ascii_stl_file(std::string fname)
               m_tri_normals_d.begin());
 }
 //================================================================================
-void STLtools::stl_to_markerfab(MultiFab& markerfab,Real problo[],
-        Real dxyz[],Real point_outside[])
+void STLtools::stl_to_markerfab(MultiFab& markerfab,Geometry geom,
+        Real *point_outside)
 {
     //local variables for lambda capture
     int data_stride   = m_ndata_per_tri;
     int num_triangles = m_num_tri;
     Real outvalue     = m_outside;
     Real invalue      = m_inside;
-    Real plo[]        = {problo[0],problo[1],problo[2]};
-    Real dx[]         = {dxyz[0],dxyz[1],dxyz[2]};
-    Real outp[]       = {point_outside[0],point_outside[1],point_outside[2]};
+
+    const auto plo   = geom.ProbLoArray();
+    const auto dx    = geom.CellSizeArray();
+    Real outp[]      = {point_outside[0],point_outside[1],point_outside[2]};
 
     const Real *tri_pts=m_tri_pts_d.data();
 
