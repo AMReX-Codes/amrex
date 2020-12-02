@@ -279,8 +279,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
             PairIndex src_index(pti.index(), pti.LocalTileIndex());
-            auto& aos = pti.GetArrayOfStructs();
-            auto& soa = pti.GetStructOfArrays();
+            auto src = pti.GetParticleTile().getParticleTileData();
             for (int j = 0; j < num_threads; ++j) {
                 auto& tags = buffer_tag_cache[lev][src_index][j];
                 int num_tags = tags.size();
@@ -293,12 +292,11 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     const int who = ParallelContext::global_to_local_rank(global_who);
                     if (who == MyProc) {
                         PairIndex dst_index(tag.grid, tag.tile);
-                        auto& dst = neighbors[tag.level][dst_index].GetParticleTileData();
-                        AMREX_ASSERT(tag.dst_index < buffer.size());
+                        auto dst = neighbors[tag.level][dst_index].getParticleTileData();
                         copyParticle(dst, src, tag.src_index, tag.dst_index);
                         if (periodicity.isAnyPeriodic()) {
                             auto& aos = neighbors[tag.level][dst_index].GetArrayOfStructs();
-                            ParticleType& p = aos[tag.src_index];
+                            ParticleType& p = aos[tag.dst_index];
                             for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
                                 if (not periodicity.isPeriodic(dir)) continue;
                                 if (tag.periodic_shift[dir] < 0)
@@ -318,6 +316,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             itags[tag.dst_index].src_level = lev;
                         }
                     } else {
+                        auto& aos = pti.GetArrayOfStructs();
+                        auto& soa = pti.GetStructOfArrays();
                         ParticleType p = aos[tag.src_index];  // copy
                         if (periodicity.isAnyPeriodic()) {
                             for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
@@ -329,28 +329,44 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             }
                         }
 
-                        char* dst = &send_data[who][tag.dst_index];
-                        char* src = (char *) &p;
+                        char* dst_ptr = &send_data[who][tag.dst_index];
+                        char* src_ptr = (char *) &p;
                         for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii) {
                             if (rc[ii]) {
-                                std::memcpy(dst, src, sizeof(typename ParticleType::RealType));
-                                dst += sizeof(typename ParticleType::RealType);
+                                std::memcpy(dst_ptr, src_ptr, sizeof(typename ParticleType::RealType));
+                                dst_ptr += sizeof(typename ParticleType::RealType);
                             }
-                            src += sizeof(typename ParticleType::RealType);
+                            src_ptr += sizeof(typename ParticleType::RealType);
+                        }
+                        for (int ii = 0; ii < this->NumRealComps(); ++ii) {
+                            if (rc[ii+AMREX_SPACEDIM+NStructReal])
+                            {
+                                std::memcpy(dst_ptr, &(soa.GetRealData(ii)[tag.src_index]),
+                                            sizeof(typename ParticleType::RealType));
+                                dst_ptr += sizeof(typename ParticleType::RealType);
+                            }
                         }
                         for (int ii = 0; ii < 2 + NStructInt; ++ii) {
                             if (ic[ii]) {
-                                std::memcpy(dst, src, sizeof(int));
-                                dst += sizeof(int);
+                                std::memcpy(dst_ptr, src_ptr, sizeof(int));
+                                dst_ptr += sizeof(int);
                             }
-                            src += sizeof(int);
+                            src_ptr += sizeof(int);
+                        }
+                        for (int ii = 0; ii < this->NumIntComps(); ++ii) {
+                            if (ic[ii+2+NStructInt])
+                            {
+                                std::memcpy(dst_ptr, &(soa.GetIntData(ii)[tag.src_index]),
+                                            sizeof(int));
+                                dst_ptr += sizeof(int);
+                            }
                         }
                         if ( enableInverse() )
                         {
-                            std::memcpy(dst,&(src_index.first),sizeof(int)); dst += sizeof(int);
-                            std::memcpy(dst,&(src_index.second),sizeof(int)); dst += sizeof(int);
-                            std::memcpy(dst,&(tag.src_index),sizeof(int)); dst += sizeof(int);
-                            std::memcpy(dst,&(lev),sizeof(int)); dst += sizeof(int);
+                            std::memcpy(dst_ptr,&(src_index.first),sizeof(int)); dst_ptr += sizeof(int);
+                            std::memcpy(dst_ptr,&(src_index.second),sizeof(int)); dst_ptr += sizeof(int);
+                            std::memcpy(dst_ptr,&(tag.src_index),sizeof(int)); dst_ptr += sizeof(int);
+                            std::memcpy(dst_ptr,&(lev),sizeof(int)); dst_ptr += sizeof(int);
                         }
                     }
                 }
@@ -382,9 +398,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto index = std::make_pair(src_grid, src_tile);
             auto& ptile = this->GetParticles(lev)[index];
             ptile.setNumNeighbors(neighbors[lev][index].size());
-            auto& aos = ptile.GetArrayOfStructs();
-            std::copy(neighbors[lev][index].begin(), neighbors[lev][index].end(),
-                      aos().begin() + ptile.numRealParticles());
+            amrex::copyParticles(ptile, neighbors[lev][index], 0,
+                                 ptile.numRealParticles(), ptile.numNeighborParticles());
         }
     }
 
@@ -568,25 +583,40 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
                 }
                 neighbors[lev][dst_index].resize(new_size);
 
-                char* dst = (char*) &neighbors[lev][dst_index][old_size];
                 char* src = buffer;
-
                 for (int n = 0; n < np; ++n) {
+                    char* dst_aos = (char*) &neighbors[lev][dst_index].GetArrayOfStructs()[old_size+n];
+                    auto& dst_soa = neighbors[lev][dst_index].GetStructOfArrays();
                     for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii) {
                         if (rc[ii]) {
-                            std::memcpy(dst, src, sizeof(typename ParticleType::RealType));
+                            std::memcpy(dst_aos, src, sizeof(typename ParticleType::RealType));
                             src += sizeof(typename ParticleType::RealType);
                         }
-                        dst += sizeof(typename ParticleType::RealType);
+                        dst_aos += sizeof(typename ParticleType::RealType);
+                    }
+                    for (int ii = 0; ii < this->NumRealComps(); ++ii) {
+                        if (rc[ii+AMREX_SPACEDIM+NStructReal])
+                        {
+                            std::memcpy(&(dst_soa.GetRealData(ii)[old_size+n]),
+                                        src, sizeof(typename ParticleType::RealType));
+                            src += sizeof(typename ParticleType::RealType);
+                        }
                     }
                     for (int ii = 0; ii < 2 + NStructInt; ++ii) {
                         if (ic[ii]) {
-                            std::memcpy(dst, src, sizeof(int));
+                            std::memcpy(dst_aos, src, sizeof(int));
                             src += sizeof(int);
                         }
-                        dst += sizeof(int);
+                        dst_aos += sizeof(int);
                     }
-                    dst = ((char*) &neighbors[lev][dst_index][old_size+n]) + pdata_size;
+                    for (int ii = 0; ii < this->NumIntComps(); ++ii) {
+                        if (ic[ii+2+NStructInt])
+                        {
+                            std::memcpy(&(dst_soa.GetIntData(ii)[old_size+n]),
+                                        src, sizeof(int));
+                            src += sizeof(int);
+                        }
+                    }
 
                     if ( enableInverse() )
                     {
