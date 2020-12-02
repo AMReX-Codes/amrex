@@ -85,7 +85,7 @@ function (install_amrex)
    #
    # Relative path to top level installation/build-tree
    if(WIN32)
-       set(CMAKE_FILES_DIR   cmake)   
+       set(CMAKE_FILES_DIR   cmake)
    else()
        set(CMAKE_FILES_DIR   lib/cmake/AMReX)
    endif()
@@ -95,7 +95,8 @@ function (install_amrex)
    configure_package_config_file(${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
       ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXConfig.cmake
       INSTALL_DESTINATION ${CMAKE_FILES_DIR}
-      PATH_VARS MODULE_PATH)
+      PATH_VARS MODULE_PATH
+      NO_CHECK_REQUIRED_COMPONENTS_MACRO)  # We have our own check_required_components
 
    write_basic_package_version_file(
        ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIR}/AMReXConfigVersion.cmake
