@@ -1,6 +1,9 @@
 #ifndef AMREX_GPU_QUALIFIERS_H_
 #define AMREX_GPU_QUALIFIERS_H_
 
+#include <cstring>
+namespace amrex { using std::memcpy; }
+
 #if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
 
 #if defined(AMREX_USE_HIP)
@@ -49,7 +52,5 @@
   [[intel::reqd_sub_group_size(x)]]                \
   _Pragma("clang diagnostic pop")
 #endif // AMREX_USE_DPCPP
-
-namespace amrex { using std::memcpy; }
 
 #endif
