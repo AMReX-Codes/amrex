@@ -1523,7 +1523,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #endif
     {
 	bool regular_coarsening = true;
-	if (amrlev == 0 and mglev > 0) 
+	if (amrlev == 0 && mglev > 0) 
     	{
             regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
         }
@@ -1870,7 +1870,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                     Array4<Real const> const& voarr = vold.const_array(mfi);
                     AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                     {
-		        if (b.contains(IntVect(AMREX_D_DECL(i,j,k))) and cccmsk(i,j,k)){
+		        if (b.contains(IntVect(AMREX_D_DECL(i,j,k))) && cccmsk(i,j,k)){
                             AMREX_D_TERM(uarr(i,j,k,0) = voarr(i,j,k,0);,
                                          uarr(i,j,k,1) = voarr(i,j,k,1);,
                                          uarr(i,j,k,2) = voarr(i,j,k,2););
@@ -1919,7 +1919,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                         const Box& b2 = ccbxg1 & ccvbx;
                         AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                         {
- 			    if (b2.contains(IntVect(AMREX_D_DECL(i,j,k))) and cccmsk(i,j,k)){
+ 			    if (b2.contains(IntVect(AMREX_D_DECL(i,j,k))) && cccmsk(i,j,k)){
                                 rhccarr(i,j,k) = rhccarr_orig(i,j,k);
                             } else {
                                 rhccarr(i,j,k) = 0.0;
@@ -1976,7 +1976,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                         const Box& ibx = sgbx & amrex::enclosedCells(mfi.validbox());
                         AMREX_HOST_DEVICE_FOR_3D(sgbx, i, j, k,
                         {
-                            if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k))) and cccmsk(i,j,k)) {
+                            if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k))) && cccmsk(i,j,k)) {
                                 mlndlap_set_connection(i,j,k,cnarr,intgarr,vfracarr,flagarr);
                                 sgarr(i,j,k) = sigmaarr_orig(i,j,k);
                             } else {
@@ -2006,7 +2006,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                         const Box& ibx = ccbxg1 & amrex::enclosedCells(mfi.validbox());
                         AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                         {
-                            if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k))) and cccmsk(i,j,k)) {
+                            if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k))) && cccmsk(i,j,k)) {
                                 sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
                             } else {
                                 sigmaarr(i,j,k) = 0.0;
