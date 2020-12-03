@@ -1,5 +1,6 @@
 #ifndef AMREX_ParGDB_H_
 #define AMREX_ParGDB_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>

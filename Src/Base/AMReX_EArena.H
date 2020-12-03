@@ -1,5 +1,6 @@
 #ifndef AMREX_EARENA_H_
 #define AMREX_EARENA_H_
+#include <AMReX_Config.H>
 
 #include <cstddef>
 #include <cstdint>

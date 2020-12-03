@@ -9,21 +9,24 @@ if sys.version_info < (2, 7):
 
 import argparse
 
-def doit(defines, undefines, comp, allow_diff_comp, use_omp):
-    print("#ifndef AMREX_CONFIG_H_")
-    print("#define AMREX_CONFIG_H_")
+def doit(defines, undefines, comp, allow_diff_comp):
+    print("#ifndef AMREX_HAVE_NO_CONFIG_H")
+    print("#define AMREX_HAVE_NO_CONFIG_H")
 
     defs = defines.split("-D")
     for d in defs:
         dd = d.strip()
         if dd:
             v = dd.split("=")
+            print("#ifndef",v[0])
             if len(v) == 2:
                 print("#define",v[0],v[1])
             else:
                 print("#define",v[0],1)
+            print("#endif")
 
-    print("#undef",undefines)
+    for ud in undefines:
+        print("#undef",ud)
 
     print("#ifdef __cplusplus");
 
@@ -58,18 +61,11 @@ def doit(defines, undefines, comp, allow_diff_comp, use_omp):
         print('static_assert(false,"'+msg+'");')
         print("#endif")
 
-    if use_omp == "TRUE":
-        print("#ifndef _OPENMP")
-        print('static_assert(false,"libamrex was built with OpenMP");')
-        print("#endif")
-    elif use_omp == "FALSE":
-        print("#ifdef _OPENMP")
-        print('static_assert(false,"libamrex was built without OpenMP");')
-        print("#endif")
-    else:
-        sys.exit("ERROR: unknown use_omp flag "+use_omp+" in mkconfig.py")
-
     print("#endif") #  ifdef __cplusplus
+
+    print("#if defined(AMREX_USE_OMP) && !defined(_OPENMP)")
+    print('#error libamrex was built with OpenMP')
+    print("#endif")
 
     print("#endif")
 
@@ -88,15 +84,11 @@ if __name__ == "__main__":
     parser.add_argument("--allow-different-compiler",
                         help="allow an application to use a different compiler than the one used to build libamrex",
                         choices=["TRUE","FALSE"])
-    parser.add_argument("--use-omp",
-                        help="use openmp",
-                        choices=["TRUE","FALSE"])
     args = parser.parse_args()
 
     try:
         doit(defines=args.defines, undefines=args.undefines, comp=args.comp,
-             allow_diff_comp=args.allow_different_compiler,
-             use_omp=args.use_omp)
+             allow_diff_comp=args.allow_different_compiler)
     except:
         # something went wrong
         print("$(error something went wrong in mkconfig.py)")

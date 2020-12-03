@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_LAUNCH_H_
 #define AMREX_GPU_LAUNCH_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuKernelInfo.H>

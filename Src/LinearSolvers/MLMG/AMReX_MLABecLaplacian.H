@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_ABECLAPLACIAN_H_
 #define AMREX_ML_ABECLAPLACIAN_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLCellABecLap.H>
 #include <AMReX_Array.H>

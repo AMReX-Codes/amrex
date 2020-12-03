@@ -1,6 +1,7 @@
 
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
+#include <AMReX_Config.H>
 
 #include <iostream>
 #include <cstddef>

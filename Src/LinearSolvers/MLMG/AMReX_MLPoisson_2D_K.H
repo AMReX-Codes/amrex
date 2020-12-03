@@ -1,5 +1,6 @@
 #ifndef AMREX_MLPOISSON_2D_K_H_
 #define AMREX_MLPOISSON_2D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 

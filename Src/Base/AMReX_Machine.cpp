@@ -1,3 +1,5 @@
+#include <AMReX_Config.H>
+
 #ifndef AMREX_USE_MPI
 
 namespace amrex {

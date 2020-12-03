@@ -1,6 +1,7 @@
 
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
+#include <AMReX_Config.H>
 
 
 #include <cstdint>

@@ -1,5 +1,6 @@
 #ifndef AMREX_NEIGHBORPARTICLESCPUIMPL_H_
 #define AMREX_NEIGHBORPARTICLESCPUIMPL_H_
+#include <AMReX_Config.H>
 
 template <int NStructReal, int NStructInt>
 void

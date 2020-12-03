@@ -1,5 +1,6 @@
 #ifndef NEIGHBOR_LIST_H_
 #define NEIGHBOR_LIST_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Particles.H>
 #include <AMReX_GpuContainers.H>

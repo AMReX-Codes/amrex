@@ -1,5 +1,6 @@
 #ifndef AMREX_ARRAYLIM_H_
 #define AMREX_ARRAYLIM_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_REAL.H>
 

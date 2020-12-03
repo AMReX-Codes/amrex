@@ -11,6 +11,7 @@
 
 #ifndef AMREX_ALGOIM_K_H_
 #define AMREX_ALGOIM_K_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_algoim.H>
 #include <AMReX_Array.H>

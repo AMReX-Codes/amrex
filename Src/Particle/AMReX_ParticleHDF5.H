@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLEHDF5_H
 #define AMREX_PARTICLEHDF5_H
+#include <AMReX_Config.H>
 
 #ifdef AMREX_USE_HDF5
 #include <hdf5.h>

@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_3D_C_H_
 #define AMREX_EB2_3D_C_H_
+#include <AMReX_Config.H>
 
 namespace amrex { namespace EB2 {
 

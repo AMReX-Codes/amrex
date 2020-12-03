@@ -1,5 +1,6 @@
 #ifndef AMREX_PARALLELCONTEXT_H
 #define AMREX_PARALLELCONTEXT_H
+#include <AMReX_Config.H>
 
 #include <memory>
 #include <fstream>

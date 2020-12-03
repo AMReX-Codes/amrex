@@ -1,5 +1,6 @@
 #ifndef AMREX_WRITE_BINARY_PARTICLE_DATA_H
 #define AMREX_WRITE_BINARY_PARTICLE_DATA_H
+#include <AMReX_Config.H>
 
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Particles.H>
