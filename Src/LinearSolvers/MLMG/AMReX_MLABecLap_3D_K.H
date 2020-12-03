@@ -63,7 +63,7 @@ void mlabeclap_adotx_os (Box const& box, Array4<Real> const& y,
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
                 if (osm(i,j,k) == 0) {
-                    y(i,j,k,n) = 0.0;
+                    y(i,j,k,n) = Real(0.0);
                 } else {
                     y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n)
                         - dhx * (bX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i  ,j,k,n))
@@ -256,7 +256,7 @@ void abec_gsrb (Box const& box, Array4<Real> const& phi, Array4<Real const> cons
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
 
-    constexpr Real omega = 1.15;
+    constexpr Real omega = Real(1.15);
 
     for (int n = 0; n < nc; ++n) {
         for         (int k = lo.z; k <= hi.z; ++k) {
@@ -265,17 +265,17 @@ void abec_gsrb (Box const& box, Array4<Real> const& phi, Array4<Real const> cons
                 for (int i = lo.x; i <= hi.x; ++i) {
                     if ((i+j+k+redblack)%2 == 0) {
                         Real cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
-                            ? f0(vlo.x,j,k,n) : 0.0;
+                            ? f0(vlo.x,j,k,n) : Real(0.0);
                         Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
-                            ? f1(i,vlo.y,k,n) : 0.0;
+                            ? f1(i,vlo.y,k,n) : Real(0.0);
                         Real cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
-                            ? f2(i,j,vlo.z,n) : 0.0;
+                            ? f2(i,j,vlo.z,n) : Real(0.0);
                         Real cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
-                            ? f3(vhi.x,j,k,n) : 0.0;
+                            ? f3(vhi.x,j,k,n) : Real(0.0);
                         Real cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
-                            ? f4(i,vhi.y,k,n) : 0.0;
+                            ? f4(i,vhi.y,k,n) : Real(0.0);
                         Real cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
-                            ? f5(i,j,vhi.z,n) : 0.0;
+                            ? f5(i,j,vhi.z,n) : Real(0.0);
 
                         Real gamma = alpha*a(i,j,k)
                             +   dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
@@ -325,7 +325,7 @@ void abec_gsrb_os (Box const& box, Array4<Real> const& phi, Array4<Real const> c
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
 
-    constexpr Real omega = 1.15;
+    constexpr Real omega = Real(1.15);
 
     for (int n = 0; n < nc; ++n) {
         for         (int k = lo.z; k <= hi.z; ++k) {
@@ -334,20 +334,20 @@ void abec_gsrb_os (Box const& box, Array4<Real> const& phi, Array4<Real const> c
                 for (int i = lo.x; i <= hi.x; ++i) {
                     if ((i+j+k+redblack)%2 == 0) {
                         if (osm(i,j,k) == 0) {
-                            phi(i,j,k,n) = 0.0;
+                            phi(i,j,k,n) = Real(0.0);
                         } else {
                             Real cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
-                                ? f0(vlo.x,j,k,n) : 0.0;
+                                ? f0(vlo.x,j,k,n) : Real(0.0);
                             Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
-                                ? f1(i,vlo.y,k,n) : 0.0;
+                                ? f1(i,vlo.y,k,n) : Real(0.0);
                             Real cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
-                                ? f2(i,j,vlo.z,n) : 0.0;
+                                ? f2(i,j,vlo.z,n) : Real(0.0);
                             Real cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
-                                ? f3(vhi.x,j,k,n) : 0.0;
+                                ? f3(vhi.x,j,k,n) : Real(0.0);
                             Real cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
-                                ? f4(i,vhi.y,k,n) : 0.0;
+                                ? f4(i,vhi.y,k,n) : Real(0.0);
                             Real cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
-                                ? f5(i,j,vhi.z,n) : 0.0;
+                                ? f5(i,j,vhi.z,n) : Real(0.0);
 
                             Real gamma = alpha*a(i,j,k)
                                 +   dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
@@ -459,17 +459,17 @@ void abec_gsrb_with_line_solve (
                                 +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
 
                             Real cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
-                                ? f0(vlo.x,j,k,n) : 0.0;
+                                ? f0(vlo.x,j,k,n) : Real(0.0);
                             Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
-                                ? f1(i,vlo.y,k,n) : 0.0;
+                                ? f1(i,vlo.y,k,n) : Real(0.0);
                             Real cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
-                                ? f2(i,j,vlo.z,n) : 0.0;
+                                ? f2(i,j,vlo.z,n) : Real(0.0);
                             Real cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
-                                ? f3(vhi.x,j,k,n) : 0.0;
+                                ? f3(vhi.x,j,k,n) : Real(0.0);
                             Real cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
-                                ? f4(i,vhi.y,k,n) : 0.0;
+                                ? f4(i,vhi.y,k,n) : Real(0.0);
                             Real cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
-                                ? f5(i,j,vhi.z,n) : 0.0;
+                                ? f5(i,j,vhi.z,n) : Real(0.0);
 
                             Real g_m_d = gamma
                                 - (dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf3)
@@ -494,18 +494,18 @@ void abec_gsrb_with_line_solve (
                             a_ls(k-lo.z) = -dhz*bZ(i,j,k,n);
                             b_ls(k-lo.z) =  g_m_d;
                             c_ls(k-lo.z) = -dhz*bZ(i,j,k+1,n);
-                            u_ls(k-lo.z) = 0.;
+                            u_ls(k-lo.z) = Real(0.);
                             r_ls(k-lo.z) = rhs(i,j,k,n) + rho;
                             // r_ls(k-lo.z) = g_m_d*phi(i,j,k,n) -gamma*phi(i,j,k,n) + rhs(i,j,k,n) + rho;
 
                             if (k == lo.z)
                             {
-                                a_ls(k-lo.z) = 0.;
+                                a_ls(k-lo.z) = Real(0.);
                                 if (!(m2(i,j,vlo.z-1) > 0)) r_ls(k-lo.z) += dhz*bZ(i,j,k,n)*phi(i,j,k-1,n);
                             }
                             if (k == hi.z)
                             {
-                                c_ls(k-lo.z) = 0.;
+                                c_ls(k-lo.z) = Real(0.);
                                 if (!(m5(i,j,vhi.z+1) > 0)) r_ls(k-lo.z) += dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
                             }
                         }
@@ -535,17 +535,17 @@ void abec_gsrb_with_line_solve (
                                 +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
 
                             Real cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
-                                ? f0(vlo.x,j,k,n) : 0.0;
+                                ? f0(vlo.x,j,k,n) : Real(0.0);
                             Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
-                                ? f1(i,vlo.y,k,n) : 0.0;
+                                ? f1(i,vlo.y,k,n) : Real(0.0);
                             Real cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
-                                ? f2(i,j,vlo.z,n) : 0.0;
+                                ? f2(i,j,vlo.z,n) : Real(0.0);
                             Real cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
-                                ? f3(vhi.x,j,k,n) : 0.0;
+                                ? f3(vhi.x,j,k,n) : Real(0.0);
                             Real cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
-                                ? f4(i,vhi.y,k,n) : 0.0;
+                                ? f4(i,vhi.y,k,n) : Real(0.0);
                             Real cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
-                                ? f5(i,j,vhi.z,n) : 0.0;
+                                ? f5(i,j,vhi.z,n) : Real(0.0);
 
                             Real g_m_d = gamma
                                 - (dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf3)
@@ -570,17 +570,17 @@ void abec_gsrb_with_line_solve (
                             a_ls(j-lo.y) = -dhy*bY(i,j,k,n);
                             b_ls(j-lo.y) =  g_m_d;
                             c_ls(j-lo.y) = -dhy*bY(i,j+1,k,n);
-                            u_ls(j-lo.y) = 0.;
+                            u_ls(j-lo.y) = Real(0.);
                             r_ls(j-lo.y) = rhs(i,j,k,n) + rho;
 
                             if (j == lo.y)
                             {
-                                a_ls(j-lo.y) = 0.;
+                                a_ls(j-lo.y) = Real(0.);
                                 if (!(m1(i,vlo.y-1,k) > 0)) r_ls(j-lo.y) += dhy*bY(i,j,k,n)*phi(i,j-1,k,n);
                             }
                             if (j == hi.y)
                             {
-                                c_ls(j-lo.y) = 0.;
+                                c_ls(j-lo.y) = Real(0.);
                                 if (!(m4(i,vhi.y+1,k) > 0)) r_ls(j-lo.y) += dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
                             }
                         }
@@ -610,17 +610,17 @@ void abec_gsrb_with_line_solve (
                                 +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
 
                             Real cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
-                                ? f0(vlo.x,j,k,n) : 0.0;
+                                ? f0(vlo.x,j,k,n) : Real(0.0);
                             Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
-                                ? f1(i,vlo.y,k,n) : 0.0;
+                                ? f1(i,vlo.y,k,n) : Real(0.0);
                             Real cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
-                                ? f2(i,j,vlo.z,n) : 0.0;
+                                ? f2(i,j,vlo.z,n) : Real(0.0);
                             Real cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
-                                ? f3(vhi.x,j,k,n) : 0.0;
+                                ? f3(vhi.x,j,k,n) : Real(0.0);
                             Real cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
-                                ? f4(i,vhi.y,k,n) : 0.0;
+                                ? f4(i,vhi.y,k,n) : Real(0.0);
                             Real cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
-                                ? f5(i,j,vhi.z,n) : 0.0;
+                                ? f5(i,j,vhi.z,n) : Real(0.0);
 
                             Real g_m_d = gamma
                                 - (dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf3)
@@ -645,17 +645,17 @@ void abec_gsrb_with_line_solve (
                             a_ls(i-lo.x) = -dhx*bX(i,j,k,n);
                             b_ls(i-lo.x) =  g_m_d;
                             c_ls(i-lo.x) = -dhx*bX(i+1,j,k,n);
-                            u_ls(i-lo.x) = 0.;
+                            u_ls(i-lo.x) = Real(0.);
                             r_ls(i-lo.x) = rhs(i,j,k,n) + rho;
 
                             if (i == lo.x)
                             {
-                                a_ls(i-lo.x) = 0.;
+                                a_ls(i-lo.x) = Real(0.);
                                 if (!(m0(vlo.x-1,j,k) > 0)) r_ls(i-lo.x) += dhx*bX(i,j,k,n)*phi(i-1,j,k,n);
                             }
                             if (i == hi.x)
                             {
-                                c_ls(i-lo.x) = 0.;
+                                c_ls(i-lo.x) = Real(0.);
                                 if (!(m3(vhi.x+1,j,k) > 0)) r_ls(i-lo.x) += dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n);
                             }
                         }
@@ -671,32 +671,6 @@ void abec_gsrb_with_line_solve (
             }
 	}
     }	
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int coarsen_overset_mask (Box const& bx, Array4<int> const& cmsk, Array4<int const> const& fmsk)
-    noexcept
-{
-    int nerrors = 0;
-    const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubound(bx);
-    for (int k = lo.z; k <= hi.z; ++k) {
-    for (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
-        int ii = 2*i;
-        int jj = 2*j;
-        int kk = 2*k;
-        cmsk(i,j,k) = fmsk(ii,jj  ,kk  ) + fmsk(ii+1,jj  ,kk  )
-            +         fmsk(ii,jj+1,kk  ) + fmsk(ii+1,jj+1,kk  )
-            +         fmsk(ii,jj  ,kk+1) + fmsk(ii+1,jj  ,kk+1)
-            +         fmsk(ii,jj+1,kk+1) + fmsk(ii+1,jj+1,kk+1);
-        if (cmsk(i,j,k) == 8) {
-            cmsk(i,j,k) = 1;
-        } else if (cmsk(i,j,k) != 0) {
-            ++nerrors;
-        }
-    }}}
-    return nerrors;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
