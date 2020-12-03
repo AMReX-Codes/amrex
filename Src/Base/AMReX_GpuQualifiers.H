@@ -50,4 +50,6 @@
   _Pragma("clang diagnostic pop")
 #endif // AMREX_USE_DPCPP
 
+namespace amrex { using std::memcpy; }
+
 #endif
