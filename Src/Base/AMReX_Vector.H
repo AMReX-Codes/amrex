@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include <AMReX_BLassert.H>
+#include <AMReX_Extension.H>
 #include <AMReX_INT.H>
 #ifdef AMREX_SPACEDIM
 #include <AMReX_Array.H>
