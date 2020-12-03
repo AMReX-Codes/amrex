@@ -213,7 +213,7 @@ using Gpu::isnan;
 using Gpu::isinf;
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void* memcpy(void* dest, const void* src, std::size_t count );
+void* memcpy (void* dest, const void* src, std::size_t count)
 {
 #ifdef __HIP_DEVICE_COMPILE__
     return ::memcpy(dest, src, count);
