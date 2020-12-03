@@ -325,7 +325,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                     if (do_periodic_shift)
                     {
                         ParticleType p;
-                        std::memcpy(&p, &p_snd_buffer[dst_offset], sizeof(ParticleType));
+                        ::memcpy(&p, &p_snd_buffer[dst_offset], sizeof(ParticleType));
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                         {
                             if (not is_per[idim]) continue;
@@ -334,7 +334,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                             else if (pshift[idim] < 0)
                                 p.pos(idim) -= phi[idim] - plo[idim];
                         }
-                        std::memcpy(&p_snd_buffer[dst_offset], &p, sizeof(ParticleType));
+                        ::memcpy(&p_snd_buffer[dst_offset], &p, sizeof(ParticleType));
                     }
                 }
             });
