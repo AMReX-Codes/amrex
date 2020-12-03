@@ -7,7 +7,7 @@ jobs:
   library:
     name: GNU@7.5 C++17 Release [lib]
     runs-on: ubuntu-latest
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -26,7 +26,7 @@ jobs:
   library_clang:
     name: Clang@6.0 C++14 SP NOMPI Debug [lib]
     runs-on: ubuntu-latest
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code"}
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -54,7 +54,7 @@ jobs:
   tutorials:
     name: GNU@7.5 C++14 [tutorials]
     runs-on: ubuntu-latest
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -74,7 +74,7 @@ jobs:
   tutorials_cxx20:
     name: GNU@10.1 C++20 OMP [tutorials]
     runs-on: ubuntu-latest
-    env: {CXXFLAGS: "-Werror -Wno-error=deprecated-declarations -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    env: {CXXFLAGS: "-Werror -Wno-error=deprecated-declarations -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -99,7 +99,7 @@ jobs:
   tutorials-nonmpi:
     name: GNU@7.5 C++14 NOMPI [tutorials]
     runs-on: ubuntu-latest
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -120,7 +120,7 @@ jobs:
   tutorials-nofortran:
     name: GNU@7.5 C++11 w/o Fortran [tutorials]
     runs-on: ubuntu-latest
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -270,7 +270,7 @@ jobs:
   tests:
     name: GNU@7.5 C++14 [tests]
     runs-on: ubuntu-latest
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
