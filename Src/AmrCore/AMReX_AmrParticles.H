@@ -1,5 +1,6 @@
 #ifndef AMREX_AmrParticles_H_
 #define AMREX_AmrParticles_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Particles.H>
 #include <AMReX_TracerParticles.H>

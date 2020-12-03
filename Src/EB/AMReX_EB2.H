@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_H_
 #define AMREX_EB2_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Geometry.H>
 #include <AMReX_Vector.H>

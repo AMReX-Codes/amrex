@@ -1,5 +1,6 @@
 #ifndef AMREX_FABARRAY_UTILITY_H_
 #define AMREX_FABARRAY_UTILITY_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FabArray.H>
 #include <AMReX_LayoutData.H>

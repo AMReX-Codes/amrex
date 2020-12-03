@@ -1,5 +1,6 @@
 #ifndef AMREX_MLEBABECLAP_H_
 #define AMREX_MLEBABECLAP_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_MLCellABecLap.H>

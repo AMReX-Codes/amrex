@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_MULTIGFAB_H_
 #define AMREX_EB2_MULTIGFAB_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_EB2_Graph.H>
 #include <AMReX_EBCellFlag.H>

@@ -1,5 +1,6 @@
 #ifndef AMREX_WRITE_BINARY_PARTICLE_DATA_H
 #define AMREX_WRITE_BINARY_PARTICLE_DATA_H
+#include <AMReX_Config.H>
 
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Particles.H>
@@ -497,7 +498,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
     auto RD = pc.ParticleRealDescriptor;
 
-    AsyncOut::Submit([=] () 
+    AsyncOut::Submit([=] ()
 #if defined(__GNUC__) && (__GNUC__ == 8) && (__GNUC_MINOR__ == 1)
                      mutable // workaround for bug in gcc 8.1
 #endif
@@ -516,7 +517,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
             if ( ! HdrFile.good()) amrex::FileOpenFailed(HdrFileName);
 
-            if (sizeof(typename PC::ParticleType) == 4)
+            if (sizeof(typename PC::ParticleType::RealType) == 4)
             {
                 HdrFile << PC::ParticleType::Version() << "_single" << '\n';
             }

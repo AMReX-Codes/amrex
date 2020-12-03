@@ -41,7 +41,8 @@ endif ()
 # OpenMP tutorial
 #
 ##########################################################################################
-if (AMReX_OMP)
+set(EXPERIMENTAL_OMP_OFFLOADING FALSE)
+if (AMReX_OMP AND EXPERIMENTAL_OMP_OFFLOADING)
    set(_omp_sources EMParticleContainer.cpp em_pic_3d.F90 em_pic_F.H Evolve.cpp)
    list(TRANSFORM _omp_sources PREPEND Exec/OpenMP/)
    list(APPEND _omp_sources ${_sources})

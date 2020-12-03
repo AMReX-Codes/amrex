@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLEMESH_H_
 #define AMREX_PARTICLEMESH_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_TypeTraits.H>
 #include <AMReX_MultiFab.H>

@@ -187,8 +187,12 @@ void
 MacProjector::setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,
                            const Array<LinOpBCType,AMREX_SPACEDIM>& hibc)
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        m_linop != nullptr,
+        "MacProjector::setDomainBC: initProjector must be called before calling this method");
+
     m_linop->setDomainBC(lobc, hibc);
-    for (int ilev = 0, N = m_umac.size(); ilev < N; ++ilev) {
+    for (int ilev = 0, N = m_geom.size(); ilev < N; ++ilev) {
         m_linop->setLevelBC(ilev, nullptr);
     }
 
@@ -244,6 +248,10 @@ MacProjector::project (Real reltol, Real atol)
         {
             MultiFab::Add(m_rhs[ilev],m_divu[ilev],0,0,1,0);
         }
+
+        // Always reset initial phi to be zero. This is needed to handle the
+        // situation where the MacProjector is being reused.
+        m_phi[ilev].setVal(0.0);
     }
 
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, atol);

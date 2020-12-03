@@ -1,5 +1,6 @@
 #ifndef AMREX_ARENA_H_
 #define AMREX_ARENA_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
 #include <cstddef>

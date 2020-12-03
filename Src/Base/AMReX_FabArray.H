@@ -1,6 +1,7 @@
 
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
+#include <AMReX_Config.H>
 
 #include <iostream>
 #include <cstring>

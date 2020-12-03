@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLEREDUCE_H_
 #define AMREX_PARTICLEREDUCE_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>

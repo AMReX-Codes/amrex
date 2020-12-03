@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLES_H_
 #define AMREX_PARTICLES_H_
+#include <AMReX_Config.H>
 
 #include <cstring>
 #include <map>

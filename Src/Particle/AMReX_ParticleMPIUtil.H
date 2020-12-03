@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLEMPIUTIL_H_
 #define AMREX_PARTICLEMPIUTIL_H_
+#include <AMReX_Config.H>
 
 #include <map>
 

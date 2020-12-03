@@ -1,6 +1,7 @@
 
 #ifndef BL_PARMPARSE_H
 #define BL_PARMPARSE_H
+#include <AMReX_Config.H>
 
 #include <stack>
 #include <string>

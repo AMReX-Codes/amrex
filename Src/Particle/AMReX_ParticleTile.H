@@ -1,6 +1,8 @@
 #ifndef AMREX_PARTICLETILE_H_
 #define AMREX_PARTICLETILE_H_
+#include <AMReX_Config.H>
 
+#include <AMReX_Extension.H>
 #include <AMReX_Particle.H>
 #include <AMReX_ArrayOfStructs.H>
 #include <AMReX_StructOfArrays.H>

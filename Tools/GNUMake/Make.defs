@@ -354,6 +354,7 @@ else
   GPU_ERROR_CROSS_EXECUTION_SPACE_CALL := TRUE
 endif
 
+ALLOW_DIFFERENT_COMP ?= TRUE
 SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
 
@@ -855,11 +856,7 @@ objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
 f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
 tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
 
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-  includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
-else
-  includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
-endif
+includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
 fincludes	= $(includes)
 fmoddir         = $(objEXETempDir)
 
@@ -969,7 +966,7 @@ ifeq ($(USE_DPCPP),TRUE)
         FC  = mpiifx
         F90 = mpiifx
         # current version of mpiicpx does not have this on by default
-        CXXFLAGS += -fsycl-unnamed-lambda
+        EXTRACXXFLAGS += -fsycl-unnamed-lambda
     endif
 
 else ifeq ($(USE_HIP),TRUE)

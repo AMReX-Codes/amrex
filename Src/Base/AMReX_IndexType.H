@@ -1,6 +1,7 @@
 
 #ifndef BL_INDEXTYPE_H
 #define BL_INDEXTYPE_H
+#include <AMReX_Config.H>
 
 #include <iosfwd>
 

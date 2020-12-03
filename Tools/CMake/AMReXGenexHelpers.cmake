@@ -246,7 +246,7 @@ function ( eval_genex _list _lang _comp )
 
       # Genex in the form $<*_COMPILER_VERSION>
       if (ARG_COMP_VERSION)
-         string(REGEX REPLACE "\\$<${_lang}_COMPILER_VERSION>" "${ARG_COMP_VERSION}>" "1"  _in "${_in}")
+         string(REGEX REPLACE "\\$<${_lang}_COMPILER_VERSION>" "${ARG_COMP_VERSION}"  _in "${_in}")
       endif ()
       string(REGEX REPLACE "\\$<[A-Za-z]*_COMPILER_VERSION>" "0"  _in "${_in}")
 

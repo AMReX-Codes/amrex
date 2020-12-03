@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLECOMMUNICATION_H_
 #define AMREX_PARTICLECOMMUNICATION_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Gpu.H>
 #include <AMReX_GpuContainers.H>

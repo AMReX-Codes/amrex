@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLE_MOD_K_H_
 #define AMREX_PARTICLE_MOD_K_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Particles.H>
 #include <AMReX_FArrayBox.H>

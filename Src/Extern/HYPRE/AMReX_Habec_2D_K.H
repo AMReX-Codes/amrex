@@ -1,5 +1,6 @@
 #ifndef AMREX_HABEC_2D_H_
 #define AMREX_HABEC_2D_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_LO_BCTYPES.H>
 #ifdef AMREX_USE_HYPRE

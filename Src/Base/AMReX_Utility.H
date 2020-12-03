@@ -1,5 +1,6 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
+#include <AMReX_Config.H>
 
 #include <cstdlib>
 #include <iostream>

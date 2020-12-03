@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLE_LOCATOR_H_
 #define AMREX_PARTICLE_LOCATOR_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_ParGDB.H>
 #include <AMReX_GpuContainers.H>

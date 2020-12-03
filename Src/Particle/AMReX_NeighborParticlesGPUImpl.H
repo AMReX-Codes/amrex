@@ -1,5 +1,6 @@
 #ifndef AMREX_NEIGHBORPARTICLESGPUIMPL_H_
 #define AMREX_NEIGHBORPARTICLESGPUIMPL_H_
+#include <AMReX_Config.H>
 
 namespace detail
 {

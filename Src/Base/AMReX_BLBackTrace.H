@@ -1,5 +1,6 @@
 #ifndef AMREX_BL_BACKTRACE_H_
 #define AMREX_BL_BACKTRACE_H_
+#include <AMReX_Config.H>
 
 #include <stack>
 #include <string>

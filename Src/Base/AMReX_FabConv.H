@@ -1,6 +1,7 @@
 
 #ifndef BL_FABCONV_H
 #define BL_FABCONV_H
+#include <AMReX_Config.H>
 
 #include <iosfwd>
 
