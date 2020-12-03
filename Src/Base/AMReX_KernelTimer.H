@@ -58,6 +58,7 @@ private:
 };
 
 
+// Experimental; not guaranteed thread safe, only for testing
 class KernelTimerShared
 {
 public:
