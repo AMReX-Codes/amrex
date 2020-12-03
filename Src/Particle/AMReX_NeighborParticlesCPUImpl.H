@@ -21,7 +21,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 {
     BL_PROFILE("NeighborParticleContainer::sumNeighborsCPU");
 
-    if ( not enableInverse() )
+    if ( ! enableInverse() )
     {
         amrex::Abort("Need to enable inverse to true to use sumNeighbors. \n");
     }
@@ -294,7 +294,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                     ParticleType p = particles[tag.src_index];  // copy
                     if (periodicity.isAnyPeriodic()) {
                         for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                            if (not periodicity.isPeriodic(dir)) continue;
+                            if (! periodicity.isPeriodic(dir)) continue;
                             if (tag.periodic_shift[dir] < 0)
                                 p.pos(dir) += prob_domain.length(dir);
                             else if (tag.periodic_shift[dir] > 0)

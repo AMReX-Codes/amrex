@@ -1354,8 +1354,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           int tile = grid_tile_ids[pmap_it].second;
           auto& aos = ptile_ptrs[pmap_it]->GetArrayOfStructs();
           auto& soa = ptile_ptrs[pmap_it]->GetStructOfArrays();
-          AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 and NumIntComps() == 0)
-                                    or aos.size() == soa.size(),
+          AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 && NumIntComps() == 0)
+                                    || aos.size() == soa.size(),
               "The AoS and SoA data on this tile are different sizes - "
               "perhaps particles have not been initialized correctly?");
           unsigned npart = aos.numParticles();
