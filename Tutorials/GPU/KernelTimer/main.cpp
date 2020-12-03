@@ -11,15 +11,6 @@ using ReduceTuple = typename ReduceData<Real>::Type;
 
 void main_main();
 
-// struct myData {
-    
-//     ReduceTuple hv;
-//     Real cost;
-    
-//     myData (Real& a_cost, ReduceTuple& a_hv) : cost{a_cost}, hv{a_hv} {}
-    
-// };
-
 
 int main (int argc, char* argv[])
 {
