@@ -204,15 +204,6 @@ namespace Gpu {
         bool m_sync;
     };
 
-} // namespace Gpu
-
-#ifdef AMREX_USE_GPU
-std::ostream& operator<< (std::ostream& os, const dim3& d);
-#endif
-
-using Gpu::isnan;
-using Gpu::isinf;
-
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void* memcpy (void* dest, const void* src, std::size_t count)
 {
@@ -222,6 +213,15 @@ void* memcpy (void* dest, const void* src, std::size_t count)
     return std::memcpy(dest, src, count);
 #endif
 }
+
+} // namespace Gpu
+
+#ifdef AMREX_USE_GPU
+std::ostream& operator<< (std::ostream& os, const dim3& d);
+#endif
+
+using Gpu::isnan;
+using Gpu::isinf;
 
 } // namespace amrex
 
