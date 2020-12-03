@@ -12,6 +12,7 @@
 #include <AMReX_Array4.H>
 #include <iostream>
 #include <cmath>
+#include <cstring>
 
 #ifdef AMREX_USE_CUDA
 #include <cuda.h>
@@ -210,6 +211,16 @@ std::ostream& operator<< (std::ostream& os, const dim3& d);
 
 using Gpu::isnan;
 using Gpu::isinf;
+
+AMREX_HOST_DEVICE AMREX_FORCE_INLINE
+void* memcpy(void* dest, const void* src, std::size_t count );
+{
+#ifdef __HIP_DEVICE_COMPILE__
+    return ::memcpy(dest, src, count);
+#else
+    return std::memcpy(dest, src, count);
+#endif
+}
 
 } // namespace amrex
 
