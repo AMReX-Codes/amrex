@@ -628,8 +628,10 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
 
     //Reconstruct values at the face centroids and compute the limiter
     if(flag(i,j,k).isConnected(0,1,0)) {
-           amrex::Real xf = fcy(i,j+1,k,0); // local (x,z) of centroid of z-face we are extrapolating to
-           amrex::Real zf = fcy(i,j+1,k,1); // local (x,z) of centroid of z-face we are extrapolating to
+           amrex::Real xf = fcy(i,j+1,k,0); // local (x,z) of centroid of y-face we are extrapolating to
+#if (AMREX_SPACEDIM == 3)
+           amrex::Real zf = fcy(i,j+1,k,1); // local (x,z) of centroid of y-face we are extrapolating to
+#endif
 
            AMREX_D_TERM(amrex::Real delta_x = xf  - xc;,
                         amrex::Real delta_y = 0.5 - yc;,
@@ -647,9 +649,10 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
            alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
     if (flag(i,j,k).isConnected(0,-1,0)){
-           amrex::Real xf = fcy(i,j,k,0); // local (x,z) of centroid of z-face we are extrapolating to
-           amrex::Real zf = fcy(i,j,k,1); // local (x,z) of centroid of z-face we are extrapolating to
-
+           amrex::Real xf = fcy(i,j,k,0); // local (x,z) of centroid of y-face we are extrapolating to
+#if (AMREX_SPACEDIM == 3)
+           amrex::Real zf = fcy(i,j,k,1); // local (x,z) of centroid of y-face we are extrapolating to
+#endif
            AMREX_D_TERM(amrex::Real delta_x = xf  - xc;,
                         amrex::Real delta_y = 0.5 + yc;,
                         amrex::Real delta_z = zf  - zc;);
@@ -666,9 +669,10 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
            alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
     if(flag(i,j,k).isConnected(1,0,0)) {
-           amrex::Real yf = fcx(i+1,j,k,0); // local (y,z) of centroid of z-face we are extrapolating to
-           amrex::Real zf = fcx(i+1,j,k,1); // local (y,z) of centroid of z-face we are extrapolating to
-
+           amrex::Real yf = fcx(i+1,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
+#if (AMREX_SPACEDIM == 3)
+           amrex::Real zf = fcx(i+1,j,k,1); // local (y,z) of centroid of x-face we are extrapolating to
+#endif
            AMREX_D_TERM(amrex::Real delta_x = 0.5 - xc;,
                         amrex::Real delta_y = yf  - yc;,
                         amrex::Real delta_z = zf  - zc;);
@@ -685,9 +689,10 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
            alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
     if(flag(i,j,k).isConnected(-1,0,0)) {
-           amrex::Real yf = fcx(i,j,k,0); // local (y,z) of centroid of z-face we are extrapolating to
-           amrex::Real zf = fcx(i,j,k,1); // local (y,z) of centroid of z-face we are extrapolating to
-
+           amrex::Real yf = fcx(i,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
+#if (AMREX_SPACEDIM == 3)
+           amrex::Real zf = fcx(i,j,k,1); // local (y,z) of centroid of x-face we are extrapolating to
+#endif
            AMREX_D_TERM(amrex::Real delta_x = 0.5 + xc;,
                         amrex::Real delta_y = yf  - yc;,
                         amrex::Real delta_z = zf  - zc;);
@@ -703,8 +708,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
     }
 #if (AMREX_SPACEDIM == 3)
     if(flag(i,j,k).isConnected(0,0,1)) {
-           amrex::Real yf = fcx(i,j,k+1,0); // local (y,z) of centroid of z-face we are extrapolating to
-           amrex::Real xf = fcx(i,j,k+1,0); // local (x,z) of centroid of z-face we are extrapolating to
+           amrex::Real xf = fcz(i,j,k+1,0); // local (x,y) of centroid of z-face we are extrapolating to
+           amrex::Real yf = fcz(i,j,k+1,1); // local (x,y) of centroid of z-face we are extrapolating to
 
            AMREX_D_TERM(amrex::Real delta_x = xf  - xc;,
                         amrex::Real delta_y = yf  - yc;,
@@ -717,8 +722,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
            alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
     if(flag(i,j,k).isConnected(0,0,-1)) {
-           amrex::Real yf = fcx(i,j,k,0); // local (y,z) of centroid of z-face we are extrapolating to
-           amrex::Real xf = fcx(i,j,k,0); // local (x,z) of centroid of z-face we are extrapolating to
+           amrex::Real xf = fcz(i,j,k,0); // local (x,y) of centroid of z-face we are extrapolating to
+           amrex::Real yf = fcz(i,j,k,1); // local (x,y) of centroid of z-face we are extrapolating to
 
            AMREX_D_TERM(amrex::Real delta_x = xf  - xc;,
                         amrex::Real delta_y = yf  - yc;,
