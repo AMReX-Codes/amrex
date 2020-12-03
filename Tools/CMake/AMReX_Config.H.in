@@ -50,6 +50,6 @@
 @OMP_DECLS@
 #endif
 #if defined(AMREX_USE_OMP) && !defined(_OPENMP)
-#error "libamrex was built with OpenMP"
+#error "libamrex was built with OpenMP, so the downstream project must activate it, too"
 #endif
 #endif
