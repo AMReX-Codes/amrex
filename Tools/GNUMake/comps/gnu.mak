@@ -30,7 +30,7 @@ COMP_VERSION = $(gcc_version)
 
 ########################################################################
 
-GENERIC_GNU_FLAGS =
+GENERIC_GNU_FLAGS = -fno-operator-names
 
 ifeq ($(EXPORT_DYNAMIC),TRUE)
   CPPFLAGS += -DAMREX_EXPORT_DYNAMIC

@@ -362,7 +362,7 @@ namespace amrex
         //
         BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
 
-        if (crse_S_fine_BA == S_crse.boxArray() and S_fine.DistributionMap() == S_crse.DistributionMap())
+        if (crse_S_fine_BA == S_crse.boxArray() && S_fine.DistributionMap() == S_crse.DistributionMap())
         {
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -471,7 +471,7 @@ namespace amrex
         }
         auto tmptype = type;
         tmptype.unset(dir);
-        if (dir >= AMREX_SPACEDIM or !tmptype.cellCentered()) {
+        if (dir >= AMREX_SPACEDIM || !tmptype.cellCentered()) {
             amrex::Abort("average_down_faces: not face index type");
         }
         const int ncomp = crse.nComp();
@@ -553,7 +553,7 @@ namespace amrex
         }
         auto tmptype = type;
         tmptype.set(dir);
-        if (dir >= AMREX_SPACEDIM or !tmptype.nodeCentered()) {
+        if (dir >= AMREX_SPACEDIM || !tmptype.nodeCentered()) {
             amrex::Abort("average_down_edges: not face index type");
         }
         const int ncomp = crse.nComp();

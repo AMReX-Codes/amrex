@@ -23,7 +23,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: SetParticleSize ()
 {
-    if (NumRealComps() > 0 or NumIntComps() > 0) {
+    if (NumRealComps() > 0 || NumIntComps() > 0) {
         if (NumRealComps() > 0) {
             d_communicate_real_comp.resize(NumRealComps());
             Gpu::copyAsync(Gpu::hostToDevice,
@@ -343,7 +343,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
                              || p.pos(2) <  Geom(0).ProbLo(2)
                              || p.pos(2) >= Geom(0).ProbHi(2));
 
-    if (not outside)
+    if (! outside)
     {
         if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
         {
@@ -358,7 +358,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
                 }
             }
 
-            AMREX_ASSERT(not Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))));
+            AMREX_ASSERT(! Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))));
         }
     }
 
@@ -467,7 +467,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
 {
     Long nparticles = 0;
 
-    if (lev < 0 or lev >= int(m_particles.size())) return nparticles;
+    if (lev < 0 || lev >= int(m_particles.size())) return nparticles;
 
     if (only_valid) {
         ReduceOps<ReduceOpSum> reduce_op;
@@ -1015,7 +1015,7 @@ addParticles (const ParticleContainerType& other, F&& f, bool local)
         }
     }
 
-    if (not local) Redistribute();
+    if (! local) Redistribute();
 }
 
 //
@@ -1117,7 +1117,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     this->defineBufferMap();
 
-    if (not m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
+    if (! m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
     m_particle_locator.setGeometry(GetParGDB());
     auto assign_grid = m_particle_locator.getGridAssignor();
 
@@ -1605,7 +1605,7 @@ defineBufferMap () const
 {
     BL_PROFILE("ParticleContainer::defineBufferMap");
 
-    if (not m_buffer_map.isValid(GetParGDB()))
+    if (! m_buffer_map.isValid(GetParGDB()))
     {
         m_buffer_map.define(GetParGDB());
     }
@@ -1711,7 +1711,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
     const int SeqNum = ParallelDescriptor::SeqNum();
 
-    if ((not local) and NumSnds == 0)
+    if ((! local) && NumSnds == 0)
         return;  // There's no parallel work to do.
 
     if (local)
@@ -1722,7 +1722,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             tot_snds_this_proc += Snds[neighbor_procs[i]];
             tot_rcvs_this_proc += Rcvs[neighbor_procs[i]];
         }
-        if ( (tot_snds_this_proc == 0) and (tot_rcvs_this_proc == 0) ) {
+        if ( (tot_snds_this_proc == 0) && (tot_rcvs_this_proc == 0) ) {
             return; // There's no parallel work to do.
         }
     }

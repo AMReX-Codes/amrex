@@ -271,7 +271,7 @@ bool enforcePeriodic (P& p,
     bool shifted = false;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        if (not is_per[idim]) continue;
+        if (! is_per[idim]) continue;
         if (p.pos(idim) >= phi[idim]) {
             while (p.pos(idim) >= phi[idim]) {
                 p.pos(idim) -= static_cast<ParticleReal>(phi[idim] - plo[idim]);
@@ -289,7 +289,7 @@ bool enforcePeriodic (P& p,
             if (p.pos(idim) > phi[idim]) p.pos(idim) = std::nextafter( (amrex::ParticleReal) phi[idim], (amrex::ParticleReal) plo[idim]);
             shifted = true;
         }
-        AMREX_ASSERT( (p.pos(idim) >= plo[idim] ) and ( p.pos(idim) < phi[idim] ));
+        AMREX_ASSERT( (p.pos(idim) >= plo[idim] ) && ( p.pos(idim) < phi[idim] ));
     }
 
     return shifted;

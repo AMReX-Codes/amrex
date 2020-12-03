@@ -169,7 +169,7 @@ MLNodeLinOp::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                               m_lo_inhomog_neumann[n].end(),   1);
         auto ithi = std::find(m_hi_inhomog_neumann[n].begin(),
                               m_hi_inhomog_neumann[n].end(),   1);
-        if (itlo != m_lo_inhomog_neumann[n].end() or
+        if (itlo != m_lo_inhomog_neumann[n].end() ||
             ithi != m_hi_inhomog_neumann[n].end())
         {
             amrex::Abort("Inhomogeneous Neumann not supported for nodal solver");
@@ -244,7 +244,7 @@ MLNodeLinOp::buildMasks ()
             MFItInfo mfi_info;
             if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 
-            if (m_overset_dirichlet_mask and mglev > 0) {
+            if (m_overset_dirichlet_mask && mglev > 0) {
                 const auto& dmask_fine = *m_dirichlet_mask[amrlev][mglev-1];
                 amrex::average_down_nodal(dmask_fine, dmask, IntVect(2));
             }

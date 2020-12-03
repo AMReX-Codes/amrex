@@ -91,7 +91,7 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
     {
         AMREX_ALWAYS_ASSERT(mg_coarsen_ratio == 2);
         iMultiFab const& fine = *m_overset_mask[amrlev][mglev-1];
-        if (dom.coarsenable(2) and fine.boxArray().coarsenable(2)) {
+        if (dom.coarsenable(2) && fine.boxArray().coarsenable(2)) {
             dom.coarsen(2);
             std::unique_ptr<iMultiFab> crse(new iMultiFab(amrex::coarsen(fine.boxArray(),2),
                                                           fine.DistributionMap(), 1, 1));
@@ -185,7 +185,7 @@ MLABecLaplacian::setBCoeffs (int amrlev,
                              const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
 {
     const int ncomp = getNComp();
-    AMREX_ALWAYS_ASSERT(beta[0]->nComp() == 1 or beta[0]->nComp() == ncomp);
+    AMREX_ALWAYS_ASSERT(beta[0]->nComp() == 1 || beta[0]->nComp() == ncomp);
     if (beta[0]->nComp() == ncomp)
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             for (int icomp = 0; icomp < ncomp; ++icomp) {
@@ -468,7 +468,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
     BL_PROFILE("MLABecLaplacian::Fsmooth()");
 
     bool regular_coarsening = true;
-    if (amrlev == 0 and mglev > 0) {
+    if (amrlev == 0 && mglev > 0) {
         regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
     }
 

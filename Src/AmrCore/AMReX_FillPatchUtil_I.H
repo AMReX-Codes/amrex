@@ -61,7 +61,7 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
 
     if (smf.size() == 1)
     {
-        if (&mf == smf[0] and scomp == dcomp) {
+        if (&mf == smf[0] && scomp == dcomp) {
             mf.FillBoundary(dcomp, ncomp, nghost, geom.periodicity());
         } else {
             mf.ParallelCopy(*smf[0], scomp, dcomp, ncomp, IntVect{0}, nghost, geom.periodicity());
@@ -74,7 +74,7 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
         MF * dmf;
         int destcomp;
         bool sameba;
-        if (mf.boxArray() == smf[0]->boxArray() and
+        if (mf.boxArray() == smf[0]->boxArray() &&
             mf.DistributionMap() == smf[0]->DistributionMap())
         {
             dmf = &mf;
@@ -89,7 +89,7 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
             sameba = false;
         }
 
-        if ((dmf != smf[0] and dmf != smf[1]) or scomp != dcomp)
+        if ((dmf != smf[0] && dmf != smf[1]) || scomp != dcomp)
         {
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())

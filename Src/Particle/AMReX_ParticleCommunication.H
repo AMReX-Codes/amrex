@@ -321,7 +321,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                     const IntVect& pshift = p_periodic_shift[i];
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                     {
-                        if (not is_per[idim]) continue;
+                        if (! is_per[idim]) continue;
                         if (pshift[idim] > 0)
                             p->pos(idim) += phi[idim] - plo[idim];
                         else if (pshift[idim] < 0)

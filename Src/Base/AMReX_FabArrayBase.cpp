@@ -399,8 +399,8 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	    check_local = true;
 	}
 
-        m_threadsafe_loc = not check_local;
-        m_threadsafe_rcv = not check_remote;
+        m_threadsafe_loc = ! check_local;
+        m_threadsafe_rcv = ! check_remote;
 
 	for (int i = 0; i < nlocal_dst; ++i)
 	{
@@ -733,8 +733,8 @@ FabArrayBase::FB::define_fb (const FabArrayBase& fa)
         check_local = true;
     }
 
-    m_threadsafe_loc = not check_local;
-    m_threadsafe_rcv = not check_remote;
+    m_threadsafe_loc = ! check_local;
+    m_threadsafe_rcv = ! check_remote;
 
     for (int i = 0; i < nlocal; ++i)
     {
@@ -953,8 +953,8 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 	check_local = true;
     }
 
-    m_threadsafe_loc = not check_local;
-    m_threadsafe_rcv = not check_remote;
+    m_threadsafe_loc = ! check_local;
+    m_threadsafe_rcv = ! check_remote;
 
     for (int i = 0; i < nlocal; ++i)
     {
