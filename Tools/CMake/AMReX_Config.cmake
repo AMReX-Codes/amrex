@@ -44,7 +44,11 @@ function (configure_amrex)
    set_target_properties(amrex PROPERTIES CXX_EXTENSIONS OFF)
    # minimum: C++11 on Linux, C++17 on Windows, C++17 for dpc++
    if (AMReX_DPCPP)
-      target_compile_features(amrex PUBLIC cxx_std_17)
+      # temporary work-around: not yet known and defaults to C++17 anyway
+      # https://gitlab.kitware.com/cmake/cmake/-/issues/21551
+      if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "IntelDPCPP" )
+          target_compile_features(amrex PUBLIC cxx_std_17)
+      endif()
    else ()
       target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cxx_std_17,cxx_std_11>)
    endif ()
