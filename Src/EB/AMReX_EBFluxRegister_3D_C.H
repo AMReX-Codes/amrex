@@ -233,7 +233,7 @@ void eb_rereflux_from_crse (int i, int j, int k, int n, Box const& bx, Array4<Re
             for (int kk = -1; kk <= 1; ++kk) {
             for (int jj = -1; jj <= 1; ++jj) {
             for (int ii = -1; ii <= 1; ++ii) {
-                if ((ii != 0 or jj != 0 or kk != 0) && flag.isConnected(ii,jj,kk)) {
+                if ((ii != 0 || jj != 0 || kk != 0) && flag.isConnected(ii,jj,kk)) {
                     wtot += vfrac(i+ii,j+jj,k+kk);
                 }
             }}}
@@ -242,7 +242,7 @@ void eb_rereflux_from_crse (int i, int j, int k, int n, Box const& bx, Array4<Re
             for (int kk = -1; kk <= 1; ++kk) {
             for (int jj = -1; jj <= 1; ++jj) {
             for (int ii = -1; ii <= 1; ++ii) {
-                if ((ii != 0 or jj != 0 or kk != 0) && flag.isConnected(ii,jj,kk)) {
+                if ((ii != 0 || jj != 0 || kk != 0) && flag.isConnected(ii,jj,kk)) {
                     if (bx.contains(IntVect(i+ii,j+jj,k+kk))) {
                         HostDevice::Atomic::Add(d.ptr(i+ii,j+jj,k+kk,n), drho);
                     }
