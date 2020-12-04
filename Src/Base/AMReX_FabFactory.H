@@ -1,6 +1,7 @@
 
 #ifndef BL_FABFACTORY_H_
 #define BL_FABFACTORY_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Box.H>
 #include <AMReX_Print.H>

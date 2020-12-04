@@ -32,13 +32,7 @@ function (configure_amrex)
    # Include the required modules
    #
    include( AMReX_ThirdPartyProfilers )
-   include( AMReX_Defines )
    include( AMReXGenexHelpers )
-
-   #
-   # Set properties for target "amrex"
-   #
-   set_amrex_defines()
 
    #
    # Setup compilers

@@ -1,6 +1,7 @@
 
 #ifndef BL_NFILES_H
 #define BL_NFILES_H
+#include <AMReX_Config.H>
 
 #include <string>
 #include <fstream>

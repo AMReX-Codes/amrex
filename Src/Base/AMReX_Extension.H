@@ -1,5 +1,6 @@
 #ifndef AMREX_EXTENSION_H_
 #define AMREX_EXTENSION_H_
+#include <AMReX_Config.H>
 
 #if !defined(BL_LANG_FORT)
 
@@ -137,7 +138,7 @@
 #endif
 
 #if defined(__cplusplus) && defined(_WIN32)
-#include <iso646.h>
+#include <ciso646>
 #endif
 
 #if (__cplusplus >= 201703L)

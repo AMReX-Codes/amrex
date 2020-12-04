@@ -1,5 +1,6 @@
 #ifndef AMREX_BASEFAB_H_
 #define AMREX_BASEFAB_H_
+#include <AMReX_Config.H>
 
 #include <cmath>
 #include <cstdlib>

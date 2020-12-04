@@ -1,5 +1,6 @@
 #ifndef AMREX_INTERP_NAMES_H
 #define AMREX_INTERP_NAMES_H
+#include <AMReX_Config.H>
 
 #include <AMReX_BLFort.H>
 

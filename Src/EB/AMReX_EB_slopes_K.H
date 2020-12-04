@@ -1,5 +1,6 @@
 #ifndef AMREX_EB_SLOPES_K_H_
 #define AMREX_EB_SLOPES_K_H_
+#include <AMReX_Config.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFArrayBox.H>

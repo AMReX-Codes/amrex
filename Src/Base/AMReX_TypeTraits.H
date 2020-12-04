@@ -1,5 +1,6 @@
 #ifndef BL_TYPETRAITS_H_
 #define BL_TYPETRAITS_H_
+#include <AMReX_Config.H>
 
 #include <type_traits>
 #include <AMReX_Extension.H>

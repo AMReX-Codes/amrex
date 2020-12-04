@@ -1,5 +1,6 @@
 #ifndef BL_FABARRAYBASE_H_
 #define BL_FABARRAYBASE_H_
+#include <AMReX_Config.H>
 
 #ifdef _OPENMP
 #include <omp.h>

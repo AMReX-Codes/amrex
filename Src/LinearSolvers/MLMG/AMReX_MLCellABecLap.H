@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_CELL_ABECLAP_H_
 #define AMREX_ML_CELL_ABECLAP_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLCellLinOp.H>
 

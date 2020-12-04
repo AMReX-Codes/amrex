@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_FUSE_H_
 #define AMREX_GPU_FUSE_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Arena.H>
 #include <AMReX_Vector.H>

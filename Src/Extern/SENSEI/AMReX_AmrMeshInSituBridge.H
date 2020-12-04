@@ -1,5 +1,6 @@
 #ifndef AMReX_AmrMeshInSituBridge_H
 #define AMReX_AmrMeshInSituBridge_H
+#include <AMReX_Config.H>
 
 #include <AMReX_InSituBridge.H>
 #include <AMReX_Vector.H>

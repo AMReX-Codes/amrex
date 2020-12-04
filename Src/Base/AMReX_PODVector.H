@@ -1,5 +1,6 @@
 #ifndef AMREX_PODVECTOR_H_
 #define AMREX_PODVECTOR_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Gpu.H>

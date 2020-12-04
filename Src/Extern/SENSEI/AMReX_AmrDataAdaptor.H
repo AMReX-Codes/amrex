@@ -1,5 +1,6 @@
 #ifndef AMReX_AmrDataAdaptor_h
 #define AMReX_AmrDataAdaptor_h
+#include <AMReX_Config.H>
 
 #include "DataAdaptor.h"
 #include <AMReX_Amr.H>

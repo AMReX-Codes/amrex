@@ -4,7 +4,7 @@
 # These definitions are not present anywhere in AMReX source code
 # so I think they are meant to be used by the app code only
 #
-target_compile_definitions( amrex PUBLIC $<BUILD_INTERFACE:AMREX_USE_F_INTERFACES BL_USE_F_INTERFACES>)
+add_amrex_define(AMREX_USE_F_INTERFACES)
 
 #
 # BASE subdir

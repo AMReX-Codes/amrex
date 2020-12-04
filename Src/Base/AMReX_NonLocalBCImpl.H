@@ -1,5 +1,6 @@
 #ifndef AMREX_NONLOCAL_BC_IMPL_H_
 #define AMREX_NONLOCAL_BC_IMPL_H_
+#include <AMReX_Config.H>
 
 namespace amrex { namespace NonLocalBC {
 

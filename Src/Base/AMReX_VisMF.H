@@ -1,6 +1,7 @@
 
 #ifndef BL_VISMF_H
 #define BL_VISMF_H
+#include <AMReX_Config.H>
 
 #include <iosfwd>
 #include <string>

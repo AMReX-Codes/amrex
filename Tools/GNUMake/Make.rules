@@ -11,6 +11,8 @@ vpath %.h    $(FINAL_VPATH_LOCATIONS)
 vpath %.H    $(FINAL_VPATH_LOCATIONS)
 vpath %.hpp  $(FINAL_VPATH_LOCATIONS)
 
+vpath AMReX_Config.H $(srcTempDir)
+
 FCPPFLAGS := $(addprefix $(CPP_PREFIX), $(CPPFLAGS))
 
 # Suppress display of executed commands.  Default verbose
@@ -71,6 +73,14 @@ else
 
 endif
 
+$(srcTempDir)/AMReX_Config.H:
+	@echo Generating AMReX_Config.H ...
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@ $(MKCONFIG) --defines="$(CPPFLAGS)" --undefines="" \
+	              --comp="$(lowercase_comp)" \
+	              --allow-different-compiler="$(ALLOW_DIFFERENT_COMP)" \
+	              > $@
+
 ifeq ($(USE_PROFPARSER),TRUE)
 BLProfParser.tab.H BLProfParser.tab.cpp: $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.y
 	cat $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.y $(SED0) $(SED1) > BLProfParserNC.y
@@ -96,18 +106,18 @@ install_lib:
 	  echo "$(amrexlib) does not exist!"; \
 	fi
 
-install_headers: $(amrexIncludeDir)/AMReX_Config.H
+install_headers:
 	@echo Installing headers at $(amrexIncludeDir) ...
+	@if [ ! -d $(amrexIncludeDir) ]; then mkdir -p $(amrexIncludeDir); fi
 	@for d in $(Pdirs); do \
 	  for h in $(CEXE_headers) $(cEXE_headers); do \
 	    f=Src/$$d/$$h; \
 	    if test -f "$$f"; then \
 	      install -c -m 644 "$$f" $(amrexIncludeDir); \
-	      newf=$(amrexIncludeDir)/$$h; \
-              perl -pi -e 'BEGIN{undef $$/;}  s/(^#ifndef.*?\n^#define.*?$$)/$$1\n#include <AMReX_Config.H>/m' $$newf; \
 	    fi; \
 	  done; \
-	done 
+	done
+	@install -c -m 644 $(srcTempDir)/AMReX_Config.H $(amrexIncludeDir)
 
 install_fortran_modules:
 	@echo Install Fortran modules at $(amrexIncludeDir) ...
@@ -130,15 +140,6 @@ install_pkg_config: $(objEXETempDir)/amrex.pc
 	@echo Installing amrex.pc ...
 	@if [ ! -d $(amrexPkgconfigDir) ]; then mkdir -p $(amrexPkgconfigDir); fi
 	$(SILENT) install -c -m 644 $< $(amrexPkgconfigDir)
-
-$(amrexIncludeDir)/AMReX_Config.H: FORCE
-	@echo Generating AMReX_config.H ...
-	@if [ ! -d $(amrexIncludeDir) ]; then mkdir -p $(amrexIncludeDir); fi
-	@ $(MKCONFIG) --defines="$(CPPFLAGS)" --undefine="BL_LANG_FORT" \
-	              --comp="$(lowercase_comp)" \
-	              --allow-different-compiler="$(ALLOW_DIFFERENT_COMP)" \
-	              --use-omp="$(USE_OMP)" \
-	              > $@
 
 cleanconfig::
 	@echo Cleaning...
@@ -295,11 +296,8 @@ endif
 # Rules for dependencies in bare object files.
 #
 
-$(depEXETempDir)/%.d: %.cpp
+$(depEXETempDir)/%.d: %.cpp $(srcTempDir)/AMReX_Config.H
 	@echo Depending $< ...
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
         # Use > $@2 to filter out unnecessary messages
@@ -311,11 +309,8 @@ else
 endif
 	@$(SHELL) -ec 'sed -i -e '\''s,$*\.o,$(objEXETempDir)/& $@,g'\'' $@'
 
-$(depEXETempDir)/%.d: %.c
+$(depEXETempDir)/%.d: %.c $(srcTempDir)/AMReX_Config.H
 	@echo Depending $< ...
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
 	$(CC) $(CDEPFLAGS) $< -o $@
@@ -358,14 +353,14 @@ endif
 # The final result is `$(objEXETempDir)/x.o $(depEXETempDir)/x.d: /path/to/y.cpp`.
 #
 
-$(depEXETempDir)/%.d: %.F
+$(depEXETempDir)/%.d: %.F $(srcTempDir)/AMReX_Config.H
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*\.o,$(objEXETempDir)/& $@,'\'' > $@'
 
-$(depEXETempDir)/%.d: %.f
+$(depEXETempDir)/%.d: %.f $(srcTempDir)/AMReX_Config.H
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
@@ -525,7 +520,7 @@ endif
 	@echo "    CPPFLAGS      = $(CPPFLAGS)"
 	@echo "    FCPPFLAGS     = $(FCPPFLAGS)"
 	@echo "    CXXFLAGS      = $(CXXFLAGS)"
-	@echo "    EXTRACXXFLAGS = $(CXXFLAGS)"
+	@echo "    EXTRACXXFLAGS = $(EXTRACXXFLAGS)"
 	@echo "    CFLAGS        = $(CFLAGS)"
 	@echo "    LINKFLAGS     = $(LINKFLAGS)"
 	@echo "    includes      = $(includes)"

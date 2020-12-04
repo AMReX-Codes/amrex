@@ -1,5 +1,6 @@
 #ifndef AMREX_BOXITERATOR_H_
 #define AMREX_BOXITERATOR_H_
+#include <AMReX_Config.H>
 
 #include <cstdlib>
 #include "AMReX_BLassert.H"

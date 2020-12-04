@@ -1,6 +1,7 @@
 
 #ifndef BL_FARRAYBOX_H
 #define BL_FARRAYBOX_H
+#include <AMReX_Config.H>
 
 #include <AMReX_Box.H>
 #include <AMReX_BaseFab.H>

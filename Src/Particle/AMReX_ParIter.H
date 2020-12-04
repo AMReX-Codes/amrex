@@ -1,5 +1,6 @@
 #ifndef AMREX_PARITER_H_
 #define AMREX_PARITER_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MFIter.H>
 #include <AMReX_Gpu.H>

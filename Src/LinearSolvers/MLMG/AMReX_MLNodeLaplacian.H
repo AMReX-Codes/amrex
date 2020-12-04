@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_NODE_LAPLACIAN_H_
 #define AMREX_ML_NODE_LAPLACIAN_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLNodeLinOp.H>
 

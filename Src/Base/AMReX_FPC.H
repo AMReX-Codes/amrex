@@ -1,6 +1,7 @@
 
 #ifndef BL_FPC_H
 #define BL_FPC_H
+#include <AMReX_Config.H>
 
 #include <AMReX_FabConv.H>
 

@@ -1,6 +1,7 @@
 
 #ifndef AMREX_AmrLevel_H_
 #define AMREX_AmrLevel_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_REAL.H>
 #include <AMReX_Geometry.H>

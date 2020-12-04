@@ -1,5 +1,6 @@
 #ifndef AMREX_MLALAP_2D_K_H_
 #define AMREX_MLALAP_2D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 

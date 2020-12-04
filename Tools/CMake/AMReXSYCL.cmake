@@ -42,6 +42,7 @@ target_compile_features(SYCL INTERFACE cxx_std_17)
 #
 # Compiler options
 #
+
 target_compile_options( SYCL
    INTERFACE
    $<${_cxx_clang}:-Wno-error=sycl-strict -fsycl>
@@ -60,6 +61,12 @@ target_compile_options( SYCL
    INTERFACE
    $<${_cxx_clang}:-fno-sycl-early-optimizations>)
 
+# Need this option to compile with mpiicpx
+if (AMReX_MPI)
+  target_compile_options( SYCL
+    INTERFACE
+    $<${_cxx_clang}:-fsycl-unnamed-lambda>)
+endif ()
 
 #
 # Link options

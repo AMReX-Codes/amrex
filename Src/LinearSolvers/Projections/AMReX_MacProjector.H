@@ -1,5 +1,6 @@
 #ifndef AMREX_MAC_PROJECTOR_H_
 #define AMREX_MAC_PROJECTOR_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLMG.H>
 #include <AMReX_MLABecLaplacian.H>
