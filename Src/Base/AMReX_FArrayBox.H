@@ -510,7 +510,7 @@ FArrayBox::contains_nan () const noexcept
     const Real* dp = dptr;
     const Long n = numPts()*nvar;
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpLogicalOr> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = ReduceData<int>::Type;
@@ -546,7 +546,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const noexcept
     const auto& a = this->array();
 
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpLogicalOr> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = ReduceData<int>::Type;
@@ -555,7 +555,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const noexcept
         {
             bool t = false;
             for (int n = scomp; n < scomp+ncomp; ++n) {
-                t = t or amrex::isnan(a(i,j,k,n));
+                t = t || amrex::isnan(a(i,j,k,n));
             }
             return { static_cast<int>(t) };
         });
@@ -600,7 +600,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
 
     const auto& a = this->array();
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         Array<int,1+AMREX_SPACEDIM> ha{0,AMREX_D_DECL(std::numeric_limits<int>::lowest(),
                                                       std::numeric_limits<int>::lowest(),
                                                       std::numeric_limits<int>::lowest())};
@@ -612,9 +612,9 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
             int* flag = p;
             bool t = false;
             for (int n = scomp; n < scomp+ncomp; ++n) {
-                t = t or amrex::isnan(a(i,j,k,n));
+                t = t || amrex::isnan(a(i,j,k,n));
             }
-            if (t and (*flag == 0)) {
+            if (t && (*flag == 0)) {
                 if (Gpu::Atomic::Exch(flag,1) == 0) {
                     AMREX_D_TERM(p[1] = i;,
                                  p[2] = j;,
@@ -654,7 +654,7 @@ FArrayBox::contains_inf () const noexcept
     const Real* dp = dptr;
     const Long n = numPts()*nvar;
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpLogicalOr> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = ReduceData<int>::Type;
@@ -690,7 +690,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const noexcept
     const auto& a = this->array();
 
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpLogicalOr> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = ReduceData<int>::Type;
@@ -699,7 +699,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const noexcept
         {
             bool t = false;
             for (int n = scomp; n < scomp+ncomp; ++n) {
-                t = t or amrex::isinf(a(i,j,k,n));
+                t = t || amrex::isinf(a(i,j,k,n));
             }
             return { static_cast<int>(t) };
         });
@@ -744,7 +744,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) co
 
     const auto& a = this->array();
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         Array<int,1+AMREX_SPACEDIM> ha{0,AMREX_D_DECL(std::numeric_limits<int>::lowest(),
                                                       std::numeric_limits<int>::lowest(),
                                                       std::numeric_limits<int>::lowest())};
@@ -756,9 +756,9 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) co
             int* flag = p;
             bool t = false;
             for (int n = scomp; n < scomp+ncomp; ++n) {
-                t = t or amrex::isinf(a(i,j,k,n));
+                t = t || amrex::isinf(a(i,j,k,n));
             }
-            if (t and (*flag == 0)) {
+            if (t && (*flag == 0)) {
                 if (Gpu::Atomic::Exch(flag,1) == 0) {
                     AMREX_D_TERM(p[1] = i;,
                                  p[2] = j;,

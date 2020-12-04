@@ -535,7 +535,7 @@ struct ParticleTile
         ptd.m_runtime_idata = m_runtime_i_ptrs.dataPtr();
 
 #ifdef AMREX_USE_GPU
-        if ((h_runtime_r_ptrs.size() > 0) or (h_runtime_i_ptrs.size() > 0)) {
+        if ((h_runtime_r_ptrs.size() > 0) || (h_runtime_i_ptrs.size() > 0)) {
             Gpu::synchronize();
         }
 #endif
@@ -590,7 +590,7 @@ struct ParticleTile
         ptd.m_runtime_idata = m_runtime_i_cptrs.dataPtr();
 
 #ifdef AMREX_USE_GPU
-        if ((h_runtime_r_cptrs.size() > 0) or (h_runtime_i_cptrs.size() > 0)) {
+        if ((h_runtime_r_cptrs.size() > 0) || (h_runtime_i_cptrs.size() > 0)) {
             Gpu::synchronize();
         }
 #endif

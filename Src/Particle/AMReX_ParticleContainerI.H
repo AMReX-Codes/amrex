@@ -1141,7 +1141,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto& aos = src_tile.GetArrayOfStructs();
             const size_t np = aos.numParticles();
 
-            AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 and NumIntComps() == 0) or
+            AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 && NumIntComps() == 0) ||
                                       aos.size() == src_tile.GetStructOfArrays().size(),
                 "The AoS and SoA data on this tile are different sizes - "
                 "perhaps particles have not been initialized correctly?");

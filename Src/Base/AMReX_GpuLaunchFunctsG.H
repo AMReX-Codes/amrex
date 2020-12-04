@@ -329,7 +329,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box1, Box const& b
     ParallelFor(box1, std::forward<L1>(f1));
     ParallelFor(box2, std::forward<L2>(f2));
 #if 0
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
@@ -389,7 +389,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     ParallelFor(box2, std::forward<L2>(f2));
     ParallelFor(box3, std::forward<L3>(f3));
 #if 0
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2) and amrex::isEmpty(box3)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
@@ -462,7 +462,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     ParallelFor(box1, ncomp1, std::forward<L1>(f1));
     ParallelFor(box2, ncomp2, std::forward<L2>(f2));
 #if 0
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
@@ -530,7 +530,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     ParallelFor(box2, ncomp2, std::forward<L2>(f2));
     ParallelFor(box3, ncomp3, std::forward<L3>(f3));
 #if 0
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2) and amrex::isEmpty(box3)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
@@ -925,11 +925,11 @@ ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
 }
 
 template <typename L1, typename L2>
-amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value>
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
 ParallelFor (Gpu::KernelInfo const& info,
              Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
@@ -975,12 +975,12 @@ ParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <typename L1, typename L2, typename L3>
-amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value and MaybeDeviceRunnable<L3>::value>
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value>
 ParallelFor (Gpu::KernelInfo const& info,
              Box const& box1, Box const& box2, Box const& box3,
              L1&& f1, L2&& f2, L3&& f3) noexcept
 {
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2) and amrex::isEmpty(box3)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
@@ -1041,12 +1041,12 @@ ParallelFor (Gpu::KernelInfo const& info,
 template <typename T1, typename T2, typename L1, typename L2,
           typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
           typename M2=amrex::EnableIf_t<std::is_integral<T2>::value> >
-amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value>
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
 ParallelFor (Gpu::KernelInfo const& info,
              Box const& box1, T1 ncomp1, L1&& f1,
              Box const& box2, T2 ncomp2, L2&& f2) noexcept
 {
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
@@ -1099,13 +1099,13 @@ template <typename T1, typename T2, typename T3, typename L1, typename L2, typen
           typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
           typename M2=amrex::EnableIf_t<std::is_integral<T2>::value>,
           typename M3=amrex::EnableIf_t<std::is_integral<T3>::value> >
-amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value and MaybeDeviceRunnable<L3>::value>
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value>
 ParallelFor (Gpu::KernelInfo const& info,
              Box const& box1, T1 ncomp1, L1&& f1,
              Box const& box2, T2 ncomp2, L2&& f2,
              Box const& box3, T3 ncomp3, L3&& f3) noexcept
 {
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2) and amrex::isEmpty(box3)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
@@ -1170,7 +1170,7 @@ ParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <typename T, typename L1, typename L2>
-amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value>
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
 FabReduce (Box const& box, T const& init_val, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(box)) return;
@@ -1199,7 +1199,7 @@ FabReduce (Box const& box, T const& init_val, L1&& f1, L2&& f2) noexcept
 
 template <typename N, typename T, typename L1, typename L2,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value>
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
 FabReduce (Box const& box, N ncomp, T const& init_val, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(box)) return;
@@ -1230,7 +1230,7 @@ FabReduce (Box const& box, N ncomp, T const& init_val, L1&& f1, L2&& f2) noexcep
 
 template <typename N, typename T, typename L1, typename L2,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value>
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
 VecReduce (N n, T const& init_val, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(n)) return;
@@ -1464,7 +1464,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&&
 }
 
 template <typename L1, typename L2>
-amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value and MaybeHostDeviceRunnable<L2>::value>
+amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value>
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
@@ -1477,7 +1477,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <typename L1, typename L2, typename L3>
-amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value and MaybeHostDeviceRunnable<L2>::value and MaybeHostDeviceRunnable<L3>::value>
+amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value>
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        Box const& box1, Box const& box2, Box const& box3,
                        L1&& f1, L2&& f2, L3&& f3) noexcept
@@ -1495,7 +1495,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
 template <typename T1, typename T2, typename L1, typename L2,
           typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
           typename M2=amrex::EnableIf_t<std::is_integral<T2>::value> >
-amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value and MaybeHostDeviceRunnable<L2>::value>
+amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value>
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        Box const& box1, T1 ncomp1, L1&& f1,
                        Box const& box2, T2 ncomp2, L2&& f2) noexcept
@@ -1512,7 +1512,7 @@ template <typename T1, typename T2, typename T3, typename L1, typename L2, typen
           typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
           typename M2=amrex::EnableIf_t<std::is_integral<T2>::value>,
           typename M3=amrex::EnableIf_t<std::is_integral<T3>::value> >
-amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value and MaybeHostDeviceRunnable<L2>::value and MaybeHostDeviceRunnable<L3>::value>
+amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value>
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        Box const& box1, T1 ncomp1, L1&& f1,
                        Box const& box2, T2 ncomp2, L2&& f2,

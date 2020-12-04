@@ -107,7 +107,7 @@ ParallelFor_doit (Vector<TagType> const& tags, F && f)
             while (lo <= hi)
             {
                 int mid = (lo+hi)/2;
-                if (g_wid >= d_nwarps[mid] and g_wid < d_nwarps[mid+1]) {
+                if (g_wid >= d_nwarps[mid] && g_wid < d_nwarps[mid+1]) {
                     tag_id = mid;
                     break;
                 } else if (g_wid < d_nwarps[mid]) {
@@ -439,7 +439,7 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
 
     Vector<BaseFab<int> > maskfabs;
     Vector<Array4<int> > masks;
-    if (!amrex::IsStoreAtomic<value_type>::value and !is_thread_safe)
+    if (!amrex::IsStoreAtomic<value_type>::value && !is_thread_safe)
     {
         maskfabs.resize(this->local_size());
         masks.reserve(N_locs);
@@ -504,7 +504,7 @@ FabArray<FAB>::CMD_local_setVal_gpu (typename FabArray<FAB>::value_type x,
     Vector<TagType> loc_setval_tags;
     loc_setval_tags.reserve(N_locs);
 
-    AMREX_ALWAYS_ASSERT(amrex::IsStoreAtomic<value_type>::value or is_thread_safe);
+    AMREX_ALWAYS_ASSERT(amrex::IsStoreAtomic<value_type>::value || is_thread_safe);
 
     for (int i = 0; i < N_locs; ++i)
     {
@@ -539,7 +539,7 @@ FabArray<FAB>::CMD_remote_setVal_gpu (typename FabArray<FAB>::value_type x,
 
     if (rcv_setval_tags.empty()) return;
 
-    AMREX_ALWAYS_ASSERT(amrex::IsStoreAtomic<value_type>::value or is_thread_safe);
+    AMREX_ALWAYS_ASSERT(amrex::IsStoreAtomic<value_type>::value || is_thread_safe);
 
     amrex::ParallelFor(rcv_setval_tags, ncomp,
     [x,scomp] AMREX_GPU_DEVICE (int i, int j, int k, int n, TagType const& tag) noexcept
@@ -904,7 +904,7 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
 #if 0
     // For linear solver test on summit, this is slower than writing to
     // pinned memory directly on device.
-    if (not ParallelDescriptor::UseGpuAwareMpi()) {
+    if (! ParallelDescriptor::UseGpuAwareMpi()) {
         // Memory in send_data is pinned.
         szbuffer = (send_data[N_snds-1]-send_data[0]) + send_size[N_snds-1];
         pbuffer = (char*)The_Arena()->alloc(szbuffer);
@@ -964,7 +964,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
     std::size_t szbuffer = 0;
     // For linear solver test on summit, this is slower than writing to
     // pinned memory directly on device.
-    if (not ParallelDescriptor::UseGpuAwareMpi()) {
+    if (! ParallelDescriptor::UseGpuAwareMpi()) {
         // Memory in recv_data is pinned.
         szbuffer = (recv_data[N_rcvs-1]-recv_data[0]) + recv_size[N_rcvs-1];
         pbuffer = (char*)The_Arena()->alloc(szbuffer);
@@ -981,8 +981,8 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
     Vector<Array4<int> > masks;
     if (!is_thread_safe)
     {
-        if ((op == FabArrayBase::COPY and !amrex::IsStoreAtomic<value_type>::value) or
-            (op == FabArrayBase::ADD  and !amrex::HasAtomicAdd <value_type>::value))
+        if ((op == FabArrayBase::COPY && !amrex::IsStoreAtomic<value_type>::value) ||
+            (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value))
         {
             maskfabs.resize(dst.local_size());
         }

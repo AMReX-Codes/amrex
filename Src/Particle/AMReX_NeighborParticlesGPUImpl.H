@@ -29,7 +29,7 @@ namespace detail
                     edge_boxes.push_back(lo_edge_box); bl.push_back(lo_edge_box);
                     for (auto edge_box : edge_boxes) {                    
                         for (int k = 0; k < AMREX_SPACEDIM; ++k) {
-                            if ((j == k) or (i == k)) continue;
+                            if ((j == k) || (i == k)) continue;
                             Box hi_corner_box = adjCellHi(edge_box, k, ncells);
                             Box lo_corner_box = adjCellLo(edge_box, k, ncells);
                             bl.push_back(hi_corner_box);
@@ -58,7 +58,7 @@ buildNeighborMask ()
     const BoxArray& ba = this->ParticleBoxArray(lev);
     const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
 
-    if (ba.size() == 1 and (not geom.isAnyPeriodic()) ) return;
+    if (ba.size() == 1 && (! geom.isAnyPeriodic()) ) return;
 
     if (m_neighbor_mask_ptr == nullptr ||
         ! BoxArray::SameRefs(m_neighbor_mask_ptr->boxArray(), ba) ||
@@ -87,7 +87,7 @@ buildNeighborMask ()
                 {
                     int nbor_grid = isec.first;
                     const Box isec_box = isec.second - *pit;
-                    if ( (grid == nbor_grid) and (*pit == IntVect(AMREX_D_DECL(0, 0, 0)))) continue;
+                    if ( (grid == nbor_grid) && (*pit == IntVect(AMREX_D_DECL(0, 0, 0)))) continue;
                     neighbor_grids.insert(NeighborTask(nbor_grid, isec_box, *pit));
                 }
             }
@@ -154,7 +154,7 @@ buildNeighborCopyOp ()
     auto& plev  = this->GetParticles(lev);
     auto& ba = this->ParticleBoxArray(lev);
 
-    if (ba.size() == 1 and (not geom.isAnyPeriodic()) ) return;
+    if (ba.size() == 1 && (! geom.isAnyPeriodic()) ) return;
 
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
