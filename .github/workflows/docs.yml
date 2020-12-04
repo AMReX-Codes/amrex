@@ -1,5 +1,5 @@
 name: Build and Deploy
-on: [push]
+on: [push, pull_request]
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -19,6 +19,7 @@ jobs:
           ./build_docs.sh
 
       - name: Deploy
+        if: github.event_name == 'push' && github.repository == 'AMReX-Codes/amrex' && github.ref == 'refs/heads/development'
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
