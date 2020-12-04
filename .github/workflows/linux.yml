@@ -142,6 +142,7 @@ jobs:
   tutorials-cuda:
     name: CUDA@9.1.85 GNU@4.8.5 C++11 Release [tutorials]
     runs-on: ubuntu-latest
+    env: {CXXFLAGS: "-fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -165,6 +166,7 @@ jobs:
   tutorials-dpcpp:
     name: DPCPP@PubBeta GFortran@7.5 C++17 [tutorials]
     runs-on: ubuntu-latest
+        env: {CXXFLAGS: "-fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -187,6 +189,7 @@ jobs:
   tutorials-hip:
     name: HIP ROCm@3.8 GFortran@9.3 C++17 [tutorials]
     runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
