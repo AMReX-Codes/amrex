@@ -166,7 +166,7 @@ jobs:
   tutorials-dpcpp:
     name: DPCPP@PubBeta GFortran@7.5 C++17 [tutorials]
     runs-on: ubuntu-latest
-        env: {CXXFLAGS: "-fno-operator-names"}
+    env: {CXXFLAGS: "-fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
