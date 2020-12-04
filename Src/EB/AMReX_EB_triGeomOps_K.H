@@ -1,6 +1,6 @@
 #ifndef AMREX_EB_TRIGEOMOPS_K_H_
 #define AMREX_EB_TRIGEOMOPS_K_H_
-//#include <AMReX_Config.H>
+#include <AMReX_Config.H>
 #include <AMReX.H>
 
 using namespace amrex;
