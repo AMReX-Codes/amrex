@@ -279,7 +279,7 @@ struct ImplicitIntegral
             }
             dphi_max *= 0.5*almostone;
             const Real phi_0 = phi(mid);
-            bool uniform_sign = (phi_0 > dphi_max) or (phi_0 < -dphi_max);
+            bool uniform_sign = (phi_0 > dphi_max) || (phi_0 < -dphi_max);
             if (uniform_sign)
             {
                 if ((phi_0 >= 0.0 && psi[i].sign() >= 0) ||
