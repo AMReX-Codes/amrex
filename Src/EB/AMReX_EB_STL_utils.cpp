@@ -113,23 +113,23 @@ namespace amrex
             auto mfab_arr=markerfab[mfi].array();
 
             ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
-                    {
-                    Real coords[3],po[3];
-                    Real t1[3],t2[3],t3[3];
+            {
+                Real coords[3],po[3];
+                Real t1[3],t2[3],t3[3];
 
-                    coords[0]=plo[0]+i*dx[0];
-                    coords[1]=plo[1]+j*dx[1];
-                    coords[2]=plo[2]+k*dx[2];
+                coords[0]=plo[0]+i*dx[0];
+                coords[1]=plo[1]+j*dx[1];
+                coords[2]=plo[2]+k*dx[2];
 
-                    po[0]=outp[0];
-                    po[1]=outp[1];
-                    po[2]=outp[2];
+                po[0]=outp[0];
+                po[1]=outp[1];
+                po[2]=outp[2];
 
-                    int num_intersects=0;
-                    int intersect;
+                int num_intersects=0;
+                int intersect;
 
-                    for(int tr=0;tr<num_triangles;tr++)
-                    {
+                for(int tr=0;tr<num_triangles;tr++)
+                {
                     t1[0]=tri_pts[tr*data_stride+0];
                     t1[1]=tri_pts[tr*data_stride+1];
                     t1[2]=tri_pts[tr*data_stride+2];
@@ -144,17 +144,17 @@ namespace amrex
 
                     intersect = tri_geom_ops::lineseg_tri_intersect(po,coords,t1,t2,t3);
                     num_intersects += (1-intersect);
-                    }
-                    if(num_intersects%2 == 0)
-                    {
-                        mfab_arr(i,j,k)=outvalue;
-                    }
-                    else
-                    {
-                        mfab_arr(i,j,k)=invalue;
-                    }
+                }
+                if(num_intersects%2 == 0)
+                {
+                    mfab_arr(i,j,k)=outvalue;
+                }
+                else
+                {
+                    mfab_arr(i,j,k)=invalue;
+                }
 
-                    }); 
+            });
         }
     }
     //================================================================================
