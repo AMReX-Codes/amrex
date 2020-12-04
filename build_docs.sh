@@ -17,10 +17,9 @@ make PYTHON="python3" html &> make_source_html.out
 #
 cd ../sphinx_tutorials
 echo "Build the Sphinx documentation for the Amrex tutorials."
-make PYTHON="python3" latexpdf #&> make_tutorials_latex.out
-echo "moving."
+make PYTHON="python3" latexpdf &> make_tutorials_latex.out
 mv build/latex/amrex.pdf source/
-make PYTHON="python3" html #&> make_tutorials_html.out
+make PYTHON="python3" html &> make_tutorials_html.out
 cd ../../
 
 mkdir build
