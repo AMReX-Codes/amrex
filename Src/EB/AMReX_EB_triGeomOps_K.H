@@ -1,6 +1,6 @@
 #ifndef AMREX_EB_TRIGEOMOPS_K_H_
 #define AMREX_EB_TRIGEOMOPS_K_H_
-
+//#include <AMReX_Config.H>
 #include <AMReX.H>
 
 using namespace amrex;
@@ -8,19 +8,19 @@ using namespace amrex;
 namespace tri_geom_ops
 {
     //================================================================================
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE Real Distance2(Real P1[3],Real P2[3])
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real Distance2(Real P1[3],Real P2[3])
     {
         return( (P1[0]-P2[0])*(P1[0]-P2[0]) +
                 (P1[1]-P2[1])*(P1[1]-P2[1]) +
                 (P1[2]-P2[2])*(P1[2]-P2[2]) );
     }
     //================================================================================
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE Real DotProd(Real v1[3],Real v2[3])
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real DotProd(Real v1[3],Real v2[3])
     {
         return(v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]);
     }
     //================================================================================
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE Real side_op(Real L1[6],Real L2[6])
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real side_op(Real L1[6],Real L2[6])
     {
         return(    L1[0]*L2[4] 
                 +  L1[1]*L2[5] 
@@ -30,30 +30,30 @@ namespace tri_geom_ops
                 +  L1[5]*L2[1] );
     }
     //================================================================================
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE void getvec(Real P1[3],Real P2[3],Real v[3])
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void getvec(Real P1[3],Real P2[3],Real v[3])
     {
         v[0]=P2[0]-P1[0];
         v[1]=P2[1]-P1[1];
         v[2]=P2[2]-P1[2];
     }
     //================================================================================
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE void getunitvec(Real v[3],Real vu[3])
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void getunitvec(Real v[3],Real vu[3])
     {
         Real vmag;
-        vmag=sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
+        vmag=std::sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
         vu[0]=v[0]/vmag;
         vu[1]=v[1]/vmag;
         vu[2]=v[2]/vmag;
     }
     //================================================================================
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE void CrossProd(Real v1[3],Real v2[3],Real v[3])
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void CrossProd(Real v1[3],Real v2[3],Real v[3])
     {
         v[0]=v1[1]*v2[2]-v1[2]*v2[1];
         v[1]=v1[2]*v2[0]-v1[0]*v2[2];
         v[2]=v1[0]*v2[1]-v1[1]*v2[0];
     }
     //================================================================================
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE void get_plucker_coords(Real v1[3],Real v2[3],Real L[6])
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void get_plucker_coords(Real v1[3],Real v2[3],Real L[6])
     {
         L[0] = v1[0]*v2[1] - v1[1]*v2[0];
         L[1] = v1[0]*v2[2] - v1[2]*v2[0];
@@ -63,7 +63,7 @@ namespace tri_geom_ops
         L[5] = v2[1]       - v1[1];
     }
     //================================================================================
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE void side_op3(Real v1[3],Real v2[3],
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void side_op3(Real v1[3],Real v2[3],
             Real t1[3],Real t2[3],Real t3[3],
             Real &S1, Real &S2, Real &S3)
     {
@@ -81,7 +81,7 @@ namespace tri_geom_ops
     }
     //================================================================================
     //get normal of triangle pointing at a test-point
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE void tri_n(Real P1[3],Real P2[3],Real P3[3],
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void tri_n(Real P1[3],Real P2[3],Real P3[3],
             Real testp[3],Real n[3])
     {
         Real v1[3],v2[3],magn;
@@ -97,7 +97,7 @@ namespace tri_geom_ops
         centr[2]=0.333333*(P1[2]+P2[2]+P3[2]);
 
         getvec(centr,testp,c_tp_vec);
-        magn=sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
+        magn=std::sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
 
         if(DotProd(c_tp_vec,n) < 0.0)
         {
@@ -109,18 +109,18 @@ namespace tri_geom_ops
         n[2]=n[2]/magn;
     }
     //================================================================================
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE Real triangle_area(Real P1[3],Real P2[3],Real P3[3])
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real triangle_area(Real P1[3],Real P2[3],Real P3[3])
     {
         Real v1[3],v2[3],area[3];
 
         getvec(P1,P2,v1);
         getvec(P1,P3,v2);
         CrossProd(v1,v2,area);
-        return(0.5 * sqrt(DotProd(area,area)) );
+        return(0.5 * std::sqrt(DotProd(area,area)) );
     }
     //================================================================================
     //this is only useful when v1-v2 segment intersects the triangle
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE bool find_intersection_point(Real v1[3],Real v2[3],
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE bool find_intersection_point(Real v1[3],Real v2[3],
             Real t1[3], Real t2[3], Real t3[3],Real ip[3],int bisect_iters=20,Real tol=1e-6)
     {
         Real plane_eq_mid,plane_eq1,plane_eq2;
@@ -132,7 +132,7 @@ namespace tri_geom_ops
         getvec(t1,t3,ac);
 
         CrossProd(ab,ac,n);
-        magn=sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
+        magn=std::sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
 
         n[0]=n[0]/magn;
         n[1]=n[1]/magn;
@@ -197,7 +197,7 @@ namespace tri_geom_ops
         return(all_ok);
     }
     //================================================================================
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE int lineseg_tri_intersect(Real v1[3],Real v2[3],
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int lineseg_tri_intersect(Real v1[3],Real v2[3],
             Real t1[3],Real t2[3],Real t3[3])
     {
         //see plucker coordinates based method
