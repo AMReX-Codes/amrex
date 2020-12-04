@@ -12,7 +12,7 @@ jobs:
       - name: Dependencies
         run: |
           .github/workflows/dependencies/documentation.sh
-          pip install sphinx sphinx_rtd_theme breathe
+          python3 -m pip install sphinx sphinx_rtd_theme breathe
 
       - name: Install and Build
         run: |
