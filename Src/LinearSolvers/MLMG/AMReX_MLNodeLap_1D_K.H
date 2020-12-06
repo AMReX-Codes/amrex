@@ -79,8 +79,20 @@ void mlndlap_jacobi_aa (Box const& bx, Array4<Real> const& sol, Array4<Real cons
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_gauss_seidel_ha (int, int, int, Array4<Real> const& sol,
+                              Array4<Real const> const& rhs, Array4<Real const> const& sx,
+                              Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_gauss_seidel_ha (Box const& bx, Array4<Real> const& sol,
                               Array4<Real const> const& rhs, Array4<Real const> const& sx,
+                              Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_gauss_seidel_aa (int, int, int, Array4<Real> const& sol,
+                              Array4<Real const> const& rhs, Array4<Real const> const& sig,
                               Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {}
 
@@ -225,6 +237,13 @@ void mlndlap_stencil_rap (int /*i*/, int /*j*/, int /*k*/, Array4<Real> const& c
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_adotx_sten (int /*i*/, int /*j*/, int /*k*/, Array4<Real> const& y, Array4<Real const> const& x,
                          Array4<Real const> const& sten, Array4<int const> const& msk) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_gauss_seidel_sten (int, int, int, Array4<Real> const& sol,
+                                Array4<Real const> const& rhs,
+                                Array4<Real const> const& sten,
+                                Array4<int const> const& msk) noexcept
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

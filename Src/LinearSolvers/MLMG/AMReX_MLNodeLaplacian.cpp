@@ -14,7 +14,6 @@
 
 #include <limits>
 
-
 namespace amrex {
 
 MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
@@ -1427,92 +1426,179 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        constexpr int nsweeps = 4;
-        MultiFab Ax(sol.boxArray(), sol.DistributionMap(), 1, 0);
-
-        if (m_coarsening_strategy == CoarseningStrategy::RAP)
+        if (m_use_gauss_seidel)
         {
-            for (MFIter mfi(sol); mfi.isValid(); ++mfi)
-            {
-                const Box& bx = mfi.validbox();
-                Array4<Real> const& solarr = sol.array(mfi);
-                Array4<Real const> const& rhsarr = rhs.const_array(mfi);
-                Array4<Real const> const& starr = stencil->const_array(mfi);
-                Array4<int const> const& dmskarr = dmsk.const_array(mfi);
-                Array4<Real> const& Axarr = Ax.array(mfi);
+            constexpr int nsweeps = 4;
 
+            if (m_coarsening_strategy == CoarseningStrategy::RAP)
+            {
                 for (int ns = 0; ns < nsweeps; ++ns) {
-                    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                    for (MFIter mfi(sol,MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
                     {
-                        mlndlap_adotx_sten(i,j,k,Axarr,solarr,starr,dmskarr);
-                    });
-                    AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
-                    {
-                        mlndlap_jacobi_sten(tbx,solarr,Axarr,rhsarr,starr,dmskarr);
-                    });
+                        const Box& bx = mfi.validbox();
+                        Array4<Real> const& solarr = sol.array(mfi);
+                        Array4<Real const> const& rhsarr = rhs.const_array(mfi);
+                        Array4<Real const> const& starr = stencil->const_array(mfi);
+                        Array4<int const> const& dmskarr = dmsk.const_array(mfi);
+                        int color = ns % 2;
+                        amrex::ParallelFor(Gpu::KernelInfo().setFusible(true), bx,
+                                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                        {
+                            if ((i+j+k+color)%2 == 0) {
+                                mlndlap_gauss_seidel_sten(i,j,k,solarr,rhsarr,starr,dmskarr);
+                            }
+                        });
+                    }
                 }
             }
-        }
-        else if (m_use_harmonic_average && mglev > 0)
-        {
-            for (MFIter mfi(sol); mfi.isValid(); ++mfi)
+            else if (m_use_harmonic_average && mglev > 0)
             {
-                const Box& bx = mfi.validbox();
-                AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
-                             Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
-                             Array4<Real const> const& szarr = sigma[2]->const_array(mfi););
-                Array4<Real> const& solarr = sol.array(mfi);
-                Array4<Real const> const& rhsarr = rhs.const_array(mfi);
-                Array4<int const> const& dmskarr = dmsk.const_array(mfi);
-                Array4<Real> const& Axarr = Ax.array(mfi);
-
                 for (int ns = 0; ns < nsweeps; ++ns) {
-                    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                    for (MFIter mfi(sol,MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
                     {
-                        mlndlap_adotx_ha(i,j,k,Axarr,solarr,AMREX_D_DECL(sxarr,syarr,szarr), dmskarr,
+                        const Box& bx = mfi.validbox();
+                        AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
+                                     Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
+                                     Array4<Real const> const& szarr = sigma[2]->const_array(mfi););
+                        Array4<Real> const& solarr = sol.array(mfi);
+                        Array4<Real const> const& rhsarr = rhs.const_array(mfi);
+                        Array4<int const> const& dmskarr = dmsk.const_array(mfi);
+                        int color = ns % 2;
+                        amrex::ParallelFor(Gpu::KernelInfo().setFusible(true), bx,
+                                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                        {
+                            if ((i+j+k+color)%2 == 0) {
+                                mlndlap_gauss_seidel_ha(i,j,k, solarr, rhsarr,
+                                                        AMREX_D_DECL(sxarr,syarr,szarr),
+                                                        dmskarr, dxinvarr
 #if (AMREX_SPACEDIM == 2)
-                                         is_rz,
+                                                        ,is_rz
 #endif
-                                         dxinvarr);
-                    });
-                    AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
-                    {
-                        mlndlap_jacobi_ha (tbx, solarr, Axarr, rhsarr, AMREX_D_DECL(sxarr,syarr,szarr),
-                                           dmskarr, dxinvarr);
-                    });
+                                    );
+                            }
+                        });
+                    }
                 }
             }
+            else
+            {
+                for (int ns = 0; ns < nsweeps; ++ns) {
+                    for (MFIter mfi(sol,MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
+                    {
+                        const Box& bx = mfi.validbox();
+                        Array4<Real const> const& sarr = sigma[0]->const_array(mfi);
+                        Array4<Real> const& solarr = sol.array(mfi);
+                        Array4<Real const> const& rhsarr = rhs.const_array(mfi);
+                        Array4<int const> const& dmskarr = dmsk.const_array(mfi);
+                        int color = ns % 2;
+                        amrex::ParallelFor(Gpu::KernelInfo().setFusible(true), bx,
+                                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                        {
+                            if ((i+j+k+color)%2 == 0) {
+                                mlndlap_gauss_seidel_aa(i, j, k, solarr, rhsarr,
+                                                        sarr, dmskarr, dxinvarr
+#if (AMREX_SPACEDIM == 2)
+                                                        ,is_rz
+#endif
+                                    );
+                            }
+                        });
+		    }
+                }
+            }
+
+            Gpu::synchronize();
+            nodalSync(amrlev, mglev, sol);
         }
         else
         {
-            for (MFIter mfi(sol); mfi.isValid(); ++mfi)
-            {
-                const Box& bx = mfi.validbox();
-                Array4<Real const> const& sarr = sigma[0]->const_array(mfi);
-                Array4<Real> const& solarr = sol.array(mfi);
-                Array4<Real const> const& rhsarr = rhs.const_array(mfi);
-                Array4<int const> const& dmskarr = dmsk.const_array(mfi);
-                Array4<Real> const& Axarr = Ax.array(mfi);
+            constexpr int nsweeps = 4;
+            MultiFab Ax(sol.boxArray(), sol.DistributionMap(), 1, 0);
 
-                for (int ns = 0; ns < nsweeps; ++ns) {
-                    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                    {
-                        mlndlap_adotx_aa(i,j,k,Axarr,solarr,sarr,dmskarr,
-#if (AMREX_SPACEDIM == 2)
-                                         is_rz,
-#endif
-                                         dxinvarr);
-                    });
-                    AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
-                    {
-                        mlndlap_jacobi_aa (tbx, solarr, Axarr, rhsarr, sarr,
-                                           dmskarr, dxinvarr);
-                    });
+            if (m_coarsening_strategy == CoarseningStrategy::RAP)
+            {
+                for (MFIter mfi(sol); mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.validbox();
+                    Array4<Real> const& solarr = sol.array(mfi);
+                    Array4<Real const> const& rhsarr = rhs.const_array(mfi);
+                    Array4<Real const> const& starr = stencil->const_array(mfi);
+                    Array4<int const> const& dmskarr = dmsk.const_array(mfi);
+                    Array4<Real> const& Axarr = Ax.array(mfi);
+
+                    for (int ns = 0; ns < nsweeps; ++ns) {
+                        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                        {
+                            mlndlap_adotx_sten(i,j,k,Axarr,solarr,starr,dmskarr);
+                        });
+                        AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
+                        {
+                            mlndlap_jacobi_sten(tbx,solarr,Axarr,rhsarr,starr,dmskarr);
+                        });
+                    }
                 }
             }
-        }
+            else if (m_use_harmonic_average && mglev > 0)
+            {
+                for (MFIter mfi(sol); mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.validbox();
+                    AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
+                                 Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
+                                 Array4<Real const> const& szarr = sigma[2]->const_array(mfi););
+                    Array4<Real> const& solarr = sol.array(mfi);
+                    Array4<Real const> const& rhsarr = rhs.const_array(mfi);
+                    Array4<int const> const& dmskarr = dmsk.const_array(mfi);
+                    Array4<Real> const& Axarr = Ax.array(mfi);
 
-        if (nsweeps > 1) nodalSync(amrlev, mglev, sol);
+                    for (int ns = 0; ns < nsweeps; ++ns) {
+                        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                        {
+                            mlndlap_adotx_ha(i,j,k,Axarr,solarr,AMREX_D_DECL(sxarr,syarr,szarr), dmskarr,
+#if (AMREX_SPACEDIM == 2)
+                                             is_rz,
+#endif
+                                             dxinvarr);
+                        });
+                        AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
+                        {
+                            mlndlap_jacobi_ha (tbx, solarr, Axarr, rhsarr, AMREX_D_DECL(sxarr,syarr,szarr),
+                                               dmskarr, dxinvarr);
+                        });
+                    }
+                }
+            }
+            else
+            {
+                for (MFIter mfi(sol); mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.validbox();
+                    Array4<Real const> const& sarr = sigma[0]->const_array(mfi);
+                    Array4<Real> const& solarr = sol.array(mfi);
+                    Array4<Real const> const& rhsarr = rhs.const_array(mfi);
+                    Array4<int const> const& dmskarr = dmsk.const_array(mfi);
+                    Array4<Real> const& Axarr = Ax.array(mfi);
+
+                    for (int ns = 0; ns < nsweeps; ++ns) {
+                        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                        {
+                            mlndlap_adotx_aa(i,j,k,Axarr,solarr,sarr,dmskarr,
+#if (AMREX_SPACEDIM == 2)
+                                             is_rz,
+#endif
+                                             dxinvarr);
+                        });
+                        AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
+                        {
+                            mlndlap_jacobi_aa (tbx, solarr, Axarr, rhsarr, sarr,
+                                               dmskarr, dxinvarr);
+                        });
+                    }
+                }
+            }
+
+            if (nsweeps > 1) nodalSync(amrlev, mglev, sol);
+        }
     }
     else // cpu
 #endif
