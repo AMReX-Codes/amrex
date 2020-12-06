@@ -1512,7 +1512,7 @@ FabArray<FAB>::setDomainBndry (value_type val,
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         const Box& gbx = fai.fabbox();
-        if (not domain_box.contains(gbx))
+        if (! domain_box.contains(gbx))
         {
             get(fai).template setComplement<RunOn::Device>(val, domain_box, strt_comp, ncomp);
         }

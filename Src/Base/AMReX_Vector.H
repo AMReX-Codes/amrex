@@ -254,7 +254,7 @@ namespace amrex
             std::size_t swapPos = 0;
             for (std::size_t i = 0; i < N; ++i) {
                 // move type 2 to the beginning pointed to by swapPos
-                if (data[i] != sentinel and i == hasher(data[i]) % N) {
+                if (data[i] != sentinel && i == hasher(data[i]) % N) {
                     std::swap(data[i], data[swapPos++]);
                 }
             }

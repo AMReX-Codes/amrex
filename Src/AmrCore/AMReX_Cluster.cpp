@@ -405,7 +405,7 @@ Cluster::new_chop ()
            nlo += hist[dir][i-lo[dir]];
        }
 
-       if (nlo <= 0 or nlo >= m_len) return chop();
+       if (nlo <= 0 || nlo >= m_len) return chop();
 
        int nhi = m_len - nlo;
 

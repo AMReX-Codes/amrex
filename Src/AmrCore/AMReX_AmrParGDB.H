@@ -70,7 +70,7 @@ inline
 const Geometry&
 AmrParGDB::ParticleGeom (int level) const
 {
-    if (not m_has_geom[level]) {
+    if (! m_has_geom[level]) {
         return m_amrcore->Geom(level);
     } else {
         return m_geom[level];
@@ -88,7 +88,7 @@ inline
 const Vector<Geometry>&
 AmrParGDB::ParticleGeom () const
 {
-    if (not m_has_geom[0]) {
+    if (! m_has_geom[0]) {
         return m_amrcore->Geom();
     } else {
         return m_geom;

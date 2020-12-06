@@ -540,7 +540,7 @@ getNeighborTags (Vector<NeighborCopyTag>& tags, const ParticleType& p,
                  for (int ii = -nGrow[0]; ii < nGrow[0] + 1; ii += nGrow[0]) {,
                      for (int jj = -nGrow[1]; jj < nGrow[1] + 1; jj += nGrow[1]) {,
                          for (int kk = -nGrow[2]; kk < nGrow[2] + 1; kk += nGrow[2]) {)
-                             if (AMREX_D_TERM((ii == 0), and (jj == 0), and (kk == 0))) continue;
+                             if (AMREX_D_TERM((ii == 0), && (jj == 0), && (kk == 0))) continue;
                              IntVect shift(AMREX_D_DECL(ii, jj, kk));
                              IntVect neighbor_cell = iv + shift;
 
@@ -550,7 +550,7 @@ getNeighborTags (Vector<NeighborCopyTag>& tags, const ParticleType& p,
                              tag.level = mask(neighbor_cell, MaskComps::level);
                              if (periodicity.isAnyPeriodic()) {
                                  for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                                     if (not periodicity.isPeriodic(dir)) continue;
+                                     if (! periodicity.isPeriodic(dir)) continue;
                                      if (neighbor_cell[dir] < lo[dir])
                                          tag.periodic_shift[dir] = -1;
                                      else if (neighbor_cell[dir] > hi[dir])
@@ -764,6 +764,6 @@ resizeContainers (const int num_levels)
         if ( enableInverse() ) inverse_tags.resize(num_levels);
     }
 
-    AMREX_ASSERT((neighbors.size() == m_neighbor_list.size()) and
+    AMREX_ASSERT((neighbors.size() == m_neighbor_list.size()) &&
                  (neighbors.size() == mask_ptr.size()     )    );
 }

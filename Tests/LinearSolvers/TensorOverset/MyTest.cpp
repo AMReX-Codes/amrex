@@ -167,7 +167,7 @@ MyTest::initData ()
             rhsfab(i,j,k,1) = vrhs;
             rhsfab(i,j,k,2) = wrhs;
             etafab(i,j,k) = seta;
-            if (vbx.contains(IntVect(i,j,k)) and overset_box.contains(IntVect(i,j,k))) {
+            if (vbx.contains(IntVect(i,j,k)) && overset_box.contains(IntVect(i,j,k))) {
                 solnfab(i,j,k,0) = u;
                 solnfab(i,j,k,1) = v;
                 solnfab(i,j,k,2) = w;

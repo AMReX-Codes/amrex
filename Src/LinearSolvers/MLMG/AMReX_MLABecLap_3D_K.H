@@ -264,17 +264,17 @@ void abec_gsrb (Box const& box, Array4<Real> const& phi, Array4<Real const> cons
                 AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
                     if ((i+j+k+redblack)%2 == 0) {
-                        Real cf0 = (i == vlo.x and m0(vlo.x-1,j,k) > 0)
+                        Real cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
                             ? f0(vlo.x,j,k,n) : 0.0;
-                        Real cf1 = (j == vlo.y and m1(i,vlo.y-1,k) > 0)
+                        Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
                             ? f1(i,vlo.y,k,n) : 0.0;
-                        Real cf2 = (k == vlo.z and m2(i,j,vlo.z-1) > 0)
+                        Real cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
                             ? f2(i,j,vlo.z,n) : 0.0;
-                        Real cf3 = (i == vhi.x and m3(vhi.x+1,j,k) > 0)
+                        Real cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
                             ? f3(vhi.x,j,k,n) : 0.0;
-                        Real cf4 = (j == vhi.y and m4(i,vhi.y+1,k) > 0)
+                        Real cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
                             ? f4(i,vhi.y,k,n) : 0.0;
-                        Real cf5 = (k == vhi.z and m5(i,j,vhi.z+1) > 0)
+                        Real cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
                             ? f5(i,j,vhi.z,n) : 0.0;
 
                         Real gamma = alpha*a(i,j,k)
@@ -336,17 +336,17 @@ void abec_gsrb_os (Box const& box, Array4<Real> const& phi, Array4<Real const> c
                         if (osm(i,j,k) == 0) {
                             phi(i,j,k,n) = 0.0;
                         } else {
-                            Real cf0 = (i == vlo.x and m0(vlo.x-1,j,k) > 0)
+                            Real cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
                                 ? f0(vlo.x,j,k,n) : 0.0;
-                            Real cf1 = (j == vlo.y and m1(i,vlo.y-1,k) > 0)
+                            Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
                                 ? f1(i,vlo.y,k,n) : 0.0;
-                            Real cf2 = (k == vlo.z and m2(i,j,vlo.z-1) > 0)
+                            Real cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
                                 ? f2(i,j,vlo.z,n) : 0.0;
-                            Real cf3 = (i == vhi.x and m3(vhi.x+1,j,k) > 0)
+                            Real cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
                                 ? f3(vhi.x,j,k,n) : 0.0;
-                            Real cf4 = (j == vhi.y and m4(i,vhi.y+1,k) > 0)
+                            Real cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
                                 ? f4(i,vhi.y,k,n) : 0.0;
-                            Real cf5 = (k == vhi.z and m5(i,j,vhi.z+1) > 0)
+                            Real cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
                                 ? f5(i,j,vhi.z,n) : 0.0;
 
                             Real gamma = alpha*a(i,j,k)
@@ -425,11 +425,11 @@ void abec_gsrb_with_line_solve (
     int idir = 2;
     int ilen = hi.z - lo.z + 1;
 	
-    if ( (dhx <= dhy) and (dhz <= dhy) ) {
+    if ( (dhx <= dhy) && (dhz <= dhy) ) {
 	idir = 1;
 	ilen = hi.y - lo.y + 1;
     }	
-    if ( (dhy <= dhx) and (dhz <= dhx) ) {
+    if ( (dhy <= dhx) && (dhz <= dhx) ) {
 	idir = 0;
 	ilen = hi.x - lo.x + 1;
     } 
@@ -458,17 +458,17 @@ void abec_gsrb_with_line_solve (
                                 +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
                                 +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
 
-                            Real cf0 = (i == vlo.x and m0(vlo.x-1,j,k) > 0)
+                            Real cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
                                 ? f0(vlo.x,j,k,n) : 0.0;
-                            Real cf1 = (j == vlo.y and m1(i,vlo.y-1,k) > 0)
+                            Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
                                 ? f1(i,vlo.y,k,n) : 0.0;
-                            Real cf2 = (k == vlo.z and m2(i,j,vlo.z-1) > 0)
+                            Real cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
                                 ? f2(i,j,vlo.z,n) : 0.0;
-                            Real cf3 = (i == vhi.x and m3(vhi.x+1,j,k) > 0)
+                            Real cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
                                 ? f3(vhi.x,j,k,n) : 0.0;
-                            Real cf4 = (j == vhi.y and m4(i,vhi.y+1,k) > 0)
+                            Real cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
                                 ? f4(i,vhi.y,k,n) : 0.0;
-                            Real cf5 = (k == vhi.z and m5(i,j,vhi.z+1) > 0)
+                            Real cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
                                 ? f5(i,j,vhi.z,n) : 0.0;
 
                             Real g_m_d = gamma
@@ -482,13 +482,13 @@ void abec_gsrb_with_line_solve (
                                       +       bY(i,j+1,k,n)*phi(i,j+1,k,n) );
 
                             // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
-                            if (i == vlo.x and m0(vlo.x-1,j,k) > 0)
+                            if (i == vlo.x && m0(vlo.x-1,j,k) > 0)
                                 rho -= dhx*bX(i  ,j,k,n)*phi(i-1,j,k,n);
-                            if (i == vhi.x and m3(vhi.x+1,j,k) > 0)
+                            if (i == vhi.x && m3(vhi.x+1,j,k) > 0)
                                 rho -= dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n);
-                            if (j == vlo.y and m1(i,vlo.y-1,k) > 0)
+                            if (j == vlo.y && m1(i,vlo.y-1,k) > 0)
                                 rho -= dhy*bY(i,j  ,k,n)*phi(i,j-1,k,n);
-                            if (j == vhi.y and m4(i,vhi.y+1,k) > 0)
+                            if (j == vhi.y && m4(i,vhi.y+1,k) > 0)
                                 rho -= dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
 
                             a_ls(k-lo.z) = -dhz*bZ(i,j,k,n);
@@ -534,17 +534,17 @@ void abec_gsrb_with_line_solve (
                                 +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
                                 +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
 
-                            Real cf0 = (i == vlo.x and m0(vlo.x-1,j,k) > 0)
+                            Real cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
                                 ? f0(vlo.x,j,k,n) : 0.0;
-                            Real cf1 = (j == vlo.y and m1(i,vlo.y-1,k) > 0)
+                            Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
                                 ? f1(i,vlo.y,k,n) : 0.0;
-                            Real cf2 = (k == vlo.z and m2(i,j,vlo.z-1) > 0)
+                            Real cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
                                 ? f2(i,j,vlo.z,n) : 0.0;
-                            Real cf3 = (i == vhi.x and m3(vhi.x+1,j,k) > 0)
+                            Real cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
                                 ? f3(vhi.x,j,k,n) : 0.0;
-                            Real cf4 = (j == vhi.y and m4(i,vhi.y+1,k) > 0)
+                            Real cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
                                 ? f4(i,vhi.y,k,n) : 0.0;
-                            Real cf5 = (k == vhi.z and m5(i,j,vhi.z+1) > 0)
+                            Real cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
                                 ? f5(i,j,vhi.z,n) : 0.0;
 
                             Real g_m_d = gamma
@@ -558,13 +558,13 @@ void abec_gsrb_with_line_solve (
                                       +       bZ(i,j,k+1,n)*phi(i,j,k+1,n) );
 
                             // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
-                            if (i == vlo.x and m0(vlo.x-1,j,k) > 0)
+                            if (i == vlo.x && m0(vlo.x-1,j,k) > 0)
                                 rho -= dhx*bX(i  ,j,k,n)*phi(i-1,j,k,n);
-                            if (i == vhi.x and m3(vhi.x+1,j,k) > 0)
+                            if (i == vhi.x && m3(vhi.x+1,j,k) > 0)
                                 rho -= dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n);
-                            if (k == vlo.z and m2(i,j,vlo.z-1) > 0)
+                            if (k == vlo.z && m2(i,j,vlo.z-1) > 0)
                                 rho -= dhz*bZ(i,j  ,k,n)*phi(i,j,k-1,n);
-                            if (k == vhi.z and m5(i,j,vhi.z+1) > 0)
+                            if (k == vhi.z && m5(i,j,vhi.z+1) > 0)
                                 rho -= dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
 
                             a_ls(j-lo.y) = -dhy*bY(i,j,k,n);
@@ -609,17 +609,17 @@ void abec_gsrb_with_line_solve (
                                 +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
                                 +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
 
-                            Real cf0 = (i == vlo.x and m0(vlo.x-1,j,k) > 0)
+                            Real cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
                                 ? f0(vlo.x,j,k,n) : 0.0;
-                            Real cf1 = (j == vlo.y and m1(i,vlo.y-1,k) > 0)
+                            Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
                                 ? f1(i,vlo.y,k,n) : 0.0;
-                            Real cf2 = (k == vlo.z and m2(i,j,vlo.z-1) > 0)
+                            Real cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
                                 ? f2(i,j,vlo.z,n) : 0.0;
-                            Real cf3 = (i == vhi.x and m3(vhi.x+1,j,k) > 0)
+                            Real cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
                                 ? f3(vhi.x,j,k,n) : 0.0;
-                            Real cf4 = (j == vhi.y and m4(i,vhi.y+1,k) > 0)
+                            Real cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
                                 ? f4(i,vhi.y,k,n) : 0.0;
-                            Real cf5 = (k == vhi.z and m5(i,j,vhi.z+1) > 0)
+                            Real cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
                                 ? f5(i,j,vhi.z,n) : 0.0;
 
                             Real g_m_d = gamma
@@ -633,13 +633,13 @@ void abec_gsrb_with_line_solve (
                                       +       bZ(i,j,k+1,n)*phi(i,j,k+1,n) );
 
                             // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
-                            if (j == vlo.y and m1(i,vlo.y-1,k) > 0)
+                            if (j == vlo.y && m1(i,vlo.y-1,k) > 0)
                                 rho -= dhy*bY(i,j  ,k,n)*phi(i,j-1,k,n);
-                            if (j == vhi.y and m4(i,vhi.y+1,k) > 0)
+                            if (j == vhi.y && m4(i,vhi.y+1,k) > 0)
                                 rho -= dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
-                            if (k == vlo.z and m2(i,j,vlo.z-1) > 0)
+                            if (k == vlo.z && m2(i,j,vlo.z-1) > 0)
                                 rho -= dhz*bZ(i,j  ,k,n)*phi(i,j,k-1,n);
-                            if (k == vhi.z and m5(i,j,vhi.z+1) > 0)
+                            if (k == vhi.z && m5(i,j,vhi.z+1) > 0)
                                 rho -= dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
 
                             a_ls(i-lo.x) = -dhx*bX(i,j,k,n);

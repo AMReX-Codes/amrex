@@ -220,12 +220,12 @@ MyTest::initData ()
                     etafab(i,j,k) = seta;
 
 #if (AMREX_SPACEDIM == 2)
-                    if (x < -1.0 or x > 1.0 or
-                        y < -1.0 or y > 1.0)
+                    if (x < -1.0 || x > 1.0 ||
+                        y < -1.0 || y > 1.0)
 #elif (AMREX_SPACEDIM == 3)
-                    if (x < -1.0 or x > 1.0 or
-                        y < -1.0 or y > 1.0 or
-                        z < -1.0 or z > 1.0)
+                    if (x < -1.0 || x > 1.0 ||
+                        y < -1.0 || y > 1.0 ||
+                        z < -1.0 || z > 1.0)
 #endif
                     {
                         AMREX_D_TERM(x = std::max(-1.0,std::min(1.0,x));,

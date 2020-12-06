@@ -182,7 +182,7 @@ namespace amrex
                     //or error: p1,midp and p2 are on the same side 
                     //which is not what this function is meant for
                 {
-                    if(plane_eq_mid*plane_eq1 > 0.0 and plane_eq_mid*plane_eq2 > 0.0)
+                    if(plane_eq_mid*plane_eq1 > 0.0 && plane_eq_mid*plane_eq2 > 0.0)
                     {
                         all_ok=false;
                     }
@@ -215,7 +215,7 @@ namespace amrex
             Real eps = std::numeric_limits<Real>::epsilon();
 
             //coplanar (S1,S2,S3 = 0)
-            if(Math::abs(S1) < eps and Math::abs(S2) < eps and Math::abs(S3) < eps) 
+            if(Math::abs(S1) < eps && Math::abs(S2) < eps && Math::abs(S3) < eps)
             {
                 //Print()<<"line segment and triangle are in the same plane\t"<<S1<<"\t"<<S2<<"\t"<<S3<<"\n";
                 tri_area=triangle_area(t1,t2,t3);
@@ -227,17 +227,17 @@ namespace amrex
                 area1=(triangle_area(t1,t2,v1)+triangle_area(t2,t3,v1)+triangle_area(t3,t1,v1));
                 area2=(triangle_area(t1,t2,v2)+triangle_area(t2,t3,v2)+triangle_area(t3,t1,v2));
 
-                if( Math::abs(area1-tri_area)>eps or Math::abs(area2-tri_area)>eps )
+                if( Math::abs(area1-tri_area)>eps || Math::abs(area2-tri_area)>eps )
                 {
                     no_intersections = 0;
                 }
             }
             //proper and edge intersection
-            else if( (S1 < 0.0 and S2 < 0.0 and S3 < 0.0) or 
-                    (S1 > 0.0 and S2 > 0.0 and S3 > 0.0) or
-                    (Math::abs(S1) < eps and S2*S3 > 0.0) or     //S1=0
-                    (Math::abs(S2) < eps and S3*S1 > 0.0) or     //S2=0
-                    (Math::abs(S3) < eps and S1*S2 > 0.0) )      //S3=0
+            else if( (S1 < 0.0 && S2 < 0.0 && S3 < 0.0) ||
+                    (S1 > 0.0 && S2 > 0.0 && S3 > 0.0) ||
+                    (Math::abs(S1) < eps && S2*S3 > 0.0) ||     //S1=0
+                    (Math::abs(S2) < eps && S3*S1 > 0.0) ||     //S2=0
+                    (Math::abs(S3) < eps && S1*S2 > 0.0) )      //S3=0
             {
 
                 get_plucker_coords(v1,t1,L2);
@@ -259,8 +259,8 @@ namespace amrex
                 }
             }
             //vertex intersection
-            else if( (Math::abs(S1) < eps and Math::abs(S2) < eps) or  //S1,S2=0
-                    (Math::abs(S2) < eps and Math::abs(S3) < eps) )   //S2,S3=0
+            else if( (Math::abs(S1) < eps && Math::abs(S2) < eps) ||  //S1,S2=0
+                    (Math::abs(S2) < eps && Math::abs(S3) < eps) )   //S2,S3=0
             {
 
                 //Print()<<"vertex intersection type 1\n";   
@@ -277,7 +277,7 @@ namespace amrex
                     no_intersections = 0;
                 }
             }
-            else if(Math::abs(S3) < eps and Math::abs(S1) < eps) //S3,S1=0
+            else if(Math::abs(S3) < eps && Math::abs(S1) < eps) //S3,S1=0
             {
 
                 //Print()<<"vertex intersection type 2\n";

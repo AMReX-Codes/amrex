@@ -110,13 +110,13 @@ CellSortedParticleContainer::UpdateCellVectors()
     const int lev = 0;
 
     bool needs_update = false;
-    if (not m_vectors_initialized)
+    if (! m_vectors_initialized)
     {
         // this is the first call, so we must update
         m_vectors_initialized = true;
         needs_update = true;
     }
-    else if ((m_BARef != this->ParticleBoxArray(lev).getRefID()) or 
+    else if ((m_BARef != this->ParticleBoxArray(lev).getRefID()) ||
              (m_DMRef != this->ParticleDistributionMap(lev).getRefID()))
     {
         // the grids have changed, so we must update
@@ -125,7 +125,7 @@ CellSortedParticleContainer::UpdateCellVectors()
         needs_update = true;
     }
     
-    if (not needs_update) return;
+    if (! needs_update) return;
 
     // clear old data
     m_cell_vectors.clear();
@@ -269,7 +269,7 @@ void
 CellSortedParticleContainer::correctCellVectors(int old_index, int new_index, 
 						int grid, const ParticleType& p)
 {
-    if (not p.idata(IntData::sorted)) return;
+    if (! p.idata(IntData::sorted)) return;
     IntVect iv(p.idata(IntData::i), p.idata(IntData::j), p.idata(IntData::k));
     auto& cell_vector = m_cell_vectors[grid](iv);
     for (int i = 0; i < static_cast<int>(cell_vector.size()); ++i) {
@@ -283,7 +283,7 @@ CellSortedParticleContainer::correctCellVectors(int old_index, int new_index,
 int
 CellSortedParticleContainer::SumCellVectors()
 {
-  if (not m_vectors_initialized) return 0;
+  if (! m_vectors_initialized) return 0;
 
   const int lev = 0;
   int np = 0;
@@ -345,7 +345,7 @@ CellSortedParticleContainer::numWrongCell()
         for(int pindex = 0; pindex < np; ++pindex) {
             const ParticleType& p = particles[pindex];
             const IntVect& iv = this->Index(p, lev);
-            if ((iv[0] != p.idata(IntData::i)) or (iv[1] != p.idata(IntData::j)) or (iv[2] != p.idata(IntData::k))) {
+            if ((iv[0] != p.idata(IntData::i)) || (iv[1] != p.idata(IntData::j)) || (iv[2] != p.idata(IntData::k))) {
                 num_wrong += 1;
             }
         }
@@ -360,7 +360,7 @@ CellSortedParticleContainer::visitAllParticles()
 {
     const int lev = 0;
 
-    if (not m_vectors_initialized) return;
+    if (! m_vectors_initialized) return;
     
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
     {

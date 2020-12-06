@@ -49,7 +49,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == pc.NumIntComps() + NStructInt);
 
     std::string pdir = dir;
-    if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
+    if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') pdir += '/';
     pdir += name;
 
     if ( ! pc.GetLevelDirectoriesCreated()) {
@@ -230,7 +230,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
         }
 
         // Write out the header for each particle
-        if (gotsome and ParallelDescriptor::IOProcessor()) {
+        if (gotsome && ParallelDescriptor::IOProcessor()) {
             std::string HeaderFileName = LevelDir;
             HeaderFileName += "/Particle_H";
             std::ofstream ParticleHeader(HeaderFileName);
@@ -393,7 +393,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     }
 
     std::string pdir = dir;
-    if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
+    if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') pdir += '/';
     pdir += name;
 
     if (MyProc == IOProcNumber)

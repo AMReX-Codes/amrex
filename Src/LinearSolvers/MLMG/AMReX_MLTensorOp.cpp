@@ -163,7 +163,7 @@ MLTensorOp::prepareForSolve ()
 
     for (int amrlev = NAMRLevels()-1; amrlev >= 0; --amrlev) {
         for (int mglev = 1; mglev < m_kappa[amrlev].size(); ++mglev) {
-            if (m_has_kappa and m_overset_mask[amrlev][mglev]) {
+            if (m_has_kappa && m_overset_mask[amrlev][mglev]) {
                 const Real fac = static_cast<Real>(1 << mglev); // 2**mglev
                 const Real osfac = 2.0*fac/(fac+1.0);
 #ifdef _OPENMP
