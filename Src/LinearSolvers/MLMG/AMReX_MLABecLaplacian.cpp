@@ -550,63 +550,6 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #endif
 #endif
 
-#ifdef AMREX_USE_DPCPP
-        // xxxxx DPCPP todo: kernel size
-        Vector<Array4<Real const> > ha(2*AMREX_SPACEDIM);
-        ha[0] = f0fab;
-        ha[1] = f1fab;
-#if (AMREX_SPACEDIM > 1)
-        ha[2] = f2fab;
-        ha[3] = f3fab;
-#if (AMREX_SPACEDIM == 3)
-        ha[4] = f4fab;
-        ha[5] = f5fab;
-#endif
-#endif
-        Gpu::AsyncArray<Array4<Real const> > aa(ha.data(), 2*AMREX_SPACEDIM);
-        auto dp = aa.data();
-
-        if (m_overset_mask[amrlev][mglev]) {
-            const auto& osm = m_overset_mask[amrlev][mglev]->array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-            {
-                abec_gsrb_os(thread_box, solnfab, rhsfab, alpha, afab,
-                             AMREX_D_DECL(dhx, dhy, dhz),
-                             AMREX_D_DECL(bxfab, byfab, bzfab),
-                             AMREX_D_DECL(m0,m2,m4),
-                             AMREX_D_DECL(m1,m3,m5),
-                             AMREX_D_DECL(dp[0],dp[2],dp[4]),
-                             AMREX_D_DECL(dp[1],dp[3],dp[5]),
-                             osm, vbx, redblack, nc);
-            });
-        } else if (regular_coarsening) {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-            {
-                abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
-                          AMREX_D_DECL(dhx, dhy, dhz),
-                          AMREX_D_DECL(bxfab, byfab, bzfab),
-                          AMREX_D_DECL(m0,m2,m4),
-                          AMREX_D_DECL(m1,m3,m5),
-                          AMREX_D_DECL(dp[0],dp[2],dp[4]),
-                          AMREX_D_DECL(dp[1],dp[3],dp[5]),
-                          vbx, redblack, nc);
-            });
-        } else {
-            Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
-            // line solve does not with with GPU
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-            {
-                abec_gsrb_with_line_solve(thread_box, solnfab, rhsfab, alpha, afab,
-                                          AMREX_D_DECL(dhx, dhy, dhz),
-                                          AMREX_D_DECL(bxfab, byfab, bzfab),
-                                          AMREX_D_DECL(m0,m2,m4),
-                                          AMREX_D_DECL(m1,m3,m5),
-                                          AMREX_D_DECL(dp[0],dp[2],dp[4]),
-                                          AMREX_D_DECL(dp[1],dp[3],dp[5]),
-                                          vbx, redblack, nc);
-            });
-        }
-#else
         if (m_overset_mask[amrlev][mglev]) {
             const auto& osm = m_overset_mask[amrlev][mglev]->array(mfi);
             AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( tbx, thread_box,
@@ -647,7 +590,6 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                           vbx, redblack, nc);
             });
         }
-#endif
     }
 }
 

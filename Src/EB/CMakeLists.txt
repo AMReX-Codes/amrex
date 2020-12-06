@@ -64,6 +64,9 @@ target_sources(amrex
    AMReX_EB2_MultiGFab.cpp
    AMReX_EB2_${AMReX_SPACEDIM}D_C.cpp
    AMReX_EB2_C.H AMReX_EB2_${AMReX_SPACEDIM}D_C.H
+   AMReX_EB_STL_utils.H
+   AMReX_EB_STL_utils.cpp
+   AMReX_EB_triGeomOps_K.H
    )
 
 if (AMReX_FORTRAN)

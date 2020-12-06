@@ -735,23 +735,10 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     }
 
     // fix faces for small cells whose vfrac has been set to zero
-#ifdef AMREX_USE_DPCPP
-    // xxxxx DPCPP todo: kernel parameter size
-    Vector<Array4<Real const> > htmp = {fcx,fcy,fcz,m2x,m2y,m2z};
-    std::unique_ptr<Gpu::AsyncArray<Array4<Real const> > > dtmp;
-    if (Gpu::inLaunchRegion()) dtmp.reset(new Gpu::AsyncArray<Array4<Real const> >(htmp.data(), 6));
-    Array4<Real const>* ptmp = (Gpu::inLaunchRegion()) ? dtmp->data() : htmp.data();
-#endif
     const Box xbx = Box(bx).surroundingNodes(0).grow(1,1).grow(2,1);
     AMREX_HOST_DEVICE_FOR_3D ( xbx, i, j, k,
     {
         if (vfrac(i-1,j,k) == 0._rt || vfrac(i,j,k) == 0._rt) {
-            AMREX_DPCPP_ONLY(auto fcx = ptmp[0]);
-            AMREX_DPCPP_ONLY(auto fcy = ptmp[1]);
-            AMREX_DPCPP_ONLY(auto fcz = ptmp[2]);
-            AMREX_DPCPP_ONLY(auto m2x = ptmp[3]);
-            AMREX_DPCPP_ONLY(auto m2y = ptmp[4]);
-            AMREX_DPCPP_ONLY(auto m2z = ptmp[5]);
             fx(i,j,k) = Type::covered;
             apx(i,j,k) = 0.0;
             if (! cell(i  ,j,k).isCovered())
@@ -775,12 +762,6 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     AMREX_HOST_DEVICE_FOR_3D ( ybx, i, j, k,
     {
         if (vfrac(i,j-1,k) == 0._rt || vfrac(i,j,k) == 0._rt) {
-            AMREX_DPCPP_ONLY(auto fcx = ptmp[0]);
-            AMREX_DPCPP_ONLY(auto fcy = ptmp[1]);
-            AMREX_DPCPP_ONLY(auto fcz = ptmp[2]);
-            AMREX_DPCPP_ONLY(auto m2x = ptmp[3]);
-            AMREX_DPCPP_ONLY(auto m2y = ptmp[4]);
-            AMREX_DPCPP_ONLY(auto m2z = ptmp[5]);
             fy(i,j,k) = Type::covered;
             apy(i,j,k) = 0.0;
             if (! cell(i,j  ,k).isCovered())
@@ -804,12 +785,6 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     AMREX_HOST_DEVICE_FOR_3D ( zbx, i, j, k,
     {
         if (vfrac(i,j,k-1) == 0._rt || vfrac(i,j,k) == 0._rt) {
-            AMREX_DPCPP_ONLY(auto fcx = ptmp[0]);
-            AMREX_DPCPP_ONLY(auto fcy = ptmp[1]);
-            AMREX_DPCPP_ONLY(auto fcz = ptmp[2]);
-            AMREX_DPCPP_ONLY(auto m2x = ptmp[3]);
-            AMREX_DPCPP_ONLY(auto m2y = ptmp[4]);
-            AMREX_DPCPP_ONLY(auto m2z = ptmp[5]);
             fz(i,j,k) = Type::covered;
             apz(i,j,k) = 0.0;
             if (! cell(i,j,k  ).isCovered())
