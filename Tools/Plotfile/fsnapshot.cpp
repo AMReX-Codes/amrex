@@ -55,7 +55,7 @@ void main_main()
         } else if (name == "-l" || name == "--log") {
             do_log = true;
         } else if (name == "-g" || name == "--origin") {
-            ||igin = true;
+            origin = true;
         } else if (name == "-c" || name == "--coordinates") {
             location[0] = std::stod(amrex::get_command_argument(++farg));
             location[1] = std::stod(amrex::get_command_argument(++farg));
