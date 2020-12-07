@@ -272,6 +272,19 @@ jobs:
         make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
         make install
 
+  # Build Tools/Plotfile
+  plotfile-tools:
+    name: GNU Plotfile Tools [tools]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        cd Tools/Plotfile
+        make -j2 USE_MPI=FALSE USE_OMP=FALSE WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
+
   # Build libamrex and run all tests
   tests:
     name: GNU@7.5 C++14 [tests]

@@ -26,21 +26,21 @@ void main_main()
     int farg = 1;
     while (farg <= narg) {
         const std::string& name = amrex::get_command_argument(farg);
-        if (name == "-s" or name == "--slicefile") {
+        if (name == "-s" || name == "--slicefile") {
             slicefile = amrex::get_command_argument(++farg);
-        } else if (name == "-d" or name == "--direction") {
+        } else if (name == "-d" || name == "--direction") {
             idir = std::stoi(amrex::get_command_argument(++farg));
-        } else if (name == "-v" or name == "--variable") {
+        } else if (name == "-v" || name == "--variable") {
             varnames_arg = amrex::get_command_argument(++farg);
         } else if (name == "-y") {
             ycoord = std::stod(amrex::get_command_argument(++farg));
-        } else if (name == "-l" or name == "--lower_left") {
+        } else if (name == "-l" || name == "--lower_left") {
             center = false;
-        } else if (name == "-c" or name == "--coarse_level") {
+        } else if (name == "-c" || name == "--coarse_level") {
             coarse_level = std::stoi(amrex::get_command_argument(++farg));
-        } else if (name == "-f" or name == "--fine_level") {
+        } else if (name == "-f" || name == "--fine_level") {
             fine_level = std::stoi(amrex::get_command_argument(++farg));
-        } else if (name == "-e" or name == "--scientific") {
+        } else if (name == "-e" || name == "--scientific") {
             scientific = true;
         } else {
             break;
@@ -48,7 +48,7 @@ void main_main()
         ++farg;
     }
 
-    if (pltfile.empty() and farg <= narg) {
+    if (pltfile.empty() && farg <= narg) {
         pltfile = amrex::get_command_argument(farg);
     }
 
@@ -92,7 +92,7 @@ void main_main()
     PlotFileData pf(pltfile);
     const int dim = pf.spaceDim();
 
-    if (idir < 0 or idir >= dim) {
+    if (idir < 0 || idir >= dim) {
         amrex::Print() << " invalid direction\n";
         return;
     } else if (idir == 0) {
@@ -140,7 +140,7 @@ void main_main()
         kloc = (hi0.z-lo0.z+1)/2 + lo0.z;
     }
 
-    if (ycoord > -1.e-36 and AMREX_SPACEDIM >= 2) {
+    if (ycoord > -1.e-36 && AMREX_SPACEDIM >= 2) {
         // we specified the y value to pass through
         for (int j = lo0.y; j <= hi0.y; ++j) {
             amrex::Real yc = problo[1] + (j+0.5)*dx0[1];
@@ -155,7 +155,7 @@ void main_main()
 
     if (fine_level < 0) fine_level = pf.finestLevel();
     // sanity check on valid selected levels
-    if (fine_level > pf.finestLevel() or coarse_level < 0 or coarse_level > fine_level) {
+    if (fine_level > pf.finestLevel() || coarse_level < 0 || coarse_level > fine_level) {
         amrex::Abort("Invalid level selection");
     }
 
