@@ -42,7 +42,7 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.intersphinx']
 
 intersphinx_mapping = {
-    'amrex_docs': ('https://amrex-codes.github.io/amrex/docs_html/', None)
+    'amrex_docs': ('https://amrex-codes.github.io/amrex/build/docs_html/', None)
     # 'amrex_docs': ('../../../sphinx_documentation/build/html/',
     #               '../../sphinx_documentation/build/html/objects.inv')
 }

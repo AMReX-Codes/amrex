@@ -30,4 +30,4 @@ analytic Jacobian function.
 See the CVODE_ section of the AMReX documentation for general instructions 
 on how to include CVODE in an AMReX application.
 
-.. _CVODE: https://amrex-codes.github.io/amrex/docs_html/CVODE.html#id1
+.. _CVODE: https://amrex-codes.github.io/amrex/build/docs_html/CVODE.html#id1

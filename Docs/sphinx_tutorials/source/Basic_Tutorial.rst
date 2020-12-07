@@ -61,7 +61,7 @@ test_parameters.cpp), replace MyAmr.H by MyParams.H and add a Fortran file my_fu
 The GNUmakefile here assumes that you have already built the AMReX library; for instructions on how to do 
 that see the  Building_libamrex_ chapter.
 
-.. Building_libamrex: https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html
+.. Building_libamrex: https://amrex-codes.github.io/amrex/build/docs_html/BuildingAMReX.html
 
 **HeatEquation**
 ----------------
@@ -70,5 +70,5 @@ The HeatEquation examples solve a 2D or 3D (determined by how you set DIM in the
 heat equation explicitly on a domain-decomposed mesh.  This example is described in detail in
 the Basics_ chapter of the amrex Documentation
 
-.. _Basics: https://amrex-codes.github.io/amrex/docs_html/Basics.html
+.. _Basics: https://amrex-codes.github.io/amrex/build/docs_html/Basics.html
 

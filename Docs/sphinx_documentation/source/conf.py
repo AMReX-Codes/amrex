@@ -44,7 +44,7 @@ extensions = ['sphinx.ext.mathjax',
               'breathe']
 
 intersphinx_mapping = {
-    'amrex_tutorials': ('https://amrex-codes.github.io/amrex/tutorials_html/', None)
+    'amrex_tutorials': ('https://amrex-codes.github.io/amrex/build/tutorials_html/', None)
     # 'amrex_tutorials': ('../../../sphinx_tutorials/build/html/',
     #                    '../../sphinx_tutorials/build/html/objects.inv')
 }
