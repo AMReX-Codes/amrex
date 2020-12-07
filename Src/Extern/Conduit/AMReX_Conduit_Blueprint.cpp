@@ -177,13 +177,13 @@ void FabToBlueprintTopology(const Geometry& geom,
     int nz = dims > 2 ? (k_max - k_min +1) : 1;
 
     float64 x_min = level_x_min + level_dx * i_min;
-    float64 x_max = level_x_min + level_dx * i_max;
+    //float64 x_max = level_x_min + level_dx * i_max;
 
     float64 y_min = level_y_min + level_dy * j_min;
-    float64 y_max = level_y_min + level_dy * j_max;
+    //float64 y_max = level_y_min + level_dy * j_max;
 
     float64 z_min = dims > 2 ? level_z_min + level_dz * k_min : 0.0;
-    float64 z_max = dims > 2 ? level_z_min + level_dz * k_max : 0.0;
+    //float64 z_max = dims > 2 ? level_z_min + level_dz * k_max : 0.0;
 
     // create uniform coordset
     // (which also holds all implicit details needed for the topology)
@@ -355,7 +355,7 @@ MultiLevelToBlueprint (int n_levels,
     BL_ASSERT(n_levels <= level_steps.size());
     BL_ASSERT(mfs[0]->nComp() == varnames.size());
 
-    int finest_level = n_levels-1;
+    //int finest_level = n_levels-1;
 
     int num_levels = geoms.size();
 
