@@ -67,6 +67,10 @@ target_sources(amrex
    AMReX_EB_STL_utils.H
    AMReX_EB_STL_utils.cpp
    AMReX_EB_triGeomOps_K.H
+   AMReX_EBToPVD.H
+   AMReX_EBToPVD.cpp
+   AMReX_WriteEBSurface.cpp
+   AMReX_WriteEBSurface.H
    )
 
 if (AMReX_FORTRAN)
@@ -74,10 +78,7 @@ if (AMReX_FORTRAN)
       PRIVATE
       AMReX_ebcellflag_mod.F90
       AMReX_EBFluxRegister_nd.F90
-      AMReX_WriteEBSurface.cpp
-      AMReX_WriteEBSurface.H
       AMReX_WriteEB_F.H
-      AMReX_eb_to_pvd.F90
       )
 
 endif ()
