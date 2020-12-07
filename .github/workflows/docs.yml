@@ -27,5 +27,5 @@ jobs:
           REPOSITORY_NAME: AMReX-Codes/AMReX-Codes.github.io
           BRANCH: main # The branch the action should deploy to.
           FOLDER: build # The folder the action should deploy.
-          TARGET_FOLDER: amrex # The folder the action should deploy to.
+          TARGET_FOLDER: amrex/build # The folder the action should deploy to.
           CLEAN: true # Automatically remove deleted files from the deploy branch
