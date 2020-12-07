@@ -126,12 +126,7 @@ endif ()
 
 # --- SYCL ---
 if (AMReX_DPCPP)
-  if (AMReX_MPI)
-    if (NOT (CMAKE_CXX_COMPILER MATCHES "mpiicpx") )
-       message(FATAL_ERROR "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} only supports mpiicpx compiler when AMReX_MPI=ON"
-         "Set CMAKE_CXX_COMPILER=mpiicpx and try again.")
-    endif ()
-  else ()
+  if (NOT AMReX_MPI)
    if (NOT (CMAKE_CXX_COMPILER MATCHES "dpcpp") )
       message(FATAL_ERROR "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} supports dpcpp compiler only."
          "Set CMAKE_CXX_COMPILER=dpccp and try again.")
