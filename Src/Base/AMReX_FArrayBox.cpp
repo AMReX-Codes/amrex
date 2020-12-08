@@ -156,7 +156,7 @@ FArrayBox::initVal () noexcept
 {
     Real * p = dataPtr();
     Long s = size();
-    if (p and s > 0) {
+    if (p && s > 0) {
         RunOn runon;
 #if defined(AMREX_USE_GPU)
         if ( Gpu::inLaunchRegion() && 

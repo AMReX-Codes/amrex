@@ -1,5 +1,6 @@
 #ifndef BL_MFITER_H_
 #define BL_MFITER_H_
+#include <AMReX_Config.H>
 
 #include <memory>
 
@@ -227,6 +228,7 @@ protected:
 #endif
 
     static int nextDynamicIndex;
+    static int depth;
 
     void Initialize ();
 };

@@ -1,5 +1,6 @@
 #ifndef AMREX_NEIGHBORPARTICLES_H_
 #define AMREX_NEIGHBORPARTICLES_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
@@ -105,11 +106,11 @@ private:
         }
 
         bool operator== (const NeighborCopyTag& other) const {
-            return (level == other.level) and (grid == other.grid) and (tile == other.tile)
+            return (level == other.level) && (grid == other.grid) && (tile == other.tile)
                 AMREX_D_TERM(
-                    and (periodic_shift[0] == other.periodic_shift[0]),
-                    and (periodic_shift[1] == other.periodic_shift[1]),
-                    and (periodic_shift[2] == other.periodic_shift[2])
+                    && (periodic_shift[0] == other.periodic_shift[0]),
+                    && (periodic_shift[1] == other.periodic_shift[1]),
+                    && (periodic_shift[2] == other.periodic_shift[2])
                     );
         }
 
@@ -168,9 +169,9 @@ private:
         }
 
         bool operator== (const NeighborCommTag& other) const {
-            return ( (proc_id == other.proc_id) and
-                     (grid_id == other.grid_id) and
-                     (tile_id == other.tile_id) and
+            return ( (proc_id == other.proc_id) &&
+                     (grid_id == other.grid_id) &&
+                     (tile_id == other.tile_id) &&
                      (level_id == other.level_id));
         }
 
@@ -417,7 +418,7 @@ protected:
 
     Vector<std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > > m_neighbor_list;
 
-    bool hasNeighbors() const { return m_has_neighbors; };
+    bool hasNeighbors() const { return m_has_neighbors; }
 
     bool m_has_neighbors = false;
 };

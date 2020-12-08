@@ -1,6 +1,7 @@
 
 #ifndef AMREX_BOX_H_
 #define AMREX_BOX_H_
+#include <AMReX_Config.H>
 
 #include <iosfwd>
 

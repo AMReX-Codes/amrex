@@ -1,5 +1,6 @@
 #ifndef AMREX_FILCC_2D_C_H_
 #define AMREX_FILCC_2D_C_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
@@ -52,17 +53,17 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 // i == ilo-1
                 else if (ilo+2 <= ie)
                 {
-                    q(i,j,0,n) = 0.125*(15.*q(i+1,j,0,n) - 10.*q(i+2,j,0,n) + 3.*q(i+3,j,0,n));
+                    q(i,j,0,n) = Real(0.125)*(Real(15.)*q(i+1,j,0,n) - Real(10.)*q(i+2,j,0,n) + Real(3.)*q(i+3,j,0,n));
                 }
                 else
                 {
-                    q(i,j,0,n) = 0.5*(3.*q(i+1,j,0,n) - q(i+2,j,0,n));
+                    q(i,j,0,n) = Real(0.5)*(Real(3.)*q(i+1,j,0,n) - q(i+2,j,0,n));
                 }
                 break;
             }
             case (BCType::hoextrapcc):
             {
-                q(i,j,0,n) = 2.*q(i+1,j,0,n) - q(i+2,j,0,n);
+                q(i,j,0,n) = Real(2.)*q(i+1,j,0,n) - q(i+2,j,0,n);
                 break;
             }
             case (BCType::reflect_even):
@@ -94,17 +95,17 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 // i == ihi+1
                 else if (ihi-2 >= is)
                 {
-                    q(i,j,0,n) = 0.125*(15.*q(i-1,j,0,n) - 10.*q(i-2,j,0,n) + 3.*q(i-3,j,0,n));
+                    q(i,j,0,n) = Real(0.125)*(Real(15.)*q(i-1,j,0,n) - Real(10.)*q(i-2,j,0,n) + Real(3.)*q(i-3,j,0,n));
                 }
                 else
                 {
-                    q(i,j,0,n) = 0.5*(3.*q(i-1,j,0,n) - q(i-2,j,0,n));
+                    q(i,j,0,n) = Real(0.5)*(Real(3.)*q(i-1,j,0,n) - q(i-2,j,0,n));
                 }
                 break;
             }
             case (BCType::hoextrapcc):
             {
-                q(i,j,0,n) = 2.*q(i-1,j,0,n) - q(i-2,j,0,n);
+                q(i,j,0,n) = Real(2.)*q(i-1,j,0,n) - q(i-2,j,0,n);
                 break;
             }
             case (BCType::reflect_even):
@@ -137,17 +138,17 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 // j == jlo-1
                 else if (jlo+2 <= je)
                 {
-                    q(i,j,0,n) = 0.125*(15.*q(i,j+1,0,n) - 10.*q(i,j+2,0,n) + 3.*q(i,j+3,0,n));
+                    q(i,j,0,n) = Real(0.125)*(Real(15.)*q(i,j+1,0,n) - Real(10.)*q(i,j+2,0,n) + Real(3.)*q(i,j+3,0,n));
                 }
                 else
                 {
-                    q(i,j,0,n) = 0.5*(3.*q(i,j+1,0,n) - q(i,j+2,0,n));
+                    q(i,j,0,n) = Real(0.5)*(Real(3.)*q(i,j+1,0,n) - q(i,j+2,0,n));
                 }
                 break;
             }
             case (BCType::hoextrapcc):
             {
-                q(i,j,0,n) = 2.*q(i,j+1,0,n) - q(i,j+2,0,n);
+                q(i,j,0,n) = Real(2.)*q(i,j+1,0,n) - q(i,j+2,0,n);
                 break;
             }
             case (BCType::reflect_even):
@@ -162,7 +163,7 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
             }
             }
         }
-        else if (j > jhi) 
+        else if (j > jhi)
         {
             switch (bc.hi(1)) {
             case (BCType::foextrap):
@@ -179,17 +180,17 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 // j == jhi+1
                 else if (jhi-2 >= js)
                 {
-                    q(i,j,0,n) = 0.125*(15.*q(i,j-1,0,n) - 10.*q(i,j-2,0,n) + 3.*q(i,j-3,0,n));
+                    q(i,j,0,n) = Real(0.125)*(Real(15.)*q(i,j-1,0,n) - Real(10.)*q(i,j-2,0,n) + Real(3.)*q(i,j-3,0,n));
                 }
                 else
                 {
-                    q(i,j,0,n) = 0.5*(3.*q(i,j-1,0,n) - q(i,j-2,0,n));
+                    q(i,j,0,n) = Real(0.5)*(Real(3.)*q(i,j-1,0,n) - q(i,j-2,0,n));
                 }
                 break;
             }
             case (BCType::hoextrapcc):
             {
-                q(i,j,0,n) = 2.*q(i,j-1,0,n) - q(i,j-2,0,n);
+                q(i,j,0,n) = Real(2.)*q(i,j-1,0,n) - q(i,j-2,0,n);
                 break;
             }
             case (BCType::reflect_even):

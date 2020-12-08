@@ -18,10 +18,12 @@ namespace amrex {
 HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& dmap_,
                             const Geometry& geom_, const FabFactory<FArrayBox>& factory_,
                             const iMultiFab& owner_mask_, const iMultiFab& dirichlet_mask_,
-                            MPI_Comm comm_, MLNodeLinOp const* linop_, int verbose_)
+                            MPI_Comm comm_, MLNodeLinOp const* linop_, int verbose_,
+                            const std::string& options_namespace_)
     : grids(grids_), dmap(dmap_), geom(geom_), factory(&factory_),
       owner_mask(&owner_mask_), dirichlet_mask(&dirichlet_mask_),
-      comm(comm_), linop(linop_), verbose(verbose_)
+      comm(comm_), linop(linop_), verbose(verbose_),
+      options_namespace(options_namespace_)
 {
     Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
 
@@ -73,24 +75,24 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
             for         (int k = lo.z; k <= hi.z; ++k) {
                 for     (int j = lo.y; j <= hi.y; ++j) {
                     for (int i = lo.x; i <= hi.x; ++i) {
-                        if (!owner(i,j,k) or dirichlet(i,j,k))
+                        if (!owner(i,j,k) || dirichlet(i,j,k))
                         {
                             nid(i,j,k) = std::numeric_limits<Int>::lowest();
                         }
 #if (AMREX_SPACEDIM == 2)
-                        else if (flag(i-1,j-1,k).isCovered() and
-                                 flag(i  ,j-1,k).isCovered() and
-                                 flag(i-1,j  ,k).isCovered() and
+                        else if (flag(i-1,j-1,k).isCovered() &&
+                                 flag(i  ,j-1,k).isCovered() &&
+                                 flag(i-1,j  ,k).isCovered() &&
                                  flag(i  ,j  ,k).isCovered())
 #endif
 #if (AMREX_SPACEDIM == 3)
-                        else if (flag(i-1,j-1,k-1).isCovered() and
-                                 flag(i  ,j-1,k-1).isCovered() and
-                                 flag(i-1,j  ,k-1).isCovered() and
-                                 flag(i  ,j  ,k-1).isCovered() and
-                                 flag(i-1,j-1,k  ).isCovered() and
-                                 flag(i  ,j-1,k  ).isCovered() and
-                                 flag(i-1,j  ,k  ).isCovered() and
+                        else if (flag(i-1,j-1,k-1).isCovered() &&
+                                 flag(i  ,j-1,k-1).isCovered() &&
+                                 flag(i-1,j  ,k-1).isCovered() &&
+                                 flag(i  ,j  ,k-1).isCovered() &&
+                                 flag(i-1,j-1,k  ).isCovered() &&
+                                 flag(i  ,j-1,k  ).isCovered() &&
+                                 flag(i-1,j  ,k  ).isCovered() &&
                                  flag(i  ,j  ,k  ).isCovered())
 #endif
                         {
@@ -125,7 +127,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
             for         (int k = lo.z; k <= hi.z; ++k) {
                 for     (int j = lo.y; j <= hi.y; ++j) {
                     for (int i = lo.x; i <= hi.x; ++i) {
-                        if (!owner(i,j,k) or dirichlet(i,j,k))
+                        if (!owner(i,j,k) || dirichlet(i,j,k))
                         {
                             nid(i,j,k) = std::numeric_limits<Int>::lowest();
                         }
@@ -226,6 +228,14 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
             }
 #endif
 
+            if (hypre_ij->adjustSingularMatrix()
+                && linop->isBottomSingular()
+                && (rows[0] == 0)) {
+                const int num_cols = ncols[0];
+                for (int ic = 0; ic < num_cols; ++ic)
+                    mat[ic] = (cols[ic] == rows[0]) ? mat[ic] : 0.0;
+            }
+
             HYPRE_IJMatrixSetValues(A, nrows, ncols.data(), rows.data(), cols.data(), mat.data());
         }
     }
@@ -307,7 +317,13 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     }
                 }
             }
-            
+
+            if (hypre_ij->adjustSingularMatrix()
+                && linop->isBottomSingular()
+                && (rows[0] == 0)) {
+                bvec[0] = 0.0;
+            }
+
             HYPRE_IJVectorSetValues(b, nrows, rows.data(), bvec.data());
         }
     }

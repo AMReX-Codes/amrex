@@ -1,6 +1,7 @@
 
 #ifndef BL_AMREX_H
 #define BL_AMREX_H
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuPrint.H>
@@ -98,28 +99,97 @@ namespace amrex
     //! Print out message to cerr and exit via amrex::Abort().
     void Error (const std::string& msg);
 
-    AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
-    void Error (const char * msg = 0);
+    void Error_host (const char* msg);
+
+#if defined(AMREX_USE_GPU) && !defined(NDEBUG)
+    AMREX_GPU_EXTERNAL AMREX_GPU_DEVICE AMREX_NO_INLINE
+    void Error_device (const char * msg);
+#endif
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void Error (const char* msg = 0) {
+#if AMREX_DEVICE_COMPILE
+#ifdef NDEBUG
+        amrex::ignore_unused(msg);
+#else
+        Error_device(msg);
+#endif
+#else
+        Error_host(msg);
+#endif
+    }
 
     //! Print out warning message to cerr.
     void Warning (const std::string& msg);
 
-    AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
-    void Warning (const char * msg);
+    void Warning_host (const char * msg);
+
+#if defined(AMREX_USE_GPU) && !defined(NDEBUG)
+    AMREX_GPU_EXTERNAL AMREX_GPU_DEVICE AMREX_NO_INLINE
+    void Warning_device (const char * msg);
+#endif
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void Warning (const char * msg) {
+#if AMREX_DEVICE_COMPILE
+#ifdef NDEBUG
+        amrex::ignore_unused(msg);
+#else
+        Warning_device(msg);
+#endif
+#else
+        Warning_host(msg);
+#endif
+    }
 
     //! Print out message to cerr and exit via abort().
     void Abort (const std::string& msg);
 
-    AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
-    void Abort (const char * msg = 0);
+    void Abort_host (const char * msg);
+
+#if defined(AMREX_USE_GPU) && !defined(NDEBUG)
+    AMREX_GPU_EXTERNAL AMREX_GPU_DEVICE AMREX_NO_INLINE
+    void Abort_device (const char * msg);
+#endif
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void Abort (const char * msg = 0) {
+#if AMREX_DEVICE_COMPILE
+#ifdef NDEBUG
+        amrex::ignore_unused(msg);
+#else
+        Abort_device(msg);
+#endif
+#else
+        Abort_host(msg);
+#endif
+    }
 
     /**
     * \brief Prints assertion failed messages to cerr and exits
     * via abort().  Intended for use by the BL_ASSERT() macro
     * in <AMReX_BLassert.H>.
     */
-    AMREX_GPU_EXTERNAL AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
-    void Assert (const char* EX, const char* file, int line, const char* msg = nullptr);
+
+    void Assert_host (const char* EX, const char* file, int line, const char* msg);
+
+#if defined(AMREX_USE_GPU) && !defined(NDEBUG)
+    AMREX_GPU_EXTERNAL AMREX_GPU_DEVICE AMREX_NO_INLINE
+    void Assert_device (const char* EX, const char* file, int line, const char* msg);
+#endif
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void Assert (const char* EX, const char* file, int line, const char* msg = nullptr) {
+#if AMREX_DEVICE_COMPILE
+#ifdef NDEBUG
+        amrex::ignore_unused(EX,file,line,msg);
+#else
+        Assert_device(EX,file,line,msg);
+#endif
+#else
+        Assert_host(EX,file,line,msg);
+#endif
+    }
 
     /**
     * \brief This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
@@ -149,6 +219,7 @@ namespace amrex
     */
     std::string get_command_argument (int number);
 
+#ifndef _MSC_VER
     inline void GccPlacater ()
     {
         std::allocator<bool> a_b;
@@ -164,6 +235,7 @@ namespace amrex
         std::allocator<double> a_d;
         std::allocator<std::string> a_s;
     }
+#endif
 
     class Geometry;
 

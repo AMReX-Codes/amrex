@@ -1,5 +1,6 @@
 #ifndef AMREX_MLABECLAP_1D_K_H_
 #define AMREX_MLABECLAP_1D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
@@ -124,9 +125,9 @@ void abec_gsrb (Box const& box, Array4<Real> const& phi, Array4<Real const> cons
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             if ((i+redblack)%2 == 0) {
-                Real cf0 = (i == vlo.x and m0(vlo.x-1,0,0) > 0)
+                Real cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
                     ? f0(vlo.x,0,0,n) : 0.0;
-                Real cf1 = (i == vhi.x and m1(vhi.x+1,0,0) > 0)
+                Real cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
                     ? f1(vhi.x,0,0,n) : 0.0;
 
                 Real delta = dhx*(bX(i,0,0)*cf0 + bX(i+1,0,0)*cf1);
@@ -168,9 +169,9 @@ void abec_gsrb_os (Box const& box, Array4<Real> const& phi, Array4<Real const> c
                 if (osm(i,0,0) == 0) {
                     phi(i,0,0) = 0.0;
                 } else {
-                    Real cf0 = (i == vlo.x and m0(vlo.x-1,0,0) > 0)
+                    Real cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
                         ? f0(vlo.x,0,0,n) : 0.0;
-                    Real cf1 = (i == vhi.x and m1(vhi.x+1,0,0) > 0)
+                    Real cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
                         ? f1(vhi.x,0,0,n) : 0.0;
 
                     Real delta = dhx*(bX(i,0,0)*cf0 + bX(i+1,0,0)*cf1);

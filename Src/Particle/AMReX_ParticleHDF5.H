@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLEHDF5_H
 #define AMREX_PARTICLEHDF5_H
+#include <AMReX_Config.H>
 
 #ifdef AMREX_USE_HDF5
 #include <hdf5.h>
@@ -326,7 +327,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == NumIntComps() + NStructInt);
 
     std::string pdir = dir;
-    if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
+    if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') pdir += '/';
     if ( ! levelDirectoriesCreated) {
         if (ParallelDescriptor::IOProcessor()) {
             if ( ! amrex::UtilCreateDirectory(pdir, 0755))
@@ -943,7 +944,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if (version.find("Version_One_Dot_Zero") != std::string::npos) {
         how = "double";
     }
-    else if (version.find("Version_One_Dot_One")  != std::string::npos or
+    else if (version.find("Version_One_Dot_One")  != std::string::npos ||
              version.find("Version_Two_Dot_Zero") != std::string::npos) {
         if (version.find("_single") != std::string::npos) {
             how = "single";
@@ -1095,7 +1096,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             particle_box_arrays[lev][i] = tmp;
         }
 
-        if (not particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) 
+        if (! particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) 
             dual_grid = true;
     }
     if (dual_grid) {

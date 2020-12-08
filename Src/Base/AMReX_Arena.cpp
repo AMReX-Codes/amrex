@@ -50,12 +50,6 @@ const std::size_t Arena::align_size;
 Arena::~Arena () {}
 
 std::size_t
-aligned_size (std::size_t align_requirement, std::size_t size)
-{
-    return ((size + (align_requirement-1)) / align_requirement) * align_requirement;
-}
-
-std::size_t
 Arena::align (std::size_t s)
 {
     return amrex::aligned_size(align_size, s);

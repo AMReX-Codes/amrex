@@ -33,8 +33,8 @@ namespace amrex {
         if (std::abs(dx[0] - dx[1]) > tolerance)
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
 #elif (AMREX_SPACEDIM == 3)
-        if( (std::abs(dx[0] - dx[1]) > tolerance) or
-            (std::abs(dx[0] - dx[2]) > tolerance) or
+        if( (std::abs(dx[0] - dx[1]) > tolerance) ||
+            (std::abs(dx[0] - dx[2]) > tolerance) ||
             (std::abs(dx[1] - dx[2]) > tolerance) )
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
 #endif
@@ -98,8 +98,8 @@ namespace amrex {
             for (int kk(ks); kk <= ke; ++kk) {
               for (int jj(-1); jj <= 1; ++jj) {
                 for (int ii(-1); ii <= 1; ++ii) {
-		        if( (ii != 0 or jj != 0 or kk != 0) and
-			    flags(i,j,k).isConnected(ii,jj,kk) and
+		        if( (ii != 0 || jj != 0 || kk != 0) &&
+			    flags(i,j,k).isConnected(ii,jj,kk) &&
 			    dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
                         {
 
@@ -141,7 +141,7 @@ namespace amrex {
               for (int jj(-1); jj <= 1; ++jj) {
                 for (int ii(-1); ii <= 1; ++ii) {         
             
-                        if( (ii != 0 or jj != 0 or kk != 0) and
+                        if( (ii != 0 || jj != 0 || kk != 0) &&
                             (flags(i,j,k).isConnected(ii,jj,kk)) )
                         {
                             wtot += wt(i+ii,j+jj,k+kk) * vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
@@ -155,11 +155,11 @@ namespace amrex {
               for (int jj(-1); jj <= 1; ++jj) {
                 for (int ii(-1); ii <= 1; ++ii) {       
             
-                        if( (ii != 0 or jj != 0 or kk != 0) and
-                            (flags(i,j,k).isConnected(ii,jj,kk)) and
+                        if( (ii != 0 || jj != 0 || kk != 0) &&
+                            (flags(i,j,k).isConnected(ii,jj,kk)) &&
                             bx.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))) )
                         {
-                            Gpu::Atomic::Add(&optmp(i+ii,j+jj,k+kk,n),
+                            Gpu::Atomic::AddNoRet(&optmp(i+ii,j+jj,k+kk,n),
                                              delm(i,j,k,n) * wtot * mask(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk));
                         }
                 }}}

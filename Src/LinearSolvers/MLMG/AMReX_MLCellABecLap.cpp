@@ -68,7 +68,7 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                               m_lo_inhomog_neumann[n].end(),   1);
         auto ithi = std::find(m_hi_inhomog_neumann[n].begin(),
                               m_hi_inhomog_neumann[n].end(),   1);
-        if (itlo != m_lo_inhomog_neumann[n].end() or
+        if (itlo != m_lo_inhomog_neumann[n].end() ||
             ithi != m_hi_inhomog_neumann[n].end())
         {
             has_inhomog_neumann = true;
@@ -125,17 +125,17 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
             const auto& bvhi = bndry.bndryValues(ohi).array(mfi);
             bool outside_domain_lo = !(domain.contains(blo));
             bool outside_domain_hi = !(domain.contains(bhi));
-            if ((!outside_domain_lo) and (!outside_domain_hi)) continue;
+            if ((!outside_domain_lo) && (!outside_domain_hi)) continue;
             for (int icomp = 0; icomp < ncomp; ++icomp) {
                 const BoundCond bctlo = bdcv[icomp][olo];
                 const BoundCond bcthi = bdcv[icomp][ohi];
                 const Real bcllo = bdlv[icomp][olo];
                 const Real bclhi = bdlv[icomp][ohi];
-                if (m_lo_inhomog_neumann[icomp][idim] and outside_domain_lo)
+                if (m_lo_inhomog_neumann[icomp][idim] && outside_domain_lo)
                 {
                     if (idim == 0) {
                         Real fac = beta*dxi;
-                        if (m_has_metric_term and !has_bcoef) {
+                        if (m_has_metric_term && !has_bcoef) {
 #if (AMREX_SPACEDIM == 1)
                             fac *= problo[0]*problo[0];
 #elif (AMREX_SPACEDIM == 2)
@@ -150,7 +150,7 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                         });
                     } else if (idim == 1) {
                         Real fac = beta*dyi;
-                        if (m_has_metric_term and !has_bcoef) {
+                        if (m_has_metric_term && !has_bcoef) {
                             AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
                             {
                                 mllinop_apply_innu_ylo_m(i,j,k, rhsfab, mlo,
@@ -176,11 +176,11 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                         });
                     }
                 }
-                if (m_hi_inhomog_neumann[icomp][idim] and outside_domain_hi)
+                if (m_hi_inhomog_neumann[icomp][idim] && outside_domain_hi)
                 {
                     if (idim == 0) {
                         Real fac = beta*dxi;
-                        if (m_has_metric_term and !has_bcoef) {
+                        if (m_has_metric_term && !has_bcoef) {
 #if (AMREX_SPACEDIM == 1)
                             fac *= probhi[0]*probhi[0];
 #elif (AMREX_SPACEDIM == 2)
@@ -195,7 +195,7 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                         });
                     } else if (idim == 1) {
                         Real fac = beta*dyi;
-                        if (m_has_metric_term and !has_bcoef) {
+                        if (m_has_metric_term && !has_bcoef) {
                             AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
                             {
                                 mllinop_apply_innu_yhi_m(i,j,k, rhsfab, mhi,
@@ -273,6 +273,7 @@ MLCellABecLap::makeHypre (Hypre::Interface hypre_interface) const
         }
         hypre_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
     }
+    hypre_solver->setIsMatrixSingular(this->isBottomSingular());
 
     return hypre_solver;
 }

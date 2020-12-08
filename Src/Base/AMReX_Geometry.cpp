@@ -426,7 +426,7 @@ Geometry::computeRoundoffDomain ()
                           [=] AMREX_GPU_HOST_DEVICE (Real x) -> Real
                           {
                               int i = int(Math::floor((x - plo)*idx)) + ilo;
-                              bool inside = i >= ilo and i <= ihi;
+                              bool inside = i >= ilo && i <= ihi;
                               return static_cast<Real>(inside) - Real(0.5);
                           }, tolerance);
         roundoff_domain.setHi(idim, mid - tolerance);

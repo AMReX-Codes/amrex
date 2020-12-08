@@ -20,7 +20,7 @@ void main_main()
     int farg = 1;
     while (farg <= narg) {
         const std::string& name = amrex::get_command_argument(farg);
-        if (name == "-v" or name == "--variable") {
+        if (name == "-v" || name == "--variable") {
             varnames_arg = amrex::get_command_argument(++farg);
         } else {
             break;

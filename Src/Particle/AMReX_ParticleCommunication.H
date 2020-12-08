@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLECOMMUNICATION_H_
 #define AMREX_PARTICLECOMMUNICATION_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Gpu.H>
 #include <AMReX_GpuContainers.H>
@@ -282,7 +283,6 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
     {
         const auto& geom = pc.Geom(lev);
         auto& plev = pc.GetParticles(lev);
-        auto& ba = pc.ParticleBoxArray(lev);
         const auto plo = geom.ProbLoArray();
         const auto phi = geom.ProbHiArray();
         const auto is_per = geom.isPeriodicArray();
@@ -294,7 +294,6 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             auto index = std::make_pair(gid, tid);
 
             auto& src_tile = plev.at(index);
-            auto& aos   = src_tile.GetArrayOfStructs();
             const auto ptd = src_tile.getConstParticleTileData();
 
             int num_copies = op.numCopies(gid, lev);
@@ -322,7 +321,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                     const IntVect& pshift = p_periodic_shift[i];
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                     {
-                        if (not is_per[idim]) continue;
+                        if (! is_per[idim]) continue;
                         if (pshift[idim] > 0)
                             p->pos(idim) += phi[idim] - plo[idim];
                         else if (pshift[idim] < 0)
@@ -380,7 +379,6 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
             auto index = std::make_pair(gid, tid);
 
             auto& tile = plev[index];
-            auto& aos   = tile.GetArrayOfStructs();
 
             GetSendBufferOffset get_offset(plan, pc.BufferMap());
             auto p_snd_buffer = snd_buffer.dataPtr();
@@ -466,19 +464,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(amrex::aligned_size(acd, nbytes) % acd == 0);
 
-        const int comm_data_type = ParallelDescriptor::select_comm_data_type(nbytes);
-        if (comm_data_type == 1) {
-            plan.m_particle_rreqs[i] =
-                ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum, ParallelContext::CommunicatorSub()).req();
-        } else if (comm_data_type == 2) {
-            plan.m_particle_rreqs[i] =
-                ParallelDescriptor::Arecv((unsigned long long*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum, ParallelContext::CommunicatorSub()).req();
-        } else if (comm_data_type == 3) {
-            plan.m_particle_rreqs[i] =
-                ParallelDescriptor::Arecv((ParallelDescriptor::lull_t *) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum, ParallelContext::CommunicatorSub()).req();
-        } else {
-            amrex::Abort("TODO: message size is too big");
-        }
+        plan.m_particle_rreqs[i] =
+            ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum, ParallelContext::CommunicatorSub()).req();
     }
 
     if (plan.m_NumSnds == 0) return;
@@ -499,17 +486,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         AMREX_ASSERT(snd_offset % acd == 0);
 
-        const int comm_data_type = ParallelDescriptor::select_comm_data_type(nbytes);
-        if (comm_data_type == 1) {
-            ParallelDescriptor::Send((char*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum,
-                                     ParallelContext::CommunicatorSub());
-        } else if (comm_data_type == 2) {
-            ParallelDescriptor::Send((unsigned long long*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum, ParallelContext::CommunicatorSub());
-        } else if (comm_data_type == 3) {
-            ParallelDescriptor::Send((ParallelDescriptor::lull_t *)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum, ParallelContext::CommunicatorSub());
-        } else {
-            amrex::Abort("TODO: message size is too big");
-        }
+        ParallelDescriptor::Send((char const*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum,
+                                 ParallelContext::CommunicatorSub());
     }
 #else
     amrex::ignore_unused(pc,plan,snd_buffer,rcv_buffer);

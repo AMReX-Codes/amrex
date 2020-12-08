@@ -163,7 +163,7 @@ MLTensorOp::prepareForSolve ()
 
     for (int amrlev = NAMRLevels()-1; amrlev >= 0; --amrlev) {
         for (int mglev = 1; mglev < m_kappa[amrlev].size(); ++mglev) {
-            if (m_has_kappa and m_overset_mask[amrlev][mglev]) {
+            if (m_has_kappa && m_overset_mask[amrlev][mglev]) {
                 const Real fac = static_cast<Real>(1 << mglev); // 2**mglev
                 const Real osfac = 2.0*fac/(fac+1.0);
 #ifdef _OPENMP
@@ -357,20 +357,6 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 	  (*bndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
 
 	// only edge vals used in 3D stencil
-#ifdef AMREX_USE_DPCPP
-        // xxxxx DPCPP todo: kernel size
-        Vector<Array4<int const> > htmp = {mxlo,mylo,mzlo,mxhi,myhi,mzhi};
-        Gpu::AsyncArray<Array4<int const> > dtmp(htmp.data(), 6);
-        auto dp = dtmp.data();
-        AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
-        {
-            mltensor_fill_edges(iedge, vbx, velfab,
-                                dp[0],dp[1],dp[2],dp[3],dp[4],dp[5],
-                                bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
-                                bct, bcl, inhomog, imaxorder,
-                                dxinv, domain);
-        });
-#else
         AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
         {
             mltensor_fill_edges(iedge, vbx, velfab,
@@ -379,8 +365,6 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                 bct, bcl, inhomog, imaxorder,
                                 dxinv, domain);
         });
-#endif
-
 #endif
     }
 

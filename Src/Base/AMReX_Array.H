@@ -1,5 +1,6 @@
 #ifndef AMREX_ARRAY_H_
 #define AMREX_ARRAY_H_
+#include <AMReX_Config.H>
 
 #include <array>
 #include <memory>
@@ -58,6 +59,10 @@ namespace amrex {
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* end() noexcept { return arr + N; }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void fill( const T& value ) noexcept
+        { for (std::size_t i = 0; i < N; ++i) arr[i] = value; }
 
         T arr[amrex::max(N,std::size_t{1})];
     };
@@ -180,7 +185,7 @@ namespace amrex
     {
         return {{AMREX_D_DECL(a[0].get(), a[1].get(), a[2].get())}};
     }
-    
+
     template <class T>
     std::array<T const*,AMREX_SPACEDIM> GetArrOfConstPtrs (const std::array<T,AMREX_SPACEDIM>& a) noexcept
     {
@@ -216,4 +221,3 @@ namespace amrex
 }
 
 #endif
-

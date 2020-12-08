@@ -388,13 +388,13 @@ void MCNodalLinOp::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab
 	}
 
 	MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
+        pcrse->setVal(0.0);
 
 	for (MFIter mfi(*pcrse, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
 		Box bx = mfi.tilebox();
 		bx = bx & cdomain;
 
-		pcrse->setVal(0.0);
 		amrex::Array4<const amrex::Real> const& fdata = fine.array(mfi);
 		amrex::Array4<amrex::Real> const& cdata       = pcrse->array(mfi);
 

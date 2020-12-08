@@ -1,5 +1,6 @@
 #ifndef AMREX_AVGDOWN_F_H
 #define AMREX_AVGDOWN_F_H
+#include <AMReX_Config.H>
 
 #ifdef BL_LANG_FORT
 #    define FORT_AVGDOWN         avgdown

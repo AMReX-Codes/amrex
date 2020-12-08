@@ -1,5 +1,6 @@
 #ifndef AMREX_MLNODETENSORLAP_3D_K_H_
 #define AMREX_MLNODETENSORLAP_3D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
@@ -68,7 +69,7 @@ void mlndtslap_interpadd (int i, int j, int k, Array4<Real> const& fine,
         bool i_is_odd = (ic*2 != i);
         bool j_is_odd = (jc*2 != j);
         bool k_is_odd = (kc*2 != k);
-        if (i_is_odd and j_is_odd and k_is_odd) {
+        if (i_is_odd && j_is_odd && k_is_odd) {
             // Fine node at center of cell
             fine(i,j,k) += (ts_interp_face_yz(crse,ic  ,jc  ,kc  ) +
                             ts_interp_face_yz(crse,ic+1,jc  ,kc  ) +
@@ -76,13 +77,13 @@ void mlndtslap_interpadd (int i, int j, int k, Array4<Real> const& fine,
                             ts_interp_face_xz(crse,ic  ,jc+1,kc  ) +
                             ts_interp_face_xy(crse,ic  ,jc  ,kc  ) +
                             ts_interp_face_xy(crse,ic  ,jc  ,kc+1)) * Real(1./6.);
-        } else if (j_is_odd and k_is_odd) {
+        } else if (j_is_odd && k_is_odd) {
             // Node on a Y-Z face
             fine(i,j,k) += ts_interp_face_yz(crse,ic,jc,kc);
-        } else if (i_is_odd and k_is_odd) {
+        } else if (i_is_odd && k_is_odd) {
             // Node on a Z-X face
             fine(i,j,k) += ts_interp_face_xz(crse,ic,jc,kc);
-        } else if (i_is_odd and j_is_odd) {
+        } else if (i_is_odd && j_is_odd) {
             // Node on a X-Y face
             fine(i,j,k) += ts_interp_face_xy(crse,ic,jc,kc);
         } else if (i_is_odd) {
@@ -235,7 +236,7 @@ void mlndtslap_fill_ijmatrix (Box const& ndbx, Array4<HypreNodeLap::Int const> c
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
     for (int i = lo.x; i <= hi.x; ++i) {
-        if (nid(i,j,k) >= 0 and owner(i,j,k))
+        if (nid(i,j,k) >= 0 && owner(i,j,k))
         {
             rows.push_back(nid(i,j,k));
             cols.push_back(nid(i,j,k));

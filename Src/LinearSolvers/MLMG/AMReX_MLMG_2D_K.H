@@ -1,5 +1,6 @@
 #ifndef AMREX_MLMG_2D_K_H_
 #define AMREX_MLMG_2D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
@@ -81,7 +82,7 @@ void mlmg_lin_nd_interp (int i, int j, int, int n, Array4<Real> const& fine,
     int jc = amrex::coarsen(j,2);
     bool i_is_odd = (ic*2 != i);
     bool j_is_odd = (jc*2 != j);
-    if (i_is_odd and j_is_odd) {
+    if (i_is_odd && j_is_odd) {
         // Fine node at center of cell
         fine(i,j,0,n) = 0.25*(crse(ic,jc,0,n) + crse(ic+1,jc,0,n) +
                               crse(ic,jc+1,0,n) + crse(ic+1,jc+1,0,n));

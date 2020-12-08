@@ -1,5 +1,6 @@
 #ifndef AMREX_HABEC_2D_H_
 #define AMREX_HABEC_2D_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_LO_BCTYPES.H>
 #ifdef AMREX_USE_HYPRE
@@ -215,7 +216,7 @@ void amrex_hpijmatrix (Box const& box,
         rows[irow]  = cell_id_arr(i,j,k);
         ncols[irow] = 0;
 
-        if (!osm or osm(i,j,k) != 0) {
+        if (!osm || osm(i,j,k) != 0) {
             cols_tmpPtr[0] = cell_id_arr(i,j,k);
             mat_tmpPtr[0]  = sa*a_arr(i,j,k) + fac[0]*(bx_arr(i,j,k)+bx_arr(i+1,j,k))
                                              + fac[1]*(by_arr(i,j,k)+by_arr(i,j+1,k));

@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_IF_BASE_H_
 #define AMREX_EB2_IF_BASE_H_
+#include <AMReX_Config.H>
 
 #include <type_traits>
 #include <AMReX_Gpu.H>

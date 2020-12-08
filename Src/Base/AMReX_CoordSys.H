@@ -1,6 +1,7 @@
 
 #ifndef AMREX_COORDSYS_H_
 #define AMREX_COORDSYS_H_
+#include <AMReX_Config.H>
 
 #include <limits>
 #include <AMReX.H>
@@ -99,7 +100,7 @@ public:
     //! Returns location of cell center in specified direction.
     Real CellCenter (int point, int dir) const noexcept
     {
-        BL_ASSERT(ok); return offset[dir] + dx[dir]*(0.5+ (Real)point);
+        BL_ASSERT(ok); return offset[dir] + dx[dir]*((Real)0.5+ (Real)point);
     }
 
     //! Return location of cell center.

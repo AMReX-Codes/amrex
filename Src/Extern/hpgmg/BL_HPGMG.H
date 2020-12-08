@@ -1,5 +1,6 @@
 #ifndef BL_HPGMG_H
 #define BL_HPGMG_H
+#include <AMReX_Config.H>
 
 #include <AMReX_MultiFab.H>
 

@@ -327,15 +327,15 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         //
         // First correct the i-j edges and all corners
         //
-        if (bc.lo(0) == BCType::hoextrap and bc.lo(1) == BCType::hoextrap) {
-            if (lo.x < ilo and lo.y < jlo) {
+        if (bc.lo(0) == BCType::hoextrap && bc.lo(1) == BCType::hoextrap) {
+            if (lo.x < ilo && lo.y < jlo) {
                 const int imin = lo.x;
                 const int imax = std::min(hi.x,ilo-1);
                 const int jmin = lo.y;
                 const int jmax = std::min(hi.y,jlo-1);
                 const int i = ilo-1;
                 const int j = jlo-1;
-                if (i>=imin and i<=imax and j>=jmin and j<=jmax) {
+                if (i>=imin && i<=imax && j>=jmin && j<=jmax) {
                     for (int k = lo.z; k <= hi.z; ++k) {
                         if (jlo+2 <= je) {
                             q(i,j,k) = 0.5 * (1./8.) * (15.*q(ilo-1,jlo,k) - 10.*q(ilo-1,jlo+1,k) + 3.*q(ilo-1,jlo+2,k));
@@ -352,7 +352,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
 
 #if AMREX_SPACEDIM == 3
 
-                        if (k == klo-1 and bc.lo(2) == BCType::hoextrap) {
+                        if (k == klo-1 && bc.lo(2) == BCType::hoextrap) {
                             if (klo+2 <= ke) {
                                 q(i,j,k) = (1./8.) * ( (15.*q(ilo-1,jlo-1,klo) - 10.*q(ilo-1,jlo-1,klo+1) +
                                                           3.*q(ilo-1,jlo-1,klo+2)) );
@@ -361,7 +361,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
                             }
                         }
 
-                        if (k == khi+1 and bc.hi(2) == BCType::hoextrap) {
+                        if (k == khi+1 && bc.hi(2) == BCType::hoextrap) {
                             if (khi-2 >= ks) {
                                 q(i,j,k) = (1./8.) * ( (15.*q(ilo-1,jlo-1,khi) - 10.*q(ilo-1,jlo-1,khi-1) +
                                                           3.*q(ilo-1,jlo-1,khi-2)) );
@@ -379,15 +379,15 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         // *********************************************************************
         //
 
-        if (bc.lo(0) == BCType::hoextrap and bc.hi(1) == BCType::hoextrap) {
-            if (lo.x < ilo and hi.y > jhi) {
+        if (bc.lo(0) == BCType::hoextrap && bc.hi(1) == BCType::hoextrap) {
+            if (lo.x < ilo && hi.y > jhi) {
                 const int imin = lo.x;
                 const int imax = std::min(hi.x,ilo-1);
                 const int jmin = std::max(lo.y,jhi+1);
                 const int jmax = hi.y;
                 const int i = ilo-1;
                 const int j = jhi+1;
-                if (i>=imin and i<=imax and j>=jmin and j<=jmax) {
+                if (i>=imin && i<=imax && j>=jmin && j<=jmax) {
                     for (int k = lo.z; k <= hi.z; ++k) {
                         if (jhi-2 >= js) {
                             q(i,j,k) = 0.5 * (1./8.) * (15.*q(ilo-1,jhi,k) - 10.*q(ilo-1,jhi-1,k) + 3.*q(ilo-1,jhi-2,k));
@@ -403,7 +403,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
                    }
 
 #if (AMREX_SPACEDIM == 3)
-                        if (k == klo-1 and bc.lo(2) == BCType::hoextrap) {
+                        if (k == klo-1 && bc.lo(2) == BCType::hoextrap) {
                             if (klo+2 <= ke) {
                                 q(i,j,k) = (1./8.) * ( (15.*q(ilo-1,jhi+1,klo) - 10.*q(ilo-1,jhi+1,klo+1) +
                                                           3.*q(ilo-1,jhi+1,klo+2)) );
@@ -412,7 +412,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
                             }
                         }
 
-                        if (k == khi+1 and bc.hi(2) == BCType::hoextrap) {
+                        if (k == khi+1 && bc.hi(2) == BCType::hoextrap) {
                             if (khi-2 >= ks) {
                                 q(i,j,k) = (1./8.) * ( (15.*q(ilo-1,jhi+1,khi) - 10.*q(ilo-1,jhi+1,khi-1) +
                                                           3.*q(ilo-1,jhi+1,khi-2)) );
@@ -430,15 +430,15 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         // **********************************************************************
         //
 
-        if (bc.hi(0) == BCType::hoextrap and bc.lo(1) == BCType::hoextrap) {
-            if (hi.x > ihi and lo.y < jlo) {
+        if (bc.hi(0) == BCType::hoextrap && bc.lo(1) == BCType::hoextrap) {
+            if (hi.x > ihi && lo.y < jlo) {
                 const int imin = std::max(lo.x,ihi+1);
                 const int imax = hi.x;
                 const int jmin = lo.y;
                 const int jmax = std::min(hi.y,jlo-1);
                 const int i = ihi+1;
                 const int j = jlo-1;
-                if (i>=imin and i<=imax and j>=jmin and j<=jmax) {
+                if (i>=imin && i<=imax && j>=jmin && j<=jmax) {
                     for (int k = lo.z; k <= hi.z; ++k) {
                         if (jlo+2 <= je) {
                             q(i,j,k) = 0.5 * (1./8.) * (15.*q(ihi+1,jlo,k) - 10.*q(ihi+1,jlo+1,k) + 3.*q(ihi+1,jlo+2,k));
@@ -454,7 +454,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
                         }
 
 #if (AMREX_SPACEDIM == 3)
-                        if (k == klo-1 and bc.lo(2) == BCType::hoextrap) {
+                        if (k == klo-1 && bc.lo(2) == BCType::hoextrap) {
                             if (klo+2 <= ke) {
                                 q(i,j,k) = (1./8.) * (15.*q(ihi+1,jlo-1,klo) - 10.*q(ihi+1,jlo-1,klo+1) + 3.*q(ihi+1,jlo-1,klo+2));
                             } else {
@@ -462,7 +462,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
                             }
                         }
 
-                        if (k == khi+1 and bc.hi(2) == BCType::hoextrap) {
+                        if (k == khi+1 && bc.hi(2) == BCType::hoextrap) {
                             if (khi-2 >= ks) {
                                 q(i,j,k) = (1./8.) * (15.*q(ihi+1,jlo-1,khi) - 10.*q(ihi+1,jlo-1,khi-1) + 3.*q(ihi+1,jlo-1,khi-2));
                             } else {
@@ -479,15 +479,15 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         // **********************************************************************
         //
 
-        if (bc.hi(0) == BCType::hoextrap and bc.hi(1) == BCType::hoextrap) {
-            if (hi.x > ihi and hi.y > jhi) {
+        if (bc.hi(0) == BCType::hoextrap && bc.hi(1) == BCType::hoextrap) {
+            if (hi.x > ihi && hi.y > jhi) {
                 const int imin = std::max(lo.x,ihi+1);
                 const int imax = hi.x;
                 const int jmin = std::max(lo.y,jhi+1);
                 const int jmax = hi.y;
                 const int i = ihi+1;
                 const int j = jhi+1;
-                if (i>=imin and i<=imax and j>=jmin and j<=jmax) {
+                if (i>=imin && i<=imax && j>=jmin && j<=jmax) {
                     for (int k = lo.z; k <= hi.z; ++k) {
                         if (jhi-2 >= js) {
                             q(i,j,k) = 0.5 * (1./8.) * (15.*q(ihi+1,jhi,k) - 10.*q(ihi+1,jhi-1,k) + 3.*q(ihi+1,jhi-2,k));
@@ -503,7 +503,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
                         }
 
 #if (AMREX_SPACEDIM == 3)
-                        if (k == klo-1 and bc.lo(2) == BCType::hoextrap) {
+                        if (k == klo-1 && bc.lo(2) == BCType::hoextrap) {
                             if (klo+2 <= ke) {
                                 q(i,j,k) = (1./8.) * (15.*q(ihi+1,jhi+1,klo) - 10.*q(ihi+1,jhi+1,klo+1) + 3.*q(ihi+1,jhi+1,klo+2));
                             } else {
@@ -511,7 +511,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
                             }
                         }
 
-                        if (k == khi+1 and bc.hi(2) == BCType::hoextrap) {
+                        if (k == khi+1 && bc.hi(2) == BCType::hoextrap) {
                             if (khi-2 >= ks) {
                                 q(i,j,k) = (1./8.) * (15.*q(ihi+1,jhi+1,khi) - 10.*q(ihi+1,jhi+1,khi-1) + 3.*q(ihi+1,jhi+1,khi-2));
                             } else {
@@ -530,15 +530,15 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         // Next correct the i-k edges
         //
 
-        if (bc.lo(0) == BCType::hoextrap and bc.lo(2) == BCType::hoextrap) {
-            if (lo.x < ilo and lo.z < klo) {
+        if (bc.lo(0) == BCType::hoextrap && bc.lo(2) == BCType::hoextrap) {
+            if (lo.x < ilo && lo.z < klo) {
                 const int imin = lo.x;
                 const int imax = std::min(hi.x,ilo-1);
                 const int kmin = lo.z;
                 const int kmax = std::min(hi.z,klo-1);
                 const int i = ilo-1;
                 const int k = klo-1;
-                if (i>=imin and i<=imax and k>=kmin and k<=kmax) {
+                if (i>=imin && i<=imax && k>=kmin && k<=kmax) {
                     for (int j = lo.y; j <= hi.y; ++j) {
                         if (klo+2 <= ke) {
                             q(i,j,k) = 0.5 * (1./8.) * (15.*q(ilo-1,j,klo) - 10.*q(ilo-1,j,klo+1) + 3.*q(ilo-1,j,klo+2));
@@ -561,15 +561,15 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         // **********************************************************************
         //
 
-        if (bc.lo(0) == BCType::hoextrap and bc.hi(2) == BCType::hoextrap) {
-            if (lo.x < ilo and hi.z > khi) {
+        if (bc.lo(0) == BCType::hoextrap && bc.hi(2) == BCType::hoextrap) {
+            if (lo.x < ilo && hi.z > khi) {
                 const int imin = lo.x;
                 const int imax = std::min(hi.x,ilo-1);
                 const int kmin = std::max(lo.z,khi+1);
                 const int kmax = hi.z;
                 const int i = ilo-1;
                 const int k = khi+1;
-                if (i>=imin and i<=imax and k>=kmin and k<=kmax) {
+                if (i>=imin && i<=imax && k>=kmin && k<=kmax) {
                     for (int j = lo.y; j <= hi.y; ++j) {
                         if (khi-2 >= ks) {
                             q(i,j,k) = 0.5 * (1./8.) * (15.*q(ilo-1,j,khi) - 10.*q(ilo-1,j,khi-1) + 3.*q(ilo-1,j,khi-2));
@@ -592,15 +592,15 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         // **********************************************************************
         //
 
-        if (bc.hi(0) == BCType::hoextrap and bc.lo(2) == BCType::hoextrap) {
-            if (hi.x > ihi and lo.z < klo) {
+        if (bc.hi(0) == BCType::hoextrap && bc.lo(2) == BCType::hoextrap) {
+            if (hi.x > ihi && lo.z < klo) {
                 const int imin = std::max(lo.x,ihi+1);
                 const int imax = hi.x;
                 const int kmin = lo.z;
                 const int kmax = std::min(hi.z,klo-1);
                 const int i = ihi+1;
                 const int k = klo-1;
-                if (i>=imin and i<=imax and k>=kmin and k<=kmax) {
+                if (i>=imin && i<=imax && k>=kmin && k<=kmax) {
                     for (int j = lo.y; j <= hi.y; ++j) {
                         if (klo+2 <= ke) {
                             q(i,j,k) = 0.5 * (1./8.) * (15.*q(ihi+1,j,klo) - 10.*q(ihi+1,j,klo+1) + 3.*q(ihi+1,j,klo+2));
@@ -623,15 +623,15 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         // **********************************************************************
         //
 
-        if (bc.hi(0) == BCType::hoextrap and bc.hi(2) == BCType::hoextrap) {
-            if (hi.x > ihi and hi.z > khi) {
+        if (bc.hi(0) == BCType::hoextrap && bc.hi(2) == BCType::hoextrap) {
+            if (hi.x > ihi && hi.z > khi) {
                 const int imin = std::max(lo.x,ihi+1);
                 const int imax = hi.x;
                 const int kmin = std::max(lo.z,khi+1);
                 const int kmax = hi.z;
                 const int i = ihi+1;
                 const int k = khi+1;
-                if (i>=imin and i<=imax and k>=kmin and k<=kmax) {
+                if (i>=imin && i<=imax && k>=kmin && k<=kmax) {
                     for (int j = lo.y; j <= hi.y; ++j) {
                         if (khi-2 >= ks) {
                             q(i,j,k) = 0.5 * (1./8.) * (15.*q(ihi+1,j,khi) - 10.*q(ihi+1,j,khi-1) + 3.*q(ihi+1,j,khi-2));
@@ -654,15 +654,15 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         // Next correct the j-k edges
         //
 
-        if (bc.lo(1) == BCType::hoextrap and bc.lo(2) == BCType::hoextrap) {
-            if (lo.y < jlo and lo.z < klo) {
+        if (bc.lo(1) == BCType::hoextrap && bc.lo(2) == BCType::hoextrap) {
+            if (lo.y < jlo && lo.z < klo) {
                 const int jmin = lo.y;
                 const int jmax = std::min(hi.y,jlo-1);
                 const int kmin = lo.z;
                 const int kmax = std::min(hi.z,klo-1);
                 const int j = jlo-1;
                 const int k = klo-1;
-                if (j>=jmin and j<=jmax and k>=kmin and k<=kmax) {
+                if (j>=jmin && j<=jmax && k>=kmin && k<=kmax) {
                     for (int i = lo.x; i <= hi.x; ++i) {
                         if (klo+2 <= ke) {
                             q(i,j,k) = 0.5 * (1./8.) * (15.*q(i,jlo-1,klo) - 10.*q(i,jlo-1,klo+1) + 3.*q(i,jlo-1,klo+2));
@@ -685,15 +685,15 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         // **********************************************************************
         //
 
-        if (bc.lo(1) == BCType::hoextrap and bc.hi(2) == BCType::hoextrap) {
-            if (lo.y < jlo and hi.z > khi) {
+        if (bc.lo(1) == BCType::hoextrap && bc.hi(2) == BCType::hoextrap) {
+            if (lo.y < jlo && hi.z > khi) {
                 const int jmin = lo.y;
                 const int jmax = std::min(hi.y,jlo-1);
                 const int kmin = std::max(lo.z,khi+1);
                 const int kmax = hi.z;
                 const int j = jlo-1;
                 const int k = khi+1;
-                if (j>=jmin and j<=jmax and k>=kmin and k<=kmax) {
+                if (j>=jmin && j<=jmax && k>=kmin && k<=kmax) {
                     for (int i = lo.x; i <= hi.x; ++i) {
                         if (khi-2 >= ks) {
                             q(i,j,k) = 0.5 * (1./8.) * (15.*q(i,jlo-1,khi) - 10.*q(i,jlo-1,khi-1) + 3.*q(i,jlo-1,khi-2));
@@ -716,15 +716,15 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         // **********************************************************************
         //
 
-        if (bc.hi(1) == BCType::hoextrap and bc.lo(2) == BCType::hoextrap) {
-            if (hi.y > jhi and lo.z < klo) {
+        if (bc.hi(1) == BCType::hoextrap && bc.lo(2) == BCType::hoextrap) {
+            if (hi.y > jhi && lo.z < klo) {
                 const int jmin = std::max(lo.y,jhi+1);
                 const int jmax = hi.y;
                 const int kmin = lo.z;
                 const int kmax = std::min(hi.z,klo-1);
                 const int j = jhi+1;
                 const int k = klo-1;
-                if (j>=jmin and j<=jmax and k>=kmin and k<=kmax) {
+                if (j>=jmin && j<=jmax && k>=kmin && k<=kmax) {
                     for (int i = lo.x; i <= hi.x; ++i) {
                         if (klo+2 <= ke) {
                             q(i,j,k) = 0.5 * (1./8.) * (15.*q(i,jhi+1,klo) - 10.*q(i,jhi+1,klo+1) + 3.*q(i,jhi+1,klo+2));
@@ -747,15 +747,15 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         // **********************************************************************
         //
 
-        if (bc.hi(1) == BCType::hoextrap and bc.hi(2) == BCType::hoextrap) {
-            if (hi.y > jhi and hi.z > khi) {
+        if (bc.hi(1) == BCType::hoextrap && bc.hi(2) == BCType::hoextrap) {
+            if (hi.y > jhi && hi.z > khi) {
                 const int jmin = std::max(lo.y,jhi+1);
                 const int jmax = hi.y;
                 const int kmin = std::max(lo.z,khi+1);
                 const int kmax = hi.z;
                 const int j = jhi+1;
                 const int k = khi+1;
-                if (j>=jmin and j<=jmax and k>=kmin and k<=kmax) {
+                if (j>=jmin && j<=jmax && k>=kmin && k<=kmax) {
                     for (int i = lo.x; i <= hi.x; ++i) {
                         if (khi-2 >= ks) {
                             q(i,j,k) = 0.5 * (1./8.) * (15.*q(i,jhi+1,khi) - 10.*q(i,jhi+1,khi-1) + 3.*q(i,jhi+1,khi-2));

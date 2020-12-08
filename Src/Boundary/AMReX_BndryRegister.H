@@ -1,6 +1,7 @@
 
 #ifndef AMREX_BNDRYREGISTER_H_
 #define AMREX_BNDRYREGISTER_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_FabSet.H>

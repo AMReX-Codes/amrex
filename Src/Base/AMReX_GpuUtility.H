@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_UTILITY_H_
 #define AMREX_GPU_UTILITY_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuTypes.H>
@@ -12,6 +13,7 @@
 #include <AMReX_Array4.H>
 #include <iostream>
 #include <cmath>
+#include <cstring>
 
 #ifdef AMREX_USE_CUDA
 #include <cuda.h>
@@ -201,6 +203,16 @@ namespace Gpu {
         bool m_threadsafe;
         bool m_sync;
     };
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void* memcpy (void* dest, const void* src, std::size_t count)
+{
+#ifdef __HIP_DEVICE_COMPILE__
+    return ::memcpy(dest, src, count);
+#else
+    return std::memcpy(dest, src, count);
+#endif
+}
 
 } // namespace Gpu
 

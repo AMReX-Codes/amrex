@@ -9,6 +9,12 @@ ifneq (,$(findstring ~,$(AMREX_HOME)))
   AMREX_HOME := $(shell echo $(AMREX_HOME))
 endif
 
+ifneq ($(MAKECMDGOALS),)
+ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),realclean clean cleanconfig uninstall distclean))
+  NO_CONFIG_CHECKING = TRUE
+endif
+endif
+
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local-pre)","")
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local-pre...)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local-pre
@@ -27,9 +33,10 @@ ifeq ($(USE_DPCPP),TRUE)
   DEFINES += -DAMREX_USE_DPCPP -DAMREX_USE_GPU
   USE_CUDA := FALSE
   USE_HIP := FALSE
-  # disable mpi, fortran and ccache for now
-  USE_MPI := FALSE
+  # disable ccache for now
   USE_CCACHE := FALSE
+  # Make.unknown's mpi checking does not work with mpiipx
+  NO_MPI_CHECKING := TRUE
 endif
 
 ifdef USE_HIP
@@ -41,15 +48,17 @@ endif
 ifeq ($(USE_HIP),TRUE)
   DEBUG := FALSE  # Currently there is a compiler bug for DEBUG=TRUE.
   USE_CUDA := FALSE
-  COMP := hip
-  HIP_COMPILER = $(shell hipconfig --compiler)
-  ifeq ($(HIP_COMPILER),nvcc)
-    $(error HIP_COMPILER=nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
-  else ifeq ($(HIP_COMPILER),hcc)
-    $(error HIP_COMPILER=hcc is no longer supported)
-  else ifeq ($(HIP_COMPILER),clang)
-  else
-    $(error Unknown HIP_COMPILER=$(HIP_COMPILER))
+  override COMP = hip
+  ifneq ($(NO_CONFIG_CHECKING),TRUE)
+    HIP_COMPILER = $(shell hipconfig --compiler)
+    ifeq ($(HIP_COMPILER),nvcc)
+      $(error HIP_COMPILER=nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
+    else ifeq ($(HIP_COMPILER),hcc)
+      $(error HIP_COMPILER=hcc is no longer supported)
+    else ifeq ($(HIP_COMPILER),clang)
+    else
+      $(error Unknown HIP_COMPILER=$(HIP_COMPILER))
+    endif
   endif
 endif
 
@@ -319,7 +328,7 @@ ifdef GPU_ERROR_CHECK
   GPU_ERROR_CHECK := $(strip $(GPU_ERROR_CHECK))
 else
   GPU_ERROR_CHECK := TRUE
-endif 
+endif
 
 ifdef FIX_NVCC_PTHREAD
   FIX_NVCC_PTHREAD := $(strip $(FIX_NVCC_PTHREAD))
@@ -339,6 +348,13 @@ else
   GPU_ERROR_CAPTURE_THIS := TRUE
 endif
 
+ifdef GPU_ERROR_CROSS_EXECUTION_SPACE_CALL
+  GPU_ERROR_CROSS_EXECUTION_SPACE_CALL := $(strip $(GPU_ERROR_CROSS_EXECUTION_SPACE_CALL))
+else
+  GPU_ERROR_CROSS_EXECUTION_SPACE_CALL := TRUE
+endif
+
+ALLOW_DIFFERENT_COMP ?= TRUE
 SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
 
@@ -350,7 +366,7 @@ FORTLINK  	= UNDERSCORE
 FORT_CPP        = cpp -E -traditional-cpp -P
 FORTPREP  	= perl $(AMREX_HOME)/Tools/C_scripts/strip72 -c
 F90PREP  	= cat  # a placeholder in case we have to write something later
-CPP_PREFIX      = 
+CPP_PREFIX      =
 MKDEP		= perl $(AMREX_HOME)/Tools/C_scripts/mkdep
 MODDEP		= $(AMREX_HOME)/Tools/F_scripts/dep.py
 CHECKFORT       = $(AMREX_HOME)/Tools/typechecker/typechecker.py
@@ -468,7 +484,7 @@ else ifeq ($(lowercase_comp),nec)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak
 else ifeq ($(lowercase_comp),hip)
-  AMREX_FCOMP ?= gnu 
+  AMREX_FCOMP ?= gnu
   AMREX_CCOMP ?= hip
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
@@ -627,7 +643,7 @@ ifeq ($(USE_ACC),TRUE)
 endif
 
 ifeq ($(USE_CUPTI),TRUE)
-  ifeq ($(USE_CUDA),TRUE)	
+  ifeq ($(USE_CUDA),TRUE)
     DEFINES += -DAMREX_USE_CUPTI
     CUPTISuffix := .CUPTI
   else
@@ -840,11 +856,7 @@ objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
 f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
 tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
 
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-  includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
-else
-  includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
-endif
+includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
 fincludes	= $(includes)
 fmoddir         = $(objEXETempDir)
 
@@ -911,16 +923,6 @@ ifeq ($(USE_UPCXX),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.upcxx
 endif
 
-ifeq ($(USE_SUNDIALS),TRUE)
-  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials...)
-  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials
-endif
-
-ifeq ($(USE_CVODE),TRUE)
-  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode...)
-  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode
-endif
-
 ifeq ($(USE_HYPRE),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.hypre...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hypre
@@ -956,12 +958,38 @@ ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local
 endif
 
-ifeq ($(USE_HIP),TRUE)
+ifeq ($(USE_DPCPP),TRUE)
+
+    ifeq ($(USE_MPI),TRUE)
+        CC  = mpiicx
+        CXX = mpiicpx
+        FC  = mpiifx
+        F90 = mpiifx
+        # current version of mpiicpx does not have this on by default
+        EXTRACXXFLAGS += -fsycl-unnamed-lambda
+    endif
+
+else ifeq ($(USE_HIP),TRUE)
 
     LINKFLAGS = $(HIPCC_FLAGS)
     AMREX_LINKER = hipcc
 
+    ifeq ($(HIP_SAVE_TEMPS),TRUE)
+      # Issue: hipcc does not seem to respect the arg to --save-temps
+      CXXFLAGS += --save-temps=$(objEXETempDir)
+      ifeq ($(DEBUG),TRUE) # --save-temps does not like AMREX_GPU_EXTERNAL
+        CPPFLAGS += -DNDEBUG
+      endif
+    endif
+
 else ifeq ($(USE_CUDA),TRUE)
+
+    ifdef AMREX_CUDA_ARCH
+      CUDA_ARCH = $(AMREX_CUDA_ARCH)
+    endif
+
+    # remove dot in 7.0 if there is
+    override CUDA_ARCH := $(subst .,,$(CUDA_ARCH))
 
     # Allow the user to specify the location of the CUDA toolkit.
     # If they don't, check if it has been defined for one of the

@@ -75,7 +75,7 @@ AmrLevelAdv::checkPoint (const std::string& dir,
 {
   AmrLevel::checkPoint(dir, os, how, dump_old);
 #ifdef AMREX_PARTICLES
-  if (do_tracers and level == 0) {
+  if (do_tracers && level == 0) {
     TracerPC->Checkpoint(dir, "Tracer", true);
   }
 #endif
@@ -93,7 +93,7 @@ AmrLevelAdv::writePlotFile (const std::string& dir,
     AmrLevel::writePlotFile (dir,os,how);
 
 #ifdef AMREX_PARTICLES
-    if (do_tracers and level == 0) {
+    if (do_tracers && level == 0) {
       TracerPC->Checkpoint(dir, "Tracer", true);
     }
 #endif
@@ -587,7 +587,7 @@ void
 AmrLevelAdv::post_restart() 
 {
 #ifdef AMREX_PARTICLES
-    if (do_tracers and level == 0) {
+    if (do_tracers && level == 0) {
       BL_ASSERT(TracerPC == 0);
       TracerPC.reset(new AmrTracerParticleContainer(parent));
       TracerPC->Restart(parent->theRestartFile(), "Tracer");
@@ -760,7 +760,7 @@ AmrLevelAdv::avgDown (int state_indx)
 void
 AmrLevelAdv::init_particles ()
 {
-  if (do_tracers and level == 0)
+  if (do_tracers && level == 0)
     {
       BL_ASSERT(TracerPC == nullptr);
       

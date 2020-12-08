@@ -1,5 +1,6 @@
 #ifndef BL_BASEUMAP_H
 #define BL_BASEUMAP_H
+#include <AMReX_Config.H>
 
 #include <cmath>
 #include <cstdlib>

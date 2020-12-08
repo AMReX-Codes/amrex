@@ -39,13 +39,16 @@
 namespace
 {
     static int call_mpi_finalize = 0;
+    static int num_startparallel_called = 0;
+    static MPI_Datatype mpi_type_intvect   = MPI_DATATYPE_NULL;
+    static MPI_Datatype mpi_type_indextype = MPI_DATATYPE_NULL;
+    static MPI_Datatype mpi_type_box       = MPI_DATATYPE_NULL;
+    static MPI_Datatype mpi_type_lull_t    = MPI_DATATYPE_NULL;
 }
 #endif
 
-namespace amrex {
+namespace amrex { namespace ParallelDescriptor {
 
-namespace ParallelDescriptor
-{
 #ifdef AMREX_USE_MPI
     template <> MPI_Datatype Mpi_typemap<IntVect>::type();
     template <> MPI_Datatype Mpi_typemap<IndexType>::type();
@@ -184,8 +187,6 @@ namespace ParallelDescriptor
       amrex::Print() << "# of unique groups: " << std::distance(PMI_z_meshcoord.begin(), last) << std::endl;
     }
 #endif
-}
-
 
 #ifdef BL_USE_MPI
 
@@ -214,17 +215,14 @@ namespace
 
 }
 
-namespace ParallelDescriptor
+void
+MPI_Error (const char* file, int line, const char* str, int rc)
 {
-    void
-    MPI_Error (const char* file, int line, const char* str, int rc)
-    {
-	amrex::Error(the_message_string(file, line, str, rc));
-    }
+    amrex::Error(the_message_string(file, line, str, rc));
 }
 
 void
-ParallelDescriptor::Abort (int errorcode, bool backtrace)
+Abort (int errorcode, bool backtrace)
 {
     if (backtrace && amrex::system::signal_handling) {
 	BLBackTrace::handler(errorcode);
@@ -234,7 +232,7 @@ ParallelDescriptor::Abort (int errorcode, bool backtrace)
 }
 
 const char*
-ParallelDescriptor::ErrorString (int errorcode)
+ErrorString (int errorcode)
 {
     BL_ASSERT(errorcode > 0 && errorcode <= MPI_ERR_LASTCODE);
 
@@ -250,7 +248,7 @@ ParallelDescriptor::ErrorString (int errorcode)
 }
 
 void
-ParallelDescriptor::Message::wait ()
+Message::wait ()
 {
     BL_PROFILE_S("ParallelDescriptor::Message::wait()");
 
@@ -260,7 +258,7 @@ ParallelDescriptor::Message::wait ()
 }
 
 bool
-ParallelDescriptor::Message::test ()
+Message::test ()
 {
     int flag;
     BL_PROFILE_S("ParallelDescriptor::Message::test()");
@@ -272,21 +270,21 @@ ParallelDescriptor::Message::test ()
 }
 
 int
-ParallelDescriptor::Message::tag () const
+Message::tag () const
 {
     if ( !m_finished ) amrex::Error("Message::tag: Not Finished!");
     return m_stat.MPI_TAG;
 }
 
 int
-ParallelDescriptor::Message::pid () const
+Message::pid () const
 {
     if ( !m_finished ) amrex::Error("Message::pid: Not Finished!");
     return m_stat.MPI_SOURCE;
 }
 
 size_t
-ParallelDescriptor::Message::count () const
+Message::count () const
 {
     if ( m_type == MPI_DATATYPE_NULL ) amrex::Error("Message::count: Bad Type!");
     if ( !m_finished ) amrex::Error("Message::count: Not Finished!");
@@ -296,9 +294,7 @@ ParallelDescriptor::Message::count () const
 }
 
 void
-ParallelDescriptor::StartParallel (int*    argc,
-                                   char*** argv,
-                                   MPI_Comm a_mpi_comm)
+StartParallel (int* argc, char*** argv, MPI_Comm a_mpi_comm)
 {
     int sflag(0);
     MPI_Initialized(&sflag);
@@ -370,11 +366,25 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     // Wait until all other processes are properly started.
 //    BL_MPI_REQUIRE( MPI_Barrier(Communicator()) );
+
+    ++num_startparallel_called;
 }
 
 void
-ParallelDescriptor::EndParallel ()
+EndParallel ()
 {
+    --num_startparallel_called;
+    if (num_startparallel_called == 0) {
+        BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_intvect) );
+        BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_indextype) );
+        BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_box) );
+        BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_lull_t) );
+        mpi_type_intvect   = MPI_DATATYPE_NULL;
+        mpi_type_indextype = MPI_DATATYPE_NULL;
+        mpi_type_box       = MPI_DATATYPE_NULL;
+        mpi_type_lull_t    = MPI_DATATYPE_NULL;
+    }
+
     if (!call_mpi_finalize) {
         BL_MPI_REQUIRE( MPI_Comm_free(&m_comm) );
     }
@@ -388,13 +398,13 @@ ParallelDescriptor::EndParallel ()
 }
 
 double
-ParallelDescriptor::second () noexcept
+second () noexcept
 {
     return MPI_Wtime();
 }
 
 void
-ParallelDescriptor::Barrier (const std::string &message)
+Barrier (const std::string &message)
 {
     amrex::ignore_unused(message);
 
@@ -411,7 +421,7 @@ ParallelDescriptor::Barrier (const std::string &message)
 }
 
 void
-ParallelDescriptor::Barrier (const MPI_Comm &comm, const std::string &message)
+Barrier (const MPI_Comm &comm, const std::string &message)
 {
     amrex::ignore_unused(message);
 
@@ -431,8 +441,8 @@ ParallelDescriptor::Barrier (const MPI_Comm &comm, const std::string &message)
 }
 
 
-ParallelDescriptor::Message
-ParallelDescriptor::Abarrier ()
+Message
+Abarrier ()
 {
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Ibarrier(ParallelDescriptor::Communicator(), &req) );
@@ -440,8 +450,8 @@ ParallelDescriptor::Abarrier ()
     return Message(req, MPI_DATATYPE_NULL);
 }
 
-ParallelDescriptor::Message
-ParallelDescriptor::Abarrier (const MPI_Comm & comm)
+Message
+Abarrier (const MPI_Comm & comm)
 {
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Ibarrier(comm, &req) );
@@ -451,7 +461,7 @@ ParallelDescriptor::Abarrier (const MPI_Comm & comm)
 
 
 void
-ParallelDescriptor::Test (MPI_Request& request, int& flag, MPI_Status& status)
+Test (MPI_Request& request, int& flag, MPI_Status& status)
 {
     BL_PROFILE_S("ParallelDescriptor::Test()");
     BL_COMM_PROFILE(BLProfiler::Test, sizeof(char), status.MPI_SOURCE, status.MPI_TAG);
@@ -462,7 +472,7 @@ ParallelDescriptor::Test (MPI_Request& request, int& flag, MPI_Status& status)
 }
 
 void
-ParallelDescriptor::IProbe (int src_pid, int tag, int& flag, MPI_Status& status)
+IProbe (int src_pid, int tag, int& flag, MPI_Status& status)
 {
     BL_PROFILE_S("ParallelDescriptor::Iprobe()");
     BL_COMM_PROFILE(BLProfiler::Iprobe, sizeof(char), src_pid, tag);
@@ -474,7 +484,7 @@ ParallelDescriptor::IProbe (int src_pid, int tag, int& flag, MPI_Status& status)
 }
 
 void
-ParallelDescriptor::IProbe (int src_pid, int tag, MPI_Comm comm, int& flag, MPI_Status& status)
+IProbe (int src_pid, int tag, MPI_Comm comm, int& flag, MPI_Status& status)
 {
     BL_PROFILE_S("ParallelDescriptor::Iprobe(comm)");
     BL_COMM_PROFILE(BLProfiler::Iprobe, sizeof(char), src_pid, tag);
@@ -486,14 +496,14 @@ ParallelDescriptor::IProbe (int src_pid, int tag, MPI_Comm comm, int& flag, MPI_
 }
 
 void
-ParallelDescriptor::Comm_dup (MPI_Comm comm, MPI_Comm& newcomm)
+Comm_dup (MPI_Comm comm, MPI_Comm& newcomm)
 {
     BL_PROFILE_S("ParallelDescriptor::Comm_dup()");
     BL_MPI_REQUIRE( MPI_Comm_dup(comm, &newcomm) );
 }
 
 void
-ParallelDescriptor::ReduceBoolAnd (bool& r)
+ReduceBoolAnd (bool& r)
 {
     int src = r; // src is either 0 or 1.
 
@@ -503,7 +513,7 @@ ParallelDescriptor::ReduceBoolAnd (bool& r)
 }
 
 void
-ParallelDescriptor::ReduceBoolAnd (bool& r, int cpu)
+ReduceBoolAnd (bool& r, int cpu)
 {
     int src = r; // src is either 0 or 1.
 
@@ -514,7 +524,7 @@ ParallelDescriptor::ReduceBoolAnd (bool& r, int cpu)
 }
 
 void
-ParallelDescriptor::ReduceBoolOr (bool& r)
+ReduceBoolOr (bool& r)
 {
     int src = r; // src is either 0 or 1.
 
@@ -524,7 +534,7 @@ ParallelDescriptor::ReduceBoolOr (bool& r)
 }
 
 void
-ParallelDescriptor::ReduceBoolOr (bool& r, int cpu)
+ReduceBoolOr (bool& r, int cpu)
 {
     int src = r; // src is either 0 or 1.
 
@@ -535,19 +545,19 @@ ParallelDescriptor::ReduceBoolOr (bool& r, int cpu)
 }
 
 void
-ParallelDescriptor::ReduceRealSum (Real& r)
+ReduceRealSum (Real& r)
 {
     util::DoAllReduceReal(r,MPI_SUM);
 }
 
 void
-ParallelDescriptor::ReduceRealSum (Real* r, int cnt)
+ReduceRealSum (Real* r, int cnt)
 {
     util::DoAllReduceReal(r,MPI_SUM,cnt);
 }
 
 void
-ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar)
+ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<Real> tmp{std::begin(rvar), std::end(rvar)};
@@ -558,19 +568,19 @@ ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar)
 }
 
 void
-ParallelDescriptor::ReduceRealSum (Real& r, int cpu)
+ReduceRealSum (Real& r, int cpu)
 {
     util::DoReduceReal(r,MPI_SUM,cpu);
 }
 
 void
-ParallelDescriptor::ReduceRealSum (Real* r, int cnt, int cpu)
+ReduceRealSum (Real* r, int cnt, int cpu)
 {
     util::DoReduceReal(r,MPI_SUM,cnt,cpu);
 }
 
 void
-ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
+ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
     Vector<Real> tmp{std::begin(rvar), std::end(rvar)};
@@ -581,19 +591,19 @@ ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar,
 }
 
 void
-ParallelDescriptor::ReduceRealMax (Real& r)
+ReduceRealMax (Real& r)
 {
     util::DoAllReduceReal(r,MPI_MAX);
 }
 
 void
-ParallelDescriptor::ReduceRealMax (Real* r, int cnt)
+ReduceRealMax (Real* r, int cnt)
 {
     util::DoAllReduceReal(r,MPI_MAX,cnt);
 }
 
 void
-ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar)
+ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<Real> tmp{std::begin(rvar), std::end(rvar)};
@@ -604,19 +614,19 @@ ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar)
 }
 
 void
-ParallelDescriptor::ReduceRealMax (Real& r, int cpu)
+ReduceRealMax (Real& r, int cpu)
 {
     util::DoReduceReal(r,MPI_MAX,cpu);
 }
 
 void
-ParallelDescriptor::ReduceRealMax (Real* r, int cnt, int cpu)
+ReduceRealMax (Real* r, int cnt, int cpu)
 {
     util::DoReduceReal(r,MPI_MAX,cnt,cpu);
 }
 
 void
-ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
+ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
     Vector<Real> tmp{std::begin(rvar), std::end(rvar)};
@@ -627,19 +637,19 @@ ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar,
 }
 
 void
-ParallelDescriptor::ReduceRealMin (Real& r)
+ReduceRealMin (Real& r)
 {
     util::DoAllReduceReal(r,MPI_MIN);
 }
 
 void
-ParallelDescriptor::ReduceRealMin (Real* r, int cnt)
+ReduceRealMin (Real* r, int cnt)
 {
     util::DoAllReduceReal(r,MPI_MIN,cnt);
 }
 
 void
-ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar)
+ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<Real> tmp{std::begin(rvar), std::end(rvar)};
@@ -650,19 +660,19 @@ ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar)
 }
 
 void
-ParallelDescriptor::ReduceRealMin (Real& r, int cpu)
+ReduceRealMin (Real& r, int cpu)
 {
     util::DoReduceReal(r,MPI_MIN,cpu);
 }
 
 void
-ParallelDescriptor::ReduceRealMin (Real* r, int cnt, int cpu)
+ReduceRealMin (Real* r, int cnt, int cpu)
 {
     util::DoReduceReal(r,MPI_MIN,cnt,cpu);
 }
 
 void
-ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
+ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
     Vector<Real> tmp{std::begin(rvar), std::end(rvar)};
@@ -673,19 +683,19 @@ ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar,
 }
 
 void
-ParallelDescriptor::ReduceIntSum (int& r)
+ReduceIntSum (int& r)
 {
     util::DoAllReduceInt(r,MPI_SUM);
 }
 
 void
-ParallelDescriptor::ReduceIntSum (int* r, int cnt)
+ReduceIntSum (int* r, int cnt)
 {
     util::DoAllReduceInt(r,MPI_SUM,cnt);
 }
 
 void
-ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar)
+ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -696,19 +706,19 @@ ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar)
 }
 
 void
-ParallelDescriptor::ReduceIntSum (int& r, int cpu)
+ReduceIntSum (int& r, int cpu)
 {
     util::DoReduceInt(r,MPI_SUM,cpu);
 }
 
 void
-ParallelDescriptor::ReduceIntSum (int* r, int cnt, int cpu)
+ReduceIntSum (int* r, int cnt, int cpu)
 {
     util::DoReduceInt(r,MPI_SUM,cnt,cpu);
 }
 
 void
-ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
+ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -719,19 +729,19 @@ ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, i
 }
 
 void
-ParallelDescriptor::ReduceIntMax (int& r)
+ReduceIntMax (int& r)
 {
     util::DoAllReduceInt(r,MPI_MAX);
 }
 
 void
-ParallelDescriptor::ReduceIntMax (int* r, int cnt)
+ReduceIntMax (int* r, int cnt)
 {
     util::DoAllReduceInt(r,MPI_MAX,cnt);
 }
 
 void
-ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar)
+ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -742,19 +752,19 @@ ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar)
 }
 
 void
-ParallelDescriptor::ReduceIntMax (int& r, int cpu)
+ReduceIntMax (int& r, int cpu)
 {
     util::DoReduceInt(r,MPI_MAX,cpu);
 }
 
 void
-ParallelDescriptor::ReduceIntMax (int* r, int cnt, int cpu)
+ReduceIntMax (int* r, int cnt, int cpu)
 {
     util::DoReduceInt(r,MPI_MAX,cnt,cpu);
 }
 
 void
-ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
+ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -765,19 +775,19 @@ ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, i
 }
 
 void
-ParallelDescriptor::ReduceIntMin (int& r)
+ReduceIntMin (int& r)
 {
     util::DoAllReduceInt(r,MPI_MIN);
 }
 
 void
-ParallelDescriptor::ReduceIntMin (int* r, int cnt)
+ReduceIntMin (int* r, int cnt)
 {
     util::DoAllReduceInt(r,MPI_MIN,cnt);
 }
 
 void
-ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar)
+ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -788,19 +798,19 @@ ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar)
 }
 
 void
-ParallelDescriptor::ReduceIntMin (int& r, int cpu)
+ReduceIntMin (int& r, int cpu)
 {
     util::DoReduceInt(r,MPI_MIN,cpu);
 }
 
 void
-ParallelDescriptor::ReduceIntMin (int* r, int cnt, int cpu)
+ReduceIntMin (int* r, int cnt, int cpu)
 {
     util::DoReduceInt(r,MPI_MIN,cnt,cpu);
 }
 
 void
-ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
+ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -811,19 +821,19 @@ ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, i
 }
 
 void
-ParallelDescriptor::ReduceLongSum (Long& r)
+ReduceLongSum (Long& r)
 {
     util::DoAllReduceLong(r,MPI_SUM);
 }
 
 void
-ParallelDescriptor::ReduceLongSum (Long* r, int cnt)
+ReduceLongSum (Long* r, int cnt)
 {
     util::DoAllReduceLong(r,MPI_SUM,cnt);
 }
 
 void
-ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar)
+ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -834,19 +844,19 @@ ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar)
 }
 
 void
-ParallelDescriptor::ReduceLongSum (Long& r, int cpu)
+ReduceLongSum (Long& r, int cpu)
 {
     util::DoReduceLong(r,MPI_SUM,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongSum (Long* r, int cnt, int cpu)
+ReduceLongSum (Long* r, int cnt, int cpu)
 {
     util::DoReduceLong(r,MPI_SUM,cnt,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
+ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -857,19 +867,19 @@ ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar,
 }
 
 void
-ParallelDescriptor::ReduceLongMax (Long& r)
+ReduceLongMax (Long& r)
 {
     util::DoAllReduceLong(r,MPI_MAX);
 }
 
 void
-ParallelDescriptor::ReduceLongMax (Long* r, int cnt)
+ReduceLongMax (Long* r, int cnt)
 {
     util::DoAllReduceLong(r,MPI_MAX,cnt);
 }
 
 void
-ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar)
+ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -880,19 +890,19 @@ ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar)
 }
 
 void
-ParallelDescriptor::ReduceLongMax (Long& r, int cpu)
+ReduceLongMax (Long& r, int cpu)
 {
     util::DoReduceLong(r,MPI_MAX,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongMax (Long* r, int cnt, int cpu)
+ReduceLongMax (Long* r, int cnt, int cpu)
 {
     util::DoReduceLong(r,MPI_MAX,cnt,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
+ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -903,19 +913,19 @@ ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar,
 }
 
 void
-ParallelDescriptor::ReduceLongMin (Long& r)
+ReduceLongMin (Long& r)
 {
     util::DoAllReduceLong(r,MPI_MIN);
 }
 
 void
-ParallelDescriptor::ReduceLongMin (Long* r, int cnt)
+ReduceLongMin (Long* r, int cnt)
 {
     util::DoAllReduceLong(r,MPI_MIN,cnt);
 }
 
 void
-ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar)
+ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -926,19 +936,19 @@ ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar)
 }
 
 void
-ParallelDescriptor::ReduceLongMin (Long& r, int cpu)
+ReduceLongMin (Long& r, int cpu)
 {
     util::DoReduceLong(r,MPI_MIN,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongMin (Long* r, int cnt, int cpu)
+ReduceLongMin (Long* r, int cnt, int cpu)
 {
     util::DoReduceLong(r,MPI_MIN,cnt,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
+ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -949,19 +959,19 @@ ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar,
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (Long& r)
+ReduceLongAnd (Long& r)
 {
     util::DoAllReduceLong(r,MPI_LAND);
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (Long* r, int cnt)
+ReduceLongAnd (Long* r, int cnt)
 {
     util::DoAllReduceLong(r,MPI_LAND,cnt);
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar)
+ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -972,19 +982,19 @@ ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar)
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (Long& r, int cpu)
+ReduceLongAnd (Long& r, int cpu)
 {
     util::DoReduceLong(r,MPI_LAND,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (Long* r, int cnt, int cpu)
+ReduceLongAnd (Long* r, int cnt, int cpu)
 {
     util::DoReduceLong(r,MPI_LAND,cnt,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar,int cpu)
+ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar,int cpu)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -995,8 +1005,7 @@ ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar,
 }
 
 void
-ParallelDescriptor::util::DoAllReduceReal (Real&  r,
-                                           MPI_Op op)
+util::DoAllReduceReal (Real& r, MPI_Op op)
 {
 #ifdef BL_LAZY
     Lazy::EvalReduction();
@@ -1034,9 +1043,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
 }
 
 void
-ParallelDescriptor::util::DoAllReduceReal (Real*  r,
-                                           MPI_Op op,
-                                           int    cnt)
+util::DoAllReduceReal (Real* r, MPI_Op op, int cnt)
 {
 #ifdef BL_LAZY
     Lazy::EvalReduction();
@@ -1078,9 +1085,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
 }
 
 void
-ParallelDescriptor::util::DoReduceReal (Real&  r,
-                                        MPI_Op op,
-                                        int    cpu)
+util::DoReduceReal (Real& r, MPI_Op op, int cpu)
 {
 #ifdef BL_LAZY
     Lazy::EvalReduction();
@@ -1124,10 +1129,7 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
 }
 
 void
-ParallelDescriptor::util::DoReduceReal (Real*  r,
-                                        MPI_Op op,
-                                        int    cnt,
-                                        int    cpu)
+util::DoReduceReal (Real* r, MPI_Op op, int cnt, int cpu)
 {
 #ifdef BL_LAZY
     Lazy::EvalReduction();
@@ -1176,8 +1178,7 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
 }
 
 void
-ParallelDescriptor::util::DoAllReduceLong (Long&  r,
-                                           MPI_Op op)
+util::DoAllReduceLong (Long& r, MPI_Op op)
 {
 #ifdef BL_LAZY
     Lazy::EvalReduction();
@@ -1215,9 +1216,7 @@ ParallelDescriptor::util::DoAllReduceLong (Long&  r,
 }
 
 void
-ParallelDescriptor::util::DoAllReduceLong (Long*  r,
-                                           MPI_Op op,
-                                           int    cnt)
+util::DoAllReduceLong (Long* r, MPI_Op op, int cnt)
 {
 #ifdef BL_LAZY
     Lazy::EvalReduction();
@@ -1259,9 +1258,7 @@ ParallelDescriptor::util::DoAllReduceLong (Long*  r,
 }
 
 void
-ParallelDescriptor::util::DoReduceLong (Long&  r,
-                                        MPI_Op op,
-                                        int    cpu)
+util::DoReduceLong (Long& r, MPI_Op op, int cpu)
 {
 #ifdef BL_LAZY
     Lazy::EvalReduction();
@@ -1305,10 +1302,7 @@ ParallelDescriptor::util::DoReduceLong (Long&  r,
 }
 
 void
-ParallelDescriptor::util::DoReduceLong (Long*  r,
-                                        MPI_Op op,
-                                        int    cnt,
-                                        int    cpu)
+util::DoReduceLong (Long* r, MPI_Op op, int cnt, int cpu)
 {
 #ifdef BL_LAZY
     Lazy::EvalReduction();
@@ -1357,8 +1351,7 @@ ParallelDescriptor::util::DoReduceLong (Long*  r,
 }
 
 void
-ParallelDescriptor::util::DoAllReduceInt (int&   r,
-                                          MPI_Op op)
+util::DoAllReduceInt (int& r, MPI_Op op)
 {
 #ifdef BL_LAZY
     Lazy::EvalReduction();
@@ -1396,9 +1389,7 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
 }
 
 void
-ParallelDescriptor::util::DoAllReduceInt (int*   r,
-                                          MPI_Op op,
-                                          int    cnt)
+util::DoAllReduceInt (int* r, MPI_Op op, int cnt)
 {
 #ifdef BL_LAZY
     Lazy::EvalReduction();
@@ -1440,9 +1431,7 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
 }
 
 void
-ParallelDescriptor::util::DoReduceInt (int&   r,
-                                       MPI_Op op,
-                                       int    cpu)
+util::DoReduceInt (int& r, MPI_Op op, int cpu)
 {
 #ifdef BL_LAZY
     Lazy::EvalReduction();
@@ -1486,10 +1475,7 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
 }
 
 void
-ParallelDescriptor::util::DoReduceInt (int*   r,
-                                       MPI_Op op,
-                                       int    cnt,
-                                       int    cpu)
+util::DoReduceInt (int* r, MPI_Op op, int cnt, int cpu)
 {
 #ifdef BL_LAZY
     Lazy::EvalReduction();
@@ -1538,10 +1524,7 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
 }
 
 void
-ParallelDescriptor::Gather (Real* sendbuf,
-                            int   nsend,
-                            Real* recvbuf,
-                            int   root)
+Gather (Real* sendbuf, int nsend, Real* recvbuf, int root)
 {
     BL_PROFILE_S("ParallelDescriptor::Gather()");
     BL_COMM_PROFILE(BLProfiler::GatherRiRi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
@@ -1566,104 +1549,102 @@ ParallelDescriptor::Gather (Real* sendbuf,
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<char>::type ()
+Mpi_typemap<char>::type ()
 {
     return  MPI_CHAR;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<short>::type ()
+Mpi_typemap<short>::type ()
 {
     return  MPI_SHORT;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<int>::type ()
+Mpi_typemap<int>::type ()
 {
     return  MPI_INT;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<long>::type ()
+Mpi_typemap<long>::type ()
 {
     return  MPI_LONG;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<long long>::type ()
+Mpi_typemap<long long>::type ()
 {
     return  MPI_LONG_LONG;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<unsigned char>::type ()
+Mpi_typemap<unsigned char>::type ()
 {
     return  MPI_UNSIGNED_CHAR;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<unsigned short>::type ()
+Mpi_typemap<unsigned short>::type ()
 {
     return  MPI_UNSIGNED_SHORT;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<unsigned int>::type ()
+Mpi_typemap<unsigned int>::type ()
 {
     return  MPI_UNSIGNED;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<unsigned long>::type ()
+Mpi_typemap<unsigned long>::type ()
 {
     return  MPI_UNSIGNED_LONG;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<unsigned long long>::type ()
+Mpi_typemap<unsigned long long>::type ()
 {
     return  MPI_UNSIGNED_LONG_LONG;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<float>::type ()
+Mpi_typemap<float>::type ()
 {
     return  MPI_FLOAT;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<double>::type ()
+Mpi_typemap<double>::type ()
 {
     return  MPI_DOUBLE;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<ParallelDescriptor::lull_t>::type ()
+Mpi_typemap<ParallelDescriptor::lull_t>::type ()
 {
-    static MPI_Datatype mine = MPI_DATATYPE_NULL;
-    if (mine == MPI_DATATYPE_NULL)
+    if (mpi_type_lull_t == MPI_DATATYPE_NULL)
     {
-        BL_MPI_REQUIRE( MPI_Type_contiguous(sizeof(lull_t), MPI_CHAR, &mine) );
-        BL_MPI_REQUIRE( MPI_Type_commit(&mine) );
+        BL_MPI_REQUIRE( MPI_Type_contiguous(sizeof(lull_t), MPI_CHAR, &mpi_type_lull_t) );
+        BL_MPI_REQUIRE( MPI_Type_commit(&mpi_type_lull_t) );
     }
-    return mine;
+    return mpi_type_lull_t;
 }
 
 void
-ParallelDescriptor::Wait (MPI_Request& req,
-                          MPI_Status& status)
+Wait (MPI_Request& req, MPI_Status& status)
 {
     BL_PROFILE_S("ParallelDescriptor::Wait()");
     BL_COMM_PROFILE_WAIT(BLProfiler::Wait, req, status, true);
@@ -1672,8 +1653,7 @@ ParallelDescriptor::Wait (MPI_Request& req,
 }
 
 void
-ParallelDescriptor::Waitall (Vector<MPI_Request>& reqs,
-                             Vector<MPI_Status>& status)
+Waitall (Vector<MPI_Request>& reqs, Vector<MPI_Status>& status)
 {
     BL_ASSERT(status.size() >= reqs.size());
 
@@ -1686,9 +1666,7 @@ ParallelDescriptor::Waitall (Vector<MPI_Request>& reqs,
 }
 
 void
-ParallelDescriptor::Waitany (Vector<MPI_Request>& reqs,
-                             int &index,
-                             MPI_Status& status)
+Waitany (Vector<MPI_Request>& reqs, int &index, MPI_Status& status)
 {
     BL_PROFILE_S("ParallelDescriptor::Waitany()");
     BL_COMM_PROFILE_WAIT(BLProfiler::Waitany, reqs[0], status, true);
@@ -1700,10 +1678,8 @@ ParallelDescriptor::Waitany (Vector<MPI_Request>& reqs,
 }
 
 void
-ParallelDescriptor::Waitsome (Vector<MPI_Request>& reqs,
-                              int&                completed,
-                              Vector<int>&         indx,
-                              Vector<MPI_Status>&  status)
+Waitsome (Vector<MPI_Request>& reqs, int& completed,
+          Vector<int>& indx, Vector<MPI_Status>& status)
 {
     BL_ASSERT(status.size() >= reqs.size());
     BL_ASSERT(indx.size() >= reqs.size());
@@ -1719,11 +1695,7 @@ ParallelDescriptor::Waitsome (Vector<MPI_Request>& reqs,
 }
 
 void
-ParallelDescriptor::Bcast(void *buf,
-                          int count,
-                          MPI_Datatype datatype,
-                          int root,
-                          MPI_Comm comm)
+Bcast(void *buf, int count, MPI_Datatype datatype, int root, MPI_Comm comm)
 {
 #ifdef BL_LAZY
     int r;
@@ -1749,9 +1721,7 @@ ParallelDescriptor::Bcast(void *buf,
 #else /*!BL_USE_MPI*/
 
 void
-ParallelDescriptor::StartParallel (int*    /*argc*/,
-                                   char*** /*argv*/,
-                                   MPI_Comm)
+StartParallel (int* /*argc*/, char*** /*argv*/, MPI_Comm)
 {
     m_comm = 0;
     m_MaxTag = 9000;
@@ -1759,10 +1729,7 @@ ParallelDescriptor::StartParallel (int*    /*argc*/,
 }
 
 void
-ParallelDescriptor::Gather (Real* sendbuf,
-			    int   nsend,
-			    Real* recvbuf,
-			    int   root)
+Gather (Real* sendbuf, int nsend, Real* recvbuf, int root)
 {
     amrex::ignore_unused(root);
     BL_ASSERT(root == 0);
@@ -1775,21 +1742,23 @@ ParallelDescriptor::Gather (Real* sendbuf,
 }
 
 void
-ParallelDescriptor::Message::wait ()
+Message::wait ()
 {}
 
 bool
-ParallelDescriptor::Message::test ()
+Message::test ()
 {
     return m_finished;
 }
 
-void ParallelDescriptor::EndParallel ()
+void
+EndParallel ()
 {
     ParallelContext::pop();
 }
 
-void ParallelDescriptor::Abort (int s, bool backtrace)
+void
+Abort (int s, bool backtrace)
 {
     if (backtrace && amrex::system::signal_handling) {
 	BLBackTrace::handler(s);
@@ -1798,132 +1767,126 @@ void ParallelDescriptor::Abort (int s, bool backtrace)
     }
 }
 
-const char* ParallelDescriptor::ErrorString (int) { return ""; }
+const char* ErrorString (int) { return ""; }
 
-void ParallelDescriptor::Barrier (const std::string &/*message*/) {}
-void ParallelDescriptor::Barrier (const MPI_Comm &/*comm*/, const std::string &/*message*/) {}
-ParallelDescriptor::Message ParallelDescriptor::Abarrier () { return ParallelDescriptor::Message(); }
-ParallelDescriptor::Message ParallelDescriptor::Abarrier (const MPI_Comm &/*comm*/) { return ParallelDescriptor::Message(); }
+void Barrier (const std::string &/*message*/) {}
+void Barrier (const MPI_Comm &/*comm*/, const std::string &/*message*/) {}
+Message Abarrier () { return Message(); }
+Message Abarrier (const MPI_Comm &/*comm*/) { return Message(); }
 
-void ParallelDescriptor::Test (MPI_Request&, int&, MPI_Status&) {}
-void ParallelDescriptor::IProbe (int, int, int&, MPI_Status&) {}
-void ParallelDescriptor::IProbe (int, int, MPI_Comm, int&, MPI_Status&) {}
+void Test (MPI_Request&, int&, MPI_Status&) {}
+void IProbe (int, int, int&, MPI_Status&) {}
+void IProbe (int, int, MPI_Comm, int&, MPI_Status&) {}
 
-void ParallelDescriptor::Comm_dup (MPI_Comm, MPI_Comm&) {}
+void Comm_dup (MPI_Comm, MPI_Comm&) {}
 
-void ParallelDescriptor::ReduceRealMax (Real&) {}
-void ParallelDescriptor::ReduceRealMin (Real&) {}
-void ParallelDescriptor::ReduceRealSum (Real&) {}
+void ReduceRealMax (Real&) {}
+void ReduceRealMin (Real&) {}
+void ReduceRealSum (Real&) {}
 
-void ParallelDescriptor::ReduceRealMax (Real&,int) {}
-void ParallelDescriptor::ReduceRealMin (Real&,int) {}
-void ParallelDescriptor::ReduceRealSum (Real&,int) {}
+void ReduceRealMax (Real&,int) {}
+void ReduceRealMin (Real&,int) {}
+void ReduceRealSum (Real&,int) {}
 
-void ParallelDescriptor::ReduceRealMax (Real*,int) {}
-void ParallelDescriptor::ReduceRealMin (Real*,int) {}
-void ParallelDescriptor::ReduceRealSum (Real*,int) {}
+void ReduceRealMax (Real*,int) {}
+void ReduceRealMin (Real*,int) {}
+void ReduceRealSum (Real*,int) {}
 
-void ParallelDescriptor::ReduceRealMax (Real*,int,int) {}
-void ParallelDescriptor::ReduceRealMin (Real*,int,int) {}
-void ParallelDescriptor::ReduceRealSum (Real*,int,int) {}
+void ReduceRealMax (Real*,int,int) {}
+void ReduceRealMin (Real*,int,int) {}
+void ReduceRealSum (Real*,int,int) {}
 
-void ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
-void ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
-void ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
+void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
+void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
+void ReduceRealMin (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
 
-void ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& /*rvar*/, int /*cpu*/) {}
-void ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& /*rvar*/, int /*cpu*/) {}
-void ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceRealMin (Vector<std::reference_wrapper<Real> >&& /*rvar*/, int /*cpu*/) {}
 
-void ParallelDescriptor::ReduceLongAnd (Long&) {}
-void ParallelDescriptor::ReduceLongSum (Long&) {}
-void ParallelDescriptor::ReduceLongMax (Long&) {}
-void ParallelDescriptor::ReduceLongMin (Long&) {}
+void ReduceLongAnd (Long&) {}
+void ReduceLongSum (Long&) {}
+void ReduceLongMax (Long&) {}
+void ReduceLongMin (Long&) {}
 
-void ParallelDescriptor::ReduceLongAnd (Long&,int) {}
-void ParallelDescriptor::ReduceLongSum (Long&,int) {}
-void ParallelDescriptor::ReduceLongMax (Long&,int) {}
-void ParallelDescriptor::ReduceLongMin (Long&,int) {}
+void ReduceLongAnd (Long&,int) {}
+void ReduceLongSum (Long&,int) {}
+void ReduceLongMax (Long&,int) {}
+void ReduceLongMin (Long&,int) {}
 
-void ParallelDescriptor::ReduceLongAnd (Long*,int) {}
-void ParallelDescriptor::ReduceLongSum (Long*,int) {}
-void ParallelDescriptor::ReduceLongMax (Long*,int) {}
-void ParallelDescriptor::ReduceLongMin (Long*,int) {}
+void ReduceLongAnd (Long*,int) {}
+void ReduceLongSum (Long*,int) {}
+void ReduceLongMax (Long*,int) {}
+void ReduceLongMin (Long*,int) {}
 
-void ParallelDescriptor::ReduceLongAnd (Long*,int,int) {}
-void ParallelDescriptor::ReduceLongSum (Long*,int,int) {}
-void ParallelDescriptor::ReduceLongMax (Long*,int,int) {}
-void ParallelDescriptor::ReduceLongMin (Long*,int,int) {}
+void ReduceLongAnd (Long*,int,int) {}
+void ReduceLongSum (Long*,int,int) {}
+void ReduceLongMax (Long*,int,int) {}
+void ReduceLongMin (Long*,int,int) {}
 
-void ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
-void ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
-void ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
-void ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
+void ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
+void ReduceLongSum (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
+void ReduceLongMax (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
+void ReduceLongMin (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
 
-void ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
-void ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
-void ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
-void ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceLongSum (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceLongMax (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceLongMin (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
 
-void ParallelDescriptor::ReduceIntSum (int&) {}
-void ParallelDescriptor::ReduceIntMax (int&) {}
-void ParallelDescriptor::ReduceIntMin (int&) {}
+void ReduceIntSum (int&) {}
+void ReduceIntMax (int&) {}
+void ReduceIntMin (int&) {}
 
-void ParallelDescriptor::ReduceIntSum (int&,int) {}
-void ParallelDescriptor::ReduceIntMax (int&,int) {}
-void ParallelDescriptor::ReduceIntMin (int&,int) {}
+void ReduceIntSum (int&,int) {}
+void ReduceIntMax (int&,int) {}
+void ReduceIntMin (int&,int) {}
 
-void ParallelDescriptor::ReduceIntSum (int*,int) {}
-void ParallelDescriptor::ReduceIntMax (int*,int) {}
-void ParallelDescriptor::ReduceIntMin (int*,int) {}
+void ReduceIntSum (int*,int) {}
+void ReduceIntMax (int*,int) {}
+void ReduceIntMin (int*,int) {}
 
-void ParallelDescriptor::ReduceIntSum (int*,int,int) {}
-void ParallelDescriptor::ReduceIntMax (int*,int,int) {}
-void ParallelDescriptor::ReduceIntMin (int*,int,int) {}
+void ReduceIntSum (int*,int,int) {}
+void ReduceIntMax (int*,int,int) {}
+void ReduceIntMin (int*,int,int) {}
 
-void ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& /*rvar*/) {}
-void ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& /*rvar*/) {}
-void ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& /*rvar*/) {}
+void ReduceIntSum (Vector<std::reference_wrapper<int> >&& /*rvar*/) {}
+void ReduceIntMax (Vector<std::reference_wrapper<int> >&& /*rvar*/) {}
+void ReduceIntMin (Vector<std::reference_wrapper<int> >&& /*rvar*/) {}
 
-void ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& /*rvar*/, int /*cpu*/) {}
-void ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& /*rvar*/, int /*cpu*/) {}
-void ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceIntSum (Vector<std::reference_wrapper<int> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceIntMax (Vector<std::reference_wrapper<int> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceIntMin (Vector<std::reference_wrapper<int> >&& /*rvar*/, int /*cpu*/) {}
 
-void ParallelDescriptor::ReduceBoolAnd (bool&) {}
-void ParallelDescriptor::ReduceBoolOr  (bool&) {}
+void ReduceBoolAnd (bool&) {}
+void ReduceBoolOr  (bool&) {}
 
-void ParallelDescriptor::ReduceBoolAnd (bool&,int) {}
-void ParallelDescriptor::ReduceBoolOr  (bool&,int) {}
+void ReduceBoolAnd (bool&,int) {}
+void ReduceBoolOr  (bool&,int) {}
 
-void ParallelDescriptor::Bcast(void *, int, MPI_Datatype, int, MPI_Comm) {}
+void Bcast(void *, int, MPI_Datatype, int, MPI_Comm) {}
 
 double
-ParallelDescriptor::second () noexcept
+second () noexcept
 {
     return amrex::second();
 }
 
 void
-ParallelDescriptor::Wait (MPI_Request& /*req*/,
-                          MPI_Status& /*status*/)
+Wait (MPI_Request& /*req*/, MPI_Status& /*status*/)
 {}
 
 void
-ParallelDescriptor::Waitall (Vector<MPI_Request>& /*reqs*/,
-                             Vector<MPI_Status>& /*status*/)
+Waitall (Vector<MPI_Request>& /*reqs*/, Vector<MPI_Status>& /*status*/)
 {}
 
 void
-ParallelDescriptor::Waitany (Vector<MPI_Request>& /*reqs*/,
-                             int &/*index*/,
-                             MPI_Status& /*status*/)
+Waitany (Vector<MPI_Request>& /*reqs*/, int &/*index*/, MPI_Status& /*status*/)
 {}
 
 void
-ParallelDescriptor::Waitsome (Vector<MPI_Request>& /*reqs*/,
-                              int&                 /*completed*/,
-                              Vector<int>&         /*indx*/,
-                              Vector<MPI_Status>&  /*status*/)
+Waitsome (Vector<MPI_Request>& /*reqs*/, int& /*completed*/,
+          Vector<int>& /*indx*/, Vector<MPI_Status>& /*status*/)
 {}
 
 #endif
@@ -1996,32 +1959,28 @@ BL_FORT_PROC_DECL(BL_PD_ABORT,bl_pd_abort)()
 
 #endif
 
-#ifdef BL_USE_MPI
-namespace ParallelDescriptor
-{
-#ifndef BL_AMRPROF
+#if defined(BL_USE_MPI) && !defined(BL_AMRPROF)
 template <> MPI_Datatype Mpi_typemap<IntVect>::type()
 {
     static_assert(AMREX_IS_TRIVIALLY_COPYABLE(IntVect), "IntVect must be trivially copyable");
     static_assert(std::is_standard_layout<IntVect>::value, "IntVect must be standard layout");
 
-    static MPI_Datatype mine(MPI_DATATYPE_NULL);
-    if ( mine == MPI_DATATYPE_NULL )
+    if ( mpi_type_intvect == MPI_DATATYPE_NULL )
     {
 	MPI_Datatype types[] = { MPI_INT };
 	int blocklens[] = { AMREX_SPACEDIM };
 	MPI_Aint disp[] = { 0 };
-	BL_MPI_REQUIRE( MPI_Type_create_struct(1, blocklens, disp, types, &mine) );
+	BL_MPI_REQUIRE( MPI_Type_create_struct(1, blocklens, disp, types, &mpi_type_intvect) );
         MPI_Aint lb, extent;
-        BL_MPI_REQUIRE( MPI_Type_get_extent(mine, &lb, &extent) );
+        BL_MPI_REQUIRE( MPI_Type_get_extent(mpi_type_intvect, &lb, &extent) );
         if (extent != sizeof(IntVect)) {
-            MPI_Datatype tmp = mine;
-            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(IntVect), &mine) );
+            MPI_Datatype tmp = mpi_type_intvect;
+            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(IntVect), &mpi_type_intvect) );
             BL_MPI_REQUIRE( MPI_Type_free(&tmp) );
         }
-	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
+	BL_MPI_REQUIRE( MPI_Type_commit( &mpi_type_intvect ) );
     }
-    return mine;
+    return mpi_type_intvect;
 }
 
 template <> MPI_Datatype Mpi_typemap<IndexType>::type()
@@ -2029,23 +1988,22 @@ template <> MPI_Datatype Mpi_typemap<IndexType>::type()
     static_assert(AMREX_IS_TRIVIALLY_COPYABLE(IndexType), "IndexType must be trivially copyable");
     static_assert(std::is_standard_layout<IndexType>::value, "IndexType must be standard layout");
 
-    static MPI_Datatype mine(MPI_DATATYPE_NULL);
-    if ( mine == MPI_DATATYPE_NULL )
+    if ( mpi_type_indextype == MPI_DATATYPE_NULL )
     {
 	MPI_Datatype types[] = { MPI_UNSIGNED };
 	int blocklens[] = { 1 };
 	MPI_Aint disp[] = { 0 };
-        BL_MPI_REQUIRE( MPI_Type_create_struct(1, blocklens, disp, types, &mine) );
+        BL_MPI_REQUIRE( MPI_Type_create_struct(1, blocklens, disp, types, &mpi_type_indextype) );
         MPI_Aint lb, extent;
-        BL_MPI_REQUIRE( MPI_Type_get_extent(mine, &lb, &extent) );
+        BL_MPI_REQUIRE( MPI_Type_get_extent(mpi_type_indextype, &lb, &extent) );
         if (extent != sizeof(IndexType)) {
-            MPI_Datatype tmp = mine;
-            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(IndexType), &mine) );
+            MPI_Datatype tmp = mpi_type_indextype;
+            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(IndexType), &mpi_type_indextype) );
             BL_MPI_REQUIRE( MPI_Type_free(&tmp) );
         }
-	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
+	BL_MPI_REQUIRE( MPI_Type_commit( &mpi_type_indextype ) );
     }
-    return mine;
+    return mpi_type_indextype;
 }
 
 template <> MPI_Datatype Mpi_typemap<Box>::type()
@@ -2053,8 +2011,7 @@ template <> MPI_Datatype Mpi_typemap<Box>::type()
     static_assert(AMREX_IS_TRIVIALLY_COPYABLE(Box), "Box must be trivially copyable");
     static_assert(std::is_standard_layout<Box>::value, "Box must be standard layout");
 
-    static MPI_Datatype mine(MPI_DATATYPE_NULL);
-    if ( mine == MPI_DATATYPE_NULL )
+    if ( mpi_type_box == MPI_DATATYPE_NULL )
     {
 	Box bx[2];
 	MPI_Datatype types[] = {
@@ -2070,27 +2027,23 @@ template <> MPI_Datatype Mpi_typemap<Box>::type()
         disp[2] -= disp[0];
         disp[1] -= disp[0];
         disp[0] = 0;
-        BL_MPI_REQUIRE( MPI_Type_create_struct(3, blocklens, disp, types, &mine) );
+        BL_MPI_REQUIRE( MPI_Type_create_struct(3, blocklens, disp, types, &mpi_type_box) );
         MPI_Aint lb, extent;
-        BL_MPI_REQUIRE( MPI_Type_get_extent(mine, &lb, &extent) );
+        BL_MPI_REQUIRE( MPI_Type_get_extent(mpi_type_box, &lb, &extent) );
         if (extent != sizeof(bx[0])) {
-            MPI_Datatype tmp = mine;
-            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(bx[0]), &mine) );
+            MPI_Datatype tmp = mpi_type_box;
+            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(bx[0]), &mpi_type_box) );
             BL_MPI_REQUIRE( MPI_Type_free(&tmp) );
         }
-	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
+	BL_MPI_REQUIRE( MPI_Type_commit( &mpi_type_box ) );
     }
-    return mine;
-}
-#endif
+    return mpi_type_box;
 }
 #endif
 
 void
-ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
-                                      Vector<char>&       charBuf,
-				      bool               bExitOnError,
-				      const MPI_Comm    &comm)
+ReadAndBcastFile (const std::string& filename, Vector<char>& charBuf,
+                  bool bExitOnError, const MPI_Comm&comm)
 {
     enum { IO_Buffer_Size = 262144 * 8 };
 
@@ -2141,7 +2094,7 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
 }
 
 void
-ParallelDescriptor::Initialize ()
+Initialize ()
 {
 #ifndef BL_AMRPROF
     ParmParse pp("amrex");
@@ -2152,7 +2105,7 @@ ParallelDescriptor::Initialize ()
 }
 
 void
-ParallelDescriptor::Finalize ()
+Finalize ()
 {
 #ifndef BL_AMRPROF
     EndTeams();
@@ -2161,7 +2114,7 @@ ParallelDescriptor::Finalize ()
 
 #ifndef BL_AMRPROF
 void
-ParallelDescriptor::StartTeams ()
+StartTeams ()
 {
     int team_size = 1;
     int do_team_reduce = 0;
@@ -2215,13 +2168,13 @@ ParallelDescriptor::StartTeams ()
 #endif
 
 void
-ParallelDescriptor::EndTeams ()
+EndTeams ()
 {
     m_Team.clear();
 }
 
 std::string
-ParallelDescriptor::mpi_level_to_string (int mtlev)
+mpi_level_to_string (int mtlev)
 {
     switch (mtlev) {
 #ifdef AMREX_USE_MPI
@@ -2242,7 +2195,7 @@ ParallelDescriptor::mpi_level_to_string (int mtlev)
 #ifdef BL_USE_MPI
 
 int
-ParallelDescriptor::select_comm_data_type (std::size_t nbytes)
+select_comm_data_type (std::size_t nbytes)
 {
     if (nbytes <= std::size_t(std::numeric_limits<int>::max()))
     {
@@ -2264,7 +2217,7 @@ ParallelDescriptor::select_comm_data_type (std::size_t nbytes)
 }
 
 std::size_t
-ParallelDescriptor::alignof_comm_data (std::size_t nbytes)
+alignof_comm_data (std::size_t nbytes)
 {
     const int t = select_comm_data_type(nbytes);
     if (t == 1) {
@@ -2279,9 +2232,184 @@ ParallelDescriptor::alignof_comm_data (std::size_t nbytes)
     }
 }
 
+template <>
+Message
+Asend<char> (const char* buf, size_t n, int pid, int tag, MPI_Comm comm)
+{
+    BL_PROFILE_T_S("ParallelDescriptor::Asend(TsiiM)", char);
+    BL_COMM_PROFILE(BLProfiler::AsendTsiiM, n * sizeof(char), pid, tag);
+
+    MPI_Request req;
+    Message msg;
+    const int comm_data_type = ParallelDescriptor::select_comm_data_type(n);
+    if (comm_data_type == 1) {
+        BL_MPI_REQUIRE( MPI_Isend(const_cast<char*>(buf),
+                                  n,
+                                  Mpi_typemap<char>::type(),
+                                  pid, tag, comm, &req) );
+        msg = Message(req, Mpi_typemap<char>::type());
+    } else if (comm_data_type == 2) {
+        if (!amrex::is_aligned(buf, alignof(unsigned long long))
+            || (n % sizeof(unsigned long long)) != 0) {
+            amrex::Abort("Message size is too big as char, and it cannot be sent as unsigned long long.");
+        }
+        BL_MPI_REQUIRE( MPI_Isend(const_cast<unsigned long long*>
+                                     (reinterpret_cast<unsigned long long const*>(buf)),
+                                  n/sizeof(unsigned long long),
+                                  Mpi_typemap<unsigned long long>::type(),
+                                  pid, tag, comm, &req) );
+        msg = Message(req, Mpi_typemap<unsigned long long>::type());
+    } else if (comm_data_type == 3) {
+        if (!amrex::is_aligned(buf, alignof(ParallelDescriptor::lull_t))
+            || (n % sizeof(ParallelDescriptor::lull_t)) != 0) {
+            amrex::Abort("Message size is too big as char or unsigned long long, and it cannot be sent as ParallelDescriptor::lull_t");
+        }
+        BL_MPI_REQUIRE( MPI_Isend(const_cast<ParallelDescriptor::lull_t*>
+                                     (reinterpret_cast<ParallelDescriptor::lull_t const*>(buf)),
+                                  n/sizeof(ParallelDescriptor::lull_t),
+                                  Mpi_typemap<ParallelDescriptor::lull_t>::type(),
+                                  pid, tag, comm, &req) );
+        msg = Message(req, Mpi_typemap<ParallelDescriptor::lull_t>::type());
+    } else {
+        amrex::Abort("TODO: message size is too big");
+    }
+
+    BL_COMM_PROFILE(BLProfiler::AsendTsiiM, BLProfiler::AfterCall(), pid, tag);
+    return msg;
+}
+
+template <>
+Message
+Send<char> (const char* buf, size_t n, int pid, int tag, MPI_Comm comm)
+{
+    BL_PROFILE_T_S("ParallelDescriptor::Send(Tsii)", char);
+    BL_COMM_PROFILE(BLProfiler::SendTsii, n * sizeof(char), pid, tag);
+
+    const int comm_data_type = ParallelDescriptor::select_comm_data_type(n);
+    if (comm_data_type == 1) {
+        BL_MPI_REQUIRE( MPI_Send(const_cast<char*>(buf),
+                                 n,
+                                 Mpi_typemap<char>::type(),
+                                 pid, tag, comm) );
+    } else if (comm_data_type == 2) {
+        if (!amrex::is_aligned(buf, alignof(unsigned long long))
+            || (n % sizeof(unsigned long long)) != 0) {
+            amrex::Abort("Message size is too big as char, and it cannot be sent as unsigned long long.");
+        }
+        BL_MPI_REQUIRE( MPI_Send(const_cast<unsigned long long*>
+                                     (reinterpret_cast<unsigned long long const*>(buf)),
+                                 n/sizeof(unsigned long long),
+                                 Mpi_typemap<unsigned long long>::type(),
+                                 pid, tag, comm) );
+    } else if (comm_data_type == 3) {
+        if (!amrex::is_aligned(buf, alignof(ParallelDescriptor::lull_t))
+            || (n % sizeof(ParallelDescriptor::lull_t)) != 0) {
+            amrex::Abort("Message size is too big as char or unsigned long long, and it cannot be sent as ParallelDescriptor::lull_t");
+        }
+        BL_MPI_REQUIRE( MPI_Send(const_cast<ParallelDescriptor::lull_t*>
+                                     (reinterpret_cast<ParallelDescriptor::lull_t const*>(buf)),
+                                 n/sizeof(ParallelDescriptor::lull_t),
+                                 Mpi_typemap<ParallelDescriptor::lull_t>::type(),
+                                 pid, tag, comm) );
+    } else {
+        amrex::Abort("TODO: message size is too big");
+    }
+
+    BL_COMM_PROFILE(BLProfiler::SendTsii, BLProfiler::AfterCall(), pid, tag);
+    return Message();
+}
+
+template <>
+Message
+Arecv<char> (char* buf, size_t n, int pid, int tag, MPI_Comm comm)
+{
+    BL_PROFILE_T_S("ParallelDescriptor::Arecv(TsiiM)", char);
+    BL_COMM_PROFILE(BLProfiler::ArecvTsiiM, n * sizeof(char), pid, tag);
+
+    MPI_Request req;
+    Message msg;
+    const int comm_data_type = ParallelDescriptor::select_comm_data_type(n);
+    if (comm_data_type == 1) {
+        BL_MPI_REQUIRE( MPI_Irecv(buf,
+                                  n,
+                                  Mpi_typemap<char>::type(),
+                                  pid, tag, comm, &req) );
+        msg = Message(req, Mpi_typemap<char>::type());
+    } else if (comm_data_type == 2) {
+        if (!amrex::is_aligned(buf, alignof(unsigned long long))
+            || (n % sizeof(unsigned long long)) != 0) {
+            amrex::Abort("Message size is too big as char, and it cannot be received as unsigned long long.");
+        }
+        BL_MPI_REQUIRE( MPI_Irecv((unsigned long long *)buf,
+                                  n/sizeof(unsigned long long),
+                                  Mpi_typemap<unsigned long long>::type(),
+                                  pid, tag, comm, &req) );
+        msg = Message(req, Mpi_typemap<unsigned long long>::type());
+    } else if (comm_data_type == 3) {
+        if (!amrex::is_aligned(buf, alignof(ParallelDescriptor::lull_t))
+            || (n % sizeof(ParallelDescriptor::lull_t)) != 0) {
+            amrex::Abort("Message size is too big as char or unsigned long long, and it cannot be received as ParallelDescriptor::lull_t");
+        }
+        BL_MPI_REQUIRE( MPI_Irecv((ParallelDescriptor::lull_t *)buf,
+                                  n/sizeof(ParallelDescriptor::lull_t),
+                                  Mpi_typemap<ParallelDescriptor::lull_t>::type(),
+                                  pid, tag, comm, &req) );
+        msg = Message(req, Mpi_typemap<ParallelDescriptor::lull_t>::type());
+    } else {
+        amrex::Abort("Message size is too big");
+    }
+
+    BL_COMM_PROFILE(BLProfiler::ArecvTsiiM, BLProfiler::AfterCall(), pid, tag);
+    return msg;
+}
+
+template <>
+Message
+Recv<char> (char* buf, size_t n, int pid, int tag, MPI_Comm comm)
+{
+    BL_PROFILE_T_S("ParallelDescriptor::Recv(Tsii)", char);
+    BL_COMM_PROFILE(BLProfiler::RecvTsii, BLProfiler::BeforeCall(), pid, tag);
+
+    MPI_Status stat;
+    Message msg;
+    const int comm_data_type = ParallelDescriptor::select_comm_data_type(n);
+    if (comm_data_type == 1) {
+        BL_MPI_REQUIRE( MPI_Recv(buf,
+                                 n,
+                                 Mpi_typemap<char>::type(),
+                                 pid, tag, comm, &stat) );
+        msg = Message(stat, Mpi_typemap<char>::type());
+    } else if (comm_data_type == 2) {
+        if (!amrex::is_aligned(buf, alignof(unsigned long long))
+            || (n % sizeof(unsigned long long)) != 0) {
+            amrex::Abort("Message size is too big as char, and it cannot be received as unsigned long long.");
+        }
+        BL_MPI_REQUIRE( MPI_Recv((unsigned long long *)buf,
+                                 n/sizeof(unsigned long long),
+                                 Mpi_typemap<unsigned long long>::type(),
+                                 pid, tag, comm, &stat) );
+        msg = Message(stat, Mpi_typemap<unsigned long long>::type());
+    } else if (comm_data_type == 3) {
+        if (!amrex::is_aligned(buf, alignof(ParallelDescriptor::lull_t))
+            || (n % sizeof(ParallelDescriptor::lull_t)) != 0) {
+            amrex::Abort("Message size is too big as char or unsigned long long, and it cannot be received as ParallelDescriptor::lull_t");
+        }
+        BL_MPI_REQUIRE( MPI_Recv((ParallelDescriptor::lull_t *)buf,
+                                 n/sizeof(ParallelDescriptor::lull_t),
+                                 Mpi_typemap<ParallelDescriptor::lull_t>::type(),
+                                 pid, tag, comm, &stat) );
+        msg = Message(stat, Mpi_typemap<ParallelDescriptor::lull_t>::type());
+    } else {
+        amrex::Abort("Message size is too big");
+    }
+
+    BL_COMM_PROFILE(BLProfiler::RecvTsii, n * sizeof(char), pid, stat.MPI_TAG);
+    return msg;
+}
+
 #endif
 
-}
+}}
 
 
 using namespace amrex;

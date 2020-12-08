@@ -1,5 +1,6 @@
 #ifndef NEIGHBOR_LIST_H_
 #define NEIGHBOR_LIST_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Particles.H>
 #include <AMReX_GpuContainers.H>
@@ -140,6 +141,8 @@ public:
                 const amrex::Box& bx, const amrex::Geometry& geom,
                 CheckPair&& check_pair, int num_cells=1)
     {
+        BL_PROFILE("NeighborList::build()");
+
         auto& vec = ptile.GetArrayOfStructs()();
         m_pstruct = vec.dataPtr();
 

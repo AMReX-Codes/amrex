@@ -1,5 +1,5 @@
 #
-# Fist, define the library we want to add
+# First, define the library we want to add
 # Think of this as a constructor for object "amrex"
 # In the following, we will use setters to change
 # the properties of this object, like setting the sources,
@@ -12,6 +12,11 @@ add_library( AMReX::amrex ALIAS amrex )
 # Setup parallel backends (any type: inter/intra-node)
 #
 include(AMReXParallelBackends)
+
+#
+# Add definitions
+#
+include(AMReXSetDefines)
 
 #
 # Find and link third party libraries if needed
@@ -50,7 +55,7 @@ if (NOT CMAKE_CXX_FLAGS)
       )
 endif ()
 
-if (ENABLE_FPE)
+if (AMReX_FPE)
    target_link_libraries(amrex
       PUBLIC
       $<BUILD_INTERFACE:Flags_FPE>
@@ -58,7 +63,7 @@ if (ENABLE_FPE)
 endif ()
 
 # General configuration
-include ( AMReX_Config )
+include( AMReX_Config )
 configure_amrex ()
 
 #
@@ -72,33 +77,33 @@ add_subdirectory(Amr)
 #
 # Optional components
 #
-if (ENABLE_EB)
-   if (ENABLE_CUDA AND ( "${NVCC_VERSION_MAJOR}.${NVCC_VERSION_MINOR}" VERSION_EQUAL "9.2") )
+if (AMReX_EB)
+   if (AMReX_CUDA AND ( "${NVCC_VERSION_MAJOR}.${NVCC_VERSION_MINOR}" VERSION_EQUAL "9.2") )
       message(FATAL_ERROR "EB component of AMReX is not compatible with CUDA 9.2")
    endif ()
    add_subdirectory(EB)
 endif ()
 
-if (ENABLE_LINEAR_SOLVERS)
+if (AMReX_LINEAR_SOLVERS)
    add_subdirectory(LinearSolvers)
 endif ()
 
-if (ENABLE_FORTRAN_INTERFACES)
+if (AMReX_FORTRAN_INTERFACES)
    add_subdirectory(F_Interfaces)
 endif ()
 
-if (ENABLE_PARTICLES)
+if (AMReX_PARTICLES)
    add_subdirectory(Particle)
 endif ()
 
 #
 # Optional external components
 #
-if (ENABLE_AMRDATA)
+if (AMReX_AMRDATA)
    add_subdirectory(Extern/amrdata)
 endif()
 
-if (ENABLE_PROFPARSER)
+if (AMReX_PROFPARSER)
     #
     # Generate BLProfParser.tab.H, BLProfParser.tab.cpp and
     # BLProfParser.lex.yy.cpp
@@ -136,23 +141,19 @@ if (ENABLE_PROFPARSER)
     add_subdirectory(Extern/ProfParser)
 endif ()
 
-if (ENABLE_SENSEI)
+if (AMReX_SENSEI)
    add_subdirectory(Extern/SENSEI)
 endif ()
 
-if (ENABLE_SUNDIALS)
-   add_subdirectory(Extern/SUNDIALS)
-endif ()
-
-if (ENABLE_CONDUIT OR ENABLE_ASCENT)
+if (AMReX_CONDUIT OR AMReX_ASCENT)
    add_subdirectory(Extern/Conduit)
 endif ()
 
-if (ENABLE_HYPRE OR ENABLE_PETSC)
+if (AMReX_HYPRE OR AMReX_PETSC)
    add_subdirectory(Extern/HYPRE)
 endif ()
 
-if (ENABLE_PETSC)
+if (AMReX_PETSC)
    add_subdirectory(Extern/PETSc)
 endif ()
 
@@ -172,19 +173,24 @@ list(FILTER AMREX_PUBLIC_HEADERS INCLUDE REGEX "\\.H")
 set_target_properties( amrex PROPERTIES PUBLIC_HEADER "${AMREX_PUBLIC_HEADERS}")
 
 #
-# If ENABLE_CUDA, C++ files will be compiled as CUDA sources
+# If AMReX_CUDA, C++ files will be compiled as CUDA sources
 #
-if (ENABLE_CUDA)
+if (AMReX_CUDA)
    setup_target_for_cuda_compilation( amrex )
 endif ()
 
+#
+# Generate config header
+#
+include(AMReXGenerateConfigHeader)
+generate_config_header()
 
 #
 # Install amrex  -- Export
 #
 include(AMReXInstallHelpers)
 set(_amrex_targets Flags_CXX Flags_Fortran Flags_FPE )
-if (ENABLE_DPCPP)
+if (AMReX_DPCPP)
    list(APPEND _amrex_targets SYCL)
 endif()
 install_amrex(${_amrex_targets})

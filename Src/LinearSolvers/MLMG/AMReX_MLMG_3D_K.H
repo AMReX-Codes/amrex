@@ -1,5 +1,6 @@
 #ifndef AMREX_MLMG_3D_K_H_
 #define AMREX_MLMG_3D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
@@ -96,21 +97,21 @@ void mlmg_lin_nd_interp (int i, int j, int k, int n, Array4<Real> const& fine,
     bool i_is_odd = (ic*2 != i);
     bool j_is_odd = (jc*2 != j);
     bool k_is_odd = (kc*2 != k);
-    if (i_is_odd and j_is_odd and k_is_odd) {
+    if (i_is_odd && j_is_odd && k_is_odd) {
         // Fine node at center of cell
         fine(i,j,k,n) = 0.125*(crse(ic,  jc,  kc,n) + crse(ic,  jc,  kc+1,n) +
                                crse(ic,  jc+1,kc,n) + crse(ic,  jc+1,kc+1,n) +
                                crse(ic+1,jc,  kc,n) + crse(ic+1,jc,  kc+1,n) +
                                crse(ic+1,jc+1,kc,n) + crse(ic+1,jc+1,kc+1,n));
-    } else if (j_is_odd and k_is_odd) {
+    } else if (j_is_odd && k_is_odd) {
         // Node on a Y-Z face
         fine(i,j,k,n) = 0.25*(crse(ic,  jc,  kc,n) + crse(ic,  jc,  kc+1,n) +
                               crse(ic,  jc+1,kc,n) + crse(ic,  jc+1,kc+1,n));
-    } else if (i_is_odd and k_is_odd) {
+    } else if (i_is_odd && k_is_odd) {
         // Node on a Z-X face
         fine(i,j,k,n) = 0.25*(crse(ic,  jc,kc,n) + crse(ic,  jc,kc+1,n) +
                               crse(ic+1,jc,kc,n) + crse(ic+1,jc,kc+1,n));
-    } else if (i_is_odd and j_is_odd) {
+    } else if (i_is_odd && j_is_odd) {
         // Node on a X-Y face
         fine(i,j,k,n) = 0.25*(crse(ic  ,jc,kc,n) + crse(ic  ,jc+1,kc,n) +
                               crse(ic+1,jc,kc,n) + crse(ic+1,jc+1,kc,n));

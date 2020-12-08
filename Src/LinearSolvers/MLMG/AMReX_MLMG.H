@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_MG_H_
 #define AMREX_ML_MG_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLLinOp.H>
 #include <AMReX_iMultiFab.H>
@@ -212,14 +213,10 @@ private:
 
     //! Hypre
 #ifdef AMREX_USE_HYPRE
-#ifdef AMREX_USE_EB
-    Hypre::Interface hypre_interface = Hypre::Interface::ij;
-#else
-
     // Hypre::Interface hypre_interface = Hypre::Interface::structed;
-    Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
-    // Hypre::Interface hypre_interface = Hypre::Interface::ij;
-#endif
+    // Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
+    Hypre::Interface hypre_interface = Hypre::Interface::ij;
+
     std::unique_ptr<Hypre> hypre_solver;
     std::unique_ptr<MLMGBndry> hypre_bndry;
     std::unique_ptr<HypreNodeLap> hypre_node_solver;

@@ -1,5 +1,6 @@
 #ifndef AMREX_HYPRE_H_
 #define AMREX_HYPRE_H_
+#include <AMReX_Config.H>
 
 #include <memory>
 
@@ -30,6 +31,7 @@ public:
     void setACoeffs (const MultiFab& alpha);
     void setBCoeffs (const Array<const MultiFab*,BL_SPACEDIM>& beta);
     void setVerbose (int _verbose);
+    void setIsMatrixSingular(bool flag) { is_matrix_singular = flag; }
     virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
                         int max_iter, const BndryData& bndry, int max_bndry_order) = 0;
 
@@ -87,6 +89,8 @@ protected:
     FabFactory<FArrayBox> const* m_factory = nullptr;
     BndryData const* m_bndry = nullptr;
     int m_maxorder = -1;
+
+    bool is_matrix_singular { false };
 };
 
 std::unique_ptr<Hypre> makeHypre (const BoxArray& grids, const DistributionMapping& damp,

@@ -21,7 +21,7 @@ extern "C"
                         const amrex_real* dt);
     
 #ifdef __cplusplus
-};
+}
 #endif
 
 #endif /*_EM_PIC_F_H_*/

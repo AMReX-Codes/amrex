@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_ATOMIC_H_
 #define AMREX_GPU_ATOMIC_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Functional.H>
@@ -34,7 +35,7 @@ namespace detail {
         do {
             R const new_R = f(*(reinterpret_cast<R const*>(&old_I)), val);
             new_I = *(reinterpret_cast<I const*>(&new_R));
-        } while (not a.compare_exchange_strong(old_I, new_I, mo));
+        } while (! a.compare_exchange_strong(old_I, new_I, mo));
         return *(reinterpret_cast<R const*>(&old_I));
 #else
         R old = *address;
@@ -111,6 +112,16 @@ namespace detail {
 
 #endif
 
+#if defined(AMREX_USE_CUDA) && (__CUDA_ARCH__ < 600)
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    Long Add_device (double* const sum, double const value) noexcept
+    {
+        return detail::atomic_op<double, unsigned long long>(sum, value, amrex::Plus<double>());
+    }
+
+#endif
+
 #endif
 
     template<class T>
@@ -125,6 +136,33 @@ namespace detail {
         return old;
 #endif
     }
+
+////////////////////////////////////////////////////////////////////////
+//  AddNoRet
+////////////////////////////////////////////////////////////////////////
+
+    template<class T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void AddNoRet (T* const sum, T const value) noexcept
+    {
+#if AMREX_DEVICE_COMPILE
+        Add_device(sum, value);
+#else
+        *sum += value;
+#endif
+    }
+
+#if defined(AMREX_USE_HIP)
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void AddNoRet (float* const sum, float const value) noexcept
+    {
+#if AMREX_DEVICE_COMPILE
+        atomicAddNoRet(sum, value);
+#else
+        *sum += value;
+#endif
+    }
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 //  Min
@@ -303,7 +341,7 @@ namespace detail {
         unsigned int oldi = a.load(mo), newi;
         do {
             newi = (oldi >= value) ? 0u : (oldi+1u);
-        } while (not a.compare_exchange_strong(oldi, newi, mo));
+        } while (! a.compare_exchange_strong(oldi, newi, mo));
         return oldi;
 #else
         auto const old = *m;
@@ -341,7 +379,7 @@ namespace detail {
         unsigned int oldi = a.load(mo), newi;
         do {
             newi = ((oldi == 0u) || (oldi > value)) ? value : (oldi-1u);
-        } while (not a.compare_exchange_strong(oldi, newi, mo));
+        } while (! a.compare_exchange_strong(oldi, newi, mo));
         return oldi;
 #else
         auto const old = *m;
@@ -403,7 +441,7 @@ namespace HostDevice { namespace Atomic {
     void Add (T* const sum, T const value) noexcept
     {
 #if AMREX_DEVICE_COMPILE
-        Gpu::Atomic::Add(sum,value);
+        Gpu::Atomic::AddNoRet(sum,value);
 #else
 #ifdef _OPENMP
 #pragma omp atomic update

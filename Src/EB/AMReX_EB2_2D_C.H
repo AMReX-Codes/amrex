@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_2D_C_H_
 #define AMREX_EB2_2D_C_H_
+#include <AMReX_Config.H>
 
 namespace amrex { namespace EB2 {
 
@@ -16,13 +17,13 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     amrex::Loop(lo, hi,
     [=] (int i, int j, int k) noexcept
     {
-        if (    s(i,j  ,k) < 0.0 and s(i+1,j  ,k) < 0.0
-            and s(i,j+1,k) < 0.0 and s(i+1,j+1,k) < 0.0)
+        if (    s(i,j  ,k) < 0.0 && s(i+1,j  ,k) < 0.0
+            && s(i,j+1,k) < 0.0 && s(i+1,j+1,k) < 0.0)
         {
             cell(i,j,k).setRegular();
         }
-        else if (s(i,j  ,k) >= 0.0 and s(i+1,j  ,k) >= 0.0
-            and  s(i,j+1,k) >= 0.0 and s(i+1,j+1,k) >= 0.0)
+        else if (s(i,j  ,k) >= 0.0 && s(i+1,j  ,k) >= 0.0
+            &&  s(i,j+1,k) >= 0.0 && s(i+1,j+1,k) >= 0.0)
         {
             cell(i,j,k).setCovered();
         }
@@ -39,9 +40,9 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     amrex::Loop(lo, hi,
     [=] (int i, int j, int k) noexcept
     {
-        if (s(i,j,k) < 0.0 and s(i,j+1,k) < 0.0) {
+        if (s(i,j,k) < 0.0 && s(i,j+1,k) < 0.0) {
             fx(i,j,k) = Type::regular;
-        } else if (s(i,j,k) >= 0.0 and s(i,j+1,k) >= 0.0) {
+        } else if (s(i,j,k) >= 0.0 && s(i,j+1,k) >= 0.0) {
             fx(i,j,k) = Type::covered;
         } else {
             fx(i,j,k) = Type::irregular;
@@ -55,9 +56,9 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     amrex::Loop(lo, hi,
     [=] (int i, int j, int k) noexcept
     {
-        if (s(i,j,k) < 0.0 and s(i+1,j,k) < 0.0) {
+        if (s(i,j,k) < 0.0 && s(i+1,j,k) < 0.0) {
             fy(i,j,k) = Type::regular;
-        } else if (s(i,j,k) >= 0.0 and s(i+1,j,k) >= 0.0) {
+        } else if (s(i,j,k) >= 0.0 && s(i+1,j,k) >= 0.0) {
             fy(i,j,k) = Type::covered;
         } else {
             fy(i,j,k) = Type::irregular;
@@ -68,7 +69,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
 namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int num_cuts (Real a, Real b) noexcept {
-        return (a >= 0.0 and b < 0.0) or (b >= 0.0 and a < 0.0);
+        return (a >= 0.0 && b < 0.0) || (b >= 0.0 && a < 0.0);
     }
 }
 
@@ -86,7 +87,7 @@ int check_mvmc (int i, int j, int, Array4<Real const> const& fine)
         +       num_cuts(fine(i  ,j+1,k),fine(i  ,j+2,k))
         +       num_cuts(fine(i+2,j  ,k),fine(i+2,j+1,k))
         +       num_cuts(fine(i+2,j+1,k),fine(i+2,j+2,k));
-    return (ncuts != 0 and ncuts != 2);
+    return (ncuts != 0 && ncuts != 2);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -182,13 +183,13 @@ int coarsen_from_fine (int i, int j, Box const& bx, Box const& gbx,
              Real nfac = 1.0/std::sqrt(nx*nx+ny*ny+1.e-50);
              cbn(i,j,k,0) = nx*nfac;
              cbn(i,j,k,1) = ny*nfac;
-             ierr = (nx == 0.0 and ny == 0.0)
+             ierr = (nx == 0.0 && ny == 0.0)
                  // we must check the enclosing surface to make sure the coarse cell does not
                  // fully contains the geometry object.
-                 or ( fapx(ii,jj  ,k)==1.0 and fapx(ii+2,jj  ,k)==1.0
-                  and fapx(ii,jj+1,k)==1.0 and fapx(ii+2,jj+1,k)==1.0
-                  and fapy(ii,jj  ,k)==1.0 and fapy(ii+1,jj  ,k)==1.0
-                  and fapy(ii,jj+2,k)==1.0 and fapy(ii+1,jj+2,k)==1.0);
+                 || ( fapx(ii,jj  ,k)==1.0 && fapx(ii+2,jj  ,k)==1.0
+                  && fapx(ii,jj+1,k)==1.0 && fapx(ii+2,jj+1,k)==1.0
+                  && fapy(ii,jj  ,k)==1.0 && fapy(ii+1,jj  ,k)==1.0
+                  && fapy(ii,jj+2,k)==1.0 && fapy(ii+1,jj+2,k)==1.0);
         }
     }
     else if (gbx.contains(iv))
@@ -255,26 +256,26 @@ void build_cellflag_from_ap (int i, int j, Array4<EBCellFlag> const& cflag,
     if (apy(i  ,j  ,k) == 0.0) flg.setDisconnected( 0,-1, 0);
     if (apy(i  ,j+1,k) == 0.0) flg.setDisconnected( 0, 1, 0);
 
-    if ((apx(i,j  ,k) == 0.0 or apy(i-1,j,k) == 0.0) and
-        (apx(i,j-1,k) == 0.0 or apy(i  ,j,k) == 0.0))
+    if ((apx(i,j  ,k) == 0.0 || apy(i-1,j,k) == 0.0) &&
+        (apx(i,j-1,k) == 0.0 || apy(i  ,j,k) == 0.0))
     {
         flg.setDisconnected(-1,-1,0);
     }
 
-    if ((apx(i+1,j  ,k) == 0.0 or apy(i+1,j,k) == 0.0) and
-        (apx(i+1,j-1,k) == 0.0 or apy(i  ,j,k) == 0.0))
+    if ((apx(i+1,j  ,k) == 0.0 || apy(i+1,j,k) == 0.0) &&
+        (apx(i+1,j-1,k) == 0.0 || apy(i  ,j,k) == 0.0))
     {
         flg.setDisconnected(1,-1,0);
     }
 
-    if ((apx(i,j  ,k) == 0.0 or apy(i-1,j+1,k) == 0.0) and
-        (apx(i,j+1,k) == 0.0 or apy(i  ,j+1,k) == 0.0))
+    if ((apx(i,j  ,k) == 0.0 || apy(i-1,j+1,k) == 0.0) &&
+        (apx(i,j+1,k) == 0.0 || apy(i  ,j+1,k) == 0.0))
     {
         flg.setDisconnected(-1,1,0);
     }
 
-    if ((apx(i+1,j  ,k) == 0.0 or apy(i+1,j+1,k) == 0.0) and
-        (apx(i+1,j+1,k) == 0.0 or apy(i  ,j+1,k) == 0.0))
+    if ((apx(i+1,j  ,k) == 0.0 || apy(i+1,j+1,k) == 0.0) &&
+        (apx(i+1,j+1,k) == 0.0 || apy(i  ,j+1,k) == 0.0))
     {
         flg.setDisconnected(1,1,0);
     }

@@ -1,5 +1,6 @@
 #ifndef AMREX_EXTENSION_H_
 #define AMREX_EXTENSION_H_
+#include <AMReX_Config.H>
 
 #if !defined(BL_LANG_FORT)
 
@@ -118,7 +119,9 @@
 #endif
 
 // no inline
-#if defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIP__) || defined(__SYCL_COMPILER_VERSION)
+#if defined(_MSC_VER)
+#define AMREX_NO_INLINE __declspec(noinline)
+#elif (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIP__) || defined(__SYCL_COMPILER_VERSION))
 #define AMREX_NO_INLINE __attribute__((noinline))
 #else
 #define AMREX_NO_INLINE
@@ -135,7 +138,7 @@
 #endif
 
 #if defined(__cplusplus) && defined(_WIN32)
-#include <iso646.h>
+#include <ciso646>
 #endif
 
 #if (__cplusplus >= 201703L)
@@ -154,8 +157,7 @@
 
 /*
  * DPCPP version strings
- * beta8 #define __SYCL_COMPILER_VERSION=20200715
- * beta9 #define __SYCL_COMPILER_VERSION 20200827
- *       #define __INTEL_CLANG_COMPILER 202110
- *       #define __INTEL_LLVM_COMPILER  202110
+ * beta08 #define __SYCL_COMPILER_VERSION 20200715
+ * beta09 #define __SYCL_COMPILER_VERSION 20200827
+ * beta10 #define __SYCL_COMPILER_VERSION 20201005
 */

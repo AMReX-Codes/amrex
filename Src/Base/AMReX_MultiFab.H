@@ -1,6 +1,7 @@
 
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
+#include <AMReX_Config.H>
 
 
 #include <cstdint>
@@ -683,6 +684,7 @@ private:
     void initVal ();
 };
 
+#ifndef _MSC_VER
 inline void GccPlacaterMF ()
 {
     std::allocator<MultiFab*> a1;
@@ -690,6 +692,7 @@ inline void GccPlacaterMF ()
     std::allocator<FabArray<FArrayBox>*> a3;
     std::allocator<FabArray<FArrayBox> const*> a4;
 }
+#endif
 
 //!  This is a special version of FillBoundary for warpx
 void FillBoundary (Vector<MultiFab*> const& mf, const Periodicity& period);

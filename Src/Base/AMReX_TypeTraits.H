@@ -1,5 +1,6 @@
 #ifndef BL_TYPETRAITS_H_
 #define BL_TYPETRAITS_H_
+#include <AMReX_Config.H>
 
 #include <type_traits>
 #include <AMReX_Extension.H>
@@ -50,8 +51,8 @@ namespace amrex
 
     template <class T, class Enable = void>
     struct HasAtomicAdd : std::false_type {};
-    // CUDA supports atomicAdd for the following types
     template <> struct HasAtomicAdd<int> : std::true_type {};
+    template <> struct HasAtomicAdd<long> : std::true_type {};
     template <> struct HasAtomicAdd<unsigned int> : std::true_type {};
     template <> struct HasAtomicAdd<unsigned long long> : std::true_type {};
     template <> struct HasAtomicAdd<float> : std::true_type {};
@@ -118,7 +119,7 @@ namespace amrex
     template <typename T, typename U1, typename... Us>
     struct Same
     {
-        static constexpr bool value = std::is_same<T,U1>::value and Same<T,Us...>::value;
+        static constexpr bool value = std::is_same<T,U1>::value && Same<T,Us...>::value;
     };
 }
 

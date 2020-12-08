@@ -1,5 +1,6 @@
 #ifndef AMREX_CUPTI_TRACE_H_
 #define AMREX_CUPTI_TRACE_H_
+#include <AMReX_Config.H>
 
 #ifdef AMREX_USE_CUPTI
 #include <stdio.h>

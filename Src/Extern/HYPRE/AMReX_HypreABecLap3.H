@@ -1,5 +1,6 @@
 #ifndef AMREX_HYPREABECLAP3_H_
 #define AMREX_HYPREABECLAP3_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Hypre.H>
 
@@ -29,6 +30,9 @@ public:
     void setEBDirichlet (MultiFab const* beb) { m_eb_b_coeffs = beb; }
 #endif
 
+    // public for CUDA
+    void getSolution (MultiFab& soln);
+
 private :
     std::unique_ptr<HypreIJIface> hypre_ij;
 
@@ -47,7 +51,6 @@ private :
 
     void prepareSolver ();
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
-    void getSolution (MultiFab& soln);
 };
 
 }

@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLEINIT_H
 #define AMREX_PARTICLEINIT_H
+#include <AMReX_Config.H>
 
 /*
   \brief Initialize particles from an Ascii file in the following format:
@@ -1436,8 +1437,14 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
             {
                 // the real struct data
                 for (int i = 0; i < AMREX_SPACEDIM; i++) {
-                    r = amrex::Random();
-                    p.pos(i) = grid_box.lo(i) + (r + cell[i]-beg[i])*dx[i];
+                    constexpr int max_iter = 10;
+                    int iter = 0;
+                    while (iter < max_iter) {
+                        r = amrex::Random();
+                        p.pos(i) = grid_box.lo(i) + (r + cell[i]-beg[i])*dx[i];
+                        if (p.pos(i) < grid_box.hi(i)) break;
+                        iter++;
+                    }
                     AMREX_ASSERT(p.pos(i) < grid_box.hi(i));
                 }
 

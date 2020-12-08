@@ -169,7 +169,7 @@ MLNodeLinOp::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                               m_lo_inhomog_neumann[n].end(),   1);
         auto ithi = std::find(m_hi_inhomog_neumann[n].begin(),
                               m_hi_inhomog_neumann[n].end(),   1);
-        if (itlo != m_lo_inhomog_neumann[n].end() or
+        if (itlo != m_lo_inhomog_neumann[n].end() ||
             ithi != m_hi_inhomog_neumann[n].end())
         {
             amrex::Abort("Inhomogeneous Neumann not supported for nodal solver");
@@ -244,7 +244,7 @@ MLNodeLinOp::buildMasks ()
             MFItInfo mfi_info;
             if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 
-            if (m_overset_dirichlet_mask and mglev > 0) {
+            if (m_overset_dirichlet_mask && mglev > 0) {
                 const auto& dmask_fine = *m_dirichlet_mask[amrlev][mglev-1];
                 amrex::average_down_nodal(dmask_fine, dmask, IntVect(2));
             }
@@ -379,7 +379,7 @@ MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/, 
 
 #ifdef AMREX_USE_HYPRE
 std::unique_ptr<HypreNodeLap>
-MLNodeLinOp::makeHypreNodeLap (int bottom_verbose) const
+MLNodeLinOp::makeHypreNodeLap (int bottom_verbose, const std::string& options_namespace) const
 {
     const BoxArray& ba = m_grids[0].back();
     const DistributionMapping& dm = m_dmap[0].back();
@@ -391,7 +391,7 @@ MLNodeLinOp::makeHypreNodeLap (int bottom_verbose) const
 
     std::unique_ptr<HypreNodeLap> hypre_solver
         (new amrex::HypreNodeLap(ba, dm, geom, factory, owner_mask, dirichlet_mask,
-                                 comm, this, bottom_verbose));
+                                 comm, this, bottom_verbose, options_namespace));
 
     return hypre_solver;
 }

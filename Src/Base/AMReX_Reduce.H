@@ -1,5 +1,6 @@
 #ifndef AMREX_REDUCE_H_
 #define AMREX_REDUCE_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Gpu.H>
 #include <AMReX_Arena.H>
@@ -192,7 +193,6 @@ namespace detail {
         });
         Array<T,2> tmp{v,v};
         Gpu::htod_memcpy(p, tmp.data(), sizeof(T)*2);
-        Gpu::synchronize();
     }
 #else
     template <typename T>
@@ -470,6 +470,17 @@ T Sum (N n, T const* v, T init_val = 0)
     return Reduce::Sum(n, v, init_val, amrex::Plus<T>());
 }
 
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Sum (N n, F&& f)
+{
+    ReduceOps<ReduceOpSum> reduce_op;
+    ReduceData<T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    reduce_op.eval(n, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple { return {f(i)}; });
+    return amrex::get<0>(reduce_data.value());
+}
+
 template <typename T, typename N, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T Min (N n, U const* v, T init_val, BOP bop)
 {
@@ -538,7 +549,7 @@ std::pair<T,T> MinMax (N n, U const* v, MINOP minop, MAXOP maxop)
     Gpu::LaunchSafeGuard lsg(true);
     Array<T,2> hv{std::numeric_limits<T>::max(), std::numeric_limits<T>::lowest()};
     T* dp = (T*)(The_Device_Arena()->alloc(2*sizeof(T)));
-    Gpu::htod_memcpy(dp, hv.data(), 2*sizeof(T));
+    Gpu::htod_memcpy_async(dp, hv.data(), 2*sizeof(T));
     typedef GpuArray<T,2> Real2;
     amrex::VecReduce(n, Real2{hv[0],hv[1]},
     [=] AMREX_GPU_DEVICE (N i, Real2* r) noexcept
@@ -596,13 +607,13 @@ bool AnyOf (N n, T const* v, P&& pred)
         {
             int r = false;
             for (N i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
-                 i < n and !r; i += stride)
+                 i < n && !r; i += stride)
             {
                 r = pred(v[i]) ? 1 : 0;
             }
             r = Gpu::blockReduce<Gpu::Device::warp_size>
                 (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0);
-            if (threadIdx.x == 0 and r) *dp = 1;
+            if (threadIdx.x == 0 && r) *dp = 1;
         }
     });
 #endif
@@ -638,7 +649,7 @@ bool AnyOf (Box const& box, P&& pred)
         {
             int r = false;
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
-                 icell < ncells and !r; icell += stride) {
+                 icell < ncells && !r; icell += stride) {
                 int k =  icell /   (len.x*len.y);
                 int j = (icell - k*(len.x*len.y)) /   len.x;
                 int i = (icell - k*(len.x*len.y)) - j*len.x;
@@ -649,7 +660,7 @@ bool AnyOf (Box const& box, P&& pred)
             }
             r = Gpu::blockReduce<Gpu::Device::warp_size>
                 (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0);
-            if (threadIdx.x == 0 and r) *dp = 1;
+            if (threadIdx.x == 0 && r) *dp = 1;
         }
     });
 #endif
@@ -791,6 +802,20 @@ template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<
 T Sum (N n, T const* v, T init_val = 0)
 {
     return Reduce::Sum(n, v, init_val, amrex::Plus<T>());
+}
+
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Sum (N n, F&& f)
+{
+    T r = 0;
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:r)
+#endif
+    for (N i = 0; i < n; ++i) {
+        r += f(i);
+    }
+    return r;
 }
 
 template <typename N, typename T, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >

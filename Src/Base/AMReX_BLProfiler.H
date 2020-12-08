@@ -1,5 +1,6 @@
 #ifndef BL_PROFILER_H_
 #define BL_PROFILER_H_
+#include <AMReX_Config.H>
 
 #define BL_PROFILE_PASTE2(x, y) x##y
 #define BL_PROFILE_PASTE(x, y) BL_PROFILE_PASTE2(x, y)

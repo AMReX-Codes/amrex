@@ -1,5 +1,6 @@
 #ifndef AMREX_ARRAY4_H_
 #define AMREX_ARRAY4_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_IntVect.H>
 #include <AMReX_GpuPrint.H>
@@ -160,7 +161,7 @@ namespace amrex {
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         bool contains (int i, int j, int k) const noexcept {
-            return (i>=begin.x and i<end.x and j>=begin.y and j<end.y and k>=begin.z and k<end.z);
+            return (i>=begin.x && i<end.x && j>=begin.y && j<end.y && k>=begin.z && k<end.z);
         }
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)

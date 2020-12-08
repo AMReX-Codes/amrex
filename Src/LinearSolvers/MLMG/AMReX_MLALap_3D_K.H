@@ -1,5 +1,6 @@
 #ifndef AMREX_MLALAP_3D_K_H_
 #define AMREX_MLALAP_3D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
@@ -191,17 +192,17 @@ void mlalap_gsrb (Box const& box, Array4<Real> const& phi,
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
                 if ((i+j+k+redblack)%2 == 0) {
-                    Real cf0 = (i == vlo.x and m0(vlo.x-1,j,k) > 0)
+                    Real cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
                         ? f0(vlo.x,j,k) : 0.0;
-                    Real cf1 = (j == vlo.y and m1(i,vlo.y-1,k) > 0)
+                    Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
                         ? f1(i,vlo.y,k) : 0.0;
-                    Real cf2 = (k == vlo.z and m2(i,j,vlo.z-1) > 0)
+                    Real cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
                         ? f2(i,j,vlo.z) : 0.0;
-                    Real cf3 = (i == vhi.x and m3(vhi.x+1,j,k) > 0)
+                    Real cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
                         ? f3(vhi.x,j,k) : 0.0;
-                    Real cf4 = (j == vhi.y and m4(i,vhi.y+1,k) > 0)
+                    Real cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
                         ? f4(i,vhi.y,k) : 0.0;
-                    Real cf5 = (k == vhi.z and m5(i,j,vhi.z+1) > 0)
+                    Real cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
                         ? f5(i,j,vhi.z) : 0.0;
 
                     Real gamma = alpha*a(i,j,k) + dhfac;

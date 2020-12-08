@@ -333,7 +333,7 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
                 allsame = false;
                 d_ifd.resize(m_ncomp);
             }
-            if (not allsame) {
+            if (! allsame) {
                 Gpu::copyAsync(Gpu::HostToDevice(), h_ifd.begin(), h_ifd.end(), d_ifd.begin());
             }
 
@@ -549,7 +549,7 @@ void FlashFluxRegister::load (int crse_global_index, int dir, FArrayBox& crse_fl
         int d_ifd_ready = false;
         for (int index = dir; index < 2*AMREX_SPACEDIM; index += AMREX_SPACEDIM) {
             if (fab_a[index]) {
-                if (not d_ifd_ready) {
+                if (! d_ifd_ready) {
                     d_ifd_ready = true;
                     bool allsame = true;
                     for (int n = 0; n < m_ncomp; ++n) {
@@ -562,7 +562,7 @@ void FlashFluxRegister::load (int crse_global_index, int dir, FArrayBox& crse_fl
                         allsame = false;
                         d_ifd.resize(m_ncomp);
                     }
-                    if (not allsame) {
+                    if (! allsame) {
                         Gpu::copyAsync(Gpu::HostToDevice(), h_ifd.begin(), h_ifd.end(),
                                        d_ifd.begin());
                     }

@@ -1,4 +1,4 @@
-if ( (NOT ENABLE_EB) OR NOT (DIM EQUAL 3) )
+if ( (NOT AMReX_EB) OR NOT (AMReX_SPACEDIM EQUAL 3) )
    return()
 endif ()
 

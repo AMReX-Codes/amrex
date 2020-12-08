@@ -1,5 +1,6 @@
 #ifndef AMREX_MLNODETENSORLAP_2D_K_H_
 #define AMREX_MLNODETENSORLAP_2D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
@@ -36,7 +37,7 @@ void mlndtslap_interpadd (int i, int j, int, Array4<Real> const& fine,
         int jc = amrex::coarsen(j,2);
         bool i_is_odd = (ic*2 != i);
         bool j_is_odd = (jc*2 != j);
-        if (i_is_odd and j_is_odd) {
+        if (i_is_odd && j_is_odd) {
             // Node on a X-Y face
             fine(i,j,0) += ts_interp_face_xy(crse,ic,jc);
         } else if (i_is_odd) {
@@ -138,7 +139,7 @@ void mlndtslap_fill_ijmatrix (Box const& ndbx, Array4<HypreNodeLap::Int const> c
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
     for (int i = lo.x; i <= hi.x; ++i) {
-        if (nid(i,j,k) >= 0 and owner(i,j,k))
+        if (nid(i,j,k) >= 0 && owner(i,j,k))
         {
             rows.push_back(nid(i,j,k));
             cols.push_back(nid(i,j,k));

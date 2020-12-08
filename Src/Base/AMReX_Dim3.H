@@ -1,5 +1,6 @@
 #ifndef AMREX_DIM3_H_
 #define AMREX_DIM3_H_
+#include <AMReX_Config.H>
 
 #include <iostream>
 #include <AMReX_REAL.H>

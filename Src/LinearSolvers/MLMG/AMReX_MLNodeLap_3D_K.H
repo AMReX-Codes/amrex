@@ -1,5 +1,6 @@
 #ifndef AMREX_MLNODELAP_3D_K_H_
 #define AMREX_MLNODELAP_3D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
@@ -38,31 +39,31 @@ void mlndlap_set_dirichlet_mask (Box const& bx, Array4<int> const& dmsk,
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
         if (!dmsk(i,j,k)) {
-            dmsk(i,j,k) = (omsk(i-1,j-1,k-1) == 1 or omsk(i,j-1,k-1) == 1 or
-                           omsk(i-1,j  ,k-1) == 1 or omsk(i,j  ,k-1) == 1 or
-                           omsk(i-1,j-1,k  ) == 1 or omsk(i,j-1,k  ) == 1 or
-                           omsk(i-1,j  ,k  ) == 1 or omsk(i,j  ,k  ) == 1);
+            dmsk(i,j,k) = (omsk(i-1,j-1,k-1) == 1 || omsk(i,j-1,k-1) == 1 ||
+                           omsk(i-1,j  ,k-1) == 1 || omsk(i,j  ,k-1) == 1 ||
+                           omsk(i-1,j-1,k  ) == 1 || omsk(i,j-1,k  ) == 1 ||
+                           omsk(i-1,j  ,k  ) == 1 || omsk(i,j  ,k  ) == 1);
         }
     }}}
 
     const auto domlo = amrex::lbound(dom);
     const auto domhi = amrex::ubound(dom);
 
-    if (bclo[0] == LinOpBCType::Dirichlet and lo.x == domlo.x) {
+    if (bclo[0] == LinOpBCType::Dirichlet && lo.x == domlo.x) {
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
             dmsk(lo.x,j,k) = 1;
         }}
     }
 
-    if (bchi[0] == LinOpBCType::Dirichlet and hi.x == domhi.x) {
+    if (bchi[0] == LinOpBCType::Dirichlet && hi.x == domhi.x) {
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
             dmsk(hi.x,j,k) = 1;
         }}
     }
 
-    if (bclo[1] == LinOpBCType::Dirichlet and lo.y == domlo.y) {
+    if (bclo[1] == LinOpBCType::Dirichlet && lo.y == domlo.y) {
         for (int k = lo.z; k <= hi.z; ++k) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
@@ -70,7 +71,7 @@ void mlndlap_set_dirichlet_mask (Box const& bx, Array4<int> const& dmsk,
         }}
     }
 
-    if (bchi[1] == LinOpBCType::Dirichlet and hi.y == domhi.y) {
+    if (bchi[1] == LinOpBCType::Dirichlet && hi.y == domhi.y) {
         for (int k = lo.z; k <= hi.z; ++k) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
@@ -78,7 +79,7 @@ void mlndlap_set_dirichlet_mask (Box const& bx, Array4<int> const& dmsk,
         }}
     }
 
-    if (bclo[2] == LinOpBCType::Dirichlet and lo.z == domlo.z) {
+    if (bclo[2] == LinOpBCType::Dirichlet && lo.z == domlo.z) {
         for (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
@@ -86,7 +87,7 @@ void mlndlap_set_dirichlet_mask (Box const& bx, Array4<int> const& dmsk,
         }}
     }
 
-    if (bchi[2] == LinOpBCType::Dirichlet and hi.z == domhi.z) {
+    if (bchi[2] == LinOpBCType::Dirichlet && hi.z == domhi.z) {
         for (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
@@ -113,8 +114,8 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
     const auto domlo = amrex::lbound(dom);
     const auto domhi = amrex::ubound(dom);
 
-    if ((bclo[0] == LinOpBCType::Neumann or bclo[0] == LinOpBCType::inflow)
-        and lo.x == domlo.x)
+    if ((bclo[0] == LinOpBCType::Neumann || bclo[0] == LinOpBCType::inflow)
+        && lo.x == domlo.x)
     {
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
@@ -122,8 +123,8 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
         }}
     }
 
-    if ((bchi[0] == LinOpBCType::Neumann or bchi[0] == LinOpBCType::inflow)
-        and hi.x == domhi.x)
+    if ((bchi[0] == LinOpBCType::Neumann || bchi[0] == LinOpBCType::inflow)
+        && hi.x == domhi.x)
     {
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
@@ -131,8 +132,8 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
         }}
     }
 
-    if ((bclo[1] == LinOpBCType::Neumann or bclo[1] == LinOpBCType::inflow)
-        and lo.y == domlo.y)
+    if ((bclo[1] == LinOpBCType::Neumann || bclo[1] == LinOpBCType::inflow)
+        && lo.y == domlo.y)
     {
         for (int k = lo.z; k <= hi.z; ++k) {
         AMREX_PRAGMA_SIMD
@@ -141,8 +142,8 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
         }}
     }
 
-    if ((bchi[1] == LinOpBCType::Neumann or bchi[1] == LinOpBCType::inflow)
-        and hi.y == domhi.y)
+    if ((bchi[1] == LinOpBCType::Neumann || bchi[1] == LinOpBCType::inflow)
+        && hi.y == domhi.y)
     {
         for (int k = lo.z; k <= hi.z; ++k) {
         AMREX_PRAGMA_SIMD
@@ -151,8 +152,8 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
         }}
     }
 
-    if ((bclo[2] == LinOpBCType::Neumann or bclo[2] == LinOpBCType::inflow)
-        and lo.z == domlo.z)
+    if ((bclo[2] == LinOpBCType::Neumann || bclo[2] == LinOpBCType::inflow)
+        && lo.z == domlo.z)
     {
         for (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
@@ -161,8 +162,8 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
         }}
     }
 
-    if ((bchi[2] == LinOpBCType::Neumann or bchi[2] == LinOpBCType::inflow)
-        and hi.z == domhi.z)
+    if ((bchi[2] == LinOpBCType::Neumann || bchi[2] == LinOpBCType::inflow)
+        && hi.z == domhi.z)
     {
         for (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
@@ -178,13 +179,13 @@ void mlndlap_zero_fine (int i, int j, int k, Array4<Real> const& phi,
 {
     // Testing if the node is covered by a fine level in computing
     // coarse sync residual
-    if (msk(i-1,j-1,k-1) == fine_flag and
-        msk(i  ,j-1,k-1) == fine_flag and
-        msk(i-1,j  ,k-1) == fine_flag and
-        msk(i  ,j  ,k-1) == fine_flag and
-        msk(i-1,j-1,k  ) == fine_flag and
-        msk(i  ,j-1,k  ) == fine_flag and
-        msk(i-1,j  ,k  ) == fine_flag and
+    if (msk(i-1,j-1,k-1) == fine_flag &&
+        msk(i  ,j-1,k-1) == fine_flag &&
+        msk(i-1,j  ,k-1) == fine_flag &&
+        msk(i  ,j  ,k-1) == fine_flag &&
+        msk(i-1,j-1,k  ) == fine_flag &&
+        msk(i  ,j-1,k  ) == fine_flag &&
+        msk(i-1,j  ,k  ) == fine_flag &&
         msk(i  ,j  ,k  ) == fine_flag)
     {
         phi(i,j,k) = 0.0;
@@ -257,8 +258,8 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
 {
     Box gdomain = domain;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (not bflo[idim]) gdomain.growLo(idim,1);
-        if (not bfhi[idim]) gdomain.growHi(idim,1);
+        if (! bflo[idim]) gdomain.growLo(idim,1);
+        if (! bfhi[idim]) gdomain.growHi(idim,1);
     }
 
     if (gdomain.strictly_contains(vbx)) return;
@@ -271,23 +272,23 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
     Box const& sbox = amrex::grow(vbx,1);
     AMREX_HOST_DEVICE_FOR_3D(sbox, i, j, k,
     {
-        if (not gdomain.contains(IntVect(i,j,k))) {
+        if (! gdomain.contains(IntVect(i,j,k))) {
             // xlo & ylo & zlo
-            if (i == dlo.x-1 and j == dlo.y-1 and k == dlo.z-1 and (bflo[0] or bflo[1] or bflo[2]))
+            if (i == dlo.x-1 && j == dlo.y-1 && k == dlo.z-1 && (bflo[0] || bflo[1] || bflo[2]))
             {
-                if (bflo[0] and bflo[1] and bflo[2])
+                if (bflo[0] && bflo[1] && bflo[2])
                 {
                     a(i,j,k) = a(i+1+offset, j+1+offset, k+1+offset);
                 }
-                else if (bflo[0] and bflo[1])
+                else if (bflo[0] && bflo[1])
                 {
                     a(i,j,k) = a(i+1+offset, j+1+offset, k);
                 }
-                else if (bflo[0] and bflo[2])
+                else if (bflo[0] && bflo[2])
                 {
                     a(i,j,k) = a(i+1+offset, j, k+1+offset);
                 }
-                else if (bflo[1] and bflo[2])
+                else if (bflo[1] && bflo[2])
                 {
                     a(i,j,k) = a(i, j+1+offset, k+1+offset);
                 }
@@ -305,21 +306,21 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // xhi & ylo & zlo
-            else if (i == dhi.x+1 and j == dlo.y-1 and k == dlo.z-1 and (bfhi[0] or bflo[1] or bflo[2]))
+            else if (i == dhi.x+1 && j == dlo.y-1 && k == dlo.z-1 && (bfhi[0] || bflo[1] || bflo[2]))
             {
-                if (bfhi[0] and bflo[1] and bflo[2])
+                if (bfhi[0] && bflo[1] && bflo[2])
                 {
                     a(i,j,k) = a(i-1-offset, j+1+offset, k+1+offset);
                 }
-                else if (bfhi[0] and bflo[1])
+                else if (bfhi[0] && bflo[1])
                 {
                     a(i,j,k) = a(i-1-offset, j+1+offset, k);
                 }
-                else if (bfhi[0] and bflo[2])
+                else if (bfhi[0] && bflo[2])
                 {
                     a(i,j,k) = a(i-1-offset, j, k+1+offset);
                 }
-                else if (bflo[1] and bflo[2])
+                else if (bflo[1] && bflo[2])
                 {
                     a(i,j,k) = a(i, j+1+offset, k+1+offset);
                 }
@@ -337,21 +338,21 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // xlo & yhi & zlo
-            else if (i == dlo.x-1 and j == dhi.y+1 and k == dlo.z-1 and (bflo[0] or bfhi[1] or bflo[2]))
+            else if (i == dlo.x-1 && j == dhi.y+1 && k == dlo.z-1 && (bflo[0] || bfhi[1] || bflo[2]))
             {
-                if (bflo[0] and bfhi[1] and bflo[2])
+                if (bflo[0] && bfhi[1] && bflo[2])
                 {
                     a(i,j,k) = a(i+1+offset, j-1-offset, k+1+offset);
                 }
-                else if (bflo[0] and bfhi[1])
+                else if (bflo[0] && bfhi[1])
                 {
                     a(i,j,k) = a(i+1+offset, j-1-offset, k);
                 }
-                else if (bflo[0] and bflo[2])
+                else if (bflo[0] && bflo[2])
                 {
                     a(i,j,k) = a(i+1+offset, j, k+1+offset);
                 }
-                else if (bfhi[1] and bflo[2])
+                else if (bfhi[1] && bflo[2])
                 {
                     a(i,j,k) = a(i, j-1-offset, k+1+offset);
                 }
@@ -369,21 +370,21 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // xhi & yhi & zlo
-            else if (i == dhi.x+1 and j == dhi.y+1 and k == dlo.z-1 and (bfhi[0] or bfhi[1] or bflo[2]))
+            else if (i == dhi.x+1 && j == dhi.y+1 && k == dlo.z-1 && (bfhi[0] || bfhi[1] || bflo[2]))
             {
-                if (bfhi[0] and bfhi[1] and bflo[2])
+                if (bfhi[0] && bfhi[1] && bflo[2])
                 {
                     a(i,j,k) = a(i-1-offset, j-1-offset, k+1+offset);
                 }
-                else if (bfhi[0] and bfhi[1])
+                else if (bfhi[0] && bfhi[1])
                 {
                     a(i,j,k) = a(i-1-offset, j-1-offset, k);
                 }
-                else if (bfhi[0] and bflo[2])
+                else if (bfhi[0] && bflo[2])
                 {
                     a(i,j,k) = a(i-1-offset, j, k+1+offset);
                 }
-                else if (bfhi[1] and bflo[2])
+                else if (bfhi[1] && bflo[2])
                 {
                     a(i,j,k) = a(i, j-1-offset, k+1+offset);
                 }
@@ -401,21 +402,21 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // xlo & ylo & zhi
-            else if (i == dlo.x-1 and j == dlo.y-1 and k == dhi.z+1 and (bflo[0] or bflo[1] or bfhi[2]))
+            else if (i == dlo.x-1 && j == dlo.y-1 && k == dhi.z+1 && (bflo[0] || bflo[1] || bfhi[2]))
             {
-                if (bflo[0] and bflo[1] and bfhi[2])
+                if (bflo[0] && bflo[1] && bfhi[2])
                 {
                     a(i,j,k) = a(i+1+offset, j+1+offset, k-1-offset);
                 }
-                else if (bflo[0] and bflo[1])
+                else if (bflo[0] && bflo[1])
                 {
                     a(i,j,k) = a(i+1+offset, j+1+offset, k);
                 }
-                else if (bflo[0] and bfhi[2])
+                else if (bflo[0] && bfhi[2])
                 {
                     a(i,j,k) = a(i+1+offset, j, k-1-offset);
                 }
-                else if (bflo[1] and bfhi[2])
+                else if (bflo[1] && bfhi[2])
                 {
                     a(i,j,k) = a(i, j+1+offset, k-1-offset);
                 }
@@ -433,21 +434,21 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // xhi & ylo & zhi
-            else if (i == dhi.x+1 and j == dlo.y-1 and k == dhi.z+1 and (bfhi[0] or bflo[1] or bfhi[2]))
+            else if (i == dhi.x+1 && j == dlo.y-1 && k == dhi.z+1 && (bfhi[0] || bflo[1] || bfhi[2]))
             {
-                if (bfhi[0] and bflo[1] and bfhi[2])
+                if (bfhi[0] && bflo[1] && bfhi[2])
                 {
                     a(i,j,k) = a(i-1-offset, j+1+offset, k-1-offset);
                 }
-                else if (bfhi[0] and bflo[1])
+                else if (bfhi[0] && bflo[1])
                 {
                     a(i,j,k) = a(i-1-offset, j+1+offset, k);
                 }
-                else if (bfhi[0] and bfhi[2])
+                else if (bfhi[0] && bfhi[2])
                 {
                     a(i,j,k) = a(i-1-offset, j, k-1-offset);
                 }
-                else if (bflo[1] and bfhi[2])
+                else if (bflo[1] && bfhi[2])
                 {
                     a(i,j,k) = a(i, j+1+offset, k-1-offset);
                 }
@@ -465,21 +466,21 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // xlo & yhi & zhi
-            else if (i == dlo.x-1 and j == dhi.y+1 and k == dhi.z+1 and (bflo[0] or bfhi[1] or bfhi[2]))
+            else if (i == dlo.x-1 && j == dhi.y+1 && k == dhi.z+1 && (bflo[0] || bfhi[1] || bfhi[2]))
             {
-                if (bflo[0] and bfhi[1] and bfhi[2])
+                if (bflo[0] && bfhi[1] && bfhi[2])
                 {
                     a(i,j,k) = a(i+1+offset, j-1-offset, k-1-offset);
                 }
-                else if (bflo[0] and bfhi[1])
+                else if (bflo[0] && bfhi[1])
                 {
                     a(i,j,k) = a(i+1+offset, j-1-offset, k);
                 }
-                else if (bflo[0] and bfhi[2])
+                else if (bflo[0] && bfhi[2])
                 {
                     a(i,j,k) = a(i+1+offset, j, k-1-offset);
                 }
-                else if (bfhi[1] and bfhi[2])
+                else if (bfhi[1] && bfhi[2])
                 {
                     a(i,j,k) = a(i, j-1-offset, k-1-offset);
                 }
@@ -497,21 +498,21 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // xhi & yhi & zhi
-            else if (i == dhi.x+1 and j == dhi.y+1 and k == dhi.z+1 and (bfhi[0] or bfhi[1] or bfhi[2]))
+            else if (i == dhi.x+1 && j == dhi.y+1 && k == dhi.z+1 && (bfhi[0] || bfhi[1] || bfhi[2]))
             {
-                if (bfhi[0] and bfhi[1] and bfhi[2])
+                if (bfhi[0] && bfhi[1] && bfhi[2])
                 {
                     a(i,j,k) = a(i-1-offset, j-1-offset, k-1-offset);
                 }
-                else if (bfhi[0] and bfhi[1])
+                else if (bfhi[0] && bfhi[1])
                 {
                     a(i,j,k) = a(i-1-offset, j-1-offset, k);
                 }
-                else if (bfhi[0] and bfhi[2])
+                else if (bfhi[0] && bfhi[2])
                 {
                     a(i,j,k) = a(i-1-offset, j, k-1-offset);
                 }
-                else if (bfhi[1] and bfhi[2])
+                else if (bfhi[1] && bfhi[2])
                 {
                     a(i,j,k) = a(i, j-1-offset, k-1-offset);
                 }
@@ -529,9 +530,9 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // xlo & ylo
-            else if (i == dlo.x-1 and j == dlo.y-1 and (bflo[0] or bflo[1]))
+            else if (i == dlo.x-1 && j == dlo.y-1 && (bflo[0] || bflo[1]))
             {
-                if (bflo[0] and bflo[1])
+                if (bflo[0] && bflo[1])
                 {
                     a(i,j,k) = a(i+1+offset, j+1+offset, k);
                 }
@@ -545,9 +546,9 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // xhi & ylo
-            else if (i == dhi.x+1 and j == dlo.y-1 and (bfhi[0] or bflo[1]))
+            else if (i == dhi.x+1 && j == dlo.y-1 && (bfhi[0] || bflo[1]))
             {
-                if (bfhi[0] and bflo[1])
+                if (bfhi[0] && bflo[1])
                 {
                     a(i,j,k) = a(i-1-offset, j+1+offset, k);
                 }
@@ -561,9 +562,9 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // xlo & yhi
-            else if (i == dlo.x-1 and j == dhi.y+1 and (bflo[0] or bfhi[1]))
+            else if (i == dlo.x-1 && j == dhi.y+1 && (bflo[0] || bfhi[1]))
             {
-                if (bflo[0] and bfhi[1])
+                if (bflo[0] && bfhi[1])
                 {
                     a(i,j,k) = a(i+1+offset, j-1-offset, k);
                 }
@@ -577,9 +578,9 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // xhi & yhi
-            else if (i == dhi.x+1 and j == dhi.y+1 and (bfhi[0] or bfhi[1]))
+            else if (i == dhi.x+1 && j == dhi.y+1 && (bfhi[0] || bfhi[1]))
             {
-                if (bfhi[0] and bfhi[1])
+                if (bfhi[0] && bfhi[1])
                 {
                     a(i,j,k) = a(i-1-offset, j-1-offset, k);
                 }
@@ -593,9 +594,9 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // xlo & zlo
-            else if (i == dlo.x-1 and k == dlo.z-1 and (bflo[0] or bflo[2]))
+            else if (i == dlo.x-1 && k == dlo.z-1 && (bflo[0] || bflo[2]))
             {
-                if (bflo[0] and bflo[2])
+                if (bflo[0] && bflo[2])
                 {
                     a(i,j,k) = a(i+1+offset, j, k+1+offset);
                 }
@@ -609,9 +610,9 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // xhi & zlo
-            else if (i == dhi.x+1 and k == dlo.z-1 and (bfhi[0] or bflo[2]))
+            else if (i == dhi.x+1 && k == dlo.z-1 && (bfhi[0] || bflo[2]))
             {
-                if (bfhi[0] and bflo[2])
+                if (bfhi[0] && bflo[2])
                 {
                     a(i,j,k) = a(i-1-offset, j, k+1+offset);
                 }
@@ -625,9 +626,9 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // xlo & zhi
-            else if (i == dlo.x-1 and k == dhi.z+1 and (bflo[0] or bfhi[2]))
+            else if (i == dlo.x-1 && k == dhi.z+1 && (bflo[0] || bfhi[2]))
             {
-                if (bflo[0] and bfhi[2])
+                if (bflo[0] && bfhi[2])
                 {
                     a(i,j,k) = a(i+1+offset, j, k-1-offset);
                 }
@@ -641,9 +642,9 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // xhi & zhi
-            else if (i == dhi.x+1 and k == dhi.z+1 and (bfhi[0] or bfhi[2]))
+            else if (i == dhi.x+1 && k == dhi.z+1 && (bfhi[0] || bfhi[2]))
             {
-                if (bfhi[0] and bfhi[2])
+                if (bfhi[0] && bfhi[2])
                 {
                     a(i,j,k) = a(i-1-offset, j, k-1-offset);
                 }
@@ -657,9 +658,9 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // ylo & zlo
-            else if (j == dlo.y-1 and k == dlo.z-1 and (bflo[1] or bflo[2]))
+            else if (j == dlo.y-1 && k == dlo.z-1 && (bflo[1] || bflo[2]))
             {
-                if (bflo[1] and bflo[2])
+                if (bflo[1] && bflo[2])
                 {
                     a(i,j,k) = a(i, j+1+offset, k+1+offset);
                 }
@@ -673,9 +674,9 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // yhi & zlo
-            else if (j == dhi.y+1 and k == dlo.z-1 and (bfhi[1] or bflo[2]))
+            else if (j == dhi.y+1 && k == dlo.z-1 && (bfhi[1] || bflo[2]))
             {
-                if (bfhi[1] and bflo[2])
+                if (bfhi[1] && bflo[2])
                 {
                     a(i,j,k) = a(i, j-1-offset, k+1+offset);
                 }
@@ -689,9 +690,9 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // ylo & zhi
-            else if (j == dlo.y-1 and k == dhi.z+1 and (bflo[1] or bfhi[2]))
+            else if (j == dlo.y-1 && k == dhi.z+1 && (bflo[1] || bfhi[2]))
             {
-                if (bflo[1] and bfhi[2])
+                if (bflo[1] && bfhi[2])
                 {
                     a(i,j,k) = a(i, j+1+offset, k-1-offset);
                 }
@@ -705,9 +706,9 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                 }
             }
             // yhi & zhi
-            else if (j == dhi.y+1 and k == dhi.z+1 and (bfhi[1] or bfhi[2]))
+            else if (j == dhi.y+1 && k == dhi.z+1 && (bfhi[1] || bfhi[2]))
             {
-                if (bfhi[1] and bfhi[2])
+                if (bfhi[1] && bfhi[2])
                 {
                     a(i,j,k) = a(i, j-1-offset, k-1-offset);
                 }
@@ -720,27 +721,27 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                     a(i,j,k) = a(i, j, k-1-offset);
                 }
             }
-            else if (i == dlo.x-1 and bflo[0])
+            else if (i == dlo.x-1 && bflo[0])
             {
                 a(i,j,k) = a(i+1+offset, j, k);
             }
-            else if (i == dhi.x+1 and bfhi[0])
+            else if (i == dhi.x+1 && bfhi[0])
             {
                 a(i,j,k) = a(i-1-offset, j, k);
             }
-            else if (j == dlo.y-1 and bflo[1])
+            else if (j == dlo.y-1 && bflo[1])
             {
                 a(i,j,k) = a(i, j+1+offset, k);
             }
-            else if (j == dhi.y+1 and bfhi[1])
+            else if (j == dhi.y+1 && bfhi[1])
             {
                 a(i,j,k) = a(i, j-1-offset, k);
             }
-            else if (k == dlo.z-1 and bflo[2])
+            else if (k == dlo.z-1 && bflo[2])
             {
                 a(i,j,k) = a(i, j, k+1+offset);
             }
-            else if (k == dhi.z+1 and bfhi[2])
+            else if (k == dhi.z+1 && bfhi[2])
             {
                 a(i,j,k) = a(i, j, k-1-offset);
             }
@@ -1195,15 +1196,15 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
     int idir = -1;
     int ilen = 33;
 
-    if ( (dxinv[0] <= dxinv[2]) and (dxinv[1] <= dxinv[2]) ) {
+    if ( (dxinv[0] <= dxinv[2]) && (dxinv[1] <= dxinv[2]) ) {
         idir = 2;
         ilen = hi.z - lo.z + 1;
     }
-    if ( (dxinv[0] <= dxinv[1]) and (dxinv[2] <= dxinv[1]) ) {
+    if ( (dxinv[0] <= dxinv[1]) && (dxinv[2] <= dxinv[1]) ) {
         idir = 1;
         ilen = hi.y - lo.y + 1;
     }
-    if ( (dxinv[1] <= dxinv[0]) and (dxinv[2] <= dxinv[0]) ) {
+    if ( (dxinv[1] <= dxinv[0]) && (dxinv[2] <= dxinv[0]) ) {
         idir = 0;
         ilen = hi.x - lo.x + 1;
     }
@@ -1573,7 +1574,7 @@ void mlndlap_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
         bool i_is_odd = (ic*2 != i);
         bool j_is_odd = (jc*2 != j);
         bool k_is_odd = (kc*2 != k);
-        if (i_is_odd and j_is_odd and k_is_odd) {
+        if (i_is_odd && j_is_odd && k_is_odd) {
             // Fine node at center of cell
             Real w1 = sig(i-1,j-1,k-1) + sig(i-1,j,k-1) + sig(i-1,j-1,k) + sig(i-1,j,k);
             Real w2 = sig(i  ,j-1,k-1) + sig(i  ,j,k-1) + sig(i  ,j-1,k) + sig(i  ,j,k);
@@ -1588,13 +1589,13 @@ void mlndlap_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
                             w5 * aa_interp_face_xy(crse,sig,i  ,j  ,k-1,ic  ,jc  ,kc  ) +
                             w6 * aa_interp_face_xy(crse,sig,i  ,j  ,k+1,ic  ,jc  ,kc+1))
                 / (w1+w2+w3+w4+w5+w6);
-        } else if (j_is_odd and k_is_odd) {
+        } else if (j_is_odd && k_is_odd) {
             // Node on a Y-Z face
             fine(i,j,k) += aa_interp_face_yz(crse,sig,i,j,k,ic,jc,kc);
-        } else if (i_is_odd and k_is_odd) {
+        } else if (i_is_odd && k_is_odd) {
             // Node on a Z-X face
             fine(i,j,k) += aa_interp_face_xz(crse,sig,i,j,k,ic,jc,kc);
-        } else if (i_is_odd and j_is_odd) {
+        } else if (i_is_odd && j_is_odd) {
             // Node on a X-Y face
             fine(i,j,k) += aa_interp_face_xy(crse,sig,i,j,k,ic,jc,kc);
         } else if (i_is_odd) {
@@ -1627,7 +1628,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
             bool i_is_odd = (ic*2 != i);
             bool j_is_odd = (jc*2 != j);
 
-            if (i_is_odd and j_is_odd) {
+            if (i_is_odd && j_is_odd) {
                 // Node on a X-Y face
                 fine(i,j,k) += aa_interp_face_xy(crse,sig,i,j,k,ic,jc,kc);
             } else if (i_is_odd) {
@@ -1649,7 +1650,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
             bool i_is_odd = (ic*2 != i);
             bool k_is_odd = (kc*2 != k);
 
-            if (i_is_odd and k_is_odd) {
+            if (i_is_odd && k_is_odd) {
                 // Node on a X-Z face
 	        fine(i,j,k) += aa_interp_face_xz(crse,sig,i,j,k,ic,jc,kc);
             } else if (i_is_odd) {
@@ -1671,7 +1672,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
             bool j_is_odd = (jc*2 != j);
             bool k_is_odd = (kc*2 != k);
 
-            if (j_is_odd and k_is_odd) {
+            if (j_is_odd && k_is_odd) {
                 // Node on a Y-Z face
                 fine(i,j,k) += aa_interp_face_yz(crse,sig,i,j,k,ic,jc,kc);
             } else if (j_is_odd) {
@@ -1750,7 +1751,7 @@ void mlndlap_interpadd_ha (int i, int j, int k, Array4<Real> const& fine,
         bool i_is_odd = (ic*2 != i);
         bool j_is_odd = (jc*2 != j);
         bool k_is_odd = (kc*2 != k);
-        if (i_is_odd and j_is_odd and k_is_odd) {
+        if (i_is_odd && j_is_odd && k_is_odd) {
             // Fine node at center of cell
             Real w1 = sigx(i-1,j-1,k-1) + sigx(i-1,j,k-1) + sigx(i-1,j-1,k) + sigx(i-1,j,k);
             Real w2 = sigx(i  ,j-1,k-1) + sigx(i  ,j,k-1) + sigx(i  ,j-1,k) + sigx(i  ,j,k);
@@ -1765,13 +1766,13 @@ void mlndlap_interpadd_ha (int i, int j, int k, Array4<Real> const& fine,
                             w5 * ha_interp_face_xy(crse,sigx,sigy,i  ,j  ,k-1,ic  ,jc  ,kc  ) +
                             w6 * ha_interp_face_xy(crse,sigx,sigy,i  ,j  ,k+1,ic  ,jc  ,kc+1))
                 / (w1+w2+w3+w4+w5+w6);
-        } else if (j_is_odd and k_is_odd) {
+        } else if (j_is_odd && k_is_odd) {
             // Node on a Y-Z face
             fine(i,j,k) += ha_interp_face_yz(crse,sigy,sigz,i,j,k,ic,jc,kc);
-        } else if (i_is_odd and k_is_odd) {
+        } else if (i_is_odd && k_is_odd) {
             // Node on a Z-X face
             fine(i,j,k) += ha_interp_face_xz(crse,sigx,sigz,i,j,k,ic,jc,kc);
-        } else if (i_is_odd and j_is_odd) {
+        } else if (i_is_odd && j_is_odd) {
             // Node on a X-Y face
             fine(i,j,k) += ha_interp_face_xy(crse,sigx,sigy,i,j,k,ic,jc,kc);
         } else if (i_is_odd) {
@@ -1822,18 +1823,18 @@ void mlndlap_divu (int i, int j, int k, Array4<Real> const& rhs, Array4<Real con
 
         // The nodal divergence operator should not see the tangential velocity
         //     at an inflow face
-        if ((bclo[0] == LinOpBCType::Neumann or bclo[0] == LinOpBCType::inflow)
-            and i == domlo.x) zero_ilo = 0.0;
-        if ((bchi[0] == LinOpBCType::Neumann or bchi[0] == LinOpBCType::inflow)
-            and i == domhi.x) zero_ihi = 0.0;
-        if ((bclo[1] == LinOpBCType::Neumann or bclo[1] == LinOpBCType::inflow)
-            and j == domlo.y) zero_jlo = 0.0;
-        if ((bchi[1] == LinOpBCType::Neumann or bchi[1] == LinOpBCType::inflow)
-            and j == domhi.y) zero_jhi = 0.0;
-        if ((bclo[2] == LinOpBCType::Neumann or bclo[2] == LinOpBCType::inflow)
-            and k == domlo.z) zero_klo = 0.0;
-        if ((bchi[2] == LinOpBCType::Neumann or bchi[2] == LinOpBCType::inflow)
-            and k == domhi.z) zero_khi = 0.0;
+        if ((bclo[0] == LinOpBCType::Neumann || bclo[0] == LinOpBCType::inflow)
+            && i == domlo.x) zero_ilo = 0.0;
+        if ((bchi[0] == LinOpBCType::Neumann || bchi[0] == LinOpBCType::inflow)
+            && i == domhi.x) zero_ihi = 0.0;
+        if ((bclo[1] == LinOpBCType::Neumann || bclo[1] == LinOpBCType::inflow)
+            && j == domlo.y) zero_jlo = 0.0;
+        if ((bchi[1] == LinOpBCType::Neumann || bchi[1] == LinOpBCType::inflow)
+            && j == domhi.y) zero_jhi = 0.0;
+        if ((bclo[2] == LinOpBCType::Neumann || bclo[2] == LinOpBCType::inflow)
+            && k == domlo.z) zero_klo = 0.0;
+        if ((bchi[2] == LinOpBCType::Neumann || bchi[2] == LinOpBCType::inflow)
+            && k == domhi.z) zero_khi = 0.0;
 
         rhs(i,j,k) = facx*(-vel(i-1,j-1,k-1,0)*zero_jlo*zero_klo+vel(i,j-1,k-1,0)*zero_jlo*zero_klo
                            -vel(i-1,j  ,k-1,0)*zero_jhi*zero_klo+vel(i,j  ,k-1,0)*zero_jhi*zero_klo
@@ -1896,7 +1897,7 @@ void mlndlap_divu_compute_fine_contrib (int i, int j, int k, Box const& fvbx,
     const auto domhi = amrex::ubound(nodal_domain);
 
     IntVect iv(i,j,k);
-    if (fvbx.contains(iv) and !fvbx.strictly_contains(iv))
+    if (fvbx.contains(iv) && !fvbx.strictly_contains(iv))
     {
         Real zero_ilo = 1.0;
         Real zero_ihi = 1.0;
@@ -1907,18 +1908,18 @@ void mlndlap_divu_compute_fine_contrib (int i, int j, int k, Box const& fvbx,
 
         // The nodal divergence operator should not see the tangential velocity
         //     at an inflow face
-        if ((bclo[0] == LinOpBCType::Neumann or bclo[0] == LinOpBCType::inflow)
-            and i == domlo.x) zero_ilo = 0.0;
-        if ((bchi[0] == LinOpBCType::Neumann or bchi[0] == LinOpBCType::inflow)
-            and i == domhi.x) zero_ihi = 0.0;
-        if ((bclo[1] == LinOpBCType::Neumann or bclo[1] == LinOpBCType::inflow)
-            and j == domlo.y) zero_jlo = 0.0;
-        if ((bchi[1] == LinOpBCType::Neumann or bchi[1] == LinOpBCType::inflow)
-            and j == domhi.y) zero_jhi = 0.0;
-        if ((bclo[2] == LinOpBCType::Neumann or bclo[2] == LinOpBCType::inflow)
-            and k == domlo.z) zero_klo = 0.0;
-        if ((bchi[2] == LinOpBCType::Neumann or bchi[2] == LinOpBCType::inflow)
-            and k == domhi.z) zero_khi = 0.0;
+        if ((bclo[0] == LinOpBCType::Neumann || bclo[0] == LinOpBCType::inflow)
+            && i == domlo.x) zero_ilo = 0.0;
+        if ((bchi[0] == LinOpBCType::Neumann || bchi[0] == LinOpBCType::inflow)
+            && i == domhi.x) zero_ihi = 0.0;
+        if ((bclo[1] == LinOpBCType::Neumann || bclo[1] == LinOpBCType::inflow)
+            && j == domlo.y) zero_jlo = 0.0;
+        if ((bchi[1] == LinOpBCType::Neumann || bchi[1] == LinOpBCType::inflow)
+            && j == domhi.y) zero_jhi = 0.0;
+        if ((bclo[2] == LinOpBCType::Neumann || bclo[2] == LinOpBCType::inflow)
+            && k == domlo.z) zero_klo = 0.0;
+        if ((bchi[2] == LinOpBCType::Neumann || bchi[2] == LinOpBCType::inflow)
+            && k == domhi.z) zero_khi = 0.0;
 
         frh(i,j,k) = 0.25*dxinv[0]*(-vel(i-1,j-1,k-1,0)*zero_jlo*zero_klo+vel(i,j-1,k-1,0)*zero_jlo*zero_klo
                                     -vel(i-1,j  ,k-1,0)*zero_jhi*zero_klo+vel(i,j  ,k-1,0)*zero_jhi*zero_klo
@@ -1949,7 +1950,7 @@ void mlndlap_divu_add_fine_contrib (int i, int j, int k, Box const& fvbx,
     int jj = 2*j;
     int kk = 2*k;
     IntVect iv(ii,jj,kk);
-    if (fvbx.contains(iv) and !fvbx.strictly_contains(iv) and msk(ii,jj,kk))
+    if (fvbx.contains(iv) && !fvbx.strictly_contains(iv) && msk(ii,jj,kk))
     {
         rhs(i,j,k) +=
             rfd*(frh(ii,jj,kk)
@@ -1976,7 +1977,7 @@ void mlndlap_rhcc_fine_contrib (int i, int j, int k, Box const& fvbx,
     int jj = 2*j;
     int kk = 2*k;
     IntVect iv(ii,jj,kk);
-    if (fvbx.contains(iv) and !fvbx.strictly_contains(iv) and msk(ii,jj,kk))
+    if (fvbx.contains(iv) && !fvbx.strictly_contains(iv) && msk(ii,jj,kk))
     {
         Real r = 0.0;
         for (int koff = -2; koff <= 1; ++koff) {
@@ -1998,7 +1999,7 @@ void mlndlap_divu_cf_contrib (int i, int j, int k, Array4<Real> const& rhs,
                               GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bchi,
                               bool neumann_doubling) noexcept
 {
-    if (!dmsk(i,j,k) and ndmsk(i,j,k) == crse_fine_node) {
+    if (!dmsk(i,j,k) && ndmsk(i,j,k) == crse_fine_node) {
         Real facx = Real(0.25) * dxinv[0];
         Real facy = Real(0.25) * dxinv[1];
         Real facz = Real(0.25) * dxinv[2];
@@ -2057,26 +2058,26 @@ void mlndlap_divu_cf_contrib (int i, int j, int k, Array4<Real> const& rhs,
         if (neumann_doubling) {
             const auto ndlo = amrex::lbound(nddom);
             const auto ndhi = amrex::ubound(nddom);
-            if (i == ndlo.x and ( bclo[0] == LinOpBCType::Neumann or
+            if (i == ndlo.x && ( bclo[0] == LinOpBCType::Neumann ||
                                   bclo[0] == LinOpBCType::inflow)) {
                 r *= Real(2.);
-            } else if (i== ndhi.x and ( bchi[0] == LinOpBCType::Neumann or
+            } else if (i== ndhi.x && ( bchi[0] == LinOpBCType::Neumann ||
                                         bchi[0] == LinOpBCType::inflow)) {
                 r *= Real(2.);
             }
 
-            if (j == ndlo.y and ( bclo[1] == LinOpBCType::Neumann or
+            if (j == ndlo.y && ( bclo[1] == LinOpBCType::Neumann ||
                                   bclo[1] == LinOpBCType::inflow)) {
                 r *= Real(2.);
-            } else if (j == ndhi.y and ( bchi[1] == LinOpBCType::Neumann or
+            } else if (j == ndhi.y && ( bchi[1] == LinOpBCType::Neumann ||
                                          bchi[1] == LinOpBCType::inflow)) {
                 r *= Real(2.);
             }
 
-            if (k == ndlo.z and ( bclo[2] == LinOpBCType::Neumann or
+            if (k == ndlo.z && ( bclo[2] == LinOpBCType::Neumann ||
                                   bclo[2] == LinOpBCType::inflow)) {
                 r *= Real(2.);
-            } else if (k == ndhi.z and ( bchi[2] == LinOpBCType::Neumann or
+            } else if (k == ndhi.z && ( bchi[2] == LinOpBCType::Neumann ||
                                          bchi[2] == LinOpBCType::inflow)) {
                 r *= Real(2.);
             }
@@ -2097,45 +2098,45 @@ void mlndlap_crse_resid (int i, int j, int k, Array4<Real> const& resid,
                          GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bchi,
                          bool neumann_doubling) noexcept
 {
-    if ((msk(i-1,j-1,k-1) == 0 or
-         msk(i  ,j-1,k-1) == 0 or
-         msk(i-1,j  ,k-1) == 0 or
-         msk(i  ,j  ,k-1) == 0 or
-         msk(i-1,j-1,k  ) == 0 or
-         msk(i  ,j-1,k  ) == 0 or
-         msk(i-1,j  ,k  ) == 0 or
-         msk(i  ,j  ,k  ) == 0) and
-        (msk(i-1,j-1,k-1) == 0 or
-         msk(i  ,j-1,k-1) == 0 or
-         msk(i-1,j  ,k-1) == 0 or
-         msk(i  ,j  ,k-1) == 0 or
-         msk(i-1,j-1,k  ) == 0 or
-         msk(i  ,j-1,k  ) == 0 or
-         msk(i-1,j  ,k  ) == 0 or
+    if ((msk(i-1,j-1,k-1) == 0 ||
+         msk(i  ,j-1,k-1) == 0 ||
+         msk(i-1,j  ,k-1) == 0 ||
+         msk(i  ,j  ,k-1) == 0 ||
+         msk(i-1,j-1,k  ) == 0 ||
+         msk(i  ,j-1,k  ) == 0 ||
+         msk(i-1,j  ,k  ) == 0 ||
+         msk(i  ,j  ,k  ) == 0) &&
+        (msk(i-1,j-1,k-1) == 0 ||
+         msk(i  ,j-1,k-1) == 0 ||
+         msk(i-1,j  ,k-1) == 0 ||
+         msk(i  ,j  ,k-1) == 0 ||
+         msk(i-1,j-1,k  ) == 0 ||
+         msk(i  ,j-1,k  ) == 0 ||
+         msk(i-1,j  ,k  ) == 0 ||
          msk(i  ,j  ,k  ) == 0))
     {
         Real fac = Real(1.0);
         if (neumann_doubling) {
             const auto ndlo = amrex::lbound(nddom);
             const auto ndhi = amrex::ubound(nddom);
-            if (i == ndlo.x and ( bclo[0] == LinOpBCType::Neumann or
+            if (i == ndlo.x && ( bclo[0] == LinOpBCType::Neumann ||
                                   bclo[0] == LinOpBCType::inflow)) {
                 fac *= Real(2.);
-            } else if (i== ndhi.x and ( bchi[0] == LinOpBCType::Neumann or
+            } else if (i== ndhi.x && ( bchi[0] == LinOpBCType::Neumann ||
                                         bchi[0] == LinOpBCType::inflow)) {
                 fac *= Real(2.);
             }
-            if (j == ndlo.y and ( bclo[1] == LinOpBCType::Neumann or
+            if (j == ndlo.y && ( bclo[1] == LinOpBCType::Neumann ||
                                   bclo[1] == LinOpBCType::inflow)) {
                 fac *= Real(2.);
-            } else if (j == ndhi.y and ( bchi[1] == LinOpBCType::Neumann or
+            } else if (j == ndhi.y && ( bchi[1] == LinOpBCType::Neumann ||
                                          bchi[1] == LinOpBCType::inflow)) {
                 fac *= Real(2.);
             }
-            if (k == ndlo.z and ( bclo[2] == LinOpBCType::Neumann or
+            if (k == ndlo.z && ( bclo[2] == LinOpBCType::Neumann ||
                                   bclo[2] == LinOpBCType::inflow)) {
                 fac *= Real(2.);
-            } else if (k == ndhi.z and ( bchi[2] == LinOpBCType::Neumann or
+            } else if (k == ndhi.z && ( bchi[2] == LinOpBCType::Neumann ||
                                          bchi[2] == LinOpBCType::inflow)) {
                 fac *= Real(2.);
             }
@@ -2156,7 +2157,7 @@ void mlndlap_res_fine_Ax (int i, int j, int k, Box const& fvbx, Array4<Real> con
                           GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     IntVect iv(i,j,k);
-    if (fvbx.contains(iv) and !fvbx.strictly_contains(iv)) {
+    if (fvbx.contains(iv) && !fvbx.strictly_contains(iv)) {
         Real facx = Real(1./36.)*dxinv[0]*dxinv[0];
         Real facy = Real(1./36.)*dxinv[1]*dxinv[1];
         Real facz = Real(1./36.)*dxinv[2]*dxinv[2];
@@ -2239,7 +2240,7 @@ void mlndlap_res_cf_contrib (int i, int j, int k, Array4<Real> const& res,
                              GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi,
                              bool neumann_doubling) noexcept
 {
-    if (!dmsk(i,j,k) and ndmsk(i,j,k) == crse_fine_node) {
+    if (!dmsk(i,j,k) && ndmsk(i,j,k) == crse_fine_node) {
 
         Real facx = Real(1./36.)*dxinv[0]*dxinv[0];
         Real facy = Real(1./36.)*dxinv[1]*dxinv[1];
@@ -2364,26 +2365,26 @@ void mlndlap_res_cf_contrib (int i, int j, int k, Array4<Real> const& res,
             const auto ndlo = amrex::lbound(nddom);
             const auto ndhi = amrex::ubound(nddom);
 
-            if (i == ndlo.x and (bclo[0] == LinOpBCType::Neumann or
+            if (i == ndlo.x && (bclo[0] == LinOpBCType::Neumann ||
                                  bclo[0] == LinOpBCType::inflow)) {
                 Axf *= Real(2.);
-            } else if (i== ndhi.x and (bchi[0] == LinOpBCType::Neumann or
+            } else if (i== ndhi.x && (bchi[0] == LinOpBCType::Neumann ||
                                        bchi[0] == LinOpBCType::inflow)) {
                 Axf *= Real(2.);
             }
 
-            if (j == ndlo.y and ( bclo[1] == LinOpBCType::Neumann or
+            if (j == ndlo.y && ( bclo[1] == LinOpBCType::Neumann ||
                                   bclo[1] == LinOpBCType::inflow)) {
                 Axf *= Real(2.);
-            } else if (j == ndhi.y and (bchi[1] == LinOpBCType::Neumann or
+            } else if (j == ndhi.y && (bchi[1] == LinOpBCType::Neumann ||
                                         bchi[1] == LinOpBCType::inflow)) {
                 Axf *= Real(2.);
             }
 
-            if (k == ndlo.z and (bclo[2] == LinOpBCType::Neumann or
+            if (k == ndlo.z && (bclo[2] == LinOpBCType::Neumann ||
                                  bclo[2] == LinOpBCType::inflow)) {
                 Axf *= Real(2.);
-            } else if (k == ndhi.z and (bchi[2] == LinOpBCType::Neumann or
+            } else if (k == ndhi.z && (bchi[2] == LinOpBCType::Neumann ||
                                         bchi[2] == LinOpBCType::inflow)) {
                 Axf *= Real(2.);
             }
@@ -2943,7 +2944,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     auto interp_from_00m_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real w1 = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p));
         Real w2 = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_00p));
-        if (w1 == Real(0.) and w2 == Real(0.)) {
+        if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
             return w1 / (w1+w2);
@@ -2953,7 +2954,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     auto interp_from_00p_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real w1 = amrex::Math::abs(fsten(i_  ,j_  ,k_-1,ist_00p));
         Real w2 = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_00p));
-        if (w1 == Real(0.) and w2 == Real(0.)) {
+        if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
             return w2 / (w1+w2);
@@ -2963,7 +2964,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     auto interp_from_0m0_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real w1 = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0p0));
         Real w2 = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0));
-        if (w1 == Real(0.) and w2 == Real(0.)) {
+        if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
             return w1 / (w1+w2);
@@ -2973,7 +2974,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     auto interp_from_0p0_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real w1 = amrex::Math::abs(fsten(i_  ,j_-1,k_  ,ist_0p0));
         Real w2 = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_0p0));
-        if (w1 == Real(0.) and w2 == Real(0.)) {
+        if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
             return w2 / (w1+w2);
@@ -2983,7 +2984,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     auto interp_from_m00_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real w1 = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00));
         Real w2 = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p00));
-        if (w1 == Real(0.) and w2 == Real(0.)) {
+        if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
             return w1 / (w1+w2);
@@ -2993,7 +2994,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     auto interp_from_p00_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real w1 = amrex::Math::abs(fsten(i_-1,j_  ,k_  ,ist_p00));
         Real w2 = amrex::Math::abs(fsten(i_  ,j_  ,k_  ,ist_p00));
-        if (w1 == Real(0.) and w2 == Real(0.)) {
+        if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
             return w2 / (w1+w2);
@@ -3205,7 +3206,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     auto restrict_from_00m_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
         Real w1 = amrex::Math::abs(fsten(ii_,jj_,kk_-2,ist_00p));
         Real w2 = amrex::Math::abs(fsten(ii_,jj_,kk_-1,ist_00p));
-        if (w1 == Real(0.) and w2 == Real(0.)) {
+        if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
             return w2 / (w1+w2);
@@ -3323,7 +3324,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     auto restrict_from_0m0_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
         Real w1 = amrex::Math::abs(fsten(ii_,jj_-2,kk_,ist_0p0));
         Real w2 = amrex::Math::abs(fsten(ii_,jj_-1,kk_,ist_0p0));
-        if (w1 == Real(0.) and w2 == Real(0.)) {
+        if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
             return w2 / (w1+w2);
@@ -3349,7 +3350,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     auto restrict_from_m00_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
         Real w1 = amrex::Math::abs(fsten(ii_-2,jj_,kk_,ist_p00));
         Real w2 = amrex::Math::abs(fsten(ii_-1,jj_,kk_,ist_p00));
-        if (w1 == Real(0.) and w2 == Real(0.)) {
+        if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
             return w2 / (w1+w2);
@@ -3363,7 +3364,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     auto restrict_from_p00_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
         Real w1 = amrex::Math::abs(fsten(ii_  ,jj_,kk_,ist_p00));
         Real w2 = amrex::Math::abs(fsten(ii_+1,jj_,kk_,ist_p00));
-        if (w1 == Real(0.) and w2 == Real(0.)) {
+        if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
             return w1 / (w1+w2);
@@ -3389,7 +3390,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     auto restrict_from_0p0_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
         Real w1 = amrex::Math::abs(fsten(ii_,jj_  ,kk_,ist_0p0));
         Real w2 = amrex::Math::abs(fsten(ii_,jj_+1,kk_,ist_0p0));
-        if (w1 == Real(0.) and w2 == Real(0.)) {
+        if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
             return w1 / (w1+w2);
@@ -3507,7 +3508,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     auto restrict_from_00p_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
         Real w1 = amrex::Math::abs(fsten(ii_,jj_,kk_  ,ist_00p));
         Real w2 = amrex::Math::abs(fsten(ii_,jj_,kk_+1,ist_00p));
-        if (w1 == Real(0.) and w2 == Real(0.)) {
+        if (w1 == Real(0.) && w2 == Real(0.)) {
             return Real(0.5);
         } else {
             return w1 / (w1+w2);
@@ -5202,7 +5203,7 @@ void mlndlap_interpadd_rap (int i, int j, int k, Array4<Real> const& fine,
                             Array4<Real const> const& crse, Array4<Real const> const& sten,
                             Array4<int const> const& msk) noexcept
 {
-    if (!msk(i,j,k) and sten(i,j,k,ist_000) != 0.0) {
+    if (!msk(i,j,k) && sten(i,j,k,ist_000) != 0.0) {
         int ic = amrex::coarsen(i,2);
         int jc = amrex::coarsen(j,2);
         int kc = amrex::coarsen(k,2);
@@ -5210,28 +5211,28 @@ void mlndlap_interpadd_rap (int i, int j, int k, Array4<Real> const& fine,
         bool jeven = jc*2 == j;
         bool keven = kc*2 == k;
         Real fv;
-        if (ieven and jeven and keven) {
+        if (ieven && jeven && keven) {
             fv = crse(ic,jc,kc);
-        } else if (ieven and jeven) {
+        } else if (ieven && jeven) {
             Real w1 = amrex::Math::abs(sten(i,j,k-1,ist_00p));
             Real w2 = amrex::Math::abs(sten(i,j,k  ,ist_00p));
-            if (w1 == 0.0 and w2 == 0.0) {
+            if (w1 == 0.0 && w2 == 0.0) {
                 fv = 0.5*(crse(ic,jc,kc)+crse(ic,jc,kc+1));
             } else {
                 fv = (w1*crse(ic,jc,kc) + w2*crse(ic,jc,kc+1)) / (w1+w2);
             }
-        } else if (ieven and keven) {
+        } else if (ieven && keven) {
             Real w1 = amrex::Math::abs(sten(i,j-1,k,ist_0p0));
             Real w2 = amrex::Math::abs(sten(i,j  ,k,ist_0p0));
-            if (w1 == 0.0 and w2 == 0.0) {
+            if (w1 == 0.0 && w2 == 0.0) {
                 fv = 0.5*(crse(ic,jc,kc)+crse(ic,jc+1,kc));
             } else {
                 fv = (w1*crse(ic,jc,kc) + w2*crse(ic,jc+1,kc)) / (w1+w2);
             }
-        } else if (jeven and keven) {
+        } else if (jeven && keven) {
             Real w1 = amrex::Math::abs(sten(i-1,j,k,ist_p00));
             Real w2 = amrex::Math::abs(sten(i  ,j,k,ist_p00));
-            if (w1 == 0.0 and w2 == 0.0) {
+            if (w1 == 0.0 && w2 == 0.0) {
                 fv = 0.5*(crse(ic,jc,kc)+crse(ic+1,jc,kc));
             } else {
                 fv = (w1*crse(ic,jc,kc) + w2*crse(ic+1,jc,kc)) / (w1+w2);
@@ -5466,7 +5467,7 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         Real sten_lo = amrex::Math::abs(sten(ii-2,jj,kk,ist_p00));
         Real sten_hi = amrex::Math::abs(sten(ii-1,jj,kk,ist_p00));
 
-        if (sten_lo == 0.0 and sten_hi == 0.0) {
+        if (sten_lo == 0.0 && sten_hi == 0.0) {
             cv += 0.5*fine(ii-1,jj,kk);
         } else {
             cv += fine(ii-1,jj,kk) * sten_hi / (sten_lo + sten_hi);
@@ -5479,7 +5480,7 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         sten_lo = amrex::Math::abs(sten(ii  ,jj,kk,ist_p00));
         sten_hi = amrex::Math::abs(sten(ii+1,jj,kk,ist_p00));
 
-        if (sten_lo == 0.0 and sten_hi == 0.0) {
+        if (sten_lo == 0.0 && sten_hi == 0.0) {
             cv += 0.5*fine(ii+1,jj,kk);
         } else {
             cv += fine(ii+1,jj,kk) * sten_lo / (sten_lo + sten_hi);
@@ -5492,7 +5493,7 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         sten_lo = amrex::Math::abs(sten(ii,jj-2,kk,ist_0p0));
         sten_hi = amrex::Math::abs(sten(ii,jj-1,kk,ist_0p0));
 
-        if (sten_lo == 0.0 and sten_hi == 0.0) {
+        if (sten_lo == 0.0 && sten_hi == 0.0) {
             cv += 0.5*fine(ii,jj-1,kk);
         } else {
             cv += fine(ii,jj-1,kk) * sten_hi / (sten_lo + sten_hi);
@@ -5505,7 +5506,7 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         sten_lo = amrex::Math::abs(sten(ii,jj  ,kk,ist_0p0));
         sten_hi = amrex::Math::abs(sten(ii,jj+1,kk,ist_0p0));
 
-        if (sten_lo == 0.0 and sten_hi == 0.0) {
+        if (sten_lo == 0.0 && sten_hi == 0.0) {
             cv += 0.5*fine(ii,jj+1,kk);
         } else {
             cv += fine(ii,jj+1,kk) * sten_lo / (sten_lo + sten_hi);
@@ -5518,7 +5519,7 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         sten_lo = amrex::Math::abs(sten(ii,jj,kk-2,ist_00p));
         sten_hi = amrex::Math::abs(sten(ii,jj,kk-1,ist_00p));
 
-        if (sten_lo == 0.0 and sten_hi == 0.0) {
+        if (sten_lo == 0.0 && sten_hi == 0.0) {
             cv += 0.5*fine(ii,jj,kk-1);
         } else {
             cv += fine(ii,jj,kk-1)*sten_hi / (sten_lo + sten_hi);
@@ -5531,7 +5532,7 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         sten_lo = amrex::Math::abs(sten(ii,jj,kk  ,ist_00p));
         sten_hi = amrex::Math::abs(sten(ii,jj,kk+1,ist_00p));
 
-        if (sten_lo == 0.0 and sten_hi == 0.0) {
+        if (sten_lo == 0.0 && sten_hi == 0.0) {
             cv += 0.5*fine(ii,jj,kk+1);
         } else {
             cv += fine(ii,jj,kk+1)*sten_lo  / (sten_lo + sten_hi);
@@ -6099,7 +6100,7 @@ void mlndlap_set_connection (int i, int j, int k, Array4<Real> const& conn,
 {
     if (flag(i,j,k).isCovered()) {
         for (int n = 0; n < n_conn; ++n) conn(i,j,k,n) = Real(0.);
-    } else if (flag(i,j,k).isRegular() or vol(i,j,k) >= almostone) {
+    } else if (flag(i,j,k).isRegular() || vol(i,j,k) >= almostone) {
         for (int n = 0; n < n_conn; ++n) conn(i,j,k,n) = Real(1.);
     } else {
         // Scaled by 9
@@ -6338,18 +6339,18 @@ void mlndlap_divu_eb (int i, int j, int k, Array4<Real> const& rhs, Array4<Real 
 
         // The nodal divergence operator should not see the tangential velocity
         //     at an inflow face
-        if ((bclo[0] == LinOpBCType::Neumann or bclo[0] == LinOpBCType::inflow)
-            and i == domlo.x) zero_ilo = 0.0;
-        if ((bchi[0] == LinOpBCType::Neumann or bchi[0] == LinOpBCType::inflow)
-            and i == domhi.x) zero_ihi = 0.0;
-        if ((bclo[1] == LinOpBCType::Neumann or bclo[1] == LinOpBCType::inflow)
-            and j == domlo.y) zero_jlo = 0.0;
-        if ((bchi[1] == LinOpBCType::Neumann or bchi[1] == LinOpBCType::inflow)
-            and j == domhi.y) zero_jhi = 0.0;
-        if ((bclo[2] == LinOpBCType::Neumann or bclo[2] == LinOpBCType::inflow)
-            and k == domlo.z) zero_klo = 0.0;
-        if ((bchi[2] == LinOpBCType::Neumann or bchi[2] == LinOpBCType::inflow)
-            and k == domhi.z) zero_khi = 0.0;
+        if ((bclo[0] == LinOpBCType::Neumann || bclo[0] == LinOpBCType::inflow)
+            && i == domlo.x) zero_ilo = 0.0;
+        if ((bchi[0] == LinOpBCType::Neumann || bchi[0] == LinOpBCType::inflow)
+            && i == domhi.x) zero_ihi = 0.0;
+        if ((bclo[1] == LinOpBCType::Neumann || bclo[1] == LinOpBCType::inflow)
+            && j == domlo.y) zero_jlo = 0.0;
+        if ((bchi[1] == LinOpBCType::Neumann || bchi[1] == LinOpBCType::inflow)
+            && j == domhi.y) zero_jhi = 0.0;
+        if ((bclo[2] == LinOpBCType::Neumann || bclo[2] == LinOpBCType::inflow)
+            && k == domlo.z) zero_klo = 0.0;
+        if ((bchi[2] == LinOpBCType::Neumann || bchi[2] == LinOpBCType::inflow)
+            && k == domhi.z) zero_khi = 0.0;
 
         rhs(i,j,k) = facx*(
             vel(i-1,j-1,k  ,0)*(    -vfrac(i-1,j-1,k  )

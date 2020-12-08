@@ -2,56 +2,13 @@
 # For Summit et al. at OLCF
 #
 
-OLCF_MACHINES := summitdev summit ascent peak
+OLCF_MACHINES := summit ascent
 
 ifneq ($(which_computer), $(findstring $(which_computer), $(OLCF_MACHINES)))
   $(error Unknown OLCF computer, $(which_computer))
 endif
 
-
-
-ifeq ($(which_computer),$(filter $(which_computer),summitdev))
-
-  ifeq ($(USE_MPI),TRUE)
-
-    CC  := mpicc
-    CXX := mpicxx
-    FC  := mpifort
-    F90 := mpifort
-
-    LIBRARIES += -lmpi_ibm_mpifh -lmpi_ibm
-
-  endif
-
-  ifeq ($(lowercase_comp),gnu)
-    override XTRALIBS := -lgfortran
-  endif
-
-  ifeq ($(lowercase_comp),ibm)
-    override XTRALIBS += -L$(OLCF_XLF_ROOT)/lib -L$(OLCF_XLC_ROOT)/lib
-  endif
-
-  # If the cuda module is loaded, CUDAPATH is set as the toolkit location.
-
-  SYSTEM_CUDA_PATH=$(CUDAPATH)
-
-  SYSTEM_NVML_PATH=/usr/lib64/nvidia
-
-  # Specify that we want to build for Pascal
-
-  CUDA_ARCH = 60
-  COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
-
-  # Provide system configuration information.
-
-  GPUS_PER_NODE=4
-  GPUS_PER_SOCKET=2
-
-endif
-
-
-
-ifeq ($(which_computer),$(filter $(which_computer),summit))
+ifeq ($(which_computer),$(filter $(which_computer),summit ascent))
 
   ifeq ($(USE_MPI),TRUE)
 
@@ -72,9 +29,6 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
     override XTRALIBS += -L$(OLCF_XLF_ROOT)/lib -L$(OLCF_XLC_ROOT)/lib
   endif
 
-  # If the cuda module is loaded, CUDAPATH is set as the toolkit location.
-  # No longer the case
-  # SYSTEM_CUDA_PATH=$(CUDAPATH)
   SYSTEM_CUDA_PATH=$(OLCF_CUDA_ROOT)
 
   SYSTEM_NVML_PATH=$(OLCF_CUDA_ROOT)/lib64/stubs
@@ -88,47 +42,5 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
 
   GPUS_PER_NODE=6
   GPUS_PER_SOCKET=3
-
-endif
-
-
-ifeq ($(which_computer),$(filter $(which_computer),ascent peak))
-
-  ifeq ($(USE_MPI),TRUE)
-
-    CC  := mpicc
-    CXX := mpicxx
-    FC  := mpif90
-    F90 := mpif90
-
-    LIBRARIES += -lmpi_ibm_mpifh -lmpi_ibm
-
-  endif
-
-  ifeq ($(lowercase_comp),gnu)
-    override XTRALIBS := -lgfortran
-  endif
-
-  ifeq ($(lowercase_comp),ibm)
-    override XTRALIBS += -L$(OLCF_XLF_ROOT)/lib -L$(OLCF_XLC_ROOT)/lib
-  endif
-
-  # If the cuda module is loaded, CUDAPATH is set as the toolkit location.
-
-  SYSTEM_CUDA_PATH=$(CUDAPATH)
-
-  SYSTEM_NVML_PATH=/usr/lib64/nvidia
-
-  # Specify that we want to build for Volta
-
-  CUDA_ARCH = 70
-  COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
-
-  # Provide system configuration information.
-
-  GPUS_PER_NODE=6
-  GPUS_PER_SOCKET=3
-
-   CPATH=/autofs/nccsopen-svm1_sw/ascent/.swci/1-compute/opt/spack/20180914/linux-rhel7-ppc64le/pgi-18.7/spectrum-mpi-10.2.0.7-20180830-d6ufwv3i4tohn6fq552fpz6au5ik33ok/include:/sw/ascent/cuda/9.1.85/include
 
 endif

@@ -11,6 +11,7 @@
 
 #ifndef AMREX_ALGOIM_K_H_
 #define AMREX_ALGOIM_K_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_algoim.H>
 #include <AMReX_Array.H>
@@ -278,11 +279,11 @@ struct ImplicitIntegral
             }
             dphi_max *= 0.5*almostone;
             const Real phi_0 = phi(mid);
-            bool uniform_sign = (phi_0 > dphi_max) or (phi_0 < -dphi_max);
+            bool uniform_sign = (phi_0 > dphi_max) || (phi_0 < -dphi_max);
             if (uniform_sign)
             {
-                if ((phi_0 >= 0.0 and psi[i].sign() >= 0) or
-                    (phi_0 <= 0.0 and psi[i].sign() <= 0) )
+                if ((phi_0 >= 0.0 && psi[i].sign() >= 0) ||
+                    (phi_0 <= 0.0 && psi[i].sign() <= 0) )
                 {
                     --psiCount;
                     detail::swap(psi[i], psi[psiCount]);
@@ -382,13 +383,13 @@ struct ImplicitIntegral
                 x[e0] = x_min;
                 Real phi_lo = phi(x);
                 Real xroot = x[e0] - phi_lo / phi.grad(e0);
-                if (xroot > x_min and xroot < x_max) {
+                if (xroot > x_min && xroot < x_max) {
                     roots[nroots++] = xroot;
                 }
             }
             AMREX_ASSERT(nroots <= 3);
         }
-        if (nroots == 3 and roots[1] > roots[2]) {
+        if (nroots == 3 && roots[1] > roots[2]) {
             detail::swap(roots[1],roots[2]);
         }
         roots[nroots++] = x_max;
@@ -417,7 +418,7 @@ struct ImplicitIntegral
                     }
                 }
                 bool new_ok = (phi(x) > 0.0) ? (psi[j].sign() >= 0) : (psi[j].sign() <= 0);
-                okay = okay and new_ok;
+                okay = okay && new_ok;
             }
             if (!okay) continue;
 

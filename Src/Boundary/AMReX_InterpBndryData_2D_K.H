@@ -1,5 +1,6 @@
 #ifndef AMREX_INTERP_BNDRYDATA_2D_K_H_
 #define AMREX_INTERP_BNDRYDATA_2D_K_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IArrayBox.H>
@@ -35,8 +36,8 @@ void interpbndrydata_x_o3 (int i, int j, int /*k*/, int n,
         x[NN] = -1.0;
         y[NN] = crse(ic,jc-1,0,n+nc);
         ++NN;
-    } else if (mask.contains(i,(jc+2)*r.y,0) and
-               mask         (i,(jc+2)*r.y,0) == not_covered and crse.contains(ic,jc+2,0)) {
+    } else if (mask.contains(i,(jc+2)*r.y,0) &&
+               mask         (i,(jc+2)*r.y,0) == not_covered && crse.contains(ic,jc+2,0)) {
         x[NN] = 2.0;
         y[NN] = crse(ic,jc+2,0,n+nc);
         ++NN;
@@ -46,14 +47,14 @@ void interpbndrydata_x_o3 (int i, int j, int /*k*/, int n,
         x[NN] = 1.0;
         y[NN] = crse(ic,jc+1,0,n+nc);
         ++NN;
-    } else if (mask.contains(i,jc*r.y-r.y-1,0) and
-               mask         (i,jc*r.y-r.y-1,0) == not_covered and crse.contains(ic,jc-2,0)) {
+    } else if (mask.contains(i,jc*r.y-r.y-1,0) &&
+               mask         (i,jc*r.y-r.y-1,0) == not_covered && crse.contains(ic,jc-2,0)) {
         x[NN] = -2.0;
         y[NN] = crse(ic,jc-2,0,n+nc);
         ++NN;
     }
 
-    if ( (mask(i,j-r.y,0) != not_covered) and (mask(i,j+r.y,0) != not_covered) ) {
+    if ( (mask(i,j-r.y,0) != not_covered) && (mask(i,j+r.y,0) != not_covered) ) {
         NN = 1;
     }
 
@@ -84,8 +85,8 @@ void interpbndrydata_y_o3 (int i, int j, int /*k*/, int n,
         x[NN] = -1.0;
         y[NN] = crse(ic-1,jc,0,n+nc);
         ++NN;
-    } else if (mask.contains((ic+2)*r.x,j,0) and
-               mask         ((ic+2)*r.x,j,0) == not_covered and crse.contains(ic+2,jc,0)) {
+    } else if (mask.contains((ic+2)*r.x,j,0) &&
+               mask         ((ic+2)*r.x,j,0) == not_covered && crse.contains(ic+2,jc,0)) {
         x[NN] = 2.0;
         y[NN] = crse(ic+2,jc,0,n+nc);
         ++NN;
@@ -95,14 +96,14 @@ void interpbndrydata_y_o3 (int i, int j, int /*k*/, int n,
         x[NN] = 1.0;
         y[NN] = crse(ic+1,jc,0,n+nc);
         ++NN;
-    } else if (mask.contains(ic*r.x-r.x-1,j,0) and
-               mask         (ic*r.x-r.x-1,j,0) == not_covered and crse.contains(ic-2,jc,0)) {
+    } else if (mask.contains(ic*r.x-r.x-1,j,0) &&
+               mask         (ic*r.x-r.x-1,j,0) == not_covered && crse.contains(ic-2,jc,0)) {
         x[NN] = -2.0;
         y[NN] = crse(ic-2,jc,0,n+nc);
         ++NN;
     }
 
-    if ( (mask(i-r.x,j,0) != not_covered) and (mask(i+r.x,j,0) != not_covered) ) {
+    if ( (mask(i-r.x,j,0) != not_covered) && (mask(i+r.x,j,0) != not_covered) ) {
         NN = 1;
     }
 
