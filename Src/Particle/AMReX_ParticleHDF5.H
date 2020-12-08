@@ -273,15 +273,16 @@ static int ReadHDF5AttrLong(hid_t loc, const char *name, void *data)
     return 1;
 }
 
-static void SetHDF5fapl(hid_t fapl)
+static void SetHDF5fapl(hid_t fapl, MPI_Comm comm)
 {
 #ifdef BL_USE_MPI
-    H5Pset_fapl_mpio(fapl, MPI_COMM_SELF, MPI_INFO_NULL);
+    H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
 
     // Alignment and metadata block size
     int alignment = 16 * 1024 * 1024;
+    int blocksize =  4 * 1024 * 1024;
     H5Pset_alignment(fapl, alignment, alignment);
-    H5Pset_meta_block_size(fapl, 8388608);
+    H5Pset_meta_block_size(fapl, blocksize);
 
     // Collective metadata ops
     H5Pset_coll_metadata_write(fapl, true);
@@ -425,7 +426,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
    
         // Have only one rank to create and write metadata (header)
         fapl = H5Pcreate (H5P_FILE_ACCESS);
-        SetHDF5fapl(fapl);
+
+#ifdef BL_USE_MPI
+        SetHDF5fapl(fapl, MPI_COMM_SELF);
+#else
+        SetHDF5fapl(fapl, NULL);
+#endif
 
         // Create the HDF5 file
         fid = H5Fcreate(HDF5FileName.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
@@ -550,7 +556,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     ParallelDescriptor::Barrier();
 
     fapl = H5Pcreate (H5P_FILE_ACCESS);
-    SetHDF5fapl(fapl);
+
+#ifdef BL_USE_MPI
+    SetHDF5fapl(fapl, ParallelDescriptor::Communicator());
+#else
+    SetHDF5fapl(fapl, NULL);
+#endif
 
 #ifdef AMREX_USE_HDF5_ASYNC
     // Only use HDF5 async I/O for data write
@@ -906,7 +917,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     int ret;
 
     fapl = H5Pcreate (H5P_FILE_ACCESS);
-    SetHDF5fapl(fapl);
+#ifdef BL_USE_MPI
+    SetHDF5fapl(fapl, ParallelDescriptor::Communicator());
+#else
+    SetHDF5fapl(fapl, NULL);
+#endif
+
 
     fid = H5Fopen(fullname.c_str(), H5F_ACC_RDONLY, fapl);
     if (fid < 0) {
