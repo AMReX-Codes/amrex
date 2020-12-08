@@ -25,7 +25,7 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
 
         const Box & bx = mfi.validbox();
 
-        if (my_flag.getType(bx) == FabType::covered or
+        if (my_flag.getType(bx) == FabType::covered ||
             my_flag.getType(bx) == FabType::regular) continue;
 
         std::array<const MultiCutFab *, AMREX_SPACEDIM> areafrac;
@@ -57,7 +57,7 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
 
         const Box & bx = mfi.validbox();
 
-        if (my_flag.getType(bx) == FabType::covered or
+        if (my_flag.getType(bx) == FabType::covered ||
             my_flag.getType(bx) == FabType::regular) continue;
 
         amrex_eb_grid_coverage(& cpu, problo, dx, BL_TO_FORTRAN_BOX(bx), BL_TO_FORTRAN_3D(my_flag));

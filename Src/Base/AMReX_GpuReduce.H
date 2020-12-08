@@ -61,7 +61,7 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
     h.item.barrier(sycl::access::fence_space::local_space);
     if (lane == 0) shared[wid] = x;
     h.item.barrier(sycl::access::fence_space::local_space);
-    bool b = (tid == 0) or (tid < numwarps);
+    bool b = (tid == 0) || (tid < numwarps);
     x =  b ? shared[lane] : x0;
     if (wid == 0) x = warp_reduce(x, sg);
     return x;
@@ -142,7 +142,7 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0)
     __syncthreads();
     if (lane == 0) shared[wid] = x;
     __syncthreads();
-    bool b = (threadIdx.x == 0) or (threadIdx.x < blockDim.x / warpSize);
+    bool b = (threadIdx.x == 0) || (threadIdx.x < blockDim.x / warpSize);
     x =  b ? shared[lane] : x0;
     if (wid == 0) x = warp_reduce(x);
     return x;

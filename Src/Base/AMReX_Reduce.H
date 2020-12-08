@@ -607,13 +607,13 @@ bool AnyOf (N n, T const* v, P&& pred)
         {
             int r = false;
             for (N i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
-                 i < n and !r; i += stride)
+                 i < n && !r; i += stride)
             {
                 r = pred(v[i]) ? 1 : 0;
             }
             r = Gpu::blockReduce<Gpu::Device::warp_size>
                 (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0);
-            if (threadIdx.x == 0 and r) *dp = 1;
+            if (threadIdx.x == 0 && r) *dp = 1;
         }
     });
 #endif
@@ -649,7 +649,7 @@ bool AnyOf (Box const& box, P&& pred)
         {
             int r = false;
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
-                 icell < ncells and !r; icell += stride) {
+                 icell < ncells && !r; icell += stride) {
                 int k =  icell /   (len.x*len.y);
                 int j = (icell - k*(len.x*len.y)) /   len.x;
                 int i = (icell - k*(len.x*len.y)) - j*len.x;
@@ -660,7 +660,7 @@ bool AnyOf (Box const& box, P&& pred)
             }
             r = Gpu::blockReduce<Gpu::Device::warp_size>
                 (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0);
-            if (threadIdx.x == 0 and r) *dp = 1;
+            if (threadIdx.x == 0 && r) *dp = 1;
         }
     });
 #endif

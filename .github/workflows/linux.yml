@@ -7,7 +7,7 @@ jobs:
   library:
     name: GNU@7.5 C++17 Release [lib]
     runs-on: ubuntu-latest
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -26,7 +26,7 @@ jobs:
   library_clang:
     name: Clang@6.0 C++14 SP NOMPI Debug [lib]
     runs-on: ubuntu-latest
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code"}
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -54,7 +54,7 @@ jobs:
   tutorials:
     name: GNU@7.5 C++14 [tutorials]
     runs-on: ubuntu-latest
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -74,7 +74,7 @@ jobs:
   tutorials_cxx20:
     name: GNU@10.1 C++20 OMP [tutorials]
     runs-on: ubuntu-latest
-    env: {CXXFLAGS: "-Werror -Wno-error=deprecated-declarations -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    env: {CXXFLAGS: "-Werror -Wno-error=deprecated-declarations -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -99,7 +99,7 @@ jobs:
   tutorials-nonmpi:
     name: GNU@7.5 C++14 NOMPI [tutorials]
     runs-on: ubuntu-latest
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -120,7 +120,7 @@ jobs:
   tutorials-nofortran:
     name: GNU@7.5 C++11 w/o Fortran [tutorials]
     runs-on: ubuntu-latest
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -142,6 +142,7 @@ jobs:
   tutorials-cuda:
     name: CUDA@9.1.85 GNU@4.8.5 C++11 Release [tutorials]
     runs-on: ubuntu-latest
+    env: {CXXFLAGS: "-fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -163,8 +164,9 @@ jobs:
         make -j 2
 
   tutorials-dpcpp:
-    name: DPCPP@PubBeta GFortran@7.5 C++17 [tutorials]
-    runs-on: ubuntu-latest
+    name: DPCPP GFortran@7.5 C++17 [tutorials]
+    runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -175,6 +177,9 @@ jobs:
         source /opt/intel/oneapi/setvars.sh
         set -e
         cmake -S . -B build                                \
+            -DCMAKE_CXX_COMPILER_ID="Clang"                \
+            -DCMAKE_CXX_COMPILER_VERSION=12.0              \
+            -DCMAKE_CXX_STANDARD_COMPUTED_DEFAULT="17"     \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
             -DAMReX_BUILD_TUTORIALS=ON                     \
             -DAMReX_PARTICLES=ON                           \
@@ -183,10 +188,14 @@ jobs:
             -DCMAKE_CXX_COMPILER=$(which dpcpp)            \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
         cmake --build build --parallel 2
+    # note: setting the CXX compiler ID is a work-around for
+    # the 2021.1 DPC++ release / CMake 3.19.0-3.19.1
+    # https://gitlab.kitware.com/cmake/cmake/-/issues/21551#note_869580
 
   tutorials-hip:
     name: HIP ROCm@3.8 GFortran@9.3 C++17 [tutorials]
     runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -221,7 +230,7 @@ jobs:
     - name: Build & Install
       run: |
         ./configure --dim 1
-        make -j2
+        make -j2 XTRA_CXXFLAGS=-fno-operator-names
         make install
 
   # Build 2D libamrex with configure
@@ -235,7 +244,7 @@ jobs:
     - name: Build & Install
       run: |
         ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
         make install
 
   # Build 3D libamrex with configure
@@ -249,7 +258,7 @@ jobs:
     - name: Build & Install
       run: |
         ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
         make install
 
   # Build 3D libamrex debug omp build with configure
@@ -263,14 +272,27 @@ jobs:
     - name: Build & Install
       run: |
         ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes --with-omp yes --debug yes
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
         make install
+
+  # Build Tools/Plotfile
+  plotfile-tools:
+    name: GNU Plotfile Tools [tools]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        cd Tools/Plotfile
+        make -j2 USE_MPI=FALSE USE_OMP=FALSE WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
 
   # Build libamrex and run all tests
   tests:
     name: GNU@7.5 C++14 [tests]
     runs-on: ubuntu-latest
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies

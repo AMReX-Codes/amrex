@@ -41,8 +41,8 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
         for(int jj(-1); jj<=1; jj++){
           for(int ii(-1); ii<=1; ii++){
 
-            if( flag(i,j,0).isConnected(ii,jj,0) and
-                not (ii==0 and jj==0)) {
+            if( flag(i,j,0).isConnected(ii,jj,0) &&
+                ! (ii==0 && jj==0)) {
 
               du[lc] = state(i+ii,j+jj,0,n) - state(i,j,0,n);
 
@@ -115,8 +115,8 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
         for(int jj(-1); jj<=1; jj++){
           for(int ii(-1); ii<=1; ii++){
 
-            if( flag(i,j,k).isConnected(ii,jj,kk) and
-                not (ii==0 and jj==0 and kk==0)) {
+            if( flag(i,j,k).isConnected(ii,jj,kk) &&
+                ! (ii==0 && jj==0 && kk==0)) {
 
               du[lc] = state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
 
@@ -228,8 +228,8 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
         for(int jj(-1); jj<=1; jj++){
           for(int ii(-1); ii<=1; ii++){
 
-            if( flag(i,j,k).isConnected(ii,jj,kk) and
-                not (ii==0 and jj==0 and kk==0)) {
+            if( flag(i,j,k).isConnected(ii,jj,kk) &&
+                ! (ii==0 && jj==0 && kk==0)) {
 
             // Not multplying by dx to be consistent with how the
             // slope is stored. Also not including the global shift
@@ -265,14 +265,14 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
     // 
 
     // X direction
-    if (flag(i,j,k).isRegular() and flag(i-1,j,k).isRegular() and flag(i+1,j,k).isRegular()) 
+    if (flag(i,j,k).isRegular() && flag(i-1,j,k).isRegular() && flag(i+1,j,k).isRegular()) 
     {
         int order = 2;
         xslope = amrex_calc_xslope(i,j,k,n,order,state);
     }
 
     // Y direction
-    if (flag(i,j,k).isRegular() and flag(i,j-1,k).isRegular() and flag(i,j+1,k).isRegular()) 
+    if (flag(i,j,k).isRegular() && flag(i,j-1,k).isRegular() && flag(i,j+1,k).isRegular()) 
     {
         int order = 2;
         yslope = amrex_calc_yslope(i,j,k,n,order,state);
@@ -280,7 +280,7 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
 
 #if (AMREX_SPACEDIM == 3)
     // Z direction
-    if (flag(i,j,k).isRegular() and flag(i,j,k-1).isRegular() and flag(i,j,k+1).isRegular()) 
+    if (flag(i,j,k).isRegular() && flag(i,j,k-1).isRegular() && flag(i,j,k+1).isRegular()) 
     {
         int order = 2;
         zslope = amrex_calc_zslope(i,j,k,n,order,state);
@@ -328,11 +328,11 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
                  amrex::Real zslope = 0.0;);
 
     // First get EB-aware slope that doesn't know about extdir
-    bool needs_bdry_stencil = (edlo_x and i <= domlo_x) or (edhi_x and i >= domhi_x) or
-                              (edlo_y and j <= domlo_y) or (edhi_y and j >= domhi_y);
+    bool needs_bdry_stencil = (edlo_x && i <= domlo_x) || (edhi_x && i >= domhi_x) ||
+                              (edlo_y && j <= domlo_y) || (edhi_y && j >= domhi_y);
 #if (AMREX_SPACEDIM == 3)
-         needs_bdry_stencil = needs_bdry_stencil or 
-                              (edlo_z and k <= domlo_z) or (edhi_z and k >= domhi_z);
+         needs_bdry_stencil = needs_bdry_stencil || 
+                              (edlo_z && k <= domlo_z) || (edhi_z && k >= domhi_z);
 #endif
 
     //
@@ -355,7 +355,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     //    1) Here if any of the cells are not regular we use the face and cell centroids
     //
 
-    if ( (edlo_x and i == domlo_x) or (edhi_x and i == domhi_x) )
+    if ( (edlo_x && i == domlo_x) || (edhi_x && i == domhi_x) )
     {
         int lc=0;
 #if (AMREX_SPACEDIM == 3)
@@ -367,21 +367,21 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
             for(int jj(-1); jj<=1; jj++){
               for(int ii(-1); ii<=1; ii++){
 
-                if( flag(i,j,k).isConnected(ii,jj,kk) and
-                    not (ii==0 and jj==0 and kk==0)) {
+                if( flag(i,j,k).isConnected(ii,jj,kk) &&
+                    ! (ii==0 && jj==0 && kk==0)) {
     
                     // Not multplying by dx to be consistent with how the
                     // slope is stored. Also not including the global shift
                     // wrt plo or i,j,k. We only need relative distance.
 
-                    if ( (edlo_x and i == domlo_x) and ii == -1) {
+                    if ( (edlo_x && i == domlo_x) && ii == -1) {
                         A[lc][0] = -0.5                       - ccent(i,j,k,0);
                         A[lc][1] = jj + fcx(i   ,j+jj,k+kk,0) - ccent(i,j,k,1);
 #if (AMREX_SPACEDIM == 3)
                         A[lc][2] = kk + fcx(i   ,j+jj,k+kk,1) - ccent(i,j,k,2);
 #endif
                     } 
-                    else if ( (edhi_x and i == domhi_x) and ii == 1) 
+                    else if ( (edhi_x && i == domhi_x) && ii == 1) 
                     {
                         A[lc][0] = 0.5                        - ccent(i,j,k,0);
                         A[lc][1] = jj + fcx(i+ii,j+jj,k+kk,0) - ccent(i,j,k,1);
@@ -411,7 +411,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
                      zslope = slopes[2];);
     }
 
-    if ( (edlo_y and j == domlo_y) or (edhi_y and j == domhi_y) )
+    if ( (edlo_y && j == domlo_y) || (edhi_y && j == domhi_y) )
     {
         int lc=0;
 #if (AMREX_SPACEDIM == 3)
@@ -423,21 +423,21 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
             for(int jj(-1); jj<=1; jj++){
               for(int ii(-1); ii<=1; ii++){
 
-                if( flag(i,j,k).isConnected(ii,jj,kk) and
-                    not (ii==0 and jj==0 and kk==0)) {
+                if( flag(i,j,k).isConnected(ii,jj,kk) &&
+                    ! (ii==0 && jj==0 && kk==0)) {
     
                     // Not multplying by dx to be consistent with how the
                     // slope is stored. Also not including the global shift
                     // wrt plo or i,j,k. We only need relative distance.
 
-                    if (edlo_y and j == domlo_y and jj == -1) {
+                    if (edlo_y && j == domlo_y && jj == -1) {
                         A[lc][0] = ii + fcy(i+ii,j   ,k+kk,0) - ccent(i,j,k,0);
                         A[lc][1] = -0.5                       - ccent(i,j,k,1);
 #if (AMREX_SPACEDIM == 3)
                         A[lc][2] = kk + fcy(i+ii,j   ,k+kk,1) - ccent(i,j,k,2);
 #endif
                     } 
-                    else if (edhi_y and j == domhi_y and jj == 1) 
+                    else if (edhi_y && j == domhi_y && jj == 1) 
                     {
                         A[lc][0] = ii + fcy(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
                         A[lc][1] = 0.5                        - ccent(i,j,k,1);
@@ -470,26 +470,26 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     }
 
 #if (AMREX_SPACEDIM == 3)
-    if ( (edlo_z and k == domlo_z) or (edhi_z and k == domhi_z) )
+    if ( (edlo_z && k == domlo_z) || (edhi_z && k == domhi_z) )
     {
         int lc=0;
         for(int kk(-1); kk<=1; kk++) {
             for(int jj(-1); jj<=1; jj++){
               for(int ii(-1); ii<=1; ii++){
 
-                if( flag(i,j,k).isConnected(ii,jj,kk) and
-                    not (ii==0 and jj==0 and kk==0)) 
+                if( flag(i,j,k).isConnected(ii,jj,kk) &&
+                    ! (ii==0 && jj==0 && kk==0)) 
                 {
                     // Not multplying by dx to be consistent with how the
                     // slope is stored. Also not including the global shift
                     // wrt plo or i,j,k. We only need relative distance.
 
-                    if (edlo_z and k == domlo_z and kk == -1) {
+                    if (edlo_z && k == domlo_z && kk == -1) {
                         A[lc][0] = ii + fcz(i+ii,j+jj,k   ,0) - ccent(i,j,k,0);
                         A[lc][1] = jj + fcz(i+ii,j+jj,k   ,1) - ccent(i,j,k,1);
                         A[lc][2] = -0.5                       - ccent(i,j,k,2);
                     } 
-                    else if (edhi_z and k == domhi_z and kk == 1) 
+                    else if (edhi_z && k == domhi_z && kk == 1) 
                     {
                         A[lc][0] = ii + fcz(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
                         A[lc][1] = jj + fcz(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
@@ -526,14 +526,14 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     int order = 2;
 
     // Overwrite the tangential slope with the regular stencils if we can compute from non-EB cells
-    if ( flag(i,j,k).isRegular() and flag(i-1,j,k).isRegular() and flag(i+1,j,k).isRegular() )
+    if ( flag(i,j,k).isRegular() && flag(i-1,j,k).isRegular() && flag(i+1,j,k).isRegular() )
       xslope = amrex_calc_xslope_extdir(i,j,k,n,order,state,edlo_x,edhi_x,domlo_x,domhi_x);
 
-    if ( flag(i,j,k).isRegular() and flag(i,j-1,k).isRegular() and flag(i,j+1,k).isRegular() ) 
+    if ( flag(i,j,k).isRegular() && flag(i,j-1,k).isRegular() && flag(i,j+1,k).isRegular() ) 
       yslope = amrex_calc_yslope_extdir(i,j,k,n,order,state,edlo_y,edhi_y,domlo_y,domhi_y);
 
 #if (AMREX_SPACEDIM == 3)
-    if ( flag(i,j,k).isRegular() and flag(i,j,k-1).isRegular() and flag(i,j,k+1).isRegular() ) 
+    if ( flag(i,j,k).isRegular() && flag(i,j,k-1).isRegular() && flag(i,j,k+1).isRegular() ) 
       zslope = amrex_calc_zslope_extdir(i,j,k,n,order,state,edlo_z,edhi_z,domlo_z,domhi_z);
 #endif
     }
@@ -541,17 +541,17 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     // Zero out slopes outside of an extdir (or hoextrap) boundary
     // TODO:  is this the right thing to do at a HOEXTRAP boundary??
 #if (AMREX_SPACEDIM == 2)
-    if ( (edlo_x and i < domlo_x) or (edhi_x and i > domhi_x)   or
-         (edlo_y and j < domlo_y) or (edhi_y and j > domhi_y) )  
+    if ( (edlo_x && i < domlo_x) || (edhi_x && i > domhi_x)   ||
+         (edlo_y && j < domlo_y) || (edhi_y && j > domhi_y) )  
     { 
           AMREX_D_TERM(xslope = 0.;,  
                        xslope = 0.; yslope = 0.;, 
                        xslope = 0.; yslope = 0.; zslope = 0.;);
     } 
 #elif (AMREX_SPACEDIM == 3)
-    if ( (edlo_x and i < domlo_x) or (edhi_x and i > domhi_x) or
-         (edlo_y and j < domlo_y) or (edhi_y and j > domhi_y) or
-         (edlo_z and k < domlo_z) or (edhi_z and k > domhi_z) )
+    if ( (edlo_x && i < domlo_x) || (edhi_x && i > domhi_x) ||
+         (edlo_y && j < domlo_y) || (edhi_y && j > domhi_y) ||
+         (edlo_z && k < domlo_z) || (edhi_z && k > domhi_z) )
     {
           AMREX_D_TERM(xslope = 0.;,  
                        xslope = 0.; yslope = 0.;, 

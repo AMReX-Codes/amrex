@@ -21,7 +21,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
     BL_PROFILE("NeighborParticleContainer::sumNeighborsCPU");
 
-    if ( not enableInverse() )
+    if ( ! enableInverse() )
     {
         amrex::Abort("Need to enable inverse to true to use sumNeighbors. \n");
     }

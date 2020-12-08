@@ -46,17 +46,17 @@ int main_main()
             plotfile_a = amrex::get_command_argument(++farg);
         } else if (fname == "--infile2") {
             plotfile_b = amrex::get_command_argument(++farg);
-        } else if (fname == "-n" or fname == "--norm") {
+        } else if (fname == "-n" || fname == "--norm") {
             norm = std::stoi(amrex::get_command_argument(++farg));
-        } else if (fname == "-z" or fname == "--zone_info") {
+        } else if (fname == "-z" || fname == "--zone_info") {
             zone_info_var_name = amrex::get_command_argument(++farg);
             zone_info = true;
-        } else if (fname == "-d" or fname == "--diffvar") {
+        } else if (fname == "-d" || fname == "--diffvar") {
             diffvar = amrex::get_command_argument(++farg);
             plot_names[0] = diffvar;
-        } else if (fname == "-a" or fname == "--allow_diff_grids") {
+        } else if (fname == "-a" || fname == "--allow_diff_grids") {
             allow_diff_grids = true;
-        } else if (fname == "-r" or fname == "--rel_tol") {
+        } else if (fname == "-r" || fname == "--rel_tol") {
             rtol = std::stod(amrex::get_command_argument(++farg));
         } else if (fname == "--abs_tol") {
             atol = std::stod(amrex::get_command_argument(++farg));
@@ -75,7 +75,7 @@ int main_main()
         plotfile_b = amrex::get_command_argument(farg++);
     }
 
-    if (plotfile_a.empty() and plotfile_b.empty()) {
+    if (plotfile_a.empty() && plotfile_b.empty()) {
         amrex::Print()
             << "\n"
             << " Compare two plotfiles, zone by zone, to machine precision\n"
@@ -245,7 +245,7 @@ int main_main()
                     rerror[icomp_a] = rerror[icomp_a]/rerror_denom[icomp_a];
                 }
 
-                if (icomp_a == save_var_a or icomp_a == zone_info_var_a) {
+                if (icomp_a == save_var_a || icomp_a == zone_info_var_a) {
                     mf_b.abs(0,1);
                 }
 
@@ -272,7 +272,7 @@ int main_main()
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
                                << "< variable not present in both files > \n";
-            } else if (has_nan_a[icomp_a] and has_nan_b[icomp_a]) {
+            } else if (has_nan_a[icomp_a] && has_nan_b[icomp_a]) {
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
                                << "< NaN present in both A and B > \n";
@@ -314,7 +314,7 @@ int main_main()
         abserr_for_global_rerror = std::max(
             abserr_for_global_rerror, aerror[idx]);
         for (int icomp_a = 0; icomp_a < ncomp_a; ++icomp_a) {
-            any_nans = any_nans or has_nan_a[icomp_a] or has_nan_b[icomp_a];
+            any_nans = any_nans || has_nan_a[icomp_a] || has_nan_b[icomp_a];
         }
     }
 
@@ -365,7 +365,7 @@ int main_main()
         if (abort_if_not_all_found) return EXIT_FAILURE;
     }
 
-    if (global_error == 0.0 and !any_nans) {
+    if (global_error == 0.0 && !any_nans) {
         amrex::Print() << " PLOTFILE AGREE" << std::endl;
         return EXIT_SUCCESS;
     } else if ((abserr_for_global_rerror <= atol) ||

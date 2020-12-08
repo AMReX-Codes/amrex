@@ -91,7 +91,7 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
     {
         AMREX_ALWAYS_ASSERT(mg_coarsen_ratio == 2);
         iMultiFab const& fine = *m_overset_mask[amrlev][mglev-1];
-        if (dom.coarsenable(2) and fine.boxArray().coarsenable(2)) {
+        if (dom.coarsenable(2) && fine.boxArray().coarsenable(2)) {
             dom.coarsen(2);
             std::unique_ptr<iMultiFab> crse(new iMultiFab(amrex::coarsen(fine.boxArray(),2),
                                                           fine.DistributionMap(), 1, 1));
@@ -185,7 +185,7 @@ MLABecLaplacian::setBCoeffs (int amrlev,
                              const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
 {
     const int ncomp = getNComp();
-    AMREX_ALWAYS_ASSERT(beta[0]->nComp() == 1 or beta[0]->nComp() == ncomp);
+    AMREX_ALWAYS_ASSERT(beta[0]->nComp() == 1 || beta[0]->nComp() == ncomp);
     if (beta[0]->nComp() == ncomp)
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             for (int icomp = 0; icomp < ncomp; ++icomp) {
@@ -468,7 +468,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
     BL_PROFILE("MLABecLaplacian::Fsmooth()");
 
     bool regular_coarsening = true;
-    if (amrlev == 0 and mglev > 0) {
+    if (amrlev == 0 && mglev > 0) {
         regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
     }
 
@@ -550,63 +550,6 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #endif
 #endif
 
-#ifdef AMREX_USE_DPCPP
-        // xxxxx DPCPP todo: kernel size
-        Vector<Array4<Real const> > ha(2*AMREX_SPACEDIM);
-        ha[0] = f0fab;
-        ha[1] = f1fab;
-#if (AMREX_SPACEDIM > 1)
-        ha[2] = f2fab;
-        ha[3] = f3fab;
-#if (AMREX_SPACEDIM == 3)
-        ha[4] = f4fab;
-        ha[5] = f5fab;
-#endif
-#endif
-        Gpu::AsyncArray<Array4<Real const> > aa(ha.data(), 2*AMREX_SPACEDIM);
-        auto dp = aa.data();
-
-        if (m_overset_mask[amrlev][mglev]) {
-            const auto& osm = m_overset_mask[amrlev][mglev]->array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-            {
-                abec_gsrb_os(thread_box, solnfab, rhsfab, alpha, afab,
-                             AMREX_D_DECL(dhx, dhy, dhz),
-                             AMREX_D_DECL(bxfab, byfab, bzfab),
-                             AMREX_D_DECL(m0,m2,m4),
-                             AMREX_D_DECL(m1,m3,m5),
-                             AMREX_D_DECL(dp[0],dp[2],dp[4]),
-                             AMREX_D_DECL(dp[1],dp[3],dp[5]),
-                             osm, vbx, redblack, nc);
-            });
-        } else if (regular_coarsening) {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-            {
-                abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
-                          AMREX_D_DECL(dhx, dhy, dhz),
-                          AMREX_D_DECL(bxfab, byfab, bzfab),
-                          AMREX_D_DECL(m0,m2,m4),
-                          AMREX_D_DECL(m1,m3,m5),
-                          AMREX_D_DECL(dp[0],dp[2],dp[4]),
-                          AMREX_D_DECL(dp[1],dp[3],dp[5]),
-                          vbx, redblack, nc);
-            });
-        } else {
-            Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
-            // line solve does not with with GPU
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-            {
-                abec_gsrb_with_line_solve(thread_box, solnfab, rhsfab, alpha, afab,
-                                          AMREX_D_DECL(dhx, dhy, dhz),
-                                          AMREX_D_DECL(bxfab, byfab, bzfab),
-                                          AMREX_D_DECL(m0,m2,m4),
-                                          AMREX_D_DECL(m1,m3,m5),
-                                          AMREX_D_DECL(dp[0],dp[2],dp[4]),
-                                          AMREX_D_DECL(dp[1],dp[3],dp[5]),
-                                          vbx, redblack, nc);
-            });
-        }
-#else
         if (m_overset_mask[amrlev][mglev]) {
             const auto& osm = m_overset_mask[amrlev][mglev]->array(mfi);
             AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( tbx, thread_box,
@@ -647,7 +590,6 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                           vbx, redblack, nc);
             });
         }
-#endif
     }
 }
 

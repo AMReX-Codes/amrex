@@ -157,9 +157,9 @@ void mlalap_gsrb (Box const& box, Array4<Real> const& phi,
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
         if ((i+redblack)%2 == 0) {
-            Real cf0 = (i == vlo.x and m0(vlo.x-1,0,0) > 0)
+            Real cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
                 ? f0(vlo.x,0,0) : 0.0;
-            Real cf1 = (i == vhi.x and m1(vhi.x+1,0,0) > 0)
+            Real cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
                 ? f1(vhi.x,0,0) : 0.0;
             
             Real delta = dhx*(cf0+cf1);
@@ -191,9 +191,9 @@ void mlalap_gsrb_m (Box const& box, Array4<Real> const& phi,
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
         if ((i+redblack)%2 == 0) {
-            Real cf0 = (i == vlo.x and m0(vlo.x-1,0,0) > 0)
+            Real cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
                 ? f0(vlo.x,0,0) : 0.0;
-            Real cf1 = (i == vhi.x and m1(vhi.x+1,0,0) > 0)
+            Real cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
                 ? f1(vhi.x,0,0) : 0.0;
 
             Real rel = (probxlo + i   *dx) * (probxlo + i   *dx);

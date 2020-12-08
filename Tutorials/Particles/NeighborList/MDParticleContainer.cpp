@@ -240,7 +240,7 @@ void MDParticleContainer::moveParticles(const amrex::Real& dt)
             p.pos(2) += p.rdata(PIdx::vz) * dt;
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                while ( (p.pos(idim) < plo[idim]) or (p.pos(idim) > phi[idim]) ) {
+                while ( (p.pos(idim) < plo[idim]) || (p.pos(idim) > phi[idim]) ) {
                     if ( p.pos(idim) < plo[idim] ) {
                         p.pos(idim) = 2*plo[idim] - p.pos(idim);
                     } else {

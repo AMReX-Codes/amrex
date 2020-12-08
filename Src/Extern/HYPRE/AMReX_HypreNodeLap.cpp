@@ -75,24 +75,24 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
             for         (int k = lo.z; k <= hi.z; ++k) {
                 for     (int j = lo.y; j <= hi.y; ++j) {
                     for (int i = lo.x; i <= hi.x; ++i) {
-                        if (!owner(i,j,k) or dirichlet(i,j,k))
+                        if (!owner(i,j,k) || dirichlet(i,j,k))
                         {
                             nid(i,j,k) = std::numeric_limits<Int>::lowest();
                         }
 #if (AMREX_SPACEDIM == 2)
-                        else if (flag(i-1,j-1,k).isCovered() and
-                                 flag(i  ,j-1,k).isCovered() and
-                                 flag(i-1,j  ,k).isCovered() and
+                        else if (flag(i-1,j-1,k).isCovered() &&
+                                 flag(i  ,j-1,k).isCovered() &&
+                                 flag(i-1,j  ,k).isCovered() &&
                                  flag(i  ,j  ,k).isCovered())
 #endif
 #if (AMREX_SPACEDIM == 3)
-                        else if (flag(i-1,j-1,k-1).isCovered() and
-                                 flag(i  ,j-1,k-1).isCovered() and
-                                 flag(i-1,j  ,k-1).isCovered() and
-                                 flag(i  ,j  ,k-1).isCovered() and
-                                 flag(i-1,j-1,k  ).isCovered() and
-                                 flag(i  ,j-1,k  ).isCovered() and
-                                 flag(i-1,j  ,k  ).isCovered() and
+                        else if (flag(i-1,j-1,k-1).isCovered() &&
+                                 flag(i  ,j-1,k-1).isCovered() &&
+                                 flag(i-1,j  ,k-1).isCovered() &&
+                                 flag(i  ,j  ,k-1).isCovered() &&
+                                 flag(i-1,j-1,k  ).isCovered() &&
+                                 flag(i  ,j-1,k  ).isCovered() &&
+                                 flag(i-1,j  ,k  ).isCovered() &&
                                  flag(i  ,j  ,k  ).isCovered())
 #endif
                         {
@@ -127,7 +127,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
             for         (int k = lo.z; k <= hi.z; ++k) {
                 for     (int j = lo.y; j <= hi.y; ++j) {
                     for (int i = lo.x; i <= hi.x; ++i) {
-                        if (!owner(i,j,k) or dirichlet(i,j,k))
+                        if (!owner(i,j,k) || dirichlet(i,j,k))
                         {
                             nid(i,j,k) = std::numeric_limits<Int>::lowest();
                         }

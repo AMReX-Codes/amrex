@@ -2250,7 +2250,7 @@ Asend<char> (const char* buf, size_t n, int pid, int tag, MPI_Comm comm)
         msg = Message(req, Mpi_typemap<char>::type());
     } else if (comm_data_type == 2) {
         if (!amrex::is_aligned(buf, alignof(unsigned long long))
-            or (n % sizeof(unsigned long long)) != 0) {
+            || (n % sizeof(unsigned long long)) != 0) {
             amrex::Abort("Message size is too big as char, and it cannot be sent as unsigned long long.");
         }
         BL_MPI_REQUIRE( MPI_Isend(const_cast<unsigned long long*>
@@ -2261,7 +2261,7 @@ Asend<char> (const char* buf, size_t n, int pid, int tag, MPI_Comm comm)
         msg = Message(req, Mpi_typemap<unsigned long long>::type());
     } else if (comm_data_type == 3) {
         if (!amrex::is_aligned(buf, alignof(ParallelDescriptor::lull_t))
-            or (n % sizeof(ParallelDescriptor::lull_t)) != 0) {
+            || (n % sizeof(ParallelDescriptor::lull_t)) != 0) {
             amrex::Abort("Message size is too big as char or unsigned long long, and it cannot be sent as ParallelDescriptor::lull_t");
         }
         BL_MPI_REQUIRE( MPI_Isend(const_cast<ParallelDescriptor::lull_t*>
@@ -2293,7 +2293,7 @@ Send<char> (const char* buf, size_t n, int pid, int tag, MPI_Comm comm)
                                  pid, tag, comm) );
     } else if (comm_data_type == 2) {
         if (!amrex::is_aligned(buf, alignof(unsigned long long))
-            or (n % sizeof(unsigned long long)) != 0) {
+            || (n % sizeof(unsigned long long)) != 0) {
             amrex::Abort("Message size is too big as char, and it cannot be sent as unsigned long long.");
         }
         BL_MPI_REQUIRE( MPI_Send(const_cast<unsigned long long*>
@@ -2303,7 +2303,7 @@ Send<char> (const char* buf, size_t n, int pid, int tag, MPI_Comm comm)
                                  pid, tag, comm) );
     } else if (comm_data_type == 3) {
         if (!amrex::is_aligned(buf, alignof(ParallelDescriptor::lull_t))
-            or (n % sizeof(ParallelDescriptor::lull_t)) != 0) {
+            || (n % sizeof(ParallelDescriptor::lull_t)) != 0) {
             amrex::Abort("Message size is too big as char or unsigned long long, and it cannot be sent as ParallelDescriptor::lull_t");
         }
         BL_MPI_REQUIRE( MPI_Send(const_cast<ParallelDescriptor::lull_t*>
@@ -2337,7 +2337,7 @@ Arecv<char> (char* buf, size_t n, int pid, int tag, MPI_Comm comm)
         msg = Message(req, Mpi_typemap<char>::type());
     } else if (comm_data_type == 2) {
         if (!amrex::is_aligned(buf, alignof(unsigned long long))
-            or (n % sizeof(unsigned long long)) != 0) {
+            || (n % sizeof(unsigned long long)) != 0) {
             amrex::Abort("Message size is too big as char, and it cannot be received as unsigned long long.");
         }
         BL_MPI_REQUIRE( MPI_Irecv((unsigned long long *)buf,
@@ -2347,7 +2347,7 @@ Arecv<char> (char* buf, size_t n, int pid, int tag, MPI_Comm comm)
         msg = Message(req, Mpi_typemap<unsigned long long>::type());
     } else if (comm_data_type == 3) {
         if (!amrex::is_aligned(buf, alignof(ParallelDescriptor::lull_t))
-            or (n % sizeof(ParallelDescriptor::lull_t)) != 0) {
+            || (n % sizeof(ParallelDescriptor::lull_t)) != 0) {
             amrex::Abort("Message size is too big as char or unsigned long long, and it cannot be received as ParallelDescriptor::lull_t");
         }
         BL_MPI_REQUIRE( MPI_Irecv((ParallelDescriptor::lull_t *)buf,
@@ -2381,7 +2381,7 @@ Recv<char> (char* buf, size_t n, int pid, int tag, MPI_Comm comm)
         msg = Message(stat, Mpi_typemap<char>::type());
     } else if (comm_data_type == 2) {
         if (!amrex::is_aligned(buf, alignof(unsigned long long))
-            or (n % sizeof(unsigned long long)) != 0) {
+            || (n % sizeof(unsigned long long)) != 0) {
             amrex::Abort("Message size is too big as char, and it cannot be received as unsigned long long.");
         }
         BL_MPI_REQUIRE( MPI_Recv((unsigned long long *)buf,
@@ -2391,7 +2391,7 @@ Recv<char> (char* buf, size_t n, int pid, int tag, MPI_Comm comm)
         msg = Message(stat, Mpi_typemap<unsigned long long>::type());
     } else if (comm_data_type == 3) {
         if (!amrex::is_aligned(buf, alignof(ParallelDescriptor::lull_t))
-            or (n % sizeof(ParallelDescriptor::lull_t)) != 0) {
+            || (n % sizeof(ParallelDescriptor::lull_t)) != 0) {
             amrex::Abort("Message size is too big as char or unsigned long long, and it cannot be received as ParallelDescriptor::lull_t");
         }
         BL_MPI_REQUIRE( MPI_Recv((ParallelDescriptor::lull_t *)buf,

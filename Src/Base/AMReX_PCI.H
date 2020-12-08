@@ -100,8 +100,8 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     Vector<Array4<int> > masks;
     if (!is_thread_safe)
     {
-        if ((op == FabArrayBase::COPY and !amrex::IsStoreAtomic<value_type>::value) or
-            (op == FabArrayBase::ADD  and !amrex::HasAtomicAdd <value_type>::value))
+        if ((op == FabArrayBase::COPY && !amrex::IsStoreAtomic<value_type>::value) ||
+            (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value))
         {
             maskfabs.resize(this->local_size());
             masks.reserve(N_locs);
