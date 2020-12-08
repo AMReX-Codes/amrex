@@ -299,7 +299,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             auto& aos = neighbors[tag.level][dst_index].GetArrayOfStructs();
                             ParticleType& p = aos[tag.dst_index];
                             for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                                if (not periodicity.isPeriodic(dir)) continue;
+                                if (! periodicity.isPeriodic(dir)) continue;
                                 if (tag.periodic_shift[dir] < 0)
                                     p.pos(dir) += prob_domain.length(dir);
                                 else if (tag.periodic_shift[dir] > 0)
@@ -322,7 +322,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                         ParticleType p = aos[tag.src_index];  // copy
                         if (periodicity.isAnyPeriodic()) {
                             for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                                if (not periodicity.isPeriodic(dir)) continue;
+                                if (! periodicity.isPeriodic(dir)) continue;
                                 if (tag.periodic_shift[dir] < 0)
                                     p.pos(dir) += prob_domain.length(dir);
                                 else if (tag.periodic_shift[dir] > 0)
