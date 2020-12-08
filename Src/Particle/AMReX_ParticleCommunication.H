@@ -317,15 +317,25 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                     int src_index = p_src_indices[i];
                     ptd.packParticleData(p_snd_buffer, src_index, dst_offset, p_comm_real, p_comm_int);
 
-                    ParticleType* p = (ParticleType*) &p_snd_buffer[dst_offset];
                     const IntVect& pshift = p_periodic_shift[i];
-                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+                    bool do_periodic_shift =
+                        AMREX_D_TERM( (is_per[0] && pshift[0] > 0),
+                                   || (is_per[1] && pshift[1] > 0),
+                                   || (is_per[2] && pshift[2] > 0) );
+
+                    if (do_periodic_shift)
                     {
-                        if (! is_per[idim]) continue;
-                        if (pshift[idim] > 0)
-                            p->pos(idim) += phi[idim] - plo[idim];
-                        else if (pshift[idim] < 0)
-                            p->pos(idim) -= phi[idim] - plo[idim];
+                        ParticleType p;
+                        amrex::Gpu::memcpy(&p, &p_snd_buffer[dst_offset], sizeof(ParticleType));
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+                        {
+                            if (! is_per[idim]) continue;
+                            if (pshift[idim] > 0)
+                                p.pos(idim) += phi[idim] - plo[idim];
+                            else if (pshift[idim] < 0)
+                                p.pos(idim) -= phi[idim] - plo[idim];
+                        }
+                        amrex::Gpu::memcpy(&p_snd_buffer[dst_offset], &p, sizeof(ParticleType));
                     }
                 }
             });

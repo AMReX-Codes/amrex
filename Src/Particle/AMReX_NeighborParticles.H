@@ -8,6 +8,7 @@
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_NeighborList.H>
 #include <AMReX_OpenMP.H>
+#include <AMReX_ParticleTile.H>
 
 namespace amrex {
 
@@ -28,12 +29,12 @@ namespace amrex {
 /// in AMR subcycling to keep track of coarse level particles that may move on to fine
 /// levels during a fine level time step.
 ///
-template <int NStructReal, int NStructInt>
+template <int NStructReal, int NStructInt, int NArrayReal=0, int NArrayInt=0>
 class NeighborParticleContainer
-    : public ParticleContainer<NStructReal, NStructInt, 0, 0>
+    : public ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
 public:
-    using ParticleContainerType = ParticleContainer<NStructReal, NStructInt, 0, 0>;
+    using ParticleContainerType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using SuperParticleType = typename ParticleContainerType::SuperParticleType;
 private:
     struct MaskComps
@@ -187,14 +188,14 @@ private:
 public:
 
     using ParticleType = typename ParticleContainer<NStructReal,
-                                                    NStructInt, 0, 0>::ParticleType;
-    using MyParIter = ParIter<NStructReal, NStructInt, 0, 0>;
+                                                    NStructInt, NArrayReal, NArrayInt>::ParticleType;
+    using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using PairIndex = std::pair<int, int>;
     using NeighborCommMap = std::map<NeighborCommTag, Vector<char> >;
-    using AoS = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::AoS;
-    using ParticleVector = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::ParticleVector;
-    using IntVector  = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::IntVector;
-    using SendBuffer = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::SendBuffer;
+    using AoS = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AoS;
+    using ParticleVector = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParticleVector;
+    using IntVector  = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IntVector;
+    using SendBuffer = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SendBuffer;
 
     NeighborParticleContainer (ParGDBBase* gdb, int ncells);
 
@@ -227,7 +228,7 @@ public:
     ///
     void sumNeighbors (int real_start_comp, int real_num_comp,
                        int int_start_comp, int int_num_comp);
-    
+
     ///
     /// This updates the neighbors with their current particle data.
     ///
@@ -259,11 +260,31 @@ public:
         return neighbors[lev][std::make_pair(grid,tile)];
     }
 
+    template <typename T,
+              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+    void AddRealComp (T communicate=true)
+    {
+        ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+            AddRealComp(communicate);
+        rc.push_back(communicate);
+        calcCommSize();
+    }
+
+    template <typename T,
+              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+    void AddIntComp (T communicate=true)
+    {
+        ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+            AddIntComp(communicate);
+        ic.push_back(communicate);
+        calcCommSize();
+    }
+
     void Redistribute (int lev_min=0, int lev_max=-1, int nGrow=0, int local=0)
     {
         clearNeighbors();
-        ParticleContainer<NStructReal, NStructInt, 0, 0>::Redistribute(lev_min, lev_max,
-                                                                       nGrow, local);
+        ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+            ::Redistribute(lev_min, lev_max, nGrow, local);
     }
 
     void RedistributeLocal ()
@@ -273,18 +294,18 @@ public:
         const int nGrow = 0;
         const int local = 1;
         clearNeighbors();
-        this->Redistribute(lev_min, lev_max, nGrow, local);    
+        this->Redistribute(lev_min, lev_max, nGrow, local);
     }
 
 #ifdef AMREX_USE_GPU
     void fillNeighborsGPU ();
-    void updateNeighborsGPU ();    
-    void clearNeighborsGPU ();    
-#else 
+    void updateNeighborsGPU ();
+    void clearNeighborsGPU ();
+#else
     void fillNeighborsCPU ();
     void sumNeighborsCPU (int real_start_comp, int real_num_comp,
-                          int int_start_comp, int int_num_comp);    
-    void updateNeighborsCPU (bool reuse_rcv_counts=true);    
+                          int int_start_comp, int int_num_comp);
+    void updateNeighborsCPU (bool reuse_rcv_counts=true);
     void clearNeighborsCPU ();
 #endif
 
@@ -346,7 +367,7 @@ protected:
     IntVect computeRefFac (const int src_lev, const int lev);
 
     Vector<std::map<PairIndex, Vector<InverseCopyTag> > > inverse_tags;
-    Vector<std::map<PairIndex, ParticleVector> > neighbors;
+    Vector<std::map<PairIndex, ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt> > > neighbors;
     Vector<std::map<PairIndex, IntVector> >      neighbor_list;
     const size_t pdata_size = sizeof(ParticleType);
 
@@ -366,8 +387,8 @@ protected:
     Long num_snds;
     std::map<int, Vector<char> > send_data;
 
-    std::array<bool, AMREX_SPACEDIM + NStructReal> rc;
-    std::array<bool, 2 + NStructInt>  ic;
+    Vector<int> rc;
+    Vector<int> ic;
 
     static bool use_mask;
 
