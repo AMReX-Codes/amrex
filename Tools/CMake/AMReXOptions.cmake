@@ -126,17 +126,10 @@ endif ()
 
 # --- SYCL ---
 if (AMReX_DPCPP)
-  if (AMReX_MPI)
-    if (NOT (CMAKE_CXX_COMPILER MATCHES "mpiicpx") )
-       message(FATAL_ERROR "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} only supports mpiicpx compiler when AMReX_MPI=ON"
-         "Set CMAKE_CXX_COMPILER=mpiicpx and try again.")
-    endif ()
-  else ()
-   if (NOT (CMAKE_CXX_COMPILER MATCHES "dpcpp") )
-      message(FATAL_ERROR "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} supports dpcpp compiler only."
-         "Set CMAKE_CXX_COMPILER=dpccp and try again.")
+   if (NOT (CMAKE_CXX_COMPILER_ID IN_LIST "Clang;IntelClang;IntelDPCPP") )
+      message(WARNING "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is tested with DPCPP."
+         "Verify '${CMAKE_CXX_COMPILER_ID}' is correct and potentially set CMAKE_CXX_COMPILER=dpccp or mpiicpx.")
    endif ()
- endif ()
 endif ()
 
 cmake_dependent_option( AMReX_DPCPP_AOT  "Enable DPCPP ahead-of-time compilation (WIP)"  OFF
