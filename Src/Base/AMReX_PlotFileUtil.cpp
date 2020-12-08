@@ -568,15 +568,16 @@ static int CreateWriteHDF5AttrString(hid_t loc, const char *name, const char* st
 /*     return 1; */
 /* } */
 
-static void SetHDF5fapl(hid_t fapl)
+static void SetHDF5fapl(hid_t fapl, MPI_Comm comm)
 {
 #ifdef BL_USE_MPI
-    H5Pset_fapl_mpio(fapl, MPI_COMM_SELF, MPI_INFO_NULL);
+    H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
 
     // Alignment and metadata block size
     int alignment = 16 * 1024 * 1024;
+    int blocksize =  4 * 1024 * 1024;
     H5Pset_alignment(fapl, alignment, alignment);
-    H5Pset_meta_block_size(fapl, 8388608);
+    H5Pset_meta_block_size(fapl, blocksize);
 
     // Collective metadata ops
     H5Pset_coll_metadata_write(fapl, true);
@@ -798,7 +799,11 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         BL_PROFILE_VAR("H5writeMetadata", h5dwm);
         // Have only one rank to create and write metadata (header)
         fapl = H5Pcreate (H5P_FILE_ACCESS);
-        SetHDF5fapl(fapl);
+#ifdef BL_USE_MPI
+        SetHDF5fapl(fapl, MPI_COMM_SELF);
+#else
+        SetHDF5fapl(fapl, NULL);
+#endif
 
         // Create the HDF5 file
         fid = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
@@ -857,7 +862,12 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
     fapl = H5Pcreate (H5P_FILE_ACCESS);
     dxpl = H5Pcreate(H5P_DATASET_XFER);
 
-    SetHDF5fapl(fapl);
+#ifdef BL_USE_MPI
+    SetHDF5fapl(fapl, ParallelDescriptor::Communicator());
+#else
+    SetHDF5fapl(fapl, NULL);
+#endif
+
 
     // Only use async for writing actual data
     #ifdef AMREX_USE_HDF5_ASYNC
@@ -940,11 +950,13 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         oflatdims[0] = sortedGrids.size() + 1;
         offsetdataspace = H5Screate_simple(1, oflatdims, NULL);
         offsetdataset   = H5Dcreate(grp, odsname.c_str(), H5T_NATIVE_LLONG, offsetdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        if(offsetdataset < 0) { std::cout << "create offset dataset failed! ret = " << offsetdataset << std::endl; }
 
         hsize_t centerdims[1];
         centerdims[0]   = sortedGrids.size() ;
         centerdataspace = H5Screate_simple(1, centerdims, NULL);
         centerdataset   = H5Dcreate(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        if(centerdataset < 0) { std::cout << "Create center dataset failed! ret = " << centerdataset << std::endl; }
         
         Vector<unsigned long long> offsets(sortedGrids.size() + 1);
         unsigned long long currentOffset(0L);
@@ -961,7 +973,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         for(auto it = gridMap.begin(); it != gridMap.end(); ++it) {
             int proc = it->first;
             Vector<Box> &boxesAtProc = it->second;
-            BL_ASSERT(posCount == proc);
+            /* BL_ASSERT(posCount == proc); */
             procOffsets[posCount] = totalOffset;
             ++posCount;
             procBufferSize[proc] = 0L;
@@ -984,6 +996,10 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
                 ++vbCount;
             }
            
+#ifdef BL_USE_MPI
+            H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_INDEPENDENT);
+#endif
+
             // Only proc zero needs to write out this information
             ret = H5Dwrite(offsetdataset, H5T_NATIVE_LLONG, H5S_ALL, H5S_ALL, dxpl, &(offsets[0]));
             if(ret < 0) { std::cout << "Write offset dataset failed! ret = " << ret << std::endl; }
@@ -1004,6 +1020,8 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         hid_t dataspace    = H5Screate_simple(1, hs_allprocsize, NULL);
         hid_t memdataspace = H5Screate_simple(1, hs_procsize, NULL);
         hid_t dataset      = H5Dcreate(grp, dataname.c_str(), H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        if(dataset < 0) 
+            std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
         
         H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
         
@@ -1045,7 +1063,9 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
         BL_PROFILE_VAR("H5DwriteData", h5dwg);
 
-        /* ret = H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_COLLECTIVE); */
+#ifdef BL_USE_MPI
+        ret = H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_COLLECTIVE);
+#endif
         ret = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl, a_buffer.dataPtr());
         if(ret < 0) 
             std::cout << ParallelDescriptor::MyProc() << "Write data failed!  ret = " << ret << std::endl;
