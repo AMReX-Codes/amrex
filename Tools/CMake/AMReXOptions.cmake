@@ -127,7 +127,7 @@ endif ()
 # --- SYCL ---
 if (AMReX_DPCPP)
    if (NOT (CMAKE_CXX_COMPILER_ID IN_LIST "Clang;IntelClang;IntelDPCPP") )
-      message(WARNING "AMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is tested with DPCPP."
+      message(WARNING "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is tested with DPCPP."
          "Verify '${CMAKE_CXX_COMPILER_ID}' is correct and potentially set CMAKE_CXX_COMPILER=dpccp or mpiicpx.")
    endif ()
 endif ()
