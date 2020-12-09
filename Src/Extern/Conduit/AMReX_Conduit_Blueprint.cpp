@@ -355,17 +355,13 @@ MultiLevelToBlueprint (int n_levels,
     BL_ASSERT(n_levels <= level_steps.size());
     BL_ASSERT(mfs[0]->nComp() == varnames.size());
 
-    //int finest_level = n_levels-1;
-
-    int num_levels = geoms.size();
-
     // get mpi rank and # of tasks
     int rank   = ParallelDescriptor::MyProc();
     int ntasks = ParallelDescriptor::NProcs();
 
     Vector<const BoxArray*> box_arrays;
     Vector<int> box_offsets;
-    for(int i = 0; i < num_levels; i++)
+    for(int i = 0; i < n_levels; i++)
     {
       const BoxArray &boxs = mfs[i]->boxArray();
       box_arrays.push_back(&boxs);
@@ -380,7 +376,7 @@ MultiLevelToBlueprint (int n_levels,
     }
 
     int num_domains = 0;
-    for(int i = 0; i < num_levels; i++)
+    for(int i = 0; i < n_levels; i++)
     {
         //
         // Geometry represents the physical and logical space of an entire level.
@@ -409,13 +405,14 @@ MultiLevelToBlueprint (int n_levels,
             patch["state/domain_id"] = domain_id;
             patch["state/cycle"] = level_steps[0];
             patch["state/time"] = time_value;
+            patch["state/level"] = i;
 
             const FArrayBox &fab = mf[mfi];
 
             // create coordset and topo
             FabToBlueprintTopology(geom,fab,patch);
             // add the nesting relationship
-            if(num_levels > 1)
+            if(n_levels > 1)
             {
                 conduit::Node nestset;
                 bool valid = Nestsets(i, n_levels, fab, box_arrays, ref_ratio, box_offsets, nestset);
