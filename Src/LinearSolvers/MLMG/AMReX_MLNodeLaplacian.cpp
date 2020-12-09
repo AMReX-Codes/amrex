@@ -1370,7 +1370,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
             Array4<Real const> const& stenarr = stencil->const_array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
             {
-                mlndlap_adotx_sten(i,j,k,yarr,xarr,stenarr,dmskarr);
+                yarr(i,j,k) = mlndlap_adotx_sten(i,j,k,xarr,stenarr,dmskarr);
             });
         }
         else if (m_use_harmonic_average && mglev > 0)
@@ -1381,14 +1381,14 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 #if (AMREX_SPACEDIM == 2)
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
             {
-                mlndlap_adotx_ha(i,j,k,yarr,xarr,AMREX_D_DECL(sxarr,syarr,szarr), dmskarr,
-                                 is_rz, dxinvarr);
+                yarr(i,j,k) = mlndlap_adotx_ha(i,j,k,xarr,AMREX_D_DECL(sxarr,syarr,szarr), dmskarr,
+                                               is_rz, dxinvarr);
             });
 #else
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
             {
-                mlndlap_adotx_ha(i,j,k,yarr,xarr,AMREX_D_DECL(sxarr,syarr,szarr), dmskarr,
-                                 dxinvarr);
+                yarr(i,j,k) = mlndlap_adotx_ha(i,j,k,xarr,AMREX_D_DECL(sxarr,syarr,szarr), dmskarr,
+                                               dxinvarr);
             });
 #endif
         }
@@ -1398,12 +1398,12 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 #if (AMREX_SPACEDIM == 2)
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
             {
-                mlndlap_adotx_aa(i,j,k,yarr,xarr,sarr,dmskarr, is_rz, dxinvarr);
+                yarr(i,j,k) = mlndlap_adotx_aa(i,j,k,xarr,sarr,dmskarr, is_rz, dxinvarr);
             });
 #else
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
             {
-                mlndlap_adotx_aa(i,j,k,yarr,xarr,sarr,dmskarr, dxinvarr);
+                yarr(i,j,k) = mlndlap_adotx_aa(i,j,k,xarr,sarr,dmskarr, dxinvarr);
             });
 #endif
        }
@@ -1428,90 +1428,61 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
     if (Gpu::inLaunchRegion())
     {
         constexpr int nsweeps = 4;
-        MultiFab Ax(sol.boxArray(), sol.DistributionMap(), 1, 0);
-
-        if (m_coarsening_strategy == CoarseningStrategy::RAP)
+        for (int ns = 0; ns < nsweeps; ++ns)
         {
-            for (MFIter mfi(sol); mfi.isValid(); ++mfi)
+            for (MFIter mfi(sol,MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.validbox();
                 Array4<Real> const& solarr = sol.array(mfi);
                 Array4<Real const> const& rhsarr = rhs.const_array(mfi);
-                Array4<Real const> const& starr = stencil->const_array(mfi);
                 Array4<int const> const& dmskarr = dmsk.const_array(mfi);
-                Array4<Real> const& Axarr = Ax.array(mfi);
 
-                for (int ns = 0; ns < nsweeps; ++ns) {
-                    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                if (m_coarsening_strategy == CoarseningStrategy::RAP)
+                {
+                    Array4<Real const> const& starr = stencil->const_array(mfi);
+                    amrex::ParallelFor(Gpu::KernelInfo().setFusible(true), bx,
+                                       [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     {
-                        mlndlap_adotx_sten(i,j,k,Axarr,solarr,starr,dmskarr);
-                    });
-                    AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
-                    {
-                        mlndlap_jacobi_sten(tbx,solarr,Axarr,rhsarr,starr,dmskarr);
+                        Real Ax = mlndlap_adotx_sten(i,j,k,solarr,starr,dmskarr);
+                        mlndlap_jacobi_sten(i,j,k,solarr,Ax,rhsarr,starr,dmskarr);
                     });
                 }
-            }
-        }
-        else if (m_use_harmonic_average && mglev > 0)
-        {
-            for (MFIter mfi(sol); mfi.isValid(); ++mfi)
-            {
-                const Box& bx = mfi.validbox();
-                AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
-                             Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
-                             Array4<Real const> const& szarr = sigma[2]->const_array(mfi););
-                Array4<Real> const& solarr = sol.array(mfi);
-                Array4<Real const> const& rhsarr = rhs.const_array(mfi);
-                Array4<int const> const& dmskarr = dmsk.const_array(mfi);
-                Array4<Real> const& Axarr = Ax.array(mfi);
-
-                for (int ns = 0; ns < nsweeps; ++ns) {
-                    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                else if (m_use_harmonic_average && mglev > 0)
+                {
+                    AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
+                                 Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
+                                 Array4<Real const> const& szarr = sigma[2]->const_array(mfi););
+                    amrex::ParallelFor(Gpu::KernelInfo().setFusible(true), bx,
+                                       [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     {
-                        mlndlap_adotx_ha(i,j,k,Axarr,solarr,AMREX_D_DECL(sxarr,syarr,szarr), dmskarr,
+                        Real Ax = mlndlap_adotx_ha(i,j,k,solarr,AMREX_D_DECL(sxarr,syarr,szarr), dmskarr,
 #if (AMREX_SPACEDIM == 2)
-                                         is_rz,
+                                                   is_rz,
 #endif
-                                         dxinvarr);
-                    });
-                    AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
-                    {
-                        mlndlap_jacobi_ha (tbx, solarr, Axarr, rhsarr, AMREX_D_DECL(sxarr,syarr,szarr),
-                                           dmskarr, dxinvarr);
+                                                   dxinvarr);
+                        mlndlap_jacobi_ha(i,j,k, solarr, Ax, rhsarr, AMREX_D_DECL(sxarr,syarr,szarr),
+                                          dmskarr, dxinvarr);
                     });
                 }
-            }
-        }
-        else
-        {
-            for (MFIter mfi(sol); mfi.isValid(); ++mfi)
-            {
-                const Box& bx = mfi.validbox();
-                Array4<Real const> const& sarr = sigma[0]->const_array(mfi);
-                Array4<Real> const& solarr = sol.array(mfi);
-                Array4<Real const> const& rhsarr = rhs.const_array(mfi);
-                Array4<int const> const& dmskarr = dmsk.const_array(mfi);
-                Array4<Real> const& Axarr = Ax.array(mfi);
-
-                for (int ns = 0; ns < nsweeps; ++ns) {
-                    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                else
+                {
+                    Array4<Real const> const& sarr = sigma[0]->const_array(mfi);
+                    amrex::ParallelFor(Gpu::KernelInfo().setFusible(true), bx,
+                                       [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     {
-                        mlndlap_adotx_aa(i,j,k,Axarr,solarr,sarr,dmskarr,
+                        Real Ax = mlndlap_adotx_aa(i,j,k,solarr,sarr,dmskarr,
 #if (AMREX_SPACEDIM == 2)
-                                         is_rz,
+                                                   is_rz,
 #endif
-                                         dxinvarr);
-                    });
-                    AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
-                    {
-                        mlndlap_jacobi_aa (tbx, solarr, Axarr, rhsarr, sarr,
-                                           dmskarr, dxinvarr);
+                                                   dxinvarr);
+                        mlndlap_jacobi_aa(i,j,k, solarr, Ax, rhsarr, sarr,
+                                          dmskarr, dxinvarr);
                     });
                 }
             }
         }
 
+        Gpu::synchronize();
         if (nsweeps > 1) nodalSync(amrlev, mglev, sol);
     }
     else // cpu
@@ -1990,7 +1961,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                         {
                             mlndlap_set_stencil_s0(i, j, k, stenarr);
-                            mlndlap_adotx_sten(i, j, k, sync_resid_a, phiarr, stenarr, dmskarr);
+                            sync_resid_a(i,j,k) = mlndlap_adotx_sten(i, j, k, phiarr, stenarr, dmskarr);
                             mlndlap_crse_resid(i, j, k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc, neumann_doubling);
                         });
                     }
@@ -2011,13 +1982,13 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 #if (AMREX_SPACEDIM == 2)
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                         {
-                            mlndlap_adotx_aa(i, j, k, sync_resid_a, phiarr, sigmaarr, dmskarr, is_rz, dxinv);
+                            sync_resid_a(i,j,k) = mlndlap_adotx_aa(i, j, k, phiarr, sigmaarr, dmskarr, is_rz, dxinv);
                             mlndlap_crse_resid(i, j, k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc, neumann_doubling);
                         });
 #else
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                         {
-                            mlndlap_adotx_aa(i, j, k, sync_resid_a, phiarr, sigmaarr, dmskarr, dxinv);
+                            sync_resid_a(i,j,k) = mlndlap_adotx_aa(i, j, k, phiarr, sigmaarr, dmskarr, dxinv);
                             mlndlap_crse_resid(i, j, k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc, neumann_doubling);
                         });
 #endif
@@ -2241,7 +2212,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                     {
                         if (bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
                             mlndlap_set_stencil_s0(i, j, k, stenarr);
-                            mlndlap_adotx_sten(i,j,k, sync_resid_a, phiarr, stenarr, tmpmaskarr);
+                            sync_resid_a(i,j,k) = mlndlap_adotx_sten(i,j,k, phiarr, stenarr, tmpmaskarr);
                             sync_resid_a(i,j,k) = rhsarr(i,j,k) - sync_resid_a(i,j,k);
                         } else {
                             sync_resid_a(i,j,k) = 0.0;
@@ -2266,8 +2237,8 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                     AMREX_HOST_DEVICE_FOR_3D(gbx, i, j, k,
                     {
                         if (bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
-                            mlndlap_adotx_aa(i,j,k, sync_resid_a, phiarr, sigmaarr, tmpmaskarr,
-                                             is_rz, dxinv);
+                            sync_resid_a(i,j,k) = mlndlap_adotx_aa(i,j,k, phiarr, sigmaarr, tmpmaskarr,
+                                                                   is_rz, dxinv);
                             sync_resid_a(i,j,k) = rhsarr(i,j,k) - sync_resid_a(i,j,k);
                         } else {
                             sync_resid_a(i,j,k) = 0.0;
@@ -2277,8 +2248,8 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                     AMREX_HOST_DEVICE_FOR_3D(gbx, i, j, k,
                     {
                         if (bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
-                            mlndlap_adotx_aa(i,j,k, sync_resid_a, phiarr, sigmaarr, tmpmaskarr,
-                                             dxinv);
+                            sync_resid_a(i,j,k) = mlndlap_adotx_aa(i,j,k, phiarr, sigmaarr, tmpmaskarr,
+                                                                   dxinv);
                             sync_resid_a(i,j,k) = rhsarr(i,j,k) - sync_resid_a(i,j,k);
                         } else {
                             sync_resid_a(i,j,k) = 0.0;
