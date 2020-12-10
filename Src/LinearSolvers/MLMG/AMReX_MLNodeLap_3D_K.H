@@ -754,24 +754,24 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
 //
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_adotx_ha (int i, int j, int k, Array4<Real> const& y, Array4<Real const> const& x,
+Real mlndlap_adotx_ha (int i, int j, int k, Array4<Real const> const& x,
                        Array4<Real const> const& sx, Array4<Real const> const& sy,
                        Array4<Real const> const& sz, Array4<int const> const& msk,
                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     if (msk(i,j,k)) {
-        y(i,j,k) = 0.0;
+        return Real(0.0);
     } else {
         Real facx = (1./36.)*dxinv[0]*dxinv[0];
         Real facy = (1./36.)*dxinv[1]*dxinv[1];
         Real facz = (1./36.)*dxinv[2]*dxinv[2];
-        y(i,j,k) = x(i,j,k)*(-4.0)*(facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1)
+        Real y   = x(i,j,k)*(-4.0)*(facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1)
                                          +sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  ))
                                    +facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1)
                                          +sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  ))
                                    +facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1)
                                          +sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )));
-        y(i,j,k) += x(i-1,j-1,k-1)*(facx*sx(i-1,j-1,k-1)
+        y        += x(i-1,j-1,k-1)*(facx*sx(i-1,j-1,k-1)
                                    +facy*sy(i-1,j-1,k-1)
                                    +facz*sz(i-1,j-1,k-1))
                   + x(i+1,j-1,k-1)*(facx*sx(i  ,j-1,k-1)
@@ -795,7 +795,7 @@ void mlndlap_adotx_ha (int i, int j, int k, Array4<Real> const& y, Array4<Real c
                   + x(i+1,j+1,k+1)*(facx*sx(i  ,j  ,k  )
                                    +facy*sy(i  ,j  ,k  )
                                    +facz*sz(i  ,j  ,k  ));
-        y(i,j,k) += x(i  ,j-1,k-1)*(    -facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1))
+        y        += x(i  ,j-1,k-1)*(    -facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1))
                                     +2.0*facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1))
                                     +2.0*facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)))
                   + x(i  ,j+1,k-1)*(    -facx*(sx(i-1,j  ,k-1)+sx(i,j  ,k-1))
@@ -831,7 +831,7 @@ void mlndlap_adotx_ha (int i, int j, int k, Array4<Real> const& y, Array4<Real c
                   + x(i+1,j+1,k  )*( 2.0*facx*(sx(i  ,j  ,k-1)+sx(i  ,j  ,k))
                                     +2.0*facy*(sy(i  ,j  ,k-1)+sy(i  ,j  ,k))
                                         -facz*(sz(i  ,j  ,k-1)+sz(i  ,j  ,k)));
-            y(i,j,k) += 2.0*x(i-1,j,k)*( 2.0*facx*(sx(i-1,j-1,k-1)+sx(i-1,j,k-1)+sx(i-1,j-1,k)+sx(i-1,j,k))
+        y            += 2.0*x(i-1,j,k)*( 2.0*facx*(sx(i-1,j-1,k-1)+sx(i-1,j,k-1)+sx(i-1,j-1,k)+sx(i-1,j,k))
                                             -facy*(sy(i-1,j-1,k-1)+sy(i-1,j,k-1)+sy(i-1,j-1,k)+sy(i-1,j,k))
                                             -facz*(sz(i-1,j-1,k-1)+sz(i-1,j,k-1)+sz(i-1,j-1,k)+sz(i-1,j,k)))
                       + 2.0*x(i+1,j,k)*( 2.0*facx*(sx(i  ,j-1,k-1)+sx(i  ,j,k-1)+sx(i  ,j-1,k)+sx(i  ,j,k))
@@ -849,16 +849,17 @@ void mlndlap_adotx_ha (int i, int j, int k, Array4<Real> const& y, Array4<Real c
                       + 2.0*x(i,j,k+1)*(    -facx*(sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  ))
                                             -facy*(sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  ))
                                         +2.0*facz*(sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )));
+        return y;
     }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_adotx_aa (int i, int j, int k, Array4<Real> const& y, Array4<Real const> const& x,
+Real mlndlap_adotx_aa (int i, int j, int k, Array4<Real const> const& x,
                        Array4<Real const> const& sig, Array4<int const> const& msk,
                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     if (msk(i,j,k)) {
-        y(i,j,k) = 0.0;
+        return Real(0.0);
     } else {
         Real facx = (1.0/36.0)*dxinv[0]*dxinv[0];
         Real facy = (1.0/36.0)*dxinv[1]*dxinv[1];
@@ -870,7 +871,7 @@ void mlndlap_adotx_aa (int i, int j, int k, Array4<Real> const& y, Array4<Real c
         Real f4xm2ym2z = 4.0*facx - 2.0*facy - 2.0*facz;
         Real fm2x4ym2z = -2.0*facx + 4.0*facy - 2.0*facz;
         Real fm2xm2y4z = -2.0*facx - 2.0*facy + 4.0*facz;
-        y(i,j,k) = x(i,j,k)*(-4.0)*fxyz*
+        return x(i,j,k)*(-4.0)*fxyz*
             (sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
             +sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  ))
             + fxyz*(x(i-1,j-1,k-1)*sig(i-1,j-1,k-1)
@@ -944,6 +945,29 @@ void mlndlap_normalize_aa (Box const& bx, Array4<Real> const& x, Array4<Real con
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_jacobi_ha (int i, int j, int k, Array4<Real> const& sol, Real Ax,
+                        Array4<Real const> const& rhs, Array4<Real const> const& sx,
+                        Array4<Real const> const& sy, Array4<Real const> const& sz,
+                        Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = -4.0 * (1.0/36.0)*dxinv[0]*dxinv[0];
+    Real facy = -4.0 * (1.0/36.0)*dxinv[1]*dxinv[1];
+    Real facz = -4.0 * (1.0/36.0)*dxinv[2]*dxinv[2];
+
+    if (msk(i,j,k)) {
+        sol(i,j,k) = 0.0;
+    } else {
+        sol(i,j,k) += (2.0/3.0) * (rhs(i,j,k) - Ax)
+            / (facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1)
+                    +sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  ))
+              +facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1)
+                    +sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  ))
+              +facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1)
+                    +sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )));
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_jacobi_ha (Box const& bx, Array4<Real> const& sol, Array4<Real const> const& Ax,
                         Array4<Real const> const& rhs, Array4<Real const> const& sx,
                         Array4<Real const> const& sy, Array4<Real const> const& sz,
@@ -967,6 +991,24 @@ void mlndlap_jacobi_ha (Box const& bx, Array4<Real> const& sol, Array4<Real cons
                         +sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )));
         }
     });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_jacobi_aa (int i, int j, int k, Array4<Real> const& sol, Real Ax,
+                        Array4<Real const> const& rhs, Array4<Real const> const& sig,
+                        Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real fxyz = -4.0 * (1.0/36.0)*(dxinv[0]*dxinv[0] +
+                                   dxinv[1]*dxinv[1] +
+                                   dxinv[2]*dxinv[2]);
+
+    if (msk(i,j,k)) {
+        sol(i,j,k) = 0.0;
+    } else {
+        sol(i,j,k) += (2.0/3.0) * (rhs(i,j,k) - Ax)
+            / (fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
+                    +sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )));
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -5104,13 +5146,13 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_adotx_sten (int i, int j, int k, Array4<Real> const& y, Array4<Real const> const& x,
+Real mlndlap_adotx_sten (int i, int j, int k, Array4<Real const> const& x,
                          Array4<Real const> const& sten, Array4<int const> const& msk) noexcept
 {
     if (msk(i,j,k)) {
-        y(i,j,k) = 0.0;
+        return Real(0.0);
     } else {
-        y(i,j,k) = x(i  ,j  ,k  ) * sten(i  ,j  ,k  ,ist_000)
+        return     x(i  ,j  ,k  ) * sten(i  ,j  ,k  ,ist_000)
             //
             +      x(i-1,j  ,k  ) * sten(i-1,j  ,k  ,ist_p00)
             +      x(i+1,j  ,k  ) * sten(i  ,j  ,k  ,ist_p00)

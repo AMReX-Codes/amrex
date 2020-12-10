@@ -45,16 +45,16 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_adotx_ha (int /*i*/, int /*j*/, int /*k*/, Array4<Real> const& y, Array4<Real const> const& x,
+Real mlndlap_adotx_ha (int /*i*/, int /*j*/, int /*k*/, Array4<Real const> const& x,
                        Array4<Real const> const& sx, Array4<int const> const& msk,
                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
-{}
+{ return Real(0.0); }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_adotx_aa (int /*i*/, int /*j*/, int /*k*/, Array4<Real> const& y, Array4<Real const> const& x,
+Real mlndlap_adotx_aa (int /*i*/, int /*j*/, int /*k*/, Array4<Real const> const& x,
                        Array4<Real const> const& sig, Array4<int const> const& msk,
                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
-{}
+{ return Real(0.0); }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_normalize_ha (Box const& bx, Array4<Real> const& x, Array4<Real const> const& sx,
@@ -67,8 +67,20 @@ void mlndlap_normalize_aa (Box const& bx, Array4<Real> const& x, Array4<Real con
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_jacobi_ha (int, int, int, Array4<Real> const& sol, Real Ax,
+                        Array4<Real const> const& rhs, Array4<Real const> const& sx,
+                        Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_jacobi_ha (Box const& bx, Array4<Real> const& sol, Array4<Real const> const& Ax,
                         Array4<Real const> const& rhs, Array4<Real const> const& sx,
+                        Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_jacobi_aa (int, int, int, Array4<Real> const& sol, Real Ax,
+                        Array4<Real const> const& rhs, Array4<Real const> const& sig,
                         Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {}
 
@@ -223,9 +235,9 @@ void mlndlap_stencil_rap (int /*i*/, int /*j*/, int /*k*/, Array4<Real> const& c
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_adotx_sten (int /*i*/, int /*j*/, int /*k*/, Array4<Real> const& y, Array4<Real const> const& x,
+Real mlndlap_adotx_sten (int /*i*/, int /*j*/, int /*k*/, Array4<Real const> const& x,
                          Array4<Real const> const& sten, Array4<int const> const& msk) noexcept
-{}
+{ return Real(0.0); }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_gauss_seidel_sten (Box const& bx, Array4<Real> const& sol,
