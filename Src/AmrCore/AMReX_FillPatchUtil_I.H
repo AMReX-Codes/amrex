@@ -851,7 +851,9 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
     // If needed, adjust to fully overlap the coarse cells.
     IntVect nghost_adj = nghost;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        nghost_adj[d] += nghost[d] % ratio[d];
+        if (nghost[d] % ratio[d] != 0) {
+            nghost_adj[d] += ratio[d] - (nghost[d] % ratio[d]);
+        }
     }
 
     Array<MF*, AMREX_SPACEDIM> mf_adj = mf;
