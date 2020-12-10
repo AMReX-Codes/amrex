@@ -848,19 +848,31 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
         }
     }
 
-    const bool nested = ( AMREX_D_TERM(nghost[0] % ratio[0] == 0,
-                                    && nghost[1] % ratio[1] == 0,
-                                    && nghost[2] % ratio[2] == 0));
+    // If needed, adjust to fully overlap the coarse cells.
+    IntVect nghost_adj = nghost;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        nghost_adj[d] += nghost[d] % ratio[d];
+    }
 
+    Array<MF*, AMREX_SPACEDIM> mf_adj = mf;
+    int dcomp_adj = dcomp;
+    Array<std::unique_ptr<MF>, AMREX_SPACEDIM> mf_temp;
+    if (nghost != nghost_adj) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            mf_temp[d].reset( new MF(mf[d]->boxArray(), mf[d]->DistributionMap(), ncomp, nghost_adj) );
+            mf_adj[d] = mf_temp[d].get();
+        }
+        dcomp_adj = 0;
+    }
+
+    // Build patches, using domain to account for periodic bcs.
     BoxArray ba_crse_patch(ba.size());
     BoxArray ba_fine_patch(ba.size());
-    BoxArray ba_target_patch(ba.size());
     {  // TODO: later we might want to cache this
         for (int i = 0, N = ba.size(); i < N; ++i)
         {
             Box bx = amrex::convert(amrex::grow(ba[i], nghost), IntVect::TheZeroVector());
             bx &= fdomain_g;
-            ba_target_patch.set(i, bx);
             ba_fine_patch.set(i, amrex::refine(amrex::coarsen(bx, ratio), ratio));
             ba_crse_patch.set(i, coarsener.doit(bx));
         }
@@ -932,35 +944,16 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
             mapper->interp_arr(sfab, 0, dfab, 0, ncomp, dbx_cc, ratio, mfab,
                                cgeom, fgeom, bcr, idummy1, idummy2, RunOn::Gpu);
 
-            post_interp(dfab, dbx_cc, dcomp, ncomp);
-        }
-    }
-
-
-    Array<MF, AMREX_SPACEDIM> mf_target_patch;
-    if (!nested)
-    {
-        for (int d = 0; d<AMREX_SPACEDIM; ++d)
-        {
-            IndexType typ = mf[d]->boxArray().ixType();
-            BoxArray ba_target_idxed = amrex::convert(ba_target_patch, typ);
-
-#ifdef AMREX_USE_EB
-            auto target_factory = makeEBFabFactory(fgeom, ba_target_idxed, dm, {0,0,0}, EBSupport::basic);
-            mf_target_patch[d].define(ba_target_idxed, dm, ncomp, 0, MFInfo(), *target_factory);
-#else
-            mf_target_patch[d].define(ba_target_idxed, dm, ncomp, 0);
-#endif
-            amrex::Copy(mf_target_patch[d], mf_fine_patch[d], 0, 0, ncomp, 0);
+            post_interp(dfab, dbx_cc, 0, ncomp);
         }
     }
 
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
-        if (!nested) {
-            mf[d]->ParallelCopy(mf_target_patch[d], 0, dcomp, ncomp, IntVect{0}, nghost);
-        } else {
-            mf[d]->ParallelCopy(mf_fine_patch[d], 0, dcomp, ncomp, IntVect{0}, nghost);
+        mf_adj[d]->ParallelCopy(mf_fine_patch[d], 0, dcomp_adj, ncomp, IntVect{0}, nghost_adj);
+
+        if (mf[d] != mf_adj[d]) {
+            amrex::Copy(*mf[d], *mf_adj[d], 0, dcomp_adj, ncomp, nghost);
         }
 
         fbc[d](*mf[d], dcomp, ncomp, nghost, time, fbccomp);
