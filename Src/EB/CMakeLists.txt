@@ -77,6 +77,7 @@ if (AMReX_SPACEDIM EQUAL 3)
    AMReX_EBToPVD.H
    AMReX_EBToPVD.cpp
    )
+endif ()
 
 if (AMReX_FORTRAN)
    target_sources(amrex
@@ -84,5 +85,4 @@ if (AMReX_FORTRAN)
       AMReX_ebcellflag_mod.F90
       AMReX_EBFluxRegister_nd.F90
       )
-
 endif ()
