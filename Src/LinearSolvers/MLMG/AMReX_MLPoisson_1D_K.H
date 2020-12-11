@@ -68,7 +68,6 @@ void mlpoisson_flux_xface (Box const& box, Array4<Real> const& fx,
                            Array4<Real const> const& sol, Real dxinv, int xlen) noexcept
 {
     const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
 
     int i = lo.x;
     fx(i,0,0) = dxinv*(sol(i,0,0)-sol(i-1,0,0));
@@ -82,7 +81,6 @@ void mlpoisson_flux_xface_m (Box const& box, Array4<Real> const& fx,
                              Real dx, Real probxlo) noexcept
 {
     const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
 
     int i = lo.x;
     Real re = (probxlo + i*dx) * (probxlo + i*dx);    

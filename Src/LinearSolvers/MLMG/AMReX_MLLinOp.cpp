@@ -474,10 +474,10 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         {
             int num_semicoarsening_level = 1;
             // Semi-coarsening  -- by the time we get here we know we can't coarsen isotropically any more
+#if (AMREX_SPACEDIM >= 2)
             IntVect rr_0(AMREX_D_DECL(rr,1,1));
             bool is_coarsenable_x = ( a_geom[0].Domain().coarsenable(rr_0, mg_domain_min_width) &&
                                       a_grids[0].coarsenable(rr_0, mg_box_min_width));
-#if (AMREX_SPACEDIM >= 2)
             IntVect rr_1(AMREX_D_DECL(1,rr,1));
             bool is_coarsenable_y = ( a_geom[0].Domain().coarsenable(rr_1, mg_domain_min_width) &&
                                       a_grids[0].coarsenable(rr_1, mg_box_min_width));
@@ -507,8 +507,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                         (is_coarsenable_x || is_coarsenable_y || is_coarsenable_z) )
 #endif
                 {
-                    int r0 = (is_coarsenable_x) ? rr_vec[0]*mg_coarsen_ratio : rr_vec[0];
 #if (AMREX_SPACEDIM >= 2)
+                    int r0 = (is_coarsenable_x) ? rr_vec[0]*mg_coarsen_ratio : rr_vec[0];
                     int r1 = (is_coarsenable_y) ? rr_vec[1]*mg_coarsen_ratio : rr_vec[1];
                     rr_vec[0] = r0;
                     rr_vec[1] = r1;
@@ -541,10 +541,10 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                     ++(m_num_mg_levels[0]);
                     ++num_semicoarsening_level;
 
+#if (AMREX_SPACEDIM >= 2)
                     IntVect rrr_0(AMREX_D_DECL(rr_vec[0]*mg_coarsen_ratio, 1, 1));
                     is_coarsenable_x = ( a_geom[0].Domain().coarsenable(rrr_0, mg_domain_min_width) &&
                                          a_grids[0].coarsenable(rrr_0, mg_box_min_width));
-#if (AMREX_SPACEDIM >= 2)
                     IntVect rrr_1(AMREX_D_DECL(1, rr_vec[1]*mg_coarsen_ratio, 1));
                     is_coarsenable_y = ( a_geom[0].Domain().coarsenable(rrr_1, mg_domain_min_width) &&
                                          a_grids[0].coarsenable(rrr_1, mg_box_min_width));

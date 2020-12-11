@@ -24,14 +24,34 @@ NodalProjector::NodalProjector ( const amrex::Vector<amrex::MultiFab*>&       a_
       m_sigma(a_sigma),
       m_S_nd(a_S_nd)
 {
-    int nlevs = a_vel.size();
+    define(a_lpinfo);
+}
+
+NodalProjector::NodalProjector ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
+                                 const amrex::Real                            a_const_sigma,
+                                 const amrex::Vector<amrex::Geometry>&        a_geom,
+                                 const LPInfo&                                a_lpinfo,
+                                 const amrex::Vector<amrex::MultiFab*>&       a_S_cc,
+                                 const amrex::Vector<const amrex::MultiFab*>& a_S_nd )
+    : m_geom(a_geom),
+      m_vel(a_vel),
+      m_S_cc(a_S_cc),
+      m_const_sigma(a_const_sigma),
+      m_S_nd(a_S_nd)
+{
+    define(a_lpinfo);
+}
+
+void NodalProjector::define (LPInfo const& a_lpinfo)
+{
+    int nlevs = m_vel.size();
 
     Vector<BoxArray> ba(nlevs);
     Vector<DistributionMapping> dm(nlevs);
     for (int lev = 0; lev < nlevs; ++lev)
     {
-        ba[lev] = a_vel[lev]->boxArray();
-        dm[lev] = a_vel[lev]->DistributionMap();
+        ba[lev] = m_vel[lev]->boxArray();
+        dm[lev] = m_vel[lev]->DistributionMap();
     }
 
     // Resize member data
@@ -41,22 +61,22 @@ NodalProjector::NodalProjector ( const amrex::Vector<amrex::MultiFab*>&       a_
 
 
 #ifdef AMREX_USE_EB
-    bool has_eb = a_vel[0] -> hasEBFabFactory();
+    bool has_eb = m_vel[0] -> hasEBFabFactory();
     if (has_eb)
     {
         m_ebfactory.resize(nlevs,nullptr);
         for (int lev = 0; lev < nlevs; ++lev )
         {
-            m_ebfactory[lev] = dynamic_cast<EBFArrayBoxFactory const*>(&(a_vel[lev]->Factory()));
+            m_ebfactory[lev] = dynamic_cast<EBFArrayBoxFactory const*>(&(m_vel[lev]->Factory()));
 
             // Cell-centered data
-            m_fluxes[lev].define(ba[lev], dm[lev], AMREX_SPACEDIM, 0, MFInfo(), a_vel[lev]->Factory());
+            m_fluxes[lev].define(ba[lev], dm[lev], AMREX_SPACEDIM, 0, MFInfo(), m_vel[lev]->Factory());
 
             // Node-centered data
             auto tmp = ba[lev];
             const auto& ba_nd = tmp.surroundingNodes();
-            m_phi[lev].define(ba_nd, dm[lev], 1, 1, MFInfo(), a_vel[lev]->Factory());
-            m_rhs[lev].define(ba_nd, dm[lev], 1, 0, MFInfo(), a_vel[lev]->Factory());
+            m_phi[lev].define(ba_nd, dm[lev], 1, 1, MFInfo(), m_vel[lev]->Factory());
+            m_rhs[lev].define(ba_nd, dm[lev], 1, 0, MFInfo(), m_vel[lev]->Factory());
         }
     }
     else
@@ -86,11 +106,19 @@ NodalProjector::NodalProjector ( const amrex::Vector<amrex::MultiFab*>&       a_
     //
     // Setup linear operator
     //
+    if (m_sigma.empty()) {
 #ifdef AMREX_USE_EB
-    m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo, m_ebfactory));
+        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo, m_ebfactory, m_const_sigma));
 #else
-    m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo));
+        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo, {}, m_const_sigma));
 #endif
+    } else {
+#ifdef AMREX_USE_EB
+        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo, m_ebfactory));
+#else
+        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo));
+#endif
+    }
 
     m_linop->setGaussSeidel(true);
     m_linop->setHarmonicAverage(false);
@@ -283,7 +311,12 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
             {
                 MultiFab::Multiply(m_fluxes[lev], *m_alpha[lev], 0, n, 1, 0);
             }
-            MultiFab::Divide(m_fluxes[lev], *m_sigma[lev], 0, n, 1, 0);
+            if (m_sigma.empty()) {
+                AMREX_ASSERT(m_const_sigma != Real(0.));
+                m_fluxes[lev].mult(Real(1.)/m_const_sigma, n, 1, 0);
+            } else {
+                MultiFab::Divide(m_fluxes[lev], *m_sigma[lev], 0, n, 1, 0);
+            }
         }
 
     }
