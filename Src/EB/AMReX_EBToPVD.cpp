@@ -17,7 +17,7 @@ amrex::Real dot_product(const std::array<amrex::Real,3>& a, const std::array<amr
 
 bool intersects(amrex::Real val)
 {
-   return (val > 0.0 and val < 1.0);
+   return (val > 0.0 && val < 1.0);
 }
 
 }
@@ -104,7 +104,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                //   => Move the centroid a little back and forth along the normal
                //      to see if that makes a difference:
 
-               if((count < 3) or (count > 6)) {
+               if((count < 3) || (count > 6)) {
                   int count_d;
                   Real p_d;
                   std::array<Real,3> n0_d;
@@ -121,7 +121,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                   calc_hesse(distance, n0_d, p_d, normal, centroid_d);
                   calc_alpha(alpha_d, distance, n0_d, p_d, vertex, dx);
                   calc_intersects(count_d, alpha_d_intersect, alpha_d);
-                  if((count_d >= 3) and (count_d <= 6)) {
+                  if((count_d >= 3) && (count_d <= 6)) {
                      count = count_d;
                      alpha_intersect = alpha_d_intersect;
                   }
@@ -133,7 +133,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                   calc_hesse(distance, n0_d, p_d, normal, centroid_d);
                   calc_alpha(alpha_d, distance, n0_d, p_d, vertex, dx);
                   calc_intersects(count_d, alpha_d_intersect, alpha_d);
-                  if((count_d >= 3) and (count_d <= 6)) {
+                  if((count_d >= 3) && (count_d <= 6)) {
                      count = count_d;
                      alpha_intersect = alpha_d_intersect;
                   }
@@ -141,7 +141,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                // I know this was a bit of a hack, but it's the only way I prevent
                // missing facets...
 
-               if((count >=3) and (count <=6)) {
+               if((count >=3) && (count <=6)) {
                   m_connectivity.push_back({0,0,0,0,0,0,0});
 
                   // calculate intersection points.
