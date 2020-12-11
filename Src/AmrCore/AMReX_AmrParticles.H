@@ -78,10 +78,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         //
         this->AssignCellDensitySingleLevel(rho_index, *mf[0], 0, ncomp);
         //
-        // I believe that we don't need any information in ghost cells so we don't copy those.
+        // We may not need any information in ghost cells but maybe we should copy them anyways.
         //
+        auto ng = IntVect(AMREX_D_DECL(ngrow,ngrow,ngrow));
         if ( ! all_grids_the_same) {
-            mf_to_be_filled[0]->copy(*mf[0],0,0,ncomp);
+            mf_to_be_filled[0]->ParallelCopy(*mf[0],0,0,ncomp,ng,ng);
         }
         return;
     }
