@@ -37,7 +37,7 @@ private:
 
    // Fills the alpha vector
    void calc_alpha(std::array<Real,12>& alpha,
-         Real distance, const std::array<Real,3>& n0, Real p,
+         const std::array<Real,3>& n0, Real p,
          const std::array<std::array<Real,3>,8>& vertex,
          const Real* dx) const;
 

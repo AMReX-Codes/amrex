@@ -95,7 +95,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                std::array<bool,12> alpha_intersect;
 
                calc_hesse(distance, n0, p, normal, centroid);
-               calc_alpha(alpha, distance, n0, p, vertex, dx);
+               calc_alpha(alpha, n0, p, vertex, dx);
                calc_intersects(count, alpha_intersect, alpha);
 
                // If the number of facet "contained" in does not describe a facet:
@@ -119,7 +119,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                   }
 
                   calc_hesse(distance, n0_d, p_d, normal, centroid_d);
-                  calc_alpha(alpha_d, distance, n0_d, p_d, vertex, dx);
+                  calc_alpha(alpha_d, n0_d, p_d, vertex, dx);
                   calc_intersects(count_d, alpha_d_intersect, alpha_d);
                   if((count_d >= 3) && (count_d <= 6)) {
                      count = count_d;
@@ -131,7 +131,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                   }
 
                   calc_hesse(distance, n0_d, p_d, normal, centroid_d);
-                  calc_alpha(alpha_d, distance, n0_d, p_d, vertex, dx);
+                  calc_alpha(alpha_d, n0_d, p_d, vertex, dx);
                   calc_intersects(count_d, alpha_d_intersect, alpha_d);
                   if((count_d >= 3) && (count_d <= 6)) {
                      count = count_d;
@@ -335,7 +335,7 @@ void EBToPVD::calc_hesse(Real& distance, std::array<Real,3>& n0, Real& p,
 }
 
 void EBToPVD::calc_alpha(std::array<Real,12>& alpha,
-      Real distance, const std::array<Real,3>& n0, Real p,
+      const std::array<Real,3>& n0, Real p,
       const std::array<std::array<Real,3>,8>& vertex,
       const Real* dx) const 
 {
