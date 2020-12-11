@@ -28,6 +28,9 @@ struct Neighbors
         AMREX_GPU_HOST_DEVICE
         ParticleType& operator* () const { return m_pstruct[m_nbor_list_ptr[m_index]];  }
 
+        AMREX_GPU_HOST_DEVICE
+        unsigned int index () const { return m_nbor_list_ptr[m_index]; }
+
     private:
         int m_index;
         int m_stop;
@@ -50,6 +53,9 @@ struct Neighbors
 
         AMREX_GPU_HOST_DEVICE
         const ParticleType& operator* () const { return m_pstruct[m_nbor_list_ptr[m_index]];  }
+
+        AMREX_GPU_HOST_DEVICE
+        unsigned int index () const { return m_nbor_list_ptr[m_index]; }
 
     private:
         int m_index;
