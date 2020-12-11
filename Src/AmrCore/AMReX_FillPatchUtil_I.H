@@ -402,6 +402,18 @@ namespace {
                                && mf[1]->ixType().nodeCentered(1),
                                && mf[2]->ixType().nodeCentered(2)));
 
+        // These need to be true: (ba[0] == ba[1] == ba[2]) & (dm[0] == dm[1] == dm[2]).
+        // Debatable whether these are required, or will be enforced elsewhere prior to this func.
+        AMREX_ASSERT(AMREX_D_TERM(true,
+                               && BoxArray::SameRefs(mf[0]->boxArray(), mf[1]->boxArray()),
+                               && BoxArray::SameRefs(mf[0]->boxArray(), mf[2]->boxArray())));
+/*
+        AMREX_ASSERT(AMREX_D_TERM(true,
+                               && DistributionMapping::SameRefs(mf[0]->DistributionMap(), mf[1]->DistributionMap()),
+                               && DistributionMapping::SameRefs(mf[0]->DistributionMap(), mf[2]->DistributionMap())));
+*/
+
+
         // Test all of them?
 	if (nghost.max() > 0 || mf[0]->getBDKey() != fmf[0][0]->getBDKey())
 	{
@@ -838,15 +850,16 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
                            && mf[1]->ixType().nodeCentered(1),
                            && mf[2]->ixType().nodeCentered(2)));
 
-    // Create a cell-centered boxArray of the region to interp.
-    // Convert this boxArray and domain as needed.
-    Box fdomain = amrex::convert(fgeom.Domain(), IntVect::TheZeroVector());
-    Box fdomain_g(fdomain);
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-        if (fgeom.isPeriodic(d)) {
-            fdomain_g.grow(d,nghost[d]);
-        }
-    }
+    // These need to be true: (ba[0] == ba[1] == ba[2]) & (dm[0] == dm[1] == dm[2]).
+    // Debatable whether these are required, or will be enforced elsewhere prior to this func.
+    AMREX_ASSERT(AMREX_D_TERM(true,
+                           && BoxArray::SameRefs(mf[0]->boxArray(), mf[1]->boxArray()),
+                           && BoxArray::SameRefs(mf[0]->boxArray(), mf[2]->boxArray())));
+/*
+    AMREX_ASSERT(AMREX_D_TERM(true,
+                           && DistributionMapping::SameRefs(mf[0]->DistributionMap(), mf[1]->DistributionMap()),
+                           && DistributionMapping::SameRefs(mf[0]->DistributionMap(), mf[2]->DistributionMap())));
+*/
 
     // If needed, adjust to fully overlap the coarse cells.
     IntVect nghost_adj = nghost;
@@ -856,53 +869,53 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
         }
     }
 
-    Array<MF*, AMREX_SPACEDIM> mf_adj = mf;
+    Array<MF*, AMREX_SPACEDIM> mf_local = mf;
     int dcomp_adj = dcomp;
     Array<std::unique_ptr<MF>, AMREX_SPACEDIM> mf_temp;
     if (nghost != nghost_adj) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             mf_temp[d].reset( new MF(mf[d]->boxArray(), mf[d]->DistributionMap(), ncomp, nghost_adj) );
-            mf_adj[d] = mf_temp[d].get();
+            mf_local[d] = mf_temp[d].get();
         }
         dcomp_adj = 0;
     }
 
+    // Create a cell-centered boxArray of the region to interp.
+    // Convert this boxArray and domain as needed.
+    Box fdomain = amrex::convert(fgeom.Domain(), IntVect::TheZeroVector());
+    Box fdomain_g(fdomain);
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        if (fgeom.isPeriodic(d)) {
+            fdomain_g.grow(d,nghost_adj[d]);
+        }
+    }
+
     // Build patches, using domain to account for periodic bcs.
     BoxArray ba_crse_patch(ba.size());
-    BoxArray ba_fine_patch(ba.size());
     {  // TODO: later we might want to cache this
         for (int i = 0, N = ba.size(); i < N; ++i)
         {
-            Box bx = amrex::convert(amrex::grow(ba[i], nghost), IntVect::TheZeroVector());
+            Box bx = amrex::convert(amrex::grow(ba[i], nghost_adj), IntVect::TheZeroVector());
             bx &= fdomain_g;
-            ba_fine_patch.set(i, amrex::refine(amrex::coarsen(bx, ratio), ratio));
             ba_crse_patch.set(i, coarsener.doit(bx));
         }
     }
 
     Array<MF, AMREX_SPACEDIM> mf_crse_patch;
-    Array<MF, AMREX_SPACEDIM> mf_fine_patch;
     for (int d = 0; d<AMREX_SPACEDIM; ++d)
     {
         IndexType typ = mf[d]->boxArray().ixType();
-
         BoxArray ba_crse_idxed = amrex::convert(ba_crse_patch, typ);
-        BoxArray ba_fine_idxed = amrex::convert(ba_fine_patch, typ);
 
 #ifdef AMREX_USE_EB
         auto crse_factory = makeEBFabFactory(cgeom, ba_crse_idxed, dm, {0,0,0}, EBSupport::basic);
-        auto fine_factory = makeEBFabFactory(fgeom, ba_fine_idxed, dm, {0,0,0}, EBSupport::basic);
-
         mf_crse_patch[d].define(ba_crse_idxed, dm, ncomp, 0, MFInfo(), *crse_factory);
-        mf_fine_patch[d].define(ba_fine_idxed, dm, ncomp, 0, MFInfo(), *fine_factory);
 #else
         mf_crse_patch[d].define(ba_crse_idxed, dm, ncomp, 0);
-        mf_fine_patch[d].define(ba_fine_idxed, dm, ncomp, 0);
 #endif
         mf_set_domain_bndry(mf_crse_patch[d], cgeom);
 
         mf_crse_patch[d].copy(*(cmf[d]), scomp, 0, ncomp, cgeom.periodicity());
-
         cbc[d](mf_crse_patch[d], 0, ncomp, mf_crse_patch[d].nGrowVect(), time, cbccomp);
     }
 
@@ -921,13 +934,12 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
             Array<FAB*, AMREX_SPACEDIM>  sfab{ AMREX_D_DECL( &(mf_crse_patch[0][mfi]),
                                                              &(mf_crse_patch[1][mfi]),
                                                              &(mf_crse_patch[2][mfi]) )};
-            Array<FAB*, AMREX_SPACEDIM>  dfab{ AMREX_D_DECL( &(mf_fine_patch[0])[mfi],
-                                                             &(mf_fine_patch[1])[mfi],
-                                                             &(mf_fine_patch[2])[mfi] )};
+            Array<FAB*, AMREX_SPACEDIM>  dfab{ AMREX_D_DECL( &(*mf_local[0])[mfi],
+                                                             &(*mf_local[1])[mfi],
+                                                             &(*mf_local[2])[mfi] )};
 
             const Box& sbx_cc = amrex::convert(sfab[0]->box(), IntVect::TheZeroVector());
             Box dfab_cc = amrex::convert(dfab[0]->box(), IntVect::TheZeroVector());
-            dfab_cc.grow(nghost-mf[0]->nGrowVect());
             const Box& dbx_cc = dfab_cc & fdomain_g;
 
             for (int d=0; d<AMREX_SPACEDIM; ++d)
@@ -952,10 +964,8 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
 
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
-        mf_adj[d]->ParallelCopy(mf_fine_patch[d], 0, dcomp_adj, ncomp, IntVect{0}, nghost_adj);
-
-        if (mf[d] != mf_adj[d]) {
-            amrex::Copy(*mf[d], *mf_adj[d], 0, dcomp_adj, ncomp, nghost);
+        if (mf[d] != mf_local[d]) {
+            amrex::Copy(*mf[d], *mf_local[d], 0, dcomp_adj, ncomp, nghost);
         }
 
         fbc[d](*mf[d], dcomp, ncomp, nghost, time, fbccomp);
