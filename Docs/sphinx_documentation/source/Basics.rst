@@ -1893,6 +1893,44 @@ But :cpp:`Box& bx = mfi.validbox()` is not legal and will not compile.
 Finally it should be emphasized that tiling should not be used when
 running on GPUs because of kernel launch overhead.
 
+Multiple MFIters
+----------------
+
+To avoid some common bugs, it is not allowed to have multiple active
+:cpp:`MFIter` objects like below by default.
+
+.. highlight:: c++
+
+::
+
+    for (MFIter mfi1(...); ...) {
+        for (MFIter mfi2(...); ...) {
+        }
+    }
+
+.. highlight:: fortran
+
+::
+
+    call amrex_mfiter_build(mf1, ...)
+    call amrex_mfiter_build(mf2, ...)
+
+The will results in an assertion failure at runtime.  To disable the
+assertion, one could call
+
+.. highlight:: c++
+
+::
+
+    int old_flag = amrex::MFIter::allowMultipleMFIters(true);
+
+.. highlight:: fortran
+
+::
+
+    logical :: old_flag
+    old_flag = amrex_mfiter_allow_multiple(.true.)
+
 .. _sec:basics:fortran:
 
 Fortran and C++ Kernels
