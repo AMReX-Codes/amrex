@@ -25,7 +25,9 @@ MLNodeTensorLaplacian::setSigma (Array<Real,nelems> const& a_sigma) noexcept
 void
 MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexcept
 {
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(a_beta);
+#elif (AMREX_SPACEDIM == 2)
     m_sigma[0] = 1. - a_beta[0]*a_beta[0];
     m_sigma[1] =    - a_beta[0]*a_beta[1];
     m_sigma[2] = 1. - a_beta[1]*a_beta[1];

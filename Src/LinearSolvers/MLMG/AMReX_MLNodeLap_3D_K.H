@@ -904,6 +904,54 @@ Real mlndlap_adotx_aa (int i, int j, int k, Array4<Real const> const& x,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real mlndlap_adotx_c (int i, int j, int k, Array4<Real const> const& x,
+                      Real sig, Array4<int const> const& msk,
+                      GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    if (msk(i,j,k)) {
+        return Real(0.0);
+    } else {
+        Real facx = (1.0/36.0)*dxinv[0]*dxinv[0];
+        Real facy = (1.0/36.0)*dxinv[1]*dxinv[1];
+        Real facz = (1.0/36.0)*dxinv[2]*dxinv[2];
+        Real fxyz = facx + facy + facz;
+        Real fmx2y2z = -facx + 2.0*facy + 2.0*facz;
+        Real f2xmy2z = 2.0*facx - facy + 2.0*facz;
+        Real f2x2ymz = 2.0*facx + 2.0*facy - facz;
+        Real f4xm2ym2z = 4.0*facx - 2.0*facy - 2.0*facz;
+        Real fm2x4ym2z = -2.0*facx + 4.0*facy - 2.0*facz;
+        Real fm2xm2y4z = -2.0*facx - 2.0*facy + 4.0*facz;
+        return sig * (x(i,j,k)*Real(-4.0)*fxyz*Real(8.)
+            + fxyz*(x(i-1,j-1,k-1)
+                  + x(i+1,j-1,k-1)
+                  + x(i-1,j+1,k-1)
+                  + x(i+1,j+1,k-1)
+                  + x(i-1,j-1,k+1)
+                  + x(i+1,j-1,k+1)
+                  + x(i-1,j+1,k+1)
+                  + x(i+1,j+1,k+1))
+            + fmx2y2z*(x(i  ,j-1,k-1)*Real(2.)
+                     + x(i  ,j+1,k-1)*Real(2.)
+                     + x(i  ,j-1,k+1)*Real(2.)
+                     + x(i  ,j+1,k+1)*Real(2.))
+            + f2xmy2z*(x(i-1,j  ,k-1)*Real(2.)
+                     + x(i+1,j  ,k-1)*Real(2.)
+                     + x(i-1,j  ,k+1)*Real(2.)
+                     + x(i+1,j  ,k+1)*Real(2.))
+            + f2x2ymz*(x(i-1,j-1,k  )*Real(2.)
+                     + x(i+1,j-1,k  )*Real(2.)
+                     + x(i-1,j+1,k  )*Real(2.)
+                     + x(i+1,j+1,k  )*Real(2.))
+            + f4xm2ym2z*(x(i-1,j,k)*Real(4.)
+                       + x(i+1,j,k)*Real(4.))
+            + fm2x4ym2z*(x(i,j-1,k)*Real(4.)
+                       + x(i,j+1,k)*Real(4.))
+            + fm2xm2y4z*(x(i,j,k-1)*Real(4.)
+                       + x(i,j,k+1)*Real(4.)));
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_normalize_ha (Box const& bx, Array4<Real> const& x, Array4<Real const> const& sx,
                            Array4<Real const> const& sy, Array4<Real const> const& sz,
                            Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
@@ -1012,6 +1060,23 @@ void mlndlap_jacobi_aa (int i, int j, int k, Array4<Real> const& sol, Real Ax,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_jacobi_c (int i, int j, int k, Array4<Real> const& sol, Real Ax,
+                       Array4<Real const> const& rhs, Real sig,
+                       Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real fxyz = -4.0 * (1.0/36.0)*(dxinv[0]*dxinv[0] +
+                                   dxinv[1]*dxinv[1] +
+                                   dxinv[2]*dxinv[2]);
+
+    if (msk(i,j,k)) {
+        sol(i,j,k) = 0.0;
+    } else {
+        sol(i,j,k) += (2.0/3.0) * (rhs(i,j,k) - Ax)
+            / (fxyz*Real(8.)*sig);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_jacobi_aa (Box const& bx, Array4<Real> const& sol, Array4<Real const> const& Ax,
                         Array4<Real const> const& rhs, Array4<Real const> const& sig,
                         Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
@@ -1028,6 +1093,26 @@ void mlndlap_jacobi_aa (Box const& bx, Array4<Real> const& sol, Array4<Real cons
             sol(i,j,k) += (2.0/3.0) * (rhs(i,j,k) - Ax(i,j,k))
                 / (fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
                         +sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )));
+        }
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_jacobi_c (Box const& bx, Array4<Real> const& sol, Array4<Real const> const& Ax,
+                       Array4<Real const> const& rhs, Real sig,
+                       Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real fxyz = -4.0 * (1.0/36.0)*(dxinv[0]*dxinv[0] +
+                                   dxinv[1]*dxinv[1] +
+                                   dxinv[2]*dxinv[2]);
+
+    amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
+    {
+        if (msk(i,j,k)) {
+            sol(i,j,k) = 0.0;
+        } else {
+            sol(i,j,k) += (2.0/3.0) * (rhs(i,j,k) - Ax(i,j,k))
+                / (fxyz*Real(8.)*sig);
         }
     });
 }
@@ -1192,6 +1277,62 @@ void mlndlap_gauss_seidel_aa (Box const& bx, Array4<Real> const& sol,
                            + sol(i,j,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )));
 
             sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
+        }
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_gauss_seidel_c (Box const& bx, Array4<Real> const& sol,
+                             Array4<Real const> const& rhs, Real sig,
+                             Array4<int const> const& msk,
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = (1.0/36.0)*dxinv[0]*dxinv[0];
+    Real facy = (1.0/36.0)*dxinv[1]*dxinv[1];
+    Real facz = (1.0/36.0)*dxinv[2]*dxinv[2];
+    Real fxyz = facx + facy + facz;
+    Real fmx2y2z = -facx + 2.0*facy + 2.0*facz;
+    Real f2xmy2z = 2.0*facx - facy + 2.0*facz;
+    Real f2x2ymz = 2.0*facx + 2.0*facy - facz;
+    Real f4xm2ym2z = 4.0*facx - 2.0*facy - 2.0*facz;
+    Real fm2x4ym2z = -2.0*facx + 4.0*facy - 2.0*facz;
+    Real fm2xm2y4z = -2.0*facx - 2.0*facy + 4.0*facz;
+
+    amrex::Loop(bx, [=] (int i, int j, int k) noexcept
+    {
+        if (msk(i,j,k)) {
+            sol(i,j,k) = 0.0;
+        } else {
+            Real s0 = (-4.0)*fxyz*Real(8.);
+            Real Ax = sol(i,j,k)*s0
+                + fxyz*(sol(i-1,j-1,k-1)
+                      + sol(i+1,j-1,k-1)
+                      + sol(i-1,j+1,k-1)
+                      + sol(i+1,j+1,k-1)
+                      + sol(i-1,j-1,k+1)
+                      + sol(i+1,j-1,k+1)
+                      + sol(i-1,j+1,k+1)
+                      + sol(i+1,j+1,k+1))
+                + fmx2y2z*(sol(i  ,j-1,k-1)*Real(2.)
+                         + sol(i  ,j+1,k-1)*Real(2.)
+                         + sol(i  ,j-1,k+1)*Real(2.)
+                         + sol(i  ,j+1,k+1)*Real(2.))
+                + f2xmy2z*(sol(i-1,j  ,k-1)*Real(2.)
+                         + sol(i+1,j  ,k-1)*Real(2.)
+                         + sol(i-1,j  ,k+1)*Real(2.)
+                         + sol(i+1,j  ,k+1)*Real(2.))
+                + f2x2ymz*(sol(i-1,j-1,k  )*Real(2.)
+                         + sol(i+1,j-1,k  )*Real(2.)
+                         + sol(i-1,j+1,k  )*Real(2.)
+                         + sol(i+1,j+1,k  )*Real(2.))
+                + f4xm2ym2z*(sol(i-1,j,k)*Real(4.)
+                           + sol(i+1,j,k)*Real(4.))
+                + fm2x4ym2z*(sol(i,j-1,k)*Real(4.)
+                           + sol(i,j+1,k)*Real(4.))
+                + fm2xm2y4z*(sol(i,j,k-1)*Real(4.)
+                           + sol(i,j,k+1)*Real(4.));
+
+            sol(i,j,k) += (rhs(i,j,k) - Ax*sig) / (s0*sig);
         }
     });
 }
@@ -1605,6 +1746,56 @@ namespace {
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_interpadd_c (int i, int j, int k, Array4<Real> const& fine,
+                          Array4<Real const> const& crse,
+                          Array4<int const> const& msk) noexcept
+{
+    if (!msk(i,j,k)) {
+        int ic = amrex::coarsen(i,2);
+        int jc = amrex::coarsen(j,2);
+        int kc = amrex::coarsen(k,2);
+        bool i_is_odd = (ic*2 != i);
+        bool j_is_odd = (jc*2 != j);
+        bool k_is_odd = (kc*2 != k);
+        if (i_is_odd && j_is_odd && k_is_odd) {
+            // Fine node at center of cell
+            fine(i,j,k) += Real(0.125) *
+                (crse(ic,jc  ,kc  ) + crse(ic+1,jc  ,kc  ) +
+                 crse(ic,jc+1,kc  ) + crse(ic+1,jc+1,kc  ) +
+                 crse(ic,jc  ,kc+1) + crse(ic+1,jc  ,kc+1) +
+                 crse(ic,jc+1,kc+1) + crse(ic+1,jc+1,kc+1));
+        } else if (j_is_odd && k_is_odd) {
+            // Node on a Y-Z face
+            fine(i,j,k) += Real(0.25) *
+                (crse(ic,jc,kc  ) + crse(ic,jc+1,kc  ) +
+                 crse(ic,jc,kc+1) + crse(ic,jc+1,kc+1));
+        } else if (i_is_odd && k_is_odd) {
+            // Node on a Z-X face
+            fine(i,j,k) += Real(0.25) *
+                (crse(ic,jc,kc  ) + crse(ic+1,jc,kc  ) +
+                 crse(ic,jc,kc+1) + crse(ic+1,jc,kc+1));
+        } else if (i_is_odd && j_is_odd) {
+            // Node on a X-Y face
+            fine(i,j,k) += Real(0.25) *
+                (crse(ic,jc  ,kc) + crse(ic+1,jc  ,kc) +
+                 crse(ic,jc+1,kc) + crse(ic+1,jc+1,kc));
+        } else if (i_is_odd) {
+            // Node on X line
+            fine(i,j,k) += Real(0.5)*(crse(ic,jc,kc)+crse(ic+1,jc,kc));
+        } else if (j_is_odd) {
+            // Node on Y line
+            fine(i,j,k) += Real(0.5)*(crse(ic,jc,kc)+crse(ic,jc+1,kc));
+        } else if (k_is_odd) {
+            // Node on Z line
+            fine(i,j,k) += Real(0.5)*(crse(ic,jc,kc)+crse(ic,jc,kc+1));
+        } else {
+            // Node coincident with coarse node
+            fine(i,j,k) += crse(ic,jc,kc);
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
                            Array4<Real const> const& crse, Array4<Real const> const& sig,
                            Array4<int const> const& msk) noexcept
@@ -1923,6 +2114,24 @@ void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real con
         * (-p(i,j,k  )-p(i+1,j,k  )+p(i,j+1,k  )+p(i+1,j+1,k  )
            -p(i,j,k+1)-p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
     u(i,j,k,2) -= sig(i,j,k)*facz
+        * (-p(i,j,k  )-p(i+1,j,k  )-p(i,j+1,k  )-p(i+1,j+1,k  )
+           +p(i,j,k+1)+p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_mknewu_c (int i, int j, int k, Array4<Real> const& u, Array4<Real const> const& p,
+                       Real sig, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = 0.25*dxinv[0];
+    Real facy = 0.25*dxinv[1];
+    Real facz = 0.25*dxinv[2];
+    u(i,j,k,0) -= sig*facx
+        * (-p(i,j,k  )+p(i+1,j,k  )-p(i,j+1,k  )+p(i+1,j+1,k  )
+           -p(i,j,k+1)+p(i+1,j,k+1)-p(i,j+1,k+1)+p(i+1,j+1,k+1));
+    u(i,j,k,1) -= sig*facy
+        * (-p(i,j,k  )-p(i+1,j,k  )+p(i,j+1,k  )+p(i+1,j+1,k  )
+           -p(i,j,k+1)-p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
+    u(i,j,k,2) -= sig*facz
         * (-p(i,j,k  )-p(i+1,j,k  )-p(i,j+1,k  )-p(i+1,j+1,k  )
            +p(i,j,k+1)+p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
 }
@@ -2401,6 +2610,172 @@ void mlndlap_res_cf_contrib (int i, int j, int k, Array4<Real> const& res,
                                    +Real(2.)*(phi(i  ,j+1,k+1)-phi(i  ,j+1,k  ))
                                    +         (phi(i+1,j+1,k+1)-phi(i+1,j+1,k  ))));
         }
+
+        Real Axf = fc(i,j,k);
+        if (neumann_doubling) {
+            const auto ndlo = amrex::lbound(nddom);
+            const auto ndhi = amrex::ubound(nddom);
+
+            if (i == ndlo.x && (bclo[0] == LinOpBCType::Neumann ||
+                                 bclo[0] == LinOpBCType::inflow)) {
+                Axf *= Real(2.);
+            } else if (i== ndhi.x && (bchi[0] == LinOpBCType::Neumann ||
+                                       bchi[0] == LinOpBCType::inflow)) {
+                Axf *= Real(2.);
+            }
+
+            if (j == ndlo.y && ( bclo[1] == LinOpBCType::Neumann ||
+                                  bclo[1] == LinOpBCType::inflow)) {
+                Axf *= Real(2.);
+            } else if (j == ndhi.y && (bchi[1] == LinOpBCType::Neumann ||
+                                        bchi[1] == LinOpBCType::inflow)) {
+                Axf *= Real(2.);
+            }
+
+            if (k == ndlo.z && (bclo[2] == LinOpBCType::Neumann ||
+                                 bclo[2] == LinOpBCType::inflow)) {
+                Axf *= Real(2.);
+            } else if (k == ndhi.z && (bchi[2] == LinOpBCType::Neumann ||
+                                        bchi[2] == LinOpBCType::inflow)) {
+                Axf *= Real(2.);
+            }
+        }
+
+        res(i,j,k) = rhs(i,j,k) - (Ax + Axf);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_res_cf_contrib_cs (int i, int j, int k, Array4<Real> const& res,
+                                Array4<Real const> const& phi, Array4<Real const> const& rhs,
+                                Real sig, Array4<int const> const& dmsk,
+                                Array4<int const> const& ndmsk, Array4<int const> const& ccmsk,
+                                Array4<Real const> const& fc,
+                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv, Box const& nddom,
+                                GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                                GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi,
+                                bool neumann_doubling) noexcept
+{
+    if (!dmsk(i,j,k) && ndmsk(i,j,k) == crse_fine_node) {
+
+        Real facx = Real(1./36.)*dxinv[0]*dxinv[0];
+        Real facy = Real(1./36.)*dxinv[1]*dxinv[1];
+        Real facz = Real(1./36.)*dxinv[2]*dxinv[2];
+
+        Real Ax = Real(0.);
+        if (ccmsk(i-1,j-1,k-1) == crse_cell) {
+            Ax += facx*(Real(4.)*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i-1,j-1,k  )-phi(i  ,j-1,k  ))
+                       +Real(2.)*(phi(i-1,j  ,k-1)-phi(i  ,j  ,k-1))
+                       +         (phi(i-1,j-1,k-1)-phi(i  ,j-1,k-1)))
+                + facy*(Real(4.)*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i-1,j-1,k  )-phi(i-1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j-1,k-1)-phi(i  ,j  ,k-1))
+                       +         (phi(i-1,j-1,k-1)-phi(i-1,j  ,k-1)))
+                + facz*(Real(4.)*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i-1,j  ,k-1)-phi(i-1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j-1,k-1)-phi(i  ,j-1,k  ))
+                       +         (phi(i-1,j-1,k-1)-phi(i-1,j-1,k  )));
+        }
+        if (ccmsk(i,j-1,k-1) == crse_cell) {
+            Ax += facx*(Real(4.)*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i+1,j-1,k  )-phi(i  ,j-1,k  ))
+                       +Real(2.)*(phi(i+1,j  ,k-1)-phi(i  ,j  ,k-1))
+                       +         (phi(i+1,j-1,k-1)-phi(i  ,j-1,k-1)))
+                + facy*(Real(4.)*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i+1,j-1,k  )-phi(i+1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j-1,k-1)-phi(i  ,j  ,k-1))
+                       +         (phi(i+1,j-1,k-1)-phi(i+1,j  ,k-1)))
+                + facz*(Real(4.)*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i+1,j  ,k-1)-phi(i+1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j-1,k-1)-phi(i  ,j-1,k  ))
+                       +         (phi(i+1,j-1,k-1)-phi(i+1,j-1,k  )));
+        }
+        if (ccmsk(i-1,j,k-1) == crse_cell) {
+            Ax += facx*(Real(4.)*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i-1,j+1,k  )-phi(i  ,j+1,k  ))
+                       +Real(2.)*(phi(i-1,j  ,k-1)-phi(i  ,j  ,k-1))
+                       +         (phi(i-1,j+1,k-1)-phi(i  ,j+1,k-1)))
+                + facy*(Real(4.)*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i-1,j+1,k  )-phi(i-1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j+1,k-1)-phi(i  ,j  ,k-1))
+                       +         (phi(i-1,j+1,k-1)-phi(i-1,j  ,k-1)))
+                + facz*(Real(4.)*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i-1,j  ,k-1)-phi(i-1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j+1,k-1)-phi(i  ,j+1,k  ))
+                       +         (phi(i-1,j+1,k-1)-phi(i-1,j+1,k  )));
+        }
+        if (ccmsk(i,j,k-1) == crse_cell) {
+            Ax += facx*(Real(4.)*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i+1,j+1,k  )-phi(i  ,j+1,k  ))
+                       +Real(2.)*(phi(i+1,j  ,k-1)-phi(i  ,j  ,k-1))
+                       +         (phi(i+1,j+1,k-1)-phi(i  ,j+1,k-1)))
+                + facy*(Real(4.)*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i+1,j+1,k  )-phi(i+1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j+1,k-1)-phi(i  ,j  ,k-1))
+                       +         (phi(i+1,j+1,k-1)-phi(i+1,j  ,k-1)))
+                + facz*(Real(4.)*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i+1,j  ,k-1)-phi(i+1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j+1,k-1)-phi(i  ,j+1,k  ))
+                       +         (phi(i+1,j+1,k-1)-phi(i+1,j+1,k  )));
+        }
+        if (ccmsk(i-1,j-1,k) == crse_cell) {
+            Ax += facx*(Real(4.)*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i-1,j-1,k  )-phi(i  ,j-1,k  ))
+                       +Real(2.)*(phi(i-1,j  ,k+1)-phi(i  ,j  ,k+1))
+                       +         (phi(i-1,j-1,k+1)-phi(i  ,j-1,k+1)))
+                + facy*(Real(4.)*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i-1,j-1,k  )-phi(i-1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j-1,k+1)-phi(i  ,j  ,k+1))
+                       +         (phi(i-1,j-1,k+1)-phi(i-1,j  ,k+1)))
+                + facz*(Real(4.)*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i-1,j  ,k+1)-phi(i-1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j-1,k+1)-phi(i  ,j-1,k  ))
+                       +         (phi(i-1,j-1,k+1)-phi(i-1,j-1,k  )));
+        }
+        if (ccmsk(i,j-1,k) == crse_cell) {
+            Ax += facx*(Real(4.)*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i+1,j-1,k  )-phi(i  ,j-1,k  ))
+                       +Real(2.)*(phi(i+1,j  ,k+1)-phi(i  ,j  ,k+1))
+                       +         (phi(i+1,j-1,k+1)-phi(i  ,j-1,k+1)))
+                + facy*(Real(4.)*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i+1,j-1,k  )-phi(i+1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j-1,k+1)-phi(i  ,j  ,k+1))
+                       +         (phi(i+1,j-1,k+1)-phi(i+1,j  ,k+1)))
+                + facz*(Real(4.)*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i+1,j  ,k+1)-phi(i+1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j-1,k+1)-phi(i  ,j-1,k  ))
+                       +         (phi(i+1,j-1,k+1)-phi(i+1,j-1,k  )));
+        }
+        if (ccmsk(i-1,j,k) == crse_cell) {
+            Ax += facx*(Real(4.)*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i-1,j+1,k  )-phi(i  ,j+1,k  ))
+                       +Real(2.)*(phi(i-1,j  ,k+1)-phi(i  ,j  ,k+1))
+                       +         (phi(i-1,j+1,k+1)-phi(i  ,j+1,k+1)))
+                + facy*(Real(4.)*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i-1,j+1,k  )-phi(i-1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j+1,k+1)-phi(i  ,j  ,k+1))
+                       +         (phi(i-1,j+1,k+1)-phi(i-1,j  ,k+1)))
+                + facz*(Real(4.)*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i-1,j  ,k+1)-phi(i-1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j+1,k+1)-phi(i  ,j+1,k  ))
+                       +         (phi(i-1,j+1,k+1)-phi(i-1,j+1,k  )));
+        }
+        if (ccmsk(i,j,k) == crse_cell) {
+            Ax += facx*(Real(4.)*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i+1,j+1,k  )-phi(i  ,j+1,k  ))
+                       +Real(2.)*(phi(i+1,j  ,k+1)-phi(i  ,j  ,k+1))
+                       +         (phi(i+1,j+1,k+1)-phi(i  ,j+1,k+1)))
+                + facy*(Real(4.)*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i+1,j+1,k  )-phi(i+1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j+1,k+1)-phi(i  ,j  ,k+1))
+                       +         (phi(i+1,j+1,k+1)-phi(i+1,j  ,k+1)))
+                + facz*(Real(4.)*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  ))
+                       +Real(2.)*(phi(i+1,j  ,k+1)-phi(i+1,j  ,k  ))
+                       +Real(2.)*(phi(i  ,j+1,k+1)-phi(i  ,j+1,k  ))
+                       +         (phi(i+1,j+1,k+1)-phi(i+1,j+1,k  )));
+        }
+        Ax *= sig;
 
         Real Axf = fc(i,j,k);
         if (neumann_doubling) {
