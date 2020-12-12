@@ -319,9 +319,9 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
                     const IntVect& pshift = p_periodic_shift[i];
                     bool do_periodic_shift =
-                        AMREX_D_TERM( (is_per[0] && pshift[0] > 0),
-                                   || (is_per[1] && pshift[1] > 0),
-                                   || (is_per[2] && pshift[2] > 0) );
+                        AMREX_D_TERM( (is_per[0] && pshift[0] != 0),
+                                   || (is_per[1] && pshift[1] != 0),
+                                   || (is_per[2] && pshift[2] != 0) );
 
                     if (do_periodic_shift)
                     {
