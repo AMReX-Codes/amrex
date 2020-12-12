@@ -82,7 +82,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         //
         auto ng = IntVect(AMREX_D_DECL(ngrow,ngrow,ngrow));
         if ( ! all_grids_the_same) {
-            mf_to_be_filled[0]->ParallelCopy(*mf[0],0,0,ncomp,ng,ng);
+            mf_to_be_filled[0]->ParallelCopy(*mf[0],0,0,ncomp,0,0);
         }
         return;
     }
@@ -135,7 +135,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     
     if (!all_grids_the_same) {
         for (int lev = lev_min; lev <= finest_level; lev++) {
-            mf_to_be_filled[lev]->copy(*mf_part[lev],0,0,ncomp);
+        //
+        // We haven't interpolated the ghost cells so we can't copy them
+        //
+            mf_to_be_filled[lev]->ParallelCopy(*mf_part[lev],0,0,ncomp,0,0);
         }
     }
     if (lev_min > 0) {

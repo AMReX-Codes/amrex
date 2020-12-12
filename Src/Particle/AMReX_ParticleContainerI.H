@@ -2150,7 +2150,7 @@ AssignCellDensitySingleLevel (int rho_index,
         // We may not need any information in ghost cells but maybe we should copy them anyways.
         //
         auto ng = mf_to_be_filled.nGrow();
-        mf_to_be_filled.ParallelCopy(*mf_pointer,0,0,ncomp,ng,ng);
+        mf_to_be_filled.ParallelCopy(*mf_pointer,0,0,ncomp,0,0);
         delete mf_pointer;
     }
 
