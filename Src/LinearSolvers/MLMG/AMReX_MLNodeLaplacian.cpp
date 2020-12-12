@@ -77,6 +77,9 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                 (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1,
                               MFInfo(), *m_factory[amrlev][0]));
             m_sigma[amrlev][mglev][idim]->setVal(m_const_sigma);
+#ifdef AMREX_USE_EB
+            m_sigma[amrlev][mglev][idim]->setDomainBndry(0.0, m_geom[amrlev][mglev]);
+#endif
         }
     }
 
