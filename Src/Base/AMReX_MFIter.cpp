@@ -8,6 +8,14 @@ namespace amrex {
 
 int MFIter::nextDynamicIndex = std::numeric_limits<int>::min();
 int MFIter::depth = 0;
+int MFIter::allow_multiple_mfiters = 0;
+
+int
+MFIter::allowMultipleMFIters (int allow)
+{
+    std::swap(allow, allow_multiple_mfiters);
+    return allow;
+}
 
 MFIter::MFIter (const FabArrayBase& fabarray_, 
 		unsigned char       flags_)
@@ -255,7 +263,8 @@ MFIter::Initialize ()
 #endif
     {
         ++depth;
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(depth == 1, "Nested MFIter is not supported");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(depth == 1 || MFIter::allow_multiple_mfiters,
+            "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)".);
     }
 
     if (flags & SkipInit) {
