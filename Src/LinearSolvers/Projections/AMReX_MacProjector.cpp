@@ -45,7 +45,7 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
     setDivU(a_divu);
 }
 
-void MacProjector::initProjector(
+void MacProjector::initProjector (
     const LPInfo& a_lpinfo,
     const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
     const Vector<iMultiFab const*>& a_overset_mask)
@@ -131,12 +131,16 @@ void MacProjector::initProjector(
     m_needs_init = false;
 }
 
-void MacProjector::updateBeta(
+void MacProjector::updateBeta (
     const Vector<Array<MultiFab const*, AMREX_SPACEDIM>>& a_beta)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         m_linop != nullptr,
         "MacProjector::updateBeta: initProjector must be called before calling this method");
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        m_poisson == nullptr,
+        "MacProjector::updateBeta: should not be called for constant beta");
 
     const int nlevs = a_beta.size();
 #ifdef AMREX_USE_EB
@@ -240,13 +244,18 @@ MacProjector::project (Real reltol, Real atol)
         computeDivergence(divu, u, m_geom[ilev]);
 #endif
 
-        // Setup RHS as (m_divu - divu) where m_divu is a user-provided source term
+        // For mlabeclaplacian, we solve -del dot (beta grad phi) = rhs
+        //   and set up RHS as (m_divu - divu), where m_divu is a user-provided source term
+        // For mlpoisson, we solve `del dot grad phi = rhs/(-const_beta)`
+        //   and set up RHS as (m_divu - divu)*(-1/const_beta)
+        AMREX_ASSERT(m_poisson == nullptr || m_const_beta != Real(0.0));
         MultiFab::Copy(m_rhs[ilev], divu, 0, 0, 1, 0);
-        m_rhs[ilev].mult(-1.0);
+        m_rhs[ilev].mult(m_poisson ? Real(1.0)/m_const_beta : Real(-1.0));
 
         if (m_divu[ilev].ok())
         {
-            MultiFab::Add(m_rhs[ilev],m_divu[ilev],0,0,1,0);
+            MultiFab::Saxpy(m_rhs[ilev], m_poisson ? Real(-1.0)/m_const_beta : Real(1.0),
+                            m_divu[ilev], 0, 0, 1, 0);
         }
 
         // Always reset initial phi to be zero. This is needed to handle the
@@ -260,7 +269,11 @@ MacProjector::project (Real reltol, Real atol)
 
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            MultiFab::Add(*m_umac[ilev][idim], m_fluxes[ilev][idim], 0, 0, 1, 0);
+            if (m_poisson) {
+                MultiFab::Saxpy(*m_umac[ilev][idim], m_const_beta, m_fluxes[ilev][idim], 0,0,1,0);
+            } else {
+                MultiFab::Add(*m_umac[ilev][idim], m_fluxes[ilev][idim], 0, 0, 1, 0);
+            }
 #ifdef AMREX_USE_EB
             EB_set_covered_faces(m_umac[ilev], 0.0);
 #endif
@@ -274,65 +287,30 @@ void
 MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real atol)
 {
     const int nlevs = m_rhs.size();
-
-    averageDownVelocity();
-
-    for (int ilev = 0; ilev < nlevs; ++ilev)
-    {
-        Array<MultiFab const*, AMREX_SPACEDIM> u;
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            u[idim] = m_umac[ilev][idim];
-        }
-        MultiFab divu(m_rhs[ilev].boxArray(), m_rhs[ilev].DistributionMap(),
-                      1, 0, MFInfo(), m_rhs[ilev].Factory());
-#ifdef AMREX_USE_EB
-        bool umac_on_centroid = (m_umac_loc == MLMG::Location::FaceCentroid);
-        if (!umac_on_centroid) {
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_umac[ilev][idim]->nGrow() > 0,
-                                                 "MacProjector: with EB, umac must have at least one ghost cell if not already_on_centroid");
-                m_umac[ilev][idim]->FillBoundary(m_geom[ilev].periodicity());
-            }
-        }
-        EB_computeDivergence(divu, u, m_geom[ilev], (m_umac_loc == MLMG::Location::FaceCentroid));
-#else
-        computeDivergence(divu, u, m_geom[ilev]);
-#endif
-        // Setup RHS as (m_divu - divu) where m_divu is a user-provided source term
-        MultiFab::Copy(m_rhs[ilev], divu, 0, 0, 1, 0);
-        m_rhs[ilev].mult(-1.0);
-
-        if (m_divu[ilev].ok())
-        {
-            MultiFab::Add(m_rhs[ilev],m_divu[ilev],0,0,1,0);
-        }
-
+    for (int ilev = 0; ilev < nlevs; ++ilev) {
         MultiFab::Copy(m_phi[ilev], *phi_inout[ilev], 0, 0, 1, 0);
     }
 
-    m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, atol);
-
-    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), m_umac_loc);
-
+    project(reltol, atol);
 
     for (int ilev = 0; ilev < nlevs; ++ilev) {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            MultiFab::Add(*m_umac[ilev][idim], m_fluxes[ilev][idim], 0, 0, 1, 0);
-#ifdef AMREX_USE_EB
-            EB_set_covered_faces(m_umac[ilev], 0.0);
-#endif
-        }
-    }
-
-    averageDownVelocity();
-
-    for (int ilev = 0; ilev < nlevs; ++ilev)
-    {
         MultiFab::Copy(*phi_inout[ilev], m_phi[ilev], 0, 0, 1, 0);
     }
 }
 
-
+void
+MacProjector::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                         const Vector<MultiFab*>& a_sol, MLMG::Location a_loc) const
+{
+    m_linop->getFluxes(a_flux, a_sol, a_loc);
+    if (m_poisson) {
+        for (auto const& mfarr : a_flux) {
+            for (auto const& mfp : mfarr) {
+                mfp->mult(m_const_beta);
+            }
+        }
+    }
+}
 
 //
 // Set options by using default values and values read in input file
@@ -430,5 +408,92 @@ MacProjector::averageDownVelocity ()
 #endif
     }
 }
+
+#ifndef AMREX_USE_EB
+void MacProjector::initProjector (Vector<BoxArray> const& a_grids,
+                                  Vector<DistributionMapping> const& a_dmap,
+                                  const LPInfo& a_lpinfo, Real const a_const_beta,
+                                  const Vector<iMultiFab const*>& a_overset_mask)
+{
+    m_const_beta = a_const_beta;
+
+    const int nlevs = a_grids.size();
+    Vector<BoxArray> ba(nlevs);
+    for (int ilev = 0; ilev < nlevs; ++ilev) {
+        ba[ilev] = amrex::convert(a_grids[ilev], IntVect::TheZeroVector());
+    }
+    auto const& dm = a_dmap;
+
+    m_rhs.resize(nlevs);
+    m_phi.resize(nlevs);
+    m_fluxes.resize(nlevs);
+    m_divu.resize(nlevs);
+
+    for (int ilev = 0; ilev < nlevs; ++ilev) {
+        m_rhs[ilev].define(ba[ilev], dm[ilev], 1, 0);
+        m_phi[ilev].define(ba[ilev], dm[ilev], 1, 1);
+        m_rhs[ilev].setVal(0.0);
+        m_phi[ilev].setVal(0.0);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            m_fluxes[ilev][idim].define(
+                amrex::convert(ba[ilev], IntVect::TheDimensionVector(idim)),
+                dm[ilev], 1, 0);
+        }
+    }
+
+    if (a_overset_mask.empty()) {
+        m_poisson.reset(new MLPoisson(m_geom, ba, dm, a_lpinfo));
+    } else {
+        m_poisson.reset(new MLPoisson(m_geom, ba, dm, a_overset_mask, a_lpinfo));
+    }
+
+    m_linop = m_poisson.get();
+
+    m_mlmg.reset(new MLMG(*m_linop));
+
+    setOptions();
+
+    m_needs_init = false;
+}
+
+MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
+                            const Real a_const_beta,
+                            const Vector<Geometry>& a_geom,
+                            const LPInfo& a_lpinfo,
+                            const Vector<iMultiFab const*>& a_overset_mask,
+                            const Vector<MultiFab const*>& a_divu)
+    : m_const_beta(a_const_beta),
+      m_umac(a_umac),
+      m_geom(a_geom),
+      m_umac_loc(MLMG::Location::FaceCenter),
+      m_beta_loc(MLMG::Location::FaceCenter),
+      m_phi_loc(MLMG::Location::CellCenter),
+      m_divu_loc(MLMG::Location::CellCenter)
+{
+    const int nlevs = a_umac.size();
+    Vector<BoxArray> ba(nlevs);
+    Vector<DistributionMapping> dm(nlevs);
+    for (int ilev = 0; ilev < nlevs; ++ilev) {
+        ba[ilev] = a_umac[ilev][0]->boxArray();
+        dm[ilev] = a_umac[ilev][0]->DistributionMap();
+    }
+    initProjector(ba, dm, a_lpinfo, a_const_beta, a_overset_mask);
+    setDivU(a_divu);
+}
+
+void MacProjector::updateBeta (Real a_const_beta)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        m_linop != nullptr,
+        "MacProjector::updateBeta: initProjector must be called before calling this method");
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        m_poisson != nullptr,
+        "MacProjector::updateBeta: should not be called for variable beta");
+
+    m_const_beta = a_const_beta;
+}
+
+#endif
 
 }

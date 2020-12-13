@@ -144,7 +144,7 @@ MLCellABecLap::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux
         compFlux(alev, a_flux[alev], *a_sol[alev], a_loc);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
-            if (betainv != 1.0) {
+            if (betainv != Real(1.0)) {
                 a_flux[alev][idim]->mult(betainv);
             }
         }

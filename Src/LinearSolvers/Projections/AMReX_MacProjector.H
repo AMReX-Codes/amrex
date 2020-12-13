@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_MLMG.H>
+#include <AMReX_MLPoisson.H>
 #include <AMReX_MLABecLaplacian.H>
 
 #ifdef AMREX_USE_EB
@@ -59,7 +60,7 @@ public:
                   const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
                   const Vector<Geometry>& a_geom,
                   const LPInfo& a_lpinfo,
-                  const Vector<MultiFab const*>& a_divu = {}) 
+                  const Vector<MultiFab const*>& a_divu = {})
      : MacProjector(a_umac, MLMG::Location::FaceCenter,
                     a_beta, MLMG::Location::FaceCenter, MLMG::Location::CellCenter,
                     a_geom, a_lpinfo, a_divu, MLMG::Location::CellCenter) {}
@@ -71,17 +72,33 @@ public:
      : MacProjector(a_umac, MLMG::Location::FaceCenter,
                     a_beta, MLMG::Location::FaceCenter, MLMG::Location::CellCenter,
                     a_geom, LPInfo(), a_divu, MLMG::Location::CellCenter) {}
+
+    MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
+                  const Real a_const_beta,
+                  const Vector<Geometry>& a_geom,
+                  const LPInfo& a_lpinfo,
+                  const Vector<iMultiFab const*>& a_overset_mask = {},
+                  const Vector<MultiFab const*>& a_divu = {});
 #endif
 
     /** Initialize the underlying linear operator and MLMG instances
      */
-    void initProjector(
+    void initProjector (
         const LPInfo& a_lpinfo,
         const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
         const Vector<iMultiFab const*>& a_overset_mask = {});
 
     //! Update Bcoeffs for the linear operator
-    void updateBeta(const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >&);
+    void updateBeta (const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >&);
+
+#ifndef AMREX_USE_EB
+    void initProjector (Vector<BoxArray> const& a_grids,
+                        Vector<DistributionMapping> const& a_dmap,
+                        const LPInfo& a_lpinfo, Real const a_const_beta,
+                        const Vector<iMultiFab const*>& a_overset_mask = {});
+
+    void updateBeta (Real a_const_beta);
+#endif
 
     //! Set Umac before calling the projection step
     void setUMAC(const Vector<Array<MultiFab*, AMREX_SPACEDIM> >&);
@@ -111,6 +128,12 @@ public:
     void project (Real reltol, Real atol);
 
     //
+    // Get Fluxes.  DO NOT USE LinOp to get fluxes!!!
+    //
+    void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                    const Vector<MultiFab*>& a_sol, MLMG::Location a_loc) const;
+
+    //
     // Setters and getters
     //
     void setVerbose            (int  v) noexcept 
@@ -129,12 +152,15 @@ private:
 
     void averageDownVelocity ();
 
+    std::unique_ptr<MLPoisson> m_poisson;
     std::unique_ptr<MLABecLaplacian> m_abeclap;
 #ifdef AMREX_USE_EB
     std::unique_ptr<MLEBABecLap> m_eb_abeclap;
     Vector<EBFArrayBoxFactory const*> m_eb_factory;
 #endif
     MLLinOp* m_linop = nullptr;
+
+    Real m_const_beta = 0.;
 
     std::unique_ptr<MLMG> m_mlmg;
 
