@@ -43,7 +43,7 @@ void main_main()
             fine_level = std::stoi(amrex::get_command_argument(++farg));
         } else if (name == "-e" || name == "--scientific") {
             scientific = true;
-        } else if (name == "-csv" or name == "--csv") {
+        } else if (name == "-csv" || name == "--csv") {
             csv = true;
         } else {
             break;
