@@ -54,7 +54,7 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                Real azm = apz(i  ,j  ,k  );
                Real azp = apz(i  ,j  ,k+1);
 
-               Real apnorm = sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp) + (azm-azp)*(azm-azp));
+               Real apnorm = std::sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp) + (azm-azp)*(azm-azp));
                Real apnorminv = 1.0/apnorm;
 
                std::array<Real,3> normal, centroid;
@@ -193,19 +193,19 @@ void EBToPVD::WriteEBVTP(const int myID) const
    std::ofstream myfile(cID);
    if(myfile.is_open()) {
       myfile.precision(6);
-      myfile << "<?xml version=\"1.0\"?>" << std::endl;
-      myfile << "<VTKFile type=\"PolyData\" version=\"0.1\" byte_order=\"LittleEndian\">" << std::endl;
-      myfile << "<PolyData>" << std::endl;
+      myfile << "<?xml version=\"1.0\"?>\n";
+      myfile << "<VTKFile type=\"PolyData\" version=\"0.1\" byte_order=\"LittleEndian\">\n";
+      myfile << "<PolyData>\n";
       myfile << "<Piece NumberOfPoints=\"" << m_points.size() << "\" NumberOfVerts=\"0\" "
          << "NumberOfLines=\"0\" NumberOfString=\"0\" NumberOfPolys=\" "
-         << m_connectivity.size() << "\">" << std::endl;
+         << m_connectivity.size() << "\">\n";
       print_points(myfile);
       print_connectivity(myfile);
-      myfile << "<PointData></PointData>" << std::endl;
-      myfile << "<CellData></CellData>" << std::endl;
-      myfile << "</Piece>" << std::endl;
-      myfile << "</PolyData>" << std::endl;
-      myfile << "</VTKFile>" << std::endl;
+      myfile << "<PointData></PointData>\n";
+      myfile << "<CellData></CellData>\n";
+      myfile << "</Piece>\n";
+      myfile << "</PolyData>\n";
+      myfile << "</VTKFile>\n";
 
       myfile.close();
    }
@@ -216,24 +216,24 @@ void EBToPVD::WritePVTP(const int nProcs) const
    std::ofstream myfile("eb.pvtp");
 
    if(myfile.is_open()) {
-      myfile << "<?xml version=\"1.0\"?>" << std::endl;
-      myfile << "<VTKFile type=\"PPolyData\" version=\"0.1\" byte_order=\"LittleEndian\">" << std::endl;
-      myfile << "<PPolyData GhostLevel=\"0\">" << std::endl;
-      myfile << "<PPointData/>" << std::endl;
-      myfile << "<PCellData/>" << std::endl;
-      myfile << "<PPoints>" << std::endl;
-      myfile << "<PDataArray type=\"Float32\" NumberOfComponents=\"3\"/>" << std::endl;
-      myfile << "</PPoints>" << std::endl;
+      myfile << "<?xml version=\"1.0\"?>\n";
+      myfile << "<VTKFile type=\"PPolyData\" version=\"0.1\" byte_order=\"LittleEndian\">\n";
+      myfile << "<PPolyData GhostLevel=\"0\">\n";
+      myfile << "<PPointData/>\n";
+      myfile << "<PCellData/>\n";
+      myfile << "<PPoints>\n";
+      myfile << "<PDataArray type=\"Float32\" NumberOfComponents=\"3\"/>\n";
+      myfile << "</PPoints>\n";
 
       for(int lc1 = 0; lc1 < nProcs; ++lc1) {
          std::stringstream ss;
          ss << std::setw(8) << std::setfill('0') << lc1;
          std::string clc1 = "eb_" + ss.str() + ".vtp";
-         myfile << "<Piece Source=\"" << clc1 << "\"/>" << std::endl;
+         myfile << "<Piece Source=\"" << clc1 << "\"/>\n";
       }
 
-      myfile << "</PPolyData>" << std::endl;
-      myfile << "</VTKFile>" << std::endl;
+      myfile << "</PPolyData>\n";
+      myfile << "</VTKFile>\n";
       myfile.close();
    }
 }
@@ -383,40 +383,40 @@ void EBToPVD::calc_intersects(int& int_count, std::array<bool,12>& intersects_fl
 
 void EBToPVD::print_points(std::ofstream& myfile) const
 {
-   myfile << "<Points>" << std::endl;
-   myfile << "<DataArray type=\"Float32\" NumberOfComponents=\"3\" format=\"ascii\">" << std::endl;
+   myfile << "<Points>\n";
+   myfile << "<DataArray type=\"Float32\" NumberOfComponents=\"3\" format=\"ascii\">\n";
 
    for(size_t lc1 = 0; lc1 < m_points.size(); ++lc1) {
       myfile << std::fixed << std::scientific
-         << m_points[lc1][0] << " " << m_points[lc1][1] << " " << m_points[lc1][2] << std::endl;
+         << m_points[lc1][0] << " " << m_points[lc1][1] << " " << m_points[lc1][2] << "\n";
    }
 
-   myfile << "</DataArray>" << std::endl;
-   myfile << "</Points>" << std::endl;
+   myfile << "</DataArray>\n";
+   myfile << "</Points>\n";
 }
 
 void EBToPVD::print_connectivity(std::ofstream& myfile) const
 {
-   myfile << "<Polys>" << std::endl;
-   myfile << "<DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">" << std::endl;
+   myfile << "<Polys>\n";
+   myfile << "<DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">\n";
    for(size_t lc1 = 0; lc1 < m_connectivity.size(); ++lc1) {
       for(size_t lc2 = 1; lc2 <= m_connectivity[lc1][0]; ++lc2) {
          myfile << " " << m_connectivity[lc1][lc2];
       }
-      myfile << std::endl;
+      myfile << "\n";
    }
-   myfile << "</DataArray>" << std::endl;
+   myfile << "</DataArray>\n";
 
-   myfile << "<DataArray type=\"Int32\" Name=\"offsets\" format=\"ascii\">" << std::endl;
+   myfile << "<DataArray type=\"Int32\" Name=\"offsets\" format=\"ascii\">\n";
    int lc2 = 0;
    for(size_t lc1 = 0; lc1 < m_connectivity.size(); ++lc1) {
       lc2 = lc2 + m_connectivity[lc1][0];
       myfile << " " << lc2;
    }
-   myfile << std::endl;
-   myfile << "</DataArray>" << std::endl;
+   myfile << "\n";
+   myfile << "</DataArray>\n";
 
-   myfile << "</Polys>" << std::endl;
+   myfile << "</Polys>\n";
 }
 
 void EBToPVD::EBGridCoverage(const int myID, const Real* problo, const Real* dx, 
@@ -456,13 +456,13 @@ void EBToPVD::EBGridCoverage(const int myID, const Real* problo, const Real* dx,
    std::ofstream myfile(fname);
    if(myfile.is_open()) {
       myfile.precision(6);
-      myfile << "<?xml version=\"1.0\"?>" << std::endl;
-      myfile << "<VTKFile type=\"RectilinearGrid\" version=\"0.1\" byte_order=\"LittleEndian\">" << std::endl;
+      myfile << "<?xml version=\"1.0\"?>\n";
+      myfile << "<VTKFile type=\"RectilinearGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n";
       myfile << "<RectilinearGrid WholeExtent=\" 0 " 
-         << nodes[0] << " 0 " << nodes[1] << " 0 " << nodes[2] << "\">" << std::endl; 
+         << nodes[0] << " 0 " << nodes[1] << " 0 " << nodes[2] << "\">\n"; 
       myfile << "<Piece Extent=\" 0 " 
-         << nodes[0] << " 0 " << nodes[1] << " 0 " << nodes[2] << "\">" << std::endl;
-      myfile << "<Coordinates>" << std::endl;
+         << nodes[0] << " 0 " << nodes[1] << " 0 " << nodes[2] << "\">\n";
+      myfile << "<Coordinates>\n";
 
       for(int idim = 0; idim < 3; ++idim) {
          std::vector<Real> lines(nodes[idim]+1);
@@ -473,20 +473,20 @@ void EBToPVD::EBGridCoverage(const int myID, const Real* problo, const Real* dx,
 
          myfile << "<DataArray type=\"Float32\" format=\"ascii\" RangeMin=\""
             << std::fixed
-            << lines[0] << "\" RangeMax=\"" << lines[nodes[idim]] << "\">" << std::endl;
+            << lines[0] << "\" RangeMax=\"" << lines[nodes[idim]] << "\">\n";
 
          for(size_t llc = 0; llc < lines.size(); ++llc) {
             myfile << " " << lines[llc];
          }
-         myfile << std::endl;
+         myfile << "\n";
 
-         myfile << "</DataArray>" << std::endl;
+         myfile << "</DataArray>\n";
       }
 
-      myfile << "</Coordinates>" << std::endl;
-      myfile << "</Piece>" << std::endl;
-      myfile << "</RectilinearGrid>" << std::endl;
-      myfile << "</VTKFile>" << std::endl;
+      myfile << "</Coordinates>\n";
+      myfile << "</Piece>\n";
+      myfile << "</RectilinearGrid>\n";
+      myfile << "</VTKFile>\n";
    }
 
    myfile.close();

@@ -1,6 +1,6 @@
 #ifndef AMReX_EBToPVD_H_
 #define AMReX_EBToPVD_H_
-#include <AMReX_REAL.H>
+#include <AMReX_Config.H>
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_Array.H>
 #include <AMReX_Box.H>
