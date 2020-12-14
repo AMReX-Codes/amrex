@@ -2337,29 +2337,6 @@ FabArrayBase::updateBDKey ()
     }
 }
 
-
-void
-FabArrayBase::WaitForAsyncSends (int                 N_snds,
-                                 Vector<MPI_Request>& send_reqs,
-                                 Vector<char*>&       send_data,
-                                 Vector<MPI_Status>&  stats)
-{
-    amrex::ignore_unused(send_data);
-#ifdef BL_USE_MPI
-    BL_ASSERT(N_snds > 0);
-
-    stats.resize(N_snds);
-
-    BL_ASSERT(send_reqs.size() == N_snds);
-    BL_ASSERT(send_data.size() == N_snds);
-
-    ParallelDescriptor::Waitall(send_reqs, stats);
-#else
-    amrex::ignore_unused(N_snds,send_reqs,stats);
-#endif /*BL_USE_MPI*/
-}
-
-
 #ifdef BL_USE_MPI
 
 bool

@@ -213,6 +213,14 @@ public:
     AMREX_GPU_HOST_DEVICE
     bool contains (const IntVect& p) const noexcept { return p.allGE(smallend) && p.allLE(bigend); }
 
+    //! Returns true if argument is contained within Box.
+    AMREX_GPU_HOST_DEVICE
+    bool contains (const Dim3& p) const noexcept {
+        return AMREX_D_TERM(p.x >= smallend[0] && p.x <= bigend[0],
+                         && p.y >= smallend[1] && p.y <= bigend[1],
+                         && p.z >= smallend[2] && p.z <= bigend[2]);
+    }
+
     /** \brief Returns true if argument is contained within Box.
     * It is an error if the Boxes have different types.
     */
