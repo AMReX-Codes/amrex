@@ -872,7 +872,7 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
     Array<MF*, AMREX_SPACEDIM> mf_local = mf;
     int dcomp_adj = dcomp;
     Array<std::unique_ptr<MF>, AMREX_SPACEDIM> mf_temp;
-    if (nghost != nghost_adj) {
+    if (! nghost.allGE(nghost_adj)) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             mf_temp[d].reset( new MF(mf[d]->boxArray(), mf[d]->DistributionMap(), ncomp, nghost_adj) );
             mf_local[d] = mf_temp[d].get();
