@@ -958,6 +958,8 @@ ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local
 endif
 
+FINAL_LIBS = $(libraries)
+
 ifeq ($(USE_DPCPP),TRUE)
 
     ifeq ($(USE_MPI),TRUE)
@@ -1065,9 +1067,10 @@ else ifeq ($(USE_CUDA),TRUE)
       space +=
 
       ifeq ($(AMREX_LINKER),nvcc)
-        libraries := $(subst -Wl$(comm),-Xlinker=,$(libraries))
         ifeq ($(FIX_NVCC_PTHREAD),TRUE)
-          libraries := $(subst -pthread,-Xcompiler$(space)-pthread,$(libraries))
+          FINAL_LIBS = $(subst -pthread,-Xcompiler$(space)-pthread,$(subst -Wl$(comm),-Xlinker=,$(libraries)))
+        else
+          FINAL_LIBS = $(subst -Wl$(comm),-Xlinker=,$(libraries))
         endif
       endif
 
