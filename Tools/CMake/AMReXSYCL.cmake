@@ -65,7 +65,7 @@ target_compile_options( SYCL
 if (AMReX_MPI)
   target_compile_options( SYCL
     INTERFACE
-    $<${_cxx_clang}:-cxx=dpcpp>)
+    $<${_cxx_clang}:-fsycl-unnamed-lambda>)
 endif ()
 
 #
