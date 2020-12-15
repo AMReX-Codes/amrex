@@ -222,7 +222,7 @@ public:
     //! \param the Geometry object, which describes the problem domain
     //! \param A DistributionMapping, which describes how the boxes are distributed onto MPI tasks
     //! \param A BoxArray, which gives the set of grid boxes
-    //!     
+    //!
     ParticleContainer (const Geometry            & geom,
 		       const DistributionMapping & dmap,
 		       const BoxArray            & ba)
@@ -311,8 +311,8 @@ public:
     virtual ~ParticleContainer () {}
 
     ParticleContainer ( const ParticleContainer &) = delete;
-    ParticleContainer& operator= ( const ParticleContainer & ) = delete; 
-    
+    ParticleContainer& operator= ( const ParticleContainer & ) = delete;
+
     ParticleContainer ( ParticleContainer && ) = default;
     ParticleContainer& operator= ( ParticleContainer && ) = default;
 
@@ -1206,9 +1206,9 @@ public:
         SetParticleSize();
     }
 
-    const ParticleBufferMap& BufferMap () const {return m_buffer_map;} 
+    const ParticleBufferMap& BufferMap () const {return m_buffer_map;}
 
-    Vector<int> NeighborProcs(int ngrow) const         
+    Vector<int> NeighborProcs(int ngrow) const
     {
         return computeNeighborProcs(this->GetParGDB(), ngrow);
     }

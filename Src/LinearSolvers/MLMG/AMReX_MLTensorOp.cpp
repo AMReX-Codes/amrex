@@ -201,7 +201,9 @@ void
 MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                    StateMode s_mode, const MLMGBndry* bndry) const
 {
-#if (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(amrlev,mglev,out,in,bc_mode,s_mode,bndry);
+#else
     BL_PROFILE("MLTensorOp::apply()");
 
     MLABecLaplacian::apply(amrlev, mglev, out, in, bc_mode, s_mode, bndry);
@@ -283,8 +285,9 @@ void
 MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                            BCMode bc_mode, StateMode, const MLMGBndry* bndry) const
 {
-#if (AMREX_SPACEDIM > 1)
- 
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(amrlev,mglev,vel,bc_mode,bndry);
+#else
     const int inhomog = bc_mode == BCMode::Inhomogeneous;
     const int imaxorder = maxorder;
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
@@ -376,7 +379,9 @@ void
 MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                        MultiFab& sol, Location loc) const
 {
-#if (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(amrlev, fluxes, sol, loc);
+#else
     BL_PROFILE("MLTensorOp::compFlux()");
 
     const int mglev = 0;
@@ -455,7 +460,9 @@ void
 MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                        MultiFab& sol, Location /*loc*/) const
 {
-#if (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(amrlev,fluxes,sol);
+#else
     BL_PROFILE("MLTensorOp::compVelGrad()");
 
     const int mglev = 0;

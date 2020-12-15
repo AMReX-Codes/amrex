@@ -59,6 +59,21 @@ namespace amrex {
               ncomp(rhs.ncomp-start_comp)
         {}
 
+        template <class U,
+                  typename std::enable_if
+                  <std::is_same<typename std::remove_const<T>::type,
+                                typename std::remove_const<U>::type>::value,int>::type = 0>
+        AMREX_GPU_HOST_DEVICE
+        constexpr Array4 (Array4<U> const& rhs, int start_comp, int num_comps) noexcept
+            : p((T*)(rhs.p+start_comp*rhs.nstride)),
+              jstride(rhs.jstride),
+              kstride(rhs.kstride),
+              nstride(rhs.nstride),
+              begin(rhs.begin),
+              end(rhs.end),
+              ncomp(num_comps)
+        {}
+
         AMREX_GPU_HOST_DEVICE
         explicit operator bool() const noexcept { return p != nullptr; }
 

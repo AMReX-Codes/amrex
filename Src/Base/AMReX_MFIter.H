@@ -189,6 +189,8 @@ public:
 
     const DistributionMapping& DistributionMap () const noexcept { return fabArray.DistributionMap(); }
 
+    static int allowMultipleMFIters (int allow);
+
 protected:
 
     std::unique_ptr<FabArrayBase> m_fa;  //!< This must be the first memeber!
@@ -229,6 +231,7 @@ protected:
 
     static int nextDynamicIndex;
     static int depth;
+    static int allow_multiple_mfiters;
 
     void Initialize ();
 };

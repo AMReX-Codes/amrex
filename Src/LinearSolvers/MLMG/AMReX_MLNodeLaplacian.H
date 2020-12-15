@@ -19,13 +19,15 @@ public :
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info = LPInfo(),
-                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                     Real  a_const_sigma = 0.0);
 #ifdef AMREX_USE_EB
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info,
-                     const Vector<EBFArrayBoxFactory const*>& a_factory);
+                     const Vector<EBFArrayBoxFactory const*>& a_factory,
+                     Real a_const_sigma = 0.0);
 #endif
     virtual ~MLNodeLaplacian ();
 
@@ -38,14 +40,16 @@ public :
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                 Real  a_const_sigma = 0.0);
 
 #ifdef AMREX_USE_EB
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
-                 const Vector<EBFArrayBoxFactory const*>& a_factory);
+                 const Vector<EBFArrayBoxFactory const*>& a_factory,
+                 Real a_const_sigma = 0.0);
 #endif
 
     virtual std::string name () const override { return std::string("MLNodeLaplacian"); }
@@ -74,7 +78,9 @@ public :
     void setGaussSeidel (bool flag) noexcept { m_use_gauss_seidel = flag; }
     void setHarmonicAverage (bool flag) noexcept { m_use_harmonic_average = flag; }
 
-    void setCoarseningStrategy (CoarseningStrategy cs) noexcept { m_coarsening_strategy = cs; }
+    void setCoarseningStrategy (CoarseningStrategy cs) noexcept {
+        if (m_const_sigma == Real(0.0)) m_coarsening_strategy = cs;
+    }
 
     virtual BottomSolver getDefaultBottomSolver () const final override {
         return (m_coarsening_strategy == CoarseningStrategy::RAP) ?
@@ -132,6 +138,7 @@ private:
 
     int m_is_rz = 0;
 
+    Real m_const_sigma = 0.0;
     Vector<Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
     Vector<Vector<Real> > m_s0_norm0;

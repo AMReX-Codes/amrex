@@ -329,7 +329,13 @@ Amr::InitAmr ()
     //
     for (int i = 0; i < nlev; i++)
     {
-        dt_level[i]    = 1.e200; // Something nonzero so old & new will differ
+        
+        // Something nonzero so old & new will differ
+#ifdef AMREX_USE_FLOAT
+        dt_level[i]    = 1.e30f;
+#else
+        dt_level[i]    = 1.e200;
+#endif
         level_steps[i] = 0;
         level_count[i] = 0;
         n_cycle[i]     = 0;
@@ -2609,6 +2615,8 @@ Amr::regrid (int  lbase,
         {
             a->init();
             amr_level[lev].reset(a);
+            if (lev > 0)
+                level_steps[lev] = level_steps[lev-1] * n_cycle[lev-1];
 	    this->SetBoxArray(lev, amr_level[lev]->boxArray());
 	    this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
         }
@@ -3235,7 +3243,11 @@ Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, in
     // internally these represent the total number of steps at a level, 
     // not the number of cycles
     std::vector<int> cycles(n);
+#ifdef AMREX_USE_FLOAT
+    Real best_ratio = 1e30f;
+#else
     Real best_ratio = 1e200;
+#endif
     Real best_dt = 0;
     Real ratio;
     Real dt;

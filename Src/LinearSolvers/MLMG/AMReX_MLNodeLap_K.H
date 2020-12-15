@@ -130,6 +130,19 @@ void mlndlap_normalize_sten (Box const& bx, Array4<Real> const& x,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_jacobi_sten (int i, int j, int k, Array4<Real> const& sol,
+                          Real Ax, Array4<Real const> const& rhs,
+                          Array4<Real const> const& sten,
+                          Array4<int const> const& msk) noexcept
+{
+    if (msk(i,j,k)) {
+        sol(i,j,k) = Real(0.0);
+    } else if (sten(i,j,k,0) != Real(0.0)) {
+        sol(i,j,k) += Real(2./3.) * (rhs(i,j,k) - Ax) / sten(i,j,k,0);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_jacobi_sten (Box const& bx, Array4<Real> const& sol,
                           Array4<Real const> const& Ax,
                           Array4<Real const> const& rhs,
@@ -139,9 +152,9 @@ void mlndlap_jacobi_sten (Box const& bx, Array4<Real> const& sol,
     amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
     {
         if (msk(i,j,k)) {
-            sol(i,j,k) = 0.0;
-        } else if (sten(i,j,k,0) != 0.0) {
-            sol(i,j,k) += (2./3.) * (rhs(i,j,k) - Ax(i,j,k)) / sten(i,j,k,0);
+            sol(i,j,k) = Real(0.0);
+        } else if (sten(i,j,k,0) != Real(0.0)) {
+            sol(i,j,k) += Real(2./3.) * (rhs(i,j,k) - Ax(i,j,k)) / sten(i,j,k,0);
         }
     });
 }
