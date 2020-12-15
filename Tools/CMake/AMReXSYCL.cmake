@@ -61,7 +61,7 @@ target_compile_options( SYCL
    INTERFACE
    $<${_cxx_clang}:-fno-sycl-early-optimizations>)
 
-# Need this option to compile with mpiicpx
+# Need this option to compile with mpiicpc
 if (AMReX_MPI)
   target_compile_options( SYCL
     INTERFACE
