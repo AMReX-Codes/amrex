@@ -161,7 +161,7 @@ endif ()
 #
 # Parallel backends    ========================================================
 #
-cmake_dependent_option( AMReX_MPI  "Enable MPI"  ON "NOT AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
+option( AMReX_MPI  "Enable MPI"  ON )
 print_option( AMReX_MPI )
 
 cmake_dependent_option( AMReX_MPI_THREAD_MULTIPLE
