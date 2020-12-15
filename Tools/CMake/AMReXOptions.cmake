@@ -126,10 +126,12 @@ endif ()
 
 # --- SYCL ---
 if (AMReX_DPCPP)
-   if (NOT (CMAKE_CXX_COMPILER_ID IN_LIST "Clang;IntelClang;IntelDPCPP") )
+   set(_valid_dpcpp_compiler_ids Clang IntelClang IntelDPCPP)
+   if (NOT (CMAKE_CXX_COMPILER_ID IN_LIST _valid_dpcpp_compiler_ids) )
       message(WARNING "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is tested with DPCPP."
          "Verify '${CMAKE_CXX_COMPILER_ID}' is correct and potentially set CMAKE_CXX_COMPILER=dpccp.")
    endif ()
+   unset(_valid_dpcpp_compiler_ids)
 endif ()
 
 cmake_dependent_option( AMReX_DPCPP_AOT  "Enable DPCPP ahead-of-time compilation (WIP)"  OFF
