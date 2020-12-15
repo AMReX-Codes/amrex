@@ -258,11 +258,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         int to_try  = 1;
         while (true) {
             int msk = (m && to_try) ? Gpu::Atomic::CAS(m, 0, mypriority) : 0;
-#if (__SYCL_COMPILER_VERSION <= 20200827)
-            if (sycl::intel::all_of(item.get_sub_group(), msk == 0)) {  // 0 means lock acquired
-#else
             if (sycl::ONEAPI::all_of(item.get_sub_group(), msk == 0)) {  // 0 means lock acquired
-#endif
                 break; // all threads have acquired.
             } else {
                 if (sycl::ONEAPI::any_of(item.get_sub_group(), msk > mypriority)) {
