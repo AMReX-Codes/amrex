@@ -121,7 +121,7 @@
 // no inline
 #if defined(_MSC_VER)
 #define AMREX_NO_INLINE __declspec(noinline)
-#elif (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIP__) || defined(__SYCL_COMPILER_VERSION))
+#elif (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIP__) || defined(__INTEL_CLANG_COMPILER))
 #define AMREX_NO_INLINE __attribute__((noinline))
 #else
 #define AMREX_NO_INLINE
@@ -154,10 +154,3 @@
 #endif /* !BL_LANG_FORT */
 
 #endif
-
-/*
- * DPCPP version strings
- * beta08 #define __SYCL_COMPILER_VERSION 20200715
- * beta09 #define __SYCL_COMPILER_VERSION 20200827
- * beta10 #define __SYCL_COMPILER_VERSION 20201005
-*/
