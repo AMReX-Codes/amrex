@@ -8,5 +8,6 @@
 set -eu -o pipefail
 
 brew update
+brew install gfortran
 brew install libomp
 brew install open-mpi
