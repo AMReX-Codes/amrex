@@ -1,5 +1,6 @@
 #ifndef AMREX_FLUXREGISTER_H_
 #define AMREX_FLUXREGISTER_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_BndryRegister.H>
 #include <AMReX_Geometry.H>

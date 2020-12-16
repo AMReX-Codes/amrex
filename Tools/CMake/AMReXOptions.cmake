@@ -131,9 +131,9 @@ endif ()
 
 # --- SYCL ---
 if (AMReX_DPCPP)
-   if (NOT (CMAKE_CXX_COMPILER MATCHES "dpcpp") )
-      message(FATAL_ERROR "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} supports dpcpp compiler only."
-         "Set CMAKE_CXX_COMPILER=dpccp and try again.")
+   if (NOT (CMAKE_CXX_COMPILER_ID IN_LIST "Clang;IntelClang;IntelDPCPP") )
+      message(WARNING "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is tested with DPCPP."
+         "Verify '${CMAKE_CXX_COMPILER_ID}' is correct and potentially set CMAKE_CXX_COMPILER=dpccp or mpiicpx.")
    endif ()
 endif ()
 
@@ -227,11 +227,6 @@ print_option( AMReX_CONDUIT )
 cmake_dependent_option( AMReX_ASCENT "Enable Ascent support" OFF
    "AMReX_CONDUIT" OFF )
 print_option( AMReX_ASCENT )
-
-# SUNDIALS
-cmake_dependent_option(AMReX_SUNDIALS "Enable SUNDIALS4 interfaces" OFF
-   "AMReX_FORTRAN_INTERFACES" OFF)
-print_option(AMReX_SUNDIALS)
 
 # Hypre
 cmake_dependent_option(AMReX_HYPRE "Enable Hypre interfaces" OFF

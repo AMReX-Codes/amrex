@@ -1,5 +1,6 @@
 #ifndef AMREX_D_ARENA_H_
 #define AMREX_D_ARENA_H_
+#include <AMReX_Config.H>
 
 #include <cstddef>
 #include <unordered_set>

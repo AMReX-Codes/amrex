@@ -1,5 +1,6 @@
 #ifndef AMREX_ARRAY4_H_
 #define AMREX_ARRAY4_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_IntVect.H>
 #include <AMReX_GpuPrint.H>
@@ -56,6 +57,21 @@ namespace amrex {
               begin(rhs.begin),
               end(rhs.end),
               ncomp(rhs.ncomp-start_comp)
+        {}
+
+        template <class U,
+                  typename std::enable_if
+                  <std::is_same<typename std::remove_const<T>::type,
+                                typename std::remove_const<U>::type>::value,int>::type = 0>
+        AMREX_GPU_HOST_DEVICE
+        constexpr Array4 (Array4<U> const& rhs, int start_comp, int num_comps) noexcept
+            : p((T*)(rhs.p+start_comp*rhs.nstride)),
+              jstride(rhs.jstride),
+              kstride(rhs.kstride),
+              nstride(rhs.nstride),
+              begin(rhs.begin),
+              end(rhs.end),
+              ncomp(num_comps)
         {}
 
         AMREX_GPU_HOST_DEVICE
@@ -160,7 +176,7 @@ namespace amrex {
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         bool contains (int i, int j, int k) const noexcept {
-            return (i>=begin.x and i<end.x and j>=begin.y and j<end.y and k>=begin.z and k<end.z);
+            return (i>=begin.x && i<end.x && j>=begin.y && j<end.y && k>=begin.z && k<end.z);
         }
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)

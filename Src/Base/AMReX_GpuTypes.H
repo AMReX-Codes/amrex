@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_TYPES_H_
 #define AMREX_GPU_TYPES_H_
+#include <AMReX_Config.H>
 
 #ifdef AMREX_USE_GPU
 

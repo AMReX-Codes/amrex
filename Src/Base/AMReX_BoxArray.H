@@ -1,6 +1,7 @@
 
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
+#include <AMReX_Config.H>
 
 #include <iostream>
 #include <cstddef>
@@ -38,6 +39,9 @@ namespace amrex
 
     BoxArray coarsen (const BoxArray& ba, int ratio);
     BoxArray coarsen (const BoxArray& ba, const IntVect& ratio);
+
+    BoxArray refine  (const BoxArray& ba, int ratio);
+    BoxArray refine  (const BoxArray& ba, const IntVect& ratio);
 
     //! Find the ghost cells of a given BoxArray.
     BoxList GetBndryCells (const BoxArray& ba, int ngrow);
@@ -218,9 +222,9 @@ struct BATbndryReg
     IntVect coarsen_ratio () const noexcept { return m_crse_ratio; }
 
     friend bool operator== (BATbndryReg const& a, BATbndryReg const& b) noexcept {
-        return a.m_face == b.m_face and a.m_typ == b.m_typ and a.m_crse_ratio == b.m_crse_ratio
-            and a.m_loshft == b.m_loshft and a.m_hishft == b.m_hishft
-            and a.m_doilo == b.m_doilo and a.m_doihi == b.m_doihi;
+        return a.m_face == b.m_face && a.m_typ == b.m_typ && a.m_crse_ratio == b.m_crse_ratio
+            && a.m_loshft == b.m_loshft && a.m_hishft == b.m_hishft
+            && a.m_doilo == b.m_doilo && a.m_doihi == b.m_doihi;
     }
 
     Orientation m_face;
@@ -497,7 +501,7 @@ struct BATransformer
                 return false;
             default:
                 return a.index_type() == b.index_type()
-                    and a.coarsen_ratio() == b.coarsen_ratio();
+                    && a.coarsen_ratio() == b.coarsen_ratio();
             }
         }
     }

@@ -1,5 +1,6 @@
 #ifndef BL_FABARRAYBASE_H_
 #define BL_FABARRAYBASE_H_
+#include <AMReX_Config.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -404,12 +405,6 @@ public:
 
     const TileArray* getTileArray (const IntVect& tilesize) const;
 
-    //! Block until all send requests complete
-    static void WaitForAsyncSends (int                 N_snds,
-                                   Vector<MPI_Request>& send_reqs,
-                                   Vector<char*>&       send_data,
-                                   Vector<MPI_Status>&  stats);
-
     // Memory Usage Tags
     struct meminfo {
         Long nbytes = 0L;
@@ -580,6 +575,75 @@ public:
     //
     void flushCPC (bool no_assertion=false) const;      //!< This flushes its own CPC.
     static void flushCPCache (); //!< This flusheds the entire cache.
+
+    //
+    //! Rotate Boundary by 90
+    struct RB90
+        : CommMetaData
+    {
+        RB90 (const FabArrayBase& fa, const IntVect& nghost, Box const& domain);
+        ~RB90 ();
+        IntVect m_ngrow;
+        Box     m_domain;
+    private:
+        void define (const FabArrayBase& fa);
+    };
+    //
+    typedef std::multimap<BDKey,FabArrayBase::RB90*> RB90Cache;
+    typedef RB90Cache::iterator RB90CacheIter;
+    //
+    static RB90Cache m_TheRB90Cache;
+    //
+    const RB90& getRB90 (const IntVect& nghost, const Box& domain) const;
+    //
+    void flushRB90 (bool no_assertion=false) const; //!< This flushes its own RB90.
+    static void flushRB90Cache (); //!< This flushes the entire cache.
+
+    //
+    //! Rotate Boundary by 180
+    struct RB180
+        : CommMetaData
+    {
+        RB180 (const FabArrayBase& fa, const IntVect& nghost, Box const& domain);
+        ~RB180 ();
+        IntVect m_ngrow;
+        Box     m_domain;
+    private:
+        void define (const FabArrayBase& fa);
+    };
+    //
+    typedef std::multimap<BDKey,FabArrayBase::RB180*> RB180Cache;
+    typedef RB180Cache::iterator RB180CacheIter;
+    //
+    static RB180Cache m_TheRB180Cache;
+    //
+    const RB180& getRB180 (const IntVect& nghost, const Box& domain) const;
+    //
+    void flushRB180 (bool no_assertion=false) const; //!< This flushes its own RB180.
+    static void flushRB180Cache (); //!< This flushes the entire cache.
+
+    //
+    //! Fill polar boundary in spherical coordinates.
+    struct PolarB
+        : CommMetaData
+    {
+        PolarB (const FabArrayBase& fa, const IntVect& nghost, Box const& domain);
+        ~PolarB ();
+        IntVect m_ngrow;
+        Box     m_domain;
+    private:
+        void define (const FabArrayBase& fa);
+    };
+    //
+    typedef std::multimap<BDKey,FabArrayBase::PolarB*> PolarBCache;
+    typedef PolarBCache::iterator PolarBCacheIter;
+    //
+    static PolarBCache m_ThePolarBCache;
+    //
+    const PolarB& getPolarB (const IntVect& nghost, const Box& domain) const;
+    //
+    void flushPolarB (bool no_assertion=false) const; //!< This flushes its own PolarB.
+    static void flushPolarBCache (); //!< This flushes the entire cache.
 
     //
     //! Keep track of how many FabArrays are built with the same BDKey.

@@ -1,5 +1,6 @@
 #ifndef AMREX_ARRAYOFSTRUCTS_H_
 #define AMREX_ARRAYOFSTRUCTS_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Particle.H>
 #include <AMReX_GpuContainers.H>

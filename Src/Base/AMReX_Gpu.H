@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_H_
 #define AMREX_GPU_H_
+#include <AMReX_Config.H>
 
 #ifdef AMREX_USE_HIP
 #include <hip/hip_runtime.h>

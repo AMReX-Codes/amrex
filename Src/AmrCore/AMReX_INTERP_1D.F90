@@ -66,9 +66,9 @@ contains
 #define SLXY 3
 
       ! local var
-      integer lx, ly
-      integer hrat, ic, jc, jfn, jfc, i, j, n
-      real(amrex_real) x, y
+      integer lx
+      integer hrat, ic, i, n
+      real(amrex_real) x
       real(amrex_real) denom
 
       denom = one/real(2*lratio,amrex_real)
@@ -91,7 +91,6 @@ contains
             do i = fb_l1, fb_h1 
               fine(i,n) = strip(i-hrat)
             enddo
-230       continue
 200   continue
 
     end subroutine AMREX_CBINTERP

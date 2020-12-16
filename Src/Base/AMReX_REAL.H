@@ -1,5 +1,6 @@
 #ifndef AMREX_REAL_H_
 #define AMREX_REAL_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Extension.H>
 

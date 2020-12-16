@@ -1,6 +1,7 @@
 
 #ifndef BL_FACOPYDESCRIPTOR_H_
 #define BL_FACOPYDESCRIPTOR_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FabArray.H>
 #include <sstream>

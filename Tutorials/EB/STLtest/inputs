@@ -1,0 +1,6 @@
+prob_lo=  0   0  0
+prob_hi=  220 35 60
+ncells =  128 32 64
+stl_file=airfoil.stl
+max_grid_size=8
+outside_point=250.0 250.0 250.0

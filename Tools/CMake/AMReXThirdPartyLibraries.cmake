@@ -27,24 +27,6 @@ if (AMReX_SENSEI)
     target_link_libraries( amrex PUBLIC sensei )
 endif ()
 
-
-#
-# SUNDIALS
-#
-if (AMReX_SUNDIALS)
-    # We link to libraries and always include nvecserial (in case app code needs it)
-    set(_sundials_components farkode_mod;fcvode_mod)
-
-    find_package(SUNDIALS 4 REQUIRED COMPONENTS ${_sundials_components})
-
-    foreach (_comp ${_sundials_components})
-        target_link_libraries(amrex PUBLIC SUNDIALS::${_comp})
-    endforeach ()
-
-    unset(_sundials_components)
-endif ()
-
-
 #
 #  Ascent
 #

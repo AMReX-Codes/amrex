@@ -6,6 +6,21 @@
 # ############################################################################ #
 @PACKAGE_INIT@
 
+# Custom version of check_required_components
+# Set NO_CHECK_REQUIRED_COMPONENTS_MACRO when calling
+# configure_package_config_file to avoid the CMake version
+# of this macro to be generated
+macro(check_required_components _NAME)
+   foreach(comp ${${_NAME}_FIND_COMPONENTS})
+      if(NOT ${_NAME}_${comp}_FOUND)
+         if(${_NAME}_FIND_REQUIRED_${comp})
+            message(STATUS "Requested AMReX component '${comp}' was not found.")
+            set(${_NAME}_FOUND FALSE)
+         endif()
+      endif()
+   endforeach()
+endmacro()
+
 # Set the minimum CMake version required
 cmake_minimum_required(VERSION @CMAKE_MINIMUM_REQUIRED_VERSION@)
 
@@ -58,7 +73,6 @@ set(AMReX_PARTICLES_FOUND           @AMReX_PARTICLES@)
 set(AMReX_P@AMReX_PARTICLES_PRECISION@_FOUND ON)
 set(AMReX_SENSEI_FOUND              @AMReX_SENSEI@)
 set(AMReX_CONDUIT_FOUND             @AMReX_CONDUIT@)
-set(AMReX_SUNDIALS_FOUND            @AMReX_SUNDIALS@)
 set(AMReX_ASCENT_FOUND              @AMReX_ASCENT@)
 set(AMReX_HYPRE_FOUND               @AMReX_HYPRE@)
 set(AMReX_PETSC_FOUND               @AMReX_PETSC@)
@@ -93,7 +107,7 @@ endif()
 
 if (@AMReX_OMP@)
    set( _omp_components CXX )
-   if (@AMReX_FORTRAN_INTERFACES@)
+   if (@AMReX_FORTRAN@)
       list(APPEND _omp_components Fortran)
    endif ()
    find_dependency(OpenMP REQUIRED ${_omp_components})
@@ -104,18 +118,6 @@ endif ()
 #
 if (@AMReX_SENSEI@)
    find_dependency(SENSEI REQUIRED)
-endif ()
-
-if (@AMReX_SUNDIALS@)
-    set(_sundials_components nvecserial;cvode;arkode)
-    if (@AMReX_OMP@)
-        list(APPEND _sundials_components nvecopenmp)
-    endif ()
-    if (@AMReX_CUDA@)
-        list(APPEND _sundials_components nveccuda)
-    endif ()
-    find_dependency(SUNDIALS 4 REQUIRED COMPONENTS ${_sundials_components})
-    unset(_sundials_components)
 endif ()
 
 if (@AMReX_ASCENT@)

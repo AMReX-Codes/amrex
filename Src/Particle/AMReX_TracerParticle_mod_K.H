@@ -1,5 +1,6 @@
 #ifndef AMREX_TRACERPARTICLE_MOD_K_H
 #define AMREX_TRACERPARTICLE_MOD_K_H
+#include <AMReX_Config.H>
 #include <AMReX_TracerParticles.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Box.H>

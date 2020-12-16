@@ -1,5 +1,6 @@
 #ifndef AMREX_FABARRAY_UTILITY_H_
 #define AMREX_FABARRAY_UTILITY_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FabArray.H>
 #include <AMReX_LayoutData.H>
@@ -1640,7 +1641,7 @@ void
 prefetchToHost (FabArray<FAB> const& fa, const bool synchronous = true)
 {
 #ifdef AMREX_USE_GPU
-    if (fa.arena() == The_Arena() or fa.arena() == The_Managed_Arena()) {
+    if (fa.arena() == The_Arena() || fa.arena() == The_Managed_Arena()) {
         for (MFIter mfi(fa, MFItInfo().SetDeviceSync(synchronous)); mfi.isValid(); ++mfi) {
             fa.prefetchToHost(mfi);
         }
@@ -1655,7 +1656,7 @@ void
 prefetchToDevice (FabArray<FAB> const& fa, const bool synchronous = true)
 {
 #ifdef AMREX_USE_GPU
-    if (fa.arena() == The_Arena() or fa.arena() == The_Managed_Arena()) {
+    if (fa.arena() == The_Arena() || fa.arena() == The_Managed_Arena()) {
         for (MFIter mfi(fa, MFItInfo().SetDeviceSync(synchronous)); mfi.isValid(); ++mfi) {
             fa.prefetchToDevice(mfi);
         }

@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLES_H_
 #define AMREX_PARTICLES_H_
+#include <AMReX_Config.H>
 
 #include <cstring>
 #include <map>
@@ -221,7 +222,7 @@ public:
     //! \param the Geometry object, which describes the problem domain
     //! \param A DistributionMapping, which describes how the boxes are distributed onto MPI tasks
     //! \param A BoxArray, which gives the set of grid boxes
-    //!     
+    //!
     ParticleContainer (const Geometry            & geom,
 		       const DistributionMapping & dmap,
 		       const BoxArray            & ba)
@@ -310,8 +311,8 @@ public:
     virtual ~ParticleContainer () {}
 
     ParticleContainer ( const ParticleContainer &) = delete;
-    ParticleContainer& operator= ( const ParticleContainer & ) = delete; 
-    
+    ParticleContainer& operator= ( const ParticleContainer & ) = delete;
+
     ParticleContainer ( ParticleContainer && ) = default;
     ParticleContainer& operator= ( ParticleContainer && ) = default;
 
@@ -578,9 +579,12 @@ public:
 
     /**
      * \brief Sort the particles on each tile by groups of cells, given an IntVect bin_size
+     *
+     *        If bin_size is the zero vector, this operation is a no-op.
+     *
      */
     void SortParticlesByBin (IntVect bin_size);
-	
+
     /**
     * \brief OK checks that all particles are in the right places (for some value of right)
     *
@@ -1202,9 +1206,9 @@ public:
         SetParticleSize();
     }
 
-    const ParticleBufferMap& BufferMap () const {return m_buffer_map;} 
+    const ParticleBufferMap& BufferMap () const {return m_buffer_map;}
 
-    Vector<int> NeighborProcs(int ngrow) const         
+    Vector<int> NeighborProcs(int ngrow) const
     {
         return computeNeighborProcs(this->GetParGDB(), ngrow);
     }

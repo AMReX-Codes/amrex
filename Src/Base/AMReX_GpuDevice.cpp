@@ -811,7 +811,7 @@ void
 Device::n_threads_and_blocks (const Long N, dim3& numBlocks, dim3& numThreads) noexcept
 {
     numThreads = AMREX_GPU_MAX_THREADS;
-    numBlocks = std::max((N + AMREX_GPU_MAX_THREADS - 1) / AMREX_GPU_MAX_THREADS, 1L); // in case N = 0
+    numBlocks = std::max((N + AMREX_GPU_MAX_THREADS - 1) / AMREX_GPU_MAX_THREADS, static_cast<Long>(1)); // in case N = 0
 }
 
 void

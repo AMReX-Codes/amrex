@@ -469,8 +469,6 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_ASSERTIONS             |  Build with assertions turned on                | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_SUNDIALS               |  Enable SUNDIALS 4 interfaces                   | NO                      | YES, NO               |
-   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_SENSEI                 |  Enable SENSEI_IN_SITU infrastucture            | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_CONDUIT                |  Enable Conduit support                         | NO                      | YES, NO               |
@@ -679,8 +677,6 @@ A list of AMReX component names and related configure options are shown in the t
    | AMReX_FPE                    | FPE             |
    +------------------------------+-----------------+
    | AMReX_ASSERTIONS             | ASSERTIONS      |
-   +------------------------------+-----------------+
-   | AMReX_SUNDIALS               | SUNDIALS        |
    +------------------------------+-----------------+
    | AMReX_SENSEI                 | SENSEI          |
    +------------------------------+-----------------+

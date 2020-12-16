@@ -1,4 +1,4 @@
-target_compile_definitions(amrex PUBLIC $<BUILD_INTERFACE:AMREX_USE_PROFPARSER BL_USE_PROFPARSER>)
+add_amrex_define(AMREX_USE_PROFPARSER)
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
 target_sources( amrex

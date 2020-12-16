@@ -1234,6 +1234,8 @@ as:
         Real b;
     });
 
+One should also avoid using :cpp:`continue` and :cpp:`return` inside the macros
+because it is not an actual :cpp:`for` loop.
 Users that choose to implement the macro launches should be aware of the limitations
 of C++ preprocessing macros to ensure GPU offloading is done properly.
 

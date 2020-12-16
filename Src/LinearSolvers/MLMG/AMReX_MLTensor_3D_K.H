@@ -1,5 +1,6 @@
 #ifndef AMREX_MLTENSOR_3D_K_H_
 #define AMREX_MLTENSOR_3D_K_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLLinOp_K.H>
 
@@ -44,23 +45,23 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 0: {
             // xlo & ylo & zlo
             Box bx = amrex::adjCellLo(amrex::adjCellLo(amrex::adjCellLo(vbox,xdir,1),ydir,1),zdir,1);
-            if (vlo.x == dlo.x and vlo.y == dlo.y and vlo.z == dlo.z) {
+            if (vlo.x == dlo.x && vlo.y == dlo.y && vlo.z == dlo.z) {
                 vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
                     = vel(vlo.x-1,vlo.y  ,vlo.z  ,icomp)
                     + vel(vlo.x  ,vlo.y-1,vlo.z  ,icomp)
                     + vel(vlo.x  ,vlo.y  ,vlo.z-1,icomp)
                     - vel(vlo.x  ,vlo.y  ,vlo.z  ,icomp) * 2.0;
-            } else if (vlo.x == dlo.x and vlo.y == dlo.y) {
+            } else if (vlo.x == dlo.x && vlo.y == dlo.y) {
                 vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
                     = vel(vlo.x-1,vlo.y  ,vlo.z-1,icomp)
                     + vel(vlo.x  ,vlo.y-1,vlo.z-1,icomp)
                     - vel(vlo.x  ,vlo.y  ,vlo.z-1,icomp);
-            } else if (vlo.x == dlo.x and vlo.z == dlo.z) {
+            } else if (vlo.x == dlo.x && vlo.z == dlo.z) {
                 vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
                     = vel(vlo.x-1,vlo.y-1,vlo.z  ,icomp)
                     + vel(vlo.x  ,vlo.y-1,vlo.z-1,icomp)
                     - vel(vlo.x  ,vlo.y-1,vlo.z  ,icomp);
-            } else if (vlo.y == dlo.y and vlo.z == dlo.z) {
+            } else if (vlo.y == dlo.y && vlo.z == dlo.z) {
                 vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
                     = vel(vlo.x-1,vlo.y-1,vlo.z  ,icomp)
                     + vel(vlo.x-1,vlo.y  ,vlo.z-1,icomp)
@@ -103,23 +104,23 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 1: {
             // xhi & ylo & zlo
             Box bx = amrex::adjCellLo(amrex::adjCellLo(amrex::adjCellHi(vbox,xdir,1),ydir,1),zdir,1);
-            if (vhi.x == dhi.x and vlo.y == dlo.y and vlo.z == dlo.z) {
+            if (vhi.x == dhi.x && vlo.y == dlo.y && vlo.z == dlo.z) {
                 vel      (vhi.x+1,vlo.y-1,vlo.z-1,icomp)
                     = vel(vhi.x+1,vlo.y  ,vlo.z  ,icomp)
                     + vel(vhi.x  ,vlo.y-1,vlo.z  ,icomp)
                     + vel(vhi.x  ,vlo.y  ,vlo.z-1,icomp)
                     - vel(vhi.x  ,vlo.y  ,vlo.z  ,icomp) * 2.0;
-            } else if (vhi.x == dhi.x and vlo.y == dlo.y) {
+            } else if (vhi.x == dhi.x && vlo.y == dlo.y) {
                 vel      (vhi.x+1,vlo.y-1,vlo.z-1,icomp)
                     = vel(vhi.x+1,vlo.y  ,vlo.z-1,icomp)
                     + vel(vhi.x  ,vlo.y-1,vlo.z-1,icomp)
                     - vel(vhi.x  ,vlo.y  ,vlo.z-1,icomp);
-            } else if (vhi.x == dhi.x and vlo.z == dlo.z) {
+            } else if (vhi.x == dhi.x && vlo.z == dlo.z) {
                 vel      (vhi.x+1,vlo.y-1,vlo.z-1,icomp)
                     = vel(vhi.x+1,vlo.y-1,vlo.z  ,icomp)
                     + vel(vhi.x  ,vlo.y-1,vlo.z-1,icomp)
                     - vel(vhi.x  ,vlo.y-1,vlo.z  ,icomp);
-            } else if (vlo.y == dlo.y and vlo.z == dlo.z) {
+            } else if (vlo.y == dlo.y && vlo.z == dlo.z) {
                 vel      (vhi.x+1,vlo.y-1,vlo.z-1,icomp)
                     = vel(vhi.x+1,vlo.y-1,vlo.z  ,icomp)
                     + vel(vhi.x+1,vlo.y  ,vlo.z-1,icomp)
@@ -162,23 +163,23 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 2: {
             // xlo & yhi & zlo
             Box bx = amrex::adjCellLo(amrex::adjCellHi(amrex::adjCellLo(vbox,xdir,1),ydir,1),zdir,1);
-            if (vlo.x == dlo.x and vhi.y == dhi.y and vlo.z == dlo.z) {
+            if (vlo.x == dlo.x && vhi.y == dhi.y && vlo.z == dlo.z) {
                 vel      (vlo.x-1,vhi.y+1,vlo.z-1,icomp)
                     = vel(vlo.x-1,vhi.y  ,vlo.z  ,icomp)
                     + vel(vlo.x  ,vhi.y+1,vlo.z  ,icomp)
                     + vel(vlo.x  ,vhi.y  ,vlo.z-1,icomp)
                     - vel(vlo.x  ,vhi.y  ,vlo.z  ,icomp) * 2.0;
-            } else if (vlo.x == dlo.x and vhi.y == dhi.y) {
+            } else if (vlo.x == dlo.x && vhi.y == dhi.y) {
                 vel      (vlo.x-1,vhi.y+1,vlo.z-1,icomp)
                     = vel(vlo.x-1,vhi.y  ,vlo.z-1,icomp)
                     + vel(vlo.x  ,vhi.y+1,vlo.z-1,icomp)
                     - vel(vlo.x  ,vhi.y  ,vlo.z-1,icomp);
-            } else if (vlo.x == dlo.x and vlo.z == dlo.z) {
+            } else if (vlo.x == dlo.x && vlo.z == dlo.z) {
                 vel      (vlo.x-1,vhi.y+1,vlo.z-1,icomp)
                     = vel(vlo.x-1,vhi.y+1,vlo.z  ,icomp)
                     + vel(vlo.x  ,vhi.y+1,vlo.z-1,icomp)
                     - vel(vlo.x  ,vhi.y+1,vlo.z  ,icomp);
-            } else if (vhi.y == dhi.y and vlo.z == dlo.z) {
+            } else if (vhi.y == dhi.y && vlo.z == dlo.z) {
                 vel      (vlo.x-1,vhi.y+1,vlo.z-1,icomp)
                     = vel(vlo.x-1,vhi.y+1,vlo.z  ,icomp)
                     + vel(vlo.x-1,vhi.y  ,vlo.z-1,icomp)
@@ -221,23 +222,23 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 3: {
             // xhi & yhi & zlo
             Box bx = amrex::adjCellLo(amrex::adjCellHi(amrex::adjCellHi(vbox,xdir,1),ydir,1),zdir,1);
-            if (vhi.x == dhi.x and vhi.y == dhi.y and vlo.z == dlo.z) {
+            if (vhi.x == dhi.x && vhi.y == dhi.y && vlo.z == dlo.z) {
                 vel      (vhi.x+1,vhi.y+1,vlo.z-1,icomp)
                     = vel(vhi.x+1,vhi.y  ,vlo.z  ,icomp)
                     + vel(vhi.x  ,vhi.y+1,vlo.z  ,icomp)
                     + vel(vhi.x  ,vhi.y  ,vlo.z-1,icomp)
                     - vel(vhi.x  ,vhi.y  ,vlo.z  ,icomp) * 2.0;
-            } else if (vhi.x == dhi.x and vhi.y == dhi.y) {
+            } else if (vhi.x == dhi.x && vhi.y == dhi.y) {
                 vel      (vhi.x+1,vhi.y+1,vlo.z-1,icomp)
                     = vel(vhi.x+1,vhi.y  ,vlo.z-1,icomp)
                     + vel(vhi.x  ,vhi.y+1,vlo.z-1,icomp)
                     - vel(vhi.x  ,vhi.y  ,vlo.z-1,icomp);
-            } else if (vhi.x == dhi.x and vlo.z == dlo.z) {
+            } else if (vhi.x == dhi.x && vlo.z == dlo.z) {
                 vel      (vhi.x+1,vhi.y+1,vlo.z-1,icomp)
                     = vel(vhi.x+1,vhi.y+1,vlo.z  ,icomp)
                     + vel(vhi.x  ,vhi.y+1,vlo.z-1,icomp)
                     - vel(vhi.x  ,vhi.y+1,vlo.z  ,icomp);
-            } else if (vhi.y == dhi.y and vlo.z == dlo.z) {
+            } else if (vhi.y == dhi.y && vlo.z == dlo.z) {
                 vel      (vhi.x+1,vhi.y+1,vlo.z-1,icomp)
                     = vel(vhi.x+1,vhi.y+1,vlo.z  ,icomp)
                     + vel(vhi.x+1,vhi.y  ,vlo.z-1,icomp)
@@ -280,23 +281,23 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 4: {
             // xlo & ylo & zhi
             Box bx = amrex::adjCellHi(amrex::adjCellLo(amrex::adjCellLo(vbox,xdir,1),ydir,1),zdir,1);
-            if (vlo.x == dlo.x and vlo.y == dlo.y and vhi.z == dhi.z) {
+            if (vlo.x == dlo.x && vlo.y == dlo.y && vhi.z == dhi.z) {
                 vel      (vlo.x-1, vlo.y-1, vhi.z+1,icomp)
                     = vel(vlo.x-1, vlo.y  , vhi.z  ,icomp)
                     + vel(vlo.x  , vlo.y-1, vhi.z  ,icomp)
                     + vel(vlo.x  , vlo.y  , vhi.z+1,icomp)
                     - vel(vlo.x  , vlo.y  , vhi.z  ,icomp) * 2.0;
-            } else if (vlo.x == dlo.x and vlo.y == dlo.y) {
+            } else if (vlo.x == dlo.x && vlo.y == dlo.y) {
                 vel      (vlo.x-1, vlo.y-1, vhi.z+1,icomp)
                     = vel(vlo.x-1, vlo.y  , vhi.z+1,icomp)
                     + vel(vlo.x  , vlo.y-1, vhi.z+1,icomp)
                     - vel(vlo.x  , vlo.y  , vhi.z+1,icomp);
-            } else if (vlo.x == dlo.x and vhi.z == dhi.z) {
+            } else if (vlo.x == dlo.x && vhi.z == dhi.z) {
                 vel      (vlo.x-1, vlo.y-1, vhi.z+1,icomp)
                     = vel(vlo.x-1, vlo.y-1, vhi.z  ,icomp)
                     + vel(vlo.x  , vlo.y-1, vhi.z+1,icomp)
                     - vel(vlo.x  , vlo.y-1, vhi.z  ,icomp);
-            } else if (vlo.y == dlo.y and vhi.z == dhi.z) {
+            } else if (vlo.y == dlo.y && vhi.z == dhi.z) {
                 vel      (vlo.x-1, vlo.y-1, vhi.z+1,icomp)
                     = vel(vlo.x-1, vlo.y-1, vhi.z  ,icomp)
                     + vel(vlo.x-1, vlo.y  , vhi.z+1,icomp)
@@ -339,23 +340,23 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 5: {
             // xhi & ylo & zhi
             Box bx = amrex::adjCellHi(amrex::adjCellLo(amrex::adjCellHi(vbox,xdir,1),ydir,1),zdir,1);
-            if (vhi.x == dhi.x and vlo.y == dlo.y and vhi.z == dhi.z) {
+            if (vhi.x == dhi.x && vlo.y == dlo.y && vhi.z == dhi.z) {
                 vel      (vhi.x+1,vlo.y-1,vhi.z+1,icomp)
                     = vel(vhi.x+1,vlo.y  ,vhi.z  ,icomp)
                     + vel(vhi.x  ,vlo.y-1,vhi.z  ,icomp)
                     + vel(vhi.x  ,vlo.y  ,vhi.z+1,icomp)
                     - vel(vhi.x  ,vlo.y  ,vhi.z  ,icomp) * 2.0;
-            } else if (vhi.x == dhi.x and vlo.y == dlo.y) {
+            } else if (vhi.x == dhi.x && vlo.y == dlo.y) {
                 vel      (vhi.x+1,vlo.y-1,vhi.z+1,icomp)
                     = vel(vhi.x+1,vlo.y  ,vhi.z+1,icomp)
                     + vel(vhi.x  ,vlo.y-1,vhi.z+1,icomp)
                     - vel(vhi.x  ,vlo.y  ,vhi.z+1,icomp);
-            } else if (vhi.x == dhi.x and vhi.z == dhi.z) {
+            } else if (vhi.x == dhi.x && vhi.z == dhi.z) {
                 vel      (vhi.x+1,vlo.y-1,vhi.z+1,icomp)
                     = vel(vhi.x+1,vlo.y-1,vhi.z  ,icomp)
                     + vel(vhi.x  ,vlo.y-1,vhi.z+1,icomp)
                     - vel(vhi.x  ,vlo.y-1,vhi.z  ,icomp);
-            } else if (vlo.y == dlo.y and vhi.z == dhi.z) {
+            } else if (vlo.y == dlo.y && vhi.z == dhi.z) {
                 vel      (vhi.x+1,vlo.y-1,vhi.z+1,icomp)
                     = vel(vhi.x+1,vlo.y-1,vhi.z  ,icomp)
                     + vel(vhi.x+1,vlo.y  ,vhi.z+1,icomp)
@@ -398,23 +399,23 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 6: {
             // xlo & yhi & zhi
             Box bx = amrex::adjCellHi(amrex::adjCellHi(amrex::adjCellLo(vbox,xdir,1),ydir,1),zdir,1);
-            if (vlo.x == dlo.x and vhi.y == dhi.y and vhi.z == dhi.z) {
+            if (vlo.x == dlo.x && vhi.y == dhi.y && vhi.z == dhi.z) {
                 vel      (vlo.x-1,vhi.y+1,vhi.z+1,icomp)
                     = vel(vlo.x-1,vhi.y  ,vhi.z  ,icomp)
                     + vel(vlo.x  ,vhi.y+1,vhi.z  ,icomp)
                     + vel(vlo.x  ,vhi.y  ,vhi.z+1,icomp)
                     - vel(vlo.x  ,vhi.y  ,vhi.z  ,icomp) * 2.0;
-            } else if (vlo.x == dlo.x and vhi.y == dhi.y) {
+            } else if (vlo.x == dlo.x && vhi.y == dhi.y) {
                 vel      (vlo.x-1,vhi.y+1,vhi.z+1,icomp)
                     = vel(vlo.x-1,vhi.y  ,vhi.z+1,icomp)
                     + vel(vlo.x  ,vhi.y+1,vhi.z+1,icomp)
                     - vel(vlo.x  ,vhi.y  ,vhi.z+1,icomp);
-            } else if (vlo.x == dlo.x and vhi.z == dhi.z) {
+            } else if (vlo.x == dlo.x && vhi.z == dhi.z) {
                 vel      (vlo.x-1,vhi.y+1,vhi.z+1,icomp)
                     = vel(vlo.x-1,vhi.y+1,vhi.z  ,icomp)
                     + vel(vlo.x  ,vhi.y+1,vhi.z+1,icomp)
                     - vel(vlo.x  ,vhi.y+1,vhi.z  ,icomp);
-            } else if (vhi.y == dhi.y and vhi.z == dhi.z) {
+            } else if (vhi.y == dhi.y && vhi.z == dhi.z) {
                 vel      (vlo.x-1,vhi.y+1,vhi.z+1,icomp)
                     = vel(vlo.x-1,vhi.y+1,vhi.z  ,icomp)
                     + vel(vlo.x-1,vhi.y  ,vhi.z+1,icomp)
@@ -457,23 +458,23 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 7: {
             // xhi & yhi & zhi
             Box bx = amrex::adjCellHi(amrex::adjCellHi(amrex::adjCellHi(vbox,xdir,1),ydir,1),zdir,1);
-            if (vhi.x == dhi.x and vhi.y == dhi.y and vhi.z == dhi.z) {
+            if (vhi.x == dhi.x && vhi.y == dhi.y && vhi.z == dhi.z) {
                 vel      (vhi.x+1,vhi.y+1,vhi.z+1,icomp)
                     = vel(vhi.x+1,vhi.y  ,vhi.z  ,icomp)
                     + vel(vhi.x  ,vhi.y+1,vhi.z  ,icomp)
                     + vel(vhi.x  ,vhi.y  ,vhi.z+1,icomp)
                     - vel(vhi.x  ,vhi.y  ,vhi.z  ,icomp) * 2.0;
-            } else if (vhi.x == dhi.x and vhi.y == dhi.y) {
+            } else if (vhi.x == dhi.x && vhi.y == dhi.y) {
                 vel      (vhi.x+1,vhi.y+1,vhi.z+1,icomp)
                     = vel(vhi.x+1,vhi.y  ,vhi.z+1,icomp)
                     + vel(vhi.x  ,vhi.y+1,vhi.z+1,icomp)
                     - vel(vhi.x  ,vhi.y  ,vhi.z+1,icomp);
-            } else if (vhi.x == dhi.x and vhi.z == dhi.z) {
+            } else if (vhi.x == dhi.x && vhi.z == dhi.z) {
                 vel      (vhi.x+1,vhi.y+1,vhi.z+1,icomp)
                     = vel(vhi.x+1,vhi.y+1,vhi.z  ,icomp)
                     + vel(vhi.x  ,vhi.y+1,vhi.z+1,icomp)
                     - vel(vhi.x  ,vhi.y+1,vhi.z  ,icomp);
-            } else if (vhi.y == dhi.y and vhi.z == dhi.z) {
+            } else if (vhi.y == dhi.y && vhi.z == dhi.z) {
                 vel      (vhi.x+1,vhi.y+1,vhi.z+1,icomp)
                     = vel(vhi.x+1,vhi.y+1,vhi.z  ,icomp)
                     + vel(vhi.x+1,vhi.y  ,vhi.z+1,icomp)
@@ -556,7 +557,7 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         switch (iedge) {
         case 0: {
             // xlo & ylo
-            if (vlo.x == dlo.x and vlo.y == dlo.y) {
+            if (vlo.x == dlo.x && vlo.y == dlo.y) {
                 for (int k = vlo.z; k <= vhi.z; ++k) {
                     vel      (vlo.x-1,vlo.y-1,k,icomp)
                         = vel(vlo.x  ,vlo.y-1,k,icomp)
@@ -597,7 +598,7 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         }
         case 1: {
             // xhi & ylo
-            if (vhi.x == dhi.x and vlo.y == dlo.y) {
+            if (vhi.x == dhi.x && vlo.y == dlo.y) {
                 for (int k = vlo.z; k <= vhi.z; ++k) {
                     vel      (vhi.x+1,vlo.y-1,k,icomp)
                         = vel(vhi.x  ,vlo.y-1,k,icomp)
@@ -638,7 +639,7 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         }
         case 2: {
             // xlo & yhi
-            if (vlo.x == dlo.x and vhi.y == dhi.y) {
+            if (vlo.x == dlo.x && vhi.y == dhi.y) {
                 for (int k = vlo.z; k <= vhi.z; ++k) {
                     vel      (vlo.x-1,vhi.y+1,k,icomp)
                         = vel(vlo.x  ,vhi.y+1,k,icomp)
@@ -679,7 +680,7 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         }
         case 3: {
             // xhi & yhi
-            if (vhi.x == dhi.x and vhi.y == dhi.y) {
+            if (vhi.x == dhi.x && vhi.y == dhi.y) {
                 for (int k = vlo.z; k <= vhi.z; ++k) {
                     vel      (vhi.x+1,vhi.y+1,k,icomp)
                         = vel(vhi.x  ,vhi.y+1,k,icomp)
@@ -720,7 +721,7 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         }
         case 4: {
             // xlo & zlo
-            if (vlo.x == dlo.x and vlo.z == dlo.z) {
+            if (vlo.x == dlo.x && vlo.z == dlo.z) {
                 for (int j = vlo.y; j <= vhi.y; ++j) {
                     vel      (vlo.x-1,j,vlo.z-1,icomp)
                         = vel(vlo.x  ,j,vlo.z-1,icomp)
@@ -761,7 +762,7 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         }
         case 5: {
             // xhi & zlo
-            if (vhi.x == dhi.x and vlo.z == dlo.z) {
+            if (vhi.x == dhi.x && vlo.z == dlo.z) {
                 for (int j = vlo.y; j <= vhi.y; ++j) {
                     vel      (vhi.x+1,j,vlo.z-1,icomp)
                         = vel(vhi.x  ,j,vlo.z-1,icomp)
@@ -802,7 +803,7 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         }
         case 6: {
             // xlo & zhi
-            if (vlo.x == dlo.x and vhi.z == dhi.z) {
+            if (vlo.x == dlo.x && vhi.z == dhi.z) {
                 for (int j = vlo.y; j <= vhi.y; ++j) {
                     vel      (vlo.x-1,j,vhi.z+1,icomp)
                         = vel(vlo.x  ,j,vhi.z+1,icomp)
@@ -843,7 +844,7 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         }
         case 7: {
             // xhi & zhi
-            if (vhi.x == dhi.x and vhi.z == dhi.z) {
+            if (vhi.x == dhi.x && vhi.z == dhi.z) {
                 for (int j = vlo.y; j <= vhi.y; ++j) {
                     vel      (vhi.x+1,j,vhi.z+1,icomp)
                         = vel(vhi.x  ,j,vhi.z+1,icomp)
@@ -884,7 +885,7 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         }
         case 8: {
             // ylo & zlo
-            if (vlo.y == dlo.y and vlo.z == dlo.z) {
+            if (vlo.y == dlo.y && vlo.z == dlo.z) {
                 for (int i = vlo.x; i <= vhi.x; ++i) {
                     vel      (i,vlo.y-1,vlo.z-1,icomp)
                         = vel(i,vlo.y  ,vlo.z-1,icomp)
@@ -925,7 +926,7 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         }
         case 9: {
             // yhi & zlo
-            if (vhi.y == dhi.y and vlo.z == dlo.z) {
+            if (vhi.y == dhi.y && vlo.z == dlo.z) {
                 for (int i = vlo.x; i <= vhi.x; ++i) {
                     vel      (i,vhi.y+1,vlo.z-1,icomp)
                         = vel(i,vhi.y  ,vlo.z-1,icomp)
@@ -966,7 +967,7 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         }
         case 10: {
             // ylo & zhi
-            if (vlo.y == dlo.y and vhi.z == dhi.z) {
+            if (vlo.y == dlo.y && vhi.z == dhi.z) {
                 for (int i = vlo.x; i <= vhi.x; ++i) {
                     vel      (i,vlo.y-1,vhi.z+1,icomp)
                         = vel(i,vlo.y  ,vhi.z+1,icomp)
@@ -1007,7 +1008,7 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         }
         case 11: {
             // yhi & zhi
-            if (vhi.y == dhi.y and vhi.z == dhi.z) {
+            if (vhi.y == dhi.y && vhi.z == dhi.z) {
                 for (int i = vlo.x; i <= vhi.x; ++i) {
                     vel      (i,vhi.y+1,vhi.z+1,icomp)
                         = vel(i,vhi.y  ,vhi.z+1,icomp)

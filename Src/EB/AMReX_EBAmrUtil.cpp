@@ -60,7 +60,7 @@ TagVolfrac (TagBoxArray& tags, const MultiFab& volfrac, Real tol)
         Array4<Real const> const& volarr = volfrac.const_array(mfi);
         AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
         {
-            if (volarr(i,j,k) <= (1.-tol) and volarr(i,j,k) >= tol) {
+            if (volarr(i,j,k) <= (1.-tol) && volarr(i,j,k) >= tol) {
                 tagarr(i,j,k) = tagval;
             }
         });

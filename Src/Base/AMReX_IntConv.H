@@ -1,5 +1,6 @@
 #ifndef AMREX_INTCONV_H_
 #define AMREX_INTCONV_H_
+#include <AMReX_Config.H>
 
 #include <iostream>
 #include <cstring>

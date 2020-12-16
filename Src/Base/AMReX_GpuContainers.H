@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_CONTAINERS_H_
 #define AMREX_GPU_CONTAINERS_H_
+#include <AMReX_Config.H>
 
 #include <numeric>
 #include <iterator>

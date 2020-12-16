@@ -1,5 +1,6 @@
 #ifndef AMREX_HYPRE_NODE_LAP_H_
 #define AMREX_HYPRE_NODE_LAP_H_
+#include <AMReX_Config.H>
 
 #include <memory>
 #include <algorithm>

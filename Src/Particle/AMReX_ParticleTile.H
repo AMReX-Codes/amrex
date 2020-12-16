@@ -1,6 +1,8 @@
 #ifndef AMREX_PARTICLETILE_H_
 #define AMREX_PARTICLETILE_H_
+#include <AMReX_Config.H>
 
+#include <AMReX_Extension.H>
 #include <AMReX_Particle.H>
 #include <AMReX_ArrayOfStructs.H>
 #include <AMReX_StructOfArrays.H>
@@ -331,7 +333,7 @@ struct ParticleTile
     /// Add one particle to this tile.
     ///
     template < int NR = NArrayReal, int NI = NArrayInt,
-               EnableIf_t<NR != 0 or NI != 0, int> foo = 0>
+               EnableIf_t<NR != 0 || NI != 0, int> foo = 0>
     void push_back (const SuperParticleType& sp)
     {
         auto np = numParticles();
@@ -533,7 +535,7 @@ struct ParticleTile
         ptd.m_runtime_idata = m_runtime_i_ptrs.dataPtr();
 
 #ifdef AMREX_USE_GPU
-        if ((h_runtime_r_ptrs.size() > 0) or (h_runtime_i_ptrs.size() > 0)) {
+        if ((h_runtime_r_ptrs.size() > 0) || (h_runtime_i_ptrs.size() > 0)) {
             Gpu::synchronize();
         }
 #endif
@@ -588,7 +590,7 @@ struct ParticleTile
         ptd.m_runtime_idata = m_runtime_i_cptrs.dataPtr();
 
 #ifdef AMREX_USE_GPU
-        if ((h_runtime_r_cptrs.size() > 0) or (h_runtime_i_cptrs.size() > 0)) {
+        if ((h_runtime_r_cptrs.size() > 0) || (h_runtime_i_cptrs.size() > 0)) {
             Gpu::synchronize();
         }
 #endif

@@ -1,5 +1,6 @@
 #ifndef BL_CARENA_H
 #define BL_CARENA_H
+#include <AMReX_Config.H>
 
 #include <cstddef>
 #include <set>

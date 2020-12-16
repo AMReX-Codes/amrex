@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLE_H_
 #define AMREX_PARTICLE_H_
+#include <AMReX_Config.H>
 
 #include <string>
 
@@ -258,7 +259,7 @@ struct Particle
     template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE RealVect  rvec (AMREX_D_DECL(int indx, int indy, int indz)) const &
     {
-        AMREX_ASSERT(AMREX_D_TERM(indx < NReal, and indy < NReal, and indz < NReal));
+        AMREX_ASSERT(AMREX_D_TERM(indx < NReal, && indy < NReal, && indz < NReal));
         return RealVect(AMREX_D_DECL(this->m_rdata[indx],
                                      this->m_rdata[indy],
                                      this->m_rdata[indz]));

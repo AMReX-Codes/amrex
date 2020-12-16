@@ -1,5 +1,6 @@
 #ifndef AMREX_INTERP_1D_C_H_
 #define AMREX_INTERP_1D_C_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
@@ -294,6 +295,31 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
             fine(i,0,0,n+fcomp) = crse(ic,0,0,n+ccomp) + fx*slope(ic,0,0,0);
         }
     }
+}
+
+// Or, compile time error this?
+// Remove these functions in a way that gives a good error message?
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_face_interp (int /*ci*/, int /*cj*/, int /*ck*/,
+                     int /*nc*/, int /*nf*/, int /*idir*/,
+                     Array4<T const> const& /*crse*/,
+                     Array4<T> const& /*fine*/,
+                     Array4<const int> const& /*mask*/,
+                     IntVect const& /*ratio*/) noexcept
+{
+    amrex::Abort("No 1D version of FaceDiv exists.\n");
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_int (int /*ci*/, int /*cj*/, int /*ck*/, int /*nf*/,
+             GpuArray<Array4<T>, AMREX_SPACEDIM> const& /*fine*/,
+             IntVect const& /*ratio*/,
+             GpuArray<Real, AMREX_SPACEDIM> const& /*cellSize*/) noexcept
+{
+    amrex::Abort("No 1D version of FaceDiv exists.\n"); 
 }
 
 template<typename T>

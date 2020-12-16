@@ -1,5 +1,6 @@
 #ifndef AMREX_MLNODELAP_K_H_
 #define AMREX_MLNODELAP_K_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_LO_BCTYPES.H>
@@ -31,7 +32,7 @@ mlndlap_scale_neumann_bc (Real s, Box const& bx, Array4<Real> const& rhs, Box co
                           GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (lobc[idim] == LinOpBCType::Neumann or lobc[idim] == LinOpBCType::inflow) {
+        if (lobc[idim] == LinOpBCType::Neumann || lobc[idim] == LinOpBCType::inflow) {
             Box const& blo = amrex::bdryLo(bx, idim);
             if (blo.smallEnd(idim) == nddom.smallEnd(idim)) {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D (blo, i, j, k,
@@ -40,7 +41,7 @@ mlndlap_scale_neumann_bc (Real s, Box const& bx, Array4<Real> const& rhs, Box co
                 });
             }
         }
-        if (hibc[idim] == LinOpBCType::Neumann or hibc[idim] == LinOpBCType::inflow) {
+        if (hibc[idim] == LinOpBCType::Neumann || hibc[idim] == LinOpBCType::inflow) {
             Box const& bhi = amrex::bdryHi(bx, idim);
             if (bhi.bigEnd(idim) == nddom.bigEnd(idim)) {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bhi, i, j, k,
@@ -100,17 +101,17 @@ void mlndlap_applybc (Box const& vbx, Array4<T> const& phi, Box const& domain,
                       GpuArray<LinOpBCType, AMREX_SPACEDIM> bclo,
                       GpuArray<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
 {
-    GpuArray<bool,AMREX_SPACEDIM> bflo{{AMREX_D_DECL(bclo[0] == LinOpBCType::Neumann or
+    GpuArray<bool,AMREX_SPACEDIM> bflo{{AMREX_D_DECL(bclo[0] == LinOpBCType::Neumann ||
                                                      bclo[0] == LinOpBCType::inflow,
-                                                     bclo[1] == LinOpBCType::Neumann or
+                                                     bclo[1] == LinOpBCType::Neumann ||
                                                      bclo[1] == LinOpBCType::inflow,
-                                                     bclo[2] == LinOpBCType::Neumann or
+                                                     bclo[2] == LinOpBCType::Neumann ||
                                                      bclo[2] == LinOpBCType::inflow)}};
-    GpuArray<bool,AMREX_SPACEDIM> bfhi{{AMREX_D_DECL(bchi[0] == LinOpBCType::Neumann or
+    GpuArray<bool,AMREX_SPACEDIM> bfhi{{AMREX_D_DECL(bchi[0] == LinOpBCType::Neumann ||
                                                      bchi[0] == LinOpBCType::inflow,
-                                                     bchi[1] == LinOpBCType::Neumann or
+                                                     bchi[1] == LinOpBCType::Neumann ||
                                                      bchi[1] == LinOpBCType::inflow,
-                                                     bchi[2] == LinOpBCType::Neumann or
+                                                     bchi[2] == LinOpBCType::Neumann ||
                                                      bchi[2] == LinOpBCType::inflow)}};
     mlndlap_bc_doit(vbx, phi, domain, bflo, bfhi);
 }
@@ -122,10 +123,23 @@ void mlndlap_normalize_sten (Box const& bx, Array4<Real> const& x,
 {
     amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
     {
-        if (!msk(i,j,k) and amrex::Math::abs(sten(i,j,k,0)) > s0_norm0) {
+        if (!msk(i,j,k) && amrex::Math::abs(sten(i,j,k,0)) > s0_norm0) {
             x(i,j,k) /= sten(i,j,k,0);
         }
     });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_jacobi_sten (int i, int j, int k, Array4<Real> const& sol,
+                          Real Ax, Array4<Real const> const& rhs,
+                          Array4<Real const> const& sten,
+                          Array4<int const> const& msk) noexcept
+{
+    if (msk(i,j,k)) {
+        sol(i,j,k) = Real(0.0);
+    } else if (sten(i,j,k,0) != Real(0.0)) {
+        sol(i,j,k) += Real(2./3.) * (rhs(i,j,k) - Ax) / sten(i,j,k,0);
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -138,9 +152,9 @@ void mlndlap_jacobi_sten (Box const& bx, Array4<Real> const& sol,
     amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
     {
         if (msk(i,j,k)) {
-            sol(i,j,k) = 0.0;
-        } else if (sten(i,j,k,0) != 0.0) {
-            sol(i,j,k) += (2./3.) * (rhs(i,j,k) - Ax(i,j,k)) / sten(i,j,k,0);
+            sol(i,j,k) = Real(0.0);
+        } else if (sten(i,j,k,0) != Real(0.0)) {
+            sol(i,j,k) += Real(2./3.) * (rhs(i,j,k) - Ax(i,j,k)) / sten(i,j,k,0);
         }
     });
 }

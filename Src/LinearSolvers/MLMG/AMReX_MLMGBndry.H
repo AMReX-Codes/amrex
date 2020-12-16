@@ -1,5 +1,6 @@
 #ifndef AMREX_MLMGBNDRY_H_
 #define AMREX_MLMGBNDRY_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_InterpBndryData.H>
 #include <AMReX_LO_BCTYPES.H>

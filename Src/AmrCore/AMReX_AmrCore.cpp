@@ -80,7 +80,7 @@ AmrCore::regrid (int lbase, Real time, bool)
         if (lev <= finest_level) // an old level
         {
             bool ba_changed = (new_grids[lev] != grids[lev]);
-	    if (ba_changed or coarse_ba_changed) {
+	    if (ba_changed || coarse_ba_changed) {
                 BoxArray level_grids = grids[lev];
                 DistributionMapping level_dmap = dmap[lev];
                 if (ba_changed) {

@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_TENSOR_OP_H_
 #define AMREX_ML_TENSOR_OP_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_Array.H>

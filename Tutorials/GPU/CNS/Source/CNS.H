@@ -106,7 +106,7 @@ public:
     // Cleanup data descriptors at end of run.
     static void variableCleanUp ();
 
-    static int numGrow() { return NUM_GROW; };
+    static int numGrow() { return NUM_GROW; }
 
 #if !defined(AMREX_USE_CUDA)
 protected:

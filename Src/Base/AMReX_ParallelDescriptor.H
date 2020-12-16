@@ -1,5 +1,6 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
+#include <AMReX_Config.H>
 
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_ParallelContext.H>
@@ -400,6 +401,7 @@ while ( false )
     Message Abarrier (const MPI_Comm &comm);
 
     void Test (MPI_Request& request, int& flag, MPI_Status& status);
+    void Test (Vector<MPI_Request>& request, int& flag, Vector<MPI_Status>& status);
 
     void Comm_dup (MPI_Comm comm, MPI_Comm& newcomm);
     //! Abort with specified error code.
@@ -592,34 +594,22 @@ namespace amrex {
 #ifdef BL_USE_MPI
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Asend (const T* buf,
-                           size_t   n,
-                           int      dst_pid,
-                           int      tag)
+ParallelDescriptor::Asend (const T* buf, size_t n, int dst_pid, int tag)
 {
-    BL_PROFILE_T_S("ParallelDescriptor::Asend(Tsii)", T);
-    BL_COMM_PROFILE(BLProfiler::AsendTsii, n * sizeof(T), dst_pid, tag);
-
-    MPI_Request req;
-    BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(buf),
-                              n,
-                              Mpi_typemap<T>::type(),
-                              dst_pid,
-                              tag,
-                              Communicator(),
-                              &req) );
-    BL_COMM_PROFILE(BLProfiler::AsendTsii, BLProfiler::AfterCall(), dst_pid, tag);
-    return Message(req, Mpi_typemap<T>::type());
+    return Asend(buf, n, dst_pid, tag, Communicator());
 }
 
+namespace ParallelDescriptor {  // Have to use namespace here to work around a gcc bug
+template <>
+Message
+Asend<char> (const char* buf, size_t n, int dst_pid, int tag, MPI_Comm comm);
+
 template <class T>
-ParallelDescriptor::Message
-ParallelDescriptor::Asend (const T* buf,
-                           size_t   n,
-                           int      dst_pid,
-                           int      tag,
-                           MPI_Comm comm)
+Message
+Asend (const T* buf, size_t n, int dst_pid, int tag, MPI_Comm comm)
 {
+    static_assert(!std::is_same<char,T>::value, "Asend: char version has been specialized");
+
     BL_PROFILE_T_S("ParallelDescriptor::Asend(TsiiM)", T);
     BL_COMM_PROFILE(BLProfiler::AsendTsiiM, n * sizeof(T), dst_pid, tag);
 
@@ -634,56 +624,33 @@ ParallelDescriptor::Asend (const T* buf,
     BL_COMM_PROFILE(BLProfiler::AsendTsiiM, BLProfiler::AfterCall(), dst_pid, tag);
     return Message(req, Mpi_typemap<T>::type());
 }
-
-template <class T>
-ParallelDescriptor::Message
-ParallelDescriptor::Asend (const std::vector<T>& buf,
-                           int                   dst_pid,
-                           int                   tag)
-{
-    BL_PROFILE_T_S("ParallelDescriptor::Asend(vTii)", T);
-    BL_COMM_PROFILE(BLProfiler::AsendvTii, buf.size() * sizeof(T), dst_pid, tag);
-
-    MPI_Request req;
-    BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(&buf[0]),
-                              buf.size(),
-                              Mpi_typemap<T>::type(),
-                              dst_pid,
-                              tag,
-                              Communicator(),
-                              &req) );
-    BL_COMM_PROFILE(BLProfiler::AsendvTii, BLProfiler::AfterCall(), dst_pid, tag);
-    return Message(req, Mpi_typemap<T>::type());
 }
 
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Send (const T* buf,
-                          size_t   n,
-                          int      dst_pid,
-                          int      tag)
+ParallelDescriptor::Asend (const std::vector<T>& buf, int dst_pid, int tag)
 {
-    BL_PROFILE_T_S("ParallelDescriptor::Send(Tsii)", T);
-    BL_COMM_PROFILE(BLProfiler::SendTsii, n * sizeof(T), dst_pid, tag);
-
-    BL_MPI_REQUIRE( MPI_Send(const_cast<T*>(buf),
-                             n,
-                             Mpi_typemap<T>::type(),
-                             dst_pid,
-                             tag,
-                             Communicator()) );
-    BL_COMM_PROFILE(BLProfiler::SendTsii, BLProfiler::AfterCall(), dst_pid, tag);
-    return Message();
+    return Asend(buf.data(), buf.size(), dst_pid, tag, Communicator());
 }
 
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Send (const T* buf,
-                          size_t   n,
-                          int      dst_pid,
-                          int      tag,
-			  MPI_Comm comm)
+ParallelDescriptor::Send (const T* buf, size_t n, int dst_pid, int tag)
 {
+    return Send(buf, n, dst_pid, tag, Communicator());
+}
+
+namespace ParallelDescriptor {  // Have to use namespace here to work around a gcc bug
+template <>
+Message
+Send<char> (const char* buf, size_t n, int dst_pid, int tag, MPI_Comm comm);
+
+template <class T>
+Message
+Send (const T* buf, size_t n, int dst_pid, int tag, MPI_Comm comm)
+{
+    static_assert(!std::is_same<char,T>::value, "Send: char version has been specialized");
+
     BL_PROFILE_T_S("ParallelDescriptor::Send(Tsii)", T);
 
 #ifdef BL_COMM_PROFILING
@@ -705,57 +672,33 @@ ParallelDescriptor::Send (const T* buf,
     BL_COMM_PROFILE(BLProfiler::SendTsii, BLProfiler::AfterCall(), dst_pid, tag);
     return Message();
 }
-
-template <class T>
-ParallelDescriptor::Message
-ParallelDescriptor::Send (const std::vector<T>& buf,
-                          int                   dst_pid,
-                          int                   tag)
-{
-    BL_PROFILE_T_S("ParallelDescriptor::Send(vTii)", T);
-    BL_COMM_PROFILE(BLProfiler::SendvTii, buf.size() * sizeof(T), dst_pid, tag);
-
-    BL_MPI_REQUIRE( MPI_Send(const_cast<T*>(&buf[0]),
-                             buf.size(),
-                             Mpi_typemap<T>::type(),
-                             dst_pid,
-                             tag,
-                             Communicator()) );
-    BL_COMM_PROFILE(BLProfiler::SendvTii, BLProfiler::AfterCall(), dst_pid, tag);
-    return Message();
 }
 
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Arecv (T*       buf,
-                           size_t   n,
-                           int      src_pid,
-                           int      tag)
+ParallelDescriptor::Send (const std::vector<T>& buf, int dst_pid, int tag)
 {
-    BL_PROFILE_T_S("ParallelDescriptor::Arecv(Tsii)", T);
-    BL_COMM_PROFILE(BLProfiler::ArecvTsii, n * sizeof(T), src_pid, tag);
-
-    MPI_Request req;
-    BL_MPI_REQUIRE( MPI_Irecv(buf,
-                              n,
-                              Mpi_typemap<T>::type(),
-                              src_pid,
-                              tag,
-                              Communicator(),
-                              &req) );
-    BL_COMM_PROFILE(BLProfiler::ArecvTsii, BLProfiler::AfterCall(), src_pid, tag);
-
-    return Message(req, Mpi_typemap<T>::type());
+    return Send(buf.data(), buf.size(), dst_pid, tag, Communicator());
 }
 
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Arecv (T*       buf,
-                           size_t   n,
-                           int      src_pid,
-                           int      tag,
-                           MPI_Comm comm)
+ParallelDescriptor::Arecv (T* buf, size_t n, int src_pid, int tag)
 {
+    return Arecv(buf, n, src_pid, tag, Communicator());
+}
+
+namespace ParallelDescriptor {  // Have to use namespace here to work around a gcc bug
+template <>
+Message
+Arecv<char> (char* buf, size_t n, int src_pid, int tag, MPI_Comm comm);
+
+template <class T>
+Message
+Arecv (T* buf, size_t n, int src_pid, int tag, MPI_Comm comm)
+{
+    static_assert(!std::is_same<char,T>::value, "Arecv: char version has been specialized");
+
     BL_PROFILE_T_S("ParallelDescriptor::Arecv(TsiiM)", T);
     BL_COMM_PROFILE(BLProfiler::ArecvTsiiM, n * sizeof(T), src_pid, tag);
 
@@ -770,58 +713,33 @@ ParallelDescriptor::Arecv (T*       buf,
     BL_COMM_PROFILE(BLProfiler::ArecvTsiiM, BLProfiler::AfterCall(), src_pid, tag);
     return Message(req, Mpi_typemap<T>::type());
 }
-
-template <class T>
-ParallelDescriptor::Message
-ParallelDescriptor::Arecv (std::vector<T>& buf,
-                           int             src_pid,
-                           int             tag)
-{
-    BL_PROFILE_T_S("ParallelDescriptor::Arecv(vTii)", T);
-    BL_COMM_PROFILE(BLProfiler::ArecvvTii, buf.size() * sizeof(T), src_pid, tag);
-
-    MPI_Request req;
-    BL_MPI_REQUIRE( MPI_Irecv(&buf[0],
-                              buf.size(),
-                              Mpi_typemap<T>::type(),
-                              src_pid,
-                              tag,
-                              Communicator(),
-                              &req) );
-    BL_COMM_PROFILE(BLProfiler::ArecvvTii, BLProfiler::AfterCall(), src_pid, tag);
-    return Message(req, Mpi_typemap<T>::type());
 }
 
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Recv (T*     buf,
-                          size_t n,
-                          int    src_pid,
-                          int    tag)
+ParallelDescriptor::Arecv (std::vector<T>& buf, int src_pid, int tag)
 {
-    BL_PROFILE_T_S("ParallelDescriptor::Recv(Tsii)", T);
-    BL_COMM_PROFILE(BLProfiler::RecvTsii, BLProfiler::BeforeCall(), src_pid, tag);
-
-    MPI_Status stat;
-    BL_MPI_REQUIRE( MPI_Recv(buf,
-                             n,
-                             Mpi_typemap<T>::type(),
-                             src_pid,
-                             tag,
-                             Communicator(),
-                             &stat) );
-    BL_COMM_PROFILE(BLProfiler::RecvTsii, n * sizeof(T), stat.MPI_SOURCE, stat.MPI_TAG);
-    return Message(stat, Mpi_typemap<T>::type());
+    return Arecv(buf.data(), buf.size(), src_pid, tag, Communicator());
 }
 
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Recv (T*     buf,
-                          size_t n,
-                          int    src_pid,
-                          int    tag,
-			  MPI_Comm comm)
+ParallelDescriptor::Recv (T* buf, size_t n, int src_pid, int tag)
 {
+    return Recv(buf, n, src_pid, tag, Communicator());
+}
+
+namespace ParallelDescriptor {  // Have to use namespace here to work around a gcc bug
+template <>
+Message
+Recv<char> (char* buf, size_t n, int src_pid, int tag, MPI_Comm comm);
+
+template <class T>
+Message
+Recv (T* buf, size_t n, int src_pid, int tag, MPI_Comm comm)
+{
+    static_assert(!std::is_same<char,T>::value, "Recv: char version has been specialized");
+
     BL_PROFILE_T_S("ParallelDescriptor::Recv(Tsii)", T);
     BL_COMM_PROFILE(BLProfiler::RecvTsii, BLProfiler::BeforeCall(), src_pid, tag);
 
@@ -847,26 +765,13 @@ ParallelDescriptor::Recv (T*     buf,
 #endif
     return Message(stat, Mpi_typemap<T>::type());
 }
+}
 
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Recv (std::vector<T>& buf,
-                          int             src_pid,
-                          int             tag)
+ParallelDescriptor::Recv (std::vector<T>& buf, int src_pid, int tag)
 {
-    BL_PROFILE_T_S("ParallelDescriptor::Recv(vTii)", T);
-    BL_COMM_PROFILE(BLProfiler::RecvvTii, BLProfiler::BeforeCall(), src_pid, tag);
-
-    MPI_Status stat;
-    BL_MPI_REQUIRE( MPI_Recv(&buf[0],
-                             buf.size(),
-                             Mpi_typemap<T>::type(),
-                             src_pid,
-                             tag,
-                             Communicator(),
-                             &stat) );
-    BL_COMM_PROFILE(BLProfiler::RecvvTii, buf.size() * sizeof(T), stat.MPI_SOURCE, stat.MPI_TAG);
-    return Message(stat, Mpi_typemap<T>::type());
+    return Recv(buf.data(), buf.size(), src_pid, tag, Communicator());
 }
 
 template <class T>

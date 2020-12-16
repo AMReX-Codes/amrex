@@ -107,7 +107,7 @@ ParallelFor_doit (Vector<TagType> const& tags, F && f)
             while (lo <= hi)
             {
                 int mid = (lo+hi)/2;
-                if (g_wid >= d_nwarps[mid] and g_wid < d_nwarps[mid+1]) {
+                if (g_wid >= d_nwarps[mid] && g_wid < d_nwarps[mid+1]) {
                     tag_id = mid;
                     break;
                 } else if (g_wid < d_nwarps[mid]) {
@@ -215,7 +215,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     detail::ParallelFor_doit(copy_tags,
         [=] AMREX_GPU_DEVICE (
 #ifdef AMREX_USE_DPCPP
-            sycl::nd_item<1> const& item,
+            sycl::nd_item<1> const& /*item*/,
 #endif
             int icell, int ncells, int i, int j, int k, Array4CopyTag<T> const tag) noexcept
         {
@@ -258,11 +258,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         int to_try  = 1;
         while (true) {
             int msk = (m && to_try) ? Gpu::Atomic::CAS(m, 0, mypriority) : 0;
-#if (__SYCL_COMPILER_VERSION <= 20200827)
-            if (sycl::intel::all_of(item.get_sub_group(), msk == 0)) {  // 0 means lock acquired
-#else
             if (sycl::ONEAPI::all_of(item.get_sub_group(), msk == 0)) {  // 0 means lock acquired
-#endif
                 break; // all threads have acquired.
             } else {
                 if (sycl::ONEAPI::any_of(item.get_sub_group(), msk > mypriority)) {
@@ -439,7 +435,7 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
 
     Vector<BaseFab<int> > maskfabs;
     Vector<Array4<int> > masks;
-    if (!amrex::IsStoreAtomic<value_type>::value and !is_thread_safe)
+    if (!amrex::IsStoreAtomic<value_type>::value && !is_thread_safe)
     {
         maskfabs.resize(this->local_size());
         masks.reserve(N_locs);
@@ -504,7 +500,7 @@ FabArray<FAB>::CMD_local_setVal_gpu (typename FabArray<FAB>::value_type x,
     Vector<TagType> loc_setval_tags;
     loc_setval_tags.reserve(N_locs);
 
-    AMREX_ALWAYS_ASSERT(amrex::IsStoreAtomic<value_type>::value or is_thread_safe);
+    AMREX_ALWAYS_ASSERT(amrex::IsStoreAtomic<value_type>::value || is_thread_safe);
 
     for (int i = 0; i < N_locs; ++i)
     {
@@ -539,7 +535,7 @@ FabArray<FAB>::CMD_remote_setVal_gpu (typename FabArray<FAB>::value_type x,
 
     if (rcv_setval_tags.empty()) return;
 
-    AMREX_ALWAYS_ASSERT(amrex::IsStoreAtomic<value_type>::value or is_thread_safe);
+    AMREX_ALWAYS_ASSERT(amrex::IsStoreAtomic<value_type>::value || is_thread_safe);
 
     amrex::ParallelFor(rcv_setval_tags, ncomp,
     [x,scomp] AMREX_GPU_DEVICE (int i, int j, int k, int n, TagType const& tag) noexcept
@@ -904,7 +900,7 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
 #if 0
     // For linear solver test on summit, this is slower than writing to
     // pinned memory directly on device.
-    if (not ParallelDescriptor::UseGpuAwareMpi()) {
+    if (! ParallelDescriptor::UseGpuAwareMpi()) {
         // Memory in send_data is pinned.
         szbuffer = (send_data[N_snds-1]-send_data[0]) + send_size[N_snds-1];
         pbuffer = (char*)The_Arena()->alloc(szbuffer);
@@ -964,7 +960,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
     std::size_t szbuffer = 0;
     // For linear solver test on summit, this is slower than writing to
     // pinned memory directly on device.
-    if (not ParallelDescriptor::UseGpuAwareMpi()) {
+    if (! ParallelDescriptor::UseGpuAwareMpi()) {
         // Memory in recv_data is pinned.
         szbuffer = (recv_data[N_rcvs-1]-recv_data[0]) + recv_size[N_rcvs-1];
         pbuffer = (char*)The_Arena()->alloc(szbuffer);
@@ -975,13 +971,14 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
 
     typedef Array4CopyTag<value_type> TagType;
     Vector<TagType> recv_copy_tags;
+    recv_copy_tags.reserve(N_rcvs);
 
     Vector<BaseFab<int> > maskfabs;
     Vector<Array4<int> > masks;
     if (!is_thread_safe)
     {
-        if ((op == FabArrayBase::COPY and !amrex::IsStoreAtomic<value_type>::value) or
-            (op == FabArrayBase::ADD  and !amrex::HasAtomicAdd <value_type>::value))
+        if ((op == FabArrayBase::COPY && !amrex::IsStoreAtomic<value_type>::value) ||
+            (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value))
         {
             maskfabs.resize(dst.local_size());
         }
@@ -999,7 +996,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                 const int li = dst.localindex(tag.dstIndex);
                 recv_copy_tags.emplace_back(TagType{
                     dst.atLocalIdx(li).array(),
-                    amrex::makeArray4((value_type*)(dptr), tag.dbox, ncomp),
+                    amrex::makeArray4((value_type const*)(dptr), tag.dbox, ncomp),
                     tag.dbox,
                     Dim3{0,0,0}
                 });

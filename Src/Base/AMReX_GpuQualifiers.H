@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_QUALIFIERS_H_
 #define AMREX_GPU_QUALIFIERS_H_
+#include <AMReX_Config.H>
 
 #if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
 

@@ -1,5 +1,6 @@
 #ifndef AMREX_MLALAP_1D_K_H_
 #define AMREX_MLALAP_1D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
@@ -116,7 +117,6 @@ void mlalap_flux_xface (Box const& box, Array4<Real> const& fx,
                         Array4<Real const> const& sol, Real fac, int xlen) noexcept
 {
     const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
 
     int i = lo.x;
     fx(i,0,0) = -fac*(sol(i,0,0)-sol(i-1,0,0));
@@ -130,7 +130,6 @@ void mlalap_flux_xface_m (Box const& box, Array4<Real> const& fx,
                           Real dx, Real probxlo) noexcept
 {
     const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
 
     int i = lo.x;
     Real re = (probxlo + i*dx) * (probxlo + i*dx);
@@ -156,9 +155,9 @@ void mlalap_gsrb (Box const& box, Array4<Real> const& phi,
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
         if ((i+redblack)%2 == 0) {
-            Real cf0 = (i == vlo.x and m0(vlo.x-1,0,0) > 0)
+            Real cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
                 ? f0(vlo.x,0,0) : 0.0;
-            Real cf1 = (i == vhi.x and m1(vhi.x+1,0,0) > 0)
+            Real cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
                 ? f1(vhi.x,0,0) : 0.0;
             
             Real delta = dhx*(cf0+cf1);
@@ -190,9 +189,9 @@ void mlalap_gsrb_m (Box const& box, Array4<Real> const& phi,
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
         if ((i+redblack)%2 == 0) {
-            Real cf0 = (i == vlo.x and m0(vlo.x-1,0,0) > 0)
+            Real cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
                 ? f0(vlo.x,0,0) : 0.0;
-            Real cf1 = (i == vhi.x and m1(vhi.x+1,0,0) > 0)
+            Real cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
                 ? f1(vhi.x,0,0) : 0.0;
 
             Real rel = (probxlo + i   *dx) * (probxlo + i   *dx);

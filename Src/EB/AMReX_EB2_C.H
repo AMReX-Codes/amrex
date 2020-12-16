@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_C_H_
 #define AMREX_EB2_C_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_EBCellFlag.H>

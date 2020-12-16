@@ -1,5 +1,6 @@
 #ifndef NEIGHBOR_LIST_H_
 #define NEIGHBOR_LIST_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Particles.H>
 #include <AMReX_GpuContainers.H>
@@ -22,10 +23,13 @@ struct Neighbors
         void operator++ () { ++m_index;; }
 
         AMREX_GPU_HOST_DEVICE
-        bool operator!= (iterator const& rhs) const { return m_index < m_stop; }
+        bool operator!= (iterator const& /*rhs*/) const { return m_index < m_stop; }
 
         AMREX_GPU_HOST_DEVICE
         ParticleType& operator* () const { return m_pstruct[m_nbor_list_ptr[m_index]];  }
+
+        AMREX_GPU_HOST_DEVICE
+        unsigned int index () const { return m_nbor_list_ptr[m_index]; }
 
     private:
         int m_index;
@@ -49,6 +53,9 @@ struct Neighbors
 
         AMREX_GPU_HOST_DEVICE
         const ParticleType& operator* () const { return m_pstruct[m_nbor_list_ptr[m_index]];  }
+
+        AMREX_GPU_HOST_DEVICE
+        unsigned int index () const { return m_nbor_list_ptr[m_index]; }
 
     private:
         int m_index;

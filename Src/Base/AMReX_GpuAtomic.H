@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_ATOMIC_H_
 #define AMREX_GPU_ATOMIC_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Functional.H>
@@ -34,7 +35,7 @@ namespace detail {
         do {
             R const new_R = f(*(reinterpret_cast<R const*>(&old_I)), val);
             new_I = *(reinterpret_cast<I const*>(&new_R));
-        } while (not a.compare_exchange_strong(old_I, new_I, mo));
+        } while (! a.compare_exchange_strong(old_I, new_I, mo));
         return *(reinterpret_cast<R const*>(&old_I));
 #else
         R old = *address;
@@ -340,7 +341,7 @@ namespace detail {
         unsigned int oldi = a.load(mo), newi;
         do {
             newi = (oldi >= value) ? 0u : (oldi+1u);
-        } while (not a.compare_exchange_strong(oldi, newi, mo));
+        } while (! a.compare_exchange_strong(oldi, newi, mo));
         return oldi;
 #else
         auto const old = *m;
@@ -378,7 +379,7 @@ namespace detail {
         unsigned int oldi = a.load(mo), newi;
         do {
             newi = ((oldi == 0u) || (oldi > value)) ? value : (oldi-1u);
-        } while (not a.compare_exchange_strong(oldi, newi, mo));
+        } while (! a.compare_exchange_strong(oldi, newi, mo));
         return oldi;
 #else
         auto const old = *m;

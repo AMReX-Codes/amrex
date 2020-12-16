@@ -21,7 +21,7 @@ module amrex_multifab_module
   public :: amrex_multifab_build_alias, amrex_imultifab_build_alias
   public :: amrex_imultifab_build_owner_mask
   public :: amrex_imultifab_build, amrex_imultifab_destroy
-  public :: amrex_mfiter_build, amrex_mfiter_destroy
+  public :: amrex_mfiter_build, amrex_mfiter_destroy, amrex_mfiter_allow_multiple
 
   type, public   :: amrex_multifab
      logical               :: owner = .false.
@@ -47,12 +47,12 @@ module amrex_multifab_module
      generic :: setval        => amrex_multifab_setval, amrex_multifab_setval_gv
      procedure :: plus          => amrex_multifab_plus
      procedure :: mult          => amrex_multifab_mult
-     procedure :: add           => amrex_multifab_add
-     procedure :: subtract      => amrex_multifab_subtract
-     procedure :: multiply      => amrex_multifab_multiply
-     procedure :: divide        => amrex_multifab_divide
-     procedure :: saxpy         => amrex_multifab_saxpy
-     procedure :: lincomb       => amrex_multifab_lincomb
+     generic :: add           => amrex_multifab_add, amrex_multifab_add_gv
+     generic :: subtract      => amrex_multifab_subtract, amrex_multifab_subtract_gv
+     generic :: multiply      => amrex_multifab_multiply, amrex_multifab_multiply_gv
+     generic :: divide        => amrex_multifab_divide, amrex_multifab_divide_gv
+     generic :: saxpy         => amrex_multifab_saxpy, amrex_multifab_saxpy_gv
+     generic :: lincomb       => amrex_multifab_lincomb, amrex_multifab_lincomb_gv
      generic :: copy          => amrex_multifab_copy, amrex_multifab_copy_cgv ! This copies the data
      generic   :: parallel_copy => amrex_multifab_parallel_copy, amrex_multifab_parallel_copy_c, &
           amrex_multifab_parallel_copy_cg, amrex_multifab_parallel_copy_cgv
@@ -62,6 +62,18 @@ module amrex_multifab_module
      procedure :: average_sync  => amrex_multifab_average_sync
      procedure, private :: amrex_multifab_setval
      procedure, private :: amrex_multifab_setval_gv
+     procedure, private :: amrex_multifab_add
+     procedure, private :: amrex_multifab_add_gv
+     procedure, private :: amrex_multifab_subtract
+     procedure, private :: amrex_multifab_subtract_gv
+     procedure, private :: amrex_multifab_multiply
+     procedure, private :: amrex_multifab_multiply_gv
+     procedure, private :: amrex_multifab_divide
+     procedure, private :: amrex_multifab_divide_gv
+     procedure, private :: amrex_multifab_saxpy
+     procedure, private :: amrex_multifab_saxpy_gv
+     procedure, private :: amrex_multifab_lincomb
+     procedure, private :: amrex_multifab_lincomb_gv
      procedure, private :: amrex_multifab_copy
      procedure, private :: amrex_multifab_copy_cgv
      procedure, private :: amrex_multifab_fill_boundary
@@ -291,35 +303,40 @@ module amrex_multifab_module
        import
        implicit none
        type(c_ptr), value :: dstmf, srcmf
-       integer(c_int), value :: srccomp, dstcomp, nc, ng
+       integer(c_int), value :: srccomp, dstcomp, nc
+       integer(c_int), intent(in) :: ng(*)
      end subroutine amrex_fi_multifab_add
 
      subroutine amrex_fi_multifab_subtract (dstmf, srcmf, srccomp, dstcomp, nc, ng) bind(c)
        import
        implicit none
        type(c_ptr), value :: dstmf, srcmf
-       integer(c_int), value :: srccomp, dstcomp, nc, ng
+       integer(c_int), value :: srccomp, dstcomp, nc
+       integer(c_int), intent(in) :: ng(*)
      end subroutine amrex_fi_multifab_subtract
 
      subroutine amrex_fi_multifab_multiply (dstmf, srcmf, srccomp, dstcomp, nc, ng) bind(c)
        import
        implicit none
        type(c_ptr), value :: dstmf, srcmf
-       integer(c_int), value :: srccomp, dstcomp, nc, ng
+       integer(c_int), value :: srccomp, dstcomp, nc
+       integer(c_int), intent(in) :: ng(*)
      end subroutine amrex_fi_multifab_multiply
 
      subroutine amrex_fi_multifab_divide (dstmf, srcmf, srccomp, dstcomp, nc, ng) bind(c)
        import
        implicit none
        type(c_ptr), value :: dstmf, srcmf
-       integer(c_int), value :: srccomp, dstcomp, nc, ng
+       integer(c_int), value :: srccomp, dstcomp, nc
+       integer(c_int), intent(in) :: ng(*)
      end subroutine amrex_fi_multifab_divide
 
      subroutine amrex_fi_multifab_saxpy (dstmf, a, srcmf, srccomp, dstcomp, nc, ng) bind(c)
        import
        implicit none
        type(c_ptr), value :: dstmf, srcmf
-       integer(c_int), value :: srccomp, dstcomp, nc, ng
+       integer(c_int), value :: srccomp, dstcomp, nc
+       integer(c_int), intent(in) :: ng(*)
        real(amrex_real), value :: a
      end subroutine amrex_fi_multifab_saxpy
 
@@ -328,7 +345,8 @@ module amrex_multifab_module
        import
        implicit none
        type(c_ptr), value :: dstmf, srcmf1, srcmf2
-       integer(c_int), value :: srccomp1, srccomp2, dstcomp, nc, ng
+       integer(c_int), value :: srccomp1, srccomp2, dstcomp, nc
+       integer(c_int), intent(in) :: ng(*)
        real(amrex_real), value :: a, b
      end subroutine amrex_fi_multifab_lincomb
 
@@ -453,6 +471,13 @@ module amrex_multifab_module
   end interface
 
   interface
+     function amrex_fi_mfiter_allow_multiple (allow) bind(c)
+       import
+       implicit none
+       integer(c_int) :: amrex_fi_mfiter_allow_multiple
+       integer(c_int), value :: allow
+     end function amrex_fi_mfiter_allow_multiple
+
      subroutine amrex_fi_new_mfiter_r (mfi, mf, tiling, dynamic) bind(c)
        import
        implicit none
@@ -846,49 +871,106 @@ contains
     call amrex_fi_multifab_mult(this%p, val, icomp-1, ncomp, nghost)
   end subroutine amrex_multifab_mult
 
+  subroutine amrex_multifab_add_gv (this, srcmf, srccomp, dstcomp, nc, ng)
+    class(amrex_multifab), intent(inout) :: this
+    type(amrex_multifab), intent(in) :: srcmf
+    integer, intent(in) :: srccomp, dstcomp, nc, ng(*)
+    call amrex_fi_multifab_add(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, ng)
+  end subroutine amrex_multifab_add_gv
+
   subroutine amrex_multifab_add (this, srcmf, srccomp, dstcomp, nc, ng)
     class(amrex_multifab), intent(inout) :: this
     type(amrex_multifab), intent(in) :: srcmf
     integer, intent(in) :: srccomp, dstcomp, nc, ng
-    call amrex_fi_multifab_add(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, ng)
+    integer :: ngv(3)
+    ngv = ng
+    call amrex_fi_multifab_add(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, ngv)
   end subroutine amrex_multifab_add
+
+  subroutine amrex_multifab_subtract_gv (this, srcmf, srccomp, dstcomp, nc, ng)
+    class(amrex_multifab), intent(inout) :: this
+    type(amrex_multifab), intent(in) :: srcmf
+    integer, intent(in) :: srccomp, dstcomp, nc, ng(*)
+    call amrex_fi_multifab_subtract(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, ng)
+  end subroutine amrex_multifab_subtract_gv
 
   subroutine amrex_multifab_subtract (this, srcmf, srccomp, dstcomp, nc, ng)
     class(amrex_multifab), intent(inout) :: this
     type(amrex_multifab), intent(in) :: srcmf
     integer, intent(in) :: srccomp, dstcomp, nc, ng
-    call amrex_fi_multifab_subtract(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, ng)
+    integer :: ngv(3)
+    ngv = ng
+    call amrex_fi_multifab_subtract(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, ngv)
   end subroutine amrex_multifab_subtract
+
+  subroutine amrex_multifab_multiply_gv (this, srcmf, srccomp, dstcomp, nc, ng)
+    class(amrex_multifab), intent(inout) :: this
+    type(amrex_multifab), intent(in) :: srcmf
+    integer, intent(in) :: srccomp, dstcomp, nc, ng(*)
+    call amrex_fi_multifab_multiply(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, ng)
+  end subroutine amrex_multifab_multiply_gv
 
   subroutine amrex_multifab_multiply (this, srcmf, srccomp, dstcomp, nc, ng)
     class(amrex_multifab), intent(inout) :: this
     type(amrex_multifab), intent(in) :: srcmf
     integer, intent(in) :: srccomp, dstcomp, nc, ng
-    call amrex_fi_multifab_multiply(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, ng)
+    integer :: ngv(3)
+    ngv = ng
+    call amrex_fi_multifab_multiply(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, ngv)
   end subroutine amrex_multifab_multiply
+
+  subroutine amrex_multifab_divide_gv (this, srcmf, srccomp, dstcomp, nc, ng)
+    class(amrex_multifab), intent(inout) :: this
+    type(amrex_multifab), intent(in) :: srcmf
+    integer, intent(in) :: srccomp, dstcomp, nc, ng(*)
+    call amrex_fi_multifab_divide(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, ng)
+  end subroutine amrex_multifab_divide_gv
 
   subroutine amrex_multifab_divide (this, srcmf, srccomp, dstcomp, nc, ng)
     class(amrex_multifab), intent(inout) :: this
     type(amrex_multifab), intent(in) :: srcmf
     integer, intent(in) :: srccomp, dstcomp, nc, ng
-    call amrex_fi_multifab_divide(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, ng)
+    integer :: ngv(3)
+    ngv = ng
+    call amrex_fi_multifab_divide(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, ngv)
   end subroutine amrex_multifab_divide
+
+  subroutine amrex_multifab_saxpy_gv (this, a, srcmf, srccomp, dstcomp, nc, ng)
+    class(amrex_multifab), intent(inout) :: this
+    type(amrex_multifab), intent(in) :: srcmf
+    real(amrex_real), intent(in) :: a
+    integer, intent(in) :: srccomp, dstcomp, nc, ng(*)
+    call amrex_fi_multifab_saxpy(this%p, a, srcmf%p, srccomp-1, dstcomp-1, nc, ng)
+  end subroutine amrex_multifab_saxpy_gv
 
   subroutine amrex_multifab_saxpy (this, a, srcmf, srccomp, dstcomp, nc, ng)
     class(amrex_multifab), intent(inout) :: this
     type(amrex_multifab), intent(in) :: srcmf
     real(amrex_real), intent(in) :: a
     integer, intent(in) :: srccomp, dstcomp, nc, ng
-    call amrex_fi_multifab_saxpy(this%p, a, srcmf%p, srccomp-1, dstcomp-1, nc, ng)
+    integer :: ngv(3)
+    ngv = ng
+    call amrex_fi_multifab_saxpy(this%p, a, srcmf%p, srccomp-1, dstcomp-1, nc, ngv)
   end subroutine amrex_multifab_saxpy
+
+  subroutine amrex_multifab_lincomb_gv (this, a, srcmf1, srccomp1, b, srcmf2, srccomp2, dstcomp, nc, ng)
+    class(amrex_multifab), intent(inout) :: this
+    type(amrex_multifab), intent(in) :: srcmf1, srcmf2
+    integer, intent(in) :: srccomp1, srccomp2, dstcomp, nc, ng(*)
+    real(amrex_real), intent(in) :: a, b
+    call amrex_fi_multifab_lincomb(this%p, a, srcmf1%p, srccomp1-1, b, srcmf2%p, srccomp2-1, &
+         dstcomp-1, nc, ng)
+  end subroutine amrex_multifab_lincomb_gv
 
   subroutine amrex_multifab_lincomb (this, a, srcmf1, srccomp1, b, srcmf2, srccomp2, dstcomp, nc, ng)
     class(amrex_multifab), intent(inout) :: this
     type(amrex_multifab), intent(in) :: srcmf1, srcmf2
     integer, intent(in) :: srccomp1, srccomp2, dstcomp, nc, ng
     real(amrex_real), intent(in) :: a, b
+    integer :: ngv(3)
+    ngv = ng
     call amrex_fi_multifab_lincomb(this%p, a, srcmf1%p, srccomp1-1, b, srcmf2%p, srccomp2-1, &
-         dstcomp-1, nc, ng)
+         dstcomp-1, nc, ngv)
   end subroutine amrex_multifab_lincomb
 
   subroutine amrex_multifab_copy (this, srcmf, srccomp, dstcomp, nc, ng)
@@ -1147,6 +1229,23 @@ contains
   end subroutine amrex_imultifab_setval
 
 !------ MFIter routines ------!
+
+  function amrex_mfiter_allow_multiple (allow) result(old)
+    logical :: old
+    logical, intent(in) :: allow
+    integer :: old_flag, new_flag
+    if (allow) then
+       new_flag = 1
+    else
+       new_flag = 0
+    end if
+    old_flag = amrex_fi_mfiter_allow_multiple(new_flag)
+    if (old_flag .ne. 0) then
+       old = .true.
+    else
+       old = .false.
+    end if
+  end function amrex_mfiter_allow_multiple
 
   subroutine amrex_mfiter_build_r (mfi, mf, tiling, dynamic)
     type(amrex_mfiter) :: mfi

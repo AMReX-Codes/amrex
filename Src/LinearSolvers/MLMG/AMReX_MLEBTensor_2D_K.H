@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_EB_TENSOR_2D_K_H_
 #define AMREX_ML_EB_TENSOR_2D_K_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLEBABecLap_K.H>
 
@@ -142,36 +143,36 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
             {
                 Real fxm_0 = fx(i,j,0,0);
                 Real fxm_1 = fx(i,j,0,1);
-                if (apx(i,j,0) > 0.0 and apx(i,j,0) < 1.0) {
+                if (apx(i,j,0) > 0.0 && apx(i,j,0) < 1.0) {
                     int jj = j + (fcx(i,j,0,0) >= 0.0 ? 1 : -1);
-                    Real fracy = (ccm(i-1,jj,0) or ccm(i,jj,0)) ? amrex::Math::abs(fcx(i,j,0,0)) : 0.0;
+                    Real fracy = (ccm(i-1,jj,0) || ccm(i,jj,0)) ? amrex::Math::abs(fcx(i,j,0,0)) : 0.0;
                     fxm_0 = (1.0-fracy)*fxm_0 + fracy*fx(i,jj,0,0);
                     fxm_1 = (1.0-fracy)*fxm_1 + fracy*fx(i,jj,0,1);
                 }
 
                 Real fxp_0 = fx(i+1,j,0,0);
                 Real fxp_1 = fx(i+1,j,0,1);
-                if (apx(i+1,j,0) > 0.0 and apx(i+1,j,0) < 1.0) {
+                if (apx(i+1,j,0) > 0.0 && apx(i+1,j,0) < 1.0) {
                     int jj = j + (fcx(i+1,j,0,0) >= 0.0 ? 1 : -1);
-                    Real fracy = (ccm(i,jj,0) or ccm(i+1,jj,0)) ? amrex::Math::abs(fcx(i+1,j,0,0)) : 0.0;
+                    Real fracy = (ccm(i,jj,0) || ccm(i+1,jj,0)) ? amrex::Math::abs(fcx(i+1,j,0,0)) : 0.0;
                     fxp_0 = (1.0-fracy)*fxp_0 + fracy*fx(i+1,jj,0,0);
                     fxp_1 = (1.0-fracy)*fxp_1 + fracy*fx(i+1,jj,0,1);
                 }
 
                 Real fym_0 = fy(i,j,0,0);
                 Real fym_1 = fy(i,j,0,1);
-                if (apy(i,j,0) > 0.0 and apy(i,j,0) < 1.0) {
+                if (apy(i,j,0) > 0.0 && apy(i,j,0) < 1.0) {
                     int ii = i + (fcy(i,j,0,0) >= 0.0 ? 1 : -1);
-                    Real fracx = (ccm(ii,j-1,0) or ccm(ii,j,0)) ? amrex::Math::abs(fcy(i,j,0,0)) : 0.0;
+                    Real fracx = (ccm(ii,j-1,0) || ccm(ii,j,0)) ? amrex::Math::abs(fcy(i,j,0,0)) : 0.0;
                     fym_0 = (1.0-fracx)*fym_0 + fracx*fy(ii,j,0,0);
                     fym_1 = (1.0-fracx)*fym_1 + fracx*fy(ii,j,0,1);
                 }
 
                 Real fyp_0 = fy(i,j+1,0,0);
                 Real fyp_1 = fy(i,j+1,0,1);
-                if (apy(i,j+1,0) > 0.0 and apy(i,j+1,0) < 1.0) {
+                if (apy(i,j+1,0) > 0.0 && apy(i,j+1,0) < 1.0) {
                     int ii = i + (fcy(i,j+1,0,0) >= 0.0 ? 1 : -1);
-                    Real fracx = (ccm(ii,j,0) or ccm(ii,j+1,0)) ? amrex::Math::abs(fcy(i,j+1,0,0)) : 0.0;
+                    Real fracx = (ccm(ii,j,0) || ccm(ii,j+1,0)) ? amrex::Math::abs(fcy(i,j+1,0,0)) : 0.0;
                     fyp_0 = (1.0-fracx)*fyp_0 + fracx*fy(ii,j+1,0,0);
                     fyp_1 = (1.0-fracx)*fyp_1 + fracx*fy(ii,j+1,0,1);
                 }
@@ -289,7 +290,7 @@ void mlebtensor_flux_x (Box const& box, Array4<Real> const& Ax,
     int hif = xbox.bigEnd(0);
     amrex::LoopConcurrent(box, [=] (int i, int j, int k) noexcept
     {
-        if (!face_only or lof == i or hif == i) {
+        if (!face_only || lof == i || hif == i) {
 	  if (apx(i,j,k) == 1.0) {
 	    for (int n=0; n<AMREX_SPACEDIM; n++)
 	        Ax(i,j,k,n) += bscalar*fx(i,j,k,n);
@@ -299,7 +300,7 @@ void mlebtensor_flux_x (Box const& box, Array4<Real> const& Ax,
                 Real fxm_1 = fx(i,j,0,1);
 
 		int jj = j + (fcx(i,j,0,0) >= 0.0 ? 1 : -1);
-		Real fracy = (ccm(i-1,jj,0) or ccm(i,jj,0)) ? amrex::Math::abs(fcx(i,j,0,0)) : 0.0;
+		Real fracy = (ccm(i-1,jj,0) || ccm(i,jj,0)) ? amrex::Math::abs(fcx(i,j,0,0)) : 0.0;
 		fxm_0 = (1.0-fracy)*fxm_0 + fracy*fx(i,jj,0,0);
 		fxm_1 = (1.0-fracy)*fxm_1 + fracy*fx(i,jj,0,1);
 
@@ -322,7 +323,7 @@ void mlebtensor_flux_y (Box const& box, Array4<Real> const& Ay,
     int hif = ybox.bigEnd(1);
     amrex::LoopConcurrent(box, [=] (int i, int j, int k) noexcept
     {
-        if (!face_only or lof == j or hif == j) {
+        if (!face_only || lof == j || hif == j) {
 	  if (apy(i,j,k) == 1.0) {
 	    for (int n=0; n<AMREX_SPACEDIM; n++)
 	        Ay(i,j,k,n) += bscalar*fy(i,j,k,n);
@@ -332,7 +333,7 @@ void mlebtensor_flux_y (Box const& box, Array4<Real> const& Ay,
                 Real fym_1 = fy(i,j,0,1);
 
 		int ii = i + (fcy(i,j,0,0) >= 0.0 ? 1 : -1);
-		Real fracx = (ccm(ii,j-1,0) or ccm(ii,j,0)) ? amrex::Math::abs(fcy(i,j,0,0)) : 0.0;
+		Real fracx = (ccm(ii,j-1,0) || ccm(ii,j,0)) ? amrex::Math::abs(fcy(i,j,0,0)) : 0.0;
 		fym_0 = (1.0-fracx)*fym_0 + fracx*fy(ii,j,0,0);
 		fym_1 = (1.0-fracx)*fym_1 + fracx*fy(ii,j,0,1);
 

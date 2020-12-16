@@ -1,5 +1,6 @@
 #ifndef NODAL_PROJECTION_H
 #define NODAL_PROJECTION_H
+#include <AMReX_Config.H>
 
 #include <AMReX.H>
 #include <AMReX_Vector.H>
@@ -65,6 +66,13 @@ public:
     : NodalProjector(a_vel, a_sigma, a_geom, LPInfo(), a_S_cc, a_S_nd ) {}
 
 
+    NodalProjector ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
+                     const amrex::Real                            a_const_sigma,
+                     const Vector<Geometry>&                      a_geom,
+                     const LPInfo&                                a_lpinfo,
+                     const amrex::Vector<amrex::MultiFab*>&       a_S_cc = {},
+                     const amrex::Vector<const amrex::MultiFab*>& a_S_nd = {} );
+
     void project ( amrex::Real a_rtol = 1.0e-11, amrex::Real a_atol = 1.0e-14 );
     void project ( const Vector<amrex::MultiFab*>& a_phi, amrex::Real a_rtol = 1.0e-11,
                    amrex::Real a_atol = 1.0e-14 );
@@ -106,6 +114,7 @@ private:
     void setCoarseBoundaryVelocityForSync ();
     void computeSyncResidual ();
     void averageDown (const amrex::Vector<amrex::MultiFab*> a_var);
+    void define (LPInfo const& a_lpinfo);
 
     bool m_has_rhs   = false;
     bool m_has_alpha = false;
@@ -128,6 +137,7 @@ private:
     Vector<const amrex::MultiFab*>  m_alpha;
     Vector<amrex::MultiFab*>        m_S_cc;
     Vector<const amrex::MultiFab*>  m_sigma;
+    amrex::Real                     m_const_sigma = 0.0;
 
     // Node-centered data
     Vector<amrex::MultiFab>         m_phi;

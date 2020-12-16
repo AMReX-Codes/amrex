@@ -1,5 +1,6 @@
 #ifndef AMREX_TINY_PROFILER_H_
 #define AMREX_TINY_PROFILER_H_
+#include <AMReX_Config.H>
 
 #include <string>
 #include <deque>

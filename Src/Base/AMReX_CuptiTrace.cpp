@@ -90,7 +90,7 @@ bfrCompleteCallback (CUcontext ctx, uint32_t streamId, uint8_t* bfr,
 
         size_t dropped;
         cuptiActivityGetNumDroppedRecords(ctx, streamId, &dropped);
-        if (dropped != 0 and amrex::Verbose() > 1) {
+        if (dropped != 0 && amrex::Verbose() > 1) {
             amrex::AllPrint() << (unsigned int) dropped
                               << " activity records were dropped due to insufficient buffer space\n";
         }

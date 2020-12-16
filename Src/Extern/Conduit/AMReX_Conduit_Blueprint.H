@@ -1,5 +1,6 @@
 #ifndef AMREX_CONDUIT_BLUEPRINT_H_
 #define AMREX_CONDUIT_BLUEPRINT_H_
+#include <AMReX_Config.H>
 
 ///////////////////////////////////////////////////////////////////////////////
 //

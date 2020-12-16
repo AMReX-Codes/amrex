@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_MG_H_
 #define AMREX_ML_MG_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLLinOp.H>
 #include <AMReX_iMultiFab.H>

@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_REDUCE_H_
 #define AMREX_GPU_REDUCE_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
@@ -20,11 +21,7 @@ template <int warpSize, typename T, typename F>
 struct warpReduce
 {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-#if (__SYCL_COMPILER_VERSION <= 20200827)
-    T operator() (T x, sycl::intel::sub_group const& sg) const noexcept
-#else
     T operator() (T x, sycl::ONEAPI::sub_group const& sg) const noexcept
-#endif
     {
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
             T y = sg.shuffle_down(x, offset);
@@ -40,18 +37,10 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
 {
     T* shared = (T*)h.local;
     int tid = h.item.get_local_id(0);
-#if (__SYCL_COMPILER_VERSION <= 20200827)
-    sycl::intel::sub_group const& sg = h.item.get_sub_group();
-#else
     sycl::ONEAPI::sub_group const& sg = h.item.get_sub_group();
-#endif
     int lane = sg.get_local_id()[0];
     int wid = sg.get_group_id()[0];
-#if (__SYCL_COMPILER_VERSION <= 20200715)
-    int numwarps = sg.get_group_range();
-#else
     int numwarps = sg.get_group_range()[0];
-#endif
     x = warp_reduce(x, sg);
     // __syncthreads() prior to writing to shared memory is necessary
     // if this reduction call is occurring multiple times in a kernel,
@@ -60,7 +49,7 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
     h.item.barrier(sycl::access::fence_space::local_space);
     if (lane == 0) shared[wid] = x;
     h.item.barrier(sycl::access::fence_space::local_space);
-    bool b = (tid == 0) or (tid < numwarps);
+    bool b = (tid == 0) || (tid < numwarps);
     x =  b ? shared[lane] : x0;
     if (wid == 0) x = warp_reduce(x, sg);
     return x;
@@ -141,7 +130,7 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0)
     __syncthreads();
     if (lane == 0) shared[wid] = x;
     __syncthreads();
-    bool b = (threadIdx.x == 0) or (threadIdx.x < blockDim.x / warpSize);
+    bool b = (threadIdx.x == 0) || (threadIdx.x < blockDim.x / warpSize);
     x =  b ? shared[lane] : x0;
     if (wid == 0) x = warp_reduce(x);
     return x;

@@ -1,6 +1,7 @@
 
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
+#include <AMReX_Config.H>
 
 #include <iostream>
 #include <cstring>
@@ -1511,7 +1512,7 @@ FabArray<FAB>::setDomainBndry (value_type val,
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         const Box& gbx = fai.fabbox();
-        if (not domain_box.contains(gbx))
+        if (! domain_box.contains(gbx))
         {
             get(fai).template setComplement<RunOn::Device>(val, domain_box, strt_comp, ncomp);
         }

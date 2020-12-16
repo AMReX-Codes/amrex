@@ -21,6 +21,8 @@ target_sources(amrex
    MLMG/AMReX_MLNodeLinOp.cpp
    MLMG/AMReX_MLCellABecLap.H
    MLMG/AMReX_MLCellABecLap.cpp
+   MLMG/AMReX_MLCellABecLap_K.H
+   MLMG/AMReX_MLCellABecLap_${AMReX_SPACEDIM}D_K.H
    MLMG/AMReX_MLCGSolver.H
    MLMG/AMReX_MLCGSolver.cpp
    MLMG/AMReX_MLABecLaplacian.H

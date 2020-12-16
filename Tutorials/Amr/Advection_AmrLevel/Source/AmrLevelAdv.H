@@ -1,12 +1,12 @@
 #ifndef _AmrLevelAdv_H_
 #define _AmrLevelAdv_H_
 
+#include <AMReX_AmrLevel.H>
+#include <AMReX_FluxRegister.H>
+
 #ifdef AMREX_PARTICLES
 #include <AMReX_AmrParticles.H>
 #endif
-
-#include <AMReX_AmrLevel.H>
-#include <AMReX_FluxRegister.H>
 
 #include <memory>
 #include <iostream>
