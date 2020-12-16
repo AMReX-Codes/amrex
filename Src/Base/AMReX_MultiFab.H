@@ -694,9 +694,6 @@ inline void GccPlacaterMF ()
 }
 #endif
 
-//!  This is a special version of FillBoundary for warpx
-void FillBoundary (Vector<MultiFab*> const& mf, const Periodicity& period);
-
 }
 
 #endif /*BL_MULTIFAB_H*/

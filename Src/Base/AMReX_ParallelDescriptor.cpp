@@ -472,6 +472,12 @@ Test (MPI_Request& request, int& flag, MPI_Status& status)
 }
 
 void
+Test (Vector<MPI_Request>& request, int& flag, Vector<MPI_Status>& status)
+{
+    BL_MPI_REQUIRE( MPI_Testall(request.size(), request.data(), &flag, status.data()) );
+}
+
+void
 IProbe (int src_pid, int tag, int& flag, MPI_Status& status)
 {
     BL_PROFILE_S("ParallelDescriptor::Iprobe()");
@@ -1775,6 +1781,7 @@ Message Abarrier () { return Message(); }
 Message Abarrier (const MPI_Comm &/*comm*/) { return Message(); }
 
 void Test (MPI_Request&, int&, MPI_Status&) {}
+void Test (Vector<MPI_Request>&, int&, Vector<MPI_Status>&) {}
 void IProbe (int, int, int&, MPI_Status&) {}
 void IProbe (int, int, MPI_Comm, int&, MPI_Status&) {}
 

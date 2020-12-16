@@ -35,7 +35,7 @@ ifeq ($(USE_DPCPP),TRUE)
   USE_HIP := FALSE
   # disable ccache for now
   USE_CCACHE := FALSE
-  # Make.unknown's mpi checking does not work with mpiipx
+  # Make.unknown's mpi checking does not work with mpiicpc
   NO_MPI_CHECKING := TRUE
 endif
 
@@ -961,12 +961,11 @@ endif
 ifeq ($(USE_DPCPP),TRUE)
 
     ifeq ($(USE_MPI),TRUE)
-        CC  = mpiicx
-        CXX = mpiicpx
-        FC  = mpiifx
-        F90 = mpiifx
-        # current version of mpiicpx does not have this on by default
-        EXTRACXXFLAGS += -fsycl-unnamed-lambda
+        CC  = mpiicc
+        CXX = mpiicpc
+        FC  = mpiifort
+        F90 = mpiifort
+        CXXFLAGS += -cxx=dpcpp
     endif
 
 else ifeq ($(USE_HIP),TRUE)
