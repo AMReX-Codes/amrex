@@ -173,7 +173,7 @@ jobs:
 
   # Build libamrex and all tutorials with CUDA 11.0.2 (recent supported)
   tutorials-cuda11:
-    name: CUDA@11.0.2 GNU@9.3.0 C++17 Release [tutorials]
+    name: CUDA@11.2 GNU@9.3.0 C++17 Release [tutorials]
     runs-on: ubuntu-20.04
     env: {CXXFLAGS: "-fno-operator-names"}
     steps:
