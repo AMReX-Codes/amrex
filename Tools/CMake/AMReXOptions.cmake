@@ -128,8 +128,9 @@ endif ()
 if (AMReX_DPCPP)
    set(_valid_dpcpp_compiler_ids Clang IntelClang IntelDPCPP)
    if (NOT (CMAKE_CXX_COMPILER_ID IN_LIST _valid_dpcpp_compiler_ids) )
-      message(WARNING "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is tested with DPCPP."
-         "Verify '${CMAKE_CXX_COMPILER_ID}' is correct and potentially set CMAKE_CXX_COMPILER=dpccp.")
+      message(WARNING "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is tested with "
+         "DPCPP. Verify '${CMAKE_CXX_COMPILER_ID}' is correct and potentially "
+         "set CMAKE_CXX_COMPILER=dpcpp.")
    endif ()
    unset(_valid_dpcpp_compiler_ids)
 endif ()
