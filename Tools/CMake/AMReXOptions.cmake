@@ -195,7 +195,8 @@ print_option(AMReX_FORTRAN_INTERFACES)
 option( AMReX_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
 print_option( AMReX_LINEAR_SOLVERS )
 
-option( AMReX_AMRDATA "Build data services" OFF)
+cmake_dependent_option( AMReX_AMRDATA "Build data services" OFF
+   "AMReX_FORTRAN" OFF )
 print_option( AMReX_AMRDATA )
 
 option( AMReX_PARTICLES "Build particle classes" OFF)
