@@ -685,30 +685,7 @@ else ifeq ($(USE_CUDA),TRUE)
 
     GPUSuffix := .CUDA
 
-    ifeq ($(lowercase_comp),$(filter $(lowercase_comp),ibm pgi hpcsdk))
-      DEFINES += -DAMREX_LAUNCH='attributes(global)'
-      DEFINES += -DAMREX_DEVICE='attributes(device)'
-      DEFINES += -DAMREX_CUDA_FORT_GLOBAL='attributes(global)'
-      DEFINES += -DAMREX_CUDA_FORT_DEVICE='attributes(device)'
-      DEFINES += -DAMREX_CUDA_FORT_HOST='attributes(host)'
-      DEFINES += -DAMREX_CUDA_FORT_HOST_DEVICE='attributes(host) attributes(device)'
-    else
-      DEFINES += -DAMREX_LAUNCH=""
-      DEFINES += -DAMREX_DEVICE=""
-      DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
-      DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
-      DEFINES += -DAMREX_CUDA_FORT_HOST=""
-      DEFINES += -DAMREX_CUDA_FORT_HOST_DEVICE=""
-    endif
-
 else
-    DEFINES += -DAMREX_LAUNCH=""
-    DEFINES += -DAMREX_DEVICE=""
-    DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
-    DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
-    DEFINES += -DAMREX_CUDA_FORT_HOST=""
-    DEFINES += -DAMREX_CUDA_FORT_HOST_DEVICE=""
-
     GPUSuffix :=
 endif
 

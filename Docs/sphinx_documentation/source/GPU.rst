@@ -13,8 +13,7 @@ AMReX's GPU strategy focuses on providing performant GPU support
 with minimal changes and maximum flexibility.  This allows
 application teams to get running on GPUs quickly while allowing
 long term performance tuning and programming model selection.  AMReX
-uses CUDA for GPUs, but application teams can use CUDA, CUDA
-Fortran, OpenACC or OpenMP in their individual codes.
+uses CUDA for GPUs, but application teams can use CUDA,  OpenACC or OpenMP in their individual codes.
 
 When running AMReX on a CPU system, the parallelization strategy is a
 combination of MPI and OpenMP using tiling, as detailed in
@@ -131,10 +130,7 @@ Building with GNU Make
 To build AMReX with GPU support, add ``USE_CUDA=TRUE`` to the
 ``GNUmakefile`` or as a command line argument.
 
-Only IBM and PGI support CUDA Fortran, which is also built when
-``USE_CUDA=TRUE``.
-
-AMReX does not require OpenACC or CUDA Fortran, but application codes
+AMReX does not require OpenACC, but application codes
 can use them if they are supported by the compiler.  For OpenACC support, add
 ``USE_ACC=TRUE``.  PGI, Cray and GNU compilers support OpenACC.  Thus,
 for OpenACC, you must use ``COMP=pgi``, ``COMP=cray`` or ``COMP=gnu``.
@@ -412,12 +408,7 @@ empty space.
 
 When AMReX is compiled with ``USE_CUDA=TRUE``, the preprocessor
 macros ``AMREX_USE_CUDA`` and ``AMREX_USE_GPU`` are defined for
-conditional programming.  For PGI and IBM compilers,
-``AMREX_USE_CUDA_FORTRAN`` is also defined, as well as
-``-DAMREX_CUDA_FORT_GLOBAL='attributes(global)'``,
-``-DAMREX_CUDA_FORT_DEVICE='attributes(device)'``, and
-``-DAMREX_CUDA_FORT_HOST='attributes(host)'`` so that CUDA Fortran
-functions can be properly labelled.  When AMReX is compiled with
+conditional programming.  When AMReX is compiled with
 ``USE_ACC=TRUE``, ``AMREX_USE_ACC`` is defined.  When AMReX is
 compiled with ``USE_OMP_OFFLOAD=TRUE``, ``AMREX_USE_OMP_OFFLOAD`` is
 defined.
@@ -811,7 +802,7 @@ Kernel Launch
 =============
 
 In this section, how to offload work to the GPU will be demonstrated.
-AMReX supports offloading work with CUDA, CUDA Fortran, OpenACC or OpenMP.
+AMReX supports offloading work with CUDA, OpenACC, or OpenMP.
 
 When using CUDA, AMReX provides users with portable C++ function calls or
 C++ macros that launch a user-defined lambda function.  When compiled without CUDA,
