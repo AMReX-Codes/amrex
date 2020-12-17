@@ -2045,18 +2045,18 @@ AssignCellDensitySingleLevel (int rho_index,
       mf_pointer = &mf_to_be_filled;
     }
     else {
-      // If mf_to_be_filled is not defined on the particle_box_array, then we need 
+      // If mf_to_be_filled is not defined on the particle_box_array, then we need
       // to make a temporary here and copy into mf_to_be_filled at the end.
-      mf_pointer = new MultiFab(ParticleBoxArray(lev), 
+      mf_pointer = new MultiFab(ParticleBoxArray(lev),
 				ParticleDistributionMap(lev),
 				ncomp, mf_to_be_filled.nGrow());
     }
 
-    // We must have ghost cells for each FAB so that a particle in one grid can spread 
+    // We must have ghost cells for each FAB so that a particle in one grid can spread
     // its effect to an adjacent grid by first putting the value into ghost cells of its
     // own grid.  The mf->SumBoundary call then adds the value from one grid's ghost cell
     // to another grid's valid region.
-    if (mf_pointer->nGrow() < 1) 
+    if (mf_pointer->nGrow() < 1)
        amrex::Error("Must have at least one ghost cell when in AssignCellDensitySingleLevel");
 
     const Real      strttime    = amrex::second();
@@ -2071,15 +2071,19 @@ AssignCellDensitySingleLevel (int rho_index,
     }
 
     mf_pointer->setVal(0);
-    
+
     using ParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
+    MFItInfo info;
+    if (TilingIfNotGPU()) {
+        info.EnableTiling(tile_size);
+    }
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         FArrayBox local_rho;
-        for (ParConstIter pti(*this, lev); pti.isValid(); ++pti) {
+        for (ParConstIter pti(*this, lev, info); pti.isValid(); ++pti) {
             const auto& particles = pti.GetArrayOfStructs();
             const auto pstruct = particles().data();
             const Long np = pti.numParticles();
@@ -2096,17 +2100,17 @@ AssignCellDensitySingleLevel (int rho_index,
                 rhoarr = local_rho.array();
             }
 #endif
-                        
+
             if (particle_lvl_offset == 0)
             {
-                AMREX_FOR_1D( np, i,
+                AMREX_HOST_DEVICE_FOR_1D( np, i,
                 {
                     amrex_deposit_cic(pstruct[i], ncomp, rhoarr, plo, dxi);
                 });
             }
             else
             {
-                AMREX_FOR_1D( np, i,
+                AMREX_HOST_DEVICE_FOR_1D( np, i,
                 {
                     amrex_deposit_particle_dx_cic(pstruct[i], ncomp, rhoarr, plo, dxi, pdxi);
                 });
@@ -2115,7 +2119,7 @@ AssignCellDensitySingleLevel (int rho_index,
 #ifdef _OPENMP
             if (Gpu::notInLaunchRegion())
             {
-                fab.atomicAdd<RunOn::Device>(local_rho, tile_box, tile_box, 0, 0, ncomp);
+                fab.atomicAdd<RunOn::Host>(local_rho, tile_box, tile_box, 0, 0, ncomp);
             }
 #endif
         }
