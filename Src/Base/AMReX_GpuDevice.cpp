@@ -136,13 +136,6 @@ Device::Initialize ()
               amrex::Print() << "Initializing oneAPI...\n"; )
     }
 
-    // XL CUDA Fortran support needs to be initialized
-    // before any CUDA API calls.
-
-#if (defined(AMREX_USE_CUDA) && defined(__ibmxl__) && !defined(BL_NO_FORT))
-    __xlcuf_init();
-#endif
-
     // Count the number of GPU devices.
     int gpu_device_count = 0;
 #ifdef AMREX_USE_DPCPP
