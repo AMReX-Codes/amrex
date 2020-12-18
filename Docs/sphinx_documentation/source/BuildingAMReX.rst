@@ -686,6 +686,8 @@ A list of AMReX component names and related configure options are shown in the t
    +------------------------------+-----------------+
    | AMReX_HYPRE                  | HYPRE           |
    +------------------------------+-----------------+
+   | AMReX_PLOTFILE_TOOLS         | PFTOOLS         |
+   +------------------------------+-----------------+
 
 .. raw:: latex
 
