@@ -142,10 +142,126 @@ class NeighborList
 {
 public:
 
+    using Signature1 = std::function<void(const ParticleType&, const ParticleType&)>;
+    using Signature2 = std::function<void(const ParticleType*, int, int)>;
+
     template <class PTile, class CheckPair>
-    void build (PTile& ptile,
-                const amrex::Box& bx, const amrex::Geometry& geom,
-                CheckPair&& check_pair, int num_cells=1)
+    typename std::enable_if<std::is_convertible<CheckPair, Signature2>::value>::type
+    build (PTile& ptile,
+           const amrex::Box& bx, const amrex::Geometry& geom,
+           CheckPair&& check_pair, int num_cells=1)
+    {
+        BL_PROFILE("NeighborList::build()");
+
+        auto& vec = ptile.GetArrayOfStructs()();
+        m_pstruct = vec.dataPtr();
+
+        const auto dxi = geom.InvCellSizeArray();
+        const auto plo = geom.ProbLoArray();
+
+        const size_t np_real  = ptile.numRealParticles();
+        const size_t np_total = vec.size();
+        const ParticleType* pstruct_ptr = vec.dataPtr();
+
+        const auto lo = lbound(bx);
+        const auto hi = ubound(bx);
+        m_bins.build(np_total, pstruct_ptr, bx,
+                     [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> IntVect
+                     {
+                         AMREX_D_TERM(AMREX_ASSERT((p.pos(0)-plo[0])*dxi[0] - lo.x >= 0.0);,
+                                      AMREX_ASSERT((p.pos(1)-plo[1])*dxi[1] - lo.y >= 0.0);,
+                                      AMREX_ASSERT((p.pos(2)-plo[2])*dxi[2] - lo.z >= 0.0));
+
+                         return IntVect(AMREX_D_DECL(static_cast<int>((p.pos(0)-plo[0])*dxi[0] - lo.x),
+                                                     static_cast<int>((p.pos(1)-plo[1])*dxi[1] - lo.y),
+                                                     static_cast<int>((p.pos(2)-plo[2])*dxi[2] - lo.z)));
+                     });
+
+        // first pass - count the number of neighbors for each particle
+        m_nbor_counts.resize(np_real+1);
+        m_nbor_offsets.resize(np_real+1);
+
+        auto pnbor_counts = m_nbor_counts.dataPtr();
+        auto pperm = m_bins.permutationPtr();
+        auto poffset = m_bins.offsetsPtr();
+        auto pnbor_offset = m_nbor_offsets.dataPtr();
+
+        AMREX_FOR_1D ( np_real, i,
+        {
+            int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
+            int iy = (pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y;
+            int iz = (pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z;
+
+            int nx = hi.x-lo.x+1;
+            int ny = hi.y-lo.y+1;
+            int nz = hi.z-lo.z+1;
+
+            int count = 0;
+
+            for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
+                for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
+                    for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
+                        int index = (ii * ny + jj) * nz + kk;
+                        for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
+                            if (pperm[p] == i) continue;
+                            if (check_pair(pstruct_ptr, i, pperm[p])) {
+                                count += 1;
+                            }
+                        }
+                    }
+                }
+            }
+
+            pnbor_counts[i] = count;
+        });
+
+        Gpu::exclusive_scan(m_nbor_counts.begin(), m_nbor_counts.end(), m_nbor_offsets.begin());
+
+        // Now we can allocate and build our neighbor list
+        unsigned int total_nbors;
+#ifdef AMREX_USE_GPU
+        Gpu::dtoh_memcpy(&total_nbors,m_nbor_offsets.dataPtr()+np_real,sizeof(unsigned int));
+#else
+        std::memcpy(&total_nbors,m_nbor_offsets.dataPtr()+np_real,sizeof(unsigned int));
+#endif
+
+        m_nbor_list.resize(total_nbors);
+
+        auto pm_nbor_list = m_nbor_list.dataPtr();
+
+        AMREX_FOR_1D ( np_real, i,
+        {
+            int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
+            int iy = (pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y;
+            int iz = (pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z;
+
+            int nx = hi.x-lo.x+1;
+            int ny = hi.y-lo.y+1;
+            int nz = hi.z-lo.z+1;
+
+            int n = 0;
+            for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
+                for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
+                    for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
+                        int index = (ii * ny + jj) * nz + kk;
+                        for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
+                            if (pperm[p] == i) continue;
+                            if (check_pair(pstruct_ptr, i, pperm[p])) {
+                                pm_nbor_list[pnbor_offset[i] + n] = pperm[p];
+                                ++n;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    template <class PTile, class CheckPair>
+    typename std::enable_if<std::is_convertible<CheckPair, Signature1>::value>::type
+    build (PTile& ptile,
+           const amrex::Box& bx, const amrex::Geometry& geom,
+           CheckPair&& check_pair, int num_cells=1)
     {
         BL_PROFILE("NeighborList::build()");
 
