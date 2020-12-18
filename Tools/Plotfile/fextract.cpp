@@ -321,7 +321,7 @@ void main_main()
         for (int i = 0; i < posidx.size(); ++i) {
             ofs << std::setw(25) << std::right << std::setprecision(precision) << posidx[i].first;
             for (int j = 0; j < var_names.size(); ++j) {
-                if (data[j][posidx[i].second]< tolerance ) data[j][posidx[i].second] = 0.;
+                if (std::abs(data[j][posidx[i].second])< tolerance ) data[j][posidx[i].second] = 0.;
                 ofs << std::setw(25) << std::right << std::setprecision(precision) << data[j][posidx[i].second];
             }
             ofs << "\n";
