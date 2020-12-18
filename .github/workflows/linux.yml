@@ -17,11 +17,15 @@ jobs:
         mkdir build
         cd build
         cmake ..                                  \
+            -DAMReX_PLOTFILE_TOOLS=ON             \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
             -DCMAKE_CXX_STANDARD=17
         make -j 2
         make install
+        
+        export PATH=/tmp/my-amrex/bin:$PATH
+        which fcompare
 
   library_clang:
     name: Clang@6.0 C++14 SP NOMPI Debug [lib]
@@ -41,6 +45,7 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex      \
             -DAMReX_MPI=OFF                           \
             -DAMReX_PARTICLES=ON                      \
+            -DAMReX_PLOTFILE_TOOLS=ON                 \
             -DAMReX_PRECISION=SINGLE                  \
             -DAMReX_PARTICLES_PRECISION=SINGLE        \
             -DCMAKE_CXX_STANDARD=14                   \
@@ -49,6 +54,9 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
         make -j 2
         make install
+
+        export PATH=/tmp/my-amrex/bin:$PATH
+        which fcompare
 
   # Build libamrex and all tutorials
   tutorials:
