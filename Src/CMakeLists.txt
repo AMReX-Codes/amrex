@@ -184,13 +184,3 @@ endif ()
 #
 include(AMReXGenerateConfigHeader)
 generate_config_header()
-
-#
-# Install amrex  -- Export
-#
-include(AMReXInstallHelpers)
-set(_amrex_targets Flags_CXX Flags_Fortran Flags_FPE )
-if (AMReX_DPCPP)
-   list(APPEND _amrex_targets SYCL)
-endif()
-install_amrex(${_amrex_targets})
