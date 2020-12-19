@@ -2074,16 +2074,12 @@ AssignCellDensitySingleLevel (int rho_index,
 
     using ParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
-    MFItInfo info;
-    if (TilingIfNotGPU()) {
-        info.EnableTiling(tile_size);
-    }
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         FArrayBox local_rho;
-        for (ParConstIter pti(*this, lev, info); pti.isValid(); ++pti) {
+        for (ParConstIter pti(*this, lev); pti.isValid(); ++pti) {
             const auto& particles = pti.GetArrayOfStructs();
             const auto pstruct = particles().data();
             const Long np = pti.numParticles();
