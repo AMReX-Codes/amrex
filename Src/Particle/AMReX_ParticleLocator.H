@@ -142,7 +142,7 @@ public:
         IntVect bin_size = m_bin_size;
         IntVect bins_lo = m_bins_lo;
         m_bins.build(num_boxes, boxes_ptr, bins_box,
-                     [=] AMREX_GPU_HOST_DEVICE (const Box& box) noexcept -> IntVect
+                     [=] AMREX_GPU_DEVICE (const Box& box) noexcept -> IntVect
                      {
                          return (box.smallEnd() - bins_lo) / bin_size;
                      });

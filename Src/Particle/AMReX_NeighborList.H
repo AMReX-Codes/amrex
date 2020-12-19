@@ -162,7 +162,7 @@ public:
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
         m_bins.build(np_total, pstruct_ptr, bx,
-                     [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> IntVect
+                     [=] AMREX_GPU_DEVICE (const ParticleType& p) noexcept -> IntVect
                      {
                          AMREX_D_TERM(AMREX_ASSERT((p.pos(0)-plo[0])*dxi[0] - lo.x >= 0.0);,
                                       AMREX_ASSERT((p.pos(1)-plo[1])*dxi[1] - lo.y >= 0.0);,
