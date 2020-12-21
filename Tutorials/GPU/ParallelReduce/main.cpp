@@ -142,7 +142,7 @@ void main_main ()
         });
         Real* hp = da.copyToHost();
         ParallelDescriptor::ReduceRealSum(hp[0]);
-        amrex::Print().SetPrecision(17) << "1-nrom: "  << hp[0] << "\n";
+        amrex::Print().SetPrecision(17) << "1-norm: "  << hp[0] << "\n";
     }
 
     {
