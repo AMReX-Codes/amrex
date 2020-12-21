@@ -26,18 +26,41 @@ struct gpuStream_t {
     bool operator== (gpuStream_t const& rhs) noexcept { return queue == rhs.queue; }
 };
 
-namespace Gpu {
-struct Handler {
-    Handler (sycl::nd_item<1> const& a_item, void* a_local = nullptr)
-        : item(a_item), local(a_local) {}
-    sycl::nd_item<1> const& item;
+#endif
+
+}
+
+#endif
+
+namespace amrex { namespace Gpu {
+
+#if defined(AMREX_USE_DPCPP)
+
+struct Handler
+{
+    Handler (sycl::nd_item<1> const* a_item = nullptr, void* a_local = nullptr,
+             int a_n_active_threds = -1)
+        : item(a_item), local(a_local), numActiveThreads(a_n_active_threds) {}
+    sycl::nd_item<1> const* item;
     void* local; // DPC++ local memory
+    int numActiveThreads;
 };
-}
+
+#elif defined(AMREX_USE_GPU)
+
+struct Handler
+{
+    AMREX_GPU_HOST_DEVICE constexpr Handler (int n_active_threads = -1)
+        : numActiveThreads(n_active_threads) {}
+    int numActiveThreads;
+};
+
+#else
+
+struct Handler {};
 
 #endif
 
-}
+}}
 
-#endif
 #endif

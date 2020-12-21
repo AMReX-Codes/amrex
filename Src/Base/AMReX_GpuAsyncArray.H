@@ -38,7 +38,7 @@ public:
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            d_data = static_cast<T*>(The_Device_Arena()->alloc(n*sizeof(T)));
+            d_data = static_cast<T*>(The_Arena()->alloc(n*sizeof(T)));
             Gpu::htod_memcpy_async(d_data, h_data, n*sizeof(T));
         }
 #endif
@@ -51,7 +51,7 @@ public:
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            d_data = static_cast<T*>(The_Device_Arena()->alloc(n*sizeof(T)));
+            d_data = static_cast<T*>(The_Arena()->alloc(n*sizeof(T)));
         }
         else
 #endif
@@ -61,6 +61,11 @@ public:
     }
 
     ~AsyncArray () { clear(); }
+
+    AsyncArray (AsyncArray const&) = delete;
+    AsyncArray (AsyncArray &&) = delete;
+    void operator= (AsyncArray const&) = delete;
+    void operator= (AsyncArray &&) = delete;
 
     T const* data () const noexcept { return (d_data != nullptr) ? d_data : h_data; }
     T* data () noexcept { return (d_data != nullptr) ? d_data : h_data; }
@@ -88,7 +93,7 @@ public:
 #else
                 // xxxxx DPCPP todo
                 Gpu::streamSynchronize();
-                The_Device_Arena()->free(d_data);
+                The_Arena()->free(d_data);
                 std::free(h_data);
 #endif
             }

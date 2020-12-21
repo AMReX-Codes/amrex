@@ -83,6 +83,7 @@ C$(AMREX_BASE)_headers += AMReX_GpuMemory.H AMReX_GpuRange.H
 C$(AMREX_BASE)_headers += AMReX_GpuAtomic.H
 C$(AMREX_BASE)_sources += AMReX_GpuDevice.cpp AMReX_GpuUtility.cpp
 C$(AMREX_BASE)_headers += AMReX_GpuDevice.H   AMReX_GpuUtility.H
+C$(AMREX_BASE)_headers += AMReX_GpuBuffer.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuAsyncArray.H
 C$(AMREX_BASE)_sources += AMReX_GpuAsyncArray.cpp
