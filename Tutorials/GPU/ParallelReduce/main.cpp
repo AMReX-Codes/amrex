@@ -213,13 +213,13 @@ void main_main ()
             auto const& fab = mf.array(mfi);
             auto const& ifab = imf.array(mfi);
             reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (Box const& bx) -> ReduceTuple
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
                 Real rsum = 0.;
                 Real rmin =  1.e30; // If not because of cuda 9.2,
                 Real rmax = -1.e30; // we should use numeric_limits.
                 Long lsum = 0;
-                amrex::Loop(bx,
+                amrex::Loop(b,
                 [=,&rsum,&rmin,&rmax,&lsum] (int i, int j, int k) {
                     Real x =  fab(i,j,k);
                     Long ix = static_cast<Long>(ifab(i,j,k));
