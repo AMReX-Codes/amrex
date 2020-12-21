@@ -734,6 +734,7 @@ public:
     * \param bcr
     * \param actual_comp
     * \param actual_state
+    * \param runon
     */
     virtual void interp (const FArrayBox& crse,
                          int              crse_comp,
@@ -758,14 +759,14 @@ public:
     * \param fine_comp
     * \param ncomp
     * \param fine_region
-    * \param fine_values
-    * \param fine_known
     * \param ratio
+    * \param solve_mask
     * \param crse_geom
     * \param fine_geom
     * \param bcr
     * \param actual_comp
     * \param actual_state
+    * \param runon
     */
     virtual void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                              const int         crse_comp,
@@ -848,6 +849,41 @@ public:
                          int              actual_comp,
                          int              actual_state,
                          RunOn            gpu_or_cpu) override;
+
+/**
+    * \brief Coarse to fine interpolation in space.
+    *
+    * \param crse
+    * \param crse_comp
+    * \param fine
+    * \param fine_comp
+    * \param ncomp
+    * \param fine_region
+    * \param fine_values
+    * \param fine_known
+    * \param ratio
+    * \param crse_geom
+    * \param fine_geom
+    * \param bcr
+    * \param actual_comp
+    * \param actual_state
+    */
+    virtual void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
+                             const int         crse_comp,
+                             Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
+                             const int         fine_comp,
+                             const int         ncomp,
+                             const Box&        fine_region,
+                             const IntVect&    ratio,
+                             Array<IArrayBox*, AMREX_SPACEDIM> const& /*solve_mask*/,
+                             const Geometry&   /*crse_geom*/,
+                             const Geometry&   /*fine_geom*/,
+                             Vector<Array<BCRec, AMREX_SPACEDIM> > const& /*bcr*/,
+                             const int         /*actual_comp*/,
+                             const int         /*actual_state*/,
+                             const RunOn       runon) override;
+
+
 };
 
 
