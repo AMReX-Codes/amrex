@@ -398,7 +398,7 @@ CNS::estTimeStep ()
     Parm const* lparm = parm.get();
 
     Real estdt = amrex::ReduceMin(S, 0,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) noexcept -> Real
+    [=] AMREX_GPU_DEVICE (Box const& bx, Array4<Real const> const& fab) noexcept -> Real
     {
         return cns_estdt(bx, fab, dx, *lparm);
     });
