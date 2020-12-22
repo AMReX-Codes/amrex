@@ -1059,7 +1059,7 @@ Amr::checkInput ()
     //
     for (int i = 0; i < max_level; i++)
     {
-        if (MaxRefRatio(i) < 2 || MaxRefRatio(i) > 12)
+        if (MaxRefRatio(i) < 2)
             amrex::Error("Amr::checkInput: bad ref_ratios");
     }
     const Box& domain = Geom(0).Domain();
