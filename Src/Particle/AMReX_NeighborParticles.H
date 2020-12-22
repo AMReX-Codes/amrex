@@ -194,6 +194,7 @@ public:
     using NeighborCommMap = std::map<NeighborCommTag, Vector<char> >;
     using AoS = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AoS;
     using ParticleVector = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParticleVector;
+    using ParticleTile = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParticleTileType;
     using IntVector  = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IntVector;
     using SendBuffer = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SendBuffer;
 
@@ -250,12 +251,12 @@ public:
     void setRealCommComp (int i, bool value);
     void setIntCommComp (int i, bool value);
 
-    ParticleVector& GetNeighbors (int lev, int grid, int tile)
+    ParticleTile& GetNeighbors (int lev, int grid, int tile)
     {
         return neighbors[lev][std::make_pair(grid,tile)];
     }
 
-    const ParticleVector& GetNeighbors (int lev, int grid, int tile) const
+    const ParticleTile& GetNeighbors (int lev, int grid, int tile) const
     {
         return neighbors[lev][std::make_pair(grid,tile)];
     }
@@ -367,7 +368,7 @@ protected:
     IntVect computeRefFac (const int src_lev, const int lev);
 
     Vector<std::map<PairIndex, Vector<InverseCopyTag> > > inverse_tags;
-    Vector<std::map<PairIndex, ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt> > > neighbors;
+    Vector<std::map<PairIndex, ParticleTile> > neighbors;
     Vector<std::map<PairIndex, IntVector> >      neighbor_list;
     const size_t pdata_size = sizeof(ParticleType);
 
