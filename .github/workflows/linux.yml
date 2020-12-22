@@ -168,7 +168,8 @@ jobs:
             -DCMAKE_CXX_COMPILER=$(which g++-4.8)            \
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++-4.8)      \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-4.8)   \
-            -DAMReX_CUDA_ARCH=6.0
+            -DAMReX_CUDA_ARCH=6.0 \
+            -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON
         make -j 2
 
   # Build libamrex and all tutorials with CUDA 11.0.2 (recent supported)
@@ -197,7 +198,10 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which gfortran)   \
             -DCMAKE_CUDA_STANDARD=17                     \
             -DCMAKE_CXX_STANDARD=17                      \
-            -DAMReX_CUDA_ARCH=8.0
+            -DAMReX_CUDA_ARCH=8.0                        \
+            -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
+            -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
+
         cmake --build build -j 2
 
   tutorials-dpcpp:
