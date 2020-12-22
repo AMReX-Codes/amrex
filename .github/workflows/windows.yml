@@ -160,17 +160,19 @@ jobs:
         Invoke-WebRequest -Uri 'https://developer.download.nvidia.com/compute/cuda/11.1.1/network_installers/cuda_11.1.1_win10_network.exe' -OutFile 'cuda_install.exe'
         Start-Process -FilePath '.\cuda_install.exe' -ArgumentList '-s' -Wait -NoNewWindow
     - name: Build & Install
+      shell: cmd
       run: |
-        cmake -S . -B build `
-              -G "Ninja"    `
-              -DAMReX_BUILD_TUTORIALS=ON `
-              -DAMReX_FORTRAN=OFF        `
-              -DAMReX_MPI=OFF            `
-              -DAMReX_GPU_BACKEND=CUDA   `
-              -DCMAKE_CXX_STANDARD=14    `
-              -DCMAKE_CUDA_STANDARD=14   `
-              -DAMReX_CUDA_ARCH=6.0      `
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\vc\Auxiliary\build\vcvarsall.bat" x64
+        cmake -S . -B build ^
+              -DCMAKE_BUILD_TYPE=Release ^
+              -DAMReX_BUILD_TUTORIALS=ON ^
+              -DAMReX_FORTRAN=OFF        ^
+              -DAMReX_MPI=OFF            ^
+              -DAMReX_GPU_BACKEND=CUDA   ^
+              -DCMAKE_CXX_STANDARD=14    ^
+              -DCMAKE_CUDA_STANDARD=14   ^
+              -DAMReX_CUDA_ARCH=6.0      ^
               -DCMAKE_CUDA_COMPILER="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.1/bin/nvcc.exe"
-        cmake --build build -j 2
+        cmake --build build --config Release -j 2
     # use "cmd", see https://gitlab.kitware.com/cmake/cmake/-/issues/20281
     # -DAMReX_PARTICLES=ON
