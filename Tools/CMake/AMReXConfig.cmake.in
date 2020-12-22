@@ -94,6 +94,17 @@ set(AMReX_PROFPARSER_FOUND          @AMReX_PROFPARSER@)
 set(AMReX_PFTOOLS_FOUND             @AMReX_PLOTFILE_TOOLS@)
 
 #
+# If Fortran is enabled, downstream project
+# must have Fortran enabled as well
+#
+if (@AMReX_FORTRAN@ AND NOT CMAKE_Fortran_COMPILER_LOADED )
+   message(FATAL_ERROR
+      "\nAMReX was build with AMReX_FORTRAN=ON but Fortran is not enabled for this project. "
+      "Either set enable_language(Fortran) before importing AMReX or re-build AMReX with "
+      "AMReX_FORTRAN=OFF.\n")
+endif ()
+
+#
 # Parallel backends
 #
 set( THREADS_PREFER_PTHREAD_FLAG on)

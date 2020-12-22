@@ -32,9 +32,6 @@ if (CMAKE_Fortran_COMPILER_LOADED)
       INTERFACE_INCLUDE_DIRECTORIES
       $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/mod_files>
       )
-   # adding those is a work-around that avoids that downstream C++ projects have
-   # to `enable_language(Fortran)`
-   target_link_libraries(amrex PUBLIC ${CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES})
 endif ()
 
 # Load Flags targets and use them if no user-defined flags is given

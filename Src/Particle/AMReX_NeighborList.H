@@ -9,6 +9,25 @@
 namespace amrex
 {
 
+namespace
+{
+    template <typename F, typename P, typename N1, typename N2>
+    AMREX_GPU_HOST_DEVICE
+    auto call_check_pair (F const& check_pair, const P* p_ptr, N1 i, N2 j)
+        noexcept -> decltype(check_pair(p_ptr[i], p_ptr[j]))
+    {
+        return check_pair(p_ptr[i], p_ptr[j]);
+    }
+
+    template <typename F, typename P, typename N1, typename N2>
+    AMREX_GPU_HOST_DEVICE
+    auto call_check_pair (F const& check_pair, const P* p_ptr, N1 i, N2 j)
+        noexcept -> decltype(check_pair(p_ptr, i, j))
+    {
+        return check_pair(p_ptr, i, j);
+    }
+}
+
 template <class ParticleType>
 struct Neighbors
 {
@@ -200,8 +219,9 @@ public:
                         int index = (ii * ny + jj) * nz + kk;
                         for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (pperm[p] == i) continue;
-                            if (check_pair(pstruct_ptr[i], pstruct_ptr[pperm[p]]))
+                            if (call_check_pair(check_pair, pstruct_ptr, i, pperm[p])) {
                                 count += 1;
+                            }
                         }
                     }
                 }
@@ -241,7 +261,7 @@ public:
                         int index = (ii * ny + jj) * nz + kk;
                         for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (pperm[p] == i) continue;
-                            if (check_pair(pstruct_ptr[i], pstruct_ptr[pperm[p]])) {
+                            if (call_check_pair(check_pair, pstruct_ptr, i, pperm[p])) {
                                 pm_nbor_list[pnbor_offset[i] + n] = pperm[p];
                                 ++n;
                             }

@@ -71,7 +71,7 @@ if ( USE_XSDK_DEFAULTS )
    print_option(XSDK_ENABLE_Fortran)
 endif ()
 
-option( AMReX_FORTRAN "Enable Fortran language" ON )
+option( AMReX_FORTRAN "Enable Fortran language" OFF )
 print_option( AMReX_FORTRAN )
 
 #

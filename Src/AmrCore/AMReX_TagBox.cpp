@@ -439,9 +439,9 @@ TagBoxArray::local_collate_gpu (Vector<IntVect>& v) const
                       Gpu::Device::gpuStream(),
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
         {
-            int bid = h.item.get_group_linear_id();
-            int tid = h.item.get_local_id(0);
-            int icell = h.item.get_global_id(0);
+            int bid = h.item->get_group_linear_id();
+            int tid = h.item->get_local_id(0);
+            int icell = h.item->get_global_id(0);
 
             int t = 0;
             if (icell < ncells && tags[icell] != TagBox::CLEAR) {
@@ -517,15 +517,15 @@ TagBoxArray::local_collate_gpu (Vector<IntVect>& v) const
             amrex::launch(nblocks[li], block_size, sizeof(unsigned int), Gpu::Device::gpuStream(),
             [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
             {
-                int bid = h.item.get_group(0);
-                int tid = h.item.get_local_id(0);
-                int icell = h.item.get_global_id(0);
+                int bid = h.item->get_group(0);
+                int tid = h.item->get_local_id(0);
+                int icell = h.item->get_global_id(0);
 
                 unsigned int* shared_counter = (unsigned int*)h.local;
                 if (tid == 0) {
                     *shared_counter = 0;
                 }
-                h.item.barrier(sycl::access::fence_space::local_space);
+                h.item->barrier(sycl::access::fence_space::local_space);
 
                 if (icell < ncells && tags[icell] != TagBox::CLEAR) {
                     unsigned int itag = Gpu::Atomic::Inc<sycl::access::address_space::local_space>

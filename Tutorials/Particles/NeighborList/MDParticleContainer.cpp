@@ -266,12 +266,12 @@ Real MDParticleContainer::computeStepSize(amrex::Real& cfl)
     BL_PROFILE("MDParticleContainer::computeStepSize");
 
     Real maxVel = amrex::ReduceMax(*this, 0,
-    [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> Real
+    [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) -> Real
                               {
                                  Real u = std::abs(p.rdata(PIdx::vx));
                                  Real v = std::abs(p.rdata(PIdx::vy));
                                  Real w = std::abs(p.rdata(PIdx::vz));
-                                 return amrex::max(u,amrex::max(v,w));
+                                 return amrex::max(u,v,w);
                               });
 
     ParallelDescriptor::ReduceRealMax(maxVel);
