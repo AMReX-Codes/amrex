@@ -13,6 +13,19 @@ struct PIdx
     };
 };
 
+struct ComputeStepSize
+{
+    template <typename P>
+    AMREX_GPU_HOST_DEVICE
+    amrex::Real operator() (const P& p) const noexcept
+    {
+        amrex::Real u = std::abs(p.rdata(PIdx::vx));
+        amrex::Real v = std::abs(p.rdata(PIdx::vy));
+        amrex::Real w = std::abs(p.rdata(PIdx::vz));
+        return amrex::max(u,amrex::max(v,w));
+    }
+};
+
 class MDParticleContainer
     : public amrex::NeighborParticleContainer<PIdx::ncomps, 0>
 {

@@ -265,19 +265,12 @@ Real MDParticleContainer::computeStepSize(amrex::Real& cfl)
 {
     BL_PROFILE("MDParticleContainer::computeStepSize");
 
-    Real maxVel = amrex::ReduceMax(*this, 0,
-    [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> Real
-                              {
-                                 Real u = std::abs(p.rdata(PIdx::vx));
-                                 Real v = std::abs(p.rdata(PIdx::vy));
-                                 Real w = std::abs(p.rdata(PIdx::vz));
-                                 return amrex::max(u,amrex::max(v,w));
-                              });
+    Real maxVel = amrex::ReduceMax(*this, 0, ComputeStepSize());
 
     ParallelDescriptor::ReduceRealMax(maxVel);
-    
+
     // This would compute dt based on the grid spacing dx
-    // const int lev = 0;   
+    // const int lev = 0;
     // const Real* dx = Geom(lev).CellSize();
     // return cfl*dx[0]/maxVel;
 
