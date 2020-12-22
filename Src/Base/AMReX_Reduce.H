@@ -472,13 +472,13 @@ T Sum (N n, T const* v, T init_val = 0)
 
 template <typename T, typename N, typename F,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-T Sum (N n, F&& f)
+T Sum (N n, F&& f, T init_val = 0)
 {
     ReduceOps<ReduceOpSum> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
     using ReduceTuple = typename decltype(reduce_data)::Type;
     reduce_op.eval(n, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple { return {f(i)}; });
-    return amrex::get<0>(reduce_data.value());
+    return amrex::get<0>(reduce_data.value()) + init_val;
 }
 
 template <typename T, typename N, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
@@ -512,6 +512,18 @@ T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max())
     return Reduce::Min(n, v, init_val, amrex::Less<T>());
 }
 
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Min (N n, F&& f, T init_val = std::numeric_limits<T>::max())
+{
+    ReduceOps<ReduceOpMin> reduce_op;
+    ReduceData<T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    reduce_op.eval(n, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple { return {f(i)}; });
+    T tmp = amrex::get<0>(reduce_data.value());
+    return std::min(tmp,init_val);
+}
+
 template <typename T, typename N, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T Max (N n, U const* v, T init_val, BOP bop)
 {
@@ -541,6 +553,18 @@ template <typename T, typename N, typename M=amrex::EnableIf_t<std::is_integral<
 T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest())
 {
     return Reduce::Max(n, v, init_val, amrex::Greater<T>());
+}
+
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Max (N n, F&& f, T init_val = std::numeric_limits<T>::lowest())
+{
+    ReduceOps<ReduceOpMax> reduce_op;
+    ReduceData<T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    reduce_op.eval(n, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple { return {f(i)}; });
+    T tmp = amrex::get<0>(reduce_data.value());
+    return std::max(tmp,init_val);
 }
 
 template <typename T, typename N, typename U, typename MINOP, typename MAXOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
@@ -579,6 +603,21 @@ template <typename T, typename N, typename M=amrex::EnableIf_t<std::is_integral<
 std::pair<T,T> MinMax (N n, T const* v)
 {
     return Reduce::MinMax<T>(n, v, amrex::Less<T>(), amrex::Greater<T>());
+}
+
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+std::pair<T,T> MinMax (N n, F&& f)
+{
+    ReduceOps<ReduceOpMin,ReduceOpMax> reduce_op;
+    ReduceData<T,T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    reduce_op.eval(n, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple {
+            T tmp = f(i);
+            return {tmp,tmp};
+        });
+    auto hv = reduce_data.value();
+    return std::make_pair(amrex::get<0>(hv), amrex::get<1>(hv));
 }
 
 template <typename T, typename N, typename P, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
@@ -781,7 +820,7 @@ public:
 
 namespace Reduce {
 
-template <typename N, typename T, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T Sum (N n, U const* v, T init_val, BOP bop)
 {
     T sum = init_val;
@@ -798,17 +837,11 @@ T Sum (N n, U const* v, T init_val, BOP bop)
     return sum;
 }
 
-template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-T Sum (N n, T const* v, T init_val = 0)
-{
-    return Reduce::Sum(n, v, init_val, amrex::Plus<T>());
-}
-
 template <typename T, typename N, typename F,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-T Sum (N n, F&& f)
+T Sum (N n, F&& f, T init_val = 0)
 {
-    T r = 0;
+    T r = init_val;
 #ifdef _OPENMP
 #pragma omp parallel for reduction(+:r)
 #endif
@@ -818,7 +851,13 @@ T Sum (N n, F&& f)
     return r;
 }
 
-template <typename N, typename T, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Sum (N n, T const* v, T init_val = 0)
+{
+    return Sum(n, [=] (N i) -> T { return v[i]; }, init_val);
+}
+
+template <typename T, typename N, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T Min (N n, U const* v, T init_val, BOP bop)
 {
     T mn = init_val;
@@ -835,13 +874,27 @@ T Min (N n, U const* v, T init_val, BOP bop)
     return mn;
 }
 
-template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max())
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Min (N n, F&& f, T init_val = std::numeric_limits<T>::max())
 {
-    return Reduce::Min(n, v, init_val, amrex::Less<T>());
+    T r = init_val;
+#ifdef _OPENMP
+#pragma omp parallel for reduction(min:r)
+#endif
+    for (N i = 0; i < n; ++i) {
+        r = std::min(r,f(i));
+    }
+    return r;
 }
 
-template <typename N, typename T, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max())
+{
+    return Reduce::Min(n, [=] (N i) -> T { return v[i]; }, init_val);
+}
+
+template <typename T, typename N, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T Max (N n, U const* v, T init_val, BOP bop)
 {
     T mx = init_val;
@@ -858,10 +911,24 @@ T Max (N n, U const* v, T init_val, BOP bop)
     return mx;
 }
 
-template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Max (N n, F&& f, T init_val = std::numeric_limits<T>::lowest())
+{
+    T r = init_val;
+#ifdef _OPENMP
+#pragma omp parallel for reduction(max:r)
+#endif
+    for (N i = 0; i < n; ++i) {
+        r = std::max(r,f(i));
+    }
+    return r;
+}
+
+template <typename T, typename N, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest())
 {
-    return Reduce::Max(n, v, init_val, amrex::Greater<T>());
+    return Reduce::Max(n, [=] (N i) -> T { return v[i]; }, init_val);
 }
 
 template <typename T, typename N, typename U, typename MINOP, typename MAXOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
@@ -884,10 +951,27 @@ std::pair<T,T> MinMax (N n, U const* v, MINOP minop, MAXOP maxop)
     return std::make_pair(hv[0],hv[1]);
 }
 
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+std::pair<T,T> Min (N n, F&& f)
+{
+    T r_min = std::numeric_limits<T>::max();
+    T r_max = std::numeric_limits<T>::lowest();
+#ifdef _OPENMP
+#pragma omp parallel for reduction(min:r_min) reduction(max:r_max)
+#endif
+    for (N i = 0; i < n; ++i) {
+        T tmp = f(i);
+        r_min = std::min(r_min,tmp);
+        r_max = std::max(r_max,tmp);
+    }
+    return std::make_pair(r_min,r_max);
+}
+
 template <typename T, typename N, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 std::pair<T,T> MinMax (N n, T const* v)
 {
-    return Reduce::MinMax<T>(n, v, amrex::Less<T>(), amrex::Greater<T>());
+    return Reduce::MinMax<T>(n, [=] (N i) -> T { return v[i]; });
 }
 
 template <typename T, typename N, typename P, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
