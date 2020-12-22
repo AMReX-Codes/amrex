@@ -12,7 +12,6 @@ jobs:
     - name: Build & Install
       run: |
         cmake -S . -B build   `
-              -T "ClangCl"    `
               -DCMAKE_BUILD_TYPE=Debug      `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
               -DAMReX_BUILD_TUTORIALS=ON    `
@@ -29,13 +28,16 @@ jobs:
     - uses: actions/checkout@v2
     - uses: seanmiddleditch/gha-setup-ninja@master
     - name: Build & Install
+      shell: cmd
       run: |
-        cmake -S . -B build   `
-              -T "ClangCl"    `
-              -DCMAKE_BUILD_TYPE=Release    `
-              -DCMAKE_VERBOSE_MAKEFILE=ON   `
-              -DAMReX_BUILD_TUTORIALS=ON    `
-              -DAMReX_FORTRAN=OFF           `
-              -DAMReX_MPI=OFF               `
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\vc\Auxiliary\build\vcvarsall.bat" x64
+        cmake -S . -B build   ^
+              -T "ClangCl"    ^
+              -DCMAKE_BUILD_TYPE=Release    ^
+              -DCMAKE_VERBOSE_MAKEFILE=ON   ^
+              -DAMReX_BUILD_TUTORIALS=ON    ^
+              -DAMReX_FORTRAN=OFF           ^
+              -DAMReX_MPI=OFF               ^
+              -DAMReX_OMP=ON                ^
               -DAMReX_PARTICLES=ON
         cmake --build build --config Release -j 2
