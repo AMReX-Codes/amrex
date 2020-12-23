@@ -5,10 +5,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
 
-<<<<<<< HEAD
 using namespace std;
-=======
->>>>>>> development
 using namespace amrex;
 
 static
@@ -52,7 +49,6 @@ main (int   argc,
     // single-level for now
     // AMR comes later, where we iterate over each level in isolation
 
-<<<<<<< HEAD
     // for the Header
     std::string iFile2 = iFile;
     iFile2 += "/Header";
@@ -85,53 +81,35 @@ main (int   argc,
     }
 
     // now read in the plotfile data
-=======
->>>>>>> development
     // check to see whether the user pointed to the plotfile base directory
     // or the data itself
     if (amrex::FileExists(iFile+"/Level_0/Cell_H")) {
        iFile += "/Level_0/Cell";
     }
-<<<<<<< HEAD
     if (amrex::FileExists(iFile+"/Level_00/Cell_H")) {
        iFile += "/Level_00/Cell";
     }
-=======
->>>>>>> development
 
     // storage for the input coarse and fine MultiFabs
     MultiFab mf;
     
     // read in plotfiles, 'coarse' and 'fine' to MultiFabs
     // note: fine could be the same resolution as coarse
-    VisMF::Read(mf, iFile);
-    
-<<<<<<< HEAD
+    VisMF::Read(mf, iFile);    
+
     ncomp = mf.nComp();
-=======
-    int ncomp = mf.nComp();
->>>>>>> development
     Print() << "ncomp = " << ncomp << std::endl;
 
     // check nodality
     IntVect c_nodality = mf.ixType().toIntVect();
     Print() << "nodality " << c_nodality << std::endl;
 
-<<<<<<< HEAD
     // get boxArray
     BoxArray ba = mf.boxArray();
 
     // minimalBox() computes a single box to enclose all the boxes
     // enclosedCells() converts it to a cell-centered Box
     Box bx_onegrid = ba.minimalBox().enclosedCells();
-=======
-    // get coarse and fine boxArrays
-    BoxArray ba_c = mf.boxArray();
-
-    // minimalBox() computes a single box to enclose all the boxes
-    // enclosedCells() converts it to a cell-centered Box
-    Box bx_onegrid = ba_c.minimalBox().enclosedCells();
->>>>>>> development
 
     // number of cells in the coarse domain
     Print() << "npts in coarse domain = " << bx_onegrid.numPts() << std::endl;
