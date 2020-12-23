@@ -1761,12 +1761,11 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        int tmp[1+AMREX_SPACEDIM] = {0};
-        amrex::Gpu::AsyncArray<int> aa(tmp, 1+AMREX_SPACEDIM);
+        amrex::Gpu::Buffer<int> aa({0,AMREX_D_DECL(0,0,0)});
         int* p = aa.data();
         // This is a device ptr to 1+AMREX_SPACEDIM int zeros.
         // The first is used as an atomic bool and the others for intvect.
-        for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(mf,MFItInfo().SetDeviceSync(false)); mfi.isValid(); ++mfi) {
             const Box& bx = amrex::grow(mfi.validbox(), nghost);
             auto const& arr = mf.const_array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -1783,7 +1782,7 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                 }
             });
         }
-        aa.copyToHost(tmp, 1+AMREX_SPACEDIM);
+        int const* tmp = aa.copyToHost();
         AMREX_D_TERM(loc[0] = tmp[1];,
                      loc[1] = tmp[2];,
                      loc[2] = tmp[3];);
