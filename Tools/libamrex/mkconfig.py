@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import sys
+import sys, re
 
 if sys.version_info < (2, 7):
     sys.exit("ERROR: need python 2.7 or later for mkconfig.py")
@@ -12,6 +12,9 @@ import argparse
 def doit(defines, undefines, comp, allow_diff_comp):
     print("#ifndef AMREX_HAVE_NO_CONFIG_H")
     print("#define AMREX_HAVE_NO_CONFIG_H")
+
+    # Remove -I from input
+    defines = re.sub(r'-I.*?(-D|$)', r'\1', defines)
 
     defs = defines.split("-D")
     for d in defs:
