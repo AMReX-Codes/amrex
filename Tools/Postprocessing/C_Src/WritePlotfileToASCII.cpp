@@ -5,6 +5,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
 
+using namespace std;
 using namespace amrex;
 
 static
@@ -48,10 +49,45 @@ main (int   argc,
     // single-level for now
     // AMR comes later, where we iterate over each level in isolation
 
+    // for the Header
+    std::string iFile2 = iFile;
+    iFile2 += "/Header";
+
+    // open header
+    ifstream x;
+    x.open(iFile2.c_str(), ios::in);
+
+    // read in first line of header
+    string str;
+    x >> str;
+
+    // read in number of components from header
+    int ncomp;
+    x >> ncomp;
+
+    // read in variable names from header
+    for (int n=0; n<ncomp; ++n) {
+        x >> str;
+    }
+
+    // read in dimensionality from header
+    int dim;
+    x >> dim;
+
+    if (dim != AMREX_SPACEDIM) {
+        Print() << "\nError: you are using a " << AMREX_SPACEDIM << "D build to open a "
+                << dim << "D plotfile\n\n";
+        Abort();
+    }
+
+    // now read in the plotfile data
     // check to see whether the user pointed to the plotfile base directory
     // or the data itself
     if (amrex::FileExists(iFile+"/Level_0/Cell_H")) {
        iFile += "/Level_0/Cell";
+    }
+    if (amrex::FileExists(iFile+"/Level_00/Cell_H")) {
+       iFile += "/Level_00/Cell";
     }
 
     // storage for the input coarse and fine MultiFabs
@@ -59,21 +95,21 @@ main (int   argc,
     
     // read in plotfiles, 'coarse' and 'fine' to MultiFabs
     // note: fine could be the same resolution as coarse
-    VisMF::Read(mf, iFile);
-    
-    int ncomp = mf.nComp();
+    VisMF::Read(mf, iFile);    
+
+    ncomp = mf.nComp();
     Print() << "ncomp = " << ncomp << std::endl;
 
     // check nodality
     IntVect c_nodality = mf.ixType().toIntVect();
     Print() << "nodality " << c_nodality << std::endl;
 
-    // get coarse and fine boxArrays
-    BoxArray ba_c = mf.boxArray();
+    // get boxArray
+    BoxArray ba = mf.boxArray();
 
     // minimalBox() computes a single box to enclose all the boxes
     // enclosedCells() converts it to a cell-centered Box
-    Box bx_onegrid = ba_c.minimalBox().enclosedCells();
+    Box bx_onegrid = ba.minimalBox().enclosedCells();
 
     // number of cells in the coarse domain
     Print() << "npts in coarse domain = " << bx_onegrid.numPts() << std::endl;
