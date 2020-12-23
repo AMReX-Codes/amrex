@@ -53,9 +53,9 @@ $(executable): $(objForExecs)
 ifneq ($(SKIP_LINKING),TRUE)
 	@echo Linking $@ ...
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(FCPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(libraries)
+	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(FCPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(FINAL_LIBS)
 else
-	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
+	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(FINAL_LIBS)
 endif
 #	@echo SUCCESS
 endif
@@ -69,7 +69,7 @@ else
 %.$(machineSuffix).ex:%.cpp $(objForExecs)
 	$(SLIENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
 	@echo "Linking $@ ..."
-	$(SLIENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$(subst /,_,$<).o $(objForExecs) $(libraries)
+	$(SLIENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$(subst /,_,$<).o $(objForExecs) $(FINAL_LIBS)
 
 endif
 
@@ -131,7 +131,7 @@ $(objEXETempDir)/amrex.pc: FORCE
 	@ $(MKPKGCONFIG) --prefix="$(abspath $(AMREX_INSTALL_DIR))" \
 	                 --version="$(AMREX_GIT_VERSION)" \
 	                 --cflags="$(CXXFLAGS) $(EXTRACXXFLAGS)" \
-	                 --libs="$(filter-out -L.,$(LDFLAGS)) $(libraries)" \
+	                 --libs="$(filter-out -L.,$(LDFLAGS)) $(FINAL_LIBS)" \
 	                 --libpriv="" \
 	                 --fflags="$(F90FLAGS)" \
                          > $@
@@ -412,9 +412,9 @@ help:
 	@echo "The rule for compiling foo.[fF] is: \$$(FC) \$$(FFLAGS) \$$(FMODULES) \$$(fincludes) -c foo.o foo.f"
 	@echo "    Note that .F files are preprocessed with cpp into .f files before being compiled."
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-	@echo "The rule for linking            is: \$$(F90) \$$(LINKFLAGS) \$$(FCPPFLAGS) \$$(fincludes) \$$(LDFLAGS) -o \$$(executable) *.o \$$(libraries)"
+	@echo "The rule for linking            is: \$$(F90) \$$(LINKFLAGS) \$$(FCPPFLAGS) \$$(fincludes) \$$(LDFLAGS) -o \$$(executable) *.o \$$(FINAL_LIBS)"
 else
-	@echo "The rule for linking            is: \$$(CXX) \$$(LINKFLAGS) \$$(CPPFLAGS) \$$(includes) \$$(LDFLAGS) -o \$$(executable) *.o \$$(libraries)"
+	@echo "The rule for linking            is: \$$(CXX) \$$(LINKFLAGS) \$$(CPPFLAGS) \$$(includes) \$$(LDFLAGS) -o \$$(executable) *.o \$$(FINAL_LIBS)"
 endif
 	@echo ""
 	@echo "Here the variables are set to:"
@@ -434,7 +434,7 @@ endif
 	@echo "    FMODULES      = $(FMODULES)"
 	@echo "    fincludes     = $(fincludes)"
 	@echo "    LDFLAGS       = $(LDFLAGS)"
-	@echo "    libraries     = $(libraries)"
+	@echo "    FINAL_LIBS    = $(FINAL_LIBS)"
 	@echo "    executable    = $(executable)"
 	@echo ""
 	@echo "Read Tools/GNUMake/README.md for details on tweaking the make system."

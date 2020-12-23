@@ -61,7 +61,7 @@ set(AMReX_OMP_FOUND                 @AMReX_OMP@)
 set(AMReX_CUDA_FOUND                @AMReX_CUDA@)
 set(AMReX_SYCL_FOUND                @AMReX_DPCPP@)
 set(AMReX_HIP_FOUND                 @AMReX_HIP@)
-set(AMReX_@AMReX_PRECISION@_FOUND  ON)
+set(AMReX_@AMReX_PRECISION@_FOUND   ON)
 set(AMReX_FORTRAN_FOUND             @AMReX_FORTRAN@)
 
 # Actual components selection
@@ -89,6 +89,20 @@ set(AMReX_TRACEP_FOUND              @AMReX_TRACE_PROFILE@)
 set(AMReX_MEMP_FOUND                @AMReX_MEM_PROFILE@)
 set(AMReX_COMMP_FOUND               @AMReX_COMM_PROFILE@)
 set(AMReX_PROFPARSER_FOUND          @AMReX_PROFPARSER@)
+
+# Plotfile tools
+set(AMReX_PFTOOLS_FOUND             @AMReX_PLOTFILE_TOOLS@)
+
+#
+# If Fortran is enabled, downstream project
+# must have Fortran enabled as well
+#
+if (@AMReX_FORTRAN@ AND NOT CMAKE_Fortran_COMPILER_LOADED )
+   message(FATAL_ERROR
+      "\nAMReX was build with AMReX_FORTRAN=ON but Fortran is not enabled for this project. "
+      "Either set enable_language(Fortran) before importing AMReX or re-build AMReX with "
+      "AMReX_FORTRAN=OFF.\n")
+endif ()
 
 #
 # Parallel backends

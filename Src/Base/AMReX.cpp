@@ -586,6 +586,10 @@ amrex::Finalize ()
 void
 amrex::Finalize (amrex::AMReX* pamrex)
 {
+#ifdef AMREX_USE_GPU
+    Gpu::synchronize();
+#endif
+
     AMReX::erase(pamrex);
 
     BL_TINY_PROFILE_FINALIZE();

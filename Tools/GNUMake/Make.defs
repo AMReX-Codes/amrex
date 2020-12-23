@@ -685,30 +685,7 @@ else ifeq ($(USE_CUDA),TRUE)
 
     GPUSuffix := .CUDA
 
-    ifeq ($(lowercase_comp),$(filter $(lowercase_comp),ibm pgi hpcsdk))
-      DEFINES += -DAMREX_LAUNCH='attributes(global)'
-      DEFINES += -DAMREX_DEVICE='attributes(device)'
-      DEFINES += -DAMREX_CUDA_FORT_GLOBAL='attributes(global)'
-      DEFINES += -DAMREX_CUDA_FORT_DEVICE='attributes(device)'
-      DEFINES += -DAMREX_CUDA_FORT_HOST='attributes(host)'
-      DEFINES += -DAMREX_CUDA_FORT_HOST_DEVICE='attributes(host) attributes(device)'
-    else
-      DEFINES += -DAMREX_LAUNCH=""
-      DEFINES += -DAMREX_DEVICE=""
-      DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
-      DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
-      DEFINES += -DAMREX_CUDA_FORT_HOST=""
-      DEFINES += -DAMREX_CUDA_FORT_HOST_DEVICE=""
-    endif
-
 else
-    DEFINES += -DAMREX_LAUNCH=""
-    DEFINES += -DAMREX_DEVICE=""
-    DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
-    DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
-    DEFINES += -DAMREX_CUDA_FORT_HOST=""
-    DEFINES += -DAMREX_CUDA_FORT_HOST_DEVICE=""
-
     GPUSuffix :=
 endif
 
@@ -934,6 +911,8 @@ ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local
 endif
 
+FINAL_LIBS = $(libraries)
+
 ifeq ($(USE_DPCPP),TRUE)
 
     ifeq ($(USE_MPI),TRUE)
@@ -1040,9 +1019,10 @@ else ifeq ($(USE_CUDA),TRUE)
       space +=
 
       ifeq ($(AMREX_LINKER),nvcc)
-        libraries := $(subst -Wl$(comm),-Xlinker=,$(libraries))
         ifeq ($(FIX_NVCC_PTHREAD),TRUE)
-          libraries := $(subst -pthread,-Xcompiler$(space)-pthread,$(libraries))
+          FINAL_LIBS = $(subst -pthread,-Xcompiler$(space)-pthread,$(subst -Wl$(comm),-Xlinker=,$(libraries)))
+        else
+          FINAL_LIBS = $(subst -Wl$(comm),-Xlinker=,$(libraries))
         endif
       endif
 

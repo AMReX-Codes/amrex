@@ -22,6 +22,9 @@ void main_main()
     int fine_level = -1;  // This will be fixed later
     Real ycoord = std::numeric_limits<Real>::lowest();
     bool scientific = false;
+    int  precision = 17;
+    Real tolerance = std::numeric_limits<Real>::lowest();
+    bool print_info = false;
 
     int farg = 1;
     while (farg <= narg) {
@@ -42,6 +45,12 @@ void main_main()
             fine_level = std::stoi(amrex::get_command_argument(++farg));
         } else if (name == "-e" || name == "--scientific") {
             scientific = true;
+        } else if (name == "-p" || name == "--precision") {
+            precision = std::stoi(amrex::get_command_argument(++farg));
+        } else if (name == "-t" || name == "--tolerance") {
+            tolerance = std::stod(amrex::get_command_argument(++farg));
+        } else if (name == "-i" || name == "--info") {
+            print_info = true;
         } else {
             break;
         }
@@ -73,6 +82,9 @@ void main_main()
             << "      [-c|--coarse_level] coarse level : coarsest level to extract from\n"
             << "      [-f|--fine_level]   fine level   : finest level to extract from\n"
             << "      [-e|--scientific]                : output data in scientific notation\n"
+            << "      [-p|--precision]    precision    : decimal precision {17 (default)}\n"
+            << "      [-t|--tolerance]    tolerance    : set to 0 any value lower than tolerance\n"
+            << "      [-i|--info]                      : output job info\n"
             << "\n"
             << " If a job_info file is present in the plotfile, that information is made\n"
             << " available at the end of the slice file (commented out), for reference.\n"
@@ -293,32 +305,37 @@ void main_main()
 
         std::ofstream ofs(slicefile, std::ios::trunc);
 
+        if (scientific) {
+            ofs << std::scientific;
+        }
+
         ofs << "# 1-d slice in " << dirstr << "-direction, file: " << pltfile << "\n";
-        ofs << "# time = " << std::setprecision(17) << pf.time() << "\n";
+        ofs << "# time = " << std::setw(20) << std::setprecision(precision) << pf.time() << "\n";
 
         ofs << "#" << std::setw(24) << dirstr;
         for (auto const& vname : var_names) {
             ofs << " " <<  std::setw(24) << std::right << vname;
         }
         ofs << "\n";
-        if (scientific) {
-            ofs << std::scientific;
-        }
+
         for (int i = 0; i < posidx.size(); ++i) {
-            ofs << std::setw(25) << std::right << std::setprecision(17) << posidx[i].first;
+            ofs << std::setw(25) << std::right << std::setprecision(precision) << posidx[i].first;
             for (int j = 0; j < var_names.size(); ++j) {
-                ofs << std::setw(25) << std::right << std::setprecision(17) << data[j][posidx[i].second];
+                if (std::abs(data[j][posidx[i].second])< tolerance ) data[j][posidx[i].second] = 0.;
+                ofs << std::setw(25) << std::right << std::setprecision(precision) << data[j][posidx[i].second];
             }
             ofs << "\n";
         }
 
-        // job_info? if so write it out to the slice file end
-        std::ifstream jobinfo(pltfile+"/job_info");
-        if (jobinfo.good()) {
-            ofs << "\n";
-            std::string s;
-            while (std::getline(jobinfo, s)) {
-                ofs << "#" << s << "\n";
+        if (print_info) {
+            // job_info? if so write it out to the slice file end
+            std::ifstream jobinfo(pltfile+"/job_info");
+            if (jobinfo.good()) {
+                ofs << "\n";
+                std::string s;
+                while (std::getline(jobinfo, s)) {
+                    ofs << "#" << s << "\n";
+                }
             }
         }
     }

@@ -385,16 +385,16 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
 	BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
 	bool check_local = false, check_remote = false;
-#if defined(_OPENMP)
+#if defined(AMREX_USE_GPU)
+        check_local = true;
+        check_remote = true;
+#elif defined(_OPENMP)
 	if (omp_get_max_threads() > 1) {
 	    check_local = true;
 	    check_remote = true;
 	}
-#elif defined(AMREX_USE_GPU)
-        check_local = true;
-        check_remote = true;
-#endif    
-	
+#endif
+
 	if (ParallelDescriptor::TeamSize() > 1) {
 	    check_local = true;
 	}

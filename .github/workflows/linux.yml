@@ -6,7 +6,7 @@ jobs:
   # Build and install libamrex as AMReX CMake project
   library:
     name: GNU@7.5 C++17 Release [lib]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
@@ -17,15 +17,19 @@ jobs:
         mkdir build
         cd build
         cmake ..                                  \
+            -DAMReX_PLOTFILE_TOOLS=ON             \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
             -DCMAKE_CXX_STANDARD=17
         make -j 2
         make install
+        
+        export PATH=/tmp/my-amrex/bin:$PATH
+        which fcompare
 
   library_clang:
     name: Clang@6.0 C++14 SP NOMPI Debug [lib]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
@@ -41,6 +45,7 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex      \
             -DAMReX_MPI=OFF                           \
             -DAMReX_PARTICLES=ON                      \
+            -DAMReX_PLOTFILE_TOOLS=ON                 \
             -DAMReX_PRECISION=SINGLE                  \
             -DAMReX_PARTICLES_PRECISION=SINGLE        \
             -DCMAKE_CXX_STANDARD=14                   \
@@ -50,10 +55,13 @@ jobs:
         make -j 2
         make install
 
+        export PATH=/tmp/my-amrex/bin:$PATH
+        which fcompare
+
   # Build libamrex and all tutorials
   tutorials:
     name: GNU@7.5 C++14 [tutorials]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
@@ -73,7 +81,7 @@ jobs:
   # Build libamrex and all tutorials
   tutorials_cxx20:
     name: GNU@10.1 C++20 OMP [tutorials]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-Werror -Wno-error=deprecated-declarations -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
@@ -98,7 +106,7 @@ jobs:
   # Build libamrex and all tutorials w/o MPI
   tutorials-nonmpi:
     name: GNU@7.5 C++14 NOMPI [tutorials]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
@@ -119,7 +127,7 @@ jobs:
   # Build libamrex and all tutorials
   tutorials-nofortran:
     name: GNU@7.5 C++11 w/o Fortran [tutorials]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
@@ -138,15 +146,15 @@ jobs:
             -DCMAKE_CXX_STANDARD=11
         make -j 2
 
-  # Build libamrex and all tutorials with CUDA
-  tutorials-cuda:
+  # Build libamrex and all tutorials with CUDA 9.1 (oldest supported)
+  tutorials-cuda9:
     name: CUDA@9.1.85 GNU@4.8.5 C++11 Release [tutorials]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_nvcc.sh
+      run: .github/workflows/dependencies/dependencies_nvcc9.sh
     - name: Build & Install
       run: |
         mkdir build
@@ -160,8 +168,41 @@ jobs:
             -DCMAKE_CXX_COMPILER=$(which g++-4.8)            \
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++-4.8)      \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-4.8)   \
-            -DAMReX_CUDA_ARCH=6.0
+            -DAMReX_CUDA_ARCH=6.0 \
+            -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON
         make -j 2
+
+  # Build libamrex and all tutorials with CUDA 11.0.2 (recent supported)
+  tutorials-cuda11:
+    name: CUDA@11.2 GNU@9.3.0 C++17 Release [tutorials]
+    runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_nvcc11.sh
+    - name: Build & Install
+      run: |
+        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+        which nvcc || echo "nvcc not in PATH!"
+
+        cmake -S . -B build                              \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+            -DAMReX_BUILD_TUTORIALS=ON                   \
+            -DAMReX_PARTICLES=ON                         \
+            -DAMReX_GPU_BACKEND=CUDA                     \
+            -DCMAKE_C_COMPILER=$(which gcc)              \
+            -DCMAKE_CXX_COMPILER=$(which g++)            \
+            -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)   \
+            -DCMAKE_CUDA_STANDARD=17                     \
+            -DCMAKE_CXX_STANDARD=17                      \
+            -DAMReX_CUDA_ARCH=8.0                        \
+            -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
+            -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
+
+        cmake --build build -j 2
 
   tutorials-dpcpp:
     name: DPCPP GFortran@7.5 C++17 [tutorials]
@@ -222,7 +263,7 @@ jobs:
   # Build 1D libamrex with configure
   configure-1d:
     name: GNU@7.5 Release [configure 1D]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -236,7 +277,7 @@ jobs:
   # Build 2D libamrex with configure
   configure-2d:
     name: Clang@6.0 NOMPI Release [configure 2D]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -250,7 +291,7 @@ jobs:
   # Build 3D libamrex with configure
   configure-3d:
     name: GNU@7.5 Release [configure 3D]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -264,7 +305,7 @@ jobs:
   # Build 3D libamrex debug omp build with configure
   configure-3d-omp-debug:
     name: GNU@7.5 OMP Debug [configure 3D]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -278,7 +319,7 @@ jobs:
   # Build Tools/Plotfile
   plotfile-tools:
     name: GNU Plotfile Tools [tools]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -291,7 +332,7 @@ jobs:
   # Build libamrex and run all tests
   tests:
     name: GNU@7.5 C++14 [tests]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
     - uses: actions/checkout@v2
