@@ -475,6 +475,11 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cross || tensorop || Gpu::notInLaunchRegion(),
                                      "non-cross stencil not support for gpu");
 
+#ifdef AMREX_USE_GPU
+    Gpu::FuseSafeGuard fsg(in.local_size()*ncomp*AMREX_SPACEDIM
+                           >= Gpu::getFuseNumKernelsThreshold());
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -493,7 +498,6 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                 const Orientation olo(idim,Orientation::low);
                 const Orientation ohi(idim,Orientation::high);
                 const Box blo = amrex::adjCellLo(vbx, idim);
-                const Box bhi = amrex::adjCellHi(vbx, idim);
                 const int blen = vbx.length(idim);
                 const auto& mlo = maskvals[olo].array(mfi);
                 const auto& mhi = maskvals[ohi].array(mfi);
@@ -505,40 +509,37 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                     const Real bcllo = bdlv[icomp][olo];
                     const Real bclhi = bdlv[icomp][ohi];
                     if (idim == 0) {
-                        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (
-                        blo, tboxlo, {
-                        mllinop_apply_bc_x(0, tboxlo, blen, iofab, mlo,
-                                           bctlo, bcllo, bvlo,
-                                           imaxorder, dxi, flagbc, icomp);
-                        },
-                        bhi, tboxhi, {
-                        mllinop_apply_bc_x(1, tboxhi, blen, iofab, mhi,
-                                           bcthi, bclhi, bvhi,
-                                           imaxorder, dxi, flagbc, icomp);
+                        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (blo, tboxlo,
+                        {
+                            mllinop_apply_bc_x(0, tboxlo, blen, iofab, mlo,
+                                               bctlo, bcllo, bvlo,
+                                               imaxorder, dxi, flagbc, icomp);
+                            Box const tboxhi = amrex::shift(tboxlo, 0, blen+1);
+                            mllinop_apply_bc_x(1, tboxhi, blen, iofab, mhi,
+                                               bcthi, bclhi, bvhi,
+                                               imaxorder, dxi, flagbc, icomp);
                         });
                     } else if (idim == 1) {
-                        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (
-                        blo, tboxlo, {
-                        mllinop_apply_bc_y(0, tboxlo, blen, iofab, mlo,
-                                           bctlo, bcllo, bvlo,
-                                           imaxorder, dyi, flagbc, icomp);
-                        },
-                        bhi, tboxhi, {
-                        mllinop_apply_bc_y(1, tboxhi, blen, iofab, mhi,
-                                           bcthi, bclhi, bvhi,
-                                           imaxorder, dyi, flagbc, icomp);
+                        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (blo, tboxlo,
+                        {
+                            mllinop_apply_bc_y(0, tboxlo, blen, iofab, mlo,
+                                               bctlo, bcllo, bvlo,
+                                               imaxorder, dyi, flagbc, icomp);
+                            Box const tboxhi = amrex::shift(tboxlo, 1, blen+1);
+                            mllinop_apply_bc_y(1, tboxhi, blen, iofab, mhi,
+                                               bcthi, bclhi, bvhi,
+                                               imaxorder, dyi, flagbc, icomp);
                         });
                     } else {
-                        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (
-                        blo, tboxlo, {
-                        mllinop_apply_bc_z(0, tboxlo, blen, iofab, mlo,
-                                           bctlo, bcllo, bvlo,
-                                           imaxorder, dzi, flagbc, icomp);
-                        },
-                        bhi, tboxhi, {
-                        mllinop_apply_bc_z(1, tboxhi, blen, iofab, mhi,
-                                           bcthi, bclhi, bvhi,
-                                           imaxorder, dzi, flagbc, icomp);
+                        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (blo, tboxlo,
+                        {
+                            mllinop_apply_bc_z(0, tboxlo, blen, iofab, mlo,
+                                               bctlo, bcllo, bvlo,
+                                               imaxorder, dzi, flagbc, icomp);
+                            Box const tboxhi = amrex::shift(tboxlo, 2, blen+1);
+                            mllinop_apply_bc_z(1, tboxhi, blen, iofab, mhi,
+                                               bcthi, bclhi, bvhi,
+                                               imaxorder, dzi, flagbc, icomp);
                         });
                     }
                 }
@@ -777,6 +778,11 @@ MLCellLinOp::prepareForSolve ()
             MFItInfo mfi_info;
             if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 
+#ifdef AMREX_USE_GPU
+            Gpu::FuseSafeGuard fsg(foo.local_size()*ncomp*AMREX_SPACEDIM
+                                   >= Gpu::getFuseNumKernelsThreshold());
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -796,7 +802,6 @@ MLCellLinOp::prepareForSolve ()
                     const Orientation olo(idim,Orientation::low);
                     const Orientation ohi(idim,Orientation::high);
                     const Box blo = amrex::adjCellLo(vbx, idim);
-                    const Box bhi = amrex::adjCellHi(vbx, idim);
                     const int blen = vbx.length(idim);
                     const auto& mlo = maskvals[olo].array(mfi);
                     const auto& mhi = maskvals[ohi].array(mfi);
@@ -811,80 +816,74 @@ MLCellLinOp::prepareForSolve ()
                         if (fabtyp == FabType::singlevalued) {
                             Array4<Real const> const& ap = area[idim]->const_array(mfi);
                             if (idim == 0) {
-                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                blo, tboxlo, {
-                                mllinop_comp_interp_coef0_x_eb
-                                    (0, tboxlo, blen, flo, mlo, ap, bctlo, bcllo,
-                                     imaxorder, dxi, icomp);
-                                },
-                                bhi, tboxhi, {
-                                mllinop_comp_interp_coef0_x_eb
-                                    (1, tboxhi, blen, fhi, mhi, ap, bcthi, bclhi,
-                                     imaxorder, dxi, icomp);
+                                AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (blo, tboxlo,
+                                {
+                                    mllinop_comp_interp_coef0_x_eb
+                                        (0, tboxlo, blen, flo, mlo, ap, bctlo, bcllo,
+                                         imaxorder, dxi, icomp);
+                                    Box const tboxhi = amrex::shift(tboxlo, 0, blen+1);
+                                    mllinop_comp_interp_coef0_x_eb
+                                        (1, tboxhi, blen, fhi, mhi, ap, bcthi, bclhi,
+                                         imaxorder, dxi, icomp);
                                 });
                             } else if (idim == 1) {
-                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                blo, tboxlo, {
-                                mllinop_comp_interp_coef0_y_eb
-                                    (0, tboxlo, blen, flo, mlo, ap, bctlo, bcllo,
-                                     imaxorder, dyi, icomp);
-                                },
-                                bhi, tboxhi, {
-                                mllinop_comp_interp_coef0_y_eb
-                                    (1, tboxhi, blen, fhi, mhi, ap, bcthi, bclhi,
-                                     imaxorder, dyi, icomp);
+                                AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (blo, tboxlo,
+                                {
+                                    mllinop_comp_interp_coef0_y_eb
+                                        (0, tboxlo, blen, flo, mlo, ap, bctlo, bcllo,
+                                         imaxorder, dyi, icomp);
+                                    Box const tboxhi = amrex::shift(tboxlo, 1, blen+1);
+                                    mllinop_comp_interp_coef0_y_eb
+                                        (1, tboxhi, blen, fhi, mhi, ap, bcthi, bclhi,
+                                         imaxorder, dyi, icomp);
                                 });
                             } else {
-                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                blo, tboxlo, {
-                                mllinop_comp_interp_coef0_z_eb
-                                    (0, tboxlo, blen, flo, mlo, ap, bctlo, bcllo,
-                                     imaxorder, dzi, icomp);
-                                },
-                                bhi, tboxhi, {
-                                mllinop_comp_interp_coef0_z_eb
-                                    (1, tboxhi, blen, fhi, mhi, ap, bcthi, bclhi,
-                                     imaxorder, dzi, icomp);
+                                AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (blo, tboxlo,
+                                {
+                                    mllinop_comp_interp_coef0_z_eb
+                                        (0, tboxlo, blen, flo, mlo, ap, bctlo, bcllo,
+                                         imaxorder, dzi, icomp);
+                                    Box const tboxhi = amrex::shift(tboxlo, 2, blen+1);
+                                    mllinop_comp_interp_coef0_z_eb
+                                        (1, tboxhi, blen, fhi, mhi, ap, bcthi, bclhi,
+                                         imaxorder, dzi, icomp);
                                 });
                             }
                         } else
 #endif
                         {
                             if (idim == 0) {
-                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                blo, tboxlo, {
-                                mllinop_comp_interp_coef0_x
-                                    (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
-                                     imaxorder, dxi, icomp);
-                                },
-                                bhi, tboxhi, {
-                                mllinop_comp_interp_coef0_x
-                                    (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
-                                     imaxorder, dxi, icomp);
+                                AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (blo, tboxlo,
+                                {
+                                    mllinop_comp_interp_coef0_x
+                                        (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
+                                         imaxorder, dxi, icomp);
+                                    Box const tboxhi = amrex::shift(tboxlo, 0, blen+1);
+                                    mllinop_comp_interp_coef0_x
+                                        (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
+                                         imaxorder, dxi, icomp);
                                 });
                             } else if (idim == 1) {
-                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                blo, tboxlo, {
-                                mllinop_comp_interp_coef0_y
-                                    (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
-                                     imaxorder, dyi, icomp);
-                                },
-                                bhi, tboxhi, {
-                                mllinop_comp_interp_coef0_y
-                                    (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
-                                     imaxorder, dyi, icomp);
+                                AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (blo, tboxlo,
+                                {
+                                    mllinop_comp_interp_coef0_y
+                                        (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
+                                         imaxorder, dyi, icomp);
+                                    Box const tboxhi = amrex::shift(tboxlo, 1, blen+1);
+                                    mllinop_comp_interp_coef0_y
+                                        (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
+                                         imaxorder, dyi, icomp);
                                 });
                             } else {
-                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                blo, tboxlo, {
-                                mllinop_comp_interp_coef0_z
-                                    (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
-                                     imaxorder, dzi, icomp);
-                                },
-                                bhi, tboxhi, {
-                                mllinop_comp_interp_coef0_z
-                                    (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
-                                     imaxorder, dzi, icomp);
+                                AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (blo, tboxlo,
+                                {
+                                    mllinop_comp_interp_coef0_z
+                                        (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
+                                         imaxorder, dzi, icomp);
+                                    Box const tboxhi = amrex::shift(tboxlo, 2, blen+1);
+                                    mllinop_comp_interp_coef0_z
+                                        (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
+                                         imaxorder, dzi, icomp);
                                 });
                             }
                         }
