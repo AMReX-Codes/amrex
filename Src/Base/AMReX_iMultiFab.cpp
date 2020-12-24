@@ -328,9 +328,7 @@ iMultiFab::sum (int comp, int nghost, bool local) const
     // If on GPUs, cast to unsigned long long to take advantage of hardware support.
     if (Gpu::inLaunchRegion())
     {
-        unsigned long long ulsm = 0;
-        unsigned long long points = 0;
-        const unsigned long long imax = static_cast<unsigned long long>(INT_MAX);
+        long long points = 0;
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<unsigned long long> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -342,14 +340,15 @@ iMultiFab::sum (int comp, int nghost, bool local) const
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
-                return { static_cast<unsigned long long>(arr(i,j,k,comp))+imax };
+                return { static_cast<unsigned long long>(arr(i,j,k,comp)) -
+                         static_cast<unsigned long long>(INT_MIN)) };
             });
             points += bx.numPts();
         }
 
         ReduceTuple hv = reduce_data.value();
-        ulsm = amrex::get<0>(hv) - points*imax;
-        sm = static_cast<Long>(ulsm);
+        sm = static_cast<Long>( static_cast<long long>(amrex::get<0>(hv))
+                              + static_cast<long long>(INT_MIN)*points);
     }
     else
 #endif
