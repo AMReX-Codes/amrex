@@ -341,7 +341,7 @@ iMultiFab::sum (int comp, int nghost, bool local) const
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
                 return { static_cast<unsigned long long>(arr(i,j,k,comp)) -
-                         static_cast<unsigned long long>(INT_MIN)) };
+                         static_cast<unsigned long long>(INT_MIN) };
             });
             points += bx.numPts();
         }
