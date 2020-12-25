@@ -312,6 +312,7 @@ jobs:
       run: .github/workflows/dependencies/dependencies_nvcc11.sh
     - name: Build & Install
       run: |
+        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
         ./configure --dim 3 --with-cuda yes --enable-eb yes --enable-xsdk-defaults yes
         make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
         make install
