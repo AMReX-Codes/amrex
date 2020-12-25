@@ -379,8 +379,7 @@ TagBoxArray::local_collate_cpu (Vector<IntVect>& v) const
         count[fai.LocalIndex()] = c;
     }
 
-    Vector<int> offset(count.size()+1);
-    offset[0] = 0;
+    Vector<int> offset(count.size()+1, 0);
     std::partial_sum(count.begin(), count.end(), offset.begin()+1);
 
     v.resize(offset.back());
@@ -421,8 +420,7 @@ TagBoxArray::local_collate_gpu (Vector<IntVect>& v) const
         Box const& bx = fai.fabbox();
         nblocks[fai.LocalIndex()] = (bx.numPts() + block_size-1) / block_size;
     }
-    Vector<int> blockoffset(nblocks.size()+1);
-    blockoffset[0] = 0;
+    Vector<int> blockoffset(nblocks.size()+1, 0);
     std::partial_sum(nblocks.begin(), nblocks.end(), blockoffset.begin()+1);
     int ntotblocks = blockoffset.back();
 
