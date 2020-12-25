@@ -883,7 +883,7 @@ MLCellLinOp::prepareForSolve ()
                     const auto len = vbx.length3d();
                     const int nthreads = amrex::max(len[0]*len[1],len[0]*len[2],len[1]*len[2]);
 #ifdef AMREX_USE_EB
-                    if (fabtyp == Fabtyp::singlevalued) {
+                    if (fabtyp == FabType::singlevalued) {
                         GpuArray<Array4<Real const>,AMREX_SPACEDIM> ap
                             {AMREX_D_DECL(area[0]->const_array(mfi),
                                           area[1]->const_array(mfi),
