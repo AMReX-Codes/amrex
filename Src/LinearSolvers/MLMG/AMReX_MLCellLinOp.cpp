@@ -504,7 +504,10 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                     bvhi[idim] = (bndry != nullptr) ? bndry->bndryValues(ohi).array(mfi) : foo;
                 }
                 const auto len = vbx.length3d();
-                const int nthreads = amrex::max(len[0]*len[1],len[0]*len[2],len[1]*len[2]);
+                const int nthreads
+                    = AMREX_D_PICK(1;,
+                                   amrex::max(len[0],len[1]);,
+                                   amrex::max(len[0]*len[1],len[0]*len[2],len[1]*len[2]);)
                 amrex::ParallelFor(Gpu::KernelInfo().setFusible(true), nthreads,
                 [=] AMREX_GPU_DEVICE (int tid) noexcept
                 {
@@ -881,7 +884,10 @@ MLCellLinOp::prepareForSolve ()
                         fhi[idim] = undrrelxr[ohi].array(mfi);
                     }
                     const auto len = vbx.length3d();
-                    const int nthreads = amrex::max(len[0]*len[1],len[0]*len[2],len[1]*len[2]);
+                    const int nthreads
+                        = AMREX_D_PICK(1;,
+                                       amrex::max(len[0],len[1]);,
+                                       amrex::max(len[0]*len[1],len[0]*len[2],len[1]*len[2]);)
 #ifdef AMREX_USE_EB
                     if (fabtyp == FabType::singlevalued) {
                         GpuArray<Array4<Real const>,AMREX_SPACEDIM> ap
