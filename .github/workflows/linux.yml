@@ -302,6 +302,21 @@ jobs:
         make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
         make install
 
+  # Build 3D libamrex cuda build with configure
+  configure-3d-cuda:
+    name: CUDA@11.2 GNU@9.3.0 [configure 3D]
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_nvcc11.sh
+    - name: Build & Install
+      run: |
+        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+        ./configure --dim 3 --with-cuda yes --enable-eb yes --enable-xsdk-defaults yes --with-fortran no
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names CXXSTD=c++17
+        make install
+
   # Build 3D libamrex debug omp build with configure
   configure-3d-omp-debug:
     name: GNU@7.5 OMP Debug [configure 3D]
