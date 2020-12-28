@@ -22,6 +22,12 @@ endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.machines
 
+ifdef USE_GPU
+  USE_GPU := $(strip $(USE_GPU))
+else
+  USE_GPU := FALSE
+endif
+
 ifdef USE_DPCPP
   USE_DPCPP := $(strip $(USE_DPCPP))
 else
@@ -30,7 +36,8 @@ endif
 
 ifeq ($(USE_DPCPP),TRUE)
   override COMP = dpcpp
-  DEFINES += -DAMREX_USE_DPCPP -DAMREX_USE_GPU
+  DEFINES += -DAMREX_USE_DPCPP
+  USE_GPU := TRUE
   USE_CUDA := FALSE
   USE_HIP := FALSE
   # disable ccache for now
@@ -619,8 +626,6 @@ endif
 ifeq ($(USE_FORCE_INLINE),TRUE)
     CPPFLAGS += -DAMREX_USE_FORCE_INLINE
 endif
-
-USE_GPU := FALSE
 
 ifeq ($(USE_ACC),TRUE)
 
