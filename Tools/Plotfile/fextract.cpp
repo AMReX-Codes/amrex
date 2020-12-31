@@ -308,6 +308,10 @@ void main_main()
 
         std::ofstream ofs(slicefile, std::ios::trunc);
 
+        if (scientific) {
+          ofs << std::scientific;
+        }
+
         if (csv)
         {
            ofs << std::setw(24) << std::left << dirstr;
@@ -315,9 +319,6 @@ void main_main()
               ofs << ", " <<  std::setw(24) << std::left << vname;
            }
            ofs << "\n";
-           if (scientific) {
-              ofs << std::scientific;
-           }
            for (int i = 0; i < posidx.size(); ++i) {
               ofs << std::setw(25) << std::left << std::setprecision(17) << posidx[i].first;
               for (int j = 0; j < var_names.size(); ++j) {
