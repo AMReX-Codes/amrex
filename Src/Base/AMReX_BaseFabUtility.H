@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BaseFab.H>
+#include <AMReX_TypeTraits.H>
 
 namespace amrex {
 
@@ -20,12 +21,19 @@ cast (BaseFab<Tto>& tofab, BaseFab<Tfrom> const& fromfab,
     });
 }
 
-template <int STRUCTSIZE, typename F,
-          typename std::enable_if<(STRUCTSIZE<=36),int>::type FOO = 0>
-void fill (BaseFab<GpuArray<Real,STRUCTSIZE> >& aos_fab, F && f)
+template <typename STRUCT, typename F,
+          typename std::enable_if<(sizeof(STRUCT)<=36*8) &&
+                                  AMREX_IS_TRIVIALLY_COPYABLE(STRUCT) &&
+                                  std::is_trivially_destructible<STRUCT>::value,
+                                  int>::type FOO = 0>
+void fill (BaseFab<STRUCT>& aos_fab, F && f)
 {
     Box const& box = aos_fab.box();
     auto const& aos = aos_fab.array();
+    using T = typename STRUCT::value_type;
+    constexpr int STRUCTSIZE = sizeof(STRUCT)/sizeof(T);
+    static_assert(sizeof(STRUCT) == sizeof(T)*STRUCTSIZE,
+                  "amrex::fill: sizeof(STRUCT) != sizeof(T)*STRUCTSIZE");
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         const auto lo  = amrex::lbound(box);
@@ -33,10 +41,8 @@ void fill (BaseFab<GpuArray<Real,STRUCTSIZE> >& aos_fab, F && f)
         int ntotcells = box.numPts();
         int nthreads_per_block = (STRUCTSIZE <= 8) ? 256 : 128;
         int nblocks = (ntotcells+nthreads_per_block-1)/nthreads_per_block;
-        std::size_t shared_mem_bytes = nthreads_per_block * STRUCTSIZE * sizeof(Real);
-        static_assert(sizeof(GpuArray<Real,STRUCTSIZE>) == sizeof(Real)*STRUCTSIZE,
-                      "amrex::fill: sizeof(GpuArray<Real,STRUCTSIZE>) != sizeof(Real)*STRUCTSIZE");
-        Real* p = (Real*)aos_fab.dataPtr();
+        std::size_t shared_mem_bytes = nthreads_per_block * sizeof(STRUCT);
+        T* p = (T*)aos_fab.dataPtr();
 #ifdef AMREX_USE_DPCPP
         amrex::launch(nblocks, nthreads_per_block, shared_mem_bytes, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& handler) noexcept
@@ -45,9 +51,9 @@ void fill (BaseFab<GpuArray<Real,STRUCTSIZE> >& aos_fab, F && f)
             unsigned int blockDimx = handler.blockDim();
             unsigned int threadIdxx = handler.threadIdx();
             unsigned int blockIdxx = handler.blockIdx();
-            auto const shared = (Real*)handler.sharedMemory();
+            auto const shared = (T*)handler.sharedMemory();
             if (icell < ntotcells) {
-                auto ga = new(shared+threadIdxx*STRUCTSIZE) GpuArray<Real,STRUCTSIZE>;
+                auto ga = new(shared+threadIdxx*STRUCTSIZE) STRUCT;
                 int k =  icell /   (len.x*len.y);
                 int j = (icell - k*(len.x*len.y)) /   len.x;
                 int i = (icell - k*(len.x*len.y)) - j*len.x;
@@ -68,10 +74,10 @@ void fill (BaseFab<GpuArray<Real,STRUCTSIZE> >& aos_fab, F && f)
         [=] AMREX_GPU_DEVICE () noexcept
         {
             int icell = blockDim.x*blockIdx.x+threadIdx.x;
-            Gpu::SharedMemory<Real> gsm;
-            Real* const shared = gsm.dataPtr();
+            Gpu::SharedMemory<T> gsm;
+            T* const shared = gsm.dataPtr();
             if (icell < ntotcells) {
-                auto ga = new(shared+threadIdx.x*STRUCTSIZE) GpuArray<Real,STRUCTSIZE>;
+                auto ga = new(shared+threadIdx.x*STRUCTSIZE) STRUCT;
                 int k =  icell /   (len.x*len.y);
                 int j = (icell - k*(len.x*len.y)) /   len.x;
                 int i = (icell - k*(len.x*len.y)) - j*len.x;

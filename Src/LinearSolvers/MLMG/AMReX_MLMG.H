@@ -103,6 +103,8 @@ public:
         // must use ij interface for EB
 #ifndef AMREX_USE_EB
         hypre_interface = f;
+#else
+        amrex::ignore_unused(f);
 #endif
     }
 

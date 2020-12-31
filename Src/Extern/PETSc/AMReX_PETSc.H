@@ -59,8 +59,8 @@ private:
     Vec x = nullptr;
 
     LayoutData<PetscInt> ncells_grid;
-    LayoutData<Gpu::ManagedDeviceVector<PetscInt> > cell_id_vec;
     FabArray<BaseFab<PetscInt> > cell_id;
+    FabArray<BaseFab<PetscInt> > cell_id_vec;
 
     MultiFab const* m_eb_b_coeffs = nullptr;
 
