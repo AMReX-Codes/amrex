@@ -400,6 +400,12 @@ public:
     }
 
     AMREX_FORCE_INLINE
+    Array4<T const> array (int start_comp, int num_comps) const noexcept
+    {
+        return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
+    }
+
+    AMREX_FORCE_INLINE
     Array4<T> array () noexcept
     {
         return makeArray4<T>(this->dptr, this->domain, this->nvar);
@@ -412,6 +418,12 @@ public:
     }
 
     AMREX_FORCE_INLINE
+    Array4<T> array (int start_comp, int num_comps) noexcept
+    {
+        return Array4<T>(makeArray4<T>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
+    }
+
+    AMREX_FORCE_INLINE
     Array4<T const> const_array () const noexcept
     {
         return makeArray4<T const>(this->dptr, this->domain, this->nvar);
@@ -421,6 +433,12 @@ public:
     Array4<T const> const_array (int start_comp) const noexcept
     {
         return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar),start_comp);
+    }
+
+    AMREX_FORCE_INLINE
+    Array4<T const> const_array (int start_comp, int num_comps) const noexcept
+    {
+        return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
     }
 
     //! Returns true if the data for the FAB has been allocated.
@@ -1639,7 +1657,8 @@ void
 BaseFab<T>::prefetchToHost () const noexcept
 {
 #ifdef AMREX_USE_GPU
-    if (this->arena() == The_Arena() || this->arena() == The_Managed_Arena()) {
+    if ((this->arena() == The_Arena() && this->arena()->arenaInfo().device_use_managed_memory) ||
+        this->arena() == The_Managed_Arena()) {
 #if defined(AMREX_USE_DPCPP)
         // xxxxx DPCPP todo: prefetchToHost
         // std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
@@ -1664,7 +1683,8 @@ void
 BaseFab<T>::prefetchToDevice () const noexcept
 {
 #ifdef AMREX_USE_GPU
-    if (this->arena() == The_Arena() || this->arena() == The_Managed_Arena()) {
+    if ((this->arena() == The_Arena() && this->arena()->arenaInfo().device_use_managed_memory) ||
+        this->arena() == The_Managed_Arena()) {
 #if defined(AMREX_USE_DPCPP)
         std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
         auto& q = Gpu::Device::streamQueue();

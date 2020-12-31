@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import sys
+import sys, re
 
 if sys.version_info < (2, 7):
     sys.exit("ERROR: need python 2.7 or later for mkconfig.py")
@@ -12,6 +12,9 @@ import argparse
 def doit(defines, undefines, comp, allow_diff_comp):
     print("#ifndef AMREX_HAVE_NO_CONFIG_H")
     print("#define AMREX_HAVE_NO_CONFIG_H")
+
+    # Remove -I from input
+    defines = re.sub(r'-I.*?(-D|$)', r'\1', defines)
 
     defs = defines.split("-D")
     for d in defs:
@@ -52,13 +55,19 @@ def doit(defines, undefines, comp, allow_diff_comp):
         elif comp == "ibm":
             comp_macro = "__ibmxl__"
             comp_id    = "IBM"
+        elif comp == "hip":
+            comp_macro = "__HIP__"
+            comp_id    = "HIP"
+        elif comp == "dpcpp":
+            comp_macro = "__INTEL_CLANG_COMPILER"
+            comp_id    = "DPCPP"
         else:
             sys.exit("ERROR: unknown compiler "+comp+" to mkconfig.py")
 
-        msg = "libamrex was built with " + comp_id + ". "
+        msg = "#error libamrex was built with " + comp_id + ". "
         msg = msg + "To avoid this error, reconfigure with --allow-different-compiler=yes"
         print("#ifndef " + comp_macro )
-        print('static_assert(false,"'+msg+'");')
+        print(msg)
         print("#endif")
 
     print("#endif") #  ifdef __cplusplus
@@ -80,7 +89,7 @@ if __name__ == "__main__":
                         default="")
     parser.add_argument("--comp",
                         help="compiler",
-                        choices=["gnu","intel","cray","pgi","llvm","nag","nec","ibm"])
+                        choices=["gnu","intel","cray","pgi","llvm","nag","nec","ibm","hip","dpcpp"])
     parser.add_argument("--allow-different-compiler",
                         help="allow an application to use a different compiler than the one used to build libamrex",
                         choices=["TRUE","FALSE"])

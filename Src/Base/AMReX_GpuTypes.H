@@ -2,6 +2,8 @@
 #define AMREX_GPU_TYPES_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Extension.H>
+
 #ifdef AMREX_USE_GPU
 
 #ifdef AMREX_USE_DPCPP
@@ -26,18 +28,56 @@ struct gpuStream_t {
     bool operator== (gpuStream_t const& rhs) noexcept { return queue == rhs.queue; }
 };
 
-namespace Gpu {
-struct Handler {
-    Handler (sycl::nd_item<1> const& a_item, void* a_local = nullptr)
-        : item(a_item), local(a_local) {}
-    sycl::nd_item<1> const& item;
+#endif
+
+}
+
+#endif
+
+namespace amrex { namespace Gpu {
+
+#if defined(AMREX_USE_DPCPP)
+
+struct Handler
+{
+    AMREX_GPU_HOST_DEVICE constexpr
+    Handler (sycl::nd_item<1> const* a_item = nullptr, void* a_local = nullptr,
+             int a_n_active_threds = -1)
+        : item(a_item), local(a_local), numActiveThreads(a_n_active_threds) {}
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool isFullBlock () const {
+        return (numActiveThreads >= int(item->get_local_range(0)) ||
+                numActiveThreads <= 0);
+    }
+
+    sycl::nd_item<1> const* item;
     void* local; // DPC++ local memory
+    int numActiveThreads;
 };
-}
+
+#elif defined(AMREX_USE_GPU)
+
+struct Handler
+{
+    AMREX_GPU_HOST_DEVICE constexpr Handler (int n_active_threads = -1)
+        : numActiveThreads(n_active_threads) {}
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool isFullBlock () const {
+        return (numActiveThreads >= (int)blockDim.x ||
+                numActiveThreads <= 0);
+    }
+
+    int numActiveThreads;
+};
+
+#else
+
+struct Handler {};
 
 #endif
 
-}
+}}
 
-#endif
 #endif

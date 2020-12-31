@@ -6913,6 +6913,45 @@ void mlndlap_mknewu_eb (int i, int j, int k, Array4<Real> const& u, Array4<Real 
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_mknewu_eb_c (int i, int j, int k, Array4<Real> const& u, Array4<Real const> const& p,
+                        Real sig, Array4<Real const> const& vfrac,
+                        Array4<Real const> const& intg, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    if (vfrac(i,j,k) == Real(0.)) {
+        u(i,j,k,0) = u(i,j,k,1) = u(i,j,k,2) = Real(0.);
+    } else {
+        Real dpdx = Real(0.25)*(-p(i,j,k  )+p(i+1,j,k  )-p(i,j+1,k  )+p(i+1,j+1,k  )
+                                -p(i,j,k+1)+p(i+1,j,k+1)-p(i,j+1,k+1)+p(i+1,j+1,k+1));
+        Real dpdy = Real(0.25)*(-p(i,j,k  )-p(i+1,j,k  )+p(i,j+1,k  )+p(i+1,j+1,k  )
+                                -p(i,j,k+1)-p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
+        Real dpdz = Real(0.25)*(-p(i,j,k  )-p(i+1,j,k  )-p(i,j+1,k  )-p(i+1,j+1,k  )
+                                +p(i,j,k+1)+p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
+
+        Real dpp_xy = (p(i+1,j+1,k+1) - p(i,j+1,k+1) - p(i+1,j,k+1) + p(i,j,k+1)
+                      +p(i+1,j+1,k  ) - p(i,j+1,k  ) - p(i+1,j,k  ) + p(i,j,k  ) ) / vfrac(i,j,k);
+
+        Real dpp_xz = (p(i+1,j+1,k+1) - p(i,j+1,k+1) + p(i+1,j,k+1) - p(i,j,k+1)
+                      -p(i+1,j+1,k  ) + p(i,j+1,k  ) - p(i+1,j,k  ) + p(i,j,k  ) ) / vfrac(i,j,k);
+
+        Real dpp_yz = (p(i+1,j+1,k+1) + p(i,j+1,k+1) - p(i+1,j,k+1) - p(i,j,k+1)
+                      -p(i+1,j+1,k  ) - p(i,j+1,k  ) + p(i+1,j,k  ) + p(i,j,k  ) ) / vfrac(i,j,k);
+
+        Real dpp_xyz = (p(i+1,j+1,k+1) - p(i,j+1,k+1) - p(i+1,j,k+1) + p(i,j,k+1)
+                       -p(i+1,j+1,k  ) + p(i,j+1,k  ) + p(i+1,j,k  ) - p(i,j,k  ) ) / vfrac(i,j,k);
+
+        u(i,j,k,0) -= sig*dxinv[0]*(dpdx + Real(0.5)*intg(i,j,k,i_S_y  )*dpp_xy +
+                                           Real(0.5)*intg(i,j,k,i_S_z  )*dpp_xz +
+                                                     intg(i,j,k,i_S_y_z)*dpp_xyz );
+        u(i,j,k,1) -= sig*dxinv[1]*(dpdy + Real(0.5)*intg(i,j,k,i_S_x  )*dpp_xy +
+                                           Real(0.5)*intg(i,j,k,i_S_z  )*dpp_yz +
+                                                     intg(i,j,k,i_S_x_z)*dpp_xyz );
+        u(i,j,k,2) -= sig*dxinv[2]*(dpdz + Real(0.5)*intg(i,j,k,i_S_x  )*dpp_xz +
+				           Real(0.5)*intg(i,j,k,i_S_y  )*dpp_yz +
+                                                     intg(i,j,k,i_S_x_y)*dpp_xyz );
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real mlndlap_rhcc_eb (int i, int j, int k, Array4<Real const> const& rhcc,
                       Array4<Real const> const& vfrac, Array4<Real const> const& intg,
                       Array4<int const> const& msk) noexcept

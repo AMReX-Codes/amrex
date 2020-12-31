@@ -385,16 +385,16 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
 	BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
 	bool check_local = false, check_remote = false;
-#if defined(_OPENMP)
+#if defined(AMREX_USE_GPU)
+        check_local = true;
+        check_remote = true;
+#elif defined(_OPENMP)
 	if (omp_get_max_threads() > 1) {
 	    check_local = true;
 	    check_remote = true;
 	}
-#elif defined(AMREX_USE_GPU)
-        check_local = true;
-        check_remote = true;
-#endif    
-	
+#endif
+
 	if (ParallelDescriptor::TeamSize() > 1) {
 	    check_local = true;
 	}
@@ -2336,29 +2336,6 @@ FabArrayBase::updateBDKey ()
 	addThisBD();
     }
 }
-
-
-void
-FabArrayBase::WaitForAsyncSends (int                 N_snds,
-                                 Vector<MPI_Request>& send_reqs,
-                                 Vector<char*>&       send_data,
-                                 Vector<MPI_Status>&  stats)
-{
-    amrex::ignore_unused(send_data);
-#ifdef BL_USE_MPI
-    BL_ASSERT(N_snds > 0);
-
-    stats.resize(N_snds);
-
-    BL_ASSERT(send_reqs.size() == N_snds);
-    BL_ASSERT(send_data.size() == N_snds);
-
-    ParallelDescriptor::Waitall(send_reqs, stats);
-#else
-    amrex::ignore_unused(N_snds,send_reqs,stats);
-#endif /*BL_USE_MPI*/
-}
-
 
 #ifdef BL_USE_MPI
 

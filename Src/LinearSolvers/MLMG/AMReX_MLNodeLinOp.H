@@ -52,7 +52,7 @@ public:
         amrex::Abort("AMReX_MLNodeLinOp::compFlux::How did we get here?");
     }
     virtual void compGrad (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
-                           MultiFab& /*sol*/, Location /*loc*/) const final override {
+                           MultiFab& /*sol*/, Location /*loc*/) const override {
         amrex::Abort("AMReX_MLNodeLinOp::compGrad::How did we get here?");
     }
     

@@ -106,12 +106,17 @@ public :
     virtual void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& /*a_flux*/,
                             const Vector<MultiFab*>& /*a_sol*/,
                             Location /*a_loc*/) const final override {
-        amrex::Abort("MLLinOp::getFluxes: How did we get here?");
+        amrex::Abort("MLNodeLaplacian::getFluxes: How did we get here?");
     }
     virtual void getFluxes (const Vector<MultiFab*>& a_flux,
                             const Vector<MultiFab*>& a_sol) const final override;
-
     virtual void unimposeNeumannBC (int amrlev, MultiFab& rhs) const final override;
+
+    virtual void compGrad (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
+			   MultiFab& /*sol*/, Location /*loc*/) const final override {
+        amrex::Abort("MLNodeLaplacian::compGrad: How did we get here?");
+    }
+    void compGrad (int amrlev, MultiFab& grad, MultiFab& sol) const;
 
     void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);

@@ -104,7 +104,6 @@ public:
                                             dim3& numBlocks, dim3& numThreads) noexcept;
     static void c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads) noexcept;
     static void grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads) noexcept;
-    static void box_threads_and_blocks (const Box& bx, dim3& numBlocks, dim3& numThreads) noexcept;
 
     static std::size_t totalGlobalMem () noexcept { return device_prop.totalGlobalMem; }
     static std::size_t sharedMemPerBlock () noexcept { return device_prop.sharedMemPerBlock; }
@@ -272,6 +271,7 @@ htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz) noexcept
 {
     if (sz == 0) return;
 #ifdef AMREX_USE_DPCPP
+    if (Device::onNullStream()) Device::nonNullStreamSynchronize();
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d, p_h, sz); });
 #else
@@ -286,6 +286,7 @@ dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) noexcept
 {
     if (sz == 0) return;
 #ifdef AMREX_USE_DPCPP
+    if (Device::onNullStream()) Device::nonNullStreamSynchronize();
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_h, p_d, sz); });
 #else
@@ -300,6 +301,7 @@ dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noe
 {
     if (sz == 0) return;
 #ifdef AMREX_USE_DPCPP
+    if (Device::onNullStream()) Device::nonNullStreamSynchronize();
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d_dst, p_d_src, sz); });
 #else
