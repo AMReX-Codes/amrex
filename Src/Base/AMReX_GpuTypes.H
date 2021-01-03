@@ -51,6 +51,26 @@ struct Handler
                 numActiveThreads <= 0);
     }
 
+    std::size_t globalIdx () const { return item->get_global_linear_id(); }
+    std::size_t blockIdx () const { return item->get_group_linear_id(); }
+    std::size_t threadIdx () const { return item->get_local_linear_id(); }
+    //
+    std::size_t gridDim () const { return item->get_group_range(0); }
+    std::size_t blockDim () const { return item->get_local_range(0); }
+
+    // warp index in block
+    std::size_t warpIdx () const { return item->get_sub_group().get_group_id()[0]; }
+    // lane index in warp
+    std::size_t laneIdx () const { return item->get_sub_group().get_local_id()[0]; }
+    // warp size
+    std::size_t warpDim () const { return item->get_sub_group().get_group_range()[0]; }
+
+    void* sharedMemory () const { return local; }
+
+    void sharedBarrier () const { item->barrier(sycl::access::fence_space::local_space); }
+    void globalBarrier () const { item->barrier(sycl::access::fence_space::global_space); }
+    void syncThreads () const { item->barrier(sycl::access::fence_space::global_and_local); }
+
     sycl::nd_item<1> const* item;
     void* local; // DPC++ local memory
     int numActiveThreads;
