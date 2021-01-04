@@ -225,7 +225,7 @@ void main_main ()
     }
 
     {
-        BL_PROFILE("FabReduce-isum");
+        BL_PROFILE("FabReduce-isum-long");
 
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<Long> reduce_data(reduce_op);
@@ -247,6 +247,36 @@ void main_main ()
         ParallelDescriptor::ReduceLongSum(hv);
         amrex::Print() << "isum: " << hv << "\n";
     }
+
+    {
+        // Changing types to take advantage of available hardware acceleration.
+        BL_PROFILE("FabReduce-isum-unsigned-long-long");
+
+        long long points = 0;
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<unsigned long long> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+
+        for (MFIter mfi(imf); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.validbox();
+            auto const& ifab = imf.array(mfi);
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            {
+                return { static_cast<unsigned long long>(ifab(i,j,k)) -
+                         static_cast<unsigned long long>(INT_MIN) };
+            });
+            points += bx.numPts();
+        }
+
+        Long hv = static_cast<Long>( static_cast<long long>(amrex::get<0>(reduce_data.value()))
+                                     + static_cast<long long>(INT_MIN)*points );
+        // MPI reduce
+        ParallelDescriptor::ReduceLongSum(hv);
+        amrex::Print() << "isum: " << hv << "\n";
+    }
+
 
     int N = 1000000;
     Gpu::DeviceVector<Real> vec(N);
