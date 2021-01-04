@@ -250,6 +250,7 @@ void main_main ()
 
     {
         // Changing types to take advantage of available hardware acceleration.
+        // Recommeded version for GPUs. (~60x faster).
         BL_PROFILE("FabReduce-isum-unsigned-long-long");
 
         long long points = 0;
