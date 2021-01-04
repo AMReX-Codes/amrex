@@ -36,7 +36,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         {
             PairIndex src_index(pti.index(), pti.LocalTileIndex());
             const auto& tags = inverse_tags[lev][src_index];
-            const auto& neighbs = neighbors[lev][src_index];
+            const auto& neighbs = neighbors[lev][src_index].GetArrayOfStructs();
             AMREX_ASSERT(tags.size() == neighbs.size());
 
             const int num_neighbs = neighbs.size();

@@ -427,7 +427,7 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | USE_XSDK_DEFAULTS            |  Use XSDK defaults settings                     | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_FORTRAN                |  Enable Fortran language                        | YES                     | YES, NO               |
+   | AMReX_FORTRAN                |  Enable Fortran language                        | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PRECISION              |  Set the precision of reals                     | DOUBLE                  | DOUBLE, SINGLE        |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -685,6 +685,8 @@ A list of AMReX component names and related configure options are shown in the t
    | AMReX_ASCENT                 | ASCENT          |
    +------------------------------+-----------------+
    | AMReX_HYPRE                  | HYPRE           |
+   +------------------------------+-----------------+
+   | AMReX_PLOTFILE_TOOLS         | PFTOOLS         |
    +------------------------------+-----------------+
 
 .. raw:: latex

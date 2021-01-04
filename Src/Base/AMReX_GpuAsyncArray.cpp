@@ -17,7 +17,7 @@ extern "C" {
         void* hp = pp[1];
         std::free(hp);
         std::free(p);
-        amrex::The_Device_Arena()->free(dp);
+        amrex::The_Arena()->free(dp);
     }
 }
 #endif

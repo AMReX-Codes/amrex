@@ -471,7 +471,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
 
     if (only_valid) {
         ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<Long> reduce_data(reduce_op);
+        ReduceData<unsigned long long> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (const auto& kv : GetParticles(lev)) {
@@ -485,7 +485,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
                                return (pp[i].id() > 0) ? 1 : 0;
                            });
         }
-        nparticles  = amrex::get<0>(reduce_data.value());
+        nparticles = static_cast<Long>(amrex::get<0>(reduce_data.value()));
     }
     else {
         for (const auto& kv : GetParticles(lev)) {
@@ -2074,16 +2074,12 @@ AssignCellDensitySingleLevel (int rho_index,
 
     using ParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
-    MFItInfo info;
-    if (TilingIfNotGPU()) {
-        info.EnableTiling(tile_size);
-    }
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         FArrayBox local_rho;
-        for (ParConstIter pti(*this, lev, info); pti.isValid(); ++pti) {
+        for (ParConstIter pti(*this, lev); pti.isValid(); ++pti) {
             const auto& particles = pti.GetArrayOfStructs();
             const auto pstruct = particles().data();
             const Long np = pti.numParticles();

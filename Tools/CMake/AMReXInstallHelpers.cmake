@@ -2,10 +2,10 @@
 # Manage AMReX installation process
 # Extra arguments are the targets to install
 #
-function (install_amrex)
+function (install_amrex_targets)
 
    # Check if the given arguments are valid targets
-   set(_targets amrex)
+   set(_targets)
    foreach (_arg IN LISTS ARGV)
       if (TARGET ${_arg})
          set(_targets ${_targets} ${_arg})
@@ -54,6 +54,7 @@ function (install_amrex)
       LIBRARY       DESTINATION lib
       INCLUDES      DESTINATION include # Adds proper directory to INTERFACE_INCLUDE_DIRECTORIES
       PUBLIC_HEADER DESTINATION include
+      RUNTIME       DESTINATION bin
       )
 
    install( EXPORT AMReXTargets
@@ -62,7 +63,7 @@ function (install_amrex)
 
    # Install fortran modules if Fortran is enabled
    get_property(_lang GLOBAL PROPERTY ENABLED_LANGUAGES)
-   if ("Fortran" IN_LIST _lang )
+   if ("Fortran" IN_LIST _lang AND "amrex" IN_LIST _targets)
       get_target_property(_mod_dir amrex Fortran_MODULE_DIRECTORY )
       install( DIRECTORY ${_mod_dir}/ DESTINATION include ) # Trailing backslash is crucial here!
    endif ()

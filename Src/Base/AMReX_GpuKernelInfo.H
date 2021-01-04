@@ -9,9 +9,12 @@ class KernelInfo
 {
 public:
     KernelInfo& setFusible (bool flag) { fusible = flag; return *this; }
+    KernelInfo& setReduction (bool flag) { has_reduction = flag; return *this; }
     bool isFusible () const { return fusible; }
+    bool hasReduction () const { return has_reduction; }
 private:
     bool fusible = false;
+    bool has_reduction = false;
 };
 
 }}
