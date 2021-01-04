@@ -278,16 +278,6 @@ void main_main ()
         amrex::Print() << "isum: " << hv << "\n";
     }
 
-
-    int N = 1000000;
-    Gpu::DeviceVector<Real> vec(N);
-    Real* pvec = vec.dataPtr();
-    amrex::ParallelForRNG( N,
-    [=] AMREX_GPU_DEVICE (int i, RandomEngine const& engine) noexcept
-    {
-        pvec[i] = amrex::Random(engine) - 0.5;
-    });
-
     {
         BL_PROFILE("VecReduce");
 
