@@ -17,6 +17,9 @@
 
 #ifdef AMREX_USE_HDF5_ASYNC
 #include "h5_vol_external_async_native.h"
+#include "h5_async_lib.h"
+hid_t es_id_g = 0;
+bool async_wait_all_added = 0;
 #endif
 
 #endif
@@ -568,7 +571,11 @@ static int CreateWriteHDF5AttrString(hid_t loc, const char *name, const char* st
 /*     return 1; */
 /* } */
 
+#ifdef BL_USE_MPI
 static void SetHDF5fapl(hid_t fapl, MPI_Comm comm)
+#else
+static void SetHDF5fapl(hid_t fapl)
+#endif
 {
 #ifdef BL_USE_MPI
     H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
@@ -761,6 +768,21 @@ WriteGenericPlotfileHeaderHDF5 (hid_t fid,
     H5Tclose(comp_dtype);
 }
 
+#ifdef AMREX_USE_HDF5_ASYNC
+void async_vol_es_wait_close()
+{
+    size_t num_in_progress;
+    hbool_t op_failed;
+    if (es_id_g != 0) {
+        H5ESwait(es_id_g, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
+        if (num_in_progress != 0) 
+            std::cout << "After H5ESwait, still has async operations in progress!" << std::endl; 
+        H5ESclose(es_id_g);
+    }
+    return;
+}
+#endif
+
 void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename, 
 				  int nlevels,
                          	  const Vector<const MultiFab*>& mf,
@@ -785,6 +807,19 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
     int myProc(ParallelDescriptor::MyProc());
     int nProcs(ParallelDescriptor::NProcs());
     
+#ifdef AMREX_USE_HDF5_ASYNC
+    // Add async VOL wait all to be executed at amrex finalize time
+    if (!async_wait_all_added) {
+        ExecOnFinalize(async_vol_es_wait_close);
+        async_wait_all_added = true;
+    }
+
+    // For HDF5 async VOL, block and wait previous tasks have all completed
+    if (es_id_g != 0)
+        async_vol_es_wait_close();
+    es_id_g = H5EScreate();
+#endif
+
 
     herr_t  ret;
     int finest_level = nlevels-1;
@@ -797,20 +832,10 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
     if(ParallelDescriptor::IOProcessor()) {
         BL_PROFILE_VAR("H5writeMetadata", h5dwm);
-        // Have only one rank to create and write metadata (header)
-        fapl = H5Pcreate (H5P_FILE_ACCESS);
-#ifdef BL_USE_MPI
-        SetHDF5fapl(fapl, MPI_COMM_SELF);
-#else
-        SetHDF5fapl(fapl, NULL);
-#endif
-
         // Create the HDF5 file
-        fid = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
+        fid = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
         if (fid < 0) 
             FileOpenFailed(filename.c_str());
-
-        H5Pclose(fapl);
 
         Vector<BoxArray> boxArrays(nlevels);
         for(int level(0); level < boxArrays.size(); ++level) {
@@ -865,20 +890,19 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 #ifdef BL_USE_MPI
     SetHDF5fapl(fapl, ParallelDescriptor::Communicator());
 #else
-    SetHDF5fapl(fapl, NULL);
+    SetHDF5fapl(fapl);
 #endif
-
-
-    // Only use async for writing actual data
-    #ifdef AMREX_USE_HDF5_ASYNC
-    H5Pset_vol_async(fapl);
-    H5Pset_dxpl_async(dxpl, true);
-    #endif
 
     BL_PROFILE_VAR("H5writeAllLevel", h5dwd);
 
     // All process open the file
+#ifdef AMREX_USE_HDF5_ASYNC
+    // Only use async for writing actual data
+    H5Pset_vol_async(fapl);
+    fid = H5Fopen_async(filename.c_str(), H5F_ACC_RDWR, fapl, es_id_g);
+#else
     fid = H5Fopen(filename.c_str(), H5F_ACC_RDWR, fapl);
+#endif
     if (fid < 0) 
         FileOpenFailed(filename.c_str());
 
@@ -901,11 +925,12 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
     char level_name[32];
     for (int level = 0; level <= finest_level; ++level) {
         sprintf(level_name, "level_%d", level);
+#ifdef AMREX_USE_HDF5_ASYNC
+        grp = H5Gopen_async(fid, level_name, H5P_DEFAULT, es_id_g);
+#else
         grp = H5Gopen(fid, level_name, H5P_DEFAULT);
-        if (grp < 0) {
-            std::cout << "H5Gopen [" << level_name << "] failed!" << std::endl;
-            continue;
-        }
+#endif
+        if (grp < 0) { std::cout << "H5Gopen [" << level_name << "] failed!" << std::endl; break; }
 
         // Get the boxes assigned to all ranks and calculate their offsets and sizes
         Vector<int> procMap = mf[level]->DistributionMap().ProcessorMap();
@@ -923,8 +948,12 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         flatdims[0] = grids.size();
         boxdataspace = H5Screate_simple(1, flatdims, NULL);
        
-   
+#ifdef AMREX_USE_HDF5_ASYNC
+        boxdataset = H5Dcreate_async(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, H5P_DEFAULT,H5P_DEFAULT, es_id_g);
+#else
         boxdataset = H5Dcreate(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, H5P_DEFAULT,H5P_DEFAULT);
+#endif
+        if (boxdataset < 0) { std::cout << "H5Dcreate [" << bdsname << "] failed!" << std::endl; break; }
         
         // Create a boxarray sorted by rank
         std::map<int, Vector<Box> > gridMap;
@@ -949,14 +978,22 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         hsize_t  oflatdims[1];
         oflatdims[0] = sortedGrids.size() + 1;
         offsetdataspace = H5Screate_simple(1, oflatdims, NULL);
-        offsetdataset   = H5Dcreate(grp, odsname.c_str(), H5T_NATIVE_LLONG, offsetdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        if(offsetdataset < 0) { std::cout << "create offset dataset failed! ret = " << offsetdataset << std::endl; }
+#ifdef AMREX_USE_HDF5_ASYNC
+        offsetdataset = H5Dcreate_async(grp, odsname.c_str(), H5T_NATIVE_LLONG, offsetdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_id_g);
+#else
+        offsetdataset = H5Dcreate(grp, odsname.c_str(), H5T_NATIVE_LLONG, offsetdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+#endif
+        if(offsetdataset < 0) { std::cout << "create offset dataset failed! ret = " << offsetdataset << std::endl; break;}
 
         hsize_t centerdims[1];
         centerdims[0]   = sortedGrids.size() ;
         centerdataspace = H5Screate_simple(1, centerdims, NULL);
-        centerdataset   = H5Dcreate(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        if(centerdataset < 0) { std::cout << "Create center dataset failed! ret = " << centerdataset << std::endl; }
+#ifdef AMREX_USE_HDF5_ASYNC
+        centerdataset = H5Dcreate_async(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_id_g);
+#else
+        centerdataset = H5Dcreate(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+#endif
+        if(centerdataset < 0) { std::cout << "Create center dataset failed! ret = " << centerdataset << std::endl; break;}
         
         Vector<unsigned long long> offsets(sortedGrids.size() + 1);
         unsigned long long currentOffset(0L);
@@ -1001,13 +1038,25 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 #endif
 
             // Only proc zero needs to write out this information
+#ifdef AMREX_USE_HDF5_ASYNC
+            ret = H5Dwrite_async(offsetdataset, H5T_NATIVE_LLONG, H5S_ALL, H5S_ALL, dxpl, &(offsets[0]), es_id_g);
+#else
             ret = H5Dwrite(offsetdataset, H5T_NATIVE_LLONG, H5S_ALL, H5S_ALL, dxpl, &(offsets[0]));
+#endif
             if(ret < 0) { std::cout << "Write offset dataset failed! ret = " << ret << std::endl; }
 
+#ifdef AMREX_USE_HDF5_ASYNC
+            ret = H5Dwrite_async(centerdataset, center_id, H5S_ALL, H5S_ALL, dxpl, &(centering[0]), es_id_g);
+#else
             ret = H5Dwrite(centerdataset, center_id, H5S_ALL, H5S_ALL, dxpl, &(centering[0]));
+#endif
             if(ret < 0) { std::cout << "Write center dataset failed! ret = " << ret << std::endl; }
 
+#ifdef AMREX_USE_HDF5_ASYNC
+            ret = H5Dwrite_async(boxdataset, babox_id, H5S_ALL, H5S_ALL, dxpl, &(vbox[0]), es_id_g);
+#else
             ret = H5Dwrite(boxdataset, babox_id, H5S_ALL, H5S_ALL, dxpl, &(vbox[0]));
+#endif
             if(ret < 0) { std::cout << "Write box dataset failed! ret = " << ret << std::endl; }
         }
        
@@ -1019,21 +1068,10 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         
         hid_t dataspace    = H5Screate_simple(1, hs_allprocsize, NULL);
         hid_t memdataspace = H5Screate_simple(1, hs_procsize, NULL);
-        hid_t dataset      = H5Dcreate(grp, dataname.c_str(), H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        if(dataset < 0) 
-            std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
-        
+       
         H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
         
         Vector<Real> a_buffer(procBufferSize[myProc], -1.0);
-        /* Long dataCount(0); */
-        /* for(MFIter mfi(*mf[level]); mfi.isValid(); ++mfi) { */
-        /*     const Box &vbox    = mfi.validbox(); */
-        /*     const Real *dataPtr = (*mf[level])[mfi].dataPtr(); */
-        /*     for(int i(0); i < vbox.numPts() * ncomp; ++i) { */
-        /*         a_buffer[dataCount++] = dataPtr[i]; */
-        /*     } */
-        /* } */
         const MultiFab* data;
         std::unique_ptr<MultiFab> mf_tmp;
         if (mf[level]->nGrowVect() != 0) {
@@ -1063,26 +1101,48 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
         BL_PROFILE_VAR("H5DwriteData", h5dwg);
 
+
+#ifdef AMREX_USE_HDF5_ASYNC
+        hid_t dataset = H5Dcreate_async(grp, dataname.c_str(), H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_id_g);
+#else
+        hid_t dataset = H5Dcreate(grp, dataname.c_str(), H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+#endif
+        if(dataset < 0) 
+            std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
+ 
 #ifdef BL_USE_MPI
         ret = H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_COLLECTIVE);
 #endif
+
+#ifdef AMREX_USE_HDF5_ASYNC
+        ret = H5Dwrite_async(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl, a_buffer.dataPtr(), es_id_g);
+#else
         ret = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl, a_buffer.dataPtr());
-        if(ret < 0) 
-            std::cout << ParallelDescriptor::MyProc() << "Write data failed!  ret = " << ret << std::endl;
+#endif
+        if(ret < 0) { std::cout << ParallelDescriptor::MyProc() << "Write data failed!  ret = " << ret << std::endl; break; }
 
         BL_PROFILE_VAR_STOP(h5dwg);
 
         
         H5Sclose(memdataspace);
         H5Sclose(dataspace);
-        H5Dclose(dataset);
         H5Sclose(offsetdataspace);
-        H5Dclose(offsetdataset);
         H5Sclose(centerdataspace);
-        H5Dclose(centerdataset);
         H5Sclose(boxdataspace);
+
+#ifdef AMREX_USE_HDF5_ASYNC
+        H5Dclose_async(dataset, es_id_g);
+        H5Dclose_async(offsetdataset, es_id_g);
+        H5Dclose_async(centerdataset, es_id_g);
+        H5Dclose_async(boxdataset, es_id_g);
+        H5Gclose_async(grp, es_id_g);
+#else
+        H5Dclose(dataset);
+        H5Dclose(offsetdataset);
+        H5Dclose(centerdataset);
         H5Dclose(boxdataset);
         H5Gclose(grp);
+#endif
     } // For group
 
     BL_PROFILE_VAR_STOP(h5dwd);
@@ -1091,7 +1151,11 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
     H5Tclose(babox_id);
     H5Pclose(fapl);
     H5Pclose(dxpl);
+#ifdef AMREX_USE_HDF5_ASYNC
+    H5Fclose_async(fid, es_id_g);
+#else
     H5Fclose(fid);
+#endif
 
     delete whichRD;
 }

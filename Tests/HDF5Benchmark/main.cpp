@@ -102,7 +102,8 @@ void test ()
                                     7.0, 8.0, 9.0, 10.0, 11.0,
                                     12.0, 13.0, 14, 15, 16};
 
-    myPC.InitRandom(num_particles, iseed, pdata, serialize);
+    if (nparticlefile > 0)
+        myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
     // these don't really matter, make something up
     const Real time = 0.0;
@@ -140,11 +141,6 @@ void test ()
 #endif
     }
 
-#ifdef AMREX_USE_HDF5_ASYNC
-    // Complete all previous async writes
-    H5VLasync_waitall();
-#endif
-
     /* ParallelDescriptor::Barrier(); */
 
     Vector<std::string> particle_realnames;
@@ -178,12 +174,6 @@ void test ()
         /* myPC.WriteAsciiFile("particle0_ascii"); */
 #endif
     }
-
-#ifdef AMREX_USE_HDF5_ASYNC
-    // Complete all previous async writes
-    H5VLasync_waitall();
-    /* ParallelDescriptor::Barrier(); */
-#endif
 
     if (restart_check)
     {
