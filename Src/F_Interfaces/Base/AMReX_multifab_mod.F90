@@ -21,7 +21,7 @@ module amrex_multifab_module
   public :: amrex_multifab_build_alias, amrex_imultifab_build_alias
   public :: amrex_imultifab_build_owner_mask
   public :: amrex_imultifab_build, amrex_imultifab_destroy
-  public :: amrex_mfiter_build, amrex_mfiter_destroy
+  public :: amrex_mfiter_build, amrex_mfiter_destroy, amrex_mfiter_allow_multiple
 
   type, public   :: amrex_multifab
      logical               :: owner = .false.
@@ -471,6 +471,13 @@ module amrex_multifab_module
   end interface
 
   interface
+     function amrex_fi_mfiter_allow_multiple (allow) bind(c)
+       import
+       implicit none
+       integer(c_int) :: amrex_fi_mfiter_allow_multiple
+       integer(c_int), value :: allow
+     end function amrex_fi_mfiter_allow_multiple
+
      subroutine amrex_fi_new_mfiter_r (mfi, mf, tiling, dynamic) bind(c)
        import
        implicit none
@@ -1222,6 +1229,23 @@ contains
   end subroutine amrex_imultifab_setval
 
 !------ MFIter routines ------!
+
+  function amrex_mfiter_allow_multiple (allow) result(old)
+    logical :: old
+    logical, intent(in) :: allow
+    integer :: old_flag, new_flag
+    if (allow) then
+       new_flag = 1
+    else
+       new_flag = 0
+    end if
+    old_flag = amrex_fi_mfiter_allow_multiple(new_flag)
+    if (old_flag .ne. 0) then
+       old = .true.
+    else
+       old = .false.
+    end if
+  end function amrex_mfiter_allow_multiple
 
   subroutine amrex_mfiter_build_r (mfi, mf, tiling, dynamic)
     type(amrex_mfiter) :: mfi

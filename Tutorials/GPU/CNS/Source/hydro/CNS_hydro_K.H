@@ -184,7 +184,7 @@ namespace {
 AMREX_GPU_DEVICE
 inline
 void
-riemann (const amrex::Real gamma, const amrex::Real smallp, const amrex::Real smallr,
+riemann (const amrex::Real gamma, const amrex::Real smallp, const amrex::Real /*smallr*/,
          const amrex::Real rl, const amrex::Real ul, const amrex::Real pl,
          const amrex::Real ut1l, const amrex::Real ut2l,
          const amrex::Real rr, const amrex::Real ur, const amrex::Real pr,

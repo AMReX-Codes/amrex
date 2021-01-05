@@ -401,6 +401,7 @@ while ( false )
     Message Abarrier (const MPI_Comm &comm);
 
     void Test (MPI_Request& request, int& flag, MPI_Status& status);
+    void Test (Vector<MPI_Request>& request, int& flag, Vector<MPI_Status>& status);
 
     void Comm_dup (MPI_Comm comm, MPI_Comm& newcomm);
     //! Abort with specified error code.

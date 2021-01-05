@@ -22,6 +22,12 @@ endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.machines
 
+ifdef USE_GPU
+  USE_GPU := $(strip $(USE_GPU))
+else
+  USE_GPU := FALSE
+endif
+
 ifdef USE_DPCPP
   USE_DPCPP := $(strip $(USE_DPCPP))
 else
@@ -30,12 +36,13 @@ endif
 
 ifeq ($(USE_DPCPP),TRUE)
   override COMP = dpcpp
-  DEFINES += -DAMREX_USE_DPCPP -DAMREX_USE_GPU
+  DEFINES += -DAMREX_USE_DPCPP
+  USE_GPU := TRUE
   USE_CUDA := FALSE
   USE_HIP := FALSE
   # disable ccache for now
   USE_CCACHE := FALSE
-  # Make.unknown's mpi checking does not work with mpiipx
+  # Make.unknown's mpi checking does not work with mpiicpc
   NO_MPI_CHECKING := TRUE
 endif
 
@@ -310,18 +317,6 @@ ifdef WARN_ERROR
   WARN_ERROR := $(strip $(WARN_ERROR))
 else
   WARN_ERROR := FALSE
-endif
-
-ifdef USE_GPU_PRAGMA
-  USE_GPU_PRAGMA := $(strip $(USE_GPU_PRAGMA))
-  GPU_PRAGMA_NO_HOST_VERSION ?= FALSE
-else
-  USE_GPU_PRAGMA := FALSE
-  GPU_PRAGMA_NO_HOST_VERSION := FALSE
-endif
-
-ifneq ($(USE_CUDA),TRUE)
-  USE_GPU_PRAGMA = FALSE
 endif
 
 ifdef GPU_ERROR_CHECK
@@ -632,8 +627,6 @@ ifeq ($(USE_FORCE_INLINE),TRUE)
     CPPFLAGS += -DAMREX_USE_FORCE_INLINE
 endif
 
-USE_GPU := FALSE
-
 ifeq ($(USE_ACC),TRUE)
 
   USE_GPU := TRUE
@@ -695,44 +688,9 @@ else ifeq ($(USE_CUDA),TRUE)
 
     DEFINES += -DAMREX_USE_CUDA
 
-    ifeq ($(USE_GPU_PRAGMA),TRUE)
-        DEFINES += -DAMREX_USE_GPU_PRAGMA
-        GPU_PRAGMA_DEVICE_SUFFIX ?= _device
-
-        ifeq ($(GPU_PRAGMA_NO_HOST_VERSION),FALSE)
-          GPU_PRAGMA_NO_HOST_VERSION_ARG :=
-        else
-          GPU_PRAGMA_NO_HOST_VERSION_ARG := --no_host_version
-          DEFINES += -DAMREX_GPU_PRAGMA_NO_HOST
-        endif
-    endif
-
     GPUSuffix := .CUDA
 
-    ifeq ($(lowercase_comp),$(filter $(lowercase_comp),ibm pgi hpcsdk))
-      DEFINES += -DAMREX_LAUNCH='attributes(global)'
-      DEFINES += -DAMREX_DEVICE='attributes(device)'
-      DEFINES += -DAMREX_CUDA_FORT_GLOBAL='attributes(global)'
-      DEFINES += -DAMREX_CUDA_FORT_DEVICE='attributes(device)'
-      DEFINES += -DAMREX_CUDA_FORT_HOST='attributes(host)'
-      DEFINES += -DAMREX_CUDA_FORT_HOST_DEVICE='attributes(host) attributes(device)'
-    else
-      DEFINES += -DAMREX_LAUNCH=""
-      DEFINES += -DAMREX_DEVICE=""
-      DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
-      DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
-      DEFINES += -DAMREX_CUDA_FORT_HOST=""
-      DEFINES += -DAMREX_CUDA_FORT_HOST_DEVICE=""
-    endif
-
 else
-    DEFINES += -DAMREX_LAUNCH=""
-    DEFINES += -DAMREX_DEVICE=""
-    DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
-    DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
-    DEFINES += -DAMREX_CUDA_FORT_HOST=""
-    DEFINES += -DAMREX_CUDA_FORT_HOST_DEVICE=""
-
     GPUSuffix :=
 endif
 
@@ -958,15 +916,16 @@ ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local
 endif
 
+FINAL_LIBS = $(libraries)
+
 ifeq ($(USE_DPCPP),TRUE)
 
     ifeq ($(USE_MPI),TRUE)
-        CC  = mpiicx
-        CXX = mpiicpx
-        FC  = mpiifx
-        F90 = mpiifx
-        # current version of mpiicpx does not have this on by default
-        EXTRACXXFLAGS += -fsycl-unnamed-lambda
+        CC  = mpiicc
+        CXX = mpiicpc
+        FC  = mpiifort
+        F90 = mpiifort
+        CXXFLAGS += -cxx=dpcpp
     endif
 
 else ifeq ($(USE_HIP),TRUE)
@@ -1065,9 +1024,10 @@ else ifeq ($(USE_CUDA),TRUE)
       space +=
 
       ifeq ($(AMREX_LINKER),nvcc)
-        libraries := $(subst -Wl$(comm),-Xlinker=,$(libraries))
         ifeq ($(FIX_NVCC_PTHREAD),TRUE)
-          libraries := $(subst -pthread,-Xcompiler$(space)-pthread,$(libraries))
+          FINAL_LIBS = $(subst -pthread,-Xcompiler$(space)-pthread,$(subst -Wl$(comm),-Xlinker=,$(libraries)))
+        else
+          FINAL_LIBS = $(subst -Wl$(comm),-Xlinker=,$(libraries))
         endif
       endif
 

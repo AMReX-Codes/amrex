@@ -379,8 +379,7 @@ TagBoxArray::local_collate_cpu (Vector<IntVect>& v) const
         count[fai.LocalIndex()] = c;
     }
 
-    Vector<int> offset(count.size()+1);
-    offset[0] = 0;
+    Vector<int> offset(count.size()+1, 0);
     std::partial_sum(count.begin(), count.end(), offset.begin()+1);
 
     v.resize(offset.back());
@@ -421,8 +420,7 @@ TagBoxArray::local_collate_gpu (Vector<IntVect>& v) const
         Box const& bx = fai.fabbox();
         nblocks[fai.LocalIndex()] = (bx.numPts() + block_size-1) / block_size;
     }
-    Vector<int> blockoffset(nblocks.size()+1);
-    blockoffset[0] = 0;
+    Vector<int> blockoffset(nblocks.size()+1, 0);
     std::partial_sum(nblocks.begin(), nblocks.end(), blockoffset.begin()+1);
     int ntotblocks = blockoffset.back();
 
@@ -439,9 +437,9 @@ TagBoxArray::local_collate_gpu (Vector<IntVect>& v) const
                       Gpu::Device::gpuStream(),
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
         {
-            int bid = h.item.get_group_linear_id();
-            int tid = h.item.get_local_id(0);
-            int icell = h.item.get_global_id(0);
+            int bid = h.item->get_group_linear_id();
+            int tid = h.item->get_local_id(0);
+            int icell = h.item->get_global_id(0);
 
             int t = 0;
             if (icell < ncells && tags[icell] != TagBox::CLEAR) {
@@ -517,15 +515,15 @@ TagBoxArray::local_collate_gpu (Vector<IntVect>& v) const
             amrex::launch(nblocks[li], block_size, sizeof(unsigned int), Gpu::Device::gpuStream(),
             [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
             {
-                int bid = h.item.get_group(0);
-                int tid = h.item.get_local_id(0);
-                int icell = h.item.get_global_id(0);
+                int bid = h.item->get_group(0);
+                int tid = h.item->get_local_id(0);
+                int icell = h.item->get_global_id(0);
 
                 unsigned int* shared_counter = (unsigned int*)h.local;
                 if (tid == 0) {
                     *shared_counter = 0;
                 }
-                h.item.barrier(sycl::access::fence_space::local_space);
+                h.item->barrier(sycl::access::fence_space::local_space);
 
                 if (icell < ncells && tags[icell] != TagBox::CLEAR) {
                     unsigned int itag = Gpu::Atomic::Inc<sycl::access::address_space::local_space>

@@ -69,15 +69,20 @@ target_sources(amrex
    AMReX_EB_triGeomOps_K.H
    )
 
+if (AMReX_SPACEDIM EQUAL 3)
+   target_sources(amrex
+   PRIVATE
+   AMReX_WriteEBSurface.cpp
+   AMReX_WriteEBSurface.H
+   AMReX_EBToPVD.H
+   AMReX_EBToPVD.cpp
+   )
+endif ()
+
 if (AMReX_FORTRAN)
    target_sources(amrex
       PRIVATE
       AMReX_ebcellflag_mod.F90
       AMReX_EBFluxRegister_nd.F90
-      AMReX_WriteEBSurface.cpp
-      AMReX_WriteEBSurface.H
-      AMReX_WriteEB_F.H
-      AMReX_eb_to_pvd.F90
       )
-
 endif ()

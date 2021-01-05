@@ -106,6 +106,9 @@ ifeq ($(HIP_COMPILER),clang)
   # rocThrust - Header only
   # INCLUDE_LOCATIONS += $(ROC_PATH)/rocthrust/include
 
+  # hipcc passes a lot of unused arguments to clang
+  DEPFLAGS += -Wno-unused-command-line-argument
+
 # =============================================================================================
 
 else ifeq ($(HIP_COMPILER),nvcc)

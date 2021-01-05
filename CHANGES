@@ -1,3 +1,78 @@
+# 21.01
+
+  -- Optimization of MLCellLinOp::applyBC (#1690)
+
+  -- Optimization of iMultiFab sum (#1684)
+
+  -- Sanitize the input of mkconfig (#1685)
+
+  -- New versions of Reduce::Min, Max and MinMax taking callable (#1679)
+
+  -- Only issue prefetch if arena uses managed memory (#1678)
+
+  -- GNU Make: Fix the library flags (#1641)
+
+  -- PolymorphicArray4, a thin layer around Array4 allowing us to access
+     both AoS and SoA data with operator() (#1643)
+
+  -- CMake: dowstream projects must enable Fortran if AMReX_FORTRAN=ON
+     (#1669)
+
+  -- Optimization of FaceLinear interpolater (#1663)
+
+  -- Allow alternate form of "check_pair" function (#1667)
+
+  -- ParallelFor for Reduction (#1658)
+
+  -- Add features to fextract (#1657)
+
+  -- Fix parallel add bug when both USE_GPU and USE_OMP are defined (#1654)
+
+  -- Write a plotfile to ASCII (#1638)
+
+  -- Fix NodalProjector::getGradPhi for multilevel case (#1642)
+
+  -- Remove GPU pragma support (#1650) (#1649)
+
+  -- Remove custom MFIter reduction code (#1648)
+
+  -- Remove support for old versions of DPCPP (#1644)
+
+  -- Fused FillBoundary (#1570)
+
+  -- Divergence Free FillPatch (#1483)
+
+  -- Optimization of constant coefficient MacProjector (#1636)
+
+  -- Optimization of nodal solver with constant coefficient (#1629)
+
+  -- Expose the index of the neighboring particle to users of the
+     iterator. (#1628)
+
+  -- Implement overset mask for MLPoisson too (#1604)
+
+  -- Fuse nodal jacobi smoother for GPU (#1625)
+
+  -- Support for SoA data for neighbor particles. (#1590)
+
+  -- Fix a bug that causes errors when writing HDF5 plotfile and particle
+     (#1621)
+
+  -- Fortran Inteface: Porting more MultiFab functions (#1609)
+
+  -- Remove alternative operators from AMReX (#1599)
+
+  -- EB from STL (#1592)
+
+  -- AMReX_Config.H generated at built time is included in all
+     headers. (#1566)
+
+  -- MacProjector: Update setDomainBC API (#1589)
+
+  -- Reimplement NumParticlesAtLevel (#1581)
+
+  -- Add msvc cuda support (#1573)
+
 # 20.12
 
   -- EB2::PolyIF (#1567) The existing PolynomialIF contains a dynamic size

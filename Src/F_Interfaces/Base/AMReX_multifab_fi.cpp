@@ -255,6 +255,11 @@ extern "C" {
 
     // MFIter routines
 
+    int amrex_fi_mfiter_allow_multiple (int allow)
+    {
+        return MFIter::allowMultipleMFIters(allow);
+    }
+
     void amrex_fi_new_mfiter_r (MFIter*& mfi, MultiFab* mf, int tiling, int dynamic)
     {
         if (tiling) {

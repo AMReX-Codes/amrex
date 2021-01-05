@@ -28,6 +28,7 @@ Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
 {
 #if AMREX_DEVICE_COMPILE
+    amrex::ignore_unused(f,p);
     amrex::Error("EB2::GeometryShop: how did this happen?");
     return 0.0;
 #else

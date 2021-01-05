@@ -2,20 +2,6 @@
 #define AMREX_BASEFAB_H_
 #include <AMReX_Config.H>
 
-#include <cmath>
-#include <cstdlib>
-#include <algorithm>
-#include <limits>
-#include <climits>
-#include <array>
-#include <type_traits>
-#include <memory>
-#include <atomic>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 #include <AMReX_Extension.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Array.H>
@@ -33,6 +19,21 @@
 //#include <AMReX_Scan.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Math.H>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+#include <cmath>
+#include <cstdlib>
+#include <algorithm>
+#include <limits>
+#include <climits>
+#include <array>
+#include <type_traits>
+#include <memory>
+#include <atomic>
+#include <utility>
 
 namespace amrex
 {
@@ -400,6 +401,12 @@ public:
     }
 
     AMREX_FORCE_INLINE
+    Array4<T const> array (int start_comp, int num_comps) const noexcept
+    {
+        return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
+    }
+
+    AMREX_FORCE_INLINE
     Array4<T> array () noexcept
     {
         return makeArray4<T>(this->dptr, this->domain, this->nvar);
@@ -412,6 +419,12 @@ public:
     }
 
     AMREX_FORCE_INLINE
+    Array4<T> array (int start_comp, int num_comps) noexcept
+    {
+        return Array4<T>(makeArray4<T>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
+    }
+
+    AMREX_FORCE_INLINE
     Array4<T const> const_array () const noexcept
     {
         return makeArray4<T const>(this->dptr, this->domain, this->nvar);
@@ -421,6 +434,12 @@ public:
     Array4<T const> const_array (int start_comp) const noexcept
     {
         return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar),start_comp);
+    }
+
+    AMREX_FORCE_INLINE
+    Array4<T const> const_array (int start_comp, int num_comps) const noexcept
+    {
+        return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
     }
 
     //! Returns true if the data for the FAB has been allocated.
@@ -685,6 +704,24 @@ public:
     template <RunOn run_on=RunOn::Host>
 #endif
     T max (const Box& subbox, int comp = 0) const noexcept;
+    /**
+    * \return Minimum and Maximum of given component
+    */
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template <RunOn run_on=RunOn::Host>
+#endif
+    std::pair<T,T> minmax (int comp = 0) const noexcept;
+    /**
+    * \return Minimum and Maximum of given component in given subbox.
+    */
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template <RunOn run_on=RunOn::Host>
+#endif
+    std::pair<T,T> minmax (const Box& subbox, int comp = 0) const noexcept;
     /**
     * \return Maximum of the absolute value of given component.
     */
@@ -1639,7 +1676,8 @@ void
 BaseFab<T>::prefetchToHost () const noexcept
 {
 #ifdef AMREX_USE_GPU
-    if (this->arena() == The_Arena() || this->arena() == The_Managed_Arena()) {
+    if ((this->arena() == The_Arena() && this->arena()->arenaInfo().device_use_managed_memory) ||
+        this->arena() == The_Managed_Arena()) {
 #if defined(AMREX_USE_DPCPP)
         // xxxxx DPCPP todo: prefetchToHost
         // std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
@@ -1664,7 +1702,8 @@ void
 BaseFab<T>::prefetchToDevice () const noexcept
 {
 #ifdef AMREX_USE_GPU
-    if (this->arena() == The_Arena() || this->arena() == The_Managed_Arena()) {
+    if ((this->arena() == The_Arena() && this->arena()->arenaInfo().device_use_managed_memory) ||
+        this->arena() == The_Managed_Arena()) {
 #if defined(AMREX_USE_DPCPP)
         std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
         auto& q = Gpu::Device::streamQueue();
@@ -2428,6 +2467,48 @@ BaseFab<T>::max (const Box& subbox, int comp) const noexcept
             r = amrex::max(r, a(i,j,k));
         });
         return r;
+    }
+}
+
+template <class T>
+template <RunOn run_on>
+std::pair<T,T>
+BaseFab<T>::minmax (int comp) const noexcept
+{
+    return this->minmax<run_on>(this->domain,comp);
+}
+
+template <class T>
+template <RunOn run_on>
+std::pair<T,T>
+BaseFab<T>::minmax (const Box& subbox, int comp) const noexcept
+{
+    Array4<T const> const& a = this->const_array(comp);
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpMin,ReduceOpMax> reduce_op;
+        ReduceData<T,T> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(subbox, reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            auto const x = a(i,j,k);
+            return { x, x };
+        });
+        ReduceTuple hv = reduce_data.value();
+        return std::make_pair(amrex::get<0>(hv), amrex::get<1>(hv));
+    } else
+#endif
+    {
+        T rmax = std::numeric_limits<T>::lowest();
+        T rmin = std::numeric_limits<T>::max();
+        amrex::LoopOnCpu(subbox, [=,&rmin,&rmax] (int i, int j, int k) noexcept
+        {
+            auto const x = a(i,j,k);
+            rmin = amrex::min(rmin, x);
+            rmax = amrex::max(rmax, x);
+        });
+        return std::make_pair(rmin,rmax);
     }
 }
 

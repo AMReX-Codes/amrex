@@ -87,7 +87,6 @@ protected:
     F m_user_f;
 };
 
-#if !(defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && defined(AMREX_GPU_PRAGMA_NO_HOST))
 //! This cpu version calls function working on FArrayBox
 class CpuBndryFuncFab
 {
@@ -104,7 +103,6 @@ public:
 protected:
     UserFillBox f_user = nullptr;
 };
-#endif
 
 class PhysBCFunctNoOp
 {

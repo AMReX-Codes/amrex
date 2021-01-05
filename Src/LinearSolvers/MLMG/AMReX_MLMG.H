@@ -189,8 +189,8 @@ private:
     CFStrategy cf_strategy     = CFStrategy::none;
     int  bottom_verbose        = 0;
     int  bottom_maxiter        = 200;
-    Real bottom_reltol         = 1.e-4;
-    Real bottom_abstol         = -1.0;
+    Real bottom_reltol         = Real(1.e-4);
+    Real bottom_abstol         = Real(-1.0);
 
     int always_use_bnorm = 0;
 
