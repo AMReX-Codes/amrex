@@ -20,14 +20,14 @@ public :
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info = LPInfo(),
                      const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
-                     Real  a_const_sigma = 0.0);
+                     Real  a_const_sigma = Real(0.0));
 #ifdef AMREX_USE_EB
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info,
                      const Vector<EBFArrayBoxFactory const*>& a_factory,
-                     Real a_const_sigma = 0.0);
+                     Real a_const_sigma = Real(0.0));
 #endif
     virtual ~MLNodeLaplacian ();
 
@@ -41,7 +41,7 @@ public :
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
-                 Real  a_const_sigma = 0.0);
+                 Real  a_const_sigma = Real(0.0));
 
 #ifdef AMREX_USE_EB
     void define (const Vector<Geometry>& a_geom,
@@ -49,7 +49,7 @@ public :
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
                  const Vector<EBFArrayBoxFactory const*>& a_factory,
-                 Real a_const_sigma = 0.0);
+                 Real a_const_sigma = Real(0.0));
 #endif
 
     virtual std::string name () const override { return std::string("MLNodeLaplacian"); }
@@ -143,12 +143,12 @@ private:
 
     int m_is_rz = 0;
 
-    Real m_const_sigma = 0.0;
+    Real m_const_sigma = Real(0.0);
     Vector<Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
     Vector<Vector<Real> > m_s0_norm0;
 
-    Real m_normalization_threshold = 1.e-10;
+    Real m_normalization_threshold = Real(1.e-10);
 
 #ifdef AMREX_USE_EB
     // they could be MultiCutFab

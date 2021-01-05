@@ -23,9 +23,9 @@ void mlalap_adotx (Box const& box, Array4<Real> const& y,
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
                 y(i,j,k) = alpha*a(i,j,k)*x(i,j,k)
-                    - dhx * (x(i-1,j,k) - 2.0*x(i,j,k) + x(i+1,j,k))
-                    - dhy * (x(i,j-1,k) - 2.0*x(i,j,k) + x(i,j+1,k))
-                    - dhz * (x(i,j,k-1) - 2.0*x(i,j,k) + x(i,j,k+1));
+                    - dhx * (x(i-1,j,k) - Real(2.0)*x(i,j,k) + x(i+1,j,k))
+                    - dhy * (x(i,j-1,k) - Real(2.0)*x(i,j,k) + x(i,j+1,k))
+                    - dhz * (x(i,j,k-1) - Real(2.0)*x(i,j,k) + x(i,j,k+1));
             }
         }
     }
@@ -40,7 +40,7 @@ void mlalap_normalize (Box const& box, Array4<Real> const& x,
     const Real dhx = beta*dxinv[0]*dxinv[0];
     const Real dhy = beta*dxinv[1]*dxinv[1];
     const Real dhz = beta*dxinv[2]*dxinv[2];
-    const Real fac = 2.0*(dhx+dhy+dhz);
+    const Real fac = Real(2.0)*(dhx+dhy+dhz);
 
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -183,9 +183,9 @@ void mlalap_gsrb (Box const& box, Array4<Real> const& phi,
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
 
-    constexpr Real omega = 1.15;
+    constexpr Real omega = Real(1.15);
 
-    const Real dhfac = 2.*(dhx+dhy+dhz);
+    const Real dhfac = Real(2.)*(dhx+dhy+dhz);
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
@@ -193,17 +193,17 @@ void mlalap_gsrb (Box const& box, Array4<Real> const& phi,
             for (int i = lo.x; i <= hi.x; ++i) {
                 if ((i+j+k+redblack)%2 == 0) {
                     Real cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
-                        ? f0(vlo.x,j,k) : 0.0;
+                        ? f0(vlo.x,j,k) : Real(0.0);
                     Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
-                        ? f1(i,vlo.y,k) : 0.0;
+                        ? f1(i,vlo.y,k) : Real(0.0);
                     Real cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
-                        ? f2(i,j,vlo.z) : 0.0;
+                        ? f2(i,j,vlo.z) : Real(0.0);
                     Real cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
-                        ? f3(vhi.x,j,k) : 0.0;
+                        ? f3(vhi.x,j,k) : Real(0.0);
                     Real cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
-                        ? f4(i,vhi.y,k) : 0.0;
+                        ? f4(i,vhi.y,k) : Real(0.0);
                     Real cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
-                        ? f5(i,j,vhi.z) : 0.0;
+                        ? f5(i,j,vhi.z) : Real(0.0);
 
                     Real gamma = alpha*a(i,j,k) + dhfac;
 

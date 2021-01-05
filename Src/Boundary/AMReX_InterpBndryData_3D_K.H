@@ -43,7 +43,7 @@ void interpbndrydata_x_o3 (int i, int j, int k, int n,
     Real dyz = (mask(i,j-r.y,k-r.z) == not_covered && mask(i,j+r.y,k-r.z) == not_covered &&
                 mask(i,j-r.y,k+r.z) == not_covered && mask(i,j+r.y,k+r.z) == not_covered)
         ? Real(0.25)*(crse(ic,jc+1,kc+1,n+nc)-crse(ic,jc-1,kc+1,n+nc)+crse(ic,jc-1,kc-1,n+nc)-crse(ic,jc+1,kc-1,n+nc))
-        : 0.0;
+        : Real(0.0);
 
     Real y = -Real(0.5) + (j-jc*r.y+Real(0.5))/r.y;
     Real z = -Real(0.5) + (k-kc*r.z+Real(0.5))/r.z;
@@ -75,7 +75,7 @@ void interpbndrydata_y_o3 (int i, int j, int k, int n,
     Real dxz = (mask(i-r.x,j,k-r.z) == not_covered && mask(i+r.x,j,k-r.z) == not_covered &&
                 mask(i-r.x,j,k+r.z) == not_covered && mask(i+r.x,j,k+r.z) == not_covered)
         ? Real(0.25)*(crse(ic+1,jc,kc+1,n+nc)-crse(ic-1,jc,kc+1,n+nc)+crse(ic-1,jc,kc-1,n+nc)-crse(ic+1,jc,kc-1,n+nc))
-        : 0.0;
+        : Real(0.0);
 
 
     Real x = -Real(0.5) + (i-ic*r.x+Real(0.5))/r.x;
@@ -108,7 +108,7 @@ void interpbndrydata_z_o3 (int i, int j, int k, int n,
     Real dxy = (mask(i-r.x,j-r.y,k) == not_covered && mask(i+r.x,j-r.y,k) == not_covered &&
                 mask(i-r.x,j+r.y,k) == not_covered && mask(i+r.x,j+r.y,k) == not_covered)
         ? Real(0.25)*(crse(ic+1,jc+1,kc,n+nc)-crse(ic-1,jc+1,kc,n+nc)+crse(ic-1,jc-1,kc,n+nc)-crse(ic+1,jc-1,kc,n+nc))
-        : 0.0;
+        : Real(0.0);
 
     Real x = -Real(0.5) + (i-ic*r.x+Real(0.5))/r.x;
     Real y = -Real(0.5) + (j-jc*r.y+Real(0.5))/r.y;

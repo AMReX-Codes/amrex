@@ -79,6 +79,14 @@ def configure(argv):
                         help="Enable AMReX embedded boundary capability [default=no]",
                         choices=["yes","no"],
                         default="no")
+    parser.add_argument("--single-precision",
+                        help="Define amrex::Real as float [default=no (i.e., double)]",
+                        choices=["yes","no"],
+                        default="no")
+    parser.add_argument("--single-precision-particles",
+                        help="Define amrex::ParticleReal as float [default=no (i.e., double)]",
+                        choices=["yes","no"],
+                        default="no")
     parser.add_argument("--enable-xsdk-defaults",
                         help="Enable XSDK mode [default=no]",
                         choices=["yes","no"],
@@ -133,6 +141,8 @@ def configure(argv):
     f.write("USE_HYPRE = {}\n".format("TRUE" if args.enable_hypre == "yes" else "FALSE"))
     f.write("USE_PETSC = {}\n".format("TRUE" if args.enable_petsc == "yes" else "FALSE"))
     f.write("USE_EB = {}\n".format("TRUE" if args.enable_eb == "yes" else "FALSE"))
+    f.write("PRECISION = {}\n".format("FLOAT" if args.single_precision == "yes" else "DOUBLE"))
+    f.write("USE_SINGLE_PRECISION_PARTICLES = {}\n".format("TRUE" if args.single_precision_particles == "yes" else "FALSE"))
     f.write("AMREX_XSDK = {}\n".format("TRUE" if args.enable_xsdk_defaults == "yes" else "FALSE"))
     f.write("ALLOW_DIFFERENT_COMP = {}\n".format("FALSE" if args.allow_different_compiler == "no" else "TRUE"))
     f.write("USE_SENSEI_INSITU = {}\n".format("FALSE" if args.with_sensei_insitu == "no" else "TRUE"))

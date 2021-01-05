@@ -63,8 +63,8 @@ operator >> (std::istream &is, RealBox& b)
     double dlotemp, dhitemp;
     for (int i = 0; i < AMREX_SPACEDIM; i++) {
         is >> dlotemp >> dhitemp;
-        lo[i] = dlotemp;
-        hi[i] = dhitemp;
+        lo[i] = static_cast<Real>(dlotemp);
+        hi[i] = static_cast<Real>(dhitemp);
     }
 #else
     for (int i = 0; i < AMREX_SPACEDIM; i++)

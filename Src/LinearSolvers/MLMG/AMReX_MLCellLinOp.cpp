@@ -398,7 +398,7 @@ MLCellLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
           m_bndry_sol[amrlev].get());
 
     AMREX_ALWAYS_ASSERT(resid.nComp() == b.nComp());
-    MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, 0);
+    MultiFab::Xpay(resid, Real(-1.0), b, 0, 0, ncomp, 0);
 }
 
 void
@@ -436,7 +436,7 @@ MLCellLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFa
         apply(amrlev, mglev, resid, x, BCMode::Homogeneous, StateMode::Correction, nullptr);
     }
 
-    MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, 0);
+    MultiFab::Xpay(resid, Real(-1.0), b, 0, 0, ncomp, 0);
 }
 
 void
@@ -460,8 +460,8 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
     const Real dxi = dxinv[0];
-    const Real dyi = (AMREX_SPACEDIM >= 2) ? dxinv[1] : 1.0;
-    const Real dzi = (AMREX_SPACEDIM == 3) ? dxinv[2] : 1.0;
+    const Real dyi = (AMREX_SPACEDIM >= 2) ? dxinv[1] : Real(1.0);
+    const Real dzi = (AMREX_SPACEDIM == 3) ? dxinv[2] : Real(1.0);
 
     const auto& maskvals = m_maskvals[amrlev][mglev];
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
@@ -666,7 +666,7 @@ MLCellLinOp::reflux (int crse_amrlev,
 
     const int fine_amrlev = crse_amrlev+1;
 
-    Real dt = 1.0;
+    Real dt = Real(1.0);
     const Real* crse_dx = m_geom[crse_amrlev][0].CellSize();
     const Real* fine_dx = m_geom[fine_amrlev][0].CellSize();
 
@@ -837,8 +837,8 @@ MLCellLinOp::prepareForSolve ()
             const auto& maskvals = m_maskvals[amrlev][mglev];
 
             const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
-            const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : 1.0;
-            const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : 1.0;
+            const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : Real(1.0);
+            const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : Real(1.0);
 
             BndryRegister& undrrelxr = m_undrrelxr[amrlev][mglev];
             MultiFab foo(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], ncomp, 0, MFInfo().SetAlloc(false));
@@ -1221,7 +1221,7 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
         if (cc) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                Real rc = probxlo + (i+0.5)*dx;
+                Real rc = probxlo + (i+Real(0.5))*dx;
                 rhsarr(i,j,k,n) *= rc*rc;
             });
         } else {
@@ -1235,7 +1235,7 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
         if (cc) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                Real rc = probxlo + (i+0.5)*dx;
+                Real rc = probxlo + (i+Real(0.5))*dx;
                 rhsarr(i,j,k,n) *= rc;
             });
         } else {
@@ -1277,14 +1277,14 @@ MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
         if (cc) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                Real rcinv = 1.0/(probxlo + (i+0.5)*dx);
+                Real rcinv = Real(1.0)/(probxlo + (i+Real(0.5))*dx);
                 rhsarr(i,j,k,n) *= rcinv*rcinv;
             });
         } else {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
                 Real re = probxlo + i*dx;
-                Real reinv = (re==0.0) ? 0.0 : 1./re;
+                Real reinv = (re==Real(0.0)) ? Real(0.0) : Real(1.)/re;
                 rhsarr(i,j,k,n) *= reinv*reinv;
             });
         }
@@ -1292,14 +1292,14 @@ MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
         if (cc) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
-                Real rcinv = 1.0/(probxlo + (i+0.5)*dx);
+                Real rcinv = Real(1.0)/(probxlo + (i+Real(0.5))*dx);
                 rhsarr(i,j,k,n) *= rcinv;
             });
         } else {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
                 Real re = probxlo + i*dx;
-                Real reinv = (re==0.0) ? 0.0 : 1./re;
+                Real reinv = (re==Real(0.0)) ? Real(0.0) : Real(1.)/re;
                 rhsarr(i,j,k,n) *= reinv;
             });
         }

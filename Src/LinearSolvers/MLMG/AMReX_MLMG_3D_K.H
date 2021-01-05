@@ -22,14 +22,14 @@ void mlmg_lin_cc_interp_r2 (Box const& bx, Array4<Real> const& ff,
                 for (int i = lo.x; i <= hi.x; ++i) {
                     const int ic = i/2;
                     const int ioff = 2*(i-ic*2)-1;
-                    ff(i,j,k,n) = 0.421875*cc(ic     ,jc     ,kc     ,n)
-                        +         0.140625*cc(ic+ioff,jc     ,kc     ,n)
-                        +         0.140625*cc(ic     ,jc+joff,kc     ,n)
-                        +         0.140625*cc(ic     ,jc     ,kc+koff,n)
-                        +         0.046875*cc(ic     ,jc+joff,kc+koff,n)
-                        +         0.046875*cc(ic+ioff,jc     ,kc+koff,n)
-                        +         0.046875*cc(ic+ioff,jc+joff,kc     ,n)
-                        +         0.015625*cc(ic+ioff,jc+joff,kc+koff,n);
+                    ff(i,j,k,n) = Real(0.421875)*cc(ic     ,jc     ,kc     ,n)
+                        +         Real(0.140625)*cc(ic+ioff,jc     ,kc     ,n)
+                        +         Real(0.140625)*cc(ic     ,jc+joff,kc     ,n)
+                        +         Real(0.140625)*cc(ic     ,jc     ,kc+koff,n)
+                        +         Real(0.046875)*cc(ic     ,jc+joff,kc+koff,n)
+                        +         Real(0.046875)*cc(ic+ioff,jc     ,kc+koff,n)
+                        +         Real(0.046875)*cc(ic+ioff,jc+joff,kc     ,n)
+                        +         Real(0.015625)*cc(ic+ioff,jc+joff,kc+koff,n);
                 }
             }
         }
@@ -76,7 +76,7 @@ void mlmg_eb_cc_interp_r (Box const& bx, Array4<Real> const& ff, Array4<Real con
                 for (int i = lo.x; i <= hi.x; ++i) {
                     const int ic = i/R;
                     if (flag(i,j,k).isCovered()) {
-                        ff(i,j,k,n) = 0.0;
+                        ff(i,j,k,n) = Real(0.0);
                     } else {
                         ff(i,j,k,n) = cc(ic,jc,kc,n);
                     }
@@ -99,31 +99,31 @@ void mlmg_lin_nd_interp (int i, int j, int k, int n, Array4<Real> const& fine,
     bool k_is_odd = (kc*2 != k);
     if (i_is_odd && j_is_odd && k_is_odd) {
         // Fine node at center of cell
-        fine(i,j,k,n) = 0.125*(crse(ic,  jc,  kc,n) + crse(ic,  jc,  kc+1,n) +
-                               crse(ic,  jc+1,kc,n) + crse(ic,  jc+1,kc+1,n) +
-                               crse(ic+1,jc,  kc,n) + crse(ic+1,jc,  kc+1,n) +
-                               crse(ic+1,jc+1,kc,n) + crse(ic+1,jc+1,kc+1,n));
+        fine(i,j,k,n) = Real(0.125)*(crse(ic,  jc,  kc,n) + crse(ic,  jc,  kc+1,n) +
+                                     crse(ic,  jc+1,kc,n) + crse(ic,  jc+1,kc+1,n) +
+                                     crse(ic+1,jc,  kc,n) + crse(ic+1,jc,  kc+1,n) +
+                                     crse(ic+1,jc+1,kc,n) + crse(ic+1,jc+1,kc+1,n));
     } else if (j_is_odd && k_is_odd) {
         // Node on a Y-Z face
-        fine(i,j,k,n) = 0.25*(crse(ic,  jc,  kc,n) + crse(ic,  jc,  kc+1,n) +
-                              crse(ic,  jc+1,kc,n) + crse(ic,  jc+1,kc+1,n));
+        fine(i,j,k,n) = Real(0.25)*(crse(ic,  jc,  kc,n) + crse(ic,  jc,  kc+1,n) +
+                                    crse(ic,  jc+1,kc,n) + crse(ic,  jc+1,kc+1,n));
     } else if (i_is_odd && k_is_odd) {
         // Node on a Z-X face
-        fine(i,j,k,n) = 0.25*(crse(ic,  jc,kc,n) + crse(ic,  jc,kc+1,n) +
-                              crse(ic+1,jc,kc,n) + crse(ic+1,jc,kc+1,n));
+        fine(i,j,k,n) = Real(0.25)*(crse(ic,  jc,kc,n) + crse(ic,  jc,kc+1,n) +
+                                    crse(ic+1,jc,kc,n) + crse(ic+1,jc,kc+1,n));
     } else if (i_is_odd && j_is_odd) {
         // Node on a X-Y face
-        fine(i,j,k,n) = 0.25*(crse(ic  ,jc,kc,n) + crse(ic  ,jc+1,kc,n) +
-                              crse(ic+1,jc,kc,n) + crse(ic+1,jc+1,kc,n));
+        fine(i,j,k,n) = Real(0.25)*(crse(ic  ,jc,kc,n) + crse(ic  ,jc+1,kc,n) +
+                                    crse(ic+1,jc,kc,n) + crse(ic+1,jc+1,kc,n));
     } else if (i_is_odd) {
         // Node on X line
-        fine(i,j,k,n) = 0.5*(crse(ic,jc,kc,n) + crse(ic+1,jc,kc,n));
+        fine(i,j,k,n) = Real(0.5)*(crse(ic,jc,kc,n) + crse(ic+1,jc,kc,n));
     } else if (j_is_odd) {
         // Node on Y line
-        fine(i,j,k,n) = 0.5*(crse(ic,jc,kc,n) + crse(ic,jc+1,kc,n));
+        fine(i,j,k,n) = Real(0.5)*(crse(ic,jc,kc,n) + crse(ic,jc+1,kc,n));
     } else if (k_is_odd) {
         // Node on Z line
-        fine(i,j,k,n) = 0.5*(crse(ic,jc,kc,n) + crse(ic,jc,kc+1,n));
+        fine(i,j,k,n) = Real(0.5)*(crse(ic,jc,kc,n) + crse(ic,jc,kc+1,n));
     } else {
         // Node coincident with coarse node
         fine(i,j,k,n) = crse(ic,jc,kc,n);

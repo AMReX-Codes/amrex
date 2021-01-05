@@ -135,17 +135,17 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
     const Real dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    constexpr Real twoThirds = 2./3.;
+    constexpr Real twoThirds = Real(2./3.);
 
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudy = (vel(i,j+1,0,0)+vel(i-1,j+1,0,0)-vel(i,j-1,0,0)-vel(i-1,j-1,0,0))*(0.25*dyi);
-            Real dvdy = (vel(i,j+1,0,1)+vel(i-1,j+1,0,1)-vel(i,j-1,0,1)-vel(i-1,j-1,0,1))*(0.25*dyi);
+            Real dudy = (vel(i,j+1,0,0)+vel(i-1,j+1,0,0)-vel(i,j-1,0,0)-vel(i-1,j-1,0,0))*(Real(0.25)*dyi);
+            Real dvdy = (vel(i,j+1,0,1)+vel(i-1,j+1,0,1)-vel(i,j-1,0,1)-vel(i-1,j-1,0,1))*(Real(0.25)*dyi);
             Real divu = dvdy;
             Real xif = kapx(i,j,0);
-            Real mun = 0.75*(etax(i,j,0,0)-xif);  // restore the original eta
-            Real mut =       etax(i,j,0,1);
+            Real mun = Real(0.75)*(etax(i,j,0,0)-xif);  // restore the original eta
+            Real mut =             etax(i,j,0,1);
             fx(i,j,0,0) = -mun*(-twoThirds*divu) - xif*divu;
             fx(i,j,0,1) = -mut*dudy;
         }
@@ -162,17 +162,17 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
     const Real dxi = dxinv[0];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    constexpr Real twoThirds = 2./3.;
+    constexpr Real twoThirds = Real(2./3.);
 
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudx = (vel(i+1,j,0,0)+vel(i+1,j-1,0,0)-vel(i-1,j,0,0)-vel(i-1,j-1,0,0))*(0.25*dxi);
-            Real dvdx = (vel(i+1,j,0,1)+vel(i+1,j-1,0,1)-vel(i-1,j,0,1)-vel(i-1,j-1,0,1))*(0.25*dxi);
+            Real dudx = (vel(i+1,j,0,0)+vel(i+1,j-1,0,0)-vel(i-1,j,0,0)-vel(i-1,j-1,0,0))*(Real(0.25)*dxi);
+            Real dvdx = (vel(i+1,j,0,1)+vel(i+1,j-1,0,1)-vel(i-1,j,0,1)-vel(i-1,j-1,0,1))*(Real(0.25)*dxi);
             Real divu = dudx;
             Real xif = kapy(i,j,0);
-            Real mun = 0.75*(etay(i,j,0,1)-xif);  // restore the original eta
-            Real mut =       etay(i,j,0,0);
+            Real mun = Real(0.75)*(etay(i,j,0,1)-xif);  // restore the original eta
+            Real mut =             etay(i,j,0,0);
             fy(i,j,0,0) = -mut*dvdx;
             fy(i,j,0,1) = -mun*(-twoThirds*divu) - xif*divu;
         }
@@ -246,8 +246,8 @@ void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
         for (int i = lo.x; i <= hi.x; ++i) {
             Real dudx = (vel(i,j,0,0) - vel(i-1,j,0,0))*dxi;
             Real dvdx = (vel(i,j,0,1) - vel(i-1,j,0,1))*dxi;
-            Real dudy = (vel(i,j+1,0,0)+vel(i-1,j+1,0,0)-vel(i,j-1,0,0)-vel(i-1,j-1,0,0))*(0.25*dyi);
-            Real dvdy = (vel(i,j+1,0,1)+vel(i-1,j+1,0,1)-vel(i,j-1,0,1)-vel(i-1,j-1,0,1))*(0.25*dyi);
+            Real dudy = (vel(i,j+1,0,0)+vel(i-1,j+1,0,0)-vel(i,j-1,0,0)-vel(i-1,j-1,0,0))*(Real(0.25)*dyi);
+            Real dvdy = (vel(i,j+1,0,1)+vel(i-1,j+1,0,1)-vel(i,j-1,0,1)-vel(i-1,j-1,0,1))*(Real(0.25)*dyi);
             fx(i,j,0,0) = dudx;
             fx(i,j,0,1) = dvdx;
             fx(i,j,0,2) = dudy;
@@ -269,8 +269,8 @@ void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudx = (vel(i+1,j,0,0)+vel(i+1,j-1,0,0)-vel(i-1,j,0,0)-vel(i-1,j-1,0,0))*(0.25*dxi);
-            Real dvdx = (vel(i+1,j,0,1)+vel(i+1,j-1,0,1)-vel(i-1,j,0,1)-vel(i-1,j-1,0,1))*(0.25*dxi);
+            Real dudx = (vel(i+1,j,0,0)+vel(i+1,j-1,0,0)-vel(i-1,j,0,0)-vel(i-1,j-1,0,0))*(Real(0.25)*dxi);
+            Real dvdx = (vel(i+1,j,0,1)+vel(i+1,j-1,0,1)-vel(i-1,j,0,1)-vel(i-1,j-1,0,1))*(Real(0.25)*dxi);
             Real dudy = (vel(i,j,0,0) - vel(i,j-1,0,0))*dyi;
             Real dvdy = (vel(i,j,0,1) - vel(i,j-1,0,1))*dyi;
             fy(i,j,0,0) = dudx;
