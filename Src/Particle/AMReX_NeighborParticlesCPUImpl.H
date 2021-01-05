@@ -579,7 +579,7 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
                 if ( enableInverse() )
                 {
                     AMREX_ASSERT(neighbors[lev][dst_index].size() ==
-                                 inverse_tags[lev][dst_index].size());
+                                 size_t(inverse_tags[lev][dst_index].size()));
                     inverse_tags[lev][dst_index].resize(new_size);
                 }
                 neighbors[lev][dst_index].resize(new_size);
