@@ -46,6 +46,9 @@ main (int   argc,
     if (iFile.empty())
         amrex::Abort("You must specify `infile'");
 
+    int fast = 0;
+    pp.query("fast", fast);
+
     // single-level for now
     // AMR comes later, where we iterate over each level in isolation
 
@@ -131,16 +134,20 @@ main (int   argc,
 
         const Array4<Real>& mfdata = mf_onegrid.array(mfi);
 
-       for (auto n=0; n<ncomp; ++n) {
-       for (auto k = lo.z; k <= hi.z; ++k) {
-       for (auto j = lo.y; j <= hi.y; ++j) {
-       for (auto i = lo.x; i <= hi.x; ++i) {
-            Print() << i << " " << j << " " << k << " " << n << " " << mfdata(i,j,k,n) << std::endl;
-       }
-       }
-       }
-       }
-            
+        if (fast == 1){
+          // This way is much faster than the loops below
+          amrex::Print() << mf_onegrid[mfi];
+        }else{
+          for (auto n=0; n<ncomp; ++n) {
+            for (auto k = lo.z; k <= hi.z; ++k) {
+              for (auto j = lo.y; j <= hi.y; ++j) {
+                for (auto i = lo.x; i <= hi.x; ++i) {
+                  Print() << i << " " << j << " " << k << " " << n << " " << mfdata(i,j,k,n) << std::endl;
+                }
+              }
+            }
+          }
+        }    
     } // end MFIter
     
 }
