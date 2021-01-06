@@ -69,28 +69,6 @@ namespace amrex { namespace ParallelDescriptor {
 
     const int ioProcessor = 0;
 
-    namespace util
-    {
-	//
-	// Reduce helper functions.
-	//
-	void DoAllReduceReal     (Real&      r, MPI_Op op);
-	void DoAllReduceLong     (Long&      r, MPI_Op op);
-	void DoAllReduceInt      (int&       r, MPI_Op op);
-
-	void DoAllReduceReal     (Real*      r, MPI_Op op, int cnt);
-	void DoAllReduceLong     (Long*      r, MPI_Op op, int cnt);
-	void DoAllReduceInt      (int*       r, MPI_Op op, int cnt);
-
-	void DoReduceReal     (Real&      r, MPI_Op op, int cpu);
-	void DoReduceLong     (Long&      r, MPI_Op op, int cpu);
-	void DoReduceInt      (int&       r, MPI_Op op, int cpu);
-
-	void DoReduceReal     (Real*      r, MPI_Op op, int cnt, int cpu);
-	void DoReduceLong     (Long*      r, MPI_Op op, int cnt, int cpu);
-	void DoReduceInt      (int*       r, MPI_Op op, int cnt, int cpu);
-    }
-
 #ifdef AMREX_PMI
     void PMI_Initialize()
     {
@@ -509,11 +487,47 @@ Comm_dup (MPI_Comm comm, MPI_Comm& newcomm)
 }
 
 void
+ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar)
+{
+    ReduceRealSum<Real>(std::move(rvar));
+}
+
+void
+ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
+{
+    ReduceRealSum<Real>(std::move(rvar), cpu);
+}
+
+void
+ReduceRealMax (Vector<std::reference_wrapper<Real> > && rvar)
+{
+    ReduceRealMax<Real>(std::move(rvar));
+}
+
+void
+ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
+{
+    ReduceRealMax<Real>(std::move(rvar), cpu);
+}
+
+void
+ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar)
+{
+    ReduceRealMin<Real>(std::move(rvar));
+}
+
+void
+ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
+{
+    ReduceRealMin<Real>(std::move(rvar), cpu);
+}
+
+void
 ReduceBoolAnd (bool& r)
 {
     int src = r; // src is either 0 or 1.
 
-    util::DoAllReduceInt(src,MPI_SUM);
+    detail::DoAllReduce<int>(&src,MPI_SUM,1);
 
     r = (src == ParallelDescriptor::NProcs()) ? true : false;
 }
@@ -523,7 +537,7 @@ ReduceBoolAnd (bool& r, int cpu)
 {
     int src = r; // src is either 0 or 1.
 
-    util::DoReduceInt(src,MPI_SUM,cpu);
+    detail::DoReduce<int>(&src,MPI_SUM,1,cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
         r = (src == ParallelDescriptor::NProcs()) ? true : false;
@@ -534,7 +548,7 @@ ReduceBoolOr (bool& r)
 {
     int src = r; // src is either 0 or 1.
 
-    util::DoAllReduceInt(src,MPI_SUM);
+    detail::DoAllReduce<int>(&src,MPI_SUM,1);
 
     r = (src == 0) ? false : true;
 }
@@ -544,160 +558,22 @@ ReduceBoolOr (bool& r, int cpu)
 {
     int src = r; // src is either 0 or 1.
 
-    util::DoReduceInt(src,MPI_SUM,cpu);
+    detail::DoReduce<int>(&src,MPI_SUM,1,cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
         r = (src == 0) ? false : true;
 }
 
 void
-ReduceRealSum (Real& r)
-{
-    util::DoAllReduceReal(r,MPI_SUM);
-}
-
-void
-ReduceRealSum (Real* r, int cnt)
-{
-    util::DoAllReduceReal(r,MPI_SUM,cnt);
-}
-
-void
-ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar)
-{
-    int cnt = rvar.size();
-    Vector<Real> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceReal(tmp.data(),MPI_SUM,cnt);
-    for (int i = 0; i < cnt; ++i) {
-        rvar[i].get() = tmp[i];
-    }
-}
-
-void
-ReduceRealSum (Real& r, int cpu)
-{
-    util::DoReduceReal(r,MPI_SUM,cpu);
-}
-
-void
-ReduceRealSum (Real* r, int cnt, int cpu)
-{
-    util::DoReduceReal(r,MPI_SUM,cnt,cpu);
-}
-
-void
-ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
-{
-    int cnt = rvar.size();
-    Vector<Real> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoReduceReal(tmp.data(),MPI_SUM,cnt,cpu);
-    for (int i = 0; i < cnt; ++i) {
-        rvar[i].get() = tmp[i];
-    }
-}
-
-void
-ReduceRealMax (Real& r)
-{
-    util::DoAllReduceReal(r,MPI_MAX);
-}
-
-void
-ReduceRealMax (Real* r, int cnt)
-{
-    util::DoAllReduceReal(r,MPI_MAX,cnt);
-}
-
-void
-ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar)
-{
-    int cnt = rvar.size();
-    Vector<Real> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceReal(tmp.data(),MPI_MAX,cnt);
-    for (int i = 0; i < cnt; ++i) {
-        rvar[i].get() = tmp[i];
-    }
-}
-
-void
-ReduceRealMax (Real& r, int cpu)
-{
-    util::DoReduceReal(r,MPI_MAX,cpu);
-}
-
-void
-ReduceRealMax (Real* r, int cnt, int cpu)
-{
-    util::DoReduceReal(r,MPI_MAX,cnt,cpu);
-}
-
-void
-ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
-{
-    int cnt = rvar.size();
-    Vector<Real> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoReduceReal(tmp.data(),MPI_MAX,cnt,cpu);
-    for (int i = 0; i < cnt; ++i) {
-        rvar[i].get() = tmp[i];
-    }
-}
-
-void
-ReduceRealMin (Real& r)
-{
-    util::DoAllReduceReal(r,MPI_MIN);
-}
-
-void
-ReduceRealMin (Real* r, int cnt)
-{
-    util::DoAllReduceReal(r,MPI_MIN,cnt);
-}
-
-void
-ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar)
-{
-    int cnt = rvar.size();
-    Vector<Real> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceReal(tmp.data(),MPI_MIN,cnt);
-    for (int i = 0; i < cnt; ++i) {
-        rvar[i].get() = tmp[i];
-    }
-}
-
-void
-ReduceRealMin (Real& r, int cpu)
-{
-    util::DoReduceReal(r,MPI_MIN,cpu);
-}
-
-void
-ReduceRealMin (Real* r, int cnt, int cpu)
-{
-    util::DoReduceReal(r,MPI_MIN,cnt,cpu);
-}
-
-void
-ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
-{
-    int cnt = rvar.size();
-    Vector<Real> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoReduceReal(tmp.data(),MPI_MIN,cnt,cpu);
-    for (int i = 0; i < cnt; ++i) {
-        rvar[i].get() = tmp[i];
-    }
-}
-
-void
 ReduceIntSum (int& r)
 {
-    util::DoAllReduceInt(r,MPI_SUM);
+    detail::DoAllReduce<int>(&r,MPI_SUM,1);
 }
 
 void
 ReduceIntSum (int* r, int cnt)
 {
-    util::DoAllReduceInt(r,MPI_SUM,cnt);
+    detail::DoAllReduce<int>(r,MPI_SUM,cnt);
 }
 
 void
@@ -705,7 +581,7 @@ ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceInt(tmp.data(),MPI_SUM,cnt);
+    detail::DoAllReduce<int>(tmp.data(),MPI_SUM,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -714,13 +590,13 @@ ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar)
 void
 ReduceIntSum (int& r, int cpu)
 {
-    util::DoReduceInt(r,MPI_SUM,cpu);
+    detail::DoReduce<int>(&r,MPI_SUM,1,cpu);
 }
 
 void
 ReduceIntSum (int* r, int cnt, int cpu)
 {
-    util::DoReduceInt(r,MPI_SUM,cnt,cpu);
+    detail::DoReduce<int>(r,MPI_SUM,cnt,cpu);
 }
 
 void
@@ -728,7 +604,7 @@ ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoReduceInt(tmp.data(),MPI_SUM,cnt,cpu);
+    detail::DoReduce<int>(tmp.data(),MPI_SUM,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -737,13 +613,13 @@ ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
 void
 ReduceIntMax (int& r)
 {
-    util::DoAllReduceInt(r,MPI_MAX);
+    detail::DoAllReduce<int>(&r,MPI_MAX,1);
 }
 
 void
 ReduceIntMax (int* r, int cnt)
 {
-    util::DoAllReduceInt(r,MPI_MAX,cnt);
+    detail::DoAllReduce<int>(r,MPI_MAX,cnt);
 }
 
 void
@@ -751,7 +627,7 @@ ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceInt(tmp.data(),MPI_MAX,cnt);
+    detail::DoAllReduce<int>(tmp.data(),MPI_MAX,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -760,13 +636,13 @@ ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar)
 void
 ReduceIntMax (int& r, int cpu)
 {
-    util::DoReduceInt(r,MPI_MAX,cpu);
+    detail::DoReduce<int>(&r,MPI_MAX,1,cpu);
 }
 
 void
 ReduceIntMax (int* r, int cnt, int cpu)
 {
-    util::DoReduceInt(r,MPI_MAX,cnt,cpu);
+    detail::DoReduce<int>(r,MPI_MAX,cnt,cpu);
 }
 
 void
@@ -774,7 +650,7 @@ ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoReduceInt(tmp.data(),MPI_MAX,cnt,cpu);
+    detail::DoReduce<int>(tmp.data(),MPI_MAX,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -783,13 +659,13 @@ ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
 void
 ReduceIntMin (int& r)
 {
-    util::DoAllReduceInt(r,MPI_MIN);
+    detail::DoAllReduce<int>(&r,MPI_MIN,1);
 }
 
 void
 ReduceIntMin (int* r, int cnt)
 {
-    util::DoAllReduceInt(r,MPI_MIN,cnt);
+    detail::DoAllReduce<int>(r,MPI_MIN,cnt);
 }
 
 void
@@ -797,7 +673,7 @@ ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceInt(tmp.data(),MPI_MIN,cnt);
+    detail::DoAllReduce<int>(tmp.data(),MPI_MIN,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -806,13 +682,13 @@ ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar)
 void
 ReduceIntMin (int& r, int cpu)
 {
-    util::DoReduceInt(r,MPI_MIN,cpu);
+    detail::DoReduce<int>(&r,MPI_MIN,1,cpu);
 }
 
 void
 ReduceIntMin (int* r, int cnt, int cpu)
 {
-    util::DoReduceInt(r,MPI_MIN,cnt,cpu);
+    detail::DoReduce<int>(r,MPI_MIN,cnt,cpu);
 }
 
 void
@@ -820,7 +696,7 @@ ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoReduceInt(tmp.data(),MPI_MIN,cnt,cpu);
+    detail::DoReduce<int>(tmp.data(),MPI_MIN,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -829,13 +705,13 @@ ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
 void
 ReduceLongSum (Long& r)
 {
-    util::DoAllReduceLong(r,MPI_SUM);
+    detail::DoAllReduce<Long>(&r,MPI_SUM,1);
 }
 
 void
 ReduceLongSum (Long* r, int cnt)
 {
-    util::DoAllReduceLong(r,MPI_SUM,cnt);
+    detail::DoAllReduce<Long>(r,MPI_SUM,cnt);
 }
 
 void
@@ -843,7 +719,7 @@ ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceLong(tmp.data(),MPI_SUM,cnt);
+    detail::DoAllReduce<Long>(tmp.data(),MPI_SUM,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -852,13 +728,13 @@ ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar)
 void
 ReduceLongSum (Long& r, int cpu)
 {
-    util::DoReduceLong(r,MPI_SUM,cpu);
+    detail::DoReduce<Long>(&r,MPI_SUM,1,cpu);
 }
 
 void
 ReduceLongSum (Long* r, int cnt, int cpu)
 {
-    util::DoReduceLong(r,MPI_SUM,cnt,cpu);
+    detail::DoReduce<Long>(r,MPI_SUM,cnt,cpu);
 }
 
 void
@@ -866,7 +742,7 @@ ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoReduceLong(tmp.data(),MPI_SUM,cnt,cpu);
+    detail::DoReduce<Long>(tmp.data(),MPI_SUM,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -875,13 +751,13 @@ ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
 void
 ReduceLongMax (Long& r)
 {
-    util::DoAllReduceLong(r,MPI_MAX);
+    detail::DoAllReduce<Long>(&r,MPI_MAX,1);
 }
 
 void
 ReduceLongMax (Long* r, int cnt)
 {
-    util::DoAllReduceLong(r,MPI_MAX,cnt);
+    detail::DoAllReduce<Long>(r,MPI_MAX,cnt);
 }
 
 void
@@ -889,7 +765,7 @@ ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceLong(tmp.data(),MPI_MAX,cnt);
+    detail::DoAllReduce<Long>(tmp.data(),MPI_MAX,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -898,13 +774,13 @@ ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar)
 void
 ReduceLongMax (Long& r, int cpu)
 {
-    util::DoReduceLong(r,MPI_MAX,cpu);
+    detail::DoReduce<Long>(&r,MPI_MAX,1,cpu);
 }
 
 void
 ReduceLongMax (Long* r, int cnt, int cpu)
 {
-    util::DoReduceLong(r,MPI_MAX,cnt,cpu);
+    detail::DoReduce<Long>(r,MPI_MAX,cnt,cpu);
 }
 
 void
@@ -912,7 +788,7 @@ ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoReduceLong(tmp.data(),MPI_MAX,cnt,cpu);
+    detail::DoReduce<Long>(tmp.data(),MPI_MAX,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -921,13 +797,13 @@ ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
 void
 ReduceLongMin (Long& r)
 {
-    util::DoAllReduceLong(r,MPI_MIN);
+    detail::DoAllReduce<Long>(&r,MPI_MIN,1);
 }
 
 void
 ReduceLongMin (Long* r, int cnt)
 {
-    util::DoAllReduceLong(r,MPI_MIN,cnt);
+    detail::DoAllReduce<Long>(r,MPI_MIN,cnt);
 }
 
 void
@@ -935,7 +811,7 @@ ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceLong(tmp.data(),MPI_MIN,cnt);
+    detail::DoAllReduce<Long>(tmp.data(),MPI_MIN,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -944,13 +820,13 @@ ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar)
 void
 ReduceLongMin (Long& r, int cpu)
 {
-    util::DoReduceLong(r,MPI_MIN,cpu);
+    detail::DoReduce<Long>(&r,MPI_MIN,1,cpu);
 }
 
 void
 ReduceLongMin (Long* r, int cnt, int cpu)
 {
-    util::DoReduceLong(r,MPI_MIN,cnt,cpu);
+    detail::DoReduce<Long>(r,MPI_MIN,cnt,cpu);
 }
 
 void
@@ -958,7 +834,7 @@ ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoReduceLong(tmp.data(),MPI_MIN,cnt,cpu);
+    detail::DoReduce<Long>(tmp.data(),MPI_MIN,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -967,13 +843,13 @@ ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
 void
 ReduceLongAnd (Long& r)
 {
-    util::DoAllReduceLong(r,MPI_LAND);
+    detail::DoAllReduce<Long>(&r,MPI_LAND,1);
 }
 
 void
 ReduceLongAnd (Long* r, int cnt)
 {
-    util::DoAllReduceLong(r,MPI_LAND,cnt);
+    detail::DoAllReduce<Long>(r,MPI_LAND,cnt);
 }
 
 void
@@ -981,7 +857,7 @@ ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceLong(tmp.data(),MPI_LAND,cnt);
+    detail::DoAllReduce<Long>(tmp.data(),MPI_LAND,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -990,13 +866,13 @@ ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar)
 void
 ReduceLongAnd (Long& r, int cpu)
 {
-    util::DoReduceLong(r,MPI_LAND,cpu);
+    detail::DoReduce<Long>(&r,MPI_LAND,1,cpu);
 }
 
 void
 ReduceLongAnd (Long* r, int cnt, int cpu)
 {
-    util::DoReduceLong(r,MPI_LAND,cnt,cpu);
+    detail::DoReduce<Long>(r,MPI_LAND,cnt,cpu);
 }
 
 void
@@ -1004,528 +880,9 @@ ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar,int cpu)
 {
     int cnt = rvar.size();
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoReduceLong(tmp.data(),MPI_LAND,cnt,cpu);
+    detail::DoReduce<Long>(tmp.data(),MPI_LAND,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
-    }
-}
-
-void
-util::DoAllReduceReal (Real& r, MPI_Op op)
-{
-#ifdef BL_LAZY
-    Lazy::EvalReduction();
-#endif
-
-    BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceReal()");
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceR, BLProfiler::BeforeCall(), true);
-
-    Real recv;
-
-#if defined(BL_USE_MPI3)
-    if (doTeamReduce() > 1) {
-	Real recv_team;
-	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, Mpi_typemap<Real>::type(), op,
-				   0, MyTeam().get_team_comm()) );
-	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, Mpi_typemap<Real>::type(), op,
-					  MyTeam().get_lead_comm()) );
-	}
-	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Real>::type(),
-				  0, MyTeam().get_team_comm()) );
-    }
-    else
-#endif
-    {
-	BL_MPI_REQUIRE( MPI_Allreduce(&r,
-				      &recv,
-				      1,
-				      Mpi_typemap<Real>::type(),
-				      op,
-				      Communicator()) );
-    }
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceR, sizeof(Real), false);
-    r = recv;
-}
-
-void
-util::DoAllReduceReal (Real* r, MPI_Op op, int cnt)
-{
-#ifdef BL_LAZY
-    Lazy::EvalReduction();
-#endif
-
-    BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceReal()");
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceR, BLProfiler::BeforeCall(), true);
-
-    BL_ASSERT(cnt > 0);
-
-    Vector<Real> recv(cnt);
-
-#if defined(BL_USE_MPI3)
-    if (doTeamReduce() > 1) {
-	Vector<Real> recv_team(cnt);
-	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, Mpi_typemap<Real>::type(), op,
-				   0, MyTeam().get_team_comm()) );
-	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt,
-					  Mpi_typemap<Real>::type(), op,
-					  MyTeam().get_lead_comm()) );
-	}
-	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, Mpi_typemap<Real>::type(),
-				  0, MyTeam().get_team_comm()) );
-    }
-    else
-#endif
-    {
-	BL_MPI_REQUIRE( MPI_Allreduce(r,
-				      recv.dataPtr(),
-				      cnt,
-				      Mpi_typemap<Real>::type(),
-				      op,
-				      Communicator()) );
-    }
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceR, cnt * sizeof(Real), false);
-    for (int i = 0; i < cnt; i++)
-        r[i] = recv[i];
-}
-
-void
-util::DoReduceReal (Real& r, MPI_Op op, int cpu)
-{
-#ifdef BL_LAZY
-    Lazy::EvalReduction();
-#endif
-
-    BL_PROFILE_S("ParallelDescriptor::util::DoReduceReal()");
-    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceR, sizeof(Real), cpu);
-
-    Real recv;
-
-#if defined(BL_USE_MPI3)
-    if (doTeamReduce() > 1) {
-	Real recv_team;
-	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, Mpi_typemap<Real>::type(), op,
-				   0, MyTeam().get_team_comm()) );
-
-	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team, &recv, 1, Mpi_typemap<Real>::type(), op,
-				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
-	}
-	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Real>::type(),
-				      0, MyTeam().get_team_comm()) );
-	}
-    }
-    else
-#endif
-    {
-	BL_MPI_REQUIRE( MPI_Reduce(&r,
-				   &recv,
-				   1,
-				   Mpi_typemap<Real>::type(),
-				   op,
-				   cpu,
-				   Communicator()) );
-    }
-    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceR, BLProfiler::AfterCall(), cpu);
-
-    if (ParallelDescriptor::MyProc() == cpu)
-	r = recv;
-}
-
-void
-util::DoReduceReal (Real* r, MPI_Op op, int cnt, int cpu)
-{
-#ifdef BL_LAZY
-    Lazy::EvalReduction();
-#endif
-
-    BL_PROFILE_S("ParallelDescriptor::util::DoReduceReal()");
-    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceR, cnt * sizeof(Real), cpu);
-
-    BL_ASSERT(cnt > 0);
-
-    Vector<Real> recv(cnt);
-
-#if defined(BL_USE_MPI3)
-    if (doTeamReduce() > 1) {
-	Vector<Real> recv_team(cnt);
-	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, Mpi_typemap<Real>::type(), op,
-				   0, MyTeam().get_team_comm()) );
-
-	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team[0], &recv[0], cnt, Mpi_typemap<Real>::type(), op,
-				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
-	}
-	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, Mpi_typemap<Real>::type(),
-				      0, MyTeam().get_team_comm()) );
-	}
-    }
-    else
-#endif
-    {
-	BL_MPI_REQUIRE( MPI_Reduce(r,
-				   recv.dataPtr(),
-				   cnt,
-				   Mpi_typemap<Real>::type(),
-				   op,
-				   cpu,
-				   Communicator()) );
-    }
-    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceR, BLProfiler::AfterCall(), cpu);
-
-    if (ParallelDescriptor::MyProc() == cpu)
-    {
-        for (int i = 0; i < cnt; i++)
-            r[i] = recv[i];
-    }
-}
-
-void
-util::DoAllReduceLong (Long& r, MPI_Op op)
-{
-#ifdef BL_LAZY
-    Lazy::EvalReduction();
-#endif
-
-    BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceLong()");
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, BLProfiler::BeforeCall(), true);
-
-    Long recv;
-
-#if defined(BL_USE_MPI3)
-    if (doTeamReduce() > 1) {
-	Long recv_team;
-	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, Mpi_typemap<Long>::type(), op,
-				   0, MyTeam().get_team_comm()) );
-	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, Mpi_typemap<Long>::type(), op,
-					  MyTeam().get_lead_comm()) );
-	}
-	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Long>::type(),
-				  0, MyTeam().get_team_comm()) );
-    }
-    else
-#endif
-    {
-	BL_MPI_REQUIRE( MPI_Allreduce(&r,
-				      &recv,
-				      1,
-				      Mpi_typemap<Long>::type(),
-				      op,
-				      Communicator()) );
-    }
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, sizeof(Long), false);
-    r = recv;
-}
-
-void
-util::DoAllReduceLong (Long* r, MPI_Op op, int cnt)
-{
-#ifdef BL_LAZY
-    Lazy::EvalReduction();
-#endif
-
-    BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceLong()");
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, BLProfiler::BeforeCall(), true);
-
-    BL_ASSERT(cnt > 0);
-
-    Vector<Long> recv(cnt);
-
-#if defined(BL_USE_MPI3)
-    if (doTeamReduce() > 1) {
-	Vector<Long> recv_team(cnt);
-	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, Mpi_typemap<Long>::type(), op,
-				   0, MyTeam().get_team_comm()) );
-	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt,
-					  Mpi_typemap<Long>::type(), op,
-					  MyTeam().get_lead_comm()) );
-	}
-	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, Mpi_typemap<Long>::type(),
-				  0, MyTeam().get_team_comm()) );
-    }
-    else
-#endif
-    {
-	BL_MPI_REQUIRE( MPI_Allreduce(r,
-				      recv.dataPtr(),
-				      cnt,
-				      Mpi_typemap<Long>::type(),
-				      op,
-				      Communicator()) );
-    }
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, cnt * sizeof(Long), false);
-    for (int i = 0; i < cnt; i++)
-        r[i] = recv[i];
-}
-
-void
-util::DoReduceLong (Long& r, MPI_Op op, int cpu)
-{
-#ifdef BL_LAZY
-    Lazy::EvalReduction();
-#endif
-
-    BL_PROFILE_S("ParallelDescriptor::util::DoReduceLong()");
-    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceL, sizeof(Long), cpu);
-
-    Long recv;
-
-#if defined(BL_USE_MPI3)
-    if (doTeamReduce() > 1) {
-	Long recv_team;
-	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, Mpi_typemap<Long>::type(), op,
-				   0, MyTeam().get_team_comm()) );
-
-	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team, &recv, 1, Mpi_typemap<Long>::type(), op,
-				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
-	}
-	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Long>::type(),
-				      0, MyTeam().get_team_comm()) );
-	}
-    }
-    else
-#endif
-    {
-	BL_MPI_REQUIRE( MPI_Reduce(&r,
-				   &recv,
-				   1,
-				   Mpi_typemap<Long>::type(),
-				   op,
-				   cpu,
-				   Communicator()));
-    }
-    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceL, BLProfiler::AfterCall(), cpu);
-
-    if (ParallelDescriptor::MyProc() == cpu)
-        r = recv;
-}
-
-void
-util::DoReduceLong (Long* r, MPI_Op op, int cnt, int cpu)
-{
-#ifdef BL_LAZY
-    Lazy::EvalReduction();
-#endif
-
-    BL_PROFILE_S("ParallelDescriptor::util::DoReduceLong()");
-    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceL, cnt * sizeof(Long), cpu);
-
-    BL_ASSERT(cnt > 0);
-
-    Vector<Long> recv(cnt);
-
-#if defined(BL_USE_MPI3)
-    if (doTeamReduce() > 1) {
-	Vector<Long> recv_team(cnt);
-	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, Mpi_typemap<Long>::type(), op,
-				   0, MyTeam().get_team_comm()) );
-
-	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team[0], &recv[0], cnt, Mpi_typemap<Long>::type(), op,
-				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
-	}
-	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, Mpi_typemap<Long>::type(),
-				      0, MyTeam().get_team_comm()) );
-	}
-    }
-    else
-#endif
-    {
-	BL_MPI_REQUIRE( MPI_Reduce(r,
-				   recv.dataPtr(),
-				   cnt,
-				   Mpi_typemap<Long>::type(),
-				   op,
-				   cpu,
-				   Communicator()));
-    }
-    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceL, BLProfiler::AfterCall(), cpu);
-
-    if (ParallelDescriptor::MyProc() == cpu)
-    {
-        for (int i = 0; i < cnt; i++)
-            r[i] = recv[i];
-    }
-}
-
-void
-util::DoAllReduceInt (int& r, MPI_Op op)
-{
-#ifdef BL_LAZY
-    Lazy::EvalReduction();
-#endif
-
-    BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceInt()");
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceI, BLProfiler::BeforeCall(), true);
-
-    int recv;
-
-#if defined(BL_USE_MPI3)
-    if (doTeamReduce() > 1) {
-	int recv_team;
-	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_INT, op,
-				   0, MyTeam().get_team_comm()) );
-	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, MPI_INT, op,
-					  MyTeam().get_lead_comm()) );
-	}
-	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_INT,
-				  0, MyTeam().get_team_comm()) );
-    }
-    else
-#endif
-    {
-	BL_MPI_REQUIRE( MPI_Allreduce(&r,
-				      &recv,
-				      1,
-				      MPI_INT,
-				      op,
-				      Communicator()));
-    }
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceI, sizeof(int), false);
-    r = recv;
-}
-
-void
-util::DoAllReduceInt (int* r, MPI_Op op, int cnt)
-{
-#ifdef BL_LAZY
-    Lazy::EvalReduction();
-#endif
-
-    BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceInt()");
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceI, BLProfiler::BeforeCall(), true);
-
-    BL_ASSERT(cnt > 0);
-
-    Vector<int> recv(cnt);
-
-#if defined(BL_USE_MPI3)
-    if (doTeamReduce() > 1) {
-	Vector<int> recv_team(cnt);
-	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, MPI_INT, op,
-				   0, MyTeam().get_team_comm()) );
-	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt,
-					  MPI_INT, op,
-					  MyTeam().get_lead_comm()) );
-	}
-	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, MPI_INT,
-				  0, MyTeam().get_team_comm()) );
-    }
-    else
-#endif
-    {
-	BL_MPI_REQUIRE( MPI_Allreduce(r,
-				      recv.dataPtr(),
-				      cnt,
-				      MPI_INT,
-				      op,
-				      Communicator()));
-    }
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceI, cnt * sizeof(int), false);
-    for (int i = 0; i < cnt; i++)
-        r[i] = recv[i];
-}
-
-void
-util::DoReduceInt (int& r, MPI_Op op, int cpu)
-{
-#ifdef BL_LAZY
-    Lazy::EvalReduction();
-#endif
-
-    BL_PROFILE_S("ParallelDescriptor::util::DoReduceInt()");
-    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceI, sizeof(int), cpu);
-
-    int recv;
-
-#if defined(BL_USE_MPI3)
-    if (doTeamReduce() > 1) {
-	int recv_team;
-	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_INT, op,
-				   0, MyTeam().get_team_comm()) );
-
-	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team, &recv, 1, MPI_INT, op,
-				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
-	}
-	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_INT,
-				      0, MyTeam().get_team_comm()) );
-	}
-    }
-    else
-#endif
-    {
-	BL_MPI_REQUIRE( MPI_Reduce(&r,
-				   &recv,
-				   1,
-				   MPI_INT,
-				   op,
-				   cpu,
-				   Communicator()));
-    }
-    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceI, BLProfiler::AfterCall(), cpu);
-
-    if (ParallelDescriptor::MyProc() == cpu)
-        r = recv;
-}
-
-void
-util::DoReduceInt (int* r, MPI_Op op, int cnt, int cpu)
-{
-#ifdef BL_LAZY
-    Lazy::EvalReduction();
-#endif
-
-    BL_PROFILE_S("ParallelDescriptor::util::DoReduceInt()");
-    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceI, cnt * sizeof(int), cpu);
-
-    BL_ASSERT(cnt > 0);
-
-    Vector<int> recv(cnt);
-
-#if defined(BL_USE_MPI3)
-    if (doTeamReduce() > 1) {
-	Vector<Long> recv_team(cnt);
-	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, Mpi_typemap<Long>::type(), op,
-				   0, MyTeam().get_team_comm()) );
-
-	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team[0], &recv[0], cnt, Mpi_typemap<Long>::type(), op,
-				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
-	}
-	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, Mpi_typemap<Long>::type(),
-				      0, MyTeam().get_team_comm()) );
-	}
-    }
-    else
-#endif
-    {
-	BL_MPI_REQUIRE( MPI_Reduce(r,
-				   recv.dataPtr(),
-				   cnt,
-				   MPI_INT,
-				   op,
-				   cpu,
-				   Communicator()));
-    }
-    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceI, BLProfiler::AfterCall(), cpu);
-
-    if (ParallelDescriptor::MyProc() == cpu)
-    {
-        for (int i = 0; i < cnt; i++)
-            r[i] = recv[i];
     }
 }
 
@@ -1786,22 +1143,6 @@ void IProbe (int, int, int&, MPI_Status&) {}
 void IProbe (int, int, MPI_Comm, int&, MPI_Status&) {}
 
 void Comm_dup (MPI_Comm, MPI_Comm&) {}
-
-void ReduceRealMax (Real&) {}
-void ReduceRealMin (Real&) {}
-void ReduceRealSum (Real&) {}
-
-void ReduceRealMax (Real&,int) {}
-void ReduceRealMin (Real&,int) {}
-void ReduceRealSum (Real&,int) {}
-
-void ReduceRealMax (Real*,int) {}
-void ReduceRealMin (Real*,int) {}
-void ReduceRealSum (Real*,int) {}
-
-void ReduceRealMax (Real*,int,int) {}
-void ReduceRealMin (Real*,int,int) {}
-void ReduceRealSum (Real*,int,int) {}
 
 void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
 void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
