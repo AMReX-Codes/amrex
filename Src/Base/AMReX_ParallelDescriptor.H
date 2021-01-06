@@ -1204,35 +1204,9 @@ void DoAllReduce (T* r, MPI_Op op, int cnt)
 
     BL_ASSERT(cnt > 0);
 
-    Vector<T> recv(cnt);
-
-#if defined(BL_USE_MPI3)
-    if (doTeamReduce() > 1) {
-	Vector<T> recv_team(cnt);
-	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, Mpi_typemap<T>::type(), op,
-				   0, MyTeam().get_team_comm()) );
-	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt,
-					  Mpi_typemap<T>::type(), op,
-					  MyTeam().get_lead_comm()) );
-	}
-	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, Mpi_typemap<T>::type(),
-				  0, MyTeam().get_team_comm()) );
-    }
-    else
-#endif
-    {
-	BL_MPI_REQUIRE( MPI_Allreduce(r,
-				      recv.dataPtr(),
-				      cnt,
-				      Mpi_typemap<T>::type(),
-				      op,
-				      Communicator()) );
-    }
-
-    for (int i = 0; i < cnt; i++) {
-        r[i] = recv[i];
-    }
+    BL_MPI_REQUIRE( MPI_Allreduce(MPI_IN_PLACE, r, cnt,
+                                  Mpi_typemap<T>::type(), op,
+                                  Communicator()) );
 }
 
 template<typename T>
@@ -1244,40 +1218,14 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
     BL_ASSERT(cnt > 0);
 
-    Vector<T> recv(cnt);
-
-#if defined(BL_USE_MPI3)
-    if (doTeamReduce() > 1) {
-	Vector<T> recv_team(cnt);
-	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, Mpi_typemap<T>::type(), op,
-				   0, MyTeam().get_team_comm()) );
-
-	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team[0], &recv[0], cnt, Mpi_typemap<T>::type(), op,
-				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
-	}
-	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, Mpi_typemap<T>::type(),
-				      0, MyTeam().get_team_comm()) );
-	}
-    }
-    else
-#endif
-    {
-	BL_MPI_REQUIRE( MPI_Reduce(r,
-				   recv.dataPtr(),
-				   cnt,
-				   Mpi_typemap<T>::type(),
-				   op,
-				   cpu,
-				   Communicator()) );
-    }
-
-    if (ParallelDescriptor::MyProc() == cpu)
-    {
-        for (int i = 0; i < cnt; i++) {
-            r[i] = recv[i];
-        }
+    if (MyProc() == cpu) {
+        BL_MPI_REQUIRE( MPI_Reduce(MPI_IN_PLACE, r, cnt,
+                                   Mpi_typemap<T>::type(), op,
+                                   cpu, Communicator()) );
+    } else {
+        BL_MPI_REQUIRE( MPI_Reduce(r, r, cnt,
+                                   Mpi_typemap<T>::type(), op,
+                                   cpu, Communicator()) );
     }
 }
 
