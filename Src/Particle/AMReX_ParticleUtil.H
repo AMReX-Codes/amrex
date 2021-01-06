@@ -348,10 +348,23 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                 }
                 else
                 {
-                    enforcePeriodic(p, plo, phi, is_per);
-                    auto tup = ploc(p, lev_min, lev_max, nGrow);
+		    auto p_prime = p;
+                    enforcePeriodic(p_prime, plo, phi, is_per);
+                    auto tup = ploc(p_prime, lev_min, lev_max, nGrow);
                     assigned_grid = amrex::get<0>(tup);
                     assigned_lev  = amrex::get<1>(tup);
+		    if (assigned_grid >= 0)
+		    {
+		      AMREX_D_TERM(p.pos(0) = p_prime.pos(0);,
+				   p.pos(1) = p_prime.pos(1);,
+				   p.pos(2) = p_prime.pos(2););
+		    }
+		    else if (lev_min > 0)
+		    {
+		      auto tup = ploc(p, lev_min, lev_max, nGrow);
+		      assigned_grid = amrex::get<0>(tup);
+		      assigned_lev  = amrex::get<1>(tup);
+		    }
                 }
 
                 return ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid));
