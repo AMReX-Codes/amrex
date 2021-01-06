@@ -140,22 +140,25 @@ function (configure_amrex)
    endif ()
 
    if ( BUILD_SHARED_LIBS OR AMReX_CUDA )
+      set(host_link_supported OLD)
+      if(CMP0105)
+        cmake_policy(GET CMP0105 host_link_supported)
+      endif()
+
       if(APPLE)
-        target_link_options(amrex PUBLIC "LINKER:-undefined,warning")
+        if( host_link_supported STREQUAL "NEW" ) # CMake 3.18+
+          target_link_options(amrex PUBLIC "LINKER:-undefined,warning")
+        else()
+          target_link_options(amrex PUBLIC "-Wl,-undefined,warning")
+        endif()
       elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR
              CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
-
+        # nothing
       else()
-
-        set(host_link_supported OLD)
-        if(CMP0105)
-          cmake_policy(GET CMP0105 host_link_supported)
-        endif()
-
-        if( host_link_supported STREQUAL "NEW" )
+        if( host_link_supported STREQUAL "NEW" ) # CMake 3.18+
           target_link_options(amrex PUBLIC "$<HOST_LINK:LINKER:--warn-unresolved-symbols>")
         else()
-          target_link_options(amrex PUBLIC "LINKER:--warn-unresolved-symbols")
+          target_link_options(amrex PUBLIC "-Wl,--warn-unresolved-symbols")
         endif()
       endif()
    endif()
