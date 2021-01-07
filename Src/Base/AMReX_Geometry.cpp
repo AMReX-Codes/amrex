@@ -414,7 +414,7 @@ Geometry::computeRoundoffDomain ()
         Real deltax = CellSize(idim);
 
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-        Real tolerance = std::max(1.e-4_rt*deltax, 1.e-10_rt*phi);
+        Real tolerance = std::max(1.e-4_rt*deltax, 2.e-7_rt*phi);
 #else
         Real tolerance = std::max(1.e-8_rt*deltax, 1.e-14_rt*phi);
 #endif
