@@ -2,12 +2,15 @@
 #define AMREX_ALGORITHM_H_
 #include <AMReX_Config.H>
 
-#include <algorithm>
-
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Extension.H>
 #include <AMReX_Dim3.H>
 #include <AMReX_BLassert.H>
+#include <AMReX_Math.H>
+
+#include <algorithm>
+#include <limits>
+#include <type_traits>
 
 namespace amrex
 {
@@ -100,6 +103,19 @@ namespace amrex
             "Error - maximum number of iterations reached in bisect.");
 
         return mi;
+    }
+
+    // Reference: https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
+    template <typename T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    typename std::enable_if<std::is_floating_point<T>::value,bool>::type
+    almostEqual (T x, T y, int ulp = 2)
+    {
+        // the machine epsilon has to be scaled to the magnitude of the values used
+        // and multiplied by the desired precision in ULPs (units in the last place)
+        return amrex::Math::abs(x-y) <= std::numeric_limits<T>::epsilon() * amrex::Math::abs(x+y) * ulp
+        // unless the result is subnormal
+        || amrex::Math::abs(x-y) < std::numeric_limits<T>::min();
     }
 }
 

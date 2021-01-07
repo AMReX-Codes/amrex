@@ -154,7 +154,7 @@ MLTensorOp::prepareForSolve ()
     for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int icomp = idim;
-            MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], 4./3.,
+            MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], Real(4./3.),
                            m_kappa[amrlev][0][idim], 0, icomp, 1, 0);
         }
     }
@@ -165,7 +165,7 @@ MLTensorOp::prepareForSolve ()
         for (int mglev = 1; mglev < m_kappa[amrlev].size(); ++mglev) {
             if (m_has_kappa && m_overset_mask[amrlev][mglev]) {
                 const Real fac = static_cast<Real>(1 << mglev); // 2**mglev
-                const Real osfac = 2.0*fac/(fac+1.0);
+                const Real osfac = Real(2.0)*fac/(fac+Real(1.0));
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

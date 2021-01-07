@@ -555,7 +555,7 @@ MLPoisson::makeNLinOp (int grid_size) const
     if (needsCoarseDataForBC())
     {
         const Real* dx0 = m_geom[0][0].CellSize();
-        const Real fac = 0.5*m_coarse_data_crse_ratio;
+        const Real fac = Real(0.5)*m_coarse_data_crse_ratio;
         RealVect cbloc {AMREX_D_DECL(dx0[0]*fac, dx0[1]*fac, dx0[2]*fac)};
         nop->setCoarseFineBCLocation(cbloc);
     }
@@ -572,7 +572,7 @@ MLPoisson::makeNLinOp (int grid_size) const
 #endif
 
     MultiFab alpha(ba, dm, 1, 0);
-    alpha.setVal(1.e30*dxscale*dxscale);
+    alpha.setVal(Real(1.e30)*dxscale*dxscale);
 
     MultiFab foo(m_grids[0].back(), m_dmap[0].back(), 1, 0, MFInfo().SetAlloc(false));
     const FabArrayBase::CPC& cpc = alpha.getCPC(IntVect(0),foo,IntVect(0),Periodicity::NonPeriodic());

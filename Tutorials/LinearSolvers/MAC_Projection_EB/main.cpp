@@ -48,7 +48,7 @@ int main (int argc, char* argv[])
 
     amrex::Initialize(argc, argv);
 
-    Real strt_time = amrex::second();
+    auto strt_time = amrex::second();
 
     {
         int mg_verbose = 0;
@@ -257,7 +257,7 @@ int main (int argc, char* argv[])
         write_plotfile(geom, plotfile_mf, regtest);
     }
 
-    Real stop_time = amrex::second() - strt_time;
+    auto stop_time = amrex::second() - strt_time;
     amrex::Print() << "Total run time " << stop_time << std::endl;
 
     amrex::Finalize();

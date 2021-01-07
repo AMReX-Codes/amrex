@@ -968,7 +968,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
             for(int j(0); j < mf.nComp(); ++j) {
                 auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(mf.box(idx),j)
                                           : mf[mfi].minmax<RunOn::Host  >(mf.box(idx),j);
-                const Real val = (mm.first + mm.second) / 2.0;
+                const Real val = (mm.first + mm.second) / 2.0_rt;
                 if (run_on_device) {
                     the_mf->get(mfi).setComplement<RunOn::Device>(val, mf.box(idx), j, 1);
                 } else {
@@ -1481,9 +1481,9 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     BL_PROFILE("VisMF::Read()");
 
     VisMF::Header hdr;
-    Real hEndTime, hStartTime, faCopyTime(0.0);
-    Real startTime(amrex::second());
-    static Real totalTime(0.0);
+    double hEndTime, hStartTime, faCopyTime(0.0);
+    double startTime(amrex::second());
+    static double totalTime(0.0);
     int myProc(ParallelDescriptor::MyProc());
     int messTotal(0);
 
@@ -1916,7 +1916,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     }
 
     if(myProc == coordinatorProc && verbose) {
-      Real mfReadTime = amrex::second() - startTime;
+      auto mfReadTime = amrex::second() - startTime;
       totalTime += mfReadTime;
       amrex::AllPrint() << "FARead ::  nBoxes = " << hdr.m_ba.size()
                         << "  nMessages = " << messTotal << '\n'

@@ -322,7 +322,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
-    const Real strttime = amrex::second();
+    const auto strttime = amrex::second();
 
     AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == NumIntComps() + NStructInt);
@@ -623,7 +623,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
    
     if (m_verbose > 1)
     {
-        Real stoptime = amrex::second() - strttime;
+        auto stoptime = amrex::second() - strttime;
         
         ParallelDescriptor::ReduceRealMax(stoptime, IOProcNumber);
         
@@ -899,7 +899,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     AMREX_ASSERT(!dir.empty());
     AMREX_ASSERT(!file.empty());
     
-    const Real strttime = amrex::second();
+    const auto strttime = amrex::second();
     
     /* int DATA_Digits_Read(5); */
     /* ParmParse pp("particles"); */
@@ -1251,7 +1251,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     AMREX_ASSERT(OK());
     
     if (m_verbose > 1) {
-        Real stoptime = amrex::second() - strttime;	
+        auto stoptime = amrex::second() - strttime;
         ParallelDescriptor::ReduceRealMax(stoptime, ParallelDescriptor::IOProcessorNumber());
         amrex::Print() << "ParticleContainer::Restart() time: " << stoptime << '\n';
     }

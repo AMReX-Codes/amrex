@@ -1786,6 +1786,6 @@ extern "C" {
 
     Real amrex_fi_pd_wtime ()
     {
-        return ParallelDescriptor::second();
+        return static_cast<Real>(ParallelDescriptor::second());
     }
 }

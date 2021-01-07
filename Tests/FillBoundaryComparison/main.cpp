@@ -133,7 +133,7 @@ main (int argc, char* argv[])
     Real err = 0.0;
 
     ParallelDescriptor::Barrier();
-    Real wt0 = ParallelDescriptor::second();
+    auto wt0 = ParallelDescriptor::second();
 
     for (int iround = 0; iround < nrounds; ++iround) {
 	for (int c=0; c<2; ++c) {
@@ -152,7 +152,7 @@ main (int argc, char* argv[])
     }
 	    
     ParallelDescriptor::Barrier();
-    Real wt1 = ParallelDescriptor::second();
+    auto wt1 = ParallelDescriptor::second();
 
     if (ParallelDescriptor::IOProcessor()) {
         std::cout << "Using MPI" << std::endl;

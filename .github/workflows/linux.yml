@@ -317,6 +317,20 @@ jobs:
         make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names CXXSTD=c++17
         make install
 
+  # Build 3D libamrex with single precision and tiny profiler
+  configure-3d-single-tprof:
+    name: GNU@7.5 Release [configure 3D]
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+    - name: Build & Install
+      run: |
+        ./configure --dim 3 --enable-eb no --enable-xsdk-defaults no --single-precision yes --single-precision-particles yes --enable-tiny-profile yes
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
+        make install
+
   # Build 3D libamrex debug omp build with configure
   configure-3d-omp-debug:
     name: GNU@7.5 OMP Debug [configure 3D]

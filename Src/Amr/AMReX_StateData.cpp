@@ -16,9 +16,9 @@
 namespace amrex {
 
 #ifdef AMREX_USE_FLOAT
-static constexpr Real INVALID_TIME = -1.0e30;
+static constexpr Real INVALID_TIME = -1.0e30_rt;
 #else
-static constexpr Real INVALID_TIME = -1.0e200; 
+static constexpr Real INVALID_TIME = -1.0e200_rt;
 #endif
 
 static constexpr int MFNEWDATA = 0;
@@ -235,7 +235,7 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
     // We set it to zero in case a compiler complains about uninitialized data.
     //
     if (nsets == 0) {
-       new_data->setVal(0.0);
+       new_data->setVal(0.0_rt);
     }
 
     std::string mf_name;
@@ -293,7 +293,7 @@ StateData::restart (const StateDescriptor& d,
     new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
                                 MFInfo().SetTag("StateData").SetArena(arena),
                                 *m_factory));
-    new_data->setVal(0.);
+    new_data->setVal(0._rt);
 }
 
 StateData::~StateData()
@@ -349,7 +349,7 @@ StateData::setNewTimeLevel (Real time)
 void
 StateData::syncNewTimeLevel (Real time)
 {
-    Real teps = (new_time.stop - old_time.stop)*1.e-3;
+    Real teps = (new_time.stop - old_time.stop)*1.e-3_rt;
     if (time > new_time.stop-teps && time < new_time.stop+teps)
     {
 	if (desc->timeType() == StateDescriptor::Point)
@@ -624,7 +624,7 @@ StateData::InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
     }
     else
     {
-        const Real teps = (new_time.start - old_time.start)*1.e-3;
+        const Real teps = (new_time.start - old_time.start)*1.e-3_rt;
 
         if (time > new_time.start-teps && time < new_time.stop+teps)
         {
@@ -691,7 +691,7 @@ StateData::InterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
     }
     else
     {
-        const Real teps = (new_time.start - old_time.start)*1.e-3;
+        const Real teps = (new_time.start - old_time.start)*1.e-3_rt;
 
         if (time > new_time.start-teps && time < new_time.stop+teps)
         {
@@ -728,7 +728,7 @@ StateData::getData (Vector<MultiFab*>& data,
         }
         else
         {
-	    const Real teps = (new_time.start - old_time.start)*1.e-3;
+	    const Real teps = (new_time.start - old_time.start)*1.e-3_rt;
 	    if (time > new_time.start-teps && time < new_time.start+teps) {
 		data.push_back(new_data.get());
 		datatime.push_back(new_time.start);
@@ -745,7 +745,7 @@ StateData::getData (Vector<MultiFab*>& data,
     }
     else
     {
-        const Real teps = (new_time.start - old_time.start)*1.e-3;
+        const Real teps = (new_time.start - old_time.start)*1.e-3_rt;
 
         if (time > new_time.start-teps && time < new_time.stop+teps)
         {

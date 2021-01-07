@@ -614,7 +614,7 @@ MLNodeLaplacian::compGrad (int amrlev, MultiFab& grad, MultiFab& sol) const
     bool is_rz = m_is_rz;
 #endif
 
-    Real sigma = -1.0;
+    Real sigma = Real(-1.0);
 
     AMREX_ASSERT(grad.nComp() >= AMREX_SPACEDIM);
 

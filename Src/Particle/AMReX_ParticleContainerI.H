@@ -345,7 +345,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
 
     if (! outside)
     {
-        if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
+        if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(Real(p.pos(0)), Real(p.pos(1)), Real(p.pos(2)))))
         {
             RealBox roundoff_domain = Geom(0).RoundoffDomain();
             for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
@@ -358,7 +358,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
                 }
             }
 
-            AMREX_ASSERT(! Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))));
+            AMREX_ASSERT(! Geom(0).outsideRoundoffDomain(AMREX_D_DECL(Real(p.pos(0)), Real(p.pos(1)), Real(p.pos(2)))));
         }
     }
 
@@ -1264,7 +1264,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   BL_PROFILE("ParticleContainer::RedistributeCPU()");
 
   const int MyProc    = ParallelContext::MyProcSub();
-  Real      strttime  = static_cast<Real>(amrex::second());
+  auto      strttime  = amrex::second();
 
   if (local > 0) BuildRedistributeMask(0, local);
 
@@ -1581,7 +1581,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   AMREX_ASSERT(OK(lev_min, lev_max, nGrow));
 
   if (m_verbose > 0) {
-      Real stoptime = static_cast<Real>(amrex::second() - strttime);
+      auto stoptime = amrex::second() - strttime;
 
       ByteSpread();
 
@@ -2059,7 +2059,7 @@ AssignCellDensitySingleLevel (int rho_index,
     if (mf_pointer->nGrow() < 1)
        amrex::Error("Must have at least one ghost cell when in AssignCellDensitySingleLevel");
 
-    const Real      strttime    = amrex::second();
+    const auto strttime = amrex::second();
 
     const auto dxi              = Geom(lev).InvCellSizeArray();
     const auto plo              = Geom(lev).ProbLoArray();
@@ -2152,7 +2152,7 @@ AssignCellDensitySingleLevel (int rho_index,
 
     if (m_verbose > 1)
     {
-        Real stoptime = amrex::second() - strttime;
+        auto stoptime = amrex::second() - strttime;
 
         ParallelReduce::Max(stoptime, ParallelContext::IOProcessorNumberSub(),
                             ParallelContext::CommunicatorSub());

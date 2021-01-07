@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
         BL_PROFILE("main()");
 
         // wallclock time
-        const Real strt_total = amrex::second();
+        const auto strt_total = amrex::second();
 
         // constructor - reads in parameters from inputs file
         //             - sizes multilevel arrays and data structures
@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
 	amr_core_adv.Evolve();
 	
         // wallclock time
-	Real end_total = amrex::second() - strt_total;
+	auto end_total = amrex::second() - strt_total;
 	
 	if (amr_core_adv.Verbose()) {
             // print wallclock time
