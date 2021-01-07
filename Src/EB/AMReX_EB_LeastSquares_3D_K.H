@@ -319,12 +319,10 @@ Real grad_x_of_phi_on_centroids(int i,int j,int k,int n,
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
                                 Array4<Real const> const& bcent, 
-                                Array4<Real const> const& apx, 
-                                Array4<Real const> const& apy, 
-                                Array4<Real const> const& apz, 
                                 Real& yloc_on_xface, Real& zloc_on_xface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog)
 {
+    AMREX_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,35,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
 
@@ -402,12 +400,10 @@ Real grad_y_of_phi_on_centroids(int i,int j,int k,int n,
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
                                 Array4<Real const> const& bcent, 
-                                Array4<Real const> const& apx, 
-                                Array4<Real const> const& apy, 
-                                Array4<Real const> const& apz, 
                                 Real& xloc_on_yface, Real& zloc_on_yface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog)
 {
+    AMREX_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,35,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
 
@@ -485,12 +481,10 @@ Real grad_z_of_phi_on_centroids(int i,int j,int k,int n,
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
                                 Array4<Real const> const& bcent, 
-                                Array4<Real const> const& apx, 
-                                Array4<Real const> const& apy, 
-                                Array4<Real const> const& apz, 
                                 Real& xloc_on_zface, Real& yloc_on_zface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog)
 {
+    AMREX_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,35,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
 
@@ -655,9 +649,6 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
                                 Array4<Real const> const& bcent, 
-                                Array4<Real const> const& apx, 
-                                Array4<Real const> const& apy, 
-                                Array4<Real const> const& apz, 
                                 Real& yloc_on_xface, Real& zloc_on_xface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog,
                                 const bool on_x_face, const int domlo_x, const int domhi_x,
@@ -670,6 +661,8 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 Array4<Real const> const& bcval_zlo,
                                 Array4<Real const> const& bcval_zhi)
 {
+    AMREX_ASSERT(is_eb_dirichlet);
+
     Array2D<Real,0,53,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
 
@@ -807,9 +800,6 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
                                 Array4<Real const> const& bcent, 
-                                Array4<Real const> const& apx, 
-                                Array4<Real const> const& apy, 
-                                Array4<Real const> const& apz, 
                                 Real& xloc_on_yface, Real& zloc_on_yface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog,
                                 const bool on_x_face, const int domlo_x, const int domhi_x,
@@ -822,6 +812,7 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 Array4<Real const> const& bcval_zlo,
                                 Array4<Real const> const& bcval_zhi)
 {
+    AMREX_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,53,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
 
@@ -958,9 +949,6 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
                                 Array4<Real const> const& bcent, 
-                                Array4<Real const> const& apx, 
-                                Array4<Real const> const& apy, 
-                                Array4<Real const> const& apz, 
                                 Real& xloc_on_zface, Real& yloc_on_zface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog,
                                 const bool on_x_face, const int domlo_x, const int domhi_x,
@@ -973,6 +961,7 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 Array4<Real const> const& bcval_zlo,
                                 Array4<Real const> const& bcval_zhi)
 {
+    AMREX_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,53,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
 

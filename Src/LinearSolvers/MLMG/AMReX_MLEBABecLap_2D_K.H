@@ -86,13 +86,13 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
 
                 if(needs_bdry_stencil) {
 
-                  fxm = grad_x_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,apx,apy,
+                  fxm = grad_x_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,
                                                           yloc_on_xface,is_eb_dirichlet,is_eb_inhomog,
                                                           on_x_face, domlo_x, domhi_x, bcval_xlo, bcval_xhi,
                                                           on_y_face, domlo_y, domhi_y, bcval_ylo, bcval_yhi);
 
                 } else {
-                  fxm = grad_x_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,apx,apy,
+                  fxm = grad_x_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,
                                                    yloc_on_xface,is_eb_dirichlet,is_eb_inhomog);
                 }
                 fxm *= bX(i,j,k,n);
@@ -111,13 +111,13 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                        (apxp != 0.0) && (vfrc(i,j,k) != 1.0 || vfrc(i+1,j,k) != 1.0 || vfrc(i-1,j,k) != 1.0) ) {
                 Real yloc_on_xface = fcx(i+1,j,k,0);
                 if(needs_bdry_stencil) {
-                  fxp = grad_x_of_phi_on_centroids_extdir(i+1,j,k,n,x,phieb,flag,ccent,bcent,apx,apy,
+                  fxp = grad_x_of_phi_on_centroids_extdir(i+1,j,k,n,x,phieb,flag,ccent,bcent,
                                                           yloc_on_xface,is_eb_dirichlet,is_eb_inhomog,
                                                           on_x_face, domlo_x, domhi_x, bcval_xlo, bcval_xhi,
                                                           on_y_face, domlo_y, domhi_y, bcval_ylo, bcval_yhi);
 
                 } else {
-                  fxp = grad_x_of_phi_on_centroids(i+1,j,k,n,x,phieb,flag,ccent,bcent,apx,apy,
+                  fxp = grad_x_of_phi_on_centroids(i+1,j,k,n,x,phieb,flag,ccent,bcent,
                                                    yloc_on_xface,is_eb_dirichlet,is_eb_inhomog);
                 }
                 fxp *= bX(i+1,j,k,n);
@@ -139,13 +139,13 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
 
                 if(needs_bdry_stencil) {
 
-                  fym = grad_y_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,apx,apy,
+                  fym = grad_y_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,
                                                           xloc_on_yface,is_eb_dirichlet,is_eb_inhomog,
                                                           on_x_face, domlo_x, domhi_x, bcval_xlo, bcval_xhi,
                                                           on_y_face, domlo_y, domhi_y, bcval_ylo, bcval_yhi);
 
                 } else {
-                  fym = grad_y_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,apx,apy,
+                  fym = grad_y_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,
                                                    xloc_on_yface,is_eb_dirichlet,is_eb_inhomog);
                 }
                 fym *= bY(i,j,k,n);
@@ -164,13 +164,13 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                        (apyp != 0.0) && (vfrc(i,j,k) != 1.0 || vfrc(i,j+1,k) != 1.0 || vfrc(i,j-1,k) != 1.0) ) {
                 Real xloc_on_yface = fcy(i,j+1,k,0);
                 if(needs_bdry_stencil) {
-                  fyp = grad_y_of_phi_on_centroids_extdir(i,j+1,k,n,x,phieb,flag,ccent,bcent,apx,apy,
+                  fyp = grad_y_of_phi_on_centroids_extdir(i,j+1,k,n,x,phieb,flag,ccent,bcent,
                                                           xloc_on_yface,is_eb_dirichlet,is_eb_inhomog,
                                                           on_x_face, domlo_x, domhi_x, bcval_xlo, bcval_xhi,
                                                           on_y_face, domlo_y, domhi_y, bcval_ylo, bcval_yhi);
 
                 } else {
-                  fyp = grad_y_of_phi_on_centroids(i,j+1,k,n,x,phieb,flag,ccent,bcent,apx,apy,
+                  fyp = grad_y_of_phi_on_centroids(i,j+1,k,n,x,phieb,flag,ccent,bcent,
                                                    xloc_on_yface,is_eb_dirichlet,is_eb_inhomog);
                 }
                 fyp *= bY(i,j+1,k,n);

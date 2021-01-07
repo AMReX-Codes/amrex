@@ -99,14 +99,14 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 Real zloc_on_xface = fcx(i,j,k,1);
 
                 if(needs_bdry_stencil) {
-                  fxm = grad_x_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,apx,apy,apz,
+                  fxm = grad_x_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,
                                                           yloc_on_xface,zloc_on_xface,
                                                           is_eb_dirichlet,is_eb_inhomog,
                                                           on_x_face,domlo_x,domhi_x,bcval_xlo,bcval_xhi,
                                                           on_y_face,domlo_y,domhi_y,bcval_ylo,bcval_yhi,
                                                           on_z_face,domlo_z,domhi_z,bcval_zlo,bcval_zhi);
                 } else {
-                  fxm = grad_x_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,apx,apy,apz,
+                  fxm = grad_x_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,
                                                  yloc_on_xface,zloc_on_xface,is_eb_dirichlet,is_eb_inhomog);
                 }
 
@@ -140,14 +140,14 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 Real zloc_on_xface = fcx(i+1,j,k,1);
 
                 if(needs_bdry_stencil) {
-                  fxp = grad_x_of_phi_on_centroids_extdir(i+1,j,k,n,x,phieb,flag,ccent,bcent,apx,apy,apz,
+                  fxp = grad_x_of_phi_on_centroids_extdir(i+1,j,k,n,x,phieb,flag,ccent,bcent,
                                                           yloc_on_xface,zloc_on_xface,
                                                           is_eb_dirichlet,is_eb_inhomog,
                                                           on_x_face,domlo_x,domhi_x,bcval_xlo,bcval_xhi,
                                                           on_y_face,domlo_y,domhi_y,bcval_ylo,bcval_yhi,
                                                           on_z_face,domlo_z,domhi_z,bcval_zlo,bcval_zhi);
                 } else {
-                  fxp = grad_x_of_phi_on_centroids(i+1,j,k,n,x,phieb,flag,ccent,bcent,apx,apy,apz,
+                  fxp = grad_x_of_phi_on_centroids(i+1,j,k,n,x,phieb,flag,ccent,bcent,
                                                  yloc_on_xface,zloc_on_xface,is_eb_dirichlet,is_eb_inhomog);
                 }
 
@@ -182,14 +182,14 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 Real zloc_on_yface = fcy(i,j,k,1);
 
                 if(needs_bdry_stencil) {
-                  fym = grad_y_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,apx,apy,apz,
+                  fym = grad_y_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,
                                                           xloc_on_yface,zloc_on_yface,
                                                           is_eb_dirichlet,is_eb_inhomog,
                                                           on_x_face,domlo_x,domhi_x,bcval_xlo,bcval_xhi,
                                                           on_y_face,domlo_y,domhi_y,bcval_ylo,bcval_yhi,
                                                           on_z_face,domlo_z,domhi_z,bcval_zlo,bcval_zhi);
                 } else {
-                  fym = grad_y_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,apx,apy,apz,
+                  fym = grad_y_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,
                                                  xloc_on_yface,zloc_on_yface,is_eb_dirichlet,is_eb_inhomog);
                 }
 
@@ -224,14 +224,14 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 Real zloc_on_yface = fcy(i,j+1,k,1);
 
                 if(needs_bdry_stencil) {
-                  fyp = grad_y_of_phi_on_centroids_extdir(i,j+1,k,n,x,phieb,flag,ccent,bcent,apx,apy,apz,
+                  fyp = grad_y_of_phi_on_centroids_extdir(i,j+1,k,n,x,phieb,flag,ccent,bcent,
                                                           xloc_on_yface,zloc_on_yface,
                                                           is_eb_dirichlet,is_eb_inhomog,
                                                           on_x_face,domlo_x,domhi_x,bcval_xlo,bcval_xhi,
                                                           on_y_face,domlo_y,domhi_y,bcval_ylo,bcval_yhi,
                                                           on_z_face,domlo_z,domhi_z,bcval_zlo,bcval_zhi);
                 } else {
-                  fyp = grad_y_of_phi_on_centroids(i,j+1,k,n,x,phieb,flag,ccent,bcent,apx,apy,apz,
+                  fyp = grad_y_of_phi_on_centroids(i,j+1,k,n,x,phieb,flag,ccent,bcent,
                                                  xloc_on_yface,zloc_on_yface,is_eb_dirichlet,is_eb_inhomog);
                 }
 
@@ -266,14 +266,14 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 Real yloc_on_zface = fcz(i,j,k,1);
 
                 if(needs_bdry_stencil) {
-                  fzm = grad_z_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,apx,apy,apz,
+                  fzm = grad_z_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,
                                                           xloc_on_zface,yloc_on_zface,
                                                           is_eb_dirichlet,is_eb_inhomog,
                                                           on_x_face,domlo_x,domhi_x,bcval_xlo,bcval_xhi,
                                                           on_y_face,domlo_y,domhi_y,bcval_ylo,bcval_yhi,
                                                           on_z_face,domlo_z,domhi_z,bcval_zlo,bcval_zhi);
                 } else {
-                  fzm = grad_z_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,apx,apy,apz,
+                  fzm = grad_z_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,
                                                  xloc_on_zface,yloc_on_zface,is_eb_dirichlet,is_eb_inhomog);
                 }
 
@@ -308,14 +308,14 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 Real yloc_on_zface = fcz(i,j,k+1,1);
 
                 if(needs_bdry_stencil) {
-                  fzp = grad_z_of_phi_on_centroids_extdir(i,j,k+1,n,x,phieb,flag,ccent,bcent,apx,apy,apz,
+                  fzp = grad_z_of_phi_on_centroids_extdir(i,j,k+1,n,x,phieb,flag,ccent,bcent,
                                                           xloc_on_zface,yloc_on_zface,
                                                           is_eb_dirichlet,is_eb_inhomog,
                                                           on_x_face,domlo_x,domhi_x,bcval_xlo,bcval_xhi,
                                                           on_y_face,domlo_y,domhi_y,bcval_ylo,bcval_yhi,
                                                           on_z_face,domlo_z,domhi_z,bcval_zlo,bcval_zhi);
                 } else {
-                  fzp = grad_z_of_phi_on_centroids(i,j,k+1,n,x,phieb,flag,ccent,bcent,apx,apy,apz,
+                  fzp = grad_z_of_phi_on_centroids(i,j,k+1,n,x,phieb,flag,ccent,bcent,
                                                  xloc_on_zface,yloc_on_zface,is_eb_dirichlet,is_eb_inhomog);
                 }
 

@@ -832,7 +832,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
             bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
             bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
 
-            bool treat_phi_as_on_centroid = ( phi_on_centroid and (mglev == 0) );
+            bool treat_phi_as_on_centroid = ( phi_on_centroid && (mglev == 0) );
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {

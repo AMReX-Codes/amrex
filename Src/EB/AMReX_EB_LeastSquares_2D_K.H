@@ -232,11 +232,10 @@ Real grad_x_of_phi_on_centroids(int i,int j,int k,int n,
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
                                 Array4<Real const> const& bcent,
-                                Array4<Real const> const& apx,
-                                Array4<Real const> const& apy,
                                 Real& yloc_on_xface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog)
 {
+    AMREX_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,11,0,5> Amatrix;
     Array1D<Real,0, 5    > rhs;
 
@@ -270,27 +269,13 @@ Real grad_x_of_phi_on_centroids(int i,int j,int k,int n,
                 if (!flag(ii,jj,k).isRegular())
                 {
                     int a_ind_eb  = a_ind + 6;
-                    if (is_eb_dirichlet) {
-                        Amatrix(a_ind_eb,0) = 1.0;
-                        Amatrix(a_ind_eb,1) = x_off + bcent(ii,jj,k,0);
-                        Amatrix(a_ind_eb,2) = y_off + bcent(ii,jj,k,1) - yloc_on_xface;
-                        Amatrix(a_ind_eb,3) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,1);
-                        Amatrix(a_ind_eb,4) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,2);
-                        Amatrix(a_ind_eb,5) = Amatrix(a_ind_eb,2) * Amatrix(a_ind_eb,2);
-                    } else { // Neumann bc's on EB face
-                        Real dapx = apx(ii,jj,k)-apx(ii+1,jj,k);
-                        Real dapy = apy(ii,jj,k)-apy(ii,jj+1,k);;
-                        Real anorm = std::hypot(dapx,dapy);
-                        Real norm_x = dapx / anorm;
-                        Real norm_y = dapy / anorm;
-                        Amatrix(a_ind_eb,0) = 0.0;
-                        Amatrix(a_ind_eb,1) = norm_x;
-                        Amatrix(a_ind_eb,2) = norm_y;
-                        Amatrix(a_ind_eb,3) = 2.0*norm_x*(x_off + bcent(ii,jj,k,1));
-                        Amatrix(a_ind_eb,4) = norm_x*(y_off + bcent(ii,jj,k,1) - yloc_on_xface)
-                                             +norm_y*(x_off + bcent(ii,jj,k,0));
-                        Amatrix(a_ind_eb,5) = 2.0*norm_y*(y_off + bcent(ii,jj,k,1) - yloc_on_xface);
-                    }
+                    
+                    Amatrix(a_ind_eb,0) = 1.0;
+                    Amatrix(a_ind_eb,1) = x_off + bcent(ii,jj,k,0);
+                    Amatrix(a_ind_eb,2) = y_off + bcent(ii,jj,k,1) - yloc_on_xface;
+                    Amatrix(a_ind_eb,3) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,1);
+                    Amatrix(a_ind_eb,4) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,2);
+                    Amatrix(a_ind_eb,5) = Amatrix(a_ind_eb,2) * Amatrix(a_ind_eb,2);
                 }
             }
         }
@@ -327,11 +312,10 @@ Real grad_y_of_phi_on_centroids(int i,int j,int k,int n,
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
                                 Array4<Real const> const& bcent,
-                                Array4<Real const> const& apx,
-                                Array4<Real const> const& apy,
                                 Real& xloc_on_yface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog)
 {
+    AMREX_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,11,0,5> Amatrix;
     Array1D<Real,0, 5    > rhs;
 
@@ -363,27 +347,12 @@ Real grad_y_of_phi_on_centroids(int i,int j,int k,int n,
                 if (!flag(ii,jj,k).isRegular())
                 {
                     int a_ind_eb  = a_ind + 6;
-                    if (is_eb_dirichlet) {
-                        Amatrix(a_ind_eb,0) = 1.0;
-                        Amatrix(a_ind_eb,1) = x_off + bcent(ii,jj,k,0) - xloc_on_yface;
-                        Amatrix(a_ind_eb,2) = y_off + bcent(ii,jj,k,1);
-                        Amatrix(a_ind_eb,3) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,1);
-                        Amatrix(a_ind_eb,4) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,2);
-                        Amatrix(a_ind_eb,5) = Amatrix(a_ind_eb,2) * Amatrix(a_ind_eb,2);
-                    } else { // Neumann bc's on EB face
-                        Real dapx = apx(ii,jj,k)-apx(ii+1,jj,k);
-                        Real dapy = apy(ii,jj,k)-apy(ii,jj+1,k);;
-                        Real anorm = std::hypot(dapx,dapy);
-                        Real norm_x = dapx / anorm;
-                        Real norm_y = dapy / anorm;
-                        Amatrix(a_ind_eb,0) = 0.0;
-                        Amatrix(a_ind_eb,1) = norm_x;
-                        Amatrix(a_ind_eb,2) = norm_y;
-                        Amatrix(a_ind_eb,3) = 2.0*norm_x*(x_off + bcent(ii,jj,k,0) - xloc_on_yface);
-                        Amatrix(a_ind_eb,4) = norm_x*(y_off + bcent(ii,jj,k,1))
-                                             +norm_y*(x_off + bcent(ii,jj,k,0) - xloc_on_yface);
-                        Amatrix(a_ind_eb,5) = 2.0*norm_y*(y_off + bcent(ii,jj,k,1));
-                    }
+                    Amatrix(a_ind_eb,0) = 1.0;
+                    Amatrix(a_ind_eb,1) = x_off + bcent(ii,jj,k,0) - xloc_on_yface;
+                    Amatrix(a_ind_eb,2) = y_off + bcent(ii,jj,k,1);
+                    Amatrix(a_ind_eb,3) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,1);
+                    Amatrix(a_ind_eb,4) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,2);
+                    Amatrix(a_ind_eb,5) = Amatrix(a_ind_eb,2) * Amatrix(a_ind_eb,2);
                 }
             }
         }
@@ -452,25 +421,11 @@ Real grad_eb_of_phi_on_centroids(int i,int j,int k,int n,
                    Amatrix(a_ind,2) = y_off + ccent(ii,jj,k,1) - bcent(i,j,k,1);
                 }
 
-#if 0
-                if (i == ii && j == jj)
-                {
-                   Amatrix(a_ind,0) *= 2.0;
-                   Amatrix(a_ind,1) *= 2.0;
-                   Amatrix(a_ind,2) *= 2.0;
-                }
-#endif
-
                 if (flag(i,j,k).isConnected((ii-i),(jj-j),0) && !flag(ii,jj,k).isRegular())
                 {
                     Amatrix(a_ind+9,0) = 1.0;
                     Amatrix(a_ind+9,1) = x_off + bcent(ii,jj,k,0) - bcent(i,j,k,0);
                     Amatrix(a_ind+9,2) = y_off + bcent(ii,jj,k,1) - bcent(i,j,k,1);
-
-#if 0
-                    if (i == ii && j == jj)
-                        Amatrix(a_ind+9,0) *= 2.0;
-#endif
                 }
             }
         }
@@ -515,8 +470,6 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                        Array4<EBCellFlag const> const& flag,
                                        Array4<Real const> const& ccent,
                                        Array4<Real const> const& bcent,
-                                       Array4<Real const> const& apx,
-                                       Array4<Real const> const& apy,
                                        Real& yloc_on_xface,
                                        bool is_eb_dirichlet, bool is_eb_inhomog,
                                        const bool on_x_face, const int domlo_x, const int domhi_x,
@@ -526,6 +479,7 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                        Array4<Real const> const& bcval_ylo,
                                        Array4<Real const> const& bcval_yhi)
 {
+    AMREX_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,17,0,5> Amatrix;
     Array1D<Real,0, 5    > rhs;
 
@@ -593,87 +547,15 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                     int a_ind_eb  = a_ind + 9;
                     AMREX_ASSERT(9<= a_ind_eb && a_ind_eb <= 17);
 
-                    if (is_eb_dirichlet) {
-                        Amatrix(a_ind_eb,0) = 1.0;
-                        Amatrix(a_ind_eb,1) = x_off + bcent(ii,jj,k,0);
-                        Amatrix(a_ind_eb,2) = y_off + bcent(ii,jj,k,1) - yloc_on_xface;
-                        Amatrix(a_ind_eb,3) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,1);
-                        Amatrix(a_ind_eb,4) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,2);
-                        Amatrix(a_ind_eb,5) = Amatrix(a_ind_eb,2) * Amatrix(a_ind_eb,2);
-                    } else { // Neumann bc's on EB face
-                        Real dapx = apx(ii,jj,k)-apx(ii+1,jj,k);
-                        Real dapy = apy(ii,jj,k)-apy(ii,jj+1,k);;
-                        Real anorm = std::hypot(dapx,dapy);
-                        Real norm_x = dapx / anorm;
-                        Real norm_y = dapy / anorm;
-                        Amatrix(a_ind_eb,0) = 0.0;
-                        Amatrix(a_ind_eb,1) = norm_x;
-                        Amatrix(a_ind_eb,2) = norm_y;
-                        Amatrix(a_ind_eb,3) = 2.0*norm_x*(x_off + bcent(ii,jj,k,1));
-                        Amatrix(a_ind_eb,4) = norm_x*(y_off + bcent(ii,jj,k,1) - yloc_on_xface)
-                                             +norm_y*(x_off + bcent(ii,jj,k,0));
-                        Amatrix(a_ind_eb,5) = 2.0*norm_y*(y_off + bcent(ii,jj,k,1) - yloc_on_xface);
-                    }
+                    Amatrix(a_ind_eb,0) = 1.0;
+                    Amatrix(a_ind_eb,1) = x_off + bcent(ii,jj,k,0);
+                    Amatrix(a_ind_eb,2) = y_off + bcent(ii,jj,k,1) - yloc_on_xface;
+                    Amatrix(a_ind_eb,3) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,1);
+                    Amatrix(a_ind_eb,4) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,2);
+                    Amatrix(a_ind_eb,5) = Amatrix(a_ind_eb,2) * Amatrix(a_ind_eb,2);
                 }
             }
         }
-
-#if 0
-    //////////////////////////////////////////////////////////////////////////
-    if(i==3 && j==0 && n==0){
-      amrex::Print() << "\n\n\n Matrix data: \n";
-
-      Array1D<Real,0,17> phi_vec;
-
-      for (int irow = 0; irow < 18; irow++)
-        phi_vec(irow) = 0.;
-
-
-      for (int ii = i-im; ii <= i+ip; ii++) // Normal to face
-        for (int jj = j-1; jj <= j+1; jj++)  // Tangential to face
-          if (!flag(ii,jj,k).isCovered())
-          {
-            int irow   = (jj-(j-1)) + 3*(ii-(i-im)) ;
-            AMREX_ASSERT(0<=irow && irow <9);
-
-            phi_vec(irow) = phi(ii,jj,k,n);
-
-            if(ii < domlo_x )
-              phi_vec(irow) = bcval_xlo(ii,jj,k,n);
-            else if (ii > domhi_x)
-              phi_vec(irow) = bcval_xhi(ii,jj,k,n);
-            else if (jj < domlo_y)
-              phi_vec(irow) = bcval_ylo(ii,jj,k,n);
-            else if (jj > domhi_y)
-              phi_vec(irow) = bcval_yhi(ii,jj,k,n);
-
-            if (flag(ii,jj,k).isSingleValued() && is_eb_dirichlet && is_eb_inhomog){
-              int irow_eb  = irow + 9;
-              AMREX_ASSERT(9<=irow_eb && irow_eb < 18);
-              phi_vec(irow_eb) = phieb(ii,jj,k,n);
-            }
-
-          }
-
-      for (int irow = 0; irow < 18; irow++){
-        amrex::Print() << irow << ",  " ;
-        for (int icol = 0; icol < 6; icol++){
-          amrex::Print() << Amatrix(irow,icol) << ",  ";
-        }
-        amrex::Print() << ", " << phi_vec(irow) << "\n";
-      }
-
-      amrex::Print() << "\n\n\n";
-    }
-    //////////////////////////////////////////////////////////////////////////
-#endif
-
-    // Make the RHS = A^T v
-
-
-    // if(i==3 and j==0 and n==0)
-    //   amrex::Print() << "\n\n\n";
-
 
     for (int irow = 0; irow < 6; irow++)
     {
@@ -707,19 +589,10 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
             }
     }
 
-
-    // if(i==3 and j==0 and n==0)
-    //   amrex::Print() << "\n\n\n";
-
-
     cholsol_for_eb(Amatrix, rhs);
 
     return rhs(1);
 }
-
-
-
-
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -729,8 +602,6 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                        Array4<EBCellFlag const> const& flag,
                                        Array4<Real const> const& ccent,
                                        Array4<Real const> const& bcent,
-                                       Array4<Real const> const& apx,
-                                       Array4<Real const> const& apy,
                                        Real& xloc_on_yface,
                                        bool is_eb_dirichlet, bool is_eb_inhomog,
                                        const bool on_x_face, const int domlo_x, const int domhi_x,
@@ -740,7 +611,7 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                        Array4<Real const> const& bcval_ylo,
                                        Array4<Real const> const& bcval_yhi)
 {
-
+    AMREX_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,17,0,5> Amatrix;
     Array1D<Real,0, 5    > rhs;
 
@@ -802,66 +673,16 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                     int a_ind_eb  = a_ind + 9;
                     AMREX_ASSERT(9<= a_ind_eb && a_ind_eb <= 17);
 
-                    if (is_eb_dirichlet) {
-                        Amatrix(a_ind_eb,0) = 1.0;
-                        Amatrix(a_ind_eb,1) = x_off + bcent(ii,jj,k,0) - xloc_on_yface;
-                        Amatrix(a_ind_eb,2) = y_off + bcent(ii,jj,k,1);
-                        Amatrix(a_ind_eb,3) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,1);
-                        Amatrix(a_ind_eb,4) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,2);
-                        Amatrix(a_ind_eb,5) = Amatrix(a_ind_eb,2) * Amatrix(a_ind_eb,2);
-                    } else { // Neumann bc's on EB face
-                        Real dapx = apx(ii,jj,k)-apx(ii+1,jj,k);
-                        Real dapy = apy(ii,jj,k)-apy(ii,jj+1,k);;
-                        Real anorm = std::hypot(dapx,dapy);
-                        Real norm_x = dapx / anorm;
-                        Real norm_y = dapy / anorm;
-                        Amatrix(a_ind_eb,0) = 0.0;
-                        Amatrix(a_ind_eb,1) = norm_x;
-                        Amatrix(a_ind_eb,2) = norm_y;
-                        Amatrix(a_ind_eb,3) = 2.0*norm_x*(x_off + bcent(ii,jj,k,0) - xloc_on_yface);
-                        Amatrix(a_ind_eb,4) = norm_x*(y_off + bcent(ii,jj,k,1))
-                                             +norm_y*(x_off + bcent(ii,jj,k,0) - xloc_on_yface);
-                        Amatrix(a_ind_eb,5) = 2.0*norm_y*(y_off + bcent(ii,jj,k,1));
-                    }
+                    Amatrix(a_ind_eb,0) = 1.0;
+                    Amatrix(a_ind_eb,1) = x_off + bcent(ii,jj,k,0) - xloc_on_yface;
+                    Amatrix(a_ind_eb,2) = y_off + bcent(ii,jj,k,1);
+                    Amatrix(a_ind_eb,3) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,1);
+                    Amatrix(a_ind_eb,4) = Amatrix(a_ind_eb,1) * Amatrix(a_ind_eb,2);
+                    Amatrix(a_ind_eb,5) = Amatrix(a_ind_eb,2) * Amatrix(a_ind_eb,2);
                 }
             }
         }
 
-
-#if 0
-    //////////////////////////////////////////////////////////////////////////
-    if(i==3 && j==0 && n==0){
-
-      Array1D<Real,0,17> phi_vec;
-
-      for (int irow = 0; irow < 18; irow++)
-        phi_vec(irow) = 0.;
-
-      for (int jj = j-jm; jj <= j+jp; jj++) // Normal to face
-        for (int ii = i-1; ii <= i+1; ii++) // Tangential to face
-          if (!flag(ii,jj,k).isCovered())
-          {
-            int irow  = (ii-(i-1)) + 3*(jj-(j-jm));
-            phi_vec(irow) = phi(ii,jj,k,n);
-
-            if (flag(ii,jj,k).isSingleValued() && is_eb_dirichlet && is_eb_inhomog)
-              phi_vec(irow+6) = phieb(ii,jj,k,n);
-          }
-
-
-
-      amrex::Print() << "\n\n\n Matrix data: \n";
-      for (int irow = 0; irow < 18; irow++){
-        amrex::Print() << "row  " << irow << "  A:, ";
-        for (int icol = 0; icol < 6; icol++){
-          amrex::Print() << Amatrix(irow,icol) << ",  ";
-        }
-        amrex::Print() << "  phi:, " << phi_vec(irow) << "\n";
-      }
-      amrex::Print() << "\n\n\n";
-    }
-    //////////////////////////////////////////////////////////////////////////
-#endif
 
     // Make the RHS = A^T v
     for (int irow = 0; irow < 6; irow++)
