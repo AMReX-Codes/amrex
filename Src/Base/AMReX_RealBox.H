@@ -3,14 +3,14 @@
 #define AMREX_RealBox_H_
 #include <AMReX_Config.H>
 
-#include <iosfwd>
-#include <array>
-
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 #include <AMReX_RealVect.H>
+
+#include <iosfwd>
+#include <array>
 
 namespace amrex {
 
@@ -145,8 +145,6 @@ std::ostream& operator<< (std::ostream&, const RealBox&);
 std::istream& operator>> (std::istream&, RealBox&);
 
 //! Check for equality of real boxes within a certain tolerance
-//! Can use std::numeric_precision::epsilon() * std::abs(x + y) * ulps for inexact comparison
-//! See https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
 bool AlmostEqual (const RealBox& box1,
                   const RealBox& box2,
                   Real eps = 0.0) noexcept;
