@@ -15,7 +15,9 @@ PrintUsage (const char* progName)
     Print() << std::endl
             << "This utility reads in a single-level plotfile, copies it to " << std::endl
             << "a MultiFab with a single box, then writes out all the data in" << std::endl
-            << "'i j k comp <value>' format to the screen" << std::endl
+            << "'i j k comp <value>' format to the screen, for each component one by one." << std::endl
+            << "The optional flag [comp_in_line = 1] will plot data " << std::endl;
+            << "with the format (i,j,k) followed by all components in a row.  " << std::endl;
             << "The user can modify this cpp file to write out on certain components," << std::endl
             << "coordinates, row/column formatting, etc." << std::endl << std::endl;
     
@@ -135,7 +137,6 @@ main (int   argc,
         const Array4<Real>& mfdata = mf_onegrid.array(mfi);
 
         if (comp_in_line == 1){
-          // This way is much faster than the loops below
           std::cout << mf_onegrid[mfi];
         }else{
           for (auto n=0; n<ncomp; ++n) {
