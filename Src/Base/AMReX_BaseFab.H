@@ -1684,7 +1684,7 @@ BaseFab<T>::prefetchToHost () const noexcept
         // std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
         // auto& q = Gpu::Device::streamQueue();
         // q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
-#elif defined(AMREX_USE_CUDA)
+#elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
@@ -1709,7 +1709,7 @@ BaseFab<T>::prefetchToDevice () const noexcept
         std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
         auto& q = Gpu::Device::streamQueue();
         q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
-#elif defined(AMREX_USE_CUDA)
+#elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
