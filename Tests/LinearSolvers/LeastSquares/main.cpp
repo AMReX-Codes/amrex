@@ -12,7 +12,7 @@ int main (int argc, char* argv[])
         mytest.compute_gradient();
 
         for (int i = 0; i < 1; ++i) {
-            mytest.solve();
+            mytest.apply();
             mytest.writePlotfile();
         }
     }

@@ -1411,6 +1411,7 @@ void
 MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
                       const MLMGBndry* bndry, bool skip_fillboundary) const
 {
+    amrex::ignore_unused(s_mode);
     BL_PROFILE("MLEBABecLap::applyBC()");
 
     // No coarsened boundary values, cannot apply inhomog at mglev>0.

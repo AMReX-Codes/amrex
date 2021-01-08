@@ -237,7 +237,7 @@ MyTest::compute_gradient ()
 }
 
 void
-MyTest::solve ()
+MyTest::apply ()
 {
     int ncomp = phi[0].nComp();
 

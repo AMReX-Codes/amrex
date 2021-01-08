@@ -11,7 +11,7 @@ public:
 
     MyTest ();
 
-    void solve ();
+    void apply ();
     void compute_gradient ();
     void writePlotfile ();
     void initData ();
