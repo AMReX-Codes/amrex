@@ -185,8 +185,12 @@ MLEBABecLap::setBCoeffs (int amrlev, Vector<Real> const& beta)
 void
 MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta)
 {
-    // If we call setEBDirichlet instead of setEBHomogDirichlet then we assume posisbly inhomogeneous
-    m_is_eb_inhomog = true;
+    bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
+    if (phi_on_centroid) {
+      // If we call setEBDirichlet instead of setEBHomogDirichlet then we assume posisbly inhomogeneous
+      m_is_eb_inhomog = true;
+    }
 
     const int ncomp = getNComp();
     const int beta_ncomp = beta.nComp();
@@ -194,7 +198,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
 
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
-        const int ngrow = 1;  // We need the grow cell for the EB viscous tensor solve
+        const int ngrow = phi_on_centroid ? 1 : 0;  // We need the grow cell for the EB viscous tensor solve
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
                                             ncomp, ngrow, MFInfo(), *m_factory[amrlev][mglev]));
     }
@@ -258,19 +262,25 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
     }
 
     // We need the grow cell for the EB viscous tensor solve
-    m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    if (phi_on_centroid) {
+      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    }
 }
 
 void
 MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Real beta)
 {
-    // If we call setEBDirichlet instead of setEBHomogDirichlet then we assume posisbly inhomogeneous
-    m_is_eb_inhomog = true;
+    bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
+    if (phi_on_centroid) {
+       // If we call setEBDirichlet instead of setEBHomogDirichlet then we assume posisbly inhomogeneous
+       m_is_eb_inhomog = true;
+    }
 
     const int ncomp = getNComp();
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
-        const int ngrow = 1;  // We need the grow cell for the EB viscous tensor solve
+        const int ngrow = phi_on_centroid ? 1 : 0;  // We need the grow cell for the EB viscous tensor solve
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
                                             ncomp, ngrow, MFInfo(), *m_factory[amrlev][mglev]));
     }
@@ -320,19 +330,25 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Real beta)
     }
 
     // We need the grow cell for the EB viscous tensor solve
-    m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    if (phi_on_centroid) {
+      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    }
 }
 
 void
 MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Vector<Real> const& hv_beta)
 {
-    // If we call setEBDirichlet instead of setEBHomogDirichlet then we assume posisbly inhomogeneous
-    m_is_eb_inhomog = true;
+    bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
+    if (phi_on_centroid) {
+      // If we call setEBDirichlet instead of setEBHomogDirichlet then we assume posisbly inhomogeneous
+      m_is_eb_inhomog = true;
+    }
 
     const int ncomp = getNComp();
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
-        const int ngrow = 1;  // We need the grow cell for the EB viscous tensor solve
+        const int ngrow = phi_on_centroid ? 1 : 0;  // We need the grow cell for the EB viscous tensor solve
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
                                             ncomp, ngrow, MFInfo(), *m_factory[amrlev][mglev]));
     }
@@ -385,21 +401,27 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Vector<Real> const
         }
     }
 
-    // We need the grow cell for the EB viscous tensor solve
-    m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    if (phi_on_centroid) {
+      // We need the grow cell for the EB viscous tensor solve
+      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    }
 }
 
 void
 MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
 {
-    m_is_eb_inhomog = false;
+    bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
+    if (phi_on_centroid) {
+      m_is_eb_inhomog = false;
+    }
 
     const int ncomp = getNComp();
     const int beta_ncomp = beta.nComp();
     AMREX_ALWAYS_ASSERT(beta_ncomp == 1 || beta_ncomp == ncomp);
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
-        const int ngrow = 1;  // We need the grow cell for the EB viscous tensor solve
+        const int ngrow = phi_on_centroid ? 1 : 0;  // We need the grow cell for the EB viscous tensor solve
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
                                             ncomp, ngrow, MFInfo(), *m_factory[amrlev][mglev]));
     }
@@ -461,18 +483,24 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
     }
 
     // We need the grow cell for the EB viscous tensor solve
-    m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    if (phi_on_centroid) {
+      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    }
 }
 
 void
 MLEBABecLap::setEBHomogDirichlet (int amrlev, Real beta)
 {
-    m_is_eb_inhomog = false;
+    bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
+    if (phi_on_centroid) {
+      m_is_eb_inhomog = false;
+    }
 
     const int ncomp = getNComp();
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
-        const int ngrow = 1;  // We need the grow cell for the EB viscous tensor solve
+        const int ngrow = phi_on_centroid ? 1 : 0;  // We need the grow cell for the EB viscous tensor solve
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
                                             ncomp, ngrow, MFInfo(), *m_factory[amrlev][mglev]));
     }
@@ -522,18 +550,24 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Real beta)
     }
 
     // We need the grow cell for the EB viscous tensor solve
-    m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    if (phi_on_centroid) {
+      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    }
 }
 
 void
 MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& hv_beta)
 {
-    m_is_eb_inhomog = false;
+    bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
+    if (phi_on_centroid) {
+      m_is_eb_inhomog = false;
+    }
 
     const int ncomp = getNComp();
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
-        const int ngrow = 1;  // We need the grow cell for the EB viscous tensor solve
+        const int ngrow = phi_on_centroid ? 1 : 0;  // We need the grow cell for the EB viscous tensor solve
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
                                             ncomp, ngrow, MFInfo(), *m_factory[amrlev][mglev]));
     }
@@ -587,7 +621,9 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& hv_beta)
     }
 
     // We need the grow cell for the EB viscous tensor solve
-    m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    if (phi_on_centroid) {
+      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    }
 }
 
 void
@@ -1408,8 +1444,9 @@ void
 MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
                       const MLMGBndry* bndry, bool skip_fillboundary) const
 {
-    amrex::ignore_unused(s_mode);
     BL_PROFILE("MLEBABecLap::applyBC()");
+
+    bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
 
     // No coarsened boundary values, cannot apply inhomog at mglev>0.
     BL_ASSERT(mglev == 0 || bc_mode == BCMode::Homogeneous);
@@ -1423,6 +1460,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
     int m_is_inhomog = bc_mode == BCMode::Inhomogeneous;
     int flagbc = m_is_inhomog;
+    if (!phi_on_centroid) m_is_eb_inhomog = s_mode == StateMode::Solution;
     const int imaxorder = maxorder;
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(imaxorder <= 4, "MLEBABecLap::applyBC: maxorder too high");
 
