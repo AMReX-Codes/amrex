@@ -203,7 +203,7 @@ amrex::Error_host (const char * msg)
     }
 }
 
-#if defined(AMREX_USE_GPU) && !defined(NDEBUG)
+#if defined(AMREX_USE_GPU)
 #if AMREX_DEVICE_COMPILE
 AMREX_GPU_DEVICE
 void
@@ -223,7 +223,7 @@ amrex::Warning_host (const char * msg)
     }
 }
 
-#if defined(AMREX_USE_GPU) && !defined(NDEBUG)
+#if defined(AMREX_USE_GPU)
 #if AMREX_DEVICE_COMPILE
 AMREX_GPU_DEVICE
 void
@@ -251,7 +251,7 @@ amrex::Abort_host (const char * msg)
    }
 }
 
-#if defined(AMREX_USE_GPU) && !defined(NDEBUG)
+#if defined(AMREX_USE_GPU)
 #if AMREX_DEVICE_COMPILE
 AMREX_GPU_DEVICE
 void
@@ -300,7 +300,7 @@ amrex::Assert_host (const char* EX, const char* file, int line, const char* msg)
    }
 }
 
-#if defined(AMREX_USE_GPU) && !defined(NDEBUG)
+#if defined(AMREX_USE_GPU)
 #if AMREX_DEVICE_COMPILE
 AMREX_GPU_DEVICE
 void
