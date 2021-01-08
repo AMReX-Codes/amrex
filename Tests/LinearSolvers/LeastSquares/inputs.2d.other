@@ -1,4 +1,6 @@
 amrex.fpe_trap_invalid = 1
+eb_is_dirichlet = 0
+eb_is_homog_dirichlet = 1
 
 eb2.geom_type = sphere
 eb2.sphere_center = 0.5  0.5  0.5
@@ -17,3 +19,5 @@ eb2.geom_type = flower
 eb2.geom_type = rotated_box
 
 eb2.geom_type = sphere
+
+plot_file = "plot-other"

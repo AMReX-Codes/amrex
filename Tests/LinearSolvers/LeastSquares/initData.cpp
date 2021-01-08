@@ -90,10 +90,11 @@ MyTest::initData ()
             bcoef[ilev][idim].setVal(1.0);
         }
 
-		if(use_poiseuille_1d) {
+		if(use_poiseuille) {
 			initializePoiseuilleData(ilev);
 	    }
 		else {
+         // Test a custom polynomial function
 			for (MFIter mfi(phi[ilev]); mfi.isValid(); ++mfi)
 			{
 				const Box& bx = mfi.fabbox();

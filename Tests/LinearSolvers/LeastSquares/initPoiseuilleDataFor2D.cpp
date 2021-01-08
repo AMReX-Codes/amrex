@@ -38,13 +38,13 @@ void MyTest::initializePoiseuilleDataFor2D(int ilev) {
     const auto &dhi = geom[ilev].Domain().hiVect();
 
     amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-      Real H = poiseuille_1d_height;
-      Real t = (poiseuille_1d_rotation / 180.) * M_PI;
+      Real H = poiseuille_height;
+      Real t = (poiseuille_rotation / 180.) * M_PI;
 
       Real a = std::tan(t);
       Real b = -1.0;
-      Real c = poiseuille_1d_pt_on_top_wall[1] -
-               std::tan(t) * poiseuille_1d_pt_on_top_wall[0];
+      Real c = poiseuille_pt_on_top_wall[1] -
+               std::tan(t) * poiseuille_pt_on_top_wall[0];
 
       Real rx = (i + 0.5 + ccent(i, j, k, 0)) * dx[0];
       Real ry = (j + 0.5 + ccent(i, j, k, 1)) * dx[1];

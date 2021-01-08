@@ -11,7 +11,7 @@ void decomp_chol_np6(Array2D<Real,0,5,0,5>& aa)
 {
     int neq = 6;
 
-    Real p[neq];
+    Real p[6];
     Real sum1;
     int ising;
 
@@ -380,10 +380,6 @@ Real grad_y_of_phi_on_centroids(int i,int j,int k,int n,
     return rhs(2);
 }
 
-
-
-
-
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real grad_eb_of_phi_on_centroids(int i,int j,int k,int n,
                                 Array4<Real const> const& phi,
@@ -460,8 +456,6 @@ Real grad_eb_of_phi_on_centroids(int i,int j,int k,int n,
     Real dphidn = rhs(1)*nrmx + rhs(2)*nrmy;
     return dphidn;
 }
-
-
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
@@ -594,7 +588,6 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
     return rhs(1);
 }
 
-
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                        Array4<Real const> const& phi,
@@ -722,7 +715,6 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
     return rhs(2);
 }
-
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,

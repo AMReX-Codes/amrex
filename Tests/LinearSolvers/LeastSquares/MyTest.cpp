@@ -86,8 +86,6 @@ MyTest::compute_gradient ()
         const FabArray<EBCellFlagFab>* flags = &(factory[ilev]->getMultiEBCellFlagFab());
         Array4<EBCellFlag const> const& flag = flags->const_array(mfi);
 
-        const auto dx = geom[ilev].CellSizeArray();
-
         amrex::ParallelFor(bx, ncomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
@@ -130,13 +128,6 @@ MyTest::compute_gradient ()
                                                     xloc_on_yface, is_eb_dirichlet, is_eb_inhomog,
                                                     on_x_face, domlo_x, domhi_x, phi_arr, phi_arr,
                                                     on_y_face, domlo_y, domhi_y, phi_arr, phi_arr);
-
-                if(i==3 && j==0 && n==0)
-                  amrex::Print() << "\n\n Calculate grad_x for (3,0):"
-                                 << "\n i/j/k/n " << i << "  " << j << "  " << k << "  " << n
-                                 << "\n  grad_x " << grad_x_arr(i,j,k,n)
-                                 << "\n  grad_y " << grad_y_arr(i,j,k,n)
-                                 << "\n\n\n\n ";
 
               } else {
 
@@ -273,7 +264,6 @@ MyTest::apply ()
                       MFInfo(), *factory[ilev]);
            MultiFab::Copy(v, vfrc, 0, 0, 1, 0);
            amrex::EB_set_covered(v, 1.0);
-           // amrex::Print() << "vfrc min = " << v.min(0) << std::endl;
        }
 
        std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
@@ -363,22 +353,24 @@ MyTest::writePlotfile ()
                             geom, 0.0, Vector<int>(max_level+1,0),
                             Vector<IntVect>(max_level,IntVect{2}));
 
-    Vector<MultiFab> plotmf_analytic(max_level+1);
-    for (int ilev = 0; ilev <= max_level; ++ilev) {
-        plotmf_analytic[ilev].define(grids[ilev],dmap[ilev],8,0);
-        MultiFab::Copy(plotmf_analytic[ilev], grad_x_analytic[ilev], 0, 0, 2, 0);
-        MultiFab::Copy(plotmf_analytic[ilev], grad_y_analytic[ilev], 0, 2, 2, 0);
-        MultiFab::Copy(plotmf_analytic[ilev], grad_eb_analytic[ilev], 0, 4, 2, 0);
-        MultiFab::Copy(plotmf_analytic[ilev], lap_analytic[ilev], 0, 6, 2, 0);
-    }
-    WriteMultiLevelPlotfile(plot_file_name + "-analytic", max_level+1,
-                            amrex::GetVecOfConstPtrs(plotmf_analytic),
-                            {"dudx", "dvdx",
-                             "dudy","dvdy",
-                             "dudn","dvdn",
-                             "lapu","lapv"},
-                            geom, 0.0, Vector<int>(max_level+1,0),
-                            Vector<IntVect>(max_level,IntVect{2}));
+    if(use_poiseuille) {
+       Vector<MultiFab> plotmf_analytic(max_level+1);
+       for (int ilev = 0; ilev <= max_level; ++ilev) {
+           plotmf_analytic[ilev].define(grids[ilev],dmap[ilev],8,0);
+           MultiFab::Copy(plotmf_analytic[ilev], grad_x_analytic[ilev], 0, 0, 2, 0);
+           MultiFab::Copy(plotmf_analytic[ilev], grad_y_analytic[ilev], 0, 2, 2, 0);
+           MultiFab::Copy(plotmf_analytic[ilev], grad_eb_analytic[ilev], 0, 4, 2, 0);
+           MultiFab::Copy(plotmf_analytic[ilev], lap_analytic[ilev], 0, 6, 2, 0);
+       }
+       WriteMultiLevelPlotfile(plot_file_name + "-analytic", max_level+1,
+                               amrex::GetVecOfConstPtrs(plotmf_analytic),
+                               {"dudx", "dvdx",
+                                "dudy","dvdy",
+                                "dudn","dvdn",
+                                "lapu","lapv"},
+                               geom, 0.0, Vector<int>(max_level+1,0),
+                               Vector<IntVect>(max_level,IntVect{2}));
+   }
 #else
         plotmf[ilev].define(grids[ilev],dmap[ilev],25,0);
         MultiFab::Copy(plotmf[ilev], phi[ilev], 0, 0, 3, 0);
@@ -405,24 +397,26 @@ MyTest::writePlotfile ()
                             geom, 0.0, Vector<int>(max_level+1,0),
                             Vector<IntVect>(max_level,IntVect{2}));
 
-    Vector<MultiFab> plotmf_analytic(max_level+1);
-    for (int ilev = 0; ilev <= max_level; ++ilev) {
-        plotmf_analytic[ilev].define(grids[ilev],dmap[ilev],15,0);
-        MultiFab::Copy(plotmf_analytic[ilev], grad_x_analytic[ilev], 0, 0, 3, 0);
-        MultiFab::Copy(plotmf_analytic[ilev], grad_y_analytic[ilev], 0, 3, 3, 0);
-        MultiFab::Copy(plotmf_analytic[ilev], grad_z_analytic[ilev], 0, 6, 3, 0);
-        MultiFab::Copy(plotmf_analytic[ilev], grad_eb_analytic[ilev], 0, 9, 3, 0);
-        MultiFab::Copy(plotmf_analytic[ilev], lap_analytic[ilev], 0, 12, 3, 0);
+    if (use_poiseuille) {
+       Vector<MultiFab> plotmf_analytic(max_level+1);
+       for (int ilev = 0; ilev <= max_level; ++ilev) {
+           plotmf_analytic[ilev].define(grids[ilev],dmap[ilev],15,0);
+           MultiFab::Copy(plotmf_analytic[ilev], grad_x_analytic[ilev], 0, 0, 3, 0);
+           MultiFab::Copy(plotmf_analytic[ilev], grad_y_analytic[ilev], 0, 3, 3, 0);
+           MultiFab::Copy(plotmf_analytic[ilev], grad_z_analytic[ilev], 0, 6, 3, 0);
+           MultiFab::Copy(plotmf_analytic[ilev], grad_eb_analytic[ilev], 0, 9, 3, 0);
+           MultiFab::Copy(plotmf_analytic[ilev], lap_analytic[ilev], 0, 12, 3, 0);
+       }
+       WriteMultiLevelPlotfile(plot_file_name + "-analytic", max_level+1,
+                               amrex::GetVecOfConstPtrs(plotmf_analytic),
+                               {"dudx", "dvdx","dwdx",
+                                "dudy","dvdy","dwdy",
+                                "dudz","dvdz","dwdz",
+                                "dudn","dvdn","dwdn",
+                                "lapu","lapv","lapw"},
+                               geom, 0.0, Vector<int>(max_level+1,0),
+                               Vector<IntVect>(max_level,IntVect{2}));
     }
-    WriteMultiLevelPlotfile(plot_file_name + "-analytic", max_level+1,
-                            amrex::GetVecOfConstPtrs(plotmf_analytic),
-                            {"dudx", "dvdx","dwdx",
-                             "dudy","dvdy","dwdy",
-                             "dudz","dvdz","dwdz",
-                             "dudn","dvdn","dwdn",
-                             "lapu","lapv","lapw"},
-                            geom, 0.0, Vector<int>(max_level+1,0),
-                            Vector<IntVect>(max_level,IntVect{2}));
 
 #endif
 
@@ -479,16 +473,16 @@ MyTest::readParameters ()
 #ifdef AMREX_USE_PETSC
     pp.query("use_petsc",use_petsc);
 #endif
-    pp.query("use_poiseuille_1d", use_poiseuille_1d);
-    pp.query("poiseuille_1d_askew", poiseuille_1d_askew);
-    pp.queryarr("poiseuille_1d_pt_on_top_wall",poiseuille_1d_pt_on_top_wall);
-    pp.query("poiseuille_1d_height",poiseuille_1d_height);
-    pp.query("poiseuille_1d_rotation",poiseuille_1d_rotation);
-    pp.queryarr("poiseuille_1d_askew_rotation",poiseuille_1d_askew_rotation);
-    pp.query("poiseuille_1d_flow_dir", poiseuille_1d_flow_dir);
-    pp.query("poiseuille_1d_height_dir", poiseuille_1d_height_dir);
-    pp.query("poiseuille_1d_bottom", poiseuille_1d_bottom);
-    pp.query("poiseuille_1d_no_flow_dir", poiseuille_1d_no_flow_dir);
+    pp.query("use_poiseuille", use_poiseuille);
+    pp.query("poiseuille_askew", poiseuille_askew);
+    pp.queryarr("poiseuille_pt_on_top_wall",poiseuille_pt_on_top_wall);
+    pp.query("poiseuille_height",poiseuille_height);
+    pp.query("poiseuille_rotation",poiseuille_rotation);
+    pp.queryarr("poiseuille_askew_rotation",poiseuille_askew_rotation);
+    pp.query("poiseuille_flow_dir", poiseuille_flow_dir);
+    pp.query("poiseuille_height_dir", poiseuille_height_dir);
+    pp.query("poiseuille_bottom", poiseuille_bottom);
+    pp.query("poiseuille_no_flow_dir", poiseuille_no_flow_dir);
 }
 
 void

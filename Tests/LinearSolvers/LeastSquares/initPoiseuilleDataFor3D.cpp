@@ -43,20 +43,20 @@ void MyTest::initializePoiseuilleDataFor3D(int ilev) {
     Array4<Real const> const &apz =
         (factory[ilev]->getAreaFrac())[2]->const_array(mfi);
 
-    if (poiseuille_1d_askew) { // 3D askew
+    if (poiseuille_askew) { // 3D askew
       amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j,
                                                   int k) noexcept {
-        Real H = poiseuille_1d_height;
-        int nfdir = poiseuille_1d_no_flow_dir;
-        Real alpha = (poiseuille_1d_askew_rotation[0] / 180.) * M_PI;
-        Real gamma = (poiseuille_1d_askew_rotation[1] / 180.) * M_PI;
+        Real H = poiseuille_height;
+        int nfdir = poiseuille_no_flow_dir;
+        Real alpha = (poiseuille_askew_rotation[0] / 180.) * M_PI;
+        Real gamma = (poiseuille_askew_rotation[1] / 180.) * M_PI;
 
         Real a = std::sin(gamma);
         Real b = -std::cos(alpha) * std::cos(gamma);
         Real c = std::sin(alpha);
-        Real d = -a * poiseuille_1d_pt_on_top_wall[0] -
-                 b * poiseuille_1d_pt_on_top_wall[1] -
-                 c * poiseuille_1d_pt_on_top_wall[2];
+        Real d = -a * poiseuille_pt_on_top_wall[0] -
+                 b * poiseuille_pt_on_top_wall[1] -
+                 c * poiseuille_pt_on_top_wall[2];
 
         Real rx = (i + 0.5 + ccent(i, j, k, 0)) * dx[0];
         Real ry = (j + 0.5 + ccent(i, j, k, 1)) * dx[1];
@@ -259,10 +259,10 @@ void MyTest::initializePoiseuilleDataFor3D(int ilev) {
     } else { // 3D grid-aligned
       amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j,
                                                   int k) noexcept {
-        Real H = poiseuille_1d_height;
-        Real bot = poiseuille_1d_bottom;
-        int dir = poiseuille_1d_height_dir;
-        int fdir = poiseuille_1d_flow_dir;
+        Real H = poiseuille_height;
+        Real bot = poiseuille_bottom;
+        int dir = poiseuille_height_dir;
+        int fdir = poiseuille_flow_dir;
 
         fab(i, j, k, 0) = 0.0;
         fab(i, j, k, 1) = 0.0;

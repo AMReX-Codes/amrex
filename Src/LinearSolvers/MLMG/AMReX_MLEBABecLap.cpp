@@ -392,7 +392,6 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Vector<Real> const
 void
 MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
 {
-    // If we call setEBHomogDirichlet instead of setEBDirichlet then we assume posisbly inhomogeneous
     m_is_eb_inhomog = false;
 
     const int ncomp = getNComp();
@@ -468,7 +467,6 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
 void
 MLEBABecLap::setEBHomogDirichlet (int amrlev, Real beta)
 {
-    // If we call setEBHomogDirichlet instead of setEBDirichlet then we assume posisbly inhomogeneous
     m_is_eb_inhomog = false;
 
     const int ncomp = getNComp();
@@ -530,7 +528,6 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Real beta)
 void
 MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& hv_beta)
 {
-    // If we call setEBHomogDirichlet instead of setEBDirichlet then we assume posisbly inhomogeneous
     m_is_eb_inhomog = false;
 
     const int ncomp = getNComp();

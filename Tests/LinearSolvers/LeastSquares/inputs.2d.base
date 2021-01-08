@@ -21,9 +21,9 @@ scalars = 0  1
 
 scalars = 0 1
 
-use_poiseuille_1d = 1
-poiseuille_1d_pt_on_top_wall = 0.0  1.225  0.0
-poiseuille_1d_height = 1.0
-poiseuille_1d_rotation = 0.
+use_poiseuille = 1
+poiseuille_pt_on_top_wall = 0.0  1.225  0.0
+poiseuille_height = 1.0
+poiseuille_rotation = 0.
 
 plot_file = "plot-base"
