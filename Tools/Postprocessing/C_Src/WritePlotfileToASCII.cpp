@@ -20,7 +20,7 @@ PrintUsage (const char* progName)
             << "coordinates, row/column formatting, etc." << std::endl << std::endl;
     
     Print() << "Usage:" << '\n';
-    Print() << progName << " infile=inputFileName (optional comp_in_line = 1)" << '\n' << '\n';
+    Print() << progName << " infile=inputFileName [comp_in_line = 1]" << '\n' << '\n';
         
     exit(1);
 }
