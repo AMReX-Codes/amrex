@@ -11,7 +11,7 @@ void decomp_chol_np10(Array2D<Real,0,9,0,9>& aa)
 {
     int neq = 10;
 
-    Real p[neq];
+    Real p[10];
     Real sum1;
     int ising;
 
@@ -322,7 +322,7 @@ Real grad_x_of_phi_on_centroids(int i,int j,int k,int n,
                                 Real& yloc_on_xface, Real& zloc_on_xface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog)
 {
-    AMREX_ASSERT(is_eb_dirichlet);
+    AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,35,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
 
@@ -403,7 +403,7 @@ Real grad_y_of_phi_on_centroids(int i,int j,int k,int n,
                                 Real& xloc_on_yface, Real& zloc_on_yface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog)
 {
-    AMREX_ASSERT(is_eb_dirichlet);
+    AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,35,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
 
@@ -484,7 +484,7 @@ Real grad_z_of_phi_on_centroids(int i,int j,int k,int n,
                                 Real& xloc_on_zface, Real& yloc_on_zface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog)
 {
-    AMREX_ASSERT(is_eb_dirichlet);
+    AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,35,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
 
@@ -661,7 +661,7 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 Array4<Real const> const& bcval_zlo,
                                 Array4<Real const> const& bcval_zhi)
 {
-    AMREX_ASSERT(is_eb_dirichlet);
+    AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
 
     Array2D<Real,0,53,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
@@ -812,7 +812,7 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 Array4<Real const> const& bcval_zlo,
                                 Array4<Real const> const& bcval_zhi)
 {
-    AMREX_ASSERT(is_eb_dirichlet);
+    AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,53,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
 
@@ -961,7 +961,7 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 Array4<Real const> const& bcval_zlo,
                                 Array4<Real const> const& bcval_zhi)
 {
-    AMREX_ASSERT(is_eb_dirichlet);
+    AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,53,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
 

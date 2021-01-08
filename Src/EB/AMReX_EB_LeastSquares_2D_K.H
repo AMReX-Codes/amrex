@@ -235,7 +235,7 @@ Real grad_x_of_phi_on_centroids(int i,int j,int k,int n,
                                 Real& yloc_on_xface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog)
 {
-    AMREX_ASSERT(is_eb_dirichlet);
+    AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,11,0,5> Amatrix;
     Array1D<Real,0, 5    > rhs;
 
@@ -315,7 +315,7 @@ Real grad_y_of_phi_on_centroids(int i,int j,int k,int n,
                                 Real& xloc_on_yface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog)
 {
-    AMREX_ASSERT(is_eb_dirichlet);
+    AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,11,0,5> Amatrix;
     Array1D<Real,0, 5    > rhs;
 
@@ -479,7 +479,7 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                        Array4<Real const> const& bcval_ylo,
                                        Array4<Real const> const& bcval_yhi)
 {
-    AMREX_ASSERT(is_eb_dirichlet);
+    AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,17,0,5> Amatrix;
     Array1D<Real,0, 5    > rhs;
 
@@ -611,7 +611,7 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                        Array4<Real const> const& bcval_ylo,
                                        Array4<Real const> const& bcval_yhi)
 {
-    AMREX_ASSERT(is_eb_dirichlet);
+    AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,17,0,5> Amatrix;
     Array1D<Real,0, 5    > rhs;
 
