@@ -20,7 +20,7 @@ PrintUsage (const char* progName)
             << "coordinates, row/column formatting, etc." << std::endl << std::endl;
     
     Print() << "Usage:" << '\n';
-    Print() << progName << " infile=inputFileName" << '\n' << '\n';
+    Print() << progName << " infile=inputFileName (optional comp_in_line = 1)" << '\n' << '\n';
         
     exit(1);
 }
@@ -46,8 +46,8 @@ main (int   argc,
     if (iFile.empty())
         amrex::Abort("You must specify `infile'");
 
-    int fast = 0;
-    pp.query("fast", fast);
+    int comp_in_line = 0;
+    pp.query("comp_in_line", comp_in_line);
 
     // single-level for now
     // AMR comes later, where we iterate over each level in isolation
@@ -134,15 +134,15 @@ main (int   argc,
 
         const Array4<Real>& mfdata = mf_onegrid.array(mfi);
 
-        if (fast == 1){
+        if (comp_in_line == 1){
           // This way is much faster than the loops below
-          amrex::Print() << mf_onegrid[mfi];
+          std::cout << mf_onegrid[mfi];
         }else{
           for (auto n=0; n<ncomp; ++n) {
             for (auto k = lo.z; k <= hi.z; ++k) {
               for (auto j = lo.y; j <= hi.y; ++j) {
                 for (auto i = lo.x; i <= hi.x; ++i) {
-                  Print() << i << " " << j << " " << k << " " << n << " " << mfdata(i,j,k,n) << std::endl;
+                  std::cout << i << " " << j << " " << k << " " << n << " " << mfdata(i,j,k,n) << "\n";
                 }
               }
             }
