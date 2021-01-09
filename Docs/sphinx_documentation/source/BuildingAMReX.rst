@@ -445,6 +445,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_AMRDATA                |  Build data services                            | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_AMRLEVEL               |  Build AmrLevel class                           | YES                     | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_EB                     |  Build Embedded Boundary support                | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PARTICLES              |  Build particle classes                         | NO                      | YES, NO               |
@@ -655,6 +657,8 @@ A list of AMReX component names and related configure options are shown in the t
    | AMReX_LINEAR_SOLVERS         | LSOLVERS        |
    +------------------------------+-----------------+
    | AMReX_AMRDATA                | AMRDATA         |
+   +------------------------------+-----------------+
+   | AMReX_AMRLEVEL               | AMRLEVEL        |
    +------------------------------+-----------------+
    | AMReX_EB                     | EB              |
    +------------------------------+-----------------+
