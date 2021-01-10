@@ -3,13 +3,14 @@
 #define BL_PARMPARSE_H
 #include <AMReX_Config.H>
 
+#include <AMReX_BLassert.H>
+
 #include <stack>
 #include <string>
 #include <iosfwd>
 #include <vector>
 #include <list>
 #include <array>
-#include <AMReX_BLassert.H>
 
 namespace amrex {
 
@@ -927,7 +928,13 @@ public:
     static void Finalize();
 
     static bool QueryUnusedInputs ();
-    
+
+    //! Any unused [prefix.]* parameters?
+    static bool hasUnusedInputs (const std::string& prefix = std::string());
+
+    //! Returns unused [prefix.]* parameters.
+    static std::vector<std::string> getUnusedInputs (const std::string& prefix = std::string());
+
     struct PP_entry;
     typedef std::list<PP_entry> Table;
     static void appendTable(ParmParse::Table& tab);
