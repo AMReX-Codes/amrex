@@ -801,7 +801,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             const auto& ptile = ParticlesAt(level, pti);
             const auto src = ptile.getConstParticleTileData();
 
-            auto& aos = ptile.GetArrayOfStructs();
             for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
             {
                 SuperParticleType p = src.getSuperParticle(pindex);
@@ -868,7 +867,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                         //
                         for (int i = 0; i < AMREX_SPACEDIM; i++)
                         {
-                            pold.pos(i) = (old_mass*pold.pos(i) + new_mass*pnew.pos(i))/total_mass;
+                            pold.pos(i) = static_cast<ParticleReal>((old_mass*pold.pos(i) + new_mass*pnew.pos(i))/total_mass);
                         }
                         AMREX_ASSERT(this->Index(pold, level) == cell);
                         //
@@ -876,9 +875,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                         //
                         for (int i = 1; i < NStructReal; i++)
                         {
-                            pold.rdata(i) = (old_mass*pold.rdata(i) + new_mass*pnew.rdata(i))/total_mass;
+                            pold.rdata(i) = static_cast<ParticleReal>((old_mass*pold.rdata(i) + new_mass*pnew.rdata(i))/total_mass);
                         }
-                        pold.rdata(0) = total_mass;
+                        pold.rdata(0) = static_cast<ParticleReal>(total_mass);
                     }
                 }
             }
