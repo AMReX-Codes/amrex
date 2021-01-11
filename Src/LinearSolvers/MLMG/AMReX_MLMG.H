@@ -261,7 +261,7 @@ private:
     Vector<std::unique_ptr<MultiFab> > scratch;
 
     enum timer_types { solve_time=0, iter_time, bottom_time, ntimers };
-    Vector<Real> timer;
+    Vector<double> timer;
 
     Real m_rhsnorm0 = -1.0;
     Real m_init_resnorm0 = -1.0;

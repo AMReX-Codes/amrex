@@ -69,11 +69,14 @@ configure_amrex ()
 add_subdirectory(Base)
 add_subdirectory(Boundary)
 add_subdirectory(AmrCore)
-add_subdirectory(Amr)
 
 #
 # Optional components
 #
+if (AMReX_AMRLEVEL)
+   add_subdirectory(Amr)
+endif ()
+
 if (AMReX_EB)
    if (AMReX_CUDA AND ( "${NVCC_VERSION_MAJOR}.${NVCC_VERSION_MINOR}" VERSION_EQUAL "9.2") )
       message(FATAL_ERROR "EB component of AMReX is not compatible with CUDA 9.2")

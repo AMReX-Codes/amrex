@@ -26,7 +26,7 @@ void cic_interpolate (const P& p,
 
 #if (AMREX_SPACEDIM == 1)
 
-    amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] - 0.5; //len
+    amrex::Real lx = (Real(p.pos(0)) - plo[0]) * dxi[0] - Real(0.5); //len
 
     int const i = static_cast<int>(amrex::Math::floor(lx)); //cell
 
@@ -46,8 +46,8 @@ void cic_interpolate (const P& p,
 
 #elif (AMREX_SPACEDIM == 2)
 
-    amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] - 0.5;
-    amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] - 0.5;
+    amrex::Real lx = (Real(p.pos(0)) - plo[0]) * dxi[0] - Real(0.5);
+    amrex::Real ly = (Real(p.pos(1)) - plo[1]) * dxi[1] - Real(0.5);
 
     int const i = static_cast<int>(amrex::Math::floor(lx));
     int const j = static_cast<int>(amrex::Math::floor(ly));
@@ -73,9 +73,9 @@ void cic_interpolate (const P& p,
 
 #elif (AMREX_SPACEDIM == 3)
 
-    amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] - 0.5;
-    amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] - 0.5;
-    amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] - 0.5;
+    amrex::Real lx = (Real(p.pos(0)) - plo[0]) * dxi[0] - Real(0.5);
+    amrex::Real ly = (Real(p.pos(1)) - plo[1]) * dxi[1] - Real(0.5);
+    amrex::Real lz = (Real(p.pos(2)) - plo[2]) * dxi[2] - Real(0.5);
 
     int const i = static_cast<int>(amrex::Math::floor(lx));
     int const j = static_cast<int>(amrex::Math::floor(ly));
@@ -120,7 +120,7 @@ void mac_interpolate (const P& p,
 #if (AMREX_SPACEDIM == 1)
     for (int d=0; d < AMREX_SPACEDIM; ++d)
     {
-        amrex::Real lx = (p.pos(0)-plo[0])*dxi[0] - (d != 0)*0.5;
+        amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - (d != 0)*Real(0.5);
 
         int const i = static_cast<int>(amrex::Math::floor(lx));
 
@@ -139,8 +139,8 @@ void mac_interpolate (const P& p,
 
   for (int d=0; d < AMREX_SPACEDIM; ++d)
   {
-      amrex::Real lx = (p.pos(0)-plo[0])*dxi[0] - (d != 0)*0.5;
-      amrex::Real ly = (p.pos(1)-plo[1])*dxi[1] - (d != 1)*0.5;
+      amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - (d != 0)*Real(0.5);
+      amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - (d != 1)*Real(0.5);
 
       int const i = static_cast<int>(amrex::Math::floor(lx));
       int const j = static_cast<int>(amrex::Math::floor(ly));
@@ -166,9 +166,9 @@ void mac_interpolate (const P& p,
 
   for (int d=0; d < AMREX_SPACEDIM; ++d)
   {
-      amrex::Real lx = (p.pos(0)-plo[0])*dxi[0] - (d != 0)*0.5;
-      amrex::Real ly = (p.pos(1)-plo[1])*dxi[1] - (d != 1)*0.5;
-      amrex::Real lz = (p.pos(2)-plo[2])*dxi[2] - (d != 2)*0.5;
+      amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - (d != 0)*Real(0.5);
+      amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - (d != 1)*Real(0.5);
+      amrex::Real lz = (Real(p.pos(2))-plo[2])*dxi[2] - (d != 2)*Real(0.5);
 
       int const i = static_cast<int>(amrex::Math::floor(lx));
       int const j = static_cast<int>(amrex::Math::floor(ly));

@@ -119,7 +119,7 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                         dfab(i,j,k,n+destcomp) = sfab1(i,j,k,n+scomp);
                     });
                 }
-                else if (std::abs(t1-t0) > 1.e-16)
+                else if (! amrex::almostEqual(t0,t1))
                 {
                     Real alpha = (t1-time)/(t1-t0);
                     Real beta = (time-t0)/(t1-t0);

@@ -334,7 +334,7 @@ operator << (std::ostream&    os,
                    Real                      threshold,
                    char                      tagval) noexcept
   {
-    const Real fac = threshold * std::pow(2,level);
+    const Real fac = threshold * Real(std::pow(2,level));
     amrex::ParallelFor(bx,
     [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k)
     {

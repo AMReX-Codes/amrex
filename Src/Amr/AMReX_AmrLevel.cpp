@@ -598,7 +598,7 @@ AmrLevel::get_data (int  state_indx, Real time) noexcept
 {
     const Real old_time = state[state_indx].prevTime();
     const Real new_time = state[state_indx].curTime();
-    const Real eps = 0.001*(new_time - old_time);
+    const Real eps = Real(0.001)*(new_time - old_time);
 
     if (time > old_time-eps && time < old_time+eps)
     {
@@ -2098,10 +2098,10 @@ AmrLevel::which_time (int  indx, Real time) const noexcept
 {
     const Real oldtime = state[indx].prevTime();
     const Real newtime = state[indx].curTime();
-    const Real haftime = .5 * (oldtime + newtime);
-    const Real qtime = oldtime + 0.25*(newtime-oldtime);
-    const Real tqtime = oldtime + 0.75*(newtime-oldtime);
-    const Real epsilon = 0.001 * (newtime - oldtime);
+    const Real haftime = .5_rt * (oldtime + newtime);
+    const Real qtime = oldtime + 0.25_rt*(newtime-oldtime);
+    const Real tqtime = oldtime + 0.75_rt*(newtime-oldtime);
+    const Real epsilon = 0.001_rt * (newtime - oldtime);
 
     BL_ASSERT(time >= oldtime-epsilon && time <= newtime+epsilon);
     
@@ -2131,7 +2131,7 @@ AmrLevel::which_time (int  indx, Real time) const noexcept
 Real
 AmrLevel::estimateWork ()
 {
-    return 1.0*countCells();
+    return static_cast<Real>(countCells());
 }
 
 bool

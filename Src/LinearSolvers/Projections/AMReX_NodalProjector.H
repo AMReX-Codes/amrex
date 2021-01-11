@@ -73,9 +73,9 @@ public:
                      const amrex::Vector<amrex::MultiFab*>&       a_S_cc = {},
                      const amrex::Vector<const amrex::MultiFab*>& a_S_nd = {} );
 
-    void project ( amrex::Real a_rtol = 1.0e-11, amrex::Real a_atol = 1.0e-14 );
-    void project ( const Vector<amrex::MultiFab*>& a_phi, amrex::Real a_rtol = 1.0e-11,
-                   amrex::Real a_atol = 1.0e-14 );
+    void project ( amrex::Real a_rtol = Real(1.0e-11), amrex::Real a_atol = Real(1.0e-14) );
+    void project ( const Vector<amrex::MultiFab*>& a_phi, amrex::Real a_rtol = Real(1.0e-11),
+                   amrex::Real a_atol = Real(1.0e-14) );
 
     Vector< const MultiFab* > getGradPhi () const {return GetVecOfConstPtrs(m_fluxes);}
     Vector< const MultiFab* > getPhi     () const {return GetVecOfConstPtrs(m_phi);}

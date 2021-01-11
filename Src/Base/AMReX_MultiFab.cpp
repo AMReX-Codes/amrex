@@ -1254,7 +1254,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
                     } else {
                         amrex::LoopConcurrentOnCpu(b, [=] (int i, int j, int k) noexcept
                         {
-                            arr(i,j,k) += 1.0;
+                            arr(i,j,k) += Real(1.0);
                         });
                     }
                 }

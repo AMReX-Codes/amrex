@@ -748,7 +748,7 @@ FABio_8bit::write (std::ostream&    os,
 {
     BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
 
-    const Real eps = 1.0e-8; // FIXME - whats a better value?
+    const Real eps = 1.0e-8_rt; // FIXME - whats a better value?
     const Long siz = f.box().numPts();
 
     unsigned char *c = new unsigned char[siz];
@@ -758,7 +758,7 @@ FABio_8bit::write (std::ostream&    os,
         const Real mx   = f.max<RunOn::Host>(k+comp);
         const Real* dat = f.dataPtr(k+comp);
         Real rng = std::fabs(mx-mn);
-        rng = (rng < eps) ? 0.0 : 255.0/(mx-mn);
+        rng = (rng < eps) ? 0.0_rt : 255.0_rt/(mx-mn);
         for(Long i(0); i < siz; ++i) {
             Real v = rng*(dat[i]-mn);
             int iv = (int) v;
@@ -791,7 +791,7 @@ FABio_8bit::read (std::istream& is,
 	}
         is.read((char*)c,siz);
         Real* dat       = f.dataPtr(k);
-        const Real rng  = (mx-mn)/255.0;
+        const Real rng  = (mx-mn)/255.0_rt;
         for (Long i = 0; i < siz; i++)
         {
             int iv = (int) c[i];

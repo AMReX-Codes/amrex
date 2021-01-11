@@ -138,7 +138,7 @@ MLCellABecLap::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux
 {
     BL_PROFILE("MLMG::getFluxes()");
 
-    const Real betainv = 1.0 / getBScalar();
+    const Real betainv = Real(1.0) / getBScalar();
     const int nlevs = NAMRLevels();
     for (int alev = 0; alev < nlevs; ++alev) {
         compFlux(alev, a_flux[alev], *a_sol[alev], a_loc);
@@ -177,8 +177,8 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
     const auto probhi = m_geom[amrlev][mglev].ProbHiArray();
     amrex::ignore_unused(probhi);
     const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
-    const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : 1.0;
-    const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : 1.0;
+    const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : Real(1.0);
+    const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : Real(1.0);
     const Real xlo = problo[0];
     const Real dx = m_geom[amrlev][mglev].CellSize(0);
     const Box& domain = m_geom[amrlev][mglev].Domain();

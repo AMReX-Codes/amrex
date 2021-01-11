@@ -65,6 +65,7 @@ set(AMReX_@AMReX_PRECISION@_FOUND   ON)
 set(AMReX_FORTRAN_FOUND             @AMReX_FORTRAN@)
 
 # Actual components selection
+set(AMReX_AMRLEVEL_FOUND            @AMReX_AMRLEVEL@)
 set(AMReX_EB_FOUND                  @AMReX_EB@)
 set(AMReX_FINTERFACES_FOUND         @AMReX_FORTRAN_INTERFACES@)
 set(AMReX_LSOLVERS_FOUND            @AMReX_LINEAR_SOLVERS@)

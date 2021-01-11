@@ -200,7 +200,7 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
     {
         if (m_overset_mask[amrlev][mglev]) {
             const Real fac = static_cast<Real>(1 << mglev); // 2**mglev
-            const Real osfac = 2.0*fac/(fac+1.0);
+            const Real osfac = Real(2.0)*fac/(fac+Real(1.0));
             const int ncomp = getNComp();
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())

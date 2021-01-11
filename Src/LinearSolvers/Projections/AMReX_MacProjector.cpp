@@ -323,8 +323,8 @@ MacProjector::setOptions ()
     int          bottom_verbose(0);
     int          maxiter(200);
     int          bottom_maxiter(200);
-    Real         bottom_rtol(1.0e-4);
-    Real         bottom_atol(-1.0);
+    Real         bottom_rtol(1.0e-4_rt);
+    Real         bottom_atol(-1.0_rt);
     std::string  bottom_solver("bicg");
 
     int num_pre_smooth(2);

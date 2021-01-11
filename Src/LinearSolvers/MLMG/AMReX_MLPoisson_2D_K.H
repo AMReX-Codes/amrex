@@ -34,7 +34,7 @@ void mlpoisson_adotx_m (int i, int j, Array4<Real> const& y,
 {
     Real rel = probxlo + i*dx;
     Real rer = probxlo +(i+1)*dx;
-    Real rc = probxlo + (i+0.5)*dx;
+    Real rc = probxlo + (i+Real(0.5))*dx;
     y(i,j,0) = dhx * (rel*x(i-1,j,0) - (rel+rer)*x(i,j,0) + rer*x(i+1,j,0))
         +      dhy * rc *(x(i,j-1,0) -  Real(2.)*x(i,j,0) +     x(i,j+1,0));
 }
@@ -130,7 +130,7 @@ void mlpoisson_flux_y_m (Box const& box, Array4<Real> const& fy,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real rc = probxlo + (i+0.5)*dx;
+            Real rc = probxlo + (i+Real(0.5))*dx;
             fy(i,j,0) = dyinv*rc*(sol(i,j,0)-sol(i,j-1,0));
         }
     }
@@ -166,13 +166,13 @@ void mlpoisson_flux_yface_m (Box const& box, Array4<Real> const& fy,
     int j = lo.y;
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        Real rc = probxlo + (i+0.5)*dx;
+        Real rc = probxlo + (i+Real(0.5))*dx;
         fy(i,j,0) = dyinv*rc*(sol(i,j,0)-sol(i,j-1,0));
     }
     j += ylen;
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        Real rc = probxlo + (i+0.5)*dx;
+        Real rc = probxlo + (i+Real(0.5))*dx;
         fy(i,j,0) = dyinv*rc*(sol(i,j,0)-sol(i,j-1,0));
     }
 }
@@ -292,7 +292,7 @@ void mlpoisson_gsrb_m (Box const& box, Array4<Real> const& phi, Array4<Real cons
 
                 Real rel = probxlo + i*dx;
                 Real rer = probxlo +(i+1)*dx;
-                Real rc = probxlo + (i+0.5)*dx;
+                Real rc = probxlo + (i+Real(0.5))*dx;
 
                 Real gamma = -dhx*(rel+rer) - Real(2.0)*dhy*rc;
 
@@ -320,7 +320,7 @@ void mlpoisson_normalize (Box const& box, Array4<Real> const& x,
         for (int i = lo.x; i <= hi.x; ++i) {
             Real rel = probxlo + i*dx;
             Real rer = probxlo +(i+1)*dx;
-            Real rc = probxlo + (i+0.5)*dx;
+            Real rc = probxlo + (i+Real(0.5))*dx;
             x(i,j,0) /= (-dhx*(rel+rer) - dhy*rc*Real(2.0));
         }
     }

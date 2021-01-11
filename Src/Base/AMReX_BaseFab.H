@@ -2,6 +2,7 @@
 #define AMREX_BASEFAB_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Algorithm.H>
 #include <AMReX_Extension.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Array.H>
@@ -1683,7 +1684,7 @@ BaseFab<T>::prefetchToHost () const noexcept
         // std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
         // auto& q = Gpu::Device::streamQueue();
         // q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
-#elif defined(AMREX_USE_CUDA)
+#elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
@@ -1708,7 +1709,7 @@ BaseFab<T>::prefetchToDevice () const noexcept
         std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
         auto& q = Gpu::Device::streamQueue();
         q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
-#elif defined(AMREX_USE_CUDA)
+#elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
@@ -3505,9 +3506,15 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1, const Box& b1, int comp1,
                        Real t1, Real t2, Real t,
                        const Box& b, int comp, int numcomp) noexcept
 {
-    Real alpha = (t2-t)/(t2-t1);
-    Real beta = (t-t1)/(t2-t1);
-    return linComb<run_on>(f1,b1,comp1,f2,b2,comp2,alpha,beta,b,comp,numcomp);
+    if (amrex::almostEqual(t1,t2) || amrex::almostEqual(t1,t)) {
+        return copy<run_on>(f1,b1,comp1,b,comp,numcomp);
+    } else if (amrex::almostEqual(t2,t)) {
+        return copy<run_on>(f2,b2,comp2,b,comp,numcomp);
+    } else {
+        Real alpha = (t2-t)/(t2-t1);
+        Real beta = (t-t1)/(t2-t1);
+        return linComb<run_on>(f1,b1,comp1,f2,b2,comp2,alpha,beta,b,comp,numcomp);
+    }
 }
 
 template <class T>
@@ -3518,19 +3525,15 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1, int comp1,
                        Real t1, Real t2, Real t,
                        const Box& b, int comp, int numcomp) noexcept
 {
-    Real tol = 1.0e-16;
-    if(amrex::Math::abs(t2-t1) > tol)
-    {
+    if (amrex::almostEqual(t1,t2) || amrex::almostEqual(t1,t)) {
+        return copy<run_on>(f1,b,comp1,b,comp,numcomp);
+    } else if (amrex::almostEqual(t2,t)) {
+        return copy<run_on>(f2,b,comp2,b,comp,numcomp);
+    } else {
         Real alpha = (t2-t)/(t2-t1);
         Real beta = (t-t1)/(t2-t1);
-
         return linComb<run_on>(f1,b,comp1,f2,b,comp2,alpha,beta,b,comp,numcomp);
     }
-    else
-    {
-        copy<run_on>(f1,b,comp1,b,comp,numcomp);
-    }
-    return *this;
 }
 
 //

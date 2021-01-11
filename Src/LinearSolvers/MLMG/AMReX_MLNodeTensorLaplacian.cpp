@@ -28,16 +28,16 @@ MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexce
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(a_beta);
 #elif (AMREX_SPACEDIM == 2)
-    m_sigma[0] = 1. - a_beta[0]*a_beta[0];
-    m_sigma[1] =    - a_beta[0]*a_beta[1];
-    m_sigma[2] = 1. - a_beta[1]*a_beta[1];
+    m_sigma[0] = Real(1.) - a_beta[0]*a_beta[0];
+    m_sigma[1] =          - a_beta[0]*a_beta[1];
+    m_sigma[2] = Real(1.) - a_beta[1]*a_beta[1];
 #elif (AMREX_SPACEDIM == 3)
-    m_sigma[0] = 1. - a_beta[0]*a_beta[0];
-    m_sigma[1] =    - a_beta[0]*a_beta[1];
-    m_sigma[2] =    - a_beta[0]*a_beta[2];
-    m_sigma[3] = 1. - a_beta[1]*a_beta[1];
-    m_sigma[4] =    - a_beta[1]*a_beta[2];
-    m_sigma[5] = 1. - a_beta[2]*a_beta[2];
+    m_sigma[0] = Real(1.) - a_beta[0]*a_beta[0];
+    m_sigma[1] =          - a_beta[0]*a_beta[1];
+    m_sigma[2] =          - a_beta[0]*a_beta[2];
+    m_sigma[3] = Real(1.) - a_beta[1]*a_beta[1];
+    m_sigma[4] =          - a_beta[1]*a_beta[2];
+    m_sigma[5] = Real(1.) - a_beta[2]*a_beta[2];
 #endif
 }
 

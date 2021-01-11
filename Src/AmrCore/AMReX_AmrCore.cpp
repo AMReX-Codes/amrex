@@ -127,7 +127,7 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
         int                       numgrid = bs.size();
         Long                      ncells  = bs.numPts();
         double                    ntot    = Geom(lev).Domain().d_numPts();
-        Real                      frac    = Real(100.0)*(Real(ncells) / ntot);
+        Real                      frac    = Real(100.0*double(ncells) / ntot);
 
         os << "  Level "
            << lev

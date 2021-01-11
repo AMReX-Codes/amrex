@@ -184,6 +184,9 @@ print_option( AMReX_OMP )
 #
 # AMReX components selection  ================================================
 #
+option( AMReX_AMRLEVEL  "Build AmrLevel class" ON )
+print_option( AMReX_AMRLEVEL )
+
 cmake_dependent_option( AMReX_EB "Build with Embedded Boundary support" OFF
    "NOT AMReX_SPACEDIM EQUAL 1" OFF )
 print_option(AMReX_EB)

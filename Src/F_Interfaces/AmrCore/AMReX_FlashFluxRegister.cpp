@@ -198,7 +198,7 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
                     dest(i,j,0,n) = (src(2*i,2*j  ,0,n) +
-                                     src(2*i,2*j+1,0,n)) * (0.5*sf);
+                                     src(2*i,2*j+1,0,n)) * (Real(0.5)*sf);
                 });
 #endif
 #if (AMREX_SPACEDIM == 3)
@@ -207,7 +207,7 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
                     dest(i,j,k,n) = (src(2*i,2*j  ,2*k  ,n) +
                                      src(2*i,2*j+1,2*k  ,n) +
                                      src(2*i,2*j  ,2*k+1,n) +
-                                     src(2*i,2*j+1,2*k+1,n)) * (0.25*sf);
+                                     src(2*i,2*j+1,2*k+1,n)) * (Real(0.25)*sf);
                 });
 #endif
             } else if (dir == 1) {
@@ -215,7 +215,7 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
                     dest(i,j,0,n) = (src(2*i  ,2*j,0,n) +
-                                     src(2*i+1,2*j,0,n)) * (0.5*sf);
+                                     src(2*i+1,2*j,0,n)) * (Real(0.5)*sf);
                 });
 #endif
 #if (AMREX_SPACEDIM == 3)
@@ -224,7 +224,7 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
                     dest(i,j,k,n) = (src(2*i  ,2*j,2*k  ,n) +
                                      src(2*i+1,2*j,2*k  ,n) +
                                      src(2*i  ,2*j,2*k+1,n) +
-                                     src(2*i+1,2*j,2*k+1,n)) * (0.25*sf);
+                                     src(2*i+1,2*j,2*k+1,n)) * (Real(0.25)*sf);
                 });
 #endif
             } else {
@@ -234,7 +234,7 @@ void FlashFluxRegister::store (int fine_global_index, int dir, FArrayBox const& 
                     dest(i,j,k,n) = (src(2*i  ,2*j  ,2*k,n) +
                                      src(2*i+1,2*j  ,2*k,n) +
                                      src(2*i  ,2*j+1,2*k,n) +
-                                     src(2*i+1,2*j+1,2*k,n)) * (0.25*sf);
+                                     src(2*i+1,2*j+1,2*k,n)) * (Real(0.25)*sf);
                 });
 #endif
             }
