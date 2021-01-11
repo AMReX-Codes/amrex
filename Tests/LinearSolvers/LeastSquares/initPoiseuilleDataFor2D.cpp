@@ -11,6 +11,7 @@ void MyTest::initializePoiseuilleDataFor2D(int ilev) {
   for (MFIter mfi(phi[ilev]); mfi.isValid(); ++mfi) {
     const Box &bx = mfi.fabbox();
     Array4<Real> const &fab = phi[ilev].array(mfi);
+    Array4<Real> const &fab_ghost_resolved = phi_ghost_resolved[ilev].array(mfi);
     Array4<Real> const &fab_gx = grad_x_analytic[ilev].array(mfi);
     Array4<Real> const &fab_gy = grad_y_analytic[ilev].array(mfi);
     Array4<Real> const &fab_eb = grad_eb_analytic[ilev].array(mfi);
@@ -48,6 +49,8 @@ void MyTest::initializePoiseuilleDataFor2D(int ilev) {
 
       Real rx = (i + 0.5 + ccent(i, j, k, 0)) * dx[0];
       Real ry = (j + 0.5 + ccent(i, j, k, 1)) * dx[1];
+      Real rx_gr = rx;
+      Real ry_gr = ry;
 
       // if not periodic, set the ghost cell values to corr. domain face values
       if (i < dlo[0] && !is_periodic[0]) {
@@ -72,6 +75,11 @@ void MyTest::initializePoiseuilleDataFor2D(int ilev) {
       auto phi_mag = (!flag(i, j, k).isCovered()) ? d * (H - d) : 0.0;
       fab(i, j, k, 0) = phi_mag * std::cos(t);
       fab(i, j, k, 1) = phi_mag * std::sin(t);
+
+      auto d_gr = std::fabs(a * rx_gr + b * ry_gr + c) / std::sqrt(a * a + b * b);
+      auto phi_mag_gr = (!flag(i, j, k).isCovered()) ? d_gr * (H - d_gr) : 0.0;
+      fab_ghost_resolved(i, j, k, 0) = phi_mag_gr * std::cos(t);
+      fab_ghost_resolved(i, j, k, 1) = phi_mag_gr * std::sin(t);
 
       if (flag(i, j, k).isCovered()) {
         fab_gx(i, j, k, 0) = 0.0;

@@ -60,7 +60,7 @@ MyTest::compute_gradient ()
     for (MFIter mfi(rhs[ilev]); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.fabbox();
-        Array4<const Real> const& phi_arr     = phi[ilev].array(mfi);
+        Array4<const Real> const& phi_arr     = phi_ghost_resolved[ilev].array(mfi);
         Array4<const Real> const& phi_eb_arr  = phieb[ilev].array(mfi);
         Array4<      Real> const& grad_x_arr  = grad_x[ilev].array(mfi);
         Array4<      Real> const& grad_y_arr  = grad_y[ilev].array(mfi);
@@ -73,6 +73,7 @@ MyTest::compute_gradient ()
 #if (AMREX_SPACEDIM == 3)
         Array4<Real const> const& fcz   = (factory[ilev]->getFaceCent())[2]->const_array(mfi);
 #endif
+        Array4<Real const> const& vfrac = (factory[ilev]->getVolFrac()).array(mfi);
 
         Array4<Real const> const& ccent = (factory[ilev]->getCentroid()).array(mfi);
         Array4<Real const> const& bcent = (factory[ilev]->getBndryCent()).array(mfi);
@@ -116,18 +117,18 @@ MyTest::compute_gradient ()
 
                 grad_x_arr(i,j,k,n) = (apx(i,j,k) == 0.0) ? 0.0 :
                   grad_x_of_phi_on_centroids_extdir(i, j, k, n, phi_arr, phi_eb_arr,
-                                                    flag, ccent, bcent,
+                                                    flag, ccent, bcent, vfrac,
                                                     yloc_on_xface, is_eb_dirichlet, is_eb_inhomog,
-                                                    on_x_face, domlo_x, domhi_x, phi_arr, phi_arr,
-                                                    on_y_face, domlo_y, domhi_y, phi_arr, phi_arr);
+                                                    on_x_face, domlo_x, domhi_x,
+                                                    on_y_face, domlo_y, domhi_y);
 
 
                 grad_y_arr(i,j,k,n) = (apy(i,j,k) == 0.0) ? 0.0:
                   grad_y_of_phi_on_centroids_extdir(i, j, k, n, phi_arr, phi_eb_arr,
-                                                    flag, ccent, bcent,
+                                                    flag, ccent, bcent, vfrac,
                                                     xloc_on_yface, is_eb_dirichlet, is_eb_inhomog,
-                                                    on_x_face, domlo_x, domhi_x, phi_arr, phi_arr,
-                                                    on_y_face, domlo_y, domhi_y, phi_arr, phi_arr);
+                                                    on_x_face, domlo_x, domhi_x,
+                                                    on_y_face, domlo_y, domhi_y);
 
               } else {
 
@@ -148,9 +149,9 @@ MyTest::compute_gradient ()
 
             if (flag(i,j,k).isSingleValued())
               grad_eb_arr(i,j,k,n) = grad_eb_of_phi_on_centroids_extdir(i, j, k, n, phi_arr, phi_eb_arr,
-                        flag, ccent, bcent, nx, ny, is_eb_inhomog,
-                        on_x_face, domlo_x, domhi_x, phi_arr, phi_arr,
-                        on_y_face, domlo_y, domhi_y, phi_arr, phi_arr);
+                        flag, ccent, bcent, vfrac, nx, ny, is_eb_inhomog,
+                        on_x_face, domlo_x, domhi_x,
+                        on_y_face, domlo_y, domhi_y);
 
 #else
             needs_bdry_stencil = needs_bdry_stencil ||
@@ -168,31 +169,31 @@ MyTest::compute_gradient ()
                if(needs_bdry_stencil) {
                  grad_x_arr(i,j,k,n) = (apx(i,j,k) == 0.0) ? 0.0 :
                      grad_x_of_phi_on_centroids_extdir(i, j, k, n, phi_arr, phi_eb_arr,
-                                                       flag, ccent, bcent,
+                                                       flag, ccent, bcent, vfrac,
                                                        yloc_on_xface, zloc_on_xface, 
                                                        is_eb_dirichlet, is_eb_inhomog,
-                                                       on_x_face, domlo_x, domhi_x, phi_arr, phi_arr,
-                                                       on_y_face, domlo_y, domhi_y, phi_arr, phi_arr,
-                                                       on_z_face, domlo_z, domhi_z, phi_arr, phi_arr);
+                                                       on_x_face, domlo_x, domhi_x,
+                                                       on_y_face, domlo_y, domhi_y,
+                                                       on_z_face, domlo_z, domhi_z);
 
 
                  grad_y_arr(i,j,k,n) = (apy(i,j,k) == 0.0) ? 0.0:
                      grad_y_of_phi_on_centroids_extdir(i, j, k, n, phi_arr, phi_eb_arr,
-                                                       flag, ccent, bcent,
+                                                       flag, ccent, bcent, vfrac,
                                                        xloc_on_yface, zloc_on_yface,
                                                        is_eb_dirichlet, is_eb_inhomog,
-                                                       on_x_face, domlo_x, domhi_x, phi_arr, phi_arr,
-                                                       on_y_face, domlo_y, domhi_y, phi_arr, phi_arr,
-                                                       on_z_face, domlo_z, domhi_z, phi_arr, phi_arr);
+                                                       on_x_face, domlo_x, domhi_x,
+                                                       on_y_face, domlo_y, domhi_y,
+                                                       on_z_face, domlo_z, domhi_z);
 
                  grad_z_arr(i,j,k,n) = (apz(i,j,k) == 0.0) ? 0.0:
                      grad_z_of_phi_on_centroids_extdir(i, j, k, n, phi_arr, phi_eb_arr,
-                                                       flag, ccent, bcent,
+                                                       flag, ccent, bcent, vfrac,
                                                        xloc_on_zface, yloc_on_zface,
                                                        is_eb_dirichlet, is_eb_inhomog,
-                                                       on_x_face, domlo_x, domhi_x, phi_arr, phi_arr,
-                                                       on_y_face, domlo_y, domhi_y, phi_arr, phi_arr,
-                                                       on_z_face, domlo_z, domhi_z, phi_arr, phi_arr);
+                                                       on_x_face, domlo_x, domhi_x,
+                                                       on_y_face, domlo_y, domhi_y,
+                                                       on_z_face, domlo_z, domhi_z);
                } else {
 
                  grad_x_arr(i,j,k,n) = (apx(i,j,k) == 0.0) ? 0.0 :
@@ -216,10 +217,10 @@ MyTest::compute_gradient ()
 
             if (flag(i,j,k).isSingleValued())
               grad_eb_arr(i,j,k,n) = grad_eb_of_phi_on_centroids_extdir(i, j, k, n, phi_arr, phi_eb_arr,
-                        flag, ccent, bcent, nx, ny, nz, is_eb_inhomog,
-                        on_x_face, domlo_x, domhi_x, phi_arr, phi_arr,
-                        on_y_face, domlo_y, domhi_y, phi_arr, phi_arr,
-                        on_z_face, domlo_z, domhi_z, phi_arr, phi_arr);
+                        flag, ccent, bcent, vfrac, nx, ny, nz, is_eb_inhomog,
+                        on_x_face, domlo_x, domhi_x,
+                        on_y_face, domlo_y, domhi_y,
+                        on_z_face, domlo_z, domhi_z);
 
 #endif
 

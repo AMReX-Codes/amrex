@@ -648,18 +648,13 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 Array4<Real const> const& phieb, 
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
-                                Array4<Real const> const& bcent, 
+                                Array4<Real const> const& bcent,
+                                Array4<Real const> const& vfrac, 
                                 Real& yloc_on_xface, Real& zloc_on_xface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog,
                                 const bool on_x_face, const int domlo_x, const int domhi_x,
-                                Array4<Real const> const& bcval_xlo,
-                                Array4<Real const> const& bcval_xhi,
                                 const bool on_y_face, const int domlo_y, const int domhi_y,
-                                Array4<Real const> const& bcval_ylo,
-                                Array4<Real const> const& bcval_yhi,
-                                const bool on_z_face, const int domlo_z, const int domhi_z,
-                                Array4<Real const> const& bcval_zlo,
-                                Array4<Real const> const& bcval_zhi)
+                                const bool on_z_face, const int domlo_z, const int domhi_z)
 {
     AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
 
@@ -701,33 +696,36 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
             {
 
                 int a_ind  = (jj-(j-1)) + 3*(kk-(k-1)) + 9*(ii-(i-im));
-    
+
                 Real x_off = static_cast<Real>(ii-i) + 0.5;
-                Real y_off = static_cast<Real>(jj-j); 
-                Real z_off = static_cast<Real>(kk-k); 
+                Real y_off = static_cast<Real>(jj-j);
+                Real z_off = static_cast<Real>(kk-k);
+    
+                if(on_x_face){
+                    if (ii < domlo_x and (vfrac(ii+1,jj,kk) != 1.0 or vfrac(ii+2,jj,kk) != 1.0) )
+                        continue;
+                    if (ii > domhi_x and (vfrac(ii-1,jj,kk) != 1.0 or vfrac(ii-2,jj,kk) != 1.0))
+                        continue;
+                }
 
-                Real c_x_off = 0.;
-                if (on_x_face && ii < domlo_x)
-                  c_x_off =  0.5;
-                else if (on_x_face && ii > domhi_x)
-                  c_x_off = -0.5;
+                if(on_y_face){
+                    if (jj < domlo_y and (vfrac(ii,jj+1,kk) != 1.0 or vfrac(ii,jj+2,kk) != 1.0) )
+                        continue;
+                    if (jj > domhi_y and (vfrac(ii,jj-1,kk) != 1.0 or vfrac(ii,jj-2,kk) != 1.0) )
+                        continue;
+                }
 
-                Real c_y_off = 0.;
-                if (on_y_face && jj < domlo_y)
-                  c_y_off =  0.5;
-                else if (on_y_face && jj > domhi_y)
-                  c_y_off = -0.5;
-
-                Real c_z_off = 0.;
-                if (on_z_face && kk < domlo_z)
-                  c_z_off =  0.5;
-                else if (on_z_face && kk > domhi_z)
-                  c_z_off = -0.5;
+                if(on_z_face){
+                    if (kk < domlo_z and (vfrac(ii,jj,kk+1) != 1.0 or vfrac(ii,jj,kk+2) != 1.0) )
+                        continue;
+                    if (kk > domhi_z and (vfrac(ii,jj,kk-1) != 1.0 or vfrac(ii,jj,kk-2) != 1.0) )
+                        continue;
+                }
     
                 Amatrix(a_ind,0) = 1.0;
-                Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0) + c_x_off;
-                Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1) - yloc_on_xface + c_y_off;
-                Amatrix(a_ind,3) = z_off + ccent(ii,jj,kk,2) - zloc_on_xface + c_z_off;
+                Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0);
+                Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1) - yloc_on_xface;
+                Amatrix(a_ind,3) = z_off + ccent(ii,jj,kk,2) - zloc_on_xface;
 
                 // Add in information about the location of the EB. Exclude
                 // EBs that are outside the domain.
@@ -765,21 +763,8 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
            for (int jj = j-1; jj <= j+1; jj++) // Tangential to face
                if (!flag(ii,jj,kk).isCovered())
                {
-                    Real phi_val = phi(ii,jj,kk,n);
-                    if(on_x_face && ii < domlo_x)
-                       phi_val = bcval_xlo(ii,jj,kk,n);
-                    else if (on_x_face && ii > domhi_x)
-                       phi_val = bcval_xhi(ii,jj,kk,n);
-                    else if (on_y_face && jj < domlo_y)
-                       phi_val = bcval_ylo(ii,jj,kk,n);
-                    else if (on_y_face && jj > domhi_y)
-                       phi_val = bcval_yhi(ii,jj,kk,n);
-                    else if (on_z_face && kk < domlo_y)
-                       phi_val = bcval_zlo(ii,jj,kk,n);
-                    else if (on_z_face && kk > domhi_z)
-                       phi_val = bcval_zhi(ii,jj,kk,n);
-
                     int a_ind  = (jj-(j-1)) + 3*(kk-(k-1)) + 9*(ii-(i-im));
+                    Real phi_val = Amatrix(a_ind,0)*phi(ii,jj,kk,n);
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi_val;
 
@@ -799,18 +784,13 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 Array4<Real const> const& phieb, 
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
-                                Array4<Real const> const& bcent, 
+                                Array4<Real const> const& bcent,
+                                Array4<Real const> const& vfrac, 
                                 Real& xloc_on_yface, Real& zloc_on_yface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog,
                                 const bool on_x_face, const int domlo_x, const int domhi_x,
-                                Array4<Real const> const& bcval_xlo,
-                                Array4<Real const> const& bcval_xhi,
                                 const bool on_y_face, const int domlo_y, const int domhi_y,
-                                Array4<Real const> const& bcval_ylo,
-                                Array4<Real const> const& bcval_yhi,
-                                const bool on_z_face, const int domlo_z, const int domhi_z,
-                                Array4<Real const> const& bcval_zlo,
-                                Array4<Real const> const& bcval_zhi)
+                                const bool on_z_face, const int domlo_z, const int domhi_z)
 {
     AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,53,0,9> Amatrix;
@@ -855,28 +835,31 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real y_off = static_cast<Real>(jj-j) + 0.5;
                 Real z_off = static_cast<Real>(kk-k);
 
-                Real c_x_off = 0.;
-                if (on_x_face && ii < domlo_x)
-                  c_x_off =  0.5;
-                else if (on_x_face && ii > domhi_x)
-                  c_x_off = -0.5;
+                if(on_x_face){
+                    if (ii < domlo_x and (vfrac(ii+1,jj,kk) != 1.0 or vfrac(ii+2,jj,kk) != 1.0) )
+                        continue;
+                    if (ii > domhi_x and (vfrac(ii-1,jj,kk) != 1.0 or vfrac(ii-2,jj,kk) != 1.0))
+                        continue;
+                }
 
-                Real c_y_off = 0.;
-                if (on_y_face && jj < domlo_y)
-                  c_y_off =  0.5;
-                else if (on_y_face && jj > domhi_y)
-                  c_y_off = -0.5;
+                if(on_y_face){
+                    if (jj < domlo_y and (vfrac(ii,jj+1,kk) != 1.0 or vfrac(ii,jj+2,kk) != 1.0) )
+                        continue;
+                    if (jj > domhi_y and (vfrac(ii,jj-1,kk) != 1.0 or vfrac(ii,jj-2,kk) != 1.0) )
+                        continue;
+                }
 
-                Real c_z_off = 0.;
-                if (on_z_face && kk < domlo_z)
-                  c_z_off =  0.5;
-                else if (on_z_face && kk > domhi_z)
-                  c_z_off = -0.5;
-    
+                if(on_z_face){
+                    if (kk < domlo_z and (vfrac(ii,jj,kk+1) != 1.0 or vfrac(ii,jj,kk+2) != 1.0) )
+                        continue;
+                    if (kk > domhi_z and (vfrac(ii,jj,kk-1) != 1.0 or vfrac(ii,jj,kk-2) != 1.0) )
+                        continue;
+                }
+
                 Amatrix(a_ind,0) = 1.0;
-                Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0) - xloc_on_yface + c_x_off;
-                Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1) + c_y_off;
-                Amatrix(a_ind,3) = z_off + ccent(ii,jj,kk,2) - zloc_on_yface + c_z_off;
+                Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0) - xloc_on_yface;
+                Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1);
+                Amatrix(a_ind,3) = z_off + ccent(ii,jj,kk,2) - zloc_on_yface;
 
                 // Add in information about the location of the EB. Exclude
                 // EBs that are outside the domain.
@@ -914,21 +897,8 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
              for (int ii = i-1; ii <= i+1; ii++) // Tangential to face
                 if (!flag(ii,jj,kk).isCovered())
                 {
-                    Real phi_val = phi(ii,jj,kk,n);
-                    if(on_x_face && ii < domlo_x)
-                       phi_val = bcval_xlo(ii,jj,kk,n);
-                    else if (on_x_face && ii > domhi_x)
-                       phi_val = bcval_xhi(ii,jj,kk,n);
-                    else if (on_y_face && jj < domlo_y)
-                       phi_val = bcval_ylo(ii,jj,kk,n);
-                    else if (on_y_face && jj > domhi_y)
-                       phi_val = bcval_yhi(ii,jj,kk,n);
-                    else if (on_z_face && kk < domlo_y)
-                       phi_val = bcval_zlo(ii,jj,kk,n);
-                    else if (on_z_face && kk > domhi_z)
-                       phi_val = bcval_zhi(ii,jj,kk,n);
-
                     int a_ind  = (ii-(i-1)) + 3*(kk-(k-1)) + 9*(jj-(j-jm));
+                    Real phi_val = Amatrix(a_ind,0) * phi(ii,jj,kk,n);
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi_val;
 
@@ -948,18 +918,13 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 Array4<Real const> const& phieb, 
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
-                                Array4<Real const> const& bcent, 
+                                Array4<Real const> const& bcent,
+                                Array4<Real const> const& vfrac, 
                                 Real& xloc_on_zface, Real& yloc_on_zface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog,
                                 const bool on_x_face, const int domlo_x, const int domhi_x,
-                                Array4<Real const> const& bcval_xlo,
-                                Array4<Real const> const& bcval_xhi,
                                 const bool on_y_face, const int domlo_y, const int domhi_y,
-                                Array4<Real const> const& bcval_ylo,
-                                Array4<Real const> const& bcval_yhi,
-                                const bool on_z_face, const int domlo_z, const int domhi_z,
-                                Array4<Real const> const& bcval_zlo,
-                                Array4<Real const> const& bcval_zhi)
+                                const bool on_z_face, const int domlo_z, const int domhi_z)
 {
     AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,53,0,9> Amatrix;
@@ -1005,28 +970,31 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real y_off = static_cast<Real>(jj-j); 
                 Real z_off = static_cast<Real>(kk-k) + 0.5;
 
-                Real c_x_off = 0.;
-                if (on_x_face && ii < domlo_x)
-                  c_x_off =  0.5;
-                else if (on_x_face && ii > domhi_x)
-                  c_x_off = -0.5;
+                if(on_x_face){
+                    if (ii < domlo_x and (vfrac(ii+1,jj,kk) != 1.0 or vfrac(ii+2,jj,kk) != 1.0) )
+                        continue;
+                    if (ii > domhi_x and (vfrac(ii-1,jj,kk) != 1.0 or vfrac(ii-2,jj,kk) != 1.0))
+                        continue;
+                }
 
-                Real c_y_off = 0.;
-                if (on_y_face && jj < domlo_y)
-                  c_y_off =  0.5;
-                else if (on_y_face && jj > domhi_y)
-                  c_y_off = -0.5;
+                if(on_y_face){
+                    if (jj < domlo_y and (vfrac(ii,jj+1,kk) != 1.0 or vfrac(ii,jj+2,kk) != 1.0) )
+                        continue;
+                    if (jj > domhi_y and (vfrac(ii,jj-1,kk) != 1.0 or vfrac(ii,jj-2,kk) != 1.0) )
+                        continue;
+                }
 
-                Real c_z_off = 0.;
-                if (on_z_face && kk < domlo_z)
-                  c_z_off =  0.5;
-                else if (on_z_face && kk > domhi_z)
-                  c_z_off = -0.5;
+                if(on_z_face){
+                    if (kk < domlo_z and (vfrac(ii,jj,kk+1) != 1.0 or vfrac(ii,jj,kk+2) != 1.0) )
+                        continue;
+                    if (kk > domhi_z and (vfrac(ii,jj,kk-1) != 1.0 or vfrac(ii,jj,kk-2) != 1.0) )
+                        continue;
+                }
     
                 Amatrix(a_ind,0) = 1.0;
-                Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0) - xloc_on_zface + c_x_off;
-                Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1) - yloc_on_zface + c_y_off;
-                Amatrix(a_ind,3) = z_off + ccent(ii,jj,kk,2) + c_z_off;
+                Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0) - xloc_on_zface;
+                Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1) - yloc_on_zface ;
+                Amatrix(a_ind,3) = z_off + ccent(ii,jj,kk,2);
 
                 // Add in information about the location of the EB. Exclude
                 // EBs that are outside the domain.
@@ -1065,21 +1033,8 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
              for (int ii = i-1; ii <= i+1; ii++) // Tangential to face
                 if (!flag(ii,jj,kk).isCovered())
                 {
-                    Real phi_val = phi(ii,jj,kk,n);
-                    if(on_x_face && ii < domlo_x)
-                       phi_val = bcval_xlo(ii,jj,kk,n);
-                    else if (on_x_face && ii > domhi_x)
-                       phi_val = bcval_xhi(ii,jj,kk,n);
-                    else if (on_y_face && jj < domlo_y)
-                       phi_val = bcval_ylo(ii,jj,kk,n);
-                    else if (on_y_face && jj > domhi_y)
-                       phi_val = bcval_yhi(ii,jj,kk,n);
-                    else if (on_z_face && kk < domlo_y)
-                       phi_val = bcval_zlo(ii,jj,kk,n);
-                    else if (on_z_face && kk > domhi_z)
-                       phi_val = bcval_zhi(ii,jj,kk,n);
-
                     int a_ind  = (ii-(i-1)) + 3*(jj-(j-1)) + 9*(kk-(k-km));
+                    Real phi_val = Amatrix(a_ind,0) * phi(ii,jj,kk,n);
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi_val;
 
@@ -1100,17 +1055,12 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                  Array4<EBCellFlag const> const& flag,
                                  Array4<Real const> const& ccent,
                                  Array4<Real const> const& bcent,
+                                 Array4<Real const> const& vfrac,
                                  Real& nrmx, Real& nrmy, Real& nrmz,
                                  bool is_eb_inhomog,
                                  const bool on_x_face, const int domlo_x, const int domhi_x,
-                                 Array4<Real const> const& bcval_xlo,
-                                 Array4<Real const> const& bcval_xhi,
                                  const bool on_y_face, const int domlo_y, const int domhi_y,
-                                 Array4<Real const> const& bcval_ylo,
-                                 Array4<Real const> const& bcval_yhi,
-                                 const bool on_z_face, const int domlo_z, const int domhi_z,
-                                 Array4<Real const> const& bcval_zlo,
-                                 Array4<Real const> const& bcval_zhi)
+                                 const bool on_z_face, const int domlo_z, const int domhi_z)
 {
     Array2D<Real,0,53,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
@@ -1152,28 +1102,31 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real y_off = static_cast<Real>(jj-j) - bcent(i,j,k,1);
                 Real z_off = static_cast<Real>(kk-k) - bcent(i,j,k,2);
 
-                Real c_x_off = 0.;
-                if (on_x_face && ii < domlo_x)
-                  c_x_off =  0.5;
-                else if (on_x_face && ii > domhi_x)
-                  c_x_off = -0.5;
+                if(on_x_face){
+                    if (ii < domlo_x and (vfrac(ii+1,jj,kk) != 1.0 or vfrac(ii+2,jj,kk) != 1.0) )
+                        continue;
+                    if (ii > domhi_x and (vfrac(ii-1,jj,kk) != 1.0 or vfrac(ii-2,jj,kk) != 1.0))
+                        continue;
+                }
 
-                Real c_y_off = 0.;
-                if (on_y_face && jj < domlo_y)
-                  c_y_off =  0.5;
-                else if (on_y_face && jj > domhi_y)
-                  c_y_off = -0.5;
+                if(on_y_face){
+                    if (jj < domlo_y and (vfrac(ii,jj+1,kk) != 1.0 or vfrac(ii,jj+2,kk) != 1.0) )
+                        continue;
+                    if (jj > domhi_y and (vfrac(ii,jj-1,kk) != 1.0 or vfrac(ii,jj-2,kk) != 1.0) )
+                        continue;
+                }
 
-                Real c_z_off = 0.;
-                if (on_z_face && kk < domlo_z)
-                  c_z_off =  0.5;
-                else if (on_z_face && kk > domhi_z)
-                  c_z_off = -0.5;
+                if(on_z_face){
+                    if (kk < domlo_z and (vfrac(ii,jj,kk+1) != 1.0 or vfrac(ii,jj,kk+2) != 1.0) )
+                        continue;
+                    if (kk > domhi_z and (vfrac(ii,jj,kk-1) != 1.0 or vfrac(ii,jj,kk-2) != 1.0) )
+                        continue;
+                }
     
                 Amatrix(a_ind,0) = 1.0;
-                Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0) + c_x_off;
-                Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1) + c_y_off;
-                Amatrix(a_ind,3) = z_off + ccent(ii,jj,kk,2) + c_z_off;
+                Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0);
+                Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1);
+                Amatrix(a_ind,3) = z_off + ccent(ii,jj,kk,2);
 
                 if (flag(ii,jj,kk).isSingleValued() && 
                     domlo_x <= ii && ii <= domhi_x &&
@@ -1209,21 +1162,9 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
              for (int ii = i-1; ii <= i+1; ii++)
                 if (!flag(ii,jj,kk).isCovered())
                 {
-                    Real phi_val = phi(ii,jj,kk,n);
-                    if(on_x_face && ii < domlo_x)
-                       phi_val = bcval_xlo(ii,jj,kk,n);
-                    else if (on_x_face && ii > domhi_x)
-                       phi_val = bcval_xhi(ii,jj,kk,n);
-                    else if (on_y_face && jj < domlo_y)
-                       phi_val = bcval_ylo(ii,jj,kk,n);
-                    else if (on_y_face && jj > domhi_y)
-                       phi_val = bcval_yhi(ii,jj,kk,n);
-                    else if (on_z_face && kk < domlo_y)
-                       phi_val = bcval_zlo(ii,jj,kk,n);
-                    else if (on_z_face && kk > domhi_z)
-                       phi_val = bcval_zhi(ii,jj,kk,n);
-
                     int a_ind  = (ii-(i-1)) + 3*(jj-(j-1)) + 9*(kk-(k-1));
+ 
+                    Real phi_val = Amatrix(a_ind,0) * phi(ii,jj,kk,n);
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi_val;
 

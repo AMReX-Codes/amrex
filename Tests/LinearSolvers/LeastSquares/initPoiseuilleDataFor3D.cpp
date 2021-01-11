@@ -11,6 +11,7 @@ void MyTest::initializePoiseuilleDataFor3D(int ilev) {
   for (MFIter mfi(phi[ilev]); mfi.isValid(); ++mfi) {
     const Box &bx = mfi.fabbox();
     Array4<Real> const &fab = phi[ilev].array(mfi);
+    Array4<Real> const &fab_ghost_resolved = phi_ghost_resolved[ilev].array(mfi);
     Array4<Real> const &fab_gx = grad_x_analytic[ilev].array(mfi);
     Array4<Real> const &fab_gy = grad_y_analytic[ilev].array(mfi);
     Array4<Real> const &fab_gz = grad_z_analytic[ilev].array(mfi);
@@ -61,6 +62,9 @@ void MyTest::initializePoiseuilleDataFor3D(int ilev) {
         Real rx = (i + 0.5 + ccent(i, j, k, 0)) * dx[0];
         Real ry = (j + 0.5 + ccent(i, j, k, 1)) * dx[1];
         Real rz = (k + 0.5 + ccent(i, j, k, 2)) * dx[2];
+        Real rx_gr = rx;
+        Real ry_gr = ry;
+        Real rz_gr = rz;
 
         // if not periodic, set the ghost cell values to corr. domain face
         // values
@@ -100,6 +104,10 @@ void MyTest::initializePoiseuilleDataFor3D(int ilev) {
 
         auto phi_mag = (!flag(i, j, k).isCovered()) ? dist * (H - dist) : 0.0;
 
+        auto dist_gr = std::fabs(a * rx_gr + b * ry_gr + c * rz_gr + d) /
+                    std::sqrt(a * a + b * b + c * c);
+        auto phi_mag_gr = (!flag(i, j, k).isCovered()) ? dist_gr * (H - dist_gr) : 0.0;
+
         Vector<Real> flow_norm(3, 0.0);
 
         if (nfdir == 2) {
@@ -127,6 +135,10 @@ void MyTest::initializePoiseuilleDataFor3D(int ilev) {
         fab(i, j, k, 0) = phi_mag * flow_norm[0];
         fab(i, j, k, 1) = phi_mag * flow_norm[1];
         fab(i, j, k, 2) = phi_mag * flow_norm[2];
+
+        fab_ghost_resolved(i, j, k, 0) = phi_mag_gr * flow_norm[0];
+        fab_ghost_resolved(i, j, k, 1) = phi_mag_gr * flow_norm[1];
+        fab_ghost_resolved(i, j, k, 2) = phi_mag_gr * flow_norm[2];
 
         if (flag(i, j, k).isCovered()) {
           fab_gx(i, j, k, 0) = 0.0;
@@ -255,6 +267,7 @@ void MyTest::initializePoiseuilleDataFor3D(int ilev) {
                                dwdy * norm(i, j, k, 1) +
                                dwdz * norm(i, j, k, 2);
         }
+
       });
     } else { // 3D grid-aligned
       amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j,
@@ -281,8 +294,10 @@ void MyTest::initializePoiseuilleDataFor3D(int ilev) {
         fab_lap(i, j, k, 2) = 0.0;
 
         Real d = 0.0;
+        Real d_gr = 0.0;
         if (dir == 0) {
           Real rx = (i + 0.5 + ccent(i, j, k, 0)) * dx[0];
+          Real rx_gr = rx;
 
           if (i < dlo[0] && !is_periodic[0]) {
             rx = dlo[0] * dx[0];
@@ -292,8 +307,12 @@ void MyTest::initializePoiseuilleDataFor3D(int ilev) {
           }
 
           d = rx - bot;
+          d_gr = rx_gr - bot;
+
           fab(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? d * (H - d) : 0.0;
           fab_lap(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? 2.0 : 0.0;
+
+          fab_ghost_resolved(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? d_gr * (H - d_gr) : 0.0;
 
           Real rxl = i * dx[0];
           d = rxl - bot;
@@ -311,6 +330,7 @@ void MyTest::initializePoiseuilleDataFor3D(int ilev) {
           }
         } else if (dir == 1) {
           Real ry = (j + 0.5 + ccent(i, j, k, 1)) * dx[1];
+          Real ry_gr = ry;
 
           if (j < dlo[1] && !is_periodic[1]) {
             ry = dlo[1] * dx[1];
@@ -320,8 +340,12 @@ void MyTest::initializePoiseuilleDataFor3D(int ilev) {
           }
 
           d = ry - bot;
+          d_gr = ry_gr - bot;
+
           fab(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? d * (H - d) : 0.0;
           fab_lap(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? 2.0 : 0.0;
+
+          fab_ghost_resolved(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? d_gr * (H - d_gr) : 0.0;
 
           Real ryl = j * dx[1];
           d = ryl - bot;
@@ -339,6 +363,7 @@ void MyTest::initializePoiseuilleDataFor3D(int ilev) {
           }
         } else if (dir == 2) {
           Real rz = (k + 0.5 + ccent(i, j, k, 2)) * dx[2];
+          Real rz_gr = rz;
 
           if (k < dlo[2] && !is_periodic[2]) {
             rz = dlo[2] * dx[2];
@@ -348,8 +373,12 @@ void MyTest::initializePoiseuilleDataFor3D(int ilev) {
           }
 
           d = rz - bot;
+          d_gr = rz_gr - bot;
+
           fab(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? d * (H - d) : 0.0;
           fab_lap(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? 2.0 : 0.0;
+
+          fab_ghost_resolved(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? d_gr * (H - d_gr) : 0.0;
 
           Real rzl = k * dx[2];
           d = rzl - bot;

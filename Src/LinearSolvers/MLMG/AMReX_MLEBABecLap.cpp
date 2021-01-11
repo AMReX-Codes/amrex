@@ -797,8 +797,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         const bool extdir_y = !(m_geom[amrlev][mglev].isPeriodic(1));,
         const bool extdir_z = !(m_geom[amrlev][mglev].isPeriodic(2)););
 
-    auto bndry = m_bndry_sol[amrlev].get();
-
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
@@ -846,22 +844,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
             Array4<Real const> const& phiebfab = (is_eb_dirichlet && is_eb_inhomog)
                 ? m_eb_phi[amrlev]->const_array(mfi) : foo;
 
-            AMREX_D_TERM(
-                const Orientation olo_x(0,Orientation::low );
-                const Orientation ohi_x(0,Orientation::high);,
-                const Orientation olo_y(1,Orientation::low );
-                const Orientation ohi_y(1,Orientation::high);,
-                const Orientation olo_z(2,Orientation::low );
-                const Orientation ohi_z(2,Orientation::high));;
-
-            AMREX_D_TERM(
-                const auto& bvlo_x = (bndry != nullptr) ? bndry->bndryValues(olo_x).array(mfi) : foo;
-                const auto& bvhi_x = (bndry != nullptr) ? bndry->bndryValues(ohi_x).array(mfi) : foo;,
-                const auto& bvlo_y = (bndry != nullptr) ? bndry->bndryValues(olo_y).array(mfi) : foo;
-                const auto& bvhi_y = (bndry != nullptr) ? bndry->bndryValues(ohi_y).array(mfi) : foo;,
-                const auto& bvlo_z = (bndry != nullptr) ? bndry->bndryValues(olo_z).array(mfi) : foo;
-                const auto& bvhi_z = (bndry != nullptr) ? bndry->bndryValues(ohi_z).array(mfi) : foo;);
-
             bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
             bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
 
@@ -874,8 +856,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                   AMREX_D_DECL(apxfab,apyfab,apzfab),
                                   AMREX_D_DECL(fcxfab,fcyfab,fczfab),
                                   ccfab, bafab, bcfab, bebfab, phiebfab,
-                                  AMREX_D_DECL(bvlo_x,bvlo_y,bvlo_z),
-                                  AMREX_D_DECL(bvhi_x,bvhi_y,bvhi_z),
                                   AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
                                   AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
                                   AMREX_D_DECL(extdir_x, extdir_y, extdir_z),

@@ -12,6 +12,7 @@ MyTest::initData ()
     dmap.resize(nlevels);
     factory.resize(nlevels);
     phi.resize(nlevels);
+    phi_ghost_resolved.resize(nlevels);
     phieb.resize(nlevels);
     grad_x.resize(nlevels);
     grad_x_analytic.resize(nlevels);
@@ -50,6 +51,7 @@ MyTest::initData ()
                                                    {2,2,2}, EBSupport::full));
 
         phi[ilev].define(grids[ilev], dmap[ilev], AMREX_SPACEDIM, 1, MFInfo(), *factory[ilev]);
+        phi_ghost_resolved[ilev].define(grids[ilev], dmap[ilev], AMREX_SPACEDIM, 1, MFInfo(), *factory[ilev]);
         phieb[ilev].define(grids[ilev], dmap[ilev], AMREX_SPACEDIM, 1, MFInfo(), *factory[ilev]);
         grad_x[ilev].define(grids[ilev], dmap[ilev], AMREX_SPACEDIM, 1, MFInfo(), *factory[ilev]);
         grad_x_analytic[ilev].define(grids[ilev], dmap[ilev], AMREX_SPACEDIM, 1, MFInfo(), *factory[ilev]);
@@ -73,6 +75,7 @@ MyTest::initData ()
         }
 
         phi[ilev].setVal(0.0);
+        phi_ghost_resolved[ilev].setVal(0.0);
         phieb[ilev].setVal(0.0);
         grad_x[ilev].setVal(1e40);
         grad_x_analytic[ilev].setVal(1e40);
