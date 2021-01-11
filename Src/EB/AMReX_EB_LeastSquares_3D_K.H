@@ -702,23 +702,23 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real z_off = static_cast<Real>(kk-k);
     
                 if(on_x_face){
-                    if (ii < domlo_x and (vfrac(ii+1,jj,kk) != 1.0 or vfrac(ii+2,jj,kk) != 1.0) )
+                    if (ii < domlo_x && (vfrac(ii+1,jj,kk) != 1.0 || vfrac(ii+2,jj,kk) != 1.0) )
                         continue;
-                    if (ii > domhi_x and (vfrac(ii-1,jj,kk) != 1.0 or vfrac(ii-2,jj,kk) != 1.0))
+                    if (ii > domhi_x && (vfrac(ii-1,jj,kk) != 1.0 || vfrac(ii-2,jj,kk) != 1.0))
                         continue;
                 }
 
                 if(on_y_face){
-                    if (jj < domlo_y and (vfrac(ii,jj+1,kk) != 1.0 or vfrac(ii,jj+2,kk) != 1.0) )
+                    if (jj < domlo_y && (vfrac(ii,jj+1,kk) != 1.0 || vfrac(ii,jj+2,kk) != 1.0) )
                         continue;
-                    if (jj > domhi_y and (vfrac(ii,jj-1,kk) != 1.0 or vfrac(ii,jj-2,kk) != 1.0) )
+                    if (jj > domhi_y && (vfrac(ii,jj-1,kk) != 1.0 || vfrac(ii,jj-2,kk) != 1.0) )
                         continue;
                 }
 
                 if(on_z_face){
-                    if (kk < domlo_z and (vfrac(ii,jj,kk+1) != 1.0 or vfrac(ii,jj,kk+2) != 1.0) )
+                    if (kk < domlo_z && (vfrac(ii,jj,kk+1) != 1.0 || vfrac(ii,jj,kk+2) != 1.0) )
                         continue;
-                    if (kk > domhi_z and (vfrac(ii,jj,kk-1) != 1.0 or vfrac(ii,jj,kk-2) != 1.0) )
+                    if (kk > domhi_z && (vfrac(ii,jj,kk-1) != 1.0 || vfrac(ii,jj,kk-2) != 1.0) )
                         continue;
                 }
     
@@ -836,23 +836,23 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real z_off = static_cast<Real>(kk-k);
 
                 if(on_x_face){
-                    if (ii < domlo_x and (vfrac(ii+1,jj,kk) != 1.0 or vfrac(ii+2,jj,kk) != 1.0) )
+                    if (ii < domlo_x && (vfrac(ii+1,jj,kk) != 1.0 || vfrac(ii+2,jj,kk) != 1.0) )
                         continue;
-                    if (ii > domhi_x and (vfrac(ii-1,jj,kk) != 1.0 or vfrac(ii-2,jj,kk) != 1.0))
+                    if (ii > domhi_x && (vfrac(ii-1,jj,kk) != 1.0 || vfrac(ii-2,jj,kk) != 1.0))
                         continue;
                 }
 
                 if(on_y_face){
-                    if (jj < domlo_y and (vfrac(ii,jj+1,kk) != 1.0 or vfrac(ii,jj+2,kk) != 1.0) )
+                    if (jj < domlo_y && (vfrac(ii,jj+1,kk) != 1.0 || vfrac(ii,jj+2,kk) != 1.0) )
                         continue;
-                    if (jj > domhi_y and (vfrac(ii,jj-1,kk) != 1.0 or vfrac(ii,jj-2,kk) != 1.0) )
+                    if (jj > domhi_y && (vfrac(ii,jj-1,kk) != 1.0 || vfrac(ii,jj-2,kk) != 1.0) )
                         continue;
                 }
 
                 if(on_z_face){
-                    if (kk < domlo_z and (vfrac(ii,jj,kk+1) != 1.0 or vfrac(ii,jj,kk+2) != 1.0) )
+                    if (kk < domlo_z && (vfrac(ii,jj,kk+1) != 1.0 || vfrac(ii,jj,kk+2) != 1.0) )
                         continue;
-                    if (kk > domhi_z and (vfrac(ii,jj,kk-1) != 1.0 or vfrac(ii,jj,kk-2) != 1.0) )
+                    if (kk > domhi_z && (vfrac(ii,jj,kk-1) != 1.0 || vfrac(ii,jj,kk-2) != 1.0) )
                         continue;
                 }
 
@@ -971,23 +971,23 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real z_off = static_cast<Real>(kk-k) + 0.5;
 
                 if(on_x_face){
-                    if (ii < domlo_x and (vfrac(ii+1,jj,kk) != 1.0 or vfrac(ii+2,jj,kk) != 1.0) )
+                    if (ii < domlo_x && (vfrac(ii+1,jj,kk) != 1.0 || vfrac(ii+2,jj,kk) != 1.0) )
                         continue;
-                    if (ii > domhi_x and (vfrac(ii-1,jj,kk) != 1.0 or vfrac(ii-2,jj,kk) != 1.0))
+                    if (ii > domhi_x && (vfrac(ii-1,jj,kk) != 1.0 || vfrac(ii-2,jj,kk) != 1.0))
                         continue;
                 }
 
                 if(on_y_face){
-                    if (jj < domlo_y and (vfrac(ii,jj+1,kk) != 1.0 or vfrac(ii,jj+2,kk) != 1.0) )
+                    if (jj < domlo_y && (vfrac(ii,jj+1,kk) != 1.0 || vfrac(ii,jj+2,kk) != 1.0) )
                         continue;
-                    if (jj > domhi_y and (vfrac(ii,jj-1,kk) != 1.0 or vfrac(ii,jj-2,kk) != 1.0) )
+                    if (jj > domhi_y && (vfrac(ii,jj-1,kk) != 1.0 || vfrac(ii,jj-2,kk) != 1.0) )
                         continue;
                 }
 
                 if(on_z_face){
-                    if (kk < domlo_z and (vfrac(ii,jj,kk+1) != 1.0 or vfrac(ii,jj,kk+2) != 1.0) )
+                    if (kk < domlo_z && (vfrac(ii,jj,kk+1) != 1.0 || vfrac(ii,jj,kk+2) != 1.0) )
                         continue;
-                    if (kk > domhi_z and (vfrac(ii,jj,kk-1) != 1.0 or vfrac(ii,jj,kk-2) != 1.0) )
+                    if (kk > domhi_z && (vfrac(ii,jj,kk-1) != 1.0 || vfrac(ii,jj,kk-2) != 1.0) )
                         continue;
                 }
     
@@ -1103,23 +1103,23 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real z_off = static_cast<Real>(kk-k) - bcent(i,j,k,2);
 
                 if(on_x_face){
-                    if (ii < domlo_x and (vfrac(ii+1,jj,kk) != 1.0 or vfrac(ii+2,jj,kk) != 1.0) )
+                    if (ii < domlo_x && (vfrac(ii+1,jj,kk) != 1.0 || vfrac(ii+2,jj,kk) != 1.0) )
                         continue;
-                    if (ii > domhi_x and (vfrac(ii-1,jj,kk) != 1.0 or vfrac(ii-2,jj,kk) != 1.0))
+                    if (ii > domhi_x && (vfrac(ii-1,jj,kk) != 1.0 || vfrac(ii-2,jj,kk) != 1.0))
                         continue;
                 }
 
                 if(on_y_face){
-                    if (jj < domlo_y and (vfrac(ii,jj+1,kk) != 1.0 or vfrac(ii,jj+2,kk) != 1.0) )
+                    if (jj < domlo_y && (vfrac(ii,jj+1,kk) != 1.0 || vfrac(ii,jj+2,kk) != 1.0) )
                         continue;
-                    if (jj > domhi_y and (vfrac(ii,jj-1,kk) != 1.0 or vfrac(ii,jj-2,kk) != 1.0) )
+                    if (jj > domhi_y && (vfrac(ii,jj-1,kk) != 1.0 || vfrac(ii,jj-2,kk) != 1.0) )
                         continue;
                 }
 
                 if(on_z_face){
-                    if (kk < domlo_z and (vfrac(ii,jj,kk+1) != 1.0 or vfrac(ii,jj,kk+2) != 1.0) )
+                    if (kk < domlo_z && (vfrac(ii,jj,kk+1) != 1.0 || vfrac(ii,jj,kk+2) != 1.0) )
                         continue;
-                    if (kk > domhi_z and (vfrac(ii,jj,kk-1) != 1.0 or vfrac(ii,jj,kk-2) != 1.0) )
+                    if (kk > domhi_z && (vfrac(ii,jj,kk-1) != 1.0 || vfrac(ii,jj,kk-2) != 1.0) )
                         continue;
                 }
     

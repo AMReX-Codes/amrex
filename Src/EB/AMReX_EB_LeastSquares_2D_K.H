@@ -510,16 +510,16 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real y_off = static_cast<Real>(jj-j);
 
                 if(on_x_face){
-                    if (ii < domlo_x and (vfrac(ii+1,jj,k) != 1.0 or vfrac(ii+2,jj,k) != 1.0) )
+                    if (ii < domlo_x && (vfrac(ii+1,jj,k) != 1.0 || vfrac(ii+2,jj,k) != 1.0) )
                         continue;
-                    if (ii > domhi_x and (vfrac(ii-1,jj,k) != 1.0 or vfrac(ii-2,jj,k) != 1.0))
+                    if (ii > domhi_x && (vfrac(ii-1,jj,k) != 1.0 || vfrac(ii-2,jj,k) != 1.0))
                         continue;
                 }
 
                 if(on_y_face){
-                    if (jj < domlo_y and (vfrac(ii,jj+1,k) != 1.0 or vfrac(ii,jj+2,k) != 1.0) )
+                    if (jj < domlo_y && (vfrac(ii,jj+1,k) != 1.0 || vfrac(ii,jj+2,k) != 1.0) )
                         continue;
-                    if (jj > domhi_y and (vfrac(ii,jj-1,k) != 1.0 or vfrac(ii,jj-2,k) != 1.0) )
+                    if (jj > domhi_y && (vfrac(ii,jj-1,k) != 1.0 || vfrac(ii,jj-2,k) != 1.0) )
                         continue;
                 }
 
@@ -626,16 +626,16 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real y_off = static_cast<Real>(jj-j) + 0.5;
 
                 if(on_x_face){
-                    if (ii < domlo_x and (vfrac(ii+1,jj,k) != 1.0 or vfrac(ii+2,jj,k) != 1.0) )
+                    if (ii < domlo_x && (vfrac(ii+1,jj,k) != 1.0 || vfrac(ii+2,jj,k) != 1.0) )
                         continue;
-                    if (ii > domhi_x and (vfrac(ii-1,jj,k) != 1.0 or vfrac(ii-2,jj,k) != 1.0))
+                    if (ii > domhi_x && (vfrac(ii-1,jj,k) != 1.0 || vfrac(ii-2,jj,k) != 1.0))
                         continue;
                 }
 
                 if(on_y_face){
-                    if (jj < domlo_y and (vfrac(ii,jj+1,k) != 1.0 or vfrac(ii,jj+2,k) != 1.0) )
+                    if (jj < domlo_y && (vfrac(ii,jj+1,k) != 1.0 || vfrac(ii,jj+2,k) != 1.0) )
                         continue;
-                    if (jj > domhi_y and (vfrac(ii,jj-1,k) != 1.0 or vfrac(ii,jj-2,k) != 1.0) )
+                    if (jj > domhi_y && (vfrac(ii,jj-1,k) != 1.0 || vfrac(ii,jj-2,k) != 1.0) )
                         continue;
                 }
 
@@ -740,16 +740,16 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real y_off = static_cast<Real>(jj-j);
 
                 if(on_x_face){
-                    if (ii < domlo_x and (vfrac(ii+1,jj,k) != 1.0 or vfrac(ii+2,jj,k) != 1.0) )
+                    if (ii < domlo_x && (vfrac(ii+1,jj,k) != 1.0 || vfrac(ii+2,jj,k) != 1.0) )
                         continue;
-                    if (ii > domhi_x and (vfrac(ii-1,jj,k) != 1.0 or vfrac(ii-2,jj,k) != 1.0))
+                    if (ii > domhi_x && (vfrac(ii-1,jj,k) != 1.0 || vfrac(ii-2,jj,k) != 1.0))
                         continue;
                 }
 
                 if(on_y_face){
-                    if (jj < domlo_y and (vfrac(ii,jj+1,k) != 1.0 or vfrac(ii,jj+2,k) != 1.0) )
+                    if (jj < domlo_y && (vfrac(ii,jj+1,k) != 1.0 || vfrac(ii,jj+2,k) != 1.0) )
                         continue;
-                    if (jj > domhi_y and (vfrac(ii,jj-1,k) != 1.0 or vfrac(ii,jj-2,k) != 1.0) )
+                    if (jj > domhi_y && (vfrac(ii,jj-1,k) != 1.0 || vfrac(ii,jj-2,k) != 1.0) )
                         continue;
                 }
 
@@ -791,7 +791,7 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 if (!flag(ii,jj,k).isCovered())
                 {
                     int a_ind  = (jj-(j-1)) + 3*(ii-(i-1));
-                    AMREX_ASSERT(0<=a_ind and a_ind <9);
+                    AMREX_ASSERT(0<=a_ind && a_ind <9);
 
                     // A(a_ind,0) is 1 or 0. Use it to mask phi.
                     Real phi_val = Amatrix(a_ind,0)*phi(ii,jj,k,n);
