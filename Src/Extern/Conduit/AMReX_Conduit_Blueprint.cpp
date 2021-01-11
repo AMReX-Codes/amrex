@@ -287,7 +287,7 @@ void FabToBlueprintFields (const FArrayBox& fab,
                            Node &res)
 {
     // make sure we are not asking for more components than exist.
-    BL_ASSERT(varnames.size() <= fab->nComp());
+    BL_ASSERT(varnames.size() <= fab.nComp());
 
     Node &n_fields = res["fields"];
     for(int i=0; i < varnames.size(); i++)
