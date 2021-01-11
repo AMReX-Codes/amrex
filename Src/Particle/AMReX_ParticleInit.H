@@ -211,7 +211,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             // Shift the position.
                             for (int d=0; d<AMREX_SPACEDIM; ++d)
                             {
-                                p_rep.pos(d) = p.pos(d) + (rep[d]-1)*DomSize[d];
+                                p_rep.pos(d) = static_cast<ParticleReal>(p.pos(d) + (rep[d]-1)*DomSize[d]);
                             }
 
                             // Copy the extra data
@@ -728,9 +728,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
                     ifs.read((char*)&dpos[0], AMREX_SPACEDIM*sizeof(double));
 
-                    AMREX_D_TERM(p.pos(0) = dpos[0];,
-                                 p.pos(1) = dpos[1];,
-                                 p.pos(2) = dpos[2];);
+                    AMREX_D_TERM(p.pos(0) = static_cast<ParticleReal>(dpos[0]);,
+                                 p.pos(1) = static_cast<ParticleReal>(dpos[1]);,
+                                 p.pos(2) = static_cast<ParticleReal>(dpos[2]););
                 }
 
                 //
@@ -743,14 +743,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
                         ifs.read((char*)&fxtra[0], extradata*sizeof(float));
 
                         for (int ii = 0; ii < extradata; ii++)
-                            p.rdata(ii) = fxtra[ii];
+                            p.rdata(ii) = static_cast<ParticleReal>(fxtra[ii]);
                     }
                     else if (RealSizeInFile == sizeof(double))
                     {
                         ifs.read((char*)&dxtra[0], extradata*sizeof(double));
 
                         for (int ii = 0; ii < extradata; ii++)
-                            p.rdata(ii) = dxtra[ii];
+                            p.rdata(ii) = static_cast<ParticleReal>(dxtra[ii]);
                     }
                 }
                 //
@@ -982,7 +982,7 @@ InitRandom (Long                    icount,
                     }
                     while (x < xlo[i] || x > xhi[i]);
 
-                    pos[j*AMREX_SPACEDIM + i] = x;
+                    pos[j*AMREX_SPACEDIM + i] = static_cast<ParticleReal>(x);
                 }
             }
         }
@@ -1014,7 +1014,7 @@ InitRandom (Long                    icount,
             }
 
             for (int i = 0; i < NStructReal; i++) {
-                p.rdata(i) = pdata.real_struct_data[i];
+                p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);
             }
 
             if (!Where(p, pld)) {
@@ -1118,13 +1118,13 @@ InitRandom (Long                    icount,
                 }
                 while (x < xlo[i] || x > xhi[i]);
 
-                p.pos(i) = x;
+                p.pos(i) = static_cast<ParticleReal>(x);
 
                 AMREX_ASSERT(p.pos(i) < geom.ProbHi(i));
             }
 
             for (int i = 0; i < NStructReal; i++) {
-                p.rdata(i) = pdata.real_struct_data[i];
+                p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);
             }
 
             // the int struct data
@@ -1247,16 +1247,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         for (Long jcnt = 0; jcnt < icount_per_box; jcnt++) {
         for (Long kcnt = 0; kcnt < icount_per_box; kcnt++)
         {
-            p.pos(0) = grid_box.lo(0) + (dist(mt) + icnt) / icount_per_box;
-            p.pos(1) = grid_box.lo(1) + (dist(mt) + jcnt) / icount_per_box;
-            p.pos(2) = grid_box.lo(2) + (dist(mt) + kcnt) / icount_per_box;
+            p.pos(0) = static_cast<ParticleReal>(grid_box.lo(0) + (dist(mt) + icnt) / icount_per_box);
+            p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (dist(mt) + jcnt) / icount_per_box);
+            p.pos(2) = static_cast<ParticleReal>(grid_box.lo(2) + (dist(mt) + kcnt) / icount_per_box);
             
             for (int i = 0; i < AMREX_SPACEDIM; i++)
                 AMREX_ASSERT(p.pos(i) < grid_box.hi(i));
 
             // the real struct data
             for (int i = 0; i < NStructReal; i++) {
-                p.rdata(i) = pdata.real_struct_data[i];
+                p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);
             }
 
             // the int struct data
@@ -1279,7 +1279,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             
             // add the real...
             for (int i = 0; i < NArrayReal; i++) {
-                m_particles[pld.m_lev][ind].push_back_real(i, pdata.real_array_data[i]);
+                m_particles[pld.m_lev][ind].push_back_real(i, static_cast<ParticleReal>(pdata.real_array_data[i]));
             }
             
             // ... and int array data
@@ -1335,16 +1335,16 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
                  cell = grid.smallEnd(); cell <= end; grid.next(cell)) {
 
             // the real struct data
-            AMREX_D_TERM(p.pos(0) = grid_box.lo(0) + (x_off + cell[0]-beg[0])*dx[0];,
-                         p.pos(1) = grid_box.lo(1) + (y_off + cell[1]-beg[1])*dx[1];,
-                         p.pos(2) = grid_box.lo(2) + (z_off + cell[2]-beg[2])*dx[2];);
+            AMREX_D_TERM(p.pos(0) = static_cast<ParticleReal>(grid_box.lo(0) + (x_off + cell[0]-beg[0])*dx[0]);,
+                         p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (y_off + cell[1]-beg[1])*dx[1]);,
+                         p.pos(2) = static_cast<ParticleReal>(grid_box.lo(2) + (z_off + cell[2]-beg[2])*dx[2]););
 
             for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                 AMREX_ASSERT(p.pos(d) < grid_box.hi(d));
             }
 
             for (int i = 0; i < NStructReal; i++) {
-                p.rdata(i) = pdata.real_struct_data[i];
+                p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);
             }
 
             // the int struct data
@@ -1368,7 +1368,7 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
 
             // add the real...
             for (int i = 0; i < NArrayReal; i++) {
-                m_particles[pld.m_lev][ind].push_back_real(i, pdata.real_array_data[i]);
+                m_particles[pld.m_lev][ind].push_back_real(i, static_cast<ParticleReal>(pdata.real_array_data[i]));
             }
 
             // ... and int array data
@@ -1441,7 +1441,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
                     int iter = 0;
                     while (iter < max_iter) {
                         r = amrex::Random();
-                        p.pos(i) = grid_box.lo(i) + (r + cell[i]-beg[i])*dx[i];
+                        p.pos(i) = static_cast<ParticleReal>(grid_box.lo(i) + (r + cell[i]-beg[i])*dx[i]);
                         if (p.pos(i) < grid_box.hi(i)) break;
                         iter++;
                     }
@@ -1449,7 +1449,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
                 }
 
                 for (int i = 0; i < NStructReal; i++) {
-                    p.rdata(i) = pdata.real_struct_data[i];
+                    p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);
                 }
 
                 // the int struct data
