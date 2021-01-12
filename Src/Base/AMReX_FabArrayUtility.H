@@ -1808,7 +1808,7 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
 
             if (priv_loc.allGT(IntVect::TheMinVector())) {
                 bool old;
-// we should be able to test on AMREX_USE_OMP < 201107 for capture (version 3.1)
+// we should be able to test on _OPENMP < 201107 for capture (version 3.1)
 // but we must work around a bug in gcc < 4.9
 #if defined(AMREX_USE_OMP) && defined(_OPENMP) && _OPENMP < 201307 // OpenMP 4.0
 #pragma omp critical (amrex_indexfromvalue)
