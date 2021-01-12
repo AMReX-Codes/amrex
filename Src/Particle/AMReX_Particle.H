@@ -761,7 +761,7 @@ Long
 Particle<NReal, NInt>::NextID ()
 {
     Long next;
-// we should be able to test on AMREX_USE_OMP < 201107 for capture (version 3.1)
+// we should be able to test on _OPENMP < 201107 for capture (version 3.1)
 // but we must work around a bug in gcc < 4.9
 #if defined(AMREX_USE_OMP) && defined(_OPENMP) && _OPENMP < 201307
 #pragma omp critical (amrex_particle_nextid)
