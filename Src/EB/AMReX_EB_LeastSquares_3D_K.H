@@ -734,10 +734,10 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                     domlo_y <= jj && jj <= domhi_y &&
                     domlo_z <= kk && kk <= domhi_z)
                 {
-                    Amatrix(a_ind+18,0) = 1.0;
-                    Amatrix(a_ind+18,1) = x_off + bcent(ii,jj,kk,0);
-                    Amatrix(a_ind+18,2) = y_off + bcent(ii,jj,kk,1) - yloc_on_xface;
-                    Amatrix(a_ind+18,3) = z_off + bcent(ii,jj,kk,2) - zloc_on_xface;
+                    Amatrix(a_ind+27,0) = 1.0;
+                    Amatrix(a_ind+27,1) = x_off + bcent(ii,jj,kk,0);
+                    Amatrix(a_ind+27,2) = y_off + bcent(ii,jj,kk,1) - yloc_on_xface;
+                    Amatrix(a_ind+27,3) = z_off + bcent(ii,jj,kk,2) - zloc_on_xface;
                 }
             }
          }
@@ -868,10 +868,10 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                     domlo_y <= jj && jj <= domhi_y &&
                     domlo_z <= kk && kk <= domhi_z)
                 {
-                    Amatrix(a_ind+18,0) = 1.0;
-                    Amatrix(a_ind+18,1) = x_off + bcent(ii,jj,kk,0) - xloc_on_yface;
-                    Amatrix(a_ind+18,2) = y_off + bcent(ii,jj,kk,1);
-                    Amatrix(a_ind+18,3) = z_off + bcent(ii,jj,kk,2) - zloc_on_yface;
+                    Amatrix(a_ind+27,0) = 1.0;
+                    Amatrix(a_ind+27,1) = x_off + bcent(ii,jj,kk,0) - xloc_on_yface;
+                    Amatrix(a_ind+27,2) = y_off + bcent(ii,jj,kk,1);
+                    Amatrix(a_ind+27,3) = z_off + bcent(ii,jj,kk,2) - zloc_on_yface;
                 }
             }
         }
@@ -1003,10 +1003,10 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                     domlo_y <= jj && jj <= domhi_y &&
                     domlo_z <= kk && kk <= domhi_z)
                 {
-                    Amatrix(a_ind+18,0) = 1.0;
-                    Amatrix(a_ind+18,1) = x_off + bcent(ii,jj,kk,0) - xloc_on_zface;
-                    Amatrix(a_ind+18,2) = y_off + bcent(ii,jj,kk,1) - yloc_on_zface;
-                    Amatrix(a_ind+18,3) = z_off + bcent(ii,jj,kk,2);
+                    Amatrix(a_ind+27,0) = 1.0;
+                    Amatrix(a_ind+27,1) = x_off + bcent(ii,jj,kk,0) - xloc_on_zface;
+                    Amatrix(a_ind+27,2) = y_off + bcent(ii,jj,kk,1) - yloc_on_zface;
+                    Amatrix(a_ind+27,3) = z_off + bcent(ii,jj,kk,2);
                 }
             }
          }
