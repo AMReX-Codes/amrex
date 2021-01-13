@@ -33,7 +33,7 @@ void testIntersection()
     
     Vector<IntVect> rr(params.nlevs-1);
     for (int lev = 1; lev < params.nlevs; lev++)
-        rr[lev-1] = IntVect(D_DECL(2,2,2));
+        rr[lev-1] = IntVect(AMREX_D_DECL(2,2,2));
     
     RealBox real_box;
     for (int n = 0; n < AMREX_SPACEDIM; n++)
@@ -42,8 +42,8 @@ void testIntersection()
         real_box.setHi(n, 1.0);
     }
 
-    IntVect domain_lo(D_DECL(0 , 0, 0));
-    IntVect domain_hi(D_DECL(params.size[0]-1, params.size[1]-1, params.size[2]-1));
+    IntVect domain_lo(AMREX_D_DECL(0 , 0, 0));
+    IntVect domain_hi(AMREX_D_DECL(params.size[0]-1, params.size[1]-1, params.size[2]-1));
     const Box base_domain(domain_lo, domain_hi);
     
     Vector<Geometry> geom(params.nlevs);
@@ -54,7 +54,7 @@ void testIntersection()
     }
     
     Vector<BoxArray> ba(params.nlevs);
-    IntVect lo = IntVect(D_DECL(0, 0, 0));
+    IntVect lo = IntVect(AMREX_D_DECL(0, 0, 0));
     IntVect size = params.size;
     for (int lev = 0; lev < params.nlevs; ++lev)
     {
