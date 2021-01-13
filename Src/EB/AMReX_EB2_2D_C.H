@@ -91,26 +91,32 @@ int check_mvmc (int i, int j, int, Array4<Real const> const& fine)
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int coarsen_from_fine (int i, int j, Box const& bx, Box const& gbx,
-                       Box const& xbx, Box const& ybx, Box const& xgbx, Box const& ygbx,
+int coarsen_from_fine (int i, int j, Box const& bx, int ngrow,
                        Array4<Real> const& cvol, Array4<Real> const& ccent,
                        Array4<Real> const& cba, Array4<Real> const& cbc,
                        Array4<Real> const& cbn, Array4<Real> const& capx,
                        Array4<Real> const& capy, Array4<Real> const& cfcx,
-                       Array4<Real> const& cfcy, Array4<EBCellFlag> const& cflag,
+                       Array4<Real> const& cfcy, Array4<Real> const& cecx,
+                       Array4<Real> const& cecy, Array4<EBCellFlag> const& cflag,
                        Array4<Real const> const& fvol, Array4<Real const> const& fcent,
                        Array4<Real const> const& fba, Array4<Real const> const& fbc,
                        Array4<Real const> const& fbn, Array4<Real const> const& fapx,
                        Array4<Real const> const& fapy, Array4<Real const> const& ffcx,
-                       Array4<Real const> const& ffcy, Array4<EBCellFlag const> const& fflag)
+                       Array4<Real const> const& ffcy, Array4<Real const> const& /*fecx*/,
+                       Array4<Real const> const& /*fecy*/, Array4<EBCellFlag const> const& fflag)
 {
+    const Box& gbx = amrex::grow(bx,ngrow);
+    const Box& xbx = amrex::surroundingNodes(bx,0);
+    const Box& ybx = amrex::surroundingNodes(bx,1);
+    const Box& xgbx = amrex::surroundingNodes(gbx,0);
+    const Box& ygbx = amrex::surroundingNodes(gbx,1);
+
     int ierr = 0;
-    IntVect iv(i,j);
     constexpr int k = 0;
     int ii = i*2;
     int jj = j*2;
 
-    if (bx.contains(iv))
+    if (bx.contains(i,j,k))
     {
         if (fflag(ii,jj  ,k).isRegular() && fflag(ii+1,jj  ,k).isRegular() &&
             fflag(ii,jj+1,k).isRegular() && fflag(ii+1,jj+1,k).isRegular())
@@ -192,7 +198,7 @@ int coarsen_from_fine (int i, int j, Box const& bx, Box const& gbx,
                   && fapy(ii,jj+2,k)==1.0 && fapy(ii+1,jj+2,k)==1.0);
         }
     }
-    else if (gbx.contains(iv))
+    else if (gbx.contains(i,j,k))
     {
         cvol(i,j,k) = 1.0;
         ccent(i,j,k,0) = 0.0;
@@ -204,39 +210,45 @@ int coarsen_from_fine (int i, int j, Box const& bx, Box const& gbx,
         cbn(i,j,k,1) = 0.0;
     }
 
-    if (xbx.contains(iv))
+    if (xbx.contains(i,j,k))
     {
         capx(i,j,k) = 0.5*(fapx(ii,jj,k) + fapx(ii,jj+1,k));
         if (capx(i,j,k) != 0.0) {
             cfcx(i,j,k) = 0.5 / capx(i,j,k) *
                 (fapx(ii,jj  ,k)*(0.5*ffcx(ii,jj  ,k)-0.25) +
                  fapx(ii,jj+1,k)*(0.5*ffcx(ii,jj+1,k)+0.25));
+            cecy(i,j,k) = cfcx(i,j,k);
         }
         else {
             cfcx(i,j,k) = 0.0;
+            cecy(i,j,k) = -1.0;
         }
     }
-    else if (xgbx.contains(iv))
+    else if (xgbx.contains(i,j,k))
     {
         capx(i,j,k) = 1.0;
         cfcx(i,j,k) = 0.0;
+        cecy(i,j,k) = 1.0;
     }
 
-    if (ybx.contains(iv))
+    if (ybx.contains(i,j,k))
     {
         capy(i,j,k) = 0.5*(fapy(ii,jj,k) + fapy(ii+1,jj,k));
         if (capy(i,j,k) != 0.0) {
             cfcy(i,j,k) = 0.5 / capy(i,j,k) *
                 (fapy(ii  ,jj,k)*(0.5*ffcy(ii  ,jj,k)-0.25) +
                  fapy(ii+1,jj,k)*(0.5*ffcy(ii+1,jj,k)+0.25));
+            cecx(i,j,k) = cfcy(i,j,k);
         } else {
             cfcy(i,j,k) = 0.0;
+            cecx(i,j,k) = -1.0;
         }
     }
-    else if (ygbx.contains(iv))
+    else if (ygbx.contains(i,j,k))
     {
         capy(i,j,k) = 1.0;
         cfcy(i,j,k) = 0.0;
+        cecx(i,j,k) = 1.0;
     }
 
     return ierr;

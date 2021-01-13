@@ -52,10 +52,14 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
             const BoxArray& faceba = amrex::convert(a_ba, IntVect::TheDimensionVector(idim));
             m_areafrac[idim] = new MultiCutFab(faceba, a_dm, 1, ng, *m_cellflags);
             m_facecent[idim] = new MultiCutFab(faceba, a_dm, AMREX_SPACEDIM-1, ng, *m_cellflags);
+            IntVect edge_type{1}; edge_type[idim] = 0;
+            m_edgecent[idim] = new MultiCutFab(amrex::convert(a_ba, edge_type), a_dm,
+                                               1, ng, *m_cellflags);
         }
 
         a_level.fillAreaFrac(m_areafrac, m_geom);
         a_level.fillFaceCent(m_facecent, m_geom);
+        a_level.fillEdgeCent(m_edgecent, m_geom);
     }
 }
 
@@ -70,6 +74,7 @@ EBDataCollection::~EBDataCollection ()
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         delete m_areafrac[idim];
         delete m_facecent[idim];
+        delete m_edgecent[idim];
     }
 }
 
@@ -120,6 +125,13 @@ EBDataCollection::getFaceCent () const
 {
     AMREX_ASSERT(m_facecent[0] != nullptr);
     return {AMREX_D_DECL(m_facecent[0], m_facecent[1], m_facecent[2])};
+}
+
+Array<const MultiCutFab*, AMREX_SPACEDIM>
+EBDataCollection::getEdgeCent () const
+{
+    AMREX_ASSERT(m_edgecent[0] != nullptr);
+    return {AMREX_D_DECL(m_edgecent[0], m_edgecent[1], m_edgecent[2])};
 }
 
 const MultiCutFab&

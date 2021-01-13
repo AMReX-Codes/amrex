@@ -34,12 +34,12 @@ public:
     RotationIF& operator= (const RotationIF& rhs) = delete;
     RotationIF& operator= (RotationIF&& rhs) = delete;
 
-// Note that angle is measured in radians 
+// Note that angle is measured in radians
 #if (AMREX_SPACEDIM==2)
     inline Real operator() (const RealArray& p) const noexcept
     {
-        Real x =  p[0]*m_cos_angle + p[1]*m_sin_angle; 
-        Real y = -p[0]*m_sin_angle + p[1]*m_cos_angle; 
+        Real x =  p[0]*m_cos_angle + p[1]*m_sin_angle;
+        Real y = -p[0]*m_sin_angle + p[1]*m_cos_angle;
         return m_f({x, y});
     }
 
@@ -48,7 +48,7 @@ public:
     Real operator() (Real x, Real y) const noexcept
     {
         return m_f( x*m_cos_angle + y*m_sin_angle,
-                   -x*m_sin_angle + y*m_cos_angle);   
+                   -x*m_sin_angle + y*m_cos_angle);
     }
 #endif
 
@@ -57,23 +57,23 @@ public:
     {
         switch(m_dir) {
         case(0):
-   	{
-            Real y =  p[1]*m_cos_angle + p[2]*m_sin_angle; 
-            Real z = -p[1]*m_sin_angle + p[2]*m_cos_angle; 
+       {
+            Real y =  p[1]*m_cos_angle + p[2]*m_sin_angle;
+            Real z = -p[1]*m_sin_angle + p[2]*m_cos_angle;
             return m_f({p[0], y, z});
         }
         case(1):
         {
-            Real x = p[0]*m_cos_angle - p[2]*m_sin_angle; 
-            Real z = p[0]*m_sin_angle + p[2]*m_cos_angle; 
+            Real x = p[0]*m_cos_angle - p[2]*m_sin_angle;
+            Real z = p[0]*m_sin_angle + p[2]*m_cos_angle;
             return m_f({x, p[1], z});
-	}
+        }
         default:
-	{
-            Real x =  p[0]*m_cos_angle + p[1]*m_sin_angle; 
-            Real y = -p[0]*m_sin_angle + p[1]*m_cos_angle; 
+        {
+            Real x =  p[0]*m_cos_angle + p[1]*m_sin_angle;
+            Real y = -p[0]*m_sin_angle + p[1]*m_cos_angle;
             return m_f({x, y, p[2]});
-	}
+        }
         }
     }
 
@@ -83,23 +83,23 @@ public:
     {
         switch(m_dir) {
         case(0):
-   	{
+       {
             return m_f(x,
                         y*m_cos_angle + z*m_sin_angle,
-                       -y*m_sin_angle + z*m_cos_angle); 
+                       -y*m_sin_angle + z*m_cos_angle);
         }
         case(1):
         {
             return m_f(x*m_cos_angle - z*m_sin_angle,
                        y,
                        x*m_sin_angle + z*m_cos_angle);
-	}
+        }
         default:
-	{
+        {
             return m_f( x*m_cos_angle + y*m_sin_angle,
                        -x*m_sin_angle + y*m_cos_angle,
                         z);
-	}
+        }
         }
     }
 #endif
@@ -109,7 +109,7 @@ protected:
     F m_f;
     Real m_cos_angle;
     Real m_sin_angle;
-    int m_dir; 
+    int m_dir;
 };
 
 template <class F>

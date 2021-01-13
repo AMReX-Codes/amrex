@@ -27,7 +27,7 @@ namespace amrex {
         // Check that grid is uniform
         //
         const Real* dx = geom.CellSize();
-        
+
 #if (AMREX_SPACEDIM == 2)
         if (! amrex::almostEqual(dx[0], dx[1]))
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
@@ -51,7 +51,7 @@ namespace amrex {
 
         const Box& grown1_bx = amrex::grow(bx,1);
         const Box& grown2_bx = amrex::grow(bx,2);
-        
+
         //
         // Working arrays
         //
@@ -95,23 +95,21 @@ namespace amrex {
             int  ke = (AMREX_SPACEDIM == 3) ?  1 : 0;
 
             for (int kk(ks); kk <= ke; ++kk) {
-              for (int jj(-1); jj <= 1; ++jj) {
-                for (int ii(-1); ii <= 1; ++ii) {
-		        if( (ii != 0 || jj != 0 || kk != 0) &&
-			    flags(i,j,k).isConnected(ii,jj,kk) &&
-			    dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
+                for (int jj(-1); jj <= 1; ++jj) {
+                    for (int ii(-1); ii <= 1; ++ii) {
+                        if( (ii != 0 || jj != 0 || kk != 0) &&
+                            flags(i,j,k).isConnected(ii,jj,kk) &&
+                            dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
                         {
-
                             wted_frac = vfrac(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
                             vtot   += wted_frac;
                             divnc  += wted_frac * divc(i+ii,j+jj,k+kk,n);
-  
                         }
+                    }
                 }
-              }
             }
             divnc /=  (vtot + 1.e-80);
-  
+
             // We need to multiply divc by mask to make sure optmp is zero for cells
             // outside the domain for non-cyclic BCs
             optmp(i,j,k,n) =  (1 - vfrac(i,j,k)) * (divnc - divc(i,j,k,n) * mask(i,j,k));
@@ -138,8 +136,8 @@ namespace amrex {
 
             for (int kk(ks); kk <= ke; ++kk) {
               for (int jj(-1); jj <= 1; ++jj) {
-                for (int ii(-1); ii <= 1; ++ii) {         
-            
+                for (int ii(-1); ii <= 1; ++ii) {
+
                         if( (ii != 0 || jj != 0 || kk != 0) &&
                             (flags(i,j,k).isConnected(ii,jj,kk)) )
                         {
@@ -149,11 +147,11 @@ namespace amrex {
             }}}
 
             wtot = 1.0/(wtot + 1.e-80);
-           
+
             for (int kk(ks); kk <= ke; ++kk) {
               for (int jj(-1); jj <= 1; ++jj) {
-                for (int ii(-1); ii <= 1; ++ii) {       
-            
+                for (int ii(-1); ii <= 1; ++ii) {
+
                         if( (ii != 0 || jj != 0 || kk != 0) &&
                             (flags(i,j,k).isConnected(ii,jj,kk)) &&
                             bx.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))) )
@@ -188,10 +186,10 @@ namespace amrex {
         Real covered_val = 1.e40;
 
         int nghost = 2;
-	AMREX_ASSERT(div_tmp_in.nGrow() >= nghost);
+        AMREX_ASSERT(div_tmp_in.nGrow() >= nghost);
 
         EB_set_covered(div_tmp_in, 0, ncomp, div_tmp_in.nGrow(), covered_val);
-              
+
         div_tmp_in.FillBoundary(geom.periodicity());
 
         // Here we take care of both the regular and covered cases ... all we do below is the cut cell cases
