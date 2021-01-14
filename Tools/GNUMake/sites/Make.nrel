@@ -61,11 +61,6 @@ ifeq ($(USE_MPI),TRUE)
     else
       # MPT case (no option available to query link flags)
       LIBRARIES += -lmpi
-      ifeq ($(USE_CUDA),TRUE)
-        export MPICXX_CXX := nvcc
-        export MPICC_CC   := nvcc
-        export MPIF90_F90 := $(F90)
-      endif
     endif
   endif
 endif

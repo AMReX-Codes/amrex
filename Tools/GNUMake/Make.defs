@@ -672,7 +672,7 @@ else ifeq ($(USE_CUDA),TRUE)
     ifeq ($(USE_MPI),TRUE)
       # Make sure that the C/C++ MPI
       # wrappers are calling nvcc to compile the code.
-      # Right now we handle OpenMPI/Spectrum MPI and MPICH.
+      # Right now we handle OpenMPI/Spectrum MPI, MPICH, and HPE MPT.
       # Other MPI implementations could be added later.
 
       export OMPI_CC := nvcc
@@ -684,6 +684,10 @@ else ifeq ($(USE_CUDA),TRUE)
       export MPICH_CXX := nvcc
       export MPICH_F77 := $(FC)
       export MPICH_FC  := $(F90)
+
+      export MPICXX_CXX := nvcc
+      export MPICC_CC   := nvcc
+      export MPIF90_F90 := $(F90)
     endif
 
     DEFINES += -DAMREX_USE_CUDA
