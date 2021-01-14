@@ -15,7 +15,10 @@
 #include <AMReX_Gpu.H>
 
 #ifdef AMREX_USE_HYPRE
-#include <HYPRE_utilities.h>
+#include <_hypre_utilities.h>
+#ifdef AMREX_USE_CUDA
+#include <_hypre_utilities.hpp>
+#endif
 #endif
 
 #ifdef AMREX_USE_CUPTI
