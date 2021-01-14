@@ -409,6 +409,12 @@ AMReX provides interfaces to the `hypre <https://computing.llnl.gov/projects/hyp
 solvers, and BoomerAMG and Euclid as preconditioners.  These can be called as 
 as bottom solvers for both cell-centered and node-based problems.
 
+If it is built with Hypre support, AMReX initializes Hypre by default in
+`amrex::Initialize`.  If it is built with CUDA, AMReX will also set up Hypre
+to run on device by default.  The user can choose to disable the Hypre
+initialization by AMReX with :cpp:`ParmParse` parameter
+``amrex.init_hypre=[0|1]``.
+
 By default the AMReX linear solver code always tries to geometrically coarsen the
 problem as much as possible.  However, as we have mentioned, we can
 call :cpp:`setMaxCoarseningLevel(0)` on the :cpp:`LPInfo` object

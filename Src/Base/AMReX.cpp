@@ -14,6 +14,13 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_Gpu.H>
 
+#ifdef AMREX_USE_HYPRE
+#include <_hypre_utilities.h>
+#ifdef AMREX_USE_CUDA
+#include <_hypre_utilities.hpp>
+#endif
+#endif
+
 #ifdef AMREX_USE_CUPTI
 #include <AMReX_CuptiTrace.H>
 #endif
@@ -108,6 +115,12 @@ namespace {
     unsigned int  curr_fpe_excepts;
 #endif
 }
+
+#ifdef AMREX_USE_HYPRE
+namespace {
+    int init_hypre = 1;
+}
+#endif
 
 std::string amrex::Version ()
 {
@@ -515,6 +528,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 	    }
 #endif
         }
+
+#ifdef AMREX_USE_HYPRE
+        pp.query("init_hypre", init_hypre);
+#endif
     }
 
     ParallelDescriptor::Initialize();
@@ -538,14 +555,28 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     iMultiFab::Initialize();
     VisMF::Initialize();
     AsyncOut::Initialize();
+
 #ifdef AMREX_USE_EB
     EB2::Initialize();
 #endif
+
     BL_PROFILE_INITPARAMS();
-#endif
+#endif // ifndef BL_AMRPROF
+
     machine::Initialize();
+
 #ifdef AMREX_USE_GPU
     Gpu::Fuser::Initialize();
+#endif
+
+#ifdef AMREX_USE_HYPRE
+    if (init_hypre) {
+        HYPRE_Init();
+#ifdef HYPRE_USING_CUDA
+        hypre_HandleDefaultExecPolicy(hypre_handle()) = HYPRE_EXEC_DEVICE;
+        hypre_HandleSpgemmUseCusparse(hypre_handle()) = 0;
+#endif
+    }
 #endif
 
     if (system::verbose > 0)
@@ -591,6 +622,10 @@ amrex::Finalize (amrex::AMReX* pamrex)
 #endif
 
     AMReX::erase(pamrex);
+
+#ifdef AMREX_USE_HYPRE
+    if (init_hypre) HYPRE_Finalize();
+#endif
 
     BL_TINY_PROFILE_FINALIZE();
     BL_PROFILE_FINALIZE();

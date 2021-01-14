@@ -148,6 +148,7 @@ MyTest::initProbABecLaplacianInhomNeumann ()
                 });
             }
 
+#if (AMREX_SPACEDIM > 2)
             if (bx.smallEnd(2) == domain.smallEnd(2)) {
                 Box const& bzlo = amrex::adjCellLo(bx, 2);
                 amrex::ParallelFor(bzlo,
@@ -165,6 +166,7 @@ MyTest::initProbABecLaplacianInhomNeumann ()
                     actual_init_dphi_dz_hi(i,j,k,solnfab,prob_lo,dx);
                 });
             }
+#endif
         }
 
         solution[ilev].setVal(0.0,0,1,0); // set interior to 0
