@@ -572,7 +572,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #ifdef AMREX_USE_HYPRE
     if (init_hypre) {
         HYPRE_Init();
-#ifdef AMREX_USE_CUDA
+#ifdef HYPRE_USING_CUDA
         hypre_HandleDefaultExecPolicy(hypre_handle()) = HYPRE_EXEC_DEVICE;
         hypre_HandleSpgemmUseCusparse(hypre_handle()) = 0;
 #endif
