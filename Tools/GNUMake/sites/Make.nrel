@@ -40,7 +40,7 @@ else ifeq ($(which_computer), rhodes)
   endif
 endif
 
-# Account for Intel-MPI, MPICH, OpenMPI, and MPT
+# Account for Intel-MPI, MPICH, OpenMPI, and HPE MPT
 ifeq ($(USE_MPI),TRUE)
   ifeq ($(COMP), intel)
     CXX := mpiicpc
@@ -58,6 +58,9 @@ ifeq ($(USE_MPI),TRUE)
     else ifneq ($(findstring Open MPI, $(shell $(F90) -showme:version 2>&1)),)
       mpif90_link_flags := $(shell $(F90) -showme:link)
       LIBRARIES += $(mpif90_link_flags)
+    else
+      # MPT case (no option available to query link flags)
+      LIBRARIES += -lmpi
     endif
   endif
 endif
