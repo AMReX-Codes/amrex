@@ -56,6 +56,14 @@ function (configure_amrex)
    endif()
 
    #
+   # Allow for MSVC Runtime library controls
+   #
+   if(POLICY CMP0091)
+      cmake_policy(SET CMP0091 NEW)
+   endif()
+
+
+   #
    # Special flags for MSVC compiler
    #
    set(_cxx_msvc   "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>")
