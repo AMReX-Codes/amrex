@@ -450,7 +450,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 Vector<NeighborCopyTag>& tags = buffer_tag_cache[nim.src_level][src_index][nim.thread_num];
                 AMREX_ASSERT(nim.src_index < tags.size());
                 tags[nim.src_index].dst_index = i;
-                AMREX_ASSERT(tags[nim.src_index].dst_index < neighbors[nim.dst_level][dst_index].size());
+                AMREX_ASSERT(size_t(tags[nim.src_index].dst_index) < neighbors[nim.dst_level][dst_index].size());
             }
         }
     }

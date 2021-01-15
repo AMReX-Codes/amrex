@@ -39,16 +39,7 @@ struct StructOfArrays {
     const std::array<RealVector, NReal>& GetRealData () const { return m_rdata; }
     const std::array< IntVector,  NInt>& GetIntData  () const { return m_idata; }
 
-    RealVector& GetRealData (const int index) {
-        AMREX_ASSERT(size_t(index) < NReal + m_runtime_rdata.size());
-        if (index < NReal) return m_rdata[index];
-        else {
-            AMREX_ASSERT(m_defined);
-            return m_runtime_rdata[index - NReal];
-        }
-    }
-
-    const RealVector& GetRealData (const int index) const {
+    RealVector& GetRealData (const size_t index) {
         AMREX_ASSERT(index < NReal + m_runtime_rdata.size());
         if (index < NReal) return m_rdata[index];
         else {
@@ -57,8 +48,17 @@ struct StructOfArrays {
         }
     }
 
-    IntVector& GetIntData (const int index) {
-        AMREX_ASSERT(size_t(index) < NInt + m_runtime_idata.size());
+    const RealVector& GetRealData (const size_t index) const {
+        AMREX_ASSERT(index < NReal + m_runtime_rdata.size());
+        if (index < NReal) return m_rdata[index];
+        else {
+            AMREX_ASSERT(m_defined);
+            return m_runtime_rdata[index - NReal];
+        }
+    }
+
+    IntVector& GetIntData (const size_t index) {
+        AMREX_ASSERT(index < NInt + m_runtime_idata.size());
         if (index < NInt) return m_idata[index];
         else {
             AMREX_ASSERT(m_defined);
@@ -66,8 +66,8 @@ struct StructOfArrays {
         }
    }
 
-    const IntVector& GetIntData (const int index) const {
-        AMREX_ASSERT(size_t(index) < NInt + m_runtime_idata.size());
+    const IntVector& GetIntData (const size_t index) const {
+        AMREX_ASSERT(index < NInt + m_runtime_idata.size());
         if (index < NInt) return m_idata[index];
         else {
             AMREX_ASSERT(m_defined);
@@ -128,10 +128,10 @@ struct StructOfArrays {
 
     void resize (size_t count)
     {
-        for (int i = 0; i < NReal; ++i) m_rdata[i].resize(count);
-        for (int i = 0; i < NInt;  ++i) m_idata[i].resize(count);
-        for (int i = 0; i < (int) m_runtime_rdata.size(); ++i) m_runtime_rdata[i].resize(count);
-        for (int i = 0; i < (int) m_runtime_idata.size(); ++i) m_runtime_idata[i].resize(count);
+        for (size_t i = 0; i < NReal; ++i) m_rdata[i].resize(count);
+        for (size_t i = 0; i < NInt;  ++i) m_idata[i].resize(count);
+        for (size_t i = 0; i < m_runtime_rdata.size(); ++i) m_runtime_rdata[i].resize(count);
+        for (size_t i = 0; i < m_runtime_idata.size(); ++i) m_runtime_idata[i].resize(count);
     }
 
     GpuArray<ParticleReal*, NReal> realarray ()
