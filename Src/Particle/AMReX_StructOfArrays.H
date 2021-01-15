@@ -10,7 +10,7 @@
 
 namespace amrex {
 
-template <size_t NReal, size_t NInt,
+template <int NReal, int NInt,
           template<class> class Allocator=DefaultAllocator>
 struct StructOfArrays {
 
