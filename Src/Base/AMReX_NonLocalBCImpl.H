@@ -163,7 +163,7 @@ local_copy_cpu (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaD
     auto const& LocTags = *(cmd.m_LocTags);
     int N_locs = LocTags.size();
     if (N_locs == 0) return;
-#ifdef _OPENMP // Note: intentionally not AMREX_USE_OMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int itag = 0; itag < N_locs; ++itag) {
@@ -192,7 +192,7 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int scomp, int ncomp,
     if (N_rcvs == 0) return;
 
     using T = typename FAB::value_type;
-#ifdef _OPENMP // Note: intentionally not AMREX_USE_OMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int ircv = 0; ircv < N_rcvs; ++ircv) {
