@@ -29,15 +29,15 @@ namespace {
 #if (AMREX_SPACEDIM == 2) 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
-amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
+amrex_calc_slopes_eb_given_A (int i, int j, int /*k*/, int n,
                               amrex::Real A[9][AMREX_SPACEDIM],
                               amrex::Array4<amrex::Real const> const& state,
                               amrex::Array4<amrex::EBCellFlag const> const& flag) noexcept
 {
     amrex::Real du[9];
 
-    int lc=0;
     {
+        int lc=0;
         for(int jj(-1); jj<=1; jj++){
           for(int ii(-1); ii<=1; ii++){
 
