@@ -1104,7 +1104,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if (local) AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, local) == 0);
 
     // sanity check
-    AMREX_ASSERT(do_tiling == false);
+    AMREX_ALWAYS_ASSERT(do_tiling == false);
 
     BL_PROFILE("ParticleContainer::RedistributeGPU()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
