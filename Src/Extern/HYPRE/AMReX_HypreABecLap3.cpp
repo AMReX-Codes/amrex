@@ -416,7 +416,7 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
     soln.setVal(0.0);
 
     MultiFab rhs_diag(rhs.boxArray(), rhs.DistributionMap(), 1, 0);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp paralle if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(rhs_diag,TilingIfNotGPU()); mfi.isValid(); ++mfi)
