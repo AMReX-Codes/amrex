@@ -291,10 +291,21 @@ Available choices are
 - :cpp:`MLMG::BottomSolver::cgbicg`: Start with cg. Switch to bicgstab
   if cg fails.  The matrix must be symmetric.
 
-- :cpp:`MLMG::BottomSolver::hypre`: One of the solvers available through hypre; see the 
-section below on External Solvers 
+- :cpp:`MLMG::BottomSolver::hypre`: One of the solvers available through hypre;
+  see the section below on External Solvers 
 
 - :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
+  
+- :cpp:`LPInfo::setAgglomeration(bool)` (by default true) can be used
+  continue to coarsen the multigrid by copying what would have been the
+  bottom solver to a new :cpp:`MultiFab` with a new :cpp:`BoxArray` with
+  fewer, larger grids, to allow for additional coarsening.
+
+- :cpp:`LPInfo::setConsolidation(bool)` (by default true) can be used
+  continue to transfer a multigrid problem to fewer MPI ranks.
+  There are more setting sucsh as :cpp:`LPInfo::setConsolidationGridSize(int)`,
+  :cpp:`consolidation_threshold`, :cpp:`consolidation_ratio`, and
+  :cpp:`consolidation_strategy`, to give control over how this process works.
 
 Boundary Stencils for Cell-Centered Solvers
 ===========================================
