@@ -48,7 +48,7 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 
 #endif
 
-#if defined(AMREX_USE_GPU) || !defined(_OPENMP)
+#if defined(AMREX_USE_GPU) || !defined(AMREX_USE_OMP)
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
 IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
 #else
@@ -388,7 +388,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 #if defined(AMREX_USE_GPU)
         check_local = true;
         check_remote = true;
-#elif defined(_OPENMP)
+#elif defined(AMREX_USE_OMP)
 	if (omp_get_max_threads() > 1) {
 	    check_local = true;
 	    check_remote = true;
@@ -719,7 +719,7 @@ FabArrayBase::FB::define_fb (const FabArrayBase& fa)
 
     BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
     bool check_local = false, check_remote = false;
-#if defined(_OPENMP)
+#if defined(AMREX_USE_OMP)
     if (omp_get_max_threads() > 1) {
         check_local = true;
         check_remote = true;
@@ -939,7 +939,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 
     BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
     bool check_local = false, check_remote = false;
-#if defined(_OPENMP)
+#if defined(AMREX_USE_OMP)
     if (omp_get_max_threads() > 1) {
 	check_local = true;
 	check_remote = true;
@@ -2110,7 +2110,7 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 {
     TileArray* p;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical(gettilearray)
 #endif
     {
@@ -2128,7 +2128,7 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 					     m_TAC_stats.bytes);
 #endif
 	}
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
 	{

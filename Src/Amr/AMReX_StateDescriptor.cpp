@@ -51,7 +51,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
 	m_func3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
                  AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,a_bc);
     } else {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical (bndryfunc)
 #endif
       if (m_func != 0)
@@ -78,7 +78,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
 	  m_gfunc3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
                     AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,a_bc);
     } else {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical (bndryfunc)
 #endif
         if (m_gfunc != 0)

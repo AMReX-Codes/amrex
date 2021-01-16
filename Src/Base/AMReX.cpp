@@ -47,7 +47,7 @@
 #include <AMReX_MemProfiler.H>
 #endif
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -209,7 +209,7 @@ amrex::Error_host (const char * msg)
     } else {
         write_lib_id("Error");
         write_to_stderr_without_buffering(msg);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical (amrex_abort_omp_critical)
 #endif
         ParallelDescriptor::Abort();
@@ -257,7 +257,7 @@ amrex::Abort_host (const char * msg)
     } else {
        write_lib_id("Abort");
        write_to_stderr_without_buffering(msg);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical (amrex_abort_omp_critical)
 #endif
        ParallelDescriptor::Abort();
@@ -306,7 +306,7 @@ amrex::Assert_host (const char* EX, const char* file, int line, const char* msg)
         throw RuntimeError(buf);
     } else {
        write_to_stderr_without_buffering(buf);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical (amrex_abort_omp_critical)
 #endif
        ParallelDescriptor::Abort();
@@ -592,7 +592,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         amrex::Print() << "MPI initialized with thread support level " << provided << std::endl;
 #endif
         
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 //    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
         amrex::Print() << "OMP initialized with "
                        << omp_get_max_threads()
@@ -660,7 +660,7 @@ amrex::Finalize (amrex::AMReX* pamrex)
 	if (ParallelDescriptor::NProcs() == 1) {
 	    if (mp_tot > 0) {
                 amrex::Print() << "MemPool: " 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
                                << "min used in a thread: " << mp_min << " MB, "
                                << "max used in a thread: " << mp_max << " MB, "
 #endif

@@ -11,7 +11,7 @@ MyTest::initProbPoisson ()
     {
         const auto prob_lo = geom[ilev].ProbLoArray();
         const auto dx      = geom[ilev].CellSizeArray();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(rhs[ilev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -40,7 +40,7 @@ MyTest::initProbABecLaplacian ()
         const auto dx      = geom[ilev].CellSizeArray();
         auto a = ascalar;
         auto b = bscalar;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(rhs[ilev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -82,7 +82,7 @@ MyTest::initProbABecLaplacianInhomNeumann ()
         Box const& domain = geom[ilev].Domain();
         auto a = ascalar;
         auto b = bscalar;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(rhs[ilev], TilingIfNotGPU()); mfi.isValid(); ++mfi)

@@ -79,7 +79,7 @@ struct BARef
 
     inline bool HasHashMap () const {
         bool r;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp atomic read
 #endif
         r = has_hashmap;

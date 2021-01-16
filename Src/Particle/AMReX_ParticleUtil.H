@@ -147,7 +147,7 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
     int num_wrong = 0;
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion() && !system::regtest_reduction) reduction(+:num_wrong)
 #endif
         for(ParIter pti(pc, lev); pti.isValid(); ++pti)

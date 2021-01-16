@@ -4,7 +4,7 @@ module amrex_omp_module
 
   implicit none
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
   integer, parameter :: amrex_omp_support = (_OPENMP)
 #else
   integer, parameter :: amrex_omp_support = 0 ! Should this be allowed??
@@ -46,4 +46,3 @@ contains
 end module amrex_omp_module
 
 #endif
-

@@ -614,7 +614,7 @@ MLMG::interpCorrection (int alev)
     {
         MFItInfo mfi_info;
         if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(fine_cor, mfi_info); mfi.isValid(); ++mfi)
@@ -690,7 +690,7 @@ MLMG::interpCorrection (int alev)
     else
     {
         AMREX_ALWAYS_ASSERT(amrrr == 2);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(fine_cor, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -758,7 +758,7 @@ MLMG::interpCorrection (int alev, int mglev)
     {
         MFItInfo mfi_info;
         if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(fine_cor, mfi_info); mfi.isValid(); ++mfi)
@@ -801,7 +801,7 @@ MLMG::interpCorrection (int alev, int mglev)
     }
     else
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(fine_cor, TilingIfNotGPU()); mfi.isValid(); ++mfi)

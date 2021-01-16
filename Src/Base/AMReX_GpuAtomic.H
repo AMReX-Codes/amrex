@@ -443,7 +443,7 @@ namespace HostDevice { namespace Atomic {
 #if AMREX_DEVICE_COMPILE
         Gpu::Atomic::AddNoRet(sum,value);
 #else
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp atomic update
 #endif
         *sum += value;

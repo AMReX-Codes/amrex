@@ -1064,7 +1064,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 						  desc.interp(SComp));
 	
 #if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
 #endif
@@ -1590,7 +1590,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 	    FillPatch(clev,crseMF,0,time,idx,SComp,NComp,0);
 	}
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
@@ -1668,7 +1668,7 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
 
         if (rec->derFuncFab() != nullptr)
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -1682,7 +1682,7 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
         else
         {
 #if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(*mf,true); mfi.isValid(); ++mfi)
@@ -1819,7 +1819,7 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 
         if (rec->derFuncFab() != nullptr)
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -1834,7 +1834,7 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
         else
         {
 #if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)

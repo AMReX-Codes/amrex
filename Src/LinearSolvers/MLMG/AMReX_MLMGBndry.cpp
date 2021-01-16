@@ -22,7 +22,7 @@ MLMGBndry::setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo
     const Box&      domain = geom.Domain();
     const GpuArray<int,AMREX_SPACEDIM>& is_periodic = geom.isPeriodicArray();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     for (FabSetIter fsi(bndry[Orientation(0,Orientation::low)]); fsi.isValid(); ++fsi)

@@ -87,7 +87,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp single
 #endif
     {
@@ -111,7 +111,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tilin
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp single
 #endif
     {
@@ -137,7 +137,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp single
 #endif
     {
@@ -162,13 +162,13 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInf
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp single
 #endif
     {
         m_fa->addThisBD();
     }
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
     if (dynamic) {
 #pragma omp barrier
 #pragma omp single
@@ -194,7 +194,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
     if (dynamic) {
 #pragma omp barrier
 #pragma omp single
@@ -209,7 +209,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
 
 MFIter::~MFIter ()
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
     {
@@ -235,7 +235,7 @@ MFIter::~MFIter ()
 #endif
 
     if (m_fa) {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp barrier
 #pragma omp single
 #endif
@@ -246,7 +246,7 @@ MFIter::~MFIter ()
 void
 MFIter::Initialize ()
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
     {
@@ -313,7 +313,7 @@ MFIter::Initialize ()
 	    }
 	}
 	
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 	int nthreads = omp_get_num_threads();
 	if (nthreads > 1)
 	{
@@ -494,7 +494,7 @@ MFIter::grownnodaltilebox (int dir, IntVect const& a_ng) const noexcept
 void
 MFIter::operator++ () noexcept
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
     if (dynamic)
     {
 #pragma omp atomic capture

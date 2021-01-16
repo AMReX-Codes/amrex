@@ -55,7 +55,7 @@ void amrex_mempool_init ()
 #endif
 	}
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel num_threads(nthreads)
 #endif
 	{
