@@ -23,7 +23,7 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
                      const LPInfo& a_info,
                      const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     bool eb_limit_coarsening = true;
 #else
     bool eb_limit_coarsening = false;
@@ -377,7 +377,7 @@ MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/, 
     }
 }
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 std::unique_ptr<HypreNodeLap>
 MLNodeLinOp::makeHypreNodeLap (int bottom_verbose, const std::string& options_namespace) const
 {

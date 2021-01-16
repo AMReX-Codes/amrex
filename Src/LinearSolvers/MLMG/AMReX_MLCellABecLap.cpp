@@ -342,7 +342,7 @@ MLCellABecLap::applyOverset (int amrlev, MultiFab& rhs) const
     }
 }
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 std::unique_ptr<Hypre>
 MLCellABecLap::makeHypre (Hypre::Interface hypre_interface) const
 {

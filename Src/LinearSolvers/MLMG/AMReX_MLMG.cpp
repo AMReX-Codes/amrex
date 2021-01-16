@@ -941,7 +941,9 @@ MLMG::actualBottomSolve ()
 
         if (bottom_solver == BottomSolver::hypre)
         {
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
             bottomSolveWithHypre(x, *bottom_b);
+#endif
         }
         else if (bottom_solver == BottomSolver::petsc)
         {
@@ -1143,7 +1145,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     } else if (linop.needsUpdate()) {
         linop.update();
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
         hypre_solver.reset();
         hypre_bndry.reset();
         hypre_node_solver.reset();
@@ -1823,14 +1825,10 @@ MLMG::getNodalSum (int amrlev, int mglev, MultiFab& mf) const
     return s1/s2;
 }
 
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 void
 MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
 {
-#if !defined(AMREX_USE_HYPRE)
-    amrex::ignore_unused(x,b);
-    amrex::Abort("bottomSolveWithHypre is called without building with Hypre");
-#else
-
     const int amrlev = 0;
     const int mglev  = linop.NMGLevels(amrlev) - 1;
 
@@ -1892,8 +1890,8 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
     {
         makeSolvable(amrlev, mglev, x);
     }
-#endif
 }
+#endif
 
 void
 MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)

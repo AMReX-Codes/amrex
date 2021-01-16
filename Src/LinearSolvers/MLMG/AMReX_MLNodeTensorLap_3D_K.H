@@ -214,7 +214,7 @@ void mlndtslap_normalize (Box const& b, Array4<Real> const& phi,
     });
 }
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 
 AMREX_FORCE_INLINE
 void mlndtslap_fill_ijmatrix (Box const& ndbx, Array4<HypreNodeLap::Int const> const& nid,

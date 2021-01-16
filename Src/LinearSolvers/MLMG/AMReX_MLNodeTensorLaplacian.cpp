@@ -248,7 +248,7 @@ MLNodeTensorLaplacian::fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/)
     amrex::Abort("MLNodeTensorLaplacian::fixUpResidualMask: TODO");
 }
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 void
 MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
                                      Array4<int const> const& owner,
