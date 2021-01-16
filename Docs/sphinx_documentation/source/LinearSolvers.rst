@@ -307,7 +307,6 @@ Available choices are
   :cpp:`consolidation_threshold`, :cpp:`consolidation_ratio`, and
   :cpp:`consolidation_strategy`, to give control over how this process works.
 
-  
 Boundary Stencils for Cell-Centered Solvers
 ===========================================
 
