@@ -113,7 +113,7 @@ public:
     virtual void getEBFluxes (const Vector<MultiFab*>& a_flux,
                               const Vector<MultiFab*>& a_sol) const override;
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
 #endif
 

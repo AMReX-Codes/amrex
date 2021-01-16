@@ -2882,7 +2882,7 @@ MLNodeLaplacian::checkPoint (std::string const& file_name) const
     }
 }
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 
 #if (AMREX_SPACEDIM == 2)
 void

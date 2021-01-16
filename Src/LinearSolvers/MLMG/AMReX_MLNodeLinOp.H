@@ -5,7 +5,7 @@
 #include <AMReX_MLLinOp.H>
 #include <AMReX_iMultiFab.H>
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 #include <AMReX_HypreNodeLap.H>
 #endif
 
@@ -96,7 +96,7 @@ public:
     // omask is either 0 or 1. 1 means the node is an unknown. 0 means it's known.
     void setOversetMask (int amrlev, const iMultiFab& a_omask);
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
         int bottom_verbose,
         const std::string& options_namespace) const override;
