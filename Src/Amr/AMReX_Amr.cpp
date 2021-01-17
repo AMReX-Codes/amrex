@@ -1858,10 +1858,18 @@ Amr::RegridOnly (Real time, bool do_io)
 {
     BL_ASSERT(regrid_on_restart == 1);
 
-    int lev_top = std::min(finest_level, max_level-1);
-
-    for (int i = 0; i <= lev_top; i++)
-       regrid(i,time);
+    if (max_level == 0)
+    {   
+        regrid_level_0_on_restart();
+    }
+    else
+    {   
+        int lev_top = std::min(finest_level, max_level-1);
+        for (int i = 0; i <= lev_top; i++)
+        {  
+           regrid(i,time);
+        }
+    }
 
     if (do_io) {
 
