@@ -31,15 +31,15 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& apx, Array4<Real> const& apy,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm, Real small_volfrac, 
+                  Array4<Real> const& bnorm, Real small_volfrac,
                   Geometry const& geom, bool extend_domain_face);
 
 #elif (AMREX_SPACEDIM == 3)
 
 void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Type_t> const& fx, Array4<Type_t> const& fy,
-                  Array4<Type_t> const& fz, Array4<Type_t> const& ex,
-                  Array4<Type_t> const& ey, Array4<Type_t> const& ez,
+                  Array4<Type_t> const& fz, Array4<Type_t const> const& ex,
+                  Array4<Type_t const> const& ey, Array4<Type_t const> const& ez,
                   Array4<Real const> const& levset, Array4<Real const> const& interx,
                   Array4<Real const> const& intery, Array4<Real const> const& interz,
                   Array4<Real> const& apx, Array4<Real> const& apy,
@@ -60,10 +60,20 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp,
-                  Real small_volfrac, 
+                  Real small_volfrac,
                   Geometry const& geom, bool extend_domain_face);
 
 #endif
+
+void intercept_to_edge_centroid (AMREX_D_DECL(Array4<Real> const& excent,
+                                              Array4<Real> const& eycent,
+                                              Array4<Real> const& ezcent),
+                                 AMREX_D_DECL(Array4<Type_t const> const& fx,
+                                              Array4<Type_t const> const& fy,
+                                              Array4<Type_t const> const& fz),
+                                 Array4<Real const> const& levset,
+                                 GpuArray<Real,AMREX_SPACEDIM> const& dx,
+                                 GpuArray<Real,AMREX_SPACEDIM> const& problo);
 
 }}
 

@@ -111,7 +111,7 @@ void set_covered(const int i, const int j,
                  Array4<EBCellFlag> const& cell,
                  Array4<Real> const& vfrac, Array4<Real> const& vcent,
                  Array4<Real> const& barea, Array4<Real> const& bcent,
-                 Array4<Real> const& bnorm) 
+                 Array4<Real> const& bnorm)
 {
    vfrac(i,j,0) = 0.0;
    vcent(i,j,0,0) = 0.0;
@@ -155,10 +155,10 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 fcx(i,j,0) = 0.0;
             } else {
                 if (levset(i,j,0) < 0.0) {
-                    apx(i,j,0) = (interx(i,j,0)-(problo[1]+j*dx[1]))*dyinv;
+                    apx(i,j,0) = (intery(i,j,0)-(problo[1]+j*dx[1]))*dyinv;
                     fcx(i,j,0) = 0.5*apx(i,j,0) - 0.5;
                 } else {
-                    apx(i,j,0) = 1.0 - (interx(i,j,0)-(problo[1]+j*dx[1]))*dyinv;
+                    apx(i,j,0) = 1.0 - (intery(i,j,0)-(problo[1]+j*dx[1]))*dyinv;
                     fcx(i,j,0) = 0.5 - 0.5*apx(i,j,0);
                 }
 
@@ -188,10 +188,10 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 fcy(i,j,0) = 0.0;
             } else {
                 if (levset(i,j,0) < 0.0) {
-                    apy(i,j,0) = (intery(i,j,0)-(problo[0]+i*dx[0]))*dxinv;
+                    apy(i,j,0) = (interx(i,j,0)-(problo[0]+i*dx[0]))*dxinv;
                     fcy(i,j,0) = 0.5*apy(i,j,0) - 0.5;
                 } else {
-                    apy(i,j,0) = 1.0 - (intery(i,j,0)-(problo[0]+i*dx[0]))*dxinv;
+                    apy(i,j,0) = 1.0 - (interx(i,j,0)-(problo[0]+i*dx[0]))*dxinv;
                     fcy(i,j,0) = 0.5 - 0.5*apy(i,j,0);
                 }
 
@@ -320,8 +320,8 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
               }
 
               // set cell in extendable region to covered if necessary
-              if( in_extended_domain && (! cell(i,j,k).isCovered()) 
-                  && cell(ii,jj,kk).isCovered() ) 
+              if( in_extended_domain && (! cell(i,j,k).isCovered())
+                  && cell(ii,jj,kk).isCovered() )
               {
                   set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
               }
