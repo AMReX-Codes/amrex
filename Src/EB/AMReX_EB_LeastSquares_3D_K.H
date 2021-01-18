@@ -768,8 +768,8 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi_val;
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog)  
-                        rhs(irow) += Amatrix(a_ind+18,irow)*phieb(ii,jj,kk,n);
+                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+27,irow) != 0.0)  
+                        rhs(irow) += Amatrix(a_ind+27,irow)*phieb(ii,jj,kk,n);
                }
     }
 
@@ -902,8 +902,8 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi_val;
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog)  
-                        rhs(irow) += Amatrix(a_ind+18,irow)*phieb(ii,jj,kk,n);
+                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+27,irow) != 0.0)  
+                        rhs(irow) += Amatrix(a_ind+27,irow)*phieb(ii,jj,kk,n);
                 }
     }
 
@@ -1038,8 +1038,8 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi_val;
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog)
-                        rhs(irow) += Amatrix(a_ind+18,irow)*phieb(ii,jj,kk,n);
+                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+27,irow) != 0.0)
+                        rhs(irow) += Amatrix(a_ind+27,irow)*phieb(ii,jj,kk,n);
                 }
     }
 
@@ -1168,7 +1168,7 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi_val;
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog)
+                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+27,irow) != 0.0)
                         rhs(irow) += Amatrix(a_ind+27,irow)*phieb(ii,jj,kk,n);
                 }
     }
