@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.14)
 
 #
+# Allow for MSVC Runtime library controls
+#
+if(POLICY CMP0091)
+  cmake_policy(SET CMP0091 NEW)
+endif()
+
+#
 # Prevent in-source builds
 #
 if (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
