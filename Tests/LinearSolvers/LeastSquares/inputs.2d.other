@@ -20,6 +20,6 @@ eb2.geom_type = rotated_box
 
 eb2.geom_type = sphere
 
-plot_file = "plot-other"
+plot_file = "plot-2d-other"
 
 max_grid_size = 128
