@@ -774,19 +774,34 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
 
             bool treat_phi_as_on_centroid = ( phi_on_centroid && (mglev == 0) );
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-            {
-                mlebabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
-                                  ccmfab, flagfab, vfracfab,
-                                  AMREX_D_DECL(apxfab,apyfab,apzfab),
-                                  AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                  ccfab, bafab, bcfab, bebfab, phiebfab,
-                                  AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
-                                  AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
-                                  AMREX_D_DECL(extdir_x, extdir_y, extdir_z),
-                                  is_eb_dirichlet, is_eb_inhomog, dxinvarr,
-                                  ascalar, bscalar, ncomp, beta_on_centroid, treat_phi_as_on_centroid);
-            });
+            if (treat_phi_as_on_centroid) {
+               AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+               {
+                   mlebabeclap_adotx_centroid(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                                     flagfab, vfracfab,
+                                     AMREX_D_DECL(apxfab,apyfab,apzfab),
+                                     AMREX_D_DECL(fcxfab,fcyfab,fczfab),
+                                     ccfab, bafab, bcfab, bebfab, phiebfab,
+                                     AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
+                                     AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
+                                     AMREX_D_DECL(extdir_x, extdir_y, extdir_z),
+                                     is_eb_dirichlet, is_eb_inhomog, dxinvarr,
+                                     ascalar, bscalar, ncomp);
+               });
+            } else {
+               AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+               {
+                   mlebabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                                     ccmfab, flagfab, vfracfab,
+                                     AMREX_D_DECL(apxfab,apyfab,apzfab),
+                                     AMREX_D_DECL(fcxfab,fcyfab,fczfab),
+                                     bafab, bcfab, bebfab,
+                                     is_eb_dirichlet,
+                                     phiebfab,
+                                     is_eb_inhomog, dxinvarr,
+                                     ascalar, bscalar, ncomp, beta_on_centroid, phi_on_centroid);
+               });
+            }
         }
     }
 }
