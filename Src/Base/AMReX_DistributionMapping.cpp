@@ -363,7 +363,8 @@ DistributionMapping::define (Vector<int>&& pmap) noexcept
 void
 DistributionMapping::RoundRobinDoIt (int                  nboxes,
                                      int                 /* nprocs */,
-                                     std::vector<LIpair>* LIpairV)
+                                     std::vector<LIpair>* LIpairV,
+                                     bool                 sort)
 {
     if (flag_verbose_mapper) {
         Print() << "DM: RoundRobinDoIt called..." << std::endl;
@@ -385,14 +386,29 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
     Vector<Vector<int> > wrkerord;
 
     if (nteams == nprocs)  {
-	LeastUsedCPUs(nprocs,ord);
+        if (sort) {
+            LeastUsedCPUs(nprocs,ord);
+        } else {
+            ord.resize(nprocs);
+            std::iota(ord.begin(), ord.end(), 0);
+        }
 	wrkerord.resize(nprocs);
 	for (int i = 0; i < nprocs; ++i) {
 	    wrkerord[i].resize(1);
 	    wrkerord[i][0] = 0;
 	}
     } else {
-	LeastUsedTeams(ord,wrkerord,nteams,nworkers);
+        if (sort) {
+            LeastUsedTeams(ord,wrkerord,nteams,nworkers);
+        } else {
+            ord.resize(nteams);
+            std::iota(ord.begin(), ord.end(), 0);
+            wrkerord.resize(nteams);
+            for (auto& v : wrkerord) {
+                v.resize(nworkers);
+                std::iota(v.begin(), v.end(), 0);
+            }
+        }
     }
 
     Vector<int> w(nteams,0);
@@ -429,13 +445,13 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
 }
 
 void
-DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs)
+DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs, bool sort)
 {
     BL_ASSERT(nboxes > 0);
     m_ref->clear();
     m_ref->m_pmap.resize(nboxes);
 
-    RoundRobinDoIt(nboxes, nprocs);
+    RoundRobinDoIt(nboxes, nprocs, nullptr, sort);
 }
 
 void
@@ -472,7 +488,7 @@ DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
 
 void
 DistributionMapping::RoundRobinProcessorMap (const std::vector<Long>& wgts,
-                                             int nprocs)
+                                             int nprocs, bool sort)
 {
     BL_ASSERT(wgts.size() > 0);
 
@@ -502,7 +518,7 @@ DistributionMapping::RoundRobinProcessorMap (const std::vector<Long>& wgts,
 
     Sort(LIpairV, true);
 
-    RoundRobinDoIt(wgts.size(), nprocs, &LIpairV);
+    RoundRobinDoIt(wgts.size(), nprocs, &LIpairV, sort);
 }
 
 class WeightedBox
@@ -840,7 +856,7 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<Long>& wgts,
 
     if (static_cast<int>(wgts.size()) <= nprocs || nprocs < 2)
     {
-        RoundRobinProcessorMap(wgts.size(),nprocs);
+        RoundRobinProcessorMap(wgts.size(),nprocs, sort);
 
         if (efficiency) *efficiency = 1;
     }
