@@ -178,11 +178,7 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     {
         currentIndex = beginIndex = m_valid_index.front();
         if (dynamic) {
-<<<<<<< HEAD
-#ifdef _OPENMP
-=======
-#ifdef AMREX_USE_OMP            
->>>>>>> development
+#ifdef AMREX_USE_OMP
             int ind = omp_get_thread_num();
             m_pariter_index += ind;
             if (ind < m_valid_index.size()) {
