@@ -264,8 +264,8 @@ void set_grids_nested (Vector<Box>& domains,
     // Now we make the refined level be the center eighth of the domain
     if (nlevs > 1) {
         int n_fine = ncells*ref_ratio[0][0];
-        IntVect refined_lo(D_DECL(n_fine/4,n_fine/4,n_fine/4));
-        IntVect refined_hi(D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
+        IntVect refined_lo(AMREX_D_DECL(n_fine/4,n_fine/4,n_fine/4));
+        IntVect refined_hi(AMREX_D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
 
         // Build a box for the level 1 domain
         Box refined_patch(refined_lo, refined_hi);

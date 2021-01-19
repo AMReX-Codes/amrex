@@ -1,6 +1,7 @@
 
 #ifndef BL_MEMPROFILER_H
 #define BL_MEMPROFILER_H
+#include <AMReX_Config.H>
 
 #include <AMReX_INT.H>
 #include <stack>

@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_CONTAINERS_H_
 #define AMREX_GPU_CONTAINERS_H_
+#include <AMReX_Config.H>
 
 #include <numeric>
 #include <iterator>
@@ -117,6 +118,7 @@ namespace Gpu {
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
+        if (size == 0) return;
 #ifdef AMREX_USE_GPU
         htod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -149,6 +151,7 @@ namespace Gpu {
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
+        if (size == 0) return;
 #ifdef AMREX_USE_GPU        
         dtoh_memcpy(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -181,6 +184,7 @@ namespace Gpu {
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
+        if (size == 0) return;
 #ifdef AMREX_USE_GPU
         dtod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -214,6 +218,7 @@ namespace Gpu {
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
+        if (size == 0) return;
 #ifdef AMREX_USE_GPU
         htod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -247,6 +252,7 @@ namespace Gpu {
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
+        if (size == 0) return;
 #ifdef AMREX_USE_GPU        
         dtoh_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -280,6 +286,7 @@ namespace Gpu {
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
+        if (size == 0) return;
 #ifdef AMREX_USE_GPU
         dtod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
 #else

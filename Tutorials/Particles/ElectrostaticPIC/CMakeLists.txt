@@ -1,9 +1,9 @@
-if (DIM EQUAL 1 OR NOT CMAKE_Fortran_COMPILER_LOADED)
+if (AMReX_SPACEDIM EQUAL 1 OR NOT CMAKE_Fortran_COMPILER_LOADED)
    return()
 endif ()
 
 set(_sources ElectrostaticParticleContainer.cpp ElectrostaticParticleContainer.H
-   electrostatic_pic_${DIM}d.f90 electrostatic_pic_F.H main.cpp PhysConst.H)
+   electrostatic_pic_${AMReX_SPACEDIM}d.f90 electrostatic_pic_F.H main.cpp PhysConst.H)
 
 set(_input_files inputs)
 

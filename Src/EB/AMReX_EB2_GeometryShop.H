@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_GEOMETRYSHOP_H_
 #define AMREX_EB2_GEOMETRYSHOP_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_EB2_IF_Base.H>
 #include <AMReX_EB2_Graph.H>
@@ -27,6 +28,7 @@ Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
 {
 #if AMREX_DEVICE_COMPILE
+    amrex::ignore_unused(f,p);
     amrex::Error("EB2::GeometryShop: how did this happen?");
     return 0.0;
 #else

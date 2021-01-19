@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLEUTIL_H_
 #define AMREX_PARTICLEUTIL_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
@@ -146,8 +147,8 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
     int num_wrong = 0;
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion() and !system::regtest_reduction) reduction(+:num_wrong)
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion() && !system::regtest_reduction) reduction(+:num_wrong)
 #endif
         for(ParIter pti(pc, lev); pti.isValid(); ++pti)
         {
@@ -270,7 +271,7 @@ bool enforcePeriodic (P& p,
     bool shifted = false;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        if (not is_per[idim]) continue;
+        if (! is_per[idim]) continue;
         if (p.pos(idim) >= phi[idim]) {
             while (p.pos(idim) >= phi[idim]) {
                 p.pos(idim) -= static_cast<ParticleReal>(phi[idim] - plo[idim]);
@@ -288,7 +289,7 @@ bool enforcePeriodic (P& p,
             if (p.pos(idim) > phi[idim]) p.pos(idim) = std::nextafter( (amrex::ParticleReal) phi[idim], (amrex::ParticleReal) plo[idim]);
             shifted = true;
         }
-        AMREX_ASSERT( (p.pos(idim) >= plo[idim] ) and ( p.pos(idim) < phi[idim] ));
+        AMREX_ASSERT( (p.pos(idim) >= plo[idim] ) && ( p.pos(idim) < phi[idim] ));
     }
 
     return shifted;
@@ -347,10 +348,23 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                 }
                 else
                 {
-                    enforcePeriodic(p, plo, phi, is_per);
-                    auto tup = ploc(p, lev_min, lev_max, nGrow);
+		    auto p_prime = p;
+                    enforcePeriodic(p_prime, plo, phi, is_per);
+                    auto tup = ploc(p_prime, lev_min, lev_max, nGrow);
                     assigned_grid = amrex::get<0>(tup);
                     assigned_lev  = amrex::get<1>(tup);
+		    if (assigned_grid >= 0)
+		    {
+		      AMREX_D_TERM(p.pos(0) = p_prime.pos(0);,
+				   p.pos(1) = p_prime.pos(1);,
+				   p.pos(2) = p_prime.pos(2););
+		    }
+		    else if (lev_min > 0)
+		    {
+		      auto tup = ploc(p, lev_min, lev_max, nGrow);
+		      assigned_grid = amrex::get<0>(tup);
+		      assigned_lev  = amrex::get<1>(tup);
+		    }
                 }
 
                 return ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid));

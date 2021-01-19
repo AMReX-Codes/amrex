@@ -1786,7 +1786,7 @@ parallel region:
   // Dynamic tiling, one box per OpenMP thread.
   // No further tiling details,
   //   so each thread works on a single tilebox.
-  #ifdef _OPENMP
+  #ifdef AMREX_USE_OMP
   #pragma omp parallel
   #endif
       for (MFIter mfi(mf,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
@@ -1803,7 +1803,7 @@ Dynamic tiling also allows explicit definition of a tile size:
 
   // Dynamic tiling, one box per OpenMP thread.
   // No tiling in x-direction. Tile size is 16 for y and 32 for z.
-  #ifdef _OPENMP
+  #ifdef AMREX_USE_OMP
   #pragma omp parallel
   #endif
       for (MFIter mfi(mf,MFItInfo().SetDynamic(true).EnableTiling(1024000,16,32)); mfi.isValid(); ++mfi)
@@ -1892,6 +1892,44 @@ But :cpp:`Box& bx = mfi.validbox()` is not legal and will not compile.
 
 Finally it should be emphasized that tiling should not be used when
 running on GPUs because of kernel launch overhead.
+
+Multiple MFIters
+----------------
+
+To avoid some common bugs, it is not allowed to have multiple active
+:cpp:`MFIter` objects like below by default.
+
+.. highlight:: c++
+
+::
+
+    for (MFIter mfi1(...); ...) {
+        for (MFIter mfi2(...); ...) {
+        }
+    }
+
+.. highlight:: fortran
+
+::
+
+    call amrex_mfiter_build(mf1, ...)
+    call amrex_mfiter_build(mf2, ...)
+
+The will results in an assertion failure at runtime.  To disable the
+assertion, one could call
+
+.. highlight:: c++
+
+::
+
+    int old_flag = amrex::MFIter::allowMultipleMFIters(true);
+
+.. highlight:: fortran
+
+::
+
+    logical :: old_flag
+    old_flag = amrex_mfiter_allow_multiple(.true.)
 
 .. _sec:basics:fortran:
 
@@ -2194,7 +2232,7 @@ like below,
 
 ::
 
-  #ifdef _OPENMP
+  #ifdef AMREX_USE_OMP
   #pragma omp parallel if (Gpu::notInLaunchRegion())
   #endif
     for (MFIter mfi(mfa,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -2507,9 +2545,9 @@ overflow).  The handling of seg fault, assertion errors and
 interruption by control-C are enabled by default.  Note that
 ``AMREX_ASSERT()`` is only on when compiled with ``DEBUG=TRUE`` or
 ``USE_ASSERTION=TRUE`` in GNU make, or with ``-DCMAKE_BUILD_TYPE=Debug`` or
-``-DENABLE_ASSERTIONS=YES`` in CMake.  The trapping of floating point exceptions is not
+``-DAMReX_ASSERTIONS=YES`` in CMake.  The trapping of floating point exceptions is not
 enabled by default unless the code is compiled with ``DEBUG=TRUE`` in GNU make, or with
-``-DCMAKE_BUILD_TYPE=Debug`` or ``-DENABLE_FPE=YES`` in CMake to turn on compiler flags
+``-DCMAKE_BUILD_TYPE=Debug`` or ``-DAMReX_FPE=YES`` in CMake to turn on compiler flags
 if supported.  Alternatively, one can always use runtime parameters to control the
 handling of floating point exceptions: ``amrex.fpe_trap_invalid`` for
 NaNs, ``amrex.fpe_trap_zero`` for division by zero and

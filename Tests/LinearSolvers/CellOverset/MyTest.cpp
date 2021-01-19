@@ -60,6 +60,12 @@ MyTest::solve ()
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
 
+#ifdef AMREX_USE_HYPRE
+    if (use_hypre) {
+        mlmg.setBottomSolver(amrex::BottomSolver::hypre);
+    }
+#endif
+
     // In region with overset mask = 0, phi has valid solution and rhs is zero.
     Real mlmg_err = mlmg.solve({&phi}, {&rhs}, 1.e-11, 0.0);
 }
@@ -97,6 +103,11 @@ MyTest::readParameters ()
     pp.query("max_coarsening_level", max_coarsening_level);
 
     pp.query("do_overset", do_overset);
+
+#ifdef AMREX_USE_HYPRE
+    pp.query("use_hypre", use_hypre);
+    if (use_hypre) max_coarsening_level = 0;
+#endif
 }
 
 void
@@ -133,7 +144,7 @@ MyTest::initData ()
     auto a = ascalar;
     auto b = bscalar;
     auto loverset = do_overset;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(rhs, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -205,7 +216,7 @@ MyTest::initData ()
                                               + pi*std::cos(fpi*x) * std::cos(fpi*y) * std::sin(fpi*z)))
                                             + a * (std::cos(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z)
                                           + 0.25 * std::cos(fpi*x) * std::cos(fpi*y) * std::cos(fpi*z));
-                if (loverset and overset_box.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                if (loverset && overset_box.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
                     mask(i,j,k) = 0;
                     phifab(i,j,k) = exact(i,j,k);
                 } else {

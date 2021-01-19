@@ -1,8 +1,14 @@
 # Store the CUDA toolkit version.
 
-nvcc_version       := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}')
-nvcc_major_version := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$1}')
-nvcc_minor_version := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$2}')
+ifneq ($(NO_CONFIG_CHECKING),TRUE)
+  nvcc_version       := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}')
+  nvcc_major_version := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$1}')
+  nvcc_minor_version := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$2}')
+else
+  nvcc_version       := 99.9
+  nvcc_major_version := 99
+  nvcc_minor_version := 9
+endif
 
 # Disallow CUDA toolkit versions < 8.0.
 
@@ -53,8 +59,10 @@ ifeq ($(lowercase_nvcc_host_comp),gnu)
   ifdef CXXSTD
     CXXSTD := $(strip $(CXXSTD))
     ifeq ($(shell expr $(gcc_major_version) \< 5),1)
-      ifeq ($(CXXSTD),c++14)
-        $(error C++14 support requires GCC 5 or newer.)
+      ifneq ($(NO_CONFIG_CHECKING),TRUE)
+        ifeq ($(CXXSTD),c++14)
+          $(error C++14 support requires GCC 5 or newer.)
+        endif
       endif
     endif
   else
@@ -117,8 +125,10 @@ endif
 NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT) --expt-relaxed-constexpr --expt-extended-lambda
 # This is to work around a bug with nvcc, see: https://github.com/kokkos/kokkos/issues/1473
 NVCC_FLAGS += -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored
-# Unfortunately, on cori with cuda 10.0 this fails in thrust code
-# NVCC_FLAGS += --Werror=cross-execution-space-call
+
+ifeq ($(GPU_ERROR_CROSS_EXECUTION_SPACE_CALL),TRUE)
+  NVCC_FLAGS += --Werror cross-execution-space-call
+endif
 
 ifeq ($(DEBUG),TRUE)
   NVCC_FLAGS += -g -G

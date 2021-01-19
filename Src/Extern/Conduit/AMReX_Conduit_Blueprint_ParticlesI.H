@@ -100,7 +100,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     for (int i = 0; i < NStructReal; i++)
     {
         ParticleReal* val = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
-        conduit::Node &n_f = n_fields[real_comp_names[vname_real_idx]];
+        conduit::Node &n_f = n_fields[real_comp_names.at(vname_real_idx)];
         n_f["topology"] = topology_name;
         n_f["association"] = "element";
         n_f["values"].set_external(val,
@@ -146,7 +146,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     for (int i = 0; i < NStructInt; i++)
     {
         int* val = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
-        conduit::Node &n_f = n_fields[int_comp_names[vname_int_idx]];
+        conduit::Node &n_f = n_fields[int_comp_names.at(vname_int_idx)];
         n_f["topology"] = topology_name;
         n_f["association"] = "element";
         n_f["values"].set_external(val,
@@ -168,7 +168,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     // array real fields
     for (int i = 0; i < NArrayReal; i++)
     {
-        conduit::Node &n_f = n_fields[real_comp_names[vname_real_idx]];
+        conduit::Node &n_f = n_fields[real_comp_names.at(vname_real_idx)];
         n_f["topology"] = topology_name;
         n_f["association"] = "element";
         n_f["values"].set_external(const_cast<ParticleReal*>(&soa.GetRealData(i)[0]),
@@ -180,7 +180,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     // array int fields
     for (int i = 0; i < NArrayInt; i++)
     {
-        conduit::Node &n_f = n_fields[int_comp_names[vname_int_idx]];
+        conduit::Node &n_f = n_fields[int_comp_names.at(vname_int_idx)];
         n_f["topology"] = topology_name;
         n_f["association"] = "element";
         n_f["values"].set_external(const_cast<int*>(&soa.GetIntData(i)[0]),

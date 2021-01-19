@@ -26,16 +26,15 @@ namespace amrex {
         //
         // Check that grid is uniform
         //
-        const Real tolerance = std::numeric_limits<Real>::epsilon();
         const Real* dx = geom.CellSize();
         
 #if (AMREX_SPACEDIM == 2)
-        if (std::abs(dx[0] - dx[1]) > tolerance)
+        if (! amrex::almostEqual(dx[0], dx[1]))
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
 #elif (AMREX_SPACEDIM == 3)
-        if( (std::abs(dx[0] - dx[1]) > tolerance) or
-            (std::abs(dx[0] - dx[2]) > tolerance) or
-            (std::abs(dx[1] - dx[2]) > tolerance) )
+        if( ! amrex::almostEqual(dx[0],dx[1]) ||
+            ! amrex::almostEqual(dx[0],dx[2]) ||
+            ! amrex::almostEqual(dx[1],dx[2]) )
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
 #endif
 
@@ -98,8 +97,8 @@ namespace amrex {
             for (int kk(ks); kk <= ke; ++kk) {
               for (int jj(-1); jj <= 1; ++jj) {
                 for (int ii(-1); ii <= 1; ++ii) {
-		        if( (ii != 0 or jj != 0 or kk != 0) and
-			    flags(i,j,k).isConnected(ii,jj,kk) and
+		        if( (ii != 0 || jj != 0 || kk != 0) &&
+			    flags(i,j,k).isConnected(ii,jj,kk) &&
 			    dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
                         {
 
@@ -141,7 +140,7 @@ namespace amrex {
               for (int jj(-1); jj <= 1; ++jj) {
                 for (int ii(-1); ii <= 1; ++ii) {         
             
-                        if( (ii != 0 or jj != 0 or kk != 0) and
+                        if( (ii != 0 || jj != 0 || kk != 0) &&
                             (flags(i,j,k).isConnected(ii,jj,kk)) )
                         {
                             wtot += wt(i+ii,j+jj,k+kk) * vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
@@ -155,11 +154,11 @@ namespace amrex {
               for (int jj(-1); jj <= 1; ++jj) {
                 for (int ii(-1); ii <= 1; ++ii) {       
             
-                        if( (ii != 0 or jj != 0 or kk != 0) and
-                            (flags(i,j,k).isConnected(ii,jj,kk)) and
+                        if( (ii != 0 || jj != 0 || kk != 0) &&
+                            (flags(i,j,k).isConnected(ii,jj,kk)) &&
                             bx.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))) )
                         {
-                            Gpu::Atomic::Add(&optmp(i+ii,j+jj,k+kk,n),
+                            Gpu::Atomic::AddNoRet(&optmp(i+ii,j+jj,k+kk,n),
                                              delm(i,j,k,n) * wtot * mask(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk));
                         }
                 }}}
@@ -444,7 +443,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
     const auto dx_eb = eb_factory.Geom().CellSizeArray();
     Real ls_roof = amrex::min(AMREX_D_DECL(dx_eb[0],dx_eb[1],dx_eb[2])) * (flags.nGrow()+1);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)

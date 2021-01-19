@@ -12,7 +12,7 @@ ifeq ($(which_computer),$(filter $(which_computer),ray rzmanta))
 
   XLC_ROOT = /usr/tce/packages/xl/xl-beta-2018.06.01/xlC/16.1.1/
   XLF_ROOT = /usr/tce/packages/xl/xl-beta-2018.06.01/xlf/16.1.1/
-  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-2018.06.01
+  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-rolling-release
 
   ifeq ($(USE_MPI),TRUE)
     CC  = mpicc
@@ -20,7 +20,8 @@ ifeq ($(which_computer),$(filter $(which_computer),ray rzmanta))
     FC  = mpifort
     F90 = mpifort
 
-    LIBRARIES += -lmpi_ibm_mpifh
+    LIBRARIES += -lmpi_ibm
+    override XTRALIBS += -L$(MPIROOT)/lib
   endif
 
   ifeq ($(USE_CUDA),TRUE)
@@ -53,7 +54,7 @@ ifeq ($(which_computer),$(filter $(which_computer),ray rzmanta))
   endif
 
   ifeq ($(lowercase_comp),gnu)
-       override XTRALIBS := -lgfortran
+       override XTRALIBS += -lgfortran
   endif
 
   ifeq ($(lowercase_comp),ibm)
@@ -74,7 +75,8 @@ ifeq ($(which_computer),$(filter $(which_computer),sierra butte rzansel lassen))
     FC  = mpifort
     F90 = mpifort
 
-    LIBRARIES += -lmpi_ibm_mpifh
+    LIBRARIES += -lmpi_ibm
+    override XTRALIBS += -L$(MPIROOT)/lib
   endif
 
   ifeq ($(USE_CUDA),TRUE)
@@ -107,7 +109,8 @@ ifeq ($(which_computer),$(filter $(which_computer),sierra butte rzansel lassen))
   endif
 
   ifeq ($(lowercase_comp),gnu)
-       override XTRALIBS := -lgfortran
+       # Note we need gcc/8.3.1 at LLNL because gcc/7.3.1 does not contain libquadmath
+       override XTRALIBS += -lgfortran
   endif
 
   ifeq ($(lowercase_comp),ibm)

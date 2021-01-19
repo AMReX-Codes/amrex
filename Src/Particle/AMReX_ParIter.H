@@ -1,5 +1,6 @@
 #ifndef AMREX_PARITER_H_
 #define AMREX_PARITER_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MFIter.H>
 #include <AMReX_Gpu.H>
@@ -44,7 +45,7 @@ public:
 
     ParIterBase (ContainerRef pc, int level, MFItInfo& info);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
     void operator++ ()
     {
         if (dynamic) {
@@ -177,7 +178,11 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     {
         currentIndex = beginIndex = m_valid_index.front();
         if (dynamic) {
+<<<<<<< HEAD
 #ifdef _OPENMP
+=======
+#ifdef AMREX_USE_OMP            
+>>>>>>> development
             int ind = omp_get_thread_num();
             m_pariter_index += ind;
             if (ind < m_valid_index.size()) {

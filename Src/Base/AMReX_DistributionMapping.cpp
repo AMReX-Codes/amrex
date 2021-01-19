@@ -111,7 +111,7 @@ DistributionMapping::Initialize ()
     //
     verbose          = 0;
     sfc_threshold    = 0;
-    max_efficiency   = 0.9;
+    max_efficiency   = 0.9_rt;
     node_size        = 0;
     flag_verbose_mapper = 0;
 
@@ -1445,7 +1445,7 @@ DistributionMapping::makeKnapSack (const Vector<Real>& rcost, int nmax)
     Vector<Long> cost(rcost.size());
 
     Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
 
     for (int i = 0; i < rcost.size(); ++i) {
         cost[i] = Long(rcost[i]*scale) + 1L;
@@ -1469,7 +1469,7 @@ DistributionMapping::makeKnapSack (const Vector<Real>& rcost, Real& eff, int nma
     Vector<Long> cost(rcost.size());
 
     Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
 
     for (int i = 0; i < rcost.size(); ++i) {
         cost[i] = Long(rcost[i]*scale) + 1L;
@@ -1507,7 +1507,7 @@ DistributionMapping::makeKnapSack (const LayoutData<Real>& rcost_local,
         Vector<Long> cost(rcost.size());
 
         Real wmax = *std::max_element(rcost.begin(), rcost.end());
-        Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+        Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
 
         for (int i = 0; i < rcost.size(); ++i) {
             cost[i] = Long(rcost[i]*scale) + 1L;
@@ -1584,7 +1584,7 @@ DistributionMapping::ComputeDistributionMappingEfficiency (const DistributionMap
     for (int i=0; i<nprocs; ++i)
     {
         const Real rwSum = std::accumulate(rankToCosts[i].begin(),
-                                           rankToCosts[i].end(), 0.0);
+                                           rankToCosts[i].end(), 0.0_rt);
         rankToCost[i] = rwSum;
         maxCost = std::max(maxCost, rwSum);
     }
@@ -1592,7 +1592,7 @@ DistributionMapping::ComputeDistributionMappingEfficiency (const DistributionMap
     // Write `efficiency` (number between 0 and 1), the mean cost per processor
     // (normalized to the max cost)
     *efficiency = (std::accumulate(rankToCost.begin(),
-                                   rankToCost.end(), 0.0) / (nprocs*maxCost));
+                                   rankToCost.end(), 0.0_rt) / (nprocs*maxCost));
 }
 
 namespace {
@@ -1601,7 +1601,7 @@ gather_weights (const MultiFab& weight)
 {
 #ifdef AMREX_USE_MPI
     LayoutData<Real> costld(weight.boxArray(),weight.DistributionMap());
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
@@ -1612,7 +1612,7 @@ gather_weights (const MultiFab& weight)
                                                  ParallelContext::IOProcessorNumberSub());
     ParallelDescriptor::Bcast(rcost.data(), rcost.size(), ParallelContext::IOProcessorNumberSub());
     Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
     Vector<Long> lcost(rcost.size());
     for (int i = 0; i < rcost.size(); ++i) {
         lcost[i] = static_cast<Long>(rcost[i]*scale) + 1L;
@@ -1690,7 +1690,7 @@ DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, boo
     Vector<Long> cost(rcost.size());
     
     Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
 
     for (int i = 0; i < rcost.size(); ++i) {
         cost[i] = Long(rcost[i]*scale) + 1L;
@@ -1713,7 +1713,7 @@ DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, Rea
     Vector<Long> cost(rcost.size());
     
     Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
 
     for (int i = 0; i < rcost.size(); ++i) {
         cost[i] = Long(rcost[i]*scale) + 1L;
@@ -1751,7 +1751,7 @@ DistributionMapping::makeSFC (const LayoutData<Real>& rcost_local,
         Vector<Long> cost(rcost.size());
 
         Real wmax = *std::max_element(rcost.begin(), rcost.end());
-        Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+        Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
 
         for (int i = 0; i < rcost.size(); ++i) {
             cost[i] = Long(rcost[i]*scale) + 1L;

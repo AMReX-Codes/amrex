@@ -57,7 +57,7 @@ void init_prob (const Vector<Geometry>& geom, Vector<MultiFab>& alpha, Vector<Mu
     }
 
     const int nlevels = geom.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     for (int ilev = 0; ilev < nlevels; ++ilev)

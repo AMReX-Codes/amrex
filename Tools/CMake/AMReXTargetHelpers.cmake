@@ -103,7 +103,7 @@ endfunction ()
 #
 function (set_cpp_sources_to_cuda_language _target)
    get_target_property(_sources ${_target} SOURCES)
-   list(FILTER _sources INCLUDE REGEX "\\.cpp")
+   list(FILTER _sources INCLUDE REGEX "\\.cpp$")
    set_source_files_properties(${_sources} PROPERTIES LANGUAGE CUDA )
 endfunction ()
 

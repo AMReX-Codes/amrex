@@ -1,5 +1,6 @@
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
+#include <AMReX_Config.H>
 
 #include <map>
 #include <limits>

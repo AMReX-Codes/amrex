@@ -57,7 +57,7 @@ void set_eb_data (const int i, const int j,
     bnorm(i,j,0,0) = nx;
     bnorm(i,j,0,1) = ny;
 
-    if (nxabs < tiny or nyabs > almostone) {
+    if (nxabs < tiny || nyabs > almostone) {
         barea(i,j,0) = 1.0;
         bcent(i,j,0,0) = 0.0;
         bnorm(i,j,0,0) = 0.0;
@@ -65,7 +65,7 @@ void set_eb_data (const int i, const int j,
         vfrac(i,j,0) = 0.5*(axm+axp);
         vcent(i,j,0,0) = 0.0;
         vcent(i,j,0,1) = (0.125*(ayp-aym) + ny*0.5*bcent(i,j,0,1)*bcent(i,j,0,1)) / (vfrac(i,j,0) + 1.e-30);
-    } else if (nyabs < tiny or nxabs > almostone) {
+    } else if (nyabs < tiny || nxabs > almostone) {
         barea(i,j,0) = 1.0;
         bcent(i,j,0,1) = 0.0;
         bnorm(i,j,0,0) = signx;
@@ -212,13 +212,13 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
     {
         if (cell(i,j,0).isSingleValued()) {
-            if (fx(i,j,0) == Type::regular and fx(i+1,j,0) == Type::regular and
-                fy(i,j,0) == Type::regular and fy(i,j+1,0) == Type::regular)
+            if (fx(i,j,0) == Type::regular && fx(i+1,j,0) == Type::regular &&
+                fy(i,j,0) == Type::regular && fy(i,j+1,0) == Type::regular)
             {
                 cell(i,j,0).setRegular();
             }
-            else if (fx(i,j,0) == Type::covered and fx(i+1,j,0) == Type::covered and
-                     fy(i,j,0) == Type::covered and fy(i,j+1,0) == Type::covered)
+            else if (fx(i,j,0) == Type::covered && fx(i+1,j,0) == Type::covered &&
+                     fy(i,j,0) == Type::covered && fy(i,j+1,0) == Type::covered)
             {
                 cell(i,j,0).setCovered();
             }
@@ -289,7 +289,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
            }
        }
 
-       if (not gdomain.contains(bxg1)) {
+       if (! gdomain.contains(bxg1)) {
        AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
        {
               const auto & dlo = gdomain.loVect();
@@ -320,8 +320,8 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
               }
 
               // set cell in extendable region to covered if necessary
-              if( in_extended_domain and (not cell(i,j,k).isCovered()) 
-                  and cell(ii,jj,kk).isCovered() ) 
+              if( in_extended_domain && (! cell(i,j,k).isCovered()) 
+                  && cell(ii,jj,kk).isCovered() ) 
               {
                   set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
               }
@@ -330,50 +330,44 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     }
 
 
-    // fix face for small cells
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bxg1, tbx,
+    // fix face for small cells whose vfrac has been set to zero
+    const Box xbx = Box(bx).surroundingNodes(0).grow(1,1);
+    AMREX_HOST_DEVICE_FOR_3D ( xbx, i, j, k,
     {
-        Box lbx = amrex::grow(amrex::surroundingNodes(bx,0),1,1);
-        auto lo = amrex::max_lbound(tbx, lbx);
-        auto hi = amrex::min_ubound(tbx, lbx);
-        for (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i) {
-            if (vfrac(i-1,j,0) < small_volfrac or vfrac(i,j,0) < small_volfrac) {
-                fx(i,j,0) = Type::covered;
-                apx(i,j,0) = 0.0;
-                if (cell(i,j,0).isRegular())
-                {
-                    cell(i,j,0).setSingleValued();
-                    set_eb_data(i,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
-                }
-                if (cell(i-1,j,0).isRegular())
-                {
-                    cell(i-1,j,0).setSingleValued();
-                    set_eb_data(i-1,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
-                }
+        if (vfrac(i-1,j,0) == 0._rt || vfrac(i,j,0) == 0._rt) {
+            fx(i,j,0) = Type::covered;
+            apx(i,j,0) = 0.0;
+            // race conditions do not happeen because multiple cuts are not allowed
+            if (! cell(i,j,0).isCovered())
+            {
+                cell(i,j,0).setSingleValued();
+                set_eb_data(i,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
             }
-        }}
-
-        lbx = amrex::grow(amrex::surroundingNodes(bx,1),0,1);
-        lo = amrex::max_lbound(tbx, lbx);
-        hi = amrex::min_ubound(tbx, lbx);
-        for (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i) {
-            if (vfrac(i,j-1,0) < small_volfrac or vfrac(i,j,0) < small_volfrac) {
-                fy(i,j,0) = Type::covered;
-                apy(i,j,0) = 0.0;
-                if (cell(i,j,0).isRegular())
-                {
-                    cell(i,j,0).setSingleValued();
-                    set_eb_data(i,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
-                }
-                if (cell(i,j-1,0).isRegular())
-                {
-                    cell(i,j-1,0).setSingleValued();
-                    set_eb_data(i,j-1,apx,apy,vfrac,vcent,barea,bcent,bnorm);
-                }
+            if (! cell(i-1,j,0).isCovered())
+            {
+                cell(i-1,j,0).setSingleValued();
+                set_eb_data(i-1,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
             }
-        }}
+        }
+    });
+    //
+    const Box ybx = Box(bx).surroundingNodes(1).grow(0,1);
+    AMREX_HOST_DEVICE_FOR_3D ( ybx, i, j, k,
+    {
+        if (vfrac(i,j-1,0) == 0._rt || vfrac(i,j,0) == 0._rt) {
+            fy(i,j,0) = Type::covered;
+            apy(i,j,0) = 0.0;
+            if (! cell(i,j,0).isCovered())
+            {
+                cell(i,j,0).setSingleValued();
+                set_eb_data(i,j,apx,apy,vfrac,vcent,barea,bcent,bnorm);
+            }
+            if (! cell(i,j-1,0).isCovered())
+            {
+                cell(i,j-1,0).setSingleValued();
+                set_eb_data(i,j-1,apx,apy,vfrac,vcent,barea,bcent,bnorm);
+            }
+        }
     });
 
     // Build neighbors.  By default, all neighbors are already set.
@@ -386,26 +380,26 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         if (fy(i  ,j  ,0) == Type::covered) flg.setDisconnected(IntVect( 0,-1));
         if (fy(i  ,j+1,0) == Type::covered) flg.setDisconnected(IntVect( 0, 1));
 
-        if (((fx(i,j,0) == Type::covered) or fy(i-1,j,0) == Type::covered) and
-            ((fx(i,j-1,0) == Type::covered) or fy(i,j,0) == Type::covered))
+        if (((fx(i,j,0) == Type::covered) || fy(i-1,j,0) == Type::covered) &&
+            ((fx(i,j-1,0) == Type::covered) || fy(i,j,0) == Type::covered))
         {
             flg.setDisconnected(IntVect(-1,-1));
         }
 
-        if (((fx(i+1,j,0) == Type::covered) or fy(i+1,j,0) == Type::covered) and
-            ((fx(i+1,j-1,0) == Type::covered) or fy(i,j,0) == Type::covered))
+        if (((fx(i+1,j,0) == Type::covered) || fy(i+1,j,0) == Type::covered) &&
+            ((fx(i+1,j-1,0) == Type::covered) || fy(i,j,0) == Type::covered))
         {
             flg.setDisconnected(IntVect(1,-1));
         }
 
-        if (((fx(i,j,0) == Type::covered) or fy(i-1,j+1,0) == Type::covered) and
-            ((fx(i,j+1,0) == Type::covered) or fy(i,j+1,0) == Type::covered))
+        if (((fx(i,j,0) == Type::covered) || fy(i-1,j+1,0) == Type::covered) &&
+            ((fx(i,j+1,0) == Type::covered) || fy(i,j+1,0) == Type::covered))
         {
             flg.setDisconnected(IntVect(-1,1));
         }
 
-        if (((fx(i+1,j,0) == Type::covered) or fy(i+1,j+1,0) == Type::covered) and
-            ((fx(i+1,j+1,0) == Type::covered) or fy(i,j+1,0) == Type::covered))
+        if (((fx(i+1,j,0) == Type::covered) || fy(i+1,j+1,0) == Type::covered) &&
+            ((fx(i+1,j+1,0) == Type::covered) || fy(i,j+1,0) == Type::covered))
         {
             flg.setDisconnected(IntVect(1,1));
         }

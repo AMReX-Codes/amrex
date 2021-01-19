@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_LEVEL_H_
 #define AMREX_EB2_LEVEL_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_Geometry.H>
@@ -18,7 +19,7 @@
 #include <cmath>
 #include <type_traits>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -228,9 +229,9 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     RunOn gshop_run_on = (Gpu::inLaunchRegion() && gshop.isGPUable())
         ? RunOn::Gpu : RunOn::Cpu;
 
-    bool hybrid = Gpu::inLaunchRegion() and (gshop_run_on == RunOn::Cpu);
+    bool hybrid = Gpu::inLaunchRegion() && (gshop_run_on == RunOn::Cpu);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {

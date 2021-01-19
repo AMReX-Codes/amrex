@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_NODE_LINOP_H_H
 #define AMREX_ML_NODE_LINOP_H_H
+#include <AMReX_Config.H>
 
 #include <AMReX_MLLinOp.H>
 #include <AMReX_iMultiFab.H>
@@ -51,7 +52,7 @@ public:
         amrex::Abort("AMReX_MLNodeLinOp::compFlux::How did we get here?");
     }
     virtual void compGrad (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
-                           MultiFab& /*sol*/, Location /*loc*/) const final override {
+                           MultiFab& /*sol*/, Location /*loc*/) const override {
         amrex::Abort("AMReX_MLNodeLinOp::compGrad::How did we get here?");
     }
     
@@ -96,12 +97,14 @@ public:
     void setOversetMask (int amrlev, const iMultiFab& a_omask);
 
 #ifdef AMREX_USE_HYPRE
-    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const override;
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
+        int bottom_verbose,
+        const std::string& options_namespace) const override;
 
-    virtual void fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
-                               Array4<int const> const& owner,
-                               Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
-                               Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
+    virtual void fillIJMatrix (MFIter const& /*mfi*/, Array4<HypreNodeLap::Int const> const& /*nid*/,
+                               Array4<int const> const& /*owner*/,
+                               Vector<HypreNodeLap::Int>& /*ncols*/, Vector<HypreNodeLap::Int>& /*rows*/,
+                               Vector<HypreNodeLap::Int>& /*cols*/, Vector<Real>& /*mat*/) const
     {
         amrex::Abort("MLNodeLinOp: how did we get here?");
     }

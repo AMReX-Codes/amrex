@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLEMESH_H_
 #define AMREX_PARTICLEMESH_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_TypeTraits.H>
 #include <AMReX_MultiFab.H>
@@ -43,7 +44,7 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
     else
 #endif
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
@@ -97,7 +98,7 @@ MeshToParticle (PC& pc, MF const& mf, int lev, F&& f)
         
     auto& plevel = pc.GetParticles(lev);
     using ParIter = typename PC::ParIterType;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for(ParIter pti(pc, lev); pti.isValid(); ++pti)

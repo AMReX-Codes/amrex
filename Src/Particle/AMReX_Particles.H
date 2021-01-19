@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLES_H_
 #define AMREX_PARTICLES_H_
+#include <AMReX_Config.H>
 
 #include <cstring>
 #include <map>
@@ -55,7 +56,7 @@
 #include <AMReX_Lazy.H>
 #endif
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -376,7 +377,12 @@ public:
     //! \param new_ba The new BoxArray to use.
     //!
     void SetParticleBoxArray (int lev, const BoxArray& new_ba)
-	{ m_gdb->SetParticleBoxArray(lev, new_ba); }
+    {
+        m_gdb_object = ParGDB(m_gdb->ParticleGeom(), m_gdb->ParticleDistributionMap(),
+                              m_gdb->ParticleBoxArray(), m_gdb->refRatio());
+        m_gdb = &m_gdb_object;
+        m_gdb->SetParticleBoxArray(lev, new_ba);
+    }
 
     //! \brief Set the particle DistributionMapping. If the container was previously set to
     //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
@@ -386,7 +392,27 @@ public:
     //! \param new_dmap The new DistributionMapping to use.
     //!
     void SetParticleDistributionMap (int lev, const DistributionMapping& new_dmap)
-	{ m_gdb->SetParticleDistributionMap(lev, new_dmap); }
+    {
+        m_gdb_object = ParGDB(m_gdb->ParticleGeom(), m_gdb->ParticleDistributionMap(),
+                              m_gdb->ParticleBoxArray(), m_gdb->refRatio());
+        m_gdb = &m_gdb_object;
+        m_gdb->SetParticleDistributionMap(lev, new_dmap);
+    }
+
+    //! \brief Set the particle Geometry. If the container was previously set to
+    //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
+    //! will be broken here.
+    //!
+    //! \param lev The level on which to set the Geometry.
+    //! \param new_geom The new Geometry to use.
+    //!
+    void SetParticleGeometry (int lev, const Geometry& new_geom)
+    {
+        m_gdb_object = ParGDB(m_gdb->ParticleGeom(), m_gdb->ParticleDistributionMap(),
+                              m_gdb->ParticleBoxArray(), m_gdb->refRatio());
+        m_gdb = &m_gdb_object;
+        m_gdb->SetParticleGeometry(lev, new_geom);
+    }
 
     //! \brief Get the BoxArray for a given level
     //!
@@ -407,6 +433,12 @@ public:
     //! \param lev The level.
     //!
     const Geometry& Geom (int lev) const { return m_gdb->Geom(lev); }
+
+    //! \brief Get the particle Geometry for a given level
+    //!
+    //! \param lev The level.
+    //!
+    const Geometry& ParticleGeom (int lev) const { return m_gdb->ParticleGeom(lev); }
 
     //! \brief the finest level actually defined for the ParticleContainer
     int finestLevel () const { return m_gdb->finestLevel(); }
@@ -548,6 +580,9 @@ public:
 
     /**
      * \brief Sort the particles on each tile by groups of cells, given an IntVect bin_size
+     *
+     *        If bin_size is the zero vector, this operation is a no-op.
+     *
      */
     void SortParticlesByBin (IntVect bin_size);
 

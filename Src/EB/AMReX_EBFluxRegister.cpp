@@ -3,7 +3,7 @@
 #include <AMReX_EBFluxRegister_C.H>
 #include <AMReX_EBFArrayBox.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -45,7 +45,7 @@ EBFluxRegister::defineExtra (const BoxArray& fba, const DistributionMapping& fdm
     BoxArray cfba = fba;
     cfba.coarsen(m_ratio);
     m_cfp_inside_mask.define(cfba, fdm, 1, 0, MFInfo(),DefaultFabFactory<IArrayBox>());
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(m_cfp_inside_mask); mfi.isValid(); ++mfi)
@@ -233,7 +233,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
 {
     if (!m_cfp_mask.empty())
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(m_cfpatch); mfi.isValid(); ++mfi)
@@ -265,7 +265,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
 
         MFItInfo info;
         if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(m_crse_data, info); mfi.isValid(); ++mfi)
@@ -314,7 +314,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
 
     Dim3 ratio = m_ratio.dim3();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(cf,TilingIfNotGPU()); mfi.isValid(); ++mfi)

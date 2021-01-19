@@ -22,33 +22,45 @@ void main_main()
     int fine_level = -1;  // This will be fixed later
     Real ycoord = std::numeric_limits<Real>::lowest();
     bool scientific = false;
+    bool csv = false;
+    int  precision = 17;
+    Real tolerance = std::numeric_limits<Real>::lowest();
+    bool print_info = false;
 
     int farg = 1;
     while (farg <= narg) {
         const std::string& name = amrex::get_command_argument(farg);
-        if (name == "-s" or name == "--slicefile") {
+        if (name == "-s" || name == "--slicefile") {
             slicefile = amrex::get_command_argument(++farg);
-        } else if (name == "-d" or name == "--direction") {
+        } else if (name == "-d" || name == "--direction") {
             idir = std::stoi(amrex::get_command_argument(++farg));
-        } else if (name == "-v" or name == "--variable") {
+        } else if (name == "-v" || name == "--variable") {
             varnames_arg = amrex::get_command_argument(++farg);
         } else if (name == "-y") {
             ycoord = std::stod(amrex::get_command_argument(++farg));
-        } else if (name == "-l" or name == "--lower_left") {
+        } else if (name == "-l" || name == "--lower_left") {
             center = false;
-        } else if (name == "-c" or name == "--coarse_level") {
+        } else if (name == "-c" || name == "--coarse_level") {
             coarse_level = std::stoi(amrex::get_command_argument(++farg));
-        } else if (name == "-f" or name == "--fine_level") {
+        } else if (name == "-f" || name == "--fine_level") {
             fine_level = std::stoi(amrex::get_command_argument(++farg));
-        } else if (name == "-e" or name == "--scientific") {
+        } else if (name == "-e" || name == "--scientific") {
             scientific = true;
+        } else if (name == "-csv" || name == "--csv") {
+            csv = true;
+        } else if (name == "-p" || name == "--precision") {
+            precision = std::stoi(amrex::get_command_argument(++farg));
+        } else if (name == "-t" || name == "--tolerance") {
+            tolerance = std::stod(amrex::get_command_argument(++farg));
+        } else if (name == "-i" || name == "--info") {
+            print_info = true;
         } else {
             break;
         }
         ++farg;
     }
 
-    if (pltfile.empty() and farg <= narg) {
+    if (pltfile.empty() && farg <= narg) {
         pltfile = amrex::get_command_argument(farg);
     }
 
@@ -73,6 +85,9 @@ void main_main()
             << "      [-c|--coarse_level] coarse level : coarsest level to extract from\n"
             << "      [-f|--fine_level]   fine level   : finest level to extract from\n"
             << "      [-e|--scientific]                : output data in scientific notation\n"
+            << "      [-p|--precision]    precision    : decimal precision {17 (default)}\n"
+            << "      [-t|--tolerance]    tolerance    : set to 0 any value lower than tolerance\n"
+            << "      [-i|--info]                      : output job info\n"
             << "\n"
             << " If a job_info file is present in the plotfile, that information is made\n"
             << " available at the end of the slice file (commented out), for reference.\n"
@@ -92,7 +107,7 @@ void main_main()
     PlotFileData pf(pltfile);
     const int dim = pf.spaceDim();
 
-    if (idir < 0 or idir >= dim) {
+    if (idir < 0 || idir >= dim) {
         amrex::Print() << " invalid direction\n";
         return;
     } else if (idir == 0) {
@@ -140,7 +155,7 @@ void main_main()
         kloc = (hi0.z-lo0.z+1)/2 + lo0.z;
     }
 
-    if (ycoord > -1.e-36 and AMREX_SPACEDIM >= 2) {
+    if (ycoord > -1.e-36 && AMREX_SPACEDIM >= 2) {
         // we specified the y value to pass through
         for (int j = lo0.y; j <= hi0.y; ++j) {
             amrex::Real yc = problo[1] + (j+0.5)*dx0[1];
@@ -155,7 +170,7 @@ void main_main()
 
     if (fine_level < 0) fine_level = pf.finestLevel();
     // sanity check on valid selected levels
-    if (fine_level > pf.finestLevel() or coarse_level < 0 or coarse_level > fine_level) {
+    if (fine_level > pf.finestLevel() || coarse_level < 0 || coarse_level > fine_level) {
         amrex::Abort("Invalid level selection");
     }
 
@@ -192,9 +207,9 @@ void main_main()
                                     if (m(i,j,k) == 0) { // not covered by fine
                                         if (pos.size() == data[ivar].size()) {
                                             Array<Real,AMREX_SPACEDIM> p
-                                                = {AMREX_D_DECL(problo[0]+(i+0.5)*dx[0],
-                                                                problo[1]+(j+0.5)*dx[1],
-                                                                problo[2]+(k+0.5)*dx[2])};
+                                                = {AMREX_D_DECL(problo[0]+static_cast<Real>(i+0.5)*dx[0],
+                                                                problo[1]+static_cast<Real>(j+0.5)*dx[1],
+                                                                problo[2]+static_cast<Real>(k+0.5)*dx[2])};
                                             pos.push_back(p[idir]);
                                         }
                                         data[ivar].push_back(fab(i,j,k));
@@ -220,9 +235,9 @@ void main_main()
                                 for (int i = lo.x; i <= hi.x; ++i) {
                                     if (pos.size() == data[ivar].size()) {
                                         Array<Real,AMREX_SPACEDIM> p
-                                            = {AMREX_D_DECL(problo[0]+(i+0.5)*dx[0],
-                                                            problo[1]+(j+0.5)*dx[1],
-                                                            problo[2]+(k+0.5)*dx[2])};
+                                            = {AMREX_D_DECL(problo[0]+static_cast<Real>(i+0.5)*dx[0],
+                                                            problo[1]+static_cast<Real>(j+0.5)*dx[1],
+                                                            problo[2]+static_cast<Real>(k+0.5)*dx[2])};
                                         pos.push_back(p[idir]);
                                     }
                                     data[ivar].push_back(fab(i,j,k));
@@ -293,33 +308,56 @@ void main_main()
 
         std::ofstream ofs(slicefile, std::ios::trunc);
 
-        ofs << "# 1-d slice in " << dirstr << "-direction, file: " << pltfile << "\n";
-        ofs << "# time = " << std::setprecision(17) << pf.time() << "\n";
-
-        ofs << "#" << std::setw(24) << dirstr;
-        for (auto const& vname : var_names) {
-            ofs << " " <<  std::setw(24) << std::right << vname;
-        }
-        ofs << "\n";
         if (scientific) {
-            ofs << std::scientific;
-        }
-        for (int i = 0; i < posidx.size(); ++i) {
-            ofs << std::setw(25) << std::right << std::setprecision(17) << posidx[i].first;
-            for (int j = 0; j < var_names.size(); ++j) {
-                ofs << std::setw(25) << std::right << std::setprecision(17) << data[j][posidx[i].second];
-            }
-            ofs << "\n";
+          ofs << std::scientific;
         }
 
-        // job_info? if so write it out to the slice file end
-        std::ifstream jobinfo(pltfile+"/job_info");
-        if (jobinfo.good()) {
-            ofs << "\n";
-            std::string s;
-            while (std::getline(jobinfo, s)) {
-                ofs << "#" << s << "\n";
-            }
+        if (csv)
+        {
+           ofs << std::setw(24) << std::left << dirstr;
+           for (auto const& vname : var_names) {
+              ofs << ", " <<  std::setw(24) << std::left << vname;
+           }
+           ofs << "\n";
+           for (int i = 0; i < posidx.size(); ++i) {
+              ofs << std::setw(25) << std::left << std::setprecision(17) << posidx[i].first;
+              for (int j = 0; j < var_names.size(); ++j) {
+                  ofs << ", " << std::setw(25) << std::left << std::setprecision(17) << data[j][posidx[i].second];
+              }
+              ofs << "\n";
+           }
+        }
+        else
+        {
+           ofs << "# 1-d slice in " << dirstr << "-direction, file: " << pltfile << "\n";
+           ofs << "# time = " << std::setw(20) << std::setprecision(precision) << pf.time() << "\n";
+
+           ofs << "#" << std::setw(24) << dirstr;
+           for (auto const& vname : var_names) {
+             ofs << " " <<  std::setw(24) << std::right << vname;
+           }
+           ofs << "\n";
+
+           for (int i = 0; i < posidx.size(); ++i) {
+             ofs << std::setw(25) << std::right << std::setprecision(precision) << posidx[i].first;
+             for (int j = 0; j < var_names.size(); ++j) {
+               if (std::abs(data[j][posidx[i].second])< tolerance ) data[j][posidx[i].second] = 0.;
+               ofs << std::setw(25) << std::right << std::setprecision(precision) << data[j][posidx[i].second];
+             }
+             ofs << "\n";
+           }
+
+           if (print_info) {
+             // job_info? if so write it out to the slice file end
+             std::ifstream jobinfo(pltfile+"/job_info");
+             if (jobinfo.good()) {
+                ofs << "\n";
+                std::string s;
+                while (std::getline(jobinfo, s)) {
+                    ofs << "#" << s << "\n";
+                }
+             }
+           }
         }
     }
 }

@@ -1,5 +1,6 @@
 #ifndef BL_AMRCORE_H_
 #define BL_AMRCORE_H_
+#include <AMReX_Config.H>
 
 #include <ostream>
 #include <memory>

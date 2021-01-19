@@ -1,5 +1,6 @@
 #ifndef AMREX_INTERP_2D_C_H_
 #define AMREX_INTERP_2D_C_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
@@ -430,13 +431,94 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_face_interp (int ci, int cj, int /*ck*/,
+                     int nc, int nf, int idir,
+                     Array4<T const> const& crse,
+                     Array4<T> const& fine,
+                     Array4<int const> const& mask,
+                     IntVect const& ratio) noexcept
+{
+    if (mask) {
+        if (!mask(ci, cj, 0, nc))
+            { return; }
+    }
+
+    const int fi = ci*ratio[0];
+    const int fj = cj*ratio[1];
+
+    switch (idir) {
+        case 0:
+        {
+            const Real neg = crse(ci, cj-1, 0, nc);
+            const Real cen = crse(ci, cj  , 0, nc);
+            const Real pos = crse(ci, cj+1, 0, nc);
+
+            fine(fi, fj  , 0, nf) = Real(0.125)*(8*cen + neg - pos);
+            fine(fi, fj+1, 0, nf) = Real(0.125)*(8*cen + pos - neg);
+
+            break;
+        }
+        case 1:
+        {
+            const Real neg = crse(ci-1, cj, 0, nc);
+            const Real cen = crse(ci  , cj, 0, nc);
+            const Real pos = crse(ci+1, cj, 0, nc);
+
+            fine(fi  , fj, 0, nf) = Real(0.125)*(8*cen + neg - pos);
+            fine(fi+1, fj, 0, nf) = Real(0.125)*(8*cen + pos - neg);
+
+            break;
+        }
+    }
+}
+   
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_int (int ci, int cj, int /*ck*/, int nf,
+             GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
+             IntVect const& ratio,
+             GpuArray<Real, AMREX_SPACEDIM> const& cellSize) noexcept
+{
+    const int fi = ci*ratio[0];
+    const int fj = cj*ratio[1];
+
+    // References to fine exterior values.
+    const Real umm = fine[0](fi,   fj,   0, nf);
+    const Real ump = fine[0](fi,   fj+1, 0, nf);
+    const Real upm = fine[0](fi+2, fj,   0, nf);
+    const Real upp = fine[0](fi+2, fj+1, 0, nf);
+
+    const Real vmm = fine[1](fi,   fj,   0, nf);
+    const Real vmp = fine[1](fi+1, fj,   0, nf);
+    const Real vpm = fine[1](fi,   fj+2, 0, nf);
+    const Real vpp = fine[1](fi+1, fj+2, 0, nf);
+
+    const Real dxdy = cellSize[0]/cellSize[1];
+    const Real x_corr = Real(0.25)*dxdy * (vpp+vmm-vmp-vpm);
+    const Real y_corr = Real(0.25)/dxdy * (upp+umm-ump-upm);
+
+    // Calc fine faces on interior of coarse cells.
+    fine[0](fi+1,fj  ,0,nf) = Real(0.5)*(umm+upm) + x_corr;
+    fine[0](fi+1,fj+1,0,nf) = Real(0.5)*(ump+upp) + x_corr;
+    fine[1](fi,  fj+1,0,nf) = Real(0.5)*(vmm+vpm) + y_corr;
+    fine[1](fi+1,fj+1,0,nf) = Real(0.5)*(vmp+vpp) + y_corr;
+}
+
+
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 face_linear_interp_x (int i, int j, int /*k*/, int n, Array4<T> const& fine,
                       Array4<T const> const& crse, IntVect const& ratio) noexcept
 {
-    int ii = amrex::coarsen(i,ratio[0]);
-    int jj = amrex::coarsen(j,ratio[1]);
-    Real const w = static_cast<Real>(i-ii*ratio[0]) * (Real(1.)/ratio[0]);
-    fine(i,j,0,n) = (Real(1.)-w) * crse(ii,jj,0,n) + w * crse(ii+1,jj,0,n);
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    if (i-ii*ratio[0] == 0) {
+        fine(i,j,0,n) = crse(ii,jj,0,n);
+    } else {
+        Real const w = static_cast<Real>(i-ii*ratio[0]) * (Real(1.)/ratio[0]);
+        fine(i,j,0,n) = (Real(1.)-w) * crse(ii,jj,0,n) + w * crse(ii+1,jj,0,n);
+    }
 }
 
 template<typename T>
@@ -444,10 +526,14 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 face_linear_interp_y (int i, int j, int /*k*/, int n, Array4<T> const& fine,
                       Array4<T const> const& crse, IntVect const& ratio) noexcept
 {
-    int ii = amrex::coarsen(i,ratio[0]);
-    int jj = amrex::coarsen(j,ratio[1]);
-    Real const w = static_cast<Real>(j-jj*ratio[1]) * (Real(1.)/ratio[1]);
-    fine(i,j,0,n) = (Real(1.)-w) * crse(ii,jj,0,n) + w * crse(ii,jj+1,0,n);
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    if (j-jj*ratio[1] == 0) {
+        fine(i,j,0,n) = crse(ii,jj,0,n);
+    } else {
+        Real const w = static_cast<Real>(j-jj*ratio[1]) * (Real(1.)/ratio[1]);
+        fine(i,j,0,n) = (Real(1.)-w) * crse(ii,jj,0,n) + w * crse(ii,jj+1,0,n);
+    }
 }
 
 }

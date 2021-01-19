@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_FUSE_H_
 #define AMREX_GPU_FUSE_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Arena.H>
 #include <AMReX_Vector.H>
@@ -77,14 +78,68 @@ PutLambda (Lambda const& f, char* buf)
 }
 
 template <typename Lambda>
+AMREX_GPU_DEVICE
+auto GetLambda1DLauncherFnPtr (Lambda const& f, Lambda1DLauncher& launcher)
+    -> decltype(f(0))
+{
+    amrex::ignore_unused(f);
+    launcher = &LaunchLambda1D<Lambda>;
+}
+
+template <typename Lambda>
+AMREX_GPU_DEVICE
+auto GetLambda1DLauncherFnPtr (Lambda const& f, Lambda1DLauncher& launcher)
+    -> decltype(f(0,Gpu::Handler{}))
+{
+    amrex::ignore_unused(f);
+    launcher = nullptr;
+}
+
+template <typename Lambda>
+AMREX_GPU_DEVICE
+auto GetLambda3DLauncherFnPtr (Lambda const& f, Lambda3DLauncher& launcher)
+    -> decltype(f(0,0,0))
+{
+    amrex::ignore_unused(f);
+    launcher = &LaunchLambda3D<Lambda>;
+}
+
+template <typename Lambda>
+AMREX_GPU_DEVICE
+auto GetLambda3DLauncherFnPtr (Lambda const& f, Lambda3DLauncher& launcher)
+    -> decltype(f(0,0,0,Gpu::Handler{}))
+{
+    amrex::ignore_unused(f);
+    launcher = nullptr;
+}
+
+template <typename Lambda>
+AMREX_GPU_DEVICE
+auto GetLambda4DLauncherFnPtr (Lambda const& f, Lambda4DLauncher& launcher)
+    -> decltype(f(0,0,0,0))
+{
+    amrex::ignore_unused(f);
+    launcher = &LaunchLambda4D<Lambda>;
+}
+
+template <typename Lambda>
+AMREX_GPU_DEVICE
+auto GetLambda4DLauncherFnPtr (Lambda const& f, Lambda4DLauncher& launcher)
+    -> decltype(f(0,0,0,0,Gpu::Handler{}))
+{
+    amrex::ignore_unused(f);
+    launcher = nullptr;
+}
+
+template <typename Lambda>
 void
-PutLambda1DLauncher (FuseHelper* helper)
+PutLambda1DLauncher (FuseHelper* helper, Lambda const& f)
 {
     static Lambda1DLauncher fp = nullptr;
     if (fp == nullptr) {
         launch_global<<<1,1>>>([=] AMREX_GPU_DEVICE ()
         {
-            helper->m_fp.L1D = &LaunchLambda1D<Lambda>;
+            GetLambda1DLauncherFnPtr(f, helper->m_fp.L1D);
         });
         Gpu::synchronize();
         fp = helper->m_fp.L1D;
@@ -95,13 +150,13 @@ PutLambda1DLauncher (FuseHelper* helper)
 
 template <typename Lambda>
 void
-PutLambda3DLauncher (FuseHelper* helper)
+PutLambda3DLauncher (FuseHelper* helper, Lambda const& f)
 {
     static Lambda3DLauncher fp = nullptr;
     if (fp == nullptr) {
         launch_global<<<1,1>>>([=] AMREX_GPU_DEVICE ()
         {
-            helper->m_fp.L3D = &LaunchLambda3D<Lambda>;
+            GetLambda3DLauncherFnPtr(f, helper->m_fp.L3D);
         });
         Gpu::synchronize();
         fp = helper->m_fp.L3D;
@@ -112,13 +167,13 @@ PutLambda3DLauncher (FuseHelper* helper)
 
 template <typename Lambda>
 void
-PutLambda4DLauncher (FuseHelper* helper)
+PutLambda4DLauncher (FuseHelper* helper, Lambda const& f)
 {
     static Lambda4DLauncher fp = nullptr;
     if (fp == nullptr) {
         launch_global<<<1,1>>>([=] AMREX_GPU_DEVICE ()
         {
-            helper->m_fp.L4D = &LaunchLambda4D<Lambda>;
+            GetLambda4DLauncherFnPtr(f, helper->m_fp.L4D);
         });
         Gpu::synchronize();
         fp = helper->m_fp.L4D;
@@ -151,7 +206,7 @@ public:
         if (bx.isEmpty()) return;
         using Lambda = typename std::decay<F>::type;
         Register_doit<Lambda>(bx, 0, f);
-        PutLambda3DLauncher<Lambda>(m_helper_buf+(m_nlambdas-1));
+        PutLambda3DLauncher<Lambda>(m_helper_buf+(m_nlambdas-1), f);
     }
 
     template <typename F>
@@ -162,7 +217,7 @@ public:
         if (bx.isEmpty()) return;
         using Lambda = typename std::decay<F>::type;
         Register_doit<Lambda>(bx, ncomp, f);
-        PutLambda4DLauncher<Lambda>(m_helper_buf+(m_nlambdas-1));
+        PutLambda4DLauncher<Lambda>(m_helper_buf+(m_nlambdas-1), f);
     }
 
     template <typename T, typename F, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
@@ -175,7 +230,7 @@ public:
         if (N <= 0) return;
         using Lambda = typename std::decay<F>::type;
         Register_doit<Lambda>(Box(), N, f);
-        PutLambda1DLauncher<Lambda>(m_helper_buf+(m_nlambdas-1));
+        PutLambda1DLauncher<Lambda>(m_helper_buf+(m_nlambdas-1), f);
     }
 
     void Launch ();

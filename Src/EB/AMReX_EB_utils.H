@@ -1,5 +1,6 @@
 #ifndef AMREX_EB_UTILS_H_
 #define AMREX_EB_UTILS_H_
+#include <AMReX_Config.H>
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
@@ -45,7 +46,7 @@ namespace amrex {
             }
         }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for(MFIter mfi(mf); mfi.isValid(); ++ mfi) {

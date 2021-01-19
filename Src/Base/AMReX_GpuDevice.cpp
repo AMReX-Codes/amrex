@@ -87,7 +87,7 @@ namespace {
         BL_PROFILE("InitGraph");
 
         int streams = Gpu::Device::numGpuStreams();
-        cudaGraphExec_t graphExec;
+        cudaGraphExec_t graphExec{};
         for (int n=0; n<(graph_size); ++n)
         {
             Gpu::Device::startGraphRecording((n == 0), NULL, NULL, 0);
@@ -135,13 +135,6 @@ Device::Initialize ()
               amrex::Print() << "Initializing CUDA...\n";,
               amrex::Print() << "Initializing oneAPI...\n"; )
     }
-
-    // XL CUDA Fortran support needs to be initialized
-    // before any CUDA API calls.
-
-#if (defined(AMREX_USE_CUDA) && defined(__ibmxl__) && !defined(BL_NO_FORT))
-    __xlcuf_init();
-#endif
 
     // Count the number of GPU devices.
     int gpu_device_count = 0;
@@ -412,10 +405,8 @@ Device::initialize_gpu ()
 #elif defined(AMREX_USE_CUDA)
     AMREX_CUDA_SAFE_CALL(cudaGetDeviceProperties(&device_prop, device_id));
 
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 6, "Compute capability must be >= 6");
-
-    // Prefer L1 cache to shared memory (this has no effect on GPUs with a fixed L1 cache size).
-    AMREX_CUDA_SAFE_CALL(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 4 || (device_prop.major == 3 && device_prop.minor >= 5),
+                                     "Compute capability must be >= 3.5");
 
     if (sizeof(Real) == 8) {
         AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
@@ -679,7 +670,7 @@ Device::startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz
 cudaGraphExec_t
 Device::stopGraphRecording(bool last_iter)
 {
-    cudaGraphExec_t graphExec;
+    cudaGraphExec_t graphExec{};
 
     if (last_iter && inLaunchRegion() && inGraphRegion())
     {
@@ -813,7 +804,7 @@ void
 Device::n_threads_and_blocks (const Long N, dim3& numBlocks, dim3& numThreads) noexcept
 {
     numThreads = AMREX_GPU_MAX_THREADS;
-    numBlocks = std::max((N + AMREX_GPU_MAX_THREADS - 1) / AMREX_GPU_MAX_THREADS, 1L); // in case N = 0
+    numBlocks = std::max((N + AMREX_GPU_MAX_THREADS - 1) / AMREX_GPU_MAX_THREADS, static_cast<Long>(1)); // in case N = 0
 }
 
 void
@@ -941,100 +932,6 @@ Device::grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads) noexc
     numThreads.y = std::max(numThreadsMin.y, numThreads.y);
     numThreads.z = std::max(numThreadsMin.z, numThreads.z);
 
-#endif
-
-    // Allow the user to override these at runtime.
-
-    if (numBlocksOverride.x > 0)
-        numBlocks.x = numBlocksOverride.x;
-    if (numBlocksOverride.y > 0)
-        numBlocks.y = numBlocksOverride.y;
-    if (numBlocksOverride.z > 0)
-        numBlocks.z = numBlocksOverride.z;
-
-    if (numThreadsOverride.x > 0)
-        numThreads.x = numThreadsOverride.x;
-    if (numThreadsOverride.y > 0)
-        numThreads.y = numThreadsOverride.y;
-    if (numThreadsOverride.z > 0)
-        numThreads.z = numThreadsOverride.z;
-
-}
-
-void
-Device::box_threads_and_blocks (const Box& bx, dim3& numBlocks, dim3& numThreads) noexcept
-{
-    int num_SMs = device_prop.multiProcessorCount;
-
-    int SM_mult_factor = 32;
-
-    if (num_SMs > 0) {
-
-        // Default to only an x loop in most cases.
-        if (numThreadsMin.y == 1 && numThreadsMin.z == 1) {
-
-            numBlocks.x = SM_mult_factor * num_SMs;
-            numBlocks.y = 1;
-            numBlocks.z = 1;
-
-        } else {
-
-            numBlocks.x = 1;
-            numBlocks.y = SM_mult_factor;
-            numBlocks.z = num_SMs;
-
-        }
-
-    } else {
-
-        // Arbitrarily set this to a somewhat large number.
-
-        numBlocks.x = 1000;
-        numBlocks.y = 1;
-        numBlocks.z = 1;
-
-    }
-
-#if (AMREX_SPACEDIM == 1)
-
-    numThreads.x = std::min(device_prop.maxThreadsDim[0], AMREX_GPU_MAX_THREADS);
-    numThreads.x = std::max(numThreads.x, numThreadsMin.x);
-    numThreads.y = 1;
-    numThreads.z = 1;
-
-    // Limit the number of threads per block to be no larger in each dimension
-    // than the sizes of the box in the corresponding dimension.
-    numThreads.x = std::min(numThreads.x, static_cast<unsigned>(bx.length(0)));
-    
-#elif (AMREX_SPACEDIM == 2)
-
-    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_GPU_MAX_THREADS / numThreadsMin.y);
-    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_GPU_MAX_THREADS / numThreads.x);
-    numThreads.x = std::max(numThreadsMin.x, numThreads.x);
-    numThreads.y = std::max(numThreadsMin.y, numThreads.y);
-    numThreads.z = 1;
-
-    // Limit the number of threads per block to be no larger in each dimension
-    // than the sizes of the box in the corresponding dimension.
-    numThreads.x = std::min(numThreads.x, static_cast<unsigned>(bx.length(0)));
-    numThreads.y = std::min(numThreads.y, static_cast<unsigned>(bx.length(1)));
-    
-#else
-
-    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_GPU_MAX_THREADS / (numThreadsMin.y * numThreadsMin.z));
-    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_GPU_MAX_THREADS / (numThreads.x    * numThreadsMin.z));
-    numThreads.z = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[2]), AMREX_GPU_MAX_THREADS / (numThreads.x    * numThreads.y   ));
-
-    numThreads.x = std::max(numThreadsMin.x, numThreads.x);
-    numThreads.y = std::max(numThreadsMin.y, numThreads.y);
-    numThreads.z = std::max(numThreadsMin.z, numThreads.z);
-
-    // Limit the number of threads per block to be no larger in each dimension
-    // than the sizes of the box in the corresponding dimension.
-    numThreads.x = std::min(numThreads.x, static_cast<unsigned>(bx.length(0)));
-    numThreads.y = std::min(numThreads.y, static_cast<unsigned>(bx.length(1)));
-    numThreads.z = std::min(numThreads.z, static_cast<unsigned>(bx.length(2)));
-    
 #endif
 
     // Allow the user to override these at runtime.

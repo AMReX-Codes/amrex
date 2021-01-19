@@ -1,5 +1,6 @@
 #ifndef AMREX_MLNODETENSORLAP_K_H_
 #define AMREX_MLNODETENSORLAP_K_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLNodeTensorLaplacian.H>
 #include <AMReX_LO_BCTYPES.H>

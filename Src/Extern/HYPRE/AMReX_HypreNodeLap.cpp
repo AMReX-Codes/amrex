@@ -18,10 +18,12 @@ namespace amrex {
 HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& dmap_,
                             const Geometry& geom_, const FabFactory<FArrayBox>& factory_,
                             const iMultiFab& owner_mask_, const iMultiFab& dirichlet_mask_,
-                            MPI_Comm comm_, MLNodeLinOp const* linop_, int verbose_)
+                            MPI_Comm comm_, MLNodeLinOp const* linop_, int verbose_,
+                            const std::string& options_namespace_)
     : grids(grids_), dmap(dmap_), geom(geom_), factory(&factory_),
       owner_mask(&owner_mask_), dirichlet_mask(&dirichlet_mask_),
-      comm(comm_), linop(linop_), verbose(verbose_)
+      comm(comm_), linop(linop_), verbose(verbose_),
+      options_namespace(options_namespace_)
 {
     Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
 
@@ -57,7 +59,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     if (ebfactory)
     {
         const FabArray<EBCellFlagFab>& flags = ebfactory->getMultiEBCellFlagFab();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(+:nnodes_proc)
 #endif
         for (MFIter mfi(node_id); mfi.isValid(); ++mfi)
@@ -73,24 +75,24 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
             for         (int k = lo.z; k <= hi.z; ++k) {
                 for     (int j = lo.y; j <= hi.y; ++j) {
                     for (int i = lo.x; i <= hi.x; ++i) {
-                        if (!owner(i,j,k) or dirichlet(i,j,k))
+                        if (!owner(i,j,k) || dirichlet(i,j,k))
                         {
                             nid(i,j,k) = std::numeric_limits<Int>::lowest();
                         }
 #if (AMREX_SPACEDIM == 2)
-                        else if (flag(i-1,j-1,k).isCovered() and
-                                 flag(i  ,j-1,k).isCovered() and
-                                 flag(i-1,j  ,k).isCovered() and
+                        else if (flag(i-1,j-1,k).isCovered() &&
+                                 flag(i  ,j-1,k).isCovered() &&
+                                 flag(i-1,j  ,k).isCovered() &&
                                  flag(i  ,j  ,k).isCovered())
 #endif
 #if (AMREX_SPACEDIM == 3)
-                        else if (flag(i-1,j-1,k-1).isCovered() and
-                                 flag(i  ,j-1,k-1).isCovered() and
-                                 flag(i-1,j  ,k-1).isCovered() and
-                                 flag(i  ,j  ,k-1).isCovered() and
-                                 flag(i-1,j-1,k  ).isCovered() and
-                                 flag(i  ,j-1,k  ).isCovered() and
-                                 flag(i-1,j  ,k  ).isCovered() and
+                        else if (flag(i-1,j-1,k-1).isCovered() &&
+                                 flag(i  ,j-1,k-1).isCovered() &&
+                                 flag(i-1,j  ,k-1).isCovered() &&
+                                 flag(i  ,j  ,k-1).isCovered() &&
+                                 flag(i-1,j-1,k  ).isCovered() &&
+                                 flag(i  ,j-1,k  ).isCovered() &&
+                                 flag(i-1,j  ,k  ).isCovered() &&
                                  flag(i  ,j  ,k  ).isCovered())
 #endif
                         {
@@ -110,7 +112,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     else
 #endif
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(+:nnodes_proc)
 #endif
         for (MFIter mfi(node_id); mfi.isValid(); ++mfi)
@@ -125,7 +127,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
             for         (int k = lo.z; k <= hi.z; ++k) {
                 for     (int j = lo.y; j <= hi.y; ++j) {
                     for (int i = lo.x; i <= hi.x; ++i) {
-                        if (!owner(i,j,k) or dirichlet(i,j,k))
+                        if (!owner(i,j,k) || dirichlet(i,j,k))
                         {
                             nid(i,j,k) = std::numeric_limits<Int>::lowest();
                         }
@@ -167,7 +169,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(proc_end == proc_begin+nnodes_proc,
                                      "HypreNodeLap: how did this happen?");
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 
@@ -180,18 +182,13 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     Int ilower = proc_begin;
     Int iupper = proc_end-1;
 
-    //
-    HYPRE_IJMatrixCreate(comm, ilower, iupper, ilower, iupper, &A);
-    HYPRE_IJMatrixSetObjectType(A, HYPRE_PARCSR);
-    HYPRE_IJMatrixInitialize(A);
-    //
-    HYPRE_IJVectorCreate(comm, ilower, iupper, &b);
-    HYPRE_IJVectorSetObjectType(b, HYPRE_PARCSR);
-    //
-    HYPRE_IJVectorCreate(comm, ilower, iupper, &x);
-    HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
+    hypre_ij.reset(new HypreIJIface(comm, ilower, iupper, verbose));
+    hypre_ij->parse_inputs(options_namespace);
 
-    // A.SetValues() & A.assemble()
+    // Obtain non-owning references to the matrix, rhs, and solution data
+    A = hypre_ij->A();
+    b = hypre_ij->b();
+    x = hypre_ij->x();
 
     Vector<Int> ncols;
     Vector<Int> cols;
@@ -231,41 +228,22 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
             }
 #endif
 
+            if (hypre_ij->adjustSingularMatrix()
+                && linop->isBottomSingular()
+                && (rows[0] == 0)) {
+                const int num_cols = ncols[0];
+                for (int ic = 0; ic < num_cols; ++ic)
+                    mat[ic] = (cols[ic] == rows[0]) ? mat[ic] : 0.0;
+            }
+
             HYPRE_IJMatrixSetValues(A, nrows, ncols.data(), rows.data(), cols.data(), mat.data());
         }
     }
     HYPRE_IJMatrixAssemble(A);
-
-    // Create solver
-    HYPRE_BoomerAMGCreate(&solver);
-
-    HYPRE_BoomerAMGSetOldDefault(solver); // Falgout coarsening with modified classical interpolation
-//    HYPRE_BoomerAMGSetCoarsenType(solver, 6);
-//    HYPRE_BoomerAMGSetCycleType(solver, 1);
-    HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
-    HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
-    HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
-//    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6); // default is 0.25
-
-    int logging = (verbose >= 2) ? 1 : 0;
-    HYPRE_BoomerAMGSetLogging(solver, logging);
-
-    HYPRE_ParCSRMatrix par_A = NULL;
-    HYPRE_IJMatrixGetObject(A, (void**)  &par_A);
-    HYPRE_BoomerAMGSetup(solver, par_A, NULL, NULL);
 }
 
 HypreNodeLap::~HypreNodeLap ()
-{
-    HYPRE_IJMatrixDestroy(A);
-    A = NULL;
-    HYPRE_IJVectorDestroy(b);
-    b = NULL;
-    HYPRE_IJVectorDestroy(x);
-    x = NULL;
-    HYPRE_BoomerAMGDestroy(solver);
-    solver = NULL;
-}
+{}
 
 void
 HypreNodeLap::solve (MultiFab& soln, const MultiFab& rhs,
@@ -281,43 +259,7 @@ HypreNodeLap::solve (MultiFab& soln, const MultiFab& rhs,
     HYPRE_IJVectorAssemble(x);
     HYPRE_IJVectorAssemble(b);
 
-    HYPRE_ParCSRMatrix par_A = NULL;
-    HYPRE_ParVector par_b = NULL;
-    HYPRE_ParVector par_x = NULL;
-    HYPRE_IJMatrixGetObject(A, (void**)  &par_A);
-    HYPRE_IJVectorGetObject(b, (void **) &par_b);
-    HYPRE_IJVectorGetObject(x, (void **) &par_x);
-
-    HYPRE_BoomerAMGSetMinIter(solver, 1);
-    HYPRE_BoomerAMGSetMaxIter(solver, max_iter);
-    HYPRE_BoomerAMGSetTol(solver, rel_tol);
-    if (abs_tol > 0.0)
-    {
-        Real bnorm = hypre_ParVectorInnerProd(par_b, par_b);
-        bnorm = std::sqrt(bnorm);
-
-        const BoxArray& grd = rhs.boxArray();
-        Real volume = grd.numPts();
-        Real rel_tol_new = (bnorm > 0.0) ? (abs_tol / bnorm * std::sqrt(volume)) : rel_tol;
-
-        if (rel_tol_new > rel_tol) {
-            HYPRE_BoomerAMGSetTol(solver, rel_tol_new);
-        }
-    }
-
-    HYPRE_BoomerAMGSolve(solver, par_A, par_b, par_x);
-
-    if (verbose >= 2)
-    {
-        HYPRE_Int num_iterations;
-        Real res;
-        HYPRE_BoomerAMGGetNumIterations(solver, &num_iterations);
-        HYPRE_BoomerAMGGetFinalRelativeResidualNorm(solver, &res);
-
-        amrex::Print() <<"\n" <<  num_iterations
-                       << " Hypre IJ BoomerAMG Iterations, Relative Residual "
-                       << res << std::endl;
-    }
+    hypre_ij->solve(rel_tol, abs_tol, max_iter);
 
     getSolution(soln);
 }
@@ -330,7 +272,7 @@ HypreNodeLap::fill_node_id (LayoutData<Int>& offset)
         Int os = offset[mfi];
         const Box& bx = mfi.growntilebox();
         const auto& nid = node_id.array(mfi);
-        AMREX_FOR_3D(bx, i, j, k,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
         {
             if (nid(i,j,k) >= 0) {
                 nid(i,j,k) += os;
@@ -375,7 +317,13 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     }
                 }
             }
-            
+
+            if (hypre_ij->adjustSingularMatrix()
+                && linop->isBottomSingular()
+                && (rows[0] == 0)) {
+                bvec[0] = 0.0;
+            }
+
             HYPRE_IJVectorSetValues(b, nrows, rows.data(), bvec.data());
         }
     }

@@ -1,5 +1,6 @@
 #ifndef AMReX_extrapolater_2D_K_H_
 #define AMReX_extrapolater_2D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 

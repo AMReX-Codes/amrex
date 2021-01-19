@@ -1,5 +1,6 @@
 #ifndef AMREX_ErrorList_H_
 #define AMREX_ErrorList_H_
+#include <AMReX_Config.H>
 
 #include <string>
 #include <memory>
@@ -378,7 +379,7 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
 
   struct AMRErrorTagInfo
   {
-    int m_max_level = 100000;
+    int m_max_level = 1000;
     Real m_min_time = std::numeric_limits<Real>::lowest();
     Real m_max_time = std::numeric_limits<Real>::max();
     RealBox m_realbox;
@@ -425,7 +426,33 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
                  AMRErrorTag::TEST      test,
                  const std::string&     field,
                  const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
-      : m_value(value), m_test(test), m_field(field), m_info(info) {m_ngrow = SetNGrow();}
+      : m_test(test), m_field(field), m_info(info)
+      {
+          m_value.resize(info.m_max_level);
+          for (int i = 0; i < m_value.size(); ++i) {
+              m_value[i] = value;
+          }
+          m_ngrow = SetNGrow();
+      }
+
+    AMRErrorTag (amrex::Vector<amrex::Real>  value,
+                 AMRErrorTag::TEST           test,
+                 const std::string&          field,
+                 const AMRErrorTagInfo&      info = AMRErrorTagInfo()) noexcept
+      : m_test(test), m_field(field), m_info(info)
+      {
+          AMREX_ASSERT(value.size() > 0);
+          m_value.resize(info.m_max_level);
+          for (int i = 0; i < m_value.size() && i < value.size(); ++i) {
+              m_value[i] = value[i];
+          }
+          // If the user didn't provided a value for every level,
+          // assume the last value holds for all higher levels.
+          for (int i = value.size(); i < m_value.size(); ++i) {
+              m_value[i] = value[value.size()-1];
+          }
+          m_ngrow = SetNGrow();
+      }
 
     AMRErrorTag (AMRErrorTag::UserFunc* userfunc,
                  const std::string&     field,
@@ -447,7 +474,7 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
   protected:
     int SetNGrow () const noexcept;
 
-    Real m_value;    
+    Vector<Real> m_value;
     TEST m_test;
     UserFunc* m_userfunc = nullptr;
     std::string m_field;

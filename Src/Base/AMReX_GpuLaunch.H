@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_LAUNCH_H_
 #define AMREX_GPU_LAUNCH_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuKernelInfo.H>
@@ -99,8 +100,6 @@ namespace Gpu {
 
 // ************************************************
 
-    void getGridSize (FabArrayBase const& fa, int ngrow, LayoutData<GridSize>& gs, int& ntotblocks);
-
     AMREX_GPU_HOST_DEVICE
     inline
     Box getThreadBox (const Box& bx, Long offset) noexcept
@@ -129,8 +128,8 @@ namespace Gpu {
             Gpu::Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
         }
         ExecutionConfig (const Box& box) noexcept {
-            // If we change this, we must make sure it doesn't break say getGridSize, which
-            // assumes the decomposition is 1D.  FabArrayUtility Reduce* as well.
+            // If we change this, we must make sure it doesn't break FabArrayUtility Reduce*,
+            // which assumes the decomposition is 1D.
             Gpu::Device::n_threads_and_blocks( ((box.numPts()+AMREX_GPU_NCELLS_PER_THREAD-1)/AMREX_GPU_NCELLS_PER_THREAD), numBlocks, numThreads );
 #if 0
             Box b = amrex::surroundingNodes(box);
@@ -209,12 +208,15 @@ namespace Gpu {
 #if (AMREX_SPACEDIM == 1)
 #define AMREX_LAUNCH_DEVICE_LAMBDA_DIM(a1,a2,a3,b1,b2,b3,c1,c2,c3)      AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE     (a1,a2,a2)
 #define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(a1,a2,a3,b1,b2,b3,c1,c2,c3) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(a1,a2,a3)
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(fl,a1,a2,a3,b1,b2,b3,c1,c2,c3) AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_FLAG(fl,a1,a2,a3)
 #elif (AMREX_SPACEDIM == 2)
 #define AMREX_LAUNCH_DEVICE_LAMBDA_DIM(a1,a2,a3,b1,b2,b3,c1,c2,c3)      AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2     (a1,a2,a3,b1,b2,b3)
 #define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(a1,a2,a3,b1,b2,b3,c1,c2,c3) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(a1,a2,a3,b1,b2,b3)
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(fl,a1,a2,a3,b1,b2,b3,c1,c2,c3) AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2_FLAG(fl,a1,a2,a3,b1,b2,b3)
 #elif (AMREX_SPACEDIM == 3)
 #define AMREX_LAUNCH_DEVICE_LAMBDA_DIM(...)      AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3     (__VA_ARGS__)
 #define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(__VA_ARGS__)
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(...) AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3_FLAG(__VA_ARGS__)
 #endif
 
 #define AMREX_FOR_1D(...)      AMREX_GPU_DEVICE_FOR_1D(__VA_ARGS__)
@@ -341,6 +343,39 @@ namespace Gpu {
         block; \
     }
 
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_FLAG(where_to_run,bx1,tbx1,block1) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        AMREX_LAUNCH_DEVICE_LAMBDA(bx1,tbx1,block1); \
+    } else { \
+        auto tbx1 = bx1; \
+        block1; \
+    }
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2_FLAG(where_to_run,bx1,tbx1,block1,bx2,tbx2,block2) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        AMREX_LAUNCH_DEVICE_LAMBDA(bx1,tbx1,block1,bx2,tbx2,block2); \
+    } else { \
+        auto tbx1 = bx1; \
+        auto tbx2 = bx2; \
+        block1; \
+        block2; \
+    }
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3_FLAG(where_to_run,bx1,tbx1,block1,bx2,tbx2,block2,bx3,tbx3,block3) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        AMREX_LAUNCH_DEVICE_LAMBDA(bx1,tbx1,block1,bx2,tbx2,block2,bx3,tbx3,block3); \
+    } else { \
+        auto tbx1 = bx1; \
+        auto tbx2 = bx2; \
+        auto tbx3 = bx3; \
+        block1; \
+        block2; \
+        block3; \
+    }
+
 #else
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
@@ -387,6 +422,33 @@ namespace Gpu {
     { \
         auto tbox = box; \
         block; \
+    }
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_FLAG(where_to_run,bx1,tbx1,block1) \
+    amrex::ignore_unused(where_to_run); \
+    { \
+        auto tbx1 = bx1; \
+        block1; \
+    }
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2_FLAG(where_to_run,bx1,tbx1,block1,bx2,tbx2,block2) \
+    amrex::ignore_unused(where_to_run); \
+    { \
+        auto tbx1 = bx1; \
+        auto tbx2 = bx2; \
+        block1; \
+        block2; \
+    }
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3_FLAG(where_to_run,bx1,tbx1,block1,bx2,tbx2,block2,bx3,tbx3,block3) \
+    amrex::ignore_unused(where_to_run); \
+    { \
+        auto tbx1 = bx1; \
+        auto tbx2 = bx2; \
+        auto tbx3 = bx3; \
+        block1; \
+        block2; \
+        block3; \
     }
 
 #endif

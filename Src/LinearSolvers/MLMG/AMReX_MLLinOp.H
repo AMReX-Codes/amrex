@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_LINOP_H_
 #define AMREX_ML_LINOP_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_SPACE.H>
 #include <AMReX_MultiFab.H>
@@ -174,6 +175,9 @@ public:
     void setMaxOrder (int o) noexcept { maxorder = o; }
     int getMaxOrder () const noexcept { return maxorder; }
 
+    void setEnforceSingularSolvable (bool o) noexcept { enforceSingularSolvable = o; }
+    bool getEnforceSingularSolvable () const noexcept { return enforceSingularSolvable; }
+
     virtual BottomSolver getDefaultBottomSolver () const { return BottomSolver::bicgstab; }
     virtual int getNComp () const { return 1; }
     virtual int getNGrow () const { return 0; }
@@ -247,7 +251,10 @@ public:
         amrex::Abort("MLLinOp::makeHypre: How did we get here?");
         return {nullptr};
     }
-    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int /*bottom_verbose*/) const {
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
+        int /*bottom_verbose*/,
+        const std::string& /* options_namespace */) const
+    {
         amrex::Abort("MLLinOp::makeHypreNodeLap: How did we get here?");
         return {nullptr};
     }
@@ -272,6 +279,8 @@ protected:
     int verbose = 0;
 
     int maxorder = 3;
+
+    bool enforceSingularSolvable = true;
 
     int m_num_amr_levels;
     Vector<int> m_amr_ref_ratio;

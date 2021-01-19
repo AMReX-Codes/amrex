@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_LAUNCH_FUNCTS_G_H_
 #define AMREX_GPU_LAUNCH_FUNCTS_G_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
@@ -37,7 +38,7 @@ void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
             [=] (sycl::nd_item<1> item)
             AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
             {
-                f(Gpu::Handler{item,shared_data.get_pointer()});
+                f(Gpu::Handler{&item,shared_data.get_pointer()});
             });
         });
     } catch (sycl::exception const& ex) {
@@ -93,8 +94,58 @@ void launch (T const& n, L&& f) noexcept
     }
 }
 
+namespace detail {
+    template <typename F, typename N>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, N i, Gpu::Handler const&)
+        noexcept -> decltype(f(0))
+    {
+        f(i);
+    }
+
+    template <typename F, typename N>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, N i, Gpu::Handler const& handler)
+        noexcept -> decltype(f(0,Gpu::Handler{}))
+    {
+        f(i,handler);
+    }
+
+    template <typename F>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, int i, int j, int k, Gpu::Handler const&)
+        noexcept -> decltype(f(0,0,0))
+    {
+        f(i,j,k);
+    }
+
+    template <typename F>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, int i, int j, int k, Gpu::Handler const& handler)
+        noexcept -> decltype(f(0,0,0,Gpu::Handler{}))
+    {
+        f(i,j,k,handler);
+    }
+
+    template <typename F, typename T>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, int i, int j, int k, T ncomp, Gpu::Handler const&)
+        noexcept -> decltype(f(0,0,0,0))
+    {
+        for (T n = 0; n < ncomp; ++n) f(i,j,k,n);
+    }
+
+    template <typename F, typename T>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, int i, int j, int k, T ncomp, Gpu::Handler const& handler)
+        noexcept -> decltype(f(0,0,0,0,Gpu::Handler{}))
+    {
+        for (T n = 0; n < ncomp; ++n) f(i,j,k,n,handler);
+    }
+}
+
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-void ParallelFor (Gpu::KernelInfo const& /*info*/, T n, L&& f) noexcept
+void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 {
     if (amrex::isEmpty(n)) return;
     const auto ec = Gpu::ExecutionConfig(n);
@@ -104,25 +155,46 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, T n, L&& f) noexcept
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
     try {
-        q.submit([&] (sycl::handler& h) {
-            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
-                                             sycl::range<1>(nthreads_per_block)),
-            [=] (sycl::nd_item<1> item)
-            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
-            {
-                for (T i = item.get_global_id(0), stride = item.get_global_range(0);
-                     i < n; i += stride) {
-                    f(i);
-                }
+        if (info.hasReduction()) {
+            q.submit([&] (sycl::handler& h) {
+                sycl::accessor<unsigned long long, 1, sycl::access::mode::read_write,
+                               sycl::access::target::local>
+                    shared_data(sycl::range<1>(Gpu::Device::warp_size), h);
+                h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                                 sycl::range<1>(nthreads_per_block)),
+                [=] (sycl::nd_item<1> item)
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+                {
+                    for (T i = item.get_global_id(0), stride = item.get_global_range(0);
+                         i < n; i += stride) {
+                        int n_active_threads = amrex::min(n-i+(T)item.get_local_id(0),
+                                                          (T)item.get_local_range(0));
+                        detail::call_f(f, i, Gpu::Handler{&item, shared_data.get_pointer(),
+                                                          n_active_threads});
+                    }
+                });
             });
-        });
+        } else {
+            q.submit([&] (sycl::handler& h) {
+                h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                                 sycl::range<1>(nthreads_per_block)),
+                [=] (sycl::nd_item<1> item)
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+                {
+                    for (T i = item.get_global_id(0), stride = item.get_global_range(0);
+                         i < n; i += stride) {
+                        detail::call_f(f, i, Gpu::Handler{&item});
+                    }
+                });
+            });
+        }
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("ParallelFor: ")+ex.what()+"!!!!!");
     }
 }
 
 template <typename L>
-void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box, L&& f) noexcept
+void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
 {
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
@@ -135,31 +207,58 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box, L&& f) noexce
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
     try {
-        q.submit([&] (sycl::handler& h) {
-            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
-                                             sycl::range<1>(nthreads_per_block)),
-            [=] (sycl::nd_item<1> item)
-            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
-            {
-                for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
-                     icell < ncells; icell += stride) {
-                    int k =  icell /   (len.x*len.y);
-                    int j = (icell - k*(len.x*len.y)) /   len.x;
-                    int i = (icell - k*(len.x*len.y)) - j*len.x;
-                    i += lo.x;
-                    j += lo.y;
-                    k += lo.z;
-                    f(i,j,k);
-                }
+        if (info.hasReduction()) {
+            q.submit([&] (sycl::handler& h) {
+                sycl::accessor<unsigned long long, 1, sycl::access::mode::read_write,
+                               sycl::access::target::local>
+                    shared_data(sycl::range<1>(Gpu::Device::warp_size), h);
+                h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                                 sycl::range<1>(nthreads_per_block)),
+                [=] (sycl::nd_item<1> item)
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+                {
+                    for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+                         icell < ncells; icell += stride) {
+                        int k =  icell /   (len.x*len.y);
+                        int j = (icell - k*(len.x*len.y)) /   len.x;
+                        int i = (icell - k*(len.x*len.y)) - j*len.x;
+                        i += lo.x;
+                        j += lo.y;
+                        k += lo.z;
+                        int n_active_threads = amrex::min(ncells-i+(int)item.get_local_id(0),
+                                                          (int)item.get_local_range(0));
+                        detail::call_f(f, i, j, k, Gpu::Handler{&item, shared_data.get_pointer(),
+                                                                n_active_threads});
+                    }
+                });
             });
-        });
+        } else {
+            q.submit([&] (sycl::handler& h) {
+                h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                                 sycl::range<1>(nthreads_per_block)),
+                [=] (sycl::nd_item<1> item)
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+                {
+                    for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+                         icell < ncells; icell += stride) {
+                        int k =  icell /   (len.x*len.y);
+                        int j = (icell - k*(len.x*len.y)) /   len.x;
+                        int i = (icell - k*(len.x*len.y)) - j*len.x;
+                        i += lo.x;
+                        j += lo.y;
+                        k += lo.z;
+                        detail::call_f(f,i,j,k,Gpu::Handler{&item});
+                    }
+                });
+            });
+        }
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("ParallelFor: ")+ex.what()+"!!!!!");
     }
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box, T ncomp, L&& f) noexcept
+void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexcept
 {
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
@@ -172,26 +271,52 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box, T ncomp, L&& 
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
     try {
-        q.submit([&] (sycl::handler& h) {
-            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
-                                             sycl::range<1>(nthreads_per_block)),
-            [=] (sycl::nd_item<1> item)
-            AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
-            {
-                for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
-                     icell < ncells; icell += stride) {
-                    int k =  icell /   (len.x*len.y);
-                    int j = (icell - k*(len.x*len.y)) /   len.x;
-                    int i = (icell - k*(len.x*len.y)) - j*len.x;
-                    i += lo.x;
-                    j += lo.y;
-                    k += lo.z;
-                    for (T n = 0; n < ncomp; ++n) {
-                        f(i,j,k,n);
+        if (info.hasReduction()) {
+            q.submit([&] (sycl::handler& h) {
+                sycl::accessor<unsigned long long, 1, sycl::access::mode::read_write,
+                               sycl::access::target::local>
+                    shared_data(sycl::range<1>(Gpu::Device::warp_size), h);
+                h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                                 sycl::range<1>(nthreads_per_block)),
+                [=] (sycl::nd_item<1> item)
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+                {
+                    for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+                         icell < ncells; icell += stride) {
+                        int k =  icell /   (len.x*len.y);
+                        int j = (icell - k*(len.x*len.y)) /   len.x;
+                        int i = (icell - k*(len.x*len.y)) - j*len.x;
+                        i += lo.x;
+                        j += lo.y;
+                        k += lo.z;
+                        int n_active_threads = amrex::min(ncells-i+(int)item.get_local_id(0),
+                                                          (int)item.get_local_range(0));
+                        detail::call_f(f, i, j, k, ncomp,
+                                       Gpu::Handler{&item, shared_data.get_pointer(),
+                                                    n_active_threads});
                     }
-                }
+                });
             });
-        });
+        } else {
+            q.submit([&] (sycl::handler& h) {
+                h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                                 sycl::range<1>(nthreads_per_block)),
+                [=] (sycl::nd_item<1> item)
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+                {
+                    for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+                         icell < ncells; icell += stride) {
+                        int k =  icell /   (len.x*len.y);
+                        int j = (icell - k*(len.x*len.y)) /   len.x;
+                        int i = (icell - k*(len.x*len.y)) - j*len.x;
+                        i += lo.x;
+                        j += lo.y;
+                        k += lo.z;
+                        detail::call_f(f,i,j,k,ncomp,Gpu::Handler{&item});
+                    }
+                });
+            });
+        }
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("ParallelFor: ")+ex.what()+"!!!!!");
     }
@@ -324,11 +449,7 @@ void ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
 template <typename L1, typename L2>
 void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
-    // xxxxx DPCPP todo: launch separate kernel to reduce kernel size
-    ParallelFor(box1, std::forward<L1>(f1));
-    ParallelFor(box2, std::forward<L2>(f2));
-#if 0
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
@@ -375,7 +496,6 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box1, Box const& b
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("ParallelFor: ")+ex.what()+"!!!!!");
     }
-#endif
 }
 
 template <typename L1, typename L2, typename L3>
@@ -383,12 +503,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                   Box const& box1, Box const& box2, Box const& box3,
                   L1&& f1, L2&& f2, L3&& f3) noexcept
 {
-    // xxxxx DPCPP todo: launch separate kernel to reduce kernel size
-    ParallelFor(box1, std::forward<L1>(f1));
-    ParallelFor(box2, std::forward<L2>(f2));
-    ParallelFor(box3, std::forward<L3>(f3));
-#if 0
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2) and amrex::isEmpty(box3)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
@@ -447,7 +562,6 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("ParallelFor: ")+ex.what()+"!!!!!");
     }
-#endif
 }
 
 template <typename T1, typename T2, typename L1, typename L2,
@@ -457,11 +571,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                   Box const& box1, T1 ncomp1, L1&& f1,
                   Box const& box2, T2 ncomp2, L2&& f2) noexcept
 {
-    // xxxxx DPCPP todo: launch separate kernel to reduce kernel size
-    ParallelFor(box1, ncomp1, std::forward<L1>(f1));
-    ParallelFor(box2, ncomp2, std::forward<L2>(f2));
-#if 0
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
@@ -512,7 +622,6 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("ParallelFor: ")+ex.what()+"!!!!!");
     }
-#endif
 }
 
 template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
@@ -524,12 +633,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                   Box const& box2, T2 ncomp2, L2&& f2,
                   Box const& box3, T3 ncomp3, L3&& f3) noexcept
 {
-    // xxxxx DPCPP todo: launch separate kernel to reduce kernel size
-    ParallelFor(box1, ncomp1, std::forward<L1>(f1));
-    ParallelFor(box2, ncomp2, std::forward<L2>(f2));
-    ParallelFor(box3, ncomp3, std::forward<L3>(f3));
-#if 0
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2) and amrex::isEmpty(box3)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
@@ -594,7 +698,6 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("ParallelFor: ")+ex.what()+"!!!!!");
     }
-#endif
 }
 
 template <typename T, typename L1, typename L2>
@@ -706,7 +809,7 @@ void VecReduce (N n, T const& init_val, L1&& f1, L2&& f2) noexcept
                      i < n; i += stride) {
                     f1(i,&r);
                 }
-                f2(r,Gpu::Handler{item,shared_data.get_pointer()});
+                f2(r,Gpu::Handler{&item,shared_data.get_pointer()});
             });
         });
     } catch (sycl::exception const& ex) {
@@ -754,24 +857,75 @@ void launch (T const& n, L&& f) noexcept
     AMREX_GPU_ERROR_CHECK();
 }
 
+namespace detail {
+    template <typename F, typename N>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, N i, N /*nleft*/)
+        noexcept -> decltype(f(0))
+    {
+        f(i);
+    }
+
+    template <typename F, typename N>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, N i, N nleft)
+        noexcept -> decltype(f(0,Gpu::Handler{}))
+    {
+        f(i,Gpu::Handler(amrex::min(nleft,(N)blockDim.x)));
+    }
+
+    template <typename F>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, int i, int j, int k, int /*nleft*/)
+        noexcept -> decltype(f(0,0,0))
+    {
+        f(i,j,k);
+    }
+
+    template <typename F>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, int i, int j, int k, int nleft)
+        noexcept -> decltype(f(0,0,0,Gpu::Handler{}))
+    {
+        f(i,j,k,Gpu::Handler(amrex::min(nleft,(int)blockDim.x)));
+    }
+
+    template <typename F, typename T>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, int i, int j, int k, T ncomp, int /*nleft*/)
+        noexcept -> decltype(f(0,0,0,0))
+    {
+        for (T n = 0; n < ncomp; ++n) f(i,j,k,n);
+    }
+
+    template <typename F, typename T>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, int i, int j, int k, T ncomp, int nleft)
+        noexcept -> decltype(f(0,0,0,0,Gpu::Handler{}))
+    {
+        for (T n = 0; n < ncomp; ++n) f(i,j,k,n,Gpu::Handler(amrex::min(nleft,(int)blockDim.x)));
+    }
+}
+
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
 amrex::EnableIf_t<MaybeDeviceRunnable<L>::value>
 ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 {
     if (amrex::isEmpty(n)) return;
 #ifdef AMREX_USE_CUDA
-    if (Gpu::inFuseRegion() && info.isFusible() && n <= Gpu::getFuseSizeThreshold()) {
+    if (!info.hasReduction() && Gpu::inFuseRegion() && info.isFusible() && n <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(n, f);
     } else
 #endif
     {
         amrex::ignore_unused(info);
         const auto ec = Gpu::ExecutionConfig(n);
+
         AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             for (T i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  i < n; i += stride) {
-                f(i);
+                detail::call_f(f, i, (n-i+(T)threadIdx.x));
             }
         });
         AMREX_GPU_ERROR_CHECK();
@@ -785,7 +939,7 @@ ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
 #ifdef AMREX_USE_CUDA
-    if (Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
+    if (!info.hasReduction() && Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(box, f);
     } else
 #endif
@@ -794,17 +948,19 @@ ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
         const auto lo  = amrex::lbound(box);
         const auto len = amrex::length(box);
         const auto ec = Gpu::ExecutionConfig(ncells);
+
         AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
-                 icell < ncells; icell += stride) {
+                 icell < ncells; icell += stride)
+            {
                 int k =  icell /   (len.x*len.y);
                 int j = (icell - k*(len.x*len.y)) /   len.x;
                 int i = (icell - k*(len.x*len.y)) - j*len.x;
                 i += lo.x;
                 j += lo.y;
                 k += lo.z;
-                f(i,j,k);
+                detail::call_f(f, i, j, k, (ncells-icell+(int)threadIdx.x));
             }
         });
         AMREX_GPU_ERROR_CHECK();
@@ -818,7 +974,7 @@ ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexce
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
 #ifdef AMREX_USE_CUDA
-    if (Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
+    if (!info.hasReduction() && Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(box, ncomp, f);
     } else
 #endif
@@ -827,6 +983,7 @@ ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexce
         const auto lo  = amrex::lbound(box);
         const auto len = amrex::length(box);
         const auto ec = Gpu::ExecutionConfig(ncells);
+
         AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
@@ -837,9 +994,7 @@ ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexce
                 i += lo.x;
                 j += lo.y;
                 k += lo.z;
-                for (T n = 0; n < ncomp; ++n) {
-                    f(i,j,k,n);
-                }
+                detail::call_f(f, i, j, k, ncomp, (ncells-icell+(int)threadIdx.x));
             }
         });
         AMREX_GPU_ERROR_CHECK();
@@ -924,11 +1079,11 @@ ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
 }
 
 template <typename L1, typename L2>
-amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value>
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
 ParallelFor (Gpu::KernelInfo const& info,
              Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
@@ -974,12 +1129,12 @@ ParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <typename L1, typename L2, typename L3>
-amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value and MaybeDeviceRunnable<L3>::value>
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value>
 ParallelFor (Gpu::KernelInfo const& info,
              Box const& box1, Box const& box2, Box const& box3,
              L1&& f1, L2&& f2, L3&& f3) noexcept
 {
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2) and amrex::isEmpty(box3)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
@@ -1040,12 +1195,12 @@ ParallelFor (Gpu::KernelInfo const& info,
 template <typename T1, typename T2, typename L1, typename L2,
           typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
           typename M2=amrex::EnableIf_t<std::is_integral<T2>::value> >
-amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value>
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
 ParallelFor (Gpu::KernelInfo const& info,
              Box const& box1, T1 ncomp1, L1&& f1,
              Box const& box2, T2 ncomp2, L2&& f2) noexcept
 {
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
@@ -1098,13 +1253,13 @@ template <typename T1, typename T2, typename T3, typename L1, typename L2, typen
           typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
           typename M2=amrex::EnableIf_t<std::is_integral<T2>::value>,
           typename M3=amrex::EnableIf_t<std::is_integral<T3>::value> >
-amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value and MaybeDeviceRunnable<L3>::value>
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value>
 ParallelFor (Gpu::KernelInfo const& info,
              Box const& box1, T1 ncomp1, L1&& f1,
              Box const& box2, T2 ncomp2, L2&& f2,
              Box const& box3, T3 ncomp3, L3&& f3) noexcept
 {
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2) and amrex::isEmpty(box3)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) return;
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
@@ -1169,7 +1324,7 @@ ParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <typename T, typename L1, typename L2>
-amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value>
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
 FabReduce (Box const& box, T const& init_val, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(box)) return;
@@ -1198,7 +1353,7 @@ FabReduce (Box const& box, T const& init_val, L1&& f1, L2&& f2) noexcept
 
 template <typename N, typename T, typename L1, typename L2,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value>
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
 FabReduce (Box const& box, N ncomp, T const& init_val, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(box)) return;
@@ -1229,7 +1384,7 @@ FabReduce (Box const& box, N ncomp, T const& init_val, L1&& f1, L2&& f2) noexcep
 
 template <typename N, typename T, typename L1, typename L2,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value>
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
 VecReduce (N n, T const& init_val, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(n)) return;
@@ -1463,7 +1618,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&&
 }
 
 template <typename L1, typename L2>
-amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value and MaybeHostDeviceRunnable<L2>::value>
+amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value>
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
@@ -1476,7 +1631,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <typename L1, typename L2, typename L3>
-amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value and MaybeHostDeviceRunnable<L2>::value and MaybeHostDeviceRunnable<L3>::value>
+amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value>
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        Box const& box1, Box const& box2, Box const& box3,
                        L1&& f1, L2&& f2, L3&& f3) noexcept
@@ -1494,7 +1649,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
 template <typename T1, typename T2, typename L1, typename L2,
           typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
           typename M2=amrex::EnableIf_t<std::is_integral<T2>::value> >
-amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value and MaybeHostDeviceRunnable<L2>::value>
+amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value>
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        Box const& box1, T1 ncomp1, L1&& f1,
                        Box const& box2, T2 ncomp2, L2&& f2) noexcept
@@ -1511,7 +1666,7 @@ template <typename T1, typename T2, typename T3, typename L1, typename L2, typen
           typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
           typename M2=amrex::EnableIf_t<std::is_integral<T2>::value>,
           typename M3=amrex::EnableIf_t<std::is_integral<T3>::value> >
-amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value and MaybeHostDeviceRunnable<L2>::value and MaybeHostDeviceRunnable<L3>::value>
+amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value>
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        Box const& box1, T1 ncomp1, L1&& f1,
                        Box const& box2, T2 ncomp2, L2&& f2,

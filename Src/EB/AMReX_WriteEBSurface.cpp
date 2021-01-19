@@ -6,12 +6,14 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EB2.H>
 #include <AMReX_WriteEBSurface.H>
-#include <AMReX_WriteEB_F.H>
+#include <AMReX_EBToPVD.H>
 
 namespace amrex {
 
 void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, const Geometry & geom,
                      const EBFArrayBoxFactory * ebf) {
+
+    EBToPVD eb_to_pvd;
 
     const Real* dx     = geom.CellSize();
     const Real* problo = geom.ProbLo();
@@ -25,7 +27,7 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
 
         const Box & bx = mfi.validbox();
 
-        if (my_flag.getType(bx) == FabType::covered or
+        if (my_flag.getType(bx) == FabType::covered ||
             my_flag.getType(bx) == FabType::regular) continue;
 
         std::array<const MultiCutFab *, AMREX_SPACEDIM> areafrac;
@@ -34,21 +36,22 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
         areafrac  =   ebf->getAreaFrac();
         bndrycent = &(ebf->getBndryCent());
 
-        amrex_eb_to_polygon(problo, dx, BL_TO_FORTRAN_BOX(bx),
-                            BL_TO_FORTRAN_3D(my_flag),
-                            BL_TO_FORTRAN_3D((* bndrycent)[mfi]),
-                            BL_TO_FORTRAN_3D((* areafrac[0])[mfi]),
-                            BL_TO_FORTRAN_3D((* areafrac[1])[mfi]),
-                            BL_TO_FORTRAN_3D((* areafrac[2])[mfi]) );
+        eb_to_pvd.EBToPolygon(
+                problo, dx, 
+                bx, my_flag.const_array(), 
+                bndrycent->const_array(mfi), 
+                areafrac[0]->const_array(mfi), 
+                areafrac[1]->const_array(mfi), 
+                areafrac[2]->const_array(mfi));
     }
 
     int cpu = ParallelDescriptor::MyProc();
     int nProcs = ParallelDescriptor::NProcs();
 
-    amrex_write_eb_vtp(& cpu);
+    eb_to_pvd.WriteEBVTP(cpu);
 
     if(ParallelDescriptor::IOProcessor())
-        amrex_write_pvtp(& nProcs);
+        eb_to_pvd.WritePVTP(nProcs);
 
     for (MFIter mfi(mf_ba); mfi.isValid(); ++mfi) {
 
@@ -57,10 +60,10 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
 
         const Box & bx = mfi.validbox();
 
-        if (my_flag.getType(bx) == FabType::covered or
+        if (my_flag.getType(bx) == FabType::covered ||
             my_flag.getType(bx) == FabType::regular) continue;
 
-        amrex_eb_grid_coverage(& cpu, problo, dx, BL_TO_FORTRAN_BOX(bx), BL_TO_FORTRAN_3D(my_flag));
+        eb_to_pvd.EBGridCoverage(cpu, problo, dx, bx, my_flag.const_array());
     }
 }
 

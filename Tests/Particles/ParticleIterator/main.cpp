@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
 
   amrex::AllPrintToFile("outside") << "outside parallel region. \n";
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
   for (ParIter<1+BL_SPACEDIM> mfi(MyPC, 0); mfi.isValid(); ++mfi) {

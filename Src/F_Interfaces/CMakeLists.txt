@@ -4,7 +4,7 @@
 # These definitions are not present anywhere in AMReX source code
 # so I think they are meant to be used by the app code only
 #
-target_compile_definitions( amrex PUBLIC $<BUILD_INTERFACE:AMREX_USE_F_INTERFACES BL_USE_F_INTERFACES>)
+add_amrex_define(AMREX_USE_F_INTERFACES)
 
 #
 # BASE subdir
@@ -74,7 +74,7 @@ target_sources( amrex PRIVATE Octree/AMReX_octree_mod.F90  Octree/AMReX_octree_f
 #
 # LINEARSOLVERS subdir
 #
-if (ENABLE_LINEAR_SOLVERS)
+if (AMReX_LINEAR_SOLVERS)
    target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/LinearSolvers>)
 
    target_sources( amrex PRIVATE
@@ -93,7 +93,7 @@ endif ()
 #
 # PARTICLE subdir
 #
-if ( ENABLE_PARTICLES )
+if ( AMReX_PARTICLES )
    target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/Particle>)
    target_sources( amrex PRIVATE
       Particle/AMReX_particlecontainer_fi.cpp Particle/AMReX_particlecontainer_mod.F90 )

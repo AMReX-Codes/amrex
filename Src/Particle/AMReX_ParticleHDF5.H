@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLEHDF5_H
 #define AMREX_PARTICLEHDF5_H
+#include <AMReX_Config.H>
 
 #ifdef AMREX_USE_HDF5
 #include <hdf5.h>
@@ -274,6 +275,38 @@ static int ReadHDF5AttrLong(hid_t loc, const char *name, void *data)
     return 1;
 }
 
+static void SetHDF5fapl(hid_t fapl, MPI_Comm comm)
+{
+#ifdef BL_USE_MPI
+    H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
+
+    // Alignment and metadata block size
+    int alignment = 16 * 1024 * 1024;
+    int blocksize =  4 * 1024 * 1024;
+    H5Pset_alignment(fapl, alignment, alignment);
+    H5Pset_meta_block_size(fapl, blocksize);
+
+    // Collective metadata ops
+    H5Pset_coll_metadata_write(fapl, true);
+    H5Pset_all_coll_metadata_ops(fapl, true);
+
+    // Defer cache flush
+    H5AC_cache_config_t cache_config;
+    cache_config.version = H5AC__CURR_CACHE_CONFIG_VERSION;
+    H5Pget_mdc_config(fapl, &cache_config);
+    cache_config.set_initial_size = 1;
+    cache_config.initial_size = 16 * 1024 * 1024;
+    cache_config.evictions_enabled = 0;
+    cache_config.incr_mode = H5C_incr__off;
+    cache_config.flash_incr_mode = H5C_flash_incr__off;
+    cache_config.decr_mode = H5C_decr__off;
+    H5Pset_mdc_config (fapl, &cache_config);
+#else
+    H5Pset_fapl_sec2(fapl);
+#endif
+
+}
+
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
@@ -292,13 +325,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
-    const Real strttime = amrex::second();
+    const auto strttime = amrex::second();
 
     AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == NumIntComps() + NStructInt);
 
     std::string pdir = dir;
-    if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
+    if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') pdir += '/';
     if ( ! levelDirectoriesCreated) {
         if (ParallelDescriptor::IOProcessor()) {
             if ( ! amrex::UtilCreateDirectory(pdir, 0755))
@@ -396,11 +429,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
    
         // Have only one rank to create and write metadata (header)
         fapl = H5Pcreate (H5P_FILE_ACCESS);
-        H5Pset_fapl_mpio(fapl, MPI_COMM_SELF, MPI_INFO_NULL);
-        int alignment = 1 * 1024 * 1024;
-        H5Pset_alignment(fapl, alignment, alignment);
-        H5Pset_coll_metadata_write(fapl, true);
-        H5Pset_all_coll_metadata_ops(fapl, true);
+
+#ifdef BL_USE_MPI
+        SetHDF5fapl(fapl, MPI_COMM_SELF);
+#else
+        SetHDF5fapl(fapl, NULL);
+#endif
 
         // Create the HDF5 file
         fid = H5Fcreate(HDF5FileName.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
@@ -525,15 +559,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     ParallelDescriptor::Barrier();
 
     fapl = H5Pcreate (H5P_FILE_ACCESS);
-    H5Pset_fapl_mpio(fapl,  ParallelDescriptor::Communicator(), MPI_INFO_NULL);
-    int alignment = 1 * 1024 * 1024;
-    H5Pset_alignment(fapl, alignment, alignment);
-    H5Pset_coll_metadata_write(fapl, true);
-    H5Pset_all_coll_metadata_ops(fapl, true);
 
-    #ifdef AMREX_USE_HDF5_ASYNC
+#ifdef BL_USE_MPI
+    SetHDF5fapl(fapl, ParallelDescriptor::Communicator());
+#else
+    SetHDF5fapl(fapl, NULL);
+#endif
+
+#ifdef AMREX_USE_HDF5_ASYNC
+    // Only use HDF5 async I/O for data write
     H5Pset_vol_async(fapl);
-    #endif
+#endif
 
     // All process open the file
     fid = H5Fopen(HDF5FileName.c_str(), H5F_ACC_RDWR, fapl);
@@ -590,7 +626,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
    
     if (m_verbose > 1)
     {
-        Real stoptime = amrex::second() - strttime;
+        auto stoptime = amrex::second() - strttime;
         
         ParallelDescriptor::ReduceRealMax(stoptime, IOProcNumber);
         
@@ -610,7 +646,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     hid_t dxpl;
     dxpl = H5Pcreate(H5P_DATASET_XFER);
+    #ifdef BL_USE_MPI
     H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_INDEPENDENT);
+    #endif
+
     #ifdef AMREX_USE_HDF5_ASYNC
     H5Pset_dxpl_async(dxpl, true);
     #endif
@@ -668,6 +707,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         my_mfi_cnt++;
     }
 
+    #ifdef BL_USE_MPI
     // Collect the number of mf and total size of mf from each rank
     MPI_Allgather(&my_mfi_cnt, 1, ParallelDescriptor::Mpi_typemap<int>::type(), &(all_mfi_cnt[0]), 1, ParallelDescriptor::Mpi_typemap<int>::type(), ParallelDescriptor::Communicator());
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++) 
@@ -676,7 +716,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     // Create the int data 
     MPI_Allgather(&my_mfi_int_total_size, 1, ParallelDescriptor::Mpi_typemap<ULong>::type(), 
                   &(all_mfi_int_total_size[0]), 1, ParallelDescriptor::Mpi_typemap<ULong>::type(), ParallelDescriptor::Communicator());
-    
+    #else
+    all_mfi_cnt[0] = &my_mfi_cnt;
+    all_mfi_int_total_size[0] = my_mfi_int_total_size;
+    #endif
+ 
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++) 
         total_int_size += all_mfi_int_total_size[i]; 
 
@@ -692,8 +736,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
 
     // Create the real data 
+    #ifdef BL_USE_MPI
     MPI_Allgather(&my_mfi_real_total_size, 1, ParallelDescriptor::Mpi_typemap<ULong>::type(), 
                   &(all_mfi_real_total_size[0]), 1, ParallelDescriptor::Mpi_typemap<ULong>::type(), ParallelDescriptor::Communicator());
+    #else
+    all_mfi_real_total_size[0] = my_mfi_real_total_size;
+    #endif
 
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++) 
         total_real_size += all_mfi_real_total_size[i];
@@ -821,7 +869,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     H5Sselect_hyperslab (offset_space, H5S_SELECT_SET, &my_int_offset, NULL, &my_int_count, NULL);
 
     hid_t dxpl_col = H5Pcreate(H5P_DATASET_XFER);
+    #ifdef BL_USE_MPI
     H5Pset_dxpl_mpio(dxpl_col, H5FD_MPIO_COLLECTIVE);
+    #endif
     #ifdef AMREX_USE_HDF5_ASYNC
     H5Pset_dxpl_async(dxpl_col, true);
     #endif
@@ -855,7 +905,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     AMREX_ASSERT(!dir.empty());
     AMREX_ASSERT(!file.empty());
     
-    const Real strttime = amrex::second();
+    const auto strttime = amrex::second();
     
     /* int DATA_Digits_Read(5); */
     /* ParmParse pp("particles"); */
@@ -873,8 +923,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     int ret;
 
     fapl = H5Pcreate (H5P_FILE_ACCESS);
-    /* H5Pset_fapl_mpio(fapl, MPI_COMM_SELF, MPI_INFO_NULL); */
-    H5Pset_fapl_mpio(fapl, ParallelDescriptor::Communicator(), MPI_INFO_NULL);
+#ifdef BL_USE_MPI
+    SetHDF5fapl(fapl, ParallelDescriptor::Communicator());
+#else
+    SetHDF5fapl(fapl, NULL);
+#endif
+
+
     fid = H5Fopen(fullname.c_str(), H5F_ACC_RDONLY, fapl);
     if (fid < 0) {
         std::string msg("ParticleContainer::RestartHDF5(): unable to open file: ");
@@ -911,7 +966,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if (version.find("Version_One_Dot_Zero") != std::string::npos) {
         how = "double";
     }
-    else if (version.find("Version_One_Dot_One")  != std::string::npos or
+    else if (version.find("Version_One_Dot_One")  != std::string::npos ||
              version.find("Version_Two_Dot_Zero") != std::string::npos) {
         if (version.find("_single") != std::string::npos) {
             how = "single";
@@ -1063,7 +1118,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             particle_box_arrays[lev][i] = tmp;
         }
 
-        if (not particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) 
+        if (! particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) 
             dual_grid = true;
     }
     if (dual_grid) {
@@ -1202,7 +1257,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     AMREX_ASSERT(OK());
     
     if (m_verbose > 1) {
-        Real stoptime = amrex::second() - strttime;	
+        auto stoptime = amrex::second() - strttime;
         ParallelDescriptor::ReduceRealMax(stoptime, ParallelDescriptor::IOProcessorNumber());
         amrex::Print() << "ParticleContainer::Restart() time: " << stoptime << '\n';
     }

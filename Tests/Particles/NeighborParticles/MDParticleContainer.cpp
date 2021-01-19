@@ -6,31 +6,31 @@
 using namespace amrex;
 
 namespace
-{    
+{
     void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
     {
         int nx = nppc[0];
         int ny = nppc[1];
         int nz = nppc[2];
-        
+
         int ix_part = i_part/(ny * nz);
         int iy_part = (i_part % (ny * nz)) % ny;
         int iz_part = (i_part % (ny * nz)) / ny;
-        
+
         r[0] = (0.5+ix_part)/nx;
         r[1] = (0.5+iy_part)/ny;
         r[2] = (0.5+iz_part)/nz;
     }
-    
+
     void get_gaussian_random_momentum(Real* u, Real u_mean, Real u_std) {
         Real ux_th = amrex::RandomNormal(0.0, u_std);
         Real uy_th = amrex::RandomNormal(0.0, u_std);
         Real uz_th = amrex::RandomNormal(0.0, u_std);
-        
+
         u[0] = u_mean + ux_th;
         u[1] = u_mean + uy_th;
         u[2] = u_mean + uz_th;
-    }    
+    }
 }
 
 void
@@ -43,10 +43,10 @@ InitParticles(const IntVect& a_num_particles_per_cell,
 
     amrex::PrintToFile("neighbor_test") << "Generating particles... ";
 
-    const int lev = 0;   
+    const int lev = 0;
     const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).ProbLo();
-    
+
     const int num_ppc = AMREX_D_TERM( a_num_particles_per_cell[0],
                                      *a_num_particles_per_cell[1],
                                      *a_num_particles_per_cell[2]);
@@ -56,28 +56,30 @@ InitParticles(const IntVect& a_num_particles_per_cell,
         const Box& tile_box  = mfi.tilebox();
 
         Gpu::HostVector<ParticleType> host_particles;
-        
+        std::vector<Gpu::HostVector<ParticleReal> > host_real(NumRealComps());
+        std::vector<Gpu::HostVector<int> > host_int(NumIntComps());
+
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) {
             for (int i_part=0; i_part<num_ppc;i_part++) {
                 Real r[3];
                 Real v[3];
-                
+
                 get_position_unit_cell(r, a_num_particles_per_cell, i_part);
-                
+
                 get_gaussian_random_momentum(v, a_thermal_momentum_mean,
                                              a_thermal_momentum_std);
-                
+
                 Real x = plo[0] + (iv[0] + r[0])*dx[0];
                 Real y = plo[1] + (iv[1] + r[1])*dx[1];
                 Real z = plo[2] + (iv[2] + r[2])*dx[2];
-                
+
                 ParticleType p;
                 p.id()  = ParticleType::NextID();
-                p.cpu() = ParallelDescriptor::MyProc();                
+                p.cpu() = ParallelDescriptor::MyProc();
                 p.pos(0) = x;
                 p.pos(1) = y;
                 p.pos(2) = z;
-                
+
                 p.rdata(PIdx::vx) = v[0];
                 p.rdata(PIdx::vy) = v[1];
                 p.rdata(PIdx::vz) = v[2];
@@ -87,23 +89,44 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 p.rdata(PIdx::az) = 0.0;
 
                 p.idata(0) = mfi.index();
-                
+
                 host_particles.push_back(p);
+                for (int i = 0; i < NumRealComps(); ++i)
+                    host_real[i].push_back(mfi.index());
+                for (int i = 0; i < NumIntComps(); ++i)
+                    host_int[i].push_back(mfi.index());
             }
         }
-        
+
         auto& particles = GetParticles(lev);
-        auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
+        auto& particle_tile = DefineAndReturnParticleTile(lev, mfi);
         auto old_size = particle_tile.GetArrayOfStructs().size();
         auto new_size = old_size + host_particles.size();
         particle_tile.resize(new_size);
-        
+
         Gpu::copy(Gpu::hostToDevice, host_particles.begin(), host_particles.end(),
-                  particle_tile.GetArrayOfStructs().begin() + old_size);        
+                  particle_tile.GetArrayOfStructs().begin() + old_size);
+
+        auto& soa = particle_tile.GetStructOfArrays();
+        for (int i = 0; i < NumRealComps(); ++i)
+        {
+            Gpu::copy(Gpu::hostToDevice,
+                      host_real[i].begin(),
+                      host_real[i].end(),
+                      soa.GetRealData(i).begin() + old_size);
+        }
+
+        for (int i = 0; i < NumIntComps(); ++i)
+        {
+            Gpu::copy(Gpu::hostToDevice,
+                      host_int[i].begin(),
+                      host_int[i].end(),
+                      soa.GetIntData(i).begin() + old_size);
+        }
 
         Gpu::synchronize();
     }
-    
+
     amrex::PrintToFile("neighbor_test") << " Number of particles is " << this->TotalNumberOfParticles()<< " \n";
     amrex::PrintToFile("neighbor_test") << "done. \n";
 }
@@ -180,13 +203,13 @@ void MDParticleContainer::moveParticles(amrex::Real dx)
     {
         int gid = mfi.index();
         int tid = mfi.LocalTileIndex();
-        
+
         auto& ptile = plev[std::make_pair(gid, tid)];
         auto& aos   = ptile.GetArrayOfStructs();
         ParticleType* pstruct = &(aos[0]);
 
         const size_t np = aos.numParticles();
-    
+
         // now we move the particles
         AMREX_FOR_1D ( np, i,
         {
@@ -229,14 +252,19 @@ void MDParticleContainer::checkNeighborParticles()
 
         auto& ptile = plev[index];
         auto& aos   = ptile.GetArrayOfStructs();
+        auto& soa   = ptile.GetStructOfArrays();
         const size_t np = aos.numTotalParticles();
 
         ParticleType* pstruct = aos().dataPtr();
+        auto rdata = soa.GetRealData(0).dataPtr();
+        auto idata = soa.GetIntData(0).dataPtr();
 
         for (int i = 0; i < np; i++)
         {
             ParticleType& p1 = pstruct[i];
-            Gpu::Atomic::Add(&(p_num_per_grid[p1.idata(0)]),1);
+            Gpu::Atomic::AddNoRet(&(p_num_per_grid[p1.idata(0)]),1);
+            AMREX_ALWAYS_ASSERT(p1.idata(0) == (int) rdata[i]);
+            AMREX_ALWAYS_ASSERT(p1.idata(0) == idata[i]);
         }
 
         amrex::AllPrintToFile("neighbor_test") << "FOR GRID " << gid << "\n";;
@@ -274,9 +302,9 @@ void MDParticleContainer::checkNeighborParticles()
         {
             ParticleType& p1 = pstruct[i];
 
-            // Gpu::Atomic::Add(p_mine,1);
+            // Gpu::Atomic::AddNoRet(p_mine,1);
 
-            Gpu::Atomic::Add(&(p_num_per_grid[p1.idata(0)]),1);
+            Gpu::Atomic::AddNoRet(&(p_num_per_grid[p1.idata(0)]),1);
         });
 
         Gpu::Device::synchronize();
@@ -359,14 +387,14 @@ void MDParticleContainer::checkNeighborList()
 
 		if (r2 <= cutoff_sq)
 		{
-                   Gpu::Atomic::Add(&(p_full_count[i]),1);
+                   Gpu::Atomic::AddNoRet(&(p_full_count[i]),1);
                    full_nbors.push_back(p2.id());
 		}
             }
 
             for (const auto& p2 : nbor_data.getNeighbors(i))
             {               
-                Gpu::Atomic::Add(&(p_neighbor_count[i]),1);
+                Gpu::Atomic::AddNoRet(&(p_neighbor_count[i]),1);
                 nbor_nbors.push_back(p2.id());
             }
 
@@ -420,14 +448,19 @@ void MDParticleContainer::reset_test_id()
 
         auto& ptile = plev[index];
         auto& aos   = ptile.GetArrayOfStructs();
+        auto& soa   = ptile.GetStructOfArrays();
         const size_t np = aos.numTotalParticles();
 
         ParticleType* pstruct = aos().dataPtr();
+        auto rdata = soa.GetRealData(0).dataPtr();
+        auto idata = soa.GetIntData(0).dataPtr();
 
         AMREX_FOR_1D ( np, i,
         {
             ParticleType& p1 = pstruct[i];
             p1.idata(0) = gid;
+            rdata[i] = (Real) gid;
+            idata[i] = gid;
         });
     }
 }

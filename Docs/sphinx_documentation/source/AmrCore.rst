@@ -613,7 +613,7 @@ interface to a Fortran routine that tags cells (in this case, :fortran:`state_er
 
         const MultiFab& state = *phi_new[lev];
 
-    #ifdef _OPENMP
+    #ifdef AMREX_USE_OMP
     #pragma omp parallel
     #endif
         {

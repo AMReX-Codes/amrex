@@ -24,14 +24,34 @@ NodalProjector::NodalProjector ( const amrex::Vector<amrex::MultiFab*>&       a_
       m_sigma(a_sigma),
       m_S_nd(a_S_nd)
 {
-    int nlevs = a_vel.size();
+    define(a_lpinfo);
+}
+
+NodalProjector::NodalProjector ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
+                                 const amrex::Real                            a_const_sigma,
+                                 const amrex::Vector<amrex::Geometry>&        a_geom,
+                                 const LPInfo&                                a_lpinfo,
+                                 const amrex::Vector<amrex::MultiFab*>&       a_S_cc,
+                                 const amrex::Vector<const amrex::MultiFab*>& a_S_nd )
+    : m_geom(a_geom),
+      m_vel(a_vel),
+      m_S_cc(a_S_cc),
+      m_const_sigma(a_const_sigma),
+      m_S_nd(a_S_nd)
+{
+    define(a_lpinfo);
+}
+
+void NodalProjector::define (LPInfo const& a_lpinfo)
+{
+    int nlevs = m_vel.size();
 
     Vector<BoxArray> ba(nlevs);
     Vector<DistributionMapping> dm(nlevs);
     for (int lev = 0; lev < nlevs; ++lev)
     {
-        ba[lev] = a_vel[lev]->boxArray();
-        dm[lev] = a_vel[lev]->DistributionMap();
+        ba[lev] = m_vel[lev]->boxArray();
+        dm[lev] = m_vel[lev]->DistributionMap();
     }
 
     // Resize member data
@@ -41,22 +61,22 @@ NodalProjector::NodalProjector ( const amrex::Vector<amrex::MultiFab*>&       a_
 
 
 #ifdef AMREX_USE_EB
-    bool has_eb = a_vel[0] -> hasEBFabFactory();
+    bool has_eb = m_vel[0] -> hasEBFabFactory();
     if (has_eb)
     {
         m_ebfactory.resize(nlevs,nullptr);
         for (int lev = 0; lev < nlevs; ++lev )
         {
-            m_ebfactory[lev] = dynamic_cast<EBFArrayBoxFactory const*>(&(a_vel[lev]->Factory()));
+            m_ebfactory[lev] = dynamic_cast<EBFArrayBoxFactory const*>(&(m_vel[lev]->Factory()));
 
             // Cell-centered data
-            m_fluxes[lev].define(ba[lev], dm[lev], AMREX_SPACEDIM, 0, MFInfo(), a_vel[lev]->Factory());
+            m_fluxes[lev].define(ba[lev], dm[lev], AMREX_SPACEDIM, 0, MFInfo(), m_vel[lev]->Factory());
 
             // Node-centered data
             auto tmp = ba[lev];
             const auto& ba_nd = tmp.surroundingNodes();
-            m_phi[lev].define(ba_nd, dm[lev], 1, 1, MFInfo(), a_vel[lev]->Factory());
-            m_rhs[lev].define(ba_nd, dm[lev], 1, 0, MFInfo(), a_vel[lev]->Factory());
+            m_phi[lev].define(ba_nd, dm[lev], 1, 1, MFInfo(), m_vel[lev]->Factory());
+            m_rhs[lev].define(ba_nd, dm[lev], 1, 0, MFInfo(), m_vel[lev]->Factory());
         }
     }
     else
@@ -86,11 +106,19 @@ NodalProjector::NodalProjector ( const amrex::Vector<amrex::MultiFab*>&       a_
     //
     // Setup linear operator
     //
+    if (m_sigma.empty()) {
 #ifdef AMREX_USE_EB
-    m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo, m_ebfactory));
+        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo, m_ebfactory, m_const_sigma));
 #else
-    m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo));
+        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo, {}, m_const_sigma));
 #endif
+    } else {
+#ifdef AMREX_USE_EB
+        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo, m_ebfactory));
+#else
+        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo));
+#endif
+    }
 
     m_linop->setGaussSeidel(true);
     m_linop->setHarmonicAverage(false);
@@ -115,8 +143,8 @@ NodalProjector::setOptions ()
     int          bottom_verbose(0);
     int          maxiter(100);
     int          bottom_maxiter(100);
-    Real         bottom_rtol(1.0e-4);
-    Real         bottom_atol(-1.0);
+    Real         bottom_rtol(1.0e-4_rt);
+    Real         bottom_atol(-1.0_rt);
     std::string  bottom_solver("bicgcg");
 
     int          num_pre_smooth (2);
@@ -244,12 +272,6 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
     // Get fluxes -- fluxes = - sigma * grad(phi)
     m_mlmg -> getFluxes( GetVecOfPtrs(m_fluxes) );
 
-    // At this time, the fluxes are "correct" only on regions not covered by finer grids.
-    // We average the fluxes down so that they are "correct" everywhere in each level.
-    // This is necessary because the caller can access grad(phi) and may use it for
-    // computations involving the whole level.
-    averageDown(GetVecOfPtrs(m_fluxes));
-
     // Compute sync residual BEFORE performing projection
     computeSyncResidual();
 
@@ -268,25 +290,19 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
         //
         // vel = vel + fluxes = vel - ( sigma / alpha ) * grad(phi)
         //
-        // Since we already averaged-down the velocity field and -grad(phi),
-        // we perform the projection by simply adding the two of them.
-        // In virtue of the linearity of the operations involved, this is equivalent
-        // to averaging down the velocity only once AFTER summing -grad(phi)
-        //
         MultiFab::Add( *m_vel[lev], m_fluxes[lev], 0, 0, AMREX_SPACEDIM, 0);
 
         // set m_fluxes = grad(phi)
-        m_fluxes[lev].mult(-1.0);
-        for (int n = 0; n < AMREX_SPACEDIM; ++n)
-        {
-            if (m_has_alpha)
-            {
-                MultiFab::Multiply(m_fluxes[lev], *m_alpha[lev], 0, n, 1, 0);
-            }
-            MultiFab::Divide(m_fluxes[lev], *m_sigma[lev], 0, n, 1, 0);
-        }
-
+	m_linop->compGrad(lev,m_fluxes[lev],m_phi[lev]);
     }
+
+    //
+    // At this time, results are "correct" only on regions not covered by finer grids.
+    // We average them down so that they are "correct" everywhere in each level.
+    //
+    averageDown(GetVecOfPtrs(m_fluxes));
+    averageDown(m_vel);
+
 
     // Print diagnostics
     if ( (m_verbose > 0) && (!m_has_rhs))
@@ -422,7 +438,7 @@ NodalProjector::setCoarseBoundaryVelocityForSync ()
         }
         else
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*m_vel[0]); mfi.isValid(); ++mfi)
@@ -467,10 +483,6 @@ NodalProjector::setCoarseBoundaryVelocityForSync ()
 void
 NodalProjector::averageDown (const amrex::Vector<amrex::MultiFab*> a_var)
 {
-    // If not cartesian, we should average down by using volume weighting
-    // We check that coord sys is Cartesian only for coarsest level and assume
-    // geom for all other levels are Cartesian as well
-    AMREX_ALWAYS_ASSERT(m_geom[0].IsCartesian());
 
     int f_lev = a_var.size()-1;
     int c_lev = 0;
@@ -480,12 +492,20 @@ NodalProjector::averageDown (const amrex::Vector<amrex::MultiFab*> a_var)
         IntVect rr   = m_geom[lev+1].Domain().size() / m_geom[lev].Domain().size();
 
 #ifdef AMREX_USE_EB
-        EB_average_down(*a_var[lev+1], *a_var[lev], 0, a_var[lev]->nComp(), rr);
+        const auto ebf = dynamic_cast<EBFArrayBoxFactory const&>(a_var[lev+1]->Factory());
+
+        amrex::MultiFab volume(a_var[lev+1]->boxArray(),a_var[lev+1]->DistributionMap(),1,0);
+        m_geom[lev+1].GetVolume(volume);
+
+        EB_average_down(*a_var[lev+1], *a_var[lev], volume, ebf.getVolFrac(),
+                        0, a_var[lev]->nComp(), rr);
 #else
-        average_down(*a_var[lev+1], *a_var[lev], 0, a_var[lev]->nComp(), rr);
+        average_down(*a_var[lev+1], *a_var[lev], m_geom[lev+1], m_geom[lev],
+                     0, a_var[lev]->nComp(), rr);
 #endif
 
     }
+
 
 }
 

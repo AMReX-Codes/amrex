@@ -1,5 +1,6 @@
 #ifndef AMREX_MLNODETENSORLAP_3D_K_H_
 #define AMREX_MLNODETENSORLAP_3D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
@@ -68,7 +69,7 @@ void mlndtslap_interpadd (int i, int j, int k, Array4<Real> const& fine,
         bool i_is_odd = (ic*2 != i);
         bool j_is_odd = (jc*2 != j);
         bool k_is_odd = (kc*2 != k);
-        if (i_is_odd and j_is_odd and k_is_odd) {
+        if (i_is_odd && j_is_odd && k_is_odd) {
             // Fine node at center of cell
             fine(i,j,k) += (ts_interp_face_yz(crse,ic  ,jc  ,kc  ) +
                             ts_interp_face_yz(crse,ic+1,jc  ,kc  ) +
@@ -76,13 +77,13 @@ void mlndtslap_interpadd (int i, int j, int k, Array4<Real> const& fine,
                             ts_interp_face_xz(crse,ic  ,jc+1,kc  ) +
                             ts_interp_face_xy(crse,ic  ,jc  ,kc  ) +
                             ts_interp_face_xy(crse,ic  ,jc  ,kc+1)) * Real(1./6.);
-        } else if (j_is_odd and k_is_odd) {
+        } else if (j_is_odd && k_is_odd) {
             // Node on a Y-Z face
             fine(i,j,k) += ts_interp_face_yz(crse,ic,jc,kc);
-        } else if (i_is_odd and k_is_odd) {
+        } else if (i_is_odd && k_is_odd) {
             // Node on a Z-X face
             fine(i,j,k) += ts_interp_face_xz(crse,ic,jc,kc);
-        } else if (i_is_odd and j_is_odd) {
+        } else if (i_is_odd && j_is_odd) {
             // Node on a X-Y face
             fine(i,j,k) += ts_interp_face_xy(crse,ic,jc,kc);
         } else if (i_is_odd) {
@@ -114,34 +115,34 @@ void mlndtslap_adotx (Box const& b, Array4<Real> const& y, Array4<Real const> co
     const Real h22 = dxinv[2]*dxinv[2];
     amrex::LoopConcurrent(b, [=] (int i, int j, int k) noexcept
     {
-        y(i,j,k) = (1./36.) *
-            ( x(i-1,j-1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]+h02*s[2]+h12*s[4]))
-            + x(i+1,j-1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]-h02*s[2]+h12*s[4]))
-            + x(i-1,j+1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]+h02*s[2]-h12*s[4]))
-            + x(i+1,j+1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]-h02*s[2]-h12*s[4]))
-            + x(i-1,j-1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]-h02*s[2]-h12*s[4]))
-            + x(i+1,j-1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]+h02*s[2]-h12*s[4]))
-            + x(i-1,j+1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]-h02*s[2]+h12*s[4]))
-            + x(i+1,j+1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]+h02*s[2]+h12*s[4]))
-            + x(i-1,j-1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])+12.*h01*s[1])
-            + x(i+1,j-1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])-12.*h01*s[1])
-            + x(i-1,j+1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])-12.*h01*s[1])
-            + x(i+1,j+1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])+12.*h01*s[1])
-            + x(i-1,j  ,k-1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])+12.*h02*s[2])
-            + x(i+1,j  ,k-1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])-12.*h02*s[2])
-            + x(i-1,j  ,k+1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])-12.*h02*s[2])
-            + x(i+1,j  ,k+1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])+12.*h02*s[2])
-            + x(i  ,j-1,k-1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])+12.*h12*s[4])
-            + x(i  ,j+1,k-1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])-12.*h12*s[4])
-            + x(i  ,j-1,k+1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])-12.*h12*s[4])
-            + x(i  ,j+1,k+1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])+12.*h12*s[4])
-            + x(i-1,j  ,k  ) * (8.*(2.*h00*s[0]-h11*s[3]-h22*s[5]))
-            + x(i+1,j  ,k  ) * (8.*(2.*h00*s[0]-h11*s[3]-h22*s[5]))
-            + x(i  ,j-1,k  ) * (8.*(2.*h11*s[3]-h00*s[0]-h22*s[5]))
-            + x(i  ,j+1,k  ) * (8.*(2.*h11*s[3]-h00*s[0]-h22*s[5]))
-            + x(i  ,j  ,k-1) * (8.*(2.*h22*s[5]-h00*s[0]-h11*s[3]))
-            + x(i  ,j  ,k+1) * (8.*(2.*h22*s[5]-h00*s[0]-h11*s[3]))
-            + x(i  ,j  ,k  ) * (-32.)*(h00*s[0]+h11*s[3]+h22*s[5]) );
+        y(i,j,k) = Real(1./36.) *
+            ( x(i-1,j-1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]+h02*s[2]+h12*s[4]))
+            + x(i+1,j-1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]-h02*s[2]+h12*s[4]))
+            + x(i-1,j+1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]+h02*s[2]-h12*s[4]))
+            + x(i+1,j+1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]-h02*s[2]-h12*s[4]))
+            + x(i-1,j-1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]-h02*s[2]-h12*s[4]))
+            + x(i+1,j-1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]+h02*s[2]-h12*s[4]))
+            + x(i-1,j+1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]-h02*s[2]+h12*s[4]))
+            + x(i+1,j+1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]+h02*s[2]+h12*s[4]))
+            + x(i-1,j-1,k  ) * (Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])+Real(12.)*h01*s[1])
+            + x(i+1,j-1,k  ) * (Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])-Real(12.)*h01*s[1])
+            + x(i-1,j+1,k  ) * (Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])-Real(12.)*h01*s[1])
+            + x(i+1,j+1,k  ) * (Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])+Real(12.)*h01*s[1])
+            + x(i-1,j  ,k-1) * (Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])+Real(12.)*h02*s[2])
+            + x(i+1,j  ,k-1) * (Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])-Real(12.)*h02*s[2])
+            + x(i-1,j  ,k+1) * (Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])-Real(12.)*h02*s[2])
+            + x(i+1,j  ,k+1) * (Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])+Real(12.)*h02*s[2])
+            + x(i  ,j-1,k-1) * (Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])+Real(12.)*h12*s[4])
+            + x(i  ,j+1,k-1) * (Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])-Real(12.)*h12*s[4])
+            + x(i  ,j-1,k+1) * (Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])-Real(12.)*h12*s[4])
+            + x(i  ,j+1,k+1) * (Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])+Real(12.)*h12*s[4])
+            + x(i-1,j  ,k  ) * (Real(8.)*(Real(2.)*h00*s[0]-h11*s[3]-h22*s[5]))
+            + x(i+1,j  ,k  ) * (Real(8.)*(Real(2.)*h00*s[0]-h11*s[3]-h22*s[5]))
+            + x(i  ,j-1,k  ) * (Real(8.)*(Real(2.)*h11*s[3]-h00*s[0]-h22*s[5]))
+            + x(i  ,j+1,k  ) * (Real(8.)*(Real(2.)*h11*s[3]-h00*s[0]-h22*s[5]))
+            + x(i  ,j  ,k-1) * (Real(8.)*(Real(2.)*h22*s[5]-h00*s[0]-h11*s[3]))
+            + x(i  ,j  ,k+1) * (Real(8.)*(Real(2.)*h22*s[5]-h00*s[0]-h11*s[3]))
+            + x(i  ,j  ,k  ) * Real(-32.)*(h00*s[0]+h11*s[3]+h22*s[5]) );
     });
 }
 
@@ -162,34 +163,34 @@ void mlndtslap_gauss_seidel (Box const& b, Array4<Real> const& sol,
         if (msk(i,j,k)) {
             sol(i,j,k) = 0.0;
         } else {
-            Real s0 = (1./36.) * (-32.)*(h00*s[0]+h11*s[3]+h22*s[5]);
-            Real Ax = (1./36.) *
-                ( sol(i-1,j-1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]+h02*s[2]+h12*s[4]))
-                + sol(i+1,j-1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]-h02*s[2]+h12*s[4]))
-                + sol(i-1,j+1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]+h02*s[2]-h12*s[4]))
-                + sol(i+1,j+1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]-h02*s[2]-h12*s[4]))
-                + sol(i-1,j-1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]-h02*s[2]-h12*s[4]))
-                + sol(i+1,j-1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]+h02*s[2]-h12*s[4]))
-                + sol(i-1,j+1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]-h02*s[2]+h12*s[4]))
-                + sol(i+1,j+1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]+h02*s[2]+h12*s[4]))
-                + sol(i-1,j-1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])+12.*h01*s[1])
-                + sol(i+1,j-1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])-12.*h01*s[1])
-                + sol(i-1,j+1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])-12.*h01*s[1])
-                + sol(i+1,j+1,k  ) * (4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])+12.*h01*s[1])
-                + sol(i-1,j  ,k-1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])+12.*h02*s[2])
-                + sol(i+1,j  ,k-1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])-12.*h02*s[2])
-                + sol(i-1,j  ,k+1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])-12.*h02*s[2])
-                + sol(i+1,j  ,k+1) * (4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])+12.*h02*s[2])
-                + sol(i  ,j-1,k-1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])+12.*h12*s[4])
-                + sol(i  ,j+1,k-1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])-12.*h12*s[4])
-                + sol(i  ,j-1,k+1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])-12.*h12*s[4])
-                + sol(i  ,j+1,k+1) * (4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])+12.*h12*s[4])
-                + sol(i-1,j  ,k  ) * (8.*(2.*h00*s[0]-h11*s[3]-h22*s[5]))
-                + sol(i+1,j  ,k  ) * (8.*(2.*h00*s[0]-h11*s[3]-h22*s[5]))
-                + sol(i  ,j-1,k  ) * (8.*(2.*h11*s[3]-h00*s[0]-h22*s[5]))
-                + sol(i  ,j+1,k  ) * (8.*(2.*h11*s[3]-h00*s[0]-h22*s[5]))
-                + sol(i  ,j  ,k-1) * (8.*(2.*h22*s[5]-h00*s[0]-h11*s[3]))
-                + sol(i  ,j  ,k+1) * (8.*(2.*h22*s[5]-h00*s[0]-h11*s[3])) )
+            Real s0 = Real(1./36.) * Real(-32.)*(h00*s[0]+h11*s[3]+h22*s[5]);
+            Real Ax = Real(1./36.) *
+                ( sol(i-1,j-1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]+h02*s[2]+h12*s[4]))
+                + sol(i+1,j-1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]-h02*s[2]+h12*s[4]))
+                + sol(i-1,j+1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]+h02*s[2]-h12*s[4]))
+                + sol(i+1,j+1,k-1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]-h02*s[2]-h12*s[4]))
+                + sol(i-1,j-1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]-h02*s[2]-h12*s[4]))
+                + sol(i+1,j-1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]+h02*s[2]-h12*s[4]))
+                + sol(i-1,j+1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]-h02*s[2]+h12*s[4]))
+                + sol(i+1,j+1,k+1) * ((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]+h02*s[2]+h12*s[4]))
+                + sol(i-1,j-1,k  ) * (Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])+Real(12.)*h01*s[1])
+                + sol(i+1,j-1,k  ) * (Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])-Real(12.)*h01*s[1])
+                + sol(i-1,j+1,k  ) * (Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])-Real(12.)*h01*s[1])
+                + sol(i+1,j+1,k  ) * (Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])+Real(12.)*h01*s[1])
+                + sol(i-1,j  ,k-1) * (Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])+Real(12.)*h02*s[2])
+                + sol(i+1,j  ,k-1) * (Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])-Real(12.)*h02*s[2])
+                + sol(i-1,j  ,k+1) * (Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])-Real(12.)*h02*s[2])
+                + sol(i+1,j  ,k+1) * (Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])+Real(12.)*h02*s[2])
+                + sol(i  ,j-1,k-1) * (Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])+Real(12.)*h12*s[4])
+                + sol(i  ,j+1,k-1) * (Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])-Real(12.)*h12*s[4])
+                + sol(i  ,j-1,k+1) * (Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])-Real(12.)*h12*s[4])
+                + sol(i  ,j+1,k+1) * (Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])+Real(12.)*h12*s[4])
+                + sol(i-1,j  ,k  ) * (Real(8.)*(Real(2.)*h00*s[0]-h11*s[3]-h22*s[5]))
+                + sol(i+1,j  ,k  ) * (Real(8.)*(Real(2.)*h00*s[0]-h11*s[3]-h22*s[5]))
+                + sol(i  ,j-1,k  ) * (Real(8.)*(Real(2.)*h11*s[3]-h00*s[0]-h22*s[5]))
+                + sol(i  ,j+1,k  ) * (Real(8.)*(Real(2.)*h11*s[3]-h00*s[0]-h22*s[5]))
+                + sol(i  ,j  ,k-1) * (Real(8.)*(Real(2.)*h22*s[5]-h00*s[0]-h11*s[3]))
+                + sol(i  ,j  ,k+1) * (Real(8.)*(Real(2.)*h22*s[5]-h00*s[0]-h11*s[3])) )
                 + sol(i  ,j  ,k  ) * s0;
             sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
         }
@@ -207,7 +208,7 @@ void mlndtslap_normalize (Box const& b, Array4<Real> const& phi,
     amrex::LoopConcurrent(b, [=] (int i, int j, int k) noexcept
     {
         if (!msk(i,j,k)) {
-            Real s0 = (1./36.) * (-32.)*(h00*s[0]+h11*s[3]+h22*s[5]);
+            Real s0 = Real(1./36.) * Real(-32.)*(h00*s[0]+h11*s[3]+h22*s[5]);
             phi(i,j,k) /= s0;
         }
     });
@@ -220,7 +221,7 @@ void mlndtslap_fill_ijmatrix (Box const& ndbx, Array4<HypreNodeLap::Int const> c
                               Array4<int const> const& owner,
                               Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
                               Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat,
-                              Array4<int const> const& msk, GpuArray<Real,6> const& s,
+                              Array4<int const> const& /*msk*/, GpuArray<Real,6> const& s,
                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     const Real h00 = dxinv[0]*dxinv[0];
@@ -235,191 +236,191 @@ void mlndtslap_fill_ijmatrix (Box const& ndbx, Array4<HypreNodeLap::Int const> c
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
     for (int i = lo.x; i <= hi.x; ++i) {
-        if (nid(i,j,k) >= 0 and owner(i,j,k))
+        if (nid(i,j,k) >= 0 && owner(i,j,k))
         {
             rows.push_back(nid(i,j,k));
             cols.push_back(nid(i,j,k));
-            mat.push_back((1./36.) * (-32.)*(h00*s[0]+h11*s[3]+h22*s[5]));
+            mat.push_back(Real(1./36.) * Real(-32.)*(h00*s[0]+h11*s[3]+h22*s[5]));
             HypreNodeLap::Int nc = 1;
 
             if (               nid(i-1,j-1,k-1) >= 0) {
                 cols.push_back(nid(i-1,j-1,k-1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]+h02*s[2]+h12*s[4]));
+                Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]+h02*s[2]+h12*s[4]));
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i+1,j-1,k-1) >= 0) {
                 cols.push_back(nid(i+1,j-1,k-1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]-h02*s[2]+h12*s[4]));
+                Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]-h02*s[2]+h12*s[4]));
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i-1,j+1,k-1) >= 0) {
                 cols.push_back(nid(i-1,j+1,k-1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]+h02*s[2]-h12*s[4]));
+                Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]+h02*s[2]-h12*s[4]));
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i+1,j+1,k-1) >= 0) {
                 cols.push_back(nid(i+1,j+1,k-1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]-h02*s[2]-h12*s[4]));
+                Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]-h02*s[2]-h12*s[4]));
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i-1,j-1,k+1) >= 0) {
                 cols.push_back(nid(i-1,j-1,k+1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]-h02*s[2]-h12*s[4]));
+                Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]-h02*s[2]-h12*s[4]));
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i+1,j-1,k+1) >= 0) {
                 cols.push_back(nid(i+1,j-1,k+1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]+h02*s[2]-h12*s[4]));
+                Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]+h02*s[2]-h12*s[4]));
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i-1,j+1,k+1) >= 0) {
                 cols.push_back(nid(i-1,j+1,k+1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*(-h01*s[1]-h02*s[2]+h12*s[4]));
+                Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]-h02*s[2]+h12*s[4]));
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i+1,j+1,k+1) >= 0) {
                 cols.push_back(nid(i+1,j+1,k+1));
-                Real t = (1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+3.*( h01*s[1]+h02*s[2]+h12*s[4]));
+                Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]+h02*s[2]+h12*s[4]));
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i-1,j-1,k  ) >= 0) {
                 cols.push_back(nid(i-1,j-1,k  ));
-                Real t = (1./36.)*(4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])+12.*h01*s[1]);
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])+Real(12.)*h01*s[1]);
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i+1,j-1,k  ) >= 0) {
                 cols.push_back(nid(i+1,j-1,k  ));
-                Real t = (1./36.)*(4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])-12.*h01*s[1]);
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])-Real(12.)*h01*s[1]);
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i-1,j+1,k  ) >= 0) {
                 cols.push_back(nid(i-1,j+1,k  ));
-                Real t = (1./36.)*(4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])-12.*h01*s[1]);
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])-Real(12.)*h01*s[1]);
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i+1,j+1,k  ) >= 0) {
                 cols.push_back(nid(i+1,j+1,k  ));
-                Real t = (1./36.)*(4.*(h00*s[0]+h11*s[3]-0.5*h22*s[5])+12.*h01*s[1]);
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])+Real(12.)*h01*s[1]);
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i-1,j  ,k-1) >= 0) {
                 cols.push_back(nid(i-1,j  ,k-1));
-                Real t = (1./36.)*(4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])+12.*h02*s[2]);
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])+Real(12.)*h02*s[2]);
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i+1,j  ,k-1) >= 0) {
                 cols.push_back(nid(i+1,j  ,k-1));
-                Real t = (1./36.)*(4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])-12.*h02*s[2]);
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])-Real(12.)*h02*s[2]);
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i-1,j  ,k+1) >= 0) {
                 cols.push_back(nid(i-1,j  ,k+1));
-                Real t = (1./36.)*(4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])-12.*h02*s[2]);
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])-Real(12.)*h02*s[2]);
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i+1,j  ,k+1) >= 0) {
                 cols.push_back(nid(i+1,j  ,k+1));
-                Real t = (1./36.)*(4.*(h00*s[0]+h22*s[5]-0.5*h11*s[3])+12.*h02*s[2]);
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])+Real(12.)*h02*s[2]);
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i  ,j-1,k-1) >= 0) {
                 cols.push_back(nid(i  ,j-1,k-1));
-                Real t = (1./36.)*(4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])+12.*h12*s[4]);
+                Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])+Real(12.)*h12*s[4]);
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i  ,j+1,k-1) >= 0) {
                 cols.push_back(nid(i  ,j+1,k-1));
-                Real t = (1./36.)*(4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])-12.*h12*s[4]);
+                Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])-Real(12.)*h12*s[4]);
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i  ,j-1,k+1) >= 0) {
                 cols.push_back(nid(i  ,j-1,k+1));
-                Real t = (1./36.)*(4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])-12.*h12*s[4]);
+                Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])-Real(12.)*h12*s[4]);
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i  ,j+1,k+1) >= 0) {
                 cols.push_back(nid(i  ,j+1,k+1));
-                Real t = (1./36.)*(4.*(h11*s[3]+h22*s[5]-0.5*h00*s[0])+12.*h12*s[4]);
+                Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])+Real(12.)*h12*s[4]);
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i-1,j  ,k  ) >= 0) {
                 cols.push_back(nid(i-1,j  ,k  ));
-                Real t = (1./36.)*(8.*(2.*h00*s[0]-h11*s[3]-h22*s[5]));
+                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h00*s[0]-h11*s[3]-h22*s[5]));
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i+1,j  ,k  ) >= 0) {
                 cols.push_back(nid(i+1,j  ,k  ));
-                Real t = (1./36.)*(8.*(2.*h00*s[0]-h11*s[3]-h22*s[5]));
+                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h00*s[0]-h11*s[3]-h22*s[5]));
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i  ,j-1,k  ) >= 0) {
                 cols.push_back(nid(i  ,j-1,k  ));
-                Real t = (1./36.)*(8.*(2.*h11*s[3]-h00*s[0]-h22*s[5]));
+                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h11*s[3]-h00*s[0]-h22*s[5]));
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i  ,j+1,k  ) >= 0) {
                 cols.push_back(nid(i  ,j+1,k  ));
-                Real t = (1./36.)*(8.*(2.*h11*s[3]-h00*s[0]-h22*s[5]));
+                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h11*s[3]-h00*s[0]-h22*s[5]));
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i  ,j  ,k-1) >= 0) {
                 cols.push_back(nid(i  ,j  ,k-1));
-                Real t = (1./36.)*(8.*(2.*h22*s[5]-h00*s[0]-h11*s[3]));
+                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h22*s[5]-h00*s[0]-h11*s[3]));
                 mat.push_back(t);
                 ++nc;
             }
 
             if (               nid(i  ,j  ,k+1) >= 0) {
                 cols.push_back(nid(i  ,j  ,k+1));
-                Real t = (1./36.)*(8.*(2.*h22*s[5]-h00*s[0]-h11*s[3]));
+                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h22*s[5]-h00*s[0]-h11*s[3]));
                 mat.push_back(t);
                 ++nc;
             }

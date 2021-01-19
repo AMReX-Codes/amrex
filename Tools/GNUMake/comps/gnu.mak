@@ -139,8 +139,10 @@ endif
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
   ifeq ($(shell expr $(gcc_major_version) \< 5),1)
-    ifeq ($(CXXSTD),c++14)
-      $(error C++14 support requires GCC 5 or newer.)
+    ifneq ($(NO_CONFIG_CHECKING),TRUE)
+      ifeq ($(CXXSTD),c++14)
+        $(error C++14 support requires GCC 5 or newer.)
+      endif
     endif
   endif
   CXXFLAGS += -std=$(CXXSTD)

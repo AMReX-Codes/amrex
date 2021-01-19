@@ -1,6 +1,7 @@
 
 #ifndef BL_IMULTIFAB_H
 #define BL_IMULTIFAB_H
+#include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
 #include <AMReX_IArrayBox.H>

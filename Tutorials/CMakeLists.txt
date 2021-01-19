@@ -4,31 +4,27 @@
 #
 set( AMREX_TUTORIALS_SUBDIRS Amr Basic ForkJoin)
 
-if (ENABLE_ASCENT)
+if (AMReX_ASCENT)
    list(APPEND AMREX_TUTORIALS_SUBDIRS Blueprint)
 endif ()
 
-if (ENABLE_EB)
+if (AMReX_EB)
    list(APPEND AMREX_TUTORIALS_SUBDIRS EB)
 endif ()
 
-if (ENABLE_LINEAR_SOLVERS)
+if (AMReX_LINEAR_SOLVERS)
    list(APPEND AMREX_TUTORIALS_SUBDIRS LinearSolvers)
 endif ()
 
-if (ENABLE_PARTICLES)
+if (AMReX_PARTICLES)
    list(APPEND AMREX_TUTORIALS_SUBDIRS Particles)
 endif ()
 
-if (ENABLE_SUNDIALS)
-   list(APPEND AMREX_TUTORIALS_SUBDIRS CVODE SUNDIALS)
-endif ()
-
-if (ENABLE_FORTRAN_INTERFACES)
+if (AMReX_FORTRAN_INTERFACES)
    list(APPEND AMREX_TUTORIALS_SUBDIRS FortranInterface)
 endif ()
 
-if (ENABLE_CUDA)
+if (AMReX_CUDA)
    list(APPEND AMREX_TUTORIALS_SUBDIRS GPU)
 endif ()
 
@@ -72,7 +68,7 @@ function (setup_tutorial _srcs  _inputs)
 
    # Find out which include directory is needed
    set(_includes ${${_srcs}})
-   list(FILTER _includes INCLUDE REGEX "\\.H")
+   list(FILTER _includes INCLUDE REGEX "\\.H$")
    foreach(_item IN LISTS _includes)
       get_filename_component( _include_dir ${_item} DIRECTORY)
       target_include_directories( ${_exe_name} PRIVATE  ${_include_dir} )
@@ -90,7 +86,7 @@ function (setup_tutorial _srcs  _inputs)
 
    target_link_libraries( ${_exe_name} amrex )
 
-   if (ENABLE_CUDA)
+   if (AMReX_CUDA)
       setup_target_for_cuda_compilation( ${_exe_name} )
    endif ()
 
@@ -99,7 +95,6 @@ function (setup_tutorial _srcs  _inputs)
    endif ()
 
 endfunction ()
-
 
 #
 # Loop over subdirs and add to the build those containing CMakeLists.txt

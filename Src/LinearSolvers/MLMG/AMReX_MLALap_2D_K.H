@@ -1,5 +1,6 @@
 #ifndef AMREX_MLALAP_2D_K_H_
 #define AMREX_MLALAP_2D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
@@ -20,8 +21,8 @@ void mlalap_adotx (Box const& box, Array4<Real> const& y,
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             y(i,j,0) = alpha*a(i,j,0)*x(i,j,0)
-                - dhx * (x(i-1,j,0) - 2.*x(i,j,0) + x(i+1,j,0))
-                - dhy * (x(i,j-1,0) - 2.*x(i,j,0) + x(i,j+1,0));
+                - dhx * (x(i-1,j,0) - Real(2.)*x(i,j,0) + x(i+1,j,0))
+                - dhy * (x(i,j-1,0) - Real(2.)*x(i,j,0) + x(i,j+1,0));
         }
     }
 }
@@ -44,11 +45,11 @@ void mlalap_adotx_m (Box const& box, Array4<Real> const& y,
         for (int i = lo.x; i <= hi.x; ++i) {
             Real rel = probxlo + i*dx;
             Real rer = probxlo +(i+1)*dx;
-            Real rc = probxlo + (i+0.5)*dx;
+            Real rc = probxlo + (i+Real(0.5))*dx;
             y(i,j,0) = alpha*a(i,j,0)*x(i,j,0)*rc
                 - dhx * (rer*(x(i+1,j,0) - x(i  ,j,0))
                        - rel*(x(i  ,j,0) - x(i-1,j,0)))
-                - dhy * rc * (x(i,j-1,0) - 2.*x(i,j,0) + x(i,j+1,0));
+                - dhy * rc * (x(i,j-1,0) - Real(2.)*x(i,j,0) + x(i,j+1,0));
         }
     }
 }
@@ -68,7 +69,7 @@ void mlalap_normalize (Box const& box, Array4<Real> const& x,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            x(i,j,0) /= alpha*a(i,j,0) + 2.0*(dhx + dhy);
+            x(i,j,0) /= alpha*a(i,j,0) + Real(2.0)*(dhx + dhy);
         }
     }
 }
@@ -91,9 +92,9 @@ void mlalap_normalize_m (Box const& box, Array4<Real> const& x,
         for (int i = lo.x; i <= hi.x; ++i) {
             Real rel = probxlo + i*dx;
             Real rer = probxlo +(i+1)*dx;
-            Real rc = probxlo + (i+0.5)*dx;
+            Real rc = probxlo + (i+Real(0.5))*dx;
             x(i,j,0) /= alpha*a(i,j,0)*rc
-                + dhx*(rel+rer) + dhy*(rc*2.0);
+                + dhx*(rel+rer) + dhy*(rc*Real(2.0));
         }
     }
 }
@@ -189,7 +190,7 @@ void mlalap_flux_y_m (Box const& box, Array4<Real> const& fy,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real rc = probxlo + (i+0.5)*dx;
+            Real rc = probxlo + (i+Real(0.5))*dx;
             fy(i,j,0) = -fac*rc*(sol(i,j,0)-sol(i,j-1,0));
         }
     }
@@ -225,13 +226,13 @@ void mlalap_flux_yface_m (Box const& box, Array4<Real> const& fy,
     int j = lo.y;
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        Real rc = probxlo + (i+0.5)*dx;
+        Real rc = probxlo + (i+Real(0.5))*dx;
         fy(i,j,0) = -fac*rc*(sol(i,j,0)-sol(i,j-1,0));
     }
     j += ylen;
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        Real rc = probxlo + (i+0.5)*dx;
+        Real rc = probxlo + (i+Real(0.5))*dx;
         fy(i,j,0) = -fac*rc*(sol(i,j,0)-sol(i,j-1,0));
     }
 }
@@ -255,18 +256,18 @@ void mlalap_gsrb (Box const& box, Array4<Real> const& phi,
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             if ((i+j+redblack)%2 == 0) {
-                Real cf0 = (i == vlo.x and m0(vlo.x-1,j,0) > 0)
-                    ? f0(vlo.x,j,0) : 0.0;
-                Real cf1 = (j == vlo.y and m1(i,vlo.y-1,0) > 0)
-                    ? f1(i,vlo.y,0) : 0.0;
-                Real cf2 = (i == vhi.x and m2(vhi.x+1,j,0) > 0)
-                    ? f2(vhi.x,j,0) : 0.0;
-                Real cf3 = (j == vhi.y and m3(i,vhi.y+1,0) > 0)
-                    ? f3(i,vhi.y,0) : 0.0;
+                Real cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
+                    ? f0(vlo.x,j,0) : Real(0.0);
+                Real cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
+                    ? f1(i,vlo.y,0) : Real(0.0);
+                Real cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
+                    ? f2(vhi.x,j,0) : Real(0.0);
+                Real cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
+                    ? f3(i,vhi.y,0) : Real(0.0);
 
                 Real delta = dhx*(cf0 + cf2) + dhy*(cf1 + cf3);
 
-                Real gamma = alpha*a(i,j,0) + 2.0*(dhx + dhy);
+                Real gamma = alpha*a(i,j,0) + Real(2.0)*(dhx + dhy);
 
                 Real rho = dhx*(phi(i-1,j,0) + phi(i+1,j,0))
                     +      dhy*(phi(i,j-1,0) + phi(i,j+1,0));
@@ -298,22 +299,22 @@ void mlalap_gsrb_m (Box const& box, Array4<Real> const& phi,
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             if ((i+j+redblack)%2 == 0) {
-                Real cf0 = (i == vlo.x and m0(vlo.x-1,j,0) > 0)
-                    ? f0(vlo.x,j,0) : 0.0;
-                Real cf1 = (j == vlo.y and m1(i,vlo.y-1,0) > 0)
-                    ? f1(i,vlo.y,0) : 0.0;
-                Real cf2 = (i == vhi.x and m2(vhi.x+1,j,0) > 0)
-                    ? f2(vhi.x,j,0) : 0.0;
-                Real cf3 = (j == vhi.y and m3(i,vhi.y+1,0) > 0)
-                    ? f3(i,vhi.y,0) : 0.0;
+                Real cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
+                    ? f0(vlo.x,j,0) : Real(0.0);
+                Real cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
+                    ? f1(i,vlo.y,0) : Real(0.0);
+                Real cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
+                    ? f2(vhi.x,j,0) : Real(0.0);
+                Real cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
+                    ? f3(i,vhi.y,0) : Real(0.0);
 
                 Real rel = probxlo + i*dx;
                 Real rer = probxlo +(i+1)*dx;
-                Real rc = probxlo + (i+0.5)*dx;
+                Real rc = probxlo + (i+Real(0.5))*dx;
 
                 Real delta = dhx*(rel*cf0 + rer*cf2) + dhy*rc*(cf1 + cf3);
 
-                Real gamma = alpha*a(i,j,0)*rc + dhx*(rel+rer) + dhy*(2.*rc);
+                Real gamma = alpha*a(i,j,0)*rc + dhx*(rel+rer) + dhy*(Real(2.)*rc);
 
                 Real rho = dhx*(rel*phi(i-1,j,0) + rer*phi(i+1,j,0))
                     +      dhy* rc*(phi(i,j-1,0) +     phi(i,j+1,0));

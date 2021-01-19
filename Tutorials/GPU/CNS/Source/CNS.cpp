@@ -84,7 +84,7 @@ CNS::initData ()
     Parm const* lparm = parm.get();
     ProbParm const* lprobparm = prob_parm.get();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
@@ -305,7 +305,7 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real /*time*/, int, int)
 //        const char clearval = TagBox::CLEAR;
         const Real dengrad_threshold = refine_dengrad;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(rho,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -398,7 +398,7 @@ CNS::estTimeStep ()
     Parm const* lparm = parm.get();
 
     Real estdt = amrex::ReduceMin(S, 0,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) noexcept -> Real
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> Real
     {
         return cns_estdt(bx, fab, dx, *lparm);
     });
@@ -423,7 +423,7 @@ CNS::computeTemp (MultiFab& State, int ng)
     Parm const* lparm = parm.get();
 
     // This will reset Eint and compute Temperature 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(State,TilingIfNotGPU()); mfi.isValid(); ++mfi)

@@ -74,7 +74,7 @@ void CreateHPGMGLevel (level_type* level,
 
     int omp_threads = 1;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
     {
 #pragma omp master
@@ -330,7 +330,7 @@ void SetupHPGMGCoefficients(const double a,
       const int BL_jStride = fabbox.length(0);
       const int BL_kStride = fabbox.length(0) * fabbox.length(1);
       const int BoxLib_ghosts = alpha.nGrow();
-      #ifdef _OPENMP
+      #ifdef AMREX_USE_OMP
       #pragma omp parallel for private(k,j,i) collapse(3)
       #endif
       for(k=0;k<dim_k;k++){
@@ -380,7 +380,7 @@ void SetupHPGMGCoefficients(const double a,
       const int BL_kStride = fabbox.length(0) * fabbox.length(1);
       const int BoxLib_ghosts = beta_cc.nGrow();
 
-      #ifdef _OPENMP
+      #ifdef AMREX_USE_OMP
       #pragma omp parallel for private(k,j,i) collapse(3)
       #endif
       for(k=0;k<=dim_k;k++){ // include high face
@@ -447,7 +447,7 @@ void ConvertToHPGMGLevel (const MultiFab& mf,
       const int   dim_k = level->my_boxes[box].dim;
       const int BoxLib_ghosts = mf.nGrow();
 
-      #ifdef _OPENMP
+      #ifdef AMREX_USE_OMP
       #pragma omp parallel for private(k,j,i) collapse(3)
       #endif
       for(k=0;k<dim_k;k++){
@@ -499,7 +499,7 @@ void ConvertFromHPGMGLevel(MultiFab& mf,
       const int BoxLib_ghosts = mf.nGrow();
 
       int i, j, k;
-      #ifdef _OPENMP
+      #ifdef AMREX_USE_OMP
       #pragma omp parallel for private(k,j,i) collapse(3)
       #endif
       for(k=0;k<dim_k;k++){

@@ -39,7 +39,7 @@ void Initialize ()
     s_noutfiles = std::min(s_noutfiles, nprocs);
 
 #ifdef AMREX_USE_MPI
-    if (s_asyncout and s_noutfiles < nprocs)
+    if (s_asyncout && s_noutfiles < nprocs)
     {
         int provided = -1;
         MPI_Query_thread(&provided);

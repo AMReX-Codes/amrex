@@ -1,5 +1,6 @@
 #ifndef AMREX_INDEX_SEQUENCE_H_
 #define AMREX_INDEX_SEQUENCE_H_
+#include <AMReX_Config.H>
 
 #include <utility>
 

@@ -224,7 +224,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(out, mfi_info); mfi.isValid(); ++mfi)
@@ -261,17 +261,9 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                          Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
                          Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
             Array4<Real const> const& bc = bcent->const_array(mfi);
-#ifdef AMREX_USE_DPCPP
-            // xxxxx DPCPP todo: kernel size
-            Vector<Array4<Real const> > htmp = {AMREX_D_DECL(fcx,fcy,fcz)};
-            Gpu::AsyncArray<Array4<Real const> > dtmp(htmp.data(), htmp.size());
-            auto dp = dtmp.data();
-#endif
+
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
-                AMREX_DPCPP_ONLY(   auto fcx = dp[0]);
-                AMREX_DPCPP_ONLY(   auto fcy = dp[1]);
-                AMREX_DPCPP_3D_ONLY(auto fcz = dp[2]);
                 mlebtensor_cross_terms(tbx, axfab,
                                        AMREX_D_DECL(fxfab,fyfab,fzfab),
                                        vfab, etab, kapb, ccm, flag, vol,
@@ -303,7 +295,7 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(vel, mfi_info); mfi.isValid(); ++mfi)
@@ -362,21 +354,8 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
             const auto& bvzhi = (bndry != nullptr) ?
                 (*bndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
 
-#ifdef AMREX_USE_DPCPP
-            // xxxxx DPCPP todo: kernel size
-            Vector<Array4<int const> > htmp = {mxlo,mylo,mzlo,mxhi,myhi,mzhi};
-            Gpu::AsyncArray<Array4<int const> > dtmp(htmp.data(), htmp.size());
-            auto dp = dtmp.data();
-#endif
-
             AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
             {
-                AMREX_DPCPP_ONLY(auto mxlo = dp[0]);
-                AMREX_DPCPP_ONLY(auto mylo = dp[1]);
-                AMREX_DPCPP_ONLY(auto mzlo = dp[2]);
-                AMREX_DPCPP_ONLY(auto mxhi = dp[3]);
-                AMREX_DPCPP_ONLY(auto myhi = dp[4]);
-                AMREX_DPCPP_ONLY(auto mzhi = dp[5]);
                 mltensor_fill_edges(iedge, vbx, velfab,
                                     mxlo, mylo, mzlo, mxhi, myhi, mzhi,
                                     bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
@@ -386,12 +365,6 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 
             AMREX_HOST_DEVICE_FOR_1D ( 8, icorner,
             {
-                AMREX_DPCPP_ONLY(auto mxlo = dp[0]);
-                AMREX_DPCPP_ONLY(auto mylo = dp[1]);
-                AMREX_DPCPP_ONLY(auto mzlo = dp[2]);
-                AMREX_DPCPP_ONLY(auto mxhi = dp[3]);
-                AMREX_DPCPP_ONLY(auto myhi = dp[4]);
-                AMREX_DPCPP_ONLY(auto mzhi = dp[5]);
                 mltensor_fill_corners(icorner, vbx, velfab,
                                       mxlo, mylo, mzlo, mxhi, myhi, mzhi,
                                       bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
@@ -422,7 +395,7 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
     
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf, mfi_info); mfi.isValid(); ++mfi)
@@ -550,7 +523,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(sol, mfi_info); mfi.isValid(); ++mfi)
@@ -654,7 +627,7 @@ MLEBTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fl
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
   {

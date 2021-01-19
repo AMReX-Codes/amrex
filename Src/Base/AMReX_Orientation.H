@@ -1,6 +1,7 @@
 
 #ifndef BL_ORIENTATION_H
 #define BL_ORIENTATION_H
+#include <AMReX_Config.H>
 
 #include <iosfwd>
 

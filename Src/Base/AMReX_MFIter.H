@@ -1,5 +1,6 @@
 #ifndef BL_MFITER_H_
 #define BL_MFITER_H_
+#include <AMReX_Config.H>
 
 #include <memory>
 
@@ -11,7 +12,7 @@
 
 #include <AMReX_Gpu.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -80,10 +81,6 @@ public:
         //! SkipInit: Used by MFGhostIter
 	SkipInit      = 0x08
     };
-
-#ifdef AMREX_USE_GPU_PRAGMA
-    enum MFReducer { SUM = 0, MAX, MIN };
-#endif
 
     /**
     * \brief The default constructor does not enable tiling (flags_ is set to 0 by default).
@@ -164,17 +161,6 @@ public:
     //! The the number of tiles in the current grid;
     int numLocalTiles() const noexcept {return num_local_tiles ? (*num_local_tiles)[currentIndex] : 1;}
 
-#ifdef AMREX_USE_GPU_PRAGMA
-    //! Maintain a list of values to reduce.
-    template<typename T>
-    T* add_reduce_value(T* val, MFReducer r) { return val; }
-
-    Real* add_reduce_value(Real* val, MFReducer r);
-
-    //! Reduce over the values in the list.
-    void reduce();
-#endif
-
     /**
     * \brief Return local index into the vector of fab pointers, m_fabs_v
     * When AllBoxes is on, local_index_map is a nullptr and local index is current index.
@@ -187,6 +173,8 @@ public:
     int tileIndex () const noexcept {return currentIndex;}
 
     const DistributionMapping& DistributionMap () const noexcept { return fabArray.DistributionMap(); }
+
+    static int allowMultipleMFIters (int allow);
 
 protected:
 
@@ -212,21 +200,13 @@ protected:
     const Vector<int>* local_tile_index_map;
     const Vector<int>* num_local_tiles;
 
-#ifdef AMREX_USE_GPU_PRAGMA
-    mutable Vector<Real*> real_reduce_val;
-
-    mutable MFReducer reducer;
-
-    mutable Vector<Vector<Real> > real_reduce_list;
-
-    mutable Vector<Vector<Real*> > real_device_reduce_list;
-#endif
-
 #ifdef AMREX_USE_GPU
     std::unique_ptr<Gpu::FuseSafeGuard> gpu_fsg;
 #endif
 
     static int nextDynamicIndex;
+    static int depth;
+    static int allow_multiple_mfiters;
 
     void Initialize ();
 };

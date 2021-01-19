@@ -143,14 +143,14 @@ target_sources( amrex
    # Geometry / Coordinate system routines -----------------------------------
    AMReX_CoordSys.cpp
    AMReX_CoordSys.H
-   AMReX_COORDSYS_${DIM}D_C.H
+   AMReX_COORDSYS_${AMReX_SPACEDIM}D_C.H
    AMReX_COORDSYS_C.H
    AMReX_Geometry.cpp
    AMReX_Geometry.H
    AMReX_MultiFabUtil.cpp
    AMReX_MultiFabUtil.H
    AMReX_MultiFabUtilI.H
-   AMReX_MultiFabUtil_${DIM}D_C.H
+   AMReX_MultiFabUtil_${AMReX_SPACEDIM}D_C.H
    AMReX_MultiFabUtil_nd_C.H
    AMReX_MultiFabUtil_C.H
    # Boundary-related --------------------------------------------------------
@@ -161,11 +161,14 @@ target_sources( amrex
    AMReX_BCUtil.cpp
    AMReX_BCUtil.H
    AMReX_BC_TYPES.H
-   AMReX_FilCC_${DIM}D_C.H
+   AMReX_FilCC_${AMReX_SPACEDIM}D_C.H
    AMReX_FilCC_C.H
    AMReX_FilCC_C.cpp
    AMReX_FilND_C.H
    AMReX_FilND_C.cpp
+   # Non-Local BC
+   AMReX_NonLocalBC.H
+   AMReX_NonLocalBCImpl.H
    # Plotfile ----------------------------------------------------------------
    AMReX_PlotFileUtil.cpp
    AMReX_PlotFileUtil.H
@@ -183,7 +186,6 @@ target_sources( amrex
    AMReX_GpuFuse.H
    AMReX_GpuFuse.cpp
    AMReX_GpuLaunch.H
-   AMReX_GpuLaunch.cpp
    AMReX_GpuLaunchGlobal.H
    AMReX_GpuLaunchMacrosG.H
    AMReX_GpuLaunchMacrosC.H
@@ -192,6 +194,7 @@ target_sources( amrex
    AMReX_GpuError.H
    AMReX_GpuDevice.H
    AMReX_GpuDevice.cpp
+   AMReX_GpuBuffer.H
    AMReX_GpuAtomic.H
    AMReX_GpuUtility.H
    AMReX_GpuUtility.cpp
@@ -218,13 +221,13 @@ target_sources( amrex
    )
 
 # Fortran stuff
-if (ENABLE_FORTRAN)
+if (AMReX_FORTRAN)
    target_sources( amrex
       PRIVATE
       AMReX_filcc_f.H
       AMReX_BLutil_F.F90
       AMReX_BLProfiler_F.F90
-      AMReX_FILCC_${DIM}D.F90
+      AMReX_FILCC_${AMReX_SPACEDIM}D.F90
       AMReX_filcc_mod.F90
       AMReX_omp_mod.F90
       AMReX_acc_mod.F90
@@ -246,11 +249,11 @@ endif ()
 # endif
 
 # Memory Profiler
-if (ENABLE_MEM_PROFILE)
+if (AMReX_MEM_PROFILE)
    target_sources(amrex PRIVATE AMReX_MemProfiler.cpp AMReX_MemProfiler.H )
 endif ()
 
 # Tiny Profiler
-if (ENABLE_TINY_PROFILE)
+if (AMReX_TINY_PROFILE)
    target_sources(amrex PRIVATE AMReX_TinyProfiler.cpp AMReX_TinyProfiler.H )
 endif ()

@@ -89,7 +89,7 @@ void testParticleMesh(TestParams& parms)
           for (int kk = 0; kk <= 1; ++kk) { 
               for (int jj = 0; jj <= 1; ++jj) { 
                   for (int ii = 0; ii <= 1; ++ii) {
-                      amrex::Gpu::Atomic::Add(&rho(i+ii-1, j+jj-1, k+kk-1, 0),
+                      amrex::Gpu::Atomic::AddNoRet(&rho(i+ii-1, j+jj-1, k+kk-1, 0),
                                               sx[ii]*sy[jj]*sz[kk]*p.rdata(0));
                   }
               }
@@ -99,7 +99,7 @@ void testParticleMesh(TestParams& parms)
              for (int kk = 0; kk <= 1; ++kk) { 
                   for (int jj = 0; jj <= 1; ++jj) { 
                       for (int ii = 0; ii <= 1; ++ii) {
-                          amrex::Gpu::Atomic::Add(&rho(i+ii-1, j+jj-1, k+kk-1, comp),
+                          amrex::Gpu::Atomic::AddNoRet(&rho(i+ii-1, j+jj-1, k+kk-1, comp),
                                                   sx[ii]*sy[jj]*sz[kk]*p.rdata(0)*p.rdata(comp));
                       }
                   }

@@ -25,17 +25,19 @@ MLNodeTensorLaplacian::setSigma (Array<Real,nelems> const& a_sigma) noexcept
 void
 MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexcept
 {
-#if (AMREX_SPACEDIM == 2)
-    m_sigma[0] = 1. - a_beta[0]*a_beta[0];
-    m_sigma[1] =    - a_beta[0]*a_beta[1];
-    m_sigma[2] = 1. - a_beta[1]*a_beta[1];
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(a_beta);
+#elif (AMREX_SPACEDIM == 2)
+    m_sigma[0] = Real(1.) - a_beta[0]*a_beta[0];
+    m_sigma[1] =          - a_beta[0]*a_beta[1];
+    m_sigma[2] = Real(1.) - a_beta[1]*a_beta[1];
 #elif (AMREX_SPACEDIM == 3)
-    m_sigma[0] = 1. - a_beta[0]*a_beta[0];
-    m_sigma[1] =    - a_beta[0]*a_beta[1];
-    m_sigma[2] =    - a_beta[0]*a_beta[2];
-    m_sigma[3] = 1. - a_beta[1]*a_beta[1];
-    m_sigma[4] =    - a_beta[1]*a_beta[2];
-    m_sigma[5] = 1. - a_beta[2]*a_beta[2];
+    m_sigma[0] = Real(1.) - a_beta[0]*a_beta[0];
+    m_sigma[1] =          - a_beta[0]*a_beta[1];
+    m_sigma[2] =          - a_beta[0]*a_beta[2];
+    m_sigma[3] = Real(1.) - a_beta[1]*a_beta[1];
+    m_sigma[4] =          - a_beta[1]*a_beta[2];
+    m_sigma[5] = Real(1.) - a_beta[2]*a_beta[2];
 #endif
 }
 
@@ -73,7 +75,7 @@ MLNodeTensorLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, Mult
     MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][cmglev-1];
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -111,7 +113,7 @@ MLNodeTensorLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
 
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][fmglev];
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -166,7 +168,7 @@ MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const Multi
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
     const auto s = m_sigma;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(out,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -191,7 +193,7 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
     const auto s = m_sigma;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(sol); mfi.isValid(); ++mfi)
@@ -223,7 +225,7 @@ MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
     const auto s = m_sigma;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)

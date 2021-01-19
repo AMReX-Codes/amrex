@@ -23,7 +23,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                  AMREX_ASSERT(!umac[1].contains_nan());,
                  AMREX_ASSERT(!umac[2].contains_nan()););
 
-    const Real      strttime = amrex::second();
+    const auto      strttime = amrex::second();
     const Geometry& geom     = m_gdb->Geom(lev);
     const auto          plo      = geom.ProbLoArray();
     const auto          dxi      = geom.InvCellSizeArray();
@@ -55,7 +55,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (ParIterType pti(*this, lev); pti.isValid(); ++pti)
@@ -104,7 +104,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 
     if (m_verbose > 1)
     {
-        Real stoptime = amrex::second() - strttime;
+        auto stoptime = amrex::second() - strttime;
 
 #ifdef AMREX_LAZY
 	Lazy::QueueReduction( [=] () mutable {
@@ -131,7 +131,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
     AMREX_ASSERT(lev >= 0 && lev < GetParticles().size());
     AMREX_ASSERT(!Ucc.contains_nan());
 
-    const Real          strttime = amrex::second();
+    const auto          strttime = amrex::second();
     const Geometry&     geom     = m_gdb->Geom(lev);
     const auto          plo      = geom.ProbLoArray();
     const auto          dxi      = geom.InvCellSizeArray();
@@ -140,7 +140,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (ParIterType pti(*this, lev); pti.isValid(); ++pti)
@@ -184,7 +184,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
     if (m_verbose > 1)
     {
-        Real stoptime = amrex::second() - strttime;
+        auto stoptime = amrex::second() - strttime;
 
 #ifdef AMREX_LAZY
 	Lazy::QueueReduction( [=] () mutable {
@@ -219,7 +219,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     AMREX_ASSERT(!basename.empty());
     AMREX_ASSERT(lev <= m_gdb->finestLevel());
 
-    const Real strttime = amrex::second();
+    const auto strttime = amrex::second();
 
     const int   MyProc    = ParallelDescriptor::MyProc();
     const int   NProcs    = ParallelContext::NProcsSub();
@@ -353,7 +353,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
     if (m_verbose > 1)
     {
-        Real stoptime = amrex::second() - strttime;
+        auto stoptime = amrex::second() - strttime;
 
 #ifdef AMREX_LAZY
         Lazy::QueueReduction( [=] () mutable {

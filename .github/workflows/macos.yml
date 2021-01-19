@@ -2,6 +2,9 @@ name: macos
 
 on: [push, pull_request]
 
+env:
+  CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -fno-operator-names"
+
 jobs:
   # Build libamrex and all tutorials
   tutorials-macos:
@@ -19,5 +22,5 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_BUILD_TUTORIALS=ON  \
-            -DENABLE_PARTICLES=ON
+            -DAMReX_PARTICLES=ON
         make -j 2

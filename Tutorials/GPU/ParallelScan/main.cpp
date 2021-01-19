@@ -70,14 +70,21 @@ void main_main ()
         pp.query("n", N);
     }
 
-    amrex::Print() << "GpuMaxSize = " << amrex::Gpu::Device::totalGlobalMem() << std::endl;
-    amrex::Print() << "ParallelScan with N = " << N*sizeof(int) << std::endl;
-    amrex::Print() << "Number of Ns = " << amrex::Gpu::Device::totalGlobalMem() / (N*sizeof(int)) << std::endl;
-
     typedef int T;
+
+    Long Nmax = amrex::Gpu::Device::totalGlobalMem()/(sizeof(T)*3);
+    N = amrex::min(N,Nmax);
+
+    amrex::Print() << "ParallelScan " << N << " ints." << std::endl;
+
     Vector<T> h_in(N);
     for (auto& x: h_in) {
+#ifdef AMREX_USE_DPCPP
+        // xxxxx DPCPP todo: Random
+        x = 1;
+#else
         x = static_cast<T>((Random()-0.5)*100.);
+#endif
     }
 
     Vector<T> h_exclusive_cpu(N);
@@ -178,4 +185,6 @@ void main_main ()
 
     The_Device_Arena()->free(d_in);
     The_Device_Arena()->free(d_out);
+
+    amrex::Print() << "pass \n";
 }
