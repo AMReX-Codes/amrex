@@ -701,14 +701,14 @@ FabArray<FAB>::ParallelCopy_finish ()
         return;
     }
 
-    const CPC& thecpc = (pc_cpc) ? *pc_cpc : getCPC(pc_dnghost, *pc_src, pc_snghost, pc_period);
-
     if (ParallelContext::NProcsSub() == 1)
     {
         return;
     }
 
 #ifdef BL_USE_MPI
+
+    const CPC& thecpc = (pc_cpc) ? *pc_cpc : getCPC(pc_dnghost, *pc_src, pc_snghost, pc_period);
 
     const int N_snds = thecpc.m_SndTags->size();
     const int N_rcvs = thecpc.m_RcvTags->size();
