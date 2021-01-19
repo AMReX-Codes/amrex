@@ -484,6 +484,304 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
 template <class FAB>
 void
+FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
+                                    int                  scomp,
+                                    int                  dcomp,
+                                    int                  ncomp,
+                                    const IntVect&       snghost,
+                                    const IntVect&       dnghost,
+                                    const Periodicity&   period,
+                                    CpOp                 op,
+                                    const FabArrayBase::CPC * a_cpc)
+{
+    BL_PROFILE("FabArray::ParallelCopy_nowait()");
+
+    pc_src = &(src);
+    pc_snghost = snghost;
+    pc_dnghost = dnghost;
+    pc_period = period;
+    pc_cpc = a_cpc;
+    pc_op = op;
+
+    pc_SC = scomp;
+    pc_DC = dcomp;
+
+    if (size() == 0 || src.size() == 0) return;
+
+    BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
+    BL_ASSERT(boxArray().ixType() == src.boxArray().ixType());
+
+    BL_ASSERT(src.nGrowVect().allGE(snghost));
+    BL_ASSERT(    nGrowVect().allGE(dnghost));
+
+    n_filled = dnghost;
+
+    if ((src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
+        (boxarray == src.boxarray && distributionMap == src.distributionMap)
+	&& snghost == IntVect::TheZeroVector() && dnghost == IntVect::TheZeroVector()
+        && !period.isAnyPeriodic())
+    {
+        //
+        // Short-circuit full intersection code if we're doing copy()s or if
+        // we're doing plus()s on cell-centered data.  Don't do plus()s on
+        // non-cell-centered data this simplistic way.
+        //
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
+        {
+            const Box& bx = fai.tilebox();
+
+            // avoid self copy or plus
+	    if (this != &src) {
+                auto const sfab = src.array(fai);
+                auto       dfab = this->array(fai);
+		if (op == FabArrayBase::COPY) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+                    {
+                        dfab(i,j,k,dcomp+n) = sfab(i,j,k,scomp+n);
+                    });
+		} else {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+                    {
+                        dfab(i,j,k,dcomp+n) += sfab(i,j,k,scomp+n);
+                    });
+                }
+	    }
+        }
+
+        return;
+    }
+
+    const CPC& thecpc = (a_cpc) ? *a_cpc : getCPC(dnghost, src, snghost, period);
+
+    if (ParallelContext::NProcsSub() == 1)
+    {
+        //
+        // There can only be local work to do.
+        //
+	int N_locs = (*thecpc.m_LocTags).size();
+        if (N_locs == 0) return;
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion())
+        {
+            PC_local_gpu(thecpc, src, scomp, dcomp, ncomp, op);
+        }
+        else
+#endif
+        {
+            PC_local_cpu(thecpc, src, scomp, dcomp, ncomp, op);
+        }
+
+        return;
+    }
+
+#ifdef BL_USE_MPI
+
+    //
+    // Do this before prematurely exiting if running in parallel.
+    // Otherwise sequence numbers will not match across MPI processes.
+    //
+    pc_tag = ParallelDescriptor::SeqNum();
+
+    const int N_snds = thecpc.m_SndTags->size();
+    const int N_rcvs = thecpc.m_RcvTags->size();
+    const int N_locs = thecpc.m_LocTags->size();
+
+    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0) {
+        //
+        // No work to do.
+        //
+        return;
+    }
+
+    //
+    // Send/Recv at most MaxComp components at a time to cut down memory usage.
+    //
+    int NCompLeft = ncomp;
+
+    for (int ipass = 0; ipass < ncomp; )
+    {
+        pc_NC = std::min(NCompLeft,FabArrayBase::MaxComp);
+        const bool last_iter = (NCompLeft == pc_NC);
+/*
+        Vector<int>         recv_from;
+        Vector<char*>       recv_data;
+        Vector<std::size_t> recv_size;
+        Vector<MPI_Request> recv_reqs;
+*/
+        //
+        // Post rcvs. Allocate one chunk of space to hold'm all.
+        //
+        pc_the_recv_data = nullptr;
+
+        pc_actual_n_rcvs = 0;
+	if (N_rcvs > 0) {
+            PostRcvs(*thecpc.m_RcvTags, pc_the_recv_data,
+                     pc_recv_data, pc_recv_size, pc_recv_from, pc_recv_reqs, pc_NC, pc_tag);
+            pc_actual_n_rcvs = N_rcvs - std::count(pc_recv_size.begin(), pc_recv_size.end(), 0);
+	}
+
+	//
+	// Post send's
+	//
+	Vector<char*>                       send_data;
+	Vector<std::size_t>                 send_size;
+	Vector<int>                         send_rank;
+	Vector<const CopyComTagsContainer*> send_cctc;
+
+	if (N_snds > 0)
+	{
+            src.PrepareSendBuffers(*thecpc.m_SndTags, pc_the_send_data, send_data, send_size,
+                                   send_rank, pc_send_reqs, send_cctc, pc_NC);
+
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion())
+            {
+                pack_send_buffer_gpu(src, pc_SC, pc_NC, send_data, send_size, send_cctc);
+            }
+            else
+#endif
+            {
+                pack_send_buffer_cpu(src, pc_SC, pc_NC, send_data, send_size, send_cctc);
+            }
+
+            AMREX_ASSERT(pc_send_reqs.size() == N_snds);
+            FabArray<FAB>::PostSnds(send_data, send_size, send_rank, pc_send_reqs, pc_tag);
+	}
+
+        //
+        // Do the local work.  Hope for a bit of communication/computation overlap.
+        //
+        if (N_locs > 0)
+	{
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion())
+            {
+                PC_local_gpu(thecpc, src, pc_SC, pc_DC, pc_NC, op);
+            }
+            else
+#endif
+            {
+                PC_local_cpu(thecpc, src, pc_SC, pc_DC, pc_NC, op);
+            }
+        }
+
+        if (!last_iter)
+        {
+            ParallelCopy_finish();
+
+            pc_SC += pc_NC;
+            pc_DC += pc_NC;
+        }
+
+        ipass     += pc_NC;
+        NCompLeft -= pc_NC;
+    }
+
+    return;
+
+#endif /*BL_USE_MPI*/
+}
+
+template <class FAB>
+void
+FabArray<FAB>::ParallelCopy_finish ()
+{
+    BL_PROFILE("FabArray::ParallelCopy_finish()");
+
+    if (size() == 0 || pc_src->size() == 0) return;
+
+    if ((pc_src->boxArray().ixType().cellCentered() || pc_op == FabArrayBase::COPY) &&
+        (boxarray == pc_src->boxarray && distributionMap == pc_src->distributionMap)
+	&& pc_snghost == IntVect::TheZeroVector() && pc_dnghost == IntVect::TheZeroVector()
+        && !pc_period.isAnyPeriodic())
+    {
+        return;
+    }
+
+    const CPC& thecpc = (pc_cpc) ? *pc_cpc : getCPC(pc_dnghost, *pc_src, pc_snghost, pc_period);
+
+    if (ParallelContext::NProcsSub() == 1)
+    {
+        return;
+    }
+
+#ifdef BL_USE_MPI
+
+    const int N_snds = thecpc.m_SndTags->size();
+    const int N_rcvs = thecpc.m_RcvTags->size();
+    const int N_locs = thecpc.m_LocTags->size();
+
+    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0) {
+        //
+        // No work to do.
+        //
+        return;
+    }
+
+    if (N_rcvs > 0)
+    {
+        Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
+        for (int k = 0; k < N_rcvs; ++k)
+        {
+            if (pc_recv_size[k] > 0)
+            {
+                auto const& cctc = thecpc.m_RcvTags->at(pc_recv_from[k]);
+                recv_cctc[k] = &cctc;
+            }
+        }
+
+        if (pc_actual_n_rcvs > 0) {
+            Vector<MPI_Status> stats(N_rcvs);
+            ParallelDescriptor::Waitall(pc_recv_reqs, stats);
+#ifdef AMREX_DEBUG
+            if (!CheckRcvStats(stats, pc_recv_size, pc_tag))
+            {
+                amrex::Abort("ParallelCopy failed with wrong message size");
+            }
+#endif
+        }
+
+        bool is_thread_safe = thecpc.m_threadsafe_rcv;
+
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion())
+        {
+            unpack_recv_buffer_gpu(*this, pc_DC, pc_NC, pc_recv_data, pc_recv_size,
+                                   recv_cctc, pc_op, is_thread_safe);
+        }
+        else
+#endif
+        {
+            unpack_recv_buffer_cpu(*this, pc_DC, pc_NC, pc_recv_data, pc_recv_size,
+                                   recv_cctc, pc_op, is_thread_safe);
+        }
+
+        if (pc_the_recv_data)
+        {
+            amrex::The_FA_Arena()->free(pc_the_recv_data);
+            pc_the_recv_data = nullptr;
+        }
+    }
+
+    if (N_snds > 0) {
+        if (! thecpc.m_SndTags->empty()) {
+            Vector<MPI_Status> stats(pc_send_reqs.size());
+            ParallelDescriptor::Waitall(pc_send_reqs, stats);
+	}
+        amrex::The_FA_Arena()->free(pc_the_send_data);
+        pc_the_send_data = nullptr;
+    }
+
+    return;
+
+#endif /*BL_USE_MPI*/
+}
+
+template <class FAB>
+void
 FabArray<FAB>::copyTo (FAB&       dest,
 		       const Box& subbox,
 		       int        scomp,
