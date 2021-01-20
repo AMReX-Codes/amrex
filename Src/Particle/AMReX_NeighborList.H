@@ -187,9 +187,9 @@ public:
                                       AMREX_ASSERT((p.pos(1)-plo[1])*dxi[1] - lo.y >= 0.0);,
                                       AMREX_ASSERT((p.pos(2)-plo[2])*dxi[2] - lo.z >= 0.0));
 
-                         return IntVect(AMREX_D_DECL(static_cast<int>((p.pos(0)-plo[0])*dxi[0] - lo.x),
-                                                     static_cast<int>((p.pos(1)-plo[1])*dxi[1] - lo.y),
-                                                     static_cast<int>((p.pos(2)-plo[2])*dxi[2] - lo.z)));
+                         return IntVect(AMREX_D_DECL(static_cast<int>((p.pos(0)-plo[0])*dxi[0]) - lo.x,
+                                                     static_cast<int>((p.pos(1)-plo[1])*dxi[1]) - lo.y,
+                                                     static_cast<int>((p.pos(2)-plo[2])*dxi[2]) - lo.z));
                      });
 
         // first pass - count the number of neighbors for each particle
@@ -203,9 +203,9 @@ public:
 
         AMREX_FOR_1D ( np_real, i,
         {
-            int ix = static_cast<int>((pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x);
-            int iy = static_cast<int>((pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y);
-            int iz = static_cast<int>((pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z);
+            int ix = static_cast<int>((pstruct_ptr[i].pos(0)-plo[0])*dxi[0]) - lo.x;
+            int iy = static_cast<int>((pstruct_ptr[i].pos(1)-plo[1])*dxi[1]) - lo.y;
+            int iz = static_cast<int>((pstruct_ptr[i].pos(2)-plo[2])*dxi[2]) - lo.z;
 
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
@@ -246,9 +246,9 @@ public:
 
         AMREX_FOR_1D ( np_real, i,
         {
-            int ix = static_cast<int>((pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x);
-            int iy = static_cast<int>((pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y);
-            int iz = static_cast<int>((pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z);
+            int ix = static_cast<int>((pstruct_ptr[i].pos(0)-plo[0])*dxi[0]) - lo.x;
+            int iy = static_cast<int>((pstruct_ptr[i].pos(1)-plo[1])*dxi[1]) - lo.y;
+            int iz = static_cast<int>((pstruct_ptr[i].pos(2)-plo[2])*dxi[2]) - lo.z;
 
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
