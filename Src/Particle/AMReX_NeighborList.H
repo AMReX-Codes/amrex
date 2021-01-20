@@ -203,9 +203,9 @@ public:
 
         AMREX_FOR_1D ( np_real, i,
         {
-            int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z;
+            int ix = static_cast<int>((pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x);
+            int iy = static_cast<int>((pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y);
+            int iz = static_cast<int>((pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z);
 
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
@@ -246,9 +246,9 @@ public:
 
         AMREX_FOR_1D ( np_real, i,
         {
-            int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z;
+            int ix = static_cast<int>((pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x);
+            int iy = static_cast<int>((pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y);
+            int iz = static_cast<int>((pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z);
 
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
