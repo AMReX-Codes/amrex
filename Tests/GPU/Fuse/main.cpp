@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
         mfc.setVal(-1);
 
         {
-            BL_PROFILE("fuesd-test1");
+            BL_PROFILE("fused-test1");
             fused_test(mfa,mfb,mfc);
         }
         r = r && verify(mfc);
