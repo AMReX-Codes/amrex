@@ -39,36 +39,36 @@ struct StructOfArrays {
     const std::array<RealVector, NReal>& GetRealData () const { return m_rdata; }
     const std::array< IntVector,  NInt>& GetIntData  () const { return m_idata; }
 
-    RealVector& GetRealData (const size_t index) {
+    RealVector& GetRealData (const int index) {
         AMREX_ASSERT(index < NReal + m_runtime_rdata.size());
-        if (int(index) < NReal) return m_rdata[index];
+        if (index < NReal) return m_rdata[index];
         else {
             AMREX_ASSERT(m_defined);
             return m_runtime_rdata[index - NReal];
         }
     }
 
-    const RealVector& GetRealData (const size_t index) const {
+    const RealVector& GetRealData (const int index) const {
         AMREX_ASSERT(index < NReal + m_runtime_rdata.size());
-        if (int(index) < NReal) return m_rdata[index];
+        if (index < NReal) return m_rdata[index];
         else {
             AMREX_ASSERT(m_defined);
             return m_runtime_rdata[index - NReal];
         }
     }
 
-    IntVector& GetIntData (const size_t index) {
+    IntVector& GetIntData (const int index) {
         AMREX_ASSERT(index < NInt + m_runtime_idata.size());
-        if (int(index) < NInt) return m_idata[index];
+        if (index < NInt) return m_idata[index];
         else {
             AMREX_ASSERT(m_defined);
             return m_runtime_idata[index - NInt];
         }
    }
 
-    const IntVector& GetIntData (const size_t index) const {
+    const IntVector& GetIntData (const int index) const {
         AMREX_ASSERT(index < NInt + m_runtime_idata.size());
-        if (int(index) < NInt) return m_idata[index];
+        if (index < NInt) return m_idata[index];
         else {
             AMREX_ASSERT(m_defined);
             return m_runtime_idata[index - NInt];
