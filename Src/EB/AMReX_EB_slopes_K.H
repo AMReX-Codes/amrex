@@ -109,23 +109,25 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
 {
     amrex::Real du[27];
 
-    int lc=0;
-    for(int kk(-1); kk<=1; kk++)
     {
-        for(int jj(-1); jj<=1; jj++){
-          for(int ii(-1); ii<=1; ii++){
-
-            if( flag(i,j,k).isConnected(ii,jj,kk) &&
-                ! (ii==0 && jj==0 && kk==0)) {
-
-              du[lc] = state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
-
-            } else {
-
-              du[lc] = 0.0;
+        int lc=0;
+        for(int kk(-1); kk<=1; kk++)
+        {
+            for(int jj(-1); jj<=1; jj++){
+              for(int ii(-1); ii<=1; ii++){
+    
+                if( flag(i,j,k).isConnected(ii,jj,kk) &&
+                    ! (ii==0 && jj==0 && kk==0)) {
+    
+                  du[lc] = state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
+    
+                } else {
+    
+                  du[lc] = 0.0;
+                }
+                lc++;
+              }
             }
-            lc++;
-          }
         }
     }
 
