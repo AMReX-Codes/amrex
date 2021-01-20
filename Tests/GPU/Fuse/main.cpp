@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
     {
         BL_PROFILE("main()");
 
-        Box bx(IntVect(0),IntVect(255));
+        Box bx(IntVect(0),IntVect(127));
         BoxArray ba(bx);
         ba.maxSize(16);
         DistributionMapping dm{ba};
