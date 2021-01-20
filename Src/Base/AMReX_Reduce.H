@@ -309,7 +309,7 @@ public:
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r, gh);
         });
 #else
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
         if (Gpu::inFuseRegion() && Gpu::inFuseReductionRegion()
             && ec.numBlocks.x*ec.numThreads.x <= Gpu::getFuseSizeThreshold())
         {

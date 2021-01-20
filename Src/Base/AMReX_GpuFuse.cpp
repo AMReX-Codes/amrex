@@ -19,7 +19,7 @@ namespace {
 
 std::unique_ptr<Fuser> Fuser::m_instance = nullptr;
 
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
 
 Fuser::Fuser ()
 {
