@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 
         Box bx(IntVect(0),IntVect(255));
         BoxArray ba(bx);
-        ba.maxSize(32);
+        ba.maxSize(16);
         DistributionMapping dm{ba};
 
         iMultiFab mfa(ba,dm,1,0);
