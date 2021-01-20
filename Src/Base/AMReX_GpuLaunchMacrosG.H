@@ -54,7 +54,7 @@
             block \
         } \
     }}}
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA_RANGE(TN,TI,block) \
     { auto const& amrex_i_tn = TN; \
     if (!amrex::isEmpty(amrex_i_tn)) { \
@@ -163,7 +163,7 @@
             block2 \
         } \
     }}}
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; \
     if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2)) { \
@@ -307,7 +307,7 @@
             block3 \
         } \
     }}}
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; auto const& amrex_i_tn3 = TN3; \
     if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2) || !amrex::isEmpty(amrex_i_tn3)) { \

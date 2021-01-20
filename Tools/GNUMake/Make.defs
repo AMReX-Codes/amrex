@@ -652,6 +652,10 @@ ifeq ($(USE_HIP),TRUE)
 
     GPUSuffix := .HIP
 
+    ifeq ($(HIP_INDIRECT_FUNCTION),TRUE)
+      DEFINES += -DAMREX_HIP_INDIRECT_FUNCTION
+    endif
+
 else ifeq ($(USE_CUDA),TRUE)
 
     USE_GPU := TRUE
