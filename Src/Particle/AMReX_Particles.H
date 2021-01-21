@@ -710,7 +710,9 @@ public:
     * \param other the other pc to copy from
     * \param local whether to call redistribute after
     */
-    void copyParticles (const ParticleContainerType& other, bool local=false);
+    template <class PCType,
+              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0>
+    void copyParticles (const PCType& other, bool local=false);
 
     /**
     * \brief Add particles from other to this ParticleContainer. local controls
@@ -719,7 +721,9 @@ public:
     * \param other the other pc to copy from
     * \param local whether to call redistribute after
     */
-    void addParticles (const ParticleContainerType& other, bool local=false);
+    template <class PCType,
+              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0>
+    void addParticles (const PCType& other, bool local=false);
 
     /**
     * \brief Copy particles from other to this ParticleContainer. Will clear all the
@@ -735,8 +739,10 @@ public:
     * \param f function to apply to each particle as a filter
     * \param local whether to call redistribute after
     */
-    template <class F, amrex::EnableIf_t<! std::is_integral<F>::value, int> foo = 0>
-    void copyParticles (const ParticleContainerType& other, F&&f, bool local=false);
+    template <class F, class PCType,
+              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0,
+              amrex::EnableIf_t<! std::is_integral<F>::value, int> bar = 0>
+    void copyParticles (const PCType& other, F&&f, bool local=false);
 
     /**
     * \brief Add particles from other to this ParticleContainer. local controls
@@ -751,8 +757,10 @@ public:
     * \param f function to apply to each particle as a filter
     * \param local whether to call redistribute after
     */
-    template <class F, amrex::EnableIf_t<! std::is_integral<F>::value, int> foo = 0>
-    void addParticles (const ParticleContainerType& other, F&& f, bool local=false);
+    template <class F, class PCType,
+              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0,
+              amrex::EnableIf_t<! std::is_integral<F>::value, int> bar = 0>
+    void addParticles (const PCType& other, F&& f, bool local=false);
 
     /**
     * \brief Write a contiguous chunk of real particle data to an ostream.
