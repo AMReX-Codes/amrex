@@ -77,8 +77,8 @@ int main (int argc, char* argv[])
 
     timer_tot = amrex::second() - timer_tot;
 
-    ParallelDescriptor::ReduceRealMax({timer_tot, timer_init, timer_advance},
-                                      ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::ReduceRealMax<double>({timer_tot, timer_init, timer_advance},
+                                              ParallelDescriptor::IOProcessorNumber());
 
     amrex::Print() << "Run Time total        = " << timer_tot     << "\n"
                    << "Run Time init         = " << timer_init    << "\n"
