@@ -136,11 +136,11 @@ public:
     using IntVector        = typename SoA::IntVector;
 
     ParConstIter (ContainerType const& pc, int level)
-        : ParIterBase<true,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
+        : ParIterBase<true,NStructReal,NStructInt,NArrayReal,NArrayInt,Allocator>(pc,level)
         {}
 
     ParConstIter (ContainerType const& pc, int level, MFItInfo& info)
-        : ParIterBase<true,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
+        : ParIterBase<true,NStructReal,NStructInt,NArrayReal,NArrayInt,Allocator>(pc,level,info)
         {}
 };
 
