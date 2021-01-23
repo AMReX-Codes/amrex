@@ -418,7 +418,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
           // We must add an additional test to avoid the case where fcx is very close to zero, but (j-1) or (j+1)
           //    might be covered cells -- this can happen when the EB is exactly aligned with the horizontal grid lines
           int jj;
-          if (std::abs(fcx(i,j,k)) > 1.e-8)
+          if (amrex::Math::abs(fcx(i,j,k)) > 1.e-8)
               jj = (fcx(i,j,k) < 0.0) ? j - 1 : j + 1;
           else if (apx(i,j-1,k) > 0.)
               jj = j-1;
@@ -488,7 +488,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
           // We must add an additional test to avoid the case where fcy is very close to zero, but (i-1) or (i+1)
           //    might be covered cells -- this can happen when the EB is exactly aligned with the horizontal grid lines
           int ii;
-          if (std::abs(fcy(i,j,k)) > 1.e-8)
+          if (amrex::Math::abs(fcy(i,j,k)) > 1.e-8)
               ii = (fcy(i,j,k) < 0.0) ? i - 1 : i + 1;
           else if (apy(i-1,j,k) > 0.)
               ii = i-1;
