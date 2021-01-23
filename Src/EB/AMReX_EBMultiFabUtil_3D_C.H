@@ -642,8 +642,22 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
       } 
       else 
       {
-          int jj = (fcx(i,j,k,0) < 0.0) ? j - 1 : j + 1;
-          int kk = (fcx(i,j,k,1) < 0.0) ? k - 1 : k + 1;
+          // We must add additional tests to avoid the case where fcx is very close to zero, but j-1/j+1 or k-1/k+1
+          //    might be covered cells -- this can happen when the EB is exactly aligned with the horizontal grid planes
+          int jj,kk;
+          if (std::abs(fcx(i,j,k,0)) > 1.e-8)
+              jj = (fcx(i,j,k,0) < 0.0) ? j - 1 : j + 1;
+          else if (apx(i,j-1,k) > 0.)
+              jj = j-1;
+          else
+              jj = j+1;
+
+          if (std::abs(fcx(i,j,k,1)) > 1.e-8)
+              kk = (fcx(i,j,k,1) < 0.0) ? k - 1 : k + 1;
+          else if (apx(i,j-1,k) > 0.)
+              kk = k-1;
+          else
+              kk = k+1;
 
           // If any of these cells has zero volume we don't want to use this stencil
           Real test_zero =  cvol(i-1,jj,k  ) * cvol(i-1,j  ,kk) *  cvol(i-1,jj,kk) *
@@ -832,8 +846,23 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
         }
         else 
         {
-          int ii = (fcy(i,j,k,0) < 0.0) ? i - 1 : i + 1;
-          int kk = (fcy(i,j,k,1) < 0.0) ? k - 1 : k + 1;
+
+          // We must add additional tests to avoid the case where fcy is very close to zero, but i-1/i+1 or k-1/k+1
+          //    might be covered cells -- this can happen when the EB is exactly aligned with the grid planes
+          int ii,kk;
+          if (std::abs(fcy(i,j,k,0)) > 1.e-8)
+              ii = (fcy(i,j,k,0) < 0.0) ? i - 1 : i + 1;
+          else if (apy(i,j-1,k) > 0.)
+              ii = i-1;
+          else
+              ii = i+1;
+
+          if (std::abs(fcy(i,j,k,1)) > 1.e-8)
+              kk = (fcy(i,j,k,1) < 0.0) ? k - 1 : k + 1;
+          else if (apy(i,j-1,k) > 0.)
+              kk = k-1;
+          else
+              kk = k+1;
 
           // If any of these cells has zero volume we don't want to use this stencil
           Real test_zero =  cvol(ii,j-1,k) * cvol(i,j-1,kk) *  cvol(ii,j-1,kk) *
@@ -1019,8 +1048,22 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
         }
         else 
         {
-          int ii = (fcz(i,j,k,0) < 0.0) ? i - 1 : i + 1;
-          int jj = (fcz(i,j,k,1) < 0.0) ? j - 1 : j + 1;
+          // We must add additional tests to avoid the case where fcz is very close to zero, but i-1/i+1 or j-1/j+1
+          //    might be covered cells -- this can happen when the EB is exactly aligned with the grid planes
+          int ii,jj;
+          if (std::abs(fcz(i,j,k,0)) > 1.e-8)
+              ii = (fcz(i,j,k,0) < 0.0) ? i - 1 : i + 1;
+          else if (apz(i,j-1,k) > 0.)
+              ii = i-1;
+          else
+              ii = i+1;
+
+          if (std::abs(fcz(i,j,k,1)) > 1.e-8)
+              jj = (fcz(i,j,k,1) < 0.0) ? j - 1 : j + 1;
+          else if (apz(i,j-1,k) > 0.)
+              jj = j-1;
+          else
+              jj = j+1;
 
           // If any of these cells has zero volume we don't want to use this stencil
           Real test_zero =  cvol(ii,j,k-1) * cvol(i,jj,k-1) *  cvol(ii,jj,k-1) *
