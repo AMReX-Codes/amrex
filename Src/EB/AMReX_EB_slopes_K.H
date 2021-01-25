@@ -352,173 +352,123 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
 
     amrex::Real A[dim_a][AMREX_SPACEDIM];
 
-    //
-    // Correct only those cells which are affected by extdir:
-    //    1) Here if any of the cells are not regular we use the face and cell centroids
-    //
-
-    if ( (edlo_x && i == domlo_x) || (edhi_x && i == domhi_x) )
-    {
-        int lc=0;
+    int lc=0;
 #if (AMREX_SPACEDIM == 3)
-        for(int kk(-1); kk<=1; kk++) 
+    for(int kk(-1); kk<=1; kk++) 
 #else
-        int kk = 0;
+    int kk = 0;
 #endif
-        {
-            for(int jj(-1); jj<=1; jj++){
-              for(int ii(-1); ii<=1; ii++){
-
-                if( flag(i,j,k).isConnected(ii,jj,kk) &&
-                    ! (ii==0 && jj==0 && kk==0)) {
-    
-                    // Not multplying by dx to be consistent with how the
-                    // slope is stored. Also not including the global shift
-                    // wrt plo or i,j,k. We only need relative distance.
-
-                    if ( (edlo_x && i == domlo_x) && ii == -1) {
-                        A[lc][0] = -0.5                       - ccent(i,j,k,0);
-                        A[lc][1] = jj + fcx(i   ,j+jj,k+kk,0) - ccent(i,j,k,1);
-#if (AMREX_SPACEDIM == 3)
-                        A[lc][2] = kk + fcx(i   ,j+jj,k+kk,1) - ccent(i,j,k,2);
-#endif
-                    } 
-                    else if ( (edhi_x && i == domhi_x) && ii == 1) 
-                    {
-                        A[lc][0] = 0.5                        - ccent(i,j,k,0);
-                        A[lc][1] = jj + fcx(i+ii,j+jj,k+kk,0) - ccent(i,j,k,1);
-#if (AMREX_SPACEDIM == 3)
-                        A[lc][2] = kk + fcx(i+ii,j+jj,k+kk,1) - ccent(i,j,k,2);
-#endif
-                    } else {
-                        A[lc][0] = ii + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
-                        A[lc][1] = jj + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
-#if (AMREX_SPACEDIM == 3)
-                        A[lc][2] = kk + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2);
-#endif
-                    }
-
-                 } else {
-                    AMREX_D_TERM(A[lc][0] = 0.0;,
-                                 A[lc][1] = 0.0;,
-                                 A[lc][2] = 0.0;);
-                }
-                lc++;
-              }
-            }
-        }
-        const auto& slopes = amrex_calc_slopes_eb_given_A (i,j,k,n,A,state,flag);
-        AMREX_D_TERM(xslope = slopes[0];,
-                     yslope = slopes[1];,
-                     zslope = slopes[2];);
-    }
-
-    if ( (edlo_y && j == domlo_y) || (edhi_y && j == domhi_y) )
     {
-        int lc=0;
-#if (AMREX_SPACEDIM == 3)
-        for(int kk(-1); kk<=1; kk++) 
-#else
-        int kk = 0;
-#endif
-        {
-            for(int jj(-1); jj<=1; jj++){
-              for(int ii(-1); ii<=1; ii++){
-
-                if( flag(i,j,k).isConnected(ii,jj,kk) &&
-                    ! (ii==0 && jj==0 && kk==0)) {
-    
-                    // Not multplying by dx to be consistent with how the
-                    // slope is stored. Also not including the global shift
-                    // wrt plo or i,j,k. We only need relative distance.
-
-                    if (edlo_y && j == domlo_y && jj == -1) {
-                        A[lc][0] = ii + fcy(i+ii,j   ,k+kk,0) - ccent(i,j,k,0);
-                        A[lc][1] = -0.5                       - ccent(i,j,k,1);
-#if (AMREX_SPACEDIM == 3)
-                        A[lc][2] = kk + fcy(i+ii,j   ,k+kk,1) - ccent(i,j,k,2);
-#endif
-                    } 
-                    else if (edhi_y && j == domhi_y && jj == 1) 
-                    {
-                        A[lc][0] = ii + fcy(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
-                        A[lc][1] = 0.5                        - ccent(i,j,k,1);
-#if (AMREX_SPACEDIM == 3)
-                        A[lc][2] = kk + fcy(i+ii,j+jj,k+kk,1) - ccent(i,j,k,2);
-#endif
-                    } else {
-                        A[lc][0] = ii + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
-                        A[lc][1] = jj + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
-#if (AMREX_SPACEDIM == 3)
-                        A[lc][2] = kk + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2);
-#endif
-                    }
-
-                 } else {
-                    AMREX_D_TERM(A[lc][0] = 0.0;,
-                                 A[lc][1] = 0.0;,
-                                 A[lc][2] = 0.0;);
-                }
-
-                lc++;
-              }
-            }
-        }
-
-        const auto& slopes = amrex_calc_slopes_eb_given_A (i,j,k,n,A,state,flag);
-        AMREX_D_TERM(xslope = slopes[0];,
-                     yslope = slopes[1];,
-                     zslope = slopes[2];);
-    }
-
-#if (AMREX_SPACEDIM == 3)
-    if ( (edlo_z && k == domlo_z) || (edhi_z && k == domhi_z) )
-    {
-        int lc=0;
-        for(int kk(-1); kk<=1; kk++) {
-            for(int jj(-1); jj<=1; jj++){
-              for(int ii(-1); ii<=1; ii++){
-
-                if( flag(i,j,k).isConnected(ii,jj,kk) &&
-                    ! (ii==0 && jj==0 && kk==0)) 
+        for(int jj(-1); jj<=1; jj++) 
+          for(int ii(-1); ii<=1; ii++)
+          {
+            if( flag(i,j,k).isConnected(ii,jj,kk) &&
+                ! (ii==0 && jj==0 && kk==0)) 
                 {
-                    // Not multplying by dx to be consistent with how the
-                    // slope is stored. Also not including the global shift
-                    // wrt plo or i,j,k. We only need relative distance.
+                    bool ilo_test = ( edlo_x && (i == domlo_x) && ii == -1);
+                    bool ihi_test = ( edhi_x && (i == domhi_x) && ii ==  1);
 
-                    if (edlo_z && k == domlo_z && kk == -1) {
-                        A[lc][0] = ii + fcz(i+ii,j+jj,k   ,0) - ccent(i,j,k,0);
-                        A[lc][1] = jj + fcz(i+ii,j+jj,k   ,1) - ccent(i,j,k,1);
-                        A[lc][2] = -0.5                       - ccent(i,j,k,2);
-                    } 
-                    else if (edhi_z && k == domhi_z && kk == 1) 
-                    {
-                        A[lc][0] = ii + fcz(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
-                        A[lc][1] = jj + fcz(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
-                        A[lc][2] = 0.5                        - ccent(i,j,k,2);
-                    } else {
-                        A[lc][0] = ii + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
-                        A[lc][1] = jj + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
-                        A[lc][2] = kk + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2);
+                    bool jlo_test = ( edlo_y && (j == domlo_y) && jj == -1);
+                    bool jhi_test = ( edhi_y && (j == domhi_y) && jj ==  1);
+
+#if (AMREX_SPACEDIM == 3)
+                    bool klo_test = ( edlo_z && (k == domlo_z) && kk == -1);
+                    bool khi_test = ( edhi_z && (k == domhi_z) && kk ==  1);
+#else
+                    bool klo_test = false;
+                    bool khi_test = false;
+#endif
+
+                    // These are the default values if no physical boundary
+                    A[lc][0] = ii + ccent(i+ii,j+jj,k+kk,0);
+                    A[lc][1] = jj + ccent(i+ii,j+jj,k+kk,1);
+#if (AMREX_SPACEDIM == 3)
+                    A[lc][2] = kk + ccent(i+ii,j+jj,k+kk,2);
+#endif
+                   // Do corrections for entire x-face
+                   if (ilo_test)
+                   {
+                        if (!jlo_test && !jhi_test && !klo_test && !khi_test)
+                        {
+                            A[lc][1] = jj + fcx(i   ,j+jj,k+kk,0);
+#if (AMREX_SPACEDIM == 3)
+                            A[lc][2] = kk + fcx(i   ,j+jj,k+kk,1);
+#endif
+                        }
+                        A[lc][0] = -0.5                      ;
+                    } else if (ihi_test) {
+
+                        if (!jlo_test && !jhi_test && !klo_test && !khi_test)
+                        {
+                            A[lc][1] = jj + fcx(i+ii,j+jj,k+kk,0);
+#if (AMREX_SPACEDIM == 3)
+                            A[lc][2] = kk + fcx(i+ii,j+jj,k+kk,1);
+#endif
+                        }
+                        A[lc][0] = 0.5                       ;
+                   }
+                   
+                   // Do corrections for entire y-face
+                   if (jlo_test)
+                   {
+                        if (!ilo_test && !ihi_test && !klo_test && !khi_test)
+                        {
+                            A[lc][0] = ii + fcy(i+ii,j   ,k+kk,0);
+#if (AMREX_SPACEDIM == 3)
+                            A[lc][2] = kk + fcy(i+ii,j   ,k+kk,1);
+#endif
+                        }
+                        A[lc][1] = -0.5                      ;
+
+                   } else if (jhi_test) {
+                    
+                        if (!ilo_test && !ihi_test && !klo_test && !khi_test)
+                        {
+                            A[lc][0] = ii + fcy(i+ii,j+jj,k+kk,0);
+#if (AMREX_SPACEDIM == 3)
+                            A[lc][2] = kk + fcy(i+ii,j+jj,k+kk,1);
+#endif
+                        }
+                        A[lc][1] = 0.5                       ;
                     }
 
-                 } else {
+#if (AMREX_SPACEDIM == 3)
+                   // Do corrections for entire z-face
+                   if (klo_test)
+                   {
+                        if (!ilo_test && !ihi_test && !jlo_test && !jhi_test)
+                        {
+                            A[lc][0] = ii + fcz(i+ii,j+jj,k   ,0);
+                            A[lc][1] = jj + fcz(i+ii,j+jj,k   ,1);
+                        }
+                        A[lc][2] = -0.5                      ;
+
+                   } else if (khi_test) {
+                        if (!ilo_test && !ihi_test && !jlo_test && !jhi_test)
+                        {
+                            A[lc][0] = ii + fcz(i+ii,j+jj,k+kk,0);
+                            A[lc][1] = jj + fcz(i+ii,j+jj,k+kk,1);
+                        }
+                        A[lc][2] = 0.5                       ;
+                   } 
+#endif
+                   AMREX_D_TERM(A[lc][0] -= ccent(i,j,k,0);,
+                                A[lc][1] -= ccent(i,j,k,1);,
+                                A[lc][2] -= ccent(i,j,k,2););
+
+                } else {
                     AMREX_D_TERM(A[lc][0] = 0.0;,
                                  A[lc][1] = 0.0;,
                                  A[lc][2] = 0.0;);
                 }
-
                 lc++;
-              }
-            }
-        }
-        const auto& slopes = amrex_calc_slopes_eb_given_A (i,j,k,n,A,state,flag);
+            } // i,j
+    } // k
 
-        AMREX_D_TERM(xslope = slopes[0];,
-                     yslope = slopes[1];,
-                     zslope = slopes[2];);
-    }
-#endif
+    const auto& slopes = amrex_calc_slopes_eb_given_A (i,j,k,n,A,state,flag);
+    AMREX_D_TERM(xslope = slopes[0];,
+                 yslope = slopes[1];,
+                 zslope = slopes[2];);
 
     //
     // Correct only those cells which are affected by extdir but not by EB:
@@ -538,7 +488,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     if ( flag(i,j,k).isRegular() && flag(i,j,k-1).isRegular() && flag(i,j,k+1).isRegular() ) 
       zslope = amrex_calc_zslope_extdir(i,j,k,n,order,state,edlo_z,edhi_z,domlo_z,domhi_z);
 #endif
-    }
+    } // end of needs_bndry_stencil
 
     // Zero out slopes outside of an extdir (or hoextrap) boundary
     // TODO:  is this the right thing to do at a HOEXTRAP boundary??
