@@ -151,8 +151,8 @@ MyTest::compute_gradient ()
                edhi_z = 1; 
            }
 
-           if (n == 1)
-           {
+//           if (n == 1)
+//           {
            auto slopes = amrex_calc_slopes_extdir_eb(i,j,k,n,
                  phi_arr,ccent,
                  fcx,fcy,fcz,flag,
@@ -165,12 +165,13 @@ MyTest::compute_gradient ()
            grad_y_arr(i,j,k,n) = slopes[1];
            grad_z_arr(i,j,k,n) = slopes[2];
 
-           } else {
+//           } 
+//           else {
 
-           grad_x_arr(i,j,k,n) = 0.0;
-           grad_y_arr(i,j,k,n) = 0.0;
-           grad_z_arr(i,j,k,n) = 0.0;
-           }
+//           grad_x_arr(i,j,k,n) = 0.0;
+//           grad_y_arr(i,j,k,n) = 0.0;
+//           grad_z_arr(i,j,k,n) = 0.0;
+//           }
 
            // if (n == 1 and (i >= 4 and i <= 10) and (j == 0) and k == 79)
            {
