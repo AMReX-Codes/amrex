@@ -2287,7 +2287,8 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
             rcnt.resize(1,0);
             rdsp.resize(1,0);
         }
-        BL_MPI_REQUIRE(MPI_Gatherv(localdata.data(), localdata.size(), MPI_INT64_T,
+        int send_size = (localdata[0] == 0) ? 0 : localdata.size();
+        BL_MPI_REQUIRE(MPI_Gatherv(localdata.data(), send_size, MPI_INT64_T,
                                    globaldata->data(), rcnt.data(), rdsp.data(), MPI_INT64_T,
                                    io_proc, ParallelDescriptor::Communicator()));
     }
