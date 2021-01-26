@@ -20,9 +20,9 @@ void cic_interpolate (const P& p,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
 		      const amrex::Array4<amrex::Real const> &  uccarr,
-		      amrex::ParticleReal * val){
-
-  AMREX_ASSERT(val != 0);
+		      amrex::ParticleReal * val, int M)
+{
+  AMREX_ASSERT(val != nullptr);
 
 #if (AMREX_SPACEDIM == 1)
 
@@ -34,7 +34,7 @@ void cic_interpolate (const P& p,
 
     amrex::Real sx[] = {Real(1.0) - xint, xint};
 
-    for (int d=0; d < AMREX_SPACEDIM; ++d)
+    for (int d=0; d < M; ++d)
     {
         val[d] = ParticleReal(0.0);
         for (int ii = 0; ii<=1; ++ii)
@@ -58,7 +58,7 @@ void cic_interpolate (const P& p,
     amrex::Real sx[] = {Real(1.0) - xint, xint};
     amrex::Real sy[] = {Real(1.0) - yint, yint};
 
-    for (int d=0; d < AMREX_SPACEDIM; ++d)
+    for (int d=0; d < M; ++d)
       {
         val[d] = ParticleReal(0.0);
         for (int jj = 0; jj <= 1; ++jj)
@@ -69,7 +69,6 @@ void cic_interpolate (const P& p,
               }
           }
       }
-
 
 #elif (AMREX_SPACEDIM == 3)
 
@@ -89,7 +88,7 @@ void cic_interpolate (const P& p,
     amrex::Real sy[] = {Real(1.0) - yint, yint};
     amrex::Real sz[] = {Real(1.0) - zint, zint};
 
-    for (int d=0; d < AMREX_SPACEDIM; ++d)
+    for (int d=0; d < M; ++d)
     {
         val[d] = ParticleReal(0.0);
         for (int kk = 0; kk<=1; ++kk)
@@ -106,7 +105,16 @@ void cic_interpolate (const P& p,
 #endif
 }
 
-
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void cic_interpolate (const P& p,
+		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+		      const amrex::Array4<amrex::Real const> &  uccarr,
+		      amrex::ParticleReal * val)
+{
+    cic_interpolate(p, plo, dxi, uccarr, val, AMREX_SPACEDIM);
+}
 
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
