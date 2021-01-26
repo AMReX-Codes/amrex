@@ -2236,7 +2236,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
     bool strip_ghost = valid_cells_only && mf.nGrowVect() != 0;
 
     int64_t total_bytes = 0;
-    auto pld = (char*)(&(localdata[0]));
+    char* pld = (localdata.size() > 1) ? (char*)(&(localdata[1])) : nullptr;
     const FABio& fio = FArrayBox::getFABio();
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
