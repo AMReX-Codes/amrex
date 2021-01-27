@@ -667,7 +667,7 @@ bool AnyOf (N n, T const* v, P&& pred)
                 r = pred(v[i]) ? 1 : 0;
             }
             r = Gpu::blockReduce<Gpu::Device::warp_size>
-                (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0, gh);
+                (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0);
             if (threadIdx.x == 0 && r) *dp = 1;
         }
     });
