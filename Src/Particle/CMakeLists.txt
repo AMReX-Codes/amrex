@@ -43,4 +43,6 @@ target_sources( amrex
    AMReX_BinIterator.H
    AMReX_ParticleTransformation.H
    AMReX_WriteBinaryParticleData.H
+   AMReX_ParticleContainerBase.H
+   AMReX_ParticleContainerBase.cpp
    )
