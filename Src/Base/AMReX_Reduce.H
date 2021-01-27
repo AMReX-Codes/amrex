@@ -629,9 +629,6 @@ bool AnyOf (N n, T const* v, P&& pred)
     auto ec = Gpu::ExecutionConfig(n);
     ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
 
-    amrex::Print() << "B/T/dp: " << ec.numBlocks.x << "/" 
-                                 << ec.numThreads.x << "/"
-                                 << *dp << std::endl;
 #ifdef AMREX_USE_DPCPP
     const std::size_t shared_mem_bytes = sizeof(int);
     amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::nullStream(),

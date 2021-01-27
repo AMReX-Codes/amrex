@@ -17,7 +17,7 @@
       sycl::ONEAPI::experimental::printf(amrex_i_format, __VA_ARGS__); }
 #else
 #  define AMREX_DEVICE_PRINTF(format,...) { \
-      ::printf(format, __VA_ARGS__); }
+      std::printf(format, __VA_ARGS__); }
 #endif
 #elif defined(AMREX_USE_CUDA)
 #  define AMREX_DEVICE_PRINTF(...) std::printf(__VA_ARGS__);

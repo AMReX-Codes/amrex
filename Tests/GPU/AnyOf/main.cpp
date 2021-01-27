@@ -50,7 +50,6 @@ void main_main ()
 
         mf.define(ba, dm, ncomp, nghost);
         mf.setVal(3.0);
-	amrex::Print() << mf.sum() << std::endl;
     }
 
     {
@@ -115,6 +114,7 @@ void main_main ()
                                return ( arr(i,j,k) > 2.0 ) ;
                            });
 
+	    // Redo, confirming works for a single value.
             if (bx.contains(IntVect{0,0,0}))
             {
                 arr(0,0,0) = 1.0;
