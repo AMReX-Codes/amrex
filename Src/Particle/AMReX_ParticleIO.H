@@ -907,7 +907,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             // on finer levels, and put them in the right place via Redistribute()
 
             const int rank = ParallelDescriptor::MyProc();
-            const int NReaders = ParticleType::MaxReaders();
+            const int NReaders = MaxReaders();
             if (rank >= NReaders) return;
 
             const int Navg = ngrids[lev] / NReaders;

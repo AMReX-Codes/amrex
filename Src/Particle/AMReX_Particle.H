@@ -324,10 +324,6 @@ struct Particle
 
     static void GetGravity (const FArrayBox& gfab, const Geometry& geom, const Particle<NReal, NInt>& p, Real* grav);
 
-    static int MaxReaders ();
-
-    static Long MaxParticlesPerRead ();
-
     /**
     * \brief Returns the next particle ID for this processor.
     * Particle IDs start at 1 and are never reused.
