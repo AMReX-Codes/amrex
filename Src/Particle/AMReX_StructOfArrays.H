@@ -41,7 +41,7 @@ struct StructOfArrays {
 
     RealVector& GetRealData (const int index) {
         AMREX_ASSERT(index >= 0 && index < NReal + m_runtime_rdata.size());
-        if (index > 0 && index < NReal) return m_rdata[index];
+        if (index >= 0 && index < NReal) return m_rdata[index];
         else {
             AMREX_ASSERT(m_defined);
             return m_runtime_rdata[index - NReal];
@@ -50,7 +50,7 @@ struct StructOfArrays {
 
     const RealVector& GetRealData (const int index) const {
         AMREX_ASSERT(index >= 0 && index < NReal + m_runtime_rdata.size());
-        if (index > 0 && index < NReal) return m_rdata[index];
+        if (index >= 0 && index < NReal) return m_rdata[index];
         else {
             AMREX_ASSERT(m_defined);
             return m_runtime_rdata[index - NReal];
@@ -59,7 +59,7 @@ struct StructOfArrays {
 
     IntVector& GetIntData (const int index) {
         AMREX_ASSERT(index >= 0 && index < NInt + m_runtime_idata.size());
-        if (index > 0 && index < NInt) return m_idata[index];
+        if (index >= 0 && index < NInt) return m_idata[index];
         else {
             AMREX_ASSERT(m_defined);
             return m_runtime_idata[index - NInt];
@@ -68,7 +68,7 @@ struct StructOfArrays {
 
     const IntVector& GetIntData (const int index) const {
         AMREX_ASSERT(index >= 0 && index < NInt + m_runtime_idata.size());
-        if (index > 0 && index < NInt) return m_idata[index];
+        if (index >= 0 && index < NInt) return m_idata[index];
         else {
             AMREX_ASSERT(m_defined);
             return m_runtime_idata[index - NInt];
