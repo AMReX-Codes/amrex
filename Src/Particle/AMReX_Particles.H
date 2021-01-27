@@ -131,7 +131,7 @@ struct ParticleInitType
  */
 template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
           template<class> class Allocator=DefaultAllocator>
-class ParticleContainer : ParticleContainerBase
+class ParticleContainer : public ParticleContainerBase
 {
 public:
     //! \brief number of extra Real components in the particle struct
