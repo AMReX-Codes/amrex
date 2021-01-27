@@ -16,7 +16,7 @@ publically released versions of those compilers on the Iris and Tulip testbeds.
 For complete details of CUDA, HIP, DPC++, OpenMP and OpenACC
 languages, see their respective documentations.
 
-Be aware, this documenation is currently focused on CUDA.  HIP and DPC++ documentation
+Be aware, this documentation is currently focused on CUDA.  HIP and DPC++ documentation
 is forthcoming.
 
 A number of tutorials can be found at ``Tutorials/GPU/``.
