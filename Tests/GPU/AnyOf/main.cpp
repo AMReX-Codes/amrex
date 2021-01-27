@@ -37,7 +37,8 @@ void main_main ()
     }
 
     MultiFab mf;
-    Vector<Real> vec(nitem, 3.0);
+    Gpu::DeviceVector<Real> vec(nitem, 7.0);
+    Real* vecptr = vec.dataPtr();
 
 // ***************************************************************
     // Build the Multifabs and Geometries.
@@ -49,10 +50,13 @@ void main_main ()
 
         mf.define(ba, dm, ncomp, nghost);
         mf.setVal(3.0);
+	amrex::Print() << mf.sum() << std::endl;
     }
 
     {
         BL_PROFILE("Vector AnyOf");
+
+        Gpu::Device::synchronize();
 
         bool anyof_M = Reduce::AnyOf(nitem, vec.dataPtr(),
                         [=] AMREX_GPU_DEVICE (int item) noexcept
@@ -69,7 +73,8 @@ void main_main ()
                        << anyof_M << ", " << anyof_N << std::endl; 
     }
 
-    vec[0] = 1.0;
+    // Redo, confirming works for a single item.
+    vec[int(nitem/2)] = 1.0;
 
     {
         BL_PROFILE("Vector AnyOf - Just 1");
@@ -86,7 +91,7 @@ void main_main ()
                             return ( item > 2.0 ) ;
                         });
 
-        amrex::Print() << "Vector: "
+        amrex::Print() << "Vector, both true: "
                        << anyof_M << ", " << anyof_N << std::endl; 
     }
 
@@ -105,10 +110,10 @@ void main_main ()
                            });
 
             bool anyof_B = Reduce::AnyOf(bx,
-                       [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                       {
-                           return ( arr(i,j,k) > 2.0 ) ;
-                       });
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                           {
+                               return ( arr(i,j,k) > 2.0 ) ;
+                           });
 
             if (bx.contains(IntVect{0,0,0}))
             {

@@ -629,15 +629,18 @@ bool AnyOf (N n, T const* v, P&& pred)
     auto ec = Gpu::ExecutionConfig(n);
     ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
 
+    amrex::Print() << "B/T/dp: " << ec.numBlocks.x << "/" 
+                                 << ec.numThreads.x << "/"
+                                 << *dp << std::endl;
 #ifdef AMREX_USE_DPCPP
     const std::size_t shared_mem_bytes = sizeof(int);
-    amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, 0,
+    amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::nullStream(),
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
-        int* has_any = gh.sharedMemory();
-        if (gh.threadIdx() == 0) { has_any = *dp; }
+        int* has_any = static_cast<int*>(gh.sharedMemory());
+        if (gh.threadIdx() == 0) { *has_any = *dp; }
         gh.sharedBarrier();
 
-        if (!has_any)
+        if (!(*has_any))
         {
             int r = false;
             for (N i = gh.blockDim()*gh.blockIdx()*gh.threadIdx(), stride = gh.blockDim()*gh.gridDim();
@@ -645,8 +648,9 @@ bool AnyOf (N n, T const* v, P&& pred)
             {
                 r = pred(v[i]) ? 1 : 0;
             }
+
             r = Gpu::blockReduce<Gpu::Device::warp_size>
-                (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0);
+                (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0, gh);
             if (gh.threadIdx() == 0 && r) { *dp = 1; }
         }
     });
@@ -666,7 +670,7 @@ bool AnyOf (N n, T const* v, P&& pred)
                 r = pred(v[i]) ? 1 : 0;
             }
             r = Gpu::blockReduce<Gpu::Device::warp_size>
-                (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0);
+                (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0, gh);
             if (threadIdx.x == 0 && r) *dp = 1;
         }
     });
@@ -688,13 +692,13 @@ bool AnyOf (Box const& box, P&& pred)
 
 #ifdef AMREX_USE_DPCPP
     const std::size_t shared_mem_bytes = sizeof(int);
-    amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, 0,
+    amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::nullStream(),
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
-        int* has_any = gh.sharedMemory();
-        if (gh.threadIdx() == 0) { has_any = *dp; }
+        int* has_any = static_cast<int*>(gh.sharedMemory());
+        if (gh.threadIdx() == 0) { *has_any = *dp; }
         gh.sharedBarrier();
 
-        if (!has_any)
+        if (!(*has_any))
         {
             int r = false;
             for (int icell = gh.blockDim()*gh.blockIdx()+gh.threadIdx(), stride = gh.blockDim()*gh.gridDim();
@@ -708,7 +712,7 @@ bool AnyOf (Box const& box, P&& pred)
                 r = pred(i,j,k) ? 1 : 0;
             }
             r = Gpu::blockReduce<Gpu::Device::warp_size>
-                (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0);
+                (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0, gh);
             if (gh.threadIdx() == 0 && r) { *dp = 1; }
         }
     });

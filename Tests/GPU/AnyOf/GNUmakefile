@@ -3,12 +3,13 @@
 AMREX_HOME ?= ../../../
 
 #DEBUG        = TRUE 
-USE_MPI      = TRUE 
+USE_MPI      = FALSE 
 MPI_THREAD_MULTIPLE = FALSE  # amrex.async_out=1 with more than 64 processes requires MPI_THREAD_MULTIPLE
 USE_OMP      = FALSE
 TINY_PROFILE = TRUE
 #USE_CUDA     = TRUE
-COMP         = gnu
+USE_DPCPP    = TRUE
+COMP         = dpcpp 
 DIM          = 3 
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
