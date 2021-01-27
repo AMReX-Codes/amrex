@@ -617,59 +617,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Sh
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::MoveRandom ()
-{
-    //
-    // Move particles randomly at all levels
-    //
-    for (int lev = 0; lev < int(m_particles.size()); lev++)
-    {
-        MoveRandom(lev);
-    }
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::MoveRandom (int lev)
-{
-    BL_PROFILE("ParticleContainer::MoveRandom(lev)");
-    AMREX_ASSERT(OK());
-    AMREX_ASSERT(m_gdb != 0);
-    //
-    // Move particles up to FRAC*CellSize distance in each coordinate direction.
-    //
-    const Real FRAC = 0.25;
-    auto&       pmap              = m_particles[lev];
-    const Real* dx                = Geom(lev).CellSize();
-    const Real  dist[AMREX_SPACEDIM] = { AMREX_D_DECL(FRAC*dx[0], FRAC*dx[1], FRAC*dx[2]) };
-
-    for (auto& kv : pmap) {
-        auto& aos = kv.second.GetArrayOfStructs();
-        const int n = aos.numParticles();
-#ifdef AMREX_USE_OMP
-#pragma omp parallel for
-#endif
-        for (int i = 0; i < n; i++)
-        {
-	  ParticleType& p = aos[i];
-
-	  if (p.id() <= 0) continue;
-
-	  for (int j = 0; j < AMREX_SPACEDIM; j++)
-              {
-                  p.pos(j) += dist[j]*(2*amrex::Random()-1);
-              }
-
-	  Reset(p, true);
-        }
-    }
-    Redistribute();
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Increment (MultiFab& mf, int lev)
 {
   IncrementWithTotal(mf,lev);

@@ -540,10 +540,6 @@ public:
     */
     void InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata);
 
-    void MoveRandom ();
-
-    void MoveRandom (int level);
-
     void Increment (MultiFab& mf, int level);
 
     Long IncrementWithTotal (MultiFab& mf, int level, bool local = false);
