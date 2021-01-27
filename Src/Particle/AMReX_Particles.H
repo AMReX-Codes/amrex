@@ -18,6 +18,7 @@
 #include <type_traits>
 #include <random>
 
+#include <AMReX_ParticleContainerBase.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParGDB.H>
 #include <AMReX_REAL.H>
@@ -114,8 +115,6 @@ struct ParticleInitType
     std::array<double, NArrayReal > real_array_data;
     std::array<int,    NArrayInt  > int_array_data;
 };
-
-class ParticleContainerBase {};
 
 /**
  * \brief A distributed container for Particles sorted onto the levels, grids,

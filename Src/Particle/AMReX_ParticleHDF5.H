@@ -447,7 +447,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         // whether we're using "float" or "double" floating point data in the
         // particles so that we can Restart from the checkpoint files.
         //
-        std::string versionName = ParticleType::Version();
+        std::string versionName = Version();
         if (sizeof(typename ParticleType::RealType) == 4)
             versionName += "_single";
         else

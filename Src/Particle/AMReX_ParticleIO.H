@@ -942,7 +942,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             name += "Level_";
             name += amrex::Concatenate("", lev, 1);
             name += '/';
-            name += ParticleType::DataPrefix();
+            name += DataPrefix();
             name += amrex::Concatenate("", which[grid], DATA_Digits_Read);
 
             std::ifstream ParticleFile;
