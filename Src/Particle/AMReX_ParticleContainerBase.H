@@ -12,10 +12,10 @@ class ParticleContainerBase {
 
 public:
 
-    const std::string& Version ();
-    const std::string& DataPrefix ();
-    int MaxReaders ();
-    Long MaxParticlesPerRead ();
+    static const std::string& Version ();
+    static const std::string& DataPrefix ();
+    static int MaxReaders ();
+    static Long MaxParticlesPerRead ();
 };
 
 } // namespace amrex
