@@ -133,7 +133,7 @@ const std::string& ParticleContainerBase::AggregationType ()
         aggregation_type = "None";
         ParmParse pp("particles");
         pp.query("aggregation_type", aggregation_type);
-        if (aggregation_type != "None" or aggregation_type != "Cell")
+        if (aggregation_type != "None" || aggregation_type != "Cell")
         {
             amrex::Abort("particles.aggregation_type not implemented.");
         }
