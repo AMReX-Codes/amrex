@@ -63,7 +63,7 @@ MyTest::compute_gradient ()
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.fabbox();
-        amrex::Print() << "WORKING ON BOX " << bx << std::endl;
+//        amrex::Print() << "WORKING ON BOX " << bx << std::endl;
 
         Array4<const Real> const& phi_arr     = phi[ilev].array(mfi);
         Array4<const Real> const& phi_eb_arr  = phieb[ilev].array(mfi);
@@ -194,83 +194,72 @@ MyTest::writePlotfile ()
 
 #if (AMREX_SPACEDIM == 2)
 
-        plotmf[ilev].define(grids[ilev],dmap[ilev],13,0);
-        MultiFab::Copy(plotmf[ilev], phi[ilev]    , 0, 0, 2, 0);
-        MultiFab::Copy(plotmf[ilev], vfrc         , 0, 2, 1, 0);
-        MultiFab::Copy(plotmf[ilev], phieb[ilev]  , 0, 3, 2, 0);
-        MultiFab::Copy(plotmf[ilev], grad_x[ilev] , 0, 5, 2, 0);
-        MultiFab::Copy(plotmf[ilev], grad_y[ilev] , 0, 7, 2, 0);
-        MultiFab::Copy(plotmf[ilev], grad_eb[ilev], 0, 9, 2, 0);
-        MultiFab::Copy(plotmf[ilev], ccentr[ilev] , 0, 11, 2, 0);
+        plotmf[ilev].define(grids[ilev],dmap[ilev],3,0);
+        MultiFab::Copy(plotmf[ilev], phi[ilev]    , 0, 0, 1, 0);
+        MultiFab::Copy(plotmf[ilev], grad_x[ilev] , 0, 1, 1, 0);
+        MultiFab::Copy(plotmf[ilev], grad_y[ilev] , 0, 2, 1, 0);
     }
-
     WriteMultiLevelPlotfile(plot_file_name, max_level+1,
                             amrex::GetVecOfConstPtrs(plotmf),
-                            {"u", "v",
-                             "vfrac",
-                             "ueb", "veb",
-                             "dudx", "dvdx",
-                             "dudy", "dvdy",
-                             "dudn", "dvdn",
-                             "ccent_x", "ccent_y"},
+                            {"phi",
+                            "dphidx", 
+                            "dphidy",
+                             },
                             geom, 0.0, Vector<int>(max_level+1,0),
                             Vector<IntVect>(max_level,IntVect{2}));
 
     Vector<MultiFab> plotmf_analytic(max_level+1);
     for (int ilev = 0; ilev <= max_level; ++ilev) {
-        plotmf_analytic[ilev].define(grids[ilev],dmap[ilev],6,0);
-        MultiFab::Copy(plotmf_analytic[ilev], grad_x_analytic[ilev], 0, 0, 2, 0);
-        MultiFab::Copy(plotmf_analytic[ilev], grad_y_analytic[ilev], 0, 2, 2, 0);
-        MultiFab::Copy(plotmf_analytic[ilev], grad_eb_analytic[ilev], 0, 4, 2, 0);
+        plotmf_analytic[ilev].define(grids[ilev],dmap[ilev],3,0);
+        MultiFab::Copy(plotmf_analytic[ilev], phi[ilev]            , 0, 0, 1, 0);
+        MultiFab::Copy(plotmf_analytic[ilev], grad_x_analytic[ilev], 0, 1, 1, 0);
+        MultiFab::Copy(plotmf_analytic[ilev], grad_y_analytic[ilev], 0, 2, 1, 0);
     }
     WriteMultiLevelPlotfile(plot_file_name + "-analytic", max_level+1,
                             amrex::GetVecOfConstPtrs(plotmf_analytic),
-                            {"dudx", "dvdx",
-                             "dudy","dvdy",
-                             "dudn","dvdn"},
+                            {"phi",
+                            "dphidx", 
+                            "dphidy",
+                             },
                             geom, 0.0, Vector<int>(max_level+1,0),
                             Vector<IntVect>(max_level,IntVect{2}));
 #else
-        plotmf[ilev].define(grids[ilev],dmap[ilev],22,0);
-        plotmf[ilev].setVal(0.);
 
-        MultiFab::Copy(plotmf[ilev], phi[ilev]   , 0, 0, 3, 0);
-        MultiFab::Copy(plotmf[ilev], vfrc        , 0, 3, 1, 0);
-        MultiFab::Copy(plotmf[ilev], phieb[ilev] , 0, 4, 3, 0);
-        MultiFab::Copy(plotmf[ilev], grad_x[ilev], 0, 7, 3, 0);
-        MultiFab::Copy(plotmf[ilev], grad_y[ilev], 0, 10, 3, 0);
-        MultiFab::Copy(plotmf[ilev], grad_z[ilev], 0, 13, 3, 0);
-        MultiFab::Copy(plotmf[ilev], grad_eb[ilev],0, 16, 3, 0);
-        MultiFab::Copy(plotmf[ilev], ccentr[ilev], 0, 19, 3, 0);
+
+    plotmf[ilev].define(grids[ilev],dmap[ilev],4,0);
+    plotmf[ilev].setVal(0.);
+        MultiFab::Copy(plotmf[ilev], phi[ilev]   , 0, 0, 1, 0);
+        MultiFab::Copy(plotmf[ilev], grad_x[ilev], 0, 1, 1, 0);
+        MultiFab::Copy(plotmf[ilev], grad_y[ilev], 0, 2, 1, 0);
+        MultiFab::Copy(plotmf[ilev], grad_z[ilev], 0, 3, 1, 0);
+//        MultiFab::Copy(plotmf[ilev], grad_eb[ilev], 0, 9, 3, 0);
     }
-
     WriteMultiLevelPlotfile(plot_file_name, max_level+1,
                             amrex::GetVecOfConstPtrs(plotmf),
-                            {"u", "v", "w",
-                             "vfrac",
-                             "ueb", "veb", "web",
-                             "dudx", "dvdx", "dwdx",
-                             "dudy", "dvdy", "dwdy",
-                             "dudz", "dvdz", "dwdz",
-                             "dudn", "dvdn", "dwdn",
-                             "ccent_x", "ccent_y", "ccent_z"},
+                            {"phi",
+                            "dphidx", 
+                            "dphidy",
+                            "dphidz"
+                             },
                             geom, 0.0, Vector<int>(max_level+1,0),
                             Vector<IntVect>(max_level,IntVect{2}));
 
     Vector<MultiFab> plotmf_analytic(max_level+1);
     for (int ilev = 0; ilev <= max_level; ++ilev) {
-        plotmf_analytic[ilev].define(grids[ilev],dmap[ilev],12,0);
-        MultiFab::Copy(plotmf_analytic[ilev], grad_x_analytic[ilev], 0, 0, 3, 0);
-        MultiFab::Copy(plotmf_analytic[ilev], grad_y_analytic[ilev], 0, 3, 3, 0);
-        MultiFab::Copy(plotmf_analytic[ilev], grad_z_analytic[ilev], 0, 6, 3, 0);
-        MultiFab::Copy(plotmf_analytic[ilev], grad_eb_analytic[ilev], 0, 9, 3, 0);
+        plotmf_analytic[ilev].define(grids[ilev],dmap[ilev],4,0);
+        MultiFab::Copy(plotmf_analytic[ilev], phi[ilev]            , 0, 0, 1, 0);
+        MultiFab::Copy(plotmf_analytic[ilev], grad_x_analytic[ilev], 0, 1, 1, 0);
+        MultiFab::Copy(plotmf_analytic[ilev], grad_y_analytic[ilev], 0, 2, 1, 0);
+        MultiFab::Copy(plotmf_analytic[ilev], grad_z_analytic[ilev], 0, 3, 1, 0);
+//        MultiFab::Copy(plotmf_analytic[ilev], grad_eb_analytic[ilev], 0, 9, 3, 0);
     }
     WriteMultiLevelPlotfile(plot_file_name + "-analytic", max_level+1,
                             amrex::GetVecOfConstPtrs(plotmf_analytic),
-                            {"dudx", "dvdx","dwdx",
-                             "dudy","dvdy","dwdy",
-                             "dudz","dvdz","dwdz",
-                             "dudn","dvdn","dwdn"},
+                            {"phi",
+                            "dphidx", 
+                            "dphidy",
+                            "dphidz"
+                             },
                             geom, 0.0, Vector<int>(max_level+1,0),
                             Vector<IntVect>(max_level,IntVect{2}));
 

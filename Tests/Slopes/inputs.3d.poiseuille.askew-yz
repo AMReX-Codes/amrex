@@ -11,10 +11,10 @@ eb2.channel_rotation = 30.0  0.0
 eb2.channel_has_fluid_inside = 1
 
 max_level = 0
-ref_ratio = 2
+#ref_ratio = 2
 n_cell = 20
 max_grid_size = 64
-max_coarsening_level = 0
+#max_coarsening_level = 0
 prob_lo = 0.   0.   0.
 prob_hi = 2.0  2.0  2.0
 is_periodic = 1  0  0
