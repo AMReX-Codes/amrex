@@ -303,16 +303,16 @@ MyTest::readParameters ()
     }
     pp.queryarr("scalars", scalars);
 
-    pp.query("use_poiseuille_1d", use_poiseuille_1d);
-    pp.query("poiseuille_1d_askew", poiseuille_1d_askew);
-    pp.queryarr("poiseuille_1d_pt_on_top_wall",poiseuille_1d_pt_on_top_wall);
-    pp.query("poiseuille_1d_height",poiseuille_1d_height);
-    pp.query("poiseuille_1d_rotation",poiseuille_1d_rotation);
-    pp.queryarr("poiseuille_1d_askew_rotation",poiseuille_1d_askew_rotation);
-    pp.query("poiseuille_1d_flow_dir", poiseuille_1d_flow_dir);
-    pp.query("poiseuille_1d_height_dir", poiseuille_1d_height_dir);
-    pp.query("poiseuille_1d_bottom", poiseuille_1d_bottom);
-    pp.query("poiseuille_1d_no_flow_dir", poiseuille_1d_no_flow_dir);
+    pp.query("use_linear_1d", use_linear_1d);
+    pp.query("linear_1d_askew", linear_1d_askew);
+    pp.queryarr("linear_1d_pt_on_top_wall",linear_1d_pt_on_top_wall);
+    pp.query("linear_1d_height",linear_1d_height);
+    pp.query("linear_1d_rotation",linear_1d_rotation);
+    pp.queryarr("linear_1d_askew_rotation",linear_1d_askew_rotation);
+    pp.query("linear_1d_flow_dir", linear_1d_flow_dir);
+    pp.query("linear_1d_height_dir", linear_1d_height_dir);
+    pp.query("linear_1d_bottom", linear_1d_bottom);
+    pp.query("linear_1d_no_flow_dir", linear_1d_no_flow_dir);
 }
 
 void

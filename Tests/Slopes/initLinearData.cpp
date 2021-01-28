@@ -1,9 +1,9 @@
 #include "MyTest.H"
 
-void MyTest::initializePoiseuilleData(int ilev) {
+void MyTest::initializeLinearData(int ilev) {
 #if (AMREX_SPACEDIM == 2)
-	initializePoiseuilleDataFor2D(ilev);
+	initializeLinearDataFor2D(ilev);
 #else
-	initializePoiseuilleDataFor3D(ilev);
+	initializeLinearDataFor3D(ilev);
 #endif
 }

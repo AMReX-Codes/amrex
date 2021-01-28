@@ -7,7 +7,7 @@
 using namespace amrex;
 
 #if (AMREX_SPACEDIM == 2)
-void MyTest::initializePoiseuilleDataFor2D(int ilev) {
+void MyTest::initializeLinearDataFor2D(int ilev) {
   const auto dx = geom[ilev].CellSizeArray();
   for (MFIter mfi(phi[ilev]); mfi.isValid(); ++mfi) {
     const Box &bx = mfi.fabbox();
@@ -38,13 +38,13 @@ void MyTest::initializePoiseuilleDataFor2D(int ilev) {
     const auto &dhi = geom[ilev].Domain().hiVect();
 
     amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-      Real H = poiseuille_1d_height;
-      Real t = (poiseuille_1d_rotation / 180.) * M_PI;
+      Real H = linear_1d_height;
+      Real t = (linear_1d_rotation / 180.) * M_PI;
 
       Real a = std::tan(t);
       Real b = -1.0;
-      Real c = poiseuille_1d_pt_on_top_wall[1] -
-               std::tan(t) * poiseuille_1d_pt_on_top_wall[0];
+      Real c = linear_1d_pt_on_top_wall[1] -
+               std::tan(t) * linear_1d_pt_on_top_wall[0];
 
       Real rx = (i + 0.5 + ccent(i, j, k, 0)) * dx[0];
       Real ry = (j + 0.5 + ccent(i, j, k, 1)) * dx[1];
@@ -117,7 +117,7 @@ void MyTest::initializePoiseuilleDataFor2D(int ilev) {
 }
 
 #else
-void MyTest::initializePoiseuilleDataFor2D(int ilev) {
+void MyTest::initializeLinearDataFor2D(int ilev) {
   AMREX_ALWAYS_ASSERT_WITH_MESSAGE(0,
                                    "Calling 2D function for 3D case. Error!!");
 }

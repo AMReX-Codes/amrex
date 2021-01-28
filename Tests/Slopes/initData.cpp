@@ -56,9 +56,9 @@ MyTest::initData ()
         grad_eb_analytic[ilev].setVal(1e40);
         ccentr[ilev].setVal(0.0);
 
-	if(use_poiseuille_1d) 
+	if(use_linear_1d) 
         {
-	    initializePoiseuilleData(ilev);
+	    initializeLinearData(ilev);
 
         } else {
 	    for (MFIter mfi(phi[ilev]); mfi.isValid(); ++mfi)
