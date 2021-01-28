@@ -130,7 +130,7 @@ public:
     //!
     //! \param lev The level.
     //!
-    const Geometry& Geom (int lev) const { return m_gdb->Geom(lev); }
+    const Geometry& Geom (int lev) const { return m_gdb->ParticleGeom(lev); }
 
     //! \brief Get the particle Geometry for a given level
     //!
