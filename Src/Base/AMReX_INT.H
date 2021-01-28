@@ -1,5 +1,6 @@
 #ifndef AMREX_INT_H_
 #define AMREX_INT_H_
+#include <AMReX_Config.H>
 
 #ifdef __cplusplus
 #include <type_traits>

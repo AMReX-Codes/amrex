@@ -1,6 +1,7 @@
 
 #include <AMReX_MLCellABecLap.H>
 #include <AMReX_MLLinOp_K.H>
+#include <AMReX_MLCellABecLap_K.H>
 
 #ifdef AMREX_USE_PETSC
 #include <petscksp.h>
@@ -23,6 +24,99 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
                        const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+
+    m_overset_mask.resize(m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        m_overset_mask[amrlev].resize(m_num_mg_levels[amrlev]);
+    }
+}
+
+void
+MLCellABecLap::define (const Vector<Geometry>& a_geom,
+                       const Vector<BoxArray>& a_grids,
+                       const Vector<DistributionMapping>& a_dmap,
+                       const Vector<iMultiFab const*>& a_overset_mask,
+                       const LPInfo& a_info,
+                       const Vector<FabFactory<FArrayBox> const*>& a_factory)
+{
+    BL_PROFILE("MLCellABecLap::define(overset)");
+
+    int namrlevs = a_geom.size();
+    m_overset_mask.resize(namrlevs);
+    for (int amrlev = 0; amrlev < namrlevs; ++amrlev)
+    {
+        m_overset_mask[amrlev].emplace_back(new iMultiFab(a_grids[amrlev], a_dmap[amrlev], 1, 1));
+        iMultiFab::Copy(*m_overset_mask[amrlev][0], *a_overset_mask[amrlev], 0, 0, 1, 0);
+        if (amrlev > 1) {
+            AMREX_ALWAYS_ASSERT(amrex::refine(a_geom[amrlev-1].Domain(),2)
+                                == a_geom[amrlev].Domain());
+        }
+    }
+
+    int amrlev = 0;
+    Box dom = a_geom[0].Domain();
+    for (int mglev = 1; mglev <= a_info.max_coarsening_level; ++mglev)
+    {
+        AMREX_ALWAYS_ASSERT(mg_coarsen_ratio == 2);
+        iMultiFab const& fine = *m_overset_mask[amrlev][mglev-1];
+        if (dom.coarsenable(2) && fine.boxArray().coarsenable(2)) {
+            dom.coarsen(2);
+            std::unique_ptr<iMultiFab> crse(new iMultiFab(amrex::coarsen(fine.boxArray(),2),
+                                                          fine.DistributionMap(), 1, 1));
+            ReduceOps<ReduceOpSum> reduce_op;
+            ReduceData<int> reduce_data(reduce_op);
+            using ReduceTuple = typename decltype(reduce_data)::Type;
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*crse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.tilebox();
+                Array4<int const> const& fmsk = fine.const_array(mfi);
+                Array4<int> const& cmsk = crse->array(mfi);
+                reduce_op.eval(bx, reduce_data,
+                [=] AMREX_GPU_HOST_DEVICE (Box const& b) -> ReduceTuple
+                {
+                    return { coarsen_overset_mask(b, cmsk, fmsk) };
+                });
+            }
+            ReduceTuple hv = reduce_data.value();
+            if (amrex::get<0>(hv) == 0) {
+                m_overset_mask[amrlev].push_back(std::move(crse));
+            } else {
+                break;
+            }
+        } else {
+            break;
+        }
+    }
+    int max_overset_mask_coarsening_level = m_overset_mask[amrlev].size()-1;
+    ParallelAllReduce::Min(max_overset_mask_coarsening_level, ParallelContext::CommunicatorSub());
+    m_overset_mask[amrlev].resize(max_overset_mask_coarsening_level+1);
+
+    LPInfo linfo = a_info;
+    linfo.max_coarsening_level = std::min(a_info.max_coarsening_level,
+                                          max_overset_mask_coarsening_level);
+
+    MLCellLinOp::define(a_geom, a_grids, a_dmap, linfo, a_factory);
+
+    amrlev = 0;
+    for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+        MultiFab foo(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 0, MFInfo().SetAlloc(false));
+        if (! isMFIterSafe(*m_overset_mask[amrlev][mglev], foo)) {
+            std::unique_ptr<iMultiFab> osm(new iMultiFab(m_grids[amrlev][mglev],
+                                                         m_dmap[amrlev][mglev], 1, 1));
+            osm->ParallelCopy(*m_overset_mask[amrlev][mglev]);
+            std::swap(osm, m_overset_mask[amrlev][mglev]);
+        }
+    }
+
+    for (amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+            m_overset_mask[amrlev][mglev]->setBndry(1);
+            m_overset_mask[amrlev][mglev]->FillBoundary(m_geom[amrlev][mglev].periodicity());
+        }
+    }
 }
 
 void
@@ -44,13 +138,13 @@ MLCellABecLap::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux
 {
     BL_PROFILE("MLMG::getFluxes()");
 
-    const Real betainv = 1.0 / getBScalar();
+    const Real betainv = Real(1.0) / getBScalar();
     const int nlevs = NAMRLevels();
     for (int alev = 0; alev < nlevs; ++alev) {
         compFlux(alev, a_flux[alev], *a_sol[alev], a_loc);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
-            if (betainv != 1.0) {
+            if (betainv != Real(1.0)) {
                 a_flux[alev][idim]->mult(betainv);
             }
         }
@@ -68,7 +162,7 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                               m_lo_inhomog_neumann[n].end(),   1);
         auto ithi = std::find(m_hi_inhomog_neumann[n].begin(),
                               m_hi_inhomog_neumann[n].end(),   1);
-        if (itlo != m_lo_inhomog_neumann[n].end() or
+        if (itlo != m_lo_inhomog_neumann[n].end() ||
             ithi != m_hi_inhomog_neumann[n].end())
         {
             has_inhomog_neumann = true;
@@ -83,8 +177,8 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
     const auto probhi = m_geom[amrlev][mglev].ProbHiArray();
     amrex::ignore_unused(probhi);
     const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
-    const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : 1.0;
-    const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : 1.0;
+    const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : Real(1.0);
+    const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : Real(1.0);
     const Real xlo = problo[0];
     const Real dx = m_geom[amrlev][mglev].CellSize(0);
     const Box& domain = m_geom[amrlev][mglev].Domain();
@@ -101,7 +195,7 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(rhs, mfi_info); mfi.isValid(); ++mfi)
@@ -125,17 +219,17 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
             const auto& bvhi = bndry.bndryValues(ohi).array(mfi);
             bool outside_domain_lo = !(domain.contains(blo));
             bool outside_domain_hi = !(domain.contains(bhi));
-            if ((!outside_domain_lo) and (!outside_domain_hi)) continue;
+            if ((!outside_domain_lo) && (!outside_domain_hi)) continue;
             for (int icomp = 0; icomp < ncomp; ++icomp) {
                 const BoundCond bctlo = bdcv[icomp][olo];
                 const BoundCond bcthi = bdcv[icomp][ohi];
                 const Real bcllo = bdlv[icomp][olo];
                 const Real bclhi = bdlv[icomp][ohi];
-                if (m_lo_inhomog_neumann[icomp][idim] and outside_domain_lo)
+                if (m_lo_inhomog_neumann[icomp][idim] && outside_domain_lo)
                 {
                     if (idim == 0) {
                         Real fac = beta*dxi;
-                        if (m_has_metric_term and !has_bcoef) {
+                        if (m_has_metric_term && !has_bcoef) {
 #if (AMREX_SPACEDIM == 1)
                             fac *= problo[0]*problo[0];
 #elif (AMREX_SPACEDIM == 2)
@@ -150,7 +244,7 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                         });
                     } else if (idim == 1) {
                         Real fac = beta*dyi;
-                        if (m_has_metric_term and !has_bcoef) {
+                        if (m_has_metric_term && !has_bcoef) {
                             AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
                             {
                                 mllinop_apply_innu_ylo_m(i,j,k, rhsfab, mlo,
@@ -176,11 +270,11 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                         });
                     }
                 }
-                if (m_hi_inhomog_neumann[icomp][idim] and outside_domain_hi)
+                if (m_hi_inhomog_neumann[icomp][idim] && outside_domain_hi)
                 {
                     if (idim == 0) {
                         Real fac = beta*dxi;
-                        if (m_has_metric_term and !has_bcoef) {
+                        if (m_has_metric_term && !has_bcoef) {
 #if (AMREX_SPACEDIM == 1)
                             fac *= probhi[0]*probhi[0];
 #elif (AMREX_SPACEDIM == 2)
@@ -195,7 +289,7 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                         });
                     } else if (idim == 1) {
                         Real fac = beta*dyi;
-                        if (m_has_metric_term and !has_bcoef) {
+                        if (m_has_metric_term && !has_bcoef) {
                             AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
                             {
                                 mllinop_apply_innu_yhi_m(i,j,k, rhsfab, mhi,
@@ -227,7 +321,28 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
     }
 }
 
-#ifdef AMREX_USE_HYPRE
+void
+MLCellABecLap::applyOverset (int amrlev, MultiFab& rhs) const
+{
+    if (m_overset_mask[amrlev][0]) {
+        const int ncomp = getNComp();
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(*m_overset_mask[amrlev][0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<Real> const& rfab = rhs.array(mfi);
+            Array4<int const> const& osm = m_overset_mask[amrlev][0]->const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+            {
+                if (osm(i,j,k) == 0) rfab(i,j,k,n) = 0.0;
+            });
+        }
+    }
+}
+
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 std::unique_ptr<Hypre>
 MLCellABecLap::makeHypre (Hypre::Interface hypre_interface) const
 {
@@ -273,6 +388,7 @@ MLCellABecLap::makeHypre (Hypre::Interface hypre_interface) const
         }
         hypre_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
     }
+    hypre_solver->setIsMatrixSingular(this->isBottomSingular());
 
     return hypre_solver;
 }

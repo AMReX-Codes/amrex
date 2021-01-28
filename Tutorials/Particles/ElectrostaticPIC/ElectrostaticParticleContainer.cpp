@@ -273,7 +273,7 @@ FieldGather(const VectorMeshData& E,
             }
         }
     }
-};
+}
 
 void 
 ElectrostaticParticleContainer::

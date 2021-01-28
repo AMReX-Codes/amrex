@@ -1,5 +1,6 @@
 #ifndef AMREX_PETSC_H_
 #define AMREX_PETSC_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
@@ -58,8 +59,8 @@ private:
     Vec x = nullptr;
 
     LayoutData<PetscInt> ncells_grid;
-    LayoutData<Gpu::ManagedDeviceVector<PetscInt> > cell_id_vec;
     FabArray<BaseFab<PetscInt> > cell_id;
+    FabArray<BaseFab<PetscInt> > cell_id_vec;
 
     MultiFab const* m_eb_b_coeffs = nullptr;
 

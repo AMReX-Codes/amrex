@@ -53,34 +53,42 @@ endif ()
 #
 message(STATUS "Enabled CUDA options:")
 
-set(CUDA_ARCH "Auto" CACHE STRING "CUDA architecture (Use 'Auto' for automatic detection)")
+set(AMReX_CUDA_ARCH_DEFAULT "Auto")
+if(DEFINED ENV{AMREX_CUDA_ARCH})
+    set(AMReX_CUDA_ARCH_DEFAULT "$ENV{AMREX_CUDA_ARCH}")
+endif()
+set(AMReX_CUDA_ARCH ${AMReX_CUDA_ARCH_DEFAULT} CACHE STRING "CUDA architecture (Use 'Auto' for automatic detection)")
 
-option(ENABLE_CUDA_FASTMATH "Enable CUDA fastmath" ON)
-cuda_print_option( ENABLE_CUDA_FASTMATH )
+option(AMReX_CUDA_FASTMATH "Enable CUDA fastmath" ON)
+cuda_print_option( AMReX_CUDA_FASTMATH )
 
-set(CUDA_MAX_THREADS "256" CACHE STRING
+set(AMReX_CUDA_MAX_THREADS "256" CACHE STRING
    "Maximum number of CUDA threads per block" )
-message( STATUS "   CUDA_MAX_THREADS = ${CUDA_MAX_THREADS}")
+message( STATUS "   AMReX_CUDA_MAX_THREADS = ${AMReX_CUDA_MAX_THREADS}")
 
-set(CUDA_MAXREGCOUNT "255" CACHE STRING
+set(AMReX_CUDA_MAXREGCOUNT "255" CACHE STRING
    "Limit the maximum number of registers available" )
-message( STATUS "   CUDA_MAXREGCOUNT = ${CUDA_MAXREGCOUNT}")
+message( STATUS "   AMReX_CUDA_MAXREGCOUNT = ${AMReX_CUDA_MAXREGCOUNT}")
 
 # if this works well and does not add too much compile-time we should enable it by default
-cmake_dependent_option(CUDA_LTO "Enable CUDA link-time-optimization" OFF
+cmake_dependent_option(AMReX_CUDA_LTO "Enable CUDA link-time-optimization" OFF
    "CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0.167" OFF)
-cuda_print_option(CUDA_LTO)
+cuda_print_option(AMReX_CUDA_LTO)
 
 # this warns on a typical user bug when developing on (forgiving) Power9 machines (e.g. Summit)
-cmake_dependent_option(CUDA_WARN_CAPTURE_THIS
+cmake_dependent_option(AMReX_CUDA_WARN_CAPTURE_THIS
    "Warn if a CUDA lambda captures a class' this" ON
    "CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0.194" OFF)
 # no code should ever ship -Werror, but one can turn this on manually in CI if one likes
-cmake_dependent_option(CUDA_ERROR_CAPTURE_THIS
+cmake_dependent_option(AMReX_CUDA_ERROR_CAPTURE_THIS
    "Error if a CUDA lambda captures a class' this" OFF
    "CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0.194" OFF)
-cuda_print_option(CUDA_WARN_CAPTURE_THIS)
-cuda_print_option(CUDA_ERROR_CAPTURE_THIS)
+cuda_print_option(AMReX_CUDA_WARN_CAPTURE_THIS)
+cuda_print_option(AMReX_CUDA_ERROR_CAPTURE_THIS)
+
+option(AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL
+       "Error if a CUDA host function is called from a host device funtion" OFF)
+cuda_print_option(AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL)
 
 # makes things more robust for -Xcompiler pre-fixing unknown nvcc flags
 # note: available with NVCC 10.2.89+; default in CMake 3.17.0+ for supporting NVCCs
@@ -89,19 +97,19 @@ cmake_dependent_option(CUDA_FORWARD_UNKNOWN_FLAGS_HOST
    "Forward unknown NVCC flags to the host compiler" ON
    "CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 10.2.89;CMAKE_VERSION VERSION_LESS 3.17" OFF)
 
-option(CUDA_PTX_VERBOSE "Verbose code generation statistics in ptxas" OFF)
-cuda_print_option(CUDA_PTX_VERBOSE)
+option(AMReX_CUDA_PTX_VERBOSE "Verbose code generation statistics in ptxas" OFF)
+cuda_print_option(AMReX_CUDA_PTX_VERBOSE)
 
-option(CUDA_COMPILATION_TIMER "Generate CSV table with time for each compilation phase" OFF)
-cuda_print_option(CUDA_COMPILATION_TIMER)
+option(AMReX_CUDA_COMPILATION_TIMER "Generate CSV table with time for each compilation phase" OFF)
+cuda_print_option(AMReX_CUDA_COMPILATION_TIMER)
 
 # not a good default-candidate for CMAKE_BUILD_TYPE "Debug": often does not
 # compile at all, is very sensitive to further set options, or compiles super slowly;
 # im some cases, such as recursive function usage, apps need to increase
 # `cudaLimitStackSize` in order to not stack overflow with device debug symbols
 # (this costs some extra DRAM).
-option(CUDA_DEBUG "Generate debug information for device code (optimizations: off)" OFF)
-cuda_print_option(CUDA_DEBUG)
+option(AMReX_CUDA_DEBUG "Generate debug information for device code (optimizations: off)" OFF)
+cuda_print_option(AMReX_CUDA_DEBUG)
 
 set(_CUDA_PERF_NEUTRAL_DEBUG OFF)
 if ("${CMAKE_BUILD_TYPE}" MATCHES "Debug" OR "${CMAKE_BUILD_TYPE}" MATCHES "RelWithDebInfo")
@@ -109,18 +117,18 @@ if ("${CMAKE_BUILD_TYPE}" MATCHES "Debug" OR "${CMAKE_BUILD_TYPE}" MATCHES "RelW
 endif ()
 
 # both are performance-neutral debug symbols
-option(CUDA_SHOW_LINENUMBERS "Generate line-number information (optimizations: on)"
+option(AMReX_CUDA_SHOW_LINENUMBERS "Generate line-number information (optimizations: on)"
        ${_CUDA_PERF_NEUTRAL_DEBUG})
-option(CUDA_SHOW_CODELINES "Generate source information in PTX (optimizations: on)"
+option(AMReX_CUDA_SHOW_CODELINES "Generate source information in PTX (optimizations: on)"
        ${_CUDA_PERF_NEUTRAL_DEBUG})
-cuda_print_option(CUDA_SHOW_LINENUMBERS)
-cuda_print_option(CUDA_SHOW_CODELINES)
+cuda_print_option(AMReX_CUDA_SHOW_LINENUMBERS)
+cuda_print_option(AMReX_CUDA_SHOW_CODELINES)
 
-option(CUDA_BACKTRACE "Generate host function symbol names (better cuda-memcheck)" ${CUDA_DEBUG})
-cuda_print_option(CUDA_BACKTRACE)
+option(AMReX_CUDA_BACKTRACE "Generate host function symbol names (better cuda-memcheck)" ${AMReX_CUDA_DEBUG})
+cuda_print_option(AMReX_CUDA_BACKTRACE)
 
-option(CUDA_KEEP_FILES "Keep intermediately generated files (folder: nvcc_tmp)" OFF)
-cuda_print_option(CUDA_KEEP_FILES)
+option(AMReX_CUDA_KEEP_FILES "Keep intermediately generated files (folder: nvcc_tmp)" OFF)
+cuda_print_option(AMReX_CUDA_KEEP_FILES)
 
 #
 # Error if NVCC is too old
@@ -135,10 +143,10 @@ endif ()
 # autodetection is enabled
 #
 include(FindCUDA/select_compute_arch)
-cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${CUDA_ARCH})
+cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${AMReX_CUDA_ARCH})
 
 #
-# Remove unsupported architecture: anything less the 6.0 must go
+# Remove unsupported architecture: anything less the 3.5 must go
 #
 string(REPLACE "-gencode;" "-gencode=" _nvcc_arch_flags "${_nvcc_arch_flags}")
 
@@ -147,14 +155,15 @@ foreach (_item IN LISTS _nvcc_arch_flags)
    # [0-9]+ means any number between 0 and 9 will be matched one or more times (option +)
    string(REGEX MATCH "[0-9]+" _cuda_compute_capability "${_item}")
 
-   if (_cuda_compute_capability LESS 60)
+   if (_cuda_compute_capability LESS 35)
       message(STATUS "Ignoring unsupported CUDA architecture ${_cuda_compute_capability}")
       list(REMOVE_ITEM _nvcc_arch_flags ${_item})
    endif ()
 
 endforeach ()
 
-if (CUDA_LTO)
+
+if (AMReX_CUDA_LTO)
     # we replace
     #   -gencode=arch=compute_NN,code=sm_NN
     # with
@@ -207,12 +216,12 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Windows" ) )
 endif ()
 string(APPEND CMAKE_CUDA_FLAGS " --expt-relaxed-constexpr --expt-extended-lambda")
 string(APPEND CMAKE_CUDA_FLAGS " -Wno-deprecated-gpu-targets ${NVCC_ARCH_FLAGS}")
-string(APPEND CMAKE_CUDA_FLAGS " -maxrregcount=${CUDA_MAXREGCOUNT}")
+string(APPEND CMAKE_CUDA_FLAGS " -maxrregcount=${AMReX_CUDA_MAXREGCOUNT}")
 
 # This is to work around a bug with nvcc, see: https://github.com/kokkos/kokkos/issues/1473
 string(APPEND CMAKE_CUDA_FLAGS " -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored")
 
-if (ENABLE_CUDA_FASTMATH)
+if (AMReX_CUDA_FASTMATH)
    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --use_fast_math")
 endif ()
 
@@ -225,13 +234,17 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcudafe --display_error_number")
 #
 # CUDA specific warnings
 #
-if (CUDA_WARN_CAPTURE_THIS)
+if (AMReX_CUDA_WARN_CAPTURE_THIS)
     string(APPEND CMAKE_CUDA_FLAGS " --Wext-lambda-captures-this")
 endif()
-if (CUDA_ERROR_CAPTURE_THIS)
+if (AMReX_CUDA_ERROR_CAPTURE_THIS)
     # note: prefer double-dash --Werror!
     # https://github.com/ccache/ccache/issues/598
     string(APPEND CMAKE_CUDA_FLAGS " --Werror ext-lambda-captures-this")
+endif()
+
+if (AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL)
+    string(APPEND CMAKE_CUDA_FLAGS " --Werror cross-execution-space-call")
 endif()
 
 #
@@ -244,18 +257,18 @@ endif()
 #
 # Code generation
 #
-if (CUDA_PTX_VERBOSE)
+if (AMReX_CUDA_PTX_VERBOSE)
     string(APPEND CMAKE_CUDA_FLAGS " --ptxas-options=-v")
 endif()
 
 # keep intermediately generated files
-if (CUDA_KEEP_FILES)
+if (AMReX_CUDA_KEEP_FILES)
     make_directory("${PROJECT_BINARY_DIR}/nvcc_tmp")
     string(APPEND CMAKE_CUDA_FLAGS " --keep --keep-dir ${PROJECT_BINARY_DIR}/nvcc_tmp")
 endif ()
 
 # compilation timings
-if (CUDA_COMPILATION_TIMER)
+if (AMReX_CUDA_COMPILATION_TIMER)
     file(REMOVE "${PROJECT_BINARY_DIR}/nvcc_timings.csv")
     string(APPEND CMAKE_CUDA_FLAGS " --time ${PROJECT_BINARY_DIR}/nvcc_timings.csv")
 endif ()
@@ -263,20 +276,20 @@ endif ()
 #
 # Debugging
 #
-if (CUDA_DEBUG)
+if (AMReX_CUDA_DEBUG)
     # is this unsupported with MSVC?
     string(APPEND CMAKE_CUDA_FLAGS " -G")
 endif()
 
-if (CUDA_SHOW_LINENUMBERS AND NOT CUDA_DEBUG)
+if (AMReX_CUDA_SHOW_LINENUMBERS AND NOT AMReX_CUDA_DEBUG)
     # nvcc warning : '--device-debug (-G)' overrides '--generate-line-info (-lineinfo)'
     string(APPEND CMAKE_CUDA_FLAGS " --generate-line-info")
 endif ()
-if (CUDA_SHOW_CODELINES)
+if (AMReX_CUDA_SHOW_CODELINES)
     string(APPEND CMAKE_CUDA_FLAGS " --source-in-ptx")
 endif ()
 
-if (CUDA_BACKTRACE)
+if (AMReX_CUDA_BACKTRACE)
     if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
         string(APPEND CMAKE_CUDA_FLAGS " -Xcompiler /Zi") # comes with Debug & RelWithDebInfo
     else ()

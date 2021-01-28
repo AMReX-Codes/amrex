@@ -8,7 +8,7 @@
 #include <AMReX_AmrParGDB.H>
 #endif
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -80,7 +80,7 @@ AmrCore::regrid (int lbase, Real time, bool)
         if (lev <= finest_level) // an old level
         {
             bool ba_changed = (new_grids[lev] != grids[lev]);
-	    if (ba_changed or coarse_ba_changed) {
+	    if (ba_changed || coarse_ba_changed) {
                 BoxArray level_grids = grids[lev];
                 DistributionMapping level_dmap = dmap[lev];
                 if (ba_changed) {
@@ -127,7 +127,7 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
         int                       numgrid = bs.size();
         Long                      ncells  = bs.numPts();
         double                    ntot    = Geom(lev).Domain().d_numPts();
-        Real                      frac    = Real(100.0)*(Real(ncells) / ntot);
+        Real                      frac    = Real(100.0*double(ncells) / ntot);
 
         os << "  Level "
            << lev
@@ -147,7 +147,7 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
 	    int smin = std::numeric_limits<int>::max();
             int imax = std::numeric_limits<int>::lowest();
             int imin = std::numeric_limits<int>::lowest();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif	    
 	    {
@@ -157,7 +157,7 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
 		int smin_this = std::numeric_limits<int>::max();
                 int imax_this = std::numeric_limits<int>::lowest();
                 int imin_this = std::numeric_limits<int>::lowest();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp for
 #endif	    	    
 		for (int k = 0; k < numgrid; k++) {
@@ -176,7 +176,7 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
 			imax_this = k;
 		    }
 		}
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical (amr_prtgs)
 #endif	    	    
 		{

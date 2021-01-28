@@ -83,7 +83,7 @@ IArrayBox::resize (const Box& b, int N)
     // For debugging purposes
     if ( do_initval ) {
 #if defined(AMREX_USE_GPU)
-        bool run_on_device = Gpu::inLaunchRegion() and
+        bool run_on_device = Gpu::inLaunchRegion() &&
             (arena() == The_Arena() ||
              arena() == The_Device_Arena() ||
              arena() == The_Managed_Arena());

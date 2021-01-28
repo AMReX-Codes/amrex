@@ -9,7 +9,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_ParallelDescriptor.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -346,18 +346,18 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
         BoxList bl_mesh(mbox & b);
 
 #if (AMREX_SPACEDIM == 1)
-        Real s_avgbox = npts_avgbox;
+        Real s_avgbox = static_cast<Real>(npts_avgbox);
 #elif (AMREX_SPACEDIM == 2)
-        Real s_avgbox = std::sqrt(npts_avgbox);
+        Real s_avgbox = static_cast<Real>(std::sqrt(npts_avgbox));
 #elif (AMREX_SPACEDIM == 3)
-        Real s_avgbox = std::cbrt(npts_avgbox);
+        Real s_avgbox = static_cast<Real>(std::cbrt(npts_avgbox));
 #endif
 
         const int block_size = 4 * std::max(1,static_cast<int>(std::ceil(s_avgbox/4.))*4);
         bl_mesh.maxSize(block_size);
         const int N = bl_mesh.size();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
         bool start_omp_parallel = !omp_in_parallel();
         const int nthreads = omp_get_max_threads();
 #else
@@ -366,7 +366,7 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
 
         if (start_omp_parallel)
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
             Vector<BoxList> bl_priv(nthreads, BoxList(mytyp));
 #pragma omp parallel
             {
@@ -435,11 +435,11 @@ BoxList::parallelComplementIn (const Box& b, BoxArray const& ba)
         BoxList bl_mesh(mbox & b);
 
 #if (AMREX_SPACEDIM == 1)
-        Real s_avgbox = npts_avgbox;
+        Real s_avgbox = static_cast<Real>(npts_avgbox);
 #elif (AMREX_SPACEDIM == 2)
-        Real s_avgbox = std::sqrt(npts_avgbox);
+        Real s_avgbox = static_cast<Real>(std::sqrt(npts_avgbox));
 #elif (AMREX_SPACEDIM == 3)
-        Real s_avgbox = std::cbrt(npts_avgbox);
+        Real s_avgbox = static_cast<Real>(std::cbrt(npts_avgbox));
 #endif
 
         const int block_size = 4 * std::max(1,static_cast<int>(std::ceil(s_avgbox/4.))*4);
@@ -455,7 +455,7 @@ BoxList::parallelComplementIn (const Box& b, BoxArray const& ba)
 
         Vector<Box> local_boxes;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
         bool start_omp_parallel = !omp_in_parallel();
         const int nthreads = omp_get_max_threads();
 #else
@@ -464,7 +464,7 @@ BoxList::parallelComplementIn (const Box& b, BoxArray const& ba)
 
         if (start_omp_parallel)
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
             Vector<BoxList> bl_priv(nthreads, BoxList(mytyp));
             int ntot = 0;
 #pragma omp parallel reduction(+:ntot)

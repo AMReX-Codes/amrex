@@ -346,7 +346,7 @@ MyTest::initData ()
         const MultiCutFab& bcent = factory[ilev]->getBndryCent();
         const MultiCutFab& cent = factory[ilev]->getCentroid();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(phiexact[ilev]); mfi.isValid(); ++mfi)

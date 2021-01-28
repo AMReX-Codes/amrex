@@ -11,7 +11,7 @@ MyTest::initProbPoisson ()
     {
         const auto prob_lo = geom[ilev].ProbLoArray();
         const auto dx      = geom[ilev].CellSizeArray();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(rhs[ilev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -40,7 +40,7 @@ MyTest::initProbABecLaplacian ()
         const auto dx      = geom[ilev].CellSizeArray();
         auto a = ascalar;
         auto b = bscalar;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(rhs[ilev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -82,7 +82,7 @@ MyTest::initProbABecLaplacianInhomNeumann ()
         Box const& domain = geom[ilev].Domain();
         auto a = ascalar;
         auto b = bscalar;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(rhs[ilev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -148,6 +148,7 @@ MyTest::initProbABecLaplacianInhomNeumann ()
                 });
             }
 
+#if (AMREX_SPACEDIM > 2)
             if (bx.smallEnd(2) == domain.smallEnd(2)) {
                 Box const& bzlo = amrex::adjCellLo(bx, 2);
                 amrex::ParallelFor(bzlo,
@@ -165,6 +166,7 @@ MyTest::initProbABecLaplacianInhomNeumann ()
                     actual_init_dphi_dz_hi(i,j,k,solnfab,prob_lo,dx);
                 });
             }
+#endif
         }
 
         solution[ilev].setVal(0.0,0,1,0); // set interior to 0

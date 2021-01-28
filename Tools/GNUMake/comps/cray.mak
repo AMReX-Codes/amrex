@@ -24,6 +24,14 @@ ifeq ($(shell expr $(COMP_VERSION) \>= 9), 1)
 else
   CCE_GE_V9 := FALSE
 endif
+
+# we need to be careful on the A64fx
+ifeq ($(CRAY_CC_VERSION),10.0.1)
+  ifeq ($(CRAY_ARCH_TARGET),aarch64)
+    CCE_GE_V9 := FALSE
+  endif
+endif
+
 ########################################################################
 
 ifeq ($(DEBUG),TRUE)

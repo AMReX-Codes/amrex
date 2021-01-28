@@ -1,5 +1,6 @@
 #ifndef AMREX_INTERP_3D_C_H_
 #define AMREX_INTERP_3D_C_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
@@ -566,16 +567,232 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
     }
 }
 
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_face_interp (int ci, int cj, int ck,
+                     int nc, int nf, int idir,
+                     Array4<T const> const& crse,
+                     Array4<T> const& fine,
+                     Array4<int const> const& mask,
+                     IntVect const& ratio) noexcept
+{
+
+    if (mask) {
+        if (!mask(ci, cj, ck, nc))
+            { return; }
+    }
+
+    const int fi = ci*ratio[0];
+    const int fj = cj*ratio[1];
+    const int fk = ck*ratio[2];
+
+    switch (idir) {
+        case 0:
+        {
+            const Real ll = crse(ci, cj-1, ck-1, nc);
+            const Real cl = crse(ci, cj-1, ck,   nc);
+            const Real rl = crse(ci, cj-1, ck+1, nc);
+
+            const Real lc = crse(ci, cj  , ck-1, nc);
+            const Real cc = crse(ci, cj  , ck,   nc);
+            const Real rc = crse(ci, cj  , ck+1, nc);
+
+            const Real lu = crse(ci, cj+1, ck-1, nc);
+            const Real cu = crse(ci, cj+1, ck,   nc);
+            const Real ru = crse(ci, cj+1, ck+1, nc);
+
+            fine(fi,fj  ,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+lc-cu-rc) + (ll+ru-lu-rl) );
+            fine(fi,fj  ,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+rc-cu-lc) + (lu+rl-ll-ru) );
+            fine(fi,fj+1,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
+            fine(fi,fj+1,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
+
+            break;
+        }
+        case 1:
+        {
+            const Real ll = crse(ci-1, cj, ck-1, nc);
+            const Real cl = crse(ci  , cj, ck-1, nc);
+            const Real rl = crse(ci+1, cj, ck-1, nc);
+
+            const Real lc = crse(ci-1, cj, ck  , nc);
+            const Real cc = crse(ci  , cj, ck  , nc);
+            const Real rc = crse(ci+1, cj, ck  , nc);
+
+            const Real lu = crse(ci-1, cj, ck+1, nc);
+            const Real cu = crse(ci  , cj, ck+1, nc);
+            const Real ru = crse(ci+1, cj, ck+1, nc);
+
+            fine(fi  ,fj,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+lc-cu-rc) + (ll+ru-lu-rl) );
+            fine(fi+1,fj,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+rc-cu-lc) + (lu+rl-ll-ru) );
+            fine(fi  ,fj,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
+            fine(fi+1,fj,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
+
+            break;
+        }
+        case 2:
+        {
+            const Real ll = crse(ci-1, cj-1, ck, nc);
+            const Real cl = crse(ci  , cj-1, ck, nc);
+            const Real rl = crse(ci+1, cj-1, ck, nc);
+
+            const Real lc = crse(ci-1, cj  , ck, nc);
+            const Real cc = crse(ci  , cj  , ck, nc);
+            const Real rc = crse(ci+1, cj  , ck, nc);
+
+            const Real lu = crse(ci-1, cj+1, ck, nc);
+            const Real cu = crse(ci  , cj+1, ck, nc);
+            const Real ru = crse(ci+1, cj+1, ck, nc);
+
+            fine(fi  ,fj  ,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+lc-cu-rc) + (ll+ru-lu-rl) );
+            fine(fi+1,fj  ,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+rc-cu-lc) + (lu+rl-ll-ru) );
+            fine(fi  ,fj+1,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
+            fine(fi+1,fj+1,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
+
+            break;
+        }
+    }
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_int (int ci, int cj, int ck, int nf,
+             GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
+             IntVect const& ratio,
+             GpuArray<Real, AMREX_SPACEDIM> const& cellSize) noexcept
+{
+    const int fi = ci*ratio[0];
+    const int fj = cj*ratio[1];
+    const int fk = ck*ratio[1];
+
+    // References to fine exterior values needed for interior calculation.
+    const Real u000 = fine[0](fi,   fj  , fk  , nf);
+    const Real u200 = fine[0](fi+2, fj  , fk  , nf);
+    const Real u010 = fine[0](fi,   fj+1, fk  , nf);
+    const Real u210 = fine[0](fi+2, fj+1, fk  , nf);
+    const Real u001 = fine[0](fi,   fj  , fk+1, nf);
+    const Real u201 = fine[0](fi+2, fj  , fk+1, nf);
+    const Real u011 = fine[0](fi,   fj+1, fk+1, nf);
+    const Real u211 = fine[0](fi+2, fj+1, fk+1, nf);
+
+    const Real v000 = fine[1](fi  , fj  , fk  , nf);
+    const Real v020 = fine[1](fi  , fj+2, fk  , nf);
+    const Real v100 = fine[1](fi+1, fj  , fk  , nf);
+    const Real v120 = fine[1](fi+1, fj+2, fk  , nf);
+    const Real v001 = fine[1](fi  , fj  , fk+1, nf);
+    const Real v021 = fine[1](fi  , fj+2, fk+1, nf);
+    const Real v101 = fine[1](fi+1, fj  , fk+1, nf);
+    const Real v121 = fine[1](fi+1, fj+2, fk+1, nf);
+
+    const Real w000 = fine[2](fi  , fj  , fk  , nf);
+    const Real w002 = fine[2](fi  , fj  , fk+2, nf);
+    const Real w100 = fine[2](fi+1, fj  , fk  , nf);
+    const Real w102 = fine[2](fi+1, fj  , fk+2, nf);
+    const Real w010 = fine[2](fi  , fj+1, fk  , nf);
+    const Real w012 = fine[2](fi  , fj+1, fk+2, nf);
+    const Real w110 = fine[2](fi+1, fj+1, fk  , nf);
+    const Real w112 = fine[2](fi+1, fj+1, fk+2, nf);
+
+    const Real dx = cellSize[0];
+    const Real dy = cellSize[1];
+    const Real dz = cellSize[2];
+
+    const Real dx3 = dx*dx*dx;
+    const Real dy3 = dy*dy*dy;
+    const Real dz3 = dz*dz*dz;
+
+    // aspbs = a squared plus b squared
+    const Real xspys = dx*dx + dy*dy;
+    const Real yspzs = dy*dy + dz*dz;
+    const Real zspxs = dz*dz + dx*dx;
+
+    fine[0](fi+1, fj  , fk  , nf) = Real(0.5)*(u000+u200)
+                                  + dx*(2*dz*dz+dx*dx)/(8*dy*zspxs)*(v000+v120-v020-v100)
+                                  +                dx3/(8*dy*zspxs)*(v001+v121-v021-v101)
+                                  + dx*(2*dy*dy+dx*dx)/(8*dz*xspys)*(w000+w102-w002-w100)
+                                  +                dx3/(8*dz*xspys)*(w010+w112-w012-w110);
+
+    fine[0](fi+1, fj+1, fk  , nf) = Real(0.5)*(u010+u210)
+                                  + dx*(2*dz*dz+dx*dx)/(8*dy*zspxs)*(v000+v120-v020-v100)
+                                  +                dx3/(8*dy*zspxs)*(v001+v121-v021-v101)
+                                  + dx*(2*dy*dy+dx*dx)/(8*dz*xspys)*(w010+w112-w012-w110)
+                                  +                dx3/(8*dz*xspys)*(w000+w102-w100-w002);
+
+    fine[0](fi+1, fj  , fk+1, nf) = Real(0.5)*(u001+u201)
+                                  + dx*(2*dz*dz+dx*dx)/(8*dy*zspxs)*(v001+v121-v021-v101)
+                                  +                dx3/(8*dy*zspxs)*(v000+v120-v020-v100)
+                                  + dx*(2*dy*dy+dx*dx)/(8*dz*xspys)*(w000+w102-w002-w100)
+                                  +                dx3/(8*dz*xspys)*(w010+w112-w012-w110);
+
+    fine[0](fi+1, fj+1, fk+1, nf) = Real(0.5)*(u011+u211)
+                                  + dx*(2*dz*dz+dx*dx)/(8*dy*zspxs)*(v001+v121-v021-v101)
+                                  +                dx3/(8*dy*zspxs)*(v000+v120-v020-v100)
+                                  + dx*(2*dy*dy+dx*dx)/(8*dz*xspys)*(w010+w112-w012-w110)
+                                  +                dx3/(8*dz*xspys)*(w000+w102-w002-w100);
+
+    fine[1](fi  , fj+1, fk  , nf) = Real(0.5)*(v000+v020)
+                                  + dy*(2*dz*dz+dy*dy)/(8*dx*yspzs)*(u000+u210-u010-u200)
+                                  +                dy3/(8*dx*yspzs)*(u001+u211-u011-u201)
+                                  + dy*(2*dx*dx+dy*dy)/(8*dz*xspys)*(w000+w012-w002-w010)
+                                  +                dy3/(8*dz*xspys)*(w100+w112-w102-w110);
+
+    fine[1](fi+1, fj+1, fk  , nf) = Real(0.5)*(v001+v021)
+                                  + dy*(2*dz*dz+dy*dy)/(8*dx*yspzs)*(u000+u210-u010-u200)
+                                  +                dy3/(8*dx*yspzs)*(u001+u211-u011-u201)
+                                  + dy*(2*dx*dx+dy*dy)/(8*dz*xspys)*(w100+w112-w102-w110)
+                                  +                dy3/(8*dz*xspys)*(w000+w012-w002-w010);
+
+    fine[1](fi  , fj+1, fk+1, nf) = Real(0.5)*(v100+v120)
+                                  + dy*(2*dz*dz+dy*dy)/(8*dx*yspzs)*(u001+u211-u011-u201)
+                                  +                dy3/(8*dx*yspzs)*(u000+u210-u010-u200)
+                                  + dy*(2*dx*dx+dy*dy)/(8*dz*xspys)*(w000+w012-w002-w010)
+                                  +                dy3/(8*dz*xspys)*(w100+w112-w102-w110);
+
+    fine[1](fi+1, fj+1, fk+1, nf) = Real(0.5)*(v101+v121)
+                                  + dy*(2*dz*dz+dy*dy)/(8*dx*yspzs)*(u001+u211-u011-u201)
+                                  +                dy3/(8*dx*yspzs)*(u000+u210-u010-u200)
+                                  + dy*(2*dx*dx+dy*dy)/(8*dz*xspys)*(w100+w112-w102-w110)
+                                  +                dy3/(8*dz*xspys)*(w000+w012-w002-w010);
+
+    fine[2](fi  , fj  , fk+1, nf) = Real(0.5)*(w000+w002)
+                                  + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u000+u201-u001-u200)
+                                  +                dz3/(8*dx*yspzs)*(u010+u211-u011-u210)
+                                  + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v000+v021-v001-v020)
+                                  +                dz3/(8*dy*zspxs)*(v100+v121-v101-v120);
+
+    fine[2](fi  , fj+1, fk+1, nf) = Real(0.5)*(w010+w012)
+                                  + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u000+u201-u001-u200)
+                                  +                dz3/(8*dx*yspzs)*(u010+u211-u011-u210)
+                                  + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v100+v121-v101-v120)
+                                  +                dz3/(8*dy*zspxs)*(v000+v021-v001-v020);
+
+    fine[2](fi+1, fj  , fk+1, nf) = Real(0.5)*(w100+w102)
+                                  + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u010+u211-u011-u210)
+                                  +                dz3/(8*dx*yspzs)*(u000+u201-u001-u200)
+                                  + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v000+v021-v001-v020)
+                                  +                dz3/(8*dy*zspxs)*(v100+v121-v101-v120);
+
+    fine[2](fi+1, fj+1, fk+1, nf) = Real(0.5)*(w110+w112)
+                                  + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u010+u211-u011-u210)
+                                  +                dz3/(8*dx*yspzs)*(u000+u201-u001-u200)
+                                  + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v100+v121-v101-v120)
+                                  +                dz3/(8*dy*zspxs)*(v000+v021-v001-v020);
+}
+
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 face_linear_interp_x (int i, int j, int k, int n, Array4<T> const& fine,
                       Array4<T const> const& crse, IntVect const& ratio) noexcept
 {
-    int ii = amrex::coarsen(i,ratio[0]);
-    int jj = amrex::coarsen(j,ratio[1]);
-    int kk = amrex::coarsen(k,ratio[2]);
-    Real const w = static_cast<Real>(i-ii*ratio[0]) * (Real(1.)/ratio[0]);
-    fine(i,j,k,n) = (Real(1.)-w) * crse(ii,jj,kk,n) + w * crse(ii+1,jj,kk,n);
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    const int kk = amrex::coarsen(k,ratio[2]);
+    if (i-ii*ratio[0] == 0) {
+        fine(i,j,k,n) = crse(ii,jj,kk,n);
+    } else {
+        Real const w = static_cast<Real>(i-ii*ratio[0]) * (Real(1.)/ratio[0]);
+        fine(i,j,k,n) = (Real(1.)-w) * crse(ii,jj,kk,n) + w * crse(ii+1,jj,kk,n);
+    }
 }
 
 template<typename T>
@@ -583,11 +800,15 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 face_linear_interp_y (int i, int j, int k, int n, Array4<T> const& fine,
                       Array4<T const> const& crse, IntVect const& ratio) noexcept
 {
-    int ii = amrex::coarsen(i,ratio[0]);
-    int jj = amrex::coarsen(j,ratio[1]);
-    int kk = amrex::coarsen(k,ratio[2]);
-    Real const w = static_cast<Real>(j-jj*ratio[1]) * (Real(1.)/ratio[1]);
-    fine(i,j,k,n) = (Real(1.)-w) * crse(ii,jj,kk,n) + w * crse(ii,jj+1,kk,n);
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    const int kk = amrex::coarsen(k,ratio[2]);
+    if (j-jj*ratio[1] == 0) {
+        fine(i,j,k,n) = crse(ii,jj,kk,n);
+    } else {
+        Real const w = static_cast<Real>(j-jj*ratio[1]) * (Real(1.)/ratio[1]);
+        fine(i,j,k,n) = (Real(1.)-w) * crse(ii,jj,kk,n) + w * crse(ii,jj+1,kk,n);
+    }
 }
 
 template<typename T>
@@ -595,13 +816,18 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 face_linear_interp_z (int i, int j, int k, int n, Array4<T> const& fine,
                       Array4<T const> const& crse, IntVect const& ratio) noexcept
 {
-    int ii = amrex::coarsen(i,ratio[0]);
-    int jj = amrex::coarsen(j,ratio[1]);
-    int kk = amrex::coarsen(k,ratio[2]);
-    Real const w = static_cast<Real>(k-kk*ratio[2]) * (Real(1.)/ratio[2]);
-    fine(i,j,k,n) = (Real(1.)-w) * crse(ii,jj,kk,n) + w * crse(ii,jj,kk+1,n);
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    const int kk = amrex::coarsen(k,ratio[2]);
+    if (k-kk*ratio[2] == 0) {
+        fine(i,j,k,n) = crse(ii,jj,kk,n);
+    } else {
+        Real const w = static_cast<Real>(k-kk*ratio[2]) * (Real(1.)/ratio[2]);
+        fine(i,j,k,n) = (Real(1.)-w) * crse(ii,jj,kk,n) + w * crse(ii,jj,kk+1,n);
+    }
 }
 
-}
+}  // namespace amrex
+
 
 #endif

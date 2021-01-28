@@ -1,4 +1,4 @@
-if ( NOT ENABLE_FORTRAN_INTERFACES )
+if ( NOT AMReX_FORTRAN_INTERFACES )
    return()
 endif ()
 

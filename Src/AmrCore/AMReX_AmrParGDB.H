@@ -1,5 +1,6 @@
 #ifndef AMREX_AmrParGDB_H
 #define AMREX_AmrParGDB_H
+#include <AMReX_Config.H>
 
 #include <AMReX_ParGDB.H>
 #include <AMReX_AmrCore.H>
@@ -22,13 +23,22 @@ public:
     virtual ~AmrParGDB () {;}
 
     virtual const Geometry& ParticleGeom (int level) const override;
-    virtual const Geometry& Geom (int level) const override;
-    virtual const DistributionMapping& ParticleDistributionMap
-                                             (int level) const override;
-    virtual const DistributionMapping&         DistributionMap
-                                             (int level) const override;
+    virtual const Geometry&         Geom (int level) const override;
+
+    virtual const Vector<Geometry>& ParticleGeom () const override;
+    virtual const Vector<Geometry>&         Geom () const override;
+
+    virtual const DistributionMapping& ParticleDistributionMap (int level) const override;
+    virtual const DistributionMapping&         DistributionMap (int level) const override;
+
+    virtual const Vector<DistributionMapping>& ParticleDistributionMap () const override;
+    virtual const Vector<DistributionMapping>&         DistributionMap () const override;
+
     virtual const BoxArray& ParticleBoxArray (int level) const override;
     virtual const BoxArray&         boxArray (int level) const override;
+
+    virtual const Vector<BoxArray>& ParticleBoxArray () const override;
+    virtual const Vector<BoxArray>&         boxArray () const override;
 
     virtual void SetParticleBoxArray (int level, const BoxArray& new_ba) override;
     virtual void SetParticleDistributionMap (int level,	const DistributionMapping& new_dm) override;
@@ -45,6 +55,8 @@ public:
     virtual IntVect refRatio (int level) const override;
     virtual int MaxRefRatio (int level) const override;
 
+    virtual Vector<IntVect> refRatio () const override;
+
 protected:
 
     AmrCore*                    m_amrcore;
@@ -58,7 +70,7 @@ inline
 const Geometry&
 AmrParGDB::ParticleGeom (int level) const
 {
-    if (not m_has_geom[level]) {
+    if (! m_has_geom[level]) {
         return m_amrcore->Geom(level);
     } else {
         return m_geom[level];
@@ -70,6 +82,24 @@ const Geometry&
 AmrParGDB::Geom (int level) const
 {
     return m_amrcore->Geom(level);
+}
+
+inline
+const Vector<Geometry>&
+AmrParGDB::ParticleGeom () const
+{
+    if (! m_has_geom[0]) {
+        return m_amrcore->Geom();
+    } else {
+        return m_geom;
+    }
+}
+
+inline
+const Vector<Geometry>&
+AmrParGDB::Geom () const
+{
+    return m_amrcore->Geom();
 }
 
 inline
@@ -91,6 +121,24 @@ AmrParGDB::DistributionMap (int level) const
 }
 
 inline
+const Vector<DistributionMapping>&
+AmrParGDB::ParticleDistributionMap () const
+{
+    if (m_dmap[0].empty()) {
+	return m_amrcore->DistributionMap();
+    } else {
+	return m_dmap;
+    }
+}
+
+inline
+const Vector<DistributionMapping>&
+AmrParGDB::DistributionMap () const
+{
+    return m_amrcore->DistributionMap();
+}
+
+inline
 const BoxArray&
 AmrParGDB::ParticleBoxArray (int level) const
 {
@@ -106,6 +154,24 @@ const BoxArray&
 AmrParGDB::boxArray (int level) const
 {
     return m_amrcore->boxArray(level);
+}
+
+inline
+const Vector<BoxArray>&
+AmrParGDB::ParticleBoxArray () const
+{
+    if (m_ba[0].empty()) {
+	return m_amrcore->boxArray();
+    } else {
+	return m_ba;
+    }
+}
+
+inline
+const Vector<BoxArray>&
+AmrParGDB::boxArray () const
+{
+    return m_amrcore->boxArray();
 }
 
 inline
@@ -172,6 +238,13 @@ IntVect
 AmrParGDB::refRatio (int level) const
 {
     return m_amrcore->refRatio(level);
+}
+
+inline
+Vector<IntVect>
+AmrParGDB::refRatio () const
+{
+    return m_amrcore->refRatio();
 }
 
 inline

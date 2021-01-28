@@ -1,11 +1,12 @@
 #ifndef AMREX_MULTIMASK_H_
 #define AMREX_MULTIMASK_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Mask.H>
 #include <AMReX_FabArray.H>
 #include <AMReX_Geometry.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 

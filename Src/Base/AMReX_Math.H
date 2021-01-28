@@ -1,5 +1,6 @@
 #ifndef AMREX_MATH_H_
 #define AMREX_MATH_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Extension.H>

@@ -1,5 +1,6 @@
 #ifndef AMREX_MLNODETENSORLAP_2D_K_H_
 #define AMREX_MLNODETENSORLAP_2D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
@@ -36,7 +37,7 @@ void mlndtslap_interpadd (int i, int j, int, Array4<Real> const& fine,
         int jc = amrex::coarsen(j,2);
         bool i_is_odd = (ic*2 != i);
         bool j_is_odd = (jc*2 != j);
-        if (i_is_odd and j_is_odd) {
+        if (i_is_odd && j_is_odd) {
             // Node on a X-Y face
             fine(i,j,0) += ts_interp_face_xy(crse,ic,jc);
         } else if (i_is_odd) {
@@ -62,15 +63,15 @@ void mlndtslap_adotx (Box const& b, Array4<Real> const& y, Array4<Real const> co
     const Real h11 = dxinv[1]*dxinv[1];
     amrex::LoopConcurrent(b, [=] (int i, int j, int k) noexcept
     {
-        y(i,j,k) = x(i-1,j-1,0) * ((1./6.)*h00*s[0] + 0.5*h01*s[1] + (1./6.)*h11*s[2])
-            +      x(i-1,j  ,0) * ((2./3.)*h00*s[0] - (1./3.)*h11*s[2])
-            +      x(i-1,j+1,0) * ((1./6.)*h00*s[0] - 0.5*h01*s[1] + (1./6.)*h11*s[2])
-            +      x(i  ,j-1,0) * ((-1./3.)*h00*s[0] + (2./3.)*h11*s[2])
-            +      x(i  ,j  ,0) * ((-4./3.)*h00*s[0] + (-4./3.)*h11*s[2])
-            +      x(i  ,j+1,0) * ((-1./3.)*h00*s[0] + (2./3.)*h11*s[2])
-            +      x(i+1,j-1,0) * ((1./6.)*h00*s[0] - 0.5*h01*s[1] + (1./6.)*h11*s[2])
-            +      x(i+1,j  ,0) * ((2./3.)*h00*s[0] - (1./3.)*h11*s[2])
-            +      x(i+1,j+1,0) * ((1./6.)*h00*s[0] + 0.5*h01*s[1] + (1./6.)*h11*s[2]);
+        y(i,j,k) = x(i-1,j-1,0) * (Real(1./6.)*h00*s[0] + Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2])
+            +      x(i-1,j  ,0) * (Real(2./3.)*h00*s[0] - Real(1./3.)*h11*s[2])
+            +      x(i-1,j+1,0) * (Real(1./6.)*h00*s[0] - Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2])
+            +      x(i  ,j-1,0) * (Real(-1./3.)*h00*s[0] + Real(2./3.)*h11*s[2])
+            +      x(i  ,j  ,0) * (Real(-4./3.)*h00*s[0] + Real(-4./3.)*h11*s[2])
+            +      x(i  ,j+1,0) * (Real(-1./3.)*h00*s[0] + Real(2./3.)*h11*s[2])
+            +      x(i+1,j-1,0) * (Real(1./6.)*h00*s[0] - Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2])
+            +      x(i+1,j  ,0) * (Real(2./3.)*h00*s[0] - Real(1./3.)*h11*s[2])
+            +      x(i+1,j+1,0) * (Real(1./6.)*h00*s[0] + Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2]);
     });
 }
 
@@ -88,16 +89,16 @@ void mlndtslap_gauss_seidel (Box const& b, Array4<Real> const& sol,
         if (msk(i,j,k)) {
             sol(i,j,k) = 0.0;
         } else {
-            Real s0 = ((-4./3.)*h00*s[0] + (-4./3.)*h11*s[2]);
-            Real Ax = sol(i-1,j-1,0) * ((1./6.)*h00*s[0] + 0.5*h01*s[1] + (1./6.)*h11*s[2])
-                +     sol(i-1,j  ,0) * ((2./3.)*h00*s[0] - (1./3.)*h11*s[2])
-                +     sol(i-1,j+1,0) * ((1./6.)*h00*s[0] - 0.5*h01*s[1] + (1./6.)*h11*s[2])
-                +     sol(i  ,j-1,0) * ((-1./3.)*h00*s[0] + (2./3.)*h11*s[2])
+            Real s0 = (Real(-4./3.)*h00*s[0] + Real(-4./3.)*h11*s[2]);
+            Real Ax = sol(i-1,j-1,0) * (Real(1./6.)*h00*s[0] + Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2])
+                +     sol(i-1,j  ,0) * (Real(2./3.)*h00*s[0] - Real(1./3.)*h11*s[2])
+                +     sol(i-1,j+1,0) * (Real(1./6.)*h00*s[0] - Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2])
+                +     sol(i  ,j-1,0) * (Real(-1./3.)*h00*s[0] + Real(2./3.)*h11*s[2])
                 +     sol(i  ,j  ,0) * s0
-                +     sol(i  ,j+1,0) * ((-1./3.)*h00*s[0] + (2./3.)*h11*s[2])
-                +     sol(i+1,j-1,0) * ((1./6.)*h00*s[0] - 0.5*h01*s[1] + (1./6.)*h11*s[2])
-                +     sol(i+1,j  ,0) * ((2./3.)*h00*s[0] - (1./3.)*h11*s[2])
-                +     sol(i+1,j+1,0) * ((1./6.)*h00*s[0] + 0.5*h01*s[1] + (1./6.)*h11*s[2]);
+                +     sol(i  ,j+1,0) * (Real(-1./3.)*h00*s[0] + Real(2./3.)*h11*s[2])
+                +     sol(i+1,j-1,0) * (Real(1./6.)*h00*s[0] - Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2])
+                +     sol(i+1,j  ,0) * (Real(2./3.)*h00*s[0] - Real(1./3.)*h11*s[2])
+                +     sol(i+1,j+1,0) * (Real(1./6.)*h00*s[0] + Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2]);
             sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
         }
     });
@@ -113,13 +114,13 @@ void mlndtslap_normalize (Box const& b, Array4<Real> const& phi,
     amrex::Loop(b, [=] (int i, int j, int k) noexcept
     {
         if (!msk(i,j,k)) {
-            Real s0 = ((-4./3.)*h00*s[0] + (-4./3.)*h11*s[2]);
+            Real s0 = (Real(-4./3.)*h00*s[0] + Real(-4./3.)*h11*s[2]);
             phi(i,j,k) /= s0;
         }
     });
 }
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 
 AMREX_FORCE_INLINE
 void mlndtslap_fill_ijmatrix (Box const& ndbx, Array4<HypreNodeLap::Int const> const& nid,
@@ -138,58 +139,58 @@ void mlndtslap_fill_ijmatrix (Box const& ndbx, Array4<HypreNodeLap::Int const> c
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
     for (int i = lo.x; i <= hi.x; ++i) {
-        if (nid(i,j,k) >= 0 and owner(i,j,k))
+        if (nid(i,j,k) >= 0 && owner(i,j,k))
         {
             rows.push_back(nid(i,j,k));
             cols.push_back(nid(i,j,k));
-            mat.push_back((-4./3.)*h00*s[0] + (-4./3.)*h11*s[2]);
+            mat.push_back(Real(-4./3.)*h00*s[0] + Real(-4./3.)*h11*s[2]);
             HypreNodeLap::Int nc = 1;
 
             if                (nid(i-1,j-1,k) >= 0) {
                 cols.push_back(nid(i-1,j-1,k));
-                mat.push_back((1./6.)*h00*s[0] + 0.5*h01*s[1] + (1./6.)*h11*s[2]);
+                mat.push_back(Real(1./6.)*h00*s[0] + Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2]);
                 ++nc;
             }
 
             if                (nid(i-1,j,k) >= 0) {
                 cols.push_back(nid(i-1,j,k));
-                mat.push_back((2./3.)*h00*s[0] - (1./3.)*h11*s[2]);
+                mat.push_back(Real(2./3.)*h00*s[0] - Real(1./3.)*h11*s[2]);
                 ++nc;
             }
 
             if                (nid(i-1,j+1,k) >= 0) {
                 cols.push_back(nid(i-1,j+1,k));
-                mat.push_back((1./6.)*h00*s[0] - 0.5*h01*s[1] + (1./6.)*h11*s[2]);
+                mat.push_back(Real(1./6.)*h00*s[0] - Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2]);
                 ++nc;
             }
 
             if                (nid(i,j-1,k) >= 0) {
                 cols.push_back(nid(i,j-1,k));
-                mat.push_back((-1./3.)*h00*s[0] + (2./3.)*h11*s[2]);
+                mat.push_back(Real(-1./3.)*h00*s[0] + Real(2./3.)*h11*s[2]);
                 ++nc;
             }
 
             if                (nid(i,j+1,k) >= 0) {
                 cols.push_back(nid(i,j+1,k));
-                mat.push_back((-1./3.)*h00*s[0] + (2./3.)*h11*s[2]);
+                mat.push_back(Real(-1./3.)*h00*s[0] + Real(2./3.)*h11*s[2]);
                 ++nc;
             }
 
             if                (nid(i+1,j-1,k) >= 0) {
                 cols.push_back(nid(i+1,j-1,k));
-                mat.push_back((1./6.)*h00*s[0] - 0.5*h01*s[1] + (1./6.)*h11*s[2]);
+                mat.push_back(Real(1./6.)*h00*s[0] - Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2]);
                 ++nc;
             }
 
             if                (nid(i+1,j,k) >= 0) {
                 cols.push_back(nid(i+1,j,k));
-                mat.push_back((2./3.)*h00*s[0] - (1./3.)*h11*s[2]);
+                mat.push_back(Real(2./3.)*h00*s[0] - Real(1./3.)*h11*s[2]);
                 ++nc;
             }
 
             if                (nid(i+1,j+1,k) >= 0) {
                 cols.push_back(nid(i+1,j+1,k));
-                mat.push_back((1./6.)*h00*s[0] + 0.5*h01*s[1] + (1./6.)*h11*s[2]);
+                mat.push_back(Real(1./6.)*h00*s[0] + Real(0.5)*h01*s[1] + Real(1./6.)*h11*s[2]);
                 ++nc;
             }
 

@@ -1,5 +1,6 @@
 #ifndef AMREX_HypreABecLap_H_
 #define AMREX_HypreABecLap_H_
+#include <AMReX_Config.H>
 
 #include <iomanip>
 #include <iostream>
@@ -37,9 +38,11 @@ private:
     HYPRE_StructVector x = NULL;
     HYPRE_StructSolver solver = NULL;
 
+    void getSolution (MultiFab& soln);
+
+public: // for cuda
     void prepareSolver ();
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
-    void getSolution (MultiFab& soln);
 };
 
 }

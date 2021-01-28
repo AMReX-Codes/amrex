@@ -21,7 +21,7 @@ int main (int argc, char* argv[])
 void main_main ()
 {
     // What time is it now?  We'll use this to compute total run time.
-    Real strt_time = ParallelDescriptor::second();
+    auto strt_time = ParallelDescriptor::second();
 
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, nsteps, plot_int;
@@ -138,7 +138,7 @@ void main_main ()
 
     // Call the timer again and compute the maximum difference between the start time and stop time
     //   over all processors
-    Real stop_time = ParallelDescriptor::second() - strt_time;
+    auto stop_time = ParallelDescriptor::second() - strt_time;
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     ParallelDescriptor::ReduceRealMax(stop_time,IOProc);
 

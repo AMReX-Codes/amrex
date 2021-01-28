@@ -1,6 +1,7 @@
 
 #ifndef AMREX_StateData_H_
 #define AMREX_StateData_H_
+#include <AMReX_Config.H>
 
 #include <memory>
 
@@ -313,7 +314,7 @@ public:
     */
     Real curTime () const noexcept {
 	return (desc->timeType() == StateDescriptor::Point) ?
-	    new_time.stop : 0.5*(new_time.start + new_time.stop);
+	    new_time.stop : 0.5_rt*(new_time.start + new_time.stop);
     }
 
     /**
@@ -321,7 +322,7 @@ public:
     */
     Real prevTime () const noexcept {
 	return (desc->timeType() == StateDescriptor::Point) ?
-	    old_time.stop : 0.5*(old_time.start + old_time.stop);
+	    old_time.stop : 0.5_rt*(old_time.start + old_time.stop);
     }
 
     /**

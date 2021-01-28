@@ -28,7 +28,8 @@ if (DPCPP_BETA_VERSION LESS "09")
 endif ()
 
 
-set(_cxx_clang "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>") # Only Clang for now
+set(_cxx_dpcpp "$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:IntelClang>,$<CXX_COMPILER_ID:IntelDPCPP>>")
+set(_cxx_dpcpp "$<AND:$<COMPILE_LANGUAGE:CXX>,${_cxx_dpcpp}>")
 
 #
 # SYCL and AMReX::SYCL targets
@@ -42,24 +43,31 @@ target_compile_features(SYCL INTERFACE cxx_std_17)
 #
 # Compiler options
 #
+
 target_compile_options( SYCL
    INTERFACE
-   $<${_cxx_clang}:-Wno-error=sycl-strict -fsycl>
-   $<${_cxx_clang}:$<$<BOOL:${ENABLE_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
+   $<${_cxx_dpcpp}:-Wno-error=sycl-strict -fsycl>
+   $<${_cxx_dpcpp}:$<$<BOOL:${AMReX_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
 
 # temporary work-around for DPC++ beta08 bug
 #   define "long double" as 64bit for C++ user-defined literals
 #   https://github.com/intel/llvm/issues/2187
 target_compile_options( SYCL
    INTERFACE
-   $<${_cxx_clang}:-mlong-double-64 "SHELL:-Xclang -mlong-double-64">)
+   $<${_cxx_dpcpp}:-mlong-double-64 "SHELL:-Xclang -mlong-double-64">)
 
 # Beta09 has enabled eary optimizations by default.  But this causes many
 # tests to crash.  So we disable it.
 target_compile_options( SYCL
    INTERFACE
-   $<${_cxx_clang}:-fno-sycl-early-optimizations>)
+   $<${_cxx_dpcpp}:-fno-sycl-early-optimizations>)
 
+# Need this option to compile with mpiicpc
+if (AMReX_MPI)
+  target_compile_options( SYCL
+    INTERFACE
+    $<${_cxx_dpcpp}:-fsycl-unnamed-lambda>)
+endif ()
 
 #
 # Link options
@@ -75,13 +83,13 @@ if (DPCPP_BETA_VERSION LESS "10")   # If beta < 10
 
    target_link_options( SYCL
       INTERFACE
-      $<${_cxx_clang}:-fsycl -device-math-lib=fp32,fp64> )
+      $<${_cxx_dpcpp}:-fsycl -device-math-lib=fp32,fp64> )
 
 else ()  # for beta >= 10
 
    target_link_options( SYCL
       INTERFACE
-      $<${_cxx_clang}:-fsycl -fsycl-device-lib=libc,libm-fp32,libm-fp64> )
+      $<${_cxx_dpcpp}:-fsycl -fsycl-device-lib=libc,libm-fp32,libm-fp64> )
 
 endif ()
 
@@ -90,11 +98,11 @@ endif ()
 # TODO: use $<LINK_LANG_AND_ID:> genex for CMake >=3.17
 target_link_options( SYCL
    INTERFACE
-   $<${_cxx_clang}:$<$<BOOL:${ENABLE_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
+   $<${_cxx_dpcpp}:$<$<BOOL:${AMReX_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
 
 
-if (ENABLE_DPCPP_AOT)
-   message(FATAL_ERROR "\nAhead-of-time (AOT) compilation support not available yet.\nRe-configure with ENABLE_DPCPP_AOT=OFF.")
+if (AMReX_DPCPP_AOT)
+   message(FATAL_ERROR "\nAhead-of-time (AOT) compilation support not available yet.\nRe-configure with AMReX_DPCPP_AOT=OFF.")
 
    #
    # TODO: remove comments to enable AOT support when the time comes
@@ -104,7 +112,7 @@ if (ENABLE_DPCPP_AOT)
    #    ## TODO: use file(READ)
    #    execute_process( COMMAND cat /sys/devices/cpu/caps/pmu_name OUTPUT_VARIABLE _cpu_long_name )
    # else ()
-   #    message(FATAL_ERROR "\nENABLE_DPCPP_AOT is not supported on ${CMAKE_SYSTEM_NAME}\n")
+   #    message(FATAL_ERROR "\nAMReX_DPCPP_AOT is not supported on ${CMAKE_SYSTEM_NAME}\n")
    # endif ()
 
    # string(STRIP "${_cpu_long_name}" _cpu_long_name)
@@ -116,7 +124,7 @@ if (ENABLE_DPCPP_AOT)
    #    set(_cpu_short_name "cfl")
    # else ()
    #    message(FATAL_ERROR "\n Ahead-of-time compilation for CPU ${_cpu_long_name} is not yet supported\n"
-   #       "Maybe set ENABLE_DPCPP_AOT to OFF?\n")
+   #       "Maybe set AMReX_DPCPP_AOT to OFF?\n")
    # endif ()
 
    # target_compile_options( amrex
@@ -129,4 +137,4 @@ if (ENABLE_DPCPP_AOT)
 endif ()
 
 
-unset(_cxx_clang)
+unset(_cxx_dpcpp)

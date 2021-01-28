@@ -187,28 +187,42 @@ function (generate_buildinfo _target _git_dir)
 
    # Generate AMReX_buildInfo.cpp
    configure_file( ${AMREX_BUILDINFO_IFILE}
-      ${CMAKE_CURRENT_BINARY_DIR}/AMReX_buildInfo.cpp @ONLY)
+      ${PROJECT_BINARY_DIR}/${_target}/AMReX_buildInfo.cpp @ONLY)
 
-   target_sources( ${_target}
+   # add a re-usable target
+   add_library(buildInfo${_target} STATIC)
+   add_library(buildInfo::${_target} ALIAS buildInfo${_target})
+
+   target_sources(buildInfo${_target}
       PRIVATE
-      ${CMAKE_CURRENT_BINARY_DIR}/AMReX_buildInfo.cpp
-      )
+      ${PROJECT_BINARY_DIR}/${_target}/AMReX_buildInfo.cpp
+   )
 
-   target_sources( ${_target}
+   target_sources(buildInfo${_target}
       PRIVATE
       ${AMREX_C_SCRIPTS_DIR}/AMReX_buildInfo.H
-      )
+   )
 
-   target_include_directories( ${_target}
+   target_include_directories(buildInfo${_target}
       PUBLIC
       $<BUILD_INTERFACE:${AMREX_C_SCRIPTS_DIR}>
-      )
+   )
 
    # Make AMReX_buildInfo.cpp always out of date before building
-   add_custom_command( TARGET ${_target}
+   add_custom_command(TARGET buildInfo${_target}
       PRE_BUILD
       COMMAND ${CMAKE_COMMAND} -E touch_nocreate AMReX_buildInfo.cpp
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      )
+      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${_target}/
+   )
+
+   target_link_libraries(${_target}
+      PUBLIC
+      $<BUILD_INTERFACE:buildInfo${_target}> )
+
+   # Set PIC property to be consistent with AMReX'
+   get_target_property(_pic AMReX::amrex POSITION_INDEPENDENT_CODE)
+   set_target_properties(buildInfo${_target}
+      PROPERTIES
+      POSITION_INDEPENDENT_CODE ${_pic} )
 
 endfunction ()

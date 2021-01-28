@@ -1,5 +1,6 @@
 #ifndef AMREX_ErrorList_H_
 #define AMREX_ErrorList_H_
+#include <AMReX_Config.H>
 
 #include <string>
 #include <memory>

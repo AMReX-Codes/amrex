@@ -1,6 +1,7 @@
 
 #ifndef AMREX_BOX_H_
 #define AMREX_BOX_H_
+#include <AMReX_Config.H>
 
 #include <iosfwd>
 
@@ -211,6 +212,28 @@ public:
     //! Returns true if argument is contained within Box.
     AMREX_GPU_HOST_DEVICE
     bool contains (const IntVect& p) const noexcept { return p.allGE(smallend) && p.allLE(bigend); }
+
+    //! Returns true if argument is contained within Box.
+    AMREX_GPU_HOST_DEVICE
+    bool contains (const Dim3& p) const noexcept {
+        return AMREX_D_TERM(p.x >= smallend[0] && p.x <= bigend[0],
+                         && p.y >= smallend[1] && p.y <= bigend[1],
+                         && p.z >= smallend[2] && p.z <= bigend[2]);
+    }
+
+    //! Returns true if argument is contained within Box.
+    AMREX_GPU_HOST_DEVICE
+#if (AMREX_SPACEDIM == 1)
+    bool contains (int i, int, int) const noexcept {
+#elif (AMREX_SPACEDIM == 2)
+    bool contains (int i, int j, int) const noexcept {
+#else
+    bool contains (int i, int j, int k) const noexcept {
+#endif
+        return AMREX_D_TERM(i >= smallend[0] && i <= bigend[0],
+                         && j >= smallend[1] && j <= bigend[1],
+                         && k >= smallend[2] && k <= bigend[2]);
+    }
 
     /** \brief Returns true if argument is contained within Box.
     * It is an error if the Boxes have different types.
@@ -865,14 +888,24 @@ AMREX_FORCE_INLINE
 IntVect
 Box::atOffset (Long offset) const noexcept
 {
-    auto len = this->length3d();
-    auto lo  = this->loVect3d();
-    Long k = offset / (len[0]*len[1]);
-    Long j = (offset - k*(len[0]*len[1])) / len[0];
-    Long i = (offset - k*(len[0]*len[1])) - j*len[0];
-    return IntVect{AMREX_D_DECL(static_cast<int>(i+lo[0]),
-                                static_cast<int>(j+lo[1]),
-                                static_cast<int>(k+lo[2])) };
+#if (AMREX_SPACEDIM == 1)
+    return IntVect{static_cast<int>(offset+smallend[0])};
+#elif (AMREX_SPACEDIM == 2)
+    int xlen = bigend[0]-smallend[0]+1;
+    Long j = offset / xlen;
+    Long i = offset - j*xlen;
+    return IntVect{static_cast<int>(i+smallend[0]),
+                   static_cast<int>(j+smallend[1])};
+#elif (AMREX_SPACEDIM == 3)
+    int xlen = bigend[0]-smallend[0]+1;
+    int ylen = bigend[1]-smallend[1]+1;
+    Long k = offset / (xlen*ylen);
+    Long j = (offset - k*(xlen*ylen)) / xlen;
+    Long i = (offset - k*(xlen*ylen)) - j*xlen;
+    return IntVect{static_cast<int>(i+smallend[0]),
+                   static_cast<int>(j+smallend[1]),
+                   static_cast<int>(k+smallend[2])};
+#endif
 }
 
 AMREX_GPU_HOST_DEVICE
@@ -880,14 +913,27 @@ AMREX_FORCE_INLINE
 GpuArray<int,3>
 Box::atOffset3d (Long offset) const noexcept
 {
-    auto len = this->length3d();
-    auto lo  = this->loVect3d();
-    Long k = offset / (len[0]*len[1]);
-    Long j = (offset - k*(len[0]*len[1])) / len[0];
-    Long i = (offset - k*(len[0]*len[1])) - j*len[0];
-    return {{static_cast<int>(i+lo[0]),
-             static_cast<int>(j+lo[1]),
-             static_cast<int>(k+lo[2])}};
+#if (AMREX_SPACEDIM == 1)
+    return {{static_cast<int>(offset+smallend[0]),
+             static_cast<int>(0),
+             static_cast<int>(0)}};
+#elif (AMREX_SPACEDIM == 2)
+    int xlen = bigend[0]-smallend[0]+1;
+    Long j = offset / xlen;
+    Long i = offset - j*xlen;
+    return {{static_cast<int>(i+smallend[0]),
+             static_cast<int>(j+smallend[1]),
+             static_cast<int>(0)}};
+#elif (AMREX_SPACEDIM == 3)
+    int xlen = bigend[0]-smallend[0]+1;
+    int ylen = bigend[1]-smallend[1]+1;
+    Long k = offset / (xlen*ylen);
+    Long j = (offset - k*(xlen*ylen)) / xlen;
+    Long i = (offset - k*(xlen*ylen)) - j*xlen;
+    return {{static_cast<int>(i+smallend[0]),
+             static_cast<int>(j+smallend[1]),
+             static_cast<int>(k+smallend[2])}};
+#endif
 }
 
 AMREX_GPU_HOST_DEVICE

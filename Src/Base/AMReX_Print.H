@@ -1,5 +1,6 @@
 #ifndef AMREX_PRINT_H_
 #define AMREX_PRINT_H_
+#include <AMReX_Config.H>
 
 #include <sstream>
 #include <fstream>
@@ -174,7 +175,7 @@ namespace amrex
             if (rank == AllProcs || rank == my_proc) {
                 int my_proc_global = ParallelDescriptor::MyProc();
                 std::string proc_file_name = file_name + "." + std::to_string(my_proc_global);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
                 proc_file_name += "." + std::to_string(omp_get_thread_num());
 #endif
                 ofs.open(proc_file_name, std::ios_base::app);

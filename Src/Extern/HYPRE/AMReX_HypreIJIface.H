@@ -1,5 +1,6 @@
 #ifndef AMREX_HYPREIJIFACE_H
 #define AMREX_HYPREIJIFACE_H
+#include <AMReX_Config.H>
 
 #include <memory>
 
@@ -36,10 +37,12 @@ public:
     HYPRE_IJVector x() { return m_sln; }
 
     //! Number of iterations taken by the solver to reach the desired tolerance
-    HypreIntType getNumIters() { return m_num_iterations; }
+    HypreIntType getNumIters() const { return m_num_iterations; }
 
     //! Final residual norm after a linear solve
-    HypreRealType getFinalResidualNorm() { return m_final_res_norm; }
+    HypreRealType getFinalResidualNorm() const { return m_final_res_norm; }
+
+    bool adjustSingularMatrix() const { return m_adjust_singular_matrix; }
 
 private:
     void init_preconditioner(const std::string& prefix, const std::string& name);
@@ -119,6 +122,9 @@ private:
 
     //! Flag indicating whether user has requested recomputation of preconditioner
     bool m_recompute_preconditioner{true};
+
+    //! Should singular matrix be adjusted to fix solution on a node/cell?
+    bool m_adjust_singular_matrix{false};
 
     //! Flag indicating whether to dump matrix files
     bool m_write_files{false};

@@ -4,14 +4,40 @@ on: [push, pull_request]
 
 jobs:
   # Build libamrex and all tutorials
-  tutorials:
+  tutorials_msvc:
     name: MSVC C++17 w/o Fortran w/o MPI
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
     - name: Build & Install
       run: |
-        mkdir build
-        cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_VERBOSE_MAKEFILE=ON -DAMReX_BUILD_TUTORIALS=ON -DENABLE_FORTRAN=OFF -DENABLE_MPI=OFF
-        cmake --build . --config Debug
+        cmake -S . -B build   `
+              -DCMAKE_BUILD_TYPE=Debug      `
+              -DCMAKE_VERBOSE_MAKEFILE=ON   `
+              -DAMReX_BUILD_TUTORIALS=ON    `
+              -DAMReX_FORTRAN=OFF           `
+              -DAMReX_MPI=OFF               `
+              -DAMReX_PARTICLES=ON
+        cmake --build build --config Debug -j 2
+
+  # Build libamrex and all tutorials
+  tutorials_clang:
+    name: Clang C++17 w/o Fortran w/o MPI
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: seanmiddleditch/gha-setup-ninja@master
+    - name: Build & Install
+      shell: cmd
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\vc\Auxiliary\build\vcvarsall.bat" x64
+        cmake -S . -B build   ^
+              -T "ClangCl"    ^
+              -DCMAKE_BUILD_TYPE=Release    ^
+              -DCMAKE_VERBOSE_MAKEFILE=ON   ^
+              -DAMReX_BUILD_TUTORIALS=ON    ^
+              -DAMReX_FORTRAN=OFF           ^
+              -DAMReX_MPI=OFF               ^
+              -DAMReX_OMP=ON                ^
+              -DAMReX_PARTICLES=ON
+        cmake --build build --config Release -j 2

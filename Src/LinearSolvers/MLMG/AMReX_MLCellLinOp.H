@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_CELL_LINOP_H_H
 #define AMREX_ML_CELL_LINOP_H_H
+#include <AMReX_Config.H>
 
 #include <AMReX_MLLinOp.H>
 
@@ -142,6 +143,11 @@ public:
                         const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, Location loc, const int face_only=0) const = 0;
 
+    struct BCTL {
+        BoundCond type;
+        Real location;
+    };
+
 protected:
 
     bool m_has_metric_term = false;
@@ -181,9 +187,14 @@ protected:
         const RealTuple& bndryLocs (const MFIter& mfi, int icomp) const noexcept {
             return bcloc[mfi][icomp];
         }
+        GpuArray<BCTL,2*AMREX_SPACEDIM> const* getBCTLPtr (const MFIter& mfi) const noexcept {
+            return bctl[mfi];
+        }
     private:
         LayoutData<Vector<BCTuple> >   bcond;
         LayoutData<Vector<RealTuple> > bcloc;
+        LayoutData<GpuArray<BCTL,2*AMREX_SPACEDIM>*> bctl;
+        Gpu::DeviceVector<GpuArray<BCTL,2*AMREX_SPACEDIM> > bctl_dv;
         int m_ncomp;
     };
     Vector<Vector<std::unique_ptr<BndryCondLoc> > > m_bcondloc;

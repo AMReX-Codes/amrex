@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.14)
 
 #
+# Allow for MSVC Runtime library controls
+#
+if(POLICY CMP0091)
+  cmake_policy(SET CMP0091 NEW)
+endif()
+
+#
 # Prevent in-source builds
 #
 if (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -23,21 +30,6 @@ set( CMAKE_MODULE_PATH ${AMREX_CMAKE_MODULES_PATH} )
 #
 include( AMReX_Utils )
 get_amrex_version()
-
-
-#
-# For the time being, set this option here.
-# We must do this because we need to provide a default for CMAKE_CXX_COMPILER
-#
-option( ENABLE_DPCPP  "Enable DPCPP support" OFF )
-if (ENABLE_DPCPP)
-   if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-      # Set default for CMAKE_CXX_COMPILER only if amrex
-      # is not a subproject
-      set(CMAKE_CXX_COMPILER dpcpp)
-   endif ()
-   message(STATUS "Enabling experimental support for dpc++")
-endif ()
 
 
 ########################################################################
@@ -80,19 +72,25 @@ endif()
 #
 # Include options, utilities and other stuff we need
 #
-include( AMReX_Options )
+include( AMReXOptions )
 
 #
 # Enable Fortran if requested
 #
-if(ENABLE_FORTRAN)
+if(AMReX_FORTRAN)
    enable_language(Fortran)
 endif ()
 
 #
 # Enable CUDA if requested
 #
-if (ENABLE_CUDA)
+if (AMReX_CUDA)
+    # CMake 3.18+: CMAKE_CUDA_ARCHITECTURES
+    # https://cmake.org/cmake/help/latest/policy/CMP0104.html
+    if(POLICY CMP0104)
+        cmake_policy(SET CMP0104 OLD)
+    endif()
+
     enable_language(CUDA)
     include(AMReX_SetupCUDA)
 endif ()
@@ -112,6 +110,9 @@ set_default_config_flags ()
 # Source files for all binaries and libraries found under src
 #
 add_subdirectory(Src)
+get_property(_amrex_targets
+   DIRECTORY Src
+   PROPERTY BUILDSYSTEM_TARGETS)
 
 #
 # Tutorials and "test_install" target
@@ -126,13 +127,24 @@ endif ()
 #
 # Plotfile tools
 #
-option(ENABLE_PLOTFILE_TOOLS "Enable Plotfile tools" NO)
+option(AMReX_PLOTFILE_TOOLS "Enable Plotfile tools" NO)
 
-if (ENABLE_PLOTFILE_TOOLS)
+if (AMReX_PLOTFILE_TOOLS)
    # If this get executed, it cannot be EXCLUDED_FROM_ALL
    # because it needs to get installed
    add_subdirectory(Tools/Plotfile)
+   get_property(_plotfile_targets
+      DIRECTORY Tools/Plotfile
+      PROPERTY BUILDSYSTEM_TARGETS)
+   list(APPEND _amrex_targets ${_plotfile_targets})
 endif ()
+
+
+#
+# Install amrex  -- Export
+#
+include(AMReXInstallHelpers)
+install_amrex_targets(${_amrex_targets})
 
 
 #

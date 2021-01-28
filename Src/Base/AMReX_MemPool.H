@@ -1,5 +1,6 @@
 #ifndef BL_MEMPOOL_H
 #define BL_MEMPOOL_H
+#include <AMReX_Config.H>
 
 #include <AMReX_REAL.H>
 

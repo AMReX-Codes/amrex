@@ -240,7 +240,7 @@ void MDParticleContainer::moveParticles(const amrex::Real& dt)
             p.pos(2) += p.rdata(PIdx::vz) * dt;
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                while ( (p.pos(idim) < plo[idim]) or (p.pos(idim) > phi[idim]) ) {
+                while ( (p.pos(idim) < plo[idim]) || (p.pos(idim) > phi[idim]) ) {
                     if ( p.pos(idim) < plo[idim] ) {
                         p.pos(idim) = 2*plo[idim] - p.pos(idim);
                     } else {
@@ -265,15 +265,13 @@ Real MDParticleContainer::computeStepSize(amrex::Real& cfl)
 {
     BL_PROFILE("MDParticleContainer::computeStepSize");
 
-    using ParticleType = MDParticleContainer::ParticleType;
-
     Real maxVel = amrex::ReduceMax(*this, 0,
-    [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> Real
+    [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) -> Real
                               {
                                  Real u = std::abs(p.rdata(PIdx::vx));
                                  Real v = std::abs(p.rdata(PIdx::vy));
                                  Real w = std::abs(p.rdata(PIdx::vz));
-                                 return amrex::max(u,amrex::max(v,w));
+                                 return amrex::max(u,v,w);
                               });
 
     ParallelDescriptor::ReduceRealMax(maxVel);

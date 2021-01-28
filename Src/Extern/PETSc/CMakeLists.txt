@@ -1,10 +1,8 @@
-if (DIM EQUAL 1)
+if (AMReX_SPACEDIM EQUAL 1)
    message(FATAL_ERROR "PETSc interfaces are not supported for 1D builds")
 endif ()
 
-target_compile_definitions( amrex
-   PUBLIC
-   $<BUILD_INTERFACE:AMREX_USE_PETSC>)
+add_amrex_define(AMREX_USE_PETSC NO_LEGACY)
 
 target_include_directories( amrex
    PUBLIC

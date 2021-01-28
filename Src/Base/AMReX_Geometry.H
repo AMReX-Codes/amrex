@@ -1,10 +1,11 @@
 #ifndef AMREX_GEOMETRY_H_
 #define AMREX_GEOMETRY_H_
+#include <AMReX_Config.H>
 
 #include <iosfwd>
 #include <map>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -256,7 +257,7 @@ public:
         domain.coarsen(rr);
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             dx[i] = (ProbHi(i) - ProbLo(i)) / domain.length(i);
-            inv_dx[i] = 1./dx[i];
+            inv_dx[i] = static_cast<Real>(1.)/dx[i];
         }
     }
 
@@ -264,7 +265,7 @@ public:
         domain.refine(rr);
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             dx[i] = (ProbHi(i) - ProbLo(i)) / domain.length(i);
-            inv_dx[i] = 1./dx[i];
+            inv_dx[i] = static_cast<Real>(1.)/dx[i];
         }
     }
 

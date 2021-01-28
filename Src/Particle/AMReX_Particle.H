@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLE_H_
 #define AMREX_PARTICLE_H_
+#include <AMReX_Config.H>
 
 #include <string>
 
@@ -258,7 +259,7 @@ struct Particle
     template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE RealVect  rvec (AMREX_D_DECL(int indx, int indy, int indz)) const &
     {
-        AMREX_ASSERT(AMREX_D_TERM(indx < NReal, and indy < NReal, and indz < NReal));
+        AMREX_ASSERT(AMREX_D_TERM(indx < NReal, && indy < NReal, && indz < NReal));
         return RealVect(AMREX_D_DECL(this->m_rdata[indx],
                                      this->m_rdata[indy],
                                      this->m_rdata[indz]));
@@ -321,15 +322,7 @@ struct Particle
 
     static void Interp (const Particle<NReal, NInt>& prt, const Geometry& geom, const FArrayBox& fab, const int* idx, Real* val, int cnt);
 
-    static const std::string& Version ();
-
-    static const std::string& DataPrefix ();
-
     static void GetGravity (const FArrayBox& gfab, const Geometry& geom, const Particle<NReal, NInt>& p, Real* grav);
-
-    static int MaxReaders ();
-
-    static Long MaxParticlesPerRead ();
 
     /**
     * \brief Returns the next particle ID for this processor.
@@ -666,105 +659,15 @@ Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
 }
 
 template <int NReal, int NInt>
-int
-Particle<NReal, NInt>::MaxReaders ()
-{
-    const int Max_Readers_def = 64;
-
-    static int Max_Readers;
-
-    static bool first = true;
-
-    if (first)
-    {
-        first = false;
-
-        ParmParse pp("particles");
-
-        Max_Readers = Max_Readers_def;
-
-        pp.query("nreaders", Max_Readers);
-
-        Max_Readers = std::min(ParallelDescriptor::NProcs(),Max_Readers);
-
-        if (Max_Readers <= 0)
-            amrex::Abort("particles.nreaders must be positive");
-    }
-
-    return Max_Readers;
-}
-
-template <int NReal, int NInt>
-Long
-Particle<NReal, NInt>::MaxParticlesPerRead ()
-{
-
-    //
-    // This is the maximum particles that "each" reader will attempt to read
-    // before doing a Redistribute().
-    //
-    const Long Max_Particles_Per_Read_def = 100000;
-
-    static Long Max_Particles_Per_Read;
-
-    static bool first = true;
-
-    if (first)
-    {
-        first = false;
-
-        ParmParse pp("particles");
-
-        Max_Particles_Per_Read = Max_Particles_Per_Read_def;
-
-        pp.query("nparts_per_read", Max_Particles_Per_Read);
-
-        if (Max_Particles_Per_Read <= 0)
-            amrex::Abort("particles.nparts_per_read must be positive");
-    }
-
-    return Max_Particles_Per_Read;
-}
-
-template <int NReal, int NInt>
-const std::string&
-Particle<NReal, NInt>::DataPrefix ()
-{
-    //
-    // The actual particle data is stored in files of the form: DATA_nnnn.
-    //
-    static const std::string data("DATA_");
-
-    return data;
-}
-
-template <int NReal, int NInt>
-const std::string&
-Particle<NReal, NInt>::Version ()
-{
-    //
-    // If we change the Checkpoint/Restart format we should increment this.
-    //
-    // Previous version strings:
-    //
-    //    "Version_One_Dot_Zero"
-    //    "Version_One_Dot_One"
-    //
-    static const std::string version("Version_Two_Dot_Zero");
-
-    return version;
-}
-
-template <int NReal, int NInt>
 Long
 Particle<NReal, NInt>::NextID ()
 {
     Long next;
 // we should be able to test on _OPENMP < 201107 for capture (version 3.1)
 // but we must work around a bug in gcc < 4.9
-#if defined(_OPENMP) && _OPENMP < 201307
+#if defined(AMREX_USE_OMP) && defined(_OPENMP) && _OPENMP < 201307
 #pragma omp critical (amrex_particle_nextid)
-#elif defined(_OPENMP)
+#elif defined(AMREX_USE_OMP)
 #pragma omp atomic capture
 #endif
     next = the_next_id++;

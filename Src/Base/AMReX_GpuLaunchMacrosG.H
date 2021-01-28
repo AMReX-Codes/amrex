@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_LAUNCH_MACROS_G_H_
 #define AMREX_GPU_LAUNCH_MACROS_G_H_
+#include <AMReX_Config.H>
 
 #ifdef AMREX_USE_DPCPP
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(TN,TI,block) \
@@ -53,7 +54,7 @@
             block \
         } \
     }}}
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA_RANGE(TN,TI,block) \
     { auto const& amrex_i_tn = TN; \
     if (!amrex::isEmpty(amrex_i_tn)) { \
@@ -87,7 +88,7 @@
 #ifdef AMREX_USE_DPCPP
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; \
-    if (!amrex::isEmpty(amrex_i_tn1) or !amrex::isEmpty(amrex_i_tn2)) { \
+    if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(amrex_i_tn1); \
@@ -132,7 +133,7 @@
 #else
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; \
-    if (!amrex::isEmpty(amrex_i_tn1) or !amrex::isEmpty(amrex_i_tn2)) { \
+    if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(amrex_i_tn1); \
@@ -162,10 +163,10 @@
             block2 \
         } \
     }}}
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; \
-    if (!amrex::isEmpty(amrex_i_tn1) or !amrex::isEmpty(amrex_i_tn2)) { \
+    if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
       const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(amrex_i_tn1); \
@@ -213,7 +214,7 @@
 #ifdef AMREX_USE_DPCPP
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; auto const& amrex_i_tn3 = TN3; \
-    if (!amrex::isEmpty(amrex_i_tn1) or !amrex::isEmpty(amrex_i_tn2) or !amrex::isEmpty(amrex_i_tn3)) { \
+    if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2) || !amrex::isEmpty(amrex_i_tn3)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(amrex_i_tn1); \
@@ -267,7 +268,7 @@
 #else
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; auto const& amrex_i_tn3 = TN3; \
-    if (!amrex::isEmpty(amrex_i_tn1) or !amrex::isEmpty(amrex_i_tn2) or !amrex::isEmpty(amrex_i_tn3)) { \
+    if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2) || !amrex::isEmpty(amrex_i_tn3)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(amrex_i_tn1); \
@@ -306,10 +307,10 @@
             block3 \
         } \
     }}}
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; auto const& amrex_i_tn3 = TN3; \
-    if (!amrex::isEmpty(amrex_i_tn1) or !amrex::isEmpty(amrex_i_tn2) or !amrex::isEmpty(amrex_i_tn3)) { \
+    if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2) || !amrex::isEmpty(amrex_i_tn3)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
       const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(amrex_i_tn1); \
@@ -420,7 +421,7 @@
 #ifdef AMREX_USE_DPCPP
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; \
-    if (!amrex::isEmpty(amrex_i_tn1) or !amrex::isEmpty(amrex_i_tn2)) { \
+    if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(amrex_i_tn1); \
@@ -460,7 +461,7 @@
 #else
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; \
-    if (!amrex::isEmpty(amrex_i_tn1) or !amrex::isEmpty(amrex_i_tn2)) { \
+    if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(amrex_i_tn1); \
@@ -491,7 +492,7 @@
 #ifdef AMREX_USE_DPCPP
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; auto const& amrex_i_tn3 = TN3; \
-    if (!amrex::isEmpty(amrex_i_tn1) or !amrex::isEmpty(amrex_i_tn2) or !amrex::isEmpty(amrex_i_tn3)) { \
+    if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2) || !amrex::isEmpty(amrex_i_tn3)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(amrex_i_tn1); \
@@ -536,7 +537,7 @@
 #else
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
     { auto const& amrex_i_tn1 = TN1; auto const& amrex_i_tn2 = TN2; auto const& amrex_i_tn3 = TN3; \
-    if (!amrex::isEmpty(amrex_i_tn1) or !amrex::isEmpty(amrex_i_tn2) or !amrex::isEmpty(amrex_i_tn3)) { \
+    if (!amrex::isEmpty(amrex_i_tn1) || !amrex::isEmpty(amrex_i_tn2) || !amrex::isEmpty(amrex_i_tn3)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(amrex_i_tn1); \

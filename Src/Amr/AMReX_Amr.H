@@ -1,6 +1,7 @@
 
 #ifndef AMREX_Amr_H_
 #define AMREX_Amr_H_
+#include <AMReX_Config.H>
 
 #include <fstream>
 #include <memory>
@@ -177,6 +178,8 @@ public:
     //!  Fill the list of derive_plot_vars with all derived quantities.
     static void fillDerivePlotVarList ();
     static void fillDeriveSmallPlotVarList ();
+
+    static void setComputeNewDtOnRegrid (int flag) { compute_new_dt_on_regrid = flag; }
 
     static void Initialize ();
     static void Finalize ();
@@ -464,6 +467,7 @@ protected:
     static Vector<BoxArray> initial_ba;
     //! Array of BoxArrays read in to externally define grid hierarchy at each regrid
     static Vector<BoxArray> regrid_ba;
+    static int compute_new_dt_on_regrid;
 
 #if defined(BL_USE_SENSEI_INSITU)
     static AmrInSituBridge *insitu_bridge;

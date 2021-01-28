@@ -1,6 +1,7 @@
 
 #ifndef AMREX_Cluster_H_
 #define AMREX_Cluster_H_
+#include <AMReX_Config.H>
 
 #include <list>
 #include <AMReX_IntVect.H>
@@ -115,7 +116,7 @@ public:
     /**
     * \brief Compute ratio of tagged to total number of points in cluster.
     */
-    Real eff () const noexcept { BL_ASSERT(ok()); return numTag()/m_bx.d_numPts(); }
+    Real eff () const noexcept { BL_ASSERT(ok()); return Real(numTag()/m_bx.d_numPts()); }
 
 private:
 

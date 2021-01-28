@@ -5,7 +5,7 @@
 #  * OpenMP
 #  * OpenACC (NOT supported anymore)
 #
-if ( (NOT ENABLE_CUDA AND NOT ENABLE_OMP) OR (NOT DIM EQUAL 3) )
+if ( (NOT AMReX_CUDA AND NOT AMReX_OMP) OR (NOT AMReX_SPACEDIM EQUAL 3) )
    return()
 endif ()
 
@@ -21,7 +21,7 @@ list(TRANSFORM _sources PREPEND Source/)
 # CUDA tutorial
 #
 ##########################################################################################
-if (ENABLE_CUDA)
+if (AMReX_CUDA)
    set(_cuda_sources EMParticleContainer.cpp  em_pic_K.H  Evolve.cpp)
    list(TRANSFORM _cuda_sources PREPEND Exec/CUDA/)
    list(APPEND _cuda_sources ${_sources})
@@ -41,7 +41,8 @@ endif ()
 # OpenMP tutorial
 #
 ##########################################################################################
-if (ENABLE_OMP)
+set(EXPERIMENTAL_OMP_OFFLOADING FALSE)
+if (AMReX_OMP AND EXPERIMENTAL_OMP_OFFLOADING)
    set(_omp_sources EMParticleContainer.cpp em_pic_3d.F90 em_pic_F.H Evolve.cpp)
    list(TRANSFORM _omp_sources PREPEND Exec/OpenMP/)
    list(APPEND _omp_sources ${_sources})

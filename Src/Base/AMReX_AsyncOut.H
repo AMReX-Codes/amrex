@@ -1,5 +1,6 @@
 #ifndef AMREX_ASYNCOUT_H_
 #define AMREX_ASYNCOUT_H_
+#include <AMReX_Config.H>
 
 #include <functional>
 

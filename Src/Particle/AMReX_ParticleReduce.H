@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLEREDUCE_H_
 #define AMREX_PARTICLEREDUCE_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
@@ -119,7 +120,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
             for(ParIter pti(pc, lev); pti.isValid(); ++pti)
@@ -243,7 +244,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(max:r)
 #endif
             for(ParIter pti(pc, lev); pti.isValid(); ++pti)
@@ -367,7 +368,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
 #endif
             for(ParIter pti(pc, lev); pti.isValid(); ++pti)
@@ -489,7 +490,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(&&:r)
 #endif
             for(ParIter pti(pc, lev); pti.isValid(); ++pti)
@@ -611,7 +612,7 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(||:r)
 #endif
             for(ParIter pti(pc, lev); pti.isValid(); ++pti)

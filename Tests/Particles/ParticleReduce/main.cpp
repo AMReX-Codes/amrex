@@ -15,11 +15,11 @@ void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
     int nx = nppc[0];
     int ny = nppc[1];
     int nz = nppc[2];
-    
+
     int ix_part = i_part/(ny * nz);
     int iy_part = (i_part % (ny * nz)) % ny;
     int iz_part = (i_part % (ny * nz)) / ny;
-    
+
     r[0] = (0.5+ix_part)/nx;
     r[1] = (0.5+iy_part)/ny;
     r[2] = (0.5+iz_part)/nz;
@@ -40,10 +40,10 @@ public:
     void InitParticles (const amrex::IntVect& a_num_particles_per_cell)
     {
         BL_PROFILE("InitParticles");
-        const int lev = 0;   
+        const int lev = 0;
         const Real* dx = Geom(lev).CellSize();
         const Real* plo = Geom(lev).ProbLo();
-    
+
         const int num_ppc = AMREX_D_TERM( a_num_particles_per_cell[0],
                                          *a_num_particles_per_cell[1],
                                          *a_num_particles_per_cell[2]);
@@ -60,21 +60,21 @@ public:
                 for (int i_part=0; i_part<num_ppc;i_part++) {
                     Real r[3];
                     get_position_unit_cell(r, a_num_particles_per_cell, i_part);
-                
+
                     Real x = plo[0] + (iv[0] + r[0])*dx[0];
                     Real y = plo[1] + (iv[1] + r[1])*dx[1];
                     Real z = plo[2] + (iv[2] + r[2])*dx[2];
-                
+
                     ParticleType p;
                     p.id()  = ParticleType::NextID();
-                    p.cpu() = ParallelDescriptor::MyProc();                
+                    p.cpu() = ParallelDescriptor::MyProc();
                     p.pos(0) = x;
                     p.pos(1) = y;
                     p.pos(2) = z;
-                    
+
                     for (int i = 0; i < NSR; ++i) p.rdata(i) = i;
                     for (int i = 0; i < NSI; ++i) p.idata(i) = i;
-                    
+
                     host_particles.push_back(p);
                     for (int i = 0; i < NAR; ++i)
                         host_real[i].push_back(i);
@@ -82,23 +82,23 @@ public:
                         host_int[i].push_back(i);
                 }
             }
-        
+
             auto& particles = GetParticles(lev);
             auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
             auto old_size = particle_tile.GetArrayOfStructs().size();
             auto new_size = old_size + host_particles.size();
             particle_tile.resize(new_size);
-            
+
             Gpu::copy(Gpu::hostToDevice, host_particles.begin(), host_particles.end(),
-                      particle_tile.GetArrayOfStructs().begin() + old_size);        
-            
+                      particle_tile.GetArrayOfStructs().begin() + old_size);
+
             auto& soa = particle_tile.GetStructOfArrays();
             for (int i = 0; i < NAR; ++i)
             {
                 Gpu::copy(Gpu::hostToDevice, host_real[i].begin(), host_real[i].end(),
                           soa.GetRealData(i).begin() + old_size);
             }
-            
+
             for (int i = 0; i < NAI; ++i)
             {
                 Gpu::copy(Gpu::hostToDevice, host_int[i].begin(), host_int[i].end(),
@@ -159,7 +159,7 @@ void testReduce ()
     for (int i = 0; i < BL_SPACEDIM; i++)
         is_per[i] = 1;
     Geometry geom(domain, &real_box, coord, is_per);
-    
+
     BoxArray ba(domain);
     ba.maxSize(params.max_grid_size);
     DistributionMapping dm(ba);
@@ -178,7 +178,7 @@ void testReduce ()
 
     auto sm = amrex::ReduceSum(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return p.rdata(1); });
     AMREX_ALWAYS_ASSERT(sm == pc.TotalNumberOfParticles());
-	
+
     auto sm2 = amrex::ReduceSum(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return -p.rdata(NSR+1); });
     AMREX_ALWAYS_ASSERT(sm2 == -pc.TotalNumberOfParticles());
 
@@ -187,13 +187,13 @@ void testReduce ()
 
     auto mn2 = amrex::ReduceMin(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return p.rdata(NSR+1); });
     AMREX_ALWAYS_ASSERT(mn2 == 1);
-	
+
     auto mx = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return p.rdata(1); });
     AMREX_ALWAYS_ASSERT(mx == 1);
 
     auto mx2 = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI); });
     AMREX_ALWAYS_ASSERT(mx2 == 0);
-	
+
     {
         auto r = amrex::ReduceLogicalOr(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() == 1; });
         AMREX_ALWAYS_ASSERT(r == 1);

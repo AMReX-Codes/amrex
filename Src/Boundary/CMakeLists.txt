@@ -20,15 +20,15 @@ target_sources(amrex
    AMReX_LO_BCTYPES.cpp
    AMReX_MacBndry.H
    AMReX_InterpBndryData_K.H
-   AMReX_InterpBndryData_${DIM}D_K.H
+   AMReX_InterpBndryData_${AMReX_SPACEDIM}D_K.H
    AMReX_LOUtil_K.H
    AMReX_YAFluxRegister.H
    AMReX_YAFluxRegister_K.H
-   AMReX_YAFluxRegister_${DIM}D_K.H
+   AMReX_YAFluxRegister_${AMReX_SPACEDIM}D_K.H
    AMReX_YAFluxRegister.cpp
    )
 
-if (ENABLE_FORTRAN)
+if (AMReX_FORTRAN)
    target_sources(amrex
       PRIVATE
       AMReX_LO_UTIL.F90

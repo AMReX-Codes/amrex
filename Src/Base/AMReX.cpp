@@ -14,6 +14,13 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_Gpu.H>
 
+#ifdef AMREX_USE_HYPRE
+#include <_hypre_utilities.h>
+#ifdef AMREX_USE_CUDA
+#include <_hypre_utilities.hpp>
+#endif
+#endif
+
 #ifdef AMREX_USE_CUPTI
 #include <AMReX_CuptiTrace.H>
 #endif
@@ -40,7 +47,7 @@
 #include <AMReX_MemProfiler.H>
 #endif
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -48,11 +55,16 @@
 #include <xmmintrin.h>
 #endif
 
+#if !(defined(_MSC_VER) && defined(__CUDACC__))
+//MSVC can't pre-processor cfenv with `Zc:preprocessor`
+//https://developercommunity.visualstudio.com/content/problem/1271183/zcpreprocessor-e-crashes-when-given.html
+#include <cfenv>
+#endif
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <csignal>
-#include <cfenv>
 #include <iostream>
 #include <iomanip>
 #include <new>
@@ -104,6 +116,12 @@ namespace {
 #endif
 }
 
+#ifdef AMREX_USE_HYPRE
+namespace {
+    int init_hypre = 1;
+}
+#endif
+
 std::string amrex::Version ()
 {
 #ifdef AMREX_GIT_VERSION
@@ -148,7 +166,6 @@ amrex::write_to_stderr_without_buffering (const char* str)
     }
 }
 
-#if !AMREX_DEVICE_COMPILE
 namespace {
 void
 write_lib_id(const char* msg)
@@ -163,7 +180,6 @@ write_lib_id(const char* msg)
     }
 }
 }
-#endif
 
 void
 amrex::Error (const std::string& msg)
@@ -183,14 +199,9 @@ amrex::Warning (const std::string& msg)
     Warning(msg.c_str());
 }
 
-AMREX_GPU_HOST_DEVICE
 void
-amrex::Error (const char * msg)
+amrex::Error_host (const char * msg)
 {
-#if AMREX_DEVICE_COMPILE
-    if (msg) AMREX_DEVICE_PRINTF("Error %s\n", msg);
-    AMREX_DEVICE_ASSERT(0);
-#else
     if (system::error_handler) {
         system::error_handler(msg);
     } else if (system::throw_exception) {
@@ -198,36 +209,47 @@ amrex::Error (const char * msg)
     } else {
         write_lib_id("Error");
         write_to_stderr_without_buffering(msg);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical (amrex_abort_omp_critical)
 #endif
         ParallelDescriptor::Abort();
     }
-#endif
 }
 
-AMREX_GPU_HOST_DEVICE
-void
-amrex::Warning (const char * msg)
-{
+#if defined(AMREX_USE_GPU)
 #if AMREX_DEVICE_COMPILE
-    if (msg) AMREX_DEVICE_PRINTF("Warning %s\n", msg);
-#else
-    if (msg)
-    {
+AMREX_GPU_DEVICE
+void
+amrex::Error_device (const char * msg)
+{
+    if (msg) AMREX_DEVICE_PRINTF("Error %s\n", msg);
+    AMREX_DEVICE_ASSERT(0);
+}
+#endif
+#endif
+
+void
+amrex::Warning_host (const char * msg)
+{
+    if (msg) {
 	amrex::Print(Print::AllProcs,amrex::ErrorStream()) << msg << '!' << '\n';
     }
-#endif
 }
 
-AMREX_GPU_HOST_DEVICE
-void
-amrex::Abort (const char * msg)
-{
+#if defined(AMREX_USE_GPU)
 #if AMREX_DEVICE_COMPILE
-    if (msg) AMREX_DEVICE_PRINTF("Abort %s\n", msg);
-    AMREX_DEVICE_ASSERT(0);
-#else
+AMREX_GPU_DEVICE
+void
+amrex::Warning_device (const char * msg)
+{
+    if (msg) AMREX_DEVICE_PRINTF("Warning %s\n", msg);
+}
+#endif
+#endif
+
+void
+amrex::Abort_host (const char * msg)
+{
     if (system::error_handler) {
         system::error_handler(msg);
     } else if (system::throw_exception) {
@@ -235,28 +257,28 @@ amrex::Abort (const char * msg)
     } else {
        write_lib_id("Abort");
        write_to_stderr_without_buffering(msg);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical (amrex_abort_omp_critical)
 #endif
        ParallelDescriptor::Abort();
    }
-#endif
 }
 
-AMREX_GPU_HOST_DEVICE
-void
-amrex::Assert (const char* EX, const char* file, int line, const char* msg)
-{
+#if defined(AMREX_USE_GPU)
 #if AMREX_DEVICE_COMPILE
-    if (msg) {
-        AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
-                            EX, file, line, msg);
-    } else {
-        AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
-                            EX, file, line);
-    }
+AMREX_GPU_DEVICE
+void
+amrex::Abort_device (const char * msg)
+{
+    if (msg) AMREX_DEVICE_PRINTF("Abort %s\n", msg);
     AMREX_DEVICE_ASSERT(0);
-#else
+}
+#endif
+#endif
+
+void
+amrex::Assert_host (const char* EX, const char* file, int line, const char* msg)
+{
     const int N = 512;
 
     char buf[N];
@@ -284,13 +306,30 @@ amrex::Assert (const char* EX, const char* file, int line, const char* msg)
         throw RuntimeError(buf);
     } else {
        write_to_stderr_without_buffering(buf);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical (amrex_abort_omp_critical)
 #endif
        ParallelDescriptor::Abort();
    }
-#endif
 }
+
+#if defined(AMREX_USE_GPU)
+#if AMREX_DEVICE_COMPILE
+AMREX_GPU_DEVICE
+void
+amrex::Assert_device (const char* EX, const char* file, int line, const char* msg)
+{
+    if (msg) {
+        AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
+                            EX, file, line, msg);
+    } else {
+        AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
+                            EX, file, line);
+    }
+    AMREX_DEVICE_ASSERT(0);
+}
+#endif
+#endif
 
 namespace
 {
@@ -489,6 +528,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 	    }
 #endif
         }
+
+#ifdef AMREX_USE_HYPRE
+        pp.query("init_hypre", init_hypre);
+#endif
     }
 
     ParallelDescriptor::Initialize();
@@ -512,14 +555,28 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     iMultiFab::Initialize();
     VisMF::Initialize();
     AsyncOut::Initialize();
+
 #ifdef AMREX_USE_EB
     EB2::Initialize();
 #endif
+
     BL_PROFILE_INITPARAMS();
-#endif
+#endif // ifndef BL_AMRPROF
+
     machine::Initialize();
+
 #ifdef AMREX_USE_GPU
     Gpu::Fuser::Initialize();
+#endif
+
+#ifdef AMREX_USE_HYPRE
+    if (init_hypre) {
+        HYPRE_Init();
+#ifdef HYPRE_USING_CUDA
+        hypre_HandleDefaultExecPolicy(hypre_handle()) = HYPRE_EXEC_DEVICE;
+        hypre_HandleSpgemmUseCusparse(hypre_handle()) = 0;
+#endif
+    }
 #endif
 
     if (system::verbose > 0)
@@ -535,7 +592,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         amrex::Print() << "MPI initialized with thread support level " << provided << std::endl;
 #endif
         
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 //    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
         amrex::Print() << "OMP initialized with "
                        << omp_get_max_threads()
@@ -560,7 +617,15 @@ amrex::Finalize ()
 void
 amrex::Finalize (amrex::AMReX* pamrex)
 {
+#ifdef AMREX_USE_GPU
+    Gpu::synchronize();
+#endif
+
     AMReX::erase(pamrex);
+
+#ifdef AMREX_USE_HYPRE
+    if (init_hypre) HYPRE_Finalize();
+#endif
 
     BL_TINY_PROFILE_FINALIZE();
     BL_PROFILE_FINALIZE();
@@ -595,7 +660,7 @@ amrex::Finalize (amrex::AMReX* pamrex)
 	if (ParallelDescriptor::NProcs() == 1) {
 	    if (mp_tot > 0) {
                 amrex::Print() << "MemPool: " 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
                                << "min used in a thread: " << mp_min << " MB, "
                                << "max used in a thread: " << mp_max << " MB, "
 #endif

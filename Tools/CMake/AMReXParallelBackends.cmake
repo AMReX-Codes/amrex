@@ -13,9 +13,9 @@ target_link_libraries( amrex PUBLIC Threads::Threads )
 #  MPI
 #
 #
-if (ENABLE_MPI)
+if (AMReX_MPI)
    set(_mpi_comps C CXX)  # Do we need MPI_C ?
-   if (ENABLE_FORTRAN_INTERFACES)
+   if (AMReX_FORTRAN_INTERFACES)
       list(APPEND _mpi_comps Fortran)
    endif ()
    find_package(MPI REQUIRED ${_mpi_comps})
@@ -29,9 +29,9 @@ endif ()
 #  OpenMP
 #
 #
-if (ENABLE_OMP)
+if (AMReX_OMP)
    set(_omp_comps CXX)
-   if (ENABLE_FORTRAN_INTERFACES)
+   if (AMReX_FORTRAN)
       list(APPEND _omp_comps Fortran)
    endif ()
    find_package(OpenMP REQUIRED ${_omp_comps})
@@ -60,7 +60,7 @@ endif ()
 #  SYCL/DPCPP
 #
 #
-if (ENABLE_DPCPP)
+if (AMReX_DPCPP)
    include(AMReXSYCL)
    target_link_libraries(amrex PUBLIC SYCL)
 endif ()
@@ -71,7 +71,7 @@ endif ()
 # HIP
 #
 #
-if (ENABLE_HIP)
+if (AMReX_HIP)
 
    set(_valid_hip_compilers hipcc nvcc)
    get_filename_component(_this_comp ${CMAKE_CXX_COMPILER} NAME)
@@ -118,6 +118,6 @@ if (ENABLE_HIP)
    # missing gpu devices)
    target_compile_options(amrex
       PUBLIC
-      $<$<COMPILE_LANGUAGE:CXX>:-m64 --amdgpu-target=${AMD_ARCH}> )
+      $<$<COMPILE_LANGUAGE:CXX>:-m64 --amdgpu-target=${AMReX_AMD_ARCH}> )
 
 endif ()

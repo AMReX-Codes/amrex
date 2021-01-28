@@ -1,7 +1,58 @@
 #ifndef AMREX_GPU_LAUNCH_FUNCTS_C_H_
 #define AMREX_GPU_LAUNCH_FUNCTS_C_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
+
+namespace detail {
+    template <typename F, typename N>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, N i)
+        noexcept -> decltype(f(0))
+    {
+        f(i);
+    }
+
+    template <typename F, typename N>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, N i)
+        noexcept -> decltype(f(0,Gpu::Handler{}))
+    {
+        f(i,Gpu::Handler{});
+    }
+
+    template <typename F>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, int i, int j, int k)
+        noexcept -> decltype(f(0,0,0))
+    {
+        f(i,j,k);
+    }
+
+    template <typename F>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, int i, int j, int k)
+        noexcept -> decltype(f(0,0,0,Gpu::Handler{}))
+    {
+        f(i,j,k,Gpu::Handler{});
+    }
+
+    template <typename F, typename T>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, int i, int j, int k, T n)
+        noexcept -> decltype(f(0,0,0,0))
+    {
+        f(i,j,k,n);
+    }
+
+    template <typename F, typename T>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, int i, int j, int k, T n)
+        noexcept -> decltype(f(0,0,0,0,Gpu::Handler{}))
+    {
+        f(i,j,k,n,Gpu::Handler{});
+    }
+}
 
 template<typename T, typename L>
 void launch (T const& n, L&& f, std::size_t /*shared_mem_bytes*/=0) noexcept
@@ -13,7 +64,7 @@ template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<
 void For (T n, L&& f) noexcept
 {
     for (T i = 0; i < n; ++i) {
-        f(i);
+        detail::call_f(f,i);
     }
 }
 
@@ -28,7 +79,7 @@ void ParallelFor (T n, L&& f) noexcept
 {
     AMREX_PRAGMA_SIMD
     for (T i = 0; i < n; ++i) {
-        f(i);
+        detail::call_f(f,i);
     }
 }
 
@@ -46,7 +97,7 @@ void For (Box const& box, L&& f) noexcept
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
     for (int i = lo.x; i <= hi.x; ++i) {
-        f(i,j,k);
+        detail::call_f(f,i,j,k);
     }}}
 }
 
@@ -65,7 +116,7 @@ void ParallelFor (Box const& box, L&& f) noexcept
     for (int j = lo.y; j <= hi.y; ++j) {
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        f(i,j,k);
+        detail::call_f(f,i,j,k);
     }}}
 }
 
@@ -84,7 +135,7 @@ void For (Box const& box, T ncomp, L&& f) noexcept
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            f(i,j,k,n);
+            detail::call_f(f,i,j,k,n);
         }}}
     }
 }
@@ -105,7 +156,7 @@ void ParallelFor (Box const& box, T ncomp, L&& f) noexcept
         for (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            f(i,j,k,n);
+            detail::call_f(f,i,j,k,n);
         }}}
     }
 }

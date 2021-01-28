@@ -1,29 +1,34 @@
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::do_tiling = false;
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 IntVect
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::tile_size { AMREX_D_DECL(1024000,8,8) };
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 std::string
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::aggregation_type = "";
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 int
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::aggregation_buffer = 1;
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: SetParticleSize ()
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::SetParticleSize ()
 {
-    if (NumRealComps() > 0 or NumIntComps() > 0) {
+    if (NumRealComps() > 0 || NumIntComps() > 0) {
         if (NumRealComps() > 0) {
             d_communicate_real_comp.resize(NumRealComps());
             Gpu::copyAsync(Gpu::hostToDevice,
@@ -56,9 +61,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: SetParticle
         num_real_comm_comps*sizeof(ParticleReal) + num_int_comm_comps*sizeof(int);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize ()
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator> :: Initialize ()
 {
     levelDirectoriesCreated = false;
     usePrePost = false;
@@ -91,10 +97,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 template <typename P>
 IntVect
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Index (const P& p, int lev) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Index (const P& p, int lev) const
 {
     IntVect iv;
     const Geometry& geom = Geom(lev);
@@ -108,10 +115,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Index (const 
     return iv;
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 template <typename P>
 bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::Where (const P& p,
 	 ParticleLocData&    pld,
 	 int                 lev_min,
@@ -172,9 +180,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   return false;
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::EnforcePeriodicWhere (ParticleType&    p,
 			ParticleLocData& pld,
 			int              lev_min,
@@ -245,9 +254,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 }
 
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::PeriodicShift (ParticleType& p) const
 {
     const auto& geom = Geom(0);
@@ -258,9 +268,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     return enforcePeriodic(p, plo, phi, is_per);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 ParticleLocData
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
 Reset (ParticleType& p,
        bool          /*update*/,
        bool          verbose,
@@ -277,11 +288,11 @@ Reset (ParticleType& p,
       PeriodicShift(p);
       ok = Where(p, pld);
     }
-    
+
     if (!ok) {
         // invalidate the particle.
 	if (verbose) {
-            amrex::AllPrint()<< "Invalidating out-of-domain particle: " << p << '\n'; 
+            amrex::AllPrint()<< "Invalidating out-of-domain particle: " << p << '\n';
 	}
 
 	AMREX_ASSERT(p.id() > 0);
@@ -292,18 +303,20 @@ Reset (ParticleType& p,
     return pld;
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::reserveData ()
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::reserveData ()
 {
     int nlevs = maxLevel() + 1;
     m_particles.reserve(nlevs);
     m_dummy_mf.reserve(nlevs);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::resizeData ()
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::resizeData ()
 {
     int nlevs = std::max(0, finestLevel()+1);
     m_particles.resize(nlevs);
@@ -313,9 +326,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::resizeData ()
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedefineDummyMF (int lev)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::RedefineDummyMF (int lev)
 {
     if (lev > m_dummy_mf.size()-1) m_dummy_mf.resize(lev+1);
 
@@ -331,9 +345,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedefineDummy
     };
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticle (ParticleType& p, ParticleLocData& pld,
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::locateParticle (ParticleType& p, ParticleLocData& pld,
                                                                                    int lev_min, int lev_max, int nGrow, int local_grid) const
 {
     bool outside = AMREX_D_TERM(p.pos(0) <  Geom(0).ProbLo(0)
@@ -343,9 +358,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
                              || p.pos(2) <  Geom(0).ProbLo(2)
                              || p.pos(2) >= Geom(0).ProbHi(2));
 
-    if (not outside)
+    if (! outside)
     {
-        if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
+        if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(Real(p.pos(0)), Real(p.pos(1)), Real(p.pos(2)))))
         {
             RealBox roundoff_domain = Geom(0).RoundoffDomain();
             for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
@@ -358,7 +373,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
                 }
             }
 
-            AMREX_ASSERT(not Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))));
+            AMREX_ASSERT(! Geom(0).outsideRoundoffDomain(AMREX_D_DECL(Real(p.pos(0)), Real(p.pos(1)), Real(p.pos(2)))));
         }
     }
 
@@ -391,9 +406,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 Long
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::TotalNumberOfParticles (bool only_valid, bool only_local) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::TotalNumberOfParticles (bool only_valid, bool only_local) const
 {
     Long nparticles = 0;
     for (int lev = 0; lev <= finestLevel(); lev++) {
@@ -405,9 +421,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::TotalNumberOf
     return nparticles;
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 Vector<Long>
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParticlesInGrid (int lev, bool only_valid, bool only_local) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesInGrid (int lev, bool only_valid, bool only_local) const
 {
     AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
 
@@ -441,7 +458,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
             np_per_grid_local[gid] += pti.numParticles();
         }
     }
-        
+
     Vector<Long> nparticles(np_per_grid_local.size(), 0);
     if (only_local)
     {
@@ -449,46 +466,49 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
         {
             nparticles[pti.index()] = np_per_grid_local[pti.index()];
         }
-    } 
+    }
     else
     {
         ParallelDescriptor::GatherLayoutDataToVector(np_per_grid_local, nparticles,
                                                      ParallelContext::IOProcessorNumberSub());
-        ParallelDescriptor::Bcast(&nparticles[0], nparticles.size(), 
+        ParallelDescriptor::Bcast(&nparticles[0], nparticles.size(),
                                   ParallelContext::IOProcessorNumberSub());
     }
 
     return nparticles;
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 Long
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParticlesAtLevel (int lev, bool only_valid, bool only_local) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesAtLevel (int lev, bool only_valid, bool only_local) const
 {
     Long nparticles = 0;
 
-    if (lev >= 0 && lev < int(m_particles.size())) {
+    if (lev < 0 || lev >= int(m_particles.size())) return nparticles;
+
+    if (only_valid) {
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<unsigned long long> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+
         for (const auto& kv : GetParticles(lev)) {
             const auto& ptile = kv.second;
-            if (only_valid) {
-#if defined(AMREX_USE_DPCPP) || defined(AMREX_USE_HIP)
-                auto const& ptaos = ptile.GetArrayOfStructs();
-                ParticleType const* pp = ptaos().data();
-                int np = amrex::Reduce::Sum<int>(ptaos.numParticles(), pp, 0,
-                         [=] AMREX_GPU_DEVICE (int s, ParticleType const& p) noexcept
-                         {
-                             return (p.id() > 0) ? s+1 : s;
-                         });
-                nparticles += np;
-#else
-                for (int k = 0; k < ptile.GetArrayOfStructs().numParticles(); ++k) {
-                    const ParticleType& p = ptile.GetArrayOfStructs()[k];
-                    if (p.id() > 0) ++nparticles;
-                }
-#endif
-            } else {
-                nparticles += ptile.numParticles();
-            }
+            auto const& ptaos = ptile.GetArrayOfStructs();
+            ParticleType const* pp = ptaos().data();
+
+            reduce_op.eval(ptaos.numParticles(), reduce_data,
+                           [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
+                           {
+                               return (pp[i].id() > 0) ? 1 : 0;
+                           });
+        }
+        nparticles = static_cast<Long>(amrex::get<0>(reduce_data.value()));
+    }
+    else {
+        for (const auto& kv : GetParticles(lev)) {
+            const auto& ptile = kv.second;
+            nparticles += ptile.numParticles();
         }
     }
 
@@ -503,9 +523,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
 // This includes both valid and invalid particles since invalid particles still take up space.
 //
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ByteSpread () const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::ByteSpread () const
 {
     Long cnt = 0;
 
@@ -541,9 +562,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ByteSpread ()
 #endif
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PrintCapacity () const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::PrintCapacity () const
 {
     Long cnt = 0;
 
@@ -578,9 +600,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PrintCapacity
 #endif
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ShrinkToFit ()
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::ShrinkToFit ()
 {
     for (unsigned lev = 0; lev < m_particles.size(); lev++) {
         auto& pmap = m_particles[lev];
@@ -591,83 +614,34 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ShrinkToFit (
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::MoveRandom ()
-{
-    //
-    // Move particles randomly at all levels
-    //
-    for (int lev = 0; lev < int(m_particles.size()); lev++)
-    {
-        MoveRandom(lev);
-    }
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::MoveRandom (int lev)
-{
-    BL_PROFILE("ParticleContainer::MoveRandom(lev)");
-    AMREX_ASSERT(OK());
-    AMREX_ASSERT(m_gdb != 0);
-    // 
-    // Move particles up to FRAC*CellSize distance in each coordinate direction.
-    //
-    const Real FRAC = 0.25;
-    auto&       pmap              = m_particles[lev];
-    const Real* dx                = Geom(lev).CellSize();
-    const Real  dist[AMREX_SPACEDIM] = { AMREX_D_DECL(FRAC*dx[0], FRAC*dx[1], FRAC*dx[2]) };
-
-    for (auto& kv : pmap) {
-        auto& aos = kv.second.GetArrayOfStructs();
-        const int n = aos.numParticles();
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-        for (int i = 0; i < n; i++)
-        {
-	  ParticleType& p = aos[i];
-
-	  if (p.id() <= 0) continue;
-
-	  for (int j = 0; j < AMREX_SPACEDIM; j++)
-              {
-                  p.pos(j) += dist[j]*(2*amrex::Random()-1);
-              }
-
-	  Reset(p, true);
-        }
-    }
-    Redistribute();
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Increment (MultiFab& mf, int lev) 
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Increment (MultiFab& mf, int lev)
 {
   IncrementWithTotal(mf,lev);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 Long
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IncrementWithTotal (MultiFab& mf, int lev, bool local)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::IncrementWithTotal (MultiFab& mf, int lev, bool local)
 {
   BL_PROFILE("ParticleContainer::IncrementWithTotal(lev)");
   AMREX_ASSERT(OK());
-  
+
   if (m_particles.empty()) return 0;
-  
+
   AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
-  
+
   AMREX_ASSERT(numParticlesOutOfRange(*this, 0) == 0);
 
   const auto& pmap = m_particles[lev];
-  
+
   Long num_particles_in_domain = 0;
-  
+
   MultiFab* mf_pointer;
-  
+
   if (OnSameGrids(lev, mf))
   {
       // If we are already working with the internal mf defined on the
@@ -682,7 +656,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IncrementWith
 				ParticleDistributionMap(lev),
 				mf.nComp(),mf.nGrow());
   }
-  
+
   ParticleLocData pld;
   for (auto& kv : pmap) {
       int gid = kv.first.first;
@@ -715,9 +689,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IncrementWith
   return num_particles_in_domain;
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RemoveParticlesAtLevel (int level)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::RemoveParticlesAtLevel (int level)
 {
     BL_PROFILE("ParticleContainer::RemoveParticlesAtLevel()");
     if (level >= int(this->m_particles.size())) return;
@@ -728,9 +703,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RemoveParticl
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RemoveParticlesNotAtFinestLevel ()
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::RemoveParticlesNotAtFinestLevel ()
 {
   BL_PROFILE("ParticleContainer::RemoveParticlesNotAtFinestLevel()");
   AMREX_ASSERT(this->finestLevel()+1 == int(this->m_particles.size()));
@@ -757,9 +733,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RemoveParticl
   }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::CreateVirtualParticles (int level, AoS& virts) const
 {
     ParticleTileType ptile;
@@ -767,9 +744,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     ptile.GetArrayOfStructs().swap(virts);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::CreateVirtualParticles (int level, ParticleTileType& virts) const
 {
     BL_PROFILE("ParticleContainer::CreateVirtualParticles()");
@@ -799,7 +777,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             const auto& ptile = ParticlesAt(level, pti);
             const auto src = ptile.getConstParticleTileData();
 
-            auto& aos = ptile.GetArrayOfStructs();
             for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
             {
                 SuperParticleType p = src.getSuperParticle(pindex);
@@ -866,7 +843,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                         //
                         for (int i = 0; i < AMREX_SPACEDIM; i++)
                         {
-                            pold.pos(i) = (old_mass*pold.pos(i) + new_mass*pnew.pos(i))/total_mass;
+                            pold.pos(i) = static_cast<ParticleReal>((old_mass*pold.pos(i) + new_mass*pnew.pos(i))/total_mass);
                         }
                         AMREX_ASSERT(this->Index(pold, level) == cell);
                         //
@@ -874,9 +851,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                         //
                         for (int i = 1; i < NStructReal; i++)
                         {
-                            pold.rdata(i) = (old_mass*pold.rdata(i) + new_mass*pnew.rdata(i))/total_mass;
+                            pold.rdata(i) = static_cast<ParticleReal>((old_mass*pold.rdata(i) + new_mass*pnew.rdata(i))/total_mass);
                         }
-                        pold.rdata(0) = total_mass;
+                        pold.rdata(0) = static_cast<ParticleReal>(total_mass);
                     }
                 }
             }
@@ -892,9 +869,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::CreateGhostParticles (int level, int nGrow, AoS& ghosts) const
 {
     ParticleTileType ptile;
@@ -902,9 +880,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     ptile.GetArrayOfStructs().swap(ghosts);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::CreateGhostParticles (int level, int nGrow, ParticleTileType& ghosts) const
 {
     BL_PROFILE("ParticleContainer::CreateGhostParticles()");
@@ -936,9 +915,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
 clearParticles ()
 {
     BL_PROFILE("ParticleContainer::clearParticles()");
@@ -952,42 +932,50 @@ clearParticles ()
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
+template <class PCType, amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-copyParticles (const ParticleContainerType& other, bool local)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+copyParticles (const PCType& other, bool local)
 {
     using PData = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     copyParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
+template <class PCType, amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-addParticles (const ParticleContainerType& other, bool local)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+addParticles (const PCType& other, bool local)
 {
     using PData = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     addParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-template <class F,
-          amrex::EnableIf_t<! std::is_integral<F>::value, int> foo>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
+template <class F, class PCType,
+          amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo,
+          amrex::EnableIf_t<! std::is_integral<F>::value, int> bar>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-copyParticles (const ParticleContainerType& other, F&& f, bool local)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+copyParticles (const PCType& other, F&& f, bool local)
 {
     BL_PROFILE("ParticleContainer::copyParticles");
     clearParticles();
     addParticles(other, std::forward<F>(f), local);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-template <class F,
-          amrex::EnableIf_t<! std::is_integral<F>::value, int> foo>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
+template <class F, class PCType,
+          amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo,
+          amrex::EnableIf_t<! std::is_integral<F>::value, int> bar>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-addParticles (const ParticleContainerType& other, F&& f, bool local)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
+addParticles (const PCType& other, F&& f, bool local)
 {
     BL_PROFILE("ParticleContainer::addParticles");
 
@@ -1013,15 +1001,16 @@ addParticles (const ParticleContainerType& other, F&& f, bool local)
         }
     }
 
-    if (not local) Redistribute();
+    if (! local) Redistribute();
 }
 
 //
 // This redistributes valid particles and discards invalid ones.
 //
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::Redistribute (int lev_min, int lev_max, int nGrow, int local)
 {
 #ifdef AMREX_USE_GPU
@@ -1038,18 +1027,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 #endif
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticlesByCell ()
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::SortParticlesByCell ()
 {
     SortParticlesByBin(IntVect(AMREX_D_DECL(1, 1, 1)));
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticlesByBin (IntVect bin_size)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::SortParticlesByBin (IntVect bin_size)
 {
     BL_PROFILE("ParticleContainer::SortParticlesByBin()");
+
+    if (bin_size == IntVect::TheZeroVector()) return;
 
     for (int lev = 0; lev < numLevels(); ++lev)
     {
@@ -1091,9 +1084,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
 //
 // The GPU implementation of Redistribute
 //
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::RedistributeGPU (int lev_min, int lev_max, int nGrow, int local)
 {
 #ifdef AMREX_USE_GPU
@@ -1101,7 +1095,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if (local) AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, local) == 0);
 
     // sanity check
-    AMREX_ASSERT(do_tiling == false);
+    AMREX_ALWAYS_ASSERT(do_tiling == false);
 
     BL_PROFILE("ParticleContainer::RedistributeGPU()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
@@ -1113,7 +1107,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     this->defineBufferMap();
 
-    if (not m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
+    if (! m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
     m_particle_locator.setGeometry(GetParGDB());
     auto assign_grid = m_particle_locator.getGridAssignor();
 
@@ -1137,6 +1131,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto& aos = src_tile.GetArrayOfStructs();
             const size_t np = aos.numParticles();
 
+            AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 && NumIntComps() == 0) ||
+                                      aos.size() == src_tile.GetStructOfArrays().size(),
+                "The AoS and SoA data on this tile are different sizes - "
+                "perhaps particles have not been initialized correctly?");
+
             int num_stay = partitionParticlesByDest(src_tile, assign_grid, BufferMap(),
                                                     geom, lev, gid, tid,
                                                     lev_min, lev_max, nGrow);
@@ -1150,14 +1149,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto p_src_indices = op.m_src_indices[lev][gid].dataPtr();
             auto p_periodic_shift = op.m_periodic_shift[lev][gid].dataPtr();
             auto p_ptr = &(aos[0]);
-            
+
 	    AMREX_FOR_1D ( num_move, i,
             {
                 const auto& p = p_ptr[i + num_stay];
                 if (p.id() < 0)
                 {
                     p_boxes[i] = -1;
-                    p_levs[i]  = -1;                    
+                    p_levs[i]  = -1;
                 }
                 else
                 {
@@ -1173,7 +1172,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     BL_PROFILE_VAR_STOP(blp_partition);
 
     ParticleCopyPlan plan;
-    
+
     plan.build(*this, op, local);
 
     Gpu::DeviceVector<char> snd_buffer;
@@ -1247,15 +1246,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 //
 // The CPU implementation of Redistribute
 //
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 ::RedistributeCPU (int lev_min, int lev_max, int nGrow, int local)
 {
   BL_PROFILE("ParticleContainer::RedistributeCPU()");
 
   const int MyProc    = ParallelContext::MyProcSub();
-  Real      strttime  = amrex::second();
+  auto      strttime  = amrex::second();
 
   if (local > 0) BuildRedistributeMask(0, local);
 
@@ -1298,7 +1298,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   // these are temporary buffers for each thread
   std::map<int, Vector<Vector<char> > > tmp_remote;
   Vector<std::map<std::pair<int, int>, Vector<ParticleVector> > > tmp_local;
-  Vector<std::map<std::pair<int, int>, Vector<StructOfArrays<NArrayReal, NArrayInt> > > > soa_local;
+  Vector<std::map<std::pair<int, int>, Vector<StructOfArrays<NArrayReal, NArrayInt, Allocator> > > > soa_local;
   tmp_local.resize(theEffectiveFinestLevel+1);
   soa_local.resize(theEffectiveFinestLevel+1);
 
@@ -1335,7 +1335,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           ptile_ptrs.push_back(&(kv.second));
       }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
       for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
@@ -1345,11 +1345,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           int tile = grid_tile_ids[pmap_it].second;
           auto& aos = ptile_ptrs[pmap_it]->GetArrayOfStructs();
           auto& soa = ptile_ptrs[pmap_it]->GetStructOfArrays();
+          AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 && NumIntComps() == 0)
+                                    || aos.size() == soa.size(),
+              "The AoS and SoA data on this tile are different sizes - "
+              "perhaps particles have not been initialized correctly?");
           unsigned npart = aos.numParticles();
           ParticleLocData pld;
           if (npart != 0) {
               Long last = npart - 1;
-              unsigned pindex = 0;
+              Long pindex = 0;
               while (pindex <= last) {
                   ParticleType& p = aos[pindex];
 
@@ -1464,11 +1468,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           }
       }
   }
-  
+
   // Second pass - for each tile in parallel, collect the particles we are owed from all thread's buffers.
   for (int lev = lev_min; lev <= lev_max; lev++) {
       typename std::map<std::pair<int, int>, Vector<ParticleVector > >::iterator pmap_it;
-      
+
       Vector<std::pair<int, int> > grid_tile_ids;
       Vector<Vector<ParticleVector>* > pvec_ptrs;
 
@@ -1480,7 +1484,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           pvec_ptrs.push_back(&(pmap_it->second));
       }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
       for (int pit = 0; pit < static_cast<int>(pvec_ptrs.size()); ++pit)
@@ -1523,7 +1527,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
       pbuff_ptrs.push_back(&(kv.second));
   }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
   for (int pmap_it = 0; pmap_it < static_cast<int>(pbuff_ptrs.size()); ++pmap_it)
@@ -1568,7 +1572,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   AMREX_ASSERT(OK(lev_min, lev_max, nGrow));
 
   if (m_verbose > 0) {
-      Real stoptime = amrex::second() - strttime;
+      auto stoptime = amrex::second() - strttime;
 
       ByteSpread();
 
@@ -1585,22 +1589,24 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
 defineBufferMap () const
 {
     BL_PROFILE("ParticleContainer::defineBufferMap");
 
-    if (not m_buffer_map.isValid(GetParGDB()))
+    if (! m_buffer_map.isValid(GetParGDB()))
     {
         m_buffer_map.define(GetParGDB());
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
 BuildRedistributeMask (int lev, int nghost) const
 {
     BL_PROFILE("ParticleContainer::BuildRedistributeMask");
@@ -1621,7 +1627,7 @@ BuildRedistributeMask (int lev, int nghost) const
 
         const auto tile_size_do = this->do_tiling ? this->tile_size : IntVect::TheZeroVector();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(*redistribute_mask_ptr, tile_size_do); mfi.isValid(); ++mfi)
@@ -1655,9 +1661,10 @@ BuildRedistributeMask (int lev, int nghost) const
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
 RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                  int lev_min, int lev_max, int nGrow, int local)
 {
@@ -1698,7 +1705,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
     const int SeqNum = ParallelDescriptor::SeqNum();
 
-    if ((not local) and NumSnds == 0)
+    if ((! local) && NumSnds == 0)
         return;  // There's no parallel work to do.
 
     if (local)
@@ -1709,7 +1716,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             tot_snds_this_proc += Snds[neighbor_procs[i]];
             tot_rcvs_this_proc += Rcvs[neighbor_procs[i]];
         }
-        if ( (tot_snds_this_proc == 0) and (tot_rcvs_this_proc == 0) ) {
+        if ( (tot_snds_this_proc == 0) && (tot_rcvs_this_proc == 0) ) {
             return; // There's no parallel work to do.
         }
     }
@@ -1875,7 +1882,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
                 // add the struct
                 host_particles[lev][ind].push_back(p);
-	  
+
                 // add the real...
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
                     if (h_communicate_real_comp[comp]) {
@@ -1885,9 +1892,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                         host_real_attribs[lev][ind][comp].push_back(rdata);
                     } else {
                         host_real_attribs[lev][ind][comp].push_back(0.0);
-                    }                    
+                    }
                 }
-                
+
                 // ... and int array data
                 for (int comp = 0; comp < NumIntComps(); ++comp) {
                     if (h_communicate_int_comp[comp]) {
@@ -1909,23 +1916,23 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 	      auto grid = kv.first.first;
 	      auto tile = kv.first.second;
 	      const auto& src_tile = kv.second;
-	      
+
 	      auto& dst_tile = GetParticles(host_lev)[std::make_pair(grid,tile)];
 	      auto old_size = dst_tile.GetArrayOfStructs().size();
 	      auto new_size = old_size + src_tile.size();
 	      dst_tile.resize(new_size);
-	      
+
 	      Gpu::copy(Gpu::hostToDevice,
                         src_tile.begin(), src_tile.end(),
                         dst_tile.GetArrayOfStructs().begin() + old_size);
-	      
+
 	      for (int i = 0; i < NumRealComps(); ++i) {
                   Gpu::copy(Gpu::hostToDevice,
                             host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
                             host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
                             dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
 	      }
-	      
+
 	      for (int i = 0; i < NumIntComps(); ++i) {
                   Gpu::copy(Gpu::hostToDevice,
                             host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
@@ -1934,7 +1941,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 	      }
 	    }
 	  }
-    
+
 	Gpu::Device::streamSynchronize();
 #endif
 
@@ -1945,9 +1952,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 #endif
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OK (int lev_min, int lev_max, int nGrow) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::OK (int lev_min, int lev_max, int nGrow) const
 {
     BL_PROFILE("ParticleContainer::OK()");
 
@@ -1957,9 +1965,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OK (int lev_m
     return (numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>
+ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt, Allocator>
 ::AddParticlesAtLevel (AoS& particles, int level, int nGrow)
 {
     ParticleTileType ptile;
@@ -1967,9 +1976,10 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>
     AddParticlesAtLevel(ptile, level, nGrow);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>
+ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt, Allocator>
 ::AddParticlesAtLevel (ParticleTileType& particles, int level, int nGrow)
 {
     BL_PROFILE("ParticleContainer::AddParticlesAtLevel()");
@@ -2011,9 +2021,10 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>
 }
 
 // This is the single-level version for cell-centered density
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
 AssignCellDensitySingleLevel (int rho_index,
                               MultiFab& mf_to_be_filled,
                               int       lev,
@@ -2032,21 +2043,21 @@ AssignCellDensitySingleLevel (int rho_index,
       mf_pointer = &mf_to_be_filled;
     }
     else {
-      // If mf_to_be_filled is not defined on the particle_box_array, then we need 
+      // If mf_to_be_filled is not defined on the particle_box_array, then we need
       // to make a temporary here and copy into mf_to_be_filled at the end.
-      mf_pointer = new MultiFab(ParticleBoxArray(lev), 
+      mf_pointer = new MultiFab(ParticleBoxArray(lev),
 				ParticleDistributionMap(lev),
 				ncomp, mf_to_be_filled.nGrow());
     }
 
-    // We must have ghost cells for each FAB so that a particle in one grid can spread 
+    // We must have ghost cells for each FAB so that a particle in one grid can spread
     // its effect to an adjacent grid by first putting the value into ghost cells of its
     // own grid.  The mf->SumBoundary call then adds the value from one grid's ghost cell
     // to another grid's valid region.
-    if (mf_pointer->nGrow() < 1) 
+    if (mf_pointer->nGrow() < 1)
        amrex::Error("Must have at least one ghost cell when in AssignCellDensitySingleLevel");
 
-    const Real      strttime    = amrex::second();
+    const auto strttime = amrex::second();
 
     const auto dxi              = Geom(lev).InvCellSizeArray();
     const auto plo              = Geom(lev).ProbLoArray();
@@ -2058,10 +2069,9 @@ AssignCellDensitySingleLevel (int rho_index,
     }
 
     mf_pointer->setVal(0);
-    
-    using ParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
-#ifdef _OPENMP
+    using ParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
@@ -2072,7 +2082,7 @@ AssignCellDensitySingleLevel (int rho_index,
             const Long np = pti.numParticles();
             FArrayBox& fab = (*mf_pointer)[pti];
             auto rhoarr = fab.array();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
             Box tile_box;
             if (Gpu::notInLaunchRegion())
             {
@@ -2083,26 +2093,26 @@ AssignCellDensitySingleLevel (int rho_index,
                 rhoarr = local_rho.array();
             }
 #endif
-                        
+
             if (particle_lvl_offset == 0)
             {
-                AMREX_FOR_1D( np, i,
+                AMREX_HOST_DEVICE_FOR_1D( np, i,
                 {
                     amrex_deposit_cic(pstruct[i], ncomp, rhoarr, plo, dxi);
                 });
             }
             else
             {
-                AMREX_FOR_1D( np, i,
+                AMREX_HOST_DEVICE_FOR_1D( np, i,
                 {
                     amrex_deposit_particle_dx_cic(pstruct[i], ncomp, rhoarr, plo, dxi, pdxi);
                 });
             }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
             if (Gpu::notInLaunchRegion())
             {
-                fab.atomicAdd<RunOn::Device>(local_rho, tile_box, tile_box, 0, 0, ncomp);
+                fab.atomicAdd<RunOn::Host>(local_rho, tile_box, tile_box, 0, 0, ncomp);
             }
 #endif
         }
@@ -2130,17 +2140,16 @@ AssignCellDensitySingleLevel (int rho_index,
     mf_pointer->mult(1.0/vol, 0, 1, mf_pointer->nGrow());
 
     // If mf_to_be_filled is not defined on the particle_box_array, then we need
-    // to copy here from mf_pointer into mf_to_be_filled. I believe that we don't
-    // need any information in ghost cells so we don't copy those.
+    // to copy here from mf_pointer into mf_to_be_filled.
     if (mf_pointer != &mf_to_be_filled)
     {
-        mf_to_be_filled.copy(*mf_pointer,0,0,ncomp);
+        mf_to_be_filled.ParallelCopy(*mf_pointer,0,0,ncomp,0,0);
         delete mf_pointer;
     }
 
     if (m_verbose > 1)
     {
-        Real stoptime = amrex::second() - strttime;
+        auto stoptime = amrex::second() - strttime;
 
         ParallelReduce::Max(stoptime, ParallelContext::IOProcessorNumberSub(),
                             ParallelContext::CommunicatorSub());
@@ -2150,9 +2159,10 @@ AssignCellDensitySingleLevel (int rho_index,
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Interpolate (Vector<std::unique_ptr<MultiFab> >& mesh_data,
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Interpolate (Vector<std::unique_ptr<MultiFab> >& mesh_data,
                                                                                 int lev_min, int lev_max)
 {
     BL_PROFILE("ParticleContainer::Interpolate()");
@@ -2161,9 +2171,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Interpolate (
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
 InterpolateSingleLevel (MultiFab& mesh_data, int lev)
 {
     BL_PROFILE("ParticleContainer::InterpolateSingleLevel()");
@@ -2175,9 +2186,9 @@ InterpolateSingleLevel (MultiFab& mesh_data, int lev)
     const auto     plo = gm.ProbLoArray();
     const auto     dxi = gm.InvCellSizeArray();
 
-    using ParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (ParIter pti(*this, lev); pti.isValid(); ++pti)

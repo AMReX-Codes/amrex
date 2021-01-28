@@ -66,7 +66,7 @@ void testNeighborParticles ()
     for (int i = 0; i < BL_SPACEDIM; i++)
         is_per[i] = params.is_periodic;
     Geometry geom(domain, &real_box, coord, is_per);
-    
+
     BoxArray ba(domain);
     ba.maxSize(params.max_grid_size);
     DistributionMapping dm(ba);
@@ -121,25 +121,25 @@ void testNeighborParticles ()
     // so we can call minAndMaxDistance
     pc.buildNeighborList(CheckPair());
 
-    amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
+    amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
 
     amrex::PrintToFile("neighbor_test") << "Moving particles and updating neighbors \n";
     pc.moveParticles(0.1);
     pc.updateNeighbors();
 
-    amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
+    amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
 
     amrex::PrintToFile("neighbor_test") << "Moving particles and updating neighbors again \n";
     pc.moveParticles(0.1);
     pc.updateNeighbors();
 
-    amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
+    amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
 
     amrex::PrintToFile("neighbor_test") << "Moving particles and updating neighbors yet again \n";
     pc.moveParticles(0.1);
     pc.updateNeighbors();
 
-    amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";     
+    amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
 }
 
 void testNeighborList ()
@@ -164,7 +164,7 @@ void testNeighborList ()
     for (int i = 0; i < BL_SPACEDIM; i++)
         is_per[i] = params.is_periodic;
     Geometry geom(domain, &real_box, coord, is_per);
-    
+
     BoxArray ba(domain);
     ba.maxSize(params.max_grid_size);
     DistributionMapping dm(ba);

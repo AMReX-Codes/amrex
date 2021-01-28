@@ -228,7 +228,7 @@ operator << (std::ostream&    os,
     return os;
 }
 
-  static
+  inline
   void
   AMRErrorTag_GRAD(const Box&                bx,
                    Array4<const Real> const& dat,
@@ -237,7 +237,7 @@ operator << (std::ostream&    os,
                    char                      tagval)
   {
     amrex::ParallelFor(bx,
-    [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k) noexcept
+    [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k)
     {
       auto ax = amrex::Math::abs(dat(i+1,j,k) - dat(i,j,k));
       ax = amrex::max(ax,amrex::Math::abs(dat(i,j,k) - dat(i-1,j,k)));
@@ -265,7 +265,7 @@ operator << (std::ostream&    os,
     return ng[m_test];
   }
   
-  static
+  inline
   void
   AMRErrorTag_LESS(const Box&                bx,
                    Array4<const Real> const& dat,
@@ -274,7 +274,7 @@ operator << (std::ostream&    os,
                    char                      tagval) noexcept
   {
     amrex::ParallelFor(bx,
-    [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k) noexcept
+    [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k)
     {
       if (dat(i,j,k) <= threshold) {
         tag(i,j,k) = tagval;
@@ -282,7 +282,7 @@ operator << (std::ostream&    os,
     });
   }
 
-  static
+  inline
   void
   AMRErrorTag_GREATER(const Box&                bx,
                       Array4<const Real> const& dat,
@@ -291,7 +291,7 @@ operator << (std::ostream&    os,
                       char                      tagval) noexcept
   {
     amrex::ParallelFor(bx,
-    [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k) noexcept
+    [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k)
     {
       if (dat(i,j,k) >= threshold) {
         tag(i,j,k) = tagval;
@@ -299,7 +299,7 @@ operator << (std::ostream&    os,
     });
   }
 
-  static
+  inline
   void
   AMRErrorTag_BOX(const Box&          bx,
                   Array4<char> const& tag,
@@ -313,7 +313,7 @@ operator << (std::ostream&    os,
     if (tag_rb.intersects(trb))
     {
       amrex::ParallelFor(bx,
-      [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k) noexcept
+      [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k)
       {
           GpuArray<Real,AMREX_SPACEDIM> pt = {{AMREX_D_DECL(plo[0]+(Real(i)+Real(0.5))*dx[0],
                                                             plo[1]+(Real(j)+Real(0.5))*dx[1],
@@ -325,7 +325,7 @@ operator << (std::ostream&    os,
     }
   }
 
-  static
+  inline
   void
   AMRErrorTag_VORT(const Box&                bx,
                    Array4<const Real> const& dat,
@@ -334,9 +334,9 @@ operator << (std::ostream&    os,
                    Real                      threshold,
                    char                      tagval) noexcept
   {
-    const Real fac = threshold * std::pow(2,level);
+    const Real fac = threshold * Real(std::pow(2,level));
     amrex::ParallelFor(bx,
-    [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k) noexcept
+    [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k)
     {
       if (dat(i,j,k) >= fac) {
         tag(i,j,k) = tagval;
@@ -359,7 +359,7 @@ operator << (std::ostream&    os,
     {
       AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_userfunc!=nullptr,"UserFunc not properly set in AMRErrorTag");
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
       for (MFIter mfi(tba,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -377,7 +377,7 @@ operator << (std::ostream&    os,
           (time  <= m_info.m_max_time ) )
       {
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(tba,TilingIfNotGPU()); mfi.isValid(); ++mfi)

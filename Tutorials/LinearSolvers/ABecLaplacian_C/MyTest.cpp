@@ -463,7 +463,7 @@ MyTest::initData ()
     rhs.resize(nlevels);
     exact_solution.resize(nlevels);
     
-    if (prob_type == 2 or prob_type == 3) {
+    if (prob_type == 2 || prob_type == 3) {
         acoef.resize(nlevels);
         bcoef.resize(nlevels);
     }

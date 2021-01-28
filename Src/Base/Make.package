@@ -72,7 +72,6 @@ C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosG.H AMReX_GpuLaunchFunctsG.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosC.H AMReX_GpuLaunchFunctsC.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchGlobal.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunch.H
-C$(AMREX_BASE)_sources += AMReX_GpuLaunch.cpp
 C$(AMREX_BASE)_headers += AMReX_GpuFuse.H
 C$(AMREX_BASE)_sources += AMReX_GpuFuse.cpp
 
@@ -84,6 +83,7 @@ C$(AMREX_BASE)_headers += AMReX_GpuMemory.H AMReX_GpuRange.H
 C$(AMREX_BASE)_headers += AMReX_GpuAtomic.H
 C$(AMREX_BASE)_sources += AMReX_GpuDevice.cpp AMReX_GpuUtility.cpp
 C$(AMREX_BASE)_headers += AMReX_GpuDevice.H   AMReX_GpuUtility.H
+C$(AMREX_BASE)_headers += AMReX_GpuBuffer.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuAsyncArray.H
 C$(AMREX_BASE)_sources += AMReX_GpuAsyncArray.cpp
@@ -177,6 +177,11 @@ C$(AMREX_BASE)_sources += AMReX_FilND_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilND_C.H
 
 #
+# Non-Local BC
+#
+C$(AMREX_BASE)_headers += AMReX_NonLocalBC.H AMReX_NonLocalBCImpl.H
+
+#
 # Plotfile
 #
 C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp AMReX_PlotFileDataImpl.cpp
@@ -191,10 +196,8 @@ C$(AMREX_BASE)_headers += AMReX_BaseUmap.H
 # Fortran interface routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
-  ifeq ($(findstring FALSE,$(USE_CUDA)$(USE_GPU_PRAGMA)$(GPU_PRAGMA_NO_HOST_VERSION)),FALSE)
-    F90$(AMREX_BASE)_sources += AMReX_FILCC_${DIM}D.F90
-    F90$(AMREX_BASE)_headers += AMReX_filcc_f.H
-  endif
+  F90$(AMREX_BASE)_sources += AMReX_FILCC_${DIM}D.F90
+  F90$(AMREX_BASE)_headers += AMReX_filcc_f.H
 
   F90$(AMREX_BASE)_sources += AMReX_BLutil_F.F90
   F90$(AMREX_BASE)_sources += AMReX_BLProfiler_F.F90

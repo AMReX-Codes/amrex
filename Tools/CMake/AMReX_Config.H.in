@@ -19,6 +19,7 @@
 #cmakedefine BL_USE_OMP
 #cmakedefine AMREX_USE_DPCPP
 #cmakedefine AMREX_USE_FLOAT
+#cmakedefine AMREX_SINGLE_PRECISION_PARTICLES
 #cmakedefine BL_USE_FLOAT
 #cmakedefine AMREX_SPACEDIM @AMREX_SPACEDIM@
 #cmakedefine BL_SPACEDIM @BL_SPACEDIM@
@@ -32,6 +33,7 @@
 #cmakedefine AMREX_USE_ASCENT
 #cmakedefine AMREX_USE_EB
 #cmakedefine AMREX_USE_CUDA
+#cmakedefine AMREX_USE_HIP
 #cmakedefine AMREX_USE_NVML
 #cmakedefine AMREX_GPU_MAX_THREADS @AMREX_GPU_MAX_THREADS@
 #cmakedefine AMREX_USE_ACC
@@ -46,5 +48,8 @@
 #cmakedefine AMREX_USE_PETSC
 #ifdef __cplusplus@COMP_DECLS@
 @OMP_DECLS@
+#endif
+#if defined(AMREX_USE_OMP) && !defined(_OPENMP)
+#error "libamrex was built with OpenMP, so the downstream project must activate it, too"
 #endif
 #endif

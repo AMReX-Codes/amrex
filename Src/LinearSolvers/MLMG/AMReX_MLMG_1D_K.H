@@ -1,5 +1,6 @@
 #ifndef AMREX_MLMG_1D_K_H_
 #define AMREX_MLMG_1D_K_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
@@ -15,7 +16,7 @@ void mlmg_lin_cc_interp_r2 (Box const& bx, Array4<Real> const& ff,
         for (int i = lo.x; i <= hi.x; ++i) {
             const int ic = i/2;
             const int ioff = 2*(i-ic*2)-1;
-            ff(i,0,0,n) = 0.75*cc(ic,0,0,n) + 0.25*cc(ic+ioff,0,0,n);
+            ff(i,0,0,n) = Real(0.75)*cc(ic,0,0,n) + Real(0.25)*cc(ic+ioff,0,0,n);
         }
     }
 }
@@ -44,7 +45,7 @@ void mlmg_lin_nd_interp (int i, int, int, int n, Array4<Real> const& fine,
     bool i_is_odd = (ic*2 != i);
     if (i_is_odd) {
         // Fine node along a horizontal cell edge
-        fine(i,0,0,n) = 0.5*(crse(ic,0,0,n) + crse(ic+1,0,0,n));
+        fine(i,0,0,n) = Real(0.5)*(crse(ic,0,0,n) + crse(ic+1,0,0,n));
     } else {
         // Fine node coincident with coarse node
         fine(i,0,0,n) = crse(ic,0,0,n);

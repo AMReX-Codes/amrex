@@ -1,5 +1,6 @@
 #ifndef AMREX_PhysBCFunct_H_
 #define AMREX_PhysBCFunct_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_BCRec.H>
 #include <AMReX_Geometry.H>
@@ -86,7 +87,6 @@ protected:
     F m_user_f;
 };
 
-#if !(defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && defined(AMREX_GPU_PRAGMA_NO_HOST))
 //! This cpu version calls function working on FArrayBox
 class CpuBndryFuncFab
 {
@@ -103,7 +103,6 @@ public:
 protected:
     UserFillBox f_user = nullptr;
 };
-#endif
 
 class PhysBCFunctNoOp
 {
@@ -153,7 +152,7 @@ public:
             }
         }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {

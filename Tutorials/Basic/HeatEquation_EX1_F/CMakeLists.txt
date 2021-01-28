@@ -2,7 +2,7 @@
 # This tutorial needs Fortran interfaces
 # Disable for cuda
 #
-if ( NOT ENABLE_FORTRAN_INTERFACES OR ENABLE_CUDA )
+if ( NOT AMReX_FORTRAN_INTERFACES OR AMReX_CUDA )
    return()
 endif ()
 

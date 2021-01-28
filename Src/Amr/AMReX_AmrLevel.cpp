@@ -598,7 +598,7 @@ AmrLevel::get_data (int  state_indx, Real time) noexcept
 {
     const Real old_time = state[state_indx].prevTime();
     const Real new_time = state[state_indx].curTime();
-    const Real eps = 0.001*(new_time - old_time);
+    const Real eps = Real(0.001)*(new_time - old_time);
 
     if (time > old_time-eps && time < old_time+eps)
     {
@@ -668,7 +668,9 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     m_amrlevel(amrlevel),
     m_leveldata(leveldata),
     m_ncomp(0)
-{}
+{
+    MFIter::depth = 0;
+}
 
 FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel&     amrlevel,
                                                   MultiFab&     leveldata,
@@ -709,6 +711,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     BL_ASSERT(AmrLevel::desc_lst[idx].inRange(scomp,ncomp));
     BL_ASSERT(0 <= idx && idx < AmrLevel::desc_lst.size());
 
+    MFIter::depth = 0;
     Initialize(boxGrow,time,idx,scomp,ncomp);
 
 #ifdef BL_USE_TEAM
@@ -1061,7 +1064,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 						  desc.interp(SComp));
 	
 #if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
 #endif
@@ -1587,7 +1590,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 	    FillPatch(clev,crseMF,0,time,idx,SComp,NComp,0);
 	}
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
@@ -1665,7 +1668,7 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
 
         if (rec->derFuncFab() != nullptr)
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -1679,7 +1682,7 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
         else
         {
 #if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(*mf,true); mfi.isValid(); ++mfi)
@@ -1816,7 +1819,7 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 
         if (rec->derFuncFab() != nullptr)
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -1831,7 +1834,7 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
         else
         {
 #if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
@@ -2095,10 +2098,10 @@ AmrLevel::which_time (int  indx, Real time) const noexcept
 {
     const Real oldtime = state[indx].prevTime();
     const Real newtime = state[indx].curTime();
-    const Real haftime = .5 * (oldtime + newtime);
-    const Real qtime = oldtime + 0.25*(newtime-oldtime);
-    const Real tqtime = oldtime + 0.75*(newtime-oldtime);
-    const Real epsilon = 0.001 * (newtime - oldtime);
+    const Real haftime = .5_rt * (oldtime + newtime);
+    const Real qtime = oldtime + 0.25_rt*(newtime-oldtime);
+    const Real tqtime = oldtime + 0.75_rt*(newtime-oldtime);
+    const Real epsilon = 0.001_rt * (newtime - oldtime);
 
     BL_ASSERT(time >= oldtime-epsilon && time <= newtime+epsilon);
     
@@ -2128,7 +2131,7 @@ AmrLevel::which_time (int  indx, Real time) const noexcept
 Real
 AmrLevel::estimateWork ()
 {
-    return 1.0*countCells();
+    return static_cast<Real>(countCells());
 }
 
 bool

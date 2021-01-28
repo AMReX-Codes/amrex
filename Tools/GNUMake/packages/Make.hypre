@@ -18,3 +18,6 @@ ifdef AMREX_HYPRE_HOME
   LIBRARIES += -Wl,-rpath,$(HYPRE_ABSPATH)/lib -lHYPRE
 endif
 
+ifeq ($(USE_CUDA),TRUE)
+  LIBRARIES += -lcusparse -lcurand
+endif

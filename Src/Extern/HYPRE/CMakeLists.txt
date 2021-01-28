@@ -1,29 +1,27 @@
 #
-# This file gets processed if either ENABLE_PETSC or ENABLE_HYPRE are ON
-# If only ENABLE_PETSC is ON, we just need to include this directory
+# This file gets processed if either AMReX_PETSC or AMReX_HYPRE are ON
+# If only AMReX_PETSC is ON, we just need to include this directory
 # and a couple of files to the build.
 #
 target_include_directories( amrex
    PUBLIC
    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
-if (NOT ENABLE_HYPRE) # only ENABLE_PETSC is active
+if (NOT AMReX_HYPRE) # only AMReX_PETSC is active
 
    target_sources( amrex
       PRIVATE
-      AMReX_Habec_${DIM}D_K.H
+      AMReX_Habec_${AMReX_SPACEDIM}D_K.H
       AMReX_Habec_K.H
       )
 
 else ()
 
-   if (DIM EQUAL 1)
+   if (AMReX_SPACEDIM EQUAL 1)
       message(FATAL_ERROR "HYPRE interfaces are not supported for 1D builds")
    endif ()
 
-   target_compile_definitions( amrex
-      PUBLIC
-      $<BUILD_INTERFACE:AMREX_USE_HYPRE>)
+   add_amrex_define(AMREX_USE_HYPRE NO_LEGACY)
 
    target_sources( amrex
       PRIVATE
@@ -35,7 +33,7 @@ else ()
       AMReX_HypreABecLap2.H
       AMReX_Hypre.cpp
       AMReX_Hypre.H
-      AMReX_Habec_${DIM}D_K.H
+      AMReX_Habec_${AMReX_SPACEDIM}D_K.H
       AMReX_Habec_K.H
       AMReX_HypreNodeLap.cpp
       AMReX_HypreNodeLap.H

@@ -1,6 +1,7 @@
 
 #ifndef BL_BOXDOMAIN_H
 #define BL_BOXDOMAIN_H
+#include <AMReX_Config.H>
 
 #include <iosfwd>
 
