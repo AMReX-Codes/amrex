@@ -232,7 +232,6 @@ MyTest::writePlotfile ()
         MultiFab::Copy(plotmf[ilev], grad_x[ilev], 0, 1, 1, 0);
         MultiFab::Copy(plotmf[ilev], grad_y[ilev], 0, 2, 1, 0);
         MultiFab::Copy(plotmf[ilev], grad_z[ilev], 0, 3, 1, 0);
-//        MultiFab::Copy(plotmf[ilev], grad_eb[ilev], 0, 9, 3, 0);
     }
     WriteMultiLevelPlotfile(plot_file_name, max_level+1,
                             amrex::GetVecOfConstPtrs(plotmf),
@@ -251,7 +250,6 @@ MyTest::writePlotfile ()
         MultiFab::Copy(plotmf_analytic[ilev], grad_x_analytic[ilev], 0, 1, 1, 0);
         MultiFab::Copy(plotmf_analytic[ilev], grad_y_analytic[ilev], 0, 2, 1, 0);
         MultiFab::Copy(plotmf_analytic[ilev], grad_z_analytic[ilev], 0, 3, 1, 0);
-//        MultiFab::Copy(plotmf_analytic[ilev], grad_eb_analytic[ilev], 0, 9, 3, 0);
     }
     WriteMultiLevelPlotfile(plot_file_name + "-analytic", max_level+1,
                             amrex::GetVecOfConstPtrs(plotmf_analytic),
