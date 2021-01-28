@@ -1,30 +1,6 @@
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
-bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::do_tiling = false;
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-IntVect
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::tile_size { AMREX_D_DECL(1024000,8,8) };
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-std::string
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::aggregation_type = "";
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-int
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::aggregation_buffer = 1;
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::SetParticleSize ()
 {
@@ -757,18 +733,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     if (level >= static_cast<int>(m_particles.size()))
         return;
 
-    if (aggregation_type == "")
-    {
-        ParmParse pp("particles");
-        aggregation_type = "None";
-        pp.query("aggregation_type", aggregation_type);
-        aggregation_buffer = 2;
-        pp.query("aggregation_buffer", aggregation_buffer);
-    }
-
-    if (aggregation_type == "None");
-    else if (aggregation_type == "Cell");
-    else if (aggregation_type == "Flow") amrex::Abort("Flow aggregation not implemented");
+    std::string aggregation_type = AggregationType();
+    int aggregation_buffer = AggregationBuffer();
 
     if (aggregation_type == "None")
     {

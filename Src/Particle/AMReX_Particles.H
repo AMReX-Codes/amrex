@@ -183,10 +183,9 @@ public:
     //!  of a level hierarchy. Must be properly initialized later.
     ParticleContainer ()
       :
+      ParticleContainerBase(),
       h_communicate_real_comp(NArrayReal, true),
       h_communicate_int_comp(NArrayInt, true),
-      m_verbose(0),
-      m_gdb(nullptr),
       m_runtime_comps_defined(false),
       m_num_runtime_real(0),
       m_num_runtime_int(0)
@@ -203,10 +202,9 @@ public:
     //!
     ParticleContainer (ParGDBBase* gdb)
         :
+        ParticleContainerBase(gdb),
         h_communicate_real_comp(NArrayReal, true),
         h_communicate_int_comp(NArrayInt, true),
-	m_verbose(0),
-	m_gdb(gdb),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
@@ -227,16 +225,14 @@ public:
 		       const DistributionMapping & dmap,
 		       const BoxArray            & ba)
 	:
+        ParticleContainerBase(geom, dmap, ba),
         h_communicate_real_comp(NArrayReal, true),
         h_communicate_int_comp(NArrayInt, true),
-        m_verbose(0),
-	m_gdb_object(geom,dmap,ba),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
     {
         Initialize ();
-        m_gdb = & m_gdb_object;
         reserveData();
         resizeData();
     }
@@ -255,16 +251,14 @@ public:
 		       const Vector<BoxArray>            & ba,
 		       const Vector<int>                 & rr)
 	:
+        ParticleContainerBase(geom, dmap, ba, rr),
         h_communicate_real_comp(NArrayReal, true),
         h_communicate_int_comp(NArrayInt, true),
-        m_verbose(0),
-	m_gdb_object(geom,dmap,ba,rr),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
     {
         Initialize ();
-        m_gdb = & m_gdb_object;
         reserveData();
         resizeData();
     }
@@ -282,28 +276,14 @@ public:
 		       const Vector<BoxArray>            & ba,
 		       const Vector<IntVect>             & rr)
 	:
+        ParticleContainerBase(geom, dmap, ba, rr),
         h_communicate_real_comp(NArrayReal, true),
         h_communicate_int_comp(NArrayInt, true),
-        m_verbose(0),
-	m_gdb_object(geom,dmap,ba, [&]() -> Vector<int> {
-                Vector<int> ref_ratio;
-                for (int i = 0; i < static_cast<int>(rr.size()); ++i)
-                {
-#if AMREX_SPACEDIM > 1
-                    AMREX_ASSERT(rr[i][0] == rr[i][1]);
-#endif
-#if AMREX_SPACEDIM > 2
-                    AMREX_ASSERT(rr[i][0] == rr[i][2]);
-#endif
-                    ref_ratio.push_back(rr[i][0]);
-                }
-                return ref_ratio;  }() ),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
     {
         Initialize ();
-        m_gdb = & m_gdb_object;
         reserveData();
         resizeData();
     }
@@ -326,7 +306,7 @@ public:
     //!
     void Define (ParGDBBase* gdb)
     {
-        m_gdb = gdb;
+        this->ParticleContainerBase::Define(gdb);
         reserveData();
         resizeData();
     }
@@ -342,8 +322,7 @@ public:
 		 const DistributionMapping & dmap,
 		 const BoxArray            & ba)
     {
-        m_gdb_object = ParGDB(geom, dmap, ba);
-        m_gdb = &m_gdb_object;
+        this->ParticleContainerBase::Define(geom, dmap, ba);
         reserveData();
         resizeData();
     }
@@ -362,100 +341,13 @@ public:
 		 const Vector<BoxArray>            & ba,
 		 const Vector<int>                 & rr)
     {
-	m_gdb_object = ParGDB(geom, dmap, ba, rr);
-	m_gdb = &m_gdb_object;
+        this->ParticleContainerBase::Define(geom, dmap, ba, rr);
         reserveData();
 	resizeData();
     }
 
-    //! \brief Set the particle BoxArray. If the container was previously set to
-    //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
-    //! will be broken here.
-    //!
-    //! \param lev The level on which to set the BoxArray.
-    //! \param new_ba The new BoxArray to use.
-    //!
-    void SetParticleBoxArray (int lev, const BoxArray& new_ba)
-    {
-        m_gdb_object = ParGDB(m_gdb->ParticleGeom(), m_gdb->ParticleDistributionMap(),
-                              m_gdb->ParticleBoxArray(), m_gdb->refRatio());
-        m_gdb = &m_gdb_object;
-        m_gdb->SetParticleBoxArray(lev, new_ba);
-    }
-
-    //! \brief Set the particle DistributionMapping. If the container was previously set to
-    //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
-    //! will be broken here.
-    //!
-    //! \param lev The level on which to set the dm.
-    //! \param new_dmap The new DistributionMapping to use.
-    //!
-    void SetParticleDistributionMap (int lev, const DistributionMapping& new_dmap)
-    {
-        m_gdb_object = ParGDB(m_gdb->ParticleGeom(), m_gdb->ParticleDistributionMap(),
-                              m_gdb->ParticleBoxArray(), m_gdb->refRatio());
-        m_gdb = &m_gdb_object;
-        m_gdb->SetParticleDistributionMap(lev, new_dmap);
-    }
-
-    //! \brief Set the particle Geometry. If the container was previously set to
-    //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
-    //! will be broken here.
-    //!
-    //! \param lev The level on which to set the Geometry.
-    //! \param new_geom The new Geometry to use.
-    //!
-    void SetParticleGeometry (int lev, const Geometry& new_geom)
-    {
-        m_gdb_object = ParGDB(m_gdb->ParticleGeom(), m_gdb->ParticleDistributionMap(),
-                              m_gdb->ParticleBoxArray(), m_gdb->refRatio());
-        m_gdb = &m_gdb_object;
-        m_gdb->SetParticleGeometry(lev, new_geom);
-    }
-
-    //! \brief Get the BoxArray for a given level
-    //!
-    //! \param lev The level.
-    //!
-    const BoxArray& ParticleBoxArray (int lev) const
-	{ return m_gdb->ParticleBoxArray(lev); }
-
-    //! \brief Get the DistributionMapping for a given level
-    //!
-    //! \param lev The level.
-    //!
-    const DistributionMapping& ParticleDistributionMap (int lev) const
-	{ return m_gdb->ParticleDistributionMap(lev); }
-
-    //! \brief Get the Geometry for a given level
-    //!
-    //! \param lev The level.
-    //!
-    const Geometry& Geom (int lev) const { return m_gdb->Geom(lev); }
-
-    //! \brief Get the particle Geometry for a given level
-    //!
-    //! \param lev The level.
-    //!
-    const Geometry& ParticleGeom (int lev) const { return m_gdb->ParticleGeom(lev); }
-
-    //! \brief the finest level actually defined for the ParticleContainer
-    int finestLevel () const { return m_gdb->finestLevel(); }
-
-    //! \brief the finest allowed level in the ParticleContainer, whether it is defined or not.
-    int maxLevel ()    const { return m_gdb->maxLevel(); }
-
-    //! \brief the number of defined levels in the ParticleContainer
-    int numLevels()    const { return finestLevel() + 1; }
-
     //! \brief The total number of tiles on this rank on this level
     int numLocalTilesAtLevel (int lev) const { return m_particles[lev].size(); }
-
-    //! \brief Get the ParGDB object used to define this container (const version)
-    const ParGDBBase* GetParGDB () const { return m_gdb; }
-
-    //! \brief Get the ParGDB object used to define this container
-          ParGDBBase* GetParGDB ()       { return m_gdb; }
 
     void reserveData ();
     void resizeData ();
@@ -1052,10 +944,6 @@ public:
 
     void WriteAsciiFile (const std::string& file);
 
-    int Verbose () { return m_verbose; }
-
-    void SetVerbose (int verbose) { m_verbose = verbose; }
-
     const Vector<ParticleLevel>& GetParticles () const { return m_particles; }
     Vector      <ParticleLevel>& GetParticles ()       { return m_particles; }
 
@@ -1156,9 +1044,6 @@ public:
     Vector<int> h_communicate_int_comp;
     Gpu::DeviceVector<int> d_communicate_real_comp;
     Gpu::DeviceVector<int> d_communicate_int_comp;
-
-    static bool do_tiling;
-    static IntVect tile_size;
 
     void SetLevelDirectoriesCreated (bool tf) { levelDirectoriesCreated = tf; }
 
@@ -1292,17 +1177,12 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
 
     void SetParticleSize ();
 
-    void BuildRedistributeMask(int lev, int nghost=1) const;
+    void BuildRedistributeMask (int lev, int nghost=1) const;
     mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
     mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();
 
     void defineBufferMap () const;
     mutable ParticleBufferMap m_buffer_map;
-
-    //! The member data.
-    int         m_verbose;
-    ParGDBBase* m_gdb;
-    ParGDB      m_gdb_object;
 
     DenseBins<ParticleType> m_bins;
 
@@ -1312,17 +1192,17 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
 
 private:
 
-    virtual void particlePostLocate(ParticleType& /*p*/, const ParticleLocData& /*pld*/,
-                                    const int /*lev*/) {}
+    virtual void particlePostLocate (ParticleType& /*p*/, const ParticleLocData& /*pld*/,
+                                     const int /*lev*/) {}
 
-    virtual void correctCellVectors(int /*old_index*/, int /*new_index*/,
-				    int /*grid*/, const ParticleType& /*p*/) {}
+    virtual void correctCellVectors (int /*old_index*/, int /*new_index*/,
+                                     int /*grid*/, const ParticleType& /*p*/) {}
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
 
-    void locateParticle(ParticleType& p, ParticleLocData& pld,
-                        int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
+    void locateParticle (ParticleType& p, ParticleLocData& pld,
+                         int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
 
     void Initialize ();
 
