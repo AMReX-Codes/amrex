@@ -14,7 +14,6 @@ void MyTest::initializeLinearDataFor3D(int ilev) {
     Array4<Real> const &fab_gx = grad_x_analytic[ilev].array(mfi);
     Array4<Real> const &fab_gy = grad_y_analytic[ilev].array(mfi);
     Array4<Real> const &fab_gz = grad_z_analytic[ilev].array(mfi);
-    Array4<Real> const &fab_eb = grad_eb_analytic[ilev].array(mfi);
 
     const FabArray<EBCellFlagFab> *flags =
         &(factory[ilev]->getMultiEBCellFlagFab());
@@ -227,42 +226,6 @@ void MyTest::initializeLinearDataFor3D(int ilev) {
              (c * flow_norm[2] / std::sqrt(a * a + b * b + c * c)) *
                         fac * dx[2];
         }
-
-        if (flag(i, j, k).isSingleValued()) {
-          Real rxeb = (i + 0.5 + bcent(i, j, k, 0)) * dx[0];
-          Real ryeb = (j + 0.5 + bcent(i, j, k, 1)) * dx[1];
-          Real rzeb = (k + 0.5 + bcent(i, j, k, 2)) * dx[2];
-          Real fac = (H - 2 * (a * rxeb + b * ryeb + c * rzeb + d) /
-                              (std::sqrt(a * a + b * b + c * c)));
-          Real dudx = (a * flow_norm[0] / std::sqrt(a * a + b * b + c * c)) *
-                      fac * dx[0];
-          Real dvdx = (a * flow_norm[1] / std::sqrt(a * a + b * b + c * c)) *
-                      fac * dx[0];
-          Real dwdx = (a * flow_norm[2] / std::sqrt(a * a + b * b + c * c)) *
-                      fac * dx[0];
-          Real dudy = (b * flow_norm[0] / std::sqrt(a * a + b * b + c * c)) *
-                      fac * dx[1];
-          Real dvdy = (b * flow_norm[1] / std::sqrt(a * a + b * b + c * c)) *
-                      fac * dx[1];
-          Real dwdy = (b * flow_norm[2] / std::sqrt(a * a + b * b + c * c)) *
-                      fac * dx[1];
-          Real dudz = (c * flow_norm[0] / std::sqrt(a * a + b * b + c * c)) *
-                      fac * dx[2];
-          Real dvdz = (c * flow_norm[1] / std::sqrt(a * a + b * b + c * c)) *
-                      fac * dx[2];
-          Real dwdz = (c * flow_norm[2] / std::sqrt(a * a + b * b + c * c)) *
-                      fac * dx[2];
-
-          fab_eb(i, j, k, 0) = dudx * norm(i, j, k, 0) +
-                               dudy * norm(i, j, k, 1) +
-                               dudz * norm(i, j, k, 2);
-          fab_eb(i, j, k, 1) = dvdx * norm(i, j, k, 0) +
-                               dvdy * norm(i, j, k, 1) +
-                               dvdz * norm(i, j, k, 2);
-          fab_eb(i, j, k, 2) = dwdx * norm(i, j, k, 0) +
-                               dwdy * norm(i, j, k, 1) +
-                               dwdz * norm(i, j, k, 2);
-        }
       });
     } else { // 3D grid-aligned
       amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j,
@@ -301,16 +264,9 @@ void MyTest::initializeLinearDataFor3D(int ilev) {
           fab(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? (H - d) : 0.0;
 
           fab_gx(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? -1.0 * dx[0]: 0.0;
-          if (flag(i, j, k).isSingleValued()) {
-            fab_eb(i, j, k, 0) = 0.0;
-            fab_eb(i, j, k, 1) = 0.0;
-            fab_eb(i, j, k, 2) = 0.0;
+        }
 
-            Real rxeb = (i + 0.5 + bcent(i, j, k, 0)) * dx[0];
-            d = rxeb - bot;
-            fab_eb(i, j, k, fdir) = (H - 2 * d) * dx[0] * norm(i, j, k, 0);
-          }
-        } else if (dir == 1) {
+          if (dir ==1) {
           Real ry = (j + 0.5 + ccent(i, j, k, 1)) * dx[1];
 
           if (j < dlo[1] and not is_periodic[1]) {
@@ -326,17 +282,8 @@ void MyTest::initializeLinearDataFor3D(int ilev) {
 
 
           fab_gy(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? -1.0 * dx[1]: 0.0;
- 
-          if (flag(i, j, k).isSingleValued()) {
-            fab_eb(i, j, k, 0) = 0.0;
-            fab_eb(i, j, k, 1) = 0.0;
-            fab_eb(i, j, k, 2) = 0.0;
-
-            Real ryeb = (j + 0.5 + bcent(i, j, k, 1)) * dx[1];
-            d = ryeb - bot;
-            fab_eb(i, j, k, fdir) = (H - 2 * d) * dx[1] * norm(i, j, k, 1);
-          }
-        } else if (dir == 2) {
+        } 
+          if (dir == 2) {
           Real rz = (k + 0.5 + ccent(i, j, k, 2)) * dx[2];
 
           if (k < dlo[2] and not is_periodic[2]) {
@@ -350,16 +297,6 @@ void MyTest::initializeLinearDataFor3D(int ilev) {
           fab(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? (H - d) : 0.0;
 
           fab_gz(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? -1.0 * dx[2]: 0.0;
-
-          if (flag(i, j, k).isSingleValued()) {
-            fab_eb(i, j, k, 0) = 0.0;
-            fab_eb(i, j, k, 1) = 0.0;
-            fab_eb(i, j, k, 2) = 0.0;
-
-            Real rzeb = (k + 0.5 + bcent(i, j, k, 2)) * dx[2];
-            d = rzeb - bot;
-            fab_eb(i, j, k, fdir) = (H - 2 * d) * dx[2] * norm(i, j, k, 2);
-          }
         } else {
           AMREX_ALWAYS_ASSERT_WITH_MESSAGE(0, "Invalid height direction");
         }

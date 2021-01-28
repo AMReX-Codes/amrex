@@ -14,7 +14,6 @@ void MyTest::initializeLinearDataFor2D(int ilev) {
     Array4<Real> const &fab = phi[ilev].array(mfi);
     Array4<Real> const &fab_gx = grad_x_analytic[ilev].array(mfi);
     Array4<Real> const &fab_gy = grad_y_analytic[ilev].array(mfi);
-    Array4<Real> const &fab_eb = grad_eb_analytic[ilev].array(mfi);
 
     const FabArray<EBCellFlagFab> *flags =
         &(factory[ilev]->getMultiEBCellFlagFab());
@@ -109,8 +108,6 @@ void MyTest::initializeLinearDataFor2D(int ilev) {
         Real dudy = (b * std::cos(t) / std::sqrt(a * a + b * b)) * fac * dx[1];
         Real dvdy = (b * std::sin(t) / std::sqrt(a * a + b * b)) * fac * dx[1];
 
-        fab_eb(i, j, k, 0) = dudx * norm(i, j, k, 0) + dudy * norm(i, j, k, 1);
-        fab_eb(i, j, k, 1) = dvdx * norm(i, j, k, 0) + dvdy * norm(i, j, k, 1);
       }
     });
   }
