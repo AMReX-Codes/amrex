@@ -23,7 +23,7 @@ jobs:
             -DCMAKE_CXX_STANDARD=17
         make -j 2
         make install
-        
+
         export PATH=/tmp/my-amrex/bin:$PATH
         which fcompare
 
@@ -101,6 +101,32 @@ jobs:
             -DCMAKE_C_COMPILER=$(which gcc-10)              \
             -DCMAKE_CXX_COMPILER=$(which g++-10)            \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-10)
+        make -j 2
+
+  tutorials_clang:
+    name: Clang@6.0 C++14 SP Particles DP Mesh Debug [tutorials]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -fno-operator-names"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_clang6.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                                      \
+            -DCMAKE_BUILD_TYPE=Debug                  \
+            -DCMAKE_VERBOSE_MAKEFILE=ON               \
+            -DAMReX_BUILD_TUTORIALS=ON                \
+            -DAMReX_MPI=ON                            \
+            -DAMReX_PARTICLES=ON                      \
+            -DAMReX_PRECISION=DOUBLE                  \
+            -DAMReX_PARTICLES_PRECISION=SINGLE        \
+            -DCMAKE_CXX_STANDARD=14                   \
+            -DCMAKE_C_COMPILER=$(which clang)         \
+            -DCMAKE_CXX_COMPILER=$(which clang++)     \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)
         make -j 2
 
   # Build libamrex and all tutorials w/o MPI
