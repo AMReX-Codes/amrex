@@ -220,6 +220,9 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     AMREX_ASSERT(lev <= m_gdb->finestLevel());
 
     const auto strttime = amrex::second();
+    const Geometry& geom     = m_gdb->Geom(lev);
+    const auto      plo      = geom.ProbLoArray();
+    const auto      dxi      = geom.InvCellSizeArray();
 
     const int   MyProc    = ParallelDescriptor::MyProc();
     const int   NProcs    = ParallelContext::NProcsSub();
@@ -288,6 +291,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		  const auto& pbox = kv.second.GetArrayOfStructs();
 		  const Box&       bx   = ba[grid];
 		  const FArrayBox& fab  = mf[grid];
+                  const auto uccarr = fab.array();
 
 		  for (int k = 0; k < pbox.numParticles(); ++k)
 		    {
@@ -315,7 +319,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
 		      if (M > 0)
                         {
-			  ParticleType::Interp(p,m_gdb->Geom(lev),fab,&indices[0],&vals[0],M);
+                          cic_interpolate(p, plo, dxi, uccarr, &vals[0], M);
 
 			  for (int i = 0; i < M; i++)
                             {
