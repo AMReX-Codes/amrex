@@ -284,7 +284,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                 const int       M  = indices.size();
                 const BoxArray& ba = mf.boxArray();
 
-                std::vector<Real> vals(M);
+                std::vector<ParticleReal> vals(M);
 
 		for (auto& kv : pmap) {
 		  int grid = kv.first.first;
