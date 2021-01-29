@@ -119,7 +119,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug                  \
             -DCMAKE_VERBOSE_MAKEFILE=ON               \
             -DAMReX_BUILD_TUTORIALS=ON                \
-            -DAMReX_MPI=ON                            \
+            -DAMReX_MPI=OFF                           \
             -DAMReX_PARTICLES=ON                      \
             -DAMReX_PRECISION=DOUBLE                  \
             -DAMReX_PARTICLES_PRECISION=SINGLE        \
