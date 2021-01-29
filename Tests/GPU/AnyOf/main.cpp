@@ -38,7 +38,6 @@ void main_main ()
 
     MultiFab mf;
     Gpu::DeviceVector<Real> vec(nitem, 7.0);
-    Real* vecptr = vec.dataPtr();
 
 // ***************************************************************
     // Build the Multifabs and Geometries.
@@ -60,20 +59,20 @@ void main_main ()
         bool anyof_M = Reduce::AnyOf(nitem, vec.dataPtr(),
                         [=] AMREX_GPU_DEVICE (int item) noexcept
                         {
-                            return ( item < 2.0 ) ;
+                            return ( int(item < 2.0) ) ;
                         });
 
         bool anyof_N = Reduce::AnyOf(nitem, vec.dataPtr(),
                         [=] AMREX_GPU_DEVICE (int item) noexcept
                         {
-                            return ( item > 2.0 ) ;
+                            return ( int(item > 2.0) ) ;
                         });
-        amrex::Print() << "Vector: "
+        amrex::Print() << "Vector, (0, 1): "
                        << anyof_M << ", " << anyof_N << std::endl; 
     }
 
     // Redo, confirming works for a single item.
-    vec[int(nitem/2)] = 1.0;
+    vec[int(nitem-1)] = 1.0;
 
     {
         BL_PROFILE("Vector AnyOf - Just 1");
@@ -81,19 +80,20 @@ void main_main ()
         bool anyof_M = Reduce::AnyOf(nitem, vec.dataPtr(),
                         [=] AMREX_GPU_DEVICE (int item) noexcept
                         {
-                            return ( item < 2.0 ) ;
+                            return ( int(item < 2.0) ) ;
                         });
 
         bool anyof_N = Reduce::AnyOf(nitem, vec.dataPtr(),
                         [=] AMREX_GPU_DEVICE (int item) noexcept
                         {
-                            return ( item > 2.0 ) ;
+                            return ( int(item > 2.0) ) ;
                         });
 
         amrex::Print() << "Vector, both true: "
                        << anyof_M << ", " << anyof_N << std::endl; 
     }
 
+    amrex::Print() << "\nTesting Box Version.\n One box = 0,1,1,1, all others 0,1,0,1\n";
     {
         BL_PROFILE("Box AnyOf");
 
@@ -105,32 +105,32 @@ void main_main ()
             bool anyof_A = Reduce::AnyOf(bx,
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                            {
-                               return ( arr(i,j,k) < 2.0 ) ;
+                               return ( int(arr(i,j,k) < 2.0) ) ;
                            });
 
             bool anyof_B = Reduce::AnyOf(bx,
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                            {
-                               return ( arr(i,j,k) > 2.0 ) ;
+                               return ( int(arr(i,j,k) > 2.0) ) ;
                            });
 
 	    // Redo, confirming works for a single value.
-            if (bx.contains(IntVect{0,0,0}))
+            if (bx.contains(IntVect{ncell/3,ncell/2,ncell-1}))
             {
-                arr(0,0,0) = 1.0;
+                arr(ncell/3,ncell/2,ncell-1) = 1.0;
             } 
 
             bool anyof_C = Reduce::AnyOf(bx,
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                            {
-                               return ( arr(i,j,k) < 2.0 ) ;
+                               return ( int(arr(i,j,k) < 2.0) ) ;
                            });
 
             bool anyof_D = Reduce::AnyOf(bx,
-                       [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                       {
-                           return ( arr(i,j,k) > 2.0 ) ;
-                       });
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                           {
+                               return ( int(arr(i,j,k) > 2.0) ) ;
+                           });
 
             amrex::Print() << "Box #" << mfi.LocalIndex() << " = "
                            << anyof_A << ", " << anyof_B << ", " 

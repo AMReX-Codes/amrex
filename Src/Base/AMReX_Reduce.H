@@ -630,11 +630,11 @@ bool AnyOf (N n, T const* v, P&& pred)
     ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
 
 #ifdef AMREX_USE_DPCPP
-    const int num_ints = std::max(Gpu::Device::warp_size, int(ec.numThreads.x)/Gpu::Device::warp_size); 
+    const int num_ints = std::max(Gpu::Device::warp_size, int(ec.numThreads.x)/Gpu::Device::warp_size) + 1;
     const std::size_t shared_mem_bytes = num_ints*sizeof(int);
     amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::nullStream(),
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
-        int* has_any = static_cast<int*>(gh.sharedMemory());
+        int* has_any = &(static_cast<int*>(gh.sharedMemory())[num_ints-1]);
         if (gh.threadIdx() == 0) { *has_any = *dp; }
         gh.sharedBarrier();
 
@@ -689,11 +689,11 @@ bool AnyOf (Box const& box, P&& pred)
     ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
 
 #ifdef AMREX_USE_DPCPP
-    const int num_ints = std::max(Gpu::Device::warp_size, int(ec.numThreads.x)/Gpu::Device::warp_size);
+    const int num_ints = std::max(Gpu::Device::warp_size, int(ec.numThreads.x)/Gpu::Device::warp_size) + 1;
     const std::size_t shared_mem_bytes = num_ints*sizeof(int);
     amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::nullStream(),
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
-        int* has_any = static_cast<int*>(gh.sharedMemory());
+        int* has_any = &(static_cast<int*>(gh.sharedMemory())[num_ints-1]);
         if (gh.threadIdx() == 0) { *has_any = *dp; }
         gh.sharedBarrier();
 
