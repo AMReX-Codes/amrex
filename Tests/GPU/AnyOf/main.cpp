@@ -57,15 +57,15 @@ void main_main ()
         Gpu::Device::synchronize();
 
         bool anyof_M = Reduce::AnyOf(nitem, vec.dataPtr(),
-                        [=] AMREX_GPU_DEVICE (int item) noexcept
+                        [=] AMREX_GPU_DEVICE (Real item) noexcept -> int
                         {
-                            return ( int(item < 2.0) ) ;
+                            return ( item < 2.0 ) ;
                         });
 
         bool anyof_N = Reduce::AnyOf(nitem, vec.dataPtr(),
-                        [=] AMREX_GPU_DEVICE (int item) noexcept
+                        [=] AMREX_GPU_DEVICE (Real item) noexcept -> int
                         {
-                            return ( int(item > 2.0) ) ;
+                            return ( item > 2.0 ) ;
                         });
         amrex::Print() << "Vector, (0, 1): "
                        << anyof_M << ", " << anyof_N << std::endl; 
@@ -78,15 +78,15 @@ void main_main ()
         BL_PROFILE("Vector AnyOf - Just 1");
 
         bool anyof_M = Reduce::AnyOf(nitem, vec.dataPtr(),
-                        [=] AMREX_GPU_DEVICE (int item) noexcept
+                        [=] AMREX_GPU_DEVICE (Real item) noexcept -> int
                         {
-                            return ( int(item < 2.0) ) ;
+                            return ( item < 2.0 ) ;
                         });
 
         bool anyof_N = Reduce::AnyOf(nitem, vec.dataPtr(),
-                        [=] AMREX_GPU_DEVICE (int item) noexcept
+                        [=] AMREX_GPU_DEVICE (Real item) noexcept -> int
                         {
-                            return ( int(item > 2.0) ) ;
+                            return ( item > 2.0 ) ;
                         });
 
         amrex::Print() << "Vector, both true: "
