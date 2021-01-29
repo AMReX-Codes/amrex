@@ -12,6 +12,7 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_Vector.H>
 #include <AMReX_ParticleUtil.H>
+#include <AMReX_MultiFab.H>
 
 namespace amrex {
 
@@ -197,12 +198,22 @@ public:
     static IntVect tile_size;
 
 protected:
+
+    void BuildRedistributeMask (int lev, int nghost=1) const;
+    void defineBufferMap () const;
+
     int         m_verbose;
     ParGDBBase* m_gdb;
     ParGDB      m_gdb_object;
     Vector<std::unique_ptr<MultiFab> > m_dummy_mf;
-    void defineBufferMap () const;
+
+    mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
+    mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();
+    mutable amrex::Vector<int> neighbor_procs;
     mutable ParticleBufferMap m_buffer_map;
+#ifdef AMREX_USE_GPU
+    mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
+#endif
 };
 
 } // namespace amrex

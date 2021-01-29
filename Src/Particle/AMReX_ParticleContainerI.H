@@ -1536,64 +1536,6 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
-BuildRedistributeMask (int lev, int nghost) const
-{
-    BL_PROFILE("ParticleContainer::BuildRedistributeMask");
-    AMREX_ASSERT(lev == 0);
-
-    if (redistribute_mask_ptr == nullptr ||
-        redistribute_mask_nghost < nghost ||
-        ! BoxArray::SameRefs(redistribute_mask_ptr->boxArray(), this->ParticleBoxArray(lev)) ||
-        ! DistributionMapping::SameRefs(redistribute_mask_ptr->DistributionMap(), this->ParticleDistributionMap(lev)))
-    {
-        const Geometry& geom = this->Geom(lev);
-        const BoxArray& ba = this->ParticleBoxArray(lev);
-        const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
-
-        redistribute_mask_nghost = nghost;
-        redistribute_mask_ptr.reset(new iMultiFab(ba, dmap, 2, nghost));
-        redistribute_mask_ptr->setVal(-1, nghost);
-
-        const auto tile_size_do = this->do_tiling ? this->tile_size : IntVect::TheZeroVector();
-
-#ifdef AMREX_USE_OMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(*redistribute_mask_ptr, tile_size_do); mfi.isValid(); ++mfi)
-        {
-            const Box& box = mfi.tilebox();
-            const int grid_id = mfi.index();
-            const int tile_id = mfi.LocalTileIndex();
-            (*redistribute_mask_ptr)[mfi].template setVal<RunOn::Host>(grid_id, box, 0, 1);
-            (*redistribute_mask_ptr)[mfi].template setVal<RunOn::Host>(tile_id, box, 1, 1);
-        }
-
-        redistribute_mask_ptr->FillBoundary(geom.periodicity());
-
-        neighbor_procs.clear();
-        for (MFIter mfi(*redistribute_mask_ptr, tile_size_do); mfi.isValid(); ++mfi)
-        {
-            const Box& box = mfi.growntilebox();
-            for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv))
-            {
-                const int grid = (*redistribute_mask_ptr)[mfi](iv, 0);
-                if (grid >= 0)
-                {
-                    const int global_rank = this->ParticleDistributionMap(lev)[grid];
-                    const int rank = ParallelContext::global_to_local_rank(global_rank);
-                    if (rank != ParallelContext::MyProcSub())
-                        neighbor_procs.push_back(rank);
-                }
-            }
-        }
-        RemoveDuplicates(neighbor_procs);
-    }
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
 RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                  int lev_min, int lev_max, int nGrow, int local)
 {

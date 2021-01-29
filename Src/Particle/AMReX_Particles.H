@@ -1096,8 +1096,6 @@ public:
 
 protected:
 
-    mutable amrex::Vector<int> neighbor_procs;
-
     /**
     * \brief Checks a particle's location on levels lev_min and higher.
     * Returns false if the particle does not exist on that level.
@@ -1149,15 +1147,7 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
 
     void SetParticleSize ();
 
-    void BuildRedistributeMask (int lev, int nghost=1) const;
-    mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
-    mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();
-
     DenseBins<ParticleType> m_bins;
-
-#ifdef AMREX_USE_GPU
-    mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
-#endif
 
 private:
 
