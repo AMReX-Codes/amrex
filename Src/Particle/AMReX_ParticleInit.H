@@ -44,7 +44,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     const int  NProcs   = ParallelDescriptor::NProcs();
     const auto strttime = amrex::second();
 
-    int NReaders = ParticleType::MaxReaders();  // num ranks to read with
+    int NReaders = MaxReaders();  // num ranks to read with
     int NRedist = 1;  // number of times to redistribute while reading
 
     // try to use some sensible heuristics
@@ -470,13 +470,13 @@ InitFromBinaryFile (const std::string& file,
     // We limit this to a rather small number since there's a limit
     // to the number of independent I/O channels on most filesystems.
     //
-    const int NReaders = ParticleType::MaxReaders();
+    const int NReaders = MaxReaders();
 
     AMREX_ASSERT(NReaders <= NProcs);
     //
     // How many particles each NReaders reads before redistributing.
     //
-    const Long NPartPerRedist = ParticleType::MaxParticlesPerRead();
+    const Long NPartPerRedist = MaxParticlesPerRead();
 
     if (m_verbose > 0)
     {
