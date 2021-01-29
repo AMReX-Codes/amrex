@@ -352,8 +352,6 @@ public:
     void reserveData ();
     void resizeData ();
 
-    void RedefineDummyMF (int lev);
-
     void InitFromAsciiFile (const std::string& file, int extradata,
                             const IntVect* Nrep = nullptr);
 
@@ -1004,7 +1002,6 @@ public:
     template <typename P>
     IntVect Index (const P& p, int lev) const;
 
-
     /**
     * \brief Updates a particle's location (Where), tries to periodic shift any particles
     * that have left the domain. May need work (see inline comments)
@@ -1017,33 +1014,12 @@ public:
     ParticleLocData Reset (ParticleType& prt, bool update, bool verbose=true,
                            ParticleLocData pld = ParticleLocData()) const;
 
-
     /**
     * \brief Returns true if the particle was shifted.
     *
     * \param prt
     */
     bool PeriodicShift (ParticleType& prt) const;
-
-    MFIter MakeMFIter (int lev, const MFItInfo& info) const {
-        AMREX_ASSERT(m_dummy_mf[lev] != nullptr);
-        return MFIter(*m_dummy_mf[lev], info);
-    }
-
-    MFIter MakeMFIter (int lev) const {
-        AMREX_ASSERT(m_dummy_mf[lev] != nullptr);
-        return MFIter(*m_dummy_mf[lev], do_tiling ? tile_size : IntVect::TheZeroVector());
-    }
-
-    MFIter MakeMFIter (int lev, bool tile) const {
-        AMREX_ASSERT(m_dummy_mf[lev] != nullptr);
-        return MFIter(*m_dummy_mf[lev], tile ? tile_size : IntVect::TheZeroVector());
-    }
-
-    Vector<int> h_communicate_real_comp;
-    Vector<int> h_communicate_int_comp;
-    Gpu::DeviceVector<int> d_communicate_real_comp;
-    Gpu::DeviceVector<int> d_communicate_int_comp;
 
     void SetLevelDirectoriesCreated (bool tf) { levelDirectoriesCreated = tf; }
 
@@ -1093,20 +1069,16 @@ public:
         SetParticleSize();
     }
 
-    const ParticleBufferMap& BufferMap () const {return m_buffer_map;}
-
-    Vector<int> NeighborProcs(int ngrow) const
-    {
-        return computeNeighborProcs(this->GetParGDB(), ngrow);
-    }
-
-    bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
-
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
     int NumRuntimeIntComps  () const { return m_num_runtime_int;  }
 
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
+
+    Vector<int> h_communicate_real_comp;
+    Vector<int> h_communicate_int_comp;
+    Gpu::DeviceVector<int> d_communicate_real_comp;
+    Gpu::DeviceVector<int> d_communicate_int_comp;
 
     //! ---- variables for i/o optimization saved for pre and post checkpoint
     mutable bool levelDirectoriesCreated;
@@ -1181,9 +1153,6 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
     mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
     mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();
 
-    void defineBufferMap () const;
-    mutable ParticleBufferMap m_buffer_map;
-
     DenseBins<ParticleType> m_bins;
 
 #ifdef AMREX_USE_GPU
@@ -1213,7 +1182,6 @@ private:
     size_t particle_size, superparticle_size;
     int num_real_comm_comps, num_int_comm_comps;
     Vector<ParticleLevel> m_particles;
-    Vector<std::unique_ptr<MultiFab> > m_dummy_mf;
 };
 
 #include "AMReX_ParticleInit.H"

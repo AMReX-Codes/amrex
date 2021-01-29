@@ -284,9 +284,8 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::reserveData ()
 {
-    int nlevs = maxLevel() + 1;
-    m_particles.reserve(nlevs);
-    m_dummy_mf.reserve(nlevs);
+    this->ParticleContainerBase::reserveData();
+    m_particles.reserve(maxLevel()+1);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
@@ -294,31 +293,9 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::resizeData ()
 {
+    this->ParticleContainerBase::resizeData();
     int nlevs = std::max(0, finestLevel()+1);
     m_particles.resize(nlevs);
-    m_dummy_mf.resize(nlevs);
-    for (int lev = 0; lev < nlevs; ++lev) {
-        RedefineDummyMF(lev);
-    }
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::RedefineDummyMF (int lev)
-{
-    if (lev > m_dummy_mf.size()-1) m_dummy_mf.resize(lev+1);
-
-    if (m_dummy_mf[lev] == nullptr ||
-        ! BoxArray::SameRefs(m_dummy_mf[lev]->boxArray(),
-                             ParticleBoxArray(lev))          ||
-        ! DistributionMapping::SameRefs(m_dummy_mf[lev]->DistributionMap(),
-                                        ParticleDistributionMap(lev)))
-    {
-        m_dummy_mf[lev].reset(new MultiFab(ParticleBoxArray(lev),
-                                           ParticleDistributionMap(lev),
-                                           1,0,MFInfo().SetAlloc(false)));
-    };
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
@@ -1553,20 +1530,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
           });
 #endif
   }
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
-defineBufferMap () const
-{
-    BL_PROFILE("ParticleContainer::defineBufferMap");
-
-    if (! m_buffer_map.isValid(GetParGDB()))
-    {
-        m_buffer_map.define(GetParGDB());
-    }
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,

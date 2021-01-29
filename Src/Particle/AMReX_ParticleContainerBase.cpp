@@ -26,6 +26,47 @@ void ParticleContainerBase::Define (const Vector<Geometry>            & geom,
     m_gdb = &m_gdb_object;
 }
 
+void ParticleContainerBase::reserveData ()
+{
+    m_dummy_mf.reserve(maxLevel()+1);
+}
+
+void ParticleContainerBase::resizeData ()
+{
+    int nlevs = std::max(0, finestLevel()+1);
+    m_dummy_mf.resize(nlevs);
+    for (int lev = 0; lev < nlevs; ++lev) {
+        RedefineDummyMF(lev);
+    }
+}
+
+void ParticleContainerBase::RedefineDummyMF (int lev)
+{
+    if (lev > m_dummy_mf.size()-1) m_dummy_mf.resize(lev+1);
+
+    if (m_dummy_mf[lev] == nullptr ||
+        ! BoxArray::SameRefs(m_dummy_mf[lev]->boxArray(),
+                             ParticleBoxArray(lev))          ||
+        ! DistributionMapping::SameRefs(m_dummy_mf[lev]->DistributionMap(),
+                                        ParticleDistributionMap(lev)))
+    {
+        m_dummy_mf[lev].reset(new MultiFab(ParticleBoxArray(lev),
+                                           ParticleDistributionMap(lev),
+                                           1,0,MFInfo().SetAlloc(false)));
+    };
+}
+
+void
+ParticleContainerBase::defineBufferMap () const
+{
+    BL_PROFILE("ParticleContainer::defineBufferMap");
+
+    if (! m_buffer_map.isValid(GetParGDB()))
+    {
+        m_buffer_map.define(GetParGDB());
+    }
+}
+
 void ParticleContainerBase::SetParticleBoxArray (int lev, const BoxArray& new_ba)
 {
     m_gdb_object = ParGDB(m_gdb->ParticleGeom(), m_gdb->ParticleDistributionMap(),

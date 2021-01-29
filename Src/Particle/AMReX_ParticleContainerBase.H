@@ -11,6 +11,7 @@
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_Vector.H>
+#include <AMReX_ParticleUtil.H>
 
 namespace amrex {
 
@@ -85,6 +86,25 @@ public:
 		 const Vector<BoxArray>            & ba,
 		 const Vector<int>                 & rr);
 
+    void reserveData ();
+    void resizeData ();
+    void RedefineDummyMF (int lev);
+
+    MFIter MakeMFIter (int lev, const MFItInfo& info) const {
+        AMREX_ASSERT(m_dummy_mf[lev] != nullptr);
+        return MFIter(*m_dummy_mf[lev], info);
+    }
+
+    MFIter MakeMFIter (int lev) const {
+        AMREX_ASSERT(m_dummy_mf[lev] != nullptr);
+        return MFIter(*m_dummy_mf[lev], do_tiling ? tile_size : IntVect::TheZeroVector());
+    }
+
+    MFIter MakeMFIter (int lev, bool tile) const {
+        AMREX_ASSERT(m_dummy_mf[lev] != nullptr);
+        return MFIter(*m_dummy_mf[lev], tile ? tile_size : IntVect::TheZeroVector());
+    }
+
     //! \brief Set the particle BoxArray. If the container was previously set to
     //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
     //! will be broken here.
@@ -157,6 +177,15 @@ public:
 
     void SetVerbose (int verbose) { m_verbose = verbose; }
 
+    const ParticleBufferMap& BufferMap () const {return m_buffer_map;}
+
+    Vector<int> NeighborProcs(int ngrow) const
+    {
+        return computeNeighborProcs(this->GetParGDB(), ngrow);
+    }
+
+    bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
+
     static const std::string& Version ();
     static const std::string& DataPrefix ();
     static int MaxReaders ();
@@ -171,6 +200,9 @@ protected:
     int         m_verbose;
     ParGDBBase* m_gdb;
     ParGDB      m_gdb_object;
+    Vector<std::unique_ptr<MultiFab> > m_dummy_mf;
+    void defineBufferMap () const;
+    mutable ParticleBufferMap m_buffer_map;
 };
 
 } // namespace amrex
