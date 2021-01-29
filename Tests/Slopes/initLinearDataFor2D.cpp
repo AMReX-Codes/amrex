@@ -98,17 +98,6 @@ void MyTest::initializeLinearDataFor2D(int ilev) {
                  (b * std::sin(t) / std::sqrt(a * a + b * b)) * fac * dx[1];
       }
 
-      if (flag(i, j, k).isSingleValued()) {
-        Real rxeb = (i + 0.5 + bcent(i, j, k, 0)) * dx[0];
-        Real ryeb = (j + 0.5 + bcent(i, j, k, 1)) * dx[1];
-        Real fac =
-            (H - 2 * (a * rxeb + b * ryeb + c) / (std::sqrt(a * a + b * b)));
-        Real dudx = (a * std::cos(t) / std::sqrt(a * a + b * b)) * fac * dx[0];
-        Real dvdx = (a * std::sin(t) / std::sqrt(a * a + b * b)) * fac * dx[0];
-        Real dudy = (b * std::cos(t) / std::sqrt(a * a + b * b)) * fac * dx[1];
-        Real dvdy = (b * std::sin(t) / std::sqrt(a * a + b * b)) * fac * dx[1];
-
-      }
     });
   }
 }

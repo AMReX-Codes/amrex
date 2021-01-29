@@ -1,7 +1,3 @@
-
-DEBUG = TRUE
-DEBUG = FALSE
-
 TEST = TRUE
 USE_ASSERTION = TRUE
 
@@ -12,7 +8,7 @@ USE_OMP  = FALSE
 
 COMP = gnu
 
-DIM = 3
+DIM = 2
 
 AMREX_HOME ?= ../..
 

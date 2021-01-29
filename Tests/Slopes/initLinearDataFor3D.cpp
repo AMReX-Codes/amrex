@@ -60,10 +60,6 @@ void MyTest::initializeLinearDataFor3D(int ilev) {
         Real ry = (j + 0.5 + ccent(i, j, k, 1)) * dx[1];
         Real rz = (k + 0.5 + ccent(i, j, k, 2)) * dx[2];
 
-        // amrex::Print() << "DLO " << dlo[0] << " " << dlo[1] << " " << dlo[2] << std::endl; 
-        // amrex::Print() << "DHI " << dhi[0] << " " << dhi[1] << " " << dhi[2] << std::endl; 
-        // exit(0);
-
         // if not periodic, set the ghost cell values to corr. domain face values
 
         if (i < dlo[0] and not is_periodic[0]) 
