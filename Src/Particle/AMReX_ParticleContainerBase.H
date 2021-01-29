@@ -13,6 +13,8 @@
 #include <AMReX_Vector.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_ParticleLocator.H>
+#include <AMReX_DenseBins.H>
 
 namespace amrex {
 
