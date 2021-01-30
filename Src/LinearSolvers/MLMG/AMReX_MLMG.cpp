@@ -176,8 +176,8 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
                                      << " resid, resid/" << norm_name << " = "
                                      << composite_norminf << ", "
                                      << composite_norminf/max_norm << "\n";
-                      amrex::Abort("MLMG failing so lets stop here");
                   }
+		  amrex::Abort("MLMG failing so lets stop here");
               }
             }
         }
