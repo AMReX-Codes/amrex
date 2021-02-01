@@ -271,7 +271,8 @@ MLNodeLinOp::buildMasks ()
         LayoutData<int>& has_cf = *m_has_fine_bndry[amrlev];
         const Box& ccdom = m_geom[amrlev][0].Domain();
 
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMRRefRatio(amrlev) == 2, "ref_ratio != 0 not supported");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMRRefRatio(amrlev) == 2 || AMRRefRatio(amrlev) == 4,
+                                         "ref_ratio != 2 and 4 not supported");
 
         cc_mask = amrex::makeFineMask(cc_mask, *m_cc_fine_mask[amrlev+1], cc_mask.nGrowVect(),
                                       IntVect(AMRRefRatio(amrlev)), m_geom[amrlev][0].periodicity(),

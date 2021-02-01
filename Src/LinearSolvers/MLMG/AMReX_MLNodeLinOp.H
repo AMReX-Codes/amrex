@@ -55,7 +55,7 @@ public:
                            MultiFab& /*sol*/, Location /*loc*/) const override {
         amrex::Abort("AMReX_MLNodeLinOp::compGrad::How did we get here?");
     }
-    
+
     virtual void applyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final override {}
     virtual void unapplyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final override {}
 
