@@ -355,10 +355,11 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     for (int lev = 0; lev <= pc.finestLevel(); lev++)
     {
         np_per_grid_local[lev].define(pc.ParticleBoxArray(lev), pc.ParticleDistributionMap(lev));
-        for (MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+        using ParIter = typename PC::ParConstIterType;
+        for (ParIter pti(pc, lev); pti.isValid(); ++pti)
         {
-            int gid = mfi.index();
-            const auto& ptile = pc.ParticlesAt(lev, mfi);
+            int gid = pti.index();
+            const auto& ptile = pc.ParticlesAt(lev, pti);
             const auto& aos = ptile.GetArrayOfStructs();
             const auto pstruct = aos().dataPtr();
             const int np = ptile.numParticles();
