@@ -36,9 +36,6 @@ MyTest::compute_gradient ()
 {
     int ilev = 0;
 
-    bool is_eb_dirichlet = true;
-    bool is_eb_inhomog  = false;
-
     int ncomp = phi[0].nComp();
 
     const Box& domain_box = geom[ilev].Domain();
@@ -66,11 +63,9 @@ MyTest::compute_gradient ()
 //        amrex::Print() << "WORKING ON BOX " << bx << std::endl;
 
         Array4<const Real> const& phi_arr     = phi[ilev].array(mfi);
-        Array4<const Real> const& phi_eb_arr  = phieb[ilev].array(mfi);
         Array4<      Real> const& grad_x_arr  = grad_x[ilev].array(mfi);
         Array4<      Real> const& grad_y_arr  = grad_y[ilev].array(mfi);
         Array4<      Real> const& grad_z_arr  = grad_z[ilev].array(mfi);
-        Array4<      Real> const& grad_eb_arr = grad_eb[ilev].array(mfi);
         Array4<      Real> const& ccentr_arr  = ccentr[ilev].array(mfi);
 
         Array4<Real const> const& fcx   = (factory[ilev]->getFaceCent())[0]->const_array(mfi);
@@ -80,12 +75,9 @@ MyTest::compute_gradient ()
 #endif
 
         Array4<Real const> const& ccent = (factory[ilev]->getCentroid()).array(mfi);
-        Array4<Real const> const& norm  = (factory[ilev]->getBndryNormal()).array(mfi);
 
         const FabArray<EBCellFlagFab>* flags = &(factory[ilev]->getMultiEBCellFlagFab());
         Array4<EBCellFlag const> const& flag = flags->const_array(mfi);
-
-        const auto dx = geom[ilev].CellSizeArray();
 
         amrex::ParallelFor(bx, ncomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -174,7 +166,6 @@ MyTest::writePlotfile ()
 {
     Vector<MultiFab> plotmf(max_level+1);
     for (int ilev = 0; ilev <= max_level; ++ilev) {
-        const MultiFab& vfrc = factory[ilev]->getVolFrac();
 
 #if (AMREX_SPACEDIM == 2)
 

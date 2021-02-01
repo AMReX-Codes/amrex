@@ -24,14 +24,6 @@ void MyTest::initializeLinearDataFor2D(int ilev) {
         (factory[ilev]->getFaceCent())[0]->const_array(mfi);
     Array4<Real const> const &fcy =
         (factory[ilev]->getFaceCent())[1]->const_array(mfi);
-    Array4<Real const> const &apx =
-        (factory[ilev]->getAreaFrac())[0]->const_array(mfi);
-    Array4<Real const> const &apy =
-        (factory[ilev]->getAreaFrac())[1]->const_array(mfi);
-    Array4<Real const> const &norm =
-        (factory[ilev]->getBndryNormal()).array(mfi);
-    Array4<Real const> const &bcent =
-        (factory[ilev]->getBndryCent()).array(mfi);
 
     const auto &dlo = geom[ilev].Domain().loVect();
     const auto &dhi = geom[ilev].Domain().hiVect();
@@ -80,8 +72,6 @@ void MyTest::initializeLinearDataFor2D(int ilev) {
         fab_gy(i, j, k, 1) = 0.0;
       } else {
 
-        Real rxl = ((i + 0.5 + ccent(i, j, k, 0))) * dx[0];
-        Real ryl = ((j + 0.5 + ccent(i, j, k, 1))) * dx[1];
         Real fac =
           -1.0 ;
         fab_gx(i, j, k, 0) =
@@ -89,8 +79,6 @@ void MyTest::initializeLinearDataFor2D(int ilev) {
         fab_gx(i, j, k, 1) =
                  (a * std::sin(t) / std::sqrt(a * a + b * b)) * fac * dx[0];
 
-        rxl = ((i + 0.5 + ccent(i, j, k, 0))) * dx[0];
-        ryl = ((j + 0.5 + ccent(i, j, k, 1))) * dx[1];
         fac = -1.0 ;
         fab_gy(i, j, k, 0) =
                 (b * std::cos(t) / std::sqrt(a * a + b * b)) * fac * dx[1];

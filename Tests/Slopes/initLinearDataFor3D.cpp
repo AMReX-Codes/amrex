@@ -20,26 +20,8 @@ void MyTest::initializeLinearDataFor3D(int ilev) {
     Array4<EBCellFlag const> const &flag = flags->const_array(mfi);
 
     Array4<Real const> const &ccent = (factory[ilev]->getCentroid()).array(mfi);
-    Array4<Real const> const &fcx =
-        (factory[ilev]->getFaceCent())[0]->const_array(mfi);
-    Array4<Real const> const &fcy =
-        (factory[ilev]->getFaceCent())[1]->const_array(mfi);
-    Array4<Real const> const &apx =
-        (factory[ilev]->getAreaFrac())[0]->const_array(mfi);
-    Array4<Real const> const &apy =
-        (factory[ilev]->getAreaFrac())[1]->const_array(mfi);
-    Array4<Real const> const &norm =
-        (factory[ilev]->getBndryNormal()).array(mfi);
-    Array4<Real const> const &bcent =
-        (factory[ilev]->getBndryCent()).array(mfi);
-
     const auto &dlo = geom[ilev].Domain().loVect();
     const auto &dhi = geom[ilev].Domain().hiVect();
-
-    Array4<Real const> const &fcz =
-        (factory[ilev]->getFaceCent())[2]->const_array(mfi);
-    Array4<Real const> const &apz =
-        (factory[ilev]->getAreaFrac())[2]->const_array(mfi);
 
     if (linear_1d_askew) { // 3D askew
       amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j,
