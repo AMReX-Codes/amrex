@@ -410,6 +410,10 @@ IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
 
 Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow);
 
+#ifdef AMREX_USE_HDF5_ASYNC
+void async_vol_es_wait_particle();
+void async_vol_es_wait_close_particle();
+#endif
 }
 
 #endif // include guard

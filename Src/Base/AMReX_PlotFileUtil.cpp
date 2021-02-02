@@ -17,9 +17,7 @@
 
 #ifdef AMREX_USE_HDF5_ASYNC
 #include "h5_vol_external_async_native.h"
-#include "h5_async_lib.h"
 hid_t es_id_g = 0;
-bool async_wait_all_added = 0;
 #endif
 
 #endif
@@ -778,6 +776,19 @@ void async_vol_es_wait_close()
         if (num_in_progress != 0) 
             std::cout << "After H5ESwait, still has async operations in progress!" << std::endl; 
         H5ESclose(es_id_g);
+        es_id_g = 0;
+        /* std::cout << "es_id_g closed!" << std::endl; */ 
+    }
+    return;
+}
+static void async_vol_es_wait()
+{
+    size_t num_in_progress;
+    hbool_t op_failed;
+    if (es_id_g != 0) {
+        H5ESwait(es_id_g, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
+        if (num_in_progress != 0) 
+            std::cout << "After H5ESwait, still has async operations in progress!" << std::endl; 
     }
     return;
 }
@@ -808,16 +819,14 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
     int nProcs(ParallelDescriptor::NProcs());
     
 #ifdef AMREX_USE_HDF5_ASYNC
-    // Add async VOL wait all to be executed at amrex finalize time
-    if (!async_wait_all_added) {
-        ExecOnFinalize(async_vol_es_wait_close);
-        async_wait_all_added = true;
-    }
-
     // For HDF5 async VOL, block and wait previous tasks have all completed
-    if (es_id_g != 0)
-        async_vol_es_wait_close();
-    es_id_g = H5EScreate();
+    if (es_id_g != 0) {
+        async_vol_es_wait();
+    }
+    else {
+        ExecOnFinalize(async_vol_es_wait_close);
+        es_id_g = H5EScreate();
+    }
 #endif
 
 
@@ -898,7 +907,6 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
     // All process open the file
 #ifdef AMREX_USE_HDF5_ASYNC
     // Only use async for writing actual data
-    H5Pset_vol_async(fapl);
     fid = H5Fopen_async(filename.c_str(), H5F_ACC_RDWR, fapl, es_id_g);
 #else
     fid = H5Fopen(filename.c_str(), H5F_ACC_RDWR, fapl);

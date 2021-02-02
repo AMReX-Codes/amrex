@@ -62,6 +62,10 @@
 
 #ifdef AMREX_USE_HDF5
 #include <hdf5.h>
+#ifdef AMREX_USE_HDF5_ASYNC
+#include "h5_vol_external_async_native.h"
+extern hid_t es_par_g;
+#endif
 #endif
 
 namespace amrex {
