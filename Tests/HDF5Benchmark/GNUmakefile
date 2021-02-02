@@ -9,27 +9,19 @@ COMP    = gnu
 
 PRECISION = DOUBLE
 
-USE_MPI   = FALSE
 USE_MPI   = TRUE
+MPI_THREAD_MULTIPLE = TRUE
+
 USE_OMP   = FALSE
 
 TINY_PROFILE = TRUE
-
-MPI_THREAD_MULTIPLE = TRUE
-ifeq ($(USE_MPI), FALSE)
-MPI_THREAD_MULTIPLE = FALSE
-endif
 
 ###################################################
 
 EBASE     = main
 
 USE_HDF5  = TRUE
-
 HDF5_HOME = /gpfs/alpine/csc300/world-shared/gnu_build/hpc-io/hdf5/async_optional_build/hdf5
-ifeq ($(USE_MPI), FALSE)
-HDF5_HOME = /gpfs/alpine/csc300/world-shared/gnu_build/hpc-io/hdf5/async_optional_nompi_build/hdf5
-endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -40,7 +32,7 @@ include $(AMREX_HOME)/Src/Particle/Make.package
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 # To use HDF5 asynchronous I/O VOL connector, follow the instructions at https://github.com/hpc-io/vol-async
-USE_HDF5_ASYNC = TRUE
+USE_HDF5_ASYNC = FALSE
 ABT_HOME       = /gpfs/alpine/csc300/world-shared/gnu_build/hpc-io/vol-async/argobots/build
 ASYNC_HOME     = /gpfs/alpine/csc300/world-shared/gnu_build/hpc-io/vol-async/src
 
