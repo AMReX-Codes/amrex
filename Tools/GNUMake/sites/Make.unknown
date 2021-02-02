@@ -26,7 +26,7 @@ ifeq ($(USE_MPI),TRUE)
 
   # f90: filter all flags (-%)
   # cxx: filter additional library flags (-l%)
-  ifeq ($code_sml), 0)
+  ifeq ($(code_sml), 0)
      mpif90_link_flags := $(filter -%,$(shell $(MPI_OTHER_COMP) -showme:link))
      mpicxx_link_flags := $(filter -l%,$(shell mpicxx -showme:link))
   else ifeq ($(code_li), 0)
