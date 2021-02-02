@@ -1,8 +1,9 @@
 
+#include <AMReX_RealBox.H>
+#include <AMReX_Algorithm.H>
+
 #include <iostream>
 #include <string>
-
-#include <AMReX_RealBox.H>
 
 namespace amrex {
 
@@ -63,8 +64,8 @@ operator >> (std::istream &is, RealBox& b)
     double dlotemp, dhitemp;
     for (int i = 0; i < AMREX_SPACEDIM; i++) {
         is >> dlotemp >> dhitemp;
-        lo[i] = dlotemp;
-        hi[i] = dhitemp;
+        lo[i] = static_cast<Real>(dlotemp);
+        hi[i] = static_cast<Real>(dhitemp);
     }
 #else
     for (int i = 0; i < AMREX_SPACEDIM; i++)
@@ -82,13 +83,15 @@ bool AlmostEqual (const RealBox& box1,
                   const RealBox& box2,
                   Real eps /* = 0.0 */) noexcept
 {
-    bool almostEqual = true;
-    for(int i = 0; i < AMREX_SPACEDIM && almostEqual; ++i)
+    bool almost_equal = true;
+    for(int i = 0; i < AMREX_SPACEDIM && almost_equal; ++i)
     {
-        almostEqual = almostEqual && std::abs(box1.lo(i) - box2.lo(i)) <= eps;
-        almostEqual = almostEqual && std::abs(box1.hi(i) - box2.hi(i)) <= eps;
+        almost_equal = almost_equal &&
+            (std::abs(box1.lo(i) - box2.lo(i)) <= eps || amrex::almostEqual(box1.lo(i),box2.lo(i)));
+        almost_equal = almost_equal &&
+            (std::abs(box1.hi(i) - box2.hi(i)) <= eps || amrex::almostEqual(box1.hi(i),box2.hi(i)));
     }
-    return almostEqual;
+    return almost_equal;
 }
 
 }

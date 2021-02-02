@@ -69,6 +69,24 @@ template <class Iterator, EnableIf_t<IsParticleIterator<Iterator>::value, int> f
 int
 numParticlesOutOfRange (Iterator const& pti, int nGrow)
 {
+    return numParticlesOutOfRange(pti,
+                                  IntVect(AMREX_D_DECL(nGrow, nGrow, nGrow)));
+}
+
+/**
+ * \brief Returns the number of particles that are more than nGrow cells
+ * from the box correspond to the input iterator.
+ *
+ * \tparam Iterator an AMReX ParticleIterator
+ *
+ * \param the iterator pointing to the current grid/tile to test
+ * \param nGrow the number of grow cells allowed.
+ *
+ */
+template <class Iterator, EnableIf_t<IsParticleIterator<Iterator>::value, int> foo = 0>
+int
+numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
+{
     using ParticleType = typename Iterator::ContainerType::ParticleType;
 
     const auto& tile = pti.GetParticleTile();
@@ -127,6 +145,25 @@ numParticlesOutOfRange (PC const& pc, int nGrow)
  * \brief Returns the number of particles that are more than nGrow cells
  * from their assigned box.
  *
+ * This version tests over all levels.
+ *
+ * \tparam PC a type of AMReX particle container.
+ *
+ * \param pc the particle container to test
+ * \param nGrow the number of grow cells allowed.
+ *
+ */
+template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+int
+numParticlesOutOfRange (PC const& pc, IntVect nGrow)
+{
+    return numParticlesOutOfRange(pc, 0, pc.finestLevel(), nGrow);
+}
+
+/**
+ * \brief Returns the number of particles that are more than nGrow cells
+ * from their assigned box.
+ *
  * This version goes over only the specified levels
  *
  * \tparam PC a type of AMReX particle container.
@@ -143,11 +180,35 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
 {
     BL_PROFILE("numParticlesOutOfRange()");
 
+    return numParticlesOutOfRange(pc, lev_min, lev_max,
+                                  IntVect(AMREX_D_DECL(nGrow, nGrow, nGrow)));
+}
+
+/**
+ * \brief Returns the number of particles that are more than nGrow cells
+ * from their assigned box.
+ *
+ * This version goes over only the specified levels
+ *
+ * \tparam PC a type of AMReX particle container.
+ *
+ * \param pc the particle container to test
+ * \param lev_min the minimum level to test
+ * \param lev_max the maximum level to test
+ * \param nGrow the number of grow cells allowed.
+ *
+ */
+template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+int
+numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, IntVect nGrow)
+{
+    BL_PROFILE("numParticlesOutOfRange()");
+
     using ParIter = typename PC::ParConstIterType;
     int num_wrong = 0;
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion() && !system::regtest_reduction) reduction(+:num_wrong)
 #endif
         for(ParIter pti(pc, lev); pti.isValid(); ++pti)
@@ -348,10 +409,23 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                 }
                 else
                 {
-                    enforcePeriodic(p, plo, phi, is_per);
-                    auto tup = ploc(p, lev_min, lev_max, nGrow);
+		    auto p_prime = p;
+                    enforcePeriodic(p_prime, plo, phi, is_per);
+                    auto tup = ploc(p_prime, lev_min, lev_max, nGrow);
                     assigned_grid = amrex::get<0>(tup);
                     assigned_lev  = amrex::get<1>(tup);
+		    if (assigned_grid >= 0)
+		    {
+		      AMREX_D_TERM(p.pos(0) = p_prime.pos(0);,
+				   p.pos(1) = p_prime.pos(1);,
+				   p.pos(2) = p_prime.pos(2););
+		    }
+		    else if (lev_min > 0)
+		    {
+		      auto tup = ploc(p, lev_min, lev_max, nGrow);
+		      assigned_grid = amrex::get<0>(tup);
+		      assigned_lev  = amrex::get<1>(tup);
+		    }
                 }
 
                 return ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid));

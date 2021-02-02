@@ -111,7 +111,7 @@ DistributionMapping::Initialize ()
     //
     verbose          = 0;
     sfc_threshold    = 0;
-    max_efficiency   = 0.9;
+    max_efficiency   = 0.9_rt;
     node_size        = 0;
     flag_verbose_mapper = 0;
 
@@ -363,7 +363,8 @@ DistributionMapping::define (Vector<int>&& pmap) noexcept
 void
 DistributionMapping::RoundRobinDoIt (int                  nboxes,
                                      int                 /* nprocs */,
-                                     std::vector<LIpair>* LIpairV)
+                                     std::vector<LIpair>* LIpairV,
+                                     bool                 sort)
 {
     if (flag_verbose_mapper) {
         Print() << "DM: RoundRobinDoIt called..." << std::endl;
@@ -385,14 +386,29 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
     Vector<Vector<int> > wrkerord;
 
     if (nteams == nprocs)  {
-	LeastUsedCPUs(nprocs,ord);
+        if (sort) {
+            LeastUsedCPUs(nprocs,ord);
+        } else {
+            ord.resize(nprocs);
+            std::iota(ord.begin(), ord.end(), 0);
+        }
 	wrkerord.resize(nprocs);
 	for (int i = 0; i < nprocs; ++i) {
 	    wrkerord[i].resize(1);
 	    wrkerord[i][0] = 0;
 	}
     } else {
-	LeastUsedTeams(ord,wrkerord,nteams,nworkers);
+        if (sort) {
+            LeastUsedTeams(ord,wrkerord,nteams,nworkers);
+        } else {
+            ord.resize(nteams);
+            std::iota(ord.begin(), ord.end(), 0);
+            wrkerord.resize(nteams);
+            for (auto& v : wrkerord) {
+                v.resize(nworkers);
+                std::iota(v.begin(), v.end(), 0);
+            }
+        }
     }
 
     Vector<int> w(nteams,0);
@@ -429,13 +445,13 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
 }
 
 void
-DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs)
+DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs, bool sort)
 {
     BL_ASSERT(nboxes > 0);
     m_ref->clear();
     m_ref->m_pmap.resize(nboxes);
 
-    RoundRobinDoIt(nboxes, nprocs);
+    RoundRobinDoIt(nboxes, nprocs, nullptr, sort);
 }
 
 void
@@ -472,7 +488,7 @@ DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
 
 void
 DistributionMapping::RoundRobinProcessorMap (const std::vector<Long>& wgts,
-                                             int nprocs)
+                                             int nprocs, bool sort)
 {
     BL_ASSERT(wgts.size() > 0);
 
@@ -502,7 +518,7 @@ DistributionMapping::RoundRobinProcessorMap (const std::vector<Long>& wgts,
 
     Sort(LIpairV, true);
 
-    RoundRobinDoIt(wgts.size(), nprocs, &LIpairV);
+    RoundRobinDoIt(wgts.size(), nprocs, &LIpairV, sort);
 }
 
 class WeightedBox
@@ -840,7 +856,7 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<Long>& wgts,
 
     if (static_cast<int>(wgts.size()) <= nprocs || nprocs < 2)
     {
-        RoundRobinProcessorMap(wgts.size(),nprocs);
+        RoundRobinProcessorMap(wgts.size(),nprocs, sort);
 
         if (efficiency) *efficiency = 1;
     }
@@ -1445,7 +1461,7 @@ DistributionMapping::makeKnapSack (const Vector<Real>& rcost, int nmax)
     Vector<Long> cost(rcost.size());
 
     Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
 
     for (int i = 0; i < rcost.size(); ++i) {
         cost[i] = Long(rcost[i]*scale) + 1L;
@@ -1469,7 +1485,7 @@ DistributionMapping::makeKnapSack (const Vector<Real>& rcost, Real& eff, int nma
     Vector<Long> cost(rcost.size());
 
     Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
 
     for (int i = 0; i < rcost.size(); ++i) {
         cost[i] = Long(rcost[i]*scale) + 1L;
@@ -1507,7 +1523,7 @@ DistributionMapping::makeKnapSack (const LayoutData<Real>& rcost_local,
         Vector<Long> cost(rcost.size());
 
         Real wmax = *std::max_element(rcost.begin(), rcost.end());
-        Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+        Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
 
         for (int i = 0; i < rcost.size(); ++i) {
             cost[i] = Long(rcost[i]*scale) + 1L;
@@ -1584,7 +1600,7 @@ DistributionMapping::ComputeDistributionMappingEfficiency (const DistributionMap
     for (int i=0; i<nprocs; ++i)
     {
         const Real rwSum = std::accumulate(rankToCosts[i].begin(),
-                                           rankToCosts[i].end(), 0.0);
+                                           rankToCosts[i].end(), 0.0_rt);
         rankToCost[i] = rwSum;
         maxCost = std::max(maxCost, rwSum);
     }
@@ -1592,7 +1608,7 @@ DistributionMapping::ComputeDistributionMappingEfficiency (const DistributionMap
     // Write `efficiency` (number between 0 and 1), the mean cost per processor
     // (normalized to the max cost)
     *efficiency = (std::accumulate(rankToCost.begin(),
-                                   rankToCost.end(), 0.0) / (nprocs*maxCost));
+                                   rankToCost.end(), 0.0_rt) / (nprocs*maxCost));
 }
 
 namespace {
@@ -1601,7 +1617,7 @@ gather_weights (const MultiFab& weight)
 {
 #ifdef AMREX_USE_MPI
     LayoutData<Real> costld(weight.boxArray(),weight.DistributionMap());
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
@@ -1612,7 +1628,7 @@ gather_weights (const MultiFab& weight)
                                                  ParallelContext::IOProcessorNumberSub());
     ParallelDescriptor::Bcast(rcost.data(), rcost.size(), ParallelContext::IOProcessorNumberSub());
     Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
     Vector<Long> lcost(rcost.size());
     for (int i = 0; i < rcost.size(); ++i) {
         lcost[i] = static_cast<Long>(rcost[i]*scale) + 1L;
@@ -1690,7 +1706,7 @@ DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, boo
     Vector<Long> cost(rcost.size());
     
     Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
 
     for (int i = 0; i < rcost.size(); ++i) {
         cost[i] = Long(rcost[i]*scale) + 1L;
@@ -1713,7 +1729,7 @@ DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, Rea
     Vector<Long> cost(rcost.size());
     
     Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
 
     for (int i = 0; i < rcost.size(); ++i) {
         cost[i] = Long(rcost[i]*scale) + 1L;
@@ -1751,7 +1767,7 @@ DistributionMapping::makeSFC (const LayoutData<Real>& rcost_local,
         Vector<Long> cost(rcost.size());
 
         Real wmax = *std::max_element(rcost.begin(), rcost.end());
-        Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+        Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
 
         for (int i = 0; i < rcost.size(); ++i) {
             cost[i] = Long(rcost[i]*scale) + 1L;

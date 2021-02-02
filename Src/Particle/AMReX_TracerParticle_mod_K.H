@@ -20,13 +20,13 @@ void cic_interpolate (const P& p,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
 		      const amrex::Array4<amrex::Real const> &  uccarr,
-		      amrex::ParticleReal * val){
-
-  AMREX_ASSERT(val != 0);
+		      amrex::ParticleReal * val, int M)
+{
+  AMREX_ASSERT(val != nullptr);
 
 #if (AMREX_SPACEDIM == 1)
 
-    amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] - 0.5; //len
+    amrex::Real lx = (Real(p.pos(0)) - plo[0]) * dxi[0] - Real(0.5); //len
 
     int const i = static_cast<int>(amrex::Math::floor(lx)); //cell
 
@@ -34,7 +34,7 @@ void cic_interpolate (const P& p,
 
     amrex::Real sx[] = {Real(1.0) - xint, xint};
 
-    for (int d=0; d < AMREX_SPACEDIM; ++d)
+    for (int d=0; d < M; ++d)
     {
         val[d] = ParticleReal(0.0);
         for (int ii = 0; ii<=1; ++ii)
@@ -46,8 +46,8 @@ void cic_interpolate (const P& p,
 
 #elif (AMREX_SPACEDIM == 2)
 
-    amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] - 0.5;
-    amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] - 0.5;
+    amrex::Real lx = (Real(p.pos(0)) - plo[0]) * dxi[0] - Real(0.5);
+    amrex::Real ly = (Real(p.pos(1)) - plo[1]) * dxi[1] - Real(0.5);
 
     int const i = static_cast<int>(amrex::Math::floor(lx));
     int const j = static_cast<int>(amrex::Math::floor(ly));
@@ -58,7 +58,7 @@ void cic_interpolate (const P& p,
     amrex::Real sx[] = {Real(1.0) - xint, xint};
     amrex::Real sy[] = {Real(1.0) - yint, yint};
 
-    for (int d=0; d < AMREX_SPACEDIM; ++d)
+    for (int d=0; d < M; ++d)
       {
         val[d] = ParticleReal(0.0);
         for (int jj = 0; jj <= 1; ++jj)
@@ -70,12 +70,11 @@ void cic_interpolate (const P& p,
           }
       }
 
-
 #elif (AMREX_SPACEDIM == 3)
 
-    amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] - 0.5;
-    amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] - 0.5;
-    amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] - 0.5;
+    amrex::Real lx = (Real(p.pos(0)) - plo[0]) * dxi[0] - Real(0.5);
+    amrex::Real ly = (Real(p.pos(1)) - plo[1]) * dxi[1] - Real(0.5);
+    amrex::Real lz = (Real(p.pos(2)) - plo[2]) * dxi[2] - Real(0.5);
 
     int const i = static_cast<int>(amrex::Math::floor(lx));
     int const j = static_cast<int>(amrex::Math::floor(ly));
@@ -89,7 +88,7 @@ void cic_interpolate (const P& p,
     amrex::Real sy[] = {Real(1.0) - yint, yint};
     amrex::Real sz[] = {Real(1.0) - zint, zint};
 
-    for (int d=0; d < AMREX_SPACEDIM; ++d)
+    for (int d=0; d < M; ++d)
     {
         val[d] = ParticleReal(0.0);
         for (int kk = 0; kk<=1; ++kk)
@@ -106,7 +105,16 @@ void cic_interpolate (const P& p,
 #endif
 }
 
-
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void cic_interpolate (const P& p,
+		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+		      const amrex::Array4<amrex::Real const> &  uccarr,
+		      amrex::ParticleReal * val)
+{
+    cic_interpolate(p, plo, dxi, uccarr, val, AMREX_SPACEDIM);
+}
 
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
@@ -120,7 +128,7 @@ void mac_interpolate (const P& p,
 #if (AMREX_SPACEDIM == 1)
     for (int d=0; d < AMREX_SPACEDIM; ++d)
     {
-        amrex::Real lx = (p.pos(0)-plo[0])*dxi[0] - (d != 0)*0.5;
+        amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - (d != 0)*Real(0.5);
 
         int const i = static_cast<int>(amrex::Math::floor(lx));
 
@@ -139,8 +147,8 @@ void mac_interpolate (const P& p,
 
   for (int d=0; d < AMREX_SPACEDIM; ++d)
   {
-      amrex::Real lx = (p.pos(0)-plo[0])*dxi[0] - (d != 0)*0.5;
-      amrex::Real ly = (p.pos(1)-plo[1])*dxi[1] - (d != 1)*0.5;
+      amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - (d != 0)*Real(0.5);
+      amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - (d != 1)*Real(0.5);
 
       int const i = static_cast<int>(amrex::Math::floor(lx));
       int const j = static_cast<int>(amrex::Math::floor(ly));
@@ -166,9 +174,9 @@ void mac_interpolate (const P& p,
 
   for (int d=0; d < AMREX_SPACEDIM; ++d)
   {
-      amrex::Real lx = (p.pos(0)-plo[0])*dxi[0] - (d != 0)*0.5;
-      amrex::Real ly = (p.pos(1)-plo[1])*dxi[1] - (d != 1)*0.5;
-      amrex::Real lz = (p.pos(2)-plo[2])*dxi[2] - (d != 2)*0.5;
+      amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - (d != 0)*Real(0.5);
+      amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - (d != 1)*Real(0.5);
+      amrex::Real lz = (Real(p.pos(2))-plo[2])*dxi[2] - (d != 2)*Real(0.5);
 
       int const i = static_cast<int>(amrex::Math::floor(lx));
       int const j = static_cast<int>(amrex::Math::floor(ly));

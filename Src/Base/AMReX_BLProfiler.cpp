@@ -313,7 +313,7 @@ void BLProfiler::PStop() {
 
 
 void BLProfiler::start() {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
 {
@@ -348,7 +348,7 @@ void BLProfiler::start() {
 
 
 void BLProfiler::stop() {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
 {

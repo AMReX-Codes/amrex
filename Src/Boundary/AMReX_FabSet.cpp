@@ -4,7 +4,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_VisMF.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -27,7 +27,7 @@ FabSet&
 FabSet::copyFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
 {
     if (boxArray() == src.boxArray() && DistributionMap() == src.DistributionMap()) {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 	for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
@@ -58,7 +58,7 @@ FabSet&
 FabSet::plusFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
 {
     if (boxArray() == src.boxArray() && DistributionMap() == src.DistributionMap()) {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 	for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
@@ -105,7 +105,7 @@ void
 FabSet::setVal (Real val)
 {
     const int ncomp = nComp();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
@@ -121,7 +121,7 @@ FabSet::setVal (Real val)
 void
 FabSet::setVal (Real val, int comp, int num_comp)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
@@ -141,7 +141,7 @@ FabSet::linComb (Real a, Real b, const FabSet& src, int scomp, int dcomp, int nc
 {
     BL_ASSERT(size() == src.size());
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
@@ -173,7 +173,7 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
     MultiFab bdrya(boxArray(),DistributionMap(),ncomp,0,MFInfo(),FArrayBoxFactory());
     MultiFab bdryb(boxArray(),DistributionMap(),ncomp,0,MFInfo(),FArrayBoxFactory());
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(bdrya); mfi.isValid(); ++mfi) // tiling is not safe for this BoxArray
@@ -196,7 +196,7 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
     bdrya.copy(mfa,a_comp,0,ncomp,ngrow,0);
     bdryb.copy(mfb,b_comp,0,ncomp,ngrow,0);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
@@ -239,7 +239,7 @@ FabSet::Copy (FabSet& dst, const FabSet& src)
     BL_ASSERT(amrex::match(dst.boxArray(), src.boxArray()));
     BL_ASSERT(dst.DistributionMap() == src.DistributionMap());
     int ncomp = dst.nComp();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (FabSetIter fsi(dst); fsi.isValid(); ++fsi) {

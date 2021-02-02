@@ -258,11 +258,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         int to_try  = 1;
         while (true) {
             int msk = (m && to_try) ? Gpu::Atomic::CAS(m, 0, mypriority) : 0;
-#if (__SYCL_COMPILER_VERSION <= 20200827)
-            if (sycl::intel::all_of(item.get_sub_group(), msk == 0)) {  // 0 means lock acquired
-#else
             if (sycl::ONEAPI::all_of(item.get_sub_group(), msk == 0)) {  // 0 means lock acquired
-#endif
                 break; // all threads have acquired.
             } else {
                 if (sycl::ONEAPI::any_of(item.get_sub_group(), msk > mypriority)) {
@@ -373,7 +369,7 @@ FabArray<FAB>::FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp)
     bool is_thread_safe = TheFB.m_threadsafe_loc;
     if (is_thread_safe)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < N_locs; ++i)
@@ -401,7 +397,7 @@ FabArray<FAB>::FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp)
             loc_copy_tags[tag.dstIndex].push_back
                 ({this->fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
         }
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
@@ -1072,7 +1068,7 @@ FabArray<FAB>::pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int nc
     const int N_snds = send_data.size();
     if (N_snds == 0) return;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int j = 0; j < N_snds; ++j)
@@ -1113,7 +1109,7 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
 
     if (is_thread_safe)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
         for (int k = 0; k < N_rcvs; ++k)
@@ -1159,7 +1155,7 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
             }
         }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(dst); mfi.isValid(); ++mfi)

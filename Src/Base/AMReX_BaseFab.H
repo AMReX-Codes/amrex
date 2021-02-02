@@ -2,20 +2,7 @@
 #define AMREX_BASEFAB_H_
 #include <AMReX_Config.H>
 
-#include <cmath>
-#include <cstdlib>
-#include <algorithm>
-#include <limits>
-#include <climits>
-#include <array>
-#include <type_traits>
-#include <memory>
-#include <atomic>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
+#include <AMReX_Algorithm.H>
 #include <AMReX_Extension.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Array.H>
@@ -34,6 +21,21 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Math.H>
 
+#ifdef AMREX_USE_OMP
+#include <omp.h>
+#endif
+
+#include <cmath>
+#include <cstdlib>
+#include <algorithm>
+#include <limits>
+#include <climits>
+#include <array>
+#include <type_traits>
+#include <memory>
+#include <atomic>
+#include <utility>
+
 namespace amrex
 {
 
@@ -45,7 +47,7 @@ extern Long private_total_bytes_allocated_in_fabs;     //!< total bytes at any g
 extern Long private_total_bytes_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
 extern Long private_total_cells_allocated_in_fabs;     //!< total cells at any given time
 extern Long private_total_cells_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp threadprivate(private_total_bytes_allocated_in_fabs)
 #pragma omp threadprivate(private_total_bytes_allocated_in_fabs_hwm)
 #pragma omp threadprivate(private_total_cells_allocated_in_fabs)
@@ -703,6 +705,24 @@ public:
     template <RunOn run_on=RunOn::Host>
 #endif
     T max (const Box& subbox, int comp = 0) const noexcept;
+    /**
+    * \return Minimum and Maximum of given component
+    */
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template <RunOn run_on=RunOn::Host>
+#endif
+    std::pair<T,T> minmax (int comp = 0) const noexcept;
+    /**
+    * \return Minimum and Maximum of given component in given subbox.
+    */
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template <RunOn run_on=RunOn::Host>
+#endif
+    std::pair<T,T> minmax (const Box& subbox, int comp = 0) const noexcept;
     /**
     * \return Maximum of the absolute value of given component.
     */
@@ -1657,13 +1677,14 @@ void
 BaseFab<T>::prefetchToHost () const noexcept
 {
 #ifdef AMREX_USE_GPU
-    if (this->arena() == The_Arena() || this->arena() == The_Managed_Arena()) {
+    if ((this->arena() == The_Arena() && this->arena()->arenaInfo().device_use_managed_memory) ||
+        this->arena() == The_Managed_Arena()) {
 #if defined(AMREX_USE_DPCPP)
         // xxxxx DPCPP todo: prefetchToHost
         // std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
         // auto& q = Gpu::Device::streamQueue();
         // q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
-#elif defined(AMREX_USE_CUDA)
+#elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
@@ -1682,12 +1703,13 @@ void
 BaseFab<T>::prefetchToDevice () const noexcept
 {
 #ifdef AMREX_USE_GPU
-    if (this->arena() == The_Arena() || this->arena() == The_Managed_Arena()) {
+    if ((this->arena() == The_Arena() && this->arena()->arenaInfo().device_use_managed_memory) ||
+        this->arena() == The_Managed_Arena()) {
 #if defined(AMREX_USE_DPCPP)
         std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
         auto& q = Gpu::Device::streamQueue();
         q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
-#elif defined(AMREX_USE_CUDA)
+#elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
@@ -2446,6 +2468,48 @@ BaseFab<T>::max (const Box& subbox, int comp) const noexcept
             r = amrex::max(r, a(i,j,k));
         });
         return r;
+    }
+}
+
+template <class T>
+template <RunOn run_on>
+std::pair<T,T>
+BaseFab<T>::minmax (int comp) const noexcept
+{
+    return this->minmax<run_on>(this->domain,comp);
+}
+
+template <class T>
+template <RunOn run_on>
+std::pair<T,T>
+BaseFab<T>::minmax (const Box& subbox, int comp) const noexcept
+{
+    Array4<T const> const& a = this->const_array(comp);
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpMin,ReduceOpMax> reduce_op;
+        ReduceData<T,T> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(subbox, reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            auto const x = a(i,j,k);
+            return { x, x };
+        });
+        ReduceTuple hv = reduce_data.value();
+        return std::make_pair(amrex::get<0>(hv), amrex::get<1>(hv));
+    } else
+#endif
+    {
+        T rmax = std::numeric_limits<T>::lowest();
+        T rmin = std::numeric_limits<T>::max();
+        amrex::LoopOnCpu(subbox, [=,&rmin,&rmax] (int i, int j, int k) noexcept
+        {
+            auto const x = a(i,j,k);
+            rmin = amrex::min(rmin, x);
+            rmax = amrex::max(rmax, x);
+        });
+        return std::make_pair(rmin,rmax);
     }
 }
 
@@ -3442,9 +3506,15 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1, const Box& b1, int comp1,
                        Real t1, Real t2, Real t,
                        const Box& b, int comp, int numcomp) noexcept
 {
-    Real alpha = (t2-t)/(t2-t1);
-    Real beta = (t-t1)/(t2-t1);
-    return linComb<run_on>(f1,b1,comp1,f2,b2,comp2,alpha,beta,b,comp,numcomp);
+    if (amrex::almostEqual(t1,t2) || amrex::almostEqual(t1,t)) {
+        return copy<run_on>(f1,b1,comp1,b,comp,numcomp);
+    } else if (amrex::almostEqual(t2,t)) {
+        return copy<run_on>(f2,b2,comp2,b,comp,numcomp);
+    } else {
+        Real alpha = (t2-t)/(t2-t1);
+        Real beta = (t-t1)/(t2-t1);
+        return linComb<run_on>(f1,b1,comp1,f2,b2,comp2,alpha,beta,b,comp,numcomp);
+    }
 }
 
 template <class T>
@@ -3455,19 +3525,15 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1, int comp1,
                        Real t1, Real t2, Real t,
                        const Box& b, int comp, int numcomp) noexcept
 {
-    Real tol = 1.0e-16;
-    if(amrex::Math::abs(t2-t1) > tol)
-    {
+    if (amrex::almostEqual(t1,t2) || amrex::almostEqual(t1,t)) {
+        return copy<run_on>(f1,b,comp1,b,comp,numcomp);
+    } else if (amrex::almostEqual(t2,t)) {
+        return copy<run_on>(f2,b,comp2,b,comp,numcomp);
+    } else {
         Real alpha = (t2-t)/(t2-t1);
         Real beta = (t-t1)/(t2-t1);
-
         return linComb<run_on>(f1,b,comp1,f2,b,comp2,alpha,beta,b,comp,numcomp);
     }
-    else
-    {
-        copy<run_on>(f1,b,comp1,b,comp,numcomp);
-    }
-    return *this;
 }
 
 //

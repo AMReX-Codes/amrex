@@ -683,13 +683,10 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
       for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const int idx = mfi.index();
         for(int i(0); i < m_ncomp; ++i) {
-            if (run_on_device) {
-              m_famin[i] = std::min(m_famin[i], mf[mfi].min<RunOn::Device>(m_ba[idx],i));
-              m_famax[i] = std::max(m_famax[i], mf[mfi].max<RunOn::Device>(m_ba[idx],i));
-            } else {
-              m_famin[i] = std::min(m_famin[i], mf[mfi].min<RunOn::Host>(m_ba[idx],i));
-              m_famax[i] = std::max(m_famax[i], mf[mfi].max<RunOn::Host>(m_ba[idx],i));
-            }
+            auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(m_ba[idx],i)
+                                      : mf[mfi].minmax<RunOn::Host  >(m_ba[idx],i);
+            m_famin[i] = std::min(m_famin[i], mm.first);
+            m_famax[i] = std::max(m_famax[i], mm.second);
         }
       }
       ParallelAllReduce::Min(m_famin.dataPtr(), m_famin.size(), comm);
@@ -731,14 +728,11 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
 
         BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
 
-        for(Long j(0); j < m_ncomp; ++j) {
-            if (run_on_device) {
-                m_min[idx][j] = mf[mfi].min<RunOn::Device>(m_ba[idx],j);
-                m_max[idx][j] = mf[mfi].max<RunOn::Device>(m_ba[idx],j);
-            } else {
-                m_min[idx][j] = mf[mfi].min<RunOn::Host>(m_ba[idx],j);
-                m_max[idx][j] = mf[mfi].max<RunOn::Host>(m_ba[idx],j);
-            }
+        for(int j(0); j < m_ncomp; ++j) {
+            auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(m_ba[idx],j)
+                                      : mf[mfi].minmax<RunOn::Host  >(m_ba[idx],j);
+            m_min[idx][j] = mm.first;
+            m_max[idx][j] = mm.second;
         }
     }
 
@@ -830,14 +824,11 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
 
         BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
 
-        for(Long j(0); j < m_ncomp; ++j) {
-            if (run_on_device) {
-                m_min[idx][j] = mf[mfi].min<RunOn::Device>(m_ba[idx],j);
-                m_max[idx][j] = mf[mfi].max<RunOn::Device>(m_ba[idx],j);
-            } else {
-                m_min[idx][j] = mf[mfi].min<RunOn::Host>(m_ba[idx],j);
-                m_max[idx][j] = mf[mfi].max<RunOn::Host>(m_ba[idx],j);
-            }
+        for(int j(0); j < m_ncomp; ++j) {
+            auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(m_ba[idx],j)
+                                      : mf[mfi].minmax<RunOn::Host  >(m_ba[idx],j);
+            m_min[idx][j] = mm.first;
+            m_max[idx][j] = mm.second;
         }
     }
 #endif /*BL_USE_MPI*/
@@ -975,15 +966,12 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
             const int idx(mfi.index());
 
             for(int j(0); j < mf.nComp(); ++j) {
+                auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(mf.box(idx),j)
+                                          : mf[mfi].minmax<RunOn::Host  >(mf.box(idx),j);
+                const Real val = (mm.first + mm.second) / 2.0_rt;
                 if (run_on_device) {
-                    const Real valMin(mf[mfi].min<RunOn::Device>(mf.box(idx), j));
-                    const Real valMax(mf[mfi].max<RunOn::Device>(mf.box(idx), j));
-                    const Real val((valMin + valMax) / 2.0);
                     the_mf->get(mfi).setComplement<RunOn::Device>(val, mf.box(idx), j, 1);
                 } else {
-                    const Real valMin(mf[mfi].min<RunOn::Host>(mf.box(idx), j));
-                    const Real valMax(mf[mfi].max<RunOn::Host>(mf.box(idx), j));
-                    const Real val((valMin + valMax) / 2.0);
                     the_mf->get(mfi).setComplement<RunOn::Host>(val, mf.box(idx), j, 1);
                 }
             }
@@ -1493,9 +1481,9 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     BL_PROFILE("VisMF::Read()");
 
     VisMF::Header hdr;
-    Real hEndTime, hStartTime, faCopyTime(0.0);
-    Real startTime(amrex::second());
-    static Real totalTime(0.0);
+    double hEndTime, hStartTime, faCopyTime(0.0);
+    double startTime(amrex::second());
+    static double totalTime(0.0);
     int myProc(ParallelDescriptor::MyProc());
     int messTotal(0);
 
@@ -1928,7 +1916,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     }
 
     if(myProc == coordinatorProc && verbose) {
-      Real mfReadTime = amrex::second() - startTime;
+      auto mfReadTime = amrex::second() - startTime;
       totalTime += mfReadTime;
       amrex::AllPrint() << "FARead ::  nBoxes = " << hdr.m_ba.size()
                         << "  nMessages = " << messTotal << '\n'
@@ -2266,19 +2254,12 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
         total_bytes += header_fab.size() * whichRD.numBytes();
 
         // compute min and max
-        Real cmin, cmax;
         for (int icomp = 0; icomp < ncomp; ++icomp) {
-            if (run_on_device) {
-                cmin = fab.min<RunOn::Device>(bx,icomp);
-                cmax = fab.max<RunOn::Device>(bx,icomp);
-            } else {
-                cmin = fab.min<RunOn::Host>(bx,icomp);
-                cmax = fab.max<RunOn::Host>(bx,icomp);
-            }
-
-            std::memcpy(pld, &cmin, sizeof(Real));
+            auto mm = (run_on_device) ? fab.minmax<RunOn::Device>(bx,icomp)
+                                      : fab.minmax<RunOn::Host  >(bx,icomp);
+            std::memcpy(pld, &(mm.first), sizeof(Real));
             pld += sizeof(Real);
-            std::memcpy(pld, &cmax, sizeof(Real));
+            std::memcpy(pld, &(mm.second), sizeof(Real));
             pld += sizeof(Real);
         }
     }

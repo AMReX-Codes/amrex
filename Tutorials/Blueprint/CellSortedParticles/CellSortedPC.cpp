@@ -143,7 +143,7 @@ CellSortedParticleContainer::UpdateCellVectors()
     }
 
     // insert particles into vectors - this can be tiled
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif    
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -172,7 +172,7 @@ CellSortedParticleContainer::UpdateFortranStructures()
     
     const int lev = 0;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -199,7 +199,7 @@ CellSortedParticleContainer::MoveParticles()
     const Real* plo = Geom(lev).ProbLo();
     const Real dt = 0.1;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -237,7 +237,7 @@ CellSortedParticleContainer::ReBin()
     
     const int lev = 0;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -288,7 +288,7 @@ CellSortedParticleContainer::SumCellVectors()
   const int lev = 0;
   int np = 0;
   
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(+:np)
 #endif    
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -310,7 +310,7 @@ CellSortedParticleContainer::numUnsorted()
     const int lev = 0;
     int num_unsorted = 0;
     
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(+:num_unsorted)
 #endif    
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -335,7 +335,7 @@ CellSortedParticleContainer::numWrongCell()
     const int lev = 0;
     int num_wrong = 0;
     
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(+:num_wrong)
 #endif    
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti)

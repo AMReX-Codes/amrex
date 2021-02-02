@@ -199,7 +199,7 @@ Geometry::GetVolume (MultiFab&       vol,
 void
 Geometry::GetVolume (MultiFab&       vol) const
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(vol,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -226,7 +226,7 @@ Geometry::GetDLogA (MultiFab&       dloga,
                     int             ngrow) const
 {
     dloga.define(grds,dm,1,ngrow,MFInfo(),FArrayBoxFactory());
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dloga,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -254,7 +254,7 @@ void
 Geometry::GetFaceArea (MultiFab&       area,
                        int             dir) const
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(area,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -400,7 +400,7 @@ Geometry::computeRoundoffDomain ()
     {
         offset[k] = prob_domain.lo(k);
         dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
-        inv_dx[k] = 1.0/dx[k];
+        inv_dx[k] = 1.0_rt/dx[k];
     }
 
     roundoff_domain = prob_domain;
@@ -414,9 +414,9 @@ Geometry::computeRoundoffDomain ()
         Real deltax = CellSize(idim);
 
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-        Real tolerance = std::max(1.e-4*deltax, 1.e-10*phi);
+        Real tolerance = std::max(1.e-4_rt*deltax, 2.e-7_rt*phi);
 #else
-        Real tolerance = std::max(1.e-8*deltax, 1.e-14*phi);
+        Real tolerance = std::max(1.e-8_rt*deltax, 1.e-14_rt*phi);
 #endif
         // bisect the point at which the cell no longer maps to inside the domain
         Real lo = static_cast<Real>(phi) - Real(0.5)*static_cast<Real>(deltax);

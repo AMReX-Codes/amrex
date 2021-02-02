@@ -37,7 +37,7 @@ EBCellFlagFab::getType (const Box& bx_in) const noexcept
     {
         const Box& bx = amrex::enclosedCells(bx_in);
         std::map<Box,FabType>::iterator it;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical (amrex_ebcellflagfab_gettype)
 #endif
         it = m_typemap.find(bx);
@@ -108,7 +108,7 @@ EBCellFlagFab::getType (const Box& bx_in) const noexcept
                 t = FabType::singlevalued;
             }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical (amrex_ebcellflagfab_gettype)
 #endif
             m_typemap.insert({bx,t});

@@ -141,8 +141,8 @@ class DistributionMapping
                               bool do_full_knapsack=true,
                               int nmax=std::numeric_limits<int>::max(),
                               bool sort=true);
-    void RoundRobinProcessorMap(int nboxes, int nprocs);
-    void RoundRobinProcessorMap(const std::vector<Long>& wgts, int nprocs);
+    void RoundRobinProcessorMap(int nboxes, int nprocs, bool sort=true);
+    void RoundRobinProcessorMap(const std::vector<Long>& wgts, int nprocs, bool sort=true);
 
     /**
     * \brief Initializes distribution strategy from ParmParse.
@@ -287,7 +287,8 @@ private:
 
     void RoundRobinDoIt (int                  nboxes,
                          int                  nprocs,
-                         std::vector<LIpair>* LIpairV = 0);
+                         std::vector<LIpair>* LIpairV = 0,
+                         bool                 sort = true);
 
     void KnapSackDoIt (const std::vector<Long>& wgts,
                        int                      nprocs,

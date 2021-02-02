@@ -6,7 +6,7 @@
 #include <AMReX_iMultiFab.H>
 #include <AMReX_MLCGSolver.H>
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 #include <AMReX_Hypre.H>
 #include <AMReX_HypreNodeLap.H>
 #endif
@@ -98,11 +98,13 @@ public:
     void setNSolve (int flag) noexcept { do_nsolve = flag; }
     void setNSolveGridSize (int s) noexcept { nsolve_grid_size = s; }
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     void setHypreInterface (Hypre::Interface f) noexcept {
         // must use ij interface for EB
 #ifndef AMREX_USE_EB
         hypre_interface = f;
+#else
+        amrex::ignore_unused(f);
 #endif
     }
 
@@ -156,7 +158,9 @@ public:
     void makeSolvable (int amrlev, int mglev, MultiFab& mf);
     Real getNodalSum (int amrlev, int mglev, MultiFab& mf) const;
 
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     void bottomSolveWithHypre (MultiFab& x, const MultiFab& b);
+#endif
 
     void bottomSolveWithPETSc (MultiFab& x, const MultiFab& b);
 
@@ -189,8 +193,8 @@ private:
     CFStrategy cf_strategy     = CFStrategy::none;
     int  bottom_verbose        = 0;
     int  bottom_maxiter        = 200;
-    Real bottom_reltol         = 1.e-4;
-    Real bottom_abstol         = -1.0;
+    Real bottom_reltol         = Real(1.e-4);
+    Real bottom_abstol         = Real(-1.0);
 
     int always_use_bnorm = 0;
 
@@ -212,7 +216,7 @@ private:
     std::unique_ptr<MultiFab> ns_rhs;
 
     //! Hypre
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     // Hypre::Interface hypre_interface = Hypre::Interface::structed;
     // Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
     Hypre::Interface hypre_interface = Hypre::Interface::ij;
@@ -261,7 +265,7 @@ private:
     Vector<std::unique_ptr<MultiFab> > scratch;
 
     enum timer_types { solve_time=0, iter_time, bottom_time, ntimers };
-    Vector<Real> timer;
+    Vector<double> timer;
 
     Real m_rhsnorm0 = -1.0;
     Real m_init_resnorm0 = -1.0;

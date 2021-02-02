@@ -32,9 +32,11 @@ private :
     HYPRE_SStructVector   x = NULL;
     HYPRE_Solver          solver = NULL;
 
+    void getSolution (MultiFab& soln);
+
+public: // for cuda
     void prepareSolver ();
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
-    void getSolution (MultiFab& soln);
 };
 
 }

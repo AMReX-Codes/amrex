@@ -190,7 +190,7 @@ namespace Gpu {
                                                         AMREX_WRONG_NUM_ARGS, \
                                                         AMREX_WRONG_NUM_ARGS)(__VA_ARGS__)
 
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
 #define AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA(...) AMREX_GET_MACRO(__VA_ARGS__,\
                                                         AMREX_GPU_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA_RANGE_3, \
                                                         AMREX_WRONG_NUM_ARGS, \
@@ -235,7 +235,7 @@ namespace Gpu {
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_3D(...) AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_3D(__VA_ARGS__)
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_4D(...) AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_4D(__VA_ARGS__)
 
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FUSIBLE(...) AMREX_GPU_HOST_DEVICE_FOR_1D_FUSIBLE(__VA_ARGS__)
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(...) AMREX_GPU_HOST_DEVICE_FOR_3D_FUSIBLE(__VA_ARGS__)
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE(...) AMREX_GPU_HOST_DEVICE_FOR_4D_FUSIBLE(__VA_ARGS__)

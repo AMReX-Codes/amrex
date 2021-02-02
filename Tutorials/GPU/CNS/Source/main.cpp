@@ -14,9 +14,9 @@ int main (int argc, char* argv[])
 
     BL_PROFILE_VAR("main()", pmain);
 
-    Real timer_tot = amrex::second();
-    Real timer_init = Real(0.);
-    Real timer_advance = Real(0.);
+    double timer_tot = amrex::second();
+    double timer_init = 0.;
+    double timer_advance = 0.;
 
     int  max_step;
     Real strt_time;
@@ -77,8 +77,8 @@ int main (int argc, char* argv[])
 
     timer_tot = amrex::second() - timer_tot;
 
-    ParallelDescriptor::ReduceRealMax({timer_tot, timer_init, timer_advance},
-                                      ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::ReduceRealMax<double>({timer_tot, timer_init, timer_advance},
+                                              ParallelDescriptor::IOProcessorNumber());
 
     amrex::Print() << "Run Time total        = " << timer_tot     << "\n"
                    << "Run Time init         = " << timer_init    << "\n"

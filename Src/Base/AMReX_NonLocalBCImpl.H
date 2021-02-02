@@ -163,7 +163,7 @@ local_copy_cpu (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaD
     auto const& LocTags = *(cmd.m_LocTags);
     int N_locs = LocTags.size();
     if (N_locs == 0) return;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int itag = 0; itag < N_locs; ++itag) {
@@ -192,7 +192,7 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int scomp, int ncomp,
     if (N_rcvs == 0) return;
 
     using T = typename FAB::value_type;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int ircv = 0; ircv < N_rcvs; ++ircv) {
@@ -480,7 +480,7 @@ Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box co
     auto handler = Comm_nowait(mf, scomp, ncomp, TheRB90,Rotate90DstToSrc{});
 
     Box corner(-nghost, IntVect{AMREX_D_DECL(-1,-1,domain.bigEnd(2)+nghost[2])});
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {

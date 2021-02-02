@@ -59,7 +59,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     if (ebfactory)
     {
         const FabArray<EBCellFlagFab>& flags = ebfactory->getMultiEBCellFlagFab();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(+:nnodes_proc)
 #endif
         for (MFIter mfi(node_id); mfi.isValid(); ++mfi)
@@ -112,7 +112,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     else
 #endif
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(+:nnodes_proc)
 #endif
         for (MFIter mfi(node_id); mfi.isValid(); ++mfi)
@@ -169,7 +169,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(proc_end == proc_begin+nnodes_proc,
                                      "HypreNodeLap: how did this happen?");
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 
@@ -272,7 +272,7 @@ HypreNodeLap::fill_node_id (LayoutData<Int>& offset)
         Int os = offset[mfi];
         const Box& bx = mfi.growntilebox();
         const auto& nid = node_id.array(mfi);
-        AMREX_FOR_3D(bx, i, j, k,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
         {
             if (nid(i,j,k) >= 0) {
                 nid(i,j,k) += os;

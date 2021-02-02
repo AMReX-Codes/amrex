@@ -143,8 +143,8 @@ NodalProjector::setOptions ()
     int          bottom_verbose(0);
     int          maxiter(100);
     int          bottom_maxiter(100);
-    Real         bottom_rtol(1.0e-4);
-    Real         bottom_atol(-1.0);
+    Real         bottom_rtol(1.0e-4_rt);
+    Real         bottom_atol(-1.0_rt);
     std::string  bottom_solver("bicgcg");
 
     int          num_pre_smooth (2);
@@ -272,12 +272,6 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
     // Get fluxes -- fluxes = - sigma * grad(phi)
     m_mlmg -> getFluxes( GetVecOfPtrs(m_fluxes) );
 
-    // At this time, the fluxes are "correct" only on regions not covered by finer grids.
-    // We average the fluxes down so that they are "correct" everywhere in each level.
-    // This is necessary because the caller can access grad(phi) and may use it for
-    // computations involving the whole level.
-    averageDown(GetVecOfPtrs(m_fluxes));
-
     // Compute sync residual BEFORE performing projection
     computeSyncResidual();
 
@@ -296,30 +290,19 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
         //
         // vel = vel + fluxes = vel - ( sigma / alpha ) * grad(phi)
         //
-        // Since we already averaged-down the velocity field and -grad(phi),
-        // we perform the projection by simply adding the two of them.
-        // In virtue of the linearity of the operations involved, this is equivalent
-        // to averaging down the velocity only once AFTER summing -grad(phi)
-        //
         MultiFab::Add( *m_vel[lev], m_fluxes[lev], 0, 0, AMREX_SPACEDIM, 0);
 
         // set m_fluxes = grad(phi)
-        m_fluxes[lev].mult(-1.0);
-        for (int n = 0; n < AMREX_SPACEDIM; ++n)
-        {
-            if (m_has_alpha)
-            {
-                MultiFab::Multiply(m_fluxes[lev], *m_alpha[lev], 0, n, 1, 0);
-            }
-            if (m_sigma.empty()) {
-                AMREX_ASSERT(m_const_sigma != Real(0.));
-                m_fluxes[lev].mult(Real(1.)/m_const_sigma, n, 1, 0);
-            } else {
-                MultiFab::Divide(m_fluxes[lev], *m_sigma[lev], 0, n, 1, 0);
-            }
-        }
-
+	m_linop->compGrad(lev,m_fluxes[lev],m_phi[lev]);
     }
+
+    //
+    // At this time, results are "correct" only on regions not covered by finer grids.
+    // We average them down so that they are "correct" everywhere in each level.
+    //
+    averageDown(GetVecOfPtrs(m_fluxes));
+    averageDown(m_vel);
+
 
     // Print diagnostics
     if ( (m_verbose > 0) && (!m_has_rhs))
@@ -455,7 +438,7 @@ NodalProjector::setCoarseBoundaryVelocityForSync ()
         }
         else
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*m_vel[0]); mfi.isValid(); ++mfi)

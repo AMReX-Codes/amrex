@@ -9,7 +9,7 @@
 #include <AMReX_MLEBABecLap_K.H>
 #include <AMReX_MLLinOp_K.H>
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 #include <AMReX_HypreABecLap3.H>
 #endif
 
@@ -208,7 +208,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(phi, mfi_info); mfi.isValid(); ++mfi)
@@ -277,7 +277,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Real beta)
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(phi, mfi_info); mfi.isValid(); ++mfi)
@@ -336,7 +336,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Vector<Real> const
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(phi, mfi_info); mfi.isValid(); ++mfi)
@@ -393,7 +393,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*m_eb_phi[amrlev], mfi_info); mfi.isValid(); ++mfi)
@@ -460,7 +460,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Real beta)
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*m_eb_phi[amrlev], mfi_info); mfi.isValid(); ++mfi)
@@ -519,7 +519,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& hv_beta)
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*m_eb_phi[amrlev], mfi_info); mfi.isValid(); ++mfi)
@@ -695,6 +695,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
     const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
+    const auto         ccent = (factory) ? &(factory->getCentroid()) : nullptr;
 
     const bool is_eb_dirichlet =  isEBDirichlet();
     const bool is_eb_inhomog = m_is_eb_inhomog;
@@ -706,9 +707,24 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
     const Real ascalar = m_a_scalar;
     const Real bscalar = m_b_scalar;
 
+    const Box& domain_box = m_geom[amrlev][mglev].Domain();
+
+    AMREX_D_TERM(
+        const int domlo_x = domain_box.smallEnd(0);
+        const int domhi_x = domain_box.bigEnd(0);,
+        const int domlo_y = domain_box.smallEnd(1);
+        const int domhi_y = domain_box.bigEnd(1);,
+        const int domlo_z = domain_box.smallEnd(2);
+        const int domhi_z = domain_box.bigEnd(2););
+
+    AMREX_D_TERM(
+        const bool extdir_x = !(m_geom[amrlev][mglev].isPeriodic(0));,
+        const bool extdir_y = !(m_geom[amrlev][mglev].isPeriodic(1));,
+        const bool extdir_z = !(m_geom[amrlev][mglev].isPeriodic(2)););
+
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(out, mfi_info); mfi.isValid(); ++mfi)
@@ -747,28 +763,45 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                          Array4<Real const> const& fczfab = fcent[2]->const_array(mfi););
             Array4<Real const> const& bafab = barea->const_array(mfi);
             Array4<Real const> const& bcfab = bcent->const_array(mfi);
+            Array4<Real const> const& ccfab = ccent->const_array(mfi);
             Array4<Real const> const& bebfab = (is_eb_dirichlet)
                 ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
-            Array4<Real const> const& phiebfab = (is_eb_dirichlet && m_is_eb_inhomog)
+            Array4<Real const> const& phiebfab = (is_eb_dirichlet && is_eb_inhomog)
                 ? m_eb_phi[amrlev]->const_array(mfi) : foo;
 
             bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
             bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
 
-            if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
+            bool treat_phi_as_on_centroid = ( phi_on_centroid && (mglev == 0) );
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-            {
-                mlebabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
-                                  ccmfab, flagfab, vfracfab,
-                                  AMREX_D_DECL(apxfab,apyfab,apzfab),
-                                  AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                  bafab, bcfab, bebfab,
-                                  is_eb_dirichlet,
-                                  phiebfab,
-                                  is_eb_inhomog, dxinvarr,
-                                  ascalar, bscalar, ncomp, beta_on_centroid, phi_on_centroid);
-            });
+            if (treat_phi_as_on_centroid) {
+               AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+               {
+                   mlebabeclap_adotx_centroid(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                                     flagfab, vfracfab,
+                                     AMREX_D_DECL(apxfab,apyfab,apzfab),
+                                     AMREX_D_DECL(fcxfab,fcyfab,fczfab),
+                                     ccfab, bafab, bcfab, bebfab, phiebfab,
+                                     AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
+                                     AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
+                                     AMREX_D_DECL(extdir_x, extdir_y, extdir_z),
+                                     is_eb_dirichlet, is_eb_inhomog, dxinvarr,
+                                     ascalar, bscalar, ncomp);
+               });
+            } else {
+               AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+               {
+                   mlebabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                                     ccmfab, flagfab, vfracfab,
+                                     AMREX_D_DECL(apxfab,apyfab,apzfab),
+                                     AMREX_D_DECL(fcxfab,fcyfab,fczfab),
+                                     bafab, bcfab, bebfab,
+                                     is_eb_dirichlet,
+                                     phiebfab,
+                                     is_eb_inhomog, dxinvarr,
+                                     ascalar, bscalar, ncomp, beta_on_centroid, phi_on_centroid);
+               });
+            }
         }
     }
 }
@@ -833,7 +866,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(sol, mfi_info);  mfi.isValid(); ++mfi)
@@ -1075,7 +1108,7 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(sol, mfi_info); mfi.isValid(); ++mfi)
@@ -1207,7 +1240,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf, mfi_info); mfi.isValid(); ++mfi)
@@ -1280,7 +1313,7 @@ MLEBABecLap::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
 
     const int ncomp = getNComp();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -1369,7 +1402,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(in, mfi_info); mfi.isValid(); ++mfi)
@@ -1566,7 +1599,7 @@ MLEBABecLap::getEBFluxes (const Vector<MultiFab*>& a_flux, const Vector<MultiFab
 
             MFItInfo mfi_info;
             if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*a_flux[amrlev], mfi_info); mfi.isValid(); ++mfi)
@@ -1607,7 +1640,7 @@ MLEBABecLap::getEBFluxes (const Vector<MultiFab*>& a_flux, const Vector<MultiFab
     }
 }
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 std::unique_ptr<Hypre>
 MLEBABecLap::makeHypre (Hypre::Interface hypre_interface) const
 {

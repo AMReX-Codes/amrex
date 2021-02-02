@@ -66,7 +66,7 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
             ReduceOps<ReduceOpSum> reduce_op;
             ReduceData<int> reduce_data(reduce_op);
             using ReduceTuple = typename decltype(reduce_data)::Type;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*crse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -138,7 +138,7 @@ MLCellABecLap::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux
 {
     BL_PROFILE("MLMG::getFluxes()");
 
-    const Real betainv = 1.0 / getBScalar();
+    const Real betainv = Real(1.0) / getBScalar();
     const int nlevs = NAMRLevels();
     for (int alev = 0; alev < nlevs; ++alev) {
         compFlux(alev, a_flux[alev], *a_sol[alev], a_loc);
@@ -177,8 +177,8 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
     const auto probhi = m_geom[amrlev][mglev].ProbHiArray();
     amrex::ignore_unused(probhi);
     const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
-    const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : 1.0;
-    const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : 1.0;
+    const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : Real(1.0);
+    const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : Real(1.0);
     const Real xlo = problo[0];
     const Real dx = m_geom[amrlev][mglev].CellSize(0);
     const Box& domain = m_geom[amrlev][mglev].Domain();
@@ -195,7 +195,7 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(rhs, mfi_info); mfi.isValid(); ++mfi)
@@ -326,7 +326,7 @@ MLCellABecLap::applyOverset (int amrlev, MultiFab& rhs) const
 {
     if (m_overset_mask[amrlev][0]) {
         const int ncomp = getNComp();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(*m_overset_mask[amrlev][0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -342,7 +342,7 @@ MLCellABecLap::applyOverset (int amrlev, MultiFab& rhs) const
     }
 }
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 std::unique_ptr<Hypre>
 MLCellABecLap::makeHypre (Hypre::Interface hypre_interface) const
 {

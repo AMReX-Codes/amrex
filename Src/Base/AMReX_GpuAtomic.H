@@ -443,7 +443,7 @@ namespace HostDevice { namespace Atomic {
 #if AMREX_DEVICE_COMPILE
         Gpu::Atomic::AddNoRet(sum,value);
 #else
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp atomic update
 #endif
         *sum += value;
@@ -451,6 +451,51 @@ namespace HostDevice { namespace Atomic {
     }
 
 }}
+
+#ifdef AMREX_USE_GPU
+// functors
+namespace Gpu {
+    template <typename T>
+    struct AtomicAdd
+    {
+        AMREX_GPU_DEVICE void operator() (T* const dest, T const source) noexcept {
+            Gpu::Atomic::AddNoRet(dest, source);
+        }
+    };
+
+    template <typename T>
+    struct AtomicMin
+    {
+        AMREX_GPU_DEVICE void operator() (T* const dest, T const source) noexcept {
+            Gpu::Atomic::Min(dest, source);
+        }
+    };
+
+    template <typename T>
+    struct AtomicMax
+    {
+        AMREX_GPU_DEVICE void operator() (T* const dest, T const source) noexcept {
+            Gpu::Atomic::Max(dest, source);
+        }
+    };
+
+    template <typename T>
+    struct AtomicLogicalAnd
+    {
+        AMREX_GPU_DEVICE void operator() (T* const dest, T const source) noexcept {
+            Gpu::Atomic::LogicalAnd(dest, source);
+        }
+    };
+
+    template <typename T>
+    struct AtomicLogicalOr
+    {
+        AMREX_GPU_DEVICE void operator() (T* const dest, T const source) noexcept {
+            Gpu::Atomic::LogicalOr(dest, source);
+        }
+    };
+}
+#endif
 
 }
 #endif

@@ -261,8 +261,8 @@ void set_covered (const int i, const int j, const int k,
 
 void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Type_t> const& fx, Array4<Type_t> const& fy,
-                  Array4<Type_t> const& fz, Array4<Type_t> const& ex,
-                  Array4<Type_t> const& ey, Array4<Type_t> const& ez,
+                  Array4<Type_t> const& fz, Array4<Type_t const> const& ex,
+                  Array4<Type_t const> const& ey, Array4<Type_t const> const& ez,
                   Array4<Real const> const& levset, Array4<Real const> const& interx,
                   Array4<Real const> const& intery, Array4<Real const> const& interz,
                   Array4<Real> const& apx, Array4<Real> const& apy,
@@ -630,7 +630,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp,
-                  Real small_volfrac, 
+                  Real small_volfrac,
                   Geometry const& geom, bool extend_domain_face)
 {
     const Box& bxg1 = amrex::grow(bx,1);
@@ -659,7 +659,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             bnorm(i,j,k,0) = 0.0;
             bnorm(i,j,k,1) = 0.0;
             bnorm(i,j,k,2) = 0.0;
-            barea(i,j,k) = 0.0;            
+            barea(i,j,k) = 0.0;
         } else {
 
             set_eb_data(i,j,k,apx,apy,apz,
@@ -725,8 +725,8 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
               }
 
               // set cell in extendable region to covered if necessary
-              if( in_extended_domain && (! cell(i,j,k).isCovered()) 
-                  && cell(ii,jj,kk).isCovered() ) 
+              if( in_extended_domain && (! cell(i,j,k).isCovered())
+                  && cell(ii,jj,kk).isCovered() )
               {
                   set_covered(i,j,k,cell,vfrac,vcent,barea,bcent,bnorm);
               }

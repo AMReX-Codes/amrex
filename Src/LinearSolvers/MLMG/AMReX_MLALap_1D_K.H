@@ -19,7 +19,7 @@ void mlalap_adotx (Box const& box, Array4<Real> const& y,
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
         y(i,0,0) = alpha*a(i,0,0)*x(i,0,0)
-            - dhx * (x(i+1,0,0) - 2.*x(i,0,0) + x(i-1,0,0));
+            - dhx * (x(i+1,0,0) - Real(2.)*x(i,0,0) + x(i-1,0,0));
     }
 }
 
@@ -40,7 +40,7 @@ void mlalap_adotx_m (Box const& box, Array4<Real> const& y,
     for (int i = lo.x; i <= hi.x; ++i) {
         Real rel = (probxlo + i   *dx) * (probxlo + i   *dx);
         Real rer = (probxlo +(i+1)*dx) * (probxlo +(i+1)*dx);
-        Real rc  = (probxlo +(i+.5)*dx) * (probxlo +(i+.5)*dx);
+        Real rc  = (probxlo +(i+Real(.5))*dx) * (probxlo +(i+Real(.5))*dx);
         y(i,0,0) = alpha*a(i,0,0)*x(i,0,0)*rc
             - dhx * (rer*(x(i+1,0,0) - x(i  ,0,0))
                    - rel*(x(i  ,0,0) - x(i-1,0,0)));
@@ -60,7 +60,7 @@ void mlalap_normalize (Box const& box, Array4<Real> const& x,
 
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        x(i,0,0) /= alpha*a(i,0,0) + dhx*2.0;
+        x(i,0,0) /= alpha*a(i,0,0) + dhx*Real(2.0);
     }
 }
 
@@ -79,7 +79,7 @@ void mlalap_normalize_m (Box const& box, Array4<Real> const& x,
     for (int i = lo.x; i <= hi.x; ++i) {
         Real rel = (probxlo + i   *dx) * (probxlo + i   *dx);
         Real rer = (probxlo +(i+1)*dx) * (probxlo +(i+1)*dx);
-        Real rc  = (probxlo +(i+.5)*dx) * (probxlo +(i+.5)*dx);
+        Real rc  = (probxlo +(i+Real(.5))*dx) * (probxlo +(i+Real(.5))*dx);
         x(i,0,0) /= alpha*a(i,0,0)*rc + dhx*(rel+rer);
     }
 }
@@ -156,13 +156,13 @@ void mlalap_gsrb (Box const& box, Array4<Real> const& phi,
     for (int i = lo.x; i <= hi.x; ++i) {
         if ((i+redblack)%2 == 0) {
             Real cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
-                ? f0(vlo.x,0,0) : 0.0;
+                ? f0(vlo.x,0,0) : Real(0.0);
             Real cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
-                ? f1(vhi.x,0,0) : 0.0;
+                ? f1(vhi.x,0,0) : Real(0.0);
             
             Real delta = dhx*(cf0+cf1);
             
-            Real gamma = alpha*a(i,0,0) + dhx*2.0;
+            Real gamma = alpha*a(i,0,0) + dhx*Real(2.0);
             
             Real rho = dhx*(phi(i-1,0,0) + phi(i+1,0,0));
 
@@ -190,13 +190,13 @@ void mlalap_gsrb_m (Box const& box, Array4<Real> const& phi,
     for (int i = lo.x; i <= hi.x; ++i) {
         if ((i+redblack)%2 == 0) {
             Real cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
-                ? f0(vlo.x,0,0) : 0.0;
+                ? f0(vlo.x,0,0) : Real(0.0);
             Real cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
-                ? f1(vhi.x,0,0) : 0.0;
+                ? f1(vhi.x,0,0) : Real(0.0);
 
             Real rel = (probxlo + i   *dx) * (probxlo + i   *dx);
             Real rer = (probxlo +(i+1)*dx) * (probxlo +(i+1)*dx);
-            Real rc  = (probxlo +(i+.5)*dx) * (probxlo +(i+.5)*dx);
+            Real rc  = (probxlo +(i+Real(.5))*dx) * (probxlo +(i+Real(.5))*dx);
             
             Real delta = dhx*(rel*cf0 + rer*cf1);
             

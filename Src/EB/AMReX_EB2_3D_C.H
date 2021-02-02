@@ -290,30 +290,74 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
     return ierr;
 }
 
+namespace {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int coarsen_from_fine (int i, int j, int k, Box const& bx, Box const& gbx,
-                       Box const& xbx, Box const& ybx, Box const& zbx,
-                       Box const& xgbx, Box const& ygbx, Box const& zgbx,
+Real coarsen_edge_cent (Real f1, Real f2)
+{
+    if (f1 == Real(1.0) && f2 == Real(1.0)) {
+        return Real(1.0);
+    } else if (f1 == Real(-1.0) && f2 == Real(-1.0)) {
+        return Real(-1.0);
+    } else {
+        if (f1 == Real(-1.0)) {
+            f1 = Real(0.0);
+        } else if (f1 == Real(1.0)) {
+            f1 = Real(-0.25);
+        } else {
+            f1 = Real(0.5)*f1 - Real(0.25);
+        }
+        if (f2 == Real(-1.0)) {
+            f2 = Real(0.0);
+        } else if (f2 == Real(1.0)) {
+            f2 = Real(0.25);
+        } else {
+            f2 = Real(0.5)*f2 + Real(0.25);
+        }
+        Real r = (f2*f2-f1*f1)/(f2-f1+Real(1.e-30));
+        return amrex::min(Real(0.5),amrex::max(-0.5,r));
+    }
+}
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
                        Array4<Real> const& cvol, Array4<Real> const& ccent,
                        Array4<Real> const& cba, Array4<Real> const& cbc,
                        Array4<Real> const& cbn, Array4<Real> const& capx,
                        Array4<Real> const& capy, Array4<Real> const& capz,
                        Array4<Real> const& cfcx, Array4<Real> const& cfcy,
-                       Array4<Real> const& cfcz, Array4<EBCellFlag> const& cflag,
+                       Array4<Real> const& cfcz, Array4<Real> const& cecx,
+                       Array4<Real> const& cecy, Array4<Real> const& cecz,
+                       Array4<EBCellFlag> const& cflag,
                        Array4<Real const> const& fvol, Array4<Real const> const& fcent,
                        Array4<Real const> const& fba, Array4<Real const> const& fbc,
                        Array4<Real const> const& fbn, Array4<Real const> const& fapx,
                        Array4<Real const> const& fapy, Array4<Real const> const& fapz,
                        Array4<Real const> const& ffcx, Array4<Real const> const& ffcy,
-                       Array4<Real const> const& ffcz, Array4<EBCellFlag const> const& fflag)
+                       Array4<Real const> const& ffcz, Array4<Real const> const& fecx,
+                       Array4<Real const> const& fecy, Array4<Real const> const& fecz,
+                       Array4<EBCellFlag const> const& fflag)
 {
+    const Box& gbx = amrex::grow(bx,ngrow);
+    const Box& xbx = amrex::surroundingNodes(bx,0); // face boxes
+    const Box& ybx = amrex::surroundingNodes(bx,1);
+    const Box& zbx = amrex::surroundingNodes(bx,2);
+    const Box& xgbx = amrex::surroundingNodes(gbx,0);
+    const Box& ygbx = amrex::surroundingNodes(gbx,1);
+    const Box& zgbx = amrex::surroundingNodes(gbx,2);
+    const Box& exbx = amrex::convert(bx,IntVect(0,1,1)); // edge boxes
+    const Box& eybx = amrex::convert(bx,IntVect(1,0,1));
+    const Box& ezbx = amrex::convert(bx,IntVect(1,1,0));
+    const Box& exgbx = amrex::convert(gbx,IntVect(0,1,1));
+    const Box& eygbx = amrex::convert(gbx,IntVect(1,0,1));
+    const Box& ezgbx = amrex::convert(gbx,IntVect(1,1,0));
+
     int ierr = 0;
-    IntVect iv(i,j,k);
     int ii = i*2;
     int jj = j*2;
     int kk = k*2;
 
-    if (bx.contains(iv))
+    if (bx.contains(i,j,k))
     {
         if (fflag(ii,jj  ,kk  ).isRegular() && fflag(ii+1,jj  ,kk  ).isRegular() &&
             fflag(ii,jj+1,kk  ).isRegular() && fflag(ii+1,jj+1,kk  ).isRegular() &&
@@ -469,7 +513,7 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, Box const& gbx,
 
         }
     }
-    else if (gbx.contains(iv))
+    else if (gbx.contains(i,j,k))
     {
         cvol(i,j,k) = 1.0;
         ccent(i,j,k,0) = 0.0;
@@ -484,7 +528,7 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, Box const& gbx,
         cbn(i,j,k,2) = 0.0;
     }
 
-    if (xbx.contains(iv))
+    if (xbx.contains(i,j,k))
     {
         capx(i,j,k) = 0.25*(fapx(ii,jj  ,kk  ) + fapx(ii,jj+1,kk  ) +
                             fapx(ii,jj  ,kk+1) + fapx(ii,jj+1,kk+1));
@@ -505,14 +549,14 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, Box const& gbx,
             cfcx(i,j,k,1) = 0.0;
         }
     }
-    else if (xgbx.contains(iv))
+    else if (xgbx.contains(i,j,k))
     {
         capx(i,j,k) = 1.0;
         cfcx(i,j,k,0) = 0.0;
         cfcx(i,j,k,1) = 0.0;
     }
 
-    if (ybx.contains(iv))
+    if (ybx.contains(i,j,k))
     {
         capy(i,j,k) = 0.25*(fapy(ii  ,jj,kk  ) + fapy(ii+1,jj,kk  ) +
                             fapy(ii  ,jj,kk+1) + fapy(ii+1,jj,kk+1));
@@ -533,14 +577,14 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, Box const& gbx,
             cfcy(i,j,k,1) = 0.0;
         }
     }
-    else if (ygbx.contains(iv))
+    else if (ygbx.contains(i,j,k))
     {
         capy(i,j,k) = 1.0;
         cfcy(i,j,k,0) = 0.0;
         cfcy(i,j,k,1) = 0.0;
     }
 
-    if (zbx.contains(iv))
+    if (zbx.contains(i,j,k))
     {
         capz(i,j,k) = 0.25 * (fapz(ii  ,jj  ,kk) + fapz(ii+1,jj  ,kk) +
                               fapz(ii  ,jj+1,kk) + fapz(ii+1,jj+1,kk));
@@ -561,11 +605,38 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, Box const& gbx,
             cfcz(i,j,k,1) = 0.0;
         }
     }
-    else if (zgbx.contains(iv))
+    else if (zgbx.contains(i,j,k))
     {
         capz(i,j,k) = 1.0;
         cfcz(i,j,k,0) = 0.0;
         cfcz(i,j,k,1) = 0.0;
+    }
+
+    if (exbx.contains(i,j,k))
+    {
+        cecx(i,j,k) = coarsen_edge_cent(fecx(ii,jj,kk), fecx(ii+1,jj,kk));
+    }
+    else if (exgbx.contains(i,j,k))
+    {
+        cecx(i,j,k) = 1.0;
+    }
+
+    if (eybx.contains(i,j,k))
+    {
+        cecy(i,j,k) = coarsen_edge_cent(fecy(ii,jj,kk), fecy(ii,jj+1,kk));
+    }
+    else if (eygbx.contains(i,j,k))
+    {
+        cecy(i,j,k) = 1.0;
+    }
+
+    if (ezbx.contains(i,j,k))
+    {
+        cecz(i,j,k) = coarsen_edge_cent(fecz(ii,jj,kk), fecz(ii,jj,kk+1));
+    }
+    else if (ezgbx.contains(i,j,k))
+    {
+        cecz(i,j,k) = 1.0;
     }
 
     return ierr;

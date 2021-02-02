@@ -224,7 +224,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(out, mfi_info); mfi.isValid(); ++mfi)
@@ -295,7 +295,7 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(vel, mfi_info); mfi.isValid(); ++mfi)
@@ -395,7 +395,7 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
     
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf, mfi_info); mfi.isValid(); ++mfi)
@@ -523,7 +523,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(sol, mfi_info); mfi.isValid(); ++mfi)
@@ -627,7 +627,7 @@ MLEBTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fl
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
   {

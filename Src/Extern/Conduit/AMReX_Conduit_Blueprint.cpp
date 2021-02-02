@@ -234,8 +234,8 @@ void AddFabGhostIndicatorField (const FArrayBox& fab,
     Node &n_field = res["fields/ascent_ghosts"];
     n_field["association"] = "element";
     n_field["topology"] = "topo";
-    n_field["values"].set(DataType::float64(fab.box().numPts()));
-    float64_array vals_array = n_field["values"].value();
+    n_field["values"].set(DataType::int32(fab.box().numPts()));
+    int32_array vals_array = n_field["values"].value();
 
     int dims = BL_SPACEDIM;
 
@@ -287,7 +287,7 @@ void FabToBlueprintFields (const FArrayBox& fab,
                            Node &res)
 {
     // make sure we are not asking for more components than exist.
-    BL_ASSERT(varnames.size() <= fab->nComp());
+    BL_ASSERT(varnames.size() <= fab.nComp());
 
     Node &n_fields = res["fields"];
     for(int i=0; i < varnames.size(); i++)

@@ -58,7 +58,7 @@ namespace amrex
     void average_node_to_cellcenter (MultiFab& cc, int dcomp,
          const MultiFab& nd, int scomp, int ncomp, int ngrow)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -80,7 +80,7 @@ namespace amrex
         AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
         AMREX_ASSERT(edge.size() == AMREX_SPACEDIM);
         AMREX_ASSERT(edge[0]->nComp() == 1);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -121,7 +121,7 @@ namespace amrex
         AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
         AMREX_ASSERT(fc[0]->nComp() == 1);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -156,7 +156,7 @@ namespace amrex
         const GeometryData gd = geom.data();
         amrex::ignore_unused(gd);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -202,7 +202,7 @@ namespace amrex
         amrex::ignore_unused(geom);
 #endif
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 	for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -277,7 +277,7 @@ namespace amrex
 	MultiFab fvolume;
 	fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(crse_S_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -327,7 +327,7 @@ namespace amrex
 
         MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow, MFInfo(), FArrayBoxFactory());
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(crse_S_fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -364,7 +364,7 @@ namespace amrex
 
         if (crse_S_fine_BA == S_crse.boxArray() && S_fine.DistributionMap() == S_crse.DistributionMap())
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(S_crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -391,7 +391,7 @@ namespace amrex
         {
             MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, 0, MFInfo(), FArrayBoxFactory());
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(crse_S_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -477,7 +477,7 @@ namespace amrex
         const int ncomp = crse.nComp();
         if (isMFIterSafe(fine, crse))
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -559,7 +559,7 @@ namespace amrex
         const int ncomp = crse.nComp();
         if (isMFIterSafe(fine, crse))
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if(Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -624,7 +624,7 @@ namespace amrex
         Vector<int> slice_to_full_ba_map;
         std::unique_ptr<MultiFab> slice = allocateSlice(dir, cc, ncomp, geom, coord, slice_to_full_ba_map);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(*slice, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -678,7 +678,7 @@ namespace amrex
 
         const BoxArray& cfba = amrex::coarsen(fba,ratio);
         const std::vector<IntVect>& pshifts = period.shiftIntVect();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
 #endif
         {
@@ -756,7 +756,7 @@ namespace amrex
 
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(divu,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -806,7 +806,7 @@ namespace amrex
 
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(grad,TilingIfNotGPU()); mfi.isValid(); ++mfi)

@@ -340,7 +340,7 @@ void testRedistribute ()
 
     Vector<IntVect> rr(params.nlevs-1);
     for (int lev = 1; lev < params.nlevs; lev++)
-        rr[lev-1] = IntVect(D_DECL(2,2,2));
+        rr[lev-1] = IntVect(AMREX_D_DECL(2,2,2));
 
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
@@ -362,7 +362,7 @@ void testRedistribute ()
 
     Vector<BoxArray> ba(params.nlevs);
     Vector<DistributionMapping> dm(params.nlevs);
-    IntVect lo = IntVect(D_DECL(0, 0, 0));
+    IntVect lo = IntVect(AMREX_D_DECL(0, 0, 0));
     IntVect size = params.size;
     for (int lev = 0; lev < params.nlevs; ++lev)
     {

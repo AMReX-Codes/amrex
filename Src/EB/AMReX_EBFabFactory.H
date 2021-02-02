@@ -64,6 +64,10 @@ public:
         return m_ebdc->getFaceCent();
     }
 
+    Array<const MultiCutFab*,AMREX_SPACEDIM> getEdgeCent () const noexcept {
+        return m_ebdc->getEdgeCent();
+    }
+
     bool isAllRegular () const noexcept;
 
     EB2::Level const* getEBLevel () const noexcept { return m_parent; }

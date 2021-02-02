@@ -71,7 +71,7 @@ if ( USE_XSDK_DEFAULTS )
    print_option(XSDK_ENABLE_Fortran)
 endif ()
 
-option( AMReX_FORTRAN "Enable Fortran language" ON )
+option( AMReX_FORTRAN "Enable Fortran language" OFF )
 print_option( AMReX_FORTRAN )
 
 #
@@ -110,26 +110,34 @@ if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
    message( STATUS "   AMReX_GPU_BACKEND = ${AMReX_GPU_BACKEND}")
 endif ()
 
+# Legacy variables for internal use only
 if (AMReX_GPU_BACKEND STREQUAL SYCL)
-   set(AMReX_CUDA  OFF CACHE INTERNAL "")
-   set(AMReX_DPCPP ON  CACHE INTERNAL "")
-   set(AMReX_HIP   OFF CACHE INTERNAL "")
+   set(AMReX_DPCPP ON )
+   set(AMReX_CUDA  OFF)
+   set(AMReX_HIP   OFF)
 elseif (AMReX_GPU_BACKEND STREQUAL CUDA)
-   set(AMReX_CUDA  ON  CACHE INTERNAL "")
-   set(AMReX_DPCPP OFF CACHE INTERNAL "")
-   set(AMReX_HIP   OFF CACHE INTERNAL "")
+   set(AMReX_DPCPP OFF)
+   set(AMReX_CUDA  ON )
+   set(AMReX_HIP   OFF)
 elseif (AMReX_GPU_BACKEND STREQUAL HIP)
-   set(AMReX_CUDA  OFF CACHE INTERNAL "")
-   set(AMReX_DPCPP OFF CACHE INTERNAL "")
-   set(AMReX_HIP   ON  CACHE INTERNAL "")
+   set(AMReX_DPCPP OFF)
+   set(AMReX_CUDA  OFF)
+   set(AMReX_HIP   ON )
+else ()
+   set(AMReX_DPCPP OFF)
+   set(AMReX_CUDA  OFF)
+   set(AMReX_HIP   OFF)
 endif ()
 
 # --- SYCL ---
 if (AMReX_DPCPP)
-   if (NOT (CMAKE_CXX_COMPILER_ID IN_LIST "Clang;IntelClang;IntelDPCPP") )
-      message(WARNING "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is tested with DPCPP."
-         "Verify '${CMAKE_CXX_COMPILER_ID}' is correct and potentially set CMAKE_CXX_COMPILER=dpccp or mpiicpx.")
+   set(_valid_dpcpp_compiler_ids Clang IntelClang IntelDPCPP)
+   if (NOT (CMAKE_CXX_COMPILER_ID IN_LIST _valid_dpcpp_compiler_ids) )
+      message(WARNING "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is tested with "
+         "DPCPP. Verify '${CMAKE_CXX_COMPILER_ID}' is correct and potentially "
+         "set CMAKE_CXX_COMPILER=dpcpp.")
    endif ()
+   unset(_valid_dpcpp_compiler_ids)
 endif ()
 
 cmake_dependent_option( AMReX_DPCPP_AOT  "Enable DPCPP ahead-of-time compilation (WIP)"  OFF
@@ -161,7 +169,7 @@ endif ()
 #
 # Parallel backends    ========================================================
 #
-cmake_dependent_option( AMReX_MPI  "Enable MPI"  ON "NOT AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
+option( AMReX_MPI  "Enable MPI"  ON )
 print_option( AMReX_MPI )
 
 cmake_dependent_option( AMReX_MPI_THREAD_MULTIPLE
@@ -176,6 +184,9 @@ print_option( AMReX_OMP )
 #
 # AMReX components selection  ================================================
 #
+option( AMReX_AMRLEVEL  "Build AmrLevel class" ON )
+print_option( AMReX_AMRLEVEL )
+
 cmake_dependent_option( AMReX_EB "Build with Embedded Boundary support" OFF
    "NOT AMReX_SPACEDIM EQUAL 1" OFF )
 print_option(AMReX_EB)
@@ -187,7 +198,8 @@ print_option(AMReX_FORTRAN_INTERFACES)
 option( AMReX_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
 print_option( AMReX_LINEAR_SOLVERS )
 
-option( AMReX_AMRDATA "Build data services" OFF)
+cmake_dependent_option( AMReX_AMRDATA "Build data services" OFF
+   "AMReX_FORTRAN" OFF )
 print_option( AMReX_AMRDATA )
 
 option( AMReX_PARTICLES "Build particle classes" OFF)

@@ -93,7 +93,7 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
 
         if ((dmf != smf[0] && dmf != smf[1]) || scomp != dcomp)
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*dmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -119,7 +119,7 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                         dfab(i,j,k,n+destcomp) = sfab1(i,j,k,n+scomp);
                     });
                 }
-                else if (std::abs(t1-t0) > 1.e-16)
+                else if (! amrex::almostEqual(t0,t1))
                 {
                     Real alpha = (t1-time)/(t1-t0);
                     Real beta = (time-t0)/(t1-t0);
@@ -347,7 +347,7 @@ namespace {
 
                 Box const& fdomain = amrex::convert(fgeom.Domain(),mf.ixType());
                 int idummy=0;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
                 bool cc = fpc.ba_crse_patch.ixType().cellCentered();
 #pragma omp parallel if (cc && Gpu::notInLaunchRegion())
 #endif
@@ -477,7 +477,7 @@ namespace {
                 }
 
                 int idummy=0;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 //              bool cc = fpc.ba_crse_patch.ixType().cellCentered();
                 bool cc = false;        // can anything be done to allow threading, or can the OpenMP just be removed?
 #pragma omp parallel if (cc && Gpu::notInLaunchRegion() )
@@ -790,7 +790,7 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
 
     int idummy1=0, idummy2=0;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
@@ -921,7 +921,7 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
     }
 
     int idummy1=0, idummy2=0;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {

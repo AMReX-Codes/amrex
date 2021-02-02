@@ -8,7 +8,7 @@
 #include <limits>
 #include <cmath>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -920,7 +920,7 @@ Amr::writeSmallPlotFile ()
 void
 Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
 {
-    Real dPlotFileTime0 = amrex::second();
+    auto dPlotFileTime0 = amrex::second();
 
     VisMF::SetNOutFiles(plot_nfiles);
     VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
@@ -1009,7 +1009,7 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
 
         if (verbose > 0) {
             const int IOProc        = ParallelDescriptor::IOProcessorNumber();
-            Real      dPlotFileTime = amrex::second() - dPlotFileTime0;
+            auto      dPlotFileTime = amrex::second() - dPlotFileTime0;
             ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
             if (regular) {
                 amrex::Print() << "Write plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
@@ -1059,7 +1059,7 @@ Amr::checkInput ()
     //
     for (int i = 0; i < max_level; i++)
     {
-        if (MaxRefRatio(i) < 2 || MaxRefRatio(i) > 12)
+        if (MaxRefRatio(i) < 2)
             amrex::Error("Amr::checkInput: bad ref_ratios");
     }
     const Box& domain = Geom(0).Domain();
@@ -1168,7 +1168,7 @@ Amr::readProbinFile (int& a_init)
     const int NSets   = (NProcs + (nAtOnce - 1)) / nAtOnce;
     const int MySet   = MyProc/nAtOnce;
 
-    Real piStart = 0, piEnd = 0, piStartAll = amrex::second();
+    double piStart = 0, piEnd = 0, piStartAll = amrex::second();
 
     for (int iSet = 0; iSet < NSets; ++iSet)
     {
@@ -1218,8 +1218,8 @@ Amr::readProbinFile (int& a_init)
     if (verbose > 1)
     {
         const int IOProc     = ParallelDescriptor::IOProcessorNumber();
-        Real      piTotal    = piEnd - piStart;
-        Real      piTotalAll = amrex::second() - piStartAll;
+        auto      piTotal    = piEnd - piStart;
+        auto      piTotalAll = amrex::second() - piStartAll;
 
         ParallelDescriptor::ReduceRealMax(piTotal,    IOProc);
         ParallelDescriptor::ReduceRealMax(piTotalAll, IOProc);
@@ -1361,7 +1361,7 @@ Amr::restart (const std::string& filename)
 
     which_level_being_advanced = -1;
 
-    Real dRestartTime0 = amrex::second();
+    auto dRestartTime0 = amrex::second();
 
     VisMF::SetMFFileInStreams(mffile_nstreams);
 
@@ -1662,7 +1662,7 @@ Amr::restart (const std::string& filename)
 
     if (verbose > 0)
     {
-        Real dRestartTime = amrex::second() - dRestartTime0;
+        auto dRestartTime = amrex::second() - dRestartTime0;
 
         ParallelDescriptor::ReduceRealMax(dRestartTime,ParallelDescriptor::IOProcessorNumber());
 
@@ -1692,7 +1692,7 @@ Amr::checkPoint ()
     VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
     VisMF::SetHeaderVersion(checkpoint_headerversion);
 
-    Real dCheckPointTime0 = amrex::second();
+    auto dCheckPointTime0 = amrex::second();
 
     const std::string& ckfile = amrex::Concatenate(check_file_root,level_steps[0],file_name_digits);
 
@@ -1824,7 +1824,7 @@ Amr::checkPoint ()
 
     if (verbose > 0)
     {
-        Real dCheckPointTime = amrex::second() - dCheckPointTime0;
+        auto dCheckPointTime = amrex::second() - dCheckPointTime0;
 
         ParallelDescriptor::ReduceRealMax(dCheckPointTime,
 	                            ParallelDescriptor::IOProcessorNumber());
@@ -1858,10 +1858,18 @@ Amr::RegridOnly (Real time, bool do_io)
 {
     BL_ASSERT(regrid_on_restart == 1);
 
-    int lev_top = std::min(finest_level, max_level-1);
-
-    for (int i = 0; i <= lev_top; i++)
-       regrid(i,time);
+    if (max_level == 0)
+    {   
+        regrid_level_0_on_restart();
+    }
+    else
+    {   
+        int lev_top = std::min(finest_level, max_level-1);
+        for (int i = 0; i <= lev_top; i++)
+        {  
+           regrid(i,time);
+        }
+    }
 
     if (do_io) {
 
@@ -2048,8 +2056,8 @@ Amr::coarseTimeStepDt (Real stop_time)
 void
 Amr::coarseTimeStep (Real stop_time)
 {
-    Real      run_stop;
-    Real run_strt;
+    double run_stop;
+    double run_strt;
     BL_PROFILE_REGION_START("Amr::coarseTimeStep()");
     BL_PROFILE("Amr::coarseTimeStep()");
     std::stringstream stepName;
@@ -2173,7 +2181,7 @@ Amr::coarseTimeStep (Real stop_time)
         // the counter, because we have indeed reached the next check_per interval
         // at this point.
 
-        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0 * std::abs(cumtime);
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0_rt * std::abs(cumtime);
         const Real next_chk_time = (num_per_old + 1) * check_per;
 
         if ((num_per_new == num_per_old) && std::abs(cumtime - next_chk_time) <= eps)
@@ -2317,7 +2325,7 @@ Amr::writePlotNow() noexcept
         // the counter, because we have indeed reached the next plot_per interval
         // at this point.
 
-        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0 * std::abs(cumtime);
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0_rt * std::abs(cumtime);
         const Real next_plot_time = (num_per_old + 1) * plot_per;
 
         if ((num_per_new == num_per_old) && std::abs(cumtime - next_plot_time) <= eps)
@@ -2390,7 +2398,7 @@ Amr::writeSmallPlotNow() noexcept
         // the counter, because we have indeed reached the next small_plot_per interval
         // at this point.
 
-        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0 * std::abs(cumtime);
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0_rt * std::abs(cumtime);
         const Real next_plot_time = (num_per_old + 1) * small_plot_per;
 
         if ((num_per_new == num_per_old) && std::abs(cumtime - next_plot_time) <= eps)
@@ -2816,7 +2824,7 @@ Amr::printGridInfo (std::ostream& os,
         int                       numgrid = bs.size();
         Long                      ncells  = amr_level[lev]->countCells();
         double                    ntot    = Geom(lev).Domain().d_numPts();
-        Real                      frac    = Real(100.0)*(Real(ncells) / ntot);
+        Real                      frac    = Real(100.0 * double(ncells) / ntot);
         const DistributionMapping& map    = amr_level[lev]->get_new_data(0).DistributionMap();
 
         os << "  Level "
@@ -2856,7 +2864,7 @@ Amr::grid_places (int              lbase,
 {
     BL_PROFILE("Amr::grid_places()");
 
-    const Real strttime = amrex::second();
+    const auto strttime = amrex::second();
 
     if (lbase == 0)
     {
@@ -2931,7 +2939,7 @@ Amr::grid_places (int              lbase,
 
     if (verbose > 0)
     {
-        Real stoptime = amrex::second() - strttime;
+        auto stoptime = amrex::second() - strttime;
 
 #ifdef BL_LAZY
 	Lazy::QueueReduction( [=] () mutable {

@@ -32,9 +32,6 @@ if (CMAKE_Fortran_COMPILER_LOADED)
       INTERFACE_INCLUDE_DIRECTORIES
       $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/mod_files>
       )
-   # adding those is a work-around that avoids that downstream C++ projects have
-   # to `enable_language(Fortran)`
-   target_link_libraries(amrex PUBLIC ${CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES})
 endif ()
 
 # Load Flags targets and use them if no user-defined flags is given
@@ -72,11 +69,14 @@ configure_amrex ()
 add_subdirectory(Base)
 add_subdirectory(Boundary)
 add_subdirectory(AmrCore)
-add_subdirectory(Amr)
 
 #
 # Optional components
 #
+if (AMReX_AMRLEVEL)
+   add_subdirectory(Amr)
+endif ()
+
 if (AMReX_EB)
    if (AMReX_CUDA AND ( "${NVCC_VERSION_MAJOR}.${NVCC_VERSION_MINOR}" VERSION_EQUAL "9.2") )
       message(FATAL_ERROR "EB component of AMReX is not compatible with CUDA 9.2")
@@ -184,13 +184,3 @@ endif ()
 #
 include(AMReXGenerateConfigHeader)
 generate_config_header()
-
-#
-# Install amrex  -- Export
-#
-include(AMReXInstallHelpers)
-set(_amrex_targets Flags_CXX Flags_Fortran Flags_FPE )
-if (AMReX_DPCPP)
-   list(APPEND _amrex_targets SYCL)
-endif()
-install_amrex(${_amrex_targets})

@@ -253,7 +253,7 @@ struct ParticleTile
     using ParticleTileDataType = ParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ConstParticleTileDataType = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
-    ParticleTile()
+    ParticleTile ()
         : m_defined(false)
     {}
 
@@ -472,7 +472,7 @@ struct ParticleTile
         return nbytes;
     }
 
-    void swap (ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt>& other)
+    void swap (ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>& other)
     {
         m_aos_tile().swap(other.GetArrayOfStructs()());
         for (int j = 0; j < NumRealComps(); ++j)

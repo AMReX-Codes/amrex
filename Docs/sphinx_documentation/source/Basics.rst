@@ -1786,7 +1786,7 @@ parallel region:
   // Dynamic tiling, one box per OpenMP thread.
   // No further tiling details,
   //   so each thread works on a single tilebox.
-  #ifdef _OPENMP
+  #ifdef AMREX_USE_OMP
   #pragma omp parallel
   #endif
       for (MFIter mfi(mf,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
@@ -1803,7 +1803,7 @@ Dynamic tiling also allows explicit definition of a tile size:
 
   // Dynamic tiling, one box per OpenMP thread.
   // No tiling in x-direction. Tile size is 16 for y and 32 for z.
-  #ifdef _OPENMP
+  #ifdef AMREX_USE_OMP
   #pragma omp parallel
   #endif
       for (MFIter mfi(mf,MFItInfo().SetDynamic(true).EnableTiling(1024000,16,32)); mfi.isValid(); ++mfi)
@@ -2232,7 +2232,7 @@ like below,
 
 ::
 
-  #ifdef _OPENMP
+  #ifdef AMREX_USE_OMP
   #pragma omp parallel if (Gpu::notInLaunchRegion())
   #endif
     for (MFIter mfi(mfa,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -2611,6 +2611,21 @@ For example,
 ::
 
     mpiexec -n 4 valgrind --leak-check=yes --track-origins=yes --log-file=vallog.%p ./foo.exe ...
+    
+Breaking into Debuggers
+=======================
+
+In order to break into debuggers and use modern IDEs, the backtrace signal handling described above needs to be disabled.
+
+The following runtime options need to be set in order to prevent AMReX from catching the break signals before a debugger can attach to a crashing process:
+
+::
+
+   amrex.throw_exception = 1
+   amrex.signal_handling = 0
+
+This default behavior can also be modified by applications, see for example `this custom application initializer <https://github.com/Exawind/amr-wind/blob/84f81a990152f4f748c1ab0fa17c8c663e51df86/amr-wind/main.cpp#L21>`__.
+
 
 .. _sec:basics:heat1:
 

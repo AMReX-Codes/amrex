@@ -9,7 +9,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -30,7 +30,7 @@ struct BLBackTrace
 
     static std::stack<std::pair<std::string, std::string> > bt_stack;
 // threadprivate here doesn't work with Cray and Intel
-#if defined(_OPENMP) && !defined(_CRAYC) && !defined(__INTEL_COMPILER) && !defined(__PGI)
+#if defined(AMREX_USE_OMP) && !defined(_CRAYC) && !defined(__INTEL_COMPILER) && !defined(__PGI)
 #pragma omp threadprivate(bt_stack)
 #endif
 };

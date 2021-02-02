@@ -275,7 +275,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         // we're doing plus()s on cell-centered data.  Don't do plus()s on
         // non-cell-centered data this simplistic way.
         //
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
@@ -720,7 +720,7 @@ FabArray<FAB>::Redistribute (const FabArray<FAB>& src,
 
     if (ParallelContext::NProcsSub() == 1)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter fai(*this,true); fai.isValid(); ++fai)

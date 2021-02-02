@@ -26,16 +26,15 @@ namespace amrex {
         //
         // Check that grid is uniform
         //
-        const Real tolerance = std::numeric_limits<Real>::epsilon();
         const Real* dx = geom.CellSize();
-        
+
 #if (AMREX_SPACEDIM == 2)
-        if (std::abs(dx[0] - dx[1]) > tolerance)
+        if (! amrex::almostEqual(dx[0], dx[1]))
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
 #elif (AMREX_SPACEDIM == 3)
-        if( (std::abs(dx[0] - dx[1]) > tolerance) ||
-            (std::abs(dx[0] - dx[2]) > tolerance) ||
-            (std::abs(dx[1] - dx[2]) > tolerance) )
+        if( ! amrex::almostEqual(dx[0],dx[1]) ||
+            ! amrex::almostEqual(dx[0],dx[2]) ||
+            ! amrex::almostEqual(dx[1],dx[2]) )
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
 #endif
 
@@ -52,7 +51,7 @@ namespace amrex {
 
         const Box& grown1_bx = amrex::grow(bx,1);
         const Box& grown2_bx = amrex::grow(bx,2);
-        
+
         //
         // Working arrays
         //
@@ -96,23 +95,21 @@ namespace amrex {
             int  ke = (AMREX_SPACEDIM == 3) ?  1 : 0;
 
             for (int kk(ks); kk <= ke; ++kk) {
-              for (int jj(-1); jj <= 1; ++jj) {
-                for (int ii(-1); ii <= 1; ++ii) {
-		        if( (ii != 0 || jj != 0 || kk != 0) &&
-			    flags(i,j,k).isConnected(ii,jj,kk) &&
-			    dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
+                for (int jj(-1); jj <= 1; ++jj) {
+                    for (int ii(-1); ii <= 1; ++ii) {
+                        if( (ii != 0 || jj != 0 || kk != 0) &&
+                            flags(i,j,k).isConnected(ii,jj,kk) &&
+                            dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
                         {
-
                             wted_frac = vfrac(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
                             vtot   += wted_frac;
                             divnc  += wted_frac * divc(i+ii,j+jj,k+kk,n);
-  
                         }
+                    }
                 }
-              }
             }
             divnc /=  (vtot + 1.e-80);
-  
+
             // We need to multiply divc by mask to make sure optmp is zero for cells
             // outside the domain for non-cyclic BCs
             optmp(i,j,k,n) =  (1 - vfrac(i,j,k)) * (divnc - divc(i,j,k,n) * mask(i,j,k));
@@ -139,8 +136,8 @@ namespace amrex {
 
             for (int kk(ks); kk <= ke; ++kk) {
               for (int jj(-1); jj <= 1; ++jj) {
-                for (int ii(-1); ii <= 1; ++ii) {         
-            
+                for (int ii(-1); ii <= 1; ++ii) {
+
                         if( (ii != 0 || jj != 0 || kk != 0) &&
                             (flags(i,j,k).isConnected(ii,jj,kk)) )
                         {
@@ -150,11 +147,11 @@ namespace amrex {
             }}}
 
             wtot = 1.0/(wtot + 1.e-80);
-           
+
             for (int kk(ks); kk <= ke; ++kk) {
               for (int jj(-1); jj <= 1; ++jj) {
-                for (int ii(-1); ii <= 1; ++ii) {       
-            
+                for (int ii(-1); ii <= 1; ++ii) {
+
                         if( (ii != 0 || jj != 0 || kk != 0) &&
                             (flags(i,j,k).isConnected(ii,jj,kk)) &&
                             bx.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))) )
@@ -189,10 +186,10 @@ namespace amrex {
         Real covered_val = 1.e40;
 
         int nghost = 2;
-	AMREX_ASSERT(div_tmp_in.nGrow() >= nghost);
+        AMREX_ASSERT(div_tmp_in.nGrow() >= nghost);
 
         EB_set_covered(div_tmp_in, 0, ncomp, div_tmp_in.nGrow(), covered_val);
-              
+
         div_tmp_in.FillBoundary(geom.periodicity());
 
         // Here we take care of both the regular and covered cases ... all we do below is the cut cell cases
@@ -444,7 +441,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
     const auto dx_eb = eb_factory.Geom().CellSizeArray();
     Real ls_roof = amrex::min(AMREX_D_DECL(dx_eb[0],dx_eb[1],dx_eb[2])) * (flags.nGrow()+1);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)

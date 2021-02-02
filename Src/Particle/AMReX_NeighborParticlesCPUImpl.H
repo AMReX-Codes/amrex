@@ -36,7 +36,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         {
             PairIndex src_index(pti.index(), pti.LocalTileIndex());
             const auto& tags = inverse_tags[lev][src_index];
-            const auto& neighbs = neighbors[lev][src_index];
+            const auto& neighbs = neighbors[lev][src_index].GetArrayOfStructs();
             AMREX_ASSERT(tags.size() == neighbs.size());
 
             const int num_neighbs = neighbs.size();
@@ -284,7 +284,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             for (int j = 0; j < num_threads; ++j) {
                 auto& tags = buffer_tag_cache[lev][src_index][j];
                 int num_tags = tags.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
                 for (int i = 0; i < num_tags; ++i) {
@@ -374,7 +374,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             }
         }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
@@ -579,7 +579,7 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
                 if ( enableInverse() )
                 {
                     AMREX_ASSERT(neighbors[lev][dst_index].size() ==
-                                 inverse_tags[lev][dst_index].size());
+                                 size_t(inverse_tags[lev][dst_index].size()));
                     inverse_tags[lev][dst_index].resize(new_size);
                 }
                 neighbors[lev][dst_index].resize(new_size);

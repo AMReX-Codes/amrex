@@ -63,7 +63,7 @@ public:
 
     virtual void applyOverset (int amlev, MultiFab& rhs) const override;
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
 #endif
 

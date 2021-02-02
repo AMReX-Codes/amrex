@@ -90,7 +90,7 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
     const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
 #endif
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -158,7 +158,7 @@ MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
     const Real dx = m_geom[amrlev][mglev].CellSize(0);
     const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -226,7 +226,7 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(sol,mfi_info); mfi.isValid(); ++mfi)
@@ -555,7 +555,7 @@ MLPoisson::makeNLinOp (int grid_size) const
     if (needsCoarseDataForBC())
     {
         const Real* dx0 = m_geom[0][0].CellSize();
-        const Real fac = 0.5*m_coarse_data_crse_ratio;
+        const Real fac = Real(0.5)*m_coarse_data_crse_ratio;
         RealVect cbloc {AMREX_D_DECL(dx0[0]*fac, dx0[1]*fac, dx0[2]*fac)};
         nop->setCoarseFineBCLocation(cbloc);
     }
@@ -572,7 +572,7 @@ MLPoisson::makeNLinOp (int grid_size) const
 #endif
 
     MultiFab alpha(ba, dm, 1, 0);
-    alpha.setVal(1.e30*dxscale*dxscale);
+    alpha.setVal(Real(1.e30)*dxscale*dxscale);
 
     MultiFab foo(m_grids[0].back(), m_dmap[0].back(), 1, 0, MFInfo().SetAlloc(false));
     const FabArrayBase::CPC& cpc = alpha.getCPC(IntVect(0),foo,IntVect(0),Periodicity::NonPeriodic());

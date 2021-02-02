@@ -511,10 +511,14 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 face_linear_interp_x (int i, int j, int /*k*/, int n, Array4<T> const& fine,
                       Array4<T const> const& crse, IntVect const& ratio) noexcept
 {
-    int ii = amrex::coarsen(i,ratio[0]);
-    int jj = amrex::coarsen(j,ratio[1]);
-    Real const w = static_cast<Real>(i-ii*ratio[0]) * (Real(1.)/ratio[0]);
-    fine(i,j,0,n) = (Real(1.)-w) * crse(ii,jj,0,n) + w * crse(ii+1,jj,0,n);
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    if (i-ii*ratio[0] == 0) {
+        fine(i,j,0,n) = crse(ii,jj,0,n);
+    } else {
+        Real const w = static_cast<Real>(i-ii*ratio[0]) * (Real(1.)/ratio[0]);
+        fine(i,j,0,n) = (Real(1.)-w) * crse(ii,jj,0,n) + w * crse(ii+1,jj,0,n);
+    }
 }
 
 template<typename T>
@@ -522,10 +526,14 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 face_linear_interp_y (int i, int j, int /*k*/, int n, Array4<T> const& fine,
                       Array4<T const> const& crse, IntVect const& ratio) noexcept
 {
-    int ii = amrex::coarsen(i,ratio[0]);
-    int jj = amrex::coarsen(j,ratio[1]);
-    Real const w = static_cast<Real>(j-jj*ratio[1]) * (Real(1.)/ratio[1]);
-    fine(i,j,0,n) = (Real(1.)-w) * crse(ii,jj,0,n) + w * crse(ii,jj+1,0,n);
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    if (j-jj*ratio[1] == 0) {
+        fine(i,j,0,n) = crse(ii,jj,0,n);
+    } else {
+        Real const w = static_cast<Real>(j-jj*ratio[1]) * (Real(1.)/ratio[1]);
+        fine(i,j,0,n) = (Real(1.)-w) * crse(ii,jj,0,n) + w * crse(ii,jj+1,0,n);
+    }
 }
 
 }

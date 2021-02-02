@@ -327,9 +327,13 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 face_linear_interp_x (int i, int /*j*/, int /*k*/, int n, Array4<T> const& fine,
                       Array4<T const> const& crse, IntVect const& ratio) noexcept
 {
-    int ii = amrex::coarsen(i,ratio[0]);
-    Real const w = static_cast<Real>(i-ii*ratio[0]) * (Real(1.)/ratio[0]);
-    fine(i,0,0,n) = (Real(1.)-w) * crse(ii,0,0,n) + w * crse(ii+1,0,0,n);
+    const int ii = amrex::coarsen(i,ratio[0]);
+    if (i-ii*ratio[0] == 0) {
+        fine(i,0,0,n) = crse(ii,0,0,n);
+    } else {
+        Real const w = static_cast<Real>(i-ii*ratio[0]) * (Real(1.)/ratio[0]);
+        fine(i,0,0,n) = (Real(1.)-w) * crse(ii,0,0,n) + w * crse(ii+1,0,0,n);
+    }
 }
 
 }

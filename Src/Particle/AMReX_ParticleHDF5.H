@@ -9,7 +9,8 @@
 #include "h5_vol_external_async_native.h"
 #endif
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::CheckpointHDF5 (const std::string& dir,
@@ -56,7 +57,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::CheckpointHDF5 (const std::string& dir, const std::string& name) const
@@ -309,7 +311,8 @@ static void SetHDF5fapl(hid_t fapl)
 
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::WriteHDF5ParticleData (const std::string& dir, const std::string& name,
@@ -326,7 +329,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
-    const Real strttime = amrex::second();
+    const auto strttime = amrex::second();
 
     AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == NumIntComps() + NStructInt);
@@ -441,7 +444,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         // whether we're using "float" or "double" floating point data in the
         // particles so that we can Restart from the checkpoint files.
         //
-        std::string versionName = ParticleType::Version();
+        std::string versionName = Version();
         if (sizeof(typename ParticleType::RealType) == 4)
             versionName += "_single";
         else
@@ -641,7 +644,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
    
     if (m_verbose > 1)
     {
-        Real stoptime = amrex::second() - strttime;
+        auto stoptime = amrex::second() - strttime;
         
         ParallelDescriptor::ReduceRealMax(stoptime, IOProcNumber);
         
@@ -649,7 +652,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::WriteParticlesHDF5 ( hid_t grp, int lev, Vector<int>& count, Vector<Long>& where) const
@@ -942,7 +946,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
 } // End WriteParticlesHDF5
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::RestartHDF5 (const std::string& dir, const std::string& file, bool is_checkpoint)
@@ -950,7 +955,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     Restart(dir, file);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::RestartHDF5 (const std::string& dir, const std::string& file)
@@ -959,7 +965,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     AMREX_ASSERT(!dir.empty());
     AMREX_ASSERT(!file.empty());
     
-    const Real strttime = amrex::second();
+    const auto strttime = amrex::second();
     
     /* int DATA_Digits_Read(5); */
     /* ParmParse pp("particles"); */
@@ -1262,7 +1268,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             // on finer levels, and put them in the right place via Redistribute()
             
             const int rank = ParallelDescriptor::MyProc();
-            const int NReaders = ParticleType::MaxReaders();
+            const int NReaders = MaxReaders();
             if (rank >= NReaders) return;
             
             const int Navg = ngrids[lev] / NReaders;
@@ -1311,14 +1317,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     AMREX_ASSERT(OK());
     
     if (m_verbose > 1) {
-        Real stoptime = amrex::second() - strttime;	
+        auto stoptime = amrex::second() - strttime;
         ParallelDescriptor::ReduceRealMax(stoptime, ParallelDescriptor::IOProcessorNumber());
         amrex::Print() << "ParticleContainer::Restart() time: " << stoptime << '\n';
     }
 }
 
 // Read a batch of particles from the checkpoint file
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator>
 template <class RTYPE>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>

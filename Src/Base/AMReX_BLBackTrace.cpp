@@ -72,7 +72,7 @@ BLBackTrace::handler(int s)
     {
 	std::ostringstream ss;
 	ss << "Backtrace." << ParallelDescriptor::MyProc();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
  	ss << "." << omp_get_thread_num();
 #endif
 	errfilename = ss.str();
@@ -211,7 +211,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
         {
             fprintf(f, "%2d: %s\n", i, strings[i]);
 
-#if !defined(_OPENMP) || !defined(__INTEL_COMPILER)
+#if !defined(AMREX_USE_OMP) || !defined(__INTEL_COMPILER)
             std::string addr2line_result;
             if (amrex::system::call_addr2line && have_eu_addr2line) {
                 if (bt_buffer[i] != nullptr) {
@@ -305,7 +305,7 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
     ss << "Line " << line << ", File " << file;
     line_file = ss.str();
     
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
     if (omp_in_parallel()) {
 	std::ostringstream ss0;
 	ss0 << "Proc. " << ParallelDescriptor::MyProc()
@@ -333,7 +333,7 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
 
 BLBTer::~BLBTer()
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
     if (omp_in_parallel()) {
 	pop_bt_stack();
     }

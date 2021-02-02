@@ -24,10 +24,12 @@ void main_main ()
 {
     int ncell = 512;
     int max_grid_size = 128;
+    int nghost = 0;
     {
         ParmParse pp;
         pp.query("ncell", ncell);
         pp.query("max_grid_size", max_grid_size);
+        pp.query("nghost", nghost);
     }
 
     BoxArray ba;
@@ -37,11 +39,11 @@ void main_main ()
         ba.maxSize(max_grid_size);
     }
 
-    MultiFab mf(ba,DistributionMapping{ba},1,0);
-    iMultiFab imf(ba,mf.DistributionMap(),1,0);
+    MultiFab mf(ba,DistributionMapping{ba},1,nghost);
+    iMultiFab imf(ba,mf.DistributionMap(),1,nghost);
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        Box const& bx = mfi.validbox();
+        Box const& bx = mfi.fabbox();
         auto const& fab = mf.array(mfi);
         auto const& ifab = imf.array(mfi);
 
@@ -53,6 +55,96 @@ void main_main ()
         });
     }
 
+    int N = 1000000;
+    Gpu::DeviceVector<Real> vec(N);
+    Real* pvec = vec.dataPtr();
+    amrex::ParallelForRNG( N,
+    [=] AMREX_GPU_DEVICE (int i, RandomEngine const& engine) noexcept
+    {
+        pvec[i] = amrex::Random(engine) - 0.5;
+    });
+
+    {
+        BL_PROFILE("ParallelForReduction-box-3");
+
+        Gpu::Buffer<Real> da({0.0, std::numeric_limits<Real>::max(),
+                                       std::numeric_limits<Real>::lowest()});
+        Real* dp = da.data();
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+            Box const& bx = mfi.fabbox();
+            Array4<Real const> const& fab = mf.const_array(mfi);
+            amrex::ParallelFor(Gpu::KernelInfo().setReduction(true), bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, Gpu::Handler const& handler) noexcept
+            {
+                Gpu::deviceReduceSum(dp  , fab(i,j,k), handler);
+                Gpu::deviceReduceMin(dp+1, fab(i,j,k), handler);
+                Gpu::deviceReduceMax(dp+2, fab(i,j,k), handler);
+            });
+        }
+        Real* hp = da.copyToHost();
+        ParallelDescriptor::ReduceRealSum(hp[0]);
+        ParallelDescriptor::ReduceRealMin(hp[1]);
+        ParallelDescriptor::ReduceRealMax(hp[2]);
+        amrex::Print().SetPrecision(17) << "sum: "  << hp[0] << "\n"
+                                        << "min: "  << hp[1] << "\n"
+                                        << "max: "  << hp[2] << "\n";
+    }
+
+   {
+        BL_PROFILE("ParallelForReduction-box-sum");
+
+        Gpu::Buffer<Real> da({0.0});
+        Real* dp = da.data();
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+            Box const& bx = mfi.fabbox();
+            Array4<Real const> const& fab = mf.const_array(mfi);
+            amrex::ParallelFor(Gpu::KernelInfo().setReduction(true), bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, Gpu::Handler const& handler) noexcept
+            {
+                Gpu::deviceReduceSum(dp, fab(i,j,k), handler);
+            });
+        }
+        Real* hp = da.copyToHost();
+        ParallelDescriptor::ReduceRealSum(hp[0]);
+        amrex::Print().SetPrecision(17) << "sum: "  << hp[0] << "\n";
+    }
+
+   {
+        BL_PROFILE("ParallelForReduction-box-isum");
+
+        Gpu::Buffer<Long> da({0});
+        Long* dp = da.data();
+        for (MFIter mfi(imf); mfi.isValid(); ++mfi)
+        {
+            Box const& bx = mfi.fabbox();
+            Array4<int const> const& ifab = imf.const_array(mfi);
+            amrex::ParallelFor(Gpu::KernelInfo().setReduction(true), bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, Gpu::Handler const& handler) noexcept
+            {
+                Gpu::deviceReduceSum<Long>(dp, ifab(i,j,k), handler);
+            });
+        }
+        Long* hp = da.copyToHost();
+        ParallelDescriptor::ReduceLongSum(hp[0]);
+        amrex::Print().SetPrecision(17) << "isum: "  << hp[0] << "\n";
+    }
+
+    {
+        BL_PROFILE("ParallelForReduction-vec-1");
+        Gpu::Buffer<Real> da({0.0});
+        Real* dp = da.data();
+        amrex::ParallelFor(Gpu::KernelInfo().setReduction(true), N,
+        [=] AMREX_GPU_DEVICE (int i, Gpu::Handler const& handler) noexcept
+        {
+            Gpu::deviceReduceSum(dp, amrex::Math::abs(pvec[i]), handler);
+        });
+        Real* hp = da.copyToHost();
+        ParallelDescriptor::ReduceRealSum(hp[0]);
+        amrex::Print().SetPrecision(17) << "1-norm: "  << hp[0] << "\n";
+    }
+
     {
         BL_PROFILE("MultiFab::sum");
         amrex::Print().SetPrecision(17) << "sum: " << mf.sum() << "\n";
@@ -60,12 +152,12 @@ void main_main ()
 
     {
         BL_PROFILE("MultiFab::min");
-        amrex::Print().SetPrecision(17) << "min: " << mf.min(0) << "\n";
+        amrex::Print().SetPrecision(17) << "min: " << mf.min(0, nghost) << "\n";
     }
 
     {
         BL_PROFILE("MultiFab::max");
-        amrex::Print().SetPrecision(17) << "max: " << mf.max(0) << "\n";
+        amrex::Print().SetPrecision(17) << "max: " << mf.max(0, nghost) << "\n";
     }
 
     {
@@ -83,7 +175,7 @@ void main_main ()
 
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.validbox();
+            const Box& bx = mfi.fabbox();
             auto const& fab = mf.array(mfi);
             auto const& ifab = imf.array(mfi);
             reduce_op.eval(bx, reduce_data,
@@ -117,17 +209,17 @@ void main_main ()
 
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.validbox();
+            const Box& bx = mfi.fabbox();
             auto const& fab = mf.array(mfi);
             auto const& ifab = imf.array(mfi);
             reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_DEVICE (Box const& bx) -> ReduceTuple
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
                 Real rsum = 0.;
                 Real rmin =  1.e30; // If not because of cuda 9.2,
                 Real rmax = -1.e30; // we should use numeric_limits.
                 Long lsum = 0;
-                amrex::Loop(bx,
+                amrex::Loop(b,
                 [=,&rsum,&rmin,&rmax,&lsum] (int i, int j, int k) {
                     Real x =  fab(i,j,k);
                     Long ix = static_cast<Long>(ifab(i,j,k));
@@ -161,7 +253,7 @@ void main_main ()
 
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.validbox();
+            const Box& bx = mfi.fabbox();
             auto const& fab = mf.array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
@@ -185,7 +277,7 @@ void main_main ()
 
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.validbox();
+            const Box& bx = mfi.fabbox();
             auto const& fab = mf.array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
@@ -209,7 +301,7 @@ void main_main ()
 
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.validbox();
+            const Box& bx = mfi.fabbox();
             auto const& fab = mf.array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
@@ -225,7 +317,7 @@ void main_main ()
     }
 
     {
-        BL_PROFILE("FabReduce-isum");
+        BL_PROFILE("FabReduce-isum-long");
 
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<Long> reduce_data(reduce_op);
@@ -233,7 +325,7 @@ void main_main ()
 
         for (MFIter mfi(imf); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.validbox();
+            const Box& bx = mfi.fabbox();
             auto const& ifab = imf.array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
@@ -248,14 +340,35 @@ void main_main ()
         amrex::Print() << "isum: " << hv << "\n";
     }
 
-    int N = 1000000;
-    Gpu::DeviceVector<Real> vec(N);
-    Real* pvec = vec.dataPtr();
-    amrex::ParallelForRNG( N,
-    [=] AMREX_GPU_DEVICE (int i, RandomEngine const& engine) noexcept
     {
-        pvec[i] = amrex::Random(engine) - 0.5;
-    });
+        // Changing types to take advantage of available hardware acceleration.
+        // Recommeded version for GPUs. (~60x faster).
+        BL_PROFILE("FabReduce-isum-unsigned-long-long");
+
+        long long points = 0;
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<unsigned long long> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+
+        for (MFIter mfi(imf); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.validbox();
+            auto const& ifab = imf.array(mfi);
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            {
+                return { static_cast<unsigned long long>(ifab(i,j,k)) -
+                         static_cast<unsigned long long>(INT_MIN) };
+            });
+            points += bx.numPts();
+        }
+
+        Long hv = static_cast<Long>( static_cast<long long>(amrex::get<0>(reduce_data.value()))
+                                     + static_cast<long long>(INT_MIN)*points );
+        // MPI reduce
+        ParallelDescriptor::ReduceLongSum(hv);
+        amrex::Print() << "isum: " << hv << "\n";
+    }
 
     {
         BL_PROFILE("VecReduce");
