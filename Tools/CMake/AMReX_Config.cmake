@@ -59,14 +59,21 @@ function (configure_amrex)
    # Special flags for MSVC compiler
    #
    set(_cxx_msvc   "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>")
-   set(_condition  "$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19.26>")
 
    target_compile_options( amrex PRIVATE $<${_cxx_msvc}:/bigobj> )
    target_compile_options( amrex PRIVATE $<${_cxx_msvc}:-wd4244;-wd4267;-wd4996> )
 
+   # modern preprocessor
+   set(_condition  "$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19.26>")
    target_compile_options( amrex PUBLIC
       $<${_cxx_msvc}:$<IF:${_condition},/experimental:preprocessor,/Zc:preprocessor>>
-      )
+   )
+   # proper __cplusplus macro:
+   #   https://docs.microsoft.com/en-us/cpp/build/reference/zc-cplusplus?view=msvc-160
+   set(_condition  "$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,19.14>")
+   target_compile_options( amrex PUBLIC
+      $<${_cxx_msvc}:$<${_condition}:/Zc:__cplusplus>>
+   )
 
    unset(_condition)
    unset(_cxx_msvc)
