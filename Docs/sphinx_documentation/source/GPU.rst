@@ -74,7 +74,7 @@ detailed throughout the rest of this chapter:
   portability while making the code as understandable as possible to
   science-focused code teams.
 
-- AMReX utilizes GPU managed memory to automatically handle memory
+- AMReX utilizes CUDA managed memory to automatically handle memory
   movement for mesh and particle data.  Simple data structures, such
   as :cpp:`IntVect`\s can be passed by value and complex data structures, such as
   :cpp:`FArrayBox`\es, have specialized AMReX classes to handle the
@@ -82,11 +82,18 @@ detailed throughout the rest of this chapter:
   to be efficient and reliable, especially when applications remove
   any unnecessary data accesses.
 
+- While under development, HIP and DPC++ builds use device memory and manual
+  data movement in place of managed memory.  This can be more complex to code,
+  but can yield performance gains and insights into potential optimizations.
+  For users new to GPU programming, it is recommended to first code using 
+  CUDA managed memory and then remove the managed memory when porting to AMD 
+  and Intel systems.  
+
 - Application teams should strive to keep mesh and particle data structures
   on the GPU for as long as possible, minimizing movement back to the CPU.
   This strategy lends itself to AMReX applications readily; the mesh and
   particle data can stay on the GPU for most subroutines except for
-  of redistribution, communication and I/O operations.
+  redistribution, communication and I/O operations.
 
 - AMReX's GPU strategy is focused on launching GPU kernels inside AMReX's
   :cpp:`MFIter` and :cpp:`ParIter` loops.  By performing GPU work within
@@ -97,9 +104,10 @@ detailed throughout the rest of this chapter:
 
 - AMReX further parallelizes GPU applications by utilizing streams.
   Streams guarantee execution order of kernels within the same stream, while
-  allowing different streams to run simultaneously. AMReX places each iteration
-  of :cpp:`MFIter` loops on separate streams, allowing each independent
-  iteration to be run simultaneously and sequentially, while maximizing GPU usage.
+  allowing different streams to run simultaneously. AMReX places separate iterations
+  of :cpp:`MFIter` and :cpp:`ParIter` loops on separate streams, allowing each i
+  independent iteration to be run simultaneously and sequentially in a manner that 
+  maximizes GPU usage.
 
   The AMReX implementation of streams is illustrated in :numref:`fig:gpu:streams`.
   The CPU runs the first iteration of the MFIter loop (blue), which contains three
@@ -401,33 +409,54 @@ Most GPU related classes and functions are in ``namespace Gpu``,
 which is inside ``namespace amrex``. For example, the GPU configuration
 class ``Device`` can be referenced to at ``amrex::Gpu::Device``.
 
-For portability, AMReX defines some macros for CUDA function qualifiers
-and they should be preferred to allow execution with ``USE_CUDA=FALSE``.
-These include:
+AMReX provides preprocessor macros when building with GPUs to allow
+for conditional programming:
+
+* When compiled with ``USE_CUDA=TRUE``, AMReX defines ``AMREX_USE_CUDA``.
+* When compiled with ``USE_HIP=TRUE``, AMReX defines ``AMREX_USE_HIP``.
+* When compiled with ``USE_DPCPP=TRUE``, AMReX defines ``AMREX_USE_DPCPP``.
+* When compiled with ``USE_ACC=TRUE``, AMReX defines ``AMREX_USE_ACC``.
+* When compiled with ``USE_OMP_OFFLOAD=TRUE``, AMReX defines ``AMREX_USE_OMP_OFFLOAD``.
+* When compiled with any of the above, AMReX defines ``AMREX_USE_GPU``.
+
+The ``AMREX_DEVICE_COMPILE`` macro can be used to conditionally program
+code for the host and device separately. ``#if AMREX_DEVICE_COMPILE`` is
+true when on the device and false when on the host. Most commonly, this
+macro can be used when a ``__host__ __device__`` function requires
+unique code for the CPU and the GPU implementations.
+
+Expansion macros have been provided for language specific programming,
+such as when calling functions defined in CUDA, HIP or DPC++ with different
+names.  These macros include:
+
+* ``AMREX_HIP_OR_CUDA(a,b)``
+* ``AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c)``
+* ``AMREX_DPCPP_ONLY(a)`` 
+* ``AMREX_GPU_OR_CPU(a,b)`` 
+
+For example, ``AMREX_HIP_OR_CUDA(a,b)`` expands to ``a`` if ``AMREX_USE_HIP``
+is defined, ``b`` if ``AMREX_USE_CUDA`` is defined, and nothing otherwise.  Note
+that ``AMREX_GPU_OR_CPU`` is the only macro to expand to something in all builds.
+
+AMReX defines some macros for CUDA, HIP and DPC++ qualifiers and they 
+should be preferred to allow portable code design.  These macros include:
 
 .. highlight:: c++
 
 ::
 
+   // if AMREX_USE_CUDA or AMREX_USE_HIP
+
    #define AMREX_GPU_HOST        __host__
    #define AMREX_GPU_DEVICE      __device__
    #define AMREX_GPU_GLOBAL      __global__
    #define AMREX_GPU_HOST_DEVICE __host__ __device__
+   #define AMREX_GPU_CONSTANT    __constant__
 
-Note that when AMReX is not built with ``CUDA/HIP/DPC++``,
-these macros expand to empty space.
+Note that when AMReX is not built with CUDA or HIP, these macros expand to 
+blank space, maintaining portability when building without GPUs.
 
-When AMReX is compiled with ``USE_CUDA=TRUE``, the preprocessor
-macros ``AMREX_USE_CUDA`` and ``AMREX_USE_GPU`` are defined for
-conditional programming.  When AMReX is compiled with
-``USE_ACC=TRUE``, ``AMREX_USE_ACC`` is defined.  When AMReX is
-compiled with ``USE_OMP_OFFLOAD=TRUE``, ``AMREX_USE_OMP_OFFLOAD`` is
-defined.
-
-In addition to AMReX's preprocessor macros, CUDA provides the
-``__CUDA_ARCH__`` macro which is only defined when in device code.
-``__CUDA_ARCH__`` should be used when a ``__host__ __device__``
-function requires separate code for the CPU and GPU implementations.
+The full list can be found at ``Src/Base/AMReX_GpuQualifiers.H``.
 
 .. ===================================================================
 
@@ -437,10 +466,10 @@ Memory Allocation
 =================
 
 To provide portability and improve memory allocation performance,
-AMReX provides a number of memory pools.  When compiled without
-CUDA, all :cpp:`Arena`\ s use standard :cpp:`new` and :cpp:`delete`
-operators. With CUDA, the :cpp:`Arena`\ s each allocate with a
-specific type of GPU memory:
+AMReX provides a number of memory pools.  When compiled for 
+CPU, all :cpp:`Arena`\ s use standard :cpp:`new` and :cpp:`delete`
+operators. When building for GPUs, the :cpp:`Arena`\ s each
+allocate with a specific type of GPU memory:
 
 .. raw:: latex
 
@@ -450,17 +479,19 @@ specific type of GPU memory:
 
 .. table:: Memory Arenas
 
-    +---------------------+----------------------------+
-    | Arena               |        Memory Type         |
-    +=====================+============================+
-    | The_Arena()         |  managed or device memory  |
-    +---------------------+----------------------------+
-    | The_Device_Arena()  |  device memory             |
-    +---------------------+----------------------------+
-    | The_Managed_Arena() |  managed memory            |
-    +---------------------+----------------------------+
-    | The_Pinned_Arena()  |  pinned memory             |
-    +---------------------+----------------------------+
+    +---------------------+----------------------------+------------------+------------------+
+    | Arena               |  USE_CUDA                  |  USE_HIP         |  USE_DPCPP       |
+    +=====================+============================+==================+==================+
+    | The_Arena()         |  managed or device memory  |  device memory   |  device memory   |
+    +---------------------+----------------------------+------------------+------------------+
+    | The_Device_Arena()  |  device memory             |  device memory   |  device memory   |
+    +---------------------+----------------------------+------------------+------------------+
+    | The_Managed_Arena() |  managed memory            |  device memory   |  device memory   |
+    +---------------------+----------------------------+------------------+------------------+
+    | The_Pinned_Arena()  |  pinned memory             |  mlock pinned memory   |  mlock pinned memory   |
+    +---------------------+----------------------------+------------------+------------------+
+    | The_Cpu_Arena()     |  host memory               |  host memory     |  host memory     |
+    +---------------------+----------------------------+------------------+------------------+
 
 .. raw:: latex
 
@@ -475,6 +506,8 @@ to two functions:
 
    void* alloc (std::size_t sz);
    void free (void* p);
+
+****CPU pinned
 
 :cpp:`The_Arena()` is used for memory allocation of data in
 :cpp:`BaseFab`.  By default, it allocates managed memory.  This can be changed with
