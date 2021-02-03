@@ -345,7 +345,7 @@ namespace {
 
                 MF mf_fine_patch = make_mf_fine_patch<MF>(fpc, ncomp);
 
-                Box const& fdomain = amrex::convert(fgeom.Domain(),mf.ixType());
+                Box const& cdomain = amrex::convert(cgeom.Domain(),mf.ixType());
                 int idummy=0;
 #ifdef AMREX_USE_OMP
                 bool cc = fpc.ba_crse_patch.ixType().cellCentered();
@@ -358,10 +358,11 @@ namespace {
                         FAB& sfab = mf_crse_patch[mfi];
                         FAB& dfab = mf_fine_patch[mfi];
                         const Box& dbx = dfab.box();
+			const Box& sbx = sfab.box();
 
-                        amrex::setBC(dbx,fdomain,bcscomp,0,ncomp,bcs,bcr);
+                        amrex::setBC(sbx,cdomain,bcscomp,0,ncomp,bcs,bcr);
 
-                        pre_interp(sfab, sfab.box(), 0, ncomp);
+                        pre_interp(sfab, sbx, 0, ncomp);
 
                         mapper->interp(sfab, 0, dfab, 0, ncomp, dbx, ratio,
                                        cgeom, fgeom, bcr, dcomp, idummy, RunOn::Gpu);
