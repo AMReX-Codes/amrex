@@ -504,7 +504,7 @@ namespace {
                         {
                             Vector<BCRec> bcr_d(ncomp);
 
-                            amrex::setBC(dfab[d]->box(), amrex::convert(fgeom.Domain(), mf[d]->boxArray().ixType()),
+                            amrex::setBC(sfab[d]->box(), amrex::convert(cgeom.Domain(), mf[d]->ixType()),
                                          bcscomp,0,ncomp,bcs[d],bcr_d);
 
                             for (int n=0; n<ncomp; ++n)
@@ -753,10 +753,10 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
 
     BL_ASSERT(typ == cmf.boxArray().ixType());
 
-    Box fdomain = fgeom.Domain();
-    fdomain.convert(typ);
+    Box cdomain = cgeom.Domain();
+    cdomain.convert(typ);
 
-    Box fdomain_g(fdomain);
+    Box fdomain_g( amrex::convert(fgeom.Domain(),mf.ixType()) );
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         if (fgeom.isPeriodic(i)) {
             fdomain_g.grow(i,nghost[i]);
@@ -799,13 +799,14 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
 
         for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
         {
-            FAB& sfab = mf_crse_patch[mfi];
-            FAB& dfab = mf[mfi];
+            FAB& sfab   = mf_crse_patch[mfi];
+            Box  sbx    = sfab.box();
+            FAB& dfab   = mf[mfi];
             Box dfab_bx = dfab.box();
             dfab_bx.grow(nghost-mf.nGrowVect());
             const Box& dbx = dfab_bx & fdomain_g;
 
-            amrex::setBC(dbx,fdomain,bcscomp,0,ncomp,bcs,bcr);
+	    amrex::setBC(sbx,cdomain,bcscomp,0,ncomp,bcs,bcr);
 
             pre_interp(sfab, sfab.box(), 0, ncomp);
 
@@ -948,7 +949,8 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
             {
                 Vector<BCRec> bcr_d(ncomp);
 
-                amrex::setBC(dfab[d]->box(), amrex::convert(fdomain, dfab[d]->box().ixType()),
+                amrex::setBC(sfab[d]->box(),
+			     amrex::convert(cgeom.Domain(), sfab[d]->box().ixType()),
                              bcscomp,0,ncomp,bcs[d],bcr_d);
 
                 for (int n=0; n<ncomp; ++n)
