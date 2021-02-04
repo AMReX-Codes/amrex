@@ -111,6 +111,26 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
         }
     }
 
+    for (amrlev = 1; amrlev < m_num_amr_levels; ++amrlev) {
+        for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev) { // for ref_ratio 4
+            m_overset_mask[amrlev].emplace_back(new iMultiFab(m_grids[amrlev][mglev],
+                                                              m_dmap[amrlev][mglev], 1, 1));
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*m_overset_mask[amrlev][mglev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.tilebox();
+                Array4<int> const& cmsk = m_overset_mask[amrlev][mglev]->array(mfi);
+                Array4<int const> const fmsk = m_overset_mask[amrlev][mglev-1]->const_array(mfi);
+                AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA(bx, tbx,
+                {
+                    coarsen_overset_mask(tbx, cmsk, fmsk);
+                });
+            }
+        }
+    }
+
     for (amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
             m_overset_mask[amrlev][mglev]->setBndry(1);
