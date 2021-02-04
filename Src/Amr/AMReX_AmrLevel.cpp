@@ -1265,9 +1265,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     Vector< Vector<std::unique_ptr<FArrayBox> > > cfab(m_amrlevel.level+1);
     Vector< Vector<Box> >&                TheCrseBoxes = m_cbox[idx];
     Vector< Vector<Box> >&                TheFineBoxes = m_fbox[idx];
-    Vector< Vector< Vector<FillBoxId> > >& TheFBIDs     = m_fbid[idx];
-    const bool                          extrap       = AmrLevel::desc_lst[m_index].extrap();
-    auto&                               amrLevels    = m_amrlevel.parent->getAmrLevels();
+    Vector< Vector< Vector<FillBoxId> > >& TheFBIDs    = m_fbid[idx];
+    const bool                            extrap       = AmrLevel::desc_lst[m_index].extrap();
+    auto&                                 amrLevels    = m_amrlevel.parent->getAmrLevels();
     //
     // Build all coarse fabs from which we'll interpolate and
     // fill them with coarse data as best we can.
@@ -1275,9 +1275,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     for (int l = 0; l <= m_amrlevel.level; l++)
     {
         StateData&                       TheState  = amrLevels[l]->state[m_index];
-        const Vector<Box>&                CrseBoxes = TheCrseBoxes[l];
+        const Vector<Box>&               CrseBoxes = TheCrseBoxes[l];
         auto&                            CrseFabs  = cfab[l];
-        const Vector< Vector<FillBoxId> >& FBIDs     = TheFBIDs[l];
+        const Vector< Vector<FillBoxId> >& FBIDs   = TheFBIDs[l];
         const int                        NC        = CrseBoxes.size();
 
         CrseFabs.resize(NC);
@@ -1389,11 +1389,11 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         AmrLevel&           crseAmrLevel  = *amrLevels[l];
         AmrLevel&           fineAmrLevel  = *amrLevels[l+1];
         const IntVect&      fine_ratio    = crseAmrLevel.fine_ratio;
-        const Vector<Box>&   FineBoxes     = TheFineBoxes[l];
-        StateData&          fState        = fineAmrLevel.state[m_index];
-        const Box&          fDomain       = fState.getDomain();
+        const Vector<Box>&  FineBoxes     = TheFineBoxes[l];
+        StateData&          cState        = crseAmrLevel.state[m_index];
+        const Box&          cDomain       = cState.getDomain();
         auto&               FinerCrseFabs = cfab[l+1];
-        const Vector<BCRec>& theBCs        = AmrLevel::desc_lst[m_index].getBCs();
+        const Vector<BCRec>& theBCs       = AmrLevel::desc_lst[m_index].getBCs();
         const int           NF            = FineBoxes.size();
 
         for (int ifine = 0; ifine < NF; ++ifine)
@@ -1410,13 +1410,13 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Get boundary conditions for the fine patch.
             //
-            amrex::setBC(finefab.box(),
-                          fDomain,
-                          m_scomp,
-                          0,
-                          m_ncomp,
-                          theBCs,
-                          bcr);
+            amrex::setBC(crsefab.box(),
+			 cDomain,
+			 m_scomp,
+			 0,
+			 m_ncomp,
+			 theBCs,
+			 bcr);
             //
             // Interpolate up to fine patch.
             //
@@ -1532,6 +1532,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     const DistributionMapping& mf_DM = mf.DistributionMap();
     AmrLevel&               clev    = parent->getLevel(level-1);
     const Geometry&         cgeom   = clev.geom;
+    const Box&              cdomain = amrex::convert(clev.geom.Domain(),mf.ixType());
 
     Box domain_g = pdomain;
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
@@ -1599,7 +1600,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 	    
             Vector<BCRec> bcr(ncomp);
 	    
-            amrex::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
+	    amrex::setBC(crseMF[mfi].box(),cdomain,SComp,0,NComp,desc.getBCs(),bcr);
 
 	    mapper->interp(crseMF[mfi],
 			   0,
