@@ -3,9 +3,8 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_TypeTraits.H>
-#include <AMReX_Gpu.H>
+#include <AMReX_GpuLaunch.H>
 #include <AMReX_GpuAllocators.H>
-#include <AMReX_GpuContainers.H>
 #include <AMReX_GpuDevice.H>
 
 #include <type_traits>
