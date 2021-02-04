@@ -778,4 +778,118 @@ MLABecLaplacian::update ()
     m_needs_update = false;
 }
 
+bool
+MLABecLaplacian::supportNSolve () const
+{
+    bool support = false;
+    if (m_overset_mask[0][0]) {
+        if (m_geom[0].back().Domain().coarsenable(MLLinOp::mg_coarsen_ratio,
+                                                  MLLinOp::mg_domain_min_width)
+            && m_grids[0].back().coarsenable(MLLinOp::mg_coarsen_ratio, MLLinOp::mg_box_min_width))
+        {
+            support = true;
+        }
+    }
+    return support;
+}
+
+std::unique_ptr<MLLinOp>
+MLABecLaplacian::makeNLinOp (int /*grid_size*/) const
+{
+    if (m_overset_mask[0][0] == nullptr) return nullptr;
+
+    const Geometry& geom = m_geom[0].back();
+    const BoxArray& ba = m_grids[0].back();
+    const DistributionMapping& dm = m_dmap[0].back();
+
+    std::unique_ptr<MLLinOp> r{new MLABecLaplacian({geom}, {ba}, {dm}, m_lpinfo_arg)};
+
+    auto nop = dynamic_cast<MLABecLaplacian*>(r.get());
+    if (!nop) {
+        return nullptr;
+    }
+
+    nop->m_parent = this;
+
+    nop->setMaxOrder(maxorder);
+    nop->setVerbose(verbose);
+
+    nop->setDomainBC(m_lobc, m_hibc);
+
+    if (needsCoarseDataForBC())
+    {
+        const Real* dx0 = m_geom[0][0].CellSize();
+        const Real fac = Real(0.5)*m_coarse_data_crse_ratio;
+        RealVect cbloc {AMREX_D_DECL(dx0[0]*fac, dx0[1]*fac, dx0[2]*fac)};
+        nop->setCoarseFineBCLocation(cbloc);
+    }
+
+    nop->setScalars(m_a_scalar, m_b_scalar);
+
+    MultiFab const& alpha_bottom = m_a_coeffs[0].back();
+    iMultiFab const& osm_bottom = *m_overset_mask[0].back();
+    const int ncomp = alpha_bottom.nComp();
+    MultiFab alpha(ba, dm, ncomp, 0);
+
+    Real a_max = alpha_bottom.norminf(0, 0, true, true);
+    AMREX_D_TERM(Real bx_max = m_b_coeffs[0].back()[0].norminf(0,0,true,true);,
+                 Real by_max = m_b_coeffs[0].back()[1].norminf(0,0,true,true);,
+                 Real bz_max = m_b_coeffs[0].back()[1].norminf(0,0,true,true));
+    const Real* dxinv = geom.InvCellSize();
+    Real huge_alpha = Real(1.e30) *
+        amrex::max(a_max*std::abs(m_a_scalar),
+                   AMREX_D_DECL(std::abs(m_b_scalar)*bx_max*dxinv[0]*dxinv[0],
+                                std::abs(m_b_scalar)*by_max*dxinv[1]*dxinv[1],
+                                std::abs(m_b_scalar)*bz_max*dxinv[2]*dxinv[2]));
+    ParallelAllReduce::Max(huge_alpha, ParallelContext::CommunicatorSub());
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(alpha,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        Box const& bx = mfi.tilebox();
+        Array4<Real> const& a = alpha.array(mfi);
+        Array4<Real const> const& abot = alpha_bottom.const_array(mfi);
+        Array4<int const> const& m = osm_bottom.const_array(mfi);
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE(bx, ncomp, i, j, k, n,
+        {
+            if (m(i,j,k)) {
+                a(i,j,k,n) = abot(i,j,k,n);
+            } else {
+                a(i,j,k,n) = huge_alpha;
+            }
+        });
+    }
+
+    nop->setACoeffs(0, alpha);
+    nop->setBCoeffs(0, GetArrOfConstPtrs(m_b_coeffs[0].back()));
+
+    return r;
+}
+
+void
+MLABecLaplacian::copyNSolveSolution (MultiFab& dst, MultiFab const& src) const
+{
+    if (m_overset_mask[0].back() == nullptr) return;
+
+    const int ncomp = dst.nComp();
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        Box const& bx = mfi.tilebox();
+        Array4<Real> const& dfab = dst.array(mfi);
+        Array4<Real const> const& sfab = src.const_array(mfi);
+        Array4<int const> const& m = m_overset_mask[0].back()->const_array(mfi);
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE(bx, ncomp, i, j, k, n,
+        {
+            if (m(i,j,k)) {
+                dfab(i,j,k,n) = sfab(i,j,k,n);
+            } else {
+                dfab(i,j,k,n) = Real(0.0);
+            }
+        });
+    }
+}
+
 }

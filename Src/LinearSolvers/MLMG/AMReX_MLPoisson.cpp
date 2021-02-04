@@ -560,6 +560,16 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
 #endif
 }
 
+bool
+MLPoisson::supportNSolve () const
+{
+    bool support = true;
+    if (m_domain_covered[0]) support = false;
+    if (doAgglomeration()) support = false;
+    if (AMREX_SPACEDIM != 3) support = false;
+    return support;
+}
+
 std::unique_ptr<MLLinOp>
 MLPoisson::makeNLinOp (int grid_size) const
 {
@@ -624,6 +634,12 @@ MLPoisson::makeNLinOp (int grid_size) const
     nop->setACoeffs(0, alpha);
 
     return r;
+}
+
+void
+MLPoisson::copyNSolveSolution (MultiFab& dst, MultiFab const& src) const
+{
+    dst.ParallelCopy(src);
 }
 
 }
