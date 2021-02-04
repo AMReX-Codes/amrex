@@ -16,14 +16,15 @@ MyTest::MyTest ()
 void
 MyTest::solve ()
 {
+    LPInfo info;
+    info.setAgglomeration(agglomeration);
+    info.setConsolidation(consolidation);
+    info.setSemicoarsening(semicoarsening);
+    info.setMaxCoarseningLevel(max_coarsening_level);
+    info.setMaxSemicoarseningLevel(max_semicoarsening_level);
+
     if (composite_solve)
     {
-        LPInfo info;
-        info.setAgglomeration(agglomeration);
-        info.setConsolidation(consolidation);
-        info.setSemicoarsening(semicoarsening);
-        info.setMaxSemicoarseningLevel(max_semicoarsening_level);
-
         MLNodeLaplacian linop(geom, grids, dmap, info);
 
         linop.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
@@ -60,8 +61,9 @@ MyTest::solve ()
     }
     else // solve level by level
     {
-        for (int ilev = 0; ilev <= max_level; ++ilev) {
-            MLNodeLaplacian linop({geom[ilev]}, {grids[ilev]}, {dmap[ilev]});
+        for (int ilev = 0; ilev <= max_level; ++ilev)
+        {
+            MLNodeLaplacian linop({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info);
 
             linop.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
                                             LinOpBCType::Dirichlet,
@@ -147,7 +149,9 @@ MyTest::readParameters ()
     pp.query("gpu_regtest", gpu_regtest);
 
     pp.query("agglomeration", agglomeration);
+    pp.query("consolidation", consolidation);
     pp.query("semicoarsening", semicoarsening);
+    pp.query("max_coarsening_level", max_coarsening_level);
     pp.query("max_semicoarsening_level", max_semicoarsening_level);
 }
 

@@ -259,6 +259,21 @@ public:
 	BL_ASSERT(sameType(b));
 	return b.smallend.allGT(smallend) && b.bigend.allLT(bigend);
     }
+
+    //! Returns true if argument is strictly contained within Box.
+    AMREX_GPU_HOST_DEVICE
+#if (AMREX_SPACEDIM == 1)
+    bool strictly_contains (int i, int, int) const noexcept {
+#elif (AMREX_SPACEDIM == 2)
+    bool strictly_contains (int i, int j, int) const noexcept {
+#else
+    bool strictly_contains (int i, int j, int k) const noexcept {
+#endif
+        return AMREX_D_TERM(i > smallend[0] && i < bigend[0],
+                         && j > smallend[1] && j < bigend[1],
+                         && k > smallend[2] && k < bigend[2]);
+    }
+
     /**
     * \brief Returns true if Boxes have non-null intersections.
     * It is an error if the Boxes have different types.

@@ -567,6 +567,12 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         mg_coarsen_ratio_vec.push_back(fine_domain.length()/crse_domain.length());
     }
 
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        if (AMRRefRatio(amrlev) == 4 && mg_coarsen_ratio_vec.size() == 0) {
+            mg_coarsen_ratio_vec.push_back(IntVect(2));
+        }
+    }
+
     if (agged)
     {
         makeAgglomeratedDMap(m_grids[0], m_dmap[0]);

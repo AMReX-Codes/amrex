@@ -41,8 +41,8 @@ private:
     bool agglomeration = false;
     bool consolidation = false;
     bool semicoarsening = false;
+    int max_coarsening_level = 30;
     int max_semicoarsening_level = 0;
-
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;
