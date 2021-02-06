@@ -75,7 +75,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                             S.DistributionMap(), ncomp, 0);
     }
 
-    Parm const* lparm = parm.get();
+    Parm const* lparm = d_parm;
 
     FArrayBox qtmp, slopetmp;
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
