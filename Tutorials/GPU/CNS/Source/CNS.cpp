@@ -81,8 +81,8 @@ CNS::initData ()
     const auto geomdata = geom.data();
     MultiFab& S_new = get_new_data(State_Type);
 
-    Parm const* lparm = parm.get();
-    ProbParm const* lprobparm = prob_parm.get();
+    Parm const* lparm = d_parm;
+    ProbParm const* lprobparm = d_prob_parm;
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -354,9 +354,10 @@ CNS::read_params ()
 
     pp.query("gravity", gravity);
 
-    pp.query("eos_gamma", parm->eos_gamma);
+    pp.query("eos_gamma", h_parm->eos_gamma);
 
-    parm->Initialize();
+    h_parm->Initialize();
+    amrex::Gpu::htod_memcpy(d_parm, h_parm, sizeof(Parm));
 }
 
 void
@@ -395,7 +396,7 @@ CNS::estTimeStep ()
 
     const auto dx = geom.CellSizeArray();
     const MultiFab& S = get_new_data(State_Type);
-    Parm const* lparm = parm.get();
+    Parm const* lparm = d_parm;
 
     Real estdt = amrex::ReduceMin(S, 0,
     [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> Real
@@ -420,7 +421,7 @@ CNS::computeTemp (MultiFab& State, int ng)
 {
     BL_PROFILE("CNS::computeTemp()");
 
-    Parm const* lparm = parm.get();
+    Parm const* lparm = d_parm;
 
     // This will reset Eint and compute Temperature 
 #ifdef AMREX_USE_OMP

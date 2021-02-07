@@ -5,8 +5,10 @@
 using namespace amrex;
 
 int CNS::num_state_data_types = NUM_STATE_DATA_TYPE;
-std::unique_ptr<Parm> CNS::parm;
-std::unique_ptr<ProbParm> CNS::prob_parm;
+Parm* CNS::h_parm = nullptr;
+Parm* CNS::d_parm = nullptr;
+ProbParm* CNS::h_prob_parm = nullptr;
+ProbParm* CNS::d_prob_parm = nullptr;
 
 static Box the_same_box (const Box& b) { return b; }
 //static Box grow_box_by_one (const Box& b) { return amrex::grow(b,1); }
@@ -100,8 +102,10 @@ set_z_vel_bc(BCRec& bc, const BCRec& phys_bc)
 void
 CNS::variableSetUp ()
 {
-    parm.reset(new Parm{}); // This is deleted in CNS::variableCleanUp().
-    prob_parm.reset(new ProbParm{});
+    h_parm = new Parm{}; // This is deleted in CNS::variableCleanUp().
+    h_prob_parm = new ProbParm{};
+    d_parm = (Parm*)The_Arena()->alloc(sizeof(Parm));
+    d_prob_parm = (ProbParm*)The_Arena()->alloc(sizeof(ProbParm));
 
     read_params();
 
@@ -161,8 +165,10 @@ CNS::variableSetUp ()
 void
 CNS::variableCleanUp ()
 {
-    parm.reset();
-    prob_parm.reset();
+    delete h_parm;
+    delete h_prob_parm;
+    The_Arena()->free(d_parm);
+    The_Arena()->free(d_prob_parm);
     desc_lst.clear();
     derive_lst.clear();
 }
