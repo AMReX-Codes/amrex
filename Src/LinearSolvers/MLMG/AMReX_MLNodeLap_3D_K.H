@@ -2287,13 +2287,13 @@ void mlndlap_rhcc_fine_contrib (int i, int j, int k, Box const& ccbx,
         for (int koff = klo; koff <= khi; ++koff) {
         for (int joff = jlo; joff <= jhi; ++joff) {
         for (int ioff = ilo; ioff <= ihi; ++ioff) {
-            Real scale = (Real(2.0)-amrex::Math::abs(static_cast<Real>(ioff)+Real(0.5)))
-                *        (Real(2.0)-amrex::Math::abs(static_cast<Real>(joff)+Real(0.5)))
-                *        (Real(2.0)-amrex::Math::abs(static_cast<Real>(koff)+Real(0.5)));
+            Real scale = (static_cast<Real>(rr)-amrex::Math::abs(static_cast<Real>(ioff-ii)+Real(0.5)))
+                *        (static_cast<Real>(rr)-amrex::Math::abs(static_cast<Real>(joff-jj)+Real(0.5)))
+                *        (static_cast<Real>(rr)-amrex::Math::abs(static_cast<Real>(koff-kk)+Real(0.5)));
             tmp += cc(ioff,joff,koff) * scale;
         }}}
 
-        rhs(i,j,k) += tmp * (Real(1.0)/Real(8*rr*rr*rr));
+        rhs(i,j,k) += tmp * (Real(1.0)/Real(rr*rr*rr*rr*rr*rr));
     }
 }
 
