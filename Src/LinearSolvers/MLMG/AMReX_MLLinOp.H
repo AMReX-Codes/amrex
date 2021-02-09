@@ -41,6 +41,7 @@ struct LPInfo
     bool has_metric_term = true;
     int max_coarsening_level = 30;
     int max_semicoarsening_level = 0;
+    int hidden_direction = -1;
 
     LPInfo& setAgglomeration (bool x) noexcept { do_agglomeration = x; return *this; }
     LPInfo& setConsolidation (bool x) noexcept { do_consolidation = x; return *this; }
@@ -50,6 +51,11 @@ struct LPInfo
     LPInfo& setMetricTerm (bool x) noexcept { has_metric_term = x; return *this; }
     LPInfo& setMaxCoarseningLevel (int n) noexcept { max_coarsening_level = n; return *this; }
     LPInfo& setMaxSemicoarseningLevel (int n) noexcept { max_semicoarsening_level = n; return *this; }
+    LPInfo& setHiddenDirection (int n) noexcept { hidden_direction = n; return *this; }
+
+    bool hasHiddenDimension () const noexcept {
+        return hidden_direction >=0 && hidden_direction < AMREX_SPACEDIM;
+    }
 
     static constexpr int getDefaultAgglomerationGridSize () {
 #ifdef AMREX_USE_GPU
@@ -386,10 +392,48 @@ protected:
 
     bool isCellCentered () const noexcept { return m_ixtype == 0; }
 
-    void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
+    void make (Vector<Vector<MultiFab> >& mf, int nc, IntVect const& ng) const;
 
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int /*amrlev*/, int /*mglev*/) const {
         return std::unique_ptr<FabFactory<FArrayBox> >(new FArrayBoxFactory());
+    }
+
+    bool hasHiddenDimension () const noexcept { return info.hasHiddenDimension(); }
+    int hiddenDirection () const noexcept { return info.hidden_direction; }
+    Box compactify (Box const& b) const noexcept;
+
+    template <typename T>
+    Array4<T> compactify (Array4<T> const& a) const noexcept
+    {
+        if (info.hidden_direction == 0) {
+            return Array4<T>(a.dataPtr(), {a.begin.y,a.begin.z,0}, {a.end.y,a.end.z,1}, a.nComp());
+        } else if (info.hidden_direction == 1) {
+            return Array4<T>(a.dataPtr(), {a.begin.x,a.begin.z,0}, {a.end.x,a.end.z,1}, a.nComp());
+        } else if (info.hidden_direction == 2) {
+            return Array4<T>(a.dataPtr(), {a.begin.x,a.begin.y,0}, {a.end.x,a.end.y,1}, a.nComp());
+        } else {
+            return a;
+        }
+    }
+
+    template <typename T>
+    T get_d0 (T const& dx, T const& dy, T const&) const noexcept
+    {
+        if (info.hidden_direction == 0) {
+            return dy;
+        } else {
+            return dx;
+        }
+    }
+
+    template <typename T>
+    T get_d1 (T const&, T const& dy, T const& dz) const noexcept
+    {
+        if (info.hidden_direction == 0 || info.hidden_direction == 1) {
+            return dz;
+        } else {
+            return dy;
+        }
     }
 
 private:

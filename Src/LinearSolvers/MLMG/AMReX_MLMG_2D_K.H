@@ -4,6 +4,10 @@
 
 namespace amrex {
 
+#if (AMREX_SPACEDIM != 2)
+namespace TwoD {
+#endif
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlmg_lin_cc_interp_r2 (Box const& bx, Array4<Real> const& ff,
                             Array4<Real const> const& cc, int nc) noexcept
@@ -132,6 +136,10 @@ void mlmg_lin_nd_interp_r4 (int i, int j, int, int n, Array4<Real> const& fine,
 #undef I_HI
 #undef J_HI
 }
+
+#if (AMREX_SPACEDIM != 2)
+}
+#endif
 
 }
 

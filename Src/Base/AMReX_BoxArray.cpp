@@ -593,11 +593,17 @@ BoxArray::refine (const IntVect& iv)
 bool
 BoxArray::coarsenable(int refinement_ratio, int min_width) const
 {
-    return coarsenable(IntVect{refinement_ratio}, min_width);
+    return coarsenable(IntVect{refinement_ratio}, IntVect(min_width));
 }
 
 bool
 BoxArray::coarsenable(const IntVect& refinement_ratio, int min_width) const
+{
+    return coarsenable(refinement_ratio, IntVect(min_width));
+}
+
+bool
+BoxArray::coarsenable(const IntVect& refinement_ratio, const IntVect& min_width) const
 {
     const Long sz = size();
     if(size() == 0) return false;
@@ -1178,7 +1184,7 @@ BoxArray::intersections (const Box&                         bx,
                          bool                               first_only,
                          const IntVect&                     ng) const
 {
-  // This is called too many times BL_PROFILE("BoxArray::intersections()");
+    // This is called too many times BL_PROFILE("BoxArray::intersections()");
 
     BARef::HashType& BoxHashMap = getHashMap();
 

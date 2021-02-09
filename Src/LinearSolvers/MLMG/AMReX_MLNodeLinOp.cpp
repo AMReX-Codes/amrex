@@ -30,6 +30,9 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
 #endif
     MLLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory, eb_limit_coarsening);
 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!hasHiddenDimension(),
+                                     "Nodal solver cannot have any hidden dimensions");
+
     m_owner_mask.resize(m_num_amr_levels);
     m_dirichlet_mask.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {

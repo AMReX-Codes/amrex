@@ -11,7 +11,6 @@ MLALaplacian::MLALaplacian (const Vector<Geometry>& a_geom,
                             const LPInfo& a_info,
                             const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM == 3, "MLALaplacian: only 3d is supported");
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
@@ -90,6 +89,7 @@ MLALaplacian::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a)
         }
         else
         {
+            AMREX_ASSERT(amrlev == 0 || !hasHiddenDimension());
             IntVect ratio = (amrlev > 0) ? IntVect(mg_coarsen_ratio) : mg_coarsen_ratio_vec[mglev-1];
             amrex::average_down(a[mglev-1], a[mglev], 0, 1, ratio);
         }
@@ -103,6 +103,8 @@ MLALaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
     auto& crse_a_coeffs = m_a_coeffs[flev-1].front();
 
     if (m_a_scalar != 0.0) {
+        // We coarsen from the back of flev to the front of flev-1.
+        // So we use mg_coarsen_ratio.
         amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, 1, mg_coarsen_ratio);
     }
 }
@@ -154,6 +156,11 @@ MLALaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) 
     const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
 #endif
 
+#if (AMREX_SPACEDIM == 3)
+    GpuArray<Real,2> dhinv {get_d0(dxinv[0], dxinv[1], dxinv[2]),
+                            get_d1(dxinv[0], dxinv[1], dxinv[2])};
+#endif
+
     const Real ascalar = m_a_scalar;
     const Real bscalar = m_b_scalar;
 
@@ -180,10 +187,21 @@ MLALaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) 
             });
         }
 #else
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-        {
-            mlalap_adotx(tbx, yfab, xfab, afab, dxinv, ascalar, bscalar);
-        });
+        if (hasHiddenDimension()) {
+            Box const& bx2d = compactify(bx);
+            const auto& xfab2d = compactify(xfab);
+            const auto& yfab2d = compactify(yfab);
+            const auto& afab2d = compactify(afab);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx2d, tbx2d,
+            {
+                TwoD::mlalap_adotx(tbx2d, yfab2d, xfab2d, afab2d, dhinv, ascalar, bscalar);
+            });
+        } else {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                mlalap_adotx(tbx, yfab, xfab, afab, dxinv, ascalar, bscalar);
+            });
+        }
 #endif
     }
 }
@@ -199,6 +217,11 @@ MLALaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 #if (AMREX_SPACEDIM < 3)
     const Real dx = m_geom[amrlev][mglev].CellSize(0);
     const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
+#endif
+
+#if (AMREX_SPACEDIM == 3)
+    GpuArray<Real,2> dhinv {get_d0(dxinv[0], dxinv[1], dxinv[2]),
+                            get_d1(dxinv[0], dxinv[1], dxinv[2])};
 #endif
 
     const Real ascalar = m_a_scalar;
@@ -226,10 +249,20 @@ MLALaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
             });
         }
 #else
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-        {
-            mlalap_normalize(tbx, fab, afab, dxinv, ascalar, bscalar);
-        });
+        if (hasHiddenDimension()) {
+            Box const& bx2d = compactify(bx);
+            const auto&  fab2d = compactify(fab);
+            const auto& afab2d = compactify(afab);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx2d, tbx2d,
+            {
+                TwoD::mlalap_normalize(tbx2d, fab2d, afab2d, dhinv, ascalar, bscalar);
+            });
+        } else {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                mlalap_normalize(tbx, fab, afab, dxinv, ascalar, bscalar);
+            });
+        }
 #endif
     }
 }
@@ -271,10 +304,17 @@ MLALaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs
     AMREX_D_TERM(const Real dhx = m_b_scalar*dxinv[0]*dxinv[0];,
                  const Real dhy = m_b_scalar*dxinv[1]*dxinv[1];,
                  const Real dhz = m_b_scalar*dxinv[2]*dxinv[2];);
+
+#if (AMREX_SPACEDIM == 3)
+    Real dh0 = get_d0(dhx, dhy, dhz);
+    Real dh1 = get_d1(dhx, dhy, dhz);
+#endif
+
 #if (AMREX_SPACEDIM < 3)
     const Real dx = m_geom[amrlev][mglev].CellSize(0);
     const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
 #endif
+
     const Real alpha = m_a_scalar;
 
     MFItInfo mfi_info;
@@ -365,18 +405,44 @@ MLALaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-        {
-            mlalap_gsrb(thread_box, solnfab, rhsfab, alpha, dhx, dhy, dhz,
-                        afab,
-                        f0fab, m0,
-                        f1fab, m1,
-                        f2fab, m2,
-                        f3fab, m3,
-                        f4fab, m4,
-                        f5fab, m5,
-                        vbx, redblack);
-        });
+        if (hasHiddenDimension()) {
+            Box const& tbx_2d = compactify(tbx);
+            Box const& vbx_2d = compactify(vbx);
+            const auto& solnfab_2d = compactify(solnfab);
+            const auto& rhsfab_2d = compactify(rhsfab);
+            const auto& afab_2d = compactify(afab);
+            const auto& f0fab_2d = compactify(get_d0(f0fab,f1fab,f2fab));
+            const auto& f1fab_2d = compactify(get_d1(f0fab,f1fab,f2fab));
+            const auto& f2fab_2d = compactify(get_d0(f3fab,f4fab,f5fab));
+            const auto& f3fab_2d = compactify(get_d1(f3fab,f4fab,f5fab));
+            const auto& m0_2d = compactify(get_d0(m0,m1,m2));
+            const auto& m1_2d = compactify(get_d1(m0,m1,m2));
+            const auto& m2_2d = compactify(get_d0(m3,m4,m5));
+            const auto& m3_2d = compactify(get_d1(m3,m4,m5));
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx_2d, thread_box,
+            {
+                TwoD::mlalap_gsrb(thread_box, solnfab_2d, rhsfab_2d, alpha, dh0, dh1,
+                                  afab_2d,
+                                  f0fab_2d, m0_2d,
+                                  f1fab_2d, m1_2d,
+                                  f2fab_2d, m2_2d,
+                                  f3fab_2d, m3_2d,
+                                  vbx_2d, redblack);
+            });
+        } else {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            {
+                mlalap_gsrb(thread_box, solnfab, rhsfab, alpha, dhx, dhy, dhz,
+                            afab,
+                            f0fab, m0,
+                            f1fab, m1,
+                            f2fab, m2,
+                            f3fab, m3,
+                            f4fab, m4,
+                            f5fab, m5,
+                            vbx, redblack);
+            });
+        }
 #endif
     }
 }
@@ -386,6 +452,10 @@ MLALaplacian::FFlux (int amrlev, const MFIter& mfi,
                      const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                      const FArrayBox& sol, Location, const int face_only) const
 {
+    AMREX_ASSERT(!hasHiddenDimension());
+
+    BL_PROFILE("MLALaplacian::FFlux()");
+
     const int mglev = 0;
     const Box& box = mfi.tilebox();
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
