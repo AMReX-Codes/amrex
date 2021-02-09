@@ -1,7 +1,7 @@
 # Setup for HIP, using hipcc (HCC and clang will use the same compiler name).
 
 ifneq ($(NO_CONFIG_CHECKING),TRUE)
-  HIP_PATH=$(shell hipconfig --path)
+  HIP_PATH=$(realpath $(shell hipconfig --path))
   ifeq ($(HIP_PATH),)
     $(error hipconfig failed. Is the HIP toolkit available?)
   endif
@@ -105,6 +105,9 @@ ifeq ($(HIP_COMPILER),clang)
 
   # rocThrust - Header only
   # INCLUDE_LOCATIONS += $(ROC_PATH)/rocthrust/include
+
+  # hipcc passes a lot of unused arguments to clang
+  DEPFLAGS += -Wno-unused-command-line-argument
 
 # =============================================================================================
 

@@ -1,5 +1,6 @@
 #ifndef AMREX_HYPREIJIFACE_H
 #define AMREX_HYPREIJIFACE_H
+#include <AMReX_Config.H>
 
 #include <memory>
 

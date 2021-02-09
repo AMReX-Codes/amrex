@@ -186,10 +186,6 @@ ifeq ($(USE_CUDA),TRUE)
     FFLAGS   += -gpu=maxregcount:$(CUDA_MAXREGCOUNT)
   endif
 
-  DEFINES += -DAMREX_USE_CUDA_FORTRAN
-
-  LINK_WITH_FORTRAN_COMPILER = TRUE
-
   ifeq ($(USE_MPI),TRUE)
   ifneq ($(findstring Open MPI, $(shell mpicxx -showme:version 2>&1)),)
     OMPI_FCFLAGS_ORIG = $(shell mpif90 -showme:compile)

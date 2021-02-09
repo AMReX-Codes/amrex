@@ -1,10 +1,12 @@
 #ifndef AMREX_VECTOR_H_
 #define AMREX_VECTOR_H_
+#include <AMReX_Config.H>
 
 #include <algorithm>
 #include <vector>
 #include <memory>
 #include <AMReX_BLassert.H>
+#include <AMReX_Extension.H>
 #include <AMReX_INT.H>
 #ifdef AMREX_SPACEDIM
 #include <AMReX_Array.H>
@@ -252,7 +254,7 @@ namespace amrex
             std::size_t swapPos = 0;
             for (std::size_t i = 0; i < N; ++i) {
                 // move type 2 to the beginning pointed to by swapPos
-                if (data[i] != sentinel and i == hasher(data[i]) % N) {
+                if (data[i] != sentinel && i == hasher(data[i]) % N) {
                     std::swap(data[i], data[swapPos++]);
                 }
             }

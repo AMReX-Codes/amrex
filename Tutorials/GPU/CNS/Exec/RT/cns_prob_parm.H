@@ -7,7 +7,6 @@
 using namespace amrex::literals;
 
 struct ProbParm
-    : amrex::Gpu::Managed
 {
     amrex::Real rho_1 = 0.5;
     amrex::Real rho_2 = 2.0;

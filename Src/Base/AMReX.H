@@ -1,6 +1,7 @@
 
 #ifndef BL_AMREX_H
 #define BL_AMREX_H
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuPrint.H>
@@ -100,7 +101,7 @@ namespace amrex
 
     void Error_host (const char* msg);
 
-#if defined(AMREX_USE_GPU) && !defined(NDEBUG)
+#if defined(AMREX_USE_GPU)
     AMREX_GPU_EXTERNAL AMREX_GPU_DEVICE AMREX_NO_INLINE
     void Error_device (const char * msg);
 #endif
@@ -123,7 +124,7 @@ namespace amrex
 
     void Warning_host (const char * msg);
 
-#if defined(AMREX_USE_GPU) && !defined(NDEBUG)
+#if defined(AMREX_USE_GPU)
     AMREX_GPU_EXTERNAL AMREX_GPU_DEVICE AMREX_NO_INLINE
     void Warning_device (const char * msg);
 #endif
@@ -146,7 +147,7 @@ namespace amrex
 
     void Abort_host (const char * msg);
 
-#if defined(AMREX_USE_GPU) && !defined(NDEBUG)
+#if defined(AMREX_USE_GPU)
     AMREX_GPU_EXTERNAL AMREX_GPU_DEVICE AMREX_NO_INLINE
     void Abort_device (const char * msg);
 #endif
@@ -172,7 +173,7 @@ namespace amrex
 
     void Assert_host (const char* EX, const char* file, int line, const char* msg);
 
-#if defined(AMREX_USE_GPU) && !defined(NDEBUG)
+#if defined(AMREX_USE_GPU)
     AMREX_GPU_EXTERNAL AMREX_GPU_DEVICE AMREX_NO_INLINE
     void Assert_device (const char* EX, const char* file, int line, const char* msg);
 #endif

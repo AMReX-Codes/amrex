@@ -58,7 +58,7 @@ MyTest::solve ()
         amrex::ParallelFor(bx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (domain.strictly_contains(IntVect(AMREX_D_DECL(i,j,k))) and
+            if (domain.strictly_contains(IntVect(AMREX_D_DECL(i,j,k))) &&
                 ma(i,j,k) == 1)
             {  // Let's set phi = 0 for unknown nodes
                 pa(i,j,k) = 0.0;

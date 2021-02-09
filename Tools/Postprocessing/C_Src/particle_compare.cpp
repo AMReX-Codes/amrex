@@ -57,7 +57,7 @@ struct ParticleHeader {
         hdr_file_name = par_file_name + "/Header";
 
         std::ifstream file(hdr_file_name.c_str());
-        if ( not file.is_open() ) {
+        if ( ! file.is_open() ) {
 #ifdef BL_USE_MPI
             int myproc;
             MPI_Comm_rank(MPI_COMM_WORLD, &myproc);
@@ -74,7 +74,7 @@ struct ParticleHeader {
         }
 
         file >> *this;
-        if (not file.is_open() ) {
+        if (! file.is_open() ) {
 #ifdef BL_USE_MPI
             int myproc;
             MPI_Comm_rank(MPI_COMM_WORLD, &myproc);
@@ -178,7 +178,7 @@ bool operator==(const ParticleHeader& lhs, const ParticleHeader& rhs) {
 }
 
 bool operator!=(const ParticleHeader& lhs, const ParticleHeader& rhs) {
-    return not (lhs == rhs);
+    return ! (lhs == rhs);
 }
 
 std::ostream& operator<< (std::ostream& stream, const ParticleHeader& header) {
@@ -442,7 +442,7 @@ int main_main()
     int farg=1;
     while (farg <= narg) {
         const std::string fname = amrex::get_command_argument(farg);
-        if (fname == "-r" or fname == "--rel_tol") {
+        if (fname == "-r" || fname == "--rel_tol") {
             rtol = std::stod(amrex::get_command_argument(++farg));
         } else {
             break;
@@ -460,7 +460,7 @@ int main_main()
         pt = amrex::get_command_argument(farg++);
     }
 
-    if (fn1.empty() or fn2.empty() or pt.empty()) {
+    if (fn1.empty() || fn2.empty() || pt.empty()) {
         amrex::Print()
             << "\n"
             << " Compare the particles in two plotfiles, grid by grid,\n"

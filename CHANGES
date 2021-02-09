@@ -1,3 +1,152 @@
+# 21.02
+
+  -- Abort when MLMG is detected as failing regardless of verbosity
+     setting. (#1762)
+
+  -- Update DPC++ version of Anyof (#1757)
+
+  -- Use ParticleReal for particle interpolation (#1763)
+
+  -- Remove obsolete functions from AMReX particle classes (#1754, #1755)
+
+  -- Make ParticleContainer::Geom always refer to the particle one. (#1470)
+
+  -- Gpu Docs Update (#1758)
+
+  -- Add IntVect versions of numParticlesOutOfRange. (#1751)
+
+  -- Improve the interpolation from cell centroids to face centroids:
+     (#1750)
+
+  -- In ParticleToMesh and MeshToParticle, use nGrowVect() to accommodate
+     different a different number of grow cells in each dimension. (#1748)
+
+  -- HIP: New Warp Size Macro (#1742) Use new the HIP macro for the warp
+     size on various AMD devices.
+
+  -- Add allocator template parameter to ParticleContainer (#1416)
+
+  -- Add ability to calculate slopes on face centroids (#1707) And apply the
+     explicit stencil when computing the laplacian.
+
+  -- HIP indirect function and kernel fusing (#1739) Add a GNU Make flag,
+     HIP_INDIRECT_FUNCTION=[TRUE|FALSE], and modify the Gpu kernel fusing
+     test.
+
+  -- When using CMake 3.15+ allow for MSVC runtime library changes (#1736)
+
+  -- RoundRobin: option to not sort processes (#1721)
+
+  -- EB: edge centroid (#1730) Add edge centroid to the database and make it
+     available via EBFArrayBoxFactory.
+
+  -- Fix RegridOnly to regrid even with single level grids (#1722)
+
+  -- Define: _OPENMP -> AMREX_USE_OMP (#1560) Replace the define `_OPENMP`
+     with `AMREX_USE_OMP` for all parallel "backend" implementations and
+     control of MFIter loops.
+
+  -- Update Make.nrel to accomodate MPT MPI with CUDA enabled (#1726)
+
+  -- Cell-centered Hypre and Petsc setup on GPU (#1709)
+
+  -- ParmParse::hasUnusedInputs & getUnusedInputs (#1716) Add functions to
+     find if there are unused `ParmParse` parameters starting with
+     `prefix.`.  If `prefix` is empty, all unused `ParmParse` parameters are
+     included.
+
+  -- CMake: offer option to exclude Src/Amr from build (#1714)
+
+  -- Make bisect more robust (#1708)
+
+  -- Support single precision build with configure (#1706) Add new arguments
+     `--single-precision` and `--single-precision-particles` to `configure`.
+
+  -- Support when CMake 3.18 policy 105 is set to new (#1696)
+
+  -- Optimized function for filling BaseFab of GpuArray (#1692)
+
+  -- BaseFab::minmax (#1691)  Add BaseFab::minmax function and use it in
+     VisMF.
+
+  -- New feature in the fextract tool to directly export in the csv format
+     (#1634)
+
+# 21.01
+
+  -- Optimization of MLCellLinOp::applyBC (#1690)
+
+  -- Optimization of iMultiFab sum (#1684)
+
+  -- Sanitize the input of mkconfig (#1685)
+
+  -- New versions of Reduce::Min, Max and MinMax taking callable (#1679)
+
+  -- Only issue prefetch if arena uses managed memory (#1678)
+
+  -- GNU Make: Fix the library flags (#1641)
+
+  -- PolymorphicArray4, a thin layer around Array4 allowing us to access
+     both AoS and SoA data with operator() (#1643)
+
+  -- CMake: dowstream projects must enable Fortran if AMReX_FORTRAN=ON
+     (#1669)
+
+  -- Optimization of FaceLinear interpolater (#1663)
+
+  -- Allow alternate form of "check_pair" function (#1667)
+
+  -- ParallelFor for Reduction (#1658)
+
+  -- Add features to fextract (#1657)
+
+  -- Fix parallel add bug when both USE_GPU and USE_OMP are defined (#1654)
+
+  -- Write a plotfile to ASCII (#1638)
+
+  -- Fix NodalProjector::getGradPhi for multilevel case (#1642)
+
+  -- Remove GPU pragma support (#1650) (#1649)
+
+  -- Remove custom MFIter reduction code (#1648)
+
+  -- Remove support for old versions of DPCPP (#1644)
+
+  -- Fused FillBoundary (#1570)
+
+  -- Divergence Free FillPatch (#1483)
+
+  -- Optimization of constant coefficient MacProjector (#1636)
+
+  -- Optimization of nodal solver with constant coefficient (#1629)
+
+  -- Expose the index of the neighboring particle to users of the
+     iterator. (#1628)
+
+  -- Implement overset mask for MLPoisson too (#1604)
+
+  -- Fuse nodal jacobi smoother for GPU (#1625)
+
+  -- Support for SoA data for neighbor particles. (#1590)
+
+  -- Fix a bug that causes errors when writing HDF5 plotfile and particle
+     (#1621)
+
+  -- Fortran Inteface: Porting more MultiFab functions (#1609)
+
+  -- Remove alternative operators from AMReX (#1599)
+
+  -- EB from STL (#1592)
+
+  -- AMReX_Config.H generated at built time is included in all
+     headers. (#1566)
+
+  -- MacProjector: Update setDomainBC API (#1589)
+
+  -- Reimplement NumParticlesAtLevel (#1581)
+
+  -- Add msvc cuda support (#1573)
+
 # 20.12
 
   -- EB2::PolyIF (#1567) The existing PolynomialIF contains a dynamic size

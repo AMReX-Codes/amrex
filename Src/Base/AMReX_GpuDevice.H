@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_DEVICE_H_
 #define AMREX_GPU_DEVICE_H_
+#include <AMReX_Config.H>
 
 #include <cstdlib>
 #include <memory>
@@ -103,7 +104,6 @@ public:
                                             dim3& numBlocks, dim3& numThreads) noexcept;
     static void c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads) noexcept;
     static void grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads) noexcept;
-    static void box_threads_and_blocks (const Box& bx, dim3& numBlocks, dim3& numThreads) noexcept;
 
     static std::size_t totalGlobalMem () noexcept { return device_prop.totalGlobalMem; }
     static std::size_t sharedMemPerBlock () noexcept { return device_prop.sharedMemPerBlock; }
@@ -123,7 +123,15 @@ public:
     static std::size_t freeMemAvailable ();
 
 #ifdef AMREX_USE_GPU
+
+#   if defined(AMREX_USE_HIP) && (HIP_VERSION_MAJOR >= 4)
+    // definition: https://github.com/llvm/llvm-project/blob/62ec4ac90738a5f2d209ed28c822223e58aaaeb7/clang/lib/Basic/Targets/AMDGPU.cpp#L400
+    // overview wavefront size: https://github.com/llvm/llvm-project/blob/efc063b621ea0c4d1e452bcade62f7fc7e1cc937/clang/test/Driver/amdgpu-macros.cl#L70-L115
+    // gfx10XX has 32 threads per wavefront else 64
+    static constexpr int warp_size = __AMDGCN_WAVEFRONT_SIZE;
+#   else
     static constexpr int warp_size = AMREX_HIP_OR_CUDA_OR_DPCPP(64,32,16);
+#   endif
 
     static unsigned int maxBlocksPerLaunch () noexcept { return max_blocks_per_launch; }
 
@@ -271,6 +279,7 @@ htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz) noexcept
 {
     if (sz == 0) return;
 #ifdef AMREX_USE_DPCPP
+    if (Device::onNullStream()) Device::nonNullStreamSynchronize();
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d, p_h, sz); });
 #else
@@ -285,6 +294,7 @@ dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) noexcept
 {
     if (sz == 0) return;
 #ifdef AMREX_USE_DPCPP
+    if (Device::onNullStream()) Device::nonNullStreamSynchronize();
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_h, p_d, sz); });
 #else
@@ -299,6 +309,7 @@ dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noe
 {
     if (sz == 0) return;
 #ifdef AMREX_USE_DPCPP
+    if (Device::onNullStream()) Device::nonNullStreamSynchronize();
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d_dst, p_d_src, sz); });
 #else

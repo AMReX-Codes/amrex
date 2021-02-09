@@ -67,7 +67,7 @@ namespace amrex
 
             const int use_limiter = 0;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             {

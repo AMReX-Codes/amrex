@@ -1,5 +1,6 @@
 #ifndef AMREX_EB_DATA_COLLECTION_H_
 #define AMREX_EB_DATA_COLLECTION_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Geometry.H>
 #include <AMReX_EBCellFlag.H>
@@ -36,6 +37,7 @@ public:
     const MultiCutFab& getBndryNormal () const;
     Array<const MultiCutFab*, AMREX_SPACEDIM> getAreaFrac () const;
     Array<const MultiCutFab*, AMREX_SPACEDIM> getFaceCent () const;
+    Array<const MultiCutFab*, AMREX_SPACEDIM> getEdgeCent () const;
 
 private:
 
@@ -58,6 +60,7 @@ private:
     MultiCutFab* m_bndrynorm = nullptr;
     Array<MultiCutFab*,AMREX_SPACEDIM> m_areafrac {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
     Array<MultiCutFab*,AMREX_SPACEDIM> m_facecent {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
+    Array<MultiCutFab*,AMREX_SPACEDIM> m_edgecent {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
 };
 
 }

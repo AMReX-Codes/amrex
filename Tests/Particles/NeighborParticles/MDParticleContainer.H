@@ -8,13 +8,13 @@ struct PIdx
 {
     enum {
         vx = 0,
-        vy, vz, ax, ay, az, 
+        vy, vz, ax, ay, az,
         ncomps
     };
 };
 
 class MDParticleContainer
-    : public amrex::NeighborParticleContainer<PIdx::ncomps, 1>
+    : public amrex::NeighborParticleContainer<PIdx::ncomps, 1, 1, 1>
 {
 
 public:
@@ -23,18 +23,29 @@ public:
                          const amrex::DistributionMapping & a_dmap,
                          const amrex::BoxArray            & a_ba,
                          int                                a_numcells)
-        : NeighborParticleContainer<PIdx::ncomps, 1>(a_geom, a_dmap, a_ba, a_numcells)
-    {}
+        : NeighborParticleContainer<PIdx::ncomps, 1, 1, 1>(a_geom, a_dmap, a_ba, a_numcells)
+    {
+        int num_runtime_real = 1;
+        int num_runtime_int  = 1;
+        for (int i = 0; i < num_runtime_real; ++i)
+        {
+            AddRealComp(true);
+        }
+        for (int i = 0; i < num_runtime_int; ++i)
+        {
+            AddIntComp(true);
+        }
+    }
 
     void InitParticles (const amrex::IntVect& a_num_particles_per_cell,
                         const amrex::Real     a_thermal_momentum_std,
                         const amrex::Real     a_thermal_momentum_mean);
 
-    void writeParticles (const int n);    
+    void writeParticles (const int n);
 
-    void reset_test_id ();    
+    void reset_test_id ();
 
-    void checkNeighborParticles ();    
+    void checkNeighborParticles ();
 
     void checkNeighborList ();
 

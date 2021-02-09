@@ -21,9 +21,7 @@ else ()
       message(FATAL_ERROR "HYPRE interfaces are not supported for 1D builds")
    endif ()
 
-   target_compile_definitions( amrex
-      PUBLIC
-      $<BUILD_INTERFACE:AMREX_USE_HYPRE>)
+   add_amrex_define(AMREX_USE_HYPRE NO_LEGACY)
 
    target_sources( amrex
       PRIVATE

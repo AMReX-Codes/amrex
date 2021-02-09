@@ -1,10 +1,11 @@
 #ifndef AMREX_GEOMETRY_H_
 #define AMREX_GEOMETRY_H_
+#include <AMReX_Config.H>
 
 #include <iosfwd>
 #include <map>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 

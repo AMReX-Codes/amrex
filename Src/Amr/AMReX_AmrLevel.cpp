@@ -598,7 +598,7 @@ AmrLevel::get_data (int  state_indx, Real time) noexcept
 {
     const Real old_time = state[state_indx].prevTime();
     const Real new_time = state[state_indx].curTime();
-    const Real eps = 0.001*(new_time - old_time);
+    const Real eps = Real(0.001)*(new_time - old_time);
 
     if (time > old_time-eps && time < old_time+eps)
     {
@@ -1064,7 +1064,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 						  desc.interp(SComp));
 	
 #if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
 #endif
@@ -1265,9 +1265,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     Vector< Vector<std::unique_ptr<FArrayBox> > > cfab(m_amrlevel.level+1);
     Vector< Vector<Box> >&                TheCrseBoxes = m_cbox[idx];
     Vector< Vector<Box> >&                TheFineBoxes = m_fbox[idx];
-    Vector< Vector< Vector<FillBoxId> > >& TheFBIDs     = m_fbid[idx];
-    const bool                          extrap       = AmrLevel::desc_lst[m_index].extrap();
-    auto&                               amrLevels    = m_amrlevel.parent->getAmrLevels();
+    Vector< Vector< Vector<FillBoxId> > >& TheFBIDs    = m_fbid[idx];
+    const bool                            extrap       = AmrLevel::desc_lst[m_index].extrap();
+    auto&                                 amrLevels    = m_amrlevel.parent->getAmrLevels();
     //
     // Build all coarse fabs from which we'll interpolate and
     // fill them with coarse data as best we can.
@@ -1275,9 +1275,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     for (int l = 0; l <= m_amrlevel.level; l++)
     {
         StateData&                       TheState  = amrLevels[l]->state[m_index];
-        const Vector<Box>&                CrseBoxes = TheCrseBoxes[l];
+        const Vector<Box>&               CrseBoxes = TheCrseBoxes[l];
         auto&                            CrseFabs  = cfab[l];
-        const Vector< Vector<FillBoxId> >& FBIDs     = TheFBIDs[l];
+        const Vector< Vector<FillBoxId> >& FBIDs   = TheFBIDs[l];
         const int                        NC        = CrseBoxes.size();
 
         CrseFabs.resize(NC);
@@ -1389,11 +1389,11 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         AmrLevel&           crseAmrLevel  = *amrLevels[l];
         AmrLevel&           fineAmrLevel  = *amrLevels[l+1];
         const IntVect&      fine_ratio    = crseAmrLevel.fine_ratio;
-        const Vector<Box>&   FineBoxes     = TheFineBoxes[l];
-        StateData&          fState        = fineAmrLevel.state[m_index];
-        const Box&          fDomain       = fState.getDomain();
+        const Vector<Box>&  FineBoxes     = TheFineBoxes[l];
+        StateData&          cState        = crseAmrLevel.state[m_index];
+        const Box&          cDomain       = cState.getDomain();
         auto&               FinerCrseFabs = cfab[l+1];
-        const Vector<BCRec>& theBCs        = AmrLevel::desc_lst[m_index].getBCs();
+        const Vector<BCRec>& theBCs       = AmrLevel::desc_lst[m_index].getBCs();
         const int           NF            = FineBoxes.size();
 
         for (int ifine = 0; ifine < NF; ++ifine)
@@ -1410,13 +1410,13 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Get boundary conditions for the fine patch.
             //
-            amrex::setBC(finefab.box(),
-                          fDomain,
-                          m_scomp,
-                          0,
-                          m_ncomp,
-                          theBCs,
-                          bcr);
+            amrex::setBC(crsefab.box(),
+			 cDomain,
+			 m_scomp,
+			 0,
+			 m_ncomp,
+			 theBCs,
+			 bcr);
             //
             // Interpolate up to fine patch.
             //
@@ -1532,6 +1532,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     const DistributionMapping& mf_DM = mf.DistributionMap();
     AmrLevel&               clev    = parent->getLevel(level-1);
     const Geometry&         cgeom   = clev.geom;
+    const Box&              cdomain = amrex::convert(clev.geom.Domain(),mf.ixType());
 
     Box domain_g = pdomain;
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
@@ -1590,7 +1591,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 	    FillPatch(clev,crseMF,0,time,idx,SComp,NComp,0);
 	}
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
@@ -1599,7 +1600,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 	    
             Vector<BCRec> bcr(ncomp);
 	    
-            amrex::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
+	    amrex::setBC(crseMF[mfi].box(),cdomain,SComp,0,NComp,desc.getBCs(),bcr);
 
 	    mapper->interp(crseMF[mfi],
 			   0,
@@ -1668,7 +1669,7 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
 
         if (rec->derFuncFab() != nullptr)
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -1682,7 +1683,7 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
         else
         {
 #if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(*mf,true); mfi.isValid(); ++mfi)
@@ -1819,7 +1820,7 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 
         if (rec->derFuncFab() != nullptr)
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -1834,7 +1835,7 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
         else
         {
 #if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
@@ -2098,10 +2099,10 @@ AmrLevel::which_time (int  indx, Real time) const noexcept
 {
     const Real oldtime = state[indx].prevTime();
     const Real newtime = state[indx].curTime();
-    const Real haftime = .5 * (oldtime + newtime);
-    const Real qtime = oldtime + 0.25*(newtime-oldtime);
-    const Real tqtime = oldtime + 0.75*(newtime-oldtime);
-    const Real epsilon = 0.001 * (newtime - oldtime);
+    const Real haftime = .5_rt * (oldtime + newtime);
+    const Real qtime = oldtime + 0.25_rt*(newtime-oldtime);
+    const Real tqtime = oldtime + 0.75_rt*(newtime-oldtime);
+    const Real epsilon = 0.001_rt * (newtime - oldtime);
 
     BL_ASSERT(time >= oldtime-epsilon && time <= newtime+epsilon);
     
@@ -2131,7 +2132,7 @@ AmrLevel::which_time (int  indx, Real time) const noexcept
 Real
 AmrLevel::estimateWork ()
 {
-    return 1.0*countCells();
+    return static_cast<Real>(countCells());
 }
 
 bool

@@ -1,5 +1,6 @@
 #ifndef AMREX_BLOCK_MUTEX_H_
 #define AMREX_BLOCK_MUTEX_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Gpu.H>
 

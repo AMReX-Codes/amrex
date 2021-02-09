@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_ABECLAPLACIAN_H_
 #define AMREX_ML_ABECLAPLACIAN_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLCellABecLap.H>
 #include <AMReX_Array.H>
@@ -82,12 +83,6 @@ public:
         return std::unique_ptr<MLLinOp>{};
     }
 
-    virtual iMultiFab const* getOversetMask (int amrlev, int mglev) const override {
-        return m_overset_mask[amrlev][mglev].get();
-    }
-
-    virtual void applyOverset (int amlev, MultiFab& rhs) const override;
-
     void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
                                         Vector<Array<MultiFab,AMREX_SPACEDIM> >& b);
     void averageDownCoeffs ();
@@ -109,9 +104,10 @@ protected:
     Vector<Vector<MultiFab> > m_a_coeffs;
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
 
-    Vector<Vector<std::unique_ptr<iMultiFab> > > m_overset_mask;
-
     Vector<int> m_is_singular;
+
+private:
+    void define_ab_coeffs ();
 };
 
 }

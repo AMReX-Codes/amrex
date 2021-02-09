@@ -5,7 +5,7 @@
 #include <limits>
 #include <memory>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 

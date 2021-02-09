@@ -1,5 +1,6 @@
 #ifndef AMREX_RAND_H
 #define AMREX_RAND_H
+#include <AMReX_Config.H>
 
 #include <AMReX.H>
 #include <AMReX_GpuQualifiers.H>

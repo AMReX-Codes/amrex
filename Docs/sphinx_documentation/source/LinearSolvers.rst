@@ -291,10 +291,21 @@ Available choices are
 - :cpp:`MLMG::BottomSolver::cgbicg`: Start with cg. Switch to bicgstab
   if cg fails.  The matrix must be symmetric.
 
-- :cpp:`MLMG::BottomSolver::hypre`: One of the solvers available through hypre; see the 
-section below on External Solvers 
+- :cpp:`MLMG::BottomSolver::hypre`: One of the solvers available through hypre;
+  see the section below on External Solvers 
 
 - :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
+  
+- :cpp:`LPInfo::setAgglomeration(bool)` (by default true) can be used
+  continue to coarsen the multigrid by copying what would have been the
+  bottom solver to a new :cpp:`MultiFab` with a new :cpp:`BoxArray` with
+  fewer, larger grids, to allow for additional coarsening.
+
+- :cpp:`LPInfo::setConsolidation(bool)` (by default true) can be used
+  continue to transfer a multigrid problem to fewer MPI ranks.
+  There are more setting sucsh as :cpp:`LPInfo::setConsolidationGridSize(int)`,
+  :cpp:`consolidation_threshold`, :cpp:`consolidation_ratio`, and
+  :cpp:`consolidation_strategy`, to give control over how this process works.
 
 Boundary Stencils for Cell-Centered Solvers
 ===========================================
@@ -408,6 +419,12 @@ External Solvers
 AMReX provides interfaces to the `hypre <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ preconditioners and solvers, including BoomerAMG, GMRES (all variants), PCG, and BICGStab as
 solvers, and BoomerAMG and Euclid as preconditioners.  These can be called as 
 as bottom solvers for both cell-centered and node-based problems.
+
+If it is built with Hypre support, AMReX initializes Hypre by default in
+`amrex::Initialize`.  If it is built with CUDA, AMReX will also set up Hypre
+to run on device by default.  The user can choose to disable the Hypre
+initialization by AMReX with :cpp:`ParmParse` parameter
+``amrex.init_hypre=[0|1]``.
 
 By default the AMReX linear solver code always tries to geometrically coarsen the
 problem as much as possible.  However, as we have mentioned, we can

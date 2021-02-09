@@ -1,5 +1,6 @@
 #ifndef AMREX_ARRAY_H_
 #define AMREX_ARRAY_H_
+#include <AMReX_Config.H>
 
 #include <array>
 #include <memory>
@@ -32,6 +33,9 @@ namespace amrex {
     template <class T, std::size_t N>
     struct GpuArray
     {
+        using value_type = T;
+        using reference_type = T&;
+
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator [] (int i) const noexcept { return arr[i]; }
 
@@ -45,7 +49,7 @@ namespace amrex {
         T* data () noexcept { return arr; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        std::size_t size() const noexcept { return N; }
+        constexpr std::size_t size() const noexcept { return N; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin() const noexcept { return arr; }

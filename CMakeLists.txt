@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.14)
 
 #
+# Allow for MSVC Runtime library controls
+#
+if(POLICY CMP0091)
+  cmake_policy(SET CMP0091 NEW)
+endif()
+
+#
 # Prevent in-source builds
 #
 if (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -103,6 +110,9 @@ set_default_config_flags ()
 # Source files for all binaries and libraries found under src
 #
 add_subdirectory(Src)
+get_property(_amrex_targets
+   DIRECTORY Src
+   PROPERTY BUILDSYSTEM_TARGETS)
 
 #
 # Tutorials and "test_install" target
@@ -123,7 +133,18 @@ if (AMReX_PLOTFILE_TOOLS)
    # If this get executed, it cannot be EXCLUDED_FROM_ALL
    # because it needs to get installed
    add_subdirectory(Tools/Plotfile)
+   get_property(_plotfile_targets
+      DIRECTORY Tools/Plotfile
+      PROPERTY BUILDSYSTEM_TARGETS)
+   list(APPEND _amrex_targets ${_plotfile_targets})
 endif ()
+
+
+#
+# Install amrex  -- Export
+#
+include(AMReXInstallHelpers)
+install_amrex_targets(${_amrex_targets})
 
 
 #

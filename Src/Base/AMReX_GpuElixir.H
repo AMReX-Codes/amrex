@@ -1,5 +1,6 @@
 #ifndef AMREX_GPUELIXIR_H_
 #define AMREX_GPUELIXIR_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Arena.H>
 

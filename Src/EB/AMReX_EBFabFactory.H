@@ -1,5 +1,6 @@
 #ifndef AMREX_EBFABFACTORY_H_
 #define AMREX_EBFABFACTORY_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FabFactory.H>
 
@@ -61,6 +62,10 @@ public:
     // For y-face-centroid, the two components are for x and then z-directions, respectively.
     Array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const noexcept {
         return m_ebdc->getFaceCent();
+    }
+
+    Array<const MultiCutFab*,AMREX_SPACEDIM> getEdgeCent () const noexcept {
+        return m_ebdc->getEdgeCent();
     }
 
     bool isAllRegular () const noexcept;

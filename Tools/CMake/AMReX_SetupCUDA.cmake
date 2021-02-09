@@ -146,9 +146,22 @@ include(FindCUDA/select_compute_arch)
 cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${AMReX_CUDA_ARCH})
 
 #
-# Remove unsupported architecture: anything less the 6.0 must go
+# Remove unsupported architecture: anything less the 3.5 must go
 #
 string(REPLACE "-gencode;" "-gencode=" _nvcc_arch_flags "${_nvcc_arch_flags}")
+
+foreach (_item IN LISTS _nvcc_arch_flags)
+   # Match one time the regex [0-9]+.
+   # [0-9]+ means any number between 0 and 9 will be matched one or more times (option +)
+   string(REGEX MATCH "[0-9]+" _cuda_compute_capability "${_item}")
+
+   if (_cuda_compute_capability LESS 35)
+      message(STATUS "Ignoring unsupported CUDA architecture ${_cuda_compute_capability}")
+      list(REMOVE_ITEM _nvcc_arch_flags ${_item})
+   endif ()
+
+endforeach ()
+
 
 if (AMReX_CUDA_LTO)
     # we replace

@@ -162,8 +162,10 @@ protected:
     static amrex::Real gravity;
 
 public:
-    static std::unique_ptr<Parm> parm;
-    static std::unique_ptr<ProbParm> prob_parm;
+    static Parm* h_parm;
+    static Parm* d_parm;
+    static ProbParm* h_prob_parm;
+    static ProbParm* d_prob_parm;
 };
 
 void cns_bcfill (amrex::Box const& bx, amrex::FArrayBox& data,

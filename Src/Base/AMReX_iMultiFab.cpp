@@ -325,10 +325,12 @@ iMultiFab::sum (int comp, int nghost, bool local) const
     Long sm = 0;
 
 #ifdef AMREX_USE_GPU
+    // If on GPUs, cast to unsigned long long to take advantage of hardware support.
     if (Gpu::inLaunchRegion())
     {
+        long long points = 0;
         ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<Long> reduce_data(reduce_op);
+        ReduceData<unsigned long long> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
@@ -338,17 +340,20 @@ iMultiFab::sum (int comp, int nghost, bool local) const
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
-                return { static_cast<Long>(arr(i,j,k,comp)) };
+                return { static_cast<unsigned long long>(arr(i,j,k,comp)) -
+                         static_cast<unsigned long long>(INT_MIN) };
             });
+            points += bx.numPts();
         }
 
         ReduceTuple hv = reduce_data.value();
-        sm = amrex::get<0>(hv);
+        sm = static_cast<Long>( static_cast<long long>(amrex::get<0>(hv))
+                              + static_cast<long long>(INT_MIN)*points);
     }
     else
 #endif
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
         for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
@@ -542,7 +547,7 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngr
     Vector<Array4BoxTag<int> > tags;
 
     bool run_on_gpu = Gpu::inLaunchRegion();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
 #endif
     {

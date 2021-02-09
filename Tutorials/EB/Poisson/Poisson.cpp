@@ -4,7 +4,7 @@ using namespace amrex;
 
 void InitData (MultiFab& State)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(State,true); mfi.isValid(); ++mfi)

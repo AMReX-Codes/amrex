@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_LINOP_H_
 #define AMREX_ML_LINOP_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_SPACE.H>
 #include <AMReX_MultiFab.H>
@@ -13,7 +14,7 @@
 #include <AMReX_MultiCutFab.H>
 #endif
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 #include <AMReX_Hypre.H>
 #include <AMReX_HypreNodeLap.H>
 #endif
@@ -245,7 +246,7 @@ public:
     }
 #endif
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface /*hypre_interface*/) const {
         amrex::Abort("MLLinOp::makeHypre: How did we get here?");
         return {nullptr};

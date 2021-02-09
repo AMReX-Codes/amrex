@@ -78,7 +78,7 @@ MacBndry::setBndryConds (const BCRec&   phys_bc,
                 const Real delta = dx[dir]*ratio[dir];
 
                 bctag[face][comp] = AMREX_LO_DIRICHLET;
-		bloc[face]        = 0.5*delta;
+		bloc[face]        = 0.5_rt*delta;
             }
         }
     }

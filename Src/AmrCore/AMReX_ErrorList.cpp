@@ -334,7 +334,7 @@ operator << (std::ostream&    os,
                    Real                      threshold,
                    char                      tagval) noexcept
   {
-    const Real fac = threshold * std::pow(2,level);
+    const Real fac = threshold * Real(std::pow(2,level));
     amrex::ParallelFor(bx,
     [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k)
     {
@@ -359,7 +359,7 @@ operator << (std::ostream&    os,
     {
       AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_userfunc!=nullptr,"UserFunc not properly set in AMRErrorTag");
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
       for (MFIter mfi(tba,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -377,7 +377,7 @@ operator << (std::ostream&    os,
           (time  <= m_info.m_max_time ) )
       {
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(tba,TilingIfNotGPU()); mfi.isValid(); ++mfi)

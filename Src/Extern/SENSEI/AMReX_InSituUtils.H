@@ -1,5 +1,6 @@
 #ifndef AMReX_InSituUtils_H
 #define AMReX_InSituUtils_H
+#include <AMReX_Config.H>
 
 #include <vtkDataSetAttributes.h>
 #include <vtkUnsignedCharArray.h>

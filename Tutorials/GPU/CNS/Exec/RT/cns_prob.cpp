@@ -1,6 +1,5 @@
-
+#include <CNS.H>
 #include <AMReX_PROB_AMR_F.H>
-#include "cns_prob_parm.H"
 #include <AMReX_ParmParse.H>
 
 extern "C" {
@@ -11,5 +10,7 @@ extern "C" {
                          const amrex_real* /*probhi*/)
     {
         // could read parmparse parameters here
+
+        amrex::Gpu::htod_memcpy(CNS::d_prob_parm, CNS::h_prob_parm, sizeof(ProbParm));
     }
 }

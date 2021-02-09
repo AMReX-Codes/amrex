@@ -6,6 +6,21 @@
 # ############################################################################ #
 @PACKAGE_INIT@
 
+# Custom version of check_required_components
+# Set NO_CHECK_REQUIRED_COMPONENTS_MACRO when calling
+# configure_package_config_file to avoid the CMake version
+# of this macro to be generated
+macro(check_required_components _NAME)
+   foreach(comp ${${_NAME}_FIND_COMPONENTS})
+      if(NOT ${_NAME}_${comp}_FOUND)
+         if(${_NAME}_FIND_REQUIRED_${comp})
+            message(STATUS "Requested AMReX component '${comp}' was not found.")
+            set(${_NAME}_FOUND FALSE)
+         endif()
+      endif()
+   endforeach()
+endmacro()
+
 # Set the minimum CMake version required
 cmake_minimum_required(VERSION @CMAKE_MINIMUM_REQUIRED_VERSION@)
 
@@ -44,11 +59,13 @@ set(AMReX_MPI_FOUND                 @AMReX_MPI@)
 set(AMReX_MPI_THREAD_MULTIPLE_FOUND @AMReX_MPI_THREAD_MULTIPLE@)
 set(AMReX_OMP_FOUND                 @AMReX_OMP@)
 set(AMReX_CUDA_FOUND                @AMReX_CUDA@)
-set(AMReX_DPCPP_FOUND               @AMReX_DPCPP@)
-set(AMReX_@AMReX_PRECISION@_FOUND  ON)
+set(AMReX_SYCL_FOUND                @AMReX_DPCPP@)
+set(AMReX_HIP_FOUND                 @AMReX_HIP@)
+set(AMReX_@AMReX_PRECISION@_FOUND   ON)
 set(AMReX_FORTRAN_FOUND             @AMReX_FORTRAN@)
 
 # Actual components selection
+set(AMReX_AMRLEVEL_FOUND            @AMReX_AMRLEVEL@)
 set(AMReX_EB_FOUND                  @AMReX_EB@)
 set(AMReX_FINTERFACES_FOUND         @AMReX_FORTRAN_INTERFACES@)
 set(AMReX_LSOLVERS_FOUND            @AMReX_LINEAR_SOLVERS@)
@@ -73,6 +90,20 @@ set(AMReX_TRACEP_FOUND              @AMReX_TRACE_PROFILE@)
 set(AMReX_MEMP_FOUND                @AMReX_MEM_PROFILE@)
 set(AMReX_COMMP_FOUND               @AMReX_COMM_PROFILE@)
 set(AMReX_PROFPARSER_FOUND          @AMReX_PROFPARSER@)
+
+# Plotfile tools
+set(AMReX_PFTOOLS_FOUND             @AMReX_PLOTFILE_TOOLS@)
+
+#
+# If Fortran is enabled, downstream project
+# must have Fortran enabled as well
+#
+if (@AMReX_FORTRAN@ AND NOT CMAKE_Fortran_COMPILER_LOADED )
+   message(FATAL_ERROR
+      "\nAMReX was build with AMReX_FORTRAN=ON but Fortran is not enabled for this project. "
+      "Either set enable_language(Fortran) before importing AMReX or re-build AMReX with "
+      "AMReX_FORTRAN=OFF.\n")
+endif ()
 
 #
 # Parallel backends

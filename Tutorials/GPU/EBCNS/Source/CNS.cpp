@@ -87,7 +87,7 @@ CNS::initData ()
     const auto geomdata = geom.data();
     MultiFab& S_new = get_new_data(State_Type);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
@@ -308,7 +308,7 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
 //        const char clearval = TagBox::CLEAR;
         const Real dengrad_threshold = refine_dengrad;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(rho,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -438,7 +438,7 @@ CNS::computeTemp (MultiFab& State, int ng)
     BL_PROFILE("CNS::computeTemp()");
 
     // This will reset Eint and compute Temperature
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(State,TilingIfNotGPU()); mfi.isValid(); ++mfi)

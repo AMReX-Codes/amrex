@@ -1,5 +1,6 @@
 #ifndef AMREX_SCAN_H_
 #define AMREX_SCAN_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Gpu.H>
 #include <AMReX_Arena.H>
@@ -198,22 +199,14 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
     amrex::launch(nblocks, nthreads, sm, stream,
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
     {
-#if (__SYCL_COMPILER_VERSION <= 20200827)
-        sycl::intel::sub_group const& sg = gh.item.get_sub_group();
-#else
-        sycl::ONEAPI::sub_group const& sg = gh.item.get_sub_group();
-#endif
+        sycl::ONEAPI::sub_group const& sg = gh.item->get_sub_group();
         int lane = sg.get_local_id()[0];
         int warp = sg.get_group_id()[0];
-#if (__SYCL_COMPILER_VERSION <= 20200715)
-        int nwarps = sg.get_group_range();
-#else
         int nwarps = sg.get_group_range()[0];
-#endif
 
-        int threadIdxx = gh.item.get_local_id(0);
-        int blockDimx = gh.item.get_local_range(0);
-        int gridDimx = gh.item.get_group_range(0);
+        int threadIdxx = gh.item->get_local_id(0);
+        int blockDimx = gh.item->get_local_range(0);
+        int gridDimx = gh.item->get_group_range(0);
 
         T* shared = (T*)(gh.local);
         T* shared2 = shared + Gpu::Device::warp_size;
@@ -229,7 +222,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
                     (virtual_block_id_p, gridDimx);
                 virtual_block_id_shared = bid;
             }
-            gh.item.barrier(sycl::access::fence_space::local_space);
+            gh.item->barrier(sycl::access::fence_space::local_space);
             virtual_block_id = virtual_block_id_shared;
         }
 
@@ -272,7 +265,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
                 shared[warp] = x;
             }
 
-            gh.item.barrier(sycl::access::fence_space::local_space);
+            gh.item->barrier(sycl::access::fence_space::local_space);
 
             // The first warp will do scan on the warp sums for the
             // whole block.
@@ -286,7 +279,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
                 if (lane < nwarps) shared2[lane] = y;
             }
 
-            gh.item.barrier(sycl::access::fence_space::local_space);
+            gh.item->barrier(sycl::access::fence_space::local_space);
 
             // shared[0:nwarps) holds the inclusive sum of warp sums.
             
@@ -324,7 +317,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
                     int iblock = iblock0-lane;
                     detail::STVA<T> stva{'p', 0};
                     if (iblock >= 0) {
-                        stva = pbs[iblock].wait(gh.item);
+                        stva = pbs[iblock].wait(*gh.item);
                     }
 
                     T x = stva.value;
@@ -366,7 +359,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
                 }
             }
 
-            gh.item.barrier(sycl::access::fence_space::local_space);
+            gh.item->barrier(sycl::access::fence_space::local_space);
 
             T exclusive_prefix = shared[0];
 

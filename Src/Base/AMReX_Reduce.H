@@ -1,5 +1,6 @@
 #ifndef AMREX_REDUCE_H_
 #define AMREX_REDUCE_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Gpu.H>
 #include <AMReX_Arena.H>
@@ -76,12 +77,12 @@ struct ReduceOpSum
     template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s, Gpu::Handler const& h) const noexcept {
-        Gpu::deviceReduceSum(&d,s,h);
+        Gpu::deviceReduceSum_full(&d,s,h);
     }
 #else
     template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceSum(&d,s); }
+    void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceSum_full(&d,s); }
 #endif
 
     template <typename T>
@@ -98,12 +99,12 @@ struct ReduceOpMin
     template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s, Gpu::Handler const& h) const noexcept {
-        Gpu::deviceReduceMin(&d,s,h);
+        Gpu::deviceReduceMin_full(&d,s,h);
     }
 #else
     template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceMin(&d,s); }
+    void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceMin_full(&d,s); }
 #endif
 
     template <typename T>
@@ -120,12 +121,12 @@ struct ReduceOpMax
     template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s, Gpu::Handler const& h) const noexcept {
-        Gpu::deviceReduceMax(&d,s,h);
+        Gpu::deviceReduceMax_full(&d,s,h);
     }
 #else
     template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceMax(&d,s); }
+    void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceMax_full(&d,s); }
 #endif
 
     template <typename T>
@@ -141,11 +142,11 @@ struct ReduceOpLogicalAnd
 #ifdef AMREX_USE_DPCPP
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (int& d, int s, Gpu::Handler const& h) const noexcept {
-        Gpu::deviceReduceLogicalAnd(&d,s,h);
+        Gpu::deviceReduceLogicalAnd_full(&d,s,h);
     }
 #else
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void parallel_update (int& d, int s) const noexcept { Gpu::deviceReduceLogicalAnd(&d,s); }
+    void parallel_update (int& d, int s) const noexcept { Gpu::deviceReduceLogicalAnd_full(&d,s); }
 #endif
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -159,11 +160,11 @@ struct ReduceOpLogicalOr
 #ifdef AMREX_USE_DPCPP
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (int& d, int s, Gpu::Handler const& h) const noexcept {
-        Gpu::deviceReduceLogicalOr(&d,s,h);
+        Gpu::deviceReduceLogicalOr_full(&d,s,h);
     }
 #else
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void parallel_update (int& d, int s) const noexcept { Gpu::deviceReduceLogicalOr(&d,s); }
+    void parallel_update (int& d, int s) const noexcept { Gpu::deviceReduceLogicalOr_full(&d,s); }
 #endif
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -294,7 +295,7 @@ public:
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
             ReduceTuple r = *(dp+1);
-            for (int icell = gh.item.get_global_id(0), stride = gh.item.get_global_range(0);
+            for (int icell = gh.item->get_global_id(0), stride = gh.item->get_global_range(0);
                  icell < ncells; icell += stride) {
                 int k =  icell /   (len.x*len.y);
                 int j = (icell - k*(len.x*len.y)) /   len.x;
@@ -308,7 +309,7 @@ public:
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r, gh);
         });
 #else
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
         if (Gpu::inFuseRegion() && Gpu::inFuseReductionRegion()
             && ec.numBlocks.x*ec.numThreads.x <= Gpu::getFuseSizeThreshold())
         {
@@ -362,7 +363,7 @@ public:
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
             ReduceTuple r = *(dp+1);
-            for (int icell = gh.item.get_global_id(0), stride = gh.item.get_global_range(0);
+            for (int icell = gh.item->get_global_id(0), stride = gh.item->get_global_range(0);
                  icell < ncells; icell += stride) {
                 int k =  icell /   (len.x*len.y);
                 int j = (icell - k*(len.x*len.y)) /   len.x;
@@ -414,7 +415,7 @@ public:
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
             ReduceTuple r = *(dp+1);
-            for (N i = gh.item.get_global_id(0), stride = gh.item.get_global_range(0);
+            for (N i = gh.item->get_global_id(0), stride = gh.item->get_global_range(0);
                  i < n; i += stride) {
                 auto pr = f(i);
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r,pr);
@@ -452,12 +453,12 @@ T Sum (N n, U const* v, T init_val, BOP bop)
 #ifdef AMREX_USE_DPCPP
     [=] AMREX_GPU_DEVICE (T const& r, Gpu::Handler const& h) noexcept
     {
-        Gpu::deviceReduceSum(dp, r, h);
+        Gpu::deviceReduceSum_full(dp, r, h);
     });
 #else
     [=] AMREX_GPU_DEVICE (T const& r) noexcept
     {
-        Gpu::deviceReduceSum(dp, r);
+        Gpu::deviceReduceSum_full(dp, r);
     });
 #endif
     return ds.dataValue();
@@ -471,13 +472,13 @@ T Sum (N n, T const* v, T init_val = 0)
 
 template <typename T, typename N, typename F,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-T Sum (N n, F&& f)
+T Sum (N n, F&& f, T init_val = 0)
 {
     ReduceOps<ReduceOpSum> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
     using ReduceTuple = typename decltype(reduce_data)::Type;
     reduce_op.eval(n, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple { return {f(i)}; });
-    return amrex::get<0>(reduce_data.value());
+    return amrex::get<0>(reduce_data.value()) + init_val;
 }
 
 template <typename T, typename N, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
@@ -494,12 +495,12 @@ T Min (N n, U const* v, T init_val, BOP bop)
 #ifdef AMREX_USE_DPCPP
     [=] AMREX_GPU_DEVICE (T const& r, Gpu::Handler const& h) noexcept
     {
-        Gpu::deviceReduceMin(dp, r, h);
+        Gpu::deviceReduceMin_full(dp, r, h);
     });
 #else
     [=] AMREX_GPU_DEVICE (T const& r) noexcept
     {
-        Gpu::deviceReduceMin(dp, r);
+        Gpu::deviceReduceMin_full(dp, r);
     });
 #endif
     return ds.dataValue();
@@ -509,6 +510,18 @@ template <typename T, typename N, typename M=amrex::EnableIf_t<std::is_integral<
 T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max())
 {
     return Reduce::Min(n, v, init_val, amrex::Less<T>());
+}
+
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Min (N n, F&& f, T init_val = std::numeric_limits<T>::max())
+{
+    ReduceOps<ReduceOpMin> reduce_op;
+    ReduceData<T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    reduce_op.eval(n, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple { return {f(i)}; });
+    T tmp = amrex::get<0>(reduce_data.value());
+    return std::min(tmp,init_val);
 }
 
 template <typename T, typename N, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
@@ -525,12 +538,12 @@ T Max (N n, U const* v, T init_val, BOP bop)
 #ifdef AMREX_USE_DPCPP
     [=] AMREX_GPU_DEVICE (T const& r, Gpu::Handler const& h) noexcept
     {
-        Gpu::deviceReduceMax(dp, r, h);
+        Gpu::deviceReduceMax_full(dp, r, h);
     });
 #else
     [=] AMREX_GPU_DEVICE (T const& r) noexcept
     {
-        Gpu::deviceReduceMax(dp, r);
+        Gpu::deviceReduceMax_full(dp, r);
     });
 #endif
     return ds.dataValue();
@@ -540,6 +553,18 @@ template <typename T, typename N, typename M=amrex::EnableIf_t<std::is_integral<
 T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest())
 {
     return Reduce::Max(n, v, init_val, amrex::Greater<T>());
+}
+
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Max (N n, F&& f, T init_val = std::numeric_limits<T>::lowest())
+{
+    ReduceOps<ReduceOpMax> reduce_op;
+    ReduceData<T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    reduce_op.eval(n, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple { return {f(i)}; });
+    T tmp = amrex::get<0>(reduce_data.value());
+    return std::max(tmp,init_val);
 }
 
 template <typename T, typename N, typename U, typename MINOP, typename MAXOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
@@ -559,14 +584,14 @@ std::pair<T,T> MinMax (N n, U const* v, MINOP minop, MAXOP maxop)
 #ifdef AMREX_USE_DPCPP
     [=] AMREX_GPU_DEVICE (Real2 const& r, Gpu::Handler const& h) noexcept
     {
-        Gpu::deviceReduceMin(dp  , r[0], h);
-        Gpu::deviceReduceMax(dp+1, r[1], h);
+        Gpu::deviceReduceMin_full(dp  , r[0], h);
+        Gpu::deviceReduceMax_full(dp+1, r[1], h);
     });
 #else
     [=] AMREX_GPU_DEVICE (Real2 const& r) noexcept
     {
-        Gpu::deviceReduceMin(dp  , r[0]);
-        Gpu::deviceReduceMax(dp+1, r[1]);
+        Gpu::deviceReduceMin_full(dp  , r[0]);
+        Gpu::deviceReduceMax_full(dp+1, r[1]);
     });
 #endif
     Gpu::dtoh_memcpy(hv.data(), dp, 2*sizeof(T));
@@ -580,22 +605,54 @@ std::pair<T,T> MinMax (N n, T const* v)
     return Reduce::MinMax<T>(n, v, amrex::Less<T>(), amrex::Greater<T>());
 }
 
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+std::pair<T,T> MinMax (N n, F&& f)
+{
+    ReduceOps<ReduceOpMin,ReduceOpMax> reduce_op;
+    ReduceData<T,T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    reduce_op.eval(n, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple {
+            T tmp = f(i);
+            return {tmp,tmp};
+        });
+    auto hv = reduce_data.value();
+    return std::make_pair(amrex::get<0>(hv), amrex::get<1>(hv));
+}
+
 template <typename T, typename N, typename P, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 bool AnyOf (N n, T const* v, P&& pred)
 {
     Gpu::LaunchSafeGuard lsg(true);
     Gpu::DeviceScalar<int> ds(0);
     int* dp = ds.dataPtr();
-#ifdef AMREX_USE_DPCPP
-    // xxxxx DPCPP todo: Anyof N: better version
-    amrex::ParallelFor(n, [=] (int i) noexcept
-    {
-        int r = pred(v[i]) ? 1 : 0;
-        Gpu::Atomic::LogicalOr(dp, r);
-    });
-#else
     auto ec = Gpu::ExecutionConfig(n);
     ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
+
+#ifdef AMREX_USE_DPCPP
+    const int num_ints = std::max(Gpu::Device::warp_size, int(ec.numThreads.x)/Gpu::Device::warp_size) + 1;
+    const std::size_t shared_mem_bytes = num_ints*sizeof(int);
+    amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::nullStream(),
+    [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
+        int* has_any = &(static_cast<int*>(gh.sharedMemory())[num_ints-1]);
+        if (gh.threadIdx() == 0) { *has_any = *dp; }
+        gh.sharedBarrier();
+
+        if (!(*has_any))
+        {
+            int r = false;
+            for (N i = gh.blockDim()*gh.blockIdx()+gh.threadIdx(), stride = gh.blockDim()*gh.gridDim();
+                 i < n && !r; i += stride)
+            {
+                r = pred(v[i]) ? 1 : 0;
+            }
+
+            r = Gpu::blockReduce<Gpu::Device::warp_size>
+                (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0, gh);
+            if (gh.threadIdx() == 0 && r) { *dp = 1; }
+        }
+    });
+#else
     amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, 0,
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
@@ -606,13 +663,13 @@ bool AnyOf (N n, T const* v, P&& pred)
         {
             int r = false;
             for (N i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
-                 i < n and !r; i += stride)
+                 i < n && !r; i += stride)
             {
                 r = pred(v[i]) ? 1 : 0;
             }
             r = Gpu::blockReduce<Gpu::Device::warp_size>
                 (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0);
-            if (threadIdx.x == 0 and r) *dp = 1;
+            if (threadIdx.x == 0 && r) *dp = 1;
         }
     });
 #endif
@@ -625,19 +682,40 @@ bool AnyOf (Box const& box, P&& pred)
     Gpu::LaunchSafeGuard lsg(true);
     Gpu::DeviceScalar<int> ds(0);
     int* dp = ds.dataPtr();
-#ifdef AMREX_USE_DPCPP
-    // xxxxx DPCPP todo: Anyof Box: better version
-    amrex::ParallelFor(box, [=] (int i, int j, int k) noexcept
-    {
-        int r = pred(i,j,k) ? 1 : 0;
-        Gpu::Atomic::LogicalOr(dp, r);
-    });
-#else
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
     auto ec = Gpu::ExecutionConfig(ncells);
     ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
+
+#ifdef AMREX_USE_DPCPP
+    const int num_ints = std::max(Gpu::Device::warp_size, int(ec.numThreads.x)/Gpu::Device::warp_size) + 1;
+    const std::size_t shared_mem_bytes = num_ints*sizeof(int);
+    amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::nullStream(),
+    [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
+        int* has_any = &(static_cast<int*>(gh.sharedMemory())[num_ints-1]);
+        if (gh.threadIdx() == 0) { *has_any = *dp; }
+        gh.sharedBarrier();
+
+        if (!(*has_any))
+        {
+            int r = false;
+            for (int icell = gh.blockDim()*gh.blockIdx()+gh.threadIdx(), stride = gh.blockDim()*gh.gridDim();
+                 icell < ncells && !r; icell += stride) {
+                int k =  icell /   (len.x*len.y);
+                int j = (icell - k*(len.x*len.y)) /   len.x;
+                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                i += lo.x;
+                j += lo.y;
+                k += lo.z;
+                r = pred(i,j,k) ? 1 : 0;
+            }
+            r = Gpu::blockReduce<Gpu::Device::warp_size>
+                (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0, gh);
+            if (gh.threadIdx() == 0 && r) { *dp = 1; }
+        }
+    });
+#else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, 0,
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
@@ -648,7 +726,7 @@ bool AnyOf (Box const& box, P&& pred)
         {
             int r = false;
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
-                 icell < ncells and !r; icell += stride) {
+                 icell < ncells && !r; icell += stride) {
                 int k =  icell /   (len.x*len.y);
                 int j = (icell - k*(len.x*len.y)) /   len.x;
                 int i = (icell - k*(len.x*len.y)) - j*len.x;
@@ -659,7 +737,7 @@ bool AnyOf (Box const& box, P&& pred)
             }
             r = Gpu::blockReduce<Gpu::Device::warp_size>
                 (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0);
-            if (threadIdx.x == 0 and r) *dp = 1;
+            if (threadIdx.x == 0 && r) *dp = 1;
         }
     });
 #endif
@@ -780,7 +858,7 @@ public:
 
 namespace Reduce {
 
-template <typename N, typename T, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T Sum (N n, U const* v, T init_val, BOP bop)
 {
     T sum = init_val;
@@ -792,23 +870,17 @@ T Sum (N n, U const* v, T init_val, BOP bop)
     },
     [=] (T r) noexcept
     {
-        Gpu::deviceReduceSum(dp, r);
+        Gpu::deviceReduceSum_full(dp, r);
     });
     return sum;
 }
 
-template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-T Sum (N n, T const* v, T init_val = 0)
-{
-    return Reduce::Sum(n, v, init_val, amrex::Plus<T>());
-}
-
 template <typename T, typename N, typename F,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-T Sum (N n, F&& f)
+T Sum (N n, F&& f, T init_val = 0)
 {
-    T r = 0;
-#ifdef _OPENMP
+    T r = init_val;
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(+:r)
 #endif
     for (N i = 0; i < n; ++i) {
@@ -817,7 +889,13 @@ T Sum (N n, F&& f)
     return r;
 }
 
-template <typename N, typename T, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Sum (N n, T const* v, T init_val = 0)
+{
+    return Sum(n, [=] (N i) -> T { return v[i]; }, init_val);
+}
+
+template <typename T, typename N, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T Min (N n, U const* v, T init_val, BOP bop)
 {
     T mn = init_val;
@@ -829,18 +907,32 @@ T Min (N n, U const* v, T init_val, BOP bop)
     },
     [=] (T r) noexcept
     {
-        Gpu::deviceReduceMin(dp, r);
+        Gpu::deviceReduceMin_full(dp, r);
     });
     return mn;
 }
 
-template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max())
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Min (N n, F&& f, T init_val = std::numeric_limits<T>::max())
 {
-    return Reduce::Min(n, v, init_val, amrex::Less<T>());
+    T r = init_val;
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for reduction(min:r)
+#endif
+    for (N i = 0; i < n; ++i) {
+        r = std::min(r,f(i));
+    }
+    return r;
 }
 
-template <typename N, typename T, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max())
+{
+    return Reduce::Min(n, [=] (N i) -> T { return v[i]; }, init_val);
+}
+
+template <typename T, typename N, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T Max (N n, U const* v, T init_val, BOP bop)
 {
     T mx = init_val;
@@ -852,15 +944,29 @@ T Max (N n, U const* v, T init_val, BOP bop)
     },
     [=] (T r) noexcept
     {
-        Gpu::deviceReduceMax(dp, r);
+        Gpu::deviceReduceMax_full(dp, r);
     });
     return mx;
 }
 
-template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Max (N n, F&& f, T init_val = std::numeric_limits<T>::lowest())
+{
+    T r = init_val;
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for reduction(max:r)
+#endif
+    for (N i = 0; i < n; ++i) {
+        r = std::max(r,f(i));
+    }
+    return r;
+}
+
+template <typename T, typename N, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest())
 {
-    return Reduce::Max(n, v, init_val, amrex::Greater<T>());
+    return Reduce::Max(n, [=] (N i) -> T { return v[i]; }, init_val);
 }
 
 template <typename T, typename N, typename U, typename MINOP, typename MAXOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
@@ -877,16 +983,33 @@ std::pair<T,T> MinMax (N n, U const* v, MINOP minop, MAXOP maxop)
     },
     [=] (Real2 const& r) noexcept
     {
-        Gpu::deviceReduceMin(dp  , r[0]);
-        Gpu::deviceReduceMax(dp+1, r[1]);
+        Gpu::deviceReduceMin_full(dp  , r[0]);
+        Gpu::deviceReduceMax_full(dp+1, r[1]);
     });
     return std::make_pair(hv[0],hv[1]);
+}
+
+template <typename T, typename N, typename F,
+          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+std::pair<T,T> Min (N n, F&& f)
+{
+    T r_min = std::numeric_limits<T>::max();
+    T r_max = std::numeric_limits<T>::lowest();
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for reduction(min:r_min) reduction(max:r_max)
+#endif
+    for (N i = 0; i < n; ++i) {
+        T tmp = f(i);
+        r_min = std::min(r_min,tmp);
+        r_max = std::max(r_max,tmp);
+    }
+    return std::make_pair(r_min,r_max);
 }
 
 template <typename T, typename N, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 std::pair<T,T> MinMax (N n, T const* v)
 {
-    return Reduce::MinMax<T>(n, v, amrex::Less<T>(), amrex::Greater<T>());
+    return Reduce::MinMax<T>(n, [=] (N i) -> T { return v[i]; });
 }
 
 template <typename T, typename N, typename P, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >

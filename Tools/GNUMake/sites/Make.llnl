@@ -20,12 +20,8 @@ ifeq ($(which_computer),$(filter $(which_computer),ray rzmanta))
     FC  = mpifort
     F90 = mpifort
 
-    ifeq ($(USE_GPU_PRAGMA),TRUE)
-      LIBRARIES += -lmpi_ibm_mpifh
-    else
-      LIBRARIES += -lmpi_ibm
-      override XTRALIBS += -L$(MPIROOT)/lib
-    endif
+    LIBRARIES += -lmpi_ibm
+    override XTRALIBS += -L$(MPIROOT)/lib
   endif
 
   ifeq ($(USE_CUDA),TRUE)
@@ -79,12 +75,8 @@ ifeq ($(which_computer),$(filter $(which_computer),sierra butte rzansel lassen))
     FC  = mpifort
     F90 = mpifort
 
-    ifeq ($(USE_GPU_PRAGMA),TRUE)
-      LIBRARIES += -lmpi_ibm_mpifh
-    else
-      LIBRARIES += -lmpi_ibm
-      override XTRALIBS += -L$(MPIROOT)/lib
-    endif
+    LIBRARIES += -lmpi_ibm
+    override XTRALIBS += -L$(MPIROOT)/lib
   endif
 
   ifeq ($(USE_CUDA),TRUE)

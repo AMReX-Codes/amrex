@@ -1,5 +1,6 @@
 #ifndef AMREX_HYPRE_H_
 #define AMREX_HYPRE_H_
+#include <AMReX_Config.H>
 
 #include <memory>
 
@@ -62,10 +63,10 @@ public:
     void setHypreNumSweeps (int n) noexcept {num_sweeps = n;}
     void setHypreStrongThreshold (Real t) noexcept {strong_threshold = t;}
 
-protected:
-
     static constexpr HYPRE_Int regular_stencil_size = 2*AMREX_SPACEDIM + 1;
     static constexpr HYPRE_Int eb_stencil_size = AMREX_D_TERM(3, *3, *3);
+
+protected:
     
     MPI_Comm comm = MPI_COMM_NULL;
     Geometry geom;

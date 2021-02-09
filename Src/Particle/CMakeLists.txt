@@ -1,7 +1,7 @@
-target_compile_definitions(amrex PUBLIC $<BUILD_INTERFACE:AMREX_PARTICLES>)
+add_amrex_define(AMREX_PARTICLES NO_LEGACY)
 
 if (AMReX_PARTICLES_PRECISION STREQUAL "SINGLE")
-   target_compile_definitions(amrex PUBLIC $<BUILD_INTERFACE:AMREX_SINGLE_PRECISION_PARTICLES>)
+   add_amrex_define(AMREX_SINGLE_PRECISION_PARTICLES NO_LEGACY)
 endif ()
 
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
@@ -43,4 +43,6 @@ target_sources( amrex
    AMReX_BinIterator.H
    AMReX_ParticleTransformation.H
    AMReX_WriteBinaryParticleData.H
+   AMReX_ParticleContainerBase.H
+   AMReX_ParticleContainerBase.cpp
    )

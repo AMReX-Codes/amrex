@@ -32,13 +32,7 @@ function (configure_amrex)
    # Include the required modules
    #
    include( AMReX_ThirdPartyProfilers )
-   include( AMReX_Defines )
    include( AMReXGenexHelpers )
-
-   #
-   # Set properties for target "amrex"
-   #
-   set_amrex_defines()
 
    #
    # Setup compilers
@@ -65,14 +59,21 @@ function (configure_amrex)
    # Special flags for MSVC compiler
    #
    set(_cxx_msvc   "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>")
-   set(_condition  "$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19.26>")
 
    target_compile_options( amrex PRIVATE $<${_cxx_msvc}:/bigobj> )
    target_compile_options( amrex PRIVATE $<${_cxx_msvc}:-wd4244;-wd4267;-wd4996> )
 
+   # modern preprocessor
+   set(_condition  "$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19.26>")
    target_compile_options( amrex PUBLIC
       $<${_cxx_msvc}:$<IF:${_condition},/experimental:preprocessor,/Zc:preprocessor>>
-      )
+   )
+   # proper __cplusplus macro:
+   #   https://docs.microsoft.com/en-us/cpp/build/reference/zc-cplusplus?view=msvc-160
+   set(_condition  "$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,19.14>")
+   target_compile_options( amrex PUBLIC
+      $<${_cxx_msvc}:$<${_condition}:/Zc:__cplusplus>>
+   )
 
    unset(_condition)
    unset(_cxx_msvc)
@@ -142,16 +143,32 @@ function (configure_amrex)
    endif ()
 
    if ( AMReX_PIC OR BUILD_SHARED_LIBS )
-      set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
+      set_target_properties ( amrex PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+        WINDOWS_EXPORT_ALL_SYMBOLS ON )
    endif ()
 
    if ( BUILD_SHARED_LIBS OR AMReX_CUDA )
+      set(host_link_supported OLD)
+      if(CMP0105)
+        cmake_policy(GET CMP0105 host_link_supported)
+      endif()
+
       if(APPLE)
-         target_link_options(amrex PUBLIC -Wl,-undefined,warning)
+        if( host_link_supported STREQUAL "NEW" ) # CMake 3.18+
+          target_link_options(amrex PUBLIC "LINKER:-undefined,warning")
+        else()
+          target_link_options(amrex PUBLIC "-Wl,-undefined,warning")
+        endif()
       elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR
              CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
+        # nothing
       else()
-         target_link_options(amrex PUBLIC -Wl,--warn-unresolved-symbols)
+        if( host_link_supported STREQUAL "NEW" ) # CMake 3.18+
+          target_link_options(amrex PUBLIC "$<HOST_LINK:LINKER:--warn-unresolved-symbols>")
+        else()
+          target_link_options(amrex PUBLIC "-Wl,--warn-unresolved-symbols")
+        endif()
       endif()
    endif()
 

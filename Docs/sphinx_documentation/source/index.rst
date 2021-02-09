@@ -50,6 +50,7 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    EB_Chapter
    GPU_Chapter
    Visualization_Chapter
+   Post_Processing_Chapter
    Inputs_Chapter
    AMReX_Profiling_Tools_Chapter
    External_Profiling_Tools_Chapter

@@ -48,7 +48,7 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 
 #endif
 
-#if defined(AMREX_USE_GPU) || !defined(_OPENMP)
+#if defined(AMREX_USE_GPU) || !defined(AMREX_USE_OMP)
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
 IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
 #else
@@ -385,22 +385,22 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
 	BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
 	bool check_local = false, check_remote = false;
-#if defined(_OPENMP)
+#if defined(AMREX_USE_GPU)
+        check_local = true;
+        check_remote = true;
+#elif defined(AMREX_USE_OMP)
 	if (omp_get_max_threads() > 1) {
 	    check_local = true;
 	    check_remote = true;
 	}
-#elif defined(AMREX_USE_GPU)
-        check_local = true;
-        check_remote = true;
-#endif    
-	
+#endif
+
 	if (ParallelDescriptor::TeamSize() > 1) {
 	    check_local = true;
 	}
 
-        m_threadsafe_loc = not check_local;
-        m_threadsafe_rcv = not check_remote;
+        m_threadsafe_loc = ! check_local;
+        m_threadsafe_rcv = ! check_remote;
 
 	for (int i = 0; i < nlocal_dst; ++i)
 	{
@@ -719,7 +719,7 @@ FabArrayBase::FB::define_fb (const FabArrayBase& fa)
 
     BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
     bool check_local = false, check_remote = false;
-#if defined(_OPENMP)
+#if defined(AMREX_USE_OMP)
     if (omp_get_max_threads() > 1) {
         check_local = true;
         check_remote = true;
@@ -733,8 +733,8 @@ FabArrayBase::FB::define_fb (const FabArrayBase& fa)
         check_local = true;
     }
 
-    m_threadsafe_loc = not check_local;
-    m_threadsafe_rcv = not check_remote;
+    m_threadsafe_loc = ! check_local;
+    m_threadsafe_rcv = ! check_remote;
 
     for (int i = 0; i < nlocal; ++i)
     {
@@ -939,7 +939,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 
     BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
     bool check_local = false, check_remote = false;
-#if defined(_OPENMP)
+#if defined(AMREX_USE_OMP)
     if (omp_get_max_threads() > 1) {
 	check_local = true;
 	check_remote = true;
@@ -953,8 +953,8 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 	check_local = true;
     }
 
-    m_threadsafe_loc = not check_local;
-    m_threadsafe_rcv = not check_remote;
+    m_threadsafe_loc = ! check_local;
+    m_threadsafe_rcv = ! check_remote;
 
     for (int i = 0; i < nlocal; ++i)
     {
@@ -2110,7 +2110,7 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 {
     TileArray* p;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical(gettilearray)
 #endif
     {
@@ -2128,7 +2128,7 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 					     m_TAC_stats.bytes);
 #endif
 	}
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
 	{
@@ -2336,29 +2336,6 @@ FabArrayBase::updateBDKey ()
 	addThisBD();
     }
 }
-
-
-void
-FabArrayBase::WaitForAsyncSends (int                 N_snds,
-                                 Vector<MPI_Request>& send_reqs,
-                                 Vector<char*>&       send_data,
-                                 Vector<MPI_Status>&  stats)
-{
-    amrex::ignore_unused(send_data);
-#ifdef BL_USE_MPI
-    BL_ASSERT(N_snds > 0);
-
-    stats.resize(N_snds);
-
-    BL_ASSERT(send_reqs.size() == N_snds);
-    BL_ASSERT(send_data.size() == N_snds);
-
-    ParallelDescriptor::Waitall(send_reqs, stats);
-#else
-    amrex::ignore_unused(N_snds,send_reqs,stats);
-#endif /*BL_USE_MPI*/
-}
-
 
 #ifdef BL_USE_MPI
 

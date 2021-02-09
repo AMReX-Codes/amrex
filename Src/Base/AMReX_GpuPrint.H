@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_PRINT_H_
 #define AMREX_GPU_PRINT_H_
+#include <AMReX_Config.H>
 
 #if !defined(__APPLE__)
 
@@ -10,14 +11,13 @@
 #endif
 
 #if defined(AMREX_USE_DPCPP)
-#if (__SYCL_COMPILER_VERSION <= 20200827)
-#  define AMREX_DEVICE_PRINTF(format,...) { \
-      static const __attribute__((opencl_constant)) char amrex_i_format[] = format ; \
-      cl::sycl::intel::experimental::printf(amrex_i_format, __VA_ARGS__); }
-#else
+#if defined(__SYCL_DEVICE_ONLY__)
 #  define AMREX_DEVICE_PRINTF(format,...) { \
       static const __attribute__((opencl_constant)) char amrex_i_format[] = format ; \
       sycl::ONEAPI::experimental::printf(amrex_i_format, __VA_ARGS__); }
+#else
+#  define AMREX_DEVICE_PRINTF(format,...) { \
+      std::printf(format, __VA_ARGS__); }
 #endif
 #elif defined(AMREX_USE_CUDA)
 #  define AMREX_DEVICE_PRINTF(...) std::printf(__VA_ARGS__);

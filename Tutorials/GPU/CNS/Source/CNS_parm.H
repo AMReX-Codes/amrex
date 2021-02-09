@@ -5,7 +5,6 @@
 #include <AMReX_GpuMemory.H>
 
 struct Parm
-    : public amrex::Gpu::Managed
 {
     amrex::Real eos_gamma = 1.4;
     amrex::Real eos_mu = 28.97;  // mean molecular weight

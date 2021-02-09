@@ -1,5 +1,6 @@
 #ifndef AMREX_NONLOCAL_BC_IMPL_H_
 #define AMREX_NONLOCAL_BC_IMPL_H_
+#include <AMReX_Config.H>
 
 namespace amrex { namespace NonLocalBC {
 
@@ -162,7 +163,7 @@ local_copy_cpu (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaD
     auto const& LocTags = *(cmd.m_LocTags);
     int N_locs = LocTags.size();
     if (N_locs == 0) return;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int itag = 0; itag < N_locs; ++itag) {
@@ -191,7 +192,7 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int scomp, int ncomp,
     if (N_rcvs == 0) return;
 
     using T = typename FAB::value_type;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int ircv = 0; ircv < N_rcvs; ++ircv) {
@@ -321,7 +322,6 @@ struct CommHandler
     Vector<std::size_t> recv_size;
     Vector<MPI_Request> recv_reqs;
     //
-    Vector<char*>       send_data;
     Vector<MPI_Request> send_reqs;
 #endif
 };
@@ -376,22 +376,23 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
     {
         Vector<std::size_t> send_size;
         Vector<int> send_rank;
+        Vector<char*> send_data;
         Vector<const FabArrayBase::CopyComTagsContainer*> send_cctc;
-        mf.PrepareSendBuffers(*cmd.m_SndTags, handler.the_send_data, handler.send_data,
+        mf.PrepareSendBuffers(*cmd.m_SndTags, handler.the_send_data, send_data,
                               send_size, send_rank, handler.send_reqs, send_cctc, ncomp);
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
-            FabArray<FAB>::pack_send_buffer_gpu(mf, scomp, ncomp, handler.send_data,
+            FabArray<FAB>::pack_send_buffer_gpu(mf, scomp, ncomp, send_data,
                                                 send_size, send_cctc);
         } else
 #endif
         {
-            FabArray<FAB>::pack_send_buffer_cpu(mf, scomp, ncomp, handler.send_data,
+            FabArray<FAB>::pack_send_buffer_cpu(mf, scomp, ncomp, send_data,
                                                 send_size, send_cctc);
         }
 
-        FabArray<FAB>::PostSnds(handler.send_data, send_size, send_rank, handler.send_reqs, SeqNum);
+        FabArray<FAB>::PostSnds(send_data, send_size, send_rank, handler.send_reqs, SeqNum);
     }
 
     if (N_locs > 0)
@@ -452,8 +453,8 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 
     const int N_snds = cmd.m_SndTags->size();
     if (N_snds > 0) {
-        Vector<MPI_Status> stats;
-        FabArrayBase::WaitForAsyncSends(N_snds, handler.send_reqs, handler.send_data, stats);
+        Vector<MPI_Status> stats(handler.send_reqs.size());
+        ParallelDescriptor::Waitall(handler.send_reqs, stats);
         amrex::The_FA_Arena()->free(handler.the_send_data);
     }
 }
@@ -479,7 +480,7 @@ Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box co
     auto handler = Comm_nowait(mf, scomp, ncomp, TheRB90,Rotate90DstToSrc{});
 
     Box corner(-nghost, IntVect{AMREX_D_DECL(-1,-1,domain.bigEnd(2)+nghost[2])});
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {

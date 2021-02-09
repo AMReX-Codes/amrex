@@ -1,7 +1,8 @@
 #ifndef AMREX_OPENMP_H_
 #define AMREX_OPENMP_H_
+#include <AMReX_Config.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 
 namespace amrex {

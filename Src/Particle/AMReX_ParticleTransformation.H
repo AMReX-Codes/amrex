@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLETRANSFORMATION_H_
 #define AMREX_PARTICLETRANSFORMATION_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
@@ -324,7 +325,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
     Gpu::DeviceVector<Index> offsets(np);
     Gpu::exclusive_scan(mask, mask+np, offsets.begin());
 
-    Index last_mask, last_offset;
+    Index last_mask=0, last_offset=0;
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);    
       

@@ -10,7 +10,7 @@ void cns_derpres (const Box& bx, FArrayBox& pfab, int dcomp, int /*ncomp*/,
 {
     auto const rhoe = rhoefab.array();
     auto       p    = pfab.array();
-    Parm const* parm = CNS::parm.get();
+    Parm const* parm = CNS::d_parm;
     amrex::ParallelFor(bx,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {

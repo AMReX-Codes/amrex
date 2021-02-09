@@ -1,7 +1,8 @@
 #ifndef BL_FABARRAYBASE_H_
 #define BL_FABARRAYBASE_H_
+#include <AMReX_Config.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -403,12 +404,6 @@ public:
     enum CpOp { COPY = 0, ADD = 1 };
 
     const TileArray* getTileArray (const IntVect& tilesize) const;
-
-    //! Block until all send requests complete
-    static void WaitForAsyncSends (int                 N_snds,
-                                   Vector<MPI_Request>& send_reqs,
-                                   Vector<char*>&       send_data,
-                                   Vector<MPI_Status>&  stats);
 
     // Memory Usage Tags
     struct meminfo {

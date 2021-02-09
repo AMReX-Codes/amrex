@@ -1,5 +1,6 @@
 #ifndef AMREX_INTVECT_H_
 #define AMREX_INTVECT_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_INT.H>
 #include <AMReX_ccse-mpi.H>
@@ -133,6 +134,17 @@ public:
         return Dim3{vect[0],vect[1],vect[2]};
 #endif
     }
+
+#if __cplusplus >= 201402L
+    template< typename T = int >
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Array<T, AMREX_SPACEDIM>
+    toArray () const noexcept {
+        return Array<T, AMREX_SPACEDIM>{
+            AMREX_D_DECL(T(vect[0]), T(vect[1]), T(vect[2]))
+        };
+    }
+#endif
 
   ///
   /**

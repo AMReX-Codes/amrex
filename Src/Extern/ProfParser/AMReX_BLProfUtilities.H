@@ -3,6 +3,7 @@
 // ----------------------------------------------------------------------
 #ifndef BL_BLPROFUTILITIES_H
 #define BL_BLPROFUTILITIES_H
+#include <AMReX_Config.H>
 
 //#include <cstdlib>
 //#include <cstdio>

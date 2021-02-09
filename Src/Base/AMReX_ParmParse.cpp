@@ -1,3 +1,10 @@
+#include <AMReX.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Box.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_BLFort.H>
+#include <AMReX_Print.H>
 
 #include <algorithm>
 #include <iterator>
@@ -12,15 +19,6 @@
 #include <cctype>
 #include <vector>
 #include <list>
-#include <map>
-
-#include <AMReX.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_ParallelDescriptor.H>
-#include <AMReX_Box.H>
-#include <AMReX_IntVect.H>
-#include <AMReX_BLFort.H>
-#include <AMReX_Print.H>
 
 extern "C" void amrex_init_namelist (const char*);
 extern "C" void amrex_finalize_namelist ();
@@ -844,30 +842,30 @@ sgetarr (const ParmParse::Table& table,
 template <class T>
 void
 saddval (const std::string&      name,
-	 const T&                ptr)
+         const T&                ptr)
 {
-	std::stringstream val;
-	val << ptr;
-	ParmParse::PP_entry entry(name,val.str());
-	entry.m_queried=true;
-	g_table.push_back(entry);
+    std::stringstream val;
+    val << std::setprecision(17) << ptr;
+    ParmParse::PP_entry entry(name,val.str());
+    entry.m_queried=true;
+    g_table.push_back(entry);
 }
 
 
 template <class T>
 void
 saddarr (const std::string&      name,
-	 const std::vector<T>&   ptr)
+         const std::vector<T>&   ptr)
 {
-	std::list<std::string> arr;
-	for(int i = 0; i < ptr.size(); i++) {
-		std::stringstream val;
-		val << ptr[i];
-		arr.push_back(val.str());
-	}
-	ParmParse::PP_entry entry(name,arr);
-	entry.m_queried=true;
-	g_table.push_back(entry);
+    std::list<std::string> arr;
+    for(int i = 0; i < ptr.size(); i++) {
+        std::stringstream val;
+        val << std::setprecision(17) << ptr[i];
+        arr.push_back(val.str());
+    }
+    ParmParse::PP_entry entry(name,arr);
+    entry.m_queried=true;
+    g_table.push_back(entry);
 }
 
 }
@@ -1014,7 +1012,7 @@ ParmParse::appendTable(ParmParse::Table& tab)
 
 static
 bool
-unused_table_entries_q (const ParmParse::Table& table)
+unused_table_entries_q (const ParmParse::Table& table, const std::string& prefix = std::string())
 {
     for ( const_list_iterator li = table.begin(), End = table.end(); li != End; ++li )
     {
@@ -1022,16 +1020,28 @@ unused_table_entries_q (const ParmParse::Table& table)
 	{
 	    if ( !li->m_queried )
 	    {
-		return true;
+                if (prefix.empty()) {
+                    return true;
+                } else {
+                    if (li->m_name.substr(0,prefix.size()+1) == prefix+".") {
+                        return true;
+                    }
+                }
 	    }
 	    else
 	    {
-		return unused_table_entries_q(*li->m_table);
+		if (unused_table_entries_q(*li->m_table, prefix)) return true;
 	    }
 	}
 	else if ( !li->m_queried )
 	{
-	    return true;
+            if (prefix.empty()) {
+                return true;
+            } else {
+                if (li->m_name.substr(0,prefix.size()+1) == prefix+".") {
+                    return true;
+                }
+            }
 	}
     }
     return false;
@@ -1092,6 +1102,43 @@ ParmParse::QueryUnusedInputs ()
       return true;
     }
     return false;
+}
+
+bool
+ParmParse::hasUnusedInputs (const std::string& prefix)
+{
+    return unused_table_entries_q(g_table, prefix);
+}
+
+static
+void
+get_unused_inputs(std::vector<std::string>& unused, const ParmParse::Table& table,
+                  const std::string& prefix)
+{
+    const std::string prefixdot = prefix.empty() ? std::string() : prefix+".";
+    for (auto const& entry : table) {
+        if (! entry.m_queried) {
+            if (entry.m_name.substr(0,prefixdot.size()) == prefixdot) {
+                std::string tmp(entry.m_name + " =");
+                for (auto const& v : entry.m_vals) {
+                    tmp += " " + v;
+                }
+                unused.emplace_back(std::move(tmp));
+            }
+        }
+
+        if (entry.m_table) {
+            get_unused_inputs(unused, table, prefix);
+        }
+    }
+}
+
+std::vector<std::string>
+ParmParse::getUnusedInputs (const std::string& prefix)
+{
+    std::vector<std::string> r;
+    get_unused_inputs(r, g_table, prefix);
+    return r;
 }
     
 void

@@ -121,63 +121,6 @@ macro ( set_default_config_flags )
 
 endmacro ()
 
-#
-#
-# FUNCTION: add_amrex_define
-#
-# Add definition to target "amrex" compile definitions.
-#
-# Arguments:
-#
-#    new_define    = variable containing the definition to add.
-#                    The new define can be any string with no "-D" prepended.
-#                    If the new define is in the form AMREX_SOMENAME,
-#                    this function also adds BL_SOMENAME to the list,
-#                    unless NO_LEGACY is specified (see below)
-#
-#    NO_LEGACY     = if specified, the legacy version of a new_define given in the
-#                    form AMREX_SOMENAME will not be added.
-#
-#    IF <cond-var> = new_define is added only if <cond-var> is true
-#
-#
-function ( add_amrex_define new_define )
-
-   #
-   # Check if target "amrex" has been defined before
-   # calling this macro
-   #
-   if (NOT TARGET amrex)
-      message(FATAL_ERROR "Target 'amrex' must be defined before calling function 'add_amrex_define'" )
-   endif ()
-
-   cmake_parse_arguments( DEFINE "NO_LEGACY" "IF" ""  ${ARGN} )
-
-   set( condition  1 )
-
-   if (DEFINE_IF)
-      set( condition ${${DEFINE_IF}} )
-   endif()
-
-   # Return if flags does not need to be included
-   if (NOT condition)
-      return()
-   endif ()
-
-   target_compile_definitions( amrex PUBLIC $<BUILD_INTERFACE:${new_define}> )
-
-   if ( NOT DEFINE_NO_LEGACY )
-      # Add legacy definition
-      string( FIND ${new_define} "AMREX_" out )
-
-      if (${out} GREATER -1 )
-	 string(REPLACE "AMREX_" "BL_" legacy_define ${new_define})
-	 target_compile_definitions( amrex PUBLIC $<BUILD_INTERFACE:${legacy_define}> )
-      endif ()
-   endif ()
-
-endfunction ()
-
 
 #
 #
