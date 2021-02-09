@@ -143,7 +143,9 @@ function (configure_amrex)
    endif ()
 
    if ( AMReX_PIC OR BUILD_SHARED_LIBS )
-      set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
+      set_target_properties ( amrex PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+        WINDOWS_EXPORT_ALL_SYMBOLS ON )
    endif ()
 
    if ( BUILD_SHARED_LIBS OR AMReX_CUDA )
