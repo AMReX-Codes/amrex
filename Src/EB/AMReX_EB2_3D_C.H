@@ -16,6 +16,8 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
                        Array4<Type_t> const& ey,
                        Array4<Type_t> const& ez)
 {
+    bool handle_multiple_cuts = true;
+
     auto lo = amrex::max_lbound(tbx, bxg2);
     auto hi = amrex::min_ubound(tbx, bxg2);
     amrex::Loop(lo, hi,
@@ -157,6 +159,206 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
             ez(i,j,k) = Type::irregular;
         }
     });
+
+    if (handle_multiple_cuts) {
+       b = amrex::surroundingNodes(bxg2,0);
+       lo = amrex::max_lbound(tbx, b);
+       hi = amrex::min_ubound(tbx, b);
+       amrex::Loop(lo, hi,
+       [=] (int i, int j, int k) noexcept
+       {
+           // If only opposite corners of face are inside fluid
+           if ( (   s(i,j,k  ) <  0.0 && s(i,j+1,k  ) >= 0.0
+                 && s(i,j,k+1) >= 0.0 && s(i,j+1,k+1) <  0.0 )
+              || (  s(i,j,k  ) >= 0.0 && s(i,j+1,k  ) <  0.0
+                 && s(i,j,k+1) <  0.0 && s(i,j+1,k+1) >= 0.0 )
+              )
+           {
+               // Cover the face
+               fx(i,j,k) = Type::covered;
+
+               // Cover the 4 edges of the face
+               ey(i,j,k) = Type::covered;
+               ey(i,j,k+1) = Type::covered;
+               ez(i,j,k) = Type::covered;
+               ez(i,j+1,k) = Type::covered;
+
+               // Cover additional edges for faces that are not at the boundary
+               if (i > fx.begin.x && i < fx.end.x-1) {
+                  // Cover the other ey that touch the corners if necessary
+                  if (ey(i,j-1,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
+                     ey(i,j-1,k) = Type::covered;
+                  if (ey(i,j-1,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
+                     ey(i,j-1,k+1) = Type::covered;
+                  if (ey(i,j+1,k  ) == Type::irregular && s(i,j+1,k  ) < 0.0)
+                     ey(i,j+1,k) = Type::covered;
+                  if (ey(i,j+1,k+1) == Type::irregular && s(i,j+1,k+1) < 0.0)
+                     ey(i,j+1,k+1) = Type::covered;
+
+                  // Cover the other ez that touch the corners if necessary
+                  if (ez(i  ,j,k-1) == Type::irregular && s(i  ,j,k  ) < 0.0)
+                     ez(i,j,k-1) = Type::covered;
+                  if (ez(i  ,j,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
+                     ez(i,j,k+1) = Type::covered;
+                  if (ez(i,j+1,k-1) == Type::irregular && s(i,j+1,k  ) < 0.0)
+                     ez(i,j+1,k-1) = Type::covered;
+                  if (ez(i,j+1,k+1) == Type::irregular && s(i,j+1,k+1) < 0.0)
+                     ez(i,j+1,k+1) = Type::covered;
+
+                  // Cover the ex that touch the corners if necessary
+                  if (ex(i-1,j  ,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
+                     ex(i-1,j,k) = Type::covered;
+                  if (ex(i  ,j  ,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
+                     ex(i,j,k) = Type::covered;
+                  if (ex(i-1,j  ,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
+                     ex(i-1,j,k+1) = Type::covered;
+                  if (ex(i  ,j  ,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
+                     ex(i,j,k+1) = Type::covered;
+                  if (ex(i-1,j+1,k+1) == Type::irregular && s(i,j+1,k+1) < 0.0)
+                     ex(i-1,j+1,k+1) = Type::covered;
+                  if (ex(i  ,j+1,k+1) == Type::irregular && s(i,j+1,k+1) < 0.0)
+                     ex(i,j+1,k+1) = Type::covered;
+                  if (ex(i-1,j+1,k  ) == Type::irregular && s(i,j+1,k  ) < 0.0)
+                     ex(i-1,j+1,k) = Type::covered;
+                  if (ex(i  ,j+1,k  ) == Type::irregular && s(i,j+1,k  ) < 0.0)
+                     ex(i,j+1,k) = Type::covered;
+               }
+
+           }
+       });
+
+       b = amrex::surroundingNodes(bxg2,1);
+       lo = amrex::max_lbound(tbx, b);
+       hi = amrex::min_ubound(tbx, b);
+       amrex::Loop(lo, hi,
+       [=] (int i, int j, int k) noexcept
+       {
+           // If only opposite corners of face are inside fluid
+           if ( (   s(i,j,k  ) <  0.0 && s(i+1,j,k  ) >= 0.0
+                 && s(i,j,k+1) >= 0.0 && s(i+1,j,k+1) <  0.0 )
+              || (  s(i,j,k  ) >= 0.0 && s(i+1,j,k  ) <  0.0
+                 && s(i,j,k+1) <  0.0 && s(i+1,j,k+1) >= 0.0 )
+              )
+           {
+               // Cover the face
+               fy(i,j,k) = Type::covered;
+
+               // Cover the 4 edges of the face
+               ex(i,j,k) = Type::covered;
+               ex(i,j,k+1) = Type::covered;
+               ez(i,j,k) = Type::covered;
+               ez(i+1,j,k) = Type::covered;
+
+               // Cover additional edges for faces that are not at the boundary
+               if (j > fy.begin.y && j < fy.end.y-1) {
+                  //Cover the other ex that touch the corners if necessary
+                  if (ex(i-1,j,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
+                     ex(i-1,j,k) = Type::covered;
+                  if (ex(i-1,j,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
+                     ex(i-1,j,k+1) = Type::covered;
+                  if (ex(i+1,j,k  ) == Type::irregular && s(i+1,j,k  ) < 0.0)
+                     ex(i+1,j,k) = Type::covered;
+                  if (ex(i+1,j,k+1) == Type::irregular && s(i+1,j,k+1) < 0.0)
+                     ex(i+1,j,k+1) = Type::covered;
+
+                  // Cover the other ez that touch the corners if necessary
+                  if (ez(i  ,j,k-1) == Type::irregular && s(i  ,j,k  ) < 0.0)
+                     ez(i,j,k-1) = Type::covered;
+                  if (ez(i  ,j,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
+                     ez(i,j,k+1) = Type::covered;
+                  if (ez(i+1,j,k-1) == Type::irregular && s(i+1,j,k  ) < 0.0)
+                     ez(i+1,j,k-1) = Type::covered;
+                  if (ez(i+1,j,k+1) == Type::irregular && s(i+1,j,k+1) < 0.0)
+                     ez(i+1,j,k+1) = Type::covered;
+
+                  // Cover the ey that touch the corners if necessary
+                  if (ey(i  ,j-1,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
+                     ey(i,j-1,k) = Type::covered;
+                  if (ey(i  ,j  ,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
+                     ey(i,j,k) = Type::covered;
+                  if (ey(i  ,j-1,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
+                     ey(i,j-1,k+1) = Type::covered;
+                  if (ey(i  ,j  ,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
+                     ey(i,j,k+1) = Type::covered;
+                  if (ey(i+1,j-1,k+1) == Type::irregular && s(i+1,j,k+1) < 0.0)
+                     ey(i+1,j-1,k+1) = Type::covered;
+                  if (ey(i+1,j  ,k+1) == Type::irregular && s(i+1,j,k+1) < 0.0)
+                     ey(i+1,j,k+1) = Type::covered;
+                  if (ey(i+1,j-1,k  ) == Type::irregular && s(i+1,j,k  ) < 0.0)
+                     ey(i+1,j-1,k) = Type::covered;
+                  if (ey(i+1,j  ,k  ) == Type::irregular && s(i+1,j,k  ) < 0.0)
+                     ey(i+1,j,k) = Type::covered;
+               }
+
+           }
+       });
+
+       b = amrex::surroundingNodes(bxg2,2);
+       lo = amrex::max_lbound(tbx, b);
+       hi = amrex::min_ubound(tbx, b);
+       amrex::Loop(lo, hi,
+       [=] (int i, int j, int k) noexcept
+       {
+           // If only opposite corners of face are inside fluid
+           if ( (   s(i,j,k  ) <  0.0 && s(i+1,j,k  ) >= 0.0
+                 && s(i,j+1,k) >= 0.0 && s(i+1,j+1,k) <  0.0 )
+              || (  s(i,j,k  ) >= 0.0 && s(i+1,j,k  ) <  0.0
+                 && s(i,j+1,k) <  0.0 && s(i+1,j+1,k) >= 0.0 )
+              )
+           {
+               // Cover the face
+               fz(i,j,k) = Type::covered;
+
+               // Cover the 4 edges of the face
+               ex(i,j,k) = Type::covered;
+               ex(i,j+1,k) = Type::covered;
+               ey(i,j,k) = Type::covered;
+               ey(i+1,j,k) = Type::covered;
+
+               // Cover additional edges for faces that are not at the boundary
+               if (k > fz.begin.z && k < fz.end.z-1) {
+                  //Cover the other ex that touch the corners if necessary
+                  if (ex(i-1,j,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
+                     ex(i-1,j,k) = Type::covered;
+                  if (ex(i-1,j+1,k) == Type::irregular && s(i  ,j+1,k) < 0.0)
+                     ex(i-1,j+1,k) = Type::covered;
+                  if (ex(i+1,j,k  ) == Type::irregular && s(i+1,j,k  ) < 0.0)
+                     ex(i+1,j,k) = Type::covered;
+                  if (ex(i+1,j+1,k) == Type::irregular && s(i+1,j+1,k) < 0.0)
+                     ex(i+1,j+1,k) = Type::covered;
+
+                  // Cover the other ey that touch the corners if necessary
+                  if (ey(i  ,j-1,k) == Type::irregular && s(i  ,j,k  ) < 0.0)
+                     ey(i,j-1,k) = Type::covered;
+                  if (ey(i  ,j+1,k) == Type::irregular && s(i  ,j+1,k) < 0.0)
+                     ey(i,j+1,k) = Type::covered;
+                  if (ey(i+1,j-1,k) == Type::irregular && s(i+1,j,k  ) < 0.0)
+                     ey(i+1,j-1,k) = Type::covered;
+                  if (ey(i+1,j+1,k) == Type::irregular && s(i+1,j+1,k) < 0.0)
+                     ey(i+1,j+1,k) = Type::covered;
+
+                  // Cover the ez that touch the corners if necessary
+                  if (ez(i  ,j  ,k-1) == Type::irregular && s(i  ,j,k  ) < 0.0)
+                     ez(i,j,k-1) = Type::covered;
+                  if (ez(i  ,j  ,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
+                     ez(i,j,k) = Type::covered;
+                  if (ez(i  ,j+1,k-1) == Type::irregular && s(i  ,j+1,k) < 0.0)
+                     ez(i,j+1,k-1) = Type::covered;
+                  if (ez(i  ,j+1,k  ) == Type::irregular && s(i  ,j+1,k) < 0.0)
+                     ez(i,j+1,k) = Type::covered;
+                  if (ez(i+1,j+1,k-1) == Type::irregular && s(i+1,j+1,k) < 0.0)
+                     ez(i+1,j+1,k-1) = Type::covered;
+                  if (ez(i+1,j+1,k  ) == Type::irregular && s(i+1,j+1,k) < 0.0)
+                     ez(i+1,j+1,k) = Type::covered;
+                  if (ez(i+1,j  ,k-1) == Type::irregular && s(i+1,j,k  ) < 0.0)
+                     ez(i+1,j,k-1) = Type::covered;
+                  if (ez(i+1,j  ,k  ) == Type::irregular && s(i+1,j,k  ) < 0.0)
+                     ez(i+1,j,k) = Type::covered;
+               }
+
+           }
+       });
+    }
 }
 
 namespace {
