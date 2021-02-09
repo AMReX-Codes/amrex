@@ -842,30 +842,30 @@ sgetarr (const ParmParse::Table& table,
 template <class T>
 void
 saddval (const std::string&      name,
-	 const T&                ptr)
+         const T&                ptr)
 {
-	std::stringstream val;
-	val << ptr;
-	ParmParse::PP_entry entry(name,val.str());
-	entry.m_queried=true;
-	g_table.push_back(entry);
+    std::stringstream val;
+    val << std::setprecision(17) << ptr;
+    ParmParse::PP_entry entry(name,val.str());
+    entry.m_queried=true;
+    g_table.push_back(entry);
 }
 
 
 template <class T>
 void
 saddarr (const std::string&      name,
-	 const std::vector<T>&   ptr)
+         const std::vector<T>&   ptr)
 {
-	std::list<std::string> arr;
-	for(int i = 0; i < ptr.size(); i++) {
-		std::stringstream val;
-		val << ptr[i];
-		arr.push_back(val.str());
-	}
-	ParmParse::PP_entry entry(name,arr);
-	entry.m_queried=true;
-	g_table.push_back(entry);
+    std::list<std::string> arr;
+    for(int i = 0; i < ptr.size(); i++) {
+        std::stringstream val;
+        val << std::setprecision(17) << ptr[i];
+        arr.push_back(val.str());
+    }
+    ParmParse::PP_entry entry(name,arr);
+    entry.m_queried=true;
+    g_table.push_back(entry);
 }
 
 }
