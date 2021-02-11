@@ -42,17 +42,17 @@ function (configure_amrex)
    # Moreover, it will also enforce such standard on all the consuming targets
    #
    set_target_properties(amrex PROPERTIES CXX_EXTENSIONS OFF)
-   # minimum: C++11 on Linux, C++17 on Windows, C++17 for dpc++
+   # minimum: C++14 on Linux, C++17 on Windows, C++17 for dpc++
    if (AMReX_DPCPP)
       target_compile_features(amrex PUBLIC cxx_std_17)
    else ()
-      target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cxx_std_17,cxx_std_11>)
+      target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cxx_std_17,cxx_std_14>)
    endif ()
 
    if (AMReX_CUDA AND (CMAKE_VERSION VERSION_GREATER_EQUAL 3.17) )
       set_target_properties(amrex PROPERTIES CUDA_EXTENSIONS OFF)
-      # minimum: C++11 on Linux, C++17 on Windows
-      target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cuda_std_17,cuda_std_11>)
+      # minimum: C++14 on Linux, C++17 on Windows
+      target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cuda_std_17,cuda_std_14>)
    endif()
 
    #
