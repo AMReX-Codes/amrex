@@ -28,11 +28,10 @@ sudo apt-get update
 sudo apt-get install -y \
     cuda-command-line-tools-9-2 \
     cuda-compiler-9-2           \
-    cuda-cupti-dev-9-2          \
     cuda-minimal-build-9-2      \
     cuda-nvml-dev-9-2           \
-    cuda-nvtx-9-2               \
-    libcurand-dev-9-2
+    cuda-nvtx-9-2
+
 sudo ln -s cuda-9.2 /usr/local/cuda
 
 
