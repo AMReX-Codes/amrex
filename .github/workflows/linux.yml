@@ -182,6 +182,9 @@ jobs:
       run: .github/workflows/dependencies/dependencies_nvcc9.sh
     - name: Build & Install
       run: |
+        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+        which nvcc || echo "nvcc not in PATH!"
         mkdir build
         cd build
         cmake ..                                         \
