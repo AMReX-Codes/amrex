@@ -187,11 +187,11 @@ jobs:
         which nvcc || echo "nvcc not in PATH!"
         mkdir build
         cd build
-        cmake ..                                         \
-            -DCMAKE_VERBOSE_MAKEFILE=ON                  \
-            -DAMReX_BUILD_TUTORIALS=ON                   \
-            -DAMReX_PARTICLES=ON                        \
-            -DAMReX_GPU_BACKEND=CUDA                         \
+        cmake ..                                           \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DAMReX_BUILD_TUTORIALS=ON                     \
+            -DAMReX_PARTICLES=ON                           \
+            -DAMReX_GPU_BACKEND=CUDA                       \
             -DCMAKE_C_COMPILER=$(which gcc-6)              \
             -DCMAKE_CXX_COMPILER=$(which g++-6)            \
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++-6)      \
