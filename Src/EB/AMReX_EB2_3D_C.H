@@ -183,43 +183,52 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
                ez(i,j,k) = Type::covered;
                ez(i,j+1,k) = Type::covered;
 
-               // Cover additional edges for faces that are not at the boundary
-               if (i > fx.begin.x && i < fx.end.x-1) {
-                  // Cover the other ey that touch the corners if necessary
+               // Cover the other ey that touch the corners if necessary
+               if (j > ey.begin.y) {
                   if (ey(i,j-1,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
                      ey(i,j-1,k) = Type::covered;
                   if (ey(i,j-1,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
                      ey(i,j-1,k+1) = Type::covered;
+               }
+               if (j < ey.end.y-1) {
                   if (ey(i,j+1,k  ) == Type::irregular && s(i,j+1,k  ) < 0.0)
                      ey(i,j+1,k) = Type::covered;
                   if (ey(i,j+1,k+1) == Type::irregular && s(i,j+1,k+1) < 0.0)
                      ey(i,j+1,k+1) = Type::covered;
+               }
 
-                  // Cover the other ez that touch the corners if necessary
+               // Cover the other ez that touch the corners if necessary
+               if (k > ez.begin.z) {
                   if (ez(i  ,j,k-1) == Type::irregular && s(i  ,j,k  ) < 0.0)
                      ez(i,j,k-1) = Type::covered;
-                  if (ez(i  ,j,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
-                     ez(i,j,k+1) = Type::covered;
                   if (ez(i,j+1,k-1) == Type::irregular && s(i,j+1,k  ) < 0.0)
                      ez(i,j+1,k-1) = Type::covered;
+               }
+               if (k < ez.end.z-1) {
+                  if (ez(i  ,j,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
+                     ez(i,j,k+1) = Type::covered;
                   if (ez(i,j+1,k+1) == Type::irregular && s(i,j+1,k+1) < 0.0)
                      ez(i,j+1,k+1) = Type::covered;
+               }
 
-                  // Cover the ex that touch the corners if necessary
+               // Cover the ex that touch the corners if necessary
+               if (i > ex.begin.x) {
                   if (ex(i-1,j  ,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
                      ex(i-1,j,k) = Type::covered;
-                  if (ex(i  ,j  ,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
-                     ex(i,j,k) = Type::covered;
-                  if (ex(i-1,j  ,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
-                     ex(i-1,j,k+1) = Type::covered;
-                  if (ex(i  ,j  ,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
-                     ex(i,j,k+1) = Type::covered;
-                  if (ex(i-1,j+1,k+1) == Type::irregular && s(i,j+1,k+1) < 0.0)
-                     ex(i-1,j+1,k+1) = Type::covered;
-                  if (ex(i  ,j+1,k+1) == Type::irregular && s(i,j+1,k+1) < 0.0)
-                     ex(i,j+1,k+1) = Type::covered;
                   if (ex(i-1,j+1,k  ) == Type::irregular && s(i,j+1,k  ) < 0.0)
                      ex(i-1,j+1,k) = Type::covered;
+                  if (ex(i-1,j  ,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
+                     ex(i-1,j,k+1) = Type::covered;
+                  if (ex(i-1,j+1,k+1) == Type::irregular && s(i,j+1,k+1) < 0.0)
+                     ex(i-1,j+1,k+1) = Type::covered;
+                }
+               if (i <= ex.end.x-1) {
+                  if (ex(i  ,j  ,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
+                     ex(i,j,k) = Type::covered;
+                  if (ex(i  ,j  ,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
+                     ex(i,j,k+1) = Type::covered;
+                  if (ex(i  ,j+1,k+1) == Type::irregular && s(i,j+1,k+1) < 0.0)
+                     ex(i,j+1,k+1) = Type::covered;
                   if (ex(i  ,j+1,k  ) == Type::irregular && s(i,j+1,k  ) < 0.0)
                      ex(i,j+1,k) = Type::covered;
                }
@@ -249,43 +258,52 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
                ez(i,j,k) = Type::covered;
                ez(i+1,j,k) = Type::covered;
 
-               // Cover additional edges for faces that are not at the boundary
-               if (j > fy.begin.y && j < fy.end.y-1) {
-                  //Cover the other ex that touch the corners if necessary
+               //Cover the other ex that touch the corners if necessary
+               if (i > ex.begin.x) {
                   if (ex(i-1,j,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
                      ex(i-1,j,k) = Type::covered;
                   if (ex(i-1,j,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
                      ex(i-1,j,k+1) = Type::covered;
+               }
+               if (i < ex.end.x-1) {
                   if (ex(i+1,j,k  ) == Type::irregular && s(i+1,j,k  ) < 0.0)
                      ex(i+1,j,k) = Type::covered;
                   if (ex(i+1,j,k+1) == Type::irregular && s(i+1,j,k+1) < 0.0)
                      ex(i+1,j,k+1) = Type::covered;
+               }
 
-                  // Cover the other ez that touch the corners if necessary
+               // Cover the other ez that touch the corners if necessary
+               if (k > ez.begin.z) {
                   if (ez(i  ,j,k-1) == Type::irregular && s(i  ,j,k  ) < 0.0)
                      ez(i,j,k-1) = Type::covered;
-                  if (ez(i  ,j,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
-                     ez(i,j,k+1) = Type::covered;
                   if (ez(i+1,j,k-1) == Type::irregular && s(i+1,j,k  ) < 0.0)
                      ez(i+1,j,k-1) = Type::covered;
+               }
+               if (k < ez.end.z-1) {
+                  if (ez(i  ,j,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
+                     ez(i,j,k+1) = Type::covered;
                   if (ez(i+1,j,k+1) == Type::irregular && s(i+1,j,k+1) < 0.0)
                      ez(i+1,j,k+1) = Type::covered;
+               }
 
-                  // Cover the ey that touch the corners if necessary
+               // Cover the ey that touch the corners if necessary
+               if (j > ey.begin.y) {
                   if (ey(i  ,j-1,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
                      ey(i,j-1,k) = Type::covered;
-                  if (ey(i  ,j  ,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
-                     ey(i,j,k) = Type::covered;
-                  if (ey(i  ,j-1,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
-                     ey(i,j-1,k+1) = Type::covered;
-                  if (ey(i  ,j  ,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
-                     ey(i,j,k+1) = Type::covered;
-                  if (ey(i+1,j-1,k+1) == Type::irregular && s(i+1,j,k+1) < 0.0)
-                     ey(i+1,j-1,k+1) = Type::covered;
-                  if (ey(i+1,j  ,k+1) == Type::irregular && s(i+1,j,k+1) < 0.0)
-                     ey(i+1,j,k+1) = Type::covered;
                   if (ey(i+1,j-1,k  ) == Type::irregular && s(i+1,j,k  ) < 0.0)
                      ey(i+1,j-1,k) = Type::covered;
+                  if (ey(i+1,j-1,k+1) == Type::irregular && s(i+1,j,k+1) < 0.0)
+                     ey(i+1,j-1,k+1) = Type::covered;
+                  if (ey(i  ,j-1,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
+                     ey(i,j-1,k+1) = Type::covered;
+               }
+               if (j <= ey.end.y-1) {
+                  if (ey(i  ,j  ,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
+                     ey(i,j,k) = Type::covered;
+                  if (ey(i  ,j  ,k+1) == Type::irregular && s(i  ,j,k+1) < 0.0)
+                     ey(i,j,k+1) = Type::covered;
+                  if (ey(i+1,j  ,k+1) == Type::irregular && s(i+1,j,k+1) < 0.0)
+                     ey(i+1,j,k+1) = Type::covered;
                   if (ey(i+1,j  ,k  ) == Type::irregular && s(i+1,j,k  ) < 0.0)
                      ey(i+1,j,k) = Type::covered;
                }
@@ -315,43 +333,52 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
                ey(i,j,k) = Type::covered;
                ey(i+1,j,k) = Type::covered;
 
-               // Cover additional edges for faces that are not at the boundary
-               if (k > fz.begin.z && k < fz.end.z-1) {
-                  //Cover the other ex that touch the corners if necessary
+               //Cover the other ex that touch the corners if necessary
+               if (i > ex.begin.x) {
                   if (ex(i-1,j,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
                      ex(i-1,j,k) = Type::covered;
                   if (ex(i-1,j+1,k) == Type::irregular && s(i  ,j+1,k) < 0.0)
                      ex(i-1,j+1,k) = Type::covered;
+               }
+               if (i < ex.end.x-1) {
                   if (ex(i+1,j,k  ) == Type::irregular && s(i+1,j,k  ) < 0.0)
                      ex(i+1,j,k) = Type::covered;
                   if (ex(i+1,j+1,k) == Type::irregular && s(i+1,j+1,k) < 0.0)
                      ex(i+1,j+1,k) = Type::covered;
+               }
 
-                  // Cover the other ey that touch the corners if necessary
+               // Cover the other ey that touch the corners if necessary
+               if (j > ey.begin.y) {
                   if (ey(i  ,j-1,k) == Type::irregular && s(i  ,j,k  ) < 0.0)
                      ey(i,j-1,k) = Type::covered;
-                  if (ey(i  ,j+1,k) == Type::irregular && s(i  ,j+1,k) < 0.0)
-                     ey(i,j+1,k) = Type::covered;
                   if (ey(i+1,j-1,k) == Type::irregular && s(i+1,j,k  ) < 0.0)
                      ey(i+1,j-1,k) = Type::covered;
+               }
+               if (j < ey.end.y-1) {
+                  if (ey(i  ,j+1,k) == Type::irregular && s(i  ,j+1,k) < 0.0)
+                     ey(i,j+1,k) = Type::covered;
                   if (ey(i+1,j+1,k) == Type::irregular && s(i+1,j+1,k) < 0.0)
                      ey(i+1,j+1,k) = Type::covered;
+               }
 
-                  // Cover the ez that touch the corners if necessary
+               // Cover the ez that touch the corners if necessary
+               if (k > ez.begin.z) {
                   if (ez(i  ,j  ,k-1) == Type::irregular && s(i  ,j,k  ) < 0.0)
                      ez(i,j,k-1) = Type::covered;
-                  if (ez(i  ,j  ,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
-                     ez(i,j,k) = Type::covered;
                   if (ez(i  ,j+1,k-1) == Type::irregular && s(i  ,j+1,k) < 0.0)
                      ez(i,j+1,k-1) = Type::covered;
-                  if (ez(i  ,j+1,k  ) == Type::irregular && s(i  ,j+1,k) < 0.0)
-                     ez(i,j+1,k) = Type::covered;
                   if (ez(i+1,j+1,k-1) == Type::irregular && s(i+1,j+1,k) < 0.0)
                      ez(i+1,j+1,k-1) = Type::covered;
-                  if (ez(i+1,j+1,k  ) == Type::irregular && s(i+1,j+1,k) < 0.0)
-                     ez(i+1,j+1,k) = Type::covered;
                   if (ez(i+1,j  ,k-1) == Type::irregular && s(i+1,j,k  ) < 0.0)
                      ez(i+1,j,k-1) = Type::covered;
+               }
+               if (k <= ez.end.z-1) {
+                  if (ez(i  ,j  ,k  ) == Type::irregular && s(i  ,j,k  ) < 0.0)
+                     ez(i,j,k) = Type::covered;
+                  if (ez(i  ,j+1,k  ) == Type::irregular && s(i  ,j+1,k) < 0.0)
+                     ez(i,j+1,k) = Type::covered;
+                  if (ez(i+1,j+1,k  ) == Type::irregular && s(i+1,j+1,k) < 0.0)
+                     ez(i+1,j+1,k) = Type::covered;
                   if (ez(i+1,j  ,k  ) == Type::irregular && s(i+1,j,k  ) < 0.0)
                      ez(i+1,j,k) = Type::covered;
                }
