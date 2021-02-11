@@ -1,6 +1,7 @@
 #ifndef AMREX_EB2_3D_C_H_
 #define AMREX_EB2_3D_C_H_
 #include <AMReX_Config.H>
+#include <AMReX_ParmParse.H>
 
 namespace amrex { namespace EB2 {
 
@@ -16,8 +17,6 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
                        Array4<Type_t> const& ey,
                        Array4<Type_t> const& ez)
 {
-    bool handle_multiple_cuts = true;
-
     auto lo = amrex::max_lbound(tbx, bxg2);
     auto hi = amrex::min_ubound(tbx, bxg2);
     amrex::Loop(lo, hi,
@@ -160,20 +159,30 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
         }
     });
 
-    if (handle_multiple_cuts) {
+    bool cover_multiple_cuts = false;
+    {
+        ParmParse pp("eb2");
+        pp.query("cover_multiple_cuts", cover_multiple_cuts);
+    }
+
+    if (cover_multiple_cuts) {
        b = amrex::surroundingNodes(bxg2,0);
        lo = amrex::max_lbound(tbx, b);
        hi = amrex::min_ubound(tbx, b);
        amrex::Loop(lo, hi,
        [=] (int i, int j, int k) noexcept
        {
-           // If only opposite corners of face are inside fluid
-           if ( (   s(i,j,k  ) <  0.0 && s(i,j+1,k  ) >= 0.0
-                 && s(i,j,k+1) >= 0.0 && s(i,j+1,k+1) <  0.0 )
-              || (  s(i,j,k  ) >= 0.0 && s(i,j+1,k  ) <  0.0
-                 && s(i,j,k+1) <  0.0 && s(i,j+1,k+1) >= 0.0 )
-              )
-           {
+           int ncuts = 0;
+           if (fx(i,j,k) == Type::irregular) {
+              if (ey(i,j,k) == Type::irregular) ++ncuts;
+              if (ey(i,j,k+1) == Type::irregular) ++ncuts;
+              if (ez(i,j,k) == Type::irregular) ++ncuts;
+              if (ez(i,j+1,k) == Type::irregular) ++ncuts;
+           }
+            
+           if (ncuts > 2) {
+               amrex::Print() << "AMReX WARNING: covering multiple cuts\n";
+
                // Cover the face
                fx(i,j,k) = Type::covered;
 
@@ -242,13 +251,17 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
        amrex::Loop(lo, hi,
        [=] (int i, int j, int k) noexcept
        {
-           // If only opposite corners of face are inside fluid
-           if ( (   s(i,j,k  ) <  0.0 && s(i+1,j,k  ) >= 0.0
-                 && s(i,j,k+1) >= 0.0 && s(i+1,j,k+1) <  0.0 )
-              || (  s(i,j,k  ) >= 0.0 && s(i+1,j,k  ) <  0.0
-                 && s(i,j,k+1) <  0.0 && s(i+1,j,k+1) >= 0.0 )
-              )
-           {
+           int ncuts = 0;
+           if (fy(i,j,k) == Type::irregular) {
+              if (ex(i,j,k) == Type::irregular) ++ncuts;
+              if (ex(i,j,k+1) == Type::irregular) ++ncuts;
+              if (ez(i,j,k) == Type::irregular) ++ncuts;
+              if (ez(i+1,j,k) == Type::irregular) ++ncuts;
+           }
+
+           if (ncuts > 2) {
+               amrex::Print() << "AMReX WARNING: covering multiple cuts\n";
+
                // Cover the face
                fy(i,j,k) = Type::covered;
 
@@ -317,13 +330,17 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
        amrex::Loop(lo, hi,
        [=] (int i, int j, int k) noexcept
        {
-           // If only opposite corners of face are inside fluid
-           if ( (   s(i,j,k  ) <  0.0 && s(i+1,j,k  ) >= 0.0
-                 && s(i,j+1,k) >= 0.0 && s(i+1,j+1,k) <  0.0 )
-              || (  s(i,j,k  ) >= 0.0 && s(i+1,j,k  ) <  0.0
-                 && s(i,j+1,k) <  0.0 && s(i+1,j+1,k) >= 0.0 )
-              )
+           int ncuts = 0;
+           if (fz(i,j,k) == Type::irregular) {
+              if (ex(i,j,k) == Type::irregular) ++ncuts;
+              if (ex(i,j+1,k) == Type::irregular) ++ncuts;
+              if (ey(i,j,k) == Type::irregular) ++ncuts;
+              if (ey(i+1,j,k) == Type::irregular) ++ncuts;
+           }
+
+           if (ncuts > 2)
            {
+               amrex::Print() << "AMReX WARNING: covering multiple cuts\n";
                // Cover the face
                fz(i,j,k) = Type::covered;
 
