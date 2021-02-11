@@ -173,7 +173,7 @@ jobs:
 
   # Build libamrex and all tutorials with CUDA 9.1 (oldest supported)
   tutorials-cuda9:
-    name: CUDA@9.1.85 GNU@5.5.0 C++14 Release [tutorials]
+    name: CUDA@9.1.85 GNU@6.4.0 C++14 Release [tutorials]
     runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-fno-operator-names"}
     steps:
@@ -189,10 +189,10 @@ jobs:
             -DAMReX_BUILD_TUTORIALS=ON                   \
             -DAMReX_PARTICLES=ON                        \
             -DAMReX_GPU_BACKEND=CUDA                         \
-            -DCMAKE_C_COMPILER=$(which gcc-5)              \
-            -DCMAKE_CXX_COMPILER=$(which g++-5)            \
-            -DCMAKE_CUDA_HOST_COMPILER=$(which g++-5)      \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran-5)   \
+            -DCMAKE_C_COMPILER=$(which gcc-6)              \
+            -DCMAKE_CXX_COMPILER=$(which g++-6)            \
+            -DCMAKE_CUDA_HOST_COMPILER=$(which g++-6)      \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-6)   \
             -DAMReX_CUDA_ARCH=6.0 \
             -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON
         make -j 2

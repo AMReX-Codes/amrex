@@ -15,8 +15,8 @@ sudo apt-get update
 
 sudo apt-get install -y --no-install-recommends\
     build-essential     \
-    g++-5               \
-    gfortran-5          \
+    g++-6               \
+    gfortran-6          \
     libopenmpi-dev      \
     openmpi-bin         \
     nvidia-cuda-dev     \
