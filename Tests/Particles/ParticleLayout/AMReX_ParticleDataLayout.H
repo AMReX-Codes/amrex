@@ -106,6 +106,7 @@ struct DataLayoutPolicyRaw<ParticleType<Types...>, DataLayout::AoS>
     using raw_type = ParticleType<Types...>*;
     using value_type = ParticleType<Types...>&;
 
+    AMREX_GPU_HOST_DEVICE
     constexpr static value_type get (raw_type a_ptr, std::size_t a_index)
     {
         return value_type(*static_cast<ParticleType<Types...>*>(&a_ptr[a_index]));
@@ -183,6 +184,7 @@ struct DataLayoutPolicyRaw<ParticleType<Types...>, DataLayout::SoA> {
     using raw_type = const amrex::GpuTuple<Types*...>;
     using value_type = ParticleType<ref_wrapper<Types>...>;
 
+    AMREX_GPU_HOST_DEVICE
     constexpr static value_type get (raw_type& a_tuple, std::size_t a_index)
     {
         return get_impl(a_tuple, a_index, amrex::makeIndexSequence<sizeof...(Types)>());
@@ -191,6 +193,7 @@ struct DataLayoutPolicyRaw<ParticleType<Types...>, DataLayout::SoA> {
 private:
 
     template <std::size_t... Is>
+    AMREX_GPU_HOST_DEVICE
     constexpr static auto get_impl (raw_type& a_tuple, std::size_t a_index,
                                     amrex::IndexSequence<Is...>)
     {
@@ -254,8 +257,10 @@ struct ParticleTileRaw
         : m_size(a_size), m_data(a_data)
     {}
 
+    AMREX_GPU_HOST_DEVICE
     value_type operator[] (std::size_t a_index) const { return policy_type::get(m_data, a_index); }
 
+    AMREX_GPU_HOST_DEVICE
     std::size_t size () { return m_size; }
 
 private:
