@@ -804,15 +804,15 @@ public:
     //! Make ourselves unique.
     void uniqify ();
 
+    BoxList const& simplified_list () const; // For regular AMR grids only!!!
+    BoxArray simplified () const; // For regular AMR grids only!!!
+
     friend class AmrMesh;
     friend class FabArrayBase;
 
 private:
     //!  Update BoxArray index type according the box type, and then convert boxes to cell-centered.
     void type_update ();
-
-    BoxList const& simplified_list () const; // For regular AMR grids only
-    BoxArray simplified () const;
 
     BARef::HashType& getHashMap () const;
 
