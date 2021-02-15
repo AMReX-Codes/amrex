@@ -11,14 +11,14 @@ cd ../..
 cd Docs/sphinx_documentation
 
 echo "Build the Sphinx documentation for Amrex."
-make PYTHON="python3" latexpdf
-mv build/latex/amrex.pdf source/
+#make PYTHON="python3" latexpdf
+#mv build/latex/amrex.pdf source/
 make PYTHON="python3" html &> make_source_html.out
 #
 cd ../sphinx_tutorials
 echo "Build the Sphinx documentation for the Amrex tutorials."
-make PYTHON="python3" latexpdf &> make_tutorials_latex.out
-mv build/latex/amrex.pdf source/
+#make PYTHON="python3" latexpdf &> make_tutorials_latex.out
+#mv build/latex/amrex.pdf source/
 make PYTHON="python3" html &> make_tutorials_html.out
 cd ../../
 
