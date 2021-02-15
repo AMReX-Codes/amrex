@@ -20,7 +20,7 @@ row/column formatting, etc.
 
 
 fextract
-====================
+========
 
 This basic routine reads in a single-level plotfile and extracts selected contents
 along a 1-D axis to an ascii file.
