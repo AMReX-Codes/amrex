@@ -18,9 +18,8 @@ to generate an executable.  To run the executable, ``<executable> infile=<plotfi
 You can modify the cpp file to write out on certain components, coordinates,
 row/column formatting, etc.
 
-
 fextract
-====================
+========
 
 This basic routine reads in a single-level plotfile and extracts selected contents
 along a 1-D axis to an ascii file.
