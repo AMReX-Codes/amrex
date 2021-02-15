@@ -150,7 +150,7 @@ namespace amrex {
             }
             divnc /=  (vtot + 1.e-80);
 
-            // We need to multiply divc by mask to make sure optmp is zero for cells
+            // We need to multiply by mask to make sure optmp is zero for cells
             // outside the domain for non-cyclic BCs
             optmp(i,j,k,n) =  (1 - vfrac(i,j,k)) * (divnc - divc(i,j,k,n)) * mask(i,j,k);
             delm(i,j,k,n)  = -(    vfrac(i,j,k)) * optmp(i,j,k,n);
