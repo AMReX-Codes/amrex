@@ -1,5 +1,6 @@
 #ifndef NEIGHBOR_LIST_H_
 #define NEIGHBOR_LIST_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Particles.H>
 #include <AMReX_GpuContainers.H>
@@ -7,6 +8,25 @@
 
 namespace amrex
 {
+
+namespace
+{
+    template <typename F, typename P, typename N1, typename N2>
+    AMREX_GPU_HOST_DEVICE
+    auto call_check_pair (F const& check_pair, const P* p_ptr, N1 i, N2 j)
+        noexcept -> decltype(check_pair(p_ptr[i], p_ptr[j]))
+    {
+        return check_pair(p_ptr[i], p_ptr[j]);
+    }
+
+    template <typename F, typename P, typename N1, typename N2>
+    AMREX_GPU_HOST_DEVICE
+    auto call_check_pair (F const& check_pair, const P* p_ptr, N1 i, N2 j)
+        noexcept -> decltype(check_pair(p_ptr, i, j))
+    {
+        return check_pair(p_ptr, i, j);
+    }
+}
 
 template <class ParticleType>
 struct Neighbors
@@ -22,10 +42,13 @@ struct Neighbors
         void operator++ () { ++m_index;; }
 
         AMREX_GPU_HOST_DEVICE
-        bool operator!= (iterator const& rhs) const { return m_index < m_stop; }
+        bool operator!= (iterator const& /*rhs*/) const { return m_index < m_stop; }
 
         AMREX_GPU_HOST_DEVICE
         ParticleType& operator* () const { return m_pstruct[m_nbor_list_ptr[m_index]];  }
+
+        AMREX_GPU_HOST_DEVICE
+        unsigned int index () const { return m_nbor_list_ptr[m_index]; }
 
     private:
         int m_index;
@@ -49,6 +72,9 @@ struct Neighbors
 
         AMREX_GPU_HOST_DEVICE
         const ParticleType& operator* () const { return m_pstruct[m_nbor_list_ptr[m_index]];  }
+
+        AMREX_GPU_HOST_DEVICE
+        unsigned int index () const { return m_nbor_list_ptr[m_index]; }
 
     private:
         int m_index;
@@ -138,8 +164,10 @@ public:
     template <class PTile, class CheckPair>
     void build (PTile& ptile,
                 const amrex::Box& bx, const amrex::Geometry& geom,
-                CheckPair check_pair, int num_cells=1)
+                CheckPair&& check_pair, int num_cells=1)
     {
+        BL_PROFILE("NeighborList::build()");
+
         auto& vec = ptile.GetArrayOfStructs()();
         m_pstruct = vec.dataPtr();
 
@@ -153,15 +181,15 @@ public:
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
         m_bins.build(np_total, pstruct_ptr, bx,
-                     [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> IntVect
+                     [=] AMREX_GPU_DEVICE (const ParticleType& p) noexcept -> IntVect
                      {
                          AMREX_D_TERM(AMREX_ASSERT((p.pos(0)-plo[0])*dxi[0] - lo.x >= 0.0);,
                                       AMREX_ASSERT((p.pos(1)-plo[1])*dxi[1] - lo.y >= 0.0);,
                                       AMREX_ASSERT((p.pos(2)-plo[2])*dxi[2] - lo.z >= 0.0));
 
-                         return IntVect(AMREX_D_DECL(static_cast<int>((p.pos(0)-plo[0])*dxi[0] - lo.x),
-                                                     static_cast<int>((p.pos(1)-plo[1])*dxi[1] - lo.y),
-                                                     static_cast<int>((p.pos(2)-plo[2])*dxi[2] - lo.z)));
+                         return IntVect(AMREX_D_DECL(static_cast<int>(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])) - lo.x,
+                                                     static_cast<int>(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])) - lo.y,
+                                                     static_cast<int>(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2])) - lo.z));
                      });
 
         // first pass - count the number of neighbors for each particle
@@ -175,24 +203,30 @@ public:
 
         AMREX_FOR_1D ( np_real, i,
         {
-            int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z;
+            IntVect iv(AMREX_D_DECL(
+                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(0)-plo[0])*dxi[0])) - lo.x,
+                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(1)-plo[1])*dxi[1])) - lo.y,
+                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(2)-plo[2])*dxi[2])) - lo.z));
+            auto iv3 = iv.dim3();
+
+            int ix = iv3.x;
+            int iy = iv3.y;
+            int iz = iv3.z;
 
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
             int nz = hi.z-lo.z+1;
 
             int count = 0;
-
             for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
                 for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
                     for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                         int index = (ii * ny + jj) * nz + kk;
                         for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (pperm[p] == i) continue;
-                            if (check_pair(pstruct_ptr[i], pstruct_ptr[pperm[p]]))
+                            if (call_check_pair(check_pair, pstruct_ptr, i, pperm[p])) {
                                 count += 1;
+                            }
                         }
                     }
                 }
@@ -217,9 +251,15 @@ public:
 
         AMREX_FOR_1D ( np_real, i,
         {
-            int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z;
+            IntVect iv(AMREX_D_DECL(
+                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(0)-plo[0])*dxi[0])) - lo.x,
+                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(1)-plo[1])*dxi[1])) - lo.y,
+                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(2)-plo[2])*dxi[2])) - lo.z));
+            auto iv3 = iv.dim3();
+
+            int ix = iv3.x;
+            int iy = iv3.y;
+            int iz = iv3.z;
 
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
@@ -232,7 +272,7 @@ public:
                         int index = (ii * ny + jj) * nz + kk;
                         for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (pperm[p] == i) continue;
-                            if (check_pair(pstruct_ptr[i], pstruct_ptr[pperm[p]])) {
+                            if (call_check_pair(check_pair, pstruct_ptr, i, pperm[p])) {
                                 pm_nbor_list[pnbor_offset[i] + n] = pperm[p];
                                 ++n;
                             }

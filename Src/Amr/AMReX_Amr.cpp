@@ -8,7 +8,7 @@
 #include <limits>
 #include <cmath>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -44,29 +44,6 @@
 #include <DatasetClient.H>
 #endif
 
-#ifdef USE_PERILLA
-#include <WorkerThread.H>
-#include <Perilla.H>
-#ifdef USE_PERILLA
-//#ifndef USE_PERILLA_ON_DEMAND
-    pthread_mutex_t teamFinishLock=PTHREAD_MUTEX_INITIALIZER;
-//#endif
-#ifdef PERILLA_USE_UPCXX
-extern struct rMsgMap_t{
-    std::map< int, std::map< int,  std::list< Package* > > > map;
-    volatile int size=0;
-    pthread_mutex_t lock= PTHREAD_MUTEX_INITIALIZER;
-}rMsgMap;
-extern struct sMsgMap_t{
-    std::map< int, std::map< int,  std::list< Package* > > > map;
-    volatile int size=0;
-    pthread_mutex_t lock= PTHREAD_MUTEX_INITIALIZER;
-}sMsgMap;
-
-#endif
-#endif
-#endif
-
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrInSituBridge.H>
 #endif
@@ -84,6 +61,7 @@ bool                   Amr::first_plotfile;
 bool                   Amr::first_smallplotfile;
 Vector<BoxArray>       Amr::initial_ba;
 Vector<BoxArray>       Amr::regrid_ba;
+int                    Amr::compute_new_dt_on_regrid;
 #ifdef BL_USE_SENSEI_INSITU
 AmrInSituBridge*       Amr::insitu_bridge;
 #endif
@@ -93,11 +71,7 @@ namespace
     const std::string CheckPointVersion("CheckPointVersion_1.0");
 
     bool initialized = false;
-}
 
-//Tan Nov 24, 2017 : I removed this anonymous namespace so I could access the inner variables from other source files 
-//namespace   
-//{
     //
     // These are all ParmParse'd in.  Set defaults in Initialize()!!!
     //
@@ -112,12 +86,11 @@ namespace
     int  insitu_on_restart;
     int  checkpoint_on_restart;
     bool checkpoint_files_output;
-    int  compute_new_dt_on_regrid;
     bool precreateDirectories;
     bool prereadFAHeaders;
     VisMF::Header::Version plot_headerversion(VisMF::Header::Version_v1);
     VisMF::Header::Version checkpoint_headerversion(VisMF::Header::Version_v1);
-//}
+}
 
 
 
@@ -356,7 +329,13 @@ Amr::InitAmr ()
     //
     for (int i = 0; i < nlev; i++)
     {
-        dt_level[i]    = 1.e200; // Something nonzero so old & new will differ
+        
+        // Something nonzero so old & new will differ
+#ifdef AMREX_USE_FLOAT
+        dt_level[i]    = 1.e30f;
+#else
+        dt_level[i]    = 1.e200;
+#endif
         level_steps[i] = 0;
         level_count[i] = 0;
         n_cycle[i]     = 0;
@@ -941,7 +920,7 @@ Amr::writeSmallPlotFile ()
 void
 Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
 {
-    Real dPlotFileTime0 = amrex::second();
+    auto dPlotFileTime0 = amrex::second();
 
     VisMF::SetNOutFiles(plot_nfiles);
     VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
@@ -1030,7 +1009,7 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
 
         if (verbose > 0) {
             const int IOProc        = ParallelDescriptor::IOProcessorNumber();
-            Real      dPlotFileTime = amrex::second() - dPlotFileTime0;
+            auto      dPlotFileTime = amrex::second() - dPlotFileTime0;
             ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
             if (regular) {
                 amrex::Print() << "Write plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
@@ -1080,7 +1059,7 @@ Amr::checkInput ()
     //
     for (int i = 0; i < max_level; i++)
     {
-        if (MaxRefRatio(i) < 2 || MaxRefRatio(i) > 12)
+        if (MaxRefRatio(i) < 2)
             amrex::Error("Amr::checkInput: bad ref_ratios");
     }
     const Box& domain = Geom(0).Domain();
@@ -1189,7 +1168,7 @@ Amr::readProbinFile (int& a_init)
     const int NSets   = (NProcs + (nAtOnce - 1)) / nAtOnce;
     const int MySet   = MyProc/nAtOnce;
 
-    Real piStart = 0, piEnd = 0, piStartAll = amrex::second();
+    double piStart = 0, piEnd = 0, piStartAll = amrex::second();
 
     for (int iSet = 0; iSet < NSets; ++iSet)
     {
@@ -1239,8 +1218,8 @@ Amr::readProbinFile (int& a_init)
     if (verbose > 1)
     {
         const int IOProc     = ParallelDescriptor::IOProcessorNumber();
-        Real      piTotal    = piEnd - piStart;
-        Real      piTotalAll = amrex::second() - piStartAll;
+        auto      piTotal    = piEnd - piStart;
+        auto      piTotalAll = amrex::second() - piStartAll;
 
         ParallelDescriptor::ReduceRealMax(piTotal,    IOProc);
         ParallelDescriptor::ReduceRealMax(piTotalAll, IOProc);
@@ -1273,7 +1252,7 @@ Amr::initialInit (Real              strt_time,
 
 void
 Amr::InitializeInit(Real              strt_time,
-                    Real              stop_time,
+                    Real              /*stop_time*/,
                     const BoxArray*   lev0_grids,
                     const Vector<int>* pmap)
 {
@@ -1382,7 +1361,7 @@ Amr::restart (const std::string& filename)
 
     which_level_being_advanced = -1;
 
-    Real dRestartTime0 = amrex::second();
+    auto dRestartTime0 = amrex::second();
 
     VisMF::SetMFFileInStreams(mffile_nstreams);
 
@@ -1398,7 +1377,10 @@ Amr::restart (const std::string& filename)
     //
     int linit = false;
 
-    readProbinFile(linit);
+    if (!probin_file.empty()) {
+        readProbinFile(linit);
+    }
+
     //
     // Start calculation from given restart file.
     //
@@ -1680,7 +1662,7 @@ Amr::restart (const std::string& filename)
 
     if (verbose > 0)
     {
-        Real dRestartTime = amrex::second() - dRestartTime0;
+        auto dRestartTime = amrex::second() - dRestartTime0;
 
         ParallelDescriptor::ReduceRealMax(dRestartTime,ParallelDescriptor::IOProcessorNumber());
 
@@ -1710,7 +1692,7 @@ Amr::checkPoint ()
     VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
     VisMF::SetHeaderVersion(checkpoint_headerversion);
 
-    Real dCheckPointTime0 = amrex::second();
+    auto dCheckPointTime0 = amrex::second();
 
     const std::string& ckfile = amrex::Concatenate(check_file_root,level_steps[0],file_name_digits);
 
@@ -1842,7 +1824,7 @@ Amr::checkPoint ()
 
     if (verbose > 0)
     {
-        Real dCheckPointTime = amrex::second() - dCheckPointTime0;
+        auto dCheckPointTime = amrex::second() - dCheckPointTime0;
 
         ParallelDescriptor::ReduceRealMax(dCheckPointTime,
 	                            ParallelDescriptor::IOProcessorNumber());
@@ -1876,10 +1858,18 @@ Amr::RegridOnly (Real time, bool do_io)
 {
     BL_ASSERT(regrid_on_restart == 1);
 
-    int lev_top = std::min(finest_level, max_level-1);
-
-    for (int i = 0; i <= lev_top; i++)
-       regrid(i,time);
+    if (max_level == 0)
+    {   
+        regrid_level_0_on_restart();
+    }
+    else
+    {   
+        int lev_top = std::min(finest_level, max_level-1);
+        for (int i = 0; i <= lev_top; i++)
+        {  
+           regrid(i,time);
+        }
+    }
 
     if (do_io) {
 
@@ -1902,11 +1892,6 @@ Amr::timeStep (int  level,
                int  niter,
                Real stop_time)
 {
-#if defined(USE_PERILLA_PTHREADS) || defined(USE_PERILLA_OMP)
-    perilla::syncAllWorkerThreads();
-    if(perilla::isMasterThread())
-    {
-#endif
     BL_PROFILE("Amr::timeStep()");
     BL_COMM_PROFILE_NAMETAG("Amr::timeStep TOP");
 
@@ -1928,38 +1913,12 @@ Amr::timeStep (int  level,
     else
     {
         int lev_top = std::min(finest_level, max_level-1);
-
-#ifdef USE_PERILLA
-        int cnt=0;
-        bool *metadataChanged=new bool[finest_level+1];
-        for (int l=0; l <= finest_level; l++)
-            metadataChanged[l]=false;
-#endif
-
         for (int i(level); i <= lev_top; ++i)
         {
             const int old_finest = finest_level;
 
             if (okToRegrid(i))
             {
-#ifdef USE_PERILLA
-#if defined(USE_PERILLA_PTHREADS) || defined(USE_PERILLA_OMP)
-		//ask the communication thread to stop so that I can update the metadata
-                Perilla::updateMetadata_request=1;
-		while(!Perilla::updateMetadata_noticed){
-
-		}
-#endif
-                //for (int k(i>0?i-1:0); k <= finest_level; ++k) {
-                for (int k=0; k <= finest_level; ++k) {
-                    if(metadataChanged[k]==false){
-                        graphArray[k].clear();
-                        getLevel(k).finalizePerilla(time);
-                        metadataChanged[k]=true;
-			cnt++;
-		    }
-		}
-#endif
                 regrid(i,time);
 
                 //
@@ -1998,22 +1957,6 @@ Amr::timeStep (int  level,
                 lev_top = std::min(finest_level, max_level - 1);
 	    }
         }
-#ifdef USE_PERILLA
-	if(cnt){
-	    if(ParallelDescriptor::NProcs()>1){
-	        Perilla::clearTagMap();
-	        Perilla::clearMyTagMap();
-	        Perilla::genTags=true;
-	        Perilla::uTags=0;
-	        Perilla::pTagCnt.clear();
-            }
-            for(int i=0; i<= finest_level; i++){
-                getLevel(i).initPerilla(cumtime);
-	    }
- 	    Perilla::updateMetadata_done++;
-	}
-        delete [] metadataChanged;
-#endif
 
         if (max_level == 0 && loadbalance_level0_int > 0 && loadbalance_with_workestimates)
         {
@@ -2041,20 +1984,8 @@ Amr::timeStep (int  level,
 		       << "ADVANCE with dt = " << dt_level[level] << "\n";
     }
 
-#if defined(USE_PERILLA_PTHREADS) || defined(USE_PERILLA_OMP)
-    }
-    perilla::syncAllWorkerThreads();
-#endif
-
-    BL_PROFILE_REGION_START("amr_level.advance");
     Real dt_new = amr_level[level]->advance(time,dt_level[level],iteration,niter);
     BL_PROFILE_REGION_STOP("amr_level.advance");
-
-#if defined(USE_PERILLA_PTHREADS) || defined(USE_PERILLA_OMP)
-    perilla::syncAllWorkerThreads();
-    if(perilla::isMasterThread())
-    {
-#endif
 
     dt_min[level] = iteration == 1 ? dt_new : std::min(dt_min[level],dt_new);
 
@@ -2085,16 +2016,7 @@ Amr::timeStep (int  level,
 		dt_level[k] = dt_level[k-1] / n_cycle[k];
 	    }
 	}
-#ifdef USE_PERILLA
-//        getLevel(level).finalizePerilla(cumtime);
-//        getLevel(level).initPerilla(cumtime);
-#endif
     }
-
-#if defined(USE_PERILLA_PTHREADS) || defined(USE_PERILLA_OMP)
-    }
-    perilla::syncAllWorkerThreads();
-#endif
 
     //
     // Advance grids at higher level.
@@ -2118,23 +2040,10 @@ Amr::timeStep (int  level,
         }
     }
 
-#if defined(USE_PERILLA_PTHREADS) || defined(USE_PERILLA_OMP)
-    perilla::syncAllWorkerThreads();
-#endif
-
     amr_level[level]->post_timestep(iteration);
 
-#if defined(USE_PERILLA_PTHREADS) || defined(USE_PERILLA_OMP)
-    perilla::syncAllWorkerThreads();
-    if(perilla::isMasterThread())
-    {
-#endif
     // Set this back to negative so we know whether we are in fact in this routine
     which_level_being_advanced = -1;
-#if defined(USE_PERILLA_PTHREADS) || defined(USE_PERILLA_OMP)
-    }
-    perilla::syncAllWorkerThreads();
-#endif
 }
 
 Real
@@ -2147,15 +2056,8 @@ Amr::coarseTimeStepDt (Real stop_time)
 void
 Amr::coarseTimeStep (Real stop_time)
 {
-    Real      run_stop;
-    Real run_strt;
-#ifdef USE_PERILLA_PTHREADS
-    //mpi+pthreads (default) or upcxx+pthreads
-    std::vector<RegionGraph*> flattenedGraphArray;
-    perilla::syncAllThreads();
-    if(perilla::isMasterThread())
-    {
-#endif
+    double run_stop;
+    double run_strt;
     BL_PROFILE_REGION_START("Amr::coarseTimeStep()");
     BL_PROFILE("Amr::coarseTimeStep()");
     std::stringstream stepName;
@@ -2189,189 +2091,7 @@ Amr::coarseTimeStep (Real stop_time)
     }
 
     BL_PROFILE_REGION_START(stepName.str());
-
-#ifdef USE_PERILLA
-#ifdef USE_PERILLA_PTHREADS
-    //mpi+pthreads (default) or upcxx+pthreads
-    }
-    perilla::syncAllThreads();
-
-    if(perilla::isMasterThread()){
-        Perilla::updateMetadata_request = 0;
-        Perilla::updateMetadata_noticed = 0;
-        Perilla::updateMetadata_done = 0;
-        Perilla::numTeamsFinished = 0;
-        RegionGraph::graphCnt = 0;
-        if(levelSteps(0)==0){
-	    graphArray.resize(finest_level+1);
-            for(int i=0; i<= finest_level; i++)
-                getLevel(i).initPerilla(cumtime);
-	    if(ParallelDescriptor::NProcs()>1){
-  	        Perilla::syncProcesses();
-                Perilla::communicateTags();
-	        Perilla::syncProcesses();
-	    }
-        }
-    }
-    perilla::syncAllThreads();
-
-    if(perilla::isCommunicationThread())
-    {
-        Perilla::flattenGraphHierarchy(graphArray, flattenedGraphArray);
-	bool doublechecked=false;
-        while(true){
-   	    if(!Perilla::updateMetadata_request){
-                Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
-                if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
-		{
-                    Perilla::syncProcesses();
-	            flattenedGraphArray.clear();
-                    Perilla::syncProcesses();
-                    break;
-		}
-            }else{
-	        Perilla::syncProcesses();
-        	for(int g=0; g<flattenedGraphArray.size(); g++)
-          	{
-		       //cancel messages preposted previously
-		       flattenedGraphArray[g]->graphTeardown();
-		}
-#ifdef PERILLA_USE_UPCXX
-                    pthread_mutex_lock(&(rMsgMap.lock));
-                    for(int i=0; i<rMsgMap.map.size(); i++){
-                        for(int j=0; j<rMsgMap.map[i].size(); j++){
-                            while(rMsgMap.map[i][j].size()>0){
-                               rMsgMap.map[i][j].pop_front();
-                               rMsgMap.size--;
-                            }
-                        }
-                    }
-                    pthread_mutex_unlock(&(rMsgMap.lock));
-                    while(sMsgMap.size>0){
-                    }
-#endif
-	        Perilla::syncProcesses();
-	        Perilla::updateMetadata_noticed=1;
-	        while(Perilla::updateMetadata_done==0){//!= (max_level+1)){
-		
-	        }
-	        Perilla::updateMetadata_request=0;
-	        Perilla::updateMetadata_noticed=0;
-	        Perilla::updateMetadata_done=0;
-                if(ParallelDescriptor::NProcs()>1){
-	            Perilla::syncProcesses();
-                    Perilla::communicateTags();
-	            Perilla::syncProcesses();
-		}
-	        flattenedGraphArray.clear();
-		Perilla::flattenGraphHierarchy(graphArray, flattenedGraphArray);
-	        Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
-
-                if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
-		{
-	 	    Perilla::syncProcesses();
-  	            flattenedGraphArray.clear();
-	 	    Perilla::syncProcesses();
-                    break;
-		}
- 	    }
-        }  
-    }else{
-        timeStep(0,cumtime,1,1,stop_time);
-        if(perilla::isMasterWorkerThread()){
-            pthread_mutex_lock(&teamFinishLock);
-            Perilla::numTeamsFinished++;
-            pthread_mutex_unlock(&teamFinishLock);
-        }
-    }
-
-    perilla::syncAllThreads();
-    if(perilla::isMasterThread()){
-        if(!okToContinue() || (level_steps[0] == Perilla::max_step) || (stop_time -(dt_level[0] + cumTime())<=0)){
-            for(int i=0; i<= finest_level; i++){
-                getLevel(i).finalizePerilla(cumtime);
-            }
-        }
-    }
-#else
-    Perilla::numTeamsFinished = 0;
-    RegionGraph::graphCnt = 0;
-    if(levelSteps(0)==0){
-	graphArray.resize(finest_level+1);
-        for(int i=0; i<= finest_level; i++)
-            getLevel(i).initPerilla(cumtime);
-        if(ParallelDescriptor::NProcs()>1){
-            Perilla::communicateTags();
-        }
-    }
-    Perilla::syncProcesses();
-
-#ifdef USE_PERILLA_OMP
-//    int nThreads= perilla::NUM_THREAD_TEAMS * perilla::NUM_THREADS_PER_TEAM; 
-// num_threads(nThreads)
-#pragma omp parallel default(shared)
-    {
-        if(perilla::isCommunicationThread())
-        {
-   	    std::vector<RegionGraph*> flattenedGraphArray;
-            while(true){
-                Perilla::flattenGraphHierarchy(graphArray, flattenedGraphArray);
-                Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
-                if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
-                {
-	            //perilla::syncWorkers();
-	            //if(perilla::wid()==0){
-                        //Perilla::syncProcesses();
-                        /*for(int g=0; g<flattenedGraphArray.size(); g++)
-                        {
-                            //cancel messages preposted previously
-                            flattenedGraphArray[g]->graphTeardown();
-                        }*/
-            	    //}
-                    flattenedGraphArray.clear();
-	            //perilla::syncWorkers();
-                    if(perilla::wid()==0) Perilla::syncProcesses();
-                    break;
-                }
-	    }
-        }
-        else{
-            timeStep(0,cumtime,1,1,stop_time);
-            if(perilla::isMasterWorkerThread()){
-		#pragma omp atomic
-                Perilla::numTeamsFinished++;
-            }
-        }
-    }
-#elif defined(USE_PERILLA_ON_DEMAND)
-    //RTS on-demand
     timeStep(0,cumtime,1,1,stop_time);
-#else
-    cout<<"Undefined Async Mode"<<endl;
-    exit(0);
-#endif
-
-#if 0
-    if(!okToContinue() || (level_steps[0] == Perilla::max_step) || (stop_time -(dt_level[0] + cumTime())<=0)){
-        for(int i=0; i<= finest_level; i++){
-            getLevel(i).finalizePerilla(cumtime);
-        }
-    }
-#endif
-//end nonPthreads backends
-#endif
-//end Perilla backends
-#else
-    //synchronous
-    timeStep(0,cumtime,1,1,stop_time);
-#endif
-
-#ifdef USE_PERILLA_PTHREADS
-    perilla::syncAllThreads();
-    if(perilla::isMasterThread())
-    {
-#endif
-
     BL_PROFILE_REGION_STOP(stepName.str());
 
     cumtime += dt_level[0];
@@ -2461,7 +2181,7 @@ Amr::coarseTimeStep (Real stop_time)
         // the counter, because we have indeed reached the next check_per interval
         // at this point.
 
-        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0 * std::abs(cumtime);
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0_rt * std::abs(cumtime);
         const Real next_chk_time = (num_per_old + 1) * check_per;
 
         if ((num_per_new == num_per_old) && std::abs(cumtime - next_chk_time) <= eps)
@@ -2584,12 +2304,6 @@ Amr::coarseTimeStep (Real stop_time)
           }
 	}
     }
-
-
-#ifdef USE_PERILLA_PTHREADS
-    }
-#endif
-
 }
 
 bool
@@ -2611,7 +2325,7 @@ Amr::writePlotNow() noexcept
         // the counter, because we have indeed reached the next plot_per interval
         // at this point.
 
-        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0 * std::abs(cumtime);
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0_rt * std::abs(cumtime);
         const Real next_plot_time = (num_per_old + 1) * plot_per;
 
         if ((num_per_new == num_per_old) && std::abs(cumtime - next_plot_time) <= eps)
@@ -2684,7 +2398,7 @@ Amr::writeSmallPlotNow() noexcept
         // the counter, because we have indeed reached the next small_plot_per interval
         // at this point.
 
-        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0 * std::abs(cumtime);
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0_rt * std::abs(cumtime);
         const Real next_plot_time = (num_per_old + 1) * small_plot_per;
 
         if ((num_per_new == num_per_old) && std::abs(cumtime - next_plot_time) <= eps)
@@ -2743,6 +2457,8 @@ Amr::defBaseLevel (Real              strt_time,
                    const BoxArray*   lev0_grids,
                    const Vector<int>* pmap)
 {
+    amrex::ignore_unused(pmap);
+
     BL_PROFILE("Amr::defBaseLevel()");
     // Just initialize this here for the heck of it
     which_level_being_advanced = -1;
@@ -2907,6 +2623,8 @@ Amr::regrid (int  lbase,
         {
             a->init();
             amr_level[lev].reset(a);
+            if (lev > 0)
+                level_steps[lev] = level_steps[lev-1] * n_cycle[lev-1];
 	    this->SetBoxArray(lev, amr_level[lev]->boxArray());
 	    this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
         }
@@ -3106,7 +2824,7 @@ Amr::printGridInfo (std::ostream& os,
         int                       numgrid = bs.size();
         Long                      ncells  = amr_level[lev]->countCells();
         double                    ntot    = Geom(lev).Domain().d_numPts();
-        Real                      frac    = 100.0_rt*(Real(ncells) / ntot);
+        Real                      frac    = Real(100.0 * double(ncells) / ntot);
         const DistributionMapping& map    = amr_level[lev]->get_new_data(0).DistributionMap();
 
         os << "  Level "
@@ -3146,7 +2864,7 @@ Amr::grid_places (int              lbase,
 {
     BL_PROFILE("Amr::grid_places()");
 
-    const Real strttime = amrex::second();
+    const auto strttime = amrex::second();
 
     if (lbase == 0)
     {
@@ -3221,7 +2939,7 @@ Amr::grid_places (int              lbase,
 
     if (verbose > 0)
     {
-        Real stoptime = amrex::second() - strttime;
+        auto stoptime = amrex::second() - strttime;
 
 #ifdef BL_LAZY
 	Lazy::QueueReduction( [=] () mutable {
@@ -3533,7 +3251,11 @@ Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, in
     // internally these represent the total number of steps at a level, 
     // not the number of cycles
     std::vector<int> cycles(n);
+#ifdef AMREX_USE_FLOAT
+    Real best_ratio = 1e30f;
+#else
     Real best_ratio = 1e200;
+#endif
     Real best_dt = 0;
     Real ratio;
     Real dt;

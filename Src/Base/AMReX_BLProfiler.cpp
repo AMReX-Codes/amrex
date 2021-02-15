@@ -313,7 +313,7 @@ void BLProfiler::PStop() {
 
 
 void BLProfiler::start() {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
 {
@@ -348,7 +348,7 @@ void BLProfiler::start() {
 
 
 void BLProfiler::stop() {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
 {
@@ -513,11 +513,13 @@ namespace BLProfilerUtils {
 void WriteHeader(std::ostream &ios, const int colWidth,
                  const Real maxlen, const bool bwriteavg)
 {
+  int maxlenI = int(maxlen);
+
   if(bwriteavg) {
-    ios << std::setfill('-') << std::setw(maxlen+4 + 7 * (colWidth+2))
+    ios << std::setfill('-') << std::setw(maxlenI+4 + 7 * (colWidth+2))
         << std::left << "Total times " << '\n';
     ios << std::right << std::setfill(' ');
-    ios << std::setw(maxlen + 2) << "Function Name"
+    ios << std::setw(maxlenI + 2) << "Function Name"
         << std::setw(colWidth + 2) << "NCalls"
         << std::setw(colWidth + 2) << "Min"
         << std::setw(colWidth + 2) << "Avg"
@@ -527,10 +529,10 @@ void WriteHeader(std::ostream &ios, const int colWidth,
         << std::setw(colWidth + 4) << "Percent %"
         << '\n';
   } else {
-    ios << std::setfill('-') << std::setw(maxlen+4 + 3 * (colWidth+2))
+    ios << std::setfill('-') << std::setw(maxlenI+4 + 3 * (colWidth+2))
         << std::left << "Total times " << '\n';
     ios << std::right << std::setfill(' ');
-    ios << std::setw(maxlen + 2) << "Function Name"
+    ios << std::setw(maxlenI + 2) << "Function Name"
         << std::setw(colWidth + 2) << "NCalls"
         << std::setw(colWidth + 2) << "Time"
         << std::setw(colWidth + 4) << "Percent %"
@@ -544,6 +546,7 @@ void WriteRow(std::ostream &ios, const std::string &fname,
 	      const int colWidth, const Real maxlen,
 	      const bool bwriteavg)
 {
+    int maxlenI = int(maxlen);
     int numPrec(4), pctPrec(2);
     Real stdDev(0.0), coeffVariation(0.0);
     if(pstats.variance > 0.0) {
@@ -555,7 +558,7 @@ void WriteRow(std::ostream &ios, const std::string &fname,
 
     if(bwriteavg) {
       ios << std::right;
-      ios << std::setw(maxlen + 2) << fname << "  "
+      ios << std::setw(maxlenI + 2) << fname << "  "
           << std::setw(colWidth) << pstats.nCalls << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
 	  << pstats.minTime << "  "
@@ -570,7 +573,7 @@ void WriteRow(std::ostream &ios, const std::string &fname,
           << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
 	  << percent << " %" << '\n';
     } else {
-      ios << std::setw(maxlen + 2) << fname << "  "
+      ios << std::setw(maxlenI + 2) << fname << "  "
           << std::setw(colWidth) << pstats.nCalls << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
 	  << pstats.totalTime << "  "
@@ -770,7 +773,7 @@ void WriteStats(std::ostream &ios,
 }  // end namespace BLProfilerUtils
 
 void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- write basic profiling data
-
+  amrex::ignore_unused(memCheck);
   // --------------------------------------- gather global stats
   Real baseProfStart(amrex::second());  // time the timer
   const int nProcs(ParallelDescriptor::NProcs());
@@ -1162,8 +1165,9 @@ void BLProfiler::WriteCallTrace(bool bFlushing, bool memCheck) {   // ---- write
 
 
 
-void BLProfiler::WriteCommStats(bool bFlushing, bool memCheck) {
-
+void BLProfiler::WriteCommStats(bool bFlushing, bool memCheck)
+{
+  amrex::ignore_unused(bFlushing);
   Real wcsStart(amrex::second());
   bool bAllCFTypesExcluded(OnExcludeList(AllCFTypes));
   if( ! bAllCFTypesExcluded) {
@@ -1461,6 +1465,7 @@ void BLProfiler::AddAllReduce(const CommFuncType cft, const int size,
 void BLProfiler::AddWait(const CommFuncType cft, const MPI_Request &req,
 			 const MPI_Status &status, const bool beforecall)
 {
+  amrex::ignore_unused(req);
 #ifdef BL_USE_MPI
   if(OnExcludeList(cft)) {
     return;
@@ -1481,6 +1486,7 @@ void BLProfiler::AddWaitsome(const CommFuncType cft, const Vector<MPI_Request> &
                              const int completed, const Vector<MPI_Status> &status,
                              const bool beforecall)
 {
+  amrex::ignore_unused(reqs);
 #ifdef BL_USE_MPI
   if(OnExcludeList(cft)) {
     return;
@@ -1658,28 +1664,28 @@ namespace amrex {
 
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP,bl_proffortfuncstart_cpp)
   (
-   const int istr[], const int *NSTR
+   const int /*istr*/[], const int * /*NSTR*/
    )
 {
 }
 
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP,bl_proffortfuncstop_cpp)
   (
-   const int istr[], const int *NSTR
+   const int /*istr*/[], const int * /*NSTR*/
    )
 {
 }
 
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP_INT,bl_proffortfuncstart_cpp_int)
   (
-   int i
+   int /*i*/
    )
 {
 }
 
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP_INT,bl_proffortfuncstop_cpp_int)
   (
-   int i
+   int /*i*/
    )
 {
 }

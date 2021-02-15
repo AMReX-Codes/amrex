@@ -1,106 +1,77 @@
 #include <AMReX.H>
-#include <AMReX_MultiFab.H>
 #include <AMReX_Gpu.H>
-#include <AMReX_Utility.H>
-#include <AMReX_Array.H>
-#include <AMReX_GpuContainers.H>
+#include <AMReX_Random.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_BLProfiler.H>
+#include <cmath>
 
 using namespace amrex;
-
 
 void RandomNumGen();
 
 int main (int argc, char* argv[])
 {
-
     amrex::Initialize(argc,argv);
     RandomNumGen();
     amrex::Finalize();
-
 }
 
 void RandomNumGen ()
 {
+    BL_PROFILE("main");
 
     ParmParse pp;
 
-    int Nstates;
-    int Ndraw;
+    int Ndraw = 1000000;
 
-    pp.get("num_states", Nstates);
-    pp.get("num_draw", Ndraw);    
-
-#ifdef AMREX_USE_GPU
-    amrex::Print() << "Generating random numbers using GPU ";
-    amrex::Print() << amrex::Gpu::Device::deviceId() << " on rank ";
-    amrex::Print() << amrex::ParallelDescriptor::MyProc() << "\n";
-
-#else
-    amrex::InitRandom(1024UL,1);
-#endif
-
-    Gpu::HostVector<Real> x_h(Ndraw);
-    Gpu::HostVector<Real> y_h(Ndraw);
-    Gpu::HostVector<Real> z_h(Ndraw);
+    pp.query("num_draw", Ndraw);
 
     Gpu::DeviceVector<Real> x_d(Ndraw);
     Gpu::DeviceVector<Real> y_d(Ndraw);
     Gpu::DeviceVector<Real> z_d(Ndraw);
 
-    // Test for random numbers. 
     {
-
-        BL_PROFILE_REGION("Draw");
+        BL_PROFILE("Draw");
 
         auto x_d_ptr = x_d.dataPtr();
         auto y_d_ptr = y_d.dataPtr();
-        auto z_d_ptr = z_d.dataPtr(); 
-        AMREX_PARALLEL_FOR_1D (Ndraw, idx,
-        {
-            x_d_ptr[idx] = amrex::Random();
-            y_d_ptr[idx] = amrex::Random();
-            z_d_ptr[idx] = amrex::Random();
-        });
-   
-        Gpu::Device::synchronize();
+        auto z_d_ptr = z_d.dataPtr();
 
+        amrex::ParallelForRNG(Ndraw,
+        [=] AMREX_GPU_DEVICE (int i, RandomEngine const& engine) noexcept
+        {
+            x_d_ptr[i] = amrex::Random(engine);
+            y_d_ptr[i] = amrex::Random(engine);
+            z_d_ptr[i] = amrex::Random(engine);
+        });
+
+        Gpu::synchronize();
     }
 
-    Gpu::dtoh_memcpy(x_h.dataPtr(), x_d.dataPtr(), sizeof(Real)*Ndraw);
-    Gpu::dtoh_memcpy(y_h.dataPtr(), y_d.dataPtr(), sizeof(Real)*Ndraw);
-    Gpu::dtoh_memcpy(z_h.dataPtr(), z_d.dataPtr(), sizeof(Real)*Ndraw);
-    
-    // Output to check for random-ness
-    // for (int i = 0; i < Ndraw; i++ )
-    // {
-    //     amrex::Print() << i << " " << x_h[i]  << " " << y_h[i] << " " << z_h[i] << "\n";
-    // }
+    std::vector<Real> x_h(Ndraw);
+    std::vector<Real> y_h(Ndraw);
+    std::vector<Real> z_h(Ndraw);
+    Gpu::copyAsync(Gpu::deviceToHost, x_d.begin(), x_d.end(), x_h.begin());
+    Gpu::copyAsync(Gpu::deviceToHost, y_d.begin(), y_d.end(), y_h.begin());
+    Gpu::copyAsync(Gpu::deviceToHost, z_d.begin(), z_d.end(), z_h.begin());
+    Gpu::synchronize();
 
-    // Test for a subset of threads calling amrex::Random().
-    // Testing for a possible hang.
-    {
-        BL_PROFILE_REGION("Draw2");
-
-        auto x_d_ptr = x_d.dataPtr();
-        auto y_d_ptr = y_d.dataPtr();
-        auto z_d_ptr = z_d.dataPtr(); 
-        AMREX_PARALLEL_FOR_1D (Ndraw, idx,
-        {
-            if (idx % 2 == 0)
-            {
-                x_d_ptr[idx] = amrex::Random();
-                y_d_ptr[idx] = amrex::Random();
-                z_d_ptr[idx] = amrex::Random();
-            }
-        });
-   
-        Gpu::Device::synchronize();
-
+    Real xmean=0., ymean=0., zmean=0., xvar=0., yvar=0., zvar=0.;
+    for (int i = 0; i < Ndraw; ++i) {
+        xmean += x_h[i];
+        ymean += y_h[i];
+        zmean += z_h[i];
+        xvar += std::pow(x_h[i]-0.5,2);
+        yvar += std::pow(y_h[i]-0.5,2);
+        zvar += std::pow(z_h[i]-0.5,2);
     }
+    xmean /= Ndraw;
+    ymean /= Ndraw;
+    zmean /= Ndraw;
+    xvar /= Ndraw;
+    yvar /= Ndraw;
+    zvar /= Ndraw;
+    amrex::Print() << "\n  Means: " << xmean << ", " << ymean << ", " << zmean
+                   << "  Variances: " << xvar << ", " << yvar << ", " << zvar
+                   << std::endl;
 }
-
-
-
-
-

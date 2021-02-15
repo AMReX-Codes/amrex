@@ -63,6 +63,7 @@ BoxDomain&
 BoxDomain::complementIn (const Box&       b,
                          const BoxDomain& bl)
 {
+    BL_PROFILE("BoxDomain::complementIn()");
     BoxList::complementIn(b,bl);
     BL_ASSERT(ok());
     return *this;

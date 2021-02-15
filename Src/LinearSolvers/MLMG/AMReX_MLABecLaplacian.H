@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_ABECLAPLACIAN_H_
 #define AMREX_ML_ABECLAPLACIAN_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLCellABecLap.H>
 #include <AMReX_Array.H>
@@ -23,7 +24,7 @@ public:
     MLABecLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
-                     const Vector<iMultiFab const*>& a_overset_mask,
+                     const Vector<iMultiFab const*>& a_overset_mask, // 1: unknown, 0: known
                      const LPInfo& a_info = LPInfo(),
                      const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
     virtual ~MLABecLaplacian ();
@@ -77,12 +78,10 @@ public:
     virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final override
         { return amrex::GetArrOfConstPtrs(m_b_coeffs[amrlev][mglev]); }
 
-    virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const final override {
+    virtual std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final override {
         amrex::Abort("MLABecLaplacian::makeNLinOp: Not implmented");
         return std::unique_ptr<MLLinOp>{};
     }
-
-    virtual void applyOverset (int amlev, MultiFab& rhs) const override;
 
     void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
                                         Vector<Array<MultiFab,AMREX_SPACEDIM> >& b);
@@ -105,9 +104,10 @@ protected:
     Vector<Vector<MultiFab> > m_a_coeffs;
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
 
-    Vector<Vector<std::unique_ptr<iMultiFab> > > m_overset_mask;
-
     Vector<int> m_is_singular;
+
+private:
+    void define_ab_coeffs ();
 };
 
 }

@@ -17,12 +17,12 @@ BCRec     CNS::phys_bc;
 
 int       CNS::verbose = 0;
 IntVect   CNS::hydro_tile_size {AMREX_D_DECL(1024,16,16)};
-Real      CNS::cfl       = 0.3_rt;
+Real      CNS::cfl       = 0.3;
 int       CNS::do_reflux = 1;
 int       CNS::refine_max_dengrad_lev   = -1;
-Real      CNS::refine_dengrad           = 1.0e10_rt;
+Real      CNS::refine_dengrad           = 1.0e10;
 
-Real      CNS::gravity = 0.0_rt;
+Real      CNS::gravity = 0.0;
 
 CNS::CNS ()
 {}
@@ -81,10 +81,10 @@ CNS::initData ()
     const auto geomdata = geom.data();
     MultiFab& S_new = get_new_data(State_Type);
 
-    Parm const* lparm = parm.get();
-    ProbParm const* lprobparm = prob_parm.get();
+    Parm const* lparm = d_parm;
+    ProbParm const* lprobparm = d_prob_parm;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
@@ -102,9 +102,9 @@ CNS::initData ()
 
 void
 CNS::computeInitialDt (int                    finest_level,
-                       int                    sub_cycle,
+                       int                    /*sub_cycle*/,
                        Vector<int>&           n_cycle,
-                       const Vector<IntVect>& ref_ratio,
+                       const Vector<IntVect>& /*ref_ratio*/,
                        Vector<Real>&          dt_level,
                        Real                   stop_time)
 {
@@ -127,9 +127,9 @@ CNS::computeInitialDt (int                    finest_level,
     //
     // Limit dt's by the value of stop_time.
     //
-    const Real eps = 0.001_rt*dt_0;
+    const Real eps = 0.001*dt_0;
     Real cur_time  = state[State_Type].curTime();
-    if (stop_time >= 0.0_rt) {
+    if (stop_time >= 0.0) {
         if ((cur_time + dt_0) > (stop_time - eps))
             dt_0 = stop_time - cur_time;
     }
@@ -144,9 +144,9 @@ CNS::computeInitialDt (int                    finest_level,
 
 void
 CNS::computeNewDt (int                    finest_level,
-                   int                    sub_cycle,
+                   int                    /*sub_cycle*/,
                    Vector<int>&           n_cycle,
-                   const Vector<IntVect>& ref_ratio,
+                   const Vector<IntVect>& /*ref_ratio*/,
                    Vector<Real>&          dt_min,
                    Vector<Real>&          dt_level,
                    Real                   stop_time,
@@ -201,9 +201,9 @@ CNS::computeNewDt (int                    finest_level,
     //
     // Limit dt's by the value of stop_time.
     //
-    const Real eps = 0.001_rt*dt_0;
+    const Real eps = 0.001*dt_0;
     Real cur_time  = state[State_Type].curTime();
-    if (stop_time >= 0.0_rt) {
+    if (stop_time >= 0.0) {
         if ((cur_time + dt_0) > (stop_time - eps)) {
             dt_0 = stop_time - cur_time;
         }
@@ -218,19 +218,19 @@ CNS::computeNewDt (int                    finest_level,
 }
 
 void
-CNS::post_regrid (int lbase, int new_finest)
+CNS::post_regrid (int /*lbase*/, int /*new_finest*/)
 {
 }
 
 void
-CNS::post_timestep (int iteration)
+CNS::post_timestep (int /*iteration*/)
 {
     BL_PROFILE("post_timestep");
 
     if (do_reflux && level < parent->finestLevel()) {
         MultiFab& S = get_new_data(State_Type);
         CNS& fine_level = getLevel(level+1);
-        fine_level.flux_reg->Reflux(S, 1.0_rt, 0, 0, NUM_STATE, geom);
+        fine_level.flux_reg->Reflux(S, Real(1.0), 0, 0, NUM_STATE, geom);
     }
 
     if (level < parent->finestLevel()) {
@@ -239,7 +239,7 @@ CNS::post_timestep (int iteration)
 }
 
 void
-CNS::postCoarseTimeStep (Real time)
+CNS::postCoarseTimeStep (Real /*time*/)
 {
     BL_PROFILE("postCoarseTimeStep()");
 
@@ -290,7 +290,7 @@ CNS::post_restart ()
 }
 
 void
-CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
+CNS::errorEst (TagBoxArray& tags, int, int, Real /*time*/, int, int)
 {
     BL_PROFILE("CNS::errorEst()");
 
@@ -305,7 +305,7 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
 //        const char clearval = TagBox::CLEAR;
         const Real dengrad_threshold = refine_dengrad;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(rho,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -354,9 +354,10 @@ CNS::read_params ()
 
     pp.query("gravity", gravity);
 
-    pp.query("eos_gamma", parm->eos_gamma);
+    pp.query("eos_gamma", h_parm->eos_gamma);
 
-    parm->Initialize();
+    h_parm->Initialize();
+    amrex::Gpu::htod_memcpy(d_parm, h_parm, sizeof(Parm));
 }
 
 void
@@ -383,7 +384,7 @@ CNS::buildMetrics ()
 {
     // make sure dx == dy == dz
     const Real* dx = geom.CellSize();
-    if (std::abs(dx[0]-dx[1]) > 1.e-12_rt*dx[0] || std::abs(dx[0]-dx[2]) > 1.e-12_rt*dx[0]) {
+    if (std::abs(dx[0]-dx[1]) > Real(1.e-12)*dx[0] || std::abs(dx[0]-dx[2]) > Real(1.e-12)*dx[0]) {
         amrex::Abort("CNS: must have dx == dy == dz\n");
     }
 }
@@ -395,10 +396,10 @@ CNS::estTimeStep ()
 
     const auto dx = geom.CellSizeArray();
     const MultiFab& S = get_new_data(State_Type);
-    Parm const* lparm = parm.get();
+    Parm const* lparm = d_parm;
 
     Real estdt = amrex::ReduceMin(S, 0,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) noexcept -> Real
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> Real
     {
         return cns_estdt(bx, fab, dx, *lparm);
     });
@@ -420,10 +421,10 @@ CNS::computeTemp (MultiFab& State, int ng)
 {
     BL_PROFILE("CNS::computeTemp()");
 
-    Parm const* lparm = parm.get();
+    Parm const* lparm = d_parm;
 
     // This will reset Eint and compute Temperature 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(State,TilingIfNotGPU()); mfi.isValid(); ++mfi)

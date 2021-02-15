@@ -27,7 +27,6 @@ The amrex/Tutorials directory is broken into the following categories:
    AMR_Tutorial
    Basic_Tutorial
    Blueprint_Tutorial
-   CVODE_Tutorial
    EB_Tutorial
    ForkJoin_Tutorial
    GPU_Tutorial
@@ -35,7 +34,6 @@ The amrex/Tutorials directory is broken into the following categories:
    MUI_Tutorial
    Particles_Tutorial
    SDC_Tutorial
-   SENSEI_Tutorial
    SWFFT_Tutorial
 
 Indices and tables

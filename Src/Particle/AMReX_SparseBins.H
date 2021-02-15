@@ -1,5 +1,6 @@
 #ifndef AMREX_SPARSEBINS_H_
 #define AMREX_SPARSEBINS_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Gpu.H>
 #include <AMReX_IntVect.H>
@@ -100,7 +101,7 @@ public:
      * \param f a function object that maps items to bins 
      */        
     template <typename N, typename F>
-    void build (N nitems, T const* v, const Box& bx, F f)
+    void build (N nitems, T const* v, const Box& bx, F&& f)
     {
         BL_PROFILE("SparseBins<T>::build");
 

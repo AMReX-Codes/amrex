@@ -1,16 +1,8 @@
 #ifndef AMREX_EXTENSION_H_
 #define AMREX_EXTENSION_H_
+#include <AMReX_Config.H>
 
 #if !defined(BL_LANG_FORT)
-
-// HIP FIX HERE - noexcept
-
-#ifdef AMREX_HIP_PLATFORM_HCC
-#define AMREX_NOEXCEPT
-#else
-#define AMREX_NOEXCEPT noexcept
-#endif
-
 
 // restrict
 
@@ -57,7 +49,7 @@
 #elif defined(__HIP_DEVICE_COMPILE__)
 #define AMREX_PRAGMA_SIMD 
 
-//#elif defined(_OPENMP) && (_OPENMP >= 201307) && !defined(__PGI)
+//#elif defined(AMREX_USE_OMP) && defined(_OPENMP) && (_OPENMP >= 201307) && !defined(__PGI)
 //#define AMREX_PRAGMA_SIMD _Pragma("omp simd")
 
 #elif defined(__INTEL_COMPILER)
@@ -127,7 +119,9 @@
 #endif
 
 // no inline
-#if defined(__GNUC__)
+#if defined(_MSC_VER)
+#define AMREX_NO_INLINE __declspec(noinline)
+#elif (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIP__) || defined(__INTEL_CLANG_COMPILER))
 #define AMREX_NO_INLINE __attribute__((noinline))
 #else
 #define AMREX_NO_INLINE
@@ -144,7 +138,17 @@
 #endif
 
 #if defined(__cplusplus) && defined(_WIN32)
-#include <iso646.h>
+#include <ciso646>
+#endif
+
+#if (__cplusplus >= 201703L)
+#define AMREX_FALLTHROUGH [[fallthrough]]
+#elif defined(__clang__)
+#define AMREX_FALLTHROUGH [[clang::fallthrough]]
+#elif defined(__GNUC__) && (__GNUC__ >= 7) && !defined(__INTEL_COMPILER)
+#define AMREX_FALLTHROUGH [[gnu::fallthrough]]
+#else
+#define AMREX_FALLTHROUGH ((void)0)
 #endif
 
 #endif /* !BL_LANG_FORT */

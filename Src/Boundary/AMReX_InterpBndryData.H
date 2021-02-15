@@ -1,6 +1,7 @@
 
 #ifndef AMREX_INTERPBNDRYDATA_H_
 #define AMREX_INTERPBNDRYDATA_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_FArrayBox.H>
@@ -94,9 +95,9 @@ public:
     * \param ratio
     * \param comp
     */
-    virtual void setBndryConds (const BCRec&   phys_bc,
-                                const IntVect& ratio,
-				int            comp = 0) {}
+    virtual void setBndryConds (const BCRec&   /*phys_bc*/,
+                                const IntVect& /*ratio*/,
+				int            /*comp*/ = 0) {}
 
     /**
     * \brief set bndry values at coarse level (non interpolation performed)

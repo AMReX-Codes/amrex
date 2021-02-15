@@ -1,5 +1,6 @@
 #ifndef AMREX_GPUCOMPLEX_H_
 #define AMREX_GPUCOMPLEX_H_
+#include <AMReX_Config.H>
 
 #include <cmath>
 #include <iostream>
@@ -358,7 +359,7 @@ T abs (const GpuComplex<T>& a_z) noexcept
         return s;
     x /= s;
     y /= s;
-    return s * amrex::Math::sqrt(x * x + y * y);
+    return s * std::sqrt(x * x + y * y);
 }
 
 /**
@@ -373,12 +374,12 @@ GpuComplex<T> sqrt (const GpuComplex<T>& a_z) noexcept
 
     if (x == T())
     {
-        T t = amrex::Math::sqrt(amrex::Math::abs(y) / 2);
+        T t = std::sqrt(amrex::Math::abs(y) / 2);
         return GpuComplex<T>(t, y < T() ? -t : t);
     }
     else
     {
-        T t = amrex::Math::sqrt(2 * (amrex::abs(a_z) + amrex::Math::abs(x)));
+        T t = std::sqrt(2 * (amrex::abs(a_z) + amrex::Math::abs(x)));
         T u = t / 2;
         return x > T()
             ? GpuComplex<T>(u, y / t)

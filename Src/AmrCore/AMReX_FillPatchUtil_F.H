@@ -1,5 +1,6 @@
 #ifndef AMREX_FILLPATCH_UTIL_F_H_
 #define AMREX_FILLPATCH_UTIL_F_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_BLFort.H>
 

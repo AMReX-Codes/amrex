@@ -1,5 +1,6 @@
 #ifndef AMREX_MLALAPLACIAN_H_
 #define AMREX_MLALAPLACIAN_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLCellABecLap.H>
 #include <AMReX_Array.H>
@@ -50,10 +51,10 @@ public:
     virtual Real getBScalar () const final override { return m_b_scalar; }
     virtual MultiFab const* getACoeffs (int amrlev, int mglev) const final override
         { return &(m_a_coeffs[amrlev][mglev]); }
-    virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final override
-        { return { AMREX_D_DECL(nullptr,nullptr,nullptr)}; }
+    virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int /*amrlev*/, int /*mglev*/) const final override
+        { return {{ AMREX_D_DECL(nullptr,nullptr,nullptr)}}; }
 
-    virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const final override {
+    virtual std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final override {
         amrex::Abort("MLALaplacian::makeNLinOp: Not implmented");
         return std::unique_ptr<MLLinOp>{};
     }

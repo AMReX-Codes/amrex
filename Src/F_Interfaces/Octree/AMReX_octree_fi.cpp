@@ -7,7 +7,7 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiFabUtil_C.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -150,10 +150,12 @@ extern "C" {
                         famrcore->octree_leaf_dmap[lev] = DistributionMapping(iproc);
                         update_dummy_mf = true;
                     }
-                    famrcore->octree_leaf_dummy_mf[lev].reset
-                        (new MultiFab(famrcore->octree_leaf_grids[lev],
-                                      famrcore->octree_leaf_dmap[lev],
-                                      1,0,MFInfo().SetAlloc(false)));
+                    if (update_dummy_mf) {
+                        famrcore->octree_leaf_dummy_mf[lev].reset
+                            (new MultiFab(famrcore->octree_leaf_grids[lev],
+                                          famrcore->octree_leaf_dmap[lev],
+                                          1,0,MFInfo().SetAlloc(false)));
+                    }
                 }
             }
         }
@@ -165,7 +167,7 @@ extern "C" {
     {
         const int n = leaves->size();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < n; ++i) {
@@ -195,7 +197,7 @@ extern "C" {
             fgeom.GetVolume(fvolume, lba, ldm, 0);
         }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(lmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)

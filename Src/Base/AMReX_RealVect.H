@@ -1,5 +1,6 @@
 #ifndef AMREX_REALVECT_H_
 #define AMREX_REALVECT_H_
+#include <AMReX_Config.H>
 
 #include <cstddef>
 #include <cstdlib>
@@ -741,7 +742,7 @@ Real
 RealVect::vectorLength () const noexcept
 {
   Real len = this->radSquared();
-  len = amrex::Math::sqrt(len);
+  len = std::sqrt(len);
   return len;
 }
 

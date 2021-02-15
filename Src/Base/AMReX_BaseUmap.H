@@ -1,12 +1,13 @@
 #ifndef BL_BASEUMAP_H
 #define BL_BASEUMAP_H
+#include <AMReX_Config.H>
 
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
 #include <limits>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 

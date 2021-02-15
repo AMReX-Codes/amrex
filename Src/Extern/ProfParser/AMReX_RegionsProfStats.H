@@ -3,6 +3,7 @@
 // ----------------------------------------------------------------------
 #ifndef BL_REGIONSPROFSTATS_H
 #define BL_REGIONSPROFSTATS_H
+#include <AMReX_Config.H>
 
 #include <AMReX_BLProfStats.H>
 #include <AMReX_BLProfiler.H>
@@ -72,6 +73,8 @@ class RegionsProfStats : public BLProfStats {
     void SetMaxFNumber(int n)  { maxFNumber = n; }
     int  GetMaxFNumber() const  { return maxFNumber; }
 
+    void AddFunctionName(const std::string &/*fname*/)
+        { amrex::Abort("Wrong AddFunctionName for RegionsProfStats. Use (string, int)."); }
     virtual void AddFunctionName(const std::string &fname, int fnumber);
     virtual void AddTimeMinMax(double tmin, double tmax);
 

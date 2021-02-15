@@ -71,7 +71,7 @@ int main (int argc, char* argv[])
     //
     struct {
         int verbose = -1;
-        int cg_verbose = -1;
+        int bottom_verbose = -1;
         int max_iter = -1;
         int fixed_iter = -1;
         int max_fmg_iter = -1;
@@ -83,7 +83,7 @@ int main (int argc, char* argv[])
     {
         ParmParse pp("mlmg");
         pp.query("verbose",mlmg.verbose);
-        pp.query("cg_verbose",mlmg.cg_verbose );
+        pp.query("bottom_verbose",mlmg.bottom_verbose );
         pp.query("max_iter",mlmg.max_iter);
         pp.query("max_fmg_iter",mlmg.max_fmg_iter);
         pp.query("agglomeration",mlmg.agglomeration);
@@ -106,8 +106,8 @@ int main (int argc, char* argv[])
  	dmap.resize(mesh.nlevels);
  	solution.resize(mesh.nlevels);
  	rhs.resize(mesh.nlevels);
-	RealBox rb({AMREX_D_DECL(0.0,0.0,0.0)},
-			          {AMREX_D_DECL(1.0,1.0,1.0)});
+	RealBox rb({AMREX_D_DECL(-0.5,-0.5,-0.5)},
+	          {AMREX_D_DECL(0.5,0.5,0.5)});
 	Geometry::Setup(&rb, 0);
 	Box NDomain(IntVect{AMREX_D_DECL(0,0,0)}, 
                 IntVect{AMREX_D_DECL(mesh.nnodes,mesh.nnodes,mesh.nnodes)}, 
@@ -147,11 +147,18 @@ int main (int argc, char* argv[])
  		dmap   [ilev].define(cgrids[ilev]);
  		solution[ilev].define(ngrids[ilev], dmap[ilev], op.ncomp, nghost); 
         solution[ilev].setVal(0.0);
+        solution[ilev].setMultiGhost(true);
  		rhs     [ilev].define(ngrids[ilev], dmap[ilev], op.ncomp, nghost);
         rhs     [ilev].setVal(0.0);
+        rhs     [ilev].setMultiGhost(true);
            
 	    Box domain(geom[ilev].Domain());
-        const Real* DX = geom[ilev].CellSize();
+        const Real AMREX_D_DECL( dx = geom[ilev].CellSize()[0],
+                                 dy = geom[ilev].CellSize()[1],
+                                 dz = geom[ilev].CellSize()[2]);
+        const Real AMREX_D_DECL( minx = geom[ilev].ProbLo()[0],
+                                 miny = geom[ilev].ProbLo()[1],
+                                 minz = geom[ilev].ProbLo()[2]);
 	    domain.convert(IntVect::TheNodeVector());
 	    domain.grow(-1); // Shrink domain so we don't operate on any boundaries            
         for (MFIter mfi(solution[ilev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -164,12 +171,17 @@ int main (int argc, char* argv[])
     		for (int n = 0; n < op.ncomp; n++)
     			ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     
-                    Real x1 = i*DX[0], x2 = j*DX[1], x3 = k*DX[2];
+                    Real AMREX_D_DECL(x1 = i*dx + minx,
+                                      x2 = j*dy + miny, 
+                                      x3 = k*dz + minz);
 
-                    if (n==0) RHS(i,j,k,n) = x1*(1.0 - x1) * x2 * (1.0 - x2) * x3 * (1.0 - x3);
+                    if (n==0) RHS(i,j,k,n) = AMREX_D_TERM(   (x1-0.5)*(x1+0.5),
+                                                           * (x2-0.5)*(x2+0.5),
+                                                           * (x3-0.5)*(x3+0.5));
                     else RHS(i,j,k,n) = 0.0;
     			});         
  	    }
+        rhs[ilev].FillBoundary(false,true);
     }
          
     // 
@@ -188,8 +200,8 @@ int main (int argc, char* argv[])
     linop.setNComp(op.ncomp);
     linop.setCoeff(op.coeff);
     linop.define(geom,cgrids,dmap,info);
-    linop.setDomainBC({amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet},
-                      {amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet});
+    linop.setDomainBC({AMREX_D_DECL(amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet)},
+                      {AMREX_D_DECL(amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet)});
     for (int ilev = 0; ilev < mesh.nlevels; ++ilev) linop.setLevelBC(ilev,&solution[ilev]);
 
     //
@@ -197,7 +209,7 @@ int main (int argc, char* argv[])
     //
     MLMG solver(linop);
     if (mlmg.verbose >= 0)     solver.setVerbose(mlmg.verbose);
-    if (mlmg.cg_verbose >= 0)  solver.setCGVerbose(mlmg.cg_verbose);
+    if (mlmg.bottom_verbose >= 0)  solver.setBottomVerbose(mlmg.bottom_verbose);
     if (mlmg.fixed_iter >= 0)  solver.setFixedIter(mlmg.fixed_iter);
     if (mlmg.max_iter >= 0)    solver.setMaxIter(mlmg.max_iter);
     if (mlmg.max_fmg_iter >= 0)solver.setMaxFmgIter(mlmg.max_fmg_iter);

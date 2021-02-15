@@ -1,5 +1,6 @@
 #ifndef AMREX_EBFARRAYBOX_H_
 #define AMREX_EBFARRAYBOX_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
 

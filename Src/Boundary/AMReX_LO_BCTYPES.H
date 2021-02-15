@@ -1,5 +1,6 @@
 #ifndef AMREX_LO_BCTYPES_H_
 #define AMREX_LO_BCTYPES_H_
+#include <AMReX_Config.H>
 
 #ifndef AMREX_XSDK
 

@@ -6,6 +6,7 @@ namespace amrex {
 
 void BlockMutex::init_states (state_t* state, int N) noexcept {
 #ifdef AMREX_USE_DPCPP
+    amrex::ignore_unused(state,N);
     amrex::Abort("xxxxx DPCPP todo");
 #else
     amrex::launch((N+255)/256, 256, Gpu::nullStream(),
@@ -20,7 +21,7 @@ void BlockMutex::init_states (state_t* state, int N) noexcept {
 BlockMutex::BlockMutex (int N) noexcept
     : m_nstates(N)
 {
-    static_assert(sizeof(unsigned long long) == 2*sizeof(int) and
+    static_assert(sizeof(unsigned long long) == 2*sizeof(int) &&
                   sizeof(unsigned long long) == sizeof(state_t),
                   "BlockMutex: wrong size");
     // The first 4 bytes of unsigned long stores blockIdx.

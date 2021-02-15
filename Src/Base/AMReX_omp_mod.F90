@@ -4,6 +4,12 @@ module amrex_omp_module
 
   implicit none
 
+#ifdef AMREX_USE_OMP
+  integer, parameter :: amrex_omp_support = (_OPENMP)
+#else
+  integer, parameter :: amrex_omp_support = 0 ! Should this be allowed??
+#endif
+
   integer, external :: omp_get_num_threads
   integer, external :: omp_get_max_threads
   integer, external :: omp_get_thread_num
@@ -16,6 +22,8 @@ end module amrex_omp_module
 module amrex_omp_module
 
   implicit none
+
+  integer, parameter :: amrex_omp_support = 0 ! indicates no support
 
 contains
 
@@ -38,4 +46,3 @@ contains
 end module amrex_omp_module
 
 #endif
-

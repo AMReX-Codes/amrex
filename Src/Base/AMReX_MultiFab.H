@@ -1,6 +1,7 @@
 
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
+#include <AMReX_Config.H>
 
 
 #include <cstdint>
@@ -470,16 +471,6 @@ public:
                       int             numcomp,
                       const IntVect&  nghost);
 
-#ifdef USE_PERILLA
-    static void Copy (MultiFab&       dst,
-                const MultiFab& src,
-                int             f,
-                int             srccomp,
-                int             dstcomp,
-                int             numcomp,
-                const Box&      bx);
-#endif
-
     /**
     * \brief Swap from src to dst including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
@@ -693,6 +684,7 @@ private:
     void initVal ();
 };
 
+#ifndef _MSC_VER
 inline void GccPlacaterMF ()
 {
     std::allocator<MultiFab*> a1;
@@ -700,9 +692,7 @@ inline void GccPlacaterMF ()
     std::allocator<FabArray<FArrayBox>*> a3;
     std::allocator<FabArray<FArrayBox> const*> a4;
 }
-
-//!  This is a special version of FillBoundary for warpx
-void FillBoundary (Vector<MultiFab*> const& mf, const Periodicity& period);
+#endif
 
 }
 

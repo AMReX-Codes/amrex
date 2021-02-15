@@ -1,5 +1,6 @@
 #ifndef AMREX_FILCC_3D_C_H_
 #define AMREX_FILCC_3D_C_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
@@ -51,17 +52,17 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 // i == ilo-1
                 else if (ilo+2 <= amrex::min(q.end.x-1,ihi))
                 {
-                    q(i,j,k,n) = 0.125*(15.*q(i+1,j,k,n) - 10.*q(i+2,j,k,n) + 3.*q(i+3,j,k,n));
+                    q(i,j,k,n) = Real(0.125)*(Real(15.)*q(i+1,j,k,n) - Real(10.)*q(i+2,j,k,n) + Real(3.)*q(i+3,j,k,n));
                 }
                 else
                 {
-                    q(i,j,k,n) = 0.5*(3.*q(i+1,j,k,n) - q(i+2,j,k,n));
+                    q(i,j,k,n) = Real(0.5)*(Real(3.)*q(i+1,j,k,n) - q(i+2,j,k,n));
                 }
                 break;
             }
             case (BCType::hoextrapcc):
             {
-                q(i,j,k,n) = 2.*q(i+1,j,k,n) - q(i+2,j,k,n);
+                q(i,j,k,n) = Real(2.)*q(i+1,j,k,n) - q(i+2,j,k,n);
                 break;
             }
             case (BCType::reflect_even):
@@ -93,17 +94,17 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 // i == ihi+1
                 else if (ihi-2 >= amrex::max(q.begin.x,ilo))
                 {
-                    q(i,j,k,n) = 0.125*(15.*q(i-1,j,k,n) - 10.*q(i-2,j,k,n) + 3.*q(i-3,j,k,n));
+                    q(i,j,k,n) = Real(0.125)*(Real(15.)*q(i-1,j,k,n) - Real(10.)*q(i-2,j,k,n) + Real(3.)*q(i-3,j,k,n));
                 }
                 else
                 {
-                    q(i,j,k,n) = 0.5*(3.*q(i-1,j,k,n) - q(i-2,j,k,n));
+                    q(i,j,k,n) = Real(0.5)*(Real(3.)*q(i-1,j,k,n) - q(i-2,j,k,n));
                 }
                 break;
             }
             case (BCType::hoextrapcc):
             {
-                q(i,j,k,n) = 2.*q(i-1,j,k,n) - q(i-2,j,k,n);
+                q(i,j,k,n) = Real(2.)*q(i-1,j,k,n) - q(i-2,j,k,n);
                 break;
             }
             case (BCType::reflect_even):
@@ -136,17 +137,17 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 // j == jlo-1
                 else if (jlo+2 <= amrex::min(q.end.y-1,jhi))
                 {
-                    q(i,j,k,n) = 0.125*(15.*q(i,j+1,k,n) - 10.*q(i,j+2,k,n) + 3.*q(i,j+3,k,n));
+                    q(i,j,k,n) = Real(0.125)*(Real(15.)*q(i,j+1,k,n) - Real(10.)*q(i,j+2,k,n) + Real(3.)*q(i,j+3,k,n));
                 }
                 else
                 {
-                    q(i,j,k,n) = 0.5*(3.*q(i,j+1,k,n) - q(i,j+2,k,n));
+                    q(i,j,k,n) = Real(0.5)*(Real(3.)*q(i,j+1,k,n) - q(i,j+2,k,n));
                 }
                 break;
             }
             case (BCType::hoextrapcc):
             {
-                q(i,j,k,n) = 2.*q(i,j+1,k,n) - q(i,j+2,k,n);
+                q(i,j,k,n) = Real(2.)*q(i,j+1,k,n) - q(i,j+2,k,n);
                 break;
             }
             case (BCType::reflect_even):
@@ -178,17 +179,17 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 // j == jhi+1
                 else if (jhi-2 >= amrex::max(q.begin.y,jlo))
                 {
-                    q(i,j,k,n) = 0.125*(15.*q(i,j-1,k,n) - 10.*q(i,j-2,k,n) + 3.*q(i,j-3,k,n));
+                    q(i,j,k,n) = Real(0.125)*(Real(15.)*q(i,j-1,k,n) - Real(10.)*q(i,j-2,k,n) + Real(3.)*q(i,j-3,k,n));
                 }
                 else
                 {
-                    q(i,j,k,n) = 0.5*(3.*q(i,j-1,k,n) - q(i,j-2,k,n));
+                    q(i,j,k,n) = Real(0.5)*(Real(3.)*q(i,j-1,k,n) - q(i,j-2,k,n));
                 }
                 break;
             }
             case (BCType::hoextrapcc):
             {
-                q(i,j,k,n) = 2.*q(i,j-1,k,n) - q(i,j-2,k,n);
+                q(i,j,k,n) = Real(2.)*q(i,j-1,k,n) - q(i,j-2,k,n);
                 break;
             }
             case (BCType::reflect_even):
@@ -221,17 +222,17 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 // k == klo-1
                 else if (klo+2 <= amrex::min(q.end.z-1,khi))
                 {
-                    q(i,j,k,n) = 0.125*(15.*q(i,j,k+1,n) - 10.*q(i,j,k+2,n) + 3.*q(i,j,k+3,n));
+                    q(i,j,k,n) = Real(0.125)*(Real(15.)*q(i,j,k+1,n) - Real(10.)*q(i,j,k+2,n) + Real(3.)*q(i,j,k+3,n));
                 }
                 else
                 {
-                    q(i,j,k,n) = 0.5*(3.*q(i,j,k+1,n) - q(i,j,k+2,n));
+                    q(i,j,k,n) = Real(0.5)*(Real(3.)*q(i,j,k+1,n) - q(i,j,k+2,n));
                 }
                 break;
             }
             case (BCType::hoextrapcc):
             {
-                q(i,j,k,n) = 2.*q(i,j,k+1,n) - q(i,j,k+2,n);
+                q(i,j,k,n) = Real(2.)*q(i,j,k+1,n) - q(i,j,k+2,n);
                 break;
             }
             case (BCType::reflect_even):
@@ -263,17 +264,17 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 // k == khi+1
                 else if (khi-2 >= amrex::max(q.begin.z,klo))
                 {
-                    q(i,j,k,n) = 0.125*(15.*q(i,j,k-1,n) - 10.*q(i,j,k-2,n) + 3.*q(i,j,k-3,n));
+                    q(i,j,k,n) = Real(0.125)*(Real(15.)*q(i,j,k-1,n) - Real(10.)*q(i,j,k-2,n) + Real(3.)*q(i,j,k-3,n));
                 }
                 else
                 {
-                    q(i,j,k,n) = 0.5*(3.*q(i,j,k-1,n) - q(i,j,k-2,n));
+                    q(i,j,k,n) = Real(0.5)*(Real(3.)*q(i,j,k-1,n) - q(i,j,k-2,n));
                 }
                 break;
             }
             case (BCType::hoextrapcc):
             {
-                q(i,j,k,n) = 2.*q(i,j,k-1,n) - q(i,j,k-2,n);
+                q(i,j,k,n) = Real(2.)*q(i,j,k-1,n) - q(i,j,k-2,n);
                 break;
             }
             case (BCType::reflect_even):

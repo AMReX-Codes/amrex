@@ -10,7 +10,7 @@
 
 #include <AMReX_VisMF.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -34,7 +34,7 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, Real val)
     bool is_cell_centered = mf.ixType().cellCentered();
     int ng = std::min(mf.nGrow(),ngrow);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -80,7 +80,7 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, const Vector<Real
     Gpu::copy(Gpu::hostToDevice, a_vals.begin(), a_vals.end(), vals_dv.begin());
     Real const* AMREX_RESTRICT vals = vals_dv.data();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -115,17 +115,17 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
     const auto& flags = factory->getMultiEBCellFlagFab();
     const int ncomp = umac[0]->nComp();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*umac[0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         AMREX_D_TERM(const Box& xbx = mfi.tilebox(IntVect::TheDimensionVector(0));,
                      const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
-                     const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
+                     const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)));
         AMREX_D_TERM(Array4<Real> const& u = umac[0]->array(mfi);,
                      Array4<Real> const& v = umac[1]->array(mfi);,
-                     Array4<Real> const& w = umac[2]->array(mfi););
+                     Array4<Real> const& w = umac[2]->array(mfi));
 
         auto fabtyp = flags[mfi].getType();
         if (fabtyp == FabType::covered)
@@ -173,7 +173,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
         {
             AMREX_D_TERM(Array4<Real const> const& ax = area[0]->const_array(mfi);,
                          Array4<Real const> const& ay = area[1]->const_array(mfi);,
-                         Array4<Real const> const& az = area[2]->const_array(mfi););
+                         Array4<Real const> const& az = area[2]->const_array(mfi));
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM (
                 xbx, txbx,
                 {
@@ -231,17 +231,17 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, const int sco
     Gpu::copy(Gpu::hostToDevice, a_vals.begin(), a_vals.end(), vals_dv.begin());
     Real const* AMREX_RESTRICT vals = vals_dv.data();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*umac[0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         AMREX_D_TERM(const Box& xbx = mfi.tilebox(IntVect::TheDimensionVector(0));,
                      const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
-                     const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
+                     const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)));
         AMREX_D_TERM(Array4<Real> const& u = umac[0]->array(mfi);,
                      Array4<Real> const& v = umac[1]->array(mfi);,
-                     Array4<Real> const& w = umac[2]->array(mfi););
+                     Array4<Real> const& w = umac[2]->array(mfi));
 
         auto fabtyp = flags[mfi].getType();
         if (fabtyp == FabType::covered)
@@ -289,7 +289,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, const int sco
         {
             AMREX_D_TERM(Array4<Real const> const& ax = area[0]->const_array(mfi);,
                          Array4<Real const> const& ay = area[1]->const_array(mfi);,
-                         Array4<Real const> const& az = area[2]->const_array(mfi););
+                         Array4<Real const> const& az = area[2]->const_array(mfi));
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM (
                 xbx, txbx,
                 {
@@ -349,7 +349,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
 
     Dim3 dratio = ratio.dim3();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(crse_S_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -416,9 +416,9 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
         BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
 
         if (crse_S_fine_BA == S_crse.boxArray()
-            and S_fine.DistributionMap() == S_crse.DistributionMap())
+            && S_fine.DistributionMap() == S_crse.DistributionMap())
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(S_crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -455,7 +455,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
             MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(),
                                  ncomp, 0, MFInfo(),FArrayBoxFactory());
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(crse_S_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -482,7 +482,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
                     Array4<Real const> const& vfrc = vfrac_fine.const_array(mfi);
                     AMREX_HOST_DEVICE_FOR_3D(tbx, i, j, k,
                     {
-                        eb_avgdown(i,j,k,fine_arr,scomp,crse_arr,scomp,vfrc,dratio,ncomp);
+                        eb_avgdown(i,j,k,fine_arr,scomp,crse_arr,0,vfrc,dratio,ncomp);
                     });
                 }
                 else
@@ -524,7 +524,7 @@ void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
 
         if (isMFIterSafe(*fine[0], *crse[0]))
         {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (int n=0; n<AMREX_SPACEDIM; ++n) {
@@ -587,6 +587,35 @@ void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
     }
 }
 
+void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                            const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                            const IntVect& ratio, const Geometry& crse_geom)
+{
+    AMREX_ASSERT(crse[0]->nComp() == fine[0]->nComp());
+
+    if (!(*fine[0]).hasEBFabFactory())
+    {
+        amrex::average_down_faces(fine, crse, ratio, crse_geom);
+    }
+    else
+    {
+        int ngcrse = 0;
+        int ncomp = crse[0]->nComp();
+        Array<MultiFab,AMREX_SPACEDIM> ctmp;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            BoxArray cba = fine[idim]->boxArray();
+            cba.coarsen(ratio);
+            ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
+        }
+        EB_average_down_faces(fine, amrex::GetArrOfPtrs(ctmp), ratio, ngcrse);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            crse[idim]->ParallelCopy(ctmp[idim],0,0,ncomp,crse_geom.periodicity());
+        }
+    }
+}
+
 void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
                                  int ratio, int ngcrse)
 {
@@ -614,7 +643,7 @@ void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
         {
             MFItInfo info;
             if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(crse, info); mfi.isValid(); ++mfi)
@@ -679,7 +708,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
         MFItInfo info;
         if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(divu,info); mfi.isValid(); ++mfi)
@@ -689,7 +718,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
             Array4<Real> const& divuarr = divu.array(mfi);
             AMREX_D_TERM(Array4<Real const> const& uarr = umac[0]->const_array(mfi);,
                          Array4<Real const> const& varr = umac[1]->const_array(mfi);,
-                         Array4<Real const> const& warr = umac[2]->const_array(mfi););
+                         Array4<Real const> const& warr = umac[2]->const_array(mfi));
 
             const auto fabtyp = flagfab.getType(bx);
             if (fabtyp == FabType::covered) {
@@ -708,10 +737,10 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
                 Array4<Real const> const& vol = vfrac.const_array(mfi);
                 AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
                              Array4<Real const> const& apy = area[1]->const_array(mfi);,
-                             Array4<Real const> const& apz = area[2]->const_array(mfi););
+                             Array4<Real const> const& apz = area[2]->const_array(mfi));
                 AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->const_array(mfi);,
                              Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
-                             Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
+                             Array4<Real const> const& fcz = fcent[2]->const_array(mfi));
                 Array4<EBCellFlag const> const& flagarr = flagfab.const_array();
                 AMREX_HOST_DEVICE_FOR_4D(bx,divu.nComp(),i,j,k,n,
                 {
@@ -742,7 +771,7 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
 
         MFItInfo info;
         if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(ccmf,info); mfi.isValid(); ++mfi)
@@ -752,7 +781,7 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
             Array4<Real> const& ccfab = ccmf.array(mfi);
             AMREX_D_TERM(Array4<Real const> const& xfab = fmf[0]->const_array(mfi);,
                          Array4<Real const> const& yfab = fmf[1]->const_array(mfi);,
-                         Array4<Real const> const& zfab = fmf[2]->const_array(mfi););
+                         Array4<Real const> const& zfab = fmf[2]->const_array(mfi));
             const auto fabtyp = flagfab.getType(bx);
             if (fabtyp == FabType::covered) {
                 AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
@@ -767,7 +796,7 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
             } else {
                 AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
                              Array4<Real const> const& apy = area[1]->const_array(mfi);,
-                             Array4<Real const> const& apz = area[2]->const_array(mfi););
+                             Array4<Real const> const& apz = area[2]->const_array(mfi));
                 Array4<EBCellFlag const> const& flagarr = flagfab.const_array();
                 AMREX_HOST_DEVICE_FOR_3D(bx,i,j,k,
                 {
@@ -788,7 +817,7 @@ EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int scomp, int dco
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(cc, mfi_info);  mfi.isValid(); ++mfi)
@@ -871,56 +900,66 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
     
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(cc, mfi_info);  mfi.isValid(); ++mfi)
     {
-
         const Box& vbx = mfi.tilebox();
+        AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
+                     const Box& ybx = mfi.nodaltilebox(1);,
+                     const Box& zbx = mfi.nodaltilebox(2));
         const auto& ccfab = cc.array(mfi,scomp);
         const auto fabtyp = flags[mfi].getType(amrex::grow(vbx,0));
         const auto fabtyp_ghost = flags[mfi].getType(amrex::grow(vbx,nghost));
 
         if (fabtyp != FabType::covered)
         {
-
             AMREX_D_TERM(Array4<Real> const& edg_x = fc_x.array(mfi,dcomp);,
                          Array4<Real> const& edg_y = fc_y.array(mfi,dcomp);,
-                         Array4<Real> const& edg_z = fc_z.array(mfi,dcomp););
+                         Array4<Real> const& edg_z = fc_z.array(mfi,dcomp));
           
             if (fabtyp_ghost == FabType::regular )
             {
-                
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
-                {
-                    eb_interp_cc2face(thread_box, ccfab,
-                                      AMREX_D_DECL(edg_x,edg_y,edg_z),
-                                      ncomp,
-                                      domain, d_bcs);
-                });
-            
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
+                    (xbx, txbx,
+                     {
+                         eb_interp_cc2face_x(txbx, ccfab, edg_x, ncomp, domain, d_bcs);
+                     },
+                     ybx, tybx,
+                     {
+                         eb_interp_cc2face_y(tybx, ccfab, edg_y, ncomp, domain, d_bcs);
+                     },
+                     zbx, tzbx,
+                     {
+                         eb_interp_cc2face_z(tzbx, ccfab, edg_z, ncomp, domain, d_bcs);
+                     });
             }
             else
             {
-                Array4<EBCellFlag const> const& flagfab = flags.const_array(mfi);
                 AMREX_D_TERM(Array4<Real const> const& apxfab = area[0]->const_array(mfi);,
                              Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
-                             Array4<Real const> const& apzfab = area[2]->const_array(mfi););
+                             Array4<Real const> const& apzfab = area[2]->const_array(mfi));
                 AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->const_array(mfi);,
                              Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
-                             Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
-                
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
-                {
-                    eb_interp_cc2facecent(thread_box, ccfab,
-                                          flagfab,
-                                          AMREX_D_DECL(apxfab,apyfab,apzfab),
-                                          AMREX_D_DECL(fcx,fcy,fcz),
-                                          AMREX_D_DECL(edg_x,edg_y,edg_z),
-                                          ncomp,
-                                          domain, d_bcs);
-                });
+                             Array4<Real const> const& fcz = fcent[2]->const_array(mfi));
+
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
+                    (xbx, txbx,
+                     {
+                         eb_interp_cc2facecent_x(txbx, ccfab, apxfab, fcx, edg_x,
+                                                 ncomp, domain, d_bcs);
+                     },
+                     ybx, tybx,
+                     {
+                         eb_interp_cc2facecent_y(tybx, ccfab, apyfab, fcy, edg_y,
+                                                 ncomp, domain, d_bcs);
+                     },
+                     zbx, tzbx,
+                     {
+                         eb_interp_cc2facecent_z(tzbx, ccfab, apzfab, fcz, edg_z,
+                                                 ncomp, domain, d_bcs);
+                     });
             }
         }
     }
@@ -1000,13 +1039,15 @@ EB_interp_CellCentroid_to_FaceCentroid (const MultiFab& phi_centroid,
     
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(phi_centroid, mfi_info);  mfi.isValid(); ++mfi)
     {
-
         const Box& vbx = mfi.tilebox();
+        AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
+                     const Box& ybx = mfi.nodaltilebox(1);,
+                     const Box& zbx = mfi.nodaltilebox(2));
         const auto& ccfab = phi_centroid.array(mfi,scomp);
         const auto fabtyp = flags[mfi].getType(amrex::grow(vbx,0));
         const auto fabtyp_ghost = flags[mfi].getType(amrex::grow(vbx,nghost));
@@ -1015,46 +1056,53 @@ EB_interp_CellCentroid_to_FaceCentroid (const MultiFab& phi_centroid,
         {
             AMREX_D_TERM(Array4<Real> const& phi_x = phi_xface.array(mfi,dcomp);,
                          Array4<Real> const& phi_y = phi_yface.array(mfi,dcomp);,
-                         Array4<Real> const& phi_z = phi_zface.array(mfi,dcomp););
+                         Array4<Real> const& phi_z = phi_zface.array(mfi,dcomp));
           
             if (fabtyp_ghost == FabType::regular )
             {
-                
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
-                {
-                    eb_interp_cc2face(thread_box, ccfab,
-                                      AMREX_D_DECL(phi_x,phi_y,phi_z),
-                                      ncomp,
-                                      domain, d_bcs);
-                });
-            
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
+                    (xbx, txbx,
+                     {
+                         eb_interp_cc2face_x(txbx, ccfab, phi_x, ncomp, domain, d_bcs);
+                     },
+                     ybx, tybx,
+                     {
+                         eb_interp_cc2face_y(tybx, ccfab, phi_y, ncomp, domain, d_bcs);
+                     },
+                     zbx, tzbx,
+                     {
+                         eb_interp_cc2face_z(tzbx, ccfab, phi_z, ncomp, domain, d_bcs);
+                     });
             }
             else
             {
-                Array4<EBCellFlag const> const& flagfab = flags.const_array(mfi);
                 AMREX_D_TERM(Array4<Real const> const& apxfab = area[0]->const_array(mfi);,
                              Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
-                             Array4<Real const> const& apzfab = area[2]->const_array(mfi););
+                             Array4<Real const> const& apzfab = area[2]->const_array(mfi));
 
                 AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->const_array(mfi);,
                              Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
-                             Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
+                             Array4<Real const> const& fcz = fcent[2]->const_array(mfi));
 
                 Array4<Real const> const& cvol = vfrac.const_array(mfi);
                 Array4<Real const> const& cct  = ccent.const_array(mfi);
-                
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
-                {
-                    eb_interp_centroid2facecent(thread_box, ccfab,
-                                                flagfab,
-                                                AMREX_D_DECL(apxfab,apyfab,apzfab),
-                                                cvol,
-                                                cct,
-                                                AMREX_D_DECL(fcx,fcy,fcz),
-                                                AMREX_D_DECL(phi_x,phi_y,phi_z),
-                                                ncomp,
-                                                domain, d_bcs);
-                });
+
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
+                    (xbx, txbx,
+                     {
+                         eb_interp_centroid2facecent_x(txbx, ccfab, apxfab, cvol, cct, fcx, phi_x,
+                                                       ncomp, domain, d_bcs);
+                     },
+                     ybx, tybx,
+                     {
+                         eb_interp_centroid2facecent_y(tybx, ccfab, apyfab, cvol, cct, fcy, phi_y,
+                                                       ncomp, domain, d_bcs);
+                     },
+                     zbx, tzbx,
+                     {
+                         eb_interp_centroid2facecent_z(tzbx, ccfab, apzfab, cvol, cct, fcz, phi_z,
+                                                       ncomp, domain, d_bcs);
+                     });
             }
         }
     }

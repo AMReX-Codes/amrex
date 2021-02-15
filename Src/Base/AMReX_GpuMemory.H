@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_MEMORY_H_
 #define AMREX_GPU_MEMORY_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>

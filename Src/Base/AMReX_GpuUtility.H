@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_UTILITY_H_
 #define AMREX_GPU_UTILITY_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuTypes.H>
@@ -12,6 +13,7 @@
 #include <AMReX_Array4.H>
 #include <iostream>
 #include <cmath>
+#include <cstring>
 
 #ifdef AMREX_USE_CUDA
 #include <cuda.h>
@@ -49,6 +51,7 @@ namespace Gpu {
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && is_managed;
 #elif defined(AMREX_USE_DPCPP)
+        amrex::ignore_unused(p);
         // xxxxx DPCPP todo: get_pointer_type
 //        auto const info = sycl::get_pointer_info(p);
 //        auto type = sycl::get_pointer_type(p,Device::syclContext());
@@ -62,8 +65,7 @@ namespace Gpu {
     inline bool isDevicePtr (void const* p) noexcept {
 #if defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
-        // HIP FIX HERE: const_cast: earlier versions of hip have a bug
-        hipError_t r = hipPointerGetAttributes(&attrib, const_cast<void*>(p));
+        hipError_t r = hipPointerGetAttributes(&attrib, p);
         return r == hipSuccess && attrib.memoryType == hipMemoryTypeDevice;
 #elif defined(AMREX_USE_CUDA)
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
@@ -72,6 +74,7 @@ namespace Gpu {
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && mem_type == CU_MEMORYTYPE_DEVICE;
 #elif defined(AMREX_USE_DPCPP)
+        amrex::ignore_unused(p);
         // xxxxx DPCPP todo: get_pointer_type
         return false;
 #else
@@ -83,8 +86,7 @@ namespace Gpu {
     inline bool isPinnedPtr (void const* p) noexcept {
 #if defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
-        // HIP FIX HERE: const_cast: earlier versions of hip have a bug
-        hipError_t r = hipPointerGetAttributes(&attrib, const_cast<void*>(p));
+        hipError_t r = hipPointerGetAttributes(&attrib, p);
         return r == hipSuccess && attrib.memoryType == hipMemoryTypeHost;
 #elif defined(AMREX_USE_CUDA)
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
@@ -93,6 +95,7 @@ namespace Gpu {
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && mem_type == CU_MEMORYTYPE_HOST;
 #elif defined(AMREX_USE_DPCPP)
+        amrex::ignore_unused(p);
         // xxxxx DPCPP todo: get_pointer_type
         return false;
 #else
@@ -107,8 +110,7 @@ namespace Gpu {
             return true;
         } else {
             hipPointerAttribute_t attrib;
-            // HIP FIX HERE: const_cast: earlier versions of hip have a bug
-            hipError_t r = hipPointerGetAttributes(&attrib, const_cast<void*>(p));
+            hipError_t r = hipPointerGetAttributes(&attrib, p);
             return r == hipSuccess &&
                 (attrib.memoryType == hipMemoryTypeHost   ||
                  attrib.memoryType == hipMemoryTypeDevice);
@@ -124,6 +126,7 @@ namespace Gpu {
              mem_type == CU_MEMORYTYPE_ARRAY  ||
              mem_type == CU_MEMORYTYPE_UNIFIED);
 #elif defined(AMREX_USE_DPCPP)
+        amrex::ignore_unused(p);
         // xxxxx DPCPP todo: get_pointer_type
         return false;
 #else
@@ -200,6 +203,16 @@ namespace Gpu {
         bool m_threadsafe;
         bool m_sync;
     };
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void* memcpy (void* dest, const void* src, std::size_t count)
+{
+#ifdef __HIP_DEVICE_COMPILE__
+    return ::memcpy(dest, src, count);
+#else
+    return std::memcpy(dest, src, count);
+#endif
+}
 
 } // namespace Gpu
 

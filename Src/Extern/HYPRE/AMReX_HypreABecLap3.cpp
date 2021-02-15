@@ -18,32 +18,22 @@
 namespace amrex {
 
 HypreABecLap3::HypreABecLap3 (const BoxArray& grids, const DistributionMapping& dmap,
-                              const Geometry& geom_, MPI_Comm comm_)
-    : Hypre(grids, dmap, geom_, comm_)
-{
-}
-    
+                              const Geometry& geom_, MPI_Comm comm_,
+                              const iMultiFab* overset_mask)
+    : Hypre(grids, dmap, geom_, comm_),
+      m_overset_mask(overset_mask)
+{}
+
 HypreABecLap3::~HypreABecLap3 ()
-{
-    HYPRE_IJMatrixDestroy(A);
-    A = NULL;
-    HYPRE_IJVectorDestroy(b);
-    b = NULL;
-    HYPRE_IJVectorDestroy(x);
-    x = NULL;
-    HYPRE_BoomerAMGDestroy(solver);
-    solver = NULL;
-}
+{}
 
 void
 HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
                       int max_iter, const BndryData& bndry, int max_bndry_order)
 {
-    Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
-
     BL_PROFILE("HypreABecLap3::solve()");
 
-    if (solver == NULL || m_bndry != &bndry || m_maxorder != max_bndry_order)
+    if (!hypre_ij || m_bndry != &bndry || m_maxorder != max_bndry_order)
     {
         m_bndry = &bndry;
         m_maxorder = max_bndry_order;
@@ -54,7 +44,7 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real ab
     {
         m_factory = &(rhs.Factory());
     }
-    
+
     HYPRE_IJVectorInitialize(b);
     HYPRE_IJVectorInitialize(x);
     //
@@ -62,103 +52,35 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real ab
     //
     HYPRE_IJVectorAssemble(x);
     HYPRE_IJVectorAssemble(b);
-    
-    HYPRE_ParCSRMatrix par_A = NULL;
-    HYPRE_ParVector par_b = NULL;
-    HYPRE_ParVector par_x = NULL;
-    HYPRE_IJMatrixGetObject(A, (void**)  &par_A);
-    HYPRE_IJVectorGetObject(b, (void **) &par_b);
-    HYPRE_IJVectorGetObject(x, (void **) &par_x);
 
-    HYPRE_BoomerAMGSetMinIter(solver, 1);
-    HYPRE_BoomerAMGSetMaxIter(solver, max_iter);
-    HYPRE_BoomerAMGSetTol(solver, rel_tol);
-    if (abs_tol > 0.0)
-    {
-        Real bnorm = hypre_ParVectorInnerProd(par_b, par_b);
-        bnorm = std::sqrt(bnorm);
-        
-        const BoxArray& grids = rhs.boxArray();
-        Real volume = grids.numPts();
-        Real rel_tol_new = (bnorm > 0.0) ? (abs_tol / bnorm * std::sqrt(volume)) : rel_tol;
-
-        if (rel_tol_new > rel_tol) {
-            HYPRE_BoomerAMGSetTol(solver, rel_tol_new);
-        }
-    }
-
-    HYPRE_BoomerAMGSolve(solver, par_A, par_b, par_x);
-
-    if (verbose >= 2)
-    {
-        HYPRE_Int num_iterations;
-        Real res;
-        HYPRE_BoomerAMGGetNumIterations(solver, &num_iterations);
-        HYPRE_BoomerAMGGetFinalRelativeResidualNorm(solver, &res);
-
-        amrex::Print() <<"\n" <<  num_iterations
-                       << " Hypre IJ BoomerAMG Iterations, Relative Residual "
-                       << res << std::endl;
-    }
+    hypre_ij->solve(rel_tol, abs_tol, max_iter);
 
     getSolution(soln);
 }
 
 void
-HypreABecLap3::getSolution (MultiFab& soln)
+HypreABecLap3::getSolution (MultiFab& a_soln)
 {
-#ifdef AMREX_USE_EB
-    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
-    const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
-#endif
+    bool use_tmp_mf = (a_soln.nGrowVect() != 0);
+    MultiFab* l_soln = &a_soln;
+    MultiFab tmp;
+    if (use_tmp_mf) {
+        tmp.define(a_soln.boxArray(), a_soln.DistributionMap(), 1, 0);
+        l_soln = &tmp;
+    }
 
-    FArrayBox rfab;
-    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*l_soln); mfi.isValid(); ++mfi)
     {
-        const Box& bx = mfi.validbox();
         const HYPRE_Int nrows = ncells_grid[mfi];
-        
-#ifdef AMREX_USE_EB
-        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-#else
-        auto fabtyp = FabType::regular;
-#endif
-        if (fabtyp != FabType::covered)
-        {
-            FArrayBox *xfab;
-#ifdef AMREX_USE_EB
-            if (fabtyp != FabType::regular)
-            {
-                xfab = &rfab;
-                xfab->resize(bx);
-            }
-            else
-#endif
-            {
-                if (soln.nGrow() == 0) {
-                    xfab = &soln[mfi];
-                } else {
-                    xfab = &rfab;
-                    xfab->resize(bx);
-                }
-            }
-                
-            HYPRE_IJVectorGetValues(x, nrows, cell_id_vec[mfi].data(), xfab->dataPtr());
-
-            if (fabtyp == FabType::regular && soln.nGrow() != 0)
-            {
-                soln[mfi].copy<RunOn::Host>(*xfab,bx);
-            }
-#ifdef AMREX_USE_EB
-            else if (fabtyp != FabType::regular)
-            {
-                amrex_hpeb_copy_from_vec(bx,
-                                         soln[mfi],
-                                         xfab->dataPtr(),
-                                         (*flags)[mfi]);
-            }
-#endif
+        if (nrows > 0) {
+            HYPRE_IJVectorGetValues(x, nrows, cell_id_vec[mfi].dataPtr(), (*l_soln)[mfi].dataPtr());
+        } else {
+            (*l_soln)[mfi].setVal<RunOn::Device>(0.0);
         }
+    }
+
+    if (use_tmp_mf) {
+        MultiFab::Copy(a_soln, tmp, 0, 0, 1, 0);
     }
 }
    
@@ -182,13 +104,17 @@ HypreABecLap3::prepareSolver ()
     }
 #endif
 
+    static_assert(std::is_signed<HYPRE_Int>::value, "HYPRE_Int is assumed to be signed");
+
     // how many non-covered cells do we have?
     ncells_grid.define(ba,dm);
     cell_id.define(ba,dm,1,1);
-    cell_id_vec.define(ba,dm);
+    cell_id_vec.define(ba,dm,1,0);
 
 #ifdef AMREX_USE_EB
     auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_overset_mask == nullptr || ebfactory == nullptr,
+                                     "Cannot have both EB and overset");
     const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* vfrac = (ebfactory) ? &(ebfactory->getVolFrac()) : nullptr;
     auto area = (ebfactory) ? ebfactory->getAreaFrac()
@@ -200,29 +126,23 @@ HypreABecLap3::prepareSolver ()
 #endif
 
     HYPRE_Int ncells_proc = 0;
-#ifdef _OPENMP
-#pragma omp parallel reduction(+:ncells_proc)
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(+:ncells_proc)
 #endif
-    {  BaseFab<HYPRE_Int> ifab;
     for (MFIter mfi(cell_id); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
-        BaseFab<HYPRE_Int>& cid_fab = cell_id[mfi];
-        cid_fab.setVal<RunOn::Host>(std::numeric_limits<HYPRE_Int>::lowest());
+        const Box& gbx = amrex::grow(bx,1);
+        Array4<HYPRE_Int> const& cid_arr = cell_id.array(mfi);
 #ifdef AMREX_USE_EB
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
         if (fabtyp == FabType::covered)
         {
             ncells_grid[mfi] = 0;
-        }
-        else if (fabtyp == FabType::singlevalued)
-        {
-            amrex_hpeb_fill_cellid(bx,
-                                   ncells_grid[mfi],
-                                   cid_fab,
-                                   (*flags)[mfi]);
-
-            ncells_proc += ncells_grid[mfi];
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(gbx, i, j, k,
+            {
+                cid_arr(i,j,k) = std::numeric_limits<HYPRE_Int>::lowest();
+            });
         }
         else
 #endif
@@ -231,14 +151,16 @@ HypreABecLap3::prepareSolver ()
             ncells_grid[mfi] = npts;
             ncells_proc += npts;
 
-            ifab.resize(bx);
-            HYPRE_Int* p = ifab.dataPtr();
-            for (Long i = 0; i < npts; ++i) {
-                *p++ = i;
-            }
-            cid_fab.copy<RunOn::Host>(ifab,bx);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(gbx, i, j, k,
+            {
+                if (bx.contains(i,j,k)) {
+                    cid_arr(i,j,k) = bx.index(IntVect{AMREX_D_DECL(i,j,k)});
+                } else {
+                    cid_arr(i,j,k) = std::numeric_limits<HYPRE_Int>::lowest();
+                }
+            });
         }
-    }}
+    }
 
     Vector<HYPRE_Int> ncells_allprocs(num_procs);
     MPI_Allgather(&ncells_proc, sizeof(HYPRE_Int), MPI_CHAR,
@@ -248,13 +170,6 @@ HypreABecLap3::prepareSolver ()
     for (int i = 0; i < myid; ++i) {
         proc_begin += ncells_allprocs[i];
     }
-
-#ifdef AMREX_DEBUG
-    HYPRE_Int ncells_total = 0;
-    for (auto n : ncells_allprocs) {
-        ncells_total += n;
-    }
-#endif
 
     LayoutData<HYPRE_Int> offset(ba,dm);
     HYPRE_Int proc_end = proc_begin;
@@ -266,13 +181,21 @@ HypreABecLap3::prepareSolver ()
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(proc_end == proc_begin+ncells_proc,
                                      "HypreABecLap3::prepareSolver: how did this happen?");
 
-#ifdef _OPENMP
-#pragma omp parallel
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(cell_id,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(cell_id,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        cell_id[mfi].plus<RunOn::Host>(offset[mfi], mfi.tilebox());
-    }    
+        Box const& bx = mfi.tilebox();
+        auto os = offset[mfi];
+        Array4<HYPRE_Int> const& cid_arr = cell_id.array(mfi);
+        Array4<HYPRE_Int> const& cid_vec = cell_id_vec.array(mfi);
+        AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(bx, i, j, k,
+        {
+            cid_arr(i,j,k) += os;
+            cid_vec(i,j,k) = cid_arr(i,j,k);
+        });
+    }
 
     cell_id.FillBoundary(geom.periodicity());
 
@@ -280,23 +203,20 @@ HypreABecLap3::prepareSolver ()
     HYPRE_Int ilower = proc_begin;
     HYPRE_Int iupper = proc_end-1;
 
-    //
-    HYPRE_IJMatrixCreate(comm, ilower, iupper, ilower, iupper, &A);
-    HYPRE_IJMatrixSetObjectType(A, HYPRE_PARCSR);
-    HYPRE_IJMatrixInitialize(A);
-    //
-    HYPRE_IJVectorCreate(comm, ilower, iupper, &b);
-    HYPRE_IJVectorSetObjectType(b, HYPRE_PARCSR);
-    //
-    HYPRE_IJVectorCreate(comm, ilower, iupper, &x);
-    HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
-    
-    // A.SetValues() & A.assemble()
+    hypre_ij.reset(new HypreIJIface(comm, ilower, iupper, verbose));
+    hypre_ij->parse_inputs(options_namespace);
 
-    const Real* dx = geom.CellSize();
+    // Obtain non-owning references to the matrix, rhs, and solution data
+    A = hypre_ij->A();
+    b = hypre_ij->b();
+    x = hypre_ij->x();
+
+    const auto dx = geom.CellSizeArray();
     const int bho = (m_maxorder > 2) ? 1 : 0;
-    FArrayBox foo(Box::TheUnitBox());
-    const int is_eb_dirichlet = m_eb_b_coeffs != nullptr;
+    BaseFab<HYPRE_Int> ncols_fab;
+
+    BaseFab<Real> mat_aos_fab, mat_vec_fab;
+    BaseFab<HYPRE_Int> cols_aos_fab, cols_vec_fab;
 
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
@@ -309,117 +229,178 @@ HypreABecLap3::prepareSolver ()
 #endif
         if (fabtyp != FabType::covered)
         {
+            ncols_fab.resize(bx);
 
-            const HYPRE_Int nrows = ncells_grid[mfi];
-            cell_id_vec[mfi].resize(nrows);
+            int max_stencil_size;
+            if  (fabtyp == FabType::regular) {
+                max_stencil_size = 2*AMREX_SPACEDIM+1;
+            } else {
+                max_stencil_size = AMREX_D_TERM(3,*3,*3);
+            }
 
-            Gpu::ManagedDeviceVector<HYPRE_Int> ncolsg(nrows,0);
-            Gpu::ManagedDeviceVector<HYPRE_Int> colsg(nrows*(AMREX_SPACEDIM*2+1),0);
-            Gpu::ManagedDeviceVector<Real> matg(nrows*(AMREX_SPACEDIM*2+1),0.0);
+            mat_aos_fab.resize(bx,max_stencil_size);
+            cols_aos_fab.resize(bx,max_stencil_size);
 
+            Array4<HYPRE_Int> const& ncols_a = ncols_fab.array();
+            Array4<HYPRE_Int const> const& cid_a = cell_id.const_array(mfi);
+
+            Array4<Real const> const& afab = acoefs.const_array(mfi);
+            GpuArray<Array4<Real const>, AMREX_SPACEDIM> bfabs {
+                AMREX_D_DECL(bcoefs[0].const_array(mfi),
+                             bcoefs[1].const_array(mfi),
+                             bcoefs[2].const_array(mfi))};
+            Array4<Real> const& diaginvfab = diaginv.array(mfi);
             GpuArray<int,AMREX_SPACEDIM*2> bctype;
             GpuArray<Real,AMREX_SPACEDIM*2> bcl;
-            const Vector< Vector<BoundCond> > & bcs_i = m_bndry->bndryConds(mfi);
-            const BndryData::RealTuple        & bcl_i = m_bndry->bndryLocs(mfi);
-            for (OrientationIter oit; oit; oit++) {
-                int cdir(oit());
-                bctype[cdir] = bcs_i[cdir][0];
-                bcl[cdir]  = bcl_i[cdir];
+            for (OrientationIter oit; oit; oit++)
+            {
+                int cdir = oit();
+                bctype[cdir] = m_bndry->bndryConds(mfi)[cdir][0];
+                bcl[cdir] = m_bndry->bndryLocs(mfi)[cdir];
             }
-            
+
+            Real sa = scalar_a;
+            Real sb = scalar_b;
+
             if (fabtyp == FabType::regular)
             {
-                amrex_hpijmatrix(bx,
-                                 nrows, ncolsg.dataPtr(), 
-                                 cell_id_vec[mfi].dataPtr(), 
-                                 colsg.dataPtr(), matg.dataPtr(),
-                                 cell_id[mfi], 
-                                 offset[mfi],
-                                 diaginv[mfi],
-                                 acoefs[mfi],
-                                 bcoefs[0][mfi],
-                                 bcoefs[1][mfi],
-#if (AMREX_SPACEDIM == 3)
-                                 bcoefs[2][mfi],
-#endif
-                                 scalar_a, scalar_b, dx,
-                                 bctype, bcl, bho);
+                auto osmsk = (m_overset_mask) ? m_overset_mask->const_array(mfi)
+                                              : Array4<int const>();
+                constexpr int stencil_size = 2*AMREX_SPACEDIM+1;
+                BaseFab<GpuArray<Real,stencil_size> > tmpmatfab
+                    (bx, 1, (GpuArray<Real,stencil_size>*)mat_aos_fab.dataPtr());
 
+                amrex::fill(tmpmatfab,
+                [=] AMREX_GPU_HOST_DEVICE (GpuArray<Real,stencil_size>& sten,
+                                           int i, int j, int k)
+                {
+                    habec_ijmat(sten, ncols_a, diaginvfab, i, j, k, cid_a,
+                                sa, afab, sb, dx, bfabs, bctype, bcl, bho, osmsk);
+                });
+
+                BaseFab<GpuArray<HYPRE_Int,stencil_size> > tmpcolfab
+                    (bx, 1, (GpuArray<HYPRE_Int,stencil_size>*)cols_aos_fab.dataPtr());
+
+                amrex::fill(tmpcolfab,
+                [=] AMREX_GPU_HOST_DEVICE (GpuArray<HYPRE_Int,stencil_size>& sten,
+                                           int i, int j, int k)
+                {
+                    habec_cols(sten, i, j, k, cid_a);
+                });
             }
 #ifdef AMREX_USE_EB
             else
             {
-                FArrayBox const& beb = (is_eb_dirichlet) ? (*m_eb_b_coeffs)[mfi] : foo;
-                int size_vec = std::pow(3,AMREX_SPACEDIM);
-                colsg.resize(nrows*size_vec);
-                matg.resize(nrows*size_vec);
-                amrex_hpeb_ijmatrix(bx,
-                                    nrows, ncolsg.dataPtr(),
-                                    cell_id_vec[mfi].dataPtr(),
-                                    colsg.dataPtr(), matg.dataPtr(),
-                                    cell_id[mfi],
-                                    offset[mfi], diaginv[mfi],
-                                    acoefs[mfi], bcoefs[0][mfi],
-                                    bcoefs[1][mfi], 
-#if (AMREX_SPACEDIM == 3)
-                                    bcoefs[2][mfi],
-#endif
-                                    (*flags)[mfi],
-                                    (*vfrac)[mfi],
-                                    (*area[0])[mfi], (*area[1])[mfi],
-#if (AMREX_SPACEDIM == 3)
-                                    (*area[2])[mfi],
-#endif 
-                                    (*fcent[0])[mfi], (*fcent[1])[mfi], 
-#if (AMREX_SPACEDIM == 3)
-                                    (*fcent[2])[mfi],
-#endif
-                                    (*barea)[mfi],
-                                    (*bcent)[mfi],
-                                    beb, is_eb_dirichlet,
-                                    scalar_a, scalar_b, dx,
-                                    bctype, bcl, bho);
+                auto const& flag_a = flags->const_array(mfi);
+                auto const& vfrac_a = vfrac->const_array(mfi);
+                AMREX_D_TERM(auto const& apx = area[0]->const_array(mfi);,
+                             auto const& apy = area[1]->const_array(mfi);,
+                             auto const& apz = area[2]->const_array(mfi);)
+                AMREX_D_TERM(auto const& fcx = fcent[0]->const_array(mfi);,
+                             auto const& fcy = fcent[1]->const_array(mfi);,
+                             auto const& fcz = fcent[2]->const_array(mfi);)
+                auto const& barea_a = barea->const_array(mfi);
+                auto const& bcent_a = bcent->const_array(mfi);
+                Array4<Real const> beb = (m_eb_b_coeffs) ? m_eb_b_coeffs->const_array(mfi)
+                                                         : Array4<Real const>();
 
+                constexpr int stencil_size = AMREX_D_TERM(3,*3,*3);
+                BaseFab<GpuArray<Real,stencil_size> > tmpmatfab
+                    (bx, 1, (GpuArray<Real,stencil_size>*)mat_aos_fab.dataPtr());
+
+                amrex::fill(tmpmatfab,
+                [=] AMREX_GPU_HOST_DEVICE (GpuArray<Real,stencil_size>& sten,
+                                           int i, int j, int k)
+                {
+                    habec_ijmat_eb(sten, ncols_a, diaginvfab, i, j, k, cid_a,
+                                   sa, afab, sb, dx, bfabs, bctype, bcl, bho,
+                                   flag_a, vfrac_a, AMREX_D_DECL(apx,apy,apz),
+                                   AMREX_D_DECL(fcx,fcy,fcz),barea_a,bcent_a,beb);
+                });
+
+                BaseFab<GpuArray<HYPRE_Int,stencil_size> > tmpcolfab
+                    (bx, 1, (GpuArray<HYPRE_Int,stencil_size>*)cols_aos_fab.dataPtr());
+
+                amrex::fill(tmpcolfab,
+                [=] AMREX_GPU_HOST_DEVICE (GpuArray<HYPRE_Int,stencil_size>& sten,
+                                           int i, int j, int k)
+                {
+                    habec_cols_eb(sten, i, j, k, cid_a);
+                });
             }
 #endif
 
-            HYPRE_Int* rows = cell_id_vec[mfi].data();
-            HYPRE_Int* ncols = (HYPRE_Int*) ncolsg.dataPtr();
-            HYPRE_Int* cols = (HYPRE_Int*) colsg.dataPtr();
-            Real* mat = (Real*) matg.dataPtr();
+            const HYPRE_Int nrows = ncells_grid[mfi];
+            AMREX_ASSERT(nrows == static_cast<HYPRE_Int>(bx.numPts()));
+            HYPRE_Int* rows = cell_id_vec[mfi].dataPtr();
+            HYPRE_Int* ncols = ncols_fab.dataPtr();
 
-#ifdef AMREX_DEBUG
-            HYPRE_Int nvalues = 0;
-            for (HYPRE_Int i = 0; i < nrows; ++i) {
-                nvalues += ncols[i];
-            }
-            for (HYPRE_Int i = 0; i < nvalues; ++i) {
-                AMREX_ASSERT(cols[i] >= 0 && cols[i] < ncells_total);
+            // Remove invalid elements
+#if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
+            if (sizeof(HYPRE_Int) < sizeof(Long)) {
+                Long ntot = static_cast<Long>(nrows)*max_stencil_size;
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ntot <  static_cast<Long>(std::numeric_limits<HYPRE_Int>::max()),
+                                                 "Integer overflow: please configure Hypre with --enable-bigint");
             }
 #endif
+            HYPRE_Int nelems = nrows * max_stencil_size;
+            HYPRE_Int const* cols_in = cols_aos_fab.dataPtr();
+            Real const* mat_in = mat_aos_fab.dataPtr();
+            HYPRE_Int* cols;
+            Real* mat;
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion()) {
+                cols_vec_fab.resize(bx,max_stencil_size);
+                mat_vec_fab.resize(bx,max_stencil_size);
+                cols = cols_vec_fab.dataPtr();
+                mat = mat_vec_fab.dataPtr();
+                Scan::PrefixSum<HYPRE_Int>(nelems,
+                    [=] AMREX_GPU_DEVICE (HYPRE_Int i) -> HYPRE_Int { return (mat_in[i] != Real(0.0)); },
+                    [=] AMREX_GPU_DEVICE (HYPRE_Int i, HYPRE_Int const& x) {
+                        if (mat_in[i] != Real(0.0)) {
+                            cols[x] = cols_in[i];
+                            mat[x] = mat_in[i];
+                        }
+                    }, Scan::Type::exclusive);
+            } else
+#endif
+            {
+                cols = const_cast<HYPRE_Int*>(cols_in);
+                mat = const_cast<Real*>(mat_in);
+                HYPRE_Int m = 0;
+                for (HYPRE_Int ielem = 0; ielem < nelems; ++ielem) {
+                    if (mat_in[ielem] != Real(0.0)) {
+                        if (m != ielem) {
+                            cols[m] = cols_in[ielem];
+                            mat[m] = mat_in[ielem];
+                        }
+                        ++m;
+                    }
+                }
+            }
 
+            // For singular matrices set reference solution on one row
+            if (hypre_ij->adjustSingularMatrix() && is_matrix_singular) {
+                AMREX_ASSERT_WITH_MESSAGE(fabtyp == FabType::regular,
+                                          "adjustSingularMatrix not supported for EB");
+                AMREX_HOST_DEVICE_FOR_1D(1, m,
+                {
+                    amrex::ignore_unused(m);
+                    if (rows[0] == 0) {
+                        const int num_cols = ncols[0];
+                        for (int ic = 0; ic < num_cols; ++ic) {
+                            mat[ic] = (cols[ic] == rows[0]) ? mat[ic] : 0.0;
+                        }
+                    }
+                });
+            }
+
+            Gpu::synchronize();
             HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);
+            Gpu::synchronize();
         }
     }
     HYPRE_IJMatrixAssemble(A);
-
-    // Create solver
-    HYPRE_BoomerAMGCreate(&solver);
-
-    HYPRE_BoomerAMGSetOldDefault(solver); // Falgout coarsening with modified classical interpolation
-//    HYPRE_BoomerAMGSetCoarsenType(solver, 6);
-//    HYPRE_BoomerAMGSetCycleType(solver, 1);
-    HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
-    HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
-    HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
-//    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6); // default is 0.25
-
-    int logging = (verbose >= 2) ? 1 : 0;
-    HYPRE_BoomerAMGSetLogging(solver, logging);
-
-    HYPRE_ParCSRMatrix par_A = NULL;
-    HYPRE_IJMatrixGetObject(A, (void**)  &par_A);
-    HYPRE_BoomerAMGSetup(solver, par_A, NULL, NULL);
 }
 
 void
@@ -433,45 +414,76 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
 #endif
 
     soln.setVal(0.0);
-    
-    FArrayBox vecfab, rhsfab;
+
+    MultiFab rhs_diag(rhs.boxArray(), rhs.DistributionMap(), 1, 0);
+#ifdef AMREX_USE_OMP
+#pragma omp paralle if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(rhs_diag,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& reg = mfi.validbox();
+        Array4<Real> const& rhs_diag_a = rhs_diag.array(mfi);
+        Array4<Real const> const& rhs_a = rhs.const_array(mfi);
+        Array4<Real const> const& diaginv_a = diaginv.const_array(mfi);
+        auto osm = (m_overset_mask) ? m_overset_mask->const_array(mfi)
+                                    : Array4<int const>();
+#ifdef AMREX_USE_EB
+        auto fabtyp = (flags) ? (*flags)[mfi].getType(reg) : FabType::regular;
+        if (fabtyp == FabType::singlevalued) {
+            auto const& flag = flags->const_array(mfi);
+            if (osm) {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(reg, i, j, k,
+                {
+                    rhs_diag_a(i,j,k) = (osm(i,j,k) == 0 || flag(i,j,k).isCovered()) ?
+                        Real(0.0) : rhs_a(i,j,k) * diaginv_a(i,j,k);
+                });
+            } else {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(reg, i, j, k,
+                {
+                    rhs_diag_a(i,j,k) = (flag(i,j,k).isCovered()) ?
+                        Real(0.0) : rhs_a(i,j,k) * diaginv_a(i,j,k);
+                });
+            }
+        } else if (fabtyp == FabType::regular)
+#endif
+        {
+            if (osm) {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(reg, i, j, k,
+                {
+                    rhs_diag_a(i,j,k) = (osm(i,j,k) == 0) ?
+                        Real(0.0) : rhs_a(i,j,k) * diaginv_a(i,j,k);
+                });
+            } else {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(reg, i, j, k,
+                {
+                    rhs_diag_a(i,j,k) = rhs_a(i,j,k) * diaginv_a(i,j,k);
+                });
+            }
+        }
+    }
+
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
-        const Box& bx = mfi.validbox();
         const HYPRE_Int nrows = ncells_grid[mfi];
-        
-#ifdef AMREX_USE_EB
-        const auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-#else
-        const auto fabtyp = FabType::regular;
-#endif
-        if (fabtyp != FabType::covered)
+        if (nrows > 0)
         {
             // soln has been set to zero.
-            HYPRE_IJVectorSetValues(x, nrows, cell_id_vec[mfi].data(), soln[mfi].dataPtr());
+            HYPRE_IJVectorSetValues(x, nrows, cell_id_vec[mfi].dataPtr(), soln[mfi].dataPtr());
 
-            rhsfab.resize(bx);
-            rhsfab.copy<RunOn::Host>(rhs[mfi],bx);
-            rhsfab.mult<RunOn::Host>(diaginv[mfi]);
-            
-            FArrayBox* bfab;                            
-#ifdef AMREX_USE_EB
-            if (fabtyp != FabType::regular)
-            {
-                bfab = &vecfab;
-                bfab->resize(bx);
-                amrex_hpeb_copy_to_vec(bx,
-                                       rhsfab,
-                                       bfab->dataPtr(),
-                                       (*flags)[mfi]);
-            }
-            else
-#endif
-            {
-                bfab = &rhsfab;
+            if (hypre_ij->adjustSingularMatrix() && is_matrix_singular) {
+                HYPRE_Int const* rows = cell_id_vec[mfi].dataPtr();
+                Real* bp = rhs_diag[mfi].dataPtr();
+                AMREX_HOST_DEVICE_FOR_1D(1, m,
+                {
+                    amrex::ignore_unused(m);
+                    if (rows[0] == 0) {
+                        bp[0] = Real(0.0);
+                    }
+                });
+                Gpu::synchronize();
             }
 
-            HYPRE_IJVectorSetValues(b, nrows, cell_id_vec[mfi].data(), bfab->dataPtr());
+            HYPRE_IJVectorSetValues(b, nrows, cell_id_vec[mfi].dataPtr(), rhs_diag[mfi].dataPtr());
         }
     }
 }

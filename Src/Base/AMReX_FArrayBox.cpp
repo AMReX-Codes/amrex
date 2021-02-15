@@ -156,7 +156,7 @@ FArrayBox::initVal () noexcept
 {
     Real * p = dataPtr();
     Long s = size();
-    if (p and s > 0) {
+    if (p && s > 0) {
         RunOn runon;
 #if defined(AMREX_USE_GPU)
         if ( Gpu::inLaunchRegion() && 
@@ -527,7 +527,7 @@ FABio::read_header (std::istream& is,
 FABio*
 FABio::read_header (std::istream& is,
                     FArrayBox&    f,
-		    int           compIndex,
+		    int           /*compIndex*/,
 		    int&          nCompAvailable)
 {
 //    BL_PROFILE("FArrayBox::read_header_is_i");
@@ -718,9 +718,9 @@ FABio_ascii::skip (std::istream& is,
 }
 
 void
-FABio_ascii::skip (std::istream& is,
-                   FArrayBox&    f,
-		   int           nCompToSkip) const
+FABio_ascii::skip (std::istream& /*is*/,
+                   FArrayBox&    /*f*/,
+		   int           /*nCompToSkip*/) const
 {
     amrex::Error("FABio_ascii::skip(..., int nCompToSkip) not implemented");
 }
@@ -758,7 +758,7 @@ FABio_8bit::write (std::ostream&    os,
         const Real mx   = f.max<RunOn::Host>(k+comp);
         const Real* dat = f.dataPtr(k+comp);
         Real rng = std::fabs(mx-mn);
-        rng = (rng < eps) ? 0.0 : 255.0/(mx-mn);
+        rng = (rng < eps) ? 0.0_rt : 255.0_rt/(mx-mn);
         for(Long i(0); i < siz; ++i) {
             Real v = rng*(dat[i]-mn);
             int iv = (int) v;
@@ -791,7 +791,7 @@ FABio_8bit::read (std::istream& is,
 	}
         is.read((char*)c,siz);
         Real* dat       = f.dataPtr(k);
-        const Real rng  = (mx-mn)/255.0;
+        const Real rng  = (mx-mn)/255.0_rt;
         for (Long i = 0; i < siz; i++)
         {
             int iv = (int) c[i];

@@ -7,6 +7,15 @@
 namespace amrex {
 
 int MFIter::nextDynamicIndex = std::numeric_limits<int>::min();
+int MFIter::depth = 0;
+int MFIter::allow_multiple_mfiters = 0;
+
+int
+MFIter::allowMultipleMFIters (int allow)
+{
+    std::swap(allow, allow_multiple_mfiters);
+    return allow;
+}
 
 MFIter::MFIter (const FabArrayBase& fabarray_, 
 		unsigned char       flags_)
@@ -78,7 +87,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp single
 #endif
     {
@@ -102,7 +111,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tilin
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp single
 #endif
     {
@@ -128,7 +137,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp single
 #endif
     {
@@ -153,13 +162,13 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInf
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp single
 #endif
     {
         m_fa->addThisBD();
     }
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
     if (dynamic) {
 #pragma omp barrier
 #pragma omp single
@@ -185,7 +194,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
     if (dynamic) {
 #pragma omp barrier
 #pragma omp single
@@ -200,6 +209,13 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
 
 MFIter::~MFIter ()
 {
+#ifdef AMREX_USE_OMP
+#pragma omp master
+#endif
+    {
+        depth = 0;
+    }
+
 #ifdef BL_USE_TEAM
     if ( ! (flags & NoTeamBarrier) )
 	ParallelDescriptor::MyTeam().MemoryBarrier();
@@ -209,26 +225,17 @@ MFIter::~MFIter ()
     if (device_sync) Gpu::synchronize();
 #endif
 
-#ifdef AMREX_USE_GPU_PRAGMA
-    reduce();
-#endif
-
-#ifdef AMREX_USE_GPU_PRAGMA
-    if (Gpu::inLaunchRegion()) {
-        for (int i = 0; i < real_reduce_list.size(); ++i)
-            for (int j = 0; j < real_reduce_list[i].size(); ++j)
-                amrex::The_MFIter_Arena()->free(real_device_reduce_list[i][j]);
-    }
-#endif
-
 #ifdef AMREX_USE_GPU
     AMREX_GPU_ERROR_CHECK();
     Gpu::Device::resetStreamIndex();
     Gpu::resetNumCallbacks();
+    if (!OpenMP::in_parallel() && Gpu::inFuseRegion()) {
+        Gpu::LaunchFusedKernels();
+    }
 #endif
 
     if (m_fa) {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp barrier
 #pragma omp single
 #endif
@@ -236,9 +243,18 @@ MFIter::~MFIter ()
     }
 }
 
-void 
+void
 MFIter::Initialize ()
 {
+#ifdef AMREX_USE_OMP
+#pragma omp master
+#endif
+    {
+        ++depth;
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(depth == 1 || MFIter::allow_multiple_mfiters,
+            "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)".);
+    }
+
     if (flags & SkipInit) {
 	return;
     }
@@ -297,7 +313,7 @@ MFIter::Initialize ()
 	    }
 	}
 	
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 	int nthreads = omp_get_num_threads();
 	if (nthreads > 1)
 	{
@@ -327,6 +343,11 @@ MFIter::Initialize ()
 #ifdef AMREX_USE_GPU
 	Gpu::Device::setStreamIndex((streams > 0) ? currentIndex%streams : -1);
         Gpu::resetNumCallbacks();
+        if (!OpenMP::in_parallel()) {
+            if (index_map->size() >= Gpu::getFuseNumKernelsThreshold()) {
+                gpu_fsg.reset(new Gpu::FuseSafeGuard(true));
+            }
+        }
 #endif
 
 	typ = fabArray.boxArray().ixType();
@@ -473,7 +494,7 @@ MFIter::grownnodaltilebox (int dir, IntVect const& a_ng) const noexcept
 void
 MFIter::operator++ () noexcept
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
     if (dynamic)
     {
 #pragma omp atomic capture
@@ -482,18 +503,6 @@ MFIter::operator++ () noexcept
     else
 #endif
     {
-#ifdef AMREX_USE_GPU_PRAGMA
-        if (Gpu::inLaunchRegion()) {
-            if (!real_reduce_list.empty()) {
-                for (int i = 0; i < real_reduce_list[currentIndex].size(); ++i) {
-                    Gpu::dtoh_memcpy_async(&real_reduce_list[currentIndex][i],
-                                           real_device_reduce_list[currentIndex][i],
-                                           sizeof(Real));
-                }
-            }
-        }
-#endif
-
         ++currentIndex;
 
 #ifdef AMREX_USE_GPU
@@ -507,123 +516,6 @@ MFIter::operator++ () noexcept
 #endif
     }
 }
-
-#ifdef AMREX_USE_GPU_PRAGMA
-Real*
-MFIter::add_reduce_value(Real* val, MFReducer r)
-{
-
-    if (Gpu::inLaunchRegion()) {
-
-        reducer = r;
-
-        // For the reduce lists, the outer vector is length
-        // (endIndex - beginIndex) and has a contribution from
-        // every tile. The inner vector is all of the individual
-        // variables to reduce over. While the former is a known
-        // quantity, the latter is not, so we'll push_back for
-        // each new quantity to reduce. Since the elements will
-        // be added in the same order in every MFIter iteration,
-        // we can access them in the same order in each entry
-        // of the reduce_list.
-
-        if (real_reduce_list.empty()) {
-            real_reduce_list.resize(length());
-            real_device_reduce_list.resize(length());
-        }
-
-        // Store the current value of the data.
-
-        Real reduce_val = *val;
-        real_reduce_list[currentIndex].push_back(reduce_val);
-
-        // Create a device copy of the data to update within
-        // the kernel.
-
-        Real* dval = static_cast<Real*>(amrex::The_MFIter_Arena()->alloc(sizeof(Real)));
-        real_device_reduce_list[currentIndex].push_back(dval);
-
-        // Queue up a host to device copy of the input data,
-        // so that we start from the correct value.
-
-        const int list_idx = real_reduce_list[currentIndex].size() - 1;
-
-        Gpu::htod_memcpy_async(real_device_reduce_list[currentIndex][list_idx],
-                               &real_reduce_list[currentIndex][list_idx],
-                               sizeof(Real));
-
-        // If we haven't already, store the address to the variable
-        // we will update at the end.
-
-        if (real_reduce_val.size() < real_reduce_list[currentIndex].size())
-            real_reduce_val.push_back(val);
-
-        return dval;
-
-    }
-    else {
-
-        return val;
-
-    }
-
-}
-#endif
-
-#ifdef AMREX_USE_GPU_PRAGMA
-// Reduce over the values in the list.
-void
-MFIter::reduce()
-{
-
-    // Do nothing if we're not currently executing on the device.
-
-    if (Gpu::notInLaunchRegion()) return;
-
-    // Do nothing if we don't have enough values to reduce on.
-
-    if (real_reduce_list.empty()) return;
-
-    // Assume that the number of reductions we want is fixed
-    // in each vector, and just grab the number from the first
-    // entry.
-
-    const int num_reductions = real_reduce_list[0].size();
-
-    BL_ASSERT(real_reduce_list.size() == length());
-    
-    for (int j = 0; j < num_reductions; ++j) {
-
-        Real result;
-
-        if (reducer == MFReducer::SUM) result = 0.0e0;
-        if (reducer == MFReducer::MIN) result = 1.e200;
-        if (reducer == MFReducer::MAX) result = -1.e200;
-
-        for (int i = 0; i < real_reduce_list.size(); ++i) {
-
-            // Double check our assumption from above.
-
-            BL_ASSERT(real_reduce_list[i].size() == num_reductions);
-
-            if (reducer == MFReducer::SUM) {
-                result += real_reduce_list[i][j];
-            }
-            else if (reducer == MFReducer::MIN) {
-                result = std::min(result, real_reduce_list[i][j]);
-            }
-            else if (reducer == MFReducer::MAX) {
-                result = std::max(result, real_reduce_list[i][j]);
-            }
-
-        }
-
-        *(real_reduce_val[j]) = result;
-
-    }
-
-}
-#endif
 
 MFGhostIter::MFGhostIter (const FabArrayBase& fabarray)
     :

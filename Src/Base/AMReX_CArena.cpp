@@ -121,8 +121,10 @@ CArena::free (void* vp)
     // `vp' had better be in the busy list.
     //
     auto busy_it = m_busylist.find(Node(vp,0,0));
-
-    BL_ASSERT(!(busy_it == m_busylist.end()));
+    if (busy_it == m_busylist.end()) {
+        amrex::Abort("CArena::free: unknown pointer");
+        return;
+    }
     BL_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
 
     m_actually_used -= busy_it->size();

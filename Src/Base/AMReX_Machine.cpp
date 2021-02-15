@@ -1,3 +1,20 @@
+#include <AMReX_Config.H>
+
+#ifndef AMREX_USE_MPI
+
+namespace amrex {
+namespace machine {
+    void Initialize () {}
+}}
+
+#else
+
+#include <AMReX_Print.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelReduce.H>
+#include <AMReX_Utility.H>
+#include <AMReX_Machine.H>
+
 #include <cstdlib>
 #include <string>
 #include <vector>
@@ -6,12 +23,6 @@
 #include <sstream>
 #include <map>
 #include <unordered_map>
-
-#include <AMReX_Print.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_ParallelReduce.H>
-#include <AMReX_Utility.H>
-#include <AMReX_Machine.H>
 
 using namespace amrex;
 
@@ -24,7 +35,7 @@ struct DoubleInt {
 
 using Coord = Array<int, 4>;
 
-#ifdef AMREX_DEBUG
+#if defined(AMREX_DEBUG)
 // returns coordinate in an index space with no switches
 // for dragonfly network
 Coord read_df_node_coord (const std::string & name)
@@ -34,7 +45,7 @@ Coord read_df_node_coord (const std::string & name)
         std::ifstream ifs {"/proc/cray_xt/cname"};
         if (!ifs) {
             // not on a cray
-            return Coord {0,0,0,0}; // initializer_list
+            return Coord {{0,0,0,0}}; // initializer_list
         }
         char t0, t1, t2, t3, t4;
         ifs >> t0 >> cabx >> t1 >> caby >> t2 >> cab_chas >> t3 >> slot >> t4 >> node;
@@ -49,11 +60,10 @@ Coord read_df_node_coord (const std::string & name)
     }
     int chas = cab_chas + 3*(cabx & 1); // 2 cabinets per group (6 chassis per group)
 
-    return Coord {node, slot, chas, group};
+    return Coord {{node, slot, chas, group}};
 }
 #endif
 
-#ifdef BL_USE_MPI
 std::string get_mpi_processor_name ()
 {
     std::string result;
@@ -63,9 +73,8 @@ std::string get_mpi_processor_name ()
     result = std::string(name);
     return result;
 }
-#endif
 
-#ifdef AMREX_DEBUG
+#if defined(AMREX_DEBUG)
 // assumes groups are in 4x16x6 configuration
 int df_coord_to_id (const Coord & c)
 {
@@ -80,7 +89,7 @@ Coord df_id_to_coord (int id)
     int slot = id % 16; id /= 16;
     int chas = id % 6;  id /= 6;
     int group = id;
-    return Coord {node, slot, chas, group};
+    return Coord {{node, slot, chas, group}};
 }
 
 template <class T, size_t N>
@@ -113,7 +122,6 @@ std::string to_str(const Vector<T> & v)
     return oss.str();
 }
 
-#if AMREX_USE_MPI
 Vector<int> get_subgroup_ranks ()
 {
     int rank_n = ParallelContext::NProcsSub();
@@ -126,7 +134,6 @@ Vector<int> get_subgroup_ranks ()
     ParallelContext::local_to_global_rank(granks.data(), lranks.data(), rank_n);
     return granks;
 }
-#endif
 
 int pair_n (int x) {
     return x*(x-1)/2;
@@ -215,7 +222,6 @@ class Machine
     // find a compact neighborhood of size rank_n in the current ParallelContext subgroup
     Vector<int> find_best_nbh (int nbh_rank_n, bool flag_local_ranks)
     {
-#ifdef BL_USE_MPI
         BL_PROFILE("Machine::find_best_nbh()");
 
         auto sg_g_ranks = get_subgroup_ranks();
@@ -301,9 +307,6 @@ class Machine
         }
 
         return result;
-#else
-        return Vector<int>(nbh_rank_n, 0);
-#endif
     }
 
   private:
@@ -379,7 +382,6 @@ class Machine
                 if (flag_verbose) {
                     Print() << "Got node ID from SLURM_TOPOLOGY_ADDR: " << result << std::endl;
                 }
-#ifdef BL_USE_MPI
             } else {
                 if (cluster_name == "escori")
 		    tag = "cgpu";
@@ -392,7 +394,6 @@ class Machine
                         Print() << "Got node ID from MPI_Get_processor_name(): " << result << std::endl;
                     }
                 }
-#endif
             }
 
             // check result
@@ -414,10 +415,8 @@ class Machine
     Vector<int> get_node_ids ()
     {
         Vector<int> ids(ParallelDescriptor::NProcs(), 0);
-#ifdef BL_USE_MPI
         int node_id = get_my_node_id();
         ParallelAllGather::AllGather(node_id, ids.data(), ParallelContext::CommunicatorAll());
-#endif
         if (flag_verbose) {
             std::map<int, Vector<int>> node_ranks;
             for (int i = 0; i < ids.size(); ++i) {
@@ -482,7 +481,9 @@ class Machine
     {
         BL_PROFILE("Machine::search_local_nbh()");
 
-        Print() << "Machine::search_local_nbh() called ..." << std::endl;
+        if (amrex::Verbose() > 0) {
+            Print() << "Machine::search_local_nbh() called ..." << std::endl;
+        }
 
         Vector<int> result;
 
@@ -548,21 +549,24 @@ class Machine
                     min_avg_dist = avg_dist;
                 }
             }
-            cur_node = std::move(*next_node);
-            next_node = nullptr;
-            candidates.erase(cur_node.id);
 
-            // add cur_node to result
-            result.push_back(cur_node.id);
-            total_rank_n += cur_node.rank_n;
-            total_pairs_dist += cur_node.sum_dist;
+            if (next_node) {
+                cur_node = std::move(*next_node);
+                next_node = nullptr;
+                candidates.erase(cur_node.id);
 
-            if (flag_verbose) {
-                Print() << "  Added " << cur_node.id
-                        << ": " << to_str(cur_node.coord)
-                        << ", ranks: " << cur_node.rank_n
-                        << ", total ranks: " << total_rank_n
-                        << ", avg dist: " << min_avg_dist << std::endl;
+                // add cur_node to result
+                result.push_back(cur_node.id);
+                total_rank_n += cur_node.rank_n;
+                total_pairs_dist += cur_node.sum_dist;
+
+                if (flag_verbose) {
+                    Print() << "  Added " << cur_node.id
+                            << ": " << to_str(cur_node.coord)
+                            << ", ranks: " << cur_node.rank_n
+                            << ", total ranks: " << total_rank_n
+                            << ", avg dist: " << min_avg_dist << std::endl;
+                }
             }
         }
 
@@ -592,3 +596,5 @@ Vector<int> find_best_nbh (int rank_n, bool flag_local_ranks) {
 }
 
 }}
+
+#endif

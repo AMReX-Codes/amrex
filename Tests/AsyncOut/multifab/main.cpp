@@ -77,10 +77,11 @@ void main_main ()
 
         auto arrs_ptr = arrs.dataPtr();
 
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelForRNG(bx,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
         {
             for (int m = 0; m < nwrites; ++m) {
-               arrs_ptr[m](i,j,k) = amrex::Random();
+               arrs_ptr[m](i,j,k) = amrex::Random(engine);
             }
         });
         Gpu::streamSynchronize(); // because of arrs

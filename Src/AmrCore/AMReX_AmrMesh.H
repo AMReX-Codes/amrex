@@ -1,5 +1,6 @@
 #ifndef BL_AMRMESH_H_
 #define BL_AMRMESH_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
@@ -25,7 +26,7 @@ struct AmrInfo {
     // Buffer cells around each tagged cell.
     Vector<IntVect> n_error_buf {{IntVect(1)}};
     // Grid efficiency.
-    Real grid_eff = 0.7;
+    Real grid_eff = static_cast<Real>(0.7);
     // Cells required for proper nesting.
     int n_proper = 1;
     int use_fixed_upto_level = 0;
@@ -249,6 +250,7 @@ protected:
     Vector<BoxArray>            grids;
 
     unsigned int num_setdm = 0;
+    unsigned int num_setba = 0;
 
     void checkInput();
 

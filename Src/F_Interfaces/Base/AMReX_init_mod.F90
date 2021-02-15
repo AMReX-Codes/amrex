@@ -62,6 +62,7 @@ contains
   end subroutine amrex_init
   
   subroutine amrex_finalize ()
+    use amrex_geometry_module, only: amrex_geometry_finalize
     interface
        subroutine amrex_fi_finalize() bind(c)
          import
@@ -69,6 +70,7 @@ contains
        end subroutine amrex_fi_finalize
     end interface
     call amrex_fi_finalize()
+    call amrex_geometry_finalize()
     call amrex_parallel_finalize()
     initialized = .false.
   end subroutine amrex_finalize

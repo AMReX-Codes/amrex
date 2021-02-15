@@ -22,7 +22,7 @@ MLMGBndry::setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo
     const Box&      domain = geom.Domain();
     const GpuArray<int,AMREX_SPACEDIM>& is_periodic = geom.isPeriodicArray();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     for (FabSetIter fsi(bndry[Orientation(0,Orientation::low)]); fsi.isValid(); ++fsi)
@@ -35,7 +35,7 @@ MLMGBndry::setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo
         for (int icomp = 0; icomp < nComp(); ++icomp) {
             BCTuple bct;
             setBoxBC(bloc, bct, grd, domain, lo[icomp], hi[icomp], dx, ratio,
-                     a_loc, {AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(0.,0.,0.)},
+                     a_loc, {{AMREX_D_DECL(0.,0.,0.)}}, {{AMREX_D_DECL(0.,0.,0.)}},
                      is_periodic);
             for (int idim = 0; idim < 2*AMREX_SPACEDIM; ++idim) {
                 bctag[idim][icomp] = bct[idim];
@@ -78,7 +78,7 @@ MLMGBndry::setBoxBC (RealTuple& bloc, BCTuple& bctag, const Box& bx, const Box& 
         {
             // Internal bndry.
             bctag[face] = AMREX_LO_DIRICHLET;
-            bloc[face]  = ratio > 0 ? 0.5*ratio*dx[dir] : interior_bloc[dir];
+            bloc[face]  = ratio > 0 ? Real(0.5)*ratio*dx[dir] : interior_bloc[dir];
             // If this is next to another same level box, bloc is
             // wrong.  But it doesn't matter, because we also have
             // mask.  It is used only if mask says it is next to

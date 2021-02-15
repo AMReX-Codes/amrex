@@ -1,5 +1,6 @@
 #ifndef AMREX_INTERP_2D_C_H_
 #define AMREX_INTERP_2D_C_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
@@ -33,8 +34,8 @@ ccinterp_compute_voff (Box const& cbx, IntVect const& ratio, Geometry const& cge
         const int ic = amrex::coarsen(i, ratio[0]);
         const int ii = i - flo.x;
         const int iic = ic - clo.x;
-        const Real fcen = 0.5_rt*(fvc[ii ]+fvc[ii +1]);
-        const Real ccen = 0.5_rt*(cvc[iic]+cvc[iic+1]);
+        const Real fcen = Real(0.5)*(fvc[ii ]+fvc[ii +1]);
+        const Real ccen = Real(0.5)*(cvc[iic]+cvc[iic+1]);
         xoff[ii] = (fcen-ccen)/(cvc[iic+1]-cvc[iic]);
     }
 
@@ -47,8 +48,8 @@ ccinterp_compute_voff (Box const& cbx, IntVect const& ratio, Geometry const& cge
         const int jc = amrex::coarsen(j, ratio[1]);
         const int jj = j - flo.y;
         const int jjc = jc - clo.y;
-        const Real fcen = 0.5_rt*(fvc[jj ]+fvc[jj +1]);
-        const Real ccen = 0.5_rt*(cvc[jjc]+cvc[jjc+1]);
+        const Real fcen = Real(0.5)*(fvc[jj ]+fvc[jj +1]);
+        const Real ccen = Real(0.5)*(cvc[jjc]+cvc[jjc+1]);
         yoff[jj] = (fcen-ccen)/(cvc[jjc+1]-cvc[jjc]);
     }
 
@@ -66,8 +67,8 @@ compute_slopes (const Dim3& lo, const Dim3& hi,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            slopes(i,j,0,ns      ) = 0.5_rt*(u(i+1,j,0,nu)-u(i-1,j,0,nu));
-            slopes(i,j,0,ns+ncomp) = 0.5_rt*(u(i,j+1,0,nu)-u(i,j-1,0,nu));
+            slopes(i,j,0,ns      ) = Real(0.5)*(u(i+1,j,0,nu)-u(i-1,j,0,nu));
+            slopes(i,j,0,ns+ncomp) = Real(0.5)*(u(i,j+1,0,nu)-u(i,j-1,0,nu));
         }
     }
 
@@ -76,12 +77,12 @@ compute_slopes (const Dim3& lo, const Dim3& hi,
         const int i = slo.x;
         if (shi.x-slo.x >= 1) {
             for     (int j = lo.y; j <= hi.y; ++j) {
-                slopes(i,j,0,ns) = -(16._rt/15._rt)*u(i-1,j,0,nu) + 0.5_rt*u(i,j,0,nu)
-                    + (2._rt/3._rt)*u(i+1,j,0,nu) - 0.1_rt*u(i+2,j,0,nu);
+                slopes(i,j,0,ns) = -Real(16./15.)*u(i-1,j,0,nu) + Real(0.5)*u(i,j,0,nu)
+                    + Real(2./3.)*u(i+1,j,0,nu) - Real(0.1)*u(i+2,j,0,nu);
             }
         } else {
             for     (int j = lo.y; j <= hi.y; ++j) {
-                slopes(i,j,0,ns) = 0.25_rt*(u(i+1,j,0,nu)+5._rt*u(i,j,0,nu)-6._rt*u(i-1,j,0,nu));
+                slopes(i,j,0,ns) = Real(0.25)*(u(i+1,j,0,nu)+Real(5.)*u(i,j,0,nu)-Real(6.)*u(i-1,j,0,nu));
             }
         }
     }
@@ -91,12 +92,12 @@ compute_slopes (const Dim3& lo, const Dim3& hi,
         const int i = shi.x;
         if (shi.x-slo.x >= 1) {
             for     (int j = lo.y; j <= hi.y; ++j) {
-                slopes(i,j,0,ns) = (16._rt/15._rt)*u(i+1,j,0,nu) - 0.5_rt*u(i,j,0,nu)
-                    - (2._rt/3._rt)*u(i-1,j,0,nu) + 0.1_rt*u(i-2,j,0,nu);
+                slopes(i,j,0,ns) = Real(16./15.)*u(i+1,j,0,nu) - Real(0.5)*u(i,j,0,nu)
+                    - Real(2./3.)*u(i-1,j,0,nu) + Real(0.1)*u(i-2,j,0,nu);
             }
         } else {
             for     (int j = lo.y; j <= hi.y; ++j) {
-                slopes(i,j,0,ns) = -0.25_rt*(u(i-1,j,0,nu)+5._rt*u(i,j,0,nu)-6._rt*u(i+1,j,0,nu));
+                slopes(i,j,0,ns) = -Real(0.25)*(u(i-1,j,0,nu)+Real(5.)*u(i,j,0,nu)-Real(6.)*u(i+1,j,0,nu));
             }
         }
     }
@@ -107,13 +108,13 @@ compute_slopes (const Dim3& lo, const Dim3& hi,
         if (shi.y-slo.y >= 1) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                slopes(i,j,0,ns+ncomp) = -(16._rt/15._rt)*u(i,j-1,0,nu) + 0.5_rt*u(i,j,0,nu)
-                    + (2._rt/3._rt)*u(i,j+1,0,nu) - 0.1_rt*u(i,j+2,0,nu);
+                slopes(i,j,0,ns+ncomp) = -Real(16./15.)*u(i,j-1,0,nu) + Real(0.5)*u(i,j,0,nu)
+                    + Real(2./3.)*u(i,j+1,0,nu) - Real(0.1)*u(i,j+2,0,nu);
             }
         } else {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                slopes(i,j,0,ns+ncomp) = 0.25_rt*(u(i,j+1,0,nu)+5._rt*u(i,j,0,nu)-6._rt*u(i,j-1,0,nu));
+                slopes(i,j,0,ns+ncomp) = Real(0.25)*(u(i,j+1,0,nu)+Real(5.)*u(i,j,0,nu)-Real(6.)*u(i,j-1,0,nu));
             }
         }
     }
@@ -124,13 +125,13 @@ compute_slopes (const Dim3& lo, const Dim3& hi,
         if (shi.y-slo.y >= 1) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                slopes(i,j,0,ns+ncomp) = (16._rt/15._rt)*u(i,j+1,0,nu) - 0.5_rt*u(i,j,0,nu)
-                    - (2._rt/3._rt)*u(i,j-1,0,nu) + 0.1_rt*u(i,j-2,0,nu);
+                slopes(i,j,0,ns+ncomp) = Real(16./15.)*u(i,j+1,0,nu) - Real(0.5)*u(i,j,0,nu)
+                    - Real(2./3.)*u(i,j-1,0,nu) + Real(0.1)*u(i,j-2,0,nu);
             }
         } else {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                slopes(i,j,0,ns+ncomp) = -0.25_rt*(u(i,j-1,0,nu)+5._rt*u(i,j,0,nu)-6._rt*u(i,j+1,0,nu));
+                slopes(i,j,0,ns+ncomp) = -Real(0.25)*(u(i,j-1,0,nu)+Real(5.)*u(i,j,0,nu)-Real(6.)*u(i,j+1,0,nu));
             }
         }
     }
@@ -154,8 +155,8 @@ cellconslin_slopes_linlim (Box const& bx, Array4<Real> const& slopes,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            sf(i,j,0,0) = 1.0_rt;
-            sf(i,j,0,1) = 1.0_rt;
+            sf(i,j,0,0) = Real(1.);
+            sf(i,j,0,1) = Real(1.);
         }
     }
 
@@ -168,25 +169,25 @@ cellconslin_slopes_linlim (Box const& bx, Array4<Real> const& slopes,
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
                 Real cen  = slopes(i,j,0,n);
-                Real forw = 2.0_rt*(u(i+1,j,0,nu)-u(i  ,j,0,nu));
-                Real back = 2.0_rt*(u(i  ,j,0,nu)-u(i-1,j,0,nu));
-                Real slp = (forw*back >= 0.0_rt) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0_rt;
-                slopes(i,j,0,n) = amrex::Math::copysign(1.0_rt,cen)*amrex::min(slp,amrex::Math::abs(cen));
-                if (cen != 0.0_rt) {
+                Real forw = Real(2.)*(u(i+1,j,0,nu)-u(i  ,j,0,nu));
+                Real back = Real(2.)*(u(i  ,j,0,nu)-u(i-1,j,0,nu));
+                Real slp = (forw*back >= Real(0.)) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : Real(0.);
+                slopes(i,j,0,n) = amrex::Math::copysign(Real(1.),cen)*amrex::min(slp,amrex::Math::abs(cen));
+                if (cen != Real(0.)) {
                     sf(i,j,0,0) = amrex::min(sf(i,j,0,0), slopes(i,j,0,n)/cen);
                 } else {
-                    sf(i,j,0,0) = 0.0_rt;
+                    sf(i,j,0,0) = Real(0.);
                 }
 
                 cen  = slopes(i,j,0,n+ncomp);
-                forw = 2.0_rt*(u(i,j+1,0,nu)-u(i,j  ,0,nu));
-                back = 2.0_rt*(u(i,j  ,0,nu)-u(i,j-1,0,nu));
-                slp = (forw*back >= 0.0_rt) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0_rt;
-                slopes(i,j,0,n+ncomp) = amrex::Math::copysign(1.0_rt,cen)*amrex::min(slp,amrex::Math::abs(cen));
-                if (cen != 0.0_rt) {
+                forw = Real(2.)*(u(i,j+1,0,nu)-u(i,j  ,0,nu));
+                back = Real(2.)*(u(i,j  ,0,nu)-u(i,j-1,0,nu));
+                slp = (forw*back >= Real(0.)) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : Real(0.);
+                slopes(i,j,0,n+ncomp) = amrex::Math::copysign(Real(1.),cen)*amrex::min(slp,amrex::Math::abs(cen));
+                if (cen != Real(0.)) {
                     sf(i,j,0,1) = amrex::min(sf(i,j,0,1), slopes(i,j,0,n+ncomp)/cen);
                 } else {
-                    sf(i,j,0,1) = 0.0_rt;
+                    sf(i,j,0,1) = Real(0.);
                 }
             }
         }
@@ -270,16 +271,16 @@ cellconslin_slopes_mclim (Box const& bx, Array4<Real> const& slopes,
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
                 Real cen  = slopes(i,j,0,n);
-                Real forw = 2.0_rt*(u(i+1,j,0,nu)-u(i  ,j,0,nu));
-                Real back = 2.0_rt*(u(i  ,j,0,nu)-u(i-1,j,0,nu));
-                Real slp = (forw*back >= 0.0_rt) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0_rt;
-                slopes(i,j,0,n) = amrex::Math::copysign(1.0_rt,cen)*amrex::min(slp,amrex::Math::abs(cen));
+                Real forw = Real(2.)*(u(i+1,j,0,nu)-u(i  ,j,0,nu));
+                Real back = Real(2.)*(u(i  ,j,0,nu)-u(i-1,j,0,nu));
+                Real slp = (forw*back >= Real(0.)) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : Real(0.);
+                slopes(i,j,0,n) = amrex::Math::copysign(Real(1.),cen)*amrex::min(slp,amrex::Math::abs(cen));
 
                 cen  = slopes(i,j,0,n+ncomp);
-                forw = 2.0_rt*(u(i,j+1,0,nu)-u(i,j  ,0,nu));
-                back = 2.0_rt*(u(i,j  ,0,nu)-u(i,j-1,0,nu));
-                slp = (forw*back >= 0.0_rt) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0_rt;
-                slopes(i,j,0,n+ncomp) = amrex::Math::copysign(1.0_rt,cen)*amrex::min(slp,amrex::Math::abs(cen));
+                forw = Real(2.)*(u(i,j+1,0,nu)-u(i,j  ,0,nu));
+                back = Real(2.)*(u(i,j  ,0,nu)-u(i,j-1,0,nu));
+                slp = (forw*back >= Real(0.)) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : Real(0.);
+                slopes(i,j,0,n+ncomp) = amrex::Math::copysign(Real(1.),cen)*amrex::min(slp,amrex::Math::abs(cen));
             }
         }
     }
@@ -309,12 +310,12 @@ cellconslin_fine_alpha (Box const& bx, Array4<Real> const& alpha,
                 const Real dummy_fine = xoff[i-vlo.x]*slopes(ic,jc,0,n)
                     +                   yoff[j-vlo.y]*slopes(ic,jc,0,n+ncomp);
 
-                if (dummy_fine > mm(ic,jc,0,n+ncomp) && dummy_fine != 0.0_rt) {
+                if (dummy_fine > mm(ic,jc,0,n+ncomp) && dummy_fine != Real(0.)) {
                     alpha(i,j,0,n) = mm(ic,jc,0,n+ncomp) / dummy_fine;
-                } else if (dummy_fine < mm(ic,jc,0,n) && dummy_fine != 0.0_rt) {
+                } else if (dummy_fine < mm(ic,jc,0,n) && dummy_fine != Real(0.)) {
                     alpha(i,j,0,n) = mm(ic,jc,0,n) / dummy_fine;
                 } else {
-                    alpha(i,j,0,n) = 1.0_rt;
+                    alpha(i,j,0,n) = Real(1.);
                 }
             }
         }
@@ -334,7 +335,7 @@ cellconslin_slopes_mmlim (Box const& bx, Array4<Real> const& slopes,
             const int jj = j*ratio[1];
             for (int i = lo.x; i <= hi.x; ++i) {
                 const int ii = i*ratio[0];
-                Real a = 1.0_rt;
+                Real a = Real(1.);
                 for     (int joff = 0; joff < ratio[1]; ++joff) {
                     for (int ioff = 0; ioff < ratio[0]; ++ioff) {
                         a = amrex::min(a, alpha(ii+ioff,jj+joff,0,n));
@@ -382,8 +383,8 @@ nodebilin_slopes (Box const& bx, Array4<T> const& slope, Array4<T const> const& 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
-    const Real rx = 1.0_rt/ratio[0];
-    const Real ry = 1.0_rt/ratio[1];
+    const Real rx = Real(1.)/ratio[0];
+    const Real ry = Real(1.)/ratio[1];
 
     for (int n = 0; n < ncomp; ++n) {
         for     (int j = lo.y; j <= hi.y; ++j) {
@@ -430,13 +431,94 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_face_interp (int ci, int cj, int /*ck*/,
+                     int nc, int nf, int idir,
+                     Array4<T const> const& crse,
+                     Array4<T> const& fine,
+                     Array4<int const> const& mask,
+                     IntVect const& ratio) noexcept
+{
+    if (mask) {
+        if (!mask(ci, cj, 0, nc))
+            { return; }
+    }
+
+    const int fi = ci*ratio[0];
+    const int fj = cj*ratio[1];
+
+    switch (idir) {
+        case 0:
+        {
+            const Real neg = crse(ci, cj-1, 0, nc);
+            const Real cen = crse(ci, cj  , 0, nc);
+            const Real pos = crse(ci, cj+1, 0, nc);
+
+            fine(fi, fj  , 0, nf) = Real(0.125)*(8*cen + neg - pos);
+            fine(fi, fj+1, 0, nf) = Real(0.125)*(8*cen + pos - neg);
+
+            break;
+        }
+        case 1:
+        {
+            const Real neg = crse(ci-1, cj, 0, nc);
+            const Real cen = crse(ci  , cj, 0, nc);
+            const Real pos = crse(ci+1, cj, 0, nc);
+
+            fine(fi  , fj, 0, nf) = Real(0.125)*(8*cen + neg - pos);
+            fine(fi+1, fj, 0, nf) = Real(0.125)*(8*cen + pos - neg);
+
+            break;
+        }
+    }
+}
+   
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_int (int ci, int cj, int /*ck*/, int nf,
+             GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
+             IntVect const& ratio,
+             GpuArray<Real, AMREX_SPACEDIM> const& cellSize) noexcept
+{
+    const int fi = ci*ratio[0];
+    const int fj = cj*ratio[1];
+
+    // References to fine exterior values.
+    const Real umm = fine[0](fi,   fj,   0, nf);
+    const Real ump = fine[0](fi,   fj+1, 0, nf);
+    const Real upm = fine[0](fi+2, fj,   0, nf);
+    const Real upp = fine[0](fi+2, fj+1, 0, nf);
+
+    const Real vmm = fine[1](fi,   fj,   0, nf);
+    const Real vmp = fine[1](fi+1, fj,   0, nf);
+    const Real vpm = fine[1](fi,   fj+2, 0, nf);
+    const Real vpp = fine[1](fi+1, fj+2, 0, nf);
+
+    const Real dxdy = cellSize[0]/cellSize[1];
+    const Real x_corr = Real(0.25)*dxdy * (vpp+vmm-vmp-vpm);
+    const Real y_corr = Real(0.25)/dxdy * (upp+umm-ump-upm);
+
+    // Calc fine faces on interior of coarse cells.
+    fine[0](fi+1,fj  ,0,nf) = Real(0.5)*(umm+upm) + x_corr;
+    fine[0](fi+1,fj+1,0,nf) = Real(0.5)*(ump+upp) + x_corr;
+    fine[1](fi,  fj+1,0,nf) = Real(0.5)*(vmm+vpm) + y_corr;
+    fine[1](fi+1,fj+1,0,nf) = Real(0.5)*(vmp+vpp) + y_corr;
+}
+
+
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 face_linear_interp_x (int i, int j, int /*k*/, int n, Array4<T> const& fine,
                       Array4<T const> const& crse, IntVect const& ratio) noexcept
 {
-    int ii = amrex::coarsen(i,ratio[0]);
-    int jj = amrex::coarsen(j,ratio[1]);
-    Real const w = static_cast<Real>(i-ii*ratio[0]) * (1.0_rt/ratio[0]);
-    fine(i,j,0,n) = (1.0_rt-w) * crse(ii,jj,0,n) + w * crse(ii+1,jj,0,n);
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    if (i-ii*ratio[0] == 0) {
+        fine(i,j,0,n) = crse(ii,jj,0,n);
+    } else {
+        Real const w = static_cast<Real>(i-ii*ratio[0]) * (Real(1.)/ratio[0]);
+        fine(i,j,0,n) = (Real(1.)-w) * crse(ii,jj,0,n) + w * crse(ii+1,jj,0,n);
+    }
 }
 
 template<typename T>
@@ -444,10 +526,14 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 face_linear_interp_y (int i, int j, int /*k*/, int n, Array4<T> const& fine,
                       Array4<T const> const& crse, IntVect const& ratio) noexcept
 {
-    int ii = amrex::coarsen(i,ratio[0]);
-    int jj = amrex::coarsen(j,ratio[1]);
-    Real const w = static_cast<Real>(j-jj*ratio[1]) * (1.0_rt/ratio[1]);
-    fine(i,j,0,n) = (1.0_rt-w) * crse(ii,jj,0,n) + w * crse(ii,jj+1,0,n);
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    if (j-jj*ratio[1] == 0) {
+        fine(i,j,0,n) = crse(ii,jj,0,n);
+    } else {
+        Real const w = static_cast<Real>(j-jj*ratio[1]) * (Real(1.)/ratio[1]);
+        fine(i,j,0,n) = (Real(1.)-w) * crse(ii,jj,0,n) + w * crse(ii,jj+1,0,n);
+    }
 }
 
 }

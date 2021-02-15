@@ -1,6 +1,7 @@
 
 #ifndef AMREX_TagBox_H_
 #define AMREX_TagBox_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
@@ -57,56 +58,24 @@ public:
     /**
     * \brief Construct and return a new tagbox in which the coarsened cell
     * is tagged of any of the corresponding fine cells are tagged.
-    *
-    * \param ratio
-    * \param owner
     */
-    void coarsen (const IntVect& ratio) noexcept;
+    void coarsen (const IntVect& ratio, const Box& cbox) noexcept;
 
     /**
     * \brief Mark neighbors of every tagged cell a distance nbuff away
-    * only search interior for initial tagged points where nwid
-    * is given as the width of the bndry region.
     *
     * \param nbuff
-    * \param nwid
     */
-    void buffer (const IntVect& nbuf, const IntVect& nwid) noexcept;
-
-    /**
-    * \brief Tag cells on intersect with src if corresponding src cell is tagged.
-    *
-    * \param src
-    */
-    void merge (const TagBox& src) noexcept;
-
-    /**
-    * \brief Add location of every tagged cell to IntVect array,
-    * starting at given location.  Returns the number of
-    * collated points.
-    *
-    * \param ar
-    * \param start
-    */
-    Long collate (Vector<IntVect>& ar, int start) const noexcept;
-
-    /**
-    * \brief Returns number of tagged cells in specified Box.
-    *
-    * \param bx
-    */
-    Long numTags (const Box& bx) const noexcept;
-
-    /**
-    * \brief Returns total number of tagged cells in the TagBox.
-    */
-    Long numTags () const noexcept;
+    void buffer (const IntVect& nbuf) noexcept;
 
     /**
     * \brief Returns Vector\<int\> of size domain.numPts() suitable for calling
     * Fortran, with positions set to same value as in the TagBox
     * dataPtr().
     */
+//#if (__cplusplus >= 201402L)
+//    [[deprecated("No need to use this unless calling Fortran < 2003")]]
+//#endif
     Vector<int> tags () const noexcept;
 
     /**
@@ -117,6 +86,9 @@ public:
     * \param ar
     * \param tilebx
     */
+//#if (__cplusplus >= 201402L)
+//    [[deprecated("No need to use this unless calling Fortran < 2003")]]
+//#endif
     void get_itags(Vector<int>& ar, const Box& tilebx) const noexcept;
 
     /**
@@ -125,6 +97,9 @@ public:
     *
     * \param ar
     */
+//#if (__cplusplus >= 201402L)
+//    [[deprecated("No need to use this unless calling Fortran < 2003")]]
+//#endif
     void tags (const Vector<int>& ar) noexcept;
 
     /**
@@ -133,6 +108,9 @@ public:
     *
     * \param ar
     */
+//#if (__cplusplus >= 201402L)
+//    [[deprecated("No need to use this unless calling Fortran < 2003")]]
+//#endif
     void tags_and_untags (const Vector<int>& ar) noexcept;
 
     /**
@@ -142,6 +120,9 @@ public:
     * \param ar
     * \param tilebx
     */
+//#if (__cplusplus >= 201402L)
+//    [[deprecated("No need to use this unless calling Fortran < 2003")]]
+//#endif
     void tags (const Vector<int>& ar, const Box& tilebx) noexcept;
 
     /**
@@ -151,6 +132,9 @@ public:
     * \param ar
     * \param tilebx
     */
+//#if (__cplusplus >= 201402L)
+//    [[deprecated("No need to use this unless calling Fortran < 2003")]]
+//#endif
     void tags_and_untags (const Vector<int>& ar, const Box& tilebx) noexcept;
 };
 
@@ -183,16 +167,10 @@ public:
     ~TagBoxArray () override = default;
 
     TagBoxArray (TagBoxArray&& rhs) noexcept = default;
+    TagBoxArray& operator= (TagBoxArray&& rhs) noexcept = default;
 
     TagBoxArray (const TagBoxArray& rhs) = delete;
     TagBoxArray& operator= (const TagBoxArray& rhs) = delete;
-    TagBoxArray& operator= (TagBoxArray&& rhs) = delete;
-
-
-    /**
-    * \brief Returns the grow factor for the TagBoxArray.
-    */
-    IntVect borderSize () const noexcept;
 
     /**
     * \brief Calls buffer() on all contained TagBoxes.
@@ -202,12 +180,12 @@ public:
     void buffer (const IntVect& nbuf);
 
     /**
-    * \brief Map tagged cells through a periodic boundary to other grids in
-    * TagBoxArray cells which were outside domain are set to TagBox::CLEAR.
+    * \brief This funciton does two things.  Map tagged cells through a periodic boundary to other
+    * grids in TagBoxArray cells, and remove duplicates.
     *
     * \param geom
     */
-    void mapPeriodic (const Geometry& geom);
+    void mapPeriodicRemoveDuplicates (const Geometry& geom);
 
     /**
     * \brief Set values in bl to val.
@@ -242,16 +220,19 @@ public:
     void coarsen (const IntVect& ratio);
 
     /**
-    * \brief The total number of Tags in all the contained TagBoxes.
-    */
-    Long numTags () const;
-
-    /**
     * \brief Calls collate() on all contained TagBoxes.
     *
     * \param TheGlobalCollateSpace
     */
     void collate (Vector<IntVect>& TheGlobalCollateSpace) const;
+
+    // \brief Are there tags in the region defined by bx?
+    bool hasTags (Box const& bx) const;
+
+    void local_collate_cpu (Vector<IntVect>& v) const;
+#ifdef AMREX_USE_GPU
+    void local_collate_gpu (Vector<IntVect>& v) const;
+#endif
 };
 
 }

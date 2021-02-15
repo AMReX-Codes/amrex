@@ -3,7 +3,7 @@
 
 #include "Constants.H"
 #include "EMParticleContainer.H"
-#include <AMReX_FArrayBox.H>
+#include <AMReX_Array4.H>
 #include <cmath>
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -220,9 +220,9 @@ void deposit_current (amrex::Array4<amrex::Real> const& jx,
     for         (int loff = 0; loff < 2; ++loff) {
         for     (int koff = 0; koff < 2; ++koff) {
             for (int joff = 0; joff < 2; ++joff) {
-                amrex::Gpu::Atomic::Add(&jx(j0+joff,k +koff,l +loff), sx0[joff]*sy [koff]*sz [loff]*wqx);
-                amrex::Gpu::Atomic::Add(&jy(j +joff,k0+koff,l +loff), sx [joff]*sy0[koff]*sz [loff]*wqy);
-                amrex::Gpu::Atomic::Add(&jz(j +joff,k +koff,l0+loff), sx [joff]*sy [koff]*sz0[loff]*wqz);
+                amrex::Gpu::Atomic::AddNoRet(&jx(j0+joff,k +koff,l +loff), sx0[joff]*sy [koff]*sz [loff]*wqx);
+                amrex::Gpu::Atomic::AddNoRet(&jy(j +joff,k0+koff,l +loff), sx [joff]*sy0[koff]*sz [loff]*wqy);
+                amrex::Gpu::Atomic::AddNoRet(&jz(j +joff,k +koff,l0+loff), sx [joff]*sy [koff]*sz0[loff]*wqz);
             }
         }
     }
@@ -303,12 +303,11 @@ void push_magnetic_field_z (int j, int k, int l,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 amrex::Real
 check_langmuir_solution (amrex::Box const& bx, amrex::Box const& test_box,
-                         amrex::FArrayBox const& jxfab, amrex::Real j_exact)
+                         amrex::Array4<amrex::Real const> const& jx, amrex::Real j_exact)
 {
     amrex::Real error = 0.0;
 
     const amrex::Box b = bx & test_box;
-    const auto jx = jxfab.const_array();
     amrex::Loop(bx, [=,&error] (int j, int k, int l) noexcept
     {
         error = amrex::max(error, std::abs((jx(j,k,l) - j_exact) / j_exact));

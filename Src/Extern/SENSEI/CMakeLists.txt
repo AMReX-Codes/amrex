@@ -1,8 +1,5 @@
-find_package(SENSEI REQUIRED)
-
-target_link_libraries( amrex PUBLIC sensei)   
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
-target_compile_definitions(amrex PUBLIC $<BUILD_INTERFACE:BL_USE_SENSEI_INSITU>)
+add_amrex_define(BL_USE_SENSEI_INSITU NO_LEGACY)
 
 target_sources(amrex
    PRIVATE

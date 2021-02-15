@@ -1,5 +1,6 @@
 #ifndef AMREX_Derive_H_
 #define AMREX_Derive_H_
+#include <AMReX_Config.H>
 
 #include <list>
 #include <string>

@@ -1,9 +1,4 @@
 
-#include <limits>
-#include <algorithm>
-#include <iomanip>
-#include <cmath>
-
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
 #include <AMReX_LO_BCTYPES.H>
@@ -12,9 +7,15 @@
 #include <AMReX_ParallelReduce.H>
 #include <AMReX_MLMG.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
+
+#include <limits>
+#include <algorithm>
+#include <iomanip>
+#include <cmath>
+
 
 namespace amrex {
 
@@ -160,7 +161,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         Lp.apply(amrlev, mglev, v, ph, MLLinOp::BCMode::Homogeneous, MLLinOp::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
 
-        if ( Real rhTv = dotxy(rh,v) )
+        Real rhTv = dotxy(rh,v);
+        if ( rhTv != Real(0.0) )
 	{
             alpha = rho/rhTv;
 	}
@@ -200,7 +202,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         ParallelAllReduce::Sum(tvals,2,Lp.BottomCommunicator());
         BL_PROFILE_VAR_STOP(blp_par);
 
-        if ( tvals[0] )
+        if ( tvals[0] != Real(0.0) )
 	{
             omega = tvals[1]/tvals[0];
 	}
@@ -332,7 +334,8 @@ MLCGSolver::solve_cg (MultiFab&       sol,
         Lp.apply(amrlev, mglev, q, p, MLLinOp::BCMode::Homogeneous, MLLinOp::StateMode::Correction);
 
         Real alpha;
-        if ( Real pw = dotxy(p,q) )
+        Real pw = dotxy(p,q);
+        if ( pw != Real(0.0))
 	{
             alpha = rho/pw;
 	}

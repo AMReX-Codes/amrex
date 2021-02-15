@@ -1,6 +1,7 @@
 
 #ifndef BL_IMULTIFAB_H
 #define BL_IMULTIFAB_H
+#include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
 #include <AMReX_IArrayBox.H>
@@ -512,8 +513,10 @@ public:
     static void Finalize ();
 };
 
+// ngrow = IntVect{0} is a special case that should not be used in normal cases,
+// because it may mark valid cells as non-owner and ghost cells as owners.
 std::unique_ptr<iMultiFab>
-OwnerMask (FabArrayBase const& mf, const Periodicity& period);
+OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngrow=IntVect{0});
 
 }
 

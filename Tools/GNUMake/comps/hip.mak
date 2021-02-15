@@ -1,8 +1,10 @@
 # Setup for HIP, using hipcc (HCC and clang will use the same compiler name).
 
-HIP_PATH=$(shell hipconfig --path)
-ifeq ($(HIP_PATH),)
-  $(error hipconfig failed. Is the HIP toolkit available?)
+ifneq ($(NO_CONFIG_CHECKING),TRUE)
+  HIP_PATH=$(realpath $(shell hipconfig --path))
+  ifeq ($(HIP_PATH),)
+    $(error hipconfig failed. Is the HIP toolkit available?)
+  endif
 endif
 
 CXX = $(HIP_PATH)/bin/hipcc
@@ -50,21 +52,47 @@ endif  # BL_NO_FORT
 
 # =============================================================================================
 
-# This is designed only for dogora for now.
-ifeq ($(HIP_PLATFORM),hcc)
+ifeq ($(HIP_COMPILER),clang)
 
   ifeq ($(DEBUG),TRUE)
-    # From llvm
-    CXXFLAGS += -g
-    CFLAGS   += -g 
+    CXXFLAGS += -g -O0 -ftrapv
+    CFLAGS   += -g -O0 -ftrapv
+
     FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
     F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
 
   else  # DEBUG=FALSE flags
+
+    CXXFLAGS += -g -O3
+    CFLAGS   += -g -O3
+    FFLAGS   += -g -O3
+    F90FLAGS += -g -O3
+
   endif
 
+  CXXFLAGS += -Wno-pass-failed  # disable this warning
+
+  ifeq ($(WARN_ALL),TRUE)
+    warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
+    warning_flags += -Wfloat-conversion -Wextra-semi
+
+    warning_flags += -Wpedantic
+
+    ifneq ($(WARN_SHADOW),FALSE)
+      warning_flags += -Wshadow
+    endif
+
+    CXXFLAGS += $(warning_flags) -Woverloaded-virtual
+    CFLAGS += $(warning_flags)
+  endif
+
+#  ifeq ($(WARN_ERROR),TRUE)
+#    CXXFLAGS += -Werror
+#    CFLAGS += -Werror
+#  endif
+
   # Generic HIP info
-  ROC_PATH=/opt/rocm
+  ROC_PATH=$(realpath $(dir $(HIP_PATH)))
   INCLUDE_LOCATIONS += $(HIP_PATH)/include
 
   # rocRand
@@ -76,33 +104,15 @@ ifeq ($(HIP_PLATFORM),hcc)
   INCLUDE_LOCATIONS += $(ROC_PATH)/rocprim/include
 
   # rocThrust - Header only
-  INCLUDE_LOCATIONS += $(ROC_PATH)/rocthrust/include
+  # INCLUDE_LOCATIONS += $(ROC_PATH)/rocthrust/include
+
+  # hipcc passes a lot of unused arguments to clang
+  DEPFLAGS += -Wno-unused-command-line-argument
 
 # =============================================================================================
 
-# This is Summit. Likely broken.
-else ifeq ($(HIP_PLATFORM),nvcc)
-  $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms.)
-#
-#  CXXFLAGS_FROM_HOST := -ccbin=$(CXX) --std=c++14
-#  CFLAGS_FROM_HOST := -ccbin=$(CXX)
-#  HIPCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT)
-#
-#  ifeq ($(DEBUG),TRUE)
-#    HIPCC_FLAGS += -g -G
-#  else
-#    HIPCC_FLAGS += -lineinfo --ptxas-options=-O3,-v
-#  endif
-#
-#  ifneq ($(USE_CUDA_FAST_MATH),FALSE)
-#    HIPCC_FLAGS += --use_fast_math
-#  endif
-#
-#  CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(HIPCC_FLAGS) -c -dc
-#  CFLAGS   =   $(CFLAGS_FROM_HOST) $(HIPCC_FLAGS) -dc
-#
-#  CXXFLAGS += --expt-relaxed-constexpr --expt-extended-lambda
-#
+else ifeq ($(HIP_COMPILER),nvcc)
+  $(error HIP_COMPILER nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms.)
 endif
 
 # =============================================================================================

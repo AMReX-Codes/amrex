@@ -325,10 +325,12 @@ iMultiFab::sum (int comp, int nghost, bool local) const
     Long sm = 0;
 
 #ifdef AMREX_USE_GPU
+    // If on GPUs, cast to unsigned long long to take advantage of hardware support.
     if (Gpu::inLaunchRegion())
     {
+        long long points = 0;
         ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<Long> reduce_data(reduce_op);
+        ReduceData<unsigned long long> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
@@ -338,17 +340,20 @@ iMultiFab::sum (int comp, int nghost, bool local) const
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
-                return { static_cast<Long>(arr(i,j,k,comp)) };
+                return { static_cast<unsigned long long>(arr(i,j,k,comp)) -
+                         static_cast<unsigned long long>(INT_MIN) };
             });
+            points += bx.numPts();
         }
 
         ReduceTuple hv = reduce_data.value();
-        sm = amrex::get<0>(hv);
+        sm = static_cast<Long>( static_cast<long long>(amrex::get<0>(hv))
+                              + static_cast<long long>(INT_MIN)*points);
     }
     else
 #endif
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
         for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
@@ -389,6 +394,8 @@ indexFromValue (iMultiFab const& mf, int comp, int nghost, int value, MPI_Op mml
         MPI_Allreduce(&in,  &out, 1, datatype, mmloc, comm);
         MPI_Bcast(&(loc[0]), AMREX_SPACEDIM, MPI_INT, out.rank, comm);
     }
+#else
+    amrex::ignore_unused(mmloc);
 #endif
 
     return loc;
@@ -523,7 +530,7 @@ iMultiFab::negate (const Box& region,
 }
 
 std::unique_ptr<iMultiFab>
-OwnerMask (FabArrayBase const& mf, const Periodicity& period)
+OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngrow)
 {
     BL_PROFILE("OwnerMask()");
 
@@ -533,14 +540,14 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period)
     const int owner = 1;
     const int nonowner = 0;
 
-    std::unique_ptr<iMultiFab> p{new iMultiFab(ba,dm,1,0, MFInfo(),
+    std::unique_ptr<iMultiFab> p{new iMultiFab(ba,dm,1,ngrow, MFInfo(),
                                                DefaultFabFactory<IArrayBox>())};
     const std::vector<IntVect>& pshifts = period.shiftIntVect();
 
     Vector<Array4BoxTag<int> > tags;
 
     bool run_on_gpu = Gpu::inLaunchRegion();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
 #endif
     {
@@ -559,7 +566,7 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period)
 
             for (const auto& iv : pshifts)
             {
-                ba.intersections(bx+iv, isects);                    
+                ba.intersections(bx+iv, isects, false, ngrow);
                 for (const auto& is : isects)
                 {
                     const int oi = is.first;
@@ -587,9 +594,9 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period)
 
 #ifdef AMREX_USE_GPU
     amrex::ParallelFor(tags, 1,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<int> const& a) noexcept
+    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4BoxTag<int> const& tag) noexcept
     {
-        a(i,j,k,n) = nonowner;
+        tag.dfab(i,j,k,n) = nonowner;
     });
 #endif
 

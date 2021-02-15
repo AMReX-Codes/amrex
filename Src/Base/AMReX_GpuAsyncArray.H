@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_ASYNC_ARRAY_H_
 #define AMREX_GPU_ASYNC_ARRAY_H_
+#include <AMReX_Config.H>
 
 #include <cstddef>
 #include <cstring>
@@ -9,15 +10,10 @@
 #include <AMReX_TypeTraits.H>
 #include <AMReX_GpuDevice.H>
 
-// HIP FIX HERE - MOVE TO ONE SPOT
-#ifdef __HIP_PLATFORM_HCC__
-#define HIPRT_CB 
-#endif
-
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 extern "C" {
 #if defined(AMREX_USE_HIP)
-    void HIPRT_CB  amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p);
+    void amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p);
 #elif defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10)
     void CUDART_CB amrex_asyncarray_delete (void* p);
 #elif defined(AMREX_USE_CUDA)
@@ -42,7 +38,7 @@ public:
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            d_data = static_cast<T*>(The_Device_Arena()->alloc(n*sizeof(T)));
+            d_data = static_cast<T*>(The_Arena()->alloc(n*sizeof(T)));
             Gpu::htod_memcpy_async(d_data, h_data, n*sizeof(T));
         }
 #endif
@@ -55,7 +51,7 @@ public:
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            d_data = static_cast<T*>(The_Device_Arena()->alloc(n*sizeof(T)));
+            d_data = static_cast<T*>(The_Arena()->alloc(n*sizeof(T)));
         }
         else
 #endif
@@ -65,6 +61,11 @@ public:
     }
 
     ~AsyncArray () { clear(); }
+
+    AsyncArray (AsyncArray const&) = delete;
+    AsyncArray (AsyncArray &&) = delete;
+    void operator= (AsyncArray const&) = delete;
+    void operator= (AsyncArray &&) = delete;
 
     T const* data () const noexcept { return (d_data != nullptr) ? d_data : h_data; }
     T* data () noexcept { return (d_data != nullptr) ? d_data : h_data; }
@@ -92,7 +93,7 @@ public:
 #else
                 // xxxxx DPCPP todo
                 Gpu::streamSynchronize();
-                The_Device_Arena()->free(d_data);
+                The_Arena()->free(d_data);
                 std::free(h_data);
 #endif
             }

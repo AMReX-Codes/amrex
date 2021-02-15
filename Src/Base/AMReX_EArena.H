@@ -1,5 +1,6 @@
 #ifndef AMREX_EARENA_H_
 #define AMREX_EARENA_H_
+#include <AMReX_Config.H>
 
 #include <cstddef>
 #include <cstdint>
@@ -41,7 +42,7 @@ public:
     std::size_t free_space_available () const noexcept;
 
     //! The default memory hunk size to grab from the heap.
-    enum { DefaultHunkSize = 1024*1024*8 };
+    constexpr static std::size_t DefaultHunkSize = 1024*1024*8;
 
 protected:
 

@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include <AMReX_Algorithm.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_ParmParse.H>
@@ -37,7 +38,7 @@ operator>> (std::istream& is,
         is >> c;
         IntVect is_per;
         is >> is_per;
-        g.setPeriodicity({AMREX_D_DECL(is_per[0],is_per[1],is_per[2])});
+        g.setPeriodicity({{AMREX_D_DECL(is_per[0],is_per[1],is_per[2])}});
     } else {
         g.setPeriodicity(DefaultGeometry().isPeriodic());
     }
@@ -102,12 +103,7 @@ Geometry::define (const Box& dom, const RealBox* rb, int coord,
     domain = dom;
     ok     = true;
 
-    for (int k = 0; k < AMREX_SPACEDIM; k++)
-    {
-        offset[k] = prob_domain.lo(k);
-        dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
-	inv_dx[k] = 1.0/dx[k];
-    }
+    computeRoundoffDomain();
 }
 
 void
@@ -203,7 +199,7 @@ Geometry::GetVolume (MultiFab&       vol,
 void
 Geometry::GetVolume (MultiFab&       vol) const
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(vol,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -230,7 +226,7 @@ Geometry::GetDLogA (MultiFab&       dloga,
                     int             ngrow) const
 {
     dloga.define(grds,dm,1,ngrow,MFInfo(),FArrayBoxFactory());
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dloga,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -258,7 +254,7 @@ void
 Geometry::GetFaceArea (MultiFab&       area,
                        int             dir) const
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(area,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -395,6 +391,64 @@ Geometry::growPeriodicDomain (int ngrow) const noexcept
         }
     }
     return b;
+}
+
+void
+Geometry::computeRoundoffDomain ()
+{
+    for (int k = 0; k < AMREX_SPACEDIM; k++)
+    {
+        offset[k] = prob_domain.lo(k);
+        dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
+        inv_dx[k] = 1.0_rt/dx[k];
+    }
+
+    roundoff_domain = prob_domain;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        int ilo = Domain().smallEnd(idim);
+        int ihi = Domain().bigEnd(idim);
+        Real plo = ProbLo(idim);
+        Real phi = ProbHi(idim);
+        Real idx = InvCellSize(idim);
+        Real deltax = CellSize(idim);
+
+#ifdef AMREX_SINGLE_PRECISION_PARTICLES
+        Real tolerance = std::max(1.e-4_rt*deltax, 2.e-7_rt*phi);
+#else
+        Real tolerance = std::max(1.e-8_rt*deltax, 1.e-14_rt*phi);
+#endif
+        // bisect the point at which the cell no longer maps to inside the domain
+        Real lo = static_cast<Real>(phi) - Real(0.5)*static_cast<Real>(deltax);
+        Real hi = static_cast<Real>(phi) + Real(0.5)*static_cast<Real>(deltax);
+
+        Real mid = bisect(lo, hi,
+                          [=] AMREX_GPU_HOST_DEVICE (Real x) -> Real
+                          {
+                              int i = int(Math::floor((x - plo)*idx)) + ilo;
+                              bool inside = i >= ilo && i <= ihi;
+                              return static_cast<Real>(inside) - Real(0.5);
+                          }, tolerance);
+        roundoff_domain.setHi(idim, mid - tolerance);
+    }
+}
+
+bool
+Geometry::outsideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const
+{
+    bool outside = AMREX_D_TERM(x <  roundoff_domain.lo(0)
+                             || x >= roundoff_domain.hi(0),
+                             || y <  roundoff_domain.lo(1)
+                             || y >= roundoff_domain.hi(1),
+                             || z <  roundoff_domain.lo(2)
+                             || z >= roundoff_domain.hi(2));
+    return outside;
+}
+
+bool
+Geometry::insideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const
+{
+    return !outsideRoundoffDomain(AMREX_D_DECL(x, y, z));
 }
 
 }

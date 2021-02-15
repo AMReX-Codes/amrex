@@ -13,13 +13,13 @@ int main(int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
-    // timer for profiling
-    BL_PROFILE_VAR("main()", pmain);
-
-    // wallclock time
-    const Real strt_total = amrex::second();
-
     {
+        // timer for profiling
+        BL_PROFILE("main()");
+
+        // wallclock time
+        const auto strt_total = amrex::second();
+
         // constructor - reads in parameters from inputs file
         //             - sizes multilevel arrays and data structures
         AmrCoreAdv amr_core_adv;
@@ -31,17 +31,14 @@ int main(int argc, char* argv[])
 	amr_core_adv.Evolve();
 	
         // wallclock time
-	Real end_total = amrex::second() - strt_total;
+	auto end_total = amrex::second() - strt_total;
 	
-        // print wallclock time
-	ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
 	if (amr_core_adv.Verbose()) {
+            // print wallclock time
+            ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
             amrex::Print() << "\nTotal Time: " << end_total << '\n';
 	}
     }
-
-    // destroy timer for profiling
-    BL_PROFILE_VAR_STOP(pmain);
 
     amrex::Finalize();
 }

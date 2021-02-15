@@ -5,6 +5,7 @@ nohup.out
 *.exe
 *.exe.dSYM
 *~
+build/
 tmp_build_dir/
 d/
 f/

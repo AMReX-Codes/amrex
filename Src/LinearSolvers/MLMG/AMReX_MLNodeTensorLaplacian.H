@@ -1,5 +1,6 @@
 #ifndef AMREX_MLNODETENSORLAPLACIAN_H_
 #define AMREX_MLNODETENSORLAPLACIAN_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLNodeLinOp.H>
 
@@ -62,7 +63,7 @@ public:
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final override;
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     virtual void fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
                                Array4<int const> const& owner,
                                Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,

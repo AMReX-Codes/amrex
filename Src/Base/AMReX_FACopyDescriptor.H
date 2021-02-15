@@ -1,6 +1,7 @@
 
 #ifndef BL_FACOPYDESCRIPTOR_H_
 #define BL_FACOPYDESCRIPTOR_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FabArray.H>
 #include <sstream>
@@ -563,13 +564,13 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
     // for meta-data
     Vector<int> md_sender, md_offset, md_icnts, md_bcnts;
-    int* md_recv_data;
+    int* md_recv_data = nullptr;
     Vector<int*> md_send_data;
     Vector<MPI_Request> md_recv_reqs, md_send_reqs;
 
     // for data
     Vector<int> data_sender, data_offset;
-    value_type* recv_data;
+    value_type* recv_data = nullptr;
     Vector<value_type*> send_data;
     Vector<MPI_Request> data_recv_reqs, data_send_reqs;
 

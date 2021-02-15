@@ -3,6 +3,7 @@
 // ----------------------------------------------------------------------
 #ifndef BL_COMMPROFSTATS_H
 #define BL_COMMPROFSTATS_H
+#include <AMReX_Config.H>
 
 #include <AMReX_BLProfStats.H>
 #include <AMReX_BLProfiler.H>
@@ -121,7 +122,7 @@ class CommProfStats : public BLProfStats {
       inline static long HashLong(int fp, int tp, int t) {
 	return(fp + tp + 64*t);
       }
-      inline static long HashLong(int fp, int tp, int ds, int t) {
+      inline static long HashLong(int fp, int tp, int /*ds*/, int t) {
 	//if(fp < 0 || tp < 0 || ds < 0 || t < 0) {
 	  //cout << ":::: HashLong:  negative values:  fp tp ds t = "
 	       //<< fp << "  " << tp << "  " << ds << "  " << t << endl;

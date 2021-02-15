@@ -1,5 +1,6 @@
 #ifndef AMREX_MULTIFAB_UTIL_2D_C_H_
 #define AMREX_MULTIFAB_UTIL_2D_C_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Gpu.H>
 #include <AMReX_FArrayBox.H>
@@ -22,7 +23,7 @@ void amrex_avg_nd_to_cc (Box const& bx,
         for (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            cc(i,j,0,n+cccomp) = 0.25*( nd(i,j  ,0,n+ndcomp) + nd(i+1,j  ,0,n+ndcomp)
+            cc(i,j,0,n+cccomp) = Real(0.25)*( nd(i,j  ,0,n+ndcomp) + nd(i+1,j  ,0,n+ndcomp)
                                       + nd(i,j+1,0,n+ndcomp) + nd(i+1,j+1,0,n+ndcomp));
         }}
     }
@@ -42,8 +43,8 @@ void amrex_avg_eg_to_cc (Box const& bx,
     for (int j = lo.y; j <= hi.y; ++j) {
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        cc(i,j,0,0+cccomp) = 0.5 * ( Ex(i,j,0) + Ex(i,j+1,0) );
-        cc(i,j,0,1+cccomp) = 0.5 * ( Ey(i,j,0) + Ey(i+1,j,0) );
+        cc(i,j,0,0+cccomp) = Real(0.5) * ( Ex(i,j,0) + Ex(i,j+1,0) );
+        cc(i,j,0,1+cccomp) = Real(0.5) * ( Ey(i,j,0) + Ey(i+1,j,0) );
     }}
 }
 
@@ -61,8 +62,8 @@ void amrex_avg_fc_to_cc (Box const& bx,
     for (int j = lo.y; j <= hi.y; ++j) {
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        cc(i,j,0,0+cccomp) = 0.5 * ( fx(i,j,0) + fx(i+1,j,0) );
-        cc(i,j,0,1+cccomp) = 0.5 * ( fy(i,j,0) + fy(i,j+1,0) );
+        cc(i,j,0,0+cccomp) = Real(0.5) * ( fx(i,j,0) + fx(i+1,j,0) );
+        cc(i,j,0,1+cccomp) = Real(0.5) * ( fy(i,j,0) + fy(i,j+1,0) );
     }}
 }
 
@@ -82,14 +83,14 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx,
     for     (int j = xlo.y; j <= xhi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = xlo.x; i <= xhi.x; ++i) {
-            fx(i,j,0) = 0.5*(cc(i-1,j,0) + cc(i,j,0));
+            fx(i,j,0) = Real(0.5)*(cc(i-1,j,0) + cc(i,j,0));
         }
     }
 
     for     (int j = ylo.y; j <= yhi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = ylo.x; i <= yhi.x; ++i) {
-            fy(i,j,0) = 0.5*(cc(i,j-1,0) + cc(i,j,0));
+            fy(i,j,0) = Real(0.5)*(cc(i,j-1,0) + cc(i,j,0));
         }
     }
 }
@@ -109,7 +110,7 @@ void amrex_avgdown_faces (Box const& bx, Array4<Real> const& crse,
     switch (idir) {
     case 0:
     {
-        Real facInv = 1.0 / facy;
+        Real facInv =  Real(1.0) / facy;
         for (int n = 0; n < ncomp; ++n) {
             for (int j = clo.y; j <= chi.y; ++j) {
             for (int i = clo.x; i <= chi.x; ++i) {
@@ -126,7 +127,7 @@ void amrex_avgdown_faces (Box const& bx, Array4<Real> const& crse,
     }
     case 1:
     {
-        Real facInv = 1.0 / facx;
+        Real facInv = Real(1.0) / facx;
         for (int n = 0; n < ncomp; ++n) {
             for (int j = clo.y; j <= chi.y; ++j) {
             for (int i = clo.x; i <= chi.x; ++i) {
@@ -159,7 +160,7 @@ void amrex_avgdown_edges (Box const& bx, Array4<Real> const& crse,
     switch (idir) {
     case 0:
     {
-        Real facInv = 1.0 / facx;
+        Real facInv = Real(1.0) / facx;
         for (int n = 0; n < ncomp; ++n) {
             for (int j = clo.y; j <= chi.y; ++j) {
             for (int i = clo.x; i <= chi.x; ++i) {
@@ -176,7 +177,7 @@ void amrex_avgdown_edges (Box const& bx, Array4<Real> const& crse,
     }
     case 1:
     {
-        Real facInv = 1.0 / facy;
+        Real facInv = Real(1.0) / facy;
         for (int n = 0; n < ncomp; ++n) {
             for (int j = clo.y; j <= chi.y; ++j) {
             for (int i = clo.x; i <= chi.x; ++i) {
@@ -205,7 +206,7 @@ void amrex_avgdown (Box const& bx, Array4<Real> const& crse,
     const auto chi = ubound(bx);
     const int facx = ratio[0];
     const int facy = ratio[1];
-    const Real volfrac = 1.0/static_cast<Real>(facx*facy);
+    const Real volfrac = static_cast<Real>(1.0)/static_cast<Real>(facx*facy);
 
     for (int n = 0; n < ncomp; ++n) {
         for (int j = clo.y; j <= chi.y; ++j) {
@@ -338,9 +339,9 @@ void amrex_compute_convective_difference (Box const& bx, Array4<amrex::Real> con
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    diff(i,j,n) = 0.5*dxi * (u_face(i+1,j,0,0)+u_face(i,j,0,0)) * 
+                    diff(i,j,n) = Real(0.5)*dxi * (u_face(i+1,j,0,0)+u_face(i,j,0,0)) *
                                             (s_on_x_face(i+1,j,0,n)-s_on_x_face(i,j,0,n))
-                        +         0.5*dyi * (v_face(i,j+1,0,0)+v_face(i,j,0,0)) * 
+                        +         Real(0.5)*dyi * (v_face(i,j+1,0,0)+v_face(i,j,0,0)) *
                                             (s_on_y_face(i,j+1,0,n)-s_on_y_face(i,j,0,n));
                 }
         }

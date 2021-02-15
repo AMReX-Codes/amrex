@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_ATOMIC_H_
 #define AMREX_GPU_ATOMIC_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Functional.H>
@@ -34,7 +35,7 @@ namespace detail {
         do {
             R const new_R = f(*(reinterpret_cast<R const*>(&old_I)), val);
             new_I = *(reinterpret_cast<I const*>(&new_R));
-        } while (not a.compare_exchange_strong(old_I, new_I, mo));
+        } while (! a.compare_exchange_strong(old_I, new_I, mo));
         return *(reinterpret_cast<R const*>(&old_I));
 #else
         R old = *address;
@@ -82,6 +83,7 @@ namespace detail {
         sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(sum)};
         return sycl::atomic_fetch_add(a, value, mo);
 #else
+        amrex::ignore_unused(sum, value);
         return T(); // should never get here, but have to return something
 #endif
     }
@@ -110,6 +112,16 @@ namespace detail {
 
 #endif
 
+#if defined(AMREX_USE_CUDA) && (__CUDA_ARCH__ < 600)
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    Long Add_device (double* const sum, double const value) noexcept
+    {
+        return detail::atomic_op<double, unsigned long long>(sum, value, amrex::Plus<double>());
+    }
+
+#endif
+
 #endif
 
     template<class T>
@@ -124,6 +136,33 @@ namespace detail {
         return old;
 #endif
     }
+
+////////////////////////////////////////////////////////////////////////
+//  AddNoRet
+////////////////////////////////////////////////////////////////////////
+
+    template<class T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void AddNoRet (T* const sum, T const value) noexcept
+    {
+#if AMREX_DEVICE_COMPILE
+        Add_device(sum, value);
+#else
+        *sum += value;
+#endif
+    }
+
+#if defined(AMREX_USE_HIP)
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void AddNoRet (float* const sum, float const value) noexcept
+    {
+#if AMREX_DEVICE_COMPILE
+        atomicAddNoRet(sum, value);
+#else
+        *sum += value;
+#endif
+    }
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 //  Min
@@ -143,6 +182,7 @@ namespace detail {
         sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(m)};
         return sycl::atomic_fetch_min(a, value, mo);
 #else
+        amrex::ignore_unused(m,value);
         return T(); // should never get here, but have to return something
 #endif
     }
@@ -202,6 +242,7 @@ namespace detail {
         sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(m)};
         return sycl::atomic_fetch_max(a, value, mo);
 #else
+        amrex::ignore_unused(m,value);
         return T(); // should never get here, but have to return something
 #endif
     }
@@ -289,19 +330,18 @@ namespace detail {
 //  Inc
 ////////////////////////////////////////////////////////////////////////
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+#ifdef AMREX_USE_DPCPP
+    template <sycl::access::address_space AS = sycl::access::address_space::global_space>
+    AMREX_FORCE_INLINE
     unsigned int Inc (unsigned int* const m, unsigned int const value) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        return atomicInc(m, value);
-#elif defined(__SYCL_DEVICE_ONLY__)
+#if defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
-        constexpr auto as = sycl::access::address_space::global_space;
-        sycl::atomic<unsigned int,as> a{sycl::multi_ptr<unsigned int,as>(m)};
+        sycl::atomic<unsigned int,AS> a{sycl::multi_ptr<unsigned int,AS>(m)};
         unsigned int oldi = a.load(mo), newi;
         do {
             newi = (oldi >= value) ? 0u : (oldi+1u);
-        } while (not a.compare_exchange_strong(oldi, newi, mo));
+        } while (! a.compare_exchange_strong(oldi, newi, mo));
         return oldi;
 #else
         auto const old = *m;
@@ -309,6 +349,19 @@ namespace detail {
         return old;
 #endif
     }
+#else
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    unsigned int Inc (unsigned int* const m, unsigned int const value) noexcept
+    {
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+        return atomicInc(m, value);
+#else
+        auto const old = *m;
+        *m = (old >= value) ? 0u : (old+1u);
+        return old;
+#endif
+    }
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 //  Dec
@@ -326,7 +379,7 @@ namespace detail {
         unsigned int oldi = a.load(mo), newi;
         do {
             newi = ((oldi == 0u) || (oldi > value)) ? value : (oldi-1u);
-        } while (not a.compare_exchange_strong(oldi, newi, mo));
+        } while (! a.compare_exchange_strong(oldi, newi, mo));
         return oldi;
 #else
         auto const old = *m;
@@ -388,9 +441,9 @@ namespace HostDevice { namespace Atomic {
     void Add (T* const sum, T const value) noexcept
     {
 #if AMREX_DEVICE_COMPILE
-        Gpu::Atomic::Add(sum,value);
+        Gpu::Atomic::AddNoRet(sum,value);
 #else
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp atomic update
 #endif
         *sum += value;
@@ -398,6 +451,51 @@ namespace HostDevice { namespace Atomic {
     }
 
 }}
+
+#ifdef AMREX_USE_GPU
+// functors
+namespace Gpu {
+    template <typename T>
+    struct AtomicAdd
+    {
+        AMREX_GPU_DEVICE void operator() (T* const dest, T const source) noexcept {
+            Gpu::Atomic::AddNoRet(dest, source);
+        }
+    };
+
+    template <typename T>
+    struct AtomicMin
+    {
+        AMREX_GPU_DEVICE void operator() (T* const dest, T const source) noexcept {
+            Gpu::Atomic::Min(dest, source);
+        }
+    };
+
+    template <typename T>
+    struct AtomicMax
+    {
+        AMREX_GPU_DEVICE void operator() (T* const dest, T const source) noexcept {
+            Gpu::Atomic::Max(dest, source);
+        }
+    };
+
+    template <typename T>
+    struct AtomicLogicalAnd
+    {
+        AMREX_GPU_DEVICE void operator() (T* const dest, T const source) noexcept {
+            Gpu::Atomic::LogicalAnd(dest, source);
+        }
+    };
+
+    template <typename T>
+    struct AtomicLogicalOr
+    {
+        AMREX_GPU_DEVICE void operator() (T* const dest, T const source) noexcept {
+            Gpu::Atomic::LogicalOr(dest, source);
+        }
+    };
+}
+#endif
 
 }
 #endif

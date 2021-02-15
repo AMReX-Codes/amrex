@@ -1,10 +1,11 @@
 #ifndef AMREX_ML_NODE_LINOP_H_H
 #define AMREX_ML_NODE_LINOP_H_H
+#include <AMReX_Config.H>
 
 #include <AMReX_MLLinOp.H>
 #include <AMReX_iMultiFab.H>
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 #include <AMReX_HypreNodeLap.H>
 #endif
 
@@ -34,7 +35,7 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
-    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) final override {}
+    virtual void setLevelBC (int /*amrlev*/, const MultiFab* /*levelbcdata*/) final override {}
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
@@ -46,19 +47,20 @@ public:
                                    const MultiFab* crse_bcdata=nullptr) override;
     virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                      BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) override;
-    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
-                           MultiFab& sol, Location loc) const final override {
+    virtual void compFlux (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*fluxes*/,
+                           MultiFab& /*sol*/, Location /*loc*/) const final override {
         amrex::Abort("AMReX_MLNodeLinOp::compFlux::How did we get here?");
     }
-    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
-                           MultiFab& sol, Location loc) const final override {
+    virtual void compGrad (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
+                           MultiFab& /*sol*/, Location /*loc*/) const override {
         amrex::Abort("AMReX_MLNodeLinOp::compGrad::How did we get here?");
     }
-    
-    virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final override {}
-    virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final override {}
 
-    virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) final override {
+    virtual void applyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final override {}
+    virtual void unapplyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final override {}
+
+    virtual void fillSolutionBC (int /*amrlev*/, MultiFab& /*sol*/,
+                                 const MultiFab* /*crse_bcdata*/=nullptr) final override {
         amrex::Abort("AMReX_MLNodeLinOp::fillSolutionBC::How did we get here?");
     }
 
@@ -80,7 +82,7 @@ public:
 
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const final override;
 
-    virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const final override {
+    virtual std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final override {
         amrex::Abort("MLNodeLinOp::makeNLinOp: N-Solve not supported");
         return std::unique_ptr<MLLinOp>{};
     }
@@ -91,15 +93,18 @@ public:
 
     void buildMasks ();
 
-    void setDirichletMask (int amrlev, const iMultiFab& a_dmask);
+    // omask is either 0 or 1. 1 means the node is an unknown. 0 means it's known.
+    void setOversetMask (int amrlev, const iMultiFab& a_omask);
 
-#ifdef AMREX_USE_HYPRE
-    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const override;
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
+        int bottom_verbose,
+        const std::string& options_namespace) const override;
 
-    virtual void fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
-                               Array4<int const> const& owner,
-                               Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
-                               Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
+    virtual void fillIJMatrix (MFIter const& /*mfi*/, Array4<HypreNodeLap::Int const> const& /*nid*/,
+                               Array4<int const> const& /*owner*/,
+                               Vector<HypreNodeLap::Int>& /*ncols*/, Vector<HypreNodeLap::Int>& /*rows*/,
+                               Vector<HypreNodeLap::Int>& /*cols*/, Vector<Real>& /*mat*/) const
     {
         amrex::Abort("MLNodeLinOp: how did we get here?");
     }

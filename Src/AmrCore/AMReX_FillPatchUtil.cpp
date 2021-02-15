@@ -15,8 +15,8 @@ namespace amrex
                                      int ref_ratio)
     {
         InterpCrseFineBndryEMfield(interp_type,
-                                   {AMREX_D_DECL(&crse[0],&crse[1],&crse[2])},
-                                   {AMREX_D_DECL(&fine[0],&fine[1],&fine[2])},
+                                   {{AMREX_D_DECL(&crse[0],&crse[1],&crse[2])}},
+                                   {{AMREX_D_DECL(&fine[0],&fine[1],&fine[2])}},
                                    cgeom, fgeom, ref_ratio);
     }
 
@@ -67,7 +67,7 @@ namespace amrex
 
             const int use_limiter = 0;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             {

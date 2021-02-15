@@ -1,6 +1,7 @@
 
 #ifndef BL_BOXLIST_H
 #define BL_BOXLIST_H
+#include <AMReX_Config.H>
 
 #include <iosfwd>
 
@@ -139,11 +140,13 @@ public:
     //! Remove empty Boxes from this BoxList.
     BoxList& removeEmpty();
 
-    BoxList& complementIn (const Box&     b,
-                           const BoxList& bl);
-    BoxList& complementIn (const Box&     b,
-                            BoxList&&     bl);
+    BoxList& complementIn (const Box& b, const BoxList& bl);
+    BoxList& complementIn (const Box& b, BoxList&& bl);
     BoxList& complementIn (const Box& b, const BoxArray& ba);
+    BoxList& parallelComplementIn (const Box& b, const BoxList& bl);
+    BoxList& parallelComplementIn (const Box& b, BoxList&& bl);
+    BoxList& parallelComplementIn (const Box& b, const BoxArray& ba);
+
     //! Refine each Box in the BoxList by the ratio.
     BoxList& refine (int ratio);
     //! Refine each Box in the BoxList by the ratio.
@@ -173,6 +176,8 @@ public:
     * is O(N-squared) while the other algorithm is O(N).
     */
     int simplify (bool best = false);
+    //! Assuming the boxes are nicely ordered
+    int ordered_simplify ();
     //! Forces each Box in the BoxList to have sides of length <= chunk.
     BoxList& maxSize (int chunk);
     //! Forces each Box in the BoxList to have dimth side of length <= chunk[dim].
@@ -210,9 +215,11 @@ public:
 	std::swap(btype, rhs.btype);
     }
 
+    void Bcast ();
+
 private:
     //! Core simplify routine.
-    int simplify_doit (bool best);
+    int simplify_doit (int depth);
 
     //! The list of Boxes.
     Vector<Box> m_lbox;

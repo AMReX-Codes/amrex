@@ -1,8 +1,4 @@
 
-#include <cmath>
-#include <algorithm>
-#include <unordered_map>
-#include <set>
 #include <AMReX_Utility.H>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLCellLinOp.H>
@@ -18,6 +14,12 @@
 #include <petscksp.h>
 #include <AMReX_PETSc.H>
 #endif
+
+#include <algorithm>
+#include <cmath>
+#include <set>
+#include <unordered_map>
+
 
 namespace amrex {
 
@@ -73,7 +75,6 @@ namespace {
     };
 
     std::unique_ptr<CommCache> comm_cache;
-#endif
 
     Vector<int> get_subgroup_ranks ()
     {
@@ -87,6 +88,7 @@ namespace {
         ParallelContext::local_to_global_rank(granks.data(), lranks.data(), rank_n);
         return granks;
     }
+#endif
 }
 
 // static member function
@@ -132,6 +134,8 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
                  const Vector<FabFactory<FArrayBox> const*>& a_factory,
                  bool eb_limit_coarsening)
 {
+    amrex::ignore_unused(eb_limit_coarsening);
+
     BL_PROFILE("MLLinOp::define()");
 
     if (!initialized) {
@@ -153,7 +157,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     }
 
 #ifdef AMREX_USE_EB
-    if (!a_factory.empty() and eb_limit_coarsening) {
+    if (!a_factory.empty() && eb_limit_coarsening) {
         auto f = dynamic_cast<EBFArrayBoxFactory const*>(a_factory[0]);
         if (f) {
             info.max_coarsening_level = std::min(info.max_coarsening_level,
@@ -267,7 +271,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
     bool agged = false;
     bool coned = false;
-    int agg_lev, con_lev;
+    int agg_lev = 0, con_lev = 0;
 
     if (info.do_agglomeration && aggable)
     {
@@ -282,17 +286,85 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         Vector<int> agg_flag;
         domainboxes.push_back(dbx);
         boundboxes.push_back(bbx);
-        agg_flag.push_back(false);
-        while (    dbx.coarsenable(mg_coarsen_ratio,mg_domain_min_width)
-               and bbx.coarsenable(mg_coarsen_ratio,mg_box_min_width))
-        {
-            dbx.coarsen(mg_coarsen_ratio);
-            domainboxes.push_back(dbx);
-            bbx.coarsen(mg_coarsen_ratio);
-            boundboxes.push_back(bbx);
-            bool to_agg = (bbx.d_numPts() / nbxs) < 0.999*threshold_npts;
-            agg_flag.push_back(to_agg);
+        agg_flag.push_back(false); 
+
+#if (AMREX_SPACEDIM > 1)
+        if (info.do_semicoarsening) 
+	{   
+	    int num_semicoarsening_level = 0;
+            IntVect rr_0(AMREX_D_DECL(mg_coarsen_ratio,1,1));
+            bool is_coarsenable_x = ( dbx.coarsenable(rr_0, mg_domain_min_width) &&
+                                      bbx.coarsenable(rr_0, mg_box_min_width));
+            IntVect rr_1(AMREX_D_DECL(1,mg_coarsen_ratio,1));
+            bool is_coarsenable_y = ( dbx.coarsenable(rr_1, mg_domain_min_width) &&
+                                      bbx.coarsenable(rr_1, mg_box_min_width));
+#if (AMREX_SPACEDIM == 3)
+            IntVect rr_2(AMREX_D_DECL(1,1,mg_coarsen_ratio));
+            bool is_coarsenable_z = ( dbx.coarsenable(rr_2, mg_domain_min_width) &&
+                                      bbx.coarsenable(rr_2, mg_box_min_width));
+#endif
+	    IntVect rr_vec(mg_coarsen_ratio);
+#if (AMREX_SPACEDIM == 2)
+            while ( is_coarsenable_x || is_coarsenable_y )
+#endif
+#if (AMREX_SPACEDIM == 3)
+            while ( is_coarsenable_x || is_coarsenable_y || is_coarsenable_z )
+#endif
+	    {
+#if (AMREX_SPACEDIM >= 2)
+                int r0 = (is_coarsenable_x) ? mg_coarsen_ratio : 1;
+                int r1 = (is_coarsenable_y) ? mg_coarsen_ratio : 1;
+                rr_vec[0] = r0;
+                rr_vec[1] = r1;
+#if (AMREX_SPACEDIM == 3)
+                int r2 = (is_coarsenable_z) ? mg_coarsen_ratio : 1;
+                rr_vec[2] = r2;
+#endif
+#endif
+                dbx.coarsen(rr_vec);
+                domainboxes.push_back(dbx);
+                bbx.coarsen(rr_vec);
+                boundboxes.push_back(bbx);
+                bool to_agg = (bbx.d_numPts() / nbxs) < 0.999*threshold_npts;
+                agg_flag.push_back(to_agg);
+
+                is_coarsenable_x = ( dbx.coarsenable(rr_0, mg_domain_min_width) &&
+                                     bbx.coarsenable(rr_0, mg_box_min_width));
+#if (AMREX_SPACEDIM >= 2)
+                is_coarsenable_y = ( dbx.coarsenable(rr_1, mg_domain_min_width) &&
+                                     bbx.coarsenable(rr_1, mg_box_min_width));
+#if (AMREX_SPACEDIM == 3)
+                is_coarsenable_z = ( dbx.coarsenable(rr_2, mg_domain_min_width) &&
+                                     bbx.coarsenable(rr_2, mg_box_min_width));
+#endif
+#endif
+#if (AMREX_SPACEDIM == 2)
+		if (!(is_coarsenable_x && is_coarsenable_y))
+#endif
+#if (AMREX_SPACEDIM == 3)
+                if (!(is_coarsenable_x && is_coarsenable_y && is_coarsenable_z))
+#endif
+		{
+		    num_semicoarsening_level++;    
+		    if (num_semicoarsening_level > info.max_semicoarsening_level) break;
+		}
+	    }
+
         }
+	else 
+#endif
+	{
+            while (    dbx.coarsenable(mg_coarsen_ratio,mg_domain_min_width)
+                   && bbx.coarsenable(mg_coarsen_ratio,mg_box_min_width))
+            {
+                dbx.coarsen(mg_coarsen_ratio);
+                domainboxes.push_back(dbx);
+                bbx.coarsen(mg_coarsen_ratio);
+                boundboxes.push_back(bbx);
+                bool to_agg = (bbx.d_numPts() / nbxs) < 0.999*threshold_npts;
+                agg_flag.push_back(to_agg);
+            }
+	}
 
         int first_agglev = std::distance(agg_flag.begin(),
                                          std::find(agg_flag.begin(),agg_flag.end(),1));
@@ -356,7 +428,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     else
     {
         int rr = mg_coarsen_ratio;
-        Real avg_npts;
+        Real avg_npts = 0.0;
         if (info.do_consolidation) {
             avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelContext::NProcsSub());
             if (consolidation_threshold == -1) {
@@ -368,8 +440,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
         // Regular coarsening
         while (m_num_mg_levels[0] < info.max_coarsening_level + 1
-               and a_geom[0].Domain().coarsenable(rr, mg_domain_min_width)
-               and a_grids[0].coarsenable(rr, mg_box_min_width))
+               && a_geom[0].Domain().coarsenable(rr, mg_domain_min_width)
+               && a_grids[0].coarsenable(rr, mg_box_min_width))
         {
             m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr),rb,coord,is_per);
 
@@ -402,39 +474,41 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         {
             int num_semicoarsening_level = 1;
             // Semi-coarsening  -- by the time we get here we know we can't coarsen isotropically any more
+#if (AMREX_SPACEDIM >= 2)
             IntVect rr_0(AMREX_D_DECL(rr,1,1));
-            bool is_coarsenable_x = ( a_geom[0].Domain().coarsenable(rr_0, mg_domain_min_width) and
+            bool is_coarsenable_x = ( a_geom[0].Domain().coarsenable(rr_0, mg_domain_min_width) &&
                                       a_grids[0].coarsenable(rr_0, mg_box_min_width));
             IntVect rr_1(AMREX_D_DECL(1,rr,1));
-            bool is_coarsenable_y = ( a_geom[0].Domain().coarsenable(rr_1, mg_domain_min_width) and
+            bool is_coarsenable_y = ( a_geom[0].Domain().coarsenable(rr_1, mg_domain_min_width) &&
                                       a_grids[0].coarsenable(rr_1, mg_box_min_width));
+#endif
 #if (AMREX_SPACEDIM == 3)
             IntVect rr_2(AMREX_D_DECL(1,1,rr));
-            bool is_coarsenable_z = ( a_geom[0].Domain().coarsenable(rr_2, mg_domain_min_width) and
+            bool is_coarsenable_z = ( a_geom[0].Domain().coarsenable(rr_2, mg_domain_min_width) &&
                                       a_grids[0].coarsenable(rr_2, mg_box_min_width));
 #endif
 
 #if (AMREX_SPACEDIM == 2)
-            if (is_coarsenable_x or is_coarsenable_y)
+            if (is_coarsenable_x || is_coarsenable_y)
 #endif
 #if (AMREX_SPACEDIM == 3)
-            if (is_coarsenable_x or is_coarsenable_y or is_coarsenable_z)
+            if (is_coarsenable_x || is_coarsenable_y || is_coarsenable_z)
 #endif
             {
                 IntVect rr_vec(rr/mg_coarsen_ratio);
 #if (AMREX_SPACEDIM == 2)
-                while ( (num_semicoarsening_level < info.max_semicoarsening_level + 1) and
-			(m_num_mg_levels[0] < info.max_coarsening_level + 1) and
-                        (is_coarsenable_x or is_coarsenable_y ) )
+                while ( (num_semicoarsening_level < info.max_semicoarsening_level + 1) &&
+			(m_num_mg_levels[0] < info.max_coarsening_level + 1) &&
+                        (is_coarsenable_x || is_coarsenable_y ) )
 #endif
 #if (AMREX_SPACEDIM == 3)
-                while ( (num_semicoarsening_level < info.max_semicoarsening_level + 1) and
-		        (m_num_mg_levels[0] < info.max_coarsening_level + 1) and
-                        (is_coarsenable_x or is_coarsenable_y or is_coarsenable_z) )
+                while ( (num_semicoarsening_level < info.max_semicoarsening_level + 1) &&
+		        (m_num_mg_levels[0] < info.max_coarsening_level + 1) &&
+                        (is_coarsenable_x || is_coarsenable_y || is_coarsenable_z) )
 #endif
                 {
-                    int r0 = (is_coarsenable_x) ? rr_vec[0]*mg_coarsen_ratio : rr_vec[0];
 #if (AMREX_SPACEDIM >= 2)
+                    int r0 = (is_coarsenable_x) ? rr_vec[0]*mg_coarsen_ratio : rr_vec[0];
                     int r1 = (is_coarsenable_y) ? rr_vec[1]*mg_coarsen_ratio : rr_vec[1];
                     rr_vec[0] = r0;
                     rr_vec[1] = r1;
@@ -467,18 +541,18 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                     ++(m_num_mg_levels[0]);
                     ++num_semicoarsening_level;
 
-                    IntVect rr_0(AMREX_D_DECL(rr_vec[0]*mg_coarsen_ratio, 1, 1));
-                    is_coarsenable_x = ( a_geom[0].Domain().coarsenable(rr_0, mg_domain_min_width) and
-                                         a_grids[0].coarsenable(rr_0, mg_box_min_width));
 #if (AMREX_SPACEDIM >= 2)
-                    IntVect rr_1(AMREX_D_DECL(1, rr_vec[1]*mg_coarsen_ratio, 1));
-                    is_coarsenable_y = ( a_geom[0].Domain().coarsenable(rr_1, mg_domain_min_width) and
-                                         a_grids[0].coarsenable(rr_1, mg_box_min_width));
+                    IntVect rrr_0(AMREX_D_DECL(rr_vec[0]*mg_coarsen_ratio, 1, 1));
+                    is_coarsenable_x = ( a_geom[0].Domain().coarsenable(rrr_0, mg_domain_min_width) &&
+                                         a_grids[0].coarsenable(rrr_0, mg_box_min_width));
+                    IntVect rrr_1(AMREX_D_DECL(1, rr_vec[1]*mg_coarsen_ratio, 1));
+                    is_coarsenable_y = ( a_geom[0].Domain().coarsenable(rrr_1, mg_domain_min_width) &&
+                                         a_grids[0].coarsenable(rrr_1, mg_box_min_width));
 
 #if (AMREX_SPACEDIM == 3)
-                    IntVect rr_2(AMREX_D_DECL(1,1,rr_vec[2]*mg_coarsen_ratio));
-                    is_coarsenable_z = ( a_geom[0].Domain().coarsenable(rr_2, mg_domain_min_width) and
-                                         a_grids[0].coarsenable(rr_2, mg_box_min_width));
+                    IntVect rrr_2(AMREX_D_DECL(1,1,rr_vec[2]*mg_coarsen_ratio));
+                    is_coarsenable_z = ( a_geom[0].Domain().coarsenable(rrr_2, mg_domain_min_width) &&
+                                         a_grids[0].coarsenable(rrr_2, mg_box_min_width));
 #endif
 #endif
 
@@ -491,6 +565,12 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         const Box& fine_domain = m_geom[0][mglev].Domain();
         const Box& crse_domain = m_geom[0][mglev+1].Domain();
         mg_coarsen_ratio_vec.push_back(fine_domain.length()/crse_domain.length());
+    }
+
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        if (AMRRefRatio(amrlev) == 4 && mg_coarsen_ratio_vec.size() == 0) {
+            mg_coarsen_ratio_vec.push_back(IntVect(2));
+        }
     }
 
     if (agged)
@@ -588,7 +668,7 @@ MLLinOp::setDomainBC (const Array<BCType,AMREX_SPACEDIM>& a_lobc,
             AMREX_ALWAYS_ASSERT(a_lobc[idim] == BCType::Periodic);
             AMREX_ALWAYS_ASSERT(a_hibc[idim] == BCType::Periodic);
         }
-        if (a_lobc[idim] == BCType::Periodic or
+        if (a_lobc[idim] == BCType::Periodic ||
             a_hibc[idim] == BCType::Periodic) {
             AMREX_ALWAYS_ASSERT(m_geom[0][0].isPeriodic(idim));
         }
@@ -630,7 +710,7 @@ MLLinOp::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
                 AMREX_ALWAYS_ASSERT(m_lobc[icomp][idim] == BCType::Periodic);
                 AMREX_ALWAYS_ASSERT(m_hibc[icomp][idim] == BCType::Periodic);
             }
-            if (m_lobc[icomp][idim] == BCType::Periodic or
+            if (m_lobc[icomp][idim] == BCType::Periodic ||
                 m_hibc[icomp][idim] == BCType::Periodic) {
                 AMREX_ALWAYS_ASSERT(m_geom[0][0].isPeriodic(idim));
             }
@@ -728,6 +808,7 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
 
     return newcomm;
 #else
+    amrex::ignore_unused(dm);
     return m_default_comm;
 #endif
 }
@@ -817,6 +898,7 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
 void
 MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
 {
+#ifdef AMREX_USE_MPI
     BL_PROFILE("MLLinOp::remapNeighborhoods()");
 
     if (flag_verbose_linop) {
@@ -850,6 +932,9 @@ MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
             dms[j] = DistributionMapping(std::move(nbh_pmap));
         }
     }
+#else
+    amrex::ignore_unused(dms);
+#endif
 }
 
 #ifdef AMREX_USE_PETSC

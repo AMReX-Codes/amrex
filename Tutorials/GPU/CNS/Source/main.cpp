@@ -14,9 +14,9 @@ int main (int argc, char* argv[])
 
     BL_PROFILE_VAR("main()", pmain);
 
-    Real timer_tot = amrex::second();
-    Real timer_init = 0._rt;
-    Real timer_advance = 0._rt;
+    double timer_tot = amrex::second();
+    double timer_init = 0.;
+    double timer_advance = 0.;
 
     int  max_step;
     Real strt_time;
@@ -26,19 +26,19 @@ int main (int argc, char* argv[])
         ParmParse pp; 
 
         max_step  = -1;
-        strt_time =  0.0_rt;
-        stop_time = -1.0_rt;
+        strt_time = Real( 0.0);
+        stop_time = Real(-1.0);
 
         pp.query("max_step",max_step);
         pp.query("strt_time",strt_time);
         pp.query("stop_time",stop_time);
     }
 
-    if (strt_time < 0.0_rt) {
+    if (strt_time < Real(0.0)) {
         amrex::Abort("MUST SPECIFY a non-negative strt_time"); 
     }
 
-    if (max_step < 0 && stop_time < 0.0_rt) {
+    if (max_step < 0 && stop_time < Real(0.0)) {
 	amrex::Abort("Exiting because neither max_step nor stop_time is non-negative.");
     }
 
@@ -54,7 +54,7 @@ int main (int argc, char* argv[])
 
 	while ( amr.okToContinue() &&
   	       (amr.levelSteps(0) < max_step || max_step < 0) &&
-	       (amr.cumTime() < stop_time || stop_time < 0.0_rt) )
+	       (amr.cumTime() < stop_time || stop_time < Real(0.0)) )
 	    
 	{
 	    //
@@ -77,8 +77,8 @@ int main (int argc, char* argv[])
 
     timer_tot = amrex::second() - timer_tot;
 
-    ParallelDescriptor::ReduceRealMax({timer_tot, timer_init, timer_advance},
-                                      ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::ReduceRealMax<double>({timer_tot, timer_init, timer_advance},
+                                              ParallelDescriptor::IOProcessorNumber());
 
     amrex::Print() << "Run Time total        = " << timer_tot     << "\n"
                    << "Run Time init         = " << timer_init    << "\n"

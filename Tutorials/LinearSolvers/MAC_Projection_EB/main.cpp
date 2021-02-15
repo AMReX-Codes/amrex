@@ -48,11 +48,11 @@ int main (int argc, char* argv[])
 
     amrex::Initialize(argc, argv);
 
-    Real strt_time = amrex::second();
+    auto strt_time = amrex::second();
 
     {
         int mg_verbose = 0;
-        int cg_verbose = 0;
+        int bottom_verbose = 0;
         int n_cell = 128;
         int max_grid_size = 32;
         int use_hypre  = 0;
@@ -64,7 +64,7 @@ int main (int argc, char* argv[])
         {
             ParmParse pp;
             pp.query("mg_verbose", mg_verbose);
-            pp.query("cg_verbose", cg_verbose);
+            pp.query("bottom_verbose", bottom_verbose);
             pp.query("n_cell", n_cell);
             pp.query("max_grid_size", max_grid_size);
             pp.query("use_hypre", use_hypre);
@@ -217,7 +217,7 @@ int main (int argc, char* argv[])
 					  LinOpBCType::Periodic)});
 
         macproj.setVerbose(mg_verbose);
-        macproj.getMLMG().setBottomVerbose(cg_verbose);
+        macproj.getMLMG().setBottomVerbose(bottom_verbose);
 
 	// Define the relative tolerance
         Real reltol = 1.e-8;
@@ -257,7 +257,7 @@ int main (int argc, char* argv[])
         write_plotfile(geom, plotfile_mf, regtest);
     }
 
-    Real stop_time = amrex::second() - strt_time;
+    auto stop_time = amrex::second() - strt_time;
     amrex::Print() << "Total run time " << stop_time << std::endl;
 
     amrex::Finalize();

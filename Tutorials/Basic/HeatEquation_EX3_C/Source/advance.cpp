@@ -125,8 +125,8 @@ void advance (MultiFab& phi_old,
     mlmg.setMaxFmgIter(max_fmg_iter);
     int verbose = 2;
     mlmg.setVerbose(verbose);
-    int cg_verbose = 0;
-    mlmg.setCGVerbose(cg_verbose);
+    int bottom_verbose = 0;
+    mlmg.setBottomVerbose(bottom_verbose);
 
     // relative and absolute tolerances for linear solve
     const Real tol_rel = 1.e-10;

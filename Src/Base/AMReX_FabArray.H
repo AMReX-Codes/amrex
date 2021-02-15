@@ -1,6 +1,7 @@
 
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
+#include <AMReX_Config.H>
 
 #include <iostream>
 #include <cstring>
@@ -12,7 +13,7 @@
 #include <set>
 #include <string>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -37,7 +38,7 @@
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_LayoutData.H>
-#include <AMReX_BaseFab.H>
+#include <AMReX_BaseFabUtility.H>
 
 #include <AMReX_Gpu.H>
 
@@ -48,7 +49,7 @@
 namespace amrex {
 
 template <typename T, typename std::enable_if<!IsBaseFab<T>::value,int>::type = 0>
-Long nBytesOwned (T const& t) noexcept { return 0; }
+Long nBytesOwned (T const&) noexcept { return 0; }
 
 template <typename T>
 Long nBytesOwned (BaseFab<T> const& fab) noexcept { return fab.nBytesOwned(); }
@@ -136,26 +137,12 @@ struct MFInfo {
     }
 };
 
-    template <class T>
-    class MFGraph;
-#ifdef USE_PERILLA
-    class Perilla;
-#endif
-
 template <class FAB>
 class FabArray
     :
     public FabArrayBase
 {
 public:
-    friend class Action;
-    friend class AmrTask;
-    template <class T>
-    friend class MFGraph;
-#ifdef USE_PERILLA
-    friend class Perilla;
-#endif
-
 
     struct FABType {
         typedef FAB value_type;
@@ -270,7 +257,8 @@ public:
 
     /**
     * \brief Return true if the FabArray is well-defined.  That is,
-    * if FABs are allocated for each Box in the BoxArray and the
+    * the FabArray has a BoxArray and DistributionMapping, the
+    * FABs are allocated for each Box in the BoxArray and the
     * sizes of the FABs and the number of components are consistent
     * with the definition of the FabArray.
     */
@@ -731,7 +719,7 @@ public:
 #endif
 
     static void pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
-                                      Vector<char*>& send_data,
+                                      Vector<char*> const& send_data,
                                       Vector<std::size_t> const& send_size,
                                       Vector<const CopyComTagsContainer*> const& send_cctc);
 
@@ -744,7 +732,7 @@ public:
 #endif
 
     static void pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int ncomp,
-                                      Vector<char*>& send_data,
+                                      Vector<char*> const& send_data,
                                       Vector<std::size_t> const& send_size,
                                       Vector<const CopyComTagsContainer*> const& send_cctc);
 
@@ -829,21 +817,35 @@ private:
     void AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
                     const Vector<std::string>& tags);
 
+public:
+
 #ifdef BL_USE_MPI
     //! Prepost nonblocking receives
-    void PostRcvs (const MapOfCopyComTagContainers&       m_RcvTags,
+    void PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
                    char*&                                 the_recv_data,
                    Vector<char*>&                         recv_data,
                    Vector<std::size_t>&                   recv_size,
                    Vector<int>&                           recv_from,
                    Vector<MPI_Request>&                   recv_reqs,
-                   int                                    icomp,
                    int                                    ncomp,
-                   int                                    SeqNum);
+                   int                                    SeqNum) const;
 
+    void PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
+                             char*&                               the_send_data,
+                             Vector<char*>&                       send_data,
+                             Vector<std::size_t>&                 send_size,
+                             Vector<int>&                         send_rank,
+                             Vector<MPI_Request>&                 send_reqs,
+                             Vector<const CopyComTagsContainer*>& send_cctc,
+                             int                                  ncomp) const;
+
+    static void PostSnds (Vector<char*> const&       send_data,
+                          Vector<std::size_t> const& send_size,
+                          Vector<int> const&         send_rank,
+                          Vector<MPI_Request>&       send_reqs,
+                          int                        SeqNum);
 #endif
 
-public:
     //! Data used in non-blocking FillBoundary
     bool fb_cross, fb_epo;
     int fb_scomp, fb_ncomp;
@@ -938,6 +940,8 @@ FabArray<FAB>::prefetchToHost (const MFIter& mfi) const noexcept
 {
 #ifdef AMREX_USE_CUDA
     this->fabPtr(mfi)->prefetchToHost();
+#else
+    amrex::ignore_unused(mfi);
 #endif
 }
 
@@ -948,6 +952,8 @@ FabArray<FAB>::prefetchToDevice (const MFIter& mfi) const noexcept
 {
 #ifdef AMREX_USE_CUDA
     this->fabPtr(mfi)->prefetchToDevice();
+#else
+    amrex::ignore_unused(mfi);
 #endif
 }
 
@@ -1214,6 +1220,8 @@ template <class FAB>
 bool
 FabArray<FAB>::ok () const
 {
+    if (!define_function_called) return false;
+
     int isok = 1;
 
     for (MFIter fai(*this); fai.isValid() && isok; ++fai)
@@ -1464,7 +1472,7 @@ FabArray<FAB>::setBndry (value_type val,
 {
     if (n_grow.max() > 0)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter fai(*this); fai.isValid(); ++fai)
@@ -1498,13 +1506,13 @@ FabArray<FAB>::setDomainBndry (value_type val,
         }
     }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         const Box& gbx = fai.fabbox();
-        if (not domain_box.contains(gbx))
+        if (! domain_box.contains(gbx))
         {
             get(fai).template setComplement<RunOn::Device>(val, domain_box, strt_comp, ncomp);
         }
@@ -1583,14 +1591,14 @@ FabArray<FAB>::setVal (value_type val,
 
     BL_PROFILE("FabArray::setVal()");
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
 	const Box& bx = fai.growntilebox(nghost);
         auto fab = this->array(fai);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, ncomp, i, j, k, n,
         {
             fab(i,j,k,n+comp) = val;
         });
@@ -1623,7 +1631,7 @@ FabArray<FAB>::setVal (value_type val,
 
     BL_PROFILE("FabArray::setVal(val,region,comp,ncomp,nghost)");
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
     AMREX_ALWAYS_ASSERT(!omp_in_parallel());
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1633,7 +1641,7 @@ FabArray<FAB>::setVal (value_type val,
 
         if (b.ok()) {
             auto fab = this->array(fai);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( b, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( b, ncomp, i, j, k, n,
             {
                 fab(i,j,k,n+comp) = val;
             });
@@ -1656,14 +1664,14 @@ FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
 {
     BL_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
     BL_ASSERT(comp+ncomp <= n_comp);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         auto fab = this->array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, ncomp, i, j, k, n,
         {
             fab(i,j,k,n+comp) = amrex::Math::abs(fab(i,j,k,n+comp));
         });
@@ -1675,14 +1683,14 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::plus (value_type val, int comp, int num_comp, int nghost)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         auto fab = this->array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, num_comp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
         {
             fab(i,j,k,n+comp) += val;
         });
@@ -1694,7 +1702,7 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::plus (value_type val, const Box& region, int comp, int num_comp, int nghost)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -1702,7 +1710,7 @@ FabArray<FAB>::plus (value_type val, const Box& region, int comp, int num_comp, 
         const Box& bx = mfi.growntilebox(nghost) & region;
         if (bx.ok()) {
             auto fab = this->array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, num_comp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
             {
                 fab(i,j,k,n+comp) += val;
             });
@@ -1715,14 +1723,14 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::mult (value_type val, int comp, int num_comp, int nghost)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         auto fab = this->array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, num_comp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
         {
             fab(i,j,k,n+comp) *= val;
         });
@@ -1734,7 +1742,7 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::mult (value_type val, const Box& region, int comp, int num_comp, int nghost)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -1742,7 +1750,7 @@ FabArray<FAB>::mult (value_type val, const Box& region, int comp, int num_comp, 
         const Box& bx = mfi.growntilebox(nghost) & region;
         if (bx.ok()) {
             auto fab = this->array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, num_comp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
             {
                 fab(i,j,k,n+comp) *= val;
             });
@@ -1755,14 +1763,14 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::invert (value_type numerator, int comp, int num_comp, int nghost)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         auto fab = this->array(mfi);
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, num_comp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
         {
             fab(i,j,k,n+comp) = numerator / fab(i,j,k,n+comp);
         });
@@ -1774,7 +1782,7 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::invert (value_type numerator, const Box& region, int comp, int num_comp, int nghost)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -1782,7 +1790,7 @@ FabArray<FAB>::invert (value_type numerator, const Box& region, int comp, int nu
         const Box& bx = mfi.growntilebox(nghost) & region;
         if (bx.ok()) {
             auto fab = this->array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, num_comp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, num_comp, i, j, k, n,
             {
                 fab(i,j,k,n+comp) = numerator / fab(i,j,k,n+comp);
             });
@@ -1800,7 +1808,7 @@ FabArray<FAB>::shift (const IntVect& v)
       boxarray.shift(id, v[id]);
     }
     addThisBD();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     for (MFIter fai(*this); fai.isValid(); ++fai)
@@ -1969,7 +1977,7 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
 	}
     }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -1978,7 +1986,7 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
         Box const& fbx = mfi.growntilebox();
         Box const& gbx = fbx & domain;
         Box const& vbx = mfi.validbox();
-        AMREX_HOST_DEVICE_FOR_4D(fbx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_FOR_4D_FUSIBLE(fbx, ncomp, i, j, k, n,
         {
             IntVect iv(AMREX_D_DECL(i,j,k));
             if (vbx.contains(iv)) {
@@ -2003,8 +2011,8 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        CMD_local_setVal_gpu(val, thecmd, 0, ncomp);
-        CMD_remote_setVal_gpu(val, thecmd, 0, ncomp);
+        CMD_local_setVal_gpu(val, thecmd, scomp, ncomp);
+        CMD_remote_setVal_gpu(val, thecmd, scomp, ncomp);
     }
     else
 #endif
@@ -2012,22 +2020,22 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
         const CopyComTagsContainer&      LocTags = *(thecmd.m_LocTags);
         const MapOfCopyComTagContainers& RcvTags = *(thecmd.m_RcvTags);
         int N_locs = LocTags.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for if (thecmd.m_threadsafe_loc)
 #endif
         for (int i = 0; i < N_locs; ++i) {
             const CopyComTag& tag = LocTags[i];
-            (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, 0, ncomp);
+            (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, scomp, ncomp);
         }
 
         for (auto it = RcvTags.begin(); it != RcvTags.end(); ++it) {
             int N = it->second.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for if (thecmd.m_threadsafe_rcv)
 #endif
             for (int i = 0; i < N; ++i) {
                 const CopyComTag& tag = it->second[i];
-                (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, 0, ncomp);
+                (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, scomp, ncomp);
             }
         }
     }
@@ -2039,7 +2047,7 @@ LayoutData<int>
 FabArray<FAB>::RecvLayoutMask (const CommMetaData& thecmd)
 {
     LayoutData<int> r(this->boxArray(), this->DistributionMap());
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (thecmd.m_threadsafe_rcv)
 #endif
     for (MFIter mfi(r); mfi.isValid(); ++mfi) {

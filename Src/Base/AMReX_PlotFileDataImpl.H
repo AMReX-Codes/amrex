@@ -1,5 +1,6 @@
 #ifndef AMREX_PLOT_FILE_DATA_IMPL_H_
 #define AMREX_PLOT_FILE_DATA_IMPL_H_
+#include <AMReX_Config.H>
 
 #include <string>
 #include <AMReX_MultiFab.H>
@@ -56,7 +57,6 @@ private:
     int m_spacedim;
     Real m_time;
     int m_finest_level, m_nlevels;
-// HIP FIX HERE: Initialization List: {{
     Array<Real,AMREX_SPACEDIM> m_prob_lo {{AMREX_D_DECL(0.,0.,0.)}};
     Array<Real,AMREX_SPACEDIM> m_prob_hi {{AMREX_D_DECL(1.,1.,1.)}};
     Array<Real,AMREX_SPACEDIM> m_prob_size {{AMREX_D_DECL(1.,1.,1.)}};

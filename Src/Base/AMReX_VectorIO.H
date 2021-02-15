@@ -1,5 +1,6 @@
 #ifndef AMREX_VECTORIO_H_
 #define AMREX_VECTORIO_H_
+#include <AMReX_Config.H>
 
 #include <iostream>
 

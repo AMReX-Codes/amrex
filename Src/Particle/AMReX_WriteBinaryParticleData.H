@@ -1,13 +1,13 @@
 #ifndef AMREX_WRITE_BINARY_PARTICLE_DATA_H
 #define AMREX_WRITE_BINARY_PARTICLE_DATA_H
+#include <AMReX_Config.H>
 
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Particles.H>
-
-// note - namespace
+#include <AMReX_ParticleUtil.H>
 
 struct KeepValidFilter
-{    
+{
     template <typename SrcData>
     AMREX_GPU_HOST_DEVICE
     int operator() (const SrcData& src, int i) const noexcept
@@ -49,7 +49,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == pc.NumIntComps() + NStructInt);
 
     std::string pdir = dir;
-    if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
+    if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') pdir += '/';
     pdir += name;
 
     if ( ! pc.GetLevelDirectoriesCreated()) {
@@ -66,7 +66,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
     std::ofstream HdrFile;
 
     Long nparticles = 0;
-    int maxnextid;
+    Long maxnextid;
 
     // evaluate f for every particle to determine which ones to output
     Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int> > > particle_io_flags(pc.GetParticles().size());
@@ -79,10 +79,11 @@ void WriteBinaryParticleDataSync (PC const& pc,
             const auto np = kv.second.numParticles();
             particle_io_flags[lev][kv.first].resize(np, 0);
             auto pflags = particle_io_flags[lev][kv.first].data();
-            AMREX_HOST_DEVICE_FOR_1D( np, k,
+            amrex::ParallelForRNG(np,
+            [=] AMREX_GPU_DEVICE (int k, amrex::RandomEngine const& engine) noexcept
             {
                 const auto p = ptd.getSuperParticle(k);
-                pflags[k] = f(p);
+                pflags[k] = particle_detail::call_f(f,p,engine);
             });
         }
     }
@@ -114,7 +115,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
 
         ParallelDescriptor::ReduceLongSum(nparticles, IOProcNumber);
         PC::ParticleType::NextID(maxnextid);
-        ParallelDescriptor::ReduceIntMax(maxnextid, IOProcNumber);
+        ParallelDescriptor::ReduceLongMax(maxnextid, IOProcNumber);
     }
 
     if (ParallelDescriptor::IOProcessor())
@@ -139,11 +140,11 @@ void WriteBinaryParticleDataSync (PC const& pc,
         //
         if (sizeof(typename PC::ParticleType::RealType) == 4)
         {
-            HdrFile << PC::ParticleType::Version() << "_single" << '\n';
+            HdrFile << PC::Version() << "_single" << '\n';
         }
         else
         {
-            HdrFile << PC::ParticleType::Version() << "_double" << '\n';
+            HdrFile << PC::Version() << "_double" << '\n';
         }
 
         int num_output_real = 0;
@@ -229,7 +230,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
         }
 
         // Write out the header for each particle
-        if (gotsome and ParallelDescriptor::IOProcessor()) {
+        if (gotsome && ParallelDescriptor::IOProcessor()) {
             std::string HeaderFileName = LevelDir;
             HeaderFileName += "/Particle_H";
             std::ofstream ParticleHeader(HeaderFileName);
@@ -255,7 +256,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
 
         std::string filePrefix(LevelDir);
         filePrefix += '/';
-        filePrefix += PC::ParticleType::DataPrefix();
+        filePrefix += PC::DataPrefix();
         if(pc.usePrePost) {
             pc.filePrefixPrePost[lev] = filePrefix;
         }
@@ -354,10 +355,11 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     for (int lev = 0; lev <= pc.finestLevel(); lev++)
     {
         np_per_grid_local[lev].define(pc.ParticleBoxArray(lev), pc.ParticleDistributionMap(lev));
-        for (MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+        using ParIter = typename PC::ParConstIterType;
+        for (ParIter pti(pc, lev); pti.isValid(); ++pti)
         {
-            int gid = mfi.index();
-            const auto& ptile = pc.ParticlesAt(lev, mfi);
+            int gid = pti.index();
+            const auto& ptile = pc.ParticlesAt(lev, pti);
             const auto& aos = ptile.GetArrayOfStructs();
             const auto pstruct = aos().dataPtr();
             const int np = ptile.numParticles();
@@ -392,7 +394,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     }
 
     std::string pdir = dir;
-    if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
+    if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') pdir += '/';
     pdir += name;
 
     if (MyProc == IOProcNumber)
@@ -438,8 +440,8 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     }
     ParallelDescriptor::Barrier();
 
-    int maxnextid = PC::ParticleType::NextID();
-    ParallelDescriptor::ReduceIntMax(maxnextid, IOProcNumber);
+    Long maxnextid = PC::ParticleType::NextID();
+    ParallelDescriptor::ReduceLongMax(maxnextid, IOProcNumber);
 
     Vector<Long> np_on_rank(NProcs, 0L);
     std::size_t psize = PSizeInFile<ParticleReal>(write_real_comp, write_int_comp);
@@ -497,7 +499,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
     auto RD = pc.ParticleRealDescriptor;
 
-    AsyncOut::Submit([=] () 
+    AsyncOut::Submit([=] ()
 #if defined(__GNUC__) && (__GNUC__ == 8) && (__GNUC_MINOR__ == 1)
                      mutable // workaround for bug in gcc 8.1
 #endif
@@ -516,13 +518,13 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
             if ( ! HdrFile.good()) amrex::FileOpenFailed(HdrFileName);
 
-            if (sizeof(typename PC::ParticleType) == 4)
+            if (sizeof(typename PC::ParticleType::RealType) == 4)
             {
-                HdrFile << PC::ParticleType::Version() << "_single" << '\n';
+                HdrFile << PC::Version() << "_single" << '\n';
             }
             else
             {
-                HdrFile << PC::ParticleType::Version() << "_double" << '\n';
+                HdrFile << PC::Version() << "_double" << '\n';
             }
 
             int num_output_real = 0;
@@ -607,7 +609,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
             std::string filePrefix(LevelDir);
             filePrefix += '/';
-            filePrefix += PC::ParticleType::DataPrefix();
+            filePrefix += PC::DataPrefix();
             auto info = AsyncOut::GetWriteInfo(MyProc);
             std::string file_name = amrex::Concatenate(filePrefix, info.ifile, 5);
             std::ofstream ofs;

@@ -81,7 +81,7 @@ one needs to call the member function
 
 The :cpp:`int amrlev` parameter should be zero for single-level
 solves.  For multi-level solves, each level needs to be provided with
-``alpha`` and ``beta``, or ``Sigma``.  For composite solves, :cpp:`amrlev` 0 will
+``alpha`` and ``beta``, or ``sigma``.  For composite solves, :cpp:`amrlev` 0 will
 mean the lowest level for the solver, which is not necessarily the lowest
 level in the AMR hierarchy. This is so solves can be done on different sections
 of the AMR hierarchy, e.g. on AMR levels 3 to 5.
@@ -238,7 +238,7 @@ There are many parameters that can be set.  Here we discuss some
 commonly used ones.
 
 :cpp:`MLLinOp::setVerbose(int)`, :cpp:`MLMG::setVerbose(int)` and
-:cpp:`MLMG:setBottomVerbose(int)` can be control the verbosity of the
+:cpp:`MLMG:setBottomVerbose(int)` control the verbosity of the
 linear operator, multigrid solver and the bottom solver, respectively.
 
 The multigrid solver is an iterative solver.  The maximal number of
@@ -266,8 +266,9 @@ operators for the multigrid.
     // out = L(in)
     mlmg.apply(out, in);  // here both in and out are const Vector<MultiFab*>&
 
-At the bottom of the multigrid cycles, we use the biconjugate gradient
-stabilized method as the bottom solver.  :cpp:`MLMG` member method
+At the bottom of the multigrid cycles, we use a ``bottom solver`` which may be
+different than the relaxation used at the other levels. The default bottom solver is the
+biconjugate gradient stabilized method, but can easily be changed with the :cpp:`MLMG` member method
 
 .. highlight:: c++
 
@@ -275,7 +276,7 @@ stabilized method as the bottom solver.  :cpp:`MLMG` member method
 
     void setBottomSolver (BottomSolver s);
 
-can be used to change the bottom solver.  Available choices are
+Available choices are
 
 - :cpp:`MLMG::BottomSolver::bicgstab`: The default.
 
@@ -290,9 +291,42 @@ can be used to change the bottom solver.  Available choices are
 - :cpp:`MLMG::BottomSolver::cgbicg`: Start with cg. Switch to bicgstab
   if cg fails.  The matrix must be symmetric.
 
-- :cpp:`MLMG::BottomSolver::hypre`: BoomerAMG in hypre.
+- :cpp:`MLMG::BottomSolver::hypre`: One of the solvers available through hypre;
+  see the section below on External Solvers 
 
 - :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
+  
+- :cpp:`LPInfo::setAgglomeration(bool)` (by default true) can be used
+  continue to coarsen the multigrid by copying what would have been the
+  bottom solver to a new :cpp:`MultiFab` with a new :cpp:`BoxArray` with
+  fewer, larger grids, to allow for additional coarsening.
+
+- :cpp:`LPInfo::setConsolidation(bool)` (by default true) can be used
+  continue to transfer a multigrid problem to fewer MPI ranks.
+  There are more setting sucsh as :cpp:`LPInfo::setConsolidationGridSize(int)`,
+  :cpp:`consolidation_threshold`, :cpp:`consolidation_ratio`, and
+  :cpp:`consolidation_strategy`, to give control over how this process works.
+
+Boundary Stencils for Cell-Centered Solvers
+===========================================
+
+We have the option using the :cpp:`MLMG` member method
+
+.. highlight:: c++
+
+::
+
+    void setMaxOrder (int maxorder);
+
+to set the order of the cell-centered linear operator stencil at physical boundaries 
+with Dirichlet boundary conditions and at coarse-fine boundaries.  In both of these
+cases, the boundary value is not defined at the center of the ghost cell. 
+The order determines the number of interior cells that are used in the extrapolation
+of the boundary value from the cell face to the center of the ghost cell, where 
+the extrapolated value is then used in the regular stencil.  For example, 
+:cpp:`maxorder = 2` uses the boundary value and the first interior value to extrapolate
+to the ghost cell center; :cpp:`maxorder = 3` uses the boundary value and the first two interior values.
+
 
 Curvilinear Coordinates
 =======================
@@ -382,11 +416,17 @@ as living at face centroids, modify the setBCoeffs command to be
 External Solvers
 ================
 
-AMReX can use the `hypre <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ algebraic multigrid solver, BoomerAMG, 
-as a bottom solver for both cell-centered and node-based problems.
-For challenging problems, our geometric multigrid solver may have difficulty solving,
-whereas an algebraic multigrid method might be more robust.  
-We note that by default our solver always tries to geometrically coarsen the
+AMReX provides interfaces to the `hypre <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ preconditioners and solvers, including BoomerAMG, GMRES (all variants), PCG, and BICGStab as
+solvers, and BoomerAMG and Euclid as preconditioners.  These can be called as 
+as bottom solvers for both cell-centered and node-based problems.
+
+If it is built with Hypre support, AMReX initializes Hypre by default in
+`amrex::Initialize`.  If it is built with CUDA, AMReX will also set up Hypre
+to run on device by default.  The user can choose to disable the Hypre
+initialization by AMReX with :cpp:`ParmParse` parameter
+``amrex.init_hypre=[0|1]``.
+
+By default the AMReX linear solver code always tries to geometrically coarsen the
 problem as much as possible.  However, as we have mentioned, we can
 call :cpp:`setMaxCoarseningLevel(0)` on the :cpp:`LPInfo` object
 passed to the constructor of a linear operator to disable the
@@ -406,8 +446,66 @@ residual correction form of the original problem. To build Hypre, follow the nex
         HYPRE_DIR=/hypre_path/hypre/src/hypre
 
 To use hypre, one must include ``amrex/Src/Extern/HYPRE`` in the build system. 
-For an example of using hypre, we refer the reader to
-``Tutorials/LinearSolvers/ABecLaplacian_C``.
+For examples of using hypre, we refer the reader to
+``Tutorials/LinearSolvers/ABecLaplacian_C`` or ``Tutorials/LinearSolvers/NodalProjection_EB``.
+
+Caveat: to use hypre for the nodal solver,  you must either build with USE_EB = TRUE, 
+or explicitly set the coarsening strategy in the calling routine to be ``RAP`` rather than ``Sigma``
+by adding 
+
+.. highlight:: c++
+
+::
+
+    nodal_projector.getLinOp().setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::RAP);
+
+where
+:cpp:`nodal_projector` is the :cpp:`NodalProjector` object we have built.
+
+The following parameter should be set to True if the problem to be solved has a singular matrix.
+In this case, the solution is only defined to within a constant.  Setting this parameter to True 
+replaces one row in the matrix sent to hypre from AMReX by a row that sets the value at one cell to 0.
+
+- :cpp:`hypre.adjust_singular_matrix`:   Default is False.
+
+
+The following parameters can be set in the inputs file to control the choice of preconditioner and smoother:
+
+- :cpp:`hypre.hypre_solver`:   Default is BoomerAMG.
+
+- :cpp:`hypre.hypre_preconditioner`: Default is none;  otherwise the type must be specified.
+
+- :cpp:`hypre.recompute_preconditioner`: Default true.  Option to recompute the preconditioner.
+
+- :cpp:`hypre.write_matrix_files`: Default false.   Option to write out matrix into text files.
+
+- :cpp:`hypre.overwrite_existing_matrix_files`: Default false.   Option to over-write existing matrix files.
+
+
+The following parameters can be set in the inputs file to control the BoomerAMG solver specifically:
+
+- :cpp:`hypre.bamg_verbose`: verbosity of BoomerAMG preconditioner. Default 0. See `HYPRE_BoomerAMGSetPrintLevel`
+
+- :cpp:`hypre.bamg_logging`: Default 0. See `HYPRE_BoomerAMGSetLogging`
+
+- :cpp:`hypre.bamg_coarsen_type`: Default 6.  See `HYPRE_BoomerAMGSetCoarsenType`
+
+- :cpp:`hypre.bamg_cycle_type`: Default 1.  See `HYPRE_BoomerAMGSetCycleType`
+
+- :cpp:`hypre.bamg_relax_type`: Default 6.  See `HYPRE_BoomerAMGSetRelaxType`
+
+- :cpp:`hypre.bamg_relax_order`: Default 1.  See `HYPRE_BoomerAMGSetRelaxOrder`
+
+- :cpp:`hypre.bamg_num_sweeps`: Default 2.  See `HYPRE_BoomerAMGSetNumSweeps`
+
+- :cpp:`hypre.bamg_max_levels`: Default 20.  See `HYPRE_BoomerAMGSetMaxLevels`
+
+- :cpp:`hypre.bamg_strong_threshold`: Default 0.25 for 2D, 0.57 for 3D.  See `HYPRE_BoomerAMGSetStrongThreshold`
+
+- :cpp:`hypre.bamg_interp_type`:  Default 0.  See `HYPRE_BoomerAMGSetInterpType`
+
+The user is referred to the
+`hypre <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ Hypre Reference Manual for full details on the usage of the parameters described briefly above.
 
 AMReX can also use `PETSc <https://www.mcs.anl.gov/petsc/>`_ as a bottom solver for cell-centered
 problems. To build PETSc, follow the next steps:
@@ -533,7 +631,7 @@ the MACProjector object and use it to perform a MAC projection.
                                       LinOpBCType::Periodic)});
 
     macproj.setVerbose(mg_verbose);
-    macproj.setCGVerbose(cg_verbose);
+    macproj.setBottomVerbose(bottom_verbose);
 
     // Define the relative tolerance
     Real reltol = 1.e-8;
@@ -690,10 +788,10 @@ gradient term to make the vector field result satisfy the divergence constraint.
 
    // We can specify the maximum number of iterations
    nodal_solver.setMaxIter(mg_maxiter);
-   nodal_solver.setCGMaxIter(mg_cg_maxiter);
+   nodal_solver.setBottomMaxIter(mg_bottom_maxiter);
 
    nodal_solver.setVerbose(mg_verbose);
-   nodal_solver.setCGVerbose(mg_cg_verbose);
+   nodal_solver.setBottomVerbose(mg_bottom_verbose);
 
    // Set bottom-solver to use hypre instead of native BiCGStab 
    //   ( we could also have set this to cg, bicgcg, cgbicg)

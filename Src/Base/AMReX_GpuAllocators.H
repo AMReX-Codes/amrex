@@ -1,5 +1,6 @@
 #ifndef AMREX_GPUALLOCATORS_H_
 #define AMREX_GPUALLOCATORS_H_
+#include <AMReX_Config.H>
 
 #include <map>
 #include <memory>
@@ -167,9 +168,6 @@ namespace amrex {
     };
 
 #ifdef AMREX_USE_GPU
-    template <class T>
-    using DefaultAllocator = amrex::ArenaAllocator<T>;
-
     template <typename T>
     struct RunOnGpu<ArenaAllocator<T> > : std::true_type {};
 

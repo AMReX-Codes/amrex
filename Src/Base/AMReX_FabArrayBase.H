@@ -1,7 +1,8 @@
 #ifndef BL_FABARRAYBASE_H_
 #define BL_FABARRAYBASE_H_
+#include <AMReX_Config.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -23,11 +24,6 @@ class Geometry;
 class FArrayBox;
 template <typename FAB> class FabFactory;
 template <typename FAB> class FabArray;
-class AmrTask;
-#ifdef USE_PERILLA
-class Perilla;
-class RegionGraph;
-#endif
 
 namespace EB2 { class IndexSpace; }
 
@@ -35,11 +31,6 @@ class FabArrayBase
 {
     friend class MFIter;
     friend class MFGhostIter;
-    friend class AmrTask;
-#ifdef USE_PERILLA
-    friend class Perilla;
-    friend class RegionGraph;
-#endif
 
     template <class FAB> friend void FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period);
 
@@ -143,6 +134,7 @@ public:
     */
     bool is_cell_centered () const noexcept;
 
+    void setMultiGhost(bool a_multi_ghost) {m_multi_ghost = a_multi_ghost;}
 
     // These are provided for convenience to keep track of how many
     // ghost cells are up to date.  The number of filled ghost cells
@@ -324,6 +316,7 @@ public:
                 const Box&          dstdomain,
                 const IntVect&      dstng,
                 const BoxConverter& coarsener,
+                const Box&          fdomain,
                 const Box&          cdomain,
                 const EB2::IndexSpace* index_space);
 
@@ -332,16 +325,16 @@ public:
         Long bytes () const;
 
         BoxArray            ba_crse_patch;
-        DistributionMapping dm_crse_patch;
+        BoxArray            ba_fine_patch;
+        DistributionMapping dm_patch;
         std::unique_ptr<FabFactory<FArrayBox> > fact_crse_patch;
-        Vector<int>          dst_idxs;
-        Vector<Box>          dst_boxes;
+        std::unique_ptr<FabFactory<FArrayBox> > fact_fine_patch;
         //
         BDKey               m_srcbdk;
         BDKey               m_dstbdk;
         Box                 m_dstdomain;
         IntVect             m_dstng;
-        BoxConverter*       m_coarsener;
+        std::unique_ptr<BoxConverter> m_coarsener;
         //
         Long                m_nuse;
     };
@@ -355,10 +348,10 @@ public:
 
     static const FPinfo& TheFPinfo (const FabArrayBase& srcfa,
                                     const FabArrayBase& dstfa,
-                                    const Box&          dstdomain,
                                     const IntVect&      dstng,
                                     const BoxConverter& coarsener,
-                                    const Box&          cdomain,
+                                    const Geometry&     fgeom,
+                                    const Geometry&     cgeom,
                                     const EB2::IndexSpace*);
 
     void flushFPinfo (bool no_assertion=false);
@@ -412,12 +405,6 @@ public:
 
     const TileArray* getTileArray (const IntVect& tilesize) const;
 
-    //! Block until all send requests complete
-    static void WaitForAsyncSends (int                 N_snds,
-                                   Vector<MPI_Request>& send_reqs,
-                                   Vector<char*>&       send_data,
-                                   Vector<MPI_Status>&  stats);
-
     // Memory Usage Tags
     struct meminfo {
         Long nbytes = 0L;
@@ -466,6 +453,7 @@ public:
     int                 n_comp;
     mutable BDKey       m_bdkey;
     IntVect             n_filled;  // Note that IntVect is zero by default.
+    bool                m_multi_ghost = false;
 
     //
     // Tiling
@@ -501,7 +489,7 @@ public:
     {
         FB (const FabArrayBase& fa, const IntVect& nghost,
             bool cross, const Periodicity& period,
-	    bool enforce_periodicity_only);
+	    bool enforce_periodicity_only, bool multi_ghost = false);
         ~FB ();
 
         IndexType    m_typ;
@@ -512,6 +500,7 @@ public:
         Periodicity  m_period;
         //
         Long         m_nuse;
+        bool         m_multi_ghost = false;
         //
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
         CudaGraph<CopyMemory> m_localCopy;
@@ -586,6 +575,75 @@ public:
     //
     void flushCPC (bool no_assertion=false) const;      //!< This flushes its own CPC.
     static void flushCPCache (); //!< This flusheds the entire cache.
+
+    //
+    //! Rotate Boundary by 90
+    struct RB90
+        : CommMetaData
+    {
+        RB90 (const FabArrayBase& fa, const IntVect& nghost, Box const& domain);
+        ~RB90 ();
+        IntVect m_ngrow;
+        Box     m_domain;
+    private:
+        void define (const FabArrayBase& fa);
+    };
+    //
+    typedef std::multimap<BDKey,FabArrayBase::RB90*> RB90Cache;
+    typedef RB90Cache::iterator RB90CacheIter;
+    //
+    static RB90Cache m_TheRB90Cache;
+    //
+    const RB90& getRB90 (const IntVect& nghost, const Box& domain) const;
+    //
+    void flushRB90 (bool no_assertion=false) const; //!< This flushes its own RB90.
+    static void flushRB90Cache (); //!< This flushes the entire cache.
+
+    //
+    //! Rotate Boundary by 180
+    struct RB180
+        : CommMetaData
+    {
+        RB180 (const FabArrayBase& fa, const IntVect& nghost, Box const& domain);
+        ~RB180 ();
+        IntVect m_ngrow;
+        Box     m_domain;
+    private:
+        void define (const FabArrayBase& fa);
+    };
+    //
+    typedef std::multimap<BDKey,FabArrayBase::RB180*> RB180Cache;
+    typedef RB180Cache::iterator RB180CacheIter;
+    //
+    static RB180Cache m_TheRB180Cache;
+    //
+    const RB180& getRB180 (const IntVect& nghost, const Box& domain) const;
+    //
+    void flushRB180 (bool no_assertion=false) const; //!< This flushes its own RB180.
+    static void flushRB180Cache (); //!< This flushes the entire cache.
+
+    //
+    //! Fill polar boundary in spherical coordinates.
+    struct PolarB
+        : CommMetaData
+    {
+        PolarB (const FabArrayBase& fa, const IntVect& nghost, Box const& domain);
+        ~PolarB ();
+        IntVect m_ngrow;
+        Box     m_domain;
+    private:
+        void define (const FabArrayBase& fa);
+    };
+    //
+    typedef std::multimap<BDKey,FabArrayBase::PolarB*> PolarBCache;
+    typedef PolarBCache::iterator PolarBCacheIter;
+    //
+    static PolarBCache m_ThePolarBCache;
+    //
+    const PolarB& getPolarB (const IntVect& nghost, const Box& domain) const;
+    //
+    void flushPolarB (bool no_assertion=false) const; //!< This flushes its own PolarB.
+    static void flushPolarBCache (); //!< This flushes the entire cache.
 
     //
     //! Keep track of how many FabArrays are built with the same BDKey.

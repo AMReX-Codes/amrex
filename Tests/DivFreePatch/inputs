@@ -1,0 +1,14 @@
+n_cell = 64 
+f_offset = 8
+
+max_grid_size = 128 
+
+# For testing nested vs. non-nested InterpFromCoarse
+#nghost_f = 1
+
+#c_hi = 64 64
+#f_lo = 4 4
+#f_hi = 16 16
+
+amrex.v = 1
+amrex.async_out = 0  # If we use more than 64 processes, async_out will require MPI_THREAD_MULTIPLE

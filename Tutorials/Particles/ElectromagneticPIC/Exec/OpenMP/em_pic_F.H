@@ -126,7 +126,7 @@ extern "C"
 
 
 #ifdef __cplusplus
-};
+}
 #endif
 
 #endif /*_EM_PIC_F_H_*/

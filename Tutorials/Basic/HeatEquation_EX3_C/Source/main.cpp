@@ -21,7 +21,7 @@ int main (int argc, char* argv[])
 void main_main ()
 {
     // What time is it now?  We'll use this to compute total run time.
-    Real strt_time = amrex::second();
+    auto strt_time = amrex::second();
 
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, nsteps, plot_int;
@@ -151,12 +151,12 @@ void main_main ()
     // Compute the time step
     // Implicit time step is imFactor*(explicit time step)
     const Real* dx = geom.CellSize();
-    Real cfl = 0.9_rt;
+    Real cfl = 0.9;
     Real coeff = AMREX_D_TERM(   1./(dx[0]*dx[0]),
                                + 1./(dx[1]*dx[1]),
                                + 1./(dx[2]*dx[2]) );
     const int imFactor = pow(10, AMREX_SPACEDIM-1);
-    Real dt = imFactor*cfl/(2.0_rt*coeff);
+    Real dt = imFactor*cfl/(2.0*coeff);
 
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
     if (plot_int > 0)
@@ -188,7 +188,7 @@ void main_main ()
 
     // Call the timer again and compute the maximum difference between the start time and stop time
     //   over all processors
-    Real stop_time = amrex::second() - strt_time;
+    auto stop_time = amrex::second() - strt_time;
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     ParallelDescriptor::ReduceRealMax(stop_time,IOProc);
 

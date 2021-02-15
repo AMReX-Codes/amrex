@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_H_
 #define AMREX_EB2_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Geometry.H>
 #include <AMReX_Vector.H>
@@ -64,7 +65,8 @@ public:
 
     IndexSpaceImp (const G& gshop, const Geometry& geom,
                    int required_coarsening_level, int max_coarsening_level,
-                   int ngrow, bool build_coarse_level_by_coarsening);
+                   int ngrow, bool build_coarse_level_by_coarsening,
+                   bool extend_domain_face);
 
     IndexSpaceImp (IndexSpaceImp<G> const&) = delete;
     IndexSpaceImp (IndexSpaceImp<G> &&) = delete;
@@ -92,17 +94,21 @@ private:
 
 #include <AMReX_EB2_IndexSpaceI.H>
 
+bool ExtendDomainFace ();
+
 template <typename G>
 void
 Build (const G& gshop, const Geometry& geom,
        int required_coarsening_level, int max_coarsening_level,
-       int ngrow = 4, bool build_coarse_level_by_coarsening = true)
+       int ngrow = 4, bool build_coarse_level_by_coarsening = true,
+       bool extend_domain_face = ExtendDomainFace())
 {
     BL_PROFILE("EB2::Initialize()");
     IndexSpace::push(new IndexSpaceImp<G>(gshop, geom,
                                           required_coarsening_level,
                                           max_coarsening_level,
-                                          ngrow, build_coarse_level_by_coarsening));
+                                          ngrow, build_coarse_level_by_coarsening,
+                                          extend_domain_face));
 }
 
 void Build (const Geometry& geom,

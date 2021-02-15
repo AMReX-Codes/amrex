@@ -36,7 +36,7 @@ using std::pair;
 using namespace amrex;
 
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -204,6 +204,8 @@ BLProfStats::TimeRange RegionsProfStats::MakeRegionPlt(FArrayBox &rFab, int nore
                                      int width, int height,
 				     Vector<Vector<Box>> &regionBoxes)
 {
+  amrex::ignore_unused(noregionnumber);
+
 #if (BL_SPACEDIM != 2)
   cout << "**** Error:  RegionsProfStats::MakeRegionPlt only supported for 2D" << endl;
   return TimeRange(0, 0);
@@ -255,8 +257,8 @@ BLProfStats::TimeRange RegionsProfStats::MakeRegionPlt(FArrayBox &rFab, int nore
         } else {                             // stopping
           Real rtStart(rStartTime[rss.rssRNumber]), rtStop(rss.rssTime);
           rStartTime[rss.rssRNumber] = -1.0;
-          int xStart(xLength * rtStart / timeMax);
-          int xStop(xLength * rtStop / timeMax);
+          int xStart = int(xLength * rtStart / timeMax);
+          int xStop = int(xLength * rtStop / timeMax);
 	  xStop = std::min(xStop, xLength - 1);
           int yLo(rss.rssRNumber * yHeight), yHi(((rss.rssRNumber + 1) *  yHeight) - 1);
           Box rBox(IntVect(xStart, yLo), IntVect(xStop, yHi));
@@ -505,7 +507,7 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
 
 
 // ----------------------------------------------------------------------
-bool RegionsProfStats::Include(const FuncStat &fs) {
+bool RegionsProfStats::Include(const FuncStat &/*fs*/) {
   std::set<int>::iterator it;
   bool binclude(bDefaultInclude);
   return binclude;
@@ -660,7 +662,7 @@ void RegionsProfStats::CollectFuncStats(Vector<Vector<FuncStat> > &funcStats)
 
 
 // ----------------------------------------------------------------------
-void RegionsProfStats::WriteSummary(std::ostream &ios, bool bwriteavg,
+void RegionsProfStats::WriteSummary(std::ostream &ios, bool /*bwriteavg*/,
                                     int whichProc, bool graphTopPct)
 {
   if( ! ParallelDescriptor::IOProcessor()) {
@@ -1577,7 +1579,7 @@ void RegionsProfStats::ReadBlockNoOpen(DataBlock &dBlock, bool readRSS,
 
 
 // ----------------------------------------------------------------------
-bool RegionsProfStats::ReadBlock(DataBlock &dBlock, const int nmessages) {
+bool RegionsProfStats::ReadBlock(DataBlock &/*dBlock*/, const int /*nmessages*/) {
 amrex::Abort("not implemented yet.");
 return false;
 /*

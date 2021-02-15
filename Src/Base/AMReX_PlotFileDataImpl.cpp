@@ -57,7 +57,7 @@ PlotFileDataImpl::PlotFileDataImpl (std::string const& plotfile_name)
         is >> m_level_steps[i];
     }
 
-    m_cell_size.resize(m_nlevels, Array<Real,AMREX_SPACEDIM>{AMREX_D_DECL(1.,1.,1.)});
+    m_cell_size.resize(m_nlevels, Array<Real,AMREX_SPACEDIM>{{AMREX_D_DECL(1.,1.,1.)}});
     for (int ilev = 0; ilev < m_nlevels; ++ilev) {
         for (int idim = 0; idim < m_spacedim; ++idim) {
             is >> m_cell_size[ilev][idim];
@@ -110,7 +110,7 @@ PlotFileDataImpl::syncDistributionMap (PlotFileDataImpl const& src) noexcept
 void
 PlotFileDataImpl::syncDistributionMap (int level, PlotFileDataImpl const& src) noexcept
 {
-    if (level <= src.finestLevel() and m_dmap[level].size() == src.DistributionMap(level).size()) {
+    if (level <= src.finestLevel() && m_dmap[level].size() == src.DistributionMap(level).size()) {
         m_dmap[level] = src.DistributionMap(level);
     }
 }

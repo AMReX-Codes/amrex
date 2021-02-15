@@ -23,8 +23,8 @@ function (configure_amrex)
    #
    # Check that needed options have already been defined
    #
-   if ( ( NOT ( DEFINED ENABLE_MPI ) ) OR ( NOT (DEFINED ENABLE_OMP) )
-	 OR ( NOT (DEFINED ENABLE_PIC) ) OR (NOT (DEFINED ENABLE_FPE)))
+   if ( ( NOT ( DEFINED AMReX_MPI ) ) OR ( NOT (DEFINED AMReX_OMP) )
+	 OR ( NOT (DEFINED AMReX_PIC) ) OR (NOT (DEFINED AMReX_FPE)))
       message ( AUTHOR_WARNING "Required options are not defined" )
    endif ()
 
@@ -32,13 +32,7 @@ function (configure_amrex)
    # Include the required modules
    #
    include( AMReX_ThirdPartyProfilers )
-   include( AMReX_Defines )
    include( AMReXGenexHelpers )
-
-   #
-   # Set properties for target "amrex"
-   #
-   set_amrex_defines()
 
    #
    # Setup compilers
@@ -48,46 +42,54 @@ function (configure_amrex)
    # Moreover, it will also enforce such standard on all the consuming targets
    #
    set_target_properties(amrex PROPERTIES CXX_EXTENSIONS OFF)
-   # minimum: C++11 on Linux, C++17 on Windows
-   target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cxx_std_17,cxx_std_11>)
+   # minimum: C++11 on Linux, C++17 on Windows, C++17 for dpc++
+   if (AMReX_DPCPP)
+      target_compile_features(amrex PUBLIC cxx_std_17)
+   else ()
+      target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cxx_std_17,cxx_std_11>)
+   endif ()
 
-   if (ENABLE_CUDA AND (CMAKE_VERSION VERSION_GREATER_EQUAL 3.17) )
+   if (AMReX_CUDA AND (CMAKE_VERSION VERSION_GREATER_EQUAL 3.17) )
       set_target_properties(amrex PROPERTIES CUDA_EXTENSIONS OFF)
       # minimum: C++11 on Linux, C++17 on Windows
       target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cuda_std_17,cuda_std_11>)
    endif()
 
    #
+   # Special flags for MSVC compiler
+   #
+   set(_cxx_msvc   "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>")
+
+   target_compile_options( amrex PRIVATE $<${_cxx_msvc}:/bigobj> )
+   target_compile_options( amrex PRIVATE $<${_cxx_msvc}:-wd4244;-wd4267;-wd4996> )
+
+   # modern preprocessor
+   set(_condition  "$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19.26>")
+   target_compile_options( amrex PUBLIC
+      $<${_cxx_msvc}:$<IF:${_condition},/experimental:preprocessor,/Zc:preprocessor>>
+   )
+   # proper __cplusplus macro:
+   #   https://docs.microsoft.com/en-us/cpp/build/reference/zc-cplusplus?view=msvc-160
+   set(_condition  "$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,19.14>")
+   target_compile_options( amrex PUBLIC
+      $<${_cxx_msvc}:$<${_condition}:/Zc:__cplusplus>>
+   )
+
+   unset(_condition)
+   unset(_cxx_msvc)
+
+   #
    # Setup OpenMP
    #
-   if (ENABLE_OMP)
-
-      find_package(OpenMP REQUIRED)
-      target_link_libraries(amrex PUBLIC OpenMP::OpenMP_CXX)
-
-      # Make imported target "global" so that it can be seen
-      # from other directories in the project.
-      # This is especially useful when get_target_properties_flattened()
-      # (see module AMReXTargetHelpers.cmake) is called to recover dependecy tree info
-      # in projects that use amrex directly in the build (via add_subdirectory()).
-      set_target_properties(OpenMP::OpenMP_CXX PROPERTIES IMPORTED_GLOBAL True )
-
-      if (ENABLE_FORTRAN_INTERFACES)
-         target_link_libraries(amrex PUBLIC OpenMP::OpenMP_Fortran )
-         set_target_properties(OpenMP::OpenMP_Fortran PROPERTIES IMPORTED_GLOBAL True )
-      endif ()
-
+   if (AMReX_OMP)
       # We have to manually pass OpenMP flags to host compiler if CUDA is enabled
       # Since OpenMP imported targets are generated only for the Compiler ID in use, i.e.
       # they do not provide flags for all possible compiler ids, we assume the same compiler use
       # for building amrex will be used to build the application code
-      if (ENABLE_CUDA)
-         get_target_property(_cxx_omp_flags OpenMP::OpenMP_CXX INTERFACE_COMPILE_OPTIONS)
+      if (AMReX_CUDA)
+         get_target_property(_omp_flags OpenMP::OpenMP_CXX INTERFACE_COMPILE_OPTIONS)
 
-         evaluate_genex(_cxx_omp_flags _omp_flags
-            LANG   CXX
-            COMP   ${_comp}
-            STRING )
+         eval_genex(_omp_flags CXX ${_comp} INTERFACE BUILD STRING )
 
          target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_omp_flags}>)
       endif ()
@@ -99,7 +101,7 @@ function (configure_amrex)
    endif ()
 
 
-   if (ENABLE_CUDA)
+   if (AMReX_CUDA)
       #
       # Retrieve compile flags for the current configuration
       # I haven't find a way to set host compiler flags for all the
@@ -111,8 +113,6 @@ function (configure_amrex)
          get_target_property( _amrex_flags_2 Flags_CXX INTERFACE_COMPILE_OPTIONS)
       endif()
 
-      get_target_property( _amrex_flags_3 Flags_CXX_REQUIRED INTERFACE_COMPILE_OPTIONS)
-
       set(_amrex_flags)
       if (_amrex_flags_1)
          list(APPEND _amrex_flags ${_amrex_flags_1})
@@ -120,56 +120,57 @@ function (configure_amrex)
       if (_amrex_flags_2)
          list(APPEND _amrex_flags ${_amrex_flags_2})
       endif ()
-      if (_amrex_flags_3)
-         list(APPEND _amrex_flags ${_amrex_flags_3})
-      endif ()
 
-      evaluate_genex(_amrex_flags _amrex_cxx_flags
-         LANG   CXX
-         COMP   ${CMAKE_CXX_COMPILER_ID}
-         CONFIG ${CMAKE_BUILD_TYPE}
+      eval_genex(_amrex_flags CXX  ${CMAKE_CXX_COMPILER_ID}
+         COMP_VERSION ${CMAKE_CXX_COMPILER_VERSION}
+         CONFIG       ${CMAKE_BUILD_TYPE}
+         INTERFACE    BUILD
          STRING )
 
-      if (_amrex_cxx_flags)
-         target_compile_options(amrex PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_amrex_cxx_flags}>)
+      if (_amrex_flags)
+         target_compile_options(amrex PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_amrex_flags}>)
       endif ()
 
       #
       # Add manually nvToolsExt if tiny profiler or base profiler are on.n
       # CMake >= 3.17 provides the module FindCUDAToolkit to do this natively.
       #
-      if (ENABLE_TINY_PROFILE OR ENABLE_BASE_PROFILE )
+      if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE )
           find_library(LIBNVTOOLSEXT nvToolsExt PATHS ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
           target_link_libraries(amrex PUBLIC ${LIBNVTOOLSEXT})
       endif ()
 
    endif ()
 
-   if ( ENABLE_PIC OR BUILD_SHARED_LIBS )
-      set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
+   if ( AMReX_PIC OR BUILD_SHARED_LIBS )
+      set_target_properties ( amrex PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+        WINDOWS_EXPORT_ALL_SYMBOLS ON )
    endif ()
 
-   if ( BUILD_SHARED_LIBS OR ENABLE_CUDA )
+   if ( BUILD_SHARED_LIBS OR AMReX_CUDA )
+      set(host_link_supported OLD)
+      if(CMP0105)
+        cmake_policy(GET CMP0105 host_link_supported)
+      endif()
+
       if(APPLE)
-         target_link_options(amrex PUBLIC -Wl,-undefined,warning)
+        if( host_link_supported STREQUAL "NEW" ) # CMake 3.18+
+          target_link_options(amrex PUBLIC "LINKER:-undefined,warning")
+        else()
+          target_link_options(amrex PUBLIC "-Wl,-undefined,warning")
+        endif()
+      elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR
+             CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
+        # nothing
       else()
-         target_link_options(amrex PUBLIC -Wl,--warn-unresolved-symbols)
+        if( host_link_supported STREQUAL "NEW" ) # CMake 3.18+
+          target_link_options(amrex PUBLIC "$<HOST_LINK:LINKER:--warn-unresolved-symbols>")
+        else()
+          target_link_options(amrex PUBLIC "-Wl,--warn-unresolved-symbols")
+        endif()
       endif()
    endif()
-
-   #
-   # Setup HDF5 -- for now we do not create an imported target
-   #
-   if (ENABLE_HDF5)
-      set(HDF5_PREFER_PARALLEL TRUE)
-      find_package(HDF5 1.10.4 REQUIRED COMPONENTS CXX)
-      if (NOT HDF5_IS_PARALLEL)
-         message(FATAL_ERROR "\nHDF5 library does not support parallel I/O")
-      endif ()
-      target_include_directories(amrex PUBLIC ${HDF5_CXX_INCLUDE_DIRS})
-      target_compile_definitions(amrex PUBLIC ${HDF5_CXX_DEFINES})
-      target_link_libraries(amrex PUBLIC ${HDF5_CXX_LIBRARIES})
-   endif ()
 
    #
    # Setup third-party profilers
@@ -214,11 +215,11 @@ function (print_amrex_configuration_summary)
 
         # _${_ll}${_p} is a variable named as _lang_property,
         # both lower case.
-        evaluate_genex(${_p} _${_ll}${_p}
-           LANG ${_l}
-           COMP ${CMAKE_${_l}_COMPILER_ID}
-           CONFIG ${CMAKE_BUILD_TYPE}
-           INTERFACE BUILD)
+        set(_${_ll}${_p} "${${_p}}")
+        eval_genex( _${_ll}${_p} ${_l} ${CMAKE_${_l}_COMPILER_ID}
+           COMP_VERSION ${CMAKE_${_l}_COMPILER_VERSION}
+           CONFIG       ${CMAKE_BUILD_TYPE}
+           INTERFACE    BUILD)
 
         if (_${_ll}${_p})
 
@@ -253,7 +254,7 @@ function (print_amrex_configuration_summary)
    if (CMAKE_Fortran_COMPILER_LOADED)
       message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
    endif ()
-   if (ENABLE_CUDA)
+   if (AMReX_CUDA)
       message( STATUS "   CUDA compiler            = ${CMAKE_CUDA_COMPILER}")
    endif ()
 
@@ -266,7 +267,7 @@ function (print_amrex_configuration_summary)
    if (CMAKE_Fortran_COMPILER_LOADED)
       message( STATUS "   Fortran flags            = ${_fortran_flags}")
    endif ()
-   if (ENABLE_CUDA)
+   if (AMReX_CUDA)
       message( STATUS "   CUDA flags               = ${CMAKE_CUDA_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CUDA_FLAGS}"
          "${AMREX_CUDA_FLAGS}")
    endif ()

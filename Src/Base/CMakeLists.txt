@@ -1,32 +1,5 @@
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
-# MPI header is incapsulated in AMReX_ccse-mpi.H
-if (ENABLE_MPI)
-   find_package(MPI REQUIRED C CXX)
-
-   # Make imported target "global" so that it can be seen
-   # from other directories in the project.
-   # This is especially useful when get_target_properties_flattened()
-   # (see module AMReXTargetHelpers.cmake) is called to recover dependecy tree info
-   # in projects that use amrex directly in the build (via add_subdirectory()).
-   # Without this, get_target_properties_flattened() would not recognize
-   # MPI::MPI_C and MPI::MPI_CXX as targets because they would be visibile only in this
-   # folder and subfolders.
-   set_target_properties(
-      MPI::MPI_C MPI::MPI_CXX
-      PROPERTIES
-      IMPORTED_GLOBAL True )
-
-   target_link_libraries(amrex PUBLIC MPI::MPI_C MPI::MPI_CXX)
-endif ()
-
-# We need threads
-set( THREADS_PREFER_PTHREAD_FLAG on)
-find_package(Threads REQUIRED)
-set_target_properties( Threads::Threads PROPERTIES IMPORTED_GLOBAL True )
-target_link_libraries(amrex PUBLIC Threads::Threads)
-
-
 target_sources( amrex
    PRIVATE
    # Utility classes ---------------------------------------------------------
@@ -43,8 +16,6 @@ target_sources( amrex
    AMReX_error_fi.cpp
    AMReX.H
    AMReX_Exception.H
-   AMReX.cpp
-   AMReX_error_fi.cpp
    AMReX_Extension.H
    AMReX_IndexSequence.H
    AMReX_PODVector.H
@@ -60,7 +31,9 @@ target_sources( amrex
    AMReX_Scan.H
    AMReX_Partition.H
    AMReX_Random.H
+   AMReX_RandomEngine.H
    AMReX_Random.cpp
+   AMReX_Slopes_K.H
    AMReX_BLassert.H
    AMReX_ArrayLim.H
    AMReX_REAL.H
@@ -170,14 +143,14 @@ target_sources( amrex
    # Geometry / Coordinate system routines -----------------------------------
    AMReX_CoordSys.cpp
    AMReX_CoordSys.H
-   AMReX_COORDSYS_${DIM}D_C.H
+   AMReX_COORDSYS_${AMReX_SPACEDIM}D_C.H
    AMReX_COORDSYS_C.H
    AMReX_Geometry.cpp
    AMReX_Geometry.H
    AMReX_MultiFabUtil.cpp
    AMReX_MultiFabUtil.H
    AMReX_MultiFabUtilI.H
-   AMReX_MultiFabUtil_${DIM}D_C.H
+   AMReX_MultiFabUtil_${AMReX_SPACEDIM}D_C.H
    AMReX_MultiFabUtil_nd_C.H
    AMReX_MultiFabUtil_C.H
    # Boundary-related --------------------------------------------------------
@@ -188,11 +161,14 @@ target_sources( amrex
    AMReX_BCUtil.cpp
    AMReX_BCUtil.H
    AMReX_BC_TYPES.H
-   AMReX_FilCC_${DIM}D_C.H
+   AMReX_FilCC_${AMReX_SPACEDIM}D_C.H
    AMReX_FilCC_C.H
    AMReX_FilCC_C.cpp
    AMReX_FilND_C.H
    AMReX_FilND_C.cpp
+   # Non-Local BC
+   AMReX_NonLocalBC.H
+   AMReX_NonLocalBCImpl.H
    # Plotfile ----------------------------------------------------------------
    AMReX_PlotFileUtil.cpp
    AMReX_PlotFileUtil.H
@@ -201,13 +177,16 @@ target_sources( amrex
    # GPU --------------------------------------------------------------------
    AMReX_Gpu.H
    AMReX_GpuQualifiers.H
+   AMReX_GpuKernelInfo.H
    AMReX_GpuPrint.H
    AMReX_GpuAssert.H
    AMReX_GpuTypes.H
    AMReX_GpuControl.H
    AMReX_GpuControl.cpp
+   AMReX_GpuFuse.H
+   AMReX_GpuFuse.cpp
    AMReX_GpuLaunch.H
-   AMReX_GpuLaunch.cpp
+   AMReX_GpuLaunchGlobal.H
    AMReX_GpuLaunchMacrosG.H
    AMReX_GpuLaunchMacrosC.H
    AMReX_GpuLaunchFunctsG.H
@@ -215,6 +194,7 @@ target_sources( amrex
    AMReX_GpuError.H
    AMReX_GpuDevice.H
    AMReX_GpuDevice.cpp
+   AMReX_GpuBuffer.H
    AMReX_GpuAtomic.H
    AMReX_GpuUtility.H
    AMReX_GpuUtility.cpp
@@ -241,13 +221,13 @@ target_sources( amrex
    )
 
 # Fortran stuff
-if (ENABLE_FORTRAN)
+if (AMReX_FORTRAN)
    target_sources( amrex
       PRIVATE
       AMReX_filcc_f.H
       AMReX_BLutil_F.F90
       AMReX_BLProfiler_F.F90
-      AMReX_FILCC_${DIM}D.F90
+      AMReX_FILCC_${AMReX_SPACEDIM}D.F90
       AMReX_filcc_mod.F90
       AMReX_omp_mod.F90
       AMReX_acc_mod.F90
@@ -269,11 +249,11 @@ endif ()
 # endif
 
 # Memory Profiler
-if (ENABLE_MEM_PROFILE)
+if (AMReX_MEM_PROFILE)
    target_sources(amrex PRIVATE AMReX_MemProfiler.cpp AMReX_MemProfiler.H )
 endif ()
 
 # Tiny Profiler
-if (ENABLE_TINY_PROFILE)
+if (AMReX_TINY_PROFILE)
    target_sources(amrex PRIVATE AMReX_TinyProfiler.cpp AMReX_TinyProfiler.H )
 endif ()

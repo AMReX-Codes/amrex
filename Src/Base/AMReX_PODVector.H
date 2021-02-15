@@ -1,10 +1,10 @@
 #ifndef AMREX_PODVECTOR_H_
 #define AMREX_PODVECTOR_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_TypeTraits.H>
-#include <AMReX_Gpu.H>
+#include <AMReX_GpuLaunch.H>
 #include <AMReX_GpuAllocators.H>
-#include <AMReX_GpuContainers.H>
 #include <AMReX_GpuDevice.H>
 
 #include <type_traits>
@@ -30,7 +30,7 @@ namespace amrex
         typename std::enable_if<!RunOnGpu<T>::value>::type
         uninitializedFillNImpl (U* data, Size count, const Value& value)
         {
-            std::uninitialized_fill_n<U*, U>(data, count, value);
+            std::uninitialized_fill_n<U*, Size, Value>(data, count, value);
         }
 
         template <typename T>
@@ -66,13 +66,14 @@ namespace amrex
 
             allocator.deallocate(tmp, N);
 #else
+            amrex::ignore_unused(allocator);
             std::memmove(dst, src, count);
 #endif
         }
 
         template <typename T>
         typename std::enable_if<!RunOnGpu<T>::value>::type
-        memMoveImpl (void* dst, const void* src, std::size_t count, T& allocator)
+        memMoveImpl (void* dst, const void* src, std::size_t count, T& /*allocator*/)
         {
             std::memmove(dst, src, count);
         }

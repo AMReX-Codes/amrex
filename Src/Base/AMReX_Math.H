@@ -1,5 +1,6 @@
 #ifndef AMREX_MATH_H_
 #define AMREX_MATH_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Extension.H>
@@ -35,32 +36,13 @@ namespace amrex { namespace Math {
 
 //using sycl::abs;
 // We have to do this because somehow sycl::abs(int) return unsigned int.
-template <typename T> T abs (T a) { return sycl::abs(a); }
+//template <typename T> T abs (T a) { return sycl::abs(a); } // The compiler seems to have trouble with this on DG1.
+template <typename T> T abs (T a) { return (a >= T(0)) ? a : -a; }
 
 using sycl::ceil;
 using sycl::copysign;
 using sycl::floor;
 using sycl::round;
-
-using std::sqrt;
-
-#elif defined (AMREX_USE_HIP)
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-double abs (double a) { return fabs(a); }
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-float abs (float a) { return fabsf(a); }
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int abs (int a) { return ::abs(a); }
-
-using ::ceil;
-using ::copysign;
-using ::floor;
-using ::round;
-
-using ::sqrt;
 
 #else
 
@@ -69,8 +51,6 @@ using std::ceil;
 using std::copysign;
 using std::floor;
 using std::round;
-
-using std::sqrt;
 
 #endif
 
