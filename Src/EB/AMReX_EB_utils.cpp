@@ -38,16 +38,56 @@ namespace amrex {
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
 #endif
 
-        const Box dbox = geom.growPeriodicDomain(2);
-
         //
-        // Get array from arguments
+        // Get array4 from arguments
         //
         Array4<Real> const& div  = div_mf.array(*mfi);
         Array4<Real> const& divc = divc_mf.array(*mfi);
         auto const&         wt   = weights.array(*mfi);
         auto const&        flags = flags_fab.array();
         auto const&        vfrac = volfrac->array(*mfi);
+
+        apply_flux_redistribution ( bx, div, divc, wt, icomp, ncomp, flags, vfrac, geom);
+    }
+
+    //
+    // Do small cell redistribution on one FAB with the Array4's already passed in
+    //
+    void apply_flux_redistribution ( const Box& bx,
+                                     Array4<Real      > const& div,
+                                     Array4<Real const> const& divc,
+                                     Array4<Real const> const& wt,
+                                     const int icomp,
+                                     const int ncomp,
+                                     Array4<EBCellFlag const> const& flags,
+                                     Array4<Real const>    const& vfrac,
+                                     const Geometry & geom)
+    {
+        //
+        // Check that grid is uniform
+        //
+        const Real* dx = geom.CellSize();
+
+#if (AMREX_SPACEDIM == 2)
+        if (! amrex::almostEqual(dx[0], dx[1]))
+            amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
+#elif (AMREX_SPACEDIM == 3)
+        if( ! amrex::almostEqual(dx[0],dx[1]) ||
+            ! amrex::almostEqual(dx[0],dx[2]) ||
+            ! amrex::almostEqual(dx[1],dx[2]) )
+            amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
+#endif
+
+        const Box dbox = geom.growPeriodicDomain(2);
+
+        //
+        // Get array from arguments
+        //
+        // Array4<Real> const& div  = div_mf.array(*mfi);
+        // Array4<Real> const& divc = divc_mf.array(*mfi);
+        // auto const&         wt   = weights.array(*mfi);
+        // auto const&        flags = flags_fab.array();
+        // auto const&        vfrac = volfrac->array(*mfi);
 
         const Box& grown1_bx = amrex::grow(bx,1);
         const Box& grown2_bx = amrex::grow(bx,2);
@@ -110,7 +150,7 @@ namespace amrex {
             }
             divnc /=  (vtot + 1.e-80);
 
-            // We need to multiply by mask to make sure optmp is zero for cells
+            // We need to multiply divc by mask to make sure optmp is zero for cells
             // outside the domain for non-cyclic BCs
             optmp(i,j,k,n) =  (1 - vfrac(i,j,k)) * (divnc - divc(i,j,k,n)) * mask(i,j,k);
             delm(i,j,k,n)  = -(    vfrac(i,j,k)) * optmp(i,j,k,n);
