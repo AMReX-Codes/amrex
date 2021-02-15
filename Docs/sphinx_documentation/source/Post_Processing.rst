@@ -1,7 +1,7 @@
 .. role:: cpp(code)
    :language: c++
 
-.. _sec:amrvis:
+.. _sec:postprocessing:
 
 WritePlotfileToASCII
 ====================
