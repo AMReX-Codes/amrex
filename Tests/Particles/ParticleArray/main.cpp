@@ -4,7 +4,7 @@
 #include <AMReX_Tuple.H>
 #include <AMReX_PODVector.H>
 #include <AMReX_GpuContainers.H>
-#include <AMReX_ParticleDataLayout.H>
+#include <AMReX_ParticleArray.H>
 
 using namespace amrex;
 
