@@ -35,8 +35,8 @@ list of important variables.
    +-----------------+-------------------------------------+--------------------+
    | COMP            | gnu, cray, ibm, intel, llvm, or pgi | none               |
    +-----------------+-------------------------------------+--------------------+
-   | CXXSTD          | C++ standard (``c++11``, ``c++14``, | compiler default,  |
-   |                 | ``c++17``, ``c++20``)               | at least ``c++11`` |
+   | CXXSTD          | C++ standard (``c++14``, ``c++17``, | compiler default,  |
+   |                 | ``c++20``)                          | at least ``c++14`` |
    +-----------------+-------------------------------------+--------------------+
    | DEBUG           | TRUE or FALSE                       | FALSE              |
    +-----------------+-------------------------------------+--------------------+
@@ -736,7 +736,7 @@ The AMReX team does development on Linux machines, from laptops to supercomputer
 We do not officially support AMReX on Windows, and many of us do not have access to any Windows
 machines.  However, we believe there are no fundamental issues for it to work on Windows.
 
-(1) AMReX mostly uses standard C++11, but for Windows C++17 is required.  This is because we use
+(1) AMReX mostly uses standard C++14, but for Windows C++17 is required.  This is because we use
     C++17 to support file system operations when POSIX I/O is not available.
 
 (2) We use POSIX signal handling when floating point exceptions, segmentation faults, etc. happen.
