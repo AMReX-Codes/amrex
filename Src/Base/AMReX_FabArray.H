@@ -233,6 +233,8 @@ public:
     // Provides access to the Arena this FabArray was build with.
     Arena* arena () const noexcept { return m_dallocator.arena(); }
 
+    const Vector<std::string>& tags () const noexcept { return m_tags; }
+
     bool hasEBFabFactory () const noexcept {
 #ifdef AMREX_USE_EB
         const auto f = dynamic_cast<EBFArrayBoxFactory const*>(m_factory.get());
