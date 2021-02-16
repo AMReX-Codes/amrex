@@ -1,5 +1,5 @@
-#ifndef AMREX_PARTICLEDATALAYOUT_H_
-#define AMREX_PARTICLEDATALAYOUT_H_
+#ifndef AMREX_PARTICLEARRAY_H_
+#define AMREX_PARTICLEARRAY_H_
 
 #include <AMReX.H>
 #include <AMReX_TypeTraits.H>
