@@ -91,7 +91,9 @@ ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
   CXXFLAGS += -std=$(CXXSTD)
 else
-  CXXFLAGS += -std=c++14
+  ifeq ($(gcc_major_version),5)
+    CXXFLAGS += -std=c++14
+  endif
 endif
 
 CFLAGS   += -c99
