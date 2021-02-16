@@ -57,7 +57,11 @@ endif ()
 # HYPRE
 #
 if (AMReX_HYPRE)
-    find_package(HYPRE 2.18.2 REQUIRED)
+    if(ENABLE_CUDA)
+        find_package(HYPRE 2.20.0 REQUIRED)
+    else()
+        find_package(HYPRE 2.19.0 REQUIRED)
+    endif()
     target_link_libraries( amrex PUBLIC HYPRE )
 endif ()
 
