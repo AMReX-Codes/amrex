@@ -33,7 +33,7 @@ template <typename ParticleType, DataLayout DataLayoutTag>
 struct DataLayoutPolicyRaw;
 
 template <typename ParticleType, DataLayout DataLayoutTag>
-struct ParticleTileRaw;
+struct ParticleArrayAccessor;
 
 /**
    Because std::reference_wrapper is not __host__ __device__
@@ -207,18 +207,18 @@ private:
 template <template <typename ValueType> class ContainerType,
           typename ParticleType,
           DataLayout DataLayoutTag>
-struct ParticleTile
+struct ParticleArray
 {
     using policy_type = DataLayoutPolicy<ContainerType, ParticleType, DataLayoutTag>;
-    using raw_type = ParticleTileRaw<ParticleType, DataLayoutTag>;
+    using accessor_type = ParticleArrayAccessor<ParticleType, DataLayoutTag>;
     using value_type = typename policy_type::value_type;
     using container_type = typename policy_type::container_type;
 
     auto static constexpr data_layout = DataLayoutTag;
 
-    ParticleTile () { resize(0); }
+    ParticleArray () { resize(0); }
 
-    ParticleTile (size_t a_size) { resize(a_size); }
+    ParticleArray (size_t a_size) { resize(a_size); }
 
     template <typename ValueType>
     void push_back (ValueType&& val)
@@ -230,9 +230,9 @@ struct ParticleTile
 
     void resize (size_t a_size) { policy_type::resize(m_data, a_size); }
 
-    raw_type get_particle_data ()
+    accessor_type get_particle_data ()
     {
-        return raw_type(size(), policy_type::get_raw_data(m_data));
+        return accessor_type(size(), policy_type::get_raw_data(m_data));
     }
 
 private:
@@ -241,11 +241,11 @@ private:
 };
 
 /**
-   A Version of ParticleTile that contains only raw pointers, so that it can
+   A Version of ParticleArray that contains only raw pointers, so that it can
    be copied by value into GPU kernels.
  */
 template <typename ParticleType, DataLayout DataLayoutTag>
-struct ParticleTileRaw
+struct ParticleArrayAccessor
 {
     using policy_type  = DataLayoutPolicyRaw<ParticleType, DataLayoutTag>;
     using value_type   = typename policy_type::value_type;
@@ -253,7 +253,7 @@ struct ParticleTileRaw
 
     auto static constexpr data_layout = DataLayoutTag;
 
-    ParticleTileRaw (std::size_t a_size, raw_type a_data)
+    ParticleArrayAccessor (std::size_t a_size, raw_type a_data)
         : m_size(a_size), m_data(a_data)
     {}
 

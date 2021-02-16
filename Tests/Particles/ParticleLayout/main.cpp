@@ -29,10 +29,10 @@ template <DataLayout DataLayoutTag>
 void testLayout ()
 {
     using ParticleType = Particle<double, double, double, int, int>;
-    using ParticleTileType = ParticleTile<amrex::Gpu::DeviceVector, ParticleType, DataLayoutTag>;
+    using ParticleArrayType = ParticleArray<amrex::Gpu::DeviceVector, ParticleType, DataLayoutTag>;
 
-    ParticleTileType ptile(1000);
-    auto particles = ptile.get_particle_data();
+    ParticleArrayType parray(1000);
+    auto particles = parray.get_particle_data();
 
     amrex::ParallelFor( particles.size(), [=] AMREX_GPU_DEVICE (int i) noexcept
     {
