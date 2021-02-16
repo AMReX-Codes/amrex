@@ -479,10 +479,6 @@ public:
                               const Periodicity&   period = Periodicity::NonPeriodic(),
                               CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy_nowait(fa,0,0,nComp(),0,0,period,op); }
-    void copy_nowait (const FabArray<FAB>& fa,
-                      const Periodicity&   period = Periodicity::NonPeriodic(),
-                      CpOp                 op = FabArrayBase::COPY)
-       { ParallelCopy_nowait(fa,period,op); }
 
     /**
     * \brief This function copies data from src to this FabArray.  Each FAB
@@ -526,13 +522,6 @@ public:
                               const Periodicity&   period = Periodicity::NonPeriodic(),
                               CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,0,0,period,op); }
-    void copy_nowait (const FabArray<FAB>& src,
-                      int                  src_comp,
-                      int                  dest_comp,
-                      int                  num_comp,
-                      const Periodicity&   period = Periodicity::NonPeriodic(),
-                      CpOp                 op = FabArrayBase::COPY)
-        { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp, period, op); }
 
     //! Similar to the above function, except that source and destination are grown by src_nghost and dst_nghost, respectively
     void ParallelAdd (const FabArray<FAB>& src,
@@ -948,6 +937,7 @@ public:
     IntVect              pc_snghost, pc_dnghost;
     Periodicity          pc_period;
     int                  pc_SC, pc_NC, pc_DC;
+    bool                 pc_simple;
 
     //
     char*                pc_the_recv_data = nullptr;
@@ -956,12 +946,7 @@ public:
     Vector<char*>        pc_recv_data;
     Vector<std::size_t>  pc_recv_size;
     Vector<MPI_Request>  pc_recv_reqs;
-//    Vector<MPI_Status>  pc_recv_stat;  // why kept in FB? Needed in PC?
-
-//    Vector<char*>       pc_send_data;
-    Vector<MPI_Request> pc_send_reqs;
-
-
+    Vector<MPI_Request>  pc_send_reqs;
 
 };
 

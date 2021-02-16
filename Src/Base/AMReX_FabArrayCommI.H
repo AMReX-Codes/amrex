@@ -293,17 +293,20 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
     n_filled = dnghost;
 
-    if ((src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
-        (boxarray == src.boxarray && distributionMap == src.distributionMap)
-	&& snghost == IntVect::TheZeroVector() && dnghost == IntVect::TheZeroVector()
-        && !period.isAnyPeriodic())
+    pc_simple = (src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
+                (boxarray == src.boxarray && distributionMap == src.distributionMap) &&
+	        snghost == IntVect::TheZeroVector() &&
+                dnghost == IntVect::TheZeroVector() &&
+                !period.isAnyPeriodic();
+
+    if (pc_simple)
     {
         //
         // Short-circuit full intersection code if we're doing copy()s or if
         // we're doing plus()s on cell-centered data.  Don't do plus()s on
         // non-cell-centered data this simplistic way.
         //
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
@@ -470,10 +473,7 @@ FabArray<FAB>::ParallelCopy_finish ()
 
     if (size() == 0 || pc_src->size() == 0) return;
 
-    if ((pc_src->boxArray().ixType().cellCentered() || pc_op == FabArrayBase::COPY) &&
-        (boxarray == pc_src->boxarray && distributionMap == pc_src->distributionMap)
-	&& pc_snghost == IntVect::TheZeroVector() && pc_dnghost == IntVect::TheZeroVector()
-        && !pc_period.isAnyPeriodic())
+    if (pc_simple)
     {
         return;
     }
