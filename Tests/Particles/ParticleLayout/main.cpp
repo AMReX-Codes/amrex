@@ -18,11 +18,11 @@ template <typename... T>
 struct Particle : public amrex::GpuTuple<T...>
 {
     using amrex::GpuTuple<T...>::GpuTuple;
-    auto& x () { return amrex::get<0>(*this); }
-    auto& y () { return amrex::get<1>(*this); }
-    auto& z () { return amrex::get<2>(*this); }
-    auto& id () { return amrex::get<3>(*this); }
-    auto& cpu () { return amrex::get<4>(*this); }
+    AMREX_GPU_HOST_DEVICE auto& x () { return amrex::get<0>(*this); }
+    AMREX_GPU_HOST_DEVICE auto& y () { return amrex::get<1>(*this); }
+    AMREX_GPU_HOST_DEVICE auto& z () { return amrex::get<2>(*this); }
+    AMREX_GPU_HOST_DEVICE auto& id () { return amrex::get<3>(*this); }
+    AMREX_GPU_HOST_DEVICE auto& cpu () { return amrex::get<4>(*this); }
 };
 
 template <DataLayout DataLayoutTag>
