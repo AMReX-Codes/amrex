@@ -64,8 +64,8 @@ detailed throughout the rest of this chapter:
    +-----------------------------------------------------+------------------------------------------------------+
    |                        |a|                          |                        |b|                           |
    +-----------------------------------------------------+------------------------------------------------------+
-   | | OpenMP tiled box.                                 | | GPU threaded box.                                 |
-   | | OpenMP threads break down the valid box           | | Each GPU thread works on a few cells of the       |
+   |   OpenMP tiled box.                                 |   GPU threaded box.                                  |
+   |   OpenMP threads break down the valid box           |   Each GPU thread works on a few cells of the        |
    |   into two large boxes (blue and orange).           |   valid box. This example uses one cell per          |
    |   The lo and hi of one tiled box are marked.        |   thread, each thread using a box with lo = hi.      |
    +-----------------------------------------------------+------------------------------------------------------+

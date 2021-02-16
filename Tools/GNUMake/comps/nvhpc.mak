@@ -1,34 +1,34 @@
 
 ifndef AMREX_CCOMP
-  AMREX_CCOMP = hpcsdk
+  AMREX_CCOMP = nvhpc
 endif
 
 ifndef AMREX_FCOMP
-  AMREX_FCOMP = hpcsdk
+  AMREX_FCOMP = nvhpc
 endif
 
 ########################################################################
 
-hpcsdk_version = $(shell $(CXX) -V 2>&1 | grep 'target' | sed 's|.*$(CXX) \([0-9\.]*\).*|\1|')
-hpcsdk_major_version = $(shell echo $(hpcsdk_version) | cut -f1 -d.)
-hpcsdk_minor_version = $(shell echo $(hpcsdk_version) | cut -f2 -d.)
+nvhpc_version = $(shell $(CXX) -V 2>&1 | grep 'target' | sed 's|.*$(CXX) \([0-9\.]*\).*|\1|')
+nvhpc_major_version = $(shell echo $(nvhpc_version) | cut -f1 -d.)
+nvhpc_minor_version = $(shell echo $(nvhpc_version) | cut -f2 -d.)
 
 gcc_version       = $(shell g++ -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;')
 gcc_major_version = $(shell g++ -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
 gcc_minor_version = $(shell g++ -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
 
-COMP_VERSION = $(hpcsdk_version)
+COMP_VERSION = $(nvhpc_version)
 
 ########################################################################
 
-GENERIC_HPCSDK_FLAGS =
+GENERIC_NVHPC_FLAGS =
 
 ifeq ($(USE_OMP),TRUE)
-  GENERIC_HPCSDK_FLAGS += -mp -Minfo=mp
+  GENERIC_NVHPC_FLAGS += -mp -Minfo=mp
 endif
 
 ifeq ($(USE_ACC),TRUE)
-  GENERIC_HPCSDK_FLAGS += -acc=gpu -Minfo=accel -mcmodel=medium
+  GENERIC_NVHPC_FLAGS += -acc=gpu -Minfo=accel -mcmodel=medium
   ifneq ($(CUDA_ARCH),)
     # We use 10.1 because nvcc defaults to 10.1 if it can't detect a GPU
     # driver. And in Cori GPU interactive jobs, nvcc can't see the GPU driver
@@ -37,21 +37,21 @@ ifeq ($(USE_ACC),TRUE)
     # get link errors between nvcc and the HPC SDK if we don't do something
     # about this. The easiest fix is to simply force HPC SDK to use CUDA 10.1
     # to match the blind nvcc.
-    GENERIC_HPCSDK_FLAGS += -acc=gpu -gpu=cc$(CUDA_ARCH),cuda10.1
+    GENERIC_NVHPC_FLAGS += -acc=gpu -gpu=cc$(CUDA_ARCH),cuda10.1
   else
-    GENERIC_HPCSDK_FLAGS += -acc=gpu
+    GENERIC_NVHPC_FLAGS += -acc=gpu
   endif
 endif
 
-# Note that -O2 is the default optimization level for HPCSDK
+# Note that -O2 is the default optimization level for NVHPC
 
-HPCSDK_OPT := -O2 -fast
+NVHPC_OPT := -O2 -fast
 
 ########################################################################
 ########################################################################
 ########################################################################
 
-ifeq ($(AMREX_CCOMP),hpcsdk)
+ifeq ($(AMREX_CCOMP),nvhpc)
 
 CXX = nvc++
 CC  = nvc
@@ -63,7 +63,7 @@ CFLAGS   =
 
 # Allow -gopt to be disabled to work around a compiler bug on P9.
 
-HPCSDK_GOPT ?= TRUE
+NVHPC_GOPT ?= TRUE
 
 ifeq ($(DEBUG),TRUE)
 
@@ -72,10 +72,10 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  CXXFLAGS += $(HPCSDK_OPT)
-  CFLAGS   += $(HPCSDK_OPT)
+  CXXFLAGS += $(NVHPC_OPT)
+  CFLAGS   += $(NVHPC_OPT)
 
-  ifeq ($(HPCSDK_GOPT),TRUE)
+  ifeq ($(NVHPC_GOPT),TRUE)
 
     CXXFLAGS += -gopt
     CFLAGS   += -gopt
@@ -101,28 +101,28 @@ endif
 
 CFLAGS   += -c99
 
-CXXFLAGS += $(GENERIC_HPCSDK_FLAGS)
-CFLAGS   += $(GENERIC_HPCSDK_FLAGS)
+CXXFLAGS += $(GENERIC_NVHPC_FLAGS)
+CFLAGS   += $(GENERIC_NVHPC_FLAGS)
 
-else # AMREX_CCOMP == hpcsdk
+else # AMREX_CCOMP == nvhpc
 
 # If we're using OpenACC but also CUDA, then nvcc will be the C++ compiler. If
 # we want to call the OpenACC API from C++ then we need to make sure we have
-# the includes for it, because HPCSDK may not be the host compiler for nvcc.
+# the includes for it, because NVHPC may not be the host compiler for nvcc.
 
 ifeq ($(USE_ACC),TRUE)
-  HPCSDK_BIN_LOCATION := $(shell nvc++ -show 2>&1 | grep CPPCOMPDIR | awk '{print $$7}' | cut -c2-)
-  HPCSDK_LOCATION := $(shell dirname $(HPCSDK_BIN_LOCATION))
-  INCLUDE_LOCATIONS += $(HPCSDK_LOCATION)/etc/include_acc
+  NVHPC_BIN_LOCATION := $(shell nvc++ -show 2>&1 | grep CPPCOMPDIR | awk '{print $$7}' | cut -c2-)
+  NVHPC_LOCATION := $(shell dirname $(NVHPC_BIN_LOCATION))
+  INCLUDE_LOCATIONS += $(NVHPC_LOCATION)/etc/include_acc
 endif
 
-endif # AMREX_CCOMP == hpcsdk
+endif # AMREX_CCOMP == nvhpc
 
 ########################################################################
 ########################################################################
 ########################################################################
 
-ifeq ($(AMREX_FCOMP),hpcsdk)
+ifeq ($(AMREX_FCOMP),nvhpc)
 
 #
 # Now set the Fortran flags. Since this is done after the GNU include
@@ -142,10 +142,10 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  FFLAGS   += $(HPCSDK_OPT)
-  F90FLAGS += $(HPCSDK_OPT)
+  FFLAGS   += $(NVHPC_OPT)
+  F90FLAGS += $(NVHPC_OPT)
 
-  ifeq ($(HPCSDK_GOPT),TRUE)
+  ifeq ($(NVHPC_GOPT),TRUE)
 
     FFLAGS   += -gopt
     F90FLAGS += -gopt
@@ -203,8 +203,8 @@ FMODULES = -module $(fmoddir) -I$(fmoddir)
 
 ########################################################################
 
-FFLAGS   += $(GENERIC_HPCSDK_FLAGS)
-F90FLAGS += $(GENERIC_HPCSDK_FLAGS)
+FFLAGS   += $(GENERIC_NVHPC_FLAGS)
+F90FLAGS += $(GENERIC_NVHPC_FLAGS)
 
 ########################################################################
 
@@ -212,4 +212,4 @@ override XTRALIBS += -lstdc++ -latomic -lnvf
 
 LINK_WITH_FORTRAN_COMPILER ?= $(USE_F_INTERFACES)
 
-endif # AMREX_FCOMP == hpcsdk
+endif # AMREX_FCOMP == nvhpc
