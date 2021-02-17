@@ -38,7 +38,7 @@ void testLayout ()
     {
         auto&& p = particles[i];
 	p.x() = 7.0;
-        p.y() = 8.0;
+       p.y() = 8.0;
 	p.z() = 9.0;
     });
 
