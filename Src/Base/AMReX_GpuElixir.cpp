@@ -56,9 +56,18 @@ Elixir::clear () noexcept
                                                        amrex_elixir_delete, p, 0));
 #endif
 #elif defined(AMREX_USE_DPCPP)
-            // xxxxx DPCPP todo
-            Gpu::streamSynchronize();
-            if (m_p != nullptr) m_arena->free(m_p);
+            auto p = m_p;
+            auto a = m_arena;
+            auto& q = *(Gpu::gpuStream().queue);
+            try {
+                q.submit([&] (sycl::handler& h) {
+                    h.codeplay_host_task([=] () {
+                        a->free(p);
+                    });
+                });
+            } catch (sycl::exception const& ex) {
+                amrex::Abort(std::string("host_task: ")+ex.what()+"!!!!!");
+            }
 #endif
         }
     }

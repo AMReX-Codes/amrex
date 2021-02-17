@@ -90,10 +90,19 @@ public:
                                                            amrex_asyncarray_delete, p, 0));
 #endif
 #else
-                // xxxxx DPCPP todo
-                Gpu::streamSynchronize();
-                The_Arena()->free(d_data);
-                std::free(h_data);
+                auto pd = d_data;
+                auto ph = h_data;
+                auto& q = *(Gpu::gpuStream().queue);
+                try {
+                    q.submit([&] (sycl::handler& h) {
+                        h.codeplay_host_task([=] () {
+                            The_Arena()->free(pd);
+                            std::free(ph);
+                        });
+                    });
+                } catch (sycl::exception const& ex) {
+                    amrex::Abort(std::string("host_task: ")+ex.what()+"!!!!!");
+                }
 #endif
             }
         }
