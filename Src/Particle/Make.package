@@ -13,6 +13,7 @@ C$(AMREX_PARTICLE)_headers += AMReX_Particle_mod_K.H AMReX_TracerParticle_mod_K.
 C$(AMREX_PARTICLE)_headers += AMReX_WriteBinaryParticleData.H
 C$(AMREX_PARTICLE)_headers += AMReX_ParticleContainerBase.H
 C$(AMREX_PARTICLE)_sources += AMReX_ParticleContainerBase.cpp
+C$(AMREX_PARTICLE)_headers += AMReX_ParticleArray.H
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Particle
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Particle
