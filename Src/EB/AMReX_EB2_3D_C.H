@@ -178,7 +178,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
                  && s(i,j,k+1) >= 0.0 && s(i,j+1,k+1) <  0.0 )
               || (  s(i,j,k  ) >= 0.0 && s(i,j+1,k  ) <  0.0
                  && s(i,j,k+1) <  0.0 && s(i,j+1,k+1) >= 0.0 )) {
-               amrex::Print() << "AMReX WARNING: covering multiple cuts\n";
+               printf("AMReX WARNING: covering multiple cuts\n");
 
                // Cover the face
                fx(i,j,k) = Type::covered;
@@ -254,7 +254,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
                  && s(i,j,k+1) >= 0.0 && s(i+1,j,k+1) <  0.0 )
               || (  s(i,j,k  ) >= 0.0 && s(i+1,j,k  ) <  0.0
                  && s(i,j,k+1) <  0.0 && s(i+1,j,k+1) >= 0.0 )) {
-               amrex::Print() << "AMReX WARNING: covering multiple cuts\n";
+               printf("AMReX WARNING: covering multiple cuts\n");
 
                // Cover the face
                fy(i,j,k) = Type::covered;
@@ -330,7 +330,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
                  && s(i,j+1,k) >= 0.0 && s(i+1,j+1,k) <  0.0 )
               || (  s(i,j,k  ) >= 0.0 && s(i+1,j,k  ) <  0.0
                  && s(i,j+1,k) <  0.0 && s(i+1,j+1,k) >= 0.0 )) {
-               amrex::Print() << "AMReX WARNING: covering multiple cuts\n";
+               printf("AMReX WARNING: covering multiple cuts\n");
                // Cover the face
                fz(i,j,k) = Type::covered;
 
