@@ -15,7 +15,8 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
                        Array4<Type_t> const& fz,
                        Array4<Type_t> const& ex,
                        Array4<Type_t> const& ey,
-                       Array4<Type_t> const& ez)
+                       Array4<Type_t> const& ez,
+                       bool cover_multiple_cuts)
 {
     auto lo = amrex::max_lbound(tbx, bxg2);
     auto hi = amrex::min_ubound(tbx, bxg2);
@@ -158,12 +159,6 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
             ez(i,j,k) = Type::irregular;
         }
     });
-
-    bool cover_multiple_cuts = false;
-    {
-        ParmParse pp("eb2");
-        pp.query("cover_multiple_cuts", cover_multiple_cuts);
-    }
 
     if (cover_multiple_cuts) {
        b = amrex::surroundingNodes(bxg2,0);

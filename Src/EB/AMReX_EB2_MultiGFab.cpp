@@ -25,13 +25,19 @@ GFab::buildTypes (EBCellFlagFab& celltype)
 
 #elif (AMREX_SPACEDIM == 3)
 
+    bool cover_multiple_cuts = false;
+    {
+        ParmParse pp("eb2");
+        pp.query("cover_multiple_cuts", cover_multiple_cuts);
+    }
+
     Array4<Type_t> const& ex = m_edgetype[0].array();
     Array4<Type_t> const& ey = m_edgetype[1].array();
     Array4<Type_t> const& ez = m_edgetype[2].array();
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( nodal_box, tbx,
     {
-        amrex_eb2_build_types(tbx, bxg2, s, cell, fx, fy, fz, ex, ey, ez);
+        amrex_eb2_build_types(tbx, bxg2, s, cell, fx, fy, fz, ex, ey, ez, cover_multiple_cuts);
     });
 
 #endif
