@@ -102,7 +102,9 @@ namespace amrex
     {			
         //        static_assert(std::is_standard_layout<T>(), "PODVector can only hold standard layout types");
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(T), "PODVector can only hold trivially copyable types");
-            
+        //        static_assert(std::is_trivially_default_constructible<T>(), "PODVector can only hold trivial dc types");
+
+        
         using Allocator::allocate;
         using Allocator::deallocate;
             
