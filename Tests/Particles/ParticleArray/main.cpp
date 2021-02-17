@@ -37,9 +37,9 @@ void testLayout ()
     amrex::ParallelFor( particles.size(), [=] AMREX_GPU_DEVICE (int i) noexcept
     {
         auto&& p = particles[i];
-	  p.x() = 7.0;
-       p.y() = 8.0;
-	  p.z() = 9.0;
+        p.x() = 7.0;
+        p.y() = 8.0;
+        p.z() = 9.0;
     });
 
     amrex::ParallelFor( particles.size(), [=] AMREX_GPU_DEVICE (int i) noexcept
