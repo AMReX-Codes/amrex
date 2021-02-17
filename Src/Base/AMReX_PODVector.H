@@ -3,9 +3,8 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_TypeTraits.H>
-#include <AMReX_Gpu.H>
+#include <AMReX_GpuLaunch.H>
 #include <AMReX_GpuAllocators.H>
-#include <AMReX_GpuContainers.H>
 #include <AMReX_GpuDevice.H>
 
 #include <type_traits>
@@ -101,9 +100,11 @@ namespace amrex
     template <class T, class Allocator = std::allocator<T> >
     class PODVector : public Allocator
     {			
-        static_assert(std::is_standard_layout<T>(), "PODVector can only hold standard layout types");
+        //        static_assert(std::is_standard_layout<T>(), "PODVector can only hold standard layout types");
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(T), "PODVector can only hold trivially copyable types");
-            
+        //        static_assert(std::is_trivially_default_constructible<T>(), "PODVector can only hold trivial dc types");
+
+        
         using Allocator::allocate;
         using Allocator::deallocate;
             

@@ -135,6 +135,17 @@ public:
 #endif
     }
 
+#if __cplusplus >= 201402L
+    template< typename T = int >
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Array<T, AMREX_SPACEDIM>
+    toArray () const noexcept {
+        return Array<T, AMREX_SPACEDIM>{
+            AMREX_D_DECL(T(vect[0]), T(vect[1]), T(vect[2]))
+        };
+    }
+#endif
+
   ///
   /**
      Sum of all components of this IntVect.

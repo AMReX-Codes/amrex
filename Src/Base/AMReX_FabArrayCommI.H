@@ -255,6 +255,24 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 {
     BL_PROFILE("FabArray::ParallelCopy()");
 
+    ParallelCopy_nowait(src, scomp, dcomp, ncomp, snghost, dnghost, period, op, a_cpc);
+    ParallelCopy_finish();
+}
+
+template <class FAB>
+void
+FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
+                                    int                  scomp,
+                                    int                  dcomp,
+                                    int                  ncomp,
+                                    const IntVect&       snghost,
+                                    const IntVect&       dnghost,
+                                    const Periodicity&   period,
+                                    CpOp                 op,
+                                    const FabArrayBase::CPC * a_cpc)
+{
+    BL_PROFILE("FabArray::ParallelCopy_nowait()");
+
     if (size() == 0 || src.size() == 0) return;
 
     BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
@@ -263,12 +281,25 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
     BL_ASSERT(src.nGrowVect().allGE(snghost));
     BL_ASSERT(    nGrowVect().allGE(dnghost));
 
+    pc_src = &(src);
+    pc_snghost = snghost;
+    pc_dnghost = dnghost;
+    pc_period = period;
+    pc_cpc = a_cpc;
+    pc_op = op;
+
+    pc_SC = scomp;
+    pc_DC = dcomp;
+
     n_filled = dnghost;
 
-    if ((src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
-        (boxarray == src.boxarray && distributionMap == src.distributionMap)
-	&& snghost == IntVect::TheZeroVector() && dnghost == IntVect::TheZeroVector()
-        && !period.isAnyPeriodic())
+    pc_simple = (src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
+                (boxarray == src.boxarray && distributionMap == src.distributionMap) &&
+	        snghost == IntVect::TheZeroVector() &&
+                dnghost == IntVect::TheZeroVector() &&
+                !period.isAnyPeriodic();
+
+    if (pc_simple)
     {
         //
         // Short-circuit full intersection code if we're doing copy()s or if
@@ -332,7 +363,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    int SeqNum  = ParallelDescriptor::SeqNum();
+    pc_tag = ParallelDescriptor::SeqNum();
 
     const int N_snds = thecpc.m_SndTags->size();
     const int N_rcvs = thecpc.m_RcvTags->size();
@@ -350,54 +381,54 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
     //
     int NCompLeft = ncomp;
 
-    for (int ipass = 0, SC = scomp, DC = dcomp; ipass < ncomp; )
+    for (int ipass = 0; ipass < ncomp; )
     {
-        const int NC = std::min(NCompLeft,FabArrayBase::MaxComp);
-
+        pc_NC = std::min(NCompLeft,FabArrayBase::MaxComp);
+        const bool last_iter = (NCompLeft == pc_NC);
+/*
         Vector<int>         recv_from;
         Vector<char*>       recv_data;
         Vector<std::size_t> recv_size;
         Vector<MPI_Request> recv_reqs;
+*/
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
-        char* the_recv_data = nullptr;
+        pc_the_recv_data = nullptr;
 
-        int actual_n_rcvs = 0;
+        pc_actual_n_rcvs = 0;
 	if (N_rcvs > 0) {
-            PostRcvs(*thecpc.m_RcvTags, the_recv_data,
-                     recv_data, recv_size, recv_from, recv_reqs, NC, SeqNum);
-            actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
+            PostRcvs(*thecpc.m_RcvTags, pc_the_recv_data,
+                     pc_recv_data, pc_recv_size, pc_recv_from, pc_recv_reqs, pc_NC, pc_tag);
+            pc_actual_n_rcvs = N_rcvs - std::count(pc_recv_size.begin(), pc_recv_size.end(), 0);
 	}
 
 	//
 	// Post send's
 	//
-        char*                               the_send_data = nullptr;
 	Vector<char*>                       send_data;
 	Vector<std::size_t>                 send_size;
 	Vector<int>                         send_rank;
-	Vector<MPI_Request>                 send_reqs;
 	Vector<const CopyComTagsContainer*> send_cctc;
 
 	if (N_snds > 0)
 	{
-            src.PrepareSendBuffers(*thecpc.m_SndTags, the_send_data, send_data, send_size,
-                                   send_rank, send_reqs, send_cctc, NC);
+            src.PrepareSendBuffers(*thecpc.m_SndTags, pc_the_send_data, send_data, send_size,
+                                   send_rank, pc_send_reqs, send_cctc, pc_NC);
 
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion())
             {
-                pack_send_buffer_gpu(src, SC, NC, send_data, send_size, send_cctc);
+                pack_send_buffer_gpu(src, pc_SC, pc_NC, send_data, send_size, send_cctc);
             }
             else
 #endif
             {
-                pack_send_buffer_cpu(src, SC, NC, send_data, send_size, send_cctc);
+                pack_send_buffer_cpu(src, pc_SC, pc_NC, send_data, send_size, send_cctc);
             }
 
-            AMREX_ASSERT(send_reqs.size() == N_snds);
-            FabArray<FAB>::PostSnds(send_data, send_size, send_rank, send_reqs, SeqNum);
+            AMREX_ASSERT(pc_send_reqs.size() == N_snds);
+            FabArray<FAB>::PostSnds(send_data, send_size, send_rank, pc_send_reqs, pc_tag);
 	}
 
         //
@@ -408,73 +439,117 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion())
             {
-                PC_local_gpu(thecpc, src, SC, DC, NC, op);
+                PC_local_gpu(thecpc, src, pc_SC, pc_DC, pc_NC, op);
             }
             else
 #endif
             {
-                PC_local_cpu(thecpc, src, SC, DC, NC, op);
+                PC_local_cpu(thecpc, src, pc_SC, pc_DC, pc_NC, op);
             }
         }
 
-        if (N_rcvs > 0)
+        if (!last_iter)
         {
-            Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
-	    for (int k = 0; k < N_rcvs; ++k)
-	    {
-                if (recv_size[k] > 0)
-                {
-                    auto const& cctc = thecpc.m_RcvTags->at(recv_from[k]);
-                    recv_cctc[k] = &cctc;
-                }
-	    }
+            ParallelCopy_finish();
 
-            if (actual_n_rcvs > 0) {
-                Vector<MPI_Status> stats(N_rcvs);
-                ParallelDescriptor::Waitall(recv_reqs, stats);
-#ifdef AMREX_DEBUG
-                if (!CheckRcvStats(stats, recv_size, SeqNum))
-                {
-                    amrex::Abort("ParallelCopy failed with wrong message size");
-                }
-#endif
+            pc_SC += pc_NC;
+            pc_DC += pc_NC;
+        }
+
+        ipass     += pc_NC;
+        NCompLeft -= pc_NC;
+    }
+
+    return;
+
+#endif /*BL_USE_MPI*/
+}
+
+template <class FAB>
+void
+FabArray<FAB>::ParallelCopy_finish ()
+{
+    BL_PROFILE("FabArray::ParallelCopy_finish()");
+
+    if (size() == 0 || pc_src->size() == 0) return;
+
+    if (pc_simple)
+    {
+        return;
+    }
+
+    if (ParallelContext::NProcsSub() == 1)
+    {
+        return;
+    }
+
+#ifdef BL_USE_MPI
+
+    const CPC& thecpc = (pc_cpc) ? *pc_cpc : getCPC(pc_dnghost, *pc_src, pc_snghost, pc_period);
+
+    const int N_snds = thecpc.m_SndTags->size();
+    const int N_rcvs = thecpc.m_RcvTags->size();
+    const int N_locs = thecpc.m_LocTags->size();
+
+    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0) {
+        //
+        // No work to do.
+        //
+        return;
+    }
+
+    if (N_rcvs > 0)
+    {
+        Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
+        for (int k = 0; k < N_rcvs; ++k)
+        {
+            if (pc_recv_size[k] > 0)
+            {
+                auto const& cctc = thecpc.m_RcvTags->at(pc_recv_from[k]);
+                recv_cctc[k] = &cctc;
             }
+        }
 
-            bool is_thread_safe = thecpc.m_threadsafe_rcv;
+        if (pc_actual_n_rcvs > 0) {
+            Vector<MPI_Status> stats(N_rcvs);
+            ParallelDescriptor::Waitall(pc_recv_reqs, stats);
+#ifdef AMREX_DEBUG
+            if (!CheckRcvStats(stats, pc_recv_size, pc_tag))
+            {
+                amrex::Abort("ParallelCopy failed with wrong message size");
+            }
+#endif
+        }
+
+        bool is_thread_safe = thecpc.m_threadsafe_rcv;
 
 #ifdef AMREX_USE_GPU
-            if (Gpu::inLaunchRegion())
-            {
-                unpack_recv_buffer_gpu(*this, DC, NC, recv_data, recv_size, recv_cctc,
-                                       op, is_thread_safe);
-            }
-            else
+        if (Gpu::inLaunchRegion())
+        {
+            unpack_recv_buffer_gpu(*this, pc_DC, pc_NC, pc_recv_data, pc_recv_size,
+                                   recv_cctc, pc_op, is_thread_safe);
+        }
+        else
 #endif
-            {
-                unpack_recv_buffer_cpu(*this, DC, NC, recv_data, recv_size, recv_cctc,
-                                       op, is_thread_safe);
-            }
-
-            if (the_recv_data)
-            {
-                amrex::The_FA_Arena()->free(the_recv_data);
-                the_recv_data = nullptr;
-            }
-        }
-	
-        if (N_snds > 0) {
-            if (! thecpc.m_SndTags->empty()) {
-                Vector<MPI_Status> stats(send_reqs.size());
-                ParallelDescriptor::Waitall(send_reqs, stats);
-	    }
-            amrex::The_FA_Arena()->free(the_send_data);
-            the_send_data = nullptr;
+        {
+            unpack_recv_buffer_cpu(*this, pc_DC, pc_NC, pc_recv_data, pc_recv_size,
+                                   recv_cctc, pc_op, is_thread_safe);
         }
 
-        ipass     += NC;
-        SC        += NC;
-        DC        += NC;
-        NCompLeft -= NC;
+        if (pc_the_recv_data)
+        {
+            amrex::The_FA_Arena()->free(pc_the_recv_data);
+            pc_the_recv_data = nullptr;
+        }
+    }
+
+    if (N_snds > 0) {
+        if (! thecpc.m_SndTags->empty()) {
+            Vector<MPI_Status> stats(pc_send_reqs.size());
+            ParallelDescriptor::Waitall(pc_send_reqs, stats);
+	}
+        amrex::The_FA_Arena()->free(pc_the_send_data);
+        pc_the_send_data = nullptr;
     }
 
     return;

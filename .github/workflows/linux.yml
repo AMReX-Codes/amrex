@@ -23,7 +23,7 @@ jobs:
             -DCMAKE_CXX_STANDARD=17
         make -j 2
         make install
-        
+
         export PATH=/tmp/my-amrex/bin:$PATH
         which fcompare
 
@@ -103,6 +103,32 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which gfortran-10)
         make -j 2
 
+  tutorials_clang:
+    name: Clang@6.0 C++14 SP Particles DP Mesh Debug [tutorials]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -fno-operator-names"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_clang6.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                                      \
+            -DCMAKE_BUILD_TYPE=Debug                  \
+            -DCMAKE_VERBOSE_MAKEFILE=ON               \
+            -DAMReX_BUILD_TUTORIALS=ON                \
+            -DAMReX_MPI=OFF                           \
+            -DAMReX_PARTICLES=ON                      \
+            -DAMReX_PRECISION=DOUBLE                  \
+            -DAMReX_PARTICLES_PRECISION=SINGLE        \
+            -DCMAKE_CXX_STANDARD=14                   \
+            -DCMAKE_C_COMPILER=$(which clang)         \
+            -DCMAKE_CXX_COMPILER=$(which clang++)     \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)
+        make -j 2
+
   # Build libamrex and all tutorials w/o MPI
   tutorials-nonmpi:
     name: GNU@7.5 C++14 NOMPI [tutorials]
@@ -126,7 +152,7 @@ jobs:
 
   # Build libamrex and all tutorials
   tutorials-nofortran:
-    name: GNU@7.5 C++11 w/o Fortran [tutorials]
+    name: GNU@7.5 C++14 w/o Fortran [tutorials]
     runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
     steps:
@@ -142,13 +168,12 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_BUILD_TUTORIALS=ON  \
             -DAMReX_PARTICLES=ON       \
-            -DAMReX_FORTRAN=OFF        \
-            -DCMAKE_CXX_STANDARD=11
+            -DAMReX_FORTRAN=OFF
         make -j 2
 
-  # Build libamrex and all tutorials with CUDA 9.1 (oldest supported)
+  # Build libamrex and all tutorials with CUDA 9.2
   tutorials-cuda9:
-    name: CUDA@9.1.85 GNU@4.8.5 C++11 Release [tutorials]
+    name: CUDA@9.2 GNU@6.5.0 C++14 Release [tutorials]
     runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-fno-operator-names"}
     steps:
@@ -157,17 +182,20 @@ jobs:
       run: .github/workflows/dependencies/dependencies_nvcc9.sh
     - name: Build & Install
       run: |
+        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+        which nvcc || echo "nvcc not in PATH!"
         mkdir build
         cd build
-        cmake ..                                         \
-            -DCMAKE_VERBOSE_MAKEFILE=ON                  \
-            -DAMReX_BUILD_TUTORIALS=ON                   \
-            -DAMReX_PARTICLES=ON                        \
-            -DAMReX_GPU_BACKEND=CUDA                         \
-            -DCMAKE_C_COMPILER=$(which gcc-4.8)              \
-            -DCMAKE_CXX_COMPILER=$(which g++-4.8)            \
-            -DCMAKE_CUDA_HOST_COMPILER=$(which g++-4.8)      \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran-4.8)   \
+        cmake ..                                           \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DAMReX_BUILD_TUTORIALS=ON                     \
+            -DAMReX_PARTICLES=ON                           \
+            -DAMReX_GPU_BACKEND=CUDA                       \
+            -DCMAKE_C_COMPILER=$(which gcc-6)              \
+            -DCMAKE_CXX_COMPILER=$(which g++-6)            \
+            -DCMAKE_CUDA_HOST_COMPILER=$(which g++-6)      \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-6)   \
             -DAMReX_CUDA_ARCH=6.0 \
             -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON
         make -j 2

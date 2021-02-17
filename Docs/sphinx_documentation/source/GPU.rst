@@ -64,8 +64,8 @@ detailed throughout the rest of this chapter:
    +-----------------------------------------------------+------------------------------------------------------+
    |                        |a|                          |                        |b|                           |
    +-----------------------------------------------------+------------------------------------------------------+
-   | | OpenMP tiled box.                                 | | GPU threaded box.                                 |
-   | | OpenMP threads break down the valid box           | | Each GPU thread works on a few cells of the       |
+   |   OpenMP tiled box.                                 |   GPU threaded box.                                  |
+   |   OpenMP threads break down the valid box           |   Each GPU thread works on a few cells of the        |
    |   into two large boxes (blue and orange).           |   valid box. This example uses one cell per          |
    |   The lo and hi of one tiled box are marked.        |   thread, each thread using a box with lo = hi.      |
    +-----------------------------------------------------+------------------------------------------------------+
@@ -74,7 +74,7 @@ detailed throughout the rest of this chapter:
   portability while making the code as understandable as possible to
   science-focused code teams.
 
-- AMReX utilizes CUDA managed memory to automatically handle memory
+- AMReX utilizes GPU managed memory to automatically handle memory
   movement for mesh and particle data.  Simple data structures, such
   as :cpp:`IntVect`\s can be passed by value and complex data structures, such as
   :cpp:`FArrayBox`\es, have specialized AMReX classes to handle the
@@ -104,10 +104,9 @@ detailed throughout the rest of this chapter:
 
 - AMReX further parallelizes GPU applications by utilizing streams.
   Streams guarantee execution order of kernels within the same stream, while
-  allowing different streams to run simultaneously. AMReX places separate iterations
-  of :cpp:`MFIter` and :cpp:`ParIter` loops on separate streams, allowing each i
-  independent iteration to be run simultaneously and sequentially in a manner that 
-  maximizes GPU usage.
+  allowing different streams to run simultaneously. AMReX places each iteration
+  of :cpp:`MFIter` loops on separate streams, allowing each independent
+  iteration to be run simultaneously and sequentially, while maximizing GPU usage.
 
   The AMReX implementation of streams is illustrated in :numref:`fig:gpu:streams`.
   The CPU runs the first iteration of the MFIter loop (blue), which contains three
@@ -453,8 +452,8 @@ should be preferred to allow portable code design.  These macros include:
    #define AMREX_GPU_HOST_DEVICE __host__ __device__
    #define AMREX_GPU_CONSTANT    __constant__
 
-Note that when AMReX is not built with CUDA or HIP, these macros expand to 
-blank space, maintaining portability when building without GPUs.
+Note that when AMReX is not built with ``CUDA/HIP/DPC++``,
+these macros expand to empty space.
 
 The full list can be found at ``Src/Base/AMReX_GpuQualifiers.H``.
 

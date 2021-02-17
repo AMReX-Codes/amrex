@@ -11,7 +11,7 @@
 namespace amrex {
 namespace {
 
-    constexpr int crse_cell = 0;
+    constexpr int crse_cell = 0; // Do NOT change the values
     constexpr int fine_cell = 1;
     constexpr int crse_node = 0;
     constexpr int crse_fine_node = 1;

@@ -1,3 +1,77 @@
+# 21.02
+
+  -- Abort when MLMG is detected as failing regardless of verbosity
+     setting. (#1762)
+
+  -- Update DPC++ version of Anyof (#1757)
+
+  -- Use ParticleReal for particle interpolation (#1763)
+
+  -- Remove obsolete functions from AMReX particle classes (#1754, #1755)
+
+  -- Make ParticleContainer::Geom always refer to the particle one. (#1470)
+
+  -- Gpu Docs Update (#1758)
+
+  -- Add IntVect versions of numParticlesOutOfRange. (#1751)
+
+  -- Improve the interpolation from cell centroids to face centroids:
+     (#1750)
+
+  -- In ParticleToMesh and MeshToParticle, use nGrowVect() to accommodate
+     different a different number of grow cells in each dimension. (#1748)
+
+  -- HIP: New Warp Size Macro (#1742) Use new the HIP macro for the warp
+     size on various AMD devices.
+
+  -- Add allocator template parameter to ParticleContainer (#1416)
+
+  -- Add ability to calculate slopes on face centroids (#1707) And apply the
+     explicit stencil when computing the laplacian.
+
+  -- HIP indirect function and kernel fusing (#1739) Add a GNU Make flag,
+     HIP_INDIRECT_FUNCTION=[TRUE|FALSE], and modify the Gpu kernel fusing
+     test.
+
+  -- When using CMake 3.15+ allow for MSVC runtime library changes (#1736)
+
+  -- RoundRobin: option to not sort processes (#1721)
+
+  -- EB: edge centroid (#1730) Add edge centroid to the database and make it
+     available via EBFArrayBoxFactory.
+
+  -- Fix RegridOnly to regrid even with single level grids (#1722)
+
+  -- Define: _OPENMP -> AMREX_USE_OMP (#1560) Replace the define `_OPENMP`
+     with `AMREX_USE_OMP` for all parallel "backend" implementations and
+     control of MFIter loops.
+
+  -- Update Make.nrel to accomodate MPT MPI with CUDA enabled (#1726)
+
+  -- Cell-centered Hypre and Petsc setup on GPU (#1709)
+
+  -- ParmParse::hasUnusedInputs & getUnusedInputs (#1716) Add functions to
+     find if there are unused `ParmParse` parameters starting with
+     `prefix.`.  If `prefix` is empty, all unused `ParmParse` parameters are
+     included.
+
+  -- CMake: offer option to exclude Src/Amr from build (#1714)
+
+  -- Make bisect more robust (#1708)
+
+  -- Support single precision build with configure (#1706) Add new arguments
+     `--single-precision` and `--single-precision-particles` to `configure`.
+
+  -- Support when CMake 3.18 policy 105 is set to new (#1696)
+
+  -- Optimized function for filling BaseFab of GpuArray (#1692)
+
+  -- BaseFab::minmax (#1691)  Add BaseFab::minmax function and use it in
+     VisMF.
+
+  -- New feature in the fextract tool to directly export in the csv format
+     (#1634)
+
 # 21.01
 
   -- Optimization of MLCellLinOp::applyBC (#1690)
