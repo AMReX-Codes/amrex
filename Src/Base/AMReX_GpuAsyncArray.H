@@ -89,7 +89,6 @@ public:
                 AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
                                                            amrex_asyncarray_delete, p, 0));
 #endif
-                Gpu::callbackAdded();
 #else
                 // xxxxx DPCPP todo
                 Gpu::streamSynchronize();

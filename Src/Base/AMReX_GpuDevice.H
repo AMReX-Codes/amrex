@@ -335,12 +335,6 @@ onNullStream (gpuStream_t stream)
 }
 #endif
 
-#ifdef AMREX_USE_GPU
-void callbackAdded ();
-void resetNumCallbacks ();
-int getNumCallbacks ();
-#endif
-
 }}
 
 #endif
