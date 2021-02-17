@@ -55,7 +55,6 @@ Elixir::clear () noexcept
             AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
                                                        amrex_elixir_delete, p, 0));
 #endif
-            Gpu::callbackAdded();
 #elif defined(AMREX_USE_DPCPP)
             // xxxxx DPCPP todo
             Gpu::streamSynchronize();

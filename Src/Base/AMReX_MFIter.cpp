@@ -228,7 +228,6 @@ MFIter::~MFIter ()
 #ifdef AMREX_USE_GPU
     AMREX_GPU_ERROR_CHECK();
     Gpu::Device::resetStreamIndex();
-    Gpu::resetNumCallbacks();
     if (!OpenMP::in_parallel() && Gpu::inFuseRegion()) {
         Gpu::LaunchFusedKernels();
     }
@@ -342,7 +341,6 @@ MFIter::Initialize ()
 
 #ifdef AMREX_USE_GPU
 	Gpu::Device::setStreamIndex((streams > 0) ? currentIndex%streams : -1);
-        Gpu::resetNumCallbacks();
         if (!OpenMP::in_parallel()) {
             if (index_map->size() >= Gpu::getFuseNumKernelsThreshold()) {
                 gpu_fsg.reset(new Gpu::FuseSafeGuard(true));
