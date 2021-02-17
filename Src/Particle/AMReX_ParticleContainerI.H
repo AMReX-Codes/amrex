@@ -63,8 +63,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator> :: 
 
         static_assert(std::is_standard_layout<ParticleType>::value,
                       "Particle type must be standard layout");
-        static_assert(std::is_trivially_default_constructible<ParticleType>::value, "PODVector can only hold trivial dc types");
-
         //                   && std::is_trivial<ParticleType>::value,
         //                      "Particle type must be standard layout and trivial.");
 
