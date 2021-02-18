@@ -21,6 +21,10 @@
 #endif
 #endif
 
+#ifdef AMREX_USE_SUNDIALS
+#include <AMReX_Sundials.H>
+#endif
+
 #ifdef AMREX_USE_CUPTI
 #include <AMReX_CuptiTrace.H>
 #endif
@@ -579,6 +583,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     }
 #endif
 
+#ifdef AMREX_USE_SUNDIALS
+    sundials::Initialize();
+#endif
+
     if (system::verbose > 0)
     {
 #ifdef BL_USE_MPI
@@ -683,6 +691,10 @@ amrex::Finalize (amrex::AMReX* pamrex)
 #ifdef AMREX_MEM_PROFILING
     MemProfiler::report("Final");
     MemProfiler::Finalize();
+#endif
+
+#ifdef AMREX_USE_SUNDIALS
+    sundials::Finalize();
 #endif
 
     amrex_mempool_finalize();
