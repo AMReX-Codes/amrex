@@ -34,6 +34,7 @@ std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
 std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
 double TinyProfiler::t_init = std::numeric_limits<double>::max();
 int TinyProfiler::device_synchronize_around_region = 0;
+int TinyProfiler::verbose = 0;
 
 namespace {
     std::set<std::string> improperly_nested_timers;
@@ -105,6 +106,9 @@ TinyProfiler::start () noexcept
             ++st.depth;
             stats.push_back(&st);
         }
+    }
+    if (verbose) {
+        amrex::Print() << "  TP: Entering " << fname << std::endl;
     }
 }
 
@@ -182,6 +186,9 @@ TinyProfiler::stop () noexcept
 
     stats.clear();
     }
+    if (verbose) {
+        amrex::Print() << "  TP: Leaving " << fname << std::endl;
+    }
 }
 
 #ifdef AMREX_USE_CUPTI
@@ -254,6 +261,9 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
 
         stats.clear();
     }
+    if (verbose) {
+        amrex::Print() << "  TP: Leaving " << fname << std::endl;
+    }
 }
 #endif
 
@@ -266,6 +276,8 @@ TinyProfiler::Initialize () noexcept
     {
         amrex::ParmParse pp("tiny_profiler");
         pp.query("device_synchronize_around_region", device_synchronize_around_region);
+        pp.query("verbose", verbose);
+        pp.query("v", verbose);
     }
 }
 
