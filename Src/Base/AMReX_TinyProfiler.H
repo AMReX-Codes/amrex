@@ -90,6 +90,7 @@ private:
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
     static double t_init;
     static int device_synchronize_around_region;
+    static int verbose;
 
     static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);
 };
