@@ -152,18 +152,6 @@ namespace detail {
 #endif
     }
 
-#if defined(AMREX_USE_HIP)
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void AddNoRet (float* const sum, float const value) noexcept
-    {
-#if AMREX_DEVICE_COMPILE
-        atomicAddNoRet(sum, value);
-#else
-        *sum += value;
-#endif
-    }
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 //  Min
 ////////////////////////////////////////////////////////////////////////
