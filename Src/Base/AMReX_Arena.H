@@ -25,6 +25,7 @@ inline bool is_aligned (const void* p, std::size_t alignment) noexcept
 class Arena;
 
 Arena* The_Arena ();
+Arena* The_Async_Arena ();
 Arena* The_Device_Arena ();
 Arena* The_Managed_Arena ();
 Arena* The_Pinned_Arena ();

@@ -357,7 +357,7 @@ public:
     bool contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept;
 
     //! For debugging purposes we hide BaseFab version and do some extra work.
-    void resize (const Box& b, int N = 1);
+    void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
     FabType getType () const noexcept { return m_type; }
 
