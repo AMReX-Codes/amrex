@@ -5,6 +5,34 @@
 
 namespace amrex { namespace EB2 {
 
+namespace {
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void cover_cut_edges_given_corner (
+                       int i, int j, int k,
+                       Array4<Type_t> const& ex,
+                       Array4<Type_t> const& ey,
+                       Array4<Type_t> const& ez)
+   {
+      //x edges
+      if (i > ex.begin.x && ex(i-1,j,k) == Type::irregular)
+         ex(i-1,j,k) = Type::covered;
+      if (ex(i,j,k) == Type::irregular)
+         ex(i,j,k) = Type::covered;
+
+      //y edges
+      if (j > ey.begin.y && ey(i,j-1,k) == Type::irregular)
+         ey(i,j-1,k) = Type::covered;
+      if (ey(i,j,k) == Type::irregular)
+         ey(i,j,k) = Type::covered;
+
+      //z edges
+      if (k > ez.begin.z && ez(i,j,k-1) == Type::irregular)
+         ez(i,j,k-1) = Type::covered;
+      if (ez(i,j,k) == Type::irregular)
+         ez(i,j,k) = Type::covered;
+   }
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void
 amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
@@ -167,8 +195,8 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
        amrex::Loop(lo, hi,
        [=] (int i, int j, int k) noexcept
        {
-           // If only opposite corners of face are inside fluid, it
-           // will result in mutilple cut edges, so cover them
+           // If only opposite corners of face are regular, it
+           // will result in a face with 4 cuts, so cover them
            if ( (   s(i,j,k  ) <  0.0 && s(i,j+1,k  ) >= 0.0
                  && s(i,j,k+1) >= 0.0 && s(i,j+1,k+1) <  0.0 )
               || (  s(i,j,k  ) >= 0.0 && s(i,j+1,k  ) <  0.0
@@ -178,62 +206,15 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
                // Cover the face
                fx(i,j,k) = Type::covered;
 
-               // Cover the 4 edges of the face
-               ey(i,j,k) = Type::covered;
-               ey(i,j,k+1) = Type::covered;
-               ez(i,j,k) = Type::covered;
-               ez(i,j+1,k) = Type::covered;
-
-               // Cover the other ey that touch the corners if necessary
-               if (j > ey.begin.y) {
-                  if (s(i,j-1,k  ) >= 0.0 && s(i  ,j,k  ) < 0.0)
-                     ey(i,j-1,k) = Type::covered;
-                  if (s(i,j-1,k+1) >= 0.0 && s(i  ,j,k+1) < 0.0)
-                     ey(i,j-1,k+1) = Type::covered;
-               }
-               if (j < ey.end.y-1) {
-                  if (s(i,j+2,k  ) >= 0.0 && s(i,j+1,k  ) < 0.0)
-                     ey(i,j+1,k) = Type::covered;
-                  if (s(i,j+2,k+1) >= 0.0 && s(i,j+1,k+1) < 0.0)
-                     ey(i,j+1,k+1) = Type::covered;
-               }
-
-               // Cover the other ez that touch the corners if necessary
-               if (k > ez.begin.z) {
-                  if (s(i  ,j,k-1) >= 0.0 && s(i  ,j,k  ) < 0.0)
-                     ez(i,j,k-1) = Type::covered;
-                  if (s(i,j+1,k-1) >= 0.0 && s(i,j+1,k  ) < 0.0)
-                     ez(i,j+1,k-1) = Type::covered;
-               }
-               if (k < ez.end.z-1) {
-                  if (s(i  ,j,k+2) >= 0.0 && s(i  ,j,k+1) < 0.0)
-                     ez(i,j,k+1) = Type::covered;
-                  if (s(i,j+1,k+2) >= 0.0 && s(i,j+1,k+1) < 0.0)
-                     ez(i,j+1,k+1) = Type::covered;
-               }
-
-               // Cover the ex that touch the corners if necessary
-               if (i > ex.begin.x) {
-                  if (s(i-1,j  ,k  ) >= 0.0 && s(i  ,j,k  ) < 0.0)
-                     ex(i-1,j,k) = Type::covered;
-                  if (s(i-1,j+1,k  ) >= 0.0 && s(i,j+1,k  ) < 0.0)
-                     ex(i-1,j+1,k) = Type::covered;
-                  if (s(i-1,j  ,k+1) >= 0.0 && s(i  ,j,k+1) < 0.0)
-                     ex(i-1,j,k+1) = Type::covered;
-                  if (s(i-1,j+1,k+1) >= 0.0 && s(i,j+1,k+1) < 0.0)
-                     ex(i-1,j+1,k+1) = Type::covered;
-                }
-               if (i <= ex.end.x-1) {
-                  if (s(i+1,j  ,k  ) >= 0.0 && s(i  ,j,k  ) < 0.0)
-                     ex(i,j,k) = Type::covered;
-                  if (s(i+1,j  ,k+1) >= 0.0 && s(i  ,j,k+1) < 0.0)
-                     ex(i,j,k+1) = Type::covered;
-                  if (s(i+1,j+1,k+1) >= 0.0 && s(i,j+1,k+1) < 0.0)
-                     ex(i,j+1,k+1) = Type::covered;
-                  if (s(i+1,j+1,k  ) >= 0.0 && s(i,j+1,k  ) < 0.0)
-                     ex(i,j+1,k) = Type::covered;
-               }
-
+               // Cover the cut edges containing any regular corner
+               if (s(i,j  ,k  ) < 0.0) 
+                  cover_cut_edges_given_corner(i,j  ,k  ,ex,ey,ez);
+               if (s(i,j+1,k  ) < 0.0) 
+                  cover_cut_edges_given_corner(i,j+1,k  ,ex,ey,ez);
+               if (s(i,j  ,k+1) < 0.0) 
+                  cover_cut_edges_given_corner(i,j  ,k+1,ex,ey,ez);
+               if (s(i,j+1,k+1) < 0.0) 
+                  cover_cut_edges_given_corner(i,j+1,k+1,ex,ey,ez);
            }
        });
 
@@ -243,8 +224,8 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
        amrex::Loop(lo, hi,
        [=] (int i, int j, int k) noexcept
        {
-           // If only opposite corners of face are inside fluid, it
-           // will result in mutilple cut edges, so cover them
+           // If only opposite corners of face are regular, it
+           // will result in a face with 4 cuts, so cover them
            if ( (   s(i,j,k  ) <  0.0 && s(i+1,j,k  ) >= 0.0
                  && s(i,j,k+1) >= 0.0 && s(i+1,j,k+1) <  0.0 )
               || (  s(i,j,k  ) >= 0.0 && s(i+1,j,k  ) <  0.0
@@ -254,62 +235,15 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
                // Cover the face
                fy(i,j,k) = Type::covered;
 
-               // Cover the 4 edges of the face
-               ex(i,j,k) = Type::covered;
-               ex(i,j,k+1) = Type::covered;
-               ez(i,j,k) = Type::covered;
-               ez(i+1,j,k) = Type::covered;
-
-               //Cover the other ex that touch the corners if necessary
-               if (i > ex.begin.x) {
-                  if (s(i-1,j,k  ) >= 0.0 && s(i  ,j,k  ) < 0.0)
-                     ex(i-1,j,k) = Type::covered;
-                  if (s(i-1,j,k+1) >= 0.0 && s(i  ,j,k+1) < 0.0)
-                     ex(i-1,j,k+1) = Type::covered;
-               }
-               if (i < ex.end.x-1) {
-                  if (s(i+2,j,k  ) >= 0.0 && s(i+1,j,k  ) < 0.0)
-                     ex(i+1,j,k) = Type::covered;
-                  if (s(i+2,j,k+1) >= 0.0 && s(i+1,j,k+1) < 0.0)
-                     ex(i+1,j,k+1) = Type::covered;
-               }
-
-               // Cover the other ez that touch the corners if necessary
-               if (k > ez.begin.z) {
-                  if (s(i  ,j,k-1) >= 0.0 && s(i  ,j,k  ) < 0.0)
-                     ez(i,j,k-1) = Type::covered;
-                  if (s(i+1,j,k-1) >= 0.0 && s(i+1,j,k  ) < 0.0)
-                     ez(i+1,j,k-1) = Type::covered;
-               }
-               if (k < ez.end.z-1) {
-                  if (s(i  ,j,k+2) >= 0.0 && s(i  ,j,k+1) < 0.0)
-                     ez(i,j,k+1) = Type::covered;
-                  if (s(i+1,j,k+2) >= 0.0 && s(i+1,j,k+1) < 0.0)
-                     ez(i+1,j,k+1) = Type::covered;
-               }
-
-               // Cover the ey that touch the corners if necessary
-               if (j > ey.begin.y) {
-                  if (s(i  ,j-1,k  ) >= 0.0 && s(i  ,j,k  ) < 0.0)
-                     ey(i,j-1,k) = Type::covered;
-                  if (s(i+1,j-1,k  ) >= 0.0 && s(i+1,j,k  ) < 0.0)
-                     ey(i+1,j-1,k) = Type::covered;
-                  if (s(i+1,j-1,k+1) >= 0.0 && s(i+1,j,k+1) < 0.0)
-                     ey(i+1,j-1,k+1) = Type::covered;
-                  if (s(i  ,j-1,k+1) >= 0.0 && s(i  ,j,k+1) < 0.0)
-                     ey(i,j-1,k+1) = Type::covered;
-               }
-               if (j <= ey.end.y-1) {
-                  if (s(i  ,j+1,k  ) >= 0.0 && s(i  ,j,k  ) < 0.0)
-                     ey(i,j,k) = Type::covered;
-                  if (s(i  ,j+1,k+1) >= 0.0 && s(i  ,j,k+1) < 0.0)
-                     ey(i,j,k+1) = Type::covered;
-                  if (s(i+1,j+1,k+1) >= 0.0 && s(i+1,j,k+1) < 0.0)
-                     ey(i+1,j,k+1) = Type::covered;
-                  if (s(i+1,j+1,k  ) >= 0.0 && s(i+1,j,k  ) < 0.0)
-                     ey(i+1,j,k) = Type::covered;
-               }
-
+               // Cover the cut edges containing any regular corner
+               if (s(i  ,j,k  ) < 0.0) 
+                  cover_cut_edges_given_corner(i  ,j,k  ,ex,ey,ez);
+               if (s(i+1,j,k  ) < 0.0) 
+                  cover_cut_edges_given_corner(i+1,j,k  ,ex,ey,ez);
+               if (s(i  ,j,k+1) < 0.0) 
+                  cover_cut_edges_given_corner(i  ,j,k+1,ex,ey,ez);
+               if (s(i+1,j,k+1) < 0.0) 
+                  cover_cut_edges_given_corner(i+1,j,k+1,ex,ey,ez);
            }
        });
 
@@ -319,8 +253,8 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
        amrex::Loop(lo, hi,
        [=] (int i, int j, int k) noexcept
        {
-           // If only opposite corners of face are inside fluid, it
-           // will result in mutilple cut edges, so cover them
+           // If only opposite corners of face are regular, it
+           // will result in a face with 4 cuts, so cover them
            if ( (   s(i,j,k  ) <  0.0 && s(i+1,j,k  ) >= 0.0
                  && s(i,j+1,k) >= 0.0 && s(i+1,j+1,k) <  0.0 )
               || (  s(i,j,k  ) >= 0.0 && s(i+1,j,k  ) <  0.0
@@ -329,62 +263,15 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
                // Cover the face
                fz(i,j,k) = Type::covered;
 
-               // Cover the 4 edges of the face
-               ex(i,j,k) = Type::covered;
-               ex(i,j+1,k) = Type::covered;
-               ey(i,j,k) = Type::covered;
-               ey(i+1,j,k) = Type::covered;
-
-               //Cover the other ex that touch the corners if necessary
-               if (i > ex.begin.x) {
-                  if (s(i-1,j,k  ) >= 0.0 && s(i  ,j,k  ) < 0.0)
-                     ex(i-1,j,k) = Type::covered;
-                  if (s(i-1,j+1,k) >= 0.0 && s(i  ,j+1,k) < 0.0)
-                     ex(i-1,j+1,k) = Type::covered;
-               }
-               if (i < ex.end.x-1) {
-                  if (s(i+2,j,k  ) >= 0.0 && s(i+1,j,k  ) < 0.0)
-                     ex(i+1,j,k) = Type::covered;
-                  if (s(i+2,j+1,k) >= 0.0 && s(i+1,j+1,k) < 0.0)
-                     ex(i+1,j+1,k) = Type::covered;
-               }
-
-               // Cover the other ey that touch the corners if necessary
-               if (j > ey.begin.y) {
-                  if (s(i  ,j-1,k) >= 0.0 && s(i  ,j,k  ) < 0.0)
-                     ey(i,j-1,k) = Type::covered;
-                  if (s(i+1,j-1,k) >= 0.0 && s(i+1,j,k  ) < 0.0)
-                     ey(i+1,j-1,k) = Type::covered;
-               }
-               if (j < ey.end.y-1) {
-                  if (s(i  ,j+2,k) >= 0.0 && s(i  ,j+1,k) < 0.0)
-                     ey(i,j+1,k) = Type::covered;
-                  if (s(i+1,j+2,k) >= 0.0 && s(i+1,j+1,k) < 0.0)
-                     ey(i+1,j+1,k) = Type::covered;
-               }
-
-               // Cover the ez that touch the corners if necessary
-               if (k > ez.begin.z) {
-                  if (s(i  ,j  ,k-1) >= 0.0 && s(i  ,j,k  ) < 0.0)
-                     ez(i,j,k-1) = Type::covered;
-                  if (s(i  ,j+1,k-1) >= 0.0 && s(i  ,j+1,k) < 0.0)
-                     ez(i,j+1,k-1) = Type::covered;
-                  if (s(i+1,j+1,k-1) >= 0.0 && s(i+1,j+1,k) < 0.0)
-                     ez(i+1,j+1,k-1) = Type::covered;
-                  if (s(i+1,j  ,k-1) >= 0.0 && s(i+1,j,k  ) < 0.0)
-                     ez(i+1,j,k-1) = Type::covered;
-               }
-               if (k <= ez.end.z-1) {
-                  if (s(i  ,j  ,k+1) >= 0.0 && s(i  ,j,k  ) < 0.0)
-                     ez(i,j,k) = Type::covered;
-                  if (s(i  ,j+1,k+1) >= 0.0 && s(i  ,j+1,k) < 0.0)
-                     ez(i,j+1,k) = Type::covered;
-                  if (s(i+1,j+1,k+1) >= 0.0 && s(i+1,j+1,k) < 0.0)
-                     ez(i+1,j+1,k) = Type::covered;
-                  if (s(i+1,j  ,k+1) >= 0.0 && s(i+1,j,k  ) < 0.0)
-                     ez(i+1,j,k) = Type::covered;
-               }
-
+               // Cover the cut edges containing any regular corner
+               if (s(i  ,j  ,k) < 0.0) 
+                  cover_cut_edges_given_corner(i  ,j  ,k,ex,ey,ez);
+               if (s(i+1,j  ,k) < 0.0) 
+                  cover_cut_edges_given_corner(i+1,j  ,k,ex,ey,ez);
+               if (s(i  ,j+1,k) < 0.0) 
+                  cover_cut_edges_given_corner(i  ,j+1,k,ex,ey,ez);
+               if (s(i+1,j+1,k) < 0.0) 
+                  cover_cut_edges_given_corner(i+1,j+1,k,ex,ey,ez);
            }
        });
     }
