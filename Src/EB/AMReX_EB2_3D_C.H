@@ -14,22 +14,28 @@ namespace {
                        Array4<Type_t> const& ez)
    {
       //x edges
-      if (i > ex.begin.x && ex(i-1,j,k) == Type::irregular)
-         ex(i-1,j,k) = Type::covered;
-      if (ex(i,j,k) == Type::irregular)
-         ex(i,j,k) = Type::covered;
+      if (j >= ex.begin.y && j < ex.end.y && k >= ex.begin.z && k < ex.end.z) {
+         if (i > ex.begin.x && i <= ex.end.x && ex(i-1,j,k) == Type::irregular)
+            ex(i-1,j,k) = Type::covered;
+         if (i >= ex.begin.x && i < ex.end.x && ex(i  ,j,k) == Type::irregular)
+            ex(i,j,k) = Type::covered;
+      }
 
       //y edges
-      if (j > ey.begin.y && ey(i,j-1,k) == Type::irregular)
-         ey(i,j-1,k) = Type::covered;
-      if (ey(i,j,k) == Type::irregular)
-         ey(i,j,k) = Type::covered;
+      if (i >= ey.begin.x && i < ey.end.x && k >= ey.begin.z && k < ey.end.z) {
+         if (j > ey.begin.y && j <= ey.end.y && ey(i,j-1,k) == Type::irregular)
+            ey(i,j-1,k) = Type::covered;
+         if (j >= ey.begin.y && j < ey.end.y && ey(i,j  ,k) == Type::irregular)
+            ey(i,j,k) = Type::covered;
+      }
 
       //z edges
-      if (k > ez.begin.z && ez(i,j,k-1) == Type::irregular)
-         ez(i,j,k-1) = Type::covered;
-      if (ez(i,j,k) == Type::irregular)
-         ez(i,j,k) = Type::covered;
+      if (i >= ez.begin.x && i < ez.end.x && j >= ez.begin.y && j < ez.end.y) {
+         if (k > ez.begin.z && k <= ez.end.z && ez(i,j,k-1) == Type::irregular)
+            ez(i,j,k-1) = Type::covered;
+         if (k >= ez.begin.z && k < ez.end.z && ez(i,j,k  ) == Type::irregular)
+            ez(i,j,k) = Type::covered;
+      }
    }
 }
 
