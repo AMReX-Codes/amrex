@@ -201,9 +201,9 @@ FArrayBox::initVal () noexcept
 }
 
 void
-FArrayBox::resize (const Box& b, int N)
+FArrayBox::resize (const Box& b, int N, Arena* ar)
 {
-    BaseFab<Real>::resize(b,N);
+    BaseFab<Real>::resize(b,N,ar);
     initVal();
 }
 

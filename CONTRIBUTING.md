@@ -10,10 +10,9 @@ Development generally follows the following ideas:
 
   * Bug fixes, questions and contributions of new features are welcome!
 
-       * Bugs should be reported through GitHub issues
-       * We suggest asking questions through GitHub issues as well
-       * *Any contributions of new features that have the potential
-         to change answers should be done via pull requests.*
+       * Bugs should be reported through GitHub Issues.
+       * We suggest asking questions through GitHub Discussions.
+       * All contributions should be done via pull requests.
          A pull request should be generated from your fork of
          amrex and target the `development` branch. See below for
          details on how this process works.
@@ -150,7 +149,8 @@ targeted PRs.
 For example, if find typos in the documentation open a pull request that only fixes typos.
 If you want to fix a bug, make a small pull request that only fixes a bug.
 If you want to implement a large feature, write helper functionality first, test it and submit those as a first pull request.
-If you want to implement a feature and are not too sure how to split it, just open an issue about your plans and ping other AMReX developers on it to chime in.
+If you want to implement a feature and are not too sure how to split it,
+just open a discussion about your plans and ping other AMReX developers on it to chime in.
 
 Even before your work is ready to merge, it can be convenient to create a PR
 (so you can use Github tools to visualize your changes). In this case, please

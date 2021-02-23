@@ -13,7 +13,7 @@ namespace Extrapolater
 {
     void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp)
     {
-        BL_ASSERT(mf.nGrow() == 1);
+        BL_ASSERT(mf.nGrow() >= 1);
         BL_ASSERT(scomp >= 0);
         BL_ASSERT((scomp+ncomp) <= mf.nComp());
 

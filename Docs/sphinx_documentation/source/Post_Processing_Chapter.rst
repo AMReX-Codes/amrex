@@ -1,7 +1,7 @@
 .. _Chap:Post-Processing:
 
 Post-Processing
-=============
+===============
 
 There are utilities you can build that can read in plotfiles into a
 :cpp:`MultiFab` and perform post-processing.  Since the data is read into
