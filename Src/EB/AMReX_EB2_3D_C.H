@@ -1,7 +1,6 @@
 #ifndef AMREX_EB2_3D_C_H_
 #define AMREX_EB2_3D_C_H_
 #include <AMReX_Config.H>
-#include <AMReX_ParmParse.H>
 
 namespace amrex { namespace EB2 {
 
@@ -195,6 +194,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     });
 
     if (cover_multiple_cuts) {
+       // x faces
        b = amrex::surroundingNodes(bxg2,0);
        lo = amrex::max_lbound(tbx, b);
        hi = amrex::min_ubound(tbx, b);
@@ -224,6 +224,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
            }
        });
 
+       // y faces
        b = amrex::surroundingNodes(bxg2,1);
        lo = amrex::max_lbound(tbx, b);
        hi = amrex::min_ubound(tbx, b);
@@ -253,6 +254,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
            }
        });
 
+       // z faces
        b = amrex::surroundingNodes(bxg2,2);
        lo = amrex::max_lbound(tbx, b);
        hi = amrex::min_ubound(tbx, b);
