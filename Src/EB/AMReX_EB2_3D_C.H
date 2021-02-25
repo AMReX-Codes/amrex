@@ -15,6 +15,8 @@ namespace {
       //x edges
       if (j >= ex.begin.y && j < ex.end.y && k >= ex.begin.z && k < ex.end.z) {
          if (i > ex.begin.x && i <= ex.end.x && ex(i-1,j,k) == Type::irregular)
+            // In principle, there could be race conditions here.  But if the EB is in a configuration
+            // that that could happen, we are in trouble anyway.
             ex(i-1,j,k) = Type::covered;
          if (i >= ex.begin.x && i < ex.end.x && ex(i  ,j,k) == Type::irregular)
             ex(i,j,k) = Type::covered;
