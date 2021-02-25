@@ -64,6 +64,7 @@ gpuStream_t         Device::gpu_default_stream;
 Vector<gpuStream_t> Device::gpu_stream_pool;
 Vector<gpuStream_t> Device::gpu_stream;
 gpuDeviceProp_t     Device::device_prop;
+int                 Device::memory_pools_supported = 0;
 
 constexpr int Device::warp_size;
 
@@ -407,6 +408,10 @@ Device::initialize_gpu ()
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 4 || (device_prop.major == 3 && device_prop.minor >= 5),
                                      "Compute capability must be >= 3.5");
+
+#if (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 2)) )
+    cudaDeviceGetAttribute(&memory_pools_supported, cudaDevAttrMemoryPoolsSupported, device_id);
+#endif
 
     if (sizeof(Real) == 8) {
         AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
@@ -970,26 +975,5 @@ Device::freeMemAvailable ()
     return 0;
 #endif
 }
-
-#ifdef AMREX_USE_GPU
-namespace {
-    static int ncallbacks = 0;
-}
-
-void callbackAdded ()
-{
-    ++ncallbacks;
-}
-
-void resetNumCallbacks ()
-{
-    ncallbacks = 0;
-}
-
-int getNumCallbacks ()
-{
-    return ncallbacks;
-}
-#endif
 
 }}

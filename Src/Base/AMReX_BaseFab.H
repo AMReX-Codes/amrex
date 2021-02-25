@@ -274,7 +274,7 @@ public:
     * Resizing is typically faster than re-allocating a
     * BaseFab because memory allocation can often be avoided.
     */
-    void resize (const Box& b, int N = 1);
+    void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
     template <class U=T, typename std::enable_if<std::is_trivially_destructible<U>::value,int>::type = 0>
     Elixir elixir () noexcept;
@@ -2042,12 +2042,17 @@ BaseFab<T>::operator= (T const& t) noexcept
 
 template <class T>
 void
-BaseFab<T>::resize (const Box& b, int n)
+BaseFab<T>::resize (const Box& b, int n, Arena* ar)
 {
     this->nvar   = n;
     this->domain = b;
 
-    if (this->dptr == 0 || !this->ptr_owner)
+    if (arena() != DataAllocator(ar).arena()) {
+        clear();
+        m_arena = ar;
+        define();
+    }
+    else if (this->dptr == 0 || !this->ptr_owner)
     {
 	if (this->shared_memory)
 	    amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");

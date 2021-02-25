@@ -77,9 +77,9 @@ IArrayBox::IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int n
 }
 
 void
-IArrayBox::resize (const Box& b, int N)
+IArrayBox::resize (const Box& b, int N, Arena* ar)
 {
-    BaseFab<int>::resize(b,N);
+    BaseFab<int>::resize(b,N,ar);
     // For debugging purposes
     if ( do_initval ) {
 #if defined(AMREX_USE_GPU)

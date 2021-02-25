@@ -65,12 +65,10 @@ ifeq ($(lowercase_nvcc_host_comp),gnu)
 
   ifdef CXXSTD
     CXXSTD := $(strip $(CXXSTD))
-    CXXFLAGS += -std=$(CXXSTD)
   else
-    ifeq ($(gcc_major_version),5)
-      CXXFLAGS += -std=c++14
-    endif
+    CXXSTD = c++14
   endif
+  CXXFLAGS += -std=$(CXXSTD)
 
   NVCC_CCBIN ?= g++
 
