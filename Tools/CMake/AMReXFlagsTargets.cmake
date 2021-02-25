@@ -60,7 +60,7 @@ target_compile_options( Flags_CXX
    $<${_cxx_cray_dbg}:-O0>
    $<${_cxx_cray_rel}:>
    $<${_cxx_clang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-pass-failed>
-   $<${_cxx_clang_rel}:>
+   $<${_cxx_clang_rel}:-Wno-pass-failed>
    $<${_cxx_appleclang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
    $<${_cxx_appleclang_rel}:>
    )
