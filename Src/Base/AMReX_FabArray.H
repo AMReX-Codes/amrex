@@ -233,6 +233,8 @@ public:
     // Provides access to the Arena this FabArray was build with.
     Arena* arena () const noexcept { return m_dallocator.arena(); }
 
+    const Vector<std::string>& tags () const noexcept { return m_tags; }
+
     bool hasEBFabFactory () const noexcept {
 #ifdef AMREX_USE_EB
         const auto f = dynamic_cast<EBFArrayBoxFactory const*>(m_factory.get());
@@ -472,6 +474,14 @@ public:
                CpOp                 op = FabArrayBase::COPY)
         { ParallelCopy(fa,period,op); }
 
+    void ParallelAdd_nowait(const FabArray<FAB>& fa,
+                            const Periodicity& period = Periodicity::NonPeriodic())
+       { ParallelCopy_nowait(fa,period,FabArray::ADD); }
+    void ParallelCopy_nowait (const FabArray<FAB>& fa,
+                              const Periodicity&   period = Periodicity::NonPeriodic(),
+                              CpOp                 op = FabArrayBase::COPY)
+       { ParallelCopy_nowait(fa,0,0,nComp(),0,0,period,op); }
+
     /**
     * \brief This function copies data from src to this FabArray.  Each FAB
     * in src is intersected with all FABs in this FabArray and a copy
@@ -500,6 +510,20 @@ public:
 	       const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY)
         { ParallelCopy(src,src_comp,dest_comp,num_comp, period, op); }
+
+    void ParallelAdd_nowait (const FabArray<FAB>& src,
+                             int                  src_comp,
+                             int                  dest_comp,
+                             int                  num_comp,
+                             const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp, period, FabArrayBase::ADD); }
+    void ParallelCopy_nowait (const FabArray<FAB>& src,
+                              int                  src_comp,
+                              int                  dest_comp,
+                              int                  num_comp,
+                              const Periodicity&   period = Periodicity::NonPeriodic(),
+                              CpOp                 op = FabArrayBase::COPY)
+       { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,0,0,period,op); }
 
     //! Similar to the above function, except that source and destination are grown by src_nghost and dst_nghost, respectively
     void ParallelAdd (const FabArray<FAB>& src,
@@ -537,6 +561,47 @@ public:
                        const Periodicity&   period = Periodicity::NonPeriodic(),
                        CpOp                 op = FabArrayBase::COPY,
                        const FabArrayBase::CPC* a_cpc = nullptr);
+
+    void ParallelAdd_nowait (const FabArray<FAB>& src,
+                             int                  src_comp,
+                             int                  dest_comp,
+                             int                  num_comp,
+                             int                  src_nghost,
+                             int                  dst_nghost,
+                             const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),
+                             IntVect(dst_nghost),period,FabArrayBase::ADD); }
+    void ParallelAdd_nowait (const FabArray<FAB>& src,
+                             int                  src_comp,
+                             int                  dest_comp,
+                             int                  num_comp,
+                             const IntVect&       src_nghost,
+                             const IntVect&       dst_nghost,
+                             const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,src_nghost,
+                             dst_nghost,period,FabArrayBase::ADD); }
+    void ParallelCopy_nowait (const FabArray<FAB>& src,
+                              int                  src_comp,
+                              int                  dest_comp,
+                              int                  num_comp,
+                              int                  src_nghost,
+                              int                  dst_nghost,
+                              const Periodicity&   period = Periodicity::NonPeriodic(),
+                              CpOp                 op = FabArrayBase::COPY)
+       { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),
+                             IntVect(dst_nghost),period,op); }
+    void ParallelCopy_nowait (const FabArray<FAB>& src,
+                              int                  src_comp,
+                              int                  dest_comp,
+                              int                  num_comp,
+                              const IntVect&       src_nghost,
+                              const IntVect&       dst_nghost,
+                              const Periodicity&   period = Periodicity::NonPeriodic(),
+                              CpOp                 op = FabArrayBase::COPY,
+                              const FabArrayBase::CPC* a_cpc = nullptr);
+
+    void ParallelCopy_finish ();
+
 
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
@@ -864,6 +929,27 @@ public:
     Vector<char*>       fb_send_data;
     Vector<MPI_Request> fb_send_reqs;
     int                 fb_tag;
+
+    //! Data used in non-blocking ParallelCopy
+    const CPC*           pc_cpc = nullptr;
+    const FabArray<FAB>* pc_src = nullptr;
+    CpOp                 pc_op;
+    int                  pc_tag;
+    int                  pc_actual_n_rcvs;
+    IntVect              pc_snghost, pc_dnghost;
+    Periodicity          pc_period;
+    int                  pc_SC, pc_NC, pc_DC;
+    bool                 pc_simple;
+
+    //
+    char*                pc_the_recv_data = nullptr;
+    char*                pc_the_send_data = nullptr;
+    Vector<int>          pc_recv_from;
+    Vector<char*>        pc_recv_data;
+    Vector<std::size_t>  pc_recv_size;
+    Vector<MPI_Request>  pc_recv_reqs;
+    Vector<MPI_Request>  pc_send_reqs;
+
 };
 
 
@@ -874,7 +960,7 @@ bool
 FabArray<FAB>::defined (int K) const noexcept
 {
     int li = localindex(K);
-    if (li >= 0 && li < m_fabs_v.size() && m_fabs_v[li] != 0) {
+    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != 0) {
 	return true;
     }
     else {

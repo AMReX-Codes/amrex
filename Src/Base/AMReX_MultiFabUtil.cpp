@@ -40,10 +40,10 @@ namespace {
         ba.intersections(slice_box, isects, false, 0);
         Vector<Box> boxes;
         Vector<int> procs;
-        for (int i = 0; i < isects.size(); ++i) {
-            procs.push_back(dm[isects[i].first]);
-            boxes.push_back(isects[i].second);
-            slice_to_full_ba_map.push_back(isects[i].first);
+        for (auto const& is : isects) {
+            procs.push_back(dm[is.first]);
+            boxes.push_back(is.second);
+            slice_to_full_ba_map.push_back(is.first);
         }
         BoxArray slice_ba(&boxes[0], boxes.size());
         DistributionMapping slice_dmap(std::move(procs));

@@ -64,7 +64,7 @@ void testIntersection()
         size *= 2;
     }
 
-    Vector<ParticleLocator> ploc(params.nlevs);
+    Vector<ParticleLocator<DenseBins<Box>>> ploc(params.nlevs);
 
     for (int lev = 0; lev < params.nlevs; ++lev)
     {

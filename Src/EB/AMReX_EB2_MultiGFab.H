@@ -47,7 +47,7 @@ public:
     const Graph& getGraph () const { return m_graph; }
     Graph& getGraph () { return m_graph; }
 
-    void buildTypes (EBCellFlagFab& celltype);
+    void buildTypes (EBCellFlagFab& celltype, bool cover_multiple_cuts = false);
 
 private:
 

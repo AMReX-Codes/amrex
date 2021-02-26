@@ -988,7 +988,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     for(int i(0); i < pmap.size(); ++i) {
       procsWithData.insert(pmap[i]);
     }
-    if(allowSparseWrites && (procsWithData.size() < nOutFiles)) {
+    if(allowSparseWrites && (static_cast<int>(procsWithData.size()) < nOutFiles)) {
       useSparseFPP = true;
 //      amrex::Print() << "SSSSSSSS:  in VisMF::Write:  useSparseFPP for:  " << mf_name << '\n';
       for(std::set<int>::iterator it = procsWithData.begin(); it != procsWithData.end(); ++it) {
