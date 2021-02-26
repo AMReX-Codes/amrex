@@ -225,7 +225,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
                         i += lo.x;
                         j += lo.y;
                         k += lo.z;
-                        int n_active_threads = amrex::min(ncells-i+(int)item.get_local_id(0),
+                        int n_active_threads = amrex::min(ncells-icell+(int)item.get_local_id(0),
                                                           (int)item.get_local_range(0));
                         detail::call_f(f, i, j, k, Gpu::Handler{&item, shared_data.get_pointer(),
                                                                 n_active_threads});
@@ -289,7 +289,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) n
                         i += lo.x;
                         j += lo.y;
                         k += lo.z;
-                        int n_active_threads = amrex::min(ncells-i+(int)item.get_local_id(0),
+                        int n_active_threads = amrex::min(ncells-icell+(int)item.get_local_id(0),
                                                           (int)item.get_local_range(0));
                         detail::call_f(f, i, j, k, ncomp,
                                        Gpu::Handler{&item, shared_data.get_pointer(),
