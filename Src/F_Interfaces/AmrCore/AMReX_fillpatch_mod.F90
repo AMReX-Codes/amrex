@@ -11,6 +11,7 @@ module amrex_fillpatch_module
   interface amrex_fillpatch
      module procedure amrex_fillpatch_single
      module procedure amrex_fillpatch_two
+     module procedure amrex_fillpatch_two_faces
   end interface amrex_fillpatch
 
   interface
@@ -57,9 +58,9 @@ module amrex_fillpatch_module
        import
        implicit none
        type(c_ptr), value :: cgeom, fgeom
-       type(c_ptr) :: mf(*)
+       type(c_ptr), intent(in) :: mf(*)
        type(c_ptr), intent(in) :: cmf(*), fmf(*), lo_bc(*), hi_bc(*)
-       type(c_funptr) :: cfill(*), ffill(*)
+       type(c_funptr), intent(in) :: cfill(*), ffill(*)
        type(c_funptr), value :: pre_interp, post_interp
        real(amrex_real), value :: time
        real(amrex_real), intent(in) :: ctime(*), ftime(*)
