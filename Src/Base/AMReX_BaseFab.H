@@ -1677,8 +1677,7 @@ void
 BaseFab<T>::prefetchToHost () const noexcept
 {
 #ifdef AMREX_USE_GPU
-    if ((this->arena() == The_Arena() && this->arena()->arenaInfo().device_use_managed_memory) ||
-        this->arena() == The_Managed_Arena()) {
+    if (this->arena()->isManaged()) {
 #if defined(AMREX_USE_DPCPP)
         // xxxxx DPCPP todo: prefetchToHost
         // std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
@@ -1703,8 +1702,7 @@ void
 BaseFab<T>::prefetchToDevice () const noexcept
 {
 #ifdef AMREX_USE_GPU
-    if ((this->arena() == The_Arena() && this->arena()->arenaInfo().device_use_managed_memory) ||
-        this->arena() == The_Managed_Arena()) {
+    if (this->arena()->isManaged()) {
 #if defined(AMREX_USE_DPCPP)
         std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
         auto& q = Gpu::Device::streamQueue();

@@ -2,9 +2,6 @@
 #define AMREX_GPU_DEVICE_H_
 #include <AMReX_Config.H>
 
-#include <cstdlib>
-#include <memory>
-#include <array>
 #include <AMReX.H>
 #include <AMReX_Utility.H>
 #include <AMReX_GpuTypes.H>
@@ -12,6 +9,10 @@
 #include <AMReX_GpuControl.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_Vector.H>
+
+#include <cstdlib>
+#include <memory>
+#include <array>
 
 namespace amrex {
 

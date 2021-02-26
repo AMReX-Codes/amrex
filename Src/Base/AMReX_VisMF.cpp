@@ -669,9 +669,7 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
     }
 
     bool run_on_device = Gpu::inLaunchRegion()
-        && (mf.arena() == The_Arena() ||
-             mf.arena() == The_Device_Arena() ||
-             mf.arena() == The_Managed_Arena());
+        && (mf.arena()->isManaged() || mf.arena()->isDevice());
 
     if(version == NoFabHeaderFAMinMax_v1) {
       // ---- calculate FabArray min max values only
@@ -712,9 +710,7 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
     m_max.resize(m_ba.size());
 
     bool run_on_device = Gpu::inLaunchRegion()
-        && (mf.arena() == The_Arena() ||
-             mf.arena() == The_Device_Arena() ||
-             mf.arena() == The_Managed_Arena());
+        && (mf.arena()->isManaged() || mf.arena()->isDevice());
 
 #ifdef BL_USE_MPI
     //
@@ -958,9 +954,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
         FabArray<FArrayBox>* the_mf = const_cast<FabArray<FArrayBox>*>(&mf);
 
         bool run_on_device = Gpu::inLaunchRegion()
-            && (mf.arena() == The_Arena() ||
-                 mf.arena() == The_Device_Arena() ||
-                 mf.arena() == The_Managed_Arena());
+            && (mf.arena()->isManaged() || mf.arena()->isDevice());
 
         for(MFIter mfi(*the_mf); mfi.isValid(); ++mfi) {
             const int idx(mfi.index());
@@ -2228,9 +2222,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
     const Long n_local_nums = n_fab_nums * n_local_fabs + 1;
     Vector<int64_t> localdata(n_local_nums);
 
-    bool data_on_device = (mf.arena() == The_Arena() ||
-                           mf.arena() == The_Device_Arena() ||
-                           mf.arena() == The_Managed_Arena());
+    bool data_on_device = mf.arena()->isManaged() || mf.arena()->isDevice();
     bool run_on_device = Gpu::inLaunchRegion() && data_on_device;
 
     bool strip_ghost = valid_cells_only && mf.nGrowVect() != 0;

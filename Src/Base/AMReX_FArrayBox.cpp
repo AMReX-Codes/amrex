@@ -159,15 +159,11 @@ FArrayBox::initVal () noexcept
     if (p && s > 0) {
         RunOn runon;
 #if defined(AMREX_USE_GPU)
-        if ( Gpu::inLaunchRegion() && 
-             (arena() == The_Arena() ||
-              arena() == The_Device_Arena() ||
-              arena() == The_Managed_Arena()) )
-        {
-          runon = RunOn::Gpu;
+        if (Gpu::inLaunchRegion() && arena()->isDeviceAccessible()) {
+            runon = RunOn::Gpu;
         } else {
-          runon = RunOn::Cpu;
-        } 
+            runon = RunOn::Cpu;
+        }
 #else
         runon = RunOn::Cpu;
 #endif
