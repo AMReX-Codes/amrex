@@ -261,7 +261,7 @@ private:
     void
     Register_doit (Box const& bx, int ncomp, Lambda const& f)
     {
-        if (m_nlambdas >= m_nhelpers_buf) {
+        if (m_nlambdas >= static_cast<int>(m_nhelpers_buf)) {
             resize_helper_buf();
         }
 
