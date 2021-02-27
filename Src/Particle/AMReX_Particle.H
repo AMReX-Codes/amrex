@@ -159,33 +159,33 @@ struct ConstParticleCPUWrapper
 template <typename T, int NReal, int NInt>
 struct ParticleBase
 {
+    uint64_t m_idcpu = 0;
     T m_pos[AMREX_SPACEDIM];
     T m_rdata[NReal];
-    uint64_t m_idcpu = 0;
     int m_idata[NInt];
 };
 
 template <typename T, int NInt>
 struct ParticleBase<T,0,NInt>
 {
-    T m_pos[AMREX_SPACEDIM];
     uint64_t m_idcpu = 0;
+    T m_pos[AMREX_SPACEDIM];
     int m_idata[NInt];
 };
 
 template <typename T, int NReal>
 struct ParticleBase<T,NReal,0>
 {
+    uint64_t m_idcpu = 0;
     T m_pos[AMREX_SPACEDIM];
     T m_rdata[NReal];
-    uint64_t m_idcpu = 0;
 };
 
 template <typename T>
 struct ParticleBase<T,0,0>
 {
-    T m_pos[AMREX_SPACEDIM];
     uint64_t m_idcpu = 0;
+    T m_pos[AMREX_SPACEDIM];
 };
 
 
