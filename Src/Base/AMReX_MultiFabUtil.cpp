@@ -182,19 +182,26 @@ namespace amrex
     }
 
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc,
-				     const Geometry& geom)
+				     const Geometry& geom, int ncomp)
     {
         average_cellcenter_to_face(Array<MultiFab*,AMREX_SPACEDIM>{{AMREX_D_DECL(fc[0],fc[1],fc[2])}},
-                                   cc, geom);
+                                   cc, geom, ncomp);
     }
 
 
     void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc, const MultiFab& cc,
-                                    const Geometry& geom)
+                                    const Geometry& geom, int ncomp)
     {
-	AMREX_ASSERT(cc.nComp() == 1);
+	AMREX_ASSERT(cc.nComp() == ncomp);
 	AMREX_ASSERT(cc.nGrow() >= 1);
-	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
+	AMREX_ASSERT(fc[0]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
+#if (AMREX_SPACEDIM >= 2)
+	AMREX_ASSERT(fc[1]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
+#endif
+#if (AMREX_SPACEDIM == 3)
+	AMREX_ASSERT(fc[2]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
+#endif
+
 
 #if (AMREX_SPACEDIM == 1)
         const GeometryData& gd = geom.data();
@@ -220,13 +227,13 @@ namespace amrex
 #if (AMREX_SPACEDIM == 1)
             AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (index_bounds, tbx,
             {
-                amrex_avg_cc_to_fc(tbx, xbx, fxarr, ccarr, gd);
+                amrex_avg_cc_to_fc(tbx, xbx, fxarr, ccarr, gd, ncomp);
             });
 #else
             AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (index_bounds, tbx,
             {
                 amrex_avg_cc_to_fc(tbx, AMREX_D_DECL(xbx,ybx,zbx),
-                                   AMREX_D_DECL(fxarr,fyarr,fzarr), ccarr);
+                                   AMREX_D_DECL(fxarr,fyarr,fzarr), ccarr, ncomp);
             });
 #endif
 	}

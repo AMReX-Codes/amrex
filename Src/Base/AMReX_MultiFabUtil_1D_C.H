@@ -102,7 +102,7 @@ inline
 void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx,
                          Array4<Real> const& fx,
                          Array4<Real const> const& cc,
-                         GeometryData const& gd) noexcept
+                         GeometryData const& gd, int ncomp) noexcept
 {
     const auto ndlo = lbound(ndbx);
     const auto ndhi = ubound(ndbx);
@@ -117,9 +117,10 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx,
     case 0:
     {
         AMREX_PRAGMA_SIMD
+        for (int n = 0; n < ncomp; ++n) {
         for (int i = xlo.x; i <= xhi.x; ++i) {
-            fx(i,0,0) = 0.5*(cc(i-1,0,0) + cc(i,0,0));
-        }
+            fx(i,0,0,n) = 0.5*(cc(i-1,0,0,n) + cc(i,0,0,n));
+        }}
         break;
     }
     case 1:
@@ -127,12 +128,13 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx,
         const Real problo = gd.ProbLo(0);
         const Real dx = gd.CellSize(0);
         AMREX_PRAGMA_SIMD
+        for (int n = 0; n < ncomp; ++n) {
         for (int i = xlo.x; i <= xhi.x; ++i) {
             Real rlo = problo + (i-0.5)*dx;
             Real rhi = problo + (i+0.5)*dx;
             Real rcen = 0.5*(rlo+rhi);
-            fx(i,0,0) = 0.5*(rlo*cc(i-1,0,0) + rhi*cc(i,0,0)) / rcen;
-        }
+            fx(i,0,0,n) = 0.5*(rlo*cc(i-1,0,0,n) + rhi*cc(i,0,0,n)) / rcen;
+        }}
         break;
     }
     case 2:
@@ -140,12 +142,13 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx,
         const Real problo = gd.ProbLo(0);
         const Real dx = gd.CellSize(0);
         AMREX_PRAGMA_SIMD
+        for (int n = 0; n < ncomp; ++n) {
         for (int i = xlo.x; i <= xhi.x; ++i) {
             Real rlo = problo + (i-0.5)*dx;
             Real rhi = problo + (i+0.5)*dx;
             Real rcen = 0.5*(rlo+rhi);
-            fx(i,0,0) = 0.5*(rlo*rlo*cc(i-1,0,0) + rhi*rhi*cc(i,0,0)) / (rcen*rcen);
-        }
+            fx(i,0,0,n) = 0.5*(rlo*rlo*cc(i-1,0,0,n) + rhi*rhi*cc(i,0,0,n)) / (rcen*rcen);
+        }}
         break;
     }
     default:
