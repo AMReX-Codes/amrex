@@ -913,7 +913,7 @@ ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 {
     if (amrex::isEmpty(n)) return;
 #if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
-    if (!info.hasReduction() && Gpu::inFuseRegion() && info.isFusible() && n <= Gpu::getFuseSizeThreshold()) {
+    if (!info.hasReduction() && Gpu::inFuseRegion() && info.isFusible() && Long(n) <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(n, f);
     } else
 #endif
