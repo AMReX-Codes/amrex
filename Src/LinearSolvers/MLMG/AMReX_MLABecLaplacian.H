@@ -113,7 +113,7 @@ protected:
 
 private:
 
-    int m_ncomp;
+    int m_ncomp = 1;
 
     void define_ab_coeffs ();
 };
