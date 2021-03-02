@@ -143,8 +143,11 @@ endif ()
 #
 # Install amrex  -- Export
 #
-include(AMReXInstallHelpers)
-install_amrex_targets(${_amrex_targets})
+option(AMReX_INSTALL "Generate Install Targets" YES)
+if(AMReX_INSTALL)
+    include(AMReXInstallHelpers)
+    install_amrex_targets(${_amrex_targets})
+endif()
 
 
 #
