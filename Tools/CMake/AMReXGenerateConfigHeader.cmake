@@ -63,7 +63,9 @@ function ( generate_config_header )
       PUBLIC
       $<BUILD_INTERFACE:${AMReX_BINARY_DIR}>)
 
-   install(FILES "${AMReX_BINARY_DIR}/AMReX_Config.H" DESTINATION include)
+   if(AMReX_INSTALL)
+      install(FILES "${AMReX_BINARY_DIR}/AMReX_Config.H" DESTINATION include)
+   endif()
 
 endfunction ()
 
