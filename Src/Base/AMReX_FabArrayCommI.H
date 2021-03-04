@@ -628,14 +628,14 @@ FabArray<FAB>::copyTo (FAB&       dest,
 
 #ifdef BL_USE_MPI
 template <class FAB>
-TheFaArenaPointer
+AMREX_NODISCARD TheFaArenaPointer
 FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                                    Vector<char*>&                       send_data,
                                    Vector<std::size_t>&                 send_size,
                                    Vector<int>&                         send_rank,
                                    Vector<MPI_Request>&                 send_reqs,
                                    Vector<const CopyComTagsContainer*>& send_cctc,
-                                   int                                  ncomp)
+                                   int                                  ncomp) const
 {
     char* pointer = nullptr;
     PrepareSendBuffers(SndTags, pointer, send_data, send_size, send_rank, send_reqs, send_cctc, ncomp);
@@ -651,7 +651,7 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                                    Vector<int>&                         send_rank,
                                    Vector<MPI_Request>&                 send_reqs,
                                    Vector<const CopyComTagsContainer*>& send_cctc,
-                                   int                                  ncomp)
+                                   int                                  ncomp) const
 {
     send_data.clear();
     send_size.clear();
@@ -676,7 +676,7 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
         std::size_t nbytes = 0;
         for (auto const& cct : kv.second)
         {
-            nbytes += FAB::nBytes(cct.sbox,ncomp);
+            nbytes += (*this)[cct.srcIndex].nBytes(cct.sbox,ncomp);
         }
 
         std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
@@ -736,7 +736,7 @@ TheFaArenaPointer FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&     
                    Vector<int>&                           recv_from,
                    Vector<MPI_Request>&                   recv_reqs,
                    int                                    ncomp,
-                   int                                    SeqNum)
+                   int                                    SeqNum) const
 {
     char* pointer = nullptr;
     PostRcvs(RcvTags, pointer, recv_data, recv_size, recv_from, recv_reqs, ncomp, SeqNum);
@@ -752,7 +752,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  RcvTags,
                          Vector<int>&                      recv_from,
                          Vector<MPI_Request>&              recv_reqs,
                          int                               ncomp,
-                         int                               SeqNum)
+                         int                               SeqNum) const
 {
     recv_data.clear();
     recv_size.clear();
@@ -766,7 +766,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  RcvTags,
         std::size_t nbytes = 0;
         for (auto const& cct : kv.second)
         {
-            nbytes += FAB::nBytes(cct.dbox,ncomp);
+            nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,ncomp);
         }
 
         std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);

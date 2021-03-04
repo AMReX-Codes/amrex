@@ -895,39 +895,40 @@ public:
 #ifdef BL_USE_MPI
 
     //! Prepost nonblocking receives
-    static void PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
+    void PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
                    char*&                                 the_recv_data,
                    Vector<char*>&                         recv_data,
                    Vector<std::size_t>&                   recv_size,
                    Vector<int>&                           recv_from,
                    Vector<MPI_Request>&                   recv_reqs,
                    int                                    ncomp,
-                   int                                    SeqNum);
+                   int                                    SeqNum) const;
 
-    static TheFaArenaPointer PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
+    
+    AMREX_NODISCARD TheFaArenaPointer PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
                    Vector<char*>&                         recv_data,
                    Vector<std::size_t>&                   recv_size,
                    Vector<int>&                           recv_from,
                    Vector<MPI_Request>&                   recv_reqs,
                    int                                    ncomp,
-                   int                                    SeqNum);
+                   int                                    SeqNum) const;
 
-    static void PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
+    void PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                              char*&                               the_send_data,
                              Vector<char*>&                       send_data,
                              Vector<std::size_t>&                 send_size,
                              Vector<int>&                         send_rank,
                              Vector<MPI_Request>&                 send_reqs,
                              Vector<const CopyComTagsContainer*>& send_cctc,
-                             int                                  ncomp);
+                             int                                  ncomp) const;
 
-    static TheFaArenaPointer PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
+    AMREX_NODISCARD TheFaArenaPointer PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                              Vector<char*>&                       send_data,
                              Vector<std::size_t>&                 send_size,
                              Vector<int>&                         send_rank,
                              Vector<MPI_Request>&                 send_reqs,
                              Vector<const CopyComTagsContainer*>& send_cctc,
-                             int                                  ncomp);
+                             int                                  ncomp) const;
 
     static void PostSnds (Vector<char*> const&       send_data,
                           Vector<std::size_t> const& send_size,

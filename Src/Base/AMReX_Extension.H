@@ -151,6 +151,22 @@
 #define AMREX_FALLTHROUGH ((void)0)
 #endif
 
+#ifndef AMREX_NO_NODISCARD
+#  ifdef __has_cpp_attribute
+#    if __has_cpp_attribute(nodiscard)
+#      define AMREX_NODISCARD [[nodiscard]]
+#    elif defined(__GNUC__) || defined(__clang__)
+#      define AMREX_NODISCARD __attribute__ ((warn_unused_result))
+#    else
+#      define AMREX_NODISCARD
+#    endif
+#  elif defined(__GNUC__) || defined(__clang__)
+#    define AMREX_NODISCARD __attribute__ ((warn_unused_result))
+#  else
+#    define AMREX_NODISCARD
+#  endif
+#endif
+
 #endif /* !BL_LANG_FORT */
 
 #endif
