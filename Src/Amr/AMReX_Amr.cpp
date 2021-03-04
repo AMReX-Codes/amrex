@@ -302,7 +302,7 @@ Amr::InitAmr ()
         setRecordDataInfo(i,datalogname[i]);
     }
 
-    probin_file = "probin";  // Make "probin" the default
+    probin_file = "";
 
     if (pp.contains("probin_file"))
     {
