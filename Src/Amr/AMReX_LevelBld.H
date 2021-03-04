@@ -74,13 +74,6 @@ public:
 
 }
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-    amrex::LevelBld* getLevelBld () AMREX_ATTRIBUTE_WEAK;
-#ifdef __cplusplus
-}
-#endif
+extern amrex::LevelBld* getLevelBld () AMREX_ATTRIBUTE_WEAK;
 
 #endif /*_LEVELBLD_H_*/
