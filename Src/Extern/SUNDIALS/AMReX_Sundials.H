@@ -1,3 +1,1 @@
-
-#include <AMReX_SUNMemory.h>
-
+#include <AMReX_SUNMemory.H>

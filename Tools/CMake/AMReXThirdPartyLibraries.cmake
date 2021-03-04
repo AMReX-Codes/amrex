@@ -73,3 +73,20 @@ if (AMReX_PETSC)
     find_package(PETSc 2.13 REQUIRED)
     target_link_libraries( amrex PUBLIC PETSC )
 endif ()
+
+#
+# SUNDIALS
+#
+if (AMReX_SUNDIALS)
+    set(_comp)
+    find_package(SUNDIALS 5.7.0 REQUIRED)
+    if (AMReX_GPU_BACKEND STREQUAL "CUDA")
+       target_link_libraries( amrex PUBLIC SUNDIALS::nveccuda)
+    elseif (AMReX_GPU_BACKEND STREQUAL "HIP")
+       target_link_libraries( amrex PUBLIC SUNDIALS::nvechip)
+    elseif (AMReX_GPU_BACKEND STREQUAL "SYCL")
+       target_link_libraries( amrex PUBLIC SUNDIALS::nvecsycl)
+    else ()
+       target_link_libraries( amrex PUBLIC SUNDIALS::nvecserial)
+    endif ()
+endif ()

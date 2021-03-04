@@ -257,6 +257,10 @@ if (AMReX_HDF5_ASYNC)
    message(FATAL_ERROR "\nAMReX_HDF5_ASYNC not yet supported\n")
 endif ()
 
+# SUNDIALS
+option( AMReX_SUNDIALS "Enable SUNDIALS interfaces" OFF )
+print_option( AMReX_SUNDIALS )
+
 
 #
 # Miscellanoues options  =====================================================

@@ -46,6 +46,7 @@
 #cmakedefine AMREX_USE_HDF5_ASYNC
 #cmakedefine AMREX_USE_HYPRE
 #cmakedefine AMREX_USE_PETSC
+#cmakedefine AMREX_USE_SUNDIALS
 #ifdef __cplusplus@COMP_DECLS@
 @OMP_DECLS@
 #endif
