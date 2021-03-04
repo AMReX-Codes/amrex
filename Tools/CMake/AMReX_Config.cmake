@@ -156,11 +156,9 @@ function (configure_amrex)
 
       if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
         if( host_link_supported STREQUAL "NEW" ) # CMake 3.18+
-          target_link_options(amrex PUBLIC "LINKER:-U,_amrex_probinit")
-          target_link_options(amrex PUBLIC "LINKER:-U,_Z11getLevelBldv")
+          target_link_options(amrex PUBLIC "LINKER:-undefined,dynamic_lookup")
         else()
-          target_link_options(amrex PUBLIC "-Wl,-U,_amrex_probinit")
-          target_link_options(amrex PUBLIC "-Wl,-U,_Z11getLevelBldv")
+          target_link_options(amrex PUBLIC "-Wl,-undefined,dynamic_lookup")
         endif()
       elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR
              CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
