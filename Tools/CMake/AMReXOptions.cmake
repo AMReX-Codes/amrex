@@ -61,6 +61,11 @@ else ()
 endif ()
 print_option( BUILD_SHARED_LIBS )
 
+#
+# Option to control generation of install targets
+#
+option(AMReX_INSTALL "Generate Install Targets" ON)
+
 
 #
 # Option to control if Fortran must be enabled  ==============================
