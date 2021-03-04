@@ -52,6 +52,63 @@ const std::size_t Arena::align_size;
 
 Arena::~Arena () {}
 
+bool
+Arena::isDeviceAccessible () const
+{
+#ifdef AMREX_USE_GPU
+    return ! arena_info.use_cpu_memory;
+#else
+    return false;
+#endif
+}
+
+bool
+Arena::isHostAccessible () const
+{
+#ifdef AMREX_USE_GPU
+    return (arena_info.use_cpu_memory ||
+            arena_info.device_use_hostalloc ||
+            arena_info.device_use_managed_memory);
+#else
+    return true;
+#endif
+}
+
+bool
+Arena::isManaged () const
+{
+#ifdef AMREX_USE_GPU
+    return (! arena_info.use_cpu_memory)
+        && (! arena_info.device_use_hostalloc)
+        &&    arena_info.device_use_managed_memory;
+#else
+    return false;
+#endif
+}
+
+bool
+Arena::isDevice () const
+{
+#ifdef AMREX_USE_GPU
+    return (! arena_info.use_cpu_memory)
+        && (! arena_info.device_use_hostalloc)
+        && (! arena_info.device_use_managed_memory);
+#else
+    return false;
+#endif
+}
+
+bool
+Arena::isPinned () const
+{
+#ifdef AMREX_USE_GPU
+    return (! arena_info.use_cpu_memory)
+        &&    arena_info.device_use_hostalloc;
+#else
+    return false;
+#endif
+}
+
 std::size_t
 Arena::align (std::size_t s)
 {

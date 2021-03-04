@@ -86,7 +86,11 @@ else
 endif
 
 ifeq ($(WARN_ALL),TRUE)
-  warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code
+  warning_flags = -Wall -Wextra -Wunreachable-code
+
+  ifeq ($(WARN_SIGN_COMPARE),FALSE)
+    warning_flags += -Wno-sign-compare
+  endif
 
   ifneq ($(USE_CUDA),TRUE)
     # With -Wpedantic I got 650 MB of warnings

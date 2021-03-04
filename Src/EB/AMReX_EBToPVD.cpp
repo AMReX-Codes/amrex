@@ -400,7 +400,7 @@ void EBToPVD::print_connectivity(std::ofstream& myfile) const
    myfile << "<Polys>\n";
    myfile << "<DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">\n";
    for(size_t lc1 = 0; lc1 < m_connectivity.size(); ++lc1) {
-      for(size_t lc2 = 1; lc2 <= m_connectivity[lc1][0]; ++lc2) {
+      for(int lc2 = 1; lc2 <= m_connectivity[lc1][0]; ++lc2) {
          myfile << " " << m_connectivity[lc1][lc2];
       }
       myfile << "\n";

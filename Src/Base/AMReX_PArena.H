@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Arena.H>
+#include <AMReX_GpuControl.H>
 
 #ifdef AMREX_USE_CUDA
 #include <cuda.h>
@@ -28,7 +29,14 @@ public:
     virtual void* alloc (std::size_t nbytes) override final;
     virtual void free (void* p) override final;
 
-#if (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 2)))
+    virtual bool isDeviceAccessible () const override final;
+    virtual bool isHostAccessible () const override final;
+
+    virtual bool isManaged () const override final;
+    virtual bool isDevice () const override final;
+    virtual bool isPinned () const override final;
+
+#ifdef AMREX_CUDA_GE_11_2
 private:
     cudaMemPool_t m_pool;
     cuuint64_t m_old_release_threshold;

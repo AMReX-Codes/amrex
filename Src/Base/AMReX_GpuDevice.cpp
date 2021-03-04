@@ -409,7 +409,7 @@ Device::initialize_gpu ()
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 4 || (device_prop.major == 3 && device_prop.minor >= 5),
                                      "Compute capability must be >= 3.5");
 
-#if (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 2)) )
+#ifdef AMREX_CUDA_GE_11_2
     cudaDeviceGetAttribute(&memory_pools_supported, cudaDevAttrMemoryPoolsSupported, device_id);
 #endif
 

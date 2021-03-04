@@ -11,7 +11,7 @@ namespace amrex {
 
 PArena::PArena (Long release_threshold)
 {
-#if (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 2)))
+#ifdef AMREX_CUDA_GE_11_2
     AMREX_CUDA_SAFE_CALL(cudaDeviceGetMemPool(&m_pool, Gpu::Device::deviceId()));
     AMREX_CUDA_SAFE_CALL(cudaMemPoolGetAttribute(m_pool, cudaMemPoolAttrReleaseThreshold,
                                                  &m_old_release_threshold));
@@ -24,7 +24,7 @@ PArena::PArena (Long release_threshold)
 
 PArena::~PArena ()
 {
-#if (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 2)))
+#ifdef AMREX_CUDA_GE_11_2
     AMREX_CUDA_SAFE_CALL(cudaMemPoolSetAttribute(m_pool, cudaMemPoolAttrReleaseThreshold,
                                                  &m_old_release_threshold));
 #endif
@@ -35,7 +35,7 @@ PArena::alloc (std::size_t nbytes)
 {
 #if defined(AMREX_USE_GPU)
 
-#if (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 2)))
+#ifdef AMREX_CUDA_GE_11_2
     if (Gpu::Device::memoryPoolsSupported()) {
         void* p;
         AMREX_CUDA_SAFE_CALL(cudaMallocAsync(&p, nbytes, m_pool, Gpu::gpuStream()));
@@ -66,7 +66,7 @@ PArena::free (void* p)
 {
 #if defined(AMREX_USE_GPU)
 
-#if (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 2)) )
+#ifdef AMREX_CUDA_GE_11_2
     if (Gpu::Device::memoryPoolsSupported()) {
         AMREX_CUDA_SAFE_CALL(cudaFreeAsync(p, Gpu::gpuStream()));
     } else
@@ -87,6 +87,91 @@ PArena::free (void* p)
 
     The_Arena()->free(p);
 
+#endif
+}
+
+bool
+PArena::isDeviceAccessible () const
+{
+#ifdef AMREX_USE_GPU
+#ifdef AMREX_CUDA_GE_11_2
+    if (Gpu::Device::memoryPoolsSupported()) {
+        return true;
+    } else
+#endif
+    {
+        return The_Arena()->isDeviceAccessible();
+    }
+#else
+    return false;
+#endif
+}
+
+bool
+PArena::isHostAccessible () const
+{
+#ifdef AMREX_USE_GPU
+#ifdef AMREX_CUDA_GE_11_2
+    if (Gpu::Device::memoryPoolsSupported()) {
+        return false; // cudaMallocAsync allocates device memory
+    } else
+#endif
+    {
+        return The_Arena()->isHostAccessible();
+    }
+#else
+    return true;
+#endif
+}
+
+bool
+PArena::isManaged () const
+{
+#ifdef AMREX_USE_GPU
+#ifdef AMREX_CUDA_GE_11_2
+    if (Gpu::Device::memoryPoolsSupported()) {
+        return false; // cudaMallocAsync allocates device memory
+    } else
+#endif
+    {
+        return The_Arena()->isManaged();
+    }
+#else
+    return false;
+#endif
+}
+
+bool
+PArena::isDevice () const
+{
+#ifdef AMREX_USE_GPU
+#ifdef AMREX_CUDA_GE_11_2
+    if (Gpu::Device::memoryPoolsSupported()) {
+        return true; // cudaMallocAsync allocates device memory
+    } else
+#endif
+    {
+        return The_Arena()->isDevice();
+    }
+#else
+    return false;
+#endif
+}
+
+bool
+PArena::isPinned () const
+{
+#ifdef AMREX_USE_GPU
+#ifdef AMREX_CUDA_GE_11_2
+    if (Gpu::Device::memoryPoolsSupported()) {
+        return false; // cudaMallocAsync allocates device memory
+    } else
+#endif
+    {
+        return The_Arena()->isPinned();
+    }
+#else
+    return false;
 #endif
 }
 

@@ -960,7 +960,7 @@ bool
 FabArray<FAB>::defined (int K) const noexcept
 {
     int li = localindex(K);
-    if (li >= 0 && li < m_fabs_v.size() && m_fabs_v[li] != 0) {
+    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != 0) {
 	return true;
     }
     else {
