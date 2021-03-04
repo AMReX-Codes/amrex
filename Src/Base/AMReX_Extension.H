@@ -133,6 +133,8 @@
 #define AMREX_ATTRIBUTE_WEAK 
 #elif defined(_WIN32)
 #define AMREX_ATTRIBUTE_WEAK
+#elif defined(__clang__) && defined(__apple_build_version__)
+#define AMREX_ATTRIBUTE_WEAK __attribute__((weak_import))
 #else
 #define AMREX_ATTRIBUTE_WEAK __attribute__((weak))
 #endif
