@@ -368,7 +368,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
     handler.mpi_tag = SeqNum;
 
     if (N_rcvs > 0) {
-        handler.the_recv_data = FabArray<FAB>::PostRcvs(*cmd.m_RcvTags, handler.recv_data, handler.recv_size,
+        handler.the_recv_data = mf.PostRcvs(*cmd.m_RcvTags, handler.recv_data, handler.recv_size,
                     handler.recv_from, handler.recv_reqs, ncomp, SeqNum);
     }
 
@@ -378,7 +378,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
         Vector<int> send_rank;
         Vector<char*> send_data;
         Vector<const FabArrayBase::CopyComTagsContainer*> send_cctc;
-        handler.the_send_data = FabArray<FAB>::PrepareSendBuffers(*cmd.m_SndTags, send_data,
+        handler.the_send_data = mf.PrepareSendBuffers(*cmd.m_SndTags, send_data,
                               send_size, send_rank, handler.send_reqs, send_cctc, ncomp);
 
 #ifdef AMREX_USE_GPU
