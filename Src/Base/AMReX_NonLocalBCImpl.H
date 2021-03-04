@@ -368,10 +368,8 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
     handler.mpi_tag = SeqNum;
 
     if (N_rcvs > 0) {
-        char* the_recv_data = nullptr;
-        mf.PostRcvs(*cmd.m_RcvTags, the_recv_data, handler.recv_data, handler.recv_size,
+        handler.the_recv_data = FabArray<FAB>::PostRcvs(*cmd.m_RcvTags, handler.recv_data, handler.recv_size,
                     handler.recv_from, handler.recv_reqs, ncomp, SeqNum);
-        handler.the_recv_data.reset(the_recv_data);
     }
 
     if (N_snds > 0)
@@ -380,10 +378,8 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
         Vector<int> send_rank;
         Vector<char*> send_data;
         Vector<const FabArrayBase::CopyComTagsContainer*> send_cctc;
-        char* the_send_data = nullptr;
-        mf.PrepareSendBuffers(*cmd.m_SndTags, the_send_data, send_data,
+        handler.the_send_data = FabArray<FAB>::PrepareSendBuffers(*cmd.m_SndTags, send_data,
                               send_size, send_rank, handler.send_reqs, send_cctc, ncomp);
-        handler.the_send_data.reset(the_send_data);
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
