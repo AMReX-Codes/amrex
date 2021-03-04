@@ -313,13 +313,6 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
 struct CommHandler
 {
 #ifdef AMREX_USE_MPI
-    struct TheFaArenaDeleter {
-        using pointer = char*;
-        void operator()(pointer p) const noexcept {
-            The_FA_Arena()->free(p);
-        }
-    };
-    using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
     int mpi_tag;
     TheFaArenaPointer the_recv_data = nullptr;
     TheFaArenaPointer the_send_data = nullptr;

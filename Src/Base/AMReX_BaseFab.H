@@ -296,7 +296,7 @@ public:
     }
 
     //! Returns bytes used in the Box for those components
-    std::size_t nBytes (const Box& bx, int ncomps) const noexcept
+    static std::size_t nBytes (const Box& bx, int ncomps) noexcept
         { return bx.numPts() * sizeof(T) * ncomps; }
 
     //! Returns the number of components
