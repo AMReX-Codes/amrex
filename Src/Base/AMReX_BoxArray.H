@@ -52,7 +52,6 @@ namespace amrex
     //! Note that two BoxArrays that match are not necessarily equal.
     bool match (const BoxArray& x, const BoxArray& y);
 
-// \cond CODEGEN
 struct BARef
 {
     BARef ();
