@@ -925,7 +925,7 @@ void FillPolar (FabArray<FArrayBox>& mf, Box const& domain);
 }}
 
 
-#if not(AMREX_HAS_STATIC_ASSERT_NO_MESSAGE)
+#if AMREX_HAS_STATIC_ASSERT_NO_MESSAGE == 0
 #  undef AMREX_STATIC_ASSERT_NO_MESSAGE
 #endif
 
