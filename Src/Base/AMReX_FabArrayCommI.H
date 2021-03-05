@@ -484,7 +484,6 @@ FabArray<FAB>::ParallelCopy_finish ()
 
     const int N_snds = thecpc.m_SndTags->size();
     const int N_rcvs = thecpc.m_RcvTags->size();
-    const int N_locs = thecpc.m_LocTags->size();
 
     if (N_rcvs > 0)
     {
