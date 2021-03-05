@@ -573,9 +573,25 @@ void PostSends(CommData& comm, int mpi_tag);
 
 using pack_components::PackComponents;
 
-namespace traits {
-template <typename DataPacking>
-using Components_t = decltype(Components(std::declval<DataPacking>()));
+template <typename... Args>
+using PrepareSendBuffers_t = decltype(PrepareSendBuffers(std::declval<Args>()...));
+
+template <typename... Args>
+using PrepareRecvBuffers_t = decltype(PrepareRecvBuffers(std::declval<Args>()...));
+
+template <typename... Args>
+using PackSendBuffers_t = decltype(PackSendBuffers(std::declval<Args>()...));
+
+template <typename... Args>
+using UnpackRecvBuffer_t = decltype(UnpackRecvBuffer(std::declval<Args>()...));
+
+template <typename... Args>
+using LocalCopy_t = decltype(LocalCopy(std::declval<Args>()...));
+
+template <typename DP, typename FAB>
+struct IsDataPacking : 
+    Conjunction<IsDetected<PrepareSendBuffers_t, DP&, const FabArray<FAB>&, CommData&, const FabArrayBase::MapOfCopyComTagContainers&>>
+{};
 }
 
 template <typename DataPacking, typename FAB>
