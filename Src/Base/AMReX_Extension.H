@@ -151,7 +151,7 @@
 #define AMREX_FALLTHROUGH ((void)0)
 #endif
 
-#if !defined(AMREX_NO_NODISCARD) && defined(__has_cpp_attribute) && __has_cpp_attribute(nodiscard)
+#if !defined(AMREX_NO_NODISCARD) && defined(__has_cpp_attribute) && __has_cpp_attribute(nodiscard) && __cplusplus >= 201603L
 #   define AMREX_NODISCARD [[nodiscard]]
 #elif !defined(AMREX_NO_NODISCARD) && (defined(__GNUC__) || defined(__clang__))
 #   define AMREX_NODISCARD __attribute__ ((warn_unused_result))
