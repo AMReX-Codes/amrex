@@ -421,20 +421,18 @@ template <class T> struct Array4Array4Box {
     Box const& box () const noexcept { return dbox; }
 };
 
-template <class FAB, class DTOS>
-void
-local_copy_gpu (FabArray<FAB>& mf, int dcomp, int scomp, int ncomp, FabArrayBase::CommMetaData const& cmd,
-                DTOS dtos)
-{
-    auto const& LocTags = *(cmd.m_LocTags);
-    int N_locs = LocTags.size();
+template <class FAB, class DTOS = Identity, class Proj = Identity>
+EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+local_copy_gpu (FabArray<FAB>& dest, FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
+                FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos = DTOS{},
+                Proj proj = Proj{}) noexcept {
+    int N_locs = local_tags.size();
     if (N_locs == 0) return;
 
     using T = typename FAB::value_type;
     Vector<Array4Array4Box<T> > loc_copy_tags;
     loc_copy_tags.reserve(N_locs);
-    for (int itag = 0; itag < N_locs; ++itag) {
-        const auto& tag = LocTags[itag];
+    for (auto const& tag : local_tags) {
         loc_copy_tags.push_back({mf.array(tag.dstIndex), mf.const_array(tag.srcIndex), tag.dbox});
     }
 
@@ -446,13 +444,13 @@ local_copy_gpu (FabArray<FAB>& mf, int dcomp, int scomp, int ncomp, FabArrayBase
     });
 }
 
-template <class FAB, class DTOS>
-void
+template <class FAB, class DTOS = Identity, class Proj = Identity>
+EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
                         Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
-                        DTOS dtos)
+                        DTOS dtos = DTOS{}, Proj proj = Proj{})
 {
     amrex::ignore_unused(recv_size);
 
@@ -497,7 +495,7 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
                                                    Array4Array4Box<T> const& tag) noexcept
     {
         auto const si = dtos(Dim3{i,j,k});
-        tag.dfab(i,j,k,scomp+n) = tag.sfab(si.x,si.y,si.z,n);
+        tag.dfab(i,j,k,scomp+n) = proj(tag.sfab, si ,n);
     });
 
     // There is Gpu::synchronize in ParalleFor above
