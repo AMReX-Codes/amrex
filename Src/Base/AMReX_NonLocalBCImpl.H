@@ -13,10 +13,10 @@
 namespace amrex { namespace NonLocalBC {
 
 /// \ingroup type-traits
-/// Tests if a given type `IndexMap` is usable as an injective index mapping between
+/// Tests if a given type `IndexMap` is usable as an index mapping between
 /// two index based coordinate systems.
 template <class IndexMap>
-struct IsInjectiveIndexMapping : Conjunction<IsCallableR<IntVect, IndexMap&, const IntVect&>,
+struct IsIndexMapping : Conjunction<IsCallableR<IntVect, IndexMap&, const IntVect&>,
                                              IsCallableR<Dim3, IndexMap&, const Dim3&>,
                                              IsCallableR<Box, IndexMap&, const Box&>> {};
 
@@ -41,8 +41,8 @@ struct Rotate90ClockWise {
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsInjectiveIndexMapping<Rotate90ClockWise>(),
-              "Rotate90ClockWise is expected to satisfy InjectiveIndexMapping");
+static_assert(IsIndexMapping<Rotate90ClockWise>(),
+              "Rotate90ClockWise is expected to satisfy IndexMapping");
 
 /// \ingroup index-mapping
 struct Rotate90CounterClockWise {
@@ -65,8 +65,8 @@ struct Rotate90CounterClockWise {
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsInjectiveIndexMapping<Rotate90CounterClockWise>(),
-              "Rotate90CounterClockWise is expected to satisfy InjectiveIndexMapping");
+static_assert(IsIndexMapping<Rotate90CounterClockWise>(),
+              "Rotate90CounterClockWise is expected to satisfy IndexMapping");
 
 struct Rotate90DstToSrc
 {
@@ -83,7 +83,7 @@ struct Rotate90DstToSrc
 
 /// \ingroup index-mapping
 ///
-/// This facade lifts a given base class from being Dim3 -> Dim3 callable to an injective index map
+/// This facade lifts a given base class from being Dim3 -> Dim3 callable to an  index map
 /// that satisfies our concept.
 template <typename Base> struct IndexMappingFacade {
     AMREX_NO_UNIQUE_ADDRESS Base base;
@@ -121,8 +121,8 @@ template <typename Base> struct IndexMappingFacade {
     }
 };
 using Rotate90IndexMapping = IndexMappingFacade<Rotate90DstToSrc>;
-static_assert(IsInjectiveIndexMapping<Rotate90IndexMapping>(),
-              "Rotate90IndexMapping is expected to satisfy InjectiveIndexMapping");
+static_assert(IsIndexMapping<Rotate90IndexMapping>(),
+              "Rotate90IndexMapping is expected to satisfy IndexMapping");
 
 /// \ingroup index-mapping
 struct Rotate180Fn {
@@ -147,8 +147,8 @@ struct Rotate180Fn {
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsInjectiveIndexMapping<Rotate180Fn>(),
-              "Rotate180Fn is expected to satisfy InjectiveIndexMapping");
+static_assert(IsIndexMapping<Rotate180Fn>(),
+              "Rotate180Fn is expected to satisfy IndexMapping");
 
 /// \ingroup index-mapping
 struct PolarFn {
@@ -183,8 +183,8 @@ struct PolarFn {
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsInjectiveIndexMapping<PolarFn>(),
-              "PolarFn is expected to satisfy InjectiveIndexMapping");
+static_assert(IsIndexMapping<PolarFn>(),
+              "PolarFn is expected to satisfy IndexMapping");
 
 /// \ingroup index-mapping
 struct PolarFn2 { // for the x-y corners
@@ -227,8 +227,8 @@ struct PolarFn2 { // for the x-y corners
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsInjectiveIndexMapping<PolarFn2>(),
-              "PolarFn2 is expected to satisfy InjectiveIndexMapping");
+static_assert(IsIndexMapping<PolarFn2>(),
+              "PolarFn2 is expected to satisfy IndexMapping");
 
 
 //! This struct describes a bijective index transformation for two coordinate
@@ -250,8 +250,8 @@ struct MultiBlockTransformation {
   }
 };
 using MultiBlockIndexMapping = IndexMappingFacade<MultiBlockTransformation>;
-static_assert(IsInjectiveIndexMapping<MultiBlockIndexMapping>(),
-              "MultiBlockIndexMapping is expected to satisfy InjectiveIndexMapping");
+static_assert(IsIndexMapping<MultiBlockIndexMapping>(),
+              "MultiBlockIndexMapping is expected to satisfy IndexMapping");
 
 template <typename P, typename FAB>
 struct IsFabProjection
@@ -284,7 +284,7 @@ AMREX_STATIC_ASSERT_NO_MESSAGE((sizeof(Identity) == 1));
 AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_default_constructible<Identity>::value));
 AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_assignable<Identity>::value));
 AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_constructible<Identity>::value));
-AMREX_STATIC_ASSERT_NO_MESSAGE((IsInjectiveIndexMapping<Identity>()));
+AMREX_STATIC_ASSERT_NO_MESSAGE((IsIndexMapping<Identity>()));
 AMREX_STATIC_ASSERT_NO_MESSAGE((IsFabProjection<Identity, FArrayBox>()));
 
 template <typename Base, typename Map = Identity> struct MapComponents {
@@ -637,11 +637,11 @@ struct ApplyDtosAndProjectionOnReciever : PackComponents {
     AMREX_NO_UNIQUE_ADDRESS DTOS dtos;
     AMREX_NO_UNIQUE_ADDRESS FabProj proj;
 
-    static_assert(IsInjectiveIndexMapping<DTOS>(), "DTOS needs to be an injective index map");
+    static_assert(IsIndexMapping<DTOS>(), "DTOS needs to be an  index map");
 };
 
 template <typename FAB, typename DTOS, typename FabProj>
-amrex::EnableIf_t<IsBaseFab<FAB>() && IsInjectiveIndexMapping<DTOS>() && IsFabProjection<FabProj, FAB>()>
+amrex::EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<FabProj, FAB>()>
 LocalCopy(const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing, FabArray<FAB>& dest,
           const FabArray<FAB>& src, const FabArrayBase::CopyComTagsContainer& local_tags) {
     local_copy_cpu(dest, src, packing.dest_component, packing.src_component, packing.n_components,
@@ -650,7 +650,7 @@ LocalCopy(const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing, FabArr
 
 #ifdef AMREX_USE_MPI
 template <typename FAB, typename DTOS, typename FabProj>
-amrex::EnableIf_t<IsBaseFab<FAB>() && IsInjectiveIndexMapping<DTOS>() && IsFabProjection<FabProj, FAB>()>
+amrex::EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<FabProj, FAB>()>
 UnpackRecvBuffers(const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing,
                  FabArray<FAB>& dest, const CommData& comm) {
     unpack_recv_buffer_cpu(dest, packing.dest_component, packing.n_components, comm.data, comm.size,
@@ -762,13 +762,13 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
   //! This call is quadratic in the number of boxes, i.e. it is in
   //! O(dstba.size() * srcba.size()). Therefore, it might be wise to cache the
   //! construction of this object to minimize its computation.
-  template <typename DTOS, typename = EnableIf_t<IsInjectiveIndexMapping<DTOS>::value>>
+  template <typename DTOS, typename = EnableIf_t<IsIndexMapping<DTOS>::value>>
   MultiBlockCommMetaData(const FabArrayBase& dst, const Box& dstbox,
                          const FabArrayBase& src, DTOS dtos)
       : MultiBlockCommMetaData(dst.boxArray(), dst.DistributionMap(), dstbox,
                                src.boxArray(), src.DistributionMap(), dtos) {}
 
-  template <typename DTOS, typename = EnableIf_t<IsInjectiveIndexMapping<DTOS>::value>>
+  template <typename DTOS, typename = EnableIf_t<IsIndexMapping<DTOS>::value>>
   MultiBlockCommMetaData(const BoxArray& dstba,
                          const DistributionMapping& dstdm, const Box& dstbox,
                          const BoxArray& srcba,
@@ -806,7 +806,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
 };
 
 template <typename FAB, typename DTOS, typename Proj>
-EnableIf_t<IsBaseFab<FAB>() && IsInjectiveIndexMapping<DTOS>() && IsFabProjection<Proj, FAB>()>
+EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<Proj, FAB>()>
 ParallelCopy(FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, int destcomp, int srccomp, int numcomp, DTOS dtos = DTOS{}, Proj proj = Proj{})
 {
 
