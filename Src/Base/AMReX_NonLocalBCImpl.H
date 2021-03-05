@@ -706,11 +706,11 @@ static_assert(IsDataPacking<ApplyDtosAndProjectionOnReciever<>, FArrayBox>(),
 template <typename FAB, typename DataPacking, 
           typename = EnableIf_t<IsBaseFab<FAB>::value>,
           typename = EnableIf_t<IsDataPacking<DataPacking, FAB>::value>>
+#ifdef AMREX_USE_MPI
 AMREX_NODISCARD CommHandler 
 ParallelCopy_nowait (FabArray<FAB>& dest, const FabArray<FAB>& src,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     CommHandler handler{};
-#ifdef AMREX_USE_MPI
     if (ParallelContext::NProcsSub() == 1) {
         return handler;
     }
@@ -732,14 +732,20 @@ ParallelCopy_nowait (FabArray<FAB>& dest, const FabArray<FAB>& src,
         PackSendBuffers(data_packing, src, handler.send);
         PostSends(handler.send, handler.mpi_tag);
     }
-#endif
     return handler;
 }
+#else
+CommHandler ParallelCopy_nowait (FabArray<FAB>&, const FabArray<FAB>&,
+                                 const FabArrayBase::CommMetaData&, const DataPacking&) {
+    return CommHandler{};
+}
+#endif
 
 template <typename FAB, typename DataPacking>
 EnableIf_t<IsBaseFab<FAB>() && IsDataPacking<DataPacking, FAB>()>
 ParallelCopy_finish (FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler handler,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
+    amrex::ignore_unused(handler);
     // If any FabArray is empty we have nothing to do.
     if (dest.size() == 0) {
         return;
@@ -922,7 +928,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
     {
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
-            local_copy_gpu(mf, mf, scomp,scomp, ncomp, *cmd.m_LocTags, dtos);
+            local_copy_gpu(mf, mf, scomp, scomp, ncomp, *cmd.m_LocTags, dtos);
         } else
 #endif
         {
