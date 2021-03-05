@@ -117,7 +117,7 @@ def configure(argv):
     parser.add_argument("--enable-probinit",
                         help="Only relevant to Amr/AmrLevel based codes that need to read probin file or call amrex_probinit",
                         choices=["yes","no"],
-                        default="no")
+                        default="yes")
     args = parser.parse_args()
 
     if args.with_fortran == "no":
