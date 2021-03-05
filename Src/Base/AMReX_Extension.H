@@ -158,7 +158,6 @@
 #else
 #   define AMREX_NODISCARD
 #endif
-#endif
 
 #endif /* !BL_LANG_FORT */
 
