@@ -898,7 +898,10 @@ ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src,
 }
 
 template <class FAB, class DTOS>
-AMREX_NODISCARD CommHandler
+#ifdef AMREX_USE_MPI
+AMREX_NODISCARD
+#endif
+CommHandler
 Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData const& cmd,
              DTOS dtos)
 {
