@@ -851,9 +851,9 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     const int myproc = ParallelDescriptor::MyProc();
     for (int i = 0, N = dstba.size(); i < N; ++i) {
       const int dest_owner = dstdm[i];
-      Box box_mapped_in_src = dtos(dstba[i]);
+      Box partial_dstbox_mapped_in_src = dtos(dstba[i] & dstbox);
       std::vector<std::pair<int, Box>> boxes_from_src =
-          srcba.intersections(box_mapped_in_src);
+          srcba.intersections(partial_dstbox_mapped_in_src);
       for (std::pair<int, Box> counted_box : boxes_from_src) {
         const int k = counted_box.first;
         const Box box = counted_box.second;
