@@ -356,12 +356,12 @@ local_copy_cpu(FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sco
     }
 }
 
-template <class FAB, class DTOS>
-EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>()>
+template <class FAB, class DTOS = Identity, class Proj = Identity>
+EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 unpack_recv_buffer_cpu(FabArray<FAB>& mf, int scomp, int ncomp, Vector<char*> const& recv_data,
                             Vector<std::size_t> const& recv_size,
                             Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
-                            DTOS dtos) {
+                            DTOS dtos = DTOS{}, Proj proj = Proj{}) {
     amrex::ignore_unused(recv_size);
 
     const int N_rcvs = recv_cctc.size();
@@ -380,7 +380,7 @@ unpack_recv_buffer_cpu(FabArray<FAB>& mf, int scomp, int ncomp, Vector<char*> co
             auto const& sfab = amrex::makeArray4((T const*)(dptr), tag.sbox, ncomp);
             amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
                 auto const si = dtos(Dim3{i, j, k});
-                dfab(i, j, k, scomp + n) = sfab(si.x, si.y, si.z, n);
+                dfab(i, j, k, scomp + n) = proj(sfab, si, n);
             });
             dptr += tag.sbox.numPts() * ncomp * sizeof(T);
             AMREX_ASSERT(dptr <= recv_data[ircv] + recv_size[ircv]);
