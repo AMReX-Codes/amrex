@@ -363,13 +363,13 @@ AMREX_STATIC_ASSERT_NO_MESSAGE((SwapComponents{0, 1}(2) == 2));
 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
-local_copy_cpu(FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
-               FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos = DTOS{},
-               Proj proj = Proj{}) noexcept {
+local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
+                FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos = DTOS{},
+                Proj proj = Proj{}) noexcept {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-    for (const FabArrayBase::CopyComTag& tag : local_tags) {
+    for (auto const& tag : local_tags) {
         auto const& sfab = src.const_array(tag.srcIndex);
         auto const& dfab = dest.array(tag.dstIndex);
         amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
@@ -381,10 +381,10 @@ local_copy_cpu(FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sco
 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
-unpack_recv_buffer_cpu(FabArray<FAB>& mf, int scomp, int ncomp, Vector<char*> const& recv_data,
-                            Vector<std::size_t> const& recv_size,
-                            Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
-                            DTOS dtos = DTOS{}, Proj proj = Proj{}) noexcept {
+unpack_recv_buffer_cpu (FabArray<FAB>& mf, int scomp, int ncomp, Vector<char*> const& recv_data,
+                        Vector<std::size_t> const& recv_size,
+                        Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
+                        DTOS dtos = DTOS{}, Proj proj = Proj{}) noexcept {
     amrex::ignore_unused(recv_size);
 
     const int N_rcvs = recv_cctc.size();
@@ -527,6 +527,11 @@ struct CommHandler {
 #endif
 };
 
+#ifdef AMREX_USE_MPI
+void PostRecvs(CommData& comm, int mpi_tag);
+void PostSends(CommData& comm, int mpi_tag);
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////////
 //                                                             [concept.DataPacking]
 //
@@ -632,16 +637,20 @@ static_assert(IsDataPacking<PackComponents, FArrayBox>(),
 //
 template <typename DTOS = Identity, typename FabProj = Identity>
 struct ApplyDtosAndProjectionOnReciever : PackComponents {
+    constexpr ApplyDtosAndProjectionOnReciever() = default;
+    constexpr ApplyDtosAndProjectionOnReciever(const PackComponents& components, DTOS dtos_, FabProj proj_)
+        : PackComponents(components), dtos(std::move(dtos_)), proj(std::move(proj_)) {}
+
     AMREX_NO_UNIQUE_ADDRESS DTOS dtos;
     AMREX_NO_UNIQUE_ADDRESS FabProj proj;
 
-    static_assert(IsIndexMapping<DTOS>(), "DTOS needs to be an  index map");
+    static_assert(IsIndexMapping<DTOS>(), "DTOS needs to be an index map");
 };
 
 template <typename FAB, typename DTOS, typename FabProj>
 amrex::EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<FabProj, FAB>()>
-LocalCopy(const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing, FabArray<FAB>& dest,
-          const FabArray<FAB>& src, const FabArrayBase::CopyComTagsContainer& local_tags) {
+LocalCopy (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing, FabArray<FAB>& dest,
+           const FabArray<FAB>& src, const FabArrayBase::CopyComTagsContainer& local_tags) {
     local_copy_cpu(dest, src, packing.dest_component, packing.src_component, packing.n_components,
                    local_tags, packing.dtos, packing.proj);
 }
@@ -649,20 +658,15 @@ LocalCopy(const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing, FabArr
 #ifdef AMREX_USE_MPI
 template <typename FAB, typename DTOS, typename FabProj>
 amrex::EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<FabProj, FAB>()>
-UnpackRecvBuffers(const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing,
-                 FabArray<FAB>& dest, const CommData& comm) {
+UnpackRecvBuffers (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing,
+                   FabArray<FAB>& dest, const CommData& comm) {
     unpack_recv_buffer_cpu(dest, packing.dest_component, packing.n_components, comm.data, comm.size,
                            comm.cctc, packing.dtos, packing.proj);
 }
 #endif
 
 static_assert(IsDataPacking<ApplyDtosAndProjectionOnReciever<>, FArrayBox>(),
-              "ApplyDtosAndProjectionOnReciever is expected to satisfy the DataPacking concept.");
-
-#ifdef AMREX_USE_MPI
-void PostRecvs(CommData& comm, int mpi_tag);
-void PostSends(CommData& comm, int mpi_tag);
-#endif
+              "ApplyDtosAndProjectionOnReciever<> is expected to satisfy the DataPacking concept.");
 
 /// Initiate recv and send calls for MPI and immediately return without doing any work.
 ///
@@ -678,9 +682,9 @@ void PostSends(CommData& comm, int mpi_tag);
 template <typename FAB, typename DataPacking, 
           typename = EnableIf_t<IsBaseFab<FAB>::value>,
           typename = EnableIf_t<IsDataPacking<DataPacking, FAB>::value>>
-AMREX_NODISCARD CommHandler ParallelCopy_nowait(FabArray<FAB>& dest, const FabArray<FAB>& src,
-                                                const FabArrayBase::CommMetaData& cmd,
-                                                const DataPacking& data_packing) {
+AMREX_NODISCARD CommHandler 
+ParallelCopy_nowait (FabArray<FAB>& dest, const FabArray<FAB>& src,
+                     const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     CommHandler handler{};
 #ifdef AMREX_USE_MPI
     if (ParallelContext::NProcsSub() == 1) {
@@ -710,8 +714,8 @@ AMREX_NODISCARD CommHandler ParallelCopy_nowait(FabArray<FAB>& dest, const FabAr
 
 template <typename FAB, typename DataPacking>
 EnableIf_t<IsBaseFab<FAB>() && IsDataPacking<DataPacking, FAB>()>
-ParallelCopy_finish(FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler handler,
-                    const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
+ParallelCopy_finish (FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler handler,
+                     const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     // If any FabArray is empty we have nothing to do.
     if (dest.size() == 0) {
         return;
@@ -803,11 +807,24 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
   //! @}
 };
 
-template <typename FAB, typename DTOS, typename Proj>
+template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
 EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<Proj, FAB>()>
-ParallelCopy(FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, int destcomp, int srccomp, int numcomp, DTOS dtos = DTOS{}, Proj proj = Proj{})
-{
+ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src,
+              const MultiBlockCommMetaData& cmd, int destcomp, int srccomp, int numcomp,
+              DTOS dtos = DTOS{}, Proj proj = Proj{}) {
+    ApplyDtosAndProjectionOnReciever<DTOS, Proj> packing{PackComponents{destcomp, srccomp, numcomp},
+                                                         std::move(dtos), std::move(proj)};
+    CommHandler handler = ParallelCopy_nowait(dest, src, cmd, packing);
+    ParallelCopy_finish(dest, src, std::move(handler), cmd, packing);
+}
 
+template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
+EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<Proj, FAB>()>
+ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, int destcomp,
+              int srccomp, int numcomp, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
+    MultiBlockCommMetaData cmd(dest, destbox, src, dtos);
+    ParallelCopy(dest, destbox, src, cmd, destcomp, srccomp, numcomp, std::move(dtos),
+                 std::move(proj));
 }
 
 template <class FAB, class DTOS>
@@ -1069,6 +1086,10 @@ void FillPolar(FabArray<FArrayBox>& mf, int scomp, int ncomp, IntVect const& ngh
 
 extern template
 void FillPolar (FabArray<FArrayBox>& mf, Box const& domain);
+
+extern template
+void ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox, const FabArray<FArrayBox>& src, int destcomp,
+             int srccomp, int numcomp, Identity, Identity);
 
 }}
 
