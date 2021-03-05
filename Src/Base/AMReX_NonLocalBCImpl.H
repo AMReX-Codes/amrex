@@ -882,7 +882,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
     {
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
-            local_copy_gpu(mf, scomp, ncomp, cmd, dtos);
+            local_copy_gpu(mf, mf, scomp,scomp, ncomp, *cmd.m_LocTags, dtos);
         } else
 #endif
         {
