@@ -615,6 +615,21 @@ FabArray<FAB>::copyTo (FAB&       dest,
 
 #ifdef BL_USE_MPI
 template <class FAB>
+AMREX_NODISCARD TheFaArenaPointer
+FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
+                                   Vector<char*>&                       send_data,
+                                   Vector<std::size_t>&                 send_size,
+                                   Vector<int>&                         send_rank,
+                                   Vector<MPI_Request>&                 send_reqs,
+                                   Vector<const CopyComTagsContainer*>& send_cctc,
+                                   int                                  ncomp) const
+{
+    char* pointer = nullptr;
+    PrepareSendBuffers(SndTags, pointer, send_data, send_size, send_rank, send_reqs, send_cctc, ncomp);
+    return TheFaArenaPointer(pointer);
+}
+
+template <class FAB>
 void
 FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                                    char*&                               the_send_data,
@@ -699,6 +714,20 @@ FabArray<FAB>::PostSnds (Vector<char*> const&       send_data,
                 (send_data[j], send_size[j], rank, SeqNum, comm).req();
         }
     }
+}
+
+template <class FAB>
+TheFaArenaPointer FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
+                   Vector<char*>&                         recv_data,
+                   Vector<std::size_t>&                   recv_size,
+                   Vector<int>&                           recv_from,
+                   Vector<MPI_Request>&                   recv_reqs,
+                   int                                    ncomp,
+                   int                                    SeqNum) const
+{
+    char* pointer = nullptr;
+    PostRcvs(RcvTags, pointer, recv_data, recv_size, recv_from, recv_reqs, ncomp, SeqNum);
+    return TheFaArenaPointer(pointer);
 }
 
 template <class FAB>

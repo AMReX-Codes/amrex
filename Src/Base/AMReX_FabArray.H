@@ -137,6 +137,14 @@ struct MFInfo {
     }
 };
 
+struct TheFaArenaDeleter {
+    using pointer = char*;
+    void operator()(pointer p) const noexcept {
+        The_FA_Arena()->free(p);
+    }
+};
+using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
+
 template <class FAB>
 class FabArray
     :
@@ -885,6 +893,7 @@ private:
 public:
 
 #ifdef BL_USE_MPI
+
     //! Prepost nonblocking receives
     void PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
                    char*&                                 the_recv_data,
@@ -895,8 +904,25 @@ public:
                    int                                    ncomp,
                    int                                    SeqNum) const;
 
+    
+    AMREX_NODISCARD TheFaArenaPointer PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
+                   Vector<char*>&                         recv_data,
+                   Vector<std::size_t>&                   recv_size,
+                   Vector<int>&                           recv_from,
+                   Vector<MPI_Request>&                   recv_reqs,
+                   int                                    ncomp,
+                   int                                    SeqNum) const;
+
     void PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                              char*&                               the_send_data,
+                             Vector<char*>&                       send_data,
+                             Vector<std::size_t>&                 send_size,
+                             Vector<int>&                         send_rank,
+                             Vector<MPI_Request>&                 send_reqs,
+                             Vector<const CopyComTagsContainer*>& send_cctc,
+                             int                                  ncomp) const;
+
+    AMREX_NODISCARD TheFaArenaPointer PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                              Vector<char*>&                       send_data,
                              Vector<std::size_t>&                 send_size,
                              Vector<int>&                         send_rank,
