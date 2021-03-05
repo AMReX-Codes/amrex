@@ -531,8 +531,8 @@ PrepareRecvBuffers(const PackComponents& components, const FabArray<FAB>& mf, Co
 }
 
 template <typename FAB>
-amrex::EnableIf_t<IsBaseFab<FAB>::value> PackSendBuffers(const PackComponents& components,
-                                                         const FabArray<FAB>& src, CommData& comm) {
+amrex::EnableIf_t<IsBaseFab<FAB>::value>
+PackSendBuffers(const PackComponents& components, const FabArray<FAB>& src, CommData& comm) {
     FabArray<FAB>::pack_send_buffer_cpu(src, components.src_component, components.n_components,
                                         comm.data, comm.size, comm.cctc);
 }
