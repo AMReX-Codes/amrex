@@ -124,6 +124,119 @@ namespace amrex
     {
         static constexpr bool value = std::is_same<T,U1>::value && Same<T,Us...>::value;
     };
+
+    ////////////////////////////////////////////////////////////////////////////////
+    //                                                          [traits.is_detected]
+
+    /// \defgroup type-traits Type Traits
+    /// Type traits are used to enforce requirements on types with SFINAE.
+
+    template <class...> using void_t = void;
+
+    template <typename T> struct nodeduce { using type = T; };
+    template <typename T> using nodeduce_t = typename nodeduce<T>::type;
+
+    struct nonesuch {
+        nonesuch() = delete;
+        ~nonesuch() = delete;
+        nonesuch(nonesuch const&) = delete;
+        void operator=(nonesuch const&) = delete;
+    };
+
+    namespace detail {
+        template <class Default, class AlwaysVoid, template <class...> class Op,
+                class... Args>
+        struct detector {
+            using value_t = std::false_type;
+            using type = Default;
+        };
+
+        template <class Default, template <class...> class Op, class... Args>
+        struct detector<Default, void_t<Op<Args...>>, Op, Args...> {
+            using value_t = std::true_type;
+            using type = Op<Args...>;
+        };
+
+        template <template <class...> class Op, class... Args>
+        using is_detected =
+            typename detail::detector<nonesuch, void, Op, Args...>::value_t;
+
+        /// \ingroup type-traits
+        /// Returns the type of `Op<Args...>` or `nonesuch`
+        template <template <class...> class Op, class... Args>
+        using detected_t = typename detail::detector<nonesuch, void, Op, Args...>::type;
+
+        template <class Default, template <class...> class Op, class... Args>
+        using detected_or = detail::detector<Default, void, Op, Args...>;
+
+        template <class Default, template <class...> class Op, class... Args>
+        using detected_or_t = typename detected_or<Default, Op, Args...>::type;
+
+        template <class Expected, template <typename...> class Op, class... Args>
+        using is_detected_exact = std::is_same<Expected, detected_t<Op, Args...>>;
+    } // namespace detail
+
+    /// \ingroup type-traits
+    /// This is `std::true_type` if `Op<Args...>` is a valid SFINAE expression.
+    template <template <class...> class Op, class... Args>
+    struct IsDetected : detail::is_detected<Op, Args...> {};
+
+    /// \ingroup type-traits
+    /// Returns the type of `Op<Args...>` or `nonesuch`
+    template <template <class...> class Op, class... Args>
+    using Detected_t = detail::detected_t<Op, Args...>;
+
+    /// \ingroup type-traits
+    /// Returns the type of `Op<Args...>` or `Default`
+    template <class Default, template <class...> class Op, class... Args>
+    struct DetectedOr : detail::detected_or<Default, Op, Args...> {};
+
+    /// \ingroup type-traits
+    /// This is `std::true_type` if `Op<Args...>` is a valid SFINAE expression and
+    /// the return type is exactly `Expected`.
+    template <class Expected, template <typename...> class Op, class... Args>
+    struct IsDetectedExact : detail::is_detected_exact<Expected, Op, Args...> {};
+
+    namespace detail {
+        template <typename T, typename... Args>
+        using call_result_t = decltype(std::declval<T>()(std::declval<Args>()...));
+    }
+
+    /// @{
+    /// \ingroup type-traits
+    /// This is different from std::is_invocable since it only cares for the call syntax f(args...)
+    /// and disregards pointers to class methods and such.
+    template <typename T, typename... Args>
+    struct IsCallable : IsDetected<detail::call_result_t, T, Args...> {};
+
+    template <typename R, typename T, typename... Args>
+    struct IsCallableR : IsDetectedExact<R, detail::call_result_t, T, Args...> {};
+    /// @}
+
+    #if defined(__cpp_lib_logical_traits)
+    template <typename... Args> using Conjunction = std::conjunction<Args...>;
+    template <typename... Args> using Disjunction = std::disjunction<Args...>;
+    template <typename... Args> using Negation = std::negation<Args...>;
+    #elif defined(__cpp_lib_experimental_logical_traits)
+    template <typename... Args> using Conjunction = std::experimental::conjunction<Args...>;
+    template <typename... Args> using Disjunction = std::experimental::disjunction<Args...>;
+    template <typename... Args> using Negation = std::experimental::negation<Args...>;
+    #else
+    template <class...> struct Conjunction : std::true_type {};
+    template <class B1> struct Conjunction<B1> : B1 {};
+    template <class B1, class... Bn>
+    struct Conjunction<B1, Bn...>
+    : std::conditional_t<bool(B1::value), Conjunction<Bn...>, B1> {};
+
+    template <class...> struct Disjunction : std::false_type {};
+    template <class B1> struct Disjunction<B1> : B1 {};
+    template <class B1, class... Bn>
+    struct Disjunction<B1, Bn...>
+    : std::conditional_t<bool(B1::value), B1, Disjunction<Bn...>> {};
+
+    template <class Bool>
+    using Negation = std::integral_constant<bool, !bool(Bool::value)>;
+    #endif
 }
 
 #endif

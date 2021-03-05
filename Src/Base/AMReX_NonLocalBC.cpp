@@ -1,0 +1,43 @@
+#include "AMReX_NonLocalBC.H"
+
+namespace amrex {
+namespace NonLocalBC {
+
+void PostRecvs(CommData& recv, int mpi_tag) {
+    const int n_recv = recv.data.size();
+    BL_ASSERT(n_recv == recv.offset.size());
+    BL_ASSERT(n_recv == recv.size.size());
+    BL_ASSERT(n_recv == recv.rank.size());
+    BL_ASSERT(n_recv == recv.request.size());
+    MPI_Comm comm = ParallelContext::CommunicatorSub();
+    char* const the_recv_data = recv.the_data.get();
+    for (int i = 0; i < recv.data.size(); ++i) {
+        recv.data[i] = the_recv_data + recv.offset[i];
+        if (recv.size[i] > 0) {
+            const int rank = ParallelContext::global_to_local_rank(recv.rank[i]);
+            recv.request[i] =
+                ParallelDescriptor::Arecv(recv.data[i], recv.size[i], rank, mpi_tag, comm).req();
+        }
+    }
+}
+
+void PostSends(CommData& comm, int mpi_tag);
+
+
+template void Rotate90(FabArray<FArrayBox>& mf, int scomp, int ncomp, IntVect const& nghost,
+                       Box const& domain);
+
+template void Rotate90(FabArray<FArrayBox>& mf, Box const& domain);
+
+template void Rotate180(FabArray<FArrayBox>& mf, int scomp, int ncomp, IntVect const& nghost,
+                        Box const& domain);
+
+template void Rotate180(FabArray<FArrayBox>& mf, Box const& domain);
+
+template void FillPolar(FabArray<FArrayBox>& mf, int scomp, int ncomp, IntVect const& nghost,
+                        Box const& domain);
+
+template void FillPolar(FabArray<FArrayBox>& mf, Box const& domain);
+
+} // namespace NonLocalBC
+} // namespace amrex

@@ -1,9 +1,19 @@
 #ifndef AMREX_NONLOCAL_BC_IMPL_H_
 #define AMREX_NONLOCAL_BC_IMPL_H_
 #include <AMReX_Config.H>
+#include <AMReX_TypeTraits.H>
 
 namespace amrex { namespace NonLocalBC {
 
+/// \ingroup type-traits
+/// Tests if a given type `IndexMap` is usable as an injective index mapping between
+/// two index based coordinate systems.
+template <class IndexMap>
+struct IsInjectiveIndexMapping : Conjunction<IsCallableR<IntVect, IndexMap&, const IntVect&>,
+                                             IsCallableR<Dim3, IndexMap&, const Dim3&>,
+                                             IsCallableR<Box, IndexMap&, const Box&>> {};
+
+/// \ingroup index-mapping
 struct Rotate90ClockWise {
     AMREX_GPU_HOST_DEVICE
     IntVect operator() (IntVect const& iv) const noexcept {
@@ -24,7 +34,9 @@ struct Rotate90ClockWise {
                                                    box.bigEnd  (2))}));
     }
 };
+static_assert(IsInjectiveIndexMapping<Rotate90ClockWise>());
 
+/// \ingroup index-mapping
 struct Rotate90CounterClockWise {
     AMREX_GPU_HOST_DEVICE
     IntVect operator() (IntVect const& iv) const noexcept {
@@ -45,6 +57,7 @@ struct Rotate90CounterClockWise {
                                                    box.bigEnd  (2))}));
     }
 };
+static_assert(IsInjectiveIndexMapping<Rotate90CounterClockWise>());
 
 struct Rotate90DstToSrc
 {
@@ -58,6 +71,49 @@ struct Rotate90DstToSrc
     }
 };
 
+
+/// \ingroup index-mapping
+///
+/// This facade lifts a given base class from being Dim3 -> Dim3 callable to an injective index map
+/// that satisfies our concept.
+template <typename Base> struct IndexMappingFacade {
+    AMREX_NO_UNIQUE_ADDRESS Base base;
+
+    static_assert(IsCallableR<Dim3, Base, Dim3>());
+
+    static constexpr bool is_noexcept_callable = noexcept(base(Dim3{}));
+
+    AMREX_GPU_HOST_DEVICE
+    IntVect operator()(IntVect const& iv) const noexcept(is_noexcept_callable) {
+        Dim3 i{};
+        AMREX_D_DECL(i.x = iv[0], i.y = iv[1], i.z = iv[2]);
+        i = base(i);
+        return {AMREX_D_DECL(i.x, i.y, i.z)};
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    constexpr Dim3 operator()(Dim3 i) const noexcept(is_noexcept_callable) { return base(i); }
+
+    //! Performs the index mapping on each member of the box and returns a valid
+    //! box.
+    //!
+    //! \return Returns the smallest box that contains each mapped index.
+    Box operator()(const Box& box) const noexcept(is_noexcept_callable) {
+        IntVect mapped_smallEnd = this->operator()(box.smallEnd());
+        IntVect mapped_bigEnd = this->operator()(box.bigEnd());
+        IntVect smallEnd;
+        IntVect bigEnd;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            smallEnd[d] = std::min(mapped_smallEnd[d], mapped_bigEnd[d]);
+            bigEnd[d] = std::max(mapped_smallEnd[d], mapped_bigEnd[d]);
+        }
+        return Box{smallEnd, bigEnd};
+    }
+};
+using Rotate90IndexMapping = IndexMappingFacade<Rotate90DstToSrc>;
+static_assert(IsInjectiveIndexMapping<Rotate90IndexMapping>());
+
+/// \ingroup index-mapping
 struct Rotate180Fn {
     int Ly;
 
@@ -80,7 +136,9 @@ struct Rotate180Fn {
                                                    box.bigEnd  (2))}));
     }
 };
+static_assert(IsInjectiveIndexMapping<Rotate90CounterClockWise>());
 
+/// \ingroup index-mapping
 struct PolarFn {
     int Lx, Ly;
 
@@ -113,7 +171,9 @@ struct PolarFn {
                                                    box.bigEnd  (2))}));
     }
 };
+static_assert(IsInjectiveIndexMapping<Rotate90CounterClockWise>());
 
+/// \ingroup index-mapping
 struct PolarFn2 { // for the x-y corners
     int Lx, Ly;
 
@@ -154,42 +214,146 @@ struct PolarFn2 { // for the x-y corners
                                                    box.bigEnd  (2))}));
     }
 };
+static_assert(IsInjectiveIndexMapping<Rotate90CounterClockWise>());
 
-template <class FAB, class DTOS>
-void
-local_copy_cpu (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData const& cmd,
-                DTOS dtos)
-{
-    auto const& LocTags = *(cmd.m_LocTags);
-    int N_locs = LocTags.size();
-    if (N_locs == 0) return;
+template <typename P, typename FAB>
+struct IsFabProjection
+    : Conjunction<IsCallableR<typename FAB::value_type, P, Array4<const typename FAB::value_type>,
+                              Dim3, int>> {};
+
+/// \ingroup index-mapping
+/// \ingroup fab-projection
+/// \ingroup component-mapping
+///
+/// This type acts as a default no-op operator 
+struct IdentityDestToSrc {
+    constexpr Dim3 operator()(Dim3 i) const noexcept { return i; }
+};
+
+struct Identity : IndexMappingFacade<IdentityDestToSrc> {
+    using IndexMappingFacade<IdentityDestToSrc>::operator();
+
+    template <typename T>
+    constexpr T operator()(Array4<const T> array, Dim3 i, int comp = 0) const
+        noexcept(noexcept(array(i.x, i.y, i.z, comp))) {
+        return array(i.x, i.y, i.z, comp);
+    }
+
+    constexpr int operator()(int i) const noexcept { return i; }
+};
+static constexpr Identity identity{};
+static_assert(sizeof(Identity) == 1);
+static_assert(std::is_trivially_default_constructible<Identity>::value);
+static_assert(std::is_trivially_copy_assignable<Identity>::value);
+static_assert(std::is_trivially_copy_constructible<Identity>::value);
+
+static_assert(IsInjectiveIndexMapping<Identity>());
+static_assert(IsFabProjection<Identity, FArrayBox>());
+
+template <typename Base, typename Map = Identity> struct MapComponents {
+    static_assert(IsCallable<Base, Array4<const Real>, Dim3, int>::value,
+                  "Base needs to be a callable function: (Array4<const T>, Dim3, i) -> auto.");
+
+    static_assert(IsCallableR<int, Map, int>::value,
+                  "Map needs to be a callable function: int -> int.");
+
+    AMREX_NO_UNIQUE_ADDRESS Base base;
+    AMREX_NO_UNIQUE_ADDRESS Map map;
+
+    template <typename T,
+              typename = EnableIf_t<IsCallable<Base, Array4<const Real>, Dim3, int>::value>,
+              typename = EnableIf_t<IsCallableR<int, Map, int>::value>>
+    constexpr decltype(auto) operator()(Array4<const T> array, Dim3 i, int comp) const
+        noexcept(noexcept(base(array, i, map(comp)))) {
+        return base(array, i, map(comp));
+    }
+};
+#ifdef AMREX_HAS_NO_UNIQUE_ADDRESS
+static_assert(sizeof(MapComponents<Identity, Identity>) == 1);
+#endif
+static_assert(std::is_trivially_copy_assignable<MapComponents<Identity>>());
+static_assert(std::is_trivially_copy_constructible<MapComponents<Identity>>());
+
+#ifdef AMREX_DEFINE_SWAP_INDICES_OPERATOR
+#error "The AMREX_DEFINE_SWAP_INDICES_OPERATOR macro is already defined"
+#endif
+#define AMREX_DEFINE_SWAP_INDICES_OPERATOR                                                         \
+    constexpr int operator()(int i) const noexcept {                                               \
+        const int map[2] = {I, J};                                                                 \
+        return i == I || i == J ? map[std::size_t(i == I)] : i;                                    \
+    }
+
+template <int I, int J> struct SwapIndices { AMREX_DEFINE_SWAP_INDICES_OPERATOR };
+
+template <int I> struct SwapIndices<I, -1> {
+    int J;
+    AMREX_DEFINE_SWAP_INDICES_OPERATOR
+};
+
+template <int J> struct SwapIndices<-1, J> {
+    int I;
+    AMREX_DEFINE_SWAP_INDICES_OPERATOR
+};
+
+template <> struct SwapIndices<-1, -1> {
+    int I;
+    int J;
+    AMREX_DEFINE_SWAP_INDICES_OPERATOR
+};
+#undef AMREX_DEFINE_SWAP_INDICES_OPERATOR
+
+template <int I, int J> static constexpr SwapIndices<I, J> swap_indices{};
+using SwapComponents = SwapIndices<-1, -1>;
+
+static_assert(sizeof(SwapIndices<0, 1>) == 1);
+static_assert(sizeof(SwapComponents) == 2 * sizeof(int));
+static_assert(sizeof(SwapIndices<0, -1>) == sizeof(int));
+static_assert(sizeof(SwapIndices<-1, 1>) == sizeof(int));
+#ifdef AMREX_HAS_NO_UNIQUE_ADDRESS
+static_assert(sizeof(MapComponents<Identity, SwapIndices<0, 1>>) == sizeof(SwapIndices<0, 1>));
+#endif
+static_assert(
+    std::is_trivially_default_constructible<MapComponents<Identity, SwapIndices<0, 1>>>());
+static_assert(std::is_trivially_copy_assignable<MapComponents<Identity, SwapIndices<0, 1>>>());
+static_assert(std::is_trivially_copy_constructible<MapComponents<Identity, SwapIndices<0, 1>>>());
+static_assert(IsFabProjection<MapComponents<Identity, SwapIndices<0, 1>>, FArrayBox>());
+
+static_assert(swap_indices<0, 1>(0) == 1);
+static_assert(swap_indices<0, 1>(1) == 0);
+static_assert(swap_indices<0, 1>(2) == 2);
+static_assert(SwapComponents{0, 1}(0) == 1);
+static_assert(SwapComponents{0, 1}(1) == 0);
+static_assert(SwapComponents{0, 1}(2) == 2);
+
+template <class FAB, class DTOS = Identity, class Proj = Identity>
+EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+local_copy_cpu(FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
+               FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos = DTOS{},
+               Proj proj = Proj{}) {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-    for (int itag = 0; itag < N_locs; ++itag) {
-        const auto& tag = LocTags[itag];
-        auto const& sfab = mf.const_array(tag.srcIndex);
-        auto const& dfab = mf.array      (tag.dstIndex);
-        amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=] (int i, int j, int k, int n) noexcept
-        {
-            auto const si = dtos(Dim3{i,j,k});
-            dfab(i,j,k,scomp+n) = sfab(si.x,si.y,si.z,scomp+n);
+    for (const FabArrayBase::CopyComTag& tag : local_tags) {
+        auto const& sfab = src.const_array(tag.srcIndex);
+        auto const& dfab = dest.array(tag.dstIndex);
+        amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
+            auto const si = dtos(Dim3{i, j, k});
+            dfab(i, j, k, dcomp + n) = proj(sfab, si, scomp + n);
         });
     }
 }
 
 template <class FAB, class DTOS>
-void
-unpack_recv_buffer_cpu (FabArray<FAB>& mf, int scomp, int ncomp,
-                        Vector<char*> const& recv_data,
-                        Vector<std::size_t> const& recv_size,
-                        Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
-                        DTOS dtos)
-{
+EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>()>
+unpack_recv_buffer_cpu(FabArray<FAB>& mf, int scomp, int ncomp, Vector<char*> const& recv_data,
+                            Vector<std::size_t> const& recv_size,
+                            Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
+                            DTOS dtos) {
     amrex::ignore_unused(recv_size);
 
     const int N_rcvs = recv_cctc.size();
-    if (N_rcvs == 0) return;
+    if (N_rcvs == 0)
+        return;
 
     using T = typename FAB::value_type;
 #ifdef AMREX_USE_OMP
@@ -201,10 +365,9 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int scomp, int ncomp,
         for (auto const& tag : cctc) {
             auto const& dfab = mf.array(tag.dstIndex);
             auto const& sfab = amrex::makeArray4((T const*)(dptr), tag.sbox, ncomp);
-            amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=] (int i, int j, int k, int n) noexcept
-            {
-                auto const si = dtos(Dim3{i,j,k});
-                dfab(i,j,k,scomp+n) = sfab(si.x,si.y,si.z,n);
+            amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
+                auto const si = dtos(Dim3{i, j, k});
+                dfab(i, j, k, scomp + n) = sfab(si.x, si.y, si.z, n);
             });
             dptr += tag.sbox.numPts() * ncomp * sizeof(T);
             AMREX_ASSERT(dptr <= recv_data[ircv] + recv_size[ircv]);
@@ -213,8 +376,7 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int scomp, int ncomp,
 }
 
 #ifdef AMREX_USE_GPU
-template <class T>
-struct Array4Array4Box {
+template <class T> struct Array4Array4Box {
     Array4<T      > dfab;
     Array4<T const> sfab;
     Box dbox;
@@ -225,7 +387,7 @@ struct Array4Array4Box {
 
 template <class FAB, class DTOS>
 void
-local_copy_gpu (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData const& cmd,
+local_copy_gpu (FabArray<FAB>& mf, int dcomp, int scomp, int ncomp, FabArrayBase::CommMetaData const& cmd,
                 DTOS dtos)
 {
     auto const& LocTags = *(cmd.m_LocTags);
@@ -244,7 +406,7 @@ local_copy_gpu (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaD
                                                             Array4Array4Box<T> const& tag) noexcept
     {
         auto const si = dtos(Dim3{i,j,k});
-        tag.dfab(i,j,k,scomp+n) = tag.sfab(si.x,si.y,si.z,scomp+n);
+        tag.dfab(i,j,k,dcomp+n) = tag.sfab(si.x,si.y,si.z,scomp+n);
     });
 }
 
@@ -310,24 +472,186 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
 }
 #endif
 
-struct CommHandler
-{
+struct CommData {
 #ifdef AMREX_USE_MPI
-    int mpi_tag;
-    TheFaArenaPointer the_recv_data = nullptr;
-    TheFaArenaPointer the_send_data = nullptr;
-    //
-    Vector<int>         recv_from;
-    Vector<char*>       recv_data;
-    Vector<std::size_t> recv_size;
-    Vector<MPI_Request> recv_reqs;
-    //
-    Vector<MPI_Request> send_reqs;
+    TheFaArenaPointer the_data = nullptr;
+    Vector<int> rank{};
+    Vector<char*> data{};
+    Vector<std::size_t> offset{};
+    Vector<std::size_t> size{};
+    Vector<MPI_Request> request{};
+    Vector<MPI_Status> stats{};
+    Vector<const FabArrayBase::CopyComTagsContainer*> cctc{};
 #endif
 };
 
+struct CommHandler {
+#ifdef AMREX_USE_MPI
+    int mpi_tag{};
+    CommData recv{};
+    CommData send{};
+#endif
+};
+
+namespace pack_components {
+struct PackComponents {
+    int dest_component{0};
+    int src_component{0};
+    int n_components{0};
+};
+
+#ifdef AMREX_USE_MPI
+template <typename FAB>
+amrex::EnableIf_t<IsBaseFab<FAB>::value>
+PrepareSendBuffers(const PackComponents& components, const FabArray<FAB>& mf, CommData& comm,
+                   const FabArrayBase::MapOfCopyComTagContainers& cctc) {
+    comm.the_data = mf.PrepareSendBuffers(cctc, comm.data, comm.size, comm.rank, comm.request,
+                                          comm.cctc, components.n_components);
+}
+
+template <typename FAB>
+amrex::EnableIf_t<IsBaseFab<FAB>::value>
+PrepareRecvBuffers(const PackComponents& components, const FabArray<FAB>& mf, CommData& comm,
+                   const FabArrayBase::MapOfCopyComTagContainers& cctc) {
+    comm.the_data = mf.PrepareSendBuffers(cctc, comm.data, comm.size, comm.rank, comm.request,
+                                          comm.cctc, components.n_components);
+}
+
+template <typename FAB>
+amrex::EnableIf_t<IsBaseFab<FAB>::value> PackSendBuffers(const PackComponents& components,
+                                                         const FabArray<FAB>& src, CommData& comm) {
+    FabArray<FAB>::pack_send_buffer_cpu(src, components.src_component, components.n_components,
+                                        comm.data, comm.size, comm.cctc);
+}
+
+template <typename FAB>
+amrex::EnableIf_t<IsBaseFab<FAB>::value>
+UnpackRecvBuffer(const PackComponents& components, FabArray<FAB>& dest, const CommData& comm) {
+    unpack_recv_buffer_cpu(dest, components.dest_component, components.n_components, comm.data,
+                           comm.size, comm.cctc);
+}
+#else
+template <typename FAB>
+void PrepareSendBuffers(const PackComponents& components, const FabArray<FAB>& mf,
+                        const CommData& comm, const FabArrayBase::MapOfCopyComTagContainers& cctc) {
+}
+
+template <typename FAB>
+void PrepareRecvBuffers(PackComponents& components, const FabArray<FAB>& mf, const CommData& comm,
+                        const FabArrayBase::MapOfCopyComTagContainers& cctc) {}
+
+template <typename FAB>
+void PackSendBuffers(PackComponents& components, const FabArray<FAB>& src, const CommData& comm) {}
+
+template <typename FAB> void UnpackRecvBuffer(FabArray<FAB>& dest, const CommData& comm) {}
+#endif
+
+template <typename FAB>
+amrex::EnableIf_t<IsBaseFab<FAB>::value>
+LocalCopy(const PackComponents& components, FabArray<FAB>& dest, const FabArray<FAB>& src,
+          const FabArrayBase::CopyComTagsContainer& local_tags) {
+    local_copy_cpu(dest, src, components.dest_component, components.src_component,
+                   components.n_components, local_tags);
+}
+} // namespace pack_components
+
+void PostRecvs(CommData& comm, int mpi_tag);
+void PostSends(CommData& comm, int mpi_tag);
+
+using pack_components::PackComponents;
+
+namespace traits {
+template <typename DataPacking>
+using Components_t = decltype(Components(std::declval<DataPacking>()));
+}
+
+template <typename DataPacking, typename FAB>
+amrex::EnableIf_t<IsBaseFab<FAB>::value && IsDetected<traits::Components_t, DataPacking>::value>
+PrepareSendBuffers(DataPacking&& data_packing, const FabArray<FAB>& mf, CommData& comm,
+                   const FabArrayBase::MapOfCopyComTagContainers& cctc) {
+    PrepareSendBuffers(Components(std::forward<DataPacking>(data_packing)), mf, comm, cctc);
+}
+
+/// Initiate recv and send calls for MPI and immediately return without doing any work.
+///
+/// DataPacking is a customization point object to control the behaviour of packing and unpacking
+/// send or recv data buffers. It is used to perform interpolation or data transformations on either
+/// sender or reciever side.
+///
+/// This function performs a data packing on sender side and we expect a call to Parallel_finish
+/// that performs data unpacking on the reciever side.
+///
+/// \return Returns a CommHandler object that owns context and memory buffers for the whole life
+/// time of the MPI transaction.
+template <typename FAB, typename DataPacking>
+AMREX_NODISCARD CommHandler ParallelCopy_nowait(FabArray<FAB>& dest, const FabArray<FAB>& src,
+                                                const FabArrayBase::CommMetaData& cmd,
+                                                const DataPacking& data_packing) {
+    CommHandler handler{};
+    if (ParallelContext::NProcsSub() == 1) {
+        return handler;
+    }
+#ifdef AMREX_USE_MPI
+    //
+    // Do this before prematurely exiting if running in parallel.
+    // Otherwise sequence numbers will not match across MPI processes.
+    //
+    handler.mpi_tag = ParallelDescriptor::SeqNum();
+
+    const int N_rcvs = cmd.m_RcvTags ? cmd.m_RcvTags->size() : 0;
+    if (N_rcvs > 0) {
+        PrepareRecvBuffers(data_packing, dest, handler.recv, *cmd.m_RcvTags);
+        PostRecvs(handler.recv, handler.mpi_tag);
+    }
+
+    const int N_snds = cmd.m_SndTags ? cmd.m_SndTags->size() : 0;
+    if (N_snds > 0) {
+        PrepareSendBuffers(data_packing, src, handler.send, *cmd.m_SndTags);
+        PackSendBuffers(data_packing, src, handler.send);
+        PostSends(handler.send, handler.mpi_tag);
+    }
+#endif
+    return handler;
+}
+
+template <typename FAB, typename DataPacking>
+void ParallelCopy_finish(FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler handler,
+                         const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
+    // If any FabArray is empty we have nothing to do.
+    if (dest.size() == 0) {
+        return;
+    }
+    // Eagerly do the local work and hope for some overlap with communication
+    if (cmd.m_LocTags && cmd.m_LocTags->size() > 0) {
+        LocalCopy(data_packing, dest, src, *cmd.m_LocTags);
+    }
+#ifdef AMREX_USE_MPI
+    // Return if nothing do
+    if (ParallelContext::NProcsSub() == 1) {
+        return;
+    }
+    // Unpack recieves
+    const int N_rcvs = cmd.m_RcvTags ? cmd.m_RcvTags->size() : 0;
+    if (N_rcvs > 0) {
+        ParallelDescriptor::Waitall(handler.recv.request, handler.recv.stats);
+#ifdef AMREX_D_DEBUG
+        if (!CheckRcvStats(stats, handler.recv_size, handler.mpi_tag)) {
+            amrex::Abort("NonLocalPC::Comm_finish failed with wrong message size");
+        }
+#endif
+        data_packing.UnpackRecvBuffer(dest, handler.recv);
+    }
+
+    // Wait for all sends to be done
+    const int N_snds = cmd.m_SndTags ? cmd.m_SndTags->size() : 0;
+    if (N_snds > 0) {
+        ParallelDescriptor::Waitall(handler.send.request, handler.send.stats);
+    }
+#endif
+}
+
 template <class FAB, class DTOS>
-CommHandler
+AMREX_NODISCARD CommHandler
 Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData const& cmd,
              DTOS dtos)
 {
@@ -343,7 +667,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
         } else
 #endif
         {
-            local_copy_cpu(mf, scomp, ncomp, cmd, dtos);
+            local_copy_cpu(mf, mf, scomp, scomp, ncomp, *cmd.m_LocTags, dtos);
         }
         return CommHandler{};
     }
@@ -368,18 +692,14 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
     handler.mpi_tag = SeqNum;
 
     if (N_rcvs > 0) {
-        handler.the_recv_data = mf.PostRcvs(*cmd.m_RcvTags, handler.recv_data, handler.recv_size,
-                    handler.recv_from, handler.recv_reqs, ncomp, SeqNum);
+        handler.recv.the_data = mf.PostRcvs(*cmd.m_RcvTags, handler.recv.data, handler.recv.size,
+                                            handler.recv.rank, handler.recv.request, ncomp, SeqNum);
     }
 
-    if (N_snds > 0)
-    {
-        Vector<std::size_t> send_size;
-        Vector<int> send_rank;
-        Vector<char*> send_data;
-        Vector<const FabArrayBase::CopyComTagsContainer*> send_cctc;
-        handler.the_send_data = mf.PrepareSendBuffers(*cmd.m_SndTags, send_data,
-                              send_size, send_rank, handler.send_reqs, send_cctc, ncomp);
+    if (N_snds > 0) {
+        handler.send.the_data =
+            mf.PrepareSendBuffers(*cmd.m_SndTags, handler.send.data, handler.send.size,
+                                  handler.send.rank, handler.send.request, handler.send.cctc, ncomp);
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
@@ -388,11 +708,11 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
         } else
 #endif
         {
-            FabArray<FAB>::pack_send_buffer_cpu(mf, scomp, ncomp, send_data,
-                                                send_size, send_cctc);
+            FabArray<FAB>::pack_send_buffer_cpu(mf, scomp, ncomp, handler.send.data,
+                                                handler.send.size, handler.send.cctc);
         }
 
-        FabArray<FAB>::PostSnds(send_data, send_size, send_rank, handler.send_reqs, SeqNum);
+        FabArray<FAB>::PostSnds(handler.send.data, handler.send.size, handler.send.rank, handler.send.request, SeqNum);
     }
 
     if (N_locs > 0)
@@ -403,7 +723,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
         } else
 #endif
         {
-            local_copy_cpu(mf, scomp, ncomp, cmd, dtos);
+            local_copy_cpu(mf, mf, scomp, scomp, ncomp, *cmd.m_LocTags, dtos);
         }
     }
 
@@ -422,14 +742,13 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
     const int N_rcvs = cmd.m_RcvTags->size();
     if (N_rcvs > 0)
     {
-        Vector<const FabArrayBase::CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
+        handler.recv.cctc.resize(N_rcvs, nullptr);
         for (int k = 0; k < N_rcvs; ++k) {
-            auto const& cctc = cmd.m_RcvTags->at(handler.recv_from[k]);
-            recv_cctc[k] = &cctc;
+            auto const& cctc = cmd.m_RcvTags->at(handler.recv.rank[k]);
+            handler.recv.cctc[k] = &cctc;
         }
 
-        Vector<MPI_Status> stats(N_rcvs);
-        ParallelDescriptor::Waitall(handler.recv_reqs, stats);
+        ParallelDescriptor::Waitall(handler.recv.request, handler.recv.stats);
 #ifdef AMREX_D_DEBUG
         if (!CheckRcvStats(stats, handler.recv_size, handler.mpi_tag)) {
             amrex::Abort("NonLocalBC::Comm_finish failed with wrong message size");
@@ -444,15 +763,15 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
         } else
 #endif
         {
-            unpack_recv_buffer_cpu(mf, scomp, ncomp, handler.recv_data,
-                                   handler.recv_size, recv_cctc, dtos);
+            unpack_recv_buffer_cpu(mf, scomp, ncomp, handler.recv.data,
+                                   handler.recv.size, handler.recv.cctc, dtos);
         }
     }
 
     const int N_snds = cmd.m_SndTags->size();
     if (N_snds > 0) {
-        Vector<MPI_Status> stats(handler.send_reqs.size());
-        ParallelDescriptor::Waitall(handler.send_reqs, stats);
+        Vector<MPI_Status> stats(handler.send.request.size());
+        ParallelDescriptor::Waitall(handler.send.request, handler.send.stats);
     }
 }
 #endif
@@ -572,6 +891,24 @@ FillPolar (FabArray<FAB>& mf, Box const& domain)
 {
     FillPolar(mf, 0, mf.nComp(), mf.nGrowVect(), domain);
 }
+
+extern template
+void Rotate90(FabArray<FArrayBox>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain);
+
+extern template
+void Rotate90(FabArray<FArrayBox>& mf, Box const& domain);
+
+extern template
+void Rotate180(FabArray<FArrayBox>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain);
+
+extern template 
+void Rotate180(FabArray<FArrayBox>& mf, Box const& domain);
+
+extern template
+void FillPolar(FabArray<FArrayBox>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain);
+
+extern template
+void FillPolar (FabArray<FArrayBox>& mf, Box const& domain);
 
 }}
 

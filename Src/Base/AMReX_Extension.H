@@ -159,6 +159,17 @@
 #   define AMREX_NODISCARD
 #endif
 
+// Note: following compilers support [[no_unique_address]]
+//   - Clang >= 9.0
+//   - GCC >= 9.0
+//   - MSVC >= 19.26
+#if !defined(AMREX_NO_NO_UNIQUE_ADDRESS) && defined(__has_cpp_attribute) && __has_cpp_attribute(no_unique_address)
+#   define AMREX_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#   define AMREX_HAS_NO_UNIQUE_ADDRESS 1
+#else
+#   define AMREX_NO_UNIQUE_ADDRESS
+#endif
+
 #endif /* !BL_LANG_FORT */
 
 #endif
