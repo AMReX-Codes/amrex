@@ -3,6 +3,13 @@
 #include <AMReX_Config.H>
 #include <AMReX_TypeTraits.H>
 
+#ifndef AMREX_STATIC_ASSERT_NO_MESSAGE
+#  define AMREX_STATIC_ASSERT_NO_MESSAGE(expr) static_assert((expr), #expr)
+#  define AMREX_HAS_STATIC_ASSERT_NO_MESSAGE 0
+#else
+#  define AMREX_HAS_STATIC_ASSERT_NO_MESSAGE 1
+#endif
+
 namespace amrex { namespace NonLocalBC {
 
 /// \ingroup type-traits
@@ -34,7 +41,8 @@ struct Rotate90ClockWise {
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsInjectiveIndexMapping<Rotate90ClockWise>());
+static_assert(IsInjectiveIndexMapping<Rotate90ClockWise>(),
+              "Rotate90ClockWise is expected to satisfy InjectiveIndexMapping");
 
 /// \ingroup index-mapping
 struct Rotate90CounterClockWise {
@@ -57,7 +65,8 @@ struct Rotate90CounterClockWise {
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsInjectiveIndexMapping<Rotate90CounterClockWise>());
+static_assert(IsInjectiveIndexMapping<Rotate90CounterClockWise>(),
+              "Rotate90CounterClockWise is expected to satisfy InjectiveIndexMapping");
 
 struct Rotate90DstToSrc
 {
@@ -111,7 +120,8 @@ template <typename Base> struct IndexMappingFacade {
     }
 };
 using Rotate90IndexMapping = IndexMappingFacade<Rotate90DstToSrc>;
-static_assert(IsInjectiveIndexMapping<Rotate90IndexMapping>());
+static_assert(IsInjectiveIndexMapping<Rotate90IndexMapping>(),
+              "Rotate90IndexMapping is expected to satisfy InjectiveIndexMapping");
 
 /// \ingroup index-mapping
 struct Rotate180Fn {
@@ -136,7 +146,8 @@ struct Rotate180Fn {
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsInjectiveIndexMapping<Rotate90CounterClockWise>());
+static_assert(IsInjectiveIndexMapping<Rotate180Fn>(),
+              "Rotate180Fn is expected to satisfy InjectiveIndexMapping");
 
 /// \ingroup index-mapping
 struct PolarFn {
@@ -171,7 +182,8 @@ struct PolarFn {
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsInjectiveIndexMapping<Rotate90CounterClockWise>());
+static_assert(IsInjectiveIndexMapping<PolarFn>(),
+              "PolarFn is expected to satisfy InjectiveIndexMapping");
 
 /// \ingroup index-mapping
 struct PolarFn2 { // for the x-y corners
@@ -214,7 +226,8 @@ struct PolarFn2 { // for the x-y corners
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsInjectiveIndexMapping<Rotate90CounterClockWise>());
+static_assert(IsInjectiveIndexMapping<Rotate90CounterClockWise>(),
+              "Rotate90ClockWise is expected to satisfy InjectiveIndexMapping");
 
 template <typename P, typename FAB>
 struct IsFabProjection
@@ -242,13 +255,13 @@ struct Identity : IndexMappingFacade<IdentityDestToSrc> {
     constexpr int operator()(int i) const noexcept { return i; }
 };
 static constexpr Identity identity{};
-static_assert(sizeof(Identity) == 1);
-static_assert(std::is_trivially_default_constructible<Identity>::value);
-static_assert(std::is_trivially_copy_assignable<Identity>::value);
-static_assert(std::is_trivially_copy_constructible<Identity>::value);
 
-static_assert(IsInjectiveIndexMapping<Identity>());
-static_assert(IsFabProjection<Identity, FArrayBox>());
+AMREX_STATIC_ASSERT_NO_MESSAGE((sizeof(Identity) == 1));
+AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_default_constructible<Identity>::value));
+AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_assignable<Identity>::value));
+AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_constructible<Identity>::value));
+AMREX_STATIC_ASSERT_NO_MESSAGE((IsInjectiveIndexMapping<Identity>()));
+AMREX_STATIC_ASSERT_NO_MESSAGE((IsFabProjection<Identity, FArrayBox>()));
 
 template <typename Base, typename Map = Identity> struct MapComponents {
     static_assert(IsCallable<Base, Array4<const Real>, Dim3, int>::value,
@@ -269,10 +282,10 @@ template <typename Base, typename Map = Identity> struct MapComponents {
     }
 };
 #ifdef AMREX_HAS_NO_UNIQUE_ADDRESS
-static_assert(sizeof(MapComponents<Identity, Identity>) == 1);
+AMREX_STATIC_ASSERT_NO_MESSAGE((sizeof(MapComponents<Identity, Identity>) == 1));
 #endif
-static_assert(std::is_trivially_copy_assignable<MapComponents<Identity>>());
-static_assert(std::is_trivially_copy_constructible<MapComponents<Identity>>());
+AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_assignable<MapComponents<Identity>>()));
+AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_constructible<MapComponents<Identity>>()));
 
 #ifdef AMREX_DEFINE_SWAP_INDICES_OPERATOR
 #error "The AMREX_DEFINE_SWAP_INDICES_OPERATOR macro is already defined"
@@ -305,25 +318,24 @@ template <> struct SwapIndices<-1, -1> {
 template <int I, int J> static constexpr SwapIndices<I, J> swap_indices{};
 using SwapComponents = SwapIndices<-1, -1>;
 
-static_assert(sizeof(SwapIndices<0, 1>) == 1);
-static_assert(sizeof(SwapComponents) == 2 * sizeof(int));
-static_assert(sizeof(SwapIndices<0, -1>) == sizeof(int));
-static_assert(sizeof(SwapIndices<-1, 1>) == sizeof(int));
+AMREX_STATIC_ASSERT_NO_MESSAGE(sizeof(SwapIndices<0, 1>) == 1);
+AMREX_STATIC_ASSERT_NO_MESSAGE(sizeof(SwapComponents) == 2 * sizeof(int));
+AMREX_STATIC_ASSERT_NO_MESSAGE(sizeof(SwapIndices<0, -1>) == sizeof(int));
+AMREX_STATIC_ASSERT_NO_MESSAGE(sizeof(SwapIndices<-1, 1>) == sizeof(int));
 #ifdef AMREX_HAS_NO_UNIQUE_ADDRESS
-static_assert(sizeof(MapComponents<Identity, SwapIndices<0, 1>>) == sizeof(SwapIndices<0, 1>));
+AMREX_STATIC_ASSERT_NO_MESSAGE(sizeof(MapComponents<Identity, SwapIndices<0, 1>>) == sizeof(SwapIndices<0, 1>));
 #endif
-static_assert(
-    std::is_trivially_default_constructible<MapComponents<Identity, SwapIndices<0, 1>>>());
-static_assert(std::is_trivially_copy_assignable<MapComponents<Identity, SwapIndices<0, 1>>>());
-static_assert(std::is_trivially_copy_constructible<MapComponents<Identity, SwapIndices<0, 1>>>());
-static_assert(IsFabProjection<MapComponents<Identity, SwapIndices<0, 1>>, FArrayBox>());
+AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_default_constructible<MapComponents<Identity, SwapIndices<0, 1>>>()));
+AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_assignable<MapComponents<Identity, SwapIndices<0, 1>>>()));
+AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_constructible<MapComponents<Identity, SwapIndices<0, 1>>>()));
+AMREX_STATIC_ASSERT_NO_MESSAGE((IsFabProjection<MapComponents<Identity, SwapIndices<0, 1>>, FArrayBox>()));
 
-static_assert(swap_indices<0, 1>(0) == 1);
-static_assert(swap_indices<0, 1>(1) == 0);
-static_assert(swap_indices<0, 1>(2) == 2);
-static_assert(SwapComponents{0, 1}(0) == 1);
-static_assert(SwapComponents{0, 1}(1) == 0);
-static_assert(SwapComponents{0, 1}(2) == 2);
+AMREX_STATIC_ASSERT_NO_MESSAGE((swap_indices<0, 1>(0) == 1));
+AMREX_STATIC_ASSERT_NO_MESSAGE((swap_indices<0, 1>(1) == 0));
+AMREX_STATIC_ASSERT_NO_MESSAGE((swap_indices<0, 1>(2) == 2));
+AMREX_STATIC_ASSERT_NO_MESSAGE((SwapComponents{0, 1}(0) == 1));
+AMREX_STATIC_ASSERT_NO_MESSAGE((SwapComponents{0, 1}(1) == 0));
+AMREX_STATIC_ASSERT_NO_MESSAGE((SwapComponents{0, 1}(2) == 2));
 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
@@ -911,5 +923,10 @@ extern template
 void FillPolar (FabArray<FArrayBox>& mf, Box const& domain);
 
 }}
+
+
+#if not(AMREX_HAS_STATIC_ASSERT_NO_MESSAGE)
+#  undef AMREX_STATIC_ASSERT_NO_MESSAGE
+#endif
 
 #endif
