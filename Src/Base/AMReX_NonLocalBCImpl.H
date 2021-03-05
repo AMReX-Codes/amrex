@@ -365,7 +365,7 @@ template <class FAB, class DTOS = Identity, class Proj = Identity>
 EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 local_copy_cpu(FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos = DTOS{},
-               Proj proj = Proj{}) {
+               Proj proj = Proj{}) noexcept {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
@@ -384,7 +384,7 @@ EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjectio
 unpack_recv_buffer_cpu(FabArray<FAB>& mf, int scomp, int ncomp, Vector<char*> const& recv_data,
                             Vector<std::size_t> const& recv_size,
                             Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
-                            DTOS dtos = DTOS{}, Proj proj = Proj{}) {
+                            DTOS dtos = DTOS{}, Proj proj = Proj{}) noexcept {
     amrex::ignore_unused(recv_size);
 
     const int N_rcvs = recv_cctc.size();
