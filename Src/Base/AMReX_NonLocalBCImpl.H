@@ -425,7 +425,7 @@ struct Array4Array4Box {
 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
-local_copy_gpu (FabArray<FAB>& dest, FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
+local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos = DTOS{},
                 Proj proj = Proj{}) noexcept {
     int N_locs = local_tags.size();
@@ -577,8 +577,16 @@ template <typename FAB>
 amrex::EnableIf_t<IsBaseFab<FAB>::value>
 LocalCopy (const PackComponents& components, FabArray<FAB>& dest, const FabArray<FAB>& src,
            const FabArrayBase::CopyComTagsContainer& local_tags) {
-    local_copy_cpu(dest, src, components.dest_component, components.src_component,
-                   components.n_components, local_tags);
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        local_copy_gpu(dest, src, components.dest_component, components.src_component,
+                       components.n_components, local_tags);
+    } else
+#endif
+    {
+        local_copy_cpu(dest, src, components.dest_component, components.src_component,
+                       components.n_components, local_tags);
+    }
 }
 
 #ifdef AMREX_USE_MPI
@@ -639,17 +647,33 @@ PrepareRecvBuffers (const PackComponents& components, const FabArray<FAB>& mf, C
 }
 
 template <typename FAB>
-amrex::EnableIf_t<IsBaseFab<FAB>::value>
-PackSendBuffers (const PackComponents& components, const FabArray<FAB>& src, CommData& comm) {
-    FabArray<FAB>::pack_send_buffer_cpu(src, components.src_component, components.n_components,
-                                        comm.data, comm.size, comm.cctc);
+amrex::EnableIf_t<IsBaseFab<FAB>::value> 
+PackSendBuffers (const PackComponents& components, const FabArray<FAB>& src, CommData& send) {
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        FabArray<FAB>::pack_send_buffer_gpu(src, components.src_component, components.n_components,
+                                            send.size, send.cctc);
+    } else
+#endif
+    {
+        FabArray<FAB>::pack_send_buffer_cpu(src, components.src_component, components.n_components,
+                                            send.data, send.size, send.cctc);
+    }
 }
 
 template <typename FAB>
 amrex::EnableIf_t<IsBaseFab<FAB>::value>
-UnpackRecvBuffers (const PackComponents& components, FabArray<FAB>& dest, const CommData& comm) {
-    unpack_recv_buffer_cpu(dest, components.dest_component, components.n_components, comm.data,
-                           comm.size, comm.cctc);
+UnpackRecvBuffers (const PackComponents& components, FabArray<FAB>& dest, const CommData& recv) {
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        unpack_recv_buffer_gpu(dest, components.dest_component, components.n_components, recv.data,
+                               recv.size, recv.cctc);
+    } else
+#endif
+    {
+        unpack_recv_buffer_cpu(dest, components.dest_component, components.n_components, recv.data,
+                               recv.size, recv.cctc);
+    }
 }
 #endif
 
@@ -675,17 +699,33 @@ template <typename FAB, typename DTOS, typename FabProj>
 amrex::EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<FabProj, FAB>()>
 LocalCopy (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing, FabArray<FAB>& dest,
            const FabArray<FAB>& src, const FabArrayBase::CopyComTagsContainer& local_tags) {
-    local_copy_cpu(dest, src, packing.dest_component, packing.src_component, packing.n_components,
-                   local_tags, packing.dtos, packing.proj);
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        local_copy_gpu(dest, src, packing.dest_component, packing.src_component,
+                       packing.n_components, local_tags, packing.dtos, packing.proj);
+    } else
+#endif
+    {
+        local_copy_cpu(dest, src, packing.dest_component, packing.src_component,
+                       packing.n_components, local_tags, packing.dtos, packing.proj);
+    }
 }
 
 #ifdef AMREX_USE_MPI
 template <typename FAB, typename DTOS, typename FabProj>
 amrex::EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<FabProj, FAB>()>
 UnpackRecvBuffers (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing,
-                   FabArray<FAB>& dest, const CommData& comm) {
-    unpack_recv_buffer_cpu(dest, packing.dest_component, packing.n_components, comm.data, comm.size,
-                           comm.cctc, packing.dtos, packing.proj);
+                   FabArray<FAB>& dest, const CommData& recv) {
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        unpack_recv_buffer_gpu(dest, packing.dest_component, packing.n_components, recv.data,
+                               recv.size, recv.cctc, packing.dtos, packing.proj);
+    } else
+#endif
+    {
+        unpack_recv_buffer_cpu(dest, packing.dest_component, packing.n_components, recv.data,
+                               recv.size, recv.cctc, packing.dtos, packing.proj);
+    }
 }
 #endif
 
@@ -839,9 +879,8 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
 
 template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
 EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<Proj, FAB>()>
-ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src,
-              const MultiBlockCommMetaData& cmd, int destcomp, int srccomp, int numcomp,
-              DTOS dtos = DTOS{}, Proj proj = Proj{}) {
+ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const MultiBlockCommMetaData& cmd,
+              int destcomp, int srccomp, int numcomp, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
     BL_PROFILE("NonLocalBC::ParallelCopy_with_MultiBlockCommMetaData");
     ApplyDtosAndProjectionOnReciever<DTOS, Proj> packing{PackComponents{destcomp, srccomp, numcomp},
                                                          std::move(dtos), std::move(proj)};
@@ -855,8 +894,7 @@ ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src,
               int srccomp, int numcomp, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
     BL_PROFILE("NonLocalBC::ParallelCopy");
     MultiBlockCommMetaData cmd(dest, destbox, src, dtos);
-    ParallelCopy(dest, destbox, src, cmd, destcomp, srccomp, numcomp, std::move(dtos),
-                 std::move(proj));
+    ParallelCopy(dest, src, cmd, destcomp, srccomp, numcomp, std::move(dtos), std::move(proj));
 }
 
 template <class FAB, class DTOS>
