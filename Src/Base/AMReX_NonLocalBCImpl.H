@@ -506,12 +506,52 @@ struct CommHandler {
 #endif
 };
 
-namespace pack_components {
+////////////////////////////////////////////////////////////////////////////////////
+//                                                             [concept.DataPacking]
+//
+template <typename... Args>
+using PrepareSendBuffers_t = decltype(PrepareSendBuffers(std::declval<Args>()...));
+
+template <typename... Args>
+using PrepareRecvBuffers_t = decltype(PrepareRecvBuffers(std::declval<Args>()...));
+
+template <typename... Args>
+using PackSendBuffers_t = decltype(PackSendBuffers(std::declval<Args>()...));
+
+template <typename... Args>
+using UnpackRecvBuffers_t = decltype(UnpackRecvBuffers(std::declval<Args>()...));
+
+template <typename... Args>
+using LocalCopy_t = decltype(LocalCopy(std::declval<Args>()...));
+
+template <typename DP, typename FAB>
+struct IsDataPacking : 
+    Conjunction<
+        IsDetected<LocalCopy_t, DP&, FabArray<FAB>&, const FabArray<FAB>&, const FabArrayBase::CopyComTagsContainer&>
+#ifdef AMREX_USE_MPI
+       ,IsDetected<PrepareSendBuffers_t, DP&, const FabArray<FAB>&, CommData&, const FabArrayBase::MapOfCopyComTagContainers&>,
+        IsDetected<PrepareRecvBuffers_t, DP&, const FabArray<FAB>&, CommData&, const FabArrayBase::MapOfCopyComTagContainers&>,
+        IsDetected<PackSendBuffers_t, DP&, const FabArray<FAB>&, CommData&>,
+        IsDetected<UnpackRecvBuffers_t, DP&, FabArray<FAB>&, CommData&>
+#endif
+    > {};
+
+////////////////////////////////////////////////////////////////////////////////////
+//                                                      [DataPacking.PackComponents]
+//
 struct PackComponents {
     int dest_component{0};
     int src_component{0};
     int n_components{0};
 };
+
+template <typename FAB>
+amrex::EnableIf_t<IsBaseFab<FAB>::value>
+LocalCopy(const PackComponents& components, FabArray<FAB>& dest, const FabArray<FAB>& src,
+          const FabArrayBase::CopyComTagsContainer& local_tags) {
+    local_copy_cpu(dest, src, components.dest_component, components.src_component,
+                   components.n_components, local_tags);
+}
 
 #ifdef AMREX_USE_MPI
 template <typename FAB>
@@ -539,7 +579,7 @@ PackSendBuffers(const PackComponents& components, const FabArray<FAB>& src, Comm
 
 template <typename FAB>
 amrex::EnableIf_t<IsBaseFab<FAB>::value>
-UnpackRecvBuffer(const PackComponents& components, FabArray<FAB>& dest, const CommData& comm) {
+UnpackRecvBuffers(const PackComponents& components, FabArray<FAB>& dest, const CommData& comm) {
     unpack_recv_buffer_cpu(dest, components.dest_component, components.n_components, comm.data,
                            comm.size, comm.cctc);
 }
@@ -550,56 +590,58 @@ void PrepareSendBuffers(const PackComponents& components, const FabArray<FAB>& m
 }
 
 template <typename FAB>
-void PrepareRecvBuffers(PackComponents& components, const FabArray<FAB>& mf, const CommData& comm,
-                        const FabArrayBase::MapOfCopyComTagContainers& cctc) {}
+void PrepareRecvBuffers(const PackComponents& components, const FabArray<FAB>& mf,
+                        const CommData& comm, const FabArrayBase::MapOfCopyComTagContainers& cctc) {
+}
 
 template <typename FAB>
-void PackSendBuffers(PackComponents& components, const FabArray<FAB>& src, const CommData& comm) {}
+void PackSendBuffers(const PackComponents& components, const FabArray<FAB>& src,
+                     const CommData& comm) {}
 
-template <typename FAB> void UnpackRecvBuffer(FabArray<FAB>& dest, const CommData& comm) {}
+template <typename FAB>
+void UnpackRecvBuffer(const PackComponents& components, FabArray<FAB>& dest, const CommData& comm) {
+}
 #endif
 
-template <typename FAB>
-amrex::EnableIf_t<IsBaseFab<FAB>::value>
-LocalCopy(const PackComponents& components, FabArray<FAB>& dest, const FabArray<FAB>& src,
-          const FabArrayBase::CopyComTagsContainer& local_tags) {
-    local_copy_cpu(dest, src, components.dest_component, components.src_component,
-                   components.n_components, local_tags);
-}
-} // namespace pack_components
+static_assert(IsDataPacking<PackComponents, FArrayBox>(),
+              "PackComponents is expected to satisfy the concept DataPacking.");
 
+////////////////////////////////////////////////////////////////////////////////////
+//                                    [DataPacking.ApplyDtosAndProjectionOnReciever]
+//
+template <typename DTOS = Identity, typename FabProj = Identity>
+struct ApplyDtosAndProjectionOnReciever : PackComponents {
+    AMREX_NO_UNIQUE_ADDRESS DTOS dtos;
+    AMREX_NO_UNIQUE_ADDRESS FabProj proj;
+
+    static_assert(IsInjectiveIndexMapping<DTOS>(), "DTOS needs to be an injective index map");
+};
+
+template <typename FAB, typename DTOS, typename FabProj>
+amrex::EnableIf_t<IsBaseFab<FAB>() && IsInjectiveIndexMapping<DTOS>() && IsFabProjection<FabProj, FAB>()>
+LocalCopy(const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing, FabArray<FAB>& dest,
+          const FabArray<FAB>& src, const FabArrayBase::CopyComTagsContainer& local_tags) {
+    local_copy_cpu(dest, src, packing.dest_component, packing.src_component, packing.n_components,
+                   local_tags, packing.dtos, packing.proj);
+}
+
+#ifdef AMREX_USE_MPI
+template <typename FAB, typename DTOS, typename FabProj>
+amrex::EnableIf_t<IsBaseFab<FAB>() && IsInjectiveIndexMapping<DTOS>() && IsFabProjection<FabProj, FAB>()>
+UnpackRecvBuffers(const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing,
+                 FabArray<FAB>& dest, const CommData& comm) {
+    unpack_recv_buffer_cpu(dest, packing.dest_component, packing.n_components, comm.data, comm.size,
+                           comm.cctc, packing.dtos, packing.proj);
+}
+#endif
+
+static_assert(IsDataPacking<ApplyDtosAndProjectionOnReciever<>, FArrayBox>(),
+              "ApplyDtosAndProjectionOnReciever is expected to satisfy the DataPacking concept.");
+
+#ifdef AMREX_USE_MPI
 void PostRecvs(CommData& comm, int mpi_tag);
 void PostSends(CommData& comm, int mpi_tag);
-
-using pack_components::PackComponents;
-
-template <typename... Args>
-using PrepareSendBuffers_t = decltype(PrepareSendBuffers(std::declval<Args>()...));
-
-template <typename... Args>
-using PrepareRecvBuffers_t = decltype(PrepareRecvBuffers(std::declval<Args>()...));
-
-template <typename... Args>
-using PackSendBuffers_t = decltype(PackSendBuffers(std::declval<Args>()...));
-
-template <typename... Args>
-using UnpackRecvBuffer_t = decltype(UnpackRecvBuffer(std::declval<Args>()...));
-
-template <typename... Args>
-using LocalCopy_t = decltype(LocalCopy(std::declval<Args>()...));
-
-template <typename DP, typename FAB>
-struct IsDataPacking : 
-    Conjunction<IsDetected<PrepareSendBuffers_t, DP&, const FabArray<FAB>&, CommData&, const FabArrayBase::MapOfCopyComTagContainers&>>
-{};
-}
-
-template <typename DataPacking, typename FAB>
-amrex::EnableIf_t<IsBaseFab<FAB>::value && IsDetected<traits::Components_t, DataPacking>::value>
-PrepareSendBuffers(DataPacking&& data_packing, const FabArray<FAB>& mf, CommData& comm,
-                   const FabArrayBase::MapOfCopyComTagContainers& cctc) {
-    PrepareSendBuffers(Components(std::forward<DataPacking>(data_packing)), mf, comm, cctc);
-}
+#endif
 
 /// Initiate recv and send calls for MPI and immediately return without doing any work.
 ///
@@ -612,15 +654,17 @@ PrepareSendBuffers(DataPacking&& data_packing, const FabArray<FAB>& mf, CommData
 ///
 /// \return Returns a CommHandler object that owns context and memory buffers for the whole life
 /// time of the MPI transaction.
-template <typename FAB, typename DataPacking>
+template <typename FAB, typename DataPacking, 
+          typename = EnableIf_t<IsBaseFab<FAB>::value>,
+          typename = EnableIf_t<IsDataPacking<DataPacking, FAB>::value>>
 AMREX_NODISCARD CommHandler ParallelCopy_nowait(FabArray<FAB>& dest, const FabArray<FAB>& src,
                                                 const FabArrayBase::CommMetaData& cmd,
                                                 const DataPacking& data_packing) {
     CommHandler handler{};
+#ifdef AMREX_USE_MPI
     if (ParallelContext::NProcsSub() == 1) {
         return handler;
     }
-#ifdef AMREX_USE_MPI
     //
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
@@ -665,10 +709,10 @@ void ParallelCopy_finish(FabArray<FAB>& dest, const FabArray<FAB>& src, CommHand
         ParallelDescriptor::Waitall(handler.recv.request, handler.recv.stats);
 #ifdef AMREX_D_DEBUG
         if (!CheckRcvStats(stats, handler.recv_size, handler.mpi_tag)) {
-            amrex::Abort("NonLocalPC::Comm_finish failed with wrong message size");
+            amrex::Abort("NonLocalPC::ParallelCopy_finish failed with wrong message size");
         }
 #endif
-        data_packing.UnpackRecvBuffer(dest, handler.recv);
+        UnpackRecvBuffers(data_packing, dest, handler.recv);
     }
 
     // Wait for all sends to be done

@@ -2,7 +2,7 @@
 
 namespace amrex {
 namespace NonLocalBC {
-
+#ifdef AMREX_USE_MPI
 void PostRecvs(CommData& recv, int mpi_tag) {
     const int n_recv = recv.data.size();
     BL_ASSERT(n_recv == recv.offset.size());
@@ -35,6 +35,7 @@ void PostSends(CommData& send, int mpi_tag) {
         }
     }
 }
+#endif
 
 template void Rotate90(FabArray<FArrayBox>& mf, int scomp, int ncomp, IntVect const& nghost,
                        Box const& domain);
