@@ -594,8 +594,48 @@ template <typename FAB>
 amrex::EnableIf_t<IsBaseFab<FAB>::value>
 PrepareRecvBuffers (const PackComponents& components, const FabArray<FAB>& mf, CommData& comm,
                     const FabArrayBase::MapOfCopyComTagContainers& cctc) {
-    comm.the_data = mf.PrepareSendBuffers(cctc, comm.data, comm.size, comm.rank, comm.request,
-                                          comm.cctc, components.n_components);
+    comm.data.clear();
+    comm.size.clear();
+    comm.rank.clear();
+    comm.request.clear();
+    comm.offset.clear();
+
+    std::size_t TotalRcvsVolume = 0;
+    for (const auto& kv : cctc) // loop over senders
+    {
+        std::size_t nbytes = 0;
+        for (auto const& cct : kv.second)
+        {
+            nbytes += mf[cct.dstIndex].nBytes(cct.dbox, components.n_components);
+        }
+
+        std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+        nbytes = amrex::aligned_size(acd, nbytes);  // so that nbytes are aligned
+
+        // Also need to align the offset properly
+        TotalRcvsVolume = amrex::aligned_size(std::max(alignof(typename FAB::value_type),acd),
+                                              TotalRcvsVolume);
+
+        comm.offset.push_back(TotalRcvsVolume);
+        TotalRcvsVolume += nbytes;
+
+        comm.data.push_back(nullptr);
+        comm.size.push_back(nbytes);
+        comm.rank.push_back(kv.first);
+        comm.request.push_back(MPI_REQUEST_NULL);
+    }
+
+    const int nrecv = comm.rank.size();
+    if (TotalRcvsVolume == 0)
+    {
+        comm.the_data = nullptr;
+    }
+    else
+    {
+        comm.the_data.reset(static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalRcvsVolume)));
+    }
+    comm.cctc.resize(nrecv);
+    comm.stats.resize(nrecv);
 }
 
 template <typename FAB>
