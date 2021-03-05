@@ -965,7 +965,7 @@ public:
     IntVect              pc_snghost, pc_dnghost;
     Periodicity          pc_period;
     int                  pc_SC, pc_NC, pc_DC;
-    bool                 pc_simple;
+    bool                 pc_finished;
 
     //
     char*                pc_the_recv_data = nullptr;

@@ -273,7 +273,9 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 {
     BL_PROFILE("FabArray::ParallelCopy_nowait()");
 
-    if (size() == 0 || src.size() == 0) return;
+    pc_finished = false;
+
+    if (size() == 0 || src.size() == 0) { pc_finished = true; return; }
 
     BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
     BL_ASSERT(boxArray().ixType() == src.boxArray().ixType());
@@ -293,13 +295,11 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
     n_filled = dnghost;
 
-    pc_simple = (src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
-                (boxarray == src.boxarray && distributionMap == src.distributionMap) &&
-	        snghost == IntVect::TheZeroVector() &&
-                dnghost == IntVect::TheZeroVector() &&
-                !period.isAnyPeriodic();
-
-    if (pc_simple)
+    if ((src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
+        (boxarray == src.boxarray && distributionMap == src.distributionMap) &&
+	snghost == IntVect::TheZeroVector() &&
+        dnghost == IntVect::TheZeroVector() &&
+        !period.isAnyPeriodic())
     {
         //
         // Short-circuit full intersection code if we're doing copy()s or if
@@ -331,6 +331,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 	    }
         }
 
+        pc_finished = true;
+
         return;
     }
 
@@ -354,6 +356,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
             PC_local_cpu(thecpc, src, scomp, dcomp, ncomp, op);
         }
 
+        pc_finished = true;
+
         return;
     }
 
@@ -373,6 +377,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         //
         // No work to do.
         //
+        pc_finished = true;
         return;
     }
 
@@ -471,17 +476,7 @@ FabArray<FAB>::ParallelCopy_finish ()
 {
     BL_PROFILE("FabArray::ParallelCopy_finish()");
 
-    if (size() == 0 || pc_src->size() == 0) return;
-
-    if (pc_simple)
-    {
-        return;
-    }
-
-    if (ParallelContext::NProcsSub() == 1)
-    {
-        return;
-    }
+    if (pc_finished) { return; }
 
 #ifdef BL_USE_MPI
 
@@ -489,14 +484,6 @@ FabArray<FAB>::ParallelCopy_finish ()
 
     const int N_snds = thecpc.m_SndTags->size();
     const int N_rcvs = thecpc.m_RcvTags->size();
-    const int N_locs = thecpc.m_LocTags->size();
-
-    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0) {
-        //
-        // No work to do.
-        //
-        return;
-    }
 
     if (N_rcvs > 0)
     {
