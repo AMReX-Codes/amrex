@@ -947,7 +947,6 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 
     const int N_snds = cmd.m_SndTags->size();
     if (N_snds > 0) {
-        Vector<MPI_Status> stats(handler.send.request.size());
         ParallelDescriptor::Waitall(handler.send.request, handler.send.stats);
     }
 }
