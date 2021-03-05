@@ -17,8 +17,8 @@ namespace amrex { namespace NonLocalBC {
 /// two index based coordinate systems.
 template <class IndexMap>
 struct IsIndexMapping : Conjunction<IsCallableR<IntVect, IndexMap&, const IntVect&>,
-                                             IsCallableR<Dim3, IndexMap&, const Dim3&>,
-                                             IsCallableR<Box, IndexMap&, const Box&>> {};
+                                    IsCallableR<Dim3, IndexMap&, const Dim3&>,
+                                    IsCallableR<Box, IndexMap&, const Box&>> {};
 
 /// \ingroup index-mapping
 struct Rotate90ClockWise {
@@ -255,8 +255,8 @@ static_assert(IsIndexMapping<MultiBlockIndexMapping>(),
 
 template <typename P, typename FAB>
 struct IsFabProjection
-    : Conjunction<IsCallableR<typename FAB::value_type, P, Array4<const typename FAB::value_type>,
-                              Dim3, int>> {};
+    : IsCallableR<typename FAB::value_type, P, Array4<const typename FAB::value_type>, Dim3, int> 
+{};
 
 /// \ingroup index-mapping
 /// \ingroup fab-projection
@@ -366,10 +366,12 @@ EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjectio
 local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos = DTOS{},
                 Proj proj = Proj{}) noexcept {
+    const int N_locs = local_tags.size();
+    if (N_locs == 0) return;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-    for (int itag = 0; itag < local_tags.size(); ++itag) {
+    for (int itag = 0; itag < N_locs; ++itag) {
         auto const& sfab = src.const_array(local_tags[itag].srcIndex);
         auto const& dfab = dest.array(local_tags[itag].dstIndex);
         amrex::LoopConcurrentOnCpu(local_tags[itag].dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
@@ -388,8 +390,7 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int scomp, int ncomp, Vector<char*> c
     amrex::ignore_unused(recv_size);
 
     const int N_rcvs = recv_cctc.size();
-    if (N_rcvs == 0)
-        return;
+    if (N_rcvs == 0) return;
 
     using T = typename FAB::value_type;
 #ifdef AMREX_USE_OMP
@@ -412,7 +413,8 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int scomp, int ncomp, Vector<char*> c
 }
 
 #ifdef AMREX_USE_GPU
-template <class T> struct Array4Array4Box {
+template <class T>
+struct Array4Array4Box {
     Array4<T      > dfab;
     Array4<T const> sfab;
     Box dbox;
@@ -573,8 +575,8 @@ struct PackComponents {
 
 template <typename FAB>
 amrex::EnableIf_t<IsBaseFab<FAB>::value>
-LocalCopy(const PackComponents& components, FabArray<FAB>& dest, const FabArray<FAB>& src,
-          const FabArrayBase::CopyComTagsContainer& local_tags) {
+LocalCopy (const PackComponents& components, FabArray<FAB>& dest, const FabArray<FAB>& src,
+           const FabArrayBase::CopyComTagsContainer& local_tags) {
     local_copy_cpu(dest, src, components.dest_component, components.src_component,
                    components.n_components, local_tags);
 }
@@ -582,30 +584,30 @@ LocalCopy(const PackComponents& components, FabArray<FAB>& dest, const FabArray<
 #ifdef AMREX_USE_MPI
 template <typename FAB>
 amrex::EnableIf_t<IsBaseFab<FAB>::value>
-PrepareSendBuffers(const PackComponents& components, const FabArray<FAB>& mf, CommData& comm,
-                   const FabArrayBase::MapOfCopyComTagContainers& cctc) {
+PrepareSendBuffers (const PackComponents& components, const FabArray<FAB>& mf, CommData& comm,
+                    const FabArrayBase::MapOfCopyComTagContainers& cctc) {
     comm.the_data = mf.PrepareSendBuffers(cctc, comm.data, comm.size, comm.rank, comm.request,
                                           comm.cctc, components.n_components);
 }
 
 template <typename FAB>
 amrex::EnableIf_t<IsBaseFab<FAB>::value>
-PrepareRecvBuffers(const PackComponents& components, const FabArray<FAB>& mf, CommData& comm,
-                   const FabArrayBase::MapOfCopyComTagContainers& cctc) {
+PrepareRecvBuffers (const PackComponents& components, const FabArray<FAB>& mf, CommData& comm,
+                    const FabArrayBase::MapOfCopyComTagContainers& cctc) {
     comm.the_data = mf.PrepareSendBuffers(cctc, comm.data, comm.size, comm.rank, comm.request,
                                           comm.cctc, components.n_components);
 }
 
 template <typename FAB>
 amrex::EnableIf_t<IsBaseFab<FAB>::value>
-PackSendBuffers(const PackComponents& components, const FabArray<FAB>& src, CommData& comm) {
+PackSendBuffers (const PackComponents& components, const FabArray<FAB>& src, CommData& comm) {
     FabArray<FAB>::pack_send_buffer_cpu(src, components.src_component, components.n_components,
                                         comm.data, comm.size, comm.cctc);
 }
 
 template <typename FAB>
 amrex::EnableIf_t<IsBaseFab<FAB>::value>
-UnpackRecvBuffers(const PackComponents& components, FabArray<FAB>& dest, const CommData& comm) {
+UnpackRecvBuffers (const PackComponents& components, FabArray<FAB>& dest, const CommData& comm) {
     unpack_recv_buffer_cpu(dest, components.dest_component, components.n_components, comm.data,
                            comm.size, comm.cctc);
 }
