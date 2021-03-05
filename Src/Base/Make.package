@@ -179,7 +179,7 @@ C$(AMREX_BASE)_headers += AMReX_FilND_C.H
 #
 # Non-Local BC
 #
-C$(AMREX_BASE)_headers += AMReX_NonLocalBC.H AMReX_NonLocalBCImpl.H
+C$(AMREX_BASE)_headers += AMReX_NonLocalBC.H AMReX_NonLocalBCImpl.H AMReX_NonLocalBC.cpp
 
 #
 # Plotfile
