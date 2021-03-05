@@ -227,8 +227,31 @@ struct PolarFn2 { // for the x-y corners
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsInjectiveIndexMapping<Rotate90CounterClockWise>(),
-              "Rotate90ClockWise is expected to satisfy InjectiveIndexMapping");
+static_assert(IsInjectiveIndexMapping<PolarFn2>(),
+              "PolarFn2 is expected to satisfy InjectiveIndexMapping");
+
+
+//! This struct describes a bijective index transformation for two coordinate
+//! systems.
+struct MultiBlockTransformation {
+  IntVect permutation{AMREX_D_DECL(0, 1, 2)};
+  IntVect offset{AMREX_D_DECL(0, 0, 0)};
+  IntVect sign{AMREX_D_DECL(1, 1, 1)};
+
+  //! Applies the index mapping on (i, j, k) and returns an index in the source
+  //! space.
+  AMREX_GPU_HOST_DEVICE Dim3 operator()(Dim3 i) const noexcept {
+    int iv[3]{i.x, i.y, i.z};
+    int iv_new[3];
+    for (int d = 0; d < 3; ++d) {
+      iv_new[d] = sign[d] * (iv[permutation[d]] - offset[permutation[d]]);
+    }
+    return {iv_new[0], iv_new[1], iv_new[2]};
+  }
+};
+using MultiBlockIndexMapping = IndexMappingFacade<MultiBlockTransformation>;
+static_assert(IsInjectiveIndexMapping<MultiBlockIndexMapping>(),
+              "MultiBlockIndexMapping is expected to satisfy InjectiveIndexMapping");
 
 template <typename P, typename FAB>
 struct IsFabProjection
