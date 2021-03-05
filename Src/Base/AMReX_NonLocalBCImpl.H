@@ -369,10 +369,10 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-    for (auto const& tag : local_tags) {
-        auto const& sfab = src.const_array(tag.srcIndex);
-        auto const& dfab = dest.array(tag.dstIndex);
-        amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
+    for (int itag = 0; itag < local_tags.size(); ++itag) {
+        auto const& sfab = src.const_array(local_tags[itag].srcIndex);
+        auto const& dfab = dest.array(local_tags[itag].dstIndex);
+        amrex::LoopConcurrentOnCpu(local_tags[itag].dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
             auto const si = dtos(Dim3{i, j, k});
             dfab(i, j, k, dcomp + n) = proj(sfab, si, scomp + n);
         });
@@ -433,14 +433,14 @@ local_copy_gpu (FabArray<FAB>& dest, FabArray<FAB>& src, int dcomp, int scomp, i
     Vector<Array4Array4Box<T> > loc_copy_tags;
     loc_copy_tags.reserve(N_locs);
     for (auto const& tag : local_tags) {
-        loc_copy_tags.push_back({mf.array(tag.dstIndex), mf.const_array(tag.srcIndex), tag.dbox});
+        loc_copy_tags.push_back({dest.array(tag.dstIndex), src.const_array(tag.srcIndex), tag.dbox});
     }
 
     ParallelFor(loc_copy_tags, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n,
                                                             Array4Array4Box<T> const& tag) noexcept
     {
         auto const si = dtos(Dim3{i,j,k});
-        tag.dfab(i,j,k,dcomp+n) = tag.sfab(si.x,si.y,si.z,scomp+n);
+        tag.dfab(i,j,k,dcomp+n) = proj(tag.sfab, si, scomp+n);
     });
 }
 
@@ -608,24 +608,6 @@ amrex::EnableIf_t<IsBaseFab<FAB>::value>
 UnpackRecvBuffers(const PackComponents& components, FabArray<FAB>& dest, const CommData& comm) {
     unpack_recv_buffer_cpu(dest, components.dest_component, components.n_components, comm.data,
                            comm.size, comm.cctc);
-}
-#else
-template <typename FAB>
-void PrepareSendBuffers(const PackComponents& components, const FabArray<FAB>& mf,
-                        const CommData& comm, const FabArrayBase::MapOfCopyComTagContainers& cctc) {
-}
-
-template <typename FAB>
-void PrepareRecvBuffers(const PackComponents& components, const FabArray<FAB>& mf,
-                        const CommData& comm, const FabArrayBase::MapOfCopyComTagContainers& cctc) {
-}
-
-template <typename FAB>
-void PackSendBuffers(const PackComponents& components, const FabArray<FAB>& src,
-                     const CommData& comm) {}
-
-template <typename FAB>
-void UnpackRecvBuffer(const PackComponents& components, FabArray<FAB>& dest, const CommData& comm) {
 }
 #endif
 
@@ -812,6 +794,7 @@ EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<Proj, F
 ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src,
               const MultiBlockCommMetaData& cmd, int destcomp, int srccomp, int numcomp,
               DTOS dtos = DTOS{}, Proj proj = Proj{}) {
+    BL_PROFILE("NonLocalBC::ParallelCopy_with_MultiBlockCommMetaData");
     ApplyDtosAndProjectionOnReciever<DTOS, Proj> packing{PackComponents{destcomp, srccomp, numcomp},
                                                          std::move(dtos), std::move(proj)};
     CommHandler handler = ParallelCopy_nowait(dest, src, cmd, packing);
@@ -822,6 +805,7 @@ template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
 EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<Proj, FAB>()>
 ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, int destcomp,
               int srccomp, int numcomp, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
+    BL_PROFILE("NonLocalBC::ParallelCopy");
     MultiBlockCommMetaData cmd(dest, destbox, src, dtos);
     ParallelCopy(dest, destbox, src, cmd, destcomp, srccomp, numcomp, std::move(dtos),
                  std::move(proj));
@@ -880,8 +864,8 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
-            FabArray<FAB>::pack_send_buffer_gpu(mf, scomp, ncomp, send_data,
-                                                send_size, send_cctc);
+            FabArray<FAB>::pack_send_buffer_gpu(mf, scomp, ncomp, handler.send.data,
+                                                handler.send.size, handler.send.cctc);
         } else
 #endif
         {
@@ -927,7 +911,7 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 
         ParallelDescriptor::Waitall(handler.recv.request, handler.recv.stats);
 #ifdef AMREX_D_DEBUG
-        if (!CheckRcvStats(stats, handler.recv_size, handler.mpi_tag)) {
+        if (!CheckRcvStats(stats, handler.recv.size, handler.mpi_tag)) {
             amrex::Abort("NonLocalBC::Comm_finish failed with wrong message size");
         }
 #endif
@@ -935,8 +919,8 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            unpack_recv_buffer_gpu(mf, scomp, ncomp, handler.recv_data,
-                                   handler.recv_size, recv_cctc, dtos);
+            unpack_recv_buffer_gpu(mf, scomp, ncomp, handler.recv.data,
+                                   handler.recv.size, handler.recv.cctc, dtos);
         } else
 #endif
         {
