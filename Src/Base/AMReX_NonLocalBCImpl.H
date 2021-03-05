@@ -652,7 +652,7 @@ PackSendBuffers (const PackComponents& components, const FabArray<FAB>& src, Com
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         FabArray<FAB>::pack_send_buffer_gpu(src, components.src_component, components.n_components,
-                                            send.size, send.cctc);
+                                            send.data, send.size, send.cctc);
     } else
 #endif
     {
