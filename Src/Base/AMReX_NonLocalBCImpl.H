@@ -688,8 +688,9 @@ AMREX_NODISCARD CommHandler ParallelCopy_nowait(FabArray<FAB>& dest, const FabAr
 }
 
 template <typename FAB, typename DataPacking>
-void ParallelCopy_finish(FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler handler,
-                         const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
+EnableIf_t<IsBaseFab<FAB>() && IsDataPacking<DataPacking, FAB>()>
+ParallelCopy_finish(FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler handler,
+                    const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     // If any FabArray is empty we have nothing to do.
     if (dest.size() == 0) {
         return;
@@ -721,6 +722,71 @@ void ParallelCopy_finish(FabArray<FAB>& dest, const FabArray<FAB>& src, CommHand
         ParallelDescriptor::Waitall(handler.send.request, handler.send.stats);
     }
 #endif
+}
+
+//! This class stores data dependencies for an inter-block communication.
+//!
+//! In communication between two blocks one might need to do an index
+//! transformation from one block to antoher.
+struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
+
+  //! \name Constructors
+
+  //! @{
+  //! Build global meta data that is being used to identify send and recv
+  //! dependencies in communication routines.
+  //!
+  //! This call is quadratic in the number of boxes, i.e. it is in
+  //! O(dstba.size() * srcba.size()). Therefore, it might be wise to cache the
+  //! construction of this object to minimize its computation.
+  template <typename DTOS, typename = EnableIf_t<IsInjectiveIndexMapping<DTOS>::value>>
+  MultiBlockCommMetaData(const FabArrayBase& dst, const Box& dstbox,
+                         const FabArrayBase& src, DTOS dtos)
+      : MultiBlockCommMetaData(dst.boxArray(), dst.DistributionMap(), dstbox,
+                               src.boxArray(), src.DistributionMap(), dtos) {}
+
+  template <typename DTOS, typename = EnableIf_t<IsInjectiveIndexMapping<DTOS>::value>>
+  MultiBlockCommMetaData(const BoxArray& dstba,
+                         const DistributionMapping& dstdm, const Box& dstbox,
+                         const BoxArray& srcba,
+                         const DistributionMapping& srcdm, DTOS dtos) {
+    m_LocTags = std::make_unique<FabArrayBase::CopyComTagsContainer>();
+    m_SndTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
+    m_RcvTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
+    const int myproc = ParallelDescriptor::MyProc();
+    for (int i = 0, N = dstba.size(); i < N; ++i) {
+      const int dest_owner = dstdm[i];
+      Box box_mapped_in_src = dtos(dstba[i]);
+      std::vector<std::pair<int, Box>> boxes_from_src =
+          srcba.intersections(box_mapped_in_src);
+      for (std::pair<int, Box> counted_box : boxes_from_src) {
+        const int k = counted_box.first;
+        const Box box = counted_box.second;
+        const int src_owner = srcdm[k];
+        if (dest_owner == myproc || src_owner == myproc) {
+          if (src_owner == dest_owner) {
+            const BoxList tilelist(box, FabArrayBase::comm_tile_size);
+            for (const Box& tilebox : tilelist) {
+              m_LocTags->emplace_back(tilebox, tilebox, i, i);
+            }
+          } else {
+            FabArrayBase::CopyComTagsContainer& copy_tags =
+                (src_owner == myproc) ? (*m_SndTags)[dest_owner]
+                                      : (*m_RcvTags)[src_owner];
+            copy_tags.emplace_back(box, box, i, i);
+          }
+        }
+      }
+    }
+  }
+  //! @}
+};
+
+template <typename FAB, typename DTOS, typename Proj>
+EnableIf_t<IsBaseFab<FAB>() && IsInjectiveIndexMapping<DTOS>() && IsFabProjection<Proj, FAB>()>
+ParallelCopy(FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, int destcomp, int srccomp, int numcomp, DTOS dtos = DTOS{}, Proj proj = Proj{})
+{
+
 }
 
 template <class FAB, class DTOS>
