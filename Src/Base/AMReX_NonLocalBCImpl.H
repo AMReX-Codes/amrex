@@ -12,7 +12,6 @@
 
 namespace amrex { namespace NonLocalBC {
 
-/// \ingroup type-traits
 /// Tests if a given type `IndexMap` is usable as an index mapping between
 /// two index based coordinate systems.
 template <class IndexMap>
@@ -20,7 +19,6 @@ struct IsIndexMapping : Conjunction<IsCallableR<IntVect, IndexMap&, const IntVec
                                     IsCallableR<Dim3, IndexMap&, const Dim3&>,
                                     IsCallableR<Box, IndexMap&, const Box&>> {};
 
-/// \ingroup index-mapping
 struct Rotate90ClockWise {
     AMREX_GPU_HOST_DEVICE
     IntVect operator() (IntVect const& iv) const noexcept {
@@ -44,7 +42,6 @@ struct Rotate90ClockWise {
 static_assert(IsIndexMapping<Rotate90ClockWise>(),
               "Rotate90ClockWise is expected to satisfy IndexMapping");
 
-/// \ingroup index-mapping
 struct Rotate90CounterClockWise {
     AMREX_GPU_HOST_DEVICE
     IntVect operator() (IntVect const& iv) const noexcept {
@@ -80,9 +77,6 @@ struct Rotate90DstToSrc
     }
 };
 
-
-/// \ingroup index-mapping
-///
 /// This facade lifts a given base class from being Dim3 -> Dim3 callable to an  index map
 /// that satisfies our concept.
 template <typename Base> struct IndexMappingFacade {
@@ -124,7 +118,6 @@ using Rotate90IndexMapping = IndexMappingFacade<Rotate90DstToSrc>;
 static_assert(IsIndexMapping<Rotate90IndexMapping>(),
               "Rotate90IndexMapping is expected to satisfy IndexMapping");
 
-/// \ingroup index-mapping
 struct Rotate180Fn {
     int Ly;
 
@@ -150,7 +143,6 @@ struct Rotate180Fn {
 static_assert(IsIndexMapping<Rotate180Fn>(),
               "Rotate180Fn is expected to satisfy IndexMapping");
 
-/// \ingroup index-mapping
 struct PolarFn {
     int Lx, Ly;
 
@@ -186,7 +178,6 @@ struct PolarFn {
 static_assert(IsIndexMapping<PolarFn>(),
               "PolarFn is expected to satisfy IndexMapping");
 
-/// \ingroup index-mapping
 struct PolarFn2 { // for the x-y corners
     int Lx, Ly;
 
@@ -233,7 +224,7 @@ static_assert(IsIndexMapping<PolarFn2>(),
 
 //! This struct describes a bijective index transformation for two coordinate
 //! systems.
-struct MultiBlockTransformation {
+struct MultiBlockDestToSrc {
   IntVect permutation{AMREX_D_DECL(0, 1, 2)};
   IntVect offset{AMREX_D_DECL(0, 0, 0)};
   IntVect sign{AMREX_D_DECL(1, 1, 1)};
@@ -249,7 +240,7 @@ struct MultiBlockTransformation {
     return {iv_new[0], iv_new[1], iv_new[2]};
   }
 };
-using MultiBlockIndexMapping = IndexMappingFacade<MultiBlockTransformation>;
+using MultiBlockIndexMapping = IndexMappingFacade<MultiBlockDestToSrc>;
 static_assert(IsIndexMapping<MultiBlockIndexMapping>(),
               "MultiBlockIndexMapping is expected to satisfy IndexMapping");
 
@@ -258,15 +249,11 @@ struct IsFabProjection
     : IsCallableR<typename FAB::value_type, P, Array4<const typename FAB::value_type>, Dim3, int> 
 {};
 
-/// \ingroup index-mapping
-/// \ingroup fab-projection
-/// \ingroup component-mapping
-///
-/// This type acts as a default no-op operator 
 struct IdentityDestToSrc {
     constexpr Dim3 operator()(Dim3 i) const noexcept { return i; }
 };
 
+/// This type acts as a default no-op operator 
 struct Identity : IndexMappingFacade<IdentityDestToSrc> {
     using IndexMappingFacade<IdentityDestToSrc>::operator();
 
@@ -298,7 +285,7 @@ template <typename Base, typename Map = Identity> struct MapComponents {
     AMREX_NO_UNIQUE_ADDRESS Map map;
 
     template <typename T,
-              typename = EnableIf_t<IsCallable<Base, Array4<const Real>, Dim3, int>::value>,
+              typename = EnableIf_t<IsCallable<Base, Array4<const T>, Dim3, int>::value>,
               typename = EnableIf_t<IsCallableR<int, Map, int>::value>>
     constexpr decltype(auto) operator()(Array4<const T> array, Dim3 i, int comp) const
         noexcept(noexcept(base(array, i, map(comp)))) {
@@ -1162,6 +1149,10 @@ void FillPolar (FabArray<FArrayBox>& mf, Box const& domain);
 extern template
 void ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox, const FabArray<FArrayBox>& src, int destcomp,
              int srccomp, int numcomp, Identity, Identity);
+
+extern template
+void ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox, const FabArray<FArrayBox>& src, int destcomp,
+             int srccomp, int numcomp, MultiBlockIndexMapping, Identity);
 
 }}
 
