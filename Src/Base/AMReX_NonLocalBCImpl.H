@@ -88,7 +88,8 @@ struct Rotate90DstToSrc
 template <typename Base> struct IndexMappingFacade {
     AMREX_NO_UNIQUE_ADDRESS Base base;
 
-    static_assert(IsCallableR<Dim3, Base, Dim3>());
+    static_assert(IsCallableR<Dim3, Base, Dim3>(),
+                  "Base class needs to be a mapping: Dim3 -> Dim3");
 
     static constexpr bool is_noexcept_callable = noexcept(base(Dim3{}));
 
