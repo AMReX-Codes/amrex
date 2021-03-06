@@ -908,10 +908,8 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
           continue;
       }
       const Box partial_dstbox_mapped_in_src = dtos(partial_dstbox);
-      BoxArray grown_srcba = srcba;
-      grown_srcba.grow(ngrow);
       std::vector<std::pair<int, Box>> boxes_from_src =
-          srcba.intersections(partial_dstbox_mapped_in_src);
+          srcba.intersections(partial_dstbox_mapped_in_src, first_only, ngrow);
       for (std::pair<int, Box> counted_box : boxes_from_src) {
         const int k = counted_box.first;
         const Box src_box = counted_box.second;
