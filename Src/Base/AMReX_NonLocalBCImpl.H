@@ -119,7 +119,7 @@ template <typename Base>
 struct IndexMappingFacade : InverseMappingFacade<Base, IsDetectedExact<Dim3, Inverse_t, Base, Dim3>::value> {
     using BaseFacade = InverseMappingFacade<Base, IsDetectedExact<Dim3, Inverse_t, Base, Dim3>::value>;
     
-    using BaseFacade::InverseMappingFacade;
+    using InverseMappingFacade<Base, IsDetectedExact<Dim3, Inverse_t, Base, Dim3>::value>::InverseMappingFacade;
     
     static_assert(IsCallableR<Dim3, Base, Dim3>(),
                   "Base class needs to be a mapping: Dim3 -> Dim3");
