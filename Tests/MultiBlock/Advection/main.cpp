@@ -48,7 +48,8 @@ class AdvectionAmrCore : public AmrCore {
                 Real x[AMREX_SPACEDIM] = {};
                 level_0_geom.CellCenter(IntVect{AMREX_D_DECL(i, j, k)}, x);
                 const double r2 = AMREX_D_TERM(x[0] * x[0], + x[1] * x[1], + x[2] * x[2]);
-                m(i, j, k) = r2 < 0.2 * 0.2 ? 1.0 : 0.0;
+                constexpr double R = 0.1 * 0.1;
+                m(i, j, k) = r2 < R ? 1.0 : 0.0;
             });
         }
     }
@@ -189,9 +190,9 @@ struct FillBoundaryFn {
 };
 
 void MyMain() {
-    Box domain(IntVect{}, IntVect{AMREX_D_DECL(7, 7, 0)});
-    RealBox real_box1{{AMREX_D_DECL(-0.5, -0.5, 0.0)}, {AMREX_D_DECL(0.5, 0.5, 1.0)}};
-    RealBox real_box2{{AMREX_D_DECL(+0.55, -0.5, 0.0)}, {AMREX_D_DECL(1.55, 0.5, 1.0)}};
+    Box domain(IntVect{}, IntVect{AMREX_D_DECL(63, 63, 0)});
+    RealBox real_box1{{AMREX_D_DECL(-0.5, -0.3, 0.0)}, {AMREX_D_DECL(0.5, 0.7, 1.0)}};
+    RealBox real_box2{{AMREX_D_DECL(+0.55, -0.3, 0.0)}, {AMREX_D_DECL(1.55, 0.7, 1.0)}};
     static constexpr auto cartesian = static_cast<int>(CoordSys::CoordType::cartesian);
 
     Array<int, AMREX_SPACEDIM> is_periodic1{0, 1};
@@ -218,14 +219,16 @@ void MyMain() {
     {   // Fill right boundary of core_x with lower mirror data of core_y
         NonLocalBC::MultiBlockDestToSrc dtos{};
         dtos.permutation = IntVect{AMREX_D_DECL(1, 0, 2)};
-        dtos.offset = (domain.bigEnd(iy) + 1) * e_y;
+        dtos.offset = (domain.bigEnd(iy) + 1) * e_y + domain.bigEnd(ix) * e_x;
+        dtos.sign = IntVect{AMREX_D_DECL(-1, 1, 1)};
         NonLocalBC::MultiBlockIndexMapping index_mapping{dtos};
         Box right_boundary_to_fill_in_x = grow(shift(Box{domain.bigEnd(ix) * e_x, domain.bigEnd()}, e_x), e_y);
         multi_block_boundaries.push_back({&core_x, &core_y, index_mapping, right_boundary_to_fill_in_x});
     } { // Fill lower boundary of core_y with right mirror data of core_x
         NonLocalBC::MultiBlockDestToSrc dtos{};
         dtos.permutation = IntVect{AMREX_D_DECL(1, 0, 2)};
-        dtos.offset = -(domain.bigEnd(ix) + 1) * e_x;
+        dtos.offset = domain.bigEnd(iy) * e_y - (domain.bigEnd(ix) + 1) * e_x;
+        dtos.sign = IntVect{AMREX_D_DECL(1, -1, 1)};
         NonLocalBC::MultiBlockIndexMapping index_mapping{dtos};
         Box lower_boundary_to_fill_in_y = grow(shift(Box{domain.smallEnd(), domain.bigEnd() - domain.bigEnd(iy) * e_y}, -e_y), e_x);
         multi_block_boundaries.push_back({&core_y, &core_x, index_mapping, lower_boundary_to_fill_in_y});
@@ -251,7 +254,7 @@ void MyMain() {
     const double min_dx1_dy2 = std::min(geom1.CellSize(0), geom2.CellSize(1));
     const double cfl = 1.0;
     const double dt = cfl * min_dx1_dy2;
-    const double final_time = 2.0;
+    const double final_time = 4.0;
     double time = 0.0;
 
     while (time < final_time) {
