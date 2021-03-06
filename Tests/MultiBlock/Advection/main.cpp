@@ -27,7 +27,9 @@ int main(int argc, char** argv) try {
 
 using namespace amrex;
 
-struct AdvectionAmrCore : AmrCore {
+class AdvectionAmrCore : public AmrCore {
+  enum { one_component = 1 };
+  
   public:
     AdvectionAmrCore(Direction vel, Geometry const& level_0_geom,
                      AmrInfo const& amr_info = AmrInfo())
@@ -84,7 +86,7 @@ struct AdvectionAmrCore : AmrCore {
         if (level > 0) {
             throw std::runtime_error("For simplicity, this example supports only one level.");
         }
-        mass.define(box_array, distribution_mapping, 1, 1);
+        mass.define(box_array, distribution_mapping, one_component, ::amrex::IntVect{AMREX_D_DECL(1, 1, 0)});
     }
 
     void MakeNewLevelFromCoarse(int level, double time_point, const ::amrex::BoxArray& box_array,
