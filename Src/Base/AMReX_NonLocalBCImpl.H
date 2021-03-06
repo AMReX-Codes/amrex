@@ -673,7 +673,7 @@ static_assert(IsDataPacking<PackComponents, FArrayBox>(),
 template <typename DTOS = Identity, typename FabProj = Identity>
 struct ApplyDtosAndProjectionOnReciever : PackComponents {
     constexpr ApplyDtosAndProjectionOnReciever() = default;
-    constexpr ApplyDtosAndProjectionOnReciever(const PackComponents& components, DTOS dtos_, FabProj proj_)
+    constexpr ApplyDtosAndProjectionOnReciever(const PackComponents& components, DTOS dtos_ = DTOS{}, FabProj proj_ = FabProj{})
         : PackComponents(components), dtos(std::move(dtos_)), proj(std::move(proj_)) {}
 
     AMREX_NO_UNIQUE_ADDRESS DTOS dtos;
