@@ -154,21 +154,25 @@ public:
     void setCoarseFineBC (const MultiFab* crse, int crse_ratio) noexcept;
 
     /**
-    * \brief For cell-centered solves only: this must be called for each level.
-    * Argument `levelbcdata` is * used to supply Dirichlet or Neumann bc at the
-    * physical domain; if those data are homogeneous we can pass nullptr instead
-    * of levelbcdata.  Regardless, this function must be called.
-    * If used, the MultiFab levelbcdata must have one ghost cell.
-    * Only the data outside the physical domain at Dirichlet or
-    * inhomogeneous Neumann boundary will be used.  It is assumed that
-    * the data in those ghost cells outside the domain live exactly on
-    * the face of the physical domain.  Argument `amrlev` is relative
-    * level such that the lowest to the solver is always 0.
-    *
-    * \param amrlev
-    * \param levelbcdata
+    * \brief For cell-centered solves only: this must be called for each
+    * level.  Argument `levelbcdata` is used to supply Dirichlet or Neumann
+    * bc at the physical domain; if those data are homogeneous we can pass
+    * nullptr instead of levelbcdata.  Regardless, this function must be
+    * called.  If used, the MultiFab levelbcdata must have one ghost cell.
+    * Only the data outside the physical domain will be used.  It is assumed
+    * that the data in those ghost cells outside the domain live exactly on
+    * the face of the physical domain.  Argument `amrlev` is relative level
+    * such that the lowest to the solver is always 0.  The optional
+    * arguments robinbc_[a|b|f] provide Robin boundary condition `a*phi +
+    * b*dphi/dn = f`.  Note that `d./dn` is `d./dx` at the upper boundary
+    * and `-d./dx` at the lower boundary, for Robin BC. However, for
+    * inhomogeneous Neumann BC, the value in leveldata is assumed to be
+    * `d./dx`.
     */
-    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) = 0;
+    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata,
+                             const MultiFab* robinbc_a = nullptr,
+                             const MultiFab* robinbc_b = nullptr,
+                             const MultiFab* robinbc_f = nullptr) = 0;
 
     void setVerbose (int v) noexcept { verbose = v; }
 
@@ -323,8 +327,10 @@ protected:
     // BC
     Vector<Array<BCType, AMREX_SPACEDIM> > m_lobc;
     Vector<Array<BCType, AMREX_SPACEDIM> > m_hibc;
-    Vector<Array<int, AMREX_SPACEDIM> > m_lo_inhomog_neumann;
-    Vector<Array<int, AMREX_SPACEDIM> > m_hi_inhomog_neumann;
+    // Need to save the original copy because we change the BC type to
+    // Neumann for inhomogeneous Neumann and Robin.
+    Vector<Array<BCType, AMREX_SPACEDIM> > m_lobc_orig;
+    Vector<Array<BCType, AMREX_SPACEDIM> > m_hibc_orig;
 
     Array<Real, AMREX_SPACEDIM> m_domain_bloc_lo {{AMREX_D_DECL(0.,0.,0.)}};
     Array<Real, AMREX_SPACEDIM> m_domain_bloc_hi {{AMREX_D_DECL(0.,0.,0.)}};
@@ -357,6 +363,12 @@ protected:
                                                              m_hibc[icomp][1],
                                                              m_hibc[icomp][2])}};
     }
+
+    bool hasInhomogNeumannBC () const noexcept;
+    bool hasRobinBC () const noexcept;
+
+    virtual bool supportRobinBC () const noexcept { return false; }
+    virtual bool supportInhomogNeumannBC () const noexcept { return false; }
 
 #ifdef BL_USE_MPI
     bool isBottomActive () const noexcept { return m_bottom_comm != MPI_COMM_NULL; }

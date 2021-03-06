@@ -270,6 +270,103 @@ MLABecLaplacian::applyMetricTermsCoeffs ()
 }
 
 void
+MLABecLaplacian::applyRobinBCTermsCoeffs ()
+{
+    if (!hasRobinBC()) return;
+
+    const int ncomp = getNComp();
+    if (m_a_scalar == Real(0.0)) m_a_scalar = Real(1.0);
+    const Real bovera = m_b_scalar/m_a_scalar;
+
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        const int mglev = 0;
+        const Box& domain = m_geom[amrlev][mglev].Domain();
+        const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
+        const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : Real(1.0);
+        const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : Real(1.0);
+
+        MFItInfo mfi_info;
+        if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(m_a_coeffs[amrlev][mglev], mfi_info); mfi.isValid(); ++mfi)
+        {
+            const Box& vbx = mfi.validbox();
+            Array4<Real> const& afab = m_a_coeffs[amrlev][mglev].array(mfi);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                Array4<Real const> const& bfab = m_b_coeffs[amrlev][mglev][idim].const_array(mfi);
+                const Box& blo = amrex::adjCellLo(vbx,idim);
+                const Box& bhi = amrex::adjCellHi(vbx,idim);
+                bool outside_domain_lo = !(domain.contains(blo));
+                bool outside_domain_hi = !(domain.contains(bhi));
+                if ((!outside_domain_lo) && (!outside_domain_hi)) continue;
+                for (int icomp = 0; icomp < ncomp; ++icomp) {
+                    Array4<Real const> const& rbc = (*m_robin_bcval[amrlev])[mfi].const_array(icomp*3);
+                    if (m_lobc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_lo)
+                    {
+                        if (idim == 0) {
+                            Real fac = bovera*dxi*dxi;
+                            AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
+                            {
+                                Real B = (rbc(i,j,k,1)*dxi - rbc(i,j,k,0)*Real(0.5))
+                                    /    (rbc(i,j,k,1)*dxi + rbc(i,j,k,0)*Real(0.5));
+                                afab(i+1,j,k,icomp) += fac*bfab(i+1,j,k,icomp)*(Real(1.0)-B);
+                            });
+                        } else if (idim == 1) {
+                            Real fac = bovera*dyi*dyi;
+                            AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
+                            {
+                                Real B = (rbc(i,j,k,1)*dyi - rbc(i,j,k,0)*Real(0.5))
+                                    /    (rbc(i,j,k,1)*dyi + rbc(i,j,k,0)*Real(0.5));
+                                afab(i,j+1,k,icomp) += fac*bfab(i,j+1,k,icomp)*(Real(1.0)-B);
+                            });
+                        } else {
+                            Real fac = bovera*dzi*dzi;
+                            AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
+                            {
+                                Real B = (rbc(i,j,k,1)*dzi - rbc(i,j,k,0)*Real(0.5))
+                                    /    (rbc(i,j,k,1)*dzi + rbc(i,j,k,0)*Real(0.5));
+                                afab(i,j,k+1,icomp) += fac*bfab(i,j,k+1,icomp)*(Real(1.0)-B);
+                            });
+                        }
+                    }
+                    if (m_hibc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_hi)
+                    {
+                        if (idim == 0) {
+                            Real fac = bovera*dxi*dxi;
+                            AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
+                            {
+                                Real B = (rbc(i,j,k,1)*dxi - rbc(i,j,k,0)*Real(0.5))
+                                    /    (rbc(i,j,k,1)*dxi + rbc(i,j,k,0)*Real(0.5));
+                                afab(i-1,j,k,icomp) += fac*bfab(i,j,k,icomp)*(Real(1.0)-B);
+                            });
+                        } else if (idim == 1) {
+                            Real fac = bovera*dyi*dyi;
+                            AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
+                            {
+                                Real B = (rbc(i,j,k,1)*dyi - rbc(i,j,k,0)*Real(0.5))
+                                    /    (rbc(i,j,k,1)*dyi + rbc(i,j,k,0)*Real(0.5));
+                                afab(i,j-1,k,icomp) += fac*bfab(i,j,k,icomp)*(Real(1.0)-B);
+                            });
+                        } else {
+                            Real fac = bovera*dzi*dzi;
+                            AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
+                            {
+                                Real B = (rbc(i,j,k,1)*dzi - rbc(i,j,k,0)*Real(0.5))
+                                    /    (rbc(i,j,k,1)*dzi + rbc(i,j,k,0)*Real(0.5));
+                                afab(i,j,k-1,icomp) += fac*bfab(i,j,k,icomp)*(Real(1.0)-B);
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void
 MLABecLaplacian::prepareForSolve ()
 {
     BL_PROFILE("MLABecLaplacian::prepareForSolve()");
@@ -279,6 +376,8 @@ MLABecLaplacian::prepareForSolve ()
 #if (AMREX_SPACEDIM != 3)
     applyMetricTermsCoeffs();
 #endif
+
+    applyRobinBCTermsCoeffs();
 
     averageDownCoeffs();
 

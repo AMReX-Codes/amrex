@@ -200,10 +200,13 @@ before the solve one must always call the :cpp:`MLLinOp` member function
 
 ::
 
-    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) = 0;
+    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata,
+                             const MultiFab* robinbc_a,
+                             const MultiFab* robinbc_b,
+                             const MultiFab* robinbc_f) = 0;
 
-If we want to supply any inhomogeneous Dirichlet or Neumann boundary
-conditions at the domain boundaries, we must supply those values
+If we want to supply an inhomogeneous Dirichlet, inhomogeneous Neumann, or
+Robin boundary conditions at the domain boundaries, we must supply those values
 in ``MultiFab* levelbcdata``, which must have at least one ghost cell.
 Note that the argument :cpp:`amrlev` is relative to the solve, not
 necessarily the full AMR hierarchy; amrlev = 0 refers to the coarsest

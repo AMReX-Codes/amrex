@@ -159,22 +159,8 @@ MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
 }
 
 void
-MLNodeLinOp::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
+MLNodeLinOp::applyInhomogNeumannTerm (int /*amrlev*/, MultiFab& /*rhs*/) const
 {
-    amrex::ignore_unused(amrlev);
-    int ncomp = rhs.nComp();
-    for (int n = 0; n < ncomp; ++n)
-    {
-        auto itlo = std::find(m_lo_inhomog_neumann[n].begin(),
-                              m_lo_inhomog_neumann[n].end(),   1);
-        auto ithi = std::find(m_hi_inhomog_neumann[n].begin(),
-                              m_hi_inhomog_neumann[n].end(),   1);
-        if (itlo != m_lo_inhomog_neumann[n].end() ||
-            ithi != m_hi_inhomog_neumann[n].end())
-        {
-            amrex::Abort("Inhomogeneous Neumann not supported for nodal solver");
-        }
-    }
 }
 
 namespace {

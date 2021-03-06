@@ -659,38 +659,8 @@ MLLinOp::setDomainBC (const Array<BCType,AMREX_SPACEDIM>& a_lobc,
                       const Array<BCType,AMREX_SPACEDIM>& a_hibc) noexcept
 {
     const int ncomp = getNComp();
-    m_lobc.clear();
-    m_hibc.clear();
-    m_lobc.resize(ncomp,a_lobc);
-    m_hibc.resize(ncomp,a_hibc);
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (m_geom[0][0].isPeriodic(idim)) {
-            AMREX_ALWAYS_ASSERT(a_lobc[idim] == BCType::Periodic);
-            AMREX_ALWAYS_ASSERT(a_hibc[idim] == BCType::Periodic);
-        }
-        if (a_lobc[idim] == BCType::Periodic ||
-            a_hibc[idim] == BCType::Periodic) {
-            AMREX_ALWAYS_ASSERT(m_geom[0][0].isPeriodic(idim));
-        }
-    }
-    m_lo_inhomog_neumann.resize(ncomp);
-    m_hi_inhomog_neumann.resize(ncomp);
-    for (int n = 0; n < ncomp; ++n) {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (m_lobc[n][idim] == LinOpBCType::inhomogNeumann) {
-                m_lobc[n][idim] = LinOpBCType::Neumann;
-                m_lo_inhomog_neumann[n][idim] = 1;
-            } else {
-                m_lo_inhomog_neumann[n][idim] = 0;
-            }
-            if (m_hibc[n][idim] == LinOpBCType::inhomogNeumann) {
-                m_hibc[n][idim] = LinOpBCType::Neumann;
-                m_hi_inhomog_neumann[n][idim] = 1;
-            } else {
-                m_hi_inhomog_neumann[n][idim] = 0;
-            }
-        }
-    }
+    setDomainBC(Vector<Array<BCType,AMREX_SPACEDIM> >(ncomp,a_lobc),
+                Vector<Array<BCType,AMREX_SPACEDIM> >(ncomp,a_hibc));
 }
 
 void
@@ -702,33 +672,70 @@ MLLinOp::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
                                      "MLLinOp::setDomainBC: wrong size");
     m_lobc = a_lobc;
     m_hibc = a_hibc;
-    m_lo_inhomog_neumann.resize(ncomp);
-    m_hi_inhomog_neumann.resize(ncomp);
+    m_lobc_orig = m_lobc;
+    m_hibc_orig = m_hibc;
     for (int icomp = 0; icomp < ncomp; ++icomp) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             if (m_geom[0][0].isPeriodic(idim)) {
-                AMREX_ALWAYS_ASSERT(m_lobc[icomp][idim] == BCType::Periodic);
-                AMREX_ALWAYS_ASSERT(m_hibc[icomp][idim] == BCType::Periodic);
-            }
-            if (m_lobc[icomp][idim] == BCType::Periodic ||
-                m_hibc[icomp][idim] == BCType::Periodic) {
-                AMREX_ALWAYS_ASSERT(m_geom[0][0].isPeriodic(idim));
+                AMREX_ALWAYS_ASSERT(m_lobc[icomp][idim] == BCType::Periodic &&
+                                    m_hibc[icomp][idim] == BCType::Periodic);
+            } else {
+                AMREX_ALWAYS_ASSERT(m_lobc[icomp][idim] != BCType::Periodic &&
+                                    m_hibc[icomp][idim] != BCType::Periodic);
             }
 
-            if (m_lobc[icomp][idim] == LinOpBCType::inhomogNeumann) {
+            if (m_lobc[icomp][idim] == LinOpBCType::inhomogNeumann ||
+                m_lobc[icomp][idim] == LinOpBCType::Robin)
+            {
                 m_lobc[icomp][idim] = LinOpBCType::Neumann;
-                m_lo_inhomog_neumann[icomp][idim] = 1;
-            } else {
-                m_lo_inhomog_neumann[icomp][idim] = 0;
             }
-            if (m_hibc[icomp][idim] == LinOpBCType::inhomogNeumann) {
+
+            if (m_hibc[icomp][idim] == LinOpBCType::inhomogNeumann ||
+                m_hibc[icomp][idim] == LinOpBCType::Robin)
+            {
                 m_hibc[icomp][idim] = LinOpBCType::Neumann;
-                m_hi_inhomog_neumann[icomp][idim] = 1;
-            } else {
-                m_hi_inhomog_neumann[icomp][idim] = 0;
             }
         }
     }
+
+    if (hasInhomogNeumannBC() && !supportInhomogNeumannBC()) {
+        amrex::Abort("Inhomogeneous Neumann BC not supported");
+    }
+    if (hasRobinBC() && !supportRobinBC()) {
+        amrex::Abort("Robin BC not supported");
+    }
+}
+
+bool
+MLLinOp::hasInhomogNeumannBC () const noexcept
+{
+    int ncomp = m_lobc_orig.size();
+    for (int n = 0; n < ncomp; ++n) {
+        for (int idim = 0; idim <AMREX_SPACEDIM; ++idim) {
+            if (m_lobc_orig[n][idim] == BCType::inhomogNeumann ||
+                m_hibc_orig[n][idim] == BCType::inhomogNeumann)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool
+MLLinOp::hasRobinBC () const noexcept
+{
+    int ncomp = m_lobc_orig.size();
+    for (int n = 0; n < ncomp; ++n) {
+        for (int idim = 0; idim <AMREX_SPACEDIM; ++idim) {
+            if (m_lobc_orig[n][idim] == BCType::Robin ||
+                m_hibc_orig[n][idim] == BCType::Robin)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 void

@@ -95,6 +95,8 @@ MLCellLinOp::defineBC ()
     m_bndry_cor.resize(m_num_amr_levels);
     m_crse_cor_br.resize(m_num_amr_levels);
 
+    m_robin_bcval.resize(m_num_amr_levels);
+
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_bndry_sol[amrlev].reset(new MLMGBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
@@ -158,7 +160,8 @@ MLCellLinOp::defineBC ()
 }
 
 void
-MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
+MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata, const MultiFab* robinbc_a,
+                         const MultiFab* robinbc_b, const MultiFab* robinbc_f)
 {
     BL_PROFILE("MLCellLinOp::setLevelBC()");
 
@@ -228,6 +231,52 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
                                                    m_lobc, m_hibc,
                                                    br_ref_ratio, m_coarse_bc_loc,
                                                    m_domain_bloc_lo, m_domain_bloc_hi);
+    }
+
+    if (hasRobinBC()) {
+        AMREX_ASSERT(robinbc_a != nullptr && robinbc_b != nullptr && robinbc_f != nullptr);
+        m_robin_bcval[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0], m_dmap[amrlev][0],
+                                                           ncomp*3, 1);
+        const Box& domain = m_geom[amrlev][0].Domain();
+        MFItInfo mfi_info;
+        if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(*m_robin_bcval[amrlev], mfi_info); mfi.isValid(); ++mfi) {
+            Box const& vbx = mfi.validbox();
+            Array4<Real const> const& ra = robinbc_a->const_array(mfi);
+            Array4<Real const> const& rb = robinbc_b->const_array(mfi);
+            Array4<Real const> const& rf = robinbc_f->const_array(mfi);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const Box& blo = amrex::adjCellLo(vbx, idim);
+                const Box& bhi = amrex::adjCellHi(vbx, idim);
+                bool outside_domain_lo = !(domain.contains(blo));
+                bool outside_domain_hi = !(domain.contains(bhi));
+                if ((!outside_domain_lo) && (!outside_domain_hi)) continue;
+                for (int icomp = 0; icomp < ncomp; ++icomp) {
+                    Array4<Real> const& rbc = (*m_robin_bcval[amrlev])[mfi].array(icomp*3);
+                    if (m_lobc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_lo)
+                    {
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(blo, i, j, k,
+                        {
+                            rbc(i,j,k,0) = ra(i,j,k,icomp);
+                            rbc(i,j,k,1) = rb(i,j,k,icomp);
+                            rbc(i,j,k,2) = rf(i,j,k,icomp);
+                        });
+                    }
+                    if (m_hibc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_hi)
+                    {
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bhi, i, j, k,
+                        {
+                            rbc(i,j,k,0) = ra(i,j,k,icomp);
+                            rbc(i,j,k,1) = rb(i,j,k,icomp);
+                            rbc(i,j,k,2) = rf(i,j,k,icomp);
+                        });
+                    }
+                }
+            }
+        }
     }
 }
 
