@@ -53,7 +53,7 @@ template void FillPolar(FabArray<FArrayBox>& mf, int scomp, int ncomp, IntVect c
 template void FillPolar(FabArray<FArrayBox>& mf, Box const& domain);
 
 template void ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox, const FabArray<FArrayBox>& src, int destcomp,
-             int srccomp, int numcomp, Identity, Identity);
+             int srccomp, int numcomp, const IntVect& ngrow, Identity, Identity);
 
 } // namespace NonLocalBC
 } // namespace amrex

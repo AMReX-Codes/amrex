@@ -77,26 +77,65 @@ struct Rotate90DstToSrc
     }
 };
 
-/// This facade lifts a given base class from being Dim3 -> Dim3 callable to an  index map
-/// that satisfies our concept.
-template <typename Base> struct IndexMappingFacade {
+template <typename Base, bool> struct InverseMappingFacade {
+    AMREX_NO_UNIQUE_ADDRESS Base base;
+};
+template<typename Base> struct InverseMappingFacade<Base, true> {
+    constexpr InverseMappingFacade() = default;
+    constexpr InverseMappingFacade(const Base& b) : base(b) {}
+    constexpr InverseMappingFacade(Base&& b) : base(std::move(b)) {}
+
     AMREX_NO_UNIQUE_ADDRESS Base base;
 
+    static constexpr bool is_noexcept_invertible = noexcept(std::declval<Base const&>().Inverse(Dim3{}));
+
+    AMREX_GPU_HOST_DEVICE
+    IntVect Inverse(IntVect const& iv) const noexcept(is_noexcept_invertible) {
+        Dim3 i{};
+        AMREX_D_DECL(i.x = iv[0], i.y = iv[1], i.z = iv[2]);
+        i = base.Inverse(i);
+        return {AMREX_D_DECL(i.x, i.y, i.z)};
+    }
+    
+    Box InverseImage(const Box& box) const noexcept(is_noexcept_invertible) {
+        IntVect mapped_smallEnd = Inverse(box.smallEnd());
+        IntVect mapped_bigEnd = Inverse(box.bigEnd());
+        IntVect smallEnd;
+        IntVect bigEnd;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            smallEnd[d] = std::min(mapped_smallEnd[d], mapped_bigEnd[d]);
+            bigEnd[d] = std::max(mapped_smallEnd[d], mapped_bigEnd[d]);
+        }
+        return Box{smallEnd, bigEnd};
+    }
+};
+
+template <typename I, typename... Args>
+using Inverse_t = decltype(std::declval<I>().Inverse(std::declval<Args>()...));
+
+/// This facade lifts a given base class from being Dim3 -> Dim3 callable to an  index map
+/// that satisfies our concept.
+template <typename Base>
+struct IndexMappingFacade : InverseMappingFacade<Base, IsDetectedExact<Dim3, Inverse_t, Base, Dim3>::value> {
+    using BaseFacade = InverseMappingFacade<Base, IsDetectedExact<Dim3, Inverse_t, Base, Dim3>::value>;
+    
+    using BaseFacade::InverseMappingFacade;
+    
     static_assert(IsCallableR<Dim3, Base, Dim3>(),
                   "Base class needs to be a mapping: Dim3 -> Dim3");
 
-    static constexpr bool is_noexcept_callable = noexcept(base(Dim3{}));
+    static constexpr bool is_noexcept_callable = noexcept(std::declval<Base const&>()(Dim3{}));
 
     AMREX_GPU_HOST_DEVICE
     IntVect operator()(IntVect const& iv) const noexcept(is_noexcept_callable) {
         Dim3 i{};
         AMREX_D_DECL(i.x = iv[0], i.y = iv[1], i.z = iv[2]);
-        i = base(i);
+        i = BaseFacade::base(i);
         return {AMREX_D_DECL(i.x, i.y, i.z)};
     }
 
     AMREX_GPU_HOST_DEVICE
-    constexpr Dim3 operator()(Dim3 i) const noexcept(is_noexcept_callable) { return base(i); }
+    constexpr Dim3 operator()(Dim3 i) const noexcept(is_noexcept_callable) { return BaseFacade::base(i); }
 
     //! Performs the index mapping on each member of the box and returns a valid
     //! box.
@@ -225,20 +264,29 @@ static_assert(IsIndexMapping<PolarFn2>(),
 //! This struct describes a bijective index transformation for two coordinate
 //! systems.
 struct MultiBlockDestToSrc {
-  IntVect permutation{AMREX_D_DECL(0, 1, 2)};
-  IntVect offset{AMREX_D_DECL(0, 0, 0)};
-  IntVect sign{AMREX_D_DECL(1, 1, 1)};
+    IntVect permutation{AMREX_D_DECL(0, 1, 2)};
+    IntVect offset{AMREX_D_DECL(0, 0, 0)};
+    IntVect sign{AMREX_D_DECL(1, 1, 1)};
 
-  //! Applies the index mapping on (i, j, k) and returns an index in the source
-  //! space.
-  AMREX_GPU_HOST_DEVICE Dim3 operator()(Dim3 i) const noexcept {
-    int iv[3]{i.x, i.y, i.z};
-    int iv_new[3];
-    for (int d = 0; d < 3; ++d) {
-      iv_new[d] = sign[d] * (iv[permutation[d]] - offset[permutation[d]]);
+    //! Applies the index mapping on (i, j, k) and returns an index in the source
+    //! space.
+    AMREX_GPU_HOST_DEVICE Dim3 operator()(Dim3 i) const noexcept {
+        int iv[3]{i.x, i.y, i.z};
+        int iv_new[3];
+        for (int d = 0; d < 3; ++d) {
+            iv_new[d] = sign[d] * (iv[permutation[d]] - offset[d]);
+        }
+        return {iv_new[0], iv_new[1], iv_new[2]};
     }
-    return {iv_new[0], iv_new[1], iv_new[2]};
-  }
+
+    Dim3 Inverse(Dim3 i) const noexcept {
+        int iv_new[3]{i.x, i.y, i.z};
+        int iv[3];
+        for (int d = 0; d < 3; ++d) {
+            iv[permutation[d]] = iv_new[d] * sign[d] + offset[permutation[d]];
+        }
+        return {iv[0], iv[1], iv[2]};
+    }
 };
 using MultiBlockIndexMapping = IndexMappingFacade<MultiBlockDestToSrc>;
 static_assert(IsIndexMapping<MultiBlockIndexMapping>(),
@@ -251,6 +299,7 @@ struct IsFabProjection
 
 struct IdentityDestToSrc {
     constexpr Dim3 operator()(Dim3 i) const noexcept { return i; }
+    constexpr Dim3 Inverse(Dim3 i) const noexcept { return i; }
 };
 
 /// This type acts as a default no-op operator 
@@ -544,8 +593,8 @@ struct IsDataPacking :
     Conjunction<
         IsDetected<LocalCopy_t, DP&, FabArray<FAB>&, const FabArray<FAB>&, const FabArrayBase::CopyComTagsContainer&>
 #ifdef AMREX_USE_MPI
-       ,IsDetected<PrepareSendBuffers_t, DP&, const FabArray<FAB>&, CommData&, const FabArrayBase::MapOfCopyComTagContainers&>,
-        IsDetected<PrepareRecvBuffers_t, DP&, const FabArray<FAB>&, CommData&, const FabArrayBase::MapOfCopyComTagContainers&>,
+       ,IsDetected<PrepareSendBuffers_t, DP&, FabArray<FAB>&, const FabArray<FAB>&, CommData&, const FabArrayBase::MapOfCopyComTagContainers&>,
+        IsDetected<PrepareRecvBuffers_t, DP&, FabArray<FAB>&, const FabArray<FAB>&, CommData&, const FabArrayBase::MapOfCopyComTagContainers&>,
         IsDetected<PackSendBuffers_t, DP&, const FabArray<FAB>&, CommData&>,
         IsDetected<UnpackRecvBuffers_t, DP&, FabArray<FAB>&, CommData&>
 #endif
@@ -579,15 +628,15 @@ LocalCopy (const PackComponents& components, FabArray<FAB>& dest, const FabArray
 #ifdef AMREX_USE_MPI
 template <typename FAB>
 amrex::EnableIf_t<IsBaseFab<FAB>::value>
-PrepareSendBuffers (const PackComponents& components, const FabArray<FAB>& mf, CommData& comm,
+PrepareSendBuffers (const PackComponents& components, FabArray<FAB>&, const FabArray<FAB>& src, CommData& comm,
                     const FabArrayBase::MapOfCopyComTagContainers& cctc) {
-    comm.the_data = mf.PrepareSendBuffers(cctc, comm.data, comm.size, comm.rank, comm.request,
+    comm.the_data = src.PrepareSendBuffers(cctc, comm.data, comm.size, comm.rank, comm.request,
                                           comm.cctc, components.n_components);
 }
 
 template <typename FAB>
 amrex::EnableIf_t<IsBaseFab<FAB>::value>
-PrepareRecvBuffers (const PackComponents& components, const FabArray<FAB>& mf, CommData& comm,
+PrepareRecvBuffers (const PackComponents& components, FabArray<FAB>&, const FabArray<FAB>& src, CommData& comm,
                     const FabArrayBase::MapOfCopyComTagContainers& cctc) {
     comm.data.clear();
     comm.size.clear();
@@ -601,7 +650,7 @@ PrepareRecvBuffers (const PackComponents& components, const FabArray<FAB>& mf, C
         std::size_t nbytes = 0;
         for (auto const& cct : kv.second)
         {
-            nbytes += mf[cct.dstIndex].nBytes(cct.dbox, components.n_components);
+            nbytes += src[cct.srcIndex].nBytes(cct.sbox, components.n_components);
         }
 
         std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
@@ -749,13 +798,13 @@ ParallelCopy_nowait (FabArray<FAB>& dest, const FabArray<FAB>& src,
 
     const int N_rcvs = cmd.m_RcvTags ? cmd.m_RcvTags->size() : 0;
     if (N_rcvs > 0) {
-        PrepareRecvBuffers(data_packing, dest, handler.recv, *cmd.m_RcvTags);
+        PrepareRecvBuffers(data_packing, dest, src, handler.recv, *cmd.m_RcvTags);
         PostRecvs(handler.recv, handler.mpi_tag);
     }
 
     const int N_snds = cmd.m_SndTags ? cmd.m_SndTags->size() : 0;
     if (N_snds > 0) {
-        PrepareSendBuffers(data_packing, src, handler.send, *cmd.m_SndTags);
+        PrepareSendBuffers(data_packing, dest, src, handler.send, *cmd.m_SndTags);
         PackSendBuffers(data_packing, src, handler.send);
         PostSends(handler.send, handler.mpi_tag);
     }
@@ -768,20 +817,17 @@ CommHandler ParallelCopy_nowait (FabArray<FAB>&, const FabArray<FAB>&,
 }
 #endif
 
+static constexpr struct NoLocalCopy {} no_local_copy{};
+
 template <typename FAB, typename DataPacking>
 EnableIf_t<IsBaseFab<FAB>() && IsDataPacking<DataPacking, FAB>()>
-ParallelCopy_finish (FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler handler,
+#ifdef AMREX_USE_MPI
+ParallelCopy_finish (NoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler handler,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
-    amrex::ignore_unused(handler);
     // If any FabArray is empty we have nothing to do.
     if (dest.size() == 0) {
         return;
     }
-    // Eagerly do the local work and hope for some overlap with communication
-    if (cmd.m_LocTags && cmd.m_LocTags->size() > 0) {
-        LocalCopy(data_packing, dest, src, *cmd.m_LocTags);
-    }
-#ifdef AMREX_USE_MPI
     // Return if nothing do
     if (ParallelContext::NProcsSub() == 1) {
         return;
@@ -803,7 +849,26 @@ ParallelCopy_finish (FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler 
     if (N_snds > 0) {
         ParallelDescriptor::Waitall(handler.send.request, handler.send.stats);
     }
+}
+#else
+ParallelCopy_finish (NoLocalCopy, FabArray<FAB>&, const FabArray<FAB>&, CommHandler,
+                     const FabArrayBase::CommMetaData&, const DataPacking&) {}
 #endif
+
+template <typename FAB, typename DataPacking>
+EnableIf_t<IsBaseFab<FAB>() && IsDataPacking<DataPacking, FAB>()>
+ParallelCopy_finish (FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler handler,
+                     const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
+    amrex::ignore_unused(handler);
+    // If any FabArray is empty we have nothing to do.
+    if (dest.size() == 0) {
+        return;
+    }
+    // Eagerly do the local work and hope for some overlap with communication
+    if (cmd.m_LocTags && cmd.m_LocTags->size() > 0) {
+        LocalCopy(data_packing, dest, src, *cmd.m_LocTags);
+    }
+    ParallelCopy_finish(no_local_copy, dest, src, std::move(handler), cmd, data_packing);
 }
 
 //! This class stores data dependencies for an inter-block communication.
@@ -823,39 +888,48 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
   //! construction of this object to minimize its computation.
   template <typename DTOS, typename = EnableIf_t<IsIndexMapping<DTOS>::value>>
   MultiBlockCommMetaData(const FabArrayBase& dst, const Box& dstbox,
-                         const FabArrayBase& src, DTOS dtos)
+                         const FabArrayBase& src, const IntVect& ngrow, DTOS dtos)
       : MultiBlockCommMetaData(dst.boxArray(), dst.DistributionMap(), dstbox,
-                               src.boxArray(), src.DistributionMap(), dtos) {}
+                               src.boxArray(), src.DistributionMap(), ngrow, dtos) {}
 
   template <typename DTOS, typename = EnableIf_t<IsIndexMapping<DTOS>::value>>
   MultiBlockCommMetaData(const BoxArray& dstba,
                          const DistributionMapping& dstdm, const Box& dstbox,
                          const BoxArray& srcba,
-                         const DistributionMapping& srcdm, DTOS dtos) {
+                         const DistributionMapping& srcdm, const IntVect& ngrow, DTOS dtos) {
     m_LocTags = std::make_unique<FabArrayBase::CopyComTagsContainer>();
     m_SndTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
     m_RcvTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
     const int myproc = ParallelDescriptor::MyProc();
     for (int i = 0, N = dstba.size(); i < N; ++i) {
       const int dest_owner = dstdm[i];
-      Box partial_dstbox_mapped_in_src = dtos(dstba[i] & dstbox);
+      const Box partial_dstbox = grow(dstba[i], ngrow) & dstbox;
+      if (partial_dstbox.isEmpty()) {
+          continue;
+      }
+      const Box partial_dstbox_mapped_in_src = dtos(partial_dstbox);
+      BoxArray grown_srcba = srcba;
+      grown_srcba.grow(ngrow);
       std::vector<std::pair<int, Box>> boxes_from_src =
           srcba.intersections(partial_dstbox_mapped_in_src);
       for (std::pair<int, Box> counted_box : boxes_from_src) {
         const int k = counted_box.first;
-        const Box box = counted_box.second;
+        const Box src_box = counted_box.second;
         const int src_owner = srcdm[k];
         if (dest_owner == myproc || src_owner == myproc) {
           if (src_owner == dest_owner) {
-            const BoxList tilelist(box, FabArrayBase::comm_tile_size);
+            const BoxList tilelist(src_box, FabArrayBase::comm_tile_size);
             for (const Box& tilebox : tilelist) {
-              m_LocTags->emplace_back(tilebox, tilebox, i, i);
+              Box inverse_image = dtos.InverseImage(tilebox);
+              if ((inverse_image & partial_dstbox).ok()) {
+                m_LocTags->emplace_back(inverse_image, tilebox, i, i);
+              }
             }
           } else {
             FabArrayBase::CopyComTagsContainer& copy_tags =
                 (src_owner == myproc) ? (*m_SndTags)[dest_owner]
                                       : (*m_RcvTags)[src_owner];
-            copy_tags.emplace_back(box, box, i, i);
+            copy_tags.emplace_back(dtos.InverseImage(src_box), src_box, i, i);
           }
         }
       }
@@ -878,9 +952,9 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const MultiBlockCom
 template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
 EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<Proj, FAB>()>
 ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, int destcomp,
-              int srccomp, int numcomp, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
+              int srccomp, int numcomp, const IntVect& ngrow, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
     BL_PROFILE("NonLocalBC::ParallelCopy");
-    MultiBlockCommMetaData cmd(dest, destbox, src, dtos);
+    MultiBlockCommMetaData cmd(dest, destbox, src, ngrow, dtos);
     ParallelCopy(dest, src, cmd, destcomp, srccomp, numcomp, std::move(dtos), std::move(proj));
 }
 
@@ -1148,11 +1222,11 @@ void FillPolar (FabArray<FArrayBox>& mf, Box const& domain);
 
 extern template
 void ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox, const FabArray<FArrayBox>& src, int destcomp,
-             int srccomp, int numcomp, Identity, Identity);
+             int srccomp, int numcomp, const IntVect& ngrow, Identity, Identity);
 
 extern template
 void ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox, const FabArray<FArrayBox>& src, int destcomp,
-             int srccomp, int numcomp, MultiBlockIndexMapping, Identity);
+             int srccomp, int numcomp, const IntVect& ngrow, MultiBlockIndexMapping, Identity);
 
 }}
 
