@@ -876,6 +876,7 @@ ParallelCopy_finish (FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler 
 //! In communication between two blocks one might need to do an index
 //! transformation from one block to antoher.
 struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
+    enum { first_only = 1 };
 
   //! \name Constructors
 
