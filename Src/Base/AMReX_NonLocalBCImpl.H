@@ -272,8 +272,8 @@ struct MultiBlockDestToSrc {
     //! space.
     AMREX_GPU_HOST_DEVICE Dim3 operator()(Dim3 i) const noexcept {
         int iv[3]{i.x, i.y, i.z};
-        int iv_new[3];
-        for (int d = 0; d < 3; ++d) {
+        int iv_new[3]{};
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             iv_new[d] = sign[d] * (iv[permutation[d]] - offset[d]);
         }
         return {iv_new[0], iv_new[1], iv_new[2]};
@@ -281,9 +281,9 @@ struct MultiBlockDestToSrc {
 
     Dim3 Inverse(Dim3 i) const noexcept {
         int iv_new[3]{i.x, i.y, i.z};
-        int iv[3];
-        for (int d = 0; d < 3; ++d) {
-            iv[permutation[d]] = iv_new[d] * sign[d] + offset[permutation[d]];
+        int iv[3]{};
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            iv[permutation[d]] = iv_new[d] * sign[d] + offset[d];
         }
         return {iv[0], iv[1], iv[2]};
     }
