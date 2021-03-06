@@ -728,11 +728,11 @@ struct ApplyDtosAndProjectionOnReciever : PackComponents {
     AMREX_NO_UNIQUE_ADDRESS DTOS dtos;
     AMREX_NO_UNIQUE_ADDRESS FabProj proj;
 
-    static_assert(IsIndexMapping<DTOS>(), "DTOS needs to be an index map");
+    static_assert(IsCallableR<Dim3, DTOS, Dim3>(), "DTOS needs to be an index map");
 };
 
 template <typename FAB, typename DTOS, typename FabProj>
-amrex::EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<FabProj, FAB>()>
+amrex::EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<FabProj, FAB>()>
 LocalCopy (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing, FabArray<FAB>& dest,
            const FabArray<FAB>& src, const FabArrayBase::CopyComTagsContainer& local_tags) {
 #ifdef AMREX_USE_GPU
@@ -749,7 +749,7 @@ LocalCopy (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing, FabAr
 
 #ifdef AMREX_USE_MPI
 template <typename FAB, typename DTOS, typename FabProj>
-amrex::EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<FabProj, FAB>()>
+amrex::EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<FabProj, FAB>()>
 UnpackRecvBuffers (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing,
                    FabArray<FAB>& dest, const CommData& recv) {
 #ifdef AMREX_USE_GPU
@@ -871,6 +871,12 @@ ParallelCopy_finish (FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler 
     ParallelCopy_finish(no_local_copy, dest, src, std::move(handler), cmd, data_packing);
 }
 
+template <typename T, typename... Args>
+using InverseImage_t = decltype(std::declval<T>().InverseImage(std::declval<Args>()...));
+
+template <typename T>
+struct HasInverseImage : IsDetectedExact<Box, InverseImage_t, T&, Box> {};
+
 //! This class stores data dependencies for an inter-block communication.
 //!
 //! In communication between two blocks one might need to do an index
@@ -887,52 +893,55 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
   //! This call is quadratic in the number of boxes, i.e. it is in
   //! O(dstba.size() * srcba.size()). Therefore, it might be wise to cache the
   //! construction of this object to minimize its computation.
-  template <typename DTOS, typename = EnableIf_t<IsIndexMapping<DTOS>::value>>
-  MultiBlockCommMetaData(const FabArrayBase& dst, const Box& dstbox,
-                         const FabArrayBase& src, const IntVect& ngrow, DTOS dtos)
-      : MultiBlockCommMetaData(dst.boxArray(), dst.DistributionMap(), dstbox,
-                               src.boxArray(), src.DistributionMap(), ngrow, dtos) {}
+    template <typename DTOS, 
+              typename = EnableIf_t<IsIndexMapping<DTOS>::value>,
+              typename = EnableIf_t<HasInverseImage<DTOS>::value>>
+    MultiBlockCommMetaData(const FabArrayBase& dst, const Box& dstbox, const FabArrayBase& src,
+                           const IntVect& ngrow, DTOS dtos)
+        : MultiBlockCommMetaData(dst.boxArray(), dst.DistributionMap(), dstbox, src.boxArray(),
+                                 src.DistributionMap(), ngrow, dtos) {}
 
-  template <typename DTOS, typename = EnableIf_t<IsIndexMapping<DTOS>::value>>
-  MultiBlockCommMetaData(const BoxArray& dstba,
-                         const DistributionMapping& dstdm, const Box& dstbox,
-                         const BoxArray& srcba,
-                         const DistributionMapping& srcdm, const IntVect& ngrow, DTOS dtos) {
-    m_LocTags = std::make_unique<FabArrayBase::CopyComTagsContainer>();
-    m_SndTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
-    m_RcvTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
-    const int myproc = ParallelDescriptor::MyProc();
-    for (int i = 0, N = dstba.size(); i < N; ++i) {
-      const int dest_owner = dstdm[i];
-      const Box partial_dstbox = grow(dstba[i], ngrow) & dstbox;
-      if (partial_dstbox.isEmpty()) {
-          continue;
-      }
-      const Box partial_dstbox_mapped_in_src = dtos(partial_dstbox);
-      std::vector<std::pair<int, Box>> boxes_from_src =
-          srcba.intersections(partial_dstbox_mapped_in_src, first_only, ngrow);
-      for (std::pair<int, Box> counted_box : boxes_from_src) {
-        const int k = counted_box.first;
-        const Box src_box = counted_box.second;
-        const int src_owner = srcdm[k];
-        if (dest_owner == myproc || src_owner == myproc) {
-          if (src_owner == dest_owner) {
-            const BoxList tilelist(src_box, FabArrayBase::comm_tile_size);
-            for (const Box& tilebox : tilelist) {
-              Box inverse_image = dtos.InverseImage(tilebox);
-              if ((inverse_image & partial_dstbox).ok()) {
-                m_LocTags->emplace_back(inverse_image, tilebox, i, i);
-              }
+    template <typename DTOS, 
+              typename = EnableIf_t<IsIndexMapping<DTOS>::value>,
+              typename = EnableIf_t<HasInverseImage<DTOS>::value>>
+    MultiBlockCommMetaData(const BoxArray& dstba, const DistributionMapping& dstdm,
+                           const Box& dstbox, const BoxArray& srcba,
+                           const DistributionMapping& srcdm, const IntVect& ngrow, DTOS dtos) {
+        m_LocTags = std::make_unique<FabArrayBase::CopyComTagsContainer>();
+        m_SndTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
+        m_RcvTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
+        const int myproc = ParallelDescriptor::MyProc();
+        for (int i = 0, N = dstba.size(); i < N; ++i) {
+            const int dest_owner = dstdm[i];
+            const Box partial_dstbox = grow(dstba[i], ngrow) & dstbox;
+            if (partial_dstbox.isEmpty()) {
+                continue;
             }
-          } else {
-            FabArrayBase::CopyComTagsContainer& copy_tags =
-                (src_owner == myproc) ? (*m_SndTags)[dest_owner]
-                                      : (*m_RcvTags)[src_owner];
-            copy_tags.emplace_back(dtos.InverseImage(src_box), src_box, i, i);
-          }
+            const Box partial_dstbox_mapped_in_src = dtos(partial_dstbox);
+            std::vector<std::pair<int, Box>> boxes_from_src =
+                srcba.intersections(partial_dstbox_mapped_in_src, first_only, ngrow);
+            for (std::pair<int, Box> counted_box : boxes_from_src) {
+                const int k = counted_box.first;
+                const Box src_box = counted_box.second;
+                const int src_owner = srcdm[k];
+                if (dest_owner == myproc || src_owner == myproc) {
+                    if (src_owner == dest_owner) {
+                        const BoxList tilelist(src_box, FabArrayBase::comm_tile_size);
+                        for (const Box& tilebox : tilelist) {
+                            Box inverse_image = dtos.InverseImage(tilebox);
+                            if ((inverse_image & partial_dstbox).ok()) {
+                                m_LocTags->emplace_back(inverse_image, tilebox, i, i);
+                            }
+                        }
+                    } else {
+                        FabArrayBase::CopyComTagsContainer& copy_tags =
+                            (src_owner == myproc) ? (*m_SndTags)[dest_owner]
+                                                  : (*m_RcvTags)[src_owner];
+                        copy_tags.emplace_back(dtos.InverseImage(src_box), src_box, i, i);
+                    }
+                }
+            }
         }
-      }
-    }
   }
   //! @}
 };
