@@ -93,8 +93,6 @@ class AdvectionAmrCore : public AmrCore {
 
     MultiFab mass{};
     MultiFab mass_next{};
-    MultiFab flux_x{};
-    MultiFab flux_y{};
     Direction velocity{};
 
   private:
