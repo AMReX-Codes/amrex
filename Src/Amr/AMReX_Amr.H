@@ -329,8 +329,10 @@ protected:
     //! Initialize grid hierarchy -- called by Amr::init.
     void initialInit (Real strt_time, Real stop_time,
                       const BoxArray* lev0_grids = 0, const Vector<int>* pmap = 0);
+#ifndef AMREX_NO_PROBINIT
     //! Read the probin file.
     void readProbinFile (int& init);
+#endif
     //! Check for valid input.
     void checkInput ();
     //! Restart from a checkpoint file.
@@ -445,7 +447,9 @@ protected:
     int              sub_cycle;
     std::string      restart_chkfile;
     std::string      restart_pltfile;
+#ifndef AMREX_NO_PROBINIT
     std::string      probin_file;
+#endif
     LevelBld*        levelbld;
     bool             abort_on_stream_retry_failure;
     int              stream_max_tries;
