@@ -61,6 +61,7 @@ class AdvectionAmrCore : public AmrCore {
         // Perform first order accurate upwinding with velocity 1 in the stored direction.
         const double dx = Geom(0).CellSize(0);
         const double a_dt_over_dx = dt / dx * (velocity == dir);
+        if (dir == Direction::x) {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
@@ -70,6 +71,18 @@ class AdvectionAmrCore : public AmrCore {
             LoopConcurrentOnCpu(mfi.tilebox(), [=](int i, int j, int k) {
                 next(i, j, k) = m(i, j, k) + a_dt_over_dx * m(i - 1, j, k);
             });
+        }
+        } else if (dir == Direction::y) {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(mass); mfi.isValid(); ++mfi) {
+                Array4<Real> m = mass.array(mfi, 0);
+                Array4<Real> next = mass_next.array(mfi, 0);
+                LoopConcurrentOnCpu(mfi.tilebox(), [=](int i, int j, int k) {
+                    next(i, j, k) = m(i, j, k) + a_dt_over_dx * m(i, j - 1, k);
+                });
+            }
         }
         std::swap(mass, mass_next);
     }
