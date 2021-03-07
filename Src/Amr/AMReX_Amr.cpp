@@ -204,17 +204,20 @@ Amr::derive (const std::string& name,
     return amr_level[lev]->derive(name,time,ngrow);
 }
 
-Amr::Amr ()
+Amr::Amr (LevelBld* a_levelbld)
     :
-    AmrCore()
+    AmrCore(),
+    levelbld(a_levelbld)
 {
     Initialize();
     InitAmr();
 }
 
-Amr::Amr (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord)
+Amr::Amr (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord,
+          LevelBld* a_levelbld)
     :
-    AmrCore(rb,max_level_in,n_cell_in,coord)
+    AmrCore(rb,max_level_in,n_cell_in,coord),
+    levelbld(a_levelbld)
 {
     Initialize();
     InitAmr();
@@ -224,10 +227,8 @@ void
 Amr::InitAmr ()
 {
     BL_PROFILE("Amr::InitAmr()");
-    //
-    // Determine physics class.
-    //
-    levelbld = getLevelBld();
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(levelbld != nullptr, "ERROR: levelbld is nullptr");
     //
     // Global function that define state variables.
     //

@@ -8,6 +8,8 @@
 
 using namespace amrex;
 
+amrex::LevelBld* getLevelBld ();
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
@@ -45,7 +47,7 @@ int main (int argc, char* argv[])
     {
         timer_init = amrex::second();
 
-        Amr amr;
+        Amr amr(getLevelBld());
         amr.init(strt_time,stop_time);
 
         timer_init = amrex::second() - timer_init;

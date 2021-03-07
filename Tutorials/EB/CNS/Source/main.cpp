@@ -9,6 +9,7 @@
 
 using namespace amrex;
 
+amrex::LevelBld* getLevelBld ();
 void initialize_EB2 (const Geometry& geom, const int required_level, const int max_level);
 
 int main (int argc, char* argv[])
@@ -48,7 +49,7 @@ int main (int argc, char* argv[])
     {
         timer_init = amrex::second();
 
-        Amr amr;
+        Amr amr(getLevelBld());
         AmrLevel::SetEBSupportLevel(EBSupport::full);
         AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
 
