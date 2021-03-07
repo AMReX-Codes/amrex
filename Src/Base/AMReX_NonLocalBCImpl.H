@@ -847,7 +847,7 @@ struct HasInverseImage : IsDetectedExact<Box, InverseImage_t, T&, Box> {};
 //! In communication between two blocks one might need to do an index
 //! transformation from one block to antoher.
 struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
-    enum { first_only = 1 };
+    enum { not_first_only = 0, first_only = 1 };
 
   //! \name Constructors
 
@@ -884,7 +884,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
             }
             const Box partial_dstbox_mapped_in_src = dtos(partial_dstbox);
             std::vector<std::pair<int, Box>> boxes_from_src =
-                srcba.intersections(partial_dstbox_mapped_in_src, first_only, ngrow);
+                srcba.intersections(partial_dstbox_mapped_in_src, not_first_only, ngrow);
             for (std::pair<int, Box> counted_box : boxes_from_src) {
                 const int k = counted_box.first;
                 const Box src_box = counted_box.second;
