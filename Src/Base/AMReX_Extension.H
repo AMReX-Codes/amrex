@@ -151,6 +151,7 @@
 #define AMREX_FALLTHROUGH ((void)0)
 #endif
 
+// CI uses -Werror -Wc++17-extentsion, thus we need to add the __cplusplus clause
 #if !defined(AMREX_NO_NODISCARD) && defined(__has_cpp_attribute) && __has_cpp_attribute(nodiscard) && __cplusplus >= 201603L
 #   define AMREX_NODISCARD [[nodiscard]]
 #elif !defined(AMREX_NO_NODISCARD) && (defined(__GNUC__) || defined(__clang__))
@@ -163,6 +164,7 @@
 //   - Clang >= 9.0
 //   - GCC >= 9.0
 //   - MSVC >= 19.26
+// Using no unique address makes empty base class optimization for multiple policies much easier
 #if !defined(AMREX_NO_NO_UNIQUE_ADDRESS) && defined(__has_cpp_attribute) && __has_cpp_attribute(no_unique_address) && __cpluspus >= 201803L
 #   define AMREX_NO_UNIQUE_ADDRESS [[no_unique_address]]
 #   define AMREX_HAS_NO_UNIQUE_ADDRESS 1

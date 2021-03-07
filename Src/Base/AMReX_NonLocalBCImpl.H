@@ -77,15 +77,12 @@ struct Rotate90DstToSrc
     }
 };
 
-template <typename Base, bool> struct InverseMappingFacade {
-    AMREX_NO_UNIQUE_ADDRESS Base base;
+template <typename Base, bool HasInverse = false> struct InverseMonotoneMappingFacade : Base {
+    using Base::Base;
 };
-template<typename Base> struct InverseMappingFacade<Base, true> {
-    constexpr InverseMappingFacade() = default;
-    constexpr InverseMappingFacade(const Base& b) : base(b) {}
-    constexpr InverseMappingFacade(Base&& b) : base(std::move(b)) {}
 
-    AMREX_NO_UNIQUE_ADDRESS Base base;
+template<typename Base> struct InverseMonotoneMappingFacade<Base, true> : Base {
+    using Base::Base;
 
     static constexpr bool is_noexcept_invertible = noexcept(std::declval<Base const&>().Inverse(Dim3{}));
 
@@ -93,7 +90,7 @@ template<typename Base> struct InverseMappingFacade<Base, true> {
     IntVect Inverse(IntVect const& iv) const noexcept(is_noexcept_invertible) {
         Dim3 i{};
         AMREX_D_DECL(i.x = iv[0], i.y = iv[1], i.z = iv[2]);
-        i = base.Inverse(i);
+        i = Base::Inverse(i);
         return {AMREX_D_DECL(i.x, i.y, i.z)};
     }
     
@@ -113,29 +110,35 @@ template<typename Base> struct InverseMappingFacade<Base, true> {
 template <typename I, typename... Args>
 using Inverse_t = decltype(std::declval<I>().Inverse(std::declval<Args>()...));
 
-/// This facade lifts a given base class from being Dim3 -> Dim3 callable to an  index map
+/// This facade lifts a given base class from being Dim3 -> Dim3 callable to an index map
 /// that satisfies our concept.
+///
+/// Given a box, we use the base function to the compute the images of smallEnd() and bigEnd(). 
+/// By assuming component-wise monotonicty of the Dim3 -> Dim3 function we return the smallest box
+/// that contains both images.
 template <typename Base>
-struct IndexMappingFacade : InverseMappingFacade<Base, IsDetectedExact<Dim3, Inverse_t, Base, Dim3>::value> {
-    using BaseFacade = InverseMappingFacade<Base, IsDetectedExact<Dim3, Inverse_t, Base, Dim3>::value>;
-    
-    using InverseMappingFacade<Base, IsDetectedExact<Dim3, Inverse_t, Base, Dim3>::value>::InverseMappingFacade;
-    
+struct MonotoneIndexMappingFacade
+    : InverseMonotoneMappingFacade<Base, IsDetectedExact<Dim3, Inverse_t, Base, Dim3>::value> {
+    using BaseFacade =
+        InverseMonotoneMappingFacade<Base, IsDetectedExact<Dim3, Inverse_t, Base, Dim3>::value>;
+
+    using InverseMonotoneMappingFacade<
+        Base, IsDetectedExact<Dim3, Inverse_t, Base, Dim3>::value>::InverseMonotoneMappingFacade;
+
     static_assert(IsCallableR<Dim3, Base, Dim3>(),
                   "Base class needs to be a mapping: Dim3 -> Dim3");
 
     static constexpr bool is_noexcept_callable = noexcept(std::declval<Base const&>()(Dim3{}));
 
+    using BaseFacade::operator();
+
     AMREX_GPU_HOST_DEVICE
     IntVect operator()(IntVect const& iv) const noexcept(is_noexcept_callable) {
         Dim3 i{};
         AMREX_D_DECL(i.x = iv[0], i.y = iv[1], i.z = iv[2]);
-        i = BaseFacade::base(i);
+        i = static_cast<BaseFacade const&>(*this)(i);
         return {AMREX_D_DECL(i.x, i.y, i.z)};
     }
-
-    AMREX_GPU_HOST_DEVICE
-    constexpr Dim3 operator()(Dim3 i) const noexcept(is_noexcept_callable) { return BaseFacade::base(i); }
 
     //! Performs the index mapping on each member of the box and returns a valid
     //! box.
@@ -153,7 +156,7 @@ struct IndexMappingFacade : InverseMappingFacade<Base, IsDetectedExact<Dim3, Inv
         return Box{smallEnd, bigEnd};
     }
 };
-using Rotate90IndexMapping = IndexMappingFacade<Rotate90DstToSrc>;
+using Rotate90IndexMapping = MonotoneIndexMappingFacade<Rotate90DstToSrc>;
 static_assert(IsIndexMapping<Rotate90IndexMapping>(),
               "Rotate90IndexMapping is expected to satisfy IndexMapping");
 
@@ -261,7 +264,7 @@ static_assert(IsIndexMapping<PolarFn2>(),
               "PolarFn2 is expected to satisfy IndexMapping");
 
 
-//! This struct describes a bijective index transformation for two coordinate
+//! This struct describes an affine index transformation for two coordinate
 //! systems.
 struct MultiBlockDestToSrc {
     IntVect permutation{AMREX_D_DECL(0, 1, 2)};
@@ -279,7 +282,8 @@ struct MultiBlockDestToSrc {
         return {iv_new[0], iv_new[1], iv_new[2]};
     }
 
-    Dim3 Inverse(Dim3 i) const noexcept {
+    //! The inverse function is given by rearringing all above terms.
+    AMREX_GPU_HOST_DEVICE Dim3 Inverse(Dim3 i) const noexcept {
         int iv_new[3]{i.x, i.y, i.z};
         int iv[3]{};
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
@@ -288,7 +292,7 @@ struct MultiBlockDestToSrc {
         return {iv[0], iv[1], iv[2]};
     }
 };
-using MultiBlockIndexMapping = IndexMappingFacade<MultiBlockDestToSrc>;
+using MultiBlockIndexMapping = MonotoneIndexMappingFacade<MultiBlockDestToSrc>;
 static_assert(IsIndexMapping<MultiBlockIndexMapping>(),
               "MultiBlockIndexMapping is expected to satisfy IndexMapping");
 
@@ -303,8 +307,8 @@ struct IdentityDestToSrc {
 };
 
 /// This type acts as a default no-op operator 
-struct Identity : IndexMappingFacade<IdentityDestToSrc> {
-    using IndexMappingFacade<IdentityDestToSrc>::operator();
+struct Identity : MonotoneIndexMappingFacade<IdentityDestToSrc> {
+    using MonotoneIndexMappingFacade<IdentityDestToSrc>::operator();
 
     template <typename T>
     constexpr T operator()(Array4<const T> array, Dim3 i, int comp = 0) const
@@ -323,6 +327,11 @@ AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_constructible<Identity>::
 AMREX_STATIC_ASSERT_NO_MESSAGE((IsIndexMapping<Identity>()));
 AMREX_STATIC_ASSERT_NO_MESSAGE((IsFabProjection<Identity, FArrayBox>()));
 
+/// This class takes a projection and a mapping for components and combines it to form a new projection.
+///
+/// We use this in to apply a permutations on components FABs.
+///
+/// \see SwapIndices
 template <typename Base, typename Map = Identity> struct MapComponents {
     static_assert(IsCallable<Base, Array4<const Real>, Dim3, int>::value,
                   "Base needs to be a callable function: (Array4<const T>, Dim3, i) -> auto.");
@@ -346,6 +355,7 @@ AMREX_STATIC_ASSERT_NO_MESSAGE((sizeof(MapComponents<Identity, Identity>) == 1))
 #endif
 AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_assignable<MapComponents<Identity>>()));
 AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_constructible<MapComponents<Identity>>()));
+AMREX_STATIC_ASSERT_NO_MESSAGE((IsFabProjection<MapComponents<Identity>, FArrayBox>()));
 
 #ifdef AMREX_DEFINE_SWAP_INDICES_OPERATOR
 #error "The AMREX_DEFINE_SWAP_INDICES_OPERATOR macro is already defined"
@@ -408,9 +418,9 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
 #pragma omp parallel for
 #endif
     for (int itag = 0; itag < N_locs; ++itag) {
-        const auto& tag = LocTags[itag];
-        auto const& sfab = mf.const_array(tag.srcIndex);
-        auto const& dfab = mf.array      (tag.dstIndex);
+        const auto& tag = local_tags[itag];
+        auto const& sfab =  src.const_array(tag.srcIndex);
+        auto const& dfab = dest.array      (tag.dstIndex);
         amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=] (int i, int j, int k, int n) noexcept
         {
             auto const si = dtos(Dim3{i,j,k});
@@ -929,12 +939,14 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
 }
 
 template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
-EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && HasInverseImage<DTOS>() && IsFabProjection<Proj, FAB>()>
+EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && HasInverseImage<DTOS>() && IsFabProjection<Proj, FAB>(),
+MultiBlockCommMetaData>
 ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, int destcomp,
               int srccomp, int numcomp, const IntVect& ngrow, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
     BL_PROFILE("NonLocalBC::ParallelCopy");
     MultiBlockCommMetaData cmd(dest, destbox, src, ngrow, dtos);
     ParallelCopy(dest, src, cmd, destcomp, srccomp, numcomp, std::move(dtos), std::move(proj));
+    return cmd;
 }
 
 template <class FAB, class DTOS>
@@ -1201,11 +1213,11 @@ extern template
 void FillPolar (FabArray<FArrayBox>& mf, Box const& domain);
 
 extern template
-void ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox, const FabArray<FArrayBox>& src, int destcomp,
+MultiBlockCommMetaData ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox, const FabArray<FArrayBox>& src, int destcomp,
              int srccomp, int numcomp, const IntVect& ngrow, Identity, Identity);
 
 extern template
-void ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox, const FabArray<FArrayBox>& src, int destcomp,
+MultiBlockCommMetaData ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox, const FabArray<FArrayBox>& src, int destcomp,
              int srccomp, int numcomp, const IntVect& ngrow, MultiBlockIndexMapping, Identity);
 
 }}

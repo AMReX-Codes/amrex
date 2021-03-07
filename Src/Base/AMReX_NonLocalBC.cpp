@@ -3,6 +3,7 @@
 namespace amrex {
 namespace NonLocalBC {
 #ifdef AMREX_USE_MPI
+// Note, this is copied and modified from PrepareSendBuffers and PostRcvs
 void PrepareCommBuffers(CommData& comm, const PackComponents& components, 
                         const FabArrayBase::MapOfCopyComTagContainers& cctc,
                         std::size_t object_size, std::size_t align)
@@ -14,15 +15,14 @@ void PrepareCommBuffers(CommData& comm, const PackComponents& components,
     comm.offset.clear();
     comm.cctc.clear();
 
-    std::size_t TotalRcvsVolume = 0;
-    for (const auto& kv : cctc) // loop over senders
+    std::size_t total_volume = 0;
+    for (const auto& kv : cctc)
     {
         std::size_t nbytes = 0;
         for (auto const& cct : kv.second)
         {
-            // the followng does not work since src[cct.srcIndex] will throw an assertion
-            //   nbytes += src[cct.srcIndex].nBytes(cct.sbox, components.n_components);
-            // Can we have a static function FAB::nBytes(Box, int) ?
+            // Note: Does this hold for all FAB types? 
+            // This nBytes() implementation is currently also assumed in unpack_recv_buffers
             nbytes += cct.sbox.numPts() * object_size * components.n_components;
         }
 
@@ -30,10 +30,10 @@ void PrepareCommBuffers(CommData& comm, const PackComponents& components,
         nbytes = amrex::aligned_size(acd, nbytes);  // so that nbytes are aligned
 
         // Also need to align the offset properly
-        TotalRcvsVolume = amrex::aligned_size(std::max(align, acd), TotalRcvsVolume);
+        total_volume = amrex::aligned_size(std::max(align, acd), total_volume);
 
-        comm.offset.push_back(TotalRcvsVolume);
-        TotalRcvsVolume += nbytes;
+        comm.offset.push_back(total_volume);
+        total_volume += nbytes;
 
         comm.data.push_back(nullptr);
         comm.size.push_back(nbytes);
@@ -43,13 +43,13 @@ void PrepareCommBuffers(CommData& comm, const PackComponents& components,
     }
 
     const int N_recvs = comm.data.size();
-    if (TotalRcvsVolume == 0)
+    if (total_volume == 0)
     {
         comm.the_data = nullptr;
     }
     else
     {
-        comm.the_data.reset(static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalRcvsVolume)));
+        comm.the_data.reset(static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume)));
         for (int i = 0; i < N_recvs; ++i) {
             comm.data[i] = comm.the_data.get() + comm.offset[i];
         }
@@ -59,10 +59,10 @@ void PrepareCommBuffers(CommData& comm, const PackComponents& components,
 
 void PostRecvs(CommData& recv, int mpi_tag) {
     const int n_recv = recv.data.size();
-    BL_ASSERT(n_recv == recv.offset.size());
-    BL_ASSERT(n_recv == recv.size.size());
-    BL_ASSERT(n_recv == recv.rank.size());
-    BL_ASSERT(n_recv == recv.request.size());
+    AMREX_ASSERT(n_recv == recv.offset.size());
+    AMREX_ASSERT(n_recv == recv.size.size());
+    AMREX_ASSERT(n_recv == recv.rank.size());
+    AMREX_ASSERT(n_recv == recv.request.size());
     MPI_Comm comm = ParallelContext::CommunicatorSub();
     for (int i = 0; i < recv.data.size(); ++i) {
         if (recv.size[i] > 0) {
@@ -75,9 +75,9 @@ void PostRecvs(CommData& recv, int mpi_tag) {
 
 void PostSends(CommData& send, int mpi_tag) {
     const int n_sends = send.data.size();
-    BL_ASSERT(n_sends == send.size.size());
-    BL_ASSERT(n_sends == send.rank.size());
-    BL_ASSERT(n_sends == send.request.size());
+    AMREX_ASSERT(n_sends == send.size.size());
+    AMREX_ASSERT(n_sends == send.rank.size());
+    AMREX_ASSERT(n_sends == send.request.size());
     MPI_Comm comm = ParallelContext::CommunicatorSub();
     for (int j = 0; j < n_sends; ++j) {
         if (send.size[j] > 0) {
@@ -104,8 +104,11 @@ template void FillPolar(FabArray<FArrayBox>& mf, int scomp, int ncomp, IntVect c
 
 template void FillPolar(FabArray<FArrayBox>& mf, Box const& domain);
 
-template void ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox, const FabArray<FArrayBox>& src, int destcomp,
+template MultiBlockCommMetaData ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox, const FabArray<FArrayBox>& src, int destcomp,
              int srccomp, int numcomp, const IntVect& ngrow, Identity, Identity);
+
+template MultiBlockCommMetaData ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox, const FabArray<FArrayBox>& src, int destcomp,
+             int srccomp, int numcomp, const IntVect& ngrow, MultiBlockIndexMapping, Identity);
 
 } // namespace NonLocalBC
 } // namespace amrex

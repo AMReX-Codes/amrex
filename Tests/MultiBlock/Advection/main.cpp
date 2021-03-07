@@ -236,35 +236,31 @@ void MyMain() {
 
     std::vector<OnesidedMultiBlockBoundaryFn> multi_block_boundaries{};
     {   // Fill right boundary of core_x with lower mirror data of core_y
-        NonLocalBC::MultiBlockDestToSrc dtos{};
+        NonLocalBC::MultiBlockIndexMapping dtos{};
         dtos.permutation = IntVect{AMREX_D_DECL(1, 0, 2)};
         dtos.offset = (domain.bigEnd(iy) + 1) * e_y + domain.bigEnd(ix) * e_x;
         dtos.sign = IntVect{AMREX_D_DECL(-1, 1, 1)};
-        NonLocalBC::MultiBlockIndexMapping index_mapping{dtos};
         Box right_boundary_to_fill_in_x = grow(shift(Box{domain.bigEnd(ix) * e_x, domain.bigEnd()}, e_x), e_y);
-        multi_block_boundaries.push_back({&core_x, &core_y, index_mapping, right_boundary_to_fill_in_x});
+        multi_block_boundaries.push_back({&core_x, &core_y, dtos, right_boundary_to_fill_in_x});
     } { // Fill lower boundary of core_y with right mirror data of core_x
-        NonLocalBC::MultiBlockDestToSrc dtos{};
+        NonLocalBC::MultiBlockIndexMapping dtos{};
         dtos.permutation = IntVect{AMREX_D_DECL(1, 0, 2)};
         dtos.offset = domain.bigEnd(iy) * e_y - (domain.bigEnd(ix) + 1) * e_x;
         dtos.sign = IntVect{AMREX_D_DECL(1, -1, 1)};
-        NonLocalBC::MultiBlockIndexMapping index_mapping{dtos};
         Box lower_boundary_to_fill_in_y = grow(shift(Box{domain.smallEnd(), domain.bigEnd() - domain.bigEnd(iy) * e_y}, -e_y), e_x);
-        multi_block_boundaries.push_back({&core_y, &core_x, index_mapping, lower_boundary_to_fill_in_y});
+        multi_block_boundaries.push_back({&core_y, &core_x, dtos, lower_boundary_to_fill_in_y});
     } { // Fill left boundary of core_x with upper mirror data of core_y
-        NonLocalBC::MultiBlockDestToSrc dtos{};
+        NonLocalBC::MultiBlockIndexMapping dtos{};
         dtos.permutation = IntVect{AMREX_D_DECL(1, 0, 2)};
         dtos.offset = -(domain.bigEnd(iy) + 1) * e_y;
-        NonLocalBC::MultiBlockIndexMapping index_mapping{dtos};
         Box left_boundary_to_fill_in_x = grow(shift(Box{domain.smallEnd(), domain.bigEnd() - domain.bigEnd(ix) * e_x}, -e_x), e_y);
-        multi_block_boundaries.push_back({&core_x, &core_y, index_mapping, left_boundary_to_fill_in_x});
+        multi_block_boundaries.push_back({&core_x, &core_y, dtos, left_boundary_to_fill_in_x});
     } { // Fill upper boundary of core_y with left mirror data of core_x
-        NonLocalBC::MultiBlockDestToSrc dtos{};
+        NonLocalBC::MultiBlockIndexMapping dtos{};
         dtos.permutation = IntVect{AMREX_D_DECL(1, 0, 2)};
         dtos.offset = (domain.bigEnd(ix) + 1) * e_x;
-        NonLocalBC::MultiBlockIndexMapping index_mapping{dtos};
         Box upper_boundary_to_fill_in_y = grow(shift(Box{domain.bigEnd(iy) * e_y, domain.bigEnd()}, e_y), e_x);
-        multi_block_boundaries.push_back({&core_y, &core_x, index_mapping, upper_boundary_to_fill_in_y});
+        multi_block_boundaries.push_back({&core_y, &core_x, dtos, upper_boundary_to_fill_in_y});
     }
 
     FillBoundaryFn FillBoundary{std::move(multi_block_boundaries)};
