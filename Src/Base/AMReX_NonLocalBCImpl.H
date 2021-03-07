@@ -632,6 +632,7 @@ PrepareSendBuffers (const PackComponents& components, FabArray<FAB>&, const FabA
                     const FabArrayBase::MapOfCopyComTagContainers& cctc) {
     comm.the_data = src.PrepareSendBuffers(cctc, comm.data, comm.size, comm.rank, comm.request,
                                           comm.cctc, components.n_components);
+    comm.stats.resize(comm.request.size());
 }
 
 template <typename FAB>
@@ -643,6 +644,7 @@ PrepareRecvBuffers (const PackComponents& components, FabArray<FAB>&, const FabA
     comm.rank.clear();
     comm.request.clear();
     comm.offset.clear();
+    comm.cctc.clear();
 
     std::size_t TotalRcvsVolume = 0;
     for (const auto& kv : cctc) // loop over senders
@@ -650,7 +652,10 @@ PrepareRecvBuffers (const PackComponents& components, FabArray<FAB>&, const FabA
         std::size_t nbytes = 0;
         for (auto const& cct : kv.second)
         {
-            nbytes += src[cct.srcIndex].nBytes(cct.sbox, components.n_components);
+            // the followng does not work since src[cct.srcIndex] will throw an assertion
+            //   nbytes += src[cct.srcIndex].nBytes(cct.sbox, components.n_components);
+            // Can we have a static function FAB::nBytes(Box, int) ?
+            nbytes += cct.sbox.numPts() * sizeof(typename FAB::value_type) * components.n_components;
         }
 
         std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
@@ -667,9 +672,9 @@ PrepareRecvBuffers (const PackComponents& components, FabArray<FAB>&, const FabA
         comm.size.push_back(nbytes);
         comm.rank.push_back(kv.first);
         comm.request.push_back(MPI_REQUEST_NULL);
+        comm.cctc.push_back(&kv.second);
     }
 
-    const int nrecv = comm.rank.size();
     if (TotalRcvsVolume == 0)
     {
         comm.the_data = nullptr;
@@ -678,8 +683,8 @@ PrepareRecvBuffers (const PackComponents& components, FabArray<FAB>&, const FabA
     {
         comm.the_data.reset(static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalRcvsVolume)));
     }
-    comm.cctc.resize(nrecv);
-    comm.stats.resize(nrecv);
+    
+    comm.stats.resize(comm.request.size());
 }
 
 template <typename FAB>
@@ -923,21 +928,25 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
             for (std::pair<int, Box> counted_box : boxes_from_src) {
                 const int k = counted_box.first;
                 const Box src_box = counted_box.second;
+                AMREX_ASSERT(k < srcba.size());
                 const int src_owner = srcdm[k];
                 if (dest_owner == myproc || src_owner == myproc) {
                     if (src_owner == dest_owner) {
                         const BoxList tilelist(src_box, FabArrayBase::comm_tile_size);
                         for (const Box& tilebox : tilelist) {
-                            Box inverse_image = dtos.InverseImage(tilebox);
+                            const Box inverse_image = dtos.InverseImage(tilebox);
                             if ((inverse_image & partial_dstbox).ok()) {
-                                m_LocTags->emplace_back(inverse_image, tilebox, i, i);
+                                m_LocTags->emplace_back(inverse_image, tilebox, i, k);
                             }
                         }
                     } else {
-                        FabArrayBase::CopyComTagsContainer& copy_tags =
-                            (src_owner == myproc) ? (*m_SndTags)[dest_owner]
-                                                  : (*m_RcvTags)[src_owner];
-                        copy_tags.emplace_back(dtos.InverseImage(src_box), src_box, i, i);
+                        const Box inverse_image = dtos.InverseImage(src_box);
+                        if ((inverse_image & partial_dstbox).ok()) {
+                            FabArrayBase::CopyComTagsContainer& copy_tags =
+                                (src_owner == myproc) ? (*m_SndTags)[dest_owner]
+                                                    : (*m_RcvTags)[src_owner];
+                            copy_tags.emplace_back(inverse_image, src_box, i, k);
+                        }
                     }
                 }
             }
@@ -1066,7 +1075,7 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
             auto const& cctc = cmd.m_RcvTags->at(handler.recv.rank[k]);
             handler.recv.cctc[k] = &cctc;
         }
-
+        handler.recv.stats.resize(handler.recv.request.size());
         ParallelDescriptor::Waitall(handler.recv.request, handler.recv.stats);
 #ifdef AMREX_D_DEBUG
         if (!CheckRcvStats(stats, handler.recv.size, handler.mpi_tag)) {
@@ -1089,6 +1098,7 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 
     const int N_snds = cmd.m_SndTags->size();
     if (N_snds > 0) {
+        handler.send.stats.resize(handler.send.request.size());
         ParallelDescriptor::Waitall(handler.send.request, handler.send.stats);
     }
 }
