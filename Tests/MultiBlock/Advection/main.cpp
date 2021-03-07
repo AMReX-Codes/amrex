@@ -9,18 +9,11 @@
 
 void MyMain();
 
-int main(int argc, char** argv) try {
+int main(int argc, char** argv) {
     MPI_Init(nullptr, nullptr);
+    // Let me throw exceptions for triggering my debugger
     amrex::Initialize(MPI_COMM_WORLD, std::cout, std::cerr, [](const char* msg) { throw std::runtime_error(msg); });
     MyMain();
-    amrex::Finalize();
-    MPI_Finalize();
-} catch (const std::exception& e) {
-    std::cerr << "An exception occured: " << e.what() << "\nFinalizing AMReX.\n";
-    amrex::Finalize();
-    MPI_Finalize();
-} catch (...) {
-    std::cerr << "An unusual exception occured. Finalizing AMReX.\n";
     amrex::Finalize();
     MPI_Finalize();
 }
@@ -28,11 +21,11 @@ int main(int argc, char** argv) try {
 using namespace amrex;
 
 enum idirs { ix, iy };
+enum num_components { three_components = 3 };
 
 static constexpr IntVect e_x = IntVect::TheDimensionVector(ix);
 static constexpr IntVect e_y = IntVect::TheDimensionVector(iy);
 class AdvectionAmrCore : public AmrCore {
-  enum { one_component = 1 };
   
   public:
     AdvectionAmrCore(Direction vel, Geometry const& level_0_geom,
@@ -44,12 +37,16 @@ class AdvectionAmrCore : public AmrCore {
 #endif
         for (MFIter mfi(mass); mfi.isValid(); ++mfi) {
             Array4<Real> m = mass.array(mfi);
-            LoopConcurrentOnCpu(mfi.tilebox(), [level_0_geom, m](int i, int j, int k) {
+            Array4<Real> vx = mass.array(mfi, 1);
+            Array4<Real> vy = mass.array(mfi, 2);
+            LoopConcurrentOnCpu(mfi.tilebox(), [=](int i, int j, int k) {
                 Real x[AMREX_SPACEDIM] = {};
                 level_0_geom.CellCenter(IntVect{AMREX_D_DECL(i, j, k)}, x);
                 const double r2 = AMREX_D_TERM(x[0] * x[0], + x[1] * x[1], + x[2] * x[2]);
                 constexpr double R = 0.1 * 0.1;
                 m(i, j, k) = r2 < R ? 1.0 : 0.0;
+                vx(i, j, k) = r2 < R ? 1.0 : 0.0;
+                vy(i, j, k) = 0.0;
             });
         }
     }
@@ -70,22 +67,24 @@ class AdvectionAmrCore : public AmrCore {
 #pragma omp parallel
 #endif
             for (MFIter mfi(mass); mfi.isValid(); ++mfi) {
-                Array4<Real> m = mass.array(mfi, 0);
-                Array4<Real> next = mass_next.array(mfi, 0);
-                LoopConcurrentOnCpu(mfi.growntilebox(e_y), [=](int i, int j, int k) {
-                    next(i, j, k) = m(i, j, k) - a_dt_over_dx * (m(i, j, k) - m(i - 1, j, k));
-                });
+                Array4<Real> m = mass.array(mfi);
+                Array4<Real> next = mass_next.array(mfi);
+                ParallelFor(mfi.growntilebox(e_y), int(three_components),
+                            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
+                                next(i, j, k, n) = m(i, j, k, n) - a_dt_over_dx * (m(i, j, k, n) - m(i - 1, j, k, n));
+                            });
             }
         } else if (dir == Direction::y) {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
             for (MFIter mfi(mass); mfi.isValid(); ++mfi) {
-                Array4<Real> m = mass.array(mfi, 0);
-                Array4<Real> next = mass_next.array(mfi, 0);
-                LoopConcurrentOnCpu(mfi.growntilebox(ix), [=](int i, int j, int k) {
-                    next(i, j, k) = m(i, j, k) - a_dt_over_dx * (m(i, j, k) - m(i, j - 1, k));
-                });
+                Array4<Real> m = mass.array(mfi);
+                Array4<Real> next = mass_next.array(mfi);
+                ParallelFor(mfi.growntilebox(ix), int(three_components),
+                            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
+                                next(i, j, k, n) = m(i, j, k, n) - a_dt_over_dx * (m(i, j, k, n) - m(i, j - 1, k, n));
+                            });
             }
         }
         std::swap(mass, mass_next);
@@ -108,8 +107,8 @@ class AdvectionAmrCore : public AmrCore {
             throw std::runtime_error("For simplicity, this example supports only one level.");
         }
         const IntVect ngrow{AMREX_D_DECL(1, 1, 0)};
-        mass.define(box_array, distribution_mapping, one_component, ngrow);
-        mass_next.define(box_array, distribution_mapping, one_component, ngrow);
+        mass.define(box_array, distribution_mapping, three_components, ngrow);
+        mass_next.define(box_array, distribution_mapping, three_components, ngrow);
     }
 
     void MakeNewLevelFromCoarse(int level, double time_point, const ::amrex::BoxArray& box_array,
@@ -139,7 +138,9 @@ struct OnesidedMultiBlockBoundaryFn {
   std::unique_ptr<MultiBlockCommMetaData> cmd{};
   FabArrayBase::BDKey cached_dest_bd_key{};
   FabArrayBase::BDKey cached_src_bd_key{};
-  ApplyDtosAndProjectionOnReciever<MultiBlockIndexMapping> packing{PackComponents{0, 0, 1}, dtos};
+  ApplyDtosAndProjectionOnReciever<MultiBlockIndexMapping,
+                                   MapComponents<Identity, SwapIndices<1, 2>>>
+      packing{PackComponents{0, 0, three_components}, dtos};
 
   AMREX_NODISCARD CommHandler FillBoundary_nowait() {
     if (!cmd || cached_dest_bd_key != dest->mass.getBDKey() || cached_src_bd_key != src->mass.getBDKey()) {
@@ -163,8 +164,6 @@ struct OnesidedMultiBlockBoundaryFn {
   }
 };
 
-template <typename T> std::add_const_t<T> as_const(T&& x) noexcept { return x; }
-
 struct FillBoundaryFn {
     enum { coarsest_level = 0 };
 
@@ -184,8 +183,36 @@ struct FillBoundaryFn {
         for (std::size_t i = 0; i < n_boundaries; ++i) {
             boundaries[i].FillBoundary_finish(std::move(comms[i]));
         }
+        AMREX_ASSERT(!core_x.mass.contains_nan());
     }
 };
+
+void WritePlotfiles(const AdvectionAmrCore& core_x, const AdvectionAmrCore& core_y, double time_point, int step)
+{
+    static const Vector<std::string> varnames{"Mass", "Vector_X", "Vector_Y"};
+    int nlevels = 1;
+    std::array<char, 256> x_pbuffer{};
+    std::array<char, 256> y_pbuffer{};
+    snprintf(x_pbuffer.data(), x_pbuffer.size(), "MultiBlock/core_x/plt%04d", step);
+    snprintf(y_pbuffer.data(), y_pbuffer.size(), "MultiBlock/core_y/plt%04d", step);
+
+    {
+        Vector<const MultiFab*> mf{&core_x.mass};
+        Vector<Geometry> geoms{core_x.Geom(0)};
+        Vector<int> level_steps{step};
+        Vector<IntVect> ref_ratio{};
+        std::string plotfilename{x_pbuffer.data()};
+        WriteMultiLevelPlotfile(plotfilename, nlevels, mf, varnames, geoms, time_point, level_steps, ref_ratio);
+    }
+    {
+        Vector<const MultiFab*> mf{&core_y.mass};
+        Vector<Geometry> geoms{core_y.Geom(0)};
+        Vector<int> level_steps{step};
+        Vector<IntVect> ref_ratio{};
+        std::string plotfilename{y_pbuffer.data()};
+        WriteMultiLevelPlotfile(plotfilename, nlevels, mf, varnames, geoms, time_point, level_steps, ref_ratio);
+    }
+}
 
 void MyMain() {
     Box domain(IntVect{}, IntVect{AMREX_D_DECL(63, 63, 0)});
@@ -206,12 +233,6 @@ void MyMain() {
 
     AdvectionAmrCore core_x(Direction::x, geom1, amr_info);
     AdvectionAmrCore core_y(Direction::y, geom2, amr_info);
-
-    Vector<std::string> var_names{"Mass"};
-
-    WriteSingleLevelPlotfile("MultiBlock/core_x/plt0000", core_x.mass, var_names, core_x.Geom(0), 0.0, 0);
-    WriteSingleLevelPlotfile("MultiBlock/core_y/plt0000", core_y.mass, var_names, core_y.Geom(0), 0.0, 0);
-    std::array<char, 256> pbuffer{};
 
     std::vector<OnesidedMultiBlockBoundaryFn> multi_block_boundaries{};
     {   // Fill right boundary of core_x with lower mirror data of core_y
@@ -253,23 +274,19 @@ void MyMain() {
     const double cfl = 1.0;
     const double dt = cfl * min_dx1_dy2;
     const double final_time = 4.0;
-    double time = 0.0;
+    double time_point = 0.0;
 
-    while (time < final_time) {
+    WritePlotfiles(core_x, core_y, time_point, step);
+    while (time_point < final_time) {
         FillBoundary(core_x, core_y);
 
         core_x.AdvanceInTime(dt);
         core_y.AdvanceInTime(dt);
 
-        amrex::Print() << "Step #" << step << ", Time = " << time << '\n';
+        amrex::Print() << "Step #" << step << ", Time Point = " << time_point << '\n';
 
-        time += dt;
-        step += 1;
-
-        snprintf(pbuffer.data(), pbuffer.size(), "MultiBlock/core_x/plt%04d", step);
-        WriteSingleLevelPlotfile(std::string{pbuffer.data()}, core_x.mass, var_names, core_x.Geom(0), time, step);
-        snprintf(pbuffer.data(), pbuffer.size(), "MultiBlock/core_y/plt%04d", step);
-        WriteSingleLevelPlotfile(std::string{pbuffer.data()}, core_y.mass, var_names, core_y.Geom(0), time, step);
-
+        time_point += dt;
+        step += 1;  
+        WritePlotfiles(core_x, core_y, time_point, step);
     }
 }
