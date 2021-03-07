@@ -733,7 +733,7 @@ struct ApplyDtosAndProjectionOnReciever : PackComponents {
     AMREX_NO_UNIQUE_ADDRESS DTOS dtos;
     AMREX_NO_UNIQUE_ADDRESS FabProj proj;
 
-    static_assert(IsCallableR<Dim3, DTOS, Dim3>(), "DTOS needs to be an index map");
+    static_assert(IsCallableR<Dim3, DTOS, Dim3>(), "DTOS needs to be a callable: Dim3 -> Dim3");
 };
 
 template <typename FAB, typename DTOS, typename FabProj>
@@ -956,8 +956,8 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
 };
 
 template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
-EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<Proj, FAB>()>
-ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const MultiBlockCommMetaData& cmd,
+EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase::CommMetaData& cmd,
               int destcomp, int srccomp, int numcomp, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
     BL_PROFILE("NonLocalBC::ParallelCopy_with_MultiBlockCommMetaData");
     ApplyDtosAndProjectionOnReciever<DTOS, Proj> packing{PackComponents{destcomp, srccomp, numcomp},
@@ -967,7 +967,7 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const MultiBlockCom
 }
 
 template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
-EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<Proj, FAB>()>
+EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && HasInverseImage<DTOS>() && IsFabProjection<Proj, FAB>()>
 ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, int destcomp,
               int srccomp, int numcomp, const IntVect& ngrow, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
     BL_PROFILE("NonLocalBC::ParallelCopy");
