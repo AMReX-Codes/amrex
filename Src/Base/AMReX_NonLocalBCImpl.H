@@ -693,6 +693,7 @@ struct ApplyDtosAndProjectionOnReciever : PackComponents {
     AMREX_NO_UNIQUE_ADDRESS FabProj proj;
 
     static_assert(IsCallableR<Dim3, DTOS, Dim3>(), "DTOS needs to be a callable: Dim3 -> Dim3");
+    static_assert(IsFabProjection<FabProj, FArrayBox>(), "FabProj needs to be at least a projection on FArrayBox.");
 };
 
 template <typename FAB, typename DTOS, typename FabProj>
