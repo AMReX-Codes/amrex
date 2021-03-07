@@ -408,11 +408,13 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
 #pragma omp parallel for
 #endif
     for (int itag = 0; itag < N_locs; ++itag) {
-        auto const& sfab = src.const_array(local_tags[itag].srcIndex);
-        auto const& dfab = dest.array(local_tags[itag].dstIndex);
-        amrex::LoopConcurrentOnCpu(local_tags[itag].dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
-            auto const si = dtos(Dim3{i, j, k});
-            dfab(i, j, k, dcomp + n) = proj(sfab, si, scomp + n);
+        const auto& tag = LocTags[itag];
+        auto const& sfab = mf.const_array(tag.srcIndex);
+        auto const& dfab = mf.array      (tag.dstIndex);
+        amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=] (int i, int j, int k, int n) noexcept
+        {
+            auto const si = dtos(Dim3{i,j,k});
+            dfab(i,j,k,dcomp+n) = proj(sfab,si,scomp+n);
         });
     }
 }
