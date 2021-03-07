@@ -71,7 +71,8 @@ AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx,
                          Array4<Real> const& fx, Array4<Real> const& fy,
-                         Array4<Real const> const& cc, int ncomp) noexcept
+                         Array4<Real const> const& cc, int ncomp,
+                         bool use_harmonic_averaging)  noexcept
 {
     const auto ndlo = lbound(ndbx);
     const auto ndhi = ubound(ndbx);
@@ -80,7 +81,31 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx,
     const auto xhi = amrex::elemwiseMin(ndhi, ubound(xbx));
     const auto yhi = amrex::elemwiseMin(ndhi, ubound(ybx));
 
-    for (int n = 0; n < ncomp; ++n) {
+    if (use_harmonic_averaging)
+    {
+      for (int n = 0; n < ncomp; ++n) {
+        for     (int j = xlo.y; j <= xhi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = xlo.x; i <= xhi.x; ++i) {
+                if (cc(i-1,j,0,n) == 0.0 || cc(i,j,0,n) == 0.0)
+                    fx(i,j,0,n) = Real(0.0);
+                else
+                    fx(i,j,0,n) = Real(2.0) / (Real(1.0) / cc(i-1,j,0,n) + Real(1.0) / cc(i,j,0,n));
+            }
+        }
+
+        for     (int j = ylo.y; j <= yhi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = ylo.x; i <= yhi.x; ++i) {
+                if (cc(i,j-1,0,n) == 0.0 || cc(i,j,0,n) == 0.0)
+                    fy(i,j,0,n) = Real(0.0);
+                else
+                    fy(i,j,0,n) = Real(2.0) / (Real(1.0) / cc(i,j-1,0,n) + Real(1.0) / cc(i,j,0,n));
+            }
+        }
+      }
+    } else {
+      for (int n = 0; n < ncomp; ++n) {
         for     (int j = xlo.y; j <= xhi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = xlo.x; i <= xhi.x; ++i) {
@@ -91,9 +116,10 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx,
         for     (int j = ylo.y; j <= yhi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = ylo.x; i <= yhi.x; ++i) {
-                fy(i,j,0) = Real(0.5)*(cc(i,j-1,0,n) + cc(i,j,0,n));
+                fy(i,j,0,n) = Real(0.5)*(cc(i,j-1,0,n) + cc(i,j,0,n));
             }
         }
+      }
     }
 }
 
