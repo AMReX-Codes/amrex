@@ -101,9 +101,9 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx, Box co
             AMREX_PRAGMA_SIMD
             for (int i = xlo.x; i <= xhi.x; ++i) {
                 if (cc(i-1,j,k,n) == 0.0 || cc(i,j,k,n) == 0.0)
-                    fx(i,j,k,n) = 0.0;
+                    fx(i,j,k,n) = Real(0.0);
                 else
-                    fx(i,j,k,n) = Real(2.0) / (1.0/cc(i-1,j,k,n) + 1.0/cc(i,j,k,n));
+                    fx(i,j,k,n) = Real(2.0) / (Real(1.0)/cc(i-1,j,k,n) + Real(1.0)/cc(i,j,k,n));
             }
          }
          }
@@ -113,9 +113,9 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx, Box co
             AMREX_PRAGMA_SIMD
             for (int i = ylo.x; i <= yhi.x; ++i) {
                 if (cc(i,j-1,k,n) == 0.0 || cc(i,j,k,n) == 0.0)
-                  fy(i,j,k,n) = 0.0;
+                  fy(i,j,k,n) = Real(0.0);
                 else
-                  fy(i,j,k,n) = Real(2.0) / (1.0/cc(i,j-1,k,n) + 1.0/cc(i,j,k,n));
+                  fy(i,j,k,n) = Real(2.0) / (Real(1.0)/cc(i,j-1,k,n) + Real(1.0)/cc(i,j,k,n));
               }
          }
          }
@@ -125,9 +125,9 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx, Box co
             AMREX_PRAGMA_SIMD
             for (int i = zlo.x; i <= zhi.x; ++i) {
                 if (cc(i,j,k-1,n) == 0.0 || cc(i,j,k,n) == 0.0)
-                  fz(i,j,k,n) = 0.0;
+                  fz(i,j,k,n) = Real(0.0);
                 else
-                  fz(i,j,k,n) = Real(2.0) / (1.0/cc(i,j,k-1,n) + 1.0/cc(i,j,k,n));
+                  fz(i,j,k,n) = Real(2.0) / (Real(1.0)/cc(i,j,k-1,n) + Real(1.0)/cc(i,j,k,n));
             }
          }
          }

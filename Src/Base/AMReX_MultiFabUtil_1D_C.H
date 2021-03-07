@@ -123,17 +123,17 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx,
                 AMREX_PRAGMA_SIMD
                 for (int i = xlo.x; i <= xhi.x; ++i) {
                     if (cc(i-1,0,0,n) == 0.0 || cc(i,0,0,n) == 0.0)
-                        fx(i,0,0,n) = 0.0;
+                        fx(i,0,0,n) = Real(0.0);
                     else
                     {
-                        fx(i,0,0,n) = 2.0 / ( 1.0 / cc(i-1,0,0,n) + 1.0 / cc(i,0,0,n) ); 
+                        fx(i,0,0,n) = Real(2.0) / ( Real(1.0) / cc(i-1,0,0,n) + Real(1.0) / cc(i,0,0,n) ); 
                     }
                 }}
             } else {
                 for (int n = 0; n < ncomp; ++n) {
                 AMREX_PRAGMA_SIMD
                 for (int i = xlo.x; i <= xhi.x; ++i) {
-                    fx(i,0,0,n) = 0.5*(cc(i-1,0,0,n) + cc(i,0,0,n));
+                    fx(i,0,0,n) = Real(0.5)*(cc(i-1,0,0,n) + cc(i,0,0,n));
                 }}
             }
             break;
@@ -148,8 +148,8 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx,
             for (int i = xlo.x; i <= xhi.x; ++i) {
                 Real rlo = problo + (i-0.5)*dx;
                 Real rhi = problo + (i+0.5)*dx;
-                Real rcen = 0.5*(rlo+rhi);
-                fx(i,0,0,n) = 0.5*(rlo*cc(i-1,0,0,n) + rhi*cc(i,0,0,n)) / rcen;
+                Real rcen = Real(0.5)*(rlo+rhi);
+                fx(i,0,0,n) = Real(0.5)*(rlo*cc(i-1,0,0,n) + rhi*cc(i,0,0,n)) / rcen;
             }}
             break;
         }
@@ -163,8 +163,8 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx,
             for (int i = xlo.x; i <= xhi.x; ++i) {
                 Real rlo = problo + (i-0.5)*dx;
                 Real rhi = problo + (i+0.5)*dx;
-                Real rcen = 0.5*(rlo+rhi);
-                fx(i,0,0,n) = 0.5*(rlo*rlo*cc(i-1,0,0,n) + rhi*rhi*cc(i,0,0,n)) / (rcen*rcen);
+                Real rcen = Real(0.5)*(rlo+rhi);
+                fx(i,0,0,n) = Real(0.5)*(rlo*rlo*cc(i-1,0,0,n) + rhi*rhi*cc(i,0,0,n)) / (rcen*rcen);
             }}
             break;
         }
