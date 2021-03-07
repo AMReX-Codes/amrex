@@ -350,7 +350,7 @@ else
 endif
 
 ifdef AMREX_NO_PROBINIT
-  AMREX_NO_PROBINIT := $(strip ($AMREX_NO_PROBINIT))
+  AMREX_NO_PROBINIT := $(strip $(AMREX_NO_PROBINIT))
 else
   AMREX_NO_PROBINIT := FALSE
 endif
