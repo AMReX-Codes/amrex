@@ -326,6 +326,8 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                 }
 
                 if (has_robin) {
+                    // For Robin BC, see comments in AMReX_MLABecLaplacian.cpp above
+                    // function applyRobinBCTermsCoeffs.
                     Array4<Real const> const& rbc = (*m_robin_bcval[amrlev])[mfi].const_array(icomp*3);
                     if (m_lobc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_lo)
                     {

@@ -269,6 +269,33 @@ MLABecLaplacian::applyMetricTermsCoeffs ()
 #endif
 }
 
+//
+// Suppose we are solving `alpha u - del (beta grad u) = rhs` (Scalar
+// coefficients can be easily added back in the end) and there is Robin BC
+// `a u + b du/dn = f` at the upper end of the x-direction.  The 1D
+// discretization at the last cell i is
+//
+//    alpha u_i + (beta_{i-1/2} (du/dx)_{i-1/2} - beta_{i+1/2} (du/dx)_{i+1/2}) / h = rhs_i
+//
+// where h is the cell size.  At `i+1/2` (i.e., the boundary), we have
+//
+//    a (u_i + u_{i+1})/2 + b (u_{i+1}-u_i)/h = f,
+//
+// according to the Robin BC.  This gives
+//
+//    u_{i+1} = A + B u_i,
+//
+// where `A = f/(b/h + a/2)` and `B = (b/h - a/2) / (b/h + a/2).  We then
+// use `u_i` and `u_{i+1}` to compute `(du/dx)_{i+1/2}`.  The discretization
+// at cell i then becomes
+//
+//    \tilde{alpha}_i u_i + (beta_{i-1/2} (du/dx)_{i-1/2} - 0) / h = \tilde{rhs}_i
+//
+// This is equivalent to having homogeneous Neumann BC with modified alpha and rhs.
+//
+//    \tilde{alpha}_i = alpha_i + (1-B) beta_{i+1/2} / h^2
+//    \tilde{rhs}_i = rhs_i + A beta_{i+1/2} / h^2
+//
 void
 MLABecLaplacian::applyRobinBCTermsCoeffs ()
 {
