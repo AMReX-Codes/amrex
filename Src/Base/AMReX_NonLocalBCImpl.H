@@ -626,65 +626,24 @@ LocalCopy (const PackComponents& components, FabArray<FAB>& dest, const FabArray
 }
 
 #ifdef AMREX_USE_MPI
+void PrepareCommBuffers(CommData& comm, const PackComponents& components, 
+                        const FabArrayBase::MapOfCopyComTagContainers& cctc,
+                        std::size_t object_size, std::size_t align);
+
 template <typename FAB>
 amrex::EnableIf_t<IsBaseFab<FAB>::value>
 PrepareSendBuffers (const PackComponents& components, FabArray<FAB>&, const FabArray<FAB>& src, CommData& comm,
                     const FabArrayBase::MapOfCopyComTagContainers& cctc) {
-    comm.the_data = src.PrepareSendBuffers(cctc, comm.data, comm.size, comm.rank, comm.request,
-                                          comm.cctc, components.n_components);
-    comm.stats.resize(comm.request.size());
+    using T = typename FAB::value_type;
+    PrepareCommBuffers(comm, components, cctc, sizeof(T), alignof(T));
 }
 
 template <typename FAB>
 amrex::EnableIf_t<IsBaseFab<FAB>::value>
-PrepareRecvBuffers (const PackComponents& components, FabArray<FAB>&, const FabArray<FAB>& src, CommData& comm,
+PrepareRecvBuffers (const PackComponents& components, FabArray<FAB>&, const FabArray<FAB>&, CommData& comm,
                     const FabArrayBase::MapOfCopyComTagContainers& cctc) {
-    comm.data.clear();
-    comm.size.clear();
-    comm.rank.clear();
-    comm.request.clear();
-    comm.offset.clear();
-    comm.cctc.clear();
-
-    std::size_t TotalRcvsVolume = 0;
-    for (const auto& kv : cctc) // loop over senders
-    {
-        std::size_t nbytes = 0;
-        for (auto const& cct : kv.second)
-        {
-            // the followng does not work since src[cct.srcIndex] will throw an assertion
-            //   nbytes += src[cct.srcIndex].nBytes(cct.sbox, components.n_components);
-            // Can we have a static function FAB::nBytes(Box, int) ?
-            nbytes += cct.sbox.numPts() * sizeof(typename FAB::value_type) * components.n_components;
-        }
-
-        std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
-        nbytes = amrex::aligned_size(acd, nbytes);  // so that nbytes are aligned
-
-        // Also need to align the offset properly
-        TotalRcvsVolume = amrex::aligned_size(std::max(alignof(typename FAB::value_type),acd),
-                                              TotalRcvsVolume);
-
-        comm.offset.push_back(TotalRcvsVolume);
-        TotalRcvsVolume += nbytes;
-
-        comm.data.push_back(nullptr);
-        comm.size.push_back(nbytes);
-        comm.rank.push_back(kv.first);
-        comm.request.push_back(MPI_REQUEST_NULL);
-        comm.cctc.push_back(&kv.second);
-    }
-
-    if (TotalRcvsVolume == 0)
-    {
-        comm.the_data = nullptr;
-    }
-    else
-    {
-        comm.the_data.reset(static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalRcvsVolume)));
-    }
-    
-    comm.stats.resize(comm.request.size());
+    using T = typename FAB::value_type;
+    PrepareCommBuffers(comm, components, cctc, sizeof(T), alignof(T));
 }
 
 template <typename FAB>

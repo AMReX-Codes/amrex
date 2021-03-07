@@ -3,6 +3,60 @@
 namespace amrex {
 namespace NonLocalBC {
 #ifdef AMREX_USE_MPI
+void PrepareCommBuffers(CommData& comm, const PackComponents& components, 
+                        const FabArrayBase::MapOfCopyComTagContainers& cctc,
+                        std::size_t object_size, std::size_t align)
+{
+    comm.data.clear();
+    comm.size.clear();
+    comm.rank.clear();
+    comm.request.clear();
+    comm.offset.clear();
+    comm.cctc.clear();
+
+    std::size_t TotalRcvsVolume = 0;
+    for (const auto& kv : cctc) // loop over senders
+    {
+        std::size_t nbytes = 0;
+        for (auto const& cct : kv.second)
+        {
+            // the followng does not work since src[cct.srcIndex] will throw an assertion
+            //   nbytes += src[cct.srcIndex].nBytes(cct.sbox, components.n_components);
+            // Can we have a static function FAB::nBytes(Box, int) ?
+            nbytes += cct.sbox.numPts() * object_size * components.n_components;
+        }
+
+        std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+        nbytes = amrex::aligned_size(acd, nbytes);  // so that nbytes are aligned
+
+        // Also need to align the offset properly
+        TotalRcvsVolume = amrex::aligned_size(std::max(align, acd), TotalRcvsVolume);
+
+        comm.offset.push_back(TotalRcvsVolume);
+        TotalRcvsVolume += nbytes;
+
+        comm.data.push_back(nullptr);
+        comm.size.push_back(nbytes);
+        comm.rank.push_back(kv.first);
+        comm.request.push_back(MPI_REQUEST_NULL);
+        comm.cctc.push_back(&kv.second);
+    }
+
+    const int N_recvs = comm.data.size();
+    if (TotalRcvsVolume == 0)
+    {
+        comm.the_data = nullptr;
+    }
+    else
+    {
+        comm.the_data.reset(static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalRcvsVolume)));
+        for (int i = 0; i < N_recvs; ++i) {
+            comm.data[i] = comm.the_data.get() + comm.offset[i];
+        }
+    }
+    comm.stats.resize(N_recvs);
+}
+
 void PostRecvs(CommData& recv, int mpi_tag) {
     const int n_recv = recv.data.size();
     BL_ASSERT(n_recv == recv.offset.size());
