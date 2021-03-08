@@ -221,7 +221,7 @@ contains
     type(amrex_multifab), intent(in   ) :: mfold_c(amrex_spacedim), mfnew_c(amrex_spacedim)
     type(amrex_multifab), intent(in   ) :: mfold_f(amrex_spacedim), mfnew_f(amrex_spacedim)
     integer, intent(in) :: scomp, dcomp, ncomp, rr, interp
-    integer, dimension(amrex_spacedim,scomp+ncomp-1), target, intent(in) :: lo_bc, hi_bc
+    integer, dimension(amrex_spacedim,scomp+ncomp-1,amrex_spacedim), target, intent(in) :: lo_bc, hi_bc
     real(amrex_real), intent(in) :: told_c, tnew_c, told_f, tnew_f, time
     type(amrex_geometry), intent(in) :: geom_c, geom_f
     procedure(amrex_physbc_proc) :: fill_physbc_cx, fill_physbc_cy, fill_physbc_cz
@@ -237,7 +237,7 @@ contains
     type(c_ptr) :: lo_bc_ptr(amrex_spacedim*(scomp+ncomp-1))
     type(c_ptr) :: hi_bc_ptr(amrex_spacedim*(scomp+ncomp-1))
     type(c_funptr) :: pre_interp_ptr, post_interp_ptr
-    integer :: ncrse, nfine, dim, nc, i
+    integer :: ncrse, nfine, dim, mfid, nc, i
 
     cfill(1) = c_funloc(fill_physbc_cx)
     ffill(1) = c_funloc(fill_physbc_fx)
@@ -302,15 +302,16 @@ contains
        end do
     end if
 
+    ! lo_bc & hi_bc: (BC dir, comp, MF)
     nc = scomp+ncomp-1
-    do dim = 1, amrex_spacedim
+    do mfid = 1, amrex_spacedim
        do i = 1, scomp-1
-          lo_bc_ptr((dim-1)*nc + i) = c_null_ptr
-          hi_bc_ptr((dim-1)*nc + i) = c_null_ptr
+          lo_bc_ptr((mfid-1)*nc + i) = c_null_ptr
+          hi_bc_ptr((mfid-1)*nc + i) = c_null_ptr
        end do
        do i = scomp, nc
-          lo_bc_ptr((dim-1)*nc + i) = c_loc(lo_bc(dim,i))
-          hi_bc_ptr((dim-1)*nc + i) = c_loc(hi_bc(dim,i))
+          lo_bc_ptr((mfid-1)*nc + i) = c_loc(lo_bc(1,i,mfid))
+          hi_bc_ptr((mfid-1)*nc + i) = c_loc(hi_bc(1,i,mfid))
        end do
     end do
 
