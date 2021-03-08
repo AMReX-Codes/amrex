@@ -39,16 +39,6 @@ namespace amrex
     template <bool B, class T = void>
     using EnableIf_t = typename std::enable_if<B,T>::type;
 
-
-    template <class T, class Enable = void>
-    struct IsStoreAtomic : std::false_type {};
-    //
-    template <class T>
-    struct IsStoreAtomic<T, typename std::enable_if <
-                                std::is_arithmetic<T>::value
-                                && sizeof(T) <= 8 >::type >
-        : std::true_type {};
-
     template <class T, class Enable = void>
     struct HasAtomicAdd : std::false_type {};
     template <> struct HasAtomicAdd<int> : std::true_type {};
@@ -180,8 +170,7 @@ namespace amrex
         using call_result_t = decltype(std::declval<T>()(std::declval<Args>()...));
     }
 
-    //! @{
-    //! Test if a given type T is callable with arguments of type Args...
+    //! \brief Test if a given type T is callable with arguments of type Args...
     //!
     //! This type trait is different from std::is_invocable since it only cares for the call syntax
     //! f(args...) and disregards pointers to class methods and such.
@@ -193,17 +182,18 @@ namespace amrex
     template <typename T, typename... Args>
     struct IsCallable : IsDetected<detail::call_result_t, T, Args...> {};
 
+    //! \brief Test if a given type T is callable with arguments of type Args...
+    //!
+    //! \see IsCallable
     template <typename R, typename T, typename... Args>
     struct IsCallableR : IsDetectedExact<R, detail::call_result_t, T, Args...> {};
-    //! @}
 
     ////////////////////////////////////////////////////////////////////////////////
     //                                                          [traits.Conjunction]
     //                                                          [traits.Disjunction]
     //                                                          [traits.Negation]
 
-    //! @{
-    //!
+
     //! Logical traits let us combine multiple type requirements in one EnableIf_t clause. 
     #if defined(__cpp_lib_logical_traits)
     template <typename... Args> using Conjunction = std::conjunction<Args...>;
@@ -229,7 +219,17 @@ namespace amrex
     template <class Bool>
     using Negation = std::integral_constant<bool, !bool(Bool::value)>;
     #endif
-    //! @}
+
+    // Move this down, because doxygen can not parse anything below IsStoreAtomic
+    template <class T, class Enable = void>
+    struct IsStoreAtomic : std::false_type {};
+    //
+    template <class T>
+    struct IsStoreAtomic<T, typename std::enable_if <
+                                std::is_arithmetic<T>::value
+                                && sizeof(T) <= 8 >::type >
+        : std::true_type {};
+
 }
 
 #endif

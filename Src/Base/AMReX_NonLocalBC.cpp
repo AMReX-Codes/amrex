@@ -4,8 +4,8 @@ namespace amrex {
 namespace NonLocalBC {
 #ifdef AMREX_USE_MPI
 // Note, this is copied and modified from PrepareSendBuffers and PostRcvs
-void PrepareCommBuffers(CommData& comm, const PackComponents& components, 
-                        const FabArrayBase::MapOfCopyComTagContainers& cctc,
+void PrepareCommBuffers(CommData& comm, 
+                        const FabArrayBase::MapOfCopyComTagContainers& cctc, int n_components,
                         std::size_t object_size, std::size_t align)
 {
     comm.data.clear();
@@ -36,7 +36,7 @@ void PrepareCommBuffers(CommData& comm, const PackComponents& components,
         {
             // Note: Does this hold for all FAB types? 
             // This nBytes() implementation is currently also assumed in unpack_recv_buffers
-            nbytes += cct.sbox.numPts() * object_size * components.n_components;
+            nbytes += cct.sbox.numPts() * object_size * n_components;
         }
 
         std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
@@ -102,26 +102,10 @@ void PostSends(CommData& send, int mpi_tag) {
 }
 #endif
 
-template void Rotate90(FabArray<FArrayBox>& mf, int scomp, int ncomp, IntVect const& nghost,
-                       Box const& domain);
-
-template void Rotate90(FabArray<FArrayBox>& mf, Box const& domain);
-
-template void Rotate180(FabArray<FArrayBox>& mf, int scomp, int ncomp, IntVect const& nghost,
-                        Box const& domain);
-
-template void Rotate180(FabArray<FArrayBox>& mf, Box const& domain);
-
-template void FillPolar(FabArray<FArrayBox>& mf, int scomp, int ncomp, IntVect const& nghost,
-                        Box const& domain);
-
-template void FillPolar(FabArray<FArrayBox>& mf, Box const& domain);
-
-template MultiBlockCommMetaData ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox, const FabArray<FArrayBox>& src, int destcomp,
-             int srccomp, int numcomp, const IntVect& ngrow, Identity, Identity);
-
-template MultiBlockCommMetaData ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox, const FabArray<FArrayBox>& src, int destcomp,
-             int srccomp, int numcomp, const IntVect& ngrow, MultiBlockIndexMapping, Identity);
+template MultiBlockCommMetaData ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox,
+                                             const FabArray<FArrayBox>& src, int destcomp,
+                                             int srccomp, int numcomp, const IntVect& ngrow,
+                                             MultiBlockIndexMapping, Identity);
 
 } // namespace NonLocalBC
 } // namespace amrex

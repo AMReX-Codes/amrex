@@ -64,7 +64,7 @@ class AdvectionAmrCore : public AmrCore {
         const double a_dt_over_dx = dt / dx * (velocity == dir);
         if (dir == Direction::x) {
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(mass); mfi.isValid(); ++mfi) {
                 Array4<Real> m = mass.array(mfi);
@@ -76,7 +76,7 @@ class AdvectionAmrCore : public AmrCore {
             }
         } else if (dir == Direction::y) {
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(mass); mfi.isValid(); ++mfi) {
                 Array4<Real> m = mass.array(mfi);
@@ -165,11 +165,10 @@ struct OnesidedMultiBlockBoundaryFn {
 };
 
 struct FillBoundaryFn {
-    enum { coarsest_level = 0 };
-
     std::vector<OnesidedMultiBlockBoundaryFn> boundaries;
 
     void operator()(AdvectionAmrCore& core_x, AdvectionAmrCore& core_y) {
+        enum { coarsest_level = 0 };
         core_x.mass.FillBoundary(core_x.Geom(coarsest_level).periodicity());
         core_y.mass.FillBoundary(core_y.Geom(coarsest_level).periodicity());
         std::vector<CommHandler> comms;
