@@ -892,7 +892,7 @@ ParallelCopy_finish (NoLocalCopy, FabArray<FAB>& dest, CommHandler handler,
     }
 }
 #else
-ParallelCopy_finish (NoLocalCopy, FabArray<FAB>&, const FabArray<FAB>&, CommHandler,
+ParallelCopy_finish (NoLocalCopy, FabArray<FAB>&, CommHandler,
                      const FabArrayBase::CommMetaData&, const DataPacking&) {}
 #endif
 
