@@ -139,7 +139,7 @@ struct OnesidedMultiBlockBoundaryFn {
   FabArrayBase::BDKey cached_dest_bd_key{};
   FabArrayBase::BDKey cached_src_bd_key{};
   ApplyDtosAndProjectionOnReciever<MultiBlockIndexMapping,
-                                   MapComponents<Identity, SwapIndices<1, 2>>>
+                                   MapComponents<Identity, SwapComponents<1, 2>>>
       packing{PackComponents{0, 0, three_components}, dtos};
 
   AMREX_NODISCARD CommHandler FillBoundary_nowait() {
