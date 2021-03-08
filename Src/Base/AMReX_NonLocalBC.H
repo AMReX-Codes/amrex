@@ -18,7 +18,7 @@ struct IsIndexMapping : Conjunction<IsCallableR<IntVect, IndexMap&, const IntVec
                                     IsCallableR<Box, IndexMap&, const Box&>> {};
 
 namespace detail {
-//! \brief This class is provides an InverseImage member function if Base has an Inverse member
+//! \brief This class provides an InverseImage member function if Base has an Inverse member
 //! function.
 //!
 //! In this case, where Base does not have an inverse function, we define no further functions and
@@ -160,7 +160,8 @@ struct MultiBlockDestToSrc {
     //! \brief A vector of 1 and -1 describing the orietnation in each component.
     IntVect sign{AMREX_D_DECL(1, 1, 1)};
 
-    //! \brief Applies the index mapping on (i, j, k) and returns an index in the source space.
+    //! \brief Applies this mapping on the index from destination space and returns an index in the
+    //!        source space.
     //!
     //! \param[in] i  The index that lives in the destination space.
     //!
