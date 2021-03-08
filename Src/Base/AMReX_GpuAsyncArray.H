@@ -89,7 +89,8 @@ public:
                 AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
                                                            amrex_asyncarray_delete, p, 0));
 #endif
-#else
+#elif defined(AMREX_USE_DPCPP)
+#ifdef AMREX_USE_CODEPLAY_HOST_TASK
                 auto pd = d_data;
                 auto ph = h_data;
                 auto& q = *(Gpu::gpuStream().queue);
@@ -103,6 +104,12 @@ public:
                 } catch (sycl::exception const& ex) {
                     amrex::Abort(std::string("host_task: ")+ex.what()+"!!!!!");
                 }
+#else
+                // xxxxx DPCPP todo
+                Gpu::streamSynchronize();
+                The_Arena()->free(d_data);
+                std::free(h_data);
+#endif
 #endif
             }
         }
