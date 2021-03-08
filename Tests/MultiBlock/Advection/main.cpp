@@ -160,7 +160,7 @@ struct OnesidedMultiBlockBoundaryFn {
   }
 
   void FillBoundary_finish(CommHandler handler) const {
-    ParallelCopy_finish(no_local_copy, dest->mass, src->mass, std::move(handler), *cmd, packing);
+    ParallelCopy_finish(no_local_copy, dest->mass, std::move(handler), *cmd, packing);
   }
 };
 
