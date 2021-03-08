@@ -14,6 +14,19 @@ void PrepareCommBuffers(CommData& comm, const PackComponents& components,
     comm.request.clear();
     comm.offset.clear();
     comm.cctc.clear();
+    comm.stats.clear();
+
+    const int N_comms = cctc.size();
+    if (N_comms == 0) return;
+    // reserve for upcominf push_backs
+    comm.data.reserve(N_comms);
+    comm.size.reserve(N_comms);
+    comm.rank.reserve(N_comms);
+    comm.request.reserve(N_comms);
+    comm.offset.reserve(N_comms);
+    comm.cctc.reserve(N_comms);
+    // resize to provide buffer for later
+    comm.stats.resize(N_comms);
 
     std::size_t total_volume = 0;
     for (const auto& kv : cctc)
@@ -33,28 +46,26 @@ void PrepareCommBuffers(CommData& comm, const PackComponents& components,
         total_volume = amrex::aligned_size(std::max(align, acd), total_volume);
 
         comm.offset.push_back(total_volume);
-        total_volume += nbytes;
-
         comm.data.push_back(nullptr);
         comm.size.push_back(nbytes);
         comm.rank.push_back(kv.first);
         comm.request.push_back(MPI_REQUEST_NULL);
         comm.cctc.push_back(&kv.second);
+
+        total_volume += nbytes;
     }
 
-    const int N_recvs = comm.data.size();
     if (total_volume == 0)
     {
-        comm.the_data = nullptr;
+        comm.the_data.reset();
     }
     else
     {
         comm.the_data.reset(static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume)));
-        for (int i = 0; i < N_recvs; ++i) {
+        for (int i = 0; i < N_comms; ++i) {
             comm.data[i] = comm.the_data.get() + comm.offset[i];
         }
     }
-    comm.stats.resize(N_recvs);
 }
 
 void PostRecvs(CommData& recv, int mpi_tag) {
@@ -67,6 +78,7 @@ void PostRecvs(CommData& recv, int mpi_tag) {
     for (int i = 0; i < recv.data.size(); ++i) {
         if (recv.size[i] > 0) {
             const int rank = ParallelContext::global_to_local_rank(recv.rank[i]);
+            AMREX_ASSERT(recv.data[i] != nullptr);
             recv.request[i] =
                 ParallelDescriptor::Arecv(recv.data[i], recv.size[i], rank, mpi_tag, comm).req();
         }
@@ -82,6 +94,7 @@ void PostSends(CommData& send, int mpi_tag) {
     for (int j = 0; j < n_sends; ++j) {
         if (send.size[j] > 0) {
             const int rank = ParallelContext::global_to_local_rank(send.rank[j]);
+            AMREX_ASSERT(send.data[j] != nullptr);
             send.request[j] =
                 ParallelDescriptor::Asend(send.data[j], send.size[j], rank, mpi_tag, comm).req();
         }
