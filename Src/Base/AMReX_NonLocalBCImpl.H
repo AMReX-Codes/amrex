@@ -402,17 +402,21 @@ AMREX_STATIC_ASSERT_NO_MESSAGE((IsFabProjection<MapComponents<Identity>, FArrayB
 //! e.g. for velocity components. The template arguments I, J should be greater or equal to -1. The
 //! value -1 indicates run-time values and increase the object size of this function object.
 template <int I, int J> struct SwapComponents { 
-    static_assert(I >= 0 && J >= 0);
+    AMREX_STATIC_ASSERT_NO_MESSAGE(I >= 0 && J >= 0);
 
     AMREX_DEFINE_SWAP_INDICES_OPERATOR
 };
 
 template <int I> struct SwapComponents<I, -1> {
+    AMREX_STATIC_ASSERT_NO_MESSAGE(I >= 0);
+
     int J;
     AMREX_DEFINE_SWAP_INDICES_OPERATOR
 };
 
 template <int J> struct SwapComponents<-1, J> {
+    AMREX_STATIC_ASSERT_NO_MESSAGE(J >= 0);
+    
     int I;
     AMREX_DEFINE_SWAP_INDICES_OPERATOR
 };
