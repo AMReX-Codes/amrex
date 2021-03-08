@@ -128,7 +128,7 @@ namespace amrex
     ////////////////////////////////////////////////////////////////////////////////
     //                                                           [traits.IsDetected]
     //
-    // We use IsDetected as a SFINAE tool to test for arbitrary valid expressions.
+    // We use IsDetected as a SFINAE tool to test for valid expressions.
     //
     // is_detected was proposed to C++ but is surpassed by concepts.
     //
