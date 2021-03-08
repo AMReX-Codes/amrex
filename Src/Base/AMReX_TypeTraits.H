@@ -126,22 +126,26 @@ namespace amrex
     };
 
     ////////////////////////////////////////////////////////////////////////////////
-    //                                                          [traits.is_detected]
-
-
-    template <class...> using Void_t = void;
-
-    template <typename T> struct Nodeduce { using type = T; };
-    template <typename T> using Nodeduce_t = typename Nodeduce<T>::type;
-
-    struct Nonesuch {
-        Nonesuch() = delete;
-        ~Nonesuch() = delete;
-        Nonesuch(Nonesuch const&) = delete;
-        void operator=(Nonesuch const&) = delete;
-    };
-
+    //                                                           [traits.IsDetected]
+    //
+    // We use IsDetected as a SFINAE tool to test for arbitrary valid expressions.
+    //
+    // is_detected was proposed to C++ but is surpassed by concepts.
+    //
+    // The implementation is taken from 
+    //
+    // https://en.cppreference.com/w/cpp/experimental/is_detected
+    
     namespace detail {
+        template <class...> using Void_t = void;
+
+        struct Nonesuch {
+            Nonesuch() = delete;
+            ~Nonesuch() = delete;
+            Nonesuch(Nonesuch const&) = delete;
+            void operator=(Nonesuch const&) = delete;
+        };
+
         template <class Default, class AlwaysVoid, template <class...> class Op,
                 class... Args>
         struct Detector {
@@ -154,57 +158,56 @@ namespace amrex
             using value_t = std::true_type;
             using type = Op<Args...>;
         };
+    }
 
-        template <template <class...> class Op, class... Args>
-        using IsDetected =
-            typename detail::Detector<Nonesuch, void, Op, Args...>::value_t;
-
-        /// Returns the type of `Op<Args...>` or `Nonesuch`
-        template <template <class...> class Op, class... Args>
-        using Detected_t = typename detail::Detector<Nonesuch, void, Op, Args...>::type;
-
-        template <class Default, template <class...> class Op, class... Args>
-        using DetectedOr = detail::Detector<Default, void, Op, Args...>;
-
-        template <class Default, template <class...> class Op, class... Args>
-        using DetectedOr_t = typename DetectedOr<Default, Op, Args...>::type;
-
-        template <class Expected, template <typename...> class Op, class... Args>
-        using IsDetectedExact = std::is_same<Expected, Detected_t<Op, Args...>>;
-    } // namespace detail
-
-    /// This is `std::true_type` if `Op<Args...>` is a valid SFINAE expression.
     template <template <class...> class Op, class... Args>
-    struct IsDetected : detail::IsDetected<Op, Args...> {};
+    using IsDetected = typename detail::Detector<detail::Nonesuch, void, Op, Args...>::value_t {};
 
-    /// Returns the type of `Op<Args...>` or `Nonesuch`
     template <template <class...> class Op, class... Args>
-    using Detected_t = detail::Detected_t<Op, Args...>;
+    using Detected_t = typename detail::Detector<detail::Nonesuch, void, Op, Args...>::type;
 
-    /// Returns the type of `Op<Args...>` or `Default`
     template <class Default, template <class...> class Op, class... Args>
-    struct DetectedOr : detail::DetectedOr<Default, Op, Args...> {};
+    struct DetectedOr : detail::Detector<Default, void, Op, Args...> {};
 
-    /// This is `std::true_type` if `Op<Args...>` is a valid SFINAE expression and
-    /// the return type is exactly `Expected`.
+    template <class Default, template <class...> class Op, class... Args>
+    using DetectedOr_t = typename DetectedOr<Default, Op, Args...>::type;
+
     template <class Expected, template <typename...> class Op, class... Args>
-    struct IsDetectedExact : detail::IsDetectedExact<Expected, Op, Args...> {};
+    struct  IsDetectedExact : std::is_same<Expected, Detected_t<Op, Args...>> {};
+
+    ////////////////////////////////////////////////////////////////////////////////
+    //                                                           [traits.IsCallable]
 
     namespace detail {
         template <typename T, typename... Args>
         using call_result_t = decltype(std::declval<T>()(std::declval<Args>()...));
     }
 
-    /// @{
-    /// This is different from std::is_invocable since it only cares for the call syntax f(args...)
-    /// and disregards pointers to class methods and such.
+    //! @{
+    //! Test if a given type T is callable with arguments of type Args...
+    //!
+    //! This type trait is different from std::is_invocable since it only cares for the call syntax
+    //! f(args...) and disregards pointers to class methods and such.
+    //!
+    //! For consistency we use IsCallable over is_invocable since AMReX relies on call syntax
+    //! everywhere else. Using an equivalent function to std::invoke would increase call stacks in
+    //! debug mode, add more template instantiations and will obfuscate lots of generic code that
+    //! takes functions.
     template <typename T, typename... Args>
     struct IsCallable : IsDetected<detail::call_result_t, T, Args...> {};
 
     template <typename R, typename T, typename... Args>
     struct IsCallableR : IsDetectedExact<R, detail::call_result_t, T, Args...> {};
-    /// @}
+    //! @}
 
+    ////////////////////////////////////////////////////////////////////////////////
+    //                                                          [traits.Conjunction]
+    //                                                          [traits.Disjunction]
+    //                                                          [traits.Negation]
+
+    //! @{
+    //!
+    //! Logical traits let us combine multiple type requirements in one EnableIf_t clause. 
     #if defined(__cpp_lib_logical_traits)
     template <typename... Args> using Conjunction = std::conjunction<Args...>;
     template <typename... Args> using Disjunction = std::disjunction<Args...>;
@@ -229,6 +232,7 @@ namespace amrex
     template <class Bool>
     using Negation = std::integral_constant<bool, !bool(Bool::value)>;
     #endif
+    //! @}
 }
 
 #endif
