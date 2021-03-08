@@ -5,6 +5,8 @@
 #include <sunmemory/sunmemory_hip.h>
 #elif defined(AMREX_USE_CUDA)
 #include <sunmemory/sunmemory_cuda.h>
+#elif defined(AMREX_USE_DPCPP)
+#include <sunmemory/sunmemory_sycl.h>
 #endif
 
 namespace amrex {
