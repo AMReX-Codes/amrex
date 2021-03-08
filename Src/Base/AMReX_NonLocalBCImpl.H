@@ -227,8 +227,6 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
 //! This function assumes that all destination and source boxes stored in the local copy comm tags
 //! are related by the DTOS. If this is not the case the behaviour will at best be caught as an
 //! assertion.
-//!
-//! 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> const& recv_data,
@@ -356,15 +354,13 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
 }
 #endif
 
-template <typename DTOS, typename = EnableIf_t<IsIndexMapping<DTOS>::value>,
-            typename = EnableIf_t<HasInverseImage<DTOS>::value>>
+template <typename DTOS, typename, typename>
 MultiBlockCommMetaData::MultiBlockCommMetaData(const FabArrayBase& dst, const Box& dstbox, const FabArrayBase& src,
                         const IntVect& ngrow, DTOS dtos)
     : MultiBlockCommMetaData(dst.boxArray(), dst.DistributionMap(), dstbox, src.boxArray(),
                                 src.DistributionMap(), ngrow, dtos) {}
 
-template <typename DTOS, typename = EnableIf_t<IsIndexMapping<DTOS>::value>,
-            typename = EnableIf_t<HasInverseImage<DTOS>::value>>
+template <typename DTOS, typename, typename>
 MultiBlockCommMetaData::MultiBlockCommMetaData(const BoxArray& dstba, const DistributionMapping& dstdm,
                         const Box& dstbox, const BoxArray& srcba,
                         const DistributionMapping& srcdm, const IntVect& ngrow, DTOS dtos) {
