@@ -161,19 +161,16 @@ namespace amrex
     }
 
     template <template <class...> class Op, class... Args>
-    using IsDetected = typename detail::Detector<detail::Nonesuch, void, Op, Args...>::value_t {};
+    using IsDetected = typename detail::Detector<detail::Nonesuch, void, Op, Args...>::value_t;
 
     template <template <class...> class Op, class... Args>
     using Detected_t = typename detail::Detector<detail::Nonesuch, void, Op, Args...>::type;
 
     template <class Default, template <class...> class Op, class... Args>
-    struct DetectedOr : detail::Detector<Default, void, Op, Args...> {};
-
-    template <class Default, template <class...> class Op, class... Args>
-    using DetectedOr_t = typename DetectedOr<Default, Op, Args...>::type;
+    using DetectedOr = typename detail::Detector<Default, void, Op, Args...>::type;
 
     template <class Expected, template <typename...> class Op, class... Args>
-    struct  IsDetectedExact : std::is_same<Expected, Detected_t<Op, Args...>> {};
+    using IsDetectedExact = std::is_same<Expected, Detected_t<Op, Args...>>;
 
     ////////////////////////////////////////////////////////////////////////////////
     //                                                           [traits.IsCallable]
