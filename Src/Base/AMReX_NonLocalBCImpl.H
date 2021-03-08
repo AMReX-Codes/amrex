@@ -12,8 +12,12 @@
 
 namespace amrex { namespace NonLocalBC {
 
-/// Tests if a given type `IndexMap` is usable as an index mapping between
-/// two index based coordinate systems.
+////////////////////////////////////////////////////////////////////////////////////
+//                                                            [concept.IndexMapping]
+//
+
+//! Tests if a given type `IndexMap` is usable as an index mapping between
+//! two index based coordinate systems.
 template <class IndexMap>
 struct IsIndexMapping : Conjunction<IsCallableR<IntVect, IndexMap&, const IntVect&>,
                                     IsCallableR<Dim3, IndexMap&, const Dim3&>,
@@ -77,10 +81,16 @@ struct Rotate90DstToSrc
     }
 };
 
+//! This class is used to provide an InverseImage member function if Base has an Inverse member function.
+//! function. In this case, where Base does not have an inverse function, we define no further
+//! functions and just inherit from Base.
 template <typename Base, bool HasInverse = false> struct InverseMonotoneMappingFacade : Base {
     using Base::Base;
 };
 
+//! This class is used to provide an InverseImage member function if Base has an Inverse member function. 
+//! In this instantiation Base does have an inverse function and we define no InverseImage
+//! in the assumption of a component-wise monotone Base function.
 template<typename Base> struct InverseMonotoneMappingFacade<Base, true> : Base {
     using Base::Base;
 
@@ -107,15 +117,16 @@ template<typename Base> struct InverseMonotoneMappingFacade<Base, true> : Base {
     }
 };
 
+//! This typedef is used to detect the existence of an Inverse member function.
 template <typename I, typename... Args>
 using Inverse_t = decltype(std::declval<I>().Inverse(std::declval<Args>()...));
 
-/// This facade lifts a given base class from being Dim3 -> Dim3 callable to an index map
-/// that satisfies our concept.
-///
-/// Given a box, we use the base function to the compute the images of smallEnd() and bigEnd(). 
-/// By assuming component-wise monotonicty of the Dim3 -> Dim3 function we return the smallest box
-/// that contains both images.
+//! This facade lifts a given base class from being Dim3 -> Dim3 callable to an index map
+//! that satisfies our concept.
+//!
+//! Given a box, we use the base function to the compute the images of smallEnd() and bigEnd(). 
+//! By assuming component-wise monotonicty of the Dim3 -> Dim3 function we return the smallest box
+//! that contains both images.
 template <typename Base>
 struct MonotoneIndexMappingFacade
     : InverseMonotoneMappingFacade<Base, IsDetectedExact<Dim3, Inverse_t, Base, Dim3>::value> {
@@ -296,17 +307,27 @@ using MultiBlockIndexMapping = MonotoneIndexMappingFacade<MultiBlockDestToSrc>;
 static_assert(IsIndexMapping<MultiBlockIndexMapping>(),
               "MultiBlockIndexMapping is expected to satisfy IndexMapping");
 
+////////////////////////////////////////////////////////////////////////////////////
+//                                                           [concept.FabProjection]
+//
+
 template <typename P, typename FAB>
 struct IsFabProjection
     : IsCallableR<typename FAB::value_type, P, Array4<const typename FAB::value_type>, Dim3, int> 
 {};
+
+////////////////////////////////////////////////////////////////////////////////////
+//                                                          [FabProjection.Identity]
+//                                                           [IndexMapping.Identity]
 
 struct IdentityDestToSrc {
     constexpr Dim3 operator()(Dim3 i) const noexcept { return i; }
     constexpr Dim3 Inverse(Dim3 i) const noexcept { return i; }
 };
 
-/// This type acts as a default no-op operator 
+//! This type acts as a default no-op operator.
+//!
+//! The identity satisfies many concepts such as IndexMapping and FabProjection.
 struct Identity : MonotoneIndexMappingFacade<IdentityDestToSrc> {
     using MonotoneIndexMappingFacade<IdentityDestToSrc>::operator();
 
@@ -327,11 +348,14 @@ AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_constructible<Identity>::
 AMREX_STATIC_ASSERT_NO_MESSAGE((IsIndexMapping<Identity>()));
 AMREX_STATIC_ASSERT_NO_MESSAGE((IsFabProjection<Identity, FArrayBox>()));
 
-/// This class takes a projection and a mapping for components and combines it to form a new projection.
-///
-/// We use this in to apply a permutations on components FABs.
-///
-/// \see SwapIndices
+////////////////////////////////////////////////////////////////////////////////////
+//                                                     [FabProjection.MapComponents]
+
+//! This class takes a projection and a component map and combines them to form a new projection.
+//!
+//! We use this in to apply a permutations on components FABs.
+//!
+//! \see SwapComponents
 template <typename Base, typename Map = Identity> struct MapComponents {
     static_assert(IsCallable<Base, Array4<const Real>, Dim3, int>::value,
                   "Base needs to be a callable function: (Array4<const T>, Dim3, i) -> auto.");
@@ -357,6 +381,11 @@ AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_assignable<MapComponents<
 AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_constructible<MapComponents<Identity>>()));
 AMREX_STATIC_ASSERT_NO_MESSAGE((IsFabProjection<MapComponents<Identity>, FArrayBox>()));
 
+
+////////////////////////////////////////////////////////////////////////////////////
+//                                      [FabProjection.MapComponents.SwapComponents]
+
+
 #ifdef AMREX_DEFINE_SWAP_INDICES_OPERATOR
 #error "The AMREX_DEFINE_SWAP_INDICES_OPERATOR macro is already defined"
 #endif
@@ -366,46 +395,58 @@ AMREX_STATIC_ASSERT_NO_MESSAGE((IsFabProjection<MapComponents<Identity>, FArrayB
         return i == I || i == J ? map[std::size_t(i == I)] : i;                                    \
     }
 
-template <int I, int J> struct SwapIndices { AMREX_DEFINE_SWAP_INDICES_OPERATOR };
+//! @{
+//! This is a permutation where only two components are swapped.
+//!
+//! This class is used with MapComponents to define fab projections that swap components on FABs,
+//! e.g. for velocity components. The template arguments I, J should be greater or equal to -1. The
+//! value -1 indicates run-time values and increase the object size of this function object.
+template <int I, int J> struct SwapComponents { 
+    static_assert(I >= 0 && J >= 0);
 
-template <int I> struct SwapIndices<I, -1> {
+    AMREX_DEFINE_SWAP_INDICES_OPERATOR
+};
+
+template <int I> struct SwapComponents<I, -1> {
     int J;
     AMREX_DEFINE_SWAP_INDICES_OPERATOR
 };
 
-template <int J> struct SwapIndices<-1, J> {
+template <int J> struct SwapComponents<-1, J> {
     int I;
     AMREX_DEFINE_SWAP_INDICES_OPERATOR
 };
 
-template <> struct SwapIndices<-1, -1> {
+template <> struct SwapComponents<-1, -1> {
     int I;
     int J;
     AMREX_DEFINE_SWAP_INDICES_OPERATOR
 };
+//! @}
+
 #undef AMREX_DEFINE_SWAP_INDICES_OPERATOR
 
-template <int I, int J> static constexpr SwapIndices<I, J> swap_indices{};
-using SwapComponents = SwapIndices<-1, -1>;
+template <int I, int J> static constexpr SwapComponents<I, J> swap_indices{};
+using DynamicSwapComponents = SwapComponents<-1, -1>;
 
-AMREX_STATIC_ASSERT_NO_MESSAGE(sizeof(SwapIndices<0, 1>) == 1);
-AMREX_STATIC_ASSERT_NO_MESSAGE(sizeof(SwapComponents) == 2 * sizeof(int));
-AMREX_STATIC_ASSERT_NO_MESSAGE(sizeof(SwapIndices<0, -1>) == sizeof(int));
-AMREX_STATIC_ASSERT_NO_MESSAGE(sizeof(SwapIndices<-1, 1>) == sizeof(int));
+AMREX_STATIC_ASSERT_NO_MESSAGE(sizeof(SwapComponents<0, 1>) == 1);
+AMREX_STATIC_ASSERT_NO_MESSAGE(sizeof(DynamicSwapComponents) == 2 * sizeof(int));
+AMREX_STATIC_ASSERT_NO_MESSAGE(sizeof(SwapComponents<0, -1>) == sizeof(int));
+AMREX_STATIC_ASSERT_NO_MESSAGE(sizeof(SwapComponents<-1, 1>) == sizeof(int));
 #ifdef AMREX_HAS_NO_UNIQUE_ADDRESS
-AMREX_STATIC_ASSERT_NO_MESSAGE(sizeof(MapComponents<Identity, SwapIndices<0, 1>>) == sizeof(SwapIndices<0, 1>));
+AMREX_STATIC_ASSERT_NO_MESSAGE(sizeof(MapComponents<Identity, SwapComponents<0, 1>>) == sizeof(SwapComponents<0, 1>));
 #endif
-AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_default_constructible<MapComponents<Identity, SwapIndices<0, 1>>>()));
-AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_assignable<MapComponents<Identity, SwapIndices<0, 1>>>()));
-AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_constructible<MapComponents<Identity, SwapIndices<0, 1>>>()));
-AMREX_STATIC_ASSERT_NO_MESSAGE((IsFabProjection<MapComponents<Identity, SwapIndices<0, 1>>, FArrayBox>()));
+AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_default_constructible<MapComponents<Identity, SwapComponents<0, 1>>>()));
+AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_assignable<MapComponents<Identity, SwapComponents<0, 1>>>()));
+AMREX_STATIC_ASSERT_NO_MESSAGE((std::is_trivially_copy_constructible<MapComponents<Identity, SwapComponents<0, 1>>>()));
+AMREX_STATIC_ASSERT_NO_MESSAGE((IsFabProjection<MapComponents<Identity, SwapComponents<0, 1>>, FArrayBox>()));
 
 AMREX_STATIC_ASSERT_NO_MESSAGE((swap_indices<0, 1>(0) == 1));
 AMREX_STATIC_ASSERT_NO_MESSAGE((swap_indices<0, 1>(1) == 0));
 AMREX_STATIC_ASSERT_NO_MESSAGE((swap_indices<0, 1>(2) == 2));
-AMREX_STATIC_ASSERT_NO_MESSAGE((SwapComponents{0, 1}(0) == 1));
-AMREX_STATIC_ASSERT_NO_MESSAGE((SwapComponents{0, 1}(1) == 0));
-AMREX_STATIC_ASSERT_NO_MESSAGE((SwapComponents{0, 1}(2) == 2));
+AMREX_STATIC_ASSERT_NO_MESSAGE((DynamicSwapComponents{0, 1}(0) == 1));
+AMREX_STATIC_ASSERT_NO_MESSAGE((DynamicSwapComponents{0, 1}(1) == 0));
+AMREX_STATIC_ASSERT_NO_MESSAGE((DynamicSwapComponents{0, 1}(2) == 2));
 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
@@ -796,10 +837,29 @@ CommHandler ParallelCopy_nowait (FabArray<FAB>&, const FabArray<FAB>&,
 
 static constexpr struct NoLocalCopy {} no_local_copy{};
 
+//! Blockingly wait for all communication to be done and fill the local FABs with recieved data.
+//!
+//! This function overload performs no local copies, i.e. from this MPI process to itself.
+//! It will block the current thread until all MPI recv and send requests are done and
+//! calls the DataPacking object to unpack the recieved buffers.
+//!
+//! \param[out] dest     The Multifab that is going to be filled with recieved data.
+//!
+//! \param[in]  handler  This object holds all data buffers that need to be kept alive as long as
+//!                      the data transaction is not done.
+//!
+//! \param[in]  cmd      The communication meta data object holds spatial information about FAB
+//!                      boxes that need to be filled.
+//!
+//! \param[in]  data_packing A CPO that controls behaviour of unpacking the recieved data.
+//!
+//! \returns Nothing.
+//!
+//! \throws 
 template <typename FAB, typename DataPacking>
 EnableIf_t<IsBaseFab<FAB>() && IsDataPacking<DataPacking, FAB>()>
 #ifdef AMREX_USE_MPI
-ParallelCopy_finish (NoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler handler,
+ParallelCopy_finish (NoLocalCopy, FabArray<FAB>& dest, CommHandler handler,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     // If any FabArray is empty we have nothing to do.
     if (dest.size() == 0) {
@@ -845,7 +905,7 @@ ParallelCopy_finish (FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler 
     if (cmd.m_LocTags && cmd.m_LocTags->size() > 0) {
         LocalCopy(data_packing, dest, src, *cmd.m_LocTags);
     }
-    ParallelCopy_finish(no_local_copy, dest, src, std::move(handler), cmd, data_packing);
+    ParallelCopy_finish(no_local_copy, dest, std::move(handler), cmd, data_packing);
 }
 
 template <typename T, typename... Args>
