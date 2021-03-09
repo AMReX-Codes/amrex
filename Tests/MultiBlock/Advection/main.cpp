@@ -36,16 +36,23 @@ class AdvectionAmrCore : public AmrCore {
                      AmrInfo const& amr_info = AmrInfo())
         : AmrCore(level_0_geom, amr_info), velocity{vel} {
         AmrCore::InitFromScratch(0.0);
+        InitData();  // CUDA does not allow extended lambdas in ctors.
+    }
+
+    void InitData() {
+        const auto problo = Geom(0).ProbLoArray();
+        const auto dx = Geom(0).CellSizeArray();
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(mass); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(mass,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
             Array4<Real> m = mass.array(mfi);
             Array4<Real> vx = mass.array(mfi, 1);
             Array4<Real> vy = mass.array(mfi, 2);
-            LoopConcurrentOnCpu(mfi.tilebox(), [=](int i, int j, int k) {
-                Real x[AMREX_SPACEDIM] = {};
-                level_0_geom.CellCenter(IntVect{AMREX_D_DECL(i, j, k)}, x);
+            amrex::ParallelFor(mfi.tilebox(), [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                Real x[] = {AMREX_D_DECL(problo[0] + (0.5+i)*dx[0],
+                                         problo[1] + (0.5+j)*dx[1],
+                                         problo[2] + (0.5+k)*dx[2])};
                 const double r2 = AMREX_D_TERM(x[0] * x[0], + x[1] * x[1], + x[2] * x[2]);
                 constexpr double R = 0.1 * 0.1;
                 m(i, j, k) = r2 < R ? 1.0 : 0.0;
@@ -99,7 +106,7 @@ class AdvectionAmrCore : public AmrCore {
     Direction velocity{};
 
   private:
-    void ErrorEst(int level, ::amrex::TagBoxArray& tags, double time_point,
+    void ErrorEst(int /*level*/, ::amrex::TagBoxArray& /*tags*/, double /*time_point*/,
                   int /* ngrow */) override {
         throw std::runtime_error("For simplicity, this example supports only one level.");
     }
@@ -115,13 +122,13 @@ class AdvectionAmrCore : public AmrCore {
         mass_next.define(box_array, distribution_mapping, three_components, ngrow);
     }
 
-    void MakeNewLevelFromCoarse(int level, double time_point, const ::amrex::BoxArray& box_array,
-                                const ::amrex::DistributionMapping& distribution_mapping) override {
+    void MakeNewLevelFromCoarse(int /*level*/, double /*time_point*/, const ::amrex::BoxArray&,
+                                const ::amrex::DistributionMapping&) override {
         throw std::runtime_error("For simplicity, this example supports only one level.");
     }
 
-    void RemakeLevel(int level, double time_point, const ::amrex::BoxArray& box_array,
-                     const ::amrex::DistributionMapping& distribution_mapping) override {
+    void RemakeLevel(int /*level*/, double /*time_point*/, const ::amrex::BoxArray&,
+                     const ::amrex::DistributionMapping&) override {
         throw std::runtime_error("For simplicity, this example supports only one level.");
     }
 
