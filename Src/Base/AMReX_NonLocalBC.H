@@ -10,139 +10,20 @@ namespace amrex { namespace NonLocalBC {
 //                                                            [concept.IndexMapping]
 //
 
+//! \brief Return type of an InverseImage class member function.
+template <typename T, typename... Args>
+using Inverse_t = decltype(std::declval<T>().Inverse(std::declval<Args>()...));
+
+//! \brief Type trait that tests if T has an InverseImage class member function.
+template <typename T>
+struct HasInverseMemFn : IsDetectedExact<Dim3, Inverse_t, T, Dim3> {};
+
 //! \brief Tests if a given type IndexMap is usable as an index mapping between two index based
 //! coordinate systems.
 template <class IndexMap>
-struct IsIndexMapping : Conjunction<IsCallableR<IntVect, IndexMap&, const IntVect&>,
-                                    IsCallableR<Dim3, IndexMap&, const Dim3&>,
-                                    IsCallableR<Box, IndexMap&, const Box&>> {};
-
-namespace detail {
-//! \brief This class provides an InverseImage member function if Base has an Inverse member
-//! function.
-//!
-//! In this case, where Base does not have an inverse function, we define no further functions and
-//! just inherit from Base.
-template <typename Base, bool HasInverse = false> struct InverseMonotoneMappingFacade : Base {
-    using Base::Base;
-};
-
-//! \brief This class is provides an InverseImage member function if Base has an Inverse member
-//! function.
-//!
-//! In this instantiation Base does have an inverse function and we define no InverseImage in the
-//! assumption of a component-wise monotone Base function.
-template<typename Base> struct InverseMonotoneMappingFacade<Base, true> : Base {
-    using Base::Base;
-
-    static constexpr bool is_noexcept_invertible = noexcept(std::declval<Base const&>().Inverse(Dim3{}));
-
-    //! \brief Applies the Dim3 to Dim3 inverse onto IntVects.
-    //!
-    //! This is used to map indices from the source index space into the dest index space.
-    //!
-    //! IntVect is being embedded in Dim3 by trailing zeros.
-    //! Dim3 is being projected to IntVect by dopping z for AMREX_SPACEDIM = 2 or z and y components
-    //! for AMREX_SPACEDIM = 1.
-    //!
-    //! \param[in] iv The IntVect that lives in the source index space.
-    //!
-    //! \return Returns IntVect{Inverse(Dim3{iv})}
-    AMREX_GPU_HOST_DEVICE
-    IntVect Inverse(IntVect const& iv) const noexcept(is_noexcept_invertible) {
-        Dim3 i{};
-        AMREX_D_DECL(i.x = iv[0], i.y = iv[1], i.z = iv[2]);
-        i = Base::Inverse(i);
-        return IntVect{AMREX_D_DECL(i.x, i.y, i.z)};
-    }
-
-    //! \brief Applies the Dim3 to Dim3 mapping onto Boxes
-    //!
-    //! This function assumes monotonicity in each component.
-    //!
-    //! \param[in] box The box that lives the source index space
-    //!
-    //! \return Returns the smallest Box in the destination index space that contains images of
-    //! Inverse(box.smallEnd()) and Inverse(box.bigEnd()).
-    Box InverseImage(const Box& box) const noexcept(is_noexcept_invertible) {
-        IntVect mapped_smallEnd = Inverse(box.smallEnd());
-        IntVect mapped_bigEnd = Inverse(box.bigEnd());
-        IntVect smallEnd;
-        IntVect bigEnd;
-        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-            smallEnd[d] = std::min(mapped_smallEnd[d], mapped_bigEnd[d]);
-            bigEnd[d] = std::max(mapped_smallEnd[d], mapped_bigEnd[d]);
-        }
-        return Box{smallEnd, bigEnd};
-    }
-};
-
-//! \brief This typedef is used to detect the existence of an Inverse member function.
-template <typename I, typename... Args>
-using Inverse_t = decltype(std::declval<I>().Inverse(std::declval<Args>()...));
-
-//! \brief This facade lifts a given base class from being Dim3 to Dim3 callable to an index map
-//! that satisfies our concept.
-//!
-//! Given a box, we use the base function to the compute the images of smallEnd() and bigEnd(). 
-//! By assuming component-wise monotonicty of the base function we return the smallest box
-//! that contains both images.
-template <typename Base>
-struct MonotoneIndexMappingFacade
-    : InverseMonotoneMappingFacade<Base, IsDetectedExact<Dim3, Inverse_t, Base, Dim3>::value> {
-    using BaseFacade =
-        InverseMonotoneMappingFacade<Base, IsDetectedExact<Dim3, Inverse_t, Base, Dim3>::value>;
-
-    using InverseMonotoneMappingFacade<
-        Base, IsDetectedExact<Dim3, Inverse_t, Base, Dim3>::value>::InverseMonotoneMappingFacade;
-
-    static_assert(IsCallableR<Dim3, Base, Dim3>(),
-                  "Base class needs to be a mapping: Dim3 -> Dim3");
-
-    static constexpr bool is_noexcept_callable = noexcept(std::declval<Base const&>()(Dim3{}));
-
-    using BaseFacade::operator();
-
-    //! \brief Applies the Dim3 to Dim3 inverse onto IntVects.
-    //!
-    //! This is used to map indices from the dest index space into the source index space.
-    //!
-    //! IntVect is being embedded in Dim3 by trailing zeros.
-    //! Dim3 is being projected to IntVect by dopping z for AMREX_SPACEDIM = 2 or z and y components
-    //! for AMREX_SPACEDIM = 1.
-    //!
-    //! \param[in] iv The IntVect that lives in the destination index space.
-    //!
-    //! \return Returns IntVect{Base(Dim3{iv})}
-    AMREX_GPU_HOST_DEVICE
-    IntVect operator()(IntVect const& iv) const noexcept(is_noexcept_callable) {
-        Dim3 i{};
-        AMREX_D_DECL(i.x = iv[0], i.y = iv[1], i.z = iv[2]);
-        i = static_cast<BaseFacade const&>(*this)(i);
-        return IntVect{AMREX_D_DECL(i.x, i.y, i.z)};
-    }
-
-    //! \brief Applies the Dim3 to Dim3 mapping onto Boxes
-    //!
-    //! This function assumes monotonicity in each component.
-    //!
-    //! \param[in] box The box that lives the source index space
-    //!
-    //! \return Returns the smallest Box in the destination index space that contains images of
-    //! Inverse(box.smallEnd()) and Inverse(box.bigEnd()).
-    Box operator()(const Box& box) const noexcept(is_noexcept_callable) {
-        IntVect mapped_smallEnd = this->operator()(box.smallEnd());
-        IntVect mapped_bigEnd = this->operator()(box.bigEnd());
-        IntVect smallEnd;
-        IntVect bigEnd;
-        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-            smallEnd[d] = std::min(mapped_smallEnd[d], mapped_bigEnd[d]);
-            bigEnd[d] = std::max(mapped_smallEnd[d], mapped_bigEnd[d]);
-        }
-        return Box{smallEnd, bigEnd};
-    }
-};
-}
+struct IsIndexMapping
+    : Conjunction<IsCallableR<Dim3, IndexMap&, const Dim3&>, 
+                  HasInverseMemFn<const IndexMap&>> {};
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                             [IndexMapping.MultiBlockIndexMapping]
@@ -152,7 +33,7 @@ struct MonotoneIndexMappingFacade
 //!
 //! This DTOS is used to map indices from one block to another. It respects a permutation of
 //! (x,y,z) coordinates, an offset and a change in orientation.
-struct MultiBlockDestToSrc {
+struct MultiBlockIndexMapping {
     //! \brief This vector needs to be a valid permutation
     IntVect permutation{AMREX_D_DECL(0, 1, 2)};
     //! \brief The offset in the source index space.
@@ -192,8 +73,84 @@ struct MultiBlockDestToSrc {
     }
 };
 
+//! \brief Applies the Dim3 to Dim3 mapping onto IntVects.
+//!
+//! This is used to map indices from the dest index space into the source index space.
+//!
+//! IntVect is being embedded in Dim3 by trailing zeros.
+//! Dim3 is being projected to IntVect by dopping z for AMREX_SPACEDIM = 2 or z and y components
+//! for AMREX_SPACEDIM = 1.
+//!
+//! \param[in] iv The IntVect that lives in the destination index space.
+//!
+//! \return Returns IntVect{dtos(Dim3{iv})}
+template <typename DTOS>
+EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value, IntVect> 
+Apply(DTOS dtos, const IntVect& iv) 
+{
+    Dim3 i{};
+    AMREX_D_DECL(i.x = iv[0], i.y = iv[1], i.z = iv[2]);
+    i = dtos(i);
+    return IntVect{AMREX_D_DECL(i.x, i.y, i.z)};
+}
+
+//! \brief Applies the Dim3 to Dim3 mapping onto Boxes
+//!
+//! This function assumes monotonicity in each component.
+//!
+//! \param[in] box The box that lives the source index space
+//!
+//! \return Returns the smallest Box in the destination index space that contains images of
+//! Inverse(box.smallEnd()) and Inverse(box.bigEnd()).
+template <typename DTOS>
+EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value, Box> 
+Image(DTOS dtos, const Box& box) 
+{
+    IntVect mapped_smallEnd = Apply(dtos, box.smallEnd());
+    IntVect mapped_bigEnd = Apply(dtos, box.bigEnd());
+    IntVect smallEnd;
+    IntVect bigEnd;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        smallEnd[d] = std::min(mapped_smallEnd[d], mapped_bigEnd[d]);
+        bigEnd[d] = std::max(mapped_smallEnd[d], mapped_bigEnd[d]);
+    }
+    return Box{smallEnd, bigEnd};
+}
+
+//! \brief Applies the Dim3 to Dim3 invserse mapping onto IntVects.
+//!
+//! This is used to map indices from the src index space into the dest index space.
+//!
+//! IntVect is being embedded in Dim3 by trailing zeros.
+//! Dim3 is being projected to IntVect by dopping z for AMREX_SPACEDIM = 2 or z and y components
+//! for AMREX_SPACEDIM = 1.
+//!
+//! \param[in] iv The IntVect that lives in the src index space.
+//!
+//! \return Returns IntVect{dtos.Inverse(Dim3{iv})}
+template <typename DTOS>
+EnableIf_t<HasInverseMemFn<DTOS>::value, IntVect> 
+ApplyInverse(DTOS dtos, const IntVect& iv) 
+{
+    return Apply([&dtos](Dim3 i) { return dtos.Inverse(i); }, iv);
+}
+
+//! \brief Applies the Dim3 to Dim3 mapping onto Boxes
+//!
+//! This function assumes monotonicity in each component.
+//!
+//! \param[in] box The box that lives the source index space
+//!
+//! \return Returns the smallest Box in the destination index space that contains images of
+//! ApplyInverse(box.smallEnd()) and ApplyInverse(box.bigEnd()).
+template <typename DTOS>
+EnableIf_t<HasInverseMemFn<DTOS>::value, Box> 
+InverseImage(DTOS dtos, const Box& box) 
+{
+    return Image([&dtos](Dim3 i) { return dtos.Inverse(i); }, box);
+}
+
 //! \brief This is the index mapping based on the DTOS MultiBlockDestToSrc.
-using MultiBlockIndexMapping = detail::MonotoneIndexMappingFacade<MultiBlockDestToSrc>;
 static_assert(IsIndexMapping<MultiBlockIndexMapping>(),
               "MultiBlockIndexMapping is expected to satisfy IndexMapping");
 
@@ -201,13 +158,6 @@ static_assert(IsIndexMapping<MultiBlockIndexMapping>(),
 //                                                    [class.MultiBlockCommMetaData]
 //
 
-//! \brief Return type of an InverseImage class member function.
-template <typename T, typename... Args>
-using InverseImage_t = decltype(std::declval<T>().InverseImage(std::declval<Args>()...));
-
-//! \brief Type trait that tests if T has an InverseImage class member function.
-template <typename T>
-struct HasInverseImage : IsDetectedExact<Box, InverseImage_t, T&, Box> {};
 
 //! \brief This class stores data dependencies for an inter-block communication.
 //!
@@ -220,8 +170,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     //!
     //! \see MultiBlockCommMetaData::define
     template <typename DTOS, 
-              typename = EnableIf_t<IsIndexMapping<DTOS>::value>,
-              typename = EnableIf_t<HasInverseImage<DTOS>::value>>
+              typename = EnableIf_t<IsIndexMapping<DTOS>::value>>
     MultiBlockCommMetaData(const FabArrayBase& dst, const Box& dstbox, const FabArrayBase& src,
                            const IntVect& ngrow, DTOS dtos);
 
@@ -229,8 +178,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     //!
     //! \see MultiBlockCommMetaData::define
     template <typename DTOS, 
-              typename = EnableIf_t<IsIndexMapping<DTOS>::value>,
-              typename = EnableIf_t<HasInverseImage<DTOS>::value>>
+              typename = EnableIf_t<IsIndexMapping<DTOS>::value>>
     MultiBlockCommMetaData(const BoxArray& dstba, const DistributionMapping& dstdm,
                            const Box& dstbox, const BoxArray& srcba,
                            const DistributionMapping& srcdm, const IntVect& ngrow, DTOS dtos);
@@ -262,7 +210,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     //!
     //! \return Nothing.
     template <typename DTOS>
-    EnableIf_t<IsIndexMapping<DTOS>() && HasInverseImage<DTOS>()>
+    EnableIf_t<IsIndexMapping<DTOS>::value>
     define(const BoxArray& dstba, const DistributionMapping& dstdm, const Box& dstbox,
            const BoxArray& srcba, const DistributionMapping& srcdm, const IntVect& ngrow,
            DTOS dtos);
@@ -282,19 +230,15 @@ struct IsFabProjection
 //                                                          [FabProjection.Identity]
 //                                                           [IndexMapping.Identity]
 
-//! \brief This class acts as a default no-op operator.
-struct IdentityDestToSrc {
-    //! The identity function for Dim3
-    constexpr Dim3 operator()(Dim3 i) const noexcept { return i; }
-    //! The identity function for Dim3
-    constexpr Dim3 Inverse(Dim3 i) const noexcept { return i; }
-};
 
 //! \brief This class acts as a default no-op operator.
 //!
 //! This class satisfies IndexMapping and FabProjection.
-struct Identity : detail::MonotoneIndexMappingFacade<IdentityDestToSrc> {
-    using MonotoneIndexMappingFacade<IdentityDestToSrc>::operator();
+struct Identity  {
+    //! The identity function for Dim3
+    constexpr Dim3 operator()(Dim3 i) const noexcept { return i; }
+    //! The identity function for Dim3
+    constexpr Dim3 Inverse(Dim3 i) const noexcept { return i; }
 
     //! \return Returns array(i.x,i.y,i.z,comp)
     template <typename T>
@@ -834,7 +778,7 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
 //!
 //! \return Returns the CommMetaData object that can be cached for future calls to ParallelCopy.
 template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
-EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && HasInverseImage<DTOS>() && IsFabProjection<Proj, FAB>(),
+EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<Proj, FAB>(),
 MultiBlockCommMetaData>
 ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, int destcomp,
               int srccomp, int numcomp, const IntVect& ngrow, DTOS dtos = DTOS{}, Proj proj = Proj{}) {

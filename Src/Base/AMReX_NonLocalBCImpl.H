@@ -28,8 +28,6 @@ struct Rotate90ClockWise {
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsIndexMapping<Rotate90ClockWise>(),
-              "Rotate90ClockWise is expected to satisfy IndexMapping");
 
 struct Rotate90CounterClockWise {
     AMREX_GPU_HOST_DEVICE
@@ -51,8 +49,6 @@ struct Rotate90CounterClockWise {
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsIndexMapping<Rotate90CounterClockWise>(),
-              "Rotate90CounterClockWise is expected to satisfy IndexMapping");
 
 struct Rotate90DstToSrc
 {
@@ -65,13 +61,6 @@ struct Rotate90DstToSrc
         }
     }
 };
-
-
-
-//! \brief The Rotate90 DTOS as an index mapping.
-using Rotate90IndexMapping = detail::MonotoneIndexMappingFacade<Rotate90DstToSrc>;
-static_assert(IsIndexMapping<Rotate90IndexMapping>(),
-              "Rotate90IndexMapping is expected to satisfy IndexMapping");
 
 struct Rotate180Fn {
     int Ly;
@@ -95,8 +84,6 @@ struct Rotate180Fn {
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsIndexMapping<Rotate180Fn>(),
-              "Rotate180Fn is expected to satisfy IndexMapping");
 
 struct PolarFn {
     int Lx, Ly;
@@ -130,8 +117,6 @@ struct PolarFn {
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsIndexMapping<PolarFn>(),
-              "PolarFn is expected to satisfy IndexMapping");
 
 struct PolarFn2 { // for the x-y corners
     int Lx, Ly;
@@ -173,8 +158,6 @@ struct PolarFn2 { // for the x-y corners
                                                    box.bigEnd  (2))}));
     }
 };
-static_assert(IsIndexMapping<PolarFn2>(),
-              "PolarFn2 is expected to satisfy IndexMapping");
 
 //! \brief Perform the local copies from src to dest without doing any MPI communication.
 //!
@@ -354,13 +337,13 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
 }
 #endif
 
-template <typename DTOS, typename, typename>
+template <typename DTOS, typename>
 MultiBlockCommMetaData::MultiBlockCommMetaData(const FabArrayBase& dst, const Box& dstbox, const FabArrayBase& src,
                         const IntVect& ngrow, DTOS dtos)
     : MultiBlockCommMetaData(dst.boxArray(), dst.DistributionMap(), dstbox, src.boxArray(),
                                 src.DistributionMap(), ngrow, dtos) {}
 
-template <typename DTOS, typename, typename>
+template <typename DTOS, typename>
 MultiBlockCommMetaData::MultiBlockCommMetaData(const BoxArray& dstba, const DistributionMapping& dstdm,
                         const Box& dstbox, const BoxArray& srcba,
                         const DistributionMapping& srcdm, const IntVect& ngrow, DTOS dtos) {
@@ -368,7 +351,7 @@ MultiBlockCommMetaData::MultiBlockCommMetaData(const BoxArray& dstba, const Dist
 }
 
 template <typename DTOS>
-EnableIf_t<IsIndexMapping<DTOS>() && HasInverseImage<DTOS>()>
+EnableIf_t<IsIndexMapping<DTOS>::value>
 MultiBlockCommMetaData::define(const BoxArray& dstba, const DistributionMapping& dstdm, const Box& dstbox,
         const BoxArray& srcba, const DistributionMapping& srcdm, const IntVect& ngrow,
         DTOS dtos) {
@@ -382,7 +365,7 @@ MultiBlockCommMetaData::define(const BoxArray& dstba, const DistributionMapping&
         if (partial_dstbox.isEmpty()) {
             continue;
         }
-        const Box partial_dstbox_mapped_in_src = dtos(partial_dstbox);
+        const Box partial_dstbox_mapped_in_src = Image(dtos, partial_dstbox);
         enum { not_first_only = 0, first_only = 1 };
         std::vector<std::pair<int, Box>> boxes_from_src =
             srcba.intersections(partial_dstbox_mapped_in_src, not_first_only, ngrow);
@@ -395,13 +378,13 @@ MultiBlockCommMetaData::define(const BoxArray& dstba, const DistributionMapping&
                 if (src_owner == dest_owner) {
                     const BoxList tilelist(src_box, FabArrayBase::comm_tile_size);
                     for (const Box& tilebox : tilelist) {
-                        const Box inverse_image = dtos.InverseImage(tilebox);
+                        const Box inverse_image = InverseImage(dtos, tilebox);
                         if ((inverse_image & partial_dstbox).ok()) {
                             m_LocTags->emplace_back(inverse_image, tilebox, i, k);
                         }
                     }
                 } else {
-                    const Box inverse_image = dtos.InverseImage(src_box);
+                    const Box inverse_image = InverseImage(dtos, src_box);
                     if ((inverse_image & partial_dstbox).ok()) {
                         FabArrayBase::CopyComTagsContainer& copy_tags =
                             (src_owner == myproc) ? (*m_SndTags)[dest_owner]
