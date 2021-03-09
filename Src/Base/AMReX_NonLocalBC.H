@@ -98,10 +98,10 @@ Apply(DTOS dtos, const IntVect& iv)
 //!
 //! This function assumes monotonicity in each component.
 //!
-//! \param[in] box The box that lives the source index space
+//! \param[in] box The box that lives the destination index space
 //!
-//! \return Returns the smallest Box in the destination index space that contains images of
-//! Inverse(box.smallEnd()) and Inverse(box.bigEnd()).
+//! \return Returns the smallest Box in the source index space that contains images of
+//! Apply(dtos, box.smallEnd()) and Apply(dtos, box.bigEnd()).
 template <typename DTOS>
 EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value, Box> 
 Image(DTOS dtos, const Box& box) 
