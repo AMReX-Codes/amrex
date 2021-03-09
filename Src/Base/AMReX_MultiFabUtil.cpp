@@ -182,15 +182,15 @@ namespace amrex
     }
 
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc,
-				     const Geometry& geom, int ncomp)
+				     const Geometry& geom, int ncomp, bool use_harmonic_averaging)
     {
         average_cellcenter_to_face(Array<MultiFab*,AMREX_SPACEDIM>{{AMREX_D_DECL(fc[0],fc[1],fc[2])}},
-                                   cc, geom, ncomp);
+                                   cc, geom, ncomp, use_harmonic_averaging);
     }
 
 
     void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc, const MultiFab& cc,
-                                    const Geometry& geom, int ncomp)
+                                    const Geometry& geom, int ncomp, bool use_harmonic_averaging)
     {
 	AMREX_ASSERT(cc.nComp() == ncomp);
 	AMREX_ASSERT(cc.nGrow() >= 1);
@@ -205,6 +205,8 @@ namespace amrex
 
 #if (AMREX_SPACEDIM == 1)
         const GeometryData& gd = geom.data();
+        if (use_harmonic_averaging)  
+    	    AMREX_ASSERT(gd.Coord() == 0);
 #else
         amrex::ignore_unused(geom);
 #endif
@@ -227,13 +229,15 @@ namespace amrex
 #if (AMREX_SPACEDIM == 1)
             AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (index_bounds, tbx,
             {
-                amrex_avg_cc_to_fc(tbx, xbx, fxarr, ccarr, gd, ncomp);
+                amrex_avg_cc_to_fc(tbx, xbx, fxarr, ccarr, gd, ncomp, 
+                                   use_harmonic_averaging);
             });
 #else
             AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (index_bounds, tbx,
             {
                 amrex_avg_cc_to_fc(tbx, AMREX_D_DECL(xbx,ybx,zbx),
-                                   AMREX_D_DECL(fxarr,fyarr,fzarr), ccarr, ncomp);
+                                   AMREX_D_DECL(fxarr,fyarr,fzarr), ccarr, ncomp, 
+                                   use_harmonic_averaging);
             });
 #endif
 	}
