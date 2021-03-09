@@ -53,7 +53,7 @@ template<typename Base> struct InverseMonotoneMappingFacade<Base, true> : Base {
         Dim3 i{};
         AMREX_D_DECL(i.x = iv[0], i.y = iv[1], i.z = iv[2]);
         i = Base::Inverse(i);
-        return {AMREX_D_DECL(i.x, i.y, i.z)};
+        return IntVect{AMREX_D_DECL(i.x, i.y, i.z)};
     }
 
     //! \brief Applies the Dim3 to Dim3 mapping onto Boxes
@@ -119,7 +119,7 @@ struct MonotoneIndexMappingFacade
         Dim3 i{};
         AMREX_D_DECL(i.x = iv[0], i.y = iv[1], i.z = iv[2]);
         i = static_cast<BaseFacade const&>(*this)(i);
-        return {AMREX_D_DECL(i.x, i.y, i.z)};
+        return IntVect{AMREX_D_DECL(i.x, i.y, i.z)};
     }
 
     //! \brief Applies the Dim3 to Dim3 mapping onto Boxes

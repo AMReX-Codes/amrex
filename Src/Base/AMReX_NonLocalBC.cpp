@@ -69,11 +69,10 @@ void PrepareCommBuffers(CommData& comm,
 }
 
 void PostRecvs(CommData& recv, int mpi_tag) {
-    const int n_recv = recv.data.size();
-    AMREX_ASSERT(n_recv == recv.offset.size());
-    AMREX_ASSERT(n_recv == recv.size.size());
-    AMREX_ASSERT(n_recv == recv.rank.size());
-    AMREX_ASSERT(n_recv == recv.request.size());
+    AMREX_ASSERT(recv.data.size() == recv.offset.size());
+    AMREX_ASSERT(recv.data.size() == recv.size.size());
+    AMREX_ASSERT(recv.data.size() == recv.rank.size());
+    AMREX_ASSERT(recv.data.size() == recv.request.size());
     MPI_Comm comm = ParallelContext::CommunicatorSub();
     for (int i = 0; i < recv.data.size(); ++i) {
         if (recv.size[i] > 0) {
