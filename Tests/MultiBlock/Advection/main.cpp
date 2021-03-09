@@ -10,12 +10,16 @@
 void MyMain();
 
 int main(int argc, char** argv) {
-    MPI_Init(nullptr, nullptr);
+#ifdef AMREX_USE_MPI
+    MPI_Init(&argc, &argv);
+#endif
     // Let me throw exceptions for triggering my debugger
     amrex::Initialize(MPI_COMM_WORLD, std::cout, std::cerr, [](const char* msg) { throw std::runtime_error(msg); });
     MyMain();
     amrex::Finalize();
+#ifdef AMREX_USE_MPI
     MPI_Finalize();
+#endif
 }
 
 using namespace amrex;
