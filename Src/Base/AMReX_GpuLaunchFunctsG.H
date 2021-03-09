@@ -225,7 +225,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
                         i += lo.x;
                         j += lo.y;
                         k += lo.z;
-                        int n_active_threads = amrex::min(ncells-i+(int)item.get_local_id(0),
+                        int n_active_threads = amrex::min(ncells-icell+(int)item.get_local_id(0),
                                                           (int)item.get_local_range(0));
                         detail::call_f(f, i, j, k, Gpu::Handler{&item, shared_data.get_pointer(),
                                                                 n_active_threads});
@@ -289,7 +289,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) n
                         i += lo.x;
                         j += lo.y;
                         k += lo.z;
-                        int n_active_threads = amrex::min(ncells-i+(int)item.get_local_id(0),
+                        int n_active_threads = amrex::min(ncells-icell+(int)item.get_local_id(0),
                                                           (int)item.get_local_range(0));
                         detail::call_f(f, i, j, k, ncomp,
                                        Gpu::Handler{&item, shared_data.get_pointer(),
@@ -913,7 +913,7 @@ ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 {
     if (amrex::isEmpty(n)) return;
 #if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
-    if (!info.hasReduction() && Gpu::inFuseRegion() && info.isFusible() && n <= Gpu::getFuseSizeThreshold()) {
+    if (!info.hasReduction() && Gpu::inFuseRegion() && info.isFusible() && Long(n) <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(n, f);
     } else
 #endif

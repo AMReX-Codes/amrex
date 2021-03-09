@@ -314,8 +314,8 @@ struct CommHandler
 {
 #ifdef AMREX_USE_MPI
     int mpi_tag;
-    char* the_recv_data = nullptr;
-    char* the_send_data = nullptr;
+    TheFaArenaPointer the_recv_data = nullptr;
+    TheFaArenaPointer the_send_data = nullptr;
     //
     Vector<int>         recv_from;
     Vector<char*>       recv_data;
@@ -368,7 +368,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
     handler.mpi_tag = SeqNum;
 
     if (N_rcvs > 0) {
-        mf.PostRcvs(*cmd.m_RcvTags, handler.the_recv_data, handler.recv_data, handler.recv_size,
+        handler.the_recv_data = mf.PostRcvs(*cmd.m_RcvTags, handler.recv_data, handler.recv_size,
                     handler.recv_from, handler.recv_reqs, ncomp, SeqNum);
     }
 
@@ -378,7 +378,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
         Vector<int> send_rank;
         Vector<char*> send_data;
         Vector<const FabArrayBase::CopyComTagsContainer*> send_cctc;
-        mf.PrepareSendBuffers(*cmd.m_SndTags, handler.the_send_data, send_data,
+        handler.the_send_data = mf.PrepareSendBuffers(*cmd.m_SndTags, send_data,
                               send_size, send_rank, handler.send_reqs, send_cctc, ncomp);
 
 #ifdef AMREX_USE_GPU
@@ -415,7 +415,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 template <class FAB, class DTOS>
 void
 Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData const& cmd,
-             CommHandler& handler, DTOS dtos)
+             CommHandler handler, DTOS dtos)
 {
     if (ParallelContext::NProcsSub() == 1) return;
 
@@ -447,15 +447,12 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
             unpack_recv_buffer_cpu(mf, scomp, ncomp, handler.recv_data,
                                    handler.recv_size, recv_cctc, dtos);
         }
-
-        amrex::The_FA_Arena()->free(handler.the_recv_data);
     }
 
     const int N_snds = cmd.m_SndTags->size();
     if (N_snds > 0) {
         Vector<MPI_Status> stats(handler.send_reqs.size());
         ParallelDescriptor::Waitall(handler.send_reqs, stats);
-        amrex::The_FA_Arena()->free(handler.the_send_data);
     }
 }
 #endif
@@ -495,7 +492,7 @@ Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box co
     }
 
 #ifdef AMREX_USE_MPI
-    Comm_finish(mf, scomp, ncomp, TheRB90, handler, Rotate90DstToSrc{});
+    Comm_finish(mf, scomp, ncomp, TheRB90, std::move(handler), Rotate90DstToSrc{});
 #else
     amrex::ignore_unused(handler);
 #endif
@@ -528,7 +525,7 @@ Rotate180 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box c
     auto handler = Comm_nowait(mf, scomp, ncomp, TheRB180, Rotate180Fn{domain.length(1)});
 
 #ifdef AMREX_USE_MPI
-    Comm_finish(mf, scomp, ncomp, TheRB180, handler, Rotate180Fn{domain.length(1)});
+    Comm_finish(mf, scomp, ncomp, TheRB180, std::move(handler), Rotate180Fn{domain.length(1)});
 #else
     amrex::ignore_unused(handler);
 #endif
@@ -562,7 +559,7 @@ FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box c
                                PolarFn{domain.length(0), domain.length(1)});
 
 #ifdef AMREX_USE_MPI
-    Comm_finish(mf, scomp, ncomp, ThePolarB, handler,
+    Comm_finish(mf, scomp, ncomp, ThePolarB, std::move(handler),
                 PolarFn{domain.length(0), domain.length(1)});
 #else
     amrex::ignore_unused(handler);

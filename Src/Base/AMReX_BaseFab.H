@@ -274,7 +274,7 @@ public:
     * Resizing is typically faster than re-allocating a
     * BaseFab because memory allocation can often be avoided.
     */
-    void resize (const Box& b, int N = 1);
+    void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
     template <class U=T, typename std::enable_if<std::is_trivially_destructible<U>::value,int>::type = 0>
     Elixir elixir () noexcept;
@@ -1677,8 +1677,7 @@ void
 BaseFab<T>::prefetchToHost () const noexcept
 {
 #ifdef AMREX_USE_GPU
-    if ((this->arena() == The_Arena() && this->arena()->arenaInfo().device_use_managed_memory) ||
-        this->arena() == The_Managed_Arena()) {
+    if (this->arena()->isManaged()) {
 #if defined(AMREX_USE_DPCPP)
         // xxxxx DPCPP todo: prefetchToHost
         // std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
@@ -1703,8 +1702,7 @@ void
 BaseFab<T>::prefetchToDevice () const noexcept
 {
 #ifdef AMREX_USE_GPU
-    if ((this->arena() == The_Arena() && this->arena()->arenaInfo().device_use_managed_memory) ||
-        this->arena() == The_Managed_Arena()) {
+    if (this->arena()->isManaged()) {
 #if defined(AMREX_USE_DPCPP)
         std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
         auto& q = Gpu::Device::streamQueue();
@@ -2042,12 +2040,17 @@ BaseFab<T>::operator= (T const& t) noexcept
 
 template <class T>
 void
-BaseFab<T>::resize (const Box& b, int n)
+BaseFab<T>::resize (const Box& b, int n, Arena* ar)
 {
     this->nvar   = n;
     this->domain = b;
 
-    if (this->dptr == 0 || !this->ptr_owner)
+    if (arena() != DataAllocator(ar).arena()) {
+        clear();
+        m_arena = ar;
+        define();
+    }
+    else if (this->dptr == 0 || !this->ptr_owner)
     {
 	if (this->shared_memory)
 	    amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");

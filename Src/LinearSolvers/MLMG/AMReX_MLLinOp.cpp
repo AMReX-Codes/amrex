@@ -909,7 +909,7 @@ MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
     {
         const Vector<int> & pmap = dms[j].ProcessorMap();
         std::set<int> g_ranks_set(pmap.begin(), pmap.end());
-        auto lev_rank_n = g_ranks_set.size();
+        int lev_rank_n = g_ranks_set.size();
         if (lev_rank_n >= remap_nbh_lb && lev_rank_n < ParallelContext::NProcsSub())
         {
             // find best neighborhood with lev_rank_n ranks

@@ -4,6 +4,7 @@
 #include <AMReX_CArena.H>
 #include <AMReX_DArena.H>
 #include <AMReX_EArena.H>
+#include <AMReX_PArena.H>
 
 #include <AMReX.H>
 #include <AMReX_Print.H>
@@ -29,6 +30,7 @@ namespace {
     bool initialized = false;
 
     Arena* the_arena = nullptr;
+    Arena* the_async_arena = nullptr;
     Arena* the_device_arena = nullptr;
     Arena* the_managed_arena = nullptr;
     Arena* the_pinned_arena = nullptr;
@@ -37,6 +39,7 @@ namespace {
     bool use_buddy_allocator = false;
     Long buddy_allocator_size = 0L;
     Long the_arena_init_size = 0L;
+    Long the_async_arena_release_threshold = -1L;
 #ifdef AMREX_USE_HIP
     bool the_arena_is_managed = false; // xxxxx HIP FIX HERE
 #else
@@ -48,6 +51,63 @@ namespace {
 const std::size_t Arena::align_size;
 
 Arena::~Arena () {}
+
+bool
+Arena::isDeviceAccessible () const
+{
+#ifdef AMREX_USE_GPU
+    return ! arena_info.use_cpu_memory;
+#else
+    return false;
+#endif
+}
+
+bool
+Arena::isHostAccessible () const
+{
+#ifdef AMREX_USE_GPU
+    return (arena_info.use_cpu_memory ||
+            arena_info.device_use_hostalloc ||
+            arena_info.device_use_managed_memory);
+#else
+    return true;
+#endif
+}
+
+bool
+Arena::isManaged () const
+{
+#ifdef AMREX_USE_GPU
+    return (! arena_info.use_cpu_memory)
+        && (! arena_info.device_use_hostalloc)
+        &&    arena_info.device_use_managed_memory;
+#else
+    return false;
+#endif
+}
+
+bool
+Arena::isDevice () const
+{
+#ifdef AMREX_USE_GPU
+    return (! arena_info.use_cpu_memory)
+        && (! arena_info.device_use_hostalloc)
+        && (! arena_info.device_use_managed_memory);
+#else
+    return false;
+#endif
+}
+
+bool
+Arena::isPinned () const
+{
+#ifdef AMREX_USE_GPU
+    return (! arena_info.use_cpu_memory)
+        &&    arena_info.device_use_hostalloc;
+#else
+    return false;
+#endif
+}
 
 std::size_t
 Arena::align (std::size_t s)
@@ -150,6 +210,7 @@ Arena::Initialize ()
     initialized = true;
 
     BL_ASSERT(the_arena == nullptr);
+    BL_ASSERT(the_async_arena == nullptr);
     BL_ASSERT(the_device_arena == nullptr);
     BL_ASSERT(the_managed_arena == nullptr);
     BL_ASSERT(the_pinned_arena == nullptr);
@@ -159,6 +220,7 @@ Arena::Initialize ()
     pp.query("use_buddy_allocator", use_buddy_allocator);
     pp.query("buddy_allocator_size", buddy_allocator_size);
     pp.query("the_arena_init_size", the_arena_init_size);
+    pp.query("the_async_arena_release_threshold", the_async_arena_release_threshold);
     pp.query("the_arena_is_managed", the_arena_is_managed);
     pp.query("abort_on_out_of_gpu_memory", abort_on_out_of_gpu_memory);
 
@@ -206,6 +268,12 @@ Arena::Initialize ()
         the_arena = new BArena;
 #endif
     }
+
+    if (the_async_arena_release_threshold < 0) {
+        the_async_arena_release_threshold = std::numeric_limits<Long>::max();
+    }
+
+    the_async_arena = new PArena(the_async_arena_release_threshold);
 
 #ifdef AMREX_USE_GPU
     the_device_arena = new CArena(0, ArenaInfo().SetDeviceMemory());
@@ -309,6 +377,9 @@ Arena::Finalize ()
     delete the_arena;
     the_arena = nullptr;
     
+    delete the_async_arena;
+    the_async_arena = nullptr;
+
     delete the_device_arena;
     the_device_arena = nullptr;
     
@@ -327,6 +398,13 @@ The_Arena ()
 {
     BL_ASSERT(the_arena != nullptr);
     return the_arena;
+}
+
+Arena*
+The_Async_Arena ()
+{
+    BL_ASSERT(the_async_arena != nullptr);
+    return the_async_arena;
 }
 
 Arena*

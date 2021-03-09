@@ -1641,8 +1641,7 @@ void
 prefetchToHost (FabArray<FAB> const& fa, const bool synchronous = true)
 {
 #ifdef AMREX_USE_GPU
-    if ((fa.arena() == The_Arena() && fa.arena()->arenaInfo().device_use_managed_memory) ||
-        fa.arena() == The_Managed_Arena()) {
+    if (fa.arena()->isManaged()) {
         for (MFIter mfi(fa, MFItInfo().SetDeviceSync(synchronous)); mfi.isValid(); ++mfi) {
             fa.prefetchToHost(mfi);
         }
@@ -1657,8 +1656,7 @@ void
 prefetchToDevice (FabArray<FAB> const& fa, const bool synchronous = true)
 {
 #ifdef AMREX_USE_GPU
-    if ((fa.arena() == The_Arena() && fa.arena()->arenaInfo().device_use_managed_memory) ||
-        fa.arena() == The_Managed_Arena()) {
+    if (fa.arena()->isManaged()) {
         for (MFIter mfi(fa, MFItInfo().SetDeviceSync(synchronous)); mfi.isValid(); ++mfi) {
             fa.prefetchToDevice(mfi);
         }

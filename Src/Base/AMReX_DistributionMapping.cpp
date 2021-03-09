@@ -746,9 +746,9 @@ DistributionMapping::KnapSackDoIt (const std::vector<Long>& wgts,
     knapsack(wgts,nteams,vec,efficiency,do_full_knapsack,nmax);
 
     if (flag_verbose_mapper) {
-        for (int i = 0; i < vec.size(); ++i) {
+        for (int i = 0, ni = vec.size(); i < ni; ++i) {
             Print() << "  Bucket " << i << " contains boxes:" << std::endl;
-            for (int j = 0; j < vec[i].size(); ++j) {
+            for (int j = 0, nj = vec[i].size(); j < nj; ++j) {
                 Print() << "    " << vec[i][j] << std::endl;
             }
         }

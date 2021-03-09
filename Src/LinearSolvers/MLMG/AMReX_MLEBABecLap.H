@@ -123,7 +123,7 @@ public:
 
 protected:
 
-    int m_ncomp;
+    int m_ncomp = 1;
 
     bool m_needs_update = true;
 
