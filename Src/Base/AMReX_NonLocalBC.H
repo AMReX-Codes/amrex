@@ -764,7 +764,7 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
     PackComponents components{};
     components.dest_component = destcomp.i;
     components.src_component = srccomp.i;
-    components.n_components = numcomp.i;
+    components.n_components = numcomp.n;
     ApplyDtosAndProjectionOnReciever<DTOS, Proj> packing{components, std::move(dtos), std::move(proj)};
     CommHandler handler = ParallelCopy_nowait(dest, src, cmd, packing);
     ParallelCopy_finish(dest, src, std::move(handler), cmd, packing);
