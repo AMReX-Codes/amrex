@@ -38,7 +38,7 @@ struct MultiBlockIndexMapping {
     IntVect permutation{AMREX_D_DECL(0, 1, 2)};
     //! \brief The offset in the source index space.
     IntVect offset{AMREX_D_DECL(0, 0, 0)};
-    //! \brief A vector of 1 and -1 describing the orietnation in each component.
+    //! \brief A vector of 1 and -1 describing the orientation in each component.
     IntVect sign{AMREX_D_DECL(1, 1, 1)};
 
     //! \brief Applies this mapping on the index from destination space and returns an index in the
@@ -88,9 +88,7 @@ template <typename DTOS>
 EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value, IntVect> 
 Apply(DTOS dtos, const IntVect& iv) 
 {
-    Dim3 i{};
-    AMREX_D_DECL(i.x = iv[0], i.y = iv[1], i.z = iv[2]);
-    i = dtos(i);
+    Dim3 i = dtos(iv.dim3());
     return IntVect{AMREX_D_DECL(i.x, i.y, i.z)};
 }
 
@@ -265,7 +263,7 @@ static_assert(IsFabProjection<Identity, FArrayBox>(), "");
 //! \brief This class takes a projection and a component map and combines them to form a new
 //! projection.
 //!
-//! We use this in to apply a permutations on components FABs.
+//! We use this to apply a permutations on components FABs.
 //!
 //! \see SwapComponents
 template <typename Base, typename Map = Identity> struct MapComponents {
@@ -545,7 +543,7 @@ static_assert(IsDataPacking<PackComponents, FArrayBox>(),
 ////////////////////////////////////////////////////////////////////////////////////
 //                                    [DataPacking.ApplyDtosAndProjectionOnReciever]
 //
-//! \brief This class spezializes behaviour on local copies and unpacking recieve buffers.
+//! \brief This class specializes behaviour on local copies and unpacking recieve buffers.
 //!
 //! It takes a DTOS and FabProjection to apply them on the reciever side. 
 template <typename DTOS = Identity, typename FabProj = Identity>

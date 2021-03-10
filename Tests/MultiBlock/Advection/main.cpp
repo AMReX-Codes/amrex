@@ -228,13 +228,12 @@ void MyMain() {
     Box domain(IntVect{}, IntVect{AMREX_D_DECL(63, 63, 0)});
     RealBox real_box1{{AMREX_D_DECL(-0.5, -0.3, 0.0)}, {AMREX_D_DECL(0.5, 0.7, 1.0)}};
     RealBox real_box2{{AMREX_D_DECL(+0.55, -0.3, 0.0)}, {AMREX_D_DECL(1.55, 0.7, 1.0)}};
-    static constexpr auto cartesian = static_cast<int>(CoordSys::CoordType::cartesian);
 
     Array<int, AMREX_SPACEDIM> is_periodic1{0, 1};
-    Geometry geom1{domain, real_box1, cartesian, is_periodic1};
+    Geometry geom1{domain, real_box1, CoordSys::cartesian, is_periodic1};
 
     Array<int, AMREX_SPACEDIM> is_periodic2{1, 0};
-    Geometry geom2{domain, real_box2, cartesian, is_periodic2};
+    Geometry geom2{domain, real_box2, CoordSys::cartesian, is_periodic2};
 
     AmrInfo amr_info{};
 #if AMREX_SPACEDIM > 2
