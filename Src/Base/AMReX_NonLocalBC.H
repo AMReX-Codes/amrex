@@ -71,6 +71,18 @@ struct MultiBlockIndexMapping {
         }
         return {iv[0], iv[1], iv[2]};
     }
+
+    IndexType operator()(IndexType it) const noexcept {
+        return IndexType{IntVect{AMREX_D_DECL(it[permutation[0]], it[permutation[1]], it[permutation[2]])}};
+    }
+
+    IndexType Inverse(IndexType it) const noexcept {
+        IntVect inverse_permutation;
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+            inverse_permutation[permutation[i]] = i;
+        }
+        return IndexType{IntVect{AMREX_D_DECL(it[inverse_permutation[0]], it[inverse_permutation[1]], it[inverse_permutation[2]])}};
+    }
 };
 
 //! \brief Applies the Dim3 to Dim3 mapping onto IntVects.
@@ -101,7 +113,22 @@ Apply(DTOS dtos, const IntVect& iv)
 //! \return Returns the smallest Box in the source index space that contains images of
 //! Apply(dtos, box.smallEnd()) and Apply(dtos, box.bigEnd()).
 template <typename DTOS>
-EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value, Box> 
+EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value && IsCallableR<IndexType, DTOS, IndexType>::value, Box> 
+Image(DTOS dtos, const Box& box) 
+{
+    IntVect mapped_smallEnd = Apply(dtos, box.smallEnd());
+    IntVect mapped_bigEnd = Apply(dtos, box.bigEnd());
+    IntVect smallEnd;
+    IntVect bigEnd;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        smallEnd[d] = std::min(mapped_smallEnd[d], mapped_bigEnd[d]);
+        bigEnd[d] = std::max(mapped_smallEnd[d], mapped_bigEnd[d]);
+    }
+    return Box{smallEnd, bigEnd, dtos(box.ixType())};
+}
+
+template <typename DTOS>
+EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value && !IsCallableR<IndexType, DTOS, IndexType>::value, Box> 
 Image(DTOS dtos, const Box& box) 
 {
     IntVect mapped_smallEnd = Apply(dtos, box.smallEnd());
@@ -145,7 +172,12 @@ template <typename DTOS>
 EnableIf_t<HasInverseMemFn<DTOS>::value, Box> 
 InverseImage(DTOS dtos, const Box& box) 
 {
-    return Image([&dtos](Dim3 i) { return dtos.Inverse(i); }, box);
+    struct Inverse {
+        DTOS* dtos;
+        Dim3 operator()(Dim3 i) const noexcept { return dtos->Inverse(i); }
+        IndexType operator()(IndexType i) const noexcept { return dtos->Inverse(i); }
+    };
+    return Image(Inverse{&dtos}, box);
 }
 
 //! \brief This is the index mapping based on the DTOS MultiBlockDestToSrc.
