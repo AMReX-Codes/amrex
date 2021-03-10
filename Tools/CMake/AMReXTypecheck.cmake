@@ -179,6 +179,7 @@ function( add_typecheck_target _target)
       Fortran_MODULE_DIRECTORY  "${_typecheck_dir}"
       COMPILE_DEFINITIONS       "${_defines}"
       COMPILE_OPTIONS           "${_amrex_flags}"
+      WINDOWS_EXPORT_ALL_SYMBOLS ON
       )
 
    # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
