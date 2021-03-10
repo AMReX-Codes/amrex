@@ -156,7 +156,6 @@ static_assert(IsIndexMapping<MultiBlockIndexMapping>(),
 //                                                    [class.MultiBlockCommMetaData]
 //
 
-
 //! \brief This class stores data dependencies for an inter-block communication.
 //!
 //! In communication between two blocks one might need to do an index
@@ -228,7 +227,6 @@ struct IsFabProjection
 //                                                          [FabProjection.Identity]
 //                                                           [IndexMapping.Identity]
 
-
 //! \brief This class acts as a default no-op operator.
 //!
 //! This class satisfies IndexMapping and FabProjection.
@@ -292,10 +290,8 @@ static_assert(std::is_trivially_copy_assignable<MapComponents<Identity>>(), "");
 static_assert(std::is_trivially_copy_constructible<MapComponents<Identity>>(), "");
 static_assert(IsFabProjection<MapComponents<Identity>, FArrayBox>(), "");
 
-
 ////////////////////////////////////////////////////////////////////////////////////
 //                                      [FabProjection.MapComponents.SwapComponents]
-
 
 //! \brief This is a permutation where only two components are swapped.
 //!
@@ -395,7 +391,6 @@ struct CommData {
     Vector<const FabArrayBase::CopyComTagsContainer*> cctc{};
 #endif
 };
-
 
 #ifdef AMREX_USE_MPI
 //! \brief Fill all class member variables of comm but the request and the stats vector.
