@@ -756,18 +756,51 @@ ParallelCopy_finish (FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler 
     ParallelCopy_finish(no_local_copy, dest, std::move(handler), cmd, data_packing);
 }
 
+//! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish, strong typed version.
+//!
+//! This function overload uses an already cached CommMetaData. This CommMetaData needs to be
+//! compatible with the specified DTOS and projection, otherwise undefined behaviour occurs.
+//!
+//! \return Nothing.
+template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
+EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase::CommMetaData& cmd,
+              SrcComp srccomp, DestComp destcomp, NumComps numcomp, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
+    PackComponents components{};
+    components.dest_component = destcomp.i;
+    components.src_component = srccomp.i;
+    components.n_components = numcomp.i;
+    ApplyDtosAndProjectionOnReciever<DTOS, Proj> packing{components, std::move(dtos), std::move(proj)};
+    CommHandler handler = ParallelCopy_nowait(dest, src, cmd, packing);
+    ParallelCopy_finish(dest, src, std::move(handler), cmd, packing);
+}
+
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish.
 //!
 //! This function overload uses an already cached CommMetaData. This CommMetaData needs to be
 //! compatible with the specified DTOS and projection, otherwise undefined behaviour occurs.
+//!
+//! \return Nothing.
 template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
 EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase::CommMetaData& cmd,
-              int destcomp, int srccomp, int numcomp, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
-    ApplyDtosAndProjectionOnReciever<DTOS, Proj> packing{PackComponents{destcomp, srccomp, numcomp},
-                                                         std::move(dtos), std::move(proj)};
-    CommHandler handler = ParallelCopy_nowait(dest, src, cmd, packing);
-    ParallelCopy_finish(dest, src, std::move(handler), cmd, packing);
+              int srccomp, int destcomp, int numcomp, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
+    ParallelCopy(dest, src, cmd, SrcComp(srccomp), DestComp(destcomp), NumComps(numcomp), std::move(dtos), std::move(proj));
+}
+
+//! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish, strong typed version.
+//!
+//! This function constructs a new MultiCommMetaData from the given DTOS and projection. 
+//!
+//! \return Returns the CommMetaData object that can be cached for future calls to ParallelCopy.
+template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
+EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<Proj, FAB>(),
+MultiBlockCommMetaData>
+ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, SrcComp srccomp,
+              DestComp destcomp, NumComps numcomp, const IntVect& ngrow, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
+    MultiBlockCommMetaData cmd(dest, destbox, src, ngrow, dtos);
+    ParallelCopy(dest, src, cmd, srccomp, destcomp, numcomp, std::move(dtos), std::move(proj));
+    return cmd;
 }
 
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish.
@@ -778,11 +811,9 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
 template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
 EnableIf_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<Proj, FAB>(),
 MultiBlockCommMetaData>
-ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, int destcomp,
-              int srccomp, int numcomp, const IntVect& ngrow, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
-    MultiBlockCommMetaData cmd(dest, destbox, src, ngrow, dtos);
-    ParallelCopy(dest, src, cmd, destcomp, srccomp, numcomp, std::move(dtos), std::move(proj));
-    return cmd;
+ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, int srccomp,
+              int destcomp, int numcomp, const IntVect& ngrow, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
+    return ParallelCopy(dest, destbox, src, SrcComp(srccomp), DestComp(destcomp), NumComps(numcomp), ngrow, std::move(dtos), std::move(proj));
 }
 
 // Rotate90 fills the lo-x and lo-y boundary regions by rotating the data
