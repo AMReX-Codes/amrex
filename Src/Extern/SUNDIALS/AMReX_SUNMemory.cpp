@@ -20,6 +20,7 @@ namespace {
     mem->ptr = NULL;
     mem->own = SUNTRUE;
     mem->type = mem_type;
+    
 
     if (mem_type == SUNMEMTYPE_HOST) {
       mem->ptr = The_Cpu_Arena()->alloc(memsize);
@@ -45,7 +46,7 @@ namespace {
     if (mem->type == SUNMEMTYPE_HOST) {
       if (mem->own) The_Cpu_Arena()->free(mem->ptr);
     } else if (mem->type == SUNMEMTYPE_UVM) {
-      if (mem->own) The_Managed_Arena()->free(mem->ptr);
+    if (mem->own) The_Managed_Arena()->free(mem->ptr);
     } else if (mem->type == SUNMEMTYPE_DEVICE) {
       if (mem->own) The_Device_Arena()->free(mem->ptr);
     } else if (mem->type == SUNMEMTYPE_PINNED) {
@@ -63,8 +64,11 @@ namespace {
     return *The_SUNMemory_Helper();
   }
 
-  int DestroyMemoryHelper(SUNMemoryHelper)
+  int DestroyMemoryHelper(SUNMemoryHelper helper)
   {
+    helper->content = NULL;
+    free(helper->ops);
+    free(helper);
     return(0);
   }
 
@@ -85,6 +89,13 @@ namespace {
 #elif defined(AMREX_USE_CUDA)
     helper->ops->copy      = SUNMemoryHelper_Copy_Cuda;
     helper->ops->copyasync = SUNMemoryHelper_CopyAsync_Cuda;
+#elif defined(AMREX_USE_DPCPP)
+    helper->ops->copy      = SUNMemoryHelper_Copy_Sycl;
+    helper->ops->copyasync = SUNMemoryHelper_CopyAsync_Sycl;
+    helper->ops->clone     = SUNMemoryHelper_Clone_Sycl;    
+
+    /* Attach the sycl queue pointer as the content */
+    helper->content = (void*) &amrex::Gpu::Device::streamQueue();
 #endif
 
     return helper;
