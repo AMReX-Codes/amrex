@@ -112,7 +112,7 @@ Image(DTOS dtos, const Box& box)
         smallEnd[d] = std::min(mapped_smallEnd[d], mapped_bigEnd[d]);
         bigEnd[d] = std::max(mapped_smallEnd[d], mapped_bigEnd[d]);
     }
-    return Box{smallEnd, bigEnd, box.ixType};
+    return Box{smallEnd, bigEnd, box.ixType()};
 }
 
 //! \brief Applies the Dim3 to Dim3 invserse mapping onto IntVects.
