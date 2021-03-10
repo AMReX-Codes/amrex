@@ -365,7 +365,7 @@ MultiBlockCommMetaData::define(const BoxArray& dstba, const DistributionMapping&
         if (partial_dstbox.isEmpty()) {
             continue;
         }
-        const Box partial_dstbox_mapped_in_src = Image(dtos, partial_dstbox);
+        const Box partial_dstbox_mapped_in_src = Image(dtos, partial_dstbox).setType(srcba.ixType());
         enum { not_first_only = 0, first_only = 1 };
         std::vector<std::pair<int, Box>> boxes_from_src =
             srcba.intersections(partial_dstbox_mapped_in_src, not_first_only, ngrow);
@@ -378,13 +378,13 @@ MultiBlockCommMetaData::define(const BoxArray& dstba, const DistributionMapping&
                 if (src_owner == dest_owner) {
                     const BoxList tilelist(src_box, FabArrayBase::comm_tile_size);
                     for (const Box& tilebox : tilelist) {
-                        const Box inverse_image = InverseImage(dtos, tilebox);
+                        const Box inverse_image = InverseImage(dtos, tilebox).setType(dstba.ixType());
                         if ((inverse_image & partial_dstbox).ok()) {
                             m_LocTags->emplace_back(inverse_image, tilebox, i, k);
                         }
                     }
                 } else {
-                    const Box inverse_image = InverseImage(dtos, src_box);
+                    const Box inverse_image = InverseImage(dtos, src_box).setType(dstba.ixType());
                     if ((inverse_image & partial_dstbox).ok()) {
                         FabArrayBase::CopyComTagsContainer& copy_tags =
                             (src_owner == myproc) ? (*m_SndTags)[dest_owner]
