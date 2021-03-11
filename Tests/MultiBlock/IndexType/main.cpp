@@ -22,10 +22,12 @@ int main(int argc, char** argv) {
 amrex::iMultiFab InitializeMultiFab(const amrex::Box& domain)
 {
     amrex::BoxArray ba(domain);
+    // do some work across MPI ranks.
+    ba.maxSize(8);
     amrex::DistributionMapping dm(ba);
     amrex::iMultiFab mf(ba, dm, 1, 0);
-    const int nx = domain.bigEnd(0) + 1;
-    const int ny = domain.bigEnd(1) + 1;
+    const int nx = domain.length(0);
+    const int ny = domain.length(1);
     for (amrex::MFIter mfi(mf); mfi.isValid(); ++mfi) {
         auto array = mf.array(mfi);
         ParallelFor(mfi.tilebox(), [=](int i, int j, int k) 
@@ -43,6 +45,8 @@ bool ParallelCopyWithItselfIsCorrect(amrex::iMultiFab& mf, const amrex::Box& dom
     amrex::NonLocalBC::MultiBlockIndexMapping dtos;
     dtos.offset = dest_box.smallEnd() - source_box.smallEnd();
     amrex::NonLocalBC::ParallelCopy(mf, dest_box, mf, 0, 0, 1, amrex::IntVect{0}, dtos);
+    const int nx = domain.length(0);
+    const int ny = domain.length(1);
     int fails = 0;
     for (amrex::MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const amrex::Box section = dest_box & mfi.tilebox();
@@ -51,7 +55,8 @@ bool ParallelCopyWithItselfIsCorrect(amrex::iMultiFab& mf, const amrex::Box& dom
         amrex::LoopOnCpu(section, [&](int i, int j, int k)
         {
             amrex::Dim3 si = dtos(amrex::Dim3{i,j,k});
-            fails += (array(i,j,k) != array(si.x, si.y, si.z));
+            int value = si.x + si.y*nx + si.z*nx*ny;
+            AMREX_ASSERT(array(i,j,k) == value);
         });
     }
     return fails == 0;
@@ -65,24 +70,44 @@ int GetFaceDir(amrex::IndexType iv)
     return ((value & 0b001) + (value & 0b010) + (value & 0b100)) >> 1;
 }
 
-bool ParallelCopyFaceToFace(amrex::iMultiFab& dest, const amrex::Box& domain_dest, const amrex::iMultiFab& src, const amrex::Box& domain_src) {
-    int ds = GetFaceDir(domain_src.ixType());
-    int dd = GetFaceDir(domain_dest.ixType());
-    const amrex::IntVect face_normal_src = amrex::IntVect::TheDimensionVector(ds);
-    const amrex::IntVect face_normal_dest = amrex::IntVect::TheDimensionVector(dd);
-    const amrex::Box src_box{domain_src.smallEnd(), domain_src.bigEnd() - domain_src.bigEnd(ds) * face_normal_src, domain_src.ixType()};
-    const amrex::Box dest_box{domain_dest.smallEnd(), domain_dest.bigEnd() - domain_dest.bigEnd(dd) * face_normal_dest, domain_dest.ixType()};
-    amrex::NonLocalBC::MultiBlockIndexMapping dtos;
-    std::swap(dtos.permutation[ds], dtos.permutation[dd]);
-    amrex::Print() << dest_box << '\n';
-    amrex::Print() << src_box << '\n';
-    amrex::Print() << amrex::NonLocalBC::Image(dtos, dest_box) << '\n';
-    AMREX_ASSERT(amrex::NonLocalBC::Image(dtos, dest_box) == src_box);
-    if (amrex::NonLocalBC::Image(dtos, dest_box) != src_box) {
-        return false;
+amrex::Box GetFaceBoundary(const amrex::Box& domain, amrex::Orientation::Side side)
+{
+    int dir = GetFaceDir(domain.ixType());
+    const amrex::IntVect face_normal = amrex::IntVect::TheDimensionVector(dir);
+    amrex::Box box{};
+    AMREX_ASSERT(side == amrex::Orientation::Side::low || side == amrex::Orientation::Side::high);
+    if (side == amrex::Orientation::Side::low) {
+        box = amrex::Box{domain.smallEnd(), domain.bigEnd() - domain.bigEnd(dir) * face_normal, domain.ixType()};
+    } else {
+        box = amrex::Box{domain.smallEnd() + domain.bigEnd(dir) * face_normal, domain.bigEnd(), domain.ixType()};
     }
+    return box;
+}
+
+bool ParallelCopyFaceToFace(amrex::iMultiFab& dest, const amrex::Box& domain_dest, amrex::Orientation::Side dest_side,
+                            const amrex::iMultiFab& src, const amrex::Box& domain_src, amrex::Orientation::Side src_side)
+{
+    int sdir = GetFaceDir(domain_src.ixType());
+    int ddir = GetFaceDir(domain_dest.ixType());
+    const amrex::Box src_box = GetFaceBoundary(domain_src, src_side);
+    const amrex::Box dest_box = GetFaceBoundary(domain_dest, dest_side);
+    
+    // Default construction is identity
+    amrex::NonLocalBC::MultiBlockIndexMapping dtos{};
+    // Change permutation to get a correct mapping between index types
+    std::swap(dtos.permutation[sdir], dtos.permutation[ddir]);
+    // Map smallest destination box index as an index in the source space
+    const amrex::IntVect dest_smallEnd_in_src = amrex::NonLocalBC::Apply(dtos, dest_box.smallEnd());
+    // Compute the offset to get the proper shift in the source space
+    dtos.offset =  dest_smallEnd_in_src - src_box.smallEnd();
+    // Sanity-Check that the correct box is being mapped
+    // Note, this checks index types, too!
+    AMREX_ASSERT(amrex::NonLocalBC::Image(dtos, dest_box) == src_box);
+
     amrex::NonLocalBC::ParallelCopy(dest, dest_box, src, 0, 0, 1, amrex::IntVect{0}, dtos);
     int fails = 0;
+    const int nx = domain_src.length(0);
+    const int ny = domain_src.length(1);
     for (amrex::MFIter mfi(dest); mfi.isValid(); ++mfi) {
         const amrex::Box section = dest_box & mfi.tilebox();
         if (section.isEmpty()) continue; 
@@ -91,17 +116,16 @@ bool ParallelCopyFaceToFace(amrex::iMultiFab& dest, const amrex::Box& domain_des
         amrex::LoopOnCpu(section, [&](int i, int j, int k)
         {
             amrex::Dim3 si = dtos(amrex::Dim3{i,j,k});
-            fails += (darray(i,j,k) != sarray(si.x, si.y, si.z));
+            AMREX_ASSERT(darray(i,j,k) == si.x + si.y*nx + si.z*nx*ny);
         });
     }
     return fails == 0;
 }
 
-
 int MyMain()
 {
     using namespace amrex;
-    Box domain{IntVect{}, IntVect{AMREX_D_DECL(1, 1, 1)}};
+    Box domain{IntVect{}, IntVect{AMREX_D_DECL(31, 31, 31)}};
     // Loop over all index types
     for (int i = 0; i < AMREX_D_TERM(2,*2,*2); ++i) {
         const auto ix = static_cast<IndexType::CellIndex>(static_cast<bool>(i & 0b001));
@@ -110,22 +134,23 @@ int MyMain()
         IndexType itype{AMREX_D_DECL(ix, iy, iz)};
         Box converted_domain = convert(domain, itype);
         iMultiFab mf = InitializeMultiFab(converted_domain);
-        if (!ParallelCopyWithItselfIsCorrect(mf, converted_domain)) {
-            return 1;
-        }
+        ParallelCopyWithItselfIsCorrect(mf, converted_domain);
     }
-    // Loop over face directions
+    // Loop over all combinations of face orientations
     const IntVect AMREX_D_DECL(e_x = IntVect::TheDimensionVector(0), e_y = IntVect::TheDimensionVector(1), e_z = IntVect::TheDimensionVector(2));
     IndexType dirs[AMREX_SPACEDIM] = {AMREX_D_DECL(IndexType(e_x), IndexType(e_y), IndexType(e_z))};
-    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+    Orientation::Side sides[2] = {Orientation::low, Orientation::high};
+    for (int ii = 0; ii < 2*AMREX_SPACEDIM; ++ii) {
+        int i = ii / 2;
+        Orientation::Side iside = sides[ii % 2];
+        for (int jj = 0; jj < 2*AMREX_SPACEDIM; ++jj) {
+            int j = jj / 2;
+            Orientation::Side jside = sides[j % 2];
             Box converted_domain_x = convert(domain, dirs[i]);
             iMultiFab dest = InitializeMultiFab(converted_domain_x);
             Box converted_domain_y = convert(domain, dirs[j]);
             const iMultiFab src = InitializeMultiFab(converted_domain_y);
-            if (!ParallelCopyFaceToFace(dest, converted_domain_x, src, converted_domain_y)) {
-                return 1;
-            }
+            ParallelCopyFaceToFace(dest, converted_domain_x, iside, src, converted_domain_y, jside);
         }
     }
     return 0;
