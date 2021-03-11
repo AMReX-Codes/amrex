@@ -338,23 +338,23 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
 #endif
 
 template <typename DTOS, typename>
-MultiBlockCommMetaData::MultiBlockCommMetaData(const FabArrayBase& dst, const Box& dstbox, const FabArrayBase& src,
-                        const IntVect& ngrow, DTOS dtos)
+MultiBlockCommMetaData::MultiBlockCommMetaData (const FabArrayBase& dst, const Box& dstbox, const FabArrayBase& src,
+                                                const IntVect& ngrow, DTOS dtos)
     : MultiBlockCommMetaData(dst.boxArray(), dst.DistributionMap(), dstbox, src.boxArray(),
                                 src.DistributionMap(), ngrow, dtos) {}
 
 template <typename DTOS, typename>
-MultiBlockCommMetaData::MultiBlockCommMetaData(const BoxArray& dstba, const DistributionMapping& dstdm,
-                        const Box& dstbox, const BoxArray& srcba,
-                        const DistributionMapping& srcdm, const IntVect& ngrow, DTOS dtos) {
+MultiBlockCommMetaData::MultiBlockCommMetaData (const BoxArray& dstba, const DistributionMapping& dstdm,
+                                                const Box& dstbox, const BoxArray& srcba,
+                                                const DistributionMapping& srcdm, const IntVect& ngrow, DTOS dtos) {
     define(dstba, dstdm, dstbox, srcba, srcdm, ngrow, dtos);
 }
 
 template <typename DTOS>
 EnableIf_t<IsIndexMapping<DTOS>::value>
 MultiBlockCommMetaData::define (const BoxArray& dstba, const DistributionMapping& dstdm, const Box& dstbox,
-                                const BoxArray& srcba, const DistributionMapping& srcdm, const IntVect& ngrow,
-        DTOS dtos) {
+                                const BoxArray& srcba, const DistributionMapping& srcdm, const IntVect& ngrow, 
+                                DTOS dtos) {
     m_LocTags = std::make_unique<FabArrayBase::CopyComTagsContainer>();
     m_SndTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
     m_RcvTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
