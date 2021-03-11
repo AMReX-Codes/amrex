@@ -242,9 +242,7 @@ void MyTest::initializeLinearDataFor3D(int ilev) {
           fab(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? (H - d) : 0.0;
 
           fab_gx(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? -1.0 * dx[0]: 0.0;
-        }
-
-          if (dir ==1) {
+        } else if (dir ==1) {
           Real ry = (j + 0.5 + ccent(i, j, k, 1)) * dx[1];
 
           if (j < dlo[1] and not is_periodic[1]) {
@@ -255,13 +253,9 @@ void MyTest::initializeLinearDataFor3D(int ilev) {
           }
 
           d = ry - bot;
-         // fab(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? d * (H - d) : 0.0;
           fab(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? (H - d) : 0.0;
-
-
           fab_gy(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? -1.0 * dx[1]: 0.0;
-        } 
-          if (dir == 2) {
+        } else if (dir == 2) {
           Real rz = (k + 0.5 + ccent(i, j, k, 2)) * dx[2];
 
           if (k < dlo[2] and not is_periodic[2]) {
@@ -273,8 +267,8 @@ void MyTest::initializeLinearDataFor3D(int ilev) {
 
           d = rz - bot;
           fab(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? (H - d) : 0.0;
-
           fab_gz(i, j, k, fdir) = (!flag(i, j, k).isCovered()) ? -1.0 * dx[2]: 0.0;
+
         } else {
           AMREX_ALWAYS_ASSERT_WITH_MESSAGE(0, "Invalid height direction");
         }
