@@ -352,8 +352,8 @@ MultiBlockCommMetaData::MultiBlockCommMetaData(const BoxArray& dstba, const Dist
 
 template <typename DTOS>
 EnableIf_t<IsIndexMapping<DTOS>::value>
-MultiBlockCommMetaData::define(const BoxArray& dstba, const DistributionMapping& dstdm, const Box& dstbox,
-        const BoxArray& srcba, const DistributionMapping& srcdm, const IntVect& ngrow,
+MultiBlockCommMetaData::define (const BoxArray& dstba, const DistributionMapping& dstdm, const Box& dstbox,
+                                const BoxArray& srcba, const DistributionMapping& srcdm, const IntVect& ngrow,
         DTOS dtos) {
     m_LocTags = std::make_unique<FabArrayBase::CopyComTagsContainer>();
     m_SndTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
