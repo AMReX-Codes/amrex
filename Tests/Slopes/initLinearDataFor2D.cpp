@@ -59,8 +59,6 @@ void MyTest::initializeLinearDataFor2D(int ilev) {
       }
 
       auto d = std::fabs(a * rx + b * ry + c) / std::sqrt(a * a + b * b);
-
-//      auto phi_mag = (!flag(i, j, k).isCovered()) ? d * (H - d) : 0.0;
       auto phi_mag = (!flag(i, j, k).isCovered()) ? (H - d) : 0.0;
       fab(i, j, k, 0) = phi_mag * std::cos(t);
       fab(i, j, k, 1) = phi_mag * std::sin(t);
