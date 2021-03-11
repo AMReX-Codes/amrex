@@ -104,29 +104,14 @@ Apply(DTOS dtos, const IntVect& iv)
     return IntVect{AMREX_D_DECL(i.x, i.y, i.z)};
 }
 
-//! \brief Applies the Dim3 to Dim3 mapping onto Boxes
+//! \brief Applies the Dim3 to Dim3 mapping onto Boxes but does not change the index type.
 //!
-//! This function assumes monotonicity in each component.
+//! This function assumes monotonicity of dtos in each component.
 //!
 //! \param[in] box The box that lives the destination index space
 //!
 //! \return Returns the smallest Box in the source index space that contains images of
 //! Apply(dtos, box.smallEnd()) and Apply(dtos, box.bigEnd()).
-template <typename DTOS>
-EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value && IsCallableR<IndexType, DTOS, IndexType>::value, Box> 
-Image(DTOS dtos, const Box& box) 
-{
-    IntVect mapped_smallEnd = Apply(dtos, box.smallEnd());
-    IntVect mapped_bigEnd = Apply(dtos, box.bigEnd());
-    IntVect smallEnd;
-    IntVect bigEnd;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-        smallEnd[d] = std::min(mapped_smallEnd[d], mapped_bigEnd[d]);
-        bigEnd[d] = std::max(mapped_smallEnd[d], mapped_bigEnd[d]);
-    }
-    return Box{smallEnd, bigEnd, dtos(box.ixType())};
-}
-
 template <typename DTOS>
 EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value && !IsCallableR<IndexType, DTOS, IndexType>::value, Box> 
 Image(DTOS dtos, const Box& box) 
@@ -140,6 +125,25 @@ Image(DTOS dtos, const Box& box)
         bigEnd[d] = std::max(mapped_smallEnd[d], mapped_bigEnd[d]);
     }
     return Box{smallEnd, bigEnd, box.ixType()};
+}
+
+//! \brief Applies the Dim3 to Dim3 mapping onto Boxes and maps the index type.
+//!
+//! This function assumes monotonicity of dtos in each component.
+//!
+//! \param[in] box The box that lives the destination index space
+//!
+//! \return Returns the smallest Box in the source index space that contains images of
+//! Apply(dtos, box.smallEnd()) and Apply(dtos, box.bigEnd()).
+template <typename DTOS>
+EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value && IsCallableR<IndexType, DTOS, IndexType>::value, Box> 
+Image(DTOS dtos, const Box& box) 
+{
+    // "Forget" the index type mapping and invoke Image without changing the index type.
+    Box srcbox = Image([&dtos](Dim3 i) { return dtos(i); }, box);
+    // Fix the index type of the resulting box
+    srcbox.setType(dtos(box.ixType()));
+    return srcbox;
 }
 
 //! \brief Applies the Dim3 to Dim3 invserse mapping onto IntVects.
@@ -160,7 +164,7 @@ ApplyInverse(DTOS dtos, const IntVect& iv)
     return Apply([&dtos](Dim3 i) { return dtos.Inverse(i); }, iv);
 }
 
-//! \brief Applies the Dim3 to Dim3 mapping onto Boxes
+//! \brief Applies the inverse Dim3 to Dim3 mapping onto Boxes without changing the index type.
 //!
 //! This function assumes monotonicity in each component.
 //!
@@ -169,15 +173,25 @@ ApplyInverse(DTOS dtos, const IntVect& iv)
 //! \return Returns the smallest Box in the destination index space that contains images of
 //! ApplyInverse(box.smallEnd()) and ApplyInverse(box.bigEnd()).
 template <typename DTOS>
-EnableIf_t<HasInverseMemFn<DTOS>::value, Box> 
+EnableIf_t<HasInverseMemFn<DTOS>::value && !IsCallableR<IndexType, DTOS, IndexType>::value, Box> 
 InverseImage(DTOS dtos, const Box& box) 
 {
-    struct Inverse {
-        DTOS* dtos;
-        Dim3 operator()(Dim3 i) const noexcept { return dtos->Inverse(i); }
-        IndexType operator()(IndexType i) const noexcept { return dtos->Inverse(i); }
-    };
-    return Image(Inverse{&dtos}, box);
+    return Image([&dtos](Dim3 i) { return dtos.Inverse(i); }, box);
+}
+
+//! \brief Applies the inverse Dim3 to Dim3 mapping onto Boxes
+//!
+//! This function assumes monotonicity in each component.
+//!
+//! \param[in] box The box that lives the source index space
+//!
+//! \return Returns the smallest Box in the destination index space that contains images of
+//! ApplyInverse(box.smallEnd()) and ApplyInverse(box.bigEnd()).
+template <typename DTOS>
+EnableIf_t<HasInverseMemFn<DTOS>::value && IsCallableR<IndexType, DTOS, IndexType>::value, Box> 
+InverseImage(DTOS dtos, const Box& box) 
+{
+    return Image([&dtos](auto&& i) { return dtos.Inverse(i); }, box);
 }
 
 //! \brief This is the index mapping based on the DTOS MultiBlockDestToSrc.
