@@ -160,7 +160,7 @@ struct OnesidedMultiBlockBoundaryFn {
         cached_src_bd_key = src->mass.getBDKey();
     }
     
-    return ParallelCopy_nowait(dest->mass, src->mass, *cmd, packing);
+    return ParallelCopy_nowait(no_local_copy, dest->mass, src->mass, *cmd, packing);
   }
 
   void FillBoundary_do_local_copy() const {
@@ -171,7 +171,7 @@ struct OnesidedMultiBlockBoundaryFn {
   }
 
   void FillBoundary_finish(CommHandler handler) const {
-    ParallelCopy_finish(no_local_copy, dest->mass, std::move(handler), *cmd, packing);
+    ParallelCopy_finish(dest->mass, std::move(handler), *cmd, packing);
   }
 };
 
