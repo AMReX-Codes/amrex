@@ -170,6 +170,7 @@ target_sources( amrex
    AMReX_FilND_C.cpp
    # Non-Local BC
    AMReX_NonLocalBC.H
+   AMReX_NonLocalBC.cpp
    AMReX_NonLocalBCImpl.H
    # Plotfile ----------------------------------------------------------------
    AMReX_PlotFileUtil.cpp
