@@ -731,7 +731,10 @@ CommHandler ParallelCopy_nowait (NoLocalCopy, FabArray<FAB>&, const FabArray<FAB
 template <typename FAB, typename DataPacking, 
           typename = EnableIf_t<IsBaseFab<FAB>::value>,
           typename = EnableIf_t<IsDataPacking<DataPacking, FAB>::value>>
-AMREX_NODISCARD CommHandler 
+#ifdef AMREX_USE_MPI
+AMREX_NODISCARD 
+#endif
+CommHandler 
 ParallelCopy_nowait (FabArray<FAB>& dest, const FabArray<FAB>& src,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     CommHandler comm = ParallelCopy_nowait(no_local_copy, dest, src, cmd, data_packing);
