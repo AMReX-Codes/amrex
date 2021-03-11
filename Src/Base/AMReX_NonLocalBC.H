@@ -602,9 +602,10 @@ struct ApplyDtosAndProjectionOnReciever : PackComponents {
 
 //! \brief Do local copies of FABs using DTOS and projection.
 template <typename FAB, typename DTOS, typename FabProj>
-amrex::EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<FabProj, FAB>()>
+amrex::EnableIf_t<IsBaseFab<FAB>::value>
 LocalCopy (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing, FabArray<FAB>& dest,
            const FabArray<FAB>& src, const FabArrayBase::CopyComTagsContainer& local_tags) {
+    static_assert(IsFabProjection<FabProj, FAB>(), "FabProj needs to be a projection for given FAB type.");
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         local_copy_gpu(dest, src, packing.dest_component, packing.src_component,
@@ -624,7 +625,7 @@ amrex::EnableIf_t<IsBaseFab<FAB>::value>
 UnpackRecvBuffers (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing,
                    FabArray<FAB>& dest, const CommData& recv) {
     // If FAB is not FArrayBox we have not checked for the correct types yet.
-    static_assert(IsFabProjection<FabProj, FAB>(), "FabProj needs to be a projection on given FAB type.");
+    static_assert(IsFabProjection<FabProj, FAB>(), "FabProj needs to be a projection for given FAB type.");
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         unpack_recv_buffer_gpu(dest, packing.dest_component, packing.n_components, recv.data,
@@ -644,6 +645,9 @@ static_assert(IsDataPacking<ApplyDtosAndProjectionOnReciever<>, FArrayBox>(),
 ////////////////////////////////////////////////////////////////////////////////////
 //                                                             [ParallelCopy_nowait]
 
+static constexpr struct NoLocalCopy {} no_local_copy{};
+static constexpr struct DoLocalCopy {} do_local_copy{};
+
 //! Initiate recv and send calls for MPI and immediately return without doing any work.
 //!
 //! DataPacking is a customization point object to control the behaviour of packing and unpacking
@@ -655,7 +659,7 @@ static_assert(IsDataPacking<ApplyDtosAndProjectionOnReciever<>, FArrayBox>(),
 //!
 //! \param[out] dest     The Multifab that is going to be filled with recieved data.
 //!
-//! \param[out] src      The Multifab that is used to fill the send buffers.
+//! \param[in]  src      The Multifab that is used to fill the send buffers.
 //!
 //! \param[in]  cmd      The communication meta data object holds spatial information about FAB
 //!                      boxes that need to be filled and copied from.
@@ -670,7 +674,7 @@ template <typename FAB, typename DataPacking,
           typename = EnableIf_t<IsDataPacking<DataPacking, FAB>::value>>
 #ifdef AMREX_USE_MPI
 AMREX_NODISCARD CommHandler 
-ParallelCopy_nowait (FabArray<FAB>& dest, const FabArray<FAB>& src,
+ParallelCopy_nowait (NoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     CommHandler handler{};
     if (ParallelContext::NProcsSub() == 1) {
@@ -697,16 +701,48 @@ ParallelCopy_nowait (FabArray<FAB>& dest, const FabArray<FAB>& src,
     return handler;
 }
 #else
-CommHandler ParallelCopy_nowait (FabArray<FAB>&, const FabArray<FAB>&,
+CommHandler ParallelCopy_nowait (NoLocalCopy, FabArray<FAB>&, const FabArray<FAB>&,
                                  const FabArrayBase::CommMetaData&, const DataPacking&) {
     return CommHandler{};
 }
 #endif
 
+//! Initiate recv and send calls for MPI and return after doing local work.
+//!
+//! DataPacking is a customization point object to control the behaviour of packing and unpacking
+//! send or recv data buffers. It is used to perform interpolation or data transformations on either
+//! sender or reciever side.
+//!
+//! This function performs a data packing on sender side and we expect a call to Parallel_finish
+//! that performs data unpacking on the reciever side.
+//!
+//! \param[out] dest     The Multifab that is going to be filled with recieved data.
+//!
+//! \param[in]  src      The Multifab that is used to fill the send buffers.
+//!
+//! \param[in]  cmd      The communication meta data object holds spatial information about FAB
+//!                      boxes that need to be filled and copied from.
+//!
+//! \param[in]  data_packing A CPO that controls behaviour of preparing buffers and packing the
+//!                          source data into the send buffers.
+//!
+//! \return Returns a CommHandler object that owns context and memory buffers for the whole life
+//!         time of the MPI transaction.
+template <typename FAB, typename DataPacking, 
+          typename = EnableIf_t<IsBaseFab<FAB>::value>,
+          typename = EnableIf_t<IsDataPacking<DataPacking, FAB>::value>>
+AMREX_NODISCARD CommHandler 
+ParallelCopy_nowait (FabArray<FAB>& dest, const FabArray<FAB>& src,
+                     const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
+    CommHandler comm = ParallelCopy_nowait(no_local_copy, dest, src, cmd, data_packing);
+    // Eagerly do the local work and hope for some overlap with communication
+    if (cmd.m_LocTags && cmd.m_LocTags->size() > 0) {
+        LocalCopy(data_packing, dest, src, *cmd.m_LocTags);
+    }
+    return comm;
+}
 ////////////////////////////////////////////////////////////////////////////////////
 //                                                             [ParallelCopy_finish]
-
-static constexpr struct NoLocalCopy {} no_local_copy{};
 
 //! Blockingly wait for all communication to be done and fill the local FABs with recieved data.
 //!
@@ -729,7 +765,7 @@ static constexpr struct NoLocalCopy {} no_local_copy{};
 template <typename FAB, typename DataPacking>
 EnableIf_t<IsBaseFab<FAB>() && IsDataPacking<DataPacking, FAB>()>
 #ifdef AMREX_USE_MPI
-ParallelCopy_finish (NoLocalCopy, FabArray<FAB>& dest, CommHandler handler,
+ParallelCopy_finish (FabArray<FAB>& dest, CommHandler handler,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     // If any FabArray is empty we have nothing to do.
     if (dest.size() == 0) {
@@ -758,8 +794,7 @@ ParallelCopy_finish (NoLocalCopy, FabArray<FAB>& dest, CommHandler handler,
     }
 }
 #else
-ParallelCopy_finish (NoLocalCopy, FabArray<FAB>&, CommHandler,
-                     const FabArrayBase::CommMetaData&, const DataPacking&) {}
+ParallelCopy_finish (FabArray<FAB>&, CommHandler, const FabArrayBase::CommMetaData&, const DataPacking&) {}
 #endif
 
 //! Blockingly wait for all communication to be done and fill the local FABs with recieved data.
@@ -770,7 +805,7 @@ ParallelCopy_finish (NoLocalCopy, FabArray<FAB>&, CommHandler,
 //!
 //! \param[out] dest     The Multifab that is going to be filled with recieved data.
 //!
-//! \param[out] src      The Multifab that is used to get the data for the local copies from.
+//! \param[in]  src      The Multifab that is used to get the data for the local copies from.
 //!
 //! \param[in]  handler  This object holds all data buffers that need to be kept alive as long as
 //!                      the data transaction is not done.
@@ -783,24 +818,37 @@ ParallelCopy_finish (NoLocalCopy, FabArray<FAB>&, CommHandler,
 //! \returns Nothing.
 template <typename FAB, typename DataPacking>
 EnableIf_t<IsBaseFab<FAB>() && IsDataPacking<DataPacking, FAB>()>
-ParallelCopy_finish (FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler handler,
+ParallelCopy_finish (DoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler handler,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
-    amrex::ignore_unused(handler);
-    // If any FabArray is empty we have nothing to do.
-    if (dest.size() == 0) {
-        return;
-    }
     // Eagerly do the local work and hope for some overlap with communication
     if (cmd.m_LocTags && cmd.m_LocTags->size() > 0) {
         LocalCopy(data_packing, dest, src, *cmd.m_LocTags);
     }
-    ParallelCopy_finish(no_local_copy, dest, std::move(handler), cmd, data_packing);
+    ParallelCopy_finish(dest, std::move(handler), cmd, data_packing);
 }
 
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish, strong typed version.
 //!
 //! This function overload uses an already cached CommMetaData. This CommMetaData needs to be
 //! compatible with the specified DTOS and projection, otherwise undefined behaviour occurs.
+//!
+//! \param[out] dest The Multifab that is going to be filled with recieved data.
+//!
+//! \param[in]  src  The Multifab that is used to fill the send buffers.
+//!
+//! \param[in]  cmd  The communication meta data object holds spatial information about FAB
+//!                  boxes that need to be filled and copied from.
+//!
+//! \param[in]  srccomp  The first component in src that will be copied to dest.
+//!
+//! \param[in]  destcomp The first component in dest that will get written by src.
+//!
+//! \param[in]  ncomp    The number of successive components that will be copied.
+//!
+//! \param[in]  dtos An index mapping that maps indices from destination space to source space
+//!                  and from source space to destination space.
+//!
+//! \param[in]  proj A transformation function that might change the data when it is being copied.
 //!
 //! \return Nothing.
 template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
@@ -813,13 +861,31 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
     components.n_components = numcomp.n;
     ApplyDtosAndProjectionOnReciever<DTOS, Proj> packing{components, std::move(dtos), std::move(proj)};
     CommHandler handler = ParallelCopy_nowait(dest, src, cmd, packing);
-    ParallelCopy_finish(dest, src, std::move(handler), cmd, packing);
+    ParallelCopy_finish(dest, std::move(handler), cmd, packing);
 }
 
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish.
 //!
 //! This function overload uses an already cached CommMetaData. This CommMetaData needs to be
 //! compatible with the specified DTOS and projection, otherwise undefined behaviour occurs.
+//!
+//! \param[out] dest The Multifab that is going to be filled with recieved data.
+//!
+//! \param[in]  src  The Multifab that is used to fill the send buffers.
+//!
+//! \param[in]  cmd  The communication meta data object holds spatial information about FAB
+//!                  boxes that need to be filled and copied from.
+//!
+//! \param[in]  srccomp  The first component in src that will be copied to dest.
+//!
+//! \param[in]  destcomp The first component in dest that will get written by src.
+//!
+//! \param[in]  ncomp    The number of successive components that will be copied.
+//!
+//! \param[in]  dtos An index mapping that maps indices from destination space to source space
+//!                  and from source space to destination space.
+//!
+//! \param[in]  proj A transformation function that might change the data when it is being copied.
 //!
 //! \return Nothing.
 template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
@@ -831,7 +897,31 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
 
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish, strong typed version.
 //!
-//! This function constructs a new MultiCommMetaData from the given DTOS and projection. 
+//! This function constructs a new MultiCommMetaData from the given DTOS, destbox and ngrow. 
+//!
+//! \param[out] dest The Multifab that is going to be filled with recieved data.
+//!
+//! \param[in]  destbox The index box in the destination space that will be filled by data from 
+//!                     src. The source box that describes the dependencies will be computed by 
+//!                     the specified DTOS.
+//!
+//! \param[in]  src  The Multifab that is used to fill the send buffers.
+//!
+//! \param[in]  srccomp  The first component in src that will be copied to dest.
+//!
+//! \param[in]  destcomp The first component in dest that will get written by src.
+//!
+//! \param[in]  ncomp    The number of successive components that will be copied.
+//!
+//! \param[in]  ngrow    The amount of ghost cells that will be taking into consideration.
+//!                      Note, even if destbox contains indices outside the domain we need to 
+//!                      specify an appropiate ngrow that covers the amound of ghost cells that
+//!                      we want to copy. 
+//!
+//! \param[in]  dtos An index mapping that maps indices from destination space to source space
+//!                  and from source space to destination space.
+//!
+//! \param[in]  proj A transformation function that might change the data when it is being copied.
 //!
 //! \return Returns the CommMetaData object that can be cached for future calls to ParallelCopy.
 template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
@@ -846,7 +936,31 @@ ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src,
 
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish.
 //!
-//! This function constructs a new MultiCommMetaData from the given DTOS and projection. 
+//! This function constructs a new MultiCommMetaData from the given DTOS, destbox and ngrow. 
+//!
+//! \param[out] dest The Multifab that is going to be filled with recieved data.
+//!
+//! \param[in]  destbox The index box in the destination space that will be filled by data from 
+//!                     src. The source box that describes the dependencies will be computed by 
+//!                     the specified DTOS.
+//!
+//! \param[in]  src  The Multifab that is used to fill the send buffers.
+//!
+//! \param[in]  srccomp  The first component in src that will be copied to dest.
+//!
+//! \param[in]  destcomp The first component in dest that will get written by src.
+//!
+//! \param[in]  ncomp    The number of successive components that will be copied.
+//!
+//! \param[in]  ngrow    The amount of ghost cells that will be taking into consideration.
+//!                      Note, even if destbox contains indices outside the domain we need to 
+//!                      specify an appropiate ngrow that covers the amound of ghost cells that
+//!                      we want to copy. 
+//!
+//! \param[in]  dtos An index mapping that maps indices from destination space to source space
+//!                  and from source space to destination space.
+//!
+//! \param[in]  proj A transformation function that might change the data when it is being copied.
 //!
 //! \return Returns the CommMetaData object that can be cached for future calls to ParallelCopy.
 template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
