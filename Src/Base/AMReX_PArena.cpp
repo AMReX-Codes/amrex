@@ -64,6 +64,8 @@ PArena::alloc (std::size_t nbytes)
 void
 PArena::free (void* p)
 {
+    if (p == nullptr) return;
+
 #if defined(AMREX_USE_GPU)
 
 #ifdef AMREX_CUDA_GE_11_2

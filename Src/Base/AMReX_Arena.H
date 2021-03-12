@@ -5,6 +5,7 @@
 #include <AMReX_BLassert.H>
 #include <cstddef>
 #include <cstdlib>
+#include <limits>
 
 namespace amrex {
 
@@ -33,11 +34,16 @@ Arena* The_Cpu_Arena ();
 
 struct ArenaInfo
 {
+    Long release_threshold = std::numeric_limits<Long>::max();
     bool use_cpu_memory = false;
     bool device_use_managed_memory = true;
     bool device_set_readonly = false;
     bool device_set_preferred = false;
     bool device_use_hostalloc = false;
+    ArenaInfo& SetReleaseThreshold (Long rt) noexcept {
+        release_threshold = rt;
+        return *this;
+    }
     ArenaInfo& SetDeviceMemory () noexcept {
         device_use_managed_memory = false;
         device_use_hostalloc = false;
@@ -64,14 +70,14 @@ struct ArenaInfo
         device_set_readonly = false;
         device_set_preferred = false;
         device_use_hostalloc = false;
-        return *this; 
+        return *this;
     }
 };
 
 /**
-* \brief 
+* \brief
 * A virtual base class for objects that manage their own dynamic
-* memory allocation.  
+* memory allocation.
 */
 
 class Arena
