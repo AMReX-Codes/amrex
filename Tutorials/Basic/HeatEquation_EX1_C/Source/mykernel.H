@@ -15,10 +15,11 @@ void init_phi (int i, int j, int k,
     Real y = prob_lo[1] + (j+Real(0.5)) * dx[1];
 #if (AMREX_SPACEDIM > 2)
     Real z = prob_lo[2] + (k+Real(0.5)) * dx[2];
+    Real r2 = ((x-Real(0.25))*(x-Real(0.25))+(y-Real(0.25))*(y-Real(0.25))+(z-Real(0.25))*(z-Real(0.25)))/Real(0.01);
 #else
     Real z = Real(0.);
+    Real r2 = ((x-Real(0.25))*(x-Real(0.25))+(y-Real(0.25))*(y-Real(0.25)))/Real(0.01);
 #endif
-    Real r2 = ((x-Real(0.25))*(x-Real(0.25))+(y-Real(0.25))*(y-Real(0.25))+(z-Real(0.25))*(z-Real(0.25)))/Real(0.01);
     phi(i,j,k) = Real(1.) + std::exp(-r2);
 }
 
