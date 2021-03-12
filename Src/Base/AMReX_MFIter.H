@@ -230,8 +230,6 @@ inline bool isMFIterSafe (const FabArrayBase& x, const FabArrayBase& y) {
         && BoxArray::SameRefs(x.boxArray(), y.boxArray());
 }
 
-inline Arena* The_MFIter_Arena () noexcept { return The_Device_Arena(); }
-
 }
 
 #endif

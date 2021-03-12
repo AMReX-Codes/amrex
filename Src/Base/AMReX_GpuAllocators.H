@@ -128,7 +128,7 @@ namespace amrex {
 	    value_type* result = nullptr;
             if (m_use_gpu_aware_mpi)
             {
-                result = (value_type*) The_Device_Arena()->alloc(n * sizeof(T));
+                result = (value_type*) The_Arena()->alloc(n * sizeof(T));
             }
             else
             {
@@ -141,7 +141,7 @@ namespace amrex {
         {
             if (m_use_gpu_aware_mpi)
             {
-                The_Device_Arena()->free(ptr);
+                The_Arena()->free(ptr);
             }
             else
             {

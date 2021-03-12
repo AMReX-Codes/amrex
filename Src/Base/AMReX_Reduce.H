@@ -217,7 +217,7 @@ public:
     template <typename... Ps>
     explicit ReduceData (ReduceOps<Ps...> const&)
         : m_host_tuple(),
-          m_device_tuple((Type*)(The_Device_Arena()->alloc(2*sizeof(m_host_tuple))))
+          m_device_tuple((Type*)(The_Arena()->alloc(2*sizeof(m_host_tuple))))
     {
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(Type),
                       "ReduceData::Type must be trivially copyable");
@@ -229,7 +229,7 @@ public:
         Gpu::synchronize();
     }
 
-    ~ReduceData () { The_Device_Arena()->free(m_device_tuple); }
+    ~ReduceData () { The_Arena()->free(m_device_tuple); }
 
     ReduceData (ReduceData<Ts...> const&) = delete;
     ReduceData (ReduceData<Ts...> &&) = delete;
@@ -572,7 +572,7 @@ std::pair<T,T> MinMax (N n, U const* v, MINOP minop, MAXOP maxop)
 {
     Gpu::LaunchSafeGuard lsg(true);
     Array<T,2> hv{std::numeric_limits<T>::max(), std::numeric_limits<T>::lowest()};
-    T* dp = (T*)(The_Device_Arena()->alloc(2*sizeof(T)));
+    T* dp = (T*)(The_Arena()->alloc(2*sizeof(T)));
     Gpu::htod_memcpy_async(dp, hv.data(), 2*sizeof(T));
     typedef GpuArray<T,2> Real2;
     amrex::VecReduce(n, Real2{hv[0],hv[1]},
@@ -595,7 +595,7 @@ std::pair<T,T> MinMax (N n, U const* v, MINOP minop, MAXOP maxop)
     });
 #endif
     Gpu::dtoh_memcpy(hv.data(), dp, 2*sizeof(T));
-    The_Device_Arena()->free(dp);
+    The_Arena()->free(dp);
     return std::make_pair(hv[0],hv[1]);
 }
 

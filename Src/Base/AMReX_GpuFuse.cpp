@@ -74,7 +74,7 @@ void Fuser::Launch ()
         std::size_t total_buf_size = offset_objects + sizeof_objects;
 
         char* h_buffer = (char*)The_Pinned_Arena()->alloc(total_buf_size);
-        char* d_buffer = (char*)The_Device_Arena()->alloc(total_buf_size);
+        char* d_buffer = (char*)The_Arena()->alloc(total_buf_size);
 
         std::memcpy(h_buffer, nwarps, sizeof_nwarps);
         std::memcpy(h_buffer+offset_helpers, m_helper_buf, sizeof_helpers);
@@ -178,7 +178,7 @@ void Fuser::Launch ()
         Gpu::synchronize();
         The_Pinned_Arena()->free(nwarps);
         The_Pinned_Arena()->free(h_buffer);
-        The_Device_Arena()->free(d_buffer);
+        The_Arena()->free(d_buffer);
 
         for (int i = 0; i < nlambdas; ++i) {
             char* p = m_lambda_buf + m_helper_buf[i].m_offset;
