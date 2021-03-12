@@ -2,6 +2,8 @@
 #define BL_CARENA_H
 #include <AMReX_Config.H>
 
+#include <AMReX_Arena.H>
+
 #include <cstddef>
 #include <set>
 #include <vector>
@@ -9,8 +11,6 @@
 #include <unordered_set>
 #include <functional>
 #include <string>
-
-#include <AMReX_Arena.H>
 
 namespace amrex {
 
@@ -35,7 +35,7 @@ public:
 
     CArena (const CArena& rhs) = delete;
     CArena& operator= (const CArena& rhs) = delete;
-    
+
     //! The destructor.
     virtual ~CArena () override;
 
@@ -77,7 +77,7 @@ protected:
             return m_block < rhs.m_block;
         }
 
-        //! The equality operator. 
+        //! The equality operator.
         bool operator== (const Node& rhs) const noexcept
         {
             return m_block == rhs.m_block;
