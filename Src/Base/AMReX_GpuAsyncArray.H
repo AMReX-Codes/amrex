@@ -44,7 +44,7 @@ public:
 #endif
     }
 
-    template <typename U = T, typename std::enable_if<std::is_pod<U>::value,int>::type = 0>
+    template <typename U = T, typename std::enable_if<std::is_standard_layout<U>::value && std::is_trivial<U>::value,int>::type = 0>
     explicit AsyncArray (const std::size_t n)
     {
         if (n == 0) return;
