@@ -9,7 +9,7 @@ eb2.channel_lo =-50.0  -50.0  0.225
 eb2.channel_hi = 50.0   50.0  1.225
 eb2.channel_has_fluid_inside = 1
 
-eb2.extend_domain_face = false
+eb2.extend_domain_face = true
 
 max_level = 0
 #ref_ratio = 2

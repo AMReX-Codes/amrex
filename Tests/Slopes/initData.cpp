@@ -19,8 +19,6 @@ MyTest::initData ()
     grad_y_analytic.resize(nlevels);
     grad_z.resize(nlevels);
     grad_z_analytic.resize(nlevels);
-    grad_eb.resize(nlevels);
-    grad_eb_analytic.resize(nlevels);
     ccentr.resize(nlevels);
 
     for (int ilev = 0; ilev < nlevels; ++ilev)
@@ -38,8 +36,6 @@ MyTest::initData ()
         grad_y_analytic[ilev].define( grids[ilev], dmap[ilev], AMREX_SPACEDIM, 1, MFInfo(), *factory[ilev]);
         grad_z[ilev].define(          grids[ilev], dmap[ilev], AMREX_SPACEDIM, 1, MFInfo(), *factory[ilev]);
         grad_z_analytic[ilev].define( grids[ilev], dmap[ilev], AMREX_SPACEDIM, 1, MFInfo(), *factory[ilev]);
-        grad_eb[ilev].define(         grids[ilev], dmap[ilev], AMREX_SPACEDIM, 1, MFInfo(), *factory[ilev]);
-        grad_eb_analytic[ilev].define(grids[ilev], dmap[ilev], AMREX_SPACEDIM, 1, MFInfo(), *factory[ilev]);
         ccentr[ilev].define(          grids[ilev], dmap[ilev], AMREX_SPACEDIM, 0, MFInfo(), *factory[ilev]);
 
         phi[ilev].setVal(0.0);
@@ -49,8 +45,6 @@ MyTest::initData ()
         grad_y_analytic[ilev].setVal(1e40);
         grad_z[ilev].setVal(1e40);
         grad_z_analytic[ilev].setVal(1e40);
-        grad_eb[ilev].setVal(1e40);
-        grad_eb_analytic[ilev].setVal(1e40);
         ccentr[ilev].setVal(0.0);
 
 	if(use_linear_1d) 

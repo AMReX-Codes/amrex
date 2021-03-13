@@ -60,7 +60,6 @@ MyTest::compute_gradient ()
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.fabbox();
-//        amrex::Print() << "WORKING ON BOX " << bx << std::endl;
 
         Array4<const Real> const& phi_arr     = phi[ilev].array(mfi);
         Array4<      Real> const& grad_x_arr  = grad_x[ilev].array(mfi);
@@ -95,7 +94,6 @@ MyTest::compute_gradient ()
             } else {
 
             // First get EB-aware slope that doesn't know about extdir
- 
            bool edlo_x = 0;
            bool edhi_x = 0; 
            bool edlo_y = 0; 

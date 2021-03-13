@@ -59,63 +59,6 @@ void MyTest::initializeLinearDataFor3D(int ilev) {
         if (k > dhi[2] and not is_periodic[2])
             rz = (dhi[2] + 1) * dx[1];
 
-#if 0
-        if (i < dlo[0] and not is_periodic[0]) {
-          rx = dlo[0] * dx[0];
-          ry = (j + 0.5 + fcx(i, j, k, 0)) * dx[1];
-          rz = (k + 0.5 + fcx(i, j, k, 1)) * dx[2];
-        }
-        if (i > dhi[0] and not is_periodic[0]) {
-          rx = (dhi[0] + 1) * dx[0];
-          ry = (j + 0.5 + fcx(i, j, k, 0)) * dx[1];
-          rz = (k + 0.5 + fcx(i, j, k, 1)) * dx[2];
-        }
-        if (j < dlo[1] and not is_periodic[1]) {
-          rx = (i + 0.5 + fcy(i, j, k, 0)) * dx[0];
-          ry = dlo[1] * dx[1];
-          rz = (k + 0.5 + fcy(i, j, k, 1)) * dx[2];
-        }
-        if (j > dhi[1] and not is_periodic[1]) {
-          rx = (i + 0.5 + fcy(i, j, k, 0)) * dx[0];
-          ry = (dhi[1] + 1) * dx[1];
-          rz = (k + 0.5 + fcy(i, j, k, 1)) * dx[2];
-        }
-        if (k < dlo[2] and not is_periodic[2]) {
-          rx = (i + 0.5 + fcz(i, j, k, 0)) * dx[0];
-          ry = (j + 0.5 + fcz(i, j, k, 1)) * dx[1];
-          rz = dlo[2] * dx[2];
-        }
-        if (k > dhi[2] and not is_periodic[2]) {
-          rx = (i + 0.5 + fcz(i, j, k, 0)) * dx[0];
-          ry = (j + 0.5 + fcz(i, j, k, 1)) * dx[1];
-          rz = (dhi[2] + 1) * dx[2];
-        }
-
-        if (i < dlo[0] and j > dlo[1] and !is_periodic[0] and !is_periodic[1]) {
-           rx = dlo[0] * dx[0];
-           ry = dlo[1] * dx[1];
-           rz = (k + 0.5 + fcy(i, j, k, 1)) * dx[2];
-        }
-
-        if (i < dlo[0] and j > dhi[1] and !is_periodic[0] and !is_periodic[1]) {
-           rx = dlo[0] * dx[0];
-           ry = (dhi[1] + 1) * dx[1];
-           rz = (k + 0.5 + fcy(i, j, k, 1)) * dx[2];
-        }
-
-        if (j < dlo[1] and k < dlo[2] and !is_periodic[1] and !is_periodic[2]) {
-           rx = (i + 0.5 + fcy(i, j, k, 0)) * dx[0];
-           ry = dlo[1] * dx[1];
-           rz = dlo[2] * dx[2];
-        }
- 
-        if (j < dlo[1] and k > dhi[2] and !is_periodic[1] and !is_periodic[2]) {
-           rx = (i + 0.5 + fcy(i, j, k, 0)) * dx[0];
-           ry = dlo[1] * dx[1];
-            rz = dhi[2] * dx[2];
-       }
-#endif
-
         auto dist = std::fabs(a * rx + b * ry + c * rz + d) /
                     std::sqrt(a * a + b * b + c * c);
 
@@ -160,7 +103,7 @@ void MyTest::initializeLinearDataFor3D(int ilev) {
           fab_gz(i, j, k, 1) = 0.0;
           fab_gz(i, j, k, 2) = 0.0;
 
-        } else { // not using laplacian - can delete
+        } else { 
 
           Real fac = -1.0;
 

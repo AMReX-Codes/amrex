@@ -59,15 +59,12 @@ private:
     amrex::Vector<std::unique_ptr<amrex::EBFArrayBoxFactory> > factory;
 
     amrex::Vector<amrex::MultiFab> phi;
-//    amrex::Vector<amrex::MultiFab> phieb;
     amrex::Vector<amrex::MultiFab> grad_x;
     amrex::Vector<amrex::MultiFab> grad_x_analytic;
     amrex::Vector<amrex::MultiFab> grad_y;
     amrex::Vector<amrex::MultiFab> grad_y_analytic;
     amrex::Vector<amrex::MultiFab> grad_z;
     amrex::Vector<amrex::MultiFab> grad_z_analytic;
-    amrex::Vector<amrex::MultiFab> grad_eb;
-    amrex::Vector<amrex::MultiFab> grad_eb_analytic;
     amrex::Vector<amrex::MultiFab> ccentr;
 
 };
