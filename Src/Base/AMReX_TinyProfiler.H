@@ -56,7 +56,7 @@ private:
         bool usesCUPTI; //!< uses CUPTI
         Long nk;        //!< number of kernel calls
     };
-  
+
     //! stats across processes
     struct ProcStats
     {
@@ -73,7 +73,7 @@ private:
         bool usesCUPTI;
         std::string fname;
         static bool compex (const ProcStats& lhs, const ProcStats& rhs) {
-	    return lhs.dtexmax > rhs.dtexmax;
+            return lhs.dtexmax > rhs.dtexmax;
         }
         static bool compin (const ProcStats& lhs, const ProcStats& rhs) {
             return lhs.dtinmax > rhs.dtinmax;

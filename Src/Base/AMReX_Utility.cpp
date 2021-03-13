@@ -148,7 +148,7 @@ amrex::Concatenate (const std::string& root,
 
 bool
 amrex::UtilCreateDirectory (const std::string& path,
-			    mode_t mode, bool verbose)
+                            mode_t mode, bool verbose)
 {
     return FileSystem::CreateDirectories(path, mode, verbose);
 }
@@ -210,9 +210,9 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
 void
 amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
 {
-  if(ParallelContext::IOProcessorSub()) 
+  if(ParallelContext::IOProcessorSub())
   {
-    if(amrex::FileExists(path)) 
+    if(amrex::FileExists(path))
     {
       if (amrex::Verbose() > 1) {
           amrex::Print() << "amrex::UtilCreateCleanDirectoryDestructive():  " << path
@@ -220,12 +220,12 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
       }
       FileSystem::RemoveAll(path);
     }
-    if( ! amrex::UtilCreateDirectory(path, 0755)) 
+    if( ! amrex::UtilCreateDirectory(path, 0755))
     {
       amrex::CreateDirectoryFailed(path);
     }
   }
-  if(callbarrier) 
+  if(callbarrier)
   {
     // Force other processors to wait until directory is built.
     ParallelDescriptor::Barrier("amrex::UtilCreateCleanDirectoryDestructive");
@@ -403,7 +403,7 @@ amrex::InvNormDist (double p)
 //
 //  Parameters:
 //
-//    Input, double P, the value of the cumulative probability 
+//    Input, double P, the value of the cumulative probability
 //    densitity function.  0 < P < 1.  Fails if P is outside this range.
 //
 //    Output, the normal deviate value with the property that the
@@ -416,7 +416,7 @@ amrex::InvNormDistBest (double p)
 
 {
   static const double a[8] =
-  { 
+  {
       3.3871328727963666080,     1.3314166789178437745e+2,
       1.9715909503065514427e+3,  1.3731693765509461125e+4,
       4.5921953931549871457e+4,  6.7265770927008700853e+4,
@@ -537,20 +537,20 @@ amrex::operator>>(std::istream& is, const expect& exp)
     int n = 0;
     while ( n < len )
     {
-	char c;
-	is >> c;
-	if ( !is ) break;
-	if ( c != exp.istr[n++] )
-	{
-	    is.putback(c);
-	    break;
-	}
+        char c;
+        is >> c;
+        if ( !is ) break;
+        if ( c != exp.istr[n++] )
+        {
+            is.putback(c);
+            break;
+        }
     }
     if ( n != len )
     {
-	is.clear(std::ios::badbit|is.rdstate());
-	std::string msg = "expect fails to find \"" + exp.the_string() + "\"";
-	amrex::Error(msg.c_str());
+        is.clear(std::ios::badbit|is.rdstate());
+        std::string msg = "expect fails to find \"" + exp.the_string() + "\"";
+        amrex::Error(msg.c_str());
     }
     return is;
 }
@@ -590,7 +590,7 @@ amrex::StreamRetry::StreamRetry(std::ostream &a_os, const std::string &a_suffix,
 }
 
 amrex::StreamRetry::StreamRetry(const std::string &filename,
-				 const bool abortonretryfailure,
+                                 const bool abortonretryfailure,
                                  const int maxtries)
     : tries(0), maxTries(maxtries),
       abortOnRetryFailure(abortonretryfailure),
@@ -729,7 +729,7 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
     while( ! pfIn.eof()) {
       std::getline(pfIn, pfName, '\n');
       if( ! pfIn.eof()) {
-	ioprocStrings.push_back(pfName);
+        ioprocStrings.push_back(pfName);
       }
     }
     // ---- now check if they match on non ioprocs
@@ -749,7 +749,7 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
       bool matched(false);
       for(int i(0); i < ioprocStrings.size(); ++i) {
         if(localStringsCopy[n] == ioprocStrings[i]) {
-	  matched = true;
+          matched = true;
         }
       }
       if( ! matched) {
@@ -800,7 +800,7 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
   }
 
   BL_MPI_REQUIRE( MPI_Gatherv(sendCharArray.dataPtr(),
-                              sendStringsSize, 
+                              sendStringsSize,
                               ParallelDescriptor::Mpi_typemap<char>::type(),
                               recvStrings.dataPtr(),
                               nChars.dataPtr(),
@@ -816,7 +816,7 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
     while( ! pfIn.eof()) {
       std::getline(pfIn, pfName, '\n');
       if( ! pfIn.eof()) {
-	syncedStrings.push_back(pfName);  // ---- add the gathered strings
+        syncedStrings.push_back(pfName);  // ---- add the gathered strings
       }
     }
   }
@@ -844,7 +844,7 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
     while( ! syncedIn.eof()) {
       std::getline(syncedIn, syncedName, '\n');
       if( ! syncedIn.eof()) {
-	syncedStrings.push_back(syncedName);
+        syncedStrings.push_back(syncedName);
       }
     }
   }

@@ -136,7 +136,7 @@ public:
     //
     // Setters and getters
     //
-    void setVerbose            (int  v) noexcept 
+    void setVerbose            (int  v) noexcept
        { m_verbose = v;
          m_mlmg->setVerbose(m_verbose); }
 

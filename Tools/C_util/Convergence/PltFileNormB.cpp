@@ -74,7 +74,7 @@ main (int   argc,
 
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
-    
+
     DataServices dataServicesC(iFile, fileType);
 
     if (!dataServicesC.AmrDataOk())
@@ -82,26 +82,26 @@ main (int   argc,
 
 
     //
-    // Generate AmrData Objects 
+    // Generate AmrData Objects
     //
     AmrData& amrDataI = dataServicesC.AmrDataRef();
 
     //
-    // Initial Tests 
+    // Initial Tests
     //
     int nComp       = amrDataI.NComp();
     int finestLevel = amrDataI.FinestLevel();
     const Vector<std::string>& derives = amrDataI.PlotVarNames();
     Vector<int> destComps(nComp);
-    for (int i = 0; i < nComp; i++) 
+    for (int i = 0; i < nComp; i++)
         destComps[i] = i;
-    
+
 
     //
     // Compute the error
     //
     Vector<MultiFab*> error(finestLevel+1);
-    
+
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Level  L"<< norm << " norm of Error in Each Component" << std::endl
              << "-----------------------------------------------" << std::endl;
@@ -139,7 +139,7 @@ main (int   argc,
                 {
                     norms[iComp] = std::max(norms[iComp], grdL2);
                 }
-                
+
             }
         }
 
@@ -153,8 +153,8 @@ main (int   argc,
                 if (proc != ParallelDescriptor::IOProcessorNumber())
                 {
                     MPI_Status stat;
-                    int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype, 
-                                      MPI_ANY_SOURCE, proc, ParallelDescriptor::Communicator(), 
+                    int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype,
+                                      MPI_ANY_SOURCE, proc, ParallelDescriptor::Communicator(),
                                       &stat);
 
                     if (rc != MPI_SUCCESS)
@@ -173,7 +173,7 @@ main (int   argc,
         }
         else
         {
-            int rc = MPI_Send(norms.dataPtr(), nComp, datatype, 
+            int rc = MPI_Send(norms.dataPtr(), nComp, datatype,
                               ParallelDescriptor::IOProcessorNumber(),
                               ParallelDescriptor::MyProc(),
                               ParallelDescriptor::Communicator());

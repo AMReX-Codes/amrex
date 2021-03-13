@@ -222,13 +222,13 @@ void amrex_eb2_cover_multiple_cuts (Box const& tbx, Box const& bxg2,
             fx(i,j,k) = Type::covered;
 
             // Cover the cut edges containing any regular corner
-            if (s(i,j  ,k  ) < 0.0) 
+            if (s(i,j  ,k  ) < 0.0)
                cover_cut_edges_given_corner(i,j  ,k  ,ex,ey,ez);
-            if (s(i,j+1,k  ) < 0.0) 
+            if (s(i,j+1,k  ) < 0.0)
                cover_cut_edges_given_corner(i,j+1,k  ,ex,ey,ez);
-            if (s(i,j  ,k+1) < 0.0) 
+            if (s(i,j  ,k+1) < 0.0)
                cover_cut_edges_given_corner(i,j  ,k+1,ex,ey,ez);
-            if (s(i,j+1,k+1) < 0.0) 
+            if (s(i,j+1,k+1) < 0.0)
                cover_cut_edges_given_corner(i,j+1,k+1,ex,ey,ez);
         }
     });
@@ -252,13 +252,13 @@ void amrex_eb2_cover_multiple_cuts (Box const& tbx, Box const& bxg2,
             fy(i,j,k) = Type::covered;
 
             // Cover the cut edges containing any regular corner
-            if (s(i  ,j,k  ) < 0.0) 
+            if (s(i  ,j,k  ) < 0.0)
                cover_cut_edges_given_corner(i  ,j,k  ,ex,ey,ez);
-            if (s(i+1,j,k  ) < 0.0) 
+            if (s(i+1,j,k  ) < 0.0)
                cover_cut_edges_given_corner(i+1,j,k  ,ex,ey,ez);
-            if (s(i  ,j,k+1) < 0.0) 
+            if (s(i  ,j,k+1) < 0.0)
                cover_cut_edges_given_corner(i  ,j,k+1,ex,ey,ez);
-            if (s(i+1,j,k+1) < 0.0) 
+            if (s(i+1,j,k+1) < 0.0)
                cover_cut_edges_given_corner(i+1,j,k+1,ex,ey,ez);
         }
     });
@@ -281,13 +281,13 @@ void amrex_eb2_cover_multiple_cuts (Box const& tbx, Box const& bxg2,
             fz(i,j,k) = Type::covered;
 
             // Cover the cut edges containing any regular corner
-            if (s(i  ,j  ,k) < 0.0) 
+            if (s(i  ,j  ,k) < 0.0)
                cover_cut_edges_given_corner(i  ,j  ,k,ex,ey,ez);
-            if (s(i+1,j  ,k) < 0.0) 
+            if (s(i+1,j  ,k) < 0.0)
                cover_cut_edges_given_corner(i+1,j  ,k,ex,ey,ez);
-            if (s(i  ,j+1,k) < 0.0) 
+            if (s(i  ,j+1,k) < 0.0)
                cover_cut_edges_given_corner(i  ,j+1,k,ex,ey,ez);
-            if (s(i+1,j+1,k) < 0.0) 
+            if (s(i+1,j+1,k) < 0.0)
                cover_cut_edges_given_corner(i+1,j+1,k,ex,ey,ez);
         }
     });

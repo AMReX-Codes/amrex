@@ -24,7 +24,7 @@ extern "C" {
 using namespace amrex;
 
 static
-void 
+void
 print_usage (int,
              char* argv[])
 {

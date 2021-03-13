@@ -122,10 +122,10 @@ namespace amrex
     //
     // is_detected was proposed to C++ but is surpassed by concepts.
     //
-    // The implementation is taken from 
+    // The implementation is taken from
     //
     // https://en.cppreference.com/w/cpp/experimental/is_detected
-    
+
     namespace detail {
         template <class...> using Void_t = void;
 
@@ -194,7 +194,7 @@ namespace amrex
     //                                                          [traits.Negation]
 
 
-    //! Logical traits let us combine multiple type requirements in one EnableIf_t clause. 
+    //! Logical traits let us combine multiple type requirements in one EnableIf_t clause.
     #if defined(__cpp_lib_logical_traits)
     template <typename... Args> using Conjunction = std::conjunction<Args...>;
     template <typename... Args> using Disjunction = std::disjunction<Args...>;

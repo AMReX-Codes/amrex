@@ -33,13 +33,13 @@ public:
     T& operator[] (size_type i) noexcept
     {
         BL_ASSERT( i < (this->std::vector<T, Allocator>::size()) );
-	return this->std::vector<T, Allocator>::operator[](i);
+        return this->std::vector<T, Allocator>::operator[](i);
     }
 
     const T& operator[] (size_type i) const noexcept
     {
         BL_ASSERT( i < (this->std::vector<T, Allocator>::size()) );
-	return this->std::vector<T, Allocator>::operator[](i);
+        return this->std::vector<T, Allocator>::operator[](i);
     }
 
     //! get access to the underlying data pointer
@@ -50,7 +50,7 @@ public:
     Long size () const noexcept {return static_cast<Long>(std::vector<T, Allocator>::size());}
 
 };
-    
+
 }
 
 namespace amrex
@@ -161,12 +161,12 @@ namespace amrex
                                                IsBaseFab<T>::value,
                                                int>::type = 0 >
     Vector<std::array<T*, AMREX_SPACEDIM> >
-    GetVecOfArrOfPtrs(Vector<std::array<T, AMREX_SPACEDIM> >& a) 
+    GetVecOfArrOfPtrs(Vector<std::array<T, AMREX_SPACEDIM> >& a)
     {
-        Vector<std::array<T*, AMREX_SPACEDIM> > r; 
-        r.reserve(a.size()); 
-        for (auto &x: a) r.push_back(GetArrOfPtrs(x)); 
-        return r; 
+        Vector<std::array<T*, AMREX_SPACEDIM> > r;
+        r.reserve(a.size());
+        for (auto &x: a) r.push_back(GetArrOfPtrs(x));
+        return r;
     }
 #endif
 
@@ -186,7 +186,7 @@ namespace amrex
 
     /////////////////////////////////////////////////////////////
 
-    template <class T> 
+    template <class T>
     void RemoveDuplicates (Vector<T>& vec) {
         std::sort(vec.begin(), vec.end());
         auto it = std::unique(vec.begin(), vec.end());

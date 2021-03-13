@@ -6,9 +6,9 @@ subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, nam
 
   integer, intent(in) :: lo(3), hi(3), philo(3), phihi(3)
   real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2),philo(3):phihi(3))
-  real(amrex_real), intent(in   ) :: dx(3) 
-  real(amrex_real), intent(in   ) :: prob_lo(3) 
-  real(amrex_real), intent(in   ) :: prob_hi(3) 
+  real(amrex_real), intent(in   ) :: dx(3)
+  real(amrex_real), intent(in   ) :: prob_lo(3)
+  real(amrex_real), intent(in   ) :: prob_hi(3)
 
   integer          :: i,j,k
   double precision :: x,y,z,r2
@@ -44,7 +44,7 @@ subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, nam
            endif
            r2 = ((x_p-0.0d0)**2 + (y_p-0.0d0)**2 + (z_p-0.0d0)**2) / 0.10d0
            phi(i,j,k) = 1.d0 + exp(-r2)
-           
+
         end do
      end do
   end do

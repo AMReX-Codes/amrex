@@ -4,7 +4,7 @@ namespace amrex {
 namespace NonLocalBC {
 #ifdef AMREX_USE_MPI
 // Note, this is copied and modified from PrepareSendBuffers and PostRcvs
-void PrepareCommBuffers(CommData& comm, 
+void PrepareCommBuffers(CommData& comm,
                         const FabArrayBase::MapOfCopyComTagContainers& cctc, int n_components,
                         std::size_t object_size, std::size_t align)
 {
@@ -34,7 +34,7 @@ void PrepareCommBuffers(CommData& comm,
         std::size_t nbytes = 0;
         for (auto const& cct : kv.second)
         {
-            // Note: Does this hold for all FAB types? 
+            // Note: Does this hold for all FAB types?
             // This nBytes() implementation is currently also assumed in unpack_recv_buffers
             nbytes += cct.sbox.numPts() * object_size * n_components;
         }

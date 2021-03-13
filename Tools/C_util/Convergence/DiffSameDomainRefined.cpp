@@ -58,7 +58,7 @@ PrintUsage (const char* progName)
 
 bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2);
+                        const AmrData& amrd2);
 
 IntVect
 getRefRatio(const Box& crse,
@@ -105,7 +105,7 @@ main (int   argc,
 
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
-    
+
     DataServices dataServices1(iFile1, fileType);
     DataServices dataServices2(iFile2, fileType);
 
@@ -113,13 +113,13 @@ main (int   argc,
         amrex::Abort("ERROR: Dataservices not OK");
 
     //
-    // Generate AmrData Objects 
+    // Generate AmrData Objects
     //
     AmrData& amrData1 = dataServices1.AmrDataRef();
     AmrData& amrData2 = dataServices2.AmrDataRef();
 
     //
-    // Initial Tests 
+    // Initial Tests
     //
     if (amrData1.FinestLevel() != amrData2.FinestLevel())
         amrex::Abort("ERROR: Finest level is not the same in the two plotfiles");
@@ -138,15 +138,15 @@ main (int   argc,
     int finestLevel = amrData1.FinestLevel();
     const Vector<std::string>& derives = amrData1.PlotVarNames();
     Vector<int> destComps(nComp);
-    for (int i = 0; i < nComp; i++) 
+    for (int i = 0; i < nComp; i++)
         destComps[i] = i;
-    
+
 
     //
     // Compute the error
     //
     Vector<MultiFab*> error(finestLevel+1);
-    
+
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Level  L"<< norm << " norm of Error in Each Component" << std::endl
              << "-----------------------------------------------" << std::endl;
@@ -186,8 +186,8 @@ main (int   argc,
         //
         // Construct MultiFab for errors
         //
-	error[iLevel] = new MultiFab(ba2Coarse, dm2Coarse, nComp, 0);
-	error[iLevel]->setVal(GARBAGE);
+        error[iLevel] = new MultiFab(ba2Coarse, dm2Coarse, nComp, 0);
+        error[iLevel]->setVal(GARBAGE);
 
         //
         // For each component, average the fine fields down and calculate
@@ -215,16 +215,16 @@ main (int   argc,
                 //
                 int index = mfi.index();
 
-		const Box& bx = ba2Coarse[index];
+                const Box& bx = ba2Coarse[index];
                 FArrayBox data2Coarse(bx, 1);
                 int ncCoarse = 1;
 
                 FORT_CV_AVGDOWN(data2Coarse.dataPtr(),
-				ARLIM(bx.loVect()), ARLIM(bx.hiVect()),
+                                ARLIM(bx.loVect()), ARLIM(bx.hiVect()),
                                 &ncCoarse,
                                 data2Fine[mfi].dataPtr(),
                                 ARLIM(data2Fine[mfi].loVect()),
-                                ARLIM(data2Fine[mfi].hiVect()), 
+                                ARLIM(data2Fine[mfi].hiVect()),
                                 bx.loVect(), bx.hiVect(),
                                 refine_ratio.getVect());
 
@@ -266,8 +266,8 @@ main (int   argc,
                 if (proc != ParallelDescriptor::IOProcessorNumber())
                 {
                     MPI_Status stat;
-                    int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype, 
-                                      MPI_ANY_SOURCE, proc, ParallelDescriptor::Communicator(), 
+                    int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype,
+                                      MPI_ANY_SOURCE, proc, ParallelDescriptor::Communicator(),
                                       &stat);
 
                     if (rc != MPI_SUCCESS)
@@ -286,7 +286,7 @@ main (int   argc,
         }
         else
         {
-            int rc = MPI_Send(norms.dataPtr(), nComp, datatype, 
+            int rc = MPI_Send(norms.dataPtr(), nComp, datatype,
                               ParallelDescriptor::IOProcessorNumber(),
                               ParallelDescriptor::MyProc(),
                               ParallelDescriptor::Communicator());
@@ -320,9 +320,9 @@ main (int   argc,
 
     if (!difFile.empty())
         WritePlotFile(error, amrData1, difFile, verbose);
-    
+
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
-	delete error[iLevel];
+        delete error[iLevel];
 
     amrex::Finalize();
 }
@@ -330,16 +330,16 @@ main (int   argc,
 
 bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2)
+                        const AmrData& amrd2)
 {
     const Vector<std::string>& derives1 = amrd1.PlotVarNames();
     const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
-	return false;
+        return false;
     for (int i=0; i<length; ++i)
-	if (derives1[i] != derives2[i])
-	    return false;
+        if (derives1[i] != derives2[i])
+            return false;
     return true;
 }
 

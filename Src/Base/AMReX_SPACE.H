@@ -57,7 +57,7 @@ namespace amrex
   arguments are evaluated.  This macro can be used to enhance
   the portability of code that works with structures whose size
   depends on AMREX_SPACEDIM.
-           
+
   For example:
 
      AMREX_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);

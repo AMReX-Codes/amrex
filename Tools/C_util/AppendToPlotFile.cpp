@@ -27,13 +27,13 @@ AppendToPlotFile(AmrData&                   amrData,
     nFileHeader += newHeaderName;
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-    
+
     std::ofstream os;
     std::ifstream is;
 
     os.precision(17);
     int finestLevel = mfout.size() - 1;
-    
+
     int n_var = -1;
 
     if (ParallelDescriptor::IOProcessor())
@@ -43,7 +43,7 @@ AppendToPlotFile(AmrData&                   amrData,
 
         is.open(oFileHeader.c_str(), std::ios::in|std::ios::binary);
         os.open(nFileHeader.c_str(), std::ios::out|std::ios::binary);
-        
+
         if (os.fail())
             FileOpenFailed(oFileHeader);
         if (is.fail())
@@ -61,46 +61,46 @@ AppendToPlotFile(AmrData&                   amrData,
         for (int n = 0; n < n_var; n++) is >> inames[n];
         for (int n = 0; n < n_var; n++) os << inames[n] << '\n';
         for (int n = 0; n < nnames.size(); n++) os << nnames[n] << '\n';
-        
+
         int sdim;
         is >> sdim;
         os << sdim << '\n';
-        
+
         Real time;
         is >> time;
         os << time << '\n';
-        
+
         int oFinestLevel;
         is >> oFinestLevel;
-        
+
         BL_ASSERT(oFinestLevel>=finestLevel);
         os << finestLevel << '\n';
-        
+
         Vector<Real> probLo(BL_SPACEDIM);
         for (int i = 0; i < BL_SPACEDIM; i++) is >> probLo[i];
         for (int i = 0; i < BL_SPACEDIM; i++) os << probLo[i] << ' ';
         os << '\n';
-        
+
         Vector<Real> probHi(BL_SPACEDIM);
         for (int i = 0; i < BL_SPACEDIM; i++) is >> probHi[i];
         for (int i = 0; i < BL_SPACEDIM; i++) os << probHi[i] << ' ';
         os << '\n';
-        
+
         Vector<int> refRatio(oFinestLevel);
         for (int i = 0; i < oFinestLevel; i++) is >> refRatio[i];
         for (int i = 0; i < finestLevel; i++) os << refRatio[i] << ' ';
         os << '\n';
-        
+
         Vector<Box> probDomain(oFinestLevel+1);
         for (int i = 0; i <= oFinestLevel; i++) is >> probDomain[i];
         for (int i = 0; i <= finestLevel; i++) os << probDomain[i] << ' ';
         os << '\n';
-        
+
         int tmpI;
         for (int i = 0; i <= oFinestLevel; i++) is >> tmpI;
         for (int i = 0; i <= finestLevel; i++) os << 0 << ' ';
         os << '\n';
-        
+
         Real dx[BL_SPACEDIM];
         for (int i = 0; i <= oFinestLevel; i++)
         {
@@ -117,11 +117,11 @@ AppendToPlotFile(AmrData&                   amrData,
                 os << '\n';
             }
         }
-        
+
         int coordSys;
         is >> coordSys;
         os << coordSys << '\n';
-        
+
         int bndry;
         is >> bndry;
         os << bndry << '\n'; // The bndry data width.
@@ -130,7 +130,7 @@ AppendToPlotFile(AmrData&                   amrData,
     // Write out level by level.
     //
     std::string mfBaseName_Unique = mfBaseName; // Possibly modified if same name already used
-    
+
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
     {
         //
@@ -143,7 +143,7 @@ AppendToPlotFile(AmrData&                   amrData,
         std::string PathName(oFile);
         PathName += '/';
         PathName += buf;
-        
+
         if (ParallelDescriptor::IOProcessor())
         {
             int ilev,ngrd;
@@ -154,7 +154,7 @@ AppendToPlotFile(AmrData&                   amrData,
             int tmpI;
             is >> tmpI;
             os << tmpI << '\n';
-            
+
             Real glocl,gloch;
             for (int i = 0; i < nGrids; ++i)
             {
@@ -177,20 +177,20 @@ AppendToPlotFile(AmrData&                   amrData,
         //
         // Force other processors to wait until directory is "built".
         //
-  //       std::cout << "Above Barrier" << std::endl;       
+  //       std::cout << "Above Barrier" << std::endl;
         ParallelDescriptor::Barrier();
   //       std::cout << "Below Barrir" << std::endl;
 
         std::string RelativePathNameNEW(buf);
         RelativePathNameNEW += '/';
         RelativePathNameNEW += mfBaseName_Unique;
-        
+
         if (ParallelDescriptor::IOProcessor())
         {
-            // account for multiple multifabs 
+            // account for multiple multifabs
             int currentIndexComp(0);
             while(currentIndexComp < n_var) {
-                
+
                 std::string RelativePathNameOLD;
                 is >> RelativePathNameOLD;
 
@@ -229,11 +229,11 @@ AppendToPlotFile(AmrData&                   amrData,
         PathName += '/';
         PathName += mfBaseName;
 //        std::cout << "Aboe Vismf" <<std::endl;
-       
+
         // Write the new multifab
         VisMF::Write(*mfout[iLevel], PathName, VisMF::OneFilePerCPU);
     }
-//       std::cout <<"just above file close" << std::endl;   
+//       std::cout <<"just above file close" << std::endl;
     os.close();
     is.close();
 }

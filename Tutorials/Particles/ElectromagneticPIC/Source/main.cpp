@@ -31,9 +31,9 @@ void test_em_pic(const TestParams& parms)
     BL_PROFILE("test_em_pic");
     BL_PROFILE_VAR_NS("evolve_time", blp_evolve);
     BL_PROFILE_VAR_NS("init_time", blp_init);
-    
+
     BL_PROFILE_VAR_START(blp_init);
-    
+
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
@@ -50,11 +50,11 @@ void test_em_pic(const TestParams& parms)
     for (int i = 0; i < BL_SPACEDIM; i++)
         is_per[i] = 1;
     Geometry geom(domain, &real_box, coord, is_per);
-    
+
     BoxArray ba(domain);
     ba.maxSize(parms.max_grid_size);
     DistributionMapping dm(ba);
-    
+
     const int ng = 1;
 
     MultiFab Bx(amrex::convert(ba, YeeGrid::Bx_nodal_flag), dm, 1, ng);
@@ -157,9 +157,9 @@ void test_em_pic(const TestParams& parms)
 
         evolve_magnetic_field(Ex, Ey, Ez, Bx, By, Bz, geom, 0.5*dt);
         fill_boundary_magnetic_field(Bx, By, Bz, geom);
-        
+
         evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, dt);
-        
+
         if (step == nsteps - 1)
         {
             evolve_magnetic_field(Ex, Ey, Ez, Bx, By, Bz, geom, 0.5*dt);
@@ -174,14 +174,14 @@ void test_em_pic(const TestParams& parms)
         {
             particles[i]->RedistributeLocal();
         }
-        
+
         time += dt;
     }
-    
+
     amrex::Print() << "Done. " << std::endl;
-    
+
     BL_PROFILE_VAR_STOP(blp_evolve);
-    
+
     if (parms.problem_type == Langmuir)
     {
         check_solution(jx, geom, time);

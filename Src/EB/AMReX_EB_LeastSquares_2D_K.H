@@ -269,7 +269,7 @@ Real grad_x_of_phi_on_centroids(int i,int j,int k,int n,
                 if (!flag(ii,jj,k).isRegular())
                 {
                     int a_ind_eb  = a_ind + 6;
-                    
+
                     Amatrix(a_ind_eb,0) = 1.0;
                     Amatrix(a_ind_eb,1) = x_off + bcent(ii,jj,k,0);
                     Amatrix(a_ind_eb,2) = y_off + bcent(ii,jj,k,1) - yloc_on_xface;

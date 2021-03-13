@@ -11,7 +11,7 @@ Real
 CNS::advance (Real time, Real dt, int iteration, int ncycle)
 {
     BL_PROFILE("CNS::advance()");
-        
+
     for (int i = 0; i < num_state_data_types; ++i) {
         state[i].allocOldData();
         state[i].swapTimeLevels(dt);
@@ -21,7 +21,7 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
     MultiFab& S_old = get_old_data(State_Type);
     MultiFab dSdt(grids,dmap,NUM_STATE,0,MFInfo(),Factory());
     MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW,MFInfo(),Factory());
-  
+
     MultiFab& C_new = get_new_data(Cost_Type);
     C_new.setVal(0.0);
 
@@ -46,7 +46,7 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
     // U^* = U^n + dt*dUdt^n
     MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dSdt, 0, 0, NUM_STATE, 0);
     computeTemp(S_new,0);
-    
+
     // RK2 stage 2
     // After fillpatch Sborder = U^n+dt*dUdt^n
     FillPatch(*this, Sborder, NUM_GROW, time+dt, State_Type, 0, NUM_STATE);
@@ -57,7 +57,7 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
     MultiFab::Saxpy(S_new, 0.5*dt, dSdt, 0, 0, NUM_STATE, 0);
     // We now have S_new = U^{n+1} = (U^n+0.5*dt*dUdt^n) + 0.5*dt*dUdt^*
     computeTemp(S_new,0);
-    
+
     return dt;
 }
 

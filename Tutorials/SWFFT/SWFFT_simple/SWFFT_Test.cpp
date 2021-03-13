@@ -34,7 +34,7 @@ SWFFT_Test::SWFFT_Test ()
             Vector<int> ncs;
             pp.getarr("n_cell",ncs);
 #if (AMREX_SPACEDIM == 2)
-	    n_cell = IntVect{ncs[0],ncs[1]};
+            n_cell = IntVect{ncs[0],ncs[1]};
 #elif (AMREX_SPACEDIM == 3)
             n_cell = IntVect{ncs[0],ncs[1],ncs[2]};
 #endif
@@ -42,15 +42,15 @@ SWFFT_Test::SWFFT_Test ()
             int ncs;
             pp.get("n_cell",ncs);
 #if (AMREX_SPACEDIM == 2)
-	    n_cell = IntVect{ncs,ncs};
+            n_cell = IntVect{ncs,ncs};
 #elif (AMREX_SPACEDIM == 3)
-	    n_cell = IntVect{ncs,ncs,ncs};
+            n_cell = IntVect{ncs,ncs,ncs};
 #endif
         } else {
 #if (AMREX_SPACEDIM == 2)
-	  n_cell = IntVect{32,32};
+          n_cell = IntVect{32,32};
 #elif (AMREX_SPACEDIM == 3)
-	  n_cell = IntVect{32,32,32};
+          n_cell = IntVect{32,32,32};
 #endif
         }
 
@@ -60,9 +60,9 @@ SWFFT_Test::SWFFT_Test ()
             Vector<int> mgs;
             pp.getarr("max_grid_size",mgs);
 #if (AMREX_SPACEDIM == 2)
-	    max_grid_size = IntVect{mgs[0],mgs[1]};
+            max_grid_size = IntVect{mgs[0],mgs[1]};
 #elif (AMREX_SPACEDIM == 3)
-	    max_grid_size = IntVect{mgs[0],mgs[1],mgs[2]};
+            max_grid_size = IntVect{mgs[0],mgs[1],mgs[2]};
 #endif
         } else if (cnt > 0) {
             int mgs;
@@ -81,9 +81,9 @@ SWFFT_Test::SWFFT_Test ()
         }
 
         pp.query("verbose", verbose);
-	pp.query("prob_type", prob_type);
+        pp.query("prob_type", prob_type);
     }
-    
+
     BoxArray ba;
     {
         // Make up a dx that is not 1
@@ -112,14 +112,14 @@ SWFFT_Test::SWFFT_Test ()
 
         // The FFT assumes fully periodic boundaries
 #if (AMREX_SPACEDIM == 2)
-	std::array<int,2> is_periodic {1,1};
+        std::array<int,2> is_periodic {1,1};
 #elif (AMREX_SPACEDIM == 3)
-	std::array<int,3> is_periodic {1,1,1};
+        std::array<int,3> is_periodic {1,1,1};
 #endif
         geom.define(domain, &real_box, CoordSys::cartesian, is_periodic.data());
     }
 
-    // Make sure we define both the phi_dft and the phi_spatial with the same DistributionMapping 
+    // Make sure we define both the phi_dft and the phi_spatial with the same DistributionMapping
     DistributionMapping dmap{ba};
 
     // Note that we are defining phi_spatial with NO ghost cells
@@ -165,7 +165,7 @@ SWFFT_Test::computeFFT ()
 
     if (verbose)
     {
-       amrex::Print() << "MAX / MIN VALUE OF DFT " <<  phi_dft.max(0) << " " 
+       amrex::Print() << "MAX / MIN VALUE OF DFT " <<  phi_dft.max(0) << " "
                       <<  phi_dft.min(0) << std::endl;
     }
 
@@ -175,7 +175,7 @@ SWFFT_Test::computeFFT ()
 void
 SWFFT_Test::WritePlotFile (const int step, const amrex::Real time)
 {
-    
+
     MultiFab plotfile;
     Vector<std::string> varNames;
     int nPlot;

@@ -14,7 +14,7 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
   real(amrex_real), intent(in   ) :: cy(cylo(1):cyhi(1),cylo(2):cyhi(2))
 
   integer :: i,j, ir, jr, ii, jj, clo(2), chi(2)
-  
+
   real(amrex_real) :: dxinv(2), c1, c2, c3, x, y, rrinv
   real(amrex_real), dimension(:,:), contiguous, pointer :: dCxdy, dCydx
   real(amrex_real) :: coe_a0, coe_ax, coe_ay, coe_axy, coe_axx
@@ -146,7 +146,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, &
   do    j  =  lo(2), hi(2)+1
      if (use_limiter .eq. 0) then
         do ic = clo(1),chi(1)
-           dc = 0.5d0*(tmpx(ic+1,j) - tmpx(ic-1,j))           
+           dc = 0.5d0*(tmpx(ic+1,j) - tmpx(ic-1,j))
            ex(ic*2  ,j) = tmpx(ic,j) - 0.25d0*dc
            ex(ic*2+1,j) = tmpx(ic,j) + 0.25d0*dc
         end do
@@ -157,7 +157,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, &
            c3 = theta*(tmpx(ic+1,j) - tmpx(ic  ,j))
            dc = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                 *min(abs(c1),abs(c2),abs(c3))
-           
+
            ex(ic*2  ,j) = tmpx(ic,j) - 0.25d0*dc
            ex(ic*2+1,j) = tmpx(ic,j) + 0.25d0*dc
         end do
@@ -177,7 +177,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, &
   do    jc = clo(2), chi(2)
      if (use_limiter .eq. 0) then
         do i  =  lo(1),  hi(1)+1
-           dc = 0.5d0*(tmpy(i,jc+1) - tmpy(i,jc-1))           
+           dc = 0.5d0*(tmpy(i,jc+1) - tmpy(i,jc-1))
            ey(i,jc*2  ) = tmpy(i,jc) - 0.25d0*dc
            ey(i,jc*2+1) = tmpy(i,jc) + 0.25d0*dc
         end do
@@ -188,7 +188,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, &
            c3 = theta*(tmpy(i,jc+1) - tmpy(i,jc  ))
            dc = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                 *min(abs(c1),abs(c2),abs(c3))
-           
+
            ey(i,jc*2  ) = tmpy(i,jc) - 0.25d0*dc
            ey(i,jc*2+1) = tmpy(i,jc) + 0.25d0*dc
         end do
@@ -215,7 +215,7 @@ subroutine amrex_interp_cc_bfield (lo, hi, by, bylo, byhi, cy, cylo, cyhi, rr, u
   real(amrex_real) :: c1, c2, c3, dc
   real(amrex_real), parameter :: theta = 2.d0 ! 1: minmod, 2: MC
   real(amrex_real), parameter :: one = 1._amrex_real
-  
+
   clo = amrex_coarsen_intvect(2,lo,rr);
   chi = amrex_coarsen_intvect(2,hi,rr);
 
@@ -274,7 +274,7 @@ subroutine amrex_interp_nd_efield (lo, hi, ey, eylo, eyhi, cy, cylo, cyhi, rr) b
   real(amrex_real), intent(in   ) :: cy(cylo(1):cyhi(1),cylo(2):cyhi(2))
 
   integer :: i,j,clo(2),chi(2)
-  
+
   clo = amrex_coarsen_intvect(2,lo,rr);
   chi = amrex_coarsen_intvect(2,hi,rr);
 
@@ -284,7 +284,7 @@ subroutine amrex_interp_nd_efield (lo, hi, ey, eylo, eyhi, cy, cylo, cyhi, rr) b
         ey(i*2+1,j*2) = 0.5d0*(cy(i,j)+cy(i+1,j))
      end do
      i = chi(1)+1
-     ey(i*2,j*2) = cy(i,j)     
+     ey(i*2,j*2) = cy(i,j)
      if (j .le. chi(2)) then
         do i = clo(1), chi(1)
            ey(i*2  ,j*2+1) = 0.5d0*(cy(i,j)+cy(i,j+1))

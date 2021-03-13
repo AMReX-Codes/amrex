@@ -77,7 +77,7 @@ int main (int argc, char* argv[])
         // define array of LinOpBCType for domain boundary conditions
         std::array<LinOpBCType,AMREX_SPACEDIM> bc_lo;
         std::array<LinOpBCType,AMREX_SPACEDIM> bc_hi;
-	for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             bc_lo[idim] = LinOpBCType::Periodic;
             bc_hi[idim] = LinOpBCType::Periodic;
         }
@@ -88,14 +88,14 @@ int main (int argc, char* argv[])
 
         // see AMReX_MLLinOp.H for an explanation
         mlebabec.setLevelBC(0, nullptr);
-    
+
         // operator looks like (ACoef - div BCoef grad) phi = rhs
 
         // set ACoef to zero
         MultiFab acoef(grids, dmap, 1, 0, MFInfo(), factory);
         acoef.setVal(0.);
         mlebabec.setACoeffs(0, acoef);
-        
+
         // set BCoef to 1.0 (and array of face-centered coefficients)
         Array<MultiFab,AMREX_SPACEDIM> bcoef;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -123,16 +123,16 @@ int main (int argc, char* argv[])
         const Real tol_abs = 0.0;
 
         mlmg.setVerbose(verbose);
-        
+
         // Solve linear system
         phi.setVal(0.0); // initial guess for phi
         mlmg.solve({&phi}, {&q}, tol_rel, tol_abs);
-        
+
         // store plotfile variables; q and phi
         MultiFab plotfile_mf(grids, dmap, 2, 0, MFInfo(), factory);
         MultiFab::Copy(plotfile_mf,  q,0,0,1,0);
         MultiFab::Copy(plotfile_mf,phi,0,1,1,0);
-        
+
         EB_WriteSingleLevelPlotfile("plt", plotfile_mf, {"q", "phi"}, geom, 0.0, 0);
     }
 

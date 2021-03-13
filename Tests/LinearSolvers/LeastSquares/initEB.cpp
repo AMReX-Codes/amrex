@@ -32,7 +32,7 @@ MyTest::initializeEB ()
                                            EB2::translate(box, {AMREX_D_DECL(-0.5,-0.5,-0.5)}),
                                            std::atan(1.0)*0.3, 2),
                                        {AMREX_D_DECL(0.5,0.5,0.5)}));
-        EB2::Build(gshop, geom.back(), max_level, max_level+max_coarsening_level);        
+        EB2::Build(gshop, geom.back(), max_level, max_level+max_coarsening_level);
     }
     else if (geom_type == "two_spheres")
     {
@@ -64,17 +64,17 @@ MyTest::initializeEB ()
         Vector<Real> pt_on_top_wall(3);
         Real height;
         Real rotation = 0.0;
-        
+
         pp.getarr("channel_pt_on_top_wall", pt_on_top_wall, 0, 3);
         pp.get("channel_rotation", rotation);
         pp.get("channel_height", height);
         rotation = (rotation/180.) * M_PI;
 
-        EB2::PlaneIF left({AMREX_D_DECL(pt_on_top_wall[0],pt_on_top_wall[1],0.0)}, 
-                         {AMREX_D_DECL(-std::sin(rotation),std::cos(rotation),0.0)}, 
+        EB2::PlaneIF left({AMREX_D_DECL(pt_on_top_wall[0],pt_on_top_wall[1],0.0)},
+                         {AMREX_D_DECL(-std::sin(rotation),std::cos(rotation),0.0)},
                          fluid_inside);
-        EB2::PlaneIF right({AMREX_D_DECL(pt_on_top_wall[0], pt_on_top_wall[1] - (height/std::cos(rotation)),0.0)}, 
-                         {AMREX_D_DECL(std::sin(rotation),-std::cos(rotation),0.0)}, 
+        EB2::PlaneIF right({AMREX_D_DECL(pt_on_top_wall[0], pt_on_top_wall[1] - (height/std::cos(rotation)),0.0)},
+                         {AMREX_D_DECL(std::sin(rotation),-std::cos(rotation),0.0)},
                          fluid_inside);
         auto channel = EB2::makeUnion(left, right);
         auto gshop = EB2::makeShop(channel);
@@ -87,7 +87,7 @@ MyTest::initializeEB ()
            Vector<Real> pt_on_top_wall(3);
            Real height;
            Vector<Real> rotation(2);
-           
+
            pp.getarr("channel_pt_on_top_wall", pt_on_top_wall, 0, 3);
            pp.getarr("channel_rotation", rotation, 0, 2);
            pp.get("channel_height", height);
@@ -96,21 +96,21 @@ MyTest::initializeEB ()
            Real gamma = (rotation[1]/180.) * M_PI;
 
            Vector<Real> norm(3);
-           Real norm_mag = std::sqrt(std::sin(alpha)*std::sin(alpha) + 
-                      std::cos(alpha)*std::cos(alpha)*std::cos(gamma)*std::cos(gamma) + 
+           Real norm_mag = std::sqrt(std::sin(alpha)*std::sin(alpha) +
+                      std::cos(alpha)*std::cos(alpha)*std::cos(gamma)*std::cos(gamma) +
                       std::sin(gamma)*std::sin(gamma));
            norm[0] = -std::sin(gamma) / norm_mag;
            norm[1] = std::cos(alpha)*std::cos(gamma) / norm_mag;
            norm[2] = -std::sin(alpha) / norm_mag;
 
-           EB2::PlaneIF left({AMREX_D_DECL(pt_on_top_wall[0],pt_on_top_wall[1],pt_on_top_wall[2])}, 
-                         {AMREX_D_DECL(norm[0],norm[1],norm[2])}, 
-                         fluid_inside); 
+           EB2::PlaneIF left({AMREX_D_DECL(pt_on_top_wall[0],pt_on_top_wall[1],pt_on_top_wall[2])},
+                         {AMREX_D_DECL(norm[0],norm[1],norm[2])},
+                         fluid_inside);
 
            EB2::PlaneIF right({AMREX_D_DECL(pt_on_top_wall[0] - height*norm[0],
-                                            pt_on_top_wall[1] - height*norm[1], 
-                                            pt_on_top_wall[2] - height*norm[2])}, 
-                         {AMREX_D_DECL(-norm[0],-norm[1],-norm[2])}, 
+                                            pt_on_top_wall[1] - height*norm[1],
+                                            pt_on_top_wall[2] - height*norm[2])},
+                         {AMREX_D_DECL(-norm[0],-norm[1],-norm[2])},
                          fluid_inside);
 
            auto channel = EB2::makeUnion(left, right);

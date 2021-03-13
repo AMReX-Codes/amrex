@@ -42,8 +42,8 @@
  * *****************************************************************************
  *                                DISCLAIMER
  * THE SOFTWARE IS SUPPLIED "AS IS" WITHOUT WARRANTY OF ANY KIND. NEITHER THE
- * UNITED STATES GOVERNMENT, NOR THE UNITED STATES DEPARTMENT OF ENERGY, NOR 
- * UCHICAGO ARGONNE, LLC, NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY, 
+ * UNITED STATES GOVERNMENT, NOR THE UNITED STATES DEPARTMENT OF ENERGY, NOR
+ * UCHICAGO ARGONNE, LLC, NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY,
  * EXPRESS OR IMPLIED, OR ASSUMES ANY LEGAL LIABILITY OR RESPONSIBILITY FOR THE
  * ACCURARY, COMPLETENESS, OR USEFULNESS OF ANY INFORMATION, DATA, APPARATUS,
  * PRODUCT, OR PROCESS DISCLOSED, OR REPRESENTS THAT ITS USE WOULD NOT INFRINGE
@@ -106,10 +106,10 @@ int main(int argc, char *argv[]) {
     }
     if(np3d != nproc) {
       fprintf(stderr,"ERROR: %d * %d * %d = %d != %d\n",
-	      d->process_topology_3.nproc[0],
-	      d->process_topology_3.nproc[1],
-	      d->process_topology_3.nproc[2],
-	      np3d, nproc);
+              d->process_topology_3.nproc[0],
+              d->process_topology_3.nproc[1],
+              d->process_topology_3.nproc[2],
+              np3d, nproc);
       exit(-1);
     }
   }
@@ -122,13 +122,13 @@ int main(int argc, char *argv[]) {
   d->process_topology_1.nproc[2] = 1; // don't distribute outer dimensions
   period[0] = period[1] = period[2] = 1;
   //process_topology_1.nproc is filled with number of processors in each dim
-  MPI_Dims_create(nproc, ndim, d->process_topology_1.nproc); 
+  MPI_Dims_create(nproc, ndim, d->process_topology_1.nproc);
 
   if(self == 0) {
     printf("distribution 1D: [%d:%d:%d]\n",
-	   d->process_topology_1.nproc[0],
-	   d->process_topology_1.nproc[1],
-	   d->process_topology_1.nproc[2]);
+           d->process_topology_1.nproc[0],
+           d->process_topology_1.nproc[1],
+           d->process_topology_1.nproc[2]);
     fflush(stdout);
   }
 
@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
   d->process_topology_1.n[0] = n[0] / d->process_topology_1.nproc[0];
   d->process_topology_1.n[1] = n[1] / d->process_topology_1.nproc[1];
   d->process_topology_1.n[2] = n[2] / d->process_topology_1.nproc[2];
-  
+
 
 
   // set up process grid with 3d decomposition (CUBE)
@@ -150,16 +150,16 @@ int main(int argc, char *argv[]) {
 
   if(self == 0) {
     printf("distribution 3D: [%d:%d:%d]\n",
-	   d->process_topology_3.nproc[0],
-	   d->process_topology_3.nproc[1],
-	   d->process_topology_3.nproc[2]);
+           d->process_topology_3.nproc[0],
+           d->process_topology_3.nproc[1],
+           d->process_topology_3.nproc[2]);
     fflush(stdout);
   }
-  
+
   assert(n[0]%d->process_topology_3.nproc[0] == 0);
   assert(n[0]%d->process_topology_3.nproc[1] == 0);
   assert(n[0]%d->process_topology_3.nproc[2] == 0);
-  
+
   //set local dimensions
   d->process_topology_3.n[0] = n[0] / d->process_topology_3.nproc[0];
   d->process_topology_3.n[1] = n[1] / d->process_topology_3.nproc[1];
@@ -170,160 +170,160 @@ int main(int argc, char *argv[]) {
   // set up process grid with 2d decomposition (z_PENCILs )
   d->process_topology_2_z.nproc[0] = 0;
   d->process_topology_2_z.nproc[1] = 0;
-  d->process_topology_2_z.nproc[2] = 1; // don't distribute outer dimension 
+  d->process_topology_2_z.nproc[2] = 1; // don't distribute outer dimension
   period[0] = period[1] = period[2] = 1;
   MPI_Dims_create(nproc, ndim, d->process_topology_2_z.nproc);
   d->process_topology_2_z.n[0] = n[0] / d->process_topology_2_z.nproc[0];
   d->process_topology_2_z.n[1] = n[1] / d->process_topology_2_z.nproc[1];
   d->process_topology_2_z.n[2] = n[2] / d->process_topology_2_z.nproc[2];
-  //variable used to ensure that pencils created fit inside the cuboids, 
+  //variable used to ensure that pencils created fit inside the cuboids,
   //if not the code will assert out.
-  bool check_z_dims=false; 
-  if(d->process_topology_2_z.n[0] != 0 
-     && d->process_topology_2_z.n[1] != 0 
+  bool check_z_dims=false;
+  if(d->process_topology_2_z.n[0] != 0
+     && d->process_topology_2_z.n[1] != 0
      && d->process_topology_2_z.n[2] != 0)
   {// protects from dividing by zero.
-    check_z_dims = ((d->process_topology_3.n[0]) % (d->process_topology_2_z.n[0]) == 0) 
-      && ((d->process_topology_3.n[1]) % (d->process_topology_2_z.n[1]) == 0) 
-      && (n[0] % (d->process_topology_2_z.nproc[0]) == 0) 
+    check_z_dims = ((d->process_topology_3.n[0]) % (d->process_topology_2_z.n[0]) == 0)
+      && ((d->process_topology_3.n[1]) % (d->process_topology_2_z.n[1]) == 0)
+      && (n[0] % (d->process_topology_2_z.nproc[0]) == 0)
       && (n[0] % (d->process_topology_2_z.nproc[1]) == 0);
-    
+
     if(self==0 && debug && !check_z_dims)
-      fprintf(stderr,"Need to fix Z PENCILS z_procs(%d,%d,%d) 3d.ns(%d,%d,%d) 2d_z.ns(%d,%d,%d)\n", 
-	      d->process_topology_2_z.nproc[0],
-	      d->process_topology_2_z.nproc[1],
-	      d->process_topology_2_z.nproc[2],
-	      d->process_topology_3.n[0],
-	      d->process_topology_3.n[1],
-	      d->process_topology_3.n[2],
-	      d->process_topology_2_z.n[0],
-	      d->process_topology_2_z.n[1],
-	      d->process_topology_2_z.n[2]);
-   
-    //try swaping pencil dimensions if current setup pencil dimensions dont 
+      fprintf(stderr,"Need to fix Z PENCILS z_procs(%d,%d,%d) 3d.ns(%d,%d,%d) 2d_z.ns(%d,%d,%d)\n",
+              d->process_topology_2_z.nproc[0],
+              d->process_topology_2_z.nproc[1],
+              d->process_topology_2_z.nproc[2],
+              d->process_topology_3.n[0],
+              d->process_topology_3.n[1],
+              d->process_topology_3.n[2],
+              d->process_topology_2_z.n[0],
+              d->process_topology_2_z.n[1],
+              d->process_topology_2_z.n[2]);
+
+    //try swaping pencil dimensions if current setup pencil dimensions dont
     //fit inside the cubes.
-    if(!(check_z_dims) 
-       && ((d->process_topology_3.n[0]) % (d->process_topology_2_z.n[1]) == 0) 
+    if(!(check_z_dims)
+       && ((d->process_topology_3.n[0]) % (d->process_topology_2_z.n[1]) == 0)
        && ((d->process_topology_3.n[1]) % (d->process_topology_2_z.n[0]) == 0))
     {
 
       if(self==0 && debug)
-	fprintf(stderr,"Swaping Z pencils in initialization  (%d,%d,%d)\n", 
-		d->process_topology_2_z.nproc[0],
-		d->process_topology_2_z.nproc[1],
-		d->process_topology_2_z.nproc[2]);
+        fprintf(stderr,"Swaping Z pencils in initialization  (%d,%d,%d)\n",
+                d->process_topology_2_z.nproc[0],
+                d->process_topology_2_z.nproc[1],
+                d->process_topology_2_z.nproc[2]);
       int temp=d->process_topology_2_z.nproc[0];
       d->process_topology_2_z.nproc[0] = d->process_topology_2_z.nproc[1];
       d->process_topology_2_z.nproc[1] = temp;
       d->process_topology_2_z.nproc[2] = d->process_topology_2_z.nproc[2];
-      
+
       d->process_topology_2_z.n[0] = n[0] / d->process_topology_2_z.nproc[0];
       d->process_topology_2_z.n[1] = n[1] / d->process_topology_2_z.nproc[1];
       d->process_topology_2_z.n[2] = n[2] / d->process_topology_2_z.nproc[2];
-      check_z_dims = ((d->process_topology_3.n[0]) % (d->process_topology_2_z.n[0]) == 0) 
-	&& ((d->process_topology_3.n[1]) % (d->process_topology_2_z.n[1]) == 0)
-	&& (n[0] % (d->process_topology_2_z.nproc[0]) == 0) 
-	&& (n[0] % (d->process_topology_2_z.nproc[1]) == 0);
+      check_z_dims = ((d->process_topology_3.n[0]) % (d->process_topology_2_z.n[0]) == 0)
+        && ((d->process_topology_3.n[1]) % (d->process_topology_2_z.n[1]) == 0)
+        && (n[0] % (d->process_topology_2_z.nproc[0]) == 0)
+        && (n[0] % (d->process_topology_2_z.nproc[1]) == 0);
     }
   } else {
     check_z_dims=false;
   }
-//  if that did not work, make a pencil that does if inside the 3d cuboids by 
-//  taking the cuboids dimensions (np1,np2,np3) and making pencils 
-//  (np1,np2*np3,1), or (np1*np3,np2,1) on the most evenly distributed 
+//  if that did not work, make a pencil that does if inside the 3d cuboids by
+//  taking the cuboids dimensions (np1,np2,np3) and making pencils
+//  (np1,np2*np3,1), or (np1*np3,np2,1) on the most evenly distributed
 //  dimensions
   if(!check_z_dims){
     if(self==0 && debug)
-      fprintf(stderr,"MAKING Z PENCILS FIT zprocs(%d,%d,%d) z.ns(%d,%d,%d)\n", 
-	      d->process_topology_2_z.nproc[0],
-	      d->process_topology_2_z.nproc[1],
-	      d->process_topology_2_z.nproc[2],
-	      d->process_topology_2_z.n[0],
-	      d->process_topology_2_z.n[1],
-	      d->process_topology_2_z.n[2]);
-    
+      fprintf(stderr,"MAKING Z PENCILS FIT zprocs(%d,%d,%d) z.ns(%d,%d,%d)\n",
+              d->process_topology_2_z.nproc[0],
+              d->process_topology_2_z.nproc[1],
+              d->process_topology_2_z.nproc[2],
+              d->process_topology_2_z.n[0],
+              d->process_topology_2_z.n[1],
+              d->process_topology_2_z.n[2]);
+
     d->process_topology_2_z.nproc[2]=1;
     if(d->process_topology_3.n[0]>d->process_topology_3.n[1])
     {
       d->process_topology_2_z.nproc[1]=d->process_topology_3.nproc[1]*d->process_topology_3.nproc[2];
       d->process_topology_2_z.nproc[0]=d->process_topology_3.nproc[0];
-      if((n[0] % (d->process_topology_2_z.nproc[0]) != 0) 
-	 || (n[0] % (d->process_topology_2_z.nproc[1]) != 0))
+      if((n[0] % (d->process_topology_2_z.nproc[0]) != 0)
+         || (n[0] % (d->process_topology_2_z.nproc[1]) != 0))
       {
-	d->process_topology_2_z.nproc[0]=d->process_topology_3.nproc[0]*d->process_topology_3.nproc[2];
-	d->process_topology_2_z.nproc[1]=d->process_topology_3.nproc[1];
+        d->process_topology_2_z.nproc[0]=d->process_topology_3.nproc[0]*d->process_topology_3.nproc[2];
+        d->process_topology_2_z.nproc[1]=d->process_topology_3.nproc[1];
       }
     } else {
       d->process_topology_2_z.nproc[0]=d->process_topology_3.nproc[0]*d->process_topology_3.nproc[2];
       d->process_topology_2_z.nproc[1]=d->process_topology_3.nproc[1];
-      if((n[0] % (d->process_topology_2_z.nproc[0]) != 0) 
-	 || (n[0] % (d->process_topology_2_z.nproc[1]) != 0))
+      if((n[0] % (d->process_topology_2_z.nproc[0]) != 0)
+         || (n[0] % (d->process_topology_2_z.nproc[1]) != 0))
       {
-	d->process_topology_2_z.nproc[1]=d->process_topology_3.nproc[1]*d->process_topology_3.nproc[2];
-	d->process_topology_2_z.nproc[0]=d->process_topology_3.nproc[0];
+        d->process_topology_2_z.nproc[1]=d->process_topology_3.nproc[1]*d->process_topology_3.nproc[2];
+        d->process_topology_2_z.nproc[0]=d->process_topology_3.nproc[0];
       }
     }
     d->process_topology_2_z.n[0] = n[0] / d->process_topology_2_z.nproc[0];
     d->process_topology_2_z.n[1] = n[1] / d->process_topology_2_z.nproc[1];
     d->process_topology_2_z.n[2] = n[2] / d->process_topology_2_z.nproc[2];
     if(self==0 && debug)
-      fprintf(stderr,"MAKING Z PENCILS FIT AFTER zprocs(%d,%d,%d) z.ns(%d,%d,%d)\n", 
-	      d->process_topology_2_z.nproc[0],
-	      d->process_topology_2_z.nproc[1],
-	      d->process_topology_2_z.nproc[2],
-	      d->process_topology_2_z.n[0],
-	      d->process_topology_2_z.n[1],
-	      d->process_topology_2_z.n[2]);
-    if(d->process_topology_2_z.n[0] != 0 
-       && d->process_topology_2_z.n[1] != 0 
+      fprintf(stderr,"MAKING Z PENCILS FIT AFTER zprocs(%d,%d,%d) z.ns(%d,%d,%d)\n",
+              d->process_topology_2_z.nproc[0],
+              d->process_topology_2_z.nproc[1],
+              d->process_topology_2_z.nproc[2],
+              d->process_topology_2_z.n[0],
+              d->process_topology_2_z.n[1],
+              d->process_topology_2_z.n[2]);
+    if(d->process_topology_2_z.n[0] != 0
+       && d->process_topology_2_z.n[1] != 0
        && d->process_topology_2_z.n[2] != 0)
     {// protects from dividing by zero.
-      check_z_dims=((d->process_topology_3.n[0]) % (d->process_topology_2_z.n[0]) == 0) 
-	&& ((d->process_topology_3.n[1]) % (d->process_topology_2_z.n[1]) == 0)
-	&& (n[0] % (d->process_topology_2_z.nproc[0]) == 0) 
-	&& (n[0] % (d->process_topology_2_z.nproc[1]) == 0);
+      check_z_dims=((d->process_topology_3.n[0]) % (d->process_topology_2_z.n[0]) == 0)
+        && ((d->process_topology_3.n[1]) % (d->process_topology_2_z.n[1]) == 0)
+        && (n[0] % (d->process_topology_2_z.nproc[0]) == 0)
+        && (n[0] % (d->process_topology_2_z.nproc[1]) == 0);
     } else {
       check_z_dims=false;
     }
   }
-    
+
   if (d->debug && 0 == self) {
     fprintf(stderr, "  2d_z: ");
     for (int i = 0; i < ndim; ++i) {
-      fprintf(stderr, "%d%s", 
-	      d->process_topology_2_z.nproc[i], 
-	      separator(i, ndim));
+      fprintf(stderr, "%d%s",
+              d->process_topology_2_z.nproc[i],
+              separator(i, ndim));
     }
     fprintf(stderr, "\n");
-  } 
+  }
   if(!check_z_dims && debug && (self==0)){
     FILE * outfile;
     outfile= fopen("error.data","a");
     fprintf(outfile,"Z DIMS FAILS:(%d,%d,%d) (%d,%d,%d) \n",
-	    d->process_topology_2_z.nproc[0],
-	    d->process_topology_2_z.nproc[1],
-	    d->process_topology_2_z.nproc[2], 
-	    d->process_topology_3.nproc[0],
-	    d->process_topology_3.nproc[1],
-	    d->process_topology_3.nproc[2]);
+            d->process_topology_2_z.nproc[0],
+            d->process_topology_2_z.nproc[1],
+            d->process_topology_2_z.nproc[2],
+            d->process_topology_3.nproc[0],
+            d->process_topology_3.nproc[1],
+            d->process_topology_3.nproc[2]);
   }
   //assert(check_z_dims);
   if(!check_z_dims)
     fprintf(stderr,"assert(check_z_dims) would have failed.\n");
 
-//  if this happens, it is because the dimensions were chosen incorrectly. 
-//  Either to many processors for the number of points in one dimenison (could 
-//  not do at least 1 point per processor), or the methods above could 
-//  not make a distribution of pencils that fit in the cubiods, which would 
-//  happen if the user gave numbers that wouldent work (we require the number 
-//  of processors in each dimension of the cuboid must be modulo the number of 
+//  if this happens, it is because the dimensions were chosen incorrectly.
+//  Either to many processors for the number of points in one dimenison (could
+//  not do at least 1 point per processor), or the methods above could
+//  not make a distribution of pencils that fit in the cubiods, which would
+//  happen if the user gave numbers that wouldent work (we require the number
+//  of processors in each dimension of the cuboid must be modulo the number of
 //  points in that dimension, otherwise, this error will happen).
 
   if(self == 0) {
     printf("distribution 2z: [%d:%d:%d]\n",
-	   d->process_topology_2_z.nproc[0],
-	   d->process_topology_2_z.nproc[1],
-	   d->process_topology_2_z.nproc[2]);
+           d->process_topology_2_z.nproc[0],
+           d->process_topology_2_z.nproc[1],
+           d->process_topology_2_z.nproc[2]);
     fflush(stdout);
   }
 
@@ -338,86 +338,86 @@ int main(int argc, char *argv[]) {
   d->process_topology_2_x.n[0] = n[0] / d->process_topology_2_x.nproc[0];
   d->process_topology_2_x.n[1] = n[1] / d->process_topology_2_x.nproc[1];
   d->process_topology_2_x.n[2] = n[2] / d->process_topology_2_x.nproc[2];
-  //variable used to ensure that pencils created fit inside the cuboids, 
+  //variable used to ensure that pencils created fit inside the cuboids,
   //if not the code will assert out.
   bool check_x_dims = false;
-  if(d->process_topology_2_x.n[0] != 0 
-     && d->process_topology_2_x.n[1] != 0 
+  if(d->process_topology_2_x.n[0] != 0
+     && d->process_topology_2_x.n[1] != 0
      && d->process_topology_2_x.n[2] != 0)
   {// protects from dividing by zero.
-    check_x_dims = ((d->process_topology_3.n[2]) % (d->process_topology_2_x.n[2]) == 0) 
-      && ((d->process_topology_3.n[1]) % (d->process_topology_2_x.n[1]) == 0) 
-      && (n[0] % (d->process_topology_2_x.nproc[2]) == 0) 
+    check_x_dims = ((d->process_topology_3.n[2]) % (d->process_topology_2_x.n[2]) == 0)
+      && ((d->process_topology_3.n[1]) % (d->process_topology_2_x.n[1]) == 0)
+      && (n[0] % (d->process_topology_2_x.nproc[2]) == 0)
       && (n[0] % (d->process_topology_2_x.nproc[0]) == 0);
     if(self==0 && debug && !check_x_dims)
-      fprintf(stderr,"Need to fix X PENCILS x_procs(%d,%d,%d) 3d.ns(%d,%d,%d) 2d_x.ns(%d,%d,%d)...\n", 
-	      d->process_topology_2_x.nproc[0],
-	      d->process_topology_2_x.nproc[1],
-	      d->process_topology_2_x.nproc[2],
-	      d->process_topology_3.n[0],
-	      d->process_topology_3.n[1],
-	      d->process_topology_3.n[2],
-	      d->process_topology_2_x.n[0],
-	      d->process_topology_2_x.n[1],
-	      d->process_topology_2_x.n[2]);
+      fprintf(stderr,"Need to fix X PENCILS x_procs(%d,%d,%d) 3d.ns(%d,%d,%d) 2d_x.ns(%d,%d,%d)...\n",
+              d->process_topology_2_x.nproc[0],
+              d->process_topology_2_x.nproc[1],
+              d->process_topology_2_x.nproc[2],
+              d->process_topology_3.n[0],
+              d->process_topology_3.n[1],
+              d->process_topology_3.n[2],
+              d->process_topology_2_x.n[0],
+              d->process_topology_2_x.n[1],
+              d->process_topology_2_x.n[2]);
 
-    //try swaping pencil dimensions if current setup does not have pencils 
+    //try swaping pencil dimensions if current setup does not have pencils
     //that fit inside cubes.
-    if(!(check_x_dims) 
-       && ((d->process_topology_3.n[2]) % (d->process_topology_2_x.n[1]) == 0) 
+    if(!(check_x_dims)
+       && ((d->process_topology_3.n[2]) % (d->process_topology_2_x.n[1]) == 0)
        && ((d->process_topology_3.n[1]) % (d->process_topology_2_x.n[2]) == 0))
     {
       if(self==0 && debug)
-	fprintf(stderr,"Swaping X pencils in initialization .... \n");
+        fprintf(stderr,"Swaping X pencils in initialization .... \n");
       d->process_topology_2_x.nproc[0] = d->process_topology_2_x.nproc[0];
       int temp = d->process_topology_2_x.nproc[1];
       d->process_topology_2_x.nproc[1] = d->process_topology_2_x.nproc[2];
       d->process_topology_2_x.nproc[2] = temp;
-   
+
       d->process_topology_2_x.n[0] = n[0] / d->process_topology_2_x.nproc[0];
       d->process_topology_2_x.n[1] = n[1] / d->process_topology_2_x.nproc[1];
       d->process_topology_2_x.n[2] = n[2] / d->process_topology_2_x.nproc[2];
-      check_x_dims = ((d->process_topology_3.n[2]) % (d->process_topology_2_x.n[2]) == 0) 
-	&& ((d->process_topology_3.n[1]) % (d->process_topology_2_x.n[1]) == 0)
-	&& (n[0] % (d->process_topology_2_x.nproc[2]) == 0) 
-	&& (n[0] % (d->process_topology_2_x.nproc[0]) == 0);
-    } 
+      check_x_dims = ((d->process_topology_3.n[2]) % (d->process_topology_2_x.n[2]) == 0)
+        && ((d->process_topology_3.n[1]) % (d->process_topology_2_x.n[1]) == 0)
+        && (n[0] % (d->process_topology_2_x.nproc[2]) == 0)
+        && (n[0] % (d->process_topology_2_x.nproc[0]) == 0);
+    }
   } else{
     check_x_dims=false;
   }
-//    if that did not work, make a pencil that does by taking the cuboid 
-//    (np1,np2,np3) and making pencils of the form (1,np2*np1,np3) or 
+//    if that did not work, make a pencil that does by taking the cuboid
+//    (np1,np2,np3) and making pencils of the form (1,np2*np1,np3) or
 //    (1,np2*np1,np3) depending on the most even distribution it can.
   if(!check_x_dims){
     if(self==0 && debug)
       fprintf(stderr,"MAKING X PENCILS FIT xprocs(%d,%d,%d) x.ns(%d,%d,%d)...\n",
-	      d->process_topology_2_x.nproc[0],
-	      d->process_topology_2_x.nproc[1],
-	      d->process_topology_2_x.nproc[2],
-	      d->process_topology_2_x.n[0],
-	      d->process_topology_2_x.n[1],
-	      d->process_topology_2_x.n[2]);
+              d->process_topology_2_x.nproc[0],
+              d->process_topology_2_x.nproc[1],
+              d->process_topology_2_x.nproc[2],
+              d->process_topology_2_x.n[0],
+              d->process_topology_2_x.n[1],
+              d->process_topology_2_x.n[2]);
 
     d->process_topology_2_x.nproc[0] = 1;
     if(d->process_topology_3.nproc[2] > d->process_topology_3.nproc[1])
     {
       d->process_topology_2_x.nproc[1] = d->process_topology_3.nproc[1]*d->process_topology_3.nproc[0];
       d->process_topology_2_x.nproc[2] = d->process_topology_3.nproc[2];
-      if((n[0] % (d->process_topology_2_x.nproc[2]) != 0) 
-	 || (n[0] % (d->process_topology_2_x.nproc[0]) != 0))
+      if((n[0] % (d->process_topology_2_x.nproc[2]) != 0)
+         || (n[0] % (d->process_topology_2_x.nproc[0]) != 0))
       {
-	d->process_topology_2_x.nproc[2]=d->process_topology_3.nproc[2]*d->process_topology_3.nproc[0];
-	d->process_topology_2_x.nproc[1]=d->process_topology_3.nproc[1];
+        d->process_topology_2_x.nproc[2]=d->process_topology_3.nproc[2]*d->process_topology_3.nproc[0];
+        d->process_topology_2_x.nproc[1]=d->process_topology_3.nproc[1];
       }
 
     } else {
       d->process_topology_2_x.nproc[2] = d->process_topology_3.nproc[2]*d->process_topology_3.nproc[0];
       d->process_topology_2_x.nproc[1] = d->process_topology_3.nproc[1];
-      if((n[0] % (d->process_topology_2_x.nproc[2]) != 0) 
-	 || (n[0] % (d->process_topology_2_x.nproc[0]) != 0))
+      if((n[0] % (d->process_topology_2_x.nproc[2]) != 0)
+         || (n[0] % (d->process_topology_2_x.nproc[0]) != 0))
       {
-	d->process_topology_2_x.nproc[1]=d->process_topology_3.nproc[1]*d->process_topology_3.nproc[0];
-	d->process_topology_2_x.nproc[2]=d->process_topology_3.nproc[2];
+        d->process_topology_2_x.nproc[1]=d->process_topology_3.nproc[1]*d->process_topology_3.nproc[0];
+        d->process_topology_2_x.nproc[2]=d->process_topology_3.nproc[2];
       }
     }
     d->process_topology_2_x.n[0] = n[0] / d->process_topology_2_x.nproc[0];
@@ -425,31 +425,31 @@ int main(int argc, char *argv[]) {
     d->process_topology_2_x.n[2] = n[2] / d->process_topology_2_x.nproc[2];
     if(self==0 && debug)
       fprintf(stderr,"MAKING X PENCILS FIT AFTER xprocs(%d,%d,%d) x.ns(%d,%d,%d)...\n",
-	      d->process_topology_2_x.nproc[0],
-	      d->process_topology_2_x.nproc[1],
-	      d->process_topology_2_x.nproc[2],
-	      d->process_topology_2_x.n[0],
-	      d->process_topology_2_x.n[1],
-	      d->process_topology_2_x.n[2]);
-    if(d->process_topology_2_x.n[0] != 0 
-       && d->process_topology_2_x.n[1] != 0 
+              d->process_topology_2_x.nproc[0],
+              d->process_topology_2_x.nproc[1],
+              d->process_topology_2_x.nproc[2],
+              d->process_topology_2_x.n[0],
+              d->process_topology_2_x.n[1],
+              d->process_topology_2_x.n[2]);
+    if(d->process_topology_2_x.n[0] != 0
+       && d->process_topology_2_x.n[1] != 0
        && d->process_topology_2_x.n[2] != 0)
     {// protects from dividing by zero.
-      check_x_dims = ((d->process_topology_3.n[2]) % (d->process_topology_2_x.n[2]) == 0) 
-	&& ((d->process_topology_3.n[1]) % (d->process_topology_2_x.n[1]) == 0)
-	&& (n[0] % (d->process_topology_2_x.nproc[2]) == 0) 
-	&& (n[0] % (d->process_topology_2_x.nproc[0]) == 0);
+      check_x_dims = ((d->process_topology_3.n[2]) % (d->process_topology_2_x.n[2]) == 0)
+        && ((d->process_topology_3.n[1]) % (d->process_topology_2_x.n[1]) == 0)
+        && (n[0] % (d->process_topology_2_x.nproc[2]) == 0)
+        && (n[0] % (d->process_topology_2_x.nproc[0]) == 0);
     } else {
       check_x_dims=false;
-    }  
+    }
   }
-   
+
   if (d->debug && 0 == self) {
     fprintf(stderr, "  2d_x: ");
     for (int i = 0; i < ndim; ++i) {
-      fprintf(stderr, "%d%s", 
-	      d->process_topology_2_x.nproc[i], 
-	      separator(i, ndim));
+      fprintf(stderr, "%d%s",
+              d->process_topology_2_x.nproc[i],
+              separator(i, ndim));
     }
     fprintf(stderr, "\n");
   }
@@ -457,32 +457,32 @@ int main(int argc, char *argv[]) {
     FILE * outfile;
     outfile= fopen("error.data","a");
     fprintf(outfile,"X DIMS FAILS:(%d,%d,%d) (%d,%d,%d) \n",
-	    d->process_topology_2_x.nproc[0],
-	    d->process_topology_2_x.nproc[1],
-	    d->process_topology_2_x.nproc[2], 
-	    d->process_topology_3.nproc[0],
-	    d->process_topology_3.nproc[1],
-	    d->process_topology_3.nproc[2]);
+            d->process_topology_2_x.nproc[0],
+            d->process_topology_2_x.nproc[1],
+            d->process_topology_2_x.nproc[2],
+            d->process_topology_3.nproc[0],
+            d->process_topology_3.nproc[1],
+            d->process_topology_3.nproc[2]);
   }
   //assert(check_x_dims);
   if(!check_x_dims)
     fprintf(stderr,"assert(check_x_dims) would have failed.\n");
-//  if this happens, it is because the dimensions were chosen incorrectly. 
-//  Either to many processors for the number of points in one dimenison (could 
-//  not do at least 1 point per processor), or the methods above could not make 
-//  a distribution of pencils that fit in the cubiods, which would happen if the 
-//  user gave numbers that wouldent work (we require the number of processors in 
-//  each dimension of the cuboid must be modulo the number of points in that 
+//  if this happens, it is because the dimensions were chosen incorrectly.
+//  Either to many processors for the number of points in one dimenison (could
+//  not do at least 1 point per processor), or the methods above could not make
+//  a distribution of pencils that fit in the cubiods, which would happen if the
+//  user gave numbers that wouldent work (we require the number of processors in
+//  each dimension of the cuboid must be modulo the number of points in that
 //  dimension, otherwise, this error will happen).
 
   if(self == 0) {
     printf("distribution 2x: [%d:%d:%d]\n",
-	   d->process_topology_2_x.nproc[0],
-	   d->process_topology_2_x.nproc[1],
-	   d->process_topology_2_x.nproc[2]);
+           d->process_topology_2_x.nproc[0],
+           d->process_topology_2_x.nproc[1],
+           d->process_topology_2_x.nproc[2]);
     fflush(stdout);
   }
-  
+
 
 
   // set up process grid with 2d decomposition (y_PENCILs)
@@ -494,117 +494,117 @@ int main(int argc, char *argv[]) {
   d->process_topology_2_y.n[0] = n[0] / d->process_topology_2_y.nproc[0];
   d->process_topology_2_y.n[1] = n[1] / d->process_topology_2_y.nproc[1];
   d->process_topology_2_y.n[2] = n[2] / d->process_topology_2_y.nproc[2];
-  //variable used to ensure that pencils created fit inside the cuboids, 
+  //variable used to ensure that pencils created fit inside the cuboids,
   //if not the code will assert out.
   bool check_y_dims=false;
-  if(d->process_topology_2_y.n[0] != 0 
-     && d->process_topology_2_y.n[1] != 0 
+  if(d->process_topology_2_y.n[0] != 0
+     && d->process_topology_2_y.n[1] != 0
      && d->process_topology_2_y.n[2] != 0)
   {// protects from dividing by zero.
-    check_y_dims = (((d->process_topology_3.n[2]) % (d->process_topology_2_y.n[2]) == 0) 
-		    && ((d->process_topology_3.n[0]) % (d->process_topology_2_y.n[0]) == 0) 
-		    && (n[0] % (d->process_topology_2_y.nproc[2]) == 0) 
-		    && (n[0] % (d->process_topology_2_y.nproc[0]) == 0));
+    check_y_dims = (((d->process_topology_3.n[2]) % (d->process_topology_2_y.n[2]) == 0)
+                    && ((d->process_topology_3.n[0]) % (d->process_topology_2_y.n[0]) == 0)
+                    && (n[0] % (d->process_topology_2_y.nproc[2]) == 0)
+                    && (n[0] % (d->process_topology_2_y.nproc[0]) == 0));
     if(self==0 && debug && !check_y_dims)
       fprintf(stderr,"Need to fix Y PENCILS y_procs(%d,%d,%d) 3d.ns(%d,%d,%d) 2d_y.ns(%d,%d,%d)...\n",
-	      d->process_topology_2_y.nproc[0],
-	      d->process_topology_2_y.nproc[1],
-	      d->process_topology_2_y.nproc[2],
-	      d->process_topology_3.n[0],
-	      d->process_topology_3.n[1],
-	      d->process_topology_3.n[2],
-	      d->process_topology_2_y.n[0],
-	      d->process_topology_2_y.n[1],
-	      d->process_topology_2_y.n[2]);
-    //try swaping pencil dimensions if the current dimension of the pencils 
+              d->process_topology_2_y.nproc[0],
+              d->process_topology_2_y.nproc[1],
+              d->process_topology_2_y.nproc[2],
+              d->process_topology_3.n[0],
+              d->process_topology_3.n[1],
+              d->process_topology_3.n[2],
+              d->process_topology_2_y.n[0],
+              d->process_topology_2_y.n[1],
+              d->process_topology_2_y.n[2]);
+    //try swaping pencil dimensions if the current dimension of the pencils
     //does not fit inside the cubes.
-    if(!(check_y_dims) 
-       && ((d->process_topology_3.n[2]) % (d->process_topology_2_y.n[0]) == 0) 
+    if(!(check_y_dims)
+       && ((d->process_topology_3.n[2]) % (d->process_topology_2_y.n[0]) == 0)
        && ((d->process_topology_3.n[0]) % (d->process_topology_2_y.n[2]) == 0))
     {
       if(self==0 && debug)
-	fprintf(stderr,"Swaping Y pencils in initialization .... \n");
-      
+        fprintf(stderr,"Swaping Y pencils in initialization .... \n");
+
       int temp = d->process_topology_2_y.nproc[0];
       d->process_topology_2_y.nproc[0] = d->process_topology_2_y.nproc[2];
       d->process_topology_2_y.nproc[2] = temp;
       d->process_topology_2_y.nproc[1] = d->process_topology_2_y.nproc[1];
-      
+
       d->process_topology_2_y.n[0] = n[0] / d->process_topology_2_y.nproc[0];
       d->process_topology_2_y.n[1] = n[1] / d->process_topology_2_y.nproc[1];
       d->process_topology_2_y.n[2] = n[2] / d->process_topology_2_y.nproc[2];
-      check_y_dims = (((d->process_topology_3.n[2]) % (d->process_topology_2_y.n[2]) == 0) 
-		      && ((d->process_topology_3.n[0]) % (d->process_topology_2_y.n[0]) == 0) 
-		      && (n[0] % (d->process_topology_2_y.nproc[2]) == 0) 
-		      && (n[0] % (d->process_topology_2_y.nproc[0]) == 0));
+      check_y_dims = (((d->process_topology_3.n[2]) % (d->process_topology_2_y.n[2]) == 0)
+                      && ((d->process_topology_3.n[0]) % (d->process_topology_2_y.n[0]) == 0)
+                      && (n[0] % (d->process_topology_2_y.nproc[2]) == 0)
+                      && (n[0] % (d->process_topology_2_y.nproc[0]) == 0));
     }
   } else {
     check_y_dims = false;
   }
-//  if that did not work, make a pencil that does by taking the cuboid 
-//  (np1,np2,np3) and making pencils of the form (np1,1,np3*np2) or 
+//  if that did not work, make a pencil that does by taking the cuboid
+//  (np1,np2,np3) and making pencils of the form (np1,1,np3*np2) or
 //  (np1*np2,1,np3) depending on the most even distribution it can.
   if(!check_y_dims){
     if(self==0 && debug)
-      fprintf(stderr,"MAKING Y PENCILS FIT yprocs(%d,%d,%d) y.ns(%d,%d,%d)...\n", 
-	      d->process_topology_2_y.nproc[0],
-	      d->process_topology_2_y.nproc[1],
-	      d->process_topology_2_y.nproc[2],
-	      d->process_topology_2_y.n[0],
-	      d->process_topology_2_y.n[1],
-	      d->process_topology_2_y.n[2]);
-    
+      fprintf(stderr,"MAKING Y PENCILS FIT yprocs(%d,%d,%d) y.ns(%d,%d,%d)...\n",
+              d->process_topology_2_y.nproc[0],
+              d->process_topology_2_y.nproc[1],
+              d->process_topology_2_y.nproc[2],
+              d->process_topology_2_y.n[0],
+              d->process_topology_2_y.n[1],
+              d->process_topology_2_y.n[2]);
+
     d->process_topology_2_y.nproc[1]=1;
     if(d->process_topology_3.nproc[2] > d->process_topology_3.nproc[0])
     {
       d->process_topology_2_y.nproc[0] = d->process_topology_3.nproc[0]*d->process_topology_3.nproc[1];
       d->process_topology_2_y.nproc[2] = d->process_topology_3.nproc[2];
-      if((n[0] % (d->process_topology_2_y.nproc[2]) != 0) 
-	 || (n[0] % (d->process_topology_2_y.nproc[0]) != 0))
+      if((n[0] % (d->process_topology_2_y.nproc[2]) != 0)
+         || (n[0] % (d->process_topology_2_y.nproc[0]) != 0))
       {
-	d->process_topology_2_y.nproc[2] = d->process_topology_3.nproc[2]*d->process_topology_3.nproc[1];
-	d->process_topology_2_y.nproc[0] = d->process_topology_3.nproc[0];
+        d->process_topology_2_y.nproc[2] = d->process_topology_3.nproc[2]*d->process_topology_3.nproc[1];
+        d->process_topology_2_y.nproc[0] = d->process_topology_3.nproc[0];
       }
     } else {
       d->process_topology_2_y.nproc[2] = d->process_topology_3.nproc[2]*d->process_topology_3.nproc[1];
       d->process_topology_2_y.nproc[0] = d->process_topology_3.nproc[0];
-      if((n[0] % (d->process_topology_2_y.nproc[2]) != 0) 
-	 || (n[0] % (d->process_topology_2_y.nproc[0]) != 0))
+      if((n[0] % (d->process_topology_2_y.nproc[2]) != 0)
+         || (n[0] % (d->process_topology_2_y.nproc[0]) != 0))
       {
-	d->process_topology_2_y.nproc[0] = d->process_topology_3.nproc[0]*d->process_topology_3.nproc[1];
-	d->process_topology_2_y.nproc[2] = d->process_topology_3.nproc[2];
+        d->process_topology_2_y.nproc[0] = d->process_topology_3.nproc[0]*d->process_topology_3.nproc[1];
+        d->process_topology_2_y.nproc[2] = d->process_topology_3.nproc[2];
       }
     }
-    
+
     d->process_topology_2_y.n[0] = n[0] / d->process_topology_2_y.nproc[0];
     d->process_topology_2_y.n[1] = n[1] / d->process_topology_2_y.nproc[1];
     d->process_topology_2_y.n[2] = n[2] / d->process_topology_2_y.nproc[2];
     if(self==0 && debug)
       fprintf(stderr,"MAKING Y PENCILS FIT AFTER yprocs(%d,%d,%d) y.ns(%d,%d,%d)...\n",
-	      d->process_topology_2_y.nproc[0],
-	      d->process_topology_2_y.nproc[1],
-	      d->process_topology_2_y.nproc[2],
-	      d->process_topology_2_y.n[0],
-	      d->process_topology_2_y.n[1],
-	      d->process_topology_2_y.n[2]);
-    if(d->process_topology_2_y.n[0] != 0 && d->process_topology_2_y.n[1] != 0 
+              d->process_topology_2_y.nproc[0],
+              d->process_topology_2_y.nproc[1],
+              d->process_topology_2_y.nproc[2],
+              d->process_topology_2_y.n[0],
+              d->process_topology_2_y.n[1],
+              d->process_topology_2_y.n[2]);
+    if(d->process_topology_2_y.n[0] != 0 && d->process_topology_2_y.n[1] != 0
        && d->process_topology_2_y.n[2] != 0)
     {// protects from dividing by zero.
-      check_y_dims = (((d->process_topology_3.n[2]) % (d->process_topology_2_y.n[2]) == 0) 
-		      && ((d->process_topology_3.n[0]) % (d->process_topology_2_y.n[0]) == 0) 
-		      && (n[0] % (d->process_topology_2_y.nproc[2]) == 0) 
-		      && (n[0] % (d->process_topology_2_y.nproc[0]) == 0));
+      check_y_dims = (((d->process_topology_3.n[2]) % (d->process_topology_2_y.n[2]) == 0)
+                      && ((d->process_topology_3.n[0]) % (d->process_topology_2_y.n[0]) == 0)
+                      && (n[0] % (d->process_topology_2_y.nproc[2]) == 0)
+                      && (n[0] % (d->process_topology_2_y.nproc[0]) == 0));
     } else {
       check_y_dims=false;
     }
   }
-   
+
   if (d->debug && 0 == self) {
     fprintf(stderr, "  2d_y: ");
     for (int i = 0; i < ndim; ++i) {
-      fprintf(stderr, "%d%s", 
-	      d->process_topology_2_y.nproc[i], 
-	      separator(i, ndim));
+      fprintf(stderr, "%d%s",
+              d->process_topology_2_y.nproc[i],
+              separator(i, ndim));
     }
     fprintf(stderr, "\n");
   }
@@ -612,30 +612,30 @@ int main(int argc, char *argv[]) {
     FILE * outfile;
     outfile = fopen("error.data","a");
     fprintf(outfile,"Y DIMS FAILS:(%d,%d,%d) (%d,%d,%d) \n",
-	    d->process_topology_2_y.nproc[0],
-	    d->process_topology_2_y.nproc[1],
-	    d->process_topology_2_y.nproc[2], 
-	    d->process_topology_3.nproc[0],
-	    d->process_topology_3.nproc[1],
-	    d->process_topology_3.nproc[2]);
+            d->process_topology_2_y.nproc[0],
+            d->process_topology_2_y.nproc[1],
+            d->process_topology_2_y.nproc[2],
+            d->process_topology_3.nproc[0],
+            d->process_topology_3.nproc[1],
+            d->process_topology_3.nproc[2]);
   }
   //assert(check_y_dims);
   if(!check_y_dims)
     fprintf(stderr,"assert(check_y_dims) would have failed.\n");
 
-//  if this happens, it is because the dimensions were chosen incorrectly. 
-//  Either to many processors for the number of points in one dimenison (could 
-//  not do at least 1 point per processor), or the methods above could 
-//  not make a distribution of pencils that fit in the cubiods, which would 
-//  happen if the user gave numbers that wouldent work (we require the number of 
-//  processors in each dimension of the cuboid must be modulo the number of 
+//  if this happens, it is because the dimensions were chosen incorrectly.
+//  Either to many processors for the number of points in one dimenison (could
+//  not do at least 1 point per processor), or the methods above could
+//  not make a distribution of pencils that fit in the cubiods, which would
+//  happen if the user gave numbers that wouldent work (we require the number of
+//  processors in each dimension of the cuboid must be modulo the number of
 //  points in that dimension, otherwise, this error will happen).
 
   if(self == 0) {
     printf("distribution 2y: [%d:%d:%d]\n",
-	   d->process_topology_2_y.nproc[0],
-	   d->process_topology_2_y.nproc[1],
-	   d->process_topology_2_y.nproc[2]);
+           d->process_topology_2_y.nproc[0],
+           d->process_topology_2_y.nproc[1],
+           d->process_topology_2_y.nproc[2]);
     fflush(stdout);
   }
 

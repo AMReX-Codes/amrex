@@ -57,7 +57,7 @@ amrex::Real amrex_calc_xslope (int i, int j, int k, int n, int order,
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real amrex_calc_xslope_extdir (int i, int j, int k, int n, int order, 
+amrex::Real amrex_calc_xslope_extdir (int i, int j, int k, int n, int order,
                                       amrex::Array4<amrex::Real const> const& q,
                                       bool edlo, bool edhi, int domlo, int domhi) noexcept
 {
@@ -197,7 +197,7 @@ amrex::Real amrex_calc_yslope (int i, int j, int k, int n, int order,
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real amrex_calc_yslope_extdir (int i, int j, int k, int n, int order, 
+amrex::Real amrex_calc_yslope_extdir (int i, int j, int k, int n, int order,
                                       amrex::Array4<amrex::Real const> const& q,
                                       bool edlo, bool edhi, int domlo, int domhi) noexcept
 {
@@ -214,7 +214,7 @@ amrex::Real amrex_calc_yslope_extdir (int i, int j, int k, int n, int order,
         amrex::Real slope = amrex::min(amrex::Math::abs(dl),amrex::Math::abs(dc),amrex::Math::abs(dr));
         slope = (dr*dl > 0.0) ? slope : 0.0;
         return (dc > 0.0) ? slope : -slope;
-    
+
     } else if (order == 4) {
 
         amrex::Real dlft, drgt, dcen, dfm, dfp, dlim, dsgn, dtemp, dlimsh,dsgnsh;
@@ -335,7 +335,7 @@ amrex::Real amrex_calc_zslope (int i, int j, int k, int n, int order,
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real amrex_calc_zslope_extdir (int i, int j, int k, int n, int order, 
+amrex::Real amrex_calc_zslope_extdir (int i, int j, int k, int n, int order,
                                       amrex::Array4<amrex::Real const> const& q,
                                       bool edlo, bool edhi, int domlo, int domhi) noexcept
 {
@@ -353,7 +353,7 @@ amrex::Real amrex_calc_zslope_extdir (int i, int j, int k, int n, int order,
         amrex::Real slope = amrex::min(amrex::Math::abs(dl),amrex::Math::abs(dc),amrex::Math::abs(dr));
         slope = (dr*dl > 0.0) ? slope : 0.0;
         return (dc > 0.0) ? slope : -slope;
-    
+
     } else if (order == 4) {
 
         amrex::Real dlft, drgt, dcen, dfm, dfp, dlim, dsgn, dtemp, dlimsh, dsgnsh;

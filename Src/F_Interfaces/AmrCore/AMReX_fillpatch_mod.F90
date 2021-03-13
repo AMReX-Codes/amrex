@@ -116,7 +116,7 @@ contains
     ! scomp-1 and dcomp-1 because of Fortran index starts with 1
     call amrex_fi_fillpatch_single(mf%p, time, smf, stime, ns, scomp-1, dcomp-1, ncomp, geom%p, &
          &                         c_funloc(fill_physbc))
-    
+
   end subroutine amrex_fillpatch_single
 
   subroutine amrex_fillpatch_two (mf, told_c, mfold_c, tnew_c, mfnew_c, geom_c, fill_physbc_c, &
@@ -139,7 +139,7 @@ contains
     type(c_ptr) :: lo_bc_ptr(scomp+ncomp-1), hi_bc_ptr(scomp+ncomp-1)
     type(c_funptr) :: pre_interp_ptr, post_interp_ptr
     integer :: ncrse, nfine, i
-    
+
     ! coarse level
     teps = 1.e-4_amrex_real * (tnew_c - told_c)
     if (abs(time-tnew_c) .lt. teps) then
@@ -350,7 +350,7 @@ contains
     type(c_ptr) :: lo_bc_ptr(scomp+ncomp-1), hi_bc_ptr(scomp+ncomp-1)
     type(c_funptr) :: pre_interp_ptr, post_interp_ptr
     integer :: i
-    
+
     ! coarse level
     teps = 1.e-4_amrex_real * (tnew_c - told_c)
     if (abs(time-tnew_c) .lt. teps) then

@@ -20,7 +20,7 @@ contains
        call averagedown()
 
        call init_particle_data()
-       
+
        if (plot_int .gt. 0) call writeplotfile
     else
        call amrex_abort("init from checkpoint not implemented yet")
@@ -28,17 +28,17 @@ contains
   end subroutine initdata
 
   subroutine init_particle_data()
-    use amr_data_module, only : pc, phi_new    
+    use amr_data_module, only : pc, phi_new
     use amrex_particlecontainer_module, only : amrex_particlecontainer_build
     use prob_module, only : init_part_data
-    
-    type(c_ptr)          :: amrcore = c_null_ptr    
+
+    type(c_ptr)          :: amrcore = c_null_ptr
     integer              :: lev
     type(amrex_mfiter)   :: mfi
     type(amrex_box)      :: bx
-    
+
     amrcore = amrex_get_amrcore()
-    call amrex_particlecontainer_build(pc, amrcore)       
+    call amrex_particlecontainer_build(pc, amrcore)
 
     lev = 0
     call amrex_mfiter_build(mfi, phi_new(lev), tiling=.false.)
@@ -46,7 +46,7 @@ contains
        bx = mfi%tilebox()
        call init_part_data(pc, lev, mfi, bx%lo, bx%hi, amrex_geom(lev)%dx, amrex_problo)
     end do
-    
+
     call pc%redistribute()
 
   end subroutine init_particle_data

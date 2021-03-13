@@ -162,7 +162,7 @@ void NFilesIter::SetSparseFPP(const Vector<int> &ranksToWrite)
 
 
 NFilesIter::NFilesIter(const std::string &filename,
-		       const Vector<int> &readranks,
+                       const Vector<int> &readranks,
                        bool setBuf)
 {
   isReading = true;
@@ -368,7 +368,7 @@ NFilesIter &NFilesIter::operator++() {
         if(mySparseFileNumber != -1) {
           fileStream.flush();
           fileStream.close();
-	}
+        }
         finishedWriting = true;
 
       } else {  // ---- the general static set selection
@@ -412,11 +412,11 @@ NFilesIter &NFilesIter::operator++() {
           for(int i(0); i < nProcs; ++i) {
             int procSet(WhichSetPosition(i, nProcs, nOutFiles, groupSets));
             int whichFileNumber(NFilesIter::FileNumber(nOutFiles, i, groupSets));
-	    // ---- procSet == 0 have already written their data
-	    if(procSet == 0) {
-	      fileNumbersWriteOrder[whichFileNumber].push_back(i);
+            // ---- procSet == 0 have already written their data
+            if(procSet == 0) {
+              fileNumbersWriteOrder[whichFileNumber].push_back(i);
               --remainingWriters;
-	    }
+            }
             if(procSet != 0) {
               procsToWrite[whichFileNumber].push_back(i);
             }
@@ -444,21 +444,21 @@ NFilesIter &NFilesIter::operator++() {
                 break;  // ---- found one
               }
             }
-	    if(nextProcToWrite == -1) {
+            if(nextProcToWrite == -1) {
               --remainingWriters;
-//	      amrex::Print() << myProc << "::IOIOIOIO:  nptw == -1  rW = " << remainingWriters << std::endl;
-	    } else {
+//              amrex::Print() << myProc << "::IOIOIOIO:  nptw == -1  rW = " << remainingWriters << std::endl;
+            } else {
 
-	    fileNumbersWriteOrder[nextFileNumberToWrite].push_back(nextProcToWrite);
+            fileNumbersWriteOrder[nextFileNumberToWrite].push_back(nextProcToWrite);
 
             ParallelDescriptor::Send(&nextFileNumberToWrite, 1, nextProcToWrite, writeTag);
-  
+
             rmess = ParallelDescriptor::Recv(&nextFileNumberAvailable, 1, MPI_ANY_SOURCE, doneTag);
             availableFileNumbers.insert(nextFileNumberAvailable);
             --remainingWriters;
-	    }
+            }
           }
-	  unreadMessages.push_back(std::make_pair(doneTag, setZeroProcs.size() - 1));
+          unreadMessages.push_back(std::make_pair(doneTag, setZeroProcs.size() - 1));
 
         } else {    // ---- tell the coordinatorProc we are done writing
           ParallelDescriptor::Send(&fileNumber, 1, coordinatorProc, doneTag);
@@ -537,7 +537,7 @@ Vector<int> NFilesIter::FileNumbersWritten()
       amrex::AllPrint() << "**** Error in NFilesIter::FileNumbersWritten():  "
                 << " coordinatorProc nProcs total procSet.size() = "
                 << coordinatorProc << "  " << nProcs << "  "
-		<< total << "  " << procSet.size() << std::endl;
+                << total << "  " << procSet.size() << std::endl;
     }
 #endif
 

@@ -356,7 +356,7 @@ Particle<NReal, NInt>::NextID ()
     next = the_next_id++;
 
     if (next > LastParticleID)
-	amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
+        amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
 
     return next;
 }
@@ -367,7 +367,7 @@ Particle<NReal, NInt>::UnprotectedNextID ()
 {
     Long next = the_next_id++;
     if (next > LastParticleID)
-	amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
+        amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
     return next;
 }
 

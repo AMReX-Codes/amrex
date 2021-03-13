@@ -282,7 +282,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
             gh.item->barrier(sycl::access::fence_space::local_space);
 
             // shared[0:nwarps) holds the inclusive sum of warp sums.
-            
+
             // Also note x still holds the inclusive sum within the
             // warp.  Given these two, we can compute the inclusive
             // sum within this chunk.
@@ -523,7 +523,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
             __syncthreads();
 
             // shared[0:nwarps) holds the inclusive sum of warp sums.
-            
+
             // Also note x still holds the inclusive sum within the
             // warp.  Given these two, we can compute the inclusive
             // sum within this chunk.
@@ -715,10 +715,10 @@ namespace Gpu
         return result_end;
 #else
         if (begin == end) return result;
-        
+
         typename std::iterator_traits<InIter>::value_type sum = *begin;
         *result++ = sum - *begin;
-        
+
         while (++begin != end) {
             sum = std::move(sum) + *begin;
             *result++ = sum - *begin;

@@ -45,7 +45,7 @@ void gather_fields (EMParticleContainer::ParticleType const& p,
     constexpr amrex::Real sx0[] = {1.,0.};
     constexpr amrex::Real sy0[] = {1.,0.};
     constexpr amrex::Real sz0[] = {1.,0.};
-    
+
     constexpr int ixmin = 0;
     constexpr int ixmax = 0;
     constexpr int iymin = 0;
@@ -67,7 +67,7 @@ void gather_fields (EMParticleContainer::ParticleType const& p,
                 Exp += sx0[jj]*sy[kk]*sz[ll]*Exarr(j0+jj,k+kk,l+ll);
             }
         }
-    }            
+    }
 
     Eyp = 0.;
     for         (int ll = izmin ; ll <= izmax +1; ++ll) {
@@ -76,7 +76,7 @@ void gather_fields (EMParticleContainer::ParticleType const& p,
                 Eyp += sx[jj]*sy0[kk]*sz[ll]*Eyarr(j+jj,k0+kk,l+ll);
             }
         }
-    }            
+    }
 
     Ezp = 0.;
     for         (int ll = izmin0; ll <= izmax0  ; ++ll) {
@@ -85,7 +85,7 @@ void gather_fields (EMParticleContainer::ParticleType const& p,
                 Ezp += sx[jj]*sy[kk]*sz0[ll]*Ezarr(j+jj,k+kk,l0+ll);
             }
         }
-    }            
+    }
 
     Bxp = 0.;
     for         (int ll = izmin0 ; ll <= izmax0 ; ++ll) {
@@ -94,7 +94,7 @@ void gather_fields (EMParticleContainer::ParticleType const& p,
                 Bxp += sx[jj]*sy0[kk]*sz0[ll]*Bxarr(j+jj,k0+kk,l0+ll);
             }
         }
-    }            
+    }
 
     Byp = 0.;
     for         (int ll = izmin0; ll <= izmax0  ; ++ll) {
@@ -103,7 +103,7 @@ void gather_fields (EMParticleContainer::ParticleType const& p,
                 Byp += sx0[jj]*sy[kk]*sz0[ll]*Byarr(j0+jj,k+kk,l0+ll);
             }
         }
-    }            
+    }
 
     Bzp = 0.;
     for         (int ll = izmin ; ll <= izmax +1; ++ll) {
@@ -112,7 +112,7 @@ void gather_fields (EMParticleContainer::ParticleType const& p,
                 Bzp += sx0[jj]*sy0[kk]*sz[ll]*Bzarr(j0+jj,k0+kk,l+ll);
             }
         }
-    }                
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -124,7 +124,7 @@ void push_momentum_boris(amrex::Real& uxp, amrex::Real& uyp, amrex::Real& uzp, a
     amrex::Real cst = q*dt*0.5/m;
     constexpr amrex::Real clight = 2.99792458e8;
     constexpr amrex::Real clightisq = 1./(clight*clight);
-    
+
     uxp += Exp * cst;
     uyp += Eyp * cst;
     uzp += Ezp * cst;
@@ -151,7 +151,7 @@ void push_momentum_boris(amrex::Real& uxp, amrex::Real& uyp, amrex::Real& uzp, a
     uzp += Ezp*cst;
 
     usq = (uxp*uxp + uyp*uyp + uzp*uzp) * clightisq;
-    gaminv = 1.0/std::sqrt(1.0+usq);    
+    gaminv = 1.0/std::sqrt(1.0+usq);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

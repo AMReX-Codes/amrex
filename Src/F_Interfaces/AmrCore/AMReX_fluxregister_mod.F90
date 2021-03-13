@@ -3,7 +3,7 @@ module amrex_fluxregister_module
 
   use iso_c_binding
   use amrex_base_module
-  
+
   implicit none
 
   private
@@ -81,7 +81,7 @@ module amrex_fluxregister_module
      end subroutine amrex_fi_fluxregister_crseadd
 
      subroutine amrex_fi_fluxregister_setval (fr, val) bind(c)
-       import 
+       import
        implicit none
        type(c_ptr), value :: fr
        real(amrex_real), value :: val
@@ -114,7 +114,7 @@ contains
     fr%flev  = fine_lev
     call amrex_fi_new_fluxregister(fr%p, ba%p, dm%p, ref_ratio, fine_lev, ncomp)
   end subroutine amrex_fluxregister_build
-  
+
   impure elemental subroutine amrex_fluxregister_destroy (this)
     type(amrex_fluxregister), intent(inout) :: this
     if (this%owner) then
@@ -125,7 +125,7 @@ contains
     this%owner = .false.
     this%p = c_null_ptr
   end subroutine amrex_fluxregister_destroy
-    
+
   subroutine amrex_fluxregister_assign (dst, src)
     class(amrex_fluxregister), intent(inout) :: dst
     type (amrex_fluxregister), intent(in   ) :: src
@@ -159,7 +159,7 @@ contains
     do dir = 1, amrex_spacedim
        associate(fab => fluxfabs(dir) )
          flo(1:amrex_spacedim) = fab%bx%lo(1:amrex_spacedim)
-         fhi(1:amrex_spacedim) = fab%bx%hi(1:amrex_spacedim)  
+         fhi(1:amrex_spacedim) = fab%bx%hi(1:amrex_spacedim)
          fp => fab%dataPtr()
          cp = c_loc(fp(flo(1),flo(2),flo(3),1))
          nc =  fab%nc

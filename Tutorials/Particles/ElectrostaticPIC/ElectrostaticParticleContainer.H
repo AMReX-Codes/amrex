@@ -17,7 +17,7 @@ struct PIdx
 #if BL_SPACEDIM == 3
         vz,
 #endif
-        Ex, Ey, 
+        Ex, Ey,
 #if BL_SPACEDIM == 3
         Ez,
 #endif
@@ -31,7 +31,7 @@ class MyParIter
 public:
     using amrex::ParIter<0, 0, PIdx::nattribs>::ParIter;
     using RealVector = ParIter::ContainerType::RealVector;
-    
+
     const std::array<RealVector, PIdx::nattribs>& GetAttribs () const {
         return GetStructOfArrays().GetRealData();
     }
@@ -43,7 +43,7 @@ public:
     const RealVector& GetAttribs (int comp) const {
         return GetStructOfArrays().GetRealData(comp);
     }
-    
+
     RealVector& GetAttribs (int comp) {
         return GetStructOfArrays().GetRealData(comp);
     }
@@ -58,16 +58,16 @@ class ElectrostaticParticleContainer
 {
 public:
 
-    ElectrostaticParticleContainer(const Vector<Geometry>            & geom, 
+    ElectrostaticParticleContainer(const Vector<Geometry>            & geom,
                                    const Vector<DistributionMapping> & dmap,
                                    const Vector<BoxArray>            & ba,
                                    const Vector<int>                 & rr)
-        : ParticleContainer<0, 0, PIdx::nattribs> (geom, dmap, ba, rr) 
+        : ParticleContainer<0, 0, PIdx::nattribs> (geom, dmap, ba, rr)
         {
             charge = -PhysConst::q_e;
             mass   =  PhysConst::m_e;
         }
-    
+
     void InitParticles();
 
     void pushX(const Real& dt);
@@ -82,7 +82,7 @@ public:
     void writeParticles(int n);
 
 private:
-    
+
     Real charge, mass;
 
 };

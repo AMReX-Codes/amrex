@@ -31,7 +31,7 @@ namespace amrex {
             os.write((char*) &value, sizeof(To));
         }
     }
-    
+
     template <typename To, typename From>
     void readIntData(To* data, std::size_t size, std::istream& is,
                      const amrex::IntDescriptor& id)
@@ -43,7 +43,7 @@ namespace amrex {
             if (swapEndian) value = swapBytes(value);
             data[j] = value;
         }
-    }   
+    }
 }
 
 #endif

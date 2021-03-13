@@ -72,13 +72,13 @@ main (int   argc,
 
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
-    
+
     DataServices dataServices(iFile, fileType);
 
     AmrData& amrData = dataServices.AmrDataRef();
 
-    
-    
+
+
     if (integrate)
     {
       ComputeAmrDataInt(amrData, norm1,  verbose);
@@ -86,61 +86,61 @@ main (int   argc,
       // Write norms to screen
       if (ParallelDescriptor::IOProcessor())
       {
-	const Vector<std::string>& names = amrData.PlotVarNames();
-	int maxl = 0;
-	for (int i=0; i<names.size(); ++i)
-	    maxl = std::max(maxl,int(names[i].size()));
+        const Vector<std::string>& names = amrData.PlotVarNames();
+        int maxl = 0;
+        for (int i=0; i<names.size(); ++i)
+            maxl = std::max(maxl,int(names[i].size()));
 
         std::string maxl_str = amrex::Concatenate("", maxl, 1);
 
-	std::string formatStr =
-	    std::string("\t%") + maxl_str + std::string("s |  %10e   \n");
-	std::string sformatStr =
-	    std::string("\t%") + maxl_str + std::string("s |  %10s   \n");
-	
-	std::cout << '\n' << "Norms for pltfile = " << iFile << ": " << '\n' << '\n';
-	printf(sformatStr.c_str(),"Derived", "Integral");
-	std::cout << '\t'
-	     << "--------------+------------------------------------------" << '\n';
-	
-	for (int i=0; i<names.size(); ++i)
-	{
-	    printf(formatStr.c_str(),names[i].c_str(),norm1[i]);
-	}
-	std::cout << '\n';
-	
+        std::string formatStr =
+            std::string("\t%") + maxl_str + std::string("s |  %10e   \n");
+        std::string sformatStr =
+            std::string("\t%") + maxl_str + std::string("s |  %10s   \n");
+
+        std::cout << '\n' << "Norms for pltfile = " << iFile << ": " << '\n' << '\n';
+        printf(sformatStr.c_str(),"Derived", "Integral");
+        std::cout << '\t'
+             << "--------------+------------------------------------------" << '\n';
+
+        for (int i=0; i<names.size(); ++i)
+        {
+            printf(formatStr.c_str(),names[i].c_str(),norm1[i]);
+        }
+        std::cout << '\n';
+
       }
     }
     else
-    {  
+    {
       ComputeAmrDataNorms(amrData, norm0, norm1, norm2, verbose);
 
       // Write norms to screen
       if (ParallelDescriptor::IOProcessor())
       {
-	const Vector<std::string>& names = amrData.PlotVarNames();
-	int maxl = 0;
-	for (int i=0; i<names.size(); ++i)
-	    maxl = std::max(maxl,int(names[i].size()));
+        const Vector<std::string>& names = amrData.PlotVarNames();
+        int maxl = 0;
+        for (int i=0; i<names.size(); ++i)
+            maxl = std::max(maxl,int(names[i].size()));
 
         std::string maxl_str = amrex::Concatenate("", maxl, 1);
 
-	std::string formatStr =
-	    std::string("\t%") + maxl_str + std::string("s |  %10e   %10e   %10e\n");
-	std::string sformatStr =
-	    std::string("\t%") + maxl_str + std::string("s |  %10s   %10s   %10s\n");
-	
-	std::cout << '\n' << "Norms for pltfile = " << iFile << ": " << '\n' << '\n';
-	printf(sformatStr.c_str(),"Derived","L-inf","L1","L2");
-	std::cout << '\t'
-	     << "--------------+------------------------------------------" << '\n';
-	
-	for (int i=0; i<names.size(); ++i)
-	{
-	    printf(formatStr.c_str(),names[i].c_str(),norm0[i],norm1[i],norm2[i]);
-	}
-	std::cout << '\n';
-	
+        std::string formatStr =
+            std::string("\t%") + maxl_str + std::string("s |  %10e   %10e   %10e\n");
+        std::string sformatStr =
+            std::string("\t%") + maxl_str + std::string("s |  %10s   %10s   %10s\n");
+
+        std::cout << '\n' << "Norms for pltfile = " << iFile << ": " << '\n' << '\n';
+        printf(sformatStr.c_str(),"Derived","L-inf","L1","L2");
+        std::cout << '\t'
+             << "--------------+------------------------------------------" << '\n';
+
+        for (int i=0; i<names.size(); ++i)
+        {
+            printf(formatStr.c_str(),names[i].c_str(),norm0[i],norm1[i],norm2[i]);
+        }
+        std::cout << '\n';
+
       }
     }
     amrex::Finalize();

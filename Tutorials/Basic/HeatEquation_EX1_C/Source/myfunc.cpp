@@ -6,8 +6,8 @@ using namespace amrex;
 
 void advance (MultiFab& phi_old,
               MultiFab& phi_new,
-	      Array<MultiFab, AMREX_SPACEDIM>& flux,
-	      Real dt,
+              Array<MultiFab, AMREX_SPACEDIM>& flux,
+              Real dt,
               Geometry const& geom)
 {
 
@@ -20,7 +20,7 @@ void advance (MultiFab& phi_old,
     // Note that this simple example is not optimized.
     // The following two MFIter loops could be merged
     // and we do not have to use flux MultiFab.
-    // 
+    //
     // =======================================================
 
     // This example supports both 2D and 3D.  Otherwise,

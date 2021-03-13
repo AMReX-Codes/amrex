@@ -157,9 +157,9 @@ TagBox::tags_and_untags (const Vector<int>& ar) noexcept
 
 // DEPRECATED
 // Since a TagBox is a BaseFab<char>, we can use this utility
-// function to allocate an integer array to have the same number 
+// function to allocate an integer array to have the same number
 // of elements as cells in tilebx
-void 
+void
 TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const noexcept
 {
     auto dlen = length();
@@ -167,7 +167,7 @@ TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const noexcept
     for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
         Lbx[idim] = dlen[idim];
     }
-    
+
     Long stride[] = {1, Lbx[0], Long(Lbx[0])*Long(Lbx[1])};
 
     Long Ntb = 1, stb=0;
@@ -177,9 +177,9 @@ TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const noexcept
         Ntb *= Ltb[idim];
         stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
     }
-    
+
     if (ar.size() < Ntb) ar.resize(Ntb);
-    
+
     const TagType* const p0   = dataPtr() + stb;  // +stb to the lower corner of tilebox
     int*                 iptr = ar.dataPtr();
 
@@ -201,7 +201,7 @@ TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const noexcept
 // DEPRECATED
 // Set values as specified by the array -- this only tags.
 // only changes values in the tilebx region
-void 
+void
 TagBox::tags (const Vector<int>& ar, const Box& tilebx) noexcept
 {
     auto dlen = length();
@@ -209,7 +209,7 @@ TagBox::tags (const Vector<int>& ar, const Box& tilebx) noexcept
     for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
         Lbx[idim] = dlen[idim];
     }
-    
+
     Long stride[] = {1, Lbx[0], Long(Lbx[0])*Long(Lbx[1])};
 
     Long stb=0;
@@ -218,7 +218,7 @@ TagBox::tags (const Vector<int>& ar, const Box& tilebx) noexcept
         Ltb[idim] = tilebx.length(idim);
         stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
     }
-    
+
     TagType* const p0   = dataPtr() + stb;  // +stb to the lower corner of tilebox
     const int*     iptr = ar.dataPtr();
 
@@ -235,7 +235,7 @@ TagBox::tags (const Vector<int>& ar, const Box& tilebx) noexcept
 // DEPRECATED
 // Set values as specified by the array -- this tags and untags.
 // only changes values in the tilebx region
-void 
+void
 TagBox::tags_and_untags (const Vector<int>& ar, const Box& tilebx) noexcept
 {
     auto dlen = length();
@@ -243,7 +243,7 @@ TagBox::tags_and_untags (const Vector<int>& ar, const Box& tilebx) noexcept
     for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
         Lbx[idim] = dlen[idim];
     }
-    
+
     Long stride[] = {1, Lbx[0], Long(Lbx[0])*Long(Lbx[1])};
 
     Long stb=0;
@@ -252,7 +252,7 @@ TagBox::tags_and_untags (const Vector<int>& ar, const Box& tilebx) noexcept
         Ltb[idim] = tilebx.length(idim);
         stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
     }
-    
+
     TagType* const p0   = dataPtr() + stb;  // +stb to the lower corner of tilebox
     const int*     iptr = ar.dataPtr();
 
@@ -267,7 +267,7 @@ TagBox::tags_and_untags (const Vector<int>& ar, const Box& tilebx) noexcept
 }
 
 TagBoxArray::TagBoxArray (const BoxArray& ba,
-			  const DistributionMapping& dm,
+                          const DistributionMapping& dm,
                           int             _ngrow)
     :
     FabArray<TagBox>(ba,dm,1,_ngrow,MFInfo(),DefaultFabFactory<TagBox>())
@@ -276,7 +276,7 @@ TagBoxArray::TagBoxArray (const BoxArray& ba,
 }
 
 TagBoxArray::TagBoxArray (const BoxArray& ba,
-			  const DistributionMapping& dm,
+                          const DistributionMapping& dm,
                           const IntVect&  _ngrow)
     :
     FabArray<TagBox>(ba,dm,1,_ngrow,MFInfo(),DefaultFabFactory<TagBox>())
@@ -284,7 +284,7 @@ TagBoxArray::TagBoxArray (const BoxArray& ba,
     setVal(TagBox::CLEAR);
 }
 
-void 
+void
 TagBoxArray::buffer (const IntVect& nbuf)
 {
     AMREX_ASSERT(nbuf.allLE(n_grow));
@@ -625,8 +625,8 @@ TagBoxArray::collate (Vector<IntVect>& TheGlobalCollateSpace) const
     std::vector<int> offset(countvec.size(),0);
     if (ParallelDescriptor::IOProcessor()) {
         for (int i = 1, N = offset.size(); i < N; i++) {
-	    offset[i] = offset[i-1] + countvec[i-1];
-	}
+            offset[i] = offset[i-1] + countvec[i-1];
+        }
     }
     //
     // Gather all the tags to IOProcNumber into TheGlobalCollateSpace.

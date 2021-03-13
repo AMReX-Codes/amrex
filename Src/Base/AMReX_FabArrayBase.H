@@ -145,57 +145,57 @@ public:
     //
     struct CacheStats
     {
-	int         size;     //!< current size: nbuild - nerase
-	int         maxsize;  //!< highest water mark of size
-	Long        maxuse;   //!< max # of uses of a cached item
-	Long        nuse;     //!< # of uses of the whole cache
-	Long        nbuild;   //!< # of build operations
-	Long        nerase;   //!< # of erase operations
-	Long        bytes;
-	Long        bytes_hwm;
-	std::string name;     //!< name of the cache
-	explicit CacheStats (const std::string& name_)
-	    : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),
-	      bytes(0L),bytes_hwm(0L),name(name_) {;}
-	void recordBuild () noexcept {
-	    ++size;
-	    ++nbuild;
-	    maxsize = std::max(maxsize, size);
-	}
-	void recordErase (Long n) noexcept {
-	    // n: how many times the item to be deleted has been used.
-	    --size;
-	    ++nerase;
-	    maxuse = std::max(maxuse, n);
-	}
-	void recordUse () noexcept { ++nuse; }
-	void print () {
-	    amrex::Print(Print::AllProcs) << "### " << name << " ###\n"
-					  << "    tot # of builds  : " << nbuild  << "\n"
-					  << "    tot # of erasures: " << nerase  << "\n"
-					  << "    tot # of uses    : " << nuse    << "\n"
-					  << "    max cache size   : " << maxsize << "\n"
-					  << "    max # of uses    : " << maxuse  << "\n";
-	}
+        int         size;     //!< current size: nbuild - nerase
+        int         maxsize;  //!< highest water mark of size
+        Long        maxuse;   //!< max # of uses of a cached item
+        Long        nuse;     //!< # of uses of the whole cache
+        Long        nbuild;   //!< # of build operations
+        Long        nerase;   //!< # of erase operations
+        Long        bytes;
+        Long        bytes_hwm;
+        std::string name;     //!< name of the cache
+        explicit CacheStats (const std::string& name_)
+            : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),
+              bytes(0L),bytes_hwm(0L),name(name_) {;}
+        void recordBuild () noexcept {
+            ++size;
+            ++nbuild;
+            maxsize = std::max(maxsize, size);
+        }
+        void recordErase (Long n) noexcept {
+            // n: how many times the item to be deleted has been used.
+            --size;
+            ++nerase;
+            maxuse = std::max(maxuse, n);
+        }
+        void recordUse () noexcept { ++nuse; }
+        void print () {
+            amrex::Print(Print::AllProcs) << "### " << name << " ###\n"
+                                          << "    tot # of builds  : " << nbuild  << "\n"
+                                          << "    tot # of erasures: " << nerase  << "\n"
+                                          << "    tot # of uses    : " << nuse    << "\n"
+                                          << "    max cache size   : " << maxsize << "\n"
+                                          << "    max # of uses    : " << maxuse  << "\n";
+        }
     };
     //
     //! Used by a bunch of routines when communicating via MPI.
     struct CopyComTag
     {
-	Box dbox;
+        Box dbox;
         Box sbox;
         int dstIndex;
         int srcIndex;
-	CopyComTag () noexcept {}
-	CopyComTag (const Box& db, const Box& sb, int didx, int sidx) noexcept
-	    : dbox(db), sbox(sb), dstIndex(didx), srcIndex(sidx) {}
-	bool operator< (const CopyComTag& rhs) const noexcept {
-	    return (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
+        CopyComTag () noexcept {}
+        CopyComTag (const Box& db, const Box& sb, int didx, int sidx) noexcept
+            : dbox(db), sbox(sb), dstIndex(didx), srcIndex(sidx) {}
+        bool operator< (const CopyComTag& rhs) const noexcept {
+            return (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
                    (sbox.smallEnd() < rhs.sbox.smallEnd()
-		               || ((sbox.smallEnd() == rhs.sbox.smallEnd()) && (
+                               || ((sbox.smallEnd() == rhs.sbox.smallEnd()) && (
                    (dstIndex < rhs.dstIndex) || ((dstIndex == rhs.dstIndex) && (
                    (dbox.smallEnd() < rhs.dbox.smallEnd()))))))));
-	}
+        }
         //
         // Some typedefs & helper functions used throughout the code.
         //
@@ -237,7 +237,7 @@ public:
     };
 
     BDKey getBDKey () const noexcept {
-	return {boxarray.getRefID(), distributionMap.getRefID()};
+        return {boxarray.getRefID(), distributionMap.getRefID()};
     }
 
     void updateBDKey ();
@@ -469,14 +469,14 @@ public:
     void buildTileArray (const IntVect& tilesize, TileArray& ta) const;
     //
     void flushTileArray (const IntVect& tilesize = IntVect::TheZeroVector(),
-			 bool no_assertion=false) const;
+                         bool no_assertion=false) const;
     static void flushTileArrayCache (); //!< This flushes the entire cache.
 
     struct CommMetaData
     {
         // The cache of local and send/recv per FillBoundary() or ParallelCopy().
-	bool m_threadsafe_loc = false;
-	bool m_threadsafe_rcv = false;
+        bool m_threadsafe_loc = false;
+        bool m_threadsafe_rcv = false;
         std::unique_ptr<CopyComTagsContainer>      m_LocTags;
         std::unique_ptr<MapOfCopyComTagContainers> m_SndTags;
         std::unique_ptr<MapOfCopyComTagContainers> m_RcvTags;
@@ -489,7 +489,7 @@ public:
     {
         FB (const FabArrayBase& fa, const IntVect& nghost,
             bool cross, const Periodicity& period,
-	    bool enforce_periodicity_only, bool multi_ghost = false);
+            bool enforce_periodicity_only, bool multi_ghost = false);
         ~FB ();
 
         IndexType    m_typ;
@@ -690,7 +690,7 @@ public:
 
 #ifdef BL_USE_MPI
     static bool CheckRcvStats(Vector<MPI_Status>& recv_stats,
-			      const Vector<std::size_t>& recv_size,
+                              const Vector<std::size_t>& recv_size,
                               int tag);
 #endif
 

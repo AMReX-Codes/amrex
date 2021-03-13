@@ -1,7 +1,7 @@
 /*
 
-  This program compares the particle data stored in plt files using the 
-  Checkpoint() method of the ParticleContainer. 
+  This program compares the particle data stored in plt files using the
+  Checkpoint() method of the ParticleContainer.
 
   To compile, navigate to AMREX_HOME/Tools/Postprocessing/C_Src and type
   "make".
@@ -10,7 +10,7 @@
 
       mpirun -np 4 ./particle_compare.exe old00000 new00000 Tracer
 
-  This compares the particle type "Tracer" between the old00000 and 
+  This compares the particle type "Tracer" between the old00000 and
   new00000 plt files. For this to work, the plt files must have been
   run with same grids / number of processes.
 
@@ -22,7 +22,7 @@
 #include <AMReX_REAL.H>
 
 #include <iostream>
-#include <fstream> 
+#include <fstream>
 #include <string>
 #include <vector>
 #include <sstream>
@@ -42,16 +42,16 @@ using namespace amrex;
 /// This stores the metadata associated with an AMReX particle header file.
 ///
 struct ParticleHeader {
-    
+
     ///
-    /// Initializes the struct to store the header information associated with 
+    /// Initializes the struct to store the header information associated with
     /// the given particle header file. For example, if plt_file = "plt00000"
     /// and particle_type = "Tracer", this will read the Header file at
     /// "plt00000/Tracer/Header"
     ///
-    ParticleHeader(const std::string& plt_file, 
+    ParticleHeader(const std::string& plt_file,
                    const std::string& particle_type) {
-        
+
         plt_file_name = plt_file;
         par_file_name = plt_file_name + "/" + particle_type;
         hdr_file_name = par_file_name + "/Header";
@@ -69,7 +69,7 @@ struct ParticleHeader {
             }
 #ifdef USE_MPI
             MPI_Finalize();
-#endif 
+#endif
             exit(1);
         }
 
@@ -86,29 +86,29 @@ struct ParticleHeader {
             }
 #ifdef USE_MPI
             MPI_Finalize();
-#endif 
+#endif
             exit(1);
         }
 
         file.close();
-        
+
         num_real = ndim + num_real_extra;
         num_int  = 2*is_checkpoint + num_int_extra;
         num_comp = num_real + num_int;
-        
-        std::string directions = "xyz";    
+
+        std::string directions = "xyz";
         for (int i = 0; i < ndim; ++i) {
             std::stringstream ss;
             ss << particle_type << "_position_" << directions[i];
             comp_names.push_back(ss.str());
         }
-        
+
         for (int i = 0; i < num_real_extra; ++i) {
             std::stringstream ss;
             ss << particle_type << "_" << real_comps[i];
             comp_names.push_back(ss.str());
         }
-        
+
         if (is_checkpoint) {
             {
                 std::stringstream ss;
@@ -121,14 +121,14 @@ struct ParticleHeader {
                 comp_names.push_back(ss.str());
             }
         }
-        
+
         for (int i = 0; i < num_int_extra; ++i) {
             std::stringstream ss;
             ss << particle_type << "_" << int_comps[i];
             comp_names.push_back(ss.str());
         }
     }
-    
+
     // This is the metadata actually stored in the header files
     std::string version;
     int ndim;
@@ -153,7 +153,7 @@ struct ParticleHeader {
     std::string par_file_name;
     std::string hdr_file_name;
     std::vector<std::string> comp_names;
-    
+
     // These operators only use the data actually in the headers, not the derived stuff.
     friend std::ostream& operator<< (std::ostream& stream, const ParticleHeader& header);
     friend std::istream& operator>> (std::istream& stream, ParticleHeader& header);
@@ -161,7 +161,7 @@ struct ParticleHeader {
     friend bool operator!=(const ParticleHeader& lhs, const ParticleHeader& rhs);
 };
 
-bool operator==(const ParticleHeader& lhs, const ParticleHeader& rhs) {    
+bool operator==(const ParticleHeader& lhs, const ParticleHeader& rhs) {
     return lhs.version         == rhs.version &&
            lhs.ndim            == rhs.ndim &&
            lhs.num_real_extra  == rhs.num_real_extra &&
@@ -170,7 +170,7 @@ bool operator==(const ParticleHeader& lhs, const ParticleHeader& rhs) {
            lhs.int_comps       == rhs.int_comps &&
            lhs.is_checkpoint   == rhs.is_checkpoint &&
            lhs.nparticles      == rhs.nparticles &&
-           lhs.next_id         == rhs.next_id && 
+           lhs.next_id         == rhs.next_id &&
            lhs.finest_level    == rhs.finest_level &&
            lhs.num_grids       == rhs.num_grids &&
            lhs.particle_counts == rhs.particle_counts &&
@@ -204,7 +204,7 @@ std::ostream& operator<< (std::ostream& stream, const ParticleHeader& header) {
     for (int i = 0; i <= header.finest_level; ++i) {
         stream << header.num_grids[i] << std::endl;
     }
-  
+
     for (int j = 0; j <= header.finest_level; ++j) {
         for (unsigned i = 0; i < header.file_nums.size(); ++i) {
             stream << header.file_nums[j][i] << " ";
@@ -294,7 +294,7 @@ int sort_particles_ascending(const void *p, const void *q)
     int id1, id2;
     std::memcpy(&id1, iptr1, sizeof(int));
     std::memcpy(&id2, iptr2, sizeof(int));
-    
+
     iptr1 += sizeof(int);
     iptr2 += sizeof(int);
 
@@ -305,13 +305,13 @@ int sort_particles_ascending(const void *p, const void *q)
     if (cpu1 != cpu2) return (cpu1 - cpu2);
     if (id1  != id2 ) return (id1  - id2 );
     return 0;
-} 
+}
 
 void compare_particle_chunk(const ParticleHeader& header1,
                             const ParticleHeader& header2,
                             std::vector<double>&  norms,
                             int level, int file_num, int np, int offset) {
-    
+
     if (np == 0) return;
 
     std::string read_file1 = getDataFileName(header1.par_file_name, level, file_num);
@@ -323,11 +323,11 @@ void compare_particle_chunk(const ParticleHeader& header1,
         single_precision = 1;
     }
     std::size_t rsize = single_precision ? sizeof(float) : sizeof(double);
-    
+
     int idata_size = header1.num_int*sizeof(int);
     int rdata_size = header1.num_real*rsize;
 
-    int pdata_size = rdata_size + idata_size;    
+    int pdata_size = rdata_size + idata_size;
     size_t buffer_size = pdata_size * np;
 
     std::vector<char> read_data1(buffer_size);
@@ -351,17 +351,17 @@ void compare_particle_chunk(const ParticleHeader& header1,
             src2 = read_data2.data() + idata_size*i;
             std::memcpy(dst1, src1, idata_size); dst1 += idata_size;
             std::memcpy(dst2, src2, idata_size); dst2 += idata_size;
-            
+
             src1 = read_data1.data() + idata_size*np + rdata_size*i;
             src2 = read_data2.data() + idata_size*np + rdata_size*i;
             std::memcpy(dst1, src1, rdata_size); dst1 += rdata_size;
             std::memcpy(dst2, src2, rdata_size); dst2 += rdata_size;
         }
     }
-    
-    qsort(data1.data(), np, pdata_size, sort_particles_ascending);    
+
+    qsort(data1.data(), np, pdata_size, sort_particles_ascending);
     qsort(data2.data(), np, pdata_size, sort_particles_ascending);
-    
+
     char* tmp1 = data1.data();
     char* tmp2 = data2.data();
     for (int i = 0; i < np; ++i) {
@@ -369,13 +369,13 @@ void compare_particle_chunk(const ParticleHeader& header1,
             int val1, val2;
             std::memcpy(&val1, tmp1, sizeof(int));
             std::memcpy(&val2, tmp2, sizeof(int));
-            norms[j+header1.num_real] = std::max((double) std::abs(val2 - val1), 
+            norms[j+header1.num_real] = std::max((double) std::abs(val2 - val1),
                                                  norms[j+header1.num_real]);
             if (val1 == 0) {
-                norms[header1.num_comp+j+header1.num_real] = 
+                norms[header1.num_comp+j+header1.num_real] =
                     norms[j+header1.num_real];
             } else {
-                norms[header1.num_comp+j+header1.num_real] = 
+                norms[header1.num_comp+j+header1.num_real] =
                     norms[j+header1.num_real] / std::abs(val1);
             }
             tmp1 += sizeof(int);
@@ -424,7 +424,7 @@ int main(int argc, char* argv[])
     amrex::Finalize();
 #ifndef BL_USE_MPI
     return r;
-#endif    
+#endif
 }
 
 int main_main()
@@ -438,7 +438,7 @@ int main_main()
     std::string fn2;
     std::string pt;
     Real rtol = 0.0;
-    
+
     int farg=1;
     while (farg <= narg) {
         const std::string fname = amrex::get_command_argument(farg);
@@ -475,16 +475,16 @@ int main_main()
             << std::endl;
         return EXIT_SUCCESS;
     }
-    
+
     ParticleHeader header1(fn1, pt);
     ParticleHeader header2(fn2, pt);
-    
+
     if (header1 != header2) {
         amrex::Print() << "FAIL - Particle data headers do not agree. \n";
         return EXIT_FAILURE;
     }
 
-    // for each grid, store the corresponding information about where to look up the 
+    // for each grid, store the corresponding information about where to look up the
     // particle data
     std::vector<int> levels;
     std::vector<int> file_nums;
@@ -516,12 +516,12 @@ int main_main()
     MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
-    // Each proc computes the max norm of the particle data diff over its grids    
+    // Each proc computes the max norm of the particle data diff over its grids
     // The first num_comp values are the abs norms, the second are the rel norms
     std::vector<double> norms(2*header1.num_comp, 0.0);
     for (int i = ibegin; i < iend; ++i) {
-        compare_particle_chunk(header1, header2, norms, 
-                               levels[i], file_nums[i], 
+        compare_particle_chunk(header1, header2, norms,
+                               levels[i], file_nums[i],
                                particle_counts[i], offsets[i]);
     }
 
@@ -566,6 +566,6 @@ int main_main()
     {
         amrex::Print() << " PARTICLES DISAGREE to relative tolerance " << rtol << "\n";
     }
-    
+
     return exit_code;
 }

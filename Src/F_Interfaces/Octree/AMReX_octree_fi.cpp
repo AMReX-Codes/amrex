@@ -173,7 +173,7 @@ extern "C" {
         for (int i = 0; i < n; ++i) {
             a_copy[i] = (*leaves)[i];
         }
-        
+
         delete leaves;
     }
 

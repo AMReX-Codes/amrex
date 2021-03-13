@@ -18,7 +18,7 @@ public:
 
     ComplementIF (F&& a_f) : m_f(std::move(a_f)) {}
     ComplementIF (F const& a_f) : m_f(a_f) {}
-          
+
     ComplementIF (const ComplementIF& rhs) = default;
     ComplementIF (ComplementIF&& rhs) = default;
     ComplementIF& operator= (const ComplementIF& rhs) = delete;

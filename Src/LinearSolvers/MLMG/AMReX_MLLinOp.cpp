@@ -286,12 +286,12 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         Vector<int> agg_flag;
         domainboxes.push_back(dbx);
         boundboxes.push_back(bbx);
-        agg_flag.push_back(false); 
+        agg_flag.push_back(false);
 
 #if (AMREX_SPACEDIM > 1)
-        if (info.do_semicoarsening) 
-	{   
-	    int num_semicoarsening_level = 0;
+        if (info.do_semicoarsening)
+        {
+            int num_semicoarsening_level = 0;
             IntVect rr_0(AMREX_D_DECL(mg_coarsen_ratio,1,1));
             bool is_coarsenable_x = ( dbx.coarsenable(rr_0, mg_domain_min_width) &&
                                       bbx.coarsenable(rr_0, mg_box_min_width));
@@ -303,14 +303,14 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             bool is_coarsenable_z = ( dbx.coarsenable(rr_2, mg_domain_min_width) &&
                                       bbx.coarsenable(rr_2, mg_box_min_width));
 #endif
-	    IntVect rr_vec(mg_coarsen_ratio);
+            IntVect rr_vec(mg_coarsen_ratio);
 #if (AMREX_SPACEDIM == 2)
             while ( is_coarsenable_x || is_coarsenable_y )
 #endif
 #if (AMREX_SPACEDIM == 3)
             while ( is_coarsenable_x || is_coarsenable_y || is_coarsenable_z )
 #endif
-	    {
+            {
 #if (AMREX_SPACEDIM >= 2)
                 int r0 = (is_coarsenable_x) ? mg_coarsen_ratio : 1;
                 int r1 = (is_coarsenable_y) ? mg_coarsen_ratio : 1;
@@ -339,21 +339,21 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 #endif
 #endif
 #if (AMREX_SPACEDIM == 2)
-		if (!(is_coarsenable_x && is_coarsenable_y))
+                if (!(is_coarsenable_x && is_coarsenable_y))
 #endif
 #if (AMREX_SPACEDIM == 3)
                 if (!(is_coarsenable_x && is_coarsenable_y && is_coarsenable_z))
 #endif
-		{
-		    num_semicoarsening_level++;    
-		    if (num_semicoarsening_level > info.max_semicoarsening_level) break;
-		}
-	    }
+                {
+                    num_semicoarsening_level++;
+                    if (num_semicoarsening_level > info.max_semicoarsening_level) break;
+                }
+            }
 
         }
-	else 
+        else
 #endif
-	{
+        {
             while (    dbx.coarsenable(mg_coarsen_ratio,mg_domain_min_width)
                    && bbx.coarsenable(mg_coarsen_ratio,mg_box_min_width))
             {
@@ -364,7 +364,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                 bool to_agg = (bbx.d_numPts() / nbxs) < 0.999*threshold_npts;
                 agg_flag.push_back(to_agg);
             }
-	}
+        }
 
         int first_agglev = std::distance(agg_flag.begin(),
                                          std::find(agg_flag.begin(),agg_flag.end(),1));
@@ -401,19 +401,19 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             for (int lev = 1; lev < last_coarsenableto_lev; ++lev)
             {
                 m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr),rb,coord,is_per);
-                
+
                 m_grids[0].push_back(a_grids[0]);
                 m_grids[0].back().coarsen(rr);
-            
+
                 m_dmap[0].push_back(a_dmap[0]);
-                
+
                 rr *= mg_coarsen_ratio;
             }
 
             for (int lev = last_coarsenableto_lev; lev < nmaxlev; ++lev)
             {
                 m_geom[0].emplace_back(domainboxes[lev],rb,coord,is_per);
-            
+
                 m_grids[0].emplace_back(boundboxes[lev]);
                 m_grids[0].back().maxSize(info.agg_grid_size);
 
@@ -465,7 +465,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             {
                 m_dmap[0].push_back(a_dmap[0]);
             }
-            
+
             ++(m_num_mg_levels[0]);
             rr *= mg_coarsen_ratio;
         }
@@ -498,12 +498,12 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                 IntVect rr_vec(rr/mg_coarsen_ratio);
 #if (AMREX_SPACEDIM == 2)
                 while ( (num_semicoarsening_level < info.max_semicoarsening_level + 1) &&
-			(m_num_mg_levels[0] < info.max_coarsening_level + 1) &&
+                        (m_num_mg_levels[0] < info.max_coarsening_level + 1) &&
                         (is_coarsenable_x || is_coarsenable_y ) )
 #endif
 #if (AMREX_SPACEDIM == 3)
                 while ( (num_semicoarsening_level < info.max_semicoarsening_level + 1) &&
-		        (m_num_mg_levels[0] < info.max_coarsening_level + 1) &&
+                        (m_num_mg_levels[0] < info.max_coarsening_level + 1) &&
                         (is_coarsenable_x || is_coarsenable_y || is_coarsenable_z) )
 #endif
                 {
@@ -757,7 +757,7 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
     std::sort(newgrp_ranks.begin(), newgrp_ranks.end());
     auto last = std::unique(newgrp_ranks.begin(), newgrp_ranks.end());
     newgrp_ranks.erase(last, newgrp_ranks.end());
-    
+
     if (flag_verbose_linop) {
         Print() << "MLLinOp::makeSubCommunicator(): called for " << newgrp_ranks.size() << " ranks" << std::endl;
     }
@@ -824,10 +824,10 @@ MLLinOp::makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
         if (dm[i].empty())
         {
             const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba[i]);
-            
+
             const int nprocs = ParallelContext::NProcsSub();
             AMREX_ASSERT(static_cast<int>(sfc.size()) == nprocs);
-            
+
             Vector<int> pmap(ba[i].size());
             for (int iproc = 0; iproc < nprocs; ++iproc) {
                 int grank = ParallelContext::local_to_global_rank(iproc);
@@ -858,7 +858,7 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
             const int nprocs = ParallelContext::NProcsSub();
             const auto& pmap_fine = dm[i-1].ProcessorMap();
             Vector<int> pmap(pmap_fine.size());
-            ParallelContext::global_to_local_rank(pmap.data(), pmap_fine.data(), pmap.size()); 
+            ParallelContext::global_to_local_rank(pmap.data(), pmap_fine.data(), pmap.size());
             if (strategy == 1) {
                 for (auto& x: pmap) {
                     x /= ratio;

@@ -919,8 +919,8 @@ public:
     * ParmParse object.
     */
     static void Initialize(int         argc,
-			   char**      argv,
-			   const char* parfile);
+                           char**      argv,
+                           const char* parfile);
     /**
     * \brief The destructor.  The internal static table will only be deleted
     * if there are no other ParmParse objects in existence.
@@ -977,7 +977,7 @@ struct ParmParse::PP_entry
     PP_entry (const std::string& name,
               const std::string& vals);
     PP_entry (const std::string& name,
-	      const Table& table);
+              const Table& table);
     PP_entry (const PP_entry& pe);
     PP_entry& operator= (const PP_entry& pe);
     ~PP_entry ();

@@ -42,7 +42,7 @@ namespace {
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
-    
+
     {
         BL_PROFILE("main()");
 
@@ -51,13 +51,13 @@ int main (int argc, char* argv[])
         Vector<Geometry> geom;
         Vector<BoxArray> grids;
         build_geometry_and_grids(geom, grids);
-        
+
         Vector<MultiFab> soln(nlevels);
         Vector<MultiFab> exact(nlevels);
         Vector<MultiFab> alpha(nlevels);
         Vector<MultiFab> beta(nlevels);
         Vector<MultiFab> rhs(nlevels);
-        
+
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
             DistributionMapping dm{grids[ilev]};
@@ -73,7 +73,7 @@ int main (int argc, char* argv[])
         for (auto& mf : soln) {
             mf.setVal(0.0); // initial guess
         }
-        
+
         solve_with_mlmg (geom, ref_ratio, soln, alpha, beta, rhs, exact);
 
 #ifdef AMREX_SOFT_PERF_COUNTERS
@@ -143,16 +143,16 @@ void build_geometry_and_grids (Vector<Geometry>& geom, Vector<BoxArray>& grids)
         nlevels = max_level + 1;
         geom.resize(nlevels);
         grids.resize(nlevels);
-        
+
         IntVect dom0_lo {IntVect::TheZeroVector()};
         IntVect dom0_hi {AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1)};
-        
+
         Box dom0 {dom0_lo, dom0_hi};
         BoxArray ba0{dom0};
-        
+
         grids[0] = ba0;
         grids[0].maxSize(max_grid_size);
-        
+
         for (int ilev=1, n=grids.size(); ilev < n; ++ilev)
         {
             ba0.grow(-n_cell/4);
@@ -161,11 +161,11 @@ void build_geometry_and_grids (Vector<Geometry>& geom, Vector<BoxArray>& grids)
             grids[ilev].maxSize(max_grid_size);
         }
     }
-    
+
     std::array<Real,AMREX_SPACEDIM> prob_lo{AMREX_D_DECL(0.,0.,0.)};
     std::array<Real,AMREX_SPACEDIM> prob_hi{AMREX_D_DECL(1.,1.,1.)};
     RealBox real_box{prob_lo, prob_hi};
-    
+
     const int coord = 0;  // Cartesian coordinates
     std::array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
     if (prob::bc_type == MLLinOp::BCType::Periodic)
@@ -176,7 +176,7 @@ void build_geometry_and_grids (Vector<Geometry>& geom, Vector<BoxArray>& grids)
     IntVect dom0_lo {IntVect::TheZeroVector()};
     IntVect dom0_hi {AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1)};
     Box dom0 {dom0_lo, dom0_hi};
-    
+
     geom[0].define(dom0, &real_box, coord, is_periodic.data());
     for (int ilev=1, n=grids.size(); ilev < n; ++ilev)
     {
@@ -201,7 +201,7 @@ readBoxList (const std::string& file, Box& domain)
         amrex::Error(msg.c_str());
     }
     boxspec >> domain;
-    
+
     int numbox = 0;
     boxspec >> numbox;
 
@@ -210,7 +210,7 @@ readBoxList (const std::string& file, Box& domain)
         Box tmpbox;
         boxspec >> tmpbox;
         if( !domain.contains(tmpbox) )
-	{
+        {
             std::cerr << "readBoxList: bogus box " << tmpbox << '\n';
             exit(1);
         }

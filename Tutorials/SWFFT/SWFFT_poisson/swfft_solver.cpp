@@ -21,14 +21,14 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
     amrex::Print() << "BA " << ba << std::endl;
     const DistributionMapping& dm = soln.DistributionMap();
 
-    if (rhs.nGrow() != 0 || soln.nGrow() != 0) 
+    if (rhs.nGrow() != 0 || soln.nGrow() != 0)
        amrex::Error("Current implementation requires that both rhs and soln have no ghost cells");
 
     // Define pi and (two pi) here
     Real  pi = 4 * std::atan(1.0);
     Real tpi = 2 * pi;
 
-    // We assume that all grids have the same size hence 
+    // We assume that all grids have the same size hence
     // we have the same nx,ny,nz on all ranks
     int nx = ba[0].size()[0];
     int ny = ba[0].size()[1];
@@ -40,7 +40,7 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
     int nby = domain.length(1) / ny;
     int nbz = domain.length(2) / nz;
     int nboxes = nbx * nby * nbz;
-    if (nboxes != ba.size()) 
+    if (nboxes != ba.size())
        amrex::Error("NBOXES NOT COMPUTED CORRECTLY");
     amrex::Print() << "Number of boxes:\t" << nboxes << std::endl;
 
@@ -64,7 +64,7 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
 
         rank_mapping[local_index] = dmap[ib];
         if (verbose)
-          amrex::Print() << "LOADING RANK NUMBER " << dmap[ib] << " FOR GRID NUMBER " << ib 
+          amrex::Print() << "LOADING RANK NUMBER " << dmap[ib] << " FOR GRID NUMBER " << ib
                          << " WHICH IS LOCAL NUMBER " << local_index << std::endl;
     }
 
@@ -79,13 +79,13 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
     int     n[3] = {domain.length(2), domain.length(1), domain.length(0)};
     hacc::Distribution d(MPI_COMM_WORLD,n,Ndims,&rank_mapping[0]);
     hacc::Dfft dfft(d);
-    
+
     for (MFIter mfi(rhs,false); mfi.isValid(); ++mfi)
     {
        int gid = mfi.index();
 
        size_t local_size  = dfft.local_size();
-   
+
        std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > a;
        std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > b;
 
@@ -106,7 +106,7 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
 
            complex_t temp(rhs[mfi].dataPtr()[local_indx],0.);
            a[local_indx] = temp;
-      	   local_indx++;
+           local_indx++;
 
          }
        }
@@ -126,9 +126,9 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
     const int *global_ng = dfft.global_ng();
 
     for(size_t i=0; i<(size_t)local_ng[0]; i++) {
-     size_t global_i = local_ng[0]*self[0] + i; 
+     size_t global_i = local_ng[0]*self[0] + i;
 
-     for(size_t j=0; j<(size_t)local_ng[1]; j++) { 
+     for(size_t j=0; j<(size_t)local_ng[1]; j++) {
       size_t global_j = local_ng[1]*self[1] + j;
 
       for(size_t k=0; k<(size_t)local_ng[2]; k++) {
@@ -144,7 +144,7 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
 
            a[local_indx] = a[local_indx] / fac;
         }
-	local_indx++;
+        local_indx++;
 
       }
      }
@@ -165,7 +165,7 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
 
            // Divide by 2 pi N
            soln[mfi].dataPtr()[local_indx] = fac * std::real(a[local_indx]);
-      	   local_indx++;
+           local_indx++;
 
          }
         }

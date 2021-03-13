@@ -16,36 +16,36 @@
 // Determine the volume-averaged mean for an AMR data.
 void
 ComputeAmrDataMeanVar  (AmrData&     amrData,
-			Vector<Real>& mean,
-			Vector<Real>& variance,
-			int          sComp,
-			int          nComp,
-			bool         verbose)
+                        Vector<Real>& mean,
+                        Vector<Real>& variance,
+                        int          sComp,
+                        int          nComp,
+                        bool         verbose)
 {
     std::string oFile, iFileDir, oFileDir;
-    
+
     if (verbose)
     {
       ParmParse pp;
       pp.query("outfile", oFile);
       if (oFile.empty())
-	amrex::Abort("You must specify `outfile' if run in verbose mode");
+        amrex::Abort("You must specify `outfile' if run in verbose mode");
     }
-    
+
     int finestLevel = amrData.FinestLevel();
 
     mean.clear(); mean.resize(nComp,0.0);
     variance.clear(); variance.resize(nComp,0.0);
-    
+
     Vector<int> refMult(finestLevel + 1, 1);
     for (int iLevel=finestLevel-1; iLevel>=0; --iLevel)
     {
       int ref_ratio = amrData.RefRatio()[iLevel];
       int vol = 1;
       for (int i=0; i<BL_SPACEDIM; ++i)
-	vol *= ref_ratio;
+        vol *= ref_ratio;
       for (int jLevel=0; jLevel<=iLevel; ++jLevel)
-	refMult[jLevel] *= vol;
+        refMult[jLevel] *= vol;
     }
 
     //
@@ -53,94 +53,94 @@ ComputeAmrDataMeanVar  (AmrData&     amrData,
     //
     long total_volume = 0;
     Vector<MultiFab*> error(finestLevel+1);
-    
+
     for (int iLevel = finestLevel; iLevel>=0; --iLevel)
     {
       const BoxArray& ba = amrData.boxArray(iLevel);
-      
+
       error[iLevel] = new MultiFab(ba, nComp, 0);
       for (int iComp=0; iComp<nComp; ++iComp) {
-	MultiFab& data = amrData.GetGrids(iLevel,iComp);
-	error[iLevel]->copy(data,0,iComp+sComp,1);
+        MultiFab& data = amrData.GetGrids(iLevel,iComp);
+        error[iLevel]->copy(data,0,iComp+sComp,1);
       }
 
       // Zero out the error covered by fine grid
       long covered_volume = 0;
-      if (iLevel != finestLevel) 
+      if (iLevel != finestLevel)
       {
-	int ref_ratio = amrData.RefRatio()[iLevel];	    
-	BoxArray baF  = ::BoxArray(amrData.boxArray(iLevel+1)).coarsen(ref_ratio);
-	for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
-	{
-	  for (int iGrid=0; iGrid<baF.size(); ++iGrid)
-	  {
-	    Box ovlp = baF[iGrid] & mfi.validbox();
-	    if (ovlp.ok())
-	    {
-	      (*error[iLevel])[mfi].setVal(0.0, ovlp, 0, nComp);
-	      covered_volume += ovlp.numPts()*refMult[iLevel];
-	    }
-	  }
-	}
-	ParallelDescriptor::ReduceLongSum(covered_volume);
+        int ref_ratio = amrData.RefRatio()[iLevel];
+        BoxArray baF  = ::BoxArray(amrData.boxArray(iLevel+1)).coarsen(ref_ratio);
+        for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
+        {
+          for (int iGrid=0; iGrid<baF.size(); ++iGrid)
+          {
+            Box ovlp = baF[iGrid] & mfi.validbox();
+            if (ovlp.ok())
+            {
+              (*error[iLevel])[mfi].setVal(0.0, ovlp, 0, nComp);
+              covered_volume += ovlp.numPts()*refMult[iLevel];
+            }
+          }
+        }
+        ParallelDescriptor::ReduceLongSum(covered_volume);
       }
 
       // Compute volume at this level
       Real level_volume = 0.0;
       for (int iGrid=0; iGrid<ba.size(); ++iGrid)
-	level_volume += ba[iGrid].numPts()*refMult[iLevel];
+        level_volume += ba[iGrid].numPts()*refMult[iLevel];
       level_volume -= covered_volume;
-      
+
       if (level_volume > 0.0)
       {
-	// Convert volume in numPts to volume in number of fine cells
-	total_volume += long(level_volume);
-	
-	// Get norms at this level
-	Vector<Real> n1(nComp,0.0), n2(nComp,0.0);
+        // Convert volume in numPts to volume in number of fine cells
+        total_volume += long(level_volume);
 
-	for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
-	{
-	  FArrayBox& fab = (*error[iLevel])[mfi];
-	  const Box& fabbox = mfi.validbox();
+        // Get norms at this level
+        Vector<Real> n1(nComp,0.0), n2(nComp,0.0);
 
-	  FArrayBox vwFab(fabbox,nComp);
-	  FArrayBox vwFabSqrd(fabbox,nComp);
-	  
-	  // sum
-	  vwFab.copy(fab,0,0,nComp);
-	  vwFab.mult(refMult[iLevel]);
-	  
-	  //sum-squared
-	  vwFabSqrd.copy(fab,0,0,nComp);
-	  vwFabSqrd.mult(fab,0,0,nComp);
-	  vwFabSqrd.mult(refMult[iLevel]);
-	  
-	  for (int iComp=0; iComp<nComp+sComp; ++iComp)
-	  {
-	    n1[iComp] += vwFab.norm(fabbox, 1, iComp, 1);
-	    n2[iComp] += vwFabSqrd.norm(fabbox, 1, iComp, 1);
-	  }
-	}
-	    
-	// Do necessary communication, then blend this level's norms
-	//  in with the running global values
-	for (int iComp=0; iComp<nComp+sComp; ++iComp)
-	{
-	  ParallelDescriptor::ReduceRealSum(n1[iComp]);
-	  ParallelDescriptor::ReduceRealSum(n2[iComp]);
-		
-	  mean[iComp] += n1[iComp];
-	  variance[iComp] += n2[iComp];
-	}
+        for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
+        {
+          FArrayBox& fab = (*error[iLevel])[mfi];
+          const Box& fabbox = mfi.validbox();
+
+          FArrayBox vwFab(fabbox,nComp);
+          FArrayBox vwFabSqrd(fabbox,nComp);
+
+          // sum
+          vwFab.copy(fab,0,0,nComp);
+          vwFab.mult(refMult[iLevel]);
+
+          //sum-squared
+          vwFabSqrd.copy(fab,0,0,nComp);
+          vwFabSqrd.mult(fab,0,0,nComp);
+          vwFabSqrd.mult(refMult[iLevel]);
+
+          for (int iComp=0; iComp<nComp+sComp; ++iComp)
+          {
+            n1[iComp] += vwFab.norm(fabbox, 1, iComp, 1);
+            n2[iComp] += vwFabSqrd.norm(fabbox, 1, iComp, 1);
+          }
+        }
+
+        // Do necessary communication, then blend this level's norms
+        //  in with the running global values
+        for (int iComp=0; iComp<nComp+sComp; ++iComp)
+        {
+          ParallelDescriptor::ReduceRealSum(n1[iComp]);
+          ParallelDescriptor::ReduceRealSum(n2[iComp]);
+
+          mean[iComp] += n1[iComp];
+          variance[iComp] += n2[iComp];
+        }
       }
     }
     if (ParallelDescriptor::IOProcessor()) {
       for (int iComp=0; iComp<nComp+sComp; ++iComp)
       {
-	mean[iComp] /= total_volume;
-	variance[iComp] = variance[iComp]/total_volume - 
-	                  mean[iComp]*mean[iComp];
+        mean[iComp] /= total_volume;
+        variance[iComp] = variance[iComp]/total_volume -
+                          mean[iComp]*mean[iComp];
       }
     }
 
@@ -161,13 +161,13 @@ ComputeAmrDataMeanVar  (AmrData&     amrData,
 // this is not really correct.
 void
 ComputeAmrDataList  (AmrData&         amrData,
-		     Vector<MultiFab*> mean,
-		     Vector<MultiFab*> variance,
-		     int              sComp,
-		     int              nComp)
+                     Vector<MultiFab*> mean,
+                     Vector<MultiFab*> variance,
+                     int              sComp,
+                     int              nComp)
 {
     std::string oFile, iFileDir, oFileDir;
-    
+
     int finestLevel = amrData.FinestLevel();
 
     //
@@ -177,41 +177,41 @@ ComputeAmrDataList  (AmrData&         amrData,
     {
         const BoxArray& ba = amrData.boxArray(iLevel);
 
-	MultiFab error(ba, nComp, 0);
-	for (int iComp=0; iComp<nComp; ++iComp)
-	{
-	    MultiFab& data = amrData.GetGrids(iLevel,iComp);
-	    error.copy(data,0,iComp+sComp,1);
-	}
+        MultiFab error(ba, nComp, 0);
+        for (int iComp=0; iComp<nComp; ++iComp)
+        {
+            MultiFab& data = amrData.GetGrids(iLevel,iComp);
+            error.copy(data,0,iComp+sComp,1);
+        }
 
-	for (MFIter mfi(error); mfi.isValid(); ++mfi)
-	{
-	  FArrayBox& fab = error[mfi];
-	  const Box& fabbox = mfi.validbox();
-	  
-	  FArrayBox vwFab(fabbox,nComp);
-	  FArrayBox vwFabSqrd(fabbox,nComp);
-	  
-	  // sum
-	  vwFab.copy(fab,0,0,nComp);
-	  
-	  //sum-squared
-	  vwFabSqrd.copy(fab,0,0,nComp);
-	  vwFabSqrd.mult(fab,0,0,nComp);
-		
-	  (*mean[iLevel])[mfi].plus(vwFab,0,0,1);
-	  (*variance[iLevel])[mfi].plus(vwFabSqrd,0,0,1);
-	}	    
+        for (MFIter mfi(error); mfi.isValid(); ++mfi)
+        {
+          FArrayBox& fab = error[mfi];
+          const Box& fabbox = mfi.validbox();
+
+          FArrayBox vwFab(fabbox,nComp);
+          FArrayBox vwFabSqrd(fabbox,nComp);
+
+          // sum
+          vwFab.copy(fab,0,0,nComp);
+
+          //sum-squared
+          vwFabSqrd.copy(fab,0,0,nComp);
+          vwFabSqrd.mult(fab,0,0,nComp);
+
+          (*mean[iLevel])[mfi].plus(vwFab,0,0,1);
+          (*variance[iLevel])[mfi].plus(vwFabSqrd,0,0,1);
+        }
     }
 }
 
 // Determine the mean and variance for an AMR data.
 void
 ComputeAmrDataMeanVar (AmrData&           amrData,
-		       Vector<std::string> cNames,
-		       Vector<BoxArray>    bas,
-		       Vector<Real>&       mean,
-		       Vector<Real>&       variance)
+                       Vector<std::string> cNames,
+                       Vector<BoxArray>    bas,
+                       Vector<Real>&       mean,
+                       Vector<Real>&       variance)
 {
     std::string oFile, iFileDir, oFileDir;
 
@@ -221,10 +221,10 @@ ComputeAmrDataMeanVar (AmrData&           amrData,
     Vector<int> refMult(finestLevel + 1, 1);
     for (int iLevel=finestLevel-1; iLevel>=0; --iLevel)
     {
-	int ref_ratio = amrData.RefRatio()[iLevel];
-	int area = ref_ratio;
-	for (int jLevel=0; jLevel<=iLevel; ++jLevel)
-	    refMult[jLevel] *= area;
+        int ref_ratio = amrData.RefRatio()[iLevel];
+        int area = ref_ratio;
+        for (int jLevel=0; jLevel<=iLevel; ++jLevel)
+            refMult[jLevel] *= area;
     }
 
     //
@@ -235,7 +235,7 @@ ComputeAmrDataMeanVar (AmrData&           amrData,
     for (int i=0; i<nComp; ++i)
       destFillComps[i] = i;
     for (int iLevel = finestLevel; iLevel>=0; --iLevel)
-    { 
+    {
       MultiFab mf(bas[iLevel],nComp,0,Fab_allocate);
       amrData.FillVar(mf,iLevel,cNames,destFillComps);
 
@@ -243,87 +243,87 @@ ComputeAmrDataMeanVar (AmrData&           amrData,
       long covered_volume = 0;
       if (iLevel != finestLevel)
       {
-	int ref_ratio = amrData.RefRatio()[iLevel];	    
-	BoxArray baF  = BoxArray(bas[iLevel+1]).coarsen(ref_ratio);
-	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	{
-	  for (int iGrid=0; iGrid<baF.size(); ++iGrid)
-	  {
-	    Box ovlp = baF[iGrid] & mfi.validbox();
-	    if (ovlp.ok())
-	    {
-	      mf[mfi].setVal(0.0, ovlp, 0, nComp);
-	      covered_volume += ovlp.numPts()*refMult[iLevel];
-	    }
-	  }
-	}
-	ParallelDescriptor::ReduceLongSum(covered_volume);
+        int ref_ratio = amrData.RefRatio()[iLevel];
+        BoxArray baF  = BoxArray(bas[iLevel+1]).coarsen(ref_ratio);
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+          for (int iGrid=0; iGrid<baF.size(); ++iGrid)
+          {
+            Box ovlp = baF[iGrid] & mfi.validbox();
+            if (ovlp.ok())
+            {
+              mf[mfi].setVal(0.0, ovlp, 0, nComp);
+              covered_volume += ovlp.numPts()*refMult[iLevel];
+            }
+          }
+        }
+        ParallelDescriptor::ReduceLongSum(covered_volume);
       }
 
 
       // Compute volume at this level
       Real level_volume = 0.0;
       for (int iGrid=0; iGrid<bas.size(); ++iGrid)
-	level_volume += bas[iGrid].numPts()*refMult[iLevel];
+        level_volume += bas[iGrid].numPts()*refMult[iLevel];
       level_volume -= covered_volume;
 
       if (level_volume > 0.0)
       {
-	// Convert volume in numPts to volume in number of fine cells
-	total_volume += long(level_volume);
-	    
-	// Get norms at this level
-	Vector<Real> n1(nComp,0.0), n2(nComp,0.0);
+        // Convert volume in numPts to volume in number of fine cells
+        total_volume += long(level_volume);
 
-	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	{
-	  FArrayBox& fab = mf[mfi];
-	  const Box& fabbox = mfi.validbox();
+        // Get norms at this level
+        Vector<Real> n1(nComp,0.0), n2(nComp,0.0);
 
-	  FArrayBox vwFab(fabbox,nComp);
-	  FArrayBox vwFabSqrd(fabbox,nComp);
-		
-	  // sum
-	  vwFab.copy(fab,0,0,nComp);
-	  vwFab.mult(refMult[iLevel]);
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+          FArrayBox& fab = mf[mfi];
+          const Box& fabbox = mfi.validbox();
 
-	  //sum-squared
-	  vwFabSqrd.copy(fab,0,0,nComp);
-	  vwFabSqrd.mult(fab,0,0,nComp);
-	  vwFabSqrd.mult(refMult[iLevel]);
-		
-	  for (int iComp=0; iComp<nComp; ++iComp)
-	  {
-	    n1[iComp] += vwFab.norm(fabbox, 1, iComp, 1);
-	    n2[iComp] += vwFabSqrd.norm(fabbox, 1, iComp, 1);
-	  }
-	}
+          FArrayBox vwFab(fabbox,nComp);
+          FArrayBox vwFabSqrd(fabbox,nComp);
 
-	// Do necessary communication, then blend this level's norms
-	//  in with the running global values
-	const int IOProc = ParallelDescriptor::IOProcessorNumber();
-	ParallelDescriptor::ReduceRealSum(n1.dataPtr(),nComp,IOProc);
-	ParallelDescriptor::ReduceRealSum(n2.dataPtr(),nComp,IOProc);
+          // sum
+          vwFab.copy(fab,0,0,nComp);
+          vwFab.mult(refMult[iLevel]);
 
-	if (ParallelDescriptor::IOProcessor()) {
-	  for (int iComp=0; iComp<nComp; iComp++) {
-	    mean[iComp] += n1[iComp];
-	    variance[iComp] += n2[iComp];
-	  }
-	}
+          //sum-squared
+          vwFabSqrd.copy(fab,0,0,nComp);
+          vwFabSqrd.mult(fab,0,0,nComp);
+          vwFabSqrd.mult(refMult[iLevel]);
+
+          for (int iComp=0; iComp<nComp; ++iComp)
+          {
+            n1[iComp] += vwFab.norm(fabbox, 1, iComp, 1);
+            n2[iComp] += vwFabSqrd.norm(fabbox, 1, iComp, 1);
+          }
+        }
+
+        // Do necessary communication, then blend this level's norms
+        //  in with the running global values
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+        ParallelDescriptor::ReduceRealSum(n1.dataPtr(),nComp,IOProc);
+        ParallelDescriptor::ReduceRealSum(n2.dataPtr(),nComp,IOProc);
+
+        if (ParallelDescriptor::IOProcessor()) {
+          for (int iComp=0; iComp<nComp; iComp++) {
+            mean[iComp] += n1[iComp];
+            variance[iComp] += n2[iComp];
+          }
+        }
       }
     }
 
     if (ParallelDescriptor::IOProcessor()) {
       for (int iComp=0; iComp<nComp; ++iComp)
       {
-	mean[iComp] /= total_volume;
-	variance[iComp] = variance[iComp]/total_volume - 
-	  mean[iComp]*mean[iComp];
+        mean[iComp] /= total_volume;
+        variance[iComp] = variance[iComp]/total_volume -
+          mean[iComp]*mean[iComp];
 
-	std::cout << " comp= " << iComp 
-	          << " mean = " << mean[iComp] 
-	          << " variance = " << variance[iComp] << std::endl;
+        std::cout << " comp= " << iComp
+                  << " mean = " << mean[iComp]
+                  << " variance = " << variance[iComp] << std::endl;
 
       }
     }
@@ -333,10 +333,10 @@ ComputeAmrDataMeanVar (AmrData&           amrData,
 // Determine the mean and variance of a multifab.
 void
 ComputeMeanVarMF (MultiFab&          mf,
-		  Vector<Real>&       mean,
-		  Vector<Real>&       variance)
+                  Vector<Real>&       mean,
+                  Vector<Real>&       variance)
 {
-    
+
     int nComp = mf.nComp();
     BoxArray  ba = mf.boxArray();
     //
@@ -344,7 +344,7 @@ ComputeMeanVarMF (MultiFab&          mf,
     //
     long total_volume = 0;
     for (int iGrid=0; iGrid<ba.size(); ++iGrid)
-	total_volume += ba[iGrid].numPts();
+        total_volume += ba[iGrid].numPts();
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
@@ -353,18 +353,18 @@ ComputeMeanVarMF (MultiFab&          mf,
 
       FArrayBox vwFab(fabbox,nComp);
       FArrayBox vwFabSqrd(fabbox,nComp);
-		
+
       // sum
       vwFab.copy(fab,0,0,nComp);
-      
+
       //sum-squared
       vwFabSqrd.copy(fab,0,0,nComp);
       vwFabSqrd.mult(fab,0,0,nComp);
-		
+
       for (int iComp=0; iComp<nComp; ++iComp)
       {
-	mean[iComp] += vwFab.norm(fabbox, 1, iComp, 1);
-	variance[iComp] += vwFabSqrd.norm(fabbox, 1, iComp, 1);
+        mean[iComp] += vwFab.norm(fabbox, 1, iComp, 1);
+        variance[iComp] += vwFabSqrd.norm(fabbox, 1, iComp, 1);
       }
     }
 
@@ -377,13 +377,13 @@ ComputeMeanVarMF (MultiFab&          mf,
     if (ParallelDescriptor::IOProcessor()) {
       for (int iComp=0; iComp<nComp; ++iComp)
       {
-	mean[iComp] /= total_volume;
-	variance[iComp] = variance[iComp]/total_volume - 
-	  mean[iComp]*mean[iComp];
+        mean[iComp] /= total_volume;
+        variance[iComp] = variance[iComp]/total_volume -
+          mean[iComp]*mean[iComp];
 
-	std::cout << " comp= " << iComp 
-	          << " mean = " << mean[iComp] 
-	          << " variance = " << variance[iComp] << std::endl;
+        std::cout << " comp= " << iComp
+                  << " mean = " << mean[iComp]
+                  << " variance = " << variance[iComp] << std::endl;
 
       }
     }
@@ -392,10 +392,10 @@ ComputeMeanVarMF (MultiFab&          mf,
 // determine the pdf of an AMR data.
 void
 ComputeAmrDataPDF (AmrData&           amrData,
-		   Real**             icount,
-		   int                nBin,
-		   Vector<std::string> cNames,
-		   Vector<BoxArray>    bas)
+                   Real**             icount,
+                   int                nBin,
+                   Vector<std::string> cNames,
+                   Vector<BoxArray>    bas)
 {
     std::string oFile, iFileDir, oFileDir;
 
@@ -403,32 +403,32 @@ ComputeAmrDataPDF (AmrData&           amrData,
     int nComp = cNames.size();
     for (int iComp=0; iComp<nComp; iComp++) {
       for (int iBin=0; iBin<nBin; iBin++){
-	icount[iComp][iBin] = 0;
+        icount[iComp][iBin] = 0;
       }
     }
 
     // determine min and max
     Vector<Real> smin(nComp,1.e20), smax(nComp,-1.e20);
-    for (int iComp = 0; iComp < nComp; iComp++) 
-      amrData.MinMax(amrData.ProbDomain()[finestLevel], 
-		     cNames[iComp], finestLevel, smin[iComp], smax[iComp]);
-   
+    for (int iComp = 0; iComp < nComp; iComp++)
+      amrData.MinMax(amrData.ProbDomain()[finestLevel],
+                     cNames[iComp], finestLevel, smin[iComp], smax[iComp]);
+
     Real scount[nComp][nBin+1];
     for (int iComp=0; iComp < nComp; iComp++) {
       Real ds = (smax[iComp]-smin[iComp])/nBin;
       scount[iComp][0] = smin[iComp];
       for (int iBin=1;iBin <=nBin; iBin++) {
-	scount[iComp][iBin] = scount[iComp][iBin-1]+ds;
+        scount[iComp][iBin] = scount[iComp][iBin-1]+ds;
       }
     }
 
     Vector<int> refMult(finestLevel + 1, 1);
     for (int iLevel=finestLevel-1; iLevel>=0; --iLevel)
     {
-	int ref_ratio = amrData.RefRatio()[iLevel];
-	int area = ref_ratio;
-	for (int jLevel=0; jLevel<=iLevel; ++jLevel)
-	    refMult[jLevel] *= area;
+        int ref_ratio = amrData.RefRatio()[iLevel];
+        int area = ref_ratio;
+        for (int jLevel=0; jLevel<=iLevel; ++jLevel)
+            refMult[jLevel] *= area;
     }
 
     //
@@ -439,7 +439,7 @@ ComputeAmrDataPDF (AmrData&           amrData,
     for (int i=0; i<nComp; ++i)
       destFillComps[i] = i;
     for (int iLevel = finestLevel; iLevel>=0; --iLevel)
-    { 
+    {
       MultiFab mf(bas[iLevel],nComp,0,Fab_allocate);
       amrData.FillVar(mf,iLevel,cNames,destFillComps);
 
@@ -447,93 +447,93 @@ ComputeAmrDataPDF (AmrData&           amrData,
       long covered_volume = 0;
       if (iLevel != finestLevel)
       {
-	int ref_ratio = amrData.RefRatio()[iLevel];	    
-	BoxArray baF  = BoxArray(bas[iLevel+1]).coarsen(ref_ratio);
-	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	{
-	  for (int iGrid=0; iGrid<baF.size(); ++iGrid)
-	  {
-	    Box ovlp = baF[iGrid] & mfi.validbox();
-	    if (ovlp.ok())
-	    {
-	      mf[mfi].setVal(0.0, ovlp, 0, nComp);
-	      covered_volume += ovlp.numPts()*refMult[iLevel];
-	    }
-	  }
-	}
-	ParallelDescriptor::ReduceLongSum(covered_volume);
+        int ref_ratio = amrData.RefRatio()[iLevel];
+        BoxArray baF  = BoxArray(bas[iLevel+1]).coarsen(ref_ratio);
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+          for (int iGrid=0; iGrid<baF.size(); ++iGrid)
+          {
+            Box ovlp = baF[iGrid] & mfi.validbox();
+            if (ovlp.ok())
+            {
+              mf[mfi].setVal(0.0, ovlp, 0, nComp);
+              covered_volume += ovlp.numPts()*refMult[iLevel];
+            }
+          }
+        }
+        ParallelDescriptor::ReduceLongSum(covered_volume);
       }
 
 
       // Compute volume at this level
       Real level_volume = 0.0;
       for (int iGrid=0; iGrid<bas.size(); ++iGrid)
-	level_volume += bas[iGrid].numPts()*refMult[iLevel];
+        level_volume += bas[iGrid].numPts()*refMult[iLevel];
       level_volume -= covered_volume;
 
       if (level_volume > 0.0)
       {
-	// Convert volume in numPts to volume in number of fine cells
-	total_volume += long(level_volume);
-	    
-	// Get counts at this level
-	int n1[nComp][nBin];
-	for (int iComp=0; iComp<nComp; iComp++)
-	  for (int iBin=0; iBin<nBin; iBin++)
-	    n1[iComp][iBin] = 0;
+        // Convert volume in numPts to volume in number of fine cells
+        total_volume += long(level_volume);
 
-	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	{
-	  const int* lo = mf[mfi].loVect();
-	  const int* hi = mf[mfi].hiVect();
+        // Get counts at this level
+        int n1[nComp][nBin];
+        for (int iComp=0; iComp<nComp; iComp++)
+          for (int iBin=0; iBin<nBin; iBin++)
+            n1[iComp][iBin] = 0;
 
-	  Real tmp;
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+          const int* lo = mf[mfi].loVect();
+          const int* hi = mf[mfi].hiVect();
+
+          Real tmp;
 #if (BL_SPACEDIM == 2)
-	  for (int iy=lo[1]; iy<=hi[1]; iy++) {
-	    for (int ix=lo[0]; ix<=hi[0]; ix++) {
-	      for (int ic=0; ic<nComp; ic++) {
-		tmp = mf[mfi](IntVect(ix,iy),ic);
-		if (tmp != 0) {
-		  for (int ib=0; ib<nBin; ib++) {
-		    if (tmp >= scount[ic][ib] && tmp <  scount[ic][ib+1])
-		      n1[ic][ib] += refMult[iLevel];
-		  }
-		}
-	      }
-	    }
-	  }
-#else 
-	  for (int iz=lo[1]; iz<=hi[1]; iz++) {
-	    for (int iy=lo[1]; iy<=hi[1]; iy++) {
-	      for (int ix=lo[0]; ix<=hi[0]; ix++) {
-		for (int ic=0; ic<nComp; ic++) {
-		  tmp = mf[mfi](IntVect(ix,iy,iz),ic);
-		  if (tmp != 0) {
-		    for (int ib=0; ib<nBin; ib++) 
-		      if (tmp >= scount[ic][ib] && tmp < scount[ic][ib+1])
-			n1[ic][ib] += refMult[iLevel];
-		  }
-		}
-	      }
-	    }
-	  }
+          for (int iy=lo[1]; iy<=hi[1]; iy++) {
+            for (int ix=lo[0]; ix<=hi[0]; ix++) {
+              for (int ic=0; ic<nComp; ic++) {
+                tmp = mf[mfi](IntVect(ix,iy),ic);
+                if (tmp != 0) {
+                  for (int ib=0; ib<nBin; ib++) {
+                    if (tmp >= scount[ic][ib] && tmp <  scount[ic][ib+1])
+                      n1[ic][ib] += refMult[iLevel];
+                  }
+                }
+              }
+            }
+          }
+#else
+          for (int iz=lo[1]; iz<=hi[1]; iz++) {
+            for (int iy=lo[1]; iy<=hi[1]; iy++) {
+              for (int ix=lo[0]; ix<=hi[0]; ix++) {
+                for (int ic=0; ic<nComp; ic++) {
+                  tmp = mf[mfi](IntVect(ix,iy,iz),ic);
+                  if (tmp != 0) {
+                    for (int ib=0; ib<nBin; ib++)
+                      if (tmp >= scount[ic][ib] && tmp < scount[ic][ib+1])
+                        n1[ic][ib] += refMult[iLevel];
+                  }
+                }
+              }
+            }
+          }
 #endif
-	}
+        }
 
-	// Do necessary communication, then blend this level's norms
-	//  in with the running global values
-	for (int iComp=0; iComp<nComp; iComp++) {
-	  for (int iBin=0; iBin<nBin; iBin++) {
-	    ParallelDescriptor::ReduceIntSum(n1[iComp][iBin]);
-	    icount[iComp][iBin] += n1[iComp][iBin];
-	  }
-	}
+        // Do necessary communication, then blend this level's norms
+        //  in with the running global values
+        for (int iComp=0; iComp<nComp; iComp++) {
+          for (int iBin=0; iBin<nBin; iBin++) {
+            ParallelDescriptor::ReduceIntSum(n1[iComp][iBin]);
+            icount[iComp][iBin] += n1[iComp][iBin];
+          }
+        }
       }
     }
     if (0) {
     for (int iComp=0; iComp<nComp; ++iComp) {
       for (int iBin=0; iBin<nBin; iBin++) {
-	icount[iComp][iBin] /= total_volume;    
+        icount[iComp][iBin] /= total_volume;
       }
     }
     }
@@ -543,34 +543,34 @@ ComputeAmrDataPDF (AmrData&           amrData,
 // determine the pdf of a portion of a plotfile
 void
 ComputeAmrDataPDF (AmrData&     amrData,
-		   Real**       icount,
-		   int          nBin,
-		   Vector<std::string> cNames)
+                   Real**       icount,
+                   int          nBin,
+                   Vector<std::string> cNames)
 {
     std::string oFile, iFileDir, oFileDir;
-        
+
     int finestLevel = amrData.FinestLevel();
     int nComp = cNames.size();
 
     for (int iComp=0; iComp<nComp; iComp++) {
       for (int iBin=0; iBin<nBin; iBin++){
-	icount[iComp][iBin] = 0;
+        icount[iComp][iBin] = 0;
       }
     }
 
     // determine min and max
     Vector<Real> smin(nComp,1.e20), smax(nComp,-1.e20);
     Vector<std::string>  VarNames = amrData.PlotVarNames();
-    for (int iComp = 0; iComp < nComp; iComp++) 
-      amrData.MinMax(amrData.ProbDomain()[finestLevel], 
-		     VarNames[iComp], finestLevel, smin[iComp], smax[iComp]);
-   
+    for (int iComp = 0; iComp < nComp; iComp++)
+      amrData.MinMax(amrData.ProbDomain()[finestLevel],
+                     VarNames[iComp], finestLevel, smin[iComp], smax[iComp]);
+
     Real scount[nComp][nBin+1];
     for (int iComp=0; iComp < nComp; iComp++) {
       Real ds = (smax[iComp]-smin[iComp])/nBin;
       scount[iComp][0] = smin[iComp];
       for (int iBin=1;iBin <=nBin; iBin++) {
-	scount[iComp][iBin] = scount[iComp][iBin-1]+ds;
+        scount[iComp][iBin] = scount[iComp][iBin-1]+ds;
       }
     }
 
@@ -580,7 +580,7 @@ ComputeAmrDataPDF (AmrData&     amrData,
       int ref_ratio = amrData.RefRatio()[iLevel];
       int area = ref_ratio;
       for (int jLevel=0; jLevel<=iLevel; ++jLevel)
-	refMult[jLevel] *= area;
+        refMult[jLevel] *= area;
     }
 
     //
@@ -590,7 +590,7 @@ ComputeAmrDataPDF (AmrData&     amrData,
     Vector<int> destFillComps(nComp);
     for (int i=0; i<nComp; ++i)
       destFillComps[i] = i;
-    
+
     for (int iLevel = finestLevel; iLevel>=0; --iLevel)
     {
       const BoxArray& ba = amrData.boxArray(iLevel);
@@ -601,93 +601,93 @@ ComputeAmrDataPDF (AmrData&     amrData,
       long covered_volume = 0;
       if (iLevel != finestLevel)
       {
-	int ref_ratio = amrData.RefRatio()[iLevel];	    
-	BoxArray baF = BoxArray(ba[iLevel+1]).coarsen(ref_ratio);
-	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	{
-	  for (int iGrid=0; iGrid<baF.size(); ++iGrid)
-	  {
-	    Box ovlp = baF[iGrid] & mfi.validbox();
-	    if (ovlp.ok())
-	    {
-	      mf[mfi].setVal(0.0, ovlp, 0, nComp);
-	      covered_volume += ovlp.numPts()*refMult[iLevel];
-	    }
-	  }
-	}
-	ParallelDescriptor::ReduceLongSum(covered_volume);
+        int ref_ratio = amrData.RefRatio()[iLevel];
+        BoxArray baF = BoxArray(ba[iLevel+1]).coarsen(ref_ratio);
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+          for (int iGrid=0; iGrid<baF.size(); ++iGrid)
+          {
+            Box ovlp = baF[iGrid] & mfi.validbox();
+            if (ovlp.ok())
+            {
+              mf[mfi].setVal(0.0, ovlp, 0, nComp);
+              covered_volume += ovlp.numPts()*refMult[iLevel];
+            }
+          }
+        }
+        ParallelDescriptor::ReduceLongSum(covered_volume);
       }
 
       // Compute volume at this level
       Real level_volume = 0.0;
       for (int iGrid=0; iGrid<ba.size(); ++iGrid)
-	level_volume += ba[iGrid].numPts()*refMult[iLevel];
+        level_volume += ba[iGrid].numPts()*refMult[iLevel];
       level_volume -= covered_volume;
-      
+
       if (level_volume > 0.0)
       {
-	// Convert volume in numPts to volume in number of fine cells
-	total_volume += long(level_volume);
-	    
-	// Get counts at this level
-	int n1[nComp][nBin];
-	for (int iComp=0; iComp<nComp; iComp++)
-	  for (int iBin=0; iBin<nBin; iBin++)
-	    n1[iComp][iBin] = 0;
+        // Convert volume in numPts to volume in number of fine cells
+        total_volume += long(level_volume);
 
-	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	{
-	  const int* lo = mf[mfi].loVect();
-	  const int* hi = mf[mfi].hiVect();
-	  
-	  Real tmp;
+        // Get counts at this level
+        int n1[nComp][nBin];
+        for (int iComp=0; iComp<nComp; iComp++)
+          for (int iBin=0; iBin<nBin; iBin++)
+            n1[iComp][iBin] = 0;
+
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+          const int* lo = mf[mfi].loVect();
+          const int* hi = mf[mfi].hiVect();
+
+          Real tmp;
 #if (BL_SPACEDIM == 2)
-	  for (int iy=lo[1]; iy<=hi[1]; iy++) {
-	    for (int ix=lo[0]; ix<=hi[0]; ix++) {
-	      for (int ic=0; ic<nComp; ic++) {
-		tmp = mf[mfi](IntVect(ix,iy),ic);
-		if (tmp != 0) {
-		  for (int ib=0; ib<nBin; ib++) {
-		    if (tmp >= scount[ic][ib] && 
-			tmp <  scount[ic][ib+1])
-		      n1[ic][ib] += refMult[iLevel];
-		  }
-		}
-	      }
-	    }
-	  }
-#else 
-	  for (int iz=lo[1]; iz<=hi[1]; iz++) {
-	    for (int iy=lo[1]; iy<=hi[1]; iy++) {
-	      for (int ix=lo[0]; ix<=hi[0]; ix++) {
-		for (int ic=0; ic<nComp; ic++) {
-		  tmp = mf[mfi](IntVect(ix,iy,iz),ic);
-		  if (tmp != 0) {
-		    for (int ib=0; ib<nBin; ib++) 
-		      if (tmp >= scount[ic][ib] && 
-			  tmp < scount[ic][ib+1])
-			n1[ic][ib] += refMult[iLevel];
-		  }
-		}
-	      }
-	    }
-	  }
+          for (int iy=lo[1]; iy<=hi[1]; iy++) {
+            for (int ix=lo[0]; ix<=hi[0]; ix++) {
+              for (int ic=0; ic<nComp; ic++) {
+                tmp = mf[mfi](IntVect(ix,iy),ic);
+                if (tmp != 0) {
+                  for (int ib=0; ib<nBin; ib++) {
+                    if (tmp >= scount[ic][ib] &&
+                        tmp <  scount[ic][ib+1])
+                      n1[ic][ib] += refMult[iLevel];
+                  }
+                }
+              }
+            }
+          }
+#else
+          for (int iz=lo[1]; iz<=hi[1]; iz++) {
+            for (int iy=lo[1]; iy<=hi[1]; iy++) {
+              for (int ix=lo[0]; ix<=hi[0]; ix++) {
+                for (int ic=0; ic<nComp; ic++) {
+                  tmp = mf[mfi](IntVect(ix,iy,iz),ic);
+                  if (tmp != 0) {
+                    for (int ib=0; ib<nBin; ib++)
+                      if (tmp >= scount[ic][ib] &&
+                          tmp < scount[ic][ib+1])
+                        n1[ic][ib] += refMult[iLevel];
+                  }
+                }
+              }
+            }
+          }
 #endif
-	}
+        }
 
-	// Do necessary communication, then blend this level's norms
-	//  in with the running global values
-	for (int iComp=0; iComp<nComp; iComp++) {
-	  for (int iBin=0; iBin<nBin; iBin++) {
-	    ParallelDescriptor::ReduceIntSum(n1[iComp][iBin]);
-	    icount[iComp][iBin] += n1[iComp][iBin];
-	  }
-	}
+        // Do necessary communication, then blend this level's norms
+        //  in with the running global values
+        for (int iComp=0; iComp<nComp; iComp++) {
+          for (int iBin=0; iBin<nBin; iBin++) {
+            ParallelDescriptor::ReduceIntSum(n1[iComp][iBin]);
+            icount[iComp][iBin] += n1[iComp][iBin];
+          }
+        }
       }
     }
     for (int iComp=0; iComp<nComp; ++iComp) {
       for (int iBin=0; iBin<nBin; iBin++) {
-	icount[iComp][iBin] /= total_volume;    
+        icount[iComp][iBin] /= total_volume;
       }
     }
 
@@ -696,10 +696,10 @@ ComputeAmrDataPDF (AmrData&     amrData,
 // Compute the correlation in space
 void
 ComputeAmrDataVAR (AmrData&           amrData,
-		   int                nBin,
-		   Vector<std::string> cNames,
-		   Vector<Real>        barr,
-		   std::string        oFile)
+                   int                nBin,
+                   Vector<std::string> cNames,
+                   Vector<Real>        barr,
+                   std::string        oFile)
 {
 
     bool do_normalize = false;
@@ -720,13 +720,13 @@ ComputeAmrDataVAR (AmrData&           amrData,
 
     // Find coarse-grid coordinates of bounding box, round outwardly
     for (int i=0; i<BL_SPACEDIM; ++i) {
-      const Real dx = amrData.ProbSize()[i] / amrData.ProbDomain()[0].length(i);            
-      domain.setSmall(i,std::max(domain.smallEnd()[i], 
-				 (int)((bbll[i]-amrData.ProbLo()[i]+.0001*dx)/dx)));
-      domain.setBig(i,std::min(domain.bigEnd()[i], 
-			       (int)((bbur[i]-amrData.ProbLo()[i]-.0001*dx)/dx)));
+      const Real dx = amrData.ProbSize()[i] / amrData.ProbDomain()[0].length(i);
+      domain.setSmall(i,std::max(domain.smallEnd()[i],
+                                 (int)((bbll[i]-amrData.ProbLo()[i]+.0001*dx)/dx)));
+      domain.setBig(i,std::min(domain.bigEnd()[i],
+                               (int)((bbur[i]-amrData.ProbLo()[i]-.0001*dx)/dx)));
     }
-    
+
     for (int i=1; i<=finestLevel; i++)
       domain.refine(amrData.RefRatio()[i]);
 
@@ -736,7 +736,7 @@ ComputeAmrDataVAR (AmrData&           amrData,
     // Initialize covariance, correlation and variogram matrices.
     Real* covx[nComp], * covy[nComp];
     Real* corx[nComp], * cory[nComp];
-    Real* varx[nComp], * vary[nComp]; 
+    Real* varx[nComp], * vary[nComp];
     for (int ic=0; ic<nComp; ic++) {
       covx[ic]=new Real[nBin+1];
       corx[ic]=new Real[nBin+1];
@@ -744,14 +744,14 @@ ComputeAmrDataVAR (AmrData&           amrData,
       covy[ic]=new Real[nBin+1];
       cory[ic]=new Real[nBin+1];
       vary[ic]=new Real[nBin+1];
-      
-      for (int iBin=0; iBin<=nBin; iBin++) { 
-	covx[ic][iBin] = 0.0;
-	corx[ic][iBin] = 0.0;
-	varx[ic][iBin] = 0.0;
-	covy[ic][iBin] = 0.0;
-	cory[ic][iBin] = 0.0;
-	vary[ic][iBin] = 0.0;
+
+      for (int iBin=0; iBin<=nBin; iBin++) {
+        covx[ic][iBin] = 0.0;
+        corx[ic][iBin] = 0.0;
+        varx[ic][iBin] = 0.0;
+        covy[ic][iBin] = 0.0;
+        cory[ic][iBin] = 0.0;
+        vary[ic][iBin] = 0.0;
       }
     }
 
@@ -778,13 +778,13 @@ ComputeAmrDataVAR (AmrData&           amrData,
     Real m0[nComp][nBin+1], mh[nComp][nBin+1];
     Real s0[nComp][nBin+1], sh[nComp][nBin+1];
 
-    for (int iBin=0; iBin<=nBin; iBin++) { 
+    for (int iBin=0; iBin<=nBin; iBin++) {
       Nh[iBin] = 0;
       for (int iComp=0; iComp<nComp; iComp++) {
-	m0[iComp][iBin] = 0.0;
-	mh[iComp][iBin] = 0.0;
-	s0[iComp][iBin] = 0.0;
-	sh[iComp][iBin] = 0.0;
+        m0[iComp][iBin] = 0.0;
+        mh[iComp][iBin] = 0.0;
+        s0[iComp][iBin] = 0.0;
+        sh[iComp][iBin] = 0.0;
       }
     }
     Vector<Real> mean(nComp,0.0), variance(nComp,0.0);
@@ -803,37 +803,37 @@ ComputeAmrDataVAR (AmrData&           amrData,
       // sum and sum-squared
       vwFab.copy(fab,0,0,nComp);
       vwFabSqrd.copy(fab,0,0,nComp);
-      
+
       for (int iComp=0; iComp<nComp; ++iComp)
       {
-	mean[iComp] += vwFab.norm(fabbox, 1, iComp, 1);
-	variance[iComp] += vwFabSqrd.norm(fabbox, 1, iComp, 1);
+        mean[iComp] += vwFab.norm(fabbox, 1, iComp, 1);
+        variance[iComp] += vwFabSqrd.norm(fabbox, 1, iComp, 1);
       }
 
       volume += fabbox.numPts();
-      
+
       for (int i=0; i<=nBin; i++) {
 
-	Real tmp, tmpp1;
+        Real tmp, tmpp1;
 
-	for (int iy=lo[1]; iy<=hi[1]; iy++) {
-	  for (int ix=lo[0]; ix<hi[0]-i; ix++) {
+        for (int iy=lo[1]; iy<=hi[1]; iy++) {
+          for (int ix=lo[0]; ix<hi[0]-i; ix++) {
 
-	    Nh[i] = Nh[i] + 1;
-	    for (int ic=0; ic<nComp; ic++) {
-	      tmp = tmpx[mfi](IntVect(ix,iy),ic);
-	      tmpp1 = tmpx[mfi](IntVect(ix+i,iy),ic);
-	      
-	      covx[ic][i] = covx[ic][i]+ tmp*tmpp1;
-	      varx[ic][i] = varx[ic][i]+ (tmpp1 - tmp)*(tmpp1 - tmp);
-	      m0[ic][i]   = m0[ic][i] + tmp;
-	      mh[ic][i]   = mh[ic][i] + tmpp1;
-	      s0[ic][i]   = s0[ic][i] + tmp*tmp;
-	      sh[ic][i]   = sh[ic][i] + tmpp1*tmpp1;
+            Nh[i] = Nh[i] + 1;
+            for (int ic=0; ic<nComp; ic++) {
+              tmp = tmpx[mfi](IntVect(ix,iy),ic);
+              tmpp1 = tmpx[mfi](IntVect(ix+i,iy),ic);
 
-	    }
-	  }
-	}
+              covx[ic][i] = covx[ic][i]+ tmp*tmpp1;
+              varx[ic][i] = varx[ic][i]+ (tmpp1 - tmp)*(tmpp1 - tmp);
+              m0[ic][i]   = m0[ic][i] + tmp;
+              mh[ic][i]   = mh[ic][i] + tmpp1;
+              s0[ic][i]   = s0[ic][i] + tmp*tmp;
+              sh[ic][i]   = sh[ic][i] + tmpp1*tmpp1;
+
+            }
+          }
+        }
       }
     }
 
@@ -857,28 +857,28 @@ ComputeAmrDataVAR (AmrData&           amrData,
 
     if (ParallelDescriptor::IOProcessor()) {
       for (int iComp=0; iComp<nComp; iComp++) {
-	
-	mean[iComp] /= volume;
-	variance[iComp] = variance[iComp]/volume - mean[iComp]*mean[iComp];
 
-	for (int iBin=0; iBin<=nBin; iBin++) { 
-	  m0[iComp][iBin] /= Nh[iBin];
-	  mh[iComp][iBin] /= Nh[iBin];
-	  s0[iComp][iBin] = s0[iComp][iBin]/Nh[iBin] - m0[iComp][iBin];
-	  sh[iComp][iBin] = sh[iComp][iBin]/Nh[iBin] - mh[iComp][iBin];
+        mean[iComp] /= volume;
+        variance[iComp] = variance[iComp]/volume - mean[iComp]*mean[iComp];
 
-	  covx[iComp][iBin] = covx[iComp][iBin]/Nh[iBin] -
-	    m0[iComp][iBin]*mh[iComp][iBin];
-	  corx[iComp][iBin] = covx[iComp][iBin]/sqrt(s0[iComp][iBin]*sh[iComp][iBin]);
-	  varx[iComp][iBin] = 0.5*varx[iComp][iBin]/Nh[iBin];
+        for (int iBin=0; iBin<=nBin; iBin++) {
+          m0[iComp][iBin] /= Nh[iBin];
+          mh[iComp][iBin] /= Nh[iBin];
+          s0[iComp][iBin] = s0[iComp][iBin]/Nh[iBin] - m0[iComp][iBin];
+          sh[iComp][iBin] = sh[iComp][iBin]/Nh[iBin] - mh[iComp][iBin];
 
-	  // normalize with mean
-	  if (do_normalize) {
-	    covx[iComp][iBin] /= mean[iComp];
-	    corx[iComp][iBin] /= mean[iComp];
-	    varx[iComp][iBin] /= mean[iComp];
-	  }
-	}
+          covx[iComp][iBin] = covx[iComp][iBin]/Nh[iBin] -
+            m0[iComp][iBin]*mh[iComp][iBin];
+          corx[iComp][iBin] = covx[iComp][iBin]/sqrt(s0[iComp][iBin]*sh[iComp][iBin]);
+          varx[iComp][iBin] = 0.5*varx[iComp][iBin]/Nh[iBin];
+
+          // normalize with mean
+          if (do_normalize) {
+            covx[iComp][iBin] /= mean[iComp];
+            corx[iComp][iBin] /= mean[iComp];
+            varx[iComp][iBin] /= mean[iComp];
+          }
+        }
       }
     }
 
@@ -900,13 +900,13 @@ ComputeAmrDataVAR (AmrData&           amrData,
     MultiFab tmpy(bay,nComp,0);
     amrData.FillVar(tmpy,amrData.FinestLevel(),cNames,destFillComps);
 
-    for (int iBin=0; iBin<=nBin; iBin++) { 
+    for (int iBin=0; iBin<=nBin; iBin++) {
       Nh[iBin] = 0;
       for (int iComp=0; iComp<nComp; iComp++) {
-	m0[iComp][iBin] = 0.0;
-	mh[iComp][iBin] = 0.0;
-	s0[iComp][iBin] = 0.0;
-	sh[iComp][iBin] = 0.0;
+        m0[iComp][iBin] = 0.0;
+        mh[iComp][iBin] = 0.0;
+        s0[iComp][iBin] = 0.0;
+        sh[iComp][iBin] = 0.0;
       }
     }
 
@@ -917,26 +917,26 @@ ComputeAmrDataVAR (AmrData&           amrData,
 
       for (int i=0; i<=nBin; i++) {
 
-	Real tmp, tmpp1;
+        Real tmp, tmpp1;
 
-	for (int ix=lo[0]; ix<=hi[0]; ix++) {
-	  for (int iy=lo[1]; iy<hi[1]-i; iy++) {
+        for (int ix=lo[0]; ix<=hi[0]; ix++) {
+          for (int iy=lo[1]; iy<hi[1]-i; iy++) {
 
-	    Nh[i] = Nh[i] + 1;
-	    for (int ic=0; ic<nComp; ic++) {
-	      tmp = tmpy[mfi](IntVect(ix,iy),ic);
-	      tmpp1 = tmpy[mfi](IntVect(ix+i,iy),ic);
-	      
-	      covy[ic][i] = covy[ic][i]+ tmp*tmpp1;
-	      vary[ic][i] = vary[ic][i]+ (tmpp1 - tmp)*(tmpp1 - tmp);
-	      m0[ic][i]   = m0[ic][i] + tmp;
-	      mh[ic][i]   = mh[ic][i] + tmpp1;
-	      s0[ic][i]   = s0[ic][i] + tmp*tmp;
-	      sh[ic][i]   = sh[ic][i] + tmpp1*tmpp1;
+            Nh[i] = Nh[i] + 1;
+            for (int ic=0; ic<nComp; ic++) {
+              tmp = tmpy[mfi](IntVect(ix,iy),ic);
+              tmpp1 = tmpy[mfi](IntVect(ix+i,iy),ic);
 
-	    }
-	  }
-	}
+              covy[ic][i] = covy[ic][i]+ tmp*tmpp1;
+              vary[ic][i] = vary[ic][i]+ (tmpp1 - tmp)*(tmpp1 - tmp);
+              m0[ic][i]   = m0[ic][i] + tmp;
+              mh[ic][i]   = mh[ic][i] + tmpp1;
+              s0[ic][i]   = s0[ic][i] + tmp*tmp;
+              sh[ic][i]   = sh[ic][i] + tmpp1*tmpp1;
+
+            }
+          }
+        }
       }
     }
 
@@ -954,52 +954,52 @@ ComputeAmrDataVAR (AmrData&           amrData,
 
     if (ParallelDescriptor::IOProcessor()) {
       for (int iComp=0; iComp<nComp; iComp++) {
-	for (int iBin=0; iBin<=nBin; iBin++) { 
-	  m0[iComp][iBin] /= Nh[iBin];
-	  mh[iComp][iBin] /= Nh[iBin];
-	  s0[iComp][iBin] = s0[iComp][iBin]/Nh[iBin] - m0[iComp][iBin];
-	  sh[iComp][iBin] = sh[iComp][iBin]/Nh[iBin] - mh[iComp][iBin];
+        for (int iBin=0; iBin<=nBin; iBin++) {
+          m0[iComp][iBin] /= Nh[iBin];
+          mh[iComp][iBin] /= Nh[iBin];
+          s0[iComp][iBin] = s0[iComp][iBin]/Nh[iBin] - m0[iComp][iBin];
+          sh[iComp][iBin] = sh[iComp][iBin]/Nh[iBin] - mh[iComp][iBin];
 
-	  covy[iComp][iBin] = covy[iComp][iBin]/Nh[iBin] -
-	    m0[iComp][iBin]*mh[iComp][iBin];
-	  cory[iComp][iBin] = covy[iComp][iBin]/sqrt(s0[iComp][iBin]*sh[iComp][iBin]);
-	  vary[iComp][iBin] = 0.5*vary[iComp][iBin]/Nh[iBin];
-	  
-	  // normalize with mean
-	  if (do_normalize) {
-	    covy[iComp][iBin] /= mean[iComp];
-	    cory[iComp][iBin] /= mean[iComp];
-	    vary[iComp][iBin] /= mean[iComp];
-	  }
-	}
+          covy[iComp][iBin] = covy[iComp][iBin]/Nh[iBin] -
+            m0[iComp][iBin]*mh[iComp][iBin];
+          cory[iComp][iBin] = covy[iComp][iBin]/sqrt(s0[iComp][iBin]*sh[iComp][iBin]);
+          vary[iComp][iBin] = 0.5*vary[iComp][iBin]/Nh[iBin];
+
+          // normalize with mean
+          if (do_normalize) {
+            covy[iComp][iBin] /= mean[iComp];
+            cory[iComp][iBin] /= mean[iComp];
+            vary[iComp][iBin] /= mean[iComp];
+          }
+        }
       }
     }
 
 
     if (ParallelDescriptor::IOProcessor()) {
-      
+
       std::ofstream outputFile;
       outputFile.open(oFile.c_str(),std::ios::out);
       if (outputFile.fail()) amrex::Abort("Output file cannot be opened");
       for (int ic=0; ic<nComp; ic++) {
-	for (int ib=0; ib<=nBin; ib++) 		
-	  outputFile << covx[ic][ib] << " ";
-	outputFile << "\n";
-	for (int ib=0; ib<=nBin; ib++) 		
-	  outputFile << corx[ic][ib] << " ";
-	outputFile << "\n";
-	for (int ib=0; ib<=nBin; ib++) 		
-	  outputFile << varx[ic][ib] << " ";
-	outputFile << "\n";
-	for (int ib=0; ib<=nBin; ib++) 		
-	  outputFile << covy[ic][ib] << " ";
-	outputFile << "\n";
-	for (int ib=0; ib<=nBin; ib++) 		
-	  outputFile << cory[ic][ib] << " ";
-	outputFile << "\n";
-	for (int ib=0; ib<=nBin; ib++) 		
-	  outputFile << vary[ic][ib] << " ";
-	outputFile << "\n";
+        for (int ib=0; ib<=nBin; ib++)
+          outputFile << covx[ic][ib] << " ";
+        outputFile << "\n";
+        for (int ib=0; ib<=nBin; ib++)
+          outputFile << corx[ic][ib] << " ";
+        outputFile << "\n";
+        for (int ib=0; ib<=nBin; ib++)
+          outputFile << varx[ic][ib] << " ";
+        outputFile << "\n";
+        for (int ib=0; ib<=nBin; ib++)
+          outputFile << covy[ic][ib] << " ";
+        outputFile << "\n";
+        for (int ib=0; ib<=nBin; ib++)
+          outputFile << cory[ic][ib] << " ";
+        outputFile << "\n";
+        for (int ib=0; ib<=nBin; ib++)
+          outputFile << vary[ic][ib] << " ";
+        outputFile << "\n";
 
 
       }
@@ -1021,13 +1021,13 @@ ComputeAmrDataVAR (AmrData&           amrData,
 // the grid at the finest level.
 void
 VariogramUniform (AmrData&             amrData,
-		  Vector<std::string>   cNames,
-		  Vector<Real>          barr,
-		  Vector< Vector<int> >  ivoption,
-		  int                  nlag,
-		  int                  isill,
-		  Vector<Real>          sills,
-		  std::string          oFile)
+                  Vector<std::string>   cNames,
+                  Vector<Real>          barr,
+                  Vector< Vector<int> >  ivoption,
+                  int                  nlag,
+                  int                  isill,
+                  Vector<Real>          sills,
+                  std::string          oFile)
 {
 
     bool firsttime = true;
@@ -1050,13 +1050,13 @@ VariogramUniform (AmrData&             amrData,
     Vector<Real> dx(BL_SPACEDIM);
     for (int i=0; i<BL_SPACEDIM; ++i) {
       dx[i] = amrData.ProbSize()[i]/
-	amrData.ProbDomain()[0].length(i);            
-      domain.setSmall(i,std::max(domain.smallEnd()[i], 
-	(int)((bbll[i]-amrData.ProbLo()[i]+.0001*dx[i])/dx[i])));
-      domain.setBig(i,std::min(domain.bigEnd()[i], 
-	(int)((bbur[i]-amrData.ProbLo()[i]-.0001*dx[i])/dx[i])));
+        amrData.ProbDomain()[0].length(i);
+      domain.setSmall(i,std::max(domain.smallEnd()[i],
+        (int)((bbll[i]-amrData.ProbLo()[i]+.0001*dx[i])/dx[i])));
+      domain.setBig(i,std::min(domain.bigEnd()[i],
+        (int)((bbur[i]-amrData.ProbLo()[i]-.0001*dx[i])/dx[i])));
     }
-    
+
     for (int i=1; i<=finestLevel; i++)
       domain.refine(amrData.RefRatio()[i]);
 
@@ -1077,14 +1077,14 @@ VariogramUniform (AmrData&             amrData,
 // Cross correlation is done with respect to a multifab.
 void
 VariogramCross(AmrData&             amrData,
-	       Vector<std::string>   cNames,
-	       MultiFab&            mf,
-	       Vector<Real>          barr,
-	       Vector< Vector<int> >  ivoption,
-	       int                  nlag,
-	       int                  isill,
-	       Vector<Real>          sills,
-	       std::string          oFile)
+               Vector<std::string>   cNames,
+               MultiFab&            mf,
+               Vector<Real>          barr,
+               Vector< Vector<int> >  ivoption,
+               int                  nlag,
+               int                  isill,
+               Vector<Real>          sills,
+               std::string          oFile)
 {
     int finestLevel = amrData.FinestLevel();
     int nComp = cNames.size();
@@ -1104,13 +1104,13 @@ VariogramCross(AmrData&             amrData,
     Vector<Real> dx(BL_SPACEDIM);
     for (int i=0; i<BL_SPACEDIM; ++i) {
       dx[i] = amrData.ProbSize()[i]/
-	amrData.ProbDomain()[0].length(i);            
-      domain.setSmall(i,std::max(domain.smallEnd()[i], 
-	(int)((bbll[i]-amrData.ProbLo()[i]+.0001*dx[i])/dx[i])));
-      domain.setBig(i,std::min(domain.bigEnd()[i], 
-	(int)((bbur[i]-amrData.ProbLo()[i]-.0001*dx[i])/dx[i])));
+        amrData.ProbDomain()[0].length(i);
+      domain.setSmall(i,std::max(domain.smallEnd()[i],
+        (int)((bbll[i]-amrData.ProbLo()[i]+.0001*dx[i])/dx[i])));
+      domain.setBig(i,std::min(domain.bigEnd()[i],
+        (int)((bbur[i]-amrData.ProbLo()[i]-.0001*dx[i])/dx[i])));
     }
-    
+
     for (int i=1; i<=finestLevel; i++)
       domain.refine(amrData.RefRatio()[i]);
 
@@ -1131,12 +1131,12 @@ VariogramCross(AmrData&             amrData,
 
 void
 VariogramUniformMF (const MultiFab&      mf,
-		    Vector<Real>          dx,
-		    Vector< Vector<int> >  ivoption,
-		    int                  nlag,
-		    int                  isill,
-		    Vector<Real>          sills,
-		    std::string          oFile)
+                    Vector<Real>          dx,
+                    Vector< Vector<int> >  ivoption,
+                    int                  nlag,
+                    int                  isill,
+                    Vector<Real>          sills,
+                    std::string          oFile)
 {
 
   Vector<int> domloc(BL_SPACEDIM), domhic(BL_SPACEDIM);
@@ -1144,7 +1144,7 @@ VariogramUniformMF (const MultiFab&      mf,
   {
     const int* k_lo  = mf[mfi].loVect();
     const int* k_hi  = mf[mfi].hiVect();
-    
+
     for (int i=0;i<BL_SPACEDIM; i++) {
       domloc[i] = k_lo[i];
       domhic[i] = k_hi[i];
@@ -1152,56 +1152,56 @@ VariogramUniformMF (const MultiFab&      mf,
   }
   ParallelDescriptor::ReduceIntMin(domloc.dataPtr(),BL_SPACEDIM);
   ParallelDescriptor::ReduceIntMax(domhic.dataPtr(),BL_SPACEDIM);
-  
+
   IntVect sm(domloc.dataPtr());
   IntVect bg(domhic.dataPtr());
 
   VariogramUniformMFG (mf,dx,sm,bg,ivoption,nlag,isill,sills,oFile);
-  
+
 }
 
 void
 VariogramUniformMFG (const MultiFab&      mf,
-		     Vector<Real>          dx,
-		     IntVect              sm,
-		     IntVect              bg,
-		     Vector< Vector<int> >  ivoption,
-		     int                  nlag,
-		     int                  isill,
-		     Vector<Real>          sills,
-		     std::string          oFile)
+                     Vector<Real>          dx,
+                     IntVect              sm,
+                     IntVect              bg,
+                     Vector< Vector<int> >  ivoption,
+                     int                  nlag,
+                     int                  isill,
+                     Vector<Real>          sills,
+                     std::string          oFile)
 {
 
     bool firsttime = true;
 
-    for (int dir=0; dir<BL_SPACEDIM; dir++) 
+    for (int dir=0; dir<BL_SPACEDIM; dir++)
     {
       // Set up BoxArray
       BoxArray ba;
       if (dir == 0) {
-	int sz_in = bg[1] - sm[1] + 1;
-	ba.resize(sz_in);
-	IntVect smx = sm;
-	IntVect bgx = bg;
-	for (int i=0; i<sz_in; i++) {
-	  smx[1] = sm[1] + i;
-	  bgx[1] = sm[1] + i;
-	  Box bx(smx,bgx);
-	  ba.set(i,bx);
-	}
+        int sz_in = bg[1] - sm[1] + 1;
+        ba.resize(sz_in);
+        IntVect smx = sm;
+        IntVect bgx = bg;
+        for (int i=0; i<sz_in; i++) {
+          smx[1] = sm[1] + i;
+          bgx[1] = sm[1] + i;
+          Box bx(smx,bgx);
+          ba.set(i,bx);
+        }
       }
-      
+
       else if (dir == 1) {
-	int sz_in = bg[0] - sm[0] + 1;
-	ba.resize(sz_in);
-	IntVect smx = sm;
-	IntVect bgx = bg;
-	for (int i=0; i<sz_in; i++) {
-	  smx[0] = sm[0] + i;
-	  bgx[0] = sm[0] + i;
-	  Box bx(smx,bgx);
-	  ba.set(i,bx);
-	}
+        int sz_in = bg[0] - sm[0] + 1;
+        ba.resize(sz_in);
+        IntVect smx = sm;
+        IntVect bgx = bg;
+        for (int i=0; i<sz_in; i++) {
+          smx[0] = sm[0] + i;
+          bgx[0] = sm[0] + i;
+          Box bx(smx,bgx);
+          ba.set(i,bx);
+        }
       }
 
       // Fill tmpx with the data
@@ -1209,186 +1209,186 @@ VariogramUniformMFG (const MultiFab&      mf,
       tmpx.copy(mf);
 
       int nvarg = ivoption.size();
-      for (int iv=0; iv<nvarg; iv++) 
+      for (int iv=0; iv<nvarg; iv++)
       {
-	int ivtail = ivoption[iv][0];
-	int ivhead = ivoption[iv][1];
-	int ivtype = ivoption[iv][2];
+        int ivtail = ivoption[iv][0];
+        int ivhead = ivoption[iv][1];
+        int ivtype = ivoption[iv][2];
 
-      	Vector<Real> np(nlag,0.0);
-	Vector<Real> gam(nlag,0.0);
-	Vector<Real> hm(nlag,0.0);
-	Vector<Real> tm(nlag,0.0);
-	Vector<Real> hv(nlag,0.0);
-	Vector<Real> tv(nlag,0.0);
+              Vector<Real> np(nlag,0.0);
+        Vector<Real> gam(nlag,0.0);
+        Vector<Real> hm(nlag,0.0);
+        Vector<Real> tm(nlag,0.0);
+        Vector<Real> hv(nlag,0.0);
+        Vector<Real> tv(nlag,0.0);
 
-	for (MFIter mfi(tmpx); mfi.isValid(); ++mfi) {
-	  
-	  const int* lo = tmpx[mfi].loVect();
-	  const int* hi = tmpx[mfi].hiVect();
+        for (MFIter mfi(tmpx); mfi.isValid(); ++mfi) {
 
-	  Vector<int> lod(BL_SPACEDIM),hid(BL_SPACEDIM);
-	  if (dir == 0) {
-	    lod[0] = lo[0]; 
-	    lod[1] = lo[1];
-	    hid[0] = hi[0];
-	    hid[1] = hi[1];
-	  }
-	  else if (dir == 1){
-	    lod[0] = lo[1]; 
-	    lod[1] = lo[0];
-	    hid[0] = hi[1];
-	    hid[1] = hi[0];
-	  }
+          const int* lo = tmpx[mfi].loVect();
+          const int* hi = tmpx[mfi].hiVect();
 
-	  for (int i=0; i<nlag; i++) {
-	    for (int iy=lod[1]; iy<=hid[1]; iy++) {
-	      for (int ix=lod[0]; ix<hid[0]-i-1; ix++) {
+          Vector<int> lod(BL_SPACEDIM),hid(BL_SPACEDIM);
+          if (dir == 0) {
+            lod[0] = lo[0];
+            lod[1] = lo[1];
+            hid[0] = hi[0];
+            hid[1] = hi[1];
+          }
+          else if (dir == 1){
+            lod[0] = lo[1];
+            lod[1] = lo[0];
+            hid[0] = hi[1];
+            hid[1] = hi[0];
+          }
 
-		Real vrt, vrh;
-		Real vrtpr, vrhpr;
+          for (int i=0; i<nlag; i++) {
+            for (int iy=lod[1]; iy<=hid[1]; iy++) {
+              for (int ix=lod[0]; ix<hid[0]-i-1; ix++) {
 
-		if (dir == 0) {
-		  vrt = tmpx[mfi](IntVect(ix,iy),ivhead);
-		  vrh = tmpx[mfi](IntVect(ix+i,iy),ivtail);
-		
-		  if (ivtype == 2) {
-		    vrhpr = tmpx[mfi](IntVect(ix,iy),ivtail);
-		    vrtpr = tmpx[mfi](IntVect(ix+i,iy),ivhead);
-		  }
-		}
-		else if (dir == 1) {
-		  vrt = tmpx[mfi](IntVect(iy,ix),ivhead);
-		  vrh = tmpx[mfi](IntVect(iy,ix+i),ivtail);
-		
-		  if (ivtype == 2) {
-		    vrhpr = tmpx[mfi](IntVect(iy,ix),ivtail);
-		    vrtpr = tmpx[mfi](IntVect(iy,ix+i),ivhead);
-		  }
-		}
+                Real vrt, vrh;
+                Real vrtpr, vrhpr;
 
-		np[i] = np[i] + 1.0;
-		tm[i] = tm[i] + vrt;
-		hm[i] = hm[i] + vrh;
-		
-		if (ivtype == 1 | ivtype == 9)
-		  gam[i] = gam[i] + (vrh-vrt)*(vrh-vrt);
-		else if (ivtype == 2)
-		  gam[i] = gam[i] + (vrhpr-vrh)*(vrt-vrtpr);
-		else if (ivtype == 3)
-		  gam[i] = gam[i] + vrh*vrt;
-		else if (ivtype == 4) {
-		  gam[i] = gam[i] + vrh*vrt;
-		  hv[i]  = hv[i]  + vrh*vrh;
-		  tv[i]  = tv[i]  + vrt*vrt;
-		}
-		else if (ivtype == 5)
-		  gam[i] = gam[i] + (vrh-vrt)*(vrh-vrt);
-		else if (ivtype == 6) {
-		  if ((vrt+vrh) < 1.e-20) {
-		    np[i] = np[i] - 1;
-		    tm[i] = tm[i] - vrt;
-		    hm[i] = hm[i] - vrh;
-		  }
-		  else {
-		    Real tempvar = 2.0*(vrt-vrh)/(vrt+vrh);
-		    gam[i] = gam[i] + tempvar*tempvar;
-		  }
-		}
-		else if (ivtype == 7) {
-		  if (vrt < 1.e-20 || vrh < 1.e-20) {
-		    np[i] = np[i] - 1;
-		    tm[i] = tm[i] - vrt;
-		    hm[i] = hm[i] - vrh;
-		  }
-		  else {
-		    Real tempvar = log(vrt) - log(vrh);
-		    gam[i] = gam[i] + tempvar*tempvar;
-		  }
-		}
-		else if (ivtype == 8)
-		  gam[i] = gam[i] + std::abs(vrt-vrh);
- 
-	      }
-	    }
-	  }
-	}
-	const int IOProc = ParallelDescriptor::IOProcessorNumber();
-	ParallelDescriptor::ReduceRealSum(np.dataPtr(),nlag,IOProc);
-	ParallelDescriptor::ReduceRealSum(gam.dataPtr(),nlag,IOProc);
-	ParallelDescriptor::ReduceRealSum(hm.dataPtr(),nlag,IOProc);
-	ParallelDescriptor::ReduceRealSum(tm.dataPtr(),nlag,IOProc);
-	ParallelDescriptor::ReduceRealSum(hv.dataPtr(),nlag,IOProc);
-	ParallelDescriptor::ReduceRealSum(tv.dataPtr(),nlag,IOProc);
+                if (dir == 0) {
+                  vrt = tmpx[mfi](IntVect(ix,iy),ivhead);
+                  vrh = tmpx[mfi](IntVect(ix+i,iy),ivtail);
 
-	if (ParallelDescriptor::IOProcessor()) {
-	  for (int i=0; i<nlag; i++) {
-	    gam[i] = gam[i]/np[i];
-	    hm[i]  = hm[i]/np[i];
-	    tm[i]  = hm[i]/np[i];
-	    hv[i]  = hm[i]/np[i];
-	    tv[i]  = hm[i]/np[i];
-	    
-	    if (isill == 1 && ivtail == ivhead) {
-	      if ((ivtype == 1 || ivtype == 9) && sills[ivtail] > 0.0) {
-		gam[i] = gam[i]/sills[ivtail];
-	      }
-	    }
-	    
-	    if (ivtype == 1 || ivtype == 2 || ivtype == 6) {
-	      gam[i] = 0.5*gam[i];
-	    }
-	    else if (ivtype == 3) 
-	      gam[i] = gam[i] - hm[i]*hm[i];
-	    else if (ivtype == 4) {
-	      hv[i] = hv[i] - hm[i]*hm[i];
-	      if (hv[i] <= 0.0) hv[i] = 0.0;
-	      hv[i] = sqrt(hv[i]);
-	      tv[i] = tv[i] - tm[i]*tm[i];
-	      if (tv[i] <= 0.0) tv[i] = 0.0;
-	      tv[i] = sqrt(tv[i]);
-	      if (hv[i]*tv[i] < 1.e-20) 
-		gam[i] = 0.0;
-	      else
-		gam[i] = (gam[i] - hm[i]*tm[i])/(hv[i]*tv[i]);
-	      hv[i] = hv[i]*hv[i];
-	      tv[i] = tv[i]*tv[i];
-	    }
-	    else if (ivtype == 5) {
-	      Real htave = 0.5*hm[i]*tm[i];
-	      htave *= htave;
-	      if (htave < 1.e-20) 
-		gam[i] = 0.0;
-	      else
-		gam[i] = gam[i]/htave;
-	    }
-	  }
-	  std::cout << ivtail  << " " << ivhead << " " 
-		    << ivtype  << " " << dir << " " 
-		    << dx[dir] << " " << nlag << std::endl;
-	  // write out to datafile
-	  std::ofstream outputFile;
-	  if (firsttime) {
-	    outputFile.open(oFile.c_str(),std::ios::out);
-	    if (outputFile.fail()) 
-	      amrex::Abort("Output file cannot be opened");
-	    firsttime = false;
-	  }
-	  else 
-	    outputFile.open(oFile.c_str(),std::ios::app);
+                  if (ivtype == 2) {
+                    vrhpr = tmpx[mfi](IntVect(ix,iy),ivtail);
+                    vrtpr = tmpx[mfi](IntVect(ix+i,iy),ivhead);
+                  }
+                }
+                else if (dir == 1) {
+                  vrt = tmpx[mfi](IntVect(iy,ix),ivhead);
+                  vrh = tmpx[mfi](IntVect(iy,ix+i),ivtail);
 
-	  // ivtail,ivhead,ivtype,dir,nlag
-	  outputFile << ivtail  << " " << ivhead << " " 
-		     << ivtype  << " " << dir << " " 
-		     << dx[dir] << " " << nlag << std::endl;
-	  
-	  for (int i=0; i<nlag; i++)
-	    outputFile << gam[i] << " ";
-	  outputFile << "\n";
+                  if (ivtype == 2) {
+                    vrhpr = tmpx[mfi](IntVect(iy,ix),ivtail);
+                    vrtpr = tmpx[mfi](IntVect(iy,ix+i),ivhead);
+                  }
+                }
 
-	  outputFile.close();
+                np[i] = np[i] + 1.0;
+                tm[i] = tm[i] + vrt;
+                hm[i] = hm[i] + vrh;
 
-	}
+                if (ivtype == 1 | ivtype == 9)
+                  gam[i] = gam[i] + (vrh-vrt)*(vrh-vrt);
+                else if (ivtype == 2)
+                  gam[i] = gam[i] + (vrhpr-vrh)*(vrt-vrtpr);
+                else if (ivtype == 3)
+                  gam[i] = gam[i] + vrh*vrt;
+                else if (ivtype == 4) {
+                  gam[i] = gam[i] + vrh*vrt;
+                  hv[i]  = hv[i]  + vrh*vrh;
+                  tv[i]  = tv[i]  + vrt*vrt;
+                }
+                else if (ivtype == 5)
+                  gam[i] = gam[i] + (vrh-vrt)*(vrh-vrt);
+                else if (ivtype == 6) {
+                  if ((vrt+vrh) < 1.e-20) {
+                    np[i] = np[i] - 1;
+                    tm[i] = tm[i] - vrt;
+                    hm[i] = hm[i] - vrh;
+                  }
+                  else {
+                    Real tempvar = 2.0*(vrt-vrh)/(vrt+vrh);
+                    gam[i] = gam[i] + tempvar*tempvar;
+                  }
+                }
+                else if (ivtype == 7) {
+                  if (vrt < 1.e-20 || vrh < 1.e-20) {
+                    np[i] = np[i] - 1;
+                    tm[i] = tm[i] - vrt;
+                    hm[i] = hm[i] - vrh;
+                  }
+                  else {
+                    Real tempvar = log(vrt) - log(vrh);
+                    gam[i] = gam[i] + tempvar*tempvar;
+                  }
+                }
+                else if (ivtype == 8)
+                  gam[i] = gam[i] + std::abs(vrt-vrh);
+
+              }
+            }
+          }
+        }
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+        ParallelDescriptor::ReduceRealSum(np.dataPtr(),nlag,IOProc);
+        ParallelDescriptor::ReduceRealSum(gam.dataPtr(),nlag,IOProc);
+        ParallelDescriptor::ReduceRealSum(hm.dataPtr(),nlag,IOProc);
+        ParallelDescriptor::ReduceRealSum(tm.dataPtr(),nlag,IOProc);
+        ParallelDescriptor::ReduceRealSum(hv.dataPtr(),nlag,IOProc);
+        ParallelDescriptor::ReduceRealSum(tv.dataPtr(),nlag,IOProc);
+
+        if (ParallelDescriptor::IOProcessor()) {
+          for (int i=0; i<nlag; i++) {
+            gam[i] = gam[i]/np[i];
+            hm[i]  = hm[i]/np[i];
+            tm[i]  = hm[i]/np[i];
+            hv[i]  = hm[i]/np[i];
+            tv[i]  = hm[i]/np[i];
+
+            if (isill == 1 && ivtail == ivhead) {
+              if ((ivtype == 1 || ivtype == 9) && sills[ivtail] > 0.0) {
+                gam[i] = gam[i]/sills[ivtail];
+              }
+            }
+
+            if (ivtype == 1 || ivtype == 2 || ivtype == 6) {
+              gam[i] = 0.5*gam[i];
+            }
+            else if (ivtype == 3)
+              gam[i] = gam[i] - hm[i]*hm[i];
+            else if (ivtype == 4) {
+              hv[i] = hv[i] - hm[i]*hm[i];
+              if (hv[i] <= 0.0) hv[i] = 0.0;
+              hv[i] = sqrt(hv[i]);
+              tv[i] = tv[i] - tm[i]*tm[i];
+              if (tv[i] <= 0.0) tv[i] = 0.0;
+              tv[i] = sqrt(tv[i]);
+              if (hv[i]*tv[i] < 1.e-20)
+                gam[i] = 0.0;
+              else
+                gam[i] = (gam[i] - hm[i]*tm[i])/(hv[i]*tv[i]);
+              hv[i] = hv[i]*hv[i];
+              tv[i] = tv[i]*tv[i];
+            }
+            else if (ivtype == 5) {
+              Real htave = 0.5*hm[i]*tm[i];
+              htave *= htave;
+              if (htave < 1.e-20)
+                gam[i] = 0.0;
+              else
+                gam[i] = gam[i]/htave;
+            }
+          }
+          std::cout << ivtail  << " " << ivhead << " "
+                    << ivtype  << " " << dir << " "
+                    << dx[dir] << " " << nlag << std::endl;
+          // write out to datafile
+          std::ofstream outputFile;
+          if (firsttime) {
+            outputFile.open(oFile.c_str(),std::ios::out);
+            if (outputFile.fail())
+              amrex::Abort("Output file cannot be opened");
+            firsttime = false;
+          }
+          else
+            outputFile.open(oFile.c_str(),std::ios::app);
+
+          // ivtail,ivhead,ivtype,dir,nlag
+          outputFile << ivtail  << " " << ivhead << " "
+                     << ivtype  << " " << dir << " "
+                     << dx[dir] << " " << nlag << std::endl;
+
+          for (int i=0; i<nlag; i++)
+            outputFile << gam[i] << " ";
+          outputFile << "\n";
+
+          outputFile.close();
+
+        }
       }
     }
 
@@ -1400,10 +1400,10 @@ VariogramUniformMFG (const MultiFab&      mf,
 // fine solution - coarse solution on the grid finest level specified.
 void
 TakeDifferenceFine(AmrData&             amrDataf,
-		   AmrData&             amrDatac,
-		   Vector<std::string>   cNames,
-		   Vector<Real>          barr,
-		   std::string          oFile)
+                   AmrData&             amrDatac,
+                   Vector<std::string>   cNames,
+                   Vector<Real>          barr,
+                   std::string          oFile)
 {
     int nComp = cNames.size();
 
@@ -1411,7 +1411,7 @@ TakeDifferenceFine(AmrData&             amrDataf,
     Box domainc = amrDatac.ProbDomain()[0];
     for (int i=0;i<BL_SPACEDIM;i++) {
       if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
-	amrex::Abort("Domains of coarse and fine do not match!");
+        amrex::Abort("Domains of coarse and fine do not match!");
     }
 
     vector<Real> bbll,bbur;
@@ -1429,26 +1429,26 @@ TakeDifferenceFine(AmrData&             amrDataf,
     Vector<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
     for (int i=0; i<BL_SPACEDIM; ++i) {
       dxf[i] = amrDataf.ProbSize()[i]/
-	amrDataf.ProbDomain()[0].length(i);            
-      domainf.setSmall(i,std::max(domainf.smallEnd()[i], 
-	(int)((bbll[i]-amrDataf.ProbLo()[i]+.0001*dxf[i])/dxf[i])));
-      domainf.setBig(i,std::min(domainf.bigEnd()[i], 
-	(int)((bbur[i]-amrDataf.ProbLo()[i]-.0001*dxf[i])/dxf[i])));
+        amrDataf.ProbDomain()[0].length(i);
+      domainf.setSmall(i,std::max(domainf.smallEnd()[i],
+        (int)((bbll[i]-amrDataf.ProbLo()[i]+.0001*dxf[i])/dxf[i])));
+      domainf.setBig(i,std::min(domainf.bigEnd()[i],
+        (int)((bbur[i]-amrDataf.ProbLo()[i]-.0001*dxf[i])/dxf[i])));
 
       dxc[i] = amrDatac.ProbSize()[i]/
-	amrDatac.ProbDomain()[0].length(i);            
-      domainc.setSmall(i,std::max(domainc.smallEnd()[i], 
-	(int)((bbll[i]-amrDatac.ProbLo()[i]+.0001*dxc[i])/dxc[i])));
-      domainc.setBig(i,std::min(domainc.bigEnd()[i], 
-	(int)((bbur[i]-amrDatac.ProbLo()[i]-.0001*dxc[i])/dxc[i])));
+        amrDatac.ProbDomain()[0].length(i);
+      domainc.setSmall(i,std::max(domainc.smallEnd()[i],
+        (int)((bbll[i]-amrDatac.ProbLo()[i]+.0001*dxc[i])/dxc[i])));
+      domainc.setBig(i,std::min(domainc.bigEnd()[i],
+        (int)((bbur[i]-amrDatac.ProbLo()[i]-.0001*dxc[i])/dxc[i])));
 
       rratio[i] = (int)((dxc[i]/(amrDatac.FinestLevel()+1))/
-		        (dxf[i]/(amrDataf.FinestLevel()+1)));
+                        (dxf[i]/(amrDataf.FinestLevel()+1)));
     }
 
     for (int i=0;i<BL_SPACEDIM;i++) {
       if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
-	amrex::Abort("Domains of coarse and fine do not match!");
+        amrex::Abort("Domains of coarse and fine do not match!");
     }
 
     for (int i=1; i<=amrDataf.FinestLevel(); i++)
@@ -1457,11 +1457,11 @@ TakeDifferenceFine(AmrData&             amrDataf,
       domainc.refine(amrDatac.RefRatio()[i]);
 
     BoxArray baf(domainf), bac(domainc);
-    
+
     // Fill tmpx with the data
     Vector<int> destFillComps(nComp);
     Vector<std::string> destNames(nComp);
-    for (int i=0; i<nComp; ++i) 
+    for (int i=0; i<nComp; ++i)
       destFillComps[i] = i;
     MultiFab tmpc(bac,nComp,0), tmpf(baf,nComp,0);
 
@@ -1469,23 +1469,23 @@ TakeDifferenceFine(AmrData&             amrDataf,
     amrDataf.FillVar(tmpf,amrDataf.FinestLevel(),cNames,destFillComps);
 
     for (MFIter mfi(tmpc); mfi.isValid(); ++mfi) {
-	  
+
       const int* lo = tmpc[mfi].loVect();
       const int* hi = tmpc[mfi].hiVect();
 
       for (int joff=0; joff<rratio[1]; joff++) {
-	for (int jc=lo[1]; jc<=hi[1]; jc++) {
-	  int j = jc*rratio[1] +joff;
-	  for (int ioff=0; ioff<rratio[0]; ioff++) {
-	    for (int ic=lo[0]; ic<=hi[0]; ic++) {  
-	      int i = ic*rratio[0] + ioff;
-	      for (int n=0; n<nComp; n++) {
-		tmpf[mfi](IntVect(i,j),n) -= 
-		  tmpc[mfi](IntVect(ic,jc),n);
-	      }
-	    }
-	  }
-	}
+        for (int jc=lo[1]; jc<=hi[1]; jc++) {
+          int j = jc*rratio[1] +joff;
+          for (int ioff=0; ioff<rratio[0]; ioff++) {
+            for (int ic=lo[0]; ic<=hi[0]; ic++) {
+              int i = ic*rratio[0] + ioff;
+              for (int n=0; n<nComp; n++) {
+                tmpf[mfi](IntVect(i,j),n) -=
+                  tmpc[mfi](IntVect(ic,jc),n);
+              }
+            }
+          }
+        }
       }
     }
     VisMF::Write(tmpf,oFile);
@@ -1494,10 +1494,10 @@ TakeDifferenceFine(AmrData&             amrDataf,
 // fine solution - coarse solution on the coarse finest level specified.
 void
 TakeDifferenceCrse(AmrData&             amrDataf,
-		   AmrData&             amrDatac,
-		   Vector<std::string>   cNames,
-		   Vector<Real>          barr,
-		   std::string          oFile)
+                   AmrData&             amrDatac,
+                   Vector<std::string>   cNames,
+                   Vector<Real>          barr,
+                   std::string          oFile)
 {
     int nComp = cNames.size();
 
@@ -1505,7 +1505,7 @@ TakeDifferenceCrse(AmrData&             amrDataf,
     Box domainc = amrDatac.ProbDomain()[0];
     for (int i=0;i<BL_SPACEDIM;i++) {
       if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
-	amrex::Abort("Domains of coarse and fine do not match!");
+        amrex::Abort("Domains of coarse and fine do not match!");
     }
 
     vector<Real> bbll,bbur;
@@ -1523,26 +1523,26 @@ TakeDifferenceCrse(AmrData&             amrDataf,
     Vector<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
     for (int i=0; i<BL_SPACEDIM; ++i) {
       dxf[i] = amrDataf.ProbSize()[i]/
-	amrDataf.ProbDomain()[0].length(i);            
-      domainf.setSmall(i,std::max(domainf.smallEnd()[i], 
-	(int)((bbll[i]-amrDataf.ProbLo()[i]+.0001*dxf[i])/dxf[i])));
-      domainf.setBig(i,std::min(domainf.bigEnd()[i], 
-	(int)((bbur[i]-amrDataf.ProbLo()[i]-.0001*dxf[i])/dxf[i])));
+        amrDataf.ProbDomain()[0].length(i);
+      domainf.setSmall(i,std::max(domainf.smallEnd()[i],
+        (int)((bbll[i]-amrDataf.ProbLo()[i]+.0001*dxf[i])/dxf[i])));
+      domainf.setBig(i,std::min(domainf.bigEnd()[i],
+        (int)((bbur[i]-amrDataf.ProbLo()[i]-.0001*dxf[i])/dxf[i])));
 
       dxc[i] = amrDatac.ProbSize()[i]/
-	amrDatac.ProbDomain()[0].length(i);            
-      domainc.setSmall(i,std::max(domainc.smallEnd()[i], 
-	(int)((bbll[i]-amrDatac.ProbLo()[i]+.0001*dxc[i])/dxc[i])));
-      domainc.setBig(i,std::min(domainc.bigEnd()[i], 
-	(int)((bbur[i]-amrDatac.ProbLo()[i]-.0001*dxc[i])/dxc[i])));
+        amrDatac.ProbDomain()[0].length(i);
+      domainc.setSmall(i,std::max(domainc.smallEnd()[i],
+        (int)((bbll[i]-amrDatac.ProbLo()[i]+.0001*dxc[i])/dxc[i])));
+      domainc.setBig(i,std::min(domainc.bigEnd()[i],
+        (int)((bbur[i]-amrDatac.ProbLo()[i]-.0001*dxc[i])/dxc[i])));
 
       rratio[i] = (int)((dxc[i]/(amrDatac.FinestLevel()+1))/
-		        (dxf[i]/(amrDataf.FinestLevel()+1)));
+                        (dxf[i]/(amrDataf.FinestLevel()+1)));
     }
 
     for (int i=0;i<BL_SPACEDIM;i++) {
       if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
-	amrex::Abort("Domains of coarse and fine do not match!");
+        amrex::Abort("Domains of coarse and fine do not match!");
     }
 
     for (int i=1; i<=amrDataf.FinestLevel(); i++)
@@ -1551,11 +1551,11 @@ TakeDifferenceCrse(AmrData&             amrDataf,
       domainc.refine(amrDatac.RefRatio()[i]);
 
     BoxArray baf(domainf), bac(domainc);
-    
+
     // Fill tmpx with the data
     Vector<int> destFillComps(nComp);
     Vector<std::string> destNames(nComp);
-    for (int i=0; i<nComp; ++i) 
+    for (int i=0; i<nComp; ++i)
       destFillComps[i] = i;
     MultiFab tmpc(bac,nComp,0), tmpf(baf,nComp,0);
 
@@ -1565,23 +1565,23 @@ TakeDifferenceCrse(AmrData&             amrDataf,
     Real fv = 1.0/(rratio[0]*rratio[1]);
 
     for (MFIter mfi(tmpc); mfi.isValid(); ++mfi) {
-	  
+
       const int* lo = tmpc[mfi].loVect();
       const int* hi = tmpc[mfi].hiVect();
 
       for (int joff=0; joff<rratio[1]; joff++) {
-	for (int jc=lo[1]; jc<=hi[1]; jc++) {
-	  int j = jc*rratio[1] +joff;
-	  for (int ioff=0; ioff<rratio[0]; ioff++) {
-	    for (int ic=lo[0]; ic<=hi[0]; ic++) {  
-	      int i = ic*rratio[0] + ioff;
-	      for (int n=0; n<nComp; n++) {
-		tmpc[mfi](IntVect(ic,jc),n) -= fv* 
-		  tmpf[mfi](IntVect(i,j),n);
-	      }
-	    }
-	  }
-	}
+        for (int jc=lo[1]; jc<=hi[1]; jc++) {
+          int j = jc*rratio[1] +joff;
+          for (int ioff=0; ioff<rratio[0]; ioff++) {
+            for (int ic=lo[0]; ic<=hi[0]; ic++) {
+              int i = ic*rratio[0] + ioff;
+              for (int n=0; n<nComp; n++) {
+                tmpc[mfi](IntVect(ic,jc),n) -= fv*
+                  tmpf[mfi](IntVect(i,j),n);
+              }
+            }
+          }
+        }
       }
 
       tmpc[mfi].mult(-1.0);
@@ -1593,10 +1593,10 @@ TakeDifferenceCrse(AmrData&             amrDataf,
 // fine solution - coarse solution on the grid finest level specified.
 void
 TakeDifferenceSum(AmrData&             amrDataf,
-		  AmrData&             amrDatac,
-		  Vector<std::string>   cNames,
-		  Vector<Real>          barr,
-		  std::string          oFile)
+                  AmrData&             amrDatac,
+                  Vector<std::string>   cNames,
+                  Vector<Real>          barr,
+                  std::string          oFile)
 {
     int nComp = cNames.size();
 
@@ -1604,7 +1604,7 @@ TakeDifferenceSum(AmrData&             amrDataf,
     Box domainc = amrDatac.ProbDomain()[0];
     for (int i=0;i<BL_SPACEDIM;i++) {
       if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
-	amrex::Abort("Domains of coarse and fine do not match!");
+        amrex::Abort("Domains of coarse and fine do not match!");
     }
 
     vector<Real> bbll,bbur;
@@ -1622,26 +1622,26 @@ TakeDifferenceSum(AmrData&             amrDataf,
     Vector<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
     for (int i=0; i<BL_SPACEDIM; ++i) {
       dxf[i] = amrDataf.ProbSize()[i]/
-	amrDataf.ProbDomain()[0].length(i);            
-      domainf.setSmall(i,std::max(domainf.smallEnd()[i], 
-	(int)((bbll[i]-amrDataf.ProbLo()[i]+.0001*dxf[i])/dxf[i])));
-      domainf.setBig(i,std::min(domainf.bigEnd()[i], 
-	(int)((bbur[i]-amrDataf.ProbLo()[i]-.0001*dxf[i])/dxf[i])));
+        amrDataf.ProbDomain()[0].length(i);
+      domainf.setSmall(i,std::max(domainf.smallEnd()[i],
+        (int)((bbll[i]-amrDataf.ProbLo()[i]+.0001*dxf[i])/dxf[i])));
+      domainf.setBig(i,std::min(domainf.bigEnd()[i],
+        (int)((bbur[i]-amrDataf.ProbLo()[i]-.0001*dxf[i])/dxf[i])));
 
       dxc[i] = amrDatac.ProbSize()[i]/
-	amrDatac.ProbDomain()[0].length(i);            
-      domainc.setSmall(i,std::max(domainc.smallEnd()[i], 
-	(int)((bbll[i]-amrDatac.ProbLo()[i]+.0001*dxc[i])/dxc[i])));
-      domainc.setBig(i,std::min(domainc.bigEnd()[i], 
-	(int)((bbur[i]-amrDatac.ProbLo()[i]-.0001*dxc[i])/dxc[i])));
+        amrDatac.ProbDomain()[0].length(i);
+      domainc.setSmall(i,std::max(domainc.smallEnd()[i],
+        (int)((bbll[i]-amrDatac.ProbLo()[i]+.0001*dxc[i])/dxc[i])));
+      domainc.setBig(i,std::min(domainc.bigEnd()[i],
+        (int)((bbur[i]-amrDatac.ProbLo()[i]-.0001*dxc[i])/dxc[i])));
 
       rratio[i] = (int)((dxc[i]/(amrDatac.FinestLevel()+1))/
-		        (dxf[i]/(amrDataf.FinestLevel()+1)));
+                        (dxf[i]/(amrDataf.FinestLevel()+1)));
     }
 
     for (int i=0;i<BL_SPACEDIM;i++) {
       if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
-	amrex::Abort("Domains of coarse and fine do not match!");
+        amrex::Abort("Domains of coarse and fine do not match!");
     }
 
     for (int i=1; i<=amrDataf.FinestLevel(); i++)
@@ -1650,11 +1650,11 @@ TakeDifferenceSum(AmrData&             amrDataf,
       domainc.refine(amrDatac.RefRatio()[i]);
 
     BoxArray baf(domainf), bac(domainc);
-    
+
     // Fill tmpx with the data
     Vector<int> destFillComps(nComp);
     Vector<std::string> destNames(nComp);
-    for (int i=0; i<nComp; ++i) 
+    for (int i=0; i<nComp; ++i)
       destFillComps[i] = i;
     MultiFab tmpc(bac,nComp,0), tmpf(baf,nComp,0);
     MultiFab tmpfl(bac,2,0);
@@ -1663,46 +1663,46 @@ TakeDifferenceSum(AmrData&             amrDataf,
     amrDataf.FillVar(tmpf,amrDataf.FinestLevel(),cNames,destFillComps);
 
     for (MFIter mfi(tmpc); mfi.isValid(); ++mfi) {
-	  
+
       const int* lo = tmpc[mfi].loVect();
       const int* hi = tmpc[mfi].hiVect();
 
       for (int joff=0; joff<rratio[1]; joff++) {
-	for (int jc=lo[1]; jc<=hi[1]; jc++) {
-	  int j = jc*rratio[1] +joff;
-	  for (int ic=lo[0]; ic<=hi[0]; ic++) {  
-	    int i = ic*rratio[0];
-	    tmpfl[mfi](IntVect(ic,jc),0) += 
-	      tmpf[mfi](IntVect(i,j),0);
-	  }
-	}
+        for (int jc=lo[1]; jc<=hi[1]; jc++) {
+          int j = jc*rratio[1] +joff;
+          for (int ic=lo[0]; ic<=hi[0]; ic++) {
+            int i = ic*rratio[0];
+            tmpfl[mfi](IntVect(ic,jc),0) +=
+              tmpf[mfi](IntVect(i,j),0);
+          }
+        }
       }
 
-      
+
       for (int jc=lo[1]; jc<=hi[1]; jc++) {
-	int j = jc*rratio[1];
-	for (int ioff=0; ioff<rratio[0]; ioff++) {
-	  for (int ic=lo[0]; ic<=hi[0]; ic++) {  
-	    int i = ic*rratio[0] + ioff;
-	    for (int n=0; n<nComp; n++) {
-	      tmpfl[mfi](IntVect(ic,jc),1) += 
-		tmpf[mfi](IntVect(i,j),1);
-	    }
-	  }
-	}
+        int j = jc*rratio[1];
+        for (int ioff=0; ioff<rratio[0]; ioff++) {
+          for (int ic=lo[0]; ic<=hi[0]; ic++) {
+            int i = ic*rratio[0] + ioff;
+            for (int n=0; n<nComp; n++) {
+              tmpfl[mfi](IntVect(ic,jc),1) +=
+                tmpf[mfi](IntVect(i,j),1);
+            }
+          }
+        }
       }
     }
 
-    tmpfl.minus(tmpc,0,2,0);  
+    tmpfl.minus(tmpc,0,2,0);
     VisMF::Write(tmpfl,oFile);
 }
 // fine solution - coarse solution on the coarse finest level specified.
 void
 TakeDifferenceMean(AmrData&             amrDataf,
-		   Vector<std::string>   cNames,
-		   Vector<Real>          barr,
-		   Vector<int>           rratio,
-		   std::string          oFile)
+                   Vector<std::string>   cNames,
+                   Vector<Real>          barr,
+                   Vector<int>           rratio,
+                   std::string          oFile)
 {
     int nComp = cNames.size();
 
@@ -1721,11 +1721,11 @@ TakeDifferenceMean(AmrData&             amrDataf,
     Vector<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
     for (int i=0; i<BL_SPACEDIM; ++i) {
       dxf[i] = amrDataf.ProbSize()[i]/
-	amrDataf.ProbDomain()[0].length(i);            
-      domainf.setSmall(i,std::max(domainf.smallEnd()[i], 
-	(int)((bbll[i]-amrDataf.ProbLo()[i]+.0001*dxf[i])/dxf[i])));
-      domainf.setBig(i,std::min(domainf.bigEnd()[i], 
-	(int)((bbur[i]-amrDataf.ProbLo()[i]-.0001*dxf[i])/dxf[i])));
+        amrDataf.ProbDomain()[0].length(i);
+      domainf.setSmall(i,std::max(domainf.smallEnd()[i],
+        (int)((bbll[i]-amrDataf.ProbLo()[i]+.0001*dxf[i])/dxf[i])));
+      domainf.setBig(i,std::min(domainf.bigEnd()[i],
+        (int)((bbur[i]-amrDataf.ProbLo()[i]-.0001*dxf[i])/dxf[i])));
     }
 
     for (int i=1; i<=amrDataf.FinestLevel(); i++)
@@ -1738,11 +1738,11 @@ TakeDifferenceMean(AmrData&             amrDataf,
     }
 
     BoxArray baf(domainf), bac(domainc);
-    
+
     // Fill tmpx with the data
     Vector<int> destFillComps(nComp);
     Vector<std::string> destNames(nComp);
-    for (int i=0; i<nComp; ++i) 
+    for (int i=0; i<nComp; ++i)
       destFillComps[i] = i;
     MultiFab tmpc(bac,nComp,0), tmpf(baf,nComp,0);
     amrDataf.FillVar(tmpf,amrDataf.FinestLevel(),cNames,destFillComps);
@@ -1751,38 +1751,38 @@ TakeDifferenceMean(AmrData&             amrDataf,
     Real fv = 1.0/(rratio[0]*rratio[1]);
 
     for (MFIter mfi(tmpc); mfi.isValid(); ++mfi) {
-	  
+
       const int* lo = tmpc[mfi].loVect();
       const int* hi = tmpc[mfi].hiVect();
 
       for (int joff=0; joff<rratio[1]; joff++) {
-	for (int jc=lo[1]; jc<=hi[1]; jc++) {
-	  int j = jc*rratio[1] +joff;
-	  for (int ioff=0; ioff<rratio[0]; ioff++) {
-	    for (int ic=lo[0]; ic<=hi[0]; ic++) {  
-	      int i = ic*rratio[0] + ioff;
-	      for (int n=0; n<nComp; n++) {
-		tmpc[mfi](IntVect(ic,jc),n) += fv*
-		  tmpf[mfi](IntVect(i,j),n);
-	      }
-	    }
-	  }
-	}
+        for (int jc=lo[1]; jc<=hi[1]; jc++) {
+          int j = jc*rratio[1] +joff;
+          for (int ioff=0; ioff<rratio[0]; ioff++) {
+            for (int ic=lo[0]; ic<=hi[0]; ic++) {
+              int i = ic*rratio[0] + ioff;
+              for (int n=0; n<nComp; n++) {
+                tmpc[mfi](IntVect(ic,jc),n) += fv*
+                  tmpf[mfi](IntVect(i,j),n);
+              }
+            }
+          }
+        }
       }
 
       for (int joff=0; joff<rratio[1]; joff++) {
-	for (int jc=lo[1]; jc<=hi[1]; jc++) {
-	  int j = jc*rratio[1] +joff;
-	  for (int ioff=0; ioff<rratio[0]; ioff++) {
-	    for (int ic=lo[0]; ic<=hi[0]; ic++) {  
-	      int i = ic*rratio[0] + ioff;
-	      for (int n=0; n<nComp; n++) {
-		tmpf[mfi](IntVect(i,j),n) -= 
-		  tmpc[mfi](IntVect(ic,jc),n);
-	      }
-	    }
-	  }
-	}
+        for (int jc=lo[1]; jc<=hi[1]; jc++) {
+          int j = jc*rratio[1] +joff;
+          for (int ioff=0; ioff<rratio[0]; ioff++) {
+            for (int ic=lo[0]; ic<=hi[0]; ic++) {
+              int i = ic*rratio[0] + ioff;
+              for (int n=0; n<nComp; n++) {
+                tmpf[mfi](IntVect(i,j),n) -=
+                  tmpc[mfi](IntVect(ic,jc),n);
+              }
+            }
+          }
+        }
       }
     }
 

@@ -25,7 +25,7 @@ contains
     do ilev = 0, size(rhs)-1
        !$omp parallel private(rlo,rhi,elo,ehi,bx,mfi,prhs,pexact)
        call amrex_mfiter_build(mfi, rhs(ilev), tiling=.true.)
-       
+
        do while (mfi%next())
           bx = mfi%tilebox()
           prhs   =>            rhs(ilev) % dataptr(mfi)
@@ -69,7 +69,7 @@ contains
     do ilev = 0, size(rhs)-1
        !$omp parallel private(rlo,rhi,elo,ehi,alo,ahi,blo,bhi,bx,gbx,mfi,prhs,pexact,pa,pb)
        call amrex_mfiter_build(mfi, rhs(ilev), tiling=.true.)
-       
+
        do while (mfi%next())
           bx = mfi%tilebox()
           gbx = mfi%growntilebox(1)
@@ -118,10 +118,10 @@ contains
           y = prob_lo(2) + dx(2) * (dble(j)+0.5d0)
           do i = lo(1), hi(1)
              x = prob_lo(1) + dx(1) * (dble(i)+0.5d0)
-             
+
              exact(i,j,k) = 1.d0 * (sin(tpi*x) * sin(tpi*y) * sin(tpi*z))  &
                   &      + .25d0 * (sin(fpi*x) * sin(fpi*y) * sin(fpi*z))
-                
+
              rhs(i,j,k) = -fac * (sin(tpi*x) * sin(tpi*y) * sin(tpi*z))  &
                   &       -fac * (sin(fpi*x) * sin(fpi*y) * sin(fpi*z))
           end do
@@ -157,33 +157,33 @@ contains
     zc = (prob_hi(3) + prob_lo(3))/2.d0
 
     theta = 0.5d0*log(3.d0) / (w + 1.d-50)
-    
+
     do k = glo(3), ghi(3)
        z = prob_lo(3) + dx(3) * (dble(k)+0.5d0)
        do j = glo(2), ghi(2)
           y = prob_lo(2) + dx(2) * (dble(j)+0.5d0)
           do i = glo(1), ghi(1)
              x = prob_lo(1) + dx(1) * (dble(i)+0.5d0)
-             
+
              r = sqrt((x-xc)**2 + (y-yc)**2 + (z-zc)**2)
-             
+
              beta(i,j,k) = (sigma-1.d0)/2.d0*tanh(theta*(r-0.25d0)) + (sigma+1.d0)/2.d0
           end do
        end do
     end do
-    
+
     do k = lo(3), hi(3)
        z = prob_lo(3) + dx(3) * (dble(k)+0.5d0)
        do j = lo(2), hi(2)
           y = prob_lo(2) + dx(2) * (dble(j)+0.5d0)
           do i = lo(1), hi(1)
              x = prob_lo(1) + dx(1) * (dble(i)+0.5d0)
-             
+
              r = sqrt((x-xc)**2 + (y-yc)**2 + (z-zc)**2)
-             
+
              dbdrfac = (sigma-1.d0)/2.d0/(cosh(theta*(r-0.25d0)))**2 * theta/r
              dbdrfac = dbdrfac * b
-             
+
              alpha(i,j,k) = 1.d0
 
              exact(i,j,k) = 1.d0 * cos(tpi*x) * cos(tpi*y) * cos(tpi*z)   &

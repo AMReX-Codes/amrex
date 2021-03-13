@@ -15,7 +15,7 @@ subroutine compute_flux (lo, hi, domlo, domhi, phi, philo, phihi, &
   real(amrex_real), intent(inout) :: fluxz( fzlo(1): fzhi(1), fzlo(2): fzhi(2), fzlo(3): fzhi(3))
   real(amrex_real), intent(in)    :: dx(3)
   integer, intent(in)             :: bc(3,2,1) ! (dim,lohi,ncomp)
-  
+
   ! local variables
   integer i,j,k
 

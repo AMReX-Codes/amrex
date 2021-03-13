@@ -40,7 +40,7 @@ class CommProfStats : public BLProfStats {
     struct BarrierEntry {
       BarrierEntry()
         :  number(-1), name("__uninitialized_Barrier_Entry_name__"),
-	   seekIndex(-1), bNameNumber(-1)  { }
+           seekIndex(-1), bNameNumber(-1)  { }
       BarrierEntry(long n, const std::string &nm, long i, int bnn)
         :  number(n), name(nm), seekIndex(i), bNameNumber(bnn)  { }
 
@@ -69,13 +69,13 @@ class CommProfStats : public BLProfStats {
     struct DataBlock {
       DataBlock()
         :  proc(0), size(0), fileName(""), seekpos(0), readoffset(0), nodeName(""),
-	   nodeNumber(-1), nTimerTimes(0), timerTime(0.0), streamIndex(-1)
-	{ }
+           nodeNumber(-1), nTimerTimes(0), timerTime(0.0), streamIndex(-1)
+        { }
       DataBlock(const int p, const long s, const std::string &fn, const long sp,
                 const std::string &pn, const int nn, const int si)
         :  proc(p), size(s), fileName(fn), seekpos(sp), readoffset(0), nodeName(pn),
-	   nodeNumber(nn), nTimerTimes(0), timerTime(0.0), streamIndex(si)
-	{ }
+           nodeNumber(nn), nTimerTimes(0), timerTime(0.0), streamIndex(si)
+        { }
 
       int proc;
       long size;
@@ -100,7 +100,7 @@ class CommProfStats : public BLProfStats {
                    const int rp, const int ds, const int tg,
                    const Real st, const Real rt, const Real tt)
         : fromProc(sp), toProc(rp), dataSize(ds),
-	  tag(tg), sendTime(st), recvTime(rt), totalTime(tt)  { }
+          tag(tg), sendTime(st), recvTime(rt), totalTime(tt)  { }
 
       int fromProc, toProc, dataSize, tag;
       Real sendTime, recvTime, totalTime;
@@ -108,35 +108,35 @@ class CommProfStats : public BLProfStats {
 
       bool Matches(int fromproc, int toproc, int size, int mtag) {
         return(fromproc == fromProc && toproc == toProc &&
-	       size == dataSize && mtag == tag);
+               size == dataSize && mtag == tag);
       }
       bool Matches(int fromproc, int toproc, int size) {
         return(fromproc == fromProc && toproc == toProc &&
-	       size == dataSize);
+               size == dataSize);
       }
       long HashLong() {
         std::stringstream hss;
-	hss << fromProc << toProc << dataSize << tag;
-	return atol(hss.str().c_str());
+        hss << fromProc << toProc << dataSize << tag;
+        return atol(hss.str().c_str());
       }
       inline static long HashLong(int fp, int tp, int t) {
-	return(fp + tp + 64*t);
+        return(fp + tp + 64*t);
       }
       inline static long HashLong(int fp, int tp, int /*ds*/, int t) {
-	//if(fp < 0 || tp < 0 || ds < 0 || t < 0) {
-	  //cout << ":::: HashLong:  negative values:  fp tp ds t = "
-	       //<< fp << "  " << tp << "  " << ds << "  " << t << endl;
-	//}
+        //if(fp < 0 || tp < 0 || ds < 0 || t < 0) {
+          //cout << ":::: HashLong:  negative values:  fp tp ds t = "
+               //<< fp << "  " << tp << "  " << ds << "  " << t << endl;
+        //}
         //std::stringstream hss;
-	//// hss.seekp(0);
-	//// hss << fp << tp << ds << t;
-	//// return atol(hss.str().c_str());
-	//return(fp + 100*tp + 1000*ds + 10000*t);
-	//return(fp + tp + 10*ds + 100*t);
-	//return(fp + tp + ds + 10*t);
-	//return(fp + tp + 32*t);
-	return(fp + tp + 64*t);
-	//return(fp + tp + ds + t);
+        //// hss.seekp(0);
+        //// hss << fp << tp << ds << t;
+        //// return atol(hss.str().c_str());
+        //return(fp + 100*tp + 1000*ds + 10000*t);
+        //return(fp + tp + 10*ds + 100*t);
+        //return(fp + tp + ds + 10*t);
+        //return(fp + tp + 32*t);
+        return(fp + tp + 64*t);
+        //return(fp + tp + ds + t);
       }
     };
 
@@ -145,7 +145,7 @@ class CommProfStats : public BLProfStats {
                            const int rp, const int ds, const int tg,
                            const Real st, const Real rt, const Real tt)
         : SendRecvPair(sp, rp, ds, tg, st, rt, tt), unmatchedCFType(cft)
-	{ }
+        { }
 
       amrex::BLProfiler::CommFuncType unmatchedCFType;
     };
@@ -156,34 +156,34 @@ class CommProfStats : public BLProfStats {
     void CheckCommData(amrex::Vector<long> &nBMin, amrex::Vector<long> &nBMax,
                        amrex::Vector<long> &nRMin, amrex::Vector<long> &nRMax);
     void FillSendFAB(long &totalSends, long &totalSentData,
-		     amrex::Vector<long> &totalSendsPerProc,
-		     amrex::Vector<long> &totalSentDataPerProc,
-		     amrex::FArrayBox &sendFAB, bool proxmap);
+                     amrex::Vector<long> &totalSendsPerProc,
+                     amrex::Vector<long> &totalSentDataPerProc,
+                     amrex::FArrayBox &sendFAB, bool proxmap);
     void ReportSyncPointDataSetup(long &nBMax, long &nRMax);
     void ReportSyncPointData(amrex::Vector<amrex::Vector<Real> > &barrierExitTimes,
                              amrex::Vector<amrex::Vector<Real> > &barrierWaitTimes,
                              amrex::Vector<amrex::Vector<Real> > &reductionWaitTimes,
-			     bool bDoReductions = false);
+                             bool bDoReductions = false);
     void ReportStats(long &totalSentData, long &totalNCommStats,
                      amrex::Vector<long> &totalFuncCalls,
-		     int bytesPerSlot, amrex::Vector<long> &msgSizes,
-		     int &minMsgSize, int &maxMsgSize,
+                     int bytesPerSlot, amrex::Vector<long> &msgSizes,
+                     int &minMsgSize, int &maxMsgSize,
                      Real &timeMin, Real &timeMax, Real &timerTime,
-		     amrex::Vector<int> &rankNodeNumbers);
+                     amrex::Vector<int> &rankNodeNumbers);
     void WriteTopoFab();
     void FindTimeRange(BLProfStats::TimeRange& tr);
     void TimelineFAB(amrex::FArrayBox &timelineFAB, const amrex::Box &probDomain,
                      const BLProfStats::TimeRange tr,
-		     const int rankMin, const int rankMax,
-		     const int rankStride,
-		     const Real ntnMultiplier, const amrex::Vector<Real> &ntnNumbers,
-		     const Real bnMultiplier, const amrex::Vector<Real> &bnNumbers);
+                     const int rankMin, const int rankMax,
+                     const int rankStride,
+                     const Real ntnMultiplier, const amrex::Vector<Real> &ntnNumbers,
+                     const Real bnMultiplier, const amrex::Vector<Real> &bnNumbers);
     void SendRecvData(const std::string &filename,
                        const double tlo, const double thi);
     void SendRecvList(std::multimap<Real, SendRecvPairUnpaired> &srMMap);
     virtual void InitCommDataBlock(const int proc, const long ncommstats,
                        const std::string &filename, const long seekpos,
-		       const std::string &nodename = "", const int nodenumber = -1);
+                       const std::string &nodename = "", const int nodenumber = -1);
 
     int  AfterBarrier(const int proc, const double t);
 

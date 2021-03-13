@@ -32,10 +32,10 @@ contains
     real(amrex_real), intent(in   ) :: vmac( v_lo(1): v_hi(1), v_lo(2): v_hi(2))
     real(amrex_real), intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2))
     real(amrex_real), intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2))
-         
+
     integer :: i, j, k, glo(2), ghi(2)
     real(amrex_real) :: hdtdx(2), umax, vmax
-    real(amrex_real), dimension(:,:), pointer, contiguous :: phix_1d, phiy_1d, phix, phiy, slope    
+    real(amrex_real), dimension(:,:), pointer, contiguous :: phix_1d, phiy_1d, phix, phiy, slope
 
     ! check if CFL condition is violated.
     umax = maxval(abs(umac))
@@ -147,7 +147,7 @@ contains
     call amrex_deallocate(phix)
     call amrex_deallocate(phiy)
     call amrex_deallocate(slope)
-    
+
   end subroutine compute_flux
 
 end module compute_flux_module

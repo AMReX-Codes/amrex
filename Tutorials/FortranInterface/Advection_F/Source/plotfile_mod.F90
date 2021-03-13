@@ -18,7 +18,7 @@ contains
     character(len=127) :: name
     character(len=16)  :: current_step
     type(amrex_string) :: varname(1)
-    
+
     if      (stepno(0) .lt. 1000000) then
        write(current_step,fmt='(i5.5)') stepno(0)
     else if (stepno(0) .lt. 10000000) then
@@ -40,7 +40,7 @@ contains
          t_new(0), stepno, amrex_ref_ratio)
 
     call pc%write(name, "Tracer", .true.)
-    
+
   end subroutine writeplotfile
 
 end module plotfile_module

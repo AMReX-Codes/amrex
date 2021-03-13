@@ -14,14 +14,14 @@ void ElectrostaticParticleContainer::InitParticles() {
         ParticleType p;
 
         p.id()   = ParticleType::NextID();
-        p.cpu()  = ParallelDescriptor::MyProc(); 
-        
-        p.pos(0) = -2.5e-6; 
+        p.cpu()  = ParallelDescriptor::MyProc();
+
+        p.pos(0) = -2.5e-6;
         p.pos(1) =  0.0;
 #if BL_SPACEDIM == 3
         p.pos(2) =  0.0;
 #endif
-        
+
         std::array<Real,PIdx::nattribs> attribs;
         attribs[PIdx::w]  = 1.0;
         attribs[PIdx::vx] = 0.0;
@@ -34,12 +34,12 @@ void ElectrostaticParticleContainer::InitParticles() {
 #if BL_SPACEDIM == 3
         attribs[PIdx::Ez] = 0.0;
 #endif
-        
+
         // Add to level 0, grid 0, and tile 0
         // Redistribute() will move it to the proper place.
         std::pair<int,int> key {0,0};
         auto& particle_tile = GetParticles(0)[key];
-        
+
         particle_tile.push_back(p);
         particle_tile.push_back_real(attribs);
 
@@ -50,37 +50,37 @@ void ElectrostaticParticleContainer::InitParticles() {
 
 void
 ElectrostaticParticleContainer::DepositCharge(ScalarMeshData& rho) {
-    
+
     int num_levels = rho.size();
     int finest_level = num_levels - 1;
 
     // each level deposits it's own particles
     const int ng = rho[0]->nGrow();
-    for (int lev = 0; lev < num_levels; ++lev) {       
+    for (int lev = 0; lev < num_levels; ++lev) {
 
         rho[lev]->setVal(0.0, ng);
 
         const auto& gm = m_gdb->Geom(lev);
         const auto& ba = m_gdb->ParticleBoxArray(lev);
-    
+
         const Real* dx  = gm.CellSize();
         const Real* plo = gm.ProbLo();
         BoxArray nba = ba;
         nba.surroundingNodes();
-    
+
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
             const Box& box = nba[pti];
-            
+
             auto& wp = pti.GetAttribs(PIdx::w);
             const auto& particles = pti.GetArrayOfStructs();
             int nstride = particles.dataShape().first;
             const Long np  = pti.numParticles();
-            
+
             FArrayBox& rhofab = (*rho[lev])[pti];
-            
+
             deposit_cic(particles.data(), nstride, np,
                         wp.data(), &this->charge,
-                        rhofab.dataPtr(), box.loVect(), box.hiVect(), 
+                        rhofab.dataPtr(), box.loVect(), box.hiVect(),
                         plo, dx, &ng);
         }
 
@@ -94,12 +94,12 @@ ElectrostaticParticleContainer::DepositCharge(ScalarMeshData& rho) {
         const DistributionMapping& fine_dm = rho[lev+1]->DistributionMap();
         BoxArray coarsened_fine_BA = fine_BA;
         coarsened_fine_BA.coarsen(m_gdb->refRatio(lev));
-        
+
         MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, 1, 0);
         coarsened_fine_data.setVal(0.0);
-        
+
         IntVect ratio(D_DECL(2, 2, 2));  // FIXME
-        
+
         for (MFIter mfi(coarsened_fine_data); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.validbox();
             const Box& crse_box = coarsened_fine_data[mfi].box();
@@ -108,10 +108,10 @@ ElectrostaticParticleContainer::DepositCharge(ScalarMeshData& rho) {
                                    coarsened_fine_data[mfi].dataPtr(), crse_box.loVect(), crse_box.hiVect(),
                                    (*rho[lev+1])[mfi].dataPtr(), fine_box.loVect(), fine_box.hiVect());
         }
-        
+
         rho[lev]->copy(coarsened_fine_data, m_gdb->Geom(lev).periodicity(), FabArrayBase::ADD);
     }
-    
+
     for (int lev = 0; lev < num_levels; ++lev) {
         rho[lev]->mult(-1.0/PhysConst::ep0, ng);
     }
@@ -164,11 +164,11 @@ FieldGather(const VectorMeshData& E,
 #endif
 
             interpolate_cic(particles.data(), nstride, np,
-                            Exp.data(), Eyp.data(), 
-#if BL_SPACEDIM == 3                
+                            Exp.data(), Eyp.data(),
+#if BL_SPACEDIM == 3
                             Ezp.data(),
 #endif
-                            exfab.dataPtr(), eyfab.dataPtr(), 
+                            exfab.dataPtr(), eyfab.dataPtr(),
 #if BL_SPACEDIM == 3
                             ezfab.dataPtr(),
 #endif
@@ -188,7 +188,7 @@ FieldGather(const VectorMeshData& E,
 #if BL_SPACEDIM == 3
     MultiFab coarse_Ez(coarsened_fine_BA, fine_dm, 1, 1);
 #endif
-    
+
     coarse_Ex.copy(*E[0][0], 0, 0, 1, 1, 1);
     coarse_Ey.copy(*E[0][1], 0, 0, 1, 1, 1);
 #if BL_SPACEDIM == 3
@@ -234,35 +234,35 @@ FieldGather(const VectorMeshData& E,
 
             if (lev == 0) {
                 interpolate_cic(particles.data(), nstride, np,
-                                Exp.data(), Eyp.data(), 
-#if BL_SPACEDIM == 3                
+                                Exp.data(), Eyp.data(),
+#if BL_SPACEDIM == 3
                 Ezp.data(),
 #endif
-                                exfab.dataPtr(), eyfab.dataPtr(), 
+                                exfab.dataPtr(), eyfab.dataPtr(),
 #if BL_SPACEDIM == 3
                                 ezfab.dataPtr(),
 #endif
-                                box.loVect(), box.hiVect(), plo, dx, &ng);                
+                                box.loVect(), box.hiVect(), plo, dx, &ng);
             } else {
-                
+
                 const FArrayBox& exfab_coarse = coarse_Ex[pti];
                 const FArrayBox& eyfab_coarse = coarse_Ey[pti];
 #if BL_SPACEDIM == 3
                 const FArrayBox& ezfab_coarse = coarse_Ez[pti];
-#endif                
+#endif
                 const Box& coarse_box = coarsened_fine_BA[pti];
                 const Real* coarse_dx = Geom(0).CellSize();
-                
+
                 interpolate_cic_two_levels(particles.data(), nstride, np,
-                                           Exp.data(), Eyp.data(), 
-#if BL_SPACEDIM == 3                    
+                                           Exp.data(), Eyp.data(),
+#if BL_SPACEDIM == 3
                                            Ezp.data(),
 #endif
-                                           exfab.dataPtr(), eyfab.dataPtr(), 
+                                           exfab.dataPtr(), eyfab.dataPtr(),
 #if BL_SPACEDIM == 3
                                            ezfab.dataPtr(),
 #endif
-                                           box.loVect(), box.hiVect(), dx, 
+                                           box.loVect(), box.hiVect(), dx,
                                            exfab_coarse.dataPtr(), eyfab_coarse.dataPtr(),
 #if BL_SPACEDIM == 3
                                            ezfab_coarse.dataPtr(),
@@ -275,25 +275,25 @@ FieldGather(const VectorMeshData& E,
     }
 }
 
-void 
+void
 ElectrostaticParticleContainer::
 Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt) {
-    
+
     const int num_levels = E.size();
 
     for (int lev = 0; lev < num_levels; ++lev) {
-        
+
         const auto& gm = m_gdb->Geom(lev);
         const RealBox& prob_domain = gm.ProbDomain();
-    
+
         BL_ASSERT(OnSameGrids(lev, *rho[lev]));
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-            
+
             // Particle structs
             auto& particles = pti.GetArrayOfStructs();
-            int nstride = particles.dataShape().first;           
+            int nstride = particles.dataShape().first;
             const Long np  = pti.numParticles();
-            
+
             // Particle attributes
             auto& attribs = pti.GetAttribs();
             auto& vxp = attribs[PIdx::vx];
@@ -309,16 +309,16 @@ Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt) {
 #if BL_SPACEDIM == 3
             auto& Ezp = attribs[PIdx::Ez];
 #endif
-            
+
             //
             // Particle Push
             //
             push_leapfrog(particles.data(), nstride, np,
-                          vxp.data(), vyp.data(), 
+                          vxp.data(), vyp.data(),
 #if BL_SPACEDIM == 3
                 vzp.data(),
 #endif
-                          Exp.data(), Eyp.data(), 
+                          Exp.data(), Eyp.data(),
 #if BL_SPACEDIM == 3
                           Ezp.data(),
 #endif
@@ -329,24 +329,24 @@ Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt) {
 }
 
 void ElectrostaticParticleContainer::pushX(const Real& dt) {
-    for (int lev = 0; lev <= finestLevel(); ++lev) {    
+    for (int lev = 0; lev <= finestLevel(); ++lev) {
         const auto& gm = m_gdb->Geom(lev);
         const RealBox& prob_domain = gm.ProbDomain();
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
             auto& particles = pti.GetArrayOfStructs();
             int nstride = particles.dataShape().first;
             const Long np  = pti.numParticles();
-            
+
             auto& attribs = pti.GetAttribs();
             auto& vxp = attribs[PIdx::vx];
             auto& vyp = attribs[PIdx::vy];
 #if BL_SPACEDIM == 3
             auto& vzp = attribs[PIdx::vz];
-#endif            
+#endif
             push_leapfrog_positions(particles.data(), nstride, np,
-                                    vxp.data(), vyp.data(), 
+                                    vxp.data(), vyp.data(),
 #if BL_SPACEDIM == 3
-                                    vzp.data(), 
+                                    vzp.data(),
 #endif
                                     &dt, prob_domain.lo(), prob_domain.hi());
 

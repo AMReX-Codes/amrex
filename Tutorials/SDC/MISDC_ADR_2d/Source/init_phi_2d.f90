@@ -6,9 +6,9 @@ subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, nam
 
   integer, intent(in) :: lo(2), hi(2), philo(2), phihi(2)
   real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2))
-  real(amrex_real), intent(in   ) :: dx(2) 
-  real(amrex_real), intent(in   ) :: prob_lo(2) 
-  real(amrex_real), intent(in   ) :: prob_hi(2) 
+  real(amrex_real), intent(in   ) :: dx(2)
+  real(amrex_real), intent(in   ) :: prob_lo(2)
+  real(amrex_real), intent(in   ) :: prob_hi(2)
 
   integer          :: i,j
   double precision :: x,y,tupi
@@ -34,9 +34,9 @@ subroutine err_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi,a,d,r,time) b
 
   integer, intent(in) :: lo(2), hi(2), philo(2), phihi(2)
   real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2))
-  real(amrex_real), intent(in   ) :: dx(2) 
-  real(amrex_real), intent(in   ) :: prob_lo(2) 
-  real(amrex_real), intent(in   ) :: prob_hi(2) 
+  real(amrex_real), intent(in   ) :: dx(2)
+  real(amrex_real), intent(in   ) :: prob_lo(2)
+  real(amrex_real), intent(in   ) :: prob_hi(2)
   real(amrex_real), intent(in   ) :: a,d,r
   real(amrex_real), intent(in   ) :: time
 

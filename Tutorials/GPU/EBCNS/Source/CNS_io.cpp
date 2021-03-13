@@ -15,8 +15,8 @@ CNS::restart (Amr& papa, std::istream& is, bool bReadSpecial)
     buildMetrics();
 }
 
-void 
-CNS::checkPoint (const std::string& dir, std::ostream& os, VisMF::How how, bool dump_old) 
+void
+CNS::checkPoint (const std::string& dir, std::ostream& os, VisMF::How how, bool dump_old)
 {
     AmrLevel::checkPoint(dir, os, how, dump_old);
 }
@@ -47,14 +47,14 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
     const std::list<DeriveRec>& dlist = derive_lst.dlist();
 
     for (std::list<DeriveRec>::const_iterator it = dlist.begin();
-	 it != dlist.end();
-	 ++it)
+         it != dlist.end();
+         ++it)
     {
         if (parent->isDerivePlotVar(it->name()))
         {
             derive_names.push_back(it->name());
             num_derive++;
-	}
+        }
     }
 
     int n_data_items = plot_var_map.size() + num_derive + 1;
@@ -73,20 +73,20 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
 
         os << n_data_items << '\n';
 
-	//
-	// Names of variables -- first state, then derived
-	//
-	for (int i = 0; i < plot_var_map.size(); i++)
+        //
+        // Names of variables -- first state, then derived
+        //
+        for (int i = 0; i < plot_var_map.size(); i++)
         {
-	    int typ = plot_var_map[i].first;
-	    int comp = plot_var_map[i].second;
-	    os << desc_lst[typ].name(comp) << '\n';
+            int typ = plot_var_map[i].first;
+            int comp = plot_var_map[i].second;
+            os << desc_lst[typ].name(comp) << '\n';
         }
 
-	for ( std::list<std::string>::iterator it = derive_names.begin();
-	      it != derive_names.end(); ++it)
+        for ( std::list<std::string>::iterator it = derive_names.begin();
+              it != derive_names.end(); ++it)
         {
-	    const DeriveRec* rec = derive_lst.get(*it);
+            const DeriveRec* rec = derive_lst.get(*it);
             os << rec->variableName(0) << '\n';
         }
 
@@ -191,30 +191,30 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
     //
     for (int i = 0; i < plot_var_map.size(); i++)
     {
-	int typ  = plot_var_map[i].first;
-	int comp = plot_var_map[i].second;
-	this_dat = &state[typ].newData();
-	MultiFab::Copy(plotMF,*this_dat,comp,cnt,1,nGrow);
+        int typ  = plot_var_map[i].first;
+        int comp = plot_var_map[i].second;
+        this_dat = &state[typ].newData();
+        MultiFab::Copy(plotMF,*this_dat,comp,cnt,1,nGrow);
 #ifdef AMREX_TESTING
         // to avoid fcompare failure
         if (typ == Cost_Type) {
             plotMF.setVal(0.0, cnt, 1, nGrow);
         }
 #endif
-	cnt++;
+        cnt++;
     }
     //
     // Cull data from derived variables.
     //
     if (derive_names.size() > 0)
     {
-	for (std::list<std::string>::iterator it = derive_names.begin();
-	     it != derive_names.end(); ++it)
-	{
+        for (std::list<std::string>::iterator it = derive_names.begin();
+             it != derive_names.end(); ++it)
+        {
             auto derive_dat = derive(*it,cur_time,nGrow);
             MultiFab::Copy(plotMF,*derive_dat,0,cnt,1,nGrow);
-	    cnt++;
-	}
+            cnt++;
+        }
     }
 
     plotMF.setVal(0.0, cnt, 1, nGrow);

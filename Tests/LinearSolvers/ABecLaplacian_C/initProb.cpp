@@ -129,7 +129,7 @@ MyTest::initProbABecLaplacianInhomNeumann ()
                     actual_init_dphi_dx_hi(i,j,k,solnfab,prob_lo,dx);
                 });
             }
-            
+
             if (bx.smallEnd(1) == domain.smallEnd(1)) {
                 Box const& bylo = amrex::adjCellLo(bx, 1);
                 amrex::ParallelFor(bylo,

@@ -35,7 +35,7 @@ public:
     //The basic constructor.
     //
     AmrLevelAdv (amrex::Amr&     papa,
-	         int             lev,
+                 int             lev,
                  const amrex::Geometry& level_geom,
                  const amrex::BoxArray& bl,
                  const amrex::DistributionMapping& dm,
@@ -49,12 +49,12 @@ public:
     //
     virtual void restart (amrex::Amr&   papa,
                           std::istream& is,
-			  bool          bReadSpecial = false) override;
+                          bool          bReadSpecial = false) override;
 
     virtual void checkPoint (const std::string& dir,
-			     std::ostream&      os,
-			     amrex::VisMF::How  how = amrex::VisMF::NFiles,
-			     bool               dump_old = true) override;
+                             std::ostream&      os,
+                             amrex::VisMF::How  how = amrex::VisMF::NFiles,
+                             bool               dump_old = true) override;
 
     //
     //Write a plotfile to specified directory.
@@ -141,7 +141,7 @@ public:
                            int          clearval,
                            int          tagval,
                            amrex::Real         time,
-			   int          n_error_buf = 0, int ngrow = 0) override;
+                           int          n_error_buf = 0, int ngrow = 0) override;
 
 #ifdef AMREX_PARTICLES
     static amrex::AmrTracerParticleContainer* theTracerPC () { return TracerPC.get(); }
@@ -181,7 +181,7 @@ protected:
     static int       do_tracers;
     static std::unique_ptr<amrex::AmrTracerParticleContainer> TracerPC;
 #endif
-};    
+};
 
 //
 // Inlines.

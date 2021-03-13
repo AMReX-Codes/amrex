@@ -1,6 +1,6 @@
 These tests demonstrate how to convert AMReX Mesh data into an in-memory
 Conduit Mesh Blueprint description for consumption by the ALPINE Ascent
-in situ visualization and analysis tool. 
+in situ visualization and analysis tool.
 
 For details about what mesh features are currently supported, see:
  Src/Extern/Conduit/AMReX_Conduit_Blueprint.H
@@ -12,10 +12,10 @@ The tests include:
 
 
 These tests use the interfaces in Src/Extern/Conduit/AMReX_Conduit_Blueprint.H,
-which are built when USE_CONDUIT=TRUE. These tests' GNUmakefiles provide a 
-template of how to enable and link Conduit and Ascent. 
+which are built when USE_CONDUIT=TRUE. These tests' GNUmakefiles provide a
+template of how to enable and link Conduit and Ascent.
 
- 
+
 For more details about Conduit and Ascent, please see:
 
 Conduit:

@@ -25,7 +25,7 @@ contains
     !$acc end kernels
  end subroutine plusone_acc
 #endif
- 
+
 #ifdef AMREX_USE_OMP_OFFLOAD
   subroutine plusone_omp (lo, hi, dat, dlo, dhi) &
        bind(c,name='plusone_omp')

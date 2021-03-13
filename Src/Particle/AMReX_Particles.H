@@ -222,9 +222,9 @@ public:
     //! \param A BoxArray, which gives the set of grid boxes
     //!
     ParticleContainer (const Geometry            & geom,
-		       const DistributionMapping & dmap,
-		       const BoxArray            & ba)
-	:
+                       const DistributionMapping & dmap,
+                       const BoxArray            & ba)
+        :
         ParticleContainerBase(geom, dmap, ba),
         h_communicate_real_comp(NArrayReal, true),
         h_communicate_int_comp(NArrayInt, true),
@@ -247,10 +247,10 @@ public:
     //! refinement ratio between levels n and n+1
     //!
     ParticleContainer (const Vector<Geometry>            & geom,
-		       const Vector<DistributionMapping> & dmap,
-		       const Vector<BoxArray>            & ba,
-		       const Vector<int>                 & rr)
-	:
+                       const Vector<DistributionMapping> & dmap,
+                       const Vector<BoxArray>            & ba,
+                       const Vector<int>                 & rr)
+        :
         ParticleContainerBase(geom, dmap, ba, rr),
         h_communicate_real_comp(NArrayReal, true),
         h_communicate_int_comp(NArrayInt, true),
@@ -272,10 +272,10 @@ public:
     //! refinement ratio between levels n and n+1
     //!
     ParticleContainer (const Vector<Geometry>            & geom,
-		       const Vector<DistributionMapping> & dmap,
-		       const Vector<BoxArray>            & ba,
-		       const Vector<IntVect>             & rr)
-	:
+                       const Vector<DistributionMapping> & dmap,
+                       const Vector<BoxArray>            & ba,
+                       const Vector<IntVect>             & rr)
+        :
         ParticleContainerBase(geom, dmap, ba, rr),
         h_communicate_real_comp(NArrayReal, true),
         h_communicate_int_comp(NArrayInt, true),
@@ -319,8 +319,8 @@ public:
     //! \param A BoxArray, which gives the set of grid boxes
     //!
     void Define (const Geometry            & geom,
-		 const DistributionMapping & dmap,
-		 const BoxArray            & ba)
+                 const DistributionMapping & dmap,
+                 const BoxArray            & ba)
     {
         this->ParticleContainerBase::Define(geom, dmap, ba);
         reserveData();
@@ -337,13 +337,13 @@ public:
     //! refinement ratio between levels n and n+1
     //!
     void Define (const Vector<Geometry>            & geom,
-		 const Vector<DistributionMapping> & dmap,
-		 const Vector<BoxArray>            & ba,
-		 const Vector<int>                 & rr)
+                 const Vector<DistributionMapping> & dmap,
+                 const Vector<BoxArray>            & ba,
+                 const Vector<int>                 & rr)
     {
         this->ParticleContainerBase::Define(geom, dmap, ba, rr);
         reserveData();
-	resizeData();
+        resizeData();
     }
 
     //! \brief The total number of tiles on this rank on this level
@@ -684,15 +684,15 @@ public:
      /**
       * \brief Writes particle data to disk in the AMReX native format.
       *
-	  * \tparam F function type
-	  *
+          * \tparam F function type
+          *
       * \param dir The base directory into which to write (i.e. "plt00000")
       * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
       * \param write_real_comp for each real component, whether or not we include that component in the file
       * \param write_int_comp for each integer component, whether or not we include that component in the file
       * \param real_comp_names for each real component, a name to label the data with
       * \param int_comp_names for each integer component, a name to label the data with
-	  * \param f callable that returns whether a given particle should be written or not
+          * \param f callable that returns whether a given particle should be written or not
       */
     template <class F>
     void WriteBinaryParticleData (const std::string& dir,
@@ -701,7 +701,7 @@ public:
                                   const Vector<int>& write_int_comp,
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>&  int_comp_names,
-								  F&& f) const;
+                                                                  F&& f) const;
 
     void CheckpointPre ();
 
@@ -820,7 +820,7 @@ public:
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param real_comp_names for each real component, a name to label the data with
      * \param int_comp_names for each integer component, a name to label the data with
-	 * \param f callable that returns whether or not to write each particle
+         * \param f callable that returns whether or not to write each particle
      */
     template <class F>
     void WritePlotFile (const std::string& dir, const std::string& name,
@@ -915,10 +915,10 @@ public:
      * the user should pass in vectors containing names of all the components, whether
      * they are written or not.
      *
-	 *  This version also lets you pass in a functor to toggle whether each particle gets output.
-	 *
-	 * \tparam F function type
-	 *
+         *  This version also lets you pass in a functor to toggle whether each particle gets output.
+         *
+         * \tparam F function type
+         *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param write_real_comp for each real component, whether to include that comp in the file
@@ -1111,7 +1111,7 @@ protected:
     */
     template <typename P>
     bool Where (const P& prt, ParticleLocData& pld,
-		int lev_min = 0, int lev_max = -1, int nGrow=0, int local_grid=-1) const;
+                int lev_min = 0, int lev_max = -1, int nGrow=0, int local_grid=-1) const;
 
 
     /**
@@ -1158,7 +1158,7 @@ private:
                                      int /*grid*/, const ParticleType& /*p*/) {}
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
-			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
+                          int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
 
     void locateParticle (ParticleType& p, ParticleLocData& pld,
                          int lev_min, int lev_max, int nGrow, int local_grid=-1) const;

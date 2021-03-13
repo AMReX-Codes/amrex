@@ -15,8 +15,8 @@ void write_plotfile(const Geometry& geom, const MultiFab& plotmf)
 {
     std::string plotfile_name("plt00000");
 
-    amrex::Print() << "Writing " << plotfile_name << std::endl;    
-    
+    amrex::Print() << "Writing " << plotfile_name << std::endl;
+
 #if (AMREX_SPACEDIM == 2)
        EB_WriteSingleLevelPlotfile(plotfile_name, plotmf,
                                    { "proc" ,"xvel", "yvel" },
@@ -36,7 +36,7 @@ int main (int argc, char* argv[])
     amrex::Initialize(argc, argv);
 
     auto strt_time = amrex::second();
-    
+
     {
         int mg_verbose = 0;
         int bottom_verbose = 0;
@@ -57,7 +57,7 @@ int main (int argc, char* argv[])
         }
 
 #ifndef AMREX_USE_HYPRE
-        if (use_hypre == 1) 
+        if (use_hypre == 1)
            amrex::Abort("Cant use hypre if we dont build with USE_HYPRE=TRUE");
 #endif
 
@@ -105,7 +105,7 @@ int main (int argc, char* argv[])
         int direction =  2;
         Real height   = -1.0;  // Putting a negative number for height means it extends beyond the domain
 
-        // The "false" below is the boolean that determines if the fluid is inside ("true") or 
+        // The "false" below is the boolean that determines if the fluid is inside ("true") or
         //     outside ("false") the object(s)
 
         Array<EB2::CylinderIF,9> obstacles{
@@ -125,16 +125,16 @@ int main (int argc, char* argv[])
         auto all     = EB2::makeUnion(group_1,group_2,group_3);
         auto gshop9  = EB2::makeShop(all);
         EB2::Build(gshop9, geom, required_coarsening_level, max_coarsening_level);
-   
+
         const EB2::IndexSpace& eb_is = EB2::IndexSpace::top();
         const EB2::Level& eb_level = eb_is.getLevel(geom);
-   
+
         // options are basic, volume, or full
         EBSupport ebs = EBSupport::full;
-  
+
         // number of ghost cells for each of the 3 EBSupport types
         Vector<int> ng_ebs = {2,2,2};
- 
+
         // This object provides access to the EB database in the format of basic AMReX objects
         // such as BaseFab, FArrayBox, FabArray, and MultiFab
         EBFArrayBoxFactory factory(eb_level, geom, grids, dmap, ng_ebs, ebs);
@@ -149,10 +149,10 @@ int main (int argc, char* argv[])
         // and then perform the projection:
         //
         //     vel = vel - sigma * grad(phi)
-        // 
+        //
 
         //
-        //  Create the cell-centered velocity field we want to project  
+        //  Create the cell-centered velocity field we want to project
         //
         MultiFab vel(grids, dmap, AMREX_SPACEDIM, 1, MFInfo(), factory);
 
@@ -162,7 +162,7 @@ int main (int argc, char* argv[])
 
         //
         // Setup linear operator, AKA the nodal Laplacian
-        // 
+        //
         LPInfo lp_info;
 
         // If we want to use hypre to solve the full problem we do not need to coarsen the GMG stencils
@@ -189,115 +189,115 @@ int main (int argc, char* argv[])
         matrix.setHarmonicAverage(false);
 
         //
-        // Compute RHS 
+        // Compute RHS
         //
-        // NOTE: it's up to the user to compute the RHS. as opposed to the MAC projection 
+        // NOTE: it's up to the user to compute the RHS. as opposed to the MAC projection
         //
         // NOTE: do this operation AFTER setting up the linear operator so
         //       that compRHS method can be used
-        // 
+        //
 
         // RHS is nodal
         const BoxArray & nd_grids = amrex::convert(grids, IntVect::TheNodeVector()); // nodal grids
- 
+
         // Multifab to host RHS
         MultiFab rhs(nd_grids, dmap, 1, 1, MFInfo(), factory);
- 
+
         // Cell-centered contributions to RHS
         MultiFab S_cc(grids, dmap, 1, 1, MFInfo(), factory);
         S_cc.setVal(0.0); // Set it to zero for this example
-  
+
        // Node-centered contributions to RHS
         MultiFab S_nd(nd_grids, dmap, 1, 1, MFInfo(), factory);
-        S_nd.setVal(0.0); // Set it to zero for this example 
-  
+        S_nd.setVal(0.0); // Set it to zero for this example
+
         // Compute RHS -- vel must be cell-centered
         matrix.compRHS({&rhs}, {&vel}, {&S_nd}, {&S_cc});
- 
+
         //
         // Create the cell-centered sigma field and set it to 1 for this example
         //
         MultiFab sigma(grids, dmap, 1, 1, MFInfo(), factory);
         sigma.setVal(1.0);
-  
-        // Set sigma 
+
+        // Set sigma
         matrix.setSigma(0, sigma);
-  
+
         //
         // Create node-centered phi
         //
         MultiFab phi(nd_grids, dmap, 1, 1, MFInfo(), factory);
         phi.setVal(0.0);
- 
+
         //
         // Setup MLMG solver
         //
         MLMG nodal_solver(matrix);
- 
+
         // We can specify the maximum number of iterations
         // nodal_solver.setMaxIter(nodal_mg_maxiter);
         // nodal_solver.setBottomMaxIter(nodal_mg_bottom_maxiter);
- 
+
         nodal_solver.setVerbose(mg_verbose);
         nodal_solver.setBottomVerbose(bottom_verbose);
 
-        // Set bottom-solver to use hypre instead of native BiCGStab 
+        // Set bottom-solver to use hypre instead of native BiCGStab
         //   ( we could also have set this to cg, bicgcg, cgbicg)
-        // if (use_hypre_as_full_solver || use_hypre_as_bottom_solver) 
+        // if (use_hypre_as_full_solver || use_hypre_as_bottom_solver)
         //    nodal_solver.setBottomSolver(MLMG::BottomSolver::hypre);
- 
+
         // Define the relative tolerance
         Real reltol = 1.e-8;
- 
+
         // Define the absolute tolerance; note that this argument is optional
         Real abstol = 1.e-15;
- 	
-        amrex::Print() << " \n********************************************************************" << std::endl; 
+
+        amrex::Print() << " \n********************************************************************" << std::endl;
         amrex::Print() << " Let's project the initial velocity to find " << std::endl;
         amrex::Print() << "   the flow field around the obstacles ... " << std::endl;
         amrex::Print() << " The domain has " << n_cell_x << " cells in the x-direction "          << std::endl;
-        amrex::Print() << " The maximum grid size is " << max_grid_size                             << std::endl;  
-        amrex::Print() << "******************************************************************** \n" << std::endl; 
- 
+        amrex::Print() << " The maximum grid size is " << max_grid_size                             << std::endl;
+        amrex::Print() << "******************************************************************** \n" << std::endl;
+
         //
         // Solve div( sigma * grad(phi) ) = RHS
         //
         nodal_solver.solve( {&phi}, {&rhs}, reltol, abstol);
- 
-        amrex::Print() << " \n********************************************************************" << std::endl; 
+
+        amrex::Print() << " \n********************************************************************" << std::endl;
         amrex::Print() << " Done solving the equation " << std::endl;
         amrex::Print() << " ... now subtracting off sigmna grad phi from vel" << std::endl;
- 
+
         //
         // Create cell-centered multifab to hold value of -sigma*grad(phi) at cell-centers
-        // 
+        //
         MultiFab fluxes(grids, dmap, AMREX_SPACEDIM, 1, MFInfo(), factory);
         fluxes.setVal(0.0);
- 
+
         // Get fluxes from solver
         nodal_solver.getFluxes( {&fluxes} );
- 
+
         //
-        // Apply projection explicitly --  vel = vel - sigma * grad(phi)  
-        // 
+        // Apply projection explicitly --  vel = vel - sigma * grad(phi)
+        //
         MultiFab::Add( vel, fluxes, 0, 0, AMREX_SPACEDIM, 0);
- 
+
         amrex::Print() << " ... now done with full projection operation" << std::endl;
-        amrex::Print() << "******************************************************************** \n" << std::endl; 
- 
+        amrex::Print() << "******************************************************************** \n" << std::endl;
+
         // Store plotfile variables; velocity and processor id
         MultiFab plotfile_mf(grids, dmap, AMREX_SPACEDIM+1, 0, MFInfo(), factory);
- 
+
         // copy processor id into plotfile_mf
         plotfile_mf.setVal(ParallelDescriptor::MyProc(), 0, 1);
         plotfile_mf.setVal(ParallelDescriptor::MyProc(), 0, 1);
- 
+
         // copy velocity into plotfile
         MultiFab::Copy(plotfile_mf, vel, 0, 1, AMREX_SPACEDIM, 0);
 
-        write_plotfile(geom, plotfile_mf); 
+        write_plotfile(geom, plotfile_mf);
     }
-  
+
     auto stop_time = amrex::second() - strt_time;
     amrex::Print() << "Total run time " << stop_time << std::endl;
 

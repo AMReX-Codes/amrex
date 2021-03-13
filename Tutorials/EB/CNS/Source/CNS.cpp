@@ -179,28 +179,28 @@ CNS::computeNewDt (int                    finest_level,
         dt_min[i] = getLevel(i).estTimeStep();
     }
 
-    if (post_regrid_flag == 1) 
+    if (post_regrid_flag == 1)
     {
-	//
-	// Limit dt's by pre-regrid dt
-	//
-	for (int i = 0; i <= finest_level; i++)
-	{
-	    dt_min[i] = std::min(dt_min[i],dt_level[i]);
-	}
+        //
+        // Limit dt's by pre-regrid dt
+        //
+        for (int i = 0; i <= finest_level; i++)
+        {
+            dt_min[i] = std::min(dt_min[i],dt_level[i]);
+        }
     }
-    else 
+    else
     {
-	//
-	// Limit dt's by change_max * old dt
-	//
-	static Real change_max = 1.1;
-	for (int i = 0; i <= finest_level; i++)
-	{
-	    dt_min[i] = std::min(dt_min[i],change_max*dt_level[i]);
-	}
+        //
+        // Limit dt's by change_max * old dt
+        //
+        static Real change_max = 1.1;
+        for (int i = 0; i <= finest_level; i++)
+        {
+            dt_min[i] = std::min(dt_min[i],change_max*dt_level[i]);
+        }
     }
-    
+
     //
     // Find the minimum over all levels
     //
@@ -380,13 +380,13 @@ CNS::read_params ()
     ParmParse pp("cns");
 
     pp.query("v", verbose);
- 
+
     Vector<int> tilesize(AMREX_SPACEDIM);
     if (pp.queryarr("hydro_tile_size", tilesize, 0, AMREX_SPACEDIM))
     {
-	for (int i=0; i<AMREX_SPACEDIM; i++) hydro_tile_size[i] = tilesize[i];
+        for (int i=0; i<AMREX_SPACEDIM; i++) hydro_tile_size[i] = tilesize[i];
     }
-   
+
     pp.query("cfl", cfl);
 
     Vector<int> lo_bc(AMREX_SPACEDIM), hi_bc(AMREX_SPACEDIM);
@@ -447,7 +447,7 @@ CNS::buildMetrics ()
     }
 
     const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
-    
+
     volfrac = &(ebfactory.getVolFrac());
     bndrycent = &(ebfactory.getBndryCent());
     areafrac = ebfactory.getAreaFrac();
@@ -455,7 +455,7 @@ CNS::buildMetrics ()
 
     level_mask.clear();
     level_mask.define(grids,dmap,1,1);
-    level_mask.BuildMask(geom.Domain(), geom.periodicity(), 
+    level_mask.BuildMask(geom.Domain(), geom.periodicity(),
                          level_mask_covered,
                          level_mask_notcovered,
                          level_mask_physbnd,
@@ -514,7 +514,7 @@ CNS::computeTemp (MultiFab& State, int ng)
     auto const& fact = dynamic_cast<EBFArrayBoxFactory const&>(State.Factory());
     auto const& flags = fact.getMultiEBCellFlagFab();
 
-    // This will reset Eint and compute Temperature 
+    // This will reset Eint and compute Temperature
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif

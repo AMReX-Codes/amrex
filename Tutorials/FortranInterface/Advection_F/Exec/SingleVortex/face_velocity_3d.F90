@@ -36,7 +36,7 @@ use amrex_base_module
 
   vx_l1=vxlo(1);vx_l2=vxlo(2);vx_l3=vxlo(3)
   vy_l1=vylo(1);vy_l2=vylo(2);vy_l3=vylo(3)
-  vz_l1=vzlo(1);vz_l2=vzlo(2);vz_l3=vzlo(3) 
+  vz_l1=vzlo(1);vz_l2=vzlo(2);vz_l3=vzlo(3)
   vx_h1=vxhi(1);vx_h2=vxhi(2);vx_h3=vxhi(3)
   vy_h1=vyhi(1);vy_h2=vyhi(2);vy_h3=vyhi(3)
   vz_h1=vzhi(1);vz_h2=vzhi(2);vz_h3=vzhi(3)
@@ -45,7 +45,7 @@ use amrex_base_module
   plo(2) = min(vx_l2-1, vy_l2-1)
   phi(1) = max(vx_h1  , vy_h1+1)
   phi(2) = max(vx_h2+1, vy_h2  )
-  
+
   call bl_allocate(psi, plo(1), phi(1), plo(2), phi(2))
 
   ! streamfunction psi
@@ -56,7 +56,7 @@ use amrex_base_module
         psi(i,j) =  sin(M_PI*x)**2 * sin(M_PI*y)**2 * cos (M_PI*time/2.d0) * (1.d0 / M_PI)
      end do
   end do
-  
+
   ! x velocity
   do k = vx_l3, vx_h3
   do j = vx_l2, vx_h2

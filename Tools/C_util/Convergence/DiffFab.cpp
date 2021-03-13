@@ -41,19 +41,19 @@ PrintUsage (const char* progName)
 
 IntVect
 getRefRatio(const Box& crse,
-	    const Box& fine)
+            const Box& fine)
 {
     // Compute refinement ratio between crse and fine boxes, return invalid
     // IntVect if there is none suitable
     IntVect ref_ratio;
     for (int i=0; i<BL_SPACEDIM; ++i)
-	ref_ratio[i] = fine.length(i) / crse.length(i);
+        ref_ratio[i] = fine.length(i) / crse.length(i);
 
     // Check results
     Box test1 = ::Box(fine).coarsen(ref_ratio);
     Box test2 = ::Box(test1).refine(ref_ratio);
     if (test1 != crse  ||  test2 != fine)
-	ref_ratio = IntVect();
+        ref_ratio = IntVect();
     return ref_ratio;
 }
 
@@ -103,7 +103,7 @@ main (int   argc,
 
     if (!has_nan_I && !has_nan_E) {
       BL_ASSERT(dataI.nComp() == dataE.nComp());
-	
+
       //
       // Compute the error
       //
@@ -114,14 +114,14 @@ main (int   argc,
 
       if (refine_ratio == IntVect())
         amrex::Error("Cannot find refinement ratio from data to exact");
-    
+
       FArrayBox error(domainI,nComp);
       error.setVal(GARBAGE);
- 
+
       FArrayBox exactAvg(domainI,nComp);
-      
+
       FORT_CV_AVGDOWN(exactAvg.dataPtr(),
-                      ARLIM(exactAvg.loVect()), 
+                      ARLIM(exactAvg.loVect()),
                       ARLIM(exactAvg.hiVect()), &nComp,
                       dataE.dataPtr(),
                       ARLIM(dataE.loVect()), ARLIM(dataE.hiVect()),

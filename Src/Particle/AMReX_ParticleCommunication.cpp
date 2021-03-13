@@ -74,7 +74,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
         auto box_buffer_indices = map.allBucketsOnProc(i);
         Long nbytes = 0;
         for (auto bucket : box_buffer_indices)
-	{
+        {
             int dst = map.bucketToGrid(bucket);
             int lev = map.bucketToLevel(bucket);
             AMREX_ASSERT(m_box_counts_h[bucket] <= std::numeric_limits<int>::max());
@@ -87,9 +87,9 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
             snd_data[i].push_back(lev);
             snd_data[i].push_back(MyProc);
             nbytes += 4*sizeof(int);
-	}
-	m_Snds[i] = nbytes;
-	m_NumSnds += nbytes;
+        }
+        m_Snds[i] = nbytes;
+        m_NumSnds += nbytes;
     }
 
     doHandShake(m_Snds, m_Rcvs);
@@ -121,7 +121,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
     }
 
     m_RcvProc.resize(0);
-    m_rOffset.resize(0);    
+    m_rOffset.resize(0);
     std::size_t TotRcvBytes = 0;
     for (auto i : m_neighbor_procs)
     {
@@ -132,7 +132,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
             TotRcvBytes += m_Rcvs[i];
         }
     }
-    
+
     m_nrcvs = m_RcvProc.size();
 
     m_build_stats.resize(0);
@@ -142,20 +142,20 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
     m_build_rreqs.resize(m_nrcvs);
 
     m_rcv_data.resize(TotRcvBytes/sizeof(int));
- 
+
     for (int i = 0; i < m_nrcvs; ++i)
     {
         const auto Who    = m_RcvProc[i];
         const auto offset = m_rOffset[i];
         const auto Cnt    = m_Rcvs[Who];
-        
+
         AMREX_ASSERT(Cnt > 0);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
-        
+
         m_build_rreqs[i] = ParallelDescriptor::Arecv((char*) (m_rcv_data.dataPtr() + offset), Cnt, Who, SeqNum, ParallelContext::CommunicatorSub()).req();
     }
-    
+
     for (auto i : m_neighbor_procs)
     {
         if (i == MyProc) continue;
@@ -174,7 +174,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
     m_snd_counts.resize(0);
     m_snd_offsets.resize(0);
     m_snd_pad_correction_h.resize(0);
-    
+
     m_snd_offsets.push_back(0);
     m_snd_pad_correction_h.push_back(0);
     for (int i = 0; i < NProcs; ++i)
@@ -192,7 +192,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
     {
         m_snd_pad_correction_h[i] = m_snd_offsets[i] - m_snd_pad_correction_h[i];
     }
-    
+
     m_snd_pad_correction_d.resize(m_snd_pad_correction_h.size());
     Gpu::copy(Gpu::hostToDevice, m_snd_pad_correction_h.begin(), m_snd_pad_correction_h.end(),
               m_snd_pad_correction_d.begin());

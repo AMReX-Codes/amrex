@@ -22,7 +22,7 @@ struct HasInverseMemFn : IsDetectedExact<Dim3, Inverse_t, T, Dim3> {};
 //! coordinate systems.
 template <class IndexMap>
 struct IsIndexMapping
-    : Conjunction<IsCallableR<Dim3, IndexMap&, const Dim3&>, 
+    : Conjunction<IsCallableR<Dim3, IndexMap&, const Dim3&>,
                   HasInverseMemFn<const IndexMap&>> {};
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -97,8 +97,8 @@ struct MultiBlockIndexMapping {
 //!
 //! \return Returns IntVect{dtos(Dim3{iv})}
 template <typename DTOS>
-EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value, IntVect> 
-Apply(DTOS dtos, const IntVect& iv) 
+EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value, IntVect>
+Apply(DTOS dtos, const IntVect& iv)
 {
     Dim3 i = dtos(iv.dim3());
     return IntVect{AMREX_D_DECL(i.x, i.y, i.z)};
@@ -113,8 +113,8 @@ Apply(DTOS dtos, const IntVect& iv)
 //! \return Returns the smallest Box in the source index space that contains images of
 //! Apply(dtos, box.smallEnd()) and Apply(dtos, box.bigEnd()).
 template <typename DTOS>
-EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value && !IsCallableR<IndexType, DTOS, IndexType>::value, Box> 
-Image(DTOS dtos, const Box& box) 
+EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value && !IsCallableR<IndexType, DTOS, IndexType>::value, Box>
+Image(DTOS dtos, const Box& box)
 {
     IntVect mapped_smallEnd = Apply(dtos, box.smallEnd());
     IntVect mapped_bigEnd = Apply(dtos, box.bigEnd());
@@ -136,8 +136,8 @@ Image(DTOS dtos, const Box& box)
 //! \return Returns the smallest Box in the source index space that contains images of
 //! Apply(dtos, box.smallEnd()) and Apply(dtos, box.bigEnd()).
 template <typename DTOS>
-EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value && IsCallableR<IndexType, DTOS, IndexType>::value, Box> 
-Image(DTOS dtos, const Box& box) 
+EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value && IsCallableR<IndexType, DTOS, IndexType>::value, Box>
+Image(DTOS dtos, const Box& box)
 {
     // "Forget" the index type mapping and invoke Image without changing the index type.
     Box srcbox = Image([&dtos](Dim3 i) { return dtos(i); }, box);
@@ -158,8 +158,8 @@ Image(DTOS dtos, const Box& box)
 //!
 //! \return Returns IntVect{dtos.Inverse(Dim3{iv})}
 template <typename DTOS>
-EnableIf_t<HasInverseMemFn<DTOS>::value, IntVect> 
-ApplyInverse(DTOS dtos, const IntVect& iv) 
+EnableIf_t<HasInverseMemFn<DTOS>::value, IntVect>
+ApplyInverse(DTOS dtos, const IntVect& iv)
 {
     return Apply([&dtos](Dim3 i) { return dtos.Inverse(i); }, iv);
 }
@@ -173,8 +173,8 @@ ApplyInverse(DTOS dtos, const IntVect& iv)
 //! \return Returns the smallest Box in the destination index space that contains images of
 //! ApplyInverse(box.smallEnd()) and ApplyInverse(box.bigEnd()).
 template <typename DTOS>
-EnableIf_t<HasInverseMemFn<DTOS>::value && !IsCallableR<IndexType, DTOS, IndexType>::value, Box> 
-InverseImage(DTOS dtos, const Box& box) 
+EnableIf_t<HasInverseMemFn<DTOS>::value && !IsCallableR<IndexType, DTOS, IndexType>::value, Box>
+InverseImage(DTOS dtos, const Box& box)
 {
     return Image([&dtos](Dim3 i) { return dtos.Inverse(i); }, box);
 }
@@ -188,8 +188,8 @@ InverseImage(DTOS dtos, const Box& box)
 //! \return Returns the smallest Box in the destination index space that contains images of
 //! ApplyInverse(box.smallEnd()) and ApplyInverse(box.bigEnd()).
 template <typename DTOS>
-EnableIf_t<HasInverseMemFn<DTOS>::value && IsCallableR<IndexType, DTOS, IndexType>::value, Box> 
-InverseImage(DTOS dtos, const Box& box) 
+EnableIf_t<HasInverseMemFn<DTOS>::value && IsCallableR<IndexType, DTOS, IndexType>::value, Box>
+InverseImage(DTOS dtos, const Box& box)
 {
     return Image([&dtos](auto&& i) { return dtos.Inverse(i); }, box);
 }
@@ -212,7 +212,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     //! \brief Build global meta data by calling the define() member function.
     //!
     //! \see MultiBlockCommMetaData::define
-    template <typename DTOS, 
+    template <typename DTOS,
               typename = EnableIf_t<IsIndexMapping<DTOS>::value>>
     MultiBlockCommMetaData(const FabArrayBase& dst, const Box& dstbox, const FabArrayBase& src,
                            const IntVect& ngrow, DTOS dtos);
@@ -220,7 +220,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     //! \brief Build global meta data by calling the define() member function.
     //!
     //! \see MultiBlockCommMetaData::define
-    template <typename DTOS, 
+    template <typename DTOS,
               typename = EnableIf_t<IsIndexMapping<DTOS>::value>>
     MultiBlockCommMetaData(const BoxArray& dstba, const DistributionMapping& dstdm,
                            const Box& dstbox, const BoxArray& srcba,
@@ -238,7 +238,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     //! \tparam DTOS This parameter needs to satisfy IsIndexMapping and HasInverseImage.
     //!
     //! \param[in] dstba  The destination box array.
-    //! 
+    //!
     //! \param[in] dstdm  The destination distribution mapping.
     //!
     //! \param[in] dstbox The box that will be filled and that lives in the destination space.
@@ -266,7 +266,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
 //! \brief This type trait tests if a type P is a projetion for FAB.
 template <typename P, typename FAB>
 struct IsFabProjection
-    : IsCallableR<typename FAB::value_type, P, Array4<const typename FAB::value_type>, Dim3, int> 
+    : IsCallableR<typename FAB::value_type, P, Array4<const typename FAB::value_type>, Dim3, int>
 {};
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -344,7 +344,7 @@ static_assert(IsFabProjection<MapComponents<Identity>, FArrayBox>(), "");
 //! This class is used with MapComponents to define fab projections that swap components on FABs,
 //! e.g. for velocity components. The template arguments I, J should be greater or equal to -1. The
 //! value -1 indicates run-time values and increase the object size of this function object.
-template <int I, int J> struct SwapComponents { 
+template <int I, int J> struct SwapComponents {
     static_assert(I >= 0 && J >= 0, "I >= 0 && J >= 0");
 
     //! \brief Swaps indices I and J.
@@ -368,7 +368,7 @@ template <int I> struct SwapComponents<I, -1> {
 
 template <int J> struct SwapComponents<-1, J> {
     static_assert(J >= 0, "J >= 0");
-    
+
     int I;
     constexpr int operator()(int i) const noexcept {
         const int map[2] = {I, J};
@@ -415,7 +415,7 @@ static_assert(DynamicSwapComponents{0, 1}(2) == 2, "");
 //! \brief This class holds data buffers for either immediate MPI send or recv calls.
 //!
 //! The data buffers need to be kept alive until all MPI_Request have been completed.
-//! All member variables are resized a corresponding call to PrepareCommBuffers and 
+//! All member variables are resized a corresponding call to PrepareCommBuffers and
 //! the data transactions are initiated either by calls to PostRecvs or PostSends.
 struct CommData {
 #ifdef AMREX_USE_MPI
@@ -433,7 +433,7 @@ struct CommData {
     Vector<MPI_Request> request{};
     //! \brief For each request the corresponding MPI_status, used for debugging.
     Vector<MPI_Status> stats{};
-    //! \brief For each requst the copy comm tags for the corresponding data FABs. 
+    //! \brief For each requst the copy comm tags for the corresponding data FABs.
     Vector<const FabArrayBase::CopyComTagsContainer*> cctc{};
 #endif
 };
@@ -443,10 +443,10 @@ struct CommData {
 void PrepareCommBuffers(CommData& comm, const FabArrayBase::MapOfCopyComTagContainers& cctc,
                         int n_components, std::size_t object_size, std::size_t align);
 
-//! \brief Initiate all recvieves with MPI_Irecv calls associated with tag mpi_tag. 
+//! \brief Initiate all recvieves with MPI_Irecv calls associated with tag mpi_tag.
 void PostRecvs(CommData& comm, int mpi_tag);
 
-//! \brief Initiate all sends with MPI_Isend calls associated with tag mpi_tag. 
+//! \brief Initiate all sends with MPI_Isend calls associated with tag mpi_tag.
 void PostSends(CommData& comm, int mpi_tag);
 #endif
 
@@ -482,7 +482,7 @@ using LocalCopy_t = decltype(LocalCopy(std::declval<Args>()...));
 
 //! \brief This type trait tests if a given type DP satisfies the DataPacking concept for type FAB.
 template <typename DP, typename FAB>
-struct IsDataPacking : 
+struct IsDataPacking :
     Conjunction<
         IsDetected<LocalCopy_t, DP&, FabArray<FAB>&, const FabArray<FAB>&, const FabArrayBase::CopyComTagsContainer&>
 #ifdef AMREX_USE_MPI
@@ -497,7 +497,7 @@ struct IsDataPacking :
 //                                                      [DataPacking.PackComponents]
 //
 // PackComponents is the simplest data packing policy.
-// This provides us with sane default behaviour that we can use when defining new 
+// This provides us with sane default behaviour that we can use when defining new
 // data packing policies.
 
 //! \brief Contains information about which components take part of the data transaction.
@@ -538,7 +538,7 @@ PrepareSendBuffers (const PackComponents& components, FabArray<FAB>& dest, const
 //! \brief Calls PrepareComBuffers.
 template <typename FAB>
 amrex::EnableIf_t<IsBaseFab<FAB>::value>
-PrepareRecvBuffers (const PackComponents& components, FabArray<FAB>& dest, const FabArray<FAB>& src, 
+PrepareRecvBuffers (const PackComponents& components, FabArray<FAB>& dest, const FabArray<FAB>& src,
                     CommData& comm, const FabArrayBase::MapOfCopyComTagContainers& cctc) {
     using T = typename FAB::value_type;
     ignore_unused(dest, src);
@@ -586,7 +586,7 @@ static_assert(IsDataPacking<PackComponents, FArrayBox>(),
 //
 //! \brief This class specializes behaviour on local copies and unpacking recieve buffers.
 //!
-//! It takes a DTOS and FabProjection to apply them on the reciever side. 
+//! It takes a DTOS and FabProjection to apply them on the reciever side.
 template <typename DTOS = Identity, typename FabProj = Identity>
 struct ApplyDtosAndProjectionOnReciever : PackComponents {
     constexpr ApplyDtosAndProjectionOnReciever() = default;
@@ -669,11 +669,11 @@ static constexpr struct DoLocalCopy {} do_local_copy{};
 //!
 //! \return Returns a CommHandler object that owns context and memory buffers for the whole life
 //!         time of the MPI transaction.
-template <typename FAB, typename DataPacking, 
+template <typename FAB, typename DataPacking,
           typename = EnableIf_t<IsBaseFab<FAB>::value>,
           typename = EnableIf_t<IsDataPacking<DataPacking, FAB>::value>>
 #ifdef AMREX_USE_MPI
-AMREX_NODISCARD CommHandler 
+AMREX_NODISCARD CommHandler
 ParallelCopy_nowait (NoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     CommHandler handler{};
@@ -728,13 +728,13 @@ CommHandler ParallelCopy_nowait (NoLocalCopy, FabArray<FAB>&, const FabArray<FAB
 //!
 //! \return Returns a CommHandler object that owns context and memory buffers for the whole life
 //!         time of the MPI transaction.
-template <typename FAB, typename DataPacking, 
+template <typename FAB, typename DataPacking,
           typename = EnableIf_t<IsBaseFab<FAB>::value>,
           typename = EnableIf_t<IsDataPacking<DataPacking, FAB>::value>>
 #ifdef AMREX_USE_MPI
-AMREX_NODISCARD 
+AMREX_NODISCARD
 #endif
-CommHandler 
+CommHandler
 ParallelCopy_nowait (FabArray<FAB>& dest, const FabArray<FAB>& src,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     CommHandler comm = ParallelCopy_nowait(no_local_copy, dest, src, cmd, data_packing);
@@ -900,12 +900,12 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
 
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish, strong typed version.
 //!
-//! This function constructs a new MultiCommMetaData from the given DTOS, destbox and ngrow. 
+//! This function constructs a new MultiCommMetaData from the given DTOS, destbox and ngrow.
 //!
 //! \param[out] dest The Multifab that is going to be filled with recieved data.
 //!
-//! \param[in]  destbox The index box in the destination space that will be filled by data from 
-//!                     src. The source box that describes the dependencies will be computed by 
+//! \param[in]  destbox The index box in the destination space that will be filled by data from
+//!                     src. The source box that describes the dependencies will be computed by
 //!                     the specified DTOS.
 //!
 //! \param[in]  src  The Multifab that is used to fill the send buffers.
@@ -917,9 +917,9 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
 //! \param[in]  ncomp    The number of successive components that will be copied.
 //!
 //! \param[in]  ngrow    The amount of ghost cells that will be taking into consideration.
-//!                      Note, even if destbox contains indices outside the domain we need to 
+//!                      Note, even if destbox contains indices outside the domain we need to
 //!                      specify an appropiate ngrow that covers the amound of ghost cells that
-//!                      we want to copy. 
+//!                      we want to copy.
 //!
 //! \param[in]  dtos An index mapping that maps indices from destination space to source space
 //!                  and from source space to destination space.
@@ -939,12 +939,12 @@ ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src,
 
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish.
 //!
-//! This function constructs a new MultiCommMetaData from the given DTOS, destbox and ngrow. 
+//! This function constructs a new MultiCommMetaData from the given DTOS, destbox and ngrow.
 //!
 //! \param[out] dest The Multifab that is going to be filled with recieved data.
 //!
-//! \param[in]  destbox The index box in the destination space that will be filled by data from 
-//!                     src. The source box that describes the dependencies will be computed by 
+//! \param[in]  destbox The index box in the destination space that will be filled by data from
+//!                     src. The source box that describes the dependencies will be computed by
 //!                     the specified DTOS.
 //!
 //! \param[in]  src  The Multifab that is used to fill the send buffers.
@@ -956,9 +956,9 @@ ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src,
 //! \param[in]  ncomp    The number of successive components that will be copied.
 //!
 //! \param[in]  ngrow    The amount of ghost cells that will be taking into consideration.
-//!                      Note, even if destbox contains indices outside the domain we need to 
+//!                      Note, even if destbox contains indices outside the domain we need to
 //!                      specify an appropiate ngrow that covers the amound of ghost cells that
-//!                      we want to copy. 
+//!                      we want to copy.
 //!
 //! \param[in]  dtos An index mapping that maps indices from destination space to source space
 //!                  and from source space to destination space.

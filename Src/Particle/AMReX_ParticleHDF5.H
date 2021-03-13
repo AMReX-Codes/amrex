@@ -34,7 +34,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             tmp_real_comp_names.push_back(real_comp_names[i]);
         }
     }
-    
+
     Vector<int> write_int_comp;
     Vector<std::string> tmp_int_comp_names;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
@@ -54,7 +54,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
                             tmp_real_comp_names, tmp_int_comp_names);
-    
+
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
@@ -72,7 +72,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         ss << "real_comp" << i;
         real_comp_names.push_back(ss.str());
     }
-    
+
     Vector<int> write_int_comp;
     Vector<std::string> int_comp_names;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
@@ -82,7 +82,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         ss << "int_comp" << i;
         int_comp_names.push_back(ss.str());
     }
-    
+
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names);
 }
@@ -362,7 +362,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     Long nparticles = 0;
     Long maxnextid;
-    
+
     if(usePrePost)
     {
         nparticles = nparticlesPrePost;
@@ -371,14 +371,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     {
         nparticles = 0;
         maxnextid  = ParticleType::NextID();
-        
+
         for (int lev = 0; lev < m_particles.size();  lev++)
         {
             const auto& pmap = m_particles[lev];
             for (const auto& kv : pmap)
             {
                 const auto& aos = kv.second.GetArrayOfStructs();
-                for (int k = 0; k < aos.numParticles(); ++k) 
+                for (int k = 0; k < aos.numParticles(); ++k)
                 {
                     // Only count (and checkpoint) valid particles.
                     const ParticleType& p = aos[k];
@@ -386,7 +386,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                 }
             }
         }
-        
+
         ParallelDescriptor::ReduceLongSum(nparticles, IOProcNumber);
         ParticleType::NextID(maxnextid);
         ParallelDescriptor::ReduceLongMax(maxnextid, IOProcNumber);
@@ -419,14 +419,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     std::string HDF5FileName = pdir;
     if ( ! HDF5FileName.empty() && HDF5FileName[HDF5FileName.size()-1] != '/')
         HDF5FileName += '/';
-    
+
     HDF5FileName += name;
-    if (std::string::npos == HDF5FileName.find("h5") && std::string::npos == HDF5FileName.find("hdf5")) 
+    if (std::string::npos == HDF5FileName.find("h5") && std::string::npos == HDF5FileName.find("hdf5"))
         HDF5FileName += ".h5";
     HdrFileNamePrePost = HDF5FileName;
-	
+
     if (ParallelDescriptor::IOProcessor()) {
-   
+
         // Have only one rank to create and write metadata (header)
         fapl = H5Pcreate (H5P_FILE_ACCESS);
 
@@ -438,7 +438,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
         // Create the HDF5 file
         fid = H5Fcreate(HDF5FileName.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
-        if (fid < 0) 
+        if (fid < 0)
             amrex::FileOpenFailed(HDF5FileName.c_str());
 
         //
@@ -458,22 +458,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         int num_output_real = 0;
         for (int i = 0; i < NumRealComps() + NStructReal; ++i)
             if (write_real_comp[i]) ++num_output_real;
-        
+
         int num_output_int = 0;
         for (int i = 0; i < NumIntComps() + NStructInt; ++i)
             if (write_int_comp[i]) ++num_output_int;
-        
+
         // AMREX_SPACEDIM and N for sanity checking.
         int ndim = AMREX_SPACEDIM;
         grp = H5Gcreate(fid, "Chombo_global", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         CreateWriteHDF5AttrInt(grp, "SpaceDim", 1, &ndim);
         H5Gclose(grp);
-	
-	// The number of extra real parameters
+
+        // The number of extra real parameters
         int ncomp = num_output_real + num_output_int;
         CreateWriteHDF5AttrInt(fid, "num_component", 1, &ncomp);
         CreateWriteHDF5AttrInt(fid, "num_component_real", 1, &num_output_real);
-        
+
         char comp_name[128];
         // Real component names
         for (int i = 0; i < NStructReal + NumRealComps(); ++i ) {
@@ -483,10 +483,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                 CreateWriteHDF5AttrString(fid, comp_name, real_comp_names[i].c_str());
             }
         }
-        
-	// The number of extra int parameters
+
+        // The number of extra int parameters
         CreateWriteHDF5AttrInt(fid, "num_component_int", 1, &num_output_int);
-        
+
         // int component names
         for (int i = 0; i < NStructInt + NumIntComps(); ++i ) {
             if (write_int_comp[i]) {
@@ -528,7 +528,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
             int mfs_size = 2 * AMREX_SPACEDIM;
             hsize_t mfs_dim = (hsize_t)ngrids;
-        
+
             hid_t mfs_dset_space = H5Screate_simple(1, &mfs_dim, NULL);
             hid_t mfs_dset= H5Dcreate(grp, "boxes", comp_dtype, mfs_dset_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
@@ -573,7 +573,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     // All process open the file
     fid = H5Fopen(HDF5FileName.c_str(), H5F_ACC_RDWR, fapl);
-    if (fid < 0) 
+    if (fid < 0)
         FileOpenFailed(HDF5FileName.c_str());
 
     char level_name[32];
@@ -583,38 +583,38 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         grp = H5Gopen(fid, level_name, H5P_DEFAULT);
 
         bool gotsome;
-	if(usePrePost)
+        if(usePrePost)
             gotsome = (nParticlesAtLevelPrePost[lev] > 0);
         else
             gotsome = (NumberOfParticlesAtLevel(lev) > 0);
 
 
-	MFInfo info;
-	info.SetAlloc(false);
-	MultiFab state(ParticleBoxArray(lev), ParticleDistributionMap(lev), 1, 0, info);
+        MFInfo info;
+        info.SetAlloc(false);
+        MultiFab state(ParticleBoxArray(lev), ParticleDistributionMap(lev), 1, 0, info);
 
         // We eventually want to write out the file name and the offset
         // into that file into which each grid of particles is written.
         Vector<int>  which(state.size(),0);
         Vector<int > count(state.size(),0);
         Vector<Long> where(state.size(),0);
-	
 
-	bool groupSets(false), setBuf(true);
-        
+
+        bool groupSets(false), setBuf(true);
+
         if (gotsome)
-	{
+        {
             WriteParticlesHDF5(grp, lev, count, where);
-            
-	    if(usePrePost) {
+
+            if(usePrePost) {
                 whichPrePost[lev] = which;
                 countPrePost[lev] = count;
                 wherePrePost[lev] = where;
-	    } else {
+            } else {
                 ParallelDescriptor::ReduceIntSum (which.dataPtr(), which.size(), IOProcNumber);
                 ParallelDescriptor::ReduceIntSum (count.dataPtr(), count.size(), IOProcNumber);
                 ParallelDescriptor::ReduceLongSum(where.dataPtr(), where.size(), IOProcNumber);
-	    }
+            }
         }
 
         H5Gclose(grp);
@@ -623,13 +623,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     H5Tclose(comp_dtype);
     H5Pclose(fapl);
     H5Fclose(fid);
-   
+
     if (m_verbose > 1)
     {
         auto stoptime = amrex::second() - strttime;
-        
+
         ParallelDescriptor::ReduceRealMax(stoptime, IOProcNumber);
-        
+
         amrex::Print() << "ParticleContainer::CheckpointHDF5() time: " << stoptime << '\n';
     }
 }
@@ -661,18 +661,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         tile_map[grid].push_back(tile);
 
         // Only write out valid particles.
-        int cnt = 0;	
-	for (int k = 0; k < kv.second.GetArrayOfStructs().numParticles(); ++k)
-	{
-	    const ParticleType& p = kv.second.GetArrayOfStructs()[k];
-  	    if (p.id() > 0) {
+        int cnt = 0;
+        for (int k = 0; k < kv.second.GetArrayOfStructs().numParticles(); ++k)
+        {
+            const ParticleType& p = kv.second.GetArrayOfStructs()[k];
+              if (p.id() > 0) {
                 cnt++;
-	    }	    
-	}
+            }
+        }
 
         count[grid] += cnt;
     }
-	
+
     MFInfo info;
     info.SetAlloc(false);
     MultiFab state(ParticleBoxArray(lev), ParticleDistributionMap(lev), 1, 0, info);
@@ -693,7 +693,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     // Get the size for each mf so we know the amount of data from each rank
     for (MFIter mfi(state); mfi.isValid(); ++mfi) {
         const int grid = mfi.index();
-        if (count[grid] == 0) 
+        if (count[grid] == 0)
             continue;
 
         int_size  = count[grid] * (2 + NStructInt + NArrayInt);
@@ -710,63 +710,63 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     #ifdef BL_USE_MPI
     // Collect the number of mf and total size of mf from each rank
     MPI_Allgather(&my_mfi_cnt, 1, ParallelDescriptor::Mpi_typemap<int>::type(), &(all_mfi_cnt[0]), 1, ParallelDescriptor::Mpi_typemap<int>::type(), ParallelDescriptor::Communicator());
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++) 
+    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
         total_mfi += all_mfi_cnt[i];
 
-    // Create the int data 
-    MPI_Allgather(&my_mfi_int_total_size, 1, ParallelDescriptor::Mpi_typemap<ULong>::type(), 
+    // Create the int data
+    MPI_Allgather(&my_mfi_int_total_size, 1, ParallelDescriptor::Mpi_typemap<ULong>::type(),
                   &(all_mfi_int_total_size[0]), 1, ParallelDescriptor::Mpi_typemap<ULong>::type(), ParallelDescriptor::Communicator());
     #else
     all_mfi_cnt[0] = &my_mfi_cnt;
     all_mfi_int_total_size[0] = my_mfi_int_total_size;
     #endif
- 
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++) 
-        total_int_size += all_mfi_int_total_size[i]; 
 
-    int_dset_space = H5Screate_simple(1, &total_int_size, NULL); 
+    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+        total_int_size += all_mfi_int_total_size[i];
+
+    int_dset_space = H5Screate_simple(1, &total_int_size, NULL);
     int_dset_id  = H5Dcreate(grp, "data:datatype=0", H5T_NATIVE_INT, int_dset_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     H5Sclose(int_dset_space);
 
     int_file_offset = 0;
-    for (int i = 0; i < ParallelDescriptor::MyProc(); i++) 
+    for (int i = 0; i < ParallelDescriptor::MyProc(); i++)
         int_file_offset += all_mfi_int_total_size[i];
     my_int_offset = int_file_offset;
     my_int_count  = 0;
-    
 
-    // Create the real data 
+
+    // Create the real data
     #ifdef BL_USE_MPI
-    MPI_Allgather(&my_mfi_real_total_size, 1, ParallelDescriptor::Mpi_typemap<ULong>::type(), 
+    MPI_Allgather(&my_mfi_real_total_size, 1, ParallelDescriptor::Mpi_typemap<ULong>::type(),
                   &(all_mfi_real_total_size[0]), 1, ParallelDescriptor::Mpi_typemap<ULong>::type(), ParallelDescriptor::Communicator());
     #else
     all_mfi_real_total_size[0] = my_mfi_real_total_size;
     #endif
 
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++) 
+    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
         total_real_size += all_mfi_real_total_size[i];
 
-    real_dset_space = H5Screate_simple(1, &total_real_size, NULL); 
-    if (sizeof(typename ParticleType::RealType) == 4) 
-        real_dset_id  = H5Dcreate(grp, "data:datatype=1", H5T_NATIVE_FLOAT, real_dset_space, 
+    real_dset_space = H5Screate_simple(1, &total_real_size, NULL);
+    if (sizeof(typename ParticleType::RealType) == 4)
+        real_dset_id  = H5Dcreate(grp, "data:datatype=1", H5T_NATIVE_FLOAT, real_dset_space,
                                   H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    else 
-        real_dset_id  = H5Dcreate(grp, "data:datatype=1", H5T_NATIVE_DOUBLE, real_dset_space, 
+    else
+        real_dset_id  = H5Dcreate(grp, "data:datatype=1", H5T_NATIVE_DOUBLE, real_dset_space,
                                   H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     H5Sclose(real_dset_space);
 
     real_file_offset = 0;
-    for (int i = 0; i < ParallelDescriptor::MyProc(); i++) 
+    for (int i = 0; i < ParallelDescriptor::MyProc(); i++)
         real_file_offset += all_mfi_real_total_size[i];
     my_real_offset = real_file_offset;
     my_real_count  = 0;
 
     for (MFIter mfi(state); mfi.isValid(); ++mfi) {
         const int grid = mfi.index();
-        
-        if (count[grid] == 0) 
+
+        if (count[grid] == 0)
             continue;
-        
+
         // First write out the integer data in binary.
         const int      iChunkSize = 2 + NStructInt + NArrayInt;
         Vector<int> istuff(count[grid]*iChunkSize);
@@ -795,10 +795,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
         /* writeIntData(istuff.dataPtr(), istuff.size(), ofs); */
         my_int_count = istuff.size();
-        int_mem_space = H5Screate_simple(1, &my_int_count, NULL); 
-        /* std::cout << "Rank " << ParallelDescriptor::MyProc() << ": my_int_offset = " << */ 
+        int_mem_space = H5Screate_simple(1, &my_int_count, NULL);
+        /* std::cout << "Rank " << ParallelDescriptor::MyProc() << ": my_int_offset = " << */
         /*         my_int_offset << ", my_int_count = " << my_int_count << ", total_int_size = " << total_int_size << '\n'; */
-        int_dset_space = H5Screate_simple(1, &total_int_size, NULL); 
+        int_dset_space = H5Screate_simple(1, &total_int_size, NULL);
         H5Sselect_hyperslab (int_dset_space, H5S_SELECT_SET, &my_int_offset, NULL, &my_int_count, NULL);
         H5Dwrite(int_dset_id, H5T_NATIVE_INT, int_mem_space, int_dset_space, dxpl, istuff.dataPtr());
         H5Sclose(int_mem_space);
@@ -806,12 +806,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
         my_int_offset += my_int_count;
 
-        
+
         // Write the Real data in binary.
         const int      rChunkSize = AMREX_SPACEDIM + NStructReal + NArrayReal;
         Vector<typename ParticleType::RealType> rstuff(count[grid]*rChunkSize);
         typename ParticleType::RealType* rptr = rstuff.dataPtr();
-        
+
         for (unsigned i = 0; i < tile_map[grid].size(); i++) {
             const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
             for (int pindex = 0; pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex) {
@@ -835,10 +835,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         }
 
         my_real_count = rstuff.size();
-        real_mem_space = H5Screate_simple(1, &my_real_count, NULL); 
-        /* std::cout << "Rank " << ParallelDescriptor::MyProc() << ": my_real_offset = " << */ 
+        real_mem_space = H5Screate_simple(1, &my_real_count, NULL);
+        /* std::cout << "Rank " << ParallelDescriptor::MyProc() << ": my_real_offset = " << */
         /*         my_real_offset << ", my_real_count = " << my_real_count << ", total_real_size = " << total_real_size << '\n'; */
-        real_dset_space = H5Screate_simple(1, &total_real_size, NULL); 
+        real_dset_space = H5Screate_simple(1, &total_real_size, NULL);
         H5Sselect_hyperslab (real_dset_space, H5S_SELECT_SET, &my_real_offset, NULL, &my_real_count, NULL);
         if (sizeof(typename ParticleType::RealType) == 4)
             H5Dwrite(real_dset_id, H5T_NATIVE_FLOAT, real_mem_space, real_dset_space, dxpl, rstuff.dataPtr());
@@ -856,15 +856,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     H5Dclose(int_dset_id);
 
     // Create and write the size dataset
-    offset_space = H5Screate_simple(1, &total_mfi, NULL); 
+    offset_space = H5Screate_simple(1, &total_mfi, NULL);
     offset_id  = H5Dcreate(grp, "nparticles_grid", H5T_NATIVE_INT, offset_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     my_int_offset = 0;
-    for (int i = 0; i < ParallelDescriptor::MyProc(); i++) 
+    for (int i = 0; i < ParallelDescriptor::MyProc(); i++)
         my_int_offset += all_mfi_cnt[i];
     my_int_count  = my_mfi_cnt;
-    int_mem_space = H5Screate_simple(1, &my_int_count, NULL); 
-    /* std::cout << "Rank " << ParallelDescriptor::MyProc() << ": my_int_offset = " << */ 
+    int_mem_space = H5Screate_simple(1, &my_int_count, NULL);
+    /* std::cout << "Rank " << ParallelDescriptor::MyProc() << ": my_int_offset = " << */
     /*         my_int_offset << ", my_int_count = " << my_int_count << ", total_mfi = " << total_mfi << '\n'; */
     H5Sselect_hyperslab (offset_space, H5S_SELECT_SET, &my_int_offset, NULL, &my_int_count, NULL);
 
@@ -904,9 +904,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     BL_PROFILE("ParticleContainer::RestartHDF5()");
     AMREX_ASSERT(!dir.empty());
     AMREX_ASSERT(!file.empty());
-    
+
     const auto strttime = amrex::second();
-    
+
     /* int DATA_Digits_Read(5); */
     /* ParmParse pp("particles"); */
     /* pp.query("datadigits_read",DATA_Digits_Read); */
@@ -916,7 +916,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         fullname += '/';
     fullname += file;
 
-    if (std::string::npos == fullname.find("h5") && std::string::npos == fullname.find("hdf5")) 
+    if (std::string::npos == fullname.find("h5") && std::string::npos == fullname.find("hdf5"))
         fullname += ".h5";
 
     hid_t fid, dset, grp, fapl, attr, atype, dspace, int_dset, real_dset;
@@ -1013,7 +1013,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     }
     if (nr != NStructReal + NumRealComps())
         amrex::Abort("ParticleContainer::Restart(): nr != NStructReal + NumRealComps()");
-    
+
     aname = "num_component_int";
     int ni;
     ret = ReadHDF5AttrInt(fid, aname.c_str(), &ni);
@@ -1024,7 +1024,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     }
     if (ni != NStructInt + NumIntComps())
         amrex::Abort("ParticleContainer::Restart(): ni != NStructInt");
-    
+
     aname = "nparticles";
     Long nparticles;
     ret = ReadHDF5AttrLong(fid, aname.c_str(), &nparticles);
@@ -1034,7 +1034,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         amrex::Abort(msg.c_str());
     }
     AMREX_ASSERT(nparticles >= 0);
-    
+
     aname = "maxnextid";
     Long maxnextid;
     ret = ReadHDF5AttrLong(fid, aname.c_str(), &maxnextid);
@@ -1045,7 +1045,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     }
     AMREX_ASSERT(maxnextid > 0);
     ParticleType::NextID(maxnextid);
-    
+
     aname = "finest_level";
     int finest_level_in_file;
     ret = ReadHDF5AttrInt(fid, aname.c_str(), &finest_level_in_file);
@@ -1055,7 +1055,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         amrex::Abort(msg.c_str());
     }
     AMREX_ASSERT(finest_level_in_file >= 0);
-    
+
     // Determine whether this is a dual-grid restart or not.
     Vector<BoxArray> particle_box_arrays(finest_level_in_file + 1);
     bool dual_grid = false;
@@ -1087,7 +1087,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             dual_grid = true;
             break;
         }
- 
+
         gname = "level_" + std::to_string(lev);
         grp = H5Gopen(fid, gname.c_str(), H5P_DEFAULT);
         if (grp < 0) {
@@ -1095,7 +1095,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             msg += gname;
             amrex::Abort(msg.c_str());
         }
- 
+
         dset = H5Dopen(grp, "boxes", H5P_DEFAULT);
         dspace = H5Dget_space(dset);
         hsize_t ngrid;
@@ -1110,7 +1110,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         H5Sclose(dspace);
         H5Dclose(dset);
         H5Gclose(grp);
-      
+
         /* particle_box_arrays[lev].readFrom(phdr_file); */
         particle_box_arrays[lev] = ParticleBoxArray(lev);
         for (int i = 0; i < ngrid; i++) {
@@ -1118,7 +1118,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             particle_box_arrays[lev][i] = tmp;
         }
 
-        if (! particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) 
+        if (! particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev)))
             dual_grid = true;
     }
     if (dual_grid) {
@@ -1128,7 +1128,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             SetParticleDistributionMap(lev, pdm);
         }
     }
-    
+
     Vector<int> ngrids(finest_level_in_file+1);
     for (int lev = 0; lev <= finest_level_in_file; lev++) {
         gname = "level_" + std::to_string(lev);
@@ -1154,13 +1154,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
         H5Gclose(grp);
     }
-    
+
     resizeData();
-    
+
     if (finest_level_in_file > finestLevel()) {
         m_particles.resize(finest_level_in_file+1);
     }
-    
+
     for (int lev = 0; lev <= finest_level_in_file; lev++) {
 
         gname = "level_" + std::to_string(lev);
@@ -1203,35 +1203,35 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                 grids_to_read.push_back(mfi.index());
             }
         } else {
-            
+
             // we lost a level on restart. we still need to read in particles
             // on finer levels, and put them in the right place via Redistribute()
-            
+
             const int rank = ParallelDescriptor::MyProc();
             const int NReaders = MaxReaders();
             if (rank >= NReaders) return;
-            
+
             const int Navg = ngrids[lev] / NReaders;
             const int Nleft = ngrids[lev] - Navg * NReaders;
-            
+
             int lo, hi;
             if (rank < Nleft) {
                 lo = rank*(Navg + 1);
                 hi = lo + Navg + 1;
-            } 
+            }
             else {
                 lo = rank * Navg + Nleft;
                 hi = lo + Navg;
             }
-            
+
             for (int i = lo; i < hi; ++i) {
                 grids_to_read.push_back(i);
             }
         }
-        
+
         for(int igrid = 0; igrid < static_cast<int>(grids_to_read.size()); ++igrid) {
             const int grid = grids_to_read[igrid];
-            
+
             if (how == "single") {
                 ReadParticlesHDF5<float>(offset[grid], count[grid], grid, lev, int_dset, real_dset, finest_level_in_file);
             }
@@ -1249,13 +1249,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         H5Dclose(real_dset);
         H5Gclose(grp);
     } // end for level
-    
+
     H5Fclose(fid);
-    
+
     Redistribute();
-    
+
     AMREX_ASSERT(OK());
-    
+
     if (m_verbose > 1) {
         auto stoptime = amrex::second() - strttime;
         ParallelDescriptor::ReduceRealMax(stoptime, ParallelDescriptor::IOProcessorNumber());
@@ -1284,20 +1284,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     int_fspace = H5Dget_space(int_dset);
     hsize_t int_cnt = cnt*iChunkSize;
     hsize_t int_offset = offset*iChunkSize;
-    int_dspace = H5Screate_simple(1, &int_cnt, NULL); 
+    int_dspace = H5Screate_simple(1, &int_cnt, NULL);
     H5Sselect_hyperslab (int_fspace, H5S_SELECT_SET, &int_offset, NULL, &int_cnt, NULL);
     H5Dread(int_dset, H5T_NATIVE_INT, int_dspace, int_fspace, H5P_DEFAULT, istuff.dataPtr());
 
     H5Sclose(int_fspace);
     H5Sclose(int_dspace);
-    
+
     // Then the real data in binary.
     const int rChunkSize = AMREX_SPACEDIM + NStructReal + NumRealComps();
     Vector<RTYPE> rstuff(cnt*rChunkSize);
     real_fspace = H5Dget_space(real_dset);
     hsize_t real_cnt = cnt*rChunkSize;
     hsize_t real_offset = offset*rChunkSize;
-    real_dspace = H5Screate_simple(1, &real_cnt, NULL); 
+    real_dspace = H5Screate_simple(1, &real_cnt, NULL);
     H5Sselect_hyperslab (real_fspace, H5S_SELECT_SET, &real_offset, NULL, &real_cnt, NULL);
     if (sizeof(RTYPE) == 4)
         H5Dread(real_dset, H5T_NATIVE_FLOAT, real_dspace, real_fspace, H5P_DEFAULT, rstuff.dataPtr());
@@ -1306,11 +1306,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     H5Sclose(real_fspace);
     H5Sclose(real_dspace);
-    
+
     // Now reassemble the particles.
     int*   iptr = istuff.dataPtr();
     RTYPE* rptr = rstuff.dataPtr();
-    
+
     ParticleType p;
     ParticleLocData pld;
 
@@ -1355,59 +1355,59 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         }
 
         locateParticle(p, pld, 0, finestLevel(), 0);
-        
-	std::pair<int, int> ind(grd, pld.m_tile);
+
+        std::pair<int, int> ind(grd, pld.m_tile);
 
         host_real_attribs[lev][ind].resize(NumRealComps());
         host_int_attribs[lev][ind].resize(NumIntComps());
-        
-	// add the struct
-	host_particles[lev][ind].push_back(p);
 
-	// add the real...
-	for (int icomp = 0; icomp < NumRealComps(); icomp++) {
+        // add the struct
+        host_particles[lev][ind].push_back(p);
+
+        // add the real...
+        for (int icomp = 0; icomp < NumRealComps(); icomp++) {
             host_real_attribs[lev][ind][icomp].push_back(*rptr);
             ++rptr;
-	}
-        
-	// ... and int array data
-	for (int icomp = 0; icomp < NumIntComps(); icomp++) {
+        }
+
+        // ... and int array data
+        for (int icomp = 0; icomp < NumIntComps(); icomp++) {
             host_int_attribs[lev][ind][icomp].push_back(*iptr);
             ++iptr;
-	}        
+        }
     }
 
     for (int host_lev = 0; host_lev < static_cast<int>(host_particles.size()); ++host_lev)
       {
-	for (auto& kv : host_particles[host_lev]) {
-	  auto grid = kv.first.first;
-	  auto tile = kv.first.second;
-	  const auto& src_tile = kv.second;
-          
-	  auto& dst_tile = DefineAndReturnParticleTile(host_lev, grid, tile);
-	  auto old_size = dst_tile.GetArrayOfStructs().size();
-	  auto new_size = old_size + src_tile.size();
-	  dst_tile.resize(new_size);
-                
-	  Gpu::copy(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
+        for (auto& kv : host_particles[host_lev]) {
+          auto grid = kv.first.first;
+          auto tile = kv.first.second;
+          const auto& src_tile = kv.second;
+
+          auto& dst_tile = DefineAndReturnParticleTile(host_lev, grid, tile);
+          auto old_size = dst_tile.GetArrayOfStructs().size();
+          auto new_size = old_size + src_tile.size();
+          dst_tile.resize(new_size);
+
+          Gpu::copy(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
                     dst_tile.GetArrayOfStructs().begin() + old_size);
-	  
-	  for (int i = 0; i < NumRealComps(); ++i) {
+
+          for (int i = 0; i < NumRealComps(); ++i) {
               Gpu::copy(Gpu::hostToDevice,
                         host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
                         host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
                         dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
-	  }
-	  
-	  for (int i = 0; i < NumIntComps(); ++i) {
+          }
+
+          for (int i = 0; i < NumIntComps(); ++i) {
               Gpu::copy(Gpu::hostToDevice,
                         host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
                         host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
                         dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
-	  }
-	}
+          }
+        }
       }
-    
+
     Gpu::streamSynchronize();
 }
 

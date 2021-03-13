@@ -31,13 +31,13 @@ AmrLevelAdv::AmrLevelAdv ()
 //The basic constructor.
 //
 AmrLevelAdv::AmrLevelAdv (Amr&            papa,
-     	                  int             lev,
+                          int             lev,
                           const Geometry& level_geom,
                           const BoxArray& bl,
                           const DistributionMapping& dm,
                           Real            time)
     :
-    AmrLevel(papa,lev,level_geom,bl,dm,time) 
+    AmrLevel(papa,lev,level_geom,bl,dm,time)
 {
     flux_reg = 0;
     if (level > 0 && do_reflux)
@@ -47,7 +47,7 @@ AmrLevelAdv::AmrLevelAdv (Amr&            papa,
 //
 //The destructor.
 //
-AmrLevelAdv::~AmrLevelAdv () 
+AmrLevelAdv::~AmrLevelAdv ()
 {
     delete flux_reg;
 }
@@ -57,7 +57,7 @@ AmrLevelAdv::~AmrLevelAdv ()
 //
 void
 AmrLevelAdv::restart (Amr&          papa,
-	              std::istream& is,
+                      std::istream& is,
                       bool          bReadSpecial)
 {
     AmrLevel::restart(papa,is,bReadSpecial);
@@ -67,11 +67,11 @@ AmrLevelAdv::restart (Amr&          papa,
         flux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
 }
 
-void 
+void
 AmrLevelAdv::checkPoint (const std::string& dir,
-		         std::ostream&      os,
+                         std::ostream&      os,
                          VisMF::How         how,
-                         bool               dump_old) 
+                         bool               dump_old)
 {
   AmrLevel::checkPoint(dir, os, how, dump_old);
 #ifdef AMREX_PARTICLES
@@ -86,7 +86,7 @@ AmrLevelAdv::checkPoint (const std::string& dir,
 //
 void
 AmrLevelAdv::writePlotFile (const std::string& dir,
-	 	            std::ostream&      os,
+                             std::ostream&      os,
                             VisMF::How         how)
 {
 
@@ -112,25 +112,25 @@ AmrLevelAdv::variableSetUp ()
 
     desc_lst.addDescriptor(Phi_Type,IndexType::TheCellType(),
                            StateDescriptor::Point,0,NUM_STATE,
-			   &cell_cons_interp);
+                           &cell_cons_interp);
 
     int lo_bc[BL_SPACEDIM];
     int hi_bc[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-	lo_bc[i] = hi_bc[i] = BCType::int_dir;   // periodic boundaries
+        lo_bc[i] = hi_bc[i] = BCType::int_dir;   // periodic boundaries
     }
-    
+
     BCRec bc(lo_bc, hi_bc);
 
-    desc_lst.setComponent(Phi_Type, 0, "phi", bc, 
-			  StateDescriptor::BndryFunc(nullfill));
+    desc_lst.setComponent(Phi_Type, 0, "phi", bc,
+                          StateDescriptor::BndryFunc(nullfill));
 }
 
 //
 //Cleanup data descriptors at end of run.
 //
 void
-AmrLevelAdv::variableCleanUp () 
+AmrLevelAdv::variableCleanUp ()
 {
     desc_lst.clear();
 #ifdef AMREX_PARTICLES
@@ -163,8 +163,8 @@ AmrLevelAdv::initData ()
         const int* hi      = box.hiVect();
 
           initdata(&level, &cur_time, AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi),
-		   BL_TO_FORTRAN_3D(S_new[mfi]), AMREX_ZFILL(dx),
-		   AMREX_ZFILL(prob_lo));
+                   BL_TO_FORTRAN_3D(S_new[mfi]), AMREX_ZFILL(dx),
+                   AMREX_ZFILL(prob_lo));
     }
 
 #ifdef AMREX_PARTICLES
@@ -172,7 +172,7 @@ AmrLevelAdv::initData ()
 #endif
 
     if (verbose) {
-	amrex::Print() << "Done initializing the level " << level 
+        amrex::Print() << "Done initializing the level " << level
                        << " data " << std::endl;
     }
 }
@@ -248,28 +248,28 @@ AmrLevelAdv::advance (Real time,
     //
     FluxRegister *fine    = 0;
     FluxRegister *current = 0;
-    
+
     int finest_level = parent->finestLevel();
 
     if (do_reflux && level < finest_level) {
-	fine = &getFluxReg(level+1);
-	fine->setVal(0.0);
+        fine = &getFluxReg(level+1);
+        fine->setVal(0.0);
     }
 
     if (do_reflux && level > 0) {
-	current = &getFluxReg(level);
+        current = &getFluxReg(level);
     }
 
     MultiFab fluxes[BL_SPACEDIM];
 
     if (do_reflux)
     {
-	for (int j = 0; j < BL_SPACEDIM; j++)
-	{
-	    BoxArray ba = S_new.boxArray();
-	    ba.surroundingNodes(j);
-	    fluxes[j].define(ba, dmap, NUM_STATE, 0);
-	}
+        for (int j = 0; j < BL_SPACEDIM; j++)
+        {
+            BoxArray ba = S_new.boxArray();
+            ba.surroundingNodes(j);
+            fluxes[j].define(ba, dmap, NUM_STATE, 0);
+        }
     }
 
     // State with ghost cells
@@ -288,59 +288,59 @@ AmrLevelAdv::advance (Real time,
 #pragma omp parallel
 #endif
     {
-	FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
+        FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
 
-	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.tilebox();
+        for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
 
-	    const FArrayBox& statein = Sborder[mfi];
-	    FArrayBox& stateout      =   S_new[mfi];
+            const FArrayBox& statein = Sborder[mfi];
+            FArrayBox& stateout      =   S_new[mfi];
 
-	    // Allocate fabs for fluxes and Godunov velocities.
-	    for (int i = 0; i < BL_SPACEDIM ; i++) {
-		const Box& bxtmp = amrex::surroundingNodes(bx,i);
-		flux[i].resize(bxtmp,NUM_STATE);
-		uface[i].resize(amrex::grow(bxtmp, iteration), 1);
-	    }
+            // Allocate fabs for fluxes and Godunov velocities.
+            for (int i = 0; i < BL_SPACEDIM ; i++) {
+                const Box& bxtmp = amrex::surroundingNodes(bx,i);
+                flux[i].resize(bxtmp,NUM_STATE);
+                uface[i].resize(amrex::grow(bxtmp, iteration), 1);
+            }
 
-	    get_face_velocity(&level, &ctr_time,
-			      AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
-				     BL_TO_FORTRAN(uface[1]),
-				     BL_TO_FORTRAN(uface[2])),
-			      dx, prob_lo);
+            get_face_velocity(&level, &ctr_time,
+                              AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
+                                     BL_TO_FORTRAN(uface[1]),
+                                     BL_TO_FORTRAN(uface[2])),
+                              dx, prob_lo);
 
-	    for (int i = 0; i < BL_SPACEDIM ; i++) {
+            for (int i = 0; i < BL_SPACEDIM ; i++) {
                 const Box& bxtmp = mfi.grownnodaltilebox(i, iteration);
                 Umac[i][mfi].copy<RunOn::Host>(uface[i], bxtmp);
-	    }
+            }
             advect(&time, bx.loVect(), bx.hiVect(),
-		   BL_TO_FORTRAN_3D(statein), 
-		   BL_TO_FORTRAN_3D(stateout),
-		   AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
-			  BL_TO_FORTRAN_3D(uface[1]),
-			  BL_TO_FORTRAN_3D(uface[2])),
-		   AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
-			  BL_TO_FORTRAN_3D(flux[1]), 
-			  BL_TO_FORTRAN_3D(flux[2])), 
-		   dx, &dt);
+                   BL_TO_FORTRAN_3D(statein),
+                   BL_TO_FORTRAN_3D(stateout),
+                   AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
+                          BL_TO_FORTRAN_3D(uface[1]),
+                          BL_TO_FORTRAN_3D(uface[2])),
+                   AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]),
+                          BL_TO_FORTRAN_3D(flux[1]),
+                          BL_TO_FORTRAN_3D(flux[2])),
+                   dx, &dt);
 
-	    if (do_reflux) {
-		for (int i = 0; i < BL_SPACEDIM ; i++)
-		    fluxes[i][mfi].copy<RunOn::Host>(flux[i],mfi.nodaltilebox(i));
-	    }
-	}
+            if (do_reflux) {
+                for (int i = 0; i < BL_SPACEDIM ; i++)
+                    fluxes[i][mfi].copy<RunOn::Host>(flux[i],mfi.nodaltilebox(i));
+            }
+        }
     }
 
     if (do_reflux) {
-	if (current) {
-	    for (int i = 0; i < BL_SPACEDIM ; i++)
-		current->FineAdd(fluxes[i],i,0,0,NUM_STATE,1.);
-	}
-	if (fine) {
-	    for (int i = 0; i < BL_SPACEDIM ; i++)
-		fine->CrseInit(fluxes[i],i,0,0,NUM_STATE,-1.);
-	}
+        if (current) {
+            for (int i = 0; i < BL_SPACEDIM ; i++)
+                current->FineAdd(fluxes[i],i,0,0,NUM_STATE,1.);
+        }
+        if (fine) {
+            for (int i = 0; i < BL_SPACEDIM ; i++)
+                fine->CrseInit(fluxes[i],i,0,0,NUM_STATE,-1.);
+        }
     }
 
 #ifdef AMREX_PARTICLES
@@ -358,7 +358,7 @@ AmrLevelAdv::advance (Real time,
 Real
 AmrLevelAdv::estTimeStep (Real)
 {
-    // This is just a dummy value to start with 
+    // This is just a dummy value to start with
     Real dt_est  = 1.0e+20;
 
     const Real* dx = geom.CellSize();
@@ -370,38 +370,38 @@ AmrLevelAdv::estTimeStep (Real)
 #pragma omp parallel reduction(min:dt_est)
 #endif
     {
-	FArrayBox uface[BL_SPACEDIM];
+        FArrayBox uface[BL_SPACEDIM];
 
-	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
-	{
-	    for (int i = 0; i < BL_SPACEDIM ; i++) {
-		const Box& bx = mfi.nodaltilebox(i);
-		uface[i].resize(bx,1);
-	    }
+        for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
+        {
+            for (int i = 0; i < BL_SPACEDIM ; i++) {
+                const Box& bx = mfi.nodaltilebox(i);
+                uface[i].resize(bx,1);
+            }
 
-	    get_face_velocity(&level, &cur_time,
-			      AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
-				     BL_TO_FORTRAN(uface[1]),
-				     BL_TO_FORTRAN(uface[2])),
-			      dx, prob_lo);
+            get_face_velocity(&level, &cur_time,
+                              AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
+                                     BL_TO_FORTRAN(uface[1]),
+                                     BL_TO_FORTRAN(uface[2])),
+                              dx, prob_lo);
 
-	    for (int i = 0; i < BL_SPACEDIM; ++i) {
-		Real umax = uface[i].norm<RunOn::Host>(0);
-		if (umax > 1.e-100) {
-		    dt_est = std::min(dt_est, dx[i] / umax);
-		}
-	    }
-	}
+            for (int i = 0; i < BL_SPACEDIM; ++i) {
+                Real umax = uface[i].norm<RunOn::Host>(0);
+                if (umax > 1.e-100) {
+                    dt_est = std::min(dt_est, dx[i] / umax);
+                }
+            }
+        }
     }
 
     ParallelDescriptor::ReduceRealMin(dt_est);
     dt_est *= cfl;
 
     if (verbose) {
-	amrex::Print() << "AmrLevelAdv::estTimeStep at level " << level 
+        amrex::Print() << "AmrLevelAdv::estTimeStep at level " << level
                        << ":  dt_est = " << dt_est << std::endl;
     }
-    
+
     return dt_est;
 }
 
@@ -419,7 +419,7 @@ AmrLevelAdv::initialTimeStep ()
 //
 void
 AmrLevelAdv::computeInitialDt (int                   finest_level,
-	  	               int                   sub_cycle,
+                               int                   sub_cycle,
                                Vector<int>&           n_cycle,
                                const Vector<IntVect>& ref_ratio,
                                Vector<Real>&          dt_level,
@@ -463,7 +463,7 @@ AmrLevelAdv::computeInitialDt (int                   finest_level,
 //
 void
 AmrLevelAdv::computeNewDt (int                   finest_level,
-		           int                   sub_cycle,
+                           int                   sub_cycle,
                            Vector<int>&           n_cycle,
                            const Vector<IntVect>& ref_ratio,
                            Vector<Real>&          dt_min,
@@ -484,28 +484,28 @@ AmrLevelAdv::computeNewDt (int                   finest_level,
         dt_min[i] = adv_level.estTimeStep(dt_level[i]);
     }
 
-    if (post_regrid_flag == 1) 
+    if (post_regrid_flag == 1)
     {
-	//
-	// Limit dt's by pre-regrid dt
-	//
-	for (int i = 0; i <= finest_level; i++)
-	{
-	    dt_min[i] = std::min(dt_min[i],dt_level[i]);
-	}
+        //
+        // Limit dt's by pre-regrid dt
+        //
+        for (int i = 0; i <= finest_level; i++)
+        {
+            dt_min[i] = std::min(dt_min[i],dt_level[i]);
+        }
     }
-    else 
+    else
     {
-	//
-	// Limit dt's by change_max * old dt
-	//
-	static Real change_max = 1.1;
-	for (int i = 0; i <= finest_level; i++)
-	{
-	    dt_min[i] = std::min(dt_min[i],change_max*dt_level[i]);
-	}
+        //
+        // Limit dt's by change_max * old dt
+        //
+        static Real change_max = 1.1;
+        for (int i = 0; i <= finest_level; i++)
+        {
+            dt_min[i] = std::min(dt_min[i],change_max*dt_level[i]);
+        }
     }
-    
+
     //
     // Find the minimum over all levels
     //
@@ -553,17 +553,17 @@ AmrLevelAdv::post_timestep (int iteration)
     if (level < finest_level)
         avgDown();
 
-#ifdef AMREX_PARTICLES    
+#ifdef AMREX_PARTICLES
     if (TracerPC)
       {
         const int ncycle = parent->nCycle(level);
-	
+
         if (iteration < ncycle || level == 0)
-	  {
+          {
             int ngrow = (level == 0) ? 0 : iteration;
 
-	    TracerPC->Redistribute(level, TracerPC->finestLevel(), ngrow);
-	  }
+            TracerPC->Redistribute(level, TracerPC->finestLevel(), ngrow);
+          }
       }
 #endif
 }
@@ -584,7 +584,7 @@ AmrLevelAdv::post_regrid (int lbase, int new_finest) {
 //Do work after a restart().
 //
 void
-AmrLevelAdv::post_restart() 
+AmrLevelAdv::post_restart()
 {
 #ifdef AMREX_PARTICLES
     if (do_tracers && level == 0) {
@@ -617,7 +617,7 @@ AmrLevelAdv::post_init (Real stop_time)
 //
 void
 AmrLevelAdv::errorEst (TagBoxArray& tags,
-	               int          clearval,
+                       int          clearval,
                        int          tagval,
                        Real         time,
                        int          n_error_buf,
@@ -633,32 +633,32 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
 #endif
     {
         Vector<int>  itags;
-	
-	for (MFIter mfi(S_new,true); mfi.isValid(); ++mfi)
-	{
-	    const Box&  tilebx  = mfi.tilebox();
+
+        for (MFIter mfi(S_new,true); mfi.isValid(); ++mfi)
+        {
+            const Box&  tilebx  = mfi.tilebox();
 
             TagBox&     tagfab  = tags[mfi];
-	    
-	    // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
-	    // So we are going to get a temporary integer array.
-	    tagfab.get_itags(itags, tilebx);
-	    
-            // data pointer and index space
-	    int*        tptr    = itags.dataPtr();
-	    const int*  tlo     = tilebx.loVect();
-	    const int*  thi     = tilebx.hiVect();
 
-	    state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
-			BL_TO_FORTRAN_3D(S_new[mfi]),
-			&tagval, &clearval, 
-			AMREX_ARLIM_3D(tilebx.loVect()), AMREX_ARLIM_3D(tilebx.hiVect()), 
-			AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo), &time, &level);
-	    //
-	    // Now update the tags in the TagBox.
-	    //
-	    tagfab.tags_and_untags(itags, tilebx);
-	}
+            // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
+            // So we are going to get a temporary integer array.
+            tagfab.get_itags(itags, tilebx);
+
+            // data pointer and index space
+            int*        tptr    = itags.dataPtr();
+            const int*  tlo     = tilebx.loVect();
+            const int*  thi     = tilebx.hiVect();
+
+            state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
+                        BL_TO_FORTRAN_3D(S_new[mfi]),
+                        &tagval, &clearval,
+                        AMREX_ARLIM_3D(tilebx.loVect()), AMREX_ARLIM_3D(tilebx.hiVect()),
+                        AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo), &time, &level);
+            //
+            // Now update the tags in the TagBox.
+            //
+            tagfab.tags_and_untags(itags, tilebx);
+        }
     }
 }
 
@@ -671,7 +671,7 @@ AmrLevelAdv::read_params ()
 
     done = true;
 
-    ParmParse pp("adv");   
+    ParmParse pp("adv");
 
     pp.query("v",verbose);
     pp.query("cfl",cfl);
@@ -681,17 +681,17 @@ AmrLevelAdv::read_params ()
 
     // This tutorial code only supports Cartesian coordinates.
     if (! gg->IsCartesian()) {
-	amrex::Abort("Please set geom.coord_sys = 0");
+        amrex::Abort("Please set geom.coord_sys = 0");
     }
 
     // This tutorial code only supports periodic boundaries.
     if (! gg->isAllPeriodic()) {
-	amrex::Abort("Please set geom.is_periodic = 1 1 1");
+        amrex::Abort("Please set geom.is_periodic = 1 1 1");
     }
 
 #ifdef AMREX_PARTICLES
     pp.query("do_tracers", do_tracers);
-#endif 
+#endif
 
     //
     // read tagging parameters from probin file
@@ -706,7 +706,7 @@ AmrLevelAdv::read_params ()
     Vector<int> probin_file_name(probin_file_length);
 
     for (int i = 0; i < probin_file_length; i++)
-	probin_file_name[i] = probin_file[i];
+        probin_file_name[i] = probin_file[i];
 
     // use a fortran routine to
     // read in tagging parameters from probin file
@@ -722,15 +722,15 @@ AmrLevelAdv::reflux ()
     const auto strt = amrex::second();
 
     getFluxReg(level+1).Reflux(get_new_data(Phi_Type),1.0,0,0,NUM_STATE,geom);
-    
+
     if (verbose)
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
         auto      end    = amrex::second() - strt;
-	
+
         ParallelDescriptor::ReduceRealMax(end,IOProc);
-	
-        amrex::Print() << "AmrLevelAdv::reflux() at level " << level 
+
+        amrex::Print() << "AmrLevelAdv::reflux() at level " << level
                        << " : time = " << end << std::endl;
     }
 }
@@ -750,7 +750,7 @@ AmrLevelAdv::avgDown (int state_indx)
     AmrLevelAdv& fine_lev = getLevel(level+1);
     MultiFab&  S_fine   = fine_lev.get_new_data(state_indx);
     MultiFab&  S_crse   = get_new_data(state_indx);
-    
+
     amrex::average_down(S_fine,S_crse,
                          fine_lev.geom,geom,
                          0,S_fine.nComp(),parent->refRatio(level));
@@ -763,7 +763,7 @@ AmrLevelAdv::init_particles ()
   if (do_tracers && level == 0)
     {
       BL_ASSERT(TracerPC == nullptr);
-      
+
       TracerPC.reset(new AmrTracerParticleContainer(parent));
 
       AmrTracerParticleContainer::ParticleInitData pdata = {AMREX_D_DECL(0.0, 0.0, 0.0)};
