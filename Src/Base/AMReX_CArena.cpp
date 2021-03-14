@@ -209,13 +209,22 @@ CArena::freeUnused_protected ()
     m_alloc.erase(std::remove_if(m_alloc.begin(), m_alloc.end(),
                                  [&nbytes,this] (std::pair<void*,std::size_t> a)
                                  {
-                                     if (m_freelist.erase(Node(a.first,a.first,a.second))) {
-                                         nbytes += a.second;
-                                         deallocate_system(a.first,a.second);
-                                         return true;
-                                     } else {
-                                         return false;
+                                     // We cannot simply use std::set::erase because
+                                     // Node::operator== only compares the starting address.
+                                     for (auto it = m_freelist.begin(); it != m_freelist.end();) {
+                                         if (it->block() == a.first &&
+                                             it->owner() == a.first &&
+                                             it->size()  == a.second)
+                                         {
+                                             it = m_freelist.erase(it);
+                                             nbytes += a.second;
+                                             deallocate_system(a.first,a.second);
+                                             return true;
+                                         } else {
+                                             ++it;
+                                         }
                                      }
+                                     return false;
                                  }),
                   m_alloc.end());
     m_used -= nbytes;
