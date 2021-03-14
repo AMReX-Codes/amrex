@@ -212,18 +212,15 @@ CArena::freeUnused_protected ()
                                  {
                                      // We cannot simply use std::set::erase because
                                      // Node::operator== only compares the starting address.
-                                     for (auto it = m_freelist.begin(); it != m_freelist.end();) {
-                                         if (it->block() == a.first &&
-                                             it->owner() == a.first &&
-                                             it->size()  == a.second)
-                                         {
-                                             it = m_freelist.erase(it);
-                                             nbytes += a.second;
-                                             deallocate_system(a.first,a.second);
-                                             return true;
-                                         } else {
-                                             ++it;
-                                         }
+                                     auto it = m_freelist.find(Node(a.first,nullptr,0));
+                                     if (it != m_freelist.end() &&
+                                         it->owner() == a.first &&
+                                         it->size()  == a.second)
+                                     {
+                                         it = m_freelist.erase(it);
+                                         nbytes += a.second;
+                                         deallocate_system(a.first,a.second);
+                                         return true;
                                      }
                                      return false;
                                  }),
