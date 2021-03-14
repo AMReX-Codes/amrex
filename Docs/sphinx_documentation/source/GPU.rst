@@ -677,8 +677,8 @@ implementation is reproduced here:
 ::
 
     Real MultiFab::Dot (const MultiFab& x, int xcomp,
-	       const MultiFab& y, int ycomp,
-	       int numcomp, int nghost, bool local) {
+                        const MultiFab& y, int ycomp,
+                        int numcomp, int nghost, bool local) {
         Real sm = amrex::ReduceSum(x, y, nghost,
         [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab, FArrayBox const& yfab) -> Real
         {
@@ -688,7 +688,7 @@ implementation is reproduced here:
         if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
 
         return sm;
-   }
+    }
 
 :cpp:`amrex::ReduceSum` takes two :cpp:`MultiFab`\ s, ``x`` and ``y`` and
 returns the sum of the value returned from the given lambda function.
@@ -1598,9 +1598,9 @@ Basic Gpu Debugging
 
 ::
 
-		  Gpu::setLaunchRegion(0);
-		  ... ;
-		  Gpu::setLaunchRegion(1);
+    Gpu::setLaunchRegion(0);
+    ... ;
+    Gpu::setLaunchRegion(1);
 
 Note that functions, ``amrex::launch`` and ``amrex::ParallelFor``, do
 not respect the launch region flag.  Only the macros (e.g.,
@@ -1613,7 +1613,7 @@ Cuda-specific tests
 
 ::
 
-		nvprof ./main3d.xxx
+    nvprof ./main3d.xxx
 
 - Run under ``nvprof -o profile%p.nvvp ./main3d.xxxx`` for
   a small problem and examine page faults using nvvp

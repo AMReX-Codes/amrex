@@ -6,9 +6,9 @@ subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, nam
 
   integer, intent(in) :: lo(3), hi(3), philo(3), phihi(3)
   real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2),philo(3):phihi(3))
-  real(amrex_real), intent(in   ) :: dx(3) 
-  real(amrex_real), intent(in   ) :: prob_lo(3) 
-  real(amrex_real), intent(in   ) :: prob_hi(3) 
+  real(amrex_real), intent(in   ) :: dx(3)
+  real(amrex_real), intent(in   ) :: prob_lo(3)
+  real(amrex_real), intent(in   ) :: prob_hi(3)
 
   integer          :: i,j,k
   double precision :: x,y,z,r2

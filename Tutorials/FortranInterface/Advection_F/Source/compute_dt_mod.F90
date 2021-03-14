@@ -18,13 +18,13 @@ contains
     real(amrex_real), parameter :: change_max = 1.1_amrex_real
 
     nlevs = amrex_get_numlevels()
-    
+
     allocate(dt_tmp(0:nlevs-1))
     do lev = 0, nlevs-1
        dt_tmp(lev) = est_timestep(lev, t_new(lev))
     end do
     call amrex_parallel_reduce_min(dt_tmp, nlevs)
- 
+
     dt_0 = dt_tmp(0)
     n_factor = 1
     do lev = 0, nlevs-1
@@ -32,7 +32,7 @@ contains
        n_factor = n_factor * nsubsteps(lev)
        dt_0 = min(dt_0, n_factor*dt_tmp(lev))
     end do
-    
+
     ! Limit dt's by the value of stop_time.
     eps = 1.e-3_amrex_real * dt_0
     if (t_new(0) + dt_0 .gt. stop_time - eps) then
@@ -49,7 +49,7 @@ contains
   function est_timestep (lev, time) result(dt)
     use my_amr_module, only : phi_new, cfl
     use face_velocity_module, only : get_face_velocity
-    
+
     real(amrex_real) :: dt
     integer, intent(in) :: lev
     real(amrex_real), intent(in) :: time
@@ -99,7 +99,7 @@ contains
     call amrex_mfiter_destroy(mfi)
     call amrex_fab_destroy(u)
     !$omp end parallel
-    
+
     dt = dt_est * cfl
 
   end function est_timestep

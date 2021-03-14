@@ -190,9 +190,9 @@ BoxDomain::ok () const
             {
                 if (bli->intersects(*blii))
                 {
-//		    amrex::Print(Print::AllProcs) << "Invalid DOMAIN, boxes overlap" << '\n'
-//						  << "b1 = " << *bli << '\n'
-//						  << "b2 = " << *blii << '\n';
+//            amrex::Print(Print::AllProcs) << "Invalid DOMAIN, boxes overlap" << '\n'
+//                          << "b1 = " << *bli << '\n'
+//                          << "b2 = " << *blii << '\n';
                     status = false;
                 }
             }

@@ -1,4 +1,4 @@
-c ::: SCCS stuff "@(#)FABUTIL_2D.F	3.1\t6/25/93"
+c ::: SCCS stuff "@(#)FABUTIL_2D.F        3.1\t6/25/93"
 
 #define   FORT_CINTERP       cinterp1d
 #define   FORT_PCINTERP      pcinterp1d
@@ -26,28 +26,28 @@ c ::: --------------------------------------------------------------
       REAL_T fdat(flen)
       REAL_T voff(flen)
 
-c ::: NOTE: data must be sent in so that 
+c ::: NOTE: data must be sent in so that
 c ::: cslope(1,*) and crse(1,*) are associated with
 c ::: the same cell
 
 c ::: ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 c ::: cinterp:   conservative interpolation from coarse grid to
 c ::: subregion of fine grid defined by (fblo,fbhi)
-c ::: 
+c :::
 c ::: Inputs/Outputs
 c ::: fine        <=>  (modify) fine grid array
 c ::: flo,fhi      =>  (const)  index limits of fine grid
 c ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
 c ::: nvar         =>  (const)  number of variables in state vector
 c ::: lratio       =>  (const)  refinement ratio between levels
-c ::: 
+c :::
 c ::: crse         =>  (const)  coarse grid data widended by 1 zone
 c ::: and unrolled
 c ::: clo,chi      =>  (const)  one dimensional limits of crse grid
 c ::: cslo,cshi    =>  (const)  coarse grid index limits where
 c ::: slopes are to be defined. This is
 c ::: the projection of (fblo,fbhi) down
-c ::: to the coarse level 
+c ::: to the coarse level
 c ::: fslo,fshi    =>  (const)  fine grid index limits where
 c ::: slopes are needed.  This is the
 c ::: refinement of (cslo,cshi) and
@@ -91,22 +91,22 @@ c ::: local var
       leny = fbhi(2)-fblo(2)+1
       maxlen = max(lenx,leny)
       if (maxlen .eq. lenx) then
-          do 100 i = fblo(1), fbhi(1) 
+          do 100 i = fblo(1), fbhi(1)
               fn = i-fslo(1)+1
               ioff = mod(fn-1,lratio)
               voff(fn) = float(ioff)-hafrat
 100       continue
       else
-          do 110 j = fblo(2), fbhi(2) 
+          do 110 j = fblo(2), fbhi(2)
               fn = j-fslo(2)+1
               joff = mod(fn-1,lratio)
               voff(fn) = float(joff)-hafrat
 110       continue
       end if
-      do 120 n = 1, nvar 
+      do 120 n = 1, nvar
 
 c ::: ::::: compute slopes in x direction
-          do 130 i = 1, clen 
+          do 130 i = 1, clen
               cen = half*(crse(i+ist,n)-crse(i-ist,n))
               forw = crse(i+ist,n)-crse(i,n)
               back = crse(i,n)-crse(i-ist,n)
@@ -114,7 +114,7 @@ c ::: ::::: compute slopes in x direction
               cslope(i,1)=merge(slp,zero,forw*back>=0.0d0)
 130       continue
 c ::: ::::: compute slopes in y direction
-          do 140 i = 1, clen 
+          do 140 i = 1, clen
               cen = half*(crse(i+jst,n)-crse(i-jst,n))
               forw = crse(i+jst,n)-crse(i,n)
               back = crse(i,n)-crse(i-jst,n)
@@ -122,14 +122,14 @@ c ::: ::::: compute slopes in y direction
               cslope(i,2)=merge(slp,zero,forw*back>=0.0d0)
 140       continue
           if (maxlen .eq. lenx) then
-              do 150 jc = cblo(2), cbhi(2) 
+              do 150 jc = cblo(2), cbhi(2)
 
 c ::: ..,.......::::: strip out a fine grid slope vector
-                  do 160 ioff = 1, lratio 
+                  do 160 ioff = 1, lratio
                       icc = clo + ist + jst*(jc-jslo)
                       istart = ioff
                       iend = ioff + (ncbx-1)*lratio
-                      do 170 fn = istart, iend, lratio 
+                      do 170 fn = istart, iend, lratio
                           fslope(fn,1) = cslope(icc,1)
                           fslope(fn,2) = cslope(icc,2)
                           fdat(fn) = crse(icc,n)
@@ -137,7 +137,7 @@ c ::: ..,.......::::: strip out a fine grid slope vector
 170                   continue
 160               continue
 
-                  do 180 joff = 0, lratio-1 
+                  do 180 joff = 0, lratio-1
                       j = lratio*jc + joff
                       if (j .lt. fblo(2)) then
                           goto 180
@@ -149,7 +149,7 @@ c                         --- break ---
                       end if
                       yoff = float(joff)-hafrat
 
-                      do 190 i = fblo(1), fbhi(1) 
+                      do 190 i = fblo(1), fbhi(1)
                           fn = i-fslo(1)+1
                           fine(i,j,n) = fdat(fn) + volratio* (voff(fn)*
      $                    fslope(fn,1)+yoff*fslope(fn,2))
@@ -158,14 +158,14 @@ c                         --- break ---
 181               continue
 150           continue
           else
-              do 200 ic = cblo(1), cbhi(1) 
+              do 200 ic = cblo(1), cbhi(1)
 
 c ::: ..,.......::::: strip out a fine grid slope vector
-                  do 210 joff = 1, lratio 
+                  do 210 joff = 1, lratio
                       icc = clo + ist*(ic-islo) + jst
                       istart = joff
                       iend = joff + (ncby-1)*lratio
-                      do 220 fn = istart, iend, lratio 
+                      do 220 fn = istart, iend, lratio
                           fslope(fn,1) = cslope(icc,1)
                           fslope(fn,2) = cslope(icc,2)
                           fdat(fn) = crse(icc,n)
@@ -173,7 +173,7 @@ c ::: ..,.......::::: strip out a fine grid slope vector
 220                   continue
 210               continue
 
-                  do 230 ioff = 0, lratio-1 
+                  do 230 ioff = 0, lratio-1
                       i = lratio*ic + ioff
                       if (i .lt. fblo(1)) then
                           goto 230
@@ -185,7 +185,7 @@ c                         --- break ---
                       end if
                       xoff = float(ioff)-hafrat
 
-                      do 240 j = fblo(2), fbhi(2) 
+                      do 240 j = fblo(2), fbhi(2)
                           fn = j-fslo(2)+1
                           fine(i,j,n) = fdat(fn) + volratio* (xoff*
      $                    fslope(fn,1)+voff(fn)*fslope(fn,2))
@@ -219,7 +219,7 @@ c ::: ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 c ::: pcinterp:  use piecewise constant interpolation to define
 c ::: values on the subregion of the fine FAB defined
 c ::: by (fblo,fbhi).
-c ::: 
+c :::
 c ::: Inputs/Outputs
 c ::: fine        <=>  (modify) fab to get interpolated values
 c ::: flo,fhi      =>  (const)  index limits of fine
@@ -235,14 +235,14 @@ c ::: local var
       integer ixproj,ii,ll
       ixproj(ii,ll) = (ii + ll*iabs(ii))/ll - iabs(ii)
 
-          do 130 n = 1, nvar 
-              do 140 ioff = 0, lrat-1 
-                  do 150 ic = cblo(1),cbhi(1) 
+          do 130 n = 1, nvar
+              do 140 ioff = 0, lrat-1
+                  do 150 ic = cblo(1),cbhi(1)
                       i = lrat*ic + ioff
                       temp(i) = crse(ic,n)
 150               continue
 140           continue
-              do 160 i = fblo(1), fbhi(1) 
+              do 160 i = fblo(1), fbhi(1)
                   fine(i,n) = temp(i)
 160           continue
 130       continue

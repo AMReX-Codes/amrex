@@ -8,7 +8,7 @@ contains
 
   ! All subroutines in this file must be threadsafe because they are called
   ! inside OpenMP parallel regions.
-  
+
   subroutine cns_hypfill(adv,adv_lo,adv_hi,domlo,domhi,delta,xlo,time,bc) &
        bind(C, name="cns_hypfill")
 

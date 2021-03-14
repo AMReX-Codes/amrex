@@ -15,7 +15,7 @@ class LevelBldAdv
                                   int             lev,
                                   const Geometry& level_geom,
                                   const BoxArray& ba,
-				  const DistributionMapping& dm,
+                                  const DistributionMapping& dm,
                                   Real            time) override;
 };
 
@@ -47,7 +47,7 @@ LevelBldAdv::operator() ()
 
 AmrLevel*
 LevelBldAdv::operator() (Amr&            papa,
-	   	         int             lev,
+                         int             lev,
                          const Geometry& level_geom,
                          const BoxArray& ba,
                          const DistributionMapping& dm,

@@ -19,7 +19,7 @@ void actual_init_poisson (int i, int j, int k,
 
     exact(i,j,k) = (std::sin(tpi*x) * std::sin(tpi*y) * std::sin(tpi*z))
            + .25 * (std::sin(fpi*x) * std::sin(fpi*y) * std::sin(fpi*z));
-                
+
     rhs(i,j,k) = -fac * (std::sin(tpi*x) * std::sin(tpi*y) * std::sin(tpi*z))
                  -fac * (std::sin(fpi*x) * std::sin(fpi*y) * std::sin(fpi*z));
 }
@@ -79,7 +79,7 @@ void actual_init_abeclap (int i, int j, int k,
     amrex::Real tmp = std::cosh(theta*(r-0.25));
     amrex::Real dbdrfac = (sigma-1.)/2./(tmp*tmp) * theta/r;
     dbdrfac *= b;
-             
+
     alpha(i,j,k) = 1.;
 
     exact(i,j,k) = std::cos(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z)
@@ -129,7 +129,7 @@ void actual_init_abeclap_in (int i, int j, int k,
     amrex::Real tmp = std::cosh(theta*(r-0.25));
     amrex::Real dbdrfac = (sigma-1.)/2./(tmp*tmp) * theta/r;
     dbdrfac *= b;
-             
+
     alpha(i,j,k) = 1.;
 
     exact(i,j,k) = std::sin(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z)
@@ -248,5 +248,5 @@ void actual_init_dphi_dz_hi (int i, int j, int k, amrex::Array4<amrex::Real> con
     fz(i,j,k) = std::sin(tpi*x) * std::cos(tpi*y) * (-tpi) * std::sin(tpi*z)
         + .25 * std::cos(fpi*x) * std::sin(fpi*y) * (-fpi) * std::sin(fpi*z);
 }
-                             
+
 #endif

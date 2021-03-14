@@ -213,9 +213,9 @@ public:
     Real coarseTimeStepDt (Real stop_time);
     //! Retrieve derived data. User is responsible for deleting pointer.
     std::unique_ptr<MultiFab> derive (const std::string& name,
-				      Real           time,
-				      int            lev,
-				      int            ngrow);
+                                      Real           time,
+                                      int            lev,
+                                      int            ngrow);
     //! Name of the restart chkpoint file.
     const std::string& theRestartFile () const noexcept { return restart_chkfile; }
     //! Name of the restart plotfile.
@@ -369,13 +369,13 @@ protected:
 
     // pure virtural function in AmrCore
     virtual void MakeNewLevelFromScratch (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
-	{ amrex::Abort("How did we get here!"); }
+        { amrex::Abort("How did we get here!"); }
     virtual void MakeNewLevelFromCoarse (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
-	{ amrex::Abort("How did we get here!"); }
+        { amrex::Abort("How did we get here!"); }
     virtual void RemakeLevel (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
-	{ amrex::Abort("How did we get here!"); }
+        { amrex::Abort("How did we get here!"); }
     virtual void ClearLevel (int /*lev*/) override
-	{ amrex::Abort("How did we get here!"); }
+        { amrex::Abort("How did we get here!"); }
 
     //! Whether to write a plotfile now
     bool writePlotNow () noexcept;

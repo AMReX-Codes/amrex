@@ -10,9 +10,9 @@ module init_phi_module
   public :: init_phi
 
 contains
-  
+
   subroutine init_phi(phi,geom)
-    
+
     type(amrex_multifab), intent(inout) :: phi
     type(amrex_geometry), intent(in   ) :: geom
 
@@ -46,7 +46,7 @@ contains
     real(amrex_real) :: phi(dlo(1):dhi(1),dlo(2):dhi(2))
     real(amrex_real) :: prob_lo(2)
     real(amrex_real) :: dx(2)
- 
+
     ! local varables
     integer          :: i,j
     real(amrex_real) :: x,y,r2
@@ -55,13 +55,13 @@ contains
        y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
        do i=lo(1),hi(1)
           x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
-          
+
           r2 = ((x-0.25d0)**2 + (y-0.25d0)**2) / 0.01d0
           phi(i,j) = 1.d0 + exp(-r2)
-          
+
        end do
     end do
-    
+
   end subroutine init_phi_2d
 
   subroutine init_phi_3d(lo, hi, phi, dlo, dhi, prob_lo, dx)
@@ -89,5 +89,5 @@ contains
     end do
 
   end subroutine init_phi_3d
-  
+
 end module init_phi_module

@@ -27,10 +27,10 @@ void decomp_chol_np10(Array2D<Real,0,9,0,9>& aa)
             {
                 sum1 = sum1 - aa(ii,kk)*aa(jj,kk);
             }
- 
+
             if (ii == jj)
             {
-                 if (sum1 <= 0.) 
+                 if (sum1 <= 0.)
                  {
                      p[ii] = 0.0;
                      ising = 1;
@@ -38,7 +38,7 @@ void decomp_chol_np10(Array2D<Real,0,9,0,9>& aa)
                      p[ii] = std::sqrt(sum1);
                  }
             } else {
-                if (ising == 0) 
+                if (ising == 0)
                    aa(jj,ii) = sum1 / p[ii];
                 else
                    aa(jj,ii) = 0.0;
@@ -53,7 +53,7 @@ void decomp_chol_np10(Array2D<Real,0,9,0,9>& aa)
            aa(ii,jj) = 0.0;       // Zero upper triangle
            aa(ii,jj) = aa(jj,ii);  // Zero upper triangle
         }
-          
+
         aa(ii,ii) = p[ii];
     }
 }
@@ -314,11 +314,11 @@ void  cholsol_for_eb(Array2D<Real,0,53,0,9>& Amatrix, Array1D<Real,0,9>& b)
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real grad_x_of_phi_on_centroids(int i,int j,int k,int n,
-                                Array4<Real const> const& phi, 
-                                Array4<Real const> const& phieb, 
+                                Array4<Real const> const& phi,
+                                Array4<Real const> const& phieb,
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
-                                Array4<Real const> const& bcent, 
+                                Array4<Real const> const& bcent,
                                 Real& yloc_on_xface, Real& zloc_on_xface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog)
 {
@@ -339,11 +339,11 @@ Real grad_x_of_phi_on_centroids(int i,int j,int k,int n,
             if (!flag(ii,jj,kk).isCovered())
             {
                 int a_ind  = (jj-(j-1)) + 3*(kk-(k-1)) + 9*(ii-(i-1));
-    
+
                 Real x_off = static_cast<Real>(ii-i) + 0.5;
-                Real y_off = static_cast<Real>(jj-j); 
-                Real z_off = static_cast<Real>(kk-k); 
-    
+                Real y_off = static_cast<Real>(jj-j);
+                Real z_off = static_cast<Real>(kk-k);
+
                 Amatrix(a_ind,0) = 1.0;
                 Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0);
                 Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1) - yloc_on_xface;
@@ -383,23 +383,23 @@ Real grad_x_of_phi_on_centroids(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi(ii,jj,kk,n);
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog)  
+                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog)
                         rhs(irow) += Amatrix(a_ind+18,irow)*phieb(ii,jj,kk,n);
                }
     }
 
     cholsol_np10(Amatrix, rhs);
 
-    return rhs(1);     
+    return rhs(1);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real grad_y_of_phi_on_centroids(int i,int j,int k,int n,
-                                Array4<Real const> const& phi, 
-                                Array4<Real const> const& phieb, 
+                                Array4<Real const> const& phi,
+                                Array4<Real const> const& phieb,
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
-                                Array4<Real const> const& bcent, 
+                                Array4<Real const> const& bcent,
                                 Real& xloc_on_yface, Real& zloc_on_yface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog)
 {
@@ -421,10 +421,10 @@ Real grad_y_of_phi_on_centroids(int i,int j,int k,int n,
             {
                 int a_ind  = (ii-(i-1)) + 3*(kk-(k-1)) + 9*(jj-(j-1));
 
-                Real x_off = static_cast<Real>(ii-i); 
+                Real x_off = static_cast<Real>(ii-i);
                 Real y_off = static_cast<Real>(jj-j) + 0.5;
                 Real z_off = static_cast<Real>(kk-k);
-    
+
                 Amatrix(a_ind,0) = 1.0;
                 Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0) - xloc_on_yface;
                 Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1);
@@ -464,23 +464,23 @@ Real grad_y_of_phi_on_centroids(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi(ii,jj,kk,n);
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog)  
+                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog)
                         rhs(irow) += Amatrix(a_ind+18,irow)*phieb(ii,jj,kk,n);
                 }
     }
 
     cholsol_np10(Amatrix, rhs);
 
-    return rhs(2);     
+    return rhs(2);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real grad_z_of_phi_on_centroids(int i,int j,int k,int n,
-                                Array4<Real const> const& phi, 
-                                Array4<Real const> const& phieb, 
+                                Array4<Real const> const& phi,
+                                Array4<Real const> const& phieb,
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
-                                Array4<Real const> const& bcent, 
+                                Array4<Real const> const& bcent,
                                 Real& xloc_on_zface, Real& yloc_on_zface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog)
 {
@@ -504,10 +504,10 @@ Real grad_z_of_phi_on_centroids(int i,int j,int k,int n,
             {
                 int a_ind  = (ii-(i-1)) + 3*(jj-(j-1)) + 9*(kk-(k-1));
 
-                Real x_off = static_cast<Real>(ii-i); 
-                Real y_off = static_cast<Real>(jj-j); 
+                Real x_off = static_cast<Real>(ii-i);
+                Real y_off = static_cast<Real>(jj-j);
                 Real z_off = static_cast<Real>(kk-k) + 0.5;
-    
+
                 Amatrix(a_ind,0) = 1.0;
                 Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0) - xloc_on_zface;
                 Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1) - yloc_on_zface;
@@ -556,13 +556,13 @@ Real grad_z_of_phi_on_centroids(int i,int j,int k,int n,
 
     cholsol_np10(Amatrix, rhs);
 
-    return rhs(3);     
+    return rhs(3);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real grad_eb_of_phi_on_centroids(int i,int j,int k,int n,
-                                 Array4<Real const> const& phi, 
-                                 Array4<Real const> const& phieb, 
+                                 Array4<Real const> const& phi,
+                                 Array4<Real const> const& phieb,
                                  Array4<EBCellFlag const> const& flag,
                                  Array4<Real const> const& ccent,
                                  Array4<Real const> const& bcent,
@@ -590,7 +590,7 @@ Real grad_eb_of_phi_on_centroids(int i,int j,int k,int n,
                 Real x_off = static_cast<Real>(ii-i) - bcent(i,j,k,0);
                 Real y_off = static_cast<Real>(jj-j) - bcent(i,j,k,1);
                 Real z_off = static_cast<Real>(kk-k) - bcent(i,j,k,2);
-    
+
                 Amatrix(a_ind,0) = 1.0;
                 Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0);
                 Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1);
@@ -644,12 +644,12 @@ Real grad_eb_of_phi_on_centroids(int i,int j,int k,int n,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
-                                Array4<Real const> const& phi, 
-                                Array4<Real const> const& phieb, 
+                                Array4<Real const> const& phi,
+                                Array4<Real const> const& phieb,
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
                                 Array4<Real const> const& bcent,
-                                Array4<Real const> const& vfrac, 
+                                Array4<Real const> const& vfrac,
                                 Real& yloc_on_xface, Real& zloc_on_xface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog,
                                 const bool on_x_face, const int domlo_x, const int domhi_x,
@@ -700,7 +700,7 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real x_off = static_cast<Real>(ii-i) + 0.5;
                 Real y_off = static_cast<Real>(jj-j);
                 Real z_off = static_cast<Real>(kk-k);
-    
+
                 if(on_x_face){
                     if (ii < domlo_x && (vfrac(ii+1,jj,kk) != 1.0 || vfrac(ii+2,jj,kk) != 1.0) )
                         continue;
@@ -721,7 +721,7 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                     if (kk > domhi_z && (vfrac(ii,jj,kk-1) != 1.0 || vfrac(ii,jj,kk-2) != 1.0) )
                         continue;
                 }
-    
+
                 Amatrix(a_ind,0) = 1.0;
                 Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0);
                 Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1) - yloc_on_xface;
@@ -768,7 +768,7 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi_val;
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+27,irow) != 0.0)  
+                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+27,irow) != 0.0)
                         rhs(irow) += Amatrix(a_ind+27,irow)*phieb(ii,jj,kk,n);
                }
     }
@@ -780,12 +780,12 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
-                                Array4<Real const> const& phi, 
-                                Array4<Real const> const& phieb, 
+                                Array4<Real const> const& phi,
+                                Array4<Real const> const& phieb,
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
                                 Array4<Real const> const& bcent,
-                                Array4<Real const> const& vfrac, 
+                                Array4<Real const> const& vfrac,
                                 Real& xloc_on_yface, Real& zloc_on_yface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog,
                                 const bool on_x_face, const int domlo_x, const int domhi_x,
@@ -831,7 +831,7 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
             {
                 int a_ind  = (ii-(i-1)) + 3*(kk-(k-1)) + 9*(jj-(j-jm));
 
-                Real x_off = static_cast<Real>(ii-i); 
+                Real x_off = static_cast<Real>(ii-i);
                 Real y_off = static_cast<Real>(jj-j) + 0.5;
                 Real z_off = static_cast<Real>(kk-k);
 
@@ -902,7 +902,7 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi_val;
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+27,irow) != 0.0)  
+                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+27,irow) != 0.0)
                         rhs(irow) += Amatrix(a_ind+27,irow)*phieb(ii,jj,kk,n);
                 }
     }
@@ -914,12 +914,12 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
-                                Array4<Real const> const& phi, 
-                                Array4<Real const> const& phieb, 
+                                Array4<Real const> const& phi,
+                                Array4<Real const> const& phieb,
                                 Array4<EBCellFlag const> const& flag,
                                 Array4<Real const> const& ccent,
                                 Array4<Real const> const& bcent,
-                                Array4<Real const> const& vfrac, 
+                                Array4<Real const> const& vfrac,
                                 Real& xloc_on_zface, Real& yloc_on_zface,
                                 bool is_eb_dirichlet, bool is_eb_inhomog,
                                 const bool on_x_face, const int domlo_x, const int domhi_x,
@@ -966,8 +966,8 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
             {
                 int a_ind  = (ii-(i-1)) + 3*(jj-(j-1)) + 9*(kk-(k-km));
 
-                Real x_off = static_cast<Real>(ii-i); 
-                Real y_off = static_cast<Real>(jj-j); 
+                Real x_off = static_cast<Real>(ii-i);
+                Real y_off = static_cast<Real>(jj-j);
                 Real z_off = static_cast<Real>(kk-k) + 0.5;
 
                 if(on_x_face){
@@ -990,7 +990,7 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                     if (kk > domhi_z && (vfrac(ii,jj,kk-1) != 1.0 || vfrac(ii,jj,kk-2) != 1.0) )
                         continue;
                 }
-    
+
                 Amatrix(a_ind,0) = 1.0;
                 Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0) - xloc_on_zface;
                 Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1) - yloc_on_zface ;
@@ -1050,8 +1050,8 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
-                                 Array4<Real const> const& phi, 
-                                 Array4<Real const> const& phieb, 
+                                 Array4<Real const> const& phi,
+                                 Array4<Real const> const& phieb,
                                  Array4<EBCellFlag const> const& flag,
                                  Array4<Real const> const& ccent,
                                  Array4<Real const> const& bcent,
@@ -1122,13 +1122,13 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                     if (kk > domhi_z && (vfrac(ii,jj,kk-1) != 1.0 || vfrac(ii,jj,kk-2) != 1.0) )
                         continue;
                 }
-    
+
                 Amatrix(a_ind,0) = 1.0;
                 Amatrix(a_ind,1) = x_off + ccent(ii,jj,kk,0);
                 Amatrix(a_ind,2) = y_off + ccent(ii,jj,kk,1);
                 Amatrix(a_ind,3) = z_off + ccent(ii,jj,kk,2);
 
-                if (flag(ii,jj,kk).isSingleValued() && 
+                if (flag(ii,jj,kk).isSingleValued() &&
                     domlo_x <= ii && ii <= domhi_x &&
                     domlo_y <= jj && jj <= domhi_y &&
                     domlo_z <= kk && kk <= domhi_z)
@@ -1163,7 +1163,7 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 if (!flag(ii,jj,kk).isCovered())
                 {
                     int a_ind  = (ii-(i-1)) + 3*(jj-(j-1)) + 9*(kk-(k-1));
- 
+
                     Real phi_val = Amatrix(a_ind,0) * phi(ii,jj,kk,n);
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi_val;

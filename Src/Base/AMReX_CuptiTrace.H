@@ -31,7 +31,7 @@ private:
     unsigned long long timeElapsed_;
     int streamID_;
     std::string name_;
-  
+
 public:
     void setUintID (unsigned) noexcept;
     void setCharID (std::string) noexcept;

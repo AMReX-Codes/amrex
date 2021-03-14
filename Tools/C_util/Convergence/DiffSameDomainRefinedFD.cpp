@@ -58,7 +58,7 @@ PrintUsage (const char* progName)
 
 bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2);
+                        const AmrData& amrd2);
 
 IntVect
 getRefRatio(const Box& crse,
@@ -185,8 +185,8 @@ main (int   argc,
         //
         // Construct MultiFab for errors
         //
-	error[iLevel] = new MultiFab(ba2Coarse, nComp, 0);
-	error[iLevel]->setVal(GARBAGE);
+        error[iLevel] = new MultiFab(ba2Coarse, nComp, 0);
+        error[iLevel]->setVal(GARBAGE);
 
         //
         // For each component, compute errors by striding through fine
@@ -217,24 +217,24 @@ main (int   argc,
                 FArrayBox data2Coarse(ba2Coarse[index], 1);
                 int ncCoarse = 1;
 
-		int i, j, k;
-		IntVect cidx, fidx;
-		const int *lo = data2Coarse.loVect();
-		const int *hi = data2Coarse.hiVect();
+                int i, j, k;
+                IntVect cidx, fidx;
+                const int *lo = data2Coarse.loVect();
+                const int *hi = data2Coarse.hiVect();
 
-		for (i=lo[0]; i<=hi[0]; i++) {
-		  cidx[0] = i; fidx[0] = i * refine_ratio[0];
+                for (i=lo[0]; i<=hi[0]; i++) {
+                  cidx[0] = i; fidx[0] = i * refine_ratio[0];
 
-		  for (j=lo[1]; j<=hi[1]; j++) {
-		    cidx[1] = j; fidx[1] = j * refine_ratio[1];
+                  for (j=lo[1]; j<=hi[1]; j++) {
+                    cidx[1] = j; fidx[1] = j * refine_ratio[1];
 
-		    for (k=lo[2]; k<=hi[2]; k++) {
-		      cidx[2] = k; fidx[2] = k * refine_ratio[2];
+                    for (k=lo[2]; k<=hi[2]; k++) {
+                      cidx[2] = k; fidx[2] = k * refine_ratio[2];
 
-		      data2Coarse(cidx) = data2Fine[mfi](fidx);
-		    }
-		  }
-		}
+                      data2Coarse(cidx) = data2Fine[mfi](fidx);
+                    }
+                  }
+                }
 
                 //
                 // Calculate the errors on this FAB for this component
@@ -324,7 +324,7 @@ main (int   argc,
         WritePlotFile(error, amrData1, difFile, verbose);
 
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
-	delete error[iLevel];
+        delete error[iLevel];
 
     amrex::Finalize();
 }
@@ -332,16 +332,16 @@ main (int   argc,
 
 bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2)
+                        const AmrData& amrd2)
 {
     const Vector<std::string>& derives1 = amrd1.PlotVarNames();
     const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
-	return false;
+        return false;
     for (int i=0; i<length; ++i)
-	if (derives1[i] != derives2[i])
-	    return false;
+        if (derives1[i] != derives2[i])
+            return false;
     return true;
 }
 

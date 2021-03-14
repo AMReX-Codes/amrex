@@ -20,7 +20,7 @@ CreateDirectories (std::string const& p, mode_t /*mode*/, bool verbose)
         amrex::AllPrint() << "amrex::UtilCreateDirectory failed to create "
                           << p << ": " << ec.message() << std::endl;
     }
-    return !ec;    
+    return !ec;
 }
 
 bool

@@ -7,7 +7,7 @@
 Tutorials/Basic
 ==========================
 
-The tutorials in amrex/Tutorials/Basic demonstrate the most fundamental 
+The tutorials in amrex/Tutorials/Basic demonstrate the most fundamental
 operations supported by AMReX.
 
 **HelloWorld**
@@ -17,12 +17,12 @@ HelloWorld_C and HelloWorld_F demonstrate the GNU Make system -- with
 a sample Make.package and GNUmakefile -- and the amrex::Initialize
 and amrex::Finalize functions.
 
-In addition, in HelloWorld_C, the amrex::Print() operation, 
-which only prints from the I/O processor, is used to print out 
-the AMReX version (as defined by amrex::Version()) being used. 
+In addition, in HelloWorld_C, the amrex::Print() operation,
+which only prints from the I/O processor, is used to print out
+the AMReX version (as defined by amrex::Version()) being used.
 
 HelloWorld_F is a simple example of how to use the F_Interface routines,
-which are Fortran wrappers for the underlying C++ data strutures and 
+which are Fortran wrappers for the underlying C++ data strutures and
 iterators.  Here, for example, rather than calling amrex::Print() in C++, we
 test on whether amrex_parallel_ioprocessor() is true, and if so, invoke
 the usual Fortran print call.
@@ -54,11 +54,11 @@ main_C and main_F introduce the following:
 **Build_with_libamrex**
 -----------------------
 
-This tutorial builds on the main_C example and demonstrates how to build the executable when we 
+This tutorial builds on the main_C example and demonstrates how to build the executable when we
 want to link local files with the pre-built amrex library (libamrex.a) that has been installed elsewhere.
-We separate main.cpp from the main_C example into two separate files (main.cpp and 
-test_parameters.cpp), replace MyAmr.H by MyParams.H and add a Fortran file my_func.f90.  
-The GNUmakefile here assumes that you have already built the AMReX library; for instructions on how to do 
+We separate main.cpp from the main_C example into two separate files (main.cpp and
+test_parameters.cpp), replace MyAmr.H by MyParams.H and add a Fortran file my_func.f90.
+The GNUmakefile here assumes that you have already built the AMReX library; for instructions on how to do
 that see the  Building_libamrex_ chapter.
 
 .. Building_libamrex: https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html

@@ -79,7 +79,7 @@ public:
         //! NoTeamBarrier: This option is for Team only. If on, there is no barrier in MFIter dtor.
         NoTeamBarrier = 0x04,
         //! SkipInit: Used by MFGhostIter
-	SkipInit      = 0x08
+        SkipInit      = 0x08
     };
 
     /**
@@ -88,23 +88,23 @@ public:
     * The tile size in this case is defined by FabArrayBase::mfiter_tile_size
     */
     explicit MFIter (const FabArrayBase& fabarray,
-		     unsigned char       flags_=0);
+                     unsigned char       flags_=0);
 
     //! Enable tiling with the default tile size, which is defined by FabArrayBase::mfiter_tile_size
     MFIter (const FabArrayBase& fabarray,
-	    bool                do_tiling);
+            bool                do_tiling);
 
     //! Enable tiling with explicit tile size and flags (See type Flags for more information)
     MFIter (const FabArrayBase& fabarray,
-	    const IntVect&      tilesize,
-	    unsigned char       flags_=0);
+            const IntVect&      tilesize,
+            unsigned char       flags_=0);
 
     MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char flags_=0);
 
     MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tiling);
 
     MFIter (const BoxArray& ba, const DistributionMapping& dm,
-	    const IntVect& tilesize, unsigned char flags_=0);
+            const IntVect& tilesize, unsigned char flags_=0);
 
     MFIter (const FabArrayBase& fabarray, const MFItInfo& info);
 

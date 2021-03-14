@@ -18,12 +18,12 @@ extern "C" {
     void amrex_fi_new_particlecontainer (FParticleContainer*& particlecontainer,
                                          AmrCore* amrcore)
     {
-	particlecontainer = new FParticleContainer(amrcore);
+        particlecontainer = new FParticleContainer(amrcore);
     }
 
     void amrex_fi_delete_particlecontainer (FParticleContainer* particlecontainer)
     {
-	delete particlecontainer;
+        delete particlecontainer;
     }
 
     void amrex_fi_get_next_particle_id (Long& id)
@@ -65,7 +65,7 @@ extern "C" {
     void amrex_fi_particle_redistribute (FParticleContainer* particlecontainer,
                                          int lev_min, int lev_max, int ng)
     {
-	particlecontainer->Redistribute(lev_min, lev_max, ng);
+        particlecontainer->Redistribute(lev_min, lev_max, ng);
     }
 
     void amrex_fi_get_particles_mfi(FParticleContainer* particlecontainer,

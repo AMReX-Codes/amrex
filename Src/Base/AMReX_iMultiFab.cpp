@@ -23,11 +23,11 @@ namespace
 
 void
 iMultiFab::Add (iMultiFab&       dst,
-	       const iMultiFab& src,
-	       int             srccomp,
-	       int             dstcomp,
-	       int             numcomp,
-	       int             nghost)
+               const iMultiFab& src,
+               int             srccomp,
+               int             dstcomp,
+               int             numcomp,
+               int             nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
@@ -53,11 +53,11 @@ iMultiFab::Copy (iMultiFab&       dst,
 
 void
 iMultiFab::Subtract (iMultiFab&       dst,
-		    const iMultiFab& src,
-		    int             srccomp,
-		    int             dstcomp,
-		    int             numcomp,
-		    int             nghost)
+                    const iMultiFab& src,
+                    int             srccomp,
+                    int             dstcomp,
+                    int             numcomp,
+                    int             nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
@@ -68,11 +68,11 @@ iMultiFab::Subtract (iMultiFab&       dst,
 
 void
 iMultiFab::Multiply (iMultiFab&       dst,
-		    const iMultiFab& src,
-		    int             srccomp,
-		    int             dstcomp,
-		    int             numcomp,
-		    int             nghost)
+                    const iMultiFab& src,
+                    int             srccomp,
+                    int             dstcomp,
+                    int             numcomp,
+                    int             nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
@@ -83,11 +83,11 @@ iMultiFab::Multiply (iMultiFab&       dst,
 
 void
 iMultiFab::Divide (iMultiFab&       dst,
-		  const iMultiFab& src,
-		  int             srccomp,
-		  int             dstcomp,
-		  int             numcomp,
-		  int             nghost)
+                  const iMultiFab& src,
+                  int             srccomp,
+                  int             dstcomp,
+                  int             numcomp,
+                  int             nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
@@ -154,7 +154,7 @@ iMultiFab::iMultiFab (const BoxArray&            bxs,
                       const DistributionMapping& dm,
                       int                        ncomp,
                       int                        ngrow,
-		      const MFInfo&              info,
+                      const MFInfo&              info,
                       const FabFactory<IArrayBox>& factory)
     : iMultiFab(bxs,dm,ncomp,IntVect(ngrow),info,factory)
 {
@@ -189,10 +189,10 @@ iMultiFab::operator= (int r)
 
 void
 iMultiFab::define (const BoxArray&            bxs,
-		   const DistributionMapping& dm,
-		   int                        nvar,
-		   const IntVect&             ngrow,
-		   const MFInfo&              info,
+                   const DistributionMapping& dm,
+                   int                        nvar,
+                   const IntVect&             ngrow,
+                   const MFInfo&              info,
                    const FabFactory<IArrayBox>& factory)
 {
     this->FabArray<IArrayBox>::define(bxs,dm,nvar,ngrow,info, factory);
@@ -200,10 +200,10 @@ iMultiFab::define (const BoxArray&            bxs,
 
 void
 iMultiFab::define (const BoxArray&            bxs,
-		   const DistributionMapping& dm,
-		   int                        nvar,
-		   int                        ngrow,
-		   const MFInfo&              info,
+                   const DistributionMapping& dm,
+                   int                        nvar,
+                   int                        ngrow,
+                   const MFInfo&              info,
                    const FabFactory<IArrayBox>& factory)
 {
     this->FabArray<IArrayBox>::define(bxs,dm,nvar,ngrow,info, factory);
@@ -227,10 +227,10 @@ iMultiFab::min (int comp, int nghost, bool local) const
             r = amrex::min(r, fab(i,j,k,comp));
         });
         return r;
-    });                          
+    });
 
     if (!local)
-	ParallelDescriptor::ReduceIntMin(mn);
+        ParallelDescriptor::ReduceIntMin(mn);
 
     return mn;
 }
@@ -257,15 +257,15 @@ iMultiFab::min (const Box& region, int comp, int nghost, bool local) const
     });
 
     if (!local)
-	ParallelDescriptor::ReduceIntMin(mn);
+        ParallelDescriptor::ReduceIntMin(mn);
 
     return mn;
 }
 
 int
 iMultiFab::max (int comp,
-		int nghost,
-		bool local) const
+                int nghost,
+                bool local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
@@ -282,10 +282,10 @@ iMultiFab::max (int comp,
             r = amrex::max(r, fab(i,j,k,comp));
         });
         return r;
-    });                          
+    });
 
     if (!local)
-	ParallelDescriptor::ReduceIntMax(mx);
+        ParallelDescriptor::ReduceIntMax(mx);
 
     return mx;
 }
@@ -312,7 +312,7 @@ iMultiFab::max (const Box& region, int comp, int nghost, bool local) const
     });
 
     if (!local)
-	ParallelDescriptor::ReduceIntMax(mx);
+        ParallelDescriptor::ReduceIntMax(mx);
 
     return mx;
 }
@@ -430,9 +430,9 @@ iMultiFab::minus (const iMultiFab& mf,
 
 void
 iMultiFab::divide (const iMultiFab& mf,
-		  int             strt_comp,
-		  int             num_comp,
-		  int             nghost)
+                  int             strt_comp,
+                  int             num_comp,
+                  int             nghost)
 {
     iMultiFab::Divide(*this, mf, strt_comp, strt_comp, num_comp, nghost);
 }
@@ -552,7 +552,7 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngr
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
-        
+
         for (MFIter mfi(*p); mfi.isValid(); ++mfi)
         {
             const Box& bx = (*p)[mfi].box();
@@ -571,7 +571,7 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngr
                 {
                     const int oi = is.first;
                     const Box& obx = is.second-iv;
-                    if ((oi < idx) || (oi == idx && iv < IntVect::TheZeroVector())) 
+                    if ((oi < idx) || (oi == idx && iv < IntVect::TheZeroVector()))
                     {
                         if (run_on_gpu) {
                             tags.push_back({arr,obx});

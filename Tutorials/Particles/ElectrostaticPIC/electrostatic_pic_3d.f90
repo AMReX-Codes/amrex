@@ -16,9 +16,9 @@ contains
     integer, intent(in)             ::  lrat(3)
     real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
     real(amrex_real), intent(in)    :: fine(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
-    
+
     integer :: i, j, k, ii, jj, kk
-    
+
     do k        = lo(3), hi(3)
        kk       = k * lrat(3)
        do j     = lo(2), hi(2)
@@ -27,7 +27,7 @@ contains
              ii = i * lrat(1)
              crse(i,j,k)  =  fine(ii,jj,kk)                              + &
 ! These six fine nodes are shared by two coarse nodes...
-                  0.5d0   * (fine(ii-1,jj,kk)     + fine(ii+1,jj,kk)     + & 
+                  0.5d0   * (fine(ii-1,jj,kk)     + fine(ii+1,jj,kk)     + &
                              fine(ii,jj-1,kk)     + fine(ii,jj+1,kk)     + &
                              fine(ii,jj,kk-1)     + fine(ii,jj,kk+1))    + &
 ! ... these twelve are shared by four...
@@ -57,12 +57,12 @@ contains
     double precision, intent(inout) :: input_data(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
     double precision, intent(inout) :: bndry_data(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
     integer(c_int),   intent(in   ) :: mask (lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
-    
+
     integer :: i, j, k
-    
+
     do k = lo(3), hi(3)
        do j = lo(2), hi(2)
-          do i = lo(1), hi(1)          
+          do i = lo(1), hi(1)
              if (mask(i,j,k) .eq. 1) then
                 bndry_data(i,j,k) = input_data(i,j,k)
                 input_data(i,j,k) = 0.d0
@@ -94,7 +94,7 @@ contains
                    end do
                 end do
              end do
-             
+
              if (total .gt. 0) then
                 mask(i,j,k) = 1
              else
@@ -108,7 +108,7 @@ contains
   end subroutine build_mask
 
 ! This routine computes the node-centered electric field given a node-centered phi.
-! The gradient is computed using 2nd-order centered differences. It assumes the 
+! The gradient is computed using 2nd-order centered differences. It assumes the
 ! Boundary conditions have already been set and that you have one row of ghost cells.
 ! Note that this routine includes the minus sign in E = - grad phi.
 !
@@ -134,7 +134,7 @@ contains
     do k = lo(3)-1, hi(3)+1
        do j = lo(2)-1, hi(2)+1
           do i = lo(1)-1, hi(1)+1
-             
+
              Ex(i,j,k) = fac(1) * (phi(i-1,j,k) - phi(i+1,j,k))
              Ey(i,j,k) = fac(2) * (phi(i,j-1,k) - phi(i,j+1,k))
              Ez(i,j,k) = fac(3) * (phi(i,j,k-1) - phi(i,j,k+1))
@@ -145,11 +145,11 @@ contains
 
   end subroutine compute_E_nodal
 
-! This routine computes the charge density due to the particles using cloud-in-cell 
+! This routine computes the charge density due to the particles using cloud-in-cell
 ! deposition. The Fab rho is assumed to be node-centered.
 !
 ! Arguments:
-!     particles : a pointer to the particle array-of-structs 
+!     particles : a pointer to the particle array-of-structs
 !     ns        : the stride length of particle struct (the size of the struct in number of reals)
 !     np        : the number of particles
 !     weights   : the particle weights
@@ -224,7 +224,7 @@ contains
 ! node-centered.
 !
 ! Arguments:
-!     particles : a pointer to the particle array-of-structs 
+!     particles : a pointer to the particle array-of-structs
 !     ns        : the stride length of particle struct (the size of the struct in number of reals)
 !     np        : the number of particles
 !     Ex_p      : the electric field in the x-direction at the particle positions (output)
@@ -303,7 +303,7 @@ contains
                  wx_hi*wy_lo*wz_hi*Ez(i+1, j,   k+1) + &
                  wx_hi*wy_hi*wz_lo*Ez(i+1, j+1, k  ) + &
                  wx_hi*wy_hi*wz_hi*Ez(i+1, j+1, k+1)
-       
+
     end do
 
   end subroutine interpolate_cic
@@ -345,7 +345,7 @@ contains
        lx = (particles(1, n) - plo(1))*inv_dx(1)
        ly = (particles(2, n) - plo(2))*inv_dx(2)
        lz = (particles(3, n) - plo(3))*inv_dx(3)
-       
+
        i = floor(lx)
        j = floor(ly)
        k = floor(lz)
@@ -364,11 +364,11 @@ contains
           wx_hi = lx - i
           wy_hi = ly - j
           wz_hi = lz - k
-          
+
           wx_lo = 1.0d0 - wx_hi
           wy_lo = 1.0d0 - wy_hi
           wz_lo = 1.0d0 - wz_hi
-          
+
           Ex_p(n) = wx_lo*wy_lo*wz_lo*cEx(i,   j,   k  ) + &
                     wx_lo*wy_lo*wz_hi*cEx(i,   j,   k+1) + &
                     wx_lo*wy_hi*wz_lo*cEx(i,   j+1, k  ) + &
@@ -386,7 +386,7 @@ contains
                     wx_hi*wy_lo*wz_hi*cEy(i+1, j,   k+1) + &
                     wx_hi*wy_hi*wz_lo*cEy(i+1, j+1, k  ) + &
                     wx_hi*wy_hi*wz_hi*cEy(i+1, j+1, k+1)
-          
+
           Ez_p(n) = wx_lo*wy_lo*wz_lo*cEz(i,   j,   k  ) + &
                     wx_lo*wy_lo*wz_hi*cEz(i,   j,   k+1) + &
                     wx_lo*wy_hi*wz_lo*cEz(i,   j+1, k  ) + &
@@ -395,14 +395,14 @@ contains
                     wx_hi*wy_lo*wz_hi*cEz(i+1, j,   k+1) + &
                     wx_hi*wy_hi*wz_lo*cEz(i+1, j+1, k  ) + &
                     wx_hi*wy_hi*wz_hi*cEz(i+1, j+1, k+1)
-          
+
 ! otherwise use the fine
        else
 
           wx_hi = lx - i
           wy_hi = ly - j
           wz_hi = lz - k
-          
+
           wx_lo = 1.0d0 - wx_hi
           wy_lo = 1.0d0 - wy_hi
           wz_lo = 1.0d0 - wz_hi
@@ -415,7 +415,7 @@ contains
                wx_hi*wy_lo*wz_hi*Ex(i+1, j,   k+1) + &
                wx_hi*wy_hi*wz_lo*Ex(i+1, j+1, k  ) + &
                wx_hi*wy_hi*wz_hi*Ex(i+1, j+1, k+1)
-          
+
           Ey_p(n) = wx_lo*wy_lo*wz_lo*Ey(i,   j,   k  ) + &
                     wx_lo*wy_lo*wz_hi*Ey(i,   j,   k+1) + &
                     wx_lo*wy_hi*wz_lo*Ey(i,   j+1, k  ) + &
@@ -424,7 +424,7 @@ contains
                     wx_hi*wy_lo*wz_hi*Ey(i+1, j,   k+1) + &
                     wx_hi*wy_hi*wz_lo*Ey(i+1, j+1, k  ) + &
                     wx_hi*wy_hi*wz_hi*Ey(i+1, j+1, k+1)
-          
+
           Ez_p(n) = wx_lo*wy_lo*wz_lo*Ez(i,   j,   k  ) + &
                     wx_lo*wy_lo*wz_hi*Ez(i,   j,   k+1) + &
                     wx_lo*wy_hi*wz_lo*Ez(i,   j+1, k  ) + &
@@ -433,7 +433,7 @@ contains
                     wx_hi*wy_lo*wz_hi*Ez(i+1, j,   k+1) + &
                     wx_hi*wy_hi*wz_lo*Ez(i+1, j+1, k  ) + &
                     wx_hi*wy_hi*wz_hi*Ez(i+1, j+1, k+1)
-       
+
        end if
 
     end do
@@ -441,13 +441,13 @@ contains
   end subroutine interpolate_cic_two_levels
 
 !
-! This routine updates the particle positions and velocities using the 
+! This routine updates the particle positions and velocities using the
 ! leapfrog time integration algorithm, given the electric fields at the
 ! particle positions. It also enforces specular reflection off the domain
 ! walls.
 !
 ! Arguments:
-!     particles : a pointer to the particle array-of-structs 
+!     particles : a pointer to the particle array-of-structs
 !     ns        : the stride length of particle struct (the size of the struct in number of reals)
 !     np        : the number of particles
 !     vx_p      : the particle x-velocities
@@ -463,7 +463,7 @@ contains
 !     prob_hi   : the right-hand corner of the problem domain
 !
   subroutine push_leapfrog(particles, ns, np,      &
-                           vx_p, vy_p, vz_p,       &                                 
+                           vx_p, vy_p, vz_p,       &
                            Ex_p, Ey_p, Ez_p,       &
                            charge, mass, dt,       &
                            prob_lo, prob_hi)       &
@@ -476,7 +476,7 @@ contains
     real(amrex_real), intent(in)     :: mass
     real(amrex_real), intent(in)     :: dt
     real(amrex_real), intent(in)     :: prob_lo(3), prob_hi(3)
-   
+
     integer n
     real(amrex_real) fac
 
@@ -502,7 +502,7 @@ contains
           vx_p(n) = -vx_p(n)
        end do
 
-!      ... y... 
+!      ... y...
        do while (particles(2, n) .lt. prob_lo(2) .or. particles(2, n) .gt. prob_hi(2))
           if (particles(2, n) .lt. prob_lo(2)) then
              particles(2, n) = 2.d0*prob_lo(2) - particles(2, n)
@@ -532,7 +532,7 @@ contains
 ! from the velocities after particle initialization.
 !
 ! Arguments:
-!     particles : a pointer to the particle array-of-structs 
+!     particles : a pointer to the particle array-of-structs
 !     ns        : the stride length of particle struct (the size of the struct in number of reals)
 !     np        : the number of particles
 !     xx_p      : the electric field in the x-direction at the particle positions
@@ -570,7 +570,7 @@ contains
           vx_p(n) = -vx_p(n)
        end do
 
-!      ... y... 
+!      ... y...
        do while (particles(2, n) .lt. prob_lo(2) .or. particles(2, n) .gt. prob_hi(2))
           if (particles(2, n) .lt. prob_lo(2)) then
              particles(2, n) = 2.d0*prob_lo(2) - particles(2, n)
@@ -589,7 +589,7 @@ contains
           end if
           vz_p(n) = -vz_p(n)
        end do
-              
+
     end do
 
   end subroutine push_leapfrog_positions

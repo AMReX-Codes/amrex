@@ -293,7 +293,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
 #ifdef AMREX_USE_CUDA
             if (__all_sync(0xffffffff, msk == 0)) {  // 0 means lock acquired
 #elif defined(AMREX_USE_HIP)
-            if (__all(msk == 0)) { 
+            if (__all(msk == 0)) {
 #endif
                 break; // all threads have acquired.
             } else {
@@ -566,7 +566,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp
     if ( !(TheFB.m_localCopy.ready()) )
     {
         const_cast<FB&>(TheFB).m_localCopy.resize(N_locs);
-    
+
         int idx = 0;
         // Record the graph.
         for (MFIter mfi(*this, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
@@ -575,7 +575,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp
                                                      const_cast<FB&>(TheFB).m_localCopy.getHostPtr(0),
                                                      (TheFB).m_localCopy.getDevicePtr(0),
                                                      std::size_t(sizeof(CopyMemory)*N_locs) );
-    
+
             const auto& tags = loc_copy_tags[mfi];
             for (auto const & tag : tags)
             {
@@ -591,7 +591,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp
                     }
                 });
             }
-    
+
             bool last_iter = mfi.LocalIndex() == (this->local_size()-1);
             cudaGraphExec_t graphExec = amrex::Gpu::Device::stopGraphRecording(last_iter);
             if (last_iter) { const_cast<FB&>(TheFB).m_localCopy.setGraph( graphExec ); }
@@ -600,7 +600,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp
 
     // Setup Launch Parameters
     // This is perfectly threadable, right?
-    // Additional optimization -> Check to see whether values need to be reset? 
+    // Additional optimization -> Check to see whether values need to be reset?
     // Can then remove this setup and memcpy from CudaGraph::executeGraph.
     int idx = 0;
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
@@ -614,7 +614,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp
                                                                                scomp, ncomp));
         }
     }
-     
+
     // Launch Graph
     TheFB.m_localCopy.executeGraph();
 }
@@ -634,7 +634,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp
 
         BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
         BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
-	    
+
         if (distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc())
         {
             loc_copy_tags[tag.dstIndex].push_back
@@ -642,13 +642,13 @@ FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp
             launches++;
         }
     }
-                
+
     FillBoundary_test();
 
     if ( !(TheFB.m_localCopy.ready()) )
     {
         const_cast<FB&>(TheFB).m_localCopy.resize(launches);
-    
+
         int idx = 0;
         int cuda_stream = 0;
         for (MFIter mfi(*this, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
@@ -664,7 +664,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp
 
                 const auto& tag = tags[t];
                 const Dim3 offset = tag.offset.dim3();
-    
+
                 CopyMemory* cmem = TheFB.m_localCopy.getDevicePtr(idx++);
                 AMREX_HOST_DEVICE_FOR_3D(tag.dbox, i, j, k,
                 {
@@ -681,22 +681,22 @@ FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp
             }
         }
     }
-                
+
     // Setup Launch Parameters
     // This is perfectly threadable, right?
     int idx = 0;
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         const auto& dst_array = this->array(mfi);
-        const auto& tags = loc_copy_tags[mfi]; 
+        const auto& tags = loc_copy_tags[mfi];
         for (auto const & tag : tags)
         {
             const_cast<FB&>(TheFB).m_localCopy.setParams(idx++, makeCopyMemory(tag.sfab->array(),
                                                                                dst_array,
-                                                                               scomp, ncomp)); 
+                                                                               scomp, ncomp));
         }
     }
-    
+
     // Launch Graph without synch. Local work is entirely independent.
     TheFB.m_localCopy.executeGraph(false);
 }
@@ -733,7 +733,7 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int n
             }
         }
         const_cast<FB&>(TheFB).m_copyToBuffer.resize(launches);
-    
+
         // Record the graph.
         int idx = 0;
         for (Gpu::StreamIter sit(N_snds,Gpu::StreamItInfo().DisableDeviceSync());
@@ -786,14 +786,14 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int n
                                                                                                          tag.sbox,
                                                                                                          ncomp),
                                                                                        scomp, ncomp));
-                
+
                 dptr += (tag.sbox.numPts() * ncomp * sizeof(value_type));
             }
             amrex::ignore_unused(send_size);
             BL_ASSERT(dptr <= send_data[j] + send_size[j]);
         }
     }
-    
+
     // Launch Graph synched, so copyToBuffer is complete prior to posting sends.
     TheFB.m_copyToBuffer.executeGraph();
 }
@@ -827,11 +827,11 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
             BL_ASSERT(dptr <= recv_data[k] + recv_size[k]);
         }
     }
-  
+
     if ( !(TheFB.m_copyFromBuffer.ready()) )
     {
         const_cast<FB&>(TheFB).m_copyFromBuffer.resize(launches);
-   
+
         int idx = 0;
         for (MFIter mfi(*this, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
         {
@@ -839,7 +839,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
                                                      const_cast<FB&>(TheFB).m_copyFromBuffer.getHostPtr(0),
                                                      (TheFB).m_copyFromBuffer.getDevicePtr(0),
                                                      std::size_t(sizeof(CopyMemory)*launches) );
-    
+
             const auto& tags = recv_copy_tags[mfi];
             for (auto const & tag : tags)
             {
@@ -854,14 +854,14 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
                     }
                 });
             }
-    
+
             bool last_iter = mfi.LocalIndex() == (this->local_size()-1);
             cudaGraphExec_t graphExec = amrex::Gpu::Device::stopGraphRecording(last_iter);
             if (last_iter) { const_cast<FB&>(TheFB).m_copyFromBuffer.setGraph( graphExec ); }
         }
     }
 
-    // Setup graph.   
+    // Setup graph.
     int idx = 0;
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -876,7 +876,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
                                                                                     dcomp, ncomp));
         }
     }
-    
+
     // Launch Graph - synced because next action is freeing recv buffer.
     TheFB.m_copyFromBuffer.executeGraph();
 }

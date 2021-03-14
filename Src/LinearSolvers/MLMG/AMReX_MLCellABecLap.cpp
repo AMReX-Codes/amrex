@@ -423,7 +423,7 @@ MLCellABecLap::makePETSc () const
     const Geometry& geom = m_geom[0].back();
     const auto& factory = *(m_factory[0].back());
     MPI_Comm comm = BottomCommunicator();
-    
+
     auto petsc_solver = makePetsc(ba, dm, geom, comm);
 
     petsc_solver->setScalars(getAScalar(), getBScalar());

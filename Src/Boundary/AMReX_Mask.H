@@ -36,9 +36,9 @@ public:
     Mask (const Box& bx, int nc, Arena* ar);
 
     explicit Mask (const Box& bx,
-		   int        nc = 1,
-		   bool       alloc=true,
-		   bool       shared=false,
+                   int        nc = 1,
+                   bool       alloc=true,
+                   bool       shared=false,
                    Arena*     ar = nullptr);
 
     /**

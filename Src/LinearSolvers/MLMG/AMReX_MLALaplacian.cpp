@@ -104,7 +104,7 @@ MLALaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
 
     if (m_a_scalar != 0.0) {
         amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, 1, mg_coarsen_ratio);
-    }     
+    }
 }
 
 void
@@ -285,7 +285,7 @@ MLALaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs
 #endif
     for (MFIter mfi(sol,mfi_info); mfi.isValid(); ++mfi)
     {
-	const auto& m0 = mm0.array(mfi);
+        const auto& m0 = mm0.array(mfi);
         const auto& m1 = mm1.array(mfi);
 #if (AMREX_SPACEDIM > 1)
         const auto& m2 = mm2.array(mfi);
@@ -296,7 +296,7 @@ MLALaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs
 #endif
 #endif
 
-	const Box& tbx = mfi.tilebox();
+        const Box& tbx = mfi.tilebox();
         const Box& vbx = mfi.validbox();
         const auto& solnfab = sol.array(mfi);
         const auto& rhsfab  = rhs.array(mfi);

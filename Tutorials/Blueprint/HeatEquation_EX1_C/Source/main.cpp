@@ -1,8 +1,8 @@
 //
-// Demonstrates how to generate of a Conduit Mesh Blueprint 
+// Demonstrates how to generate of a Conduit Mesh Blueprint
 // description of an AMReX Single Level dataset and render this
 // data in situ using with ALPINE Ascent.
-// 
+//
 
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_Conduit_Blueprint.H>
@@ -24,9 +24,9 @@ using namespace ascent;
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
-    
+
     main_main();
-    
+
     amrex::Finalize();
     return 0;
 }
@@ -45,7 +45,7 @@ void main_main ()
         // ParmParse is way of reading inputs from the inputs file
         ParmParse pp;
 
-        // We need to get n_cell from the inputs file - this is the number of cells on each side of 
+        // We need to get n_cell from the inputs file - this is the number of cells on each side of
         //   a square (or cubic) domain.
         pp.get("n_cell",n_cell);
 
@@ -85,12 +85,12 @@ void main_main ()
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     }
 
-    // Nghost = number of ghost cells for each array 
+    // Nghost = number of ghost cells for each array
     int Nghost = 1;
-    
+
     // Ncomp = number of components for each array
     int Ncomp  = 1;
-  
+
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
@@ -118,7 +118,7 @@ void main_main ()
 
     int rank   = ParallelDescriptor::MyProc();  // Return the rank
     int ntasks = ParallelDescriptor::NProcs();  // Return the number of processes
-    
+
     /////////////////////////////
     // Setup Ascent
     /////////////////////////////
@@ -147,10 +147,10 @@ void main_main ()
         conduit::Node bp_mesh;
         SingleLevelToBlueprint( phi_new, {"phi"}, geom, time, n, bp_mesh);
 
-        
+
         ///////////////////////////////////////////////////////////////////
-        // Save the Blueprint Mesh to a set of files that we can 
-        // view in VisIt. 
+        // Save the Blueprint Mesh to a set of files that we can
+        // view in VisIt.
         // (For debugging and to demonstrate how to do this w/o Ascent)
         ///////////////////////////////////////////////////////////////////
         WriteBlueprintFiles( bp_mesh, "bp_heateq_ex_", n);
@@ -189,18 +189,18 @@ void main_main ()
         flux[dir].define(edge_ba, dm, 1, 0);
     }
 
-    
 
-    
+
+
     for (int n = 1; n <= nsteps; ++n)
     {
         MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
 
         // new_phi = old_phi + dt * (something)
-        advance(phi_old, phi_new, flux, dt, geom); 
+        advance(phi_old, phi_new, flux, dt, geom);
         time = time + dt;
-        
-        
+
+
         // Tell the I/O Processor to write out which step we're doing
         amrex::Print() << "Advanced step " << n << "\n";
 
@@ -217,10 +217,10 @@ void main_main ()
             conduit::Node bp_mesh;
             SingleLevelToBlueprint( phi_new, {"phi"}, geom, time, n, bp_mesh);
 
-            
+
             ///////////////////////////////////////////////////////////////////
-            // Save the Blueprint Mesh to a set of files that we can 
-            // view in VisIt. 
+            // Save the Blueprint Mesh to a set of files that we can
+            // view in VisIt.
             // (For debugging and to demonstrate how to do this w/o Ascent)
             ///////////////////////////////////////////////////////////////////
             WriteBlueprintFiles( bp_mesh, "bp_heateq_ex_", n);
@@ -228,7 +228,7 @@ void main_main ()
             ///////////////////////////////////////////////////////////////////
             // Render with Ascent
             ///////////////////////////////////////////////////////////////////
-            
+
             // add a scene with a pseudocolor plot
             Node scenes;
             scenes["s1/plots/p1/type"] = "pseudocolor";

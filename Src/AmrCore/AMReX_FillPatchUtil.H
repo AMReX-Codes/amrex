@@ -34,7 +34,7 @@ namespace amrex
 
     template <typename Interp>
     bool ProperlyNested (const IntVect& ratio, const IntVect& blocking_factor, int ngrow,
-			 const IndexType& boxType, Interp* mapper);
+                         const IndexType& boxType, Interp* mapper);
 
     template <typename MF, typename BC>
     EnableIf_t<IsFabArray<MF>::value>
@@ -89,7 +89,7 @@ namespace amrex
     template <typename MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    EnableIf_t<IsFabArray<MF>::value> 
+    EnableIf_t<IsFabArray<MF>::value>
     FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,

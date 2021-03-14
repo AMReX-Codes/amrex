@@ -36,7 +36,7 @@ public:
 
     void moveParticles (const amrex::Real& dt);
 
-    void writeParticles (const int n);    
+    void writeParticles (const int n);
 
     amrex::Real computeStepSize(amrex::Real& cfl);
 };

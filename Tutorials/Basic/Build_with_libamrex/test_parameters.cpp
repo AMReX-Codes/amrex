@@ -25,7 +25,7 @@
 #include <AMReX_Print.H>
 #include <MyParams.H>
 
-void 
+void
 MyParams::test_parameters ()
 {
     {

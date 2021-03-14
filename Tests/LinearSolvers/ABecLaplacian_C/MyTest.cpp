@@ -84,9 +84,9 @@ MyTest::solvePoisson ()
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
             MLPoisson mlpoisson({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info);
-            
+
             mlpoisson.setMaxOrder(linop_maxorder);
-            
+
             // This is a 3d problem with Dirichlet BC
             mlpoisson.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
                                                 LinOpBCType::Dirichlet,
@@ -94,7 +94,7 @@ MyTest::solvePoisson ()
                                   {AMREX_D_DECL(LinOpBCType::Dirichlet,
                                                 LinOpBCType::Dirichlet,
                                                 LinOpBCType::Dirichlet)});
-            
+
             if (ilev > 0) {
                 mlpoisson.setCoarseFineBC(&solution[ilev-1], ref_ratio);
             }
@@ -117,8 +117,8 @@ MyTest::solvePoisson ()
                 mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
             }
 #endif
-            
-            mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);            
+
+            mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
         }
     }
 }
@@ -164,7 +164,7 @@ MyTest::solveABecLaplacian ()
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
             mlabec.setACoeffs(ilev, acoef[ilev]);
-            
+
             Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
@@ -201,9 +201,9 @@ MyTest::solveABecLaplacian ()
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
             MLABecLaplacian mlabec({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info);
-            
+
             mlabec.setMaxOrder(linop_maxorder);
-            
+
             // This is a 3d problem with homogeneous Neumann BC
             mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
                                              LinOpBCType::Neumann,
@@ -211,7 +211,7 @@ MyTest::solveABecLaplacian ()
                                {AMREX_D_DECL(LinOpBCType::Neumann,
                                              LinOpBCType::Neumann,
                                              LinOpBCType::Neumann)});
-            
+
             if (ilev > 0) {
                 mlabec.setCoarseFineBC(&solution[ilev-1], ref_ratio);
             }
@@ -222,7 +222,7 @@ MyTest::solveABecLaplacian ()
             mlabec.setScalars(ascalar, bscalar);
 
             mlabec.setACoeffs(0, acoef[ilev]);
-            
+
             Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
@@ -251,7 +251,7 @@ MyTest::solveABecLaplacian ()
             }
 #endif
 
-            mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);            
+            mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
         }
     }
 
@@ -306,7 +306,7 @@ MyTest::solveABecLaplacianInhomNeumann ()
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
             mlabec.setACoeffs(ilev, acoef[ilev]);
-            
+
             Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
@@ -343,9 +343,9 @@ MyTest::solveABecLaplacianInhomNeumann ()
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
             MLABecLaplacian mlabec({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info);
-            
+
             mlabec.setMaxOrder(linop_maxorder);
-            
+
             // This is a 3d problem with inhomogeneous Neumann BC
             mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::inhomogNeumann,
                                              LinOpBCType::inhomogNeumann,
@@ -353,7 +353,7 @@ MyTest::solveABecLaplacianInhomNeumann ()
                                {AMREX_D_DECL(LinOpBCType::inhomogNeumann,
                                              LinOpBCType::inhomogNeumann,
                                              LinOpBCType::inhomogNeumann)});
-            
+
             if (ilev > 0) {
                 mlabec.setCoarseFineBC(&solution[ilev-1], ref_ratio);
             }
@@ -364,7 +364,7 @@ MyTest::solveABecLaplacianInhomNeumann ()
             mlabec.setScalars(ascalar, bscalar);
 
             mlabec.setACoeffs(0, acoef[ilev]);
-            
+
             Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
@@ -393,7 +393,7 @@ MyTest::solveABecLaplacianInhomNeumann ()
             }
 #endif
 
-            mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);            
+            mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
         }
     }
 
@@ -462,7 +462,7 @@ MyTest::initData ()
     solution.resize(nlevels);
     rhs.resize(nlevels);
     exact_solution.resize(nlevels);
-    
+
     if (prob_type == 2 || prob_type == 3) {
         acoef.resize(nlevels);
         bcoef.resize(nlevels);
@@ -485,7 +485,7 @@ MyTest::initData ()
         grids[ilev].define(domain);
         grids[ilev].maxSize(max_grid_size);
         domain.grow(-n_cell/4);   // fine level cover the middle of the coarse domain
-        domain.refine(ref_ratio); 
+        domain.refine(ref_ratio);
     }
 
     for (int ilev = 0; ilev < nlevels; ++ilev)

@@ -1,18 +1,18 @@
 module slope_module
 
   use amrex_base_module
- 
+
   implicit none
 
   real(amrex_real), parameter:: four3rd=4._amrex_real/3._amrex_real, &
        sixth=1._amrex_real/6._amrex_real
-  
+
   private
- 
+
   public :: slopex, slopey
- 
+
 contains
- 
+
   subroutine slopex(lo, hi, &
                     q, qlo, qhi, &
                     dq, dqlo, dqhi)
@@ -123,4 +123,4 @@ contains
 
   end subroutine slopey_doit
 
-end module slope_module 
+end module slope_module

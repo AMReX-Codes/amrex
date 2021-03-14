@@ -22,7 +22,7 @@ namespace amrex {
 //
 //  A BndryData stores and manipulates boundary data
 //  information on each side of each box in a BoxArray.
-//    
+//
 
 /**
 * \brief A BndryData contains a BndryRegister about each side of each grid in
@@ -61,7 +61,7 @@ public:
     * domain (cell-centered)
     */
     BndryData (const BoxArray& grids,
-	       const DistributionMapping& dmap,
+               const DistributionMapping& dmap,
                int             ncomp,
                const Geometry& geom);
 
@@ -79,7 +79,7 @@ public:
 
     //! alocate bndry fabs along given face
     void define (const BoxArray& grids,
-		 const DistributionMapping& dmap,
+                 const DistributionMapping& dmap,
                  int             ncomp,
                  const Geometry& geom);
     //

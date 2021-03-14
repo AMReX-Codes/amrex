@@ -30,7 +30,7 @@ enum num_components { three_components = 3 };
 static constexpr IntVect e_x = IntVect::TheDimensionVector(ix);
 static constexpr IntVect e_y = IntVect::TheDimensionVector(iy);
 class AdvectionAmrCore : public AmrCore {
-  
+
   public:
     AdvectionAmrCore(Direction vel, Geometry const& level_0_geom,
                      AmrInfo const& amr_info = AmrInfo())
@@ -159,7 +159,7 @@ struct OnesidedMultiBlockBoundaryFn {
         cached_dest_bd_key = dest->mass.getBDKey();
         cached_src_bd_key = src->mass.getBDKey();
     }
-    
+
     return ParallelCopy_nowait(no_local_copy, dest->mass, src->mass, *cmd, packing);
   }
 
@@ -291,7 +291,7 @@ void MyMain() {
         amrex::Print() << "Step #" << step << ", Time Point = " << time_point << '\n';
 
         time_point += dt;
-        step += 1;  
+        step += 1;
         WritePlotfiles(core_x, core_y, time_point, step);
     }
 }

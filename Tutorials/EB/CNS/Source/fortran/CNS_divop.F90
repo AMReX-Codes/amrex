@@ -17,12 +17,12 @@ contains
     real(rt), intent(in   ) :: fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),ncomp)
     real(rt), intent(in   ) :: fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),ncomp)
     real(rt), intent(in) :: dx(3)
-    
+
     integer :: i,j,k,n
     real(rt) :: dxinv(3)
-    
+
     dxinv = 1.d0/dx
-    
+
     do n = 1, ncomp
        do       k = lo(3),hi(3)
           do    j = lo(2),hi(2)
@@ -36,7 +36,7 @@ contains
     end do
   end subroutine compute_divop
 
-  
+
   pure logical function is_inside (i,j,k,lo,hi)
     integer, intent(in) :: i,j,k,lo(3),hi(3)
     is_inside = i.ge.lo(1) .and. i.le.hi(1) &
@@ -436,12 +436,12 @@ contains
                    end do
                 elseif (use_mass_as_eb_weights) then
                    do i = lo(1)-2, hi(1)+2
-                      rediswgt(i,j,k) = q(i,j,k,qrho) 
+                      rediswgt(i,j,k) = q(i,j,k,qrho)
                       ! rediswgt(i,j,k) = max(smallr, q(i,j,k,qrho)+dt*divc(i,j,k))
                    end do
                 elseif (use_volfrac_as_eb_weights) then
                    do i = lo(1)-2, hi(1)+2
-                      rediswgt(i,j,k) = vfrac(i,j,k) 
+                      rediswgt(i,j,k) = vfrac(i,j,k)
                    end do
                 else
                    do i = lo(1)-2, hi(1)+2
@@ -490,7 +490,7 @@ contains
        do       k = lo(3)-1, hi(3)+1
           do    j = lo(2)-1, hi(2)+1
              do i = lo(1)-1, hi(1)+1
-                if (is_single_valued_cell(cellflag(i,j,k))) then                   
+                if (is_single_valued_cell(cellflag(i,j,k))) then
                    wtot = 0.d0
                    call get_neighbor_cells(cellflag(i,j,k),nbr)
                    do kk = -1,1

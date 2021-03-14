@@ -52,7 +52,7 @@ CNS::advance (Real time, Real dt, int /*iteration*/, int /*ncycle*/)
     MultiFab::Saxpy(S_new, Real(0.5)*dt, dSdt, 0, 0, NUM_STATE, 0);
     // We now have S_new = U^{n+1} = (U^n+0.5*dt*dUdt^n) + 0.5*dt*dUdt^*
     computeTemp(S_new,0);
-    
+
     return dt;
 }
 

@@ -155,11 +155,11 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
         auto nbor_data = m_neighbor_list[lev][index].data();
         ParticleType* pstruct = aos().dataPtr();
 
-	Gpu::DeviceScalar<Real> min_d_gpu(min_d);
-	Gpu::DeviceScalar<Real> max_d_gpu(max_d);
+        Gpu::DeviceScalar<Real> min_d_gpu(min_d);
+        Gpu::DeviceScalar<Real> max_d_gpu(max_d);
 
-	Real* pmin_d = min_d_gpu.dataPtr();
-	Real* pmax_d = max_d_gpu.dataPtr();
+        Real* pmin_d = min_d_gpu.dataPtr();
+        Real* pmax_d = max_d_gpu.dataPtr();
 
         AMREX_FOR_1D ( np, i,
         {
@@ -175,15 +175,15 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
                 r2 = amrex::max(r2, Params::min_r*Params::min_r);
                 Real r = sqrt(r2);
 
-		Gpu::Atomic::Min(pmin_d, r);
-		Gpu::Atomic::Max(pmax_d, r);
+                Gpu::Atomic::Min(pmin_d, r);
+                Gpu::Atomic::Max(pmax_d, r);
             }
         });
 
-        //	Gpu::Device::streamSynchronize();
+        //        Gpu::Device::streamSynchronize();
 
-	min_d = std::min(min_d, min_d_gpu.dataValue());
-	max_d = std::max(max_d, max_d_gpu.dataValue());
+        min_d = std::min(min_d, min_d_gpu.dataValue());
+        max_d = std::max(max_d, max_d_gpu.dataValue());
     }
     ParallelDescriptor::ReduceRealMin(min_d, ParallelDescriptor::IOProcessorNumber());
     ParallelDescriptor::ReduceRealMax(max_d, ParallelDescriptor::IOProcessorNumber());
@@ -359,7 +359,7 @@ void MDParticleContainer::checkNeighborList()
         auto nbor_data = m_neighbor_list[lev][index].data();
         ParticleType* pstruct = aos().dataPtr();
 
-        // ON DEVIDE: 
+        // ON DEVIDE:
         // AMREX_FOR_1D ( np, i,
         // ON HOST:
         // for (int i = 0; i < np; i++)
@@ -380,20 +380,20 @@ void MDParticleContainer::checkNeighborList()
                 Real dx = p1.pos(0) - p2.pos(0);
                 Real dy = p1.pos(1) - p2.pos(1);
                 Real dz = p1.pos(2) - p2.pos(2);
-                
+
                 Real r2 = dx*dx + dy*dy + dz*dz;
 
-                Real cutoff_sq = 25.0*Params::cutoff*Params::cutoff; 
+                Real cutoff_sq = 25.0*Params::cutoff*Params::cutoff;
 
-		if (r2 <= cutoff_sq)
-		{
+                if (r2 <= cutoff_sq)
+                {
                    Gpu::Atomic::AddNoRet(&(p_full_count[i]),1);
                    full_nbors.push_back(p2.id());
-		}
+                }
             }
 
             for (const auto& p2 : nbor_data.getNeighbors(i))
-            {               
+            {
                 Gpu::Atomic::AddNoRet(&(p_neighbor_count[i]),1);
                 nbor_nbors.push_back(p2.id());
             }
@@ -411,10 +411,10 @@ void MDParticleContainer::checkNeighborList()
 
             // amrex::PrintToFile("neighbor_test") << "   there are " << nbor_nbors.size() << " " <<
             //                  full_nbors.size() << " list / full neighbors of particle " << i << std::endl;
-            
+
             // Loop over particles in my neighbor list
             for (int cnt = 0; cnt < nbor_nbors.size(); cnt++)
-            {               
+            {
                 // std::cout << "   NBORS " << nbor_nbors[cnt] << " " << full_nbors[cnt] << std::endl;
                 if (nbor_nbors[cnt] != full_nbors[cnt])
                 {

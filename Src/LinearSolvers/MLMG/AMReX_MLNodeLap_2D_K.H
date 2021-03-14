@@ -163,7 +163,7 @@ void mlndlap_avgdown_coeff_y (int i, int j, int k, Array4<Real> const& crse,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_semi_avgdown_coeff (int i, int j, int k, Array4<Real> const& crse,
                               Array4<Real const> const& fine, int idir) noexcept
-{   
+{
     if (idir == 1) {
         Real a = fine(2*i  ,j,k);
         Real b = fine(2*i+1,j,k);
@@ -695,8 +695,8 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
     Real fmx2y = Real(2.0)*facy - facx;
 
     if (is_rz) {
-	amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa is not implemented in r-z 2D ");
-    } 
+        amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa is not implemented in r-z 2D ");
+    }
 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -742,7 +742,7 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
 
                     a_ls(j-lo.y) = fmx2y*(sig(i-1,j-1,k)+sig(i,j-1,k));
                     b_ls(j-lo.y) = s0;
-                    c_ls(j-lo.y) = fmx2y*(sig(i-1,j  ,k)+sig(i,j  ,k));          
+                    c_ls(j-lo.y) = fmx2y*(sig(i-1,j  ,k)+sig(i,j  ,k));
                     u_ls(j-lo.y) = 0.;
                     r_ls(j-lo.y) = rhs(i,j,k) - Ax;
                 }
@@ -995,11 +995,11 @@ void mlndlap_semi_interpadd_aa (int i, int j, int, Array4<Real> const& fine,
                 fine(i,j,0) += crse(ic,jc,0);
             }
         }
-    } else if (idir == 0 ) { 
-        if (!msk(i,j,0)) { 
+    } else if (idir == 0 ) {
+        if (!msk(i,j,0)) {
             int ic = i;
             int jc = amrex::coarsen(j,2);
-            bool j_is_odd = (ic*2 != i); 
+            bool j_is_odd = (ic*2 != i);
             if (j_is_odd) {
                 // Node on Y line
                 fine(i,j,0) += aa_interp_line_y(crse,sig,i,j,ic,jc);
@@ -1008,7 +1008,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int, Array4<Real> const& fine,
                 fine(i,j,0) += crse(ic,jc,0);
             }
         }
-    } 
+    }
 }
 
 namespace {
@@ -2084,8 +2084,8 @@ void mlndlap_mknewu_eb (int i, int j, int, Array4<Real> const& u, Array4<Real co
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_mknewu_eb_c (int i, int j, int, Array4<Real> const& u, Array4<Real const> const& p,
-			  Real sig, Array4<Real const> const& vfrac,
-			  Array4<Real const> const& intg, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                          Real sig, Array4<Real const> const& vfrac,
+                          Array4<Real const> const& intg, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     Real facx = Real(0.5)*dxinv[0];
     Real facy = Real(0.5)*dxinv[1];

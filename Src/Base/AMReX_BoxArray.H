@@ -558,7 +558,7 @@ public:
     BoxArray (const BoxArray& rhs, const BATransformer& trans);
 
     BoxArray (BoxList&& bl, IntVect const& max_grid_size);
-    
+
     /**
     * \brief Initialize the BoxArray from a single box.
     * It is an error if the BoxArray has already been initialized.
@@ -758,10 +758,10 @@ public:
 
     //! intersect Box and BoxArray(+ghostcells), then store the result in isects
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
-			bool first_only, int ng) const;
+                        bool first_only, int ng) const;
 
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
-			bool first_only, const IntVect& ng) const;
+                        bool first_only, const IntVect& ng) const;
 
     //! Return box - boxarray
     BoxList complementIn (const Box& b) const;

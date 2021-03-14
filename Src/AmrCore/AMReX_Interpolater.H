@@ -690,7 +690,7 @@ public:
 * Divergence-free interpolation on face centered data.
 */
 
-class FaceDivFree 
+class FaceDivFree
     :
     public Interpolater
 {
@@ -907,7 +907,7 @@ class InterpolaterBoxCoarsener
 {
 public:
     InterpolaterBoxCoarsener (Interpolater* mapper_, const IntVect& ratio_)
-	: mapper (mapper_), ratio(ratio_) { ; }
+        : mapper (mapper_), ratio(ratio_) { ; }
 
     /**
     *

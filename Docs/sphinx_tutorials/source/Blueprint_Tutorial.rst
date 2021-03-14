@@ -10,7 +10,7 @@ Tutorials/Blueprint
 These tests, ``AssignMultiLevelDensity`` and ``HeatEquation_EX1_C``,
 demonstrate how to convert AMReX Mesh data into an in-memory
 Conduit Mesh Blueprint description for consumption by the ALPINE Ascent
-in situ visualization and analysis tool.  These are variants, respectively, of 
+in situ visualization and analysis tool.  These are variants, respectively, of
 ``amrex/Tests/Particles/AssignMultiLevelDensity`` and
 ``amrex/Tutorials/Basic/HeatEquation_EX1_C``.
 

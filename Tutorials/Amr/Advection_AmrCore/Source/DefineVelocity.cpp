@@ -53,7 +53,7 @@ AmrCoreAdv::DefineVelocityAtLevel (int lev, Real time)
             amrex::launch(psibox,
             [=] AMREX_GPU_DEVICE (const Box& tbx)
             {
-                get_face_velocity_psi(tbx, time, psi, geomdata); 
+                get_face_velocity_psi(tbx, time, psi, geomdata);
             });
 
             amrex::ParallelFor

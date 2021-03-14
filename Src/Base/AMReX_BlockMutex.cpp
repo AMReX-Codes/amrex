@@ -36,6 +36,6 @@ BlockMutex::~BlockMutex () {
 }
 
 #endif
-    
+
 }
 

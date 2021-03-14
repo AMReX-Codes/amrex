@@ -27,7 +27,7 @@ subroutine initdata(level, time, lo, hi, &
   integer          :: dm
   integer          :: i,j,k
   double precision :: x,y,z,r2
-  
+
   if (phi_lo(3) .eq. 0 .and. phi_hi(3) .eq. 0) then
      dm = 2
   else
@@ -41,7 +41,7 @@ subroutine initdata(level, time, lo, hi, &
         y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
         do i=lo(1),hi(1)
            x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
-           
+
            if ( dm.eq. 2) then
               r2 = ((x-0.5d0)**2 + (y-0.75d0)**2) / 0.01d0
               phi(i,j,k) = 1.d0 + exp(-r2)

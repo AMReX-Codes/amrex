@@ -32,7 +32,7 @@ contains
     double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2))
     double precision, dimension(glo(1):ghi(1),glo(2):ghi(2)) :: &
          phix_1d, phiy_1d, phix, phiy, slope
-         
+
     integer :: i, j
     double precision :: hdtdx(2)
 

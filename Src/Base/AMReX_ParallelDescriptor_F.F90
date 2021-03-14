@@ -16,7 +16,7 @@ module amrex_paralleldescriptor_module
        implicit none
        integer(c_int) :: amrex_fi_pd_nprocs
      end function amrex_fi_pd_nprocs
-     
+
      function amrex_fi_pd_ioprocessor () bind(c)
        import
        implicit none

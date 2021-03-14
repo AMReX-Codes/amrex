@@ -16,30 +16,30 @@ contains
 #undef  SLY
 #undef  SLXY
 
-! ::: 
+! :::
 ! ::: --------------------------------------------------------------
 ! ::: cbinterp:  cell centered bilinear interpolation
-! ::: 
+! :::
 ! ::: NOTE: it is assumed that the coarse grid array is
 ! ::: large enough to define interpolated values
 ! ::: in the region fblo:fbhi on the fine grid
-! ::: 
+! :::
 ! ::: Inputs/Outputs
 ! ::: fine        <=>  (modify) fine grid array
 ! ::: fine_l1,fine_h1   =>  (const)  index limits of fine grid
 ! ::: fb_l1,fb_h1     =>  (const)  subregion of fine grid to get values
-! ::: 
-! ::: crse         =>  (const)  coarse grid data 
+! :::
+! ::: crse         =>  (const)  coarse grid data
 ! ::: crse_l1,crse_h1   =>  (const)  index limits of coarse grid
-! ::: 
+! :::
 ! ::: lratio       =>  (const)  refinement ratio between levels
 ! ::: nvar         =>  (const)  number of components in array
-! ::: 
+! :::
 ! ::: TEMPORARY ARRAYS
 ! ::: slx,sly,slxy =>  1-D slope arrays
 ! ::: strip        =>  1-D temp array
 ! ::: --------------------------------------------------------------
-! ::: 
+! :::
     subroutine AMREX_CBINTERP (crse, crse_l1,crse_h1, cb_l1,cb_h1, &
                               fine, fine_l1,fine_h1, fb_l1,fb_h1, &
                               lratio, nvar, &
@@ -73,22 +73,22 @@ contains
 
       denom = one/real(2*lratio,amrex_real)
       hrat = lratio/2
-      do 200 n = 1, nvar 
+      do 200 n = 1, nvar
       ! first fill a strip that will fit
           do ic = cb_l1,cb_h1-1
             sl(ic,SLX) = crse(ic+1,n)-crse(ic,n)
-	  enddo
+          enddo
 
             do lx = 0, lratio-1
               do ic = cb_l1, cb_h1-1
                 i = ic*lratio + lx
                 x = denom*(two*lx + one)
-                strip(i) = crse(ic,n) + x*sl(ic,SLX) 
-	      enddo
-	    enddo
+                strip(i) = crse(ic,n) + x*sl(ic,SLX)
+              enddo
+            enddo
 
             ! stuff into output array
-            do i = fb_l1, fb_h1 
+            do i = fb_l1, fb_h1
               fine(i,n) = strip(i-hrat)
             enddo
 200   continue
@@ -99,29 +99,29 @@ contains
 #undef  SLY
 #undef  SLXY
 
-! ::: 
+! :::
 ! ::: --------------------------------------------------------------
 ! ::: quartinterp: quartic conservative interpolation from coarse grid to
 ! ::: subregion of fine grid defined by (fblo,fbhi)
-! ::: 
+! :::
 ! ::: Inputs/Outputs
 ! ::: fine        <=>  (modify) fine grid array
 ! ::: flo,fhi      =>  (const)  index limits of fine grid
 ! ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
 ! ::: nvar         =>  (const)  number of variables in state vector
 ! ::: lratiox      =>  (const)  refinement ratio between levels
-! ::: 
+! :::
 ! ::: crse         =>  (const)  coarse grid data
 ! ::: clo,chi      =>  (const)  index limits of crse grid
 ! ::: cblo,cbhi    =>  (const)  coarse grid region containing fblo,fbhi and widen by 2 or 4 cells
 ! :::
 ! ::: cb2lo,cb2hi  =>  (const)  coarse grid region containing fblo,fbhi
 ! ::: fb2lo,fb2hi  =>  (const)  fine version of cb2. It could be wider than fb
-! ::: 
+! :::
 ! ::: TEMPORARY ARRAYS
 ! ::: ftmp         =>  1-D temp array
 ! ::: --------------------------------------------------------------
-! ::: 
+! :::
      subroutine AMREX_QUARTINTERP (fine, fine_l1,fine_h1, &
                                   fblo, fbhi, fb2lo, fb2hi, &
                                   crse, crse_l1,crse_h1, &
@@ -152,7 +152,7 @@ contains
                  0.01171875D0 /
 !$$$       data cR/  0.01171875D0, -0.0859375D0, 0.5d0,  0.0859375D0, &
 !$$$                -0.01171875D0 /
-       
+
        if (lratiox .eq. 2) then
           do n = 1, nvar
              do i = cb2lo(1), cb2hi(1)

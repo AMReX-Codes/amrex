@@ -69,7 +69,7 @@ MLPoisson::prepareForSolve ()
             if (m_domain_covered[alev] && !m_overset_mask[alev][0])
             {
                 m_is_singular[alev] = true;
-            }    
+            }
         }
     }
 }
@@ -231,7 +231,7 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 #endif
     for (MFIter mfi(sol,mfi_info); mfi.isValid(); ++mfi)
     {
-	const auto& m0 = mm0.array(mfi);
+        const auto& m0 = mm0.array(mfi);
         const auto& m1 = mm1.array(mfi);
 #if (AMREX_SPACEDIM > 1)
         const auto& m2 = mm2.array(mfi);
@@ -242,7 +242,7 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 #endif
 #endif
 
-	const Box& tbx = mfi.tilebox();
+        const Box& tbx = mfi.tilebox();
         const Box& vbx = mfi.validbox();
         const auto& solnfab = sol.array(mfi);
         const auto& rhsfab  = rhs.array(mfi);
@@ -580,7 +580,7 @@ MLPoisson::makeNLinOp (int grid_size) const
 
     nop->setACoeffs(0, alpha);
 
-    return r;    
+    return r;
 }
 
 }

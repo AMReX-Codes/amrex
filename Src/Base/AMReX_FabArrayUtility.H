@@ -1427,21 +1427,21 @@ printCell (FabArray<FAB> const& mf, const IntVect& cell, int comp = -1,
     {
         const Box& bx = amrex::grow(mfi.validbox(), ng);
         if (bx.contains(cell)) {
-	    if (comp >= 0) {
+            if (comp >= 0) {
                 amrex::AllPrint().SetPrecision(17) << " At cell " << cell << " in Box " << bx
                                                    << ": " << mf[mfi](cell, comp) << std::endl;
-	    } else {
+            } else {
                 std::ostringstream ss;
                 ss.precision(17);
                 const int ncomp = mf.nComp();
                 for (int i = 0; i < ncomp-1; ++i)
-		{
+                {
                     ss << mf[mfi](cell,i) << ", ";
-		}
+                }
                 ss << mf[mfi](cell,ncomp-1);
                 amrex::AllPrint() << " At cell " << cell << " in Box " << bx
                                   << ": " << ss.str() << std::endl;
-	    }
+            }
         }
     }
 }
@@ -1674,7 +1674,7 @@ OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& 
     BL_PROFILE("OverrideSync()");
 
     if (fa.ixType().cellCentered()) return;
-    
+
     const int ncomp = fa.nComp();
 
 #ifdef AMREX_USE_OMP
@@ -1690,7 +1690,7 @@ OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& 
             if (!ifab(i,j,k)) fab(i,j,k,n) = 0;
         });
     }
-    
+
     FabArray<FAB> tmpmf(fa.boxArray(), fa.DistributionMap(), ncomp, 0,
                         MFInfo(), fa.Factory());
     tmpmf.setVal(0);

@@ -88,7 +88,7 @@ public:
     ~MultiCutFab ();
 
     MultiCutFab (MultiCutFab&& rhs) noexcept = default;
-    
+
     MultiCutFab (const MultiCutFab& rhs) = delete;
     MultiCutFab& operator= (const MultiCutFab& rhs) = delete;
     MultiCutFab& operator= (MultiCutFab&& rhs) = delete;

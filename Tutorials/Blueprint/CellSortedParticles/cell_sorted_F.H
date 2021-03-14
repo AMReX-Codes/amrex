@@ -19,7 +19,7 @@ extern "C"
                         const amrex_real* plo,
                         const amrex_real* dx,
                         const amrex_real* dt);
-    
+
 #ifdef __cplusplus
 };
 #endif

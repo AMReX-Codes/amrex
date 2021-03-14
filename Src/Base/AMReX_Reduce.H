@@ -62,7 +62,7 @@ namespace Reduce { namespace detail {
     {
         P().init(amrex::get<I>(t));
     }
-    
+
     template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
     void for_each_init (T& t)
     {

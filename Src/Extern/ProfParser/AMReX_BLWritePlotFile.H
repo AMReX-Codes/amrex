@@ -28,9 +28,9 @@ void WritePlotfile(const std::string &pfversion,
                    const std::string &oFile,
                    const amrex::Vector<std::string> &names,
                    const bool verbose,
-		   const bool isCartGrid = false,
-		   const Real *vfeps = 0,
-		   const int  *levelSteps = 0);
+                   const bool isCartGrid = false,
+                   const Real *vfeps = 0,
+                   const int  *levelSteps = 0);
 
 
 // this function makes a 2d plotfile from a 3d one
@@ -49,9 +49,9 @@ void WritePlotfile2DFrom3D(const std::string &pfversion,
                            const std::string &oFile,
                            const amrex::Vector<std::string> &names,
                            const bool verbose,
-		           const bool isCartGrid = false,
-		           const Real *vfeps = 0,
-		           const int  *levelSteps = 0);
+                           const bool isCartGrid = false,
+                           const Real *vfeps = 0,
+                           const int  *levelSteps = 0);
 
 } //namespace amrex
 #endif

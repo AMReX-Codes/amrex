@@ -20,7 +20,7 @@ struct Managed {
     {
         return The_Managed_Arena()->alloc(len);
     }
-    
+
     void operator delete (void *ptr)
     {
         if (ptr) The_Managed_Arena()->free(ptr);
@@ -30,19 +30,19 @@ struct Managed {
 };
 
 struct Pinned {
-    
+
 #ifdef AMREX_USE_GPU
 
     void *operator new (std::size_t len)
     {
         return The_Pinned_Arena()->alloc(len);
     }
-    
+
     void operator delete (void *ptr)
     {
         if (ptr) The_Pinned_Arena()->free(ptr);
     }
-    
+
 #endif
 };
 

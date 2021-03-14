@@ -30,7 +30,7 @@ amrex::iMultiFab InitializeMultiFab(const amrex::Box& domain)
     const int ny = domain.length(1);
     for (amrex::MFIter mfi(mf); mfi.isValid(); ++mfi) {
         auto array = mf.array(mfi);
-        ParallelFor(mfi.tilebox(), [=](int i, int j, int k) 
+        ParallelFor(mfi.tilebox(), [=](int i, int j, int k)
         {
             array(i,j,k) = i + j*nx + k*nx*ny;
         });
@@ -50,7 +50,7 @@ bool ParallelCopyWithItselfIsCorrect(amrex::iMultiFab& mf, const amrex::Box& dom
     int fails = 0;
     for (amrex::MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const amrex::Box section = dest_box & mfi.tilebox();
-        if (section.isEmpty()) continue; 
+        if (section.isEmpty()) continue;
         auto array = mf.const_array(mfi);
         amrex::LoopOnCpu(section, [&](int i, int j, int k)
         {
@@ -91,7 +91,7 @@ bool ParallelCopyFaceToFace(amrex::iMultiFab& dest, const amrex::Box& domain_des
     int ddir = GetFaceDir(domain_dest.ixType());
     const amrex::Box src_box = GetFaceBoundary(domain_src, src_side);
     const amrex::Box dest_box = GetFaceBoundary(domain_dest, dest_side);
-    
+
     // Default construction is identity
     amrex::NonLocalBC::MultiBlockIndexMapping dtos{};
     // Change permutation to get a correct mapping between index types
@@ -110,7 +110,7 @@ bool ParallelCopyFaceToFace(amrex::iMultiFab& dest, const amrex::Box& domain_des
     const int ny = domain_src.length(1);
     for (amrex::MFIter mfi(dest); mfi.isValid(); ++mfi) {
         const amrex::Box section = dest_box & mfi.tilebox();
-        if (section.isEmpty()) continue; 
+        if (section.isEmpty()) continue;
         auto darray = dest.const_array(mfi);
         auto sarray = src.const_array(mfi);
         amrex::LoopOnCpu(section, [&](int i, int j, int k)

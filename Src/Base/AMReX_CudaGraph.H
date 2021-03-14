@@ -90,7 +90,7 @@ struct CudaGraph
         }
         m_parms_d = static_cast<T*>( The_Arena()->alloc(sizeof(T)*m_parms.size()) );
     }
-    void setGraph(cudaGraphExec_t const& graph) { 
+    void setGraph(cudaGraphExec_t const& graph) {
         m_graph = graph;
         graph_is_ready = true;
     }

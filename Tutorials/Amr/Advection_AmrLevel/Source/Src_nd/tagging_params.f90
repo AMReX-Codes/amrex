@@ -5,7 +5,7 @@ module tagging_params_module
   integer, save :: max_phierr_lev, max_phigrad_lev
 
 contains
-  
+
   subroutine get_tagging_params(name, namlen) bind(C, name="get_tagging_params")
 
     ! Initialize the tagging parameters

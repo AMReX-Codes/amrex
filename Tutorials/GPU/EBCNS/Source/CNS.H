@@ -23,7 +23,7 @@ public:
 
     CNS (const CNS& rhs) = delete;
     CNS& operator= (const CNS& rhs) = delete;
-    
+
     // Restart from a checkpoint file.
     virtual void restart (amrex::Amr&     papa,
                           std::istream&   is,
@@ -49,7 +49,7 @@ public:
 
     // Initialize data on this level after regridding if old level did not previously exist
     virtual void init () override;
-    
+
     // Initialize grid data at problem start-up.
     virtual void initData () override;
 

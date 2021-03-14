@@ -11,7 +11,7 @@ MLABecLaplacian::MLABecLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<DistributionMapping>& a_dmap,
                                   const LPInfo& a_info,
                                   const Vector<FabFactory<FArrayBox> const*>& a_factory,
-                                  const int a_ncomp) 
+                                  const int a_ncomp)
     : m_ncomp(a_ncomp)
 {
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
@@ -123,7 +123,7 @@ MLABecLaplacian::setBCoeffs (int amrlev,
                 MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], icomp, icomp, 1, 0);
             }
         }
-    else 
+    else
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             for (int icomp = 0; icomp < ncomp; ++icomp) {
                 MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, icomp, 1, 0);
@@ -187,7 +187,7 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
         {
             amrex::average_down(a[mglev-1], a[mglev], 0, 1, ratio);
         }
-        
+
         Vector<const MultiFab*> fine {AMREX_D_DECL(&(b[mglev-1][0]),
                                                    &(b[mglev-1][1]),
                                                    &(b[mglev-1][2]))};
@@ -291,7 +291,7 @@ MLABecLaplacian::prepareForSolve ()
         for (int alev = 0; alev < m_num_amr_levels; ++alev)
         {
             // For now this assumes that overset regions are treated as Dirichlet bc's
-            if (m_domain_covered[alev] && !m_overset_mask[alev][0]) 
+            if (m_domain_covered[alev] && !m_overset_mask[alev][0])
             {
                 if (m_a_scalar == 0.0)
                 {
@@ -449,7 +449,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #endif
     for (MFIter mfi(sol,mfi_info); mfi.isValid(); ++mfi)
     {
-	const auto& m0 = mm0.array(mfi);
+        const auto& m0 = mm0.array(mfi);
         const auto& m1 = mm1.array(mfi);
 #if (AMREX_SPACEDIM > 1)
         const auto& m2 = mm2.array(mfi);
@@ -460,7 +460,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #endif
 #endif
 
-	const Box& tbx = mfi.tilebox();
+        const Box& tbx = mfi.tilebox();
         const Box& vbx = mfi.validbox();
         const auto& solnfab = sol.array(mfi);
         const auto& rhsfab  = rhs.array(mfi);
@@ -631,7 +631,7 @@ MLABecLaplacian::update ()
         for (int alev = 0; alev < m_num_amr_levels; ++alev)
         {
             // For now this assumes that overset regions are treated as Dirichlet bc's
-            if (m_domain_covered[alev] && !m_overset_mask[alev][0]) 
+            if (m_domain_covered[alev] && !m_overset_mask[alev][0])
             {
                 if (m_a_scalar == 0.0)
                 {

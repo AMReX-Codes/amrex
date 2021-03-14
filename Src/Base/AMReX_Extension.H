@@ -41,13 +41,13 @@
 // simd
 
 #if defined(AMREX_DEBUG)
-#define AMREX_PRAGMA_SIMD 
+#define AMREX_PRAGMA_SIMD
 
 #elif defined(__CUDA_ARCH__)
-#define AMREX_PRAGMA_SIMD 
+#define AMREX_PRAGMA_SIMD
 
 #elif defined(__HIP_DEVICE_COMPILE__)
-#define AMREX_PRAGMA_SIMD 
+#define AMREX_PRAGMA_SIMD
 
 //#elif defined(AMREX_USE_OMP) && defined(_OPENMP) && (_OPENMP >= 201307) && !defined(__PGI)
 //#define AMREX_PRAGMA_SIMD _Pragma("omp simd")
@@ -62,7 +62,7 @@
 #define AMREX_PRAGMA_SIMD _Pragma("loop ivdep")
 
 #elif defined(__NEC__)
-#define AMREX_PRAGMA_SIMD 
+#define AMREX_PRAGMA_SIMD
 
 #elif defined(__ibmxl__)
 #define AMREX_PRAGMA_SIMD _Pragma("ibm independent_loop")
@@ -74,7 +74,7 @@
 #define AMREX_PRAGMA_SIMD _Pragma("GCC ivdep")
 
 #else
-#define AMREX_PRAGMA_SIMD 
+#define AMREX_PRAGMA_SIMD
 
 #endif /* simd */
 
@@ -130,7 +130,7 @@
 // __attribute__((weak))
 
 #if defined(AMREX_TYPECHECK)
-#define AMREX_ATTRIBUTE_WEAK 
+#define AMREX_ATTRIBUTE_WEAK
 #elif defined(_WIN32)
 #define AMREX_ATTRIBUTE_WEAK
 #else

@@ -28,9 +28,9 @@ contains
     plo(2) = min(vxlo(2)-1, vylo(2)-1)
     phi(1) = max(vxhi(1)  , vyhi(1)+1)
     phi(2) = max(vxhi(2)+1, vyhi(2)  )
-    
+
     call amrex_allocate(psi, plo, phi)
-    
+
     ! streamfunction psi
     do j = plo(2), phi(2)
        y = (dble(j)+0.5d0)*dx(2) + prob_lo(2)
@@ -39,7 +39,7 @@ contains
           psi(i,j) =  sin(M_PI*x)**2 * sin(M_PI*y)**2 * cos (M_PI*time/2.d0) * (1.d0 / M_PI)
        end do
     end do
-    
+
     ! x velocity
     do j = vxlo(2), vxhi(2)
        y = (dble(j)+0.5d0) * dx(2) + prob_lo(2)
@@ -48,7 +48,7 @@ contains
           vx(i,j) =  -( (psi(i,j+1)+psi(i-1,j+1)) - (psi(i,j-1)+psi(i-1,j-1)) ) * (0.25d0/dx(2))
        end do
     end do
-    
+
     ! y velocity
     do j = vylo(2), vyhi(2)
        y = dble(j) * dx(2) + prob_lo(2)
@@ -57,9 +57,9 @@ contains
           vy(i,j) = ( (psi(i+1,j)+psi(i+1,j-1)) - (psi(i-1,j)+psi(i-1,j-1)) ) * (0.25d0/dx(1))
        end do
     end do
-    
+
     call amrex_deallocate(psi)
-  
+
   end subroutine get_face_velocity
 
 end module face_velocity_module

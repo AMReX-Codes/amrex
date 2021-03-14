@@ -49,7 +49,7 @@ MLCellLinOp::defineAuxData ()
                                               1, 0, 0, ncomp);
         }
     }
-    
+
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_maskvals[amrlev].resize(m_num_mg_levels[amrlev]);
@@ -153,7 +153,7 @@ MLCellLinOp::defineBC ()
             m_bcondloc[amrlev][mglev].reset(new BndryCondLoc(m_grids[amrlev][mglev],
                                                              m_dmap[amrlev][mglev],
                                                              ncomp));
-        } 
+        }
     }
 }
 
@@ -247,7 +247,7 @@ MLCellLinOp::makeNGrids (int grid_size) const
         b.refine(grid_size);
         IntVect sz = b.size();
         const IntVect nblks {AMREX_D_DECL(sz[0]/grid_size, sz[1]/grid_size, sz[2]/grid_size)};
-        
+
         IntVect big = b.smallEnd() + grid_size - 1;
         b.setBig(big);
 
@@ -321,7 +321,7 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
             int kc = amrex::coarsen(k,ratio3.z);
             ffab(i,j,k,n) += cfab(ic,jc,kc,n);
         });
-    }    
+    }
 }
 
 void
@@ -410,7 +410,7 @@ MLCellLinOp::fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcd
     }
     const int mglev = 0;
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
-            m_bndry_sol[amrlev].get());    
+            m_bndry_sol[amrlev].get());
 }
 
 void
@@ -1199,7 +1199,7 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
     amrex::ignore_unused(amrlev,mglev,rhs);
 #if (AMREX_SPACEDIM != 3)
-    
+
     if (!m_has_metric_term) return;
 
     const int ncomp = rhs.nComp();
@@ -1255,7 +1255,7 @@ MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
     amrex::ignore_unused(amrlev,mglev,rhs);
 #if (AMREX_SPACEDIM != 3)
-    
+
     if (!m_has_metric_term) return;
 
     const int ncomp = rhs.nComp();

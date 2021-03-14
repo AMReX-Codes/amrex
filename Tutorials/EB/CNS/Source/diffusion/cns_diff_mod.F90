@@ -24,7 +24,7 @@ contains
     real(rt), intent(  out) :: flux1(lo(1):hi(1)+1,lo(2):hi(2)  ,lo(3):hi(3)  ,5)
     real(rt), intent(  out) :: flux2(lo(1):hi(1)  ,lo(2):hi(2)+1,lo(3):hi(3)  ,5)
     real(rt), intent(  out) :: flux3(lo(1):hi(1)  ,lo(2):hi(2)  ,lo(3):hi(3)+1,5)
-    
+
     integer :: i,j,k
     real(rt) :: dxinv(3)
     real(rt) :: tauxx, tauyy, tauzz, tauxy, tauxz, tauyz, muf, xif

@@ -241,8 +241,8 @@ public:
     AMREX_GPU_HOST_DEVICE
     bool contains (const Box& b) const noexcept
     {
-	BL_ASSERT(sameType(b));
-	return b.smallend.allGE(smallend) && b.bigend.allLE(bigend);
+        BL_ASSERT(sameType(b));
+        return b.smallend.allGE(smallend) && b.bigend.allLE(bigend);
     }
 
     //! Returns true if argument is strictly contained within Box.
@@ -256,8 +256,8 @@ public:
     AMREX_GPU_HOST_DEVICE
     bool strictly_contains (const Box& b) const noexcept
     {
-	BL_ASSERT(sameType(b));
-	return b.smallend.allGT(smallend) && b.bigend.allLT(bigend);
+        BL_ASSERT(sameType(b));
+        return b.smallend.allGT(smallend) && b.bigend.allLT(bigend);
     }
 
     //! Returns true if argument is strictly contained within Box.
@@ -310,7 +310,7 @@ public:
     {
         return btype < rhs.btype ||
              ((btype == rhs.btype) &&
-	         (  (smallend < rhs.smallend) ||
+                 (  (smallend < rhs.smallend) ||
                    ((smallend == rhs.smallend) && (bigend < rhs.bigend)) ));
     }
     AMREX_GPU_HOST_DEVICE
@@ -975,14 +975,14 @@ Box::next (IntVect& p) const noexcept
 #if (AMREX_SPACEDIM >= 2)
     if (p[0] > bigend[0])
     {
-	p[0] = smallend[0];
-	++p[1];
+        p[0] = smallend[0];
+        ++p[1];
 #if (AMREX_SPACEDIM == 3)
-	if (p[1] > bigend[1])
-	{
-	    p[1] = smallend[1];
-	    ++p[2];
-	}
+        if (p[1] > bigend[1])
+        {
+            p[1] = smallend[1];
+            ++p[2];
+        }
 #endif
     }
 #endif
@@ -1088,7 +1088,7 @@ public:
     int* data () && = delete;
 
     Box make_box () const noexcept {
-	return Box(IntVect(p), IntVect(p+AMREX_SPACEDIM), IntVect(p+2*AMREX_SPACEDIM));
+        return Box(IntVect(p), IntVect(p+AMREX_SPACEDIM), IntVect(p+2*AMREX_SPACEDIM));
     }
 
     static int size () noexcept { return 3*AMREX_SPACEDIM; }
@@ -1414,7 +1414,7 @@ Box bdryNode (const Box& b, Orientation face, int len=1) noexcept
     if (face.isLow())
     {
         int sm = low[dir];
-	low.setVal(dir,sm-len+1);
+        low.setVal(dir,sm-len+1);
         hi.setVal(dir,sm);
     }
     else

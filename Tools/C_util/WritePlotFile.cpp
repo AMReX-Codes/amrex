@@ -30,12 +30,12 @@ thePlotFileType ()
 
 void
 writePlotFile (const std::string&        dir,
-	       std::ostream&             os,
-	       int                       level,
-	       const MultiFab&           mf,
-	       const Geometry&           geom,
-	       const IntVect&            refRatio,
-	       Real                      bgVal,
+               std::ostream&             os,
+               int                       level,
+               const MultiFab&           mf,
+               const Geometry&           geom,
+               const IntVect&            refRatio,
+               Real                      bgVal,
                const Vector<std::string>& names)
 {
     //
@@ -48,16 +48,16 @@ writePlotFile (const std::string&        dir,
     Vector< Box > domain(finestLevel+1);
     const IndexType& ixType = mf.boxArray().ixType();
     if (ixType != IndexType::TheCellType())
-	amrex::Error("writePlotfile unable to handle non cell-centered data for now");
+        amrex::Error("writePlotfile unable to handle non cell-centered data for now");
     Box tmpb = Box(geom.Domain()).convert(ixType);
     Vector<int> corr(BL_SPACEDIM);
     for (int d = 0; d < BL_SPACEDIM; d++)
     {
-	corr[d] = (ixType.ixType(d) == IndexType::CELL ? 1 : 0);
+        corr[d] = (ixType.ixType(d) == IndexType::CELL ? 1 : 0);
     }
     for (int M = 0; M < finestLevel; M++)
     {
-	tmpb.coarsen(refRatio);
+        tmpb.coarsen(refRatio);
     }
     domain[0] = tmpb;
     const int levelSteps = 0;
@@ -66,30 +66,30 @@ writePlotFile (const std::string&        dir,
     const BoxArray& grids = mf.boxArray();
     for (int j = 0; j<= finestLevel; j++)
     {
-	if (j!=0)
-	    domain[j] = Box( domain[j-1] ).refine(refRatio);
-	dx[j].resize(BL_SPACEDIM);
-	for (int k = 0; k < BL_SPACEDIM; k++)
-	{
-	    dx[j][k] = (geom.ProbHi(k) - geom.ProbLo(k))/domain[j].length(k);
-	}
-	if (j==0)
-	{
-	    grid_loc[j].resize(1);
-	    grid_loc[j][0] = RealBox(geom.ProbLo(),geom.ProbHi());
-	} else {
-	    grid_loc[j].resize(grids.size());
-	    for (int L=0; L < grids.size(); L++)
-	    {
-		const Box& bx = grids[L];
-		grid_loc[j][L] = RealBox(AMREX_D_DECL( dx[j][0]*bx.smallEnd(0),
-						 dx[j][1]*bx.smallEnd(1),
-						 dx[j][2]*bx.smallEnd(2) ),
-					 AMREX_D_DECL( dx[j][0]*(bx.bigEnd(0)+corr[0]),
-						 dx[j][1]*(bx.bigEnd(1)+corr[1]),
-						 dx[j][2]*(bx.bigEnd(2)+corr[2]) ));
-	    }
-	}	    
+        if (j!=0)
+            domain[j] = Box( domain[j-1] ).refine(refRatio);
+        dx[j].resize(BL_SPACEDIM);
+        for (int k = 0; k < BL_SPACEDIM; k++)
+        {
+            dx[j][k] = (geom.ProbHi(k) - geom.ProbLo(k))/domain[j].length(k);
+        }
+        if (j==0)
+        {
+            grid_loc[j].resize(1);
+            grid_loc[j][0] = RealBox(geom.ProbLo(),geom.ProbHi());
+        } else {
+            grid_loc[j].resize(grids.size());
+            for (int L=0; L < grids.size(); L++)
+            {
+                const Box& bx = grids[L];
+                grid_loc[j][L] = RealBox(AMREX_D_DECL( dx[j][0]*bx.smallEnd(0),
+                                                 dx[j][1]*bx.smallEnd(1),
+                                                 dx[j][2]*bx.smallEnd(2) ),
+                                         AMREX_D_DECL( dx[j][0]*(bx.bigEnd(0)+corr[0]),
+                                                 dx[j][1]*(bx.bigEnd(1)+corr[1]),
+                                                 dx[j][2]*(bx.bigEnd(2)+corr[2]) ));
+            }
+        }
     }
     const int Coord = 0;
     BoxArray tba = BoxArray(&tmpb,1);
@@ -98,7 +98,7 @@ writePlotFile (const std::string&        dir,
     for (int j=0; j<mf.nComp(); ++j)
         level0_dat.setVal(0.5*(mf.min(j)+mf.max(j)),j,1);
     //level0_dat.setVal(bgVal);
-    
+
     int i, n;
     //
     // There is only one MultiFab written out at each level in HyperCLaw.
@@ -114,14 +114,14 @@ writePlotFile (const std::string&        dir,
     //
     std::string FullPath = dir;
     if (!FullPath.empty() && FullPath[FullPath.length()-1] != '/')
-	FullPath += '/';
+        FullPath += '/';
     FullPath += Level;
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-	if (!amrex::UtilCreateDirectory(FullPath, 0755))
-	    amrex::CreateDirectoryFailed(FullPath);
+        if (!amrex::UtilCreateDirectory(FullPath, 0755))
+            amrex::CreateDirectoryFailed(FullPath);
     //
     // Force other processors to wait till directory is built.
     //
@@ -129,17 +129,17 @@ writePlotFile (const std::string&        dir,
 
     if (ParallelDescriptor::IOProcessor())
     {
-	if (level == 0)
-	{
-	    //
-	    // The first thing we write out is the plot file type.
-	    //
-	    os << thePlotFileType() << '\n';
-	    // Number of components, and names
-	    int n_var = NUM_STATE;
-	    os << n_var << '\n';
-	    for (n = 0; n < NUM_STATE; n++)
-	    {
+        if (level == 0)
+        {
+            //
+            // The first thing we write out is the plot file type.
+            //
+            os << thePlotFileType() << '\n';
+            // Number of components, and names
+            int n_var = NUM_STATE;
+            os << n_var << '\n';
+            for (n = 0; n < NUM_STATE; n++)
+            {
                 if (names.size()==0)
                 {
                     std::string name = amrex::Concatenate("state_", n, 1);
@@ -150,65 +150,65 @@ writePlotFile (const std::string&        dir,
                 {
                     os << names[n] << '\n';
                 }
-	    }
-	    // dimensionality
-	    os << BL_SPACEDIM << '\n';
-	    // time
-	    os << cumTime << '\n';
-	    // finest amr level
-	    os << finestLevel << '\n';
-	    // prob domain
-	    for (i = 0; i < BL_SPACEDIM; i++) os << geom.ProbLo(i) << ' ';
-	    os << '\n';
-	    for (i = 0; i < BL_SPACEDIM; i++) os << geom.ProbHi(i) << ' ';
-	    os << '\n';
-	    // refinement ratio
-	    for (i = 0; i < finestLevel; i++) os << refRatio << ' ';
-	    os << '\n';
-	    // int domain
-	    for (i = 0; i <= finestLevel; i++) os << domain[i] << ' ';
-	    os << '\n';
-	    // level steps
-	    for (i = 0; i <= finestLevel; i++) os << levelSteps << ' ';
-	    os << '\n';
-	    for (i = 0; i <= finestLevel; i++)
-	    {
-		// cell size
-		const Real* dx_lev = dx[i].dataPtr();
-		for (int k = 0; k < BL_SPACEDIM; k++) os << dx_lev[k] << ' ';
-		os << '\n';
-	    }
-	    // coordinate system
-	    os << Coord << '\n';
-	    os << "0\n"; // The bndry data.
-	}
-	//
-	// Now write state data.
-	//
-	int ngrds          = (level==0 ? 1 : grids.size());
-	Real cur_time      = curTime;
-	const MultiFab& cell_dat = (level==0 ? level0_dat : mf);
-	    
-	os << level << ' ' << ngrds << ' ' << cur_time << '\n';
-	// level steps
-	os << levelSteps << '\n';
-	
-	for (i = 0; i < cell_dat.boxArray().size(); ++i)
-	{
-	    for (n = 0; n < BL_SPACEDIM; n++)
-		// lo/hi position of this grid
-		os <<grid_loc[level][i].lo(n) << ' ' << grid_loc[level][i].hi(n) << '\n';
-	}
-	
-	//
-	// Finally, the full relative pathname of the MultiFab.
-	// The name is relative to the Header file containing this name.
-	// It's the name that gets written into the Header.
-	//
-	std::string PathNameInHeader = Level;
-	PathNameInHeader += MultiFabBaseName;
+            }
+            // dimensionality
+            os << BL_SPACEDIM << '\n';
+            // time
+            os << cumTime << '\n';
+            // finest amr level
+            os << finestLevel << '\n';
+            // prob domain
+            for (i = 0; i < BL_SPACEDIM; i++) os << geom.ProbLo(i) << ' ';
+            os << '\n';
+            for (i = 0; i < BL_SPACEDIM; i++) os << geom.ProbHi(i) << ' ';
+            os << '\n';
+            // refinement ratio
+            for (i = 0; i < finestLevel; i++) os << refRatio << ' ';
+            os << '\n';
+            // int domain
+            for (i = 0; i <= finestLevel; i++) os << domain[i] << ' ';
+            os << '\n';
+            // level steps
+            for (i = 0; i <= finestLevel; i++) os << levelSteps << ' ';
+            os << '\n';
+            for (i = 0; i <= finestLevel; i++)
+            {
+                // cell size
+                const Real* dx_lev = dx[i].dataPtr();
+                for (int k = 0; k < BL_SPACEDIM; k++) os << dx_lev[k] << ' ';
+                os << '\n';
+            }
+            // coordinate system
+            os << Coord << '\n';
+            os << "0\n"; // The bndry data.
+        }
+        //
+        // Now write state data.
+        //
+        int ngrds          = (level==0 ? 1 : grids.size());
+        Real cur_time      = curTime;
+        const MultiFab& cell_dat = (level==0 ? level0_dat : mf);
 
-	os << PathNameInHeader << '\n';
+        os << level << ' ' << ngrds << ' ' << cur_time << '\n';
+        // level steps
+        os << levelSteps << '\n';
+
+        for (i = 0; i < cell_dat.boxArray().size(); ++i)
+        {
+            for (n = 0; n < BL_SPACEDIM; n++)
+                // lo/hi position of this grid
+                os <<grid_loc[level][i].lo(n) << ' ' << grid_loc[level][i].hi(n) << '\n';
+        }
+
+        //
+        // Finally, the full relative pathname of the MultiFab.
+        // The name is relative to the Header file containing this name.
+        // It's the name that gets written into the Header.
+        //
+        std::string PathNameInHeader = Level;
+        PathNameInHeader += MultiFabBaseName;
+
+        os << PathNameInHeader << '\n';
     }
     //
     // Now amend FullPath to contain full pathname of MF.
@@ -222,10 +222,10 @@ writePlotFile (const std::string&        dir,
 
 void
 writePlotFile (const char*               name,
-	       const MultiFab&           mf,
-	       const Geometry&           geom,
-	       const IntVect&            refRatio,
-	       Real                      bgVal,
+               const MultiFab&           mf,
+               const Geometry&           geom,
+               const IntVect&            refRatio,
+               Real                      bgVal,
                const Vector<std::string>& names)
 {
 
@@ -287,14 +287,14 @@ writePlotFile (const char*               name,
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "Write plotfile time = " << dPlotFileTime << "  seconds." << std::endl;
     }
-    
+
 }
 
 void WritePlotFile(const Vector<MultiFab*>&   mfa,
                    const Vector<Box>&         probDomain,
-		   AmrData&                   amrdToMimic,
-		   const std::string&         oFile,
-		   bool                       verbose,
+                   AmrData&                   amrdToMimic,
+                   const std::string&         oFile,
+                   bool                       verbose,
                    const Vector<std::string>& varNames)
 {
     // If varnames not provided, use names in original plotfile
@@ -303,7 +303,7 @@ void WritePlotFile(const Vector<MultiFab*>&   mfa,
     int ntype = derives.size();
     int finestLevel = mfa.size() - 1;
     AMREX_ALWAYS_ASSERT(finestLevel >= 0);
-    
+
     if (ParallelDescriptor::IOProcessor())
         if (!amrex::UtilCreateDirectory(oFile,0755))
             amrex::CreateDirectoryFailed(oFile);
@@ -314,13 +314,13 @@ void WritePlotFile(const Vector<MultiFab*>&   mfa,
 
     std::string oFileHeader(oFile);
     oFileHeader += "/Header";
-  
+
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
     std::ofstream os;
-  
+
     os.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-  
+
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "Opening file = " << oFileHeader << '\n';
 
@@ -368,12 +368,12 @@ void WritePlotFile(const Vector<MultiFab*>&   mfa,
         int nGrids = amrdToMimic.boxArray(iLevel).size();
 
         std::string LevelStr = amrex::Concatenate("Level_", iLevel, 1);
-    
+
         if (ParallelDescriptor::IOProcessor())
         {
             os << iLevel << ' ' << nGrids << ' ' << amrdToMimic.Time() << '\n';
             os << 0 << '\n';
-    
+
             for (i = 0; i < nGrids; ++i)
             {
                 for (int n = 0; n < BL_SPACEDIM; n++)
@@ -390,7 +390,7 @@ void WritePlotFile(const Vector<MultiFab*>&   mfa,
             std::string Level(oFile);
             Level += '/';
             Level += LevelStr;
-    
+
             if (!amrex::UtilCreateDirectory(Level, 0755))
                 amrex::CreateDirectoryFailed(Level);
         }
@@ -402,12 +402,12 @@ void WritePlotFile(const Vector<MultiFab*>&   mfa,
         // Now build the full relative pathname of the MultiFab.
         //
         static const std::string MultiFabBaseName("/MultiFab");
-    
+
         std::string PathName(oFile);
         PathName += '/';
         PathName += LevelStr;
         PathName += MultiFabBaseName;
-    
+
         if (ParallelDescriptor::IOProcessor())
         {
             //
@@ -425,9 +425,9 @@ void WritePlotFile(const Vector<MultiFab*>&   mfa,
 }
 
 void WritePlotFile(const Vector<MultiFab*>&   mfa,
-		   AmrData&                   amrdToMimic,
-		   const std::string&         oFile,
-		   bool                       verbose,
+                   AmrData&                   amrdToMimic,
+                   const std::string&         oFile,
+                   bool                       verbose,
                    const Vector<std::string>& varNames)
 {
     WritePlotFile(mfa,amrdToMimic.ProbDomain(),amrdToMimic,oFile,verbose,varNames);

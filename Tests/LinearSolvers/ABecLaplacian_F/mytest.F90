@@ -40,7 +40,7 @@ module mytest_module
   type(amrex_multifab), allocatable, save :: acoef(:)
   type(amrex_multifab), allocatable, save :: bcoef(:)
   real(amrex_real), save :: ascalar, bscalar
-  
+
 
   private
   public :: init, finalize, solve, write_plotfile
@@ -187,7 +187,7 @@ contains
        call amrex_poisson_build(poisson, geom, ba, dm, &
             metric_term=.false., agglomeration=agglomeration, consolidation=consolidation, &
             max_coarsening_level=max_coarsening_level)
-       
+
        call poisson % set_maxorder(linop_maxorder)
 
        ! This is a 3d problem with Dirichlet BC
@@ -217,7 +217,7 @@ contains
           call amrex_poisson_build(poisson, [geom(ilev)], [ba(ilev)], [dm(ilev)], &
                metric_term=.false., agglomeration=agglomeration, consolidation=consolidation, &
                max_coarsening_level=max_coarsening_level)
-       
+
           call poisson % set_maxorder(linop_maxorder)
 
           ! The order of the following set bc calls matters.
@@ -225,7 +225,7 @@ contains
           ! This is a 3d problem with Dirichlet BC
           call poisson % set_domain_bc([amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet], &
                &                       [amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet])
-               
+
           if (ilev > 0) then
              ! use coarse level data to set up bc at corase/fine boundary
              call poisson % set_coarse_fine_bc(solution(ilev-1), ref_ratio)
@@ -315,7 +315,7 @@ contains
 
     else
        do ilev = 0, max_level
-          
+
           call amrex_abeclaplacian_build(abeclap, [geom(ilev)], [ba(ilev)], [dm(ilev)], &
                metric_term=.false., agglomeration=agglomeration, consolidation=consolidation, &
                max_coarsening_level=max_coarsening_level)

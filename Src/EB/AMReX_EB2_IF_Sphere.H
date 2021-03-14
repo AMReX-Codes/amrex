@@ -39,7 +39,7 @@ public:
     }
 
 protected:
-  
+
     Real  m_radius;
     XDim3 m_center;
     //
