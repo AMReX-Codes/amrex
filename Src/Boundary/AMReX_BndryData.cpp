@@ -17,8 +17,8 @@ BndryData::BndryData () noexcept
     m_ncomp(-1), m_defined(false) {}
 
 BndryData::BndryData (const BoxArray& _grids,
-		      const DistributionMapping& _dmap,
-                      int             _ncomp, 
+                      const DistributionMapping& _dmap,
+                      int             _ncomp,
                       const Geometry& _geom)
     :
     geom(_geom),
@@ -99,9 +99,9 @@ BndryData::init (const BndryData& src)
     masks.resize(2*AMREX_SPACEDIM);
     for (int i = 0; i < 2*AMREX_SPACEDIM; i++)
     {
-	const MultiMask& smasks = src.masks[i];
-	masks[i].define(smasks.boxArray(), smasks.DistributionMap(), smasks.nComp());
-	MultiMask::Copy(masks[i], smasks);
+        const MultiMask& smasks = src.masks[i];
+        masks[i].define(smasks.boxArray(), smasks.DistributionMap(), smasks.nComp());
+        MultiMask::Copy(masks[i], smasks);
     }
 }
 
@@ -130,7 +130,7 @@ BndryData::~BndryData ()
 
 void
 BndryData::define (const BoxArray& _grids,
-		   const DistributionMapping& _dmap,
+                   const DistributionMapping& _dmap,
                    int             _ncomp,
                    const Geometry& _geom)
 {
@@ -160,7 +160,7 @@ BndryData::define (const BoxArray& _grids,
     {
         Orientation face = fi();
         BndryRegister::define(face,IndexType::TheCellType(),0,1,1,_ncomp,_dmap);
-	masks[face].define(grids, _dmap, geom, face, 0, 2, NTangHalfWidth, 1, true);
+        masks[face].define(grids, _dmap, geom, face, 0, 2, NTangHalfWidth, 1, true);
     }
     //
     // Define "bcond" and "bcloc".
@@ -193,7 +193,7 @@ BndryData::define (const BoxArray& _grids,
 void
 BndryData::setValue (Orientation face, int n, Real val) noexcept
 {
-    auto& fab = bndry[face][n]; 
+    auto& fab = bndry[face][n];
     auto arr = fab.array();
     const Box& bx = fab.box();
     const int ncomp = m_ncomp;

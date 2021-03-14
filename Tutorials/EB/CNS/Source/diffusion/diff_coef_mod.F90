@@ -29,7 +29,7 @@ contains
        end do
     else
        Prinv = 1.d0/Pr
-    
+
        do       k = clo(3), chi(3)
           do    j = clo(2), chi(2)
              do i = clo(1), chi(1)

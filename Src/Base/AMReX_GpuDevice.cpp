@@ -64,6 +64,7 @@ gpuStream_t         Device::gpu_default_stream;
 Vector<gpuStream_t> Device::gpu_stream_pool;
 Vector<gpuStream_t> Device::gpu_stream;
 gpuDeviceProp_t     Device::device_prop;
+int                 Device::memory_pools_supported = 0;
 
 constexpr int Device::warp_size;
 
@@ -317,19 +318,19 @@ Device::Initialize ()
             amrex::Print() << "CUDA initialized with 1 GPU per MPI rank; "
                            << num_devices_used << " GPU(s) used in total\n";
         }
-        else 
+        else
         {
             amrex::Print() << "CUDA initialized with " << num_devices_used << " GPU(s) and "
                            << ParallelDescriptor::NProcs() << " ranks.\n";
         }
 #else  // Should always be using NVCC >= 10 now, so not going to bother with other combinations.
-        amrex::Print() << "CUDA initialized with 1 GPU\n"; 
+        amrex::Print() << "CUDA initialized with 1 GPU\n";
 #endif // AMREX_USE_MPI && NVCC >= 10
     }
 
     cudaProfilerStart();
 
-#elif defined(AMREX_USE_HIP) 
+#elif defined(AMREX_USE_HIP)
     if (amrex::Verbose()) {
         if (ParallelDescriptor::NProcs() > 1) {
 #ifdef BL_USE_MPI
@@ -407,6 +408,10 @@ Device::initialize_gpu ()
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 4 || (device_prop.major == 3 && device_prop.minor >= 5),
                                      "Compute capability must be >= 3.5");
+
+#ifdef AMREX_CUDA_GE_11_2
+    cudaDeviceGetAttribute(&memory_pools_supported, cudaDevAttrMemoryPoolsSupported, device_id);
+#endif
 
     if (sizeof(Real) == 8) {
         AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
@@ -637,7 +642,7 @@ Device::startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz
 {
     if ((first_iter) && inLaunchRegion() && inGraphRegion())
     {
-        // Uses passed information to do initial async memcpy in graph and 
+        // Uses passed information to do initial async memcpy in graph and
         //    links dependency to all streams using cudaEvents.
 
         setStreamIndex(0);
@@ -647,7 +652,7 @@ Device::startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz
 
 #if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
         AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(graph_stream));
-#else  
+#else
         AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(graph_stream, cudaStreamCaptureModeGlobal));
 #endif
 
@@ -706,14 +711,14 @@ Device::instantiateGraph(cudaGraph_t graph)
 {
     cudaGraphExec_t graphExec;
 
-#ifdef AMREX_DEBUG 
+#ifdef AMREX_DEBUG
 //  Implementes cudaGraphInstantiate error logging feature.
-//  Upon error, delays abort until message is output. 
+//  Upon error, delays abort until message is output.
     constexpr int log_size = 1028;
     char graph_log[log_size];
     graph_log[0]='\0';
 
-    cudaGraphInstantiate(&graphExec, graph, NULL, &(graph_log[0]), log_size); 
+    cudaGraphInstantiate(&graphExec, graph, NULL, &(graph_log[0]), log_size);
 
     if (graph_log[0] != '\0')
     {
@@ -722,7 +727,7 @@ Device::instantiateGraph(cudaGraph_t graph)
     }
 #else
 
-    AMREX_CUDA_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0)); 
+    AMREX_CUDA_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0));
 
 #endif
 
@@ -970,26 +975,5 @@ Device::freeMemAvailable ()
     return 0;
 #endif
 }
-
-#ifdef AMREX_USE_GPU
-namespace {
-    static int ncallbacks = 0;
-}
-
-void callbackAdded ()
-{
-    ++ncallbacks;
-}
-
-void resetNumCallbacks ()
-{
-    ncallbacks = 0;
-}
-
-int getNumCallbacks ()
-{
-    return ncallbacks;
-}
-#endif
 
 }}

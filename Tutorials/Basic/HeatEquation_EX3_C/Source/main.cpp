@@ -11,9 +11,9 @@ using namespace amrex;
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
-    
+
     main_main();
-    
+
     amrex::Finalize();
     return 0;
 }
@@ -33,7 +33,7 @@ void main_main ()
         // ParmParse is way of reading inputs from the inputs file
         ParmParse pp;
 
-        // We need to get n_cell from the inputs file - this is the number of cells on each side of 
+        // We need to get n_cell from the inputs file - this is the number of cells on each side of
         //   a square (or cubic) domain.
         pp.get("n_cell",n_cell);
 
@@ -83,15 +83,15 @@ void main_main ()
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     }
 
-    // Nghost = number of ghost cells for each array 
+    // Nghost = number of ghost cells for each array
     int Nghost = 1;
-    
+
     // Ncomp = number of components for each array
     int Ncomp  = 1;
 
     // time = starting time in the simulation
     Real time = 0.0;
-  
+
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
@@ -116,13 +116,13 @@ void main_main ()
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
-            
+
             // lo-side BCs
             if (bc_lo[idim] == INT_DIR) {
                 bc[n].setLo(idim, BCType::int_dir);  // periodic uses "internal Dirichlet"
             }
             else if (bc_lo[idim] == FOEXTRAP) {
-                bc[n].setLo(idim, BCType::foextrap); // first-order extrapolation 
+                bc[n].setLo(idim, BCType::foextrap); // first-order extrapolation
             }
             else if (bc_lo[idim] == EXT_DIR) {
                 bc[n].setLo(idim, BCType::ext_dir);  // external Dirichlet
@@ -171,10 +171,10 @@ void main_main ()
     {
         MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
 
-        // new_phi = (I-dt)^{-1} * old_phi + dt 
-	advance(phi_old, phi_new, dt, geom, ba, dm, bc); 
+        // new_phi = (I-dt)^{-1} * old_phi + dt
+        advance(phi_old, phi_new, dt, geom, ba, dm, bc);
         time = time + dt;
-        
+
         // Tell the I/O Processor to write out which step we're doing
         amrex::Print() << "Advanced step " << n << "\n";
 

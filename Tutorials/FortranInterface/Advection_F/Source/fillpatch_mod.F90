@@ -18,7 +18,7 @@ contains
     integer, intent(in) :: lev
     real(amrex_real), intent(in) :: time
     type(amrex_multifab), intent(inout) :: phi
-    
+
     integer, parameter :: src_comp=1, dst_comp=1, num_comp=1  ! for this test code
 
     if (lev .eq. 0) then
@@ -48,7 +48,7 @@ contains
     type(amrex_multifab), intent(inout) :: phi
 
     integer, parameter :: src_comp=1, dst_comp=1, num_comp=1  ! for this test code
-    
+
     call amrex_fillcoarsepatch(phi, t_old(lev-1), phi_old(lev-1),  &
          &                          t_new(lev-1), phi_new(lev-1),  &
          &                     amrex_geom(lev-1),    fill_physbc,  &
@@ -97,7 +97,7 @@ contains
        !$omp end parallel
 
     end if
- 
+
   end subroutine fill_physbc
 
 end module fillpatch_module

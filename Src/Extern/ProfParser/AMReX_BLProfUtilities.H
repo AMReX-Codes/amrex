@@ -40,17 +40,17 @@
 namespace amrex{
 
 // --------------------------------------------------------------------
-std::string SanitizeName(const std::string &sname); 
+std::string SanitizeName(const std::string &sname);
 void SimpleRemoveOverlap(BoxArray &ba);
 void avgDown_doit(const FArrayBox &fine_fab, FArrayBox &crse_fab,
                   const Box &ovlp, int scomp, int dcomp, int ncomp,
-		  Vector<int> &ratio);
+                  Vector<int> &ratio);
 Box FixCoarseBoxSize(const Box &fineBox, int rr);
 void avgDown(MultiFab &S_crse, MultiFab &S_fine, int scomp, int dcomp,
              int ncomp, Vector<int> &ratio);
 void PrintTimeRangeList(const std::list<RegionsProfStats::TimeRange> &trList);
 void RedistFiles();
-int NHops(const Box &tbox, const IntVect &ivfrom, const IntVect &ivto); 
+int NHops(const Box &tbox, const IntVect &ivfrom, const IntVect &ivto);
 void Write2DFab(const string &filenameprefix, const int xdim, const int ydim,
                 const double *data);
 void Write2DText(const string &filenameprefix, const int xdim, const int ydim,
@@ -62,16 +62,16 @@ void WriteFab(const string &filenameprefix, const int xdim, const int ydim,
 long FileSize(const std::string &filename);
 void MakeFuncPctTimesMF(const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
                         const Vector<std::string> &blpFNames,
-			const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
-			Real runTime, int dataNProcs);
+                        const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
+                        Real runTime, int dataNProcs);
 void CollectMProfStats(std::map<std::string, BLProfiler::ProfStats> &mProfStats,
                        const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
                        const Vector<std::string> &fNames,
-		       Real runTime, int whichProc);
+                       Real runTime, int whichProc);
 void GraphTopPct(const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
                  const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
                  const Vector<std::string> &fNames,
-		 Real runTime, int dataNProcs, Real gPercent);
+                 Real runTime, int dataNProcs, Real gPercent);
 }
 // ----------------------------------------------------------------------
 // ----------------------------------------------------------------------

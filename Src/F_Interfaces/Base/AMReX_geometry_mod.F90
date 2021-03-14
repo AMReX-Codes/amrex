@@ -16,7 +16,7 @@ module amrex_geometry_module
   public :: amrex_is_periodic, amrex_is_any_periodic, amrex_is_all_periodic
   public :: amrex_geometry_finalize
 
-  logical, save :: amrex_pmask(3)  = .false.  
+  logical, save :: amrex_pmask(3)  = .false.
   real(amrex_real), save :: amrex_problo(3) = 0.0_amrex_real
   real(amrex_real), save :: amrex_probhi(3) = 1.0_amrex_real
 
@@ -198,5 +198,5 @@ contains
        ploc(i) = amrex_problo(i) + (iloc(i) - this%domain%lo(i)) * this%dx(i)
     end do
   end function amrex_geometry_get_ploc
-    
+
 end module amrex_geometry_module

@@ -164,7 +164,7 @@ namespace Gpu {
     struct StreamItInfo
     {
         bool device_sync;
-        StreamItInfo () noexcept 
+        StreamItInfo () noexcept
             : device_sync(true) {}
         StreamItInfo& DisableDeviceSync () noexcept {
             device_sync = false;

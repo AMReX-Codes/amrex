@@ -119,7 +119,7 @@ public:
   AMREX_GPU_HOST_DEVICE
   inline
   Real* begin () noexcept { return vect; }
-  
+
   ///
   /**
      Return pointer to the first component.
@@ -127,7 +127,7 @@ public:
   AMREX_GPU_HOST_DEVICE
   inline
   const Real* begin () const noexcept { return vect; }
-  
+
   ///
   /**
      Return pointer to the one past last component
@@ -135,7 +135,7 @@ public:
   AMREX_GPU_HOST_DEVICE
   inline
   Real* end () noexcept { return vect + AMREX_SPACEDIM; }
-  
+
   ///
   /**
      Return pointer to the one past last component
@@ -143,7 +143,7 @@ public:
   AMREX_GPU_HOST_DEVICE
   inline
   const Real* end () const noexcept { return vect + AMREX_SPACEDIM; }
-  
+
   /*@}*/
 
   /**
@@ -349,7 +349,7 @@ public:
 
   ///
   /**
-     Returns an IntVect whose components are the std::floor of the RealVect 
+     Returns an IntVect whose components are the std::floor of the RealVect
      components.
   */
   AMREX_GPU_HOST_DEVICE inline
@@ -357,7 +357,7 @@ public:
 
   ///
   /**
-     Returns an IntVect whose components are the std::floor of the RealVect 
+     Returns an IntVect whose components are the std::floor of the RealVect
      components.
   */
   AMREX_GPU_HOST_DEVICE inline
@@ -365,7 +365,7 @@ public:
 
   ///
   /**
-     Returns an IntVect whose components are the std::floor of the RealVect 
+     Returns an IntVect whose components are the std::floor of the RealVect
      components.
   */
   AMREX_GPU_HOST_DEVICE inline

@@ -111,10 +111,10 @@ the :cpp:`AmrLevelAdv` class, e.g.,
         for (int i = 0; i < BL_SPACEDIM; ++i) {
         lo_bc[i] = hi_bc[i] = INT_DIR;   // periodic boundaries
         }
-        
+
         BCRec bc(lo_bc, hi_bc);
 
-        desc_lst.setComponent(Phi_Type, 0, "phi", bc, 
+        desc_lst.setComponent(Phi_Type, 0, "phi", bc,
                   StateDescriptor::BndryFunc(nullfill));
     }
 
@@ -168,7 +168,7 @@ The figure above shows the :ref:`fig:AmrAdvection_AmrLevel_flowchart`
     main()
       Amr amr;
       amr.init()
-      loop { 
+      loop {
         amr.coarseTimeStep()
           /* compute dt */
           timeStep()

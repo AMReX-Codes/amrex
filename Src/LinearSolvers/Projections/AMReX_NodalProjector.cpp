@@ -293,7 +293,7 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
         MultiFab::Add( *m_vel[lev], m_fluxes[lev], 0, 0, AMREX_SPACEDIM, 0);
 
         // set m_fluxes = grad(phi)
-	m_linop->compGrad(lev,m_fluxes[lev],m_phi[lev]);
+        m_linop->compGrad(lev,m_fluxes[lev],m_phi[lev]);
     }
 
     //

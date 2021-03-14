@@ -15,7 +15,7 @@ contains
     integer, intent(in) :: i,j,k
     real(rt), intent(in) :: rho, u, v, w, p, axm, axp, aym, ayp, azm, azp
     real(rt), intent(out) :: divw(5)
-    
+
     real(rt) :: apnorm, apnorminv, anrmx, anrmy, anrmz, un
     real(rt) :: flux(1,1,1,5)
 

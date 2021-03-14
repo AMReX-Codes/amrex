@@ -10,8 +10,8 @@
 !! \param domlo,domhi  => index extent of problem domain
 !! \param dx           => cell spacing
 !! \param xlo          => physical location of lower left hand
-!!	              corner of q array
-!! \param bc	   => array of boundary flags bc(SPACEDIM,lo:hi)
+!!                        corner of q array
+!! \param bc           => array of boundary flags bc(SPACEDIM,lo:hi)
 !!
 !! NOTE: all corner as well as edge data is filled if not EXT_DIR
 ! -----------------------------------------------------------

@@ -60,7 +60,7 @@ contains
     call amrex_fi_init(cmd_string%data, amrex_parallel_communicator(), l_arg_parmparse, cfp)
     initialized = .true.
   end subroutine amrex_init
-  
+
   subroutine amrex_finalize ()
     use amrex_geometry_module, only: amrex_geometry_finalize
     interface

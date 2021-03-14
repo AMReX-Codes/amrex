@@ -36,9 +36,9 @@ public:
     * 2 means iterations exceeded
     */
     int solve (MultiFab&       solnL,
-	       const MultiFab& rhsL,
-	       Real            eps_rel,
-	       Real            eps_abs);
+               const MultiFab& rhsL,
+               Real            eps_rel,
+               Real            eps_abs);
 
     void setVerbose (int _verbose) { verbose = _verbose; }
     int getVerbose () const { return verbose; }
@@ -48,7 +48,7 @@ public:
 
     void setNGhost(int _nghost) {nghost = _nghost;}
     int getNGhost() {return nghost;}
-    
+
     Real dotxy (const MultiFab& r, const MultiFab& z, bool local = false);
     Real norm_inf (const MultiFab& res, bool local = false);
     int solve_bicgstab (MultiFab&       solnL,

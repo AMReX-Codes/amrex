@@ -63,7 +63,9 @@ function ( generate_config_header )
       PUBLIC
       $<BUILD_INTERFACE:${AMReX_BINARY_DIR}>)
 
-   install(FILES "${AMReX_BINARY_DIR}/AMReX_Config.H" DESTINATION include)
+   if(AMReX_INSTALL)
+      install(FILES "${AMReX_BINARY_DIR}/AMReX_Config.H" DESTINATION include)
+   endif()
 
 endfunction ()
 
@@ -77,24 +79,28 @@ endfunction ()
 #
 # Arguments:
 #
-#    _new_define   = variable containing the definition to add.
-#                    The new define can be any string with no "-D" prepended.
-#                    If the new define is in the form AMREX_SOMENAME,
-#                    this function also adds BL_SOMENAME to the list,
-#                    unless NO_LEGACY is specified (see below)
+#    _new_define       = variable containing the definition to add.
+#                        The new define can be any string with no "-D" prepended.
+#                        If the new define is in the form AMREX_SOMENAME,
+#                        this function also adds BL_SOMENAME to the list,
+#                        unless NO_LEGACY is specified (see below)
 #
-#    NO_LEGACY     = if specified, the legacy version of a new_define given in the
-#                    form AMREX_SOMENAME will not be added.
+#    NO_LEGACY         = if specified, the legacy version of a new_define given in the
+#                        form AMREX_SOMENAME will not be added.
 #
-#    IF <cond-var> = new_define is added only if <cond-var> is true
+#    IF <cond-var>     = new_define is added only if <cond-var> is true
 #
+#    IF_NOT <cond-var> = new_define is added only if <cond-var> is false
 #
 function ( add_amrex_define _new_define )
 
-   cmake_parse_arguments( "" "NO_LEGACY" "IF" ""  ${ARGN} )
+   cmake_parse_arguments( "" "NO_LEGACY" "IF;IF_NOT" ""  ${ARGN} )
 
-   # Return if flags does not need to be included
-   if (_IF AND NOT ${_IF})
+   if (NOT ${_IF})
+      return()
+   endif ()
+
+   if (${_IF_NOT})
       return()
    endif ()
 

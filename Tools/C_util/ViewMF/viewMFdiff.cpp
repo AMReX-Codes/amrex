@@ -8,7 +8,7 @@
 #include <MFNorm.H>
 
 static
-void 
+void
 PrintUsage(int argc, char *argv[])
 {
     std::cout << "Usage: " << std::endl;
@@ -28,15 +28,15 @@ PrintUsage(int argc, char *argv[])
 
 
 int main (int   argc,
-	  char* argv[])
+          char* argv[])
 {
     amrex::Initialize(argc,argv);
 
     ParmParse pp;
-    
+
     if (pp.contains("help"))
         PrintUsage(argc, argv);
-    
+
     std::string iFile0;
     std::string iFile1;
 
@@ -54,7 +54,7 @@ int main (int   argc,
 
     int nComp = -1;
     pp.query("ncomp", nComp);
-    
+
     int ngrow = 0;
     pp.query("ngrow",ngrow);
     BL_ASSERT(ngrow>=0);
@@ -81,7 +81,7 @@ int main (int   argc,
             common_bl.join(BoxList(amrex::intersect(mf1.boxArray(), mf0.boxArray()[i])));
         compBoxes = BoxArray(common_bl);
     }
-    
+
     if (ngrow != std::min(ngrow,mf0.nGrow()))
     {
         amrex::Warning("Shrinking ngrow to that available in mfab0");
@@ -103,10 +103,10 @@ int main (int   argc,
 
     if (mf0.nComp() < comp0 + nComp  || mf1.nComp() < comp1 + nComp)
     {
-	std::cerr << "nComp's incompatible" << std::endl;
-        std::cerr << "(need,have): (" << comp0 + nComp << "," << mf0.nComp() 
+        std::cerr << "nComp's incompatible" << std::endl;
+        std::cerr << "(need,have): (" << comp0 + nComp << "," << mf0.nComp()
              << "), (" << comp1 + nComp << "," << mf1.nComp() << ")" << std::endl;
-	return 0;
+        return 0;
     }
 
     //
@@ -118,7 +118,7 @@ int main (int   argc,
     {
         fabs.set(i,new FArrayBox(compBoxes[i],nComp));
         fabs[i].setVal(0.0);
-    
+
         for (MFIter mf0_mfi(mf0); mf0_mfi.isValid(); ++mf0_mfi)
         {
             const Box& box = amrex::grow(mf0_mfi.validbox(),ngrow) & fabs[i].box();
@@ -147,26 +147,26 @@ int main (int   argc,
 
     if(ParallelDescriptor::IOProcessor())
     {
-	std::cout << "Norms of diff (0,1,2): "
-	     << norm0 << ", " << norm1 << ", " << norm2 << std::endl;
+        std::cout << "Norms of diff (0,1,2): "
+             << norm0 << ", " << norm1 << ", " << norm2 << std::endl;
     }
-    
+
     if (!outfile.empty())
     {
-	writeMF(&diffmfab,outfile.c_str());
-	return 1;
+        writeMF(&diffmfab,outfile.c_str());
+        return 1;
 
     } else {
 
-	if (norm0 == 0 && norm1 == 0 && norm2 == 0)
-	{
-	    std::cout << "MultiFabs equal!" << std::endl;
-	    return 1;
+        if (norm0 == 0 && norm1 == 0 && norm2 == 0)
+        {
+            std::cout << "MultiFabs equal!" << std::endl;
+            return 1;
 
-	} else {
-	    
-	    return ArrayViewMultiFab(&diffmfab);
-	}
+        } else {
+
+            return ArrayViewMultiFab(&diffmfab);
+        }
     }
 
     amrex::Finalize();

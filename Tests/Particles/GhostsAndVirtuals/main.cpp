@@ -53,8 +53,8 @@ void test_ghosts_and_virtuals (TestParams& parms)
     Vector<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, CoordSys::cartesian, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
-	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
-			 &real_box, CoordSys::cartesian, is_per);
+        geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
+                         &real_box, CoordSys::cartesian, is_per);
     }
 
     Vector<BoxArray> ba(nlevs);
@@ -88,7 +88,7 @@ void test_ghosts_and_virtuals (TestParams& parms)
     bool serialize = true;
     int iseed = 451;
     Real mass = 10.0;
-    MyParticleContainer::ParticleInitData pdata = {mass};
+    MyParticleContainer::ParticleInitData pdata = {{},{}, mass};
 
     myPC.InitRandom(num_particles, iseed, pdata, serialize);
 

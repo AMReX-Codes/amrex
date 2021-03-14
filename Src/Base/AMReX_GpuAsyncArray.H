@@ -44,7 +44,7 @@ public:
 #endif
     }
 
-    template <typename U = T, typename std::enable_if<std::is_pod<U>::value,int>::type = 0>
+    template <typename U = T, typename std::enable_if<std::is_standard_layout<U>::value && std::is_trivial<U>::value,int>::type = 0>
     explicit AsyncArray (const std::size_t n)
     {
         if (n == 0) return;
@@ -89,12 +89,27 @@ public:
                 AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
                                                            amrex_asyncarray_delete, p, 0));
 #endif
-                Gpu::callbackAdded();
+#elif defined(AMREX_USE_DPCPP)
+#ifdef AMREX_USE_CODEPLAY_HOST_TASK
+                auto pd = d_data;
+                auto ph = h_data;
+                auto& q = *(Gpu::gpuStream().queue);
+                try {
+                    q.submit([&] (sycl::handler& h) {
+                        h.codeplay_host_task([=] () {
+                            The_Arena()->free(pd);
+                            std::free(ph);
+                        });
+                    });
+                } catch (sycl::exception const& ex) {
+                    amrex::Abort(std::string("host_task: ")+ex.what()+"!!!!!");
+                }
 #else
                 // xxxxx DPCPP todo
                 Gpu::streamSynchronize();
                 The_Arena()->free(d_data);
                 std::free(h_data);
+#endif
 #endif
             }
         }

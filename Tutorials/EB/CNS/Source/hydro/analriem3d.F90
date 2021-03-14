@@ -38,7 +38,7 @@ contains
        wr = sqrt(clsqr)
        cleft(i) = wl/rl(i)
        cright(i) = wr/rr(i)
-    
+
        pstar(i) = (wl*pr(i) + wr*pl(i) - wr*wl*(ur(i)-ul(i)))/(wl+wr)
        pstar(i) = max(pstar(i),smallp)
        pstnm1(i) = pstar(i)
@@ -57,7 +57,7 @@ contains
 
     do iter = 1, itno
        do i = lo, hi  ! what changes in the iteration: ustarm, ustarp, pstnm1, pstar, ustar
-          
+
           wlsq = (.5d0*(gamma-1.d0)*(pstar(i)+pl(i))+pstar(i))*rl(i)
           wrsq = (.5d0*(gamma-1.d0)*(pstar(i)+pr(i))+pstar(i))*rr(i)
 
@@ -127,7 +127,7 @@ contains
        frac = 0.5d0*(1.d0+(spin+spout)/max(spout-spin,spin+spout,small*(cleft(i)+cright(i))))
 
        if(spout .lt. 0.d0)then
-          rgdnv = ro 
+          rgdnv = ro
           ugdnv = uo
           pgdnv = po
        elseif(spin .ge. 0.d0)then
@@ -139,7 +139,7 @@ contains
           ugdnv = frac*ustar(i) + (1.d0 - frac)* uo
           pgdnv = frac*pstar(i) + (1.d0 - frac)* po
        endif
-    
+
        flux(i,j,k,1) = rgdnv*ugdnv
        flux(i,j,k,iu) = rgdnv*ugdnv*ugdnv+pgdnv
        flux(i,j,k,iut1) = rgdnv*ugdnv*utrans1

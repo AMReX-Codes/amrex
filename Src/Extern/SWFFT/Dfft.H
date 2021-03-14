@@ -42,8 +42,8 @@
  * *****************************************************************************
  *                                DISCLAIMER
  * THE SOFTWARE IS SUPPLIED "AS IS" WITHOUT WARRANTY OF ANY KIND. NEITHER THE
- * UNITED STATES GOVERNMENT, NOR THE UNITED STATES DEPARTMENT OF ENERGY, NOR 
- * UCHICAGO ARGONNE, LLC, NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY, 
+ * UNITED STATES GOVERNMENT, NOR THE UNITED STATES DEPARTMENT OF ENERGY, NOR
+ * UCHICAGO ARGONNE, LLC, NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY,
  * EXPRESS OR IMPLIED, OR ASSUMES ANY LEGAL LIABILITY OR RESPONSIBILITY FOR THE
  * ACCURARY, COMPLETENESS, OR USEFULNESS OF ANY INFORMATION, DATA, APPARATUS,
  * PRODUCT, OR PROCESS DISCLOSED, OR REPRESENTS THAT ITS USE WOULD NOT INFRINGE
@@ -88,7 +88,7 @@ class Dfft {
 
 public:
 
-  // 
+  //
   int global_ng(int i) const { return d.global_ng(i); }
   int const (& global_ng() const)[3] { return d.global_ng(); }
   size_t global_size() const { return d.global_size(); }
@@ -96,7 +96,7 @@ public:
 
 
 
-  // 
+  //
   size_t local_size() const { return d.local_size(); }
 
 
@@ -256,7 +256,7 @@ public:
     // copy from overloaded in to m_fo
     const int *local_dim_r = local_ng_rspace();
     int indexc = 0;
-    int indexf = ghost0*(ghost0 + local_dim_r[2] + ghost1)*(ghost0 + local_dim_r[1] + ghost1);    
+    int indexf = ghost0*(ghost0 + local_dim_r[2] + ghost1)*(ghost0 + local_dim_r[1] + ghost1);
     for(int local_r0=0; local_r0 < local_dim_r[0]; ++local_r0) {
       indexf += ghost0*(ghost0 + local_dim_r[2] + ghost1);
       for(int local_r1=0; local_r1 < local_dim_r[1]; ++local_r1) {
@@ -455,11 +455,11 @@ public:
        unsigned int flags = FFTW_MEASURE)
     : d(dist), PlansMade(false)
   {
-    makePlans(forward_output, 
-	      forward_scratch, 
-	      backward_input,
-	      backward_scratch,
-	      flags);
+    makePlans(forward_output,
+              forward_scratch,
+              backward_input,
+              backward_scratch,
+              flags);
   }
 
 
@@ -476,14 +476,14 @@ public:
 
   // FFTW_MEASURE = 0
   void makePlans(complex_t *forward_output,
-		 complex_t *forward_scratch,
-		 complex_t *backward_input,
-		 complex_t *backward_scratch,
-		 unsigned int flags = FFTW_MEASURE)
+                 complex_t *forward_scratch,
+                 complex_t *backward_input,
+                 complex_t *backward_scratch,
+                 unsigned int flags = FFTW_MEASURE)
   {
-    if(forward_output == forward_scratch) 
+    if(forward_output == forward_scratch)
       Error() << "Dfft::setBuffers() forward_output == forward_scratch";
-    if(backward_input == backward_scratch) 
+    if(backward_input == backward_scratch)
       Error() << "Dfft::setBuffers() backward_input == backward_scratch";
 
     m_fo = forward_output;
@@ -497,8 +497,8 @@ public:
 
     // fs --> fo
     m_plan_f_x = fftw_plan_many_dft(1, // rank
-				    &(d.m_d.process_topology_2_x.n[0]), // const int *n,
-				    d.m_d.process_topology_2_x.n[1] * d.m_d.process_topology_2_x.n[2], // howmany
+                                    &(d.m_d.process_topology_2_x.n[0]), // const int *n,
+                                    d.m_d.process_topology_2_x.n[1] * d.m_d.process_topology_2_x.n[2], // howmany
                                     FFTW_ADDR(m_fs),
                                     NULL, // const int *inembed,
                                     1, // int istride,

@@ -64,12 +64,12 @@ contains
              pl(i) = max(pl(i),smallp)
              ut1l(i) = q(i-1,j,k,QV) + 0.5d0 * dq(i-1,j,k,4)
              ut2l(i) = q(i-1,j,k,Qw) + 0.5d0 * dq(i-1,j,k,5)
-             
+
              cspeed = q(i,j,k,QC)
              rr(i) = q(i,j,k,QRHO) - 0.5d0 * ( (dq(i,j,k,1)+dq(i,j,k,3))/cspeed + dq(i,j,k,2))
              rr(i) = max(rr(i),smallr)
              ur(i) = q(i,j,k,QU) - 0.5d0 * ( (dq(i,j,k,3)-dq(i,j,k,1))/q(i,j,k,QRHO))
-             pr(i) = q(i,j,k,QP) - 0.5d0 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed 
+             pr(i) = q(i,j,k,QP) - 0.5d0 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed
              pr(i) = max(pr(i),smallp)
              ut1r(i) = q(i,j,k,QV) - 0.5d0 * dq(i,j,k,4)
              ut2r(i) = q(i,j,k,Qw) - 0.5d0 *  dq(i,j,k,5)
@@ -100,16 +100,16 @@ contains
              rl(i) = q(i,j-1,k,QRHO) + 0.5d0 * ( (dq(i,j-1,k,1)+dq(i,j-1,k,3))/cspeed + dq(i,j-1,k,2))
              rl(i) = max(rl(i),smallr)
              ul(i) = q(i,j-1,k,QV) + 0.5d0 * ( (dq(i,j-1,k,3)-dq(i,j-1,k,1))/q(i,j-1,k,QRHO))
-             pl(i) = q(i,j-1,k,QP) + 0.5d0 *  (dq(i,j-1,k,1)+dq(i,j-1,k,3))*cspeed 
+             pl(i) = q(i,j-1,k,QP) + 0.5d0 *  (dq(i,j-1,k,1)+dq(i,j-1,k,3))*cspeed
              pl(i) = max(pl(i),smallp)
              ut1l(i) = q(i,j-1,k,QU) + 0.5d0 * dq(i,j-1,k,4)
              ut2l(i) = q(i,j-1,k,Qw) + 0.5d0 * dq(i,j-1,k,5)
-             
+
              cspeed = q(i,j,k,QC)
              rr(i) = q(i,j,k,QRHO) - 0.5d0 * ( (dq(i,j,k,1)+dq(i,j,k,3))/cspeed + dq(i,j,k,2))
              rr(i) = max(rr(i),smallr)
              ur(i) = q(i,j,k,QV) - 0.5d0 * ( (dq(i,j,k,3)-dq(i,j,k,1))/q(i,j,k,QRHO))
-             pr(i) = q(i,j,k,QP) - 0.5d0 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed 
+             pr(i) = q(i,j,k,QP) - 0.5d0 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed
              pr(i) = max(pr(i),smallp)
              ut1r(i) = q(i,j,k,QU) - 0.5d0 * dq(i,j,k,4)
              ut2r(i) = q(i,j,k,Qw) - 0.5d0 *  dq(i,j,k,5)
@@ -122,14 +122,14 @@ contains
        enddo
     enddo
     call bl_proffortfuncstop_int(3)
-     
+
     call bl_proffortfuncstart_int(4)
     call slopez(q,qd_lo,qd_hi, &
          dq,qtlo,qthi, &
          lo(1),lo(2),lo(3),   &
          hi(1),hi(2),hi(3),QVAR)
     call bl_proffortfuncstop_int(4)
-    
+
     call bl_proffortfuncstart_int(5)
     do       k = lo(3), hi(3)+1
        do    j = lo(2), hi(2)
@@ -139,7 +139,7 @@ contains
              rl(i) = q(i,j,k-1,QRHO) + 0.5d0 * ( (dq(i,j,k-1,1)+dq(i,j,k-1,3))/cspeed + dq(i,j,k-1,2))
              rl(i) = max(rl(i),smallr)
              ul(i) = q(i,j,k-1,QW) + 0.5d0 * ( (dq(i,j,k-1,3)-dq(i,j,k-1,1))/q(i,j,k-1,QRHO))
-             pl(i) = q(i,j,k-1,QP) + 0.5d0 *  (dq(i,j,k-1,1)+dq(i,j,k-1,3))*cspeed 
+             pl(i) = q(i,j,k-1,QP) + 0.5d0 *  (dq(i,j,k-1,1)+dq(i,j,k-1,3))*cspeed
              pl(i) = max(pl(i),smallp)
              ut1l(i) = q(i,j,k-1,QU) + 0.5d0 * dq(i,j,k-1,4)
              ut2l(i) = q(i,j,k-1,QV) + 0.5d0 * dq(i,j,k-1,5)
@@ -148,12 +148,12 @@ contains
              rr(i) = q(i,j,k,QRHO) - 0.5d0 * ( (dq(i,j,k,1)+dq(i,j,k,3))/cspeed + dq(i,j,k,2))
              rr(i) = max(rr(i),smallr)
              ur(i) = q(i,j,k,QW) - 0.5d0 * ( (dq(i,j,k,3)-dq(i,j,k,1))/q(i,j,k,QRHO))
-             pr(i) = q(i,j,k,QP) - 0.5d0 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed 
+             pr(i) = q(i,j,k,QP) - 0.5d0 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed
              pr(i) = max(pr(i),smallp)
              ut1r(i) = q(i,j,k,QU) - 0.5d0 * dq(i,j,k,4)
              ut2r(i) = q(i,j,k,QV) - 0.5d0 *  dq(i,j,k,5)
           end do
-          
+
           call analriem(gamma, smallp, smallr, lo(1), hi(1), j, k, &
                rl, ul, pl, ut1l, ut2l, &
                rr, ur, pr, ut1r, ut2r, &

@@ -12,30 +12,30 @@ contains
 
 #define IX_PROJ(A,B) (A+B*iabs(A))/B-iabs(A)
 
-! ::: 
+! :::
 ! ::: --------------------------------------------------------------
 ! ::: cbinterp:  cell centered bilinear interpolation
-! ::: 
+! :::
 ! ::: NOTE: it is assumed that the coarse grid array is
 ! ::: large enough to define interpolated values
 ! ::: in the region fblo:fbhi on the fine grid
-! ::: 
+! :::
 ! ::: Inputs/Outputs
 ! ::: fine        <=>  (modify) fine grid array
 ! ::: fine_l1,fine_l2,fine_h1,fine_h2   =>  (const)  index limits of fine grid
 ! ::: fb_l1,fb_l2,fb_h1,fb_h2     =>  (const)  subregion of fine grid to get values
-! ::: 
-! ::: crse         =>  (const)  coarse grid data 
+! :::
+! ::: crse         =>  (const)  coarse grid data
 ! ::: crse_l1,crse_l2,crse_h1,crse_h2   =>  (const)  index limits of coarse grid
-! ::: 
+! :::
 ! ::: lratio(2)    =>  (const)  refinement ratio between levels
 ! ::: nvar         =>  (const)  number of components in array
-! ::: 
+! :::
 ! ::: TEMPORARY ARRAYS
 ! ::: slx,sly,slxy =>  1-D slope arrays
 ! ::: strip        =>  1-D temp array
 ! ::: --------------------------------------------------------------
-! ::: 
+! :::
     subroutine AMREX_CBINTERP (crse, crse_l1,crse_l2,crse_h1,crse_h2, cb_l1,cb_l2,cb_h1,cb_h2, &
                               fine, fine_l1,fine_l2,fine_h1,fine_h2, fb_l1,fb_l2,fb_h1,fb_h2, &
                               lratiox, lratioy, nvar, &
@@ -68,8 +68,8 @@ contains
       hraty = lratioy/2
 
       do n = 1, nvar
-         do jc = cb_l2, cb_h2-1 
-            do ly = 0, lratioy-1 
+         do jc = cb_l2, cb_h2-1
+            do ly = 0, lratioy-1
                jfn = jc*lratioy + ly
                jfc = jfn + hraty
                if (jfc .ge. fb_l2  .and.  jfc .le. fb_h2) then
@@ -83,7 +83,7 @@ contains
                         strip(i) = XB + y*(XT - XB)
                      end do
                   end do
-                  do i = fb_l1, fb_h1 
+                  do i = fb_l1, fb_h1
                      fine(i,jfc,n) = strip(i-hratx)
                   end do
                end if
@@ -93,15 +93,15 @@ contains
 
     end subroutine AMREX_CBINTERP
 
-! ::: 
+! :::
 ! ::: --------------------------------------------------------------
 ! ::: cqinterp:  cell-centered quadratic interpolation
-! ::: 
+! :::
 ! ::: NOTE: it is assumed that the coarse grid array is
 ! ::: large enough to define interpolated values
 ! ::: in the region fblo:fbhi on the fine grid
-! ::: 
-! ::: 
+! :::
+! :::
 
      subroutine AMREX_CQINTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, &
                                fb_l1, fb_l2, fb_h1, fb_h2, &
@@ -159,23 +159,23 @@ contains
       jst = ncsx
       jslo = cb_l2-1
 
-      do i = fb_l1, fb_h1 
+      do i = fb_l1, fb_h1
          fn = i-fslo(1)+1
          ic = IX_PROJ(i,lratiox)
          fcen = half*(fvcx(i)+fvcx(i+1))
          ccen = half*(cvcx(ic)+cvcx(ic+1))
          voff(fn) = (fcen-ccen)/(cvcx(ic+1)-cvcx(ic))
-      end do   
+      end do
 
-      do n = 1, nvar 
-        do i = clo, chi 
+      do n = 1, nvar
+        do i = clo, chi
           crse(i,n) = merge(crse(i,n),zero,abs(crse(i,n)).gt.1.0d-50)
         end do
       end do
 
-      do 290 n = 1, nvar 
+      do 290 n = 1, nvar
 
-            do i = 1, clen 
+            do i = 1, clen
                cen = half*(crse(i+ist,n)-crse(i-ist,n))
                diffxy = fourth*(crse(i+ist+jst,n)+crse(i-ist-jst,n) &
                                -crse(i-ist+jst,n)-crse(i+ist-jst,n))
@@ -186,7 +186,7 @@ contains
             end do
             if (xok) then
                if (bclo(1,n) .eq. amrex_bc_ext_dir .or. bclo(1,n).eq.amrex_bc_hoextrap) then
-                  do i = 1, clen, jst 
+                  do i = 1, clen, jst
                      cen  = -sixteen/fifteen*crse(i-ist,n) + half*crse(i,n) &
                           + two3rd*crse(i+ist,n) - tenth*crse(i+2*ist,n)
                      cslope(i,1)=cen
@@ -195,7 +195,7 @@ contains
                   end do
                end if
                if (bchi(1,n) .eq. amrex_bc_ext_dir .or. bchi(1,n).eq.amrex_bc_hoextrap) then
-                  do i = ncbx, clen, jst 
+                  do i = ncbx, clen, jst
                      cen = sixteen/fifteen*crse(i+ist,n) - half*crse(i,n) &
                           - two3rd*crse(i-ist,n) + tenth*crse(i-2*ist,n)
                      cslope(i,1)=cen
@@ -205,7 +205,7 @@ contains
                end if
             end if
 
-            do i = 1, clen 
+            do i = 1, clen
                cen  = half*(crse(i+jst,n)-crse(i-jst,n))
                diffyy = crse(i+jst,n)-two*crse(i,n)+crse(i-jst,n)
                cslope(i,2)=cen
@@ -213,7 +213,7 @@ contains
             end do
             if (yok) then
                if (bclo(2,n) .eq. amrex_bc_ext_dir .or. bclo(2,n).eq.amrex_bc_hoextrap) then
-                  do i = 1, ncbx 
+                  do i = 1, ncbx
                      cen  = -sixteen/fifteen*crse(i-jst,n) + half*crse(i,n) &
                           + two3rd*crse(i+jst,n) - tenth*crse(i+2*jst,n)
                      cslope(i,2)=cen
@@ -222,7 +222,7 @@ contains
                   end do
                end if
                if (bchi(2,n) .eq. amrex_bc_ext_dir .or. bchi(2,n).eq.amrex_bc_hoextrap) then
-                  do i = clen-ncbx,clen 
+                  do i = clen-ncbx,clen
                      cen = sixteen/fifteen*crse(i+jst,n) - half*crse(i,n) &
                           - two3rd*crse(i-jst,n) + tenth*crse(i-2*jst,n)
                      cslope(i,2)=cen
@@ -232,12 +232,12 @@ contains
                end if
             end if
 
-            do 360 jc = cb_l2, cb_h2 
-               do 370 ioff = 1, lratiox 
+            do 360 jc = cb_l2, cb_h2
+               do 370 ioff = 1, lratiox
                   icc = clo + ist + jst*(jc-jslo)
                   istart = ioff
                   iend = ioff + (ncbx-1)*lratiox
-                  do 380 fn = istart, iend, lratiox 
+                  do 380 fn = istart, iend, lratiox
                      fslope(fn,1) = cslope(icc,1)
                      fslope(fn,2) = cslope(icc,2)
                      fslope(fn,3) = cslope(icc,3)
@@ -248,14 +248,14 @@ contains
 380               continue
 370            continue
 
-               do 390 joff = 0, lratioy-1 
+               do 390 joff = 0, lratioy-1
                   j = lratioy*jc + joff
                   if ((j.lt.fb_l2).or.(j.gt.fb_h2)) goto 390
                   fcen = half*(fvcy(j)+fvcy(j+1))
                   ccen = half*(cvcy(jc)+cvcy(jc+1))
                   yoff = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
 
-                  do 400 i = fb_l1, fb_h1 
+                  do 400 i = fb_l1, fb_h1
                      fn = i-fslo(1)+1
                      fine(i,j,n) = fdat(fn) &
                           + voff(fn)              *fslope(fn,1) &
@@ -271,12 +271,12 @@ contains
 
     end subroutine AMREX_CQINTERP
 
-! ::: 
+! :::
 ! ::: --------------------------------------------------------------
 ! ::: protect_interp:   redo interpolation if the result of linccinterp
 ! ::: generates under- or overshoots.
-! ::: 
-! ::: 
+! :::
+! :::
 ! ::: Inputs/Outputs
 ! ::: fine        <=>  (modify) fine grid array
 ! ::: flo,fhi      =>  (const)  index limits of fine grid
@@ -284,12 +284,12 @@ contains
 ! ::: cblo,cbhi    =>  (const)  coarse equivalent of fblo,fbhi
 ! ::: nvar         =>  (const)  number of variables in state vector
 ! ::: lratio(3)    =>  (const)  refinement ratio between levels
-! ::: 
+! :::
 ! ::: crse         =>  (const)  coarse grid data widended by 1 zone
 ! ::: clo,chi      =>  (const)  index limits of crse grid
 ! :::
 ! ::: --------------------------------------------------------------
-! ::: 
+! :::
 
     subroutine AMREX_PROTECT_INTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, fblo, fbhi, &
                                     crse, crse_l1,crse_l2,crse_h1,crse_h2, cblo, cbhi, &
@@ -356,7 +356,7 @@ contains
 
 ! ****************************************************************************************
 !
-!           If all the fine values are non-negative after the original interpolated 
+!           If all the fine values are non-negative after the original interpolated
 !            correction, then we do nothing here.
 !
 !           If any of the fine values are negative after the original interpolated
@@ -364,7 +364,7 @@ contains
 !
 !           Special cases:
 !
-!             1) Coarse correction > 0, and fine_state has some cells with 
+!             1) Coarse correction > 0, and fine_state has some cells with
 !                negative values which will be filled before adding to the other cells.
 !                Use the correction to bring negative cells to zero, then
 !                distribute the remaining positive proportionally.
@@ -380,7 +380,7 @@ contains
 !                  same negative value as possible.
 !
 !             4) Coarse correction < 0, fine_state has enough
-!                  positive state to absorb it without making any fine 
+!                  positive state to absorb it without making any fine
 !                  cells negative, BUT fine_state+fine is currently negative
 !                  in at least one fine cell.  Here just take a constant percentage
 !                  away from each positive and don't touch the negatives.
@@ -461,7 +461,7 @@ contains
                      enddo
 
                    endif
-            
+
                  endif
 
                if (crseTot .gt. 0.d0 .and. crseTot .lt. abs(sumN)) then
@@ -476,7 +476,7 @@ contains
                    do i = ilo,ihi
                      if (fine_state(i,j,n) .lt. 0.d0) then
                        fine(i,j,n) = alpha * abs(fine_state(i,j,n))
-                     else 
+                     else
                        fine(i,j,n) = 0.d0
                      endif
                    enddo
@@ -504,7 +504,7 @@ contains
                                      .and. (sumP+sumN+crseTot) .gt. 0.d0) then
 !              Here we have enough positive states to absorb all the
 !                negative correction *and* redistribute to make negative cells
-!                positive. 
+!                positive.
 
                    icase = 4
                    alpha = (crseTot + sumN) / sumP
@@ -515,7 +515,7 @@ contains
                         fine(i,j,n) = -fine_state(i,j,n)
                       else
                         fine(i,j,n) = alpha * fine_state(i,j,n)
-                      endif  
+                      endif
                    enddo
                    enddo
 
@@ -524,8 +524,8 @@ contains
                if (crseTot .lt. 0.d0 .and. abs(crseTot) .lt. sumP &
                                      .and. (sumP+sumN+crseTot) .le. 0.d0) then
 !              Here we have enough positive states to absorb all the
-!                negative correction, but not to fix the states already negative. 
-!                We bring all the positive states to zero, and use whatever 
+!                negative correction, but not to fix the states already negative.
+!                We bring all the positive states to zero, and use whatever
 !                remaining positiveness from the states to help the negative states.
 
                    icase = 5
@@ -535,7 +535,7 @@ contains
                    do i = ilo,ihi
                       if (fine_state(i,j,n) .gt. 0.d0) then
                         fine(i,j,n) = -fine_state(i,j,n)
-                      else 
+                      else
                         fine(i,j,n) = alpha * fine_state(i,j,n)
                       endif
                    enddo
@@ -609,30 +609,30 @@ contains
 
     end subroutine AMREX_PROTECT_INTERP
 
-! ::: 
+! :::
 ! ::: --------------------------------------------------------------
 ! ::: quartinterp: quartic conservative interpolation from coarse grid to
 ! ::: subregion of fine grid defined by (fblo,fbhi)
-! ::: 
+! :::
 ! ::: Inputs/Outputs
 ! ::: fine        <=>  (modify) fine grid array
 ! ::: flo,fhi      =>  (const)  index limits of fine grid
 ! ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
 ! ::: nvar         =>  (const)  number of variables in state vector
 ! ::: lratio[xy]   =>  (const)  refinement ratio between levels
-! ::: 
+! :::
 ! ::: crse         =>  (const)  coarse grid data
 ! ::: clo,chi      =>  (const)  index limits of crse grid
 ! ::: cblo,cbhi    =>  (const)  coarse grid region containing fblo,fbhi and widen by 2 or 4 cells
 ! :::
 ! ::: cb2lo,cb2hi  =>  (const)  coarse grid region containing fblo,fbhi
 ! ::: fb2lo,fb2hi  =>  (const)  fine version of cb2. It could be wider than fb
-! ::: 
+! :::
 ! ::: TEMPORARY ARRAYS
 ! ::: ftmp         =>  1-D temp array
 ! ::: ctmp         =>  2-D temp array
 ! ::: --------------------------------------------------------------
-! ::: 
+! :::
      subroutine AMREX_QUARTINTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, &
                                   fblo, fbhi, fb2lo, fb2hi, &
                                   crse, crse_l1,crse_l2,crse_h1,crse_h2, &
@@ -664,7 +664,7 @@ contains
                  0.01171875D0 /
 !       data cR/  0.01171875D0, -0.0859375D0, 0.5d0,  0.0859375D0, &
 !                -0.01171875D0 /
-       
+
        if (lratiox.eq.2 .and. lratioy.eq.2) then
           do n = 1, nvar
              do j = cb2lo(2), cb2hi(2)
@@ -675,7 +675,7 @@ contains
                         +            cL( 1)*crse(i,j+1,n) &
                         +            cL( 2)*crse(i,j+2,n))
                    ctmp(i,1) = 2.d0*crse(i,j,n) - ctmp(i,0)
-!$$$                   ctmp(i,1) = 2.d0*(cR(-2)*crse(i,j-2,n) & 
+!$$$                   ctmp(i,1) = 2.d0*(cR(-2)*crse(i,j-2,n) &
 !$$$                        +            cR(-1)*crse(i,j-1,n) &
 !$$$                        +            cR( 0)*crse(i,j  ,n) &
 !$$$                        +            cR( 1)*crse(i,j+1,n) &
@@ -692,7 +692,7 @@ contains
                               +             cL( 1)*ctmp(i+1,iry) &
                               +             cL( 2)*ctmp(i+2,iry))
                          ftmp(ii+1) = 2.d0*ctmp(i,iry) - ftmp(ii)
-!$$$                         ftmp(ii+1) = 2.d0*(cR(-2)*ctmp(i-2,iry) & 
+!$$$                         ftmp(ii+1) = 2.d0*(cR(-2)*ctmp(i-2,iry) &
 !$$$                              +             cR(-1)*ctmp(i-1,iry) &
 !$$$                              +             cR( 0)*ctmp(i  ,iry) &
 !$$$                              +             cR( 1)*ctmp(i+1,iry) &

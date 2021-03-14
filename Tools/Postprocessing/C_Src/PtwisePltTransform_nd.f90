@@ -19,7 +19,7 @@ contains
     integer :: i, j, k
 
     ! This is an example pointwise transformation
-    ! Here, sIn(i,j,k,1LncIn) contains data from the plotfile, stacked up in the order that the 
+    ! Here, sIn(i,j,k,1LncIn) contains data from the plotfile, stacked up in the order that the
     ! user called the function with.  The output data has (hardwired) ncOut components
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)

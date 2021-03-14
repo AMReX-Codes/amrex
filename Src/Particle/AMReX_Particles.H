@@ -18,6 +18,7 @@
 #include <type_traits>
 #include <random>
 
+#include <AMReX_ParticleContainerBase.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParGDB.H>
 #include <AMReX_REAL.H>
@@ -115,8 +116,6 @@ struct ParticleInitType
     std::array<int,    NArrayInt  > int_array_data;
 };
 
-class ParticleContainerBase {};
-
 /**
  * \brief A distributed container for Particles sorted onto the levels, grids,
  * and tiles of a block-structured AMR hierarachy.
@@ -132,7 +131,7 @@ class ParticleContainerBase {};
  */
 template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
           template<class> class Allocator=DefaultAllocator>
-class ParticleContainer : ParticleContainerBase
+class ParticleContainer : public ParticleContainerBase
 {
 public:
     //! \brief number of extra Real components in the particle struct
@@ -184,10 +183,9 @@ public:
     //!  of a level hierarchy. Must be properly initialized later.
     ParticleContainer ()
       :
+      ParticleContainerBase(),
       h_communicate_real_comp(NArrayReal, true),
       h_communicate_int_comp(NArrayInt, true),
-      m_verbose(0),
-      m_gdb(nullptr),
       m_runtime_comps_defined(false),
       m_num_runtime_real(0),
       m_num_runtime_int(0)
@@ -204,10 +202,9 @@ public:
     //!
     ParticleContainer (ParGDBBase* gdb)
         :
+        ParticleContainerBase(gdb),
         h_communicate_real_comp(NArrayReal, true),
         h_communicate_int_comp(NArrayInt, true),
-	m_verbose(0),
-	m_gdb(gdb),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
@@ -225,19 +222,17 @@ public:
     //! \param A BoxArray, which gives the set of grid boxes
     //!
     ParticleContainer (const Geometry            & geom,
-		       const DistributionMapping & dmap,
-		       const BoxArray            & ba)
-	:
+                       const DistributionMapping & dmap,
+                       const BoxArray            & ba)
+        :
+        ParticleContainerBase(geom, dmap, ba),
         h_communicate_real_comp(NArrayReal, true),
         h_communicate_int_comp(NArrayInt, true),
-        m_verbose(0),
-	m_gdb_object(geom,dmap,ba),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
     {
         Initialize ();
-        m_gdb = & m_gdb_object;
         reserveData();
         resizeData();
     }
@@ -252,20 +247,18 @@ public:
     //! refinement ratio between levels n and n+1
     //!
     ParticleContainer (const Vector<Geometry>            & geom,
-		       const Vector<DistributionMapping> & dmap,
-		       const Vector<BoxArray>            & ba,
-		       const Vector<int>                 & rr)
-	:
+                       const Vector<DistributionMapping> & dmap,
+                       const Vector<BoxArray>            & ba,
+                       const Vector<int>                 & rr)
+        :
+        ParticleContainerBase(geom, dmap, ba, rr),
         h_communicate_real_comp(NArrayReal, true),
         h_communicate_int_comp(NArrayInt, true),
-        m_verbose(0),
-	m_gdb_object(geom,dmap,ba,rr),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
     {
         Initialize ();
-        m_gdb = & m_gdb_object;
         reserveData();
         resizeData();
     }
@@ -279,32 +272,18 @@ public:
     //! refinement ratio between levels n and n+1
     //!
     ParticleContainer (const Vector<Geometry>            & geom,
-		       const Vector<DistributionMapping> & dmap,
-		       const Vector<BoxArray>            & ba,
-		       const Vector<IntVect>             & rr)
-	:
+                       const Vector<DistributionMapping> & dmap,
+                       const Vector<BoxArray>            & ba,
+                       const Vector<IntVect>             & rr)
+        :
+        ParticleContainerBase(geom, dmap, ba, rr),
         h_communicate_real_comp(NArrayReal, true),
         h_communicate_int_comp(NArrayInt, true),
-        m_verbose(0),
-	m_gdb_object(geom,dmap,ba, [&]() -> Vector<int> {
-                Vector<int> ref_ratio;
-                for (int i = 0; i < static_cast<int>(rr.size()); ++i)
-                {
-#if AMREX_SPACEDIM > 1
-                    AMREX_ASSERT(rr[i][0] == rr[i][1]);
-#endif
-#if AMREX_SPACEDIM > 2
-                    AMREX_ASSERT(rr[i][0] == rr[i][2]);
-#endif
-                    ref_ratio.push_back(rr[i][0]);
-                }
-                return ref_ratio;  }() ),
         m_runtime_comps_defined(false),
         m_num_runtime_real(0),
         m_num_runtime_int(0)
     {
         Initialize ();
-        m_gdb = & m_gdb_object;
         reserveData();
         resizeData();
     }
@@ -327,7 +306,7 @@ public:
     //!
     void Define (ParGDBBase* gdb)
     {
-        m_gdb = gdb;
+        this->ParticleContainerBase::Define(gdb);
         reserveData();
         resizeData();
     }
@@ -340,11 +319,10 @@ public:
     //! \param A BoxArray, which gives the set of grid boxes
     //!
     void Define (const Geometry            & geom,
-		 const DistributionMapping & dmap,
-		 const BoxArray            & ba)
+                 const DistributionMapping & dmap,
+                 const BoxArray            & ba)
     {
-        m_gdb_object = ParGDB(geom, dmap, ba);
-        m_gdb = &m_gdb_object;
+        this->ParticleContainerBase::Define(geom, dmap, ba);
         reserveData();
         resizeData();
     }
@@ -359,109 +337,20 @@ public:
     //! refinement ratio between levels n and n+1
     //!
     void Define (const Vector<Geometry>            & geom,
-		 const Vector<DistributionMapping> & dmap,
-		 const Vector<BoxArray>            & ba,
-		 const Vector<int>                 & rr)
+                 const Vector<DistributionMapping> & dmap,
+                 const Vector<BoxArray>            & ba,
+                 const Vector<int>                 & rr)
     {
-	m_gdb_object = ParGDB(geom, dmap, ba, rr);
-	m_gdb = &m_gdb_object;
+        this->ParticleContainerBase::Define(geom, dmap, ba, rr);
         reserveData();
-	resizeData();
+        resizeData();
     }
-
-    //! \brief Set the particle BoxArray. If the container was previously set to
-    //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
-    //! will be broken here.
-    //!
-    //! \param lev The level on which to set the BoxArray.
-    //! \param new_ba The new BoxArray to use.
-    //!
-    void SetParticleBoxArray (int lev, const BoxArray& new_ba)
-    {
-        m_gdb_object = ParGDB(m_gdb->ParticleGeom(), m_gdb->ParticleDistributionMap(),
-                              m_gdb->ParticleBoxArray(), m_gdb->refRatio());
-        m_gdb = &m_gdb_object;
-        m_gdb->SetParticleBoxArray(lev, new_ba);
-    }
-
-    //! \brief Set the particle DistributionMapping. If the container was previously set to
-    //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
-    //! will be broken here.
-    //!
-    //! \param lev The level on which to set the dm.
-    //! \param new_dmap The new DistributionMapping to use.
-    //!
-    void SetParticleDistributionMap (int lev, const DistributionMapping& new_dmap)
-    {
-        m_gdb_object = ParGDB(m_gdb->ParticleGeom(), m_gdb->ParticleDistributionMap(),
-                              m_gdb->ParticleBoxArray(), m_gdb->refRatio());
-        m_gdb = &m_gdb_object;
-        m_gdb->SetParticleDistributionMap(lev, new_dmap);
-    }
-
-    //! \brief Set the particle Geometry. If the container was previously set to
-    //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
-    //! will be broken here.
-    //!
-    //! \param lev The level on which to set the Geometry.
-    //! \param new_geom The new Geometry to use.
-    //!
-    void SetParticleGeometry (int lev, const Geometry& new_geom)
-    {
-        m_gdb_object = ParGDB(m_gdb->ParticleGeom(), m_gdb->ParticleDistributionMap(),
-                              m_gdb->ParticleBoxArray(), m_gdb->refRatio());
-        m_gdb = &m_gdb_object;
-        m_gdb->SetParticleGeometry(lev, new_geom);
-    }
-
-    //! \brief Get the BoxArray for a given level
-    //!
-    //! \param lev The level.
-    //!
-    const BoxArray& ParticleBoxArray (int lev) const
-	{ return m_gdb->ParticleBoxArray(lev); }
-
-    //! \brief Get the DistributionMapping for a given level
-    //!
-    //! \param lev The level.
-    //!
-    const DistributionMapping& ParticleDistributionMap (int lev) const
-	{ return m_gdb->ParticleDistributionMap(lev); }
-
-    //! \brief Get the Geometry for a given level
-    //!
-    //! \param lev The level.
-    //!
-    const Geometry& Geom (int lev) const { return m_gdb->Geom(lev); }
-
-    //! \brief Get the particle Geometry for a given level
-    //!
-    //! \param lev The level.
-    //!
-    const Geometry& ParticleGeom (int lev) const { return m_gdb->ParticleGeom(lev); }
-
-    //! \brief the finest level actually defined for the ParticleContainer
-    int finestLevel () const { return m_gdb->finestLevel(); }
-
-    //! \brief the finest allowed level in the ParticleContainer, whether it is defined or not.
-    int maxLevel ()    const { return m_gdb->maxLevel(); }
-
-    //! \brief the number of defined levels in the ParticleContainer
-    int numLevels()    const { return finestLevel() + 1; }
 
     //! \brief The total number of tiles on this rank on this level
     int numLocalTilesAtLevel (int lev) const { return m_particles[lev].size(); }
 
-    //! \brief Get the ParGDB object used to define this container (const version)
-    const ParGDBBase* GetParGDB () const { return m_gdb; }
-
-    //! \brief Get the ParGDB object used to define this container
-          ParGDBBase* GetParGDB ()       { return m_gdb; }
-
     void reserveData ();
     void resizeData ();
-
-    void RedefineDummyMF (int lev);
 
     void InitFromAsciiFile (const std::string& file, int extradata,
                             const IntVect* Nrep = nullptr);
@@ -539,10 +428,6 @@ public:
     * \param pdata
     */
     void InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata);
-
-    void MoveRandom ();
-
-    void MoveRandom (int level);
 
     void Increment (MultiFab& mf, int level);
 
@@ -799,15 +684,15 @@ public:
      /**
       * \brief Writes particle data to disk in the AMReX native format.
       *
-	  * \tparam F function type
-	  *
+          * \tparam F function type
+          *
       * \param dir The base directory into which to write (i.e. "plt00000")
       * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
       * \param write_real_comp for each real component, whether or not we include that component in the file
       * \param write_int_comp for each integer component, whether or not we include that component in the file
       * \param real_comp_names for each real component, a name to label the data with
       * \param int_comp_names for each integer component, a name to label the data with
-	  * \param f callable that returns whether a given particle should be written or not
+          * \param f callable that returns whether a given particle should be written or not
       */
     template <class F>
     void WriteBinaryParticleData (const std::string& dir,
@@ -816,7 +701,7 @@ public:
                                   const Vector<int>& write_int_comp,
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>&  int_comp_names,
-								  F&& f) const;
+                                                                  F&& f) const;
 
     void CheckpointPre ();
 
@@ -935,7 +820,7 @@ public:
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param real_comp_names for each real component, a name to label the data with
      * \param int_comp_names for each integer component, a name to label the data with
-	 * \param f callable that returns whether or not to write each particle
+         * \param f callable that returns whether or not to write each particle
      */
     template <class F>
     void WritePlotFile (const std::string& dir, const std::string& name,
@@ -1030,10 +915,10 @@ public:
      * the user should pass in vectors containing names of all the components, whether
      * they are written or not.
      *
-	 *  This version also lets you pass in a functor to toggle whether each particle gets output.
-	 *
-	 * \tparam F function type
-	 *
+         *  This version also lets you pass in a functor to toggle whether each particle gets output.
+         *
+         * \tparam F function type
+         *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param write_real_comp for each real component, whether to include that comp in the file
@@ -1056,10 +941,6 @@ public:
     void WritePlotFilePost ();
 
     void WriteAsciiFile (const std::string& file);
-
-    int Verbose () { return m_verbose; }
-
-    void SetVerbose (int verbose) { m_verbose = verbose; }
 
     const Vector<ParticleLevel>& GetParticles () const { return m_particles; }
     Vector      <ParticleLevel>& GetParticles ()       { return m_particles; }
@@ -1121,7 +1002,6 @@ public:
     template <typename P>
     IntVect Index (const P& p, int lev) const;
 
-
     /**
     * \brief Updates a particle's location (Where), tries to periodic shift any particles
     * that have left the domain. May need work (see inline comments)
@@ -1134,36 +1014,12 @@ public:
     ParticleLocData Reset (ParticleType& prt, bool update, bool verbose=true,
                            ParticleLocData pld = ParticleLocData()) const;
 
-
     /**
     * \brief Returns true if the particle was shifted.
     *
     * \param prt
     */
     bool PeriodicShift (ParticleType& prt) const;
-
-    MFIter MakeMFIter (int lev, const MFItInfo& info) const {
-        AMREX_ASSERT(m_dummy_mf[lev] != nullptr);
-        return MFIter(*m_dummy_mf[lev], info);
-    }
-
-    MFIter MakeMFIter (int lev) const {
-        AMREX_ASSERT(m_dummy_mf[lev] != nullptr);
-        return MFIter(*m_dummy_mf[lev], do_tiling ? tile_size : IntVect::TheZeroVector());
-    }
-
-    MFIter MakeMFIter (int lev, bool tile) const {
-        AMREX_ASSERT(m_dummy_mf[lev] != nullptr);
-        return MFIter(*m_dummy_mf[lev], tile ? tile_size : IntVect::TheZeroVector());
-    }
-
-    Vector<int> h_communicate_real_comp;
-    Vector<int> h_communicate_int_comp;
-    Gpu::DeviceVector<int> d_communicate_real_comp;
-    Gpu::DeviceVector<int> d_communicate_int_comp;
-
-    static bool do_tiling;
-    static IntVect tile_size;
 
     void SetLevelDirectoriesCreated (bool tf) { levelDirectoriesCreated = tf; }
 
@@ -1213,20 +1069,16 @@ public:
         SetParticleSize();
     }
 
-    const ParticleBufferMap& BufferMap () const {return m_buffer_map;}
-
-    Vector<int> NeighborProcs(int ngrow) const
-    {
-        return computeNeighborProcs(this->GetParGDB(), ngrow);
-    }
-
-    bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
-
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
     int NumRuntimeIntComps  () const { return m_num_runtime_int;  }
 
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
+
+    Vector<int> h_communicate_real_comp;
+    Vector<int> h_communicate_int_comp;
+    Gpu::DeviceVector<int> d_communicate_real_comp;
+    Gpu::DeviceVector<int> d_communicate_int_comp;
 
     //! ---- variables for i/o optimization saved for pre and post checkpoint
     mutable bool levelDirectoriesCreated;
@@ -1244,8 +1096,6 @@ public:
 
 protected:
 
-    mutable amrex::Vector<int> neighbor_procs;
-
     /**
     * \brief Checks a particle's location on levels lev_min and higher.
     * Returns false if the particle does not exist on that level.
@@ -1261,7 +1111,7 @@ protected:
     */
     template <typename P>
     bool Where (const P& prt, ParticleLocData& pld,
-		int lev_min = 0, int lev_max = -1, int nGrow=0, int local_grid=-1) const;
+                int lev_min = 0, int lev_max = -1, int nGrow=0, int local_grid=-1) const;
 
 
     /**
@@ -1297,37 +1147,21 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
 
     void SetParticleSize ();
 
-    void BuildRedistributeMask(int lev, int nghost=1) const;
-    mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
-    mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();
-
-    void defineBufferMap () const;
-    mutable ParticleBufferMap m_buffer_map;
-
-    //! The member data.
-    int         m_verbose;
-    ParGDBBase* m_gdb;
-    ParGDB      m_gdb_object;
-
     DenseBins<ParticleType> m_bins;
-
-#ifdef AMREX_USE_GPU
-    mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
-#endif
 
 private:
 
-    virtual void particlePostLocate(ParticleType& /*p*/, const ParticleLocData& /*pld*/,
-                                    const int /*lev*/) {}
+    virtual void particlePostLocate (ParticleType& /*p*/, const ParticleLocData& /*pld*/,
+                                     const int /*lev*/) {}
 
-    virtual void correctCellVectors(int /*old_index*/, int /*new_index*/,
-				    int /*grid*/, const ParticleType& /*p*/) {}
+    virtual void correctCellVectors (int /*old_index*/, int /*new_index*/,
+                                     int /*grid*/, const ParticleType& /*p*/) {}
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
-			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
+                          int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
 
-    void locateParticle(ParticleType& p, ParticleLocData& pld,
-                        int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
+    void locateParticle (ParticleType& p, ParticleLocData& pld,
+                         int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
 
     void Initialize ();
 
@@ -1338,10 +1172,6 @@ private:
     size_t particle_size, superparticle_size;
     int num_real_comm_comps, num_int_comm_comps;
     Vector<ParticleLevel> m_particles;
-    Vector<std::unique_ptr<MultiFab> > m_dummy_mf;
-
-    static std::string aggregation_type;
-    static int aggregation_buffer;
 };
 
 #include "AMReX_ParticleInit.H"

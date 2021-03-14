@@ -40,9 +40,9 @@ namespace amrex {
 
         inline value_type* allocate(std::size_t n)
         {
-	    value_type* result = nullptr;
+            value_type* result = nullptr;
             result = (value_type*) The_Arena()->alloc(n * sizeof(T));
-	    return result;
+            return result;
         }
 
         inline void deallocate(value_type* ptr, std::size_t)
@@ -61,9 +61,9 @@ namespace amrex {
 
         inline value_type* allocate(std::size_t n)
         {
-	    value_type* result = nullptr;
+            value_type* result = nullptr;
             result = (value_type*) The_Device_Arena()->alloc(n * sizeof(T));
-	    return result;
+            return result;
         }
 
         inline void deallocate(value_type* ptr, std::size_t)
@@ -82,9 +82,9 @@ namespace amrex {
 
         inline value_type* allocate(std::size_t n)
         {
-	    value_type* result = nullptr;
+            value_type* result = nullptr;
             result = (value_type*) The_Pinned_Arena()->alloc(n * sizeof(T));
-	    return result;
+            return result;
         }
 
         inline void deallocate(value_type* ptr, std::size_t)
@@ -103,9 +103,9 @@ namespace amrex {
 
         inline value_type* allocate(std::size_t n)
         {
-	    value_type* result = nullptr;
+            value_type* result = nullptr;
             result = (value_type*) The_Managed_Arena()->alloc(n * sizeof(T));
-	    return result;
+            return result;
         }
 
         inline void deallocate(value_type* ptr, std::size_t)
@@ -125,23 +125,23 @@ namespace amrex {
 
         inline value_type* allocate(std::size_t n)
         {
-	    value_type* result = nullptr;
+            value_type* result = nullptr;
             if (m_use_gpu_aware_mpi)
             {
-                result = (value_type*) The_Device_Arena()->alloc(n * sizeof(T));
+                result = (value_type*) The_Arena()->alloc(n * sizeof(T));
             }
             else
             {
                 result = (value_type*) The_Pinned_Arena()->alloc(n * sizeof(T));
             }
-	    return result;
+            return result;
         }
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
             if (m_use_gpu_aware_mpi)
             {
-                The_Device_Arena()->free(ptr);
+                The_Arena()->free(ptr);
             }
             else
             {

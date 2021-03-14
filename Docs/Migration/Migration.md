@@ -16,7 +16,7 @@ environment variable `AMREX_HOME` is set to the AMReX directory.
 ## Step 0
 
 Make sure your code works with the [latest version of BoxLib on
-github](https://github.com/BoxLib-Codes/BoxLib). 
+github](https://github.com/BoxLib-Codes/BoxLib).
 
 ## Step 1
 
@@ -59,7 +59,7 @@ has been removed from AMReX.  This step has to be done manually.
   function does not change the pointers even though they may modify
   the data pointed by the pointers.  AMReX provides a number of
   functions that can convert from `unique_ptr<T>` to `T*`.   For
-  example, 
+  example,
   `Array<T*> GetArrOfPtrs (const Array<std::unique_ptr<T> >& a)`.
   These functions are in `Src/C_BaseLib/Array.H` as of writing,
   and they will be moved to `Src/Base/AMReX_Array.H`.
@@ -97,14 +97,14 @@ into the `amrex` namespace.  In this step, you can use
 `Tools/Migration/step-5-amrex-namespace/amrex-namespace.sh` to replace
 `BoxLib::` with `amrex::` for those already in `BoxLib` namespace.
 However, the rest of work is expected to be performed manually,
-because C++ is too a complicated language for shell scripting.  
+because C++ is too a complicated language for shell scripting.
 
 For most `.cpp` files, you can put a `using namespace amrex;` line
 after the last `include` line, or `using amrex::MultiFab` etc., or you
 can add `amrex::` to wherever needed.  Note that having both `using
 namespace amrex` and `using namespace std` in one file may cause
 conflicts because some names like `min` and `max` exist in both
-namespace. 
+namespace.
 
 For header files, it is considered bad practice to have `using
 namespace amrex` because it pollutes the namespace.  So you need to
@@ -113,7 +113,7 @@ manually add `amrex::` in front of AMReX names likes `MultiFab` and
 
 ### Step 6
 
-AMReX `migration/6-distributionmap` branch should be used in this step. 
+AMReX `migration/6-distributionmap` branch should be used in this step.
 
 In BoxLib, there is a `DistributionMapping` cache implemented with
 `std::map` with the number of `Box`es as the key.  Utilizing the

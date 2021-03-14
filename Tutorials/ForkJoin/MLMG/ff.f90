@@ -13,7 +13,7 @@ subroutine fort_set_rhs(rhs, lo, hi, nc, dx, a, b, sigma, w) bind(c)
   tpi = 2.0d0 * pi
   fpi = 4.0d0 * pi
   fac = 2.0d0 * tpi**2
-  
+
   theta = 0.5d0*log(3.0) / w
 
   do n = 1, nc
@@ -21,14 +21,14 @@ subroutine fort_set_rhs(rhs, lo, hi, nc, dx, a, b, sigma, w) bind(c)
         y = (dble(j)+0.5d0)*dx(2)
         do i = lo(1), hi(1)
            x = (dble(i)+0.5d0)*dx(1)
-           
+
            r = sqrt((x-0.5d0)**2+(y-0.5d0)**2)
 
            beta = (sigma-1.d0)/2.d0*tanh(theta*(r-0.25d0)) + (sigma+1.d0)/2.d0
            beta = beta * b
            dbdrfac = (sigma-1.d0)/2.d0/(cosh(theta*(r-0.25d0)))**2 * theta/r
            dbdrfac = dbdrfac * b
-        
+
            rhs(i,j,n) = beta*fac*(sin(tpi*x) * sin(tpi*y)  &
                 &               + sin(fpi*x) * sin(fpi*y)) &
                 &    + dbdrfac*((x-0.5d0)*(-tpi*cos(tpi*x) * sin(tpi*y)   &
@@ -60,7 +60,7 @@ subroutine fort_set_coef(xcoef, xlo, xhi, ycoef, ylo, yhi, nc, dx, sigma, w) bin
         y = (dble(j)+0.5d0)*dx(2)
         do i = xlo(1), xhi(1)
            x = (dble(i))*dx(1)
-           
+
            r = sqrt((x-0.5d0)**2 + (y-0.5d0)**2)
 
            xcoef(i,j,n) = (sigma-1.d0)/2.d0*tanh(theta*(r-0.25d0)) &
@@ -72,7 +72,7 @@ subroutine fort_set_coef(xcoef, xlo, xhi, ycoef, ylo, yhi, nc, dx, sigma, w) bin
         y = (dble(j))*dx(2)
         do i = ylo(1), yhi(1)
            x = (dble(i)+0.5d0)*dx(1)
-           
+
            r = sqrt((x-0.5d0)**2 + (y-0.5d0)**2)
 
            ycoef(i,j,n) = (sigma-1.d0)/2.d0*tanh(theta*(r-0.25d0)) &

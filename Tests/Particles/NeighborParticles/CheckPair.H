@@ -11,8 +11,8 @@ struct CheckPair
     {
         amrex::Real d0 = (p1.pos(0) - p2.pos(0));
         amrex::Real d1 = (p1.pos(1) - p2.pos(1));
-        amrex::Real d2 = (p1.pos(2) - p2.pos(2));    
-        amrex::Real dsquared = d0*d0 + d1*d1 + d2*d2;   
+        amrex::Real d2 = (p1.pos(2) - p2.pos(2));
+        amrex::Real dsquared = d0*d0 + d1*d1 + d2*d2;
         return (dsquared <= 25.0*Params::cutoff*Params::cutoff);
     }
 };

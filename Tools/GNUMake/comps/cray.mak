@@ -76,7 +76,7 @@ endif
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
 else
-  CXXSTD := c++11
+  CXXSTD := c++14
 endif
 
 ifeq ($(CCE_GE_V9),TRUE)

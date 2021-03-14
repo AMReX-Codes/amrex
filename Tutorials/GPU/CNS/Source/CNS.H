@@ -25,7 +25,7 @@ public:
 
     CNS (const CNS& rhs) = delete;
     CNS& operator= (const CNS& rhs) = delete;
-    
+
     // Restart from a checkpoint file.
     virtual void restart (amrex::Amr&     papa,
                           std::istream&   is,
@@ -51,7 +51,7 @@ public:
 
     // Initialize data on this level after regridding if old level did not previously exist
     virtual void init () override;
-    
+
     // Initialize grid data at problem start-up.
     virtual void initData () override;
 
@@ -162,8 +162,10 @@ protected:
     static amrex::Real gravity;
 
 public:
-    static std::unique_ptr<Parm> parm;
-    static std::unique_ptr<ProbParm> prob_parm;
+    static Parm* h_parm;
+    static Parm* d_parm;
+    static ProbParm* h_prob_parm;
+    static ProbParm* d_prob_parm;
 };
 
 void cns_bcfill (amrex::Box const& bx, amrex::FArrayBox& data,

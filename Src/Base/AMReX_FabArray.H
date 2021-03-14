@@ -137,6 +137,14 @@ struct MFInfo {
     }
 };
 
+struct TheFaArenaDeleter {
+    using pointer = char*;
+    void operator()(pointer p) const noexcept {
+        The_FA_Arena()->free(p);
+    }
+};
+using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
+
 template <class FAB>
 class FabArray
     :
@@ -168,10 +176,10 @@ public:
               int                        nvar,
               int                        ngrow,
 #ifdef AMREX_STRICT_MODE
-	      const MFInfo&              info,
+              const MFInfo&              info,
               const FabFactory<FAB>&     factory);
 #else
-	      const MFInfo&              info = MFInfo(),
+              const MFInfo&              info = MFInfo(),
               const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 #endif
 
@@ -180,10 +188,10 @@ public:
               int                        nvar,
               const IntVect&             ngrow,
 #ifdef AMREX_STRICT_MODE
-	      const MFInfo&              info,
+              const MFInfo&              info,
               const FabFactory<FAB>&     factory);
 #else
-	      const MFInfo&              info = MFInfo(),
+              const MFInfo&              info = MFInfo(),
               const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 #endif
 
@@ -205,26 +213,26 @@ public:
     * the default constructor.
     */
     virtual void define (const BoxArray& bxs,
-			 const DistributionMapping& dm,
-			 int                        nvar,
-			 int                        ngrow,
+                         const DistributionMapping& dm,
+                         int                        nvar,
+                         int                        ngrow,
 #ifdef AMREX_STRICT_MODE
-			 const MFInfo&              info,
+                         const MFInfo&              info,
                          const FabFactory<FAB>&     factory);
 #else
-			 const MFInfo&              info = MFInfo(),
+                         const MFInfo&              info = MFInfo(),
                          const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 #endif
 
     virtual void define (const BoxArray& bxs,
-			 const DistributionMapping& dm,
-			 int                        nvar,
-			 const IntVect&             ngrow,
+                         const DistributionMapping& dm,
+                         int                        nvar,
+                         const IntVect&             ngrow,
 #ifdef AMREX_STRICT_MODE
-			 const MFInfo&              info,
+                         const MFInfo&              info,
                          const FabFactory<FAB>&     factory);
 #else
-			 const MFInfo&              info = MFInfo(),
+                         const MFInfo&              info = MFInfo(),
                          const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 #endif
 
@@ -232,6 +240,8 @@ public:
 
     // Provides access to the Arena this FabArray was build with.
     Arena* arena () const noexcept { return m_dallocator.arena(); }
+
+    const Vector<std::string>& tags () const noexcept { return m_tags; }
 
     bool hasEBFabFactory () const noexcept {
 #ifdef AMREX_USE_EB
@@ -468,9 +478,17 @@ public:
                        CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy(fa,0,0,nComp(),0,0,period,op); }
     void copy (const FabArray<FAB>& fa,
-	       const Periodicity&   period = Periodicity::NonPeriodic(),
+               const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY)
         { ParallelCopy(fa,period,op); }
+
+    void ParallelAdd_nowait(const FabArray<FAB>& fa,
+                            const Periodicity& period = Periodicity::NonPeriodic())
+       { ParallelCopy_nowait(fa,period,FabArray::ADD); }
+    void ParallelCopy_nowait (const FabArray<FAB>& fa,
+                              const Periodicity&   period = Periodicity::NonPeriodic(),
+                              CpOp                 op = FabArrayBase::COPY)
+       { ParallelCopy_nowait(fa,0,0,nComp(),0,0,period,op); }
 
     /**
     * \brief This function copies data from src to this FabArray.  Each FAB
@@ -497,9 +515,23 @@ public:
                int                  src_comp,
                int                  dest_comp,
                int                  num_comp,
-	       const Periodicity&   period = Periodicity::NonPeriodic(),
+               const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY)
         { ParallelCopy(src,src_comp,dest_comp,num_comp, period, op); }
+
+    void ParallelAdd_nowait (const FabArray<FAB>& src,
+                             int                  src_comp,
+                             int                  dest_comp,
+                             int                  num_comp,
+                             const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp, period, FabArrayBase::ADD); }
+    void ParallelCopy_nowait (const FabArray<FAB>& src,
+                              int                  src_comp,
+                              int                  dest_comp,
+                              int                  num_comp,
+                              const Periodicity&   period = Periodicity::NonPeriodic(),
+                              CpOp                 op = FabArrayBase::COPY)
+       { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,0,0,period,op); }
 
     //! Similar to the above function, except that source and destination are grown by src_nghost and dst_nghost, respectively
     void ParallelAdd (const FabArray<FAB>& src,
@@ -538,22 +570,63 @@ public:
                        CpOp                 op = FabArrayBase::COPY,
                        const FabArrayBase::CPC* a_cpc = nullptr);
 
+    void ParallelAdd_nowait (const FabArray<FAB>& src,
+                             int                  src_comp,
+                             int                  dest_comp,
+                             int                  num_comp,
+                             int                  src_nghost,
+                             int                  dst_nghost,
+                             const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),
+                             IntVect(dst_nghost),period,FabArrayBase::ADD); }
+    void ParallelAdd_nowait (const FabArray<FAB>& src,
+                             int                  src_comp,
+                             int                  dest_comp,
+                             int                  num_comp,
+                             const IntVect&       src_nghost,
+                             const IntVect&       dst_nghost,
+                             const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,src_nghost,
+                             dst_nghost,period,FabArrayBase::ADD); }
+    void ParallelCopy_nowait (const FabArray<FAB>& src,
+                              int                  src_comp,
+                              int                  dest_comp,
+                              int                  num_comp,
+                              int                  src_nghost,
+                              int                  dst_nghost,
+                              const Periodicity&   period = Periodicity::NonPeriodic(),
+                              CpOp                 op = FabArrayBase::COPY)
+       { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),
+                             IntVect(dst_nghost),period,op); }
+    void ParallelCopy_nowait (const FabArray<FAB>& src,
+                              int                  src_comp,
+                              int                  dest_comp,
+                              int                  num_comp,
+                              const IntVect&       src_nghost,
+                              const IntVect&       dst_nghost,
+                              const Periodicity&   period = Periodicity::NonPeriodic(),
+                              CpOp                 op = FabArrayBase::COPY,
+                              const FabArrayBase::CPC* a_cpc = nullptr);
+
+    void ParallelCopy_finish ();
+
+
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
                int                  num_comp,
-	       int                  src_nghost,
-	       int                  dst_nghost,
-	       const Periodicity&   period = Periodicity::NonPeriodic(),
+               int                  src_nghost,
+               int                  dst_nghost,
+               const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),IntVect(dst_nghost),period,op); }
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
                int                  num_comp,
-	       const IntVect&       src_nghost,
-	       const IntVect&       dst_nghost,
-	       const Periodicity&   period = Periodicity::NonPeriodic(),
+               const IntVect&       src_nghost,
+               const IntVect&       dst_nghost,
+               const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY)
         { ParallelCopy(src,src_comp,dest_comp,num_comp,src_nghost,dst_nghost,period,op); }
 
@@ -573,7 +646,7 @@ public:
     * valid + nghost region of this FabArray with the FAB dest into dest.
     */
     void copyTo (FAB& dest,
-		 int  nghost = 0) const;
+                 int  nghost = 0) const;
 
     /**
     * \brief Copy the values contained in the intersection of the
@@ -582,7 +655,7 @@ public:
     */
     void copyTo (FAB&       dest,
                  const Box& subbox,
-		 int        nghost = 0) const;
+                 int        nghost = 0) const;
 
     /**
     * \brief Copy the values contained in the intersection of the
@@ -591,10 +664,10 @@ public:
     * component dest_comp in dest.
     */
     void copyTo (FAB& dest,
-		 int  src_comp,
-		 int  dest_comp,
-		 int  num_comp,
-		 int  nghost = 0) const;
+                 int  src_comp,
+                 int  dest_comp,
+                 int  num_comp,
+                 int  nghost = 0) const;
 
     /**
     * \brief Copy the values contained in the intersection of the
@@ -603,11 +676,11 @@ public:
     * dest, starting at component dest_comp in dest.
     */
     void copyTo (FAB&       dest,
-		 const Box& subbox,
-		 int        src_comp,
-		 int        dest_comp,
-		 int        num_comp,
-		 int        nghost = 0) const;
+                 const Box& subbox,
+                 int        src_comp,
+                 int        dest_comp,
+                 int        num_comp,
+                 int        nghost = 0) const;
 
     //! Shift the boxarray by vector v
     void shift (const IntVect& v);
@@ -663,8 +736,8 @@ public:
     // interior  : interior cells (i.e., valid cells)
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     void BuildMask (const Box& phys_domain, const Periodicity& period,
-		    value_type covered, value_type notcovered,
-		    value_type physbnd, value_type interior);
+                    value_type covered, value_type notcovered,
+                    value_type physbnd, value_type interior);
 
     // The following are private functions.  But we have to make them public for cuda.
 
@@ -759,33 +832,33 @@ protected:
 
     //! for shared memory
     struct ShMem {
-	ShMem () noexcept : alloc(false), n_values(0), n_points(0)
+        ShMem () noexcept : alloc(false), n_values(0), n_points(0)
 #if defined(BL_USE_MPI3)
-		 , win(MPI_WIN_NULL)
+                 , win(MPI_WIN_NULL)
 #endif
-	    { }
-	~ShMem () {
+            { }
+        ~ShMem () {
 #if defined(BL_USE_MPI3)
-	    if (win != MPI_WIN_NULL) MPI_Win_free(&win);
+            if (win != MPI_WIN_NULL) MPI_Win_free(&win);
 #endif
 #ifdef BL_USE_TEAM
-	    if (alloc) {
-		amrex::update_fab_stats(-n_points, -n_values, sizeof(value_type));
+            if (alloc) {
+                amrex::update_fab_stats(-n_points, -n_values, sizeof(value_type));
             }
 #endif
-	}
-	ShMem (ShMem&& rhs) noexcept
+        }
+        ShMem (ShMem&& rhs) noexcept
                  : alloc(rhs.alloc), n_values(rhs.n_values), n_points(rhs.n_points)
 #if defined(BL_USE_MPI3)
-		 , win(rhs.win)
+                 , win(rhs.win)
 #endif
-	{
-	    rhs.alloc = false;
+        {
+            rhs.alloc = false;
 #if defined(BL_USE_MPI3)
-	    rhs.win = MPI_WIN_NULL;
+            rhs.win = MPI_WIN_NULL;
 #endif
-	}
-	ShMem& operator= (ShMem&& rhs) noexcept {
+        }
+        ShMem& operator= (ShMem&& rhs) noexcept {
             if (&rhs != this) {
                 alloc = rhs.alloc;
                 n_values = rhs.n_values;
@@ -798,13 +871,13 @@ protected:
             }
             return *this;
         }
-	ShMem (const ShMem&) = delete;
-	ShMem& operator= (const ShMem&) = delete;
-	bool  alloc;
-	Long  n_values;
-	Long  n_points;
+        ShMem (const ShMem&) = delete;
+        ShMem& operator= (const ShMem&) = delete;
+        bool  alloc;
+        Long  n_values;
+        Long  n_points;
 #if defined(BL_USE_MPI3)
-	MPI_Win win;
+        MPI_Win win;
 #endif
     };
     ShMem shmem;
@@ -820,6 +893,7 @@ private:
 public:
 
 #ifdef BL_USE_MPI
+
     //! Prepost nonblocking receives
     void PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
                    char*&                                 the_recv_data,
@@ -830,8 +904,25 @@ public:
                    int                                    ncomp,
                    int                                    SeqNum) const;
 
+
+    AMREX_NODISCARD TheFaArenaPointer PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
+                   Vector<char*>&                         recv_data,
+                   Vector<std::size_t>&                   recv_size,
+                   Vector<int>&                           recv_from,
+                   Vector<MPI_Request>&                   recv_reqs,
+                   int                                    ncomp,
+                   int                                    SeqNum) const;
+
     void PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                              char*&                               the_send_data,
+                             Vector<char*>&                       send_data,
+                             Vector<std::size_t>&                 send_size,
+                             Vector<int>&                         send_rank,
+                             Vector<MPI_Request>&                 send_reqs,
+                             Vector<const CopyComTagsContainer*>& send_cctc,
+                             int                                  ncomp) const;
+
+    AMREX_NODISCARD TheFaArenaPointer PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                              Vector<char*>&                       send_data,
                              Vector<std::size_t>&                 send_size,
                              Vector<int>&                         send_rank,
@@ -864,6 +955,27 @@ public:
     Vector<char*>       fb_send_data;
     Vector<MPI_Request> fb_send_reqs;
     int                 fb_tag;
+
+    //! Data used in non-blocking ParallelCopy
+    const CPC*           pc_cpc = nullptr;
+    const FabArray<FAB>* pc_src = nullptr;
+    CpOp                 pc_op;
+    int                  pc_tag;
+    int                  pc_actual_n_rcvs;
+    IntVect              pc_snghost, pc_dnghost;
+    Periodicity          pc_period;
+    int                  pc_SC, pc_NC, pc_DC;
+    bool                 pc_finished;
+
+    //
+    char*                pc_the_recv_data = nullptr;
+    char*                pc_the_send_data = nullptr;
+    Vector<int>          pc_recv_from;
+    Vector<char*>        pc_recv_data;
+    Vector<std::size_t>  pc_recv_size;
+    Vector<MPI_Request>  pc_recv_reqs;
+    Vector<MPI_Request>  pc_send_reqs;
+
 };
 
 
@@ -874,11 +986,11 @@ bool
 FabArray<FAB>::defined (int K) const noexcept
 {
     int li = localindex(K);
-    if (li >= 0 && li < m_fabs_v.size() && m_fabs_v[li] != 0) {
-	return true;
+    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != 0) {
+        return true;
     }
     else {
-	return false;
+        return false;
     }
 }
 
@@ -888,10 +1000,10 @@ FabArray<FAB>::defined (const MFIter& mfi) const noexcept
 {
     int li = mfi.LocalIndex();
     if (li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != 0) {
-	return true;
+        return true;
     }
     else {
-	return false;
+        return false;
     }
 }
 
@@ -1127,7 +1239,7 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          const DistributionMapping& dm,
                          int                        nvar,
                          int                        ngrow,
-			 const MFInfo&              info,
+                         const MFInfo&              info,
                          const FabFactory<FAB>&     factory)
     : FabArray<FAB>(bxs,dm,nvar,IntVect(ngrow),info,factory)
 {}
@@ -1137,7 +1249,7 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          const DistributionMapping& dm,
                          int                        nvar,
                          const IntVect&             ngrow,
-			 const MFInfo&              info,
+                         const MFInfo&              info,
                          const FabFactory<FAB>&     factory)
     : m_factory(factory.clone()),
       shmem()
@@ -1247,10 +1359,10 @@ FabArray<FAB>::ok () const
 template <class FAB>
 void
 FabArray<FAB>::define (const BoxArray&            bxs,
-		       const DistributionMapping& dm,
-		       int                        nvar,
-		       int                        ngrow,
-		       const MFInfo&              info,
+                       const DistributionMapping& dm,
+                       int                        nvar,
+                       int                        ngrow,
+                       const MFInfo&              info,
                        const FabFactory<FAB>&     a_factory)
 {
     define(bxs,dm,nvar,IntVect(ngrow),info,a_factory);
@@ -1259,10 +1371,10 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 template <class FAB>
 void
 FabArray<FAB>::define (const BoxArray&            bxs,
-		       const DistributionMapping& dm,
-		       int                        nvar,
-		       const IntVect&             ngrow,
-		       const MFInfo&              info,
+                       const DistributionMapping& dm,
+                       int                        nvar,
+                       const IntVect&             ngrow,
+                       const MFInfo&              info,
                        const FabFactory<FAB>&     a_factory)
 {
     std::unique_ptr<FabFactory<FAB> > factory(a_factory.clone());
@@ -1526,7 +1638,7 @@ FabArray<FAB>::setDomainBndry (value_type val,
 template <class FAB>
 void
 FabArray<FAB>::copyTo (FAB& dest,
-		       int  nghost) const
+                       int  nghost) const
 {
     copyTo(dest, dest.box(), 0, 0, dest.nComp(), nghost);
 }
@@ -1534,8 +1646,8 @@ FabArray<FAB>::copyTo (FAB& dest,
 template <class FAB>
 void
 FabArray<FAB>::copyTo (FAB&       dest,
-		       const Box& subbox,
-		       int        nghost) const
+                       const Box& subbox,
+                       int        nghost) const
 {
     copyTo(dest, subbox, 0, 0, dest.nComp(), nghost);
 }
@@ -1543,10 +1655,10 @@ FabArray<FAB>::copyTo (FAB&       dest,
 template <class FAB>
 void
 FabArray<FAB>::copyTo (FAB& dest,
-		       int  scomp,
-		       int  dcomp,
-		       int  ncomp,
-		       int  nghost) const
+                       int  scomp,
+                       int  dcomp,
+                       int  ncomp,
+                       int  nghost) const
 {
     copyTo(dest, dest.box(), scomp, dcomp, ncomp, nghost);
 }
@@ -1596,7 +1708,7 @@ FabArray<FAB>::setVal (value_type val,
 #endif
     for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
-	const Box& bx = fai.growntilebox(nghost);
+        const Box& bx = fai.growntilebox(nghost);
         auto fab = this->array(fai);
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, ncomp, i, j, k, n,
         {
@@ -1823,8 +1935,8 @@ FabArray<FAB>::FillBoundary (bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
     if ( n_grow.max() > 0 ) {
-	FillBoundary_nowait(0, nComp(), n_grow, Periodicity::NonPeriodic(), cross);
-	FillBoundary_finish();
+        FillBoundary_nowait(0, nComp(), n_grow, Periodicity::NonPeriodic(), cross);
+        FillBoundary_finish();
     }
 }
 
@@ -1834,8 +1946,8 @@ FabArray<FAB>::FillBoundary (const Periodicity& period, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
     if ( n_grow.max() > 0 ) {
-	FillBoundary_nowait(0, nComp(), n_grow, period, cross);
-	FillBoundary_finish();
+        FillBoundary_nowait(0, nComp(), n_grow, period, cross);
+        FillBoundary_finish();
     }
 }
 
@@ -1847,8 +1959,8 @@ FabArray<FAB>::FillBoundary (const IntVect& nghost, const Periodicity& period, b
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nghost.allLE(nGrowVect()),
                                      "FillBoundary: asked to fill more ghost cells than we have");
     if ( nghost.max() > 0 ) {
-	FillBoundary_nowait(0, nComp(), nghost, period, cross);
-	FillBoundary_finish();
+        FillBoundary_nowait(0, nComp(), nghost, period, cross);
+        FillBoundary_finish();
     }
 }
 
@@ -1858,8 +1970,8 @@ FabArray<FAB>::FillBoundary (int scomp, int ncomp, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
     if ( n_grow.max() > 0 ) {
-	FillBoundary_nowait(scomp, ncomp, n_grow, Periodicity::NonPeriodic(), cross);
-	FillBoundary_finish();
+        FillBoundary_nowait(scomp, ncomp, n_grow, Periodicity::NonPeriodic(), cross);
+        FillBoundary_finish();
     }
 }
 
@@ -1869,8 +1981,8 @@ FabArray<FAB>::FillBoundary (int scomp, int ncomp, const Periodicity& period, bo
 {
     BL_PROFILE("FabArray::FillBoundary()");
     if ( n_grow.max() > 0 ) {
-	FillBoundary_nowait(scomp, ncomp, n_grow, period, cross);
-	FillBoundary_finish();
+        FillBoundary_nowait(scomp, ncomp, n_grow, period, cross);
+        FillBoundary_finish();
     }
 }
 
@@ -1883,8 +1995,8 @@ FabArray<FAB>::FillBoundary (int scomp, int ncomp, const IntVect& nghost,
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nghost.allLE(nGrowVect()),
                                      "FillBoundary: asked to fill more ghost cells than we have");
     if ( nghost.max() > 0 ) {
-	FillBoundary_nowait(scomp, ncomp, nghost, period, cross);
-	FillBoundary_finish();
+        FillBoundary_nowait(scomp, ncomp, nghost, period, cross);
+        FillBoundary_finish();
     }
 }
 
@@ -1915,8 +2027,8 @@ FabArray<FAB>::EnforcePeriodicity (const Periodicity& period)
 {
     BL_PROFILE("FabArray::EnforcePeriodicity");
     if (period.isAnyPeriodic()) {
-	FBEP_nowait(0, nComp(), nGrowVect(), period, false, true);
-	FillBoundary_finish(); // unsafe unless isAnyPeriodic()
+        FBEP_nowait(0, nComp(), nGrowVect(), period, false, true);
+        FillBoundary_finish(); // unsafe unless isAnyPeriodic()
     }
 }
 
@@ -1926,8 +2038,8 @@ FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const Periodicity& peri
 {
     BL_PROFILE("FabArray::EnforcePeriodicity");
     if (period.isAnyPeriodic()) {
-	FBEP_nowait(scomp, ncomp, nGrowVect(), period, false, true);
-	FillBoundary_finish(); // unsafe unless isAnyPeriodic()
+        FBEP_nowait(scomp, ncomp, nGrowVect(), period, false, true);
+        FillBoundary_finish(); // unsafe unless isAnyPeriodic()
     }
 }
 
@@ -1938,8 +2050,8 @@ FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const IntVect& nghost,
 {
     BL_PROFILE("FabArray::EnforcePeriodicity");
     if (period.isAnyPeriodic()) {
-	FBEP_nowait(scomp, ncomp, nghost, period, false, true);
-	FillBoundary_finish(); // unsafe unless isAnyPeriodic()
+        FBEP_nowait(scomp, ncomp, nghost, period, false, true);
+        FillBoundary_finish(); // unsafe unless isAnyPeriodic()
     }
 }
 
@@ -1964,17 +2076,17 @@ template <class FAB>
 template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
-			  value_type covered, value_type notcovered,
-			  value_type physbnd, value_type interior)
+                          value_type covered, value_type notcovered,
+                          value_type physbnd, value_type interior)
 {
     int ncomp = this->nComp();
     const IntVect& ngrow = this->nGrowVect();
 
     Box domain = amrex::convert(phys_domain, boxArray().ixType());
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-	if (period.isPeriodic(i)) {
-	    domain.grow(i, ngrow[i]);
-	}
+        if (period.isPeriodic(i)) {
+            domain.grow(i, ngrow[i]);
+        }
     }
 
 #ifdef AMREX_USE_OMP

@@ -12,7 +12,7 @@ MacBndry::MacBndry ()
 }
 
 MacBndry::MacBndry (const BoxArray& _grids,
-		    const DistributionMapping& _dmap,
+                    const DistributionMapping& _dmap,
                     int             _ncomp,
                     const Geometry& _geom)
     :
@@ -32,7 +32,7 @@ MacBndry::setBndryConds (const BCRec& phys_bc,
 void
 MacBndry::setBndryConds (const BCRec&   phys_bc,
                          const IntVect& ratio,
-			 int            comp)
+                         int            comp)
 {
     m_phys_bc = phys_bc;
 
@@ -66,7 +66,7 @@ MacBndry::setBndryConds (const BCRec&   phys_bc,
                 //
                 const int p_bc  = (face.isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
 
-                bctag[face][comp] = (p_bc == PhysBCType::outflow) 
+                bctag[face][comp] = (p_bc == PhysBCType::outflow)
                     ? AMREX_LO_DIRICHLET : AMREX_LO_NEUMANN;
                 bloc[face]        = 0;
             }
@@ -78,7 +78,7 @@ MacBndry::setBndryConds (const BCRec&   phys_bc,
                 const Real delta = dx[dir]*ratio[dir];
 
                 bctag[face][comp] = AMREX_LO_DIRICHLET;
-		bloc[face]        = 0.5_rt*delta;
+                bloc[face]        = 0.5_rt*delta;
             }
         }
     }

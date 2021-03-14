@@ -42,7 +42,7 @@ ReduceSum (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
  * This version operates only on the specified level.
- * 
+ *
  * This version uses "Sum" as the reduction operation. The quantity reduced over is an arbitrary function
  * of a "superparticle", which contains all the data in the particle type, whether it is stored in AoS or
  * SoA form.
@@ -51,13 +51,13 @@ ReduceSum (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
  * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
  *
  * \tparam PC the ParticleContainer type
- * \tparam F a function object 
+ * \tparam F a function object
  *
- * \param pc the ParticleContainer to operate on 
+ * \param pc the ParticleContainer to operate on
  * \param lev the level to operate on
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
- */        
+ */
 template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceSum (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticleType()))
@@ -68,7 +68,7 @@ ReduceSum (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticl
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
  * This version operates from the specified lev_min to lev_max.
- * 
+ *
  * This version uses "Sum" as the reduction operation. The quantity reduced over is an arbitrary function
  * of a "superparticle", which contains all the data in the particle type, whether it is stored in AoS or
  * SoA form.
@@ -77,9 +77,9 @@ ReduceSum (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticl
  * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
  *
  * \tparam PC the ParticleContainer type
- * \tparam F a function object 
+ * \tparam F a function object
  *
- * \param pc the ParticleContainer to operate on 
+ * \param pc the ParticleContainer to operate on
  * \param lev_min the minimum level to include
  * \param lev_max the maximum level to include
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
@@ -127,7 +127,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-				const auto ptd = tile.getConstParticleTileData();
+                                const auto ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i)
                     sm += f(ptd.getSuperParticle(i));
             }
@@ -140,7 +140,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
  * This version operates over all particles on all levels.
- * 
+ *
  * This version uses "Max" as the reduction operation. The quantity reduced over is an arbitrary function
  * of a "superparticle", which contains all the data in the particle type, whether it is stored in AoS or
  * SoA form.
@@ -149,12 +149,12 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
  * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
  *
  * \tparam PC the ParticleContainer type
- * \tparam F a function object 
+ * \tparam F a function object
  *
- * \param pc the ParticleContainer to operate on 
+ * \param pc the ParticleContainer to operate on
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
- */        
+ */
 template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMax (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
@@ -165,7 +165,7 @@ ReduceMax (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
  * This version operates only on the specified level.
- * 
+ *
  * This version uses "Mas" as the reduction operation. The quantity reduced over is an arbitrary function
  * of a "superparticle", which contains all the data in the particle type, whether it is stored in AoS or
  * SoA form.
@@ -174,9 +174,9 @@ ReduceMax (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
  * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
  *
  * \tparam PC the ParticleContainer type
- * \tparam F a function object 
+ * \tparam F a function object
  *
- * \param pc the ParticleContainer to operate on 
+ * \param pc the ParticleContainer to operate on
  * \param lev the level to operate on
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
@@ -191,7 +191,7 @@ ReduceMax (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticl
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
  * This version operates from the specified lev_min to lev_max.
- * 
+ *
  * This version uses "Max" as the reduction operation. The quantity reduced over is an arbitrary function
  * of a "superparticle", which contains all the data in the particle type, whether it is stored in AoS or
  * SoA form.
@@ -200,14 +200,14 @@ ReduceMax (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticl
  * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
  *
  * \tparam PC the ParticleContainer type
- * \tparam F a function object 
+ * \tparam F a function object
  *
- * \param pc the ParticleContainer to operate on 
+ * \param pc the ParticleContainer to operate on
  * \param lev_min the minimum level to include
  * \param lev_max the maximum level to include
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
- */    
+ */
 template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
@@ -230,7 +230,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-				const auto ptd = tile.getConstParticleTileData();
+                                const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                 [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
             }
@@ -251,7 +251,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-				const auto ptd = tile.getConstParticleTileData();
+                                const auto ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i)
                     r = std::max(r, f(ptd.getSuperParticle(i)));
             }
@@ -264,7 +264,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
  * This version operates over all particles on all levels.
- * 
+ *
  * This version uses "Min" as the reduction operation. The quantity reduced over is an arbitrary function
  * of a "superparticle", which contains all the data in the particle type, whether it is stored in AoS or
  * SoA form.
@@ -273,12 +273,12 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
  * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
  *
  * \tparam PC the ParticleContainer type
- * \tparam F a function object 
+ * \tparam F a function object
  *
- * \param pc the ParticleContainer to operate on 
+ * \param pc the ParticleContainer to operate on
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
- */    
+ */
 template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMin (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
@@ -289,7 +289,7 @@ ReduceMin (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
  * This version operates only on the specified level.
- * 
+ *
  * This version uses "Min" as the reduction operation. The quantity reduced over is an arbitrary function
  * of a "superparticle", which contains all the data in the particle type, whether it is stored in AoS or
  * SoA form.
@@ -298,9 +298,9 @@ ReduceMin (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
  * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
  *
  * \tparam PC the ParticleContainer type
- * \tparam F a function object 
+ * \tparam F a function object
  *
- * \param pc the ParticleContainer to operate on 
+ * \param pc the ParticleContainer to operate on
  * \param lev the level to operate on
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
@@ -315,7 +315,7 @@ ReduceMin (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticl
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
  * This version operates from the specified lev_min to lev_max.
- * 
+ *
  * This version uses "Min" as the reduction operation. The quantity reduced over is an arbitrary function
  * of a "superparticle", which contains all the data in the particle type, whether it is stored in AoS or
  * SoA form.
@@ -324,9 +324,9 @@ ReduceMin (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticl
  * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
  *
  * \tparam PC the ParticleContainer type
- * \tparam F a function object 
+ * \tparam F a function object
  *
- * \param pc the ParticleContainer to operate on 
+ * \param pc the ParticleContainer to operate on
  * \param lev_min the minimum level to include
  * \param lev_max the maximum level to include
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
@@ -354,7 +354,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-				const auto ptd = tile.getConstParticleTileData();
+                                const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                 [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
             }
@@ -375,7 +375,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-				const auto ptd = tile.getConstParticleTileData();
+                                const auto ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i)
                     r = std::min(r, f(ptd.getSuperParticle(i)));
             }
@@ -388,7 +388,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
  * This version operates over all particles on all levels.
- * 
+ *
  * This version uses "LogicalAnd" as the reduction operation. The quantity reduced over is an arbitrary function
  * of a "superparticle", which contains all the data in the particle type, whether it is stored in AoS or
  * SoA form.
@@ -397,12 +397,12 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
  * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
  *
  * \tparam PC the ParticleContainer type
- * \tparam F a function object 
+ * \tparam F a function object
  *
- * \param pc the ParticleContainer to operate on 
+ * \param pc the ParticleContainer to operate on
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
- */        
+ */
 template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalAnd (PC const& pc, F&& f)
@@ -413,7 +413,7 @@ ReduceLogicalAnd (PC const& pc, F&& f)
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
  * This version operates only on the specified level.
- * 
+ *
  * This version uses "LogicalAnd" as the reduction operation. The quantity reduced over is an arbitrary function
  * of a "superparticle", which contains all the data in the particle type, whether it is stored in AoS or
  * SoA form.
@@ -422,13 +422,13 @@ ReduceLogicalAnd (PC const& pc, F&& f)
  * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
  *
  * \tparam PC the ParticleContainer type
- * \tparam F a function object 
+ * \tparam F a function object
  *
- * \param pc the ParticleContainer to operate on 
+ * \param pc the ParticleContainer to operate on
  * \param lev the level to operate on
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
- */            
+ */
 template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalAnd (PC const& pc, int lev, F&& f)
@@ -439,7 +439,7 @@ ReduceLogicalAnd (PC const& pc, int lev, F&& f)
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
  * This version operates from the specified lev_min to lev_max.
- * 
+ *
  * This version uses "LogicalAnd" as the reduction operation. The quantity reduced over is an arbitrary function
  * of a "superparticle", which contains all the data in the particle type, whether it is stored in AoS or
  * SoA form.
@@ -448,14 +448,14 @@ ReduceLogicalAnd (PC const& pc, int lev, F&& f)
  * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
  *
  * \tparam PC the ParticleContainer type
- * \tparam F a function object 
+ * \tparam F a function object
  *
- * \param pc the ParticleContainer to operate on 
+ * \param pc the ParticleContainer to operate on
  * \param lev_min the minimum level to include
  * \param lev_max the maximum level to include
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
- */        
+ */
 template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
@@ -476,7 +476,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-				const auto ptd = tile.getConstParticleTileData();
+                                const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                 [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
             }
@@ -497,7 +497,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-				const auto ptd = tile.getConstParticleTileData();
+                                const auto ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i)
                     r = r && f(ptd.getSuperParticle(i));
             }
@@ -510,7 +510,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
  * This version operates over all particles on all levels.
- * 
+ *
  * This version uses "LogicalOr" as the reduction operation. The quantity reduced over is an arbitrary function
  * of a "superparticle", which contains all the data in the particle type, whether it is stored in AoS or
  * SoA form.
@@ -519,12 +519,12 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
  * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
  *
  * \tparam PC the ParticleContainer type
- * \tparam F a function object 
+ * \tparam F a function object
  *
- * \param pc the ParticleContainer to operate on 
+ * \param pc the ParticleContainer to operate on
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
- */        
+ */
 template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalOr (PC const& pc, F&& f)
@@ -535,7 +535,7 @@ ReduceLogicalOr (PC const& pc, F&& f)
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
  * This version operates only on the specified level.
- * 
+ *
  * This version uses "LogicalOr" as the reduction operation. The quantity reduced over is an arbitrary function
  * of a "superparticle", which contains all the data in the particle type, whether it is stored in AoS or
  * SoA form.
@@ -544,9 +544,9 @@ ReduceLogicalOr (PC const& pc, F&& f)
  * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
  *
  * \tparam PC the ParticleContainer type
- * \tparam F a function object 
+ * \tparam F a function object
  *
- * \param pc the ParticleContainer to operate on 
+ * \param pc the ParticleContainer to operate on
  * \param lev the level to operate on
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
@@ -561,7 +561,7 @@ ReduceLogicalOr (PC const& pc, int lev, F&& f)
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
  * This version operates from the specified lev_min to lev_max.
- * 
+ *
  * This version uses "LogicalOr" as the reduction operation. The quantity reduced over is an arbitrary function
  * of a "superparticle", which contains all the data in the particle type, whether it is stored in AoS or
  * SoA form.
@@ -570,14 +570,14 @@ ReduceLogicalOr (PC const& pc, int lev, F&& f)
  * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
  *
  * \tparam PC the ParticleContainer type
- * \tparam F a function object 
+ * \tparam F a function object
  *
- * \param pc the ParticleContainer to operate on 
+ * \param pc the ParticleContainer to operate on
  * \param lev_min the minimum level to include
  * \param lev_max the maximum level to include
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
- */        
+ */
 template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
@@ -598,9 +598,9 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-				const auto ptd = tile.getConstParticleTileData();
+                                const auto ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
-				[=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
+                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {return {f(ptd.getSuperParticle(i))};});
             }
         }
 
@@ -619,7 +619,7 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-				const auto ptd = tile.getConstParticleTileData();
+                                const auto ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i)
                     r = r || f(ptd.getSuperParticle(i));
 
@@ -628,6 +628,6 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
     }
 
     return r;
-}    
+}
 }
 #endif

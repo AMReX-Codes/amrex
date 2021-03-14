@@ -23,7 +23,7 @@ public:
                    const iMultiFab* overset_mask = nullptr);
     virtual ~HypreABecLap3 ();
 
-    virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
+    virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
                         int max_iter, const BndryData& bndry, int max_bndry_order) final;
 
 #ifdef AMREX_USE_EB

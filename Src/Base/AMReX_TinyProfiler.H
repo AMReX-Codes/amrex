@@ -56,7 +56,7 @@ private:
         bool usesCUPTI; //!< uses CUPTI
         Long nk;        //!< number of kernel calls
     };
-  
+
     //! stats across processes
     struct ProcStats
     {
@@ -73,7 +73,7 @@ private:
         bool usesCUPTI;
         std::string fname;
         static bool compex (const ProcStats& lhs, const ProcStats& rhs) {
-	    return lhs.dtexmax > rhs.dtexmax;
+            return lhs.dtexmax > rhs.dtexmax;
         }
         static bool compin (const ProcStats& lhs, const ProcStats& rhs) {
             return lhs.dtinmax > rhs.dtinmax;
@@ -90,6 +90,7 @@ private:
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
     static double t_init;
     static int device_synchronize_around_region;
+    static int verbose;
 
     static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);
 };

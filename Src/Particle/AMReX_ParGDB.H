@@ -64,18 +64,18 @@ public:
     ParGDB () { ; }
 
     ParGDB (const Geometry            & geom,
-	    const DistributionMapping & dmap,
-	    const BoxArray            & ba);
+            const DistributionMapping & dmap,
+            const BoxArray            & ba);
 
     ParGDB (const Vector<Geometry>            & geom,
-	    const Vector<DistributionMapping> & dmap,
-	    const Vector<BoxArray>            & ba,
-	    const Vector<int>                 & rr);
+            const Vector<DistributionMapping> & dmap,
+            const Vector<BoxArray>            & ba,
+            const Vector<int>                 & rr);
 
     ParGDB (const Vector<Geometry>            & geom,
-	    const Vector<DistributionMapping> & dmap,
-	    const Vector<BoxArray>            & ba,
-	    const Vector<IntVect>             & rr);
+            const Vector<DistributionMapping> & dmap,
+            const Vector<BoxArray>            & ba,
+            const Vector<IntVect>             & rr);
 
     virtual ~ParGDB () {;}
 
@@ -100,7 +100,7 @@ public:
     virtual const Vector<BoxArray>&         boxArray () const override;
 
     virtual void SetParticleBoxArray (int level, const BoxArray& new_ba) override;
-    virtual void SetParticleDistributionMap (int level,	const DistributionMapping& new_dm) override;
+    virtual void SetParticleDistributionMap (int level,        const DistributionMapping& new_dm) override;
     virtual void SetParticleGeometry (int level, const Geometry& new_geom) override;
 
     virtual void ClearParticleBoxArray (int level) override;
@@ -130,13 +130,13 @@ bool
 ParGDBBase::OnSameGrids (int level, const MultiFab& mf) const
 {
     return (mf.DistributionMap() == ParticleDistributionMap(level) &&
-	    mf.boxArray().CellEqual(ParticleBoxArray(level)));
+            mf.boxArray().CellEqual(ParticleBoxArray(level)));
 }
 
 inline
 ParGDB::ParGDB (const Geometry            & geom,
-		const DistributionMapping & dmap,
-		const BoxArray            & ba)
+                const DistributionMapping & dmap,
+                const BoxArray            & ba)
     :
     m_geom(1,geom),
     m_dmap(1,dmap),
@@ -146,9 +146,9 @@ ParGDB::ParGDB (const Geometry            & geom,
 
 inline
 ParGDB::ParGDB (const Vector<Geometry>            & geom,
-		const Vector<DistributionMapping> & dmap,
-		const Vector<BoxArray>            & ba,
-		const Vector<IntVect>             & rr)
+                const Vector<DistributionMapping> & dmap,
+                const Vector<BoxArray>            & ba,
+                const Vector<IntVect>             & rr)
     :
     m_geom(geom),
     m_dmap(dmap),
@@ -159,9 +159,9 @@ ParGDB::ParGDB (const Vector<Geometry>            & geom,
 
 inline
 ParGDB::ParGDB (const Vector<Geometry>            & geom,
-		const Vector<DistributionMapping> & dmap,
-		const Vector<BoxArray>            & ba,
-		const Vector<int>                 & rr)
+                const Vector<DistributionMapping> & dmap,
+                const Vector<BoxArray>            & ba,
+                const Vector<int>                 & rr)
     :
     m_geom(geom),
     m_dmap(dmap),

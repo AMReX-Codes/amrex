@@ -471,7 +471,7 @@ facediv_face_interp (int ci, int cj, int /*ck*/,
         }
     }
 }
-   
+
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 facediv_int (int ci, int cj, int /*ck*/, int nf,

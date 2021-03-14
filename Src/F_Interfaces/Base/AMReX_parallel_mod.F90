@@ -23,7 +23,7 @@ module amrex_parallel_module
   public :: amrex_parallel_init
   public :: amrex_parallel_finalize
   public :: amrex_parallel_communicator
-  public :: amrex_parallel_myproc 
+  public :: amrex_parallel_myproc
   public :: amrex_parallel_ioprocessor
   public :: amrex_parallel_nprocs
   public :: amrex_parallel_reduce_sum
@@ -101,7 +101,7 @@ contains
     else
        call amrex_abort("amrex_parallel_init: size of amrex_real is unknown")
     end if
-#endif    
+#endif
   end subroutine amrex_parallel_init
 
   subroutine amrex_parallel_finalize ()

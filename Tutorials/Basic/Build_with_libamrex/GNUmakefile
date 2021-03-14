@@ -7,12 +7,13 @@ CXX = mpicxx
 FC = gfortran
 
 CPPFLAGS = -I. -I$(AMREX_INSTALL_DIR)/include
-CXXFLAGS = -O2 -std=c++11
+CXXFLAGS = -O2 -std=c++14
 FFLAGS = -O2
 LDFLAGS = -L$(AMREX_INSTALL_DIR)/lib
 
 LIBRARIES = -lamrex
 
+LIBRARIES += -lpthread
 LIBRARIES += -lgfortran
 #LIBRARIES += -lifcore
 

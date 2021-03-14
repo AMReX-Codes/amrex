@@ -50,8 +50,8 @@ public:
     */
     explicit IArrayBox (const Box& b,
                         int        ncomp=1,
-			bool       alloc=true,
-			bool       shared=false,
+                        bool       alloc=true,
+                        bool       shared=false,
                         Arena*     ar = nullptr);
 
     IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
@@ -78,7 +78,7 @@ public:
     IArrayBox& operator= (int r) noexcept;
 
     //! For debugging purposes we hide BaseFab version and do some extra work.
-    void resize (const Box& b, int N = 1);
+    void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
     //! Initialize from ParmParse with "fab" prefix.
     static void Initialize ();

@@ -137,15 +137,15 @@ public:
 
 
     /**
-    * \brief For cell-centered solves only: if we want to do a linear solve 
-    * where the boundary conditions on the coarsest AMR level of the solve 
-    * come from a coarser level (e.g. the base AMR level of the solve is > 0 
-    * and does not cover the entire domain), we must explicitly provide the coarser 
-    * data.  Boundary conditions from a coarser level are always Dirichlet.  
+    * \brief For cell-centered solves only: if we want to do a linear solve
+    * where the boundary conditions on the coarsest AMR level of the solve
+    * come from a coarser level (e.g. the base AMR level of the solve is > 0
+    * and does not cover the entire domain), we must explicitly provide the coarser
+    * data.  Boundary conditions from a coarser level are always Dirichlet.
     * The MultiFab crse does not need to have ghost cells and is at a coarser
     * resolution than the coarsest AMR level of the solve; it is used to supply
-    * (interpolated) boundary conditions for the solve.  
-    * NOTE: If this is called, it must be called before `setLevelBC`.  
+    * (interpolated) boundary conditions for the solve.
+    * NOTE: If this is called, it must be called before `setLevelBC`.
     * If crse is nullptr, then the bc values are assumed to be zero.
     *
     * \param crse
@@ -154,7 +154,7 @@ public:
     void setCoarseFineBC (const MultiFab* crse, int crse_ratio) noexcept;
 
     /**
-    * \brief For cell-centered solves only: this must be called for each level.  
+    * \brief For cell-centered solves only: this must be called for each level.
     * Argument `levelbcdata` is * used to supply Dirichlet or Neumann bc at the
     * physical domain; if those data are homogeneous we can pass nullptr instead
     * of levelbcdata.  Regardless, this function must be called.

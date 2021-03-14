@@ -30,7 +30,7 @@ FabSet::copyFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
+        for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
             const Box& bx = fsi.validbox();
             auto const srcfab =   src.array(fsi);
             auto       dstfab = this->array(fsi);
@@ -38,16 +38,16 @@ FabSet::copyFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
             {
                 dstfab(i,j,k,n+dcomp) = srcfab(i,j,k,n+scomp);
             });
-	}
+        }
     } else {
-	m_mf.copy(src.m_mf,scomp,dcomp,ncomp);
+        m_mf.copy(src.m_mf,scomp,dcomp,ncomp);
     }
     return *this;
 }
 
 FabSet&
 FabSet::copyFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp,
-		  const Periodicity& period)
+                  const Periodicity& period)
 {
     BL_ASSERT(boxArray() != src.boxArray());
     m_mf.copy(src,scomp,dcomp,ncomp,ngrow,0,period);
@@ -61,7 +61,7 @@ FabSet::plusFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
+        for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
             const Box& bx = fsi.validbox();
             auto const srcfab =   src.array(fsi);
             auto       dstfab = this->array(fsi);
@@ -69,16 +69,16 @@ FabSet::plusFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
             {
                 dstfab(i,j,k,n+dcomp) += srcfab(i,j,k,n+scomp);
             });
-	}
+        }
     } else {
-	amrex::Abort("FabSet::plusFrom: parallel plusFrom not supported");
+        amrex::Abort("FabSet::plusFrom: parallel plusFrom not supported");
     }
     return *this;
 }
 
 FabSet&
 FabSet::plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp,
-		  const Periodicity& period)
+                  const Periodicity& period)
 {
     BL_ASSERT(boxArray() != src.boxArray());
     m_mf.copy(src,scomp,dcomp,ncomp,ngrow,0,period,FabArrayBase::ADD);
@@ -87,7 +87,7 @@ FabSet::plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncom
 
 void
 FabSet::copyTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
-		const Periodicity& period) const
+                const Periodicity& period) const
 {
     BL_ASSERT(boxArray() != dest.boxArray());
     dest.copy(m_mf,scomp,dcomp,ncomp,0,ngrow,period);
@@ -95,7 +95,7 @@ FabSet::copyTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
 
 void
 FabSet::plusTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
-		const Periodicity& period) const
+                const Periodicity& period) const
 {
     BL_ASSERT(boxArray() != dest.boxArray());
     dest.copy(m_mf,scomp,dcomp,ncomp,0,ngrow,period,FabArrayBase::ADD);
@@ -158,11 +158,11 @@ FabSet::linComb (Real a, Real b, const FabSet& src, int scomp, int dcomp, int nc
 }
 
 // Linear combination: this := a*mfa + b*mfb
-// CastroRadiation is the only code that uses this function. 
+// CastroRadiation is the only code that uses this function.
 FabSet&
 FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
-		 Real b, const MultiFab& mfb, int b_comp,
-		 int dcomp, int ncomp, int ngrow)
+                 Real b, const MultiFab& mfb, int b_comp,
+                 int dcomp, int ncomp, int ngrow)
 {
     BL_PROFILE("FabSet::linComb()");
     BL_ASSERT(ngrow <= mfa.nGrow());
@@ -228,7 +228,7 @@ void
 FabSet::read(const std::string& name)
 {
     if (m_mf.empty()) {
-	amrex::Abort("FabSet::read: not predefined");
+        amrex::Abort("FabSet::read: not predefined");
     }
     VisMF::Read(m_mf,name);
 }

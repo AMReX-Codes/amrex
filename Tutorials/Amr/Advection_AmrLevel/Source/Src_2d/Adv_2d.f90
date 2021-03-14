@@ -7,7 +7,7 @@ subroutine advect(time, lo, hi, &
      &            flxx, fx_lo, fx_hi, &
      &            flxy, fy_lo, fy_hi, &
      &            dx,dt) bind(C, name="advect")
-  
+
   use amrex_mempool_module, only : bl_allocate, bl_deallocate
   use compute_flux_module, only : compute_flux_2d
 
@@ -45,14 +45,14 @@ subroutine advect(time, lo, hi, &
   call bl_allocate(phiy_1d, glo(1), ghi(1), glo(2), ghi(2))
   call bl_allocate(phix   , glo(1), ghi(1), glo(2), ghi(2))
   call bl_allocate(phiy   , glo(1), ghi(1), glo(2), ghi(2))
-  ! slope                                                 
+  ! slope
   call bl_allocate(slope  , glo(1), ghi(1), glo(2), ghi(2))
 
   ! We like to allocate these **pointers** here and then pass them to a function
   ! to remove their pointerness for performance, because normally pointers could
   ! be aliasing.  We need to use pointers instead of allocatable arrays because
   ! we like to use AMReX's bl_allocate to allocate memeory instead of the intrinsic
-  ! allocate.  Bl_allocate is much faster than allocate inside OMP.  
+  ! allocate.  Bl_allocate is much faster than allocate inside OMP.
   ! Note that one MUST CALL BL_DEALLOCATE.
 
   ! check if CFL condition is violated.
@@ -88,9 +88,9 @@ subroutine advect(time, lo, hi, &
         flxx(i,j) = flxx(i,j) * ( dt * dx(2))
      enddo
   enddo
-  
+
   ! Scale by face area in order to correctly reflx
-  do    j = lo(2), hi(2)+1 
+  do    j = lo(2), hi(2)+1
      do i = lo(1), hi(1)
         flxy(i,j) = flxy(i,j) * (dt * dx(1))
      enddo

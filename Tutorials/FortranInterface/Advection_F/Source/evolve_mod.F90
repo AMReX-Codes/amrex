@@ -3,7 +3,7 @@ module evolve_module
   use amrex_amr_module
 
   use amrex_particlecontainer_module, only : amrex_particle
-  
+
   implicit none
   private
 
@@ -21,7 +21,7 @@ contains
 
     cur_time = t_new(0)
     last_plot_file_step = 0;
-    
+
     do step = stepno(0), max_step-1
        if (cur_time .ge. stop_time) exit
 
@@ -35,7 +35,7 @@ contains
        lev = 0
        substep = 1
        call timestep(lev, cur_time, substep)
- 
+
        cur_time = cur_time + dt(0)
 
        if (amrex_parallel_ioprocessor()) then
@@ -68,11 +68,11 @@ contains
     use averagedown_module, only : averagedownto
     integer, intent(in) :: lev, substep
     real(amrex_real), intent(in) :: time
-    
+
     integer, allocatable, save :: last_regrid_step(:)
     integer :: k, old_finest_level, finest_level, fine_substep
     integer :: redistribute_ngrow
-    
+
     if (regrid_int .gt. 0) then
        if (.not.allocated(last_regrid_step)) then
           allocate(last_regrid_step(0:amrex_max_level))
@@ -130,7 +130,7 @@ contains
        end if
        call pc%redistribute(lev, amrex_get_finest_level(), redistribute_ngrow)
     end if
-  
+
   end subroutine timestep
 
   ! update phi_new(lev)
@@ -155,7 +155,7 @@ contains
     type(amrex_fab) ::  flux(amrex_spacedim)
     type(amrex_multifab) :: fluxes(amrex_spacedim)
     type(amrex_particle), pointer :: particles(:)
-    
+
     if (verbose .gt. 0 .and. amrex_parallel_ioprocessor()) then
        write(*,'(A, 1X, I0, 1X, A, 1X, I0, A, 1X, G0)') &
             "[Level", lev, "step", step, "] ADVANCE with dt =", dt
@@ -226,7 +226,7 @@ contains
             pfz, lbound(pfz), ubound(pfz), &
 #endif
             amrex_geom(lev)%dx, dt)
-       
+
        if (do_reflux) then
           do idim = 1, amrex_spacedim
              pf => fluxes(idim)%dataptr(mfi)
@@ -246,7 +246,7 @@ contains
             puz, lbound(puz), ubound(puz), &
 #endif
             dt, amrex_geom(lev)%dx, amrex_problo)
-       
+
     end do
     call amrex_mfiter_destroy(mfi)
     do idim = 1, amrex_spacedim

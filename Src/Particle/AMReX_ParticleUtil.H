@@ -223,7 +223,7 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, IntVect nGrow)
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
-		  const IntVect& a_tile_size, Box& tbx)
+                  const IntVect& a_tile_size, Box& tbx)
 {
     if (a_do_tiling == false) {
         tbx = box;
@@ -239,7 +239,7 @@ int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
             int ts_right = ncells/ntile;
             int ts_left  = ts_right+1;
             int nleft = ncells - ntile*ts_right;
-	    int ii = i - lo;
+            int ii = i - lo;
             int nbndry = nleft*ts_left;
             if (ii < nbndry) {
                 tileidx = ii / ts_left; // tiles on the left of nbndry have size of ts_left
@@ -256,12 +256,12 @@ int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
         IntVect ntiles, ivIndex, tilelo, tilehi;
 
         AMREX_D_TERM(int iv0 = amrex::min(amrex::max(iv[0], small[0]), big[0]);,
-		     int iv1 = amrex::min(amrex::max(iv[1], small[1]), big[1]);,
-		     int iv2 = amrex::min(amrex::max(iv[2], small[2]), big[2]););
+                     int iv1 = amrex::min(amrex::max(iv[1], small[1]), big[1]);,
+                     int iv2 = amrex::min(amrex::max(iv[2], small[2]), big[2]););
 
         AMREX_D_TERM(tiling_1d(iv0, small[0], big[0], a_tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
-		     tiling_1d(iv1, small[1], big[1], a_tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
-		     tiling_1d(iv2, small[2], big[2], a_tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
+                     tiling_1d(iv1, small[1], big[1], a_tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
+                     tiling_1d(iv2, small[2], big[2], a_tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
 
         tbx = Box(tilelo, tilehi);
 
@@ -288,8 +288,8 @@ int numTilesInBox (const Box& box, const bool a_do_tiling, const IntVect& a_tile
         IntVect ntiles;
 
         AMREX_D_TERM(tiling_1d(small[0], big[0], a_tile_size[0], ntiles[0]);,
-		     tiling_1d(small[1], big[1], a_tile_size[1], ntiles[1]);,
-		     tiling_1d(small[2], big[2], a_tile_size[2], ntiles[2]););
+                     tiling_1d(small[1], big[1], a_tile_size[1], ntiles[1]);,
+                     tiling_1d(small[2], big[2], a_tile_size[2], ntiles[2]););
 
         return AMREX_D_TERM(ntiles[0], *=ntiles[1], *=ntiles[2]);
     }
@@ -409,23 +409,23 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                 }
                 else
                 {
-		    auto p_prime = p;
+                    auto p_prime = p;
                     enforcePeriodic(p_prime, plo, phi, is_per);
                     auto tup = ploc(p_prime, lev_min, lev_max, nGrow);
                     assigned_grid = amrex::get<0>(tup);
                     assigned_lev  = amrex::get<1>(tup);
-		    if (assigned_grid >= 0)
-		    {
-		      AMREX_D_TERM(p.pos(0) = p_prime.pos(0);,
-				   p.pos(1) = p_prime.pos(1);,
-				   p.pos(2) = p_prime.pos(2););
-		    }
-		    else if (lev_min > 0)
-		    {
-		      auto tup = ploc(p, lev_min, lev_max, nGrow);
-		      assigned_grid = amrex::get<0>(tup);
-		      assigned_lev  = amrex::get<1>(tup);
-		    }
+                    if (assigned_grid >= 0)
+                    {
+                      AMREX_D_TERM(p.pos(0) = p_prime.pos(0);,
+                                   p.pos(1) = p_prime.pos(1);,
+                                   p.pos(2) = p_prime.pos(2););
+                    }
+                    else if (lev_min > 0)
+                    {
+                      auto tup = ploc(p, lev_min, lev_max, nGrow);
+                      assigned_grid = amrex::get<0>(tup);
+                      assigned_lev  = amrex::get<1>(tup);
+                    }
                 }
 
                 return ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid));

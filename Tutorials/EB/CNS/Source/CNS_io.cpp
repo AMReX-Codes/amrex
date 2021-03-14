@@ -19,8 +19,8 @@ CNS::restart (Amr& papa, std::istream& is, bool bReadSpecial)
     buildMetrics();
 }
 
-void 
-CNS::checkPoint (const std::string& dir, std::ostream& os, VisMF::How how, bool dump_old) 
+void
+CNS::checkPoint (const std::string& dir, std::ostream& os, VisMF::How how, bool dump_old)
 {
     AmrLevel::checkPoint(dir, os, how, dump_old);
 }
@@ -33,5 +33,5 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
     MultiFab& C_new = get_new_data(Cost_Type);
     C_new.setVal(0.0);
 #endif
-    AmrLevel::writePlotFile(dir, os, how);    
+    AmrLevel::writePlotFile(dir, os, how);
 }

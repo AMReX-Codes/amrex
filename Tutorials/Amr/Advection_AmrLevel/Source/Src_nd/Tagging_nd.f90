@@ -1,9 +1,9 @@
 
 ! ::: -----------------------------------------------------------
 ! ::: This routine will tag high error cells based on the state
-! ::: 
+! :::
 ! ::: INPUTS/OUTPUTS:
-! ::: 
+! :::
 ! ::: tag        <=  integer tag array
 ! ::: tag_lo,hi   => index extent of tag array
 ! ::: state       => state array
@@ -25,7 +25,7 @@ subroutine state_error(tag,tag_lo,tag_hi, &
 
   use tagging_params_module, only : phierr, phigrad, max_phierr_lev, max_phigrad_lev
   implicit none
-  
+
   integer          :: lo(3),hi(3)
   integer          :: state_lo(3),state_hi(3)
   integer          :: tag_lo(3),tag_hi(3)
@@ -80,6 +80,6 @@ subroutine state_error(tag,tag_lo,tag_hi, &
          enddo
       end do
    endif
-  
+
 end subroutine state_error
 

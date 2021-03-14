@@ -44,7 +44,7 @@ void flux_z(int i, int j, int k,
             Array4<Real const> const& slope,
             Real dtdz)
 {
-    pz(i,j,k) = ( (vz(i,j,k) < 0) ? 
+    pz(i,j,k) = ( (vz(i,j,k) < 0) ?
                 phi(i,j,k  ) - slope(i,j,k  )*(0.5 + 0.5*dtdz*vz(i,j,k)) :
                 phi(i,j,k-1) + slope(i,j,k-1)*(0.5 - 0.5*dtdz*vz(i,j,k)) );
 }

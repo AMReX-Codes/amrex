@@ -36,14 +36,14 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
         auto& Bzp  = attribs[PIdx::Bz];
         auto& ginv = attribs[PIdx::ginv];
 
-	gather_magnetic_field(np, structs.dataPtr(),
+        gather_magnetic_field(np, structs.dataPtr(),
                                     Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Bx[pti]),
                                     BL_TO_FORTRAN_3D(By[pti]),
                                     BL_TO_FORTRAN_3D(Bz[pti]),
                                     plo, dx);
 
-	gather_electric_field(np, structs.dataPtr(),
+        gather_electric_field(np, structs.dataPtr(),
                                     Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Ex[pti]),
                                     BL_TO_FORTRAN_3D(Ey[pti]),
@@ -97,14 +97,14 @@ PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
         auto& Bzp  = attribs[PIdx::Bz];
         auto& ginv = attribs[PIdx::ginv];
 
-	gather_magnetic_field(np, structs.dataPtr(),
+        gather_magnetic_field(np, structs.dataPtr(),
                                     Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Bx[pti]),
                                     BL_TO_FORTRAN_3D(By[pti]),
                                     BL_TO_FORTRAN_3D(Bz[pti]),
                                     plo, dx);
 
-	gather_electric_field(np, structs.dataPtr(),
+        gather_electric_field(np, structs.dataPtr(),
                                     Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Ex[pti]),
                                     BL_TO_FORTRAN_3D(Ey[pti]),

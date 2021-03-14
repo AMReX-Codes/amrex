@@ -80,7 +80,8 @@ AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx, Box const& zbx,
                          Array4<Real> const& fx, Array4<Real> const& fy,
-                         Array4<Real> const& fz, Array4<Real const> const& cc) noexcept
+                         Array4<Real> const& fz, Array4<Real const> const& cc,
+                         int ncomp, bool use_harmonic_averaging) noexcept
 {
     const auto ndlo = lbound(ndbx);
     const auto ndhi = ubound(ndbx);
@@ -91,32 +92,77 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx, Box co
     const auto yhi = amrex::elemwiseMin(ndhi, ubound(ybx));
     const auto zhi = amrex::elemwiseMin(ndhi, ubound(zbx));
 
-    for         (int k = xlo.z; k <= xhi.z; ++k) {
-        for     (int j = xlo.y; j <= xhi.y; ++j) {
+    for (int n = 0; n < ncomp; ++n) {
+
+      if (use_harmonic_averaging)
+      {
+         for (int k = xlo.z; k <= xhi.z; ++k) {
+         for (int j = xlo.y; j <= xhi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = xlo.x; i <= xhi.x; ++i) {
-                fx(i,j,k) = Real(0.5)*(cc(i-1,j,k) + cc(i,j,k));
+                if (cc(i-1,j,k,n) == 0.0 || cc(i,j,k,n) == 0.0)
+                    fx(i,j,k,n) = Real(0.0);
+                else
+                    fx(i,j,k,n) = Real(2.0) / (Real(1.0)/cc(i-1,j,k,n) + Real(1.0)/cc(i,j,k,n));
             }
-        }
-    }
+         }
+         }
 
-    for         (int k = ylo.z; k <= yhi.z; ++k) {
-        for     (int j = ylo.y; j <= yhi.y; ++j) {
+         for (int k = ylo.z; k <= yhi.z; ++k) {
+         for (int j = ylo.y; j <= yhi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = ylo.x; i <= yhi.x; ++i) {
-                fy(i,j,k) = Real(0.5)*(cc(i,j-1,k) + cc(i,j,k));
-            }
-        }
-    }
+                if (cc(i,j-1,k,n) == 0.0 || cc(i,j,k,n) == 0.0)
+                  fy(i,j,k,n) = Real(0.0);
+                else
+                  fy(i,j,k,n) = Real(2.0) / (Real(1.0)/cc(i,j-1,k,n) + Real(1.0)/cc(i,j,k,n));
+              }
+         }
+         }
 
-    for         (int k = zlo.z; k <= zhi.z; ++k) {
-        for     (int j = zlo.y; j <= zhi.y; ++j) {
+         for (int k = zlo.z; k <= zhi.z; ++k) {
+         for (int j = zlo.y; j <= zhi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = zlo.x; i <= zhi.x; ++i) {
-                fz(i,j,k) = Real(0.5)*(cc(i,j,k-1) + cc(i,j,k));
+                if (cc(i,j,k-1,n) == 0.0 || cc(i,j,k,n) == 0.0)
+                  fz(i,j,k,n) = Real(0.0);
+                else
+                  fz(i,j,k,n) = Real(2.0) / (Real(1.0)/cc(i,j,k-1,n) + Real(1.0)/cc(i,j,k,n));
             }
-        }
-    }
+         }
+         }
+
+      } else {
+
+         for (int k = xlo.z; k <= xhi.z; ++k) {
+         for (int j = xlo.y; j <= xhi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = xlo.x; i <= xhi.x; ++i) {
+                fx(i,j,k,n) = Real(0.5)*(cc(i-1,j,k,n) + cc(i,j,k,n));
+            }
+         }
+         }
+
+         for (int k = ylo.z; k <= yhi.z; ++k) {
+         for (int j = ylo.y; j <= yhi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = ylo.x; i <= yhi.x; ++i) {
+                fy(i,j,k,n) = Real(0.5)*(cc(i,j-1,k,n) + cc(i,j,k,n));
+            }
+         }
+         }
+
+         for (int k = zlo.z; k <= zhi.z; ++k) {
+         for (int j = zlo.y; j <= zhi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = zlo.x; i <= zhi.x; ++i) {
+                fz(i,j,k,n) = Real(0.5)*(cc(i,j,k-1,n) + cc(i,j,k,n));
+            }
+         }
+         }
+
+      } // test on use_harmonic_averaging
+    } // n
 }
 
 AMREX_GPU_HOST_DEVICE

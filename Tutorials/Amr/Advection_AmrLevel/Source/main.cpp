@@ -39,33 +39,33 @@ main (int   argc,
     }
 
     if (max_step < 0 && stop_time < 0.0) {
-	amrex::Abort("Exiting because neither max_step nor stop_time is non-negative.");
+        amrex::Abort("Exiting because neither max_step nor stop_time is non-negative.");
     }
 
     {
-	Amr amr;
+        Amr amr;
 
-	amr.init(strt_time,stop_time);
+        amr.init(strt_time,stop_time);
 
-	while ( amr.okToContinue() &&
-  	       (amr.levelSteps(0) < max_step || max_step < 0) &&
-	       (amr.cumTime() < stop_time || stop_time < 0.0) )
+        while ( amr.okToContinue() &&
+                 (amr.levelSteps(0) < max_step || max_step < 0) &&
+               (amr.cumTime() < stop_time || stop_time < 0.0) )
 
-	{
-	    //
-	    // Do a coarse timestep.  Recursively calls timeStep()
-	    //
-	    amr.coarseTimeStep(stop_time);
-	}
+        {
+            //
+            // Do a coarse timestep.  Recursively calls timeStep()
+            //
+            amr.coarseTimeStep(stop_time);
+        }
 
-	// Write final checkpoint and plotfile
-	if (amr.stepOfLastCheckPoint() < amr.levelSteps(0)) {
-	    amr.checkPoint();
-	}
+        // Write final checkpoint and plotfile
+        if (amr.stepOfLastCheckPoint() < amr.levelSteps(0)) {
+            amr.checkPoint();
+        }
 
-	if (amr.stepOfLastPlotFile() < amr.levelSteps(0)) {
-	    amr.writePlotFile();
-	}
+        if (amr.stepOfLastPlotFile() < amr.levelSteps(0)) {
+            amr.writePlotFile();
+        }
 
     }
 

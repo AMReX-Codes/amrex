@@ -161,7 +161,7 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
                             velx, vely,
                             phix_c, phiy_c,
                             dtdy);
-                }); 
+                });
 
                 // xz --------------------
                 Array4<Real> phix_z = tmpfab.array(itmp);
@@ -176,7 +176,7 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
                             velx, velz,
                             phix, phiz,
                             dtdz);
-                }); 
+                });
 
                 // yx --------------------
                 Array4<Real> phiy_x = tmpfab.array(itmp);
@@ -191,7 +191,7 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
                             velx, vely,
                             phix, phiy,
                             dtdx);
-                }); 
+                });
 
                 // yz --------------------
                 Array4<Real> phiy_z = tmpfab.array(itmp);
@@ -206,7 +206,7 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
                             vely, velz,
                             phiy, phiz,
                             dtdz);
-                }); 
+                });
 
                 // zx --------------------
                 Array4<Real> phiz_x = tmpfab.array(itmp);
@@ -221,7 +221,7 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
                             velx, velz,
                             phix, phiz,
                             dtdx);
-                }); 
+                });
 
                 // zy --------------------
                 Array4<Real> phiz_y = tmpfab.array(itmp);
@@ -236,10 +236,10 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
                             vely, velz,
                             phiy, phiz,
                             dtdy);
-                }); 
+                });
 #endif
 
-                // final edge states 
+                // final edge states
                 // ===========================
                 amrex::ParallelFor(mfi.nodaltilebox(0),
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
@@ -285,14 +285,14 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
     } // end lev
 
     // =======================================================
-    // Average down the fluxes before using them to update phi 
+    // Average down the fluxes before using them to update phi
     // =======================================================
     for (int lev = finest_level; lev > 0; lev--)
     {
        average_down_faces(amrex::GetArrOfConstPtrs(fluxes[lev  ]),
                           amrex::GetArrOfPtrs     (fluxes[lev-1]),
                           refRatio(lev-1), Geom(lev-1));
-    } 
+    }
 
     for (int lev = 0; lev <= finest_level; lev++)
     {
@@ -307,7 +307,7 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
                          Real dtdz = dt_lev/dx[2]);
 
             // ===========================================
-            // Compute phi_new using a conservative update 
+            // Compute phi_new using a conservative update
             // ===========================================
             for (MFIter mfi(phi_new[lev],TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
@@ -319,7 +319,7 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
                              Array4<Real const> fluxz = fluxes[lev][2].const_array(mfi));
 
                 const Box& bx  = mfi.tilebox();
-    
+
                 amrex::ParallelFor(bx,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {

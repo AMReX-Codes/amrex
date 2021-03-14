@@ -52,7 +52,6 @@ namespace amrex
     //! Note that two BoxArrays that match are not necessarily equal.
     bool match (const BoxArray& x, const BoxArray& y);
 
-// \cond CODEGEN
 struct BARef
 {
     BARef ();
@@ -559,7 +558,7 @@ public:
     BoxArray (const BoxArray& rhs, const BATransformer& trans);
 
     BoxArray (BoxList&& bl, IntVect const& max_grid_size);
-    
+
     /**
     * \brief Initialize the BoxArray from a single box.
     * It is an error if the BoxArray has already been initialized.
@@ -759,10 +758,10 @@ public:
 
     //! intersect Box and BoxArray(+ghostcells), then store the result in isects
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
-			bool first_only, int ng) const;
+                        bool first_only, int ng) const;
 
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
-			bool first_only, const IntVect& ng) const;
+                        bool first_only, const IntVect& ng) const;
 
     //! Return box - boxarray
     BoxList complementIn (const Box& b) const;
@@ -804,15 +803,15 @@ public:
     //! Make ourselves unique.
     void uniqify ();
 
+    BoxList const& simplified_list () const; // For regular AMR grids only!!!
+    BoxArray simplified () const; // For regular AMR grids only!!!
+
     friend class AmrMesh;
     friend class FabArrayBase;
 
 private:
     //!  Update BoxArray index type according the box type, and then convert boxes to cell-centered.
     void type_update ();
-
-    BoxList const& simplified_list () const; // For regular AMR grids only
-    BoxArray simplified () const;
 
     BARef::HashType& getHashMap () const;
 

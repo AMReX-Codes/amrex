@@ -6,7 +6,7 @@ module averagedown_module
 
   implicit none
   private
-  
+
   public :: averagedown
 
 contains

@@ -4,7 +4,7 @@ This directory contains tests for:
 1. Slope computation on face centroids using the Least Square method,
 2. Laplacian operator computation when applying the explicit stencil,
 
-Given a function defined on cell centroids. 
+Given a function defined on cell centroids.
 
 # Building & Running
 1. Build using `make`

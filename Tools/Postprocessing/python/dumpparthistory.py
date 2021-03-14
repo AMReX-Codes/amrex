@@ -13,7 +13,7 @@ import parseparticles
 #-----------------------------------------------------------------------------
 def main(files):
 
-    # this returns a dict whose keys are a unique identifier (based on 
+    # this returns a dict whose keys are a unique identifier (based on
     # id and CPU) and values are the actual particle objects
     particlesDict = parseparticles.parseParticleFile(files)
 
@@ -41,7 +41,7 @@ def main(files):
         # get numpy arrays containing the time and coordinate
         # information for particle 0
         coords, time = particles[n].flatten()
-        dim = particles[n].dim 
+        dim = particles[n].dim
 
         # output to a flie
         of = open("particle_history.%03d" % (n), 'w')
@@ -51,32 +51,32 @@ def main(files):
         idstuff = str(particles[n])
         for line in idstuff.split("\n"):
             of.write("# %s\n" % (line))
-        
+
         #   next the column labels
         if (dim == 1):
-            of.write("# %20s %20s\n" % ("time", "x"))            
+            of.write("# %20s %20s\n" % ("time", "x"))
         elif (dim == 2):
-            of.write("# %20s %20s %20s\n" % ("time", "x", "y"))            
+            of.write("# %20s %20s %20s\n" % ("time", "x", "y"))
         elif (dim == 3):
             of.write("# %20s %20s %20s %20s\n" % ("time", "x", "y", "z"))
-            
-        
+
+
         # t, x, [y, [z]] in columns
         i = 0
         while (i < len(particles[n].history)):
-            
+
             if (dim == 1):
-                of.write("  %20.10f %20.10f\n" % 
+                of.write("  %20.10f %20.10f\n" %
                          (time[i], coords[0,i]))
             elif (dim == 2):
-                of.write("  %20.10f %20.10f %20.10f\n" % 
+                of.write("  %20.10f %20.10f %20.10f\n" %
                          (time[i], coords[0,i], coords[1,i]))
             elif (dim == 3):
-                of.write("  %20.10f %20.10f %20.10f %20.10f\n" % 
+                of.write("  %20.10f %20.10f %20.10f %20.10f\n" %
                          (time[i], coords[0,i], coords[1,i], coords[2,i]))
 
             i += 1
-               
+
 
         of.close()
 
@@ -85,7 +85,7 @@ def main(files):
 
 
 
-        
+
 
 
 #-----------------------------------------------------------------------------
@@ -100,4 +100,4 @@ if __name__== "__main__":
 
 
 
-        
+

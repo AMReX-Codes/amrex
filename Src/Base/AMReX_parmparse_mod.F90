@@ -77,7 +77,7 @@ module amrex_parmparse_module
        implicit none
        integer(c_int) :: amrex_parmparse_get_counts
        type(c_ptr), value :: pp
-       character(kind=c_char), intent(in) :: name(*)       
+       character(kind=c_char), intent(in) :: name(*)
      end function amrex_parmparse_get_counts
 
      subroutine amrex_parmparse_get_int (pp, name, v) bind(c)
@@ -386,7 +386,7 @@ contains
     real(amrex_real) :: v
     integer :: iflag
     iflag = amrex_parmparse_query_real (this%p, amrex_string_f_to_c(name), v)
-    if (present(flag)) flag = iflag.ne.0    
+    if (present(flag)) flag = iflag.ne.0
   end subroutine query_real
 
   subroutine query_logical (this, name, v, flag)
@@ -399,7 +399,7 @@ contains
     if (iflag.eq.1) then
        v = i.eq.1
     end if
-    if (present(flag)) flag = iflag.ne.0    
+    if (present(flag)) flag = iflag.ne.0
   end subroutine query_logical
 
   subroutine query_string (this, name, v, flag)
@@ -495,7 +495,7 @@ contains
     character(*), intent(in) :: v
     call amrex_parmparse_add_string(this%p, amrex_string_f_to_c(name), amrex_string_f_to_c(v))
   end subroutine add_string
-  
+
   subroutine add_intarr (this, name, v)
     class(amrex_parmparse), intent(inout) :: this
     character(*), intent(in) :: name

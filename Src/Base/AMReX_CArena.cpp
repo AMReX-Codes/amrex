@@ -1,11 +1,11 @@
 
-#include <utility>
-#include <cstring>
-
 #include <AMReX_CArena.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_ParallelReduce.H>
+
+#include <utility>
+#include <cstring>
 
 namespace amrex {
 
@@ -189,6 +189,37 @@ CArena::free (void* vp)
         node->size((*free_it).size() + (*hi_it).size());
         m_freelist.erase(hi_it);
     }
+
+    if (static_cast<Long>(m_used) >= arena_info.release_threshold) {
+        freeUnused_protected();
+    }
+}
+
+std::size_t
+CArena::freeUnused ()
+{
+    std::lock_guard<std::mutex> lock(carena_mutex);
+    return freeUnused_protected();
+}
+
+std::size_t
+CArena::freeUnused_protected ()
+{
+    std::size_t nbytes = 0;
+    m_alloc.erase(std::remove_if(m_alloc.begin(), m_alloc.end(),
+                                 [&nbytes,this] (std::pair<void*,std::size_t> a)
+                                 {
+                                     if (m_freelist.erase(Node(a.first,a.first,a.second))) {
+                                         nbytes += a.second;
+                                         deallocate_system(a.first,a.second);
+                                         return true;
+                                     } else {
+                                         return false;
+                                     }
+                                 }),
+                  m_alloc.end());
+    m_used -= nbytes;
+    return nbytes;
 }
 
 std::size_t

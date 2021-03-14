@@ -22,11 +22,11 @@ namespace amrex
         //================================================================================
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real side_op(Real L1[6],Real L2[6])
         {
-            return(    L1[0]*L2[4] 
-                    +  L1[1]*L2[5] 
-                    +  L1[2]*L2[3] 
-                    +  L1[3]*L2[2] 
-                    +  L1[4]*L2[0] 
+            return(    L1[0]*L2[4]
+                    +  L1[1]*L2[5]
+                    +  L1[2]*L2[3]
+                    +  L1[3]*L2[2]
+                    +  L1[4]*L2[0]
                     +  L1[5]*L2[1] );
         }
         //================================================================================
@@ -178,8 +178,8 @@ namespace amrex
                     p1[1]=midp[1];
                     p1[2]=midp[2];
                 }
-                else //plane_eq_mid is 0 
-                    //or error: p1,midp and p2 are on the same side 
+                else //plane_eq_mid is 0
+                    //or error: p1,midp and p2 are on the same side
                     //which is not what this function is meant for
                 {
                     if(plane_eq_mid*plane_eq1 > 0.0 && plane_eq_mid*plane_eq2 > 0.0)
@@ -263,7 +263,7 @@ namespace amrex
                     (Math::abs(S2) < eps && Math::abs(S3) < eps) )   //S2,S3=0
             {
 
-                //Print()<<"vertex intersection type 1\n";   
+                //Print()<<"vertex intersection type 1\n";
                 //don't chose vertex 2 or 3
                 get_plucker_coords(v2,t1,L2);
                 get_plucker_coords(t1,v1,L3);
