@@ -36,6 +36,11 @@ CArena::alloc (std::size_t nbytes)
     std::lock_guard<std::mutex> lock(carena_mutex);
 
     nbytes = Arena::align(nbytes == 0 ? 1 : nbytes);
+
+    if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold) {
+        freeUnused_protected();
+    }
+
     //
     // Find node in freelist at lowest memory address that'll satisfy request.
     //
@@ -188,10 +193,6 @@ CArena::free (void* vp)
         BL_ASSERT(!(node == 0));
         node->size((*free_it).size() + (*hi_it).size());
         m_freelist.erase(hi_it);
-    }
-
-    if (static_cast<Long>(m_used) >= arena_info.release_threshold) {
-        freeUnused_protected();
     }
 }
 
