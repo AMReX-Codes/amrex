@@ -138,9 +138,10 @@ Arena::allocate_system (std::size_t nbytes)
     }
     else
     {
-        if (abort_on_out_of_gpu_memory) {
-            std::size_t free_mem_avail = Gpu::Device::freeMemAvailable();
-            if (nbytes >= free_mem_avail) {
+        std::size_t free_mem_avail = Gpu::Device::freeMemAvailable();
+        if (nbytes >= free_mem_avail) {
+            free_mem_avail += freeUnused_protected(); // For CArena, mutex has already acquired
+            if (abort_on_out_of_gpu_memory && nbytes >= free_mem_avail) {
                 amrex::Abort("Out of gpu memory. Free: " + std::to_string(free_mem_avail)
                              + " Asked: " + std::to_string(nbytes));
             }

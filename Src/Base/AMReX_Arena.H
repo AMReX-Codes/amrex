@@ -96,6 +96,12 @@ public:
     */
     virtual void free (void* pt) = 0;
 
+    /**
+    * \brief Free unused memory back to the sytem.  Return value is the
+    * amount memory freed.
+    */
+    virtual std::size_t freeUnused () { return 0; }
+
     // isDeviceAccessible and isHostAccessible can both be true.
     virtual bool isDeviceAccessible () const;
     virtual bool isHostAccessible () const;
@@ -139,6 +145,7 @@ protected:
 
     ArenaInfo arena_info;
 
+    virtual std::size_t freeUnused_protected () { return 0; }
     void* allocate_system (std::size_t nbytes);
     void deallocate_system (void* p, std::size_t nbytes);
 };
