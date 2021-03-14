@@ -48,6 +48,8 @@ public:
     */
     virtual void free (void* ap) override final;
 
+    virtual std::size_t freeUnused () override final;
+
     //! The current amount of heap space used by the CArena object.
     std::size_t heap_space_used () const noexcept;
 
@@ -63,6 +65,9 @@ public:
     constexpr static std::size_t DefaultHunkSize = 1024*1024*8;
 
 protected:
+
+    virtual std::size_t freeUnused_protected () override final;
+
     //! The nodes in our free list and block list.
     class Node
     {
