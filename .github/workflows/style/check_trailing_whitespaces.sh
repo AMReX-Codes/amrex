@@ -11,7 +11,7 @@ find . -type d \( -name .git \
                   -o -name "*.c" -o -name "*.cc" -o -name "*.cpp" -o -name "*.cxx" \
                   -o -name "*.f" -o -name "*.F" -o -name "*.f90" -o -name "*.F90" \
                   -o -name "*.py" \
-                  -o -name "*.md" -o -name "*.rst" \
+                  -o -name "*.rst" \
                   -o -name "*.sh" \
                   -o -name "*.tex" \
                   -o -name "*.txt" \
