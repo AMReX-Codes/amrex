@@ -140,7 +140,7 @@ EnableIf_t<IsCallableR<Dim3, DTOS, Dim3>::value && IsCallableR<IndexType, DTOS, 
 Image(DTOS dtos, const Box& box)
 {
     // "Forget" the index type mapping and invoke Image without changing the index type.
-    Box srcbox = Image([&dtos](Dim3 i) { return dtos(i); }, box);
+    Box srcbox = Image([&dtos](Dim3 d) { return dtos(d); }, box);
     // Fix the index type of the resulting box
     srcbox.setType(dtos(box.ixType()));
     return srcbox;
