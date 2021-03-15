@@ -7,6 +7,7 @@
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLassert.H>
+#include <AMReX_Extension.H>
 #include <AMReX_INT.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
@@ -112,7 +113,7 @@ while ( false )
     void Initialize ();
     void Finalize ();
 
-    extern int use_gpu_aware_mpi;
+    extern AMREX_EXPORT int use_gpu_aware_mpi;
     inline bool UseGpuAwareMpi () { return use_gpu_aware_mpi; }
 
     //! Split the process pool into teams
@@ -205,13 +206,13 @@ while ( false )
         MPI_Comm  m_lead_comm;
     };
 
-    extern ProcessTeam m_Team;
+    extern AMREX_EXPORT ProcessTeam m_Team;
 
-    extern int m_MinTag, m_MaxTag;
+    extern AMREX_EXPORT int m_MinTag, m_MaxTag;
     inline int MinTag () noexcept { return m_MinTag; }
     inline int MaxTag () noexcept { return m_MaxTag; }
 
-    extern MPI_Comm m_comm;
+    extern AMREX_EXPORT MPI_Comm m_comm;
     inline MPI_Comm Communicator () noexcept { return m_comm; }
 
     //! return the number of MPI ranks local to the current Parallel Context
@@ -237,7 +238,7 @@ while ( false )
     * \brief The MPI rank number of the I/O Processor (probably rank 0).
     * This rank is usually used to write to stdout.
     */
-    extern const int ioProcessor;
+    extern AMREX_EXPORT const int ioProcessor;
     inline int
     IOProcessorNumber () noexcept
     {

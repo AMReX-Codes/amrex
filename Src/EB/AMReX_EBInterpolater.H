@@ -2,6 +2,7 @@
 #define AMREX_EBINTERPOLATER_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Extension.H>
 #include <AMReX_Interpolater.H>
 
 namespace amrex {
@@ -30,8 +31,8 @@ public:
                          RunOn            gpu_or_cpu) override;
 };
 
-extern EBCellConservativeLinear  eb_lincc_interp;
-extern EBCellConservativeLinear  eb_cell_cons_interp;
+extern AMREX_EXPORT EBCellConservativeLinear  eb_lincc_interp;
+extern AMREX_EXPORT EBCellConservativeLinear  eb_cell_cons_interp;
 
 }
 
