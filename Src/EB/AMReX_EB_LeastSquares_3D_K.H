@@ -692,6 +692,9 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
               continue;
             }
 
+            if (ii == phi.end.x || jj == phi.end.y || kk == phi.end.z)
+               continue;
+
             if (!flag(ii,jj,kk).isCovered())
             {
 
@@ -760,7 +763,9 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
         for (int ii = i-im; ii <= i+ip; ii++)  // Normal to face
           for (int kk = k-1; kk <= k+1; kk++)  // Tangential to face
-           for (int jj = j-1; jj <= j+1; jj++) // Tangential to face
+           for (int jj = j-1; jj <= j+1; jj++) { // Tangential to face
+               if (ii == phi.end.x || jj == phi.end.y)
+                  continue;
                if (!flag(ii,jj,kk).isCovered())
                {
                     int a_ind  = (jj-(j-1)) + 3*(kk-(k-1)) + 9*(ii-(i-im));
@@ -771,6 +776,7 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                     if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+27,irow) != 0.0)
                         rhs(irow) += Amatrix(a_ind+27,irow)*phieb(ii,jj,kk,n);
                }
+            }
     }
 
     cholsol_for_eb(Amatrix, rhs);
@@ -826,6 +832,9 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 ((on_x_face && ii > domhi_x) && (on_z_face && kk > domhi_z))) {
               continue;
             }
+
+            if (ii == phi.end.x || jj == phi.end.y || kk == phi.end.z)
+               continue;
 
             if (!flag(ii,jj,kk).isCovered())
             {
@@ -894,7 +903,9 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
         for (int jj = j-jm; jj <= j+jp; jj++) // Normal to face
            for (int kk = k-1; kk <= k+1; kk++)  // Tangential to face
-             for (int ii = i-1; ii <= i+1; ii++) // Tangential to face
+             for (int ii = i-1; ii <= i+1; ii++) {// Tangential to face
+                if (ii == phi.end.x || jj == phi.end.y || kk == phi.end.z)
+                   continue;
                 if (!flag(ii,jj,kk).isCovered())
                 {
                     int a_ind  = (ii-(i-1)) + 3*(kk-(k-1)) + 9*(jj-(j-jm));
@@ -905,6 +916,7 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                     if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+27,irow) != 0.0)
                         rhs(irow) += Amatrix(a_ind+27,irow)*phieb(ii,jj,kk,n);
                 }
+             }
     }
 
     cholsol_for_eb(Amatrix, rhs);
@@ -961,6 +973,9 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 ((on_x_face && ii > domhi_x) && (on_z_face && kk > domhi_z))) {
               continue;
             }
+
+            if (ii == phi.end.x || jj == phi.end.y || kk == phi.end.z)
+               continue;
 
             if (!flag(ii,jj,kk).isCovered())
             {
@@ -1030,7 +1045,9 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
         for (int kk = k-km; kk <= k+kp; kk++) // Normal to face
           for (int jj = j-1; jj <= j+1; jj++)  // Tangential to face
-             for (int ii = i-1; ii <= i+1; ii++) // Tangential to face
+             for (int ii = i-1; ii <= i+1; ii++) {// Tangential to face
+                if (ii == phi.end.x || jj == phi.end.y || kk == phi.end.z)
+                   continue;
                 if (!flag(ii,jj,kk).isCovered())
                 {
                     int a_ind  = (ii-(i-1)) + 3*(jj-(j-1)) + 9*(kk-(k-km));
@@ -1041,6 +1058,7 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                     if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+27,irow) != 0.0)
                         rhs(irow) += Amatrix(a_ind+27,irow)*phieb(ii,jj,kk,n);
                 }
+             }
     }
 
     cholsol_for_eb(Amatrix, rhs);

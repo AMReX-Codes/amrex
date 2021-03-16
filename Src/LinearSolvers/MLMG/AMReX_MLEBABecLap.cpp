@@ -187,12 +187,14 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
 {
     const int ncomp = getNComp();
     const int beta_ncomp = beta.nComp();
+    bool phi_on_centroid = (m_phi_loc == Location::CellCentroid);
     AMREX_ALWAYS_ASSERT(beta_ncomp == 1 || beta_ncomp == ncomp);
 
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
+        const int ngrow = phi_on_centroid ? 1 : 0;
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
-                                            ncomp, 0, MFInfo(), *m_factory[amrlev][mglev]));
+                                            ncomp, ngrow, MFInfo(), *m_factory[amrlev][mglev]));
     }
     if (m_eb_b_coeffs[amrlev][0] == nullptr) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
@@ -252,16 +254,21 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
             }
         }
     }
+
+    if (phi_on_centroid) 
+      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
 }
 
 void
 MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Real beta)
 {
     const int ncomp = getNComp();
+    bool phi_on_centroid = (m_phi_loc == Location::CellCentroid);
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
+        const int ngrow = phi_on_centroid ? 1 : 0;
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
-                                            ncomp, 0, MFInfo(), *m_factory[amrlev][mglev]));
+                                            ncomp, ngrow, MFInfo(), *m_factory[amrlev][mglev]));
     }
     if (m_eb_b_coeffs[amrlev][0] == nullptr) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
@@ -307,16 +314,21 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Real beta)
             });
         }
     }
+
+    if (phi_on_centroid) 
+      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
 }
 
 void
 MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Vector<Real> const& hv_beta)
 {
     const int ncomp = getNComp();
+    bool phi_on_centroid = (m_phi_loc == Location::CellCentroid);
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
+        const int ngrow = phi_on_centroid ? 1 : 0;
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
-                                            ncomp, 0, MFInfo(), *m_factory[amrlev][mglev]));
+                                            ncomp, ngrow, MFInfo(), *m_factory[amrlev][mglev]));
     }
     if (m_eb_b_coeffs[amrlev][0] == nullptr) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
@@ -366,6 +378,9 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Vector<Real> const
             });
         }
     }
+
+    if (phi_on_centroid) 
+      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
 }
 
 void
@@ -373,11 +388,13 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
 {
     const int ncomp = getNComp();
     const int beta_ncomp = beta.nComp();
+    bool phi_on_centroid = (m_phi_loc == Location::CellCentroid);
     AMREX_ALWAYS_ASSERT(beta_ncomp == 1 || beta_ncomp == ncomp);
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
+        const int ngrow = phi_on_centroid ? 1 : 0;
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
-                                            ncomp, 0, MFInfo(), *m_factory[amrlev][mglev]));
+                                            ncomp, ngrow, MFInfo(), *m_factory[amrlev][mglev]));
     }
     if (m_eb_b_coeffs[amrlev][0] == nullptr) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
@@ -435,16 +452,21 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
             }
         }
     }
+
+    if (phi_on_centroid) 
+      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
 }
 
 void
 MLEBABecLap::setEBHomogDirichlet (int amrlev, Real beta)
 {
     const int ncomp = getNComp();
+    bool phi_on_centroid = (m_phi_loc == Location::CellCentroid);
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
+        const int ngrow = phi_on_centroid ? 1 : 0;
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
-                                            ncomp, 0, MFInfo(), *m_factory[amrlev][mglev]));
+                                            ncomp, ngrow, MFInfo(), *m_factory[amrlev][mglev]));
     }
     if (m_eb_b_coeffs[amrlev][0] == nullptr) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
@@ -490,16 +512,21 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Real beta)
             });
         }
     }
+
+    if (phi_on_centroid) 
+      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
 }
 
 void
 MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& hv_beta)
 {
     const int ncomp = getNComp();
+    bool phi_on_centroid = (m_phi_loc == Location::CellCentroid);
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
+        const int ngrow = phi_on_centroid ? 1 : 0;
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
-                                            ncomp, 0, MFInfo(), *m_factory[amrlev][mglev]));
+                                            ncomp, ngrow, MFInfo(), *m_factory[amrlev][mglev]));
     }
     if (m_eb_b_coeffs[amrlev][0] == nullptr) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
@@ -549,6 +576,9 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& hv_beta)
             });
         }
     }
+
+    if (phi_on_centroid) 
+      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
 }
 
 void
