@@ -255,7 +255,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
         }
     }
 
-    if (phi_on_centroid) 
+    if (phi_on_centroid)
       m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
 }
 
@@ -315,7 +315,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Real beta)
         }
     }
 
-    if (phi_on_centroid) 
+    if (phi_on_centroid)
       m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
 }
 
@@ -379,7 +379,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Vector<Real> const
         }
     }
 
-    if (phi_on_centroid) 
+    if (phi_on_centroid)
       m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
 }
 
@@ -453,7 +453,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
         }
     }
 
-    if (phi_on_centroid) 
+    if (phi_on_centroid)
       m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
 }
 
@@ -513,7 +513,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Real beta)
         }
     }
 
-    if (phi_on_centroid) 
+    if (phi_on_centroid)
       m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
 }
 
@@ -577,7 +577,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& hv_beta)
         }
     }
 
-    if (phi_on_centroid) 
+    if (phi_on_centroid)
       m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
 }
 
