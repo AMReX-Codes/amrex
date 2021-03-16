@@ -195,15 +195,15 @@ namespace amrex
 
 
     //! Logical traits let us combine multiple type requirements in one EnableIf_t clause.
-    #if defined(__cpp_lib_logical_traits)
+#if defined(__cpp_lib_logical_traits)
     template <typename... Args> using Conjunction = std::conjunction<Args...>;
     template <typename... Args> using Disjunction = std::disjunction<Args...>;
     template <typename... Args> using Negation = std::negation<Args...>;
-    #elif defined(__cpp_lib_experimental_logical_traits)
+#elif defined(__cpp_lib_experimental_logical_traits)
     template <typename... Args> using Conjunction = std::experimental::conjunction<Args...>;
     template <typename... Args> using Disjunction = std::experimental::disjunction<Args...>;
     template <typename... Args> using Negation = std::experimental::negation<Args...>;
-    #else
+#else
     template <class...> struct Conjunction : std::true_type {};
     template <class B1> struct Conjunction<B1> : B1 {};
     template <class B1, class... Bn>
@@ -216,9 +216,9 @@ namespace amrex
     struct Disjunction<B1, Bn...>
     : std::conditional_t<bool(B1::value), B1, Disjunction<Bn...>> {};
 
-    template <class Bool>
-    using Negation = std::integral_constant<bool, !bool(Bool::value)>;
-    #endif
+    template <class B>
+    using Negation = std::integral_constant<bool, !bool(B::value)>;
+#endif
 
     // Move this down, because doxygen can not parse anything below IsStoreAtomic
     template <class T, class Enable = void>
