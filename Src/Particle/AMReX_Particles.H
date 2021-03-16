@@ -451,10 +451,23 @@ public:
     * ranks. In a global Redistribute, the particles can potentially go from any rank to any rank.
     * This usually happens after initialiation or when doing dynamic load balancing.
     *
-    * \param lev_min
-    * \param lev_max
-    * \param nGrow
-    * \param local
+    * \param lev_min The minimum level consider. Particles on levels less than this will not be
+    *                touched, and particles on finer levels will not be assigned to levels less
+    *                than this, either.
+    *                Default: 0.
+    * \param lev_max The maximum level consider. Particles on levels greater than this will not be
+    *                touched, and particles on coarser levels will not be assigned to levels greater
+    *                than this, either. If negative, will use the finest level in the hierarchy.
+    *                Default: -1.
+    * \param nGrow If particles are within nGrow cells of their current box, they will not moved.
+    *              This is useful for subcycling methods, when fine level particles need to be
+    *              redistributed but are not neccessarily at the same time as those on the coarse
+    *              level.
+    *              Default: 0
+    * \param local If 0, this will be a non-local redistribute, meaning that particle can potentially
+    *              go to any other box in the simulation. If > 0, this is the maximum number of cells
+    *              a particle can have moved since the last Redistribute() call. Knowing this number
+    *              allows an optimized MPI communication pattern to be used.
     */
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
 
