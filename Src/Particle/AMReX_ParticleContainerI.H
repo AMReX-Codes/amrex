@@ -1737,7 +1737,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             const auto offset = rOffset[i];
             const auto Who    = RcvProc[i];
             const auto Cnt = Rcvs[Who] / superparticle_size;
-            for (int j = 0; j < Cnt; ++j)
+            for (auto j = decltype(Cnt)(0); j < Cnt; ++j)
             {
                 int lev = rcv_levs[ipart];
                 std::pair<int, int> ind(std::make_pair(rcv_grid[ipart], rcv_tile[ipart]));
