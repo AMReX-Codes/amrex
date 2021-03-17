@@ -356,6 +356,14 @@ public:
     //! Explicitly set the FAB associated with mfi in the FabArray to point to elem.
     void setFab (const MFIter&mfi, FAB* elem, bool assertion=true);
 
+    //! Release ownership of the FAB. This function is not thread safe.
+    AMREX_NODISCARD
+    FAB* release (int K);
+
+    //! Release ownership of the FAB. This function is not thread safe.
+    AMREX_NODISCARD
+    FAB* release (const MFIter& mfi);
+
     //! Releases FAB memory in the FabArray.
     void clear ();
 
@@ -1163,6 +1171,44 @@ Array4<typename FabArray<FAB>::value_type const>
 FabArray<FAB>::const_array (int K, int start_comp) const noexcept
 {
     return fabPtr(K)->const_array(start_comp);
+}
+
+template <class FAB>
+AMREX_NODISCARD
+FAB*
+FabArray<FAB>::release (int K)
+{
+    const int li = localindex(K);
+    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
+        Long nbytes = amrex::nBytesOwned(*m_fabs_v[li]);
+        if (nbytes > 0) {
+            for (auto const& t : m_tags) {
+                updateMemUsage(t, -nbytes, nullptr);
+            }
+        }
+        return std::exchange(m_fabs_v[li], nullptr);
+    } else {
+        return nullptr;
+    }
+}
+
+template <class FAB>
+AMREX_NODISCARD
+FAB*
+FabArray<FAB>::release (const MFIter& mfi)
+{
+    const int li = mfi.LocalIndex();
+    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
+        Long nbytes = amrex::nBytesOwned(*m_fabs_v[li]);
+        if (nbytes > 0) {
+            for (auto const& t : m_tags) {
+                updateMemUsage(t, -nbytes, nullptr);
+            }
+        }
+        return std::exchange(m_fabs_v[li], nullptr);
+    } else {
+        return nullptr;
+    }
 }
 
 template <class FAB>

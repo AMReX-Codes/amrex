@@ -302,7 +302,7 @@ public:
 
     EBCellFlagFab () = default;
     EBCellFlagFab (EBCellFlagFab&& rhs) = default;
-    ~EBCellFlagFab () = default;
+    virtual ~EBCellFlagFab () override final = default;
 
     EBCellFlagFab (const EBCellFlagFab&) = delete;
     EBCellFlagFab& operator= (const EBCellFlagFab&) = delete;
