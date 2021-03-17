@@ -40,9 +40,10 @@ class Amr
 
 public:
     //! The constructor.
-    Amr ();
+    Amr (LevelBld* a_levelbld /* One must pass LevelBld* as an argument now*/);
 
-    Amr (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord);
+    Amr (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord,
+        LevelBld* a_levelbld /* One must pass LevelBld* as an argument now*/);
 
     Amr (const Amr& rhs) = delete;
     Amr& operator= (const Amr& rhs) = delete;

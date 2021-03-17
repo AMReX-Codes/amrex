@@ -10,6 +10,8 @@
 
 using namespace amrex;
 
+amrex::LevelBld* getLevelBld ();
+
 int
 main (int   argc,
       char* argv[])
@@ -43,7 +45,7 @@ main (int   argc,
     }
 
     {
-        Amr amr;
+        Amr amr(getLevelBld());
 
         amr.init(strt_time,stop_time);
 
