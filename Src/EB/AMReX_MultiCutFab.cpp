@@ -38,9 +38,7 @@ MultiCutFab::remove ()
     {
         if (!ok(mfi))
         {
-            CutFab* p = &(m_data[mfi]);
-            delete p;
-            m_data.setFab(mfi, new CutFab(), false);
+            delete m_data.release(mfi);
         }
     }
 }
