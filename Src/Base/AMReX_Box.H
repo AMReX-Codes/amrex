@@ -3,8 +3,6 @@
 #define AMREX_BOX_H_
 #include <AMReX_Config.H>
 
-#include <iosfwd>
-
 #include <AMReX_Algorithm.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_ccse-mpi.H>
@@ -17,6 +15,8 @@
 #include <AMReX_Vector.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
+
+#include <iosfwd>
 
 namespace amrex
 {
@@ -709,12 +709,7 @@ public:
     bool isSquare() const noexcept;
 
     AMREX_GPU_HOST_DEVICE
-    bool coarsenable(int refrat, int min_width=1) const noexcept {
-        return coarsenable(IntVect(refrat),min_width);
-    }
-
-    AMREX_GPU_HOST_DEVICE
-    bool coarsenable(const IntVect& refrat, int min_width=1) const noexcept
+    bool coarsenable(const IntVect& refrat, const IntVect& min_width) const noexcept
     {
         if (!size().allGE(refrat*min_width)) {
             return false;
@@ -727,6 +722,17 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
+    bool coarsenable(int refrat, int min_width=1) const noexcept {
+        return coarsenable(IntVect(refrat), IntVect(min_width));
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    bool coarsenable(const IntVect& refrat, int min_width=1) const noexcept
+    {
+        return coarsenable(refrat, IntVect(min_width));
+    }
+
+    AMREX_GPU_HOST_DEVICE
     void normalize () noexcept
     {
         for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
@@ -734,6 +740,14 @@ public:
                 this->growHi(idim,1);
             }
         }
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    Box& makeSlab (int direction, int slab_index) noexcept
+    {
+        smallend[direction] = slab_index;
+        bigend[direction] = slab_index;
+        return *this;
     }
 
     AMREX_GPU_HOST_DEVICE friend AMREX_FORCE_INLINE Dim3 lbound (Box const& box) noexcept;
@@ -1742,6 +1756,15 @@ IntVect getCell (Box const* boxes, int nboxes, Long icell) noexcept
         }
     }
     return boxes[ibox].atOffset(offset);
+}
+
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+Box makeSlab (Box const& b, int direction, int slab_index) noexcept
+{
+    Box r = b;
+    r.makeSlab(direction,slab_index);
+    return r;
 }
 
 }

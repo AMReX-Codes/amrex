@@ -4,6 +4,10 @@
 
 namespace amrex {
 
+#if (AMREX_SPACEDIM != 2)
+namespace TwoD {
+#endif
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_adotx (int i, int j, Array4<Real> const& y,
                       Array4<Real const> const& x,
@@ -325,6 +329,10 @@ void mlpoisson_normalize (Box const& box, Array4<Real> const& x,
         }
     }
 }
+
+#if (AMREX_SPACEDIM != 2)
+}
+#endif
 
 }
 
