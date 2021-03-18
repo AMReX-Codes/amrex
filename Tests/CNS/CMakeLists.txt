@@ -42,7 +42,7 @@ unset(_hydro_sources)
 set(_combustor_sources Exec/Combustor/cns_prob.F90 ${_sources})
 set(_input_files Exec/Combustor/inputs Exec/Combustor/inputs.regt)
 
-setup_tutorial(_combustor_sources _input_files
+setup_test(_combustor_sources _input_files
    HAS_FORTRAN_MODULES
    BASE_NAME CNS_Combustor
    RUNTIME_SUBDIR Combustor)
@@ -59,7 +59,7 @@ unset(_combustor_sources)
 set(_pulse_sources Exec/Pulse/cns_prob.F90 ${_sources})
 set(_input_files Exec/Pulse/inputs Exec/Pulse/inputs.regt)
 
-setup_tutorial(_pulse_sources _input_files
+setup_test(_pulse_sources _input_files
    HAS_FORTRAN_MODULES
    BASE_NAME CNS_Pulse
    RUNTIME_SUBDIR Pulse)
@@ -76,7 +76,7 @@ unset(_pulse_sources)
 set(_shockref_sources Exec/ShockRef/cns_prob.F90 ${_sources})
 set(_input_files Exec/ShockRef/inputs Exec/ShockRef/inputs.regt Exec/ShockRef/inputs.amr)
 
-setup_tutorial(_shockref_sources _input_files
+setup_test(_shockref_sources _input_files
    HAS_FORTRAN_MODULES
    BASE_NAME CNS_ShockRef
    RUNTIME_SUBDIR ShockRef)
@@ -93,7 +93,7 @@ unset(_shockref_sources)
 set(_sod_sources Exec/Sod/cns_prob.F90 ${_sources})
 set(_input_files Exec/Sod/inputs)
 
-setup_tutorial(_sod_sources _input_files
+setup_test(_sod_sources _input_files
    HAS_FORTRAN_MODULES
    BASE_NAME CNS_Sod
    RUNTIME_SUBDIR Sod)

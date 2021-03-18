@@ -13,7 +13,7 @@ list(APPEND _sources Exec/Prob.H)
 set(_input_files inputs  inputs_for_scaling  paraview_amr101.py)
 list(TRANSFORM _input_files PREPEND "Exec/")
 
-setup_tutorial(_sources _input_files)
+setup_test(_sources _input_files)
 
 unset( _sources )
 unset( _input_files   )

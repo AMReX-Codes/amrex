@@ -20,7 +20,7 @@ file(GLOB_RECURSE _input_files LIST_DIRECTORIES false
    ${CMAKE_CURRENT_LIST_DIR}/input* )
 
 
-setup_tutorial(_sources _input_files HAS_FORTRAN_MODULES)
+setup_test(_sources _input_files HAS_FORTRAN_MODULES)
 
 unset(_sources)
 unset(_input_files)
