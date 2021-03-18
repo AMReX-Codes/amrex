@@ -1,14 +1,30 @@
 #
 # List of subdirectories to search for CMakeLists.
 #
-set( AMREX_TESTS_SUBDIRS AsyncOut MultiBlock )
+set( AMREX_TESTS_SUBDIRS AsyncOut MultiBlock Amr)
 
 if (AMReX_PARTICLES)
    list(APPEND AMREX_TESTS_SUBDIRS Particles)
 endif ()
 
+if (AMReX_EB)
+   list(APPEND AMREX_TESTS_SUBDIRS EB)
+endif ()
+
+if (AMReX_LINEAR_SOLVERS)
+   list(APPEND AMREX_TESTS_SUBDIRS LinearSolvers)
+endif ()
+
 if (AMReX_HDF5)
    list(APPEND AMREX_TESTS_SUBDIRS HDF5Benchmark)
+endif ()
+
+if (AMReX_FORTRAN_INTERFACES)
+   list(APPEND AMREX_TESTS_SUBDIRS FortranInterface)
+endif ()
+
+if (AMReX_CUDA)
+   list(APPEND AMREX_TESTS_SUBDIRS GPU)
 endif ()
 
 list(TRANSFORM AMREX_TESTS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
