@@ -2,8 +2,7 @@
 #define AMREX_PARTICLECONTAINERBASE_H_
 #include <AMReX_Config.H>
 
-#include <string>
-
+#include <AMReX_Extension.H>
 #include <AMReX_INT.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_ParGDB.H>
@@ -15,6 +14,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParticleLocator.H>
 #include <AMReX_DenseBins.H>
+
+#include <string>
 
 namespace amrex {
 
@@ -196,8 +197,8 @@ public:
     static const std::string& AggregationType ();
     static int AggregationBuffer ();
 
-    static bool do_tiling;
-    static IntVect tile_size;
+    static AMREX_EXPORT bool do_tiling;
+    static AMREX_EXPORT IntVect tile_size;
 
 protected:
 
