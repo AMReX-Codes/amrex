@@ -3,8 +3,8 @@ name: windows
 on: [push, pull_request]
 
 jobs:
-  # Build libamrex and all tutorials
-  tutorials_msvc:
+  # Build libamrex and all tests
+  tests_msvc:
     name: MSVC C++17 w/o Fortran w/o MPI
     runs-on: windows-latest
     steps:
@@ -14,14 +14,14 @@ jobs:
         cmake -S . -B build   `
               -DCMAKE_BUILD_TYPE=Debug      `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
-              -DAMReX_BUILD_TUTORIALS=ON    `
+              -DAMReX_ENABLE_TESTS=ON       `
               -DAMReX_FORTRAN=OFF           `
               -DAMReX_MPI=OFF               `
               -DAMReX_PARTICLES=ON
         cmake --build build --config Debug -j 2
 
-  # Build libamrex and all tutorials
-  tutorials_clang:
+  # Build libamrex and all tests
+  tests_clang:
     name: Clang C++17 w/o Fortran w/o MPI
     runs-on: windows-latest
     steps:
@@ -35,7 +35,7 @@ jobs:
               -T "ClangCl"    ^
               -DCMAKE_BUILD_TYPE=Release    ^
               -DCMAKE_VERBOSE_MAKEFILE=ON   ^
-              -DAMReX_BUILD_TUTORIALS=ON    ^
+              -DAMReX_ENABLE_TESTS=ON       ^
               -DAMReX_FORTRAN=OFF           ^
               -DAMReX_MPI=OFF               ^
               -DAMReX_OMP=ON                ^
