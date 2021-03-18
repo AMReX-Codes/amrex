@@ -40,7 +40,7 @@ flags. Our particle struct would be set up like:
 
       Particle<4, 2> p;
 
-and the order of the particle components in would be (assuming :cpp:`BL_SPACEDIM` is 3): 
+and the order of the particle components in would be (assuming :cpp:`BL_SPACEDIM` is 3):
 :cpp:`x y z m vx vy vz id cpu flag1 flag2`.  [3]_
 
 Setting Particle data
@@ -291,7 +291,7 @@ Adding particle components at runtime
 
 In addition to the components specified as template parameters, you can also
 add additional :cpp:`Real` and :cpp:`int` components at runtime. These components
-will be stored in Struct-of-Array style. To add a runtime component, use the 
+will be stored in Struct-of-Array style. To add a runtime component, use the
 :cpp:`AddRealComp` and :cpp:`AddIntComp` methods of :cpp:`ParticleContainer`, like so:
 
 .. highlight:: c++
@@ -316,8 +316,8 @@ When you are using runtime components, it is crucial that when you are adding
 particles to the container, you call the :cpp:`DefineAndReturnParticleTile` method
 for each tile prior to adding any particles. This will make sure the space
 for the new components has been allocated. For example, in the above section
-on :ref:`initializing particle data <sec:Particles:Initializing>`, we accessed 
-the particle tile data using the :cpp:`GetParticles` method. If we runtime components 
+on :ref:`initializing particle data <sec:Particles:Initializing>`, we accessed
+the particle tile data using the :cpp:`GetParticles` method. If we runtime components
 are used, :cpp:`DefineAndReturnParticleTile` should be used instead:
 
 .. highlight:: c++
@@ -330,7 +330,7 @@ are used, :cpp:`DefineAndReturnParticleTile` should be used instead:
        // instead of this...
        // auto& particles = GetParticles(lev)[std::make_pair(mfi.index(),
        //                                     mfi.LocalTileIndex())];
-       
+
        // we do this...
        auto& particle_tile = DefineAndReturnParticleTile(lev, mfi);
 
@@ -625,8 +625,8 @@ mesh data IO. For example:
 
 will create a plot file called "plt00000" and write the mesh data in :cpp:`output` to it, and then write the particle data in a subdirectory called "particle0". There is also the :cpp:`WriteAsciiFile` method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
 
-The binary file format is currently readable by :cpp:`yt`. In additional, there is a Python conversion script in 
-``amrex/Tools/Py_util/amrex_particles_to_vtp`` that can convert both the ASCII and the binary particle files to a 
+The binary file format is currently readable by :cpp:`yt`. In additional, there is a Python conversion script in
+``amrex/Tools/Py_util/amrex_particles_to_vtp`` that can convert both the ASCII and the binary particle files to a
 format readable by Paraview. See the chapter on :ref:`Chap:Visualization` for more information on visualizing AMReX datasets, including those with particles.
 
 Inputs parameters
@@ -636,7 +636,7 @@ Inputs parameters
 
 There are several runtime parameters users can set in their :cpp:`inputs` files that control the
 behavior of the AMReX particle classes. These are summarized below. They should be preceded by
-"particles" in your inputs deck.  
+"particles" in your inputs deck.
 
 The first set of parameters concerns the tiling capability of the ParticleContainer. If you are seeing poor performance
 with OpenMP, the first thing to look at is whether there are enough tiles available for each thread to work on.
@@ -645,7 +645,7 @@ with OpenMP, the first thing to look at is whether there are enough tiles availa
 |                   | Description                                                           |   Type      | Default     |
 +===================+=======================================================================+=============+=============+
 | do_tiling         | Whether to use tiling for particles. Should be on when using OpenMP,  | Bool        | False       |
-|                   | and off when running on GPUs.                                         |             |             | 
+|                   | and off when running on GPUs.                                         |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 | tile_size         | If tiling is on, the maximum tile_size to in each direction           | Ints        | 1024000,8,8 |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
@@ -654,7 +654,7 @@ The next set concerns runtime parameters that control the particle IO. Parallel 
 too many MPI tasks touch the disk at once. Additionally, performance can degrade if all MPI tasks try writing to the
 same file, or if too many small files are created. In general, the "correct" values of these parameters will depend on the
 size of your problem (i.e., number of boxes, number of MPI tasks), as well as the system you are using. If you are experiencing
-problems with particle IO, you could try varying some / all of these parameters. 
+problems with particle IO, you could try varying some / all of these parameters.
 
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 |                   | Description                                                           |   Type      | Default     |

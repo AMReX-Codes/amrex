@@ -2,7 +2,7 @@
 #
 # it builds a python wrapper around the fortran source code helmeos.f90 using
 # the f2py framework.  The easiest way to get this module to work is to make
-# sure that 1) your PYTHONPATH can find this module for importing, and 2) 
+# sure that 1) your PYTHONPATH can find this module for importing, and 2)
 # setting a FPARALLEL environment variable
 #  e.g. (for bash)
 #   export FPARALLEL=~/MAESTRO/fParallel
@@ -70,7 +70,7 @@ def _build_fhelmEOS(fParallel_path=None):
     helmEOS_path = fParallel_path + helmEOS_path
 
     # open and read the helmeos.f90 file if possible
-    try: 
+    try:
         ifh = open(helmEOS_path+helmEOS)
     except IOError:
         print "Could not locate %s at expected location %s" % (
@@ -83,7 +83,7 @@ def _build_fhelmEOS(fParallel_path=None):
     # fix some things so we don't have to worry about modules
     for lineno, line in enumerate(fileContents):
         # remove the bl_error and bl_warn stuff
-        if line.find("use bl_error") >=0: 
+        if line.find("use bl_error") >=0:
             fileContents[lineno] = '!' + line
         elif line.find("bl_error") >= 0:
             txt = line.split('(')[1].split(')')[0]
@@ -91,7 +91,7 @@ def _build_fhelmEOS(fParallel_path=None):
         elif line.find("bl_warn") >= 0:
             txt = line.split('(')[1].split(')')[0]
             fileContents[lineno] = "print *, " + txt + "\n"
-    
+
     # dump the updated helmeos.f90 to a temporary, local file
     try:
         ofh = open(helmEOS,'w')
@@ -121,7 +121,7 @@ def _build_fhelmEOS(fParallel_path=None):
         sys.exit(1)
 
     # remove the un-needed local helmeos.f90 and include file
-    try: 
+    try:
         subprocess.check_call(["rm", helmEOS, vectorEOS])
     except subprocess.CalledProcessError:
         print "Couldn't cleanup the local %s and %s files!" % (
@@ -147,7 +147,7 @@ def fwrap(fParallel=None,rebuild=False):
     if rebuild: _built = False
 
     if not _built: _build_fhelmEOS(fParallel)
-    else: 
+    else:
         print ""
         print "Great - wrapper already built."
         print "If you want to force a rebuild, call fwrap(rebuild=True)"
@@ -157,17 +157,17 @@ def fwrap(fParallel=None,rebuild=False):
 
     _built = True
 
-# this class is essentially a data storage container for all the interesting 
+# this class is essentially a data storage container for all the interesting
 # thermodynamic properties
-# 
+#
 # a call to the eos will return an object of this type
 class EOS_dataType(object):
 
     # initialize some important variables
     # depending on the input_type for the EOS, some of these won't be needed
     # as initial data, but will be calculated
-    def __init__(self, 
-                 input_type, 
+    def __init__(self,
+                 input_type,
                  abar, zbar,
                  den, temp,
                  h, p, e, s):
@@ -197,7 +197,7 @@ class EOS_dataType(object):
 # this is the standard eos routine that calls the fortran helmeos code
 #
 #
-def eos(input_type=None, 
+def eos(input_type=None,
         abar=None, zbar=None,
         den=ZERO, temp=ZERO,
         h=ZERO, p=ZERO, e=ZERO, s=ZERO):
@@ -210,12 +210,12 @@ def eos(input_type=None,
     nRetQuant = 23
 
     # initialize if this is the first call
-    if not _initialized: 
+    if not _initialized:
         fhelmEOS.helmeos_init()
         _initialized = True
 
     # sanity checks
-    if not input_type: 
+    if not input_type:
         print "eos: Must specify input type!"
         sys.exit(1)
     if not abar or not zbar:

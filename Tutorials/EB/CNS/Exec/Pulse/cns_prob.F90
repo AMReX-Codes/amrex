@@ -36,7 +36,7 @@ subroutine cns_initdata(level, time, lo, hi, u, ulo, uhi, dx, prob_lo) bind(C, n
   real(rt), intent(in) :: time
   real(rt), intent(inout) :: u(ulo(1):uhi(1), ulo(2):uhi(2), ulo(3):uhi(3),nvar)
   real(rt), intent(in) :: dx(3), prob_lo(3)
-  
+
   integer :: i,j,k
   real(rt) :: x,y,z,r, Pt
   real(rt), parameter :: Pi = 4.d0*atan(1.d0)

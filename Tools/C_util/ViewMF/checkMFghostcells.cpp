@@ -14,7 +14,7 @@
 
 
 static
-void 
+void
 PrintUsage(int argc, char *argv[])
 {
     cout << "Usage: " << endl;
@@ -44,12 +44,12 @@ main (int   argc,
     }
 
     ParmParse pp(argc-2,argv+2);
-    
+
     if (pp.contains("help"))
         PrintUsage(argc, argv);
-    
+
     aString iFile = argv[1];
-    
+
     bool ascii = false;
     if (pp.contains("ascii"))
         ascii = true;
@@ -58,7 +58,7 @@ main (int   argc,
 //
     MultiFab mf;
     readMF(mf,iFile.c_str());
-    
+
     int ngrow = mf.nGrow();
     MultiFab tmp(mf.boxArray(),mf.nComp(),ngrow,Fab_allocate);
 
@@ -80,7 +80,7 @@ main (int   argc,
             {
                 Box intersection = srcBox & dstBox;
 
-                mfiDst().copy(mfiSrc(), intersection, 0, 
+                mfiDst().copy(mfiSrc(), intersection, 0,
                                         intersection, 0, mf.nComp());
             }
         }
@@ -105,6 +105,6 @@ main (int   argc,
         }
         return true;
     }
-    
+
     return ArrayViewMultiFab(&tmp);
 }

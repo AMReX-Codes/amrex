@@ -1,10 +1,10 @@
 /*
   A very simple example of reading a plotfile and calling a function to perform a pointwise transformation
   based on a set of components that are specified by name on the command line.  The transformation is done
-  in the accompanying fortran routine.  No grow cells are used, so the transformation cannot involve a 
+  in the accompanying fortran routine.  No grow cells are used, so the transformation cannot involve a
   stencil operation.
 
-  The output is a new plotfile with a single component set to the output of the transform routine.  This 
+  The output is a new plotfile with a single component set to the output of the transform routine.  This
   new plotfile has metadata (number of levels, boxarray, grid spacing, etc) that is identical to the original
   plotfile.
  */
@@ -27,7 +27,7 @@ extern "C" {
 using namespace amrex;
 
 static
-void 
+void
 print_usage (int,
              char* argv[])
 {
@@ -98,7 +98,7 @@ main (int   argc,
       MultiFab stateIn(ba,dmap,nCompIn,nGrow);
       stateOut[lev] = new MultiFab(ba,dmap,nCompOut,0);
 
-      // Load input data from pltfile 
+      // Load input data from pltfile
       amrData.FillVar(stateIn,lev,varNames,destFillComps);
 
       // Compute transformation
@@ -110,7 +110,7 @@ main (int   argc,
         transform(BL_TO_FORTRAN_BOX(box),
                   BL_TO_FORTRAN_ANYD(sIn),&nCompIn,
                   BL_TO_FORTRAN_ANYD(sOut),&nCompOut);
-      
+
       }
     }
 

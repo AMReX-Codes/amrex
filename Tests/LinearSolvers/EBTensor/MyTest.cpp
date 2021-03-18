@@ -140,7 +140,7 @@ void
 MyTest::readParameters ()
 {
     ParmParse pp;
- 
+
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
 

@@ -200,8 +200,8 @@ void test_async_io(TestParams& parms)
     Vector<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, CoordSys::cartesian, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
-	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
-			 &real_box, CoordSys::cartesian, is_per);
+        geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
+                         &real_box, CoordSys::cartesian, is_per);
     }
 
     Vector<BoxArray> ba(nlevs);

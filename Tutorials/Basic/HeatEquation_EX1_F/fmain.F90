@@ -34,7 +34,7 @@ program main
 
   plot_int = -1 ! default to no plotfiles
   call pp%query("plot_int", plot_int);
-  
+
   call amrex_parmparse_destroy(pp)
 
   ! Define a single box covering the domain
@@ -48,7 +48,7 @@ program main
 
   ! Build a DistributionMapping for the boxarray
   call amrex_distromap_build(dm, ba)
-  
+
   ! This defines a amrex_geometry object.
   call amrex_geometry_build(geom, domain)
 

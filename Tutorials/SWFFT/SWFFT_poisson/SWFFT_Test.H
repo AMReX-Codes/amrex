@@ -25,7 +25,7 @@ private:
     amrex::MultiFab soln;
     amrex::MultiFab the_soln;
     amrex::Geometry geom;
-    
+
     void init_rhs ();
     void comp_the_solution ();
 };

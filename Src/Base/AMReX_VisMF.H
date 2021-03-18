@@ -84,7 +84,7 @@ public:
         Header ();
         //! Construct from a FabArray<FArrayBox>.
         Header (const FabArray<FArrayBox>& fafab, VisMF::How how, Version version = Version_v1,
-		bool calcMinMax = true, MPI_Comm = ParallelDescriptor::Communicator());
+                bool calcMinMax = true, MPI_Comm = ParallelDescriptor::Communicator());
 
         Header (Header&& rhs) noexcept = default;
 
@@ -307,7 +307,7 @@ private:
 
     //! fileNumbers must be passed in for dynamic set selection [proc]
     static void FindOffsets (const FabArray<FArrayBox> &fafab,
-			     const std::string &fafab_name,
+                             const std::string &fafab_name,
                              VisMF::Header &hdr,
                              VisMF::Header::Version whichVersion,
                              NFilesIter &nfi,

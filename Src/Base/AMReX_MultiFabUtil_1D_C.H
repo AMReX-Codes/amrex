@@ -102,7 +102,8 @@ inline
 void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx,
                          Array4<Real> const& fx,
                          Array4<Real const> const& cc,
-                         GeometryData const& gd) noexcept
+                         GeometryData const& gd, int ncomp,
+                         bool use_harmonic_averaging) noexcept
 {
     const auto ndlo = lbound(ndbx);
     const auto ndhi = ubound(ndbx);
@@ -114,42 +115,61 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx,
 
     switch (coord_type)
     {
-    case 0:
-    {
-        AMREX_PRAGMA_SIMD
-        for (int i = xlo.x; i <= xhi.x; ++i) {
-            fx(i,0,0) = 0.5*(cc(i-1,0,0) + cc(i,0,0));
+        case 0:
+        {
+            if (use_harmonic_averaging)
+            {
+                for (int n = 0; n < ncomp; ++n) {
+                AMREX_PRAGMA_SIMD
+                for (int i = xlo.x; i <= xhi.x; ++i) {
+                    if (cc(i-1,0,0,n) == 0.0 || cc(i,0,0,n) == 0.0)
+                        fx(i,0,0,n) = Real(0.0);
+                    else
+                    {
+                        fx(i,0,0,n) = Real(2.0) / ( Real(1.0) / cc(i-1,0,0,n) + Real(1.0) / cc(i,0,0,n) );
+                    }
+                }}
+            } else {
+                for (int n = 0; n < ncomp; ++n) {
+                AMREX_PRAGMA_SIMD
+                for (int i = xlo.x; i <= xhi.x; ++i) {
+                    fx(i,0,0,n) = Real(0.5)*(cc(i-1,0,0,n) + cc(i,0,0,n));
+                }}
+            }
+            break;
         }
-        break;
-    }
-    case 1:
-    {
-        const Real problo = gd.ProbLo(0);
-        const Real dx = gd.CellSize(0);
-        AMREX_PRAGMA_SIMD
-        for (int i = xlo.x; i <= xhi.x; ++i) {
-            Real rlo = problo + (i-0.5)*dx;
-            Real rhi = problo + (i+0.5)*dx;
-            Real rcen = 0.5*(rlo+rhi);
-            fx(i,0,0) = 0.5*(rlo*cc(i-1,0,0) + rhi*cc(i,0,0)) / rcen;
+        case 1:
+        {
+            const Real problo = gd.ProbLo(0);
+            const Real dx = gd.CellSize(0);
+
+            for (int n = 0; n < ncomp; ++n) {
+            AMREX_PRAGMA_SIMD
+            for (int i = xlo.x; i <= xhi.x; ++i) {
+                Real rlo = problo + (i-0.5)*dx;
+                Real rhi = problo + (i+0.5)*dx;
+                Real rcen = Real(0.5)*(rlo+rhi);
+                fx(i,0,0,n) = Real(0.5)*(rlo*cc(i-1,0,0,n) + rhi*cc(i,0,0,n)) / rcen;
+            }}
+            break;
         }
-        break;
-    }
-    case 2:
-    {
-        const Real problo = gd.ProbLo(0);
-        const Real dx = gd.CellSize(0);
-        AMREX_PRAGMA_SIMD
-        for (int i = xlo.x; i <= xhi.x; ++i) {
-            Real rlo = problo + (i-0.5)*dx;
-            Real rhi = problo + (i+0.5)*dx;
-            Real rcen = 0.5*(rlo+rhi);
-            fx(i,0,0) = 0.5*(rlo*rlo*cc(i-1,0,0) + rhi*rhi*cc(i,0,0)) / (rcen*rcen);
+        case 2:
+        {
+            const Real problo = gd.ProbLo(0);
+            const Real dx = gd.CellSize(0);
+
+            for (int n = 0; n < ncomp; ++n) {
+            AMREX_PRAGMA_SIMD
+            for (int i = xlo.x; i <= xhi.x; ++i) {
+                Real rlo = problo + (i-0.5)*dx;
+                Real rhi = problo + (i+0.5)*dx;
+                Real rcen = Real(0.5)*(rlo+rhi);
+                fx(i,0,0,n) = Real(0.5)*(rlo*rlo*cc(i-1,0,0,n) + rhi*rhi*cc(i,0,0,n)) / (rcen*rcen);
+            }}
+            break;
         }
-        break;
-    }
-    default:
-        amrex::Abort("amrex_avg_cc_to_fc: wrong coord_type");
+        default:
+            amrex::Abort("amrex_avg_cc_to_fc: wrong coord_type");
     }
 }
 

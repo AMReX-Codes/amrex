@@ -46,7 +46,7 @@ public:
 
     TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp);
 
-    ~TagBox () = default;
+    virtual ~TagBox () noexcept override final = default;
 
     TagBox (TagBox&& rhs) noexcept = default;
 

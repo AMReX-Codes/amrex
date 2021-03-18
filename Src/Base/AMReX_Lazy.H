@@ -16,7 +16,7 @@ namespace Lazy
 
     void QueueReduction (Func);
     void EvalReduction ();
-    
+
     void Finalize ();
 }
 }

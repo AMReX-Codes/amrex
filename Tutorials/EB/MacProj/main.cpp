@@ -39,7 +39,7 @@ int main (int argc, char* argv[])
             Box domain(IntVect{AMREX_D_DECL(0,0,0)},
                        IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
             geom.define(domain);
-            
+
             grids.define(domain);
             grids.maxSize(max_grid_size);
 
@@ -83,13 +83,13 @@ int main (int argc, char* argv[])
 
         // copy velocity into plotfile
         average_face_to_cellcenter(plotfile_mf,0,amrex::GetArrOfConstPtrs(vel));
-        
+
         // compute and output divergence, then copy into plofile
         MultiFab divu(grids, dmap, 1, 0, MFInfo(), factory);
         EB_computeDivergence(divu, amrex::GetArrOfConstPtrs(vel), geom, false);
         amrex::Print() << "\nmax-norm of divu before projection is " << divu.norm0() << "\n" << std::endl;
         plotfile_mf.copy(divu,0,AMREX_SPACEDIM,1);
-        
+
         MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // mac velocity
                              MLMG::Location::FaceCenter,
                              {amrex::GetArrOfConstPtrs(beta)}, // beta
@@ -134,7 +134,7 @@ int main (int argc, char* argv[])
                                      "divu-before",
                                      "after-vx", "after-vy",
 #if (AMREX_SPACEDIM == 3)
-                                      "after-vz",       
+                                      "after-vz",
 #endif
                                      "divu-after"},
                                     geom, 0.0, 0);

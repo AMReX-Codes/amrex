@@ -187,7 +187,7 @@ contains
        u1 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+is,qu))
        v1 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+is,qv))
        w1 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+is,qw))
-       
+
        d2 = (bct(3) - 2.d0*s) * (1.0d0/anrmz)
        xit = bct(1) - d2*anrmx
        yit = bct(2) - d2*anrmy
@@ -206,7 +206,7 @@ contains
        u2 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+2*is,qu))
        v2 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+2*is,qv))
        w2 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+2*is,qw))
-       
+
     end if
 
     !
@@ -243,10 +243,10 @@ contains
     divw(2) = dxinv(1) * (dapx*tauxx + dapy*tauxy + dapz*tauxz)
     divw(3) = dxinv(1) * (dapx*tauxy + dapy*tauyy + dapz*tauyz)
     divw(4) = dxinv(1) * (dapx*tauxz + dapy*tauyz + dapz*tauzz)
- 
+
   end subroutine compute_diff_wallflux
 
-  
+
   real(rt) function interp2d(cym,cy0,cyp,czm,cz0,czp,v)
     real(rt), intent(in) :: cym,cy0,cyp,czm,cz0,czp,v(3,3)
     interp2d = czm*(cym*v(1,1) + cy0*v(2,1) + cyp*v(3,1)) &

@@ -5,7 +5,7 @@ using namespace amrex;
 
 extern "C"
 {
-    void amrex_fi_new_fluxregister (FluxRegister*& flux_reg, const BoxArray* ba, 
+    void amrex_fi_new_fluxregister (FluxRegister*& flux_reg, const BoxArray* ba,
                                     const DistributionMapping* dm, int rr, int flev, int ncomp)
     {
         flux_reg = new FluxRegister(*ba, *dm, IntVect(AMREX_D_DECL(rr,rr,rr)), flev, ncomp);
@@ -27,14 +27,14 @@ extern "C"
   void amrex_fi_fluxregister_fineadd_1fab_1dir (FluxRegister* flux_reg, const Real* fabdata,  const int* flo, const int* fhi, int dir, int boxno, int zeroFirst, int nfluxes, Real scale)
     {
         Box bx;
-	bx = Box(IntVect(flo), IntVect(fhi));
-	bx.shiftHalf(dir,-1);
+        bx = Box(IntVect(flo), IntVect(fhi));
+        bx.shiftHalf(dir,-1);
 
-	BL_ASSERT(flux_reg->nComp() == nfluxes);
-	if (zeroFirst)
-	  flux_reg->FineSetVal(dir, boxno, 0, flux_reg->nComp(), 0.0, RunOn::Cpu);
+        BL_ASSERT(flux_reg->nComp() == nfluxes);
+        if (zeroFirst)
+          flux_reg->FineSetVal(dir, boxno, 0, flux_reg->nComp(), 0.0, RunOn::Cpu);
         const FArrayBox fab(bx, nfluxes, const_cast<Real*>(fabdata));
-	flux_reg->FineAdd(fab, dir, boxno, 0, 0, flux_reg->nComp(), scale, RunOn::Cpu);
+        flux_reg->FineAdd(fab, dir, boxno, 0, 0, flux_reg->nComp(), scale, RunOn::Cpu);
     }
 
     void amrex_fi_fluxregister_crseinit (FluxRegister* flux_reg, MultiFab* flxs[], Real scale)
@@ -59,7 +59,7 @@ extern "C"
         flux_reg->setVal(val);
     }
 
-    void amrex_fi_fluxregister_reflux (FluxRegister* flux_reg, MultiFab* mf, Real scale, 
+    void amrex_fi_fluxregister_reflux (FluxRegister* flux_reg, MultiFab* mf, Real scale,
                                        const Geometry* geom)
     {
         MultiFab vol;

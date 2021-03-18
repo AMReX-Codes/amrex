@@ -418,21 +418,21 @@ void abec_gsrb_with_line_solve (
     const auto vhi = amrex::ubound(vbox);
 
     // amrex::Print() << "GSRB LS " << box << " " << dhx << " " << dhy << " " << dhz << std::endl;
-    
+
     // idir is the direction in which we will do the tridiagonal solve --
     //    it should be the direction in which the mesh spacing is much larger
     //    than in the other directions
     int idir = 2;
     int ilen = hi.z - lo.z + 1;
-	
+
     if ( (dhx <= dhy) && (dhz <= dhy) ) {
-	idir = 1;
-	ilen = hi.y - lo.y + 1;
-    }	
+        idir = 1;
+        ilen = hi.y - lo.y + 1;
+    }
     if ( (dhy <= dhx) && (dhz <= dhx) ) {
-	idir = 0;
-	ilen = hi.x - lo.x + 1;
-    } 
+        idir = 0;
+        ilen = hi.x - lo.x + 1;
+    }
 
     // This assertion should be moved outside the kernel for performance!
     if (ilen > 32) amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32");
@@ -444,8 +444,8 @@ void abec_gsrb_with_line_solve (
     Array1D<Real,0,31> u_ls;
     Array1D<Real,0,31> gam;
 
-    if (idir == 2) {         
-    	for (int n = 0; n < nc; ++n) {
+    if (idir == 2) {
+        for (int n = 0; n < nc; ++n) {
             for (int j = lo.y; j <= hi.y; ++j) {
                 AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
@@ -510,7 +510,7 @@ void abec_gsrb_with_line_solve (
                             }
                         }
 
-			tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
+                        tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
 
                         for (int k = lo.z; k <= hi.z; ++k)
                         {
@@ -520,7 +520,7 @@ void abec_gsrb_with_line_solve (
                 }
             }
         }
-    } else if (idir == 1) { 
+    } else if (idir == 1) {
         for (int n = 0; n < nc; ++n) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 AMREX_PRAGMA_SIMD
@@ -585,7 +585,7 @@ void abec_gsrb_with_line_solve (
                             }
                         }
 
-			tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
+                        tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
 
                         for (int j = lo.y; j <= hi.y; ++j)
                         {
@@ -594,7 +594,7 @@ void abec_gsrb_with_line_solve (
                     }
                 }
             }
-        } 
+        }
     } else if (idir == 0) {
         for (int n = 0; n < nc; ++n) {
             for (int j = lo.y; j <= hi.y; ++j) {
@@ -660,8 +660,8 @@ void abec_gsrb_with_line_solve (
                             }
                         }
 
-			tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
-        
+                        tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
+
                         for (int i = lo.x; i <= hi.x; ++i)
                         {
                             phi(i,j,k,n) = u_ls(i-lo.x);
@@ -669,8 +669,8 @@ void abec_gsrb_with_line_solve (
                     }
                 }
             }
-	}
-    }	
+        }
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

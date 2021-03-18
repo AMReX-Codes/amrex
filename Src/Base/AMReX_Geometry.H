@@ -75,9 +75,9 @@ public:
     Geometry () noexcept;
     //! Constructor taking the rectangular domain.
     explicit Geometry (const Box&     dom,
-		       const RealBox* rb     =  nullptr,
-		       int            coord  = -1,
-		       int const*     is_per =  nullptr) noexcept;
+                       const RealBox* rb     =  nullptr,
+                       int            coord  = -1,
+                       int const*     is_per =  nullptr) noexcept;
     Geometry (const Box& dom, const RealBox& rb, int coord,
               Array<int,AMREX_SPACEDIM> const& is_per) noexcept;
 
@@ -172,7 +172,7 @@ public:
     */
     void GetFaceArea (MultiFab&       area,
                       const BoxArray& grds,
-		      const DistributionMapping& dm,
+                      const DistributionMapping& dm,
                       int             dir,
                       int             grow) const;
     //! Fill the pre-built multifab with area
@@ -210,14 +210,14 @@ public:
     int period (int dir) const noexcept { BL_ASSERT(is_periodic[dir]); return domain.length(dir); }
 
     Periodicity periodicity () const noexcept {
-	return Periodicity(IntVect(AMREX_D_DECL(domain.length(0) * is_periodic[0],
-					  domain.length(1) * is_periodic[1],
-					  domain.length(2) * is_periodic[2])));
+        return Periodicity(IntVect(AMREX_D_DECL(domain.length(0) * is_periodic[0],
+                                          domain.length(1) * is_periodic[1],
+                                          domain.length(2) * is_periodic[2])));
     }
 
     Periodicity periodicity (const Box& b) const noexcept {
         AMREX_ASSERT(b.cellCentered());
-	return Periodicity(IntVect(AMREX_D_DECL(b.length(0) * is_periodic[0],
+        return Periodicity(IntVect(AMREX_D_DECL(b.length(0) * is_periodic[0],
                                                 b.length(1) * is_periodic[1],
                                                 b.length(2) * is_periodic[2])));
     }

@@ -5,7 +5,7 @@ module cns_module
   private
 
   ! these flags must be the same as in CNS.H
-  integer, parameter, public :: levmsk_interior   = 0 ! valid cells 
+  integer, parameter, public :: levmsk_interior   = 0 ! valid cells
   integer, parameter, public :: levmsk_covered    = 1 ! ghost cells covered by valid cells of this level
   integer, parameter, public :: levmsk_notcovered = 2 ! ghost cells not covered
   integer, parameter, public :: levmsk_physbnd    = 3 ! outside domain
@@ -28,7 +28,7 @@ module cns_module
   integer, parameter, public :: QEINT  = 7
   integer, parameter, public :: QTEMP  = 8
   integer, parameter, public :: QVAR   = 8
-  
+
 
   real(rt), parameter, public :: smallp = 1.d-10
   real(rt), parameter, public :: smallr = 1.d-19

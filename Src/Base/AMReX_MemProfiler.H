@@ -49,14 +49,14 @@ private:
         Long mn;
         Long mx;
     };
-    friend std::ostream& operator<< (std::ostream& os, 
+    friend std::ostream& operator<< (std::ostream& os,
                                      const MemProfiler::Bytes& bytes);
 
     struct Builds {
         int mn;
         int mx;
     };
-    friend std::ostream& operator<< (std::ostream& os, 
+    friend std::ostream& operator<< (std::ostream& os,
                                      const MemProfiler::Builds& builds);
 
     static MemProfiler& getInstance ();

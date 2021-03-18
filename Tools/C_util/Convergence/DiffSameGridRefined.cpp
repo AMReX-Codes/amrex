@@ -59,7 +59,7 @@ PrintUsage (const char* progName)
 
 bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2);
+                        const AmrData& amrd2);
 
 IntVect
 getRefRatio(const Box& crse,
@@ -106,7 +106,7 @@ main (int   argc,
 
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
-    
+
     DataServices dataServices1(iFile1, fileType);
     DataServices dataServices2(iFile2, fileType);
 
@@ -115,13 +115,13 @@ main (int   argc,
 
 
     //
-    // Generate AmrData Objects 
+    // Generate AmrData Objects
     //
     AmrData& amrData1 = dataServices1.AmrDataRef();
     AmrData& amrData2 = dataServices2.AmrDataRef();
 
     //
-    // Initial Tests 
+    // Initial Tests
     //
     if (!amrDatasHaveSameDerives(amrData1,amrData2))
         amrex::Abort("ERROR: Plotfiles do not have the same state variables");
@@ -133,15 +133,15 @@ main (int   argc,
     int finestLevel = amrData1.FinestLevel();
     const Vector<std::string>& derives = amrData1.PlotVarNames();
     Vector<int> destComps(nComp);
-    for (int i = 0; i < nComp; i++) 
+    for (int i = 0; i < nComp; i++)
         destComps[i] = i;
-    
+
 
     //
     // Compute the error
     //
     Vector<MultiFab*> error(finestLevel+1);
-    
+
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Level  L"<< norm << " norm of Error in Each Component" << std::endl
              << "-----------------------------------------------" << std::endl;
@@ -156,7 +156,7 @@ main (int   argc,
 
         if (ba1.size() != ba2.size())
         {
-            std::cout << "ERROR: BoxArray lengths are not the same at level " 
+            std::cout << "ERROR: BoxArray lengths are not the same at level "
                  << iLevel << std::endl;
             ParallelDescriptor::Abort();
         }
@@ -165,8 +165,8 @@ main (int   argc,
         // Construct MultiFab for errors
         //
         DistributionMapping dm(ba1);
-	error[iLevel] = new MultiFab(ba1, dm, nComp, 0);
-	error[iLevel]->setVal(GARBAGE);
+        error[iLevel] = new MultiFab(ba1, dm, nComp, 0);
+        error[iLevel]->setVal(GARBAGE);
 
         //
         // Construct refinement ratio, build the coarsened boxarray
@@ -209,7 +209,7 @@ main (int   argc,
                 //
                 int index = mfi.index();
 
-		const Box& bx = ba2Coarse[index];
+                const Box& bx = ba2Coarse[index];
                 FArrayBox data2Coarse(bx, 1);
                 int ncCoarse = data2Coarse.nComp();
 
@@ -218,7 +218,7 @@ main (int   argc,
                                 &ncCoarse,
                                 data2Fine[mfi].dataPtr(),
                                   ARLIM(data2Fine[mfi].loVect()),
-                                  ARLIM(data2Fine[mfi].hiVect()), 
+                                  ARLIM(data2Fine[mfi].hiVect()),
                                 bx.loVect(), bx.hiVect(),
                                 refine_ratio.getVect());
 
@@ -261,8 +261,8 @@ main (int   argc,
                 if (proc != ParallelDescriptor::IOProcessorNumber())
                 {
                     MPI_Status stat;
-                    int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype, 
-                                      MPI_ANY_SOURCE, proc, ParallelDescriptor::Communicator(), 
+                    int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype,
+                                      MPI_ANY_SOURCE, proc, ParallelDescriptor::Communicator(),
                                       &stat);
 
                     if (rc != MPI_SUCCESS)
@@ -281,7 +281,7 @@ main (int   argc,
         }
         else
         {
-            int rc = MPI_Send(norms.dataPtr(), nComp, datatype, 
+            int rc = MPI_Send(norms.dataPtr(), nComp, datatype,
                               ParallelDescriptor::IOProcessorNumber(),
                               ParallelDescriptor::MyProc(),
                               ParallelDescriptor::Communicator());
@@ -315,9 +315,9 @@ main (int   argc,
 
     if (!difFile.empty())
         WritePlotFile(error, amrData1, difFile, verbose);
-    
+
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
-	delete error[iLevel];
+        delete error[iLevel];
 
     amrex::Finalize();
 }
@@ -325,16 +325,16 @@ main (int   argc,
 
 bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2)
+                        const AmrData& amrd2)
 {
     const Vector<std::string>& derives1 = amrd1.PlotVarNames();
     const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
-	return false;
+        return false;
     for (int i=0; i<length; ++i)
-	if (derives1[i] != derives2[i])
-	    return false;
+        if (derives1[i] != derives2[i])
+            return false;
     return true;
 }
 

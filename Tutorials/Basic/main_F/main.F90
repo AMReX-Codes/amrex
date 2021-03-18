@@ -50,7 +50,7 @@ program main
   call test_parameters()
 
   ! ...
-  
+
   call amrex_finalize()
 
   call mpi_finalize(ierr)  ! We have to call this because we called MPI_Init.
@@ -88,7 +88,7 @@ end subroutine add_parameters
 subroutine test_parameters ()
   use amrex_base_module
   implicit none
-  
+
   type(amrex_parmparse) :: pp
   integer :: i
   integer, allocatable :: ia(:)

@@ -154,11 +154,11 @@ function (configure_amrex)
         cmake_policy(GET CMP0105 host_link_supported)
       endif()
 
-      if(APPLE)
+      if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
         if( host_link_supported STREQUAL "NEW" ) # CMake 3.18+
-          target_link_options(amrex PUBLIC "LINKER:-undefined,warning")
+          target_link_options(amrex PUBLIC "LINKER:-undefined,dynamic_lookup")
         else()
-          target_link_options(amrex PUBLIC "-Wl,-undefined,warning")
+          target_link_options(amrex PUBLIC "-Wl,-undefined,dynamic_lookup")
         endif()
       elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR
              CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")

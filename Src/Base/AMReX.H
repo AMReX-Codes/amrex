@@ -48,7 +48,7 @@ namespace amrex
 #endif
 
         extern std::string exename;
-	
+
         extern int verbose;
 
         extern int signal_handling;
@@ -59,7 +59,7 @@ namespace amrex
 
         extern std::ostream* osout;
         extern std::ostream* oserr;
-        
+
         extern ErrorHandler error_handler;
         extern int abort_on_unused_inputs;
     }

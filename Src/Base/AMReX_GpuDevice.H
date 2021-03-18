@@ -2,9 +2,6 @@
 #define AMREX_GPU_DEVICE_H_
 #include <AMReX_Config.H>
 
-#include <cstdlib>
-#include <memory>
-#include <array>
 #include <AMReX.H>
 #include <AMReX_Utility.H>
 #include <AMReX_GpuTypes.H>
@@ -12,6 +9,10 @@
 #include <AMReX_GpuControl.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_Vector.H>
+
+#include <cstdlib>
+#include <memory>
+#include <array>
 
 namespace amrex {
 
@@ -124,6 +125,8 @@ public:
 
 #ifdef AMREX_USE_GPU
 
+    static int memoryPoolsSupported () noexcept { return memory_pools_supported; }
+
 #   if defined(AMREX_USE_HIP) && (HIP_VERSION_MAJOR >= 4)
     // definition: https://github.com/llvm/llvm-project/blob/62ec4ac90738a5f2d209ed28c822223e58aaaeb7/clang/lib/Basic/Targets/AMDGPU.cpp#L400
     // overview wavefront size: https://github.com/llvm/llvm-project/blob/efc063b621ea0c4d1e452bcade62f7fc7e1cc937/clang/test/Driver/amdgpu-macros.cl#L70-L115
@@ -159,6 +162,7 @@ private:
     static Vector<gpuStream_t> gpu_stream_pool;
     static Vector<gpuStream_t> gpu_stream;
     static gpuDeviceProp_t device_prop;
+    static int memory_pools_supported;
     static unsigned int max_blocks_per_launch;
 
 #ifdef AMREX_USE_DPCPP

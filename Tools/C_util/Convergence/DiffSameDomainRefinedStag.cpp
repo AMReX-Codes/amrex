@@ -31,8 +31,8 @@ void
 PrintUsage (const char* progName)
 {
     std::cout << "This utility performs a diff operation between two" << std::endl
-	 << "staggered grid (i.e., nodal in exactly one direction)"   << std::endl
-	 << "plotfiles which have the same geometrical domain"        << std::endl
+         << "staggered grid (i.e., nodal in exactly one direction)"   << std::endl
+         << "plotfiles which have the same geometrical domain"        << std::endl
          << "but a factor of refinement between"                      << std::endl
          << "the cells from each plotfile at the same level."         << std::endl
          << "For instance, it works to diff two plotfiles having"     << std::endl
@@ -60,7 +60,7 @@ PrintUsage (const char* progName)
 
 bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2);
+                        const AmrData& amrd2);
 
 IntVect
 getRefRatio(const Box& crse,
@@ -107,7 +107,7 @@ main (int   argc,
 
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
-    
+
     DataServices dataServices1(iFile1, fileType);
     DataServices dataServices2(iFile2, fileType);
 
@@ -115,13 +115,13 @@ main (int   argc,
         amrex::Abort("ERROR: Dataservices not OK");
 
     //
-    // Generate AmrData Objects 
+    // Generate AmrData Objects
     //
     AmrData& amrData1 = dataServices1.AmrDataRef();
     AmrData& amrData2 = dataServices2.AmrDataRef();
 
     //
-    // Initial Tests 
+    // Initial Tests
     //
     if (amrData1.FinestLevel() != amrData2.FinestLevel())
         amrex::Abort("ERROR: Finest level is not the same in the two plotfiles");
@@ -140,15 +140,15 @@ main (int   argc,
     int finestLevel = amrData1.FinestLevel();
     const Vector<std::string>& derives = amrData1.PlotVarNames();
     Vector<int> destComps(nComp);
-    for (int i = 0; i < nComp; i++) 
+    for (int i = 0; i < nComp; i++)
         destComps[i] = i;
-    
+
 
     //
     // Compute the error
     //
     Vector<MultiFab*> error(finestLevel+1);
-    
+
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Level  L"<< norm << " norm of Error in Each Component" << std::endl
              << "-----------------------------------------------" << std::endl;
@@ -161,11 +161,11 @@ main (int   argc,
         const BoxArray& ba1 = amrData1.boxArray(iLevel);
         const BoxArray& ba2 = amrData2.boxArray(iLevel);
 
-	/*
+        /*
         if (ba1.size() != ba2.size())
-           std::cout << "Warning: BoxArray lengths are not the same at level " 
-	             << iLevel << std::endl;
-	*/
+           std::cout << "Warning: BoxArray lengths are not the same at level "
+                     << iLevel << std::endl;
+        */
 
         //
         // Construct refinement ratio, build the coarsened boxarray
@@ -174,19 +174,19 @@ main (int   argc,
         const Box& domain1     = amrData1.ProbDomain()[iLevel];
         const Box& domain2     = amrData2.ProbDomain()[iLevel];
 
-	int nodal_dir = -1;
-	for (int i=0; i<BL_SPACEDIM; i++)
-	  {
-	    if (ba1[0].type(i) == 1)
-	      {
-		nodal_dir = i;
-	      }
-	  }
-	std::cout << "Nodal Direction = " << nodal_dir << std::endl;
-	if (nodal_dir == -1)
-	  {
-	    amrex::Error("Data is not nodal in any direction");
-	  }
+        int nodal_dir = -1;
+        for (int i=0; i<BL_SPACEDIM; i++)
+          {
+            if (ba1[0].type(i) == 1)
+              {
+                nodal_dir = i;
+              }
+          }
+        std::cout << "Nodal Direction = " << nodal_dir << std::endl;
+        if (nodal_dir == -1)
+          {
+            amrex::Error("Data is not nodal in any direction");
+          }
 
         IntVect refine_ratio   = getRefRatio(domain1, domain2);
 
@@ -207,8 +207,8 @@ main (int   argc,
         //
         // Construct MultiFab for errors
         //
-	error[iLevel] = new MultiFab(ba2Coarse, dm2Coarse, nComp, 0);
-	error[iLevel]->setVal(GARBAGE);
+        error[iLevel] = new MultiFab(ba2Coarse, dm2Coarse, nComp, 0);
+        error[iLevel]->setVal(GARBAGE);
 
         //
         // For each component, average the fine fields down and calculate
@@ -240,20 +240,20 @@ main (int   argc,
                 int ncCoarse = 1;
 
                 Box box2c = ba2Coarse[mfi];
-		IntVect loiv = box2c.smallEnd();
-		IntVect hiiv = box2c.bigEnd();
+                IntVect loiv = box2c.smallEnd();
+                IntVect hiiv = box2c.bigEnd();
 
                 FORT_CV_AVGDOWN_STAG(&nodal_dir,
-				     data2Coarse.dataPtr(),
+                                     data2Coarse.dataPtr(),
                                      ARLIM(data2Coarse.loVect()),
-				     ARLIM(data2Coarse.hiVect()),
-				     &ncCoarse,
-				     data2Fine[mfi].dataPtr(),
-				     ARLIM(data2Fine[mfi].loVect()),
-				     ARLIM(data2Fine[mfi].hiVect()), 
-				     loiv.getVect(),
-				     hiiv.getVect(),
-				     refine_ratio.getVect());
+                                     ARLIM(data2Coarse.hiVect()),
+                                     &ncCoarse,
+                                     data2Fine[mfi].dataPtr(),
+                                     ARLIM(data2Fine[mfi].loVect()),
+                                     ARLIM(data2Fine[mfi].hiVect()),
+                                     loiv.getVect(),
+                                     hiiv.getVect(),
+                                     refine_ratio.getVect());
 
 
                 //
@@ -293,8 +293,8 @@ main (int   argc,
                 if (proc != ParallelDescriptor::IOProcessorNumber())
                 {
                     MPI_Status stat;
-                    int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype, 
-                                      MPI_ANY_SOURCE, proc, ParallelDescriptor::Communicator(), 
+                    int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype,
+                                      MPI_ANY_SOURCE, proc, ParallelDescriptor::Communicator(),
                                       &stat);
 
                     if (rc != MPI_SUCCESS)
@@ -313,7 +313,7 @@ main (int   argc,
         }
         else
         {
-            int rc = MPI_Send(norms.dataPtr(), nComp, datatype, 
+            int rc = MPI_Send(norms.dataPtr(), nComp, datatype,
                               ParallelDescriptor::IOProcessorNumber(),
                               ParallelDescriptor::MyProc(),
                               ParallelDescriptor::Communicator());
@@ -347,9 +347,9 @@ main (int   argc,
 
     if (!difFile.empty())
         WritePlotFile(error, amrData1, difFile, verbose);
-    
+
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
-	delete error[iLevel];
+        delete error[iLevel];
 
     amrex::Finalize();
 }
@@ -357,16 +357,16 @@ main (int   argc,
 
 bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2)
+                        const AmrData& amrd2)
 {
     const Vector<std::string>& derives1 = amrd1.PlotVarNames();
     const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
-	return false;
+        return false;
     for (int i=0; i<length; ++i)
-	if (derives1[i] != derives2[i])
-	    return false;
+        if (derives1[i] != derives2[i])
+            return false;
     return true;
 }
 

@@ -3,8 +3,6 @@
 #define AMREX_BOX_H_
 #include <AMReX_Config.H>
 
-#include <iosfwd>
-
 #include <AMReX_Algorithm.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_ccse-mpi.H>
@@ -17,6 +15,8 @@
 #include <AMReX_Vector.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
+
+#include <iosfwd>
 
 namespace amrex
 {
@@ -241,8 +241,8 @@ public:
     AMREX_GPU_HOST_DEVICE
     bool contains (const Box& b) const noexcept
     {
-	BL_ASSERT(sameType(b));
-	return b.smallend.allGE(smallend) && b.bigend.allLE(bigend);
+        BL_ASSERT(sameType(b));
+        return b.smallend.allGE(smallend) && b.bigend.allLE(bigend);
     }
 
     //! Returns true if argument is strictly contained within Box.
@@ -256,8 +256,8 @@ public:
     AMREX_GPU_HOST_DEVICE
     bool strictly_contains (const Box& b) const noexcept
     {
-	BL_ASSERT(sameType(b));
-	return b.smallend.allGT(smallend) && b.bigend.allLT(bigend);
+        BL_ASSERT(sameType(b));
+        return b.smallend.allGT(smallend) && b.bigend.allLT(bigend);
     }
 
     //! Returns true if argument is strictly contained within Box.
@@ -310,7 +310,7 @@ public:
     {
         return btype < rhs.btype ||
              ((btype == rhs.btype) &&
-	         (  (smallend < rhs.smallend) ||
+                 (  (smallend < rhs.smallend) ||
                    ((smallend == rhs.smallend) && (bigend < rhs.bigend)) ));
     }
     AMREX_GPU_HOST_DEVICE
@@ -709,12 +709,7 @@ public:
     bool isSquare() const noexcept;
 
     AMREX_GPU_HOST_DEVICE
-    bool coarsenable(int refrat, int min_width=1) const noexcept {
-        return coarsenable(IntVect(refrat),min_width);
-    }
-
-    AMREX_GPU_HOST_DEVICE
-    bool coarsenable(const IntVect& refrat, int min_width=1) const noexcept
+    bool coarsenable(const IntVect& refrat, const IntVect& min_width) const noexcept
     {
         if (!size().allGE(refrat*min_width)) {
             return false;
@@ -727,6 +722,17 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
+    bool coarsenable(int refrat, int min_width=1) const noexcept {
+        return coarsenable(IntVect(refrat), IntVect(min_width));
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    bool coarsenable(const IntVect& refrat, int min_width=1) const noexcept
+    {
+        return coarsenable(refrat, IntVect(min_width));
+    }
+
+    AMREX_GPU_HOST_DEVICE
     void normalize () noexcept
     {
         for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
@@ -734,6 +740,14 @@ public:
                 this->growHi(idim,1);
             }
         }
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    Box& makeSlab (int direction, int slab_index) noexcept
+    {
+        smallend[direction] = slab_index;
+        bigend[direction] = slab_index;
+        return *this;
     }
 
     AMREX_GPU_HOST_DEVICE friend AMREX_FORCE_INLINE Dim3 lbound (Box const& box) noexcept;
@@ -975,14 +989,14 @@ Box::next (IntVect& p) const noexcept
 #if (AMREX_SPACEDIM >= 2)
     if (p[0] > bigend[0])
     {
-	p[0] = smallend[0];
-	++p[1];
+        p[0] = smallend[0];
+        ++p[1];
 #if (AMREX_SPACEDIM == 3)
-	if (p[1] > bigend[1])
-	{
-	    p[1] = smallend[1];
-	    ++p[2];
-	}
+        if (p[1] > bigend[1])
+        {
+            p[1] = smallend[1];
+            ++p[2];
+        }
 #endif
     }
 #endif
@@ -1088,7 +1102,7 @@ public:
     int* data () && = delete;
 
     Box make_box () const noexcept {
-	return Box(IntVect(p), IntVect(p+AMREX_SPACEDIM), IntVect(p+2*AMREX_SPACEDIM));
+        return Box(IntVect(p), IntVect(p+AMREX_SPACEDIM), IntVect(p+2*AMREX_SPACEDIM));
     }
 
     static int size () noexcept { return 3*AMREX_SPACEDIM; }
@@ -1414,7 +1428,7 @@ Box bdryNode (const Box& b, Orientation face, int len=1) noexcept
     if (face.isLow())
     {
         int sm = low[dir];
-	low.setVal(dir,sm-len+1);
+        low.setVal(dir,sm-len+1);
         hi.setVal(dir,sm);
     }
     else
@@ -1742,6 +1756,15 @@ IntVect getCell (Box const* boxes, int nboxes, Long icell) noexcept
         }
     }
     return boxes[ibox].atOffset(offset);
+}
+
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+Box makeSlab (Box const& b, int direction, int slab_index) noexcept
+{
+    Box r = b;
+    r.makeSlab(direction,slab_index);
+    return r;
 }
 
 }

@@ -47,7 +47,7 @@ public:
                      Location a_beta_loc);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
         {setBCoeffs (amrlev, beta, Location::FaceCenter);}
-                    
+
     void setBCoeffs (int amrlev, Real beta);
     void setBCoeffs (int amrlev, Vector<Real> const& beta);
 
@@ -123,7 +123,7 @@ public:
 
 protected:
 
-    int m_ncomp;
+    int m_ncomp = 1;
 
     bool m_needs_update = true;
 

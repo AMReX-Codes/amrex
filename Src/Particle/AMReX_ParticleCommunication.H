@@ -528,8 +528,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
 
         std::vector<int> sizes;
         std::vector<PTile*> tiles;
-        for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
-          {
+        for (int i = 0, N = plan.m_rcv_box_counts.size(); i < N; ++i)
+        {
             int copy_size = plan.m_rcv_box_counts[i];
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
@@ -544,8 +544,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
         Gpu::Device::synchronize();
         int uindex = 0;
         int procindex = 0, rproc = plan.m_rcv_box_pids[0];
-        for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
-          {
+        for (int i = 0, N = plan.m_rcv_box_counts.size(); i < N; ++i)
+        {
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
             int tid = 0;
@@ -574,7 +574,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
               });
 
             Gpu::synchronize();
-          }
+        }
     }
 #else
     amrex::ignore_unused(pc,plan,rcv_buffer,policy);

@@ -24,7 +24,7 @@ makeHypre (const BoxArray& grids, const DistributionMapping& dmap,
         return std::unique_ptr<Hypre>(new HypreABecLap2(grids, dmap, geom, comm_));
     } else {
         return std::unique_ptr<Hypre>(new HypreABecLap3(grids, dmap, geom, comm_));
-    }    
+    }
 }
 
 Hypre::Hypre (const BoxArray& grids, const DistributionMapping& dmap,
@@ -45,11 +45,11 @@ Hypre::Hypre (const BoxArray& grids, const DistributionMapping& dmap,
     int ngrow = 0;
     acoefs.define(grids, dmap, ncomp, ngrow);
     acoefs.setVal(0.0);
-    
+
 #ifdef AMREX_USE_EB
     ngrow = 1;
 #endif
-    
+
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         BoxArray edge_boxes(grids);
         edge_boxes.surroundingNodes(i);

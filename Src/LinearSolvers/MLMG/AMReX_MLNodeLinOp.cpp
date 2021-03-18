@@ -30,6 +30,9 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
 #endif
     MLLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory, eb_limit_coarsening);
 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!hasHiddenDimension(),
+                                     "Nodal solver cannot have any hidden dimensions");
+
     m_owner_mask.resize(m_num_amr_levels);
     m_dirichlet_mask.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
@@ -159,22 +162,8 @@ MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
 }
 
 void
-MLNodeLinOp::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
+MLNodeLinOp::applyInhomogNeumannTerm (int /*amrlev*/, MultiFab& /*rhs*/) const
 {
-    amrex::ignore_unused(amrlev);
-    int ncomp = rhs.nComp();
-    for (int n = 0; n < ncomp; ++n)
-    {
-        auto itlo = std::find(m_lo_inhomog_neumann[n].begin(),
-                              m_lo_inhomog_neumann[n].end(),   1);
-        auto ithi = std::find(m_hi_inhomog_neumann[n].begin(),
-                              m_hi_inhomog_neumann[n].end(),   1);
-        if (itlo != m_lo_inhomog_neumann[n].end() ||
-            ithi != m_hi_inhomog_neumann[n].end())
-        {
-            amrex::Abort("Inhomogeneous Neumann not supported for nodal solver");
-        }
-    }
 }
 
 namespace {

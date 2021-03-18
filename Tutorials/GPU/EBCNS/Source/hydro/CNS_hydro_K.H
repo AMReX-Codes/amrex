@@ -291,7 +291,7 @@ riemann (const amrex::Real gamma, const amrex::Real smallp, const amrex::Real sm
         ugdnv = frac*ustar + (1. - frac)* uo;
         pgdnv = frac*pstar + (1. - frac)* po;
     }
-    
+
     flxrho = rgdnv*ugdnv;
     flxu = rgdnv*ugdnv*ugdnv+pgdnv;
     flxut = rgdnv*ugdnv*utrans1;

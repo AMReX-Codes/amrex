@@ -20,19 +20,19 @@ public:
 
     //    EMParIter (ContainerType& pc, int level);
 
-    const std::array<RealVector, PIdx::nattribs>& GetAttribs () const { 
-        return GetStructOfArrays().GetRealData(); 
+    const std::array<RealVector, PIdx::nattribs>& GetAttribs () const {
+        return GetStructOfArrays().GetRealData();
     }
 
-    std::array<RealVector, PIdx::nattribs>& GetAttribs () { 
-        return GetStructOfArrays().GetRealData(); 
+    std::array<RealVector, PIdx::nattribs>& GetAttribs () {
+        return GetStructOfArrays().GetRealData();
     }
 
-    const RealVector& GetAttribs (int comp) const { 
+    const RealVector& GetAttribs (int comp) const {
         return GetStructOfArrays().GetRealData(comp);
     }
 
-    RealVector& GetAttribs (int comp) { 
+    RealVector& GetAttribs (int comp) {
         return GetStructOfArrays().GetRealData(comp);
     }
 };

@@ -1,5 +1,5 @@
-#include <algorithm> 
-#include <string> 
+#include <algorithm>
+#include <string>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -13,7 +13,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
 
-using namespace amrex; 
+using namespace amrex;
 
 //
 // This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
@@ -81,52 +81,52 @@ int main(int argc, char* argv[])
     }
     ParmParse pp;
 
-    std::string name; 
-    pp.get("infile", name); 
+    std::string name;
+    pp.get("infile", name);
 
     //
-    // MatLab expects native floating-point format. 
+    // MatLab expects native floating-point format.
     //
-    FArrayBox::setFormat(FABio::FAB_NATIVE); 
-      
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size); 
-    char buf[128]; 
-    std::string file = name; 
-    file += ".mat"; 
-    std::ofstream os; 
-    
-    os.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size()); 
-    
-    os.open(file.c_str(), std::ios::out|std::ios::binary); 
-    
+    FArrayBox::setFormat(FABio::FAB_NATIVE);
+
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    char buf[128];
+    std::string file = name;
+    file += ".mat";
+    std::ofstream os;
+
+    os.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+    os.open(file.c_str(), std::ios::out|std::ios::binary);
+
     if(os.fail()) {
-      amrex::FileOpenFailed(file); 
+      amrex::FileOpenFailed(file);
     }
 
 
-    MultiFab in; 
-    VisMF::Read(in, name); 
-    const BoxArray ba = in.boxArray(); 
+    MultiFab in;
+    VisMF::Read(in, name);
+    const BoxArray ba = in.boxArray();
 
     //Fake a xlo to xhi
     for(int i = 0; i < ba.size(); ++i)
     {
-      const Box& b = ba[i]; 
+      const Box& b = ba[i];
       Real xlo[BL_SPACEDIM], xhi[BL_SPACEDIM];
       for(int d = 0; d <BL_SPACEDIM; ++d)
       {
-        xlo[d] = b.loVect()[d]; 
-        xhi[d] = b.hiVect()[d]; 
-        os.write((char*)&xlo,sizeof(Real)); 
-        os.write((char*)&xhi,sizeof(Real)); 
-      }         
+        xlo[d] = b.loVect()[d];
+        xhi[d] = b.hiVect()[d];
+        os.write((char*)&xlo,sizeof(Real));
+        os.write((char*)&xhi,sizeof(Real));
+      }
     }
     //Write the Fab Data
     for(int i = 0; i < ba.size(); ++i)
     {
-      WriteFab(os, in[i], buf);   
+      WriteFab(os, in[i], buf);
     }
     os.close();
   }
-  Finalize(); 
+  Finalize();
 }

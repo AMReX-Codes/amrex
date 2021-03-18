@@ -365,7 +365,7 @@ Sharing the Command Line
 ------------------------
 
 In some cases we want AMReX to only read part of the command line -- this happens, for example, when we
-are going to use AMReX in cooperation with another code package and that code also takes command-line 
+are going to use AMReX in cooperation with another code package and that code also takes command-line
 arguments.
 
 .. highlight:: console
@@ -1518,7 +1518,7 @@ together. In this section, we will show how you can operate on the
           // Call function f1 to work on the region specified by box.
           // Note that the whole region of the Fab includes ghost
           // cells (if there are any), and is thus larger than or
-          // equal to "box". 
+          // equal to "box".
           f1(box, a);
       }
 
@@ -2214,7 +2214,7 @@ macro on loops that are not safe for vectorization may lead to errors,
 so if unsure about the independence of the iterations of a
 loop, test and verify before adding the macro.
 
-These loops should usually use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when 
+These loops should usually use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when
 defining the loop bounds. If not, the highest index cells will be left out
 of the calculation.
 
@@ -2611,7 +2611,7 @@ For example,
 ::
 
     mpiexec -n 4 valgrind --leak-check=yes --track-origins=yes --log-file=vallog.%p ./foo.exe ...
-    
+
 Breaking into Debuggers
 =======================
 

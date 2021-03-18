@@ -81,5 +81,5 @@ contains
     type(amrex_multifab), intent(in) :: bcdata
     call amrex_fi_linop_set_level_bc(this%p, lev, bcdata%p)
   end subroutine amrex_linop_set_level_bc
-  
+
 end module amrex_linop_module

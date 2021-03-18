@@ -128,7 +128,7 @@ TotalCellsAllocatedInFabsHWM () noexcept
 #endif
 }
 
-void 
+void
 ResetTotalBytesAllocatedInFabsHWM () noexcept
 {
 #ifdef AMREX_USE_OMP

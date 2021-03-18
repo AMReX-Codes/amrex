@@ -5,7 +5,7 @@ module advect_module
 
   implicit none
   private
-  
+
   public :: advect
 
 contains
@@ -29,7 +29,7 @@ contains
     real(amrex_real), intent(inout) :: uout(uo_lo(1):uo_hi(1),uo_lo(2):uo_hi(2))
     real(amrex_real), intent(in   ) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2))
     real(amrex_real), intent(in   ) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2))
-    
+
     integer :: i, j
     integer :: glo(2), ghi(2)
     real(amrex_real) :: dtdx(2), umax, vmax
@@ -44,7 +44,7 @@ contains
                + (flxy(i,j) - flxy(i,j+1)) * dtdx(2) )
        enddo
     enddo
-    
+
   end subroutine advect
 
 end module advect_module

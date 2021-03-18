@@ -37,23 +37,23 @@ void test_cell_sorted(const TestParams& parms)
         real_box.setLo(n, 0.0);
         real_box.setHi(n, 1.0);
     }
-    
-    IntVect domain_lo(AMREX_D_DECL(0, 0, 0)); 
+
+    IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
     IntVect domain_hi(AMREX_D_DECL(parms.ncell[0]-1,
                                    parms.ncell[1]-1,
-                                   parms.ncell[2]-1)); 
+                                   parms.ncell[2]-1));
     const Box domain(domain_lo, domain_hi);
-    
+
     int coord = 0;
     int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) 
-        is_per[i] = 1; 
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        is_per[i] = 1;
     Geometry geom(domain, &real_box, coord, is_per);
-    
+
     BoxArray ba(domain);
     ba.maxSize(parms.max_grid_size);
     DistributionMapping dm(ba);
-    
+
     amrex::Print() << "Initializing particles... ";
 
     CellSortedParticleContainer particles(geom, dm, ba);
@@ -78,7 +78,7 @@ void test_cell_sorted(const TestParams& parms)
     int_comp_names.push_back("i");
     int_comp_names.push_back("j");
     int_comp_names.push_back("k");
-    
+
     // Create an instance of Ascent
     Ascent ascent;
     Node open_opts;
@@ -115,7 +115,7 @@ void test_cell_sorted(const TestParams& parms)
     Node &rset = actions.append();
     rset["action"] = "reset";
 
-    ///////////////////////////////////////////////////////////////////    
+    ///////////////////////////////////////////////////////////////////
     // Render the initial state
     ///////////////////////////////////////////////////////////////////
     ascent.publish(bp_mesh);
@@ -123,7 +123,7 @@ void test_cell_sorted(const TestParams& parms)
 
 
     BL_PROFILE_VAR_STOP(blp_init);
-    
+
     amrex::Print() << "Starting main loop... " << std::endl;
 
     BL_PROFILE_VAR_START(blp_evolve);
@@ -151,7 +151,7 @@ void test_cell_sorted(const TestParams& parms)
     ascent.execute(actions);
     // shutdown ascent
     ascent.close();
-    
+
     amrex::Print() << "Done. " << std::endl;
 
     BL_PROFILE_VAR_STOP(blp_evolve);
@@ -160,7 +160,7 @@ void test_cell_sorted(const TestParams& parms)
 int main(int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
-    
+
     amrex::InitRandom(451);
 
     ParmParse pp;

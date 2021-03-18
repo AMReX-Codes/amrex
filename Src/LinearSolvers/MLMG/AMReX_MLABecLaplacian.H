@@ -20,13 +20,16 @@ public:
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info = LPInfo(),
-                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                     const int a_ncomp = 1);
+
     MLABecLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const Vector<iMultiFab const*>& a_overset_mask, // 1: unknown, 0: known
                      const LPInfo& a_info = LPInfo(),
                      const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+
     virtual ~MLABecLaplacian ();
 
     MLABecLaplacian (const MLABecLaplacian&) = delete;
@@ -53,6 +56,8 @@ public:
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
     void setBCoeffs (int amrlev, Real beta);
     void setBCoeffs (int amrlev, Vector<Real> const& beta);
+
+    virtual int getNComp () const override { return m_ncomp; }
 
     virtual bool needsUpdate () const override {
         return (m_needs_update || MLCellABecLap::needsUpdate());
@@ -90,6 +95,8 @@ public:
 
     void applyMetricTermsCoeffs ();
 
+    void applyRobinBCTermsCoeffs ();
+
     static void FFlux (Box const& box, Real const* dxinv, Real bscalar,
                        Array<FArrayBox const*, AMREX_SPACEDIM> const& bcoef,
                        Array<FArrayBox*,AMREX_SPACEDIM> const& flux,
@@ -106,7 +113,12 @@ protected:
 
     Vector<int> m_is_singular;
 
+    virtual bool supportRobinBC () const noexcept override { return true; }
+
 private:
+
+    int m_ncomp = 1;
+
     void define_ab_coeffs ();
 };
 

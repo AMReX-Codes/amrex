@@ -71,7 +71,7 @@ void main_main ()
     for (int i = 0; i < BL_SPACEDIM; i++)
         is_per[i] = 0;
     Geometry geom(domain, &real_box, coord, is_per);
-    
+
     BoxArray ba(domain);
     ba.maxSize(params.max_grid_size);
     DistributionMapping dm(ba);
@@ -84,41 +84,41 @@ void main_main ()
 
     pc.InitParticles(nppc, 1.0, 0.0);
 
-    if (params.print_num_particles) 
+    if (params.print_num_particles)
       amrex::Print() << "Num particles after init is " << pc.TotalNumberOfParticles() << "\n";
 
     int num_rebuild = params.num_rebuild;
 
     Real cfl = params.cfl;
-    
+
     Real min_d = std::numeric_limits<Real>::max();
 
     for (int step = 0; step < params.nsteps; ++step) {
 
-	Real dt = pc.computeStepSize(cfl);
+        Real dt = pc.computeStepSize(cfl);
 
-	if (step % num_rebuild == 0)
-	{
-	  if (step > 0) pc.RedistributeLocal();
+        if (step % num_rebuild == 0)
+        {
+          if (step > 0) pc.RedistributeLocal();
 
-	  pc.fillNeighbors();
+          pc.fillNeighbors();
 
-	  pc.buildNeighborList(CheckPair());
-	} 
-	else
-	{
-	  pc.updateNeighbors();
-	}
+          pc.buildNeighborList(CheckPair());
+        }
+        else
+        {
+          pc.updateNeighbors();
+        }
 
-        if (params.print_min_dist) 
-	   min_d = std::min(min_d, pc.minDistance());
+        if (params.print_min_dist)
+           min_d = std::min(min_d, pc.minDistance());
 
-        if (params.print_neighbor_list) 
+        if (params.print_neighbor_list)
            pc.printNeighborList();
 
-	pc.computeForces();
+        pc.computeForces();
 
-	pc.moveParticles(dt);
+        pc.moveParticles(dt);
     }
 
     pc.RedistributeLocal();

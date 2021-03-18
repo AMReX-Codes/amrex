@@ -8,7 +8,7 @@
 
 namespace amrex {
 
-#ifdef AMREX_USE_MPI    
+#ifdef AMREX_USE_MPI
 
     Long CountSnds(const std::map<int, Vector<char> >& not_ours, Vector<Long>& Snds);
 

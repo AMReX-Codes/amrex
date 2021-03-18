@@ -27,9 +27,9 @@ struct TestParams {
 
 void test_assign_density(TestParams& parms)
 {
-    
+
     int nlevs = parms.nlevs;
-    
+
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++) {
         real_box.setLo(n, 0.0);
@@ -42,9 +42,9 @@ void test_assign_density(TestParams& parms)
        fine_box.setLo(n,0.25);
        fine_box.setHi(n,0.75);
     }
-    
-    IntVect domain_lo(D_DECL(0 , 0, 0)); 
-    IntVect domain_hi(D_DECL(parms.nx - 1, parms.ny - 1, parms.nz-1)); 
+
+    IntVect domain_lo(D_DECL(0 , 0, 0));
+    IntVect domain_hi(D_DECL(parms.nx - 1, parms.ny - 1, parms.nz-1));
     const Box domain(domain_lo, domain_hi);
 
     // Define the refinement ratio
@@ -57,28 +57,28 @@ void test_assign_density(TestParams& parms)
     for (int i = 0; i < BL_SPACEDIM; i++)
         is_per[i] = 1;
 
-    // This defines a Geometry object which is useful for writing the plotfiles  
+    // This defines a Geometry object which is useful for writing the plotfiles
     Vector<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, CoordSys::cartesian, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
-	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
-			 &real_box, CoordSys::cartesian, is_per);
+        geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
+                         &real_box, CoordSys::cartesian, is_per);
     }
 
     Vector<BoxArray> ba(nlevs);
     ba[0].define(domain);
-    
+
     // Now we make the refined level be the center eighth of the domain
     if (nlevs > 1) {
         int n_fine = parms.nx*rr[0];
-        IntVect refined_lo(D_DECL(n_fine/4,n_fine/4,n_fine/4)); 
+        IntVect refined_lo(D_DECL(n_fine/4,n_fine/4,n_fine/4));
         IntVect refined_hi(D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
 
         // Build a box for the level 1 domain
         Box refined_patch(refined_lo, refined_hi);
         ba[1].define(refined_patch);
     }
-    
+
     // break the BoxArrays at both levels into max_grid_size^3 boxes
     for (int lev = 0; lev < nlevs; lev++) {
         ba[lev].maxSize(parms.max_grid_size);
@@ -137,16 +137,16 @@ void test_assign_density(TestParams& parms)
         outputMF[lev] = density[lev].get();
         outputRR[lev] = IntVect(D_DECL(2, 2, 2));
     }
-    
-    WriteMultiLevelPlotfile("plt00000", output_levs, outputMF, 
+
+    WriteMultiLevelPlotfile("plt00000", output_levs, outputMF,
                             varnames, geom, 0.0, level_steps, outputRR);
     myPC.Checkpoint("plt00000", "particle0", true, particle_varnames);
-    
+
     ///////////////////////////////////////////////////////////////////////////
     // Wrap our AMReX Mesh into a Conduit Mesh Blueprint Tree
     ///////////////////////////////////////////////////////////////////////////
     conduit::Node bp_mesh;
-    MultiLevelToBlueprint( output_levs, 
+    MultiLevelToBlueprint( output_levs,
                            outputMF,
                            varnames,
                            geom,
@@ -161,16 +161,16 @@ void test_assign_density(TestParams& parms)
                                         particle_int_varnames,
                                         bp_particles);
     ///////////////////////////////////////////////////////////////////////////
-    // Save the Blueprint Mesh to a set of files that we can 
-    // view in VisIt. 
+    // Save the Blueprint Mesh to a set of files that we can
+    // view in VisIt.
     // (For debugging and to demonstrate how to do this w/o Ascent)
     ///////////////////////////////////////////////////////////////////////////
     WriteBlueprintFiles(bp_mesh,"bp_example_");
-    
+
     ///////////////////////////////////////////////////////////////////
     // Render with Ascent
     ///////////////////////////////////////////////////////////////////
-    
+
     // add a scene with a pseudocolor plot
     Node scenes;
     scenes["s1/plots/p1/type"] = "pseudocolor";
@@ -189,10 +189,10 @@ void test_assign_density(TestParams& parms)
 
     Ascent ascent;
     ascent.open();
-    
+
     ascent.publish(bp_mesh);
     ascent.execute(actions);
-    
+
     // add a scene with a pseudocolor plot
     scenes.reset();
     scenes["s1/plots/p1/type"] = "pseudocolor";
@@ -207,21 +207,21 @@ void test_assign_density(TestParams& parms)
     add_act2["scenes"] = scenes;
     actions.append()["action"] = "execute";
     actions.append()["action"] = "reset";
-    
+
     ascent.publish(bp_particles);
     ascent.execute(actions);
-    
+
     ascent.close();
 }
 
 int main(int argc, char* argv[])
 {
   amrex::Initialize(argc,argv);
-  
+
   ParmParse pp;
-  
+
   TestParams parms;
-  
+
   pp.get("nx", parms.nx);
   pp.get("ny", parms.ny);
   pp.get("nz", parms.nz);
@@ -230,10 +230,10 @@ int main(int argc, char* argv[])
   pp.get("nppc", parms.nppc);
   if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
     amrex::Abort("Must specify at least one particle per cell");
-  
+
   parms.verbose = false;
   pp.query("verbose", parms.verbose);
-  
+
   if (parms.verbose && ParallelDescriptor::IOProcessor()) {
     std::cout << std::endl;
     std::cout << "Number of particles per cell : ";
@@ -243,8 +243,8 @@ int main(int argc, char* argv[])
     std::cout << parms.nlevs << std::endl;
     std::cout << parms.nx << " " << parms.ny << " " << parms.nz << std::endl;
   }
-  
+
   test_assign_density(parms);
-  
+
   amrex::Finalize();
 }

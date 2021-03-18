@@ -17,7 +17,7 @@ subroutine SDC_feval_F(lo, hi, domlo, domhi, phi, philo, phihi, &
   real(amrex_real), intent(in)    :: a,d,r
   integer, intent(in) :: n
 
-  
+
   ! local variables
   integer i,j
 
@@ -26,11 +26,11 @@ subroutine SDC_feval_F(lo, hi, domlo, domhi, phi, philo, phihi, &
         ! x-fluxes
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)+1
-              fluxx(i,j) = ( phi(i,j) + phi(i-1,j) ) / 2.0d0 
+              fluxx(i,j) = ( phi(i,j) + phi(i-1,j) ) / 2.0d0
               fluxx(i,j) = (-phi(i+1,j)+ 7.0d0*( phi(i,j) + phi(i-1,j) )-phi(i-2,j)) / 12.0d0
            end do
         end do
-        
+
         ! y-fluxes
         do j = lo(2), hi(2)+1
            do i = lo(1), hi(1)
@@ -44,7 +44,7 @@ subroutine SDC_feval_F(lo, hi, domlo, domhi, phi, philo, phihi, &
               f(i,j) =  a*((fluxx(i+1,j  ) - fluxx(i,j))/dx(1) &
                    + (fluxy(i  ,j+1) - fluxy(i,j))/dx(2))
            end do
-           
+
         end do
      case (1)  !  First implicit piece (here it is diffusion)
         ! x-fluxes
@@ -54,7 +54,7 @@ subroutine SDC_feval_F(lo, hi, domlo, domhi, phi, philo, phihi, &
 !              fluxx(i,j) = ( -phi(i+1,j)  +15.0d0*(phi(i,j) - phi(i-1,j)) + phi(i-2,j) ) /(12.0d0*dx(1))
            end do
         end do
-        
+
         ! y-fluxes
         do j = lo(2), hi(2)+1
            do i = lo(1), hi(1)
@@ -81,9 +81,9 @@ subroutine SDC_feval_F(lo, hi, domlo, domhi, phi, philo, phihi, &
      case default
         print *, 'bad case in advance_2d'
      end select
-     
+
    end subroutine SDC_feval_F
-   
+
 
    subroutine SDC_fcomp_reaction_F (lo, hi, domlo, domhi, phi, philo, phihi, &
         rhs, rhslo, rhshi, &
@@ -98,16 +98,16 @@ subroutine SDC_feval_F(lo, hi, domlo, domhi, phi, philo, phihi, &
   integer rhslo(2), rhshi(2)
   integer flo(2), fhi(2)
   real(amrex_real), intent(inout) :: phi  (philo(1):phihi(1),philo(2):phihi(2))
-  real(amrex_real), intent(in)    :: rhs  (rhslo(1):rhshi(1),rhslo(2):rhshi(2))  
+  real(amrex_real), intent(in)    :: rhs  (rhslo(1):rhshi(1),rhslo(2):rhshi(2))
   real(amrex_real), intent(in)     :: f   (flo(1):fhi(1),flo(2):fhi(2))
   real(amrex_real), intent(in)    :: dtq
   integer, intent(in)             :: n
-  
+
   ! local variables
   integer i,j
   real(amrex_real) c
 
-  !  Function 
+  !  Function
   do j = lo(2), hi(2)
      do i = lo(1), hi(1)
         c = 1.0d0-dtq*(1.0d0-phi(i,j))*(0.5d0-phi(i,j))

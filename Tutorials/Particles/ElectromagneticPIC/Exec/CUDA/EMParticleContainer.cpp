@@ -71,25 +71,25 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
 
             deposit_current(jxarr, jyarr, jzarr, pstruct[i], uxp[i], uyp[i], uzp[i],
                             ginv, wp[i], q, dt, plo, dxi);
-        });       
+        });
     }
 }
 
 void EMParticleContainer::
 PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                     const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz, Real dt)
-{   
+{
     BL_PROFILE("EMParticleContainer::PushParticleMomenta");
 
     const int lev = 0;
-    
+
     const auto dxi = Geom(lev).InvCellSizeArray();
     const auto plo = Geom(lev).ProbLoArray();
 
     for (EMParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         const int np  = pti.numParticles();
-        
+
         ParticleType const* AMREX_RESTRICT pstruct = &(pti.GetArrayOfStructs()[0]);
 
         auto& attribs = pti.GetAttribs();

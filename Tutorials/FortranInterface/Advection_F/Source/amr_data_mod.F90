@@ -6,7 +6,7 @@ module amr_data_module
   use amrex_fort_module, only : rt => amrex_real
   use amrex_particlecontainer_module, only: amrex_particlecontainer, &
        amrex_particlecontainer_destroy
-  
+
   implicit none
 
   private
@@ -22,7 +22,7 @@ module amr_data_module
   type(amrex_fluxregister), allocatable :: flux_reg(:)
 
   type(amrex_particlecontainer) :: pc
-  
+
 contains
 
   subroutine amr_data_init ()
@@ -49,5 +49,5 @@ contains
     end do
     call amrex_particlecontainer_destroy(pc)
   end subroutine amr_data_finalize
-  
+
 end module amr_data_module

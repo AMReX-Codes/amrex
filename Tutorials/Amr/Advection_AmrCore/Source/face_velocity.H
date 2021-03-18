@@ -19,10 +19,10 @@ void get_face_velocity_psi(amrex::Box const& bx,
     const auto hi  = ubound(bx);
 
     const Real* AMREX_RESTRICT prob_lo = geomdata.ProbLo();
-    const Real* AMREX_RESTRICT dx      = geomdata.CellSize(); 
+    const Real* AMREX_RESTRICT dx      = geomdata.CellSize();
 
     for     (int j = lo.y; j <= hi.y; ++j) {
-        Real y = dx[1]*(0.5+j) + prob_lo[1]; 
+        Real y = dx[1]*(0.5+j) + prob_lo[1];
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             Real x = dx[0]*(0.5+i) + prob_lo[0];
@@ -57,7 +57,7 @@ AMREX_FORCE_INLINE
 void get_face_velocity_z(int i, int j, int k,
                          amrex::Array4<amrex::Real> const& vz)
 {
-    vz(i,j,k) =  0.0; 
+    vz(i,j,k) =  0.0;
 }
 
 #endif
