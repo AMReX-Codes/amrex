@@ -49,9 +49,12 @@ class FabFactory
 {
 public:
     virtual ~FabFactory () {}
+    AMREX_NODISCARD
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const = 0;
+    AMREX_NODISCARD
     virtual FAB* create_alias (FAB const& /*rhs*/, int /*scomp*/, int /*ncomp*/) const { return nullptr; }
     virtual void destroy (FAB* fab) const = 0;
+    AMREX_NODISCARD
     virtual FabFactory<FAB>* clone () const = 0;
 };
 
@@ -60,11 +63,13 @@ class DefaultFabFactory
     : public FabFactory<FAB>
 {
 public:
+    AMREX_NODISCARD
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int /*box_index*/) const override
     {
         return new FAB(box, ncomps, info.alloc, info.shared, info.arena);
     }
 
+    AMREX_NODISCARD
     virtual FAB* create_alias (FAB const& rhs, int scomp, int ncomp) const override
     {
         return new FAB(rhs, amrex::make_alias, scomp, ncomp);
@@ -75,6 +80,7 @@ public:
         delete fab;
     }
 
+    AMREX_NODISCARD
     virtual DefaultFabFactory<FAB>* clone () const override {
         return new DefaultFabFactory<FAB>();
     }

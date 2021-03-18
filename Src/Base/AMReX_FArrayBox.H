@@ -269,7 +269,7 @@ public:
     explicit FArrayBox (Array4<Real const> const& a, IndexType t) noexcept : BaseFab<Real>(a,t) {}
 
     //!  The destructor.
-    ~FArrayBox () noexcept {}
+    virtual ~FArrayBox () noexcept override {}
 
     FArrayBox (FArrayBox&& rhs) noexcept = default;
 

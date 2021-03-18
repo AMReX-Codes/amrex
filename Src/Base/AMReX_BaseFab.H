@@ -245,7 +245,7 @@ public:
     explicit BaseFab (Array4<T const> const& a, IndexType t) noexcept;
 
     //! The destructor deletes the array memory.
-    ~BaseFab () noexcept;
+    virtual ~BaseFab () noexcept;
 
     BaseFab (const BaseFab<T>& rhs) = delete;
     BaseFab<T>& operator= (const BaseFab<T>& rhs) = delete;

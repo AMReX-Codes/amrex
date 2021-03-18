@@ -8,7 +8,7 @@
 using namespace amrex;
 
 Real
-CNS::advance (Real time, Real dt, int iteration, int ncycle)
+CNS::advance (Real time, Real dt, int /*iteration*/, int /*ncycle*/)
 {
     BL_PROFILE("CNS::advance()");
 
