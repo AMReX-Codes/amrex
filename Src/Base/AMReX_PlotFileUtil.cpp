@@ -1,7 +1,4 @@
 
-#include <fstream>
-#include <iomanip>
-
 #include <AMReX_VisMF.H>
 #include <AMReX_AsyncOut.H>
 #include <AMReX_PlotFileUtil.H>
@@ -20,6 +17,9 @@
 #endif
 
 #endif
+
+#include <fstream>
+#include <iomanip>
 
 namespace amrex {
 

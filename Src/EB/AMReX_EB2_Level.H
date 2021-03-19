@@ -14,14 +14,14 @@
 #include <AMReX_EB2_C.H>
 #include <AMReX_EB2_IF_AllRegular.H>
 
+#ifdef AMREX_USE_OMP
+#include <omp.h>
+#endif
+
 #include <unordered_map>
 #include <limits>
 #include <cmath>
 #include <type_traits>
-
-#ifdef AMREX_USE_OMP
-#include <omp.h>
-#endif
 
 namespace amrex { namespace EB2 {
 

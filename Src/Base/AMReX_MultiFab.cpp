@@ -1,11 +1,4 @@
 
-#include <algorithm>
-#include <cfloat>
-#include <iostream>
-#include <iomanip>
-#include <map>
-#include <limits>
-
 #include <AMReX_BLassert.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -20,6 +13,13 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
 #endif
+
+#include <algorithm>
+#include <cfloat>
+#include <iostream>
+#include <iomanip>
+#include <map>
+#include <limits>
 
 namespace amrex {
 

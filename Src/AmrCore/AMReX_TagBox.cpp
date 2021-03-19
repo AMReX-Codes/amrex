@@ -1,8 +1,3 @@
-#include <algorithm>
-#include <cstdlib>
-#include <cmath>
-#include <climits>
-
 #include <AMReX_TagBox.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -10,6 +5,11 @@
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_MultiFabUtil.H>
+
+#include <algorithm>
+#include <cstdlib>
+#include <cmath>
+#include <climits>
 
 namespace amrex {
 

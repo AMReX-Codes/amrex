@@ -3,20 +3,19 @@
 #define BL_VISMF_H
 #include <AMReX_Config.H>
 
-#include <iosfwd>
-#include <string>
-#include <fstream>
-#include <thread>
-#include <utility>
-#include <cstdint>
-#include <queue>
-
 #include <AMReX_Extension.H>
 #include <AMReX_REAL.H>
 #include <AMReX_FabArray.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabConv.H>
 #include <AMReX_AsyncOut.H>
+
+#include <cstdint>
+#include <iosfwd>
+#include <queue>
+#include <string>
+#include <thread>
+#include <utility>
 
 namespace amrex {
 

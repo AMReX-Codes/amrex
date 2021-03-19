@@ -2,19 +2,19 @@
 #define AMREX_REALVECT_H_
 #include <AMReX_Config.H>
 
-#include <cstddef>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-#include <cmath>
-
 #include <AMReX_Box.H>
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
-#include <vector>
 #include <AMReX_IntVect.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Math.H>
+
+#include <cmath>
+#include <cstddef>
+#include <cstdlib>
+#include <cstring>
+#include <iosfwd>
+#include <vector>
 
 namespace amrex
 {

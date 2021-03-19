@@ -3,12 +3,13 @@
 #define AMREX_COORDSYS_H_
 #include <AMReX_Config.H>
 
-#include <limits>
 #include <AMReX.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Box.H>
+
+#include <limits>
 
 namespace amrex {
 

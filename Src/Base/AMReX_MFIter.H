@@ -2,8 +2,6 @@
 #define BL_MFITER_H_
 #include <AMReX_Config.H>
 
-#include <memory>
-
 #include <AMReX_Arena.H>
 #include <AMReX_Extension.H>
 #include <AMReX_FabArrayBase.H>
@@ -16,6 +14,8 @@
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
+
+#include <memory>
 
 namespace amrex {
 

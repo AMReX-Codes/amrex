@@ -8,7 +8,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 
-#include <iostream>
+#include <iosfwd>
 #include <cstddef>
 #include <map>
 #include <unordered_map>

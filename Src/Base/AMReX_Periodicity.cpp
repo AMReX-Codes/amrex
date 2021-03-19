@@ -1,6 +1,6 @@
 
-#include <limits>
 #include <AMReX_Periodicity.H>
+#include <limits>
 
 namespace amrex {
 

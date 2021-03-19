@@ -2,8 +2,8 @@
 #define BL_TYPETRAITS_H_
 #include <AMReX_Config.H>
 
-#include <type_traits>
 #include <AMReX_Extension.H>
+#include <type_traits>
 
 // workaround missing "is_trivially_copyable" in g++ < 5.0
 #if defined(__GNUG__) && __GNUC__ < 5 && !defined(AMREX_CXX_CLANG)

@@ -3,16 +3,16 @@
 #define AMREX_TUPLE_H_
 #include <AMReX_Config.H>
 
-#include <array>
-
-#include <tuple>
-#include <functional>
-#include <type_traits>
-#include <utility>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_IndexSequence.H>
 #include <AMReX_Functional.H>
 #include <AMReX_GpuQualifiers.H>
+
+#include <array>
+#include <tuple>
+#include <functional>
+#include <type_traits>
+#include <utility>
 
 namespace amrex {
     template <class... Ts>

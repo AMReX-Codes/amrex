@@ -1,8 +1,4 @@
 
-#include <algorithm>
-#include <iostream>
-#include <cmath>
-
 #include <AMReX_Print.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_BoxList.H>
@@ -12,6 +8,10 @@
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
+
+#include <algorithm>
+#include <iostream>
+#include <cmath>
 
 namespace amrex {
 

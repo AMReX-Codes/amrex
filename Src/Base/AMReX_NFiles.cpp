@@ -2,6 +2,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_NFiles.H>
 #include <deque>
+#include <fstream>
 
 namespace amrex {
 

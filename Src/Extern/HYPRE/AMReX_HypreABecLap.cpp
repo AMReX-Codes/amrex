@@ -1,11 +1,11 @@
 
 #include <AMReX_HypreABecLap.H>
-#include <string>
-#include <algorithm>
-
 #include <AMReX_Habec_K.H>
 
 #include <_hypre_struct_mv.h>
+
+#include <string>
+#include <algorithm>
 
 namespace amrex {
 

@@ -1,7 +1,6 @@
 
-#include <iostream>
-
 #include <AMReX_BCRec.H>
+#include <iostream>
 
 namespace amrex {
 

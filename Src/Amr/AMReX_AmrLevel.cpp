@@ -1,9 +1,4 @@
 
-#include <sstream>
-
-#include <memory>
-#include <limits>
-
 #include <AMReX_AmrLevel.H>
 #include <AMReX_Derive.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -19,6 +14,10 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_EB2.H>
 #endif
+
+#include <sstream>
+#include <memory>
+#include <limits>
 
 namespace amrex {
 

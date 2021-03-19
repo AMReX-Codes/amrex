@@ -2,11 +2,6 @@
 #define BL_FABARRAYBASE_H_
 #include <AMReX_Config.H>
 
-#ifdef AMREX_USE_OMP
-#include <omp.h>
-#endif
-
-#include <string>
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -15,6 +10,12 @@
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
 #include <AMReX_Gpu.H>
+
+#ifdef AMREX_USE_OMP
+#include <omp.h>
+#endif
+
+#include <string>
 
 namespace amrex {
 

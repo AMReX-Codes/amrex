@@ -12,16 +12,9 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
+
 #ifndef BL_AMRPROF
 #include <AMReX_Box.H>
-#endif
-
-#ifdef BL_USE_MPI3
-#include <atomic>
-#endif
-
-#ifdef AMREX_USE_OMP
-#include <omp.h>
 #endif
 
 #ifdef BL_LAZY
@@ -32,16 +25,19 @@
 #include <pmi.h>
 #endif
 
-#include <iostream>
-#include <vector>
-#include <string>
-#include <typeinfo>
+#ifdef AMREX_USE_OMP
+#include <omp.h>
+#endif
+
 #include <algorithm>
+#include <atomic>
+#include <csignal>
 #include <functional>
-#include <iostream>
 #include <limits>
 #include <numeric>
-#include <csignal>
+#include <string>
+#include <typeinfo>
+#include <vector>
 
 namespace amrex {
 

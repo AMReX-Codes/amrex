@@ -3,8 +3,6 @@
 #define AMREX_StateData_H_
 #include <AMReX_Config.H>
 
-#include <memory>
-
 #include <AMReX_Box.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_MultiFab.H>
@@ -18,6 +16,8 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_RealBox.H>
 #include <AMReX_StateDescriptor.H>
+
+#include <memory>
 
 namespace amrex {
 

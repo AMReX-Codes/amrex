@@ -15,15 +15,14 @@
 #include <AMReX_Box.H>
 #endif
 
-#include <iostream>
-#include <ostream>
+#include <list>
+#include <map>
+#include <iosfwd>
 #include <string>
 #include <stack>
 #include <set>
-#include <map>
-#include <list>
-#include <utility>
 #include <typeinfo>
+#include <utility>
 
 namespace amrex {
 
@@ -333,12 +332,7 @@ namespace BLProfilerUtils {
 }
 
 
-inline std::ostream &operator<< (std::ostream &os, const BLProfiler::CommStats &cs) {
-  os << BLProfiler::CommStats::CFTToString(cs.cfType) << "   " << cs.size
-     << "  " << cs.commpid << "  " << cs.tag << "  " << cs.timeStamp;
-  return os;
-}
-
+std::ostream &operator<< (std::ostream &os, const BLProfiler::CommStats &cs);
 
 
 inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
