@@ -8,7 +8,7 @@
 !     which we set to -1
 !     bl_str2int converts a FORTRAN string to an integer array,
 !     bl_int2str converts an integer array to a FORTRAN string.
-!      
+!
 !-----------------------------------------------------------------------
 
   subroutine bl_str2int(iarr, n, str)

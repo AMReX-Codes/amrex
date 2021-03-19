@@ -19,7 +19,7 @@ contains
 
     cur_time = t_new(0)
     last_plot_file_step = 0;
-    
+
     do step = stepno, max_step-1
        if (cur_time .ge. stop_time) exit
 
@@ -29,7 +29,7 @@ contains
        end if
 
        call timestep(cur_time)
- 
+
        cur_time = cur_time + dtstep
 
        if (amrex_parallel_ioprocessor()) then
@@ -62,7 +62,7 @@ contains
     use averagedown_module, only : averagedown
     use compute_dt_module, only : compute_dt
     real(amrex_real), intent(in) :: time
-    
+
     integer, save :: last_regrid_step = 0
     integer :: lev, finest_level
 
@@ -215,7 +215,7 @@ contains
        end do
        call amrex_multifab_destroy(phiborder(ilev))
     end do
-    
+
   end subroutine advance
 
 end module evolve_module

@@ -47,21 +47,21 @@ namespace amrex
         constexpr bool  Debug = true;
 #endif
 
-        extern std::string exename;
-	
-        extern int verbose;
+        extern AMREX_EXPORT std::string exename;
 
-        extern int signal_handling;
-        extern int call_addr2line;
-        extern int throw_exception;
+        extern AMREX_EXPORT int verbose;
 
-        extern int regtest_reduction;
+        extern AMREX_EXPORT int signal_handling;
+        extern AMREX_EXPORT int call_addr2line;
+        extern AMREX_EXPORT int throw_exception;
 
-        extern std::ostream* osout;
-        extern std::ostream* oserr;
-        
-        extern ErrorHandler error_handler;
-        extern int abort_on_unused_inputs;
+        extern AMREX_EXPORT int regtest_reduction;
+
+        extern AMREX_EXPORT std::ostream* osout;
+        extern AMREX_EXPORT std::ostream* oserr;
+
+        extern AMREX_EXPORT ErrorHandler error_handler;
+        extern AMREX_EXPORT int abort_on_unused_inputs;
     }
 
     std::string Version ();

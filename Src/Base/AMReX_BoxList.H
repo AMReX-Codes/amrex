@@ -211,8 +211,8 @@ public:
     const Vector<Box>& data() const noexcept { return m_lbox; }
 
     void swap (BoxList& rhs) {
-	std::swap(m_lbox, rhs.m_lbox);
-	std::swap(btype, rhs.btype);
+        std::swap(m_lbox, rhs.m_lbox);
+        std::swap(btype, rhs.btype);
     }
 
     void Bcast ();

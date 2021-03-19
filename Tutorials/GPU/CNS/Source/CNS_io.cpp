@@ -15,8 +15,8 @@ CNS::restart (Amr& papa, std::istream& is, bool bReadSpecial)
     buildMetrics();
 }
 
-void 
-CNS::checkPoint (const std::string& dir, std::ostream& os, VisMF::How how, bool dump_old) 
+void
+CNS::checkPoint (const std::string& dir, std::ostream& os, VisMF::How how, bool dump_old)
 {
     AmrLevel::checkPoint(dir, os, how, dump_old);
 }

@@ -1,4 +1,4 @@
-The build system requires GNU make >= 3.81 and python >= 2.7. 
+The build system requires GNU make >= 3.81 and python >= 2.7.
 
 Typically an application will have its own `GNUmakefile`.  (See
 `Tutorials/HelloWorld_C/` for a simple example, or
@@ -84,7 +84,7 @@ The `Make.defs` includes the following files in the listed order:
 * `Make.local`: This file is not in the AMReX repository.  It is the
   last file included in `Make.defs`, if it exists.  It is meant for a
   purely local setup that can override the setup in previously
-  included files.  See `Make.local.template` for examples. 
+  included files.  See `Make.local.template` for examples.
 
 The build system uses the `vpath` directive to specify a list of
 directories to be searched for files.  The list of directories is
@@ -108,4 +108,4 @@ variable `LIBRARY_LOCATIONS`.  Each directory in `LIBRARY_LOCATIONS`
 will be prefixed with `-L` and passed to the compilers.
 
 See User's Guide for more information on various build options (e.g.,
-`USE_MPI`). 
+`USE_MPI`).

@@ -25,7 +25,7 @@ int main_main()
     bool any_nans = false;
     ErrZone err_zone;
     bool all_variables_found = true;
-    
+
     // defaults
     int norm = 0;
     std::string plotfile_a;
@@ -61,7 +61,7 @@ int main_main()
         } else if (fname == "--abs_tol") {
             atol = std::stod(amrex::get_command_argument(++farg));
         } else if (fname == "--abort_if_not_all_found") {
-            abort_if_not_all_found = true;            
+            abort_if_not_all_found = true;
         } else {
             break;
         }
@@ -148,7 +148,7 @@ int main_main()
         auto r = std::find(std::begin(names_a),std::end(names_a),names_b[n_b]);
         if (r == std::end(names_a)) {
             amrex::Print() << " WARNING: variable " << names_b[n_b] << " not found in plotfile 1\n";
-            all_variables_found = false;            
+            all_variables_found = false;
         }
     }
 

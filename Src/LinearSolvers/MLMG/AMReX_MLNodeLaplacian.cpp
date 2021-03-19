@@ -662,51 +662,51 @@ MLNodeLaplacian::compGrad (int amrlev, MultiFab& grad, MultiFab& sol) const
     for (MFIter mfi(grad, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-	Array4<Real> const& garr = grad.array(mfi);
-	Array4<Real const> const& solarr = sol.const_array(mfi);
+        Array4<Real> const& garr = grad.array(mfi);
+        Array4<Real const> const& solarr = sol.const_array(mfi);
 
-	AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, AMREX_SPACEDIM, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, AMREX_SPACEDIM, i, j, k, n,
         {
             garr(i,j,k,n) = 0.0;
         });
 
 #ifdef AMREX_USE_EB
-	bool regular = !factory;
-	if (factory)
-	{
-	    auto type = (*flags)[mfi].getType(bx);
-	    Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
-	    Array4<Real const> const& intgarr = intg->const_array(mfi);
-	    if (type == FabType::covered)
-	    { }
-	    else if (type == FabType::singlevalued)
-	    {
-	      AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        bool regular = !factory;
+        if (factory)
+        {
+            auto type = (*flags)[mfi].getType(bx);
+            Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
+            Array4<Real const> const& intgarr = intg->const_array(mfi);
+            if (type == FabType::covered)
+            { }
+            else if (type == FabType::singlevalued)
+            {
+              AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
               {
-		  mlndlap_mknewu_eb_c(i,j,k, garr, solarr, sigma, vfracarr, intgarr, dxinv);
+                  mlndlap_mknewu_eb_c(i,j,k, garr, solarr, sigma, vfracarr, intgarr, dxinv);
               });
-	    }
-	    else
-	    {
-	        regular = true;
-	    }
-	}
-	if (regular)
+            }
+            else
+            {
+                regular = true;
+            }
+        }
+        if (regular)
 #endif
-	{
+        {
 
 #if (AMREX_SPACEDIM == 2)
-	    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
-	    {
-	        mlndlap_mknewu_c(i,j,k,garr,solarr,sigma,dxinv,is_rz);
-	    });
-#else
-	    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
             {
-	        mlndlap_mknewu_c(i,j,k,garr,solarr,sigma,dxinv);
-	    });
+                mlndlap_mknewu_c(i,j,k,garr,solarr,sigma,dxinv,is_rz);
+            });
+#else
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+            {
+                mlndlap_mknewu_c(i,j,k,garr,solarr,sigma,dxinv);
+            });
 #endif
-	}
+        }
     }
 }
 
@@ -1391,7 +1391,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
             });
         }
         else
-        { 
+        {
             Array4<Real const> const& sfab = sigma[0]->const_array(mfi);
             if (regular_coarsening)
             {

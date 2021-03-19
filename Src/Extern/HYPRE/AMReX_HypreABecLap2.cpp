@@ -35,7 +35,7 @@ HypreABecLap2::~HypreABecLap2 ()
 }
 
 void
-HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abstol, 
+HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abstol,
                       int maxiter, const BndryData& bndry, int max_bndry_order)
 {
     if (solver == NULL || m_bndry != &bndry || m_maxorder != max_bndry_order)
@@ -87,7 +87,7 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abs
     HYPRE_ParCSRMatrix par_A;
     HYPRE_ParVector par_b;
     HYPRE_ParVector par_x;
-    
+
     HYPRE_SStructMatrixGetObject(A, (void**) &par_A);
     HYPRE_SStructVectorGetObject(b, (void**) &par_b);
     HYPRE_SStructVectorGetObject(x, (void**) &par_x);
@@ -262,8 +262,8 @@ HypreABecLap2::prepareSolver ()
                                         0, regular_stencil_size, stencil_indices.data(),
                                         mat);
         Gpu::synchronize();
-    }    
-    HYPRE_SStructMatrixAssemble(A);   
+    }
+    HYPRE_SStructMatrixAssemble(A);
 
     // create solver
     HYPRE_BoomerAMGCreate(&solver);

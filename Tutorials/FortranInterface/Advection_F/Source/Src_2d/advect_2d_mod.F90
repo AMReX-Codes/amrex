@@ -5,7 +5,7 @@ module advect_module
 
   implicit none
   private
-  
+
   public :: advect, advect_particles
 
 contains
@@ -35,15 +35,15 @@ contains
     real(amrex_real), intent(in   ) :: vy  (vy_lo(1):vy_hi(1),vy_lo(2):vy_hi(2))
     real(amrex_real), intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2))
     real(amrex_real), intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2))
-    
+
     integer :: i, j
     integer :: glo(2), ghi(2)
     real(amrex_real) :: dtdx(2), umax, vmax
-    
+
     real(amrex_real), dimension(:,:), pointer, contiguous :: phix_1d, phiy_1d, phix, phiy, slope
 
     dtdx = dt/dx
-    
+
     glo = lo - 1
     ghi = hi + 1
 
@@ -59,9 +59,9 @@ contains
     ! to remove their pointerness for performance, because normally pointers could
     ! be aliasing.  We need to use pointers instead of allocatable arrays because
     ! we like to use AMReX's amrex_allocate to allocate memeory instead of the intrinsic
-    ! allocate.  Amrex_allocate is much faster than allocate inside OMP.  
+    ! allocate.  Amrex_allocate is much faster than allocate inside OMP.
     ! Note that one MUST CALL AMREX_DEALLOCATE.
-    
+
     ! check if CFL condition is violated.
     umax = maxval(abs(vx))
     vmax = maxval(abs(vy))
@@ -88,27 +88,27 @@ contains
                + (flxy(i,j) - flxy(i,j+1)) * dtdx(2) )
        enddo
     enddo
-    
+
     ! Scale by face area in order to correctly reflx
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)+1
           flxx(i,j) = flxx(i,j) * ( dt * dx(2))
        enddo
     enddo
-    
+
     ! Scale by face area in order to correctly reflx
-    do    j = lo(2), hi(2)+1 
+    do    j = lo(2), hi(2)+1
        do i = lo(1), hi(1)
           flxy(i,j) = flxy(i,j) * (dt * dx(1))
        enddo
     enddo
-    
+
     call amrex_deallocate(phix_1d)
     call amrex_deallocate(phiy_1d)
     call amrex_deallocate(phix)
     call amrex_deallocate(phiy)
     call amrex_deallocate(slope)
-    
+
   end subroutine advect
 
   subroutine advect_particles(particles, np, &
@@ -126,11 +126,11 @@ contains
     real(amrex_real),           intent(in)            :: dt
     real(amrex_real),           intent(in)            :: plo(2)
     real(amrex_real),           intent(in)            :: dx(2)
-    
+
     integer cell(2)
     integer cc_cell(2)
     integer e_cell(2)
-    
+
     integer ipass, n, d
     real(amrex_real) w_lo(2), w_hi(2)
     real(amrex_real) e_lo(2), e_hi(2)
@@ -147,32 +147,32 @@ contains
     if (np == 0) then
        return
     end if
-    
+
     velocity(1)%p => ux
     velocity(2)%p => uy
-    
+
     inv_dx = 1.0d0/dx
 
     do ipass = 1, 2
        do n = 1, np
 
-          length = (particles(n)%pos - plo)*inv_dx          
+          length = (particles(n)%pos - plo)*inv_dx
 
           cc_cell = floor(length)
           cell    = floor(length + 0.5d0)
-          
-          w_hi = length + 0.5d0 - cell          
+
+          w_hi = length + 0.5d0 - cell
           w_lo = 1.d0 - w_hi
 
           do d = 1, 2
              e_cell = cell
              e_cell(d) = cc_cell(d) + 1
-             
+
              e_hi = w_hi
              e_lo = w_lo
              e_hi(d) = length(d) - cc_cell(d)
 
-             e_hi = max(0.d0,min(1.d0,e_hi))             
+             e_hi = max(0.d0,min(1.d0,e_hi))
              e_lo(d) = 1.d0 - e_hi(d)
 
              vel = e_lo(1)*e_lo(2)*velocity(d)%p(e_cell(1)-1, e_cell(2)-1) + &
@@ -187,9 +187,9 @@ contains
                 particles(n)%pos(d) = particles(n)%vel(d) + dt*vel
                 particles(n)%vel(d) = vel
              end if
-          end do                    
+          end do
        end do
     end do
   end subroutine advect_particles
-  
+
 end module advect_module

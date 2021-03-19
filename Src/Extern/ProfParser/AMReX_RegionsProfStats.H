@@ -80,7 +80,7 @@ class RegionsProfStats : public BLProfStats {
 
     TimeRange MakeRegionPlt(amrex::FArrayBox &rFab, int noregionnumber,
                             int width, int height,
-			    amrex::Vector<amrex::Vector<amrex::Box>> &regionBoxes);
+                            amrex::Vector<amrex::Vector<amrex::Box>> &regionBoxes);
     virtual void CollectFuncStats(amrex::Vector<amrex::Vector<FuncStat> > &funcStats);
     virtual void WriteSummary(std::ostream &os, bool bwriteavg = false, int whichProc = 0,
                               bool graphTopPct = true);
@@ -97,7 +97,7 @@ class RegionsProfStats : public BLProfStats {
     static bool InitDBlocks()             { return bInitDataBlocks; }
     static void InitDataFileNames(const amrex::Vector<std::string> &hfn);
     bool TraceDataValid() const { return mFNameNumbersPerProc.size() > 0; }
-		     
+
     void SyncFNamesAndNumbers();
     bool InitRegionTimeRanges(const amrex::Box &procBox);
 

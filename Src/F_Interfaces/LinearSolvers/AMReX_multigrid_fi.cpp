@@ -100,12 +100,12 @@
      {
          mlmg->setBottomVerbose(n);
      }
-     
+
      void amrex_fi_multigrid_set_always_use_bnorm (MLMG* mlmg, int f)
      {
          mlmg->setAlwaysUseBNorm(f);
      }
-     
+
      void amrex_fi_multigrid_set_final_fill_bc (MLMG* mlmg, int f)
      {
          mlmg->setFinalFillBC(f);

@@ -72,8 +72,8 @@ main (int   argc,
 
     FArrayBox dataI, dataE;
     dataI.readFrom(is);
-  
-    dataI.plus(factor);   
+
+    dataI.plus(factor);
 
     dataI.writeOn(os);
 

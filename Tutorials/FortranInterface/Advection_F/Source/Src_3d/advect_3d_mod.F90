@@ -19,7 +19,7 @@ subroutine advect(time, lo, hi, &
      &            flxy, fy_lo, fy_hi, &
      &            flxz, fz_lo, fz_hi, &
      &            dx,dt) bind(C, name="advect")
-  
+
   use amrex_mempool_module, only : bl_allocate, bl_deallocate
   use compute_flux_module, only : compute_flux_3d
 
@@ -68,13 +68,13 @@ subroutine advect(time, lo, hi, &
   call bl_allocate(phiz_x,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
   call bl_allocate(phiz_y,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
   ! slope
-  call bl_allocate(slope,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))  
-  
+  call bl_allocate(slope,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+
   ! We like to allocate these **pointers** here and then pass them to a function
   ! to remove their pointerness for performance, because normally pointers could
   ! be aliasing.  We need to use pointers instead of allocatable arrays because
   ! we like to use AMReX's bl_allocate to allocate memeory instead of the intrinsic
-  ! allocate.  Bl_allocate is much faster than allocate inside OMP.  
+  ! allocate.  Bl_allocate is much faster than allocate inside OMP.
   ! Note that one MUST CALL BL_DEALLOCATE.
 
   ! check if CFL condition is violated.
@@ -123,7 +123,7 @@ subroutine advect(time, lo, hi, &
      enddo
   enddo
   do       k = lo(3), hi(3)
-     do    j = lo(2), hi(2)+1 
+     do    j = lo(2), hi(2)+1
         do i = lo(1), hi(1)
            flxy(i,j,k) = flxy(i,j,k) * (dt * dx(1)*dx(3))
         enddo
@@ -155,7 +155,7 @@ subroutine advect_particles(particles, np, &
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
   use amrex_particlecontainer_module, only : amrex_particle
-  
+
   integer,                    intent(in)            :: np
   type(amrex_particle),       target, intent(inout) :: particles(np)
   integer,                    intent(in)            :: uxlo(3), uxhi(3)
@@ -171,7 +171,7 @@ subroutine advect_particles(particles, np, &
   integer cell(3)
   integer cc_cell(3)
   integer e_cell(3)
-    
+
   integer ipass, n, d, j
   real(amrex_real) w_lo(3), w_hi(3)
   real(amrex_real) e_lo(3), e_hi(3)
@@ -188,36 +188,36 @@ subroutine advect_particles(particles, np, &
   if (np == 0) then
      return
   end if
-  
+
   velocity(1)%p => ux
   velocity(2)%p => uy
   velocity(3)%p => uy
-    
+
   inv_dx = 1.0d0/dx
-   
+
   do ipass = 1, 2
      do n = 1, np
 
-        length = (particles(n)%pos - plo)*inv_dx          
+        length = (particles(n)%pos - plo)*inv_dx
 
         cc_cell = floor(length)
         cell    = floor(length + 0.5d0)
-          
-        w_hi = length + 0.5d0 - cell          
+
+        w_hi = length + 0.5d0 - cell
         w_lo = 1.d0 - w_hi
-        
+
         ! x direction
         do d = 1, 3
            e_cell = cell
            e_cell(d) = cc_cell(d) + 1
-             
+
            e_hi = w_hi
            e_lo = w_lo
            e_hi(d) = length(d) - cc_cell(d)
 
            e_hi = max(0.d0,min(1.d0,e_hi))
            e_lo(d) = 1.d0 - e_hi(d)
-           
+
            vel = e_lo(1)*e_lo(2)*e_lo(3)*velocity(d)%p(e_cell(1)-1, e_cell(2)-1, e_cell(3)-1) + &
                  e_lo(1)*e_lo(2)*e_hi(3)*velocity(d)%p(e_cell(1)-1, e_cell(2)-1, e_cell(3)  ) + &
                  e_lo(1)*e_hi(2)*e_lo(3)*velocity(d)%p(e_cell(1)-1, e_cell(2)  , e_cell(3)-1) + &

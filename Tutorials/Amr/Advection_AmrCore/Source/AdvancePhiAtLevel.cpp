@@ -40,8 +40,8 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
 #endif
     {
         FArrayBox tmpfab;
-	for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-	{
+        for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
             AMREX_ASSERT(S_new.nComp() == 1);
 
         // ======== GET FACE VELOCITY =========
@@ -52,7 +52,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
 
         // ======== FLUX CALC AND UPDATE =========
 
-	    const Box& bx = mfi.tilebox();
+            const Box& bx = mfi.tilebox();
             const Box& gbx = amrex::grow(bx, 1);
 
             Array4<Real const> statein  = Sborder.const_array(mfi);
@@ -160,7 +160,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
                         velx, vely,
                         phix_c, phiy_c,
                         dtdy);
-            }); 
+            });
 
             // xz --------------------
             Array4<Real> phix_z = tmpfab.array(itmp++);
@@ -174,7 +174,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
                         velx, velz,
                         phix, phiz,
                         dtdz);
-            }); 
+            });
 
             // yx --------------------
             Array4<Real> phiy_x = tmpfab.array(itmp++);
@@ -188,7 +188,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
                         velx, vely,
                         phix, phiy,
                         dtdx);
-            }); 
+            });
 
             // yz --------------------
             Array4<Real> phiy_z = tmpfab.array(itmp++);
@@ -202,7 +202,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
                         vely, velz,
                         phiy, phiz,
                         dtdz);
-            }); 
+            });
 
             // zx --------------------
             Array4<Real> phiz_x = tmpfab.array(itmp++);
@@ -216,7 +216,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
                         velx, velz,
                         phix, phiz,
                         dtdx);
-            }); 
+            });
 
             // zy --------------------
             Array4<Real> phiz_y = tmpfab.array(itmp++);
@@ -230,10 +230,10 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
                         vely, velz,
                         phiy, phiz,
                         dtdy);
-            }); 
+            });
 #endif
 
-            // final edge states 
+            // final edge states
             // ===========================
             amrex::ParallelFor(amrex::surroundingNodes(bx,Direction::x),
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
@@ -282,7 +282,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
                          Array4<Real const> tfluxy_c = tfluxy;,
                          Array4<Real const> tfluxz_c = tfluxz);
 
-            // Do a conservative update 
+            // Do a conservative update
             amrex::ParallelFor(bx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
@@ -311,7 +311,7 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
                                  {
                                      tfluxz(i,j,k) *= dt_lev*dx*dy;
                                  }));
- 
+
                 // Copy into Flux MultiFab
                 AMREX_D_TERM(Array4<Real> fluxx = fluxes[0].array(mfi);,
                              Array4<Real> fluxy = fluxes[1].array(mfi);,
@@ -364,18 +364,18 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
     // the flux registers from the coarse or fine grid perspective
     // NOTE: the flux register associated with flux_reg[lev] is associated
     // with the lev/lev-1 interface (and has grid spacing associated with lev-1)
-    if (do_reflux) { 
-	if (flux_reg[lev+1]) {
-	    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-	        // update the lev+1/lev flux register (index lev+1)   
-	        flux_reg[lev+1]->CrseInit(fluxes[i],i,0,0,fluxes[i].nComp(), -1.0);
-	    }	    
-	}
-	if (flux_reg[lev]) {
-	    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-	        // update the lev/lev-1 flux register (index lev) 
-		flux_reg[lev]->FineAdd(fluxes[i],i,0,0,fluxes[i].nComp(), 1.0);
-	    }
-	}
+    if (do_reflux) {
+        if (flux_reg[lev+1]) {
+            for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+                // update the lev+1/lev flux register (index lev+1)
+                flux_reg[lev+1]->CrseInit(fluxes[i],i,0,0,fluxes[i].nComp(), -1.0);
+            }
+        }
+        if (flux_reg[lev]) {
+            for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+                // update the lev/lev-1 flux register (index lev)
+                flux_reg[lev]->FineAdd(fluxes[i],i,0,0,fluxes[i].nComp(), 1.0);
+            }
+        }
     }
 }

@@ -5,7 +5,7 @@ module advect_module
 
   implicit none
   private
-  
+
   public :: advect
 
 contains
@@ -35,15 +35,15 @@ contains
     real(amrex_real), intent(in   ) :: vy  (vy_lo(1):vy_hi(1),vy_lo(2):vy_hi(2))
     real(amrex_real), intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2))
     real(amrex_real), intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2))
-    
+
     integer :: i, j
     integer :: glo(2), ghi(2)
     real(amrex_real) :: dtdx(2), umax, vmax
-    
+
     real(amrex_real), dimension(:,:), pointer, contiguous :: phix_1d, phiy_1d, phix, phiy, slope
 
     dtdx = dt/dx
-    
+
     glo = lo - 1
     ghi = hi + 1
 
@@ -59,9 +59,9 @@ contains
     ! to remove their pointerness for performance, because normally pointers could
     ! be aliasing.  We need to use pointers instead of allocatable arrays because
     ! we like to use AMReX's amrex_allocate to allocate memeory instead of the intrinsic
-    ! allocate.  Amrex_allocate is much faster than allocate inside OMP.  
+    ! allocate.  Amrex_allocate is much faster than allocate inside OMP.
     ! Note that one MUST CALL AMREX_DEALLOCATE.
-    
+
     ! check if CFL condition is violated.
     umax = maxval(abs(vx))
     vmax = maxval(abs(vy))
@@ -88,27 +88,27 @@ contains
                + (flxy(i,j) - flxy(i,j+1)) * dtdx(2) )
        enddo
     enddo
-    
+
     ! Scale by face area in order to correctly reflx
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)+1
           flxx(i,j) = flxx(i,j) * ( dt * dx(2))
        enddo
     enddo
-    
+
     ! Scale by face area in order to correctly reflx
-    do    j = lo(2), hi(2)+1 
+    do    j = lo(2), hi(2)+1
        do i = lo(1), hi(1)
           flxy(i,j) = flxy(i,j) * (dt * dx(1))
        enddo
     enddo
-    
+
     call amrex_deallocate(phix_1d)
     call amrex_deallocate(phiy_1d)
     call amrex_deallocate(phix)
     call amrex_deallocate(phiy)
     call amrex_deallocate(slope)
-    
+
   end subroutine advect
 
 end module advect_module

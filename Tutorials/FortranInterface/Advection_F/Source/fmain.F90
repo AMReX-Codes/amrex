@@ -6,7 +6,7 @@ program main
   use my_amr_module
   use initdata_module
   use evolve_module
-  
+
   implicit none
 
   call amrex_init()

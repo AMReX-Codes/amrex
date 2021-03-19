@@ -28,7 +28,7 @@ contains
 
     if (level >= 1) then
        !
-       !  This is here for testing only! 
+       !  This is here for testing only!
        !  Remove this if you use this as a template.
        !
        if (time > 0.75_amrex_real .and. time < 1.0_amrex_real) then

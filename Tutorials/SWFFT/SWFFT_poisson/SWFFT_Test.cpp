@@ -57,7 +57,7 @@ SWFFT_Test::SWFFT_Test ()
 
         pp.query("verbose", verbose);
     }
-    
+
     BoxArray ba;
     {
         // Make up a dx that is not 1
@@ -81,7 +81,7 @@ SWFFT_Test::SWFFT_Test ()
         geom.define(domain, &real_box, CoordSys::cartesian, is_periodic.data());
     }
 
-    // Make sure we define both the soln and the rhs with the same DistributionMapping 
+    // Make sure we define both the soln and the rhs with the same DistributionMapping
     DistributionMapping dmap{ba};
 
     // Note that we are defining rhs with NO ghost cells
@@ -154,9 +154,9 @@ SWFFT_Test::solve ()
 
     if (verbose)
     {
-       amrex::Print() << "MAX / MIN VALUE OF COMP  SOLN " <<     soln.max(0) << " " 
+       amrex::Print() << "MAX / MIN VALUE OF COMP  SOLN " <<     soln.max(0) << " "
                       <<     soln.min(0) << std::endl;
-       amrex::Print() << "MAX / MIN VALUE OF EXACT SOLN " << the_soln.max(0) << " " 
+       amrex::Print() << "MAX / MIN VALUE OF EXACT SOLN " << the_soln.max(0) << " "
                       << the_soln.min(0) << std::endl;
     }
 

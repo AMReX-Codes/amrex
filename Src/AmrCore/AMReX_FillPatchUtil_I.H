@@ -181,7 +181,7 @@ namespace {
                                       int>::type = 0>
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
-        MF mf_crse_patch(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_patch, 
+        MF mf_crse_patch(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_patch,
                          ncomp, 0, MFInfo(), *fpc.fact_crse_patch);
         return mf_crse_patch;
     }
@@ -358,7 +358,7 @@ namespace {
                         FAB& sfab = mf_crse_patch[mfi];
                         FAB& dfab = mf_fine_patch[mfi];
                         const Box& dbx = dfab.box();
-			const Box& sbx = sfab.box();
+                        const Box& sbx = sfab.box();
 
                         amrex::setBC(sbx,cdomain,bcscomp,0,ncomp,bcs,bcr);
 
@@ -372,8 +372,8 @@ namespace {
                 }
 
                 mf.ParallelCopy(mf_fine_patch, 0, dcomp, ncomp, IntVect{0}, nghost);
-	    }
-	}
+            }
+        }
 
         FillPatchSingleLevel(mf, nghost, time, fmf, ft, scomp, dcomp, ncomp,
                              fgeom, fbc, fbccomp);
@@ -395,7 +395,7 @@ namespace {
                              const PostInterpHook& post_interp,
                              EB2::IndexSpace const* index_space)
     {
-	BL_PROFILE("FillPatchTwoLevels (Array<MF*>)");
+        BL_PROFILE("FillPatchTwoLevels (Array<MF*>)");
 
         using FAB = typename MF::FABType::value_type;
         using iFAB = typename iMultiFab::FABType::value_type;
@@ -417,9 +417,9 @@ namespace {
 
 
         // Test all of them?
-	if (nghost.max() > 0 || mf[0]->getBDKey() != fmf[0][0]->getBDKey())
-	{
-	    const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
+        if (nghost.max() > 0 || mf[0]->getBDKey() != fmf[0][0]->getBDKey())
+        {
+            const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
             // Convert to cell-centered MF meta-data for FPInfo.
             MF mf_cc_dummy( amrex::convert(mf[0]->boxArray(), IntVect::TheZeroVector()),
@@ -427,15 +427,15 @@ namespace {
             MF fmf_cc_dummy( amrex::convert(fmf[0][0]->boxArray(), IntVect::TheZeroVector()),
                              fmf[0][0]->DistributionMap(), ncomp, nghost, MFInfo().SetAlloc(false) );
 
-	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(fmf_cc_dummy, mf_cc_dummy,
+            const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(fmf_cc_dummy, mf_cc_dummy,
                                                                       nghost,
                                                                       coarsener,
                                                                       fgeom,
                                                                       cgeom,
                                                                       index_space);
 
-	    if ( !fpc.ba_crse_patch.empty() )
-	    {
+            if ( !fpc.ba_crse_patch.empty() )
+            {
                 Array<MF, AMREX_SPACEDIM> mf_crse_patch;
                 Array<MF, AMREX_SPACEDIM> mf_refined_patch;
                 Array<iMultiFab, AMREX_SPACEDIM> solve_mask;
@@ -524,8 +524,8 @@ namespace {
                 {
                     mf[d]->ParallelCopy(mf_refined_patch[d], 0, dcomp, ncomp, IntVect{0}, nghost);
                 }
-	    }
-	}
+            }
+        }
 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
         {
@@ -806,7 +806,7 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
             dfab_bx.grow(nghost-mf.nGrowVect());
             const Box& dbx = dfab_bx & fdomain_g;
 
-	    amrex::setBC(sbx,cdomain,bcscomp,0,ncomp,bcs,bcr);
+            amrex::setBC(sbx,cdomain,bcscomp,0,ncomp,bcs,bcr);
 
             pre_interp(sfab, sfab.box(), 0, ncomp);
 
@@ -950,7 +950,7 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
                 Vector<BCRec> bcr_d(ncomp);
 
                 amrex::setBC(sfab[d]->box(),
-			     amrex::convert(cgeom.Domain(), sfab[d]->box().ixType()),
+                             amrex::convert(cgeom.Domain(), sfab[d]->box().ixType()),
                              bcscomp,0,ncomp,bcs[d],bcr_d);
 
                 for (int n=0; n<ncomp; ++n)

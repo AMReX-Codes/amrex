@@ -58,7 +58,7 @@ MLMGBndry::setBoxBC (RealTuple& bloc, BCTuple& bctag, const Box& bx, const Box& 
     {
         const Orientation face = fi();
         const int         dir  = face.coordDir();
-        
+
         if (domain[face] == bx[face] && !is_periodic[dir])
         {
             // All physical bc values are located on face.

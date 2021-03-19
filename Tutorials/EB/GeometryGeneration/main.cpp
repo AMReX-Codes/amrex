@@ -30,14 +30,14 @@ int main (int argc, char* argv[])
             Array<int,AMREX_SPACEDIM> is_periodic{false, false, false};
             Geometry::Setup(&rb, 0, is_periodic.data());
             Box domain(IntVect(0), IntVect(n_cell-1));
-            geom.define(domain);            
+            geom.define(domain);
         }
 
         if (which_geom == 0) {
             EB2::SphereIF sphere(0.5, {0.0,0.0,0.0}, false);
             EB2::BoxIF cube({-0.4,-0.4,-0.4}, {0.4,0.4,0.4}, false);
             auto cubesphere = EB2::makeIntersection(sphere, cube);
-            
+
             EB2::CylinderIF cylinder_x(0.25, 0, {0.0,0.0,0.0}, false);
             EB2::CylinderIF cylinder_y(0.25, 1, {0.0,0.0,0.0}, false);
             EB2::CylinderIF cylinder_z(0.25, 2, {0.0,0.0,0.0}, false);
@@ -87,7 +87,7 @@ int main (int argc, char* argv[])
           splpts.push_back(p);
           EB2::SplineIF Piston;
           Piston.addSplineElement(splpts);
-          
+
           std::vector<amrex::RealVect> lnpts;
 
           p = amrex::RealVect(D_DECL(22.358*0.1*scaleFact, -7.6902*0.1*scaleFact, 0.0));

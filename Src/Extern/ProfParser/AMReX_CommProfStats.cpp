@@ -134,9 +134,9 @@ void CommProfStats::InitDataFileNames(const Vector<std::string> &hfn) {
 // ----------------------------------------------------------------------
 void CommProfStats::InitCommDataBlock(const int proc, const long ncommstats,
                                       const std::string &filename,
-				      const long seekpos,
-				      const std::string &procname,
-				      const int nodenumber)
+                                      const long seekpos,
+                                      const std::string &procname,
+                                      const int nodenumber)
 {
   int streamindex;
   std::map<std::string, int>::iterator it =  commDataFileNames.find(filename);
@@ -244,9 +244,9 @@ void CommProfStats::AddGridLevel(const int /*level*/, const int /*ngrids*/) {
 
 // ----------------------------------------------------------------------
 void CommProfStats::AddGrid3D(int /*level*/, int /*xlo*/, int /*ylo*/, int /*zlo*/,
-			      int /*xhi*/, int /*yhi*/, int /*zhi*/,
-			      int /*xc*/,  int /*yc*/,  int /*zc*/,
-			      int xn,  int yn,  int zn, int proc)
+                              int /*xhi*/, int /*yhi*/, int /*zhi*/,
+                              int /*xc*/,  int /*yc*/,  int /*zc*/,
+                              int xn,  int yn,  int zn, int proc)
 {
   long nPoints(xn * yn * zn);
   std::map<int, long>::iterator it = glMap.find(proc);
@@ -522,7 +522,7 @@ void CommProfStats::CheckCommData(Vector<long> &nBMin, Vector<long> &nBMax,
     if(verbose) {
       cout << myProc << ":  " << "CommProfProc  " << dBlock.proc << "  nCommStats  "
            << dBlock.size << "  datafile  " << dBlock.fileName << "  seekpos  "
-	   << dBlock.seekpos << endl;
+           << dBlock.seekpos << endl;
       cout << myProc << ":  " << "barriers.size() =  " << dBlock.barriers.size()
            << "  " << dBlock.proc << endl;
     }
@@ -539,14 +539,14 @@ void CommProfStats::CheckCommData(Vector<long> &nBMin, Vector<long> &nBMax,
 
       if(bIndex > nCS-1 || bIndex+1 > nCS-1) {
         cerr << "**** Error:  bad bIndex:  " << bIndex << "  " << nCS << endl;
-	continue;
+        continue;
       }
       BLProfiler::CommStats &cs = dBlock.vCommStats[bIndex];
       BLProfiler::CommStats &csNext = dBlock.vCommStats[bIndex + 1];
 
       if(cs.cfType == BLProfiler::Barrier && csNext.cfType == BLProfiler::Barrier &&
          cs.tag == csNext.tag  &&     // these are the barrier numbers
-	 cs.tag == bNumber )
+         cs.tag == bNumber )
       {
         if(cs.commpid != BLProfiler::BeforeCall() || csNext.commpid != BLProfiler::AfterCall()) {
           cerr << "**** Error:  bad Barrier before, after." << endl;
@@ -555,8 +555,8 @@ void CommProfStats::CheckCommData(Vector<long> &nBMin, Vector<long> &nBMax,
                << (cs.commpid) << "   " << (csNext.commpid) << "   "
                << (cs.tag) << "   " << (csNext.tag) << "   "
                << (cs.timeStamp) << "   " << (csNext.timeStamp) << "   "
-	       << endl;
-	}
+               << endl;
+        }
       } else {
         cerr << "**** Error:  bad Barriers." << endl;
           cerr << BLProfiler::CommStats::CFTToString(cs.cfType) << "   "
@@ -564,8 +564,8 @@ void CommProfStats::CheckCommData(Vector<long> &nBMin, Vector<long> &nBMax,
                << (cs.commpid) << "   " << (csNext.commpid) << "   "
                << (cs.tag) << "   " << (csNext.tag) << "   "
                << (cs.timeStamp) << "   " << (csNext.timeStamp) << "   "
-	       << bName << "  " << bNumber
-	       << endl;
+               << bName << "  " << bNumber
+               << endl;
       }
     }
 
@@ -578,7 +578,7 @@ void CommProfStats::CheckCommData(Vector<long> &nBMin, Vector<long> &nBMax,
 
       if(bIndex > nCS-1 || bIndex+1 > nCS-1) {
         cerr << "**** Error:  bad reduction bIndex:  " << bIndex << "  " << nCS << endl;
-	continue;
+        continue;
       }
 
       BLProfiler::CommStats &cs = dBlock.vCommStats[bIndex];
@@ -595,8 +595,8 @@ void CommProfStats::CheckCommData(Vector<long> &nBMin, Vector<long> &nBMax,
                << (cs.commpid) << "   " << (csNext.commpid) << "   "
                << (cs.tag) << "   " << (csNext.tag) << "   "
                << (cs.timeStamp) << "   " << (csNext.timeStamp) << "   "
-	       << endl;
-	}
+               << endl;
+        }
       } else {
         cerr << "**** Error:  bad Reductions." << endl;
           cerr << BLProfiler::CommStats::CFTToString(cs.cfType) << "   "
@@ -605,7 +605,7 @@ void CommProfStats::CheckCommData(Vector<long> &nBMin, Vector<long> &nBMax,
                << (cs.commpid) << "   " << (csNext.commpid) << "   "
                << (cs.tag) << "   " << (csNext.tag) << "   "
                << (cs.timeStamp) << "   " << (csNext.timeStamp) << "   "
-	       << endl;
+               << endl;
       }
     }
 
@@ -640,9 +640,9 @@ void CommProfStats::CheckCommData(Vector<long> &nBMin, Vector<long> &nBMax,
 
 // ----------------------------------------------------------------------
 void CommProfStats::FillSendFAB(long &totalSends, long &totalSentData,
-				Vector<long> &totalSendsPerProc,
-				Vector<long> &totalSentDataPerProc,
-				FArrayBox &sendFAB, bool proxmap)
+                                Vector<long> &totalSendsPerProc,
+                                Vector<long> &totalSentDataPerProc,
+                                FArrayBox &sendFAB, bool proxmap)
 {
   BL_PROFILE("CommProfStats::FillSendFAB");
 
@@ -679,21 +679,21 @@ void CommProfStats::FillSendFAB(long &totalSends, long &totalSentData,
       for(int i(0); i < dBlock.vCommStats.size(); ++i) {    // ---- find sends and sum
         BLProfiler::CommStats &cs = dBlock.vCommStats[i];
         if(IsSend(cs.cfType)) {
-	  if(cs.size != BLProfiler::AfterCall()) {
-	    rankTo = cs.commpid;
-	    proxTo = proxFromRank[rankTo];
-	    if(proxTo >= smallY && proxTo <= bigY) {    // ---- within to proc range
-	      if(InTimeRange(proc, cs.timeStamp)) {
-	        ++totalSends;
+          if(cs.size != BLProfiler::AfterCall()) {
+            rankTo = cs.commpid;
+            proxTo = proxFromRank[rankTo];
+            if(proxTo >= smallY && proxTo <= bigY) {    // ---- within to proc range
+              if(InTimeRange(proc, cs.timeStamp)) {
+                ++totalSends;
                 totalSentData += cs.size;
-	        ++totalSendsPerProc[proxFrom];
-	        totalSentDataPerProc[proxFrom] += cs.size;
-	        index = (offsetX) + (xlen * (proxTo - smallY));
-	        tsp[index]  += 1.0;
-	        tsdp[index] += cs.size;
-	      }
-	    }
-	  }
+                ++totalSendsPerProc[proxFrom];
+                totalSentDataPerProc[proxFrom] += cs.size;
+                index = (offsetX) + (xlen * (proxTo - smallY));
+                tsp[index]  += 1.0;
+                tsdp[index] += cs.size;
+              }
+            }
+          }
         }
       }
       ClearCommStats(dBlock);
@@ -735,19 +735,19 @@ void CommProfStats::FillSendFAB(long &totalSends, long &totalSentData,
       for(int i(0); i < dBlock.vCommStats.size(); ++i) {    // ---- find sends and sum
         BLProfiler::CommStats &cs = dBlock.vCommStats[i];
         if(IsSend(cs.cfType)) {
-	  if(cs.size != BLProfiler::AfterCall()) {
-	    if(cs.commpid >= smallY && cs.commpid <= bigY) {    // ---- within to proc range
-	      if(InTimeRange(proc, cs.timeStamp)) {
-	        ++totalSends;
+          if(cs.size != BLProfiler::AfterCall()) {
+            if(cs.commpid >= smallY && cs.commpid <= bigY) {    // ---- within to proc range
+              if(InTimeRange(proc, cs.timeStamp)) {
+                ++totalSends;
                 totalSentData += cs.size;
-	        ++totalSendsPerProc[proc];
-	        totalSentDataPerProc[proc] += cs.size;
-	        index = (offsetX) + (xlen * (cs.commpid - smallY));
-	        tsp[index]  += 1.0;
-	        tsdp[index] += cs.size;
-	      }
-	    }
-	  }
+                ++totalSendsPerProc[proc];
+                totalSentDataPerProc[proc] += cs.size;
+                index = (offsetX) + (xlen * (cs.commpid - smallY));
+                tsp[index]  += 1.0;
+                tsdp[index] += cs.size;
+              }
+            }
+          }
         }
       }
       ClearCommStats(dBlock);
@@ -791,7 +791,7 @@ void CommProfStats::ReportSyncPointDataSetup(long &nBMax, long &nRMax)
 void CommProfStats::ReportSyncPointData(Vector<Vector<Real> > &barrierExitTimes,
                                         Vector<Vector<Real> > &barrierWaitTimes,
                                         Vector<Vector<Real> > &reductionWaitTimes,
-					bool bDoReductions)
+                                        bool bDoReductions)
 {
   procNodeNumber.resize(dataNProcs);
 
@@ -863,10 +863,10 @@ void CommProfStats::ReportSyncPointData(Vector<Vector<Real> > &barrierExitTimes,
 // ----------------------------------------------------------------------
 void CommProfStats::ReportStats(long &totalSentData, long &totalNCommStats,
                                 Vector<long> &totalFuncCalls,
-				int bytesPerSlot, Vector<long> &msgSizes,
-				int &minMsgSize, int &maxMsgSize,
+                                int bytesPerSlot, Vector<long> &msgSizes,
+                                int &minMsgSize, int &maxMsgSize,
                                 Real &timeMin, Real &timeMax, Real &timerTime,
-				Vector<int> &rankNodeNumbers)
+                                Vector<int> &rankNodeNumbers)
 {
   amrex::ignore_unused(timerTime);
 
@@ -896,15 +896,15 @@ void CommProfStats::ReportStats(long &totalSentData, long &totalNCommStats,
     for(int i(0); i < dBlock.vCommStats.size(); ++i) {  // ------- sum sent data
       BLProfiler::CommStats &cs = dBlock.vCommStats[i];
       if(IsSend(cs.cfType)) {
-	if(cs.size != BLProfiler::AfterCall()) {
-	  if(InTimeRange(dBlock.proc, cs.timeStamp)) {
+        if(cs.size != BLProfiler::AfterCall()) {
+          if(InTimeRange(dBlock.proc, cs.timeStamp)) {
             totalSentData += cs.size;
-	    slot = std::min(cs.size/bytesPerSlot, highSlot);
-	    ++msgSizes[slot];
-	    minMsgSize = std::min(cs.size, minMsgSize);
-	    maxMsgSize = std::max(cs.size, maxMsgSize);
-	  }
-	}
+            slot = std::min(cs.size/bytesPerSlot, highSlot);
+            ++msgSizes[slot];
+            minMsgSize = std::min(cs.size, minMsgSize);
+            maxMsgSize = std::max(cs.size, maxMsgSize);
+          }
+        }
       }
     }
 
@@ -913,14 +913,14 @@ void CommProfStats::ReportStats(long &totalSentData, long &totalNCommStats,
       if((cs.size > -1 && cs.cfType != BLProfiler::Waitsome) ||
          (cs.size == BLProfiler::BeforeCall() && cs.cfType == BLProfiler::Waitsome))
       {
-	if(InTimeRange(dBlock.proc, cs.timeStamp)) {
-	  if(cs.cfType >= 0 && cs.cfType < totalFuncCalls.size()) {
+        if(InTimeRange(dBlock.proc, cs.timeStamp)) {
+          if(cs.cfType >= 0 && cs.cfType < totalFuncCalls.size()) {
             ++totalFuncCalls[cs.cfType];
-	  } else {
-	    std::cout << "--------:: totalFuncCalls.size() cs.cfType = " << totalFuncCalls.size()
+          } else {
+            std::cout << "--------:: totalFuncCalls.size() cs.cfType = " << totalFuncCalls.size()
                       << "  " << cs.cfType << std::endl;
-	  }
-	}
+          }
+        }
       }
     }
 
@@ -953,9 +953,9 @@ void CommProfStats::FindTimeRange(BLProfStats::TimeRange& tr) {
 void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
                                 const BLProfStats::TimeRange tr,
                                 const int rankMin, const int rankMax,
-			        const int rankStride,
-				const Real ntnMultiplier, const Vector<Real> &ntnNumbers,
-				const Real bnMultiplier, const Vector<Real> &bnNumbers)
+                                const int rankStride,
+                                const Real ntnMultiplier, const Vector<Real> &ntnNumbers,
+                                const Real bnMultiplier, const Vector<Real> &bnNumbers)
 {
   BL_PROFILE("CommProfStats::TimelineFAB()");
 
@@ -1003,99 +1003,99 @@ void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
       Real ts(cs.timeStamp);
       if((ts <= fabTimeHi && ts >= fabTimeLo) && InTimeRange(dBlock.proc, ts)) {  // within time range
         xi = long( nTimeSlotsFab * ((ts - fabTimeLo) * ooTimeRangeFab) );
-	if(xi == nTimeSlotsFab) {
-	  --xi;
-	}
-	if(xi < 0 || xi >= nTimeSlotsFab) {
-	  SHOWVAL(xi)
-	  SHOWVAL(nTimeSlotsFab)
-	  SHOWVAL(timeRangeFab)
-	  SHOWVAL(ts)
-	  amrex::Abort("xi out of range.");
-	}
+        if(xi == nTimeSlotsFab) {
+          --xi;
+        }
+        if(xi < 0 || xi >= nTimeSlotsFab) {
+          SHOWVAL(xi)
+          SHOWVAL(nTimeSlotsFab)
+          SHOWVAL(timeRangeFab)
+          SHOWVAL(ts)
+          amrex::Abort("xi out of range.");
+        }
         index = (((proc - fabRankLo) / rankStride) * nTimeSlotsFab) + xi;
-	if(index < 0 || index >= timelineFAB.box().numPts()) {
-	  SHOWVAL(index)
-	  SHOWVAL(timelineFAB.box().size())
-	  amrex::Abort("index out of range.");
-	}
+        if(index < 0 || index >= timelineFAB.box().numPts()) {
+          SHOWVAL(index)
+          SHOWVAL(timelineFAB.box().size())
+          amrex::Abort("index out of range.");
+        }
 
         timeline[index] = cs.cfType;
         mpiCount[index] += 1.0;
 
-	Real ntnMult(0.0), bnMult(0.0);
-	if(cs.cfType == BLProfiler::NameTag) {  // ---- add encoded value for the name tag name
-	  ntnMult = ntnNumbers[cs.tag];
+        Real ntnMult(0.0), bnMult(0.0);
+        if(cs.cfType == BLProfiler::NameTag) {  // ---- add encoded value for the name tag name
+          ntnMult = ntnNumbers[cs.tag];
           timeline[index] += ntnMult;
-	}
-	if(cs.cfType == BLProfiler::Barrier) {  // ---- add encoded value for the barrier name
-	  if(cs.tag >=  dBlock.barriers.size()) {
-	    cout << "******** TimelineFAB::0" << endl;
-	    SHOWVAL(i);
-	    SHOWVAL(cs.tag);
-	    SHOWVAL(dBlock.barriers.size());
-	    for(int ib(0); ib < dBlock.barriers.size(); ++ib) {
-	      cout << "be[" << ib << "] = " << dBlock.barriers[ib] << endl;
-	    }
-	    amrex::Abort("--------- bad barrier.");
-	  }
-	  BarrierEntry &be = dBlock.barriers[cs.tag];
-	  bnMult = bnNumbers[be.bNameNumber];
+        }
+        if(cs.cfType == BLProfiler::Barrier) {  // ---- add encoded value for the barrier name
+          if(cs.tag >=  dBlock.barriers.size()) {
+            cout << "******** TimelineFAB::0" << endl;
+            SHOWVAL(i);
+            SHOWVAL(cs.tag);
+            SHOWVAL(dBlock.barriers.size());
+            for(int ib(0); ib < dBlock.barriers.size(); ++ib) {
+              cout << "be[" << ib << "] = " << dBlock.barriers[ib] << endl;
+            }
+            amrex::Abort("--------- bad barrier.");
+          }
+          BarrierEntry &be = dBlock.barriers[cs.tag];
+          bnMult = bnNumbers[be.bNameNumber];
           timeline[index] += bnMult;
-	}
+        }
         // now fill in gaps
         if(i > 0 && xi < nTimeSlotsFab) {
           BLProfiler::CommStats &csPrev = dBlock.vCommStats[i-1];
-	  if(cs.cfType == csPrev.cfType
-	     &&
-	     (
-	       (
-	         csPrev.size == BLProfiler::BeforeCall()
-		 ||
-	         cs.size     == BLProfiler::AfterCall()
-	       )
-	       ||
-	       (
-	         csPrev.tag == BLProfiler::BeforeCall()
-		 &&
-	         cs.tag     == BLProfiler::AfterCall()
-	       )
+          if(cs.cfType == csPrev.cfType
+             &&
+             (
+               (
+                 csPrev.size == BLProfiler::BeforeCall()
+                 ||
+                 cs.size     == BLProfiler::AfterCall()
+               )
+               ||
+               (
+                 csPrev.tag == BLProfiler::BeforeCall()
+                 &&
+                 cs.tag     == BLProfiler::AfterCall()
+               )
 
-	     )
-	    )
-	  {
+             )
+            )
+          {
             Real prevTs(csPrev.timeStamp);
-	    if(prevTs < fabTimeLo) {
-	      cout << "::::  prevTs fabTimeLo = " << prevTs << "  " << fabTimeLo << endl;
-	      prevTs = fabTimeLo;
-	    }
+            if(prevTs < fabTimeLo) {
+              cout << "::::  prevTs fabTimeLo = " << prevTs << "  " << fabTimeLo << endl;
+              prevTs = fabTimeLo;
+            }
             long prevXi = long(nTimeSlotsFab * ((prevTs - fabTimeLo) * ooTimeRangeFab));
             prevIndex = (((proc - fabRankLo) / rankStride) * nTimeSlotsFab) + prevXi;
-	    for(long idx(prevIndex); idx < index; ++idx) {
-	      if(idx < 0 || idx >= timelineFAB.box().numPts() || idx > index) {
-	        SHOWVAL(proc)
-	        SHOWVAL(ts)
-	        SHOWVAL(prevTs)
-	        SHOWVAL(fabTimeLo)
-	        SHOWVAL(prevXi)
-	        SHOWVAL(idx)
-	        SHOWVAL(index)
-	        SHOWVAL(prevIndex)
-	        SHOWVAL(timelineFAB.box().size())
-	        //amrex::Abort("idx out of range.");
-	        amrex::Print() << "CommProfStats::TimelineFAB::idx out of range." << std::endl;
-		continue;
-	      }
+            for(long idx(prevIndex); idx < index; ++idx) {
+              if(idx < 0 || idx >= timelineFAB.box().numPts() || idx > index) {
+                SHOWVAL(proc)
+                SHOWVAL(ts)
+                SHOWVAL(prevTs)
+                SHOWVAL(fabTimeLo)
+                SHOWVAL(prevXi)
+                SHOWVAL(idx)
+                SHOWVAL(index)
+                SHOWVAL(prevIndex)
+                SHOWVAL(timelineFAB.box().size())
+                //amrex::Abort("idx out of range.");
+                amrex::Print() << "CommProfStats::TimelineFAB::idx out of range." << std::endl;
+                continue;
+              }
               timeline[idx] = cs.cfType;
               mpiCount[idx] += 1.0;
-	      if(cs.cfType == BLProfiler::NameTag) {
+              if(cs.cfType == BLProfiler::NameTag) {
                 timeline[idx] += ntnMult;
-	      }
-	      if(cs.cfType == BLProfiler::Barrier) {
+              }
+              if(cs.cfType == BLProfiler::Barrier) {
                 timeline[idx] += bnMult;
-	      }
-	    }
-	  }
+              }
+            }
+          }
         }
         prevIndex = index;
       }
@@ -1111,8 +1111,8 @@ bool CommProfStats::IsSend(const BLProfiler::CommFuncType &cft) {
   return(cft == BLProfiler::AsendTsii  ||
          cft == BLProfiler::AsendTsiiM ||
          cft == BLProfiler::AsendvTii  ||
-	 cft == BLProfiler::SendTsii   ||
-	 cft == BLProfiler::SendvTii);
+         cft == BLProfiler::SendTsii   ||
+         cft == BLProfiler::SendvTii);
 }
 
 
@@ -1153,9 +1153,9 @@ void CommProfStats::SendRecvList(std::multimap<Real, SendRecvPairUnpaired> &srMM
         if(cs.size != BLProfiler::AfterCall()) {
           if(InTimeRange(proc, cs.timeStamp)) {
             srMMap.insert(std::pair<Real, SendRecvPairUnpaired>(cs.timeStamp,
-	                         SendRecvPairUnpaired(cs.cfType, proc, cs.commpid,
+                                 SendRecvPairUnpaired(cs.cfType, proc, cs.commpid,
                                                       cs.size, cs.tag, cs.timeStamp,
-					              -1000.0, 0.0)));
+                                                      -1000.0, 0.0)));
           }
         }
       }
@@ -1163,9 +1163,9 @@ void CommProfStats::SendRecvList(std::multimap<Real, SendRecvPairUnpaired> &srMM
         if(cs.size != BLProfiler::AfterCall()) {
           if(InTimeRange(proc, cs.timeStamp)) {
             srMMap.insert(std::pair<Real, SendRecvPairUnpaired>(cs.timeStamp,
-	                          SendRecvPairUnpaired(cs.cfType, cs.commpid, proc,
+                                  SendRecvPairUnpaired(cs.cfType, cs.commpid, proc,
                                                        cs.size, cs.tag, -2000.0,
-						       cs.timeStamp, 0.0)));
+                                                       cs.timeStamp, 0.0)));
           }
         }
       }
@@ -1315,8 +1315,8 @@ void CommProfStats::SendRecvData(const std::string &filenameprefix,
       if(dataLeft[idb]) {
         dataLeft[idb] = ReadCommStats(dBlock, readSize);
         if(dataLeft[idb] == false) {
-	  --anyDataLeft;
-	}
+          --anyDataLeft;
+        }
       } else {
         continue;
       }
@@ -1355,104 +1355,104 @@ void CommProfStats::SendRecvData(const std::string &filenameprefix,
 double st0 = amrex::ParallelDescriptor::second();
 
         int fromProcTemp, toProcTemp;
-	if(IsSend(cs.cfType)) {
-	  fromProcTemp = proc;
-	  toProcTemp   = cs.commpid;
-	} else {
-	  fromProcTemp = cs.commpid;
-	  toProcTemp   = proc;
-	}
-	//long hlong(SendRecvPair::HashLong(fromProcTemp, toProcTemp, cs.size, cs.tag));
-	long hlong = SendRecvPair::HashLong(fromProcTemp, toProcTemp, cs.tag);
+        if(IsSend(cs.cfType)) {
+          fromProcTemp = proc;
+          toProcTemp   = cs.commpid;
+        } else {
+          fromProcTemp = cs.commpid;
+          toProcTemp   = proc;
+        }
+        //long hlong(SendRecvPair::HashLong(fromProcTemp, toProcTemp, cs.size, cs.tag));
+        long hlong = SendRecvPair::HashLong(fromProcTemp, toProcTemp, cs.tag);
 
-	//bool foundMatch(false);
-	int  nMatches(0);
+        //bool foundMatch(false);
+        int  nMatches(0);
 
-	pair<unordered_multimap<long, SendRecvPairUnpaired>::iterator,
-	     unordered_multimap<long, SendRecvPairUnpaired>::iterator> upmSRPERI;
-	Vector<unordered_multimap<long, SendRecvPairUnpaired>::iterator> upmSRPMatchSave;
+        pair<unordered_multimap<long, SendRecvPairUnpaired>::iterator,
+             unordered_multimap<long, SendRecvPairUnpaired>::iterator> upmSRPERI;
+        Vector<unordered_multimap<long, SendRecvPairUnpaired>::iterator> upmSRPMatchSave;
 
-	maxTag = std::max(maxTag, cs.tag);
+        maxTag = std::max(maxTag, cs.tag);
 
-	unordered_multimap<long, SendRecvPairUnpaired> &upm = unpairedMessages[myThread][cs.tag];
-	//maxupmmapsize = std::max(static_cast<long>(unpairedMessages[myThread].size()), maxupmmapsize);
-	upmSRPERI = upm.equal_range(hlong);
-	for(unordered_multimap<long, SendRecvPairUnpaired>::iterator upmsrit = upmSRPERI.first;
-	    upmsrit != upmSRPERI.second; ++upmsrit)
-	{
-	  SendRecvPairUnpaired &srp = upmsrit->second;
-	  if(srp.Matches(fromProcTemp, toProcTemp, cs.size, cs.tag)) {
-	    if((IsSend(srp.unmatchedCFType) && IsBlockingRecv(cs.cfType)) || 
-	       (IsSend(cs.cfType) && IsBlockingRecv(srp.unmatchedCFType)))
-	    {
-	      upmSRPMatchSave.push_back(upmsrit);
-	      ++nMatches;
-	      maxNMatches = std::max(maxNMatches, nMatches);
-	    }
-	  }
-	}
+        unordered_multimap<long, SendRecvPairUnpaired> &upm = unpairedMessages[myThread][cs.tag];
+        //maxupmmapsize = std::max(static_cast<long>(unpairedMessages[myThread].size()), maxupmmapsize);
+        upmSRPERI = upm.equal_range(hlong);
+        for(unordered_multimap<long, SendRecvPairUnpaired>::iterator upmsrit = upmSRPERI.first;
+            upmsrit != upmSRPERI.second; ++upmsrit)
+        {
+          SendRecvPairUnpaired &srp = upmsrit->second;
+          if(srp.Matches(fromProcTemp, toProcTemp, cs.size, cs.tag)) {
+            if((IsSend(srp.unmatchedCFType) && IsBlockingRecv(cs.cfType)) ||
+               (IsSend(cs.cfType) && IsBlockingRecv(srp.unmatchedCFType)))
+            {
+              upmSRPMatchSave.push_back(upmsrit);
+              ++nMatches;
+              maxNMatches = std::max(maxNMatches, nMatches);
+            }
+          }
+        }
 s0 += amrex::ParallelDescriptor::second() - st0;
 
         if(ics+1 >= dBlock.vCommStats.size()) {
-	  continue;
-	}
+          continue;
+        }
 
-	if(nMatches == 0) {      // ------------------------ unpaired
+        if(nMatches == 0) {      // ------------------------ unpaired
 double st1 = amrex::ParallelDescriptor::second();
-	  if(IsSend(cs.cfType)) {
-	    sttemp = cs.timeStamp;
-	    tttemp = sttemp;
-	  } else {
-	    if(ics+1 >= dBlock.vCommStats.size()) {
-	      cout << "!!!!!!!!!!!!!!!!!!!!!!! cs on end (unpaired)." << endl;
-	    }
+          if(IsSend(cs.cfType)) {
+            sttemp = cs.timeStamp;
+            tttemp = sttemp;
+          } else {
+            if(ics+1 >= dBlock.vCommStats.size()) {
+              cout << "!!!!!!!!!!!!!!!!!!!!!!! cs on end (unpaired)." << endl;
+            }
             BLProfiler::CommStats &csNext = dBlock.vCommStats[ics+1];
-	    rttemp = csNext.timeStamp;
-	    tttemp = rttemp;
-	  }
-	  upm.insert(std::pair<long, SendRecvPairUnpaired>(hlong, 
-	                                      SendRecvPairUnpaired(cs.cfType, fromProcTemp,
-						toProcTemp, cs.size, cs.tag,
-						sttemp, rttemp, tttemp)));
-	  ++upmsize;
-	  maxupmsize = std::max(upmsize, maxupmsize);
+            rttemp = csNext.timeStamp;
+            tttemp = rttemp;
+          }
+          upm.insert(std::pair<long, SendRecvPairUnpaired>(hlong,
+                                              SendRecvPairUnpaired(cs.cfType, fromProcTemp,
+                                                toProcTemp, cs.size, cs.tag,
+                                                sttemp, rttemp, tttemp)));
+          ++upmsize;
+          maxupmsize = std::max(upmsize, maxupmsize);
 s1 += amrex::ParallelDescriptor::second() - st1;
 
-	} else {                 // ------------------------ paired
+        } else {                 // ------------------------ paired
 
 double st2 = amrex::ParallelDescriptor::second();
-	  unordered_multimap<long, SendRecvPairUnpaired>::iterator
-	                                  earliestMatchSave = upmSRPMatchSave[0];
-	  for(int i(1); i < upmSRPMatchSave.size(); ++i) {
-	    if(upmSRPMatchSave[i]->second.totalTime < earliestMatchSave->second.totalTime) {
-	      earliestMatchSave = upmSRPMatchSave[i];
-	    }
-	  }
-	  SendRecvPairUnpaired &srpup = earliestMatchSave->second;
-	  sttemp = srpup.sendTime;
-	  rttemp = srpup.recvTime;
+          unordered_multimap<long, SendRecvPairUnpaired>::iterator
+                                          earliestMatchSave = upmSRPMatchSave[0];
+          for(int i(1); i < upmSRPMatchSave.size(); ++i) {
+            if(upmSRPMatchSave[i]->second.totalTime < earliestMatchSave->second.totalTime) {
+              earliestMatchSave = upmSRPMatchSave[i];
+            }
+          }
+          SendRecvPairUnpaired &srpup = earliestMatchSave->second;
+          sttemp = srpup.sendTime;
+          rttemp = srpup.recvTime;
           if(IsSend(cs.cfType)) {
-	    sttemp = cs.timeStamp;
-	  } else {
-	    if(ics+1 >= dBlock.vCommStats.size()) {
-	      cout << "!!!!!!!!!!!!!!!!!!!!!!! cs on end (paired)." << endl;
-	    }
+            sttemp = cs.timeStamp;
+          } else {
+            if(ics+1 >= dBlock.vCommStats.size()) {
+              cout << "!!!!!!!!!!!!!!!!!!!!!!! cs on end (paired)." << endl;
+            }
             BLProfiler::CommStats &csNext = dBlock.vCommStats[ics + 1];
-	    rttemp = csNext.timeStamp;
-	  }
-	  tttemp = rttemp - sttemp;
+            rttemp = csNext.timeStamp;
+          }
+          tttemp = rttemp - sttemp;
           if(tttemp < 0.0) {
             ++mNeg;
-	  }
-	  ++mTotal;
-	  pairedMessages[myThread].push_back(SendRecvPair(srpup.fromProc, srpup.toProc,
-	                                        srpup.dataSize, srpup.tag,
-					        sttemp, rttemp, tttemp));
-	  upm.erase(earliestMatchSave);
-	  --upmsize;
+          }
+          ++mTotal;
+          pairedMessages[myThread].push_back(SendRecvPair(srpup.fromProc, srpup.toProc,
+                                                srpup.dataSize, srpup.tag,
+                                                sttemp, rttemp, tttemp));
+          upm.erase(earliestMatchSave);
+          --upmsize;
 
 s2 += amrex::ParallelDescriptor::second() - st2;
-	}  // end else paired
+        }  // end else paired
 
     ptime += amrex::ParallelDescriptor::second() - pstart;
 
@@ -1546,9 +1546,9 @@ s2 += amrex::ParallelDescriptor::second() - st2;
       sdataNC[index] += 1.0;  // count
 
       if(bTopoFabInited) {
-	IntVect ivfrom(TopIVFromProcNumber(procNodeNumber[srp.fromProc]));
-	IntVect ivto(TopIVFromProcNumber(procNodeNumber[srp.toProc]));
-	int nhops(NHops(topoBox, ivfrom, ivto));
+        IntVect ivfrom(TopIVFromProcNumber(procNodeNumber[srp.fromProc]));
+        IntVect ivto(TopIVFromProcNumber(procNodeNumber[srp.toProc]));
+        int nhops(NHops(topoBox, ivfrom, ivto));
         sdataNHops[index] += nhops;
       }
 
@@ -1601,7 +1601,7 @@ s2 += amrex::ParallelDescriptor::second() - st2;
         SHOWVAL(ts);
         SHOWVAL(zi);
         SHOWVAL(index);
-	abort();
+        abort();
       }
       ttData[index] += srp.totalTime;
       bwData[index] += srp.dataSize;
@@ -1658,9 +1658,9 @@ return;
       if(i < 32) {
         cout << "unskew:  fP sT  tP rT  betS betR s-r = " << srp.fromProc << "  " << srp.sendTime
              << "  >  " << srp.toProc << "  " << srp.recvTime << "    "
-	     << barrierExitTimes[srp.fromProc][sB]
-	     << "  " << barrierExitTimes[srp.toProc][rB] << "    "
-	     << barrierExitTimes[srp.fromProc][sB] - barrierExitTimes[srp.toProc][rB] << endl;
+             << barrierExitTimes[srp.fromProc][sB]
+             << "  " << barrierExitTimes[srp.toProc][rB] << "    "
+             << barrierExitTimes[srp.fromProc][sB] - barrierExitTimes[srp.toProc][rB] << endl;
       }
       //srp.totalTime += barrierExitTimes[srp.fromProc][sB] - barrierExitTimes[srp.toProc][rB];
       srp.totalTime = (srp.recvTime - barrierExitTimes[srp.toProc][rB]) -
@@ -1831,7 +1831,7 @@ void CommProfStats::WriteEdisonTopoMF() {
     for(int iy(0); iy < edisonNodeXYZ[ix].size(); ++iy) {
       for(int iz(0); iz < edisonNodeXYZ[ix][iy].size(); ++iz) {
         cout << "XYZ pid = " << ix << "  " << iy << "  " << iz << "  "
-	     << edisonNodeXYZ[ix][iy][iz] << endl;
+             << edisonNodeXYZ[ix][iy][iz] << endl;
         pnnout << ip++ << " " << edisonNodeXYZ[ix][iy][iz] << '\n';
       }
     }

@@ -235,10 +235,10 @@ main (int argc, char* argv[])
     }
     Vector<int> newComps = concatVectors(divuCompNums, vortCompNums);
     Vector<int> oldCompNums(nOldComps);
-    for (int i = 0; i < nOldComps; i++) 
+    for (int i = 0; i < nOldComps; i++)
         oldCompNums[i] = i;
     Vector<int> allCompNums(nComps);
-    for (int i = 0; i < nComps; i++) 
+    for (int i = 0; i < nComps; i++)
         allCompNums[i] = i;
 
     // Make list of output multifabs
@@ -264,7 +264,7 @@ main (int argc, char* argv[])
 
         // TODO
         // this part needs to be checked -- it appears that
-        // FlushGrids works on all levels at once -- but we are 
+        // FlushGrids works on all levels at once -- but we are
         // looping over levels
         for (int i = 0; i < oldCompNums.size(); i++)
         {

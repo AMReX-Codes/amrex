@@ -127,7 +127,7 @@ public:
 
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
-		       int           nCompToSkip) const = 0;
+                       int           nCompToSkip) const = 0;
     /**
     * \brief Write out a header describing FArrayBox f that contains
     * nvar components.  It must be the case that nvar <= f.nComp().
@@ -156,8 +156,8 @@ public:
     */
     static FABio* read_header (std::istream& is,
                                FArrayBox&    f,
-			       int           compIndex,
-			       int&          nCompAvailable);
+                               int           compIndex,
+                               int&          nCompAvailable);
 };
 
 //
@@ -183,7 +183,7 @@ public:
 
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
-		       int           nCompToSkip) const override;
+                       int           nCompToSkip) const override;
 
 private:
     virtual void write_header (std::ostream&    os,
@@ -250,8 +250,8 @@ public:
     */
     explicit FArrayBox (const Box& b,
                         int        ncomp=1,
-			bool       alloc=true,
-			bool       shared=false,
+                        bool       alloc=true,
+                        bool       shared=false,
                         Arena*     ar = nullptr);
 
     FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
@@ -269,7 +269,7 @@ public:
     explicit FArrayBox (Array4<Real const> const& a, IndexType t) noexcept : BaseFab<Real>(a,t) {}
 
     //!  The destructor.
-    ~FArrayBox () noexcept {}
+    virtual ~FArrayBox () noexcept override {}
 
     FArrayBox (FArrayBox&& rhs) noexcept = default;
 

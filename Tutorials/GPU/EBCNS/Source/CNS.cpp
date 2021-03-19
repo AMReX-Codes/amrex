@@ -170,24 +170,24 @@ CNS::computeNewDt (int                    finest_level,
 
     if (post_regrid_flag == 1)
     {
-	//
-	// Limit dt's by pre-regrid dt
-	//
-	for (int i = 0; i <= finest_level; i++)
-	{
-	    dt_min[i] = std::min(dt_min[i],dt_level[i]);
-	}
+        //
+        // Limit dt's by pre-regrid dt
+        //
+        for (int i = 0; i <= finest_level; i++)
+        {
+            dt_min[i] = std::min(dt_min[i],dt_level[i]);
+        }
     }
     else
     {
-	//
-	// Limit dt's by change_max * old dt
-	//
-	static Real change_max = 1.1;
-	for (int i = 0; i <= finest_level; i++)
-	{
-	    dt_min[i] = std::min(dt_min[i],change_max*dt_level[i]);
-	}
+        //
+        // Limit dt's by change_max * old dt
+        //
+        static Real change_max = 1.1;
+        for (int i = 0; i <= finest_level; i++)
+        {
+            dt_min[i] = std::min(dt_min[i],change_max*dt_level[i]);
+        }
     }
 
     //
@@ -337,7 +337,7 @@ CNS::read_params ()
     Vector<int> tilesize(AMREX_SPACEDIM);
     if (pp.queryarr("hydro_tile_size", tilesize, 0, AMREX_SPACEDIM))
     {
-	for (int i=0; i<AMREX_SPACEDIM; i++) hydro_tile_size[i] = tilesize[i];
+        for (int i=0; i<AMREX_SPACEDIM; i++) hydro_tile_size[i] = tilesize[i];
     }
 
     pp.query("cfl", cfl);

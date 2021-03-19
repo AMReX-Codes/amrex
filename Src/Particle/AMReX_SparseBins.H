@@ -9,15 +9,15 @@
 
 namespace amrex
 {
-    
+
 template <typename T>
 struct SparseBinIteratorFactory
 {
 
     using index_type = unsigned int;
-    
+
     SparseBinIteratorFactory (const Gpu::DeviceVector<index_type>& bins,
-                              const Gpu::DeviceVector<index_type>& offsets, 
+                              const Gpu::DeviceVector<index_type>& offsets,
                               const Gpu::DeviceVector<index_type>& permutation,
                               const T* items)
         : m_bins_ptr(bins.dataPtr()),
@@ -37,17 +37,17 @@ struct SparseBinIteratorFactory
         while (lo < hi) {
             if (m_bins_ptr[lo] == bin_number) return lo;
             if (m_bins_ptr[hi] == bin_number) return hi;
-            
+
             index_type mid = (lo + hi) / 2;
             index_type mid_value = m_bins_ptr[mid];
             if (mid_value == bin_number) return mid;
-            
-            mid_value < bin_number ? lo = mid+1 : hi = mid;            
+
+            mid_value < bin_number ? lo = mid+1 : hi = mid;
         }
-       
+
         return m_not_found;
-    }    
-    
+    }
+
     AMREX_GPU_HOST_DEVICE
     BinIterator<T> getBinIterator (const index_type bin_number) const noexcept
     {
@@ -60,16 +60,16 @@ struct SparseBinIteratorFactory
     const index_type* m_permutation_ptr;
     const T* m_items;
     index_type m_num_bins;
-    
-    static constexpr index_type m_not_found = std::numeric_limits<index_type>::max(); 
+
+    static constexpr index_type m_not_found = std::numeric_limits<index_type>::max();
 };
-    
+
 /**
  * \brief A container for storing items in a set of bins using "sparse" storage.
- * 
+ *
  * The underlying data structure consists of three arrays. The first is a sorted
- * array of bin numbers with a size equal to the number of non-zero bins. The 
- * second is an array of size nitems defining a permutation of the items in the container 
+ * array of bin numbers with a size equal to the number of non-zero bins. The
+ * second is an array of size nitems defining a permutation of the items in the container
  * that puts them in bin-sorted order. Finally, there is an offsets array that stores,
  * for each non-zero bin, the offsets into the permutation array where each bin starts.
  *
@@ -79,7 +79,7 @@ struct SparseBinIteratorFactory
  *
  * \tparam The type of items we hold
  *
- */    
+ */
 template <typename T>
 class SparseBins
 {
@@ -98,15 +98,15 @@ public:
      * \param nitems the number of items to put in the bins
      * \param v pointer to the start of the items
      * \param bx the Box that defines the space over which the bins will be defined
-     * \param f a function object that maps items to bins 
-     */        
+     * \param f a function object that maps items to bins
+     */
     template <typename N, typename F>
     void build (N nitems, T const* v, const Box& bx, F&& f)
     {
         BL_PROFILE("SparseBins<T>::build");
 
         m_items = v;
-        
+
         Gpu::HostVector<index_type> host_cells(nitems);
         std::map<index_type, index_type> bins_map;
         const auto lo = lbound(bx);
@@ -129,7 +129,7 @@ public:
         std::iota(host_perm.begin(), host_perm.end(), 0);
         std::sort(host_perm.begin(), host_perm.end(),
                   [&](int i, int j) {return host_cells[i] < host_cells[j];});
-        
+
         Gpu::HostVector<index_type> host_bins;
         Gpu::HostVector<index_type> host_offsets = {0};
         for (const auto& kv : bins_map)
@@ -137,10 +137,10 @@ public:
             host_bins.push_back(kv.first);
             host_offsets.push_back(host_offsets.back() + kv.second);
         }
-        
+
         m_bins.resize(host_bins.size());
         Gpu::copy(Gpu::hostToDevice, host_bins.begin(), host_bins.end(), m_bins.begin());
-        
+
         m_offsets.resize(host_offsets.size());
         Gpu::copy(Gpu::hostToDevice, host_offsets.begin(), host_offsets.end(), m_offsets.begin());
 
@@ -154,7 +154,7 @@ public:
     //! \brief the number of bins in the container
     Long numBins () const noexcept { return m_offsets.size()-1; }
 
-    //! \brief returns the pointer to the permutation array 
+    //! \brief returns the pointer to the permutation array
     index_type* permutationPtr () noexcept { return m_perm.dataPtr(); }
 
     //! \brief returns the pointer to the offsets array
@@ -162,8 +162,8 @@ public:
 
     //! \brief returns the pointer to the array of non-zero bins
     index_type* getNonZeroBinsPtr() noexcept { return m_bins.dataPtr(); }
-    
-    //! \brief returns const pointer to the permutation array 
+
+    //! \brief returns const pointer to the permutation array
     const index_type* permutationPtr () const noexcept { return m_perm.dataPtr(); }
 
     //! \brief returns const pointer to the offsets array
@@ -177,11 +177,11 @@ public:
     {
         return SparseBinIteratorFactory<T>(m_bins, m_offsets, m_perm, m_items);
     }
-    
+
 private:
 
     const T* m_items;
-    
+
     Gpu::DeviceVector<index_type> m_bins;
     Gpu::DeviceVector<index_type> m_offsets;
     Gpu::DeviceVector<index_type> m_perm;

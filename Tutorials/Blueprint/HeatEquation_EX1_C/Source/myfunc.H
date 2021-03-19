@@ -10,8 +10,8 @@ void main_main ();
 
 void advance (MultiFab& phi_old,
               MultiFab& phi_new,
-	      std::array<MultiFab, AMREX_SPACEDIM>& flux,
-	      Real dt,
+              std::array<MultiFab, AMREX_SPACEDIM>& flux,
+              Real dt,
               const Geometry& geom);
 
 #endif

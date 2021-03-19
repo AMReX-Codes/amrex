@@ -52,9 +52,9 @@ contains
     call amrex_allocate(lambda, clo, chi)
     call amrex_allocate(mu, clo, chi)
     call amrex_allocate(xi, clo, chi)
-    
+
     call ctoprim(qlo, qhi, u, ulo, uhi, q, qlo, qhi)
-    
+
     call hyp_mol_gam_3d(q, qlo, qhi, lo, hi, dx, fhx, fhy, fhz)
 
     call compute_diff_coef(q, qlo, qhi, lambda, mu, xi, clo, chi)
@@ -157,11 +157,11 @@ contains
     qlo = lo - nghost
     qhi = hi + nghost
     call amrex_allocate(q, qlo(1),qhi(1), qlo(2),qhi(2), qlo(3),qhi(3), 1,qvar)
-    
+
     dvlo = lo-2
     dvhi = hi+2
     call amrex_allocate(divc, dvlo, dvhi)
-    call amrex_allocate(optmp, dvlo, dvhi) 
+    call amrex_allocate(optmp, dvlo, dvhi)
     call amrex_allocate(rediswgt, dvlo, dvhi)
 
     dmlo(1:3) = lo - 1
@@ -193,7 +193,7 @@ contains
     call ctoprim(qlo, qhi, u, ulo, uhi, q, qlo, qhi)
     call bl_proffortfuncstop_int(6)
 
-    
+
     call bl_proffortfuncstart_int(7)
     call hyp_mol_gam_eb_3d(q, qlo, qhi, lo, hi, dx, &
          fhx, lfxlo, lfxhi, fhy, lfylo, lfyhi, fhz, lfzlo, lfzhi,&
@@ -242,7 +242,7 @@ contains
          as_crse, rr_drho_crse, rdclo, rdchi, rr_flag_crse, rfclo, rfchi, &
          as_fine, dm_as_fine, dflo, dfhi, &
          levmsk, lmlo, lmhi)
-    
+
     dudt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6:nvar) = 0.d0
     call bl_proffortfuncstop_int(10)
 

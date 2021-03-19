@@ -13,6 +13,7 @@ LDFLAGS = -L$(AMREX_INSTALL_DIR)/lib
 
 LIBRARIES = -lamrex
 
+LIBRARIES += -lpthread
 LIBRARIES += -lgfortran
 #LIBRARIES += -lifcore
 

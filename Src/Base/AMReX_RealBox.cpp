@@ -18,7 +18,7 @@ RealBox::RealBox (const Box&  bx,
         xlo[i] = base[i] + dx[i]*blo[i];
         int shft = (bx.type(i) == IndexType::CELL ? 1 : 0);
         xhi[i] = base[i] + dx[i]*(bhi[i]+ shft);
-    }   
+    }
 }
 
 RealBox::RealBox (const std::array<Real,AMREX_SPACEDIM>& a_lo,

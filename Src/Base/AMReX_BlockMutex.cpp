@@ -27,15 +27,15 @@ BlockMutex::BlockMutex (int N) noexcept
     // The first 4 bytes of unsigned long stores blockIdx.
     // The second 4 bytes, count.
     // The initial values are -1 and 0.
-    m_state = static_cast<state_t*>(The_Device_Arena()->alloc(sizeof(state_t)*m_nstates));
+    m_state = static_cast<state_t*>(The_Arena()->alloc(sizeof(state_t)*m_nstates));
     init_states(m_state, m_nstates);
 }
 
 BlockMutex::~BlockMutex () {
-    The_Device_Arena()->free(m_state);
+    The_Arena()->free(m_state);
 }
 
 #endif
-    
+
 }
 

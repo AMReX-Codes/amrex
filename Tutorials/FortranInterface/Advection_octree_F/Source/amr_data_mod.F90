@@ -44,5 +44,5 @@ contains
        call amrex_fluxregister_destroy(flux_reg(lev))
     end do
   end subroutine amr_data_finalize
-  
+
 end module amr_data_module

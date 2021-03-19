@@ -30,7 +30,7 @@ setBC (const Box&           bx,
                                  ? bc_dom[sc].hi(dir) : BCType::int_dir ));
         }
     }
-}           
+}
 
 std::ostream&
 operator<< (std::ostream& os,

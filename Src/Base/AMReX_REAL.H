@@ -33,7 +33,7 @@
 #include <float.h>
 #endif
 
-/* 
+/*
   Real is a typedef specifying the precision of the floating-point
   calculations in C++ code.  It will be either float or double
   depending upon which of the macros BL_USE_FLOAT or

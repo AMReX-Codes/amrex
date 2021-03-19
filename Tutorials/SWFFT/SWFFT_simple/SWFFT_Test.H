@@ -25,7 +25,7 @@ private:
     amrex::MultiFab phi_spatial;
     amrex::MultiFab phi_dft;
     amrex::Geometry geom;
-    
+
     void init_phi_spatial ();
     void WritePlotFile(const int step=0, const amrex::Real time=0.0);
 };

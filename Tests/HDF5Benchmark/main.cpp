@@ -73,7 +73,7 @@ void test ()
     Vector<Geometry> geom(nlevs);
     geom[0].define(domains[0], &real_box, CoordSys::cartesian, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
-	geom[lev].define(domains[lev], &real_box, CoordSys::cartesian, is_per);
+        geom[lev].define(domains[lev], &real_box, CoordSys::cartesian, is_per);
     }
 
     Vector<DistributionMapping> dmap(nlevs);
@@ -278,7 +278,7 @@ void set_grids_nested (Vector<Box>& domains,
     }
 
     for (int lev = 1; lev < nlevs; lev++) {
-	domains[lev] = amrex::refine(domains[lev-1], ref_ratio[lev-1]);
+        domains[lev] = amrex::refine(domains[lev-1], ref_ratio[lev-1]);
     }
 }
 

@@ -50,8 +50,8 @@ public:
     */
     explicit IArrayBox (const Box& b,
                         int        ncomp=1,
-			bool       alloc=true,
-			bool       shared=false,
+                        bool       alloc=true,
+                        bool       shared=false,
                         Arena*     ar = nullptr);
 
     IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
@@ -65,7 +65,7 @@ public:
     explicit IArrayBox (Array4<int const> const& a, IndexType t) noexcept : BaseFab<int>(a,t) {}
 
     //!  The destructor.
-    ~IArrayBox () noexcept {}
+    virtual ~IArrayBox () noexcept override {}
 
     IArrayBox (IArrayBox&& rhs) noexcept = default;
 

@@ -194,7 +194,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
 // Converts a AMReX Particle Container into a Conduit Mesh Blueprint Hierarchy.
 //---------------------------------------------------------------------------//
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-void 
+void
 ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
                                                      NStructInt,
                                                      NArrayReal,
@@ -205,7 +205,7 @@ ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
                              const std::string &topology_name)
 {
     BL_PROFILE("ParticleContainerToBlueprint()");
-    
+
     // validate varnames, which are used to provide field names
     // for user defined aos and soa values.
 
@@ -219,7 +219,7 @@ ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
 
     int rank   = ParallelDescriptor::MyProc();
     int nprocs = ParallelDescriptor::NProcs();
-    
+
     using MyParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
     //
@@ -230,7 +230,7 @@ ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
     // to generate unique domain ids, we use a counting loop to
     // calculate a per-level, per-rank offset
     //
-    
+
     // this holds our unique offset for each level for the current rank
     std::vector<int> my_lvl_offsets;
     my_lvl_offsets.resize(num_levels);
@@ -242,7 +242,7 @@ ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
     within_lvl_offsets.resize(nprocs);
 
     int total_num_domains = 0;
-    for (int lev = 0; lev < num_levels; ++lev) 
+    for (int lev = 0; lev < num_levels; ++lev)
     {
         // count how many tiles this mpi task has
         long level_num_domains = 0;
@@ -257,13 +257,13 @@ ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
             within_lvl_counts[rank_idx]  = 0;
             within_lvl_offsets[rank_idx] = 0;
         }
-        
+
         // set number of domains for current rank at current level
         within_lvl_counts[rank] = level_num_domains;
         // mpi sum reduce to get all rank's counts for this level
         ParallelDescriptor::ReduceIntSum(&within_lvl_counts[0],
                                          nprocs);
-            
+
         long level_total_num_domains = 0;
         // scan to calc offset and total number of domains
         for(int rank_idx = 0; rank_idx < nprocs ; rank_idx++)
@@ -272,14 +272,14 @@ ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
             level_total_num_domains += within_lvl_counts[rank_idx];
         }
 
-        // the offset for this rank at this level is the current 
+        // the offset for this rank at this level is the current
         // total number of domains + the offset for this level
         my_lvl_offsets[lev] = within_lvl_offsets[rank] + total_num_domains;
 
         total_num_domains += level_num_domains;
     }
 
-    for (int lev = 0; lev < num_levels; ++lev) 
+    for (int lev = 0; lev < num_levels; ++lev)
     {
         // get our unique global offset for this rank at this level
         int lvl_offset = my_lvl_offsets[lev];
@@ -308,7 +308,7 @@ ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
 
     conduit::Node info;
     // blueprint verify makes sure we conform to whats expected
-    // for a multi-domain mesh 
+    // for a multi-domain mesh
     if(!conduit::blueprint::mesh::verify(res,info))
     {
         // ERROR -- doesn't conform to the mesh blueprint

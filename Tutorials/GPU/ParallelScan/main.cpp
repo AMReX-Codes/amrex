@@ -18,7 +18,7 @@ namespace amrex
     {
     public:
         using value_type = T;
-        
+
         typedef thrust::device_ptr<T>  pointer;
         inline pointer allocate(size_t n)
         {
@@ -26,7 +26,7 @@ namespace amrex
             result = (value_type*) The_Arena()->alloc(n * sizeof(T));
             return thrust::device_pointer_cast(result);
         }
-        
+
         inline void deallocate(pointer ptr, size_t)
         {
             The_Arena()->free(thrust::raw_pointer_cast(ptr));
@@ -41,7 +41,7 @@ namespace amrex
     namespace Gpu
     {
         ThrustManagedAllocator<char>& The_ThrustCachedAllocator () { return g_cached_allocator; };
-        
+
         AMREX_FORCE_INLINE auto The_ThrustCachedPolicy() -> decltype (thrust::cuda::par(Gpu::The_ThrustCachedAllocator()))
         {
             return thrust::cuda::par(Gpu::The_ThrustCachedAllocator());

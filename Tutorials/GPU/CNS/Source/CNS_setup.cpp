@@ -40,8 +40,8 @@ set_scalar_bc (BCRec& bc, const BCRec& phys_bc)
     const int* hi_bc = phys_bc.hi();
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
-	bc.setLo(i,scalar_bc[lo_bc[i]]);
-	bc.setHi(i,scalar_bc[hi_bc[i]]);
+        bc.setLo(i,scalar_bc[lo_bc[i]]);
+        bc.setHi(i,scalar_bc[hi_bc[i]]);
     }
 }
 
@@ -71,7 +71,7 @@ set_y_vel_bc(BCRec& bc, const BCRec& phys_bc)
     const int* hi_bc = phys_bc.hi();
     bc.setLo(0,tang_vel_bc[lo_bc[0]]);
     bc.setHi(0,tang_vel_bc[hi_bc[0]]);
-#if (AMREX_SPACEDIM >= 2)    
+#if (AMREX_SPACEDIM >= 2)
     bc.setLo(1,norm_vel_bc[lo_bc[1]]);
     bc.setHi(1,norm_vel_bc[hi_bc[1]]);
 #endif
@@ -112,8 +112,8 @@ CNS::variableSetUp ()
     bool state_data_extrap = false;
     bool store_in_checkpoint = true;
     desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
-			   StateDescriptor::Point,NUM_GROW,NUM_STATE,
-			   &cell_cons_interp,state_data_extrap,store_in_checkpoint);
+                           StateDescriptor::Point,NUM_GROW,NUM_STATE,
+                           &cell_cons_interp,state_data_extrap,store_in_checkpoint);
 
     Vector<BCRec>       bcs(NUM_STATE);
     Vector<std::string> name(NUM_STATE);
@@ -131,9 +131,9 @@ CNS::variableSetUp ()
     bndryfunc.setRunOnGPU(true);  // I promise the bc function will launch gpu kernels.
 
     desc_lst.setComponent(State_Type,
-			  Density,
-			  name,
-			  bcs,
+                          Density,
+                          name,
+                          bcs,
                           bndryfunc);
 
     num_state_data_types = desc_lst.size();

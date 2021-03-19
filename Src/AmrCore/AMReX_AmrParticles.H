@@ -164,7 +164,7 @@ public:
     {
     }
 
-    AmrParticleContainer (const Vector<Geometry>            & geom, 
+    AmrParticleContainer (const Vector<Geometry>            & geom,
                           const Vector<DistributionMapping> & dmap,
                           const Vector<BoxArray>            & ba,
                           const Vector<int>                 & rr)
@@ -182,7 +182,7 @@ class AmrTracerParticleContainer
 public:
 
     AmrTracerParticleContainer (AmrCore* amr_core)
-	: TracerParticleContainer(amr_core->GetParGDB())
+        : TracerParticleContainer(amr_core->GetParGDB())
     {
     }
 

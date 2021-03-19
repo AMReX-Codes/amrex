@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
     // We choose to call MPI_Init ourselves, instead of letting AMRex do it.
     // Then we are going to pass a communicatior, MPI_COMM_WORLD, (or another) to AMReX.
     MPI_Init(&argc, &argv);
-    
+
     bool build_parm_parse_from_command_line = false;
     amrex::Initialize(argc, argv, build_parm_parse_from_command_line,
                       MPI_COMM_WORLD, add_parameters);  // last three arguments are optional
@@ -58,14 +58,14 @@ void add_parameters ()
         pp.add("an_int_scalar", 2);            // integer scalar: an_int_scalar
         pp.add("a_bool_scalar", true);         // logical scalar: a_bool_scalar
         pp.addarr("a_real_array",              // real array: a_real_array
-                  std::vector<amrex::Real>{1.,2.,3.}); 
+                  std::vector<amrex::Real>{1.,2.,3.});
     }
 
     {
         // prefix "a_prefix"
         amrex::ParmParse pp("a_prefix");
         pp.addarr("an_int_array",              // integer array: a_prefix.an_int_array
-                  std::vector<int>{2, 3, 4});      
+                  std::vector<int>{2, 3, 4});
         amrex::Real x = 3.14;
         pp.add("a_real_scalar", x);            // real scalar  : a_prefix.a_real_scalar
         pp.add("a_string", std::string{"vonNeumann"});  // string: a_prefix.a_string

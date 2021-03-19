@@ -16,16 +16,16 @@ contains
     integer, intent(in)             ::  lrat(2)
     real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
     real(amrex_real), intent(in)    :: fine(flo(1):fhi(1),flo(2):fhi(2))
-    
+
     integer :: i, j, ii, jj
-    
+
     do j     = lo(2), hi(2)
        jj    = j * lrat(2)
        do i  = lo(1), hi(1)
           ii = i * lrat(1)
           crse(i,j)  =  fine(ii,jj)                             + &
 ! These four fine nodes are shared by two coarse nodes...
-               0.5d0   * (fine(ii-1,jj)     + fine(ii+1,jj)     + & 
+               0.5d0   * (fine(ii-1,jj)     + fine(ii+1,jj)     + &
                fine(ii,jj-1)     + fine(ii,jj+1))               + &
 ! ... and these four are shared by four...
                0.25d0  * (fine(ii-1,jj-1)   + fine(ii-1,jj+1)   + &
@@ -44,11 +44,11 @@ contains
     double precision, intent(inout) :: input_data(lo(1):hi(1),lo(2):hi(2))
     double precision, intent(inout) :: bndry_data(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1)
     integer(c_int),   intent(in   ) :: mask (lo(1):hi(1),lo(2):hi(2))
-    
+
     integer :: i, j
-    
+
     do j = lo(2), hi(2)
-       do i = lo(1), hi(1)          
+       do i = lo(1), hi(1)
           if (mask(i,j) .eq. 1) then
              bndry_data(i,j) = input_data(i,j)
              input_data(i,j) = 0.d0
@@ -69,14 +69,14 @@ contains
 
     do j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          
+
           total = 0
           do ii = i-ncells, i+ncells
              do jj = j-ncells, j+ncells
                 total = total + tmp_mask(ii, jj)
              end do
           end do
-             
+
           if (total .gt. 0) then
              mask(i,j) = 1
           else
@@ -89,7 +89,7 @@ contains
   end subroutine build_mask
 
 ! This routine computes the node-centered electric field given a node-centered phi.
-! The gradient is computed using 2nd-order centered differences. It assumes the 
+! The gradient is computed using 2nd-order centered differences. It assumes the
 ! Boundary conditions have already been set and that you have one row of ghost cells.
 ! Note that this routine includes the minus sign in E = - grad phi.
 !
@@ -113,7 +113,7 @@ contains
 
     do j = lo(2)-1, hi(2)+1
        do i = lo(1)-1, hi(1)+1
-             
+
           Ex(i,j) = fac(1) * (phi(i-1,j) - phi(i+1,j))
           Ey(i,j) = fac(2) * (phi(i,j-1) - phi(i,j+1))
 
@@ -122,11 +122,11 @@ contains
 
   end subroutine compute_E_nodal
 
-! This routine computes the charge density due to the particles using cloud-in-cell 
+! This routine computes the charge density due to the particles using cloud-in-cell
 ! deposition. The Fab rho is assumed to be node-centered.
 !
 ! Arguments:
-!     particles : a pointer to the particle array-of-structs 
+!     particles : a pointer to the particle array-of-structs
 !     ns        : the stride length of particle struct (the size of the struct in number of reals)
 !     np        : the number of particles
 !     weights   : the particle weights
@@ -193,7 +193,7 @@ contains
 ! node-centered.
 !
 ! Arguments:
-!     particles : a pointer to the particle array-of-structs 
+!     particles : a pointer to the particle array-of-structs
 !     ns        : the stride length of particle struct (the size of the struct in number of reals)
 !     np        : the number of particles
 !     Ex_p      : the electric field in the x-direction at the particle positions (output)
@@ -289,7 +289,7 @@ contains
 
        lx = (particles(1, n) - plo(1))*inv_dx(1)
        ly = (particles(2, n) - plo(2))*inv_dx(2)
-       
+
        i = floor(lx)
        j = floor(ly)
 
@@ -304,10 +304,10 @@ contains
 
           wx_hi = lx - i
           wy_hi = ly - j
-          
+
           wx_lo = 1.0d0 - wx_hi
           wy_lo = 1.0d0 - wy_hi
-          
+
           Ex_p(n) = wx_lo*wy_lo*cEx(i,   j  ) + &
                     wx_lo*wy_hi*cEx(i,   j+1) + &
                     wx_hi*wy_lo*cEx(i+1, j  ) + &
@@ -317,13 +317,13 @@ contains
                     wx_lo*wy_hi*cEy(i,   j+1) + &
                     wx_hi*wy_lo*cEy(i+1, j  ) + &
                     wx_hi*wy_hi*cEy(i+1, j+1)
-          
+
 ! otherwise use the fine
        else
 
           wx_hi = lx - i
           wy_hi = ly - j
-          
+
           wx_lo = 1.0d0 - wx_hi
           wy_lo = 1.0d0 - wy_hi
 
@@ -331,12 +331,12 @@ contains
                     wx_lo*wy_hi*Ex(i,   j+1) + &
                     wx_hi*wy_lo*Ex(i+1, j  ) + &
                     wx_hi*wy_hi*Ex(i+1, j+1)
-          
+
           Ey_p(n) = wx_lo*wy_lo*Ey(i,   j  ) + &
                     wx_lo*wy_hi*Ey(i,   j+1) + &
                     wx_hi*wy_lo*Ey(i+1, j  ) + &
                     wx_hi*wy_hi*Ey(i+1, j+1)
-          
+
        end if
 
     end do
@@ -344,13 +344,13 @@ contains
   end subroutine interpolate_cic_two_levels
 
 !
-! This routine updates the particle positions and velocities using the 
+! This routine updates the particle positions and velocities using the
 ! leapfrog time integration algorithm, given the electric fields at the
 ! particle positions. It also enforces specular reflection off the domain
 ! walls.
 !
 ! Arguments:
-!     particles : a pointer to the particle array-of-structs 
+!     particles : a pointer to the particle array-of-structs
 !     ns        : the stride length of particle struct (the size of the struct in number of reals)
 !     np        : the number of particles
 !     vx_p      : the particle x-velocities
@@ -379,7 +379,7 @@ contains
     real(amrex_real), intent(in)     :: mass
     real(amrex_real), intent(in)     :: dt
     real(amrex_real), intent(in)     :: prob_lo(2), prob_hi(2)
-   
+
     integer n
     real(amrex_real) fac
 
@@ -403,7 +403,7 @@ contains
           vx_p(n) = -vx_p(n)
        end do
 
-!      ... y... 
+!      ... y...
        do while (particles(2, n) .lt. prob_lo(2) .or. particles(2, n) .gt. prob_hi(2))
           if (particles(2, n) .lt. prob_lo(2)) then
              particles(2, n) = 2.d0*prob_lo(2) - particles(2, n)
@@ -423,7 +423,7 @@ contains
 ! from the velocities after particle initialization.
 !
 ! Arguments:
-!     particles : a pointer to the particle array-of-structs 
+!     particles : a pointer to the particle array-of-structs
 !     ns        : the stride length of particle struct (the size of the struct in number of reals)
 !     np        : the number of particles
 !     xx_p      : the electric field in the x-direction at the particle positions
@@ -460,7 +460,7 @@ contains
           vx_p(n) = -vx_p(n)
        end do
 
-!      ... y... 
+!      ... y...
        do while (particles(2, n) .lt. prob_lo(2) .or. particles(2, n) .gt. prob_hi(2))
           if (particles(2, n) .lt. prob_lo(2)) then
              particles(2, n) = 2.d0*prob_lo(2) - particles(2, n)

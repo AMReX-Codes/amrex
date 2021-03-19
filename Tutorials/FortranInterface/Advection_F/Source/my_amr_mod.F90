@@ -31,7 +31,7 @@ module my_amr_module
   real(rt), allocatable, save :: dt(:)
 
   integer, private, parameter :: ncomp = 1, nghost = 0
-  
+
 contains
 
   subroutine my_amr_init ()
@@ -40,7 +40,7 @@ contains
     integer :: ilev
 
     if (.not.amrex_amrcore_initialized()) call amrex_amrcore_init()
-    
+
     call amrex_init_virtual_functions (my_make_new_level_from_scratch, &
          &                             my_make_new_level_from_coarse,  &
          &                             my_remake_level,                &
@@ -59,7 +59,7 @@ contains
     call pp%query("max_step", max_step)
     call pp%query("stop_time", stop_time)
     call amrex_parmparse_destroy(pp)
-    
+
     ! Parameters amr.*
     call amrex_parmparse_build(pp, "amr")
     call pp%query("regrid_int", regrid_int)
@@ -69,7 +69,7 @@ contains
     call pp%query("plot_file", plot_file)
     call pp%query("restart", restart)
     call amrex_parmparse_destroy(pp)
-    
+
     ! Parameters myamr.*
     call amrex_parmparse_build(pp, "myamr")
     call pp%query("v", verbose)
@@ -124,7 +124,7 @@ contains
     t_old(lev) = time - 1.e200_amrex_real
 
     call my_clear_level(lev)
-  
+
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
 
@@ -179,7 +179,7 @@ contains
     integer, intent(in), value :: lev
     real(amrex_real), intent(in), value :: time
     type(c_ptr), intent(in), value :: pba, pdm
-    
+
     type(amrex_boxarray) :: ba
     type(amrex_distromap) :: dm
     type(amrex_multifab) :: new_phi_new
@@ -251,5 +251,5 @@ contains
     !$omp end parallel
 
   end subroutine my_error_estimate
-  
+
 end module my_amr_module

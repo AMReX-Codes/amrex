@@ -37,11 +37,11 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
         bndrycent = &(ebf->getBndryCent());
 
         eb_to_pvd.EBToPolygon(
-                problo, dx, 
-                bx, my_flag.const_array(), 
-                bndrycent->const_array(mfi), 
-                areafrac[0]->const_array(mfi), 
-                areafrac[1]->const_array(mfi), 
+                problo, dx,
+                bx, my_flag.const_array(),
+                bndrycent->const_array(mfi),
+                areafrac[0]->const_array(mfi),
+                areafrac[1]->const_array(mfi),
                 areafrac[2]->const_array(mfi));
     }
 

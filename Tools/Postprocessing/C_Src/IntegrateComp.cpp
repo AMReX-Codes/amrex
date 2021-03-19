@@ -2,7 +2,7 @@
   A very simple example of reading a plotfile and doing a simple analysis.  Here, we want
   to do a volume integral of a component specified by name.
 
-  The twist here is to demonstrate what this might look like if the amr data were coming down a 
+  The twist here is to demonstrate what this might look like if the amr data were coming down a
   pipe (such as SENSEI, e.g.).  So, we read the plotfile as usual, but mine it for the required
   data, then put that data into a couple of structs that then are queried from that point forward.
 
@@ -17,7 +17,7 @@
 using namespace amrex;
 
 static
-void 
+void
 print_usage (int,
              char* argv[])
 {
@@ -61,7 +61,7 @@ protected:
 struct AMReXDataHierarchy
 {
 /*
-  Data on a AMReXMeshHierarchy, currently pointing to MultiFabs of 
+  Data on a AMReXMeshHierarchy, currently pointing to MultiFabs of
   named variables managed by an AmrData object.
 */
 public:
@@ -173,7 +173,7 @@ main (int   argc,
 
           // Zero out covered cells
           if (lev < finestLevel) {
-            std::vector< std::pair<int,Box> > isects = baf.intersections(box);                
+            std::vector< std::pair<int,Box> > isects = baf.intersections(box);
             for (int ii = 0; ii < isects.size(); ii++) {
               myFab.setVal(0,isects[ii].second,0,1);
             }

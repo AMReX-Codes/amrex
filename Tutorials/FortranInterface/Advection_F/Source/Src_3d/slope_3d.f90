@@ -1,15 +1,15 @@
 module slope_module
- 
+
   implicit none
 
   double precision, parameter:: four3rd=4.d0/3.d0, sixth=1.d0/6.d0
-  
+
   private
- 
+
   public :: slopex, slopey, slopez
- 
+
 contains
- 
+
   subroutine slopex(lo, hi, &
                     q, qlo, qhi, &
                     dq, dqlo, dqhi)
@@ -40,7 +40,7 @@ contains
              endif
              df(i) = dsgn(i)*min( dlim(i), abs(dcen(i)) )
           end do
-          
+
           ! Now limited fourth order slopes
           do i = lo(1), hi(1)
              dq1 = four3rd*dcen(i) - sixth*(df(i+1) + df(i-1))
@@ -116,7 +116,7 @@ contains
              df(i,j) = dsgn(i,j)*min( dlim(i,j),abs(dcen(i,j)) )
           end do
        end do
-       
+
        ! Now compute limited fourth order slopes
        do j    = lo(2), hi(2)
           do i = lo(1), hi(1)
@@ -195,7 +195,7 @@ contains
           end do
        end do
     end do
-       
+
     ! Now compute limited fourth order slopes
     do k       = lo(3), hi(3)
        do j    = lo(2), hi(2)
@@ -208,4 +208,4 @@ contains
 
   end subroutine slopez_doit
 
-end module slope_module 
+end module slope_module

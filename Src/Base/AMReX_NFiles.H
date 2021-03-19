@@ -148,7 +148,7 @@ class NFilesIter
         return(whichProc % anf);
       } else {
 
-	    int nProcs(ParallelDescriptor::NProcs());
+        int nProcs(ParallelDescriptor::NProcs());
         return(whichProc / LengthOfSet(nProcs, anf));
       }
     }
@@ -158,13 +158,13 @@ class NFilesIter
 
     static std::string FileName(int nOutFiles,
                                 const std::string &filePrefix,
-				int whichProc, bool groupSets)
+                                int whichProc, bool groupSets)
     {
       BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
 
       return ( amrex::Concatenate(filePrefix,
                                    FileNumber(ActualNFiles(nOutFiles),
-				              whichProc, groupSets), minDigits ) );
+                                              whichProc, groupSets), minDigits ) );
     }
 
     static std::string FileName(int fileNumber,

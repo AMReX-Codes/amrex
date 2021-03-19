@@ -236,7 +236,7 @@ void mlndlap_semi_avgdown_coeff (int i, int j, int k, Array4<Real> const& crse,
     if (idir == 2) {
         Real cl = fine(2*i  ,2*j,k) + fine(2*i  ,2*j+1,k);
         Real cr = fine(2*i+1,2*j,k) + fine(2*i+1,2*j+1,k);
-        crse(i,j,k) = cl*cr/(cl+cr);    
+        crse(i,j,k) = cl*cr/(cl+cr);
     } else if (idir == 1) {
         Real cl = fine(2*i  ,j,2*k) + fine(2*i  ,j,2*k+1);
         Real cr = fine(2*i+1,j,2*k) + fine(2*i+1,j,2*k+1);
@@ -1372,7 +1372,7 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
     Real f4xm2ym2z = Real(4.0)*facx - Real(2.0)*facy - Real(2.0)*facz;
     Real fm2x4ym2z = -Real(2.0)*facx + Real(4.0)*facy - Real(2.0)*facz;
     Real fm2xm2y4z = -Real(2.0)*facx - Real(2.0)*facy + Real(4.0)*facz;
- 
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
@@ -1397,23 +1397,23 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
     Array1D<Real,0,31> a_ls,b_ls,c_ls,u_ls,r_ls,gam;
 
 
-    if ( idir == 2 ) 
+    if ( idir == 2 )
     {
-        for (int j = lo.y; j <= hi.y; ++j) 
+        for (int j = lo.y; j <= hi.y; ++j)
         {
             for (int i = lo.x; i <= hi.x; ++i)
             {
                 for (int k = lo.z; k <= hi.z; ++k)
                 {
-                    if (msk(i,j,k)) 
+                    if (msk(i,j,k))
                     {
                         a_ls(k-lo.z) = Real(0.);
                         b_ls(k-lo.z) = Real(1.);
                         c_ls(k-lo.z) = Real(0.);
                         u_ls(k-lo.z) = Real(0.);
                         r_ls(k-lo.z) = Real(0.);
-                    } 
-                    else 
+                    }
+                    else
                     {
                         Real s0 = Real(-4.0)*fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
                                                  + sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  ));
@@ -1453,7 +1453,7 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                 tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
 
                 for (int k = lo.z; k <= hi.z; ++k)
-                {  
+                {
                     sol(i,j,k) = u_ls(k-lo.z);
                 }
             }
@@ -1473,7 +1473,7 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                         c_ls(j-lo.y) = Real(0.);
                         u_ls(j-lo.y) = Real(0.);
                         r_ls(j-lo.y) = Real(0.);
-                    } 
+                    }
                     else
                     {
                         Real s0 = Real(-4.0)*fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
@@ -1520,8 +1520,8 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                 }
             }
         }
-    } 
-    else if (idir == 0) 
+    }
+    else if (idir == 0)
     {
         for (int j = lo.y; j <= hi.y; ++j)
         {
@@ -1529,7 +1529,7 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
             {
                 for (int i = lo.x; i <= hi.x; ++i)
                 {
-                    if (msk(i,j,k)) 
+                    if (msk(i,j,k))
                     {
                         a_ls(i-lo.x) = Real(0.);
                         b_ls(i-lo.x) = Real(1.);
@@ -1572,7 +1572,7 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                         c_ls(i-lo.x) = f4xm2ym2z*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1)+sig(i  ,j-1,k)+sig(i  ,j,k));
                         u_ls(i-lo.x) = Real(0.);
                         r_ls(i-lo.x) = rhs(i,j,k) - Ax;
-              	    }
+                    }
                 }
                 tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
 
@@ -1582,11 +1582,11 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                 }
             }
         }
-    } 
+    }
     else
     {
-        amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa is wrong direction.");	
-    } 
+        amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa is wrong direction.");
+    }
 }
 
 //
@@ -1676,27 +1676,27 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
                                Array4<Real const> const& fine, Array4<int const> const& msk, int idir) noexcept
 {
-    if (idir == 2) 
+    if (idir == 2)
     {
         int ii = i*2;
         int jj = j*2;
         int kk = k;
         if (msk(ii,jj,kk)) {
             crse(i,j,k) = Real(0.0);
-        } else { // use 2-D formula 
+        } else { // use 2-D formula
             crse(i,j,k) = Real(1./16.)*(fine(ii-1,jj-1,kk) + Real(2.)*fine(ii  ,jj-1,kk) +          fine(ii+1,jj-1,kk)
                              + Real(2.)*fine(ii-1,jj  ,kk) + Real(4.)*fine(ii  ,jj  ,kk) + Real(2.)*fine(ii+1,jj  ,kk)
                                       + fine(ii-1,jj+1,kk) + Real(2.)*fine(ii  ,jj+1,kk) +          fine(ii+1,jj+1,kk));
         }
-    } 
-    else if (idir == 1) 
+    }
+    else if (idir == 1)
     {
         int ii = i*2;
         int jj = j;
         int kk = k*2;
         if (msk(ii,jj,kk)) {
             crse(i,j,k) = Real(0.0);
-        } else { // use 2-D formula 
+        } else { // use 2-D formula
             crse(i,j,k) = Real(1./16.)*(fine(ii-1,jj,kk-1) + Real(2.)*fine(ii  ,jj,kk-1) +          fine(ii+1,jj,kk-1)
                              + Real(2.)*fine(ii-1,jj  ,kk) + Real(4.)*fine(ii  ,jj,kk  ) + Real(2.)*fine(ii+1,jj,kk  )
                                       + fine(ii-1,jj,kk+1) + Real(2.)*fine(ii  ,jj,kk+1) +          fine(ii+1,jj,kk+1));
@@ -1709,13 +1709,13 @@ void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
         int kk = k*2;
         if (msk(ii,jj,kk)) {
             crse(i,j,k) = Real(0.0);
-        } else { // use 2-D formula 
+        } else { // use 2-D formula
             crse(i,j,k) = Real(1./16.)*(fine(ii,jj-1,kk-1) + Real(2.)*fine(ii  ,jj,kk-1) +          fine(ii,jj+1,kk-1)
                              + Real(2.)*fine(ii,jj-1  ,kk) + Real(4.)*fine(ii  ,jj,kk  ) + Real(2.)*fine(ii,jj+1,kk  )
                                       + fine(ii,jj-1,kk+1) + Real(2.)*fine(ii  ,jj,kk+1) +          fine(ii,jj+1,kk+1));
         }
     }
-    else 
+    else
     {
         amrex::Abort("mlndlap_semi_restriction semi direction wrong semi-direction. ");
     }
@@ -1904,9 +1904,9 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
                            Array4<Real const> const& crse, Array4<Real const> const& sig,
                            Array4<int const> const& msk, int idir) noexcept
 {
-    if (idir == 2 ) 
+    if (idir == 2 )
     {
-    	if (!msk(i,j,k)) {
+        if (!msk(i,j,k)) {
             int ic = amrex::coarsen(i,2);
             int jc = amrex::coarsen(j,2);
             int kc = k;
@@ -1923,10 +1923,10 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
                 // Node on Y line
                 fine(i,j,k) += aa_interp_line_y(crse,sig,i,j,k,ic,jc,kc);
             } else {
-                // Node coincident with coarse node 
+                // Node coincident with coarse node
                 fine(i,j,k) += crse(ic,jc,kc);
             }
-	}
+        }
     } else if (idir ==1 ){
         if (!msk(i,j,k)) {
             int ic = amrex::coarsen(i,2);
@@ -1937,7 +1937,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
 
             if (i_is_odd && k_is_odd) {
                 // Node on a X-Z face
-	        fine(i,j,k) += aa_interp_face_xz(crse,sig,i,j,k,ic,jc,kc);
+                fine(i,j,k) += aa_interp_face_xz(crse,sig,i,j,k,ic,jc,kc);
             } else if (i_is_odd) {
                 // Node on X line
                 fine(i,j,k) += aa_interp_line_x(crse,sig,i,j,k,ic,jc,kc);
@@ -1971,7 +1971,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
                 fine(i,j,k) += crse(ic,jc,kc);
             }
         }
-    } else { 
+    } else {
         amrex::Abort("mlndlap_semi_interpolation semi direction wrong semi-direction. ");
     }
 }
@@ -6881,7 +6881,7 @@ void mlndlap_mknewu_eb_c (int i, int j, int k, Array4<Real> const& u, Array4<Rea
                                            Real(0.5)*intg(i,j,k,i_S_z  )*dpp_yz +
                                                      intg(i,j,k,i_S_x_z)*dpp_xyz );
         u(i,j,k,2) -= sig*dxinv[2]*(dpdz + Real(0.5)*intg(i,j,k,i_S_x  )*dpp_xz +
-				           Real(0.5)*intg(i,j,k,i_S_y  )*dpp_yz +
+                                           Real(0.5)*intg(i,j,k,i_S_y  )*dpp_yz +
                                                      intg(i,j,k,i_S_x_y)*dpp_xyz );
     }
 }

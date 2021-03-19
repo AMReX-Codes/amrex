@@ -4,11 +4,15 @@
 
 namespace amrex {
 
+#if (AMREX_SPACEDIM != 2)
+namespace TwoD {
+#endif
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_adotx (Box const& box, Array4<Real> const& y,
                    Array4<Real const> const& x,
                    Array4<Real const> const& a,
-                   GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                   GpuArray<Real,2> const& dxinv,
                    Real alpha, Real beta) noexcept
 {
     const Real dhx = beta*dxinv[0]*dxinv[0];
@@ -31,7 +35,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_adotx_m (Box const& box, Array4<Real> const& y,
                      Array4<Real const> const& x,
                      Array4<Real const> const& a,
-                     GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                     GpuArray<Real,2> const& dxinv,
                      Real alpha, Real beta, Real dx, Real probxlo) noexcept
 {
     const Real dhx = beta*dxinv[0]*dxinv[0];
@@ -57,7 +61,7 @@ void mlalap_adotx_m (Box const& box, Array4<Real> const& y,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_normalize (Box const& box, Array4<Real> const& x,
                        Array4<Real const> const& a,
-                       GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                       GpuArray<Real,2> const& dxinv,
                        Real alpha, Real beta) noexcept
 {
     const Real dhx = beta*dxinv[0]*dxinv[0];
@@ -77,7 +81,7 @@ void mlalap_normalize (Box const& box, Array4<Real> const& x,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_normalize_m (Box const& box, Array4<Real> const& x,
                          Array4<Real const> const& a,
-                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                         GpuArray<Real,2> const& dxinv,
                          Real alpha, Real beta,
                          Real dx, Real probxlo) noexcept
 {
@@ -325,6 +329,10 @@ void mlalap_gsrb_m (Box const& box, Array4<Real> const& phi,
         }
     }
 }
+
+#if (AMREX_SPACEDIM != 2)
+}
+#endif
 
 }
 #endif

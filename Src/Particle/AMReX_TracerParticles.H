@@ -12,14 +12,14 @@ class TracerParticleContainer
 public:
 
     TracerParticleContainer (ParGDBBase* gdb)
-	: ParticleContainer<AMREX_SPACEDIM>(gdb)
-	{}
+        : ParticleContainer<AMREX_SPACEDIM>(gdb)
+        {}
 
-    TracerParticleContainer (const Geometry            & geom, 
-			     const DistributionMapping & dmap,
-			     const BoxArray            & ba)
-	: ParticleContainer<AMREX_SPACEDIM>(geom,dmap,ba)
-	{}
+    TracerParticleContainer (const Geometry            & geom,
+                             const DistributionMapping & dmap,
+                             const BoxArray            & ba)
+        : ParticleContainer<AMREX_SPACEDIM>(geom,dmap,ba)
+        {}
 
     ~TracerParticleContainer () {}
 
@@ -28,7 +28,7 @@ public:
     void AdvectWithUcc (const MultiFab& ucc, int level, Real dt);
 
     void Timestamp (const std::string& file, const MultiFab& mf, int lev, Real time,
-		    const std::vector<int>& idx);
+                    const std::vector<int>& idx);
 };
 
 using TracerParIter = ParIter<AMREX_SPACEDIM>;

@@ -25,7 +25,7 @@ subroutine get_face_velocity(level, time, &
   plo(2) = min(vx_l2-1, vy_l2-1)
   phi(1) = max(vx_h1  , vy_h1+1)
   phi(2) = max(vx_h2+1, vy_h2  )
-  
+
   call bl_allocate(psi, plo(1), phi(1), plo(2), phi(2))
 
   ! streamfunction psi
@@ -36,7 +36,7 @@ subroutine get_face_velocity(level, time, &
         psi(i,j) =  sin(M_PI*x)**2 * sin(M_PI*y)**2 * cos (M_PI*time/2.d0) * (1.d0 / M_PI)
      end do
   end do
-  
+
   ! x velocity
   do j = vx_l2, vx_h2
      y = (dble(j)+0.5d0) * dx(2) + prob_lo(2)
@@ -56,6 +56,6 @@ subroutine get_face_velocity(level, time, &
   end do
 
   call bl_deallocate(psi)
-  
+
 end subroutine get_face_velocity
 

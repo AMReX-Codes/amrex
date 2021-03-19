@@ -159,11 +159,11 @@ void mlalap_gsrb (Box const& box, Array4<Real> const& phi,
                 ? f0(vlo.x,0,0) : Real(0.0);
             Real cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
                 ? f1(vhi.x,0,0) : Real(0.0);
-            
+
             Real delta = dhx*(cf0+cf1);
-            
+
             Real gamma = alpha*a(i,0,0) + dhx*Real(2.0);
-            
+
             Real rho = dhx*(phi(i-1,0,0) + phi(i+1,0,0));
 
             phi(i,0,0) = (rhs(i,0,0) + rho - phi(i,0,0)*delta)
@@ -197,11 +197,11 @@ void mlalap_gsrb_m (Box const& box, Array4<Real> const& phi,
             Real rel = (probxlo + i   *dx) * (probxlo + i   *dx);
             Real rer = (probxlo +(i+1)*dx) * (probxlo +(i+1)*dx);
             Real rc  = (probxlo +(i+Real(.5))*dx) * (probxlo +(i+Real(.5))*dx);
-            
+
             Real delta = dhx*(rel*cf0 + rer*cf1);
-            
+
             Real gamma = alpha*a(i,0,0)*rc + dhx*(rel+rer);
-            
+
             Real rho = dhx*(rel*phi(i-1,0,0) + rer*phi(i+1,0,0));
 
             phi(i,0,0) = (rhs(i,0,0) + rho - phi(i,0,0)*delta)

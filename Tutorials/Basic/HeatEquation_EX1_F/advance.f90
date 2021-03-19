@@ -40,7 +40,7 @@ contains
 
        plo = lbound(po)
        phi = ubound(po)
-       
+
        select case (amrex_spacedim)
        case (2)
           call update_phi_2d(bx%lo, bx%hi, po, pn, plo, phi, dx, dt)
@@ -64,17 +64,17 @@ contains
     real(amrex_real) :: dxinv, dtdx
     real(amrex_real) :: fx(lo(1):hi(1)+1,lo(2):hi(2)  )
     real(amrex_real) :: fy(lo(1):hi(1)  ,lo(2):hi(2)+1)
-    
+
     dxinv = 1.d0/dx
     dtdx = dt*dxinv
-    
+
     ! x-fluxes
     do j=lo(2),hi(2)
        do i=lo(1),hi(1)+1
           fx(i,j) = ( pold(i-1,j) - pold(i,j) ) * dxinv
        end do
     end do
-    
+
     ! y-fluxes
     do j=lo(2),hi(2)+1
        do i=lo(1),hi(1)
@@ -84,7 +84,7 @@ contains
 
     do j=lo(2),hi(2)
        do i=lo(1),hi(1)
-          
+
           pnew(i,j) = pold(i,j) - dtdx * &
                ( fx(i+1,j)-fx(i,j) &
                + fy(i,j+1)-fy(i,j) )
@@ -105,10 +105,10 @@ contains
     real(amrex_real) :: fx(lo(1):hi(1)+1,lo(2):hi(2)  ,lo(3):hi(3))
     real(amrex_real) :: fy(lo(1):hi(1)  ,lo(2):hi(2)+1,lo(3):hi(3))
     real(amrex_real) :: fz(lo(1):hi(1)  ,lo(2):hi(2)  ,lo(3):hi(3)+1)
-    
+
     dxinv = 1.d0/dx
     dtdx = dt*dxinv
-    
+
     ! x-fluxes
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
@@ -117,7 +117,7 @@ contains
           end do
        end do
     end do
-    
+
     ! y-fluxes
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)+1
@@ -126,7 +126,7 @@ contains
           end do
        end do
     end do
-    
+
     ! z-fluxes
     do k=lo(3),hi(3)+1
        do j=lo(2),hi(2)
@@ -135,16 +135,16 @@ contains
           end do
        end do
     end do
-    
+
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
-             
+
              pnew(i,j,k) = pold(i,j,k) - dtdx * &
                   ( fx(i+1,j,k)-fx(i,j,k) &
                   + fy(i,j+1,k)-fy(i,j,k) &
                   + fz(i,j,k+1)-fz(i,j,k) )
-             
+
           end do
        end do
     end do

@@ -17,7 +17,7 @@ MyTest::writePlotfile () const
         const int ncomp = AMREX_SPACEDIM*4 + 2;
         Vector<std::string> varname =
 #if (AMREX_SPACEDIM == 2)
-            {"u", "v", "uexact", "vexact", "xerror", "yerror", 
+            {"u", "v", "uexact", "vexact", "xerror", "yerror",
              "xrhs", "yrhs", "eta", "vfrc"};
 #else
             {"u", "v", "w", "uexact", "vexact", "wexact", "xerror", "yerror", "zerror",

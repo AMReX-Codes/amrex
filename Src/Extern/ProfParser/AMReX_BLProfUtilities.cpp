@@ -74,10 +74,10 @@ void amrex::SimpleRemoveOverlap(BoxArray &ba) {
       for(int n(0); n < ba.size(); ++n) {
         if(i != n) {
           const Box &bn = ba[n];
-	  if(b.bigEnd(dim) == bn.smallEnd(dim)) {
-	    b.growHi(dim, - 1);
-	    ba.set(i, b);
-	  }
+          if(b.bigEnd(dim) == bn.smallEnd(dim)) {
+            b.growHi(dim, - 1);
+            ba.set(i, b);
+          }
         }
       }
     }
@@ -88,7 +88,7 @@ void amrex::SimpleRemoveOverlap(BoxArray &ba) {
 // --------------------------------------------------------------------
 void amrex::avgDown_doit(const FArrayBox &fine_fab, FArrayBox &crse_fab,
                          const Box &ovlp, int scomp, int dcomp, int ncomp,
-		         Vector<int> &ratio)
+                         Vector<int> &ratio)
 {
     const int  *ovlo   = ovlp.loVect();
     const int  *ovhi   = ovlp.hiVect();
@@ -148,7 +148,7 @@ void amrex::avgDown(MultiFab &S_crse, MultiFab &S_fine, int scomp, int dcomp,
     for(MFIter mfi(S_fine); mfi.isValid(); ++mfi) {
       const int i(mfi.index());
       avgDown_doit(S_fine[i], crse_S_fine[i], crse_S_fine_BA[i],
-	           scomp, 0, ncomp, ratio);
+                   scomp, 0, ncomp, ratio);
     }
     S_crse.copy(crse_S_fine, 0, dcomp, ncomp);
 }
@@ -348,8 +348,8 @@ long amrex::FileSize(const std::string &filename) {
 // ----------------------------------------------------------------------
 void amrex::MakeFuncPctTimesMF(const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
                                const Vector<std::string> &blpFNames,
-		               const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
-			       Real runTime, int dataNProcs)
+                               const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
+                               Real runTime, int dataNProcs)
 {
 #ifdef BL_TRACE_PROFILING
 #if (BL_SPACEDIM == 2)
@@ -401,7 +401,7 @@ void amrex::MakeFuncPctTimesMF(const Vector<Vector<BLProfStats::FuncStat> > &fun
 void amrex::CollectMProfStats(std::map<std::string, BLProfiler::ProfStats> &mProfStats,
                               const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
                               const Vector<std::string> &fNames,
-		              Real runTime, int whichProc)
+                              Real runTime, int whichProc)
 {
   for(int fnum(0); fnum < funcStats.size(); ++fnum) {
     BLProfiler::ProfStats ps;
@@ -443,7 +443,7 @@ void amrex::CollectMProfStats(std::map<std::string, BLProfiler::ProfStats> &mPro
 void amrex::GraphTopPct(const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
                         const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
                         const Vector<std::string> &fNames,
-		        Real runTime, int dataNProcs, Real gPercent)
+                        Real runTime, int dataNProcs, Real gPercent)
 {
   for(int fnum(0); fnum < funcStats.size(); ++fnum) {
     const std::string &fName(fNames[fnum]);

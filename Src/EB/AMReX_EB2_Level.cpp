@@ -208,7 +208,7 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
         if (!fine_covered_grids.empty())
         {
             const std::vector<IntVect>& pshifts = fine_period.shiftIntVect();
-            
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

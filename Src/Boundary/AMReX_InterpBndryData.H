@@ -58,7 +58,7 @@ public:
     * \param geom
     */
     InterpBndryData (const BoxArray& _grids,
-		     const DistributionMapping& _dmap,
+                     const DistributionMapping& _dmap,
                      int             _ncomp,
                      const Geometry& geom);
 
@@ -97,7 +97,7 @@ public:
     */
     virtual void setBndryConds (const BCRec&   /*phys_bc*/,
                                 const IntVect& /*ratio*/,
-				int            /*comp*/ = 0) {}
+                                int            /*comp*/ = 0) {}
 
     /**
     * \brief set bndry values at coarse level (non interpolation performed)

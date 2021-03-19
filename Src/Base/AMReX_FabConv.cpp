@@ -523,11 +523,11 @@ permute_real_word_order (void*       out,
                          const void* in,
                          Long        nitems,
                          const int*  outord,
-                         const int*  inord, 
+                         const int*  inord,
                          int         REALSIZE)
 {
 //    BL_PROFILE("permute_real_word_order");
-    
+
     char* pin  = (char*) in;
     char* pout = (char*) out;
 
@@ -972,7 +972,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 
     if(bAlwaysFixDenormals) {
       PD_fixdenormals(out, nitems, FPC::NativeRealDescriptor().format(),
-		      FPC::NativeRealDescriptor().order());
+                      FPC::NativeRealDescriptor().order());
     }
 }
 
@@ -1005,7 +1005,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 
         if(bAlwaysFixDenormals) {
           PD_fixdenormals(out, get, FPC::NativeRealDescriptor().format(),
-			  FPC::NativeRealDescriptor().order());
+                          FPC::NativeRealDescriptor().order());
         }
         nitems -= get;
         out    += get;
@@ -1193,7 +1193,7 @@ RealDescriptor::convertToNativeFloatFormat (float*                out,
 
         if(bAlwaysFixDenormals) {
           PD_fixdenormals(out, get, FPC::Native32RealDescriptor().format(),
-			  FPC::Native32RealDescriptor().order());
+                          FPC::Native32RealDescriptor().order());
         }
         nitems -= get;
         out    += get;
@@ -1235,7 +1235,7 @@ RealDescriptor::convertToNativeDoubleFormat (double*               out,
 
         if(bAlwaysFixDenormals) {
           PD_fixdenormals(out, get, FPC::Native64RealDescriptor().format(),
-			  FPC::Native64RealDescriptor().order());
+                          FPC::Native64RealDescriptor().order());
         }
         nitems -= get;
         out    += get;

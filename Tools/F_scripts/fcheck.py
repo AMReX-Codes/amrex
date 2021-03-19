@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-# a simple routine to parse Fortran files and make sure that things are 
-# declared double precision, and constants are of the form 1.0_dp_t or 
+# a simple routine to parse Fortran files and make sure that things are
+# declared double precision, and constants are of the form 1.0_dp_t or
 # 1.0d0.
 
 import os
@@ -30,7 +30,7 @@ class myFiles:
 def visit(argFiles, dirname, files):
 
     # invoked by os.path.walk to find all the files
-    # matching our 
+    # matching our
     for file in files:
         base, ext = os.path.splitext(file)
         if (ext == argFiles.extension):
@@ -38,13 +38,13 @@ def visit(argFiles, dirname, files):
 
 
 #-----------------------------------------------------------------------------
-# main program 
+# main program
 #-----------------------------------------------------------------------------
 
 # generate the regular expressions we will use to search
 # helpful site: http://re-try.appspot.com/
 
-# look for 'real' followed by any type of space character '\s', or 
+# look for 'real' followed by any type of space character '\s', or
 # an open parenthesis
 real_re = re.compile('real', re.IGNORECASE)
 
@@ -75,7 +75,7 @@ for ext in extensions:
     root = os.getcwd()
 
     os.path.walk(root, visit, currentFiles)
-    
+
     for file in currentFiles.files:
 
         # open the file for parsing
@@ -104,7 +104,7 @@ for ext in extensions:
                 print lineNum, ": ", line,
 
 
-            # if we find a floating point constant, make sure that it is 
+            # if we find a floating point constant, make sure that it is
             # double precision
             if (not const_fp_re.search(line) == None and
                 const_dp_re.search(line) == None):
@@ -117,7 +117,7 @@ for ext in extensions:
 
 
 
-            line = fin.readline()            
+            line = fin.readline()
             lineNum += 1
 
         if (badFile == 1):
@@ -125,6 +125,6 @@ for ext in extensions:
 
 
 
-    
-    
-    
+
+
+

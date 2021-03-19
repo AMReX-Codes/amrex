@@ -7,9 +7,9 @@
 #include <cinttypes>
 #else
 #ifdef AMREX_TYPECHECK
-#define __attribute__(x) 
-#define __extension__ 
-#define __restrict 
+#define __attribute__(x)
+#define __extension__
+#define __restrict
 #endif
 #include <inttypes.h>
 #endif

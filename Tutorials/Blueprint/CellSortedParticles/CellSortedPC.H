@@ -18,8 +18,8 @@ struct IntData
     enum {
         sorted,
         i,
-	j,
-	k,
+        j,
+        k,
         ncomps
     };
 };
@@ -30,7 +30,7 @@ class CellSortedParticleContainer
 public:
 
     using MyParIter = amrex::ParIter<RealData::ncomps, IntData::ncomps>;
-    
+
     CellSortedParticleContainer (const amrex::Geometry            & a_geom,
                                  const amrex::DistributionMapping & a_dmap,
                                  const amrex::BoxArray            & a_ba);
@@ -48,11 +48,11 @@ public:
     int numWrongCell();
 
     void visitAllParticles();
-    
+
 protected:
 
     void UpdateCellVectors();
-    
+
     void UpdateFortranStructures();
 
     // used to store vectors of particle indices on a cell-by-cell basis
@@ -68,7 +68,7 @@ protected:
     amrex::DistributionMapping::RefID m_DMRef;
 
 private:
-  
+
   void correctCellVectors(int old_index, int new_index, int grid, const ParticleType& p) override;
 
 };

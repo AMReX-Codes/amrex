@@ -18,17 +18,17 @@ extern "C" {
 
     void cns_hypfill (BL_FORT_FAB_ARG_3D(state),
                       const int* dlo, const int* dhi,
-                      const amrex_real* dx, const amrex_real* glo, 
+                      const amrex_real* dx, const amrex_real* glo,
                       const amrex_real* time, const int* bc);
-    
+
     void cns_denfill (BL_FORT_FAB_ARG_3D(state),
                       const int* dlo, const int* dhi,
-                      const amrex_real* dx, const amrex_real* glo, 
+                      const amrex_real* dx, const amrex_real* glo,
                       const amrex_real* time, const int* bc);
 
     void cns_nullfill (BL_FORT_FAB_ARG_3D(state),
                        const int* dlo, const int* dhi,
-                       const amrex_real* dx, const amrex_real* glo, 
+                       const amrex_real* dx, const amrex_real* glo,
                        const amrex_real* time, const int* bc);
 
     void cns_derpres (BL_FORT_FAB_ARG_3D(der),const int* nvar,
@@ -36,7 +36,7 @@ extern "C" {
                       const int* lo, const int* hi,
                       const int* domain_lo, const int* domain_hi,
                       const amrex_real* delta, const amrex_real* xlo,
-                      const amrex_real* time, const amrex_real* dt, const int* bcrec, 
+                      const amrex_real* time, const amrex_real* dt, const int* bcrec,
                       const int* level, const int* grid_no);
 
     void cns_dervel (BL_FORT_FAB_ARG_3D(der),const int* nvar,
@@ -44,7 +44,7 @@ extern "C" {
                      const int* lo, const int* hi,
                      const int* domain_lo, const int* domain_hi,
                      const amrex_real* delta, const amrex_real* xlo,
-                     const amrex_real* time, const amrex_real* dt, const int* bcrec, 
+                     const amrex_real* time, const amrex_real* dt, const int* bcrec,
                      const int* level, const int* grid_no);
 
     void cns_compute_temperature (const int* lo, const int* hi,
@@ -53,7 +53,7 @@ extern "C" {
     void cns_estdt (const int* lo, const int* hi,
                     const amrex_real* u, const int* ulo, const int* uhi,
                     const amrex_real* dx, amrex_real* dt);
-                    
+
 
     void cns_compute_dudt (const int* lo, const int* hi,
                            amrex_real* dudt, const int* utlo, const int* uthi,

@@ -47,7 +47,7 @@ cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
             }
         }
     }
-    
+
     return dt;
 }
 
