@@ -13,12 +13,30 @@ jobs:
       run: |
         cmake -S . -B build   `
               -DCMAKE_BUILD_TYPE=Debug      `
+              -DBUILD_SHARED_LIBS=ON        `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
               -DAMReX_ENABLE_TESTS=ON       `
               -DAMReX_FORTRAN=OFF           `
               -DAMReX_MPI=OFF               `
               -DAMReX_PARTICLES=ON
         cmake --build build --config Debug -j 2
+
+  # Build libamrex and all test (static)
+  test_msvc_static:
+    name: MSVC C++17 w/o Fortran w/o MPI static
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build & Install
+      run: |
+        cmake -S . -B build   `
+              -DCMAKE_BUILD_TYPE=RelWithDebInfo `
+              -DCMAKE_VERBOSE_MAKEFILE=ON   `
+              -DAMReX_ENABLE_TESTS=ON    `
+              -DAMReX_FORTRAN=OFF           `
+              -DAMReX_MPI=OFF               `
+              -DAMReX_PARTICLES=ON
+        cmake --build build --config RelWithDebInfo -j 2
 
   # Build libamrex and all tests
   tests_clang:
@@ -34,6 +52,7 @@ jobs:
         cmake -S . -B build   ^
               -T "ClangCl"    ^
               -DCMAKE_BUILD_TYPE=Release    ^
+              -DBUILD_SHARED_LIBS=ON        ^
               -DCMAKE_VERBOSE_MAKEFILE=ON   ^
               -DAMReX_ENABLE_TESTS=ON       ^
               -DAMReX_FORTRAN=OFF           ^

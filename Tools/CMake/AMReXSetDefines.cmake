@@ -154,3 +154,12 @@ add_amrex_define(AMREX_USE_HDF5_ASYNC NO_LEGACY IF AMReX_HDF5_ASYNC)
 # Miscellaneous
 #
 add_amrex_define( AMREX_NO_PROBINIT NO_LEGACY IF_NOT AMReX_PROBINIT)
+
+#
+# Windows DLLs and Global Symbols
+# https://stackoverflow.com/questions/54560832/cmake-windows-export-all-symbols-does-not-cover-global-variables/54568678#54568678
+#
+if(WIN32 AND BUILD_SHARED_LIBS)
+  add_amrex_define(AMREX_IS_DLL NO_LEGACY)
+  target_compile_definitions( amrex PRIVATE AMREX_IS_DLL_BUILDING)
+endif()

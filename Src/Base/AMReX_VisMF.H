@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <queue>
 
+#include <AMReX_Extension.H>
 #include <AMReX_REAL.H>
 #include <AMReX_FabArray.H>
 #include <AMReX_FArrayBox.H>
@@ -347,24 +348,24 @@ private:
     * be closed when not needed with CloseAllStreams.
     * ~VisMF also closes them.  [filename, pifs]
     */
-    static std::map<std::string, VisMF::PersistentIFStream> persistentIFStreams;
+    static AMREX_EXPORT std::map<std::string, VisMF::PersistentIFStream> persistentIFStreams;
     //! The number of files to write for a FabArray<FArrayBox>.
-    static int nOutFiles;
-    static int nMFFileInStreams;
+    static AMREX_EXPORT int nOutFiles;
+    static AMREX_EXPORT int nMFFileInStreams;
 
-    static int verbose;
-    static VisMF::Header::Version currentVersion;
-    static bool groupSets;
-    static bool setBuf;
-    static bool useSingleRead;
-    static bool useSingleWrite;
-    static bool checkFilePositions;
-    static bool usePersistentIFStreams;
-    static bool useSynchronousReads;
-    static bool useDynamicSetSelection;
-    static bool allowSparseWrites;
+    static AMREX_EXPORT int verbose;
+    static AMREX_EXPORT VisMF::Header::Version currentVersion;
+    static AMREX_EXPORT bool groupSets;
+    static AMREX_EXPORT bool setBuf;
+    static AMREX_EXPORT bool useSingleRead;
+    static AMREX_EXPORT bool useSingleWrite;
+    static AMREX_EXPORT bool checkFilePositions;
+    static AMREX_EXPORT bool usePersistentIFStreams;
+    static AMREX_EXPORT bool useSynchronousReads;
+    static AMREX_EXPORT bool useDynamicSetSelection;
+    static AMREX_EXPORT bool allowSparseWrites;
 
-    static Long ioBufferSize;   //!< ---- the settable buffer size
+    static AMREX_EXPORT Long ioBufferSize;   //!< ---- the settable buffer size
 };
 
 //! Write a FabOnDisk to an ostream in ASCII.

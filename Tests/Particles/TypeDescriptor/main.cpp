@@ -54,7 +54,7 @@ void testLongIO(const IntDescriptor& id_out) {
     std::string data_file_name   = "long_data.dat";
     std::string header_file_name = "long_header_H";
 
-    amrex::Vector<long> idata_out;
+    amrex::Vector<Long> idata_out;
     for (int i = -99; i <= 100; ++i) {
         idata_out.push_back(i);
     }
@@ -75,8 +75,8 @@ void testLongIO(const IntDescriptor& id_out) {
     ifs.close();
 
     AMREX_ALWAYS_ASSERT(id_out == id_in);
+    amrex::Vector<Long> idata_in(idata_out.size());
 
-    amrex::Vector<long> idata_in(idata_out.size());
     ifs.open(data_file_name.c_str(), std::ios::in|std::ios::binary);
     readLongData(idata_in.data(), idata_in.size(), ifs, id_in);
     ifs.close();

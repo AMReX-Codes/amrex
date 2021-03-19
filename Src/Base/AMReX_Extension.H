@@ -139,6 +139,22 @@
 #define AMREX_ATTRIBUTE_WEAK __attribute__((weak))
 #endif
 
+// public globals
+// https://stackoverflow.com/questions/54560832/cmake-windows-export-all-symbols-does-not-cover-global-variables/54568678#54568678
+#if defined(_MSC_VER)
+#   if defined(AMREX_IS_DLL)
+#       if defined(AMREX_IS_DLL_BUILDING)
+#           define AMREX_EXPORT __declspec(dllexport)
+#       else
+#           define AMREX_EXPORT __declspec(dllimport)
+#       endif
+#   else
+#       define AMREX_EXPORT
+#   endif
+#else
+#   define AMREX_EXPORT
+#endif
+
 #if defined(__cplusplus) && defined(_WIN32)
 #include <ciso646>
 #endif
