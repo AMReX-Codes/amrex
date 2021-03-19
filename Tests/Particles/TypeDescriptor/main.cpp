@@ -53,7 +53,7 @@ void testLongIO(const IntDescriptor& id_out) {
 
     std::string data_file_name   = "long_data.dat";
     std::string header_file_name = "long_header_H";
- 
+
     amrex::Vector<Long> idata_out;
     for (int i = -99; i <= 100; ++i) {
         idata_out.push_back(i);
