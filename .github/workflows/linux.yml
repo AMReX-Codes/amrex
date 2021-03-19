@@ -59,7 +59,7 @@ jobs:
         which fcompare
 
   # Build libamrex and all tests
-  tests:
+  tests_build:
     name: GNU@7.5 C++14 [tests]
     runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
@@ -387,7 +387,7 @@ jobs:
         make -j2 USE_MPI=FALSE USE_OMP=FALSE WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
 
   # Build libamrex and run all tests
-  tests:
+  tests_run:
     name: GNU@7.5 C++14 [tests]
     runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
