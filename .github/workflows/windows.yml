@@ -163,6 +163,7 @@ jobs:
       shell: cmd
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\vc\Auxiliary\build\vcvarsall.bat" x64
+        SET "PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.1\bin\;%PATH%"
         cmake -S . -B build ^
               -G Ninja      ^
               -DCMAKE_BUILD_TYPE=Release ^
@@ -172,7 +173,8 @@ jobs:
               -DAMReX_GPU_BACKEND=CUDA   ^
               -DCMAKE_CXX_STANDARD=14    ^
               -DCMAKE_CUDA_STANDARD=14   ^
-              -DAMReX_CUDA_ARCH=6.0
+              -DAMReX_CUDA_ARCH=6.0      ^
+              -DCUDAToolkit_ROOT="C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.1"
         cmake --build build -j 2
     # use "cmd", see https://gitlab.kitware.com/cmake/cmake/-/issues/20281
     # -DAMReX_PARTICLES=ON
