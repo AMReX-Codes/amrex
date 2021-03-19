@@ -497,8 +497,8 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
         }
         handler.recv.stats.resize(handler.recv.request.size());
         ParallelDescriptor::Waitall(handler.recv.request, handler.recv.stats);
-#ifdef AMREX_D_DEBUG
-        if (!CheckRcvStats(stats, handler.recv.size, handler.mpi_tag)) {
+#ifdef AMREX_DEBUG
+        if (!CheckRcvStats(handler.recv.stats, handler.recv.size, handler.mpi_tag)) {
             amrex::Abort("NonLocalBC::Comm_finish failed with wrong message size");
         }
 #endif
