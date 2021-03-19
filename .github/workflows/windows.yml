@@ -164,6 +164,7 @@ jobs:
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\vc\Auxiliary\build\vcvarsall.bat" x64
         cmake -S . -B build ^
+              -G Ninja      ^
               -DCMAKE_BUILD_TYPE=Release ^
               -DAMReX_BUILD_TUTORIALS=ON ^
               -DAMReX_FORTRAN=OFF        ^
@@ -172,6 +173,6 @@ jobs:
               -DCMAKE_CXX_STANDARD=14    ^
               -DCMAKE_CUDA_STANDARD=14   ^
               -DAMReX_CUDA_ARCH=6.0
-        cmake --build build --config Release -j 2
+        cmake --build build -j 2
     # use "cmd", see https://gitlab.kitware.com/cmake/cmake/-/issues/20281
     # -DAMReX_PARTICLES=ON
