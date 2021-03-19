@@ -183,11 +183,10 @@ struct PolarFn2 { // for the x-y corners
 //! \param[in]  proj  A FAB projection that might transform the data.
 //!
 //! \return Nothing.
-template <class FAB, class DTOS = Identity, class Proj = Identity>
+template <class FAB, class DTOS, class Proj>
 EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
-                FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos = DTOS{},
-                Proj proj = Proj{}) noexcept {
+                FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos, Proj proj) noexcept {
     const int N_locs = local_tags.size();
     if (N_locs == 0) return;
 #ifdef AMREX_USE_OMP
@@ -210,12 +209,12 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
 //! This function assumes that all destination and source boxes stored in the local copy comm tags
 //! are related by the DTOS. If this is not the case the behaviour will at best be caught as an
 //! assertion.
-template <class FAB, class DTOS = Identity, class Proj = Identity>
+template <class FAB, class DTOS, class Proj>
 EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
-                        DTOS dtos = DTOS{}, Proj proj = Proj{}) noexcept {
+                        DTOS dtos, Proj proj) noexcept {
     amrex::ignore_unused(recv_size);
 
     const int N_rcvs = recv_cctc.size();
@@ -252,11 +251,10 @@ struct Array4Array4Box {
     Box const& box () const noexcept { return dbox; }
 };
 
-template <class FAB, class DTOS = Identity, class Proj = Identity>
+template <class FAB, class DTOS, class Proj>
 EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
-                FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos = DTOS{},
-                Proj proj = Proj{}) noexcept {
+                FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos, Proj proj) noexcept {
     int N_locs = local_tags.size();
     if (N_locs == 0) return;
 
@@ -275,13 +273,13 @@ local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
     });
 }
 
-template <class FAB, class DTOS = Identity, class Proj = Identity>
+template <class FAB, class DTOS, class Proj>
 EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
                         Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
-                        DTOS dtos = DTOS{}, Proj proj = Proj{})
+                        DTOS dtos, Proj proj)
 {
     amrex::ignore_unused(recv_size);
 
