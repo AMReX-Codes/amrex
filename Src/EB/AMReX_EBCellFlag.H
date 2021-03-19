@@ -283,7 +283,7 @@ private:
 template <>
 struct IsStoreAtomic<EBCellFlag> : std::true_type {};
 
-class EBCellFlagFab
+class EBCellFlagFab final
     : public BaseFab<EBCellFlag>
 {
 public:
@@ -302,7 +302,7 @@ public:
 
     EBCellFlagFab () = default;
     EBCellFlagFab (EBCellFlagFab&& rhs) = default;
-    virtual ~EBCellFlagFab () override final = default;
+    virtual ~EBCellFlagFab () override = default;
 
     EBCellFlagFab (const EBCellFlagFab&) = delete;
     EBCellFlagFab& operator= (const EBCellFlagFab&) = delete;

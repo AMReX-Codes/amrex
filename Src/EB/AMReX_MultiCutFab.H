@@ -7,7 +7,7 @@
 
 namespace amrex {
 
-class CutFab
+class CutFab final
     : public FArrayBox
 {
 public:
@@ -26,7 +26,7 @@ public:
     CutFab (CutFab const& rhs, MakeType make_type, int scomp, int ncomp)
         : FArrayBox(rhs, make_type, scomp, ncomp) {}
 
-    virtual ~CutFab () noexcept override final = default;
+    virtual ~CutFab () noexcept override = default;
 
     CutFab (CutFab&& rhs) noexcept = default;
 

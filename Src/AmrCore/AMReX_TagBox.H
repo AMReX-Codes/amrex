@@ -23,7 +23,7 @@ namespace amrex {
 
 class BoxDomain;
 
-class TagBox
+class TagBox final
     :
     public BaseFab<char>
 {
@@ -46,7 +46,7 @@ public:
 
     TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp);
 
-    virtual ~TagBox () noexcept override final = default;
+    virtual ~TagBox () noexcept override = default;
 
     TagBox (TagBox&& rhs) noexcept = default;
 
