@@ -335,8 +335,12 @@ void testParallelContext ()
 
     if (task_me > 1) task_me = 1;
 
+#ifdef BL_USE_MPI
     MPI_Comm new_comm;
     MPI_Comm_split(ParallelContext::CommunicatorSub(), task_me, myproc, &new_comm);
+#else
+    MPI_Comm new_comm = ParallelContext::CommunicatorSub();
+#endif
 
     const int io_rank = 0;
     ParallelContext::push(new_comm, task_me, io_rank);
