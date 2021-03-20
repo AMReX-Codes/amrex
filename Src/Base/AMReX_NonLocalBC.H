@@ -811,8 +811,8 @@ ParallelCopy_finish (FabArray<FAB>& dest, CommHandler handler,
     const int N_rcvs = cmd.m_RcvTags ? cmd.m_RcvTags->size() : 0;
     if (N_rcvs > 0) {
         ParallelDescriptor::Waitall(handler.recv.request, handler.recv.stats);
-#ifdef AMREX_D_DEBUG
-        if (!CheckRcvStats(stats, handler.recv_size, handler.mpi_tag)) {
+#ifdef AMREX_DEBUG
+        if (!CheckRcvStats(handler.recv.stats, handler.recv.size, handler.mpi_tag)) {
             amrex::Abort("NonLocalPC::ParallelCopy_finish failed with wrong message size");
         }
 #endif

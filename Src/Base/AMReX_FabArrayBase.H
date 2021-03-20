@@ -688,13 +688,11 @@ public:
     };
     static FabArrayStats m_FA_stats;
 
-#ifdef BL_USE_MPI
-    static bool CheckRcvStats(Vector<MPI_Status>& recv_stats,
-                              const Vector<std::size_t>& recv_size,
-                              int tag);
-#endif
-
 };
+
+#ifdef BL_USE_MPI
+bool CheckRcvStats (Vector<MPI_Status>& recv_stats, const Vector<std::size_t>& recv_size, int tag);
+#endif
 
 std::ostream& operator<< (std::ostream& os, const FabArrayBase::BDKey& id);
 
