@@ -65,7 +65,7 @@ auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const&) no
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class Iterator, EnableIf_t<IsParticleIterator<Iterator>::value, int> foo = 0>
+template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value, int> foo = 0>
 int
 numParticlesOutOfRange (Iterator const& pti, int nGrow)
 {
@@ -83,7 +83,7 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class Iterator, EnableIf_t<IsParticleIterator<Iterator>::value, int> foo = 0>
+template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value, int> foo = 0>
 int
 numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
 {
@@ -134,7 +134,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 int
 numParticlesOutOfRange (PC const& pc, int nGrow)
 {
@@ -153,7 +153,7 @@ numParticlesOutOfRange (PC const& pc, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 int
 numParticlesOutOfRange (PC const& pc, IntVect nGrow)
 {
@@ -174,7 +174,7 @@ numParticlesOutOfRange (PC const& pc, IntVect nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 int
 numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
 {
@@ -198,7 +198,7 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 int
 numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, IntVect nGrow)
 {

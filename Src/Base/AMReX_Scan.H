@@ -161,7 +161,7 @@ enum class Type { inclusive, exclusive };
 #if defined(AMREX_USE_DPCPP)
 
 template <typename T, typename N, typename FIN, typename FOUT,
-          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+          typename M=std::enable_if_t<std::is_integral<N>::value> >
 T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
 {
     if (n <= 0) return 0;
@@ -389,7 +389,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
 #else
 
 template <typename T, typename N, typename FIN, typename FOUT,
-          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+          typename M=std::enable_if_t<std::is_integral<N>::value> >
 T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
 {
     if (n <= 0) return 0;
@@ -628,7 +628,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
 #endif
 
 // The return value is the total sum.
-template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
 T InclusiveSum (N n, T const* in, T * out)
 {
     if (static_cast<Long>(n) <= static_cast<Long>(std::numeric_limits<int>::max())) {
@@ -645,7 +645,7 @@ T InclusiveSum (N n, T const* in, T * out)
 }
 
 // The return value is the total sum.
-template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
 T ExclusiveSum (N n, T const* in, T * out)
 {
     if (static_cast<Long>(n) <= static_cast<Long>(std::numeric_limits<int>::max())) {
@@ -664,7 +664,7 @@ T ExclusiveSum (N n, T const* in, T * out)
 #else
 
 // The return value is the total sum.
-template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
 T InclusiveSum (N n, T const* in, T * out)
 {
     std::partial_sum(in, in+n, out);
@@ -672,7 +672,7 @@ T InclusiveSum (N n, T const* in, T * out)
 }
 
 // The return value is the total sum.
-template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
 T ExclusiveSum (N n, T const* in, T * out)
 {
     if (n > 0) {

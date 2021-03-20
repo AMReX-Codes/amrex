@@ -199,7 +199,7 @@ template <class T>
 struct CellAtomicAdd
 {
     template<class U=T,
-             amrex::EnableIf_t<amrex::HasAtomicAdd<U>::value,int> = 0>
+             std::enable_if_t<amrex::HasAtomicAdd<U>::value,int> = 0>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator() (U* d, U s) const noexcept
     {
@@ -323,7 +323,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     });
 }
 
-template <typename T, amrex::EnableIf_t<amrex::IsStoreAtomic<T>::value,int> = 0>
+template <typename T, std::enable_if_t<amrex::IsStoreAtomic<T>::value,int> = 0>
 void
 fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, int ncomp,
                        Vector<Array4<int> > const&)
@@ -331,7 +331,7 @@ fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, in
     fab_to_fab<T>(copy_tags, scomp, dcomp, ncomp, CellStore<T>());
 }
 
-template <typename T, amrex::EnableIf_t<!amrex::IsStoreAtomic<T>::value,int> = 0>
+template <typename T, std::enable_if_t<!amrex::IsStoreAtomic<T>::value,int> = 0>
 void
 fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, int ncomp,
                        Vector<Array4<int> > const& masks)
@@ -339,7 +339,7 @@ fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, in
     fab_to_fab<T>(copy_tags, scomp, dcomp, ncomp, CellStore<T>(), masks);
 }
 
-template <typename T, amrex::EnableIf_t<amrex::HasAtomicAdd<T>::value,int> = 0>
+template <typename T, std::enable_if_t<amrex::HasAtomicAdd<T>::value,int> = 0>
 void
 fab_to_fab_atomic_add (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, int ncomp,
                        Vector<Array4<int> > const&)
@@ -347,7 +347,7 @@ fab_to_fab_atomic_add (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, in
     fab_to_fab<T>(copy_tags, scomp, dcomp, ncomp, CellAtomicAdd<T>());
 }
 
-template <typename T, amrex::EnableIf_t<!amrex::HasAtomicAdd<T>::value,int> = 0>
+template <typename T, std::enable_if_t<!amrex::HasAtomicAdd<T>::value,int> = 0>
 void
 fab_to_fab_atomic_add (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, int ncomp,
                        Vector<Array4<int> > const& masks)
