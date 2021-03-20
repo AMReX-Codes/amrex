@@ -32,7 +32,7 @@ namespace amrex
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
  */
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceSum (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
@@ -58,7 +58,7 @@ ReduceSum (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
  */
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceSum (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
@@ -85,7 +85,7 @@ ReduceSum (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticl
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
  */
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
@@ -155,7 +155,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
  */
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMax (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
@@ -181,7 +181,7 @@ ReduceMax (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
  */
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMax (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
@@ -208,7 +208,7 @@ ReduceMax (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticl
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
  */
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
@@ -279,7 +279,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
  */
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMin (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
@@ -305,7 +305,7 @@ ReduceMin (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
  */
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMin (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
@@ -332,7 +332,7 @@ ReduceMin (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticl
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
  */
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
@@ -403,7 +403,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
  */
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalAnd (PC const& pc, F&& f)
 {
@@ -429,7 +429,7 @@ ReduceLogicalAnd (PC const& pc, F&& f)
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
  */
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalAnd (PC const& pc, int lev, F&& f)
 {
@@ -456,7 +456,7 @@ ReduceLogicalAnd (PC const& pc, int lev, F&& f)
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
  */
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
 {
@@ -525,7 +525,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
  */
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalOr (PC const& pc, F&& f)
 {
@@ -551,7 +551,7 @@ ReduceLogicalOr (PC const& pc, F&& f)
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
  */
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalOr (PC const& pc, int lev, F&& f)
 {
@@ -578,7 +578,7 @@ ReduceLogicalOr (PC const& pc, int lev, F&& f)
  * \param f a function that takes a "superparticle" and returns the value to be reduced over all particles.
  *
  */
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
 {

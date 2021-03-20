@@ -877,7 +877,7 @@ clearParticles ()
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
-template <class PCType, amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo>
+template <class PCType, std::enable_if_t<IsParticleContainer<PCType>::value, int> foo>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
 copyParticles (const PCType& other, bool local)
@@ -888,7 +888,7 @@ copyParticles (const PCType& other, bool local)
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
-template <class PCType, amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo>
+template <class PCType, std::enable_if_t<IsParticleContainer<PCType>::value, int> foo>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
 addParticles (const PCType& other, bool local)
@@ -900,8 +900,8 @@ addParticles (const PCType& other, bool local)
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 template <class F, class PCType,
-          amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo,
-          amrex::EnableIf_t<! std::is_integral<F>::value, int> bar>
+          std::enable_if_t<IsParticleContainer<PCType>::value, int> foo,
+          std::enable_if_t<! std::is_integral<F>::value, int> bar>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
 copyParticles (const PCType& other, F&& f, bool local)
@@ -914,8 +914,8 @@ copyParticles (const PCType& other, F&& f, bool local)
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 template <class F, class PCType,
-          amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo,
-          amrex::EnableIf_t<! std::is_integral<F>::value, int> bar>
+          std::enable_if_t<IsParticleContainer<PCType>::value, int> foo,
+          std::enable_if_t<! std::is_integral<F>::value, int> bar>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::
 addParticles (const PCType& other, F&& f, bool local)

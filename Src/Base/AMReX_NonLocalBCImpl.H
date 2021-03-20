@@ -184,7 +184,7 @@ struct PolarFn2 { // for the x-y corners
 //!
 //! \return Nothing.
 template <class FAB, class DTOS, class Proj>
-EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos, Proj proj) noexcept {
     const int N_locs = local_tags.size();
@@ -210,7 +210,7 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
 //! are related by the DTOS. If this is not the case the behaviour will at best be caught as an
 //! assertion.
 template <class FAB, class DTOS, class Proj>
-EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
@@ -252,7 +252,7 @@ struct Array4Array4Box {
 };
 
 template <class FAB, class DTOS, class Proj>
-EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos, Proj proj) noexcept {
     int N_locs = local_tags.size();
@@ -274,7 +274,7 @@ local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
 }
 
 template <class FAB, class DTOS, class Proj>
-EnableIf_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
                         Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
@@ -349,7 +349,7 @@ MultiBlockCommMetaData::MultiBlockCommMetaData (const BoxArray& dstba, const Dis
 }
 
 template <typename DTOS>
-EnableIf_t<IsIndexMapping<DTOS>::value>
+std::enable_if_t<IsIndexMapping<DTOS>::value>
 MultiBlockCommMetaData::define (const BoxArray& dstba, const DistributionMapping& dstdm, const Box& dstbox,
                                 const BoxArray& srcba, const DistributionMapping& srcdm, const IntVect& ngrow,
                                 DTOS dtos) {
@@ -525,7 +525,7 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 #endif
 
 template <class FAB>
-amrex::EnableIf_t<IsBaseFab<FAB>::value>
+std::enable_if_t<IsBaseFab<FAB>::value>
 Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
 {
     BL_PROFILE("Rotate90");
@@ -566,14 +566,14 @@ Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box co
 }
 
 template <class FAB>
-amrex::EnableIf_t<IsBaseFab<FAB>::value>
+std::enable_if_t<IsBaseFab<FAB>::value>
 Rotate90 (FabArray<FAB>& mf, Box const& domain)
 {
     Rotate90(mf, 0, mf.nComp(), mf.nGrowVect(), domain);
 }
 
 template <class FAB>
-amrex::EnableIf_t<IsBaseFab<FAB>::value>
+std::enable_if_t<IsBaseFab<FAB>::value>
 Rotate180 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
 {
     BL_PROFILE("Rotate180");
@@ -599,14 +599,14 @@ Rotate180 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box c
 }
 
 template <class FAB>
-amrex::EnableIf_t<IsBaseFab<FAB>::value>
+std::enable_if_t<IsBaseFab<FAB>::value>
 Rotate180 (FabArray<FAB>& mf, Box const& domain)
 {
     Rotate180(mf, 0, mf.nComp(), mf.nGrowVect(), domain);
 }
 
 template <class FAB>
-amrex::EnableIf_t<IsBaseFab<FAB>::value>
+std::enable_if_t<IsBaseFab<FAB>::value>
 FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
 {
     BL_PROFILE("FillPolar");
@@ -634,7 +634,7 @@ FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box c
 }
 
 template <class FAB>
-amrex::EnableIf_t<IsBaseFab<FAB>::value>
+std::enable_if_t<IsBaseFab<FAB>::value>
 FillPolar (FabArray<FAB>& mf, Box const& domain)
 {
     FillPolar(mf, 0, mf.nComp(), mf.nGrowVect(), domain);

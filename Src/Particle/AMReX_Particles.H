@@ -609,7 +609,7 @@ public:
     * \param local whether to call redistribute after
     */
     template <class PCType,
-              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0>
+              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0>
     void copyParticles (const PCType& other, bool local=false);
 
     /**
@@ -620,7 +620,7 @@ public:
     * \param local whether to call redistribute after
     */
     template <class PCType,
-              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0>
+              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0>
     void addParticles (const PCType& other, bool local=false);
 
     /**
@@ -638,8 +638,8 @@ public:
     * \param local whether to call redistribute after
     */
     template <class F, class PCType,
-              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              amrex::EnableIf_t<! std::is_integral<F>::value, int> bar = 0>
+              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
+              std::enable_if_t<! std::is_integral<F>::value, int> bar = 0>
     void copyParticles (const PCType& other, F&&f, bool local=false);
 
     /**
@@ -656,8 +656,8 @@ public:
     * \param local whether to call redistribute after
     */
     template <class F, class PCType,
-              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              amrex::EnableIf_t<! std::is_integral<F>::value, int> bar = 0>
+              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
+              std::enable_if_t<! std::is_integral<F>::value, int> bar = 0>
     void addParticles (const PCType& other, F&& f, bool local=false);
 
     /**

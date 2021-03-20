@@ -85,11 +85,11 @@ namespace amrex
 #if defined(AMREX_USE_CUDA)
 
     template <class T>
-    struct MaybeHostDeviceRunnable<T, amrex::EnableIf_t<__nv_is_extended_device_lambda_closure_type(T)> >
+    struct MaybeHostDeviceRunnable<T, std::enable_if_t<__nv_is_extended_device_lambda_closure_type(T)> >
         : std::false_type {};
 
     template <class T>
-    struct DefinitelyNotHostRunnable<T, amrex::EnableIf_t<__nv_is_extended_device_lambda_closure_type(T)> >
+    struct DefinitelyNotHostRunnable<T, std::enable_if_t<__nv_is_extended_device_lambda_closure_type(T)> >
         : std::true_type {};
 
 #elif defined(AMREX_USE_HIP)
@@ -194,7 +194,7 @@ namespace amrex
     //                                                          [traits.Negation]
 
 
-    //! Logical traits let us combine multiple type requirements in one EnableIf_t clause.
+    //! Logical traits let us combine multiple type requirements in one enable_if_t clause.
 #if defined(__cpp_lib_logical_traits)
     template <typename... Args> using Conjunction = std::conjunction<Args...>;
     template <typename... Args> using Disjunction = std::disjunction<Args...>;
