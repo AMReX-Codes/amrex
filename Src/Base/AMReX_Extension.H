@@ -169,11 +169,9 @@
 #define AMREX_FALLTHROUGH ((void)0)
 #endif
 
-// CI uses -Werror -Wc++17-extentsion, thus we need to add the __cplusplus clause
+// CI uses -Werror -Wc++17-extension, thus we need to add the __cplusplus clause
 #if !defined(AMREX_NO_NODISCARD) && defined(__has_cpp_attribute) && __has_cpp_attribute(nodiscard) && __cplusplus >= 201603L
 #   define AMREX_NODISCARD [[nodiscard]]
-//#elif !defined(AMREX_NO_NODISCARD) && (defined(__GNUC__) || defined(__clang__))
-//#   define AMREX_NODISCARD __attribute__ ((warn_unused_result))
 #else
 #   define AMREX_NODISCARD
 #endif

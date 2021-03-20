@@ -7,6 +7,7 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_MFCopyDescriptor.H>
 
+#include <memory>
 #include <iostream>
 #include <string>
 using std::string;
@@ -15,7 +16,6 @@ using std::cerr;
 using std::endl;
 using std::strlen;
 
-#include <iostream>
 #include <fstream>
 #include <cstdio>
 using std::ios;
@@ -877,7 +877,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType /*fil
     dataGrids[LevelZero][ComponentZero]->define(fabBoxArray, dMap, NVarZero,
                                                 fabNGrow, Fab_noallocate);
     if(ParallelDescriptor::IOProcessor()) {
-      dataGrids[LevelZero][ComponentZero]->setFab(FabZero, newfab);
+      dataGrids[LevelZero][ComponentZero]->setFab(FabZero, std::unique_ptr<FArrayBox>(newfab));
     }
     dataGridsDefined[LevelZero][ComponentZero][IndexZero] = true;
     // read subsequent components
@@ -890,7 +890,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType /*fil
         newfab = new FArrayBox;
         is.seekg(0, ios::beg);
         newfab->readFrom(is, iComp);  // read the iComp component
-        dataGrids[LevelZero][iComp]->setFab(0, newfab);
+        dataGrids[LevelZero][iComp]->setFab(0, std::unique_ptr<FArrayBox>(newfab));
       }
       dataGridsDefined[LevelZero][iComp].resize(1);
       dataGridsDefined[LevelZero][iComp][IndexZero] = true;
@@ -981,7 +981,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType /*fil
         }
 #endif
 #endif
-        dataGrids[LevelZero][iComp]->setFab(FabZero, newfab);
+        dataGrids[LevelZero][iComp]->setFab(FabZero, std::unique_ptr<FArrayBox>(newfab));
       }
       dataGridsDefined[LevelZero][iComp][IndexZero] = true;
 
@@ -1721,8 +1721,9 @@ bool AmrData::DefineFab(int level, int componentIndex, int fabIndex) {
   if( ! dataGridsDefined[level][componentIndex][fabIndex]) {
     int whichVisMF(compIndexToVisMFMap[componentIndex]);
     int whichVisMFComponent(compIndexToVisMFComponentMap[componentIndex]);
-    dataGrids[level][componentIndex]->setFab(fabIndex,
-                visMF[level][whichVisMF]->readFAB(fabIndex, whichVisMFComponent));
+    dataGrids[level][componentIndex]->setFab
+        (fabIndex,
+         std::unique_ptr<FArrayBox>(visMF[level][whichVisMF]->readFAB(fabIndex, whichVisMFComponent)));
     dataGridsDefined[level][componentIndex][fabIndex] = true;
   }
   return true;

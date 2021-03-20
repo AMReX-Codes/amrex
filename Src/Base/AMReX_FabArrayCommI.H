@@ -885,7 +885,7 @@ void fbv_copy (Vector<TagT> const& tags)
 }
 
 template <class MF>
-amrex::EnableIf_t<IsFabArray<MF>::value>
+std::enable_if_t<IsFabArray<MF>::value>
 FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
               Vector<int> const& ncomp, Vector<IntVect> const& nghost,
               Vector<Periodicity> const& period, Vector<int> const& cross = {})
@@ -1139,7 +1139,7 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
 }
 
 template <class MF>
-amrex::EnableIf_t<IsFabArray<MF>::value>
+std::enable_if_t<IsFabArray<MF>::value>
 FillBoundary (Vector<MF*> const& mf, const Periodicity& a_period = Periodicity::NonPeriodic())
 {
     Vector<int> scomp(mf.size(), 0);

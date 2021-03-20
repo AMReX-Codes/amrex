@@ -2340,9 +2340,7 @@ FabArrayBase::updateBDKey ()
 #ifdef BL_USE_MPI
 
 bool
-FabArrayBase::CheckRcvStats(Vector<MPI_Status>& recv_stats,
-                            const Vector<std::size_t>& recv_size,
-                            int tag)
+CheckRcvStats (Vector<MPI_Status>& recv_stats, const Vector<std::size_t>& recv_size, int tag)
 {
     for (int i = 0, n = recv_size.size(); i < n; ++i) {
         if (recv_size[i] > 0) {

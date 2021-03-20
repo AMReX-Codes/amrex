@@ -858,13 +858,12 @@ namespace amrex
             b.shift(offset);
         }
         BoxArray nba(std::move(bl));
-        MultiFab nmf(nba, mf.DistributionMap(), mf.nComp(), 0,
-                     MFInfo().SetAlloc(false));
+        MultiFab nmf(nba, mf.DistributionMap(), mf.nComp(), 0, MFInfo().SetAlloc(false));
 
         for (MFIter mfi(r); mfi.isValid(); ++mfi) {
             auto const& rfab = r[mfi];
-            nmf.setFab(mfi, new FArrayBox(nba[mfi.index()], rfab.nComp(),
-                                          rfab.dataPtr()), false);
+            nmf.setFab(mfi, FArrayBox(amrex::shift(rfab.box(),offset), rfab.nComp(),
+                                      rfab.dataPtr()));
         }
 
         nmf.ParallelCopy(mf, period);
