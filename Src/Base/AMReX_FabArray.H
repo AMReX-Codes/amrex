@@ -351,10 +351,18 @@ public:
     Array4<typename FabArray<FAB>::value_type const> const_array (int K, int start_comp) const noexcept;
 
     //! Explicitly set the Kth FAB in the FabArray to point to elem.
-    void setFab (int K, FAB* elem);
+    void setFab (int K, std::unique_ptr<FAB> elem);
+
+    //! Explicitly set the Kth FAB in the FabArray to point to elem.
+    template <class F=FAB, std::enable_if_t<std::is_move_constructible<F>::value,int> = 0>
+    void setFab (int K, FAB&& elem);
 
     //! Explicitly set the FAB associated with mfi in the FabArray to point to elem.
-    void setFab (const MFIter&mfi, FAB* elem, bool assertion=true);
+    void setFab (const MFIter&mfi, std::unique_ptr<FAB> elem);
+
+    //! Explicitly set the FAB associated with mfi in the FabArray to point to elem.
+    template <class F=FAB, std::enable_if_t<std::is_move_constructible<F>::value,int> = 0>
+    void setFab (const MFIter&mfi, FAB&& elem);
 
     //! Release ownership of the FAB. This function is not thread safe.
     AMREX_NODISCARD
@@ -898,6 +906,8 @@ private:
     void AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
                     const Vector<std::string>& tags);
 
+    void setFab_assert (int K, FAB const& fab) const;
+
 public:
 
 #ifdef BL_USE_MPI
@@ -1223,8 +1233,10 @@ FabArray<FAB>::clear ()
 
     Long nbytes = 0L;
     for (auto x : m_fabs_v) {
-        if (x) nbytes += amrex::nBytesOwned(*x);
-        m_factory->destroy(x);
+        if (x) {
+            nbytes += amrex::nBytesOwned(*x);
+            m_factory->destroy(x);
+        }
     }
     m_fabs_v.clear();
     m_factory.reset();
@@ -1561,56 +1573,99 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
 
 template <class FAB>
 void
-FabArray<FAB>::setFab (int  boxno,
-                       FAB* elem)
+FabArray<FAB>::setFab_assert (int K, FAB const& fab) const
 {
-    //
-    // Must check it is of the proper size.
-    //
-    if (n_comp == 0) {
-        n_comp = elem->nComp();
-    }
-
-    BL_ASSERT(n_comp == elem->nComp());
-    BL_ASSERT(boxarray.size() > 0);
-    BL_ASSERT(elem->box() == fabbox(boxno));
-    BL_ASSERT(!this->defined(boxno));
-    BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
-
-    if (m_fabs_v.size() == 0) {
-      m_fabs_v.resize(indexArray.size(),nullptr);
-    }
-
-    const int li = localindex(boxno);
-    m_fabs_v[li] = elem;
+    amrex::ignore_unused(K,fab);
+    AMREX_ASSERT(n_comp == fab.nComp());
+    AMREX_ASSERT(boxarray.size() > 0);
+    AMREX_ASSERT(fab.box() == fabbox(K));
+    AMREX_ASSERT(distributionMap[K] == ParallelDescriptor::MyProc());
 }
 
 template <class FAB>
 void
-FabArray<FAB>::setFab (const MFIter& mfi,
-                       FAB* elem, bool assertion)
+FabArray<FAB>::setFab (int boxno, std::unique_ptr<FAB> elem)
 {
-    if (assertion)
-    {
-        //
-        // Must check it is of the proper size.
-        //
-        if (n_comp == 0)
-            n_comp = elem->nComp();
-
-        BL_ASSERT(n_comp == elem->nComp());
-        BL_ASSERT(boxarray.size() > 0);
-        BL_ASSERT(elem->box() == fabbox(mfi.index()));
-        BL_ASSERT(!this->defined(mfi));
-        BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());
+    if (n_comp == 0) {
+        n_comp = elem->nComp();
     }
 
+    setFab_assert(boxno, *elem);
+
     if (m_fabs_v.size() == 0) {
-      m_fabs_v.resize(indexArray.size(),nullptr);
+        m_fabs_v.resize(indexArray.size(),nullptr);
+    }
+
+    const int li = localindex(boxno);
+    if (m_fabs_v[li]) {
+        m_factory->destroy(m_fabs_v[li]);
+    }
+    m_fabs_v[li] = elem.release();
+}
+
+template <class FAB>
+template <class F, std::enable_if_t<std::is_move_constructible<F>::value,int> >
+void
+FabArray<FAB>::setFab (int boxno, FAB&& elem)
+{
+    if (n_comp == 0) {
+        n_comp = elem.nComp();
+    }
+
+    setFab_assert(boxno, elem);
+
+    if (m_fabs_v.size() == 0) {
+        m_fabs_v.resize(indexArray.size(),nullptr);
+    }
+
+    const int li = localindex(boxno);
+    if (m_fabs_v[li]) {
+        m_factory->destroy(m_fabs_v[li]);
+    }
+    m_fabs_v[li] = new FAB(std::move(elem));
+}
+
+template <class FAB>
+void
+FabArray<FAB>::setFab (const MFIter& mfi, std::unique_ptr<FAB> elem)
+{
+    if (n_comp == 0) {
+        n_comp = elem->nComp();
+    }
+
+    setFab_assert(mfi.index(), *elem);
+
+    if (m_fabs_v.size() == 0) {
+        m_fabs_v.resize(indexArray.size(),nullptr);
     }
 
     const int li = mfi.LocalIndex();
-    m_fabs_v[li] = elem;
+    if (m_fabs_v[li]) {
+        m_factory->destroy(m_fabs_v[li]);
+    }
+    m_fabs_v[li] = elem.release();
+}
+
+template <class FAB>
+template <class F, std::enable_if_t<std::is_move_constructible<F>::value,int> >
+void
+FabArray<FAB>::setFab (const MFIter& mfi, FAB&& elem)
+{
+    if (n_comp == 0) {
+        n_comp = elem.nComp();
+    }
+
+    setFab_assert(mfi.index(), elem);
+
+    if (m_fabs_v.size() == 0) {
+        m_fabs_v.resize(indexArray.size(),nullptr);
+    }
+
+    const int li = mfi.LocalIndex();
+    if (m_fabs_v[li]) {
+        m_factory->destroy(m_fabs_v[li]);
+    }
+    m_fabs_v[li] = new FAB(std::move(elem));
 }
 
 template <class FAB>

@@ -854,7 +854,7 @@ ParallelDescriptor::Bcast (T*     t,
     Lazy::EvalReduction();
 #endif
 
-    BL_ASSERT(n < std::numeric_limits<int>::max());
+    BL_ASSERT(n < static_cast<size_t>(std::numeric_limits<int>::max()));
 
     BL_PROFILE_T_S("ParallelDescriptor::Bcast(Tsi)", T);
     BL_COMM_PROFILE(BLProfiler::BCastTsi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
@@ -881,7 +881,7 @@ ParallelDescriptor::Bcast (T*     t,
         Lazy::EvalReduction();
 #endif
 
-    BL_ASSERT(n < std::numeric_limits<int>::max());
+    BL_ASSERT(n < static_cast<size_t>(std::numeric_limits<int>::max()));
 
     BL_PROFILE_T_S("ParallelDescriptor::Bcast(Tsi)", T);
     BL_COMM_PROFILE(BLProfiler::BCastTsi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
@@ -905,8 +905,8 @@ ParallelDescriptor::Gather (const T* t,
     BL_PROFILE_T_S("ParallelDescriptor::Gather(TsT1si)", T);
     BL_COMM_PROFILE(BLProfiler::GatherTsT1Si, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
-    BL_ASSERT(n  < std::numeric_limits<int>::max());
-    BL_ASSERT(n1 < std::numeric_limits<int>::max());
+    BL_ASSERT(n  < static_cast<size_t>(std::numeric_limits<int>::max()));
+    BL_ASSERT(n1 < static_cast<size_t>(std::numeric_limits<int>::max()));
 
     BL_MPI_REQUIRE( MPI_Gather(const_cast<T*>(t),
                                n,

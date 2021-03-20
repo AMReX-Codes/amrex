@@ -262,7 +262,7 @@ public:
 
     explicit FArrayBox (Array4<Real> const& a) noexcept : BaseFab<Real>(a) {}
 
-    explicit FArrayBox (Array4<Real> const& a, IndexType t) noexcept : BaseFab<Real>(a,t) {}
+    FArrayBox (Array4<Real> const& a, IndexType t) noexcept : BaseFab<Real>(a,t) {}
 
     explicit FArrayBox (Array4<Real const> const& a) noexcept : BaseFab<Real>(a) {}
 
