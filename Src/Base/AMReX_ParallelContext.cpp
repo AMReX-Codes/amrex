@@ -128,7 +128,7 @@ Frame::get_ofs_ptr ()
         return nullptr;
     } else {
         if (!m_out) {
-            m_out.reset(new std::ofstream(m_out_filename, std::ios_base::app));
+            m_out = std::make_unique<std::ofstream>(m_out_filename, std::ios_base::app);
         }
         return m_out.get();
     }

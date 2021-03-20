@@ -395,7 +395,7 @@ protected:
     void make (Vector<Vector<MultiFab> >& mf, int nc, IntVect const& ng) const;
 
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int /*amrlev*/, int /*mglev*/) const {
-        return std::unique_ptr<FabFactory<FArrayBox> >(new FArrayBoxFactory());
+        return std::make_unique<FArrayBoxFactory>();
     }
 
     bool hasHiddenDimension () const noexcept { return info.hasHiddenDimension(); }

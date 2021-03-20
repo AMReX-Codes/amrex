@@ -47,7 +47,8 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
     m_overset_mask.resize(namrlevs);
     for (int amrlev = 0; amrlev < namrlevs; ++amrlev)
     {
-        m_overset_mask[amrlev].emplace_back(new iMultiFab(a_grids[amrlev], a_dmap[amrlev], 1, 1));
+        m_overset_mask[amrlev].push_back(std::make_unique<iMultiFab>(a_grids[amrlev],
+                                                                     a_dmap[amrlev], 1, 1));
         iMultiFab::Copy(*m_overset_mask[amrlev][0], *a_overset_mask[amrlev], 0, 0, 1, 0);
         if (amrlev > 1) {
             AMREX_ALWAYS_ASSERT(amrex::refine(a_geom[amrlev-1].Domain(),2)
@@ -63,8 +64,8 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
         iMultiFab const& fine = *m_overset_mask[amrlev][mglev-1];
         if (dom.coarsenable(2) && fine.boxArray().coarsenable(2)) {
             dom.coarsen(2);
-            std::unique_ptr<iMultiFab> crse(new iMultiFab(amrex::coarsen(fine.boxArray(),2),
-                                                          fine.DistributionMap(), 1, 1));
+            auto crse = std::make_unique<iMultiFab>(amrex::coarsen(fine.boxArray(),2),
+                                                    fine.DistributionMap(), 1, 1);
             ReduceOps<ReduceOpSum> reduce_op;
             ReduceData<int> reduce_data(reduce_op);
             using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -106,8 +107,8 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
     for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev) {
         MultiFab foo(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 0, MFInfo().SetAlloc(false));
         if (! isMFIterSafe(*m_overset_mask[amrlev][mglev], foo)) {
-            std::unique_ptr<iMultiFab> osm(new iMultiFab(m_grids[amrlev][mglev],
-                                                         m_dmap[amrlev][mglev], 1, 1));
+            auto osm = std::make_unique<iMultiFab>(m_grids[amrlev][mglev],
+                                                   m_dmap[amrlev][mglev], 1, 1);
             osm->ParallelCopy(*m_overset_mask[amrlev][mglev]);
             std::swap(osm, m_overset_mask[amrlev][mglev]);
         }
@@ -115,8 +116,9 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
 
     for (amrlev = 1; amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev) { // for ref_ratio 4
-            m_overset_mask[amrlev].emplace_back(new iMultiFab(m_grids[amrlev][mglev],
-                                                              m_dmap[amrlev][mglev], 1, 1));
+            m_overset_mask[amrlev].push_back(std::make_unique<iMultiFab>(m_grids[amrlev][mglev],
+                                                                         m_dmap[amrlev][mglev],
+                                                                         1, 1));
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

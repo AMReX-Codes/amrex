@@ -600,7 +600,7 @@ knapsack (const std::vector<Long>&         wgts,
     Vector<std::unique_ptr<Vector<WeightedBox> > > raii_vwb(nprocs);
     for (int i  = 0; i < nprocs; ++i)
     {
-        raii_vwb[i].reset(new Vector<WeightedBox>);
+        raii_vwb[i] = std::make_unique<Vector<WeightedBox> >();
         wblq.push(WeightedBoxList(raii_vwb[i].get()));
     }
     Vector<WeightedBoxList> wblv;

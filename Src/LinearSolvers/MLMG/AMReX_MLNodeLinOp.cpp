@@ -43,9 +43,9 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
             m_owner_mask[amrlev][mglev] = makeOwnerMask(m_grids[amrlev][mglev],
                                                         m_dmap[amrlev][mglev],
                                                         m_geom[amrlev][mglev]);
-            m_dirichlet_mask[amrlev][mglev].reset
-                (new iMultiFab(amrex::convert(m_grids[amrlev][mglev],IntVect::TheNodeVector()),
-                               m_dmap[amrlev][mglev], 1, 0));
+            m_dirichlet_mask[amrlev][mglev] = std::make_unique<iMultiFab>
+                (amrex::convert(m_grids[amrlev][mglev],IntVect::TheNodeVector()),
+                 m_dmap[amrlev][mglev], 1, 0);
             m_dirichlet_mask[amrlev][mglev]->setVal(0); // non-Dirichlet by default
         }
     }
@@ -58,14 +58,17 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
     {
         if (amrlev < m_num_amr_levels-1)
         {
-            m_nd_fine_mask[amrlev].reset(new iMultiFab(amrex::convert(m_grids[amrlev][0],IntVect::TheNodeVector()),
-                                                       m_dmap[amrlev][0], 1, 0));
-            m_cc_fine_mask[amrlev].reset(new iMultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1));
+            m_nd_fine_mask[amrlev] = std::make_unique<iMultiFab>
+                (amrex::convert(m_grids[amrlev][0],IntVect::TheNodeVector()),
+                 m_dmap[amrlev][0], 1, 0);
+            m_cc_fine_mask[amrlev] = std::make_unique<iMultiFab>
+                (m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1);
         } else {
-            m_cc_fine_mask[amrlev].reset(new iMultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1,
-                                                       MFInfo().SetAlloc(false)));
+            m_cc_fine_mask[amrlev] = std::make_unique<iMultiFab>
+                (m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1, MFInfo().SetAlloc(false));
         }
-        m_has_fine_bndry[amrlev].reset(new LayoutData<int>(m_grids[amrlev][0], m_dmap[amrlev][0]));
+        m_has_fine_bndry[amrlev] = std::make_unique<LayoutData<int> >(m_grids[amrlev][0],
+                                                                      m_dmap[amrlev][0]);
     }
 }
 
@@ -379,11 +382,8 @@ MLNodeLinOp::makeHypreNodeLap (int bottom_verbose, const std::string& options_na
     const auto& dirichlet_mask = *(m_dirichlet_mask[0].back());
     MPI_Comm comm = BottomCommunicator();
 
-    std::unique_ptr<HypreNodeLap> hypre_solver
-        (new amrex::HypreNodeLap(ba, dm, geom, factory, owner_mask, dirichlet_mask,
-                                 comm, this, bottom_verbose, options_namespace));
-
-    return hypre_solver;
+    return std::make_unique<amrex::HypreNodeLap>(ba, dm, geom, factory, owner_mask, dirichlet_mask,
+                                                 comm, this, bottom_verbose, options_namespace);
 }
 #endif
 

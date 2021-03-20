@@ -73,9 +73,10 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
         bool allocate_sigma_mfs = m_const_sigma == Real(0.0);
 #endif
         if (allocate_sigma_mfs) {
-            m_sigma[amrlev][mglev][idim].reset
-                (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1,
-                              MFInfo(), *m_factory[amrlev][0]));
+            m_sigma[amrlev][mglev][idim] = std::make_unique<MultiFab>(m_grids[amrlev][mglev],
+                                                                      m_dmap[amrlev][mglev],
+                                                                      1, 1, MFInfo(),
+                                                                      *m_factory[amrlev][0]);
             m_sigma[amrlev][mglev][idim]->setVal(m_const_sigma);
 #ifdef AMREX_USE_EB
             m_sigma[amrlev][mglev][idim]->setDomainBndry(0.0, m_geom[amrlev][mglev]);
@@ -93,12 +94,13 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
 #ifdef AMREX_USE_EB
-        m_integral[amrlev].reset
-            (new MultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], ncomp_i, 1,
-                          MFInfo(), *m_factory[amrlev][0]));
+        m_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
+                                                        m_dmap[amrlev][0],
+                                                        ncomp_i, 1, MFInfo(),
+                                                        *m_factory[amrlev][0]);
 #else
-        m_integral[amrlev].reset
-            (new MultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], ncomp_i, 1));
+        m_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
+                                                        m_dmap[amrlev][0], ncomp_i, 1));
 #endif
     }
 #endif
@@ -246,14 +248,14 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
         if (ilev < a_rhcc.size() && a_rhcc[ilev])
         {
-            rhcc[ilev].reset(new MultiFab(a_rhcc[ilev]->boxArray(),
-                                          a_rhcc[ilev]->DistributionMap(), 1, 1));
+            rhcc[ilev] = std::make_unique<MultiFab>(a_rhcc[ilev]->boxArray(),
+                                                    a_rhcc[ilev]->DistributionMap(), 1, 1);
             rhcc[ilev]->setVal(0.0);
             MultiFab::Copy(*rhcc[ilev], *a_rhcc[ilev], 0, 0, 1, 0);
             rhcc[ilev]->FillBoundary(geom.periodicity());
 
-            rhs_cc[ilev].reset(new MultiFab(rhs[ilev]->boxArray(),
-                                            rhs[ilev]->DistributionMap(), 1, 0));
+            rhs_cc[ilev] = std::make_unique<MultiFab>(rhs[ilev]->boxArray(),
+                                                      rhs[ilev]->DistributionMap(), 1, 0);
         }
 
         const auto dxinvarr = geom.InvCellSizeArray();
@@ -375,8 +377,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         const Geometry& fgeom = m_geom[ilev+1][0];
         AMREX_ALWAYS_ASSERT(amrrr == 2 || amrrr == 4);
 
-        frhs[ilev].reset(new MultiFab(amrex::coarsen(rhs[ilev+1]->boxArray(),amrrr),
-                                      rhs[ilev+1]->DistributionMap(), 1, 0));
+        frhs[ilev] = std::make_unique<MultiFab>(amrex::coarsen(rhs[ilev+1]->boxArray(),amrrr),
+                                                rhs[ilev+1]->DistributionMap(), 1, 0);
 
         const Box& ccfdom = fgeom.Domain();
         const auto fdxinv = fgeom.InvCellSizeArray();
@@ -821,11 +823,11 @@ MLNodeLaplacian::averageDownCoeffs ()
                 {
                     if (m_sigma[amrlev][mglev][idim] == nullptr) {
                         if (mglev == 0) {
-                            m_sigma[amrlev][mglev][idim].reset
-                                (new MultiFab(*m_sigma[amrlev][mglev][0], amrex::make_alias, 0, 1));
+                            m_sigma[amrlev][mglev][idim] = std::make_unique<MultiFab>
+                                (*m_sigma[amrlev][mglev][0], amrex::make_alias, 0, 1);
                         } else {
-                            m_sigma[amrlev][mglev][idim].reset
-                                (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1));
+                            m_sigma[amrlev][mglev][idim] = std::make_unique<MultiFab>
+                                (m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1);
                             m_sigma[amrlev][mglev][idim]->setVal(0.0);
                         }
                     }
@@ -1018,10 +1020,9 @@ MLNodeLaplacian::buildStencil ()
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
             const int nghost = (0 == amrlev && mglev+1 == m_num_mg_levels[amrlev]) ? 1 : 4;
-            m_stencil[amrlev][mglev].reset
-                (new MultiFab(amrex::convert(m_grids[amrlev][mglev],
-                                             IntVect::TheNodeVector()),
-                              m_dmap[amrlev][mglev], ncomp_s, nghost));
+            m_stencil[amrlev][mglev] = std::make_unique<MultiFab>
+                (amrex::convert(m_grids[amrlev][mglev], IntVect::TheNodeVector()),
+                 m_dmap[amrlev][mglev], ncomp_s, nghost);
             m_stencil[amrlev][mglev]->setVal(0.0);
         }
 
@@ -1441,7 +1442,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
     }
     else
     {
-        mf.reset(new MultiFab(fba, fdm, 1, amrrr-1));
+        mf = std::make_unique<MultiFab>(fba, fdm, 1, amrrr-1);
         frhs = mf.get();
         MultiFab::Copy(*frhs, a_frhs, 0, 0, 1, 0);
     }
@@ -2600,7 +2601,8 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 
     std::unique_ptr<MultiFab> tmp_fine_res;
     if (amrrr == 4 && !a_fine_res.nGrowVect().allGE(IntVect(3))) {
-        tmp_fine_res.reset(new MultiFab(a_fine_res.boxArray(), a_fine_res.DistributionMap(), 1, 3));
+        tmp_fine_res = std::make_unique<MultiFab>(a_fine_res.boxArray(),
+                                                  a_fine_res.DistributionMap(), 1, 3);
         MultiFab::Copy(*tmp_fine_res, a_fine_res, 0, 0, 1, 0);
     }
     MultiFab& fine_res = (tmp_fine_res) ? *tmp_fine_res :  a_fine_res;

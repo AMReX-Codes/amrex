@@ -925,7 +925,7 @@ viscous term `divtau` explicitly:
        {
            BoxArray edge_ba = grids[lev];
            edge_ba.surroundingNodes(dir);
-           b[lev][dir].reset(new MultiFab(edge_ba, dmap[lev], 1, nghost, MFInfo(), *ebfactory[lev]));
+           b[lev][dir] = std::make_unique<MultiFab>(edge_ba, dmap[lev], 1, nghost, MFInfo(), *ebfactory[lev]);
        }
 
        average_cellcenter_to_face( GetArrOfPtrs(b[lev]), *etan[lev], geom[lev] );

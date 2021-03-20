@@ -108,15 +108,18 @@ void NodalProjector::define (LPInfo const& a_lpinfo)
     //
     if (m_sigma.empty()) {
 #ifdef AMREX_USE_EB
-        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo, m_ebfactory, m_const_sigma));
+        m_linop = std::make_unique<MLNodeLaplacian>(m_geom, ba, dm, a_lpinfo, m_ebfactory,
+                                                    m_const_sigma);
 #else
-        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo, {}, m_const_sigma));
+        m_linop = std::make_unique<MLNodeLaplacian>(m_geom, ba, dm, a_lpinfo,
+                                                    Vector<FabFactory<FArrayBox> const*>{},
+                                                    m_const_sigma);
 #endif
     } else {
 #ifdef AMREX_USE_EB
-        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo, m_ebfactory));
+        m_linop = std::make_unique<MLNodeLaplacian>(m_geom, ba, dm, a_lpinfo, m_ebfactory);
 #else
-        m_linop.reset(new MLNodeLaplacian(m_geom, ba, dm, a_lpinfo));
+        m_linop = std::make_unique<MLNodeLaplacian>(m_geom, ba, dm, a_lpinfo);
 #endif
     }
 
@@ -126,7 +129,7 @@ void NodalProjector::define (LPInfo const& a_lpinfo)
     //
     // Setup solver
     //
-    m_mlmg.reset(new MLMG(*m_linop));
+    m_mlmg = std::make_unique<MLMG>(*m_linop);
 
     setOptions();
 }

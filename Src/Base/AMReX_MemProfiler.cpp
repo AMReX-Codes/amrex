@@ -51,7 +51,7 @@ MemProfiler&
 MemProfiler::getInstance ()
 {
     if (the_instance == nullptr) {
-        the_instance.reset(new MemProfiler());
+        the_instance = std::make_unique<MemProfiler>();
     }
     return *the_instance;
 }

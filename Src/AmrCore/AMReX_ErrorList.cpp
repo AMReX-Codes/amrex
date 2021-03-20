@@ -186,7 +186,7 @@ ErrorList::add (const std::string&         name,
     //
     int n = vec.size();
     vec.resize(n+1);
-    vec[n].reset(new ErrorRec(name, nextra, typ, func));
+    vec[n] = std::make_unique<ErrorRec>(name, nextra, typ, func);
 }
 
 void
@@ -200,7 +200,7 @@ ErrorList::add (const std::string&          name,
     //
     int n = vec.size();
     vec.resize(n+1);
-    vec[n].reset(new ErrorRec(name, nextra, typ, func2));
+    vec[n] = std::make_unique<ErrorRec>(name, nextra, typ, func2);
 }
 
 const ErrorRec&

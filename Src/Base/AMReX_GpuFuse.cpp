@@ -220,7 +220,7 @@ Fuser&
 Fuser::getInstance ()
 {
     if (m_instance == nullptr) {
-        m_instance.reset(new Fuser());
+        m_instance = std::make_unique<Fuser>();
     }
     return *m_instance;
 }

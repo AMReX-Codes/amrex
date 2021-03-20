@@ -199,7 +199,7 @@ AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
     }
 
     if (lev > 0 && do_reflux) {
-        flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
+        flux_reg[lev] = std::make_unique<FluxRegister>(ba, dm, refRatio(lev-1), lev, ncomp);
     }
 
     FillCoarsePatch(lev, time, phi_new[lev], 0, ncomp);
@@ -233,7 +233,7 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
     }
 
     if (lev > 0 && do_reflux) {
-        flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
+        flux_reg[lev] = std::make_unique<FluxRegister>(ba, dm, refRatio(lev-1), lev, ncomp);
     }
 }
 
@@ -269,7 +269,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
     }
 
     if (lev > 0 && do_reflux) {
-        flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
+        flux_reg[lev] = std::make_unique<FluxRegister>(ba, dm, refRatio(lev-1), lev, ncomp);
     }
 
     MultiFab& state = phi_new[lev];
@@ -913,7 +913,7 @@ AmrCoreAdv::ReadCheckpointFile ()
         phi_new[lev].define(grids[lev], dmap[lev], ncomp, nghost);
 
         if (lev > 0 && do_reflux) {
-            flux_reg[lev].reset(new FluxRegister(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp));
+            flux_reg[lev] = std::make_unique<FluxRegister>(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp);
         }
 
         // build face velocity MultiFabs

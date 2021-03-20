@@ -25,7 +25,7 @@ std::unique_ptr<PETScABecLap>
 makePetsc (const BoxArray& grids, const DistributionMapping& dmap,
            const Geometry& geom, MPI_Comm comm_)
 {
-        return std::unique_ptr<PETScABecLap>(new PETScABecLap(grids, dmap, geom, comm_));
+    return std::make_unique<PETScABecLap>(grids, dmap, geom, comm_);
 }
 
 

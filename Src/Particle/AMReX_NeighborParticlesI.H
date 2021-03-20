@@ -141,7 +141,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         {
             const Geometry& geom = this->Geom(lev);
 
-            mask_ptr[lev].reset(new iMultiFab(ba, dmap, num_mask_comps, m_num_neighbor_cells));
+            mask_ptr[lev] = std::make_unique<iMultiFab>(ba, dmap, int(num_mask_comps), m_num_neighbor_cells);
             mask_ptr[lev]->setVal(-1, m_num_neighbor_cells);
 
 #ifdef AMREX_USE_OMP

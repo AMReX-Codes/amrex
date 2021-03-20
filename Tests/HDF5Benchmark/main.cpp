@@ -81,7 +81,7 @@ void test ()
     Vector<std::unique_ptr<MultiFab> > mf(nlevs);
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping{ba[lev]};
-        mf[lev].reset(new MultiFab(ba[lev], dmap[lev], ncomp, nghost));
+        mf[lev] = std::make_unique<MultiFab>(ba[lev], dmap[lev], ncomp, nghost);
         mf[lev]->setVal(lev);
     }
 

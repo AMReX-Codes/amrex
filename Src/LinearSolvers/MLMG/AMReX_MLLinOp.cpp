@@ -104,7 +104,7 @@ void MLLinOp::Initialize ()
     pp.query("remap_nbh_lb", remap_nbh_lb);
 
 #ifdef BL_USE_MPI
-    comm_cache.reset(new CommCache());
+    comm_cache = std::make_unique<CommCache>();
 #endif
     amrex::ExecOnFinalize(MLLinOp::Finalize);
     initialized = true;
@@ -215,7 +215,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         if (amrlev < a_factory.size()) {
             m_factory[amrlev].emplace_back(a_factory[amrlev]->clone());
         } else {
-            m_factory[amrlev].emplace_back(new FArrayBoxFactory());
+            m_factory[amrlev].push_back(std::make_unique<FArrayBoxFactory>());
         }
 
         IntVect rr = mg_coarsen_ratio_v;
@@ -255,7 +255,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     if (a_factory.size() > 0) {
         m_factory[0].emplace_back(a_factory[0]->clone());
     } else {
-        m_factory[0].emplace_back(new FArrayBoxFactory());
+        m_factory[0].push_back(std::make_unique<FArrayBoxFactory>());
     }
 
     m_domain_covered.resize(m_num_amr_levels, false);
@@ -840,7 +840,7 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
         if (flag_comm_cache) {
             comm_cache->add(key, newcomm);
         } else {
-            m_raii_comm.reset(new CommContainer(newcomm));
+            m_raii_comm = std::make_unique<CommContainer>(newcomm);
         }
 
         MPI_Group_free(&defgrp);
