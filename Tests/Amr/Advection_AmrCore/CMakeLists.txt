@@ -11,7 +11,7 @@ list(APPEND _sources Exec/Prob.H)
 
 # List of input files
 set(_input_files inputs)
-# list(TRANSFORM _input_files PREPEND "Exec/")
+list(TRANSFORM _input_files PREPEND "Exec/")
 
 setup_test(_sources _input_files)
 
