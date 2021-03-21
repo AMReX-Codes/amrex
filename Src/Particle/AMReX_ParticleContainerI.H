@@ -1009,14 +1009,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::So
 
             int ntiles = numTilesInBox(box, true, bin_size);
 
-            m_bins.build(np, pstruct_ptr, ntiles,
-                       [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> unsigned int
-                       {
-                           Box tbx;
-                           auto iv = getParticleCell(p, plo, dxi, domain);
-                           auto tid = getTileIndex(iv, box, true, bin_size, tbx);
-                           return static_cast<unsigned int>(tid);
-                       });
+            m_bins.build(np, pstruct_ptr, ntiles, GetParticleBin(plo, dxi, domain, bin_size, box));
 
             gatherParticles(ptile_tmp, ptile, np, m_bins.permutationPtr());
             ptile.swap(ptile_tmp);
