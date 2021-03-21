@@ -96,7 +96,8 @@ function (setup_test _srcs  _inputs)
 
    if (${_inputs})
       file( COPY ${${_inputs}} DESTINATION ${_exe_dir} )
-      list(APPEND _cmd ${${_inputs}})
+      get_filename_component( _inputs_filename ${${_inputs}} NAME )
+      list(APPEND _cmd ${_inputs_filename})
    endif ()
 
    #
