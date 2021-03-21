@@ -36,7 +36,7 @@ set(_sv_sources face_velocity_${AMReX_SPACEDIM}d.f90  Prob.f90)
 list(TRANSFORM _sv_sources PREPEND ${_sv_exe_dir})
 list(APPEND _sv_sources ${_sources})
 
-set(_input_files inputs inputs.tracers probin)
+set(_input_files inputs.tracers probin)
 list(TRANSFORM _input_files PREPEND ${_sv_exe_dir})
 
 setup_test(_sv_sources _input_files
