@@ -30,7 +30,7 @@ amrex::iMultiFab InitializeMultiFab(const amrex::Box& domain)
     const int ny = domain.length(1);
     for (amrex::MFIter mfi(mf); mfi.isValid(); ++mfi) {
         auto array = mf.array(mfi);
-        ParallelFor(mfi.tilebox(), [=](int i, int j, int k)
+        ParallelFor(mfi.tilebox(), AMREX_GPU_DEVICE [=](int i, int j, int k)
         {
             array(i,j,k) = i + j*nx + k*nx*ny;
         });
