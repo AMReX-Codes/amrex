@@ -269,6 +269,9 @@ endif ()
 option( AMReX_PIC "Build position-independent code" OFF)
 print_option( AMReX_PIC )
 
+option( AMReX_IPO "Enable interprocedural optimization (IPO/LTO)" OFF)
+print_option( AMReX_IPO )
+
 option(AMReX_FPE "Enable Floating Point Exceptions checks" OFF)
 print_option( AMReX_FPE )
 
