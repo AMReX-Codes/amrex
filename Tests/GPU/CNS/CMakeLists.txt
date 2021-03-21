@@ -19,7 +19,7 @@ list(TRANSFORM _sources PREPEND Source/)
 #
 ##########################################################################################
 set(_rt_sources Exec/RT/cns_prob.cpp Exec/RT/cns_prob.H Exec/RT/cns_prob_parm.H ${_sources})
-set(_input_files Exec/RT/inputs Exec/RT/inputs-rt)
+set(_input_files Exec/RT/inputs-rt)
 
 setup_test(_rt_sources _input_files
    BASE_NAME GPU_CNS_RT
@@ -34,7 +34,7 @@ unset(_rt_sources)
 #
 ##########################################################################################
 set(_sod_sources Exec/Sod/cns_prob.cpp Exec/Sod/cns_prob.H Exec/Sod/cns_prob_parm.H ${_sources})
-set(_input_files Exec/Sod/inputs Exec/Sod/inputs-rt)
+set(_input_files Exec/Sod/inputs-rt)
 
 setup_test(_sod_sources _input_files
    BASE_NAME GPU_CNS_Sod
