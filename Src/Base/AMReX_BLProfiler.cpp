@@ -769,8 +769,13 @@ void WriteStats(std::ostream &ios,
 #endif
 }
 
-
 }  // end namespace BLProfilerUtils
+
+std::ostream &operator<< (std::ostream &os, const BLProfiler::CommStats &cs) {
+  os << BLProfiler::CommStats::CFTToString(cs.cfType) << "   " << cs.size
+     << "  " << cs.commpid << "  " << cs.tag << "  " << cs.timeStamp;
+  return os;
+}
 
 void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- write basic profiling data
   amrex::ignore_unused(memCheck);

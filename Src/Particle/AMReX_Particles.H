@@ -2,22 +2,6 @@
 #define AMREX_PARTICLES_H_
 #include <AMReX_Config.H>
 
-#include <cstring>
-#include <map>
-#include <deque>
-#include <vector>
-#include <fstream>
-#include <iostream>
-#include <numeric>
-#include <algorithm>
-#include <array>
-#include <memory>
-#include <limits>
-#include <utility>
-#include <tuple>
-#include <type_traits>
-#include <random>
-
 #include <AMReX_ParticleContainerBase.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParGDB.H>
@@ -64,6 +48,21 @@
 #ifdef AMREX_USE_HDF5
 #include <hdf5.h>
 #endif
+
+#include <algorithm>
+#include <array>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <memory>
+#include <numeric>
+#include <random>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 namespace amrex {
 

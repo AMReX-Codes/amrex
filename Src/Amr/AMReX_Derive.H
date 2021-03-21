@@ -2,13 +2,13 @@
 #define AMREX_Derive_H_
 #include <AMReX_Config.H>
 
-#include <list>
-#include <string>
-
 #include <AMReX_ArrayLim.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 #include <AMReX_Interpolater.H>
+
+#include <list>
+#include <string>
 
 namespace amrex {
 

@@ -1,17 +1,3 @@
-#include <algorithm>
-#include <cstdio>
-#include <list>
-#include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <iomanip>
-#include <limits>
-#include <cmath>
-
-#ifdef AMREX_USE_OMP
-#include <omp.h>
-#endif
-
 #include <AMReX_Geometry.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_Array.H>
@@ -47,6 +33,19 @@
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrInSituBridge.H>
 #endif
+
+#ifdef AMREX_USE_OMP
+#include <omp.h>
+#endif
+
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <iostream>
+#include <iomanip>
+#include <limits>
+#include <list>
+#include <sstream>
 
 namespace amrex {
 

@@ -1,15 +1,16 @@
 
+#include <AMReX_GpuDevice.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Print.H>
+#include <AMReX_GpuLaunch.H>
+
 #include <iostream>
 #include <map>
 #include <algorithm>
 #include <string>
 #include <unordered_set>
 #include <exception>
-#include <AMReX_GpuDevice.H>
-#include <AMReX_ParallelDescriptor.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_Print.H>
-#include <AMReX_GpuLaunch.H>
 
 #if defined(AMREX_USE_CUDA)
 #include <cuda_profiler_api.h>

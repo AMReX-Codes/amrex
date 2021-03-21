@@ -2,9 +2,6 @@
 #define AMREX_VECTOR_H_
 #include <AMReX_Config.H>
 
-#include <algorithm>
-#include <vector>
-#include <memory>
 #include <AMReX_BLassert.H>
 #include <AMReX_Extension.H>
 #include <AMReX_INT.H>
@@ -12,6 +9,10 @@
 #include <AMReX_Array.H>
 #include <AMReX_TypeTraits.H>
 #endif
+
+#include <algorithm>
+#include <memory>
+#include <vector>
 
 namespace amrex {
 /**

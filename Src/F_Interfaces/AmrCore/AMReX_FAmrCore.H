@@ -2,10 +2,9 @@
 #define AMREX_FAMRCORE_H_
 #include <AMReX_Config.H>
 
-#include <functional>
-
 #include <AMReX_AmrCore.H>
 #include <AMReX_MultiFab.H>
+#include <functional>
 
 namespace amrex {
 

@@ -1,8 +1,9 @@
 
-#include <iostream>
 #include <AMReX_BLassert.H>
 #include <AMReX_ErrorList.H>
 #include <AMReX_SPACE.H>
+
+#include <iostream>
 
 namespace amrex {
 

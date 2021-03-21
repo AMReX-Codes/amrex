@@ -2,13 +2,14 @@
 #define AMREX_EBCELLFLAG_H_
 #include <AMReX_Config.H>
 
-#include <cstdint>
-#include <iostream>
-#include <map>
 #include <AMReX_Array.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_FabFactory.H>
+
+#include <cstdint>
+#include <map>
+#include <iosfwd>
 
 namespace amrex {
 

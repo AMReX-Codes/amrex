@@ -3,11 +3,11 @@
 #define BL_NFILES_H
 #include <AMReX_Config.H>
 
-#include <string>
-#include <fstream>
-
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_VisMF.H>
+
+#include <string>
+#include <iosfwd>
 
 namespace amrex {
 

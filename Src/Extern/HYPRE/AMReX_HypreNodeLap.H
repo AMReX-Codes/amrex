@@ -2,9 +2,6 @@
 #define AMREX_HYPRE_NODE_LAP_H_
 #include <AMReX_Config.H>
 
-#include <memory>
-#include <algorithm>
-
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
@@ -13,6 +10,8 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_HypreIJIface.H>
 
+#include <memory>
+#include <algorithm>
 
 namespace amrex {
 

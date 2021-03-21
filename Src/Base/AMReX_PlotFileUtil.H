@@ -2,9 +2,6 @@
 #define AMREX_PLOTFILEUTIL_H_
 #include <AMReX_Config.H>
 
-#include <string>
-#include <memory>
-
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileDataImpl.H>
@@ -12,6 +9,9 @@
 #ifdef AMREX_USE_HDF5
 #include <hdf5.h>
 #endif
+
+#include <string>
+#include <memory>
 
 namespace amrex
 {

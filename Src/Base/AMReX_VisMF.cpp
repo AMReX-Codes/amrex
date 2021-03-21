@@ -1,16 +1,3 @@
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <vector>
-#include <deque>
-#include <cerrno>
-#include <atomic>
-#include <cstdio>
-#include <limits>
-#include <array>
-#include <memory>
-#include <numeric>
-
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
@@ -19,6 +6,19 @@
 #include <AMReX_FPC.H>
 #include <AMReX_FabArrayUtility.H>
 #include <AMReX_AsyncOut.H>
+
+#include <array>
+#include <atomic>
+#include <cerrno>
+#include <cstdio>
+#include <deque>
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <numeric>
+#include <sstream>
+#include <vector>
 
 namespace amrex {
 

@@ -1,4 +1,11 @@
 
+#include <AMReX_BLassert.H>
+#include <AMReX_iMultiFab.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_BLProfiler.H>
+#include <AMReX_ParmParse.H>
+
 #include <algorithm>
 #include <cfloat>
 #include <iostream>
@@ -6,13 +13,6 @@
 #include <map>
 #include <limits>
 #include <climits>
-
-#include <AMReX_BLassert.H>
-#include <AMReX_iMultiFab.H>
-#include <AMReX_MultiFabUtil.H>
-#include <AMReX_ParallelDescriptor.H>
-#include <AMReX_BLProfiler.H>
-#include <AMReX_ParmParse.H>
 
 namespace amrex {
 

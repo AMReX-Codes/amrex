@@ -3,20 +3,6 @@
 #define BL_FABARRAY_H
 #include <AMReX_Config.H>
 
-#include <iostream>
-#include <cstring>
-#include <limits>
-#include <map>
-#include <utility>
-#include <vector>
-#include <algorithm>
-#include <set>
-#include <string>
-
-#ifdef AMREX_USE_OMP
-#include <omp.h>
-#endif
-
 #include <AMReX_BLassert.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
@@ -45,6 +31,19 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
 #endif
+
+#ifdef AMREX_USE_OMP
+#include <omp.h>
+#endif
+
+#include <cstring>
+#include <limits>
+#include <map>
+#include <utility>
+#include <vector>
+#include <algorithm>
+#include <set>
+#include <string>
 
 namespace amrex {
 

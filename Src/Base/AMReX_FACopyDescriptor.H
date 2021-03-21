@@ -4,7 +4,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_FabArray.H>
-#include <sstream>
+#include <string>
 
 namespace amrex {
 
@@ -271,10 +271,11 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
         int remoteProc     = fabArray->DistributionMap()[faindex];
         if(remoteProc >= ParallelDescriptor::NProcs()) {
-            std::ostringstream ss;
-            ss << ParallelDescriptor::MyProc() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
-               << ParallelDescriptor::NProcs() << "  " << remoteProc << "\n";
-            amrex::Abort("Bad remoteProc: "+ss.str());
+            amrex::Abort("Bad remoteProc: "
+                         + std::to_string(ParallelDescriptor::MyProc())
+                         + ":: _in AddBoxDoIt:  nProcs remoteProc = "
+                         + std::to_string(ParallelDescriptor::NProcs())
+                         + "  " + std::to_string(remoteProc) + "\n");
         }
         fcd->fillBoxId     = nextFillBoxId;
         fcd->subBox        = intersect;

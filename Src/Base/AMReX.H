@@ -13,12 +13,12 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Math.H>
 
-#include <iostream>
-#include <functional>
-#include <string>
 #include <cstdio>
-#include <vector>
+#include <functional>
+#include <iostream>
 #include <memory>
+#include <string>
+#include <vector>
 
 //
 // Initialize, Finalize, Error Reporting, and Version String Functions

@@ -1,5 +1,4 @@
 
-#include <algorithm>
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
@@ -18,6 +17,8 @@
 #include <AMReX_EB2.H>
 #include <AMReX_EBFabFactory.H>
 #endif
+
+#include <algorithm>
 
 namespace amrex {
 

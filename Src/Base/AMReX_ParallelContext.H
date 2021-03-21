@@ -6,8 +6,8 @@
 #include <AMReX_Vector.H>
 #include <AMReX_ccse-mpi.H>
 
+#include <iosfwd>
 #include <memory>
-#include <fstream>
 
 namespace amrex {
 namespace ParallelContext {

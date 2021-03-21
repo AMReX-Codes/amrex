@@ -1,6 +1,3 @@
-#include <set>
-#include <random>
-#include <limits>
 #include <AMReX_Arena.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_Print.H>
@@ -8,6 +5,10 @@
 #include <AMReX_BlockMutex.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_OpenMP.H>
+
+#include <set>
+#include <random>
+#include <limits>
 
 namespace
 {

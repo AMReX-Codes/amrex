@@ -1,5 +1,6 @@
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_Reduce.H>
+#include <iostream>
 
 namespace amrex {
 

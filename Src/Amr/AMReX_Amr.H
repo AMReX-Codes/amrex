@@ -3,18 +3,17 @@
 #define AMREX_Amr_H_
 #include <AMReX_Config.H>
 
-#include <fstream>
-#include <memory>
-#include <list>
-
 #include <AMReX_Box.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_BCRec.H>
-
 #include <AMReX_AmrCore.H>
+
+#include <iosfwd>
+#include <list>
+#include <memory>
 
 namespace amrex {
 

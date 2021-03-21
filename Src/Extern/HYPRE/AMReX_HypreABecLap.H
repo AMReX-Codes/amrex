@@ -2,10 +2,6 @@
 #define AMREX_HypreABecLap_H_
 #include <AMReX_Config.H>
 
-#include <iomanip>
-#include <iostream>
-#include <memory>
-
 #include <AMReX_Hypre.H>
 #include <AMReX_Array.H>
 #include <AMReX_Geometry.H>
@@ -15,6 +11,8 @@
 #include <AMReX_LO_BCTYPES.H>
 
 #include <HYPRE_struct_ls.h>
+
+#include <memory>
 
 namespace amrex {
 

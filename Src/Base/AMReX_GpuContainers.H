@@ -2,14 +2,14 @@
 #define AMREX_GPU_CONTAINERS_H_
 #include <AMReX_Config.H>
 
-#include <numeric>
-#include <iterator>
-
 #include <AMReX_Vector.H>
 #include <AMReX_PODVector.H>
 #include <AMReX_GpuAllocators.H>
 #include <AMReX_Scan.H>
 #include <type_traits>
+
+#include <numeric>
+#include <iterator>
 
 namespace amrex {
 
