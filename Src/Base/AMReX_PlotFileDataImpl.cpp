@@ -1,7 +1,7 @@
-#include <algorithm>
 #include <AMReX_PlotFileDataImpl.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_VisMF.H>
+#include <algorithm>
 
 namespace amrex {
 

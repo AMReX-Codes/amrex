@@ -12,6 +12,8 @@
 
 #include <AMReX_OpenMP.H>
 
+#include <iostream>
+
 namespace amrex {
 
 #ifdef AMREX_MEM_PROFILING

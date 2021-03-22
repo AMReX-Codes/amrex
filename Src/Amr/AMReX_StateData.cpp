@@ -1,8 +1,4 @@
 
-#include <iostream>
-#include <limits>
-#include <algorithm>
-
 #include <AMReX_RealBox.H>
 #include <AMReX_StateData.H>
 #include <AMReX_StateDescriptor.H>
@@ -12,6 +8,10 @@
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
+
+#include <iostream>
+#include <limits>
+#include <algorithm>
 
 namespace amrex {
 

@@ -2,18 +2,18 @@
 #define AMREX_GEOMETRY_H_
 #include <AMReX_Config.H>
 
-#include <iosfwd>
-#include <map>
-
-#ifdef AMREX_USE_OMP
-#include <omp.h>
-#endif
-
 #include <AMReX_Array.H>
 #include <AMReX_CoordSys.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_RealBox.H>
 #include <AMReX_Periodicity.H>
+
+#ifdef AMREX_USE_OMP
+#include <omp.h>
+#endif
+
+#include <iosfwd>
+#include <map>
 
 namespace amrex {
 /**

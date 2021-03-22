@@ -2,15 +2,6 @@
 #define BL_BASEUMAP_H
 #include <AMReX_Config.H>
 
-#include <cmath>
-#include <cstdlib>
-#include <algorithm>
-#include <limits>
-
-#ifdef AMREX_USE_OMP
-#include <omp.h>
-#endif
-
 #include <AMReX_BLassert.H>
 #include <AMReX_Box.H>
 #include <AMReX_BoxList.H>
@@ -20,6 +11,14 @@
 #include <AMReX_MakeType.H>
 #include <unordered_map>
 
+#ifdef AMREX_USE_OMP
+#include <omp.h>
+#endif
+
+#include <cmath>
+#include <cstdlib>
+#include <algorithm>
+#include <limits>
 
 // iv - IntVect in absolute coordiantes
 // m - variable / component

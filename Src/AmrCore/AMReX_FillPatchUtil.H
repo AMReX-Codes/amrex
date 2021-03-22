@@ -14,12 +14,12 @@
 #include <AMReX_EBFabFactory.H>
 #endif
 
-#include <cmath>
-#include <limits>
-
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
+
+#include <cmath>
+#include <limits>
 
 namespace amrex
 {

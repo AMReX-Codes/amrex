@@ -2,16 +2,14 @@
 #define AMREX_BL_BACKTRACE_H_
 #include <AMReX_Config.H>
 
-#include <stack>
-#include <string>
-#include <utility>
-#include <sstream>
-#include <cstdio>
-#include <cstdlib>
-
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
+
+#include <stack>
+#include <string>
+#include <utility>
+#include <cstdlib>
 
 #define BL_PASTE2(x, y) x##y
 #define BL_PASTE(x, y) BL_PASTE2(x, y)

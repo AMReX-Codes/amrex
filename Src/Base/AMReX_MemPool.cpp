@@ -1,11 +1,3 @@
-#include <iostream>
-#include <limits>
-#include <algorithm>
-#include <new>
-#include <memory>
-#include <cstring>
-#include <cstdint>
-
 #include <AMReX_CArena.H>
 #include <AMReX_MemPool.H>
 #include <AMReX_Vector.H>
@@ -16,6 +8,14 @@
 #endif
 
 #include <AMReX_ParmParse.H>
+
+#include <iostream>
+#include <limits>
+#include <algorithm>
+#include <new>
+#include <memory>
+#include <cstring>
+#include <cstdint>
 
 using namespace amrex;
 

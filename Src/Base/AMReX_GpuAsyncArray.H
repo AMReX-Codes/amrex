@@ -2,13 +2,14 @@
 #define AMREX_GPU_ASYNC_ARRAY_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Arena.H>
+#include <AMReX_TypeTraits.H>
+#include <AMReX_GpuDevice.H>
+
 #include <cstddef>
 #include <cstring>
 #include <cstdlib>
 #include <memory>
-#include <AMReX_Arena.H>
-#include <AMReX_TypeTraits.H>
-#include <AMReX_GpuDevice.H>
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 extern "C" {

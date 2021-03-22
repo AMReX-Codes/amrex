@@ -1,6 +1,4 @@
 
-#include <climits>
-
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IArrayBox.H>
 #include <AMReX_Geometry.H>
@@ -10,6 +8,8 @@
 #ifndef BL_NO_FORT
 #include <AMReX_INTERP_F.H>
 #endif
+
+#include <climits>
 
 namespace amrex {
 

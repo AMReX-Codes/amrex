@@ -1,11 +1,12 @@
 
-#include <algorithm>
-#include <cmath>
 #include <AMReX_Cluster.H>
 #include <AMReX_BoxDomain.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Array.H>
 #include <AMReX_BLProfiler.H>
+
+#include <algorithm>
+#include <cmath>
 
 namespace amrex {
 

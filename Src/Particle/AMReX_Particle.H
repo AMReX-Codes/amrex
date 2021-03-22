@@ -2,15 +2,14 @@
 #define AMREX_PARTICLE_H_
 #include <AMReX_Config.H>
 
-#include <string>
-
 #include <AMReX_REAL.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_RealVect.H>
-
 #include <AMReX_ParmParse.H>
 #include <AMReX_Geometry.H>
+
+#include <string>
 
 namespace amrex {
 

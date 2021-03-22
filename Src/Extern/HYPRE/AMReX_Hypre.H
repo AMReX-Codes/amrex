@@ -2,14 +2,14 @@
 #define AMREX_HYPRE_H_
 #include <AMReX_Config.H>
 
-#include <memory>
-
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_BndryData.H>
 
 #include "HYPRE.h"
 #include "_hypre_utilities.h"
+
+#include <memory>
 
 namespace amrex
 {

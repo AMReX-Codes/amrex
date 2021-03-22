@@ -1,8 +1,14 @@
 
+#include <AMReX_MemProfiler.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX.H>
+#include <AMReX_ParmParse.H>
+
 #include <limits>
 #include <numeric>
 #include <algorithm>
 #include <iomanip>
+#include <iostream>
 #include <fstream>
 
 #ifdef __linux__
@@ -10,11 +16,6 @@
 #include <sys/types.h>
 #include <sys/sysinfo.h>
 #endif
-
-#include <AMReX_MemProfiler.H>
-#include <AMReX_ParallelDescriptor.H>
-#include <AMReX.H>
-#include <AMReX_ParmParse.H>
 
 namespace amrex {
 

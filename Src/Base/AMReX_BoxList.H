@@ -3,13 +3,13 @@
 #define BL_BOXLIST_H
 #include <AMReX_Config.H>
 
-#include <iosfwd>
-
 #include <AMReX_IntVect.H>
 #include <AMReX_IndexType.H>
 #include <AMReX_Box.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
+
+#include <iosfwd>
 
 namespace amrex
 {

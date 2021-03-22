@@ -7,7 +7,7 @@
 
 #include <vector>
 #include <array>
-#include <fstream>
+#include <iosfwd>
 
 namespace amrex {
 

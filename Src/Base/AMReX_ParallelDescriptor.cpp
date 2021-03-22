@@ -1,14 +1,4 @@
 
-#include <cstdio>
-#include <cstddef>
-#include <cstdlib>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <stack>
-#include <list>
-#include <chrono>
-
 #include <AMReX.H>
 #include <AMReX_Utility.H>
 #include <AMReX_BLProfiler.H>
@@ -34,6 +24,16 @@
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
+
+#include <cstdio>
+#include <cstddef>
+#include <cstdlib>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <stack>
+#include <list>
+#include <chrono>
 
 #ifdef BL_USE_MPI
 namespace

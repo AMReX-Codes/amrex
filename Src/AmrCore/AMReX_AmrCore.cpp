@@ -1,6 +1,4 @@
 
-#include <algorithm>
-
 #include <AMReX_AmrCore.H>
 #include <AMReX_Print.H>
 
@@ -11,6 +9,9 @@
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
+
+#include <algorithm>
+#include <ostream>
 
 namespace amrex {
 

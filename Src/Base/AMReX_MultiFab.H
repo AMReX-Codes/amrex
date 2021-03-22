@@ -3,9 +3,6 @@
 #define BL_MULTIFAB_H
 #include <AMReX_Config.H>
 
-
-#include <cstdint>
-
 #include <AMReX_BLassert.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabArray.H>
@@ -15,6 +12,8 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
 #endif
+
+#include <cstdint>
 
 namespace amrex
 {

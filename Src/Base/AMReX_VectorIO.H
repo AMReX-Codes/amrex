@@ -2,11 +2,11 @@
 #define AMREX_VECTORIO_H_
 #include <AMReX_Config.H>
 
-#include <iostream>
+#include <AMReX_FPC.H>
+#include <AMReX_FabConv.H>
+#include <AMReX_IntConv.H>
 
-#include "AMReX_FPC.H"
-#include "AMReX_FabConv.H"
-#include "AMReX_IntConv.H"
+#include <iosfwd>
 
 namespace amrex {
 

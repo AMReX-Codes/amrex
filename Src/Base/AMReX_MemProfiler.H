@@ -4,12 +4,13 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_INT.H>
+
 #include <stack>
 #include <functional>
 #include <string>
 #include <vector>
 #include <map>
-#include <iostream>
+#include <iosfwd>
 #include <memory>
 
 namespace amrex {
