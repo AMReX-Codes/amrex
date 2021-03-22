@@ -421,7 +421,7 @@ public:
     static void pushRegionTag (std::string t);
     static void popRegionTag ();
 
-    static std::vector<std::string> m_region_tag;
+    static AMREX_EXPORT std::vector<std::string> m_region_tag;
     struct RegionTag {
         RegionTag (const char* t) { pushRegionTag(t); }
         RegionTag (std::string t) { pushRegionTag(std::move(t)); }
@@ -686,7 +686,7 @@ public:
                                           << "    max # of BoxArray uses: " << max_num_ba_use    << "\n";
         }
     };
-    static FabArrayStats m_FA_stats;
+    static AMREX_EXPORT FabArrayStats m_FA_stats;
 
 };
 
