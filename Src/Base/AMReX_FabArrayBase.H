@@ -307,7 +307,7 @@ public:
     * intersections among boxes into smaller tiles. This sets
     * their maximum size.
     */
-    static IntVect comm_tile_size;  //!< communication tile size
+    static AMREX_EXPORT IntVect comm_tile_size;  //!< communication tile size
 
     struct FPinfo
     {
