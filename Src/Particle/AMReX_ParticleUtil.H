@@ -295,6 +295,25 @@ int numTilesInBox (const Box& box, const bool a_do_tiling, const IntVect& a_tile
     }
 }
 
+struct GetParticleBin
+{
+    GpuArray<Real,AMREX_SPACEDIM> plo;
+    GpuArray<Real,AMREX_SPACEDIM> dxi;
+    Box domain;
+    IntVect bin_size;
+    Box box;
+
+    template <typename ParticleType>
+    AMREX_GPU_HOST_DEVICE
+    unsigned int operator() (const ParticleType& p) const noexcept
+    {
+        Box tbx;
+        auto iv = getParticleCell(p, plo, dxi, domain);
+        auto tid = getTileIndex(iv, box, true, bin_size, tbx);
+        return static_cast<unsigned int>(tid);
+    }
+};
+
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 IntVect getParticleCell (P const& p,

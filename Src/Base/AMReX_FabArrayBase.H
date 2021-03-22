@@ -292,13 +292,13 @@ public:
     };
 
     //! Default tilesize in MFIter
-    static IntVect mfiter_tile_size;
+    static AMREX_EXPORT IntVect mfiter_tile_size;
 
     //! Default tilesize in MFGhostIter
-    static IntVect mfghostiter_tile_size;
+    static AMREX_EXPORT IntVect mfghostiter_tile_size;
 
     //! The maximum number of components to copy() at a time.
-    static int MaxComp;
+    static AMREX_EXPORT int MaxComp;
 
     //! Initialize from ParmParse with "fabarray" prefix.
     static void Initialize ();
@@ -308,7 +308,7 @@ public:
     * intersections among boxes into smaller tiles. This sets
     * their maximum size.
     */
-    static IntVect comm_tile_size;  //!< communication tile size
+    static AMREX_EXPORT IntVect comm_tile_size;  //!< communication tile size
 
     struct FPinfo
     {
@@ -422,7 +422,7 @@ public:
     static void pushRegionTag (std::string t);
     static void popRegionTag ();
 
-    static std::vector<std::string> m_region_tag;
+    static AMREX_EXPORT std::vector<std::string> m_region_tag;
     struct RegionTag {
         RegionTag (const char* t) { pushRegionTag(t); }
         RegionTag (std::string t) { pushRegionTag(std::move(t)); }
@@ -687,7 +687,7 @@ public:
                                           << "    max # of BoxArray uses: " << max_num_ba_use    << "\n";
         }
     };
-    static FabArrayStats m_FA_stats;
+    static AMREX_EXPORT FabArrayStats m_FA_stats;
 
 };
 

@@ -6,9 +6,9 @@ env:
   CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -fno-operator-names"
 
 jobs:
-  # Build libamrex and all tutorials
-  tutorials-macos:
-    name: AppleClang@11.0 GFortran@9.3 [tutorials]
+  # Build libamrex and all tests
+  tests-macos:
+    name: AppleClang@11.0 GFortran@9.3 [tests]
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
@@ -20,7 +20,7 @@ jobs:
             -DBUILD_SHARED_LIBS=ON      \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DAMReX_BUILD_TUTORIALS=ON  \
+            -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_PARTICLES=ON        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=$(which ccache)
         cmake --build build --parallel 2
@@ -28,7 +28,7 @@ jobs:
         cmake -S . -B build             \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DAMReX_BUILD_TUTORIALS=ON  \
+            -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_PARTICLES=ON        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=$(which ccache)
         cmake --build build --parallel 2
