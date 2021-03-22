@@ -233,7 +233,7 @@ class NFilesIter
 
     static const int indexUndefined = -1;
 
-    static int minDigits;        //!< for Concatenate
+    static AMREX_EXPORT int minDigits;        //!< for Concatenate
 
     NFilesIter();  //!< disallow
 };

@@ -291,13 +291,13 @@ public:
     };
 
     //! Default tilesize in MFIter
-    static IntVect mfiter_tile_size;
+    static AMREX_EXPORT IntVect mfiter_tile_size;
 
     //! Default tilesize in MFGhostIter
-    static IntVect mfghostiter_tile_size;
+    static AMREX_EXPORT IntVect mfghostiter_tile_size;
 
     //! The maximum number of components to copy() at a time.
-    static int MaxComp;
+    static AMREX_EXPORT int MaxComp;
 
     //! Initialize from ParmParse with "fabarray" prefix.
     static void Initialize ();
