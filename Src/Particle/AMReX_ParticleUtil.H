@@ -303,14 +303,6 @@ struct GetParticleBin
     IntVect bin_size;
     Box box;
 
-    GetParticleBin (const GpuArray<Real,AMREX_SPACEDIM>& a_plo,
-                    const GpuArray<Real,AMREX_SPACEDIM>& a_dxi,
-                    const Box& a_domain,
-                    const IntVect& a_bin_size,
-                    const Box& a_box)
-        : plo(a_plo), dxi(a_dxi), domain(a_domain), bin_size(a_bin_size), box(a_box)
-        {}
-
     template <typename ParticleType>
     AMREX_GPU_HOST_DEVICE
     unsigned int operator() (const ParticleType& p) const noexcept
