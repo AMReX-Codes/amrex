@@ -148,6 +148,17 @@ function (configure_amrex)
         WINDOWS_EXPORT_ALL_SYMBOLS ON )
    endif ()
 
+   # IPO/LTO
+   if (AMReX_IPO)
+      include(CheckIPOSupported)
+      check_ipo_supported(RESULT is_IPO_available)
+      if(is_IPO_available)
+          set_target_properties(amrex PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+      else()
+          message(FATAL_ERROR "Interprocedural optimization is not available, set AMReX_IPO=OFF")
+      endif()
+   endif()
+
    #
    # Setup third-party profilers
    #
