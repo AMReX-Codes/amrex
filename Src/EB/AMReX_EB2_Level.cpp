@@ -414,6 +414,7 @@ Level::buildCellFlag ()
                      auto const& apz = m_areafrac[2].const_array(mfi););
         AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
         {
+            amrex::ignore_unused(k);
             build_cellflag_from_ap(AMREX_D_DECL(i,j,k),
                                    cflag, AMREX_D_DECL(apx,apy,apz));
         });

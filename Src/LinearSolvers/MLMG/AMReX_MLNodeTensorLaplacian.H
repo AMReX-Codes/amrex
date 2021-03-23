@@ -9,6 +9,7 @@ namespace amrex {
 // del dot (sigma grad phi) = rhs
 // where phi and rhs are nodal multifab, and sigma is a tensor constant.
 // It is assumed that tensor is symmetric tensor of rank AMREX_SPACEDIM.
+// Only periodic and Dirichlet are supported.
 
 class MLNodeTensorLaplacian
     : public MLNodeLinOp
@@ -64,10 +65,17 @@ public:
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final override;
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    virtual void fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
-                               Array4<int const> const& owner,
-                               Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
-                               Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const override;
+    virtual void fillIJMatrix (MFIter const& mfi,
+                               Array4<HypreNodeLap::AtomicInt const> const& gid,
+                               Array4<int const> const& lid,
+                               HypreNodeLap::Int* const ncols,
+                               HypreNodeLap::Int* const cols,
+                               Real* const mat) const override;
+
+    virtual void fillRHS (MFIter const& mfi,
+                          Array4<int const> const& lid,
+                          Real* const rhs,
+                          Array4<Real const> const& bfab) const override;
 #endif
 
 private:
