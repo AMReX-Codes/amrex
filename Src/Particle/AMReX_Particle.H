@@ -242,18 +242,24 @@ struct Particle
     }
 
     template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE RealType  rdata (int index) const &
+    AMREX_GPU_HOST_DEVICE const RealType& rdata (int index) const &
     {
         AMREX_ASSERT(index < NReal);
         return this->m_rdata[index];
     }
 
     template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE RealType  rdata (int /*index*/) const &
+    AMREX_GPU_HOST_DEVICE const RealType& rdata (int /*index*/) const &
     {
         AMREX_ALWAYS_ASSERT(false);
         return this->pos(0);  // because we must return something
     }
+
+    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE RealType rdata (int /*index*/) && = delete;
+
+    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE RealType rdata (int /*index*/) && = delete;
 
     template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE RealVect  rvec (AMREX_D_DECL(int indx, int indy, int indz)) const &
@@ -302,18 +308,24 @@ struct Particle
     }
 
     template <int U = T_NInt, typename std::enable_if<U != 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE int  idata (int index) const &
+    AMREX_GPU_HOST_DEVICE const int& idata (int index) const &
     {
         AMREX_ASSERT(index < NInt);
         return this->m_idata[index];
     }
 
     template <int U = T_NInt, typename std::enable_if<U == 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE int idata (int /*index*/) const &
+    AMREX_GPU_HOST_DEVICE const int& idata (int /*index*/) const &
     {
         AMREX_ALWAYS_ASSERT(false);
         return this->m_idcpu;  //bc we must return something
     }
+
+    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE RealType idata (int /*index*/) && = delete;
+
+    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    AMREX_GPU_HOST_DEVICE RealType idata (int /*index*/) && = delete;
 
     /**
     * \brief Returns the next particle ID for this processor.
