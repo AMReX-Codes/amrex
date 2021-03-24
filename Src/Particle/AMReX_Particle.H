@@ -255,10 +255,6 @@ struct Particle
         return this->pos(0);  // because we must return something
     }
 
-    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE RealType rdata (int /*index*/) && = delete;
-
-    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE RealType rdata (int /*index*/) && = delete;
 
     template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
@@ -321,10 +317,6 @@ struct Particle
         return this->m_idcpu;  //bc we must return something
     }
 
-    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE RealType idata (int /*index*/) && = delete;
-
-    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE RealType idata (int /*index*/) && = delete;
 
     /**
