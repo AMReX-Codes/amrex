@@ -261,6 +261,9 @@ jobs:
     # the 2021.1 DPC++ release / CMake 3.19.0-3.19.1
     # https://gitlab.kitware.com/cmake/cmake/-/issues/21551#note_869580
 
+  # MPI_C is broken since HIP 4.1
+  # https://gitlab.kitware.com/cmake/cmake/-/issues/21968
+  # https://github.com/ROCm-Developer-Tools/HIP/issues/2246
   tests-hip:
     name: HIP ROCm@3.8 GFortran@9.3 C++17 [tests]
     runs-on: ubuntu-20.04
@@ -275,16 +278,17 @@ jobs:
         hipcc --version
         mkdir build
         cd build
-        cmake ..                                           \
-            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+        cmake ..                                          \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                   \
+            -DAMReX_MPI=OFF                               \
             -DAMReX_ENABLE_TESTS=ON                       \
             -DAMReX_PARTICLES=ON                          \
             -DAMReX_FORTRAN=ON                            \
             -DAMReX_LINEAR_SOLVERS=ON                     \
             -DAMReX_GPU_BACKEND=HIP                       \
-            -DAMReX_AMD_ARCH=gfx900                              \
-            -DCMAKE_C_COMPILER=$(which hipcc)              \
-            -DCMAKE_CXX_COMPILER=$(which hipcc)            \
+            -DAMReX_AMD_ARCH=gfx900                       \
+            -DCMAKE_C_COMPILER=$(which hipcc)             \
+            -DCMAKE_CXX_COMPILER=$(which hipcc)           \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
         make -j 2
 
