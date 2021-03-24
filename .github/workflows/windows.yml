@@ -142,7 +142,7 @@ jobs:
 
   # Build libamrex and all tutorials with CUDA
   tutorials-cuda:
-    name: MSVC C++14 w/ CUDA@11.1.1 w/o Fortran w/o MPI
+    name: MSVC C++17 w/ CUDA@11.1.1 w/o Fortran w/o MPI
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
@@ -171,10 +171,9 @@ jobs:
               -DAMReX_FORTRAN=OFF        ^
               -DAMReX_MPI=OFF            ^
               -DAMReX_GPU_BACKEND=CUDA   ^
-              -DCMAKE_CXX_STANDARD=14    ^
-              -DCMAKE_CUDA_STANDARD=14   ^
-              -DAMReX_CUDA_ARCH=6.0      ^
-              -DCUDAToolkit_ROOT="C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.1"
+              -DCMAKE_CXX_STANDARD=17    ^
+              -DCMAKE_CUDA_STANDARD=17   ^
+              -DAMReX_CUDA_ARCH=6.0
         cmake --build build -j 2
     # use "cmd", see https://gitlab.kitware.com/cmake/cmake/-/issues/20281
     # -DAMReX_PARTICLES=ON
