@@ -249,7 +249,7 @@ struct Particle
     }
 
     template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE const RealType& rdata (int /*index*/) const &
+    AMREX_GPU_HOST_DEVICE RealType rdata (int /*index*/) const &
     {
         AMREX_ALWAYS_ASSERT(false);
         return this->pos(0);  // because we must return something
