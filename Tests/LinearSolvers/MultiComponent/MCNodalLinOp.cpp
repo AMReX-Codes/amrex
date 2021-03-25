@@ -1,5 +1,5 @@
 //
-// Tutorial:    MultiComponent Linear Solve
+// Test:    MultiComponent Linear Solve
 //
 // File:        MCNodalLinOp.cpp
 //
