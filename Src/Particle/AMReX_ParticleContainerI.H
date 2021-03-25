@@ -572,7 +572,24 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Increment (MultiFab& mf, int lev)
 {
-  IncrementWithTotal(mf,lev);
+    BL_PROFILE("ParticleContainer::Increment");
+
+    AMREX_ASSERT(OK());
+    if (m_particles.empty()) return;
+    AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
+    AMREX_ASSERT(numParticlesOutOfRange(*this, 0) == 0);
+
+    const auto& geom = Geom(lev);
+    const auto plo = geom.ProbLoArray();
+    const auto dxi = geom.InvCellSizeArray();
+    const auto domain = geom.Domain();
+    amrex::ParticleToMesh(*this, mf, lev,
+        [=] AMREX_GPU_DEVICE (const ParticleType& p,
+                              amrex::Array4<amrex::Real> const& count)
+        {
+            auto iv = getParticleCell(p, plo, dxi, domain);
+            amrex::Gpu::Atomic::AddNoRet(&count(iv), 1.0_rt);
+        });
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
@@ -580,66 +597,9 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
 Long
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::IncrementWithTotal (MultiFab& mf, int lev, bool local)
 {
-  BL_PROFILE("ParticleContainer::IncrementWithTotal(lev)");
-  AMREX_ASSERT(OK());
-
-  if (m_particles.empty()) return 0;
-
-  AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
-
-  AMREX_ASSERT(numParticlesOutOfRange(*this, 0) == 0);
-
-  const auto& pmap = m_particles[lev];
-
-  Long num_particles_in_domain = 0;
-
-  MultiFab* mf_pointer;
-
-  if (OnSameGrids(lev, mf))
-  {
-      // If we are already working with the internal mf defined on the
-      // particle_box_array, then we just work with this.
-      mf_pointer = &mf;
-  }
-  else
-  {
-      // If mf is not defined on the particle_box_array, then we need
-      // to make a temporary mf_pointer here and copy it into mf at the end.
-      mf_pointer = new MultiFab(ParticleBoxArray(lev),
-                                ParticleDistributionMap(lev),
-                                mf.nComp(),mf.nGrow());
-  }
-
-  ParticleLocData pld;
-  for (auto& kv : pmap) {
-      int gid = kv.first.first;
-      const auto& pbox = kv.second.GetArrayOfStructs();
-      FArrayBox&  fab  = (*mf_pointer)[gid];
-      for (int k = 0; k < pbox.numParticles(); ++ k) {
-        const ParticleType& p = pbox[k];
-        if (p.id() > 0) {
-              Where(p, pld);
-              AMREX_ASSERT(pld.m_grid == gid);
-              fab(pld.m_cell) += 1;
-              num_particles_in_domain += 1;
-          }
-      }
-  }
-
-  // If mf is not defined on the particle_box_array, then we need
-  // to copy here from mf_pointer into mf.   I believe that we don't
-  // need any information in ghost cells so we don't copy those.
-  if (mf_pointer != &mf)
-    {
-      mf.copy(*mf_pointer,0,0,mf.nComp());
-      delete mf_pointer;
-    }
-
-  if (!local) {
-      ParallelAllReduce::Sum(num_particles_in_domain, ParallelContext::CommunicatorSub());
-  }
-
-  return num_particles_in_domain;
+    BL_PROFILE("ParticleContainer::IncrementWithTotal(lev)");
+    Increment(mf, lev);
+    return TotalNumberOfParticles(true, local);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
