@@ -167,7 +167,6 @@ jobs:
         cmake -S . -B build ^
               -G Ninja      ^
               -DCMAKE_BUILD_TYPE=Release ^
-              -DAMReX_BUILD_TUTORIALS=ON ^
               -DAMReX_FORTRAN=OFF        ^
               -DAMReX_MPI=OFF            ^
               -DAMReX_GPU_BACKEND=CUDA   ^
