@@ -110,7 +110,7 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
 First git clone amrex.  Then from within the amrex repo,
 
 ```
-cd Tutorials/Advection_AmrCore/Exec
+cd Tests/Advection_AmrCore/Exec
 ```
 Note that you can choose to work entirely in 2D or in 3D ... whichever you prefer.
 The instructions below will be written for 3D but you can substitute the 2D executable.
