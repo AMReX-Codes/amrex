@@ -4,6 +4,7 @@
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_BCRec.H>
+#include <AMReX_Extension.H>
 #include <AMReX_REAL.H>
 #include <AMReX_GpuControl.H>
 
@@ -690,7 +691,7 @@ public:
 * Divergence-free interpolation on face centered data.
 */
 
-class FaceDivFree 
+class FaceDivFree
     :
     public Interpolater
 {
@@ -888,18 +889,18 @@ public:
 
 
 //! CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
-extern PCInterp                  pc_interp;
-extern NodeBilinear              node_bilinear_interp;
-extern FaceDivFree               face_divfree_interp;
-extern FaceLinear                face_linear_interp;
-extern CellConservativeLinear    lincc_interp;
-extern CellConservativeLinear    cell_cons_interp;
+extern AMREX_EXPORT PCInterp                  pc_interp;
+extern AMREX_EXPORT NodeBilinear              node_bilinear_interp;
+extern AMREX_EXPORT FaceDivFree               face_divfree_interp;
+extern AMREX_EXPORT FaceLinear                face_linear_interp;
+extern AMREX_EXPORT CellConservativeLinear    lincc_interp;
+extern AMREX_EXPORT CellConservativeLinear    cell_cons_interp;
 
 #ifndef BL_NO_FORT
-extern CellBilinear              cell_bilinear_interp;
-extern CellQuadratic             quadratic_interp;
-extern CellConservativeProtected protected_interp;
-extern CellConservativeQuartic   quartic_interp;
+extern AMREX_EXPORT CellBilinear              cell_bilinear_interp;
+extern AMREX_EXPORT CellQuadratic             quadratic_interp;
+extern AMREX_EXPORT CellConservativeProtected protected_interp;
+extern AMREX_EXPORT CellConservativeQuartic   quartic_interp;
 #endif
 
 class InterpolaterBoxCoarsener
@@ -907,7 +908,7 @@ class InterpolaterBoxCoarsener
 {
 public:
     InterpolaterBoxCoarsener (Interpolater* mapper_, const IntVect& ratio_)
-	: mapper (mapper_), ratio(ratio_) { ; }
+        : mapper (mapper_), ratio(ratio_) { ; }
 
     /**
     *

@@ -433,6 +433,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PIC                    |  Build Position Independent Code                | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_IPO                    |  Interprocedural optimization (IPO/LTO)         | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_MPI                    |  Build with MPI support                         | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_OMP                    |  Build with OpenMP support                      | NO                      | YES, NO               |
@@ -485,13 +487,13 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PLOTFILE_TOOLS         |  Build and install plotfile postprocessing tools| NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_BUILD_TUTORIALS        |  Build tutorials                                | NO                      | YES, NO               |
-   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_ENABLE_TESTS           |  Enable CTest suite                             | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_DIFFERENT_COMPILER     |  Allow an app to use a different compiler       | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_INSTALL                |  Generate Install Targets                       | YES                     | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_PROBINIT               |  Enable support for probin file                 | Platform dependent      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
 .. raw:: latex
 
@@ -514,38 +516,6 @@ they will be initialized with the value of the environmental variables ``FFLAGS`
 are defined, AMReX default flags are used.
 
 For a detailed explanation of GPU support in AMReX CMake, refer to section :ref:`sec:gpu:build`.
-
-
-Building Tutorials
-------------------
-
-In order to build the tutorials provided in ``Tutorials/`` alongside the AMReX library,
-follows these steps:
-
-.. highlight:: console
-
-::
-
-    mkdir /path/to/builddir
-    cd    /path/to/builddir
-    cmake [options]  -DAMReX_BUILD_TUTORIALS=YES  /path/to/amrex
-    make
-
-
-Note that only the tutorials compatible with ``[options]`` will be built.
-To run one of the tutorials, do:
-
-.. highlight:: console
-
-::
-
-    cd  /path/to/builddir/Tutorials/group/name
-    ./Tutorial_group_name [input_file]
-
-
-``[input_file]`` is any of the input files required by the tutorials and located in
-``/path/to/builddir/Tutorials/group/name/``
-
 
 CMake and macOS
 ---------------

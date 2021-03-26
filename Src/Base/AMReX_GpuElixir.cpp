@@ -54,6 +54,7 @@ Elixir::clear () noexcept
                                                        amrex_elixir_delete, (void*)p, 0));
 #endif
 #elif defined(AMREX_USE_DPCPP)
+#ifdef AMREX_USE_CODEPLAY_HOST_TASK
             auto lpa = std::move(m_pa);
             auto& q = *(Gpu::gpuStream().queue);
             try {
@@ -67,6 +68,13 @@ Elixir::clear () noexcept
             } catch (sycl::exception const& ex) {
                 amrex::Abort(std::string("host_task: ")+ex.what()+"!!!!!");
             }
+#else
+            // xxxxx DPCPP todo
+            Gpu::streamSynchronize();
+            for (auto const& pa : m_pa) {
+                pa.second->free(pa.first);
+            }
+#endif
 #endif
         }
     }

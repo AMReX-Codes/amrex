@@ -14,7 +14,7 @@ namespace amrex {
 
 namespace detail
 {
-    template <typename T, typename F>    
+    template <typename T, typename F>
     int amrex_partition_helper (T const* AMREX_RESTRICT pv, T* AMREX_RESTRICT pv2, int n, F && f)
     {
         return Scan::PrefixSum<int> (n,
@@ -61,11 +61,11 @@ namespace detail
  *
  * After calling this, all the items for which the predicate is true
  * will be before the items for which the predicate is false in the
- * input array. 
+ * input array.
  *
- * This version is not stable, if you want that behavior use 
+ * This version is not stable, if you want that behavior use
  * amrex::StablePartition instead.
- * 
+ *
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
@@ -75,9 +75,9 @@ namespace detail
  * \param f predicate function that returns 1 or 0 for each input
  *
  * Returns the index of the first element for which f is 0.
- */    
+ */
 template <typename T, typename F>
-int Partition (T* data, int beg, int end, F && f)    
+int Partition (T* data, int beg, int end, F && f)
 {
     int n = end - beg;
     Gpu::DeviceVector<T> v2(n);
@@ -91,11 +91,11 @@ int Partition (T* data, int beg, int end, F && f)
  *
  * After calling this, all the items for which the predicate is true
  * will be before the items for which the predicate is false in the
- * input array. 
+ * input array.
  *
- * This version is not stable, if you want that behavior use 
+ * This version is not stable, if you want that behavior use
  * amrex::StablePartition instead.
- * 
+ *
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
@@ -104,7 +104,7 @@ int Partition (T* data, int beg, int end, F && f)
  * \param f predicate function that returns 1 or 0 for each input
  *
  * Returns the index of the first element for which f is 0.
- */        
+ */
 template <typename T, typename F>
 int Partition (T* data, int n, F && f)
 {
@@ -116,11 +116,11 @@ int Partition (T* data, int n, F && f)
  *
  * After calling this, all the items for which the predicate is true
  * will be before the items for which the predicate is false in the
- * input array. 
+ * input array.
  *
- * This version is not stable, if you want that behavior use 
+ * This version is not stable, if you want that behavior use
  * amrex::StablePartition instead.
- * 
+ *
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
@@ -144,13 +144,13 @@ int Partition (Gpu::DeviceVector<T>& v, F && f)
  *
  * After calling this, all the items for which the predicate is true
  * will be before the items for which the predicate is false in the
- * input array. 
+ * input array.
  *
  * This version is stable, meaning that, within each side of the resulting
  * array, order is maintained  - if element i was before element j in the input,
  * then it will also be before j in the output. If you don't care about this property,
  * use amrex::Partition instead.
- * 
+ *
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
@@ -175,13 +175,13 @@ int StablePartition (T* data, int beg, int end, F && f)
  *
  * After calling this, all the items for which the predicate is true
  * will be before the items for which the predicate is false in the
- * input array. 
+ * input array.
  *
  * This version is stable, meaning that, within each side of the resulting
  * array, order is maintained  - if element i was before element j in the input,
  * then it will also be before j in the output. If you don't care about this property,
  * use amrex::Partition instead.
- * 
+ *
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
@@ -190,7 +190,7 @@ int StablePartition (T* data, int beg, int end, F && f)
  * \param f predicate function that returns 1 or 0 for each input
  *
  * Returns the index of the first element for which f is 0.
- */            
+ */
 template <typename T, typename F>
 int StablePartition (T* data, int n, F && f)
 {
@@ -202,13 +202,13 @@ int StablePartition (T* data, int n, F && f)
  *
  * After calling this, all the items for which the predicate is true
  * will be before the items for which the predicate is false in the
- * input array. 
+ * input array.
  *
  * This version is stable, meaning that, within each side of the resulting
  * array, order is maintained  - if element i was before element j in the input,
  * then it will also be before j in the output. If you don't care about this property,
  * use amrex::Partition instead.
- * 
+ *
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
@@ -216,13 +216,13 @@ int StablePartition (T* data, int n, F && f)
  * \param f predicate function that returns 1 or 0 for each input
  *
  * Returns the index of the first element for which f is 0.
- */    
+ */
 template <typename T, typename F>
 int StablePartition (Gpu::DeviceVector<T>& v, F && f)
 {
     int n = Partition(v, std::forward<F>(f));
     int n2 = static_cast<int>(v.size()) - n;
-    detail::amrex_stable_partition_helper(v.dataPtr() + n, n2);    
+    detail::amrex_stable_partition_helper(v.dataPtr() + n, n2);
     return n;
 }
 
@@ -233,11 +233,11 @@ int StablePartition (Gpu::DeviceVector<T>& v, F && f)
  *
  * After calling this, all the items for which the predicate is true
  * will be before the items for which the predicate is false in the
- * input array. 
+ * input array.
  *
- * This version is not stable, if you want that behavior use 
+ * This version is not stable, if you want that behavior use
  * amrex::StablePartition instead.
- * 
+ *
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
@@ -249,10 +249,10 @@ int StablePartition (Gpu::DeviceVector<T>& v, F && f)
  * Returns the index of the first element for which f is 0.
  */
 template <typename T, typename F>
-int Partition (T* data, int beg, int end, F && f)    
+int Partition (T* data, int beg, int end, F && f)
 {
     auto it = std::partition(data + beg, data + end, f);
-    return static_cast<int>(std::distance(data + beg, it));    
+    return static_cast<int>(std::distance(data + beg, it));
 }
 
 /**
@@ -260,11 +260,11 @@ int Partition (T* data, int beg, int end, F && f)
  *
  * After calling this, all the items for which the predicate is true
  * will be before the items for which the predicate is false in the
- * input array. 
+ * input array.
  *
- * This version is not stable, if you want that behavior use 
+ * This version is not stable, if you want that behavior use
  * amrex::StablePartition instead.
- * 
+ *
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
@@ -273,7 +273,7 @@ int Partition (T* data, int beg, int end, F && f)
  * \param f predicate function that returns 1 or 0 for each input
  *
  * Returns the index of the first element for which f is 0.
- */            
+ */
 template <typename T, typename F>
 int Partition (T* data, int n, F && f)
 {
@@ -285,11 +285,11 @@ int Partition (T* data, int n, F && f)
  *
  * After calling this, all the items for which the predicate is true
  * will be before the items for which the predicate is false in the
- * input array. 
+ * input array.
  *
- * This version is not stable, if you want that behavior use 
+ * This version is not stable, if you want that behavior use
  * amrex::StablePartition instead.
- * 
+ *
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
@@ -297,7 +297,7 @@ int Partition (T* data, int n, F && f)
  * \param f predicate function that returns 1 or 0 for each input
  *
  * Returns the index of the first element for which f is 0.
- */    
+ */
 template <typename T, typename F>
 int Partition (Gpu::DeviceVector<T>& v, F && f)
 {
@@ -310,13 +310,13 @@ int Partition (Gpu::DeviceVector<T>& v, F && f)
  *
  * After calling this, all the items for which the predicate is true
  * will be before the items for which the predicate is false in the
- * input array. 
+ * input array.
  *
  * This version is stable, meaning that, within each side of the resulting
  * array, order is maintained  - if element i was before element j in the input,
  * then it will also be before j in the output. If you don't care about this property,
  * use amrex::Partition instead.
- * 
+ *
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
@@ -326,12 +326,12 @@ int Partition (Gpu::DeviceVector<T>& v, F && f)
  * \param f predicate function that returns 1 or 0 for each input
  *
  * Returns the index of the first element for which f is 0.
- */    
+ */
 template <typename T, typename F>
-int StablePartition (T* data, int beg, int end, F && f)    
+int StablePartition (T* data, int beg, int end, F && f)
 {
     auto it = std::stable_partition(data + beg, data + end, f);
-    return static_cast<int>(std::distance(data + beg, it));    
+    return static_cast<int>(std::distance(data + beg, it));
 }
 
 /**
@@ -339,13 +339,13 @@ int StablePartition (T* data, int beg, int end, F && f)
  *
  * After calling this, all the items for which the predicate is true
  * will be before the items for which the predicate is false in the
- * input array. 
+ * input array.
  *
  * This version is stable, meaning that, within each side of the resulting
  * array, order is maintained  - if element i was before element j in the input,
  * then it will also be before j in the output. If you don't care about this property,
  * use amrex::Partition instead.
- * 
+ *
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
@@ -354,7 +354,7 @@ int StablePartition (T* data, int beg, int end, F && f)
  * \param f predicate function that returns 1 or 0 for each input
  *
  * Returns the index of the first element for which f is 0.
- */                
+ */
 template <typename T, typename F>
 int StablePartition (T* data, int n, F && f)
 {
@@ -366,13 +366,13 @@ int StablePartition (T* data, int n, F && f)
  *
  * After calling this, all the items for which the predicate is true
  * will be before the items for which the predicate is false in the
- * input array. 
+ * input array.
  *
  * This version is stable, meaning that, within each side of the resulting
  * array, order is maintained  - if element i was before element j in the input,
  * then it will also be before j in the output. If you don't care about this property,
  * use amrex::Partition instead.
- * 
+ *
  * \tparam T type of the data to be partitioned.
  * \tparam F type of the predicate function.
  *
@@ -380,7 +380,7 @@ int StablePartition (T* data, int n, F && f)
  * \param f predicate function that returns 1 or 0 for each input
  *
  * Returns the index of the first element for which f is 0.
- */        
+ */
 template <typename T, typename F>
 int StablePartition (Gpu::DeviceVector<T>& v, F && f)
 {

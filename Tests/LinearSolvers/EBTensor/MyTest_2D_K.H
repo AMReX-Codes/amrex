@@ -4,7 +4,7 @@
 #include <AMReX_FArrayBox.H>
 
 inline void init (amrex::Real x, amrex::Real y, amrex::Real R2,
-                  amrex::Real& u, amrex::Real& v, 
+                  amrex::Real& u, amrex::Real& v,
                   amrex::Real& urhs, amrex::Real& vrhs,
                   amrex::Real& eta)
 {

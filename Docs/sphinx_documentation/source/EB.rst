@@ -226,7 +226,7 @@ procedure for this goes as follows:
 
    Real operator() (const Array<Real,AMREX_SPACEDIM>& p) const;
 
-- Make a :cpp:`EB2::GeometryShop` object using the implicit function. 
+- Make a :cpp:`EB2::GeometryShop` object using the implicit function.
 
 - Build an :cpp:`EB2::IndexSpace` with the :cpp:`EB2::GeometryShop` object and a
   :cpp:`Geometry` object that contains the information about the domain and the
@@ -382,7 +382,7 @@ format of basic AMReX objects such as :cpp:`BaseFab`, :cpp:`FArrayBox`,
                         const Vector<int>& a_ngrow,
                         EBSupport a_support);
 
-or 
+or
 
 .. highlight: c++
 
@@ -405,11 +405,11 @@ needed.
 - :cpp:`EBSupport:full`: volume plus area fraction, boundary centroid
   and face centroid
 
-:cpp:`EBFArrayBoxFactory` is derived from :cpp:`FabFactory<FArrayBox>`.  
+:cpp:`EBFArrayBoxFactory` is derived from :cpp:`FabFactory<FArrayBox>`.
 :cpp:`MultiFab` constructors have an optional argument :cpp:`const
 FabFactory<FArrayBox>&`.  We can use :cpp:`EBFArrayBoxFactory` to
 build :cpp:`MultiFab`\ s that carry EB data.  Member function of
-:cpp:`FabArray` 
+:cpp:`FabArray`
 
 .. highlight: c++
 
@@ -503,7 +503,7 @@ it to determine if a box contains cut cells.
 
     auto const& flags = factory->getMultiEBCellFlagFab();
     MultiCutFab const& centroid = factory->getCentroid();
-    
+
     for (MFIter mfi ...) {
         const Box& bx = mfi.tilebox();
         FabType t = flags[mfi].getType(bx);
@@ -544,20 +544,20 @@ testing cell types and getting neighbor information. For example
                 else if (is_single_valued_cell(flags(i,j,k))) then
                     ! this is a cut cell
                 end if
-            end do     
-        end do     
-    end do     
+            end do
+        end do
+    end do
 
 
 Linear Solvers
 ==============
 
 Linear solvers for the canonical form (equation :eq:`eqn::abeclap`)
-have been discussed in chapter :ref:`Chap:LinearSolvers`.  
+have been discussed in chapter :ref:`Chap:LinearSolvers`.
 
-AMReX supports multi-level 
-1) cell-centered solvers with homogeneous Neumann, homogeneous Dirichlet, 
-or inhomogeneous Dirichlet boundary conditions on the EB faces, and 
+AMReX supports multi-level
+1) cell-centered solvers with homogeneous Neumann, homogeneous Dirichlet,
+or inhomogeneous Dirichlet boundary conditions on the EB faces, and
 2) nodal solvers with homogeneous Neumann boundary conditions on the EB faces.
 
 To use a cell-centered solver with EB, one builds a linear operator
@@ -601,9 +601,9 @@ where phi_on_eb is the MultiFab holding the Dirichlet values in every cut cell,
 and coeff again is a real number (i.e. the value is the same at every cell)
 or a MultiFab holding the coefficient of the gradient at each cell with an EB face.
 
-Currently there are options to define the face-based coefficients on 
+Currently there are options to define the face-based coefficients on
 face centers vs face centroids, and to interpret the solution variable
-as being defined on cell centers vs cell centroids.   
+as being defined on cell centers vs cell centroids.
 
 The default is for the solution variable to be defined at cell centers;
 to tell the solver to interpret the solution variable as living

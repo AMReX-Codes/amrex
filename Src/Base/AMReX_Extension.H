@@ -41,13 +41,13 @@
 // simd
 
 #if defined(AMREX_DEBUG)
-#define AMREX_PRAGMA_SIMD 
+#define AMREX_PRAGMA_SIMD
 
 #elif defined(__CUDA_ARCH__)
-#define AMREX_PRAGMA_SIMD 
+#define AMREX_PRAGMA_SIMD
 
 #elif defined(__HIP_DEVICE_COMPILE__)
-#define AMREX_PRAGMA_SIMD 
+#define AMREX_PRAGMA_SIMD
 
 //#elif defined(AMREX_USE_OMP) && defined(_OPENMP) && (_OPENMP >= 201307) && !defined(__PGI)
 //#define AMREX_PRAGMA_SIMD _Pragma("omp simd")
@@ -62,7 +62,7 @@
 #define AMREX_PRAGMA_SIMD _Pragma("loop ivdep")
 
 #elif defined(__NEC__)
-#define AMREX_PRAGMA_SIMD 
+#define AMREX_PRAGMA_SIMD
 
 #elif defined(__ibmxl__)
 #define AMREX_PRAGMA_SIMD _Pragma("ibm independent_loop")
@@ -74,7 +74,7 @@
 #define AMREX_PRAGMA_SIMD _Pragma("GCC ivdep")
 
 #else
-#define AMREX_PRAGMA_SIMD 
+#define AMREX_PRAGMA_SIMD
 
 #endif /* simd */
 
@@ -130,11 +130,29 @@
 // __attribute__((weak))
 
 #if defined(AMREX_TYPECHECK)
-#define AMREX_ATTRIBUTE_WEAK 
+#define AMREX_ATTRIBUTE_WEAK
 #elif defined(_WIN32)
 #define AMREX_ATTRIBUTE_WEAK
+#elif defined(__clang__) && defined(__apple_build_version__)
+#define AMREX_ATTRIBUTE_WEAK __attribute__((weak_import))
 #else
 #define AMREX_ATTRIBUTE_WEAK __attribute__((weak))
+#endif
+
+// public globals
+// https://stackoverflow.com/questions/54560832/cmake-windows-export-all-symbols-does-not-cover-global-variables/54568678#54568678
+#if defined(_MSC_VER)
+#   if defined(AMREX_IS_DLL)
+#       if defined(AMREX_IS_DLL_BUILDING)
+#           define AMREX_EXPORT __declspec(dllexport)
+#       else
+#           define AMREX_EXPORT __declspec(dllimport)
+#       endif
+#   else
+#       define AMREX_EXPORT
+#   endif
+#else
+#   define AMREX_EXPORT
 #endif
 
 #if defined(__cplusplus) && defined(_WIN32)
@@ -149,6 +167,25 @@
 #define AMREX_FALLTHROUGH [[gnu::fallthrough]]
 #else
 #define AMREX_FALLTHROUGH ((void)0)
+#endif
+
+// CI uses -Werror -Wc++17-extension, thus we need to add the __cplusplus clause
+#if !defined(AMREX_NO_NODISCARD) && defined(__has_cpp_attribute) && __has_cpp_attribute(nodiscard) && __cplusplus >= 201603L
+#   define AMREX_NODISCARD [[nodiscard]]
+#else
+#   define AMREX_NODISCARD
+#endif
+
+// Note: following compilers support [[no_unique_address]]
+//   - Clang >= 9.0
+//   - GCC >= 9.0
+//   - MSVC >= 19.26
+// Using no unique address makes empty base class optimization for multiple policies much easier
+#if !defined(AMREX_NO_NO_UNIQUE_ADDRESS) && defined(__has_cpp_attribute) && __has_cpp_attribute(no_unique_address) && __cpluspus >= 201803L
+#   define AMREX_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#   define AMREX_HAS_NO_UNIQUE_ADDRESS 1
+#else
+#   define AMREX_NO_UNIQUE_ADDRESS
 #endif
 
 #endif /* !BL_LANG_FORT */

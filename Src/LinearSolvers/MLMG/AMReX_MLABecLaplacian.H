@@ -95,6 +95,8 @@ public:
 
     void applyMetricTermsCoeffs ();
 
+    void applyRobinBCTermsCoeffs ();
+
     static void FFlux (Box const& box, Real const* dxinv, Real bscalar,
                        Array<FArrayBox const*, AMREX_SPACEDIM> const& bcoef,
                        Array<FArrayBox*,AMREX_SPACEDIM> const& flux,
@@ -110,6 +112,8 @@ protected:
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
 
     Vector<int> m_is_singular;
+
+    virtual bool supportRobinBC () const noexcept override { return true; }
 
 private:
 

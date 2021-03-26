@@ -2,9 +2,6 @@
 #define AMREX_ErrorList_H_
 #include <AMReX_Config.H>
 
-#include <string>
-#include <memory>
-
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_REAL.H>
@@ -12,6 +9,9 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_Geometry.H>
+
+#include <string>
+#include <memory>
 
 namespace amrex {
 
@@ -83,7 +83,7 @@ extern "C"
     */
     typedef void (*ErrorFunc3DDefault)(int* tag, const int* tlo, const int* thi,
                                        const int* tagval, const int* clearval,
-         			       amrex::Real* data, const int* data_lo, const int* data_hi,
+                                       amrex::Real* data, const int* data_lo, const int* data_hi,
                                        const int* lo, const int * hi, const int* nvar,
                                        const int* domain_lo, const int* domain_hi,
                                        const amrex::Real* dx, const amrex::Real* xlo,

@@ -115,16 +115,6 @@ get_property(_amrex_targets
    PROPERTY BUILDSYSTEM_TARGETS)
 
 #
-# Tutorials and "test_install" target
-#
-option(AMReX_BUILD_TUTORIALS "Build tutorials" NO)
-
-if (AMReX_BUILD_TUTORIALS)
-   message(STATUS "Enabling Tutorials")
-   add_subdirectory(Tutorials)
-endif ()
-
-#
 # Plotfile tools
 #
 option(AMReX_PLOTFILE_TOOLS "Enable Plotfile tools" NO)
@@ -143,7 +133,6 @@ endif ()
 #
 # Install amrex  -- Export
 #
-option(AMReX_INSTALL "Generate Install Targets" YES)
 if(AMReX_INSTALL)
     include(AMReXInstallHelpers)
     install_amrex_targets(${_amrex_targets})

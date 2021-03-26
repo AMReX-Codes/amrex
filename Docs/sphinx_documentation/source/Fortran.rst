@@ -18,7 +18,7 @@ functionality, the "AmrCore" directory wraps around the :cpp:`AmrCore` class
 support for octree type of AMR grids. Each directory has a "Make.package" file
 that can be included in make files (see ``amrex/Tutorials/Basic/HelloWorld_F`` and
 ``amrex/Tutorials/Amr/Advection_F`` for examples). The libamrex approach includes the
-Fortran interface by default. 
+Fortran interface by default.
 
 A simple example can be found at ``amrex/Tutorials/Basic/HelloWorld_F/``. The source code
 is shown below in its entirety.
@@ -176,7 +176,7 @@ There are many type-bound procedures for :fortran:`amrex_multifab`. For example
 
       ncomp   ! Return the number of components
       nghost  ! Return the number of ghost cells
-      setval  ! Set the data to the given value 
+      setval  ! Set the data to the given value
       copy    ! Copy data from given amrex_multifab to this amrex_multifab
 
 Note that the copy function here only works on copying data from another
@@ -275,7 +275,7 @@ example,
                   ! Then mf2 becomes a shallow copy of mf1.
                   ! mf1 is still the owner of the data.
       call amrex_multifab_destroy(mf1)
-      ! mf2 no longer contains a valid pointer because mf1 has been destroyed. 
+      ! mf2 no longer contains a valid pointer because mf1 has been destroyed.
       call amrex_multifab_destroy(mf2)  ! But we still need to destroy it.
 
 If we need to transfer the ownership, :fortran:`amrex_multifab`,
@@ -313,7 +313,7 @@ infrastructure. With AMR, the main program might look like below,
 
       program main
         use amrex_amr_module
-        implicit none  
+        implicit none
         call amrex_init()
         call amrex_amrcore_init()
         call my_amr_init()       ! user's own code, not part of AMReX
@@ -364,13 +364,13 @@ interfaces:
         real(amrex_real), intent(in), value :: time
         type(c_ptr), intent(in), value :: ba, dm
       end subroutine amrex_make_level_proc
-      
+
       subroutine amrex_clear_level_proc (lev) bind(c)
         import
         implicit none
         integer, intent(in) , value :: lev
       end subroutine amrex_clear_level_proc
-      
+
       subroutine amrex_error_est_proc (lev, tags, time, tagval, clearval) bind(c)
         import
         implicit none

@@ -3,11 +3,11 @@
 #define BL_NFILES_H
 #include <AMReX_Config.H>
 
-#include <string>
-#include <fstream>
-
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_VisMF.H>
+
+#include <string>
+#include <iosfwd>
 
 namespace amrex {
 
@@ -148,7 +148,7 @@ class NFilesIter
         return(whichProc % anf);
       } else {
 
-	    int nProcs(ParallelDescriptor::NProcs());
+        int nProcs(ParallelDescriptor::NProcs());
         return(whichProc / LengthOfSet(nProcs, anf));
       }
     }
@@ -158,13 +158,13 @@ class NFilesIter
 
     static std::string FileName(int nOutFiles,
                                 const std::string &filePrefix,
-				int whichProc, bool groupSets)
+                                int whichProc, bool groupSets)
     {
       BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
 
       return ( amrex::Concatenate(filePrefix,
                                    FileNumber(ActualNFiles(nOutFiles),
-				              whichProc, groupSets), minDigits ) );
+                                              whichProc, groupSets), minDigits ) );
     }
 
     static std::string FileName(int fileNumber,
@@ -233,7 +233,7 @@ class NFilesIter
 
     static const int indexUndefined = -1;
 
-    static int minDigits;        //!< for Concatenate
+    static AMREX_EXPORT int minDigits;        //!< for Concatenate
 
     NFilesIter();  //!< disallow
 };

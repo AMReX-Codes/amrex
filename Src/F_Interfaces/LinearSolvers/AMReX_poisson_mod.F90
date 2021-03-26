@@ -18,7 +18,7 @@ module amrex_poisson_module
   end type amrex_poisson
 
   ! interfaces to C++ functions
-  
+
   interface
      subroutine amrex_fi_new_poisson (poisson,n,gm,ba,dm,mt,agg,con,mcl) bind(c)
        import

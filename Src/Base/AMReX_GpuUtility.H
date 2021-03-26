@@ -11,7 +11,7 @@
 #include <AMReX_INT.H>
 #include <AMReX_Array.H>
 #include <AMReX_Array4.H>
-#include <iostream>
+#include <iosfwd>
 #include <cmath>
 #include <cstring>
 
@@ -164,7 +164,7 @@ namespace Gpu {
     struct StreamItInfo
     {
         bool device_sync;
-        StreamItInfo () noexcept 
+        StreamItInfo () noexcept
             : device_sync(true) {}
         StreamItInfo& DisableDeviceSync () noexcept {
             device_sync = false;

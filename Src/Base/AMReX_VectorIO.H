@@ -2,11 +2,11 @@
 #define AMREX_VECTORIO_H_
 #include <AMReX_Config.H>
 
-#include <iostream>
+#include <AMReX_FPC.H>
+#include <AMReX_FabConv.H>
+#include <AMReX_IntConv.H>
 
-#include "AMReX_FPC.H"
-#include "AMReX_FabConv.H"
-#include "AMReX_IntConv.H"
+#include <iosfwd>
 
 namespace amrex {
 
@@ -24,7 +24,7 @@ namespace amrex {
 
     //! Read int data from the istream. The arguments are a pointer to data buffer
     //! to read into, the size of that buffer, the istream, and an IntDescriptor
-    //! that describes the format of the data on disk. 
+    //! that describes the format of the data on disk.
     //! The buffer is assumed to be large enough to store 'size' integers, and it is
     //! the user's reponsiblity to allocate this data.
     void readIntData(int* data, std::size_t size, std::istream& is, const IntDescriptor& id);
@@ -39,7 +39,7 @@ namespace amrex {
 
     //! Read int data from the istream. The arguments are a pointer to data buffer
     //! to read into, the size of that buffer, the istream, and an IntDescriptor
-    //! that describes the format of the data on disk. 
+    //! that describes the format of the data on disk.
     //! The buffer is assumed to be large enough to store 'size' longs, and it is
     //! the user's reponsiblity to allocate this data.
     void readLongData(Long* data, std::size_t size, std::istream& is, const IntDescriptor& id);
@@ -48,7 +48,7 @@ namespace amrex {
     //! to write, the size of the data buffer, the ostream, and an optional
     //! RealDescriptor that describes the data format to use for writing. If no
     //! RealDescriptor is provided, the data will be written using the native
-    //! format for your machine.    
+    //! format for your machine.
     void writeRealData(const Real* data, std::size_t size, std::ostream& os,
                        const RealDescriptor& rd = FPC::NativeRealDescriptor());
 
@@ -133,4 +133,4 @@ namespace amrex {
     }
 }
 
-#endif 
+#endif

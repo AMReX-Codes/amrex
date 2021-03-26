@@ -13,12 +13,12 @@ class AmrParGDB
 public:
 
     explicit AmrParGDB (AmrCore* amr) noexcept
-	: m_amrcore(amr),
+        : m_amrcore(amr),
           m_geom(amr->maxLevel()+1),
           m_has_geom(amr->maxLevel()+1, 0),
-	  m_dmap(amr->maxLevel()+1),
-	  m_ba(amr->maxLevel()+1)
-	{ }
+          m_dmap(amr->maxLevel()+1),
+          m_ba(amr->maxLevel()+1)
+    { }
 
     virtual ~AmrParGDB () {;}
 
@@ -41,7 +41,7 @@ public:
     virtual const Vector<BoxArray>&         boxArray () const override;
 
     virtual void SetParticleBoxArray (int level, const BoxArray& new_ba) override;
-    virtual void SetParticleDistributionMap (int level,	const DistributionMapping& new_dm) override;
+    virtual void SetParticleDistributionMap (int level, const DistributionMapping& new_dm) override;
     virtual void SetParticleGeometry (int level, const Geometry& new_geom) override;
 
     virtual void ClearParticleBoxArray (int level) override;
@@ -107,9 +107,9 @@ const DistributionMapping&
 AmrParGDB::ParticleDistributionMap (int level) const
 {
     if (m_dmap[level].empty()) {
-	return m_amrcore->DistributionMap(level);
+        return m_amrcore->DistributionMap(level);
     } else {
-	return m_dmap[level];
+        return m_dmap[level];
     }
 }
 
@@ -125,9 +125,9 @@ const Vector<DistributionMapping>&
 AmrParGDB::ParticleDistributionMap () const
 {
     if (m_dmap[0].empty()) {
-	return m_amrcore->DistributionMap();
+        return m_amrcore->DistributionMap();
     } else {
-	return m_dmap;
+        return m_dmap;
     }
 }
 
@@ -143,9 +143,9 @@ const BoxArray&
 AmrParGDB::ParticleBoxArray (int level) const
 {
     if (m_ba[level].empty()) {
-	return m_amrcore->boxArray(level);
+        return m_amrcore->boxArray(level);
     } else {
-	return m_ba[level];
+        return m_ba[level];
     }
 }
 
@@ -161,9 +161,9 @@ const Vector<BoxArray>&
 AmrParGDB::ParticleBoxArray () const
 {
     if (m_ba[0].empty()) {
-	return m_amrcore->boxArray();
+        return m_amrcore->boxArray();
     } else {
-	return m_ba;
+        return m_ba;
     }
 }
 

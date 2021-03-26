@@ -2,13 +2,14 @@
 #define AMREX_GPU_ASYNC_ARRAY_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Arena.H>
+#include <AMReX_TypeTraits.H>
+#include <AMReX_GpuDevice.H>
+
 #include <cstddef>
 #include <cstring>
 #include <cstdlib>
 #include <memory>
-#include <AMReX_Arena.H>
-#include <AMReX_TypeTraits.H>
-#include <AMReX_GpuDevice.H>
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 extern "C" {
@@ -44,7 +45,7 @@ public:
 #endif
     }
 
-    template <typename U = T, typename std::enable_if<std::is_pod<U>::value,int>::type = 0>
+    template <typename U = T, typename std::enable_if<std::is_standard_layout<U>::value && std::is_trivial<U>::value,int>::type = 0>
     explicit AsyncArray (const std::size_t n)
     {
         if (n == 0) return;
@@ -89,7 +90,8 @@ public:
                 AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
                                                            amrex_asyncarray_delete, p, 0));
 #endif
-#else
+#elif defined(AMREX_USE_DPCPP)
+#ifdef AMREX_USE_CODEPLAY_HOST_TASK
                 auto pd = d_data;
                 auto ph = h_data;
                 auto& q = *(Gpu::gpuStream().queue);
@@ -103,6 +105,12 @@ public:
                 } catch (sycl::exception const& ex) {
                     amrex::Abort(std::string("host_task: ")+ex.what()+"!!!!!");
                 }
+#else
+                // xxxxx DPCPP todo
+                Gpu::streamSynchronize();
+                The_Arena()->free(d_data);
+                std::free(h_data);
+#endif
 #endif
             }
         }

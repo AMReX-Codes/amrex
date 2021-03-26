@@ -33,7 +33,7 @@
 #ifdef AMREX_USE_CUDA
 #  define AMREX_LAUNCH_KERNEL(blocks, threads, sharedMem, stream, ... ) \
         amrex::launch_global<<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__);
-#elif defined(AMREX_USE_HIP) 
+#elif defined(AMREX_USE_HIP)
 #  define AMREX_LAUNCH_KERNEL(blocks, threads, sharedMem, stream, ... ) \
         hipLaunchKernelGGL(launch_global, blocks, threads, sharedMem, stream, __VA_ARGS__);
 #endif
@@ -51,19 +51,19 @@ namespace amrex {
 
     template<class L>
     AMREX_GPU_DEVICE void call_device (L&& f0) noexcept { f0(); }
-    
+
     template<class L, class... Lambdas>
     AMREX_GPU_DEVICE void call_device (L&& f0, Lambdas&&... fs) noexcept {
         f0();
         call_device(std::forward<Lambdas>(fs)...);
     }
 #endif
-    
+
 // CPU variation
 
     template<class L>
     void launch_host (L&& f0) noexcept { f0(); }
-    
+
     template<class L, class... Lambdas>
     void launch_host (L&& f0, Lambdas&&... fs) noexcept {
         f0();
@@ -147,7 +147,7 @@ namespace Gpu {
         }
         ExecutionConfig (dim3 nb, dim3 nt, std::size_t sm=0) noexcept
             : numBlocks(nb), numThreads(nt), sharedMem(sm) {}
-        
+
         dim3 numBlocks;
         dim3 numThreads;
         std::size_t sharedMem = 0;

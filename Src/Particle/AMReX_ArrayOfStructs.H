@@ -76,7 +76,7 @@ public:
     RealType*       dataPtr ()       { return data(); }
 
     std::pair<int,int> dataShape () const {
-	return std::make_pair(SizeInReal, static_cast<int>(m_data.size()));
+        return std::make_pair(SizeInReal, static_cast<int>(m_data.size()));
     }
 
     void push_back (const ParticleType& p) { return m_data.push_back(p); }

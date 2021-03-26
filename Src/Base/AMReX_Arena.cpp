@@ -39,7 +39,11 @@ namespace {
     bool use_buddy_allocator = false;
     Long buddy_allocator_size = 0L;
     Long the_arena_init_size = 0L;
-    Long the_async_arena_release_threshold = -1L;
+    Long the_arena_release_threshold = std::numeric_limits<Long>::max();
+    Long the_device_arena_release_threshold = std::numeric_limits<Long>::max();
+    Long the_managed_arena_release_threshold = std::numeric_limits<Long>::max();
+    Long the_pinned_arena_release_threshold = std::numeric_limits<Long>::max();
+    Long the_async_arena_release_threshold = std::numeric_limits<Long>::max();
 #ifdef AMREX_USE_HIP
     bool the_arena_is_managed = false; // xxxxx HIP FIX HERE
 #else
@@ -134,9 +138,10 @@ Arena::allocate_system (std::size_t nbytes)
     }
     else
     {
-        if (abort_on_out_of_gpu_memory) {
-            std::size_t free_mem_avail = Gpu::Device::freeMemAvailable();
-            if (nbytes >= free_mem_avail) {
+        std::size_t free_mem_avail = Gpu::Device::freeMemAvailable();
+        if (nbytes >= free_mem_avail) {
+            free_mem_avail += freeUnused_protected(); // For CArena, mutex has already acquired
+            if (abort_on_out_of_gpu_memory && nbytes >= free_mem_avail) {
                 amrex::Abort("Out of gpu memory. Free: " + std::to_string(free_mem_avail)
                              + " Asked: " + std::to_string(nbytes));
             }
@@ -216,25 +221,33 @@ Arena::Initialize ()
     BL_ASSERT(the_pinned_arena == nullptr);
     BL_ASSERT(the_cpu_arena == nullptr);
 
+#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_DPCPP
+    the_arena_init_size = 1024L*1024L*1024L; // xxxxx DPCPP: todo
+    buddy_allocator_size = 1024L*1024L*1024L; // xxxxx DPCPP: todo
+#else
+    the_arena_init_size = Gpu::Device::totalGlobalMem() / 4L * 3L;
+    buddy_allocator_size = Gpu::Device::totalGlobalMem() / 4L * 3L;
+#endif
+
+    the_pinned_arena_release_threshold = Gpu::Device::totalGlobalMem();
+#endif
+
     ParmParse pp("amrex");
     pp.query("use_buddy_allocator", use_buddy_allocator);
     pp.query("buddy_allocator_size", buddy_allocator_size);
     pp.query("the_arena_init_size", the_arena_init_size);
-    pp.query("the_async_arena_release_threshold", the_async_arena_release_threshold);
+    pp.query(       "the_arena_release_threshold" ,         the_arena_release_threshold);
+    pp.query( "the_device_arena_release_threshold",  the_device_arena_release_threshold);
+    pp.query("the_managed_arena_release_threshold", the_managed_arena_release_threshold);
+    pp.query( "the_pinned_arena_release_threshold",  the_pinned_arena_release_threshold);
+    pp.query(  "the_async_arena_release_threshold",   the_async_arena_release_threshold);
     pp.query("the_arena_is_managed", the_arena_is_managed);
     pp.query("abort_on_out_of_gpu_memory", abort_on_out_of_gpu_memory);
 
 #ifdef AMREX_USE_GPU
     if (use_buddy_allocator)
     {
-        if (buddy_allocator_size <= 0) {
-#ifdef AMREX_USE_DPCPP
-            // buddy_allocator_size = Gpu::Device::maxMemAllocSize() / 4L * 3L;
-            buddy_allocator_size = 1024L*1024L*1024L; // xxxxx DPCPP: todo
-#else
-            buddy_allocator_size = Gpu::Device::totalGlobalMem() / 4L * 3L;
-#endif
-        }
         std::size_t chunk = 512*1024*1024;
         buddy_allocator_size = (buddy_allocator_size/chunk) * chunk;
         if (the_arena_is_managed) {
@@ -247,20 +260,14 @@ Arena::Initialize ()
 #endif
     {
 #if defined(BL_COALESCE_FABS) || defined(AMREX_USE_GPU)
+        ArenaInfo ai{};
+        ai.SetReleaseThreshold(the_arena_release_threshold);
         if (the_arena_is_managed) {
-            the_arena = new CArena(0, ArenaInfo().SetPreferred());
+            the_arena = new CArena(0, ai.SetPreferred());
         } else {
-            the_arena = new CArena(0, ArenaInfo().SetDeviceMemory());
+            the_arena = new CArena(0, ai.SetDeviceMemory());
         }
 #ifdef AMREX_USE_GPU
-        if (the_arena_init_size <= 0) {
-#ifdef AMREX_USE_DPCPP
-//            the_arena_init_size = Gpu::Device::maxMemAllocSize() / 4L * 3L;
-            the_arena_init_size = 1024L*1024L*1024L; // xxxxx DPCPP: todo
-#else
-            the_arena_init_size = Gpu::Device::totalGlobalMem() / 4L * 3L;
-#endif
-        }
         void *p = the_arena->alloc(static_cast<std::size_t>(the_arena_init_size));
         the_arena->free(p);
 #endif
@@ -269,27 +276,23 @@ Arena::Initialize ()
 #endif
     }
 
-    if (the_async_arena_release_threshold < 0) {
-        the_async_arena_release_threshold = std::numeric_limits<Long>::max();
-    }
-
     the_async_arena = new PArena(the_async_arena_release_threshold);
 
 #ifdef AMREX_USE_GPU
-    the_device_arena = new CArena(0, ArenaInfo().SetDeviceMemory());
+    the_device_arena = new CArena(0, ArenaInfo().SetDeviceMemory().SetReleaseThreshold(the_device_arena_release_threshold));
 #else
     the_device_arena = new BArena;
 #endif
 
 #ifdef AMREX_USE_GPU
-    the_managed_arena = new CArena;
+    the_managed_arena = new CArena(0, ArenaInfo().SetReleaseThreshold(the_managed_arena_release_threshold));
 #else
     the_managed_arena = new BArena;
 #endif
 
     // When USE_CUDA=FALSE, we call mlock to pin the cpu memory.
     // When USE_CUDA=TRUE, we call cudaHostAlloc to pin the host memory.
-    the_pinned_arena = new CArena(0, ArenaInfo().SetHostAlloc());
+    the_pinned_arena = new CArena(0, ArenaInfo().SetHostAlloc().SetReleaseThreshold(the_pinned_arena_release_threshold));
 
     std::size_t N = 1024UL*1024UL*8UL;
 
@@ -360,7 +363,7 @@ Arena::PrintUsage ()
         }
     }
 }
-    
+
 void
 Arena::Finalize ()
 {
@@ -371,28 +374,28 @@ Arena::Finalize ()
 #endif
         PrintUsage();
     }
-    
+
     initialized = false;
-    
+
     delete the_arena;
     the_arena = nullptr;
-    
+
     delete the_async_arena;
     the_async_arena = nullptr;
 
     delete the_device_arena;
     the_device_arena = nullptr;
-    
+
     delete the_managed_arena;
     the_managed_arena = nullptr;
-    
+
     delete the_pinned_arena;
     the_pinned_arena = nullptr;
 
     delete the_cpu_arena;
     the_cpu_arena = nullptr;
 }
-    
+
 Arena*
 The_Arena ()
 {

@@ -15,7 +15,7 @@ using std::endl;
 using std::cerr;
 
 static
-void 
+void
 PrintUsage(int argc, char *argv[])
 {
     cout << "Usage: " << endl;
@@ -39,7 +39,7 @@ main (int   argc,
         PrintUsage(argc,argv);
 
     ParmParse pp;
-    
+
     std::string iFile; pp.get("iFile", iFile);
 //
 //  Read multifab
@@ -47,19 +47,19 @@ main (int   argc,
     MultiFab mf;
     VisMF::Read(mf,iFile);
 
-    
+
     int sComp = 0; pp.query("sComp",sComp); sComp=std::min(sComp,mf.nComp()-1);
     int nComp = mf.nComp(); pp.query("nComp",nComp);
     if (nComp==-1) nComp = mf.nComp();
     nComp = std::min(mf.nComp()-sComp,nComp);
-    
+
     Box domain = mf.boxArray().minimalBox();
     int dir = 1; pp.query("dir",dir);
 
     int idx = (int) (0.5*(domain.smallEnd()[dir] + domain.bigEnd()[dir])); pp.query("idx",idx);
-    
+
     for (int d=0; d<BL_SPACEDIM; ++d) {
-        if (d!=dir) {            
+        if (d!=dir) {
             domain.setSmall(dir,idx);
             domain.setBig(dir,idx);
         }
@@ -72,6 +72,6 @@ main (int   argc,
     cout << fab << endl;
 
     amrex::Finalize();
-    
+
     return 0;
 }

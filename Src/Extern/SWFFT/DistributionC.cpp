@@ -42,8 +42,8 @@
  * *****************************************************************************
  *                                DISCLAIMER
  * THE SOFTWARE IS SUPPLIED "AS IS" WITHOUT WARRANTY OF ANY KIND. NEITHER THE
- * UNITED STATES GOVERNMENT, NOR THE UNITED STATES DEPARTMENT OF ENERGY, NOR 
- * UCHICAGO ARGONNE, LLC, NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY, 
+ * UNITED STATES GOVERNMENT, NOR THE UNITED STATES DEPARTMENT OF ENERGY, NOR
+ * UCHICAGO ARGONNE, LLC, NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY,
  * EXPRESS OR IMPLIED, OR ASSUMES ANY LEGAL LIABILITY OR RESPONSIBILITY FOR THE
  * ACCURARY, COMPLETENESS, OR USEFULNESS OF ANY INFORMATION, DATA, APPARATUS,
  * PRODUCT, OR PROCESS DISCLOSED, OR REPRESENTS THAT ITS USE WOULD NOT INFRINGE
@@ -55,7 +55,7 @@
 ///
 // Distribution / partition / decomposition of data
 //
-// Give C linkage to C++ Distribution class so that Fortran can access its functions. 
+// Give C linkage to C++ Distribution class so that Fortran can access its functions.
 ///
 
 #include "Distribution.hpp"
@@ -69,7 +69,7 @@ extern "C" {
 
   MPI_Fint Distribution__Cart_3D(hacc::Distribution* This) {
     MPI_Comm comm = This->cart_3d();
-    return MPI_Comm_c2f(comm); 
+    return MPI_Comm_c2f(comm);
   }
 
   void Distribution__delete(hacc::Distribution* This) {

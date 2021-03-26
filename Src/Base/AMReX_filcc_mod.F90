@@ -169,7 +169,7 @@ contains
              ! Do nothing.
 
           else if (bc(1,1,n) .eq. amrex_bc_foextrap) then
-             
+
              do k = lo(3), hi(3)
                 do j = lo(2), hi(2)
                    do i = imin, imax
@@ -177,7 +177,7 @@ contains
                    end do
                 end do
              end do
-             
+
           else if (bc(1,1,n) .eq. amrex_bc_hoextrap) then
 
              do k = lo(3), hi(3)
@@ -206,7 +206,7 @@ contains
                       q(i,j,k,n) = 2*q(ilo,j,k,n) - q(ilo+1,j,k,n)
                    end do
                 end do
-             end do   
+             end do
 
           else if (bc(1,1,n) .eq. amrex_bc_reflect_even) then
 
@@ -227,7 +227,7 @@ contains
                    end do
                 end do
              end do
-             
+
           end if
 
        end if
@@ -249,7 +249,7 @@ contains
                    end do
                 end do
              end do
-             
+
           else if (bc(1,2,n) .eq. amrex_bc_hoextrap) then
 
              do k = lo(3), hi(3)
@@ -289,7 +289,7 @@ contains
                    end do
                 end do
              end do
-             
+
           else if (bc(1,2,n) .eq. amrex_bc_reflect_odd) then
 
              do k = lo(3), hi(3)
@@ -299,7 +299,7 @@ contains
                    end do
                 end do
              end do
-             
+
           end if
 
        end if
@@ -323,7 +323,7 @@ contains
                    end do
                 end do
              end do
-             
+
           else if (bc(2,1,n) .eq. amrex_bc_hoextrap) then
 
              do k = lo(3), hi(3)
@@ -373,7 +373,7 @@ contains
                    end do
                 end do
              end do
-             
+
           end if
 
        end if
@@ -395,7 +395,7 @@ contains
                    end do
                 end do
              end do
-             
+
           else if (bc(2,2,n) .eq. amrex_bc_hoextrap) then
 
              do k = lo(3), hi(3)
@@ -411,7 +411,7 @@ contains
                             q(i,j,k,n) = half * (3*q(i,jhi,k,n) - q(i,jhi-1,k,n))
                          end if
                       end if
-                      
+
                    end do
                 end do
              end do
@@ -421,7 +421,7 @@ contains
              do k = lo(3), hi(3)
                 do j = jmin, jmax
                    do i = lo(1), hi(1)
-                      q(i,j,k,n) = 2*q(i,jhi,k,n) - q(i,jhi-1,k,n)                      
+                      q(i,j,k,n) = 2*q(i,jhi,k,n) - q(i,jhi-1,k,n)
                    end do
                 end do
              end do
@@ -435,7 +435,7 @@ contains
                    end do
                 end do
              end do
-             
+
           else if (bc(2,2,n) .eq. amrex_bc_reflect_odd) then
 
              do k = lo(3), hi(3)
@@ -445,7 +445,7 @@ contains
                    end do
                 end do
              end do
-             
+
           end if
 
        end if
@@ -463,9 +463,9 @@ contains
           if (bc(3,1,n) .eq. amrex_bc_ext_dir) then
 
              ! Do nothing.
-             
+
           else if (bc(3,1,n) .eq. amrex_bc_foextrap) then
-             
+
              do k = kmin, kmax
                 do j = lo(2), hi(2)
                    do i = lo(1), hi(1)
@@ -493,9 +493,9 @@ contains
                    end do
                 end do
              end do
-          
+
           else if (bc(3,1,n) .eq. amrex_bc_hoextrapcc) then
-             
+
              do k = kmin, kmax
                 do j = lo(2), hi(2)
                    do i = lo(1), hi(1)
@@ -513,7 +513,7 @@ contains
                    end do
                 end do
              end do
-             
+
           else if (bc(3,1,n) .eq. amrex_bc_reflect_odd) then
 
              do k = kmin, kmax
@@ -523,7 +523,7 @@ contains
                    end do
                 end do
              end do
-             
+
           end if
 
        end if
@@ -535,9 +535,9 @@ contains
           if (bc(3,2,n) .eq. amrex_bc_ext_dir) then
 
              ! Do nothing.
-             
+
           else if (bc(3,2,n) .eq. amrex_bc_foextrap) then
-             
+
              do k = kmin, kmax
                 do j = lo(2), hi(2)
                    do i = lo(1), hi(1)
@@ -565,9 +565,9 @@ contains
                    end do
                 end do
              end do
-          
+
           else if (bc(3,2,n) .eq. amrex_bc_hoextrapcc) then
-             
+
              do k = kmin, kmax
                 do j = lo(2), hi(2)
                    do i = lo(1), hi(1)
@@ -585,7 +585,7 @@ contains
                    end do
                 end do
              end do
-             
+
           else if (bc(3,2,n) .eq. amrex_bc_reflect_odd) then
 
              do k = kmin, kmax
@@ -624,22 +624,22 @@ contains
              if (i.ge.imin .and. i.le.imax .and. j.ge.jmin .and. j.le.jmax) then
 
                 do k = lo(3), hi(3)
-                      
+
                    if (jlo+2 <= je) then
                       q(i,j,k,n) = half * eighth * (15*q(ilo-1,jlo,k,n) - 10*q(ilo-1,jlo+1,k,n) + 3*q(ilo-1,jlo+2,k,n))
                    else
                       q(i,j,k,n) = half * half * (3*q(ilo-1,jlo,k,n) - q(ilo-1,jlo+1,k,n))
                    end if
-                   
+
                    if (ilo+2 <= ie) then
                       q(i,j,k,n) = q(ilo-1,jlo-1,k,n) + &
                            half * eighth * (15*q(ilo,jlo-1,k,n) - 10*q(ilo+1,jlo-1,k,n) + 3*q(ilo+2,jlo-1,k,n))
                    else
                       q(i,j,k,n) = q(ilo-1,jlo-1,k,n) + half * half * (3*q(ilo,jlo-1,k,n) - q(ilo+1,jlo-1,k,n))
                    end if
-                   
+
 #if AMREX_SPACEDIM == 3
-                   
+
                    if (k == klo-1 .and. bc(3,1,n) .eq. amrex_bc_hoextrap) then
                       if (klo+2 <= ke) then
                          q(i,j,k,n) = eighth * ( (15*q(ilo-1,jlo-1,klo,n) - 10*q(ilo-1,jlo-1,klo+1,n) + &
@@ -648,7 +648,7 @@ contains
                          q(i,j,k,n) = half * (3*q(ilo-1,jlo-1,klo,n) - q(ilo-1,jlo-1,klo+1,n))
                       end if
                    end if
-                   
+
                    if (k == khi+1 .and. bc(3,2,n) .eq. amrex_bc_hoextrap) then
                       if (khi-2 >= ks) then
                          q(i,j,k,n) = eighth * ( (15*q(ilo-1,jlo-1,khi,n) - 10*q(ilo-1,jlo-1,khi-1,n) + &
@@ -658,7 +658,7 @@ contains
                       end if
                    end if
 #endif
-                   
+
                 end do
              end if
           end if
@@ -688,7 +688,7 @@ contains
                    else
                       q(i,j,k,n) = half * half * (3*q(ilo-1,jhi,k,n) - q(ilo-1,jhi-1,k,n))
                    end if
-                   
+
                    if (ilo+2 <= ie) then
                       q(i,j,k,n) = q(ilo-1,jhi+1,k,n) + &
                            half * eighth * (15*q(ilo,jhi+1,k,n) - 10*q(ilo+1,jhi+1,k,n) + 3*q(ilo+2,jhi+1,k,n))
@@ -705,7 +705,7 @@ contains
                          q(i,j,k,n) = half * (3*q(ilo-1,jhi+1,klo,n) - q(ilo-1,jhi+1,klo+1,n))
                       end if
                    end if
-                   
+
                    if (k == khi+1 .and. bc(3,2,n) .eq. amrex_bc_hoextrap) then
                       if (khi-2 >= ks) then
                          q(i,j,k,n) = eighth * ( (15*q(ilo-1,jhi+1,khi,n) - 10*q(ilo-1,jhi+1,khi-1,n) + &
@@ -746,14 +746,14 @@ contains
                    else
                       q(i,j,k,n) = half * half * (3*q(ihi+1,jlo,k,n) - q(ihi+1,jlo+1,k,n))
                    end if
-                   
+
                    if (ihi-2 >= is) then
                       q(i,j,k,n) = q(ihi+1,jlo-1,k,n) + &
                            half * eighth * (15*q(ihi,jlo-1,k,n) - 10*q(ihi-1,jlo-1,k,n) + 3*q(ihi-2,jlo-1,k,n))
                    else
                       q(i,j,k,n) = q(ihi+1,jlo-1,k,n) + half * half * (3*q(ihi,jlo-1,k,n) - q(ihi-1,jlo-1,k,n))
                    end if
-                   
+
 #if (AMREX_SPACEDIM == 3)
                    if (k == klo-1 .and. bc(3,1,n) .eq. amrex_bc_hoextrap) then
                       if (klo+2 <= ke) then
@@ -762,7 +762,7 @@ contains
                          q(i,j,k,n) = half * (3*q(ihi+1,jlo-1,klo,n) - q(ihi+1,jlo-1,klo+1,n))
                       end if
                    end if
-                   
+
                    if (k == khi+1 .and. bc(3,2,n) .eq. amrex_bc_hoextrap) then
                       if (khi-2 >= ks) then
                          q(i,j,k,n) = eighth * (15*q(ihi+1,jlo-1,khi,n) - 10*q(ihi+1,jlo-1,khi-1,n) + 3*q(ihi+1,jlo-1,khi-2,n))
@@ -795,20 +795,20 @@ contains
              if (i.ge.imin .and. i.le.imax .and. j.ge.jmin .and. j.le.jmax) then
 
                 do k = lo(3), hi(3)
-                   
+
                    if (jhi-2 >= js) then
                       q(i,j,k,n) = half * eighth * (15*q(ihi+1,jhi,k,n) - 10*q(ihi+1,jhi-1,k,n) + 3*q(ihi+1,jhi-2,k,n))
                    else
                       q(i,j,k,n) = half * half * (3*q(ihi+1,jhi,k,n) - q(ihi+1,jhi-1,k,n))
                    end if
-                   
+
                    if (ihi-2 >= is) then
                       q(i,j,k,n) = q(ihi+1,jhi+1,k,n) + &
                            half * eighth * (15*q(ihi,jhi+1,k,n) - 10*q(ihi-1,jhi+1,k,n) + 3*q(ihi-2,jhi+1,k,n))
                    else
                       q(i,j,k,n) = q(ihi+1,jhi+1,k,n) + half * half * (3*q(ihi,jhi+1,k,n) - q(ihi-1,jhi+1,k,n))
                    end if
-                   
+
 #if (AMREX_SPACEDIM == 3)
                    if (k == klo-1 .and. bc(3,1,n) .eq. amrex_bc_hoextrap) then
                       if (klo+2 <= ke) then
@@ -817,7 +817,7 @@ contains
                          q(i,j,k,n) = half * (3*q(ihi+1,jhi+1,klo,n) - q(ihi+1,jhi+1,klo+1,n))
                       end if
                    end if
-                   
+
                    if (k == khi+1 .and. bc(3,2,n) .eq. amrex_bc_hoextrap) then
                       if (khi-2 >= ks) then
                          q(i,j,k,n) = eighth * (15*q(ihi+1,jhi+1,khi,n) - 10*q(ihi+1,jhi+1,khi-1,n) + 3*q(ihi+1,jhi+1,khi-2,n))
@@ -826,7 +826,7 @@ contains
                       end if
                    end if
 #endif
-                   
+
                 end do
              end if
           end if
@@ -850,7 +850,7 @@ contains
              k = klo-1
 
              if (i.ge.imin .and. i.le.imax .and. k.ge.kmin .and. k.le.kmax) then
-             
+
                 do j = lo(2), hi(2)
 
                    if (klo+2 <= ke) then
@@ -858,7 +858,7 @@ contains
                    else
                       q(i,j,k,n) = half * half * (3*q(ilo-1,j,klo,n) - q(ilo-1,j,klo+1,n))
                    end if
-                   
+
                    if (ilo+2 <= ie) then
                       q(i,j,k,n) = q(ilo-1,j,klo-1,n) + &
                            half * eighth * (15*q(ilo,j,klo-1,n) - 10*q(ilo+1,j,klo-1,n) + 3*q(ilo+2,j,klo-1,n))
@@ -895,7 +895,7 @@ contains
                    else
                       q(i,j,k,n) = half * half * (3*q(ilo-1,j,khi,n) - q(ilo-1,j,khi-1,n))
                    end if
-                   
+
                    if (ilo+2 <= ie) then
                       q(i,j,k,n) = q(ilo-1,j,khi+1,n) + &
                            half * eighth * (15*q(ilo,j,khi+1,n) - 10*q(ilo+1,j,khi+1,n) + 3*q(ilo+2,j,khi+1,n))
@@ -931,7 +931,7 @@ contains
                    else
                       q(i,j,k,n) = half * half * (3*q(ihi+1,j,klo,n) - q(ihi+1,j,klo+1,n))
                    end if
-                   
+
                    if (ihi-2 >= is) then
                       q(i,j,k,n) = q(ihi+1,j,klo-1,n) + &
                            half * eighth * (15*q(ihi,j,klo-1,n) - 10*q(ihi-1,j,klo-1,n) + 3*q(ihi-2,j,klo-1,n))
@@ -948,7 +948,7 @@ contains
        !
 
        if (bc(1,2,n) .eq. amrex_bc_hoextrap .and. bc(3,2,n) .eq. amrex_bc_hoextrap) then
-          
+
           if (hi(1) > ihi .and. hi(3) > khi) then
              imin = max(lo(1),ihi+1)
              imax = hi(1)
@@ -967,14 +967,14 @@ contains
                    else
                       q(i,j,k,n) = half * half * (3*q(ihi+1,j,khi,n) - q(ihi+1,j,khi-1,n))
                    end if
-                   
+
                    if (ihi-2 >= is) then
                       q(i,j,k,n) = q(ihi+1,j,khi+1,n) + &
                            half * eighth * (15*q(ihi,j,khi+1,n) - 10*q(ihi-1,j,khi+1,n) + 3*q(ihi-2,j,khi+1,n))
                    else
                       q(i,j,k,n) = q(ihi+1,j,khi+1,n) + half * half * (3*q(ihi,j,khi+1,n) - q(ihi-1,j,khi+1,n))
                    end if
-                   
+
                 end do
              end if
           end if
@@ -1004,7 +1004,7 @@ contains
                    else
                       q(i,j,k,n) = half * half * (3*q(i,jlo-1,klo,n) - q(i,jlo-1,klo+1,n))
                    end if
-                   
+
                    if (jlo+2 <= je) then
                       q(i,j,k,n) = q(i,jlo-1,klo-1,n) + &
                            half * eighth * (15*q(i,jlo,klo-1,n) - 10*q(i,jlo+1,klo-1,n) + 3*q(i,jlo+2,klo-1,n))
@@ -1041,14 +1041,14 @@ contains
                    else
                       q(i,j,k,n) = half * half * (3*q(i,jlo-1,khi,n) - q(i,jlo-1,khi-1,n))
                    end if
-                   
+
                    if (jlo+2 <= je) then
                       q(i,j,k,n) = q(i,jlo-1,khi+1,n) + &
                            half * eighth * (15*q(i,jlo,khi+1,n) - 10*q(i,jlo+1,khi+1,n) + 3*q(i,jlo+2,khi+1,n))
                    else
                       q(i,j,k,n) = q(i,jlo-1,khi+1,n) + half * half * (3*q(i,jlo,khi+1,n) - q(i,jlo+1,khi+1,n))
                    end if
-                   
+
                 end do
              end if
           end if
@@ -1078,14 +1078,14 @@ contains
                    else
                       q(i,j,k,n) = half * half * (3*q(i,jhi+1,klo,n) - q(i,jhi+1,klo+1,n))
                    end if
-                   
+
                    if (jhi-2 >= js) then
                       q(i,j,k,n) = q(i,jhi+1,klo-1,n) + &
                            half * eighth * (15*q(i,jhi,klo-1,n) - 10*q(i,jhi-1,klo-1,n) + 3*q(i,jhi-2,klo-1,n))
                    else
                       q(i,j,k,n) = q(i,jhi+1,klo-1,n) + half * half * (3*q(i,jhi,klo-1,n) - q(i,jhi-1,klo-1,n))
                    end if
-                   
+
                 end do
              end if
           end if
@@ -1115,14 +1115,14 @@ contains
                    else
                       q(i,j,k,n) = half * half * (3*q(i,jhi+1,khi,n) - q(i,jhi+1,khi-1,n))
                    end if
-                   
+
                    if (jhi-2 >= js) then
                       q(i,j,k,n) = q(i,jhi+1,khi+1,n) + &
                            half * eighth * (15*q(i,jhi,khi+1,n) - 10*q(i,jhi-1,khi+1,n) + 3*q(i,jhi-2,khi+1,n))
                    else
                       q(i,j,k,n) = q(i,jhi+1,khi+1,n) + half * half * (3*q(i,jhi,khi+1,n) - q(i,jhi-1,khi+1,n))
                    end if
-                   
+
                 end do
              end if
           end if
@@ -1199,7 +1199,7 @@ subroutine amrex_hoextraptocc_3d(q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,domlo,domhi,dx,
                    q(ilo+2,j,k)
            end do
         end do
-     else  
+     else
         do k = q_l3,q_h3
            do j = q_l2,q_h2
               q(ilo-1,j,k) = 2*q(ilo,j,k) - q(ilo+1,j,k)
@@ -1394,7 +1394,7 @@ subroutine amrex_hoextraptocc_3d(q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,domlo,domhi,dx,
   ! ****************************************************************************
   !
   if ((nlft .gt. 0) .and. (ntop .gt. 0)) then
-     if (jhi-2 .ge. js) then 
+     if (jhi-2 .ge. js) then
         do k = q_l3,q_h3
            q(ilo-1,jhi+1,k) = half * &
                 (3*q(ilo-1,jhi,k) - 3*q(ilo-1,jhi-1,k) + &
@@ -1407,7 +1407,7 @@ subroutine amrex_hoextraptocc_3d(q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,domlo,domhi,dx,
         end do
      end if
 
-     if (ilo+2 .le. ie) then 
+     if (ilo+2 .le. ie) then
         do k = q_l3,q_h3
            q(ilo-1,jhi+1,k) = q(ilo-1,jhi+1,k) + half * &
                 (3*q(ilo,jhi+1,k) - 3*q(ilo+1,jhi+1,k) + &
@@ -1447,7 +1447,7 @@ subroutine amrex_hoextraptocc_3d(q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,domlo,domhi,dx,
   ! ****************************************************************************
   !
   if ((nrgt .gt. 0) .and. (nbot .gt. 0)) then
-     if (jlo+2 .le. je) then 
+     if (jlo+2 .le. je) then
         do k = q_l3,q_h3
            q(ihi+1,jlo-1,k) = half * &
                 (3*q(ihi+1,jlo,k) - 3*q(ihi+1,jlo+1,k) + &
@@ -1460,7 +1460,7 @@ subroutine amrex_hoextraptocc_3d(q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,domlo,domhi,dx,
         end do
      end if
 
-     if (ihi-2 .ge. is) then 
+     if (ihi-2 .ge. is) then
         do k = q_l3,q_h3
            q(ihi+1,jlo-1,k) = q(ihi+1,jlo-1,k) + half * &
                 (3*q(ihi,jlo-1,k) - 3*q(ihi-1,jlo-1,k) + &
@@ -1832,14 +1832,14 @@ subroutine amrex_hoextraptocc_2d(q,q_l1,q_l2,q_h1,q_h2,domlo,domhi,dx,xlo)
      ilo = domlo(1)
      do i = 2, nlft
         do j = q_l2, q_h2
-           q(ilo-i,j) = q(ilo,j) 
+           q(ilo-i,j) = q(ilo,j)
         end do
      end do
-     if (ilo+2 .le. ie) then 
+     if (ilo+2 .le. ie) then
         do j = q_l2, q_h2
            q(ilo-1,j) = 3*q(ilo,j) - 3*q(ilo+1,j) + q(ilo+2,j)
         end do
-     else 
+     else
         do j = q_l2, q_h2
            q(ilo-1,j) = 2*q(ilo,j) - q(ilo+1,j)
         end do
@@ -1908,24 +1908,24 @@ subroutine amrex_hoextraptocc_2d(q,q_l1,q_l2,q_h1,q_h2,domlo,domhi,dx,xlo)
         q(ilo-1,jlo-1) = half * (2*q(ilo-1,jlo) - q(ilo-1,jlo+1))
      end if
 
-     if (ilo+2 .le. ie) then 
+     if (ilo+2 .le. ie) then
         q(ilo-1,jlo-1) =  q(ilo-1,jlo-1) + half * &
-             (3*q(ilo,jlo-1) - 3*q(ilo+1,jlo-1) + q(ilo+2,jlo-1)) 
+             (3*q(ilo,jlo-1) - 3*q(ilo+1,jlo-1) + q(ilo+2,jlo-1))
      else
         q(ilo-1,jlo-1) =  q(ilo-1,jlo-1) + half * &
              (2*q(ilo,jlo-1) - q(ilo+1,jlo-1))
      end if
   end if
 
-  if ((nlft .gt. 0) .and. (ntop .gt. 0)) then 
-     if (jhi-2 .ge. js) then 
+  if ((nlft .gt. 0) .and. (ntop .gt. 0)) then
+     if (jhi-2 .ge. js) then
         q(ilo-1,jhi+1) = half * &
              (3*q(ilo-1,jhi) - 3*q(ilo-1,jhi-1) + q(ilo-1,jhi-2))
      else
         q(ilo-1,jhi+1) = half * (2*q(ilo-1,jhi) - q(ilo-1,jhi-1))
      end if
 
-     if (ilo+2 .le. ie) then 
+     if (ilo+2 .le. ie) then
         q(ilo-1,jhi+1) = q(ilo-1,jhi+1) + half * &
              (3*q(ilo,jhi+1) - 3*q(ilo+1,jhi+1) + q(ilo+2,jhi+1))
      else
@@ -1934,15 +1934,15 @@ subroutine amrex_hoextraptocc_2d(q,q_l1,q_l2,q_h1,q_h2,domlo,domhi,dx,xlo)
      end if
   end if
 
-  if ((nrgt .gt. 0) .and. (nbot .gt. 0)) then 
-     if (jlo+2 .le. je) then 
+  if ((nrgt .gt. 0) .and. (nbot .gt. 0)) then
+     if (jlo+2 .le. je) then
         q(ihi+1,jlo-1) = half * &
              (3*q(ihi+1,jlo) - 3*q(ihi+1,jlo+1) + q(ihi+1,jlo+2))
      else
         q(ihi+1,jlo-1) = half * (2*q(ihi+1,jlo) - q(ihi+1,jlo+1))
      end if
 
-     if (ihi-2 .ge. is) then 
+     if (ihi-2 .ge. is) then
         q(ihi+1,jlo-1) = q(ihi+1,jlo-1) + half * &
              (3*q(ihi,jlo-1) - 3*q(ihi-1,jlo-1) + q(ihi-2,jlo-1))
      else
@@ -1951,15 +1951,15 @@ subroutine amrex_hoextraptocc_2d(q,q_l1,q_l2,q_h1,q_h2,domlo,domhi,dx,xlo)
      end if
   end if
 
-  if ((nrgt .gt. 0) .and. (ntop .gt. 0)) then 
-     if (jhi-2 .ge. js) then 
+  if ((nrgt .gt. 0) .and. (ntop .gt. 0)) then
+     if (jhi-2 .ge. js) then
         q(ihi+1,jhi+1) = half * &
              (3*q(ihi+1,jhi) - 3*q(ihi+1,jhi-1) + q(ihi+1,jhi-2))
      else
         q(ihi+1,jhi+1) = half * (2*q(ihi+1,jhi) - q(ihi+1,jhi-1))
      end if
 
-     if (ihi-2 .ge. is) then 
+     if (ihi-2 .ge. is) then
         q(ihi+1,jhi+1) = q(ihi+1,jhi+1) + half * &
              (3*q(ihi,jhi+1) - 3*q(ihi-1,jhi+1) + q(ihi-2,jhi+1))
      else
