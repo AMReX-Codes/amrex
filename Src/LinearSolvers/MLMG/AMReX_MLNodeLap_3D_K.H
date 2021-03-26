@@ -2840,6 +2840,12 @@ void mlndlap_set_stencil_s0 (int i, int j, int k, Array4<Real> const& sten) noex
                           + sten(i-1,j,k-1,ist_ppp) + sten(i,j,k-1,ist_ppp)
                           + sten(i-1,j-1,k,ist_ppp) + sten(i,j-1,k,ist_ppp)
                           + sten(i-1,j,k,ist_ppp) + sten(i,j,k,ist_ppp));
+
+    // It is possible that at a coarser level, the center coefficient can flip sign, which can
+    // make BiCG fail.   Here if the center coefficient flips sign we simply set it to 0, which
+    // takes it out of play for the solver.
+    sten(i,j,k,ist_000) = std::min(sten(i,j,k,ist_000),0.);
+
     sten(i,j,k,ist_inv) = Real(1.0) /
         (  amrex::Math::abs(sten(i-1,j,k,ist_p00)) + amrex::Math::abs(sten(i,j,k,ist_p00))
          + amrex::Math::abs(sten(i,j-1,k,ist_0p0)) + amrex::Math::abs(sten(i,j,k,ist_0p0))
