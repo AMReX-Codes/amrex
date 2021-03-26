@@ -23,6 +23,7 @@ jobs:
             -DCMAKE_CXX_STANDARD=17
         make -j 2
         make install
+        make test_install
 
         export PATH=/tmp/my-amrex/bin:$PATH
         which fcompare
@@ -54,6 +55,7 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
         make -j 2
         make install
+        make test_install
 
         export PATH=/tmp/my-amrex/bin:$PATH
         which fcompare
