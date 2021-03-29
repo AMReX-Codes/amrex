@@ -73,8 +73,7 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
         }
     }
 
-    mf_tmp.SumBoundary(pc.Geom(lev).periodicity());
-    mf.copy(mf_tmp,0,0,mf_tmp.nComp());
+    mf.ParallelAdd(mf_tmp, 0, 0, mf_tmp.nComp(), mf_tmp.nGrowVect(), IntVect(0), pc.Geom(lev).periodicity());
 }
 
 template <class PC, class MF, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
