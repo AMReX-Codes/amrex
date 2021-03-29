@@ -131,7 +131,7 @@ module amrex_multifab_module
 
   type, public :: amrex_mfiter
      type(c_ptr)      :: p       = c_null_ptr
-     integer ,private :: counter = -1 
+     integer ,private :: counter = -1
    contains
      generic   :: assignment(=)    => amrex_mfiter_assign  ! will abort if called
      procedure :: clear            => amrex_mfiter_clear
@@ -161,7 +161,7 @@ module amrex_multifab_module
 
   ! interfaces to c++ functions
 
-  interface 
+  interface
      subroutine amrex_fi_new_multifab (mf,ba,dm,nc,ng,nodal) bind(c)
        import
        implicit none
@@ -169,7 +169,7 @@ module amrex_multifab_module
        integer(c_int), value :: nc
        integer(c_int), intent(in) :: ng(3), nodal(3)
      end subroutine amrex_fi_new_multifab
-     
+
      subroutine amrex_fi_new_multifab_alias (mf, srcmf, comp, ncomp) bind(c)
        import
        implicit none
@@ -627,7 +627,7 @@ contains
     mf%owner = .true.
     mf%nc = nc
     mf%ng(1:ndims) = ng(1:ndims)
-    inodal = 0 
+    inodal = 0
     if (present(nodal)) then
        do dir = 1, ndims
           if (nodal(dir)) inodal(dir) = 1
@@ -1032,7 +1032,7 @@ contains
     integer, intent(in) :: c, nc
     logical, intent(in), optional :: cross
     integer :: lcross
-    lcross = 0  
+    lcross = 0
     if (present(cross)) then
        if (cross) then
           lcross = 1
@@ -1420,7 +1420,7 @@ contains
     this%counter = this%counter + 1
     if (this%counter == 1) then
        call amrex_fi_mfiter_is_valid(this%p, isvalid)
-    else 
+    else
        call amrex_fi_increment_mfiter(this%p, isvalid)
     end if
     if (isvalid .eq. 1) then

@@ -35,8 +35,8 @@ list of important variables.
    +-----------------+-------------------------------------+--------------------+
    | COMP            | gnu, cray, ibm, intel, llvm, or pgi | none               |
    +-----------------+-------------------------------------+--------------------+
-   | CXXSTD          | C++ standard (``c++11``, ``c++14``, | compiler default,  |
-   |                 | ``c++17``, ``c++20``)               | at least ``c++11`` |
+   | CXXSTD          | C++ standard (``c++14``, ``c++17``, | compiler default,  |
+   |                 | ``c++20``)                          | at least ``c++14`` |
    +-----------------+-------------------------------------+--------------------+
    | DEBUG           | TRUE or FALSE                       | FALSE              |
    +-----------------+-------------------------------------+--------------------+
@@ -369,6 +369,7 @@ The CMake build process is summarized as follows:
     cd    /path/to/builddir
     cmake [options] -DCMAKE_BUILD_TYPE=[Debug|Release|RelWithDebInfo|MinSizeRel] -DCMAKE_INSTALL_PREFIX=/path/to/installdir  /path/to/amrex
     make  install
+    make  test_install  # optional step to test if the installation is working
 
 In the above snippet, ``[options]`` indicates one or more options for the
 customization of the build, as described in the subsection on
@@ -433,6 +434,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PIC                    |  Build Position Independent Code                | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_IPO                    |  Interprocedural optimization (IPO/LTO)         | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_MPI                    |  Build with MPI support                         | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_OMP                    |  Build with OpenMP support                      | NO                      | YES, NO               |
@@ -485,11 +488,13 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PLOTFILE_TOOLS         |  Build and install plotfile postprocessing tools| NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_BUILD_TUTORIALS        |  Build tutorials                                | NO                      | YES, NO               |
-   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_ENABLE_TESTS           |  Enable CTest suite                             | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_DIFFERENT_COMPILER     |  Allow an app to use a different compiler       | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_INSTALL                |  Generate Install Targets                       | YES                     | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_PROBINIT               |  Enable support for probin file                 | Platform dependent      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
 .. raw:: latex
 
@@ -512,38 +517,6 @@ they will be initialized with the value of the environmental variables ``FFLAGS`
 are defined, AMReX default flags are used.
 
 For a detailed explanation of GPU support in AMReX CMake, refer to section :ref:`sec:gpu:build`.
-
-
-Building Tutorials
-------------------
-
-In order to build the tutorials provided in ``Tutorials/`` alongside the AMReX library,
-follows these steps:
-
-.. highlight:: console
-
-::
-
-    mkdir /path/to/builddir
-    cd    /path/to/builddir
-    cmake [options]  -DAMReX_BUILD_TUTORIALS=YES  /path/to/amrex
-    make
-
-
-Note that only the tutorials compatible with ``[options]`` will be built.
-To run one of the tutorials, do:
-
-.. highlight:: console
-
-::
-
-    cd  /path/to/builddir/Tutorials/group/name
-    ./Tutorial_group_name [input_file]
-
-
-``[input_file]`` is any of the input files required by the tutorials and located in
-``/path/to/builddir/Tutorials/group/name/``
-
 
 CMake and macOS
 ---------------
@@ -736,7 +709,7 @@ The AMReX team does development on Linux machines, from laptops to supercomputer
 We do not officially support AMReX on Windows, and many of us do not have access to any Windows
 machines.  However, we believe there are no fundamental issues for it to work on Windows.
 
-(1) AMReX mostly uses standard C++11, but for Windows C++17 is required.  This is because we use
+(1) AMReX mostly uses standard C++14, but for Windows C++17 is required.  This is because we use
     C++17 to support file system operations when POSIX I/O is not available.
 
 (2) We use POSIX signal handling when floating point exceptions, segmentation faults, etc. happen.

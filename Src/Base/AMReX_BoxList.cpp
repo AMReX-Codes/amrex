@@ -1,8 +1,4 @@
 
-#include <algorithm>
-#include <iostream>
-#include <cmath>
-
 #include <AMReX_Print.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_BoxList.H>
@@ -12,6 +8,10 @@
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
+
+#include <algorithm>
+#include <iostream>
+#include <cmath>
 
 namespace amrex {
 
@@ -152,7 +152,7 @@ BoxList::BoxList ()
 {}
 
 BoxList::BoxList (const Box& bx)
-    : 
+    :
     m_lbox(1,bx),
     btype(bx.ixType())
 {
@@ -186,30 +186,30 @@ BoxList::BoxList(const Box& bx, const IntVect& tilesize)
     int ntiles = 1;
     IntVect nt;
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-	nt[d] = (bx.length(d)+tilesize[d]-1)/tilesize[d];
-	ntiles *= nt[d];
+        nt[d] = (bx.length(d)+tilesize[d]-1)/tilesize[d];
+        ntiles *= nt[d];
     }
 
     IntVect small, big, ijk;  // note that the initial values are all zero.
     ijk[0] = -1;
     for (int t=0; t<ntiles; ++t) {
-	for (int d=0; d<AMREX_SPACEDIM; d++) {
-	    if (ijk[d]<nt[d]-1) {
-		ijk[d]++;
-		break;
-	    } else {
-		ijk[d] = 0;
-	    }
-	}
+        for (int d=0; d<AMREX_SPACEDIM; d++) {
+            if (ijk[d]<nt[d]-1) {
+                ijk[d]++;
+                break;
+            } else {
+                ijk[d] = 0;
+            }
+        }
 
-	for (int d=0; d<AMREX_SPACEDIM; d++) {
-	    small[d] = ijk[d]*tilesize[d];
-	    big[d] = std::min(small[d]+tilesize[d]-1, bx.length(d)-1);
-	}
+        for (int d=0; d<AMREX_SPACEDIM; d++) {
+            small[d] = ijk[d]*tilesize[d];
+            big[d] = std::min(small[d]+tilesize[d]-1, bx.length(d)-1);
+        }
 
-	Box tbx(small, big, btype);
-	tbx.shift(bx.smallEnd());
-	push_back(tbx);
+        Box tbx(small, big, btype);
+        tbx.shift(bx.smallEnd());
+        push_back(tbx);
     }
 }
 
@@ -329,12 +329,12 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
 
     if (ba.size() == 0)
     {
-	clear();
-	push_back(b);
+        clear();
+        push_back(b);
     }
     else if (ba.size() == 1)
     {
-	*this = amrex::boxDiff(b, ba[0]);
+        *this = amrex::boxDiff(b, ba[0]);
     }
     else
     {
@@ -603,7 +603,7 @@ BoxList::shiftHalf (const IntVect& iv)
 BoxList
 boxDiff (const Box& b1in, const Box& b2)
 {
-   BL_ASSERT(b1in.sameType(b2));  
+   BL_ASSERT(b1in.sameType(b2));
    BoxList bl_diff(b1in.ixType());
    boxDiff(bl_diff,b1in,b2);
    return bl_diff;
@@ -759,9 +759,9 @@ BoxList::minimalBox () const
         const_iterator bli = begin(), End = end();
         minbox = *bli;
         while ( bli != End )
-	{
+        {
             minbox.minBox(*bli++);
-	}
+        }
     }
     return minbox;
 }

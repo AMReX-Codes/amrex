@@ -38,8 +38,8 @@ void mlmg_lin_cc_interp_r4 (Box const& bx, Array4<Real> const& ff,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlmg_lin_nd_interp (int i, int, int, int n, Array4<Real> const& fine,
-                         Array4<Real const> const& crse) noexcept
+void mlmg_lin_nd_interp_r2 (int i, int, int, int n, Array4<Real> const& fine,
+                            Array4<Real const> const& crse) noexcept
 {
     int ic = amrex::coarsen(i,2);
     bool i_is_odd = (ic*2 != i);
@@ -49,6 +49,20 @@ void mlmg_lin_nd_interp (int i, int, int, int n, Array4<Real> const& fine,
     } else {
         // Fine node coincident with coarse node
         fine(i,0,0,n) = crse(ic,0,0,n);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlmg_lin_nd_interp_r4 (int i, int, int, int n, Array4<Real> const& fine,
+                            Array4<Real const> const& crse) noexcept
+{
+    int ic = amrex::coarsen(i,4);
+    bool i_injection = (ic*4 == i);
+    if (i_injection) {
+        fine(i,0,0,n) = crse(ic,0,0,n);
+    } else {
+        fine(i,0,0,n) = Real(0.25)*(crse(ic  ,0,0,n)*Real(4*(ic+1)-i)
+                                  + crse(ic+1,0,0,n)*Real(i-4*ic));
     }
 }
 

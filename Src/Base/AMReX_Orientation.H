@@ -3,11 +3,11 @@
 #define BL_ORIENTATION_H
 #include <AMReX_Config.H>
 
-#include <iosfwd>
-
 #include <AMReX_BLassert.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_GpuQualifiers.H>
+
+#include <iosfwd>
 
 namespace amrex {
 

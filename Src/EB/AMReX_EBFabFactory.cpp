@@ -22,6 +22,7 @@ EBFArrayBoxFactory::EBFArrayBoxFactory (const EB2::Level& a_level,
       m_parent(&a_level)
 {}
 
+AMREX_NODISCARD
 FArrayBox*
 EBFArrayBoxFactory::create (const Box& box, int ncomps,
                             const FabInfo& info, int box_index) const
@@ -37,6 +38,7 @@ EBFArrayBoxFactory::create (const Box& box, int ncomps,
     }
 }
 
+AMREX_NODISCARD
 FArrayBox*
 EBFArrayBoxFactory::create_alias (FArrayBox const& rhs, int scomp, int ncomp) const
 {
@@ -65,6 +67,7 @@ EBFArrayBoxFactory::destroy (FArrayBox* fab) const
     }
 }
 
+AMREX_NODISCARD
 EBFArrayBoxFactory*
 EBFArrayBoxFactory::clone () const
 {

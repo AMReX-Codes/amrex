@@ -64,7 +64,7 @@ public:
     void SetLevelDirectoryCreated(bool ldc) noexcept { levelDirectoryCreated = ldc; }
     /**
     * \brief A string written as the first item in writePlotFile() at
-    * level zero. 
+    * level zero.
     * It is so we can distinguish between different types of
     * plot files.
     * This default "HyperCLaw-V1.1" is for VisIt software and some of our
@@ -93,13 +93,13 @@ public:
                                     std::ostream&      os);
 
     /**
-    * \brief Write small plot file stuff to specified directory.  
-    * Unlike writePlotFile, this is NOT a pure virtual function 
+    * \brief Write small plot file stuff to specified directory.
+    * Unlike writePlotFile, this is NOT a pure virtual function
     * so implementation by derived classes is optional.
     */
     virtual void writeSmallPlotFile (const std::string& /*dir*/,
                                      std::ostream&      /*os*/,
-				     VisMF::How         /*how*/ = VisMF::NFiles) {}
+                                     VisMF::How         /*how*/ = VisMF::NFiles) {}
     //! Write current state to checkpoint file.
     virtual void checkPoint (const std::string& dir,
                              std::ostream&      os,
@@ -114,7 +114,7 @@ public:
     //! Restart from a checkpoint file.
     virtual void restart (Amr&          papa,
                           std::istream& is,
-			  bool          bReadSpecial = false);
+                          bool          bReadSpecial = false);
 
     //! Old checkpoint may have different number of states than the new source code.
     virtual void set_state_in_checkpoint (Vector<int>& state_in_checkpoint);
@@ -191,7 +191,7 @@ public:
     virtual  int okToContinue () { return 1; }
     /**
     * \brief Should I regrid with this level as base level?
-    * This test is only evaluated if regrid_int > 0 and 
+    * This test is only evaluated if regrid_int > 0 and
     * level_count >= regrid_int as well. Defaults to true.
     */
     virtual  int okToRegrid ();
@@ -264,7 +264,7 @@ public:
                            int          clearval,
                            int          tagval,
                            Real         time,
-			   int          n_error_buf = 0,
+                           int          n_error_buf = 0,
                            int          ngrow = 0) = 0;
     //! Interpolate from coarse level to the valid area in dest.
     void FillCoarsePatch (MultiFab& dest,
@@ -273,7 +273,7 @@ public:
                           int       state_idx,
                           int       scomp,
                           int       ncomp,
-			  int       nghost = 0);
+                          int       nghost = 0);
     //! Function to set physical boundary conditions.
     virtual void setPhysBoundaryValues (FArrayBox& dest,
                                         int        state_indx,
@@ -288,8 +288,8 @@ public:
     * grown BoxArray.
     */
     virtual std::unique_ptr<MultiFab> derive (const std::string& name,
-					      Real               time,
-					      int                ngrow);
+                                              Real               time,
+                                              int                ngrow);
     /**
     * \brief This version of derive() fills the dcomp'th component of mf
     * with the derived quantity.
@@ -322,9 +322,9 @@ public:
 
     //! Boundary condition access function.
     Vector<int> getBCArray (int State_Type,
-			   int gridno,
-			   int scomp,
-			   int ncomp);
+                            int gridno,
+                            int scomp,
+                            int ncomp);
     //! Get state data at specified index and time.
     MultiFab& get_data (int  state_indx, Real time) noexcept;
     //! Hack to allow override of (non-fine-fine) fillpatched boundary data
@@ -334,7 +334,7 @@ public:
                                                 int       dcomp,
                                                 int       ncomp,
                                                 Real      time) const;
-    /** 
+    /**
     * \brief Called in grid_places after other tagging routines to modify
     * the list of tagged points.  Default implementation does nothing.
     */
@@ -357,7 +357,7 @@ public:
     /**
     * \brief Returns one the TimeLevel enums.
     * Asserts that time is between AmrOldTime and AmrNewTime.
-    */ 
+    */
     TimeLevel which_time (int  state_indx, Real time) const noexcept;
 
     //! Does the AmrLevel want Amr to write a plotfile now?
@@ -367,7 +367,7 @@ public:
     virtual bool writeSmallPlotNow ();
 
 #ifdef AMREX_PARTICLES
-    //! This function can be called from the parent 
+    //! This function can be called from the parent
     virtual void particle_redistribute (int /*lbase*/ = 0, bool /*a_init*/ = false) {;}
 #endif
 
@@ -388,7 +388,7 @@ public:
                               int       scomp,
                              int       ncomp,
                              int       dcomp=0);
-    
+
 #ifdef AMREX_USE_EB
     static void SetEBMaxGrowCells (int nbasic, int nvolume, int nfull) noexcept {
         m_eb_basic_grow_cells = nbasic;
@@ -410,14 +410,14 @@ protected:
               int             lev,
               const Geometry& level_geom,
               const BoxArray& bl,
-	      const DistributionMapping& dm,
+              const DistributionMapping& dm,
               Real            time);
 
     AmrLevel (const AmrLevel&) = delete;
     AmrLevel& operator = (const AmrLevel&) = delete;
 
     //! Common code used by all constructors.
-    void finishConstructor (); 
+    void finishConstructor ();
 
     //
     // The Data.

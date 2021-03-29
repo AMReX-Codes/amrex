@@ -269,7 +269,7 @@ Real grad_x_of_phi_on_centroids(int i,int j,int k,int n,
                 if (!flag(ii,jj,k).isRegular())
                 {
                     int a_ind_eb  = a_ind + 6;
-                    
+
                     Amatrix(a_ind_eb,0) = 1.0;
                     Amatrix(a_ind_eb,1) = x_off + bcent(ii,jj,k,0);
                     Amatrix(a_ind_eb,2) = y_off + bcent(ii,jj,k,1) - yloc_on_xface;
@@ -498,6 +498,9 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
               continue;
             }
 
+            if ( !phi.contains(ii,jj,k) )
+               continue;
+
             if (!flag(ii,jj,k).isCovered())
             {
 
@@ -556,6 +559,9 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
         for (int ii = i-im; ii <= i+ip; ii++)  // Normal to face
             for (int jj = j-1; jj <= j+1; jj++)  // Tangential to face
             {
+                if ( !phi.contains(ii,jj,k) )
+                   continue;
+
                 if (!flag(ii,jj,k).isCovered())
                 {
                     int a_ind  = (jj-(j-1)) + 3*(ii-(i-im));
@@ -617,6 +623,9 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
               continue;
             }
 
+            if ( !phi.contains(ii,jj,k) )
+               continue;
+
             if (!flag(ii,jj,k).isCovered())
             {
                 int a_ind  = (ii-(i-1)) + 3*(jj-(j-jm));
@@ -671,7 +680,9 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
         rhs(irow) = 0.; // Only non-zero when inhomogeneous Dirichlet
 
         for (int jj = j-jm; jj <= j+jp; jj++) // Normal to face
-            for (int ii = i-1; ii <= i+1; ii++) // Tangential to face
+            for (int ii = i-1; ii <= i+1; ii++) {// Tangential to face
+                if ( !phi.contains(ii,jj,k) )
+                   continue;
                 if (!flag(ii,jj,k).isCovered())
                 {
                     int a_ind  = (ii-(i-1)) + 3*(jj-(j-jm));
@@ -686,6 +697,7 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                       rhs(irow) += Amatrix(a_ind+9,irow)*phieb(ii,jj,k,n);
                     }
                 }
+            }
 
     }
 
@@ -785,7 +797,9 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
         rhs(irow) = 0.;
 
         for (int ii = i-1; ii <= i+1; ii++)
-            for (int jj = j-1; jj <= j+1; jj++)
+            for (int jj = j-1; jj <= j+1; jj++) {
+                if ( !phi.contains(ii,jj,k) )
+                   continue;
                 if (!flag(ii,jj,k).isCovered())
                 {
                     int a_ind  = (jj-(j-1)) + 3*(ii-(i-1));
@@ -799,6 +813,7 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                     if (flag(ii,jj,k).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+9,irow) != 0.0)
                         rhs(irow) += Amatrix(a_ind+9,irow)*phieb(ii,jj,k,n);
                 }
+            }
     }
 
     cholsol_for_eb(Amatrix, rhs);

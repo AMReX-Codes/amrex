@@ -73,7 +73,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     cfba.uniqify();
 
 #ifdef AMREX_USE_OMP
-    
+
     const int nthreads = omp_get_max_threads();
     Vector<BoxList> bl_priv(nthreads, BoxList());
     Vector<Vector<int> > procmap_priv(nthreads);
@@ -299,7 +299,7 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
             flux[idim] = &ftmp[idim];
         }
     }
-    
+
     AMREX_ASSERT(bx.cellCentered());
 
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim)

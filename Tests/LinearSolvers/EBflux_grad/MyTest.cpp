@@ -71,15 +71,15 @@ MyTest::solve ()
     const Real tol_rel = reltol;
     const Real tol_abs = 0.0;
     mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
-    mlmg.getFluxes(amrex::GetVecOfArrOfPtrs(flux)); 
+    mlmg.getFluxes(amrex::GetVecOfArrOfPtrs(flux));
     mlmg.getGradSolution(amrex::GetVecOfArrOfPtrs(grad));
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         amrex::VisMF::Write(phi[0], "phi-"+std::to_string(ilev));
     }
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        amrex::VisMF::Write(flux[0][idim], "flux-"+std::to_string(idim)); 
-        amrex::VisMF::Write(grad[0][idim], "grad-"+std::to_string(idim)); 
+        amrex::VisMF::Write(flux[0][idim], "flux-"+std::to_string(idim));
+        amrex::VisMF::Write(grad[0][idim], "grad-"+std::to_string(idim));
     }
 }
 
@@ -130,7 +130,7 @@ MyTest::initGrids ()
         grids[ilev].define(domain);
         grids[ilev].maxSize(max_grid_size);
         domain.grow(-n_cell/4);   // fine level cover the middle of the coarse domain
-        domain.refine(ref_ratio); 
+        domain.refine(ref_ratio);
     }
 }
 
@@ -144,8 +144,8 @@ MyTest::initData ()
     rhs.resize(nlevels);
     acoef.resize(nlevels);
     bcoef.resize(nlevels);
-    flux.resize(1); 
-    grad.resize(1); 
+    flux.resize(1);
+    grad.resize(1);
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
         dmap[ilev].define(grids[ilev]);

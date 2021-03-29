@@ -9,7 +9,7 @@ AMReX as a library for a common set of configuration options. This operation is 
 through Travis-CI. This layer of testing is deliberately limited, so that it can be run
 quickly on every commit. For more extensive testing, we rely on the nightly regression results.
 
-              
+
 Nightly Regression Testing
 ==========================
 
@@ -45,7 +45,7 @@ likely want to change include:
 to control where the generated output will be written, and
 
 ::
-   
+
    [AMReX]
    dir = /path/to/amrex  # the path to the amrex repository you want to test
    branch = "development"
@@ -57,20 +57,20 @@ The test runner is a Python script and can be invoked like so:
 ::
 
    python regtest.py <options> AMReX-Tests.ini
-   
+
 Before you can use it, you must first generate a set of "benchmarks" - i.e. known "good" answers to the
 tests that will be run. If you are testing a pull request, you can generate these by running the script
 with the a recent version of the :cpp:`development` branch of AMReX. You can generate the benchmarks like so:
 
 ::
-   
+
    python regtest.py --make_benchmarks 'generating initial benchmarks' AMReX-Tests.ini
 
 Once that is finished, you can switch over to the branch you want to test in :cpp:`AMReX-Tests.ini`, and then
 re-run the script without the :cpp:`--make_benchmarks` option:
 
 ::
-   
+
    python regtest.py --make_benchmarks 'generating initial benchmarks' AMReX-Tests.ini
 
 The script will generate a set of html pages in the directory specified in your :cpp:`AMReX-Tests.ini`
@@ -83,15 +83,15 @@ For a complete set of script options, run
    python regtest.py --help
 
 A particularly useful option lets you run just a subset of the complete test suite. To run only one test, you can do:
-   
+
 ::
-   
+
    python regtest.py --single_test <TestName> AMReX-Tests.ini
 
 To run an enumerated list of tests, do:
-   
+
 ::
-   
+
    python regtest.py --tests '<TestName1> <TestName2> <TestName3>' AMReX-Tests.ini
 
 
@@ -103,7 +103,7 @@ do is start from an existing test and modify it. For example, this entry:
 
 ::
 
-   [MLMG_FI_PoisCom] 
+   [MLMG_FI_PoisCom]
    buildDir = Tutorials/LinearSolvers/ABecLaplacian_F
    inputFile = inputs-rt-poisson-com
    dim = 3

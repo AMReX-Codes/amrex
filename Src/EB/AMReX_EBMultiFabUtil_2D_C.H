@@ -411,7 +411,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
       else if ( apx(i,j,k) == 1 && (cvol(i,j,k) == 1 && cvol(i-1,j,k) == 1) )
       {
           edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
-      } 
+      }
       else if (apx(i,j,k) == 1 && (amrex::Math::abs(ccent(i,j,k,1)-ccent(i-1,j,k,1)) < 1.e-8) )
       {
           Real d0 = 0.5 + ccent(i  ,j,k,0);                               // distance in x-dir from centroid(i  ,j) to face(i,j)
@@ -419,8 +419,8 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
           Real a0 = d1 / (d0 + d1);                                       // coefficient of phi(i  ,j,k,n)
           Real a1 = d0 / (d0 + d1);                                       // coefficient of phi(i-1,j,k,n)
           edg_x(i,j,k,n) = a0*phi(i,j,k,n) + a1*phi(i-1,j,k,n);           // interpolation of phi in x-direction
-      } 
-      else 
+      }
+      else
       {
           int ii = i - 1;
           int jj;
@@ -452,8 +452,8 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
 
           Real phi01_jj = a0_jj *   phi(i,jj,k,n)  + a1_jj *   phi(ii,jj,k,n); // interpolation of phi   in x-direction
           Real y01_jj   = a0_jj * ccent(i,jj,k,1)  + a1_jj * ccent(ii,jj,k,1); // interpolation of y-loc in x-direction
-          
-          edg_x(i,j,k,n) = ( (     fcx(i,j,k) - y01   ) * phi01_jj + 
+
+          edg_x(i,j,k,n) = ( (     fcx(i,j,k) - y01   ) * phi01_jj +
                              (1. - fcx(i,j,k) + y01_jj) * phi01    ) / (1. - y01 + y01_jj);
       }
   });
@@ -498,8 +498,8 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
           Real a0 = d1 / (d0 + d1);                                        // coefficient of phi(i,j  ,k,n)
           Real a1 = d0 / (d0 + d1);                                        // coefficient of phi(i,j-1,k,n)
           edg_y(i,j,k,n) = a0*phi(i,j,k,n) + a1*phi(i,j-1,k,n);            // interpolation of phi in y-direction
-      } 
-      else 
+      }
+      else
       {
           int jj = j - 1;
           int ii;
@@ -533,8 +533,8 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
 
           Real phi01_ii = a0_ii *   phi(ii,j,k,n)  + a1_ii *   phi(ii,jj,k,n); // interpolation of phi   in y-direction
           Real x01_ii   = a0_ii * ccent(ii,j,k,0)  + a1_ii * ccent(ii,jj,k,0); // interpolation of x-loc in y-direction
-          
-          edg_y(i,j,k,n) = ( (     fcy(i,j,k) - x01   ) * phi01_ii + 
+
+          edg_y(i,j,k,n) = ( (     fcy(i,j,k) - x01   ) * phi01_ii +
                              (1. - fcy(i,j,k) + x01_ii) * phi01    ) / (1. - x01 + x01_ii);
         }
     });
@@ -563,7 +563,7 @@ void eb_interp_cc2face_x (Box const& ubx,
         else
         {
           edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
-        } 
+        }
     });
 }
 

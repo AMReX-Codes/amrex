@@ -8,7 +8,7 @@ module amrex_ebcellflag_module
        set_regular_cell, set_covered_cell, set_single_valued_cell, set_neighbor, clear_neighbor, &
        clear_allneighbors, is_neighbor, get_neighbor_cells_int_single, &
        regular, single_valued, multi_valued, covered
-  
+
   integer, parameter :: w_type      = 2
   integer, parameter :: w_numvofs   = 3
   integer, parameter :: pos_numvofs = 2;
@@ -39,7 +39,7 @@ contains
       get_neighbor_cells_int_single = 0
     end if
   end function get_neighbor_cells_int_single
-  
+
   elemental logical function is_regular_cell (flag)
     integer, intent(in) :: flag
     is_regular_cell = ibits(flag,0,w_type) .eq. regular

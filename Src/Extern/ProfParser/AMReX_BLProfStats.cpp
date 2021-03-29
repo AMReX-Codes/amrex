@@ -59,8 +59,8 @@ extern void PrintTimeRangeList(const std::list<RegionsProfStats::TimeRange> &trL
 extern long amrex::FileSize(const std::string &filename);
 extern void amrex::MakeFuncPctTimesMF(const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
                                const Vector<std::string> &blpFNames,
-			       const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
-			       Real runTime, int dataNProcs);
+                               const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
+                               Real runTime, int dataNProcs);
 extern void amrex::CollectMProfStats(std::map<std::string, BLProfiler::ProfStats> &mProfStats,
                               const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
                               const Vector<std::string> &fNames,
@@ -91,7 +91,7 @@ bool BLProfStats::AddPiece(std::list<TimeRange> &addToHere,
       if(tRange.stopTime >= tRangeNext.startTime) {
         tRangeNext.startTime = tRange.startTime;
         tRangeNext.stopTime  = std::max(tRange.stopTime, tRangeNext.stopTime);
-	overlaps.push_back(it);
+        overlaps.push_back(it);
       }
     }
   }
@@ -127,7 +127,7 @@ std::list<BLProfStats::TimeRange> BLProfStats::RangeIntersection(
 bool BLProfStats::RemovePiece(std::list<TimeRange> &removeFromHere,
                               const TimeRange &pieceToRemove)
 {
-  
+
 
   bool piecesRemoved(false);
   std::list<TimeRange>::iterator it;
@@ -169,7 +169,7 @@ bool BLProfStats::RemovePiece(std::list<TimeRange> &removeFromHere,
 
     } else if(bothHigh) {                    // ---- do nothing
     }
-    
+
   }
   std::list<std::list<TimeRange>::iterator >::iterator eit;
   for(eit = eraseThese.begin(); eit != eraseThese.end(); ++eit) {
@@ -295,7 +295,7 @@ void BLProfStats::InitFilterTimeRanges() {
     for(int p(0); p < regionTimeRanges.size(); ++p) {
       for(int r(0); r < regionTimeRanges[p][regNum].size(); ++r) {
         TimeRange &trange = regionTimeRanges[p][regNum][r];
-	//cout << "_here include:  " << trange << endl;
+        //cout << "_here include:  " << trange << endl;
         AddPiece(filterTimeRanges[p], trange);
       }
     }
@@ -306,7 +306,7 @@ void BLProfStats::InitFilterTimeRanges() {
     for(int p(0); p < regionTimeRanges.size(); ++p) {
       for(int r(0); r < regionTimeRanges[p][regNum].size(); ++r) {
         TimeRange &trange = regionTimeRanges[p][regNum][r];
-	//cout << "_here exclude:  " << trange << endl;
+        //cout << "_here exclude:  " << trange << endl;
         RemovePiece(filterTimeRanges[p], trange);
       }
     }
@@ -428,7 +428,7 @@ void BLProfStats::CheckData() {
   long diff(-1);
   std::map<std::string, long>::iterator it;
   for(it = maxSeekPerFile.begin(); it != maxSeekPerFile.end(); ++it) {
-    diff = it->second + dataSize - FileSize(it->first); 
+    diff = it->second + dataSize - FileSize(it->first);
     if(diff != 0) {
       bad = true;
       cout << "fName maxSeek fSize diff = " << it->first << "  " << it->second << "  "

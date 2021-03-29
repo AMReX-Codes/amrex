@@ -2,13 +2,13 @@
 #define AMREX_HYPREIJIFACE_H
 #include <AMReX_Config.H>
 
-#include <memory>
-
 #include <AMReX_MultiFab.H>
 
 #include <HYPRE.h>
 #include <HYPRE_parcsr_ls.h>
 #include <HYPRE_parcsr_mv.h>
+
+#include <memory>
 
 namespace amrex {
 

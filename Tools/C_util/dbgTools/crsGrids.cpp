@@ -82,7 +82,7 @@ main (int   argc,
         amrex::Abort("nCrsRatio != nRefLevels");
 
     std::cout << nRefLevels << std::endl;
-        
+
 
     //----------------------------------------------------//
     // Loop Through Refined Levels and Generate MultiFabs //

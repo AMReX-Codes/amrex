@@ -20,100 +20,40 @@ ifeq ($(USE_MPI),TRUE)
     MPI_OTHER_COMP := mpif90
   endif
 
-  # Link to MPI f90 library.
-  ifneq ($(findstring mpich,$(shell $(MPI_OTHER_COMP) -show 2>&1 | tr A-Z a-z)),)
+  # error codes - find flag that displays the link line wrapper. 
+  code_sml := $(shell $(MPI_OTHER_COMP) -showme:link > /dev/null 2>&1; echo $$?)
+  code_li :=  $(shell $(MPI_OTHER_COMP) -link_info   > /dev/null 2>&1; echo $$?)
 
-    #
-    # mpich
-    #
-
-#    ifneq ($(BL_NO_FORT),TRUE)
-      mpif90_link_flags := $(shell $(MPI_OTHER_COMP) -link_info)
-      #
-      # The first word is the underlying compiler say gfortran
-      #
-      LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
-#    endif
-
-#    ifneq ($(CXX),$(filter $(CXX),mpicxx mpic++))
-      mpicxx_link_flags := $(shell mpicxx -link_info)
-      LIBRARIES += $(filter -l%,$(mpicxx_link_flags))
-#    endif
-
-  else ifneq ($(findstring mvapich,$(shell $(MPI_OTHER_COMP) -show 2>&1 | tr A-Z a-z)),)
-
-    #
-    # mvapich
-    #
-
-#    ifneq ($(BL_NO_FORT),TRUE)
-      mpif90_link_flags := $(shell $(MPI_OTHER_COMP) -link_info)
-      #
-      # The first word is the underlying compiler say gfortran
-      #
-      LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
-#    endif
-
-#    ifneq ($(CXX),$(filter $(CXX),mpicxx mpic++))
-      mpicxx_link_flags := $(shell mpicxx -link_info)
-      LIBRARIES += $(filter -l%,$(mpicxx_link_flags))
-#    endif
-
-  else ifneq ($(findstring Open MPI, $(shell $(MPI_OTHER_COMP) -showme:version 2>&1)),)
-
-    #
-    # openmpi
-    #
-
-#    ifneq ($(BL_NO_FORT),TRUE)
-      mpif90_link_flags := $(shell $(MPI_OTHER_COMP) -showme:link)
-      LIBRARIES += $(mpif90_link_flags)
-#    endif
-
-#    ifneq ($(CXX),$(filter $(CXX),mpicxx mpic++))
-      mpicxx_link_flags := $(shell mpicxx -showme:link)
-      LIBRARIES += $(filter -l%,$(mpicxx_link_flags))
-#    endif
-
-     DEFINES += -DOMPI_SKIP_MPICXX
-
-  else ifneq ($(findstring Spectrum MPI, $(shell $(MPI_OTHER_COMP) -showme:version 2>&1)),)
-
-    #
-    # Spectrum MPI
-    #
-#    ifneq ($(BL_NO_FORT),TRUE)
-      mpif90_link_flags := $(shell $(MPI_OTHER_COMP) -showme:link)
-      LIBRARIES += $(mpif90_link_flags)
-#    endif
-
-  else ifneq ($(findstring /intel/mpi-rt,$(shell $(MPI_OTHER_COMP) -show 2>&1)),)
-
-    #
-    # Intel mpi
-    #
-#
-#    ifneq ($(BL_NO_FORT),TRUE)
-      mpif90_link_flags := $(shell $(MPI_OTHER_COMP) -link_info)
-      #
-      # The first word is the underlying compiler say gfortran
-      #
-      LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
-#    endif
-
-#    ifneq ($(CXX),$(filter $(CXX),mpicxx mpic++))
-      mpicxx_link_flags := $(shell mpicxx -link_info)
-      LIBRARIES += $(filter -l%,$(mpicxx_link_flags))
-#    endif
-
+  # use correct flag to store link line and cxx libraries (-l%).
+  ifeq ($(code_sml), 0)
+     mpi_link_flags  := $(shell $(MPI_OTHER_COMP) -showme:link)
+     mpicxx_link_libs := $(filter -l%,$(shell mpicxx -showme:link))
+  else ifeq ($(code_li), 0)
+     mpi_link_flags  := $(shell $(MPI_OTHER_COMP) -link_info)
+     mpicxx_link_libs := $(filter -l%,$(shell mpicxx -link_info))
   else
-
-    $(error Unknown mpi implementation.  You can try setting MPI stuff in amrex/Tools/GNUMake/Make.local and then compile with NO_MPI_CHECKING=TRUE.)
-
+     $(error Unknown mpi wrapper.  You can try setting MPI stuff in amrex/Tools/GNUMake/Make.local and then compile with NO_MPI_CHECKING=TRUE.)
   endif
 
+  # some compilers return the compiler command as part of the link line info.
+  # filter out first word in link line, if it doesn't start with a dash, e.g. "gfortran".
+  mpi_filter := $(filter-out -%, $(firstword $(mpi_link_flags)))
+  ifneq ($(mpi_filter),)
+     mpi_link_flags := $(filter-out $(mpi_filter), $(mpi_link_flags))
+  endif
+
+  LIBRARIES += $(mpi_link_flags) $(mpicxx_link_libs)
+
+  # OpenMPI specific flag
+  # Uncomment if statement if flag causes issue with another compiler.
+  #ifneq ($(findstring Open MPI, $(shell $(MPI_OTHER_COMP) -showme:version 2>&1)),)
+     DEFINES += -DOMPI_SKIP_MPICXX
+  #endif
+
 endif
 endif
+
+
 
 ifneq ($(NO_CUDA_CHECKING),TRUE)
 ifeq ($(USE_CUDA),TRUE)

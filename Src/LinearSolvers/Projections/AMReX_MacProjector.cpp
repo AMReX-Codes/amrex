@@ -15,6 +15,7 @@ MacProjector::MacProjector(
     MLMG::Location a_phi_loc,
     MLMG::Location a_divu_loc)
     : m_geom(a_geom),
+      m_needs_level_bcs(a_geom.size(),true),
       m_umac_loc(a_umac_loc),
       m_beta_loc(a_beta_loc),
       m_phi_loc(a_phi_loc),
@@ -35,6 +36,7 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
                             const Vector<iMultiFab const*>& a_overset_mask)
     : m_umac(a_umac),
       m_geom(a_geom),
+      m_needs_level_bcs(a_geom.size(),true),
       m_umac_loc(a_umac_loc),
       m_beta_loc(a_beta_loc),
       m_phi_loc(a_phi_loc),
@@ -194,12 +196,7 @@ MacProjector::setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         m_linop != nullptr,
         "MacProjector::setDomainBC: initProjector must be called before calling this method");
-
     m_linop->setDomainBC(lobc, hibc);
-    for (int ilev = 0, N = m_geom.size(); ilev < N; ++ilev) {
-        m_linop->setLevelBC(ilev, nullptr);
-    }
-
     m_needs_domain_bcs = false;
 }
 
@@ -210,6 +207,7 @@ MacProjector::setLevelBC (int amrlev, const MultiFab* levelbcdata)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_needs_domain_bcs,
                                      "setDomainBC must be called before setLevelBC");
     m_linop->setLevelBC(amrlev, levelbcdata);
+    m_needs_level_bcs[amrlev] = false;
 }
 
 
@@ -218,6 +216,13 @@ void
 MacProjector::project (Real reltol, Real atol)
 {
     const int nlevs = m_rhs.size();
+
+    for (int ilev = 0; ilev < nlevs; ++ilev) {
+        if (m_needs_level_bcs[ilev]) {
+            m_linop->setLevelBC(ilev, nullptr);
+            m_needs_level_bcs[ilev] = false;
+        }
+    }
 
     averageDownVelocity();
 

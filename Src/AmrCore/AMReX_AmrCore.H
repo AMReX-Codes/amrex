@@ -2,10 +2,10 @@
 #define BL_AMRCORE_H_
 #include <AMReX_Config.H>
 
-#include <ostream>
-#include <memory>
-
 #include <AMReX_AmrMesh.H>
+
+#include <iosfwd>
+#include <memory>
 
 namespace amrex {
 

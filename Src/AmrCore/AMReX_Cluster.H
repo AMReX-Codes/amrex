@@ -3,13 +3,14 @@
 #define AMREX_Cluster_H_
 #include <AMReX_Config.H>
 
-#include <list>
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_REAL.H>
+
+#include <list>
 
 namespace amrex {
 

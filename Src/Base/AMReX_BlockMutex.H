@@ -7,7 +7,7 @@
 namespace amrex {
 
 #ifdef AMREX_USE_GPU
-    
+
 struct BlockMutex
 {
     union state_t
@@ -24,7 +24,7 @@ struct BlockMutex
     static void init_states (state_t* state, int N) noexcept;
 
     explicit BlockMutex (int N) noexcept;
-    
+
     ~BlockMutex ();
 
     void operator= (BlockMutex const&) = delete;
@@ -84,6 +84,6 @@ private:
     int m_nstates;
     state_t* m_state;
 };
-#endif  
+#endif
 }
 #endif

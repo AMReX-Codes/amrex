@@ -113,7 +113,7 @@ public :
     virtual void unimposeNeumannBC (int amrlev, MultiFab& rhs) const final override;
 
     virtual void compGrad (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
-			   MultiFab& /*sol*/, Location /*loc*/) const final override {
+                           MultiFab& /*sol*/, Location /*loc*/) const final override {
         amrex::Abort("MLNodeLaplacian::compGrad: How did we get here?");
     }
     void compGrad (int amrlev, MultiFab& grad, MultiFab& sol) const;

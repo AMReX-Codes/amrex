@@ -118,10 +118,10 @@ class DataServices {
 
       //! PointValueRequest
       void PointValue(int pointBoxArraySize, Box *pointBoxArray,
-		      const string &currentDerived,
-		      int coarsestLevelToSearch, int finestLevelToSearch,
-		      int &intersectedLevel, Box &intersectedGrid,
-		      Real &dataPointValue, bool &bPointIsValid);
+                      const string &currentDerived,
+                      int coarsestLevelToSearch, int finestLevelToSearch,
+                      int &intersectedLevel, Box &intersectedGrid,
+                      Real &dataPointValue, bool &bPointIsValid);
 
       //! LineValuesRequest
       void LineValues(int lineBoxArraySize, Box *lineBoxArray, int whichDir,

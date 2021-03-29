@@ -686,7 +686,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
 #if (AMREX_SPACEDIM == 3)
     AMREX_ASSERT(divu.nComp()==umac[2]->nComp());
 #endif
-    
+
     if (!divu.hasEBFabFactory())
     {
         amrex::computeDivergence(divu, umac, geom);
@@ -855,7 +855,7 @@ EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int scomp, int dco
     }
 
     cent.FillBoundary(dcomp,ncomp,geom.periodicity());
-    
+
 }
 
 void
@@ -873,11 +873,11 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
     const auto& fcent = factory.getFaceCent();
 
     AMREX_ALWAYS_ASSERT(a_bcs.size() == ncomp );
-    
+
     Box domain(a_geom.Domain());
-    
+
     const int nghost(4);
-    
+
    // Initialize edge state
     AMREX_D_TERM(fc_x.setVal(1e40,dcomp,ncomp);,
                  fc_y.setVal(1e40,dcomp,ncomp);,
@@ -897,7 +897,7 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
     {
         d_bcs = a_bcs.dataPtr();
     }
-    
+
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 #ifdef AMREX_USE_OMP
@@ -918,7 +918,7 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
             AMREX_D_TERM(Array4<Real> const& edg_x = fc_x.array(mfi,dcomp);,
                          Array4<Real> const& edg_y = fc_y.array(mfi,dcomp);,
                          Array4<Real> const& edg_z = fc_z.array(mfi,dcomp));
-          
+
             if (fabtyp_ghost == FabType::regular )
             {
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
@@ -963,7 +963,7 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
             }
         }
     }
-    
+
     fc_x.FillBoundary(a_geom.periodicity());
     fc_y.FillBoundary(a_geom.periodicity());
 #if ( AMREX_SPACEDIM == 3 )
@@ -977,20 +977,20 @@ void EB_interp_CellCentroid_to_FaceCentroid (const MultiFab& phi_centroid,
                                              const Array<MultiFab*, AMREX_SPACEDIM>& phi_faces,
                                              int scomp, int dcomp, int nc,
                                              const Geometry& geom,
-                                             const amrex::Vector<amrex::BCRec>& a_bcs) 
+                                             const amrex::Vector<amrex::BCRec>& a_bcs)
 {
-    EB_interp_CellCentroid_to_FaceCentroid (phi_centroid, AMREX_D_DECL( *phi_faces[0], *phi_faces[1], *phi_faces[2] ), 
+    EB_interp_CellCentroid_to_FaceCentroid (phi_centroid, AMREX_D_DECL( *phi_faces[0], *phi_faces[1], *phi_faces[2] ),
                                             scomp, dcomp, nc, geom, a_bcs);
 }
 
 // Cell centroids to face centroids
 void EB_interp_CellCentroid_to_FaceCentroid (const MultiFab& phi_centroid,
-                                             const Vector<MultiFab*>& phi_faces, 
+                                             const Vector<MultiFab*>& phi_faces,
                                              int scomp, int dcomp, int nc,
                                              const Geometry& geom,
-                                             const amrex::Vector<amrex::BCRec>& a_bcs) 
+                                             const amrex::Vector<amrex::BCRec>& a_bcs)
 {
-    EB_interp_CellCentroid_to_FaceCentroid (phi_centroid, AMREX_D_DECL( *phi_faces[0], *phi_faces[1], *phi_faces[2] ), 
+    EB_interp_CellCentroid_to_FaceCentroid (phi_centroid, AMREX_D_DECL( *phi_faces[0], *phi_faces[1], *phi_faces[2] ),
                                             scomp, dcomp, nc, geom, a_bcs);
 }
 
@@ -1012,11 +1012,11 @@ EB_interp_CellCentroid_to_FaceCentroid (const MultiFab& phi_centroid,
 
     // We assume that we start from the first component of bcs ... we may need to generalize this
     AMREX_ALWAYS_ASSERT(a_bcs.size() >= ncomp );
-    
+
     Box domain(a_geom.Domain());
-    
+
     const int nghost(4);
-    
+
    // Initialize edge state
     AMREX_D_TERM(phi_xface.setVal(1e40,dcomp,ncomp);,
                  phi_yface.setVal(1e40,dcomp,ncomp);,
@@ -1036,7 +1036,7 @@ EB_interp_CellCentroid_to_FaceCentroid (const MultiFab& phi_centroid,
     {
         d_bcs = a_bcs.dataPtr();
     }
-    
+
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 #ifdef AMREX_USE_OMP
@@ -1057,7 +1057,7 @@ EB_interp_CellCentroid_to_FaceCentroid (const MultiFab& phi_centroid,
             AMREX_D_TERM(Array4<Real> const& phi_x = phi_xface.array(mfi,dcomp);,
                          Array4<Real> const& phi_y = phi_yface.array(mfi,dcomp);,
                          Array4<Real> const& phi_z = phi_zface.array(mfi,dcomp));
-          
+
             if (fabtyp_ghost == FabType::regular )
             {
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
@@ -1106,7 +1106,7 @@ EB_interp_CellCentroid_to_FaceCentroid (const MultiFab& phi_centroid,
             }
         }
     }
-    
+
     phi_xface.FillBoundary(a_geom.periodicity());
     phi_yface.FillBoundary(a_geom.periodicity());
 #if ( AMREX_SPACEDIM == 3 )

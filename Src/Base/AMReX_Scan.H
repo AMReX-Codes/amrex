@@ -161,7 +161,7 @@ enum class Type { inclusive, exclusive };
 #if defined(AMREX_USE_DPCPP)
 
 template <typename T, typename N, typename FIN, typename FOUT,
-          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+          typename M=std::enable_if_t<std::is_integral<N>::value> >
 T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
 {
     if (n <= 0) return 0;
@@ -180,7 +180,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
     std::size_t nbytes_blockstatus = Arena::align(sizeof(BlockStatusT)*nblocks);
     std::size_t nbytes_blockid = Arena::align(sizeof(unsigned int));
     std::size_t nbytes_totalsum = Arena::align(sizeof(T));
-    auto dp = (char*)(The_Device_Arena()->alloc(  nbytes_blockstatus
+    auto dp = (char*)(The_Arena()->alloc(  nbytes_blockstatus
                                                 + nbytes_blockid
                                                 + nbytes_totalsum));
     BlockStatusT* AMREX_RESTRICT block_status_p = (BlockStatusT*)dp;
@@ -282,7 +282,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
             gh.item->barrier(sycl::access::fence_space::local_space);
 
             // shared[0:nwarps) holds the inclusive sum of warp sums.
-            
+
             // Also note x still holds the inclusive sum within the
             // warp.  Given these two, we can compute the inclusive
             // sum within this chunk.
@@ -379,7 +379,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
     Gpu::dtoh_memcpy_async(&totalsum, totalsum_p, sizeof(T));
     Gpu::streamSynchronize();
 
-    The_Device_Arena()->free(dp);
+    The_Arena()->free(dp);
 
     AMREX_GPU_ERROR_CHECK();
 
@@ -389,7 +389,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
 #else
 
 template <typename T, typename N, typename FIN, typename FOUT,
-          typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+          typename M=std::enable_if_t<std::is_integral<N>::value> >
 T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
 {
     if (n <= 0) return 0;
@@ -408,7 +408,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
     std::size_t nbytes_blockstatus = Arena::align(sizeof(BlockStatusT)*nblocks);
     std::size_t nbytes_blockid = Arena::align(sizeof(unsigned int));
     std::size_t nbytes_totalsum = Arena::align(sizeof(T));
-    auto dp = (char*)(The_Device_Arena()->alloc(  nbytes_blockstatus
+    auto dp = (char*)(The_Arena()->alloc(  nbytes_blockstatus
                                                 + nbytes_blockid
                                                 + nbytes_totalsum));
     BlockStatusT* AMREX_RESTRICT block_status_p = (BlockStatusT*)dp;
@@ -523,7 +523,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
             __syncthreads();
 
             // shared[0:nwarps) holds the inclusive sum of warp sums.
-            
+
             // Also note x still holds the inclusive sum within the
             // warp.  Given these two, we can compute the inclusive
             // sum within this chunk.
@@ -618,7 +618,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
     Gpu::dtoh_memcpy_async(&totalsum, totalsum_p, sizeof(T));
     Gpu::streamSynchronize();
 
-    The_Device_Arena()->free(dp);
+    The_Arena()->free(dp);
 
     AMREX_GPU_ERROR_CHECK();
 
@@ -628,7 +628,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
 #endif
 
 // The return value is the total sum.
-template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
 T InclusiveSum (N n, T const* in, T * out)
 {
     if (static_cast<Long>(n) <= static_cast<Long>(std::numeric_limits<int>::max())) {
@@ -645,7 +645,7 @@ T InclusiveSum (N n, T const* in, T * out)
 }
 
 // The return value is the total sum.
-template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
 T ExclusiveSum (N n, T const* in, T * out)
 {
     if (static_cast<Long>(n) <= static_cast<Long>(std::numeric_limits<int>::max())) {
@@ -664,7 +664,7 @@ T ExclusiveSum (N n, T const* in, T * out)
 #else
 
 // The return value is the total sum.
-template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
 T InclusiveSum (N n, T const* in, T * out)
 {
     std::partial_sum(in, in+n, out);
@@ -672,7 +672,7 @@ T InclusiveSum (N n, T const* in, T * out)
 }
 
 // The return value is the total sum.
-template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
 T ExclusiveSum (N n, T const* in, T * out)
 {
     if (n > 0) {
@@ -715,10 +715,10 @@ namespace Gpu
         return result_end;
 #else
         if (begin == end) return result;
-        
+
         typename std::iterator_traits<InIter>::value_type sum = *begin;
         *result++ = sum - *begin;
-        
+
         while (++begin != end) {
             sum = std::move(sum) + *begin;
             *result++ = sum - *begin;

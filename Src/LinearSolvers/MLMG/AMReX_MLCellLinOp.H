@@ -28,7 +28,10 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
-    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) final override;
+    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata,
+                             const MultiFab* robinbc_a = nullptr,
+                             const MultiFab* robinbc_b = nullptr,
+                             const MultiFab* robinbc_f = nullptr) final override;
 
     virtual bool needsUpdate () const override {
         return MLLinOp::needsUpdate();
@@ -198,6 +201,8 @@ protected:
         int m_ncomp;
     };
     Vector<Vector<std::unique_ptr<BndryCondLoc> > > m_bcondloc;
+
+    Vector<std::unique_ptr<MultiFab> > m_robin_bcval;
 
     // used to save interpolation coefficients of the first interior cells
     mutable Vector<Vector<BndryRegister> > m_undrrelxr;

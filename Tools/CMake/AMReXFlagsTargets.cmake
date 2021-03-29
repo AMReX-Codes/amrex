@@ -34,6 +34,7 @@ foreach (_language CXX Fortran )
       set(_${_lang}_${_id}      "$<AND:${_comp_lang},${_comp_id}>")
       set(_${_lang}_${_id}_dbg  "$<AND:${_comp_lang},${_comp_id},$<CONFIG:Debug>>")
       set(_${_lang}_${_id}_rel  "$<AND:${_comp_lang},${_comp_id},$<CONFIG:Release>>")
+      set(_${_lang}_${_id}_rwdbg "$<AND:${_comp_lang},${_comp_id},$<CONFIG:RelWithDebInfo>>")
       unset(_comp_id)
    endforeach ()
 
@@ -52,17 +53,23 @@ target_compile_options( Flags_CXX
    INTERFACE
    $<${_cxx_gnu_dbg}:-O0 -ggdb -Wall -Wno-sign-compare -Wno-unused-but-set-variable -Werror=return-type>
 #    $<$<VERSION_GREATER:$<CXX_COMPILER_VERSION>,5.0>:-Wnull-dereference>
+   $<${_cxx_gnu_rwdbg}:-Werror=return-type>
    $<${_cxx_gnu_rel}:-Werror=return-type>
    $<${_cxx_intel_dbg}:-O0 -traceback -Wcheck>
+   $<${_cxx_intel_rwdbg}:-ip -qopt-report=5 -qopt-report-phase=vec>
    $<${_cxx_intel_rel}:-ip -qopt-report=5 -qopt-report-phase=vec>
    $<${_cxx_pgi_dbg}:-O0 -Mbounds>
+   $<${_cxx_pgi_rwdbg}:-gopt -fast>
    $<${_cxx_pgi_rel}:-gopt -fast>
    $<${_cxx_cray_dbg}:-O0>
+   $<${_cxx_cray_rwdbg}:>
    $<${_cxx_cray_rel}:>
-   $<${_cxx_clang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
-   $<${_cxx_clang_rel}:>
-   $<${_cxx_appleclang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
-   $<${_cxx_appleclang_rel}:>
+   $<${_cxx_clang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-pass-failed>
+   $<${_cxx_clang_rwdbg}:-Wno-pass-failed>
+   $<${_cxx_clang_rel}:-Wno-pass-failed>
+   $<${_cxx_appleclang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-pass-failed>
+   $<${_cxx_appleclang_rwdbg}:-Wno-pass-failed>
+   $<${_cxx_appleclang_rel}:-Wno-pass-failed>
    )
 
 #

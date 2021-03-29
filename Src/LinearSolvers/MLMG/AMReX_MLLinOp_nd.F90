@@ -23,7 +23,7 @@ module amrex_mllinop_nd_module
   integer, parameter :: yhi_dir = 4
   integer, parameter :: zhi_dir = 5
 #endif
-  
+
   private
   public :: amrex_mllinop_apply_bc
 
@@ -78,7 +78,7 @@ contains
                 end do
              end do
 #if (AMREX_SPACEDIM >= 2)
-          case (ylo_dir)  
+          case (ylo_dir)
              do    k = lo(3), hi(3)
                 do i = lo(1), hi(1)
                    if (mask(i,lo(2)-1,k) .gt. 0) then
@@ -215,28 +215,28 @@ contains
           ! Corners in XY plane
           if (cdir==xlo_dir .or. cdir==ylo_dir) then
              do k = lo(3), hi(3)
-                phi(lo(1)-1,lo(2)-1,k,n) = & 
+                phi(lo(1)-1,lo(2)-1,k,n) = &
                      0.5d0*(2.d0*phi(lo(1),lo(2)-1,k,n) - phi(lo(1)+1,lo(2)-1,k,n)) + &
                      0.5d0*(2.d0*phi(lo(1)-1,lo(2),k,n) - phi(lo(1)-1,lo(2)+1,k,n))
              end do
           end if
           if (cdir==xhi_dir .or. cdir==ylo_dir) then
              do k = lo(3), hi(3)
-                phi(hi(1)+1,lo(2)-1,k,n) = & 
+                phi(hi(1)+1,lo(2)-1,k,n) = &
                      0.5d0*(2.d0*phi(hi(1),lo(2)-1,k,n) - phi(hi(1)-1,lo(2)-1,k,n)) + &
                      0.5d0*(2.d0*phi(hi(1)+1,lo(2),k,n) - phi(hi(1)+1,lo(2)+1,k,n))
              end do
           end if
           if (cdir==xlo_dir .or. cdir==yhi_dir) then
              do k = lo(3), hi(3)
-                phi(lo(1)-1,hi(2)+1,k,n) = & 
+                phi(lo(1)-1,hi(2)+1,k,n) = &
                      0.5d0*(2.d0*phi(lo(1),hi(2)+1,k,n) - phi(lo(1)+1,hi(2)+1,k,n)) + &
                      0.5d0*(2.d0*phi(lo(1)-1,hi(2),k,n) - phi(lo(1)-1,hi(2)-1,k,n))
              end do
           end if
           if (cdir==xhi_dir .or. cdir==yhi_dir) then
              do k = lo(3), hi(3)
-                phi(hi(1)+1,hi(2)+1,k,n) = & 
+                phi(hi(1)+1,hi(2)+1,k,n) = &
                      0.5d0*(2.d0*phi(hi(1),hi(2)+1,k,n) - phi(hi(1)-1,hi(2)+1,k,n)) + &
                      0.5d0*(2.d0*phi(hi(1)+1,hi(2),k,n) - phi(hi(1)+1,hi(2)-1,k,n))
              end do
@@ -245,28 +245,28 @@ contains
           ! Corners in YZ plane
           if (cdir==zlo_dir .or. cdir==ylo_dir) then
              do i = lo(1), hi(1)
-                phi(i,lo(2)-1,lo(3)-1,n) = & 
+                phi(i,lo(2)-1,lo(3)-1,n) = &
                      0.5d0*(2.d0*phi(i,lo(2)-1,lo(3),n) - phi(i,lo(2)-1,lo(3)+1,n)) + &
                      0.5d0*(2.d0*phi(i,lo(2),lo(3)-1,n) - phi(i,lo(2)+1,lo(3)-1,n))
              end do
           end if
           if (cdir==zhi_dir .or. cdir==ylo_dir) then
              do i = lo(1), hi(1)
-                phi(i,lo(2)-1,hi(3)+1,n) = & 
+                phi(i,lo(2)-1,hi(3)+1,n) = &
                      0.5d0*(2.d0*phi(i,lo(2)-1,hi(3),n) - phi(i,lo(2)-1,hi(3)-1,n)) + &
                      0.5d0*(2.d0*phi(i,lo(2),hi(3)+1,n) - phi(i,lo(2)+1,hi(3)+1,n))
              end do
           end if
           if (cdir==zlo_dir .or. cdir==yhi_dir) then
              do i = lo(1), hi(1)
-                phi(i,hi(2)+1,lo(3)-1,n) = & 
+                phi(i,hi(2)+1,lo(3)-1,n) = &
                      0.5d0*(2.d0*phi(i,hi(2)+1,lo(3),n) - phi(i,hi(2)+1,lo(3)+1,n)) + &
                      0.5d0*(2.d0*phi(i,hi(2),lo(3)-1,n) - phi(i,hi(2)-1,lo(3)-1,n))
              end do
           end if
           if (cdir==zhi_dir .or. cdir==yhi_dir) then
              do i = lo(1), hi(1)
-                phi(i,hi(2)+1,hi(3)+1,n) = & 
+                phi(i,hi(2)+1,hi(3)+1,n) = &
                      0.5d0*(2.d0*phi(i,hi(2)+1,hi(3),n) - phi(i,hi(2)+1,hi(3)-1,n)) + &
                      0.5d0*(2.d0*phi(i,hi(2),hi(3)+1,n) - phi(i,hi(2)-1,hi(3)+1,n))
              end do
@@ -274,28 +274,28 @@ contains
           ! Corners in XZ plane
           if (cdir==xlo_dir .or. cdir==zlo_dir) then
              do j = lo(2), hi(2)
-                phi(lo(1)-1,j,lo(3)-1,n) = & 
+                phi(lo(1)-1,j,lo(3)-1,n) = &
                      0.5d0*(2.d0*phi(lo(1),  j,lo(3)-1,n) - phi(lo(1)+1,j,lo(3)-1,n)) + &
                      0.5d0*(2.d0*phi(lo(1)-1,j,lo(3),n) - phi(lo(1)-1,j,lo(3)+1,n))
              end do
           end if
           if (cdir==xhi_dir .or. cdir==zlo_dir) then
              do j = lo(2), hi(2)
-                phi(hi(1)+1,j,lo(3)-1,n) = & 
+                phi(hi(1)+1,j,lo(3)-1,n) = &
                      0.5d0*(2.d0*phi(hi(1),j,lo(3)-1,n) - phi(hi(1)-1,j,lo(3)-1,n)) + &
                      0.5d0*(2.d0*phi(hi(1)+1,j,lo(3),n) - phi(hi(1)+1,j,lo(3)+1,n))
              end do
           end if
           if (cdir==xlo_dir .or. cdir==zhi_dir) then
              do j = lo(2), hi(2)
-                phi(lo(1)-1,j,hi(3)+1,n) = & 
+                phi(lo(1)-1,j,hi(3)+1,n) = &
                      0.5d0*(2.d0*phi(lo(1),j,hi(3)+1,n) - phi(lo(1)+1,j,hi(3)+1,n)) + &
                      0.5d0*(2.d0*phi(lo(1)-1,j,hi(3),n) - phi(lo(1)-1,j,hi(3)-1,n))
              end do
           end if
           if (cdir==xhi_dir .or. cdir==zhi_dir) then
              do j = lo(2), hi(2)
-                phi(hi(1)+1,j,hi(3)+1,n) = & 
+                phi(hi(1)+1,j,hi(3)+1,n) = &
                      0.5d0*(2.d0*phi(hi(1),j,hi(3)+1,n) - phi(hi(1)-1,j,hi(3)+1,n)) + &
                      0.5d0*(2.d0*phi(hi(1)+1,j,hi(3),n) - phi(hi(1)+1,j,hi(3)-1,n))
              end do
@@ -306,5 +306,5 @@ contains
 
     end do
   end subroutine amrex_mllinop_apply_bc
-  
+
 end module amrex_mllinop_nd_module

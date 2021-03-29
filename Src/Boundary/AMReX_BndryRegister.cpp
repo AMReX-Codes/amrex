@@ -15,7 +15,7 @@ BndryRegister::BndryRegister () noexcept {}
 BndryRegister::~BndryRegister () {}
 
 BndryRegister::BndryRegister (const BoxArray& grids_,
-			      const DistributionMapping& dmap,
+                              const DistributionMapping& dmap,
                               int             in_rad,
                               int             out_rad,
                               int             extent_rad,
@@ -34,11 +34,11 @@ BndryRegister::BndryRegister (const BoxArray& grids_,
 
 void
 BndryRegister::define (const BoxArray& grids_,
-		       const DistributionMapping& dmap,
-		       int             in_rad,
-		       int             out_rad,
-		       int             extent_rad,
-		       int             ncomp)
+                       const DistributionMapping& dmap,
+                       int             in_rad,
+                       int             out_rad,
+                       int             extent_rad,
+                       int             ncomp)
 {
     grids = grids_;
     for (OrientationIter face; face; ++face)
@@ -107,12 +107,12 @@ BndryRegister::operator= (const BndryRegister& src)
 
 void
 BndryRegister::define (Orientation _face,
-		       IndexType   _typ,
-		       int         _in_rad,
-		       int         _out_rad,
-		       int         _extent_rad,
-		       int         _ncomp,
-		       const DistributionMapping& dmap)
+                       IndexType   _typ,
+                       int         _in_rad,
+                       int         _out_rad,
+                       int         _extent_rad,
+                       int         _ncomp,
+                       const DistributionMapping& dmap)
 {
     BoxArray fsBA(grids, BATransformer(_face,_typ,_in_rad,_out_rad,_extent_rad));
 
@@ -121,7 +121,7 @@ BndryRegister::define (Orientation _face,
     BL_ASSERT(fabs.size() == 0);
 
     fabs.define(fsBA,dmap,_ncomp);
-    // 
+    //
     // Go ahead and assign values to the boundary register fabs
     // since in some places APPLYBC (specifically in the tensor
     // operator) the boundary registers are used for a few calculations
@@ -163,7 +163,7 @@ BndryRegister::operator+= (const BndryRegister& rhs)
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (FabSetIter bfsi(rhs[f]); bfsi.isValid(); ++bfsi) {
+        for (FabSetIter bfsi(rhs[f]); bfsi.isValid(); ++bfsi) {
             const Box& bx = bfsi.validbox();
             auto const sfab =   rhs[f].array(bfsi);
             auto       dfab = bndry[f].array(bfsi);
@@ -171,7 +171,7 @@ BndryRegister::operator+= (const BndryRegister& rhs)
             {
                 dfab(i,j,k,n) += sfab(i,j,k,n);
             });
-	}
+        }
     }
     return *this;
 }
@@ -271,7 +271,7 @@ BndryRegister::read (const std::string& name, std::istream& is)
     grids_in.readFrom(is);
 
     if (!amrex::match(grids,grids_in)) {
-	amrex::Abort("BndryRegister::read: grids do not match");
+        amrex::Abort("BndryRegister::read: grids do not match");
     }
 
     for (OrientationIter face; face; ++face)
@@ -291,12 +291,12 @@ BndryRegister::read (const std::string& name, std::istream& is)
 }
 
 // Local copy function
-void 
+void
 BndryRegister::Copy (BndryRegister& dst, const BndryRegister& src)
 {
     for (OrientationIter face; face; ++face)
     {
-	FabSet::Copy(dst[face()], src[face()]);
+        FabSet::Copy(dst[face()], src[face()]);
     }
 }
 

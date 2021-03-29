@@ -2,21 +2,21 @@
 #define AMREX_TINY_PROFILER_H_
 #include <AMReX_Config.H>
 
-#include <string>
-#include <deque>
-#include <map>
-#include <vector>
-#include <tuple>
-#include <utility>
-#include <limits>
-#include <iostream>
-
 #include <AMReX_INT.H>
 #include <AMReX_REAL.H>
 
 #ifdef AMREX_USE_CUDA
 #include "nvToolsExt.h"
 #endif
+
+#include <deque>
+#include <iosfwd>
+#include <limits>
+#include <map>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 namespace amrex {
 
@@ -56,7 +56,7 @@ private:
         bool usesCUPTI; //!< uses CUPTI
         Long nk;        //!< number of kernel calls
     };
-  
+
     //! stats across processes
     struct ProcStats
     {
@@ -73,7 +73,7 @@ private:
         bool usesCUPTI;
         std::string fname;
         static bool compex (const ProcStats& lhs, const ProcStats& rhs) {
-	    return lhs.dtexmax > rhs.dtexmax;
+            return lhs.dtexmax > rhs.dtexmax;
         }
         static bool compin (const ProcStats& lhs, const ProcStats& rhs) {
             return lhs.dtinmax > rhs.dtinmax;
@@ -90,6 +90,7 @@ private:
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
     static double t_init;
     static int device_synchronize_around_region;
+    static int verbose;
 
     static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);
 };

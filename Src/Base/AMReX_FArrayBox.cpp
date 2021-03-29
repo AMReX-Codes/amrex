@@ -1,14 +1,4 @@
 
-#include <cstdint>
-#include <cstdlib>
-#include <iostream>
-#include <iomanip>
-#include <cfloat>
-#include <cmath>
-#include <cstring>
-#include <limits>
-#include <memory>
-
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabConv.H>
 #include <AMReX_ParmParse.H>
@@ -19,6 +9,16 @@
 #include <AMReX.H>
 #include <AMReX_Utility.H>
 #include <AMReX_MemPool.H>
+
+#include <cstdint>
+#include <cstdlib>
+#include <iostream>
+#include <iomanip>
+#include <cfloat>
+#include <cmath>
+#include <cstring>
+#include <limits>
+#include <memory>
 
 namespace amrex {
 
@@ -60,7 +60,7 @@ public:
 
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
-		       int           nCompToSkip) const override;
+                       int           nCompToSkip) const override;
 private:
     virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
@@ -88,7 +88,7 @@ public:
 
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
-		       int           nCompToSkip) const override;
+                       int           nCompToSkip) const override;
 private:
     virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
@@ -159,15 +159,11 @@ FArrayBox::initVal () noexcept
     if (p && s > 0) {
         RunOn runon;
 #if defined(AMREX_USE_GPU)
-        if ( Gpu::inLaunchRegion() && 
-             (arena() == The_Arena() ||
-              arena() == The_Device_Arena() ||
-              arena() == The_Managed_Arena()) )
-        {
-          runon = RunOn::Gpu;
+        if (Gpu::inLaunchRegion() && arena()->isDeviceAccessible()) {
+            runon = RunOn::Gpu;
         } else {
-          runon = RunOn::Cpu;
-        } 
+            runon = RunOn::Cpu;
+        }
 #else
         runon = RunOn::Cpu;
 #endif
@@ -201,9 +197,9 @@ FArrayBox::initVal () noexcept
 }
 
 void
-FArrayBox::resize (const Box& b, int N)
+FArrayBox::resize (const Box& b, int N, Arena* ar)
 {
-    BaseFab<Real>::resize(b,N);
+    BaseFab<Real>::resize(b,N,ar);
     initVal();
 }
 
@@ -422,8 +418,8 @@ FArrayBox::Initialize ()
     }
 
     initval = std::numeric_limits<Real>::has_quiet_NaN
-	    ? std::numeric_limits<Real>::quiet_NaN()
-	    : std::numeric_limits<Real>::max();
+            ? std::numeric_limits<Real>::quiet_NaN()
+            : std::numeric_limits<Real>::max();
 
     pp.query("initval",    initval);
     pp.query("do_initval", do_initval);
@@ -527,8 +523,8 @@ FABio::read_header (std::istream& is,
 FABio*
 FABio::read_header (std::istream& is,
                     FArrayBox&    f,
-		    int           /*compIndex*/,
-		    int&          nCompAvailable)
+                    int           /*compIndex*/,
+                    int&          nCompAvailable)
 {
 //    BL_PROFILE("FArrayBox::read_header_is_i");
     int nvar;
@@ -554,8 +550,8 @@ FABio::read_header (std::istream& is,
         is >> machine;
         is >> bx;
         is >> nvar;
-	nCompAvailable = nvar;
-	nvar = 1;    // make a single component fab
+        nCompAvailable = nvar;
+        nvar = 1;    // make a single component fab
         //
         // Set the FArrayBox to the appropriate size.
         //
@@ -585,8 +581,8 @@ FABio::read_header (std::istream& is,
         is >> *rd;
         is >> bx;
         is >> nvar;
-	nCompAvailable = nvar;
-	nvar = 1;    // make a single component fab
+        nCompAvailable = nvar;
+        nvar = 1;    // make a single component fab
         //
         // Set the FArrayBox to the appropriate size.
         //
@@ -671,7 +667,7 @@ FABio_ascii::write (std::ostream&    os,
         os << p;
         for(int k(0); k < num_comp; ++k) {
             os << "  " << f(p,k+comp);
-	}
+        }
         os << '\n';
     }
     os << '\n';
@@ -702,7 +698,7 @@ FABio_ascii::read (std::istream& is,
         }
         for(int k(0); k < f.nComp(); ++k) {
             is >> f(p, k);
-	}
+        }
     }
 
     if(is.fail()) {
@@ -720,7 +716,7 @@ FABio_ascii::skip (std::istream& is,
 void
 FABio_ascii::skip (std::istream& /*is*/,
                    FArrayBox&    /*f*/,
-		   int           /*nCompToSkip*/) const
+                   int           /*nCompToSkip*/) const
 {
     amrex::Error("FABio_ascii::skip(..., int nCompToSkip) not implemented");
 }
@@ -788,7 +784,7 @@ FABio_8bit::read (std::istream& is,
         BL_ASSERT(nbytes == siz);
         while (is.get() != '\n') {
             ;  // ---- do nothing
-	}
+        }
         is.read((char*)c,siz);
         Real* dat       = f.dataPtr(k);
         const Real rng  = (mx-mn)/255.0_rt;
@@ -818,19 +814,19 @@ FABio_8bit::skip (std::istream& is,
         BL_ASSERT(nbytes == siz);
         while(is.get() != '\n') {
             ;  // ---- do nothing
-	}
+        }
         is.seekg(siz, std::ios::cur);
     }
 
     if(is.fail()) {
         amrex::Error("FABio_8bit::skip() failed");
-    } 
+    }
 }
 
 void
 FABio_8bit::skip (std::istream& is,
                   FArrayBox&    f,
-		  int           nCompToSkip) const
+                  int           nCompToSkip) const
 {
     const Box& bx = f.box();
     Long siz      = bx.numPts();
@@ -840,7 +836,7 @@ FABio_8bit::skip (std::istream& is,
         BL_ASSERT(nbytes == siz);
         while(is.get() != '\n') {
             ;  // ---- do nothing
-	}
+        }
         is.seekg(siz, std::ios::cur);
     }
 
@@ -924,7 +920,7 @@ FABio_binary::skip (std::istream& is,
 void
 FABio_binary::skip (std::istream& is,
                     FArrayBox&    f,
-		    int           nCompToSkip) const
+                    int           nCompToSkip) const
 {
     const Box& bx = f.box();
     Long base_siz = bx.numPts();

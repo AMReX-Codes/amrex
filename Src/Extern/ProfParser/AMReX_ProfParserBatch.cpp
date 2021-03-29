@@ -108,11 +108,11 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
     while(ia < argc-1) {
       if(bIOP) cout << "argv[" << ia << "] = " << argv[ia] << endl;
       if(strcmp(argv[ia], "-v") == 0) {
-	if(ia < argc-2) {
-	  verbose = atoi(argv[ia+1]);
-	}
+        if(ia < argc-2) {
+          verbose = atoi(argv[ia+1]);
+        }
         if(bIOP) cout << "*** verbose = " << verbose << endl;
-	++ia;
+        ++ia;
       } else if(strcmp(argv[ia], "-ws") == 0) {
         bWriteSummary = true;
       } else if(strcmp(argv[ia], "-check") == 0) {          // ---- commprof options
@@ -127,12 +127,12 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
         runStats = true;
       } else if(strcmp(argv[ia], "-actpf") == 0) {
         bRunACTPF = true;
-	if(ia < argc-2) {
+        if(ia < argc-2) {
           actFNames.push_back(argv[ia+1]);
-	}
+        }
         if(bIOP) cout << "*** output a plotfile for all call times for function"
-	              << actFNames[actFNames.size() - 1] << endl;
-	++ia;
+                      << actFNames[actFNames.size() - 1] << endl;
+        ++ia;
       } else if(strcmp(argv[ia], "-sr") == 0) {
         if(bIOP) cout << "*** send receive pairing." << endl;
         runSendRecv = true;
@@ -155,36 +155,36 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
         if(bIOP) cout << "*** redist." << endl;
         runRedist = true;
       } else if(strcmp(argv[ia], "-msil") == 0) {
-	if(ia < argc-2) {
+        if(ia < argc-2) {
           maxSmallImageLength = atoi(argv[ia+1]);
-	}
+        }
         if(bIOP) cout << "*** msil = " << maxSmallImageLength << endl;
-	++ia;
+        ++ia;
       } else if(strcmp(argv[ia], "-rra") == 0) {
-	if(ia < argc-2) {
+        if(ia < argc-2) {
           refRatioAll = atoi(argv[ia+1]);
-	}
+        }
         if(bIOP) cout << "*** rra = " << refRatioAll << endl;
-	++ia;
+        ++ia;
       } else if(strcmp(argv[ia], "-nts") == 0) {
-	if(ia < argc-2) {
+        if(ia < argc-2) {
           nTimeSlots = atoi(argv[ia+1]);
-	}
+        }
         if(bIOP) cout << "*** nts = " << nTimeSlots << endl;
-	++ia;
+        ++ia;
       } else if(strcmp(argv[ia], "-proc") == 0) {
-	if(ia < argc-2) {
+        if(ia < argc-2) {
           whichProc = atoi(argv[ia+1]);
-	}
+        }
         if(bIOP) cout << "*** whichProc = " << whichProc << endl;
-	++ia;
+        ++ia;
       } else if(strcmp(argv[ia], "-of") == 0) {
-	if(ia < argc-2) {
+        if(ia < argc-2) {
           outfileName = argv[ia+1];
-	  filenameSet = true;
-	}
+          filenameSet = true;
+        }
         if(bIOP) cout << "*** outfileName = " << outfileName << endl;
-	++ia;
+        ++ia;
       } else if(strcmp(argv[ia], "-proxmap") == 0) {
         if(bIOP) cout << "*** proxmap." << endl;
         proxMap = true;
@@ -206,16 +206,16 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
       } else if(strcmp(argv[ia], "-ttrace") == 0) {
         bWriteTextTrace = true;
       } else if(strcmp(argv[ia], "-gpct") == 0) {
-	if(ia < argc-2) {
+        if(ia < argc-2) {
           Real gpct(atof(argv[ia+1]));
-	  if(gpct >= 0.0 && gpct <= 100.0) {
-	    RegionsProfStats::SetGPercent(gpct);
+          if(gpct >= 0.0 && gpct <= 100.0) {
+            RegionsProfStats::SetGPercent(gpct);
             if(bIOP) cout << "*** gpct = " << gpct << endl;
-	  } else {
+          } else {
             if(bIOP) cout << "*** gpct must be in range [0.0, 100.0]" << endl;
-	  }
-	}
-	++ia;
+          }
+        }
+        ++ia;
       } else if(strcmp(argv[ia], "-nocomb") == 0) {
         simpleCombine = false;
       } else if(strcmp(argv[ia], "-prof") == 0) {
@@ -257,8 +257,8 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
       if(bIOP) {
         DataServices::Dispatch(DataServices::WriteSummaryRequest, &pdServices,
                                    (void *) &(cout),
-				   &writeAverage, whichProc, &useTrace,
-				   &graphTopPct);
+                                   &writeAverage, whichProc, &useTrace,
+                                   &graphTopPct);
       }
     } else {
       pdServices.WriteSummary(cout, writeAverage, whichProc, useTrace,
@@ -275,8 +275,8 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
         DataServices::Dispatch(DataServices::InitTimeRanges, &pdServices);
         DataServices::Dispatch(DataServices::WriteSummaryRequest, &pdServices,
                                    (void *) &(cout),
-				   &writeAverage, whichProc, &useTrace,
-				   &graphTopPct);
+                                   &writeAverage, whichProc, &useTrace,
+                                   &graphTopPct);
       }
     } else {
       pdServices.InitRegionTimeRanges();
@@ -308,7 +308,7 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
       if(bIOP) {
         DataServices::Dispatch(DataServices::RunStatsRequest, &pdServices,
                                    (void *) &(mpiFuncNames),
-				   &statsCollected);
+                                   &statsCollected);
       }
     } else {
       pdServices.RunStats(mpiFuncNames, statsCollected);
@@ -325,9 +325,9 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
       if(bIOP) {
         DataServices::Dispatch(DataServices::RunSendsPFRequest, &pdServices,
                                    (void *) &(plotfileName),
-				   maxSmallImageLength,
-				   &proxMap,
-				   refRatioAll);
+                                   maxSmallImageLength,
+                                   &proxMap,
+                                   refRatioAll);
       }
     } else {
       pdServices.RunSendsPF(plotfileName, maxSmallImageLength,
@@ -347,16 +347,16 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
 /*        DataServices::Dispatch(DataServices::RunTimelinePFRequest, &pdServices,
                                    (void *) &(mpiFuncNames),
                                    (void *) &(plotfileName),
-				   maxSmallImageLength,
-				   refRatioAll,
-				   nTimeSlots,
-				   &statsCollected);*/
+                                   maxSmallImageLength,
+                                   refRatioAll,
+                                   nTimeSlots,
+                                   &statsCollected);*/
       }
     } else {
       BLProfStats::TimeRange subTimeRange = pdServices.FindCalcTimeRange();
-      pdServices.RunTimelinePF(mpiFuncNames, plotfileName, subTimeRange, 
-			       maxSmallImageLength, refRatioAll,
-			       nTimeSlots, statsCollected);
+      pdServices.RunTimelinePF(mpiFuncNames, plotfileName, subTimeRange,
+                               maxSmallImageLength, refRatioAll,
+                               nTimeSlots, statsCollected);
     }
   }
 
@@ -464,7 +464,7 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
 
   bool anyFunctionsRun = runCheck       || runSendRecv     || runSendRecvList || runSyncPointData   ||
                          runSendsPF     || runTimelinePF   || tcEdisonOnly    || runStats           ||
-			 runRedist      || bMakeFilterFile || bWriteSummary   || bWriteTraceSummary ||
+                         runRedist      || bMakeFilterFile || bWriteSummary   || bWriteTraceSummary ||
                          bMakeRegionPlt || bWriteHTML      || bWriteHTMLNC    || bWriteTextTrace    ||
                          glOnly         || bRunACTPF;
 

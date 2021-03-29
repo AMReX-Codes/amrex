@@ -35,7 +35,9 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
-    virtual void setLevelBC (int /*amrlev*/, const MultiFab* /*levelbcdata*/) final override {}
+    virtual void setLevelBC (int /*amrlev*/, const MultiFab* /*levelbcdata*/,
+                             const MultiFab* = nullptr, const MultiFab* = nullptr,
+                             const MultiFab* = nullptr) final override {}
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
@@ -55,7 +57,7 @@ public:
                            MultiFab& /*sol*/, Location /*loc*/) const override {
         amrex::Abort("AMReX_MLNodeLinOp::compGrad::How did we get here?");
     }
-    
+
     virtual void applyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final override {}
     virtual void unapplyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final override {}
 

@@ -332,13 +332,13 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& myhi = maskvals[Orientation(1,Orientation::high)].array(mfi);
 
         const auto& bvxlo = (bndry != nullptr) ?
-	  (*bndry)[Orientation(0,Orientation::low )].array(mfi) : foo;
+          (*bndry)[Orientation(0,Orientation::low )].array(mfi) : foo;
         const auto& bvylo = (bndry != nullptr) ?
-	  (*bndry)[Orientation(1,Orientation::low )].array(mfi) : foo;
+          (*bndry)[Orientation(1,Orientation::low )].array(mfi) : foo;
         const auto& bvxhi = (bndry != nullptr) ?
-	  (*bndry)[Orientation(0,Orientation::high)].array(mfi) : foo;
+          (*bndry)[Orientation(0,Orientation::high)].array(mfi) : foo;
         const auto& bvyhi = (bndry != nullptr) ?
-	  (*bndry)[Orientation(1,Orientation::high)].array(mfi) : foo;
+          (*bndry)[Orientation(1,Orientation::high)].array(mfi) : foo;
 
 #if (AMREX_SPACEDIM == 2)
 
@@ -355,11 +355,11 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& mzhi = maskvals[Orientation(2,Orientation::high)].array(mfi);
 
         const auto& bvzlo = (bndry != nullptr) ?
-	  (*bndry)[Orientation(2,Orientation::low )].array(mfi) : foo;
+          (*bndry)[Orientation(2,Orientation::low )].array(mfi) : foo;
         const auto& bvzhi = (bndry != nullptr) ?
-	  (*bndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
+          (*bndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
 
-	// only edge vals used in 3D stencil
+        // only edge vals used in 3D stencil
         AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
         {
             mltensor_fill_edges(iedge, vbx, velfab,
@@ -414,7 +414,7 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
             AMREX_D_TERM(Box const xbx = mfi.nodaltilebox(0);,
                          Box const ybx = mfi.nodaltilebox(1);,
                          Box const zbx = mfi.nodaltilebox(2););
-	    AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,AMREX_SPACEDIM);,
+            AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,AMREX_SPACEDIM);,
                          fluxfab_tmp[1].resize(ybx,AMREX_SPACEDIM);,
                          fluxfab_tmp[2].resize(zbx,AMREX_SPACEDIM););
             AMREX_D_TERM(Elixir fxeli = fluxfab_tmp[0].elixir();,
@@ -439,11 +439,11 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
               }
             );
 
-	    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-	        const Box& nbx = mfi.nodaltilebox(idim);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const Box& nbx = mfi.nodaltilebox(idim);
                 Array4<Real      > dst = fluxes[idim]->array(mfi);
-		Array4<Real const> src = fluxfab_tmp[idim].const_array();
-		AMREX_HOST_DEVICE_PARALLEL_FOR_4D (nbx, ncomp, i, j, k, n,
+                Array4<Real const> src = fluxfab_tmp[idim].const_array();
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (nbx, ncomp, i, j, k, n,
                 {
                     dst(i,j,k,n) += bscalar*src(i,j,k,n);
                 });
@@ -510,11 +510,11 @@ MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& flux
             );
 
 // The derivatives are put in the array with the following order:
-// component: 0    ,  1    ,  2    ,  3    ,  4    , 5    ,  6    ,  7    ,  8   
-// in 2D:     dU/dx,  dV/dx,  dU/dy,  dV/dy 
-// in 3D:     dU/dx,  dV/dx,  dW/dx,  dU/dy,  dV/dy, dW/dy,  dU/dz,  dV/dz,  dW/dz      
-            
-            
+// component: 0    ,  1    ,  2    ,  3    ,  4    , 5    ,  6    ,  7    ,  8
+// in 2D:     dU/dx,  dV/dx,  dU/dy,  dV/dy
+// in 3D:     dU/dx,  dV/dx,  dW/dx,  dU/dy,  dV/dy, dW/dy,  dU/dz,  dV/dz,  dW/dz
+
+
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const Box& nbx = mfi.nodaltilebox(idim);
                 Array4<Real      > dst = fluxes[idim]->array(mfi);

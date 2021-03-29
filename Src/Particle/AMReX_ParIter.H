@@ -111,11 +111,11 @@ public:
     using IntVector        = typename SoA::IntVector;
 
     ParIter (ContainerType& pc, int level)
-        : ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
+        : ParIterBase<false, NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>(pc,level)
         {}
 
     ParIter (ContainerType& pc, int level, MFItInfo& info)
-        : ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
+        : ParIterBase<false, NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>(pc,level,info)
         {}
 };
 
