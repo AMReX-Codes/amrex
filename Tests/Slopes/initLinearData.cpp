@@ -2,8 +2,8 @@
 
 void MyTest::initializeLinearData(int ilev) {
 #if (AMREX_SPACEDIM == 2)
-	initializeLinearDataFor2D(ilev);
+    initializeLinearDataFor2D(ilev);
 #else
-	initializeLinearDataFor3D(ilev);
+    initializeLinearDataFor3D(ilev);
 #endif
 }

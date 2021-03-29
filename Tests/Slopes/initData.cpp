@@ -47,25 +47,25 @@ MyTest::initData ()
         grad_z_analytic[ilev].setVal(1e40);
         ccentr[ilev].setVal(0.0);
 
-	if(use_linear_1d) 
+        if(use_linear_1d) 
         {
-	    initializeLinearData(ilev);
+            initializeLinearData(ilev);
 
         } else {
-	    for (MFIter mfi(phi[ilev]); mfi.isValid(); ++mfi)
-	    {
-		const Box& bx = mfi.fabbox();
-	        Array4<Real> const& fab = phi[ilev].array(mfi);
-	        const auto dx = geom[ilev].CellSizeArray();
+            for (MFIter mfi(phi[ilev]); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.fabbox();
+                Array4<Real> const& fab = phi[ilev].array(mfi);
+                const auto dx = geom[ilev].CellSizeArray();
 
-	        amrex::ParallelFor(bx,
-	        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-	        {
-		    Real rx = (i+0.5)*dx[0];
-		    Real ry = (j+0.5)*dx[1];
-		    fab(i,j,k) = rx*(1.-rx)*ry*(1.-ry);
-	        });
-	    }
-	}
+                amrex::ParallelFor(bx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    Real rx = (i+0.5)*dx[0];
+                    Real ry = (j+0.5)*dx[1];
+                    fab(i,j,k) = rx*(1.-rx)*ry*(1.-ry);
+                });
+            }
+        }
     }
 }
