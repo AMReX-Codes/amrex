@@ -47,7 +47,7 @@ MyTest::initData ()
         grad_z_analytic[ilev].setVal(1e40);
         ccentr[ilev].setVal(0.0);
 
-        if(use_linear_1d) 
+        if(use_linear_1d)
         {
             initializeLinearData(ilev);
 

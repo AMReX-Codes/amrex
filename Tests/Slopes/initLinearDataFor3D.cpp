@@ -44,17 +44,17 @@ void MyTest::initializeLinearDataFor3D(int ilev) {
 
         // if not periodic, set the ghost cell values to corr. domain face values
 
-        if (i < dlo[0] and not is_periodic[0]) 
+        if (i < dlo[0] and not is_periodic[0])
             rx = dlo[0] * dx[0];
         if (i > dhi[0] and not is_periodic[0])
             rx = (dhi[0] + 1) * dx[0];
 
-        if (j < dlo[1] and not is_periodic[1]) 
+        if (j < dlo[1] and not is_periodic[1])
             ry = dlo[1] * dx[1];
         if (j > dhi[1] and not is_periodic[1])
             ry = (dhi[1] + 1) * dx[1];
 
-        if (k < dlo[2] and not is_periodic[2]) 
+        if (k < dlo[2] and not is_periodic[2])
             rz = dlo[2] * dx[1];
         if (k > dhi[2] and not is_periodic[2])
             rz = (dhi[2] + 1) * dx[1];
@@ -103,7 +103,7 @@ void MyTest::initializeLinearDataFor3D(int ilev) {
           fab_gz(i, j, k, 1) = 0.0;
           fab_gz(i, j, k, 2) = 0.0;
 
-        } else { 
+        } else {
 
           Real fac = -1.0;
 

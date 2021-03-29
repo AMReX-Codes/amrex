@@ -95,24 +95,24 @@ MyTest::compute_gradient ()
 
             // First get EB-aware slope that doesn't know about extdir
            bool edlo_x = 0;
-           bool edhi_x = 0; 
-           bool edlo_y = 0; 
-           bool edhi_y = 0; 
-           bool edlo_z = 0; 
-           bool edhi_z = 0; 
+           bool edhi_x = 0;
+           bool edlo_y = 0;
+           bool edhi_y = 0;
+           bool edlo_z = 0;
+           bool edhi_z = 0;
 
 #if (AMREX_SPACEDIM == 2)
-          
+
            bool needs_bdry_stencil = (on_x_face and on_y_face);
-           
+
            if (needs_bdry_stencil)
-           { 
+           {
               edlo_x = 1;
-              edhi_x = 1; 
-              edlo_y = 1; 
-              edhi_y = 1; 
+              edhi_x = 1;
+              edlo_y = 1;
+              edhi_y = 1;
            }
-               
+
            auto slopes = amrex_calc_slopes_extdir_eb(i,j,k,n,
                    phi_arr,ccent,
                    fcx,fcy,flag,
@@ -128,17 +128,17 @@ MyTest::compute_gradient ()
 
            if (on_x_face){
                edlo_x = 1;
-               edhi_x = 1; 
+               edhi_x = 1;
            }
 
            if (on_y_face){
                edlo_y = 1;
-               edhi_y = 1; 
+               edhi_y = 1;
            }
-           
+
            if (on_z_face){
                edlo_z = 1;
-               edhi_z = 1; 
+               edhi_z = 1;
            }
 
            auto slopes = amrex_calc_slopes_extdir_eb(i,j,k,n,
@@ -154,9 +154,9 @@ MyTest::compute_gradient ()
            grad_z_arr(i,j,k,n) = slopes[2];
 
 #endif
-           } 
+           }
         });
-    } 
+    }
 }
 
 void
@@ -175,7 +175,7 @@ MyTest::writePlotfile ()
     WriteMultiLevelPlotfile(plot_file_name, max_level+1,
                             amrex::GetVecOfConstPtrs(plotmf),
                             {"phi",
-                            "dphidx", 
+                            "dphidx",
                             "dphidy",
                              },
                             geom, 0.0, Vector<int>(max_level+1,0),
@@ -191,7 +191,7 @@ MyTest::writePlotfile ()
     WriteMultiLevelPlotfile(plot_file_name + "-analytic", max_level+1,
                             amrex::GetVecOfConstPtrs(plotmf_analytic),
                             {"phi",
-                            "dphidx", 
+                            "dphidx",
                             "dphidy",
                              },
                             geom, 0.0, Vector<int>(max_level+1,0),
@@ -209,7 +209,7 @@ MyTest::writePlotfile ()
     WriteMultiLevelPlotfile(plot_file_name, max_level+1,
                             amrex::GetVecOfConstPtrs(plotmf),
                             {"phi",
-                            "dphidx", 
+                            "dphidx",
                             "dphidy",
                             "dphidz"
                              },
@@ -227,7 +227,7 @@ MyTest::writePlotfile ()
     WriteMultiLevelPlotfile(plot_file_name + "-analytic", max_level+1,
                             amrex::GetVecOfConstPtrs(plotmf_analytic),
                             {"phi",
-                            "dphidx", 
+                            "dphidx",
                             "dphidy",
                             "dphidz"
                              },
