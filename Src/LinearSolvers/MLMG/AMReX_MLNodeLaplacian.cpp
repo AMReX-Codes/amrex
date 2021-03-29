@@ -1186,6 +1186,12 @@ MLNodeLaplacian::buildStencil ()
                 });
             }
 
+#if (AMREX_SPACEDIM == 3)
+                bool fix_starr_if_positive = (amrlev == 0 && mglev == NMGLevels(0)-1);
+#else
+                bool fix_starr_if_positive = false;
+#endif
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1197,14 +1203,12 @@ MLNodeLaplacian::buildStencil ()
                 {
                     mlndlap_set_stencil_s0(i,j,k,starr);
 
-#if (AMREX_SPACEDIM ==3)
                     // It is possible that at a coarse level, the center
                     // coefficient can flip sign, which can make BiCG fail.
                     // Here if the center coefficient flips sign we simply
                     // set it to 0, which takes it out of play for the solver.
-                    if (amrlev == 0 && mglev == NMGLevels(0)-1)
+                    if (fix_starr_if_positive)
                         starr(i,j,k,0) = amrex::min(starr(i,j,k,0),Real(0.));
-#endif
                 });
             }
 
