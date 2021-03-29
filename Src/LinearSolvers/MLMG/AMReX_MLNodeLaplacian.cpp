@@ -1197,11 +1197,14 @@ MLNodeLaplacian::buildStencil ()
                 {
                     mlndlap_set_stencil_s0(i,j,k,starr);
 
-                    // It is possible that at a coarser level, the center
+#if (AMREX_SPACEDIM ==3)
+                    // It is possible that at a coarse level, the center
                     // coefficient can flip sign, which can make BiCG fail.
                     // Here if the center coefficient flips sign we simply
                     // set it to 0, which takes it out of play for the solver.
-                    starr(i,j,k,ist_000) = amrex::min(starr(i,j,k,ist_000),Real(0.));
+                    if (amrlev == 0 && mglev == NMGLevels(0)-1)
+                        starr(i,j,k,0) = amrex::min(starr(i,j,k,0),Real(0.));
+#endif
                 });
             }
 
