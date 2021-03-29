@@ -14,11 +14,10 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
 {
     BL_PROFILE("amrex::ParticleToMesh");
 
-    MultiFab* mf_pointer = pc.OnSameGrids(lev, mf) ?
-        &mf : new MultiFab(pc.ParticleBoxArray(lev),
-                           pc.ParticleDistributionMap(lev),
-                           mf.nComp(), mf.nGrowVect());
-    mf_pointer->setVal(0.);
+    MultiFab mf_tmp(pc.ParticleBoxArray(lev),
+                    pc.ParticleDistributionMap(lev),
+                    mf.nComp(), mf.nGrowVect());
+    mf_tmp.setVal(0.0);
 
     using ParIter = typename PC::ParConstIterType;
     const auto& plevel = pc.GetParticles(lev);
@@ -32,7 +31,7 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
             const auto& aos = tile.GetArrayOfStructs();
             const auto pstruct = aos().dataPtr();
 
-            FArrayBox& fab = (*mf_pointer)[pti];
+            FArrayBox& fab = mf_tmp[pti];
             auto fabarr = fab.array();
 
             AMREX_FOR_1D( np, i,
@@ -56,11 +55,11 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
                 const auto& aos = tile.GetArrayOfStructs();
                 const auto pstruct = aos().dataPtr();
 
-                FArrayBox& fab = (*mf_pointer)[pti];
+                FArrayBox& fab = mf_tmp[pti];
 
                 Box tile_box = pti.tilebox();
-                tile_box.grow(mf_pointer->nGrowVect());
-                local_fab.resize(tile_box,mf_pointer->nComp());
+                tile_box.grow(mf_tmp.nGrowVect());
+                local_fab.resize(tile_box,mf_tmp.nComp());
                 local_fab.setVal<RunOn::Host>(0.0);
                 auto fabarr = local_fab.array();
 
@@ -69,18 +68,13 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
                     f(pstruct[i], fabarr);
                 });
 
-                fab.atomicAdd<RunOn::Host>(local_fab, tile_box, tile_box, 0, 0, mf_pointer->nComp());
+                fab.atomicAdd<RunOn::Host>(local_fab, tile_box, tile_box, 0, 0, mf_tmp.nComp());
             }
         }
     }
 
-    mf_pointer->SumBoundary(pc.Geom(lev).periodicity());
-
-    if (mf_pointer != &mf)
-    {
-        mf.copy(*mf_pointer,0,0,mf_pointer->nComp());
-        delete mf_pointer;
-    }
+    mf_tmp.SumBoundary(pc.Geom(lev).periodicity());
+    mf.copy(mf_tmp,0,0,mf_pointer->nComp());
 }
 
 template <class PC, class MF, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
