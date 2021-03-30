@@ -17,7 +17,7 @@ USE_CUDA = TRUE
 
 This example uses source code from the amrex/Src/Base, Boundary, and AmrCore directories.
 To see a similar example that uses amrex/Src/Amr rather than AmrCore, see
-the tutorial in amrex/Tutorials/Amr/Advection_AmrLevel.
+the test in amrex/Tests/Amr/Advection_AmrLevel.
 
 If you run this code with plot_int > 0, 
 plotfiles are generated that can be viewed with amrvis2d / amrvis3d

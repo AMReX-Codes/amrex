@@ -400,7 +400,6 @@ amrex::Real LineDistFcnElement2d::cpside(amrex::RealVect pt,
     }
     */
   }
-  amrex::Abort("Should not get here");
 }
 
 void LineDistFcnElement2d::set_control_points
