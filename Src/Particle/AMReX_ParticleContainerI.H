@@ -589,7 +589,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::In
         {
             auto iv = getParticleCell(p, plo, dxi, domain);
             amrex::Gpu::Atomic::AddNoRet(&count(iv), 1.0_rt);
-        });
+        }, false);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
