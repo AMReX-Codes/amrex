@@ -100,6 +100,8 @@ MLABecLaplacian::setScalars (Real a, Real b) noexcept
 void
 MLABecLaplacian::setACoeffs (int amrlev, const MultiFab& alpha)
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(alpha.nComp() == 1,
+                                     "MLABecLaplacian::setACoeffs: alpha is supposed to be single component.");
     MultiFab::Copy(m_a_coeffs[amrlev][0], alpha, 0, 0, 1, 0);
     m_needs_update = true;
 }
