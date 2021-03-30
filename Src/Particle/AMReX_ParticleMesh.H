@@ -10,9 +10,11 @@ namespace amrex
 
 template <class PC, class MF, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void
-ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
+ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input)
 {
     BL_PROFILE("amrex::ParticleToMesh");
+
+    if (zero_out_input) { mf.setVal(0.0); }
 
     MultiFab mf_tmp(pc.ParticleBoxArray(lev),
                     pc.ParticleDistributionMap(lev),
