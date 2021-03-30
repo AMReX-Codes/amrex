@@ -320,7 +320,7 @@ Real grad_x_of_phi_on_centroids(int i,int j,int k,int n,
                                 Array4<Real const> const& ccent,
                                 Array4<Real const> const& bcent,
                                 Real& yloc_on_xface, Real& zloc_on_xface,
-                                bool is_eb_dirichlet, bool is_eb_inhomog)
+                                bool is_eb_dirichlet)
 {
     AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,35,0,9> Amatrix;
@@ -383,7 +383,7 @@ Real grad_x_of_phi_on_centroids(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi(ii,jj,kk,n);
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog)
+                    if (flag(ii,jj,kk).isSingleValued() && phieb)
                         rhs(irow) += Amatrix(a_ind+18,irow)*phieb(ii,jj,kk,n);
                }
     }
@@ -401,7 +401,7 @@ Real grad_y_of_phi_on_centroids(int i,int j,int k,int n,
                                 Array4<Real const> const& ccent,
                                 Array4<Real const> const& bcent,
                                 Real& xloc_on_yface, Real& zloc_on_yface,
-                                bool is_eb_dirichlet, bool is_eb_inhomog)
+                                bool is_eb_dirichlet)
 {
     AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,35,0,9> Amatrix;
@@ -464,7 +464,7 @@ Real grad_y_of_phi_on_centroids(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi(ii,jj,kk,n);
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog)
+                    if (flag(ii,jj,kk).isSingleValued() && phieb)
                         rhs(irow) += Amatrix(a_ind+18,irow)*phieb(ii,jj,kk,n);
                 }
     }
@@ -482,7 +482,7 @@ Real grad_z_of_phi_on_centroids(int i,int j,int k,int n,
                                 Array4<Real const> const& ccent,
                                 Array4<Real const> const& bcent,
                                 Real& xloc_on_zface, Real& yloc_on_zface,
-                                bool is_eb_dirichlet, bool is_eb_inhomog)
+                                bool is_eb_dirichlet)
 {
     AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,35,0,9> Amatrix;
@@ -549,7 +549,7 @@ Real grad_z_of_phi_on_centroids(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi(ii,jj,kk,n);
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog)
+                    if (flag(ii,jj,kk).isSingleValued() && phieb)
                         rhs(irow) += Amatrix(a_ind+18,irow)*phieb(ii,jj,kk,n);
                 }
     }
@@ -566,8 +566,7 @@ Real grad_eb_of_phi_on_centroids(int i,int j,int k,int n,
                                  Array4<EBCellFlag const> const& flag,
                                  Array4<Real const> const& ccent,
                                  Array4<Real const> const& bcent,
-                                 Real& nrmx, Real& nrmy, Real& nrmz,
-                                 bool is_eb_inhomog)
+                                 Real& nrmx, Real& nrmy, Real& nrmz)
 {
     Array2D<Real,0,53,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
@@ -631,7 +630,7 @@ Real grad_eb_of_phi_on_centroids(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi(ii,jj,kk,n);
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog)
+                    if (flag(ii,jj,kk).isSingleValued() && phieb)
                         rhs(irow) += Amatrix(a_ind+27,irow)*phieb(ii,jj,kk,n);
                 }
     }
@@ -651,10 +650,10 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 Array4<Real const> const& bcent,
                                 Array4<Real const> const& vfrac,
                                 Real& yloc_on_xface, Real& zloc_on_xface,
-                                bool is_eb_dirichlet, bool is_eb_inhomog,
-                                const bool on_x_face, const int domlo_x, const int domhi_x,
-                                const bool on_y_face, const int domlo_y, const int domhi_y,
-                                const bool on_z_face, const int domlo_z, const int domhi_z)
+                                bool is_eb_dirichlet,
+                                const bool not_periodic_x, const int domlo_x, const int domhi_x,
+                                const bool not_periodic_y, const int domlo_y, const int domhi_y,
+                                const bool not_periodic_z, const int domlo_z, const int domhi_z)
 {
     AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
 
@@ -677,18 +676,18 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
          {
             // Don't include corner cells. Could make this even more strict
             // by removing the on_?_face restrictions.
-            if (((on_x_face && ii < domlo_x) && (on_y_face && jj < domlo_y)) ||
-                ((on_x_face && ii < domlo_x) && (on_y_face && jj > domhi_y)) ||
-                ((on_x_face && ii > domhi_x) && (on_y_face && jj < domlo_y)) ||
-                ((on_x_face && ii > domhi_x) && (on_y_face && jj > domhi_y)) ||
-                ((on_y_face && jj < domlo_y) && (on_z_face && kk < domlo_z)) ||
-                ((on_y_face && jj < domlo_y) && (on_z_face && kk > domhi_z)) ||
-                ((on_y_face && jj > domhi_y) && (on_z_face && kk < domlo_z)) ||
-                ((on_y_face && jj > domhi_y) && (on_z_face && kk > domhi_z)) ||
-                ((on_x_face && ii < domlo_x) && (on_z_face && kk < domlo_z)) ||
-                ((on_x_face && ii < domlo_x) && (on_z_face && kk > domhi_z)) ||
-                ((on_x_face && ii > domhi_x) && (on_z_face && kk < domlo_z)) ||
-                ((on_x_face && ii > domhi_x) && (on_z_face && kk > domhi_z))) {
+            if (((not_periodic_x && ii < domlo_x) && (not_periodic_y && jj < domlo_y)) ||
+                ((not_periodic_x && ii < domlo_x) && (not_periodic_y && jj > domhi_y)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_y && jj < domlo_y)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_y && jj > domhi_y)) ||
+                ((not_periodic_y && jj < domlo_y) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_y && jj < domlo_y) && (not_periodic_z && kk > domhi_z)) ||
+                ((not_periodic_y && jj > domhi_y) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_y && jj > domhi_y) && (not_periodic_z && kk > domhi_z)) ||
+                ((not_periodic_x && ii < domlo_x) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_x && ii < domlo_x) && (not_periodic_z && kk > domhi_z)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_z && kk > domhi_z))) {
               continue;
             }
 
@@ -704,21 +703,21 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real y_off = static_cast<Real>(jj-j);
                 Real z_off = static_cast<Real>(kk-k);
 
-                if(on_x_face){
+                if (not_periodic_x){
                     if (ii < domlo_x && (vfrac(ii+1,jj,kk) != 1.0 || vfrac(ii+2,jj,kk) != 1.0) )
                         continue;
                     if (ii > domhi_x && (vfrac(ii-1,jj,kk) != 1.0 || vfrac(ii-2,jj,kk) != 1.0))
                         continue;
                 }
 
-                if(on_y_face){
+                if (not_periodic_y){
                     if (jj < domlo_y && (vfrac(ii,jj+1,kk) != 1.0 || vfrac(ii,jj+2,kk) != 1.0) )
                         continue;
                     if (jj > domhi_y && (vfrac(ii,jj-1,kk) != 1.0 || vfrac(ii,jj-2,kk) != 1.0) )
                         continue;
                 }
 
-                if(on_z_face){
+                if (not_periodic_z){
                     if (kk < domlo_z && (vfrac(ii,jj,kk+1) != 1.0 || vfrac(ii,jj,kk+2) != 1.0) )
                         continue;
                     if (kk > domhi_z && (vfrac(ii,jj,kk-1) != 1.0 || vfrac(ii,jj,kk-2) != 1.0) )
@@ -732,10 +731,10 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
                 // Add in information about the location of the EB. Exclude
                 // EBs that are outside the domain.
-                if (flag(ii,jj,kk).isSingleValued() &&
-                    domlo_x <= ii && ii <= domhi_x &&
-                    domlo_y <= jj && jj <= domhi_y &&
-                    domlo_z <= kk && kk <= domhi_z)
+                if ( flag(ii,jj,kk).isSingleValued() &&
+                    ( (domlo_x <= ii && ii <= domhi_x) || !not_periodic_x ) &&
+                    ( (domlo_y <= jj && jj <= domhi_y) || !not_periodic_y ) &&
+                    ( (domlo_z <= kk && kk <= domhi_z) || !not_periodic_z ) )
                 {
                     Amatrix(a_ind+27,0) = 1.0;
                     Amatrix(a_ind+27,1) = x_off + bcent(ii,jj,kk,0);
@@ -774,7 +773,7 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi_val;
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+27,irow) != 0.0)
+                    if (flag(ii,jj,kk).isSingleValued() && phieb && Amatrix(a_ind+27,irow) != 0.0)
                         rhs(irow) += Amatrix(a_ind+27,irow)*phieb(ii,jj,kk,n);
                }
             }
@@ -794,10 +793,10 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 Array4<Real const> const& bcent,
                                 Array4<Real const> const& vfrac,
                                 Real& xloc_on_yface, Real& zloc_on_yface,
-                                bool is_eb_dirichlet, bool is_eb_inhomog,
-                                const bool on_x_face, const int domlo_x, const int domhi_x,
-                                const bool on_y_face, const int domlo_y, const int domhi_y,
-                                const bool on_z_face, const int domlo_z, const int domhi_z)
+                                bool is_eb_dirichlet,
+                                const bool not_periodic_x, const int domlo_x, const int domhi_x,
+                                const bool not_periodic_y, const int domlo_y, const int domhi_y,
+                                const bool not_periodic_z, const int domlo_z, const int domhi_z)
 {
     AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,53,0,9> Amatrix;
@@ -819,18 +818,18 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
         {
             // Don't include corner cells. Could make this even more strict
             // by removing the on_?_face restrictions.
-            if (((on_x_face && ii < domlo_x) && (on_y_face && jj < domlo_y)) ||
-                ((on_x_face && ii < domlo_x) && (on_y_face && jj > domhi_y)) ||
-                ((on_x_face && ii > domhi_x) && (on_y_face && jj < domlo_y)) ||
-                ((on_x_face && ii > domhi_x) && (on_y_face && jj > domhi_y)) ||
-                ((on_y_face && jj < domlo_y) && (on_z_face && kk < domlo_z)) ||
-                ((on_y_face && jj < domlo_y) && (on_z_face && kk > domhi_z)) ||
-                ((on_y_face && jj > domhi_y) && (on_z_face && kk < domlo_z)) ||
-                ((on_y_face && jj > domhi_y) && (on_z_face && kk > domhi_z)) ||
-                ((on_x_face && ii < domlo_x) && (on_z_face && kk < domlo_z)) ||
-                ((on_x_face && ii < domlo_x) && (on_z_face && kk > domhi_z)) ||
-                ((on_x_face && ii > domhi_x) && (on_z_face && kk < domlo_z)) ||
-                ((on_x_face && ii > domhi_x) && (on_z_face && kk > domhi_z))) {
+            if (((not_periodic_x && ii < domlo_x) && (not_periodic_y && jj < domlo_y)) ||
+                ((not_periodic_x && ii < domlo_x) && (not_periodic_y && jj > domhi_y)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_y && jj < domlo_y)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_y && jj > domhi_y)) ||
+                ((not_periodic_y && jj < domlo_y) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_y && jj < domlo_y) && (not_periodic_z && kk > domhi_z)) ||
+                ((not_periodic_y && jj > domhi_y) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_y && jj > domhi_y) && (not_periodic_z && kk > domhi_z)) ||
+                ((not_periodic_x && ii < domlo_x) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_x && ii < domlo_x) && (not_periodic_z && kk > domhi_z)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_z && kk > domhi_z))) {
               continue;
             }
 
@@ -845,21 +844,21 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real y_off = static_cast<Real>(jj-j) + 0.5;
                 Real z_off = static_cast<Real>(kk-k);
 
-                if(on_x_face){
+                if (not_periodic_x){
                     if (ii < domlo_x && (vfrac(ii+1,jj,kk) != 1.0 || vfrac(ii+2,jj,kk) != 1.0) )
                         continue;
                     if (ii > domhi_x && (vfrac(ii-1,jj,kk) != 1.0 || vfrac(ii-2,jj,kk) != 1.0))
                         continue;
                 }
 
-                if(on_y_face){
+                if (not_periodic_y){
                     if (jj < domlo_y && (vfrac(ii,jj+1,kk) != 1.0 || vfrac(ii,jj+2,kk) != 1.0) )
                         continue;
                     if (jj > domhi_y && (vfrac(ii,jj-1,kk) != 1.0 || vfrac(ii,jj-2,kk) != 1.0) )
                         continue;
                 }
 
-                if(on_z_face){
+                if (not_periodic_z){
                     if (kk < domlo_z && (vfrac(ii,jj,kk+1) != 1.0 || vfrac(ii,jj,kk+2) != 1.0) )
                         continue;
                     if (kk > domhi_z && (vfrac(ii,jj,kk-1) != 1.0 || vfrac(ii,jj,kk-2) != 1.0) )
@@ -873,10 +872,10 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
                 // Add in information about the location of the EB. Exclude
                 // EBs that are outside the domain.
-                if (flag(ii,jj,kk).isSingleValued() &&
-                    domlo_x <= ii && ii <= domhi_x &&
-                    domlo_y <= jj && jj <= domhi_y &&
-                    domlo_z <= kk && kk <= domhi_z)
+                if ( flag(ii,jj,kk).isSingleValued() &&
+                    ( (domlo_x <= ii && ii <= domhi_x) || !not_periodic_x ) &&
+                    ( (domlo_y <= jj && jj <= domhi_y) || !not_periodic_y ) &&
+                    ( (domlo_z <= kk && kk <= domhi_z) || !not_periodic_z ) )
                 {
                     Amatrix(a_ind+27,0) = 1.0;
                     Amatrix(a_ind+27,1) = x_off + bcent(ii,jj,kk,0) - xloc_on_yface;
@@ -915,7 +914,7 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi_val;
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+27,irow) != 0.0)
+                    if (flag(ii,jj,kk).isSingleValued() && phieb && Amatrix(a_ind+27,irow) != 0.0)
                         rhs(irow) += Amatrix(a_ind+27,irow)*phieb(ii,jj,kk,n);
                 }
              }
@@ -935,10 +934,10 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 Array4<Real const> const& bcent,
                                 Array4<Real const> const& vfrac,
                                 Real& xloc_on_zface, Real& yloc_on_zface,
-                                bool is_eb_dirichlet, bool is_eb_inhomog,
-                                const bool on_x_face, const int domlo_x, const int domhi_x,
-                                const bool on_y_face, const int domlo_y, const int domhi_y,
-                                const bool on_z_face, const int domlo_z, const int domhi_z)
+                                bool is_eb_dirichlet,
+                                const bool not_periodic_x, const int domlo_x, const int domhi_x,
+                                const bool not_periodic_y, const int domlo_y, const int domhi_y,
+                                const bool not_periodic_z, const int domlo_z, const int domhi_z)
 {
     AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
     Array2D<Real,0,53,0,9> Amatrix;
@@ -961,18 +960,18 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
          {
             // Don't include corner cells. Could make this even more strict
             // by removing the on_?_face restrictions.
-            if (((on_x_face && ii < domlo_x) && (on_y_face && jj < domlo_y)) ||
-                ((on_x_face && ii < domlo_x) && (on_y_face && jj > domhi_y)) ||
-                ((on_x_face && ii > domhi_x) && (on_y_face && jj < domlo_y)) ||
-                ((on_x_face && ii > domhi_x) && (on_y_face && jj > domhi_y)) ||
-                ((on_y_face && jj < domlo_y) && (on_z_face && kk < domlo_z)) ||
-                ((on_y_face && jj < domlo_y) && (on_z_face && kk > domhi_z)) ||
-                ((on_y_face && jj > domhi_y) && (on_z_face && kk < domlo_z)) ||
-                ((on_y_face && jj > domhi_y) && (on_z_face && kk > domhi_z)) ||
-                ((on_x_face && ii < domlo_x) && (on_z_face && kk < domlo_z)) ||
-                ((on_x_face && ii < domlo_x) && (on_z_face && kk > domhi_z)) ||
-                ((on_x_face && ii > domhi_x) && (on_z_face && kk < domlo_z)) ||
-                ((on_x_face && ii > domhi_x) && (on_z_face && kk > domhi_z))) {
+            if (((not_periodic_x && ii < domlo_x) && (not_periodic_y && jj < domlo_y)) ||
+                ((not_periodic_x && ii < domlo_x) && (not_periodic_y && jj > domhi_y)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_y && jj < domlo_y)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_y && jj > domhi_y)) ||
+                ((not_periodic_y && jj < domlo_y) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_y && jj < domlo_y) && (not_periodic_z && kk > domhi_z)) ||
+                ((not_periodic_y && jj > domhi_y) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_y && jj > domhi_y) && (not_periodic_z && kk > domhi_z)) ||
+                ((not_periodic_x && ii < domlo_x) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_x && ii < domlo_x) && (not_periodic_z && kk > domhi_z)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_z && kk > domhi_z))) {
               continue;
             }
 
@@ -987,21 +986,21 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real y_off = static_cast<Real>(jj-j);
                 Real z_off = static_cast<Real>(kk-k) + 0.5;
 
-                if(on_x_face){
+                if (not_periodic_x){
                     if (ii < domlo_x && (vfrac(ii+1,jj,kk) != 1.0 || vfrac(ii+2,jj,kk) != 1.0) )
                         continue;
                     if (ii > domhi_x && (vfrac(ii-1,jj,kk) != 1.0 || vfrac(ii-2,jj,kk) != 1.0))
                         continue;
                 }
 
-                if(on_y_face){
+                if (not_periodic_y){
                     if (jj < domlo_y && (vfrac(ii,jj+1,kk) != 1.0 || vfrac(ii,jj+2,kk) != 1.0) )
                         continue;
                     if (jj > domhi_y && (vfrac(ii,jj-1,kk) != 1.0 || vfrac(ii,jj-2,kk) != 1.0) )
                         continue;
                 }
 
-                if(on_z_face){
+                if (not_periodic_z){
                     if (kk < domlo_z && (vfrac(ii,jj,kk+1) != 1.0 || vfrac(ii,jj,kk+2) != 1.0) )
                         continue;
                     if (kk > domhi_z && (vfrac(ii,jj,kk-1) != 1.0 || vfrac(ii,jj,kk-2) != 1.0) )
@@ -1015,10 +1014,10 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
                 // Add in information about the location of the EB. Exclude
                 // EBs that are outside the domain.
-                if (flag(ii,jj,kk).isSingleValued() &&
-                    domlo_x <= ii && ii <= domhi_x &&
-                    domlo_y <= jj && jj <= domhi_y &&
-                    domlo_z <= kk && kk <= domhi_z)
+                if ( flag(ii,jj,kk).isSingleValued() &&
+                    ( (domlo_x <= ii && ii <= domhi_x) || !not_periodic_x ) &&
+                    ( (domlo_y <= jj && jj <= domhi_y) || !not_periodic_y ) &&
+                    ( (domlo_z <= kk && kk <= domhi_z) || !not_periodic_z ) )
                 {
                     Amatrix(a_ind+27,0) = 1.0;
                     Amatrix(a_ind+27,1) = x_off + bcent(ii,jj,kk,0) - xloc_on_zface;
@@ -1058,7 +1057,7 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi_val;
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+27,irow) != 0.0)
+                    if (flag(ii,jj,kk).isSingleValued() && phieb && Amatrix(a_ind+27,irow) != 0.0)
                         rhs(irow) += Amatrix(a_ind+27,irow)*phieb(ii,jj,kk,n);
                 }
              }
@@ -1078,10 +1077,9 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                  Array4<Real const> const& bcent,
                                  Array4<Real const> const& vfrac,
                                  Real& nrmx, Real& nrmy, Real& nrmz,
-                                 bool is_eb_inhomog,
-                                 const bool on_x_face, const int domlo_x, const int domhi_x,
-                                 const bool on_y_face, const int domlo_y, const int domhi_y,
-                                 const bool on_z_face, const int domlo_z, const int domhi_z)
+                                 const bool not_periodic_x, const int domlo_x, const int domhi_x,
+                                 const bool not_periodic_y, const int domlo_y, const int domhi_y,
+                                 const bool not_periodic_z, const int domlo_z, const int domhi_z)
 {
     Array2D<Real,0,53,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
@@ -1100,18 +1098,18 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
             // This is likely overkill for EB grads.
             // Don't include corner cells. Could make this even more strict
             // by removing the on_?_face restrictions.
-            if (((on_x_face && ii < domlo_x) && (on_y_face && jj < domlo_y)) ||
-                ((on_x_face && ii < domlo_x) && (on_y_face && jj > domhi_y)) ||
-                ((on_x_face && ii > domhi_x) && (on_y_face && jj < domlo_y)) ||
-                ((on_x_face && ii > domhi_x) && (on_y_face && jj > domhi_y)) ||
-                ((on_y_face && jj < domlo_y) && (on_z_face && kk < domlo_z)) ||
-                ((on_y_face && jj < domlo_y) && (on_z_face && kk > domhi_z)) ||
-                ((on_y_face && jj > domhi_y) && (on_z_face && kk < domlo_z)) ||
-                ((on_y_face && jj > domhi_y) && (on_z_face && kk > domhi_z)) ||
-                ((on_x_face && ii < domlo_x) && (on_z_face && kk < domlo_z)) ||
-                ((on_x_face && ii < domlo_x) && (on_z_face && kk > domhi_z)) ||
-                ((on_x_face && ii > domhi_x) && (on_z_face && kk < domlo_z)) ||
-                ((on_x_face && ii > domhi_x) && (on_z_face && kk > domhi_z))) {
+            if (((not_periodic_x && ii < domlo_x) && (not_periodic_y && jj < domlo_y)) ||
+                ((not_periodic_x && ii < domlo_x) && (not_periodic_y && jj > domhi_y)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_y && jj < domlo_y)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_y && jj > domhi_y)) ||
+                ((not_periodic_y && jj < domlo_y) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_y && jj < domlo_y) && (not_periodic_z && kk > domhi_z)) ||
+                ((not_periodic_y && jj > domhi_y) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_y && jj > domhi_y) && (not_periodic_z && kk > domhi_z)) ||
+                ((not_periodic_x && ii < domlo_x) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_x && ii < domlo_x) && (not_periodic_z && kk > domhi_z)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_z && kk < domlo_z)) ||
+                ((not_periodic_x && ii > domhi_x) && (not_periodic_z && kk > domhi_z))) {
               continue;
             }
 
@@ -1126,21 +1124,21 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real y_off = static_cast<Real>(jj-j) - bcent(i,j,k,1);
                 Real z_off = static_cast<Real>(kk-k) - bcent(i,j,k,2);
 
-                if(on_x_face){
+                if (not_periodic_x){
                     if (ii < domlo_x && (vfrac(ii+1,jj,kk) != 1.0 || vfrac(ii+2,jj,kk) != 1.0) )
                         continue;
                     if (ii > domhi_x && (vfrac(ii-1,jj,kk) != 1.0 || vfrac(ii-2,jj,kk) != 1.0))
                         continue;
                 }
 
-                if(on_y_face){
+                if (not_periodic_y){
                     if (jj < domlo_y && (vfrac(ii,jj+1,kk) != 1.0 || vfrac(ii,jj+2,kk) != 1.0) )
                         continue;
                     if (jj > domhi_y && (vfrac(ii,jj-1,kk) != 1.0 || vfrac(ii,jj-2,kk) != 1.0) )
                         continue;
                 }
 
-                if(on_z_face){
+                if (not_periodic_z){
                     if (kk < domlo_z && (vfrac(ii,jj,kk+1) != 1.0 || vfrac(ii,jj,kk+2) != 1.0) )
                         continue;
                     if (kk > domhi_z && (vfrac(ii,jj,kk-1) != 1.0 || vfrac(ii,jj,kk-2) != 1.0) )
@@ -1195,7 +1193,7 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow)*  phi_val;
 
-                    if (flag(ii,jj,kk).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+27,irow) != 0.0)
+                    if (flag(ii,jj,kk).isSingleValued() && phieb && Amatrix(a_ind+27,irow) != 0.0)
                         rhs(irow) += Amatrix(a_ind+27,irow)*phieb(ii,jj,kk,n);
                 }
              }

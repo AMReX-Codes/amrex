@@ -28,6 +28,7 @@ target_sources(amrex
    AMReX_EB_slopes_K.H
    AMReX_EB_utils.H
    AMReX_EB_utils.cpp
+   AMReX_EB_LeastSquares_${AMReX_SPACEDIM}D_K.H
    AMReX_algoim.H
    AMReX_algoim_K.H
    AMReX_algoim.cpp
