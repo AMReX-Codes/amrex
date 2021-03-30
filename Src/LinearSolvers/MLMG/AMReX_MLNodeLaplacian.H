@@ -148,7 +148,7 @@ private:
     Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
     Vector<Vector<Real> > m_s0_norm0;
 
-    Real m_normalization_threshold = Real(1.e-10);
+    Real m_normalization_threshold = Real(1.e-8);
 
 #ifdef AMREX_USE_EB
     // they could be MultiCutFab
