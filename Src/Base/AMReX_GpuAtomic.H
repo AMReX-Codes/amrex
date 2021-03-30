@@ -156,8 +156,10 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void AddNoRet (float* const sum, float const value) noexcept
     {
-#if AMREX_DEVICE_COMPILE
+#if AMREX_DEVICE_COMPILE && (HIP_VERSION_MAJOR * 100 + HIP_VERSION_MINOR) < 401
         atomicAddNoRet(sum, value);
+#elif AMREX_DEVICE_COMPILE
+        atomicAdd(sum, value);
 #else
         *sum += value;
 #endif
