@@ -466,7 +466,7 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                        Array4<Real const> const& bcent,
                                        Array4<Real const> const& vfrac,
                                        Real& yloc_on_xface,
-                                       bool is_eb_dirichlet, 
+                                       bool is_eb_dirichlet,
                                        const bool not_periodic_x, const int domlo_x, const int domhi_x,
                                        const bool not_periodic_y, const int domlo_y, const int domhi_y)
 {
@@ -733,7 +733,7 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
         {
 
             // This is likely overkill for EB grads.
-            // Don't include corner cells. 
+            // Don't include corner cells.
             if (((not_periodic_x && ii < domlo_x) && (not_periodic_y && jj < domlo_y)) ||
                 ((not_periodic_x && ii > domhi_x) && (not_periodic_y && jj > domhi_y))){
               continue;
