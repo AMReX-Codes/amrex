@@ -10,7 +10,7 @@ namespace amrex
 
 template <class PC, class MF, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void
-ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input)
+ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input=true)
 {
     BL_PROFILE("amrex::ParticleToMesh");
 
