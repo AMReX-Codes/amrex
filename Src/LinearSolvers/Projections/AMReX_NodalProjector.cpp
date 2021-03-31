@@ -138,7 +138,6 @@ void NodalProjector::define (LPInfo const& a_lpinfo)
 void
 NodalProjector::setOptions ()
 {
-
     // Default values
     int          bottom_verbose(0);
     int          maxiter(100);
@@ -150,6 +149,8 @@ NodalProjector::setOptions ()
     int          num_pre_smooth (2);
     int          num_post_smooth(2);
 
+    Real         normalization_threshold(-1.);
+
     // Read from input file
     ParmParse pp("nodal_proj");
     pp.query( "verbose"       , m_verbose );
@@ -160,8 +161,15 @@ NodalProjector::setOptions ()
     pp.query( "bottom_atol"   , bottom_atol );
     pp.query( "bottom_solver" , bottom_solver );
 
+    pp.query( "normalization_threshold" , normalization_threshold);
+
     pp.query( "num_pre_smooth"  , num_pre_smooth );
     pp.query( "num_post_smooth" , num_post_smooth );
+
+    // This is only used by the Krylov solvers but we pass it through the nodal operator
+    //      if it is set here.  Otherwise we use the default set in AMReX_NodeLaplacian.H
+    if (normalization_threshold > 0.)
+        m_linop->setNormalizationThreshold(normalization_threshold);
 
     // Set default/input values
     m_mlmg->setVerbose(m_verbose);
