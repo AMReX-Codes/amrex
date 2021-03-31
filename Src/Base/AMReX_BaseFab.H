@@ -273,6 +273,8 @@ public:
     * space which must be a different size whenever it is used.
     * Resizing is typically faster than re-allocating a
     * BaseFab because memory allocation can often be avoided.
+    * If a nullptr is provided as Arena*, the Arena already in BaseFab will
+    * be used. Otherwise, the Arena argument will be used.
     */
     void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
@@ -2044,6 +2046,10 @@ BaseFab<T>::resize (const Box& b, int n, Arena* ar)
 {
     this->nvar   = n;
     this->domain = b;
+
+    if (ar == nullptr) {
+        ar = m_arena;
+    }
 
     if (arena() != DataAllocator(ar).arena()) {
         clear();
