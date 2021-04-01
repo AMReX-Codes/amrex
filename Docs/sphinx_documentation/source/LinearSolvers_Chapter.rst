@@ -37,7 +37,7 @@ coefficient in each coordinate direction.
 
 For the nodal solver, :math:`A` and :math:`\alpha` are assumed to be zero,
 :math:`\phi` and :math:`f` are nodal,
-and :math:`\beta` (whcih we later refer to as :math:`\sigma`) is cell-centered.
+and :math:`\beta` (which we later refer to as :math:`\sigma`) is cell-centered.
 
 In addition to these solvers, AMReX has support for tensor solves used
 to calculate the viscous terms that appear in the compressible Navier-Stokes
