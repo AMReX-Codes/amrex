@@ -25,6 +25,7 @@ inline bool is_aligned (const void* p, std::size_t alignment) noexcept
 class Arena;
 
 Arena* The_Arena ();
+Arena* The_Async_Arena ();
 Arena* The_Device_Arena ();
 Arena* The_Managed_Arena ();
 Arena* The_Pinned_Arena ();
@@ -88,6 +89,18 @@ public:
     * \brief A pure virtual function for deleting the arena pointed to by pt
     */
     virtual void free (void* pt) = 0;
+
+    // isDeviceAccessible and isHostAccessible can both be true.
+    virtual bool isDeviceAccessible () const;
+    virtual bool isHostAccessible () const;
+
+    // Note that isManaged, isDevice and isPinned are mutually exlusive.
+    // For memory allocated by cudaMalloc* etc., one of them returns true.
+    // Otherwise, neither is true.
+    virtual bool isManaged () const;
+    virtual bool isDevice () const;
+    virtual bool isPinned () const;
+
     /**
     * \brief Given a minimum required arena size of sz bytes, this returns
     * the next largest arena size that will align to align_size bytes

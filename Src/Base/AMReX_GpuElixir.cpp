@@ -1,10 +1,10 @@
 
 #include <AMReX_GpuElixir.H>
+#include <AMReX_GpuDevice.H>
 #include <cstddef>
 #include <cstring>
 #include <cstdlib>
 #include <memory>
-#include <AMReX_GpuDevice.H>
 
 namespace amrex {
 namespace Gpu {
@@ -22,11 +22,11 @@ extern "C" {
     void CUDART_CB amrex_elixir_delete (cudaStream_t /*stream*/, cudaError_t /*error*/, void* p)
 #endif
     {
-        void** pp = (void**)p;
-        void* d = pp[0];
-        Arena* arena = (Arena*)(pp[1]);
-        std::free(p);
-        arena->free(d);
+        auto p_pa = reinterpret_cast<Vector<std::pair<void*,Arena*> >*>(p);
+        for (auto const& pa : *p_pa) {
+            pa.second->free(pa.first);
+        }
+        delete p_pa;
     }
 }
 
@@ -40,44 +40,52 @@ Elixir::clear () noexcept
 #if defined(AMREX_USE_GPU)
     if (Gpu::inLaunchRegion())
     {
-        if (m_p != nullptr) {
+        if (!m_pa.empty()) {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-            void** p = static_cast<void**>(std::malloc(2*sizeof(void*)));
-            p[0] = m_p;
-            p[1] = (void*)m_arena;
+            auto p = new Vector<std::pair<void*,Arena*> >(std::move(m_pa));
 #if defined(AMREX_USE_HIP)
             AMREX_HIP_SAFE_CALL ( hipStreamAddCallback(Gpu::gpuStream(),
-                                                       amrex_elixir_delete, p, 0));
+                                                       amrex_elixir_delete, (void*)p, 0));
 #elif defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10)
             AMREX_CUDA_SAFE_CALL(cudaLaunchHostFunc(Gpu::gpuStream(),
-                                                    amrex_elixir_delete, p));
+                                                    amrex_elixir_delete, (void*)p));
 #elif defined(AMREX_USE_CUDA)
             AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
-                                                       amrex_elixir_delete, p, 0));
+                                                       amrex_elixir_delete, (void*)p, 0));
 #endif
 #elif defined(AMREX_USE_DPCPP)
-            auto p = m_p;
-            auto a = m_arena;
+#ifdef AMREX_USE_CODEPLAY_HOST_TASK
+            auto lpa = std::move(m_pa);
             auto& q = *(Gpu::gpuStream().queue);
             try {
                 q.submit([&] (sycl::handler& h) {
                     h.codeplay_host_task([=] () {
-                        a->free(p);
+                        for (auto const& pa : lpa) {
+                            pa.second->free(pa.first);
+                        }
                     });
                 });
             } catch (sycl::exception const& ex) {
                 amrex::Abort(std::string("host_task: ")+ex.what()+"!!!!!");
             }
+#else
+            // xxxxx DPCPP todo
+            Gpu::streamSynchronize();
+            for (auto const& pa : m_pa) {
+                pa.second->free(pa.first);
+            }
+#endif
 #endif
         }
     }
     else
 #endif
     {
-        if (m_p != nullptr) m_arena->free(m_p);
+        for (auto const& pa : m_pa) {
+            pa.second->free(pa.first);
+        }
     }
-    m_p = nullptr;
-    m_arena = nullptr;
+    m_pa.clear();
 }
 
 }

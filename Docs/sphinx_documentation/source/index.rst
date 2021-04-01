@@ -19,8 +19,9 @@ We are always happy to have users contribute to the AMReX source code. To
 contribute, issue a pull request against the development branch (details `here
 <https://help.github.com/articles/creating-a-pull-request/>`_).  Any level of
 changes are welcomed: documentation, bug fixes, new test problems, new solvers,
-etc.  To obtain help, simply post an
-`issue <https://github.com/AMReX-Codes/amrex/issues>`_
+etc.  To obtain help, simply post a
+`discussion <https://github.com/AMReX-Codes/amrex/discussions>`_
+or an `issue <https://github.com/AMReX-Codes/amrex/issues>`_
 on the AMReX GitHub webpage.
 
 There are small stand-alone example codes that demonstrate how to use different parts of the AMReX functionality;

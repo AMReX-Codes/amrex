@@ -670,7 +670,7 @@ squeryval (const ParmParse::Table& table,
     //
     // Does it have ival values?
     //
-    if ( ival >= def->m_vals.size() )
+    if ( ival >= static_cast<int>(def->m_vals.size()) )
     {
         amrex::ErrorStream() << "ParmParse::queryval no value number"
                   << ival << " for ";
@@ -768,11 +768,11 @@ squeryarr (const ParmParse::Table& table,
     if ( num_val == 0 ) return true;
 
     int stop_ix = start_ix + num_val - 1;
-    if ( ptr.size() <= stop_ix )
+    if ( static_cast<int>(ptr.size()) <= stop_ix )
     {
         ptr.resize(stop_ix + 1);
     }
-    if ( stop_ix >= def->m_vals.size() )
+    if ( stop_ix >= static_cast<int>(def->m_vals.size()) )
     {
         amrex::ErrorStream() << "ParmParse::queryarr too many values requested for";
         if ( occurence == ParmParse::LAST )
@@ -858,9 +858,9 @@ saddarr (const std::string&      name,
          const std::vector<T>&   ptr)
 {
     std::list<std::string> arr;
-    for(int i = 0; i < ptr.size(); i++) {
+    for (auto const& item : ptr) {
         std::stringstream val;
-        val << std::setprecision(17) << ptr[i];
+        val << std::setprecision(17) << item;
         arr.push_back(val.str());
     }
     ParmParse::PP_entry entry(name,arr);

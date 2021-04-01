@@ -77,7 +77,9 @@ namespace
     //
     int  plot_nfiles;
     int  mffile_nstreams;
+#ifndef AMREX_NO_PROBINIT
     int  probinit_natonce;
+#endif
     bool plot_files_output;
     int  checkpoint_nfiles;
     int  regrid_on_restart;
@@ -111,7 +113,9 @@ Amr::Initialize ()
     Amr::first_smallplotfile = true;
     plot_nfiles              = 64;
     mffile_nstreams          = 1;
+#ifndef AMREX_NO_PROBINIT
     probinit_natonce         = 512;
+#endif
     plot_files_output        = true;
     checkpoint_nfiles        = 64;
     regrid_on_restart        = 0;
@@ -262,9 +266,11 @@ Amr::InitAmr ()
     pp.query("compute_new_dt_on_regrid",compute_new_dt_on_regrid);
 
     pp.query("mffile_nstreams", mffile_nstreams);
-    pp.query("probinit_natonce", probinit_natonce);
 
+#ifndef AMREX_NO_PROBINIT
+    pp.query("probinit_natonce", probinit_natonce);
     probinit_natonce = std::max(1, std::min(ParallelDescriptor::NProcs(), probinit_natonce));
+#endif
 
     pp.query("file_name_digits", file_name_digits);
 
@@ -302,12 +308,14 @@ Amr::InitAmr ()
         setRecordDataInfo(i,datalogname[i]);
     }
 
+#ifndef AMREX_NO_PROBINIT
     probin_file = "probin";  // Make "probin" the default
 
     if (pp.contains("probin_file"))
     {
         pp.get("probin_file",probin_file);
     }
+#endif
     //
     // If set, then restart from checkpoint file.
     //
@@ -1145,6 +1153,7 @@ Amr::init (Real strt_time,
     BL_PROFILE_REGION_STOP("Amr::init()");
 }
 
+#ifndef AMREX_NO_PROBINIT
 void
 Amr::readProbinFile (int& a_init)
 {
@@ -1231,6 +1240,7 @@ Amr::readProbinFile (int& a_init)
     if (verbose > 0)
 	amrex::Print() << "Successfully run amrex_probinit\n";
 }
+#endif
 
 void
 Amr::initialInit (Real              strt_time,
@@ -1266,11 +1276,13 @@ Amr::InitializeInit(Real              strt_time,
     //
     // Init problem dependent data.
     //
-    int linit = true;
 
+#ifndef AMREX_NO_PROBINIT
     if (!probin_file.empty()) {
+        int linit = true;
         readProbinFile(linit);
     }
+#endif
 
     cumtime = strt_time;
     //
@@ -1375,11 +1387,13 @@ Amr::restart (const std::string& filename)
     //
     // Init problem dependent data.
     //
-    int linit = false;
 
+#ifndef AMREX_NO_PROBINIT
     if (!probin_file.empty()) {
+        int linit = false;
         readProbinFile(linit);
     }
+#endif
 
     //
     // Start calculation from given restart file.
