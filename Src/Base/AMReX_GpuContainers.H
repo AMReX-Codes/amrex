@@ -115,7 +115,7 @@ namespace Gpu {
     void copy (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
@@ -148,7 +148,7 @@ namespace Gpu {
     void copy (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
@@ -181,7 +181,7 @@ namespace Gpu {
     void copy (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
@@ -215,7 +215,7 @@ namespace Gpu {
     void copyAsync (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
@@ -249,7 +249,7 @@ namespace Gpu {
     void copyAsync (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
@@ -283,7 +283,7 @@ namespace Gpu {
     void copyAsync (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;

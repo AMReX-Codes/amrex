@@ -65,12 +65,12 @@ struct CudaGraph
     CudaGraph()
         : m_parms(0)
     {
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(T), "CudaGraph's T must be trivially copyable");
+        static_assert(std::is_trivially_copyable<T>::value, "CudaGraph's T must be trivially copyable");
     }
     CudaGraph(int num)
         : m_parms(num)
     {
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(T), "CudaGraph's T must be trivially copyable");
+        static_assert(std::is_trivially_copyable<T>::value, "CudaGraph's T must be trivially copyable");
         m_parms_d = static_cast<T*>( The_Arena()->alloc(sizeof(T)*m_parms.size()) );
     }
     ~CudaGraph() {
