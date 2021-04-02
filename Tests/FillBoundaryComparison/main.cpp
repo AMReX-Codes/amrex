@@ -107,12 +107,12 @@ main (int argc, char* argv[])
     Vector<BoxArray> bas(nlevels);
     bas[0] = ba;
     DistributionMapping dm{ba};
-    mfs[0].reset(new MultiFab(ba, dm, 1, 1));
+    mfs[0] = std::make_unique<MultiFab>(ba, dm, 1, 1);
     mfs[0]->setVal(1.0);
     for (int lev=1; lev<nlevels; ++lev) {
         bas[lev] = BoxArray(bas[lev-1]);
         bas[lev].coarsen(2);
-        mfs[lev].reset(new MultiFab(bas[lev], dm, 1, 1));
+        mfs[lev] = std::make_unique<MultiFab>(bas[lev], dm, 1, 1);
         mfs[lev]->setVal(1.0);
     }
 

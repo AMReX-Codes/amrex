@@ -36,7 +36,7 @@ CNS::CNS (Amr&            papa,
     : AmrLevel(papa,lev,level_geom,bl,dm,time)
 {
     if (do_reflux && level > 0) {
-        flux_reg.reset(new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE));
+        flux_reg = std::make_unique<FluxRegister>(grids,dmap,crse_ratio,level,NUM_STATE);
     }
 
     buildMetrics();

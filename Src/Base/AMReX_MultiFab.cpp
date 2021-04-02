@@ -1220,7 +1220,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
     const BoxArray& ba = boxArray();
     const DistributionMapping& dm = DistributionMap();
 
-    std::unique_ptr<MultiFab> p{new MultiFab(ba,dm,1,0, MFInfo(), Factory())};
+    auto p = std::make_unique<MultiFab>(ba,dm,1,0, MFInfo(), Factory());
 
     const std::vector<IntVect>& pshifts = period.shiftIntVect();
 

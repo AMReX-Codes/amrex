@@ -42,7 +42,7 @@ AmrCore::AmrCore (Geometry const& level_0_gome, AmrInfo const& amr_info)
     : AmrMesh(level_0_gome,amr_info)
 {
 #ifdef AMREX_PARTICLES
-    m_gdb.reset(new AmrParGDB(this));
+    m_gdb = std::make_unique<AmrParGDB>(this);
 #endif
 }
 
@@ -54,7 +54,7 @@ void
 AmrCore::InitAmrCore ()
 {
 #ifdef AMREX_PARTICLES
-    m_gdb.reset(new AmrParGDB(this));
+    m_gdb = std::make_unique<AmrParGDB>(this);
 #endif
 }
 

@@ -583,12 +583,10 @@ MLPoisson::makeNLinOp (int grid_size) const
     LPInfo minfo{};
     minfo.has_metric_term = info.has_metric_term;
 
-    std::unique_ptr<MLLinOp> r{new MLALaplacian({geom}, {ba}, {dm}, minfo)};
-
-    MLALaplacian* nop = dynamic_cast<MLALaplacian*>(r.get());
-    if (!nop) {
-        return std::unique_ptr<MLLinOp>{};
-    }
+    auto r = std::make_unique<MLALaplacian>(Vector<Geometry>{geom},
+                                            Vector<BoxArray>{ba},
+                                            Vector<DistributionMapping>{dm}, minfo);
+    MLALaplacian* nop = r.get();
 
     nop->m_parent = this;
 

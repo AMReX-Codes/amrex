@@ -99,8 +99,8 @@ MLCellLinOp::defineBC ()
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        m_bndry_sol[amrlev].reset(new MLMGBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
-                                                ncomp, m_geom[amrlev][0]));
+        m_bndry_sol[amrlev] = std::make_unique<MLMGBndry>(m_grids[amrlev][0], m_dmap[amrlev][0],
+                                                          ncomp, m_geom[amrlev][0]);
     }
 
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
@@ -111,8 +111,8 @@ MLCellLinOp::defineBC ()
         const int crse_ratio = m_amr_ref_ratio[amrlev-1];
         BoxArray cba = m_grids[amrlev][0];
         cba.coarsen(crse_ratio);
-        m_crse_sol_br[amrlev].reset(new BndryRegister(cba, m_dmap[amrlev][0],
-                                                      in_rad, out_rad, extent_rad, ncomp));
+        m_crse_sol_br[amrlev] = std::make_unique<BndryRegister>
+            (cba, m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
     }
 
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
@@ -123,16 +123,16 @@ MLCellLinOp::defineBC ()
         const int crse_ratio = m_amr_ref_ratio[amrlev-1];
         BoxArray cba = m_grids[amrlev][0];
         cba.coarsen(crse_ratio);
-        m_crse_cor_br[amrlev].reset(new BndryRegister(cba, m_dmap[amrlev][0],
-                                                      in_rad, out_rad, extent_rad, ncomp));
+        m_crse_cor_br[amrlev] = std::make_unique<BndryRegister>
+            (cba, m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
         m_crse_cor_br[amrlev]->setVal(0.0);
     }
 
     // This has be to done after m_crse_cor_br is defined.
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
     {
-        m_bndry_cor[amrlev].reset(new MLMGBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
-                                                ncomp, m_geom[amrlev][0]));
+        m_bndry_cor[amrlev] = std::make_unique<MLMGBndry>(m_grids[amrlev][0], m_dmap[amrlev][0],
+                                                          ncomp, m_geom[amrlev][0]);
         MultiFab bc_data(m_grids[amrlev][0], m_dmap[amrlev][0], ncomp, 1);
         bc_data.setVal(0.0);
 
@@ -152,9 +152,9 @@ MLCellLinOp::defineBC ()
         m_bcondloc[amrlev].resize(m_num_mg_levels[amrlev]);
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
-            m_bcondloc[amrlev][mglev].reset(new BndryCondLoc(m_grids[amrlev][mglev],
-                                                             m_dmap[amrlev][mglev],
-                                                             ncomp));
+            m_bcondloc[amrlev][mglev] = std::make_unique<BndryCondLoc>(m_grids[amrlev][mglev],
+                                                                       m_dmap[amrlev][mglev],
+                                                                       ncomp);
         }
     }
 }
@@ -196,9 +196,8 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata, const MultiF
                 const int crse_ratio = br_ref_ratio;
                 BoxArray cba = m_grids[amrlev][0];
                 cba.coarsen(crse_ratio);
-                m_crse_sol_br[amrlev].reset(new BndryRegister(cba, m_dmap[amrlev][0],
-                                                              in_rad, out_rad,
-                                                              extent_rad, ncomp));
+                m_crse_sol_br[amrlev] = std::make_unique<BndryRegister>
+                    (cba, m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
             }
             if (m_coarse_data_for_bc != nullptr) {
                 AMREX_ALWAYS_ASSERT(m_coarse_data_crse_ratio > 0);

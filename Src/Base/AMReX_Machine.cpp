@@ -582,7 +582,7 @@ namespace amrex {
 namespace machine {
 
 void Initialize () {
-    the_machine.reset(new Machine());
+    the_machine = std::make_unique<Machine>();
     amrex::ExecOnFinalize(machine::Finalize);
 }
 

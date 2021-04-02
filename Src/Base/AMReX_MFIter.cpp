@@ -74,7 +74,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
 
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char flags_)
     :
-    m_fa(new FabArrayBase(ba,dm,1,0)),
+    m_fa(std::make_unique<FabArrayBase>(ba,dm,1,0)),
     fabArray(*m_fa),
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
@@ -98,7 +98,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char
 
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tiling_)
     :
-    m_fa(new FabArrayBase(ba,dm,1,0)),
+    m_fa(std::make_unique<FabArrayBase>(ba,dm,1,0)),
     fabArray(*m_fa),
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
@@ -124,7 +124,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tilin
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
                 const IntVect& tilesize_, unsigned char flags_)
     :
-    m_fa(new FabArrayBase(ba,dm,1,0)),
+    m_fa(std::make_unique<FabArrayBase>(ba,dm,1,0)),
     fabArray(*m_fa),
     tile_size(tilesize_),
     flags(flags_ | Tiling),
@@ -149,7 +149,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
 
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInfo& info)
     :
-    m_fa(new FabArrayBase(ba, dm, 1, 0)),
+    m_fa(std::make_unique<FabArrayBase>(ba, dm, 1, 0)),
     fabArray(*m_fa),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
@@ -343,7 +343,7 @@ MFIter::Initialize ()
         Gpu::Device::setStreamIndex((streams > 0) ? currentIndex%streams : -1);
         if (!OpenMP::in_parallel()) {
             if (index_map->size() >= Gpu::getFuseNumKernelsThreshold()) {
-                gpu_fsg.reset(new Gpu::FuseSafeGuard(true));
+                gpu_fsg = std::make_unique<Gpu::FuseSafeGuard>(true);
             }
         }
 #endif

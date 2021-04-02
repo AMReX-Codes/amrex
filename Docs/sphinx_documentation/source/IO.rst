@@ -334,7 +334,7 @@ and read in a :cpp:`MultiFab` from a checkpoint file, on a level-by-level basis:
         phi_old[lev].define(grids[lev], dmap[lev], ncomp, nghost);
         phi_new[lev].define(grids[lev], dmap[lev], ncomp, nghost);
         if (lev > 0 && do_reflux) {
-            flux_reg[lev].reset(new FluxRegister(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp));
+            flux_reg[lev] = std::make_unique<FluxRegister>(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp);
         }
     }
 

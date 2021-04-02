@@ -604,7 +604,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
         visMF[i].resize(currentVisMF + 1);  // this preserves previous ones
         visMF[i][currentVisMF] = new VisMF(mfName);
         const BoxArray& ba = visMF[i][currentVisMF]->boxArray();
-        if (!dmap) dmap.reset(new DistributionMapping(ba));
+        if (!dmap) dmap = std::make_unique<DistributionMapping>(ba);
         int iComp(currentIndexComp);
         nGrow = visMF[i][currentVisMF]->nGrow();
         currentIndexComp += visMF[i][currentVisMF]->nComp();
@@ -1003,7 +1003,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType /*fil
         visMF[LevelOne].resize(currentVisMF + 1);  // this preserves previous ones
         visMF[LevelOne][currentVisMF] = new VisMF(filename);
         const BoxArray& ba = visMF[LevelOne][currentVisMF]->boxArray();
-        if (!dmap) dmap.reset(new DistributionMapping(ba));
+        if (!dmap) dmap = std::make_unique<DistributionMapping>(ba);
         int iComp(currentIndexComp);
         mfNGrow = visMF[LevelOne][currentVisMF]->nGrow();
         currentIndexComp += visMF[LevelOne][currentVisMF]->nComp();

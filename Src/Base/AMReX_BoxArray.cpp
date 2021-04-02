@@ -376,7 +376,7 @@ void
 BoxArray::clear ()
 {
     m_bat = BATransformer();
-    m_ref.reset(new BARef());
+    m_ref = std::make_unique<BARef>();
     m_simplified_list.reset();
 }
 

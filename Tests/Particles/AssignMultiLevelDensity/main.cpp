@@ -83,9 +83,9 @@ void test_assign_density(TestParams& parms)
     Vector<std::unique_ptr<MultiFab> > acceleration(nlevs);
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping{ba[lev]};
-        density[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 0));
+        density[lev] = std::make_unique<MultiFab>(ba[lev], dmap[lev], 1, 0);
         density[lev]->setVal(0.0);
-        acceleration[lev].reset(new MultiFab(ba[lev], dmap[lev], 3, 1));
+        acceleration[lev] = std::make_unique<MultiFab>(ba[lev], dmap[lev], 3, 1);
         acceleration[lev]->setVal(5.0, 1);
     }
 
