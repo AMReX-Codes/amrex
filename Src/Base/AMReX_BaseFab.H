@@ -144,7 +144,8 @@ placementNew (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
-typename std::enable_if< AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T) && !std::is_arithmetic<T>::value >::type
+std::enable_if_t<std::is_trivially_default_constructible<T>::value
+                 && !std::is_arithmetic<T>::value>
 placementNew (T* const ptr, Long n)
 {
     for (Long i = 0; i < n; ++i) {
@@ -153,7 +154,7 @@ placementNew (T* const ptr, Long n)
 }
 
 template <typename T>
-typename std::enable_if<!AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T)>::type
+std::enable_if_t<!std::is_trivially_default_constructible<T>::value>
 placementNew (T* const ptr, Long n)
 {
     AMREX_HOST_DEVICE_FOR_1D ( n, i,

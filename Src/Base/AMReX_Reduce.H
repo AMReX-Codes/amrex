@@ -219,9 +219,9 @@ public:
         : m_host_tuple(),
           m_device_tuple((Type*)(The_Arena()->alloc(2*sizeof(m_host_tuple))))
     {
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(Type),
+        static_assert(std::is_trivially_copyable<Type>(),
                       "ReduceData::Type must be trivially copyable");
-        static_assert(std::is_trivially_destructible<Type>::value,
+        static_assert(std::is_trivially_destructible<Type>(),
                       "ReduceData::Type must be trivially destructible");
 
         Reduce::detail::for_each_init<0, Type, Ps...>(m_host_tuple);
