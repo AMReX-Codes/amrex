@@ -359,7 +359,7 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
 }
 
 void
-TagBoxArray::local_collate_cpu (Vector<IntVect>& v) const
+TagBoxArray::local_collate_cpu (Gpu::PinnedVector<IntVect>& v) const
 {
     if (this->local_size() == 0) return;
 
@@ -408,7 +408,7 @@ TagBoxArray::local_collate_cpu (Vector<IntVect>& v) const
 
 #ifdef AMREX_USE_GPU
 void
-TagBoxArray::local_collate_gpu (Vector<IntVect>& v) const
+TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
 {
     const int nfabs = this->local_size();
     if (nfabs == 0) return;
@@ -575,11 +575,11 @@ TagBoxArray::local_collate_gpu (Vector<IntVect>& v) const
 #endif
 
 void
-TagBoxArray::collate (Vector<IntVect>& TheGlobalCollateSpace) const
+TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
 {
     BL_PROFILE("TagBoxArray::collate()");
 
-    Vector<IntVect> TheLocalCollateSpace;
+    Gpu::PinnedVector<IntVect> TheLocalCollateSpace;
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         local_collate_gpu(TheLocalCollateSpace);
@@ -764,4 +764,3 @@ TagBoxArray::hasTags (Box const& a_bx) const
 }
 
 }
-

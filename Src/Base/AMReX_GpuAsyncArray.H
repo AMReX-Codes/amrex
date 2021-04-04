@@ -34,7 +34,7 @@ public:
     AsyncArray (T const* h_p, const std::size_t n)
     {
         if (n == 0) return;
-        h_data = static_cast<T*>(std::malloc(n*sizeof(T)));
+        h_data = static_cast<T*>(The_Pinned_Arena()->alloc(n*sizeof(T)));
         std::memcpy(h_data, h_p, n*sizeof(T));
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
@@ -57,7 +57,7 @@ public:
         else
 #endif
         {
-            h_data = static_cast<T*>(std::malloc(n*sizeof(T)));
+            h_data = static_cast<T*>(The_Pinned_Arena()->alloc(n*sizeof(T)));
         }
     }
 
@@ -99,7 +99,7 @@ public:
                     q.submit([&] (sycl::handler& h) {
                         h.codeplay_host_task([=] () {
                             The_Arena()->free(pd);
-                            std::free(ph);
+                            The_Pinned_Arena()->free(ph);
                         });
                     });
                 } catch (sycl::exception const& ex) {
@@ -109,7 +109,7 @@ public:
                 // xxxxx DPCPP todo
                 Gpu::streamSynchronize();
                 The_Arena()->free(d_data);
-                std::free(h_data);
+                The_Pinned_Arena()->free(h_data);
 #endif
 #endif
             }
@@ -117,7 +117,7 @@ public:
         else
 #endif
         {
-            std::free(h_data);
+            The_Pinned_Arena()->free(h_data);
         }
         d_data = nullptr;
         h_data = nullptr;

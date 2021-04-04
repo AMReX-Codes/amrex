@@ -18,8 +18,8 @@ namespace amrex
         private:
 
             //host vectors
-            Vector<Real> m_tri_pts_h;
-            Vector<Real> m_tri_normals_h;
+            Gpu::PinnedVector<Real> m_tri_pts_h;
+            Gpu::PinnedVector<Real> m_tri_normals_h;
 
             //device vectors
             Gpu::DeviceVector<amrex::Real> m_tri_pts_d;
