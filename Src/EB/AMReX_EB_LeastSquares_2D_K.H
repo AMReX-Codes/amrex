@@ -471,11 +471,20 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                        const bool on_y_face, const int domlo_y, const int domhi_y)
 {
     AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
+
+    bool needs_bdry_stencil = ((i <= domlo_x+1) || (i >= domhi_x) || 
+                               (j <= domlo_y)   || (j >= domhi_y));
+
+    if (!needs_bdry_stencil) {
+      return grad_x_of_phi_on_centroids(i,j,k,n,phi,phieb,flag,ccent,bcent,
+         yloc_on_xface,is_eb_dirichlet,is_eb_inhomog);
+    }
+      
     Array2D<Real,0,17,0,5> Amatrix;
     Array1D<Real,0, 5    > rhs;
 
-    // Order of column -- first  six are cell centroids: (i,j-1) (i,j) (i,j+1) (i-1,j-1) (i-1,j) (i-1,j+1)
-    // Order of column -- second six are   EB centroids: (i,j-1) (i,j) (i,j+1) (i-1,j-1) (i-1,j) (i-1,j+1)
+    // Order of column -- first 9 are cell centroids
+    // Order of column -- second 9 are  EB centroids
 
     for (int irow = 0; irow < 18; irow++)
         for (int icol = 0; icol < 6; icol++)
@@ -597,11 +606,20 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                        const bool on_y_face, const int domlo_y, const int domhi_y)
 {
     AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
+
+    bool needs_bdry_stencil = ((i <= domlo_x)   || (i >= domhi_x) || 
+                               (j <= domlo_y+1) || (j >= domhi_y));
+
+    if (!needs_bdry_stencil) {
+      return grad_y_of_phi_on_centroids(i,j,k,n,phi,phieb,flag,ccent,bcent,
+         xloc_on_yface,is_eb_dirichlet,is_eb_inhomog);
+    }
+
     Array2D<Real,0,17,0,5> Amatrix;
     Array1D<Real,0, 5    > rhs;
 
-    // Order of column -- first  six are cell centroids: (i-1,j) (i,j) (i+1,j) (i-1,j-1) (i,j-1) (i+1,j-1)
-    // Order of column -- second six are   EB centroids: (i-1,j) (i,j) (i+1,j) (i-1,j-1) (i,j-1) (i+1,j-1)
+    // Order of column -- first  9 are cell centroids
+    // Order of column -- second 9 are   EB centroids
 
     for (int irow = 0; irow < 18; irow++)
         for (int icol = 0; icol < 6; icol++)

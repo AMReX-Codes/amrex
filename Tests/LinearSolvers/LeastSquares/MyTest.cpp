@@ -105,15 +105,8 @@ MyTest::compute_gradient ()
 
             }
 
-            // First get EB-aware slope that doesn't know about extdir
-            bool needs_bdry_stencil = (on_x_face && (i <= domlo_x || i >= domhi_x)) ||
-                                      (on_y_face && (j <= domlo_y || j >= domhi_y));
-
 #if (AMREX_SPACEDIM == 2)
-            if( flag(i,j,k).isRegular() || flag(i,j,k).isSingleValued()){
-
-              if(needs_bdry_stencil){
-
+            if( flag(i,j,k).isRegular() || flag(i,j,k).isSingleValued()) {
 
                 grad_x_arr(i,j,k,n) = (apx(i,j,k) == 0.0) ? 0.0 :
                   grad_x_of_phi_on_centroids_extdir(i, j, k, n, phi_arr, phi_eb_arr,
@@ -129,22 +122,6 @@ MyTest::compute_gradient ()
                                                     xloc_on_yface, is_eb_dirichlet, is_eb_inhomog,
                                                     on_x_face, domlo_x, domhi_x,
                                                     on_y_face, domlo_y, domhi_y);
-
-              } else {
-
-                grad_x_arr(i,j,k,n) = (apx(i,j,k) == 0.0) ? 0.0 :
-                  grad_x_of_phi_on_centroids(i, j, k, n, phi_arr, phi_eb_arr,
-                                             flag, ccent, bcent,
-                                             yloc_on_xface, is_eb_dirichlet, is_eb_inhomog);
-
-
-                grad_y_arr(i,j,k,n) = (apy(i,j,k) == 0.0) ? 0.0:
-                  grad_y_of_phi_on_centroids(i, j, k, n, phi_arr, phi_eb_arr,
-                                             flag, ccent, bcent,
-                                             xloc_on_yface, is_eb_dirichlet, is_eb_inhomog);
-              }
-
-
             }
 
             if (flag(i,j,k).isSingleValued())
@@ -154,6 +131,10 @@ MyTest::compute_gradient ()
                         on_y_face, domlo_y, domhi_y);
 
 #else
+            // First get EB-aware slope that doesn't know about extdir
+            bool needs_bdry_stencil = (on_x_face && (i <= domlo_x || i >= domhi_x)) ||
+                                      (on_y_face && (j <= domlo_y || j >= domhi_y));
+
             needs_bdry_stencil = needs_bdry_stencil ||
               (on_z_face && (k <= domlo_z || k >= domhi_z));
 
