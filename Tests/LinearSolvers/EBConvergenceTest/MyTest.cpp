@@ -141,7 +141,7 @@ MyTest::initData ()
         const EB2::IndexSpace& eb_is = EB2::IndexSpace::top();
         const EB2::Level& eb_level = eb_is.getLevel(geom[ilev]);
         factory[ilev] = std::make_unique<EBFArrayBoxFactory>
-            (eb_level, geom[ilev], grids[ilev], dmap[ilev], {2,2,2}, EBSupport::full);
+            (eb_level, geom[ilev], grids[ilev], dmap[ilev], Vector<int>{2,2,2}, EBSupport::full);
 
         phi[ilev].define(grids[ilev], dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);
         rhs[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
@@ -239,4 +239,3 @@ MyTest::initData ()
         phi[ilev].setVal(0.0, 0, 1, 0);
     }
 }
-
