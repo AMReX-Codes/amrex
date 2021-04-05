@@ -267,7 +267,7 @@ jobs:
   # https://gitlab.kitware.com/cmake/cmake/-/issues/21968
   # https://github.com/ROCm-Developer-Tools/HIP/issues/2246
   tests-hip:
-    name: HIP ROCm@3.8 GFortran@9.3 C++17 [tests]
+    name: HIP ROCm GFortran@9.3 C++17 [tests]
     runs-on: ubuntu-20.04
     env: {CXXFLAGS: "-fno-operator-names"}
     steps:

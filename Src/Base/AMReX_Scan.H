@@ -6,7 +6,9 @@
 #include <AMReX_Arena.H>
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
-#include <cub/cub.cuh>
+#  include <cub/cub.cuh>
+#elif defined(AMREX_USE_HIP)
+#  include <rocprim/rocprim.hpp>
 #endif
 
 #include <cstdint>
@@ -661,6 +663,22 @@ T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
     The_Arena()->free(d_temp);
     AMREX_GPU_ERROR_CHECK();
     return totalsum;
+#elif defined(AMREX_USE_HIP)
+    void* d_temp = nullptr;
+    std::size_t temp_bytes = 0;
+    AMREX_GPU_SAFE_CALL(rocprim::inclusive_scan(d_temp, temp_bytes, in, out, n,
+                                                rocprim::plus<T>(), Gpu::gpuStream()));
+    d_temp = The_Arena()->alloc(temp_bytes);
+    AMREX_GPU_SAFE_CALL(rocprim::inclusive_scan(d_temp, temp_bytes, in, out, n,
+                                                rocprim::plus<T>(), Gpu::gpuStream()));
+    T totalsum = 0;
+    if (a_ret_sum) {
+        Gpu::dtoh_memcpy_async(&totalsum, out+(n-1), sizeof(T));
+    }
+    Gpu::streamSynchronize();
+    The_Arena()->free(d_temp);
+    AMREX_GPU_ERROR_CHECK();
+    return totalsum;
 #else
     if (static_cast<Long>(n) <= static_cast<Long>(std::numeric_limits<int>::max())) {
         return PrefixSum<T>(static_cast<int>(n),
@@ -688,6 +706,23 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
     d_temp = The_Arena()->alloc(temp_bytes);
     AMREX_GPU_SAFE_CALL(cub::DeviceScan::ExclusiveSum(d_temp, temp_bytes, in, out, n,
                                                       Gpu::gpuStream()));
+    T in_last = 0, out_last = 0;
+    if (a_ret_sum) {
+        Gpu::dtoh_memcpy_async(&in_last, in+(n-1), sizeof(T));
+        Gpu::dtoh_memcpy_async(&out_last, out+(n-1), sizeof(T));
+    }
+    Gpu::streamSynchronize();
+    The_Arena()->free(d_temp);
+    AMREX_GPU_ERROR_CHECK();
+    return in_last+out_last;
+#elif defined(AMREX_USE_HIP)
+    void* d_temp = nullptr;
+    std::size_t temp_bytes = 0;
+    AMREX_GPU_SAFE_CALL(rocprim::exclusive_scan(d_temp, temp_bytes, in, out, T{0}, n,
+                                                rocprim::plus<T>(), Gpu::gpuStream()));
+    d_temp = The_Arena()->alloc(temp_bytes);
+    AMREX_GPU_SAFE_CALL(rocprim::exclusive_scan(d_temp, temp_bytes, in, out, T{0}, n,
+                                                rocprim::plus<T>(), Gpu::gpuStream()));
     T in_last = 0, out_last = 0;
     if (a_ret_sum) {
         Gpu::dtoh_memcpy_async(&in_last, in+(n-1), sizeof(T));
