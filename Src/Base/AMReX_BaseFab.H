@@ -17,7 +17,6 @@
 #include <AMReX_MakeType.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Reduce.H>
-//#include <AMReX_Scan.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Math.H>
 
