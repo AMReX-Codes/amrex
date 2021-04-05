@@ -1,5 +1,6 @@
 #ifndef AMREX_MLEBABECLAP_H_
 #define AMREX_MLEBABECLAP_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_MLCellABecLap.H>
@@ -20,7 +21,8 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
-                 const Vector<EBFArrayBoxFactory const*>& a_factory);
+                 const Vector<EBFArrayBoxFactory const*>& a_factory,
+                 const int a_ncomp = 1);
 
     virtual ~MLEBABecLap ();
 
@@ -45,7 +47,7 @@ public:
                      Location a_beta_loc);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
         {setBCoeffs (amrlev, beta, Location::FaceCenter);}
-                    
+
     void setBCoeffs (int amrlev, Real beta);
     void setBCoeffs (int amrlev, Vector<Real> const& beta);
 
@@ -58,6 +60,8 @@ public:
     void setEBHomogDirichlet (int amrlev,                      const MultiFab& beta);
     void setEBHomogDirichlet (int amrlev,                      Real beta);
     void setEBHomogDirichlet (int amrlev,                      Vector<Real> const& beta);
+
+    virtual int getNComp () const override { return m_ncomp; }
 
     virtual bool needsUpdate () const override {
         return (m_needs_update || MLCellABecLap::needsUpdate());
@@ -109,7 +113,7 @@ public:
     virtual void getEBFluxes (const Vector<MultiFab*>& a_flux,
                               const Vector<MultiFab*>& a_sol) const override;
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
 #endif
 
@@ -118,6 +122,8 @@ public:
 #endif
 
 protected:
+
+    int m_ncomp = 1;
 
     bool m_needs_update = true;
 

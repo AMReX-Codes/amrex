@@ -65,7 +65,7 @@ PrintUsage (const char* progName)
 /**********/
 bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2)
+                        const AmrData& amrd2)
 {
   const Vector<std::string>& derives1 = amrd1.PlotVarNames();
   const Vector<std::string>& derives2 = amrd2.PlotVarNames();

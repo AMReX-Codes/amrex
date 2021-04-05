@@ -1,6 +1,7 @@
 
 #ifndef AMREX_TagBox_H_
 #define AMREX_TagBox_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
@@ -22,7 +23,7 @@ namespace amrex {
 
 class BoxDomain;
 
-class TagBox
+class TagBox final
     :
     public BaseFab<char>
 {
@@ -45,7 +46,7 @@ public:
 
     TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp);
 
-    ~TagBox () = default;
+    virtual ~TagBox () noexcept override = default;
 
     TagBox (TagBox&& rhs) noexcept = default;
 
@@ -62,41 +63,19 @@ public:
 
     /**
     * \brief Mark neighbors of every tagged cell a distance nbuff away
-    * only search interior for initial tagged points where nwid
-    * is given as the width of the bndry region.
     *
     * \param nbuff
-    * \param nwid
     */
-    void buffer (const IntVect& nbuf, const IntVect& nwid) noexcept;
-
-    /**
-    * \brief Add location of every tagged cell to IntVect array,
-    * starting at given location.  Returns the number of
-    * collated points.
-    *
-    * \param ar
-    * \param start
-    */
-    Long collate (Vector<IntVect>& ar, int start) const noexcept;
-
-    /**
-    * \brief Returns number of tagged cells in specified Box.
-    *
-    * \param bx
-    */
-    Long numTags (const Box& bx) const noexcept;
-
-    /**
-    * \brief Returns total number of tagged cells in the TagBox.
-    */
-    Long numTags () const noexcept;
+    void buffer (const IntVect& nbuf) noexcept;
 
     /**
     * \brief Returns Vector\<int\> of size domain.numPts() suitable for calling
     * Fortran, with positions set to same value as in the TagBox
     * dataPtr().
     */
+//#if (__cplusplus >= 201402L)
+//    [[deprecated("No need to use this unless calling Fortran < 2003")]]
+//#endif
     Vector<int> tags () const noexcept;
 
     /**
@@ -107,6 +86,9 @@ public:
     * \param ar
     * \param tilebx
     */
+//#if (__cplusplus >= 201402L)
+//    [[deprecated("No need to use this unless calling Fortran < 2003")]]
+//#endif
     void get_itags(Vector<int>& ar, const Box& tilebx) const noexcept;
 
     /**
@@ -115,6 +97,9 @@ public:
     *
     * \param ar
     */
+//#if (__cplusplus >= 201402L)
+//    [[deprecated("No need to use this unless calling Fortran < 2003")]]
+//#endif
     void tags (const Vector<int>& ar) noexcept;
 
     /**
@@ -123,6 +108,9 @@ public:
     *
     * \param ar
     */
+//#if (__cplusplus >= 201402L)
+//    [[deprecated("No need to use this unless calling Fortran < 2003")]]
+//#endif
     void tags_and_untags (const Vector<int>& ar) noexcept;
 
     /**
@@ -132,6 +120,9 @@ public:
     * \param ar
     * \param tilebx
     */
+//#if (__cplusplus >= 201402L)
+//    [[deprecated("No need to use this unless calling Fortran < 2003")]]
+//#endif
     void tags (const Vector<int>& ar, const Box& tilebx) noexcept;
 
     /**
@@ -141,6 +132,9 @@ public:
     * \param ar
     * \param tilebx
     */
+//#if (__cplusplus >= 201402L)
+//    [[deprecated("No need to use this unless calling Fortran < 2003")]]
+//#endif
     void tags_and_untags (const Vector<int>& ar, const Box& tilebx) noexcept;
 };
 
@@ -226,16 +220,19 @@ public:
     void coarsen (const IntVect& ratio);
 
     /**
-    * \brief The total number of Tags in all the contained TagBoxes.
-    */
-    Long numTags () const;
-
-    /**
     * \brief Calls collate() on all contained TagBoxes.
     *
     * \param TheGlobalCollateSpace
     */
-    void collate (Vector<IntVect>& TheGlobalCollateSpace) const;
+    void collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const;
+
+    // \brief Are there tags in the region defined by bx?
+    bool hasTags (Box const& bx) const;
+
+    void local_collate_cpu (Gpu::PinnedVector<IntVect>& v) const;
+#ifdef AMREX_USE_GPU
+    void local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const;
+#endif
 };
 
 }

@@ -1,5 +1,6 @@
 #ifndef AMREX_FPHYSBC_H_
 #define AMREX_FPHYSBC_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_PhysBCFunct.H>
 

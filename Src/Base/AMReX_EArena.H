@@ -1,5 +1,8 @@
 #ifndef AMREX_EARENA_H_
 #define AMREX_EARENA_H_
+#include <AMReX_Config.H>
+
+#include <AMReX_Arena.H>
 
 #include <cstddef>
 #include <cstdint>
@@ -10,12 +13,10 @@
 #include <unordered_set>
 #include <functional>
 
-#include <AMReX_Arena.H>
-
 namespace amrex {
 
 /**
-* \brief A Concrete Class for Dynamic Memory Management using best fit. 
+* \brief A Concrete Class for Dynamic Memory Management using best fit.
 * This is a coalescing memory manager.  It allocates (possibly) large
 * chunks of heap space and apportions it out as requested.  It merges
 * together neighboring chunks on each free().

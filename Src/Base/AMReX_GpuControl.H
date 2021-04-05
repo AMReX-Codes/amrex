@@ -1,11 +1,16 @@
 #ifndef AMREX_GPU_CONTROL_H_
 #define AMREX_GPU_CONTROL_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuTypes.H>
 
 #ifndef AMREX_GPU_MAX_THREADS
 #define AMREX_GPU_MAX_THREADS 256
+#endif
+
+#if defined(AMREX_USE_CUDA) && (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 2)))
+#define AMREX_CUDA_GE_11_2 1
 #endif
 
 #if defined(AMREX_USE_HIP)

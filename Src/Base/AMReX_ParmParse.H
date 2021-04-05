@@ -1,6 +1,9 @@
 
 #ifndef BL_PARMPARSE_H
 #define BL_PARMPARSE_H
+#include <AMReX_Config.H>
+
+#include <AMReX_BLassert.H>
 
 #include <stack>
 #include <string>
@@ -8,7 +11,6 @@
 #include <vector>
 #include <list>
 #include <array>
-#include <AMReX_BLassert.H>
 
 namespace amrex {
 
@@ -917,8 +919,8 @@ public:
     * ParmParse object.
     */
     static void Initialize(int         argc,
-			   char**      argv,
-			   const char* parfile);
+                           char**      argv,
+                           const char* parfile);
     /**
     * \brief The destructor.  The internal static table will only be deleted
     * if there are no other ParmParse objects in existence.
@@ -926,7 +928,13 @@ public:
     static void Finalize();
 
     static bool QueryUnusedInputs ();
-    
+
+    //! Any unused [prefix.]* parameters?
+    static bool hasUnusedInputs (const std::string& prefix = std::string());
+
+    //! Returns unused [prefix.]* parameters.
+    static std::vector<std::string> getUnusedInputs (const std::string& prefix = std::string());
+
     struct PP_entry;
     typedef std::list<PP_entry> Table;
     static void appendTable(ParmParse::Table& tab);
@@ -969,7 +977,7 @@ struct ParmParse::PP_entry
     PP_entry (const std::string& name,
               const std::string& vals);
     PP_entry (const std::string& name,
-	      const Table& table);
+              const Table& table);
     PP_entry (const PP_entry& pe);
     PP_entry& operator= (const PP_entry& pe);
     ~PP_entry ();

@@ -27,8 +27,10 @@ C$(AMREX_BASE)_headers += AMReX_Functional.H AMReX_Reduce.H AMReX_Scan.H AMReX_P
 C$(AMREX_BASE)_headers += AMReX_FileSystem.H
 C$(AMREX_BASE)_sources += AMReX_FileSystem.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Random.H
+C$(AMREX_BASE)_headers += AMReX_Random.H AMReX_RandomEngine.H
 C$(AMREX_BASE)_sources += AMReX_Random.cpp
+
+C$(AMREX_BASE)_headers += AMReX_Slopes_K.H
 
 C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_INT.H AMReX_CONSTANTS.H AMReX_SPACE.H
 
@@ -41,8 +43,8 @@ C$(AMREX_BASE)_headers += AMReX_ParallelReduce.H
 C$(AMREX_BASE)_headers += AMReX_ForkJoin.H AMReX_ParallelContext.H
 C$(AMREX_BASE)_sources += AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp
 
-C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_DArena.cpp AMReX_EArena.cpp
-C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_DArena.H AMReX_EArena.H
+C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_DArena.cpp AMReX_EArena.cpp AMReX_PArena.cpp
+C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_DArena.H AMReX_EArena.H AMReX_PArena.H
 
 C$(AMREX_BASE)_sources += AMReX_AsyncOut.cpp
 C$(AMREX_BASE)_headers += AMReX_AsyncOut.H
@@ -64,12 +66,12 @@ C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
 C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuPrint.H AMReX_GpuAssert.H AMReX_GpuTypes.H AMReX_GpuError.H
+C$(AMREX_BASE)_headers += AMReX_GpuKernelInfo.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosG.H AMReX_GpuLaunchFunctsG.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosC.H AMReX_GpuLaunchFunctsC.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchGlobal.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunch.H
-C$(AMREX_BASE)_sources += AMReX_GpuLaunch.cpp
 C$(AMREX_BASE)_headers += AMReX_GpuFuse.H
 C$(AMREX_BASE)_sources += AMReX_GpuFuse.cpp
 
@@ -81,6 +83,7 @@ C$(AMREX_BASE)_headers += AMReX_GpuMemory.H AMReX_GpuRange.H
 C$(AMREX_BASE)_headers += AMReX_GpuAtomic.H
 C$(AMREX_BASE)_sources += AMReX_GpuDevice.cpp AMReX_GpuUtility.cpp
 C$(AMREX_BASE)_headers += AMReX_GpuDevice.H   AMReX_GpuUtility.H
+C$(AMREX_BASE)_headers += AMReX_GpuBuffer.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuAsyncArray.H
 C$(AMREX_BASE)_sources += AMReX_GpuAsyncArray.cpp
@@ -106,6 +109,7 @@ C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp AMReX_IntConv.cpp AMRe
 C$(AMREX_BASE)_sources += AMReX_Box.cpp AMReX_BoxIterator.cpp AMReX_IntVect.cpp AMReX_IndexType.cpp AMReX_Orientation.cpp AMReX_Periodicity.cpp
 C$(AMREX_BASE)_headers += AMReX_Box.H AMReX_BoxIterator.H AMReX_IntVect.H AMReX_IndexType.H AMReX_Orientation.H AMReX_Periodicity.H
 
+C$(AMREX_BASE)_sources += AMReX_Dim3.cpp
 C$(AMREX_BASE)_headers += AMReX_Dim3.H AMReX_Loop.H
 
 #
@@ -161,9 +165,6 @@ C$(AMREX_BASE)_headers += AMReX_MultiFabUtil.H AMReX_MultiFabUtil_C.H AMReX_Mult
 C$(AMREX_BASE)_sources += AMReX_MultiFabUtil.cpp
 C$(AMREX_BASE)_headers += AMReX_MultiFabUtilI.H
 
-C$(AMREX_BASE)_sources += AMReX_MultiFabUtil_Perilla.cpp
-C$(AMREX_BASE)_headers += AMReX_MultiFabUtil_Perilla.H
-
 #
 # Boundary-related 
 #
@@ -175,6 +176,12 @@ C$(AMREX_BASE)_sources += AMReX_FilCC_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilCC_C.H AMReX_FilCC_$(DIM)D_C.H
 C$(AMREX_BASE)_sources += AMReX_FilND_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilND_C.H
+
+#
+# Non-Local BC
+#
+C$(AMREX_BASE)_headers += AMReX_NonLocalBC.H AMReX_NonLocalBCImpl.H
+C$(AMREX_BASE)_sources += AMReX_NonLocalBC.cpp
 
 #
 # Plotfile
@@ -191,10 +198,8 @@ C$(AMREX_BASE)_headers += AMReX_BaseUmap.H
 # Fortran interface routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
-  ifeq ($(findstring FALSE,$(USE_CUDA)$(USE_GPU_PRAGMA)$(GPU_PRAGMA_NO_HOST_VERSION)),FALSE)
-    F90$(AMREX_BASE)_sources += AMReX_FILCC_${DIM}D.F90
-    F90$(AMREX_BASE)_headers += AMReX_filcc_f.H
-  endif
+  F90$(AMREX_BASE)_sources += AMReX_FILCC_${DIM}D.F90
+  F90$(AMREX_BASE)_headers += AMReX_filcc_f.H
 
   F90$(AMREX_BASE)_sources += AMReX_BLutil_F.F90
   F90$(AMREX_BASE)_sources += AMReX_BLProfiler_F.F90

@@ -86,7 +86,11 @@ else
 endif
 
 ifeq ($(WARN_ALL),TRUE)
-  warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code
+  warning_flags = -Wall -Wextra -Wunreachable-code
+
+  ifeq ($(WARN_SIGN_COMPARE),FALSE)
+    warning_flags += -Wno-sign-compare
+  endif
 
   ifneq ($(USE_CUDA),TRUE)
     # With -Wpedantic I got 650 MB of warnings
@@ -139,15 +143,15 @@ endif
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
   ifeq ($(shell expr $(gcc_major_version) \< 5),1)
-    ifeq ($(CXXSTD),c++14)
-      $(error C++14 support requires GCC 5 or newer.)
+    ifneq ($(NO_CONFIG_CHECKING),TRUE)
+      ifeq ($(CXXSTD),c++14)
+        $(error C++14 support requires GCC 5 or newer.)
+      endif
     endif
   endif
   CXXFLAGS += -std=$(CXXSTD)
 else
-  ifeq ($(gcc_major_version),4)
-    CXXFLAGS += -std=c++11
-  else ifeq ($(gcc_major_version),5)
+  ifeq ($(gcc_major_version),5)
     CXXFLAGS += -std=c++14
   endif
 endif

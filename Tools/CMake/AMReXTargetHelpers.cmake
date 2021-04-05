@@ -74,8 +74,7 @@ function (get_target_prop_recursive _target _lincludes _ldefines _lflags _llink_
 
    # Remove INTERFACE genex: choose build
    include(AMReXGenexHelpers)
-   evaluate_genex(_interface_link_libraries
-      _interface_link_libraries
+   eval_genex(_interface_link_libraries NONE NONE
       CONFIG ${CMAKE_BUILD_TYPE}
       INTERFACE BUILD)
 
@@ -104,7 +103,7 @@ endfunction ()
 #
 function (set_cpp_sources_to_cuda_language _target)
    get_target_property(_sources ${_target} SOURCES)
-   list(FILTER _sources INCLUDE REGEX "\\.cpp")
+   list(FILTER _sources INCLUDE REGEX "\\.cpp$")
    set_source_files_properties(${_sources} PROPERTIES LANGUAGE CUDA )
 endfunction ()
 

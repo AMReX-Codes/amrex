@@ -1,5 +1,6 @@
 #ifndef AMREX_BC_TYPES_H_
 #define AMREX_BC_TYPES_H_
+#include <AMReX_Config.H>
 
 #if 0
 ---------------------------------------------------------------------

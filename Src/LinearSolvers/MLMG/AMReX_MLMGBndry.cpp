@@ -22,7 +22,7 @@ MLMGBndry::setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo
     const Box&      domain = geom.Domain();
     const GpuArray<int,AMREX_SPACEDIM>& is_periodic = geom.isPeriodicArray();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     for (FabSetIter fsi(bndry[Orientation(0,Orientation::low)]); fsi.isValid(); ++fsi)
@@ -58,7 +58,7 @@ MLMGBndry::setBoxBC (RealTuple& bloc, BCTuple& bctag, const Box& bx, const Box& 
     {
         const Orientation face = fi();
         const int         dir  = face.coordDir();
-        
+
         if (domain[face] == bx[face] && !is_periodic[dir])
         {
             // All physical bc values are located on face.
@@ -78,7 +78,7 @@ MLMGBndry::setBoxBC (RealTuple& bloc, BCTuple& bctag, const Box& bx, const Box& 
         {
             // Internal bndry.
             bctag[face] = AMREX_LO_DIRICHLET;
-            bloc[face]  = ratio > 0 ? 0.5*ratio*dx[dir] : interior_bloc[dir];
+            bloc[face]  = ratio > 0 ? Real(0.5)*ratio*dx[dir] : interior_bloc[dir];
             // If this is next to another same level box, bloc is
             // wrong.  But it doesn't matter, because we also have
             // mask.  It is used only if mask says it is next to

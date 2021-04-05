@@ -35,6 +35,14 @@ def configure(argv):
                         help="Use CUDA [default=no]",
                         choices=["yes","no"],
                         default="no")
+    parser.add_argument("--with-hip",
+                        help="Use HIP [default=no]",
+                        choices=["yes","no"],
+                        default="no")
+    parser.add_argument("--with-dpcpp",
+                        help="Use DPCPP [default=no]",
+                        choices=["yes","no"],
+                        default="no")
     parser.add_argument("--with-acc",
                         help="Use OpenACC [default=no]",
                         choices=["yes","no"],
@@ -71,6 +79,14 @@ def configure(argv):
                         help="Enable AMReX embedded boundary capability [default=no]",
                         choices=["yes","no"],
                         default="no")
+    parser.add_argument("--single-precision",
+                        help="Define amrex::Real as float [default=no (i.e., double)]",
+                        choices=["yes","no"],
+                        default="no")
+    parser.add_argument("--single-precision-particles",
+                        help="Define amrex::ParticleReal as float [default=no (i.e., double)]",
+                        choices=["yes","no"],
+                        default="no")
     parser.add_argument("--enable-xsdk-defaults",
                         help="Enable XSDK mode [default=no]",
                         choices=["yes","no"],
@@ -94,10 +110,14 @@ def configure(argv):
     parser.add_argument("--enable-pic",
                         help="Enable position independent code [default=no]",
                         choices=["yes","no"],
-                        default="no")   
+                        default="no")
     parser.add_argument("--cuda-arch",
                         help="Specify CUDA architecture [default=70]",
-                        default="70")   
+                        default="70")
+    parser.add_argument("--enable-probinit",
+                        help="Only relevant to Amr/AmrLevel based codes that need to read probin file or call amrex_probinit",
+                        choices=["yes","no"],
+                        default="yes")
     args = parser.parse_args()
 
     if args.with_fortran == "no":
@@ -114,6 +134,8 @@ def configure(argv):
     f.write("USE_MPI = {}\n".format("FALSE" if args.with_mpi == "no" else "TRUE"))
     f.write("USE_OMP = {}\n".format("FALSE" if args.with_omp == "no" else "TRUE"))
     f.write("USE_CUDA = {}\n".format("FALSE" if args.with_cuda == "no" else "TRUE"))
+    f.write("USE_HIP = {}\n".format("FALSE" if args.with_hip == "no" else "TRUE"))
+    f.write("USE_DPCPP = {}\n".format("FALSE" if args.with_dpcpp == "no" else "TRUE"))
     f.write("USE_ACC = {}\n".format("FALSE" if args.with_acc == "no" else "TRUE"))
     f.write("COMP = " + args.comp.strip() + "\n")
     f.write("DEBUG = {}\n".format("TRUE" if args.debug == "yes" else "FALSE"))
@@ -123,6 +145,8 @@ def configure(argv):
     f.write("USE_HYPRE = {}\n".format("TRUE" if args.enable_hypre == "yes" else "FALSE"))
     f.write("USE_PETSC = {}\n".format("TRUE" if args.enable_petsc == "yes" else "FALSE"))
     f.write("USE_EB = {}\n".format("TRUE" if args.enable_eb == "yes" else "FALSE"))
+    f.write("PRECISION = {}\n".format("FLOAT" if args.single_precision == "yes" else "DOUBLE"))
+    f.write("USE_SINGLE_PRECISION_PARTICLES = {}\n".format("TRUE" if args.single_precision_particles == "yes" else "FALSE"))
     f.write("AMREX_XSDK = {}\n".format("TRUE" if args.enable_xsdk_defaults == "yes" else "FALSE"))
     f.write("ALLOW_DIFFERENT_COMP = {}\n".format("FALSE" if args.allow_different_compiler == "no" else "TRUE"))
     f.write("USE_SENSEI_INSITU = {}\n".format("FALSE" if args.with_sensei_insitu == "no" else "TRUE"))
@@ -130,6 +154,7 @@ def configure(argv):
     f.write("TINY_PROFILE = {}\n".format("FALSE" if args.enable_tiny_profile == "no" else "TRUE"))
     f.write("USE_COMPILE_PIC = {}\n".format("FALSE" if args.enable_pic == "no" else "TRUE"))
     f.write("CUDA_ARCH = " + args.cuda_arch.strip() + "\n")
+    f.write("AMREX_NO_PROBINIT = {}\n".format("TRUE" if args.enable_probinit == "no" else "FALSE"))
     f.write("\n")
 
     fin = open("GNUmakefile.in","r")

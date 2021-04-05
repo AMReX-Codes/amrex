@@ -245,8 +245,8 @@ void BLProfiler::Initialize() {
         std::string cft;
         cfex >> cft;
         if( ! cfex.eof()) {
-	  vEx.push_back(CommStats::StringToCFT(cft));
-	}
+            vEx.push_back(CommStats::StringToCFT(cft));
+        }
     }
     for(int i(0); i < vEx.size(); ++i) {
       CommStats::cftExclude.insert(vEx[i]);
@@ -313,7 +313,7 @@ void BLProfiler::PStop() {
 
 
 void BLProfiler::start() {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
 {
@@ -348,7 +348,7 @@ void BLProfiler::start() {
 
 
 void BLProfiler::stop() {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
 {
@@ -452,7 +452,7 @@ void BLProfiler::RegionStop(const std::string &rname) {
   std::map<std::string, int>::iterator it = BLProfiler::mRegionNameNumbers.find(rname);
   if(it == BLProfiler::mRegionNameNumbers.end()) {  // ---- error
 //    amrex::Print() << "-------- error in RegionStop:  region " << rname
-//		   << " never started.\n";
+//           << " never started.\n";
     rnameNumber = BLProfiler::mRegionNameNumbers.size();
     BLProfiler::mRegionNameNumbers.insert(std::pair<std::string, int>(rname, rnameNumber));
   } else {
@@ -513,11 +513,13 @@ namespace BLProfilerUtils {
 void WriteHeader(std::ostream &ios, const int colWidth,
                  const Real maxlen, const bool bwriteavg)
 {
+  int maxlenI = int(maxlen);
+
   if(bwriteavg) {
-    ios << std::setfill('-') << std::setw(maxlen+4 + 7 * (colWidth+2))
+    ios << std::setfill('-') << std::setw(maxlenI+4 + 7 * (colWidth+2))
         << std::left << "Total times " << '\n';
     ios << std::right << std::setfill(' ');
-    ios << std::setw(maxlen + 2) << "Function Name"
+    ios << std::setw(maxlenI + 2) << "Function Name"
         << std::setw(colWidth + 2) << "NCalls"
         << std::setw(colWidth + 2) << "Min"
         << std::setw(colWidth + 2) << "Avg"
@@ -527,10 +529,10 @@ void WriteHeader(std::ostream &ios, const int colWidth,
         << std::setw(colWidth + 4) << "Percent %"
         << '\n';
   } else {
-    ios << std::setfill('-') << std::setw(maxlen+4 + 3 * (colWidth+2))
+    ios << std::setfill('-') << std::setw(maxlenI+4 + 3 * (colWidth+2))
         << std::left << "Total times " << '\n';
     ios << std::right << std::setfill(' ');
-    ios << std::setw(maxlen + 2) << "Function Name"
+    ios << std::setw(maxlenI + 2) << "Function Name"
         << std::setw(colWidth + 2) << "NCalls"
         << std::setw(colWidth + 2) << "Time"
         << std::setw(colWidth + 4) << "Percent %"
@@ -541,9 +543,10 @@ void WriteHeader(std::ostream &ios, const int colWidth,
 
 void WriteRow(std::ostream &ios, const std::string &fname,
               const BLProfiler::ProfStats &pstats, const Real percent,
-	      const int colWidth, const Real maxlen,
-	      const bool bwriteavg)
+              const int colWidth, const Real maxlen,
+              const bool bwriteavg)
 {
+    int maxlenI = int(maxlen);
     int numPrec(4), pctPrec(2);
     Real stdDev(0.0), coeffVariation(0.0);
     if(pstats.variance > 0.0) {
@@ -555,36 +558,36 @@ void WriteRow(std::ostream &ios, const std::string &fname,
 
     if(bwriteavg) {
       ios << std::right;
-      ios << std::setw(maxlen + 2) << fname << "  "
+      ios << std::setw(maxlenI + 2) << fname << "  "
           << std::setw(colWidth) << pstats.nCalls << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
-	  << pstats.minTime << "  "
+          << pstats.minTime << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
-	  << pstats.avgTime << "  "
+          << pstats.avgTime << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
-	  << pstats.maxTime << "  "
+          << pstats.maxTime << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
-	  << stdDev << "  "
+          << stdDev << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
-	  << coeffVariation << "  "
+          << coeffVariation << "  "
           << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
-	  << percent << " %" << '\n';
+          << percent << " %" << '\n';
     } else {
-      ios << std::setw(maxlen + 2) << fname << "  "
+      ios << std::setw(maxlenI + 2) << fname << "  "
           << std::setw(colWidth) << pstats.nCalls << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
-	  << pstats.totalTime << "  "
+          << pstats.totalTime << "  "
           << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
-	  << percent << " %" << '\n';
+          << percent << " %" << '\n';
     }
 }
 
 
 void WriteStats(std::ostream &ios,
                 const std::map<std::string, BLProfiler::ProfStats> &mpStats,
-		const std::map<std::string, int> &fnameNumbers,
-		const Vector<BLProfiler::CallStats> &callTraces,
-		bool bwriteavg, bool bwriteinclusivetimes)
+                const std::map<std::string, int> &fnameNumbers,
+                const Vector<BLProfiler::CallStats> &callTraces,
+                bool bwriteavg, bool bwriteinclusivetimes)
 {
   const int myProc(ParallelDescriptor::MyProc());
   const int colWidth(10);
@@ -724,7 +727,7 @@ void WriteStats(std::ostream &ios,
     bool recursiveCall(false);
     for(int d(0); d <  depth; ++d) {
       if(cs.csFNameNumber == callStack[d]) {
-	recursiveFuncs.insert(cs.csFNameNumber);
+        recursiveFuncs.insert(cs.csFNameNumber);
         recursiveCall = true;
       }
     }
@@ -766,11 +769,16 @@ void WriteStats(std::ostream &ios,
 #endif
 }
 
-
 }  // end namespace BLProfilerUtils
 
-void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- write basic profiling data
+std::ostream &operator<< (std::ostream &os, const BLProfiler::CommStats &cs) {
+  os << BLProfiler::CommStats::CFTToString(cs.cfType) << "   " << cs.size
+     << "  " << cs.commpid << "  " << cs.tag << "  " << cs.timeStamp;
+  return os;
+}
 
+void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- write basic profiling data
+  amrex::ignore_unused(memCheck);
   // --------------------------------------- gather global stats
   Real baseProfStart(amrex::second());  // time the timer
   const int nProcs(ParallelDescriptor::NProcs());
@@ -944,8 +952,8 @@ void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- wri
       std::string dFileName(phFilePrefix + "_D_");
       for(int p(0); p < nProcs; ++p) {
         std::string dFullName(NFilesIter::FileName(nOutFiles, dFileName, p, groupSets));
-	phHeaderFile << "BLProfProc " << p << " datafile " << dFullName
-	             << " seekpos " << seekPosOut[p] << '\n';
+        phHeaderFile << "BLProfProc " << p << " datafile " << dFullName
+                     << " seekpos " << seekPosOut[p] << '\n';
       }
       phHeaderFile << "calcEndTime " << std::setprecision(16)
                    << amrex::second() - startTime << '\n';
@@ -969,12 +977,12 @@ void BLProfiler::WriteCallTrace(bool bFlushing, bool memCheck) {   // ---- write
       ParallelDescriptor::ReduceIntMax(nCT);
       bool doFlush(nCT > traceFlushSize);
       if(doFlush) {
-	  amrex::Print() << "Flushing call traces:  nCT traceFlushSize = " << nCT
-			 << "  " << traceFlushSize << "\n";
+        amrex::Print() << "Flushing call traces:  nCT traceFlushSize = " << nCT
+                       << "  " << traceFlushSize << "\n";
       } else {
-	  amrex::Print() << "Bypassing call trace flush, nCT < traceFlushSize:  " << nCT
-			 << "  " << traceFlushSize << "\n";
-	  return;
+        amrex::Print() << "Bypassing call trace flush, nCT < traceFlushSize:  " << nCT
+                       << "  " << traceFlushSize << "\n";
+        return;
       }
     }
 
@@ -1002,8 +1010,8 @@ void BLProfiler::WriteCallTrace(bool bFlushing, bool memCheck) {   // ---- write
     amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
 
     if( ! alreadySynced) {  // ---- need to remap names and numbers
-	amrex::Print() << "**** Warning:  region names not synced:  unsupported.\n";
-	// unsupported for now
+      amrex::Print() << "**** Warning:  region names not synced:  unsupported.\n";
+      // unsupported for now
     }
 
     if(ParallelDescriptor::IOProcessor()) {
@@ -1022,7 +1030,7 @@ void BLProfiler::WriteCallTrace(bool bFlushing, bool memCheck) {   // ---- write
           it != mRegionNameNumbers.end(); ++it)
       {
         csGlobalHeaderFile << "RegionName " << '"' << it->first << '"'
-	                   << ' ' << it->second << '\n';
+                           << ' ' << it->second << '\n';
       }
       if(NFilesIter::CheckNFiles(nProcs, nOutFiles, groupSets)) {
         for(int i(0); i < nOutFiles; ++i) {
@@ -1075,26 +1083,26 @@ void BLProfiler::WriteCallTrace(bool bFlushing, bool memCheck) {   // ---- write
     {
       std::string localDFileName(NFilesIter::FileName(nOutFiles, shortDFileNamePrefix, myProc, groupSets));
       nfiHeader.Stream() << "CallStatsProc " << myProc
-		         << " nRSS " << rStartStop.size()
-		         << " nTraceStats " << vCallTrace.size()
-		         << "  datafile  " << localDFileName
-		         << "  seekpos  " << nfiDatafile.SeekPos()    // ---- data file seek position
-	                 << '\n';
+                         << " nRSS " << rStartStop.size()
+                         << " nTraceStats " << vCallTrace.size()
+                         << "  datafile  " << localDFileName
+                         << "  seekpos  " << nfiDatafile.SeekPos()    // ---- data file seek position
+                         << '\n';
       for(std::map<std::string, int>::iterator it = mFNameNumbers.begin();
-	  it != mFNameNumbers.end(); ++it)
+          it != mFNameNumbers.end(); ++it)
       {
-	 nfiHeader.Stream() << "fName " << '"' << it->first << '"'
-	                    << ' ' << it->second << '\n';
+        nfiHeader.Stream() << "fName " << '"' << it->first << '"'
+                           << ' ' << it->second << '\n';
       }
 #ifdef BL_TRACE_PROFILING
       nfiHeader.Stream() << std::setprecision(16) << "timeMinMax  "
-	                 << CallStats::minCallTime << ' '
-	                 << CallStats::maxCallTime << '\n';
+                         << CallStats::minCallTime << ' '
+                         << CallStats::maxCallTime << '\n';
 #endif
 
       if(rStartStop.size() > 0) {
-	nfiDatafile.Stream().write((char *) rStartStop.dataPtr(),
-	                  rStartStop.size() * sizeof(RStartStop));
+        nfiDatafile.Stream().write((char *) rStartStop.dataPtr(),
+                                   rStartStop.size() * sizeof(RStartStop));
       }
       if(vCallTrace.size() > 0) {
         baseSeekPos = nfiDatafile.SeekPos();
@@ -1106,46 +1114,46 @@ void BLProfiler::WriteCallTrace(bool bFlushing, bool memCheck) {   // ---- write
 
     if(bFlushing) {  // ---- save stacked CallStats
       for(int ci(0); ci < callIndexStack.size(); ++ci) {
-	CallStatsStack &csStack = callIndexStack[ci];
-	if( ! csStack.bFlushed) {
-	  if(baseSeekPos < 0) {
-	    amrex::Print(Print::AllProcs) << "**** Error:  baseSeekPos = " << baseSeekPos << "\n";
-	    break;
-	  }
-	  Long spos(baseSeekPos + csStack.index * sizeof(CallStats));
-	  callIndexPatch.push_back(CallStatsPatch(spos, vCallTrace[csStack.index], longDFileName));
-	  csStack.bFlushed = true;
-	  csStack.index    = callIndexPatch.size() - 1;
-	}
+        CallStatsStack &csStack = callIndexStack[ci];
+        if( ! csStack.bFlushed) {
+          if(baseSeekPos < 0) {
+              amrex::Print(Print::AllProcs) << "**** Error:  baseSeekPos = " << baseSeekPos << "\n";
+              break;
+          }
+          Long spos(baseSeekPos + csStack.index * sizeof(CallStats));
+          callIndexPatch.push_back(CallStatsPatch(spos, vCallTrace[csStack.index], longDFileName));
+          csStack.bFlushed = true;
+          csStack.index    = callIndexPatch.size() - 1;
+        }
       }
     } else { // ---- patch the incomplete CallStats on disk
              // ---- probably should throttle these for large nprocs
       for(int ci(0); ci < callIndexPatch.size(); ++ci) {
-	CallStatsPatch &csPatch = callIndexPatch[ci];
+        CallStatsPatch &csPatch = callIndexPatch[ci];
 
         std::fstream csDFile;
         CallStats csOnDisk;
         csDFile.open(csPatch.fileName.c_str(), std::ios::in | std::ios::out |
-	                                       std::ios::binary);
+                                               std::ios::binary);
         if( ! csDFile.good()) {
           amrex::FileOpenFailed(csPatch.fileName);
         }
         csDFile.seekg(csPatch.seekPos, std::ios::beg);
         csDFile.read((char *) &csOnDisk, sizeof(CallStats));
-	bool bReportPatches(false);
-	if(bReportPatches) {
-	    amrex::Print(Print::AllProcs)
-		<< myProc << "::PATCH:  csOnDisk.st tt = " << csOnDisk.stackTime
-		<< "  " << csOnDisk.totalTime << '\n'
-		<< myProc << "::PATCH:  csPatch.st tt = " << csPatch.callStats.stackTime
-		<< "  " << csPatch.callStats.totalTime << " :::: " << csPatch.fileName << "\n";
-	}
-	csOnDisk.totalTime = csPatch.callStats.totalTime;
-	csOnDisk.stackTime = csPatch.callStats.stackTime;
+        bool bReportPatches(false);
+        if(bReportPatches) {
+          amrex::Print(Print::AllProcs)
+              << myProc << "::PATCH:  csOnDisk.st tt = " << csOnDisk.stackTime
+              << "  " << csOnDisk.totalTime << '\n'
+              << myProc << "::PATCH:  csPatch.st tt = " << csPatch.callStats.stackTime
+              << "  " << csPatch.callStats.totalTime << " :::: " << csPatch.fileName << "\n";
+        }
+        csOnDisk.totalTime = csPatch.callStats.totalTime;
+        csOnDisk.stackTime = csPatch.callStats.stackTime;
         csDFile.seekp(csPatch.seekPos, std::ios::beg);
         csDFile.write((char *) &csOnDisk, sizeof(CallStats));
-	csDFile.flush();
-	csDFile.close();
+        csDFile.flush();
+        csDFile.close();
       }
       callIndexPatch.clear();
     }
@@ -1162,8 +1170,9 @@ void BLProfiler::WriteCallTrace(bool bFlushing, bool memCheck) {   // ---- write
 
 
 
-void BLProfiler::WriteCommStats(bool bFlushing, bool memCheck) {
-
+void BLProfiler::WriteCommStats(bool bFlushing, bool memCheck)
+{
+  amrex::ignore_unused(bFlushing);
   Real wcsStart(amrex::second());
   bool bAllCFTypesExcluded(OnExcludeList(AllCFTypes));
   if( ! bAllCFTypesExcluded) {
@@ -1178,11 +1187,11 @@ void BLProfiler::WriteCommStats(bool bFlushing, bool memCheck) {
         CommStats::cftExclude.erase(AllCFTypes);
       }
       amrex::Print() << "Bypassing comm stats flush, nCS < csFlushSize:  " << nCS
-		     << "  " << csFlushSize << "\n";
+                     << "  " << csFlushSize << "\n";
       return;
     } else {
       amrex::Print() << "Flushing commstats:  nCSmax csFlushSize = " << nCS
-		     << "  " << csFlushSize << "\n";
+                     << "  " << csFlushSize << "\n";
     }
   }
 
@@ -1280,8 +1289,8 @@ void BLProfiler::WriteCommStats(bool bFlushing, bool memCheck) {
       nfiHeader.Stream() << "CommProfProc  " << myProc
                          << "  nCommStats  " << vCommStats.size()
                          << "  datafile  " << localDFileName
-	                 << "  seekpos  " << nfiDatafile.SeekPos()    // ---- data file seek posotion
-		         << "  " << procName << '\n';
+                         << "  seekpos  " << nfiDatafile.SeekPos()    // ---- data file seek posotion
+                         << "  " << procName << '\n';
       for(int ib(0); ib < CommStats::barrierNames.size(); ++ib) {
           int seekindex(CommStats::barrierNames[ib].second);
           CommStats &cs = vCommStats[seekindex];
@@ -1332,7 +1341,7 @@ void BLProfiler::WriteCommStats(bool bFlushing, bool memCheck) {
   ParallelDescriptor::Barrier("BLProfiler::WriteCommStats::end");
 
   amrex::Print() << "BLProfiler::WriteCommStats():  time:  "
-		 << amrex::second() - wcsStart << "\n";
+                 << amrex::second() - wcsStart << "\n";
 }
 
 
@@ -1345,7 +1354,7 @@ void BLProfiler::WriteFortProfErrors() {
           it != BLProfiler::mFortProfs.end(); ++it)
       {
         amrex::Print() << "FFFF function not stopped:  fname ptr = " << it->first
-	          << "  ---->" << it->second << "<----" << std::endl;
+                       << "  ---->" << it->second << "<----" << std::endl;
       }
       amrex::Print() << "FFFFFFFF -------- END FORTRAN PROFILING UNSTOPPED ERRORS" << std::endl;
     }
@@ -1459,8 +1468,9 @@ void BLProfiler::AddAllReduce(const CommFuncType cft, const int size,
 }
 
 void BLProfiler::AddWait(const CommFuncType cft, const MPI_Request &req,
-			 const MPI_Status &status, const bool beforecall)
+                         const MPI_Status &status, const bool beforecall)
 {
+  amrex::ignore_unused(req);
 #ifdef BL_USE_MPI
   if(OnExcludeList(cft)) {
     return;
@@ -1481,6 +1491,7 @@ void BLProfiler::AddWaitsome(const CommFuncType cft, const Vector<MPI_Request> &
                              const int completed, const Vector<MPI_Status> &status,
                              const bool beforecall)
 {
+  amrex::ignore_unused(reqs);
 #ifdef BL_USE_MPI
   if(OnExcludeList(cft)) {
     return;

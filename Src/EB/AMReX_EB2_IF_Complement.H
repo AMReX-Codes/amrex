@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_IF_COMPLEMENT_H_
 #define AMREX_EB2_IF_COMPLEMENT_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
 #include <AMReX_EB2_IF_Base.H>
@@ -17,7 +18,7 @@ public:
 
     ComplementIF (F&& a_f) : m_f(std::move(a_f)) {}
     ComplementIF (F const& a_f) : m_f(a_f) {}
-          
+
     ComplementIF (const ComplementIF& rhs) = default;
     ComplementIF (ComplementIF&& rhs) = default;
     ComplementIF& operator= (const ComplementIF& rhs) = delete;

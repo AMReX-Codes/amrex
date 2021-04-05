@@ -1,5 +1,6 @@
 #ifndef AMREX_MLPOISSON_H_
 #define AMREX_MLPOISSON_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLCellABecLap.H>
 #include <AMReX_Array.H>
@@ -20,6 +21,12 @@ public:
                const Vector<DistributionMapping>& a_dmap,
                const LPInfo& a_info = LPInfo(),
                const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+    MLPoisson (const Vector<Geometry>& a_geom,
+               const Vector<BoxArray>& a_grids,
+               const Vector<DistributionMapping>& a_dmap,
+               const Vector<iMultiFab const*>& a_overset_mask, // 1: unknown, 0: known
+               const LPInfo& a_info = LPInfo(),
+               const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
     virtual ~MLPoisson ();
 
     MLPoisson (const MLPoisson&) = delete;
@@ -30,6 +37,13 @@ public:
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info = LPInfo(),
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+
+    void define (const Vector<Geometry>& a_geom,
+                 const Vector<BoxArray>& a_grids,
+                 const Vector<DistributionMapping>& a_dmap,
+                 const Vector<iMultiFab const*>& a_overset_mask,
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 

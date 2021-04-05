@@ -1,12 +1,13 @@
 #ifndef AMREX_BLOCK_MUTEX_H_
 #define AMREX_BLOCK_MUTEX_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_Gpu.H>
 
 namespace amrex {
 
 #ifdef AMREX_USE_GPU
-    
+
 struct BlockMutex
 {
     union state_t
@@ -23,7 +24,7 @@ struct BlockMutex
     static void init_states (state_t* state, int N) noexcept;
 
     explicit BlockMutex (int N) noexcept;
-    
+
     ~BlockMutex ();
 
     void operator= (BlockMutex const&) = delete;
@@ -32,6 +33,7 @@ struct BlockMutex
     void lock (int i) noexcept {
 #ifdef AMREX_USE_DPCPP
 // xxxxx DPCPP todo
+        amrex::ignore_unused(i);
 #else
         int blockid = blockIdx.z*blockDim.x*blockDim.y + blockIdx.y*blockDim.x + blockIdx.x;
         state_t old = m_state[i];
@@ -57,6 +59,7 @@ struct BlockMutex
     void unlock (int i) noexcept {
 #ifdef AMREX_USE_DPCPP
 // xxxxx DPCPP todo
+        amrex::ignore_unused(i);
 #else
         state_t old = m_state[i];
         state_t assumed;
@@ -81,6 +84,6 @@ private:
     int m_nstates;
     state_t* m_state;
 };
-#endif  
+#endif
 }
 #endif

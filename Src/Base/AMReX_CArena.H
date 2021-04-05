@@ -1,5 +1,8 @@
 #ifndef BL_CARENA_H
 #define BL_CARENA_H
+#include <AMReX_Config.H>
+
+#include <AMReX_Arena.H>
 
 #include <cstddef>
 #include <set>
@@ -8,8 +11,6 @@
 #include <unordered_set>
 #include <functional>
 #include <string>
-
-#include <AMReX_Arena.H>
 
 namespace amrex {
 
@@ -34,7 +35,7 @@ public:
 
     CArena (const CArena& rhs) = delete;
     CArena& operator= (const CArena& rhs) = delete;
-    
+
     //! The destructor.
     virtual ~CArena () override;
 
@@ -46,6 +47,8 @@ public:
     * into largest possible chunk.
     */
     virtual void free (void* ap) override final;
+
+    virtual std::size_t freeUnused () override final;
 
     //! The current amount of heap space used by the CArena object.
     std::size_t heap_space_used () const noexcept;
@@ -62,6 +65,9 @@ public:
     constexpr static std::size_t DefaultHunkSize = 1024*1024*8;
 
 protected:
+
+    virtual std::size_t freeUnused_protected () override final;
+
     //! The nodes in our free list and block list.
     class Node
     {
@@ -76,7 +82,7 @@ protected:
             return m_block < rhs.m_block;
         }
 
-        //! The equality operator. 
+        //! The equality operator.
         bool operator== (const Node& rhs) const noexcept
         {
             return m_block == rhs.m_block;

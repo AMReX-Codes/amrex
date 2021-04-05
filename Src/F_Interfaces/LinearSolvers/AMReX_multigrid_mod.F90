@@ -30,7 +30,7 @@ module amrex_multigrid_module
      procedure :: set_max_fmg_iter      => amrex_multigrid_set_max_fmg_iter
      procedure :: set_fixed_iter        => amrex_multigrid_set_fixed_iter
      procedure :: set_bottom_solver     => amrex_multigrid_set_bottom_solver
-     procedure :: set_cg_verbose        => amrex_multigrid_set_cg_verbose
+     procedure :: set_bottom_verbose    => amrex_multigrid_set_bottom_verbose
      procedure :: set_always_use_bnorm  => amrex_multigrid_set_always_use_bnorm
      procedure :: set_final_fill_bc     => amrex_multigrid_set_final_fill_bc
      procedure, private :: amrex_multigrid_assign
@@ -42,7 +42,7 @@ module amrex_multigrid_module
      procedure, private :: amrex_multigrid_set_max_iter
      procedure, private :: amrex_multigrid_set_max_fmg_iter
      procedure, private :: amrex_multigrid_set_fixed_iter
-     procedure, private :: amrex_multigrid_set_cg_verbose
+     procedure, private :: amrex_multigrid_set_bottom_verbose
      procedure, private :: amrex_multigrid_set_always_use_bnorm
      procedure, private :: amrex_multigrid_set_final_fill_bc
 
@@ -60,7 +60,7 @@ module amrex_multigrid_module
        type(c_ptr), intent(inout) :: mg
        type(c_ptr), value :: linop
      end subroutine amrex_fi_new_multigrid
-  
+
      subroutine amrex_fi_delete_multigrid (mg) bind(c)
        import
        implicit none
@@ -132,12 +132,12 @@ module amrex_multigrid_module
        integer(c_int), value :: s
      end subroutine amrex_fi_multigrid_set_bottom_solver
 
-     subroutine amrex_fi_multigrid_set_cg_verbose (mg, v) bind(c)
+     subroutine amrex_fi_multigrid_set_bottom_verbose (mg, v) bind(c)
        import
        implicit none
        type(c_ptr), value :: mg
        integer(c_int), value :: v
-     end subroutine amrex_fi_multigrid_set_cg_verbose
+     end subroutine amrex_fi_multigrid_set_bottom_verbose
 
      subroutine amrex_fi_multigrid_set_always_use_bnorm (mg, f) bind(c)
        import
@@ -247,7 +247,7 @@ contains
     call amrex_fi_multigrid_comp_residual(mg%p, pres, psol, prhs)
   end subroutine amrex_multigrid_comp_residual
 
-  
+
   subroutine amrex_multigrid_set_verbose (mg, v)
     class(amrex_multigrid), intent(inout) :: mg
     integer, intent(in) :: v
@@ -283,11 +283,11 @@ contains
   end subroutine amrex_multigrid_set_bottom_solver
 
 
-  subroutine amrex_multigrid_set_cg_verbose (mg, v)
+  subroutine amrex_multigrid_set_bottom_verbose (mg, v)
     class(amrex_multigrid), intent(inout) :: mg
     integer, intent(in) :: v
-    call amrex_fi_multigrid_set_cg_verbose(mg%p, v)
-  end subroutine amrex_multigrid_set_cg_verbose
+    call amrex_fi_multigrid_set_bottom_verbose(mg%p, v)
+  end subroutine amrex_multigrid_set_bottom_verbose
 
 
   subroutine amrex_multigrid_set_always_use_bnorm (mg, f)

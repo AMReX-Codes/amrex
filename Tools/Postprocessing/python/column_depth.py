@@ -34,7 +34,7 @@ def columnDepth(inputFile,columnDepthStart):
     input file."""
 
     if inputFile:
-        try: 
+        try:
             fh = open(inputFile,'r')
             nLines = countValidLines(fh)
             data = fh.read()
@@ -45,10 +45,10 @@ def columnDepth(inputFile,columnDepthStart):
     else:
         data = sys.stdin.readlines()
         nLines = countValidLines(data)
-        
+
     print nLines
     print data[0]
-        
+
     r = numpy.zeros(nLines,numpy.float64)
     density = numpy.zeros(nLines,numpy.float64)
     columnDepth = numpy.zeros(nLines,numpy.float64)

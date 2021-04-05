@@ -35,7 +35,7 @@ HypreABecLap2::~HypreABecLap2 ()
 }
 
 void
-HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abstol, 
+HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abstol,
                       int maxiter, const BndryData& bndry, int max_bndry_order)
 {
     if (solver == NULL || m_bndry != &bndry || m_maxorder != max_bndry_order)
@@ -87,7 +87,7 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abs
     HYPRE_ParCSRMatrix par_A;
     HYPRE_ParVector par_b;
     HYPRE_ParVector par_x;
-    
+
     HYPRE_SStructMatrixGetObject(A, (void**) &par_A);
     HYPRE_SStructVectorGetObject(b, (void**) &par_b);
     HYPRE_SStructVectorGetObject(x, (void**) &par_x);
@@ -116,34 +116,30 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abs
 }
 
 void
-HypreABecLap2::getSolution (MultiFab& soln)
+HypreABecLap2::getSolution (MultiFab& a_soln)
 {
+    MultiFab* soln = &a_soln;
+    MultiFab tmp;
+    if (a_soln.nGrowVect() != 0) {
+        tmp.define(a_soln.boxArray(), a_soln.DistributionMap(), 1, 0);
+        soln = &tmp;
+    }
+
     HYPRE_SStructVectorGather(x);
 
     const HYPRE_Int part = 0;
 
-    FArrayBox fab;
-    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*soln); mfi.isValid(); ++mfi)
     {
         const Box &reg = mfi.validbox();
-
-        FArrayBox *xfab;
-        if (soln.nGrow() == 0) { // need a temporary if soln is the wrong size
-            xfab = &soln[mfi];
-        }
-        else {
-            xfab = &fab;
-            xfab->resize(reg);
-        }
-
         auto reglo = Hypre::loV(reg);
         auto reghi = Hypre::hiV(reg);
         HYPRE_SStructVectorGetBoxValues(x, part, reglo.data(), reghi.data(),
-                                        0, xfab->dataPtr());
+                                        0, (*soln)[mfi].dataPtr());
+    }
 
-        if (soln.nGrow() != 0) {
-            soln[mfi].copy<RunOn::Host>(*xfab, 0, 0, 1);
-        }
+    if (a_soln.nGrowVect() != 0) {
+        MultiFab::Copy(a_soln, tmp, 0, 0, 1, 0);
     }
 }
 
@@ -218,46 +214,56 @@ HypreABecLap2::prepareSolver ()
     Array<HYPRE_Int,regular_stencil_size> stencil_indices;
     std::iota(stencil_indices.begin(), stencil_indices.end(), 0);
     const HYPRE_Int part = 0;
-    const Real* dx = geom.CellSize();
+    const auto dx = geom.CellSizeArray();
     const int bho = (m_maxorder > 2) ? 1 : 0;
-    BaseFab<GpuArray<Real, regular_stencil_size>> rfab;
+    BaseFab<GpuArray<Real, regular_stencil_size> > rfab;
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
         const Box &reg = mfi.validbox();
-
         rfab.resize(reg);
-        amrex_hpacoef(reg, rfab, acoefs[mfi], scalar_a);
-         
-        for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {
-            amrex_hpbcoef(reg, rfab, bcoefs[idim][mfi], scalar_b, dx, idim);
-        }
 
-        const Vector< Vector<BoundCond> > & bcs_i = m_bndry->bndryConds(mfi);
-        const BndryData::RealTuple        & bcl_i = m_bndry->bndryLocs(mfi);
-        
+        Array4<Real const> const& afab = acoefs.const_array(mfi);
+        GpuArray<Array4<Real const>, AMREX_SPACEDIM> bfabs {
+            AMREX_D_DECL(bcoefs[0].const_array(mfi),
+                         bcoefs[1].const_array(mfi),
+                         bcoefs[2].const_array(mfi))};
+        Array4<Real> const& diaginvfab = diaginv.array(mfi);
+        GpuArray<int,AMREX_SPACEDIM*2> bctype;
+        GpuArray<Real,AMREX_SPACEDIM*2> bcl;
+        GpuArray<Array4<int const>, AMREX_SPACEDIM*2> msk;
         for (OrientationIter oit; oit; oit++)
         {
             Orientation ori = oit();
             int cdir(ori);
-            int idim = ori.coordDir();
-            const int bctype = bcs_i[cdir][0];
-            const Real &bcl  = bcl_i[cdir];
-            const Mask &msk  = m_bndry->bndryMasks(ori)[mfi];
-
-            amrex_hpmat(reg, rfab, bcoefs[idim][mfi], msk, scalar_b, dx, cdir, bctype, bcl, bho);
+            bctype[cdir] = m_bndry->bndryConds(mfi)[cdir][0];
+            bcl[cdir] = m_bndry->bndryLocs(mfi)[cdir];
+            msk[cdir] = m_bndry->bndryMasks(ori)[mfi].const_array();
         }
 
-        amrex_hpdiag(reg, rfab, diaginv[mfi]); 
-        Real* mat = (Real*) rfab.dataPtr();
+        Real sa = scalar_a;
+        Real sb = scalar_b;
+        const auto boxlo = amrex::lbound(reg);
+        const auto boxhi = amrex::ubound(reg);
 
-        // initialize matrix
+        amrex::fill(rfab,
+        [=] AMREX_GPU_HOST_DEVICE (GpuArray<Real,regular_stencil_size>& sten,
+                                   int i, int j, int k)
+        {
+            habec_mat(sten, i, j, k, boxlo, boxhi, sa, afab, sb, dx, bfabs,
+                      bctype, bcl, bho, msk, diaginvfab);
+        });
+
+        Real* mat = (Real*) rfab.dataPtr();
+        Gpu::streamSynchronize();
+
         auto reglo = Hypre::loV(reg);
         auto reghi = Hypre::hiV(reg);
         HYPRE_SStructMatrixSetBoxValues(A, part, reglo.data(), reghi.data(),
                                         0, regular_stencil_size, stencil_indices.data(),
                                         mat);
-    }    
-    HYPRE_SStructMatrixAssemble(A);   
+        Gpu::synchronize();
+    }
+    HYPRE_SStructMatrixAssemble(A);
 
     // create solver
     HYPRE_BoomerAMGCreate(&solver);
@@ -285,23 +291,33 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
 
     soln.setVal(0.0);
 
+    MultiFab rhs_diag(rhs.boxArray(), rhs.DistributionMap(), 1, 0);
+#ifdef AMREX_USE_OMP
+#pragma omp paralle if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(rhs_diag,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& reg = mfi.validbox();
+        Array4<Real> const& rhs_diag_a = rhs_diag.array(mfi);
+        Array4<Real const> const& rhs_a = rhs.const_array(mfi);
+        Array4<Real const> const& diaginv_a = diaginv.const_array(mfi);
+        AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(reg, i, j, k,
+        {
+            rhs_diag_a(i,j,k) = rhs_a(i,j,k) * diaginv_a(i,j,k);
+        });
+    }
+
     const HYPRE_Int part = 0;
     FArrayBox rhsfab;
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
         const Box &reg = mfi.validbox();
-
         auto reglo = Hypre::loV(reg);
         auto reghi = Hypre::hiV(reg);
         HYPRE_SStructVectorSetBoxValues(x, part, reglo.data(), reghi.data(),
                                         0, soln[mfi].dataPtr());
-
-        rhsfab.resize(reg);
-        rhsfab.copy<RunOn::Host>(rhs[mfi],reg);
-        rhsfab.mult<RunOn::Host>(diaginv[mfi]);
-
         HYPRE_SStructVectorSetBoxValues(b, part, reglo.data(), reghi.data(),
-                                        0, rhsfab.dataPtr());
+                                        0, rhs_diag[mfi].dataPtr());
     }
 }
 

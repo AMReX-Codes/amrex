@@ -1,14 +1,14 @@
 
 #ifndef AMREX_EB2_IF_SPLINE_H_
 #define AMREX_EB2_IF_SPLINE_H_
+#include <AMReX_Config.H>
 
-#include <vector>
 #include <AMReX_EB2_IF_Base.H>
-#include "AMReX_RealVect.H"
-#include "AMReX.H"
-#include "AMReX_Vector.H"
-#include "AMReX_Array.H"
-#include "AMReX_distFcnElement.H"
+#include <AMReX_RealVect.H>
+#include <AMReX.H>
+#include <AMReX_Vector.H>
+#include <AMReX_Array.H>
+#include <AMReX_distFcnElement.H>
 
 namespace amrex { namespace EB2 {
 

@@ -1,3 +1,0 @@
-f90EXE_sources += Adv_$(DIM)d.f90
-f90EXE_sources += slope_$(DIM)d.f90
-f90EXE_sources += compute_flux_$(DIM)d.f90

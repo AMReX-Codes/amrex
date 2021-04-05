@@ -1,16 +1,17 @@
 
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
-
-#include <iostream>
-#include <cstddef>
-#include <map>
-#include <unordered_map>
+#include <AMReX_Config.H>
 
 #include <AMReX_IndexType.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
+
+#include <iosfwd>
+#include <cstddef>
+#include <map>
+#include <unordered_map>
 
 namespace amrex
 {
@@ -39,6 +40,9 @@ namespace amrex
     BoxArray coarsen (const BoxArray& ba, int ratio);
     BoxArray coarsen (const BoxArray& ba, const IntVect& ratio);
 
+    BoxArray refine  (const BoxArray& ba, int ratio);
+    BoxArray refine  (const BoxArray& ba, const IntVect& ratio);
+
     //! Find the ghost cells of a given BoxArray.
     BoxList GetBndryCells (const BoxArray& ba, int ngrow);
 
@@ -48,7 +52,6 @@ namespace amrex
     //! Note that two BoxArrays that match are not necessarily equal.
     bool match (const BoxArray& x, const BoxArray& y);
 
-// \cond CODEGEN
 struct BARef
 {
     BARef ();
@@ -75,7 +78,7 @@ struct BARef
 
     inline bool HasHashMap () const {
         bool r;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp atomic read
 #endif
         r = has_hashmap;
@@ -218,9 +221,9 @@ struct BATbndryReg
     IntVect coarsen_ratio () const noexcept { return m_crse_ratio; }
 
     friend bool operator== (BATbndryReg const& a, BATbndryReg const& b) noexcept {
-        return a.m_face == b.m_face and a.m_typ == b.m_typ and a.m_crse_ratio == b.m_crse_ratio
-            and a.m_loshft == b.m_loshft and a.m_hishft == b.m_hishft
-            and a.m_doilo == b.m_doilo and a.m_doihi == b.m_doihi;
+        return a.m_face == b.m_face && a.m_typ == b.m_typ && a.m_crse_ratio == b.m_crse_ratio
+            && a.m_loshft == b.m_loshft && a.m_hishft == b.m_hishft
+            && a.m_doilo == b.m_doilo && a.m_doihi == b.m_doihi;
     }
 
     Orientation m_face;
@@ -497,7 +500,7 @@ struct BATransformer
                 return false;
             default:
                 return a.index_type() == b.index_type()
-                    and a.coarsen_ratio() == b.coarsen_ratio();
+                    && a.coarsen_ratio() == b.coarsen_ratio();
             }
         }
     }
@@ -516,6 +519,8 @@ using BndryBATransformer = BATransformer;
 */
 
 class MFIter;
+class AmrMesh;
+class FabArrayBase;
 
 class BoxArray
 {
@@ -551,7 +556,9 @@ public:
     explicit BoxArray (BoxList&& bl) noexcept;
 
     BoxArray (const BoxArray& rhs, const BATransformer& trans);
-    
+
+    BoxArray (BoxList&& bl, IntVect const& max_grid_size);
+
     /**
     * \brief Initialize the BoxArray from a single box.
     * It is an error if the BoxArray has already been initialized.
@@ -624,6 +631,7 @@ public:
     //! Coarsen each Box in the BoxArray to the specified ratio.
     bool coarsenable(int refinement_ratio, int min_width=1) const;
     bool coarsenable(const IntVect& refinement_ratio, int min_width=1) const;
+    bool coarsenable(const IntVect& refinement_ratio, const IntVect& min_width) const;
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (const IntVect& refinement_ratio);
@@ -751,10 +759,10 @@ public:
 
     //! intersect Box and BoxArray(+ghostcells), then store the result in isects
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
-			bool first_only, int ng) const;
+                        bool first_only, int ng) const;
 
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
-			bool first_only, const IntVect& ng) const;
+                        bool first_only, const IntVect& ng) const;
 
     //! Return box - boxarray
     BoxList complementIn (const Box& b) const;
@@ -796,6 +804,12 @@ public:
     //! Make ourselves unique.
     void uniqify ();
 
+    BoxList const& simplified_list () const; // For regular AMR grids only!!!
+    BoxArray simplified () const; // For regular AMR grids only!!!
+
+    friend class AmrMesh;
+    friend class FabArrayBase;
+
 private:
     //!  Update BoxArray index type according the box type, and then convert boxes to cell-centered.
     void type_update ();
@@ -808,6 +822,7 @@ private:
     BATransformer m_bat;
     //! The data -- a reference-counted pointer to a Ref.
     std::shared_ptr<BARef> m_ref;
+    mutable std::shared_ptr<BoxList> m_simplified_list;
 };
 
 //! Write a BoxArray to an ostream in ASCII format.

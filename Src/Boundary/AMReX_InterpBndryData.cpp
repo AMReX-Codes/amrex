@@ -31,7 +31,7 @@ InterpBndryData::operator= (const InterpBndryData& rhs)
 }
 
 InterpBndryData::InterpBndryData (const BoxArray& _grids,
-				  const DistributionMapping& _dmap,
+                                  const DistributionMapping& _dmap,
                                   int             _ncomp,
                                   const Geometry& _geom)
     :
@@ -89,10 +89,10 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
     BL_ASSERT(grids == mf.boxArray());
 
     for (int n = bnd_start; n < bnd_start+num_comp; ++n) {
-	setBndryConds(bc, ref_ratio, n);
+        setBndryConds(bc, ref_ratio, n);
     }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
@@ -151,7 +151,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                                   int             f_start,
                                   int             bnd_start,
                                   int             num_comp,
-                                  const IntVect&  ratio, 
+                                  const IntVect&  ratio,
                                   const BCRec*    bc,
                                   int             max_order)
 {
@@ -182,7 +182,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
 
         MFItInfo info;
         if (Gpu::notInLaunchRegion()) info.SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(foo,info); mfi.isValid(); ++mfi)

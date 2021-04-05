@@ -1,7 +1,7 @@
 #include <AMReX_TracerParticle_mod_K.H>
 #include <AMReX_TracerParticles.H>
-#include "AMReX_TracerParticles.H"
-#include "AMReX_TracerParticle_mod_K.H"
+#include <AMReX_TracerParticles.H>
+#include <AMReX_TracerParticle_mod_K.H>
 #include <AMReX_Print.H>
 namespace amrex {
 
@@ -23,7 +23,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                  AMREX_ASSERT(!umac[1].contains_nan());,
                  AMREX_ASSERT(!umac[2].contains_nan()););
 
-    const Real      strttime = amrex::second();
+    const auto      strttime = amrex::second();
     const Geometry& geom     = m_gdb->Geom(lev);
     const auto          plo      = geom.ProbLoArray();
     const auto          dxi      = geom.InvCellSizeArray();
@@ -33,29 +33,25 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     if (OnSameGrids(lev, umac[0]))
     {
         for (int i = 0; i < AMREX_SPACEDIM; i++) {
-	    umac_pointer[i] = &umac[i];
-	}
+            umac_pointer[i] = &umac[i];
+        }
     }
     else
     {
         for (int i = 0; i < AMREX_SPACEDIM; i++)
         {
-	    int ng = umac[i].nGrow();
-	    raii_umac[i].reset(new MultiFab(amrex::convert(m_gdb->ParticleBoxArray(lev),
-                                                           IntVect::TheDimensionVector(i)),
-
-					                   m_gdb->ParticleDistributionMap(lev),
-					                   umac[i].nComp(), ng));
-
-
-	    umac_pointer[i] = raii_umac[i].get();
-	    umac_pointer[i]->copy(umac[i],0,0,umac[i].nComp(),ng,ng);
+            int ng = umac[i].nGrow();
+            raii_umac[i] = std::make_unique<MultiFab>
+                (amrex::convert(m_gdb->ParticleBoxArray(lev), IntVect::TheDimensionVector(i)),
+                 m_gdb->ParticleDistributionMap(lev), umac[i].nComp(), ng);
+            umac_pointer[i] = raii_umac[i].get();
+            umac_pointer[i]->copy(umac[i],0,0,umac[i].nComp(),ng,ng);
         }
     }
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (ParIterType pti(*this, lev); pti.isValid(); ++pti)
@@ -80,21 +76,21 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
             {
                 ParticleType& p = p_pbox[i];
                 if (p.id() <= 0) return;
-                Real v[AMREX_SPACEDIM];
+                ParticleReal v[AMREX_SPACEDIM];
                 mac_interpolate(p, plo, dxi, umacarr, v);
                 if (ipass == 0)
                 {
                     for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
                         p.rdata(dim) = p.pos(dim);
-                        p.pos(dim) += 0.5*dt*v[dim];
+                        p.pos(dim) += static_cast<ParticleReal>(ParticleReal(0.5)*dt*v[dim]);
                     }
                 }
                 else
                 {
                     for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
-                        p.pos(dim) = p.rdata(dim) + dt*v[dim];
+                        p.pos(dim) = p.rdata(dim) + static_cast<ParticleReal>(dt*v[dim]);
                         p.rdata(dim) = v[dim];
                     }
                 }
@@ -104,17 +100,17 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 
     if (m_verbose > 1)
     {
-        Real stoptime = amrex::second() - strttime;
+        auto stoptime = amrex::second() - strttime;
 
 #ifdef AMREX_LAZY
-	Lazy::QueueReduction( [=] () mutable {
+        Lazy::QueueReduction( [=] () mutable {
 #endif
                 ParallelReduce::Max(stoptime, ParallelContext::IOProcessorNumberSub(),
                                     ParallelContext::CommunicatorSub());
 
                 amrex::Print() << "TracerParticleContainer::AdvectWithUmac() time: " << stoptime << '\n';
 #ifdef AMREX_LAZY
-	});
+        });
 #endif
     }
 }
@@ -131,7 +127,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
     AMREX_ASSERT(lev >= 0 && lev < GetParticles().size());
     AMREX_ASSERT(!Ucc.contains_nan());
 
-    const Real          strttime = amrex::second();
+    const auto          strttime = amrex::second();
     const Geometry&     geom     = m_gdb->Geom(lev);
     const auto          plo      = geom.ProbLoArray();
     const auto          dxi      = geom.InvCellSizeArray();
@@ -140,7 +136,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (ParIterType pti(*this, lev); pti.isValid(); ++pti)
@@ -158,7 +154,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
             {
                 ParticleType& p  = p_pbox[i];
                 if (p.id() <= 0) return;
-                Real v[AMREX_SPACEDIM];
+                ParticleReal v[AMREX_SPACEDIM];
 
                 cic_interpolate(p, plo, dxi, uccarr, v);
 
@@ -167,14 +163,14 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
                     for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
                         p.rdata(dim) = p.pos(dim);
-                        p.pos(dim) += 0.5*dt*v[dim];
+                        p.pos(dim) += static_cast<ParticleReal>(ParticleReal(0.5)*dt*v[dim]);
                     }
                 }
                 else
                 {
                     for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
-                        p.rdata(dim) = p.rdata(dim) + dt*v[dim];
+                        p.rdata(dim) = p.rdata(dim) + static_cast<ParticleReal>(dt*v[dim]);
                         p.rdata(dim) = v[dim];
                     }
                 }
@@ -184,10 +180,10 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
     if (m_verbose > 1)
     {
-        Real stoptime = amrex::second() - strttime;
+        auto stoptime = amrex::second() - strttime;
 
 #ifdef AMREX_LAZY
-	Lazy::QueueReduction( [=] () mutable {
+        Lazy::QueueReduction( [=] () mutable {
 #endif
                 ParallelReduce::Max(stoptime, ParallelContext::IOProcessorNumberSub(),
                                     ParallelContext::CommunicatorSub());
@@ -201,10 +197,10 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
 void
 TracerParticleContainer::Timestamp (const std::string&      basename,
-				    const MultiFab&         mf,
-				    int                     lev,
-				    Real                    time,
-				    const std::vector<int>& indices)
+                                    const MultiFab&         mf,
+                                    int                     lev,
+                                    Real                    time,
+                                    const std::vector<int>& indices)
 {
     BL_PROFILE("TracerParticleContainer::Timestamp()");
     //
@@ -219,7 +215,10 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     AMREX_ASSERT(!basename.empty());
     AMREX_ASSERT(lev <= m_gdb->finestLevel());
 
-    const Real strttime = amrex::second();
+    const auto strttime = amrex::second();
+    const Geometry& geom     = m_gdb->Geom(lev);
+    const auto      plo      = geom.ProbLoArray();
+    const auto      dxi      = geom.InvCellSizeArray();
 
     const int   MyProc    = ParallelDescriptor::MyProc();
     const int   NProcs    = ParallelContext::NProcsSub();
@@ -237,28 +236,28 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     for (int iSet = 0; iSet < nSets; ++iSet)
       {
         if (mySet == iSet)
-	  {
+          {
             //
             // Do we have any particles at this level that need writing?
             //
             bool gotwork = false;
 
             const auto& pmap = GetParticles(lev);
-	    for (auto& kv : pmap) {
+            for (auto& kv : pmap) {
               const auto& pbox = kv.second.GetArrayOfStructs();
-	      for (int k = 0; k < pbox.numParticles(); ++k)
-	      {
-		const ParticleType& p = pbox[k];
-		if (p.id() > 0) {
-		  gotwork = true;
-		  break;
-		}
-	      }
-	      if (gotwork) break;
-	    }
+              for (int k = 0; k < pbox.numParticles(); ++k)
+              {
+                const ParticleType& p = pbox[k];
+                if (p.id() > 0) {
+                  gotwork = true;
+                  break;
+                }
+              }
+              if (gotwork) break;
+            }
 
             if (gotwork)
-	      {
+              {
                 std::string FileName = amrex::Concatenate(basename + '_', MyProc % nOutFiles, 2);
 
                 VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
@@ -281,49 +280,50 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                 const int       M  = indices.size();
                 const BoxArray& ba = mf.boxArray();
 
-                std::vector<Real> vals(M);
+                std::vector<ParticleReal> vals(M);
 
-		for (auto& kv : pmap) {
-		  int grid = kv.first.first;
-		  const auto& pbox = kv.second.GetArrayOfStructs();
-		  const Box&       bx   = ba[grid];
-		  const FArrayBox& fab  = mf[grid];
+                for (auto& kv : pmap) {
+                  int grid = kv.first.first;
+                  const auto& pbox = kv.second.GetArrayOfStructs();
+                  const Box&       bx   = ba[grid];
+                  const FArrayBox& fab  = mf[grid];
+                  const auto uccarr = fab.array();
 
-		  for (int k = 0; k < pbox.numParticles(); ++k)
-		    {
-		      const ParticleType& p = pbox[k];
+                  for (int k = 0; k < pbox.numParticles(); ++k)
+                    {
+                      const ParticleType& p = pbox[k];
 
-		      if (p.id() <= 0) continue;
+                      if (p.id() <= 0) continue;
 
-		      const IntVect& iv = Index(p,lev);
+                      const IntVect& iv = Index(p,lev);
 
-		      if (!bx.contains(iv) && !ba.contains(iv)) continue;
+                      if (!bx.contains(iv) && !ba.contains(iv)) continue;
 
-		      TimeStampFile << p.id()  << ' ' << p.cpu() << ' ';
+                      TimeStampFile << p.id()  << ' ' << p.cpu() << ' ';
 
-		      AMREX_D_TERM(TimeStampFile << p.pos(0) << ' ';,
+                      AMREX_D_TERM(TimeStampFile << p.pos(0) << ' ';,
                                    TimeStampFile << p.pos(1) << ' ';,
                                    TimeStampFile << p.pos(2) << ' ';);
 
-		      TimeStampFile << time;
-		      //
-		      // AdvectWithUmac stores the velocity in rdata ...
-		      //
-		      AMREX_D_TERM(TimeStampFile << ' ' << p.rdata(0);,
+                      TimeStampFile << time;
+                      //
+                      // AdvectWithUmac stores the velocity in rdata ...
+                      //
+                      AMREX_D_TERM(TimeStampFile << ' ' << p.rdata(0);,
                                    TimeStampFile << ' ' << p.rdata(1);,
                                    TimeStampFile << ' ' << p.rdata(2););
 
-		      if (M > 0)
+                      if (M > 0)
                         {
-			  ParticleType::Interp(p,m_gdb->Geom(lev),fab,&indices[0],&vals[0],M);
+                          cic_interpolate(p, plo, dxi, uccarr, &vals[0], M);
 
-			  for (int i = 0; i < M; i++)
+                          for (int i = 0; i < M; i++)
                             {
-			      TimeStampFile << ' ' << vals[i];
+                              TimeStampFile << ' ' << vals[i];
                             }
                         }
 
-		      TimeStampFile << '\n';
+                      TimeStampFile << '\n';
                     }
                 }
 
@@ -353,7 +353,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
     if (m_verbose > 1)
     {
-        Real stoptime = amrex::second() - strttime;
+        auto stoptime = amrex::second() - strttime;
 
 #ifdef AMREX_LAZY
         Lazy::QueueReduction( [=] () mutable {

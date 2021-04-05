@@ -21,6 +21,15 @@ ifeq ($(which_computer), eagle)
       F90FLAGS += -march=skylake-avx512 -mtune=skylake-avx512
     endif
   endif
+  ifeq ($(USE_CUDA),TRUE)
+    ifneq ($(CUDA_HOME),)
+        SYSTEM_CUDA_PATH := $(CUDA_HOME)
+        COMPILE_CUDA_PATH := $(CUDA_HOME)
+    endif
+    CUDA_ARCH = 70
+    GPUS_PER_NODE = 2
+    GPUS_PER_SOCKET = 1
+  endif
 else ifeq ($(which_computer), rhodes)
 # Rhodes is dedicated single node machine for testing
   ifeq ($(COMP), intel)
@@ -31,6 +40,7 @@ else ifeq ($(which_computer), rhodes)
   endif
 endif
 
+# Account for Intel-MPI, MPICH, OpenMPI, and HPE MPT
 ifeq ($(USE_MPI),TRUE)
   ifeq ($(COMP), intel)
     CXX := mpiicpc
@@ -49,7 +59,8 @@ ifeq ($(USE_MPI),TRUE)
       mpif90_link_flags := $(shell $(F90) -showme:link)
       LIBRARIES += $(mpif90_link_flags)
     else
-      $(error unknown mpi implementation)
+      # MPT case (no option available to query link flags)
+      LIBRARIES += -lmpi
     endif
   endif
 endif

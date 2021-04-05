@@ -50,11 +50,11 @@ void main_main()
     int farg = 1;
     while (farg <= narg) {
         const auto fname = get_command_argument(farg);
-        if (fname == "-f" or fname == "--full") {
+        if (fname == "-f" || fname == "--full") {
             b_full = true;
-        } else if (fname == "-g" or fname == "--gridfile") {
+        } else if (fname == "-g" || fname == "--gridfile") {
             b_gridfile = true;
-        } else if (fname == "-l" or fname == "--levels") {
+        } else if (fname == "-l" || fname == "--levels") {
             b_levels = true;
         } else {
             break;
@@ -62,7 +62,7 @@ void main_main()
         ++farg;
     }
 
-    if (b_gridfile and b_full) {
+    if (b_gridfile && b_full) {
         amrex::Abort("ERROR: cannot specify both full and gridfile modes");
     }
 
@@ -86,7 +86,7 @@ void main_main()
         const auto& fname = amrex::get_command_argument(f);
         PlotFileData plotfile(fname);
 
-        if (!b_gridfile and !b_levels) {
+        if (!b_gridfile && !b_levels) {
             amrex::Print() << " plotfile: " << fname << "\n";
         }
 

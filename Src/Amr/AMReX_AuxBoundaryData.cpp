@@ -55,15 +55,15 @@ AuxBoundaryData::AuxBoundaryData (const AuxBoundaryData& rhs)
 
 void
 AuxBoundaryData::initialize (const BoxArray& ba,
-			     int             n_grow,
-			     int             n_comp,
+                             int             n_grow,
+                             int             n_comp,
                              const Geometry& geom)
 {
     BL_ASSERT(!m_initialized);
 
     const bool verbose   = false;
     const int  NProcs    = ParallelDescriptor::NProcs();
-    const Real strt_time = amrex::second();
+    const auto strt_time = amrex::second();
 
     m_ngrow = n_grow;
 
@@ -108,16 +108,16 @@ AuxBoundaryData::initialize (const BoxArray& ba,
     if (verbose)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      run_time = amrex::second() - strt_time;
-	const int sz       = nba.size();
+        auto      run_time = amrex::second() - strt_time;
+        const int sz       = nba.size();
 
 #ifdef BL_LAZY
-	Lazy::QueueReduction( [=] () mutable {
+        Lazy::QueueReduction( [=] () mutable {
 #endif
-        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-	amrex::Print() << "AuxBoundaryData::initialize() size = " << sz << ", time = " << run_time << '\n';
+            ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+            amrex::Print() << "AuxBoundaryData::initialize() size = " << sz << ", time = " << run_time << '\n';
 #ifdef BL_LAZY
-	});
+        });
 #endif
     }
 
@@ -143,13 +143,13 @@ AuxBoundaryData::copyFrom (const MultiFab& mf,
                            int       src_comp,
                            int       dst_comp,
                            int       num_comp,
-			   int       src_ng)
+                           int       src_ng)
 {
     BL_ASSERT(m_initialized);
 
     if (!m_empty && mf.size() > 0)
     {
-	m_fabs.copy(mf,src_comp,dst_comp,num_comp,src_ng,0);
+        m_fabs.copy(mf,src_comp,dst_comp,num_comp,src_ng,0);
     }
 }
 

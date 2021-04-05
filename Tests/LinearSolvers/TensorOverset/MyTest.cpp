@@ -32,9 +32,9 @@ MyTest::solve ()
 
     std::unique_ptr<MLTensorOp> mltensor;
     if (do_overset) {
-        mltensor.reset(new MLTensorOp({geom}, {grids}, {dmap}, {&oversetmask}, info));
+        mltensor = std::make_unique<MLTensorOp>({geom}, {grids}, {dmap}, {&oversetmask}, info);
     } else {
-        mltensor.reset(new MLTensorOp({geom}, {grids}, {dmap}, info));
+        mltensor = std::make_unique<MLTensorOp>({geom}, {grids}, {dmap}, info);
     }
 
     mltensor->setDomainBC(mlmg_lobc, mlmg_hibc);
@@ -137,7 +137,7 @@ MyTest::initData ()
     const auto probhi = geom.ProbHiArray();
     const auto dx     = geom.CellSizeArray();
     auto loverset = do_overset;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(rhs, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -167,7 +167,7 @@ MyTest::initData ()
             rhsfab(i,j,k,1) = vrhs;
             rhsfab(i,j,k,2) = wrhs;
             etafab(i,j,k) = seta;
-            if (vbx.contains(IntVect(i,j,k)) and overset_box.contains(IntVect(i,j,k))) {
+            if (vbx.contains(IntVect(i,j,k)) && overset_box.contains(IntVect(i,j,k))) {
                 solnfab(i,j,k,0) = u;
                 solnfab(i,j,k,1) = v;
                 solnfab(i,j,k,2) = w;
@@ -178,9 +178,9 @@ MyTest::initData ()
             }
             if (vbx.contains(IntVect(i,j,k))) {
                 if (overset_box.contains(IntVect(i,j,k))) {
-                    mask(i,j,k) = 1;
-                } else {
                     mask(i,j,k) = 0;
+                } else {
+                    mask(i,j,k) = 1;
                 }
             }
         });

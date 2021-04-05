@@ -1,5 +1,6 @@
 #ifndef AMREX_PARTICLEUTIL_H_
 #define AMREX_PARTICLEUTIL_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
@@ -18,6 +19,42 @@
 namespace amrex
 {
 
+namespace particle_detail {
+
+template <typename F, typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P const& p, amrex::RandomEngine const& engine) noexcept
+    -> decltype(f(P{},RandomEngine{}))
+{
+    return f(p,engine);
+}
+
+template <typename F, typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P const& p, amrex::RandomEngine const&) noexcept
+    -> decltype(f(P{}))
+{
+    return f(p);
+}
+
+template <typename F, typename SrcData, typename N>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const& engine) noexcept
+    -> decltype(f(SrcData{},N{},RandomEngine{}))
+{
+    return f(src,i,engine);
+}
+
+template <typename F, typename SrcData, typename N>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const&) noexcept
+    -> decltype(f(SrcData{},N{}))
+{
+    return f(src,i);
+}
+
+}
+
 /**
  * \brief Returns the number of particles that are more than nGrow cells
  * from the box correspond to the input iterator.
@@ -28,9 +65,27 @@ namespace amrex
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class Iterator, EnableIf_t<IsParticleIterator<Iterator>::value, int> foo = 0>
+template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value, int> foo = 0>
 int
 numParticlesOutOfRange (Iterator const& pti, int nGrow)
+{
+    return numParticlesOutOfRange(pti,
+                                  IntVect(AMREX_D_DECL(nGrow, nGrow, nGrow)));
+}
+
+/**
+ * \brief Returns the number of particles that are more than nGrow cells
+ * from the box correspond to the input iterator.
+ *
+ * \tparam Iterator an AMReX ParticleIterator
+ *
+ * \param the iterator pointing to the current grid/tile to test
+ * \param nGrow the number of grow cells allowed.
+ *
+ */
+template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value, int> foo = 0>
+int
+numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
 {
     using ParticleType = typename Iterator::ContainerType::ParticleType;
 
@@ -79,9 +134,28 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 int
 numParticlesOutOfRange (PC const& pc, int nGrow)
+{
+    return numParticlesOutOfRange(pc, 0, pc.finestLevel(), nGrow);
+}
+
+/**
+ * \brief Returns the number of particles that are more than nGrow cells
+ * from their assigned box.
+ *
+ * This version tests over all levels.
+ *
+ * \tparam PC a type of AMReX particle container.
+ *
+ * \param pc the particle container to test
+ * \param nGrow the number of grow cells allowed.
+ *
+ */
+template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+int
+numParticlesOutOfRange (PC const& pc, IntVect nGrow)
 {
     return numParticlesOutOfRange(pc, 0, pc.finestLevel(), nGrow);
 }
@@ -100,9 +174,33 @@ numParticlesOutOfRange (PC const& pc, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 int
 numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
+{
+    BL_PROFILE("numParticlesOutOfRange()");
+
+    return numParticlesOutOfRange(pc, lev_min, lev_max,
+                                  IntVect(AMREX_D_DECL(nGrow, nGrow, nGrow)));
+}
+
+/**
+ * \brief Returns the number of particles that are more than nGrow cells
+ * from their assigned box.
+ *
+ * This version goes over only the specified levels
+ *
+ * \tparam PC a type of AMReX particle container.
+ *
+ * \param pc the particle container to test
+ * \param lev_min the minimum level to test
+ * \param lev_max the maximum level to test
+ * \param nGrow the number of grow cells allowed.
+ *
+ */
+template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+int
+numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, IntVect nGrow)
 {
     BL_PROFILE("numParticlesOutOfRange()");
 
@@ -110,8 +208,8 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
     int num_wrong = 0;
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion() and !system::regtest_reduction) reduction(+:num_wrong)
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion() && !system::regtest_reduction) reduction(+:num_wrong)
 #endif
         for(ParIter pti(pc, lev); pti.isValid(); ++pti)
         {
@@ -125,7 +223,7 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
-		  const IntVect& a_tile_size, Box& tbx)
+                  const IntVect& a_tile_size, Box& tbx)
 {
     if (a_do_tiling == false) {
         tbx = box;
@@ -141,7 +239,7 @@ int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
             int ts_right = ncells/ntile;
             int ts_left  = ts_right+1;
             int nleft = ncells - ntile*ts_right;
-	    int ii = i - lo;
+            int ii = i - lo;
             int nbndry = nleft*ts_left;
             if (ii < nbndry) {
                 tileidx = ii / ts_left; // tiles on the left of nbndry have size of ts_left
@@ -158,18 +256,63 @@ int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
         IntVect ntiles, ivIndex, tilelo, tilehi;
 
         AMREX_D_TERM(int iv0 = amrex::min(amrex::max(iv[0], small[0]), big[0]);,
-		     int iv1 = amrex::min(amrex::max(iv[1], small[1]), big[1]);,
-		     int iv2 = amrex::min(amrex::max(iv[2], small[2]), big[2]););
+                     int iv1 = amrex::min(amrex::max(iv[1], small[1]), big[1]);,
+                     int iv2 = amrex::min(amrex::max(iv[2], small[2]), big[2]););
 
         AMREX_D_TERM(tiling_1d(iv0, small[0], big[0], a_tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
-		     tiling_1d(iv1, small[1], big[1], a_tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
-		     tiling_1d(iv2, small[2], big[2], a_tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
+                     tiling_1d(iv1, small[1], big[1], a_tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
+                     tiling_1d(iv2, small[2], big[2], a_tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
 
         tbx = Box(tilelo, tilehi);
 
         return AMREX_D_TERM(ivIndex[0], + ntiles[0]*ivIndex[1], + ntiles[0]*ntiles[1]*ivIndex[2]);
     }
 }
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int numTilesInBox (const Box& box, const bool a_do_tiling, const IntVect& a_tile_size)
+{
+    if (a_do_tiling == false) {
+        return 1;
+    } else {
+        //
+        // This function must be consistent with FabArrayBase::buildTileArray function!!!
+        //
+        auto tiling_1d = [](int lo, int hi, int tilesize, int& ntile) {
+            int ncells = hi-lo+1;
+            ntile = amrex::max(ncells/tilesize, 1);
+        };
+
+        const IntVect& small = box.smallEnd();
+        const IntVect& big   = box.bigEnd();
+        IntVect ntiles;
+
+        AMREX_D_TERM(tiling_1d(small[0], big[0], a_tile_size[0], ntiles[0]);,
+                     tiling_1d(small[1], big[1], a_tile_size[1], ntiles[1]);,
+                     tiling_1d(small[2], big[2], a_tile_size[2], ntiles[2]););
+
+        return AMREX_D_TERM(ntiles[0], *=ntiles[1], *=ntiles[2]);
+    }
+}
+
+struct GetParticleBin
+{
+    GpuArray<Real,AMREX_SPACEDIM> plo;
+    GpuArray<Real,AMREX_SPACEDIM> dxi;
+    Box domain;
+    IntVect bin_size;
+    Box box;
+
+    template <typename ParticleType>
+    AMREX_GPU_HOST_DEVICE
+    unsigned int operator() (const ParticleType& p) const noexcept
+    {
+        Box tbx;
+        auto iv = getParticleCell(p, plo, dxi, domain);
+        auto tid = getTileIndex(iv, box, true, bin_size, tbx);
+        return static_cast<unsigned int>(tid);
+    }
+};
 
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -208,25 +351,25 @@ bool enforcePeriodic (P& p,
     bool shifted = false;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        if (not is_per[idim]) continue;
+        if (! is_per[idim]) continue;
         if (p.pos(idim) >= phi[idim]) {
             while (p.pos(idim) >= phi[idim]) {
-                p.pos(idim) -= (phi[idim] - plo[idim]);
+                p.pos(idim) -= static_cast<ParticleReal>(phi[idim] - plo[idim]);
             }
             // clamp to avoid precision issues;
-            if (p.pos(idim) < plo[idim]) p.pos(idim) = plo[idim];
+            if (p.pos(idim) < plo[idim]) p.pos(idim) = static_cast<ParticleReal>(plo[idim]);
             shifted = true;
         }
         else if (p.pos(idim) < plo[idim]) {
             while (p.pos(idim) < plo[idim]) {
-                p.pos(idim) += (phi[idim] - plo[idim]);
+                p.pos(idim) += static_cast<ParticleReal>(phi[idim] - plo[idim]);
             }
             // clamp to avoid precision issues;
-            if (p.pos(idim) == phi[idim]) p.pos(idim) = plo[idim];
+            if (p.pos(idim) == phi[idim]) p.pos(idim) = static_cast<ParticleReal>(plo[idim]);
             if (p.pos(idim) > phi[idim]) p.pos(idim) = std::nextafter( (amrex::ParticleReal) phi[idim], (amrex::ParticleReal) plo[idim]);
             shifted = true;
         }
-        AMREX_ASSERT( (p.pos(idim) >= plo[idim] ) and ( p.pos(idim) < phi[idim] ));
+        AMREX_ASSERT( (p.pos(idim) >= plo[idim] ) && ( p.pos(idim) < phi[idim] ));
     }
 
     return shifted;
@@ -249,13 +392,11 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
 
     if (np == 0) return 0;
 
-    auto p_lev_offsets = pmap.levelOffsetsPtr();
-    auto p_box_perm = pmap.levGridToBucketPtr();
-    auto p_pids = pmap.bucketToPIDPtr();
+    auto getPID = pmap.getPIDFunctor();
     auto p_ptr = &(aos[0]);
 
     int pid = ParallelContext::MyProcSub();
-    int chunk_size = 256*256*256;
+    constexpr int chunk_size = 256*256*256;
     int num_chunks = std::max(1, (np + (chunk_size - 1)) / chunk_size);
 
     PTile ptile_tmp;
@@ -287,14 +428,26 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                 }
                 else
                 {
-                    enforcePeriodic(p, plo, phi, is_per);
-                    auto tup = ploc(p, lev_min, lev_max, nGrow);
+                    auto p_prime = p;
+                    enforcePeriodic(p_prime, plo, phi, is_per);
+                    auto tup = ploc(p_prime, lev_min, lev_max, nGrow);
                     assigned_grid = amrex::get<0>(tup);
                     assigned_lev  = amrex::get<1>(tup);
+                    if (assigned_grid >= 0)
+                    {
+                      AMREX_D_TERM(p.pos(0) = p_prime.pos(0);,
+                                   p.pos(1) = p_prime.pos(1);,
+                                   p.pos(2) = p_prime.pos(2););
+                    }
+                    else if (lev_min > 0)
+                    {
+                      auto tup = ploc(p, lev_min, lev_max, nGrow);
+                      assigned_grid = amrex::get<0>(tup);
+                      assigned_lev  = amrex::get<1>(tup);
+                    }
                 }
 
-                return ((assigned_grid == gid) && (assigned_lev == lev)
-                        && (p_pids[p_box_perm[p_lev_offsets[lev]+gid]] == pid));
+                return ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid));
             };
 
             num_stay = Scan::PrefixSum<int> (this_chunk_size,

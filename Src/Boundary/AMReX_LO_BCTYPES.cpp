@@ -47,6 +47,11 @@ std::ostream& operator<< (std::ostream& os, const LinOpBCType& t)
             os << "inhomogeneous Neumann";
             break;
         }
+        case LinOpBCType::Robin:
+        {
+            os << "Robin";
+            break;
+        }
         case LinOpBCType::Periodic:
         {
             os << "Periodic";

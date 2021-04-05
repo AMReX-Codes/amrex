@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_CELL_ABECLAP_H_
 #define AMREX_ML_CELL_ABECLAP_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLCellLinOp.H>
 
@@ -27,6 +28,17 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
+    void define (const Vector<Geometry>& a_geom,
+                 const Vector<BoxArray>& a_grids,
+                 const Vector<DistributionMapping>& a_dmap,
+                 const Vector<iMultiFab const*>& a_overset_mask,
+                 const LPInfo& a_info = LPInfo(),
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+
+    iMultiFab const* getOversetMask (int amrlev, int mglev) const {
+        return m_overset_mask[amrlev][mglev].get();
+    }
+
     virtual bool needsUpdate () const override {
         return MLCellLinOp::needsUpdate();
     }
@@ -49,13 +61,20 @@ public:
 
     virtual void applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const final override;
 
-#ifdef AMREX_USE_HYPRE
+    virtual void applyOverset (int amlev, MultiFab& rhs) const override;
+
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
 #endif
 
 #ifdef AMREX_USE_PETSC
     virtual std::unique_ptr<PETScABecLap> makePETSc () const override;
 #endif
+
+protected:
+    Vector<Vector<std::unique_ptr<iMultiFab> > > m_overset_mask;
+
+    virtual bool supportInhomogNeumannBC () const noexcept override { return true; }
 };
 
 }

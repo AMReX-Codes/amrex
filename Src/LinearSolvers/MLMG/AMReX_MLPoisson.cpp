@@ -14,6 +14,16 @@ MLPoisson::MLPoisson (const Vector<Geometry>& a_geom,
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
+MLPoisson::MLPoisson (const Vector<Geometry>& a_geom,
+                      const Vector<BoxArray>& a_grids,
+                      const Vector<DistributionMapping>& a_dmap,
+                      const Vector<iMultiFab const*>& a_overset_mask,
+                      const LPInfo& a_info,
+                      const Vector<FabFactory<FArrayBox> const*>& a_factory)
+{
+    define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
+}
+
 void
 MLPoisson::define (const Vector<Geometry>& a_geom,
                    const Vector<BoxArray>& a_grids,
@@ -23,6 +33,18 @@ MLPoisson::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLPoisson::define()");
     MLCellABecLap::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+}
+
+void
+MLPoisson::define (const Vector<Geometry>& a_geom,
+                   const Vector<BoxArray>& a_grids,
+                   const Vector<DistributionMapping>& a_dmap,
+                   const Vector<iMultiFab const*>& a_overset_mask,
+                   const LPInfo& a_info,
+                   const Vector<FabFactory<FArrayBox> const*>& a_factory)
+{
+    BL_PROFILE("MLPoisson::define(overset)");
+    MLCellABecLap::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
 }
 
 MLPoisson::~MLPoisson ()
@@ -43,10 +65,11 @@ MLPoisson::prepareForSolve ()
     {  // No Dirichlet
         for (int alev = 0; alev < m_num_amr_levels; ++alev)
         {
-            if (m_domain_covered[alev])
+            // For now this assumes that overset regions are treated as Dirichlet bc's
+            if (m_domain_covered[alev] && !m_overset_mask[alev][0])
             {
                 m_is_singular[alev] = true;
-            }    
+            }
         }
     }
 }
@@ -62,12 +85,17 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
                  const Real dhy = dxinv[1]*dxinv[1];,
                  const Real dhz = dxinv[2]*dxinv[2];);
 
+#if (AMREX_SPACEDIM == 3)
+    Real dh0 = get_d0(dhx, dhy, dhz);
+    Real dh1 = get_d1(dhx, dhy, dhz);
+#endif
+
 #if (AMREX_SPACEDIM < 3)
     const Real dx = m_geom[amrlev][mglev].CellSize(0);
     const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
 #endif
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -76,36 +104,57 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
         const auto& xfab = in.array(mfi);
         const auto& yfab = out.array(mfi);
 
+        if (m_overset_mask[amrlev][mglev]) {
+            AMREX_ASSERT(!m_has_metric_term);
+            const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE ( bx, i, j, k,
+            {
+                mlpoisson_adotx_os(AMREX_D_DECL(i,j,k), yfab, xfab, osm,
+                                   AMREX_D_DECL(dhx,dhy,dhz));
+            });
+        } else {
 #if (AMREX_SPACEDIM == 3)
-        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
-        {
-            mlpoisson_adotx(i, j, k, yfab, xfab, dhx, dhy, dhz);
-        });
+            if (hasHiddenDimension()) {
+                Box const& bx2d = compactify(bx);
+                const auto& xfab2d = compactify(xfab);
+                const auto& yfab2d = compactify(yfab);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx2d, i, j, k,
+                {
+                    amrex::ignore_unused(k);
+                    TwoD::mlpoisson_adotx(i, j, yfab2d, xfab2d, dh0, dh1);
+                });
+            } else {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
+                {
+                    mlpoisson_adotx(i, j, k, yfab, xfab, dhx, dhy, dhz);
+                });
+            }
 #elif (AMREX_SPACEDIM == 2)
-        if (m_has_metric_term) {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
-            {
-                mlpoisson_adotx_m(i, j, yfab, xfab, dhx, dhy, dx, probxlo);
-            });
-        } else {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
-            {
-                mlpoisson_adotx(i, j, yfab, xfab, dhx, dhy);
-            });
-        }
+            if (m_has_metric_term) {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
+                {
+                    mlpoisson_adotx_m(i, j, yfab, xfab, dhx, dhy, dx, probxlo);
+                });
+            } else {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
+                {
+                    mlpoisson_adotx(i, j, yfab, xfab, dhx, dhy);
+                });
+            }
 #elif (AMREX_SPACEDIM == 1)
-        if (m_has_metric_term) {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
-            {
-                mlpoisson_adotx_m(i, yfab, xfab, dhx, dx, probxlo);
-            });
-        } else {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
-            {
-                mlpoisson_adotx(i, yfab, xfab, dhx);
-            });
-        }
+            if (m_has_metric_term) {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
+                {
+                    mlpoisson_adotx_m(i, yfab, xfab, dhx, dx, probxlo);
+                });
+            } else {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
+                {
+                    mlpoisson_adotx(i, yfab, xfab, dhx);
+                });
+            }
 #endif
+        }
     }
 }
 
@@ -125,7 +174,7 @@ MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
     const Real dx = m_geom[amrlev][mglev].CellSize(0);
     const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -134,12 +183,12 @@ MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
         const auto& fab = mf.array(mfi);
 
 #if (AMREX_SPACEDIM == 2)
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
         {
             mlpoisson_normalize(tbx, fab, dhx, dhy, dx, probxlo);
         });
 #else
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA ( bx, tbx,
         {
             mlpoisson_normalize(tbx, fab, dhx, dx, probxlo);
         });
@@ -185,6 +234,11 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
                  const Real dhy = dxinv[1]*dxinv[1];,
                  const Real dhz = dxinv[2]*dxinv[2];);
 
+#if (AMREX_SPACEDIM == 3)
+    Real dh0 = get_d0(dhx, dhy, dhz);
+    Real dh1 = get_d1(dhx, dhy, dhz);
+#endif
+
 #if (AMREX_SPACEDIM < 3)
     const Real dx = m_geom[amrlev][mglev].CellSize(0);
     const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
@@ -193,12 +247,12 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(sol,mfi_info); mfi.isValid(); ++mfi)
     {
-	const auto& m0 = mm0.array(mfi);
+        const auto& m0 = mm0.array(mfi);
         const auto& m1 = mm1.array(mfi);
 #if (AMREX_SPACEDIM > 1)
         const auto& m2 = mm2.array(mfi);
@@ -209,7 +263,7 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 #endif
 #endif
 
-	const Box& tbx = mfi.tilebox();
+        const Box& tbx = mfi.tilebox();
         const Box& vbx = mfi.validbox();
         const auto& solnfab = sol.array(mfi);
         const auto& rhsfab  = rhs.array(mfi);
@@ -226,7 +280,17 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 #endif
 
 #if (AMREX_SPACEDIM == 1)
-        if (m_has_metric_term) {
+        if (m_overset_mask[amrlev][mglev]) {
+            AMREX_ASSERT(!m_has_metric_term);
+            const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            {
+                mlpoisson_gsrb_os(thread_box, solnfab, rhsfab, osm, dhx,
+                                  f0fab, m0,
+                                  f1fab, m1,
+                                  vbx, redblack);
+            });
+        } else if (m_has_metric_term) {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
             {
                 mlpoisson_gsrb_m(thread_box, solnfab, rhsfab, dhx,
@@ -247,7 +311,19 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 #endif
 
 #if (AMREX_SPACEDIM == 2)
-        if (m_has_metric_term) {
+        if (m_overset_mask[amrlev][mglev]) {
+            AMREX_ASSERT(!m_has_metric_term);
+            const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            {
+                mlpoisson_gsrb_os(thread_box, solnfab, rhsfab, osm, dhx, dhy,
+                                  f0fab, m0,
+                                  f1fab, m1,
+                                  f2fab, m2,
+                                  f3fab, m3,
+                                  vbx, redblack);
+            });
+        } else if (m_has_metric_term) {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
             {
                 mlpoisson_gsrb_m(thread_box, solnfab, rhsfab, dhx, dhy,
@@ -269,20 +345,59 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
                                vbx, redblack);
             });
         }
+
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-        {
-            mlpoisson_gsrb(thread_box, solnfab, rhsfab, dhx, dhy, dhz,
-                           f0fab, m0,
-                           f1fab, m1,
-                           f2fab, m2,
-                           f3fab, m3,
-                           f4fab, m4,
-                           f5fab, m5,
-                           vbx, redblack);
-        });
+        if (m_overset_mask[amrlev][mglev]) {
+            AMREX_ASSERT(!m_has_metric_term);
+            const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            {
+                mlpoisson_gsrb_os(thread_box, solnfab, rhsfab, osm, dhx, dhy, dhz,
+                                  f0fab, m0,
+                                  f1fab, m1,
+                                  f2fab, m2,
+                                  f3fab, m3,
+                                  f4fab, m4,
+                                  f5fab, m5,
+                                  vbx, redblack);
+            });
+        } else if (hasHiddenDimension()) {
+            Box const& tbx_2d = compactify(tbx);
+            Box const& vbx_2d = compactify(vbx);
+            const auto& solnfab_2d = compactify(solnfab);
+            const auto& rhsfab_2d = compactify(rhsfab);
+            const auto& f0fab_2d = compactify(get_d0(f0fab,f1fab,f2fab));
+            const auto& f1fab_2d = compactify(get_d1(f0fab,f1fab,f2fab));
+            const auto& f2fab_2d = compactify(get_d0(f3fab,f4fab,f5fab));
+            const auto& f3fab_2d = compactify(get_d1(f3fab,f4fab,f5fab));
+            const auto& m0_2d = compactify(get_d0(m0,m1,m2));
+            const auto& m1_2d = compactify(get_d1(m0,m1,m2));
+            const auto& m2_2d = compactify(get_d0(m3,m4,m5));
+            const auto& m3_2d = compactify(get_d1(m3,m4,m5));
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx_2d, thread_box,
+            {
+                TwoD::mlpoisson_gsrb(thread_box, solnfab_2d, rhsfab_2d, dh0, dh1,
+                                     f0fab_2d, m0_2d,
+                                     f1fab_2d, m1_2d,
+                                     f2fab_2d, m2_2d,
+                                     f3fab_2d, m3_2d,
+                                     vbx_2d, redblack);
+            });
+        } else {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            {
+                mlpoisson_gsrb(thread_box, solnfab, rhsfab, dhx, dhy, dhz,
+                               f0fab, m0,
+                               f1fab, m1,
+                               f2fab, m2,
+                               f3fab, m3,
+                               f4fab, m4,
+                               f5fab, m5,
+                               vbx, redblack);
+            });
+        }
 #endif
     }
 }
@@ -292,6 +407,8 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
                   const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                   const FArrayBox& sol, Location, const int face_only) const
 {
+    AMREX_ASSERT(!hasHiddenDimension());
+
     BL_PROFILE("MLPoisson::FFlux()");
 
     const int mglev = 0;
@@ -466,12 +583,10 @@ MLPoisson::makeNLinOp (int grid_size) const
     LPInfo minfo{};
     minfo.has_metric_term = info.has_metric_term;
 
-    std::unique_ptr<MLLinOp> r{new MLALaplacian({geom}, {ba}, {dm}, minfo)};
-
-    MLALaplacian* nop = dynamic_cast<MLALaplacian*>(r.get());
-    if (!nop) {
-        return std::unique_ptr<MLLinOp>{};
-    }
+    auto r = std::make_unique<MLALaplacian>(Vector<Geometry>{geom},
+                                            Vector<BoxArray>{ba},
+                                            Vector<DistributionMapping>{dm}, minfo);
+    MLALaplacian* nop = r.get();
 
     nop->m_parent = this;
 
@@ -483,7 +598,7 @@ MLPoisson::makeNLinOp (int grid_size) const
     if (needsCoarseDataForBC())
     {
         const Real* dx0 = m_geom[0][0].CellSize();
-        const Real fac = 0.5*m_coarse_data_crse_ratio;
+        const Real fac = Real(0.5)*m_coarse_data_crse_ratio;
         RealVect cbloc {AMREX_D_DECL(dx0[0]*fac, dx0[1]*fac, dx0[2]*fac)};
         nop->setCoarseFineBCLocation(cbloc);
     }
@@ -500,7 +615,7 @@ MLPoisson::makeNLinOp (int grid_size) const
 #endif
 
     MultiFab alpha(ba, dm, 1, 0);
-    alpha.setVal(1.e30*dxscale*dxscale);
+    alpha.setVal(Real(1.e30)*dxscale*dxscale);
 
     MultiFab foo(m_grids[0].back(), m_dmap[0].back(), 1, 0, MFInfo().SetAlloc(false));
     const FabArrayBase::CPC& cpc = alpha.getCPC(IntVect(0),foo,IntVect(0),Periodicity::NonPeriodic());
@@ -508,7 +623,7 @@ MLPoisson::makeNLinOp (int grid_size) const
 
     nop->setACoeffs(0, alpha);
 
-    return r;    
+    return r;
 }
 
 }

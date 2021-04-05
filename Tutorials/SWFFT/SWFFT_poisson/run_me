@@ -1,3 +1,0 @@
-mpirun -n 4 main*ex inputs.32
-mpirun -n 4 main*ex inputs.64
-mpirun -n 4 main*ex inputs.128

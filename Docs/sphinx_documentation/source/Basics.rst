@@ -38,7 +38,7 @@ It is used throughout AMReX, however its functions are not defined
 for device code. :cpp:`GpuArray` is AMReX's built-in alternative.  It
 is a trivial type that works on both host and device.  It also works
 when compiled just for CPU.  Besides :cpp:`GpuArray`, AMReX also
-provides GPU safe :cpp:`Array1D`, :cpp:`Array2D` and :cpp:`Array3d` that are
+provides GPU safe :cpp:`Array1D`, :cpp:`Array2D` and :cpp:`Array3D` that are
 1, 2 and 3-dimensional fixed size arrays, respectively.  These three
 class templates can have non-zero based indexing.
 
@@ -279,6 +279,34 @@ run with
 
 to change the value of :cpp:`ncells` and :cpp:`hydro.cfl`.
 
+Sometimes an application code may want to set a default that differs from the
+default in AMReX.  In this case, it is often convenient to define a function that
+sets the variable(s), and pass the name of that function to :cpp:`amrex::Initialize`.
+As an example, we may define :cpp:`add_par` to set :cpp:`extend_domain_face`
+to false if it hasn't already been set in the inputs file.
+
+.. highlight:: c++
+
+::
+
+    void add_par () {
+       ParmParse pp("eb2");
+       if(not pp.contains("extend_domain_face")) {
+          pp.add("extend_domain_face",false);
+       }
+    };
+
+Then we would pass :cpp:`add_par` into :cpp:`amrex::Initialize`:
+
+.. highlight:: c++
+
+::
+
+    amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, add_par);
+
+This value replaces the current default value of true in AMReX itself, but
+can still be over-written by setting a value in the inputs file.
+
 
 .. _sec:basics:initialize:
 
@@ -337,7 +365,7 @@ Sharing the Command Line
 ------------------------
 
 In some cases we want AMReX to only read part of the command line -- this happens, for example, when we
-are going to use AMReX in cooperation with another code package and that code also takes command-line 
+are going to use AMReX in cooperation with another code package and that code also takes command-line
 arguments.
 
 .. highlight:: console
@@ -347,7 +375,7 @@ arguments.
     main2d*.exe inputs amrex.v=1 amrex.fpe_trap_invalid=1 -- -tao_monitor
 
 then AMReX will parse the inputs file and the optional AMReX's command
-line arguments, but will ignore everything after "--".
+line arguments, but will ignore everything after the double dashes.
 
 .. _sec:basics:amrgrids:
 
@@ -624,8 +652,8 @@ the index type. Some examples are shown below.
       Print() << facebx.coarsen(2);      // ((16,16,16) (32,31,31) (1,0,0))
 
       Box uncoarsenable ({16,16,16}, {30,30,30});
-      print() << uncoarsenable.coarsen(2); // ({8,8,8}, {15,15,15});
-      print() << uncoarsenable.refine(2);  // ({16,16,16}, {31,31,31});
+      Print() << uncoarsenable.coarsen(2); // ((8,8,8), (15,15,15));
+      Print() << uncoarsenable.refine(2);  // ((16,16,16), (31,31,31));
                                            // Different from the original!
 
 Note that the behavior of refinement and coarsening depends on the
@@ -1259,7 +1287,7 @@ will be :cpp:`Box{(6,6,6) (16,16,16)}` in this example. For cells in
 :cpp:`FArrayBox`, we call those in the original :cpp:`Box` **valid cells** and
 the grown part **ghost cells**. Note that :cpp:`FArrayBox` itself does not have
 the concept of ghost cells.  Ghost cells are a key concept of
-:cpp:`MultiFab`,however, that allows for local operations on ghost cell data
+:cpp:`MultiFab`, however, that allows for local operations on ghost cell data
 originated from remote processes. We will discuss how to fill ghost cells with
 data from valid cells later in this section.  :cpp:`MultiFab` also has a
 default constructor. One can define an empty :cpp:`MultiFab` first and then
@@ -1335,7 +1363,7 @@ face averaged variables.
       MultiFab zflux(amrex::convert(ba, IntVect{0,0,1}), dm, ncomp, 0);
 
 Here all :cpp:`MultiFab`\ s  use the same :cpp:`DistributionMapping`, but their
-:cpp:`BoxArrays` have different index types. The state is cell-based, whereas
+:cpp:`BoxArray`\ s have different index types. The state is cell-based, whereas
 the fluxes are on the faces. Suppose the cell based :cpp:`BoxArray` contains a
 :cpp:`Box{(8,8,16), (15,15,31)}`. The state on that :cpp:`Box` is conceptually
 a Fortran Array with the dimension of :fortran:`(8:15,8:15,16:31,0:2)`. The
@@ -1490,7 +1518,7 @@ together. In this section, we will show how you can operate on the
           // Call function f1 to work on the region specified by box.
           // Note that the whole region of the Fab includes ghost
           // cells (if there are any), and is thus larger than or
-          // equal to "box". 
+          // equal to "box".
           f1(box, a);
       }
 
@@ -1758,7 +1786,7 @@ parallel region:
   // Dynamic tiling, one box per OpenMP thread.
   // No further tiling details,
   //   so each thread works on a single tilebox.
-  #ifdef _OPENMP
+  #ifdef AMREX_USE_OMP
   #pragma omp parallel
   #endif
       for (MFIter mfi(mf,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
@@ -1775,7 +1803,7 @@ Dynamic tiling also allows explicit definition of a tile size:
 
   // Dynamic tiling, one box per OpenMP thread.
   // No tiling in x-direction. Tile size is 16 for y and 32 for z.
-  #ifdef _OPENMP
+  #ifdef AMREX_USE_OMP
   #pragma omp parallel
   #endif
       for (MFIter mfi(mf,MFItInfo().SetDynamic(true).EnableTiling(1024000,16,32)); mfi.isValid(); ++mfi)
@@ -1864,6 +1892,44 @@ But :cpp:`Box& bx = mfi.validbox()` is not legal and will not compile.
 
 Finally it should be emphasized that tiling should not be used when
 running on GPUs because of kernel launch overhead.
+
+Multiple MFIters
+----------------
+
+To avoid some common bugs, it is not allowed to have multiple active
+:cpp:`MFIter` objects like below by default.
+
+.. highlight:: c++
+
+::
+
+    for (MFIter mfi1(...); ...) {
+        for (MFIter mfi2(...); ...) {
+        }
+    }
+
+.. highlight:: fortran
+
+::
+
+    call amrex_mfiter_build(mf1, ...)
+    call amrex_mfiter_build(mf2, ...)
+
+The will results in an assertion failure at runtime.  To disable the
+assertion, one could call
+
+.. highlight:: c++
+
+::
+
+    int old_flag = amrex::MFIter::allowMultipleMFIters(true);
+
+.. highlight:: fortran
+
+::
+
+    logical :: old_flag
+    old_flag = amrex_mfiter_allow_multiple(.true.)
 
 .. _sec:basics:fortran:
 
@@ -2148,7 +2214,7 @@ macro on loops that are not safe for vectorization may lead to errors,
 so if unsure about the independence of the iterations of a
 loop, test and verify before adding the macro.
 
-These loops should usually use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when 
+These loops should usually use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when
 defining the loop bounds. If not, the highest index cells will be left out
 of the calculation.
 
@@ -2166,7 +2232,7 @@ like below,
 
 ::
 
-  #ifdef _OPENMP
+  #ifdef AMREX_USE_OMP
   #pragma omp parallel if (Gpu::notInLaunchRegion())
   #endif
     for (MFIter mfi(mfa,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -2479,9 +2545,9 @@ overflow).  The handling of seg fault, assertion errors and
 interruption by control-C are enabled by default.  Note that
 ``AMREX_ASSERT()`` is only on when compiled with ``DEBUG=TRUE`` or
 ``USE_ASSERTION=TRUE`` in GNU make, or with ``-DCMAKE_BUILD_TYPE=Debug`` or
-``-DENABLE_ASSERTIONS=YES`` in CMake.  The trapping of floating point exceptions is not
+``-DAMReX_ASSERTIONS=YES`` in CMake.  The trapping of floating point exceptions is not
 enabled by default unless the code is compiled with ``DEBUG=TRUE`` in GNU make, or with
-``-DCMAKE_BUILD_TYPE=Debug`` or ``-DENABLE_FPE=YES`` in CMake to turn on compiler flags
+``-DCMAKE_BUILD_TYPE=Debug`` or ``-DAMReX_FPE=YES`` in CMake to turn on compiler flags
 if supported.  Alternatively, one can always use runtime parameters to control the
 handling of floating point exceptions: ``amrex.fpe_trap_invalid`` for
 NaNs, ``amrex.fpe_trap_zero`` for division by zero and
@@ -2545,6 +2611,21 @@ For example,
 ::
 
     mpiexec -n 4 valgrind --leak-check=yes --track-origins=yes --log-file=vallog.%p ./foo.exe ...
+
+Breaking into Debuggers
+=======================
+
+In order to break into debuggers and use modern IDEs, the backtrace signal handling described above needs to be disabled.
+
+The following runtime options need to be set in order to prevent AMReX from catching the break signals before a debugger can attach to a crashing process:
+
+::
+
+   amrex.throw_exception = 1
+   amrex.signal_handling = 0
+
+This default behavior can also be modified by applications, see for example `this custom application initializer <https://github.com/Exawind/amr-wind/blob/84f81a990152f4f748c1ab0fa17c8c663e51df86/amr-wind/main.cpp#L21>`__.
+
 
 .. _sec:basics:heat1:
 
@@ -2639,7 +2720,7 @@ domain, the physical coordinates of the box, and the periodicity:
         IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
         Box domain(dom_lo, dom_hi);
 
-        // Initialize the boxarray "ba" from the single box "bx"
+        // Initialize the boxarray "ba" from the single box "domain"
         ba.define(domain);
         // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
         ba.maxSize(max_grid_size);
@@ -2688,7 +2769,7 @@ We demonstrate how to build an array of face-based ``MultiFabs`` :
         flux[dir].define(edge_ba, dm, 1, 0);
     }
 
-To access and/or modify data n a ``MultiFab`` we use the ``MFIter``, where each
+To access and/or modify data in a ``MultiFab`` we use the ``MFIter``, where each
 processor loops over grids it owns to access and/or modify data on that grid:
 
 ::

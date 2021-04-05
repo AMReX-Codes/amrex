@@ -7,7 +7,7 @@ import getopt
 import readline
 import subprocess
 import ppCleanup as ppc
-    
+
 def ppCleanupDir(argv):
 
     usage = """

@@ -138,7 +138,7 @@ MLTensorOp::prepareForSolve ()
             if (amrlev > 0) {
                 amrex::average_down_faces(GetArrOfConstPtrs(m_kappa[amrlev  ].back()),
                                           GetArrOfPtrs     (m_kappa[amrlev-1].front()),
-                                          IntVect(mg_coarsen_ratio), 0);
+                                          IntVect(mg_coarsen_ratio), m_geom[amrlev-1][0]);
             }
         }
     } else {
@@ -154,7 +154,7 @@ MLTensorOp::prepareForSolve ()
     for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int icomp = idim;
-            MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], 4./3.,
+            MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], Real(4./3.),
                            m_kappa[amrlev][0][idim], 0, icomp, 1, 0);
         }
     }
@@ -163,10 +163,10 @@ MLTensorOp::prepareForSolve ()
 
     for (int amrlev = NAMRLevels()-1; amrlev >= 0; --amrlev) {
         for (int mglev = 1; mglev < m_kappa[amrlev].size(); ++mglev) {
-            if (m_has_kappa and m_overset_mask[amrlev][mglev]) {
+            if (m_has_kappa && m_overset_mask[amrlev][mglev]) {
                 const Real fac = static_cast<Real>(1 << mglev); // 2**mglev
-                const Real osfac = 2.0*fac/(fac+1.0);
-#ifdef _OPENMP
+                const Real osfac = Real(2.0)*fac/(fac+Real(1.0));
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
                 for (MFIter mfi(m_kappa[amrlev][mglev][0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -201,7 +201,9 @@ void
 MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                    StateMode s_mode, const MLMGBndry* bndry) const
 {
-#if (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(amrlev,mglev,out,in,bc_mode,s_mode,bndry);
+#else
     BL_PROFILE("MLTensorOp::apply()");
 
     MLABecLaplacian::apply(amrlev, mglev, out, in, bc_mode, s_mode, bndry);
@@ -216,7 +218,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
     Real bscalar = m_b_scalar;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
@@ -283,8 +285,9 @@ void
 MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                            BCMode bc_mode, StateMode, const MLMGBndry* bndry) const
 {
-#if (AMREX_SPACEDIM > 1)
- 
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(amrlev,mglev,vel,bc_mode,bndry);
+#else
     const int inhomog = bc_mode == BCMode::Inhomogeneous;
     const int imaxorder = maxorder;
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
@@ -300,7 +303,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(vel, mfi_info); mfi.isValid(); ++mfi)
@@ -329,13 +332,13 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& myhi = maskvals[Orientation(1,Orientation::high)].array(mfi);
 
         const auto& bvxlo = (bndry != nullptr) ?
-	  (*bndry)[Orientation(0,Orientation::low )].array(mfi) : foo;
+          (*bndry)[Orientation(0,Orientation::low )].array(mfi) : foo;
         const auto& bvylo = (bndry != nullptr) ?
-	  (*bndry)[Orientation(1,Orientation::low )].array(mfi) : foo;
+          (*bndry)[Orientation(1,Orientation::low )].array(mfi) : foo;
         const auto& bvxhi = (bndry != nullptr) ?
-	  (*bndry)[Orientation(0,Orientation::high)].array(mfi) : foo;
+          (*bndry)[Orientation(0,Orientation::high)].array(mfi) : foo;
         const auto& bvyhi = (bndry != nullptr) ?
-	  (*bndry)[Orientation(1,Orientation::high)].array(mfi) : foo;
+          (*bndry)[Orientation(1,Orientation::high)].array(mfi) : foo;
 
 #if (AMREX_SPACEDIM == 2)
 
@@ -352,25 +355,11 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& mzhi = maskvals[Orientation(2,Orientation::high)].array(mfi);
 
         const auto& bvzlo = (bndry != nullptr) ?
-	  (*bndry)[Orientation(2,Orientation::low )].array(mfi) : foo;
+          (*bndry)[Orientation(2,Orientation::low )].array(mfi) : foo;
         const auto& bvzhi = (bndry != nullptr) ?
-	  (*bndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
+          (*bndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
 
-	// only edge vals used in 3D stencil
-#ifdef AMREX_USE_DPCPP
-        // xxxxx DPCPP todo: kernel size
-        Vector<Array4<int const> > htmp = {mxlo,mylo,mzlo,mxhi,myhi,mzhi};
-        Gpu::AsyncArray<Array4<int const> > dtmp(htmp.data(), 6);
-        auto dp = dtmp.data();
-        AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
-        {
-            mltensor_fill_edges(iedge, vbx, velfab,
-                                dp[0],dp[1],dp[2],dp[3],dp[4],dp[5],
-                                bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
-                                bct, bcl, inhomog, imaxorder,
-                                dxinv, domain);
-        });
-#else
+        // only edge vals used in 3D stencil
         AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
         {
             mltensor_fill_edges(iedge, vbx, velfab,
@@ -380,12 +369,9 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                 dxinv, domain);
         });
 #endif
-
-#endif
     }
 
-    vel.EnforcePeriodicity(0, AMREX_SPACEDIM, IntVect(1),
-                           m_geom[amrlev][mglev].periodicity());
+    // Notet that it is incorrect to call EnforcePeriodicity on vel.
 #endif
 }
 
@@ -393,7 +379,9 @@ void
 MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                        MultiFab& sol, Location loc) const
 {
-#if (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(amrlev, fluxes, sol, loc);
+#else
     BL_PROFILE("MLTensorOp::compFlux()");
 
     const int mglev = 0;
@@ -408,7 +396,7 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
     Real bscalar = m_b_scalar;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
@@ -426,7 +414,7 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
             AMREX_D_TERM(Box const xbx = mfi.nodaltilebox(0);,
                          Box const ybx = mfi.nodaltilebox(1);,
                          Box const zbx = mfi.nodaltilebox(2););
-	    AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,AMREX_SPACEDIM);,
+            AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,AMREX_SPACEDIM);,
                          fluxfab_tmp[1].resize(ybx,AMREX_SPACEDIM);,
                          fluxfab_tmp[2].resize(zbx,AMREX_SPACEDIM););
             AMREX_D_TERM(Elixir fxeli = fluxfab_tmp[0].elixir();,
@@ -451,11 +439,11 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
               }
             );
 
-	    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-	        const Box& nbx = mfi.nodaltilebox(idim);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const Box& nbx = mfi.nodaltilebox(idim);
                 Array4<Real      > dst = fluxes[idim]->array(mfi);
-		Array4<Real const> src = fluxfab_tmp[idim].const_array();
-		AMREX_HOST_DEVICE_PARALLEL_FOR_4D (nbx, ncomp, i, j, k, n,
+                Array4<Real const> src = fluxfab_tmp[idim].const_array();
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (nbx, ncomp, i, j, k, n,
                 {
                     dst(i,j,k,n) += bscalar*src(i,j,k,n);
                 });
@@ -472,7 +460,9 @@ void
 MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                        MultiFab& sol, Location /*loc*/) const
 {
-#if (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(amrlev,fluxes,sol);
+#else
     BL_PROFILE("MLTensorOp::compVelGrad()");
 
     const int mglev = 0;
@@ -482,7 +472,7 @@ MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& flux
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
     const int dim_fluxes = AMREX_SPACEDIM*AMREX_SPACEDIM;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
@@ -520,11 +510,11 @@ MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& flux
             );
 
 // The derivatives are put in the array with the following order:
-// component: 0    ,  1    ,  2    ,  3    ,  4    , 5    ,  6    ,  7    ,  8   
-// in 2D:     dU/dx,  dV/dx,  dU/dy,  dV/dy 
-// in 3D:     dU/dx,  dV/dx,  dW/dx,  dU/dy,  dV/dy, dW/dy,  dU/dz,  dV/dz,  dW/dz      
-            
-            
+// component: 0    ,  1    ,  2    ,  3    ,  4    , 5    ,  6    ,  7    ,  8
+// in 2D:     dU/dx,  dV/dx,  dU/dy,  dV/dy
+// in 3D:     dU/dx,  dV/dx,  dW/dx,  dU/dy,  dV/dy, dW/dy,  dU/dz,  dV/dz,  dW/dz
+
+
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const Box& nbx = mfi.nodaltilebox(idim);
                 Array4<Real      > dst = fluxes[idim]->array(mfi);
