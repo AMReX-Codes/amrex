@@ -479,7 +479,7 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
       return grad_x_of_phi_on_centroids(i,j,k,n,phi,phieb,flag,ccent,bcent,
          yloc_on_xface,is_eb_dirichlet,is_eb_inhomog);
     }
-      
+ 
     Array2D<Real,0,17,0,5> Amatrix;
     Array1D<Real,0, 5    > rhs;
 
