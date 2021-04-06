@@ -42,7 +42,7 @@ namespace Gpu {
 
     /**
      * \brief A PODVector that uses pinned host memory. Same as PinnedVector.
-     * For a vector class that uses std::allocator, see amrex::Vector.
+     * For a vector class that uses std::allocator by default, see amrex::Vector.
      *
      */
     template <class T>
