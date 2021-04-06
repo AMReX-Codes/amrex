@@ -67,7 +67,7 @@ namespace Gpu {
     using ManagedDeviceVector = PODVector<T, ManagedArenaAllocator<T> >;
 
 #else
-    //! When Cuda is off, all these containers revert to amrex::PODVector.
+    //! When Cuda is off, all these containers revert to amrex::Gpu::PODVector.
     template <class T>
     using DeviceVector = PODVector<T>;
 
