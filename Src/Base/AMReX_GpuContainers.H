@@ -27,13 +27,6 @@ namespace Gpu {
     using DeviceVector = PODVector<T, ArenaAllocator<T> >;
 
     /**
-     * \brief A PODVector that uses host memory. No Arena is used.
-     *
-     */
-    template <class T>
-    using HostVector = PODVector<T>;
-
-    /**
      * \brief A PODVector that uses the managed memory arena.
      *
      */
@@ -46,6 +39,14 @@ namespace Gpu {
      */
     template <class T>
     using PinnedVector = PODVector<T, PinnedArenaAllocator<T> >;
+
+    /**
+     * \brief A PODVector that uses pinned host memory. Same as PinnedVector.
+     * For a vector class that uses std::allocator, see amrex::Vector.
+     *
+     */
+    template <class T>
+    using HostVector = PinnedVector<T>;
 
     /**
      * \brief The behavior of PolymorphicVector changes depending on
@@ -66,7 +67,7 @@ namespace Gpu {
     using ManagedDeviceVector = PODVector<T, ManagedArenaAllocator<T> >;
 
 #else
-    //! When Cuda is off, all these containers revert to amrex::Vector.
+    //! When Cuda is off, all these containers revert to amrex::PODVector.
     template <class T>
     using DeviceVector = PODVector<T>;
 
