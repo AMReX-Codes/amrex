@@ -1210,6 +1210,27 @@ MLNodeLaplacian::buildStencil ()
 
     // This is only needed at the bottom.
     m_s0_norm0[0].back() = m_stencil[0].back()->norm0(0,0) * m_normalization_threshold;
+
+#ifdef AMREX_USE_EB
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*m_stencil[amrlev][mglev],TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+                Box const& bx = mfi.tilebox();
+                Array4<Real const> const& starr = m_stencil[amrlev][mglev]->const_array(mfi);
+                Array4<int> const& dmskarr = m_dirichlet_mask[amrlev][mglev]->array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(bx, i, j, k,
+                {
+                    if (starr(i,j,k,0) == Real(0.0)) {
+                        dmskarr(i,j,k) = 1;
+                    }
+                });
+            }
+        }
+    }
+#endif
 }
 
 void
@@ -2961,289 +2982,267 @@ MLNodeLaplacian::checkPoint (std::string const& file_name) const
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 
-#if (AMREX_SPACEDIM == 2)
 void
-MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
-                               Array4<int const> const& owner,
-                               Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
-                               Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
+MLNodeLaplacian::fillIJMatrix (MFIter const& mfi,
+                               Array4<HypreNodeLap::AtomicInt const> const& gid,
+                               Array4<int const> const& lid,
+                               HypreNodeLap::Int* const ncols,
+                               HypreNodeLap::Int* const cols,
+                               Real* const mat) const
 {
-    const int amrlev = 0;
-    const int mglev  = m_num_mg_levels[amrlev]-1;
-
-    const Box& ndbx = mfi.validbox();
-    const auto lo = amrex::lbound(ndbx);
-    const auto hi = amrex::ubound(ndbx);
-
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((mglev == 0) || (m_coarsening_strategy == CoarseningStrategy::RAP),
-                                     "Coarsening strategy must be RAP to use hypre at mglev > 0");
-
-    const auto& sten = m_stencil[amrlev][mglev]->array(mfi);
-
-    constexpr int k = 0;
-    for     (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i) {
-            if (nid(i,j,k) >= 0 && owner(i,j,k))
-            {
-                rows.push_back(nid(i,j,k));
-                cols.push_back(nid(i,j,k));
-                mat.push_back(sten(i,j,k,0));
-                HypreNodeLap::Int nc = 1;
-
-                if                (nid(i-1,j-1,k) >= 0) {
-                    cols.push_back(nid(i-1,j-1,k));
-                    mat.push_back(sten(i-1,j-1,k,3));
-                    ++nc;
-                }
-
-                if                (nid(i,j-1,k) >= 0) {
-                    cols.push_back(nid(i,j-1,k));
-                    mat.push_back(sten(i,j-1,k,2));
-                    ++nc;
-                }
-
-                if                (nid(i+1,j-1,k) >= 0) {
-                    cols.push_back(nid(i+1,j-1,k));
-                    mat.push_back(sten(i  ,j-1,k,3));
-                    ++nc;
-                }
-
-                if                (nid(i-1,j,k) >= 0) {
-                    cols.push_back(nid(i-1,j,k));
-                    mat.push_back(sten(i-1,j,k,1));
-                    ++nc;
-                }
-
-                if                (nid(i+1,j,k) >= 0) {
-                    cols.push_back(nid(i+1,j,k));
-                    mat.push_back(sten(i  ,j,k,1));
-                    ++nc;
-                }
-
-                if                (nid(i-1,j+1,k) >= 0) {
-                    cols.push_back(nid(i-1,j+1,k));
-                    mat.push_back(sten(i-1,j  ,k,3));
-                    ++nc;
-                }
-
-                if                (nid(i,j+1,k) >= 0) {
-                    cols.push_back(nid(i,j+1,k));
-                    mat.push_back(sten(i,j  ,k,2));
-                    ++nc;
-                }
-
-                if                (nid(i+1,j+1,k) >= 0) {
-                    cols.push_back(nid(i+1,j+1,k));
-                    mat.push_back(sten(i  ,j  ,k,3));
-                    ++nc;
-                }
-
-                ncols.push_back(nc);
-            }
-        }
-    }
-}
-#else
-void
-MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
-                               Array4<int const> const& owner,
-                               Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
-                               Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
-{
-    const int amrlev = 0;
-    const int mglev  = m_num_mg_levels[amrlev]-1;
-
-    const Box& ndbx = mfi.validbox();
-    const auto lo = amrex::lbound(ndbx);
-    const auto hi = amrex::ubound(ndbx);
-
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((mglev == 0) || (m_coarsening_strategy == CoarseningStrategy::RAP),
-                                     "Coarsening strategy must be RAP to use hypre at mglev > 0");
-
-    const auto& sten = m_stencil[amrlev][mglev]->array(mfi);
-
-    constexpr int ist_000 = 1-1;
-    constexpr int ist_p00 = 2-1;
-    constexpr int ist_0p0 = 3-1;
-    constexpr int ist_00p = 4-1;
-    constexpr int ist_pp0 = 5-1;
-    constexpr int ist_p0p = 6-1;
-    constexpr int ist_0pp = 7-1;
-    constexpr int ist_ppp = 8-1;
-
-    for         (int k = lo.z; k <= hi.z; ++k) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                if (nid(i,j,k) >= 0 && owner(i,j,k))
-                {
-                    rows.push_back(nid(i,j,k));
-                    cols.push_back(nid(i,j,k));
-                    mat.push_back(sten(i,j,k,ist_000));
-                    HypreNodeLap::Int nc = 1;
-
-                    if                (nid(i-1,j-1,k-1) >= 0) {
-                        cols.push_back(nid(i-1,j-1,k-1));
-                        mat.push_back(sten(i-1,j-1,k-1,ist_ppp));
-                        ++nc;
-                    }
-
-                    if                (nid(i,j-1,k-1) >= 0) {
-                        cols.push_back(nid(i,j-1,k-1));
-                        mat.push_back(sten(i,j-1,k-1,ist_0pp));
-                        ++nc;
-                    }
-
-                    if                (nid(i+1,j-1,k-1) >= 0) {
-                        cols.push_back(nid(i+1,j-1,k-1));
-                        mat.push_back(sten(i,j-1,k-1,ist_ppp));
-                        ++nc;
-                    }
-
-                    if                (nid(i-1,j,k-1) >= 0) {
-                        cols.push_back(nid(i-1,j,k-1));
-                        mat.push_back(sten(i-1,j,k-1,ist_p0p));
-                        ++nc;
-                    }
-
-                    if                (nid(i,j,k-1) >= 0) {
-                        cols.push_back(nid(i,j,k-1));
-                        mat.push_back(sten(i,j,k-1,ist_00p));
-                        ++nc;
-                    }
-
-                    if                (nid(i+1,j,k-1) >= 0) {
-                        cols.push_back(nid(i+1,j,k-1));
-                        mat.push_back(sten(i,j,k-1,ist_p0p));
-                        ++nc;
-                    }
-
-                    if                (nid(i-1,j+1,k-1) >= 0) {
-                        cols.push_back(nid(i-1,j+1,k-1));
-                        mat.push_back(sten(i-1,j,k-1,ist_ppp));
-                        ++nc;
-                    }
-
-                    if                (nid(i,j+1,k-1) >= 0) {
-                        cols.push_back(nid(i,j+1,k-1));
-                        mat.push_back(sten(i,j,k-1,ist_0pp));
-                        ++nc;
-                    }
-
-                    if                (nid(i+1,j+1,k-1) >= 0) {
-                        cols.push_back(nid(i+1,j+1,k-1));
-                        mat.push_back(sten(i,j,k-1,ist_ppp));
-                        ++nc;
-                    }
-
-                    if                (nid(i-1,j-1,k) >= 0) {
-                        cols.push_back(nid(i-1,j-1,k));
-                        mat.push_back(sten(i-1,j-1,k,ist_pp0));
-                        ++nc;
-                    }
-
-                    if                (nid(i,j-1,k) >= 0) {
-                        cols.push_back(nid(i,j-1,k));
-                        mat.push_back(sten(i,j-1,k,ist_0p0));
-                        ++nc;
-                    }
-
-                    if                (nid(i+1,j-1,k) >= 0) {
-                        cols.push_back(nid(i+1,j-1,k));
-                        mat.push_back(sten(i,j-1,k,ist_pp0));
-                        ++nc;
-                    }
-
-                    if                (nid(i-1,j,k) >= 0) {
-                        cols.push_back(nid(i-1,j,k));
-                        mat.push_back(sten(i-1,j,k,ist_p00));
-                        ++nc;
-                    }
-
-                    if                (nid(i+1,j,k) >= 0) {
-                        cols.push_back(nid(i+1,j,k));
-                        mat.push_back(sten(i,j,k,ist_p00));
-                        ++nc;
-                    }
-
-                    if                (nid(i-1,j+1,k) >= 0) {
-                        cols.push_back(nid(i-1,j+1,k));
-                        mat.push_back(sten(i-1,j,k,ist_pp0));
-                        ++nc;
-                    }
-
-                    if                (nid(i,j+1,k) >= 0) {
-                        cols.push_back(nid(i,j+1,k));
-                        mat.push_back(sten(i,j,k,ist_0p0));
-                        ++nc;
-                    }
-
-                    if                (nid(i+1,j+1,k) >= 0) {
-                        cols.push_back(nid(i+1,j+1,k));
-                        mat.push_back(sten(i,j,k,ist_pp0));
-                        ++nc;
-                    }
-
-                    if                (nid(i-1,j-1,k+1) >= 0) {
-                        cols.push_back(nid(i-1,j-1,k+1));
-                        mat.push_back(sten(i-1,j-1,k,ist_ppp));
-                        ++nc;
-                    }
-
-                    if                (nid(i,j-1,k+1) >= 0) {
-                        cols.push_back(nid(i,j-1,k+1));
-                        mat.push_back(sten(i,j-1,k,ist_0pp));
-                        ++nc;
-                    }
-
-                    if                (nid(i+1,j-1,k+1) >= 0) {
-                        cols.push_back(nid(i+1,j-1,k+1));
-                        mat.push_back(sten(i,j-1,k,ist_ppp));
-                        ++nc;
-                    }
-
-                    if                (nid(i-1,j,k+1) >= 0) {
-                        cols.push_back(nid(i-1,j,k+1));
-                        mat.push_back(sten(i-1,j,k,ist_p0p));
-                        ++nc;
-                    }
-
-                    if                (nid(i,j,k+1) >= 0) {
-                        cols.push_back(nid(i,j,k+1));
-                        mat.push_back(sten(i,j,k,ist_00p));
-                        ++nc;
-                    }
-
-                    if                (nid(i+1,j,k+1) >= 0) {
-                        cols.push_back(nid(i+1,j,k+1));
-                        mat.push_back(sten(i,j,k,ist_p0p));
-                        ++nc;
-                    }
-
-                    if                (nid(i-1,j+1,k+1) >= 0) {
-                        cols.push_back(nid(i-1,j+1,k+1));
-                        mat.push_back(sten(i-1,j,k,ist_ppp));
-                        ++nc;
-                    }
-
-                    if                (nid(i,j+1,k+1) >= 0) {
-                        cols.push_back(nid(i,j+1,k+1));
-                        mat.push_back(sten(i,j,k,ist_0pp));
-                        ++nc;
-                    }
-
-                    if                (nid(i+1,j+1,k+1) >= 0) {
-                        cols.push_back(nid(i+1,j+1,k+1));
-                        mat.push_back(sten(i,j,k,ist_ppp));
-                        ++nc;
-                    }
-
-                    ncols.push_back(nc);
-                }
-            }
-        }
-    }
-}
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        fillIJMatrix_gpu(mfi,gid,lid,ncols,cols,mat);
+    } else
 #endif
+    {
+        fillIJMatrix_cpu(mfi,gid,lid,ncols,cols,mat);
+    }
+}
+
+#ifdef AMREX_USE_GPU
+
+void
+MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
+                                   Array4<HypreNodeLap::AtomicInt const> const& gid,
+                                   Array4<int const> const& lid,
+                                   HypreNodeLap::Int* const ncols,
+                                   HypreNodeLap::Int* const cols,
+                                   Real* const mat) const
+{
+    const int amrlev = 0;
+    const int mglev  = m_num_mg_levels[amrlev]-1;
+
+    const auto& sigma = m_sigma[amrlev][mglev];
+    const auto& stencil = m_stencil[amrlev][mglev];
+    const auto dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
+#if (AMREX_SPACEDIM == 2)
+    bool is_rz = m_is_rz;
+#endif
+
+    const Box& ndbx = mfi.validbox();
+    const auto ndlo = amrex::lbound(ndbx);
+    const auto ndlen = amrex::length(ndbx);
+    const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+        (static_cast<Long>(ndbx.numPts())*AMREX_D_TERM(3,*3,*3) <
+         static_cast<Long>(std::numeric_limits<int>::max()),
+         "The Box is too big.  We could use Long here, but it would much slower.");
+    const int nmax = ndbx.numPts() * AMREX_D_TERM(3,*3,*3);
+
+    int nelems;
+
+    if (m_coarsening_strategy == CoarseningStrategy::RAP)
+    {
+        const auto& sten = stencil->const_array(mfi);
+        nelems = amrex::Scan::PrefixSum<int>
+            (nmax,
+             [=] AMREX_GPU_DEVICE (int offset) noexcept
+             {
+                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = GetNode2()(offset, node);
+                 return (lid(node.x,node.y,node.z) >= 0 &&
+                         gid(node2.x,node2.y,node2.z)
+                         < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
+             },
+             [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
+             {
+                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 mlndlap_fillijmat_sten_gpu(ps, node.x, node.y, node.z, offset, gid, lid,
+                                            ncols, cols, mat, sten);
+             },
+             amrex::Scan::Type::exclusive);
+    }
+    else if (sigma[0] == nullptr) // const sigma
+    {
+        Real const_sigma = m_const_sigma;
+        nelems = amrex::Scan::PrefixSum<int>
+            (nmax,
+             [=] AMREX_GPU_DEVICE (int offset) noexcept
+             {
+                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = GetNode2()(offset, node);
+                 return (lid(node.x,node.y,node.z) >= 0 &&
+                         gid(node2.x,node2.y,node2.z)
+                         < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
+             },
+             [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
+             {
+                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 mlndlap_fillijmat_cs_gpu(ps, node.x, node.y, node.z, offset,
+                                          ndbx, gid, lid, ncols, cols, mat,
+                                          const_sigma, dxinvarr, domain
+#if (AMREX_SPACEDIM == 2)
+                                          , is_rz
+#endif
+                     );
+             },
+             amrex::Scan::Type::exclusive);
+    }
+    else if (m_use_harmonic_average && mglev > 0)
+    {
+        AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
+                     Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
+                     Array4<Real const> const& szarr = sigma[2]->const_array(mfi));
+        nelems = amrex::Scan::PrefixSum<int>
+            (nmax,
+             [=] AMREX_GPU_DEVICE (int offset) noexcept
+             {
+                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = GetNode2()(offset, node);
+                 return (lid(node.x,node.y,node.z) >= 0 &&
+                         gid(node2.x,node2.y,node2.z)
+                         < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
+             },
+             [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
+             {
+                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 mlndlap_fillijmat_ha_gpu(ps, node.x, node.y, node.z, offset,
+                                          ndbx, gid, lid, ncols, cols, mat,
+                                          AMREX_D_DECL(sxarr, syarr, szarr),
+                                          dxinvarr, domain
+#if (AMREX_SPACEDIM == 2)
+                                          , is_rz
+#endif
+                     );
+             },
+             amrex::Scan::Type::exclusive);
+    }
+    else
+    {
+        Array4<Real const> const& sarr = sigma[0]->const_array(mfi);
+        nelems = amrex::Scan::PrefixSum<int>
+            (nmax,
+             [=] AMREX_GPU_DEVICE (int offset) noexcept
+             {
+                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = GetNode2()(offset, node);
+                 return (lid(node.x,node.y,node.z) >= 0 &&
+                         gid(node2.x,node2.y,node2.z)
+                         < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
+             },
+             [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
+             {
+                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 mlndlap_fillijmat_aa_gpu(ps, node.x, node.y, node.z, offset,
+                                          ndbx, gid, lid, ncols, cols, mat,
+                                          sarr, dxinvarr, domain
+#if (AMREX_SPACEDIM == 2)
+                                          , is_rz
+#endif
+                     );
+             },
+             amrex::Scan::Type::exclusive);
+    }
+
+    amrex::ignore_unused(nelems);
+}
+
+#endif
+
+void
+MLNodeLaplacian::fillIJMatrix_cpu (MFIter const& mfi,
+                                   Array4<HypreNodeLap::AtomicInt const> const& gid,
+                                   Array4<int const> const& lid,
+                                   HypreNodeLap::Int* const ncols,
+                                   HypreNodeLap::Int* const cols,
+                                   Real* const mat) const
+{
+    const int amrlev = 0;
+    const int mglev  = m_num_mg_levels[amrlev]-1;
+
+    const auto& sigma = m_sigma[amrlev][mglev];
+    const auto& stencil = m_stencil[amrlev][mglev];
+    const auto dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
+#if (AMREX_SPACEDIM == 2)
+    bool is_rz = m_is_rz;
+#endif
+
+    const Box& ndbx = mfi.validbox();
+    const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
+
+    if (m_coarsening_strategy == CoarseningStrategy::RAP)
+    {
+        const auto& sten = stencil->const_array(mfi);
+        mlndlap_fillijmat_sten_cpu(ndbx, gid, lid, ncols, cols, mat, sten);
+    }
+    else if (sigma[0] == nullptr) // const sigma
+    {
+        Real const_sigma = m_const_sigma;
+        mlndlap_fillijmat_cs_cpu(ndbx, gid, lid, ncols, cols, mat,
+                                 const_sigma, dxinvarr, domain
+#if (AMREX_SPACEDIM == 2)
+                                 , is_rz
+#endif
+            );
+    }
+    else if (m_use_harmonic_average && mglev > 0)
+    {
+        AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
+                     Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
+                     Array4<Real const> const& szarr = sigma[2]->const_array(mfi));
+        mlndlap_fillijmat_ha_cpu(ndbx, gid, lid, ncols, cols, mat,
+                                 AMREX_D_DECL(sxarr,syarr,szarr), dxinvarr, domain
+#if (AMREX_SPACEDIM == 2)
+                                 , is_rz
+#endif
+            );
+    }
+    else
+    {
+        Array4<Real const> const& sarr = sigma[0]->const_array(mfi);
+        mlndlap_fillijmat_aa_cpu(ndbx, gid, lid, ncols, cols, mat,
+                                 sarr, dxinvarr, domain
+#if (AMREX_SPACEDIM == 2)
+                                 , is_rz
+#endif
+            );
+    }
+}
+
+void
+MLNodeLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
+                          Real* const rhs, Array4<Real const> const& bfab) const
+{
+    const int amrlev = 0;
+    const int mglev  = m_num_mg_levels[amrlev]-1;
+    const Box& nddom = amrex::surroundingNodes(Geom(amrlev,mglev).Domain());
+    const Box& bx = mfi.validbox();
+    const auto lobc = LoBC();
+    const auto hibc = HiBC();
+    GpuArray<int,AMREX_SPACEDIM> neumann_lo{AMREX_D_DECL(std::numeric_limits<int>::lowest(),
+                                                         std::numeric_limits<int>::lowest(),
+                                                         std::numeric_limits<int>::lowest())};
+    GpuArray<int,AMREX_SPACEDIM> neumann_hi{AMREX_D_DECL(std::numeric_limits<int>::lowest(),
+                                                         std::numeric_limits<int>::lowest(),
+                                                         std::numeric_limits<int>::lowest())};
+    if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (lobc[idim] == LinOpBCType::Neumann || lobc[idim] == LinOpBCType::inflow) {
+                if (bx.smallEnd(idim) == nddom.smallEnd(idim)) {
+                    neumann_lo[idim] = bx.smallEnd(idim);
+                }
+            }
+            if (hibc[idim] == LinOpBCType::Neumann || hibc[idim] == LinOpBCType::inflow) {
+                if (bx.bigEnd(idim) == nddom.bigEnd(idim)) {
+                    neumann_hi[idim] = bx.bigEnd(idim);
+                }
+            }
+        }
+    }
+
+    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+    {
+        if (lid(i,j,k) >= 0) {
+            Real fac = Real(1.0);
+            AMREX_D_TERM(if ((neumann_lo[0] == i) || neumann_hi[0] == i) { fac *= 0.5; },
+                         if ((neumann_lo[1] == j) || neumann_hi[1] == j) { fac *= 0.5; },
+                         if ((neumann_lo[2] == k) || neumann_hi[2] == k) { fac *= 0.5; })
+            rhs[lid(i,j,k)] = fac * bfab(i,j,k);
+        }
+    });
+}
 
 #endif
 
