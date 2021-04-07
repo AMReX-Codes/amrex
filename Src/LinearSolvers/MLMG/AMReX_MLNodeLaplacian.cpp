@@ -1210,6 +1210,27 @@ MLNodeLaplacian::buildStencil ()
 
     // This is only needed at the bottom.
     m_s0_norm0[0].back() = m_stencil[0].back()->norm0(0,0) * m_normalization_threshold;
+
+#ifdef AMREX_USE_EB
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*m_stencil[amrlev][mglev],TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+                Box const& bx = mfi.tilebox();
+                Array4<Real const> const& starr = m_stencil[amrlev][mglev]->const_array(mfi);
+                Array4<int> const& dmskarr = m_dirichlet_mask[amrlev][mglev]->array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE(bx, i, j, k,
+                {
+                    if (starr(i,j,k,0) == Real(0.0)) {
+                        dmskarr(i,j,k) = 1;
+                    }
+                });
+            }
+        }
+    }
+#endif
 }
 
 void
