@@ -283,6 +283,8 @@ endif ()
 
 print_option( AMReX_ASSERTIONS )
 
+option(AMReX_BOUND_CHECK  "Enable bound checking in Array4 class" OFF)
+print_option( AMReX_BOUND_CHECK )
 
 #
 # Profiling options  =========================================================
