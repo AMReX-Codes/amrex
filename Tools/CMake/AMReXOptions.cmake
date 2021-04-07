@@ -253,6 +253,12 @@ endif ()
 option( AMReX_SENSEI "Enable SENSEI in situ infrastructure" OFF )
 print_option( AMReX_SENSEI )
 
+# sensei with automatic instrumentation, depends on AMReX_SENSEI
+cmake_dependent_option( AMReX_SENSEI_AUTO 
+   "Enable automatic SENSEI instrumentation of Amr class" ON
+   "AMReX_SENSEI" OFF)
+print_option( AMReX_SENSEI_AUTO )
+
 # Conduit (requires CONDUIT_DIR)
 option( AMReX_CONDUIT "Enable Conduit support" OFF )
 print_option( AMReX_CONDUIT )

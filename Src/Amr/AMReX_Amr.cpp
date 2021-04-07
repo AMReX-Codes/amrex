@@ -29,7 +29,7 @@
 #include <DatasetClient.H>
 #endif
 
-#ifdef BL_USE_SENSEI_INSITU
+#ifdef AMREX_USE_SENSEI_AUTO
 #include <AMReX_AmrInSituBridge.H>
 #endif
 
@@ -60,7 +60,7 @@ bool                   Amr::first_smallplotfile;
 Vector<BoxArray>       Amr::initial_ba;
 Vector<BoxArray>       Amr::regrid_ba;
 int                    Amr::compute_new_dt_on_regrid;
-#ifdef BL_USE_SENSEI_INSITU
+#ifdef AMREX_USE_SENSEI_AUTO
 AmrInSituBridge*       Amr::insitu_bridge;
 #endif
 
@@ -127,7 +127,7 @@ Amr::Initialize ()
     prereadFAHeaders         = true;
     plot_headerversion       = VisMF::Header::Version_v1;
     checkpoint_headerversion = VisMF::Header::Version_v1;
-#ifdef BL_USE_SENSEI_INSITU
+#ifdef AMREX_USE_SENSEI_AUTO
     insitu_bridge            = nullptr;
 #endif
     amrex::ExecOnFinalize(Amr::Finalize);
@@ -245,7 +245,7 @@ Amr::InitAmr ()
     record_run_info_terse  = false;
     bUserStopRequest       = false;
     message_int            = 10;
-#ifdef BL_USE_SENSEI_INSITU
+#ifdef AMREX_USE_SENSEI_AUTO
     insitu_bridge          = nullptr;
 #endif
 
@@ -504,7 +504,7 @@ Amr::InitAmr ()
 int
 Amr::initInSitu()
 {
-#if defined(BL_USE_SENSEI_INSITU)
+#ifdef AMREX_USE_SENSEI_AUTO 
     insitu_bridge = new AmrInSituBridge;
     if (insitu_bridge->initialize())
     {
@@ -518,7 +518,7 @@ Amr::initInSitu()
 int
 Amr::updateInSitu()
 {
-#if defined(BL_USE_SENSEI_INSITU)
+#ifdef AMREX_USE_SENSEI_AUTO
     if (insitu_bridge && insitu_bridge->update(this))
     {
         amrex::ErrorStream() << "Amr::updateInSitu : Failed to update." << std::endl;
@@ -531,7 +531,7 @@ Amr::updateInSitu()
 int
 Amr::finalizeInSitu()
 {
-#if defined(BL_USE_SENSEI_INSITU)
+#ifdef AMREX_USE_SENSEI_AUTO
     if (insitu_bridge)
     {
         if (insitu_bridge->finalize())

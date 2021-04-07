@@ -32,6 +32,7 @@
 #cmakedefine BL_FORT_USE_UPPERCASE
 #cmakedefine BL_NO_FORT
 #cmakedefine BL_USE_SENSEI_INSITU
+#cmakedefine AMREX_USE_SENSEI_AUTO
 #cmakedefine AMREX_USE_CONDUIT
 #cmakedefine AMREX_USE_ASCENT
 #cmakedefine AMREX_USE_EB

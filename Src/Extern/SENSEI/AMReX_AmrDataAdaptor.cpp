@@ -216,10 +216,10 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
     sensei::TimeEvent<64> event("AmrDataAdaptor::GetMeshMetadata");
 
     if (id != 0)
-      {
-      SENSEI_ERROR("invalid mesh id " << id)
-      return -1;
-      }
+    {
+        SENSEI_ERROR("invalid mesh id " << id)
+        return -1;
+    }
 
     // AMR data is always expected to be a global view
     metadata->GlobalView = true;

@@ -114,6 +114,7 @@ endif ()
 
 # SENSEI Insitu -- only legacy
 add_amrex_define( BL_USE_SENSEI_INSITU IF AMReX_SENSEI )
+add_amrex_define( AMREX_USE_SENSEI_AUTO IF AMReX_SENSEI_AUTO )
 
 # Conduit Support
 add_amrex_define( AMREX_USE_CONDUIT NO_LEGACY IF AMReX_CONDUIT )
