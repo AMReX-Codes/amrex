@@ -2,12 +2,6 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_MLNodeLaplacian.H>
 
-#ifdef AMREX_USE_EB
-#include <AMReX_EBMultiFabUtil.H>
-#include <AMReX_MultiCutFab.H>
-#include <AMReX_EBFabFactory.H>
-#endif
-
 #include <cmath>
 #include <numeric>
 #include <limits>
@@ -179,17 +173,10 @@ HypreNodeLap::fill_local_node_id_gpu ()
 {
     Int nnodes_proc = 0;
 
-#ifdef AMREX_USE_EB
-    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(factory);
-#endif
     for (MFIter mfi(local_node_id); mfi.isValid(); ++mfi)
     {
         const Box& ndbx = mfi.validbox();
         const auto& nid = local_node_id.array(mfi);
-#ifdef AMREX_USE_EB
-        const auto& flag = (ebfactory) ? ebfactory->getMultiEBCellFlagFab().const_array(mfi)
-            : Array4<EBCellFlag const>{};
-#endif
         const auto& owner = owner_mask->const_array(mfi);
         const auto& dirichlet = dirichlet_mask->const_array(mfi);
         AMREX_ASSERT(ndbx.numPts() < static_cast<Long>(std::numeric_limits<int>::max()));
@@ -205,29 +192,6 @@ HypreNodeLap::fill_local_node_id_gpu ()
                 if (!owner(i,j,k) || dirichlet(i,j,k)) {
                     valid_node = 0;
                 }
-#ifdef AMREX_USE_EB
-#if (AMREX_SPACEDIM == 2)
-                else if (flag &&
-                         flag(i-1,j-1,k).isCovered() &&
-                         flag(i  ,j-1,k).isCovered() &&
-                         flag(i-1,j  ,k).isCovered() &&
-                         flag(i  ,j  ,k).isCovered())
-#endif
-#if (AMREX_SPACEDIM == 3)
-                else if (flag &&
-                         flag(i-1,j-1,k-1).isCovered() &&
-                         flag(i  ,j-1,k-1).isCovered() &&
-                         flag(i-1,j  ,k-1).isCovered() &&
-                         flag(i  ,j  ,k-1).isCovered() &&
-                         flag(i-1,j-1,k  ).isCovered() &&
-                         flag(i  ,j-1,k  ).isCovered() &&
-                         flag(i-1,j  ,k  ).isCovered() &&
-                         flag(i  ,j  ,k  ).isCovered())
-#endif
-                {
-                    valid_node = 0;
-                }
-#endif
                 nid(i,j,k) = valid_node;
                 return valid_node;
             },
@@ -253,94 +217,34 @@ HypreNodeLap::fill_local_node_id_cpu ()
 {
     Int nnodes_proc = 0;
 
-#ifdef AMREX_USE_EB
-    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(factory);
-    if (ebfactory)
-    {
-        const FabArray<EBCellFlagFab>& flags = ebfactory->getMultiEBCellFlagFab();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(+:nnodes_proc)
 #endif
-        for (MFIter mfi(local_node_id); mfi.isValid(); ++mfi)
-        {
-            const Box& ndbx = mfi.validbox();
-            const auto& nid = local_node_id.array(mfi);
-            const auto& flag = flags.const_array(mfi);
-            const auto& owner = owner_mask->const_array(mfi);
-            const auto& dirichlet = dirichlet_mask->const_array(mfi);
-            AMREX_ASSERT(ndbx.numPts() < static_cast<Long>(std::numeric_limits<int>::max()));
-            int id = 0;
-            const auto lo = amrex::lbound(ndbx);
-            const auto hi = amrex::ubound(ndbx);
-            for         (int k = lo.z; k <= hi.z; ++k) {
-                for     (int j = lo.y; j <= hi.y; ++j) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        if (!owner(i,j,k) || dirichlet(i,j,k))
-                        {
-                            nid(i,j,k) = std::numeric_limits<int>::lowest();
-                        }
-#if (AMREX_SPACEDIM == 2)
-                        else if (flag(i-1,j-1,k).isCovered() &&
-                                 flag(i  ,j-1,k).isCovered() &&
-                                 flag(i-1,j  ,k).isCovered() &&
-                                 flag(i  ,j  ,k).isCovered())
-#endif
-#if (AMREX_SPACEDIM == 3)
-                        else if (flag(i-1,j-1,k-1).isCovered() &&
-                                 flag(i  ,j-1,k-1).isCovered() &&
-                                 flag(i-1,j  ,k-1).isCovered() &&
-                                 flag(i  ,j  ,k-1).isCovered() &&
-                                 flag(i-1,j-1,k  ).isCovered() &&
-                                 flag(i  ,j-1,k  ).isCovered() &&
-                                 flag(i-1,j  ,k  ).isCovered() &&
-                                 flag(i  ,j  ,k  ).isCovered())
-#endif
-                        {
-                            nid(i,j,k) = std::numeric_limits<int>::lowest();
-                        }
-                        else
-                        {
-                            nid(i,j,k) = id++;
-                        }
-                    }
-                }
-            }
-            nnodes_grid[mfi] = id;
-            nnodes_proc += id;
-        }
-    }
-    else
-#endif
+    for (MFIter mfi(local_node_id); mfi.isValid(); ++mfi)
     {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel reduction(+:nnodes_proc)
-#endif
-        for (MFIter mfi(local_node_id); mfi.isValid(); ++mfi)
-        {
-            const Box& ndbx = mfi.validbox();
-            const auto& nid = local_node_id.array(mfi);
-            const auto& owner = owner_mask->const_array(mfi);
-            const auto& dirichlet = dirichlet_mask->const_array(mfi);
-            int id = 0;
-            const auto lo = amrex::lbound(ndbx);
-            const auto hi = amrex::ubound(ndbx);
-            for         (int k = lo.z; k <= hi.z; ++k) {
-                for     (int j = lo.y; j <= hi.y; ++j) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        if (!owner(i,j,k) || dirichlet(i,j,k))
-                        {
-                            nid(i,j,k) = std::numeric_limits<int>::lowest();
-                        }
-                        else
-                        {
-                            nid(i,j,k) = id++;
-                        }
+        const Box& ndbx = mfi.validbox();
+        const auto& nid = local_node_id.array(mfi);
+        const auto& owner = owner_mask->const_array(mfi);
+        const auto& dirichlet = dirichlet_mask->const_array(mfi);
+        int id = 0;
+        const auto lo = amrex::lbound(ndbx);
+        const auto hi = amrex::ubound(ndbx);
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    if (!owner(i,j,k) || dirichlet(i,j,k))
+                    {
+                        nid(i,j,k) = std::numeric_limits<int>::lowest();
+                    }
+                    else
+                    {
+                        nid(i,j,k) = id++;
                     }
                 }
             }
-            nnodes_grid[mfi] = id;
-            nnodes_proc += id;
         }
+        nnodes_grid[mfi] = id;
+        nnodes_proc += id;
     }
 
     return nnodes_proc;
