@@ -251,9 +251,9 @@ Arena::Initialize ()
         std::size_t chunk = 512*1024*1024;
         buddy_allocator_size = (buddy_allocator_size/chunk) * chunk;
         if (the_arena_is_managed) {
-            the_arena = new DArena(buddy_allocator_size, 512, ArenaInfo().SetPreferred());
+            the_arena = new DArena(buddy_allocator_size, 512, ArenaInfo{}.SetPreferred());
         } else {
-            the_arena = new DArena(buddy_allocator_size, 512, ArenaInfo().SetDeviceMemory());
+            the_arena = new DArena(buddy_allocator_size, 512, ArenaInfo{}.SetDeviceMemory());
         }
     }
     else
@@ -279,20 +279,20 @@ Arena::Initialize ()
     the_async_arena = new PArena(the_async_arena_release_threshold);
 
 #ifdef AMREX_USE_GPU
-    the_device_arena = new CArena(0, ArenaInfo().SetDeviceMemory().SetReleaseThreshold(the_device_arena_release_threshold));
+    the_device_arena = new CArena(0, ArenaInfo{}.SetDeviceMemory().SetReleaseThreshold(the_device_arena_release_threshold));
 #else
     the_device_arena = new BArena;
 #endif
 
 #ifdef AMREX_USE_GPU
-    the_managed_arena = new CArena(0, ArenaInfo().SetReleaseThreshold(the_managed_arena_release_threshold));
+    the_managed_arena = new CArena(0, ArenaInfo{}.SetReleaseThreshold(the_managed_arena_release_threshold));
 #else
     the_managed_arena = new BArena;
 #endif
 
     // When USE_CUDA=FALSE, we call mlock to pin the cpu memory.
     // When USE_CUDA=TRUE, we call cudaHostAlloc to pin the host memory.
-    the_pinned_arena = new CArena(0, ArenaInfo().SetHostAlloc().SetReleaseThreshold(the_pinned_arena_release_threshold));
+    the_pinned_arena = new CArena(0, ArenaInfo{}.SetHostAlloc().SetReleaseThreshold(the_pinned_arena_release_threshold));
 
     std::size_t N = 1024UL*1024UL*8UL;
 
