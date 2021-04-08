@@ -43,6 +43,8 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
 
     AMREX_ALWAYS_ASSERT(!hasHiddenDimension());
 
+    m_lpinfo_arg = a_info;
+
     int namrlevs = a_geom.size();
     m_overset_mask.resize(namrlevs);
     for (int amrlev = 0; amrlev < namrlevs; ++amrlev)

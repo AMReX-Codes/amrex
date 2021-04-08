@@ -912,12 +912,19 @@ MLMG::NSolve (MLMG& a_solver, MultiFab& a_sol, MultiFab& a_rhs)
 
     a_sol.setVal(0.0);
 
-    a_rhs.setVal(0.0);
-    a_rhs.ParallelCopy(res[0].back());
+    MultiFab const& res_bottom = res[0].back();
+    if (BoxArray::SameRefs(a_rhs.boxArray(),res_bottom.boxArray()) &&
+        DistributionMapping::SameRefs(a_rhs.DistributionMap(),res_bottom.DistributionMap()))
+    {
+        MultiFab::Copy(a_rhs, res_bottom, 0, 0, a_rhs.nComp(), 0);
+    } else {
+        a_rhs.setVal(0.0);
+        a_rhs.ParallelCopy(res_bottom);
+    }
 
     a_solver.solve({&a_sol}, {&a_rhs}, Real(-1.0), Real(-1.0));
 
-    cor[0].back()->ParallelCopy(a_sol);
+    linop.copyNSolveSolution(*cor[0].back(), a_sol);
 }
 
 void
@@ -1325,10 +1332,11 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
 #endif
     }
 
-    if (linop.m_parent) do_nsolve = false;  // no embeded N-Solve
-    if (linop.m_domain_covered[0]) do_nsolve = false;
-    if (linop.doAgglomeration()) do_nsolve = false;
-    if (AMREX_SPACEDIM != 3) do_nsolve = false;
+    if (linop.m_parent) {
+        do_nsolve = false;  // no embeded N-Solve
+    } else if (!linop.supportNSolve()) {
+        do_nsolve = false;
+    }
 
     if (do_nsolve && ns_linop == nullptr)
     {
