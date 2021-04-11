@@ -318,7 +318,7 @@ jobs:
     - name: Build & Install
       run: |
         ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-error=c++17-extensions"
         make install
 
   # Build 3D libamrex with configure
