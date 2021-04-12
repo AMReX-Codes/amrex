@@ -488,7 +488,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
             BlockLoad(temp_storage.load).Load(InputIterator(fin, ibegin), data);
         } else {
             BlockLoad(temp_storage.load).Load(InputIterator(fin, ibegin), data,
-                                              iend-ibegin, 0);
+                                              iend-ibegin, 0); // padding with 0
         }
 
         __syncthreads();
@@ -510,6 +510,8 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
                 }
             }
         } else {
+            T last = data[nelms_per_thread-1]; // Need this for the total sum in exclusive case
+
             TilePrefixCallbackOp prefix_op(scan_tile_state, temp_storage.scan_storeage.prefix,
                                            cub::Sum{}, virtual_block_id);
             AMREX_IF_CONSTEXPR(is_exclusive) {
@@ -520,11 +522,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
             if (totalsum_p) {
                 if (iend == n && threadIdx.x == blockDim.x-1) { // last thread of last block
                     T tsum = data[nelms_per_thread-1];
-                    AMREX_IF_CONSTEXPR(is_exclusive) {
-                        if (static_cast<N>(ibegin+nelms_per_block) == n) {
-                            tsum += fin(n-1);
-                        } // else tsum is already the inclusive total sum
-                    }
+                    AMREX_IF_CONSTEXPR(is_exclusive) { tsum += last; }
                     *totalsum_p = tsum;
                 }
             }
