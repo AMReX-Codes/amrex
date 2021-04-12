@@ -477,7 +477,7 @@ T Sum (N n, F&& f, T init_val = 0)
     ReduceOps<ReduceOpSum> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
     using ReduceTuple = typename decltype(reduce_data)::Type;
-    reduce_op.eval(n, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple { return {f(i)}; });
+    reduce_op.eval(n, reduce_data, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple { return {f(i)}; });
     return amrex::get<0>(reduce_data.value()) + init_val;
 }
 
@@ -519,7 +519,7 @@ T Min (N n, F&& f, T init_val = std::numeric_limits<T>::max())
     ReduceOps<ReduceOpMin> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
     using ReduceTuple = typename decltype(reduce_data)::Type;
-    reduce_op.eval(n, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple { return {f(i)}; });
+    reduce_op.eval(n, reduce_data, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple { return {f(i)}; });
     T tmp = amrex::get<0>(reduce_data.value());
     return std::min(tmp,init_val);
 }
@@ -562,7 +562,7 @@ T Max (N n, F&& f, T init_val = std::numeric_limits<T>::lowest())
     ReduceOps<ReduceOpMax> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
     using ReduceTuple = typename decltype(reduce_data)::Type;
-    reduce_op.eval(n, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple { return {f(i)}; });
+    reduce_op.eval(n, reduce_data, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple { return {f(i)}; });
     T tmp = amrex::get<0>(reduce_data.value());
     return std::max(tmp,init_val);
 }
@@ -612,7 +612,7 @@ std::pair<T,T> MinMax (N n, F&& f)
     ReduceOps<ReduceOpMin,ReduceOpMax> reduce_op;
     ReduceData<T,T> reduce_data(reduce_op);
     using ReduceTuple = typename decltype(reduce_data)::Type;
-    reduce_op.eval(n, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple {
+    reduce_op.eval(n, reduce_data, [=] AMREX_GPU_DEVICE (N i) -> ReduceTuple {
             T tmp = f(i);
             return {tmp,tmp};
         });
