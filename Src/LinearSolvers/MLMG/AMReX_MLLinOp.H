@@ -308,6 +308,10 @@ public:
     virtual std::unique_ptr<PETScABecLap> makePETSc () const;
 #endif
 
+    virtual bool supportNSolve () const { return false; }
+
+    virtual void copyNSolveSolution (MultiFab&, MultiFab const&) const {}
+
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;

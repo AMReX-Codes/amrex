@@ -867,10 +867,10 @@ Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim
 
 #endif
 
-    AMREX_ASSERT(numThreads.x <= device_prop.maxThreadsDim[0]);
-    AMREX_ASSERT(numThreads.y <= device_prop.maxThreadsDim[1]);
-    AMREX_ASSERT(numThreads.z <= device_prop.maxThreadsDim[2]);
-    AMREX_ASSERT(numThreads.x*numThreads.y*numThreads.z <= device_prop.maxThreadsPerBlock);
+    AMREX_ASSERT(numThreads.x <= static_cast<unsigned>(device_prop.maxThreadsDim[0]));
+    AMREX_ASSERT(numThreads.y <= static_cast<unsigned>(device_prop.maxThreadsDim[1]));
+    AMREX_ASSERT(numThreads.z <= static_cast<unsigned>(device_prop.maxThreadsDim[2]));
+    AMREX_ASSERT(numThreads.x*numThreads.y*numThreads.z <= static_cast<unsigned>(device_prop.maxThreadsPerBlock));
     AMREX_ASSERT(numThreads.x > 0);
     AMREX_ASSERT(numThreads.y > 0);
     AMREX_ASSERT(numThreads.z > 0);

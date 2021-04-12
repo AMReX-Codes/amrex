@@ -24,6 +24,8 @@ struct RetSum {
 static constexpr RetSum   retSum{true};
 static constexpr RetSum noRetSum{false};
 
+enum class Type { inclusive, exclusive };
+
 #if defined(AMREX_USE_GPU)
 
 namespace detail {
@@ -169,8 +171,6 @@ struct BlockStatus<T, false>
 };
 
 }
-
-enum class Type { inclusive, exclusive };
 
 #if defined(AMREX_USE_DPCPP)
 
@@ -748,6 +748,24 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 }
 
 #else
+//  !defined(AMREX_USE_GPU)
+template <typename T, typename N, typename FIN, typename FOUT,
+          typename M=std::enable_if_t<std::is_integral<N>::value> >
+T PrefixSum (N n, FIN && fin, FOUT && fout, Type type)
+{
+    if (n <= 0) return 0;
+    T totalsum = 0;
+    for (N i = 0; i < n; ++i) {
+        T x = fin(i);
+        T y = totalsum;
+        totalsum += x;
+        if (type == Type::inclusive) {
+            y += x;
+        }
+        fout(i, y);
+    }
+    return totalsum;
+}
 
 // The return value is the total sum.
 template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >

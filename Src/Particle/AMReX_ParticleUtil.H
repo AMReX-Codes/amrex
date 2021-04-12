@@ -430,9 +430,9 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                 {
                     auto p_prime = p;
                     enforcePeriodic(p_prime, plo, phi, is_per);
-                    auto tup = ploc(p_prime, lev_min, lev_max, nGrow);
-                    assigned_grid = amrex::get<0>(tup);
-                    assigned_lev  = amrex::get<1>(tup);
+                    auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow);
+                    assigned_grid = amrex::get<0>(tup_prime);
+                    assigned_lev  = amrex::get<1>(tup_prime);
                     if (assigned_grid >= 0)
                     {
                       AMREX_D_TERM(p.pos(0) = p_prime.pos(0);,

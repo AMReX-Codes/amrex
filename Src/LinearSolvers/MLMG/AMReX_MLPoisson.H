@@ -66,6 +66,10 @@ public:
 
     virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const final override;
 
+    virtual bool supportNSolve () const final override;
+
+    virtual void copyNSolveSolution (MultiFab& dst, MultiFab const& src) const final override;
+
 private:
 
     Vector<int> m_is_singular;

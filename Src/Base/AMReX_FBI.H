@@ -242,6 +242,8 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
                                copy_tags[i].dbox, copy_tags[i].offset});
     }
 
+    amrex::Abort("xxxxx TODO This function still has a bug.  Even if we fix the bug, it should still be avoided because it is slow due to the lack of atomic operations for this type.");
+
     detail::ParallelFor_doit(tags,
     [=] AMREX_GPU_DEVICE (
 #ifdef AMREX_USE_DPCPP

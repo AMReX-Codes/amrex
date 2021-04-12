@@ -231,8 +231,8 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
         } else {
             centx *= 1./areafrac;
             centy *= 1./areafrac;
-            centx = amrex::min(amrex::max(centx,-0.5),0.5);
-            centy = amrex::min(amrex::max(centy,-0.5),0.5);
+            centx = amrex::min(amrex::max(centx,Real(-0.5)),Real(0.5));
+            centy = amrex::min(amrex::max(centy,Real(-0.5)),Real(0.5));
         }
     }
 }
@@ -310,7 +310,7 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 Real cut = (intery(i,j,k)-(problo[1]+j*dx[1]))*dyinv;
                 bcy  += cut;
                 lym = (levset(i,j,k) < 0.0) ? cut : 1.0-cut;
-                lym = amrex::min(amrex::max(0.0,lym),1.0);
+                lym = amrex::min(amrex::max(Real(0.0),lym),Real(1.0));
             }
 
             Real lyp;
@@ -324,7 +324,7 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 bcy += cut;
                 bcz += 1.0;
                 lyp = (levset(i,j,k+1) < 0.0) ? cut : 1.0-cut;
-                lyp = amrex::min(amrex::max(0.0,lyp),1.0);
+                lyp = amrex::min(amrex::max(Real(0.0),lyp),Real(1.0));
             }
 
             Real lzm;
@@ -337,7 +337,7 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 Real cut = (interz(i,j,k)-(problo[2]+k*dx[2]))*dzinv;
                 bcz += cut;
                 lzm = (levset(i,j,k) < 0.0) ? cut : 1.0-cut;
-                lzm = amrex::min(amrex::max(0.0,lzm),1.0);
+                lzm = amrex::min(amrex::max(Real(0.0),lzm),Real(1.0));
             }
 
             Real lzp;
@@ -418,7 +418,7 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 Real cut = (interx(i,j,k)-(problo[0]+i*dx[0]))*dxinv;
                 bcx += cut;
                 lxm = (levset(i,j,k) < 0.0) ? cut : 1.0-cut;
-                lxm = amrex::min(amrex::max(0.0,lxm),1.0);
+                lxm = amrex::min(amrex::max(Real(0.0),lxm),Real(1.0));
             }
 
             Real lxp;
@@ -432,7 +432,7 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 bcx += cut;
                 bcz += 1.0;
                 lxp = (levset(i,j,k+1) < 0.0) ? cut : 1.0-cut;
-                lxp = amrex::min(amrex::max(0.0,lxp),1.0);
+                lxp = amrex::min(amrex::max(Real(0.0),lxp),Real(1.0));
             }
 
             Real lzm;
@@ -525,7 +525,7 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 Real cut = (interx(i,j,k)-(problo[0]+i*dx[0]))*dxinv;
                 bcx += cut;
                 lxm = (levset(i,j,k) < 0.0) ? cut : 1.0-cut;
-                lxm = amrex::min(amrex::max(0.0,lxm),1.0);
+                lxm = amrex::min(amrex::max(Real(0.0),lxm),Real(1.0));
             }
 
             Real lxp;
@@ -539,7 +539,7 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 bcx += cut;
                 bcy += 1.0;
                 lxp = (levset(i,j+1,k) < 0.0) ? cut : 1.0-cut;
-                lxp = amrex::min(amrex::max(0.0,lxp),1.0);
+                lxp = amrex::min(amrex::max(Real(0.0),lxp),Real(1.0));
             }
 
             Real lym;

@@ -65,6 +65,9 @@ add_amrex_define( AMREX_${CMAKE_SYSTEM_NAME} )
 #  Assertions
 add_amrex_define( AMREX_USE_ASSERTION NO_LEGACY IF AMReX_ASSERTIONS )
 
+# Bound checking
+add_amrex_define( AMREX_BOUND_CHECK NO_LEGACY IF AMReX_BOUND_CHECK )
+
 #
 # Fortran-specific defines: BL_LANG_FORT and AMREX_LANG_FORT
 #

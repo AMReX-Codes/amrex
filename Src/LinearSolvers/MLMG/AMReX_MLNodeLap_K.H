@@ -11,6 +11,47 @@
 namespace amrex {
 namespace {
 
+    struct GetNode {
+        AMREX_GPU_DEVICE Dim3 operator() (Dim3 const& lo, Dim3 const& len, int& offset)
+        {
+            Dim3 node;
+            constexpr int nsten = AMREX_D_TERM(3,*3,*3);
+            int icell = offset / nsten;
+            node.z =  icell /        (len.x*len.y);
+            node.y = (icell - node.z*(len.x*len.y)) /        len.x;
+            node.x = (icell - node.z*(len.x*len.y)) - node.y*len.x;
+            node.x += lo.x;
+            node.y += lo.y;
+            node.z += lo.z;
+            offset -= icell*nsten;
+            return node;
+        }
+    };
+
+    struct GetNode2 {
+        AMREX_GPU_DEVICE Dim3 operator() (int offset, Dim3 const& node)
+        {
+            // In 2D the offsets are
+            //   6 7 8
+            //   4 0 5
+            //   1 2 3
+            constexpr int nstenhalf = AMREX_SPACEDIM == 2 ? 4 : 13;
+            if (offset == 0) {
+                return node;
+            } else {
+                if (offset <= nstenhalf) { --offset; }
+                Dim3 node2;
+                node2.z = offset / 9;
+                node2.y = (offset - node2.z*9) / 3;
+                node2.x = (offset - node2.z*9) - node2.y*3;
+                AMREX_D_TERM(node2.x += node.x-1;,
+                             node2.y += node.y-1;,
+                             node2.z += node.z-1);
+                return node2;
+            }
+        }
+    };
+
     constexpr int crse_cell = 0; // Do NOT change the values
     constexpr int fine_cell = 1;
     constexpr int crse_node = 0;

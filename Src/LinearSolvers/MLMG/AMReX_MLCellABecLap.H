@@ -75,6 +75,8 @@ public:
 protected:
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_overset_mask;
 
+    LPInfo m_lpinfo_arg;
+
     virtual bool supportInhomogNeumannBC () const noexcept override { return true; }
 };
 
