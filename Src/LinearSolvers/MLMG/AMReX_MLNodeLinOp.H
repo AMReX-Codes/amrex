@@ -4,6 +4,7 @@
 
 #include <AMReX_MLLinOp.H>
 #include <AMReX_iMultiFab.H>
+#include <AMReX_MLCGSolver.H>
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 #include <AMReX_HypreNodeLap.H>
@@ -17,7 +18,7 @@ class MLNodeLinOp
 public:
 
     friend class MLMG;
-    friend class MLCGSolver;
+    friend class MLCGSolver<FArrayBox>;
 
     enum struct CoarseningStrategy : int { Sigma, RAP };
 

@@ -974,12 +974,12 @@ MLMG::actualBottomSolve ()
         }
         else
         {
-            MLCGSolver::Type cg_type;
+            MLCGSolver<FArrayBox>::Type cg_type;
             if (bottom_solver == BottomSolver::cg ||
                 bottom_solver == BottomSolver::cgbicg) {
-                cg_type = MLCGSolver::Type::CG;
+                cg_type = MLCGSolver<FArrayBox>::Type::CG;
             } else {
-                cg_type = MLCGSolver::Type::BiCGStab;
+                cg_type = MLCGSolver<FArrayBox>::Type::BiCGStab;
             }
             int ret = bottomSolveWithCG(x, *bottom_b, cg_type);
             // If the MLMG solve failed then set the correction to zero
@@ -988,15 +988,15 @@ MLMG::actualBottomSolve ()
                 if (bottom_solver == BottomSolver::cgbicg ||
                     bottom_solver == BottomSolver::bicgcg) {
                     if (bottom_solver == BottomSolver::cgbicg) {
-                        cg_type = MLCGSolver::Type::BiCGStab; // switch to bicg
+                        cg_type = MLCGSolver<FArrayBox>::Type::BiCGStab; // switch to bicg
                     } else {
-                        cg_type = MLCGSolver::Type::CG; // switch to cg
+                        cg_type = MLCGSolver<FArrayBox>::Type::CG; // switch to cg
                     }
                     ret = bottomSolveWithCG(x, *bottom_b, cg_type);
                     if (ret != 0) {
                         cor[amrlev][mglev]->setVal(0.0);
                     } else { // switch permanently
-                        if (cg_type == MLCGSolver::Type::CG) {
+                        if (cg_type == MLCGSolver<FArrayBox>::Type::CG) {
                             bottom_solver = BottomSolver::cg;
                         } else {
                             bottom_solver = BottomSolver::bicgstab;
@@ -1017,9 +1017,9 @@ MLMG::actualBottomSolve ()
 }
 
 int
-MLMG::bottomSolveWithCG (MultiFab& x, const MultiFab& b, MLCGSolver::Type type)
+MLMG::bottomSolveWithCG (MultiFab& x, const MultiFab& b, MLCGSolver<FArrayBox>::Type type)
 {
-    MLCGSolver cg_solver(this, linop);
+    MLCGSolver<FArrayBox> cg_solver(this, linop);
     cg_solver.setSolver(type);
     cg_solver.setVerbose(bottom_verbose);
     cg_solver.setMaxIter(bottom_maxiter);

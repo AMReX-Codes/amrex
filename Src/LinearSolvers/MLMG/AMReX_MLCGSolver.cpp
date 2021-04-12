@@ -21,29 +21,50 @@ namespace amrex {
 
 namespace {
 
+template <class MF>
 static
 void
-sxay (MultiFab&       ss,
-      const MultiFab& xx,
-      Real            a,
-      const MultiFab& yy,
-      int             yycomp,
+sxay (FabArray<MF>&       dst,
+      const FabArray<MF>& x,
+      Real            b,
+      const FabArray<MF>& y,
+      int             ycomp,
       int             nghost)
 {
     BL_PROFILE("CGSolver::sxay()");
 
-    const int ncomp  = ss.nComp();
-    const int sscomp = 0;
-    const int xxcomp = 0;
-    MultiFab::LinComb(ss, 1.0, xx, xxcomp, a, yy, yycomp, sscomp, ncomp, nghost);
+    Real a = 1.0;
+    const int numcomp  = dst.nComp();
+    const int dstcomp = 0;
+    const int xcomp = 0;
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+
+        if (bx.ok()) {
+            auto const xfab =   x.array(mfi);
+            auto const yfab =   y.array(mfi);
+            auto       dfab = dst.array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
+            {
+                dfab(i,j,k,dstcomp+n) = a*xfab(i,j,k,xcomp+n) + b*yfab(i,j,k,ycomp+n);
+            });
+        }
+    }
+
 }
 
+template <class MF>
 inline
 void
-sxay (MultiFab&       ss,
-      const MultiFab& xx,
+sxay (FabArray<MF>&       ss,
+      const FabArray<MF>& xx,
       Real            a,
-      const MultiFab& yy,
+      const FabArray<MF>& yy,
       const int       nghost)
 {
     sxay(ss,xx,a,yy,0,nghost);
@@ -51,7 +72,8 @@ sxay (MultiFab&       ss,
 
 }
 
-MLCGSolver::MLCGSolver (MLMG* a_mlmg, MLLinOp& _lp, Type _typ)
+template<class MF>
+MLCGSolver<MF>::MLCGSolver (MLMG* a_mlmg, MLLinOp& _lp, Type _typ)
     : mlmg(a_mlmg),
       Lp(_lp),
       solver_type(_typ),
@@ -61,12 +83,14 @@ MLCGSolver::MLCGSolver (MLMG* a_mlmg, MLLinOp& _lp, Type _typ)
     amrex::ignore_unused(mlmg);
 }
 
-MLCGSolver::~MLCGSolver ()
+template<class MF>
+MLCGSolver<MF>::~MLCGSolver ()
 {
 }
 
+template<class MF>
 int
-MLCGSolver::solve (MultiFab&       sol,
+MLCGSolver<MF>::solve (MultiFab&       sol,
                    const MultiFab& rhs,
                    Real            eps_rel,
                    Real            eps_abs)
@@ -78,9 +102,10 @@ MLCGSolver::solve (MultiFab&       sol,
     }
 }
 
+template<class MF>
 int
-MLCGSolver::solve_bicgstab (MultiFab&       sol,
-                            const MultiFab& rhs,
+MLCGSolver<MF>::solve_bicgstab (FabArray<MF>&       sol,
+                                const FabArray<MF>& rhs,
                             Real            eps_rel,
                             Real            eps_abs)
 {
@@ -92,18 +117,18 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
     const DistributionMapping& dm = sol.DistributionMap();
     const auto& factory = sol.Factory();
 
-    MultiFab ph(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
-    MultiFab sh(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
+    FabArray<MF> ph(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
+    FabArray<MF> sh(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
     ph.setVal(0.0);
     sh.setVal(0.0);
 
-    MultiFab sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
-    MultiFab p    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MultiFab r    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MultiFab s    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MultiFab rh   (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MultiFab v    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MultiFab t    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    FabArray<MF> sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
+    FabArray<MF> p    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    FabArray<MF> r    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    FabArray<MF> s    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    FabArray<MF> rh   (ba, dm, ncomp, nghost, MFInfo(), factory);
+    FabArray<MF> v    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    FabArray<MF> t    (ba, dm, ncomp, nghost, MFInfo(), factory);
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOp::BCMode::Homogeneous);
 
@@ -113,8 +138,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
     // Then normalize
     Lp.normalize(amrlev, mglev, r);
 
-    MultiFab::Copy(sorig,sol,0,0,ncomp,nghost);
-    MultiFab::Copy(rh,   r,  0,0,ncomp,nghost);
+    amrex::Copy(sorig,sol,0,0,ncomp,IntVect(nghost));
+    amrex::Copy(rh,   r,  0,0,ncomp,IntVect(nghost));
 
     sol.setVal(0);
 
@@ -149,7 +174,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         }
         if ( iter == 1 )
         {
-            MultiFab::Copy(p,r,0,0,ncomp,nghost);
+            amrex::Copy(p,r,0,0,ncomp,IntVect(nghost));
         }
         else
         {
@@ -157,7 +182,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
             sxay(p, p, -omega, v, nghost);
             sxay(p, r,   beta, p, nghost);
         }
-        MultiFab::Copy(ph,p,0,0,ncomp,nghost);
+        amrex::Copy(ph,p,0,0,ncomp,IntVect(nghost));
         Lp.apply(amrlev, mglev, v, ph, MLLinOp::BCMode::Homogeneous, MLLinOp::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
 
@@ -188,7 +213,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
 
-        MultiFab::Copy(sh,s,0,0,ncomp,nghost);
+        amrex::Copy(sh,s,0,0,ncomp,nghost);
         Lp.apply(amrlev, mglev, t, sh, MLLinOp::BCMode::Homogeneous, MLLinOp::StateMode::Correction);
         Lp.normalize(amrlev, mglev, t);
         //
@@ -251,19 +276,20 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
-        sol.plus(sorig, 0, ncomp, nghost);
+        amrex::Add(sol,sorig,0,0,ncomp,nghost);
     }
     else
     {
         sol.setVal(0);
-        sol.plus(sorig, 0, ncomp, nghost);
+        amrex::Add(sol,sorig,0,0,ncomp,nghost);
     }
 
     return ret;
 }
 
+template<class MF>
 int
-MLCGSolver::solve_cg (MultiFab&       sol,
+MLCGSolver<MF>::solve_cg (MultiFab&       sol,
                       const MultiFab& rhs,
                       Real            eps_rel,
                       Real            eps_abs)
@@ -396,8 +422,9 @@ MLCGSolver::solve_cg (MultiFab&       sol,
     return ret;
 }
 
+template<class MF>
 Real
-MLCGSolver::dotxy (const MultiFab& r, const MultiFab& z, bool local)
+MLCGSolver<MF>::dotxy (const FabArray<MF>& r, const FabArray<MF>& z, bool local)
 {
     BL_PROFILE_VAR_NS("MLCGSolver::ParallelAllReduce", blp_par);
     if (!local) { BL_PROFILE_VAR_START(blp_par); }
@@ -406,13 +433,14 @@ MLCGSolver::dotxy (const MultiFab& r, const MultiFab& z, bool local)
     return result;
 }
 
+template<class MF>
 Real
-MLCGSolver::norm_inf (const MultiFab& res, bool local)
+MLCGSolver<MF>::norm_inf (const FabArray<MF>& res, bool local)
 {
     int ncomp = res.nComp();
     Real result = std::numeric_limits<Real>::lowest();
     for (int n=0; n<ncomp; n++)
-      result = std::max(result,res.norm0(n,0,true));
+      result = std::max(result,Lp.norm0(res,n,0,true));
 
     if (!local) {
         BL_PROFILE("MLCGSolver::ParallelAllReduce");
@@ -421,5 +449,6 @@ MLCGSolver::norm_inf (const MultiFab& res, bool local)
     return result;
 }
 
+template class MLCGSolver<FArrayBox>;
 
 }

@@ -14,6 +14,7 @@ namespace amrex {
 
 class MLMG;
 
+template<class MF>
 class MLCGSolver
 {
 public:
@@ -49,10 +50,10 @@ public:
     void setNGhost(int _nghost) {nghost = _nghost;}
     int getNGhost() {return nghost;}
 
-    Real dotxy (const MultiFab& r, const MultiFab& z, bool local = false);
-    Real norm_inf (const MultiFab& res, bool local = false);
-    int solve_bicgstab (MultiFab&       solnL,
-                        const MultiFab& rhsL,
+    Real dotxy (const FabArray<MF>& r, const FabArray<MF>& z, bool local = false);
+    Real norm_inf (const FabArray<MF>& res, bool local = false);
+    int solve_bicgstab (FabArray<MF>&       solnL,
+                        const FabArray<MF>& rhsL,
                         Real            eps_rel,
                         Real            eps_abs);
     int solve_cg (MultiFab&       solnL,

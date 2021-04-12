@@ -30,6 +30,7 @@ class PETScABecLap;
 #endif
 
 class MLMG;
+template<class MF> class MLCGSolver;
 
 struct LPInfo
 {
@@ -79,7 +80,7 @@ class MLLinOp
 public:
 
     friend class MLMG;
-    friend class MLCGSolver;
+    friend class MLCGSolver<FArrayBox>;
     friend class MLPoisson;
     friend class MLABecLaplacian;
 
@@ -202,16 +203,37 @@ public:
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const = 0;
+    virtual void apply (int amrlev, int mglev, FabArray<FArrayBox>& out, FabArray<FArrayBox>& in, BCMode bc_mode,
+                        StateMode s_mode, const MLMGBndry* bndry=nullptr) const
+    {
+        // TODO confirm conversion to MultiFab from FabArray<FArrayBox>
+        MultiFab out_mf(out.boxArray(),out.DistributionMap(), out.nComp(), out.nGrow());
+        MultiFab in_mf (in.boxArray(), in.DistributionMap(),  in.nComp(),  in.nGrow());
+        apply(amrlev,mglev,out_mf,in_mf,bc_mode,s_mode,bndry);
+    }
     virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                          bool skip_fillboundary=false) const = 0;
 
     // Divide mf by the diagonal component of the operator. Used by bicgstab.
     virtual void normalize (int /*amrlev*/, int /*mglev*/, MultiFab& /*mf*/) const {}
+    virtual void normalize (int amrlev, int mglev, FabArray<FArrayBox>& mf) const
+    {
+        MultiFab mf_mf(mf.boxArray(),mf.DistributionMap(),mf.nComp(),mf.nGrow());
+        normalize(amrlev,mglev,mf_mf);
+    }
 
     virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                    const MultiFab* crse_bcdata=nullptr) = 0;
     virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                      BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) = 0;
+    virtual void correctionResidual (int amrlev, int mglev, FabArray<FArrayBox>& resid, FabArray<FArrayBox>& x, const FabArray<FArrayBox>& b,BCMode bc_mode, const MultiFab* crse_bcdata=nullptr)
+    {
+        MultiFab resid_mf(resid.boxArray(),resid.DistributionMap(),resid.nComp(),resid.nGrow());
+        MultiFab x_mf(x.boxArray(),x.DistributionMap(),x.nComp(),x.nGrow());
+        MultiFab b_mf(b.boxArray(),b.DistributionMap(),b.nComp(),b.nGrow());
+        correctionResidual(amrlev,mglev,resid_mf,x_mf,b_mf,bc_mode,crse_bcdata);
+    }
+
 
     virtual void reflux (int crse_amrlev,
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
@@ -233,6 +255,18 @@ public:
     virtual bool isSingular (int amrlev) const = 0;
     virtual bool isBottomSingular () const = 0;
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
+    virtual Real xdoty (int amrlev, int mglev, const FabArray<FArrayBox>& x, const FabArray<FArrayBox>& y, bool local) const
+    {
+        // TODO - is this ok?
+        MultiFab a(x.boxArray(), x.DistributionMap(), x.nComp(), x.nGrow());
+        MultiFab b(y.boxArray(), y.DistributionMap(), y.nComp(), y.nGrow());
+        return xdoty(amrlev,mglev,a,b,local);
+    }
+    virtual Real norm0(const FabArray<FArrayBox> &mf, int comp, int nghost, bool local)
+    {
+        MultiFab a(mf.boxArray(), mf.DistributionMap(), mf.nComp(), mf.nGrow());
+        return a.norm0(comp,nghost,local);
+    }
 
     virtual void fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/) { }
     virtual void nodalSync (int /*amrlev*/, int /*mglev*/, MultiFab& /*mf*/) const {}
