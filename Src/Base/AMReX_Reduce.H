@@ -82,7 +82,13 @@ struct ReduceOpSum
 #else
     template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceSum_full(&d,s); }
+    void parallel_update (T& d, T const& s) const noexcept {
+#if defined(AMREX_USE_CUB)
+        Gpu::deviceReduceSum_full<AMREX_GPU_MAX_THREADS>(&d,s);
+#else
+        Gpu::deviceReduceSum_full(&d,s);
+#endif
+    }
 #endif
 
     template <typename T>
@@ -104,7 +110,13 @@ struct ReduceOpMin
 #else
     template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceMin_full(&d,s); }
+    void parallel_update (T& d, T const& s) const noexcept {
+#if defined(AMREX_USE_CUB)
+        Gpu::deviceReduceMin_full<AMREX_GPU_MAX_THREADS>(&d,s);
+#else
+        Gpu::deviceReduceMin_full(&d,s);
+#endif
+    }
 #endif
 
     template <typename T>
@@ -126,7 +138,13 @@ struct ReduceOpMax
 #else
     template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceMax_full(&d,s); }
+    void parallel_update (T& d, T const& s) const noexcept {
+#if defined(AMREX_USE_CUB)
+        Gpu::deviceReduceMax_full<AMREX_GPU_MAX_THREADS>(&d,s);
+#else
+        Gpu::deviceReduceMax_full(&d,s);
+#endif
+    }
 #endif
 
     template <typename T>
@@ -146,7 +164,13 @@ struct ReduceOpLogicalAnd
     }
 #else
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void parallel_update (int& d, int s) const noexcept { Gpu::deviceReduceLogicalAnd_full(&d,s); }
+    void parallel_update (int& d, int s) const noexcept {
+#if defined(AMREX_USE_CUB)
+        Gpu::deviceReduceLogicalAnd_full<AMREX_GPU_MAX_THREADS>(&d,s);
+#else
+        Gpu::deviceReduceLogicalAnd_full(&d,s);
+#endif
+    }
 #endif
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -164,7 +188,13 @@ struct ReduceOpLogicalOr
     }
 #else
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void parallel_update (int& d, int s) const noexcept { Gpu::deviceReduceLogicalOr_full(&d,s); }
+    void parallel_update (int& d, int s) const noexcept {
+#if defined(AMREX_USE_CUB)
+        Gpu::deviceReduceLogicalOr_full<AMREX_GPU_MAX_THREADS>(&d,s);
+#else
+        Gpu::deviceReduceLogicalOr_full(&d,s);
+#endif
+    }
 #endif
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -287,6 +317,7 @@ public:
         const auto len = amrex::length(box);
         IndexType ixtype = box.ixType();
         auto ec = Gpu::ExecutionConfig(ncells);
+        AMREX_ASSERT(ec.numThreads.x == AMREX_GPU_MAX_THREADS);
         ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
 #ifdef AMREX_USE_DPCPP
         // device reduce needs local(i.e., shared) memory
@@ -355,6 +386,7 @@ public:
         const auto lo  = amrex::lbound(box);
         const auto len = amrex::length(box);
         auto ec = Gpu::ExecutionConfig(ncells);
+        AMREX_ASSERT(ec.numThreads.x == AMREX_GPU_MAX_THREADS);
         ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
 #ifdef AMREX_USE_DPCPP
         // device reduce needs local(i.e., shared) memory
@@ -407,6 +439,7 @@ public:
         using ReduceTuple = typename D::Type;
         auto dp = reduce_data.devicePtr();
         auto ec = Gpu::ExecutionConfig(n);
+        AMREX_ASSERT(ec.numThreads.x == AMREX_GPU_MAX_THREADS);
         ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
 #ifdef AMREX_USE_DPCPP
         // device reduce needs local(i.e., shared) memory
@@ -458,7 +491,11 @@ T Sum (N n, U const* v, T init_val, BOP bop)
 #else
     [=] AMREX_GPU_DEVICE (T const& r) noexcept
     {
+#if defined(AMREX_USE_CUB)
+        Gpu::deviceReduceSum_full<AMREX_GPU_MAX_THREADS>(dp, r);
+#else
         Gpu::deviceReduceSum_full(dp, r);
+#endif
     });
 #endif
     return ds.dataValue();
@@ -500,7 +537,11 @@ T Min (N n, U const* v, T init_val, BOP bop)
 #else
     [=] AMREX_GPU_DEVICE (T const& r) noexcept
     {
+#if defined(AMREX_USE_CUB)
+        Gpu::deviceReduceMin_full<AMREX_GPU_MAX_THREADS>(dp, r);
+#else
         Gpu::deviceReduceMin_full(dp, r);
+#endif
     });
 #endif
     return ds.dataValue();
@@ -543,7 +584,11 @@ T Max (N n, U const* v, T init_val, BOP bop)
 #else
     [=] AMREX_GPU_DEVICE (T const& r) noexcept
     {
+#if defined(AMREX_USE_CUB)
+        Gpu::deviceReduceMax_full<AMREX_GPU_MAX_THREADS>(dp, r);
+#else
         Gpu::deviceReduceMax_full(dp, r);
+#endif
     });
 #endif
     return ds.dataValue();
@@ -590,8 +635,13 @@ std::pair<T,T> MinMax (N n, U const* v, MINOP minop, MAXOP maxop)
 #else
     [=] AMREX_GPU_DEVICE (Real2 const& r) noexcept
     {
+#if defined(AMREX_USE_CUB)
+        Gpu::deviceReduceMin_full<AMREX_GPU_MAX_THREADS>(dp  , r[0]);
+        Gpu::deviceReduceMax_full<AMREX_GPU_MAX_THREADS>(dp+1, r[1]);
+#else
         Gpu::deviceReduceMin_full(dp  , r[0]);
         Gpu::deviceReduceMax_full(dp+1, r[1]);
+#endif
     });
 #endif
     Gpu::dtoh_memcpy(hv.data(), dp, 2*sizeof(T));

@@ -1390,6 +1390,7 @@ VecReduce (N n, T const& init_val, L1&& f1, L2&& f2) noexcept
     if (amrex::isEmpty(n)) return;
     auto ec = Gpu::ExecutionConfig(n);
     ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
+    AMREX_ASSERT(ec.numThreads.x == AMREX_GPU_MAX_THREADS);
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto r = init_val;
