@@ -22,6 +22,9 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input=true)
                     mf.nComp(), mf.nGrowVect());
     mf_tmp.setVal(0.0);
 
+    const auto plo = pc.Geom(lev).ProbLoArray();
+    const auto dxi = pc.Geom(lev).InvCellSizeArray();
+
     using ParIter = typename PC::ParConstIterType;
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
@@ -38,7 +41,7 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input=true)
 
             AMREX_FOR_1D( np, i,
             {
-                particle_detail::call_f(f, pstruct[i], fabarr);
+                particle_detail::call_f(f, pstruct[i], fabarr, plo, dxi);
             });
         }
     }
@@ -67,7 +70,7 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input=true)
 
                 AMREX_FOR_1D( np, i,
                 {
-                    particle_detail::call_f(f, pstruct[i], fabarr);
+                    particle_detail::call_f(f, pstruct[i], fabarr, plo, dxi);
                 });
 
                 fab.atomicAdd<RunOn::Host>(local_fab, tile_box, tile_box, 0, 0, mf_tmp.nComp());
@@ -91,6 +94,9 @@ MeshToParticle (PC& pc, MF const& mf, int lev, F&& f)
 
     if (mf_pointer != &mf) mf_pointer->copy(mf,0,0,mf.nComp(),mf.nGrowVect(),mf.nGrowVect());
 
+    const auto plo = pc.Geom(lev).ProbLoArray();
+    const auto dxi = pc.Geom(lev).InvCellSizeArray();
+
     using ParIter = typename PC::ParIterType;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -107,7 +113,7 @@ MeshToParticle (PC& pc, MF const& mf, int lev, F&& f)
 
         AMREX_FOR_1D( np, i,
         {
-            particle_detail::call_f(f, pstruct[i], fabarr);
+            particle_detail::call_f(f, pstruct[i], fabarr, plo, dxi);
         });
     }
 
