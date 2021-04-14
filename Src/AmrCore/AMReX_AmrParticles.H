@@ -14,9 +14,9 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
-::AssignDensity(int rho_index,
-                Vector<std::unique_ptr<MultiFab> >& mf_to_be_filled,
-                int lev_min, int ncomp, int finest_level, int ngrow) const
+::AssignDensity (int rho_index,
+                 Vector<std::unique_ptr<MultiFab> >& mf_to_be_filled,
+                 int lev_min, int ncomp, int finest_level, int ngrow) const
 {
 
     BL_PROFILE("ParticleContainer::AssignDensity()");
@@ -154,7 +154,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void
 ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
-                int lev_min, int lev_max, F&& f, bool zero_out_input=true)
+                int lev_min, int lev_max, F&& f,
+                bool zero_out_input=true, bool vol_weight=true)
 {
     BL_PROFILE("amrex::ParticleToMesh");
 
@@ -163,7 +164,13 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
 
     if (lev_max == 0)
     {
-        return ParticleToMesh(pc, *mf[0], 0, std::forward<F>(f), zero_out_input);
+        ParticleToMesh(pc, *mf[0], 0, std::forward<F>(f), zero_out_input);
+        if (vol_weight) {
+            const Real* dx = pc.Geom(0).CellSize();
+            const Real vol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
+            mf[0]->mult(1.0/vol, 0, mf[0]->nComp(), mf[0]->nGrow());
+        }
+        return;
     }
 
     if (zero_out_input)
@@ -197,6 +204,11 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
         ParticleToMesh(pc, mf_part[lev], lev, std::forward<F>(f), zero_out_input);
+        if (vol_weight) {
+            const Real* dx = pc.Geom(lev).CellSize();
+            const Real vol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
+            mf_part[lev].mult(1.0/vol, 0, mf_part[lev].nComp(), mf_part[lev].nGrow());
+        }
 
         if (lev < lev_max) {
             PhysBCFunctNoOp cphysbc, fphysbc;
