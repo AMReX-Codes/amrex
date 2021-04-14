@@ -4,6 +4,7 @@
 
 #include <AMReX_TypeTraits.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_ParticleUtil.H>
 
 namespace amrex
 {
@@ -22,7 +23,6 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input=true)
     mf_tmp.setVal(0.0);
 
     using ParIter = typename PC::ParConstIterType;
-    const auto& plevel = pc.GetParticles(lev);
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
@@ -38,7 +38,7 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input=true)
 
             AMREX_FOR_1D( np, i,
             {
-                f(pstruct[i], fabarr);
+                particle_detail::call_f(f, pstruct[i], fabarr);
             });
         }
     }
@@ -67,7 +67,7 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input=true)
 
                 AMREX_FOR_1D( np, i,
                 {
-                    f(pstruct[i], fabarr);
+                    particle_detail::call_f(f, pstruct[i], fabarr);
                 });
 
                 fab.atomicAdd<RunOn::Host>(local_fab, tile_box, tile_box, 0, 0, mf_tmp.nComp());
@@ -91,7 +91,6 @@ MeshToParticle (PC& pc, MF const& mf, int lev, F&& f)
 
     if (mf_pointer != &mf) mf_pointer->copy(mf,0,0,mf.nComp(),mf.nGrowVect(),mf.nGrowVect());
 
-    auto& plevel = pc.GetParticles(lev);
     using ParIter = typename PC::ParIterType;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -108,7 +107,7 @@ MeshToParticle (PC& pc, MF const& mf, int lev, F&& f)
 
         AMREX_FOR_1D( np, i,
         {
-            f(pstruct[i], fabarr);
+            particle_detail::call_f(f, pstruct[i], fabarr);
         });
     }
 
