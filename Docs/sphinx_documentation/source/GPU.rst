@@ -1584,7 +1584,7 @@ by "amrex" in your :cpp:`inputs` file.
 |                            | pinned memory. In practice, we find it is usually not worth it to use |             |             |
 |                            | GPU aware MPI.                                                        |             |             |
 +----------------------------+-----------------------------------------------------------------------+-------------+-------------+
-| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is greater than the size of a   | Bool        | False       |
+| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | False       |
 |                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |             |
 |                            | describing how much free memory there is and what was requested.      |             |             |
 +----------------------------+-----------------------------------------------------------------------+-------------+-------------+
