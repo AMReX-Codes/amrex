@@ -86,8 +86,8 @@ auto call_f (F const& f, P& p, Array4<const T> const& fabarr,
 template <typename F, typename P, typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 auto call_f (F const& f, P& p, Array4<const T> const& fabarr,
-             GpuArray<Real,AMREX_SPACEDIM> const& plo,
-             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
+             GpuArray<Real,AMREX_SPACEDIM> const&,
+             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
     -> decltype(f(p, fabarr))
 {
     return f(p, fabarr);
