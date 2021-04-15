@@ -53,6 +53,46 @@ auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const&) no
     return f(src,i);
 }
 
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P const& p, Array4<T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const& plo,
+             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
+    -> decltype(f(p, fabarr, plo, dxi))
+{
+    return f(p, fabarr, plo, dxi);
+}
+
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P const& p, Array4<T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const&,
+             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
+    -> decltype(f(p, fabarr))
+{
+    return f(p, fabarr);
+}
+
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P& p, Array4<const T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const& plo,
+             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
+    -> decltype(f(p, fabarr, plo, dxi))
+{
+    return f(p, fabarr, plo, dxi);
+}
+
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P& p, Array4<const T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const&,
+             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
+    -> decltype(f(p, fabarr))
+{
+    return f(p, fabarr);
+}
+
 }
 
 /**
