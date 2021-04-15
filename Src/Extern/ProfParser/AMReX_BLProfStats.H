@@ -173,8 +173,8 @@ class BLProfStats {
     virtual void SetCSSize(const int /*css*/) { }
     virtual void InitCommDataBlock(const int /*proc*/, const long /*ncommstats*/,
                                const std::string &/*filename*/, const long /*seekpos*/,
-			       const std::string &/*nodename*/ = "",
-			       const int /*nodenumber*/ = -1) { }
+                               const std::string &/*nodename*/ = "",
+                               const int /*nodenumber*/ = -1) { }
     virtual void AddBarrier(long /*bnum*/, const std::string &/*bname*/, long /*index*/) { }
     virtual void AddReduction(const long /*rnum*/, const long /*index*/) { }
     virtual void AddTimeMinMax(const double /*tmin*/, const double /*tmax*/) { }
@@ -208,8 +208,8 @@ class BLProfStats {
     virtual void AddProbDomain(const int /*lev*/, const amrex::Box &/*pd*/) { }
     virtual TimeRange MakeRegionPlt(amrex::FArrayBox &/*rFab*/, int /*noregionnumber*/,
                                int /*width*/, int /*height*/,
-			       amrex::Vector<amrex::Vector<amrex::Box>> &/*regionBoxes*/)
-			       { return TimeRange(); }
+                               amrex::Vector<amrex::Vector<amrex::Box>> &/*regionBoxes*/)
+                               { return TimeRange(); }
 
     static void OpenAllStreams(const std::string &dirname);
     static void CloseAllStreams();

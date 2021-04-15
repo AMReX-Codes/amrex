@@ -69,7 +69,7 @@ namespace ParallelDescriptor
     //! Communication datatype (note: this structure also works without MPI)
     struct Mpi_typemap
     {
-	static MPI_Datatype type();
+        static MPI_Datatype type();
     };
 }
 }

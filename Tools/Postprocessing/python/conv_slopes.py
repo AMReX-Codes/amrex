@@ -8,10 +8,10 @@ networksPath="/extern/networks/"
 EOSPath="/extern/EOS/helmeos/"
 
 def compileit(network,fParallel):
-    """ 
+    """
 This routine compiles the fconv_slopes.f90 routine with the specified network,
-and then copies the executable to the current working directory.  This assumes 
-that this script is in data_processing/python/ in order to find the location 
+and then copies the executable to the current working directory.  This assumes
+that this script is in data_processing/python/ in order to find the location
 of the fconv_slopes.f90 routine; if it can't be found, we complain."""
 
     cwd = os.getcwd()
@@ -30,7 +30,7 @@ of the fconv_slopes.f90 routine; if it can't be found, we complain."""
     cmd = "make programs=fconv_slopes NETWORK=%s NDEBUG=" % networkPath
     print cmd
     (status, out) = commands.getstatusoutput(cmd)
-    if status != 0: 
+    if status != 0:
         print "Compilation Error:"
         print out
         sys.exit()
@@ -52,10 +52,10 @@ of the fconv_slopes.f90 routine; if it can't be found, we complain."""
         sys.exit()
     os.chdir(cwd)
 
-    
+
 
 def runit(network, fParallel, input, output,*args):
-    
+
     compileit(network,fParallel)
 
     print "Running fconv_slopes..."
@@ -64,22 +64,22 @@ def runit(network, fParallel, input, output,*args):
     (status,out) = commands.getstatusoutput(cmd)
     if status != 0:
         print out
-    
+
 
 if __name__ == "__main__":
     import optparse
 
     usage="""
-This script compiles the data_processing/fconv_slopes.f90 routine with a 
-specified (via the -n or --network options) reaction network, then executes 
+This script compiles the data_processing/fconv_slopes.f90 routine with a
+specified (via the -n or --network options) reaction network, then executes
 the fconv_slopes routine on the input file (-i or --input) and dumps the result
 to the output file (-o or --output; defaults to <inputFile>.out)."""
-    
+
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("-f", "--fParallel", dest="fParallel",
                       default="~/MAESTRO/fParallel/",
                       help="specify the location of the fParallel directory [default: %default]")
-    parser.add_option("-n", "--network", dest="network", 
+    parser.add_option("-n", "--network", dest="network",
                       help="specify which NETWORK to compile with")
     parser.add_option("-i", "--input", dest="inputFile",
                       help="specify the input FILE", metavar="FILE")
@@ -104,6 +104,6 @@ to the output file (-o or --output; defaults to <inputFile>.out)."""
         print "Change this with the -f option."
         sys.exit()
 
-    runit(options.network, 
+    runit(options.network,
           options.fParallel,
           options.inputFile, options.outputFile)

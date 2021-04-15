@@ -2,14 +2,14 @@
 #define AMREX_HYPRE_H_
 #include <AMReX_Config.H>
 
-#include <memory>
-
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_BndryData.H>
 
 #include "HYPRE.h"
 #include "_hypre_utilities.h"
+
+#include <memory>
 
 namespace amrex
 {
@@ -19,7 +19,7 @@ class Hypre
 public:
 
     enum class Interface : int { structed, semi_structed, ij };
-    
+
     Hypre (const BoxArray& grids,
            const DistributionMapping& dmap,
            const Geometry& geom,
@@ -32,7 +32,7 @@ public:
     void setBCoeffs (const Array<const MultiFab*,BL_SPACEDIM>& beta);
     void setVerbose (int _verbose);
     void setIsMatrixSingular(bool flag) { is_matrix_singular = flag; }
-    virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
+    virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
                         int max_iter, const BndryData& bndry, int max_bndry_order) = 0;
 
     static HYPRE_Int ispow2 (HYPRE_Int i)
@@ -67,7 +67,7 @@ public:
     static constexpr HYPRE_Int eb_stencil_size = AMREX_D_TERM(3, *3, *3);
 
 protected:
-    
+
     MPI_Comm comm = MPI_COMM_NULL;
     Geometry geom;
 
@@ -85,7 +85,7 @@ protected:
     Real scalar_a, scalar_b;
 
     MultiFab diaginv;
-    
+
     FabFactory<FArrayBox> const* m_factory = nullptr;
     BndryData const* m_bndry = nullptr;
     int m_maxorder = -1;

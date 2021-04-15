@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
             fused_test(mfa,mfb,mfc);
         }
         r = r && verify(mfc);
-        
+
         {
             BL_PROFILE("fused-test2");
             Real t = amrex::second();

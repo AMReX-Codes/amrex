@@ -55,6 +55,15 @@ target_sources(amrex
    Projections/AMReX_NodalProjector.cpp
    )
 
+if (AMReX_SPACEDIM EQUAL 3)
+   target_sources(amrex
+      PRIVATE
+      MLMG/AMReX_MLMG_2D_K.H
+      MLMG/AMReX_MLPoisson_2D_K.H
+      MLMG/AMReX_MLALap_2D_K.H
+      )
+endif ()
+
 if (AMReX_EB)
    target_sources(amrex
       PRIVATE

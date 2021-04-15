@@ -1,14 +1,4 @@
 
-#include <cstdio>
-#include <cstddef>
-#include <cstdlib>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <stack>
-#include <list>
-#include <chrono>
-
 #include <AMReX.H>
 #include <AMReX_Utility.H>
 #include <AMReX_BLProfiler.H>
@@ -34,6 +24,16 @@
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
+
+#include <cstdio>
+#include <cstddef>
+#include <cstdlib>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <stack>
+#include <list>
+#include <chrono>
 
 #ifdef BL_USE_MPI
 namespace
@@ -176,19 +176,19 @@ namespace
                         const char* call,
                         int         status)
     {
-	constexpr int N = 1024;
-	static char buf[N];
-	if ( status )
-	{
-	    snprintf(buf, N, "AMReX MPI Error: File %s, line %d, %s: %s",
+        constexpr int N = 1024;
+        static char buf[N];
+        if ( status )
+        {
+            snprintf(buf, N, "AMReX MPI Error: File %s, line %d, %s: %s",
                      file, line, call, ParallelDescriptor::ErrorString(status));
-	}
-	else
-	{
-	    snprintf(buf, N, "AMReX MPI Error: File %s, line %d, %s",
+        }
+        else
+        {
+            snprintf(buf, N, "AMReX MPI Error: File %s, line %d, %s",
                      file, line, call);
-	}
-	return buf;
+        }
+        return buf;
     }
 
 }
@@ -203,9 +203,9 @@ void
 Abort (int errorcode, bool backtrace)
 {
     if (backtrace && amrex::system::signal_handling) {
-	BLBackTrace::handler(errorcode);
+        BLBackTrace::handler(errorcode);
     } else {
-	MPI_Abort(Communicator(), errorcode);
+        MPI_Abort(Communicator(), errorcode);
     }
 }
 
@@ -284,7 +284,7 @@ StartParallel (int* argc, char*** argv, MPI_Comm a_mpi_comm)
         int provided = -1;
 
         MPI_Init_thread(argc, argv, requested, &provided);
-#else // 
+#else //
         MPI_Init(argc, argv);
 #endif
 
@@ -407,7 +407,7 @@ Barrier (const MPI_Comm &comm, const std::string &message)
     int r;
     MPI_Comm_compare(comm, Communicator(), &r);
     if (r == MPI_IDENT)
-	Lazy::EvalReduction();
+        Lazy::EvalReduction();
 #endif
 
     BL_PROFILE_S("ParallelDescriptor::Barrier(comm)");
@@ -434,7 +434,7 @@ Abarrier (const MPI_Comm & comm)
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Ibarrier(comm, &req) );
 
-    return Message(req, MPI_DATATYPE_NULL);   
+    return Message(req, MPI_DATATYPE_NULL);
 }
 
 
@@ -1064,7 +1064,7 @@ Bcast(void *buf, int count, MPI_Datatype datatype, int root, MPI_Comm comm)
     int r;
     MPI_Comm_compare(comm, Communicator(), &r);
     if (r == MPI_IDENT)
-	Lazy::EvalReduction();
+        Lazy::EvalReduction();
 #endif
 
     BL_PROFILE_S("ParallelDescriptor::Bcast(viMiM)");
@@ -1124,9 +1124,9 @@ void
 Abort (int s, bool backtrace)
 {
     if (backtrace && amrex::system::signal_handling) {
-	BLBackTrace::handler(s);
+        BLBackTrace::handler(s);
     } else {
-	std::_Exit(EXIT_FAILURE);
+        std::_Exit(EXIT_FAILURE);
     }
 }
 
@@ -1310,15 +1310,15 @@ BL_FORT_PROC_DECL(BL_PD_ABORT,bl_pd_abort)()
 #if defined(BL_USE_MPI) && !defined(BL_AMRPROF)
 template <> MPI_Datatype Mpi_typemap<IntVect>::type()
 {
-    static_assert(AMREX_IS_TRIVIALLY_COPYABLE(IntVect), "IntVect must be trivially copyable");
+    static_assert(std::is_trivially_copyable<IntVect>::value, "IntVect must be trivially copyable");
     static_assert(std::is_standard_layout<IntVect>::value, "IntVect must be standard layout");
 
     if ( mpi_type_intvect == MPI_DATATYPE_NULL )
     {
-	MPI_Datatype types[] = { MPI_INT };
-	int blocklens[] = { AMREX_SPACEDIM };
-	MPI_Aint disp[] = { 0 };
-	BL_MPI_REQUIRE( MPI_Type_create_struct(1, blocklens, disp, types, &mpi_type_intvect) );
+        MPI_Datatype types[] = { MPI_INT };
+        int blocklens[] = { AMREX_SPACEDIM };
+        MPI_Aint disp[] = { 0 };
+        BL_MPI_REQUIRE( MPI_Type_create_struct(1, blocklens, disp, types, &mpi_type_intvect) );
         MPI_Aint lb, extent;
         BL_MPI_REQUIRE( MPI_Type_get_extent(mpi_type_intvect, &lb, &extent) );
         if (extent != sizeof(IntVect)) {
@@ -1326,21 +1326,21 @@ template <> MPI_Datatype Mpi_typemap<IntVect>::type()
             BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(IntVect), &mpi_type_intvect) );
             BL_MPI_REQUIRE( MPI_Type_free(&tmp) );
         }
-	BL_MPI_REQUIRE( MPI_Type_commit( &mpi_type_intvect ) );
+        BL_MPI_REQUIRE( MPI_Type_commit( &mpi_type_intvect ) );
     }
     return mpi_type_intvect;
 }
 
 template <> MPI_Datatype Mpi_typemap<IndexType>::type()
 {
-    static_assert(AMREX_IS_TRIVIALLY_COPYABLE(IndexType), "IndexType must be trivially copyable");
+    static_assert(std::is_trivially_copyable<IndexType>::value, "IndexType must be trivially copyable");
     static_assert(std::is_standard_layout<IndexType>::value, "IndexType must be standard layout");
 
     if ( mpi_type_indextype == MPI_DATATYPE_NULL )
     {
-	MPI_Datatype types[] = { MPI_UNSIGNED };
-	int blocklens[] = { 1 };
-	MPI_Aint disp[] = { 0 };
+        MPI_Datatype types[] = { MPI_UNSIGNED };
+        int blocklens[] = { 1 };
+        MPI_Aint disp[] = { 0 };
         BL_MPI_REQUIRE( MPI_Type_create_struct(1, blocklens, disp, types, &mpi_type_indextype) );
         MPI_Aint lb, extent;
         BL_MPI_REQUIRE( MPI_Type_get_extent(mpi_type_indextype, &lb, &extent) );
@@ -1349,29 +1349,29 @@ template <> MPI_Datatype Mpi_typemap<IndexType>::type()
             BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(IndexType), &mpi_type_indextype) );
             BL_MPI_REQUIRE( MPI_Type_free(&tmp) );
         }
-	BL_MPI_REQUIRE( MPI_Type_commit( &mpi_type_indextype ) );
+        BL_MPI_REQUIRE( MPI_Type_commit( &mpi_type_indextype ) );
     }
     return mpi_type_indextype;
 }
 
 template <> MPI_Datatype Mpi_typemap<Box>::type()
 {
-    static_assert(AMREX_IS_TRIVIALLY_COPYABLE(Box), "Box must be trivially copyable");
+    static_assert(std::is_trivially_copyable<Box>::value, "Box must be trivially copyable");
     static_assert(std::is_standard_layout<Box>::value, "Box must be standard layout");
 
     if ( mpi_type_box == MPI_DATATYPE_NULL )
     {
-	Box bx[2];
-	MPI_Datatype types[] = {
-	    Mpi_typemap<IntVect>::type(),
-	    Mpi_typemap<IntVect>::type(),
-	    Mpi_typemap<IndexType>::type(),
+        Box bx[2];
+        MPI_Datatype types[] = {
+            Mpi_typemap<IntVect>::type(),
+            Mpi_typemap<IntVect>::type(),
+            Mpi_typemap<IndexType>::type(),
         };
-	int blocklens[] = { 1, 1, 1 };
-	MPI_Aint disp[3];
-	BL_MPI_REQUIRE( MPI_Get_address(&bx[0].smallend, &disp[0]) );
-	BL_MPI_REQUIRE( MPI_Get_address(&bx[0].bigend,   &disp[1]) );
-	BL_MPI_REQUIRE( MPI_Get_address(&bx[0].btype,    &disp[2]) );
+        int blocklens[] = { 1, 1, 1 };
+        MPI_Aint disp[3];
+        BL_MPI_REQUIRE( MPI_Get_address(&bx[0].smallend, &disp[0]) );
+        BL_MPI_REQUIRE( MPI_Get_address(&bx[0].bigend,   &disp[1]) );
+        BL_MPI_REQUIRE( MPI_Get_address(&bx[0].btype,    &disp[2]) );
         disp[2] -= disp[0];
         disp[1] -= disp[0];
         disp[0] = 0;
@@ -1383,7 +1383,7 @@ template <> MPI_Datatype Mpi_typemap<Box>::type()
             BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(bx[0]), &mpi_type_box) );
             BL_MPI_REQUIRE( MPI_Type_free(&tmp) );
         }
-	BL_MPI_REQUIRE( MPI_Type_commit( &mpi_type_box ) );
+        BL_MPI_REQUIRE( MPI_Type_commit( &mpi_type_box ) );
     }
     return mpi_type_box;
 }
@@ -1411,16 +1411,16 @@ ReadAndBcastFile (const std::string& filename, Vector<char>& charBuf,
         iss.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
         iss.open(filename.c_str(), std::ios::in);
         if ( ! iss.good()) {
-	  if(bExitOnError) {
+          if(bExitOnError) {
             amrex::FileOpenFailed(filename);
-	  } else {
+          } else {
             fileLength = -1;
-	  }
+          }
         } else {
           iss.seekg(0, std::ios::end);
           fileLength = static_cast<std::streamoff>(iss.tellg());
           iss.seekg(0, std::ios::beg);
-	}
+        }
     }
     ParallelDescriptor::Bcast(&fileLength, 1,
                               ParallelDescriptor::IOProcessorNumber(), comm);
@@ -1477,7 +1477,7 @@ StartTeams ()
     int rank   = ParallelDescriptor::MyProc();
 
     if (nprocs % team_size != 0)
-	amrex::Abort("Number of processes not divisible by team size");
+        amrex::Abort("Number of processes not divisible by team size");
 
     m_Team.m_numTeams    = nprocs / team_size;
     m_Team.m_size        = team_size;
@@ -1489,23 +1489,23 @@ StartTeams ()
 
 #if defined(BL_USE_MPI3)
     {
-	MPI_Group grp, team_grp, lead_grp;
-	BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::Communicator(), &grp) );
-	int team_ranks[team_size];
-	for (int i = 0; i < team_size; ++i) {
-	    team_ranks[i] = MyTeamLead() + i;
-	}
-	BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &team_grp) );
-	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(),
-					team_grp, &m_Team.m_team_comm) );
+        MPI_Group grp, team_grp, lead_grp;
+        BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::Communicator(), &grp) );
+        int team_ranks[team_size];
+        for (int i = 0; i < team_size; ++i) {
+            team_ranks[i] = MyTeamLead() + i;
+        }
+        BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &team_grp) );
+        BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(),
+                                        team_grp, &m_Team.m_team_comm) );
 
-	std::vector<int>lead_ranks(m_Team.m_numTeams);
-	for (int i = 0; i < lead_ranks.size(); ++i) {
-	    lead_ranks[i] = i * team_size;
-	}
-	BL_MPI_REQUIRE( MPI_Group_incl(grp, lead_ranks.size(), &lead_ranks[0], &lead_grp) );
-	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(),
-					lead_grp, &m_Team.m_lead_comm) );
+        std::vector<int>lead_ranks(m_Team.m_numTeams);
+        for (int i = 0; i < lead_ranks.size(); ++i) {
+            lead_ranks[i] = i * team_size;
+        }
+        BL_MPI_REQUIRE( MPI_Group_incl(grp, lead_ranks.size(), &lead_ranks[0], &lead_grp) );
+        BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(),
+                                        lead_grp, &m_Team.m_lead_comm) );
 
         BL_MPI_REQUIRE( MPI_Group_free(&grp) );
         BL_MPI_REQUIRE( MPI_Group_free(&team_grp) );

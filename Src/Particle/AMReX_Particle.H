@@ -2,15 +2,14 @@
 #define AMREX_PARTICLE_H_
 #include <AMReX_Config.H>
 
-#include <string>
-
 #include <AMReX_REAL.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_RealVect.H>
-
 #include <AMReX_ParmParse.H>
 #include <AMReX_Geometry.H>
+
+#include <string>
 
 namespace amrex {
 
@@ -243,18 +242,20 @@ struct Particle
     }
 
     template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE RealType  rdata (int index) const &
+    AMREX_GPU_HOST_DEVICE const RealType& rdata (int index) const &
     {
         AMREX_ASSERT(index < NReal);
         return this->m_rdata[index];
     }
 
     template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE RealType  rdata (int /*index*/) const &
+    AMREX_GPU_HOST_DEVICE RealType rdata (int /*index*/) const &
     {
         AMREX_ALWAYS_ASSERT(false);
         return this->pos(0);  // because we must return something
     }
+
+    AMREX_GPU_HOST_DEVICE RealType rdata (int /*index*/) && = delete;
 
     template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE RealVect  rvec (AMREX_D_DECL(int indx, int indy, int indz)) const &
@@ -303,7 +304,7 @@ struct Particle
     }
 
     template <int U = T_NInt, typename std::enable_if<U != 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE int  idata (int index) const &
+    AMREX_GPU_HOST_DEVICE const int& idata (int index) const &
     {
         AMREX_ASSERT(index < NInt);
         return this->m_idata[index];
@@ -315,6 +316,8 @@ struct Particle
         AMREX_ALWAYS_ASSERT(false);
         return this->m_idcpu;  //bc we must return something
     }
+
+    AMREX_GPU_HOST_DEVICE RealType idata (int /*index*/) && = delete;
 
     /**
     * \brief Returns the next particle ID for this processor.
@@ -356,7 +359,7 @@ Particle<NReal, NInt>::NextID ()
     next = the_next_id++;
 
     if (next > LastParticleID)
-	amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
+        amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
 
     return next;
 }
@@ -367,7 +370,7 @@ Particle<NReal, NInt>::UnprotectedNextID ()
 {
     Long next = the_next_id++;
     if (next > LastParticleID)
-	amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
+        amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
     return next;
 }
 

@@ -518,7 +518,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         }
     }
 }
-  
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
                           Array4<Real> const& vel,
@@ -536,7 +536,7 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
                           Array4<Real const> const& bcvalzhi,
                           GpuArray<BoundCond,2*AMREX_SPACEDIM*AMREX_SPACEDIM> const& bct,
                           GpuArray<Real,2*AMREX_SPACEDIM*AMREX_SPACEDIM> const& bcl,
-			  int inhomog, int maxorder,
+                          int inhomog, int maxorder,
                           GpuArray<Real,AMREX_SPACEDIM> const& dxinv, Box const& domain) noexcept
 {
     constexpr int oxlo = 0;
@@ -1148,7 +1148,7 @@ void mltensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                 fz(i,j,k,2) = -mun*(-twoThirds*divu) - xif*divu;
             }
         }
-    } 
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1237,19 +1237,19 @@ void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-              
+
                 Real dudx = (vel(i,j,k,0) - vel(i-1,j,k,0))*dxi;
                 Real dvdx = (vel(i,j,k,1) - vel(i-1,j,k,1))*dxi;
                 Real dwdx = (vel(i,j,k,2) - vel(i-1,j,k,2))*dxi;
-              
+
                 Real dudy = (vel(i,j+1,k,0)+vel(i-1,j+1,k,0)-vel(i,j-1,k,0)-vel(i-1,j-1,k,0))*(Real(0.25)*dyi);
                 Real dvdy = (vel(i,j+1,k,1)+vel(i-1,j+1,k,1)-vel(i,j-1,k,1)-vel(i-1,j-1,k,1))*(Real(0.25)*dyi);
                 Real dwdy = (vel(i,j+1,k,2)+vel(i-1,j+1,k,2)-vel(i,j-1,k,2)-vel(i-1,j-1,k,2))*(Real(0.25)*dyi);
-                
+
                 Real dudz = (vel(i,j,k+1,0)+vel(i-1,j,k+1,0)-vel(i,j,k-1,0)-vel(i-1,j,k-1,0))*(Real(0.25)*dzi);
                 Real dvdz = (vel(i,j,k+1,1)+vel(i-1,j,k+1,1)-vel(i,j,k-1,1)-vel(i-1,j,k-1,1))*(Real(0.25)*dzi);
                 Real dwdz = (vel(i,j,k+1,2)+vel(i-1,j,k+1,2)-vel(i,j,k-1,2)-vel(i-1,j,k-1,2))*(Real(0.25)*dzi);
-                
+
                 fx(i,j,k,0) = dudx;
                 fx(i,j,k,1) = dvdx;
                 fx(i,j,k,2) = dwdx;
@@ -1259,7 +1259,7 @@ void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
                 fx(i,j,k,6) = dudz;
                 fx(i,j,k,7) = dvdz;
                 fx(i,j,k,8) = dwdz;
-                
+
             }
         }
     }
@@ -1280,19 +1280,19 @@ void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-              
+
                 Real dudx = (vel(i+1,j,k,0)+vel(i+1,j-1,k,0)-vel(i-1,j,k,0)-vel(i-1,j-1,k,0))*(Real(0.25)*dxi);
                 Real dvdx = (vel(i+1,j,k,1)+vel(i+1,j-1,k,1)-vel(i-1,j,k,1)-vel(i-1,j-1,k,1))*(Real(0.25)*dxi);
                 Real dwdx = (vel(i+1,j,k,2)+vel(i+1,j-1,k,2)-vel(i-1,j,k,2)-vel(i-1,j-1,k,2))*(Real(0.25)*dxi);
-                
+
                 Real dudy = (vel(i,j,k,0) - vel(i,j-1,k,0))*dyi;
                 Real dvdy = (vel(i,j,k,1) - vel(i,j-1,k,1))*dyi;
                 Real dwdy = (vel(i,j,k,2) - vel(i,j-1,k,2))*dyi;
-                
+
                 Real dudz = (vel(i,j,k+1,0)+vel(i,j-1,k+1,0)-vel(i,j,k-1,0)-vel(i,j-1,k-1,0))*(Real(0.25)*dzi);
                 Real dvdz = (vel(i,j,k+1,1)+vel(i,j-1,k+1,1)-vel(i,j,k-1,1)-vel(i,j-1,k-1,1))*(Real(0.25)*dzi);
                 Real dwdz = (vel(i,j,k+1,2)+vel(i,j-1,k+1,2)-vel(i,j,k-1,2)-vel(i,j-1,k-1,2))*(Real(0.25)*dzi);
-                
+
                 fy(i,j,k,0) = dudx;
                 fy(i,j,k,1) = dvdx;
                 fy(i,j,k,2) = dwdx;
@@ -1323,19 +1323,19 @@ void mltensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-              
+
                 Real dudx = (vel(i+1,j,k,0)+vel(i+1,j,k-1,0)-vel(i-1,j,k,0)-vel(i-1,j,k-1,0))*(Real(0.25)*dxi);
                 Real dvdx = (vel(i+1,j,k,1)+vel(i+1,j,k-1,1)-vel(i-1,j,k,1)-vel(i-1,j,k-1,1))*(Real(0.25)*dxi);
                 Real dwdx = (vel(i+1,j,k,2)+vel(i+1,j,k-1,2)-vel(i-1,j,k,2)-vel(i-1,j,k-1,2))*(Real(0.25)*dxi);
-                
+
                 Real dudy = (vel(i,j+1,k,0)+vel(i,j+1,k-1,0)-vel(i,j-1,k,0)-vel(i,j-1,k-1,0))*(Real(0.25)*dyi);
                 Real dvdy = (vel(i,j+1,k,1)+vel(i,j+1,k-1,1)-vel(i,j-1,k,1)-vel(i,j-1,k-1,1))*(Real(0.25)*dyi);
                 Real dwdy = (vel(i,j+1,k,2)+vel(i,j+1,k-1,2)-vel(i,j-1,k,2)-vel(i,j-1,k-1,2))*(Real(0.25)*dyi);
-                
+
                 Real dudz = (vel(i,j,k,0) - vel(i,j,k-1,0))*dzi;
                 Real dvdz = (vel(i,j,k,1) - vel(i,j,k-1,1))*dzi;
                 Real dwdz = (vel(i,j,k,2) - vel(i,j,k-1,2))*dzi;
-                
+
                 fz(i,j,k,0) = dudx;
                 fz(i,j,k,1) = dvdx;
                 fz(i,j,k,2) = dwdx;
@@ -1348,7 +1348,7 @@ void mltensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
 
             }
         }
-    } 
+    }
 }
 
 }

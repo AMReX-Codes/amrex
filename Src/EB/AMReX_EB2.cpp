@@ -15,10 +15,10 @@
 
 namespace amrex { namespace EB2 {
 
-Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
+AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 
-int max_grid_size = 64;
-bool extend_domain_face = true;
+AMREX_EXPORT int max_grid_size = 64;
+AMREX_EXPORT bool extend_domain_face = true;
 
 void Initialize ()
 {

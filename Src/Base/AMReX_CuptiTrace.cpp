@@ -57,18 +57,17 @@ bfrRequestCallback (uint8_t* *bfr, size_t* size, size_t* maxNumRecords) noexcept
 void CUPTIAPI
 bfrCompleteCallback (CUcontext ctx, uint32_t streamId, uint8_t* bfr,
                      size_t size, size_t validSize) noexcept
-{ 
+{
     CUptiResult status;
     CUpti_Activity* record = NULL;
-    
+
     if (validSize > 0) {
         do {
             status = cuptiActivityGetNextRecord(bfr, validSize, &record);
             if (status == CUPTI_SUCCESS) {
-                std::unique_ptr<CUpti_Activity_Userdata> recordUserData;
-                recordUserData.reset(new CUpti_Activity_Userdata());
+                auto recordUserData = std::make_unique<CUpti_Activity_Userdata>();
                 CUpti_ActivityKernel4* kernel = (CUpti_ActivityKernel4*) record;
-                
+
                 // Save record data
                 recordUserData->setStartTime(kernel->start);
                 recordUserData->setEndTime(kernel->end);
@@ -112,12 +111,12 @@ initCuptiTrace () noexcept
         amrex::Print() << "CUPTI initialized\n";
     }
 }
-    
+
 void
 cuptiTraceStart () noexcept
 {
     cudaDeviceSynchronize();
-    cuptiActivityFlushAll(0);  
+    cuptiActivityFlushAll(0);
     activityRecordUserdata.clear();
 }
 
@@ -146,9 +145,9 @@ computeElapsedTimeUserdata (const std::vector<std::unique_ptr<CUpti_Activity_Use
     if (activityRecordUserdata.size() == 0) {
         return 0.0;
     }
-  
+
     std::map<int, unsigned long long> streamIDToElapsedTimeMap;
-    
+
     // Initialize tally of unique streams
     for (auto& record : activityRecordUserdata) {
         if (streamIDToElapsedTimeMap.find(record->getStreamID())
@@ -169,14 +168,14 @@ computeElapsedTimeUserdata (const std::vector<std::unique_ptr<CUpti_Activity_Use
     unsigned long long res = 0;
     for (auto const& kv : streamIDToElapsedTimeMap) {
         res += kv.second;
-    }  
+    }
 
     // Average time per kernel
     res /= (1.*activityRecordUserdata.size());
 
     // Alternative: average time per stream
     //res /= streamIDToElapsedTimeMap.size();
-  
+
     // Default is ns, convert to sec
     return (double) res*1e-9;
 }
@@ -219,7 +218,7 @@ CUpti_Activity_Userdata::setName (std::string name) noexcept
 
 unsigned
 CUpti_Activity_Userdata::getUintID () const noexcept
-{ 
+{
     return uintID_;
 }
 
@@ -231,7 +230,7 @@ CUpti_Activity_Userdata::setCharID (std::string charID) noexcept
 
 std::string const&
 CUpti_Activity_Userdata::getCharID () const noexcept
-{ 
+{
     return charID_;
 }
 
@@ -264,7 +263,7 @@ CUpti_Activity_Userdata::getName () const noexcept
 {
     return name_;
 }
-  
+
 CuptiTrace::CuptiTrace () noexcept
 {
 }
@@ -272,7 +271,7 @@ CuptiTrace::CuptiTrace () noexcept
 CuptiTrace::~CuptiTrace () noexcept
 {
 }
- 
+
 void
 CuptiTrace::start () noexcept
 {

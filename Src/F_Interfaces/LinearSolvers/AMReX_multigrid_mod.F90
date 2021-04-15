@@ -60,7 +60,7 @@ module amrex_multigrid_module
        type(c_ptr), intent(inout) :: mg
        type(c_ptr), value :: linop
      end subroutine amrex_fi_new_multigrid
-  
+
      subroutine amrex_fi_delete_multigrid (mg) bind(c)
        import
        implicit none
@@ -247,7 +247,7 @@ contains
     call amrex_fi_multigrid_comp_residual(mg%p, pres, psol, prhs)
   end subroutine amrex_multigrid_comp_residual
 
-  
+
   subroutine amrex_multigrid_set_verbose (mg, v)
     class(amrex_multigrid), intent(inout) :: mg
     integer, intent(in) :: v

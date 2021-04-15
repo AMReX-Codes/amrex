@@ -208,7 +208,7 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
         if (!fine_covered_grids.empty())
         {
             const std::vector<IntVect>& pshifts = fine_period.shiftIntVect();
-            
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -414,6 +414,7 @@ Level::buildCellFlag ()
                      auto const& apz = m_areafrac[2].const_array(mfi););
         AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
         {
+            amrex::ignore_unused(k);
             build_cellflag_from_ap(AMREX_D_DECL(i,j,k),
                                    cflag, AMREX_D_DECL(apx,apy,apz));
         });

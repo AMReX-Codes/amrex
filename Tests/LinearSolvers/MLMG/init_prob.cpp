@@ -26,7 +26,7 @@ void init_prob_parms ()
     pp.query("b"    , b);
     pp.query("sigma", sigma);
     pp.query("w"    , w);
-    
+
     std::string bc_type_s;
     pp.query("bc_type", bc_type_s);
     if (bc_type_s == "Dirichlet") {

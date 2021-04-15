@@ -1,11 +1,4 @@
 
-#include <algorithm>
-#include <cfloat>
-#include <iostream>
-#include <iomanip>
-#include <map>
-#include <limits>
-
 #include <AMReX_BLassert.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -21,6 +14,13 @@
 #include <AMReX_EBMultiFabUtil.H>
 #endif
 
+#include <algorithm>
+#include <cfloat>
+#include <iostream>
+#include <iomanip>
+#include <map>
+#include <limits>
+
 namespace amrex {
 
 namespace
@@ -34,8 +34,8 @@ namespace
 
 Real
 MultiFab::Dot (const MultiFab& x, int xcomp,
-	       const MultiFab& y, int ycomp,
-	       int numcomp, int nghost, bool local)
+               const MultiFab& y, int ycomp,
+               int numcomp, int nghost, bool local)
 {
     BL_ASSERT(x.boxArray() == y.boxArray());
     BL_ASSERT(x.DistributionMap() == y.DistributionMap());
@@ -82,7 +82,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
 Real
 MultiFab::Dot (const MultiFab& x, int xcomp, int numcomp, int nghost, bool local)
 {
-    BL_ASSERT(x.nGrow() >= nghost); 
+    BL_ASSERT(x.nGrow() >= nghost);
 
     Real sm = amrex::ReduceSum(x, nghost,
     [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& xfab) -> Real
@@ -105,8 +105,8 @@ MultiFab::Dot (const MultiFab& x, int xcomp, int numcomp, int nghost, bool local
 Real
 MultiFab::Dot (const iMultiFab& mask,
                const MultiFab& x, int xcomp,
-	       const MultiFab& y, int ycomp,
-	       int numcomp, int nghost, bool local)
+               const MultiFab& y, int ycomp,
+               int numcomp, int nghost, bool local)
 {
     BL_ASSERT(x.boxArray() == y.boxArray());
     BL_ASSERT(x.boxArray() == mask.boxArray());
@@ -171,7 +171,7 @@ MultiFab::Copy (MultiFab& dst, const MultiFab& src,
     BL_ASSERT(dst.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::Copy()");
-    
+
     amrex::Copy(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
@@ -240,7 +240,7 @@ MultiFab::Subtract (MultiFab& dst, const MultiFab& src,
 
 void
 MultiFab::Subtract (MultiFab& dst, const MultiFab& src,
-		    int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+                    int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
@@ -253,14 +253,14 @@ MultiFab::Subtract (MultiFab& dst, const MultiFab& src,
 
 void
 MultiFab::Multiply (MultiFab& dst, const MultiFab& src,
-		    int srccomp, int dstcomp, int numcomp, int nghost)
+                    int srccomp, int dstcomp, int numcomp, int nghost)
 {
     Multiply(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
 void
 MultiFab::Multiply (MultiFab& dst, const MultiFab& src,
-		    int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+                    int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
@@ -273,14 +273,14 @@ MultiFab::Multiply (MultiFab& dst, const MultiFab& src,
 
 void
 MultiFab::Divide (MultiFab& dst, const MultiFab& src,
-		  int srccomp, int dstcomp, int numcomp, int nghost)
+                  int srccomp, int dstcomp, int numcomp, int nghost)
 {
     Divide(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
 void
 MultiFab::Divide (MultiFab& dst, const MultiFab& src,
-		  int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+                  int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
@@ -293,14 +293,14 @@ MultiFab::Divide (MultiFab& dst, const MultiFab& src,
 
 void
 MultiFab::Saxpy (MultiFab& dst, Real a, const MultiFab& src,
-		 int srccomp, int dstcomp, int numcomp, int nghost)
+                 int srccomp, int dstcomp, int numcomp, int nghost)
 {
     Saxpy(dst,a,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
 void
 MultiFab::Saxpy (MultiFab& dst, Real a, const MultiFab& src,
-		 int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+                 int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
@@ -328,14 +328,14 @@ MultiFab::Saxpy (MultiFab& dst, Real a, const MultiFab& src,
 
 void
 MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
-		int srccomp, int dstcomp, int numcomp, int nghost)
+                int srccomp, int dstcomp, int numcomp, int nghost)
 {
     Xpay(dst,a,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
 void
 MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
-		int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+                int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
@@ -389,7 +389,7 @@ MultiFab::LinComb (MultiFab& dst,
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-	
+
         if (bx.ok()) {
             auto const xfab =   x.array(mfi);
             auto const yfab =   y.array(mfi);
@@ -501,9 +501,9 @@ MultiFab::Initialize ()
 
 #ifdef AMREX_MEM_PROFILING
     MemProfiler::add("MultiFab", std::function<MemProfiler::NBuildsInfo()>
-		     ([] () -> MemProfiler::NBuildsInfo {
-			 return {num_multifabs, num_multifabs_hwm};
-		     }));
+                     ([] () -> MemProfiler::NBuildsInfo {
+                         return {num_multifabs, num_multifabs_hwm};
+                     }));
 #endif
 }
 
@@ -525,7 +525,7 @@ MultiFab::MultiFab (const BoxArray&            bxs,
                     const DistributionMapping& dm,
                     int                        ncomp,
                     int                        ngrow,
-		    const MFInfo&              info,
+                    const MFInfo&              info,
                     const FabFactory<FArrayBox>& factory)
     : MultiFab(bxs,dm,ncomp,IntVect(ngrow),info,factory)
 {}
@@ -534,7 +534,7 @@ MultiFab::MultiFab (const BoxArray&            bxs,
                     const DistributionMapping& dm,
                     int                        ncomp,
                     const IntVect&             ngrow,
-		    const MFInfo&              info,
+                    const MFInfo&              info,
                     const FabFactory<FArrayBox>& factory)
     :
     FabArray<FArrayBox>(bxs,dm,ncomp,ngrow,info,factory)
@@ -583,7 +583,7 @@ MultiFab::define (const BoxArray&            bxs,
                   const DistributionMapping& dm,
                   int                        nvar,
                   int                        ngrow,
-		  const MFInfo&              info,
+                  const MFInfo&              info,
                   const FabFactory<FArrayBox>& factory)
 {
     define(bxs, dm, nvar, IntVect(ngrow), info, factory);
@@ -595,7 +595,7 @@ MultiFab::define (const BoxArray&            bxs,
                   const DistributionMapping& dm,
                   int                        nvar,
                   const IntVect&             ngrow,
-		  const MFInfo&              info,
+                  const MFInfo&              info,
                   const FabFactory<FArrayBox>& factory)
 {
     this->FabArray<FArrayBox>::define(bxs,dm,nvar,ngrow,info,factory);
@@ -611,11 +611,11 @@ MultiFab::initVal ()
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         FArrayBox& fab = (*this)[mfi];
-	fab.initVal();
+        fab.initVal();
     }
 }
 
-bool 
+bool
 MultiFab::contains_nan (int scomp,
                         int ncomp,
                         int ngrow,
@@ -624,7 +624,7 @@ MultiFab::contains_nan (int scomp,
     return contains_nan(scomp, ncomp, IntVect(ngrow), local);
 }
 
-bool 
+bool
 MultiFab::contains_nan (int scomp,
                         int ncomp,
                         const IntVect& ngrow,
@@ -652,7 +652,7 @@ MultiFab::contains_nan (int scomp,
     return r;
 }
 
-bool 
+bool
 MultiFab::contains_nan (bool local) const
 {
     return contains_nan(0,nComp(),nGrowVect(),local);
@@ -677,18 +677,18 @@ MultiFab::contains_inf (int scomp, int ncomp, IntVect const& ngrow, bool local) 
     });
 
     if (!local)
-	ParallelAllReduce::Or(r, ParallelContext::CommunicatorSub());
+        ParallelAllReduce::Or(r, ParallelContext::CommunicatorSub());
 
     return r;
 }
 
-bool 
+bool
 MultiFab::contains_inf (int scomp, int ncomp, int ngrow, bool local) const
 {
     return contains_inf(scomp,ncomp,IntVect(ngrow),local);
 }
 
-bool 
+bool
 MultiFab::contains_inf (bool local) const
 {
     return contains_inf(0,nComp(),nGrow(),local);
@@ -734,7 +734,7 @@ MultiFab::min (int comp, int nghost, bool local) const
     }
 
     if (!local)
-	ParallelAllReduce::Min(mn, ParallelContext::CommunicatorSub());
+        ParallelAllReduce::Min(mn, ParallelContext::CommunicatorSub());
 
     return mn;
 }
@@ -757,7 +757,7 @@ MultiFab::min (const Box& region, int comp, int nghost, bool local) const
     });
 
     if (!local)
-	ParallelAllReduce::Min(mn, ParallelContext::CommunicatorSub());
+        ParallelAllReduce::Min(mn, ParallelContext::CommunicatorSub());
 
     return mn;
 
@@ -803,7 +803,7 @@ MultiFab::max (int comp, int nghost, bool local) const
     }
 
     if (!local)
-	ParallelAllReduce::Max(mx, ParallelContext::CommunicatorSub());
+        ParallelAllReduce::Max(mx, ParallelContext::CommunicatorSub());
 
     return mx;
 }
@@ -826,7 +826,7 @@ MultiFab::max (const Box& region, int comp, int nghost, bool local) const
     });
 
     if (!local)
-	ParallelAllReduce::Max(mx, ParallelContext::CommunicatorSub());
+        ParallelAllReduce::Max(mx, ParallelContext::CommunicatorSub());
 
     return mx;
 }
@@ -894,7 +894,7 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
         return r;
     });
 
-    if (!local)	ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
+    if (!local)        ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
 
     return nm0;
 }
@@ -939,7 +939,7 @@ MultiFab::norm0 (int comp, int nghost, bool local, bool ignore_covered ) const
 
     }
     if (!local)
-	ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
+        ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
 
     return nm0;
 }
@@ -956,7 +956,7 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local, bool ignore_c
     }
 
     if (!local)
-	ParallelAllReduce::Max(nm0.dataPtr(), n, ParallelContext::CommunicatorSub());
+        ParallelAllReduce::Max(nm0.dataPtr(), n, ParallelContext::CommunicatorSub());
 
     return nm0;
 }
@@ -1045,7 +1045,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
     });
 
     if (!local)
-	ParallelAllReduce::Sum(nm1, ParallelContext::CommunicatorSub());
+        ParallelAllReduce::Sum(nm1, ParallelContext::CommunicatorSub());
 
     return nm1;
 }
@@ -1064,7 +1064,7 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
     }
 
     if (!local)
-	ParallelAllReduce::Sum(nm1.dataPtr(), n, ParallelContext::CommunicatorSub());
+        ParallelAllReduce::Sum(nm1.dataPtr(), n, ParallelContext::CommunicatorSub());
 
     return nm1;
 }
@@ -1220,7 +1220,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
     const BoxArray& ba = boxArray();
     const DistributionMapping& dm = DistributionMap();
 
-    std::unique_ptr<MultiFab> p{new MultiFab(ba,dm,1,0, MFInfo(), Factory())};
+    auto p = std::make_unique<MultiFab>(ba,dm,1,0, MFInfo(), Factory());
 
     const std::vector<IntVect>& pshifts = period.shiftIntVect();
 
@@ -1232,7 +1232,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
-        
+
         for (MFIter mfi(*p); mfi.isValid(); ++mfi)
         {
             const Box& bx = (*p)[mfi].box();
@@ -1297,13 +1297,13 @@ MultiFab::WeightedSync (const MultiFab& wgt, const Periodicity& period)
     BL_PROFILE("MultiFab::WeightedSync()");
 
     if (ixType().cellCentered()) return;
-    
+
     const int ncomp = nComp();
     for (int comp = 0; comp < ncomp; ++comp)
     {
         MultiFab::Multiply(*this, wgt, 0, comp, 1, 0);
     }
-    
+
     MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0, MFInfo(), Factory());
     tmpmf.setVal(0.0);
     tmpmf.ParallelCopy(*this, period, FabArrayBase::ADD);

@@ -49,7 +49,7 @@ MLCellLinOp::defineAuxData ()
                                               1, 0, 0, ncomp);
         }
     }
-    
+
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_maskvals[amrlev].resize(m_num_mg_levels[amrlev]);
@@ -95,10 +95,12 @@ MLCellLinOp::defineBC ()
     m_bndry_cor.resize(m_num_amr_levels);
     m_crse_cor_br.resize(m_num_amr_levels);
 
+    m_robin_bcval.resize(m_num_amr_levels);
+
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        m_bndry_sol[amrlev].reset(new MLMGBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
-                                                ncomp, m_geom[amrlev][0]));
+        m_bndry_sol[amrlev] = std::make_unique<MLMGBndry>(m_grids[amrlev][0], m_dmap[amrlev][0],
+                                                          ncomp, m_geom[amrlev][0]);
     }
 
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
@@ -109,8 +111,8 @@ MLCellLinOp::defineBC ()
         const int crse_ratio = m_amr_ref_ratio[amrlev-1];
         BoxArray cba = m_grids[amrlev][0];
         cba.coarsen(crse_ratio);
-        m_crse_sol_br[amrlev].reset(new BndryRegister(cba, m_dmap[amrlev][0],
-                                                      in_rad, out_rad, extent_rad, ncomp));
+        m_crse_sol_br[amrlev] = std::make_unique<BndryRegister>
+            (cba, m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
     }
 
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
@@ -121,16 +123,16 @@ MLCellLinOp::defineBC ()
         const int crse_ratio = m_amr_ref_ratio[amrlev-1];
         BoxArray cba = m_grids[amrlev][0];
         cba.coarsen(crse_ratio);
-        m_crse_cor_br[amrlev].reset(new BndryRegister(cba, m_dmap[amrlev][0],
-                                                      in_rad, out_rad, extent_rad, ncomp));
+        m_crse_cor_br[amrlev] = std::make_unique<BndryRegister>
+            (cba, m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
         m_crse_cor_br[amrlev]->setVal(0.0);
     }
 
     // This has be to done after m_crse_cor_br is defined.
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
     {
-        m_bndry_cor[amrlev].reset(new MLMGBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
-                                                ncomp, m_geom[amrlev][0]));
+        m_bndry_cor[amrlev] = std::make_unique<MLMGBndry>(m_grids[amrlev][0], m_dmap[amrlev][0],
+                                                          ncomp, m_geom[amrlev][0]);
         MultiFab bc_data(m_grids[amrlev][0], m_dmap[amrlev][0], ncomp, 1);
         bc_data.setVal(0.0);
 
@@ -150,15 +152,16 @@ MLCellLinOp::defineBC ()
         m_bcondloc[amrlev].resize(m_num_mg_levels[amrlev]);
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
-            m_bcondloc[amrlev][mglev].reset(new BndryCondLoc(m_grids[amrlev][mglev],
-                                                             m_dmap[amrlev][mglev],
-                                                             ncomp));
-        } 
+            m_bcondloc[amrlev][mglev] = std::make_unique<BndryCondLoc>(m_grids[amrlev][mglev],
+                                                                       m_dmap[amrlev][mglev],
+                                                                       ncomp);
+        }
     }
 }
 
 void
-MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
+MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata, const MultiFab* robinbc_a,
+                         const MultiFab* robinbc_b, const MultiFab* robinbc_f)
 {
     BL_PROFILE("MLCellLinOp::setLevelBC()");
 
@@ -167,11 +170,13 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
     const int ncomp = getNComp();
 
     MultiFab zero;
+    IntVect ng(1);
+    if (hasHiddenDimension()) ng[hiddenDirection()] = 0;
     if (a_levelbcdata == nullptr) {
-        zero.define(m_grids[amrlev][0], m_dmap[amrlev][0], ncomp, 1);
+        zero.define(m_grids[amrlev][0], m_dmap[amrlev][0], ncomp, ng);
         zero.setVal(0.0);
     } else {
-        AMREX_ALWAYS_ASSERT(a_levelbcdata->nGrowVect().allGE(IntVect(1)));
+        AMREX_ALWAYS_ASSERT(a_levelbcdata->nGrowVect().allGE(ng));
     }
     const MultiFab& bcdata = (a_levelbcdata == nullptr) ? zero : *a_levelbcdata;
 
@@ -181,6 +186,7 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
     {
         if (needsCoarseDataForBC())
         {
+            AMREX_ALWAYS_ASSERT(!hasHiddenDimension());
             br_ref_ratio = m_coarse_data_crse_ratio > 0 ? m_coarse_data_crse_ratio : 2;
             if (m_crse_sol_br[amrlev] == nullptr && br_ref_ratio > 0)
             {
@@ -190,9 +196,8 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
                 const int crse_ratio = br_ref_ratio;
                 BoxArray cba = m_grids[amrlev][0];
                 cba.coarsen(crse_ratio);
-                m_crse_sol_br[amrlev].reset(new BndryRegister(cba, m_dmap[amrlev][0],
-                                                              in_rad, out_rad,
-                                                              extent_rad, ncomp));
+                m_crse_sol_br[amrlev] = std::make_unique<BndryRegister>
+                    (cba, m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
             }
             if (m_coarse_data_for_bc != nullptr) {
                 AMREX_ALWAYS_ASSERT(m_coarse_data_crse_ratio > 0);
@@ -229,6 +234,52 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
                                                    br_ref_ratio, m_coarse_bc_loc,
                                                    m_domain_bloc_lo, m_domain_bloc_hi);
     }
+
+    if (hasRobinBC()) {
+        AMREX_ASSERT(robinbc_a != nullptr && robinbc_b != nullptr && robinbc_f != nullptr);
+        m_robin_bcval[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0], m_dmap[amrlev][0],
+                                                           ncomp*3, 1);
+        const Box& domain = m_geom[amrlev][0].Domain();
+        MFItInfo mfi_info;
+        if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(*m_robin_bcval[amrlev], mfi_info); mfi.isValid(); ++mfi) {
+            Box const& vbx = mfi.validbox();
+            Array4<Real const> const& ra = robinbc_a->const_array(mfi);
+            Array4<Real const> const& rb = robinbc_b->const_array(mfi);
+            Array4<Real const> const& rf = robinbc_f->const_array(mfi);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const Box& blo = amrex::adjCellLo(vbx, idim);
+                const Box& bhi = amrex::adjCellHi(vbx, idim);
+                bool outside_domain_lo = !(domain.contains(blo));
+                bool outside_domain_hi = !(domain.contains(bhi));
+                if ((!outside_domain_lo) && (!outside_domain_hi)) continue;
+                for (int icomp = 0; icomp < ncomp; ++icomp) {
+                    Array4<Real> const& rbc = (*m_robin_bcval[amrlev])[mfi].array(icomp*3);
+                    if (m_lobc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_lo)
+                    {
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(blo, i, j, k,
+                        {
+                            rbc(i,j,k,0) = ra(i,j,k,icomp);
+                            rbc(i,j,k,1) = rb(i,j,k,icomp);
+                            rbc(i,j,k,2) = rf(i,j,k,icomp);
+                        });
+                    }
+                    if (m_hibc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_hi)
+                    {
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bhi, i, j, k,
+                        {
+                            rbc(i,j,k,0) = ra(i,j,k,icomp);
+                            rbc(i,j,k,1) = rb(i,j,k,icomp);
+                            rbc(i,j,k,2) = rf(i,j,k,icomp);
+                        });
+                    }
+                }
+            }
+        }
+    }
 }
 
 BoxArray
@@ -247,7 +298,7 @@ MLCellLinOp::makeNGrids (int grid_size) const
         b.refine(grid_size);
         IntVect sz = b.size();
         const IntVect nblks {AMREX_D_DECL(sz[0]/grid_size, sz[1]/grid_size, sz[2]/grid_size)};
-        
+
         IntVect big = b.smallEnd() + grid_size - 1;
         b.setBig(big);
 
@@ -321,7 +372,7 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
             int kc = amrex::coarsen(k,ratio3.z);
             ffab(i,j,k,n) += cfab(ic,jc,kc,n);
         });
-    }    
+    }
 }
 
 void
@@ -386,7 +437,7 @@ MLCellLinOp::updateCorBC (int amrlev, const MultiFab& crse_bcdata) const
 
 void
 MLCellLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                           const MultiFab* crse_bcdata)
+                               const MultiFab* crse_bcdata)
 {
     BL_PROFILE("MLCellLinOp::solutionResidual()");
     const int ncomp = getNComp();
@@ -410,7 +461,7 @@ MLCellLinOp::fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcd
     }
     const int mglev = 0;
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
-            m_bndry_sol[amrlev].get());    
+            m_bndry_sol[amrlev].get());
 }
 
 void
@@ -475,6 +526,8 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cross || tensorop || Gpu::notInLaunchRegion(),
                                      "non-cross stencil not support for gpu");
 
+    const int hidden_direction = hiddenDirection();
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -504,74 +557,84 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                     bvhi[idim] = (bndry != nullptr) ? bndry->bndryValues(ohi).array(mfi) : foo;
                 }
                 const auto len = vbx.length3d();
-                const int nthreads
+                int nthreads
                     = AMREX_D_PICK(1;,
                                    amrex::max(len[0],len[1]);,
-                                   amrex::max(len[0]*len[1],len[0]*len[2],len[1]*len[2]);)
+                                   amrex::max(len[0]*len[1],len[0]*len[2],len[1]*len[2]));
+                if (hasHiddenDimension()) {
+                    nthreads = (AMREX_SPACEDIM == 2) ? 1
+                        : amrex::max(AMREX_D_DECL(len[0],len[1],len[2]));
+                }
                 amrex::ParallelFor(Gpu::KernelInfo().setFusible(true), nthreads,
                 [=] AMREX_GPU_DEVICE (int tid) noexcept
                 {
                     int idim = 0;
-                    Box bbox = amrex::adjCellLo(vbx,idim);
-                    IntVect iv = bbox.atOffset(tid);
-                    if (bbox.contains(iv)) {
-                        const int blen = vbx.length(idim);
-                        const Box blo(iv,iv);
-                        const Box bhi = amrex::shift(blo,idim,blen+1);
-                        const int loface = Orientation(idim,Orientation::low);
-                        const int hiface = Orientation(idim,Orientation::high);
-                        for (int icomp = 0; icomp < ncomp; ++icomp) {
-                            mllinop_apply_bc_x(0, blo, blen, iofab, mlo[idim],
-                                               bctl[icomp][loface].type,
-                                               bctl[icomp][loface].location,
-                                               bvlo[idim], imaxorder, dxi, flagbc, icomp);
-                            mllinop_apply_bc_x(1, bhi, blen, iofab, mhi[idim],
-                                               bctl[icomp][hiface].type,
-                                               bctl[icomp][hiface].location,
-                                               bvhi[idim], imaxorder, dxi, flagbc, icomp);
+                    if (hidden_direction != idim) {
+                        Box const& bbox = amrex::adjCellLo(vbx,idim);
+                        IntVect const& iv = bbox.atOffset(tid);
+                        if (bbox.contains(iv)) {
+                            const int blen = vbx.length(idim);
+                            const Box blo(iv,iv);
+                            const Box bhi = amrex::shift(blo,idim,blen+1);
+                            const int loface = Orientation(idim,Orientation::low);
+                            const int hiface = Orientation(idim,Orientation::high);
+                            for (int icomp = 0; icomp < ncomp; ++icomp) {
+                                mllinop_apply_bc_x(0, blo, blen, iofab, mlo[idim],
+                                                   bctl[icomp][loface].type,
+                                                   bctl[icomp][loface].location,
+                                                   bvlo[idim], imaxorder, dxi, flagbc, icomp);
+                                mllinop_apply_bc_x(1, bhi, blen, iofab, mhi[idim],
+                                                   bctl[icomp][hiface].type,
+                                                   bctl[icomp][hiface].location,
+                                                   bvhi[idim], imaxorder, dxi, flagbc, icomp);
+                            }
                         }
                     }
 #if (AMREX_SPACEDIM >= 2)
                     idim = 1;
-                    bbox = amrex::adjCellLo(vbx,idim);
-                    iv = bbox.atOffset(tid);
-                    if (bbox.contains(iv)) {
-                        const int blen = vbx.length(idim);
-                        const Box blo(iv,iv);
-                        const Box bhi = amrex::shift(blo,idim,blen+1);
-                        const int loface = Orientation(idim,Orientation::low);
-                        const int hiface = Orientation(idim,Orientation::high);
-                        for (int icomp = 0; icomp < ncomp; ++icomp) {
-                            mllinop_apply_bc_y(0, blo, blen, iofab, mlo[idim],
-                                               bctl[icomp][loface].type,
-                                               bctl[icomp][loface].location,
-                                               bvlo[idim], imaxorder, dyi, flagbc, icomp);
-                            mllinop_apply_bc_y(1, bhi, blen, iofab, mhi[idim],
-                                               bctl[icomp][hiface].type,
-                                               bctl[icomp][hiface].location,
-                                               bvhi[idim], imaxorder, dyi, flagbc, icomp);
+                    if (hidden_direction != idim) {
+                        Box const& bbox = amrex::adjCellLo(vbx,idim);
+                        IntVect const& iv = bbox.atOffset(tid);
+                        if (bbox.contains(iv)) {
+                            const int blen = vbx.length(idim);
+                            const Box blo(iv,iv);
+                            const Box bhi = amrex::shift(blo,idim,blen+1);
+                            const int loface = Orientation(idim,Orientation::low);
+                            const int hiface = Orientation(idim,Orientation::high);
+                            for (int icomp = 0; icomp < ncomp; ++icomp) {
+                                mllinop_apply_bc_y(0, blo, blen, iofab, mlo[idim],
+                                                   bctl[icomp][loface].type,
+                                                   bctl[icomp][loface].location,
+                                                   bvlo[idim], imaxorder, dyi, flagbc, icomp);
+                                mllinop_apply_bc_y(1, bhi, blen, iofab, mhi[idim],
+                                                   bctl[icomp][hiface].type,
+                                                   bctl[icomp][hiface].location,
+                                                   bvhi[idim], imaxorder, dyi, flagbc, icomp);
+                            }
                         }
                     }
 #endif
 #if (AMREX_SPACEDIM == 3)
                     idim = 2;
-                    bbox = amrex::adjCellLo(vbx,idim);
-                    iv = bbox.atOffset(tid);
-                    if (bbox.contains(iv)) {
-                        const int blen = vbx.length(idim);
-                        const Box blo(iv,iv);
-                        const Box bhi = amrex::shift(blo,idim,blen+1);
-                        const int loface = Orientation(idim,Orientation::low);
-                        const int hiface = Orientation(idim,Orientation::high);
-                        for (int icomp = 0; icomp < ncomp; ++icomp) {
-                            mllinop_apply_bc_z(0, blo, blen, iofab, mlo[idim],
-                                               bctl[icomp][loface].type,
-                                               bctl[icomp][loface].location,
-                                               bvlo[idim], imaxorder, dzi, flagbc, icomp);
-                            mllinop_apply_bc_z(1, bhi, blen, iofab, mhi[idim],
-                                               bctl[icomp][hiface].type,
-                                               bctl[icomp][hiface].location,
-                                               bvhi[idim], imaxorder, dzi, flagbc, icomp);
+                    if (hidden_direction != idim) {
+                        Box const& bbox = amrex::adjCellLo(vbx,idim);
+                        IntVect const& iv = bbox.atOffset(tid);
+                        if (bbox.contains(iv)) {
+                            const int blen = vbx.length(idim);
+                            const Box blo(iv,iv);
+                            const Box bhi = amrex::shift(blo,idim,blen+1);
+                            const int loface = Orientation(idim,Orientation::low);
+                            const int hiface = Orientation(idim,Orientation::high);
+                            for (int icomp = 0; icomp < ncomp; ++icomp) {
+                                mllinop_apply_bc_z(0, blo, blen, iofab, mlo[idim],
+                                                   bctl[icomp][loface].type,
+                                                   bctl[icomp][loface].location,
+                                                   bvlo[idim], imaxorder, dzi, flagbc, icomp);
+                                mllinop_apply_bc_z(1, bhi, blen, iofab, mhi[idim],
+                                                   bctl[icomp][hiface].type,
+                                                   bctl[icomp][hiface].location,
+                                                   bvhi[idim], imaxorder, dzi, flagbc, icomp);
+                            }
                         }
                     }
 #endif
@@ -581,6 +644,7 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
             {
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                 {
+                    if (hidden_direction == idim) continue;
                     const Orientation olo(idim,Orientation::low);
                     const Orientation ohi(idim,Orientation::high);
                     const Box blo = amrex::adjCellLo(vbx, idim);
@@ -829,6 +893,7 @@ MLCellLinOp::prepareForSolve ()
 
     const int imaxorder = maxorder;
     const int ncomp = getNComp();
+    const int hidden_direction = hiddenDirection();
     for (int amrlev = 0;  amrlev < m_num_amr_levels; ++amrlev)
     {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
@@ -884,10 +949,14 @@ MLCellLinOp::prepareForSolve ()
                         fhi[idim] = undrrelxr[ohi].array(mfi);
                     }
                     const auto len = vbx.length3d();
-                    const int nthreads
+                    int nthreads
                         = AMREX_D_PICK(1;,
                                        amrex::max(len[0],len[1]);,
-                                       amrex::max(len[0]*len[1],len[0]*len[2],len[1]*len[2]);)
+                                       amrex::max(len[0]*len[1],len[0]*len[2],len[1]*len[2]));
+                    if (hasHiddenDimension()) {
+                        nthreads = (AMREX_SPACEDIM == 2) ? 1
+                            : amrex::max(AMREX_D_DECL(len[0],len[1],len[2]));
+                    }
 #ifdef AMREX_USE_EB
                     if (fabtyp == FabType::singlevalued) {
                         GpuArray<Array4<Real const>,AMREX_SPACEDIM> ap
@@ -898,72 +967,78 @@ MLCellLinOp::prepareForSolve ()
                         [=] AMREX_GPU_DEVICE (int tid) noexcept
                         {
                             int idim = 0;
-                            Box bbox = amrex::adjCellLo(vbx,idim);
-                            IntVect iv = bbox.atOffset(tid);
-                            if (bbox.contains(iv)) {
-                                const int blen = vbx.length(idim);
-                                const Box blo(iv,iv);
-                                const Box bhi = amrex::shift(blo,idim,blen+1);
-                                const int loface = Orientation(idim,Orientation::low);
-                                const int hiface = Orientation(idim,Orientation::high);
-                                for (int icomp = 0; icomp < ncomp; ++icomp) {
-                                    mllinop_comp_interp_coef0_x_eb
-                                        (0, blo, blen, flo[idim], mlo[idim], ap[idim],
-                                         bctl[icomp][loface].type,
-                                         bctl[icomp][loface].location,
-                                         imaxorder, dxi, icomp);
-                                    mllinop_comp_interp_coef0_x_eb
-                                        (1, bhi, blen, fhi[idim], mhi[idim], ap[idim],
-                                         bctl[icomp][hiface].type,
-                                         bctl[icomp][hiface].location,
-                                         imaxorder, dxi, icomp);
+                            if (idim != hidden_direction) {
+                                Box const& bbox = amrex::adjCellLo(vbx,idim);
+                                IntVect const& iv = bbox.atOffset(tid);
+                                if (bbox.contains(iv)) {
+                                    const int blen = vbx.length(idim);
+                                    const Box blo(iv,iv);
+                                    const Box bhi = amrex::shift(blo,idim,blen+1);
+                                    const int loface = Orientation(idim,Orientation::low);
+                                    const int hiface = Orientation(idim,Orientation::high);
+                                    for (int icomp = 0; icomp < ncomp; ++icomp) {
+                                        mllinop_comp_interp_coef0_x_eb
+                                            (0, blo, blen, flo[idim], mlo[idim], ap[idim],
+                                             bctl[icomp][loface].type,
+                                             bctl[icomp][loface].location,
+                                             imaxorder, dxi, icomp);
+                                        mllinop_comp_interp_coef0_x_eb
+                                            (1, bhi, blen, fhi[idim], mhi[idim], ap[idim],
+                                             bctl[icomp][hiface].type,
+                                             bctl[icomp][hiface].location,
+                                             imaxorder, dxi, icomp);
+                                    }
                                 }
                             }
 #if (AMREX_SPACEDIM >= 2)
                             idim = 1;
-                            bbox = amrex::adjCellLo(vbx,idim);
-                            iv = bbox.atOffset(tid);
-                            if (bbox.contains(iv)) {
-                                const int blen = vbx.length(idim);
-                                const Box blo(iv,iv);
-                                const Box bhi = amrex::shift(blo,idim,blen+1);
-                                const int loface = Orientation(idim,Orientation::low);
-                                const int hiface = Orientation(idim,Orientation::high);
-                                for (int icomp = 0; icomp < ncomp; ++icomp) {
-                                    mllinop_comp_interp_coef0_y_eb
-                                        (0, blo, blen, flo[idim], mlo[idim], ap[idim],
-                                         bctl[icomp][loface].type,
-                                         bctl[icomp][loface].location,
-                                         imaxorder, dyi, icomp);
-                                    mllinop_comp_interp_coef0_y_eb
-                                        (1, bhi, blen, fhi[idim], mhi[idim], ap[idim],
-                                         bctl[icomp][hiface].type,
-                                         bctl[icomp][hiface].location,
-                                         imaxorder, dyi, icomp);
+                            if (idim != hidden_direction) {
+                                Box const& bbox = amrex::adjCellLo(vbx,idim);
+                                IntVect const& iv = bbox.atOffset(tid);
+                                if (bbox.contains(iv)) {
+                                    const int blen = vbx.length(idim);
+                                    const Box blo(iv,iv);
+                                    const Box bhi = amrex::shift(blo,idim,blen+1);
+                                    const int loface = Orientation(idim,Orientation::low);
+                                    const int hiface = Orientation(idim,Orientation::high);
+                                    for (int icomp = 0; icomp < ncomp; ++icomp) {
+                                        mllinop_comp_interp_coef0_y_eb
+                                            (0, blo, blen, flo[idim], mlo[idim], ap[idim],
+                                             bctl[icomp][loface].type,
+                                             bctl[icomp][loface].location,
+                                             imaxorder, dyi, icomp);
+                                        mllinop_comp_interp_coef0_y_eb
+                                            (1, bhi, blen, fhi[idim], mhi[idim], ap[idim],
+                                             bctl[icomp][hiface].type,
+                                             bctl[icomp][hiface].location,
+                                             imaxorder, dyi, icomp);
+                                    }
                                 }
                             }
 #endif
 #if (AMREX_SPACEDIM == 3)
                             idim = 2;
-                            bbox = amrex::adjCellLo(vbx,idim);
-                            iv = bbox.atOffset(tid);
-                            if (bbox.contains(iv)) {
-                                const int blen = vbx.length(idim);
-                                const Box blo(iv,iv);
-                                const Box bhi = amrex::shift(blo,idim,blen+1);
-                                const int loface = Orientation(idim,Orientation::low);
-                                const int hiface = Orientation(idim,Orientation::high);
-                                for (int icomp = 0; icomp < ncomp; ++icomp) {
-                                    mllinop_comp_interp_coef0_z_eb
-                                        (0, blo, blen, flo[idim], mlo[idim], ap[idim],
-                                         bctl[icomp][loface].type,
-                                         bctl[icomp][loface].location,
-                                         imaxorder, dzi, icomp);
-                                    mllinop_comp_interp_coef0_z_eb
-                                        (1, bhi, blen, fhi[idim], mhi[idim], ap[idim],
-                                         bctl[icomp][hiface].type,
-                                         bctl[icomp][hiface].location,
-                                         imaxorder, dzi, icomp);
+                            if (idim != hidden_direction) {
+                                Box const& bbox = amrex::adjCellLo(vbx,idim);
+                                IntVect const& iv = bbox.atOffset(tid);
+                                if (bbox.contains(iv)) {
+                                    const int blen = vbx.length(idim);
+                                    const Box blo(iv,iv);
+                                    const Box bhi = amrex::shift(blo,idim,blen+1);
+                                    const int loface = Orientation(idim,Orientation::low);
+                                    const int hiface = Orientation(idim,Orientation::high);
+                                    for (int icomp = 0; icomp < ncomp; ++icomp) {
+                                        mllinop_comp_interp_coef0_z_eb
+                                            (0, blo, blen, flo[idim], mlo[idim], ap[idim],
+                                             bctl[icomp][loface].type,
+                                             bctl[icomp][loface].location,
+                                             imaxorder, dzi, icomp);
+                                        mllinop_comp_interp_coef0_z_eb
+                                            (1, bhi, blen, fhi[idim], mhi[idim], ap[idim],
+                                             bctl[icomp][hiface].type,
+                                             bctl[icomp][hiface].location,
+                                             imaxorder, dzi, icomp);
+                                    }
                                 }
                             }
 #endif
@@ -975,72 +1050,78 @@ MLCellLinOp::prepareForSolve ()
                         [=] AMREX_GPU_DEVICE (int tid) noexcept
                         {
                             int idim = 0;
-                            Box bbox = amrex::adjCellLo(vbx,idim);
-                            IntVect iv = bbox.atOffset(tid);
-                            if (bbox.contains(iv)) {
-                                const int blen = vbx.length(idim);
-                                const Box blo(iv,iv);
-                                const Box bhi = amrex::shift(blo,idim,blen+1);
-                                const int loface = Orientation(idim,Orientation::low);
-                                const int hiface = Orientation(idim,Orientation::high);
-                                for (int icomp = 0; icomp < ncomp; ++icomp) {
-                                    mllinop_comp_interp_coef0_x
-                                        (0, blo, blen, flo[idim], mlo[idim],
-                                         bctl[icomp][loface].type,
-                                         bctl[icomp][loface].location,
-                                         imaxorder, dxi, icomp);
-                                    mllinop_comp_interp_coef0_x
-                                        (1, bhi, blen, fhi[idim], mhi[idim],
-                                         bctl[icomp][hiface].type,
-                                         bctl[icomp][hiface].location,
-                                         imaxorder, dxi, icomp);
+                            if (idim != hidden_direction) {
+                                Box const& bbox = amrex::adjCellLo(vbx,idim);
+                                IntVect const& iv = bbox.atOffset(tid);
+                                if (bbox.contains(iv)) {
+                                    const int blen = vbx.length(idim);
+                                    const Box blo(iv,iv);
+                                    const Box bhi = amrex::shift(blo,idim,blen+1);
+                                    const int loface = Orientation(idim,Orientation::low);
+                                    const int hiface = Orientation(idim,Orientation::high);
+                                    for (int icomp = 0; icomp < ncomp; ++icomp) {
+                                        mllinop_comp_interp_coef0_x
+                                            (0, blo, blen, flo[idim], mlo[idim],
+                                             bctl[icomp][loface].type,
+                                             bctl[icomp][loface].location,
+                                             imaxorder, dxi, icomp);
+                                        mllinop_comp_interp_coef0_x
+                                            (1, bhi, blen, fhi[idim], mhi[idim],
+                                             bctl[icomp][hiface].type,
+                                             bctl[icomp][hiface].location,
+                                             imaxorder, dxi, icomp);
+                                    }
                                 }
                             }
 #if (AMREX_SPACEDIM >= 2)
                             idim = 1;
-                            bbox = amrex::adjCellLo(vbx,idim);
-                            iv = bbox.atOffset(tid);
-                            if (bbox.contains(iv)) {
-                                const int blen = vbx.length(idim);
-                                const Box blo(iv,iv);
-                                const Box bhi = amrex::shift(blo,idim,blen+1);
-                                const int loface = Orientation(idim,Orientation::low);
-                                const int hiface = Orientation(idim,Orientation::high);
-                                for (int icomp = 0; icomp < ncomp; ++icomp) {
-                                    mllinop_comp_interp_coef0_y
-                                        (0, blo, blen, flo[idim], mlo[idim],
-                                         bctl[icomp][loface].type,
-                                         bctl[icomp][loface].location,
-                                         imaxorder, dyi, icomp);
-                                    mllinop_comp_interp_coef0_y
-                                        (1, bhi, blen, fhi[idim], mhi[idim],
-                                         bctl[icomp][hiface].type,
-                                         bctl[icomp][hiface].location,
-                                         imaxorder, dyi, icomp);
+                            if (idim != hidden_direction) {
+                                Box const& bbox = amrex::adjCellLo(vbx,idim);
+                                IntVect const& iv = bbox.atOffset(tid);
+                                if (bbox.contains(iv)) {
+                                    const int blen = vbx.length(idim);
+                                    const Box blo(iv,iv);
+                                    const Box bhi = amrex::shift(blo,idim,blen+1);
+                                    const int loface = Orientation(idim,Orientation::low);
+                                    const int hiface = Orientation(idim,Orientation::high);
+                                    for (int icomp = 0; icomp < ncomp; ++icomp) {
+                                        mllinop_comp_interp_coef0_y
+                                            (0, blo, blen, flo[idim], mlo[idim],
+                                             bctl[icomp][loface].type,
+                                             bctl[icomp][loface].location,
+                                             imaxorder, dyi, icomp);
+                                        mllinop_comp_interp_coef0_y
+                                            (1, bhi, blen, fhi[idim], mhi[idim],
+                                             bctl[icomp][hiface].type,
+                                             bctl[icomp][hiface].location,
+                                             imaxorder, dyi, icomp);
+                                    }
                                 }
                             }
 #endif
 #if (AMREX_SPACEDIM == 3)
                             idim = 2;
-                            bbox = amrex::adjCellLo(vbx,idim);
-                            iv = bbox.atOffset(tid);
-                            if (bbox.contains(iv)) {
-                                const int blen = vbx.length(idim);
-                                const Box blo(iv,iv);
-                                const Box bhi = amrex::shift(blo,idim,blen+1);
-                                const int loface = Orientation(idim,Orientation::low);
-                                const int hiface = Orientation(idim,Orientation::high);
-                                for (int icomp = 0; icomp < ncomp; ++icomp) {
-                                    mllinop_comp_interp_coef0_z
-                                        (0, blo, blen, flo[idim], mlo[idim],
-                                         bctl[icomp][loface].type,
-                                         bctl[icomp][loface].location,
-                                         imaxorder, dzi, icomp);
-                                    mllinop_comp_interp_coef0_z
-                                        (1, bhi, blen, fhi[idim], mhi[idim],
-                                         bctl[icomp][hiface].type,
-                                         bctl[icomp][hiface].location,
-                                         imaxorder, dzi, icomp);
+                            if (idim != hidden_direction) {
+                                Box const& bbox = amrex::adjCellLo(vbx,idim);
+                                IntVect const& iv = bbox.atOffset(tid);
+                                if (bbox.contains(iv)) {
+                                    const int blen = vbx.length(idim);
+                                    const Box blo(iv,iv);
+                                    const Box bhi = amrex::shift(blo,idim,blen+1);
+                                    const int loface = Orientation(idim,Orientation::low);
+                                    const int hiface = Orientation(idim,Orientation::high);
+                                    for (int icomp = 0; icomp < ncomp; ++icomp) {
+                                        mllinop_comp_interp_coef0_z
+                                            (0, blo, blen, flo[idim], mlo[idim],
+                                             bctl[icomp][loface].type,
+                                             bctl[icomp][loface].location,
+                                             imaxorder, dzi, icomp);
+                                        mllinop_comp_interp_coef0_z
+                                            (1, bhi, blen, fhi[idim], mhi[idim],
+                                             bctl[icomp][hiface].type,
+                                             bctl[icomp][hiface].location,
+                                             imaxorder, dzi, icomp);
+                                    }
                                 }
                             }
 #endif
@@ -1051,6 +1132,7 @@ MLCellLinOp::prepareForSolve ()
                 {
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                     {
+                        if (idim == hidden_direction) continue;
                         const Orientation olo(idim,Orientation::low);
                         const Orientation ohi(idim,Orientation::high);
                         const Box blo = amrex::adjCellLo(vbx, idim);
@@ -1199,7 +1281,7 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
     amrex::ignore_unused(amrlev,mglev,rhs);
 #if (AMREX_SPACEDIM != 3)
-    
+
     if (!m_has_metric_term) return;
 
     const int ncomp = rhs.nComp();
@@ -1255,7 +1337,7 @@ MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
     amrex::ignore_unused(amrlev,mglev,rhs);
 #if (AMREX_SPACEDIM != 3)
-    
+
     if (!m_has_metric_term) return;
 
     const int ncomp = rhs.nComp();

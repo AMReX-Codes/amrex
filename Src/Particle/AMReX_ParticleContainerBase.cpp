@@ -51,9 +51,9 @@ void ParticleContainerBase::RedefineDummyMF (int lev)
         ! DistributionMapping::SameRefs(m_dummy_mf[lev]->DistributionMap(),
                                         ParticleDistributionMap(lev)))
     {
-        m_dummy_mf[lev].reset(new MultiFab(ParticleBoxArray(lev),
-                                           ParticleDistributionMap(lev),
-                                           1,0,MFInfo().SetAlloc(false)));
+        m_dummy_mf[lev] = std::make_unique<MultiFab>(ParticleBoxArray(lev),
+                                                     ParticleDistributionMap(lev),
+                                                     1,0,MFInfo().SetAlloc(false));
     };
 }
 
@@ -219,7 +219,7 @@ void ParticleContainerBase::BuildRedistributeMask (int lev, int nghost) const
         const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
 
         redistribute_mask_nghost = nghost;
-        redistribute_mask_ptr.reset(new iMultiFab(ba, dmap, 2, nghost));
+        redistribute_mask_ptr = std::make_unique<iMultiFab>(ba, dmap, 2, nghost);
         redistribute_mask_ptr->setVal(-1, nghost);
 
         const auto tile_size_do = this->do_tiling ? this->tile_size : IntVect::TheZeroVector();

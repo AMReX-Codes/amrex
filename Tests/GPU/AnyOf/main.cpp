@@ -68,7 +68,7 @@ void main_main ()
                             return ( item > 2.0 ) ;
                         });
         amrex::Print() << "Vector, (0, 1): "
-                       << anyof_M << ", " << anyof_N << std::endl; 
+                       << anyof_M << ", " << anyof_N << std::endl;
     }
 
     // Redo, confirming works for a single item.
@@ -90,7 +90,7 @@ void main_main ()
                         });
 
         amrex::Print() << "Vector, both true: "
-                       << anyof_M << ", " << anyof_N << std::endl; 
+                       << anyof_M << ", " << anyof_N << std::endl;
     }
 
     amrex::Print() << "\nTesting Box Version.\n One box = 0,1,1,1, all others 0,1,0,1\n";
@@ -114,11 +114,11 @@ void main_main ()
                                return ( int(arr(i,j,k) > 2.0) ) ;
                            });
 
-	    // Redo, confirming works for a single value.
+            // Redo, confirming works for a single value.
             if (bx.contains(IntVect{ncell/3,ncell/2,ncell-1}))
             {
                 arr(ncell/3,ncell/2,ncell-1) = 1.0;
-            } 
+            }
 
             bool anyof_C = Reduce::AnyOf(bx,
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -133,8 +133,8 @@ void main_main ()
                            });
 
             amrex::Print() << "Box #" << mfi.LocalIndex() << " = "
-                           << anyof_A << ", " << anyof_B << ", " 
-                           << anyof_C << ", " << anyof_D << std::endl; 
+                           << anyof_A << ", " << anyof_B << ", "
+                           << anyof_C << ", " << anyof_D << std::endl;
         }
     }
 

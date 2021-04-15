@@ -41,8 +41,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for (int lev = lev_min; lev <= finest_level; lev++)
     {
         auto ng = lev == lev_min ? IntVect(AMREX_D_DECL(ngrow,ngrow,ngrow)) : this->m_gdb->refRatio(lev-1);
-        mf_to_be_filled[lev].reset(new MultiFab(this->m_gdb->boxArray(lev),
-                                                this->m_gdb->DistributionMap(lev), ncomp, ng));
+        mf_to_be_filled[lev] = std::make_unique<MultiFab>(this->m_gdb->boxArray(lev),
+                                                          this->m_gdb->DistributionMap(lev),
+                                                          ncomp, ng);
         mf_to_be_filled[lev]->setVal(0.0);
     }
 
@@ -65,8 +66,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         for (int lev = lev_min; lev <= finest_level; lev++)
         {
             auto ng = lev == lev_min ? IntVect(AMREX_D_DECL(ngrow,ngrow,ngrow)) : this->m_gdb->refRatio(lev-1);
-            mf_part[lev].reset(new MultiFab(this->ParticleBoxArray(lev),
-                                            this->ParticleDistributionMap(lev), ncomp, ng));
+            mf_part[lev] = std::make_unique<MultiFab>(this->ParticleBoxArray(lev),
+                                                      this->ParticleDistributionMap(lev),
+                                                      ncomp, ng);
             mf_part[lev]->setVal(0.0);
         }
     }
@@ -95,7 +97,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for (int lev = lev_min; lev <= finest_level; ++lev) {
         const BoxArray& ba = mf[lev]->boxArray();
         const DistributionMapping& dm = mf[lev]->DistributionMap();
-        tmp[lev].reset(new MultiFab(ba, dm, ncomp, 0));
+        tmp[lev] = std::make_unique<MultiFab>(ba, dm, ncomp, 0);
         tmp[lev]->setVal(0.0);
     }
 
@@ -164,7 +166,7 @@ public:
     {
     }
 
-    AmrParticleContainer (const Vector<Geometry>            & geom, 
+    AmrParticleContainer (const Vector<Geometry>            & geom,
                           const Vector<DistributionMapping> & dmap,
                           const Vector<BoxArray>            & ba,
                           const Vector<int>                 & rr)
@@ -182,7 +184,7 @@ class AmrTracerParticleContainer
 public:
 
     AmrTracerParticleContainer (AmrCore* amr_core)
-	: TracerParticleContainer(amr_core->GetParGDB())
+        : TracerParticleContainer(amr_core->GetParGDB())
     {
     }
 

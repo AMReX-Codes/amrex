@@ -115,16 +115,6 @@ get_property(_amrex_targets
    PROPERTY BUILDSYSTEM_TARGETS)
 
 #
-# Tutorials and "test_install" target
-#
-option(AMReX_BUILD_TUTORIALS "Build tutorials" NO)
-
-if (AMReX_BUILD_TUTORIALS)
-   message(STATUS "Enabling Tutorials")
-   add_subdirectory(Tutorials)
-endif ()
-
-#
 # Plotfile tools
 #
 option(AMReX_PLOTFILE_TOOLS "Enable Plotfile tools" NO)
@@ -143,9 +133,16 @@ endif ()
 #
 # Install amrex  -- Export
 #
-include(AMReXInstallHelpers)
-install_amrex_targets(${_amrex_targets})
+if(AMReX_INSTALL)
+    include(AMReXInstallHelpers)
+    install_amrex_targets(${_amrex_targets})
 
+    # Add a test_install target to smoke-test
+    # the installation
+    add_test_install_target(
+       ${CMAKE_CURRENT_LIST_DIR}/Tests/CMakeTestInstall
+       ${CMAKE_INSTALL_PREFIX})
+endif()
 
 #
 # Enable CTests

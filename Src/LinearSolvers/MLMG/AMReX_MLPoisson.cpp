@@ -69,7 +69,7 @@ MLPoisson::prepareForSolve ()
             if (m_domain_covered[alev] && !m_overset_mask[alev][0])
             {
                 m_is_singular[alev] = true;
-            }    
+            }
         }
     }
 }
@@ -84,6 +84,11 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
     AMREX_D_TERM(const Real dhx = dxinv[0]*dxinv[0];,
                  const Real dhy = dxinv[1]*dxinv[1];,
                  const Real dhz = dxinv[2]*dxinv[2];);
+
+#if (AMREX_SPACEDIM == 3)
+    Real dh0 = get_d0(dhx, dhy, dhz);
+    Real dh1 = get_d1(dhx, dhy, dhz);
+#endif
 
 #if (AMREX_SPACEDIM < 3)
     const Real dx = m_geom[amrlev][mglev].CellSize(0);
@@ -109,10 +114,21 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
             });
         } else {
 #if (AMREX_SPACEDIM == 3)
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
-            {
-                mlpoisson_adotx(i, j, k, yfab, xfab, dhx, dhy, dhz);
-            });
+            if (hasHiddenDimension()) {
+                Box const& bx2d = compactify(bx);
+                const auto& xfab2d = compactify(xfab);
+                const auto& yfab2d = compactify(yfab);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx2d, i, j, k,
+                {
+                    amrex::ignore_unused(k);
+                    TwoD::mlpoisson_adotx(i, j, yfab2d, xfab2d, dh0, dh1);
+                });
+            } else {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
+                {
+                    mlpoisson_adotx(i, j, k, yfab, xfab, dhx, dhy, dhz);
+                });
+            }
 #elif (AMREX_SPACEDIM == 2)
             if (m_has_metric_term) {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
@@ -218,6 +234,11 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
                  const Real dhy = dxinv[1]*dxinv[1];,
                  const Real dhz = dxinv[2]*dxinv[2];);
 
+#if (AMREX_SPACEDIM == 3)
+    Real dh0 = get_d0(dhx, dhy, dhz);
+    Real dh1 = get_d1(dhx, dhy, dhz);
+#endif
+
 #if (AMREX_SPACEDIM < 3)
     const Real dx = m_geom[amrlev][mglev].CellSize(0);
     const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
@@ -231,7 +252,7 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 #endif
     for (MFIter mfi(sol,mfi_info); mfi.isValid(); ++mfi)
     {
-	const auto& m0 = mm0.array(mfi);
+        const auto& m0 = mm0.array(mfi);
         const auto& m1 = mm1.array(mfi);
 #if (AMREX_SPACEDIM > 1)
         const auto& m2 = mm2.array(mfi);
@@ -242,7 +263,7 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 #endif
 #endif
 
-	const Box& tbx = mfi.tilebox();
+        const Box& tbx = mfi.tilebox();
         const Box& vbx = mfi.validbox();
         const auto& solnfab = sol.array(mfi);
         const auto& rhsfab  = rhs.array(mfi);
@@ -342,6 +363,28 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
                                   f5fab, m5,
                                   vbx, redblack);
             });
+        } else if (hasHiddenDimension()) {
+            Box const& tbx_2d = compactify(tbx);
+            Box const& vbx_2d = compactify(vbx);
+            const auto& solnfab_2d = compactify(solnfab);
+            const auto& rhsfab_2d = compactify(rhsfab);
+            const auto& f0fab_2d = compactify(get_d0(f0fab,f1fab,f2fab));
+            const auto& f1fab_2d = compactify(get_d1(f0fab,f1fab,f2fab));
+            const auto& f2fab_2d = compactify(get_d0(f3fab,f4fab,f5fab));
+            const auto& f3fab_2d = compactify(get_d1(f3fab,f4fab,f5fab));
+            const auto& m0_2d = compactify(get_d0(m0,m1,m2));
+            const auto& m1_2d = compactify(get_d1(m0,m1,m2));
+            const auto& m2_2d = compactify(get_d0(m3,m4,m5));
+            const auto& m3_2d = compactify(get_d1(m3,m4,m5));
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx_2d, thread_box,
+            {
+                TwoD::mlpoisson_gsrb(thread_box, solnfab_2d, rhsfab_2d, dh0, dh1,
+                                     f0fab_2d, m0_2d,
+                                     f1fab_2d, m1_2d,
+                                     f2fab_2d, m2_2d,
+                                     f3fab_2d, m3_2d,
+                                     vbx_2d, redblack);
+            });
         } else {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
             {
@@ -364,6 +407,8 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
                   const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                   const FArrayBox& sol, Location, const int face_only) const
 {
+    AMREX_ASSERT(!hasHiddenDimension());
+
     BL_PROFILE("MLPoisson::FFlux()");
 
     const int mglev = 0;
@@ -515,6 +560,16 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
 #endif
 }
 
+bool
+MLPoisson::supportNSolve () const
+{
+    bool support = true;
+    if (m_domain_covered[0]) support = false;
+    if (doAgglomeration()) support = false;
+    if (AMREX_SPACEDIM != 3) support = false;
+    return support;
+}
+
 std::unique_ptr<MLLinOp>
 MLPoisson::makeNLinOp (int grid_size) const
 {
@@ -538,12 +593,10 @@ MLPoisson::makeNLinOp (int grid_size) const
     LPInfo minfo{};
     minfo.has_metric_term = info.has_metric_term;
 
-    std::unique_ptr<MLLinOp> r{new MLALaplacian({geom}, {ba}, {dm}, minfo)};
-
-    MLALaplacian* nop = dynamic_cast<MLALaplacian*>(r.get());
-    if (!nop) {
-        return std::unique_ptr<MLLinOp>{};
-    }
+    auto r = std::make_unique<MLALaplacian>(Vector<Geometry>{geom},
+                                            Vector<BoxArray>{ba},
+                                            Vector<DistributionMapping>{dm}, minfo);
+    MLALaplacian* nop = r.get();
 
     nop->m_parent = this;
 
@@ -580,7 +633,13 @@ MLPoisson::makeNLinOp (int grid_size) const
 
     nop->setACoeffs(0, alpha);
 
-    return r;    
+    return r;
+}
+
+void
+MLPoisson::copyNSolveSolution (MultiFab& dst, MultiFab const& src) const
+{
+    dst.ParallelCopy(src);
 }
 
 }

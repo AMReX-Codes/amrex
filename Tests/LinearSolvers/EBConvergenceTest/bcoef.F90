@@ -1,25 +1,25 @@
 module bcoef
   use amrex_fort_module, only : amrex_real
-private :: f 
+private :: f
 public :: build_b_2d, build_b_3d
-  interface f 
+  interface f
     module procedure f2
     module procedure f3
-  end interface 
+  end interface
 contains
 
   subroutine build_b_2d(lo, hi, problo, probhi, &
-                        bx, bxlo, bxhi, & 
-                        by, bylo, byhi, & 
+                        bx, bxlo, bxhi, &
+                        by, bylo, byhi, &
                         dx) bind(c, name='build_b_2d')
   implicit none
-  integer, dimension(2), intent(in   ) :: lo, hi, bxlo, bxhi, bylo, byhi 
-  real(amrex_real), dimension(2), intent(in  ) :: problo, probhi, dx 
+  integer, dimension(2), intent(in   ) :: lo, hi, bxlo, bxhi, bylo, byhi
+  real(amrex_real), dimension(2), intent(in  ) :: problo, probhi, dx
   real(amrex_real), intent(inout) :: bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2))
   real(amrex_real), intent(inout) :: by(bylo(1):byhi(1),bylo(2):byhi(2))
 
   integer :: i, j
-  real(amrex_real) :: xc, yc, xf, yf, xl, yl, xh, yh 
+  real(amrex_real) :: xc, yc, xf, yf, xl, yl, xh, yh
   xl = problo(1)
   yl = problo(2)
   xh = probhi(1)
@@ -32,10 +32,10 @@ contains
     !interior
         xf = xl + dble(i)*dx(1)
         xc = xl + (dble(i) + 0.5d0)*dx(1)
-        bx(i,j) = f(xf, yc) 
+        bx(i,j) = f(xf, yc)
         by(i,j) = f(xc, yf)
-      enddo 
-    !xfaces 
+      enddo
+    !xfaces
       xf = xl + dble(hi(1)+1)*dx(1)
       bx(lo(1),j)   = f(xl,yc)
       by(lo(1),j)   = f(xl,yf)
@@ -78,37 +78,37 @@ contains
   end subroutine build_b_2d
 
   subroutine build_b_3d(lo, hi, problo, probhi, &
-                        bx, bxlo, bxhi, & 
-                        by, bylo, byhi, & 
+                        bx, bxlo, bxhi, &
+                        by, bylo, byhi, &
                         bz, bzlo, bzhi, &
                         dx) bind(c, name='build_b_3d')
-  implicit none 
-  integer, dimension(3), intent(in) :: lo, hi, bxlo, bxhi, bylo, byhi, bzlo, bzhi 
-  real(amrex_real), dimension(3), intent(in) :: problo, probhi, dx 
+  implicit none
+  integer, dimension(3), intent(in) :: lo, hi, bxlo, bxhi, bylo, byhi, bzlo, bzhi
+  real(amrex_real), dimension(3), intent(in) :: problo, probhi, dx
   real(amrex_real), intent(inout) :: bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),bxlo(3):bxhi(3))
   real(amrex_real), intent(inout) :: by(bylo(1):byhi(1),bylo(2):byhi(2),bylo(3):byhi(3))
   real(amrex_real), intent(inout) :: bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),bzlo(3):bzhi(3))
 
-  integer :: i, j, k 
+  integer :: i, j, k
   real(amrex_real) :: xc, xf, xl, xh, yc, yf, yl, yh, zc, zf, zl, zh
     xl = problo(1)
     yl = problo(2)
     zl = problo(3)
     xh = probhi(1)
     yh = probhi(2)
-    zh = probhi(3) 
+    zh = probhi(3)
     do  k = lo(3)+1,hi(3)-1
       zf = zl + dble(k)*dx(3)
-      zc = zl + (dble(k) + 0.5d0)*dx(3) 
+      zc = zl + (dble(k) + 0.5d0)*dx(3)
       do j = lo(2)+1,hi(2)-1
         yf = yl + dble(j)*dx(2)
         yc = yl + (dble(j) + 0.5d0)*dx(2)
         do i = lo(1)+1,hi(1)-1
 ! interior
-          xf = xl + dble(i)*dx(1) 
+          xf = xl + dble(i)*dx(1)
           xc = xl + (dble(i) + 0.5d0)*dx(1)
           bx(i,j,k) = f(xf,yc,zc)
-          by(i,j,k) = f(xc,yf,zc) 
+          by(i,j,k) = f(xc,yf,zc)
           bz(i,j,k) = f(xc,yc,zf)
         enddo
         xf = xl + dble(hi(1))*dx(1)
@@ -134,10 +134,10 @@ contains
         bx(i,hi(2),k)   = f(xf,yh,zc)
         by(i,hi(2),k)   = f(xc,yf,zc)
         bz(i,hi(2),k)   = f(xc,yh,zf)
-        by(i,hi(2)+1,k) = f(xc,yh,zc) 
+        by(i,hi(2)+1,k) = f(xc,yh,zc)
       enddo
 
-!    xy edges 
+!    xy edges
 
       bx(lo(1),lo(2),k)   = f(xl,yl,zc)
       by(lo(1),lo(2),k)   = f(xl,yl,zc)
@@ -166,7 +166,7 @@ contains
       yf = yl + dble(j)*dx(2)
       do i = lo(1)+1,hi(1)-1
 ! z face
-        xc = xl + (dble(i) + 0.5d0)*dx(1) 
+        xc = xl + (dble(i) + 0.5d0)*dx(1)
         xf = xl + dble(i)*dx(1)
         bx(i,j,lo(3)) = f(xf,yc,zl)
         by(i,j,lo(3)) = f(xc,yf,zl)
@@ -177,7 +177,7 @@ contains
         bz(i,j,hi(3)) = f(xc,yc,zf)
         bz(i,j,hi(3)+1) = f(xc,yc,zh)
       enddo
-! xz edges 
+! xz edges
       xf = xl + (dble(hi(1)))*dx(1)
       bx(lo(1),j,lo(3))   = f(xl,yc,zl)
       by(lo(1),j,lo(3))   = f(xl,yf,zl)
@@ -202,7 +202,7 @@ contains
 
 !   yz edges
     do i = lo(1)+1,hi(1)-1
-      xc = xl +(dble(i) + 0.5)*dx(1) 
+      xc = xl +(dble(i) + 0.5)*dx(1)
       xf = xl +dble(i)*dx(1)
       bx(i,lo(2),lo(3))   = f(xf,yl,zl)
       by(i,lo(2),lo(3))   = f(xc,yl,zl)
@@ -249,7 +249,7 @@ contains
       by(lo(1),hi(2)+1,hi(3)) = f(xl,yh,zh)
       bz(lo(1),hi(2),hi(3))   = f(xl,yh,zf)
       bz(lo(1),hi(2),hi(3)+1) = f(xl,yh,zh)
-     
+
       bx(hi(1),lo(2),lo(3))   = f(xf,yl,zl)
       bx(hi(1)+1,lo(2),lo(3)) = f(xh,yl,zl)
       by(hi(1),lo(2),lo(3))   = f(xh,yl,zl)
@@ -277,11 +277,11 @@ contains
   end subroutine build_b_3d
 
   function f2(x,y)
-  real(amrex_real), intent(in) :: x, y 
-  real(amrex_real) :: f2 
-    f2 = sin(x)*cos(y)  
-  end function f2 
-  
+  real(amrex_real), intent(in) :: x, y
+  real(amrex_real) :: f2
+    f2 = sin(x)*cos(y)
+  end function f2
+
   function f3(x,y,z)
   real(amrex_real), intent(in) :: x, y, z
   real(amrex_real) :: f3

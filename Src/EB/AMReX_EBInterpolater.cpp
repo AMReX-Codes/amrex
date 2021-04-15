@@ -46,12 +46,12 @@ EBCellConservativeLinear::interp (const FArrayBox& crse,
     {
         const EBFArrayBox& crse_eb = static_cast<EBFArrayBox const&>(crse);
         EBFArrayBox&       fine_eb = static_cast<EBFArrayBox      &>(fine);
-        
+
         const EBCellFlagFab& crse_flag = crse_eb.getEBCellFlagFab();
         const EBCellFlagFab& fine_flag = fine_eb.getEBCellFlagFab();
-        
+
         const Box& crse_bx = CoarseBox(target_fine_region,ratio);
-    
+
         const FabType ftype = fine_flag.getType(target_fine_region);
         const FabType ctype = crse_flag.getType(crse_bx);
 
@@ -76,7 +76,7 @@ EBCellConservativeLinear::interp (const FArrayBox& crse,
                 }
             });
         }
-    }        
+    }
 }
 
 }

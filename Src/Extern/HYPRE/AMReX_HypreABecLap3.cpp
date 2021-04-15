@@ -83,19 +83,19 @@ HypreABecLap3::getSolution (MultiFab& a_soln)
         MultiFab::Copy(a_soln, tmp, 0, 0, 1, 0);
     }
 }
-   
+
 void
 HypreABecLap3::prepareSolver ()
 {
     BL_PROFILE("HypreABecLap3::prepareSolver()");
-    
+
     int num_procs, myid;
     MPI_Comm_size(comm, &num_procs);
     MPI_Comm_rank(comm, &myid);
 
     const BoxArray& ba = acoefs.boxArray();
     const DistributionMapping& dm = acoefs.DistributionMap();
-    
+
 #if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
     if (sizeof(HYPRE_Int) < sizeof(Long)) {
         Long ncells_grids = ba.numPts();
@@ -203,7 +203,7 @@ HypreABecLap3::prepareSolver ()
     HYPRE_Int ilower = proc_begin;
     HYPRE_Int iupper = proc_end-1;
 
-    hypre_ij.reset(new HypreIJIface(comm, ilower, iupper, verbose));
+    hypre_ij = std::make_unique<HypreIJIface>(comm, ilower, iupper, verbose);
     hypre_ij->parse_inputs(options_namespace);
 
     // Obtain non-owning references to the matrix, rhs, and solution data
@@ -221,7 +221,7 @@ HypreABecLap3::prepareSolver ()
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
-        
+
 #ifdef AMREX_USE_EB
         const auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
 #else
@@ -407,7 +407,7 @@ void
 HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
 {
     BL_PROFILE("HypreABecLap3::loadVectors()");
-    
+
 #ifdef AMREX_USE_EB
     auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
     const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
@@ -487,5 +487,5 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
         }
     }
 }
-    
+
 }  // namespace amrex

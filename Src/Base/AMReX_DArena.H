@@ -2,13 +2,13 @@
 #define AMREX_D_ARENA_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Arena.H>
+
 #include <cstddef>
 #include <unordered_set>
 #include <unordered_map>
 #include <array>
 #include <mutex>
-
-#include <AMReX_Arena.H>
 
 namespace amrex {
 

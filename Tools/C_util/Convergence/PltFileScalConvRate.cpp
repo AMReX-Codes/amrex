@@ -76,7 +76,7 @@ main (int   argc,
 
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
-    
+
     DataServices dataServicesC(cFile, fileType);
     DataServices dataServicesF(fFile, fileType);
 
@@ -90,38 +90,38 @@ main (int   argc,
     // Write norms to screen
     if (ParallelDescriptor::IOProcessor())
     {
-	const Vector<std::string>& names = amrDataC.PlotVarNames();
-	int maxl = 0;
-	for (int i=0; i<names.size(); ++i)
-	    maxl = std::max(maxl,int(names[i].size()));
+        const Vector<std::string>& names = amrDataC.PlotVarNames();
+        int maxl = 0;
+        for (int i=0; i<names.size(); ++i)
+            maxl = std::max(maxl,int(names[i].size()));
 
         std::string maxl_str = amrex::Concatenate("", maxl, 1);
 
-	std::string formatStr =
-	    std::string("\t%") + maxl_str + std::string("s |  %10e   %10e   %10e\n");
-	std::string sformatStr =
-	    std::string("\t%") + maxl_str + std::string("s |  %10s   %10s   %10s\n");
-	
-	std::cout << '\n' << "Rates for pltfiles = "
-	     << cFile << ", "
-	     << fFile << ": " << '\n' << '\n';
-	printf(sformatStr.c_str(),"Derived","rate_L-inf","rate_L1","rate_L2");
-	std::cout << '\t'
-	     << "--------------+------------------------------------------" << '\n';
+        std::string formatStr =
+            std::string("\t%") + maxl_str + std::string("s |  %10e   %10e   %10e\n");
+        std::string sformatStr =
+            std::string("\t%") + maxl_str + std::string("s |  %10s   %10s   %10s\n");
 
-	Real log2 = log(2.0);
-	for (int i=0; i<names.size(); ++i)
-	{
-	    Real rate0, rate1, rate2;
-	    rate0 = (norm0f[i]==0 ? 0.0 : log(norm0c[i]/norm0f[i])/log2);
-	    rate1 = (norm1f[i]==0 ? 0.0 : log(norm1c[i]/norm1f[i])/log2);
-	    rate2 = (norm2f[i]==0 ? 0.0 : log(norm2c[i]/norm2f[i])/log2);
-	    printf(formatStr.c_str(),names[i].c_str(),rate0,rate1,rate2);
-	}
-	std::cout << '\n';
-	
+        std::cout << '\n' << "Rates for pltfiles = "
+             << cFile << ", "
+             << fFile << ": " << '\n' << '\n';
+        printf(sformatStr.c_str(),"Derived","rate_L-inf","rate_L1","rate_L2");
+        std::cout << '\t'
+             << "--------------+------------------------------------------" << '\n';
+
+        Real log2 = log(2.0);
+        for (int i=0; i<names.size(); ++i)
+        {
+            Real rate0, rate1, rate2;
+            rate0 = (norm0f[i]==0 ? 0.0 : log(norm0c[i]/norm0f[i])/log2);
+            rate1 = (norm1f[i]==0 ? 0.0 : log(norm1c[i]/norm1f[i])/log2);
+            rate2 = (norm2f[i]==0 ? 0.0 : log(norm2c[i]/norm2f[i])/log2);
+            printf(formatStr.c_str(),names[i].c_str(),rate0,rate1,rate2);
+        }
+        std::cout << '\n';
+
     }
-    
+
     amrex::Finalize();
 }
 
@@ -140,4 +140,4 @@ amrDatasHaveSameDerives(const AmrData& amrd1,
             return false;
     return true;
 }
-    
+

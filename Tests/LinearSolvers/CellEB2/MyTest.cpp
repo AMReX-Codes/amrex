@@ -69,20 +69,20 @@ MyTest::solve ()
 
         MLEBABecLap mleb (geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
         mleb.setMaxOrder(linop_maxorder);
-        
+
         mleb.setDomainBC(mlmg_lobc, mlmg_hibc);
 
         for (int ilev = 0; ilev <= max_level; ++ilev) {
             mleb.setLevelBC(ilev, &phi[ilev]);
         }
-        
+
         mleb.setScalars(scalars[0], scalars[1]);
-        
+
         for (int ilev = 0; ilev <= max_level; ++ilev) {
             mleb.setACoeffs(ilev, acoef[ilev]);
             mleb.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoef[ilev]));
         }
-        
+
         if (true) { // In this test we assume EB is Dirichlet.
             for (int ilev = 0; ilev <= max_level; ++ilev) {
                 mleb.setEBDirichlet(ilev, phieb[ilev], bcoef_eb[ilev]);
@@ -101,7 +101,7 @@ MyTest::solve ()
         } else if (use_petsc) {
             mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
         }
-        
+
         const Real tol_rel = reltol;
         const Real tol_abs = 0.0;
         mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
@@ -143,7 +143,7 @@ MyTest::solve ()
             } else if (use_petsc) {
                 mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
             }
-            
+
             const Real tol_rel = reltol;
             const Real tol_abs = 0.0;
             mlmg.solve({&phi[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
@@ -165,7 +165,7 @@ MyTest::solve ()
             Real norm1 = mf.norm1()*AMREX_D_TERM((1.0/n_cell), *(1.0/n_cell), *(1.0/n_cell));
             amrex::Print() << "Level " << ilev << ": weighted max and 1 norms " << norminf << ", " << norm1 << std::endl;
         }
-    }    
+    }
 }
 
 void
@@ -214,7 +214,7 @@ MyTest::writePlotfile ()
                                 geom, 0.0, Vector<int>(max_level+1,0),
                                 Vector<IntVect>(max_level,IntVect{2}));
     }
-                            
+
 }
 
 void
@@ -316,8 +316,8 @@ MyTest::initData ()
         dmap[ilev].define(grids[ilev]);
         const EB2::IndexSpace& eb_is = EB2::IndexSpace::top();
         const EB2::Level& eb_level = eb_is.getLevel(geom[ilev]);
-        factory[ilev].reset(new EBFArrayBoxFactory(eb_level, geom[ilev], grids[ilev], dmap[ilev],
-                                                   {2,2,2}, EBSupport::full));
+        factory[ilev] = std::make_unique<EBFArrayBoxFactory>
+            (eb_level, geom[ilev], grids[ilev], dmap[ilev], Vector<int>{2,2,2}, EBSupport::full);
 
         phi[ilev].define(grids[ilev], dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);
         phiexact[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
@@ -399,4 +399,3 @@ MyTest::initData ()
         }
     }
 }
-

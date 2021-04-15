@@ -64,8 +64,8 @@ detailed throughout the rest of this chapter:
    +-----------------------------------------------------+------------------------------------------------------+
    |                        |a|                          |                        |b|                           |
    +-----------------------------------------------------+------------------------------------------------------+
-   | | OpenMP tiled box.                                 | | GPU threaded box.                                 |
-   | | OpenMP threads break down the valid box           | | Each GPU thread works on a few cells of the       |
+   |   OpenMP tiled box.                                 |   GPU threaded box.                                  |
+   |   OpenMP threads break down the valid box           |   Each GPU thread works on a few cells of the        |
    |   into two large boxes (blue and orange).           |   valid box. This example uses one cell per          |
    |   The lo and hi of one tiled box are marked.        |   thread, each thread using a box with lo = hi.      |
    +-----------------------------------------------------+------------------------------------------------------+
@@ -677,8 +677,8 @@ implementation is reproduced here:
 ::
 
     Real MultiFab::Dot (const MultiFab& x, int xcomp,
-	       const MultiFab& y, int ycomp,
-	       int numcomp, int nghost, bool local) {
+                        const MultiFab& y, int ycomp,
+                        int numcomp, int nghost, bool local) {
         Real sm = amrex::ReduceSum(x, y, nghost,
         [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab, FArrayBox const& yfab) -> Real
         {
@@ -688,7 +688,7 @@ implementation is reproduced here:
         if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
 
         return sm;
-   }
+    }
 
 :cpp:`amrex::ReduceSum` takes two :cpp:`MultiFab`\ s, ``x`` and ``y`` and
 returns the sum of the value returned from the given lambda function.
@@ -806,6 +806,35 @@ because the temporary :cpp:`FArrayBox` is deleted on cpu before the
 gpu kernels use its memory.  With :cpp:`Elixir`, the ownership of the
 memory is transferred to :cpp:`Elixir` that is guaranteed to be
 async-safe.
+
+Async Arena
+-----------
+
+CUDA 11.2 has introduced a new feature, stream-ordered CUDA memory
+allocator.  This feature enables AMReX to solve the temporary memory
+allocation and deallocation issue discussed above using a memory pool.
+Instead of using :cpp:`Elixir`, we can write code like below,
+
+.. highlight:: c++
+
+::
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+      const Box& bx = mfi.tilebox();
+      FArrayBox tmp_fab(bx, numcomps, The_Async_Arena());
+      Array4<Real> const& tmp_arr = tmp_fab.array();
+      FArrayBox tmp_fab_2;
+      tmp_fab_2.resize(bx, numcomps, The_Async_Async());
+
+      // GPU kernels using the temporary
+    }
+
+This is now the recommended way because it's usually more efficient than
+:cpp:`Elixir`.  Note that the code above works for CUDA older than 11.2, HIP
+and DPC++ as well, and it's equivalent to using :cpp:`Elixir` in these
+cases.  By default, the release threshold for the memory pool is unlimited.
+One can adjust it with :cpp:`ParmParse` parameter,
+``amrex.the_async_arena_release_threshold``.
 
 .. _sec:gpu:launch:
 
@@ -1555,7 +1584,7 @@ by "amrex" in your :cpp:`inputs` file.
 |                            | pinned memory. In practice, we find it is usually not worth it to use |             |             |
 |                            | GPU aware MPI.                                                        |             |             |
 +----------------------------+-----------------------------------------------------------------------+-------------+-------------+
-| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is greater than the size of a   | Bool        | False       |
+| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | False       |
 |                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |             |
 |                            | describing how much free memory there is and what was requested.      |             |             |
 +----------------------------+-----------------------------------------------------------------------+-------------+-------------+
@@ -1569,9 +1598,9 @@ Basic Gpu Debugging
 
 ::
 
-		  Gpu::setLaunchRegion(0);
-		  ... ;
-		  Gpu::setLaunchRegion(1);
+    Gpu::setLaunchRegion(0);
+    ... ;
+    Gpu::setLaunchRegion(1);
 
 Note that functions, ``amrex::launch`` and ``amrex::ParallelFor``, do
 not respect the launch region flag.  Only the macros (e.g.,
@@ -1584,7 +1613,7 @@ Cuda-specific tests
 
 ::
 
-		nvprof ./main3d.xxx
+    nvprof ./main3d.xxx
 
 - Run under ``nvprof -o profile%p.nvvp ./main3d.xxxx`` for
   a small problem and examine page faults using nvvp

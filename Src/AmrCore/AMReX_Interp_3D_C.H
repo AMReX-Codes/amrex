@@ -21,7 +21,7 @@ ccinterp_compute_voff (Box const& cbx, IntVect const& ratio, Geometry const& /*c
     const auto& fhi = amrex::ubound(fbx);
     const int nxyz = flen.x + flen.y + flen.z;
     Vector<Real> voff(nxyz);
-    
+
     const Real xrinv = Real(1.)/ratio[0];
     const Real yrinv = Real(1.)/ratio[1];
     const Real zrinv = Real(1.)/ratio[2];
@@ -104,7 +104,7 @@ compute_slopes (const Dim3& lo, const Dim3& hi,
                     slopes(i,j,k,ns) = Real(16./15.)*u(i+1,j,k,nu) - Real(0.5)*u(i,j,k,nu)
                         - Real(2./3.)*u(i-1,j,k,nu) + Real(0.1)*u(i-2,j,k,nu);
                 }
-            }                
+            }
         } else {
             for         (int k = lo.z; k <= hi.z; ++k) {
                 for     (int j = lo.y; j <= hi.y; ++j) {

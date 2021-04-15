@@ -15,6 +15,7 @@ MacProjector::MacProjector(
     MLMG::Location a_phi_loc,
     MLMG::Location a_divu_loc)
     : m_geom(a_geom),
+      m_needs_level_bcs(a_geom.size(),true),
       m_umac_loc(a_umac_loc),
       m_beta_loc(a_beta_loc),
       m_phi_loc(a_phi_loc),
@@ -35,6 +36,7 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
                             const Vector<iMultiFab const*>& a_overset_mask)
     : m_umac(a_umac),
       m_geom(a_geom),
+      m_needs_level_bcs(a_geom.size(),true),
       m_umac_loc(a_umac_loc),
       m_beta_loc(a_beta_loc),
       m_phi_loc(a_phi_loc),
@@ -84,8 +86,7 @@ void MacProjector::initProjector (
             }
         }
 
-        m_eb_abeclap.reset(
-            new MLEBABecLap(m_geom, ba, dm, a_lpinfo, m_eb_factory));
+        m_eb_abeclap = std::make_unique<MLEBABecLap>(m_geom, ba, dm, a_lpinfo, m_eb_factory);
         m_linop = m_eb_abeclap.get();
 
         if (m_phi_loc == MLMG::Location::CellCentroid)
@@ -110,11 +111,11 @@ void MacProjector::initProjector (
             }
         }
 
-        if (a_overset_mask.empty())
-            m_abeclap.reset(new MLABecLaplacian(m_geom, ba, dm, a_lpinfo));
-        else
-            m_abeclap.reset(
-                new MLABecLaplacian(m_geom, ba, dm, a_overset_mask, a_lpinfo));
+        if (a_overset_mask.empty()) {
+            m_abeclap = std::make_unique<MLABecLaplacian>(m_geom, ba, dm, a_lpinfo);
+        } else {
+            m_abeclap = std::make_unique<MLABecLaplacian>(m_geom, ba, dm, a_overset_mask, a_lpinfo);
+        }
 
         m_linop = m_abeclap.get();
 
@@ -124,7 +125,7 @@ void MacProjector::initProjector (
         }
     }
 
-    m_mlmg.reset(new MLMG(*m_linop));
+    m_mlmg = std::make_unique<MLMG>(*m_linop);
 
     setOptions();
 
@@ -194,12 +195,7 @@ MacProjector::setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         m_linop != nullptr,
         "MacProjector::setDomainBC: initProjector must be called before calling this method");
-
     m_linop->setDomainBC(lobc, hibc);
-    for (int ilev = 0, N = m_geom.size(); ilev < N; ++ilev) {
-        m_linop->setLevelBC(ilev, nullptr);
-    }
-
     m_needs_domain_bcs = false;
 }
 
@@ -210,6 +206,7 @@ MacProjector::setLevelBC (int amrlev, const MultiFab* levelbcdata)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_needs_domain_bcs,
                                      "setDomainBC must be called before setLevelBC");
     m_linop->setLevelBC(amrlev, levelbcdata);
+    m_needs_level_bcs[amrlev] = false;
 }
 
 
@@ -218,6 +215,13 @@ void
 MacProjector::project (Real reltol, Real atol)
 {
     const int nlevs = m_rhs.size();
+
+    for (int ilev = 0; ilev < nlevs; ++ilev) {
+        if (m_needs_level_bcs[ilev]) {
+            m_linop->setLevelBC(ilev, nullptr);
+            m_needs_level_bcs[ilev] = false;
+        }
+    }
 
     averageDownVelocity();
 
@@ -442,14 +446,14 @@ void MacProjector::initProjector (Vector<BoxArray> const& a_grids,
     }
 
     if (a_overset_mask.empty()) {
-        m_poisson.reset(new MLPoisson(m_geom, ba, dm, a_lpinfo));
+        m_poisson = std::make_unique<MLPoisson>(m_geom, ba, dm, a_lpinfo);
     } else {
-        m_poisson.reset(new MLPoisson(m_geom, ba, dm, a_overset_mask, a_lpinfo));
+        m_poisson = std::make_unique<MLPoisson>(m_geom, ba, dm, a_overset_mask, a_lpinfo);
     }
 
     m_linop = m_poisson.get();
 
-    m_mlmg.reset(new MLMG(*m_linop));
+    m_mlmg = std::make_unique<MLMG>(*m_linop);
 
     setOptions();
 

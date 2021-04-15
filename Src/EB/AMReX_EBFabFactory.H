@@ -34,12 +34,15 @@ public:
     EBFArrayBoxFactory& operator= (const EBFArrayBoxFactory&) = delete;
     EBFArrayBoxFactory& operator= (EBFArrayBoxFactory&&) = delete;
 
+    AMREX_NODISCARD
     virtual FArrayBox* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const final;
 
+    AMREX_NODISCARD
     virtual FArrayBox* create_alias (FArrayBox const& rhs, int scomp, int ncomp) const final;
 
     virtual void destroy (FArrayBox* fab) const final;
 
+    AMREX_NODISCARD
     virtual EBFArrayBoxFactory* clone () const final;
 
     const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const noexcept

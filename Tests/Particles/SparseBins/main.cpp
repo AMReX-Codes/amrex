@@ -26,15 +26,15 @@ void testIntersection()
 {
     TestParams params;
     get_test_params(params, "intersect");
-    
+
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
         is_per[i] = params.is_periodic;
-    
+
     Vector<IntVect> rr(params.nlevs-1);
     for (int lev = 1; lev < params.nlevs; lev++)
         rr[lev-1] = IntVect(AMREX_D_DECL(2,2,2));
-    
+
     RealBox real_box;
     for (int n = 0; n < AMREX_SPACEDIM; n++)
     {
@@ -45,14 +45,14 @@ void testIntersection()
     IntVect domain_lo(AMREX_D_DECL(0 , 0, 0));
     IntVect domain_hi(AMREX_D_DECL(params.size[0]-1, params.size[1]-1, params.size[2]-1));
     const Box base_domain(domain_lo, domain_hi);
-    
+
     Vector<Geometry> geom(params.nlevs);
     geom[0].define(base_domain, &real_box, CoordSys::cartesian, is_per);
     for (int lev = 1; lev < params.nlevs; lev++) {
         geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
                          &real_box, CoordSys::cartesian, is_per);
     }
-    
+
     Vector<BoxArray> ba(params.nlevs);
     IntVect lo = IntVect(AMREX_D_DECL(0, 0, 0));
     IntVect size = params.size;
@@ -66,15 +66,15 @@ void testIntersection()
 
     {
         auto num_boxes = ba[0].size();
-        
+
     }
 }
 
 int main(int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
-    
+
     testIntersection();
-    
+
     amrex::Finalize();
 }

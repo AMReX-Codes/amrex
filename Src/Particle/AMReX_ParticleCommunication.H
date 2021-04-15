@@ -113,7 +113,7 @@ struct ParticleCopyPlan
     Vector<std::size_t> m_rcv_pad_correction_h;
     Gpu::DeviceVector<std::size_t> m_rcv_pad_correction_d;
 
-    template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+    template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
     void build (const PC& pc, const ParticleCopyOp& op, bool local)
     {
         BL_PROFILE("ParticleCopyPlan::build");
@@ -249,7 +249,7 @@ struct GetSendBufferOffset
     }
 };
 
-template <class PC, class Buffer, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class Buffer, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan,
                  Buffer& snd_buffer)
 {
@@ -344,7 +344,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 }
 
 template <class PC, class Buffer, class UnpackPolicy,
-          EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+          std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, const UnpackPolicy&& policy)
 {
     BL_PROFILE("amrex::unpackBuffer");
@@ -409,7 +409,7 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
 }
 
 template <class PC, class Buffer,
-          EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+          std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buffer& snd_buffer, Buffer& rcv_buffer)
 {
     BL_PROFILE("amrex::communicateParticlesStart");
@@ -507,7 +507,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
 void communicateParticlesFinish (const ParticleCopyPlan& plan);
 
 template <class PC, class Buffer, class UnpackPolicy,
-          EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+          std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, UnpackPolicy&& policy)
 {
     BL_PROFILE("amrex::unpackRemotes");
@@ -528,8 +528,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
 
         std::vector<int> sizes;
         std::vector<PTile*> tiles;
-        for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
-          {
+        for (int i = 0, N = plan.m_rcv_box_counts.size(); i < N; ++i)
+        {
             int copy_size = plan.m_rcv_box_counts[i];
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
@@ -544,8 +544,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
         Gpu::Device::synchronize();
         int uindex = 0;
         int procindex = 0, rproc = plan.m_rcv_box_pids[0];
-        for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
-          {
+        for (int i = 0, N = plan.m_rcv_box_counts.size(); i < N; ++i)
+        {
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
             int tid = 0;
@@ -574,7 +574,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
               });
 
             Gpu::synchronize();
-          }
+        }
     }
 #else
     amrex::ignore_unused(pc,plan,rcv_buffer,policy);

@@ -230,7 +230,7 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
     Real dhx = beta*dxinv[0]*dxinv[0];
     Real dhy = beta*dxinv[1]*dxinv[1];
     Real dhz = beta*dxinv[2]*dxinv[2];
-  
+
     bool beta_on_center = !(beta_on_centroid);
     bool  phi_on_center = !( phi_on_centroid);
 
@@ -280,7 +280,7 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                                fracz *(1.0-fracy)*(x(i, j,kk,n)-x(i-1, j,kk,n)) +
                                fracy *     fracz *(x(i,jj,kk,n)-x(i-1,jj,kk,n));
                     fxm *= bX(i,j,k,n);
-                } 
+                }
             }
 
             Real fxp = bX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i,j,k,n));
@@ -591,7 +591,7 @@ void mlebabeclap_gsrb (Box const& box,
             {
                 Real cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
                     ? f0(vlo.x,j,k,n) : 0.0;
-                Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0) 
+                Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
                     ? f1(i,vlo.y,k,n) : 0.0;
                 Real cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
                     ? f2(i,j,vlo.z,n) : 0.0;
@@ -617,7 +617,7 @@ void mlebabeclap_gsrb (Box const& box,
                                     bZ(i  ,j  ,k  ,n)*phi(i  ,j  ,k-1,n));
 
                     Real delta = dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf3)
-                        +        dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf4) 
+                        +        dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf4)
                         +        dhz*(bZ(i,j,k,n)*cf2 + bZ(i,j,k+1,n)*cf5);
 
                     Real res = rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho);
@@ -652,7 +652,7 @@ void mlebabeclap_gsrb (Box const& box,
                         }
                         else if (beta_on_centroid && !phi_on_centroid)
                         {
-                            fxm = (1.0-fracy)*(1.0-fracz)*(              -phi(i-1, j, k,n)) 
+                            fxm = (1.0-fracy)*(1.0-fracz)*(              -phi(i-1, j, k,n))
                                  +     fracy *(1.0-fracz)*(phi(i,jj,k ,n)-phi(i-1,jj, k,n))
                                  +(1.0-fracy)*     fracz *(phi(i,j ,kk,n)-phi(i-1, j,kk,n))
                                  +     fracy *     fracz *(phi(i,jj,kk,n)-phi(i-1,jj,kk,n));
@@ -736,14 +736,14 @@ void mlebabeclap_gsrb (Box const& box,
                             ? amrex::Math::abs(fcy(i,j+1,k,1)) : 0.0;
                         if (!beta_on_centroid && !phi_on_centroid)
                         {
-                            fyp = (1.0-fracx)*(1.0-fracz)*fyp 
+                            fyp = (1.0-fracx)*(1.0-fracz)*fyp
                                 +      fracx *(1.0-fracz)*bY(ii,j+1,k ,n)*(phi(ii,j+1,k ,n)-phi(ii,j,k ,n))
                                 + (1.0-fracx)*     fracz *bY(i ,j+1,kk,n)*(phi(i ,j+1,kk,n)-phi(i ,j,kk,n))
                                 +      fracx *     fracz *bY(ii,j+1,kk,n)*(phi(ii,j+1,kk,n)-phi(ii,j,kk,n));
                         }
                         else if (beta_on_centroid && !phi_on_centroid)
                         {
-                            fyp = (1.0-fracx)*(1.0-fracz)*(phi( i,j+1, k,n)               ) 
+                            fyp = (1.0-fracx)*(1.0-fracz)*(phi( i,j+1, k,n)               )
                                 +      fracx *(1.0-fracz)*(phi(ii,j+1, k,n)-phi(ii,j, k,n))
                                 + (1.0-fracx)*     fracz *(phi( i,j+1,kk,n)-phi( i,j,kk,n))
                                 +      fracx *     fracz *(phi(ii,j+1,kk,n)-phi(ii,j,kk,n));
@@ -796,7 +796,7 @@ void mlebabeclap_gsrb (Box const& box,
                             ? amrex::Math::abs(fcz(i,j,k+1,1)) : 0.0;
                         if (!beta_on_centroid && !phi_on_centroid)
                         {
-                            fzp = (1.0-fracx)*(1.0-fracy)*fzp 
+                            fzp = (1.0-fracx)*(1.0-fracy)*fzp
                                 +      fracx *(1.0-fracy)*bZ(ii,j ,k+1,n)*(phi(ii,j ,k+1,n)-phi(ii,j ,k,n))
                                 + (1.0-fracx)*     fracy *bZ(i ,jj,k+1,n)*(phi(i ,jj,k+1,n)-phi(i ,jj,k,n))
                                 +      fracx *     fracy *bZ(ii,jj,k+1,n)*(phi(ii,jj,k+1,n)-phi(ii,jj,k,n));
@@ -820,14 +820,14 @@ void mlebabeclap_gsrb (Box const& box,
                          dhy*(apym*sym-apyp*syp) +
                          dhz*(apzm*szm-apzp*szp));
 
-                    Real rho = -vfrcinv *  
-                        (dhx*(apxm*fxm-apxp*fxp) + 
-                         dhy*(apym*fym-apyp*fyp) + 
+                    Real rho = -vfrcinv *
+                        (dhx*(apxm*fxm-apxp*fxp) +
+                         dhy*(apym*fym-apyp*fyp) +
                          dhz*(apzm*fzm-apzp*fzp));
 
-                    Real delta = -vfrcinv *  
-                        (dhx*(apxm*oxm-apxp*oxp) + 
-                         dhy*(apym*oym-apyp*oyp) + 
+                    Real delta = -vfrcinv *
+                        (dhx*(apxm*oxm-apxp*oxp) +
+                         dhy*(apym*oym-apyp*oyp) +
                          dhz*(apzm*ozm-apzp*ozp));
 
                     if (is_dirichlet) {
@@ -917,7 +917,7 @@ void mlebabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real con
                                fracy *(1.0-fracz)*bX(i,jj,k ,n)*(sol(i,jj,k ,n)-sol(i-1,jj,k ,n)) +
                                fracz *(1.0-fracy)*bX(i,j ,kk,n)*(sol(i,j ,kk,n)-sol(i-1,j ,kk,n)) +
                                fracy*      fracz *bX(i,jj,kk,n)*(sol(i,jj,kk,n)-sol(i-1,jj,kk,n));
-                } 
+                }
                 else if (beta_on_centroid && !phi_on_centroid)
                 {
                     fxm = (1.0-fracy)*(1.0-fracz)*(sol(i, j, k,n)-sol(i-1, j, k,n)) +
@@ -961,7 +961,7 @@ void mlebabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real con
                                fracx *(1.0-fracz)*bY(ii,j,k ,n)*(sol(ii,j,k ,n)-sol(ii,j-1,k ,n)) +
                                fracz *(1.0-fracx)*bY(i ,j,kk,n)*(sol(i ,j,kk,n)-sol(i ,j-1,kk,n)) +
                                fracx *     fracz *bY(ii,j,kk,n)*(sol(ii,j,kk,n)-sol(ii,j-1,kk,n));
-                } 
+                }
                 else if (beta_on_centroid && !phi_on_centroid)
                 {
                     fym = (1.0-fracx)*(1.0-fracz)*(sol( i,j, k,n)-sol( i,j-1, k,n)) +
@@ -1005,7 +1005,7 @@ void mlebabeclap_flux_z (Box const& box, Array4<Real> const& fz, Array4<Real con
                         fracx*(1.0-fracy)*bZ(ii,j ,k,n)*(sol(ii,j ,k,n)-sol(ii,j ,k-1,n)) +
                         fracy*(1.0-fracx)*bZ(i ,jj,k,n)*(sol(i ,jj,k,n)-sol(i ,jj,k-1,n)) +
                         fracx*     fracy *bZ(ii,jj,k,n)*(sol(ii,jj,k,n)-sol(ii,jj,k-1,n));
-                } 
+                }
                 else if (beta_on_centroid && !phi_on_centroid)
                 {
                     fzm = (1.0-fracx)*(1.0-fracy)*(sol( i, j,k,n)-sol( i, j,k-1,n)) +
@@ -1082,7 +1082,7 @@ void mlebabeclap_flux_z_0 (Box const& box, Array4<Real> const& fz, Array4<Real c
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_grad_x (Box const& box, Array4<Real> const& gx, Array4<Real const> const& sol,
                          Array4<Real const> const& apx, Array4<Real const> const& fcx,
-                         Array4<int const> const& ccm, 
+                         Array4<int const> const& ccm,
                          Real dxi, int ncomp, bool phi_on_centroid) noexcept
 {
     amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept

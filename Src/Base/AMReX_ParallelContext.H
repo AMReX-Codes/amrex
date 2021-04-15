@@ -2,11 +2,12 @@
 #define AMREX_PARALLELCONTEXT_H
 #include <AMReX_Config.H>
 
-#include <memory>
-#include <fstream>
-
+#include <AMReX_Extension.H>
 #include <AMReX_Vector.H>
 #include <AMReX_ccse-mpi.H>
+
+#include <iosfwd>
+#include <memory>
 
 namespace amrex {
 namespace ParallelContext {
@@ -47,7 +48,7 @@ private:
     std::unique_ptr<std::ofstream> m_out;
 };
 
-extern Vector<Frame> frames; //!< stack of communicator frames
+extern AMREX_EXPORT Vector<Frame> frames; //!< stack of communicator frames
 
 //! world communicator
 inline MPI_Comm CommunicatorAll () noexcept { return frames[0].comm; }

@@ -221,8 +221,21 @@ function (generate_buildinfo _target _git_dir)
 
    # Set PIC property to be consistent with AMReX'
    get_target_property(_pic AMReX::amrex POSITION_INDEPENDENT_CODE)
-   set_target_properties(buildInfo${_target}
-      PROPERTIES
-      POSITION_INDEPENDENT_CODE ${_pic} )
+   get_target_property(_sym AMReX::amrex WINDOWS_EXPORT_ALL_SYMBOLS)
+   set_target_properties(buildInfo${_target} PROPERTIES
+      POSITION_INDEPENDENT_CODE ${_pic}
+      WINDOWS_EXPORT_ALL_SYMBOLS ${_sym} )
+
+   # IPO/LTO
+   if (AMReX_IPO)
+      include(CheckIPOSupported)
+      check_ipo_supported(RESULT is_IPO_available)
+      if(is_IPO_available)
+          set_target_properties(buildInfo${_target} PROPERTIES
+              INTERPROCEDURAL_OPTIMIZATION TRUE)
+      else()
+          message(FATAL_ERROR "Interprocedural optimization is not available, set AMReX_IPO=OFF")
+      endif()
+   endif()
 
 endfunction ()

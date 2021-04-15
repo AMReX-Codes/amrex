@@ -1,7 +1,4 @@
 
-#include <fstream>
-#include <iomanip>
-
 #include <AMReX_VisMF.H>
 #include <AMReX_AsyncOut.H>
 #include <AMReX_PlotFileUtil.H>
@@ -21,6 +18,9 @@ hid_t es_id_g = 0;
 #endif
 
 #endif
+
+#include <fstream>
+#include <iomanip>
 
 namespace amrex {
 
@@ -42,7 +42,7 @@ std::string LevelFullPath (int level,
 {
     std::string r(plotfilename);
     if ( ! r.empty() && r.back() != '/') {
-	r += '/';
+        r += '/';
     }
     r += LevelPath(level, levelPrefix);  // e.g., plt00005/Level_5
     return r;
@@ -55,7 +55,7 @@ std::string MultiFabFileFullPrefix (int level,
 {
     std::string r(plotfilename);
     if ( ! r.empty() && r.back() != '/') {
-	r += '/';
+        r += '/';
     }
     r += MultiFabHeaderPath(level, levelPrefix, mfPrefix);
     return r;
@@ -101,51 +101,51 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
 
         int finest_level(nlevels - 1);
 
-	HeaderFile.precision(17);
+        HeaderFile.precision(17);
 
-	// ---- this is the generic plot file type name
+        // ---- this is the generic plot file type name
         HeaderFile << versionName << '\n';
 
         HeaderFile << varnames.size() << '\n';
 
         for (int ivar = 0; ivar < varnames.size(); ++ivar) {
-	    HeaderFile << varnames[ivar] << "\n";
+            HeaderFile << varnames[ivar] << "\n";
         }
         HeaderFile << AMREX_SPACEDIM << '\n';
         HeaderFile << time << '\n';
         HeaderFile << finest_level << '\n';
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             HeaderFile << geom[0].ProbLo(i) << ' ';
-	}
+        }
         HeaderFile << '\n';
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             HeaderFile << geom[0].ProbHi(i) << ' ';
-	}
+        }
         HeaderFile << '\n';
         for (int i = 0; i < finest_level; ++i) {
             HeaderFile << ref_ratio[i][0] << ' ';
-	}
+        }
         HeaderFile << '\n';
-	for (int i = 0; i <= finest_level; ++i) {
-	    HeaderFile << geom[i].Domain() << ' ';
-	}
+        for (int i = 0; i <= finest_level; ++i) {
+            HeaderFile << geom[i].Domain() << ' ';
+        }
         HeaderFile << '\n';
         for (int i = 0; i <= finest_level; ++i) {
             HeaderFile << level_steps[i] << ' ';
-	}
+        }
         HeaderFile << '\n';
         for (int i = 0; i <= finest_level; ++i) {
             for (int k = 0; k < AMREX_SPACEDIM; ++k) {
                 HeaderFile << geom[i].CellSize()[k] << ' ';
-	    }
+            }
             HeaderFile << '\n';
         }
         HeaderFile << (int) geom[0].Coord() << '\n';
         HeaderFile << "0\n";
 
-	for (int level = 0; level <= finest_level; ++level) {
-	    HeaderFile << level << ' ' << bArray[level].size() << ' ' << time << '\n';
-	    HeaderFile << level_steps[level] << '\n';
+        for (int level = 0; level <= finest_level; ++level) {
+            HeaderFile << level << ' ' << bArray[level].size() << ' ' << time << '\n';
+            HeaderFile << level_steps[level] << '\n';
 
             const IntVect& domain_lo = geom[level].Domain().smallEnd();
             for (int i = 0; i < bArray[level].size(); ++i)
@@ -160,8 +160,8 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
                 }
             }
 
-	    HeaderFile << MultiFabHeaderPath(level, levelPrefix, mfPrefix) << '\n';
-	}
+            HeaderFile << MultiFabHeaderPath(level, levelPrefix, mfPrefix) << '\n';
+        }
 }
 
 
@@ -234,10 +234,10 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
             const MultiFab* data;
             std::unique_ptr<MultiFab> mf_tmp;
             if (mf[level]->nGrowVect() != 0) {
-                mf_tmp.reset(new MultiFab(mf[level]->boxArray(),
-                                          mf[level]->DistributionMap(),
-                                          mf[level]->nComp(), 0, MFInfo(),
-                                          mf[level]->Factory()));
+                mf_tmp = std::make_unique<MultiFab>(mf[level]->boxArray(),
+                                                    mf[level]->DistributionMap(),
+                                                    mf[level]->nComp(), 0, MFInfo(),
+                                                    mf[level]->Factory());
                 MultiFab::Copy(*mf_tmp, *mf[level], 0, 0, mf[level]->nComp(), 0);
                 data = mf_tmp.get();
             } else {
@@ -252,7 +252,7 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 // -plotfile name
 // -vector of MultiFabs
 // -vector of Geometrys
-// variable names are written as "Var0", "Var1", etc.    
+// variable names are written as "Var0", "Var1", etc.
 // refinement ratio is computed from the Geometry vector
 // "time" and "level_steps" are set to zero
 void WriteMLMF (const std::string &plotfilename,
@@ -283,11 +283,11 @@ void WriteMLMF (const std::string &plotfilename,
 
     // set time to zero
     Real time = 0.;
-    
+
     WriteMultiLevelPlotfile(plotfilename, nlevs, mf, varnames,
-                            geom, time, step_array, ref_ratio);   
-    
-}    
+                            geom, time, step_array, ref_ratio);
+
+}
 
 
 void
@@ -425,7 +425,7 @@ EB_WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
         std::ofstream HeaderFile;
         HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
         HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
-	                                        std::ofstream::trunc |
+                                                std::ofstream::trunc |
                                                 std::ofstream::binary);
         if( ! HeaderFile.good()) {
             FileOpenFailed(HeaderFileName);
@@ -457,7 +457,7 @@ EB_WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
         MultiFab::Copy(mf_tmp, *mf[level], 0, 0, nc, 0);
         auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(mf[level]->Factory());
         MultiFab::Copy(mf_tmp, factory.getVolFrac(), 0, nc, 1, 0);
-	VisMF::Write(mf_tmp, MultiFabFileFullPrefix(level, plotfilename, levelPrefix, mfPrefix));
+        VisMF::Write(mf_tmp, MultiFabFileFullPrefix(level, plotfilename, levelPrefix, mfPrefix));
     }
 
 //    VisMF::SetNOutFiles(saveNFiles);
@@ -617,7 +617,7 @@ WriteGenericPlotfileHeaderHDF5 (hid_t fid,
                             const Vector<IntVect> &ref_ratio,
                             const std::string &versionName,
                             const std::string &levelPrefix,
-                            const std::string &mfPrefix, 
+                            const std::string &mfPrefix,
                             const Vector<std::string>& extra_dirs)
 {
     BL_PROFILE("WriteGenericPlotfileHeaderHDF5()");
@@ -693,9 +693,9 @@ WriteGenericPlotfileHeaderHDF5 (hid_t fid,
         }
 
         int ratio = 1;
-        if (ref_ratio.size() > 0) 
+        if (ref_ratio.size() > 0)
             ratio = ref_ratio[level][0];
-        
+
         if (level == finest_level) {
             ratio = 1;
         }
@@ -861,38 +861,38 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
     hid_t babox_id;
     babox_id = H5Tcreate (H5T_COMPOUND, 2 * AMREX_SPACEDIM * sizeof(int));
     if (1 == AMREX_SPACEDIM) {
-	H5Tinsert (babox_id, "lo_i", 0 * sizeof(int), H5T_NATIVE_INT);
-	H5Tinsert (babox_id, "hi_i", 1 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "lo_i", 0 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "hi_i", 1 * sizeof(int), H5T_NATIVE_INT);
     }
     else if (2 == AMREX_SPACEDIM) {
-	H5Tinsert (babox_id, "lo_i", 0 * sizeof(int), H5T_NATIVE_INT);
-	H5Tinsert (babox_id, "lo_j", 1 * sizeof(int), H5T_NATIVE_INT);
-	H5Tinsert (babox_id, "hi_i", 2 * sizeof(int), H5T_NATIVE_INT);
-	H5Tinsert (babox_id, "hi_j", 3 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "lo_i", 0 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "lo_j", 1 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "hi_i", 2 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "hi_j", 3 * sizeof(int), H5T_NATIVE_INT);
     }
     else if (3 == AMREX_SPACEDIM) {
-	H5Tinsert (babox_id, "lo_i", 0 * sizeof(int), H5T_NATIVE_INT);
-	H5Tinsert (babox_id, "lo_j", 1 * sizeof(int), H5T_NATIVE_INT);
-	H5Tinsert (babox_id, "lo_k", 2 * sizeof(int), H5T_NATIVE_INT);
-	H5Tinsert (babox_id, "hi_i", 3 * sizeof(int), H5T_NATIVE_INT);
-	H5Tinsert (babox_id, "hi_j", 4 * sizeof(int), H5T_NATIVE_INT);
-	H5Tinsert (babox_id, "hi_k", 5 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "lo_i", 0 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "lo_j", 1 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "lo_k", 2 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "hi_i", 3 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "hi_j", 4 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (babox_id, "hi_k", 5 * sizeof(int), H5T_NATIVE_INT);
     }
- 
+
     hid_t center_id = H5Tcreate (H5T_COMPOUND, AMREX_SPACEDIM * sizeof(int));
     if (1 == AMREX_SPACEDIM) {
-	H5Tinsert (center_id, "i", 0 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (center_id, "i", 0 * sizeof(int), H5T_NATIVE_INT);
     }
     else if (2 == AMREX_SPACEDIM) {
-	H5Tinsert (center_id, "i", 0 * sizeof(int), H5T_NATIVE_INT);
-	H5Tinsert (center_id, "j", 1 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (center_id, "i", 0 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (center_id, "j", 1 * sizeof(int), H5T_NATIVE_INT);
     }
     else if (3 == AMREX_SPACEDIM) {
-	H5Tinsert (center_id, "i", 0 * sizeof(int), H5T_NATIVE_INT);
-	H5Tinsert (center_id, "j", 1 * sizeof(int), H5T_NATIVE_INT);
-	H5Tinsert (center_id, "k", 2 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (center_id, "i", 0 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (center_id, "j", 1 * sizeof(int), H5T_NATIVE_INT);
+        H5Tinsert (center_id, "k", 2 * sizeof(int), H5T_NATIVE_INT);
     }
- 
+
     fapl = H5Pcreate (H5P_FILE_ACCESS);
     dxpl = H5Pcreate(H5P_DATASET_XFER);
 
@@ -952,7 +952,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         std::string dataname("data:datatype=0");
         hsize_t  flatdims[1];
         flatdims[0] = grids.size();
-        
+
         flatdims[0] = grids.size();
         boxdataspace = H5Screate_simple(1, flatdims, NULL);
        
@@ -982,7 +982,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
                 ++bIndex;
             }
         }
-        
+
         hsize_t  oflatdims[1];
         oflatdims[0] = sortedGrids.size() + 1;
         offsetdataspace = H5Screate_simple(1, oflatdims, NULL);
@@ -1010,7 +1010,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
             currentOffset += sortedGrids[b].numPts() * ncomp;
         }
         offsets[sortedGrids.size()] = currentOffset;
-        
+
         Vector<unsigned long long> procOffsets(nProcs);
         int posCount(0);
         Vector<unsigned long long> procBufferSize(nProcs);
@@ -1027,7 +1027,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
             }
             totalOffset += procBufferSize[proc];
         }
-        
+
         if(ParallelDescriptor::IOProcessor()) {
             int vbCount(0);
             Vector<int> vbox(sortedGrids.size() * 2 * AMREX_SPACEDIM);
@@ -1040,7 +1040,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
                 }
                 ++vbCount;
             }
-           
+
 #ifdef BL_USE_MPI
             H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_INDEPENDENT);
 #endif
@@ -1067,26 +1067,26 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 #endif
             if(ret < 0) { std::cout << "Write box dataset failed! ret = " << ret << std::endl; }
         }
-       
+
         hsize_t hs_procsize[1], hs_allprocsize[1], ch_offset[1];
-        
+
         ch_offset[0]       = procOffsets[myProc];          // ---- offset on this proc
         hs_procsize[0]     = procBufferSize[myProc];       // ---- size of buffer on this proc
         hs_allprocsize[0]  = offsets[sortedGrids.size()];  // ---- size of buffer on all procs
-        
+
         hid_t dataspace    = H5Screate_simple(1, hs_allprocsize, NULL);
         hid_t memdataspace = H5Screate_simple(1, hs_procsize, NULL);
        
         H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
-        
+
         Vector<Real> a_buffer(procBufferSize[myProc], -1.0);
         const MultiFab* data;
         std::unique_ptr<MultiFab> mf_tmp;
         if (mf[level]->nGrowVect() != 0) {
-            mf_tmp.reset(new MultiFab(mf[level]->boxArray(),
-                                      mf[level]->DistributionMap(),
-                                      mf[level]->nComp(), 0, MFInfo(),
-                                      mf[level]->Factory()));
+            mf_tmp = std::make_unique<MultiFab>(mf[level]->boxArray(),
+                                                mf[level]->DistributionMap(),
+                                                mf[level]->nComp(), 0, MFInfo(),
+                                                mf[level]->Factory());
             MultiFab::Copy(*mf_tmp, *mf[level], 0, 0, mf[level]->nComp(), 0);
             data = mf_tmp.get();
         } else {
@@ -1101,7 +1101,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
                 RealDescriptor::convertFromNativeFormat(static_cast<void *> (a_buffer.dataPtr()+writeDataSize),
                                                         writeDataItems, fab.dataPtr(), *whichRD);
             } else {    // ---- copy from the fab
-                memcpy(static_cast<void *> (a_buffer.dataPtr()+writeDataSize), 
+                memcpy(static_cast<void *> (a_buffer.dataPtr()+writeDataSize),
                        fab.dataPtr(), writeDataItems * whichRDBytes);
             }
             writeDataSize += writeDataItems;
@@ -1131,7 +1131,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
         BL_PROFILE_VAR_STOP(h5dwg);
 
-        
+
         H5Sclose(memdataspace);
         H5Sclose(dataspace);
         H5Sclose(offsetdataspace);

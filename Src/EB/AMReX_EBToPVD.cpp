@@ -10,7 +10,7 @@
 #include <limits>
 
 namespace {
-amrex::Real dot_product(const std::array<amrex::Real,3>& a, const std::array<amrex::Real,3>& b) 
+amrex::Real dot_product(const std::array<amrex::Real,3>& a, const std::array<amrex::Real,3>& b)
 {
    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
 }
@@ -24,9 +24,9 @@ bool intersects(amrex::Real val)
 
 namespace amrex {
 
-void EBToPVD::EBToPolygon(const Real* problo, const Real* dx, 
-      const Box & bx, Array4<EBCellFlag const> const& flag, 
-      Array4<Real const> const& bcent,  
+void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
+      const Box & bx, Array4<EBCellFlag const> const& flag,
+      Array4<Real const> const& bcent,
       Array4<Real const> const& apx, Array4<Real const> const& apy, Array4<Real const> const& apz)
 {
    const auto lo = lbound(bx);
@@ -337,7 +337,7 @@ void EBToPVD::calc_hesse(Real& distance, std::array<Real,3>& n0, Real& p,
 void EBToPVD::calc_alpha(std::array<Real,12>& alpha,
       const std::array<Real,3>& n0, Real p,
       const std::array<std::array<Real,3>,8>& vertex,
-      const Real* dx) const 
+      const Real* dx) const
 {
    // default (large) value
    std::fill(alpha.begin(), alpha.end(), 10.0);
@@ -367,7 +367,7 @@ void EBToPVD::calc_alpha(std::array<Real,12>& alpha,
    }
 }
 
-void EBToPVD::calc_intersects(int& int_count, std::array<bool,12>& intersects_flags, 
+void EBToPVD::calc_intersects(int& int_count, std::array<bool,12>& intersects_flags,
       const std::array<Real,12>& alpha) const
 {
    int_count = 0;
@@ -400,7 +400,7 @@ void EBToPVD::print_connectivity(std::ofstream& myfile) const
    myfile << "<Polys>\n";
    myfile << "<DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">\n";
    for(size_t lc1 = 0; lc1 < m_connectivity.size(); ++lc1) {
-      for(size_t lc2 = 1; lc2 <= m_connectivity[lc1][0]; ++lc2) {
+      for(int lc2 = 1; lc2 <= m_connectivity[lc1][0]; ++lc2) {
          myfile << " " << m_connectivity[lc1][lc2];
       }
       myfile << "\n";
@@ -419,7 +419,7 @@ void EBToPVD::print_connectivity(std::ofstream& myfile) const
    myfile << "</Polys>\n";
 }
 
-void EBToPVD::EBGridCoverage(const int myID, const Real* problo, const Real* dx, 
+void EBToPVD::EBGridCoverage(const int myID, const Real* problo, const Real* dx,
       const Box &bx, Array4<EBCellFlag const> const& flag)
 {
    int lc1 = 0;
@@ -458,9 +458,9 @@ void EBToPVD::EBGridCoverage(const int myID, const Real* problo, const Real* dx,
       myfile.precision(6);
       myfile << "<?xml version=\"1.0\"?>\n";
       myfile << "<VTKFile type=\"RectilinearGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n";
-      myfile << "<RectilinearGrid WholeExtent=\" 0 " 
-         << nodes[0] << " 0 " << nodes[1] << " 0 " << nodes[2] << "\">\n"; 
-      myfile << "<Piece Extent=\" 0 " 
+      myfile << "<RectilinearGrid WholeExtent=\" 0 "
+         << nodes[0] << " 0 " << nodes[1] << " 0 " << nodes[2] << "\">\n";
+      myfile << "<Piece Extent=\" 0 "
          << nodes[0] << " 0 " << nodes[1] << " 0 " << nodes[2] << "\">\n";
       myfile << "<Coordinates>\n";
 

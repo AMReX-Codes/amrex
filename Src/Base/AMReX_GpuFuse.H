@@ -36,7 +36,7 @@ struct FuseHelper {
     int m_N;
 };
 
-static_assert(AMREX_IS_TRIVIALLY_COPYABLE(FuseHelper),"FuseHelper is not trivially copyable");
+static_assert(std::is_trivially_copyable<FuseHelper>(),"FuseHelper is not trivially copyable");
 
 template <typename Lambda>
 AMREX_GPU_DEVICE
@@ -220,7 +220,7 @@ public:
         PutLambda4DLauncher<Lambda>(m_helper_buf+(m_nlambdas-1), f);
     }
 
-    template <typename T, typename F, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+    template <typename T, typename F, typename M=std::enable_if_t<std::is_integral<T>::value> >
     void
     Register (T N, F&&f)
     {
@@ -261,7 +261,7 @@ private:
     void
     Register_doit (Box const& bx, int ncomp, Lambda const& f)
     {
-        if (m_nlambdas >= m_nhelpers_buf) {
+        if (m_nlambdas >= static_cast<int>(m_nhelpers_buf)) {
             resize_helper_buf();
         }
 
@@ -300,7 +300,7 @@ Register (Box const& bx, int ncomp, F&& f)
     Fuser::getInstance().Register(bx, ncomp, std::forward<F>(f));
 }
 
-template <typename T, typename F, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+template <typename T, typename F, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void
 Register (T N, F&&f)
 {

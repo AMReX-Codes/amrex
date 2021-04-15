@@ -1,3 +1,113 @@
+# 21.04
+
+  -- ParmParse parameter, nodal_proj.normalization_threshold, for setting
+     the normalization threshold of the bottom linear solver. (#1917)
+     The default value of the threshold has been changed from 1e-10 to
+     1e-8. (#1914)
+
+  -- Fix a bug in BaseFab::resize. (#1916)  This caused performance issues
+     on systems with managed memory and crashes if not.
+
+  -- Option to not zero out input multifab in amrex::ParticleToMesh (#1910)
+
+  -- CMake: add test_install (#1894)
+
+  -- Reimplement increment and incrementwithtotal for particles to take
+     advantage of GPUs and OpenMP (#1899)
+
+  -- Return const& in Particle rdata and idata and disallow returning copies
+     for rvalues. (#1895)
+
+  -- Update ALaplacian for multi-component and reuse (#1891)
+
+  -- CMake: IPO/LTO (#1890)
+
+  -- Make FabArray::setFab safer (#1884) Instead of taking a raw pointer, it
+     takes std::unique_ptr or rvalue FAB, so that the ownership is very
+     clear.  It also deletes the old FAB if not null.
+
+  -- Flags: RelWithDebInfo (#1879) Add warning control to CMake Build mode
+     `RelWithDebugInfo` (currently default for WarpX).
+
+  -- Build: Windows with Shared Libs (.dll) (#1847)
+
+  -- Remove tutorials documentation from main repo; it now lives at
+     https://github.com/AMReX-Codes/amrex-tutorials (#1877)
+
+  -- 2D Poisson and ALaplacian Solvers in 3D Build of AMReX (#1805) New
+     capability of solving 2D cell-centered Poisson's and ALaplacian
+     equation with 3D build of amrex.
+
+  -- Add FabArray::release and Make BaseFab virtual (#1873)
+
+  -- Robin BC in Linear Solver (#1848)
+
+  -- LevelBld (#1852) This is a breaking change for Amr/AmrLevel based
+     codes.
+
+  -- Optimization of CArena::freeUnused (#1865)
+
+  -- CI for macOS: Build a shared library. This is the default in
+     Spack. (#1836)
+
+  -- Remove tabs and trailing white spaces (#1860)
+
+  -- Free unused memory (#1861) If Arena is asked to allocate more than
+     what's available in the system, try to free unused memory first.
+
+  -- Fortran Interfaces for new FillPatch (#1793)
+
+  -- Arena Release Threshold (#1857)
+
+  -- Feature/non local parallel copy (#1842) This PR introduces "Multiblock"
+     capabilities to AMReX.
+
+  -- AMREX_NO_PROBINIT (#1846) For Amr/AmrLevel based codes, there is now a
+     compile time option AMREX_NO_PROBINIT=[TRUE|FALSE] for the support of
+     the probin file and amrex_probinit function.
+
+  -- Add EditorConfig (#1841)
+
+  -- Fix ncomp bug in linear solver (#1832)
+
+  -- CMake: AMReX_INSTALL (#1831) Add an `AMReX_INSTALL` option that
+     controls `install()` generation.
+
+# 21.03
+
+  -- Support multiple components in the ABecLaplacian solver. (#1825)
+
+  -- Add query functions to Arena. (#1823) They can be used to find out the
+     memory type and if the memory is accessible on device or host.
+
+  -- CMake: add -Wno-pass-failed to Clang-based compilers (#1815)
+
+  -- Option to cover multiple cuts in EB generation (#1810)
+
+  -- The_Async_Arena and Elixir::append (#1804)
+
+  -- Add function name output option to TinyProfiler. (#1803)
+
+  -- DPCPP: Use codeplay_host_task (#1797)
+
+  -- Add ParticleArray classes (#1796)
+
+  -- ParallelCopy_nowait & ParallelCopy_finish (#1765)
+
+  -- Add FabArray::tags() to return the tags. (#1794)
+
+  -- Bump minimum C++ standard from 11 to 14. (#1787)
+
+  -- Update the preferred short name of NVIDIA HPC SDK to nvhpc (#1788)
+
+  -- Fix precision issue in ParmParse::add (#1783)
+
+  -- Overset Solver with Refinement Ratio of 4 (#1778)
+
+  -- Refinement Ratio of 4 Support in Nodal Solver (#1774)
+
+  -- MSVC: Proper __cplusplus macro (#1773)
+
 # 21.02
 
   -- Abort when MLMG is detected as failing regardless of verbosity

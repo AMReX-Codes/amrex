@@ -2,13 +2,14 @@
 #define AMREX_GPU_ASYNC_ARRAY_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Arena.H>
+#include <AMReX_TypeTraits.H>
+#include <AMReX_GpuDevice.H>
+
 #include <cstddef>
 #include <cstring>
 #include <cstdlib>
 #include <memory>
-#include <AMReX_Arena.H>
-#include <AMReX_TypeTraits.H>
-#include <AMReX_GpuDevice.H>
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 extern "C" {
@@ -25,7 +26,7 @@ extern "C" {
 namespace amrex {
 namespace Gpu {
 
-template <typename T, typename std::enable_if<AMREX_IS_TRIVIALLY_COPYABLE(T),int>::type = 0>
+template <typename T, std::enable_if_t<std::is_trivially_copyable<T>::value,int> = 0>
 class AsyncArray
 {
 public:
@@ -33,7 +34,7 @@ public:
     AsyncArray (T const* h_p, const std::size_t n)
     {
         if (n == 0) return;
-        h_data = static_cast<T*>(std::malloc(n*sizeof(T)));
+        h_data = static_cast<T*>(The_Pinned_Arena()->alloc(n*sizeof(T)));
         std::memcpy(h_data, h_p, n*sizeof(T));
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
@@ -44,7 +45,7 @@ public:
 #endif
     }
 
-    template <typename U = T, typename std::enable_if<std::is_pod<U>::value,int>::type = 0>
+    template <typename U = T, typename std::enable_if<std::is_standard_layout<U>::value && std::is_trivial<U>::value,int>::type = 0>
     explicit AsyncArray (const std::size_t n)
     {
         if (n == 0) return;
@@ -56,7 +57,7 @@ public:
         else
 #endif
         {
-            h_data = static_cast<T*>(std::malloc(n*sizeof(T)));
+            h_data = static_cast<T*>(The_Pinned_Arena()->alloc(n*sizeof(T)));
         }
     }
 
@@ -89,19 +90,34 @@ public:
                 AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
                                                            amrex_asyncarray_delete, p, 0));
 #endif
-                Gpu::callbackAdded();
+#elif defined(AMREX_USE_DPCPP)
+#ifdef AMREX_USE_CODEPLAY_HOST_TASK
+                auto pd = d_data;
+                auto ph = h_data;
+                auto& q = *(Gpu::gpuStream().queue);
+                try {
+                    q.submit([&] (sycl::handler& h) {
+                        h.codeplay_host_task([=] () {
+                            The_Arena()->free(pd);
+                            The_Pinned_Arena()->free(ph);
+                        });
+                    });
+                } catch (sycl::exception const& ex) {
+                    amrex::Abort(std::string("host_task: ")+ex.what()+"!!!!!");
+                }
 #else
                 // xxxxx DPCPP todo
                 Gpu::streamSynchronize();
                 The_Arena()->free(d_data);
-                std::free(h_data);
+                The_Pinned_Arena()->free(h_data);
+#endif
 #endif
             }
         }
         else
 #endif
         {
-            std::free(h_data);
+            The_Pinned_Arena()->free(h_data);
         }
         d_data = nullptr;
         h_data = nullptr;

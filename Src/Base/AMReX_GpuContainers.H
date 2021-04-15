@@ -2,14 +2,14 @@
 #define AMREX_GPU_CONTAINERS_H_
 #include <AMReX_Config.H>
 
-#include <numeric>
-#include <iterator>
-
 #include <AMReX_Vector.H>
 #include <AMReX_PODVector.H>
 #include <AMReX_GpuAllocators.H>
 #include <AMReX_Scan.H>
 #include <type_traits>
+
+#include <numeric>
+#include <iterator>
 
 namespace amrex {
 
@@ -27,13 +27,6 @@ namespace Gpu {
     using DeviceVector = PODVector<T, ArenaAllocator<T> >;
 
     /**
-     * \brief A PODVector that uses host memory. No Arena is used.
-     *
-     */
-    template <class T>
-    using HostVector = PODVector<T>;
-
-    /**
      * \brief A PODVector that uses the managed memory arena.
      *
      */
@@ -48,6 +41,14 @@ namespace Gpu {
     using PinnedVector = PODVector<T, PinnedArenaAllocator<T> >;
 
     /**
+     * \brief A PODVector that uses pinned host memory. Same as PinnedVector.
+     * For a vector class that uses std::allocator by default, see amrex::Vector.
+     *
+     */
+    template <class T>
+    using HostVector = PinnedVector<T>;
+
+    /**
      * \brief The behavior of PolymorphicVector changes depending on
      * the amrex.use_gpu_aware_mpi runtime flag. If the flag is true,
      * this vector will use device memory. If it is false, this Vector
@@ -58,15 +59,15 @@ namespace Gpu {
     using PolymorphicVector = PODVector<T, PolymorphicAllocator<T> >;
 
     /**
-     * \brief This is identical to ManagedVector<T>. The ManagedDeviceVector 
+     * \brief This is identical to ManagedVector<T>. The ManagedDeviceVector
      * form is deprecated and will be removed in a future release.
      *
      */
     template <class T>
     using ManagedDeviceVector = PODVector<T, ManagedArenaAllocator<T> >;
-    
+
 #else
-    //! When Cuda is off, all these containers revert to amrex::Vector. 
+    //! When Cuda is off, all these containers revert to amrex::Gpu::PODVector.
     template <class T>
     using DeviceVector = PODVector<T>;
 
@@ -108,14 +109,14 @@ namespace Gpu {
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *     
+     *
      *    Gpu::copy(Gpu::hostToDevice, a.begin(), a.end(), b.begin());
      */
     template<class InIter, class OutIter>
     void copy (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
@@ -141,18 +142,18 @@ namespace Gpu {
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *     
+     *
      *    Gpu::copy(Gpu::deviceToHost, a.begin(), a.end(), b.begin());
      */
     template<class InIter, class OutIter>
     void copy (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
-#ifdef AMREX_USE_GPU        
+#ifdef AMREX_USE_GPU
         dtoh_memcpy(&(*result), &(*begin), size*sizeof(value_type));
 #else
         std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
@@ -174,14 +175,14 @@ namespace Gpu {
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *     
+     *
      *    Gpu::copy(Gpu::deviceToDevice, a.begin(), a.end(), b.begin());
      */
     template<class InIter, class OutIter>
     void copy (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
@@ -197,7 +198,7 @@ namespace Gpu {
      * memcpy, so it assumes contiguous storage. The amrex-provided containers
      * like Gpu::HostVector, Gpu::DeviceVector, etc. meet this requirement.
      *
-     * This version is asynchronous - CPU execution will continue, whether or not the 
+     * This version is asynchronous - CPU execution will continue, whether or not the
      * copy is finished.
      *
      * \tparam InIter  The input iterator type
@@ -208,14 +209,14 @@ namespace Gpu {
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *     
+     *
      *    Gpu::copy(Gpu::hostToDevice, a.begin(), a.end(), b.begin());
-     */    
+     */
     template<class InIter, class OutIter>
     void copyAsync (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
@@ -223,7 +224,7 @@ namespace Gpu {
         htod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
 #else
         std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
-#endif        
+#endif
     }
 
     /**
@@ -231,7 +232,7 @@ namespace Gpu {
      * memcpy, so it assumes contiguous storage. The amrex-provided containers
      * like Gpu::HostVector, Gpu::DeviceVector, etc. meet this requirement.
      *
-     * This version is asynchronous - CPU execution will continue, whether or not the 
+     * This version is asynchronous - CPU execution will continue, whether or not the
      * copy is finished.
      *
      * \tparam InIter  The input iterator type
@@ -242,22 +243,22 @@ namespace Gpu {
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *     
+     *
      *    Gpu::copy(Gpu::deviceToHost, a.begin(), a.end(), b.begin());
      */
     template<class InIter, class OutIter>
     void copyAsync (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
-#ifdef AMREX_USE_GPU        
+#ifdef AMREX_USE_GPU
         dtoh_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
 #else
         std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
-#endif        
+#endif
     }
 
     /**
@@ -265,7 +266,7 @@ namespace Gpu {
      * memcpy, so it assumes contiguous storage. The amrex-provided containers
      * like Gpu::HostVector, Gpu::DeviceVector, etc. meet this requirement.
      *
-     * This version is asynchronous - CPU execution will continue, whether or not the 
+     * This version is asynchronous - CPU execution will continue, whether or not the
      * copy is finished.
      *
      * \tparam InIter  The input iterator type
@@ -276,14 +277,14 @@ namespace Gpu {
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *     
+     *
      *    Gpu::copy(Gpu::deviceToDevice, a.begin(), a.end(), b.begin());
      */
     template<class InIter, class OutIter>
     void copyAsync (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
@@ -291,7 +292,7 @@ namespace Gpu {
         dtod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
 #else
         std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
-#endif        
+#endif
     }
 
 }}

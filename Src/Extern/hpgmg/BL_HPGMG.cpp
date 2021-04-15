@@ -454,8 +454,8 @@ void ConvertToHPGMGLevel (const MultiFab& mf,
       for(j=0;j<dim_j;j++){
       for(i=0;i<dim_i;i++){
 
-	// The HPGMG strides are padded to align memory and encourage
-	// SIMD-ization, so they are different than the BoxLib strides.
+        // The HPGMG strides are padded to align memory and encourage
+        // SIMD-ization, so they are different than the BoxLib strides.
 
         const int ijk_HPGMG = (i+ghosts) + (j+ghosts)*jStride + (k+ghosts)*kStride;
         const int ijk_BoxLib = (i+BoxLib_ghosts) + (j+BoxLib_ghosts)*BL_jStride + (k+BoxLib_ghosts)*BL_kStride;

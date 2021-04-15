@@ -40,10 +40,10 @@ namespace {
         ba.intersections(slice_box, isects, false, 0);
         Vector<Box> boxes;
         Vector<int> procs;
-        for (int i = 0; i < isects.size(); ++i) {
-            procs.push_back(dm[isects[i].first]);
-            boxes.push_back(isects[i].second);
-            slice_to_full_ba_map.push_back(isects[i].first);
+        for (auto const& is : isects) {
+            procs.push_back(dm[is.first]);
+            boxes.push_back(is.second);
+            slice_to_full_ba_map.push_back(is.first);
         }
         BoxArray slice_ba(&boxes[0], boxes.size());
         DistributionMapping slice_dmap(std::move(procs));
@@ -107,7 +107,7 @@ namespace amrex
     }
 
     void average_face_to_cellcenter (MultiFab& cc, const Vector<const MultiFab*>& fc,
-				     const Geometry& geom)
+                                     const Geometry& geom)
     {
         average_face_to_cellcenter(cc,
                                    Array<MultiFab const*,AMREX_SPACEDIM>
@@ -148,10 +148,10 @@ namespace amrex
 
     void average_face_to_cellcenter (MultiFab& cc,
                                      const Array<const MultiFab*,AMREX_SPACEDIM>& fc,
-				     const Geometry& geom)
+                                     const Geometry& geom)
     {
-	AMREX_ASSERT(cc.nComp() >= AMREX_SPACEDIM);
-	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
+        AMREX_ASSERT(cc.nComp() >= AMREX_SPACEDIM);
+        AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
         const GeometryData gd = geom.data();
         amrex::ignore_unused(gd);
@@ -182,22 +182,31 @@ namespace amrex
     }
 
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc,
-				     const Geometry& geom)
+                                     const Geometry& geom, int ncomp, bool use_harmonic_averaging)
     {
         average_cellcenter_to_face(Array<MultiFab*,AMREX_SPACEDIM>{{AMREX_D_DECL(fc[0],fc[1],fc[2])}},
-                                   cc, geom);
+                                   cc, geom, ncomp, use_harmonic_averaging);
     }
 
 
     void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc, const MultiFab& cc,
-                                    const Geometry& geom)
+                                    const Geometry& geom, int ncomp, bool use_harmonic_averaging)
     {
-	AMREX_ASSERT(cc.nComp() == 1);
-	AMREX_ASSERT(cc.nGrow() >= 1);
-	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
+        AMREX_ASSERT(cc.nComp() == ncomp);
+        AMREX_ASSERT(cc.nGrow() >= 1);
+        AMREX_ASSERT(fc[0]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
+#if (AMREX_SPACEDIM >= 2)
+        AMREX_ASSERT(fc[1]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
+#endif
+#if (AMREX_SPACEDIM == 3)
+        AMREX_ASSERT(fc[2]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
+#endif
+
 
 #if (AMREX_SPACEDIM == 1)
         const GeometryData& gd = geom.data();
+        if (use_harmonic_averaging)
+            AMREX_ASSERT(gd.Coord() == 0);
 #else
         amrex::ignore_unused(geom);
 #endif
@@ -205,8 +214,8 @@ namespace amrex
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-	{
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
             AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
                          const Box& ybx = mfi.nodaltilebox(1);,
                          const Box& zbx = mfi.nodaltilebox(2););
@@ -220,16 +229,18 @@ namespace amrex
 #if (AMREX_SPACEDIM == 1)
             AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (index_bounds, tbx,
             {
-                amrex_avg_cc_to_fc(tbx, xbx, fxarr, ccarr, gd);
+                amrex_avg_cc_to_fc(tbx, xbx, fxarr, ccarr, gd, ncomp,
+                                   use_harmonic_averaging);
             });
 #else
             AMREX_LAUNCH_HOST_DEVICE_FUSIBLE_LAMBDA (index_bounds, tbx,
             {
                 amrex_avg_cc_to_fc(tbx, AMREX_D_DECL(xbx,ybx,zbx),
-                                   AMREX_D_DECL(fxarr,fyarr,fzarr), ccarr);
+                                   AMREX_D_DECL(fxarr,fyarr,fzarr), ccarr, ncomp,
+                                   use_harmonic_averaging);
             });
 #endif
-	}
+        }
     }
 
 // *************************************************************************************************************
@@ -238,14 +249,14 @@ namespace amrex
     // We do NOT assume that the coarse layout is a coarsened version of the fine layout.
     // This version DOES use volume-weighting.
     void average_down (const MultiFab& S_fine, MultiFab& S_crse,
-		       const Geometry& fgeom, const Geometry& cgeom,
+                       const Geometry& fgeom, const Geometry& cgeom,
                        int scomp, int ncomp, int rr)
     {
          average_down(S_fine,S_crse,fgeom,cgeom,scomp,ncomp,rr*IntVect::TheUnitVector());
     }
 
     void average_down (const MultiFab& S_fine, MultiFab& S_crse,
-		       const Geometry& fgeom, const Geometry& cgeom,
+                       const Geometry& fgeom, const Geometry& cgeom,
                        int scomp, int ncomp, const IntVect& ratio)
     {
         amrex::ignore_unused(fgeom,cgeom);
@@ -258,8 +269,8 @@ namespace amrex
         }
 
 #if (AMREX_SPACEDIM == 3)
-	amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
-	return;
+        amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
+        return;
 #else
 
         AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
@@ -267,15 +278,15 @@ namespace amrex
         //
         // Coarsen() the fine stuff on processors owning the fine data.
         //
-	const BoxArray& fine_BA = S_fine.boxArray();
-	const DistributionMapping& fine_dm = S_fine.DistributionMap();
+        const BoxArray& fine_BA = S_fine.boxArray();
+        const DistributionMapping& fine_dm = S_fine.DistributionMap();
         BoxArray crse_S_fine_BA = fine_BA;
-	crse_S_fine_BA.coarsen(ratio);
+        crse_S_fine_BA.coarsen(ratio);
 
         MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),FArrayBoxFactory());
 
-	MultiFab fvolume;
-	fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
+        MultiFab fvolume;
+        fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -293,7 +304,7 @@ namespace amrex
                 amrex_avgdown_with_vol(tbx,crsearr,finearr,finevolarr,
                                        0,scomp,ncomp,ratio);
             });
-	}
+        }
 
         S_crse.copy(crse_S_fine,0,scomp,ncomp);
 #endif
@@ -451,7 +462,7 @@ namespace amrex
     // Average fine face-based MultiFab onto crse face-based MultiFab.
     void average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
                              const Array<MultiFab*,AMREX_SPACEDIM>& crse,
-			     const IntVect& ratio, int ngcrse)
+                             const IntVect& ratio, int ngcrse)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
@@ -462,7 +473,7 @@ namespace amrex
     void average_down_faces (const MultiFab& fine, MultiFab& crse,
                              const IntVect& ratio, int ngcrse)
     {
-	AMREX_ASSERT(crse.nComp() == fine.nComp());
+        AMREX_ASSERT(crse.nComp() == fine.nComp());
         AMREX_ASSERT(fine.ixType() == crse.ixType());
         const auto type = fine.ixType();
         int dir;
@@ -544,7 +555,7 @@ namespace amrex
     void average_down_edges (const MultiFab& fine, MultiFab& crse,
                              const IntVect& ratio, int ngcrse)
     {
-	AMREX_ASSERT(crse.nComp() == fine.nComp());
+        AMREX_ASSERT(crse.nComp() == fine.nComp());
         AMREX_ASSERT(fine.ixType() == crse.ixType());
         const auto type = fine.ixType();
         int dir;
@@ -847,13 +858,12 @@ namespace amrex
             b.shift(offset);
         }
         BoxArray nba(std::move(bl));
-        MultiFab nmf(nba, mf.DistributionMap(), mf.nComp(), 0,
-                     MFInfo().SetAlloc(false));
+        MultiFab nmf(nba, mf.DistributionMap(), mf.nComp(), 0, MFInfo().SetAlloc(false));
 
         for (MFIter mfi(r); mfi.isValid(); ++mfi) {
             auto const& rfab = r[mfi];
-            nmf.setFab(mfi, new FArrayBox(nba[mfi.index()], rfab.nComp(),
-                                          rfab.dataPtr()), false);
+            nmf.setFab(mfi, FArrayBox(amrex::shift(rfab.box(),offset), rfab.nComp(),
+                                      rfab.dataPtr()));
         }
 
         nmf.ParallelCopy(mf, period);

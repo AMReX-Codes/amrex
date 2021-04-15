@@ -9,7 +9,7 @@
 // What's the slowest way I can think of to compute all the norms??
 //
 Real
-MFNorm (const MultiFab& mfab, 
+MFNorm (const MultiFab& mfab,
         const int       exponent,
         const int       srcComp,
         const int       numComp,
@@ -34,7 +34,7 @@ MFNorm (const MultiFab& mfab,
             mftmp[mftmpmfi].abs(boxes[mftmpmfi.index()], 0, numComp);
             myNorm = std::max(myNorm, mftmp[mftmpmfi].norm(0, 0, numComp));
         }
-	ParallelDescriptor::ReduceRealMax(myNorm);
+        ParallelDescriptor::ReduceRealMax(myNorm);
 
     } else if ( exponent == 1 )
     {
@@ -44,7 +44,7 @@ MFNorm (const MultiFab& mfab,
 
             myNorm += mftmp[mftmpmfi].norm(1, 0, numComp);
         }
-	ParallelDescriptor::ReduceRealSum(myNorm);
+        ParallelDescriptor::ReduceRealSum(myNorm);
 
     } else if ( exponent == 2 )
     {
@@ -54,14 +54,14 @@ MFNorm (const MultiFab& mfab,
 
             myNorm += pow(mftmp[mftmpmfi].norm(2, 0, numComp), 2);
         }
-	ParallelDescriptor::ReduceRealSum(myNorm);
+        ParallelDescriptor::ReduceRealSum(myNorm);
         myNorm = sqrt( myNorm );
 
     } else {
 
         amrex::Error("Invalid exponent to norm function");
     }
-    
+
     return myNorm;
 }
 

@@ -50,55 +50,55 @@ BLBackTrace::handler(int s)
 
     switch (s) {
     case SIGSEGV:
-	amrex::ErrorStream() << "Segfault\n";
-	break;
+        amrex::ErrorStream() << "Segfault\n";
+        break;
     case SIGFPE:
-	amrex::ErrorStream() << "Erroneous arithmetic operation\n";
-	break;
+        amrex::ErrorStream() << "Erroneous arithmetic operation\n";
+        break;
     case SIGTERM:
-	amrex::ErrorStream() << "SIGTERM\n";
-	break;
+        amrex::ErrorStream() << "SIGTERM\n";
+        break;
     case SIGINT:
-	amrex::ErrorStream() << "SIGINT\n";
-	break;
+        amrex::ErrorStream() << "SIGINT\n";
+        break;
     case SIGABRT:
-	amrex::ErrorStream() << "SIGABRT\n";
-	break;
+        amrex::ErrorStream() << "SIGABRT\n";
+        break;
     }
 
 #if defined(AMREX_BACKTRACE_SUPPORTED) || defined(AMREX_TINY_PROFILING)
 
     std::string errfilename;
     {
-	std::ostringstream ss;
-	ss << "Backtrace." << ParallelDescriptor::MyProc();
+        std::ostringstream ss;
+        ss << "Backtrace." << ParallelDescriptor::MyProc();
 #ifdef AMREX_USE_OMP
- 	ss << "." << omp_get_thread_num();
+        ss << "." << omp_get_thread_num();
 #endif
-	errfilename = ss.str();
+        errfilename = ss.str();
     }
 
     if (FILE* p = fopen(errfilename.c_str(), "w")) {
 #if defined(AMREX_BACKTRACE_SUPPORTED)
-	BLBackTrace::print_backtrace_info(p);
+        BLBackTrace::print_backtrace_info(p);
 #endif
-	fclose(p);
+        fclose(p);
     }
-    
+
     amrex::ErrorStream() << "See " << errfilename << " file for details" << std::endl;
 
     if (!bt_stack.empty()) {
-	std::ofstream errfile;
-	errfile.open(errfilename.c_str(), std::ofstream::out | std::ofstream::app);
-	if (errfile.is_open()) {
-	    errfile << std::endl;
-	    while (!bt_stack.empty()) {
-		errfile << "== BACKTRACE == " << bt_stack.top().first
-			<<", " << bt_stack.top().second << "\n";
-		bt_stack.pop();
-	    }
-	    errfile << std::endl;
-	}
+        std::ofstream errfile;
+        errfile.open(errfilename.c_str(), std::ofstream::out | std::ofstream::app);
+        if (errfile.is_open()) {
+            errfile << std::endl;
+            while (!bt_stack.empty()) {
+                errfile << "== BACKTRACE == " << bt_stack.top().first
+                        <<", " << bt_stack.top().second << "\n";
+                bt_stack.pop();
+            }
+            errfile << std::endl;
+        }
     }
 
 #ifdef AMREX_TINY_PROFILING
@@ -109,12 +109,12 @@ BLBackTrace::handler(int s)
             errfile << std::endl;
             TinyProfiler::PrintCallStack(errfile);
             errfile << std::endl;
-	}
+        }
     }
 #endif
 
     if (ParallelDescriptor::NProcs() > 1) {
-	amrex::Sleep(3);
+        amrex::Sleep(3);
     }
 
 #endif
@@ -132,7 +132,7 @@ BLBackTrace::print_backtrace_info (const std::string& filename)
     }
     else
     {
-        amrex::Print() << "Warning @ BLBackTrace::print_backtrace_info: " 
+        amrex::Print() << "Warning @ BLBackTrace::print_backtrace_info: "
                        << filename << " is not a valid output file."
                        << std::endl;
     }
@@ -178,7 +178,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
 
     char **strings = backtrace_symbols(bt_buffer, nentries);
     if (strings != NULL) {
-	int have_eu_addr2line = 0;
+        int have_eu_addr2line = 0;
         int have_addr2line = 0;
         std::string cmd;
         {
@@ -197,17 +197,17 @@ BLBackTrace::print_backtrace_info (FILE* f)
             }
         }
 
-	fprintf(f, "=== If no file names and line numbers are shown below, one can run\n");
-	fprintf(f, "            addr2line -Cpfie my_exefile my_line_address\n");
-	fprintf(f, "    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.\n");
+        fprintf(f, "=== If no file names and line numbers are shown below, one can run\n");
+        fprintf(f, "            addr2line -Cpfie my_exefile my_line_address\n");
+        fprintf(f, "    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.\n");
         fprintf(f, "    Or one can use amrex/Tools/Backtrace/parse_bt.py.\n\n");
 
-	fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
-	fprintf(f, "    One can use\n");
-	fprintf(f, "            readelf -wl my_exefile | grep my_line_address'\n");
-	fprintf(f, "    to find out the offset for that line.\n\n");
+        fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
+        fprintf(f, "    One can use\n");
+        fprintf(f, "            readelf -wl my_exefile | grep my_line_address'\n");
+        fprintf(f, "    to find out the offset for that line.\n\n");
 
-	for (int i = 0; i < nentries; ++i)
+        for (int i = 0; i < nentries; ++i)
         {
             fprintf(f, "%2d: %s\n", i, strings[i]);
 
@@ -258,7 +258,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
             }
 #endif
             fprintf(f, "\n");
-	}
+        }
         std::free(strings);
     }
 
@@ -304,44 +304,44 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
     std::ostringstream ss;
     ss << "Line " << line << ", File " << file;
     line_file = ss.str();
-    
+
 #ifdef AMREX_USE_OMP
     if (omp_in_parallel()) {
-	std::ostringstream ss0;
-	ss0 << "Proc. " << ParallelDescriptor::MyProc()
-	    << ", Thread " << omp_get_thread_num()
-	    << ": \"" << s << "\"";
-	BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
+        std::ostringstream ss0;
+        ss0 << "Proc. " << ParallelDescriptor::MyProc()
+            << ", Thread " << omp_get_thread_num()
+            << ": \"" << s << "\"";
+        BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
     }
     else {
         #pragma omp parallel
-	{
-	    std::ostringstream ss0;
-	    ss0 << "Proc. " << ParallelDescriptor::MyProc()
-		<< ", Master Thread"
-		<< ": \"" << s << "\"";
-	    BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
-	}
+        {
+            std::ostringstream ss0;
+            ss0 << "Proc. " << ParallelDescriptor::MyProc()
+                << ", Master Thread"
+                << ": \"" << s << "\"";
+            BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
+        }
     }
 #else
     std::ostringstream ss0;
     ss0 << "Proc. " << ParallelDescriptor::MyProc()
-	<< ": \"" << s << "\"";
+        << ": \"" << s << "\"";
     BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
-#endif    
+#endif
 }
 
 BLBTer::~BLBTer()
 {
 #ifdef AMREX_USE_OMP
     if (omp_in_parallel()) {
-	pop_bt_stack();
+        pop_bt_stack();
     }
     else {
         #pragma omp parallel
-	{
-	    pop_bt_stack();
-	}	
+        {
+            pop_bt_stack();
+        }
     }
 #else
     pop_bt_stack();
@@ -352,9 +352,9 @@ void
 BLBTer::pop_bt_stack()
 {
     if (!BLBackTrace::bt_stack.empty()) {
-	if (BLBackTrace::bt_stack.top().second.compare(line_file) == 0) {
-	    BLBackTrace::bt_stack.pop();
-	}
+        if (BLBackTrace::bt_stack.top().second.compare(line_file) == 0) {
+            BLBackTrace::bt_stack.pop();
+        }
     }
 }
 

@@ -3,14 +3,14 @@
 #define AMREX_StateDescriptor_H_
 #include <AMReX_Config.H>
 
-#include <utility>
-#include <memory>
-
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 #include <AMReX_PhysBCFunct.H>
+
+#include <utility>
+#include <memory>
 
 namespace amrex {
 
@@ -82,23 +82,23 @@ public:
         */
         virtual ~BndryFunc ();
 
-	/**
-	* Fill boundary cells using "regular" function.
-    *
-	* \param data
-	* \param lo
-	* \param hi
-	* \param dom_lo
-	* \param dom_hi
-	* \param dx
-	* \param grd_lo
-	* \param time
-	* \param bc
-	*/
-	virtual void operator () (Real* data, const int* lo, const int* hi,
-				  const int* dom_lo, const int* dom_hi,
-				  const Real* dx, const Real* grd_lo,
-				  const Real* time, const int* bc) const;
+        /**
+        * Fill boundary cells using "regular" function.
+        *
+        * \param data
+        * \param lo
+        * \param hi
+        * \param dom_lo
+        * \param dom_hi
+        * \param dx
+        * \param grd_lo
+        * \param time
+        * \param bc
+        */
+        virtual void operator () (Real* data, const int* lo, const int* hi,
+                                  const int* dom_lo, const int* dom_hi,
+                                  const Real* dx, const Real* grd_lo,
+                                  const Real* time, const int* bc) const;
 
         /**
         * \brief Fill boundary cells using "group" function.
@@ -438,8 +438,8 @@ private:
     static int bf_ext_dir_threadsafe;
 
     static bool bf_thread_safety (const int* lo,const int* hi,
-				  const int* dom_lo, const int* dom_hi,
-				  const int* bc, int ng);
+                                  const int* dom_lo, const int* dom_hi,
+                                  const int* bc, int ng);
 };
 
 /**

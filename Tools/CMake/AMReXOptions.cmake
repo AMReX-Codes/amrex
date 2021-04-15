@@ -61,6 +61,11 @@ else ()
 endif ()
 print_option( BUILD_SHARED_LIBS )
 
+#
+# Option to control generation of install targets
+#
+option(AMReX_INSTALL "Generate Install Targets" ON)
+
 
 #
 # Option to control if Fortran must be enabled  ==============================
@@ -264,6 +269,9 @@ endif ()
 option( AMReX_PIC "Build position-independent code" OFF)
 print_option( AMReX_PIC )
 
+option( AMReX_IPO "Enable interprocedural optimization (IPO/LTO)" OFF)
+print_option( AMReX_IPO )
+
 option(AMReX_FPE "Enable Floating Point Exceptions checks" OFF)
 print_option( AMReX_FPE )
 
@@ -275,6 +283,8 @@ endif ()
 
 print_option( AMReX_ASSERTIONS )
 
+option(AMReX_BOUND_CHECK  "Enable bound checking in Array4 class" OFF)
+print_option( AMReX_BOUND_CHECK )
 
 #
 # Profiling options  =========================================================
@@ -329,4 +339,12 @@ endif()
 # Extra options  =========================================================
 #
 option(AMReX_DIFFERENT_COMPILER
-    "Allow an application to use a different compiler than the one used to build AMReX" OFF)
+   "Allow an application to use a different compiler than the one used to build AMReX" OFF)
+print_option(AMReX_DIFFERENT_COMPILER)
+
+if (BUILD_SHARED_LIBS AND NOT (CMAKE_SYSTEM_NAME STREQUAL "Linux") )
+   option(AMReX_PROBINIT "Enable support for probin file" OFF)
+else ()
+   option(AMReX_PROBINIT "Enable support for probin file" ON)
+endif ()
+print_option(AMReX_PROBINIT)

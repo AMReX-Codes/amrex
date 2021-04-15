@@ -1,8 +1,9 @@
 
-#include <iostream>
 #include <AMReX_BLassert.H>
 #include <AMReX_ErrorList.H>
 #include <AMReX_SPACE.H>
+
+#include <iostream>
 
 namespace amrex {
 
@@ -33,11 +34,11 @@ ErrorRec::ErrorFunc::clone () const
 ErrorRec::ErrorFunc::~ErrorFunc () {}
 
 void
-ErrorRec::ErrorFunc::operator () (int* tag, AMREX_D_DECL(const int&tlo0,const int&tlo1,const int&tlo2), 
-                                  AMREX_D_DECL(const int&thi0,const int&thi1,const int&thi2), 
+ErrorRec::ErrorFunc::operator () (int* tag, AMREX_D_DECL(const int&tlo0,const int&tlo1,const int&tlo2),
+                                  AMREX_D_DECL(const int&thi0,const int&thi1,const int&thi2),
                                   const int* tagval, const int* clearval,
-                                  Real* data, AMREX_D_DECL(const int&dlo0,const int&dlo1,const int&dlo2), 
-                                  AMREX_D_DECL(const int&dhi0,const int&dhi1,const int&dhi2), 
+                                  Real* data, AMREX_D_DECL(const int&dlo0,const int&dlo1,const int&dlo2),
+                                  AMREX_D_DECL(const int&dhi0,const int&dhi1,const int&dhi2),
                                   const int* lo, const int * hi, const int* nvar,
                                   const int* domain_lo, const int* domain_hi,
                                   const Real* dx, const Real* xlo,
@@ -52,7 +53,7 @@ ErrorRec::ErrorFunc::operator () (int* tag, AMREX_D_DECL(const int&tlo0,const in
 }
 
 void
-ErrorRec::ErrorFunc::operator () (int* tag, const int* tlo, const int* thi, 
+ErrorRec::ErrorFunc::operator () (int* tag, const int* tlo, const int* thi,
                                   const int* tagval, const int* clearval,
                                   Real* data, const int* dlo, const int* dhi,
                                   const int* lo, const int * hi, const int* nvar,
@@ -68,7 +69,7 @@ ErrorRec::ErrorFunc::operator () (int* tag, const int* tlo, const int* thi,
              AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),nvar,
              AMREX_ARLIM_3D(domain_lo),AMREX_ARLIM_3D(domain_hi),
              AMREX_ZFILL(dx),AMREX_ZFILL(xlo),AMREX_ZFILL(prob_lo),time,level);
-}  
+}
 
 
 ErrorRec::ErrorFunc2::ErrorFunc2 ()
@@ -91,11 +92,11 @@ ErrorRec::ErrorFunc2::~ErrorFunc2 () {}
 
 
 void
-ErrorRec::ErrorFunc2::operator () (int* tag, AMREX_D_DECL(const int&tlo0,const int&tlo1,const int&tlo2), 
-                                   AMREX_D_DECL(const int&thi0,const int&thi1,const int&thi2), 
+ErrorRec::ErrorFunc2::operator () (int* tag, AMREX_D_DECL(const int&tlo0,const int&tlo1,const int&tlo2),
+                                   AMREX_D_DECL(const int&thi0,const int&thi1,const int&thi2),
                                    const int* tagval, const int* clearval,
-                                   Real* data, AMREX_D_DECL(const int&dlo0,const int&dlo1,const int&dlo2), 
-                                   AMREX_D_DECL(const int&dhi0,const int&dhi1,const int&dhi2), 
+                                   Real* data, AMREX_D_DECL(const int&dlo0,const int&dlo1,const int&dlo2),
+                                   AMREX_D_DECL(const int&dhi0,const int&dhi1,const int&dhi2),
                                    const int* lo, const int * hi, const int* nvar,
                                    const int* domain_lo, const int* domain_hi,
                                    const Real* dx, const int* level, const Real* avg) const
@@ -176,7 +177,7 @@ ErrorList::size () const noexcept
 
 void
 ErrorList::add (const std::string&         name,
-                int                        nextra, 
+                int                        nextra,
                 ErrorRec::ErrorType        typ,
                 const ErrorRec::ErrorFunc& func)
 {
@@ -185,7 +186,7 @@ ErrorList::add (const std::string&         name,
     //
     int n = vec.size();
     vec.resize(n+1);
-    vec[n].reset(new ErrorRec(name, nextra, typ, func));
+    vec[n] = std::make_unique<ErrorRec>(name, nextra, typ, func);
 }
 
 void
@@ -199,7 +200,7 @@ ErrorList::add (const std::string&          name,
     //
     int n = vec.size();
     vec.resize(n+1);
-    vec[n].reset(new ErrorRec(name, nextra, typ, func2));
+    vec[n] = std::make_unique<ErrorRec>(name, nextra, typ, func2);
 }
 
 const ErrorRec&
@@ -264,7 +265,7 @@ operator << (std::ostream&    os,
     static std::map<TEST,int> ng = { {GRAD,1}, {LESS,0}, {GREATER,0}, {VORT,0}, {BOX,0} };
     return ng[m_test];
   }
-  
+
   inline
   void
   AMRErrorTag_LESS(const Box&                bx,

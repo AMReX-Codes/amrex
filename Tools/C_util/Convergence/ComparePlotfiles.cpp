@@ -20,14 +20,14 @@ PrintUsage (const char* progName)
             << "L1 = sum(|diff_ijk|)/npts_coarsedomain"                       << std::endl
             << "L2 = sqrt[sum(diff_ijk^2)]/sqrt(npts_coarsedomain)"           << std::endl
             <<  "(only single-level supported)"                               << std::endl << std::endl;
-    
+
     Print() << "Usage:" << '\n';
     Print() << progName << '\n';
     Print() << "    infile1 = inputFileName1" << '\n';
     Print() << "    reffile = refinedPlotFile" << '\n';
     Print() << "    diffile = differenceFileName" << '\n';
     Print() << "              (If not specified no file is written)" << '\n' << '\n';
-    
+
     Print() << "You can either point to the plotfile base directory itself, e.g."      << std::endl
             << "  infile=plt00000"                                                     << std::endl
             << "Or the raw data itself, e.g."                                          << std::endl
@@ -37,7 +37,7 @@ PrintUsage (const char* progName)
             << "The program will first try appending 'Level_0/Cell'"                   << std::endl
             << "onto the specified filenames."                                         << std::endl
             << "If that _H file doesn't exist, it tries using the full specified name" << std::endl << std::endl;
-        
+
     exit(1);
 }
 
@@ -84,7 +84,7 @@ main (int   argc,
 
     // storage for the input coarse and fine MultiFabs
     MultiFab mf_c, mf_f;
-    
+
     // read in plotfiles, 'coarse' and 'fine' to MultiFabs
     // note: fine could be the same resolution as coarse
     VisMF::Read(mf_c, iFile1);
@@ -118,12 +118,12 @@ main (int   argc,
     Print() << "npts in coarse domain = " << bx_c.numPts() << std::endl;
     Print() << "npts in fine   domain = " << bx_f.numPts() << std::endl;
     long npts_coarsedomain = bx_c.numPts();
-    
+
     // assume ref_ratio is the same in each direction
     int rr = bx_f.length(0)/bx_c.length(0);
 
     Print() << "ref_ratio = " << rr << std::endl;
-    
+
     // check to make sure refinement ratio is an integer
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (bx_f.length(i)%bx_c.length(i) != 0) {
@@ -160,7 +160,7 @@ main (int   argc,
     int how_many_nodal = 0;
     for (int i=0; i<AMREX_SPACEDIM; ++i ) {
         if (c_nodality[i] == 1) {
-            ++how_many_nodal;            
+            ++how_many_nodal;
         }
     }
 
@@ -173,9 +173,9 @@ main (int   argc,
 #else
     int rr_k = 0;
 #endif
-        
+
     for ( MFIter mfi(mf_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
+
         const Box& bx = mfi.tilebox();
 
         const Array4<Real const>& fine   = mf_f2.array(mfi);
@@ -188,7 +188,7 @@ main (int   argc,
 #if (AMREX_SPACEDIM==3)
             for (int kk=0; kk<rr_k; ++kk) {
 #else
-                int kk=0;    
+                int kk=0;
 #endif
                 for (int jj=0; jj<rr_j; ++jj) {
                     for (int ii=0; ii<rr_i; ++ii) {
@@ -200,12 +200,12 @@ main (int   argc,
 #endif
             coarse(i,j,k,n) /= npts_avg;
         });
-            
-    } // end MFIter        
+
+    } // end MFIter
 
     // subtract coarse from coarsened fine
     MultiFab::Subtract(mf_c2,mf_c,0,0,ncomp,0);
-    
+
     // force periodicity so faces/edges/nodes get weighted accordingly for L1 and L2 norms
     IntVect iv(AMREX_D_DECL(bx_c.length(0),
                             bx_c.length(1),
@@ -243,5 +243,5 @@ main (int   argc,
 
         WriteSingleLevelPlotfile(difFile,mf_c2,varNames,geom,0.,0);
     }
-    
+
 }

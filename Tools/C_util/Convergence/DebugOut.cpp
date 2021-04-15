@@ -1,10 +1,10 @@
 /*
  *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ *      {_ __     {_ {__   {___{__    {__             {__   {__
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__
  * {__         {__{__       {__{__      {__  {____   {__      {__
  *
  */
@@ -31,12 +31,12 @@ string convertIntDD(int number)
 void printDBL(const BoxArray* a_fabPtr)
 {
   amrex::Print() << "BoxArray contains:"  << *a_fabPtr << endl;
-    
+
 }
 void printBA(const BoxArray* a_fabPtr)
 {
   amrex::Print() << "BoxArray contains:"  << *a_fabPtr << endl;
-    
+
 }
 void printFAB(const FArrayBox* a_fabPtr)
 {
@@ -98,7 +98,7 @@ void printBox(const Box* a_boxPtr)
   amrex::Print() << "Box:" << *a_boxPtr << "\n";
 }
 
-void 
+void
 viewMF(const MultiFab* a_data)
 {
 #if 0
@@ -109,7 +109,7 @@ viewMF(const MultiFab* a_data)
   }
   string filename("debug_file.plt");
   Geometry geom(a_data->getDomain());
-  Real time = 0; int level_step = 0;  
+  Real time = 0; int level_step = 0;
 
   WriteSingleLevelPlotfile(filename, *a_data, names, geom, time, level_step);
 
@@ -120,7 +120,7 @@ viewMF(const MultiFab* a_data)
 }
 
 
-void 
+void
 maxMinMF(const MultiFab* a_data)
 {
   amrex::Print() << "max min for multifab "  <<endl;
@@ -133,7 +133,7 @@ maxMinMF(const MultiFab* a_data)
 }
 
 
-void 
+void
 printMF(const MultiFab* a_data)
 {
   amrex::Print() << "data for multifab "  <<endl;
@@ -147,7 +147,7 @@ printMF(const MultiFab* a_data)
 }
 
 
-void 
+void
 printMFEdge(const MultiFab* a_data)
 {
   amrex::Print() << "data for multifab "  <<endl;
@@ -171,7 +171,7 @@ printMFEdge(const MultiFab* a_data)
   }
 }
 
-void 
+void
 printFABEdge(const FArrayBox* a_data, const Box* bxptr)
 {
   amrex::Print() << "data for fab "  <<endl;

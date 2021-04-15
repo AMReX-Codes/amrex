@@ -11,25 +11,25 @@
 // plotfile data format
 void
 writePlotFile (const char*                 name,
-	       const amrex::MultiFab&            mf,
-	       const amrex::Geometry&            geom,
-	       const amrex::IntVect&             refRatio,
-	       amrex::Real                       bgVal,
+               const amrex::MultiFab&            mf,
+               const amrex::Geometry&            geom,
+               const amrex::IntVect&             refRatio,
+               amrex::Real                       bgVal,
          const amrex::Vector<std::string>& names);
 
 // Write an array of multifabs pulling all the data from the AmrData
 void WritePlotFile(const amrex::Vector<amrex::MultiFab*>& mfa,
                    const amrex::Vector<amrex::Box>&       probDomain,
-		   amrex::AmrData&                        amrdToMimic,
-		   const std::string&                     oFile,
-		   bool                                   verbose = false,
+                   amrex::AmrData&                        amrdToMimic,
+                   const std::string&                     oFile,
+                   bool                                   verbose = false,
                    const amrex::Vector<std::string>&      varNames = amrex::Vector<std::string>());
 
 // Write an array of multifabs pulling all the data from the AmrData
 void WritePlotFile(const amrex::Vector<amrex::MultiFab*>& mfa,
-		   amrex::AmrData&                        amrdToMimic,
-		   const std::string&                     oFile,
-		   bool                                   verbose = false,
+                   amrex::AmrData&                        amrdToMimic,
+                   const std::string&                     oFile,
+                   bool                                   verbose = false,
                    const amrex::Vector<std::string>&      varNames = amrex::Vector<std::string>());
 
 #endif

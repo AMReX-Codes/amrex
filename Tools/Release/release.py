@@ -7,7 +7,7 @@ import getopt
 import readline
 import subprocess
 import ppCleanup as ppc
-    
+
 def release(argv):
 
     usage = """
@@ -73,7 +73,7 @@ def release(argv):
                 os.rename(f,ftmp)
 #                systemCall("~/mygitrepo/BoxLib/Tools/ppCleanup/ppCleanup.py -c "+
 #                           "~/mygitrepo/BoxLib/Tools/ppCleanup/cleanWords.txt "+
-#                           " -o "+f+" "+ftmp)    
+#                           " -o "+f+" "+ftmp)
                 ppc.ppCleanup(cwfile, ftmp, f)
                 os.remove(ftmp)
         if '.git' in dirs:
@@ -107,7 +107,7 @@ def release(argv):
             break
         else:
             print "What did you type?", uin+"?"
-            
+
     if uin == 'y':
         print "\nOK. The script will do it for you."
         doGitPush(my_public_git)
@@ -145,7 +145,7 @@ def doGitCommit(d):
     stdout, stderr = p.communicate()
     p.stdout.close()
     p.stderr.close()
-    p.stdin.close()    
+    p.stdin.close()
 
     ulist = []
 
@@ -163,7 +163,7 @@ def doGitCommit(d):
     stdout, stderr = p.communicate()
     p.stdout.close()
     p.stderr.close()
-    p.stdin.close()    
+    p.stdin.close()
 
     print "\nCommiting changes"
     prog = ["git", "commit", "-a"]
@@ -173,7 +173,7 @@ def doGitCommit(d):
     stdout, stderr = p.communicate()
     p.stdout.close()
     p.stderr.close()
-    p.stdin.close()    
+    p.stdin.close()
 
     os.chdir(d0)
     return
@@ -240,9 +240,9 @@ def doGitPushTag(d):
     p.stdin.close()
     os.chdir(d0)
     return
-    
 
-def systemCall(string):    
+
+def systemCall(string):
     status = os.system('bash -c "' + string + '"')
     return status
 

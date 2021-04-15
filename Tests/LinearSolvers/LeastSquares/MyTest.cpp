@@ -134,7 +134,7 @@ MyTest::compute_gradient ()
 
                 grad_x_arr(i,j,k,n) = (apx(i,j,k) == 0.0) ? 0.0 :
                   grad_x_of_phi_on_centroids(i, j, k, n, phi_arr, phi_eb_arr,
-                                             flag, ccent, bcent, 
+                                             flag, ccent, bcent,
                                              yloc_on_xface, is_eb_dirichlet, is_eb_inhomog);
 
 
@@ -170,7 +170,7 @@ MyTest::compute_gradient ()
                  grad_x_arr(i,j,k,n) = (apx(i,j,k) == 0.0) ? 0.0 :
                      grad_x_of_phi_on_centroids_extdir(i, j, k, n, phi_arr, phi_eb_arr,
                                                        flag, ccent, bcent, vfrac,
-                                                       yloc_on_xface, zloc_on_xface, 
+                                                       yloc_on_xface, zloc_on_xface,
                                                        is_eb_dirichlet, is_eb_inhomog,
                                                        on_x_face, domlo_x, domhi_x,
                                                        on_y_face, domlo_y, domhi_y,

@@ -28,7 +28,7 @@ MyTest::initializeEB ()
                                            EB2::translate(box, {AMREX_D_DECL(-0.5,-0.5,-0.5)}),
                                            std::atan(1.0)*0.3, 2),
                                        {AMREX_D_DECL(0.5,0.5,0.5)}));
-        EB2::Build(gshop, geom.back(), max_level, max_level+max_coarsening_level);        
+        EB2::Build(gshop, geom.back(), max_level, max_level+max_coarsening_level);
     }
     else if (geom_type == "flower")
     {
@@ -48,7 +48,7 @@ MyTest::initializeEB ()
         EB2::SphereIF sphere(0.5, {0.5,0.5,0.5}, false);
         EB2::BoxIF cube({0.1,0.1,0.1}, {0.9,0.9,0.9}, false);
         auto cubesphere = EB2::makeIntersection(sphere, cube);
-        
+
         EB2::CylinderIF cylinder_x(0.25, 0, {0.5,0.5,0.5}, false);
         EB2::CylinderIF cylinder_y(0.25, 1, {0.5,0.5,0.5}, false);
         EB2::CylinderIF cylinder_z(0.25, 2, {0.5,0.5,0.5}, false);

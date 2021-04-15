@@ -48,7 +48,7 @@ int loadPalette (const std::string& filename,
         amrex::Abort("loadPalette: fread() failed to read B");
     }
 
-    if ( num_elements == 4 ) 
+    if ( num_elements == 4 )
     {
         if (std::fread(a.data(), 1, NCOLOR, fp) != NCOLOR)
         {

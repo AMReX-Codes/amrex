@@ -32,7 +32,7 @@ public:
                    int             src_comp,
                    int             dst_comp,
                    int             num_comp,
-		   int             src_ng = 0);
+                   int             src_ng = 0);
 
     size_t size () const noexcept
     {
@@ -45,7 +45,7 @@ public:
                int                    num_comp);
 
     void initialize (const BoxArray& grids,
-		     int             n_grow,
+                     int             n_grow,
                      int             n_comp,
                      const Geometry& geom);
 

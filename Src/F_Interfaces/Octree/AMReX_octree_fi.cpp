@@ -97,8 +97,8 @@ extern "C" {
             {
                 famrcore->octree_leaf_grids[lev] = ba;
                 famrcore->octree_leaf_dmap[lev] = dm;
-                famrcore->octree_leaf_dummy_mf[lev].reset
-                    (new MultiFab(ba,dm,1,0,MFInfo().SetAlloc(false)));
+                famrcore->octree_leaf_dummy_mf[lev]
+                    = std::make_unique<MultiFab>(ba,dm,1,0,MFInfo().SetAlloc(false));
 
                 int ilocal = 0;
                 for (int i = 0; i < ngrids; ++i) {
@@ -139,7 +139,7 @@ extern "C" {
                 if (bl.size() == 0) {
                     famrcore->octree_leaf_grids[lev] = BoxArray();
                     famrcore->octree_leaf_dmap[lev] = DistributionMapping();
-                    famrcore->octree_leaf_dummy_mf[lev].reset(new MultiFab());
+                    famrcore->octree_leaf_dummy_mf[lev] = std::make_unique<MultiFab>();
                 } else {
                     bool update_dummy_mf = false;
                     if (famrcore->octree_leaf_grids[lev] != bl.data()) {
@@ -151,10 +151,10 @@ extern "C" {
                         update_dummy_mf = true;
                     }
                     if (update_dummy_mf) {
-                        famrcore->octree_leaf_dummy_mf[lev].reset
-                            (new MultiFab(famrcore->octree_leaf_grids[lev],
-                                          famrcore->octree_leaf_dmap[lev],
-                                          1,0,MFInfo().SetAlloc(false)));
+                        famrcore->octree_leaf_dummy_mf[lev]
+                            = std::make_unique<MultiFab>(famrcore->octree_leaf_grids[lev],
+                                                         famrcore->octree_leaf_dmap[lev],
+                                                         1,0,MFInfo().SetAlloc(false));
                     }
                 }
             }
@@ -173,7 +173,7 @@ extern "C" {
         for (int i = 0; i < n; ++i) {
             a_copy[i] = (*leaves)[i];
         }
-        
+
         delete leaves;
     }
 

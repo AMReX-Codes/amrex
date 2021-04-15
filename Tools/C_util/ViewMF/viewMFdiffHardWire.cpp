@@ -15,7 +15,7 @@ using std::setprecision;
 using std::set_new_handler;
 
 static
-void 
+void
 PrintUsage(int argc, char *argv[])
 {
     cout << "Usage: " << endl;
@@ -33,7 +33,7 @@ PrintUsage(int argc, char *argv[])
 
 
 int main (int   argc,
-	  char* argv[])
+          char* argv[])
 {
     //
     // Make sure to catch new failures.
@@ -41,7 +41,7 @@ int main (int   argc,
     set_new_handler(Utility::OutOfMemory);
 
     ParallelDescriptor::StartParallel(&argc, &argv);
-    
+
 //
 //  Parse the command line
 //
@@ -55,10 +55,10 @@ int main (int   argc,
     }
 
     ParmParse pp(argc-3,argv+3);
-    
+
     if (pp.contains("help"))
         PrintUsage(argc, argv);
-    
+
     const aString iFile0 = argv[1];
     const aString iFile1 = argv[2];
 
@@ -70,7 +70,7 @@ int main (int   argc,
 
     int nComp = -1;
     pp.query("ncomp", nComp);
-    
+
     aString outfile;
     pp.query("outfile",outfile);
 
@@ -137,10 +137,10 @@ int main (int   argc,
 
     if (mf0.nComp() < comp0 + nComp  || mf1.nComp() < comp1 + nComp)
     {
-	cerr << "nComp's incompatible" << endl;
-        cerr << "(need,have): (" << comp0 + nComp << "," << mf0.nComp() 
+        cerr << "nComp's incompatible" << endl;
+        cerr << "(need,have): (" << comp0 + nComp << "," << mf0.nComp()
              << "), (" << comp1 + nComp << "," << mf1.nComp() << ")" << endl;
-	return 0;
+        return 0;
     }
 
     //
@@ -155,7 +155,7 @@ cout << pedge0 << " " << pedge1 << endl;
     MultiFab datEdge1(pedge1BA, nComp, ngrow);
     datEdge0.setVal(1.0e30);
     datEdge1.setVal(1.0e30);
-    
+
     for (MultiFabIterator mf0_mfi(mf0); mf0_mfi.isValid(); ++mf0_mfi)
     {
         const Box& box = ::grow(mf0_mfi.validbox(),mf0.nGrow()) & datEdge0[0].box();
@@ -189,26 +189,26 @@ cout << pedge0 << " " << pedge1 << endl;
 
     if(ParallelDescriptor::IOProcessor())
     {
-	cout << "Norms of diff (0,1,2): "
-	     << norm0 << ", " << norm1 << ", " << norm2 << endl;
+        cout << "Norms of diff (0,1,2): "
+             << norm0 << ", " << norm1 << ", " << norm2 << endl;
     }
-    
+
     if (!outfile.isNull())
     {
-	writeMF(&diffmfab,outfile.c_str());
-	return 1;
+        writeMF(&diffmfab,outfile.c_str());
+        return 1;
 
     } else {
 
-	if (norm0 == 0 && norm1 == 0 && norm2 == 0)
-	{
-	    cout << "MultiFabs equal!" << endl;
-	    return 1;
+        if (norm0 == 0 && norm1 == 0 && norm2 == 0)
+        {
+            cout << "MultiFabs equal!" << endl;
+            return 1;
 
-	} else {
-	    
-	    return ArrayViewMultiFab(&diffmfab);
-	}
+        } else {
+
+            return ArrayViewMultiFab(&diffmfab);
+        }
     }
 }
 

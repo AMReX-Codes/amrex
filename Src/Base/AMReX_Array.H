@@ -2,14 +2,6 @@
 #define AMREX_ARRAY_H_
 #include <AMReX_Config.H>
 
-#include <array>
-#include <memory>
-#include <utility>
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <cstdio>
-#include <type_traits>
 #include <AMReX.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
@@ -18,6 +10,12 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Algorithm.H>
 #include <AMReX_Dim3.H>
+
+#include <array>
+#include <memory>
+#include <utility>
+#include <string>
+#include <type_traits>
 
 namespace amrex {
 

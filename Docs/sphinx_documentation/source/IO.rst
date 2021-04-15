@@ -10,7 +10,7 @@ Plotfile
 ========
 
 AMReX has its own native plotfile format. Many visualization tools are
-available for AMReX plotfiles (see the chapter on :ref:`Chap:Visualization`). 
+available for AMReX plotfiles (see the chapter on :ref:`Chap:Visualization`).
 AMReX provides the following two functions for writing a generic AMReX plotfile.
 Many AMReX application codes may have their own plotfile routines that store
 additional information such as compiler options, git hashes of the
@@ -52,7 +52,7 @@ making such strings.
       const std::string& pfname = amrex::Concatenate("plt",istep); // plt00258
 
       // By default there are 5 digits, but we can change it to say 4.
-      const std::string& pfname2 = amrex::Concatenate("plt",istep,4); // plt0258  
+      const std::string& pfname2 = amrex::Concatenate("plt",istep,4); // plt0258
 
       istep =1234567;  // Having more than 5 digits is OK.
       const std::string& pfname3 = amrex::Concatenate("plt",istep); // plt1234567
@@ -106,7 +106,7 @@ However we have provided an example restart capability in the tutorial
 Refer to the functions :cpp:`ReadCheckpointFile()` and
 :cpp:`WriteCheckpointFile()` in this tutorial.
 
-A checkpoint file is actually a directory with name, e.g., 
+A checkpoint file is actually a directory with name, e.g.,
 ``chk00010`` containing a ``Header`` (text) file, along with
 subdirectories ``Level_0``, ``Level_1``, etc. containing the
 :cpp:`MultiFab` data at each level of refinement.
@@ -183,7 +183,7 @@ can also be used. For example,
        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
        std::string HeaderFileName(checkpointname + "/Header");
        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
-		                               std::ofstream::trunc |
+                                               std::ofstream::trunc |
                                                std::ofstream::binary);
 
        if( ! HeaderFile.good()) {
@@ -306,7 +306,7 @@ read the file from the disk and broadcast it to others as
         }
     }
 
-The following code how to read in a :cpp:`BoxArray`, create a 
+The following code how to read in a :cpp:`BoxArray`, create a
 :cpp:`DistributionMapping`, build :cpp:`MultiFab` and :cpp:`FluxRegister` data,
 and read in a :cpp:`MultiFab` from a checkpoint file, on a level-by-level basis:
 
@@ -334,7 +334,7 @@ and read in a :cpp:`MultiFab` from a checkpoint file, on a level-by-level basis:
         phi_old[lev].define(grids[lev], dmap[lev], ncomp, nghost);
         phi_new[lev].define(grids[lev], dmap[lev], ncomp, nghost);
         if (lev > 0 && do_reflux) {
-            flux_reg[lev].reset(new FluxRegister(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp));
+            flux_reg[lev] = std::make_unique<FluxRegister>(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp);
         }
     }
 

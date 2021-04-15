@@ -49,7 +49,7 @@ else
   ifeq ($(firstword $(sort 17.0 $(intel_version))), 17.0)
     CXXFLAGS += -std=c++14
   else
-    CXXFLAGS += -std=c++11
+    $(error Intel icpc 17.0 or newer is required.)
   endif
 endif
 
