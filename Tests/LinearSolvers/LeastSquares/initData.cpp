@@ -96,6 +96,9 @@ MyTest::initData ()
         if(use_poiseuille) {
             initializePoiseuilleData(ilev);
         }
+	else if(use_triangle_wave) {
+	    initializeTriangleWaveData(ilev);
+	}
         else {
             // Test a custom polynomial function
             for (MFIter mfi(phi[ilev]); mfi.isValid(); ++mfi)
