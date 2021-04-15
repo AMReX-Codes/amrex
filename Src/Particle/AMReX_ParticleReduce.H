@@ -112,7 +112,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
             }
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         sm = amrex::get<0>(hv);
     }
     else
@@ -236,7 +236,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
             }
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
     else
@@ -360,7 +360,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
             }
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
     else
@@ -482,7 +482,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
             }
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
     else
@@ -604,7 +604,7 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
             }
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
     else

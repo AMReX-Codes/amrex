@@ -158,7 +158,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
         iv += domain.smallEnd();
         return !box.contains(iv);
     });
-    int hv = amrex::get<0>(reduce_data.value());
+    int hv = amrex::get<0>(reduce_data.value(reduce_op));
     return hv;
 }
 

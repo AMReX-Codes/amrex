@@ -759,7 +759,7 @@ TagBoxArray::hasTags (Box const& a_bx) const
             }
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         has_tags = static_cast<bool>(amrex::get<0>(hv));
     } else
 #endif

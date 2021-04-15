@@ -10,9 +10,12 @@
 #include <AMReX_OpenMP.H>
 #include <AMReX_Vector.H>
 
+#include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <memory>
-#include <array>
+
+#define AMREX_GPU_MAX_STREAMS 8
 
 namespace amrex {
 
@@ -65,10 +68,14 @@ public:
 #endif
 
     static int numGpuStreams () noexcept { return max_gpu_streams; }
+
     static void setStreamIndex (const int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(-1); }
 
 #ifdef AMREX_USE_GPU
+    // For Index, the null stream is -1, and the other streams are 0, 1, 2, ...
+    static int streamIndex (gpuStream_t s = gpuStream()) noexcept;
+
     static gpuStream_t setStream (gpuStream_t s) noexcept;
     static gpuStream_t resetStream () noexcept;
 #endif

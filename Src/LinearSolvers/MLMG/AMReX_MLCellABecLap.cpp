@@ -85,7 +85,7 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
                     return { coarsen_overset_mask(b, cmsk, fmsk) };
                 });
             }
-            ReduceTuple hv = reduce_data.value();
+            ReduceTuple hv = reduce_data.value(reduce_op);
             if (amrex::get<0>(hv) == 0) {
                 m_overset_mask[amrlev].push_back(std::move(crse));
             } else {

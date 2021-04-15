@@ -404,7 +404,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Nu
                                return (pstruct[i].id() > 0) ? 1 : 0;
                            });
 
-            int np_valid = amrex::get<0>(reduce_data.value());
+            int np_valid = amrex::get<0>(reduce_data.value(reduce_op));
             np_per_grid_local[gid] += np_valid;
         } else
         {
@@ -456,7 +456,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Nu
                                return (pp[i].id() > 0) ? 1 : 0;
                            });
         }
-        nparticles = static_cast<Long>(amrex::get<0>(reduce_data.value()));
+        nparticles = static_cast<Long>(amrex::get<0>(reduce_data.value(reduce_op)));
     }
     else {
         for (const auto& kv : GetParticles(lev)) {
