@@ -31,10 +31,10 @@ include $(AMREX_HOME)/Src/Particle/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
-# To use HDF5 asynchronous I/O VOL connector, follow the instructions at https://github.com/hpc-io/vol-async
+# To use HDF5 asynchronous I/O VOL connector, follow the instructions at https://github.com/hpc-io/vol-async, use dset_memcpy branch
 USE_HDF5_ASYNC = FALSE
 ABT_HOME       = /gpfs/alpine/csc300/world-shared/gnu_build/hpc-io/vol-async/argobots/build
-ASYNC_HOME     = /gpfs/alpine/csc300/world-shared/gnu_build/hpc-io/vol-async/src
+ASYNC_HOME     = /gpfs/alpine/csc300/world-shared/gnu_build/hpc-io/vol-async-memcpy/src
 
 ifeq ($(USE_HDF5_ASYNC), TRUE)
 DEFINES   	  += -DAMREX_USE_HDF5_ASYNC 
