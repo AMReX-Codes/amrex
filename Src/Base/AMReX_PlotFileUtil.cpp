@@ -607,18 +607,18 @@ static void SetHDF5fapl(hid_t fapl)
 
 void
 WriteGenericPlotfileHeaderHDF5 (hid_t fid,
-                            int nlevels,
-                            const Vector<const MultiFab*>& mf,
-                            const Vector<BoxArray> &bArray,
-                            const Vector<std::string> &varnames,
-                            const Vector<Geometry> &geom,
-                            Real time,
-                            const Vector<int> &level_steps,
-                            const Vector<IntVect> &ref_ratio,
-                            const std::string &versionName,
-                            const std::string &levelPrefix,
-                            const std::string &mfPrefix,
-                            const Vector<std::string>& extra_dirs)
+                               int nlevels,
+                               const Vector<const MultiFab*>& mf,
+                               const Vector<BoxArray> &bArray,
+                               const Vector<std::string> &varnames,
+                               const Vector<Geometry> &geom,
+                               Real time,
+                               const Vector<int> &level_steps,
+                               const Vector<IntVect> &ref_ratio,
+                               const std::string &versionName,
+                               const std::string &levelPrefix,
+                               const std::string &mfPrefix,
+                               const Vector<std::string>& extra_dirs)
 {
     BL_PROFILE("WriteGenericPlotfileHeaderHDF5()");
 
@@ -773,11 +773,11 @@ void async_vol_es_wait_close()
     hbool_t op_failed;
     if (es_id_g != 0) {
         H5ESwait(es_id_g, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
-        if (num_in_progress != 0) 
-            std::cout << "After H5ESwait, still has async operations in progress!" << std::endl; 
+        if (num_in_progress != 0)
+            std::cout << "After H5ESwait, still has async operations in progress!" << std::endl;
         H5ESclose(es_id_g);
         es_id_g = 0;
-        /* std::cout << "es_id_g closed!" << std::endl; */ 
+        /* std::cout << "es_id_g closed!" << std::endl; */
     }
     return;
 }
@@ -787,25 +787,25 @@ static void async_vol_es_wait()
     hbool_t op_failed;
     if (es_id_g != 0) {
         H5ESwait(es_id_g, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
-        if (num_in_progress != 0) 
-            std::cout << "After H5ESwait, still has async operations in progress!" << std::endl; 
+        if (num_in_progress != 0)
+            std::cout << "After H5ESwait, still has async operations in progress!" << std::endl;
     }
     return;
 }
 #endif
 
-void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename, 
-				  int nlevels,
-                         	  const Vector<const MultiFab*>& mf,
-                         	  const Vector<std::string>& varnames,
-                         	  const Vector<Geometry>& geom, 
-				  Real time, 
-				  const Vector<int>& level_steps,
-                         	  const Vector<IntVect>& ref_ratio,
-                         	  const std::string &versionName,
-                         	  const std::string &levelPrefix,
-                         	  const std::string &mfPrefix,
-                         	  const Vector<std::string>& extra_dirs)
+void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
+                                  int nlevels,
+                                  const Vector<const MultiFab*>& mf,
+                                  const Vector<std::string>& varnames,
+                                  const Vector<Geometry>& geom,
+                                  Real time,
+                                  const Vector<int>& level_steps,
+                                  const Vector<IntVect>& ref_ratio,
+                                  const std::string &versionName,
+                                  const std::string &levelPrefix,
+                                  const std::string &mfPrefix,
+                                  const Vector<std::string>& extra_dirs)
 {
     BL_PROFILE("WriteMultiLevelPlotfileHDF5");
 
@@ -817,7 +817,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
     int myProc(ParallelDescriptor::MyProc());
     int nProcs(ParallelDescriptor::NProcs());
-    
+
 #ifdef AMREX_USE_HDF5_ASYNC
     // For HDF5 async VOL, block and wait previous tasks have all completed
     if (es_id_g != 0) {
@@ -828,7 +828,6 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         es_id_g = H5EScreate();
     }
 #endif
-
 
     herr_t  ret;
     int finest_level = nlevels-1;
@@ -843,7 +842,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         BL_PROFILE_VAR("H5writeMetadata", h5dwm);
         // Create the HDF5 file
         fid = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-        if (fid < 0) 
+        if (fid < 0)
             FileOpenFailed(filename.c_str());
 
         Vector<BoxArray> boxArrays(nlevels);
@@ -911,7 +910,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 #else
     fid = H5Fopen(filename.c_str(), H5F_ACC_RDWR, fapl);
 #endif
-    if (fid < 0) 
+    if (fid < 0)
         FileOpenFailed(filename.c_str());
 
     RealDescriptor *whichRD = nullptr;
@@ -955,14 +954,14 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
         flatdims[0] = grids.size();
         boxdataspace = H5Screate_simple(1, flatdims, NULL);
-       
+
 #ifdef AMREX_USE_HDF5_ASYNC
         boxdataset = H5Dcreate_async(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, H5P_DEFAULT,H5P_DEFAULT, es_id_g);
 #else
         boxdataset = H5Dcreate(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, H5P_DEFAULT,H5P_DEFAULT);
 #endif
         if (boxdataset < 0) { std::cout << "H5Dcreate [" << bdsname << "] failed!" << std::endl; break; }
-        
+
         // Create a boxarray sorted by rank
         std::map<int, Vector<Box> > gridMap;
         for(int i(0); i < grids.size(); ++i) {
@@ -1002,7 +1001,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         centerdataset = H5Dcreate(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 #endif
         if(centerdataset < 0) { std::cout << "Create center dataset failed! ret = " << centerdataset << std::endl; break;}
-        
+
         Vector<unsigned long long> offsets(sortedGrids.size() + 1);
         unsigned long long currentOffset(0L);
         for(int b(0); b < sortedGrids.size(); ++b) {
@@ -1076,7 +1075,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
         hid_t dataspace    = H5Screate_simple(1, hs_allprocsize, NULL);
         hid_t memdataspace = H5Screate_simple(1, hs_procsize, NULL);
-       
+
         H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
 
         Vector<Real> a_buffer(procBufferSize[myProc], -1.0);
@@ -1115,9 +1114,9 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 #else
         hid_t dataset = H5Dcreate(grp, dataname.c_str(), H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 #endif
-        if(dataset < 0) 
+        if(dataset < 0)
             std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
- 
+
 #ifdef BL_USE_MPI
         ret = H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_COLLECTIVE);
 #endif

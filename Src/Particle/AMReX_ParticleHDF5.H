@@ -428,14 +428,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     if (std::string::npos == HDF5FileName.find("h5") && std::string::npos == HDF5FileName.find("hdf5"))
         HDF5FileName += ".h5";
     HdrFileNamePrePost = HDF5FileName;
-	
+
     BL_PROFILE_VAR("H5FileCreate", h5fg);
 
     if (ParallelDescriptor::IOProcessor()) {
-   
+
         // Create the HDF5 file
         fid = H5Fcreate(HDF5FileName.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-        if (fid < 0) 
+        if (fid < 0)
             amrex::FileOpenFailed(HDF5FileName.c_str());
 
         //
@@ -579,7 +579,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 #else
     fid = H5Fopen(HDF5FileName.c_str(), H5F_ACC_RDWR, fapl);
 #endif
-    if (fid < 0) 
+    if (fid < 0)
         FileOpenFailed(HDF5FileName.c_str());
 
     char level_name[32];
@@ -641,7 +641,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 #else
     H5Fclose(fid);
 #endif
-   
+
     if (m_verbose > 1)
     {
         auto stoptime = amrex::second() - strttime;
@@ -735,7 +735,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     all_mfi_int_total_size[0] = my_mfi_int_total_size;
     #endif
 
-    int_dset_space = H5Screate_simple(1, &total_int_size, NULL); 
+    int_dset_space = H5Screate_simple(1, &total_int_size, NULL);
 #ifdef AMREX_USE_HDF5_ASYNC
     int_dset_id  = H5Dcreate_async(grp, "data:datatype=0", H5T_NATIVE_INT, int_dset_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_par_g);
 #else
@@ -761,22 +761,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
         total_real_size += all_mfi_real_total_size[i];
 
-    real_dset_space = H5Screate_simple(1, &total_real_size, NULL); 
+    real_dset_space = H5Screate_simple(1, &total_real_size, NULL);
     if (sizeof(typename ParticleType::RealType) == 4) {
 #ifdef AMREX_USE_HDF5_ASYNC
-        real_dset_id  = H5Dcreate_async(grp, "data:datatype=1", H5T_NATIVE_FLOAT, real_dset_space, 
+        real_dset_id  = H5Dcreate_async(grp, "data:datatype=1", H5T_NATIVE_FLOAT, real_dset_space,
                                   H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_par_g);
 #else
-        real_dset_id  = H5Dcreate(grp, "data:datatype=1", H5T_NATIVE_FLOAT, real_dset_space, 
+        real_dset_id  = H5Dcreate(grp, "data:datatype=1", H5T_NATIVE_FLOAT, real_dset_space,
                                   H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 #endif
     }
     else {
 #ifdef AMREX_USE_HDF5_ASYNC
-        real_dset_id  = H5Dcreate_async(grp, "data:datatype=1", H5T_NATIVE_DOUBLE, real_dset_space, 
+        real_dset_id  = H5Dcreate_async(grp, "data:datatype=1", H5T_NATIVE_DOUBLE, real_dset_space,
                                   H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_par_g);
 #else
-        real_dset_id  = H5Dcreate(grp, "data:datatype=1", H5T_NATIVE_DOUBLE, real_dset_space, 
+        real_dset_id  = H5Dcreate(grp, "data:datatype=1", H5T_NATIVE_DOUBLE, real_dset_space,
                                   H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 #endif
     }
@@ -902,7 +902,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 #endif
 
     // Create and write the size dataset
-    offset_space = H5Screate_simple(1, &total_mfi, NULL); 
+    offset_space = H5Screate_simple(1, &total_mfi, NULL);
 #ifdef AMREX_USE_HDF5_ASYNC
     offset_id  = H5Dcreate_async(grp, "nparticles_grid", H5T_NATIVE_INT, offset_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_par_g);
 #else
