@@ -173,6 +173,10 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
         return;
     }
 
+    int ngrow = amrex::max(AMREX_D_DECL(mf[0]->nGrow(0),
+                                        mf[0]->nGrow(1),
+                                        mf[0]->nGrow(2)), 2);
+
     if (zero_out_input)
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
@@ -186,11 +190,11 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
         mf_part[lev].define(pc.ParticleBoxArray(lev),
-                           pc.ParticleDistributionMap(lev),
-                           mf[lev]->nComp(), mf[lev]->nGrowVect());
+                            pc.ParticleDistributionMap(lev),
+                            mf[lev]->nComp(), ngrow);
         mf_tmp[lev].define( pc.ParticleBoxArray(lev),
                             pc.ParticleDistributionMap(lev),
-                            mf[lev]->nComp(), mf[lev]->nGrowVect());
+                            mf[lev]->nComp(), 0);
         mf_part[lev].setVal(0.0);
         mf_tmp[lev].setVal( 0.0);
     }
