@@ -19,7 +19,7 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input=true)
 
     MultiFab* mf_pointer;
 
-    if (pc.OnSameGrids(lev, mf) and zero_out_input)
+    if (pc.OnSameGrids(lev, mf) && zero_out_input)
     {
         mf_pointer = &mf;
     } else {
