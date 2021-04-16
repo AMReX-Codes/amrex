@@ -38,8 +38,8 @@ AmrCore::AmrCore (const RealBox& rb, int max_level_in,
     InitAmrCore();
 }
 
-AmrCore::AmrCore (Geometry const& level_0_gome, AmrInfo const& amr_info)
-    : AmrMesh(level_0_gome,amr_info)
+AmrCore::AmrCore (Geometry const& level_0_geom, AmrInfo const& amr_info)
+    : AmrMesh(level_0_geom,amr_info)
 {
 #ifdef AMREX_PARTICLES
     m_gdb = std::make_unique<AmrParGDB>(this);
