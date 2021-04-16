@@ -200,6 +200,7 @@ endif
 
 ifdef MPI_THREAD_MULTIPLE
   MPI_THREAD_MULTIPLE := $(strip $(MPI_THREAD_MULTIPLE))
+  MPI_THREAD_MULTIPLE_UPDATE_SUFFIX ?= TRUE
   ifeq ($(MPI_THREAD_MULTIPLE),TRUE)
     USE_MPI := TRUE
   endif
@@ -588,7 +589,11 @@ ifeq ($(USE_MPI),TRUE)
     CPPFLAGS += -DBL_USE_MPI -DAMREX_USE_MPI
 
     ifeq ($(MPI_THREAD_MULTIPLE),TRUE)
-        MPISuffix := .MTMPI
+        ifeq ($(MPI_THREAD_MULTIPLE_UPDATE_SUFFIX),TRUE)
+            MPISuffix := .MTMPI
+        else
+            MPISuffix := .MPI
+        endif
         CPPFLAGS += -DAMREX_MPI_THREAD_MULTIPLE
     else
         MPISuffix := .MPI
