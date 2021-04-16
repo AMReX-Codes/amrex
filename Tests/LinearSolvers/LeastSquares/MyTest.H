@@ -26,6 +26,9 @@ private:
     void initializePoiseuilleDataFor2D (int ilev);
     void initializePoiseuilleDataFor3D (int ilev);
 
+    void initializeTriangleWaveData (int ilev);
+    void initializeTriangleWaveDataFor2D (int ilev);
+
     int max_level = 0;
     int ref_ratio = 2;
     int n_cell = 128;
@@ -55,6 +58,7 @@ private:
     bool use_hypre = false;
     bool use_petsc = false;
     bool use_poiseuille = false;
+    bool use_triangle_wave = false;
     bool poiseuille_askew = false;
     amrex::Vector<amrex::Real> poiseuille_pt_on_top_wall = amrex::Vector<amrex::Real>(3,0.0);
     amrex::Real poiseuille_height = 1.0;
