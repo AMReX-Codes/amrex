@@ -633,7 +633,9 @@ MLPoisson::makeNLinOp (int grid_size) const
 
     nop->setACoeffs(0, alpha);
 
-    return r;
+    // Some versions of gcc require std::move, because r does not match the
+    // return type.
+    return std::move(r);
 }
 
 void
