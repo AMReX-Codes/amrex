@@ -1,11 +1,3 @@
-#include <iostream>
-#include <limits>
-#include <algorithm>
-#include <new>
-#include <memory>
-#include <cstring>
-#include <cstdint>
-
 #include <AMReX_CArena.H>
 #include <AMReX_MemPool.H>
 #include <AMReX_Vector.H>
@@ -16,6 +8,14 @@
 #endif
 
 #include <AMReX_ParmParse.H>
+
+#include <iostream>
+#include <limits>
+#include <algorithm>
+#include <new>
+#include <memory>
+#include <cstring>
+#include <cstdint>
 
 using namespace amrex;
 
@@ -49,9 +49,9 @@ void amrex_mempool_init ()
 // Default arena is currently Device on HIP where there is no managed option.
 // Need to adjust to CPU specifically in that case.
 #ifdef AMREX_USE_HIP
-            the_memory_pool[i].reset(new CArena(0, ArenaInfo().SetCpuMemory()));
+            the_memory_pool[i] = std::make_unique<CArena>(0, ArenaInfo().SetCpuMemory());
 #else
-            the_memory_pool[i].reset(new CArena);
+            the_memory_pool[i] = std::make_unique<CArena>();
 #endif
         }
 

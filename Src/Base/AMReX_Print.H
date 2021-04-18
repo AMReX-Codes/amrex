@@ -2,14 +2,14 @@
 #define AMREX_PRINT_H_
 #include <AMReX_Config.H>
 
+#include <AMReX.H>
+#include <AMReX_ParallelContext.H>
+#include <AMReX_ParallelDescriptor.H>
+
 #include <sstream>
 #include <fstream>
 #include <iomanip>
 #include <utility>
-
-#include <AMReX.H>
-#include <AMReX_ParallelContext.H>
-#include <AMReX_ParallelDescriptor.H>
 
 namespace amrex
 {

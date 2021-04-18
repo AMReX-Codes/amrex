@@ -133,15 +133,33 @@
 #define AMREX_ATTRIBUTE_WEAK
 #elif defined(_WIN32)
 #define AMREX_ATTRIBUTE_WEAK
+#elif defined(__clang__) && defined(__apple_build_version__)
+#define AMREX_ATTRIBUTE_WEAK __attribute__((weak_import))
 #else
 #define AMREX_ATTRIBUTE_WEAK __attribute__((weak))
+#endif
+
+// public globals
+// https://stackoverflow.com/questions/54560832/cmake-windows-export-all-symbols-does-not-cover-global-variables/54568678#54568678
+#if defined(_MSC_VER)
+#   if defined(AMREX_IS_DLL)
+#       if defined(AMREX_IS_DLL_BUILDING)
+#           define AMREX_EXPORT __declspec(dllexport)
+#       else
+#           define AMREX_EXPORT __declspec(dllimport)
+#       endif
+#   else
+#       define AMREX_EXPORT
+#   endif
+#else
+#   define AMREX_EXPORT
 #endif
 
 #if defined(__cplusplus) && defined(_WIN32)
 #include <ciso646>
 #endif
 
-#if (__cplusplus >= 201703L)
+#if defined(__has_cpp_attribute) && __has_cpp_attribute(fallthrough) >= 201603L
 #define AMREX_FALLTHROUGH [[fallthrough]]
 #elif defined(__clang__)
 #define AMREX_FALLTHROUGH [[clang::fallthrough]]
@@ -151,11 +169,9 @@
 #define AMREX_FALLTHROUGH ((void)0)
 #endif
 
-// CI uses -Werror -Wc++17-extentsion, thus we need to add the __cplusplus clause
-#if !defined(AMREX_NO_NODISCARD) && defined(__has_cpp_attribute) && __has_cpp_attribute(nodiscard) && __cplusplus >= 201603L
+// CI uses -Werror -Wc++17-extension, thus we need to add the __cplusplus clause
+#if !defined(AMREX_NO_NODISCARD) && defined(__has_cpp_attribute) && __has_cpp_attribute(nodiscard) >= 201603L
 #   define AMREX_NODISCARD [[nodiscard]]
-#elif !defined(AMREX_NO_NODISCARD) && (defined(__GNUC__) || defined(__clang__))
-#   define AMREX_NODISCARD __attribute__ ((warn_unused_result))
 #else
 #   define AMREX_NODISCARD
 #endif
@@ -165,11 +181,17 @@
 //   - GCC >= 9.0
 //   - MSVC >= 19.26
 // Using no unique address makes empty base class optimization for multiple policies much easier
-#if !defined(AMREX_NO_NO_UNIQUE_ADDRESS) && defined(__has_cpp_attribute) && __has_cpp_attribute(no_unique_address) && __cpluspus >= 201803L
+#if !defined(AMREX_NO_NO_UNIQUE_ADDRESS) && defined(__has_cpp_attribute) && __has_cpp_attribute(no_unique_address) >= 201803L
 #   define AMREX_NO_UNIQUE_ADDRESS [[no_unique_address]]
 #   define AMREX_HAS_NO_UNIQUE_ADDRESS 1
 #else
 #   define AMREX_NO_UNIQUE_ADDRESS
+#endif
+
+#if defined(__cpp_if_constexpr) && __cpp_if_constexpr >= 201606L
+#   define AMREX_IF_CONSTEXPR if constexpr
+#else
+#   define AMREX_IF_CONSTEXPR if
 #endif
 
 #endif /* !BL_LANG_FORT */

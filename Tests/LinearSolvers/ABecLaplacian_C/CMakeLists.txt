@@ -10,9 +10,9 @@ set(_sources
    MyTest.H
    initProb_K.H)
 
-file( GLOB_RECURSE _input_files LIST_DIRECTORIES false ${CMAKE_CURRENT_LIST_DIR}/input* )
+set(inputs_files  inputs-rt-poisson-lev )
 
-setup_tutorial(_sources _input_files)
+setup_test(_sources _input_files)
 
 unset(_sources)
 unset(_input_files)

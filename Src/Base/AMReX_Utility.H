@@ -2,17 +2,6 @@
 #define BL_UTILITY_H
 #include <AMReX_Config.H>
 
-#include <cstdlib>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <map>
-#include <chrono>
-#include <type_traits>
-#include <climits>
-#include <limits>
-#include <cfloat>
-
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
 #include <AMReX_INT.H>
@@ -25,6 +14,17 @@
 #include <AMReX_Random.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_FileSystem.H>
+
+#include <cfloat>
+#include <chrono>
+#include <climits>
+#include <cstdlib>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <sstream>
+#include <string>
+#include <type_traits>
 
 namespace amrex
 {

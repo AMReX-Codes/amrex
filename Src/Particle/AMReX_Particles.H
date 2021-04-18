@@ -2,22 +2,6 @@
 #define AMREX_PARTICLES_H_
 #include <AMReX_Config.H>
 
-#include <cstring>
-#include <map>
-#include <deque>
-#include <vector>
-#include <fstream>
-#include <iostream>
-#include <numeric>
-#include <algorithm>
-#include <array>
-#include <memory>
-#include <limits>
-#include <utility>
-#include <tuple>
-#include <type_traits>
-#include <random>
-
 #include <AMReX_ParticleContainerBase.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParGDB.H>
@@ -50,6 +34,7 @@
 #include <AMReX_DenseBins.H>
 #include <AMReX_SparseBins.H>
 #include <AMReX_ParticleTransformation.H>
+#include <AMReX_ParticleMesh.H>
 #include <AMReX_ParIter.H>
 #include <AMReX_OpenMP.H>
 
@@ -64,6 +49,21 @@
 #ifdef AMREX_USE_HDF5
 #include <hdf5.h>
 #endif
+
+#include <algorithm>
+#include <array>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <memory>
+#include <numeric>
+#include <random>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 namespace amrex {
 
@@ -451,10 +451,23 @@ public:
     * ranks. In a global Redistribute, the particles can potentially go from any rank to any rank.
     * This usually happens after initialiation or when doing dynamic load balancing.
     *
-    * \param lev_min
-    * \param lev_max
-    * \param nGrow
-    * \param local
+    * \param lev_min The minimum level consider. Particles on levels less than this will not be
+    *                touched, and particles on finer levels will not be assigned to levels less
+    *                than this, either.
+    *                Default: 0.
+    * \param lev_max The maximum level consider. Particles on levels greater than this will not be
+    *                touched, and particles on coarser levels will not be assigned to levels greater
+    *                than this, either. If negative, will use the finest level in the hierarchy.
+    *                Default: -1.
+    * \param nGrow If particles are within nGrow cells of their current box, they will not moved.
+    *              This is useful for subcycling methods, when fine level particles need to be
+    *              redistributed but are not neccessarily at the same time as those on the coarse
+    *              level.
+    *              Default: 0
+    * \param local If 0, this will be a non-local redistribute, meaning that particle can potentially
+    *              go to any other box in the simulation. If > 0, this is the maximum number of cells
+    *              a particle can have moved since the last Redistribute() call. Knowing this number
+    *              allows an optimized MPI communication pattern to be used.
     */
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
 
@@ -596,7 +609,7 @@ public:
     * \param local whether to call redistribute after
     */
     template <class PCType,
-              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0>
+              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0>
     void copyParticles (const PCType& other, bool local=false);
 
     /**
@@ -607,7 +620,7 @@ public:
     * \param local whether to call redistribute after
     */
     template <class PCType,
-              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0>
+              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0>
     void addParticles (const PCType& other, bool local=false);
 
     /**
@@ -625,8 +638,8 @@ public:
     * \param local whether to call redistribute after
     */
     template <class F, class PCType,
-              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              amrex::EnableIf_t<! std::is_integral<F>::value, int> bar = 0>
+              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
+              std::enable_if_t<! std::is_integral<F>::value, int> bar = 0>
     void copyParticles (const PCType& other, F&&f, bool local=false);
 
     /**
@@ -643,8 +656,8 @@ public:
     * \param local whether to call redistribute after
     */
     template <class F, class PCType,
-              amrex::EnableIf_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              amrex::EnableIf_t<! std::is_integral<F>::value, int> bar = 0>
+              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
+              std::enable_if_t<! std::is_integral<F>::value, int> bar = 0>
     void addParticles (const PCType& other, F&& f, bool local=false);
 
     /**

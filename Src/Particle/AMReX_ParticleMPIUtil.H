@@ -2,9 +2,8 @@
 #define AMREX_PARTICLEMPIUTIL_H_
 #include <AMReX_Config.H>
 
-#include <map>
-
 #include <AMReX_Vector.H>
+#include <map>
 
 namespace amrex {
 

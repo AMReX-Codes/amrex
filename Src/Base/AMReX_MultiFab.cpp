@@ -1,11 +1,4 @@
 
-#include <algorithm>
-#include <cfloat>
-#include <iostream>
-#include <iomanip>
-#include <map>
-#include <limits>
-
 #include <AMReX_BLassert.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -20,6 +13,13 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
 #endif
+
+#include <algorithm>
+#include <cfloat>
+#include <iostream>
+#include <iomanip>
+#include <map>
+#include <limits>
 
 namespace amrex {
 
@@ -1220,7 +1220,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
     const BoxArray& ba = boxArray();
     const DistributionMapping& dm = DistributionMap();
 
-    std::unique_ptr<MultiFab> p{new MultiFab(ba,dm,1,0, MFInfo(), Factory())};
+    auto p = std::make_unique<MultiFab>(ba,dm,1,0, MFInfo(), Factory());
 
     const std::vector<IntVect>& pshifts = period.shiftIntVect();
 

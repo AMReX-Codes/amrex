@@ -1,15 +1,16 @@
 
+#include <AMReX_GpuDevice.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Print.H>
+#include <AMReX_GpuLaunch.H>
+
 #include <iostream>
 #include <map>
 #include <algorithm>
 #include <string>
 #include <unordered_set>
 #include <exception>
-#include <AMReX_GpuDevice.H>
-#include <AMReX_ParallelDescriptor.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_Print.H>
-#include <AMReX_GpuLaunch.H>
 
 #if defined(AMREX_USE_CUDA)
 #include <cuda_profiler_api.h>
@@ -434,8 +435,8 @@ Device::initialize_gpu ()
         sycl::gpu_selector gpu_device_selector;
         sycl::platform platform(gpu_device_selector);
         auto const& gpu_devices = platform.get_devices();
-        sycl_device.reset(new sycl::device(gpu_devices[device_id]));
-        sycl_context.reset(new sycl::context(*sycl_device, amrex_sycl_error_handler));
+        sycl_device = std::make_unique<sycl::device>(gpu_devices[device_id]);
+        sycl_context = std::make_unique<sycl::context>(*sycl_device, amrex_sycl_error_handler);
         gpu_default_stream.queue = new sycl::queue(*sycl_context, *sycl_device,
                                          sycl::property_list{sycl::property::queue::in_order{}});
         for (int i = 0; i < max_gpu_streams; ++i) {
@@ -866,10 +867,10 @@ Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim
 
 #endif
 
-    AMREX_ASSERT(numThreads.x <= device_prop.maxThreadsDim[0]);
-    AMREX_ASSERT(numThreads.y <= device_prop.maxThreadsDim[1]);
-    AMREX_ASSERT(numThreads.z <= device_prop.maxThreadsDim[2]);
-    AMREX_ASSERT(numThreads.x*numThreads.y*numThreads.z <= device_prop.maxThreadsPerBlock);
+    AMREX_ASSERT(numThreads.x <= static_cast<unsigned>(device_prop.maxThreadsDim[0]));
+    AMREX_ASSERT(numThreads.y <= static_cast<unsigned>(device_prop.maxThreadsDim[1]));
+    AMREX_ASSERT(numThreads.z <= static_cast<unsigned>(device_prop.maxThreadsDim[2]));
+    AMREX_ASSERT(numThreads.x*numThreads.y*numThreads.z <= static_cast<unsigned>(device_prop.maxThreadsPerBlock));
     AMREX_ASSERT(numThreads.x > 0);
     AMREX_ASSERT(numThreads.y > 0);
     AMREX_ASSERT(numThreads.z > 0);

@@ -1,17 +1,3 @@
-#include <algorithm>
-#include <cstdio>
-#include <list>
-#include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <iomanip>
-#include <limits>
-#include <cmath>
-
-#ifdef AMREX_USE_OMP
-#include <omp.h>
-#endif
-
 #include <AMReX_Geometry.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_Array.H>
@@ -47,6 +33,19 @@
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrInSituBridge.H>
 #endif
+
+#ifdef AMREX_USE_OMP
+#include <omp.h>
+#endif
+
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <iostream>
+#include <iomanip>
+#include <limits>
+#include <list>
+#include <sstream>
 
 namespace amrex {
 
@@ -204,17 +203,20 @@ Amr::derive (const std::string& name,
     return amr_level[lev]->derive(name,time,ngrow);
 }
 
-Amr::Amr ()
+Amr::Amr (LevelBld* a_levelbld)
     :
-    AmrCore()
+    AmrCore(),
+    levelbld(a_levelbld)
 {
     Initialize();
     InitAmr();
 }
 
-Amr::Amr (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord)
+Amr::Amr (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord,
+          LevelBld* a_levelbld)
     :
-    AmrCore(rb,max_level_in,n_cell_in,coord)
+    AmrCore(rb,max_level_in,n_cell_in,coord),
+    levelbld(a_levelbld)
 {
     Initialize();
     InitAmr();
@@ -224,10 +226,8 @@ void
 Amr::InitAmr ()
 {
     BL_PROFILE("Amr::InitAmr()");
-    //
-    // Determine physics class.
-    //
-    levelbld = getLevelBld();
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(levelbld != nullptr, "ERROR: levelbld is nullptr");
     //
     // Global function that define state variables.
     //
@@ -779,8 +779,9 @@ Amr::setRecordRunInfoTerse (const std::string& filename)
     if (ParallelDescriptor::IOProcessor())
     {
         runlog_terse.open(filename.c_str(),std::ios::out|std::ios::app);
-        if (!runlog_terse.good())
+        if (!runlog_terse.good()) {
             amrex::FileOpenFailed(filename);
+        }
     }
     ParallelDescriptor::Barrier("Amr::setRecordRunInfoTerse");
 }
@@ -790,10 +791,11 @@ Amr::setRecordDataInfo (int i, const std::string& filename)
 {
     if (ParallelDescriptor::IOProcessor())
     {
-        datalog[i].reset(new std::fstream);
+        datalog[i] = std::make_unique<std::fstream>();
         datalog[i]->open(filename.c_str(),std::ios::out|std::ios::app);
-        if (!datalog[i]->good())
+        if (!datalog[i]->good()) {
             amrex::FileOpenFailed(filename);
+        }
     }
     ParallelDescriptor::Barrier("Amr::setRecordDataInfo");
 }
@@ -801,8 +803,9 @@ Amr::setRecordDataInfo (int i, const std::string& filename)
 void
 Amr::setDtLevel (const Vector<Real>& dt_lev) noexcept
 {
-    for (int i = 0; i <= finest_level; i++)
+    for (int i = 0; i <= finest_level; i++) {
         dt_level[i] = dt_lev[i];
+    }
 }
 
 void
@@ -814,16 +817,18 @@ Amr::setDtLevel (Real dt, int lev) noexcept
 void
 Amr::setNCycle (const Vector<int>& ns) noexcept
 {
-    for (int i = 0; i <= finest_level; i++)
+    for (int i = 0; i <= finest_level; i++) {
         n_cycle[i] = ns[i];
+    }
 }
 
 Long
 Amr::cellCount () noexcept
 {
     Long cnt = 0;
-    for (int i = 0; i <= finest_level; i++)
+    for (int i = 0; i <= finest_level; i++) {
         cnt += amr_level[i]->countCells();
+    }
     return cnt;
 }
 
@@ -831,8 +836,9 @@ int
 Amr::numGrids () noexcept
 {
     int cnt = 0;
-    for (int i = 0; i <= finest_level; i++)
+    for (int i = 0; i <= finest_level; i++) {
         cnt += amr_level[i]->numGrids();
+    }
     return cnt;
 }
 
@@ -840,10 +846,11 @@ int
 Amr::okToContinue () noexcept
 {
     int ok = true;
-    for (int i = 0; ok && (i <= finest_level); i++)
+    for (int i = 0; ok && (i <= finest_level); i++) {
         ok = ok && amr_level[i]->okToContinue();
+    }
     if(bUserStopRequest) {
-      ok = false;
+        ok = false;
     }
     return ok;
 }
@@ -852,7 +859,7 @@ void
 Amr::writePlotFile ()
 {
     if ( ! Plot_Files_Output()) {
-      return;
+        return;
     }
 
     BL_PROFILE_REGION_START("Amr::writePlotFile()");
@@ -866,7 +873,7 @@ Amr::writePlotFile ()
     // Don't continue if we have no variables to plot.
 
     if (statePlotVars().size() == 0) {
-      return;
+        return;
     }
 
     const std::string& pltfile = amrex::Concatenate(plot_file_root,
@@ -890,7 +897,7 @@ void
 Amr::writeSmallPlotFile ()
 {
     if ( ! Plot_Files_Output()) {
-      return;
+        return;
     }
 
     BL_PROFILE_REGION_START("Amr::writeSmallPlotFile()");
@@ -905,7 +912,7 @@ Amr::writeSmallPlotFile ()
     // Don't continue if we have no variables to plot.
 
     if (stateSmallPlotVars().size() == 0) {
-      return;
+        return;
     }
 
     const std::string& pltfile = amrex::Concatenate(small_plot_file_root,
@@ -1046,8 +1053,9 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
 void
 Amr::checkInput ()
 {
-    if (max_level < 0)
+    if (max_level < 0) {
         amrex::Error("checkInput: max_level not set");
+    }
     //
     // Check that blocking_factor is a power of 2.
     //
@@ -1056,10 +1064,12 @@ Amr::checkInput ()
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
             int k = blocking_factor[i][idim];
-            while ( k > 0 && (k%2 == 0) )
+            while ( k > 0 && (k%2 == 0) ) {
                 k /= 2;
-            if (k != 1)
+            }
+            if (k != 1) {
                 amrex::Error("Amr::checkInput: blocking_factor not power of 2");
+            }
         }
     }
     //
@@ -1067,20 +1077,23 @@ Amr::checkInput ()
     //
     for (int i = 0; i < max_level; i++)
     {
-        if (MaxRefRatio(i) < 2)
+        if (MaxRefRatio(i) < 2) {
             amrex::Error("Amr::checkInput: bad ref_ratios");
+        }
     }
     const Box& domain = Geom(0).Domain();
-    if (!domain.ok())
+    if (!domain.ok()) {
         amrex::Error("level 0 domain bad or not set");
+    }
     //
     // Check that domain size is a multiple of blocking_factor[0].
     //
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         int len = domain.length(i);
-        if (len%blocking_factor[0][i] != 0)
+        if (len%blocking_factor[0][i] != 0) {
             amrex::Error("domain size not divisible by blocking_factor");
+        }
     }
     //
     // Check that max_grid_size is even.
@@ -1165,11 +1178,13 @@ Amr::readProbinFile (int& a_init)
 
     Vector<int> probin_file_name(probin_file_length);
 
-    for (int i = 0; i < probin_file_length; i++)
+    for (int i = 0; i < probin_file_length; i++) {
         probin_file_name[i] = probin_file[i];
+    }
 
-    if (verbose > 0)
+    if (verbose > 0) {
         amrex::Print() << "Starting to call amrex_probinit ... \n";
+    }
 
     const int nAtOnce = probinit_natonce;
     const int MyProc  = ParallelDescriptor::MyProc();

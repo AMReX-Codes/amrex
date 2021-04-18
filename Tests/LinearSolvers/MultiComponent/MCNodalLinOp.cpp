@@ -1,5 +1,5 @@
 //
-// Tutorial:    MultiComponent Linear Solve
+// Test:    MultiComponent Linear Solve
 //
 // File:        MCNodalLinOp.cpp
 //
@@ -194,8 +194,9 @@ void MCNodalLinOp::define (const Vector<Geometry>& a_geom,
 
                  for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
                  {
-                          m_diag[amrlev][mglev].reset(new MultiFab(amrex::convert(m_grids[amrlev][mglev], amrex::IntVect::TheNodeVector()),
-                                                                   m_dmap[amrlev][mglev], getNComp(), nghost));
+                          m_diag[amrlev][mglev] = std::make_unique<MultiFab>
+                              (amrex::convert(m_grids[amrlev][mglev], amrex::IntVect::TheNodeVector()),
+                               m_dmap[amrlev][mglev], getNComp(), nghost);
                  }
          }
 

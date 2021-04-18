@@ -200,6 +200,7 @@ endif
 
 ifdef MPI_THREAD_MULTIPLE
   MPI_THREAD_MULTIPLE := $(strip $(MPI_THREAD_MULTIPLE))
+  MPI_THREAD_MULTIPLE_UPDATE_SUFFIX ?= TRUE
   ifeq ($(MPI_THREAD_MULTIPLE),TRUE)
     USE_MPI := TRUE
   endif
@@ -588,7 +589,11 @@ ifeq ($(USE_MPI),TRUE)
     CPPFLAGS += -DBL_USE_MPI -DAMREX_USE_MPI
 
     ifeq ($(MPI_THREAD_MULTIPLE),TRUE)
-        MPISuffix := .MTMPI
+        ifeq ($(MPI_THREAD_MULTIPLE_UPDATE_SUFFIX),TRUE)
+            MPISuffix := .MTMPI
+        else
+            MPISuffix := .MPI
+        endif
         CPPFLAGS += -DAMREX_MPI_THREAD_MULTIPLE
     else
         MPISuffix := .MPI
@@ -832,7 +837,7 @@ objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
 f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
 tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
 
-includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
+includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS)) $(addprefix -isystem , $(SYSTEM_INCLUDE_LOCATIONS))
 fincludes	= $(includes)
 fmoddir         = $(objEXETempDir)
 
@@ -983,7 +988,7 @@ else ifeq ($(USE_CUDA),TRUE)
 
     ifneq ($(MAKE_CUDA_PATH),)
         LIBRARY_LOCATIONS += $(MAKE_CUDA_PATH)/lib64
-        INCLUDE_LOCATIONS += $(MAKE_CUDA_PATH)/include
+        SYSTEM_INCLUDE_LOCATIONS += $(MAKE_CUDA_PATH)/include
 
         ifeq ($(PROFILE),TRUE)
             LIBRARIES += -lnvToolsExt

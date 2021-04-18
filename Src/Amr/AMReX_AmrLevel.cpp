@@ -1,9 +1,4 @@
 
-#include <sstream>
-
-#include <memory>
-#include <limits>
-
 #include <AMReX_AmrLevel.H>
 #include <AMReX_Derive.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -19,6 +14,10 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_EB2.H>
 #endif
+
+#include <sstream>
+#include <memory>
+#include <limits>
 
 namespace amrex {
 
@@ -114,7 +113,7 @@ AmrLevel::AmrLevel (Amr&            papa,
     } else
 #endif
     {
-        m_factory.reset(new FArrayBoxFactory());
+        m_factory = std::make_unique<FArrayBoxFactory>();
     }
 
     // Note that this creates a distribution map associated with grids.
@@ -437,7 +436,7 @@ AmrLevel::restart (Amr&          papa,
     } else
 #endif
     {
-        m_factory.reset(new FArrayBoxFactory());
+        m_factory = std::make_unique<FArrayBoxFactory>();
     }
 
     state.resize(ndesc);
@@ -1293,7 +1292,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         for (int i = 0; i < NC; i++)
         {
             BL_ASSERT(CrseBoxes[i].ok());
-            CrseFabs[i].reset(new FArrayBox(CrseBoxes[i],m_ncomp));
+            CrseFabs[i] = std::make_unique<FArrayBox>(CrseBoxes[i],m_ncomp);
             CrseFabs[i]->setComplement<RunOn::Host>(std::numeric_limits<Real>::quiet_NaN(), domain_box, 0, m_ncomp);
         }
 
@@ -1636,7 +1635,7 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
 
     if (isStateVariable(name, index, scomp))
     {
-        mf.reset(new MultiFab(state[index].boxArray(), dmap, 1, ngrow, MFInfo(), *m_factory));
+        mf = std::make_unique<MultiFab>(state[index].boxArray(), dmap, 1, ngrow, MFInfo(), *m_factory);
         FillPatch(*this,*mf,ngrow,time,index,scomp,1,0);
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
@@ -1665,7 +1664,7 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
         }
 
         const int dncomp = rec->numDerive();
-        mf.reset(new MultiFab(dstBA, dmap, dncomp, ngrow, MFInfo(), *m_factory));
+        mf = std::make_unique<MultiFab>(dstBA, dmap, dncomp, ngrow, MFInfo(), *m_factory);
 
         if (rec->derFuncFab() != nullptr)
         {

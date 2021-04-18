@@ -85,7 +85,7 @@ void Fuser::Launch ()
         auto d_lambda_helper = reinterpret_cast<FuseHelper*>(d_buffer+offset_helpers);
         auto d_lambda_object = reinterpret_cast<char*>(d_buffer+offset_objects);
 
-        constexpr int nthreads = 256;
+        constexpr int nthreads = AMREX_GPU_MAX_THREADS;
         constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
         int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
 
@@ -220,7 +220,7 @@ Fuser&
 Fuser::getInstance ()
 {
     if (m_instance == nullptr) {
-        m_instance.reset(new Fuser());
+        m_instance = std::make_unique<Fuser>();
     }
     return *m_instance;
 }

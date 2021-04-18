@@ -1,6 +1,0 @@
-verbosity = 1		! Set verbosity greater than 0 to print MUI send/receive pairs to terminal
-plot_int = 1		! If plot_int set to zero, will not plot results
-
-n_cell = 8		! Total number of cells in domain along x, y, (and z)
-max_grid_size_3d = 4	! Maximum grid/box dimension for 3D portion
-max_grid_size_2d = 2	! Maximum grid/box dimension for 2D portion

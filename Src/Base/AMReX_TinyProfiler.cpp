@@ -1,12 +1,6 @@
 // We only support BL_PROFILE, BL_PROFILE_VAR, BL_PROFILE_VAR_STOP, BL_PROFILE_VAR_START,
 // BL_PROFILE_VAR_NS, and BL_PROFILE_REGION.
 
-#include <algorithm>
-#include <iostream>
-#include <iomanip>
-#include <cmath>
-#include <set>
-
 #include <AMReX_TinyProfiler.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParallelReduce.H>
@@ -26,6 +20,11 @@
 #include <omp.h>
 #endif
 
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <iomanip>
+#include <set>
 
 namespace amrex {
 

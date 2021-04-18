@@ -7,20 +7,14 @@
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLassert.H>
+#include <AMReX_Extension.H>
 #include <AMReX_INT.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
+
 #ifndef BL_AMRPROF
 #include <AMReX_Box.H>
-#endif
-
-#ifdef BL_USE_MPI3
-#include <atomic>
-#endif
-
-#ifdef AMREX_USE_OMP
-#include <omp.h>
 #endif
 
 #ifdef BL_LAZY
@@ -31,16 +25,19 @@
 #include <pmi.h>
 #endif
 
-#include <iostream>
-#include <vector>
-#include <string>
-#include <typeinfo>
+#ifdef AMREX_USE_OMP
+#include <omp.h>
+#endif
+
 #include <algorithm>
+#include <atomic>
+#include <csignal>
 #include <functional>
-#include <iostream>
 #include <limits>
 #include <numeric>
-#include <csignal>
+#include <string>
+#include <typeinfo>
+#include <vector>
 
 namespace amrex {
 
@@ -112,7 +109,7 @@ while ( false )
     void Initialize ();
     void Finalize ();
 
-    extern int use_gpu_aware_mpi;
+    extern AMREX_EXPORT int use_gpu_aware_mpi;
     inline bool UseGpuAwareMpi () { return use_gpu_aware_mpi; }
 
     //! Split the process pool into teams
@@ -205,13 +202,13 @@ while ( false )
         MPI_Comm  m_lead_comm;
     };
 
-    extern ProcessTeam m_Team;
+    extern AMREX_EXPORT ProcessTeam m_Team;
 
-    extern int m_MinTag, m_MaxTag;
+    extern AMREX_EXPORT int m_MinTag, m_MaxTag;
     inline int MinTag () noexcept { return m_MinTag; }
     inline int MaxTag () noexcept { return m_MaxTag; }
 
-    extern MPI_Comm m_comm;
+    extern AMREX_EXPORT MPI_Comm m_comm;
     inline MPI_Comm Communicator () noexcept { return m_comm; }
 
     //! return the number of MPI ranks local to the current Parallel Context
@@ -237,7 +234,7 @@ while ( false )
     * \brief The MPI rank number of the I/O Processor (probably rank 0).
     * This rank is usually used to write to stdout.
     */
-    extern const int ioProcessor;
+    extern AMREX_EXPORT const int ioProcessor;
     inline int
     IOProcessorNumber () noexcept
     {
@@ -853,7 +850,7 @@ ParallelDescriptor::Bcast (T*     t,
     Lazy::EvalReduction();
 #endif
 
-    BL_ASSERT(n < std::numeric_limits<int>::max());
+    BL_ASSERT(n < static_cast<size_t>(std::numeric_limits<int>::max()));
 
     BL_PROFILE_T_S("ParallelDescriptor::Bcast(Tsi)", T);
     BL_COMM_PROFILE(BLProfiler::BCastTsi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
@@ -880,7 +877,7 @@ ParallelDescriptor::Bcast (T*     t,
         Lazy::EvalReduction();
 #endif
 
-    BL_ASSERT(n < std::numeric_limits<int>::max());
+    BL_ASSERT(n < static_cast<size_t>(std::numeric_limits<int>::max()));
 
     BL_PROFILE_T_S("ParallelDescriptor::Bcast(Tsi)", T);
     BL_COMM_PROFILE(BLProfiler::BCastTsi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
@@ -904,8 +901,8 @@ ParallelDescriptor::Gather (const T* t,
     BL_PROFILE_T_S("ParallelDescriptor::Gather(TsT1si)", T);
     BL_COMM_PROFILE(BLProfiler::GatherTsT1Si, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
-    BL_ASSERT(n  < std::numeric_limits<int>::max());
-    BL_ASSERT(n1 < std::numeric_limits<int>::max());
+    BL_ASSERT(n  < static_cast<size_t>(std::numeric_limits<int>::max()));
+    BL_ASSERT(n1 < static_cast<size_t>(std::numeric_limits<int>::max()));
 
     BL_MPI_REQUIRE( MPI_Gather(const_cast<T*>(t),
                                n,

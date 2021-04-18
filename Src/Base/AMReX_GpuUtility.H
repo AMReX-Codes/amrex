@@ -11,7 +11,7 @@
 #include <AMReX_INT.H>
 #include <AMReX_Array.H>
 #include <AMReX_Array4.H>
-#include <iostream>
+#include <iosfwd>
 #include <cmath>
 #include <cstring>
 

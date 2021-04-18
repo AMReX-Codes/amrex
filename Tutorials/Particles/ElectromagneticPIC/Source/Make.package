@@ -1,3 +1,0 @@
-CEXE_sources += main.cpp IO.cpp NodalFlags.cpp EMParticleContainerInit.cpp
-CEXE_headers += Constants.H Particles.H IO.H NodalFlags.H
-CEXE_headers += Evolve.H EMParticleContainer.H

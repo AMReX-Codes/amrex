@@ -65,7 +65,7 @@ public:
     explicit IArrayBox (Array4<int const> const& a, IndexType t) noexcept : BaseFab<int>(a,t) {}
 
     //!  The destructor.
-    ~IArrayBox () noexcept {}
+    virtual ~IArrayBox () noexcept override {}
 
     IArrayBox (IArrayBox&& rhs) noexcept = default;
 

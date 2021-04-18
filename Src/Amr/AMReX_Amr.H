@@ -3,18 +3,17 @@
 #define AMREX_Amr_H_
 #include <AMReX_Config.H>
 
-#include <fstream>
-#include <memory>
-#include <list>
-
 #include <AMReX_Box.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_BCRec.H>
-
 #include <AMReX_AmrCore.H>
+
+#include <iosfwd>
+#include <list>
+#include <memory>
 
 namespace amrex {
 
@@ -40,9 +39,10 @@ class Amr
 
 public:
     //! The constructor.
-    Amr ();
+    Amr (LevelBld* a_levelbld /* One must pass LevelBld* as an argument now*/);
 
-    Amr (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord);
+    Amr (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord,
+        LevelBld* a_levelbld /* One must pass LevelBld* as an argument now*/);
 
     Amr (const Amr& rhs) = delete;
     Amr& operator= (const Amr& rhs) = delete;

@@ -1,5 +1,4 @@
 
-#include <algorithm>
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
@@ -18,6 +17,8 @@
 #include <AMReX_EB2.H>
 #include <AMReX_EBFabFactory.H>
 #endif
+
+#include <algorithm>
 
 namespace amrex {
 
@@ -340,9 +341,9 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
     BL_ASSERT(ba_dst.size() > 0 && ba_src.size() > 0);
     BL_ASSERT(ba_dst.ixType() == ba_src.ixType());
 
-    m_LocTags.reset(new CopyComTag::CopyComTagsContainer);
-    m_SndTags.reset(new CopyComTag::MapOfCopyComTagContainers);
-    m_RcvTags.reset(new CopyComTag::MapOfCopyComTagContainers);
+    m_LocTags = std::make_unique<CopyComTag::CopyComTagsContainer>();
+    m_SndTags = std::make_unique<CopyComTag::MapOfCopyComTagContainers>();
+    m_RcvTags = std::make_unique<CopyComTag::MapOfCopyComTagContainers>();
 
     if (!(imap_dst.empty() && imap_src.empty()))
     {
@@ -484,9 +485,9 @@ FabArrayBase::CPC::CPC (const BoxArray& ba, const IntVect& ng,
 {
     BL_ASSERT(ba.size() > 0);
 
-    m_LocTags.reset(new CopyComTag::CopyComTagsContainer);
-    m_SndTags.reset(new CopyComTag::MapOfCopyComTagContainers);
-    m_RcvTags.reset(new CopyComTag::MapOfCopyComTagContainers);
+    m_LocTags = std::make_unique<CopyComTag::CopyComTagsContainer>();
+    m_SndTags = std::make_unique<CopyComTag::MapOfCopyComTagContainers>();
+    m_RcvTags = std::make_unique<CopyComTag::MapOfCopyComTagContainers>();
 
     const int myproc = ParallelDescriptor::MyProc();
 
@@ -639,9 +640,9 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, const IntVect& nghost,
 {
     BL_PROFILE("FabArrayBase::FB::FB()");
 
-    m_LocTags.reset(new CopyComTag::CopyComTagsContainer);
-    m_SndTags.reset(new CopyComTag::MapOfCopyComTagContainers);
-    m_RcvTags.reset(new CopyComTag::MapOfCopyComTagContainers);
+    m_LocTags = std::make_unique<CopyComTag::CopyComTagsContainer>();
+    m_SndTags = std::make_unique<CopyComTag::MapOfCopyComTagContainers>();
+    m_RcvTags = std::make_unique<CopyComTag::MapOfCopyComTagContainers>();
 
     if (!fa.IndexArray().empty()) {
         if (enforce_periodicity_only) {
@@ -1121,9 +1122,9 @@ FabArrayBase::RB90::RB90 (const FabArrayBase& fa, const IntVect& nghost, Box con
 {
     BL_PROFILE("FabArrayBase::RB90::RB90()");
 
-    m_LocTags.reset(new CopyComTag::CopyComTagsContainer);
-    m_SndTags.reset(new CopyComTag::MapOfCopyComTagContainers);
-    m_RcvTags.reset(new CopyComTag::MapOfCopyComTagContainers);
+    m_LocTags = std::make_unique<CopyComTag::CopyComTagsContainer>();
+    m_SndTags = std::make_unique<CopyComTag::MapOfCopyComTagContainers>();
+    m_RcvTags = std::make_unique<CopyComTag::MapOfCopyComTagContainers>();
 
     if (!fa.IndexArray().empty()) {
         define(fa);
@@ -1307,9 +1308,9 @@ FabArrayBase::RB180::RB180 (const FabArrayBase& fa, const IntVect& nghost, Box c
 {
     BL_PROFILE("FabArrayBase::RB180::RB180()");
 
-    m_LocTags.reset(new CopyComTag::CopyComTagsContainer);
-    m_SndTags.reset(new CopyComTag::MapOfCopyComTagContainers);
-    m_RcvTags.reset(new CopyComTag::MapOfCopyComTagContainers);
+    m_LocTags = std::make_unique<CopyComTag::CopyComTagsContainer>();
+    m_SndTags = std::make_unique<CopyComTag::MapOfCopyComTagContainers>();
+    m_RcvTags = std::make_unique<CopyComTag::MapOfCopyComTagContainers>();
 
     if (!fa.IndexArray().empty()) {
         define(fa);
@@ -1470,9 +1471,9 @@ FabArrayBase::PolarB::PolarB (const FabArrayBase& fa, const IntVect& nghost, Box
 {
     BL_PROFILE("FabArrayBase::PolarB::PolarB()");
 
-    m_LocTags.reset(new CopyComTag::CopyComTagsContainer);
-    m_SndTags.reset(new CopyComTag::MapOfCopyComTagContainers);
-    m_RcvTags.reset(new CopyComTag::MapOfCopyComTagContainers);
+    m_LocTags = std::make_unique<CopyComTag::CopyComTagsContainer>();
+    m_SndTags = std::make_unique<CopyComTag::MapOfCopyComTagContainers>();
+    m_RcvTags = std::make_unique<CopyComTag::MapOfCopyComTagContainers>();
 
     if (!fa.IndexArray().empty()) {
         define(fa);
@@ -1812,8 +1813,8 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
     else
 #endif
     {
-        fact_crse_patch.reset(new FArrayBoxFactory());
-        fact_fine_patch.reset(new FArrayBoxFactory());
+        fact_crse_patch = std::make_unique<FArrayBoxFactory>();
+        fact_fine_patch = std::make_unique<FArrayBoxFactory>();
     }
 }
 
@@ -2340,9 +2341,7 @@ FabArrayBase::updateBDKey ()
 #ifdef BL_USE_MPI
 
 bool
-FabArrayBase::CheckRcvStats(Vector<MPI_Status>& recv_stats,
-                            const Vector<std::size_t>& recv_size,
-                            int tag)
+CheckRcvStats (Vector<MPI_Status>& recv_stats, const Vector<std::size_t>& recv_size, int tag)
 {
     for (int i = 0, n = recv_size.size(); i < n; ++i) {
         if (recv_size[i] > 0) {

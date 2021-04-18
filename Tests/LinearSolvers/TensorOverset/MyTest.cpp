@@ -32,9 +32,9 @@ MyTest::solve ()
 
     std::unique_ptr<MLTensorOp> mltensor;
     if (do_overset) {
-        mltensor.reset(new MLTensorOp({geom}, {grids}, {dmap}, {&oversetmask}, info));
+        mltensor = std::make_unique<MLTensorOp>({geom}, {grids}, {dmap}, {&oversetmask}, info);
     } else {
-        mltensor.reset(new MLTensorOp({geom}, {grids}, {dmap}, info));
+        mltensor = std::make_unique<MLTensorOp>({geom}, {grids}, {dmap}, info);
     }
 
     mltensor->setDomainBC(mlmg_lobc, mlmg_hibc);

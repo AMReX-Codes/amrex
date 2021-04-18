@@ -5,8 +5,8 @@
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
-#include<AMReX_REAL.H>
-#include<AMReX_Vector.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Vector.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Box.H>
@@ -18,8 +18,8 @@ namespace amrex
         private:
 
             //host vectors
-            Vector<Real> m_tri_pts_h;
-            Vector<Real> m_tri_normals_h;
+            Gpu::PinnedVector<Real> m_tri_pts_h;
+            Gpu::PinnedVector<Real> m_tri_normals_h;
 
             //device vectors
             Gpu::DeviceVector<amrex::Real> m_tri_pts_d;

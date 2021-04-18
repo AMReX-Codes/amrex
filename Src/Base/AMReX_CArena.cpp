@@ -36,6 +36,11 @@ CArena::alloc (std::size_t nbytes)
     std::lock_guard<std::mutex> lock(carena_mutex);
 
     nbytes = Arena::align(nbytes == 0 ? 1 : nbytes);
+
+    if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold) {
+        freeUnused_protected();
+    }
+
     //
     // Find node in freelist at lowest memory address that'll satisfy request.
     //
@@ -189,10 +194,6 @@ CArena::free (void* vp)
         node->size((*free_it).size() + (*hi_it).size());
         m_freelist.erase(hi_it);
     }
-
-    if (static_cast<Long>(m_used) >= arena_info.release_threshold) {
-        freeUnused_protected();
-    }
 }
 
 std::size_t
@@ -209,13 +210,19 @@ CArena::freeUnused_protected ()
     m_alloc.erase(std::remove_if(m_alloc.begin(), m_alloc.end(),
                                  [&nbytes,this] (std::pair<void*,std::size_t> a)
                                  {
-                                     if (m_freelist.erase(Node(a.first,a.first,a.second))) {
+                                     // We cannot simply use std::set::erase because
+                                     // Node::operator== only compares the starting address.
+                                     auto it = m_freelist.find(Node(a.first,nullptr,0));
+                                     if (it != m_freelist.end() &&
+                                         it->owner() == a.first &&
+                                         it->size()  == a.second)
+                                     {
+                                         it = m_freelist.erase(it);
                                          nbytes += a.second;
                                          deallocate_system(a.first,a.second);
                                          return true;
-                                     } else {
-                                         return false;
                                      }
+                                     return false;
                                  }),
                   m_alloc.end());
     m_used -= nbytes;

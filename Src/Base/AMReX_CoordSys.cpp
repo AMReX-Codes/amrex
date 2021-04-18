@@ -1,10 +1,10 @@
 
-#include <iostream>
-
 #include <AMReX_CoordSys.H>
 #include <AMReX_COORDSYS_C.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_ParallelDescriptor.H>
+
+#include <iostream>
 
 namespace {
 #if (AMREX_SPACEDIM == 2)

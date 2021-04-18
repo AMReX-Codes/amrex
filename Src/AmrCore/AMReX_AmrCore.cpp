@@ -1,6 +1,4 @@
 
-#include <algorithm>
-
 #include <AMReX_AmrCore.H>
 #include <AMReX_Print.H>
 
@@ -11,6 +9,9 @@
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
+
+#include <algorithm>
+#include <ostream>
 
 namespace amrex {
 
@@ -37,11 +38,11 @@ AmrCore::AmrCore (const RealBox& rb, int max_level_in,
     InitAmrCore();
 }
 
-AmrCore::AmrCore (Geometry const& level_0_gome, AmrInfo const& amr_info)
-    : AmrMesh(level_0_gome,amr_info)
+AmrCore::AmrCore (Geometry const& level_0_geom, AmrInfo const& amr_info)
+    : AmrMesh(level_0_geom,amr_info)
 {
 #ifdef AMREX_PARTICLES
-    m_gdb.reset(new AmrParGDB(this));
+    m_gdb = std::make_unique<AmrParGDB>(this);
 #endif
 }
 
@@ -53,7 +54,7 @@ void
 AmrCore::InitAmrCore ()
 {
 #ifdef AMREX_PARTICLES
-    m_gdb.reset(new AmrParGDB(this));
+    m_gdb = std::make_unique<AmrParGDB>(this);
 #endif
 }
 

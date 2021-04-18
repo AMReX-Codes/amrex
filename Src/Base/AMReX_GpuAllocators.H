@@ -2,12 +2,6 @@
 #define AMREX_GPUALLOCATORS_H_
 #include <AMReX_Config.H>
 
-#include <map>
-#include <memory>
-#include <limits>
-#include <memory>
-#include <type_traits>
-
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
 #include <AMReX_GpuDevice.H>
@@ -17,6 +11,12 @@
 #include <driver_types.h>
 #include <cuda_runtime.h>
 #endif // AMREX_USE_CUDA
+
+#include <map>
+#include <memory>
+#include <limits>
+#include <memory>
+#include <type_traits>
 
 namespace amrex {
 

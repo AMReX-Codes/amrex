@@ -133,10 +133,31 @@ public :
 #endif
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    virtual void fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
-                               Array4<int const> const& owner,
-                               Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
-                               Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const override;
+    virtual void fillIJMatrix (MFIter const& mfi,
+                               Array4<HypreNodeLap::AtomicInt const> const& gid,
+                               Array4<int const> const& lid,
+                               HypreNodeLap::Int* const ncols,
+                               HypreNodeLap::Int* const cols,
+                               Real* const mat) const override;
+
+#ifdef AMREX_USE_GPU
+    void fillIJMatrix_gpu (MFIter const& mfi,
+                           Array4<HypreNodeLap::AtomicInt const> const& gid,
+                           Array4<int const> const& lid,
+                           HypreNodeLap::Int* const ncols,
+                           HypreNodeLap::Int* const cols,
+                           Real* const mat) const;
+#endif
+
+    void fillIJMatrix_cpu (MFIter const& mfi,
+                           Array4<HypreNodeLap::AtomicInt const> const& gid,
+                           Array4<int const> const& lid,
+                           HypreNodeLap::Int* const ncols,
+                           HypreNodeLap::Int* const cols,
+                           Real* const mat) const;
+
+    virtual void fillRHS (MFIter const& mfi, Array4<int const> const& lid,
+                          Real* const rhs, Array4<Real const> const& bfab) const override;
 #endif
 
 private:
@@ -148,7 +169,7 @@ private:
     Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
     Vector<Vector<Real> > m_s0_norm0;
 
-    Real m_normalization_threshold = Real(1.e-10);
+    Real m_normalization_threshold = Real(1.e-8);
 
 #ifdef AMREX_USE_EB
     // they could be MultiCutFab

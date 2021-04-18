@@ -1,7 +1,4 @@
 
-
-#include <iostream>
-
 #include <AMReX_Algorithm.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_Geometry.H>
@@ -11,6 +8,8 @@
 #include <AMReX_SPACE.H>
 
 #include <AMReX_OpenMP.H>
+
+#include <iostream>
 
 namespace amrex {
 

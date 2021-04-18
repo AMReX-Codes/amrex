@@ -3,11 +3,11 @@
 #define BL_NFILES_H
 #include <AMReX_Config.H>
 
-#include <string>
-#include <fstream>
-
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_VisMF.H>
+
+#include <string>
+#include <iosfwd>
 
 namespace amrex {
 
@@ -233,7 +233,7 @@ class NFilesIter
 
     static const int indexUndefined = -1;
 
-    static int minDigits;        //!< for Concatenate
+    static AMREX_EXPORT int minDigits;        //!< for Concatenate
 
     NFilesIter();  //!< disallow
 };

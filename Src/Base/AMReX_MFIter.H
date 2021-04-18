@@ -2,9 +2,8 @@
 #define BL_MFITER_H_
 #include <AMReX_Config.H>
 
-#include <memory>
-
 #include <AMReX_Arena.H>
+#include <AMReX_Extension.H>
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_FArrayBox.H>
@@ -15,6 +14,8 @@
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
+
+#include <memory>
 
 namespace amrex {
 
@@ -204,9 +205,9 @@ protected:
     std::unique_ptr<Gpu::FuseSafeGuard> gpu_fsg;
 #endif
 
-    static int nextDynamicIndex;
-    static int depth;
-    static int allow_multiple_mfiters;
+    static AMREX_EXPORT int nextDynamicIndex;
+    static AMREX_EXPORT int depth;
+    static AMREX_EXPORT int allow_multiple_mfiters;
 
     void Initialize ();
 };

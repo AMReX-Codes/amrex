@@ -17,13 +17,13 @@ makeHypre (const BoxArray& grids, const DistributionMapping& dmap,
            const iMultiFab* overset_mask)
 {
     if (overset_mask) {
-        return std::unique_ptr<Hypre>(new HypreABecLap3(grids, dmap, geom, comm_, overset_mask));
+        return std::make_unique<HypreABecLap3>(grids, dmap, geom, comm_, overset_mask);
     } else if (interface == Hypre::Interface::structed) {
-        return std::unique_ptr<Hypre>(new HypreABecLap(grids, dmap, geom, comm_));
+        return std::make_unique<HypreABecLap>(grids, dmap, geom, comm_);
     } else if (interface == Hypre::Interface::semi_structed) {
-        return std::unique_ptr<Hypre>(new HypreABecLap2(grids, dmap, geom, comm_));
+        return std::make_unique<HypreABecLap2>(grids, dmap, geom, comm_);
     } else {
-        return std::unique_ptr<Hypre>(new HypreABecLap3(grids, dmap, geom, comm_));
+        return std::make_unique<HypreABecLap3>(grids, dmap, geom, comm_);
     }
 }
 

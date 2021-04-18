@@ -23,7 +23,7 @@ namespace amrex {
 
 class BoxDomain;
 
-class TagBox
+class TagBox final
     :
     public BaseFab<char>
 {
@@ -46,7 +46,7 @@ public:
 
     TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp);
 
-    ~TagBox () = default;
+    virtual ~TagBox () noexcept override = default;
 
     TagBox (TagBox&& rhs) noexcept = default;
 
@@ -224,14 +224,14 @@ public:
     *
     * \param TheGlobalCollateSpace
     */
-    void collate (Vector<IntVect>& TheGlobalCollateSpace) const;
+    void collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const;
 
     // \brief Are there tags in the region defined by bx?
     bool hasTags (Box const& bx) const;
 
-    void local_collate_cpu (Vector<IntVect>& v) const;
+    void local_collate_cpu (Gpu::PinnedVector<IntVect>& v) const;
 #ifdef AMREX_USE_GPU
-    void local_collate_gpu (Vector<IntVect>& v) const;
+    void local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const;
 #endif
 };
 

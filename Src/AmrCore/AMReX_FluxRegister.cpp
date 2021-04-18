@@ -576,10 +576,10 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
 void
 FluxRegister::ClearInternalBorders (const Geometry& geom)
 {
-    Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
-
     int nc = this->nComp();
     const Box& domain = geom.Domain();
+
+    Vector<Array4BoxTag<Real> > tags;
 
     for (int dir = 0; dir < AMREX_SPACEDIM; dir++) {
         Orientation lo(dir, Orientation::low);
@@ -592,14 +592,19 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
         const BoxArray& bahi = frhi.boxArray();
 
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
             for (FabSetIter fsi(frlo); fsi.isValid(); ++fsi) {
                 const Box& bx = fsi.validbox();
                 const std::vector< std::pair<int,Box> >& isects = bahi.intersections(bx);
+                auto const& frarr = frlo[fsi].array();
                 for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
-                    frlo[fsi].setVal<RunOn::Host>(0.0, isects[ii].second, 0, nc);
+                    if (Gpu::inLaunchRegion()) {
+                        tags.emplace_back(Array4BoxTag<Real>{frarr, isects[ii].second});
+                    } else {
+                        frlo[fsi].setVal<RunOn::Host>(0.0, isects[ii].second, 0, nc);
+                    }
                 }
                 if (geom.isPeriodic(dir)) {
                     if (bx.smallEnd(dir) == domain.smallEnd(dir)) {
@@ -607,7 +612,11 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
                         const std::vector<std::pair<int,Box> >& isects2 = bahi.intersections(sbx);
                         for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
                             const Box& bx2 = amrex::shift(isects2[ii].second, dir, -domain.length(dir));
-                            frlo[fsi].setVal<RunOn::Host>(0.0, bx2, 0, nc);
+                            if (Gpu::inLaunchRegion()) {
+                                tags.emplace_back(Array4BoxTag<Real>{frarr, bx2});
+                            } else {
+                                frlo[fsi].setVal<RunOn::Host>(0.0, bx2, 0, nc);
+                            }
                         }
                     }
                 }
@@ -616,8 +625,13 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
             for (FabSetIter fsi(frhi); fsi.isValid(); ++fsi) {
                 const Box& bx = fsi.validbox();
                 const std::vector< std::pair<int,Box> >& isects = balo.intersections(bx);
+                auto const& frarr = frhi[fsi].array();
                 for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
-                    frhi[fsi].setVal<RunOn::Host>(0.0, isects[ii].second, 0, nc);
+                    if (Gpu::inLaunchRegion()) {
+                        tags.emplace_back(Array4BoxTag<Real>{frarr, isects[ii].second});
+                    } else {
+                        frhi[fsi].setVal<RunOn::Host>(0.0, isects[ii].second, 0, nc);
+                    }
                 }
                 if (geom.isPeriodic(dir)) {
                     if (bx.bigEnd(dir) == domain.bigEnd(dir)) {
@@ -625,13 +639,26 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
                         const std::vector<std::pair<int,Box> >& isects2 = balo.intersections(sbx);
                         for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
                             const Box& bx2 = amrex::shift(isects2[ii].second, dir, domain.length(dir));
-                            frhi[fsi].setVal<RunOn::Host>(0.0, bx2, 0, nc);
+                            if (Gpu::inLaunchRegion()) {
+                                tags.emplace_back(Array4BoxTag<Real>{frarr, bx2});
+                            } else {
+                                frhi[fsi].setVal<RunOn::Host>(0.0, bx2, 0, nc);
+                            }
                         }
                     }
                 }
             }
         }
     }
+
+#ifdef AMREX_USE_GPU
+    // There is Gpu::synchronize in Parallefor below internally.
+    ParallelFor(tags, nc,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4BoxTag<Real> const& tag)
+    {
+        tag.dfab(i,j,k,n) = 0.0;
+    });
+#endif
 }
 
 #ifndef BL_NO_FORT

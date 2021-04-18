@@ -2,17 +2,12 @@
 #define BL_TYPETRAITS_H_
 #include <AMReX_Config.H>
 
-#include <type_traits>
 #include <AMReX_Extension.H>
+#include <type_traits>
 
-// workaround missing "is_trivially_copyable" in g++ < 5.0
-#if defined(__GNUG__) && __GNUC__ < 5 && !defined(AMREX_CXX_CLANG)
-#define AMREX_IS_TRIVIALLY_COPYABLE(T) __has_trivial_copy(T)
-#define AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T) std::has_trivial_default_constructor<T>::value
-#else
+// In case they are still used by applications
 #define AMREX_IS_TRIVIALLY_COPYABLE(T) std::is_trivially_copyable<T>::value
 #define AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T) std::is_trivially_default_constructible<T>::value
-#endif
 
 namespace amrex
 {
@@ -85,11 +80,11 @@ namespace amrex
 #if defined(AMREX_USE_CUDA)
 
     template <class T>
-    struct MaybeHostDeviceRunnable<T, amrex::EnableIf_t<__nv_is_extended_device_lambda_closure_type(T)> >
+    struct MaybeHostDeviceRunnable<T, std::enable_if_t<__nv_is_extended_device_lambda_closure_type(T)> >
         : std::false_type {};
 
     template <class T>
-    struct DefinitelyNotHostRunnable<T, amrex::EnableIf_t<__nv_is_extended_device_lambda_closure_type(T)> >
+    struct DefinitelyNotHostRunnable<T, std::enable_if_t<__nv_is_extended_device_lambda_closure_type(T)> >
         : std::true_type {};
 
 #elif defined(AMREX_USE_HIP)
@@ -194,16 +189,16 @@ namespace amrex
     //                                                          [traits.Negation]
 
 
-    //! Logical traits let us combine multiple type requirements in one EnableIf_t clause.
-    #if defined(__cpp_lib_logical_traits)
+    //! Logical traits let us combine multiple type requirements in one enable_if_t clause.
+#if defined(__cpp_lib_logical_traits)
     template <typename... Args> using Conjunction = std::conjunction<Args...>;
     template <typename... Args> using Disjunction = std::disjunction<Args...>;
     template <typename... Args> using Negation = std::negation<Args...>;
-    #elif defined(__cpp_lib_experimental_logical_traits)
+#elif defined(__cpp_lib_experimental_logical_traits)
     template <typename... Args> using Conjunction = std::experimental::conjunction<Args...>;
     template <typename... Args> using Disjunction = std::experimental::disjunction<Args...>;
     template <typename... Args> using Negation = std::experimental::negation<Args...>;
-    #else
+#else
     template <class...> struct Conjunction : std::true_type {};
     template <class B1> struct Conjunction<B1> : B1 {};
     template <class B1, class... Bn>
@@ -216,9 +211,9 @@ namespace amrex
     struct Disjunction<B1, Bn...>
     : std::conditional_t<bool(B1::value), B1, Disjunction<Bn...>> {};
 
-    template <class Bool>
-    using Negation = std::integral_constant<bool, !bool(Bool::value)>;
-    #endif
+    template <class B>
+    using Negation = std::integral_constant<bool, !bool(B::value)>;
+#endif
 
     // Move this down, because doxygen can not parse anything below IsStoreAtomic
     template <class T, class Enable = void>

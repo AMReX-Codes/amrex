@@ -1,8 +1,9 @@
 
-#include <iostream>
 #include <AMReX_BLassert.H>
 #include <AMReX_ErrorList.H>
 #include <AMReX_SPACE.H>
+
+#include <iostream>
 
 namespace amrex {
 
@@ -185,7 +186,7 @@ ErrorList::add (const std::string&         name,
     //
     int n = vec.size();
     vec.resize(n+1);
-    vec[n].reset(new ErrorRec(name, nextra, typ, func));
+    vec[n] = std::make_unique<ErrorRec>(name, nextra, typ, func);
 }
 
 void
@@ -199,7 +200,7 @@ ErrorList::add (const std::string&          name,
     //
     int n = vec.size();
     vec.resize(n+1);
-    vec[n].reset(new ErrorRec(name, nextra, typ, func2));
+    vec[n] = std::make_unique<ErrorRec>(name, nextra, typ, func2);
 }
 
 const ErrorRec&

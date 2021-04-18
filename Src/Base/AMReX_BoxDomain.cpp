@@ -1,9 +1,9 @@
 
-#include <iostream>
-
 #include <AMReX_BoxDomain.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Print.H>
+
+#include <iostream>
 
 namespace amrex {
 

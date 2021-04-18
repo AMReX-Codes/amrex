@@ -3,15 +3,15 @@
 #define BL_BOXARRAY_H
 #include <AMReX_Config.H>
 
-#include <iostream>
-#include <cstddef>
-#include <map>
-#include <unordered_map>
-
 #include <AMReX_IndexType.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
+
+#include <iosfwd>
+#include <cstddef>
+#include <map>
+#include <unordered_map>
 
 namespace amrex
 {
@@ -631,6 +631,7 @@ public:
     //! Coarsen each Box in the BoxArray to the specified ratio.
     bool coarsenable(int refinement_ratio, int min_width=1) const;
     bool coarsenable(const IntVect& refinement_ratio, int min_width=1) const;
+    bool coarsenable(const IntVect& refinement_ratio, const IntVect& min_width) const;
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (const IntVect& refinement_ratio);

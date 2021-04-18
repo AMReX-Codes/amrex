@@ -53,6 +53,46 @@ auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const&) no
     return f(src,i);
 }
 
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P const& p, Array4<T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const& plo,
+             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
+    -> decltype(f(p, fabarr, plo, dxi))
+{
+    return f(p, fabarr, plo, dxi);
+}
+
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P const& p, Array4<T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const&,
+             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
+    -> decltype(f(p, fabarr))
+{
+    return f(p, fabarr);
+}
+
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P& p, Array4<const T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const& plo,
+             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
+    -> decltype(f(p, fabarr, plo, dxi))
+{
+    return f(p, fabarr, plo, dxi);
+}
+
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P& p, Array4<const T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const&,
+             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
+    -> decltype(f(p, fabarr))
+{
+    return f(p, fabarr);
+}
+
 }
 
 /**
@@ -65,7 +105,7 @@ auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const&) no
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class Iterator, EnableIf_t<IsParticleIterator<Iterator>::value, int> foo = 0>
+template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value, int> foo = 0>
 int
 numParticlesOutOfRange (Iterator const& pti, int nGrow)
 {
@@ -83,7 +123,7 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class Iterator, EnableIf_t<IsParticleIterator<Iterator>::value, int> foo = 0>
+template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value, int> foo = 0>
 int
 numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
 {
@@ -134,7 +174,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 int
 numParticlesOutOfRange (PC const& pc, int nGrow)
 {
@@ -153,7 +193,7 @@ numParticlesOutOfRange (PC const& pc, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 int
 numParticlesOutOfRange (PC const& pc, IntVect nGrow)
 {
@@ -174,7 +214,7 @@ numParticlesOutOfRange (PC const& pc, IntVect nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 int
 numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
 {
@@ -198,7 +238,7 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 int
 numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, IntVect nGrow)
 {
@@ -294,6 +334,25 @@ int numTilesInBox (const Box& box, const bool a_do_tiling, const IntVect& a_tile
         return AMREX_D_TERM(ntiles[0], *=ntiles[1], *=ntiles[2]);
     }
 }
+
+struct GetParticleBin
+{
+    GpuArray<Real,AMREX_SPACEDIM> plo;
+    GpuArray<Real,AMREX_SPACEDIM> dxi;
+    Box domain;
+    IntVect bin_size;
+    Box box;
+
+    template <typename ParticleType>
+    AMREX_GPU_HOST_DEVICE
+    unsigned int operator() (const ParticleType& p) const noexcept
+    {
+        Box tbx;
+        auto iv = getParticleCell(p, plo, dxi, domain);
+        auto tid = getTileIndex(iv, box, true, bin_size, tbx);
+        return static_cast<unsigned int>(tid);
+    }
+};
 
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -411,9 +470,9 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                 {
                     auto p_prime = p;
                     enforcePeriodic(p_prime, plo, phi, is_per);
-                    auto tup = ploc(p_prime, lev_min, lev_max, nGrow);
-                    assigned_grid = amrex::get<0>(tup);
-                    assigned_lev  = amrex::get<1>(tup);
+                    auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow);
+                    assigned_grid = amrex::get<0>(tup_prime);
+                    assigned_lev  = amrex::get<1>(tup_prime);
                     if (assigned_grid >= 0)
                     {
                       AMREX_D_TERM(p.pos(0) = p_prime.pos(0);,

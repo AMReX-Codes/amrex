@@ -23,7 +23,7 @@ namespace amrex {
         This class does NOT provide a copy constructor or assignment operator.
 */
 
-class Mask
+class Mask final
     :
     public BaseFab<int>
 {
@@ -54,7 +54,7 @@ public:
 
     explicit Mask (Array4<int const> const& a, IndexType t) noexcept : BaseFab<int>(a,t) {}
 
-    ~Mask () noexcept {}
+    virtual ~Mask () noexcept override {}
 
     Mask (Mask&& rhs) noexcept = default;
 

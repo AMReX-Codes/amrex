@@ -691,7 +691,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         //
         // Create initial cluster containing all tagged points.
         //
-        Vector<IntVect> tagvec;
+        Gpu::PinnedVector<IntVect> tagvec;
         tags.collate(tagvec);
         tags.clear();
 
