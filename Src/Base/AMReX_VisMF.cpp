@@ -2304,7 +2304,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
     bool strip_ghost = valid_cells_only && mf.nGrowVect() != 0;
 
     int64_t total_bytes = 0;
-    auto pld = (char*)(&(localdata[1]));
+    char* pld = (localdata.size() > 1) ? (char*)(&(localdata[1])) : nullptr;
     const FABio& fio = FArrayBox::getFABio();
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
@@ -2475,18 +2475,20 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
         AsyncOut::Wait();  // Wait for my turn
 
         auto info = AsyncOut::GetWriteInfo(myproc);
-        std::string file_name = amrex::Concatenate(mf_name + FabFileSuffix, info.ifile, 5);
-        std::ofstream ofs;
-        ofs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-        ofs.open(file_name.c_str(), (info.ispot == 0) ? (std::ios::binary | std::ios::trunc)
-                                                      : (std::ios::binary | std::ios::app));
-        if (!ofs.good()) amrex::FileOpenFailed(file_name);
-        for (auto const& fab : *myfabs) {
-            fabio->write_header(ofs, fab, fab.nComp());
-            fabio->write(ofs, fab, 0, fab.nComp());
+        if (! myfabs->empty()) {
+            std::string file_name = amrex::Concatenate(mf_name + FabFileSuffix, info.ifile, 5);
+            std::ofstream ofs;
+            ofs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+            ofs.open(file_name.c_str(), (info.ispot == 0) ? (std::ios::binary | std::ios::trunc)
+                                                          : (std::ios::binary | std::ios::app));
+            if (!ofs.good()) amrex::FileOpenFailed(file_name);
+            for (auto const& fab : *myfabs) {
+                fabio->write_header(ofs, fab, fab.nComp());
+                fabio->write(ofs, fab, 0, fab.nComp());
+            }
+            ofs.flush();
+            ofs.close();
         }
-        ofs.flush();
-        ofs.close();
 
         AsyncOut::Notify();  // Notify others I am done
     });
