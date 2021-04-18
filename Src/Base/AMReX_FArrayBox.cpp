@@ -607,7 +607,17 @@ FArrayBox::writeOn (std::ostream& os, int comp, int num_comp) const
     BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= nComp());
     fabio->write_header(os, *this, num_comp);
     os.flush();  // 2016-08-30: Titan requires this flush() (probably due to a bug).
-    fabio->write(os, *this, comp, num_comp);
+#ifdef AMREX_USE_GPU
+    if (this->arena()->isManaged() || this->arena()->isDevice()) {
+        FArrayBox hostfab(this->box(), num_comp, The_Pinned_Arena());
+        Gpu::dtoh_memcpy_async(hostfab.dataPtr(), this->dataPtr(comp), hostfab.size()*sizeof(Real));
+        Gpu::streamSynchronize();
+        fabio->write(os, hostfab, 0, num_comp);
+    } else
+#endif
+    {
+        fabio->write(os, *this, comp, num_comp);
+    }
 }
 
 void
@@ -615,7 +625,17 @@ FArrayBox::readFrom (std::istream& is)
 {
 //    BL_PROFILE("FArrayBox::readFrom_is");
     FABio* fabrd = FABio::read_header(is, *this);
-    fabrd->read(is, *this);
+#ifdef AMREX_USE_GPU
+    if (this->arena()->isManaged() || this->arena()->isDevice()) {
+        FArrayBox hostfab(this->box(), this->nComp(), The_Pinned_Arena());
+        fabrd->read(is, hostfab);
+        Gpu::htod_memcpy_async(this->dataPtr(), hostfab.dataPtr(), hostfab.size()*sizeof(Real));
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+        fabrd->read(is, *this);
+    }
     delete fabrd;
 }
 
@@ -629,7 +649,17 @@ FArrayBox::readFrom (std::istream& is, int compIndex)
     BL_ASSERT(compIndex >= 0 && compIndex < nCompAvailable);
 
     fabrd->skip(is, *this, compIndex);  // skip data up to the component we want
-    fabrd->read(is, *this);
+#ifdef AMREX_USE_GPU
+    if (this->arena()->isManaged() || this->arena()->isDevice()) {
+        FArrayBox hostfab(this->box(), 1, The_Pinned_Arena());
+        fabrd->read(is, hostfab);
+        Gpu::htod_memcpy_async(this->dataPtr(), hostfab.dataPtr(), hostfab.size()*sizeof(Real));
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+        fabrd->read(is, *this);
+    }
     int remainingComponents = nCompAvailable - compIndex - 1;
     fabrd->skip(is, *this, remainingComponents);  // skip to the end
 
@@ -710,7 +740,17 @@ void
 FABio_ascii::skip (std::istream& is,
                    FArrayBox&    f) const
 {
-    FABio_ascii::read(is, f);
+#ifdef AMREX_USE_GPU
+    if (f.arena()->isManaged() || f.arena()->isDevice()) {
+        FArrayBox hostfab(f.box(), f.nComp(), The_Pinned_Arena());
+        FABio_ascii::read(is, hostfab);
+        Gpu::htod_memcpy_async(f.dataPtr(), hostfab.dataPtr(), f.size()*sizeof(Real));
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+        FABio_ascii::read(is, f);
+    }
 }
 
 void
@@ -936,7 +976,17 @@ operator<< (std::ostream&    os,
             const FArrayBox& f)
 {
     static FABio_ascii fabio_ascii;
-    fabio_ascii.write(os,f,0,f.nComp());
+#ifdef AMREX_USE_GPU
+    if (f.arena()->isManaged() || f.arena()->isDevice()) {
+        FArrayBox hostfab(f.box(), f.nComp(), The_Pinned_Arena());
+        Gpu::dtoh_memcpy_async(hostfab.dataPtr(), f.dataPtr(), f.size()*sizeof(Real));
+        Gpu::streamSynchronize();
+        fabio_ascii.write(os,hostfab,0,f.nComp());
+    } else
+#endif
+    {
+        fabio_ascii.write(os,f,0,f.nComp());
+    }
     return os;
 }
 
@@ -945,7 +995,17 @@ operator>> (std::istream& is,
             FArrayBox&    f)
 {
     FABio *fabrd = FABio::read_header(is,f);
-    fabrd->read(is,f);
+#ifdef AMREX_USE_GPU
+    if (f.arena()->isManaged() || f.arena()->isDevice()) {
+        FArrayBox hostfab(f.box(), f.nComp(), The_Pinned_Arena());
+        fabrd->read(is,hostfab);
+        Gpu::htod_memcpy_async(f.dataPtr(), hostfab.dataPtr(), f.size()*sizeof(Real));
+        Gpu::streamSynchronize();
+    } else
+#endif
+    {
+        fabrd->read(is,f);
+    }
     delete fabrd;
     return is;
 }
