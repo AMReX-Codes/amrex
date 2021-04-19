@@ -27,13 +27,6 @@ namespace Gpu {
     using DeviceVector = PODVector<T, ArenaAllocator<T> >;
 
     /**
-     * \brief A PODVector that uses host memory. No Arena is used.
-     *
-     */
-    template <class T>
-    using HostVector = PODVector<T>;
-
-    /**
      * \brief A PODVector that uses the managed memory arena.
      *
      */
@@ -46,6 +39,14 @@ namespace Gpu {
      */
     template <class T>
     using PinnedVector = PODVector<T, PinnedArenaAllocator<T> >;
+
+    /**
+     * \brief A PODVector that uses pinned host memory. Same as PinnedVector.
+     * For a vector class that uses std::allocator by default, see amrex::Vector.
+     *
+     */
+    template <class T>
+    using HostVector = PinnedVector<T>;
 
     /**
      * \brief The behavior of PolymorphicVector changes depending on
@@ -66,7 +67,7 @@ namespace Gpu {
     using ManagedDeviceVector = PODVector<T, ManagedArenaAllocator<T> >;
 
 #else
-    //! When Cuda is off, all these containers revert to amrex::Vector.
+    //! When Cuda is off, all these containers revert to amrex::Gpu::PODVector.
     template <class T>
     using DeviceVector = PODVector<T>;
 
@@ -115,7 +116,7 @@ namespace Gpu {
     void copy (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
@@ -148,7 +149,7 @@ namespace Gpu {
     void copy (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
@@ -181,7 +182,7 @@ namespace Gpu {
     void copy (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
@@ -215,7 +216,7 @@ namespace Gpu {
     void copyAsync (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
@@ -249,7 +250,7 @@ namespace Gpu {
     void copyAsync (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;
@@ -283,7 +284,7 @@ namespace Gpu {
     void copyAsync (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type),
+        static_assert(std::is_trivially_copyable<value_type>(),
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         if (size == 0) return;

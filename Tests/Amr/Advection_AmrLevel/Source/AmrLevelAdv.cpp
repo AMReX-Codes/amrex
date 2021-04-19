@@ -589,7 +589,7 @@ AmrLevelAdv::post_restart()
 #ifdef AMREX_PARTICLES
     if (do_tracers && level == 0) {
       BL_ASSERT(TracerPC == 0);
-      TracerPC.reset(new AmrTracerParticleContainer(parent));
+      TracerPC = std::make_unique<AmrTracerParticleContainer>(parent);
       TracerPC->Restart(parent->theRestartFile(), "Tracer");
     }
 #endif
@@ -764,7 +764,7 @@ AmrLevelAdv::init_particles ()
     {
       BL_ASSERT(TracerPC == nullptr);
 
-      TracerPC.reset(new AmrTracerParticleContainer(parent));
+      TracerPC = std::make_unique<AmrTracerParticleContainer>(parent);
 
       AmrTracerParticleContainer::ParticleInitData pdata = {AMREX_D_DECL(0.0, 0.0, 0.0)};
 

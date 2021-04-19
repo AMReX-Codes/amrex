@@ -613,6 +613,12 @@ void ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
     }
 }
 
+template <typename L>
+void single_task (L&& f) noexcept
+{
+    f();
+}
+
 }
 
 #endif

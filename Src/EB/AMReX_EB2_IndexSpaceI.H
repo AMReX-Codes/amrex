@@ -55,7 +55,7 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
         m_ngrow.push_back(ng);
     }
 
-    m_impfunc.reset(new F(gshop.GetImpFunc()));
+    m_impfunc = std::make_unique<F>(gshop.GetImpFunc());
 }
 
 

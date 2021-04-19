@@ -540,8 +540,7 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngr
     const int owner = 1;
     const int nonowner = 0;
 
-    std::unique_ptr<iMultiFab> p{new iMultiFab(ba,dm,1,ngrow, MFInfo(),
-                                               DefaultFabFactory<IArrayBox>())};
+    auto p = std::make_unique<iMultiFab>(ba,dm,1,ngrow, MFInfo(), DefaultFabFactory<IArrayBox>());
     const std::vector<IntVect>& pshifts = period.shiftIntVect();
 
     Vector<Array4BoxTag<int> > tags;

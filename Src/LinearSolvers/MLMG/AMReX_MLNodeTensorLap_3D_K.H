@@ -216,13 +216,13 @@ void mlndtslap_normalize (Box const& b, Array4<Real> const& phi,
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 
-AMREX_FORCE_INLINE
-void mlndtslap_fill_ijmatrix (Box const& ndbx, Array4<HypreNodeLap::Int const> const& nid,
-                              Array4<int const> const& owner,
-                              Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
-                              Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat,
-                              Array4<int const> const& /*msk*/, GpuArray<Real,6> const& s,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+template <typename HypreInt, typename AtomicInt>
+void mlndtslap_fill_ijmatrix_cpu (Box const& ndbx,
+                                  Array4<AtomicInt const> const& gid,
+                                  Array4<int const> const& lid,
+                                  HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                                  GpuArray<Real,6> const& s,
+                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv)
 {
     const Real h00 = dxinv[0]*dxinv[0];
     const Real h01 = dxinv[0]*dxinv[1];
@@ -231,204 +231,394 @@ void mlndtslap_fill_ijmatrix (Box const& ndbx, Array4<HypreNodeLap::Int const> c
     const Real h12 = dxinv[1]*dxinv[2];
     const Real h22 = dxinv[2]*dxinv[2];
 
-    const auto lo = amrex::lbound(ndbx);
-    const auto hi = amrex::ubound(ndbx);
-    for (int k = lo.z; k <= hi.z; ++k) {
-    for (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
-        if (nid(i,j,k) >= 0 && owner(i,j,k))
+    constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+    HypreInt nelems = 0;
+    amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
+    {
+        if (lid(i,j,k) >= 0)
         {
-            rows.push_back(nid(i,j,k));
-            cols.push_back(nid(i,j,k));
-            mat.push_back(Real(1./36.) * Real(-32.)*(h00*s[0]+h11*s[3]+h22*s[5]));
-            HypreNodeLap::Int nc = 1;
+            HypreInt nelems_old = nelems;
 
-            if (               nid(i-1,j-1,k-1) >= 0) {
-                cols.push_back(nid(i-1,j-1,k-1));
+            cols[nelems] = gid(i,j,k);
+            mat[nelems] = Real(1./36.) * Real(-32.)*(h00*s[0]+h11*s[3]+h22*s[5]);
+            ++nelems;
+
+            if (               gid(i-1,j-1,k-1) < gidmax) {
+                cols[nelems] = gid(i-1,j-1,k-1);
                 Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]+h02*s[2]+h12*s[4]));
-                mat.push_back(t);
-                ++nc;
+                mat[nelems] = t;
+                ++nelems;
             }
 
-            if (               nid(i+1,j-1,k-1) >= 0) {
-                cols.push_back(nid(i+1,j-1,k-1));
+            if (               gid(i  ,j-1,k-1) < gidmax) {
+                cols[nelems] = gid(i  ,j-1,k-1);
+                Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])+Real(12.)*h12*s[4]);
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i+1,j-1,k-1) < gidmax) {
+                cols[nelems] = gid(i+1,j-1,k-1);
                 Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]-h02*s[2]+h12*s[4]));
-                mat.push_back(t);
-                ++nc;
+                mat[nelems] = t;
+                ++nelems;
             }
 
-            if (               nid(i-1,j+1,k-1) >= 0) {
-                cols.push_back(nid(i-1,j+1,k-1));
+            if (               gid(i-1,j  ,k-1) < gidmax) {
+                cols[nelems] = gid(i-1,j  ,k-1);
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])+Real(12.)*h02*s[2]);
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i  ,j  ,k-1) < gidmax) {
+                cols[nelems] = gid(i  ,j  ,k-1);
+                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h22*s[5]-h00*s[0]-h11*s[3]));
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i+1,j  ,k-1) < gidmax) {
+                cols[nelems] = gid(i+1,j  ,k-1);
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])-Real(12.)*h02*s[2]);
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i-1,j+1,k-1) < gidmax) {
+                cols[nelems] = gid(i-1,j+1,k-1);
                 Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]+h02*s[2]-h12*s[4]));
-                mat.push_back(t);
-                ++nc;
+                mat[nelems] = t;
+                ++nelems;
             }
 
-            if (               nid(i+1,j+1,k-1) >= 0) {
-                cols.push_back(nid(i+1,j+1,k-1));
+            if (               gid(i  ,j+1,k-1) < gidmax) {
+                cols[nelems] = gid(i  ,j+1,k-1);
+                Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])-Real(12.)*h12*s[4]);
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i+1,j+1,k-1) < gidmax) {
+                cols[nelems] = gid(i+1,j+1,k-1);
                 Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]-h02*s[2]-h12*s[4]));
-                mat.push_back(t);
-                ++nc;
+                mat[nelems] = t;
+                ++nelems;
             }
 
-            if (               nid(i-1,j-1,k+1) >= 0) {
-                cols.push_back(nid(i-1,j-1,k+1));
+            if (               gid(i-1,j-1,k  ) < gidmax) {
+                cols[nelems] = gid(i-1,j-1,k  );
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])+Real(12.)*h01*s[1]);
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+           if (               gid(i  ,j-1,k  ) < gidmax) {
+                cols[nelems] = gid(i  ,j-1,k  );
+                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h11*s[3]-h00*s[0]-h22*s[5]));
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i+1,j-1,k  ) < gidmax) {
+                cols[nelems] = gid(i+1,j-1,k  );
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])-Real(12.)*h01*s[1]);
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i-1,j  ,k  ) < gidmax) {
+                cols[nelems] = gid(i-1,j  ,k  );
+                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h00*s[0]-h11*s[3]-h22*s[5]));
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i+1,j  ,k  ) < gidmax) {
+                cols[nelems] = gid(i+1,j  ,k  );
+                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h00*s[0]-h11*s[3]-h22*s[5]));
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i-1,j+1,k  ) < gidmax) {
+                cols[nelems] = gid(i-1,j+1,k  );
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])-Real(12.)*h01*s[1]);
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i  ,j+1,k  ) < gidmax) {
+                cols[nelems] = gid(i  ,j+1,k  );
+                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h11*s[3]-h00*s[0]-h22*s[5]));
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i+1,j+1,k  ) < gidmax) {
+                cols[nelems] = gid(i+1,j+1,k  );
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])+Real(12.)*h01*s[1]);
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i-1,j-1,k+1) < gidmax) {
+                cols[nelems] = gid(i-1,j-1,k+1);
                 Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]-h02*s[2]-h12*s[4]));
-                mat.push_back(t);
-                ++nc;
+                mat[nelems] = t;
+                ++nelems;
             }
 
-            if (               nid(i+1,j-1,k+1) >= 0) {
-                cols.push_back(nid(i+1,j-1,k+1));
+            if (               gid(i  ,j-1,k+1) < gidmax) {
+                cols[nelems] = gid(i  ,j-1,k+1);
+                Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])-Real(12.)*h12*s[4]);
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i+1,j-1,k+1) < gidmax) {
+                cols[nelems] = gid(i+1,j-1,k+1);
                 Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]+h02*s[2]-h12*s[4]));
-                mat.push_back(t);
-                ++nc;
+                mat[nelems] = t;
+                ++nelems;
             }
 
-            if (               nid(i-1,j+1,k+1) >= 0) {
-                cols.push_back(nid(i-1,j+1,k+1));
+            if (               gid(i-1,j  ,k+1) < gidmax) {
+                cols[nelems] = gid(i-1,j  ,k+1);
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])-Real(12.)*h02*s[2]);
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i  ,j  ,k+1) < gidmax) {
+                cols[nelems] = gid(i  ,j  ,k+1);
+                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h22*s[5]-h00*s[0]-h11*s[3]));
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i+1,j  ,k+1) < gidmax) {
+                cols[nelems] = gid(i+1,j  ,k+1);
+                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])+Real(12.)*h02*s[2]);
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i-1,j+1,k+1) < gidmax) {
+                cols[nelems] = gid(i-1,j+1,k+1);
                 Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]-h02*s[2]+h12*s[4]));
-                mat.push_back(t);
-                ++nc;
+                mat[nelems] = t;
+                ++nelems;
             }
 
-            if (               nid(i+1,j+1,k+1) >= 0) {
-                cols.push_back(nid(i+1,j+1,k+1));
+            if (               gid(i  ,j+1,k+1) < gidmax) {
+                cols[nelems] = gid(i  ,j+1,k+1);
+                Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])+Real(12.)*h12*s[4]);
+                mat[nelems] = t;
+                ++nelems;
+            }
+
+            if (               gid(i+1,j+1,k+1) < gidmax) {
+                cols[nelems] = gid(i+1,j+1,k+1);
                 Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]+h02*s[2]+h12*s[4]));
-                mat.push_back(t);
-                ++nc;
+                mat[nelems] = t;
+                ++nelems;
             }
 
-            if (               nid(i-1,j-1,k  ) >= 0) {
-                cols.push_back(nid(i-1,j-1,k  ));
-                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])+Real(12.)*h01*s[1]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i+1,j-1,k  ) >= 0) {
-                cols.push_back(nid(i+1,j-1,k  ));
-                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])-Real(12.)*h01*s[1]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i-1,j+1,k  ) >= 0) {
-                cols.push_back(nid(i-1,j+1,k  ));
-                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])-Real(12.)*h01*s[1]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i+1,j+1,k  ) >= 0) {
-                cols.push_back(nid(i+1,j+1,k  ));
-                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])+Real(12.)*h01*s[1]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i-1,j  ,k-1) >= 0) {
-                cols.push_back(nid(i-1,j  ,k-1));
-                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])+Real(12.)*h02*s[2]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i+1,j  ,k-1) >= 0) {
-                cols.push_back(nid(i+1,j  ,k-1));
-                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])-Real(12.)*h02*s[2]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i-1,j  ,k+1) >= 0) {
-                cols.push_back(nid(i-1,j  ,k+1));
-                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])-Real(12.)*h02*s[2]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i+1,j  ,k+1) >= 0) {
-                cols.push_back(nid(i+1,j  ,k+1));
-                Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])+Real(12.)*h02*s[2]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j-1,k-1) >= 0) {
-                cols.push_back(nid(i  ,j-1,k-1));
-                Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])+Real(12.)*h12*s[4]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j+1,k-1) >= 0) {
-                cols.push_back(nid(i  ,j+1,k-1));
-                Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])-Real(12.)*h12*s[4]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j-1,k+1) >= 0) {
-                cols.push_back(nid(i  ,j-1,k+1));
-                Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])-Real(12.)*h12*s[4]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j+1,k+1) >= 0) {
-                cols.push_back(nid(i  ,j+1,k+1));
-                Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])+Real(12.)*h12*s[4]);
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i-1,j  ,k  ) >= 0) {
-                cols.push_back(nid(i-1,j  ,k  ));
-                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h00*s[0]-h11*s[3]-h22*s[5]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i+1,j  ,k  ) >= 0) {
-                cols.push_back(nid(i+1,j  ,k  ));
-                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h00*s[0]-h11*s[3]-h22*s[5]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j-1,k  ) >= 0) {
-                cols.push_back(nid(i  ,j-1,k  ));
-                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h11*s[3]-h00*s[0]-h22*s[5]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j+1,k  ) >= 0) {
-                cols.push_back(nid(i  ,j+1,k  ));
-                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h11*s[3]-h00*s[0]-h22*s[5]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j  ,k-1) >= 0) {
-                cols.push_back(nid(i  ,j  ,k-1));
-                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h22*s[5]-h00*s[0]-h11*s[3]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            if (               nid(i  ,j  ,k+1) >= 0) {
-                cols.push_back(nid(i  ,j  ,k+1));
-                Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h22*s[5]-h00*s[0]-h11*s[3]));
-                mat.push_back(t);
-                ++nc;
-            }
-
-            ncols.push_back(nc);
+            ncols[lid(i,j,k)] = nelems - nelems_old;
         }
-    }}}
+    });
 }
+
+#ifdef AMREX_USE_GPU
+
+template <typename HypreInt, typename AtomicInt>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void mlndtslap_fill_ijmatrix_gpu (const int ps, const int i, const int j, const int k,
+                                  const int offset, Box const& ndbx,
+                                  Array4<AtomicInt const> const& gid,
+                                  Array4<int const> const& lid,
+                                  HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                                  GpuArray<Real,6> const& s,
+                                  GpuArray<Real,AMREX_SPACEDIM> const& dxinv)
+{
+    if (lid(i,j,k) >= 0)
+    {
+        const Real h00 = dxinv[0]*dxinv[0];
+        const Real h01 = dxinv[0]*dxinv[1];
+        const Real h02 = dxinv[0]*dxinv[2];
+        const Real h11 = dxinv[1]*dxinv[1];
+        const Real h12 = dxinv[1]*dxinv[2];
+        const Real h22 = dxinv[2]*dxinv[2];
+
+        constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+
+        if (offset == 0) {
+            cols[ps] = gid(i,j,k);
+            mat[ps] = Real(1./36.) * Real(-32.)*(h00*s[0]+h11*s[3]+h22*s[5]);
+            int nc = 1;
+            if (gid(i-1,j-1,k-1) < gidmax) { ++nc; }
+            if (gid(i  ,j-1,k-1) < gidmax) { ++nc; }
+            if (gid(i+1,j-1,k-1) < gidmax) { ++nc; }
+            if (gid(i-1,j  ,k-1) < gidmax) { ++nc; }
+            if (gid(i  ,j  ,k-1) < gidmax) { ++nc; }
+            if (gid(i+1,j  ,k-1) < gidmax) { ++nc; }
+            if (gid(i-1,j+1,k-1) < gidmax) { ++nc; }
+            if (gid(i  ,j+1,k-1) < gidmax) { ++nc; }
+            if (gid(i+1,j+1,k-1) < gidmax) { ++nc; }
+            if (gid(i-1,j-1,k  ) < gidmax) { ++nc; }
+            if (gid(i  ,j-1,k  ) < gidmax) { ++nc; }
+            if (gid(i+1,j-1,k  ) < gidmax) { ++nc; }
+            if (gid(i-1,j  ,k  ) < gidmax) { ++nc; }
+            if (gid(i+1,j  ,k  ) < gidmax) { ++nc; }
+            if (gid(i-1,j+1,k  ) < gidmax) { ++nc; }
+            if (gid(i  ,j+1,k  ) < gidmax) { ++nc; }
+            if (gid(i+1,j+1,k  ) < gidmax) { ++nc; }
+            if (gid(i-1,j-1,k+1) < gidmax) { ++nc; }
+            if (gid(i  ,j-1,k+1) < gidmax) { ++nc; }
+            if (gid(i+1,j-1,k+1) < gidmax) { ++nc; }
+            if (gid(i-1,j  ,k+1) < gidmax) { ++nc; }
+            if (gid(i  ,j  ,k+1) < gidmax) { ++nc; }
+            if (gid(i+1,j  ,k+1) < gidmax) { ++nc; }
+            if (gid(i-1,j+1,k+1) < gidmax) { ++nc; }
+            if (gid(i  ,j+1,k+1) < gidmax) { ++nc; }
+            if (gid(i+1,j+1,k+1) < gidmax) { ++nc; }
+            ncols[lid(i,j,k)] = nc;
+        }
+        else if (offset == 1 && gid(i-1,j-1,k-1) < gidmax) {
+            cols[ps] =          gid(i-1,j-1,k-1);
+            Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]+h02*s[2]+h12*s[4]));
+            mat[ps] = t;
+        }
+        else if (offset == 2 && gid(i  ,j-1,k-1) < gidmax) {
+            cols[ps] =          gid(i  ,j-1,k-1);
+            Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])+Real(12.)*h12*s[4]);
+            mat[ps] = t;
+        }
+        else if (offset == 3 && gid(i+1,j-1,k-1) < gidmax) {
+            cols[ps] =          gid(i+1,j-1,k-1);
+            Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]-h02*s[2]+h12*s[4]));
+            mat[ps] = t;
+        }
+        else if (offset == 4 && gid(i-1,j  ,k-1) < gidmax) {
+            cols[ps] =          gid(i-1,j  ,k-1);
+            Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])+Real(12.)*h02*s[2]);
+            mat[ps] = t;
+        }
+        else if (offset == 5 && gid(i  ,j  ,k-1) < gidmax) {
+            cols[ps] =          gid(i  ,j  ,k-1);
+            Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h22*s[5]-h00*s[0]-h11*s[3]));
+            mat[ps] = t;
+        }
+        else if (offset == 6 && gid(i+1,j  ,k-1) < gidmax) {
+            cols[ps] =          gid(i+1,j  ,k-1);
+            Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])-Real(12.)*h02*s[2]);
+            mat[ps] = t;
+        }
+        else if (offset == 7 && gid(i-1,j+1,k-1) < gidmax) {
+            cols[ps] =          gid(i-1,j+1,k-1);
+            Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]+h02*s[2]-h12*s[4]));
+            mat[ps] = t;
+        }
+        else if (offset == 8 && gid(i  ,j+1,k-1) < gidmax) {
+            cols[ps] =          gid(i  ,j+1,k-1);
+            Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])-Real(12.)*h12*s[4]);
+            mat[ps] = t;
+        }
+        else if (offset == 9 && gid(i+1,j+1,k-1) < gidmax) {
+            cols[ps] =          gid(i+1,j+1,k-1);
+            Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]-h02*s[2]-h12*s[4]));
+            mat[ps] = t;
+        }
+        else if (offset == 10 && gid(i-1,j-1,k  ) < gidmax) {
+            cols[ps] =           gid(i-1,j-1,k  );
+            Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])+Real(12.)*h01*s[1]);
+            mat[ps] = t;
+        }
+        else if (offset == 11 && gid(i  ,j-1,k  ) < gidmax) {
+            cols[ps] =           gid(i  ,j-1,k  );
+            Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h11*s[3]-h00*s[0]-h22*s[5]));
+            mat[ps] = t;
+        }
+        else if (offset == 12 && gid(i+1,j-1,k  ) < gidmax) {
+            cols[ps] =           gid(i+1,j-1,k  );
+            Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])-Real(12.)*h01*s[1]);
+            mat[ps] = t;
+        }
+        else if (offset == 13 && gid(i-1,j  ,k  ) < gidmax) {
+            cols[ps] =           gid(i-1,j  ,k  );
+            Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h00*s[0]-h11*s[3]-h22*s[5]));
+            mat[ps] = t;
+        }
+        else if (offset == 14 && gid(i+1,j  ,k  ) < gidmax) {
+            cols[ps] =           gid(i+1,j  ,k  );
+            Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h00*s[0]-h11*s[3]-h22*s[5]));
+            mat[ps] = t;
+        }
+        else if (offset == 15 && gid(i-1,j+1,k  ) < gidmax) {
+            cols[ps] =           gid(i-1,j+1,k  );
+            Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])-Real(12.)*h01*s[1]);
+            mat[ps] = t;
+        }
+        else if (offset == 16 && gid(i  ,j+1,k  ) < gidmax) {
+            cols[ps] =           gid(i  ,j+1,k  );
+            Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h11*s[3]-h00*s[0]-h22*s[5]));
+            mat[ps] = t;
+        }
+        else if (offset == 17 && gid(i+1,j+1,k  ) < gidmax) {
+            cols[ps] =           gid(i+1,j+1,k  );
+            Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h11*s[3]-Real(0.5)*h22*s[5])+Real(12.)*h01*s[1]);
+            mat[ps] = t;
+        }
+        else if (offset == 18 && gid(i-1,j-1,k+1) < gidmax) {
+            cols[ps] =           gid(i-1,j-1,k+1);
+            Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]-h02*s[2]-h12*s[4]));
+            mat[ps] = t;
+        }
+        else if (offset == 19 && gid(i  ,j-1,k+1) < gidmax) {
+            cols[ps] =           gid(i  ,j-1,k+1);
+            Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])-Real(12.)*h12*s[4]);
+            mat[ps] = t;
+        }
+        else if (offset == 20 && gid(i+1,j-1,k+1) < gidmax) {
+            cols[ps] =           gid(i+1,j-1,k+1);
+            Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]+h02*s[2]-h12*s[4]));
+            mat[ps] = t;
+        }
+        else if (offset == 21 && gid(i-1,j  ,k+1) < gidmax) {
+            cols[ps] =           gid(i-1,j  ,k+1);
+            Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])-Real(12.)*h02*s[2]);
+            mat[ps] = t;
+        }
+        else if (offset == 22 && gid(i  ,j  ,k+1) < gidmax) {
+            cols[ps] =           gid(i  ,j  ,k+1);
+            Real t = Real(1./36.)*(Real(8.)*(Real(2.)*h22*s[5]-h00*s[0]-h11*s[3]));
+            mat[ps] = t;
+        }
+        else if (offset == 23 && gid(i+1,j  ,k+1) < gidmax) {
+            cols[ps] =           gid(i+1,j  ,k+1);
+            Real t = Real(1./36.)*(Real(4.)*(h00*s[0]+h22*s[5]-Real(0.5)*h11*s[3])+Real(12.)*h02*s[2]);
+            mat[ps] = t;
+        }
+        else if (offset == 24 && gid(i-1,j+1,k+1) < gidmax) {
+            cols[ps] =           gid(i-1,j+1,k+1);
+            Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*(-h01*s[1]-h02*s[2]+h12*s[4]));
+            mat[ps] = t;
+        }
+        else if (offset == 25 && gid(i  ,j+1,k+1) < gidmax) {
+            cols[ps] =           gid(i  ,j+1,k+1);
+            Real t = Real(1./36.)*(Real(4.)*(h11*s[3]+h22*s[5]-Real(0.5)*h00*s[0])+Real(12.)*h12*s[4]);
+            mat[ps] = t;
+        }
+        else if (offset == 26 && gid(i+1,j+1,k+1) < gidmax) {
+            cols[ps] =           gid(i+1,j+1,k+1);
+            Real t = Real(1./36.)*((h00*s[0]+h11*s[3]+h22*s[5])+Real(3.)*( h01*s[1]+h02*s[2]+h12*s[4]));
+            mat[ps] = t;
+        }
+    }
+}
+
+#endif
 
 #endif
 

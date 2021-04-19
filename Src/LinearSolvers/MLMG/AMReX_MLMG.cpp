@@ -912,12 +912,19 @@ MLMG::NSolve (MLMG& a_solver, MultiFab& a_sol, MultiFab& a_rhs)
 
     a_sol.setVal(0.0);
 
-    a_rhs.setVal(0.0);
-    a_rhs.ParallelCopy(res[0].back());
+    MultiFab const& res_bottom = res[0].back();
+    if (BoxArray::SameRefs(a_rhs.boxArray(),res_bottom.boxArray()) &&
+        DistributionMapping::SameRefs(a_rhs.DistributionMap(),res_bottom.DistributionMap()))
+    {
+        MultiFab::Copy(a_rhs, res_bottom, 0, 0, a_rhs.nComp(), 0);
+    } else {
+        a_rhs.setVal(0.0);
+        a_rhs.ParallelCopy(res_bottom);
+    }
 
     a_solver.solve({&a_sol}, {&a_rhs}, Real(-1.0), Real(-1.0));
 
-    cor[0].back()->ParallelCopy(a_sol);
+    linop.copyNSolveSolution(*cor[0].back(), a_sol);
 }
 
 void
@@ -1136,9 +1143,9 @@ MLMG::buildFineMask ()
     const auto& amrrr = linop.AMRRefRatio();
     for (int alev = 0; alev < finest_amr_lev; ++alev)
     {
-        fine_mask[alev].reset
-            (new iMultiFab(makeFineMask(rhs[alev], rhs[alev+1], IntVect(0), IntVect(amrrr[alev]),
-                                        Periodicity::NonPeriodic(), 1, 0)));
+        fine_mask[alev] = std::make_unique<iMultiFab>
+            (makeFineMask(rhs[alev], rhs[alev+1], IntVect(0), IntVect(amrrr[alev]),
+                          Periodicity::NonPeriodic(), 1, 0));
     }
 
     if (!linop.isCellCentered()) {
@@ -1198,9 +1205,10 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         else
         {
             if (!solve_called) {
-                sol_raii[alev].reset(new MultiFab(a_sol[alev]->boxArray(),
-                                                  a_sol[alev]->DistributionMap(), ncomp, ng_sol,
-                                                  MFInfo(), *linop.Factory(alev)));
+                sol_raii[alev] = std::make_unique<MultiFab>(a_sol[alev]->boxArray(),
+                                                            a_sol[alev]->DistributionMap(),
+                                                            ncomp, ng_sol, MFInfo(),
+                                                            *linop.Factory(alev));
             }
             MultiFab::Copy(*sol_raii[alev], *a_sol[alev], 0, 0, ncomp, 0);
             sol_raii[alev]->setBndry(0.0);
@@ -1268,10 +1276,10 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         for (int mglev = 0; mglev < nmglevs; ++mglev)
         {
             if (!solve_called) {
-                cor[alev][mglev].reset(new MultiFab(res[alev][mglev].boxArray(),
-                                                    res[alev][mglev].DistributionMap(),
-                                                    ncomp, ng, MFInfo(),
-                                                    *linop.Factory(alev,mglev)));
+                cor[alev][mglev] = std::make_unique<MultiFab>(res[alev][mglev].boxArray(),
+                                                              res[alev][mglev].DistributionMap(),
+                                                              ncomp, ng, MFInfo(),
+                                                              *linop.Factory(alev,mglev));
             }
             cor[alev][mglev]->setVal(0.0);
         }
@@ -1285,10 +1293,10 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         for (int mglev = 0; mglev < nmglevs-1; ++mglev)
         {
             if (!solve_called) {
-                cor_hold[alev][mglev].reset(new MultiFab(cor[alev][mglev]->boxArray(),
-                                                         cor[alev][mglev]->DistributionMap(),
-                                                         ncomp, ng, MFInfo(),
-                                                         *linop.Factory(alev,mglev)));
+                cor_hold[alev][mglev] = std::make_unique<MultiFab>(cor[alev][mglev]->boxArray(),
+                                                                   cor[alev][mglev]->DistributionMap(),
+                                                                   ncomp, ng, MFInfo(),
+                                                                   *linop.Factory(alev,mglev));
             }
             cor_hold[alev][mglev]->setVal(0.0);
         }
@@ -1297,10 +1305,10 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     {
         cor_hold[alev].resize(1);
         if (!solve_called) {
-            cor_hold[alev][0].reset(new MultiFab(cor[alev][0]->boxArray(),
-                                                 cor[alev][0]->DistributionMap(),
-                                                 ncomp, ng, MFInfo(),
-                                                 *linop.Factory(alev,0)));
+            cor_hold[alev][0] = std::make_unique<MultiFab>(cor[alev][0]->boxArray(),
+                                                           cor[alev][0]->DistributionMap(),
+                                                           ncomp, ng, MFInfo(),
+                                                           *linop.Factory(alev,0));
         }
         cor_hold[alev][0]->setVal(0.0);
     }
@@ -1314,19 +1322,21 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         if (linop.isCellCentered()) {
             for (int alev=0; alev < namrlevs; ++alev) {
                 if (rhs[alev].hasEBFabFactory()) {
-                    scratch[alev].reset(new MultiFab(rhs[alev].boxArray(),
-                                                     rhs[alev].DistributionMap(),
-                                                     ncomp, 0, MFInfo(), *linop.Factory(alev)));
+                    scratch[alev] = std::make_unique<MultiFab>(rhs[alev].boxArray(),
+                                                               rhs[alev].DistributionMap(),
+                                                               ncomp, 0, MFInfo(),
+                                                               *linop.Factory(alev));
                 }
             }
         }
 #endif
     }
 
-    if (linop.m_parent) do_nsolve = false;  // no embeded N-Solve
-    if (linop.m_domain_covered[0]) do_nsolve = false;
-    if (linop.doAgglomeration()) do_nsolve = false;
-    if (AMREX_SPACEDIM != 3) do_nsolve = false;
+    if (linop.m_parent) {
+        do_nsolve = false;  // no embeded N-Solve
+    } else if (!linop.supportNSolve()) {
+        do_nsolve = false;
+    }
 
     if (do_nsolve && ns_linop == nullptr)
     {
@@ -1358,16 +1368,16 @@ MLMG::prepareForNSolve ()
 
     int ng = 1;
     if (cf_strategy == CFStrategy::ghostnodes) ng = nghost;
-    ns_sol.reset(new MultiFab(ba, dm, ncomp, ng, MFInfo(), *(ns_linop->Factory(0,0))));
+    ns_sol = std::make_unique<MultiFab>(ba, dm, ncomp, ng, MFInfo(), *(ns_linop->Factory(0,0)));
     ng = 0;
     if (cf_strategy == CFStrategy::ghostnodes) ng = nghost;
-    ns_rhs.reset(new MultiFab(ba, dm, ncomp, ng, MFInfo(), *(ns_linop->Factory(0,0))));
+    ns_rhs = std::make_unique<MultiFab>(ba, dm, ncomp, ng, MFInfo(), *(ns_linop->Factory(0,0)));
     ns_sol->setVal(0.0);
     ns_rhs->setVal(0.0);
 
     ns_linop->setLevelBC(0, ns_sol.get());
 
-    ns_mlmg.reset(new MLMG(*ns_linop));
+    ns_mlmg = std::make_unique<MLMG>(*ns_linop);
     ns_mlmg->setVerbose(0);
     ns_mlmg->setFixedIter(1);
     ns_mlmg->setMaxFmgIter(20);
@@ -1505,9 +1515,10 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
         {
             if (sol_raii[alev] == nullptr)
             {
-                sol_raii[alev].reset(new MultiFab(a_sol[alev]->boxArray(),
-                                                  a_sol[alev]->DistributionMap(), ncomp, ng_sol,
-                                                  MFInfo(), *linop.Factory(alev)));
+                sol_raii[alev] = std::make_unique<MultiFab>(a_sol[alev]->boxArray(),
+                                                            a_sol[alev]->DistributionMap(),
+                                                            ncomp, ng_sol, MFInfo(),
+                                                            *linop.Factory(alev));
             }
             MultiFab::Copy(*sol_raii[alev], *a_sol[alev], 0, 0, ncomp, 0);
             sol[alev] = sol_raii[alev].get();
@@ -1886,7 +1897,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
             const DistributionMapping& dm = linop.m_dmap[amrlev].back();
             const Geometry& geom = linop.m_geom[amrlev].back();
 
-            hypre_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
+            hypre_bndry = std::make_unique<MLMGBndry>(ba, dm, ncomp, geom);
             hypre_bndry->setHomogValues();
             const Real* dx = linop.m_geom[0][0].CellSize();
             int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
@@ -1943,7 +1954,7 @@ MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
         const DistributionMapping& dm = linop.m_dmap[0].back();
         const Geometry& geom = linop.m_geom[0].back();
 
-        petsc_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
+        petsc_bndry = std::make_unique<MLMGBndry>(ba, dm, ncomp, geom);
         petsc_bndry->setHomogValues();
         const Real* dx = linop.m_geom[0][0].CellSize();
         int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;

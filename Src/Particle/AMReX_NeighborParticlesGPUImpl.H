@@ -64,7 +64,7 @@ buildNeighborMask ()
         ! BoxArray::SameRefs(m_neighbor_mask_ptr->boxArray(), ba) ||
         ! DistributionMapping::SameRefs(m_neighbor_mask_ptr->DistributionMap(), dmap))
     {
-        m_neighbor_mask_ptr.reset(new iMultiFab(ba, dmap, 1, 0));
+        m_neighbor_mask_ptr = std::make_unique<iMultiFab>(ba, dmap, 1, 0);
         m_neighbor_mask_ptr->setVal(-1);
 
         const Periodicity& periodicity = geom.periodicity();

@@ -11,6 +11,7 @@ extern "C" {
     {
         // could read parmparse parameters here
 
-        amrex::Gpu::htod_memcpy(CNS::d_prob_parm, CNS::h_prob_parm, sizeof(ProbParm));
+        amrex::Gpu::copy(amrex::Gpu::hostToDevice, CNS::h_prob_parm, CNS::h_prob_parm+1,
+                         CNS::d_prob_parm);
     }
 }

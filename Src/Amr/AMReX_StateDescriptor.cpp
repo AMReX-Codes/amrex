@@ -169,9 +169,11 @@ DescriptorList::addDescriptor (int                         indx,
                                bool                        extrap,
                                bool                        a_store_in_checkpoint)
 {
-    if (indx >= desc.size())
+    if (indx >= desc.size()) {
         desc.resize(indx+1);
-    desc[indx].reset(new StateDescriptor(typ,ttyp,indx,nextra,num_comp,interp,extrap,a_store_in_checkpoint));
+    }
+    desc[indx] = std::make_unique<StateDescriptor>(typ,ttyp,indx,nextra,num_comp,interp,extrap,
+                                                   a_store_in_checkpoint);
 }
 
 

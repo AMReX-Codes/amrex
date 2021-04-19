@@ -18,7 +18,7 @@ struct TestParams {
   bool verbose;
 };
 
-void testParticleMesh(TestParams& parms)
+void testParticleMesh (TestParams& parms)
 {
 
   RealBox real_box;

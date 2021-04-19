@@ -53,6 +53,46 @@ auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const&) no
     return f(src,i);
 }
 
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P const& p, Array4<T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const& plo,
+             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
+    -> decltype(f(p, fabarr, plo, dxi))
+{
+    return f(p, fabarr, plo, dxi);
+}
+
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P const& p, Array4<T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const&,
+             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
+    -> decltype(f(p, fabarr))
+{
+    return f(p, fabarr);
+}
+
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P& p, Array4<const T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const& plo,
+             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
+    -> decltype(f(p, fabarr, plo, dxi))
+{
+    return f(p, fabarr, plo, dxi);
+}
+
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P& p, Array4<const T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const&,
+             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
+    -> decltype(f(p, fabarr))
+{
+    return f(p, fabarr);
+}
+
 }
 
 /**
@@ -430,9 +470,9 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                 {
                     auto p_prime = p;
                     enforcePeriodic(p_prime, plo, phi, is_per);
-                    auto tup = ploc(p_prime, lev_min, lev_max, nGrow);
-                    assigned_grid = amrex::get<0>(tup);
-                    assigned_lev  = amrex::get<1>(tup);
+                    auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow);
+                    assigned_grid = amrex::get<0>(tup_prime);
+                    assigned_lev  = amrex::get<1>(tup_prime);
                     if (assigned_grid >= 0)
                     {
                       AMREX_D_TERM(p.pos(0) = p_prime.pos(0);,

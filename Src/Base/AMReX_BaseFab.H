@@ -17,7 +17,6 @@
 #include <AMReX_MakeType.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Reduce.H>
-//#include <AMReX_Scan.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Math.H>
 
@@ -144,7 +143,8 @@ placementNew (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
-typename std::enable_if< AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T) && !std::is_arithmetic<T>::value >::type
+std::enable_if_t<std::is_trivially_default_constructible<T>::value
+                 && !std::is_arithmetic<T>::value>
 placementNew (T* const ptr, Long n)
 {
     for (Long i = 0; i < n; ++i) {
@@ -153,7 +153,7 @@ placementNew (T* const ptr, Long n)
 }
 
 template <typename T>
-typename std::enable_if<!AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T)>::type
+std::enable_if_t<!std::is_trivially_default_constructible<T>::value>
 placementNew (T* const ptr, Long n)
 {
     AMREX_HOST_DEVICE_FOR_1D ( n, i,
@@ -273,6 +273,8 @@ public:
     * space which must be a different size whenever it is used.
     * Resizing is typically faster than re-allocating a
     * BaseFab because memory allocation can often be avoided.
+    * If a nullptr is provided as Arena*, the Arena already in BaseFab will
+    * be used. Otherwise, the Arena argument will be used.
     */
     void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
@@ -2044,6 +2046,10 @@ BaseFab<T>::resize (const Box& b, int n, Arena* ar)
 {
     this->nvar   = n;
     this->domain = b;
+
+    if (ar == nullptr) {
+        ar = m_arena;
+    }
 
     if (arena() != DataAllocator(ar).arena()) {
         clear();

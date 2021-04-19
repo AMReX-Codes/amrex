@@ -65,8 +65,7 @@ bfrCompleteCallback (CUcontext ctx, uint32_t streamId, uint8_t* bfr,
         do {
             status = cuptiActivityGetNextRecord(bfr, validSize, &record);
             if (status == CUPTI_SUCCESS) {
-                std::unique_ptr<CUpti_Activity_Userdata> recordUserData;
-                recordUserData.reset(new CUpti_Activity_Userdata());
+                auto recordUserData = std::make_unique<CUpti_Activity_Userdata>();
                 CUpti_ActivityKernel4* kernel = (CUpti_ActivityKernel4*) record;
 
                 // Save record data

@@ -36,7 +36,7 @@ struct FuseHelper {
     int m_N;
 };
 
-static_assert(AMREX_IS_TRIVIALLY_COPYABLE(FuseHelper),"FuseHelper is not trivially copyable");
+static_assert(std::is_trivially_copyable<FuseHelper>(),"FuseHelper is not trivially copyable");
 
 template <typename Lambda>
 AMREX_GPU_DEVICE

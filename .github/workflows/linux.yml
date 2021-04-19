@@ -23,6 +23,7 @@ jobs:
             -DCMAKE_CXX_STANDARD=17
         make -j 2
         make install
+        make test_install
 
         export PATH=/tmp/my-amrex/bin:$PATH
         which fcompare
@@ -54,6 +55,7 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
         make -j 2
         make install
+        make test_install
 
         export PATH=/tmp/my-amrex/bin:$PATH
         which fcompare
@@ -265,7 +267,7 @@ jobs:
   # https://gitlab.kitware.com/cmake/cmake/-/issues/21968
   # https://github.com/ROCm-Developer-Tools/HIP/issues/2246
   tests-hip:
-    name: HIP ROCm@3.8 GFortran@9.3 C++17 [tests]
+    name: HIP ROCm GFortran@9.3 C++17 [tests]
     runs-on: ubuntu-20.04
     env: {CXXFLAGS: "-fno-operator-names"}
     steps:
@@ -316,7 +318,7 @@ jobs:
     - name: Build & Install
       run: |
         ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-error=c++17-extensions"
         make install
 
   # Build 3D libamrex with configure

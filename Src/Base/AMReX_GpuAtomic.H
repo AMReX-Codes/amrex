@@ -4,6 +4,7 @@
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Functional.H>
+#include <AMReX_INT.H>
 
 namespace amrex {
 
@@ -90,11 +91,8 @@ namespace detail {
 
 #ifdef AMREX_USE_DPCPP
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    float Add_device (float* const sum, float const value) noexcept
-    {
-        return detail::atomic_op<float, int>(sum, value, amrex::Plus<float>());
-    }
+    // Valid atomic types are available at
+    // https://github.com/intel/llvm/blob/sycl/sycl/include/CL/sycl/atomic.hpp
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     double Add_device (double* const sum, double const value) noexcept
@@ -103,6 +101,10 @@ namespace detail {
     }
 
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+
+    // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#atomicadd
+    // https://rocmdocs.amd.com/en/latest/Programming_Guides/Kernel_language.html?#atomic-functions
+    // CUDA and HIP support int, unsigned int, and unsigned long long.
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     Long Add_device (Long* const sum, Long const value) noexcept
@@ -115,7 +117,7 @@ namespace detail {
 #if defined(AMREX_USE_CUDA) && (__CUDA_ARCH__ < 600)
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    Long Add_device (double* const sum, double const value) noexcept
+    double Add_device (double* const sum, double const value) noexcept
     {
         return detail::atomic_op<double, unsigned long long>(sum, value, amrex::Plus<double>());
     }

@@ -448,7 +448,7 @@ Real coarsen_edge_cent (Real f1, Real f2)
             f2 = Real(0.5)*f2 + Real(0.25);
         }
         Real r = (f2*f2-f1*f1)/(f2-f1+Real(1.e-30));
-        return amrex::min(Real(0.5),amrex::max(-0.5,r));
+        return amrex::min(Real(0.5),amrex::max(Real(-0.5),r));
     }
 }
 }

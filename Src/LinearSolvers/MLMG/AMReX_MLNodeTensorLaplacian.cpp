@@ -250,17 +250,64 @@ MLNodeTensorLaplacian::fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/)
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 void
-MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
-                                     Array4<int const> const& owner,
-                                     Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
-                                     Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
+MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
+                                     Array4<HypreNodeLap::AtomicInt const> const& gid,
+                                     Array4<int const> const& lid,
+                                     HypreNodeLap::Int* const ncols,
+                                     HypreNodeLap::Int* const cols,
+                                     Real* const mat) const
 {
     const int amrlev = 0;
     const int mglev = NMGLevels(amrlev)-1;
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    Array4<int const> const& dmsk = m_dirichlet_mask[amrlev][mglev]->const_array(mfi);
     const auto s = m_sigma;
-    mlndtslap_fill_ijmatrix(mfi.validbox(),nid,owner,ncols,rows,cols,mat,dmsk,s,dxinv);
+
+    const Box& ndbx = mfi.validbox();
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+            (static_cast<Long>(ndbx.numPts())*AMREX_D_TERM(3,*3,*3) <
+             static_cast<Long>(std::numeric_limits<int>::max()),
+             "The Box is too big.  We could use Long here, but it would much slower.");
+        const int nmax = ndbx.numPts() * AMREX_D_TERM(3,*3,*3);
+        const auto ndlo = amrex::lbound(ndbx);
+        const auto ndlen = amrex::length(ndbx);
+        amrex::Scan::PrefixSum<int>
+            (nmax,
+             [=] AMREX_GPU_DEVICE (int offset) noexcept
+             {
+                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = GetNode2()(offset, node);
+                 return (lid(node.x,node.y,node.z) >= 0 &&
+                         gid(node2.x,node2.y,node2.z)
+                         < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
+             },
+             [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
+             {
+                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 mlndtslap_fill_ijmatrix_gpu(ps, node.x, node.y, node.z, offset,
+                                             ndbx, gid, lid, ncols, cols, mat, s, dxinv);
+             },
+             amrex::Scan::Type::exclusive);
+    } else
+#endif
+    {
+        mlndtslap_fill_ijmatrix_cpu(ndbx, gid, lid, ncols, cols, mat, s, dxinv);
+    }
+}
+
+void
+MLNodeTensorLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
+                                Real* const rhs, Array4<Real const> const& bfab) const
+{
+    const Box& bx = mfi.validbox();
+    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+    {
+        if (lid(i,j,k) >= 0) {
+            rhs[lid(i,j,k)] = bfab(i,j,k);
+        }
+    });
 }
 #endif
 

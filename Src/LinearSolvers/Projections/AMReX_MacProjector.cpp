@@ -86,8 +86,7 @@ void MacProjector::initProjector (
             }
         }
 
-        m_eb_abeclap.reset(
-            new MLEBABecLap(m_geom, ba, dm, a_lpinfo, m_eb_factory));
+        m_eb_abeclap = std::make_unique<MLEBABecLap>(m_geom, ba, dm, a_lpinfo, m_eb_factory);
         m_linop = m_eb_abeclap.get();
 
         if (m_phi_loc == MLMG::Location::CellCentroid)
@@ -112,11 +111,11 @@ void MacProjector::initProjector (
             }
         }
 
-        if (a_overset_mask.empty())
-            m_abeclap.reset(new MLABecLaplacian(m_geom, ba, dm, a_lpinfo));
-        else
-            m_abeclap.reset(
-                new MLABecLaplacian(m_geom, ba, dm, a_overset_mask, a_lpinfo));
+        if (a_overset_mask.empty()) {
+            m_abeclap = std::make_unique<MLABecLaplacian>(m_geom, ba, dm, a_lpinfo);
+        } else {
+            m_abeclap = std::make_unique<MLABecLaplacian>(m_geom, ba, dm, a_overset_mask, a_lpinfo);
+        }
 
         m_linop = m_abeclap.get();
 
@@ -126,7 +125,7 @@ void MacProjector::initProjector (
         }
     }
 
-    m_mlmg.reset(new MLMG(*m_linop));
+    m_mlmg = std::make_unique<MLMG>(*m_linop);
 
     setOptions();
 
@@ -447,14 +446,14 @@ void MacProjector::initProjector (Vector<BoxArray> const& a_grids,
     }
 
     if (a_overset_mask.empty()) {
-        m_poisson.reset(new MLPoisson(m_geom, ba, dm, a_lpinfo));
+        m_poisson = std::make_unique<MLPoisson>(m_geom, ba, dm, a_lpinfo);
     } else {
-        m_poisson.reset(new MLPoisson(m_geom, ba, dm, a_overset_mask, a_lpinfo));
+        m_poisson = std::make_unique<MLPoisson>(m_geom, ba, dm, a_overset_mask, a_lpinfo);
     }
 
     m_linop = m_poisson.get();
 
-    m_mlmg.reset(new MLMG(*m_linop));
+    m_mlmg = std::make_unique<MLMG>(*m_linop);
 
     setOptions();
 

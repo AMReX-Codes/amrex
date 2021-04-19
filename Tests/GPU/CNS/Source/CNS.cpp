@@ -36,7 +36,7 @@ CNS::CNS (Amr&            papa,
     : AmrLevel(papa,lev,level_geom,bl,dm,time)
 {
     if (do_reflux && level > 0) {
-        flux_reg.reset(new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE));
+        flux_reg = std::make_unique<FluxRegister>(grids,dmap,crse_ratio,level,NUM_STATE);
     }
 
     buildMetrics();
@@ -357,7 +357,7 @@ CNS::read_params ()
     pp.query("eos_gamma", h_parm->eos_gamma);
 
     h_parm->Initialize();
-    amrex::Gpu::htod_memcpy(d_parm, h_parm, sizeof(Parm));
+    amrex::Gpu::copy(amrex::Gpu::hostToDevice, h_parm, h_parm+1, d_parm);
 }
 
 void
@@ -439,4 +439,3 @@ CNS::computeTemp (MultiFab& State, int ng)
         });
     }
 }
-

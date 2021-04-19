@@ -274,6 +274,10 @@ public:
     virtual std::unique_ptr<PETScABecLap> makePETSc () const;
 #endif
 
+    virtual bool supportNSolve () const { return false; }
+
+    virtual void copyNSolveSolution (MultiFab&, MultiFab const&) const {}
+
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
@@ -395,7 +399,7 @@ protected:
     void make (Vector<Vector<MultiFab> >& mf, int nc, IntVect const& ng) const;
 
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int /*amrlev*/, int /*mglev*/) const {
-        return std::unique_ptr<FabFactory<FArrayBox> >(new FArrayBoxFactory());
+        return std::make_unique<FArrayBoxFactory>();
     }
 
     bool hasHiddenDimension () const noexcept { return info.hasHiddenDimension(); }

@@ -317,8 +317,8 @@ template <typename Base, typename Map = Identity> struct MapComponents {
     static_assert(IsCallableR<int, Map, int>::value,
                   "Map needs to be a callable function: int -> int.");
 
-    AMREX_NO_UNIQUE_ADDRESS Base base;
-    AMREX_NO_UNIQUE_ADDRESS Map map;
+    Base base;
+    Map map;
 
     template <typename T,
               typename = std::enable_if_t<IsCallable<Base, Array4<const T>, Dim3, int>::value>,
@@ -329,9 +329,6 @@ template <typename Base, typename Map = Identity> struct MapComponents {
     }
 };
 
-#ifdef AMREX_HAS_NO_UNIQUE_ADDRESS
-static_assert(sizeof(MapComponents<Identity, Identity>) == 1, "");
-#endif
 static_assert(std::is_trivially_copy_assignable<MapComponents<Identity>>(), "");
 static_assert(std::is_trivially_copy_constructible<MapComponents<Identity>>(), "");
 static_assert(IsFabProjection<MapComponents<Identity>, FArrayBox>(), "");
@@ -393,9 +390,6 @@ static_assert(sizeof(SwapComponents<0, 1>) == 1, "");
 static_assert(sizeof(DynamicSwapComponents) == 2 * sizeof(int), "");
 static_assert(sizeof(SwapComponents<0, -1>) == sizeof(int), "");
 static_assert(sizeof(SwapComponents<-1, 1>) == sizeof(int), "");
-#ifdef AMREX_HAS_NO_UNIQUE_ADDRESS
-static_assert(sizeof(MapComponents<Identity, SwapComponents<0, 1>>) == sizeof(SwapComponents<0, 1>), "");
-#endif
 static_assert(std::is_trivially_default_constructible<MapComponents<Identity, SwapComponents<0, 1>>>(), "");
 static_assert(std::is_trivially_copy_assignable<MapComponents<Identity, SwapComponents<0, 1>>>(), "");
 static_assert(std::is_trivially_copy_constructible<MapComponents<Identity, SwapComponents<0, 1>>>(), "");
@@ -622,8 +616,8 @@ struct ApplyDtosAndProjectionOnReciever : PackComponents {
     constexpr ApplyDtosAndProjectionOnReciever(const PackComponents& components, DTOS dtos_ = DTOS{}, FabProj proj_ = FabProj{})
         : PackComponents(components), dtos(std::move(dtos_)), proj(std::move(proj_)) {}
 
-    AMREX_NO_UNIQUE_ADDRESS DTOS dtos;
-    AMREX_NO_UNIQUE_ADDRESS FabProj proj;
+    DTOS dtos;
+    FabProj proj;
 
     static_assert(IsCallableR<Dim3, DTOS, Dim3>(), "DTOS needs to be a callable: Dim3 -> Dim3");
     static_assert(IsFabProjection<FabProj, FArrayBox>(), "FabProj needs to be at least a projection on FArrayBox.");

@@ -233,10 +233,10 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
             const MultiFab* data;
             std::unique_ptr<MultiFab> mf_tmp;
             if (mf[level]->nGrowVect() != 0) {
-                mf_tmp.reset(new MultiFab(mf[level]->boxArray(),
-                                          mf[level]->DistributionMap(),
-                                          mf[level]->nComp(), 0, MFInfo(),
-                                          mf[level]->Factory()));
+                mf_tmp = std::make_unique<MultiFab>(mf[level]->boxArray(),
+                                                    mf[level]->DistributionMap(),
+                                                    mf[level]->nComp(), 0, MFInfo(),
+                                                    mf[level]->Factory());
                 MultiFab::Copy(*mf_tmp, *mf[level], 0, 0, mf[level]->nComp(), 0);
                 data = mf_tmp.get();
             } else {
@@ -1037,10 +1037,10 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         const MultiFab* data;
         std::unique_ptr<MultiFab> mf_tmp;
         if (mf[level]->nGrowVect() != 0) {
-            mf_tmp.reset(new MultiFab(mf[level]->boxArray(),
-                                      mf[level]->DistributionMap(),
-                                      mf[level]->nComp(), 0, MFInfo(),
-                                      mf[level]->Factory()));
+            mf_tmp = std::make_unique<MultiFab>(mf[level]->boxArray(),
+                                                mf[level]->DistributionMap(),
+                                                mf[level]->nComp(), 0, MFInfo(),
+                                                mf[level]->Factory());
             MultiFab::Copy(*mf_tmp, *mf[level], 0, 0, mf[level]->nComp(), 0);
             data = mf_tmp.get();
         } else {
