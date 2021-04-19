@@ -954,6 +954,31 @@ public:
                           int                        SeqNum);
 #endif
 
+    // Data used in non-blocking parallel copy.
+    // Returned by no_wait. Pass to finish.
+    template<FAB>
+    struct PCData<FAB> {
+        const CPC*           cpc = nullptr;
+        const FabArray<FAB>* src = nullptr;
+        const FabArray<FAB>* dst = nullptr;
+        CpOp                 op;
+        int                  tag;
+        int                  actual_n_rcvs;
+        IntVect              snghost, dnghost;
+        Periodicity          period;
+        int                  SC, NC, DC;
+        bool                 nowaited = false;
+        bool                 finished = false;
+
+        char*                the_recv_data = nullptr;
+        char*                the_send_data = nullptr;
+        Vector<int>          recv_from;
+        Vector<char*>        recv_data;
+        Vector<std::size_t>  recv_size;
+        Vector<MPI_Request>  recv_reqs;
+        Vector<MPI_Request>  send_reqs;
+    };
+
     //! Data used in non-blocking FillBoundary
     bool fb_cross, fb_epo;
     int fb_scomp, fb_ncomp;
@@ -972,7 +997,7 @@ public:
     Vector<char*>       fb_send_data;
     Vector<MPI_Request> fb_send_reqs;
     int                 fb_tag;
-
+/*
     //! Data used in non-blocking ParallelCopy
     const CPC*           pc_cpc = nullptr;
     const FabArray<FAB>* pc_src = nullptr;
@@ -992,7 +1017,7 @@ public:
     Vector<std::size_t>  pc_recv_size;
     Vector<MPI_Request>  pc_recv_reqs;
     Vector<MPI_Request>  pc_send_reqs;
-
+*/
 };
 
 
