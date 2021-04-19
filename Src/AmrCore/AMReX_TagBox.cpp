@@ -75,30 +75,51 @@ TagBox::coarsen (const IntVect& ratio, const Box& cbox) noexcept
 }
 
 void
-TagBox::buffer (const IntVect& a_nbuff) noexcept
+TagBox::buffer (const IntVect& a_nbuff, const IntVect& a_nwid) noexcept
 {
+    amrex::ignore_unused(a_nbuff, a_nwid);
     Array4<char> const& a = this->array();
-    Dim3 nbuf = a_nbuff.dim3();
-    const auto lo = amrex::lbound(domain);
-    const auto hi = amrex::ubound(domain);
-    AMREX_HOST_DEVICE_FOR_3D(domain, i, j, k,
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        Dim3 nbuf = a_nbuff.dim3();
+        const auto lo = amrex::lbound(domain);
+        const auto hi = amrex::ubound(domain);
+        AMREX_HOST_DEVICE_FOR_3D(domain, i, j, k,
+        {
+            if (a(i,j,k) == TagBox::CLEAR) {
+                bool to_buf = false;
+                int imin = amrex::max(i-nbuf.x, lo.x);
+                int jmin = amrex::max(j-nbuf.y, lo.y);
+                int kmin = amrex::max(k-nbuf.z, lo.z);
+                int imax = amrex::min(i+nbuf.x, hi.x);
+                int jmax = amrex::min(j+nbuf.y, hi.y);
+                int kmax = amrex::min(k+nbuf.z, hi.z);
+                // xxxxx TODO: If nbuf is large, this is not efficient.
+                //             We need to find another better way.
+                for (int kk = kmin; kk <= kmax && !to_buf; ++kk) {
+                for (int jj = jmin; jj <= jmax && !to_buf; ++jj) {
+                for (int ii = imin; ii <= imax && !to_buf; ++ii) {
+                    if (a(ii,jj,kk) == TagBox::SET) to_buf = true;
+                }}}
+                if (to_buf) a(i,j,k) = TagBox::BUF;
+            }
+        });
+    } else
+#endif
     {
-        if (a(i,j,k) == TagBox::CLEAR) {
-            bool to_buf = false;
-            int imin = amrex::max(i-nbuf.x, lo.x);
-            int jmin = amrex::max(j-nbuf.y, lo.y);
-            int kmin = amrex::max(k-nbuf.z, lo.z);
-            int imax = amrex::min(i+nbuf.x, hi.x);
-            int jmax = amrex::min(j+nbuf.y, hi.y);
-            int kmax = amrex::min(k+nbuf.z, hi.z);
-            for (int kk = kmin; kk <= kmax && !to_buf; ++kk) {
-            for (int jj = jmin; jj <= jmax && !to_buf; ++jj) {
-            for (int ii = imin; ii <= imax && !to_buf; ++ii) {
-                if (a(ii,jj,kk) == TagBox::SET) to_buf = true;
-            }}}
-            if (to_buf) a(i,j,k) = TagBox::BUF;
-        }
-    });
+        Dim3 nwid = a_nwid.dim3();
+        Box const& interior = amrex::grow(domain, -a_nwid);
+        AMREX_LOOP_3D(interior, i, j, k,
+        {
+            if (a(i,j,k) == TagBox::SET) {
+                for (int kk = k-nwid.z; kk <= k+nwid.z; ++kk) {
+                for (int jj = j-nwid.y; jj <= j+nwid.y; ++jj) {
+                for (int ii = i-nwid.x; ii <= i+nwid.x; ++ii) {
+                    if (a(ii,jj,kk) == TagBox::CLEAR) { a(ii,jj,kk) = TagBox::BUF; }
+                }}}
+            }
+        });
+    }
 }
 
 // DEPRECATED
@@ -295,7 +316,7 @@ TagBoxArray::buffer (const IntVect& nbuf)
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
        for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
-           get(mfi).buffer(nbuf);
+           get(mfi).buffer(nbuf, n_grow);
        }
     }
 }

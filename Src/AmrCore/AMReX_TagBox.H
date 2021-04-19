@@ -63,10 +63,13 @@ public:
 
     /**
     * \brief Mark neighbors of every tagged cell a distance nbuff away
+    * only search interior for initial tagged points where nwid
+    * is given as the width of the bndry region.
     *
     * \param nbuff
+    * \param nwid
     */
-    void buffer (const IntVect& nbuf) noexcept;
+    void buffer (const IntVect& nbuf, const IntVect& nwid) noexcept;
 
     /**
     * \brief Returns Vector\<int\> of size domain.numPts() suitable for calling
