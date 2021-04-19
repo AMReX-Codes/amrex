@@ -2,11 +2,13 @@
 
 #ifdef AMREX_USE_HDF5_ASYNC
 #include <hdf5.h>
-hid_t es_par_g = 0;
 #endif
 
 namespace amrex
 {
+#ifdef AMREX_USE_HDF5_ASYNC
+hid_t es_par_g = 0;
+#endif
 
 IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev)
 {

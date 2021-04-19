@@ -14,7 +14,6 @@
 
 #ifdef AMREX_USE_HDF5_ASYNC
 #include "h5_vol_external_async_native.h"
-hid_t es_id_g = 0;
 #endif
 
 #endif
@@ -23,6 +22,10 @@ hid_t es_id_g = 0;
 #include <iomanip>
 
 namespace amrex {
+
+#ifdef AMREX_USE_HDF5_ASYNC
+hid_t es_id_g = 0;
+#endif
 
 std::string LevelPath (int level, const std::string &levelPrefix)
 {

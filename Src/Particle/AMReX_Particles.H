@@ -50,7 +50,6 @@
 #include <hdf5.h>
 #ifdef AMREX_USE_HDF5_ASYNC
 #include "h5_vol_external_async_native.h"
-extern hid_t es_par_g;
 #endif
 #endif
 
@@ -71,6 +70,9 @@ extern hid_t es_par_g;
 
 namespace amrex {
 
+#ifdef AMREX_USE_HDF5_ASYNC
+extern hid_t es_par_g;
+#endif
 /**
 * \brief A struct used for communicating particle data accross processes
 *  during multi-level operations.
