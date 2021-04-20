@@ -506,10 +506,9 @@ public:
         auto const& nblocks = reduce_data.nBlocks();
         int maxblocks = reduce_data.maxBlocks();
 #ifdef AMREX_USE_DPCPP
-#if 0
-        // xxxxx DPCPP todo: There is a bug in either the compiler or amrex
-        // that makes this fail on the new hardwares, but not on Gen9.
-        amrex::launch(1, AMREX_GPU_MAX_THREADS, 0, Gpu::gpuStream(),
+        // device reduce needs local(i.e., shared) memory
+        constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
+        amrex::launch(1, AMREX_GPU_MAX_THREADS, shared_mem_bytes, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
             ReduceTuple r;
@@ -522,25 +521,9 @@ public:
                     Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, dp_stream[i]);
                 }
             }
-            // xxxxx DPCPP todo: The following for_each_parallel fails!
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
             if (gh.threadIdx() == 0) { *hp = dst; }
         });
-#else
-        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(*hp);
-        for (int istream = 0, nstreams = nblocks.size(); istream < nstreams; ++istream) {
-            auto dp_stream = dp+istream*maxblocks;
-            int nb = nblocks[istream];
-            if (nb > 0) {
-                Gpu::PinnedVector<ReduceTuple> hv(nb);
-                Gpu::htod_memcpy_async(hv.data(), dp_stream, nb*sizeof(ReduceTuple));
-                Gpu::streamSynchronize();
-                for (int i = 0; i < nb; ++i) {
-                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(*hp, hv[i]);
-                }
-            }
-        }
-#endif
 #else
         amrex::launch(1, AMREX_GPU_MAX_THREADS, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept
