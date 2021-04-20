@@ -72,7 +72,7 @@ EBCellFlagFab::getType (const Box& bx_in) const noexcept
                     }
                     return {nr, ns, nm, nc};
                 });
-                ReduceTuple hv = reduce_data.value();
+                ReduceTuple hv = reduce_data.value(reduce_op);
                 nregular = amrex::get<0>(hv);
                 nsingle  = amrex::get<1>(hv);
                 nmulti   = amrex::get<2>(hv);

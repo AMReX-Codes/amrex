@@ -125,6 +125,7 @@ Device::Initialize ()
 
     ParmParse ppamrex("amrex");
     ppamrex.query("max_gpu_streams", max_gpu_streams);
+    max_gpu_streams = std::min(max_gpu_streams, AMREX_GPU_MAX_STREAMS);
 
     ParmParse pp("device");
 
@@ -550,6 +551,19 @@ Device::numDevicesUsed () noexcept
 {
     return num_devices_used;
 }
+
+#ifdef AMREX_USE_GPU
+int
+Device::streamIndex (gpuStream_t s) noexcept
+{
+    if (s == nullStream()) {
+        return -1;
+    } else {
+        auto it = std::find(std::begin(gpu_stream_pool), std::end(gpu_stream_pool), s);
+        return static_cast<int>(std::distance(std::begin(gpu_stream_pool), it));
+    }
+}
+#endif
 
 void
 Device::setStreamIndex (const int idx) noexcept
