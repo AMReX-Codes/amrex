@@ -508,7 +508,7 @@ public:
 #ifdef AMREX_USE_DPCPP
 #if 0
         // xxxxx DPCPP todo: There is a bug in either the compiler or amrex
-        // that makes this fail on the latest hardware, but not on DG1.
+        // that makes this fail on the new hardwares, but not on Gen9.
         amrex::launch(1, AMREX_GPU_MAX_THREADS, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
@@ -522,6 +522,7 @@ public:
                     Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, dp_stream[i]);
                 }
             }
+            // xxxxx DPCPP todo: The following for_each_parallel fails!
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
             if (gh.threadIdx() == 0) { *hp = dst; }
         });
