@@ -356,6 +356,16 @@ else
   AMREX_NO_PROBINIT := FALSE
 endif
 
+ifdef LOG_BUILD_TIME
+  LOG_BUILD_TIME := $(strip $(LOG_BUILD_TIME))
+else
+  LOG_BUILD_TIME := FALSE
+endif
+
+ifeq ($(LOG_BUILD_TIME),TRUE)
+  build_time_begin := $(shell date +"%s")
+endif
+
 ALLOW_DIFFERENT_COMP ?= TRUE
 SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
@@ -374,6 +384,7 @@ MODDEP		= $(AMREX_HOME)/Tools/F_scripts/dep.py
 CHECKFORT       = $(AMREX_HOME)/Tools/typechecker/typechecker.py
 MKCONFIG        = $(AMREX_HOME)/Tools/libamrex/mkconfig.py
 MKPKGCONFIG     = $(AMREX_HOME)/Tools/libamrex/mkpkgconfig.py
+GATHERBUILDTIME = $(AMREX_HOME)/Tools/C_scripts/gatherbuildtime.py
 
 DEPFLAGS        = -MM
 
