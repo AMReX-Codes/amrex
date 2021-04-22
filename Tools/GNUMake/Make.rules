@@ -40,8 +40,8 @@ else
 endif
 endif
 
-CXXDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(CPPFLAGS) $(includes)
-CDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes)
+CXXDEPFLAGS = $(LEGACY_DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(CPPFLAGS) $(includes)
+CDEPFLAGS = $(LEGACY_DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes)
 
 #
 # Rules for building executable.
@@ -74,7 +74,7 @@ else
 
 # multiple executables
 %.$(machineSuffix).ex:%.cpp $(objForExecs)
-	$(SLIENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
+	$(SLIENT) $(CCACHE) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
 	@echo "Linking $@ ..."
 	$(SLIENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$(subst /,_,$<).o $(objForExecs) $(FINAL_LIBS)
 
@@ -194,26 +194,26 @@ FORCE:
 #
 # Rules for objects.
 #
-$(objEXETempDir)/%.o: %.cpp
+$(objEXETempDir)/%.o: %.cpp AMReX_Config.H
 	@echo Compiling $*.cpp ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(LOG_BUILD_TIME),TRUE)
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
 	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
 endif
-	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
 ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
-$(objEXETempDir)/%.o: %.c
+$(objEXETempDir)/%.o: %.c AMReX_Config.H
 	@echo Compiling $*.c ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(LOG_BUILD_TIME),TRUE)
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
 	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
 endif
-	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CC) $(DEPFLAGS) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
 ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
@@ -411,11 +411,19 @@ ifneq ($(findstring print-,$(MAKECMDGOALS)),print-)
 ifneq ($(MAKECMDGOALS),help)
 
 ifdef CEXE_sources
--include $(CEXE_sources:%.cpp=$(depEXETempDir)/%.d)
+ifeq ($(USE_LEGACY_DEPFLAGS),TRUE)
+  -include $(CEXE_sources:%.cpp=$(depEXETempDir)/%.d)
+else
+  -include $(CEXE_sources:%.cpp=$(objEXETempDir)/%.d)
+endif
 endif
 
 ifdef cEXE_sources
--include $(cEXE_sources:%.c=$(depEXETempDir)/%.d)
+ifeq ($(USE_LEGACY_DEPFLAGS),TRUE)
+  -include $(cEXE_sources:%.c=$(depEXETempDir)/%.d)
+else
+  -include $(cEXE_sources:%.c=$(objEXETempDir)/%.d)
+endif
 endif
 
 ifdef fEXE_sources
