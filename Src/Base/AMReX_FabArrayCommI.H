@@ -478,6 +478,7 @@ FabArray<FAB>::ParallelCopy_finish (PCData<FAB>& pcd)
     AMREX_ASSERT_WITH_MESSAGE(this == pcd.dst, "Incorrect PCData passed to ParallelCopy_finish(): this != PCData.dst");
 
     if (pcd.finished) { return; }
+    else { pcd.finished = true; }
 
     const CPC* thecpc = pcd.cpc;
 

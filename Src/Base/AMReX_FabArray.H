@@ -149,19 +149,25 @@ using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
 template <class FAB>
 struct PCData {
 
-    PCData(const FabArray<FAB>* a_src, const FabArray<FAB>* a_dst)
+    PCData () = delete;
+
+    PCData (const FabArray<FAB>* a_src, const FabArray<FAB>* a_dst)
     : src(a_src), dst(a_dst), nowaited(true), finished(true) {}
 
-    PCData(const FabArray<FAB>* a_src, const FabArray<FAB>* a_dst,
+    PCData (const FabArray<FAB>* a_src, const FabArray<FAB>* a_dst,
            const FabArrayBase::CPC* a_cpc)
     : cpc(a_cpc), src(a_src), dst(a_dst), nowaited(true) {}
 
-//    PCData(const PCData&) = delete;
-//    PCData& operator= (const PCData&) = delete;
+    PCData (const PCData&) = delete;
+    PCData& operator= (const PCData&) = delete;
 
-    ~PCData()
+    PCData (PCData &&) = default;
+    PCData& operator= (PCData &&) = default;
+
+    ~PCData ()
     {
-        AMREX_ASSERT_WITH_MESSAGE(nowaited==true && finished==false, "Non-blocking ParallelCopy began but not finished." );
+        amrex::Print() << " ~PCData(): " << nowaited << " " << finished << std::endl;
+//        AMREX_ASSERT_WITH_MESSAGE(!(nowaited==true && finished==false), "Non-blocking ParallelCopy began but not finished." );
     }
 
     const FabArrayBase::CPC* const  cpc = nullptr;
