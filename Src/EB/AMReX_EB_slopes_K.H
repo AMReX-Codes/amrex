@@ -636,6 +636,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
     int cuts_y = 0;
 
     // Compute how many cut or regular faces do we have in 3x3 block
+    int kk = 0;
     for(int jj(-1); jj<=1; jj++){
       for(int ii(-1); ii<=1; ii++){
         if( flag(i,j,k).isConnected(ii,jj,kk) and
@@ -752,7 +753,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
     if (cuts_x<2) xalpha = 0;
     if (cuts_y<2) yalpha = 0;
 
-    return {AMREX_D_DECL(xalpha,yalpha)};
+    return {AMREX_D_DECL(xalpha,yalpha,zalpha)};
 }
 
 #elif (AMREX_SPACEDIM == 3)
