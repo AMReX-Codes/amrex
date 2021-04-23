@@ -275,14 +275,14 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
             vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i-2,j,k) == 1. &&
                               vfrac(i+1,j,k) == 1. && vfrac(i+2,j,k) == 1.)
     {
-        int order = 4; 
+        int order = 4;
         xslope = amrex_calc_xslope(i,j,k,n,order,state);
     } 
     // We have enough cells in the x-direction to do 2nd order slopes 
     // centered on (i,j,k) with all values at cell centers
     else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.)
     {
-        int order = 2; 
+        int order = 2;
         xslope = amrex_calc_xslope(i,j,k,n,order,state);
     } else if (max_order == 0) {
         xslope = 0.;
@@ -294,14 +294,14 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
             vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j-2,k) == 1. &&
                                   vfrac(i,j+1,k) == 1. && vfrac(i,j+2,k) == 1.)
     {
-        int order = 4; 
+        int order = 4;
         yslope = amrex_calc_yslope(i,j,k,n,order,state);
     } 
     // We have enough cells in the y-direction to do 2nd order slopes 
     // centered on (i,j,k) with all values at cell centers
     else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.)
     {
-        int order = 2; 
+        int order = 2;
         yslope = amrex_calc_yslope(i,j,k,n,order,state);
     } else if (max_order == 0) {
         yslope = 0.;
@@ -314,14 +314,14 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
             vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k-2) == 1. &&
                                   vfrac(i,j,k+1) == 1. && vfrac(i,j,k+2) == 1.)
     {
-        int order = 4; 
+        int order = 4;
         zslope = amrex_calc_zslope(i,j,k,n,order,state);
     } 
     // We have enough cells in the z-direction to do 2nd order slopes 
     // centered on (i,j,k) with all values at cell centers
     else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.)
     {
-        int order = 2; 
+        int order = 2;
         zslope = amrex_calc_zslope(i,j,k,n,order,state);
     } else if (max_order == 0) {
         zslope = 0.;
@@ -522,14 +522,14 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
             vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i-2,j,k) == 1. &&
                                   vfrac(i+1,j,k) == 1. && vfrac(i+2,j,k) == 1.)
     {
-        int order = 4; 
+        int order = 4;
         xslope = amrex_calc_xslope_extdir(i,j,k,n,order,state,edlo_x,edhi_x,domlo_x,domhi_x);
     } 
     // We have enough cells in the x-direction to do 2nd order slopes 
     // centered on (i,j,k) with all values at cell centers
     else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.)
     {
-        int order = 2; 
+        int order = 2;
         xslope = amrex_calc_xslope_extdir(i,j,k,n,order,state,edlo_x,edhi_x,domlo_x,domhi_x);
     } else if (max_order == 0) {
         xslope = 0.;
@@ -541,7 +541,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
             vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j-2,k) == 1. &&
                                   vfrac(i,j+1,k) == 1. && vfrac(i,j+2,k) == 1.)
     {
-        int order = 4; 
+        int order = 4;
         yslope = amrex_calc_yslope_extdir(i,j,k,n,order,state,edlo_y,edhi_y,domlo_y,domhi_y);
     } 
     // We have enough cells in the y-direction to do 2nd order slopes 
@@ -561,14 +561,14 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
             vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k-2) == 1. &&
                                   vfrac(i,j,k+1) == 1. && vfrac(i,j,k+2) == 1.)
     {
-        int order = 4; 
+        int order = 4;
         zslope = amrex_calc_zslope_extdir(i,j,k,n,order,state,edlo_z,edhi_z,domlo_z,domhi_z);
     } 
     // We have enough cells in the z-direction to do 2nd order slopes 
     // centered on (i,j,k) with all values at cell centers
     else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.)
     {
-        int order = 2; 
+        int order = 2;
         zslope = amrex_calc_zslope_extdir(i,j,k,n,order,state,edlo_z,edhi_z,domlo_z,domhi_z);
     } else if (max_order == 0) {
         zslope = 0.;
