@@ -755,7 +755,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
     return {AMREX_D_DECL(xalpha,yalpha)};
 }
 
-#elif (AMREX_SPACEDIM == 3) 
+#elif (AMREX_SPACEDIM == 3)
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
