@@ -208,7 +208,7 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
-amrex_calc_slopes_eb (int i, int j, int k, int n, 
+amrex_calc_slopes_eb (int i, int j, int k, int n,
                       amrex::Array4<amrex::Real const> const& state,
                       amrex::Array4<amrex::Real const> const& ccent,
                       amrex::Array4<amrex::Real const> const& vfrac,
@@ -269,7 +269,7 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
     //
     AMREX_ALWAYS_ASSERT( max_order == 0 || max_order == 2 || max_order == 4);
 
-    // We have enough cells in the x-direction to do 4th order slopes 
+    // We have enough cells in the x-direction to do 4th order slopes
     // centered on (i,j,k) with all values at cell centers
     if (max_order == 4 &&
             vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i-2,j,k) == 1. &&
@@ -277,8 +277,8 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
     {
         int order = 4;
         xslope = amrex_calc_xslope(i,j,k,n,order,state);
-    } 
-    // We have enough cells in the x-direction to do 2nd order slopes 
+    }
+    // We have enough cells in the x-direction to do 2nd order slopes
     // centered on (i,j,k) with all values at cell centers
     else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.)
     {
@@ -288,7 +288,7 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
         xslope = 0.;
     }
 
-    // We have enough cells in the y-direction to do 4th order slopes 
+    // We have enough cells in the y-direction to do 4th order slopes
     // centered on (i,j,k) with all values at cell centers
     if (max_order == 4 &&
             vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j-2,k) == 1. &&
@@ -296,8 +296,8 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
     {
         int order = 4;
         yslope = amrex_calc_yslope(i,j,k,n,order,state);
-    } 
-    // We have enough cells in the y-direction to do 2nd order slopes 
+    }
+    // We have enough cells in the y-direction to do 2nd order slopes
     // centered on (i,j,k) with all values at cell centers
     else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.)
     {
@@ -308,7 +308,7 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
     }
 
 #if (AMREX_SPACEDIM == 3)
-    // We have enough cells in the z-direction to do 4th order slopes 
+    // We have enough cells in the z-direction to do 4th order slopes
     // centered on (i,j,k) with all values at cell centers
     if (max_order == 4 &&
             vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k-2) == 1. &&
@@ -316,8 +316,8 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
     {
         int order = 4;
         zslope = amrex_calc_zslope(i,j,k,n,order,state);
-    } 
-    // We have enough cells in the z-direction to do 2nd order slopes 
+    }
+    // We have enough cells in the z-direction to do 2nd order slopes
     // centered on (i,j,k) with all values at cell centers
     else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.)
     {
@@ -516,7 +516,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     //    2) If all the cells are regular we use the "regular slope" in the extdir direction
     //
 
-    // We have enough cells in the x-direction to do 4th order slopes 
+    // We have enough cells in the x-direction to do 4th order slopes
     // centered on (i,j,k) with all values at cell centers
     if (max_order == 4 &&
             vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i-2,j,k) == 1. &&
@@ -524,8 +524,8 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     {
         int order = 4;
         xslope = amrex_calc_xslope_extdir(i,j,k,n,order,state,edlo_x,edhi_x,domlo_x,domhi_x);
-    } 
-    // We have enough cells in the x-direction to do 2nd order slopes 
+    }
+    // We have enough cells in the x-direction to do 2nd order slopes
     // centered on (i,j,k) with all values at cell centers
     else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.)
     {
@@ -535,7 +535,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
         xslope = 0.;
     }
 
-    // We have enough cells in the y-direction to do 4th order slopes 
+    // We have enough cells in the y-direction to do 4th order slopes
     // centered on (i,j,k) with all values at cell centers
     if (max_order == 4 &&
             vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j-2,k) == 1. &&
@@ -543,19 +543,19 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     {
         int order = 4;
         yslope = amrex_calc_yslope_extdir(i,j,k,n,order,state,edlo_y,edhi_y,domlo_y,domhi_y);
-    } 
-    // We have enough cells in the y-direction to do 2nd order slopes 
+    }
+    // We have enough cells in the y-direction to do 2nd order slopes
     // centered on (i,j,k) with all values at cell centers
     else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.)
     {
-        int order = 2; 
+        int order = 2;
         yslope = amrex_calc_yslope_extdir(i,j,k,n,order,state,edlo_y,edhi_y,domlo_y,domhi_y);
     } else if (max_order == 0) {
         yslope = 0.;
     }
 
 #if (AMREX_SPACEDIM == 3)
-    // We have enough cells in the z-direction to do 4th order slopes 
+    // We have enough cells in the z-direction to do 4th order slopes
     // centered on (i,j,k) with all values at cell centers
     if (max_order == 4 &&
             vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k-2) == 1. &&
@@ -563,8 +563,8 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     {
         int order = 4;
         zslope = amrex_calc_zslope_extdir(i,j,k,n,order,state,edlo_z,edhi_z,domlo_z,domhi_z);
-    } 
-    // We have enough cells in the z-direction to do 2nd order slopes 
+    }
+    // We have enough cells in the z-direction to do 2nd order slopes
     // centered on (i,j,k) with all values at cell centers
     else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.)
     {
@@ -639,7 +639,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
     for(int jj(-1); jj<=1; jj++){
       for(int ii(-1); ii<=1; ii++){
         if( flag(i,j,k).isConnected(ii,jj,kk) and
-            not (ii==0 and jj==0)) 
+            not (ii==0 and jj==0))
         {
             if ((ii==-1 or ii==1) and jj==0) cuts_x++;
             if ((jj==-1 or jj==1) and ii==0) cuts_y++;
@@ -647,7 +647,7 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
       }
     }
 
-    amrex::Real xc = ccent(i,j,k,0); // centroid of cell (i,j,k
+    amrex::Real xc = ccent(i,j,k,0); // centroid of cell (i,j,k)
     amrex::Real yc = ccent(i,j,k,1);
 
     //Reconstruct values at the face centroids and compute the limiter
@@ -678,8 +678,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
     if (flag(i,j,k).isConnected(0,-1,0)){
            amrex::Real xf = fcy(i,j,k,0); // local (x,z) of centroid of y-face we are extrapolating to
 
-           amrex::Real delta_x = xf  - xc; 
-           amrex::Real delta_y = 0.5 + yc;,
+           amrex::Real delta_x = xf  - xc;
+           amrex::Real delta_y = 0.5 + yc;
 
            amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0] - delta_y * slopes[1];
 
@@ -725,8 +725,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
     if(flag(i,j,k).isConnected(-1,0,0)) {
            amrex::Real yf = fcx(i,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
 
-           amrex::Real delta_x = 0.5 + xc;,
-           amrex::Real delta_y = yf  - yc;,
+           amrex::Real delta_x = 0.5 + xc;
+           amrex::Real delta_y = yf  - yc;
 
            amrex::Real q_hat = state(i,j,k,n) - delta_x * slopes[0] + delta_y * slopes[1];
 
