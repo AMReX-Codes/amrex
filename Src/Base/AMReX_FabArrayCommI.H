@@ -325,16 +325,11 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     const CPC& thecpc = (a_cpc) ? *a_cpc : getCPC(dnghost, src, snghost, period);
 
     PCData<FAB> pcd(&src, this, &thecpc);
-
-    amrex::Print() << "CPC: " << &thecpc << " " << pcd.cpc << std::endl;
-
     pcd.nowaited = true;
     pcd.finished = false;
-
     pcd.snghost = snghost;
     pcd.dnghost = dnghost;
     pcd.period = period;
-    pcd.cpc = a_cpc;
     pcd.op = op;
     pcd.SC = scomp;
     pcd.DC = dcomp;
@@ -345,6 +340,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         //
         // There can only be local work to do.
         //
+        pcd.finished = true;
+
         int N_locs = (*thecpc.m_LocTags).size();
         if (N_locs == 0) { return pcd; }
 #ifdef AMREX_USE_GPU
@@ -357,8 +354,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         {
             PC_local_cpu(thecpc, src, scomp, dcomp, ncomp, op);
         }
-
-        pcd.finished = true;
 
         return pcd;
     }
@@ -467,33 +462,27 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         NCompLeft -= pcd.NC;
     }
 
-    return pcd;
-
 #endif /*BL_USE_MPI*/
+
+    return pcd;
 }
 
 template <class FAB>
 void
 FabArray<FAB>::ParallelCopy_finish (PCData<FAB>& pcd)
 {
-    amrex::Print() << " GOT HERE " << std::endl;
-
-//    BL_PROFILE("FabArray::ParallelCopy_finish()");
+    BL_PROFILE("FabArray::ParallelCopy_finish()");
 
 #ifdef BL_USE_MPI
 
-//    AMREX_ASSERT_WITH_MESSAGE(this == pcd.dst, "Incorrect PCData passed to ParallelCopy_finish().");
+    AMREX_ASSERT_WITH_MESSAGE(this == pcd.dst, "Incorrect PCData passed to ParallelCopy_finish(): this != PCData.dst");
 
-//    if (pcd.finished) { return; }
-
-    amrex::Print() << " GOT HERE A" << std::endl;
+    if (pcd.finished) { return; }
 
     const CPC* thecpc = pcd.cpc;
 
     const int N_snds = thecpc->m_SndTags->size();
     const int N_rcvs = thecpc->m_RcvTags->size();
-
-    amrex::Print() << " GOT HERE B" << std::endl;
 
     if (N_rcvs > 0)
     {
@@ -506,7 +495,6 @@ FabArray<FAB>::ParallelCopy_finish (PCData<FAB>& pcd)
                 recv_cctc[k] = &cctc;
             }
         }
-        amrex::Print() << " GOT HERE C" << std::endl;
 
         if (pcd.actual_n_rcvs > 0) {
             Vector<MPI_Status> stats(N_rcvs);
@@ -518,7 +506,6 @@ FabArray<FAB>::ParallelCopy_finish (PCData<FAB>& pcd)
             }
 #endif
         }
-        amrex::Print() << " GOT HERE D" << std::endl;
 
         bool is_thread_safe = thecpc->m_threadsafe_rcv;
 
@@ -534,7 +521,6 @@ FabArray<FAB>::ParallelCopy_finish (PCData<FAB>& pcd)
             unpack_recv_buffer_cpu(*this, pcd.DC, pcd.NC, pcd.recv_data, pcd.recv_size,
                                    recv_cctc, pcd.op, is_thread_safe);
         }
-        amrex::Print() << " GOT HERE E" << std::endl;
 
         if (pcd.the_recv_data)
         {
