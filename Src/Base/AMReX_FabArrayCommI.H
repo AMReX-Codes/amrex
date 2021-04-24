@@ -260,7 +260,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 }
 
 template <class FAB>
-PCData<FAB>
+std::unique_ptr<PCData<FAB>>
 FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     int                  scomp,
                                     int                  dcomp,
@@ -274,7 +274,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     BL_PROFILE("FabArray::ParallelCopy_nowait()");
 
     if (size() == 0 || src.size() == 0)
-        { return PCData<FAB>(&src,this); }
+        { return std::make_unique<PCData<FAB>>(&src,this); }
 
     BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
     BL_ASSERT(boxArray().ixType() == src.boxArray().ixType());
@@ -319,20 +319,20 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
             }
         }
 
-        return PCData<FAB>(&src, this);
+        return std::make_unique<PCData<FAB>>(&src, this);
     }
 
     const CPC& thecpc = (a_cpc) ? *a_cpc : getCPC(dnghost, src, snghost, period);
 
-    PCData<FAB> pcd(&src, this, &thecpc);
-    pcd.nowaited = true;
-    pcd.finished = false;
-    pcd.snghost = snghost;
-    pcd.dnghost = dnghost;
-    pcd.period = period;
-    pcd.op = op;
-    pcd.SC = scomp;
-    pcd.DC = dcomp;
+    auto pcd = std::make_unique<PCData<FAB>>(&src, this, &thecpc);
+    pcd->nowaited = true;
+    pcd->finished = false;
+    pcd->snghost = snghost;
+    pcd->dnghost = dnghost;
+    pcd->period = period;
+    pcd->op = op;
+    pcd->SC = scomp;
+    pcd->DC = dcomp;
 
 
     if (ParallelContext::NProcsSub() == 1)
@@ -340,7 +340,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         //
         // There can only be local work to do.
         //
-        pcd.finished = true;
+        pcd->finished = true;
 
         int N_locs = (*thecpc.m_LocTags).size();
         if (N_locs == 0) { return pcd; }
@@ -364,7 +364,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    pcd.tag = ParallelDescriptor::SeqNum();
+    pcd->tag = ParallelDescriptor::SeqNum();
 
     const int N_snds = thecpc.m_SndTags->size();
     const int N_rcvs = thecpc.m_RcvTags->size();
@@ -374,7 +374,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         //
         // No work to do.
         //
-        pcd.finished = true;
+        pcd->finished = true;
         return pcd;
     }
 
@@ -385,8 +385,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
     for (int ipass = 0; ipass < ncomp; )
     {
-        pcd.NC = std::min(NCompLeft,FabArrayBase::MaxComp);
-        const bool last_iter = (NCompLeft == pcd.NC);
+        pcd->NC = std::min(NCompLeft,FabArrayBase::MaxComp);
+        const bool last_iter = (NCompLeft == pcd->NC);
 /*
         Vector<int>         recv_from;
         Vector<char*>       recv_data;
@@ -396,13 +396,13 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
-        pcd.the_recv_data = nullptr;
+        pcd->the_recv_data = nullptr;
 
-        pcd.actual_n_rcvs = 0;
+        pcd->actual_n_rcvs = 0;
         if (N_rcvs > 0) {
-            PostRcvs(*thecpc.m_RcvTags, pcd.the_recv_data,
-                     pcd.recv_data, pcd.recv_size, pcd.recv_from, pcd.recv_reqs, pcd.NC, pcd.tag);
-            pcd.actual_n_rcvs = N_rcvs - std::count(pcd.recv_size.begin(), pcd.recv_size.end(), 0);
+            PostRcvs(*thecpc.m_RcvTags, pcd->the_recv_data,
+                     pcd->recv_data, pcd->recv_size, pcd->recv_from, pcd->recv_reqs, pcd->NC, pcd->tag);
+            pcd->actual_n_rcvs = N_rcvs - std::count(pcd->recv_size.begin(), pcd->recv_size.end(), 0);
         }
 
         //
@@ -415,22 +415,22 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
         if (N_snds > 0)
         {
-            src.PrepareSendBuffers(*thecpc.m_SndTags, pcd.the_send_data, send_data, send_size,
-                                   send_rank, pcd.send_reqs, send_cctc, pcd.NC);
+            src.PrepareSendBuffers(*thecpc.m_SndTags, pcd->the_send_data, send_data, send_size,
+                                   send_rank, pcd->send_reqs, send_cctc, pcd->NC);
 
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion())
             {
-                pack_send_buffer_gpu(src, pcd.SC, pcd.NC, send_data, send_size, send_cctc);
+                pack_send_buffer_gpu(src, pcd->SC, pcd->NC, send_data, send_size, send_cctc);
             }
             else
 #endif
             {
-                pack_send_buffer_cpu(src, pcd.SC, pcd.NC, send_data, send_size, send_cctc);
+                pack_send_buffer_cpu(src, pcd->SC, pcd->NC, send_data, send_size, send_cctc);
             }
 
-            AMREX_ASSERT(pcd.send_reqs.size() == N_snds);
-            FabArray<FAB>::PostSnds(send_data, send_size, send_rank, pcd.send_reqs, pcd.tag);
+            AMREX_ASSERT(pcd->send_reqs.size() == N_snds);
+            FabArray<FAB>::PostSnds(send_data, send_size, send_rank, pcd->send_reqs, pcd->tag);
         }
 
         //
@@ -441,12 +441,12 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion())
             {
-                PC_local_gpu(thecpc, src, pcd.SC, pcd.DC, pcd.NC, op);
+                PC_local_gpu(thecpc, src, pcd->SC, pcd->DC, pcd->NC, op);
             }
             else
 #endif
             {
-                PC_local_cpu(thecpc, src, pcd.SC, pcd.DC, pcd.NC, op);
+                PC_local_cpu(thecpc, src, pcd->SC, pcd->DC, pcd->NC, op);
             }
         }
 
@@ -454,12 +454,12 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         {
             ParallelCopy_finish(pcd);
 
-            pcd.SC += pcd.NC;
-            pcd.DC += pcd.NC;
+            pcd->SC += pcd->NC;
+            pcd->DC += pcd->NC;
         }
 
-        ipass     += pcd.NC;
-        NCompLeft -= pcd.NC;
+        ipass     += pcd->NC;
+        NCompLeft -= pcd->NC;
     }
 
 #endif /*BL_USE_MPI*/
@@ -469,18 +469,18 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
 template <class FAB>
 void
-FabArray<FAB>::ParallelCopy_finish (PCData<FAB>& pcd)
+FabArray<FAB>::ParallelCopy_finish (std::unique_ptr<PCData<FAB>>& pcd)
 {
     BL_PROFILE("FabArray::ParallelCopy_finish()");
 
 #ifdef BL_USE_MPI
 
-    AMREX_ASSERT_WITH_MESSAGE(this == pcd.dst, "Incorrect PCData passed to ParallelCopy_finish(): this != PCData.dst");
+    AMREX_ASSERT_WITH_MESSAGE(this == pcd->dst, "Incorrect PCData passed to ParallelCopy_finish(): this != PCData.dst");
 
-    if (pcd.finished) { return; }
-    else { pcd.finished = true; }
+    if (pcd->finished) { return; }
+    else { pcd->finished = true; }
 
-    const CPC* thecpc = pcd.cpc;
+    const CPC* thecpc = pcd->cpc;
 
     const int N_snds = thecpc->m_SndTags->size();
     const int N_rcvs = thecpc->m_RcvTags->size();
@@ -490,18 +490,18 @@ FabArray<FAB>::ParallelCopy_finish (PCData<FAB>& pcd)
         Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
         for (int k = 0; k < N_rcvs; ++k)
         {
-            if (pcd.recv_size[k] > 0)
+            if (pcd->recv_size[k] > 0)
             {
-                auto const& cctc = thecpc->m_RcvTags->at(pcd.recv_from[k]);
+                auto const& cctc = thecpc->m_RcvTags->at(pcd->recv_from[k]);
                 recv_cctc[k] = &cctc;
             }
         }
 
-        if (pcd.actual_n_rcvs > 0) {
+        if (pcd->actual_n_rcvs > 0) {
             Vector<MPI_Status> stats(N_rcvs);
-            ParallelDescriptor::Waitall(pcd.recv_reqs, stats);
+            ParallelDescriptor::Waitall(pcd->recv_reqs, stats);
 #ifdef AMREX_DEBUG
-            if (!CheckRcvStats(stats, pcd.recv_size, pcd.tag))
+            if (!CheckRcvStats(stats, pcd->recv_size, pcd->tag))
             {
                 amrex::Abort("ParallelCopy failed with wrong message size");
             }
@@ -513,30 +513,30 @@ FabArray<FAB>::ParallelCopy_finish (PCData<FAB>& pcd)
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            unpack_recv_buffer_gpu(*this, pcd.DC, pcd.NC, pcd.recv_data, pcd.recv_size,
-                                   recv_cctc, pcd.op, is_thread_safe);
+            unpack_recv_buffer_gpu(*this, pcd->DC, pcd->NC, pcd->recv_data, pcd->recv_size,
+                                   recv_cctc, pcd->op, is_thread_safe);
         }
         else
 #endif
         {
-            unpack_recv_buffer_cpu(*this, pcd.DC, pcd.NC, pcd.recv_data, pcd.recv_size,
-                                   recv_cctc, pcd.op, is_thread_safe);
+            unpack_recv_buffer_cpu(*this, pcd->DC, pcd->NC, pcd->recv_data, pcd->recv_size,
+                                   recv_cctc, pcd->op, is_thread_safe);
         }
 
-        if (pcd.the_recv_data)
+        if (pcd->the_recv_data)
         {
-            amrex::The_FA_Arena()->free(pcd.the_recv_data);
-            pcd.the_recv_data = nullptr;
+            amrex::The_FA_Arena()->free(pcd->the_recv_data);
+            pcd->the_recv_data = nullptr;
         }
     }
 
     if (N_snds > 0) {
         if (! thecpc->m_SndTags->empty()) {
-            Vector<MPI_Status> stats(pcd.send_reqs.size());
-            ParallelDescriptor::Waitall(pcd.send_reqs, stats);
+            Vector<MPI_Status> stats(pcd->send_reqs.size());
+            ParallelDescriptor::Waitall(pcd->send_reqs, stats);
         }
-        amrex::The_FA_Arena()->free(pcd.the_send_data);
-        pcd.the_send_data = nullptr;
+        amrex::The_FA_Arena()->free(pcd->the_send_data);
+        pcd->the_send_data = nullptr;
     }
 
     return;
