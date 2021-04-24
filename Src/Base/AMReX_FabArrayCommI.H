@@ -387,12 +387,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     {
         pcd->NC = std::min(NCompLeft,FabArrayBase::MaxComp);
         const bool last_iter = (NCompLeft == pcd->NC);
-/*
-        Vector<int>         recv_from;
-        Vector<char*>       recv_data;
-        Vector<std::size_t> recv_size;
-        Vector<MPI_Request> recv_reqs;
-*/
+
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
@@ -472,6 +467,7 @@ void
 FabArray<FAB>::ParallelCopy_finish (std::unique_ptr<PCData<FAB>>& pcd)
 {
     BL_PROFILE("FabArray::ParallelCopy_finish()");
+    amrex::ignore_unused(pcd);
 
 #ifdef BL_USE_MPI
 
