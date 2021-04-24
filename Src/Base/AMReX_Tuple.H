@@ -93,6 +93,7 @@ class GpuTuple
     : public detail::gpu_tuple_impl<0, Ts...>
 {
 public:
+    AMREX_GPU_HOST_DEVICE // Some versions of nvcc require this in debug build
     constexpr GpuTuple () = default;
 
     constexpr GpuTuple (Ts const&... args)

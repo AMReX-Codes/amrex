@@ -545,9 +545,9 @@ InitFromBinaryFile (const std::string& file,
 
                 readers.insert(n);
             }
-            while (readers.size() < NReaders);
+            while (static_cast<int>(readers.size()) < NReaders);
 
-            AMREX_ASSERT(readers.size() == rprocs.size());
+            AMREX_ASSERT(static_cast<Long>(readers.size()) == rprocs.size());
 
             int i = 0;
 
@@ -569,7 +569,7 @@ InitFromBinaryFile (const std::string& file,
         //
         readers.insert(rprocs.begin(), rprocs.end());
 
-        AMREX_ASSERT(readers.size() == rprocs.size());
+        AMREX_ASSERT(static_cast<Long>(readers.size()) == rprocs.size());
 
         AMREX_ASSERT(rprocs.size() == NReaders);
     }

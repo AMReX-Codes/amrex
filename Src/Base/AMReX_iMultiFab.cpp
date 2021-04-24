@@ -346,7 +346,7 @@ iMultiFab::sum (int comp, int nghost, bool local) const
             points += bx.numPts();
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         sm = static_cast<Long>( static_cast<long long>(amrex::get<0>(hv))
                               + static_cast<long long>(INT_MIN)*points);
     }

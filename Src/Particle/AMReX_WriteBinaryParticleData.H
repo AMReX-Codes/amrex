@@ -374,7 +374,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 return (pstruct[i].id() > 0) ? 1 : 0;
             });
 
-            int np_valid = amrex::get<0>(reduce_data.value());
+            int np_valid = amrex::get<0>(reduce_data.value(reduce_op));
             np_per_grid_local[lev][gid] += np_valid;
         }
     }

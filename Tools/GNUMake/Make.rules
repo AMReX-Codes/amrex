@@ -52,15 +52,22 @@ ifeq ($(multiple_executables),)
 $(executable): $(objForExecs)
 ifneq ($(SKIP_LINKING),TRUE)
 	@echo Linking $@ ...
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" > $(tmpEXETempDir)/link.log
+endif
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
 	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(FCPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(FINAL_LIBS)
 else
 	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(FINAL_LIBS)
 endif
-#	@echo SUCCESS
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/link.log
+	@$(SHELL) -ec '$(GATHERBUILDTIME) $(tmpEXETempDir)/build_time.txt $(build_time_begin) $$(date +"%s")'
 endif
+#	@echo SUCCESS
 ifdef CRAY_CPU_TARGET
 	@echo "Built for target ===> $(CRAY_CPU_TARGET) <==="
+endif
 endif
 
 else
@@ -190,34 +197,76 @@ FORCE:
 $(objEXETempDir)/%.o: %.cpp
 	@echo Compiling $*.cpp ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
 	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
+endif
 
 $(objEXETempDir)/%.o: %.c
 	@echo Compiling $*.c ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
 	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
+endif
 
 $(objEXETempDir)/%.o: %.f
 	@echo Compiling $*.f ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
 	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(FMODULES) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
+endif
 
 $(objEXETempDir)/%.o: %.F
 	@echo Compiling $*.F ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
 	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes) $< | $(FORTPREP) > $(f77EXETempDir)/$*.f
 	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(FMODULES) $(fincludes) -c $(f77EXETempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
+endif
 
 $(objEXETempDir)/%.o: %.f90
 	@echo Compiling $*.f90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
 	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
+endif
 
 $(objEXETempDir)/%.o: %.F90
 	@echo Compiling $*.F90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
 	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
+endif
 
 #
 # Rules for dependencies in bare object files.

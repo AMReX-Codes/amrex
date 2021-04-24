@@ -211,7 +211,9 @@ amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
 amrex_calc_slopes_eb (int i, int j, int k, int n,
                       amrex::Array4<amrex::Real const> const& state,
                       amrex::Array4<amrex::Real const> const& ccent,
-                      amrex::Array4<amrex::EBCellFlag const> const& flag) noexcept
+                      amrex::Array4<amrex::Real const> const& vfrac,
+                      amrex::Array4<amrex::EBCellFlag const> const& flag,
+                      int max_order) noexcept
 {
 #if (AMREX_SPACEDIM == 2)
     constexpr int dim_a = 9;
@@ -265,27 +267,64 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
     //
     // Here we over-write -- if possible -- with a stencil not using the EB stencil
     //
+    AMREX_ALWAYS_ASSERT( max_order == 0 || max_order == 2 || max_order == 4);
 
-    // X direction
-    if (flag(i,j,k).isRegular() && flag(i-1,j,k).isRegular() && flag(i+1,j,k).isRegular())
+    // We have enough cells in the x-direction to do 4th order slopes
+    // centered on (i,j,k) with all values at cell centers
+    if (max_order == 4 &&
+            vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i-2,j,k) == 1. &&
+                              vfrac(i+1,j,k) == 1. && vfrac(i+2,j,k) == 1.)
+    {
+        int order = 4;
+        xslope = amrex_calc_xslope(i,j,k,n,order,state);
+    }
+    // We have enough cells in the x-direction to do 2nd order slopes
+    // centered on (i,j,k) with all values at cell centers
+    else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.)
     {
         int order = 2;
         xslope = amrex_calc_xslope(i,j,k,n,order,state);
+    } else if (max_order == 0) {
+        xslope = 0.;
     }
 
-    // Y direction
-    if (flag(i,j,k).isRegular() && flag(i,j-1,k).isRegular() && flag(i,j+1,k).isRegular())
+    // We have enough cells in the y-direction to do 4th order slopes
+    // centered on (i,j,k) with all values at cell centers
+    if (max_order == 4 &&
+            vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j-2,k) == 1. &&
+                                  vfrac(i,j+1,k) == 1. && vfrac(i,j+2,k) == 1.)
+    {
+        int order = 4;
+        yslope = amrex_calc_yslope(i,j,k,n,order,state);
+    }
+    // We have enough cells in the y-direction to do 2nd order slopes
+    // centered on (i,j,k) with all values at cell centers
+    else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.)
     {
         int order = 2;
         yslope = amrex_calc_yslope(i,j,k,n,order,state);
+    } else if (max_order == 0) {
+        yslope = 0.;
     }
 
 #if (AMREX_SPACEDIM == 3)
-    // Z direction
-    if (flag(i,j,k).isRegular() && flag(i,j,k-1).isRegular() && flag(i,j,k+1).isRegular())
+    // We have enough cells in the z-direction to do 4th order slopes
+    // centered on (i,j,k) with all values at cell centers
+    if (max_order == 4 &&
+            vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k-2) == 1. &&
+                                  vfrac(i,j,k+1) == 1. && vfrac(i,j,k+2) == 1.)
+    {
+        int order = 4;
+        zslope = amrex_calc_zslope(i,j,k,n,order,state);
+    }
+    // We have enough cells in the z-direction to do 2nd order slopes
+    // centered on (i,j,k) with all values at cell centers
+    else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.)
     {
         int order = 2;
         zslope = amrex_calc_zslope(i,j,k,n,order,state);
+    } else if (max_order == 0) {
+        zslope = 0.;
     }
 #endif
 
@@ -309,6 +348,7 @@ amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
 amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
                              amrex::Array4<amrex::Real const> const& state,
                              amrex::Array4<amrex::Real const> const& ccent,
+                             amrex::Array4<amrex::Real const> const& vfrac,
                              AMREX_D_DECL(
                              amrex::Array4<amrex::Real const> const& fcx,
                              amrex::Array4<amrex::Real const> const& fcy,
@@ -317,7 +357,8 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
                              AMREX_D_DECL(bool edlo_x, bool edlo_y, bool edlo_z),
                              AMREX_D_DECL(bool edhi_x, bool edhi_y, bool edhi_z),
                              AMREX_D_DECL(int domlo_x, int domlo_y, int domlo_z),
-                             AMREX_D_DECL(int domhi_x, int domhi_y, int domhi_z)) noexcept
+                             AMREX_D_DECL(int domhi_x, int domhi_y, int domhi_z),
+                             int max_order) noexcept
 {
 #if (AMREX_SPACEDIM == 2)
     constexpr int dim_a = 9;
@@ -345,7 +386,7 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
         // This returns slopes calculated with the regular 1-d approach if all cells in the stencil
         //      are regular.  If not, it uses the EB-aware least squares approach to fit a linear profile
         //      using the neighboring un-covered cells.
-        const auto& slopes = amrex_calc_slopes_eb (i,j,k,n,state,ccent,flag);
+        const auto& slopes = amrex_calc_slopes_eb (i,j,k,n,state,ccent,vfrac,flag,max_order);
         return slopes;
 
     } else {
@@ -475,18 +516,63 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
     //    2) If all the cells are regular we use the "regular slope" in the extdir direction
     //
 
-    int order = 2;
+    // We have enough cells in the x-direction to do 4th order slopes
+    // centered on (i,j,k) with all values at cell centers
+    if (max_order == 4 &&
+            vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i-2,j,k) == 1. &&
+                                  vfrac(i+1,j,k) == 1. && vfrac(i+2,j,k) == 1.)
+    {
+        int order = 4;
+        xslope = amrex_calc_xslope_extdir(i,j,k,n,order,state,edlo_x,edhi_x,domlo_x,domhi_x);
+    }
+    // We have enough cells in the x-direction to do 2nd order slopes
+    // centered on (i,j,k) with all values at cell centers
+    else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.)
+    {
+        int order = 2;
+        xslope = amrex_calc_xslope_extdir(i,j,k,n,order,state,edlo_x,edhi_x,domlo_x,domhi_x);
+    } else if (max_order == 0) {
+        xslope = 0.;
+    }
 
-    // Overwrite the tangential slope with the regular stencils if we can compute from non-EB cells
-    if ( flag(i,j,k).isRegular() && flag(i-1,j,k).isRegular() && flag(i+1,j,k).isRegular() )
-      xslope = amrex_calc_xslope_extdir(i,j,k,n,order,state,edlo_x,edhi_x,domlo_x,domhi_x);
-
-    if ( flag(i,j,k).isRegular() && flag(i,j-1,k).isRegular() && flag(i,j+1,k).isRegular() )
-      yslope = amrex_calc_yslope_extdir(i,j,k,n,order,state,edlo_y,edhi_y,domlo_y,domhi_y);
+    // We have enough cells in the y-direction to do 4th order slopes
+    // centered on (i,j,k) with all values at cell centers
+    if (max_order == 4 &&
+            vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j-2,k) == 1. &&
+                                  vfrac(i,j+1,k) == 1. && vfrac(i,j+2,k) == 1.)
+    {
+        int order = 4;
+        yslope = amrex_calc_yslope_extdir(i,j,k,n,order,state,edlo_y,edhi_y,domlo_y,domhi_y);
+    }
+    // We have enough cells in the y-direction to do 2nd order slopes
+    // centered on (i,j,k) with all values at cell centers
+    else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.)
+    {
+        int order = 2;
+        yslope = amrex_calc_yslope_extdir(i,j,k,n,order,state,edlo_y,edhi_y,domlo_y,domhi_y);
+    } else if (max_order == 0) {
+        yslope = 0.;
+    }
 
 #if (AMREX_SPACEDIM == 3)
-    if ( flag(i,j,k).isRegular() && flag(i,j,k-1).isRegular() && flag(i,j,k+1).isRegular() )
-      zslope = amrex_calc_zslope_extdir(i,j,k,n,order,state,edlo_z,edhi_z,domlo_z,domhi_z);
+    // We have enough cells in the z-direction to do 4th order slopes
+    // centered on (i,j,k) with all values at cell centers
+    if (max_order == 4 &&
+            vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k-2) == 1. &&
+                                  vfrac(i,j,k+1) == 1. && vfrac(i,j,k+2) == 1.)
+    {
+        int order = 4;
+        zslope = amrex_calc_zslope_extdir(i,j,k,n,order,state,edlo_z,edhi_z,domlo_z,domhi_z);
+    }
+    // We have enough cells in the z-direction to do 2nd order slopes
+    // centered on (i,j,k) with all values at cell centers
+    else if (max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.)
+    {
+        int order = 2;
+        zslope = amrex_calc_zslope_extdir(i,j,k,n,order,state,edlo_z,edhi_z,domlo_z,domhi_z);
+    } else if (max_order == 0) {
+        zslope = 0.;
+    }
 #endif
     } // end of needs_bndry_stencil
 
@@ -532,6 +618,7 @@ amrex_calc_alpha_stencil(amrex::Real q_hat, amrex::Real q_max,
     return amrex::min(alpha, alpha_temp);
 }
 
+#if (AMREX_SPACEDIM == 2)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
 amrex_calc_alpha_limiter(int i, int j, int k, int n,
@@ -544,165 +631,355 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
                          amrex::Array4<amrex::Real const> const& ccent) noexcept
 {
     amrex::Real alpha = 2.0;
-    amrex::Real q_min = state(i,j,k,n);
-    amrex::Real q_max = state(i,j,k,n);
 
-    AMREX_D_TERM(int cuts_x = 0;,
-                 int cuts_y = 0;,
-                 int cuts_z = 0;);
+    int cuts_x = 0;
+    int cuts_y = 0;
 
-    //Compute max and min values in a 3x3 stencil and how many cut or regular faces do we have
-#if (AMREX_SPACEDIM == 3)
-    for(int kk(-1); kk<=1; kk++)
-#else
+    // Compute how many cut or regular faces do we have in 3x3 block
     int kk = 0;
-#endif
-    {
-        for(int jj(-1); jj<=1; jj++){
-          for(int ii(-1); ii<=1; ii++){
-            if( flag(i,j,k).isConnected(ii,jj,kk) and
-                not (ii==0 and jj==0 and kk==0)) {
-                if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
-                if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
-
-                if ((ii==-1 or ii==1) and jj==0 and kk==0) cuts_x++;
-                if ((jj==-1 or jj==1) and ii==0 and kk==0) cuts_y++;
-#if (AMREX_SPACEDIM == 3)
-                if ((kk==-1 or kk==1) and ii==0 and jj==0) cuts_z++;
-#endif
-            }
-          }
+    for(int jj(-1); jj<=1; jj++){
+      for(int ii(-1); ii<=1; ii++){
+        if( flag(i,j,k).isConnected(ii,jj,kk) and
+            not (ii==0 and jj==0))
+        {
+            if ((ii==-1 or ii==1) and jj==0) cuts_x++;
+            if ((jj==-1 or jj==1) and ii==0) cuts_y++;
         }
+      }
     }
 
-    AMREX_D_TERM(amrex::Real xc = ccent(i,j,k,0);, // centroid of cell (i,j,k)
-                 amrex::Real yc = ccent(i,j,k,1);,
-                 amrex::Real zc = ccent(i,j,k,2););
+    amrex::Real xc = ccent(i,j,k,0); // centroid of cell (i,j,k)
+    amrex::Real yc = ccent(i,j,k,1);
 
     //Reconstruct values at the face centroids and compute the limiter
     if(flag(i,j,k).isConnected(0,1,0)) {
            amrex::Real xf = fcy(i,j+1,k,0); // local (x,z) of centroid of y-face we are extrapolating to
-#if (AMREX_SPACEDIM == 3)
-           amrex::Real zf = fcy(i,j+1,k,1); // local (x,z) of centroid of y-face we are extrapolating to
-#endif
 
-           AMREX_D_TERM(amrex::Real delta_x = xf  - xc;,
-                        amrex::Real delta_y = 0.5 - yc;,
-                        amrex::Real delta_z = zf  - zc;);
+           amrex::Real delta_x = xf  - xc;
+           amrex::Real delta_y = 0.5 - yc;
 
-#if (AMREX_SPACEDIM == 3)
-           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
-                                              + delta_y * slopes[1]
-                                              + delta_z * slopes[2];
-#else
-           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
-                                              + delta_y * slopes[1];
-#endif
+           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0] + delta_y * slopes[1];
+
+           amrex::Real q_min = state(i,j,k,n);
+           amrex::Real q_max = state(i,j,k,n);
+
+           // Compute max and min values in a 3x2 stencil
+           for(int jj(0); jj<=1; jj++){
+               for(int ii(-1); ii<=1; ii++){
+                    if( flag(i,j,k).isConnected(ii,jj,kk) and
+                    not (ii==0 and jj==0 and kk==0)) {
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
+                }
+              }
+           }
 
            alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
     if (flag(i,j,k).isConnected(0,-1,0)){
            amrex::Real xf = fcy(i,j,k,0); // local (x,z) of centroid of y-face we are extrapolating to
-#if (AMREX_SPACEDIM == 3)
-           amrex::Real zf = fcy(i,j,k,1); // local (x,z) of centroid of y-face we are extrapolating to
-#endif
-           AMREX_D_TERM(amrex::Real delta_x = xf  - xc;,
-                        amrex::Real delta_y = 0.5 + yc;,
-                        amrex::Real delta_z = zf  - zc;);
 
-#if (AMREX_SPACEDIM == 3)
-           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
-                                              - delta_y * slopes[1]
-                                              + delta_z * slopes[2];
-#else
-           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
-                                              - delta_y * slopes[1];
-#endif
+           amrex::Real delta_x = xf  - xc;
+           amrex::Real delta_y = 0.5 + yc;
+
+           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0] - delta_y * slopes[1];
+
+           amrex::Real q_min = state(i,j,k,n);
+           amrex::Real q_max = state(i,j,k,n);
+
+           // Compute max and min values in a 3x2 stencil
+           for(int jj(-1); jj<=0; jj++){
+               for(int ii(-1); ii<=1; ii++){
+                    if( flag(i,j,k).isConnected(ii,jj,kk) and
+                    not (ii==0 and jj==0 and kk==0)) {
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
+                }
+              }
+           }
 
            alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
     if(flag(i,j,k).isConnected(1,0,0)) {
            amrex::Real yf = fcx(i+1,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
-#if (AMREX_SPACEDIM == 3)
-           amrex::Real zf = fcx(i+1,j,k,1); // local (y,z) of centroid of x-face we are extrapolating to
-#endif
-           AMREX_D_TERM(amrex::Real delta_x = 0.5 - xc;,
-                        amrex::Real delta_y = yf  - yc;,
-                        amrex::Real delta_z = zf  - zc;);
 
-#if (AMREX_SPACEDIM == 3)
-           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
-                                              + delta_y * slopes[1]
-                                              + delta_z * slopes[2];
-#else
-           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
-                                              + delta_y * slopes[1];
-#endif
+           amrex::Real delta_x = 0.5 - xc;
+           amrex::Real delta_y = yf  - yc;
+
+           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0] + delta_y * slopes[1];
+
+           amrex::Real q_min = state(i,j,k,n);
+           amrex::Real q_max = state(i,j,k,n);
+
+           for(int jj(0); jj<=1; jj++){
+               for(int ii(0); ii<=1; ii++){
+                    if( flag(i,j,k).isConnected(ii,jj,kk) and
+                    not (ii==0 and jj==0 and kk==0)) {
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
+                }
+              }
+           }
 
            alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
     if(flag(i,j,k).isConnected(-1,0,0)) {
            amrex::Real yf = fcx(i,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
-#if (AMREX_SPACEDIM == 3)
-           amrex::Real zf = fcx(i,j,k,1); // local (y,z) of centroid of x-face we are extrapolating to
-#endif
-           AMREX_D_TERM(amrex::Real delta_x = 0.5 + xc;,
-                        amrex::Real delta_y = yf  - yc;,
-                        amrex::Real delta_z = zf  - zc;);
-#if (AMREX_SPACEDIM == 3)
-           amrex::Real q_hat = state(i,j,k,n) - delta_x * slopes[0]
-                                              + delta_y * slopes[1]
-                                              + delta_z * slopes[2];
-#else
-           amrex::Real q_hat = state(i,j,k,n) - delta_x * slopes[0]
-                                              + delta_y * slopes[1];
-#endif
+
+           amrex::Real delta_x = 0.5 + xc;
+           amrex::Real delta_y = yf  - yc;
+
+           amrex::Real q_hat = state(i,j,k,n) - delta_x * slopes[0] + delta_y * slopes[1];
+
+           amrex::Real q_min = state(i,j,k,n);
+           amrex::Real q_max = state(i,j,k,n);
+
+           for(int jj(-1); jj<=1; jj++){
+               for(int ii(-1); ii<=0; ii++){
+                    if( flag(i,j,k).isConnected(ii,jj,kk) and
+                    not (ii==0 and jj==0 and kk==0)) {
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
+                }
+              }
+           }
            alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
-#if (AMREX_SPACEDIM == 3)
-    if(flag(i,j,k).isConnected(0,0,1)) {
-           amrex::Real xf = fcz(i,j,k+1,0); // local (x,y) of centroid of z-face we are extrapolating to
-           amrex::Real yf = fcz(i,j,k+1,1); // local (x,y) of centroid of z-face we are extrapolating to
 
-           AMREX_D_TERM(amrex::Real delta_x = xf  - xc;,
-                        amrex::Real delta_y = yf  - yc;,
-                        amrex::Real delta_z = 0.5 - zc;);
+    amrex::Real xalpha = alpha;
+    amrex::Real yalpha = alpha;
+
+    //Zeroing out the slopes in the direction where a covered face exists.
+    if (cuts_x<2) xalpha = 0;
+    if (cuts_y<2) yalpha = 0;
+
+    return {AMREX_D_DECL(xalpha,yalpha,zalpha)};
+}
+
+#elif (AMREX_SPACEDIM == 3)
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
+amrex_calc_alpha_limiter(int i, int j, int k, int n,
+                         amrex::Array4<amrex::Real const> const& state,
+                         amrex::Array4<amrex::EBCellFlag const> const& flag,
+                         const amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>& slopes,
+                         AMREX_D_DECL(amrex::Array4<amrex::Real const> const& fcx,
+                                      amrex::Array4<amrex::Real const> const& fcy,
+                                      amrex::Array4<amrex::Real const> const& fcz),
+                         amrex::Array4<amrex::Real const> const& ccent) noexcept
+{
+    amrex::Real alpha = 2.0;
+
+    int cuts_x = 0; int cuts_y = 0; int cuts_z = 0;
+
+    // Compute how many cut or regular faces do we have in 3x3 block
+    amrex::Real q_min = state(i,j,k,n);
+    amrex::Real q_max = state(i,j,k,n);
+    for(int kk(-1); kk<=1; kk++)
+    {
+        for(int jj(-1); jj<=1; jj++){
+          for(int ii(-1); ii<=1; ii++){
+            if( flag(i,j,k).isConnected(ii,jj,kk) and
+                not (ii==0 and jj==0 and kk==0)) {
+                if ((ii==-1 or ii==1) and jj==0 and kk==0) cuts_x++;
+                if ((jj==-1 or jj==1) and ii==0 and kk==0) cuts_y++;
+                if ((kk==-1 or kk==1) and ii==0 and jj==0) cuts_z++;
+            }
+          }
+        }
+    }
+
+    amrex::Real xc = ccent(i,j,k,0); // centroid of cell (i,j,k)
+    amrex::Real yc = ccent(i,j,k,1);
+    amrex::Real zc = ccent(i,j,k,2);
+
+
+    //Reconstruct values at the face centroids and compute the limiter
+    if(flag(i,j,k).isConnected(0,1,0)) {
+           amrex::Real xf = fcy(i,j+1,k,0); // local (x,z) of centroid of y-face we are extrapolating to
+           amrex::Real zf = fcy(i,j+1,k,1); // local (x,z) of centroid of y-face we are extrapolating to
+
+           amrex::Real delta_x = xf  - xc;
+           amrex::Real delta_y = 0.5 - yc;
+           amrex::Real delta_z = zf  - zc;
 
            amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
                                               + delta_y * slopes[1]
                                               + delta_z * slopes[2];
 
+           // Compute max and min values in a 3x2x3 stencil
+           amrex::Real q_min = state(i,j,k,n);
+           amrex::Real q_max = state(i,j,k,n);
+           for(int kk(-1); kk<=1; kk++) {
+               for(int jj(0); jj<=1; jj++){
+                 for(int ii(-1); ii<=1; ii++){
+                   if( flag(i,j,k).isConnected(ii,jj,kk) and
+                       not (ii==0 and jj==0 and kk==0)) {
+                       if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
+                       if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
+                   }
+                 }
+               }
+           }
+
+           alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+    }
+    if (flag(i,j,k).isConnected(0,-1,0)){
+           amrex::Real xf = fcy(i,j,k,0); // local (x,z) of centroid of y-face we are extrapolating to
+           amrex::Real zf = fcy(i,j,k,1); // local (x,z) of centroid of y-face we are extrapolating to
+
+           amrex::Real delta_x = xf  - xc;
+           amrex::Real delta_y = 0.5 + yc;
+           amrex::Real delta_z = zf  - zc;
+
+           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
+                                              - delta_y * slopes[1]
+                                              + delta_z * slopes[2];
+
+           // Compute max and min values in a 3x2x3 stencil
+           amrex::Real q_min = state(i,j,k,n);
+           amrex::Real q_max = state(i,j,k,n);
+           for(int kk(-1); kk<=1; kk++) {
+               for(int jj(-1); jj<=0; jj++){
+                 for(int ii(-1); ii<=1; ii++){
+                   if( flag(i,j,k).isConnected(ii,jj,kk) and
+                       not (ii==0 and jj==0 and kk==0)) {
+                       if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
+                       if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
+                   }
+                 }
+               }
+           }
+
+           alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+    }
+    if(flag(i,j,k).isConnected(1,0,0)) {
+           amrex::Real yf = fcx(i+1,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
+           amrex::Real zf = fcx(i+1,j,k,1); // local (y,z) of centroid of x-face we are extrapolating to
+
+           amrex::Real delta_x = 0.5 - xc;
+           amrex::Real delta_y = yf  - yc;
+           amrex::Real delta_z = zf  - zc;
+
+           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
+                                              + delta_y * slopes[1]
+                                              + delta_z * slopes[2];
+
+           // Compute max and min values in a 2x3x3 stencil
+           amrex::Real q_min = state(i,j,k,n);
+           amrex::Real q_max = state(i,j,k,n);
+           for(int kk(-1); kk<=1; kk++) {
+               for(int jj(-1); jj<=1; jj++){
+                 for(int ii(0); ii<=1; ii++){
+                   if( flag(i,j,k).isConnected(ii,jj,kk) and
+                       not (ii==0 and jj==0 and kk==0)) {
+                       if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
+                       if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
+                   }
+                 }
+               }
+           }
+
+           alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+    }
+    if(flag(i,j,k).isConnected(-1,0,0)) {
+           amrex::Real yf = fcx(i,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
+           amrex::Real zf = fcx(i,j,k,1); // local (y,z) of centroid of x-face we are extrapolating to
+
+           amrex::Real delta_x = 0.5 + xc;
+           amrex::Real delta_y = yf  - yc;
+           amrex::Real delta_z = zf  - zc;
+
+           amrex::Real q_hat = state(i,j,k,n) - delta_x * slopes[0]
+                                              + delta_y * slopes[1]
+                                              + delta_z * slopes[2];
+
+           // Compute max and min values in a 3x2x3 stencil
+           amrex::Real q_min = state(i,j,k,n);
+           amrex::Real q_max = state(i,j,k,n);
+           for(int kk(-1); kk<=1; kk++) {
+               for(int jj(-1); jj<=1; jj++){
+                 for(int ii(-1); ii<=0; ii++){
+                   if( flag(i,j,k).isConnected(ii,jj,kk) and
+                       not (ii==0 and jj==0 and kk==0)) {
+                       if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
+                       if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
+                   }
+                 }
+               }
+           }
+           alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+    }
+    if(flag(i,j,k).isConnected(0,0,1)) {
+           amrex::Real xf = fcz(i,j,k+1,0); // local (x,y) of centroid of z-face we are extrapolating to
+           amrex::Real yf = fcz(i,j,k+1,1); // local (x,y) of centroid of z-face we are extrapolating to
+
+           amrex::Real delta_x = xf  - xc;
+           amrex::Real delta_y = yf  - yc;
+           amrex::Real delta_z = 0.5 - zc;
+
+           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
+                                              + delta_y * slopes[1]
+                                              + delta_z * slopes[2];
+
+           // Compute max and min values in a 3x3x2 stencil
+           amrex::Real q_min = state(i,j,k,n);
+           amrex::Real q_max = state(i,j,k,n);
+           for(int kk(0); kk<=1; kk++) {
+               for(int jj(-1); jj<=1; jj++){
+                 for(int ii(-1); ii<=1; ii++){
+                   if( flag(i,j,k).isConnected(ii,jj,kk) and
+                       not (ii==0 and jj==0 and kk==0)) {
+                       if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
+                       if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
+                   }
+                 }
+               }
+           }
            alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
     if(flag(i,j,k).isConnected(0,0,-1)) {
            amrex::Real xf = fcz(i,j,k,0); // local (x,y) of centroid of z-face we are extrapolating to
            amrex::Real yf = fcz(i,j,k,1); // local (x,y) of centroid of z-face we are extrapolating to
 
-           AMREX_D_TERM(amrex::Real delta_x = xf  - xc;,
-                        amrex::Real delta_y = yf  - yc;,
-                        amrex::Real delta_z = 0.5 + zc;);
+           amrex::Real delta_x = xf  - xc;
+           amrex::Real delta_y = yf  - yc;
+           amrex::Real delta_z = 0.5 + zc;
 
            amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
                                               + delta_y * slopes[1]
                                               - delta_z * slopes[2];
 
+           // Compute max and min values in a 3x2x3 stencil
+           amrex::Real q_min = state(i,j,k,n);
+           amrex::Real q_max = state(i,j,k,n);
+           for(int kk(-1); kk<=0; kk++) {
+               for(int jj(-1); jj<=1; jj++){
+                 for(int ii(-1); ii<=1; ii++){
+                   if( flag(i,j,k).isConnected(ii,jj,kk) and
+                       not (ii==0 and jj==0 and kk==0)) {
+                       if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
+                       if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
+                   }
+                 }
+               }
+           }
            alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
-#endif
 
-    AMREX_D_TERM(amrex::Real xalpha = alpha;,
-                 amrex::Real yalpha = alpha;,
-                 amrex::Real zalpha = alpha;);
+    amrex::Real xalpha = alpha;
+    amrex::Real yalpha = alpha;
+    amrex::Real zalpha = alpha;
 
     //Zeroing out the slopes in the direction where a covered face exists.
     if (cuts_x<2) xalpha = 0;
     if (cuts_y<2) yalpha = 0;
-#if (AMREX_SPACEDIM == 3)
     if (cuts_z<2) zalpha = 0;
-#endif
 
-    return {AMREX_D_DECL(xalpha,yalpha,zalpha)};
+    return {xalpha,yalpha,zalpha};
 }
+#endif
 
 //amrex_lim_slopes_eb computes the slopes calling amrex_calc_slopes_eb, and then each slope component
 //is multiplied by a limiter based on the work of Barth-Jespersen.
@@ -711,16 +988,19 @@ amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
 amrex_lim_slopes_eb (int i, int j, int k, int n,
                      amrex::Array4<amrex::Real const> const& state,
                      amrex::Array4<amrex::Real const> const& ccent,
+                     amrex::Array4<amrex::Real const> const& vfrac,
                      AMREX_D_DECL(amrex::Array4<amrex::Real const> const& fcx,
                                   amrex::Array4<amrex::Real const> const& fcy,
                                   amrex::Array4<amrex::Real const> const& fcz),
-                     amrex::Array4<amrex::EBCellFlag const> const& flag) noexcept
+                     amrex::Array4<amrex::EBCellFlag const> const& flag,
+                     int max_order) noexcept
 {
 
     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes;
     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> alpha_lim;
 
-    slopes = amrex_calc_slopes_eb(i,j,k,n,state,ccent,flag);
+    slopes = amrex_calc_slopes_eb(i,j,k,n,state,ccent,vfrac,flag,max_order);
+
     alpha_lim = amrex_calc_alpha_limiter(i,j,k,n,state,flag,slopes,AMREX_D_DECL(fcx,fcy,fcz),ccent);
 
     // Setting limiter to 1 for stencils that just consists of non-EB cells because
@@ -746,6 +1026,7 @@ amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
 amrex_lim_slopes_extdir_eb (int i, int j, int k, int n,
                             amrex::Array4<amrex::Real const> const& state,
                             amrex::Array4<amrex::Real const> const& ccent,
+                            amrex::Array4<amrex::Real const> const& vfrac,
                             AMREX_D_DECL(
                             amrex::Array4<amrex::Real const> const& fcx,
                             amrex::Array4<amrex::Real const> const& fcy,
@@ -754,27 +1035,28 @@ amrex_lim_slopes_extdir_eb (int i, int j, int k, int n,
                             AMREX_D_DECL(bool edlo_x, bool edlo_y, bool edlo_z),
                             AMREX_D_DECL(bool edhi_x, bool edhi_y, bool edhi_z),
                             AMREX_D_DECL(int domlo_x, int domlo_y, int domlo_z),
-                            AMREX_D_DECL(int domhi_x, int domhi_y, int domhi_z)) noexcept
+                            AMREX_D_DECL(int domhi_x, int domhi_y, int domhi_z),
+                            int max_order) noexcept
 {
 
     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes;
     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> alpha_lim;
 
-    slopes = amrex_calc_slopes_extdir_eb(i,j,k,n,state,ccent,AMREX_D_DECL(fcx,fcy,fcz),flag,
+    slopes = amrex_calc_slopes_extdir_eb(i,j,k,n,state,ccent,vfrac,AMREX_D_DECL(fcx,fcy,fcz),flag,
                                          AMREX_D_DECL(edlo_x,edlo_y,edlo_z),AMREX_D_DECL(edhi_x,edhi_y,edhi_z),
-                                         AMREX_D_DECL(domlo_x,domlo_y,domlo_z),AMREX_D_DECL(domhi_x,domhi_y,domhi_z));
+                                         AMREX_D_DECL(domlo_x,domlo_y,domlo_z),AMREX_D_DECL(domhi_x,domhi_y,domhi_z),max_order);
     alpha_lim = amrex_calc_alpha_limiter(i,j,k,n,state,flag,slopes,AMREX_D_DECL(fcx,fcy,fcz),ccent);
 
     // Setting limiter to 1 for stencils that just consists of non-EB cells because
     // amrex_calc_slopes_extdir_eb routine will call the slope routine for non-EB stencils that has already a limiter
-    if ( flag(i,j,k).isRegular() and flag(i-1,j,k).isRegular() and flag(i+1,j,k).isRegular() )
-      alpha_lim[0] = 1.0;
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.)
+        alpha_lim[0] = 1.0;
 
-    if ( flag(i,j,k).isRegular() and flag(i,j-1,k).isRegular() and flag(i,j+1,k).isRegular() )
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.)
       alpha_lim[1] = 1.0;
 
 #if (AMREX_SPACEDIM == 3)
-    if ( flag(i,j,k).isRegular() and flag(i,j,k-1).isRegular() and flag(i,j,k+1).isRegular() )
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.)
       alpha_lim[2] = 1.0;
 #endif
 

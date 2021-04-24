@@ -269,7 +269,7 @@ public:
                 }
                 return {nbody,nzero,nfluid};
             });
-            ReduceTuple hv = reduce_data.value();
+            ReduceTuple hv = reduce_data.value(reduce_op);
             int nbody = amrex::get<0>(hv);
             // int nzero = amrex::get<1>(hv);
             int nfluid = amrex::get<2>(hv);
