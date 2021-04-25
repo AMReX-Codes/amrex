@@ -249,7 +249,6 @@ public:
     void operator= (ReduceData<Ts...> const&) = delete;
     void operator= (ReduceData<Ts...> &&) = delete;
 
-    [[deprecated("Use value (ReduceOps<Ps...>&) instead.")]]
     Type value ()
     {
         return m_fn_value();
@@ -906,7 +905,6 @@ public:
     void operator= (ReduceData<Ts...> const&) = delete;
     void operator= (ReduceData<Ts...> &&) = delete;
 
-    [[deprecated("Use value (ReduceOps<Ps...>&) instead.")]]
     Type value () { return m_fn_value(); }
 
     template <typename... Ps>
