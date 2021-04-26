@@ -324,26 +324,14 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
     const CPC& thecpc = (a_cpc) ? *a_cpc : getCPC(dnghost, src, snghost, period);
 
-    auto pcd = std::make_unique<PCData<FAB>>(&src, this, &thecpc);
-    pcd->nowaited = true;
-    pcd->finished = false;
-    pcd->snghost = snghost;
-    pcd->dnghost = dnghost;
-    pcd->period = period;
-    pcd->op = op;
-    pcd->SC = scomp;
-    pcd->DC = dcomp;
-
-
     if (ParallelContext::NProcsSub() == 1)
     {
         //
         // There can only be local work to do.
         //
-        pcd->finished = true;
 
         int N_locs = (*thecpc.m_LocTags).size();
-        if (N_locs == 0) { return pcd; }
+        if (N_locs == 0) { return std::make_unique<PCData>(&src, this); }
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
@@ -355,8 +343,18 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
             PC_local_cpu(thecpc, src, scomp, dcomp, ncomp, op);
         }
 
-        return pcd;
+        return std::make_unique<PCData>(&src, this);
     }
+
+    auto pcd = std::make_unique<PCData<FAB>>(&src, this, &thecpc);
+    pcd->nowaited = true;
+    pcd->finished = false;
+    pcd->snghost = snghost;
+    pcd->dnghost = dnghost;
+    pcd->period = period;
+    pcd->op = op;
+    pcd->SC = scomp;
+    pcd->DC = dcomp;
 
 #ifdef BL_USE_MPI
 
