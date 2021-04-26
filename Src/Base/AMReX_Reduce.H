@@ -507,7 +507,7 @@ public:
 #ifdef AMREX_USE_DPCPP
         // device reduce needs local(i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
-        amrex::launch(1, AMREX_GPU_MAX_THREADS, shared_mem_bytes, Gpu::gpuStream(),
+        amrex::launch(1, AMREX_GPU_MAX_THREADS, shared_mem_bytes, stream,
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
             ReduceTuple r;
@@ -524,7 +524,7 @@ public:
             if (gh.threadIdx() == 0) { *hp = dst; }
         });
 #else
-        amrex::launch(1, AMREX_GPU_MAX_THREADS, 0, Gpu::gpuStream(),
+        amrex::launch(1, AMREX_GPU_MAX_THREADS, 0, stream,
         [=] AMREX_GPU_DEVICE () noexcept
         {
             ReduceTuple r;
