@@ -331,7 +331,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         //
 
         int N_locs = (*thecpc.m_LocTags).size();
-        if (N_locs == 0) { return std::make_unique<PCData>(&src, this); }
+        if (N_locs == 0) { return std::make_unique<PCData<FAB>>(&src, this); }
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
@@ -343,7 +343,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
             PC_local_cpu(thecpc, src, scomp, dcomp, ncomp, op);
         }
 
-        return std::make_unique<PCData>(&src, this);
+        return std::make_unique<PCData<FAB>>(&src, this);
     }
 
     auto pcd = std::make_unique<PCData<FAB>>(&src, this, &thecpc);
