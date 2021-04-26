@@ -774,8 +774,6 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
     int cuts_x = 0; int cuts_y = 0; int cuts_z = 0;
 
     // Compute how many cut or regular faces do we have in 3x3 block
-    amrex::Real q_min = state(i,j,k,n);
-    amrex::Real q_max = state(i,j,k,n);
     for(int kk(-1); kk<=1; kk++)
     {
         for(int jj(-1); jj<=1; jj++){
