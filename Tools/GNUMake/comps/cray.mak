@@ -32,6 +32,13 @@ ifeq ($(CRAY_CC_VERSION),10.0.1)
   endif
 endif
 
+ifeq ($(CCE_GE_V9),FALSE)
+  # -MMD -MP not supprted
+  USE_LEGACY_DEPFLAGS = TRUE
+  DEPFLAGS =
+  LEGACY_DEPFLAGS = -M
+endif
+
 ########################################################################
 
 ifeq ($(DEBUG),TRUE)
@@ -120,6 +127,10 @@ else
   ifeq ($(CCE_GE_V9),FALSE)
     GENERIC_COMP_FLAGS += -h noacc
   endif
+endif
+
+ifeq ($(CCE_GE_V9),TRUE)
+  CXXFLAGS += -Wno-pass-failed -Wno-c++17-extensions
 endif
 
 CXXFLAGS += $(GENERIC_COMP_FLAGS)
