@@ -100,8 +100,8 @@ void set_eb_data (const int i, const int j,
         } else {
             vcent(i,j,0,0) *= (1.0/vfrac(i,j,0));
             vcent(i,j,0,1) *= (1.0/vfrac(i,j,0));
-            vcent(i,j,0,0) = amrex::min(amrex::max(vcent(i,j,0,0),-0.5),0.5);
-            vcent(i,j,0,1) = amrex::min(amrex::max(vcent(i,j,0,1),-0.5),0.5);
+            vcent(i,j,0,0) = amrex::min(amrex::max(vcent(i,j,0,0),Real(-0.5)),Real(0.5));
+            vcent(i,j,0,1) = amrex::min(amrex::max(vcent(i,j,0,1),Real(-0.5)),Real(0.5));
         }
     }
 }
