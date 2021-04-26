@@ -345,7 +345,7 @@ $(depEXETempDir)/%.d: %.f $(srcTempDir)/AMReX_Config.H
 
 DEP_CHECK_OPTS :=
 
-$(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) 
+$(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) AMReX_Config.H
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
