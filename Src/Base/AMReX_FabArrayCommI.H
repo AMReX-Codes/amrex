@@ -347,7 +347,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     }
 
     auto pcd = std::make_unique<PCData<FAB>>(&src, this, &thecpc);
-    pcd->nowaited = true;
     pcd->finished = false;
     pcd->snghost = snghost;
     pcd->dnghost = dnghost;
