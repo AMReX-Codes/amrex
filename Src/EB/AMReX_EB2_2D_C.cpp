@@ -211,6 +211,7 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
     const Box& bxg1 = amrex::grow(bx, 1);
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
     {
+        amrex::ignore_unused(k);
         if (cell(i,j,0).isSingleValued()) {
             if (fx(i,j,0) == Type::regular && fx(i+1,j,0) == Type::regular &&
                 fy(i,j,0) == Type::regular && fy(i,j+1,0) == Type::regular)
@@ -334,6 +335,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     const Box xbx = Box(bx).surroundingNodes(0).grow(1,1);
     AMREX_HOST_DEVICE_FOR_3D ( xbx, i, j, k,
     {
+        amrex::ignore_unused(k);
         if (vfrac(i-1,j,0) == 0._rt || vfrac(i,j,0) == 0._rt) {
             fx(i,j,0) = Type::covered;
             apx(i,j,0) = 0.0;
@@ -354,6 +356,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     const Box ybx = Box(bx).surroundingNodes(1).grow(0,1);
     AMREX_HOST_DEVICE_FOR_3D ( ybx, i, j, k,
     {
+        amrex::ignore_unused(k);
         if (vfrac(i,j-1,0) == 0._rt || vfrac(i,j,0) == 0._rt) {
             fy(i,j,0) = Type::covered;
             apy(i,j,0) = 0.0;
@@ -373,6 +376,8 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     // Build neighbors.  By default, all neighbors are already set.
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
     {
+        amrex::ignore_unused(k);
+
         auto flg = cell(i,j,0);
 
         if (fx(i  ,j  ,0) == Type::covered) flg.setDisconnected(IntVect(-1, 0));
