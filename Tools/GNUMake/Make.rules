@@ -194,7 +194,7 @@ FORCE:
 #
 # Rules for objects.
 #
-$(objEXETempDir)/%.o: %.cpp AMReX_Config.H
+$(objEXETempDir)/%.o: %.cpp $(srcTempDir)/AMReX_Config.H
 	@echo Compiling $*.cpp ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(LOG_BUILD_TIME),TRUE)
@@ -206,7 +206,7 @@ ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
-$(objEXETempDir)/%.o: %.c AMReX_Config.H
+$(objEXETempDir)/%.o: %.c $(srcTempDir)/AMReX_Config.H
 	@echo Compiling $*.c ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(LOG_BUILD_TIME),TRUE)
@@ -230,7 +230,7 @@ ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
-$(objEXETempDir)/%.o: %.F
+$(objEXETempDir)/%.o: %.F $(srcTempDir)/AMReX_Config.H
 	@echo Compiling $*.F ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
@@ -256,7 +256,7 @@ ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
-$(objEXETempDir)/%.o: %.F90
+$(objEXETempDir)/%.o: %.F90 $(srcTempDir)/AMReX_Config.H
 	@echo Compiling $*.F90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(LOG_BUILD_TIME),TRUE)
@@ -345,7 +345,7 @@ $(depEXETempDir)/%.d: %.f $(srcTempDir)/AMReX_Config.H
 
 DEP_CHECK_OPTS :=
 
-$(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) AMReX_Config.H
+$(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) $(srcTempDir)/AMReX_Config.H
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
