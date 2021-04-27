@@ -149,29 +149,14 @@ using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
 template <class FAB>
 struct PCData {
 
-    PCData () = delete;
+    PCData (const FabArray<FAB>* a_src)
+    : src(a_src), finished(true) {}
 
-    PCData (const FabArray<FAB>* a_src, const FabArray<FAB>* a_dst)
-    : src(a_src), dst(a_dst), finished(true) {}
+    PCData (const FabArray<FAB>* a_src, const FabArrayBase::CPC* a_cpc)
+    : cpc(a_cpc), src(a_src) {}
 
-    PCData (const FabArray<FAB>* a_src, const FabArray<FAB>* a_dst,
-           const FabArrayBase::CPC* a_cpc)
-    : cpc(a_cpc), src(a_src), dst(a_dst) {}
-
-    PCData (const PCData&) = delete;
-    PCData& operator= (const PCData&) = delete;
-
-    PCData (PCData &&) = default;
-    PCData& operator= (PCData &&) = default;
-
-    ~PCData ()
-    {
-        AMREX_ASSERT_WITH_MESSAGE((finished==true), "Non-blocking ParallelCopy not finished." );
-    }
-
-    const FabArrayBase::CPC* const  cpc = nullptr;
-    const FabArray<FAB>* const      src = nullptr;
-    const FabArray<FAB>* const      dst = nullptr;
+    const FabArrayBase::CPC*  cpc = nullptr;
+    const FabArray<FAB>*      src = nullptr;
     FabArrayBase::CpOp  op;
     int                 tag = -1;
     int                 actual_n_rcvs = -1;
@@ -187,6 +172,7 @@ struct PCData {
     Vector<std::size_t> recv_size;
     Vector<MPI_Request> recv_reqs;
     Vector<MPI_Request> send_reqs;
+
 };
 
 template <class FAB>
@@ -542,13 +528,13 @@ public:
                CpOp                 op = FabArrayBase::COPY)
         { ParallelCopy(fa,period,op); }
 
-    std::unique_ptr<PCData<FAB>> ParallelAdd_nowait (const FabArray<FAB>& fa,
-                                                     const Periodicity& period = Periodicity::NonPeriodic())
-        { return ParallelCopy_nowait(fa,period,FabArray::ADD); }
-    std::unique_ptr<PCData<FAB>> ParallelCopy_nowait (const FabArray<FAB>& fa,
-                                                      const Periodicity&   period = Periodicity::NonPeriodic(),
-                                                      CpOp                 op = FabArrayBase::COPY)
-       { return ParallelCopy_nowait(fa,0,0,nComp(),0,0,period,op); }
+    void ParallelAdd_nowait (const FabArray<FAB>& fa,
+                             const Periodicity& period = Periodicity::NonPeriodic())
+        { ParallelCopy_nowait(fa,period,FabArray::ADD); }
+    void ParallelCopy_nowait (const FabArray<FAB>& fa,
+                              const Periodicity&   period = Periodicity::NonPeriodic(),
+                              CpOp                 op = FabArrayBase::COPY)
+       { ParallelCopy_nowait(fa,0,0,nComp(),0,0,period,op); }
 
     /**
     * \brief This function copies data from src to this FabArray.  Each FAB
@@ -579,19 +565,19 @@ public:
                CpOp                 op = FabArrayBase::COPY)
         { ParallelCopy(src,src_comp,dest_comp,num_comp, period, op); }
 
-    std::unique_ptr<PCData<FAB>> ParallelAdd_nowait (const FabArray<FAB>& src,
-                                                     int                  src_comp,
-                                                     int                  dest_comp,
-                                                     int                  num_comp,
-                                                     const Periodicity&   period = Periodicity::NonPeriodic())
-       { return ParallelCopy_nowait(src,src_comp,dest_comp,num_comp, period, FabArrayBase::ADD); }
-    std::unique_ptr<PCData<FAB>> ParallelCopy_nowait (const FabArray<FAB>& src,
-                                                      int                  src_comp,
-                                                      int                  dest_comp,
-                                                      int                  num_comp,
-                                                      const Periodicity&   period = Periodicity::NonPeriodic(),
-                                                      CpOp                 op = FabArrayBase::COPY)
-       { return ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,0,0,period,op); }
+    void ParallelAdd_nowait (const FabArray<FAB>& src,
+                             int                  src_comp,
+                             int                  dest_comp,
+                             int                  num_comp,
+                             const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp, period, FabArrayBase::ADD); }
+    void ParallelCopy_nowait (const FabArray<FAB>& src,
+                              int                  src_comp,
+                              int                  dest_comp,
+                              int                  num_comp,
+                              const Periodicity&   period = Periodicity::NonPeriodic(),
+                              CpOp                 op = FabArrayBase::COPY)
+       { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,0,0,period,op); }
 
     //! Similar to the above function, except that source and destination are grown by src_nghost and dst_nghost, respectively
     void ParallelAdd (const FabArray<FAB>& src,
@@ -630,52 +616,48 @@ public:
                        CpOp                 op = FabArrayBase::COPY,
                        const FabArrayBase::CPC* a_cpc = nullptr);
 
-    AMREX_NODISCARD
-    std::unique_ptr<PCData<FAB>> ParallelAdd_nowait (const FabArray<FAB>& src,
-                                                     int                  src_comp,
-                                                     int                  dest_comp,
-                                                     int                  num_comp,
-                                                     int                  src_nghost,
-                                                     int                  dst_nghost,
-                                                     const Periodicity&   period = Periodicity::NonPeriodic())
-       { return ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),
-                                    IntVect(dst_nghost),period,FabArrayBase::ADD); }
+    void ParallelAdd_nowait (const FabArray<FAB>& src,
+                             int                  src_comp,
+                             int                  dest_comp,
+                             int                  num_comp,
+                             int                  src_nghost,
+                             int                  dst_nghost,
+                             const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),
+                               IntVect(dst_nghost),period,FabArrayBase::ADD); }
 
-    AMREX_NODISCARD
-    std::unique_ptr<PCData<FAB>> ParallelAdd_nowait (const FabArray<FAB>& src,
-                                                     int                  src_comp,
-                                                     int                  dest_comp,
-                                                     int                  num_comp,
-                                                     const IntVect&       src_nghost,
-                                                     const IntVect&       dst_nghost,
-                                                     const Periodicity&   period = Periodicity::NonPeriodic())
-       { return ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,src_nghost,
-                                    dst_nghost,period,FabArrayBase::ADD); }
+    void ParallelAdd_nowait (const FabArray<FAB>& src,
+                             int                  src_comp,
+                             int                  dest_comp,
+                             int                  num_comp,
+                             const IntVect&       src_nghost,
+                             const IntVect&       dst_nghost,
+                             const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,src_nghost,
+                             dst_nghost,period,FabArrayBase::ADD); }
 
-    AMREX_NODISCARD
-    std::unique_ptr<PCData<FAB>> ParallelCopy_nowait (const FabArray<FAB>& src,
-                                                      int                  src_comp,
-                                                      int                  dest_comp,
-                                                      int                  num_comp,
-                                                      int                  src_nghost,
-                                                      int                  dst_nghost,
-                                                      const Periodicity&   period = Periodicity::NonPeriodic(),
-                                                      CpOp                 op = FabArrayBase::COPY)
-       { return ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),
-                                    IntVect(dst_nghost),period,op); }
+    void ParallelCopy_nowait (const FabArray<FAB>& src,
+                              int                  src_comp,
+                              int                  dest_comp,
+                              int                  num_comp,
+                              int                  src_nghost,
+                              int                  dst_nghost,
+                              const Periodicity&   period = Periodicity::NonPeriodic(),
+                              CpOp                 op = FabArrayBase::COPY)
+       { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),
+                             IntVect(dst_nghost),period,op); }
 
-    AMREX_NODISCARD
-    std::unique_ptr<PCData<FAB>> ParallelCopy_nowait (const FabArray<FAB>& src,
-                                                      int                  src_comp,
-                                                      int                  dest_comp,
-                                                      int                  num_comp,
-                                                      const IntVect&       src_nghost,
-                                                      const IntVect&       dst_nghost,
-                                                      const Periodicity&   period = Periodicity::NonPeriodic(),
-                                                      CpOp                 op = FabArrayBase::COPY,
-                                                      const FabArrayBase::CPC* a_cpc = nullptr);
+    void ParallelCopy_nowait (const FabArray<FAB>& src,
+                              int                  src_comp,
+                              int                  dest_comp,
+                              int                  num_comp,
+                              const IntVect&       src_nghost,
+                              const IntVect&       dst_nghost,
+                              const Periodicity&   period = Periodicity::NonPeriodic(),
+                              CpOp                 op = FabArrayBase::COPY,
+                              const FabArrayBase::CPC* a_cpc = nullptr);
 
-    void ParallelCopy_finish (std::unique_ptr<PCData<FAB>>& pcd);
+    void ParallelCopy_finish ();
 
 
     void copy (const FabArray<FAB>& src,
@@ -1024,6 +1006,8 @@ public:
     Vector<char*>       fb_send_data;
     Vector<MPI_Request> fb_send_reqs;
     int                 fb_tag;
+
+    std::shared_ptr<PCData<FAB>> pcd = nullptr;
 };
 
 

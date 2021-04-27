@@ -255,12 +255,12 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 {
     BL_PROFILE("FabArray::ParallelCopy()");
 
-    auto pcd = ParallelCopy_nowait(src, scomp, dcomp, ncomp, snghost, dnghost, period, op, a_cpc);
-    ParallelCopy_finish(pcd);
+    ParallelCopy_nowait(src, scomp, dcomp, ncomp, snghost, dnghost, period, op, a_cpc);
+    ParallelCopy_finish();
 }
 
 template <class FAB>
-std::unique_ptr<PCData<FAB>>
+void
 FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     int                  scomp,
                                     int                  dcomp,
@@ -273,8 +273,12 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 {
     BL_PROFILE("FabArray::ParallelCopy_nowait()");
 
-    if (size() == 0 || src.size() == 0)
-        { return std::make_unique<PCData<FAB>>(&src,this); }
+    AMREX_ASSERT_WITH_MESSAGE(pcd == nullptr, "ParallelCopy_nowait() called when comm operation already in progress.");
+
+    if (size() == 0 || src.size() == 0) {
+        pcd = std::make_unique<PCData<FAB>>(&src);
+        return;
+    }
 
     BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
     BL_ASSERT(boxArray().ixType() == src.boxArray().ixType());
@@ -319,7 +323,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
             }
         }
 
-        return std::make_unique<PCData<FAB>>(&src, this);
+        pcd = std::make_unique<PCData<FAB>>(&src);
+        return;
     }
 
     const CPC& thecpc = (a_cpc) ? *a_cpc : getCPC(dnghost, src, snghost, period);
@@ -329,9 +334,10 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         //
         // There can only be local work to do.
         //
+        pcd = std::make_unique<PCData<FAB>>(&src);
 
         int N_locs = (*thecpc.m_LocTags).size();
-        if (N_locs == 0) { return std::make_unique<PCData<FAB>>(&src, this); }
+        if (N_locs == 0) { return; }
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
@@ -343,10 +349,12 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
             PC_local_cpu(thecpc, src, scomp, dcomp, ncomp, op);
         }
 
-        return std::make_unique<PCData<FAB>>(&src, this);
+        return;
     }
 
-    auto pcd = std::make_unique<PCData<FAB>>(&src, this, &thecpc);
+    pcd = std::make_unique<PCData<FAB>>(&src, &thecpc);
+    pcd->cpc = &thecpc;
+    pcd->src = &src;
     pcd->finished = false;
     pcd->snghost = snghost;
     pcd->dnghost = dnghost;
@@ -372,7 +380,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         // No work to do.
         //
         pcd->finished = true;
-        return pcd;
+        return;
     }
 
     //
@@ -444,7 +452,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
         if (!last_iter)
         {
-            ParallelCopy_finish(pcd);
+            ParallelCopy_finish();
 
             pcd->SC += pcd->NC;
             pcd->DC += pcd->NC;
@@ -455,23 +463,22 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     }
 
 #endif /*BL_USE_MPI*/
-
-    return pcd;
 }
 
 template <class FAB>
 void
-FabArray<FAB>::ParallelCopy_finish (std::unique_ptr<PCData<FAB>>& pcd)
+FabArray<FAB>::ParallelCopy_finish ()
 {
     BL_PROFILE("FabArray::ParallelCopy_finish()");
-    amrex::ignore_unused(pcd);
 
 #ifdef BL_USE_MPI
 
-    AMREX_ASSERT_WITH_MESSAGE(this == pcd->dst, "Incorrect PCData passed to ParallelCopy_finish(): this != PCData.dst");
+    AMREX_ASSERT_WITH_MESSAGE(pcd != nullptr, "ParallelCopy_finish called before ParallelCopy_nowait!");
 
-    if (pcd->finished) { return; }
-    else { pcd->finished = true; }
+    if (pcd->finished) {
+        pcd.reset();
+        return;
+    }
 
     const CPC* thecpc = pcd->cpc;
 
@@ -532,6 +539,7 @@ FabArray<FAB>::ParallelCopy_finish (std::unique_ptr<PCData<FAB>>& pcd)
         pcd->the_send_data = nullptr;
     }
 
+    pcd.reset();
     return;
 
 #endif /*BL_USE_MPI*/
