@@ -388,6 +388,11 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
         NC = std::min(NCompLeft,FabArrayBase::MaxComp);
         const bool last_iter = (NCompLeft == NC);
+
+        pcd->SC = SC;
+        pcd->DC = DC;
+        pcd->NC = NC;
+
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
@@ -447,10 +452,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
         if (!last_iter)
         {
-            pcd->SC = SC;
-            pcd->DC = DC;
-            pcd->NC = NC;
-
             ParallelCopy_finish();
 
             SC += NC;
@@ -460,10 +461,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         ipass     += NC;
         NCompLeft -= NC;
     }
-
-    pcd->SC = SC;
-    pcd->DC = DC;
-    pcd->NC = NC;
 
 #endif /*BL_USE_MPI*/
 }
