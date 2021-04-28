@@ -273,10 +273,9 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 {
     BL_PROFILE("FabArray::ParallelCopy_nowait()");
 
-    AMREX_ASSERT_WITH_MESSAGE(pcd == nullptr, "ParallelCopy_nowait() called when comm operation already in progress.");
+    AMREX_ASSERT_WITH_MESSAGE(!pcd, "ParallelCopy_nowait() called when comm operation already in progress.");
 
     if (size() == 0 || src.size() == 0) {
-        pcd = std::make_unique<PCData<FAB>>(&src);
         return;
     }
 
@@ -323,7 +322,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
             }
         }
 
-        pcd = std::make_unique<PCData<FAB>>(&src);
         return;
     }
 
@@ -334,7 +332,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         //
         // There can only be local work to do.
         //
-        pcd = std::make_unique<PCData<FAB>>(&src);
 
         int N_locs = (*thecpc.m_LocTags).size();
         if (N_locs == 0) { return; }
@@ -354,7 +351,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
 #ifdef BL_USE_MPI
 
-    pcd = std::make_unique<PCData<FAB>>(&src, &thecpc);
+    pcd = std::make_unique<PCData<FAB>>();
     pcd->cpc = &thecpc;
     pcd->src = &src;
     pcd->finished = false;
@@ -379,7 +376,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         //
         // No work to do.
         //
-        pcd->finished = true;
+
+        pcd.reset();
         return;
     }
 
@@ -469,17 +467,12 @@ template <class FAB>
 void
 FabArray<FAB>::ParallelCopy_finish ()
 {
-    BL_PROFILE("FabArray::ParallelCopy_finish()");
-
-    AMREX_ASSERT_WITH_MESSAGE(pcd != nullptr, "ParallelCopy_finish called before ParallelCopy_nowait!");
-
-    if (pcd->finished) {
-        pcd.reset();
-        return;
-    }
-
 
 #ifdef BL_USE_MPI
+
+    BL_PROFILE("FabArray::ParallelCopy_finish()");
+
+    if (!pcd) { return; }
 
     const CPC* thecpc = pcd->cpc;
 
@@ -541,9 +534,9 @@ FabArray<FAB>::ParallelCopy_finish ()
     }
 
     pcd.reset();
-    return;
 
 #endif /*BL_USE_MPI*/
+
 }
 
 template <class FAB>

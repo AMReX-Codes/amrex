@@ -149,12 +149,6 @@ using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
 template <class FAB>
 struct PCData {
 
-    PCData (const FabArray<FAB>* a_src)
-    : src(a_src), finished(true) {}
-
-    PCData (const FabArray<FAB>* a_src, const FabArrayBase::CPC* a_cpc)
-    : cpc(a_cpc), src(a_src) {}
-
     const FabArrayBase::CPC*  cpc = nullptr;
     const FabArray<FAB>*      src = nullptr;
     FabArrayBase::CpOp  op;
@@ -163,7 +157,6 @@ struct PCData {
     IntVect             snghost, dnghost;
     Periodicity         period;
     int                 SC = -1, NC = -1, DC = -1;
-    bool                finished = false;
 
     char*               the_recv_data = nullptr;
     char*               the_send_data = nullptr;
@@ -1007,7 +1000,7 @@ public:
     Vector<MPI_Request> fb_send_reqs;
     int                 fb_tag;
 
-    std::shared_ptr<PCData<FAB>> pcd = nullptr;
+    std::unique_ptr<PCData<FAB>> pcd = nullptr;
 };
 
 
