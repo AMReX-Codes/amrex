@@ -351,22 +351,11 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
 #ifdef BL_USE_MPI
 
-    pcd = std::make_unique<PCData<FAB>>();
-    pcd->cpc = &thecpc;
-    pcd->src = &src;
-    pcd->finished = false;
-    pcd->snghost = snghost;
-    pcd->dnghost = dnghost;
-    pcd->period = period;
-    pcd->op = op;
-    pcd->SC = scomp;
-    pcd->DC = dcomp;
-
     //
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    pcd->tag = ParallelDescriptor::SeqNum();
+    int tag = ParallelDescriptor::SeqNum();
 
     const int N_snds = thecpc.m_SndTags->size();
     const int N_rcvs = thecpc.m_RcvTags->size();
@@ -377,7 +366,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         // No work to do.
         //
 
-        pcd.reset();
         return;
     }
 
@@ -388,7 +376,18 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
     for (int ipass = 0; ipass < ncomp; )
     {
+        pcd = std::make_unique<PCData<FAB>>();
+        pcd->cpc = &thecpc;
+        pcd->src = &src;
+        pcd->snghost = snghost;
+        pcd->dnghost = dnghost;
+        pcd->period = period;
+        pcd->op = op;
+        pcd->SC = scomp;
+        pcd->DC = dcomp;
         pcd->NC = std::min(NCompLeft,FabArrayBase::MaxComp);
+        pcd->tag = tag;
+
         const bool last_iter = (NCompLeft == pcd->NC);
 
         //

@@ -145,7 +145,6 @@ struct TheFaArenaDeleter {
 using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
 
 // Data used in non-blocking parallel copy.
-// Returned by no_wait. Pass to finish.
 template <class FAB>
 struct PCData {
 
@@ -1000,7 +999,7 @@ public:
     Vector<MPI_Request> fb_send_reqs;
     int                 fb_tag;
 
-    std::unique_ptr<PCData<FAB>> pcd = nullptr;
+    std::unique_ptr<PCData<FAB>> pcd;
 };
 
 
