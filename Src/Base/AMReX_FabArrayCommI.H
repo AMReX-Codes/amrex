@@ -352,6 +352,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         return;
     }
 
+#ifdef BL_USE_MPI
+
     pcd = std::make_unique<PCData<FAB>>(&src, &thecpc);
     pcd->cpc = &thecpc;
     pcd->src = &src;
@@ -362,8 +364,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     pcd->op = op;
     pcd->SC = scomp;
     pcd->DC = dcomp;
-
-#ifdef BL_USE_MPI
 
     //
     // Do this before prematurely exiting if running in parallel.
@@ -471,14 +471,15 @@ FabArray<FAB>::ParallelCopy_finish ()
 {
     BL_PROFILE("FabArray::ParallelCopy_finish()");
 
-#ifdef BL_USE_MPI
-
     AMREX_ASSERT_WITH_MESSAGE(pcd != nullptr, "ParallelCopy_finish called before ParallelCopy_nowait!");
 
     if (pcd->finished) {
         pcd.reset();
         return;
     }
+
+
+#ifdef BL_USE_MPI
 
     const CPC* thecpc = pcd->cpc;
 
