@@ -10,7 +10,7 @@ namespace amrex {
 class EBFArrayBoxFactory;
 
 void WriteEBSurface (const amrex::BoxArray & ba, const amrex::DistributionMapping & dmap, const amrex::Geometry & geom,
-                     const amrex::EBFArrayBoxFactory * ebf); 
+                     const amrex::EBFArrayBoxFactory * ebf);
 
 }
 

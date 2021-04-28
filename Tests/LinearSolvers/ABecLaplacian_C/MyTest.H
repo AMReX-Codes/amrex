@@ -33,7 +33,7 @@ private:
     int ref_ratio = 2;
     int n_cell = 128;
     int max_grid_size = 64;
-    
+
     bool composite_solve = true;
 
     int prob_type = 1;  // 1. Poisson,  2. ABecLaplacian

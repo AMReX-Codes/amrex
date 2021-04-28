@@ -83,10 +83,11 @@ public:
     virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final override
         { return amrex::GetArrOfConstPtrs(m_b_coeffs[amrlev][mglev]); }
 
-    virtual std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final override {
-        amrex::Abort("MLABecLaplacian::makeNLinOp: Not implmented");
-        return std::unique_ptr<MLLinOp>{};
-    }
+    virtual std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final override;
+
+    virtual bool supportNSolve () const final override;
+
+    virtual void copyNSolveSolution (MultiFab& dst, MultiFab const& src) const final override;
 
     void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
                                         Vector<Array<MultiFab,AMREX_SPACEDIM> >& b);
@@ -94,6 +95,8 @@ public:
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 
     void applyMetricTermsCoeffs ();
+
+    void applyRobinBCTermsCoeffs ();
 
     static void FFlux (Box const& box, Real const* dxinv, Real bscalar,
                        Array<FArrayBox const*, AMREX_SPACEDIM> const& bcoef,
@@ -110,6 +113,8 @@ protected:
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
 
     Vector<int> m_is_singular;
+
+    virtual bool supportRobinBC () const noexcept override { return true; }
 
 private:
 

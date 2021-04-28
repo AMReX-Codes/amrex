@@ -233,7 +233,7 @@ Write (AmrData&       amrData,
         MultiFab& mf = amrData.GetGrids(iLevel,icomp);
         const BoxArray& ba = mf.boxArray();
         int num_grids = ba.size();
-        for (int ig = 0; ig < num_grids; ++ig) 
+        for (int ig = 0; ig < num_grids; ++ig)
         {
           sprintf(buf,
                   "%s_%d_%d",
@@ -285,7 +285,7 @@ main (int   argc,
 
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
-    
+
     DataServices dataServices(iFile, fileType);
 
     if (!dataServices.AmrDataOk())

@@ -1,10 +1,10 @@
 
-#include <iostream>
-
 #include <AMReX_CoordSys.H>
 #include <AMReX_COORDSYS_C.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_ParallelDescriptor.H>
+
+#include <iostream>
 
 namespace {
 #if (AMREX_SPACEDIM == 2)
@@ -37,10 +37,10 @@ CoordSys::CoordSys () noexcept
 //     for (int k = 0; k < AMREX_SPACEDIM; k++)
 //     {
 //         dx[k] = cell_dx[k];
-// 	inv_dx[k] = 1.0/dx[k];
+//     inv_dx[k] = 1.0/dx[k];
 //     }
 // }
-// 
+//
 // CoordSys::CoordSys (const Real* cell_dx)
 // {
 //     define(cell_dx);
@@ -192,7 +192,7 @@ CoordSys::UpperIndex(const Real* point) const noexcept
 
 void
 CoordSys::GetVolume (FArrayBox& vol,
-                     const Box& region) const 
+                     const Box& region) const
 {
     vol.resize(region,1);
     SetVolume(vol,region);
@@ -200,7 +200,7 @@ CoordSys::GetVolume (FArrayBox& vol,
 
 void
 CoordSys::SetVolume (FArrayBox& a_volfab,
-                     const Box& region) const 
+                     const Box& region) const
 {
     AMREX_ASSERT(ok);
     AMREX_ASSERT(region.cellCentered());
@@ -264,7 +264,7 @@ CoordSys::SetDLogA (FArrayBox& a_dlogafab,
 }
 
 void
-CoordSys::GetFaceArea (FArrayBox& area, 
+CoordSys::GetFaceArea (FArrayBox& area,
                        const Box& region,
                        int        dir) const
 {
@@ -275,7 +275,7 @@ CoordSys::GetFaceArea (FArrayBox& area,
 }
 
 void
-CoordSys::SetFaceArea (FArrayBox& a_areafab, 
+CoordSys::SetFaceArea (FArrayBox& a_areafab,
                        const Box& region,
                        int        dir) const
 {
@@ -302,7 +302,7 @@ CoordSys::SetFaceArea (FArrayBox& a_areafab,
 }
 
 void
-CoordSys::GetEdgeLoc (Vector<Real>& loc, 
+CoordSys::GetEdgeLoc (Vector<Real>& loc,
                       const Box&    region,
                       int           dir) const
 {
@@ -321,7 +321,7 @@ CoordSys::GetEdgeLoc (Vector<Real>& loc,
 }
 
 void
-CoordSys::GetCellLoc (Vector<Real>& loc, 
+CoordSys::GetCellLoc (Vector<Real>& loc,
                       const Box&   region,
                       int          dir) const
 {
@@ -373,7 +373,7 @@ CoordSys::GetEdgeVolCoord (Vector<Real>& vc,
             vc[i] = static_cast<Real>(FOURPI/3.)*r*r*r;
         }
     }
-#endif    
+#endif
 }
 
 void
@@ -409,7 +409,7 @@ CoordSys::GetCellVolCoord (Vector<Real>& vc,
             vc[i] = static_cast<Real>(FOURPI/3.)*r*r*r;
         }
     }
-#endif    
+#endif
 }
 
 std::ostream&
@@ -470,8 +470,8 @@ CoordSys::Volume (const IntVect& point) const
     return Volume(xlo,xhi);
 }
 
-Real 
-CoordSys::Volume (const Real xlo[AMREX_SPACEDIM], 
+Real
+CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
                   const Real xhi[AMREX_SPACEDIM]) const
 {
     switch (c_sys)
@@ -488,7 +488,7 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
         AMREX_ASSERT(0);
     }
     return 0;
-}                      
+}
 
 Real
 CoordSys::AreaLo (const IntVect& point, int dir) const noexcept

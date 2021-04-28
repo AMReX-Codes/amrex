@@ -2,18 +2,18 @@
 #define BL_DISTRIBUTIONMAPPING_H
 #include <AMReX_Config.H>
 
-#include <map>
-#include <limits>
-#include <memory>
-#include <cstddef>
-#include <iostream>
-
 #include <AMReX.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Box.H>
 #include <AMReX_REAL.H>
 #include <AMReX_ParallelDescriptor.H>
+
+#include <map>
+#include <limits>
+#include <memory>
+#include <cstddef>
+#include <iosfwd>
 
 namespace amrex {
 
@@ -73,7 +73,7 @@ class DistributionMapping
     explicit DistributionMapping (Vector<int>&& pmap) noexcept;
     //! Build mapping out of BoxArray over nprocs processors.
     explicit DistributionMapping (const BoxArray& boxes,
-				  int nprocs = ParallelDescriptor::NProcs());
+                                  int nprocs = ParallelDescriptor::NProcs());
     /**
     * \brief This is a very specialized distribution map.
     * Do NOT use it unless you really understand what it does.
@@ -160,7 +160,7 @@ class DistributionMapping
 
     static bool SameRefs (const DistributionMapping& lhs,
                           const DistributionMapping& rhs)
-		  { return lhs.m_ref == rhs.m_ref; }
+          { return lhs.m_ref == rhs.m_ref; }
 
     static DistributionMapping makeKnapSack (const MultiFab& weight,
                                              int nmax=std::numeric_limits<int>::max());
@@ -174,17 +174,17 @@ class DistributionMapping
 
     /** \brief Computes a new distribution mapping by distributing input costs
      * according to the `knapsack` algorithm.
-     * @param[in] rcost_local LayoutData of costs; contains, e.g., costs for the 
+     * @param[in] rcost_local LayoutData of costs; contains, e.g., costs for the
      *            local boxes in the FAB array, corresponding indices in the global
      *            indices in the FAB array, and the distribution mapping
      * @param[in,out] currentEfficiency writes the efficiency (i.e., mean cost over
      *                all MPI ranks, normalized to the max cost) given the current
      *                distribution mapping
-     * @param[in,out] proposedEfficiency writes the efficiency for the proposed 
+     * @param[in,out] proposedEfficiency writes the efficiency for the proposed
      *                distribution mapping
-     * @param[in] nmax the maximum number of boxes that can be assigned to any 
+     * @param[in] nmax the maximum number of boxes that can be assigned to any
      *            MPI rank by the knapsack algorithm
-     * @param[in] broadcastToAll controls whether to transmit the proposed 
+     * @param[in] broadcastToAll controls whether to transmit the proposed
      *            distribution mapping to all other processes; setting this to
      *            false allows to, e.g., test whether the proposed distribution
      *            mapping is an improvement relative to the current distribution
@@ -210,15 +210,15 @@ class DistributionMapping
 
     /** \brief Computes a new distribution mapping by distributing input costs
      * according to a `space filling curve` (SFC) algorithm.
-     * @param[in] rcost_local LayoutData of costs; contains, e.g., costs for the 
+     * @param[in] rcost_local LayoutData of costs; contains, e.g., costs for the
      *            local boxes in the FAB array, corresponding indices in the global
      *            indices in the FAB array, and the distribution mapping
      * @param[in,out] currentEfficiency writes the efficiency (i.e., mean cost over
      *                all MPI ranks, normalized to the max cost) given the current
      *                distribution mapping
-     * @param[in,out] proposedEfficiency writes the efficiency for the proposed 
+     * @param[in,out] proposedEfficiency writes the efficiency for the proposed
      *                distribution mapping
-     * @param[in] broadcastToAll controls whether to transmit the proposed 
+     * @param[in] broadcastToAll controls whether to transmit the proposed
      *            distribution mapping to all other processes; setting this to
      *            false allows to, e.g., test whether the proposed distribution
      *            mapping is an improvement relative to the current distribution
@@ -237,7 +237,7 @@ class DistributionMapping
     * if use_box_vol is true, weight boxes by their volume in Distribute
     * otherwise, all boxes will be treated with equal weight
     */
-    static std::vector<std::vector<int> > makeSFC (const BoxArray& ba, 
+    static std::vector<std::vector<int> > makeSFC (const BoxArray& ba,
                                                    bool use_box_vol=true,
                                                    const int nprocs=ParallelContext::NProcsSub() );
 
@@ -251,7 +251,7 @@ class DistributionMapping
     static void ComputeDistributionMappingEfficiency (const DistributionMapping& dm,
                                                       const Vector<Real>& cost,
                                                       Real* efficiency);
-    
+
 private:
 
     const Vector<int>& getIndexArray ();
@@ -338,7 +338,7 @@ private:
 
         explicit Ref (Vector<int>&& pmap) noexcept : m_pmap(std::move(pmap)) {}
 
-	//! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
+        //! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
         void clear () { m_pmap.clear();  m_index_array.clear();   m_ownership.clear(); }
 
@@ -357,8 +357,8 @@ public:
         bool operator<  (const RefID& rhs) const noexcept { return std::less<Ref*>()(data,rhs.data); }
         bool operator== (const RefID& rhs) const noexcept { return data == rhs.data; }
         bool operator!= (const RefID& rhs) const noexcept { return data != rhs.data; }
-	const Ref *dataPtr() const noexcept { return data; }
-	void PrintPtr(std::ostream &os) const { os << data << '\n'; }
+        const Ref *dataPtr() const noexcept { return data; }
+        void PrintPtr(std::ostream &os) const { os << data << '\n'; }
         friend std::ostream& operator<< (std::ostream& os, const RefID& id);
    private:
         Ref* data;

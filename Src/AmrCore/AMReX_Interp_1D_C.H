@@ -319,7 +319,7 @@ facediv_int (int /*ci*/, int /*cj*/, int /*ck*/, int /*nf*/,
              IntVect const& /*ratio*/,
              GpuArray<Real, AMREX_SPACEDIM> const& /*cellSize*/) noexcept
 {
-    amrex::Abort("No 1D version of FaceDiv exists.\n"); 
+    amrex::Abort("No 1D version of FaceDiv exists.\n");
 }
 
 template<typename T>

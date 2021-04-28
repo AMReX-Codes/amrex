@@ -79,7 +79,7 @@ MyTest::solve ()
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
     if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-    if (use_petsc) mlmg.setBottomSolver(MLMG::BottomSolver::petsc); 
+    if (use_petsc) mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
     const Real tol_rel = reltol;
     const Real tol_abs = 0.0;
     mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
@@ -93,14 +93,14 @@ MyTest::writePlotfile ()
         const MultiFab& vfrc = factory[ilev]->getVolFrac();
         plotmf[ilev].define(grids[ilev],dmap[ilev],2,0);
         MultiFab::Copy(plotmf[ilev], phi[ilev], 0, 0, 1, 0);
-        MultiFab::Copy(plotmf[ilev], vfrc, 0, 1, 1, 0);    
+        MultiFab::Copy(plotmf[ilev], vfrc, 0, 1, 1, 0);
     }
     WriteMultiLevelPlotfile(plot_file_name, max_level+1,
                             amrex::GetVecOfConstPtrs(plotmf),
                             {"phi","vfrac"},
                             geom, 0.0, Vector<int>(max_level+1,0),
                             Vector<IntVect>(max_level,IntVect{2}));
-                            
+
 }
 
 void
@@ -138,7 +138,7 @@ MyTest::readParameters ()
     pp.query("use_hypre", use_hypre);
 #endif
 #ifdef AMREX_USE_PETSC
-    pp.query("use_petsc",use_petsc); 
+    pp.query("use_petsc",use_petsc);
 #endif
 }
 
@@ -166,7 +166,7 @@ MyTest::initGrids ()
         grids[ilev].define(domain);
         grids[ilev].maxSize(max_grid_size);
         domain.grow(-n_cell/4);   // fine level cover the middle of the coarse domain
-        domain.refine(ref_ratio); 
+        domain.refine(ref_ratio);
     }
 }
 
@@ -187,8 +187,8 @@ MyTest::initData ()
         dmap[ilev].define(grids[ilev]);
         const EB2::IndexSpace& eb_is = EB2::IndexSpace::top();
         const EB2::Level& eb_level = eb_is.getLevel(geom[ilev]);
-        factory[ilev].reset(new EBFArrayBoxFactory(eb_level, geom[ilev], grids[ilev], dmap[ilev],
-                                                   {2,2,2}, EBSupport::full));
+        factory[ilev] = std::make_unique<EBFArrayBoxFactory>
+            (eb_level, geom[ilev], grids[ilev], dmap[ilev], Vector<int>{2,2,2}, EBSupport::full);
 
         phi[ilev].define(grids[ilev], dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);
         rhs[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
@@ -253,4 +253,3 @@ MyTest::initData ()
 
     }
 }
-

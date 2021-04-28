@@ -25,9 +25,9 @@
 
 .. _fig:Adv:
 
-.. table:: Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the SingleVortex tutorial. The analytic velocity field distorts the profile, and then restores the profile to the original configuration.  The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.  
+.. table:: Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the SingleVortex tutorial. The analytic velocity field distorts the profile, and then restores the profile to the original configuration.  The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.
    :align: center
-   
+
    +-----+-----+-----+-----+-----+
    | |a| | |b| | |c| | |d| | |e| |
    +-----+-----+-----+-----+-----+
@@ -69,7 +69,7 @@ The protected data members are:
         int            finest_level;    // Current finest level.
 
         Vector<IntVect> n_error_buf;     // Buffer cells around each tagged cell.
-        Vector<IntVect> blocking_factor; // Blocking factor in grid generation 
+        Vector<IntVect> blocking_factor; // Blocking factor in grid generation
                                         // (by level).
         Vector<IntVect> max_grid_size;   // Maximum allowable grid size (by level).
         Real           grid_eff;        // Grid efficiency.
@@ -77,12 +77,12 @@ The protected data members are:
 
         bool use_fixed_coarse_grids;
         int  use_fixed_upto_level;
-        bool refine_grid_layout;        // chop up grids to have the number of 
+        bool refine_grid_layout;        // chop up grids to have the number of
                                         // grids no less the number of procs
 
         Vector<Geometry>            geom;
         Vector<DistributionMapping> dmap;
-        Vector<BoxArray>            grids;    
+        Vector<BoxArray>            grids;
 
 The following parameters are frequently set via the inputs file or the command line.
 Their usage is described in the section on :ref:`sec:grid_creation`
@@ -135,22 +135,22 @@ class :cpp:`AmrCoreAdv`.
 ::
 
     //! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.
-    virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, 
+    virtual void ErrorEst (int lev, TagBoxArray& tags, Real time,
                            int ngrow) override = 0;
 
     //! Make a new level from scratch using provided BoxArray and DistributionMapping.
     //! Only used during initialization.
-    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, 
+    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
                                           const DistributionMapping& dm) override = 0;
 
-    //! Make a new level using provided BoxArray and DistributionMapping and fill 
+    //! Make a new level using provided BoxArray and DistributionMapping and fill
     //  with interpolated coarse level data.
-    virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, 
+    virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
                                          const DistributionMapping& dm) = 0;
 
-    //! Remake an existing level using provided BoxArray and DistributionMapping 
+    //! Remake an existing level using provided BoxArray and DistributionMapping
     //  and fill with existing fine and coarse data.
-    virtual void RemakeLevel (int lev, Real time, const BoxArray& ba, 
+    virtual void RemakeLevel (int lev, Real time, const BoxArray& ba,
                               const DistributionMapping& dm) = 0;
 
     //! Delete level data
@@ -215,7 +215,7 @@ single-level routines :cpp:`MultiFab::FillBoundary` and :cpp:`FillDomainBoundary
 to fill interior, periodic, and physical boundary ghost cells.  In principle, you can
 write a single-level application that calls :cpp:`FillPatchSingleLevel()` instead
 of using :cpp:`MultiFab::FillBoundary` and :cpp:`FillDomainBoundary()`.
-   
+
 A :cpp:`FillPatchUtil` uses an :cpp:`Interpolator`. This is largely hidden from application codes.
 AMReX_Interpolater.cpp/H contains the virtual base class :cpp:`Interpolater`, which provides
 an interface for coarse-to-fine spatial interpolation operators. The fillpatch routines described
@@ -245,7 +245,7 @@ Using FluxRegisters
 -------------------
 
 AMReX_FluxRegister.cpp/H contains the class :cpp:`FluxRegister`, which is
-derived from the class :cpp:`BndryRegister` (in ``amrex/Src/Boundary/AMReX_BndryRegister``). 
+derived from the class :cpp:`BndryRegister` (in ``amrex/Src/Boundary/AMReX_BndryRegister``).
 In the most general terms, a FluxRegister is a special type of BndryRegister
 that stores and manipulates data (most often fluxes) at coarse-fine interfaces.
 A simple usage scenario comes from a conservative discretization of a hyperbolic
@@ -402,7 +402,7 @@ Code Structure
    Source code tree for the AmrAdvection_AmrCore example.
 
 
-The figure shows the :ref:`fig:AmrAdvection_AmrCore_flowchart` 
+The figure shows the :ref:`fig:AmrAdvection_AmrCore_flowchart`
 
 
 -  amrex/Src/
@@ -499,11 +499,11 @@ These fluxes are used to set or increment the flux registers.
     // the flux registers from the coarse or fine grid perspective
     // NOTE: the flux register associated with flux_reg[lev] is associated
     // with the lev/lev-1 interface (and has grid spacing associated with lev-1)
-    if (do_reflux) { 
+    if (do_reflux) {
        if (flux_reg[lev+1]) {
           for (int i = 0; i < BL_SPACEDIM; ++i) {
               flux_reg[lev+1]->CrseInit(fluxes[i],i,0,0,fluxes[i].nComp(), -1.0);
-          }     
+          }
        }
        if (flux_reg[lev]) {
           for (int i = 0; i < BL_SPACEDIM; ++i) {
@@ -558,7 +558,7 @@ advanced a multiple of :cpp:`regrid_int`, we call the :cpp:`regrid` function.
                     // regrid could add newly refine levels
                     // (if finest_level < max_level)
                     // so we save the previous finest level index
-            int old_finest = finest_level; 
+            int old_finest = finest_level;
             regrid(lev, time);
 
                     // if there are newly created levels, set the time step
@@ -618,19 +618,19 @@ interface to a Fortran routine that tags cells (in this case, :fortran:`state_er
     #endif
         {
             Vector<int>  itags;
-        
+
         for (MFIter mfi(state,true); mfi.isValid(); ++mfi)
         {
             const Box& tilebox  = mfi.tilebox();
 
                 TagBox&     tagfab  = tags[mfi];
-            
+
             // We cannot pass tagfab to Fortran because it is BaseFab<char>.
             // So we are going to get a temporary integer array.
                 // set itags initially to 'untagged' everywhere
                 // we define itags over the tilebox region
             tagfab.get_itags(itags, tilebox);
-            
+
                 // data pointer and index space
             int*        tptr    = itags.dataPtr();
             const int*  tlo     = tilebox.loVect();
@@ -639,8 +639,8 @@ interface to a Fortran routine that tags cells (in this case, :fortran:`state_er
                 // tag cells for refinement
             state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
                 BL_TO_FORTRAN_3D(state[mfi]),
-                &tagval, &clearval, 
-                ARLIM_3D(tilebox.loVect()), ARLIM_3D(tilebox.hiVect()), 
+                &tagval, &clearval,
+                ARLIM_3D(tilebox.loVect()), ARLIM_3D(tilebox.hiVect()),
                 ZFILL(dx), ZFILL(prob_lo), &time, &phierr[lev]);
             //
             // Now update the tags in the TagBox in the tilebox region
@@ -665,7 +665,7 @@ is simple:
                            dx,problo,time,phierr) bind(C, name="state_error")
 
       implicit none
-      
+
       integer          :: lo(3),hi(3)
       integer          :: state_lo(3),state_hi(3)
       integer          :: tag_lo(3),tag_hi(3)

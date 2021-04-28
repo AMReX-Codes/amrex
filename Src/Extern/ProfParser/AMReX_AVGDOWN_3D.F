@@ -20,9 +20,9 @@
 c     ----------------------------------------------------------
 c     Average the fine grid data onto the coarse
 c     grid.  Overlap is given in coarse grid coordinates.
-c     
+c
 c     crse      = coarse grid data
-c     nvar	= number of components in arrays
+c     nvar        = number of components in arrays
 c     fine      = fine grid data
 c     lo,hi     = index limits of overlap (crse grid)
 c     ratios    = IntVect refinement ratio
@@ -57,7 +57,7 @@ c
                end do
             end do
          end do
-c     
+c
 c     sum fine data
 c
          do koff = 0, lratz-1
@@ -87,7 +87,7 @@ c
          end do
 
       end do
-         
+
       end
       subroutine FORT_CV_AVGDOWN_STAG (
      &     nodal_dir,
@@ -98,9 +98,9 @@ c
 c     ----------------------------------------------------------
 c     Average the fine grid data onto the coarse
 c     grid.  Overlap is given in coarse grid coordinates.
-c     
+c
 c     crse      = coarse grid data
-c     nvar	= number of components in arrays
+c     nvar        = number of components in arrays
 c     fine      = fine grid data
 c     lo,hi     = index limits of overlap (crse grid)
 c     ratios    = IntVect refinement ratio
@@ -143,7 +143,7 @@ c
                end do
             end do
          end do
-c     
+c
 c     sum fine data
 c
 
@@ -195,7 +195,7 @@ c
          end if
 
       end do
-         
+
       end
 
 
@@ -209,9 +209,9 @@ c
 c     ----------------------------------------------------------
 c     Volume-weight average the fine grid data onto the coarse
 c     grid.  Overlap is given in coarse grid coordinates.
-c     
+c
 c     crse      =  coarse grid data
-c     nvar	= number of components in arrays
+c     nvar        = number of components in arrays
 c     fine      = fine grid data
 c     cv        = coarse grid volume array
 c     fv        = fine grid volume array

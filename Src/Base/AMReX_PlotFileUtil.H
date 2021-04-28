@@ -2,9 +2,6 @@
 #define AMREX_PLOTFILEUTIL_H_
 #include <AMReX_Config.H>
 
-#include <string>
-#include <memory>
-
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileDataImpl.H>
@@ -12,6 +9,9 @@
 #ifdef AMREX_USE_HDF5
 #include <hdf5.h>
 #endif
+
+#include <string>
+#include <memory>
 
 namespace amrex
 {
@@ -32,7 +32,7 @@ namespace amrex
     std::string MultiFabFileFullPrefix (int level,
                                         const std::string &plotfilename,
                                         const std::string &levelPrefix = "Level_",
-					const std::string &mfPrefix = "Cell");
+                                        const std::string &mfPrefix = "Cell");
 
 
     /**
@@ -50,8 +50,8 @@ namespace amrex
     */
     void PreBuildDirectorHierarchy (const std::string &dirName,
                                     const std::string &subDirPrefix,
-				    int nSubDirs,
-				    bool callBarrier);
+                                    int nSubDirs,
+                                    bool callBarrier);
 
     /**
     *  write a generic plot file header to the file plotfilename/Header
@@ -59,22 +59,22 @@ namespace amrex
     */
     void WriteGenericPlotfileHeader (std::ostream &HeaderFile,
                                      int nlevels,
-				     const Vector<BoxArray> &bArray,
-				     const Vector<std::string> &varnames,
-				     const Vector<Geometry> &geom,
-				     Real time,
-				     const Vector<int> &level_steps,
-				     const Vector<IntVect> &ref_ratio,
-				     const std::string &versionName = "HyperCLaw-V1.1",
-				     const std::string &levelPrefix = "Level_",
-				     const std::string &mfPrefix = "Cell");
+                                     const Vector<BoxArray> &bArray,
+                                     const Vector<std::string> &varnames,
+                                     const Vector<Geometry> &geom,
+                                     Real time,
+                                     const Vector<int> &level_steps,
+                                     const Vector<IntVect> &ref_ratio,
+                                     const std::string &versionName = "HyperCLaw-V1.1",
+                                     const std::string &levelPrefix = "Level_",
+                                     const std::string &mfPrefix = "Cell");
 
     void WriteSingleLevelPlotfile (const std::string &plotfilename,
-				   const MultiFab &mf,
-				   const Vector<std::string> &varnames,
-				   const Geometry &geom,
-				   Real t,
-				   int level_step,
+                                   const MultiFab &mf,
+                                   const Vector<std::string> &varnames,
+                                   const Geometry &geom,
+                                   Real t,
+                                   int level_step,
                                    const std::string &versionName = "HyperCLaw-V1.1",
                                    const std::string &levelPrefix = "Level_",
                                    const std::string &mfPrefix = "Cell",
@@ -82,12 +82,12 @@ namespace amrex
 
     void WriteMultiLevelPlotfile (const std::string &plotfilename,
                                   int nlevels,
-				  const Vector<const MultiFab*> &mf,
-				  const Vector<std::string> &varnames,
-				  const Vector<Geometry> &geom,
-				  Real time,
-				  const Vector<int> &level_steps,
-				  const Vector<IntVect> &ref_ratio,
+                                  const Vector<const MultiFab*> &mf,
+                                  const Vector<std::string> &varnames,
+                                  const Vector<Geometry> &geom,
+                                  Real time,
+                                  const Vector<int> &level_steps,
+                                  const Vector<IntVect> &ref_ratio,
                                   const std::string &versionName = "HyperCLaw-V1.1",
                                   const std::string &levelPrefix = "Level_",
                                   const std::string &mfPrefix = "Cell",
@@ -96,22 +96,22 @@ namespace amrex
 #ifdef AMREX_USE_HDF5
     void WriteGenericPlotfileHeaderHDF5 (hid_t fid,
                                          int nlevels,
-				         const Vector<BoxArray> &bArray,
-				         const Vector<std::string> &varnames,
-				         const Vector<Geometry> &geom,
-				         Real time,
-				         const Vector<int> &level_steps,
-				         const Vector<IntVect> &ref_ratio,
-				         const std::string &versionName = "HyperCLaw-V1.1",
-				         const std::string &levelPrefix = "Level_",
-				         const std::string &mfPrefix = "Cell");
+                                         const Vector<BoxArray> &bArray,
+                                         const Vector<std::string> &varnames,
+                                         const Vector<Geometry> &geom,
+                                         Real time,
+                                         const Vector<int> &level_steps,
+                                         const Vector<IntVect> &ref_ratio,
+                                         const std::string &versionName = "HyperCLaw-V1.1",
+                                         const std::string &levelPrefix = "Level_",
+                                         const std::string &mfPrefix = "Cell");
 
     void WriteSingleLevelPlotfileHDF5 (const std::string &plotfilename,
-				       const MultiFab &mf,
-				       const Vector<std::string> &varnames,
-				       const Geometry &geom,
-				       Real t,
-				       int level_step,
+                                       const MultiFab &mf,
+                                       const Vector<std::string> &varnames,
+                                       const Geometry &geom,
+                                       Real t,
+                                       int level_step,
                                        const std::string &versionName = "HyperCLaw-V1.1",
                                        const std::string &levelPrefix = "Level_",
                                        const std::string &mfPrefix = "Cell",
@@ -119,12 +119,12 @@ namespace amrex
 
     void WriteMultiLevelPlotfileHDF5 (const std::string &plotfilename,
                                   int nlevels,
-				  const Vector<const MultiFab*> &mf,
-				  const Vector<std::string> &varnames,
-				  const Vector<Geometry> &geom,
-				  Real time,
-				  const Vector<int> &level_steps,
-				  const Vector<IntVect> &ref_ratio,
+                                  const Vector<const MultiFab*> &mf,
+                                  const Vector<std::string> &varnames,
+                                  const Vector<Geometry> &geom,
+                                  Real time,
+                                  const Vector<int> &level_steps,
+                                  const Vector<IntVect> &ref_ratio,
                                   const std::string &versionName = "HyperCLaw-V1.1",
                                   const std::string &levelPrefix = "Level_",
                                   const std::string &mfPrefix = "Cell",

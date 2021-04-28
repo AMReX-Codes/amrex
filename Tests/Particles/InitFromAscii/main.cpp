@@ -24,17 +24,17 @@ void test_init_ascii (TestParams& parms)
         real_box.setLo(n, 0.0);
         real_box.setHi(n, 1.0);
     }
-    
+
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
     IntVect domain_hi(AMREX_D_DECL(parms.nx - 1, parms.ny - 1, parms.nz-1));
     const Box domain(domain_lo, domain_hi);
-    
+
     // This sets the boundary conditions to be doubly or triply periodic
     int is_per[AMREX_SPACEDIM];
-    for (int i = 0; i < AMREX_SPACEDIM; i++) 
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
         is_per[i] = 1;
     Geometry geom(domain, &real_box, CoordSys::cartesian, is_per);
-    
+
     BoxArray ba(domain);
     ba.maxSize(parms.max_grid_size);
 
@@ -67,16 +67,16 @@ void test_init_ascii (TestParams& parms)
 int main(int argc, char* argv[])
 {
   amrex::Initialize(argc,argv);
-  
+
   ParmParse pp;
-  
-  TestParams parms; 
+
+  TestParams parms;
   pp.get("nx", parms.nx);
   pp.get("ny", parms.ny);
   pp.get("nz", parms.nz);
   pp.get("max_grid_size", parms.max_grid_size);
-  
+
   test_init_ascii(parms);
-  
+
   amrex::Finalize();
 }

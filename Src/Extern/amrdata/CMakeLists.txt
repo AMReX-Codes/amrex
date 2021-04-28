@@ -7,7 +7,7 @@ target_sources(amrex
    AMReX_XYPlotDataList.H
    AMReX_XYPlotDataList.cpp
    AMReX_DataServices.H
-   AMReX_DataServices.cpp 
+   AMReX_DataServices.cpp
    AMReX_AmrvisConstants.H
    AMReX_FABUTIL_${AMReX_SPACEDIM}D.F
    )

@@ -2,7 +2,7 @@
 #define AMREX_PARSTREAM_H_
 #include <AMReX_Config.H>
 
-#include <iostream>
+#include <iosfwd>
 #include <string>
 namespace amrex
 {

@@ -1,9 +1,4 @@
 
-#include <sstream>
-
-#include <memory>
-#include <limits>
-
 #include <AMReX_AmrLevel.H>
 #include <AMReX_Derive.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -19,6 +14,10 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_EB2.H>
 #endif
+
+#include <sstream>
+#include <memory>
+#include <limits>
 
 namespace amrex {
 
@@ -38,10 +37,10 @@ AmrLevel::postCoarseTimeStep (Real time)
     BL_ASSERT(level == 0);
     // sync up statedata time
     for (int lev = 0; lev <= parent->finestLevel(); ++lev) {
-	AmrLevel& amrlevel = parent->getLevel(lev);
-	for (int i = 0; i < amrlevel.state.size(); ++i) {
-	    amrlevel.state[i].syncNewTimeLevel(time);
-	}
+        AmrLevel& amrlevel = parent->getLevel(lev);
+        for (int i = 0; i < amrlevel.state.size(); ++i) {
+            amrlevel.state[i].syncNewTimeLevel(time);
+        }
     }
 }
 
@@ -78,7 +77,7 @@ AmrLevel::AmrLevel (Amr&            papa,
                     int             lev,
                     const Geometry& level_geom,
                     const BoxArray& ba,
-		    const DistributionMapping& dm,
+                    const DistributionMapping& dm,
                     Real            time)
     :
     geom(level_geom),
@@ -114,7 +113,7 @@ AmrLevel::AmrLevel (Amr&            papa,
     } else
 #endif
     {
-        m_factory.reset(new FArrayBoxFactory());
+        m_factory = std::make_unique<FArrayBoxFactory>();
     }
 
     // Note that this creates a distribution map associated with grids.
@@ -126,7 +125,7 @@ AmrLevel::AmrLevel (Amr&            papa,
         MultiFab::RegionTag level_tag("AmrLevel_Level_" + std::to_string(lev));
         state[i].define(geom.Domain(),
                         grids,
-			dm,
+                        dm,
                         desc_lst[i],
                         time,
                         parent->dtLevel(lev),
@@ -155,25 +154,25 @@ AmrLevel::writePlotFile (const std::string& dir,
     for (int typ = 0; typ < desc_lst.size(); typ++)
     {
         for (int comp = 0; comp < desc_lst[typ].nComp();comp++)
-	{
+        {
             if (parent->isStatePlotVar(desc_lst[typ].name(comp)) &&
                 desc_lst[typ].getType() == IndexType::TheCellType())
-	    {
+            {
                 plot_var_map.push_back(std::pair<int,int>(typ,comp));
-	    }
-	}
+            }
+        }
     }
 
     std::vector<std::string> derive_names;
     const std::list<DeriveRec>& dlist = derive_lst.dlist();
     for (std::list<DeriveRec>::const_iterator it = dlist.begin();
-	 it != dlist.end();
-	 ++it)
+         it != dlist.end();
+         ++it)
     {
         if (parent->isDerivePlotVar(it->name()))
         {
             derive_names.push_back(it->name());
-	}
+        }
     }
 
     int n_data_items = plot_var_map.size() + derive_names.size();
@@ -200,14 +199,14 @@ AmrLevel::writePlotFile (const std::string& dir,
 
         os << n_data_items << '\n';
 
-	//
-	// Names of variables
-	//
-	for (i =0; i < static_cast<int>(plot_var_map.size()); i++)
+        //
+        // Names of variables
+        //
+        for (i =0; i < static_cast<int>(plot_var_map.size()); i++)
         {
-	    int typ = plot_var_map[i].first;
-	    int comp = plot_var_map[i].second;
-	    os << desc_lst[typ].name(comp) << '\n';
+            int typ = plot_var_map[i].first;
+            int comp = plot_var_map[i].second;
+            os << desc_lst[typ].name(comp) << '\n';
         }
 
         // derived
@@ -270,13 +269,13 @@ AmrLevel::writePlotFile (const std::string& dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if ( ! levelDirectoryCreated) {
-      if (ParallelDescriptor::IOProcessor()) {
-        if ( ! amrex::UtilCreateDirectory(FullPath, 0755)) {
-            amrex::CreateDirectoryFailed(FullPath);
-	}
-      }
-      // Force other processors to wait until directory is built.
-      ParallelDescriptor::Barrier();
+        if (ParallelDescriptor::IOProcessor()) {
+            if ( ! amrex::UtilCreateDirectory(FullPath, 0755)) {
+                amrex::CreateDirectoryFailed(FullPath);
+            }
+        }
+        // Force other processors to wait until directory is built.
+        ParallelDescriptor::Barrier();
     }
 
     if (ParallelDescriptor::IOProcessor())
@@ -325,21 +324,21 @@ AmrLevel::writePlotFile (const std::string& dir,
     //
     for (i = 0; i < static_cast<int>(plot_var_map.size()); i++)
     {
-	int typ  = plot_var_map[i].first;
-	int comp = plot_var_map[i].second;
-	this_dat = &state[typ].newData();
-	MultiFab::Copy(plotMF,*this_dat,comp,cnt,1,nGrow);
-	cnt++;
+        int typ  = plot_var_map[i].first;
+        int comp = plot_var_map[i].second;
+        this_dat = &state[typ].newData();
+        MultiFab::Copy(plotMF,*this_dat,comp,cnt,1,nGrow);
+        cnt++;
     }
 
     // derived
     if (derive_names.size() > 0)
     {
-	for (auto const& dname : derive_names)
-	{
+        for (auto const& dname : derive_names)
+        {
             derive(dname, cur_time, plotMF, cnt);
-	    cnt++;
-	}
+            cnt++;
+        }
     }
 
 #ifdef AMREX_USE_EB
@@ -382,7 +381,7 @@ AmrLevel::writePlotFilePost (const std::string& /*dir*/,
 void
 AmrLevel::restart (Amr&          papa,
                    std::istream& is,
-		   bool          bReadSpecial)
+                   bool          bReadSpecial)
 {
     BL_PROFILE("AmrLevel::restart()");
     parent = &papa;
@@ -417,9 +416,9 @@ AmrLevel::restart (Amr&          papa,
 
     Vector<int> state_in_checkpoint(ndesc, 1);
     if (ndesc > nstate) {
-	set_state_in_checkpoint(state_in_checkpoint);
+        set_state_in_checkpoint(state_in_checkpoint);
     } else {
-	BL_ASSERT(nstate == ndesc);
+        BL_ASSERT(nstate == ndesc);
     }
 
     dmap.define(grids);
@@ -437,18 +436,18 @@ AmrLevel::restart (Amr&          papa,
     } else
 #endif
     {
-        m_factory.reset(new FArrayBoxFactory());
+        m_factory = std::make_unique<FArrayBoxFactory>();
     }
 
     state.resize(ndesc);
     for (int i = 0; i < ndesc; ++i)
     {
-	if (state_in_checkpoint[i]) {
-	    state[i].restart(is, geom.Domain(), grids, dmap, *m_factory,
-			     desc_lst[i], papa.theRestartFile());
-	}
+        if (state_in_checkpoint[i]) {
+            state[i].restart(is, geom.Domain(), grids, dmap, *m_factory,
+                             desc_lst[i], papa.theRestartFile());
+        }
     }
- 
+
     if (parent->useFixedCoarseGrids()) constructAreaNotToTag();
 
     post_step_regrid = 0;
@@ -619,8 +618,8 @@ AmrLevel::getEdgeBoxArray (int dir) const noexcept
 {
     BL_ASSERT(dir >=0 && dir < AMREX_SPACEDIM);
     if (edge_grids[dir].empty()) {
-	edge_grids[dir] = grids;
-	edge_grids[dir].surroundingNodes(dir);
+        edge_grids[dir] = grids;
+        edge_grids[dir].surroundingNodes(dir);
     }
     return edge_grids[dir];
 }
@@ -629,8 +628,8 @@ const BoxArray&
 AmrLevel::getNodalBoxArray () const noexcept
 {
     if (nodal_grids.empty()) {
-	nodal_grids = grids;
-	nodal_grids.surroundingNodes();
+        nodal_grids = grids;
+        nodal_grids.surroundingNodes();
     }
     return nodal_grids;
 }
@@ -848,7 +847,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
             }
         }
 
-	// cells outside physical boundaries are not included in unfilledThisLevel
+        // cells outside physical boundaries are not included in unfilledThisLevel
 
         bool Done = false;
 
@@ -890,7 +889,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
                 {
                     const Box& cbox = m_map->CoarseBox(fbx,fine_ratio);
 
-		    crse_boxes.back() = cbox;
+                    crse_boxes.back() = cbox;
 
                     if (is_periodic && !thePDomain.contains(cbox))
                     {
@@ -942,15 +941,15 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
                 BL_ASSERT(CrseBoxes[i].intersects(thePDomain));
 
                 theState.InterpAddBox(m_mfcd,
-				      m_mfid[l],
-				      &tempUnfillable,
-				      FBIDs[i],
-				      CrseBoxes[i],
-				      m_time,
-				      m_scomp,
-				      0,
-				      m_ncomp,
-				      extrap);
+                                      m_mfid[l],
+                                      &tempUnfillable,
+                                      FBIDs[i],
+                                      CrseBoxes[i],
+                                      m_time,
+                                      m_scomp,
+                                      0,
+                                      m_ncomp,
+                                      extrap);
 
                 unfillableThisLevel.catenate(tempUnfillable);
             }
@@ -994,7 +993,7 @@ FillPatchIterator::Initialize (int  boxGrow,
     m_range = desc.sameInterps(scomp,ncomp);
 
     m_fabs.define(m_leveldata.boxArray(),m_leveldata.DistributionMap(),
-		  m_ncomp,boxGrow,MFInfo(),m_leveldata.Factory());
+                  m_ncomp,boxGrow,MFInfo(),m_leveldata.Factory());
 
     const Geometry& geom = m_amrlevel.Geom();
 
@@ -1008,19 +1007,19 @@ FillPatchIterator::Initialize (int  boxGrow,
         const int SComp = m_range[i].first;
         const int NComp = m_range[i].second;
 
-	if (level == 0)
-	{
-	    FillFromLevel0(time, idx, SComp, DComp, NComp);
-	}
-	else
-	{
-	    if (level == 1 || 
-		amrex::ProperlyNested(m_amrlevel.crse_ratio,
-				       m_amrlevel.parent->blockingFactor(m_amrlevel.level),
-				       boxGrow, boxType, desc.interp(SComp)))
-	    {
-		FillFromTwoLevels(time, idx, SComp, DComp, NComp);
-	    } else {
+        if (level == 0)
+        {
+            FillFromLevel0(time, idx, SComp, DComp, NComp);
+        }
+        else
+        {
+            if (level == 1 ||
+                amrex::ProperlyNested(m_amrlevel.crse_ratio,
+                                      m_amrlevel.parent->blockingFactor(m_amrlevel.level),
+                                      boxGrow, boxType, desc.interp(SComp)))
+            {
+                FillFromTwoLevels(time, idx, SComp, DComp, NComp);
+            } else {
 
 #ifdef AMREX_USE_EB
                 if (EB2::TopIndexSpaceIfPresent()) {
@@ -1028,21 +1027,21 @@ FillPatchIterator::Initialize (int  boxGrow,
                 }
 #endif
 
-		static bool first = true;
-		if (first) {
-		    first = false;
-		    if (ParallelDescriptor::IOProcessor() && amrex::Verbose()) {
-			IntVect new_blocking_factor = m_amrlevel.parent->blockingFactor(m_amrlevel.level);
+                static bool first = true;
+                if (first) {
+                    first = false;
+                    if (ParallelDescriptor::IOProcessor() && amrex::Verbose()) {
+                        IntVect new_blocking_factor = m_amrlevel.parent->blockingFactor(m_amrlevel.level);
                         new_blocking_factor *= 2;
-			for (int j = 0; j < 10; ++j) {
-			    if (amrex::ProperlyNested(m_amrlevel.crse_ratio,
-						       new_blocking_factor,
-						       boxGrow, boxType, desc.interp(SComp))) {
-				break;
-			    } else {
-				new_blocking_factor *= 2;
-			    }
-			}
+                        for (int j = 0; j < 10; ++j) {
+                            if (amrex::ProperlyNested(m_amrlevel.crse_ratio,
+                                                      new_blocking_factor,
+                                                      boxGrow, boxType, desc.interp(SComp))) {
+                                break;
+                            } else {
+                                new_blocking_factor *= 2;
+                            }
+                        }
                         amrex::Print() << "WARNING: Grids are not properly nested.  We might have to use\n"
                                        << "         two coarse levels to do fillpatch.  Consider using\n";
                         if (new_blocking_factor < IntVect{AMREX_D_DECL(128,128,128)}) {
@@ -1050,32 +1049,32 @@ FillPatchIterator::Initialize (int  boxGrow,
                         } else {
                             amrex::Print() << "         larger amr.blocking_factor.\n";
                         }
-		    }
-		}
+                    }
+                }
 
-		FillPatchIteratorHelper* fph = 0;
-		fph = new FillPatchIteratorHelper(m_amrlevel,
-						  m_leveldata,
-						  boxGrow,
-						  time,
-						  idx,
-						  SComp,
-						  NComp,
-						  desc.interp(SComp));
-	
+                FillPatchIteratorHelper* fph = 0;
+                fph = new FillPatchIteratorHelper(m_amrlevel,
+                                                  m_leveldata,
+                                                  boxGrow,
+                                                  time,
+                                                  idx,
+                                                  SComp,
+                                                  NComp,
+                                                  desc.interp(SComp));
+
 #if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
 #endif
-		for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
-		{
-		    fph->fill(m_fabs[mfi],DComp,mfi.index());
-		}
-		
-		delete fph;
-	    }
-	}
+                for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
+                {
+                    fph->fill(m_fabs[mfi],DComp,mfi.index());
+                }
+
+                delete fph;
+            }
+        }
 
         DComp += NComp;
     }
@@ -1121,7 +1120,7 @@ FillPatchIterator::FillFromTwoLevels (Real time, int idx, int scomp, int dcomp, 
 
     const Geometry& geom_fine = fine_level.geom;
     const Geometry& geom_crse = crse_level.geom;
-    
+
     Vector<MultiFab*> smf_crse;
     Vector<Real> stime_crse;
     StateData& statedata_crse = crse_level.state[idx];
@@ -1136,14 +1135,14 @@ FillPatchIterator::FillFromTwoLevels (Real time, int idx, int scomp, int dcomp, 
 
     const StateDescriptor& desc = AmrLevel::desc_lst[idx];
 
-    amrex::FillPatchTwoLevels(m_fabs, time, 
-                              smf_crse, stime_crse, 
+    amrex::FillPatchTwoLevels(m_fabs, time,
+                              smf_crse, stime_crse,
                               smf_fine, stime_fine,
-                              scomp, dcomp, ncomp, 
+                              scomp, dcomp, ncomp,
                               geom_crse, geom_fine,
                               physbcf_crse, scomp,
                               physbcf_fine, scomp,
-                              crse_level.fineRatio(), 
+                              crse_level.fineRatio(),
                               desc.interp(scomp),
                               desc.getBCs(),scomp);
 }
@@ -1293,9 +1292,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         for (int i = 0; i < NC; i++)
         {
             BL_ASSERT(CrseBoxes[i].ok());
-            CrseFabs[i].reset(new FArrayBox(CrseBoxes[i],m_ncomp));
+            CrseFabs[i] = std::make_unique<FArrayBox>(CrseBoxes[i],m_ncomp);
             CrseFabs[i]->setComplement<RunOn::Host>(std::numeric_limits<Real>::quiet_NaN(), domain_box, 0, m_ncomp);
-	}
+        }
 
         for (int i = 0; i < NC; i++)
         {
@@ -1304,14 +1303,14 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             // to ensure we've filled the FABs at the coarse level.
             //
             TheState.InterpFillFab(m_mfcd,
-				   m_mfid[l],
-				   FBIDs[i],
-				   *CrseFabs[i],
-				   m_time,
-				   0,
-				   0,
-				   m_ncomp,
-				   extrap);
+                                   m_mfid[l],
+                                   FBIDs[i],
+                                   *CrseFabs[i],
+                                   m_time,
+                                   0,
+                                   0,
+                                   m_ncomp,
+                                   extrap);
         }
     }
     //
@@ -1406,17 +1405,17 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             for (int j = 0; j < NC; j++) {
                 crsefab.copy<RunOn::Host>(*CrseFabs[j]);
-	    }
+            }
             //
             // Get boundary conditions for the fine patch.
             //
             amrex::setBC(crsefab.box(),
-			 cDomain,
-			 m_scomp,
-			 0,
-			 m_ncomp,
-			 theBCs,
-			 bcr);
+                         cDomain,
+                         m_scomp,
+                         0,
+                         m_ncomp,
+                         theBCs,
+                         bcr);
             //
             // Interpolate up to fine patch.
             //
@@ -1436,9 +1435,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Copy intersect finefab into next level m_cboxes.
             //
-	    for (int j = 0, K = FinerCrseFabs.size(); j < K; ++j) {
-		FinerCrseFabs[j]->copy<RunOn::Host>(finefab);
-	    }
+            for (int j = 0, K = FinerCrseFabs.size(); j < K; ++j) {
+                FinerCrseFabs[j]->copy<RunOn::Host>(finefab);
+            }
         }
 
         CrseFabs.clear();
@@ -1513,7 +1512,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
                            int       idx,
                            int       scomp,
                            int       ncomp,
-			   int       nghost)
+                           int       nghost)
 {
     BL_PROFILE("AmrLevel::FillCoarsePatch()");
 
@@ -1536,9 +1535,9 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 
     Box domain_g = pdomain;
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-	if (geom.isPeriodic(i)) {
-	    domain_g.grow(i,nghost);
-	}
+        if (geom.isPeriodic(i)) {
+            domain_g.grow(i,nghost);
+        }
     }
 
     std::vector< std::pair<int,int> > ranges  = desc.sameInterps(scomp,ncomp);
@@ -1552,11 +1551,11 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
         Interpolater* mapper = desc.interp(SComp);
 
         BoxArray crseBA(mf_BA.size());
-        
+
         for (int j = 0, N = crseBA.size(); j < N; ++j)
         {
             BL_ASSERT(mf_BA[j].ixType() == desc.getType());
-	    const Box& bx = amrex::grow(mf_BA[j],nghost) & domain_g;
+            const Box& bx = amrex::grow(mf_BA[j],nghost) & domain_g;
             crseBA.set(j,mapper->CoarseBox(bx, crse_ratio));
         }
 
@@ -1571,50 +1570,50 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
             crseMF.define(crseBA,mf_DM,NComp,0);
         }
 
-	if ( level == 1 
-	     || amrex::ProperlyNested(crse_ratio, parent->blockingFactor(level),
-				       nghost, mf_BA.ixType(), mapper) )
-	{
-	    StateData& statedata = clev.state[idx];
-	    
-	    Vector<MultiFab*> smf;
-	    Vector<Real> stime;
-	    statedata.getData(smf,stime,time);
+        if ( level == 1
+             || amrex::ProperlyNested(crse_ratio, parent->blockingFactor(level),
+                                      nghost, mf_BA.ixType(), mapper) )
+        {
+            StateData& statedata = clev.state[idx];
 
-	    StateDataPhysBCFunct physbcf(statedata,SComp,cgeom);
+            Vector<MultiFab*> smf;
+            Vector<Real> stime;
+            statedata.getData(smf,stime,time);
+
+            StateDataPhysBCFunct physbcf(statedata,SComp,cgeom);
 
             crseMF.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
-	    amrex::FillPatchSingleLevel(crseMF,time,smf,stime,SComp,0,NComp,cgeom,physbcf,SComp);
-	}
-	else
-	{
-	    FillPatch(clev,crseMF,0,time,idx,SComp,NComp,0);
-	}
+            amrex::FillPatchSingleLevel(crseMF,time,smf,stime,SComp,0,NComp,cgeom,physbcf,SComp);
+        }
+        else
+        {
+            FillPatch(clev,crseMF,0,time,idx,SComp,NComp,0);
+        }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	{
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
             const Box& dbx = amrex::grow(mfi.validbox(),nghost) & domain_g;
-	    
-            Vector<BCRec> bcr(ncomp);
-	    
-	    amrex::setBC(crseMF[mfi].box(),cdomain,SComp,0,NComp,desc.getBCs(),bcr);
 
-	    mapper->interp(crseMF[mfi],
-			   0,
-			   mf[mfi],
-			   DComp,
-			   NComp,
-			   dbx,
-			   crse_ratio,
-			   cgeom,
-			   geom,
-			   bcr,
-			   SComp,
-			   idx, RunOn::Gpu);
-	}
+            Vector<BCRec> bcr(ncomp);
+
+            amrex::setBC(crseMF[mfi].box(),cdomain,SComp,0,NComp,desc.getBCs(),bcr);
+
+            mapper->interp(crseMF[mfi],
+                           0,
+                           mf[mfi],
+                           DComp,
+                           NComp,
+                           dbx,
+                           crse_ratio,
+                           cgeom,
+                           geom,
+                           bcr,
+                           SComp,
+                           idx, RunOn::Gpu);
+        }
 
         if (nghost > 0) {
             StateDataPhysBCFunct physbcf(state[idx],SComp,geom);
@@ -1636,7 +1635,7 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
 
     if (isStateVariable(name, index, scomp))
     {
-        mf.reset(new MultiFab(state[index].boxArray(), dmap, 1, ngrow, MFInfo(), *m_factory));
+        mf = std::make_unique<MultiFab>(state[index].boxArray(), dmap, 1, ngrow, MFInfo(), *m_factory);
         FillPatch(*this,*mf,ngrow,time,index,scomp,1,0);
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
@@ -1648,13 +1647,13 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
         BoxArray dstBA(srcBA);
         dstBA.convert(rec->deriveType());
 
-	int ngrow_src = ngrow;
-	{
-	    Box bx0 = srcBA[0];
-	    Box bx1 = rec->boxMap()(bx0);
-	    int g = bx0.smallEnd(0) - bx1.smallEnd(0);
-	    ngrow_src += g;
-	}
+        int ngrow_src = ngrow;
+        {
+            Box bx0 = srcBA[0];
+            Box bx1 = rec->boxMap()(bx0);
+            int g = bx0.smallEnd(0) - bx1.smallEnd(0);
+            ngrow_src += g;
+        }
 
         MultiFab srcMF(srcBA, dmap, rec->numState(), ngrow_src, MFInfo(), *m_factory);
 
@@ -1665,7 +1664,7 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
         }
 
         const int dncomp = rec->numDerive();
-        mf.reset(new MultiFab(dstBA, dmap, dncomp, ngrow, MFInfo(), *m_factory));
+        mf = std::make_unique<MultiFab>(dstBA, dmap, dncomp, ngrow, MFInfo(), *m_factory);
 
         if (rec->derFuncFab() != nullptr)
         {
@@ -1692,9 +1691,9 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
             Real*       ddat    = (*mf)[mfi].dataPtr();
             const int*  dlo     = (*mf)[mfi].loVect();
             const int*  dhi     = (*mf)[mfi].hiVect();
-	    const Box&  gtbx    = mfi.growntilebox();
-	    const int*  lo      = gtbx.loVect();
-	    const int*  hi      = gtbx.hiVect();
+            const Box&  gtbx    = mfi.growntilebox();
+            const int*  lo      = gtbx.loVect();
+            const int*  hi      = gtbx.hiVect();
             int         n_der   = rec->numDerive();
             Real*       cdat    = srcMF[mfi].dataPtr();
             const int*  clo     = srcMF[mfi].loVect();
@@ -1801,13 +1800,13 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 
         const BoxArray& srcBA = state[index].boxArray();
 
-	int ngrow_src = ngrow;
-	{
-	    Box bx0 = srcBA[0];
-	    Box bx1 = rec->boxMap()(bx0);
-	    int g = bx0.smallEnd(0) - bx1.smallEnd(0);
-	    ngrow_src += g;
-	}
+        int ngrow_src = ngrow;
+        {
+            Box bx0 = srcBA[0];
+            Box bx1 = rec->boxMap()(bx0);
+            int g = bx0.smallEnd(0) - bx1.smallEnd(0);
+            ngrow_src += g;
+        }
 
         MultiFab srcMF(srcBA,dmap,rec->numState(),ngrow_src, MFInfo(), *m_factory);
 
@@ -1985,14 +1984,14 @@ AmrLevel::setPlotVariables ()
     if (pp.contains("plot_vars"))
     {
         std::string nm;
-      
+
         int nPltVars = pp.countval("plot_vars");
-      
+
         for (int i = 0; i < nPltVars; i++)
         {
             pp.get("plot_vars", nm, i);
 
-            if (nm == "ALL") 
+            if (nm == "ALL")
                 parent->fillStatePlotVarList();
             else if (nm == "NONE")
                 parent->clearStatePlotVarList();
@@ -2000,25 +1999,25 @@ AmrLevel::setPlotVariables ()
                 parent->addStatePlotVar(nm);
         }
     }
-    else 
+    else
     {
         //
         // The default is to add them all.
         //
         parent->fillStatePlotVarList();
     }
-  
+
     if (pp.contains("derive_plot_vars"))
     {
         std::string nm;
-      
+
         int nDrvPltVars = pp.countval("derive_plot_vars");
-      
+
         for (int i = 0; i < nDrvPltVars; i++)
         {
             pp.get("derive_plot_vars", nm, i);
 
-            if (nm == "ALL") 
+            if (nm == "ALL")
                 parent->fillDerivePlotVarList();
             else if (nm == "NONE")
                 parent->clearDerivePlotVarList();
@@ -2026,7 +2025,7 @@ AmrLevel::setPlotVariables ()
                 parent->addDerivePlotVar(nm);
         }
     }
-    else 
+    else
     {
         //
         // The default is to add none of them.
@@ -2043,9 +2042,9 @@ AmrLevel::setSmallPlotVariables ()
     if (pp.contains("small_plot_vars"))
     {
         std::string nm;
-      
+
         int nPltVars = pp.countval("small_plot_vars");
-      
+
         for (int i = 0; i < nPltVars; i++)
         {
             pp.get("small_plot_vars", nm, i);
@@ -2058,7 +2057,7 @@ AmrLevel::setSmallPlotVariables ()
                 parent->addStateSmallPlotVar(nm);
         }
     }
-    else 
+    else
     {
         //
         // The default is to use none.
@@ -2069,14 +2068,14 @@ AmrLevel::setSmallPlotVariables ()
     if (pp.contains("derive_small_plot_vars"))
     {
         std::string nm;
-      
+
         int nDrvPltVars = pp.countval("derive_small_plot_vars");
-      
+
         for (int i = 0; i < nDrvPltVars; i++)
         {
             pp.get("derive_small_plot_vars", nm, i);
 
-            if (nm == "ALL") 
+            if (nm == "ALL")
                 parent->fillDeriveSmallPlotVarList();
             else if (nm == "NONE")
                 parent->clearDeriveSmallPlotVarList();
@@ -2084,14 +2083,14 @@ AmrLevel::setSmallPlotVariables ()
                 parent->addDeriveSmallPlotVar(nm);
         }
     }
-    else 
+    else
     {
         //
         // The default is to add none of them.
         //
         parent->clearDeriveSmallPlotVarList();
     }
-  
+
 }
 
 AmrLevel::TimeLevel
@@ -2105,7 +2104,7 @@ AmrLevel::which_time (int  indx, Real time) const noexcept
     const Real epsilon = 0.001_rt * (newtime - oldtime);
 
     BL_ASSERT(time >= oldtime-epsilon && time <= newtime+epsilon);
-    
+
     if (time >= oldtime-epsilon && time <= oldtime+epsilon)
     {
         return AmrOldTime;
@@ -2171,8 +2170,8 @@ void AmrLevel::constructAreaNotToTag ()
     if (parent->useFixedUpToLevel()==level)
     {
         // We use the next coarser level shrunk by one blockingfactor
-        //    as the region in which we allow tagging. 
-        // Why level-1? Because we always use the full domain at level 0 
+        //    as the region in which we allow tagging.
+        // Why level-1? Because we always use the full domain at level 0
         //    and therefore level 0 in initialba is level 1 in the AMR hierarchy, etc.
         const Vector<BoxArray>& initialba = parent->getInitialBA();
         Box tagarea(initialba[level-1].minimalBox());
@@ -2200,7 +2199,7 @@ void AmrLevel::constructAreaNotToTag ()
 
 void
 AmrLevel::FillPatch (AmrLevel& amrlevel,
-		     MultiFab& leveldata,
+                     MultiFab& leveldata,
                      int       boxGrow,
                      Real      time,
                      int       index,

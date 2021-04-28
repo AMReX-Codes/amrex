@@ -3,9 +3,6 @@
 #define BL_MULTIFAB_H
 #include <AMReX_Config.H>
 
-
-#include <cstdint>
-
 #include <AMReX_BLassert.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabArray.H>
@@ -15,6 +12,8 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
 #endif
+
+#include <cstdint>
 
 namespace amrex
 {
@@ -63,10 +62,10 @@ public:
               int                        ncomp,
               int                        ngrow,
 #ifdef AMREX_STRICT_MODE
-	      const MFInfo&              info,
+              const MFInfo&              info,
               const FabFactory<FArrayBox>& factory);
 #else
-	      const MFInfo&              info = MFInfo(),
+              const MFInfo&              info = MFInfo(),
               const FabFactory<FArrayBox>& factory = FArrayBoxFactory());
 #endif
 
@@ -75,10 +74,10 @@ public:
               int                        ncomp,
               const IntVect&             ngrow,
 #ifdef AMREX_STRICT_MODE
-	      const MFInfo&              info,
+              const MFInfo&              info,
               const FabFactory<FArrayBox>& factory);
 #else
-	      const MFInfo&              info = MFInfo(),
+              const MFInfo&              info = MFInfo(),
               const FabFactory<FArrayBox>& factory = FArrayBoxFactory());
 #endif
 
@@ -99,26 +98,26 @@ public:
     MultiFab& operator= (const MultiFab& rhs) = delete;
 
     virtual void define (const BoxArray&            bxs,
-			 const DistributionMapping& dm,
-			 int                        nvar,
-			 int                        ngrow,
+                         const DistributionMapping& dm,
+                         int                        nvar,
+                         int                        ngrow,
 #ifdef AMREX_STRICT_MODE
-			 const MFInfo&              info,
+                         const MFInfo&              info,
                          const FabFactory<FArrayBox>& factory) override;
 #else
-			 const MFInfo&              info = MFInfo(),
+                         const MFInfo&              info = MFInfo(),
                          const FabFactory<FArrayBox>& factory = FArrayBoxFactory()) override;
 #endif
 
     virtual void define (const BoxArray&            bxs,
-			 const DistributionMapping& dm,
-			 int                        nvar,
-			 const IntVect&             ngrow,
+                         const DistributionMapping& dm,
+                         int                        nvar,
+                         const IntVect&             ngrow,
 #ifdef AMREX_STRICT_MODE
-			 const MFInfo&              info,
+                         const MFInfo&              info,
                          const FabFactory<FArrayBox>& factory) override;
 #else
-			 const MFInfo&              info = MFInfo(),
+                         const MFInfo&              info = MFInfo(),
                          const FabFactory<FArrayBox>& factory = FArrayBoxFactory()) override;
 #endif
 
@@ -132,7 +131,7 @@ public:
     */
     Real min (int comp,
               int nghost = 0,
-	      bool local = false) const;
+              bool local = false) const;
     /**
     * \brief Identical to min() function, but confines its
     * search to intersection of Box b and the MultiFab.
@@ -140,7 +139,7 @@ public:
     Real min (const Box& b,
               int        comp,
               int        nghost = 0,
-	      bool       local = false) const;
+              bool       local = false) const;
     /**
     * \brief Returns the maximum value contained in component comp of the
     * MultiFab.  The parameter nghost determines the number of
@@ -149,7 +148,7 @@ public:
     */
     Real max (int comp,
               int nghost = 0,
-	      bool local = false) const;
+              bool local = false) const;
     /**
     * \brief Identical to the previous max() function, but confines its
     * search to intersection of Box b and the MultiFab.
@@ -157,7 +156,7 @@ public:
     Real max (const Box& b,
               int        comp,
               int        nghost = 0,
-	      bool       local = false) const;
+              bool       local = false) const;
     /**
     * \brief Returns the maximum *absolute* value contained in
     * component comp of the MultiFab.
@@ -415,36 +414,36 @@ public:
     * against divide by zero.
     */
     void divide (const MultiFab& mf,
-		 int             strt_comp,
-		 int             num_comp,
-		 int             nghost);
+                 int             strt_comp,
+                 int             num_comp,
+                 int             nghost);
     /**
     * \brief Returns the dot product of two MultiFabs.
     */
     static Real Dot (const MultiFab& x, int xcomp,
-		     const MultiFab& y, int ycomp,
-		     int num_comp, int nghost, bool local = false);
+                     const MultiFab& y, int ycomp,
+                     int num_comp, int nghost, bool local = false);
 
     /**
     * \brief Returns the dot product of a MultiFab with itself.
     */
     static Real Dot (const MultiFab& x, int xcomp,
-		     int num_comp, int nghost, bool local = false);
+                     int num_comp, int nghost, bool local = false);
 
     static Real Dot (const iMultiFab& mask,
                      const MultiFab& x, int xcomp,
-		     const MultiFab& y, int ycomp,
-		     int num_comp, int nghost, bool local = false);
+                     const MultiFab& y, int ycomp,
+                     int num_comp, int nghost, bool local = false);
     /**
     * \brief Add src to dst including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
     */
     static void Add (MultiFab&       dst,
-		     const MultiFab& src,
-		     int             srccomp,
-		     int             dstcomp,
-		     int             numcomp,
-		     int             nghost);
+                     const MultiFab& src,
+                     int             srccomp,
+                     int             dstcomp,
+                     int             numcomp,
+                     int             nghost);
 
     static void Add (MultiFab&       dst,
                      const MultiFab& src,
@@ -495,134 +494,134 @@ public:
     * The two MultiFabs MUST have the same underlying BoxArray.
     */
     static void Subtract (MultiFab&       dst,
-			  const MultiFab& src,
-			  int             srccomp,
-			  int             dstcomp,
-			  int             numcomp,
-			  int             nghost);
+                          const MultiFab& src,
+                          int             srccomp,
+                          int             dstcomp,
+                          int             numcomp,
+                          int             nghost);
 
     static void Subtract (MultiFab&       dst,
-			  const MultiFab& src,
-			  int             srccomp,
-			  int             dstcomp,
-			  int             numcomp,
-			  const IntVect&  nghost);
+                          const MultiFab& src,
+                          int             srccomp,
+                          int             dstcomp,
+                          int             numcomp,
+                          const IntVect&  nghost);
     /**
     * \brief Multiply dst by src including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
     */
     static void Multiply (MultiFab&       dst,
-			  const MultiFab& src,
-			  int             srccomp,
-			  int             dstcomp,
-			  int             numcomp,
-			  int             nghost);
+                          const MultiFab& src,
+                          int             srccomp,
+                          int             dstcomp,
+                          int             numcomp,
+                          int             nghost);
 
     static void Multiply (MultiFab&       dst,
-			  const MultiFab& src,
-			  int             srccomp,
-			  int             dstcomp,
-			  int             numcomp,
-			  const IntVect&  nghost);
+                          const MultiFab& src,
+                          int             srccomp,
+                          int             dstcomp,
+                          int             numcomp,
+                          const IntVect&  nghost);
     /**
     * \brief Divide dst by src including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
     */
     static void Divide (MultiFab&       dst,
-			const MultiFab& src,
-			int             srccomp,
-			int             dstcomp,
-			int             numcomp,
-			int             nghost);
+                        const MultiFab& src,
+                        int             srccomp,
+                        int             dstcomp,
+                        int             numcomp,
+                        int             nghost);
 
     static void Divide (MultiFab&       dst,
-			const MultiFab& src,
-			int             srccomp,
-			int             dstcomp,
-			int             numcomp,
-			const IntVect&  nghost);
+                        const MultiFab& src,
+                        int             srccomp,
+                        int             dstcomp,
+                        int             numcomp,
+                        const IntVect&  nghost);
     /**
     * \brief dst += a*src
     */
     static void Saxpy (MultiFab&       dst,
-		       Real            a,
-		       const MultiFab& src,
-		       int             srccomp,
-		       int             dstcomp,
-		       int             numcomp,
-		       int             nghost);
+                       Real            a,
+                       const MultiFab& src,
+                       int             srccomp,
+                       int             dstcomp,
+                       int             numcomp,
+                       int             nghost);
 
     static void Saxpy (MultiFab&       dst,
-		       Real            a,
-		       const MultiFab& src,
-		       int             srccomp,
-		       int             dstcomp,
-		       int             numcomp,
-		       const IntVect&  nghost);
+                       Real            a,
+                       const MultiFab& src,
+                       int             srccomp,
+                       int             dstcomp,
+                       int             numcomp,
+                       const IntVect&  nghost);
 
     /**
     * \brief dst = src + a*dst
     */
     static void Xpay (MultiFab&       dst,
-		      Real            a,
-		      const MultiFab& src,
-		      int             srccomp,
-		      int             dstcomp,
-		      int             numcomp,
-		      int             nghost);
+                      Real            a,
+                      const MultiFab& src,
+                      int             srccomp,
+                      int             dstcomp,
+                      int             numcomp,
+                      int             nghost);
 
     static void Xpay (MultiFab&       dst,
-		      Real            a,
-		      const MultiFab& src,
-		      int             srccomp,
-		      int             dstcomp,
-		      int             numcomp,
-		      const IntVect&  nghost);
+                      Real            a,
+                      const MultiFab& src,
+                      int             srccomp,
+                      int             dstcomp,
+                      int             numcomp,
+                      const IntVect&  nghost);
     /**
     * \brief dst = a*x + b*y
     */
     static void LinComb (MultiFab&       dst,
-			 Real            a,
-			 const MultiFab& x,
-			 int             xcomp,
-			 Real            b,
-			 const MultiFab& y,
-			 int             ycomp,
-			 int             dstcomp,
-			 int             numcomp,
-			 int             nghost);
+                         Real            a,
+                         const MultiFab& x,
+                         int             xcomp,
+                         Real            b,
+                         const MultiFab& y,
+                         int             ycomp,
+                         int             dstcomp,
+                         int             numcomp,
+                         int             nghost);
 
     static void LinComb (MultiFab&       dst,
-			 Real            a,
-			 const MultiFab& x,
-			 int             xcomp,
-			 Real            b,
-			 const MultiFab& y,
-			 int             ycomp,
-			 int             dstcomp,
-			 int             numcomp,
-			 const IntVect&  nghost);
+                         Real            a,
+                         const MultiFab& x,
+                         int             xcomp,
+                         Real            b,
+                         const MultiFab& y,
+                         int             ycomp,
+                         int             dstcomp,
+                         int             numcomp,
+                         const IntVect&  nghost);
 
     /**
     * \brief dst += src1*src2
     */
     static void AddProduct (MultiFab&       dst,
-			    const MultiFab& src1,
-			    int             comp1,
-			    const MultiFab& src2,
-			    int             comp2,
-			    int             dstcomp,
-			    int             numcomp,
-			    int             nghost);
+                            const MultiFab& src1,
+                            int             comp1,
+                            const MultiFab& src2,
+                            int             comp2,
+                            int             dstcomp,
+                            int             numcomp,
+                            int             nghost);
 
     static void AddProduct (MultiFab&       dst,
-			    const MultiFab& src1,
-			    int             comp1,
-			    const MultiFab& src2,
-			    int             comp2,
-			    int             dstcomp,
-			    int             numcomp,
-			    const IntVect&  nghost);
+                            const MultiFab& src1,
+                            int             comp1,
+                            const MultiFab& src2,
+                            int             comp2,
+                            int             dstcomp,
+                            int             numcomp,
+                            const IntVect&  nghost);
 
     /**
     * \brief Are there any NaNs in the MF?

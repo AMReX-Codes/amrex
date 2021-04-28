@@ -2,17 +2,6 @@
 #define BL_UTILITY_H
 #include <AMReX_Config.H>
 
-#include <cstdlib>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <map>
-#include <chrono>
-#include <type_traits>
-#include <climits>
-#include <limits>
-#include <cfloat>
-
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
 #include <AMReX_INT.H>
@@ -25,6 +14,17 @@
 #include <AMReX_Random.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_FileSystem.H>
+
+#include <cfloat>
+#include <chrono>
+#include <climits>
+#include <cstdlib>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <sstream>
+#include <string>
+#include <type_traits>
 
 namespace amrex
 {
@@ -42,7 +42,7 @@ namespace amrex
     const std::vector<std::string>& Tokenize (const std::string& instr,
                                               const std::string& separators);
 
-    //! Converts all characters of the string into lower or uppercase based on std::locale 
+    //! Converts all characters of the string into lower or uppercase based on std::locale
     std::string toLower (std::string s);
     std::string toUpper (std::string s);
 
@@ -62,15 +62,15 @@ namespace amrex
     *  if path is NULL or "/".  mode is the mode passed to mkdir() for
     *  any directories that must be created (for example:  0755).
     *  verbose will print out the directory creation steps.
-    * 
+    *
     *  For example, if it is passed the string "/a/b/c/d/e/f/g", it
     *  will return successfully when all the directories in the pathname
     *  exist; i.e. when the full pathname is a valid directory.
     *
     *  In a Windows environment, the path separator is a '\', so that if using
-    *  the example given above you must pass the string  
+    *  the example given above you must pass the string
     *  "\\a\\b\\c\\d\\e\\f\\g"  (Note that you must escape the backslash in a
-    *  character string), 
+    *  character string),
     *
     *  Only the last mkdir return value is checked for success as errno may not
     *  be set to EEXIST if a directory exists but mkdir has other reasons
@@ -79,7 +79,7 @@ namespace amrex
     */
     bool UtilCreateDirectory (const std::string& path,
                               mode_t             mode,
-			      bool               verbose = false);
+                              bool               verbose = false);
     //! Output a message and abort when couldn't create the directory.
     void CreateDirectoryFailed (const std::string& dir);
     //! Output a message and abort when couldn't open the file.
@@ -165,7 +165,7 @@ namespace amrex
     *  "p" MUST be in the open interval (0,1).
     *
     *  Entry points for Fortran:
-    * 
+    *
     *    REAL_T val
     *    call blinvnormdistbest(val)
     *
@@ -179,44 +179,44 @@ namespace amrex
     /* \brief cumulative refinement ratio between levels */
     int CRRBetweenLevels(int fromlevel, int tolevel,
                          const Vector<int> &refratios);
-   
+
     class expect;
     std::istream& operator>>(std::istream&, const expect& exp);
-    
+
     class expect
     {
-	friend std::istream& operator>>(std::istream&, const expect& exp);
+        friend std::istream& operator>>(std::istream&, const expect& exp);
     public:
-	explicit expect(const std::string& str_);
-	explicit expect(const char* istr_);
-	explicit expect(char c);
-	const std::string& the_string() const;
+        explicit expect(const std::string& str_);
+        explicit expect(const char* istr_);
+        explicit expect(char c);
+        const std::string& the_string() const;
     private:
-	std::string istr;
+        std::string istr;
     };
 
     class StreamRetry
     {
       public:
         StreamRetry(std::ostream &os, const std::string &suffix,
-	            const int maxtries);
+                    const int maxtries);
         StreamRetry(const std::string &filename,
-	            const bool abortonretryfailure,
-	            const int maxtries);
-	bool TryOutput();
-	bool TryFileOutput();
+                    const bool abortonretryfailure,
+                    const int maxtries);
+        bool TryOutput();
+        bool TryFileOutput();
         static int NStreamErrors()       { return nStreamErrors; }
         static void ClearStreamErrors()  { nStreamErrors = 0;    }
 
       private:
         int tries, maxTries;
-	bool abortOnRetryFailure;
-	std::string fileName;
-	std::ostream &sros;
-	std::ostream::pos_type spos;
-	std::string suffix;
+        bool abortOnRetryFailure;
+        std::string fileName;
+        std::ostream &sros;
+        std::ostream::pos_type spos;
+        std::string suffix;
 
-	static int nStreamErrors;
+        static int nStreamErrors;
     };
 
     Vector<char> SerializeStringArray(const Vector<std::string> &stringArray);
@@ -328,7 +328,7 @@ template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int r
 /*
   The macro BL_FORT_USE_LOWERCASE indicates that C++ code should call
   Fortran routines using lowercase letters for all the letters in the
-  routine.  This is set automatically by the make subsystem.  
+  routine.  This is set automatically by the make subsystem.
 
   For example, if the Fortran routine is named abcxyx, then it will
   be called in C++ code as abcxyx.
@@ -347,7 +347,7 @@ template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int r
 */
 #define BL_IGNORE_MAX 100000
 
-template <typename T> 
+template <typename T>
 amrex::Long
 amrex::bytesOf (const std::vector<T>& v)
 {

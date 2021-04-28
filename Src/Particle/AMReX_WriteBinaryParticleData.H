@@ -24,7 +24,7 @@ std::size_t PSizeInFile (const Vector<int>& wrc, const Vector<int>& wic)
     return rsize + isize + AMREX_SPACEDIM*sizeof(ParticleReal) + 2*sizeof(int);
 }
 
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void WriteBinaryParticleDataSync (PC const& pc,
                                   const std::string& dir, const std::string& name,
                                   const Vector<int>& write_real_comp,
@@ -325,7 +325,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
     }
 }
 
-template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void WriteBinaryParticleDataAsync (PC const& pc,
                                    const std::string& dir, const std::string& name,
                                    const Vector<int>& write_real_comp,
@@ -374,7 +374,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 return (pstruct[i].id() > 0) ? 1 : 0;
             });
 
-            int np_valid = amrex::get<0>(reduce_data.value());
+            int np_valid = amrex::get<0>(reduce_data.value(reduce_op));
             np_per_grid_local[lev][gid] += np_valid;
         }
     }

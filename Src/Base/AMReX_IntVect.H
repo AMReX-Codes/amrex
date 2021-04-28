@@ -50,20 +50,20 @@ public:
 
     class shift_hasher {
     private:
-	static constexpr unsigned shift1 = sizeof(size_t)>=8 ? 20 : 10;
-	static constexpr unsigned shift2 = sizeof(size_t)>=8 ? 40 : 20;
+        static constexpr unsigned shift1 = sizeof(size_t)>=8 ? 20 : 10;
+        static constexpr unsigned shift2 = sizeof(size_t)>=8 ? 40 : 20;
     public:
-	std::size_t operator()(const IntVect& vec) const noexcept
+        std::size_t operator()(const IntVect& vec) const noexcept
         {
-	    AMREX_D_DECL(std::size_t ret0 = vec[0], ret1 = vec[1], ret2 = vec[2]);
+            AMREX_D_DECL(std::size_t ret0 = vec[0], ret1 = vec[1], ret2 = vec[2]);
 #if AMREX_SPACEDIM == 1
-	    return ret0;
+            return ret0;
 #elif AMREX_SPACEDIM == 2
-	    return ret0 ^ (ret1 << shift1);
+            return ret0 ^ (ret1 << shift1);
 #else
-	    return ret0 ^ (ret1 << shift1) ^ (ret2 << shift2);
+            return ret0 ^ (ret1 << shift1) ^ (ret2 << shift2);
 #endif
-	}
+        }
     };
 
     using hasher = shift_hasher;
@@ -274,19 +274,19 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator<= (const IntVect& rhs) const noexcept
     {
-	return !(rhs < *this);
+        return !(rhs < *this);
     }
     //! Retrun true if this is lexicographically greater than rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator> (const IntVect& rhs) const noexcept
     {
-	return rhs < *this;
+        return rhs < *this;
     }
     //! Retrun true if this is lexicographically greater than or equal to rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator>= (const IntVect& rhs) const noexcept
     {
-	return !(*this < rhs);
+        return !(*this < rhs);
     }
     /**
     * \brief Returns true if this is less than argument for all components.

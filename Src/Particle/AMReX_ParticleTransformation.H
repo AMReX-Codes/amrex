@@ -96,8 +96,8 @@ void copyParticle (const ParticleTileData<NSR, NSI, NAR, NAI>& dst,
  */
 template <int NSR, int NSI, int NAR, int NAI>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void swapParticle (const ParticleTileData<NSR, NSI, NAR, NAI>& dst, 
-                   const ParticleTileData<NSR, NSI, NAR, NAI>& src, 
+void swapParticle (const ParticleTileData<NSR, NSI, NAR, NAI>& dst,
+                   const ParticleTileData<NSR, NSI, NAR, NAI>& src,
                    int src_i, int dst_i) noexcept
 {
     AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
@@ -150,7 +150,7 @@ void copyParticles (DstTile& dst, const SrcTile& src) noexcept
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename N,
-          amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
 void copyParticles (DstTile& dst, const SrcTile& src,
                     Index src_start, Index dst_start, N n) noexcept
 {
@@ -204,7 +204,7 @@ void transformParticles (DstTile& dst, const SrcTile& src, F&& f) noexcept
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename N, typename F,
-          amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
 void transformParticles (DstTile& dst, const SrcTile& src,
                          Index src_start, Index dst_start, N n, F&& f) noexcept
 {
@@ -264,7 +264,7 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src, F&&
  */
 template <typename DstTile1, typename DstTile2, typename SrcTile,
           typename Index, typename N, typename F,
-          amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
 void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
                          Index src_start, Index dst1_start, Index dst2_start, N n, F&& f) noexcept
 {
@@ -282,7 +282,7 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
 
 /**
  * \brief Conditionally copy particles from src to dst based on the value of mask.
- * 
+ *
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
@@ -293,17 +293,17 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename N,
-          amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
 Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask) noexcept
 {
     return filterParticles(dst, src, mask, 0, 0, src.numParticles());
 }
-    
+
 /**
  * \brief Conditionally copy particles from src to dst based on the value of mask.
- *  This version conditionally copies n particles starting at index src_start, writing 
+ *  This version conditionally copies n particles starting at index src_start, writing
  *  the result starting at dst_start.
- * 
+ *
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
@@ -317,7 +317,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask) noex
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename N,
-          amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
 Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
                        Index src_start, Index dst_start, N n) noexcept
 {
@@ -327,16 +327,16 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
 
     Index last_mask=0, last_offset=0;
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
-    Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);    
-      
+    Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
+
     auto p_offsets = offsets.dataPtr();
-    
+
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
 
     AMREX_HOST_DEVICE_FOR_1D( n, i,
     {
-        if (mask[src_start+i]) copyParticle(dst_data, src_data, src_start+i, 
+        if (mask[src_start+i]) copyParticle(dst_data, src_data, src_start+i,
                                             dst_start+p_offsets[src_start+i]);
     });
 
@@ -346,7 +346,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
 
 /**
  * \brief Conditionally copy particles from src to dst based on a predicate.
- * 
+ *
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Pred a function object
@@ -355,7 +355,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
  * \param src the source tile
  * \param p predicate function - particles will be copied if p returns true
  *
- */    
+ */
 template <typename DstTile, typename SrcTile, typename Pred>
 auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
     -> decltype(p(typename SrcTile::ConstParticleTileDataType(), 0))
@@ -365,9 +365,9 @@ auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
 
 /**
  * \brief Conditionally copy particles from src to dst based on a predicate.
- *  This version conditionally copies n particles starting at index src_start, writing 
+ *  This version conditionally copies n particles starting at index src_start, writing
  *  the result starting at dst_start.
- * 
+ *
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Pred a function object
@@ -416,7 +416,7 @@ auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename F,
-          amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask, F&& f) noexcept
 {
     auto np = src.numParticles();
@@ -425,10 +425,10 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
 
     Index last_mask, last_offset;
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
-    Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);    
+    Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
 
     auto p_offsets = offsets.dataPtr();
-    
+
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
 
@@ -444,7 +444,7 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
 /**
  * \brief Conditionally copy particles from src to dst based on a predicate.
  * A transformation will also be applied to the particles on copy.
- * 
+ *
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Pred a function object
@@ -455,7 +455,7 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
  * \param p predicate function - particles will be copied if p returns true
  * \param f defines the transformation that will be applied to the particles on copy
  *
- */    
+ */
 template <typename DstTile, typename SrcTile, typename Pred, typename F>
 auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f) noexcept
     -> decltype(p(typename SrcTile::ConstParticleTileDataType(), 0))
@@ -479,7 +479,7 @@ auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&
 /**
  * \brief Conditionally copy particles from src to dst1 and dst2 based on the value of mask.
  * A transformation will also be applied to the particles on copy.
- * 
+ *
  * \tparam DstTile1 the dst1 particle tile type
  * \tparam DstTile2 the dst2 particle tile type
  * \tparam SrcTile the src particle tile type
@@ -494,7 +494,7 @@ auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&
  *
  */
 template <typename DstTile1, typename DstTile2, typename SrcTile, typename Index, typename F,
-          amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
 Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
                                    const SrcTile& src, Index* mask, F&& f) noexcept
 {
@@ -504,10 +504,10 @@ Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
 
     Index last_mask, last_offset;
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
-    Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);    
+    Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
 
     auto p_offsets = offsets.dataPtr();
-    
+
     const auto src_data  = src.getConstParticleTileData();
           auto dst_data1 = dst1.getParticleTileData();
           auto dst_data2 = dst2.getParticleTileData();
@@ -524,7 +524,7 @@ Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
 /**
  * \brief Conditionally copy particles from src to dst1 and dst2 based on a predicate.
  * A transformation will also be applied to the particles on copy.
- * 
+ *
  * \tparam DstTile1 the dst1 particle tile type
  * \tparam DstTile2 the dst2 particle tile type
  * \tparam SrcTile the src particle tile type
@@ -538,7 +538,7 @@ Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
  * \param p predicate function - particles will be copied if p returns true
  * \param f defines the transformation that will be applied to the particles on copy
  *
- */    
+ */
 template <typename DstTile1, typename DstTile2, typename SrcTile, typename Pred, typename F>
 auto filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
                                   Pred&& p, F&& f) noexcept
@@ -559,12 +559,12 @@ auto filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile&
 
     return filterAndTransformParticles(dst1, dst2, src, mask.dataPtr(), std::forward<F>(f));
 }
-    
+
 /**
- * \brief Gather particles copies particles into contiguous order from an 
+ * \brief Gather particles copies particles into contiguous order from an
  * arbitrary order. Specifically, the particle at the index inds[i] in src
  * will be copied to the index i in dst.
- * 
+ *
  * \tparam PTile the particle tile type
  * \tparam N the size type, e.g. Long
  * \tparam Index the index type, e.g. unsigned int
@@ -576,12 +576,12 @@ auto filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile&
  *
  */
 template <typename PTile, typename N, typename Index,
-          amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
 void gatherParticles (PTile& dst, const PTile& src, N np, const Index* inds)
 {
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
-          
+
     AMREX_HOST_DEVICE_FOR_1D( np, i,
     {
         copyParticle(dst_data, src_data, inds[i], i);
@@ -594,7 +594,7 @@ void gatherParticles (PTile& dst, const PTile& src, N np, const Index* inds)
  * \brief Scatter particles copies particles from contiguous order into an
  * arbitrary order. Specifically, the particle at the index i in src
  * will be copied to the index inds[i] in dst.
- * 
+ *
  * \tparam PTile the particle tile type
  * \tparam N the size type, e.g. Long
  * \tparam Index the index type, e.g. unsigned int
@@ -606,12 +606,12 @@ void gatherParticles (PTile& dst, const PTile& src, N np, const Index* inds)
  *
  */
 template <typename PTile, typename N, typename Index,
-          amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
 void scatterParticles (PTile& dst, const PTile& src, N np, const Index* inds)
 {
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
-          
+
     AMREX_HOST_DEVICE_FOR_1D( np, i,
     {
         copyParticle(dst_data, src_data, i, inds[i]);

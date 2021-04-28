@@ -2,12 +2,6 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_MLNodeLaplacian.H>
 
-#ifdef AMREX_USE_EB
-#include <AMReX_EBMultiFabUtil.H>
-#include <AMReX_MultiCutFab.H>
-#include <AMReX_EBFabFactory.H>
-#endif
-
 #include <cmath>
 #include <numeric>
 #include <limits>
@@ -25,8 +19,6 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
       comm(comm_), linop(linop_), verbose(verbose_),
       options_namespace(options_namespace_)
 {
-    Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
-
     static_assert(AMREX_SPACEDIM > 1, "HypreNodeLap: 1D not supported");
     static_assert(std::is_same<Real, HYPRE_Real>::value, "amrex::Real != HYPRE_Real");
 
@@ -45,103 +37,20 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
 #endif
 
     // how many non-covered nodes do we have?
-    nnodes_grid.define(grids,dmap);
+    nnodes_grid.define(nba,dmap);
     node_id.define(nba,dmap,1,1);
-    node_id_vec.define(grids,dmap);
+    node_id_vec.define(nba,dmap);
+    local_node_id.define(nba,dmap,1,0);
+    id_offset.define(nba,dmap);
     tmpsoln.define(nba,dmap,1,0);
 
-    node_id.setVal(std::numeric_limits<Int>::lowest());
+    Int nnodes_proc = fill_local_node_id();
 
-    Int nnodes_proc = 0;
-
-#ifdef AMREX_USE_EB
-    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(factory);
-    if (ebfactory)
-    {
-        const FabArray<EBCellFlagFab>& flags = ebfactory->getMultiEBCellFlagFab();
-#ifdef AMREX_USE_OMP
-#pragma omp parallel reduction(+:nnodes_proc)
-#endif
-        for (MFIter mfi(node_id); mfi.isValid(); ++mfi)
-        {
-            const Box& ndbx = mfi.validbox();
-            const auto& nid = node_id.array(mfi);
-            const auto& flag = flags.array(mfi);
-            const auto& owner = owner_mask->array(mfi);
-            const auto& dirichlet = dirichlet_mask->array(mfi);
-            int id = 0;
-            const auto lo = amrex::lbound(ndbx);
-            const auto hi = amrex::ubound(ndbx);
-            for         (int k = lo.z; k <= hi.z; ++k) {
-                for     (int j = lo.y; j <= hi.y; ++j) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        if (!owner(i,j,k) || dirichlet(i,j,k))
-                        {
-                            nid(i,j,k) = std::numeric_limits<Int>::lowest();
-                        }
-#if (AMREX_SPACEDIM == 2)
-                        else if (flag(i-1,j-1,k).isCovered() &&
-                                 flag(i  ,j-1,k).isCovered() &&
-                                 flag(i-1,j  ,k).isCovered() &&
-                                 flag(i  ,j  ,k).isCovered())
-#endif
-#if (AMREX_SPACEDIM == 3)
-                        else if (flag(i-1,j-1,k-1).isCovered() &&
-                                 flag(i  ,j-1,k-1).isCovered() &&
-                                 flag(i-1,j  ,k-1).isCovered() &&
-                                 flag(i  ,j  ,k-1).isCovered() &&
-                                 flag(i-1,j-1,k  ).isCovered() &&
-                                 flag(i  ,j-1,k  ).isCovered() &&
-                                 flag(i-1,j  ,k  ).isCovered() &&
-                                 flag(i  ,j  ,k  ).isCovered())
-#endif
-                        {
-                            nid(i,j,k) = std::numeric_limits<Int>::lowest();
-                        }
-                        else
-                        {
-                            nid(i,j,k) = id++;
-                        }
-                    }
-                }
-            }
-            nnodes_grid[mfi] = id;
-            nnodes_proc += id;
-        }
-    }
-    else
-#endif
-    {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel reduction(+:nnodes_proc)
-#endif
-        for (MFIter mfi(node_id); mfi.isValid(); ++mfi)
-        {
-            const Box& ndbx = mfi.validbox();
-            const auto& nid = node_id.array(mfi);
-            const auto& owner = owner_mask->array(mfi);
-            const auto& dirichlet = dirichlet_mask->array(mfi);
-            int id = 0;
-            const auto lo = amrex::lbound(ndbx);
-            const auto hi = amrex::ubound(ndbx);
-            for         (int k = lo.z; k <= hi.z; ++k) {
-                for     (int j = lo.y; j <= hi.y; ++j) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        if (!owner(i,j,k) || dirichlet(i,j,k))
-                        {
-                            nid(i,j,k) = std::numeric_limits<Int>::lowest();
-                        }
-                        else
-                        {
-                            nid(i,j,k) = id++;
-                        }
-                    }
-                }
-            }
-            nnodes_grid[mfi] = id;
-            nnodes_proc += id;
-        }
-    }
+    // At this point, local_node_id stores the ids local to each box.
+    // nnodes_grid stroes the number of nodes in each box.  nnodes_proc is
+    // the number of nodes on this MPI process.  If a nodal is invalid, its
+    // id is invalid (i.e., a very negative number).  Note that the data
+    // type of local_node_id is int, not HYPRE_Int for performance on GPU.
 
     Vector<Int> nnodes_allprocs(num_procs);
     MPI_Allgather(&nnodes_proc, sizeof(Int), MPI_CHAR,
@@ -152,28 +61,16 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
         proc_begin += nnodes_allprocs[i];
     }
 
-#ifdef AMREX_DEBUG
-    Int nnodes_total = 0;
-    for (auto n : nnodes_allprocs) {
-        nnodes_total += n;
-    }
-#endif
-
-    LayoutData<Int> offset(grids,dmap);
     Int proc_end = proc_begin;
     for (MFIter mfi(nnodes_grid); mfi.isValid(); ++mfi)
     {
-        offset[mfi] = proc_end;
+        id_offset[mfi] = proc_end;
         proc_end += nnodes_grid[mfi];
     }
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(proc_end == proc_begin+nnodes_proc,
                                      "HypreNodeLap: how did this happen?");
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-
-    fill_node_id(offset);
+    fill_global_node_id(); // node_id = local_node_id + id_offset, and fill node_id_vec
 
     amrex::OverrideSync(node_id, *owner_mask, geom.periodicity());
     node_id.FillBoundary(geom.periodicity());
@@ -182,7 +79,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     Int ilower = proc_begin;
     Int iupper = proc_end-1;
 
-    hypre_ij.reset(new HypreIJIface(comm, ilower, iupper, verbose));
+    hypre_ij = std::make_unique<HypreIJIface>(comm, ilower, iupper, verbose);
     hypre_ij->parse_inputs(options_namespace);
 
     // Obtain non-owning references to the matrix, rhs, and solution data
@@ -190,53 +87,45 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     b = hypre_ij->b();
     x = hypre_ij->x();
 
-    Vector<Int> ncols;
-    Vector<Int> cols;
-    Vector<Real> mat;
+    Gpu::DeviceVector<Int> ncols_vec;
+    Gpu::DeviceVector<Int> cols_vec;
+    Gpu::DeviceVector<Real> mat_vec;
     constexpr Int max_stencil_size = AMREX_D_TERM(3,*3,*3);
 
-    for (MFIter mfi(node_id); mfi.isValid(); ++mfi)
+    for (MFIter mfi(node_id, MFItInfo{}.UseDefaultStream()); mfi.isValid(); ++mfi)
     {
         const Int nrows = nnodes_grid[mfi];
         if (nrows > 0)
         {
-            ncols.clear();
-            ncols.reserve(nrows);
+            ncols_vec.clear();
+            ncols_vec.resize(nrows);
+            auto ncols = ncols_vec.data();
 
-            Vector<Int>& rows = node_id_vec[mfi];
-            rows.clear();
-            rows.reserve(nrows);
+            const auto& rows_vec = node_id_vec[mfi];
+            auto rows = rows_vec.data();
 
-            cols.clear();
-            cols.reserve(nrows*max_stencil_size);
+            cols_vec.clear();
+            cols_vec.resize(nrows*max_stencil_size);
+            auto cols = cols_vec.data();
 
-            mat.clear();
-            mat.reserve(nrows*max_stencil_size);
+            mat_vec.clear();
+            mat_vec.resize(nrows*max_stencil_size);
+            auto mat = mat_vec.data();
 
-            const Array4<Int const> nid = node_id.array(mfi);
-            const auto& owner = owner_mask->array(mfi);
+            const auto& gid = node_id.const_array(mfi);
+            const auto& lid = local_node_id.const_array(mfi);
 
-            linop->fillIJMatrix(mfi, nid, owner, ncols, rows, cols, mat);
+            linop->fillIJMatrix(mfi, gid, lid, ncols, cols, mat);
 
-#ifdef AMREX_DEBUG
-            Int nvalues = 0;
-            for (Int i = 0; i < nrows; ++i) {
-                nvalues += ncols[i];
-            }
-            for (Int i = 0; i < nvalues; ++i) {
-                AMREX_ASSERT(cols[i] >= 0 && cols[i] < nnodes_total);
-            }
-#endif
-
-            if (hypre_ij->adjustSingularMatrix()
-                && linop->isBottomSingular()
-                && (rows[0] == 0)) {
-                const int num_cols = ncols[0];
-                for (int ic = 0; ic < num_cols; ++ic)
-                    mat[ic] = (cols[ic] == rows[0]) ? mat[ic] : 0.0;
+            if (hypre_ij->adjustSingularMatrix() && linop->isBottomSingular()
+                && id_offset[mfi] == 0 && nnodes_grid[mfi] > 0)
+            {
+                adjust_singular_matrix(ncols, cols, rows, mat);
             }
 
-            HYPRE_IJMatrixSetValues(A, nrows, ncols.data(), rows.data(), cols.data(), mat.data());
+            Gpu::synchronize();
+            HYPRE_IJMatrixSetValues(A, nrows, ncols, rows, cols, mat);
+            Gpu::synchronize();
         }
     }
     HYPRE_IJMatrixAssemble(A);
@@ -264,23 +153,142 @@ HypreNodeLap::solve (MultiFab& soln, const MultiFab& rhs,
     getSolution(soln);
 }
 
-void
-HypreNodeLap::fill_node_id (LayoutData<Int>& offset)
+HypreNodeLap::Int
+HypreNodeLap::fill_local_node_id ()
 {
-    for (MFIter mfi(node_id,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        return fill_local_node_id_gpu();
+    } else
+#endif
     {
-        Int os = offset[mfi];
+        return fill_local_node_id_cpu();
+    }
+}
+
+#ifdef AMREX_USE_GPU
+
+HypreNodeLap::Int
+HypreNodeLap::fill_local_node_id_gpu ()
+{
+    Int nnodes_proc = 0;
+
+    for (MFIter mfi(local_node_id); mfi.isValid(); ++mfi)
+    {
+        const Box& ndbx = mfi.validbox();
+        const auto& nid = local_node_id.array(mfi);
+        const auto& owner = owner_mask->const_array(mfi);
+        const auto& dirichlet = dirichlet_mask->const_array(mfi);
+        AMREX_ASSERT(ndbx.numPts() < static_cast<Long>(std::numeric_limits<int>::max()));
+        const int npts = ndbx.numPts();
+        int nnodes_box = amrex::Scan::PrefixSum<int>(npts,
+            [=] AMREX_GPU_DEVICE (int offset) noexcept
+            {
+                int valid_node = 1;
+                const Dim3 cell = ndbx.atOffset(offset).dim3();
+                const int i = cell.x;
+                const int j = cell.y;
+                const int k = cell.z;
+                if (!owner(i,j,k) || dirichlet(i,j,k)) {
+                    valid_node = 0;
+                }
+                nid(i,j,k) = valid_node;
+                return valid_node;
+            },
+            [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
+            {
+                const Dim3 cell = ndbx.atOffset(offset).dim3();
+                nid(cell.x,cell.y,cell.z) = nid(cell.x,cell.y,cell.z)
+                    ? ps : std::numeric_limits<int>::lowest();
+            },
+            amrex::Scan::Type::exclusive);
+
+        nnodes_grid[mfi] = nnodes_box;
+        nnodes_proc += nnodes_box;
+    }
+
+    return nnodes_proc;
+}
+
+#endif
+
+HypreNodeLap::Int
+HypreNodeLap::fill_local_node_id_cpu ()
+{
+    Int nnodes_proc = 0;
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(+:nnodes_proc)
+#endif
+    for (MFIter mfi(local_node_id); mfi.isValid(); ++mfi)
+    {
+        const Box& ndbx = mfi.validbox();
+        const auto& nid = local_node_id.array(mfi);
+        const auto& owner = owner_mask->const_array(mfi);
+        const auto& dirichlet = dirichlet_mask->const_array(mfi);
+        int id = 0;
+        const auto lo = amrex::lbound(ndbx);
+        const auto hi = amrex::ubound(ndbx);
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    if (!owner(i,j,k) || dirichlet(i,j,k))
+                    {
+                        nid(i,j,k) = std::numeric_limits<int>::lowest();
+                    }
+                    else
+                    {
+                        nid(i,j,k) = id++;
+                    }
+                }
+            }
+        }
+        nnodes_grid[mfi] = id;
+        nnodes_proc += id;
+    }
+
+    return nnodes_proc;
+}
+
+void
+HypreNodeLap::fill_global_node_id ()
+{
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(node_id); mfi.isValid(); ++mfi)
+    {
+        Int os = id_offset[mfi];
         const Box& bx = mfi.growntilebox();
         const auto& nid = node_id.array(mfi);
+        const auto& lnid = local_node_id.const_array(mfi);
+        auto& rows_vec = node_id_vec[mfi];
+        rows_vec.resize(nnodes_grid[mfi]);
+        auto rows = rows_vec.data();
         AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
         {
-            if (nid(i,j,k) >= 0) {
-                nid(i,j,k) += os;
+            if (lnid.contains(i,j,k) && lnid(i,j,k) >= 0) {
+                const auto gid = lnid(i,j,k) + os;
+                rows[lnid(i,j,k)] = gid;
+                nid(i,j,k) = static_cast<AtomicInt>(gid);
             } else {
-                nid(i,j,k) = -1;
+                nid(i,j,k) = std::numeric_limits<AtomicInt>::max();
             }
         });
     }
+}
+
+void
+HypreNodeLap::adjust_singular_matrix (Int const* ncols, Int const* cols, Int const* rows, Real* mat)
+{
+    AMREX_HOST_DEVICE_FOR_1D(1, m,
+    {
+        amrex::ignore_unused(m);
+        const int num_cols = ncols[0];
+        for (int ic = 0; ic < num_cols; ++ic) {
+            mat[ic] = (cols[ic] == rows[0]) ? mat[ic] : 0.0;
+        }
+    });
 }
 
 void
@@ -290,41 +298,36 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
 
     soln.setVal(0.0);
 
-    Vector<Real> bvec;
-    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+    Gpu::DeviceVector<Real> bvec;
+    for (MFIter mfi(soln, MFItInfo{}.UseDefaultStream()); mfi.isValid(); ++mfi)
     {
         const Int nrows = nnodes_grid[mfi];
         if (nrows >= 0)
         {
-            const Vector<Int>& rows = node_id_vec[mfi];
-            HYPRE_IJVectorSetValues(x, nrows, rows.data(), soln[mfi].dataPtr());
+            const auto& rows_vec = node_id_vec[mfi];
+            HYPRE_IJVectorSetValues(x, nrows, rows_vec.data(), soln[mfi].dataPtr());
 
             bvec.clear();
-            bvec.reserve(nrows);
+            bvec.resize(nrows);
+            auto bp = bvec.data();
 
-            const Box& bx = mfi.validbox();
-            const auto lo = amrex::lbound(bx);
-            const auto hi = amrex::ubound(bx);
             const auto& bfab = rhs.array(mfi);
-            const auto& nid = node_id.array(mfi);
-            const auto& owner = owner_mask->array(mfi);
-            for         (int k = lo.z; k <= hi.z; ++k) {
-                for     (int j = lo.y; j <= hi.y; ++j) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        if (nid(i,j,k) >= 0 && owner(i,j,k)) {
-                            bvec.push_back(bfab(i,j,k));
-                        }
-                    }
-                }
+            const auto& lid = local_node_id.array(mfi);
+            linop->fillRHS(mfi, lid, bp, bfab);
+
+            if (hypre_ij->adjustSingularMatrix() && linop->isBottomSingular()
+                && id_offset[mfi] == 0 && nnodes_grid[mfi] > 0)
+            {
+                AMREX_HOST_DEVICE_FOR_1D(1, m,
+                {
+                    amrex::ignore_unused(m);
+                    bp[0] = 0.0;
+                });
             }
 
-            if (hypre_ij->adjustSingularMatrix()
-                && linop->isBottomSingular()
-                && (rows[0] == 0)) {
-                bvec[0] = 0.0;
-            }
-
-            HYPRE_IJVectorSetValues(b, nrows, rows.data(), bvec.data());
+            Gpu::synchronize();
+            HYPRE_IJVectorSetValues(b, nrows, rows_vec.data(), bvec.data());
+            Gpu::synchronize();
         }
     }
 }
@@ -334,32 +337,29 @@ HypreNodeLap::getSolution (MultiFab& soln)
 {
     tmpsoln.setVal(0.0);
 
-    Vector<Real> xvec;
-    for (MFIter mfi(tmpsoln); mfi.isValid(); ++mfi)
+    Gpu::DeviceVector<Real> xvec;
+    for (MFIter mfi(tmpsoln, MFItInfo{}.UseDefaultStream()); mfi.isValid(); ++mfi)
     {
         const Int nrows = nnodes_grid[mfi];
         if (nrows >= 0)
         {
-            const Vector<Int>& rows = node_id_vec[mfi];
+            const auto& rows_vec = node_id_vec[mfi];
+            xvec.clear();
             xvec.resize(nrows);
-            HYPRE_IJVectorGetValues(x, nrows, rows.data(), xvec.data());
+            Real* xp = xvec.data();
+            HYPRE_IJVectorGetValues(x, nrows, rows_vec.data(), xp);
 
             const Box& bx = mfi.validbox();
-            const auto lo = amrex::lbound(bx);
-            const auto hi = amrex::ubound(bx);
             const auto& xfab = tmpsoln.array(mfi);
-            const auto& nid = node_id.array(mfi);
-            const auto& owner = owner_mask->array(mfi);
-            int offset = 0;
-            for         (int k = lo.z; k <= hi.z; ++k) {
-                for     (int j = lo.y; j <= hi.y; ++j) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        if (nid(i,j,k) >= 0 && owner(i,j,k)) {
-                            xfab(i,j,k) = xvec[offset++];
-                        }
-                    }
+            const auto& lid = local_node_id.array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                if (lid(i,j,k,0) >= 0) {
+                    xfab(i,j,k) = xp[lid(i,j,k)];
                 }
-            }
+            });
+
+            Gpu::synchronize();
         }
     }
 

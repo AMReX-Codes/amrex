@@ -22,9 +22,9 @@ Development generally follows the following ideas:
          since these will be used for a squashed commit message.*
 
          Please note the following:
-            If you choose to make contributions to the code 
-            then you hereby grant a non-exclusive, royalty-free perpetual license 
-            to install, use, modify, prepare derivative works, 
+            If you choose to make contributions to the code
+            then you hereby grant a non-exclusive, royalty-free perpetual license
+            to install, use, modify, prepare derivative works,
             incorporate into other computer software,
             distribute, and sublicense such enhancements or derivative works
             thereof, in binary and source code form.
@@ -53,7 +53,7 @@ your fork.
 First, let us setup your local git repo. Make your own fork of the main
 (`upstream`) repository:
 on the [AMReX Github page](https://github.com/AMReX-Codes/amrex), press the
-fork button. 
+fork button.
 
 If you already had a fork of AMReX prior to 4/17/2020, we recommend deleting it and re-forking.
 This is due to a history re-write on the main repository. Note that you will lose any branches

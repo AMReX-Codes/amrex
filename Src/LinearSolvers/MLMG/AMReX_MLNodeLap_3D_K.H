@@ -236,7 +236,7 @@ void mlndlap_semi_avgdown_coeff (int i, int j, int k, Array4<Real> const& crse,
     if (idir == 2) {
         Real cl = fine(2*i  ,2*j,k) + fine(2*i  ,2*j+1,k);
         Real cr = fine(2*i+1,2*j,k) + fine(2*i+1,2*j+1,k);
-        crse(i,j,k) = cl*cr/(cl+cr);    
+        crse(i,j,k) = cl*cr/(cl+cr);
     } else if (idir == 1) {
         Real cl = fine(2*i  ,j,2*k) + fine(2*i  ,j,2*k+1);
         Real cr = fine(2*i+1,j,2*k) + fine(2*i+1,j,2*k+1);
@@ -264,7 +264,7 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
 
     if (gdomain.strictly_contains(vbx)) return;
 
-    int offset = domain.cellCentered() ? 0 : 1;
+    const int offset = domain.cellCentered() ? 0 : 1;
 
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
@@ -1372,7 +1372,7 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
     Real f4xm2ym2z = Real(4.0)*facx - Real(2.0)*facy - Real(2.0)*facz;
     Real fm2x4ym2z = -Real(2.0)*facx + Real(4.0)*facy - Real(2.0)*facz;
     Real fm2xm2y4z = -Real(2.0)*facx - Real(2.0)*facy + Real(4.0)*facz;
- 
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
@@ -1397,23 +1397,23 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
     Array1D<Real,0,31> a_ls,b_ls,c_ls,u_ls,r_ls,gam;
 
 
-    if ( idir == 2 ) 
+    if ( idir == 2 )
     {
-        for (int j = lo.y; j <= hi.y; ++j) 
+        for (int j = lo.y; j <= hi.y; ++j)
         {
             for (int i = lo.x; i <= hi.x; ++i)
             {
                 for (int k = lo.z; k <= hi.z; ++k)
                 {
-                    if (msk(i,j,k)) 
+                    if (msk(i,j,k))
                     {
                         a_ls(k-lo.z) = Real(0.);
                         b_ls(k-lo.z) = Real(1.);
                         c_ls(k-lo.z) = Real(0.);
                         u_ls(k-lo.z) = Real(0.);
                         r_ls(k-lo.z) = Real(0.);
-                    } 
-                    else 
+                    }
+                    else
                     {
                         Real s0 = Real(-4.0)*fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
                                                  + sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  ));
@@ -1453,7 +1453,7 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                 tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
 
                 for (int k = lo.z; k <= hi.z; ++k)
-                {  
+                {
                     sol(i,j,k) = u_ls(k-lo.z);
                 }
             }
@@ -1473,7 +1473,7 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                         c_ls(j-lo.y) = Real(0.);
                         u_ls(j-lo.y) = Real(0.);
                         r_ls(j-lo.y) = Real(0.);
-                    } 
+                    }
                     else
                     {
                         Real s0 = Real(-4.0)*fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
@@ -1520,8 +1520,8 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                 }
             }
         }
-    } 
-    else if (idir == 0) 
+    }
+    else if (idir == 0)
     {
         for (int j = lo.y; j <= hi.y; ++j)
         {
@@ -1529,7 +1529,7 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
             {
                 for (int i = lo.x; i <= hi.x; ++i)
                 {
-                    if (msk(i,j,k)) 
+                    if (msk(i,j,k))
                     {
                         a_ls(i-lo.x) = Real(0.);
                         b_ls(i-lo.x) = Real(1.);
@@ -1572,7 +1572,7 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                         c_ls(i-lo.x) = f4xm2ym2z*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1)+sig(i  ,j-1,k)+sig(i  ,j,k));
                         u_ls(i-lo.x) = Real(0.);
                         r_ls(i-lo.x) = rhs(i,j,k) - Ax;
-              	    }
+                    }
                 }
                 tridiagonal_solve(a_ls, b_ls, c_ls, r_ls, u_ls, gam, ilen);
 
@@ -1582,11 +1582,11 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                 }
             }
         }
-    } 
+    }
     else
     {
-        amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa is wrong direction.");	
-    } 
+        amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa is wrong direction.");
+    }
 }
 
 //
@@ -1676,27 +1676,27 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
                                Array4<Real const> const& fine, Array4<int const> const& msk, int idir) noexcept
 {
-    if (idir == 2) 
+    if (idir == 2)
     {
         int ii = i*2;
         int jj = j*2;
         int kk = k;
         if (msk(ii,jj,kk)) {
             crse(i,j,k) = Real(0.0);
-        } else { // use 2-D formula 
+        } else { // use 2-D formula
             crse(i,j,k) = Real(1./16.)*(fine(ii-1,jj-1,kk) + Real(2.)*fine(ii  ,jj-1,kk) +          fine(ii+1,jj-1,kk)
                              + Real(2.)*fine(ii-1,jj  ,kk) + Real(4.)*fine(ii  ,jj  ,kk) + Real(2.)*fine(ii+1,jj  ,kk)
                                       + fine(ii-1,jj+1,kk) + Real(2.)*fine(ii  ,jj+1,kk) +          fine(ii+1,jj+1,kk));
         }
-    } 
-    else if (idir == 1) 
+    }
+    else if (idir == 1)
     {
         int ii = i*2;
         int jj = j;
         int kk = k*2;
         if (msk(ii,jj,kk)) {
             crse(i,j,k) = Real(0.0);
-        } else { // use 2-D formula 
+        } else { // use 2-D formula
             crse(i,j,k) = Real(1./16.)*(fine(ii-1,jj,kk-1) + Real(2.)*fine(ii  ,jj,kk-1) +          fine(ii+1,jj,kk-1)
                              + Real(2.)*fine(ii-1,jj  ,kk) + Real(4.)*fine(ii  ,jj,kk  ) + Real(2.)*fine(ii+1,jj,kk  )
                                       + fine(ii-1,jj,kk+1) + Real(2.)*fine(ii  ,jj,kk+1) +          fine(ii+1,jj,kk+1));
@@ -1709,13 +1709,13 @@ void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
         int kk = k*2;
         if (msk(ii,jj,kk)) {
             crse(i,j,k) = Real(0.0);
-        } else { // use 2-D formula 
+        } else { // use 2-D formula
             crse(i,j,k) = Real(1./16.)*(fine(ii,jj-1,kk-1) + Real(2.)*fine(ii  ,jj,kk-1) +          fine(ii,jj+1,kk-1)
                              + Real(2.)*fine(ii,jj-1  ,kk) + Real(4.)*fine(ii  ,jj,kk  ) + Real(2.)*fine(ii,jj+1,kk  )
                                       + fine(ii,jj-1,kk+1) + Real(2.)*fine(ii  ,jj,kk+1) +          fine(ii,jj+1,kk+1));
         }
     }
-    else 
+    else
     {
         amrex::Abort("mlndlap_semi_restriction semi direction wrong semi-direction. ");
     }
@@ -1904,9 +1904,9 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
                            Array4<Real const> const& crse, Array4<Real const> const& sig,
                            Array4<int const> const& msk, int idir) noexcept
 {
-    if (idir == 2 ) 
+    if (idir == 2 )
     {
-    	if (!msk(i,j,k)) {
+        if (!msk(i,j,k)) {
             int ic = amrex::coarsen(i,2);
             int jc = amrex::coarsen(j,2);
             int kc = k;
@@ -1923,10 +1923,10 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
                 // Node on Y line
                 fine(i,j,k) += aa_interp_line_y(crse,sig,i,j,k,ic,jc,kc);
             } else {
-                // Node coincident with coarse node 
+                // Node coincident with coarse node
                 fine(i,j,k) += crse(ic,jc,kc);
             }
-	}
+        }
     } else if (idir ==1 ){
         if (!msk(i,j,k)) {
             int ic = amrex::coarsen(i,2);
@@ -1937,7 +1937,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
 
             if (i_is_odd && k_is_odd) {
                 // Node on a X-Z face
-	        fine(i,j,k) += aa_interp_face_xz(crse,sig,i,j,k,ic,jc,kc);
+                fine(i,j,k) += aa_interp_face_xz(crse,sig,i,j,k,ic,jc,kc);
             } else if (i_is_odd) {
                 // Node on X line
                 fine(i,j,k) += aa_interp_line_x(crse,sig,i,j,k,ic,jc,kc);
@@ -1971,7 +1971,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
                 fine(i,j,k) += crse(ic,jc,kc);
             }
         }
-    } else { 
+    } else {
         amrex::Abort("mlndlap_semi_interpolation semi direction wrong semi-direction. ");
     }
 }
@@ -6881,7 +6881,7 @@ void mlndlap_mknewu_eb_c (int i, int j, int k, Array4<Real> const& u, Array4<Rea
                                            Real(0.5)*intg(i,j,k,i_S_z  )*dpp_yz +
                                                      intg(i,j,k,i_S_x_z)*dpp_xyz );
         u(i,j,k,2) -= sig*dxinv[2]*(dpdz + Real(0.5)*intg(i,j,k,i_S_x  )*dpp_xz +
-				           Real(0.5)*intg(i,j,k,i_S_y  )*dpp_yz +
+                                           Real(0.5)*intg(i,j,k,i_S_y  )*dpp_yz +
                                                      intg(i,j,k,i_S_x_y)*dpp_xyz );
     }
 }
@@ -6976,6 +6976,3775 @@ Real mlndlap_rhcc_eb (int i, int j, int k, Array4<Real const> const& rhcc,
         return Real(0.);
     }
 }
+
+#endif
+
+#if defined(AMREX_USE_HYPRE)
+
+template <typename HypreInt, typename AtomicInt>
+void mlndlap_fillijmat_sten_cpu (Box const& ndbx,
+                                 Array4<AtomicInt const> const& gid,
+                                 Array4<int const> const& lid,
+                                 HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                                 Array4<Real const> const& sten) noexcept
+{
+    constexpr int ist_000 = 1-1;
+    constexpr int ist_p00 = 2-1;
+    constexpr int ist_0p0 = 3-1;
+    constexpr int ist_00p = 4-1;
+    constexpr int ist_pp0 = 5-1;
+    constexpr int ist_p0p = 6-1;
+    constexpr int ist_0pp = 7-1;
+    constexpr int ist_ppp = 8-1;
+
+    constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+    HypreInt nelems = 0;
+    amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
+    {
+        if (lid(i,j,k) >= 0)
+        {
+            cols[nelems] = gid(i,j,k);
+            mat[nelems] = sten(i,j,k,ist_000);
+            HypreNodeLap::Int nelems_old = nelems;
+            ++nelems;
+
+            if                (gid(i-1,j-1,k-1) < gidmax) {
+                cols[nelems] = gid(i-1,j-1,k-1);
+                mat[nelems] = sten(i-1,j-1,k-1,ist_ppp);
+                ++nelems;
+            }
+
+            if                (gid(i,j-1,k-1) < gidmax) {
+                cols[nelems] = gid(i,j-1,k-1);
+                mat[nelems] = sten(i,j-1,k-1,ist_0pp);
+                ++nelems;
+            }
+
+            if                (gid(i+1,j-1,k-1) < gidmax) {
+                cols[nelems] = gid(i+1,j-1,k-1);
+                mat[nelems] = sten(i,j-1,k-1,ist_ppp);
+                ++nelems;
+            }
+
+            if                (gid(i-1,j,k-1) < gidmax) {
+                cols[nelems] = gid(i-1,j,k-1);
+                mat[nelems] = sten(i-1,j,k-1,ist_p0p);
+                ++nelems;
+            }
+
+            if                (gid(i,j,k-1) < gidmax) {
+                cols[nelems] = gid(i,j,k-1);
+                mat[nelems] = sten(i,j,k-1,ist_00p);
+                ++nelems;
+            }
+
+            if                (gid(i+1,j,k-1) < gidmax) {
+                cols[nelems] = gid(i+1,j,k-1);
+                mat[nelems] = sten(i,j,k-1,ist_p0p);
+                ++nelems;
+            }
+
+            if                (gid(i-1,j+1,k-1) < gidmax) {
+                cols[nelems] = gid(i-1,j+1,k-1);
+                mat[nelems] = sten(i-1,j,k-1,ist_ppp);
+                ++nelems;
+            }
+
+            if                (gid(i,j+1,k-1) < gidmax) {
+                cols[nelems] = gid(i,j+1,k-1);
+                mat[nelems] = sten(i,j,k-1,ist_0pp);
+                ++nelems;
+            }
+
+            if                (gid(i+1,j+1,k-1) < gidmax) {
+                cols[nelems] = gid(i+1,j+1,k-1);
+                mat[nelems] = sten(i,j,k-1,ist_ppp);
+                ++nelems;
+            }
+
+            if                (gid(i-1,j-1,k) < gidmax) {
+                cols[nelems] = gid(i-1,j-1,k);
+                mat[nelems] = sten(i-1,j-1,k,ist_pp0);
+                ++nelems;
+            }
+
+            if                (gid(i,j-1,k) < gidmax) {
+                cols[nelems] = gid(i,j-1,k);
+                mat[nelems] = sten(i,j-1,k,ist_0p0);
+                ++nelems;
+            }
+
+            if                (gid(i+1,j-1,k) < gidmax) {
+                cols[nelems] = gid(i+1,j-1,k);
+                mat[nelems] = sten(i,j-1,k,ist_pp0);
+                ++nelems;
+            }
+
+            if                (gid(i-1,j,k) < gidmax) {
+                cols[nelems] = gid(i-1,j,k);
+                mat[nelems] = sten(i-1,j,k,ist_p00);
+                ++nelems;
+            }
+
+            if                (gid(i+1,j,k) < gidmax) {
+                cols[nelems] = gid(i+1,j,k);
+                mat[nelems] = sten(i,j,k,ist_p00);
+                ++nelems;
+            }
+
+            if                (gid(i-1,j+1,k) < gidmax) {
+                cols[nelems] = gid(i-1,j+1,k);
+                mat[nelems] = sten(i-1,j,k,ist_pp0);
+                ++nelems;
+            }
+
+            if                (gid(i,j+1,k) < gidmax) {
+                cols[nelems] = gid(i,j+1,k);
+                mat[nelems] = sten(i,j,k,ist_0p0);
+                ++nelems;
+            }
+
+            if                (gid(i+1,j+1,k) < gidmax) {
+                cols[nelems] = gid(i+1,j+1,k);
+                mat[nelems] = sten(i,j,k,ist_pp0);
+                ++nelems;
+            }
+
+            if                (gid(i-1,j-1,k+1) < gidmax) {
+                cols[nelems] = gid(i-1,j-1,k+1);
+                mat[nelems] = sten(i-1,j-1,k,ist_ppp);
+                ++nelems;
+            }
+
+            if                (gid(i,j-1,k+1) < gidmax) {
+                cols[nelems] = gid(i,j-1,k+1);
+                mat[nelems] = sten(i,j-1,k,ist_0pp);
+                ++nelems;
+            }
+
+            if                (gid(i+1,j-1,k+1) < gidmax) {
+                cols[nelems] = gid(i+1,j-1,k+1);
+                mat[nelems] = sten(i,j-1,k,ist_ppp);
+                ++nelems;
+            }
+
+            if                (gid(i-1,j,k+1) < gidmax) {
+                cols[nelems] = gid(i-1,j,k+1);
+                mat[nelems] = sten(i-1,j,k,ist_p0p);
+                ++nelems;
+            }
+
+            if                (gid(i,j,k+1) < gidmax) {
+                cols[nelems] = gid(i,j,k+1);
+                mat[nelems] = sten(i,j,k,ist_00p);
+                ++nelems;
+            }
+
+            if                (gid(i+1,j,k+1) < gidmax) {
+                cols[nelems] = gid(i+1,j,k+1);
+                mat[nelems] = sten(i,j,k,ist_p0p);
+                ++nelems;
+            }
+
+            if                (gid(i-1,j+1,k+1) < gidmax) {
+                cols[nelems] = gid(i-1,j+1,k+1);
+                mat[nelems] = sten(i-1,j,k,ist_ppp);
+                ++nelems;
+            }
+
+            if                (gid(i,j+1,k+1) < gidmax) {
+                cols[nelems] = gid(i,j+1,k+1);
+                mat[nelems] = sten(i,j,k,ist_0pp);
+                ++nelems;
+            }
+
+            if                (gid(i+1,j+1,k+1) < gidmax) {
+                cols[nelems] = gid(i+1,j+1,k+1);
+                mat[nelems] = sten(i,j,k,ist_ppp);
+                ++nelems;
+            }
+
+            ncols[lid(i,j,k)] = nelems - nelems_old;
+        }
+    });
+}
+
+template <typename HypreInt, typename AtomicInt>
+void mlndlap_fillijmat_aa_cpu (Box const& ndbx,
+                               Array4<AtomicInt const> const& gid,
+                               Array4<int const> const& lid,
+                               HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                               Array4<Real const> const& sig,
+                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                               Box const& ccdom) noexcept
+{
+    Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0];
+    Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1];
+    Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2];
+    Real fxyz = facx + facy + facz;
+    Real fmx2y2z = -facx + Real(2.0)*facy + Real(2.0)*facz;
+    Real f2xmy2z = Real(2.0)*facx - facy + Real(2.0)*facz;
+    Real f2x2ymz = Real(2.0)*facx + Real(2.0)*facy - facz;
+    Real f4xm2ym2z = Real(4.0)*facx - Real(2.0)*facy - Real(2.0)*facz;
+    Real fm2x4ym2z = -Real(2.0)*facx + Real(4.0)*facy - Real(2.0)*facz;
+    Real fm2xm2y4z = -Real(2.0)*facx - Real(2.0)*facy + Real(4.0)*facz;
+
+    const Box& nddom = amrex::surroundingNodes(ccdom);
+
+    constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+    HypreInt nelems = 0;
+    amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
+    {
+        if (lid(i,j,k) >= 0)
+        {
+            HypreInt nelems_old = nelems;
+            cols[nelems_old] = gid(i,j,k);
+            Real m0 = Real(0.);
+            ++nelems;
+
+            if (nddom.contains(i-1,j-1,k-1)) {
+                Real tmp = sig(i-1,j-1,k-1) * fxyz;
+                m0 -= tmp;
+                if (               gid(i-1,j-1,k-1) < gidmax) {
+                    cols[nelems] = gid(i-1,j-1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j-1,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=     sig(i-1,j-1,k-1) * fmx2y2z;
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp +=     sig(i,j-1,k-1) * fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k-1) < gidmax) {
+                    cols[nelems] = gid(i,j-1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j-1,k-1)) {
+                Real tmp = sig(i  ,j-1,k-1) * fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k-1) < gidmax) {
+                    cols[nelems] = gid(i+1,j-1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=     sig(i-1,j-1,k-1) * f2xmy2z;
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp +=     sig(i-1,j,k-1) * f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k-1) < gidmax) {
+                    cols[nelems] = gid(i-1,j,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j,k-1) && fm2xm2y4z != Real(0.0)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=     sig(i-1,j-1,k-1) * fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp +=     sig(i,j-1,k-1) * fm2xm2y4z;
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp +=     sig(i-1,j,k-1) * fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j,k-1)) {
+                    tmp +=     sig(i,j,k-1) * fm2xm2y4z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j,k-1) < gidmax) {
+                    cols[nelems] = gid(i,j,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp +=     sig(i  ,j-1,k-1) * f2xmy2z;
+                }
+                if (ccdom.contains(i  ,j,k-1)) {
+                    tmp +=     sig(i  ,j,k-1) * f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k-1) < gidmax) {
+                    cols[nelems] = gid(i+1,j,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j+1,k-1)) {
+                Real tmp = sig(i-1,j  ,k-1) * fxyz;
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k-1) < gidmax) {
+                    cols[nelems] = gid(i-1,j+1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j+1,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp +=     sig(i-1,j  ,k-1) * fmx2y2z;
+                }
+                if (ccdom.contains(i,j  ,k-1)) {
+                    tmp +=     sig(i,j  ,k-1) * fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k-1) < gidmax) {
+                    cols[nelems] = gid(i,j+1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j+1,k-1)) {
+                Real tmp = sig(i  ,j  ,k-1) * fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k-1) < gidmax) {
+                    cols[nelems] = gid(i+1,j+1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=     sig(i-1,j-1,k-1) * f2x2ymz;
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp +=     sig(i-1,j-1,k) * f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j-1,k) < gidmax) {
+                    cols[nelems] = gid(i-1,j-1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j-1,k) && fm2x4ym2z != Real(0.0)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=     sig(i-1,j-1,k-1) * fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp +=     sig(i,j-1,k-1) * fm2x4ym2z;
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp +=     sig(i-1,j-1,k) * fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j-1,k)) {
+                    tmp +=     sig(i,j-1,k) * fm2x4ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k) < gidmax) {
+                    cols[nelems] = gid(i,j-1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp +=     sig(i  ,j-1,k-1) * f2x2ymz;
+                }
+                if (ccdom.contains(i  ,j-1,k)) {
+                    tmp +=     sig(i  ,j-1,k) * f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k) < gidmax) {
+                    cols[nelems] = gid(i+1,j-1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j,k) && f4xm2ym2z != Real(0.0)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=     sig(i-1,j-1,k-1) * f4xm2ym2z;
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp +=     sig(i-1,j,k-1) * f4xm2ym2z;
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp +=     sig(i-1,j-1,k) * f4xm2ym2z;
+                }
+                if (ccdom.contains(i-1,j,k)) {
+                    tmp +=     sig(i-1,j,k) * f4xm2ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k) < gidmax) {
+                    cols[nelems] = gid(i-1,j,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j,k) && f4xm2ym2z != Real(0.0)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp +=     sig(i  ,j-1,k-1) * f4xm2ym2z;
+                }
+                if (ccdom.contains(i  ,j,k-1)) {
+                    tmp +=     sig(i  ,j,k-1) * f4xm2ym2z;
+                }
+                if (ccdom.contains(i  ,j-1,k)) {
+                    tmp +=     sig(i  ,j-1,k) * f4xm2ym2z;
+                }
+                if (ccdom.contains(i  ,j,k)) {
+                    tmp +=     sig(i  ,j,k) * f4xm2ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k) < gidmax) {
+                    cols[nelems] = gid(i+1,j,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp +=     sig(i-1,j  ,k-1) * f2x2ymz;
+                }
+                if (ccdom.contains(i-1,j  ,k)) {
+                    tmp +=     sig(i-1,j  ,k) * f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k) < gidmax) {
+                    cols[nelems] = gid(i-1,j+1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j+1,k) && fm2x4ym2z != Real(0.0)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp +=     sig(i-1,j  ,k-1) * fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j  ,k-1)) {
+                    tmp +=     sig(i,j  ,k-1) * fm2x4ym2z;
+                }
+                if (ccdom.contains(i-1,j  ,k)) {
+                    tmp +=     sig(i-1,j  ,k) * fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j  ,k)) {
+                    tmp +=     sig(i,j  ,k) * fm2x4ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k) < gidmax) {
+                    cols[nelems] = gid(i,j+1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j  ,k-1)) {
+                    tmp +=     sig(i  ,j  ,k-1) * f2x2ymz;
+                }
+                if (ccdom.contains(i  ,j  ,k)) {
+                    tmp +=     sig(i  ,j  ,k) * f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k) < gidmax) {
+                    cols[nelems] = gid(i+1,j+1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j-1,k+1)) {
+                Real tmp = sig(i-1,j-1,k  ) * fxyz;
+                m0 -= tmp;
+                if                (gid(i-1,j-1,k+1) < gidmax) {
+                    cols[nelems] = gid(i-1,j-1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j-1,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp +=     sig(i-1,j-1,k  ) * fmx2y2z;
+                }
+                if (ccdom.contains(i,j-1,k  )) {
+                    tmp +=     sig(i,j-1,k  ) * fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k+1) < gidmax) {
+                    cols[nelems] = gid(i,j-1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j-1,k+1)) {
+                Real tmp = sig(i  ,j-1,k  ) * fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k+1) < gidmax) {
+                    cols[nelems] = gid(i+1,j-1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp +=     sig(i-1,j-1,k  ) * f2xmy2z;
+                }
+                if (ccdom.contains(i-1,j,k  )) {
+                    tmp +=     sig(i-1,j,k  ) * f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k+1) < gidmax) {
+                    cols[nelems] = gid(i-1,j,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j,k+1) && fm2xm2y4z != Real(0.0)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp +=     sig(i-1,j-1,k  ) * fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j-1,k  )) {
+                    tmp +=     sig(i,j-1,k  ) * fm2xm2y4z;
+                }
+                if (ccdom.contains(i-1,j,k  )) {
+                    tmp +=     sig(i-1,j,k  ) * fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j,k  )) {
+                    tmp +=     sig(i,j,k  ) * fm2xm2y4z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j,k+1) < gidmax) {
+                    cols[nelems] = gid(i,j,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k  )) {
+                    tmp +=     sig(i  ,j-1,k  ) * f2xmy2z;
+                }
+                if (ccdom.contains(i  ,j,k  )) {
+                    tmp +=     sig(i  ,j,k  ) * f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k+1) < gidmax) {
+                    cols[nelems] = gid(i+1,j,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j+1,k+1)) {
+                Real tmp = sig(i-1,j  ,k  ) * fxyz;
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k+1) < gidmax) {
+                    cols[nelems] = gid(i-1,j+1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j+1,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k  )) {
+                    tmp +=     sig(i-1,j  ,k  ) * fmx2y2z;
+                }
+                if (ccdom.contains(i,j  ,k  )) {
+                    tmp +=     sig(i,j  ,k  ) * fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k+1) < gidmax) {
+                    cols[nelems] = gid(i,j+1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j+1,k+1)) {
+                Real tmp = sig(i  ,j  ,k  ) * fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k+1) < gidmax) {
+                    cols[nelems] = gid(i+1,j+1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            mat[nelems_old] = m0;
+            ncols[lid(i,j,k)] = nelems - nelems_old;
+        }
+    });
+}
+
+template <typename HypreInt, typename AtomicInt>
+void mlndlap_fillijmat_ha_cpu (Box const& ndbx,
+                               Array4<AtomicInt const> const& gid,
+                               Array4<int const> const& lid,
+                               HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                               Array4<Real const> const& sx,
+                               Array4<Real const> const& sy,
+                               Array4<Real const> const& sz,
+                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                               Box const& ccdom) noexcept
+{
+    Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0];
+    Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1];
+    Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2];
+
+    const Box& nddom = amrex::surroundingNodes(ccdom);
+
+    constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+    HypreInt nelems = 0;
+    amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
+    {
+        if (lid(i,j,k) >= 0)
+        {
+            HypreInt nelems_old = nelems;
+            cols[nelems_old] = gid(i,j,k);
+            Real m0 = Real(0.);
+            ++nelems;
+
+            if (nddom.contains(i-1,j-1,k-1)) {
+                Real tmp = sx(i-1,j-1,k-1) * facx
+                    +      sy(i-1,j-1,k-1) * facy
+                    +      sz(i-1,j-1,k-1) * facz;
+                m0 -= tmp;
+                if (               gid(i-1,j-1,k-1) < gidmax) {
+                    cols[nelems] = gid(i-1,j-1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j-1,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=    - sx(i-1,j-1,k-1) * facx
+                        +       sy(i-1,j-1,k-1) * facy * Real(2.0)
+                        +       sz(i-1,j-1,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp +=    - sx(i,j-1,k-1) * facx
+                        +       sy(i,j-1,k-1) * facy * Real(2.0)
+                        +       sz(i,j-1,k-1) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k-1) < gidmax) {
+                    cols[nelems] = gid(i,j-1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j-1,k-1)) {
+                Real tmp = sx(i  ,j-1,k-1) * facx
+                    +      sy(i  ,j-1,k-1) * facy
+                    +      sz(i  ,j-1,k-1) * facz;
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k-1) < gidmax) {
+                    cols[nelems] = gid(i+1,j-1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=      sx(i-1,j-1,k-1) * facx * Real(2.0)
+                        -       sy(i-1,j-1,k-1) * facy
+                        +       sz(i-1,j-1,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp +=      sx(i-1,j,k-1) * facx * Real(2.0)
+                        -       sy(i-1,j,k-1) * facy
+                        +       sz(i-1,j,k-1) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k-1) < gidmax) {
+                    cols[nelems] = gid(i-1,j,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=    - sx(i-1,j-1,k-1) * facx * Real(2.0)
+                        -       sy(i-1,j-1,k-1) * facy * Real(2.0)
+                        +       sz(i-1,j-1,k-1) * facz * Real(4.0);
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp +=    - sx(i,j-1,k-1) * facx * Real(2.0)
+                        -       sy(i,j-1,k-1) * facy * Real(2.0)
+                        +       sz(i,j-1,k-1) * facz * Real(4.0);
+
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp +=    - sx(i-1,j,k-1) * facx * Real(2.0)
+                        -       sy(i-1,j,k-1) * facy * Real(2.0)
+                        +       sz(i-1,j,k-1) * facz * Real(4.0);
+                }
+                if (ccdom.contains(i,j,k-1)) {
+                    tmp +=    - sx(i,j,k-1) * facx * Real(2.0)
+                        -       sy(i,j,k-1) * facy * Real(2.0)
+                        +       sz(i,j,k-1) * facz * Real(4.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j,k-1) < gidmax && tmp != Real(0.0)) {
+                    cols[nelems] = gid(i,j,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp +=      sx(i  ,j-1,k-1) * facx * Real(2.0)
+                        -       sy(i  ,j-1,k-1) * facy
+                        +       sz(i  ,j-1,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i  ,j,k-1)) {
+                    tmp +=      sx(i  ,j,k-1) * facx * Real(2.0)
+                        -       sy(i  ,j,k-1) * facy
+                        +       sz(i  ,j,k-1) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k-1) < gidmax) {
+                    cols[nelems] = gid(i+1,j,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j+1,k-1)) {
+                Real tmp = sx(i-1,j  ,k-1) * facx
+                    +      sy(i-1,j  ,k-1) * facy
+                    +      sz(i-1,j  ,k-1) * facz;
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k-1) < gidmax) {
+                    cols[nelems] = gid(i-1,j+1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j+1,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp +=    - sx(i-1,j  ,k-1) * facx
+                        +       sy(i-1,j  ,k-1) * facy * Real(2.0)
+                        +       sz(i-1,j  ,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j  ,k-1)) {
+                    tmp +=    - sx(i,j  ,k-1) * facx
+                        +       sy(i,j  ,k-1) * facy * Real(2.0)
+                        +       sz(i,j  ,k-1) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k-1) < gidmax) {
+                    cols[nelems] = gid(i,j+1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j+1,k-1)) {
+                Real tmp = sx(i  ,j  ,k-1) * facx
+                    +      sy(i  ,j  ,k-1) * facy
+                    +      sz(i  ,j  ,k-1) * facz;
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k-1) < gidmax) {
+                    cols[nelems] = gid(i+1,j+1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=      sx(i-1,j-1,k-1) * facx * Real(2.0)
+                        +       sy(i-1,j-1,k-1) * facy * Real(2.0)
+                        -       sz(i-1,j-1,k-1) * facz;
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp +=      sx(i-1,j-1,k) * facx * Real(2.0)
+                        +       sy(i-1,j-1,k) * facy * Real(2.0)
+                        -       sz(i-1,j-1,k) * facz;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j-1,k) < gidmax) {
+                    cols[nelems] = gid(i-1,j-1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=    - sx(i-1,j-1,k-1) * facx * Real(2.0)
+                        +       sy(i-1,j-1,k-1) * facy * Real(4.0)
+                        -       sz(i-1,j-1,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp +=    - sx(i,j-1,k-1) * facx * Real(2.0)
+                        +       sy(i,j-1,k-1) * facy * Real(4.0)
+                        -       sz(i,j-1,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp +=    - sx(i-1,j-1,k) * facx * Real(2.0)
+                        +       sy(i-1,j-1,k) * facy * Real(4.0)
+                        -       sz(i-1,j-1,k) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j-1,k)) {
+                    tmp +=    - sx(i,j-1,k) * facx * Real(2.0)
+                        +       sy(i,j-1,k) * facy * Real(4.0)
+                        -       sz(i,j-1,k) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k) < gidmax && tmp != Real(0.0)) {
+                    cols[nelems] = gid(i,j-1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp +=      sx(i  ,j-1,k-1) * facx * Real(2.0)
+                        +       sy(i  ,j-1,k-1) * facy * Real(2.0)
+                        -       sz(i  ,j-1,k-1) * facz;
+                }
+                if (ccdom.contains(i  ,j-1,k)) {
+                    tmp +=      sx(i  ,j-1,k) * facx * Real(2.0)
+                        +       sy(i  ,j-1,k) * facy * Real(2.0)
+                        -       sz(i  ,j-1,k) * facz;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k) < gidmax) {
+                    cols[nelems] = gid(i+1,j-1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=      sx(i-1,j-1,k-1) * facx * Real(4.0)
+                        -       sy(i-1,j-1,k-1) * facy * Real(2.0)
+                        -       sz(i-1,j-1,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp +=      sx(i-1,j,k-1) * facx * Real(4.0)
+                        -       sy(i-1,j,k-1) * facy * Real(2.0)
+                        -       sz(i-1,j,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp +=      sx(i-1,j-1,k) * facx * Real(4.0)
+                        -       sy(i-1,j-1,k) * facy * Real(2.0)
+                        -       sz(i-1,j-1,k) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i-1,j,k)) {
+                    tmp +=      sx(i-1,j,k) * facx * Real(4.0)
+                        -       sy(i-1,j,k) * facy * Real(2.0)
+                        -       sz(i-1,j,k) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k) < gidmax && tmp != Real(0.0)) {
+                    cols[nelems] = gid(i-1,j,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp +=      sx(i  ,j-1,k-1) * facx * Real(4.0)
+                        -       sy(i  ,j-1,k-1) * facy * Real(2.0)
+                        -       sz(i  ,j-1,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i  ,j,k-1)) {
+                    tmp +=      sx(i  ,j,k-1) * facx * Real(4.0)
+                        -       sy(i  ,j,k-1) * facy * Real(2.0)
+                        -       sz(i  ,j,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i  ,j-1,k)) {
+                    tmp +=      sx(i  ,j-1,k) * facx * Real(4.0)
+                        -       sy(i  ,j-1,k) * facy * Real(2.0)
+                        -       sz(i  ,j-1,k) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i  ,j,k)) {
+                    tmp +=      sx(i  ,j,k) * facx * Real(4.0)
+                        -       sy(i  ,j,k) * facy * Real(2.0)
+                        -       sz(i  ,j,k) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k) < gidmax && tmp != Real(0.0)) {
+                    cols[nelems] = gid(i+1,j,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp +=      sx(i-1,j  ,k-1) * facx * Real(2.0)
+                        +       sy(i-1,j  ,k-1) * facy * Real(2.0)
+                        -       sz(i-1,j  ,k-1) * facz;
+                }
+                if (ccdom.contains(i-1,j  ,k)) {
+                    tmp +=      sx(i-1,j  ,k) * facx * Real(2.0)
+                        +       sy(i-1,j  ,k) * facy * Real(2.0)
+                        -       sz(i-1,j  ,k) * facz;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k) < gidmax) {
+                    cols[nelems] = gid(i-1,j+1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp +=    - sx(i-1,j  ,k-1) * facx * Real(2.0)
+                        +       sy(i-1,j  ,k-1) * facy * Real(4.0)
+                        -       sz(i-1,j  ,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j  ,k-1)) {
+                    tmp +=    - sx(i,j  ,k-1) * facx * Real(2.0)
+                        +       sy(i,j  ,k-1) * facy * Real(4.0)
+                        -       sz(i,j  ,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i-1,j  ,k)) {
+                    tmp +=    - sx(i-1,j  ,k) * facx * Real(2.0)
+                        +       sy(i-1,j  ,k) * facy * Real(4.0)
+                        -       sz(i-1,j  ,k) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j  ,k)) {
+                    tmp +=    - sx(i,j  ,k) * facx * Real(2.0)
+                        +       sy(i,j  ,k) * facy * Real(4.0)
+                        -       sz(i,j  ,k) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k) < gidmax && tmp != Real(0.0)) {
+                    cols[nelems] = gid(i,j+1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j  ,k-1)) {
+                    tmp +=      sx(i  ,j  ,k-1) * facx * Real(2.0)
+                        +       sy(i  ,j  ,k-1) * facy * Real(2.0)
+                        -       sz(i  ,j  ,k-1) * facz;
+                }
+                if (ccdom.contains(i  ,j  ,k)) {
+                    tmp +=      sx(i  ,j  ,k) * facx * Real(2.0)
+                        +       sy(i  ,j  ,k) * facy * Real(2.0)
+                        -       sz(i  ,j  ,k) * facz;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k) < gidmax) {
+                    cols[nelems] = gid(i+1,j+1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j-1,k+1)) {
+                Real tmp = sx(i-1,j-1,k  ) * facx
+                    +      sy(i-1,j-1,k  ) * facy
+                    +      sz(i-1,j-1,k  ) * facz;
+                m0 -= tmp;
+                if                (gid(i-1,j-1,k+1) < gidmax) {
+                    cols[nelems] = gid(i-1,j-1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j-1,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp +=    - sx(i-1,j-1,k  ) * facx
+                        +       sy(i-1,j-1,k  ) * facy * Real(2.0)
+                        +       sz(i-1,j-1,k  ) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j-1,k  )) {
+                    tmp +=    - sx(i,j-1,k  ) * facx
+                        +       sy(i,j-1,k  ) * facy * Real(2.0)
+                        +       sz(i,j-1,k  ) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k+1) < gidmax) {
+                    cols[nelems] = gid(i,j-1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j-1,k+1)) {
+                Real tmp = sx(i  ,j-1,k  ) * facx
+                    +      sy(i  ,j-1,k  ) * facy
+                    +      sz(i  ,j-1,k  ) * facz;
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k+1) < gidmax) {
+                    cols[nelems] = gid(i+1,j-1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp +=      sx(i-1,j-1,k  ) * facx * Real(2.0)
+                        -       sy(i-1,j-1,k  ) * facy
+                        +       sz(i-1,j-1,k  ) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i-1,j,k  )) {
+                    tmp +=      sx(i-1,j,k  ) * facx * Real(2.0)
+                        -       sy(i-1,j,k  ) * facy
+                        +       sz(i-1,j,k  ) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k+1) < gidmax) {
+                    cols[nelems] = gid(i-1,j,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp +=    - sx(i-1,j-1,k  ) * facx * Real(2.0)
+                        -       sy(i-1,j-1,k  ) * facy * Real(2.0)
+                        +       sz(i-1,j-1,k  ) * facz * Real(4.0);
+                }
+                if (ccdom.contains(i,j-1,k  )) {
+                    tmp +=    - sx(i,j-1,k  ) * facx * Real(2.0)
+                        -       sy(i,j-1,k  ) * facy * Real(2.0)
+                        +       sz(i,j-1,k  ) * facz * Real(4.0);
+                }
+                if (ccdom.contains(i-1,j,k  )) {
+                    tmp +=    - sx(i-1,j,k  ) * facx * Real(2.0)
+                        -       sy(i-1,j,k  ) * facy * Real(2.0)
+                        +       sz(i-1,j,k  ) * facz * Real(4.0);
+                }
+                if (ccdom.contains(i,j,k  )) {
+                    tmp +=    - sx(i,j,k  ) * facx * Real(2.0)
+                        -       sy(i,j,k  ) * facy * Real(2.0)
+                        +       sz(i,j,k  ) * facz * Real(4.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j,k+1) < gidmax && tmp != Real(0.0)) {
+                    cols[nelems] = gid(i,j,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k  )) {
+                    tmp +=      sx(i  ,j-1,k  ) * facx * Real(2.0)
+                        -       sy(i  ,j-1,k  ) * facy
+                        +       sz(i  ,j-1,k  ) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i  ,j,k  )) {
+                    tmp +=      sx(i  ,j,k  ) * facx * Real(2.0)
+                        -       sy(i  ,j,k  ) * facy
+                        +       sz(i  ,j,k  ) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k+1) < gidmax) {
+                    cols[nelems] = gid(i+1,j,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j+1,k+1)) {
+                Real tmp = sx(i-1,j  ,k  ) * facx
+                    +      sy(i-1,j  ,k  ) * facy
+                    +      sz(i-1,j  ,k  ) * facz;
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k+1) < gidmax) {
+                    cols[nelems] = gid(i-1,j+1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j+1,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k  )) {
+                    tmp +=    - sx(i-1,j  ,k  ) * facx
+                        +       sy(i-1,j  ,k  ) * facy * Real(2.0)
+                        +       sz(i-1,j  ,k  ) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j  ,k  )) {
+                    tmp +=    - sx(i,j  ,k  ) * facx
+                        +       sy(i,j  ,k  ) * facy * Real(2.0)
+                        +       sz(i,j  ,k  ) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k+1) < gidmax) {
+                    cols[nelems] = gid(i,j+1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j+1,k+1)) {
+                Real tmp = sx(i  ,j  ,k  ) * facx
+                    +      sy(i  ,j  ,k  ) * facy
+                    +      sz(i  ,j  ,k  ) * facz;
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k+1) < gidmax) {
+                    cols[nelems] = gid(i+1,j+1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            mat[nelems_old] = m0;
+            ncols[lid(i,j,k)] = nelems - nelems_old;
+        }
+    });
+}
+
+template <typename HypreInt, typename AtomicInt>
+void mlndlap_fillijmat_cs_cpu (Box const& ndbx,
+                               Array4<AtomicInt const> const& gid,
+                               Array4<int const> const& lid,
+                               HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                               Real const sigma,
+                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                               Box const& ccdom) noexcept
+{
+    Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0] * sigma;
+    Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1] * sigma;
+    Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2] * sigma;
+    Real fxyz = facx + facy + facz;
+    Real fmx2y2z = -facx + Real(2.0)*facy + Real(2.0)*facz;
+    Real f2xmy2z = Real(2.0)*facx - facy + Real(2.0)*facz;
+    Real f2x2ymz = Real(2.0)*facx + Real(2.0)*facy - facz;
+    Real f4xm2ym2z = Real(4.0)*facx - Real(2.0)*facy - Real(2.0)*facz;
+    Real fm2x4ym2z = -Real(2.0)*facx + Real(4.0)*facy - Real(2.0)*facz;
+    Real fm2xm2y4z = -Real(2.0)*facx - Real(2.0)*facy + Real(4.0)*facz;
+
+    const Box& nddom = amrex::surroundingNodes(ccdom);
+
+    constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+    HypreInt nelems = 0;
+    amrex::LoopOnCpu(ndbx, [&] (int i, int j, int k) noexcept
+    {
+        if (lid(i,j,k) >= 0)
+        {
+            HypreInt nelems_old = nelems;
+            cols[nelems_old] = gid(i,j,k);
+            Real m0 = Real(0.);
+            ++nelems;
+
+            if (nddom.contains(i-1,j-1,k-1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if (               gid(i-1,j-1,k-1) < gidmax) {
+                    cols[nelems] = gid(i-1,j-1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j-1,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp += fmx2y2z;
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp += fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k-1) < gidmax) {
+                    cols[nelems] = gid(i,j-1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j-1,k-1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k-1) < gidmax) {
+                    cols[nelems] = gid(i+1,j-1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp += f2xmy2z;
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp += f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k-1) < gidmax) {
+                    cols[nelems] = gid(i-1,j,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j,k-1) && fm2xm2y4z != Real(0.0)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp += fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp += fm2xm2y4z;
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp += fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j,k-1)) {
+                    tmp += fm2xm2y4z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j,k-1) < gidmax) {
+                    cols[nelems] = gid(i,j,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp += f2xmy2z;
+                }
+                if (ccdom.contains(i  ,j,k-1)) {
+                    tmp += f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k-1) < gidmax) {
+                    cols[nelems] = gid(i+1,j,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j+1,k-1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k-1) < gidmax) {
+                    cols[nelems] = gid(i-1,j+1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j+1,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp += fmx2y2z;
+                }
+                if (ccdom.contains(i,j  ,k-1)) {
+                    tmp += fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k-1) < gidmax) {
+                    cols[nelems] = gid(i,j+1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j+1,k-1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k-1) < gidmax) {
+                    cols[nelems] = gid(i+1,j+1,k-1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp += f2x2ymz;
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp += f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j-1,k) < gidmax) {
+                    cols[nelems] = gid(i-1,j-1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j-1,k) && fm2x4ym2z != Real(0.0)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp += fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp += fm2x4ym2z;
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp += fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j-1,k)) {
+                    tmp += fm2x4ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k) < gidmax) {
+                    cols[nelems] = gid(i,j-1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp += f2x2ymz;
+                }
+                if (ccdom.contains(i  ,j-1,k)) {
+                    tmp += f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k) < gidmax) {
+                    cols[nelems] = gid(i+1,j-1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j,k) && f4xm2ym2z != Real(0.0)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp += f4xm2ym2z;
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp += f4xm2ym2z;
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp += f4xm2ym2z;
+                }
+                if (ccdom.contains(i-1,j,k)) {
+                    tmp += f4xm2ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k) < gidmax) {
+                    cols[nelems] = gid(i-1,j,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j,k) && f4xm2ym2z != Real(0.0)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp += f4xm2ym2z;
+                }
+                if (ccdom.contains(i  ,j,k-1)) {
+                    tmp += f4xm2ym2z;
+                }
+                if (ccdom.contains(i  ,j-1,k)) {
+                    tmp += f4xm2ym2z;
+                }
+                if (ccdom.contains(i  ,j,k)) {
+                    tmp += f4xm2ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k) < gidmax) {
+                    cols[nelems] = gid(i+1,j,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp += f2x2ymz;
+                }
+                if (ccdom.contains(i-1,j  ,k)) {
+                    tmp += f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k) < gidmax) {
+                    cols[nelems] = gid(i-1,j+1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j+1,k) && fm2x4ym2z != Real(0.0)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp += fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j  ,k-1)) {
+                    tmp += fm2x4ym2z;
+                }
+                if (ccdom.contains(i-1,j  ,k)) {
+                    tmp += fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j  ,k)) {
+                    tmp += fm2x4ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k) < gidmax) {
+                    cols[nelems] = gid(i,j+1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j  ,k-1)) {
+                    tmp += f2x2ymz;
+                }
+                if (ccdom.contains(i  ,j  ,k)) {
+                    tmp += f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k) < gidmax) {
+                    cols[nelems] = gid(i+1,j+1,k);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j-1,k+1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if                (gid(i-1,j-1,k+1) < gidmax) {
+                    cols[nelems] = gid(i-1,j-1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j-1,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp += fmx2y2z;
+                }
+                if (ccdom.contains(i,j-1,k  )) {
+                    tmp += fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k+1) < gidmax) {
+                    cols[nelems] = gid(i,j-1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j-1,k+1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k+1) < gidmax) {
+                    cols[nelems] = gid(i+1,j-1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp += f2xmy2z;
+                }
+                if (ccdom.contains(i-1,j,k  )) {
+                    tmp += f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k+1) < gidmax) {
+                    cols[nelems] = gid(i-1,j,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j,k+1) && fm2xm2y4z != Real(0.0)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp += fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j-1,k  )) {
+                    tmp += fm2xm2y4z;
+                }
+                if (ccdom.contains(i-1,j,k  )) {
+                    tmp += fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j,k  )) {
+                    tmp += fm2xm2y4z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j,k+1) < gidmax) {
+                    cols[nelems] = gid(i,j,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k  )) {
+                    tmp += f2xmy2z;
+                }
+                if (ccdom.contains(i  ,j,k  )) {
+                    tmp += f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k+1) < gidmax) {
+                    cols[nelems] = gid(i+1,j,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i-1,j+1,k+1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k+1) < gidmax) {
+                    cols[nelems] = gid(i-1,j+1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i,j+1,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k  )) {
+                    tmp += fmx2y2z;
+                }
+                if (ccdom.contains(i,j  ,k  )) {
+                    tmp += fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k+1) < gidmax) {
+                    cols[nelems] = gid(i,j+1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            if (nddom.contains(i+1,j+1,k+1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k+1) < gidmax) {
+                    cols[nelems] = gid(i+1,j+1,k+1);
+                    mat[nelems] = tmp;
+                    ++nelems;
+                }
+            }
+
+            mat[nelems_old] = m0;
+            ncols[lid(i,j,k)] = nelems - nelems_old;
+        }
+    });
+}
+
+#ifdef AMREX_USE_GPU
+
+template <typename HypreInt, typename AtomicInt>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void mlndlap_fillijmat_sten_gpu (const int ps, const int i, const int j, const int k,
+                                 const int offset,
+                                 Array4<AtomicInt const> const& gid,
+                                 Array4<int const> const& lid,
+                                 HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                                 Array4<Real const> const& sten) noexcept
+{
+    if (lid(i,j,k) >= 0)
+    {
+        constexpr int ist_000 = 1-1;
+        constexpr int ist_p00 = 2-1;
+        constexpr int ist_0p0 = 3-1;
+        constexpr int ist_00p = 4-1;
+        constexpr int ist_pp0 = 5-1;
+        constexpr int ist_p0p = 6-1;
+        constexpr int ist_0pp = 7-1;
+        constexpr int ist_ppp = 8-1;
+
+        constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+        int nelems = 0;
+
+        if (offset == 1 || offset == 0) {
+            if                (gid(i-1,j-1,k-1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i-1,j-1,k-1);
+                    mat[ps] = sten(i-1,j-1,k-1,ist_ppp);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 2 || offset == 0) {
+            if                (gid(i,j-1,k-1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i,j-1,k-1);
+                    mat[ps] = sten(i,j-1,k-1,ist_0pp);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 3 || offset == 0) {
+            if                (gid(i+1,j-1,k-1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i+1,j-1,k-1);
+                    mat[ps] = sten(i,j-1,k-1,ist_ppp);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 4 || offset == 0) {
+            if                (gid(i-1,j,k-1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i-1,j,k-1);
+                    mat[ps] = sten(i-1,j,k-1,ist_p0p);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 5 || offset == 0) {
+            if                (gid(i,j,k-1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i,j,k-1);
+                    mat[ps] = sten(i,j,k-1,ist_00p);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 6 || offset == 0) {
+            if                (gid(i+1,j,k-1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i+1,j,k-1);
+                    mat[ps] = sten(i,j,k-1,ist_p0p);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 7 || offset == 0) {
+            if                (gid(i-1,j+1,k-1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i-1,j+1,k-1);
+                    mat[ps] = sten(i-1,j,k-1,ist_ppp);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 8 || offset == 0) {
+            if                (gid(i,j+1,k-1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i,j+1,k-1);
+                    mat[ps] = sten(i,j,k-1,ist_0pp);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 9 || offset == 0) {
+            if                (gid(i+1,j+1,k-1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i+1,j+1,k-1);
+                    mat[ps] = sten(i,j,k-1,ist_ppp);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 10 || offset == 0) {
+            if                (gid(i-1,j-1,k) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i-1,j-1,k);
+                    mat[ps] = sten(i-1,j-1,k,ist_pp0);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 11 || offset == 0) {
+            if                (gid(i,j-1,k) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i,j-1,k);
+                    mat[ps] = sten(i,j-1,k,ist_0p0);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 12 || offset == 0) {
+            if                (gid(i+1,j-1,k) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i+1,j-1,k);
+                    mat[ps] = sten(i,j-1,k,ist_pp0);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 13 || offset == 0) {
+            if                (gid(i-1,j,k) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i-1,j,k);
+                    mat[ps] = sten(i-1,j,k,ist_p00);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 14 || offset == 0) {
+            if                (gid(i+1,j,k) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i+1,j,k);
+                    mat[ps] = sten(i,j,k,ist_p00);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 15 || offset == 0) {
+            if                (gid(i-1,j+1,k) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i-1,j+1,k);
+                    mat[ps] = sten(i-1,j,k,ist_pp0);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 16 || offset == 0) {
+            if                (gid(i,j+1,k) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i,j+1,k);
+                    mat[ps] = sten(i,j,k,ist_0p0);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 17 || offset == 0) {
+            if                (gid(i+1,j+1,k) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i+1,j+1,k);
+                    mat[ps] = sten(i,j,k,ist_pp0);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 18 || offset == 0) {
+            if                (gid(i-1,j-1,k+1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i-1,j-1,k+1);
+                    mat[ps] = sten(i-1,j-1,k,ist_ppp);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 19 || offset == 0) {
+            if                (gid(i,j-1,k+1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i,j-1,k+1);
+                    mat[ps] = sten(i,j-1,k,ist_0pp);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 20 || offset == 0) {
+            if                (gid(i+1,j-1,k+1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i+1,j-1,k+1);
+                    mat[ps] = sten(i,j-1,k,ist_ppp);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 21 || offset == 0) {
+            if                (gid(i-1,j,k+1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i-1,j,k+1);
+                    mat[ps] = sten(i-1,j,k,ist_p0p);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 22 || offset == 0) {
+            if                (gid(i,j,k+1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i,j,k+1);
+                    mat[ps] = sten(i,j,k,ist_00p);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 23 || offset == 0) {
+            if                (gid(i+1,j,k+1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i+1,j,k+1);
+                    mat[ps] = sten(i,j,k,ist_p0p);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 24 || offset == 0) {
+            if                (gid(i-1,j+1,k+1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i-1,j+1,k+1);
+                    mat[ps] = sten(i-1,j,k,ist_ppp);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 25 || offset == 0) {
+            if                (gid(i,j+1,k+1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i,j+1,k+1);
+                    mat[ps] = sten(i,j,k,ist_0pp);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 26 || offset == 0) {
+            if                (gid(i+1,j+1,k+1) < gidmax) {
+                if (offset != 0) {
+                    cols[ps] = gid(i+1,j+1,k+1);
+                    mat[ps] = sten(i,j,k,ist_ppp);
+                }
+                ++nelems;
+            }
+            if (offset != 0) return;
+        }
+
+        // Only offset == 0 could get this far.
+        cols[ps] = gid(i,j,k);
+        mat[ps] = sten(i,j,k,ist_000);
+        ncols[lid(i,j,k)] = nelems+1;
+    }
+}
+
+template <typename HypreInt, typename AtomicInt>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void mlndlap_fillijmat_aa_gpu (const int ps, const int i, const int j, const int k,
+                               const int offset,
+                               Box const& ndbx, Array4<AtomicInt const> const& gid,
+                               Array4<int const> const& lid,
+                               HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                               Array4<Real const> const& sig,
+                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                               Box const& ccdom) noexcept
+{
+    if (lid(i,j,k) >= 0)
+    {
+        Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0];
+        Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1];
+        Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2];
+        Real fxyz = facx + facy + facz;
+        Real fmx2y2z = -facx + Real(2.0)*facy + Real(2.0)*facz;
+        Real f2xmy2z = Real(2.0)*facx - facy + Real(2.0)*facz;
+        Real f2x2ymz = Real(2.0)*facx + Real(2.0)*facy - facz;
+        Real f4xm2ym2z = Real(4.0)*facx - Real(2.0)*facy - Real(2.0)*facz;
+        Real fm2x4ym2z = -Real(2.0)*facx + Real(4.0)*facy - Real(2.0)*facz;
+        Real fm2xm2y4z = -Real(2.0)*facx - Real(2.0)*facy + Real(4.0)*facz;
+
+        const Box& nddom = amrex::surroundingNodes(ccdom);
+
+        constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+        int nelems = 0;
+        Real m0 = Real(0.);
+
+        if (offset == 1 || offset == 0) {
+            if (nddom.contains(i-1,j-1,k-1)) {
+                Real tmp = sig(i-1,j-1,k-1) * fxyz;
+                m0 -= tmp;
+                if (               gid(i-1,j-1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j-1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 2 || offset == 0) {
+            if (nddom.contains(i,j-1,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=     sig(i-1,j-1,k-1) * fmx2y2z;
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp +=     sig(i,j-1,k-1) * fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j-1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 3 || offset == 0) {
+            if (nddom.contains(i+1,j-1,k-1)) {
+                Real tmp = sig(i  ,j-1,k-1) * fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j-1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 4 || offset == 0) {
+            if (nddom.contains(i-1,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=     sig(i-1,j-1,k-1) * f2xmy2z;
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp +=     sig(i-1,j,k-1) * f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 5 || offset == 0) {
+            if (nddom.contains(i,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=     sig(i-1,j-1,k-1) * fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp +=     sig(i,j-1,k-1) * fm2xm2y4z;
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp +=     sig(i-1,j,k-1) * fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j,k-1)) {
+                    tmp +=     sig(i,j,k-1) * fm2xm2y4z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 6 || offset == 0) {
+            if (nddom.contains(i+1,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp +=     sig(i  ,j-1,k-1) * f2xmy2z;
+                }
+                if (ccdom.contains(i  ,j,k-1)) {
+                    tmp +=     sig(i  ,j,k-1) * f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 7 || offset == 0) {
+            if (nddom.contains(i-1,j+1,k-1)) {
+                Real tmp = sig(i-1,j  ,k-1) * fxyz;
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j+1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 8 || offset == 0) {
+            if (nddom.contains(i,j+1,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp +=     sig(i-1,j  ,k-1) * fmx2y2z;
+                }
+                if (ccdom.contains(i,j  ,k-1)) {
+                    tmp +=     sig(i,j  ,k-1) * fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j+1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 9 || offset == 0) {
+            if (nddom.contains(i+1,j+1,k-1)) {
+                Real tmp = sig(i  ,j  ,k-1) * fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j+1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 10 || offset == 0) {
+            if (nddom.contains(i-1,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=     sig(i-1,j-1,k-1) * f2x2ymz;
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp +=     sig(i-1,j-1,k) * f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j-1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j-1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 11 || offset == 0) {
+            if (nddom.contains(i,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=     sig(i-1,j-1,k-1) * fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp +=     sig(i,j-1,k-1) * fm2x4ym2z;
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp +=     sig(i-1,j-1,k) * fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j-1,k)) {
+                    tmp +=     sig(i,j-1,k) * fm2x4ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j-1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 12 || offset == 0) {
+            if (nddom.contains(i+1,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp +=     sig(i  ,j-1,k-1) * f2x2ymz;
+                }
+                if (ccdom.contains(i  ,j-1,k)) {
+                    tmp +=     sig(i  ,j-1,k) * f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j-1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 13 || offset == 0) {
+            if (nddom.contains(i-1,j,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=     sig(i-1,j-1,k-1) * f4xm2ym2z;
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp +=     sig(i-1,j,k-1) * f4xm2ym2z;
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp +=     sig(i-1,j-1,k) * f4xm2ym2z;
+                }
+                if (ccdom.contains(i-1,j,k)) {
+                    tmp +=     sig(i-1,j,k) * f4xm2ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 14 || offset == 0) {
+            if (nddom.contains(i+1,j,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp +=     sig(i  ,j-1,k-1) * f4xm2ym2z;
+                }
+                if (ccdom.contains(i  ,j,k-1)) {
+                    tmp +=     sig(i  ,j,k-1) * f4xm2ym2z;
+                }
+                if (ccdom.contains(i  ,j-1,k)) {
+                    tmp +=     sig(i  ,j-1,k) * f4xm2ym2z;
+                }
+                if (ccdom.contains(i  ,j,k)) {
+                    tmp +=     sig(i  ,j,k) * f4xm2ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 15 || offset == 0) {
+            if (nddom.contains(i-1,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp +=     sig(i-1,j  ,k-1) * f2x2ymz;
+                }
+                if (ccdom.contains(i-1,j  ,k)) {
+                    tmp +=     sig(i-1,j  ,k) * f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j+1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 16 || offset == 0) {
+            if (nddom.contains(i,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp +=     sig(i-1,j  ,k-1) * fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j  ,k-1)) {
+                    tmp +=     sig(i,j  ,k-1) * fm2x4ym2z;
+                }
+                if (ccdom.contains(i-1,j  ,k)) {
+                    tmp +=     sig(i-1,j  ,k) * fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j  ,k)) {
+                    tmp +=     sig(i,j  ,k) * fm2x4ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j+1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 17 || offset == 0) {
+            if (nddom.contains(i+1,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j  ,k-1)) {
+                    tmp +=     sig(i  ,j  ,k-1) * f2x2ymz;
+                }
+                if (ccdom.contains(i  ,j  ,k)) {
+                    tmp +=     sig(i  ,j  ,k) * f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j+1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 18 || offset == 0) {
+            if (nddom.contains(i-1,j-1,k+1)) {
+                Real tmp = sig(i-1,j-1,k  ) * fxyz;
+                m0 -= tmp;
+                if                (gid(i-1,j-1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j-1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 19 || offset == 0) {
+            if (nddom.contains(i,j-1,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp +=     sig(i-1,j-1,k  ) * fmx2y2z;
+                }
+                if (ccdom.contains(i,j-1,k  )) {
+                    tmp +=     sig(i,j-1,k  ) * fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j-1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 20 || offset == 0) {
+            if (nddom.contains(i+1,j-1,k+1)) {
+                Real tmp = sig(i  ,j-1,k  ) * fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j-1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 21 || offset == 0) {
+            if (nddom.contains(i-1,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp +=     sig(i-1,j-1,k  ) * f2xmy2z;
+                }
+                if (ccdom.contains(i-1,j,k  )) {
+                    tmp +=     sig(i-1,j,k  ) * f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 22 || offset == 0) {
+            if (nddom.contains(i,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp +=     sig(i-1,j-1,k  ) * fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j-1,k  )) {
+                    tmp +=     sig(i,j-1,k  ) * fm2xm2y4z;
+                }
+                if (ccdom.contains(i-1,j,k  )) {
+                    tmp +=     sig(i-1,j,k  ) * fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j,k  )) {
+                    tmp +=     sig(i,j,k  ) * fm2xm2y4z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 23 || offset == 0) {
+            if (nddom.contains(i+1,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k  )) {
+                    tmp +=     sig(i  ,j-1,k  ) * f2xmy2z;
+                }
+                if (ccdom.contains(i  ,j,k  )) {
+                    tmp +=     sig(i  ,j,k  ) * f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 24 || offset == 0) {
+            if (nddom.contains(i-1,j+1,k+1)) {
+                Real tmp = sig(i-1,j  ,k  ) * fxyz;
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j+1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 25 || offset == 0) {
+            if (nddom.contains(i,j+1,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k  )) {
+                    tmp +=     sig(i-1,j  ,k  ) * fmx2y2z;
+                }
+                if (ccdom.contains(i,j  ,k  )) {
+                    tmp +=     sig(i,j  ,k  ) * fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j+1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 26 || offset == 0) {
+            if (nddom.contains(i+1,j+1,k+1)) {
+                Real tmp = sig(i  ,j  ,k  ) * fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j+1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        // Only offset == 0 could get this far.
+        cols[ps] = gid(i,j,k);
+        mat[ps] = m0;
+        ncols[lid(i,j,k)] = nelems+1;
+    }
+}
+
+template <typename HypreInt, typename AtomicInt>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void mlndlap_fillijmat_ha_gpu (const int ps, const int i, const int j, const int k,
+                               const int offset,
+                               Box const& ndbx, Array4<AtomicInt const> const& gid,
+                               Array4<int const> const& lid,
+                               HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                               Array4<Real const> const& sx,
+                               Array4<Real const> const& sy,
+                               Array4<Real const> const& sz,
+                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                               Box const& ccdom) noexcept
+{
+    if (lid(i,j,k) >= 0)
+    {
+        Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0];
+        Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1];
+        Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2];
+
+        const Box& nddom = amrex::surroundingNodes(ccdom);
+
+        constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+        int nelems = 0;
+        Real m0 = Real(0.);
+
+        if (offset == 1 || offset == 0) {
+            if (nddom.contains(i-1,j-1,k-1)) {
+                Real tmp = sx(i-1,j-1,k-1) * facx
+                    +      sy(i-1,j-1,k-1) * facy
+                    +      sz(i-1,j-1,k-1) * facz;
+                m0 -= tmp;
+                if (               gid(i-1,j-1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j-1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 2 || offset == 0) {
+            if (nddom.contains(i,j-1,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=    - sx(i-1,j-1,k-1) * facx
+                        +       sy(i-1,j-1,k-1) * facy * Real(2.0)
+                        +       sz(i-1,j-1,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp +=    - sx(i,j-1,k-1) * facx
+                        +       sy(i,j-1,k-1) * facy * Real(2.0)
+                        +       sz(i,j-1,k-1) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j-1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 3 || offset == 0) {
+            if (nddom.contains(i+1,j-1,k-1)) {
+                Real tmp = sx(i  ,j-1,k-1) * facx
+                    +      sy(i  ,j-1,k-1) * facy
+                    +      sz(i  ,j-1,k-1) * facz;
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j-1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 4 || offset == 0) {
+            if (nddom.contains(i-1,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=      sx(i-1,j-1,k-1) * facx * Real(2.0)
+                        -       sy(i-1,j-1,k-1) * facy
+                        +       sz(i-1,j-1,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp +=      sx(i-1,j,k-1) * facx * Real(2.0)
+                        -       sy(i-1,j,k-1) * facy
+                        +       sz(i-1,j,k-1) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 5 || offset == 0) {
+            if (nddom.contains(i,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=    - sx(i-1,j-1,k-1) * facx * Real(2.0)
+                        -       sy(i-1,j-1,k-1) * facy * Real(2.0)
+                        +       sz(i-1,j-1,k-1) * facz * Real(4.0);
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp +=    - sx(i,j-1,k-1) * facx * Real(2.0)
+                        -       sy(i,j-1,k-1) * facy * Real(2.0)
+                        +       sz(i,j-1,k-1) * facz * Real(4.0);
+
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp +=    - sx(i-1,j,k-1) * facx * Real(2.0)
+                        -       sy(i-1,j,k-1) * facy * Real(2.0)
+                        +       sz(i-1,j,k-1) * facz * Real(4.0);
+                }
+                if (ccdom.contains(i,j,k-1)) {
+                    tmp +=    - sx(i,j,k-1) * facx * Real(2.0)
+                        -       sy(i,j,k-1) * facy * Real(2.0)
+                        +       sz(i,j,k-1) * facz * Real(4.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 6 || offset == 0) {
+            if (nddom.contains(i+1,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp +=      sx(i  ,j-1,k-1) * facx * Real(2.0)
+                        -       sy(i  ,j-1,k-1) * facy
+                        +       sz(i  ,j-1,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i  ,j,k-1)) {
+                    tmp +=      sx(i  ,j,k-1) * facx * Real(2.0)
+                        -       sy(i  ,j,k-1) * facy
+                        +       sz(i  ,j,k-1) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 7 || offset == 0) {
+            if (nddom.contains(i-1,j+1,k-1)) {
+                Real tmp = sx(i-1,j  ,k-1) * facx
+                    +      sy(i-1,j  ,k-1) * facy
+                    +      sz(i-1,j  ,k-1) * facz;
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j+1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 8 || offset == 0) {
+            if (nddom.contains(i,j+1,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp +=    - sx(i-1,j  ,k-1) * facx
+                        +       sy(i-1,j  ,k-1) * facy * Real(2.0)
+                        +       sz(i-1,j  ,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j  ,k-1)) {
+                    tmp +=    - sx(i,j  ,k-1) * facx
+                        +       sy(i,j  ,k-1) * facy * Real(2.0)
+                        +       sz(i,j  ,k-1) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j+1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 9 || offset == 0) {
+            if (nddom.contains(i+1,j+1,k-1)) {
+                Real tmp = sx(i  ,j  ,k-1) * facx
+                    +      sy(i  ,j  ,k-1) * facy
+                    +      sz(i  ,j  ,k-1) * facz;
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j+1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 10 || offset == 0) {
+            if (nddom.contains(i-1,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=      sx(i-1,j-1,k-1) * facx * Real(2.0)
+                        +       sy(i-1,j-1,k-1) * facy * Real(2.0)
+                        -       sz(i-1,j-1,k-1) * facz;
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp +=      sx(i-1,j-1,k) * facx * Real(2.0)
+                        +       sy(i-1,j-1,k) * facy * Real(2.0)
+                        -       sz(i-1,j-1,k) * facz;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j-1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j-1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 11 || offset == 0) {
+            if (nddom.contains(i,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=    - sx(i-1,j-1,k-1) * facx * Real(2.0)
+                        +       sy(i-1,j-1,k-1) * facy * Real(4.0)
+                        -       sz(i-1,j-1,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp +=    - sx(i,j-1,k-1) * facx * Real(2.0)
+                        +       sy(i,j-1,k-1) * facy * Real(4.0)
+                        -       sz(i,j-1,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp +=    - sx(i-1,j-1,k) * facx * Real(2.0)
+                        +       sy(i-1,j-1,k) * facy * Real(4.0)
+                        -       sz(i-1,j-1,k) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j-1,k)) {
+                    tmp +=    - sx(i,j-1,k) * facx * Real(2.0)
+                        +       sy(i,j-1,k) * facy * Real(4.0)
+                        -       sz(i,j-1,k) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j-1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 12 || offset == 0) {
+            if (nddom.contains(i+1,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp +=      sx(i  ,j-1,k-1) * facx * Real(2.0)
+                        +       sy(i  ,j-1,k-1) * facy * Real(2.0)
+                        -       sz(i  ,j-1,k-1) * facz;
+                }
+                if (ccdom.contains(i  ,j-1,k)) {
+                    tmp +=      sx(i  ,j-1,k) * facx * Real(2.0)
+                        +       sy(i  ,j-1,k) * facy * Real(2.0)
+                        -       sz(i  ,j-1,k) * facz;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j-1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 13 || offset == 0) {
+            if (nddom.contains(i-1,j,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp +=      sx(i-1,j-1,k-1) * facx * Real(4.0)
+                        -       sy(i-1,j-1,k-1) * facy * Real(2.0)
+                        -       sz(i-1,j-1,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp +=      sx(i-1,j,k-1) * facx * Real(4.0)
+                        -       sy(i-1,j,k-1) * facy * Real(2.0)
+                        -       sz(i-1,j,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp +=      sx(i-1,j-1,k) * facx * Real(4.0)
+                        -       sy(i-1,j-1,k) * facy * Real(2.0)
+                        -       sz(i-1,j-1,k) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i-1,j,k)) {
+                    tmp +=      sx(i-1,j,k) * facx * Real(4.0)
+                        -       sy(i-1,j,k) * facy * Real(2.0)
+                        -       sz(i-1,j,k) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 14 || offset == 0) {
+            if (nddom.contains(i+1,j,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp +=      sx(i  ,j-1,k-1) * facx * Real(4.0)
+                        -       sy(i  ,j-1,k-1) * facy * Real(2.0)
+                        -       sz(i  ,j-1,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i  ,j,k-1)) {
+                    tmp +=      sx(i  ,j,k-1) * facx * Real(4.0)
+                        -       sy(i  ,j,k-1) * facy * Real(2.0)
+                        -       sz(i  ,j,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i  ,j-1,k)) {
+                    tmp +=      sx(i  ,j-1,k) * facx * Real(4.0)
+                        -       sy(i  ,j-1,k) * facy * Real(2.0)
+                        -       sz(i  ,j-1,k) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i  ,j,k)) {
+                    tmp +=      sx(i  ,j,k) * facx * Real(4.0)
+                        -       sy(i  ,j,k) * facy * Real(2.0)
+                        -       sz(i  ,j,k) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 15 || offset == 0) {
+            if (nddom.contains(i-1,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp +=      sx(i-1,j  ,k-1) * facx * Real(2.0)
+                        +       sy(i-1,j  ,k-1) * facy * Real(2.0)
+                        -       sz(i-1,j  ,k-1) * facz;
+                }
+                if (ccdom.contains(i-1,j  ,k)) {
+                    tmp +=      sx(i-1,j  ,k) * facx * Real(2.0)
+                        +       sy(i-1,j  ,k) * facy * Real(2.0)
+                        -       sz(i-1,j  ,k) * facz;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j+1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 16 || offset == 0) {
+            if (nddom.contains(i,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp +=    - sx(i-1,j  ,k-1) * facx * Real(2.0)
+                        +       sy(i-1,j  ,k-1) * facy * Real(4.0)
+                        -       sz(i-1,j  ,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j  ,k-1)) {
+                    tmp +=    - sx(i,j  ,k-1) * facx * Real(2.0)
+                        +       sy(i,j  ,k-1) * facy * Real(4.0)
+                        -       sz(i,j  ,k-1) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i-1,j  ,k)) {
+                    tmp +=    - sx(i-1,j  ,k) * facx * Real(2.0)
+                        +       sy(i-1,j  ,k) * facy * Real(4.0)
+                        -       sz(i-1,j  ,k) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j  ,k)) {
+                    tmp +=    - sx(i,j  ,k) * facx * Real(2.0)
+                        +       sy(i,j  ,k) * facy * Real(4.0)
+                        -       sz(i,j  ,k) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j+1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 17 || offset == 0) {
+            if (nddom.contains(i+1,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j  ,k-1)) {
+                    tmp +=      sx(i  ,j  ,k-1) * facx * Real(2.0)
+                        +       sy(i  ,j  ,k-1) * facy * Real(2.0)
+                        -       sz(i  ,j  ,k-1) * facz;
+                }
+                if (ccdom.contains(i  ,j  ,k)) {
+                    tmp +=      sx(i  ,j  ,k) * facx * Real(2.0)
+                        +       sy(i  ,j  ,k) * facy * Real(2.0)
+                        -       sz(i  ,j  ,k) * facz;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j+1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 18 || offset == 0) {
+            if (nddom.contains(i-1,j-1,k+1)) {
+                Real tmp = sx(i-1,j-1,k  ) * facx
+                    +      sy(i-1,j-1,k  ) * facy
+                    +      sz(i-1,j-1,k  ) * facz;
+                m0 -= tmp;
+                if                (gid(i-1,j-1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j-1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 19 || offset == 0) {
+            if (nddom.contains(i,j-1,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp +=    - sx(i-1,j-1,k  ) * facx
+                        +       sy(i-1,j-1,k  ) * facy * Real(2.0)
+                        +       sz(i-1,j-1,k  ) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j-1,k  )) {
+                    tmp +=    - sx(i,j-1,k  ) * facx
+                        +       sy(i,j-1,k  ) * facy * Real(2.0)
+                        +       sz(i,j-1,k  ) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j-1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 20 || offset == 0) {
+            if (nddom.contains(i+1,j-1,k+1)) {
+                Real tmp = sx(i  ,j-1,k  ) * facx
+                    +      sy(i  ,j-1,k  ) * facy
+                    +      sz(i  ,j-1,k  ) * facz;
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j-1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 21 || offset == 0) {
+            if (nddom.contains(i-1,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp +=      sx(i-1,j-1,k  ) * facx * Real(2.0)
+                        -       sy(i-1,j-1,k  ) * facy
+                        +       sz(i-1,j-1,k  ) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i-1,j,k  )) {
+                    tmp +=      sx(i-1,j,k  ) * facx * Real(2.0)
+                        -       sy(i-1,j,k  ) * facy
+                        +       sz(i-1,j,k  ) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 22 || offset == 0) {
+            if (nddom.contains(i,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp +=    - sx(i-1,j-1,k  ) * facx * Real(2.0)
+                        -       sy(i-1,j-1,k  ) * facy * Real(2.0)
+                        +       sz(i-1,j-1,k  ) * facz * Real(4.0);
+                }
+                if (ccdom.contains(i,j-1,k  )) {
+                    tmp +=    - sx(i,j-1,k  ) * facx * Real(2.0)
+                        -       sy(i,j-1,k  ) * facy * Real(2.0)
+                        +       sz(i,j-1,k  ) * facz * Real(4.0);
+                }
+                if (ccdom.contains(i-1,j,k  )) {
+                    tmp +=    - sx(i-1,j,k  ) * facx * Real(2.0)
+                        -       sy(i-1,j,k  ) * facy * Real(2.0)
+                        +       sz(i-1,j,k  ) * facz * Real(4.0);
+                }
+                if (ccdom.contains(i,j,k  )) {
+                    tmp +=    - sx(i,j,k  ) * facx * Real(2.0)
+                        -       sy(i,j,k  ) * facy * Real(2.0)
+                        +       sz(i,j,k  ) * facz * Real(4.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 23 || offset == 0) {
+            if (nddom.contains(i+1,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k  )) {
+                    tmp +=      sx(i  ,j-1,k  ) * facx * Real(2.0)
+                        -       sy(i  ,j-1,k  ) * facy
+                        +       sz(i  ,j-1,k  ) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i  ,j,k  )) {
+                    tmp +=      sx(i  ,j,k  ) * facx * Real(2.0)
+                        -       sy(i  ,j,k  ) * facy
+                        +       sz(i  ,j,k  ) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 24 || offset == 0) {
+            if (nddom.contains(i-1,j+1,k+1)) {
+                Real tmp = sx(i-1,j  ,k  ) * facx
+                    +      sy(i-1,j  ,k  ) * facy
+                    +      sz(i-1,j  ,k  ) * facz;
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j+1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 25 || offset == 0) {
+            if (nddom.contains(i,j+1,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k  )) {
+                    tmp +=    - sx(i-1,j  ,k  ) * facx
+                        +       sy(i-1,j  ,k  ) * facy * Real(2.0)
+                        +       sz(i-1,j  ,k  ) * facz * Real(2.0);
+                }
+                if (ccdom.contains(i,j  ,k  )) {
+                    tmp +=    - sx(i,j  ,k  ) * facx
+                        +       sy(i,j  ,k  ) * facy * Real(2.0)
+                        +       sz(i,j  ,k  ) * facz * Real(2.0);
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j+1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 26 || offset == 0) {
+            if (nddom.contains(i+1,j+1,k+1)) {
+                Real tmp = sx(i  ,j  ,k  ) * facx
+                    +      sy(i  ,j  ,k  ) * facy
+                    +      sz(i  ,j  ,k  ) * facz;
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j+1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        // Only offset == 0 could get this far.
+        cols[ps] = gid(i,j,k);
+        mat[ps] = m0;
+        ncols[lid(i,j,k)] = nelems+1;
+    }
+}
+
+template <typename HypreInt, typename AtomicInt>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int k,
+                               const int offset,
+                               Box const& ndbx, Array4<AtomicInt const> const& gid,
+                               Array4<int const> const& lid,
+                               HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                               Real sigma, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                               Box const& ccdom) noexcept
+{
+    if (lid(i,j,k) >= 0)
+    {
+        Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0] * sigma;
+        Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1] * sigma;
+        Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2] * sigma;
+        Real fxyz = facx + facy + facz;
+        Real fmx2y2z = -facx + Real(2.0)*facy + Real(2.0)*facz;
+        Real f2xmy2z = Real(2.0)*facx - facy + Real(2.0)*facz;
+        Real f2x2ymz = Real(2.0)*facx + Real(2.0)*facy - facz;
+        Real f4xm2ym2z = Real(4.0)*facx - Real(2.0)*facy - Real(2.0)*facz;
+        Real fm2x4ym2z = -Real(2.0)*facx + Real(4.0)*facy - Real(2.0)*facz;
+        Real fm2xm2y4z = -Real(2.0)*facx - Real(2.0)*facy + Real(4.0)*facz;
+
+        const Box& nddom = amrex::surroundingNodes(ccdom);
+
+        constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
+        int nelems = 0;
+        Real m0 = Real(0.);
+
+        if (offset == 1 || offset == 0) {
+            if (nddom.contains(i-1,j-1,k-1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if (               gid(i-1,j-1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j-1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 2 || offset == 0) {
+            if (nddom.contains(i,j-1,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp += fmx2y2z;
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp += fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j-1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 3 || offset == 0) {
+            if (nddom.contains(i+1,j-1,k-1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j-1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 4 || offset == 0) {
+            if (nddom.contains(i-1,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp += f2xmy2z;
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp += f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 5 || offset == 0) {
+            if (nddom.contains(i,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp += fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp += fm2xm2y4z;
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp += fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j,k-1)) {
+                    tmp += fm2xm2y4z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 6 || offset == 0) {
+            if (nddom.contains(i+1,j,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp += f2xmy2z;
+                }
+                if (ccdom.contains(i  ,j,k-1)) {
+                    tmp += f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 7 || offset == 0) {
+            if (nddom.contains(i-1,j+1,k-1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j+1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 8 || offset == 0) {
+            if (nddom.contains(i,j+1,k-1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp += fmx2y2z;
+                }
+                if (ccdom.contains(i,j  ,k-1)) {
+                    tmp += fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j+1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 9 || offset == 0) {
+            if (nddom.contains(i+1,j+1,k-1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k-1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j+1,k-1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 10 || offset == 0) {
+            if (nddom.contains(i-1,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp += f2x2ymz;
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp += f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j-1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j-1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 11 || offset == 0) {
+            if (nddom.contains(i,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp += fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j-1,k-1)) {
+                    tmp += fm2x4ym2z;
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp += fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j-1,k)) {
+                    tmp += fm2x4ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j-1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 12 || offset == 0) {
+            if (nddom.contains(i+1,j-1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp += f2x2ymz;
+                }
+                if (ccdom.contains(i  ,j-1,k)) {
+                    tmp += f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j-1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 13 || offset == 0) {
+            if (nddom.contains(i-1,j,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k-1)) {
+                    tmp += f4xm2ym2z;
+                }
+                if (ccdom.contains(i-1,j,k-1)) {
+                    tmp += f4xm2ym2z;
+                }
+                if (ccdom.contains(i-1,j-1,k)) {
+                    tmp += f4xm2ym2z;
+                }
+                if (ccdom.contains(i-1,j,k)) {
+                    tmp += f4xm2ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 14 || offset == 0) {
+            if (nddom.contains(i+1,j,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k-1)) {
+                    tmp += f4xm2ym2z;
+                }
+                if (ccdom.contains(i  ,j,k-1)) {
+                    tmp += f4xm2ym2z;
+                }
+                if (ccdom.contains(i  ,j-1,k)) {
+                    tmp += f4xm2ym2z;
+                }
+                if (ccdom.contains(i  ,j,k)) {
+                    tmp += f4xm2ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 15 || offset == 0) {
+            if (nddom.contains(i-1,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp += f2x2ymz;
+                }
+                if (ccdom.contains(i-1,j  ,k)) {
+                    tmp += f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j+1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 16 || offset == 0) {
+            if (nddom.contains(i,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k-1)) {
+                    tmp += fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j  ,k-1)) {
+                    tmp += fm2x4ym2z;
+                }
+                if (ccdom.contains(i-1,j  ,k)) {
+                    tmp += fm2x4ym2z;
+                }
+                if (ccdom.contains(i,j  ,k)) {
+                    tmp += fm2x4ym2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j+1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 17 || offset == 0) {
+            if (nddom.contains(i+1,j+1,k)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j  ,k-1)) {
+                    tmp += f2x2ymz;
+                }
+                if (ccdom.contains(i  ,j  ,k)) {
+                    tmp += f2x2ymz;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j+1,k);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 18 || offset == 0) {
+            if (nddom.contains(i-1,j-1,k+1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if                (gid(i-1,j-1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j-1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 19 || offset == 0) {
+            if (nddom.contains(i,j-1,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp += fmx2y2z;
+                }
+                if (ccdom.contains(i,j-1,k  )) {
+                    tmp += fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j-1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j-1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 20 || offset == 0) {
+            if (nddom.contains(i+1,j-1,k+1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j-1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j-1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 21 || offset == 0) {
+            if (nddom.contains(i-1,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp += f2xmy2z;
+                }
+                if (ccdom.contains(i-1,j,k  )) {
+                    tmp += f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i-1,j,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 22 || offset == 0) {
+            if (nddom.contains(i,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j-1,k  )) {
+                    tmp += fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j-1,k  )) {
+                    tmp += fm2xm2y4z;
+                }
+                if (ccdom.contains(i-1,j,k  )) {
+                    tmp += fm2xm2y4z;
+                }
+                if (ccdom.contains(i,j,k  )) {
+                    tmp += fm2xm2y4z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 23 || offset == 0) {
+            if (nddom.contains(i+1,j,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i  ,j-1,k  )) {
+                    tmp += f2xmy2z;
+                }
+                if (ccdom.contains(i  ,j,k  )) {
+                    tmp += f2xmy2z;
+                }
+                m0 -= tmp;
+                if                (gid(i+1,j,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 24 || offset == 0) {
+            if (nddom.contains(i-1,j+1,k+1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if                (gid(i-1,j+1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i-1,j+1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 25 || offset == 0) {
+            if (nddom.contains(i,j+1,k+1)) {
+                Real tmp = Real(0.);
+                if (ccdom.contains(i-1,j  ,k  )) {
+                    tmp += fmx2y2z;
+                }
+                if (ccdom.contains(i,j  ,k  )) {
+                    tmp += fmx2y2z;
+                }
+                m0 -= tmp;
+                if                (gid(i,j+1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i,j+1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        if (offset == 26 || offset == 0) {
+            if (nddom.contains(i+1,j+1,k+1)) {
+                Real tmp = fxyz;
+                m0 -= tmp;
+                if                (gid(i+1,j+1,k+1) < gidmax) {
+                    if (offset != 0) {
+                        cols[ps] = gid(i+1,j+1,k+1);
+                        mat[ps] = tmp;
+                    }
+                    ++nelems;
+                }
+            }
+            if (offset != 0) return;
+        }
+
+        // Only offset == 0 could get this far.
+        cols[ps] = gid(i,j,k);
+        mat[ps] = m0;
+        ncols[lid(i,j,k)] = nelems+1;
+    }
+}
+
+#endif
 
 #endif
 

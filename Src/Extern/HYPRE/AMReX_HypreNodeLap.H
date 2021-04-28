@@ -2,9 +2,6 @@
 #define AMREX_HYPRE_NODE_LAP_H_
 #include <AMReX_Config.H>
 
-#include <memory>
-#include <algorithm>
-
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
@@ -13,6 +10,9 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_HypreIJIface.H>
 
+#include <algorithm>
+#include <memory>
+#include <type_traits>
 
 namespace amrex {
 
@@ -29,11 +29,14 @@ public:
     ~HypreNodeLap ();
 
     using Int = HYPRE_Int;
+    // To generate global ids for Hypre, we need to remove duplicates on
+    // nodes shared by multiple Boxes.  So we need to use a type that
+    // supports atomicAdd.  HYPRE_Int is either int or long long.  The
+    // latter does not have native atomicAdd support in CUDA/HIP.
+    using AtomicInt = std::conditional_t<sizeof(Int) == 4, unsigned int, unsigned long long>;
 
     void solve (MultiFab& soln, const MultiFab& rhs,
                 Real rel_tol, Real abs_tol, int max_iter);
-
-    void fill_node_id (LayoutData<Int>& offset);
 
     void setHypreOptionsNamespace(const std::string& ns)
     { options_namespace = ns; }
@@ -58,12 +61,22 @@ private:
     HYPRE_IJVector x = NULL;
 
     LayoutData<Int> nnodes_grid;
-    LayoutData<Vector<Int> > node_id_vec;
-    FabArray<BaseFab<Int> > node_id;
+    LayoutData<Gpu::DeviceVector<Int> > node_id_vec;
+    FabArray<BaseFab<AtomicInt> > node_id;
+    iMultiFab local_node_id;
+    LayoutData<Int> id_offset;
     MultiFab tmpsoln;
 
     std::string options_namespace{"hypre"};
 
+public: // for CUDA
+    Int fill_local_node_id ();
+#ifdef AMREX_USE_GPU
+    Int fill_local_node_id_gpu ();
+#endif
+    Int fill_local_node_id_cpu ();
+    void fill_global_node_id ();
+    void adjust_singular_matrix (Int const* ncols, Int const* cols, Int const* rows, Real* mat);
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
     void getSolution (MultiFab& soln);
 };

@@ -41,6 +41,7 @@ struct LPInfo
     bool has_metric_term = true;
     int max_coarsening_level = 30;
     int max_semicoarsening_level = 0;
+    int hidden_direction = -1;
 
     LPInfo& setAgglomeration (bool x) noexcept { do_agglomeration = x; return *this; }
     LPInfo& setConsolidation (bool x) noexcept { do_consolidation = x; return *this; }
@@ -50,6 +51,11 @@ struct LPInfo
     LPInfo& setMetricTerm (bool x) noexcept { has_metric_term = x; return *this; }
     LPInfo& setMaxCoarseningLevel (int n) noexcept { max_coarsening_level = n; return *this; }
     LPInfo& setMaxSemicoarseningLevel (int n) noexcept { max_semicoarsening_level = n; return *this; }
+    LPInfo& setHiddenDirection (int n) noexcept { hidden_direction = n; return *this; }
+
+    bool hasHiddenDimension () const noexcept {
+        return hidden_direction >=0 && hidden_direction < AMREX_SPACEDIM;
+    }
 
     static constexpr int getDefaultAgglomerationGridSize () {
 #ifdef AMREX_USE_GPU
@@ -137,15 +143,15 @@ public:
 
 
     /**
-    * \brief For cell-centered solves only: if we want to do a linear solve 
-    * where the boundary conditions on the coarsest AMR level of the solve 
-    * come from a coarser level (e.g. the base AMR level of the solve is > 0 
-    * and does not cover the entire domain), we must explicitly provide the coarser 
-    * data.  Boundary conditions from a coarser level are always Dirichlet.  
+    * \brief For cell-centered solves only: if we want to do a linear solve
+    * where the boundary conditions on the coarsest AMR level of the solve
+    * come from a coarser level (e.g. the base AMR level of the solve is > 0
+    * and does not cover the entire domain), we must explicitly provide the coarser
+    * data.  Boundary conditions from a coarser level are always Dirichlet.
     * The MultiFab crse does not need to have ghost cells and is at a coarser
     * resolution than the coarsest AMR level of the solve; it is used to supply
-    * (interpolated) boundary conditions for the solve.  
-    * NOTE: If this is called, it must be called before `setLevelBC`.  
+    * (interpolated) boundary conditions for the solve.
+    * NOTE: If this is called, it must be called before `setLevelBC`.
     * If crse is nullptr, then the bc values are assumed to be zero.
     *
     * \param crse
@@ -154,21 +160,25 @@ public:
     void setCoarseFineBC (const MultiFab* crse, int crse_ratio) noexcept;
 
     /**
-    * \brief For cell-centered solves only: this must be called for each level.  
-    * Argument `levelbcdata` is * used to supply Dirichlet or Neumann bc at the
-    * physical domain; if those data are homogeneous we can pass nullptr instead
-    * of levelbcdata.  Regardless, this function must be called.
-    * If used, the MultiFab levelbcdata must have one ghost cell.
-    * Only the data outside the physical domain at Dirichlet or
-    * inhomogeneous Neumann boundary will be used.  It is assumed that
-    * the data in those ghost cells outside the domain live exactly on
-    * the face of the physical domain.  Argument `amrlev` is relative
-    * level such that the lowest to the solver is always 0.
-    *
-    * \param amrlev
-    * \param levelbcdata
+    * \brief For cell-centered solves only: this must be called for each
+    * level.  Argument `levelbcdata` is used to supply Dirichlet or Neumann
+    * bc at the physical domain; if those data are homogeneous we can pass
+    * nullptr instead of levelbcdata.  Regardless, this function must be
+    * called.  If used, the MultiFab levelbcdata must have one ghost cell.
+    * Only the data outside the physical domain will be used.  It is assumed
+    * that the data in those ghost cells outside the domain live exactly on
+    * the face of the physical domain.  Argument `amrlev` is relative level
+    * such that the lowest to the solver is always 0.  The optional
+    * arguments robinbc_[a|b|f] provide Robin boundary condition `a*phi +
+    * b*dphi/dn = f`.  Note that `d./dn` is `d./dx` at the upper boundary
+    * and `-d./dx` at the lower boundary, for Robin BC. However, for
+    * inhomogeneous Neumann BC, the value in leveldata is assumed to be
+    * `d./dx`.
     */
-    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) = 0;
+    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata,
+                             const MultiFab* robinbc_a = nullptr,
+                             const MultiFab* robinbc_b = nullptr,
+                             const MultiFab* robinbc_f = nullptr) = 0;
 
     void setVerbose (int v) noexcept { verbose = v; }
 
@@ -264,6 +274,10 @@ public:
     virtual std::unique_ptr<PETScABecLap> makePETSc () const;
 #endif
 
+    virtual bool supportNSolve () const { return false; }
+
+    virtual void copyNSolveSolution (MultiFab&, MultiFab const&) const {}
+
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
@@ -323,8 +337,10 @@ protected:
     // BC
     Vector<Array<BCType, AMREX_SPACEDIM> > m_lobc;
     Vector<Array<BCType, AMREX_SPACEDIM> > m_hibc;
-    Vector<Array<int, AMREX_SPACEDIM> > m_lo_inhomog_neumann;
-    Vector<Array<int, AMREX_SPACEDIM> > m_hi_inhomog_neumann;
+    // Need to save the original copy because we change the BC type to
+    // Neumann for inhomogeneous Neumann and Robin.
+    Vector<Array<BCType, AMREX_SPACEDIM> > m_lobc_orig;
+    Vector<Array<BCType, AMREX_SPACEDIM> > m_hibc_orig;
 
     Array<Real, AMREX_SPACEDIM> m_domain_bloc_lo {{AMREX_D_DECL(0.,0.,0.)}};
     Array<Real, AMREX_SPACEDIM> m_domain_bloc_hi {{AMREX_D_DECL(0.,0.,0.)}};
@@ -358,6 +374,12 @@ protected:
                                                              m_hibc[icomp][2])}};
     }
 
+    bool hasInhomogNeumannBC () const noexcept;
+    bool hasRobinBC () const noexcept;
+
+    virtual bool supportRobinBC () const noexcept { return false; }
+    virtual bool supportInhomogNeumannBC () const noexcept { return false; }
+
 #ifdef BL_USE_MPI
     bool isBottomActive () const noexcept { return m_bottom_comm != MPI_COMM_NULL; }
 #else
@@ -374,10 +396,48 @@ protected:
 
     bool isCellCentered () const noexcept { return m_ixtype == 0; }
 
-    void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
+    void make (Vector<Vector<MultiFab> >& mf, int nc, IntVect const& ng) const;
 
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int /*amrlev*/, int /*mglev*/) const {
-        return std::unique_ptr<FabFactory<FArrayBox> >(new FArrayBoxFactory());
+        return std::make_unique<FArrayBoxFactory>();
+    }
+
+    bool hasHiddenDimension () const noexcept { return info.hasHiddenDimension(); }
+    int hiddenDirection () const noexcept { return info.hidden_direction; }
+    Box compactify (Box const& b) const noexcept;
+
+    template <typename T>
+    Array4<T> compactify (Array4<T> const& a) const noexcept
+    {
+        if (info.hidden_direction == 0) {
+            return Array4<T>(a.dataPtr(), {a.begin.y,a.begin.z,0}, {a.end.y,a.end.z,1}, a.nComp());
+        } else if (info.hidden_direction == 1) {
+            return Array4<T>(a.dataPtr(), {a.begin.x,a.begin.z,0}, {a.end.x,a.end.z,1}, a.nComp());
+        } else if (info.hidden_direction == 2) {
+            return Array4<T>(a.dataPtr(), {a.begin.x,a.begin.y,0}, {a.end.x,a.end.y,1}, a.nComp());
+        } else {
+            return a;
+        }
+    }
+
+    template <typename T>
+    T get_d0 (T const& dx, T const& dy, T const&) const noexcept
+    {
+        if (info.hidden_direction == 0) {
+            return dy;
+        } else {
+            return dx;
+        }
+    }
+
+    template <typename T>
+    T get_d1 (T const&, T const& dy, T const& dz) const noexcept
+    {
+        if (info.hidden_direction == 0 || info.hidden_direction == 1) {
+            return dz;
+        } else {
+            return dy;
+        }
     }
 
 private:

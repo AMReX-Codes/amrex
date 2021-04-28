@@ -1,19 +1,17 @@
-
-#include <cstdlib>
-#include <iostream>
-#include <iomanip>
-#include <cfloat>
-#include <cmath>
-#include <cstring>
-#include <limits>
-
+#include <AMReX.H>
+#include <AMReX_BLassert.H>
+#include <AMReX_FPC.H>
 #include <AMReX_IArrayBox.H>
 #include <AMReX_ParmParse.H>
-#include <AMReX_FPC.H>
-
-#include <AMReX_BLassert.H>
-#include <AMReX.H>
 #include <AMReX_Utility.H>
+
+#include <cfloat>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <iomanip>
+#include <iostream>
+#include <limits>
 
 namespace amrex {
 
@@ -55,7 +53,7 @@ IArrayBox::IArrayBox (const Box& b, int n, Arena* ar)
 #ifndef AMREX_USE_GPU
     // For debugging purposes
     if ( do_initval ) {
-	setVal<RunOn::Host>(std::numeric_limits<int>::max());
+        setVal<RunOn::Host>(std::numeric_limits<int>::max());
     }
 #endif
 }
@@ -66,7 +64,7 @@ IArrayBox::IArrayBox (const Box& b, int n, bool alloc, bool shared, Arena* ar)
 #ifndef AMREX_USE_GPU
     // For debugging purposes
     if ( alloc && do_initval ) {
-	setVal<RunOn::Host>(std::numeric_limits<int>::max());
+        setVal<RunOn::Host>(std::numeric_limits<int>::max());
     }
 #endif
 }

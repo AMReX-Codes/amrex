@@ -259,13 +259,14 @@ For example, on Cori GPUs you can specify the architecture as follows:
 
 If no architecture is specified, CMake will default to the architecture defined in the
 *environment variable* ``AMREX_CUDA_ARCH`` (note: all caps).
-If the latter is not defined, CMake will try to determine which GPU
-architecture is supported by the system. If more than one is found, CMake will build for all of them.
-This will generally results in a larger library and longer build times.
-If autodetection fails, a set of "common" architectures is assumed.
-**Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
-CUDA Toolkit version 9.0 or higher**.
+If the latter is not defined, CMake will try to determine which GPU architecture is supported by the system.
+If more than one is found, CMake will build for all of them.
+If autodetection fails, a list of "common" architectures is assumed.
+`Multiple CUDA architectures <https://cmake.org/cmake/help/latest/module/FindCUDA.html#commands>`__ can also be set manually as semicolon-separated list, e.g. ``-DAMReX_CUDA_ARCH=7.0;8.0``.
+Building for multiple CUDA architectures will generally result in a larger library and longer build times.
 
+**Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
+CUDA Toolkit version 9.0 or higher.**
 
 In order to import the CUDA-enabled AMReX library into your CMake project, you need to include
 the following code into the appropriate CMakeLists.txt file:
@@ -677,8 +678,8 @@ implementation is reproduced here:
 ::
 
     Real MultiFab::Dot (const MultiFab& x, int xcomp,
-	       const MultiFab& y, int ycomp,
-	       int numcomp, int nghost, bool local) {
+                        const MultiFab& y, int ycomp,
+                        int numcomp, int nghost, bool local) {
         Real sm = amrex::ReduceSum(x, y, nghost,
         [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab, FArrayBox const& yfab) -> Real
         {
@@ -688,7 +689,7 @@ implementation is reproduced here:
         if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
 
         return sm;
-   }
+    }
 
 :cpp:`amrex::ReduceSum` takes two :cpp:`MultiFab`\ s, ``x`` and ``y`` and
 returns the sum of the value returned from the given lambda function.
@@ -1584,7 +1585,7 @@ by "amrex" in your :cpp:`inputs` file.
 |                            | pinned memory. In practice, we find it is usually not worth it to use |             |             |
 |                            | GPU aware MPI.                                                        |             |             |
 +----------------------------+-----------------------------------------------------------------------+-------------+-------------+
-| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is greater than the size of a   | Bool        | False       |
+| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | False       |
 |                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |             |
 |                            | describing how much free memory there is and what was requested.      |             |             |
 +----------------------------+-----------------------------------------------------------------------+-------------+-------------+
@@ -1598,9 +1599,9 @@ Basic Gpu Debugging
 
 ::
 
-		  Gpu::setLaunchRegion(0);
-		  ... ;
-		  Gpu::setLaunchRegion(1);
+    Gpu::setLaunchRegion(0);
+    ... ;
+    Gpu::setLaunchRegion(1);
 
 Note that functions, ``amrex::launch`` and ``amrex::ParallelFor``, do
 not respect the launch region flag.  Only the macros (e.g.,
@@ -1613,7 +1614,7 @@ Cuda-specific tests
 
 ::
 
-		nvprof ./main3d.xxx
+    nvprof ./main3d.xxx
 
 - Run under ``nvprof -o profile%p.nvvp ./main3d.xxxx`` for
   a small problem and examine page faults using nvvp

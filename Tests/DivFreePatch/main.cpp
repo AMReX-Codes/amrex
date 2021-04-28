@@ -110,7 +110,7 @@ Real MFdiff(const MultiFab& lhs, const MultiFab& rhs,
         max_diff = (max_diff > max_i) ? max_diff : max_i;
     }
 
-    return max_diff; 
+    return max_diff;
 }
 
 // ================================================
@@ -130,7 +130,7 @@ void main_main ()
 
     int n_cell = 0;
     int f_offset = 4;
-    int nghost_c = 1; 
+    int nghost_c = 1;
     int nghost_f = 2;
 
     amrex::Vector<int> c_lo(AMREX_SPACEDIM,  0);
@@ -175,8 +175,8 @@ void main_main ()
 
     // For outputing ghost cells for debugging.
     Array<MultiFab, AMREX_SPACEDIM> f_mf_faces_wg;
-    MultiFab div_fine_wg; 
- 
+    MultiFab div_fine_wg;
+
     AMREX_D_TERM( IntVect x_face{AMREX_D_DECL(1,0,0)};,
                   IntVect y_face{AMREX_D_DECL(0,1,0)};,
                   IntVect z_face{AMREX_D_DECL(0,0,1)};  );
@@ -375,7 +375,7 @@ void main_main ()
     // Check for errors
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (f_mf_faces[i].contains_nan()) {
-            amrex::Print() << "******** Nans present in fine velocity in dimension " << i << std::endl; 
+            amrex::Print() << "******** Nans present in fine velocity in dimension " << i << std::endl;
         }
     }
 
@@ -385,7 +385,7 @@ void main_main ()
 
 // ***************************************************************
 //  Check divergence on the fine grid, subtract the target
-//      and report maximum value. 
+//      and report maximum value.
 
     amrex::Print() << " Calculating Fine Divergence. " << std::endl;
     calcDiv(f_mf_faces, div_fine, f_geom.CellSizeArray());
@@ -488,12 +488,12 @@ void main_main ()
     Real max_diff = 0;
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
-        Real max_i = std::abs( MFdiff(f_mf_copy[i], f_mf_faces[i], 0, 1, 0) ); 
+        Real max_i = std::abs( MFdiff(f_mf_copy[i], f_mf_faces[i], 0, 1, 0) );
         max_diff = (max_diff > max_i) ? max_diff : max_i;
     }
     amrex::Print() << " Fine values maximum change: " << max_diff << std::endl;
 
-    // Check fine divergence = coarse divergence in ghost cells.     
+    // Check fine divergence = coarse divergence in ghost cells.
     calcDiv(f_mf_faces, div_fine, f_geom.CellSizeArray());
     amrex::VisMF::Write(div_fine, std::string("pltfiles/fineFP"));
 
@@ -508,14 +508,14 @@ void main_main ()
     // Check for errors
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (f_mf_faces_wg[i].contains_nan()) {
-            amrex::Print() << "******** Nans present in fine velocity after FillPatch (including ghosts)  in dimension " << i << std::endl; 
+            amrex::Print() << "******** Nans present in fine velocity after FillPatch (including ghosts)  in dimension " << i << std::endl;
         }
     }
 
     AMREX_D_TERM( amrex::VisMF::Write(f_mf_faces_wg[0], std::string("pltfiles/fwgxFP"));,
                   amrex::VisMF::Write(f_mf_faces_wg[1], std::string("pltfiles/fwgyFP"));,
                   amrex::VisMF::Write(f_mf_faces_wg[2], std::string("pltfiles/fwgzFP"));  );
-   
+
 // ***************************************************************
 
 }

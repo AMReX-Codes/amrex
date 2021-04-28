@@ -1,15 +1,16 @@
 
+#include <AMReX_GpuDevice.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Print.H>
+#include <AMReX_GpuLaunch.H>
+
 #include <iostream>
 #include <map>
 #include <algorithm>
 #include <string>
 #include <unordered_set>
 #include <exception>
-#include <AMReX_GpuDevice.H>
-#include <AMReX_ParallelDescriptor.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_Print.H>
-#include <AMReX_GpuLaunch.H>
 
 #if defined(AMREX_USE_CUDA)
 #include <cuda_profiler_api.h>
@@ -124,6 +125,7 @@ Device::Initialize ()
 
     ParmParse ppamrex("amrex");
     ppamrex.query("max_gpu_streams", max_gpu_streams);
+    max_gpu_streams = std::min(max_gpu_streams, AMREX_GPU_MAX_STREAMS);
 
     ParmParse pp("device");
 
@@ -318,19 +320,19 @@ Device::Initialize ()
             amrex::Print() << "CUDA initialized with 1 GPU per MPI rank; "
                            << num_devices_used << " GPU(s) used in total\n";
         }
-        else 
+        else
         {
             amrex::Print() << "CUDA initialized with " << num_devices_used << " GPU(s) and "
                            << ParallelDescriptor::NProcs() << " ranks.\n";
         }
 #else  // Should always be using NVCC >= 10 now, so not going to bother with other combinations.
-        amrex::Print() << "CUDA initialized with 1 GPU\n"; 
+        amrex::Print() << "CUDA initialized with 1 GPU\n";
 #endif // AMREX_USE_MPI && NVCC >= 10
     }
 
     cudaProfilerStart();
 
-#elif defined(AMREX_USE_HIP) 
+#elif defined(AMREX_USE_HIP)
     if (amrex::Verbose()) {
         if (ParallelDescriptor::NProcs() > 1) {
 #ifdef BL_USE_MPI
@@ -434,8 +436,8 @@ Device::initialize_gpu ()
         sycl::gpu_selector gpu_device_selector;
         sycl::platform platform(gpu_device_selector);
         auto const& gpu_devices = platform.get_devices();
-        sycl_device.reset(new sycl::device(gpu_devices[device_id]));
-        sycl_context.reset(new sycl::context(*sycl_device, amrex_sycl_error_handler));
+        sycl_device = std::make_unique<sycl::device>(gpu_devices[device_id]);
+        sycl_context = std::make_unique<sycl::context>(*sycl_device, amrex_sycl_error_handler);
         gpu_default_stream.queue = new sycl::queue(*sycl_context, *sycl_device,
                                          sycl::property_list{sycl::property::queue::in_order{}});
         for (int i = 0; i < max_gpu_streams; ++i) {
@@ -550,6 +552,19 @@ Device::numDevicesUsed () noexcept
     return num_devices_used;
 }
 
+#ifdef AMREX_USE_GPU
+int
+Device::streamIndex (gpuStream_t s) noexcept
+{
+    if (s == nullStream()) {
+        return -1;
+    } else {
+        auto it = std::find(std::begin(gpu_stream_pool), std::end(gpu_stream_pool), s);
+        return static_cast<int>(std::distance(std::begin(gpu_stream_pool), it));
+    }
+}
+#endif
+
 void
 Device::setStreamIndex (const int idx) noexcept
 {
@@ -642,7 +657,7 @@ Device::startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz
 {
     if ((first_iter) && inLaunchRegion() && inGraphRegion())
     {
-        // Uses passed information to do initial async memcpy in graph and 
+        // Uses passed information to do initial async memcpy in graph and
         //    links dependency to all streams using cudaEvents.
 
         setStreamIndex(0);
@@ -652,7 +667,7 @@ Device::startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz
 
 #if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
         AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(graph_stream));
-#else  
+#else
         AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(graph_stream, cudaStreamCaptureModeGlobal));
 #endif
 
@@ -711,14 +726,14 @@ Device::instantiateGraph(cudaGraph_t graph)
 {
     cudaGraphExec_t graphExec;
 
-#ifdef AMREX_DEBUG 
+#ifdef AMREX_DEBUG
 //  Implementes cudaGraphInstantiate error logging feature.
-//  Upon error, delays abort until message is output. 
+//  Upon error, delays abort until message is output.
     constexpr int log_size = 1028;
     char graph_log[log_size];
     graph_log[0]='\0';
 
-    cudaGraphInstantiate(&graphExec, graph, NULL, &(graph_log[0]), log_size); 
+    cudaGraphInstantiate(&graphExec, graph, NULL, &(graph_log[0]), log_size);
 
     if (graph_log[0] != '\0')
     {
@@ -727,7 +742,7 @@ Device::instantiateGraph(cudaGraph_t graph)
     }
 #else
 
-    AMREX_CUDA_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0)); 
+    AMREX_CUDA_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0));
 
 #endif
 
@@ -866,10 +881,10 @@ Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim
 
 #endif
 
-    AMREX_ASSERT(numThreads.x <= device_prop.maxThreadsDim[0]);
-    AMREX_ASSERT(numThreads.y <= device_prop.maxThreadsDim[1]);
-    AMREX_ASSERT(numThreads.z <= device_prop.maxThreadsDim[2]);
-    AMREX_ASSERT(numThreads.x*numThreads.y*numThreads.z <= device_prop.maxThreadsPerBlock);
+    AMREX_ASSERT(numThreads.x <= static_cast<unsigned>(device_prop.maxThreadsDim[0]));
+    AMREX_ASSERT(numThreads.y <= static_cast<unsigned>(device_prop.maxThreadsDim[1]));
+    AMREX_ASSERT(numThreads.z <= static_cast<unsigned>(device_prop.maxThreadsDim[2]));
+    AMREX_ASSERT(numThreads.x*numThreads.y*numThreads.z <= static_cast<unsigned>(device_prop.maxThreadsPerBlock));
     AMREX_ASSERT(numThreads.x > 0);
     AMREX_ASSERT(numThreads.y > 0);
     AMREX_ASSERT(numThreads.z > 0);

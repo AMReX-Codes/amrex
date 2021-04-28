@@ -6,6 +6,9 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_GpuPrint.H>
 
+#include <iostream>
+#include <sstream>
+
 namespace amrex {
 
     template <typename T>

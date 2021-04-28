@@ -73,7 +73,7 @@ void test ()
     Vector<Geometry> geom(nlevs);
     geom[0].define(domains[0], &real_box, CoordSys::cartesian, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
-	geom[lev].define(domains[lev], &real_box, CoordSys::cartesian, is_per);
+        geom[lev].define(domains[lev], &real_box, CoordSys::cartesian, is_per);
     }
 
     Vector<DistributionMapping> dmap(nlevs);
@@ -81,7 +81,7 @@ void test ()
     Vector<std::unique_ptr<MultiFab> > mf(nlevs);
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping{ba[lev]};
-        mf[lev].reset(new MultiFab(ba[lev], dmap[lev], ncomp, nghost));
+        mf[lev] = std::make_unique<MultiFab>(ba[lev], dmap[lev], ncomp, nghost);
         mf[lev]->setVal(lev);
     }
 
@@ -278,7 +278,7 @@ void set_grids_nested (Vector<Box>& domains,
     }
 
     for (int lev = 1; lev < nlevs; lev++) {
-	domains[lev] = amrex::refine(domains[lev-1], ref_ratio[lev-1]);
+        domains[lev] = amrex::refine(domains[lev-1], ref_ratio[lev-1]);
     }
 }
 

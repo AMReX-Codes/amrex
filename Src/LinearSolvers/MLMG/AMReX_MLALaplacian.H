@@ -18,7 +18,8 @@ public:
                   const Vector<BoxArray>& a_grids,
                   const Vector<DistributionMapping>& a_dmap,
                   const LPInfo& a_info = LPInfo(),
-                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                  const int a_ncomp = 1);
     virtual ~MLALaplacian ();
 
     MLALaplacian (const MLALaplacian&) = delete;
@@ -34,6 +35,13 @@ public:
 
     void setScalars (Real a, Real b) noexcept;
     void setACoeffs (int amrlev, const MultiFab& alpha);
+
+    virtual int getNComp () const override { return m_ncomp; }
+
+    virtual bool needsUpdate () const override {
+        return (m_needs_update || MLCellABecLap::needsUpdate());
+    }
+    virtual void update () override;
 
     virtual void prepareForSolve () final override;
     virtual bool isSingular (int amrlev) const final override { return m_is_singular[amrlev]; }
@@ -65,11 +73,17 @@ public:
 
 private:
 
+    bool m_needs_update = true;
+
     Real m_a_scalar = std::numeric_limits<Real>::quiet_NaN();
     Real m_b_scalar = std::numeric_limits<Real>::quiet_NaN();
     Vector<Vector<MultiFab> > m_a_coeffs;
 
     Vector<int> m_is_singular;
+
+    int m_ncomp = 1;
+
+    void updateSingularFlag ();
 };
 
 }

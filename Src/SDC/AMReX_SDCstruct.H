@@ -21,7 +21,7 @@ extern "C"  {
   * \param qmats
   */
   void SDC_quadrature(int* qtype_in, int* nnodes, int* nnodes0,
-		      amrex_real* nodes, int* nflags,amrex_real* qmats);
+                      amrex_real* nodes, int* nflags,amrex_real* qmats);
 }
 class SDCstruct
  {

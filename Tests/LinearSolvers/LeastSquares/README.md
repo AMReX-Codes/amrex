@@ -4,7 +4,7 @@ This directory contains tests for:
 1. Slope computation on face centroids using the Least Square method,
 2. Laplacian operator computation when applying the explicit stencil,
 
-Given a function defined on cell centroids. 
+Given a function defined on cell centroids.
 
 # Building & Running
 1. Build using `make`
@@ -26,4 +26,4 @@ Given a function defined on cell centroids.
    ```
 
 ## Tests
-There are several input files which correspond to different 2D & 3D configurations of `Poisueille Flow through a Channel`. For eg: `inputs.3d.poiseuille.aligned.xy-x` corresponds to the flow through a 3D channel where the walls are along the xy plane and the flow is along the x direction, and the grid is aligned with the walls (does not cut the wall at an angle).
+There are several input files which correspond to different 2D & 3D configurations of `Poisueille Flow through a Channel`. For eg: `inputs.3d.poiseuille.aligned.xy-x` corresponds to the flow through a 3D channel where the walls are along the xy plane and the flow is along the x direction, and the grid is aligned with the walls (does not cut the wall at an angle). Additionally, there is a test corresponding to a periodic triangle wave function in 2D `inputs.2d.trianglewave`.

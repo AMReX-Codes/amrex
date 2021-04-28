@@ -16,7 +16,7 @@ using std::endl;
 using std::cerr;
 
 static
-void 
+void
 PrintUsage(int argc, char *argv[])
 {
     cout << "Usage: " << endl;
@@ -40,7 +40,7 @@ main (int   argc,
         PrintUsage(argc,argv);
 
     ParmParse pp;
-    
+
     std::string iFile; pp.get("iFile", iFile);
     int ascii = 0; pp.query("ascii",ascii);
 
@@ -49,11 +49,11 @@ main (int   argc,
 //
     MultiFab mf;
     VisMF::Read(mf,iFile);
-    
+
     int ngrow = mf.nGrow();
     pp.query("ngrow",ngrow);
     ngrow = std::min(ngrow,mf.nGrow());
-    
+
     MultiFab tmp(mf.boxArray(),mf.nComp(),ngrow,Fab_allocate);
     MultiFab::Copy(tmp,mf,0,0,mf.nComp(),ngrow);
     if (ascii == 1)
@@ -67,6 +67,6 @@ main (int   argc,
     }
 
     amrex::Finalize();
-    
+
     return ArrayViewMultiFab(&tmp);
 }

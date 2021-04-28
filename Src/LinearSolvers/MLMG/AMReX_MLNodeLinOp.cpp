@@ -30,6 +30,9 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
 #endif
     MLLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory, eb_limit_coarsening);
 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!hasHiddenDimension(),
+                                     "Nodal solver cannot have any hidden dimensions");
+
     m_owner_mask.resize(m_num_amr_levels);
     m_dirichlet_mask.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
@@ -40,9 +43,9 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
             m_owner_mask[amrlev][mglev] = makeOwnerMask(m_grids[amrlev][mglev],
                                                         m_dmap[amrlev][mglev],
                                                         m_geom[amrlev][mglev]);
-            m_dirichlet_mask[amrlev][mglev].reset
-                (new iMultiFab(amrex::convert(m_grids[amrlev][mglev],IntVect::TheNodeVector()),
-                               m_dmap[amrlev][mglev], 1, 0));
+            m_dirichlet_mask[amrlev][mglev] = std::make_unique<iMultiFab>
+                (amrex::convert(m_grids[amrlev][mglev],IntVect::TheNodeVector()),
+                 m_dmap[amrlev][mglev], 1, 0);
             m_dirichlet_mask[amrlev][mglev]->setVal(0); // non-Dirichlet by default
         }
     }
@@ -55,14 +58,17 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
     {
         if (amrlev < m_num_amr_levels-1)
         {
-            m_nd_fine_mask[amrlev].reset(new iMultiFab(amrex::convert(m_grids[amrlev][0],IntVect::TheNodeVector()),
-                                                       m_dmap[amrlev][0], 1, 0));
-            m_cc_fine_mask[amrlev].reset(new iMultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1));
+            m_nd_fine_mask[amrlev] = std::make_unique<iMultiFab>
+                (amrex::convert(m_grids[amrlev][0],IntVect::TheNodeVector()),
+                 m_dmap[amrlev][0], 1, 0);
+            m_cc_fine_mask[amrlev] = std::make_unique<iMultiFab>
+                (m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1);
         } else {
-            m_cc_fine_mask[amrlev].reset(new iMultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1,
-                                                       MFInfo().SetAlloc(false)));
+            m_cc_fine_mask[amrlev] = std::make_unique<iMultiFab>
+                (m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1, MFInfo().SetAlloc(false));
         }
-        m_has_fine_bndry[amrlev].reset(new LayoutData<int>(m_grids[amrlev][0], m_dmap[amrlev][0]));
+        m_has_fine_bndry[amrlev] = std::make_unique<LayoutData<int> >(m_grids[amrlev][0],
+                                                                      m_dmap[amrlev][0]);
     }
 }
 
@@ -159,22 +165,8 @@ MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
 }
 
 void
-MLNodeLinOp::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
+MLNodeLinOp::applyInhomogNeumannTerm (int /*amrlev*/, MultiFab& /*rhs*/) const
 {
-    amrex::ignore_unused(amrlev);
-    int ncomp = rhs.nComp();
-    for (int n = 0; n < ncomp; ++n)
-    {
-        auto itlo = std::find(m_lo_inhomog_neumann[n].begin(),
-                              m_lo_inhomog_neumann[n].end(),   1);
-        auto ithi = std::find(m_hi_inhomog_neumann[n].begin(),
-                              m_hi_inhomog_neumann[n].end(),   1);
-        if (itlo != m_lo_inhomog_neumann[n].end() ||
-            ithi != m_hi_inhomog_neumann[n].end())
-        {
-            amrex::Abort("Inhomogeneous Neumann not supported for nodal solver");
-        }
-    }
 }
 
 namespace {
@@ -390,11 +382,8 @@ MLNodeLinOp::makeHypreNodeLap (int bottom_verbose, const std::string& options_na
     const auto& dirichlet_mask = *(m_dirichlet_mask[0].back());
     MPI_Comm comm = BottomCommunicator();
 
-    std::unique_ptr<HypreNodeLap> hypre_solver
-        (new amrex::HypreNodeLap(ba, dm, geom, factory, owner_mask, dirichlet_mask,
-                                 comm, this, bottom_verbose, options_namespace));
-
-    return hypre_solver;
+    return std::make_unique<amrex::HypreNodeLap>(ba, dm, geom, factory, owner_mask, dirichlet_mask,
+                                                 comm, this, bottom_verbose, options_namespace);
 }
 #endif
 

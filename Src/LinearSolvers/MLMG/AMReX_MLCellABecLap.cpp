@@ -41,11 +41,16 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLCellABecLap::define(overset)");
 
+    AMREX_ALWAYS_ASSERT(!hasHiddenDimension());
+
+    m_lpinfo_arg = a_info;
+
     int namrlevs = a_geom.size();
     m_overset_mask.resize(namrlevs);
     for (int amrlev = 0; amrlev < namrlevs; ++amrlev)
     {
-        m_overset_mask[amrlev].emplace_back(new iMultiFab(a_grids[amrlev], a_dmap[amrlev], 1, 1));
+        m_overset_mask[amrlev].push_back(std::make_unique<iMultiFab>(a_grids[amrlev],
+                                                                     a_dmap[amrlev], 1, 1));
         iMultiFab::Copy(*m_overset_mask[amrlev][0], *a_overset_mask[amrlev], 0, 0, 1, 0);
         if (amrlev > 1) {
             AMREX_ALWAYS_ASSERT(amrex::refine(a_geom[amrlev-1].Domain(),2)
@@ -61,8 +66,8 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
         iMultiFab const& fine = *m_overset_mask[amrlev][mglev-1];
         if (dom.coarsenable(2) && fine.boxArray().coarsenable(2)) {
             dom.coarsen(2);
-            std::unique_ptr<iMultiFab> crse(new iMultiFab(amrex::coarsen(fine.boxArray(),2),
-                                                          fine.DistributionMap(), 1, 1));
+            auto crse = std::make_unique<iMultiFab>(amrex::coarsen(fine.boxArray(),2),
+                                                    fine.DistributionMap(), 1, 1);
             ReduceOps<ReduceOpSum> reduce_op;
             ReduceData<int> reduce_data(reduce_op);
             using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -80,7 +85,7 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
                     return { coarsen_overset_mask(b, cmsk, fmsk) };
                 });
             }
-            ReduceTuple hv = reduce_data.value();
+            ReduceTuple hv = reduce_data.value(reduce_op);
             if (amrex::get<0>(hv) == 0) {
                 m_overset_mask[amrlev].push_back(std::move(crse));
             } else {
@@ -104,8 +109,8 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
     for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev) {
         MultiFab foo(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 0, MFInfo().SetAlloc(false));
         if (! isMFIterSafe(*m_overset_mask[amrlev][mglev], foo)) {
-            std::unique_ptr<iMultiFab> osm(new iMultiFab(m_grids[amrlev][mglev],
-                                                         m_dmap[amrlev][mglev], 1, 1));
+            auto osm = std::make_unique<iMultiFab>(m_grids[amrlev][mglev],
+                                                   m_dmap[amrlev][mglev], 1, 1);
             osm->ParallelCopy(*m_overset_mask[amrlev][mglev]);
             std::swap(osm, m_overset_mask[amrlev][mglev]);
         }
@@ -113,8 +118,9 @@ MLCellABecLap::define (const Vector<Geometry>& a_geom,
 
     for (amrlev = 1; amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev) { // for ref_ratio 4
-            m_overset_mask[amrlev].emplace_back(new iMultiFab(m_grids[amrlev][mglev],
-                                                              m_dmap[amrlev][mglev], 1, 1));
+            m_overset_mask[amrlev].push_back(std::make_unique<iMultiFab>(m_grids[amrlev][mglev],
+                                                                         m_dmap[amrlev][mglev],
+                                                                         1, 1));
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -174,23 +180,12 @@ MLCellABecLap::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux
 void
 MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
 {
-    int ncomp = rhs.nComp();
-    bool has_inhomog_neumann = false;
-    for (int n = 0; n < ncomp; ++n)
-    {
-        auto itlo = std::find(m_lo_inhomog_neumann[n].begin(),
-                              m_lo_inhomog_neumann[n].end(),   1);
-        auto ithi = std::find(m_hi_inhomog_neumann[n].begin(),
-                              m_hi_inhomog_neumann[n].end(),   1);
-        if (itlo != m_lo_inhomog_neumann[n].end() ||
-            ithi != m_hi_inhomog_neumann[n].end())
-        {
-            has_inhomog_neumann = true;
-        }
-    }
+    bool has_inhomog_neumann = hasInhomogNeumannBC();
+    bool has_robin = hasRobinBC();
 
-    if (!has_inhomog_neumann) return;
+    if (!has_inhomog_neumann && !has_robin) return;
 
+    int ncomp = getNComp();
     const int mglev = 0;
 
     const auto problo = m_geom[amrlev][mglev].ProbLoArray();
@@ -228,7 +223,8 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
 
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
-            Array4<Real const> const bfab = (has_bcoef) ? bcoef[idim]->array(mfi) : foo.array();
+            Array4<Real const> const bfab = (has_bcoef)
+                ? bcoef[idim]->const_array(mfi) : foo.const_array();
             const Orientation olo(idim,Orientation::low);
             const Orientation ohi(idim,Orientation::high);
             const Box blo = amrex::adjCellLo(vbx, idim);
@@ -245,7 +241,7 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                 const BoundCond bcthi = bdcv[icomp][ohi];
                 const Real bcllo = bdlv[icomp][olo];
                 const Real bclhi = bdlv[icomp][ohi];
-                if (m_lo_inhomog_neumann[icomp][idim] && outside_domain_lo)
+                if (m_lobc_orig[icomp][idim] == LinOpBCType::inhomogNeumann && outside_domain_lo)
                 {
                     if (idim == 0) {
                         Real fac = beta*dxi;
@@ -290,7 +286,7 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                         });
                     }
                 }
-                if (m_hi_inhomog_neumann[icomp][idim] && outside_domain_hi)
+                if (m_hibc_orig[icomp][idim] == LinOpBCType::inhomogNeumann && outside_domain_hi)
                 {
                     if (idim == 0) {
                         Real fac = beta*dxi;
@@ -335,6 +331,67 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                     }
                 }
 
+                if (has_robin) {
+                    // For Robin BC, see comments in AMReX_MLABecLaplacian.cpp above
+                    // function applyRobinBCTermsCoeffs.
+                    Array4<Real const> const& rbc = (*m_robin_bcval[amrlev])[mfi].const_array(icomp*3);
+                    if (m_lobc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_lo)
+                    {
+                        if (idim == 0) {
+                            Real fac = beta*dxi*dxi;
+                            AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
+                            {
+                                Real A = rbc(i,j,k,2)
+                                    / (rbc(i,j,k,1)*dxi + rbc(i,j,k,0)*Real(0.5));
+                                rhsfab(i+1,j,k,icomp) += fac*bfab(i+1,j,k,icomp)*A;
+                            });
+                        } else if (idim == 1) {
+                            Real fac = beta*dyi*dyi;
+                            AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
+                            {
+                                Real A = rbc(i,j,k,2)
+                                    / (rbc(i,j,k,1)*dyi + rbc(i,j,k,0)*Real(0.5));
+                                rhsfab(i,j+1,k,icomp) += fac*bfab(i,j+1,k,icomp)*A;
+                            });
+                        } else {
+                            Real fac = beta*dzi*dzi;
+                            AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
+                            {
+                                Real A = rbc(i,j,k,2)
+                                    / (rbc(i,j,k,1)*dzi + rbc(i,j,k,0)*Real(0.5));
+                                rhsfab(i,j,k+1,icomp) += fac*bfab(i,j,k+1,icomp)*A;
+                            });
+                        }
+                    }
+                    if (m_hibc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_hi)
+                    {
+                        if (idim == 0) {
+                            Real fac = beta*dxi*dxi;
+                            AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
+                            {
+                                Real A = rbc(i,j,k,2)
+                                    / (rbc(i,j,k,1)*dxi + rbc(i,j,k,0)*Real(0.5));
+                                rhsfab(i-1,j,k,icomp) += fac*bfab(i,j,k,icomp)*A;
+                            });
+                        } else if (idim == 1) {
+                            Real fac = beta*dyi*dyi;
+                            AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
+                            {
+                                Real A = rbc(i,j,k,2)
+                                    / (rbc(i,j,k,1)*dyi + rbc(i,j,k,0)*Real(0.5));
+                                rhsfab(i,j-1,k,icomp) += fac*bfab(i,j,k,icomp)*A;
+                            });
+                        } else {
+                            Real fac = beta*dzi*dzi;
+                            AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
+                            {
+                                Real A = rbc(i,j,k,2)
+                                    / (rbc(i,j,k,1)*dzi + rbc(i,j,k,0)*Real(0.5));
+                                rhsfab(i,j,k-1,icomp) += fac*bfab(i,j,k,icomp)*A;
+                            });
+                        }
+                    }
+                }
             }
         }
 
@@ -423,7 +480,7 @@ MLCellABecLap::makePETSc () const
     const Geometry& geom = m_geom[0].back();
     const auto& factory = *(m_factory[0].back());
     MPI_Comm comm = BottomCommunicator();
-    
+
     auto petsc_solver = makePetsc(ba, dm, geom, comm);
 
     petsc_solver->setScalars(getAScalar(), getBScalar());

@@ -55,7 +55,7 @@
 #include <omp.h>
 #endif
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) && !defined(__arm64__)
 #include <xmmintrin.h>
 #endif
 
@@ -159,12 +159,12 @@ amrex::write_to_stderr_without_buffering (const char* str)
 
     if (str)
     {
-	std::ostringstream procall;
-	procall << ParallelDescriptor::MyProc() << "::";
+        std::ostringstream procall;
+        procall << ParallelDescriptor::MyProc() << "::";
         auto tmp = procall.str();
-	const char *cprocall = tmp.c_str();
+        const char *cprocall = tmp.c_str();
         const char * const end = " !!!\n";
-	fwrite(cprocall, strlen(cprocall), 1, stderr);
+        fwrite(cprocall, strlen(cprocall), 1, stderr);
         fwrite(str, strlen(str), 1, stderr);
         fwrite(end, strlen(end), 1, stderr);
     }
@@ -177,10 +177,10 @@ write_lib_id(const char* msg)
     fflush(0);
     const char* const s = "amrex::";
     fwrite(s, strlen(s), 1, stderr);
-    if ( msg ) 
+    if ( msg )
     {
-	fwrite(msg, strlen(msg), 1, stderr);
-	fwrite("::", 2, 1, stderr);
+        fwrite(msg, strlen(msg), 1, stderr);
+        fwrite("::", 2, 1, stderr);
     }
 }
 }
@@ -236,7 +236,7 @@ void
 amrex::Warning_host (const char * msg)
 {
     if (msg) {
-	amrex::Print(Print::AllProcs,amrex::ErrorStream()) << msg << '!' << '\n';
+        amrex::Print(Print::AllProcs,amrex::ErrorStream()) << msg << '!' << '\n';
     }
 }
 
@@ -520,16 +520,16 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             }
 #endif
 
-#elif defined(__APPLE__)
-	    prev_fpe_mask = _MM_GET_EXCEPTION_MASK();
-	    curr_fpe_excepts = 0u;
-	    if (invalid)   curr_fpe_excepts |= _MM_MASK_INVALID;
-	    if (divbyzero) curr_fpe_excepts |= _MM_MASK_DIV_ZERO;
-	    if (overflow)  curr_fpe_excepts |= _MM_MASK_OVERFLOW;
-	    if (curr_fpe_excepts != 0u) {
+#elif defined(__APPLE__) && !defined(__arm64__)
+            prev_fpe_mask = _MM_GET_EXCEPTION_MASK();
+            curr_fpe_excepts = 0u;
+            if (invalid)   curr_fpe_excepts |= _MM_MASK_INVALID;
+            if (divbyzero) curr_fpe_excepts |= _MM_MASK_DIV_ZERO;
+            if (overflow)  curr_fpe_excepts |= _MM_MASK_OVERFLOW;
+            if (curr_fpe_excepts != 0u) {
                 _MM_SET_EXCEPTION_MASK(prev_fpe_mask & ~curr_fpe_excepts);
                 prev_handler_sigfpe = signal(SIGFPE,  BLBackTrace::handler);
-	    }
+            }
 #endif
         }
 
@@ -599,7 +599,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         MPI_Query_thread(&provided);
         amrex::Print() << "MPI initialized with thread support level " << provided << std::endl;
 #endif
-        
+
 #ifdef AMREX_USE_OMP
 //    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
         amrex::Print() << "OMP initialized with "
@@ -663,28 +663,28 @@ amrex::Finalize (amrex::AMReX* pamrex)
 #ifndef BL_AMRPROF
     if (amrex::system::verbose > 1)
     {
-	int mp_min, mp_max, mp_tot;
-	amrex_mempool_get_stats(mp_min, mp_max, mp_tot);  // in MB
-	if (ParallelDescriptor::NProcs() == 1) {
-	    if (mp_tot > 0) {
-                amrex::Print() << "MemPool: " 
+        int mp_min, mp_max, mp_tot;
+        amrex_mempool_get_stats(mp_min, mp_max, mp_tot);  // in MB
+        if (ParallelDescriptor::NProcs() == 1) {
+            if (mp_tot > 0) {
+                amrex::Print() << "MemPool: "
 #ifdef AMREX_USE_OMP
                                << "min used in a thread: " << mp_min << " MB, "
                                << "max used in a thread: " << mp_max << " MB, "
 #endif
                                << "tot used: " << mp_tot << " MB." << std::endl;
-	    }
-	} else {
-	    int global_max = mp_tot;
-	    int global_min = mp_tot;
-	    ParallelDescriptor::ReduceIntMax(global_max);
-	    if (global_max > 0) {
-		ParallelDescriptor::ReduceIntMin(global_min);
-		amrex::Print() << "MemPool: " 
-			       << "min used in a rank: " << global_min << " MB, "
-			       << "max used in a rank: " << global_max << " MB.\n";
-	    }
-	}
+            }
+        } else {
+            int global_max = mp_tot;
+            int global_min = mp_tot;
+            ParallelDescriptor::ReduceIntMax(global_max);
+            if (global_max > 0) {
+                ParallelDescriptor::ReduceIntMin(global_min);
+                amrex::Print() << "MemPool: "
+                               << "min used in a rank: " << global_min << " MB, "
+                               << "max used in a rank: " << global_max << " MB.\n";
+            }
+        }
     }
 #endif
 
@@ -715,10 +715,10 @@ amrex::Finalize (amrex::AMReX* pamrex)
             feenableexcept(prev_fpe_excepts);
         }
 #endif
-#elif defined(__APPLE__)
-	if (curr_fpe_excepts != 0u) {
+#elif defined(__APPLE__) && !defined(__arm64__)
+        if (curr_fpe_excepts != 0u) {
             _MM_SET_EXCEPTION_MASK(prev_fpe_mask);
-	}
+        }
 #endif
     }
 #endif

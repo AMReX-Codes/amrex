@@ -2,8 +2,7 @@
 #define AMREX_PARTICLECONTAINERBASE_H_
 #include <AMReX_Config.H>
 
-#include <string>
-
+#include <AMReX_Extension.H>
 #include <AMReX_INT.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_ParGDB.H>
@@ -15,6 +14,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParticleLocator.H>
 #include <AMReX_DenseBins.H>
+
+#include <string>
 
 namespace amrex {
 
@@ -31,7 +32,7 @@ public:
     ParticleContainerBase (ParGDBBase* gdb)
         :
         m_verbose(0),
-	m_gdb(gdb)
+        m_gdb(gdb)
     {}
 
     ParticleContainerBase (const Geometry            & geom,
@@ -39,7 +40,7 @@ public:
                            const BoxArray            & ba)
         :
         m_verbose(0),
-	m_gdb_object(geom,dmap,ba)
+        m_gdb_object(geom,dmap,ba)
     {
         m_gdb = &m_gdb_object;
     }
@@ -48,9 +49,9 @@ public:
                            const Vector<DistributionMapping> & dmap,
                            const Vector<BoxArray>            & ba,
                            const Vector<int>                 & rr)
-	:
+        :
         m_verbose(0),
-	m_gdb_object(geom,dmap,ba,rr)
+        m_gdb_object(geom,dmap,ba,rr)
     {
         m_gdb = &m_gdb_object;
     }
@@ -59,9 +60,9 @@ public:
                            const Vector<DistributionMapping> & dmap,
                            const Vector<BoxArray>            & ba,
                            const Vector<IntVect>             & rr)
-	:
+        :
         m_verbose(0),
-	m_gdb_object(geom,dmap,ba, [&]() -> Vector<int> {
+        m_gdb_object(geom,dmap,ba, [&]() -> Vector<int> {
                 Vector<int> ref_ratio;
                 for (int i = 0; i < static_cast<int>(rr.size()); ++i)
                 {
@@ -81,13 +82,13 @@ public:
     void Define (ParGDBBase* gdb) { m_gdb = gdb;}
 
     void Define (const Geometry            & geom,
-		 const DistributionMapping & dmap,
-		 const BoxArray            & ba);
+                 const DistributionMapping & dmap,
+                 const BoxArray            & ba);
 
     void Define (const Vector<Geometry>            & geom,
-		 const Vector<DistributionMapping> & dmap,
-		 const Vector<BoxArray>            & ba,
-		 const Vector<int>                 & rr);
+                 const Vector<DistributionMapping> & dmap,
+                 const Vector<BoxArray>            & ba,
+                 const Vector<int>                 & rr);
 
     void reserveData ();
     void resizeData ();
@@ -140,14 +141,14 @@ public:
     //! \param lev The level.
     //!
     const BoxArray& ParticleBoxArray (int lev) const
-	{ return m_gdb->ParticleBoxArray(lev); }
+        { return m_gdb->ParticleBoxArray(lev); }
 
     //! \brief Get the DistributionMapping for a given level
     //!
     //! \param lev The level.
     //!
     const DistributionMapping& ParticleDistributionMap (int lev) const
-	{ return m_gdb->ParticleDistributionMap(lev); }
+        { return m_gdb->ParticleDistributionMap(lev); }
 
     //! \brief Get the Geometry for a given level
     //!
@@ -196,8 +197,8 @@ public:
     static const std::string& AggregationType ();
     static int AggregationBuffer ();
 
-    static bool do_tiling;
-    static IntVect tile_size;
+    static AMREX_EXPORT bool do_tiling;
+    static AMREX_EXPORT IntVect tile_size;
 
 protected:
 

@@ -3,15 +3,15 @@
 #define BL_BOXARRAY_H
 #include <AMReX_Config.H>
 
-#include <iostream>
-#include <cstddef>
-#include <map>
-#include <unordered_map>
-
 #include <AMReX_IndexType.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
+
+#include <iosfwd>
+#include <cstddef>
+#include <map>
+#include <unordered_map>
 
 namespace amrex
 {
@@ -558,7 +558,7 @@ public:
     BoxArray (const BoxArray& rhs, const BATransformer& trans);
 
     BoxArray (BoxList&& bl, IntVect const& max_grid_size);
-    
+
     /**
     * \brief Initialize the BoxArray from a single box.
     * It is an error if the BoxArray has already been initialized.
@@ -631,6 +631,7 @@ public:
     //! Coarsen each Box in the BoxArray to the specified ratio.
     bool coarsenable(int refinement_ratio, int min_width=1) const;
     bool coarsenable(const IntVect& refinement_ratio, int min_width=1) const;
+    bool coarsenable(const IntVect& refinement_ratio, const IntVect& min_width) const;
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (const IntVect& refinement_ratio);
@@ -758,10 +759,10 @@ public:
 
     //! intersect Box and BoxArray(+ghostcells), then store the result in isects
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
-			bool first_only, int ng) const;
+                        bool first_only, int ng) const;
 
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
-			bool first_only, const IntVect& ng) const;
+                        bool first_only, const IntVect& ng) const;
 
     //! Return box - boxarray
     BoxList complementIn (const Box& b) const;

@@ -226,4 +226,16 @@ function (generate_buildinfo _target _git_dir)
       POSITION_INDEPENDENT_CODE ${_pic}
       WINDOWS_EXPORT_ALL_SYMBOLS ${_sym} )
 
+   # IPO/LTO
+   if (AMReX_IPO)
+      include(CheckIPOSupported)
+      check_ipo_supported(RESULT is_IPO_available)
+      if(is_IPO_available)
+          set_target_properties(buildInfo${_target} PROPERTIES
+              INTERPROCEDURAL_OPTIMIZATION TRUE)
+      else()
+          message(FATAL_ERROR "Interprocedural optimization is not available, set AMReX_IPO=OFF")
+      endif()
+   endif()
+
 endfunction ()

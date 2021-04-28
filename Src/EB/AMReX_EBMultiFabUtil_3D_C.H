@@ -13,11 +13,11 @@ EB_interp_in_quad(Real xint,Real yint,Real v0,Real v1,Real v2,Real v3,
 //
 //      2D Stencil
 //
-//      v3 @ (x3,y3)    v2  @ (x2,y2) 
+//      v3 @ (x3,y3)    v2  @ (x2,y2)
 //
 //             (xint,yint)
 //
-//      v0 @ (x0,y0)    v1  @ (x1,y1) 
+//      v0 @ (x0,y0)    v1  @ (x1,y1)
 
         Real va = v3 - v0;
         Real vb = v2 - v0;
@@ -42,7 +42,7 @@ EB_interp_in_quad(Real xint,Real yint,Real v0,Real v1,Real v2,Real v3,
         xyder = xyder / det;
 
         Real value = v0 + xder*(xint-x0)+yder*(yint-y0)+ xyder*(xint-x0)*(yint-y0);
-     
+
         return value;
 }
 
@@ -389,7 +389,7 @@ void eb_interp_cc2cent (Box const& box,
         phicent(i,j,k,n) = phicc(i,j,k,n);
       }
       else
-      {                      
+      {
         Real gx = cent(i,j,k,0);
         Real gy = cent(i,j,k,1);
         Real gz = cent(i,j,k,2);
@@ -450,11 +450,11 @@ void eb_interp_cc2facecent_x (Box const& ubx,
         else
         {
           edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
-        }          
+        }
       }
       else
       {
-        Real gx = 0.5; 
+        Real gx = 0.5;
         Real gy = fcx(i,j,k,0);
         Real gz = fcx(i,j,k,1);
         int ii = i - 1;
@@ -475,7 +475,7 @@ void eb_interp_cc2facecent_x (Box const& ubx,
           + (                            gxz       - gxyz) * phi(ii,j ,kk,n)
           + (                      gxy             - gxyz) * phi(ii,jj,k ,n)
           + (                                        gxyz) * phi(ii,jj,kk,n);
-      } 
+      }
     }
   });
 }
@@ -516,8 +516,8 @@ void eb_interp_cc2facecent_y (Box const& vbx,
         }
       }
       else
-      {    
-        Real gx = fcy(i,j,k,0);  
+      {
+        Real gx = fcy(i,j,k,0);
         Real gy = 0.5;
         Real gz = fcy(i,j,k,1);
         int ii = (gx < 0.0) ? i - 1 : i + 1;
@@ -538,7 +538,7 @@ void eb_interp_cc2facecent_y (Box const& vbx,
           + (                            gxz       - gxyz) * phi(ii,j ,kk,n)
           + (                      gxy             - gxyz) * phi(ii,jj,k ,n)
           + (                                        gxyz) * phi(ii,jj,kk,n);
-      } 
+      }
     }
   });
 }
@@ -580,7 +580,7 @@ void eb_interp_cc2facecent_z (Box const& wbx,
       }
       else
       {
-        Real gx = fcz(i,j,k,0);  
+        Real gx = fcz(i,j,k,0);
         Real gy = fcz(i,j,k,1);
         Real gz = 0.5;
         int ii = (gx < 0.0) ? i - 1 : i + 1;
@@ -601,7 +601,7 @@ void eb_interp_cc2facecent_z (Box const& wbx,
           + (                            gxz       - gxyz) * phi(ii,j ,kk,n)
           + (                      gxy             - gxyz) * phi(ii,jj,k ,n)
           + (                                        gxyz) * phi(ii,jj,kk,n);
-      } 
+      }
     }
   });
 }
@@ -639,8 +639,8 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
       else if (apx(i,j,k) == 1 && cvol(i,j,k) == 1 && cvol(i-1,j,k) == 1)
       {
           phi_x(i,j,k,n) = 0.5 * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
-      } 
-      else if ( apx(i,j,k) == 1 && (amrex::Math::abs(ccent(i,j,k,1)-ccent(i-1,j,k,1)) < 1.e-8) && 
+      }
+      else if ( apx(i,j,k) == 1 && (amrex::Math::abs(ccent(i,j,k,1)-ccent(i-1,j,k,1)) < 1.e-8) &&
                                    (amrex::Math::abs(ccent(i,j,k,2)-ccent(i-1,j,k,2)) < 1.e-8) )
       {
           Real d0 = 0.5 + ccent(i  ,j,k,0);                               // distance in x-dir from centroid(i  ,j) to face(i,j)
@@ -649,7 +649,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
           Real a1 = d0 / (d0 + d1);                                       // coefficient of phi(i-1,j,k,n)
           phi_x(i,j,k,n) = a0*phi(i,j,k,n) + a1*phi(i-1,j,k,n);           // interpolation of phi in x-direction
       }
-      else 
+      else
       {
           // We must add additional tests to avoid the case where fcx is very close to zero, but j-1/j+1 or k-1/k+1
           //    might be covered cells -- this can happen when the EB is exactly aligned with the horizontal grid planes
@@ -685,11 +685,11 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
               Real test_zero_jkalt = cvol(i-1,jalt,k) * cvol(i-1,j,kalt) *  cvol(i-1,jalt,kalt) *
                                      cvol(i  ,jalt,k) * cvol(i  ,j,kalt) *  cvol(i  ,jalt,kalt);
 
-              if (test_zero_jalt > 0.) 
+              if (test_zero_jalt > 0.)
                  jj = jalt;
-              else if (test_zero_kalt > 0.) 
+              else if (test_zero_kalt > 0.)
                  kk = kalt;
-              else if (test_zero_jkalt > 0.) 
+              else if (test_zero_jkalt > 0.)
               {
                  jj = jalt;
                  kk = kalt;
@@ -720,26 +720,26 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
           Real a0_jj_kk = d1_jj_kk / (d0_jj_kk + d1_jj_kk);           // coefficient of phi(i  ,jj,kk,n)
           Real a1_jj_kk = 1.0 - a0_jj_kk;                             // coefficient of phi(i-1,jj,kk,n)
 
-          Real phi01       = a0       *   phi(i, j, k,n)  + a1       *   phi(i-1, j, k,n); // interpolation in x-dir of phi  
+          Real phi01       = a0       *   phi(i, j, k,n)  + a1       *   phi(i-1, j, k,n); // interpolation in x-dir of phi
           Real y01         = a0       * ccent(i, j, k,1)  + a1       * ccent(i-1, j, k,1); // interpolation in x-dir of y-loc
           Real z01         = a0       * ccent(i, j, k,2)  + a1       * ccent(i-1, j, k,2); // interpolation in x-dir of z-loc
 
-          Real phi01_jj    = a0_jj    *   phi(i,jj, k,n)  + a1_jj    *   phi(i-1,jj, k,n); // interpolation in x-dir of phi  
+          Real phi01_jj    = a0_jj    *   phi(i,jj, k,n)  + a1_jj    *   phi(i-1,jj, k,n); // interpolation in x-dir of phi
           Real y01_jj      = a0_jj    * ccent(i,jj, k,1)  + a1_jj    * ccent(i-1,jj, k,1); // interpolation in x-dir of y-loc
           Real z01_jj      = a0_jj    * ccent(i,jj, k,2)  + a1_jj    * ccent(i-1,jj, k,2); // interpolation in x-dir of z-loc
 
-          Real phi01_kk    = a0_kk    *   phi(i, j,kk,n)  + a1_kk    *   phi(i-1, j,kk,n); // interpolation in x-dir of phi  
+          Real phi01_kk    = a0_kk    *   phi(i, j,kk,n)  + a1_kk    *   phi(i-1, j,kk,n); // interpolation in x-dir of phi
           Real y01_kk      = a0_kk    * ccent(i, j,kk,1)  + a1_kk    * ccent(i-1, j,kk,1); // interpolation in x-dir of y-loc
           Real z01_kk      = a0_kk    * ccent(i, j,kk,2)  + a1_kk    * ccent(i-1, j,kk,2); // interpolation in x-dir of z-loc
 
-          Real phi01_jj_kk = a0_jj_kk *   phi(i,jj,kk,n)  + a1_jj_kk *   phi(i-1,jj,kk,n); // interpolation in x-dir of phi  
+          Real phi01_jj_kk = a0_jj_kk *   phi(i,jj,kk,n)  + a1_jj_kk *   phi(i-1,jj,kk,n); // interpolation in x-dir of phi
           Real y01_jj_kk   = a0_jj_kk * ccent(i,jj,kk,1)  + a1_jj_kk * ccent(i-1,jj,kk,1); // interpolation in x-dir of y-loc
           Real z01_jj_kk   = a0_jj_kk * ccent(i,jj,kk,2)  + a1_jj_kk * ccent(i-1,jj,kk,2); // interpolation in x-dir of z-loc
-          
+
           // 2D interpolation on x-face from interpolated points at (y01,z01), (y01_jj,z01_jj), (y01_kk,z01_kk), (y01_jj_kk,z01_jj_kk)
           // to centroid of x-face(i,j,k) at (fcx(i,j,k,0), fcx(i,j,k,1))
 
-          // We order these in order to form a set of four points on the x-face ... 
+          // We order these in order to form a set of four points on the x-face ...
           // (x0,y0) : lower left
           // (x1,y1) : lower right
           // (x2,y2) : upper right
@@ -759,7 +759,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
           else
              z =  0.5 + fcx(i,j,k,1);  // (j,k) is in upper half of stencil so z > 0
 
-          if (j < jj && k < kk) // (j,k) is lower left, (j+1,k+1) is upper right 
+          if (j < jj && k < kk) // (j,k) is lower left, (j+1,k+1) is upper right
           {
               Real y_ll = -0.5+y01;
               Real z_ll = -0.5+z01;
@@ -772,7 +772,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
               phi_x(i,j,k,n) = EB_interp_in_quad(y,z, phi01, phi01_jj, phi01_jj_kk, phi01_kk,
                                                  y_ll, z_ll, y_hl, z_hl, y_hh, z_hh, y_lh, z_lh);
           }
-          else if (jj < j && k < kk) // (j-1,k) is lower left, (j,k+1) is upper right 
+          else if (jj < j && k < kk) // (j-1,k) is lower left, (j,k+1) is upper right
           {
               Real y_ll = -0.5+y01_jj;
               Real z_ll = -0.5+z01_jj;
@@ -785,7 +785,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
               phi_x(i,j,k,n) = EB_interp_in_quad(y,z,phi01_jj,phi01,phi01_kk, phi01_jj_kk,
                                                  y_ll, z_ll, y_hl, z_hl, y_hh, z_hh, y_lh, z_lh);
           }
-          else if (j < jj && kk < k) // (j,k-1) is lower left, (j+1,k) is upper right 
+          else if (j < jj && kk < k) // (j,k-1) is lower left, (j+1,k) is upper right
           {
               Real y_ll = -0.5+y01_kk;
               Real z_ll = -0.5+z01_kk;
@@ -798,7 +798,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
               phi_x(i,j,k,n) = EB_interp_in_quad(y,z,phi01_kk,phi01_jj_kk,phi01_jj, phi01,
                                                  y_ll, z_ll, y_hl, z_hl, y_hh, z_hh, y_lh, z_lh);
           }
-          else if (jj < j && kk < k) // (j-1,k-1) is lower left, (j,k) is upper right 
+          else if (jj < j && kk < k) // (j-1,k-1) is lower left, (j,k) is upper right
           {
               Real y_ll = -0.5+y01_jj_kk;
               Real z_ll = -0.5+z01_jj_kk;
@@ -811,14 +811,14 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
               phi_x(i,j,k,n) = EB_interp_in_quad(y,z,phi01_jj_kk,phi01_kk,phi01, phi01_jj,
                                                  y_ll, z_ll, y_hl, z_hl, y_hh, z_hh, y_lh, z_lh);
           }
-          else 
+          else
           {
               amrex::Abort("Bad option in interpolation from cell centroid to x-face centroid!");
           }
        }
     });
 }
-  
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_interp_centroid2facecent_y (Box const& vbx,
                                     Array4<Real const> const& phi,
@@ -862,7 +862,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
             Real a1 = d0 / (d0 + d1);                                        // coefficient of phi(i,j-1,k,n)
             phi_y(i,j,k,n) = a0*phi(i,j,k,n) + a1*phi(i,j-1,k,n);            // interpolation of phi in y-direction
         }
-        else 
+        else
         {
 
           // We must add additional tests to avoid the case where fcy is very close to zero, but i-1/i+1 or k-1/k+1
@@ -896,12 +896,12 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
               Real test_zero_kalt  = cvol(ii  ,j-1,k) * cvol(i,j-1,kalt) *  cvol(ii  ,j-1,kalt) *
                                      cvol(ii  ,j  ,k) * cvol(i,j  ,kalt) *  cvol(ii  ,j  ,kalt);
 
-              Real test_zero_ikalt = cvol(ialt,j-1,k) * cvol(i,j-1,kalt) *  cvol(ialt,j-1,kalt) * 
+              Real test_zero_ikalt = cvol(ialt,j-1,k) * cvol(i,j-1,kalt) *  cvol(ialt,j-1,kalt) *
                                      cvol(ialt,j  ,k) * cvol(i,j  ,kalt) *  cvol(ialt,j  ,kalt);
 
-              if (test_zero_ialt > 0.) 
+              if (test_zero_ialt > 0.)
                  ii = ialt;
-              else if (test_zero_kalt > 0.) 
+              else if (test_zero_kalt > 0.)
                  kk = kalt;
               else if (test_zero_ikalt > 0.)
               {
@@ -934,23 +934,23 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
           Real a0_ii_kk = d1_ii_kk / (d0_ii_kk + d1_ii_kk);         // coefficient of phi(ii,j  ,kk,n)
           Real a1_ii_kk = d0_ii_kk / (d0_ii_kk + d1_ii_kk);         // coefficient of phi(ii,j-1,kk,n)
 
-          Real phi01       = a0       *   phi( i, j, k,n)  + a1       *   phi( i, j-1, k,n); // interpolation in y-dir of phi  
+          Real phi01       = a0       *   phi( i, j, k,n)  + a1       *   phi( i, j-1, k,n); // interpolation in y-dir of phi
           Real x01         = a0       * ccent( i, j, k,0)  + a1       * ccent( i, j-1, k,0); // interpolation in y-dir of x-loc
           Real z01         = a0       * ccent( i, j, k,2)  + a1       * ccent( i, j-1, k,2); // interpolation in y-dir of z-loc
 
-          Real phi01_ii    = a0_ii    *   phi(ii, j, k,n)  + a1_ii    *   phi(ii, j-1, k,n); // interpolation in y-dir of phi  
+          Real phi01_ii    = a0_ii    *   phi(ii, j, k,n)  + a1_ii    *   phi(ii, j-1, k,n); // interpolation in y-dir of phi
           Real x01_ii      = a0_ii    * ccent(ii, j, k,0)  + a1_ii    * ccent(ii, j-1, k,0); // interpolation in y-dir of x-loc
           Real z01_ii      = a0_ii    * ccent(ii, j, k,2)  + a1_ii    * ccent(ii, j-1, k,2); // interpolation in y-dir of z-loc
 
-          Real phi01_kk    = a0_kk    *   phi( i, j,kk,n)  + a1_kk    *   phi( i, j-1,kk,n); // interpolation in y-dir of phi  
+          Real phi01_kk    = a0_kk    *   phi( i, j,kk,n)  + a1_kk    *   phi( i, j-1,kk,n); // interpolation in y-dir of phi
           Real x01_kk      = a0_kk    * ccent( i, j,kk,0)  + a1_kk    * ccent( i, j-1,kk,0); // interpolation in y-dir of x-loc
           Real z01_kk      = a0_kk    * ccent( i, j,kk,2)  + a1_kk    * ccent( i, j-1,kk,2); // interpolation in y-dir of z-loc
 
-          Real phi01_ii_kk = a0_ii_kk *   phi(ii, j,kk,n)  + a1_ii_kk *   phi(ii, j-1,kk,n); // interpolation in y-dir of phi  
+          Real phi01_ii_kk = a0_ii_kk *   phi(ii, j,kk,n)  + a1_ii_kk *   phi(ii, j-1,kk,n); // interpolation in y-dir of phi
           Real x01_ii_kk   = a0_ii_kk * ccent(ii, j,kk,0)  + a1_ii_kk * ccent(ii, j-1,kk,0); // interpolation in y-dir of x-loc
           Real z01_ii_kk   = a0_ii_kk * ccent(ii, j,kk,2)  + a1_ii_kk * ccent(ii, j-1,kk,2); // interpolation in y-dir of z-loc
 
-          // We order these in order to form a set of four points on the x-face ... 
+          // We order these in order to form a set of four points on the x-face ...
           // (x0,y0) : lower left
           // (x1,y1) : lower right
           // (x2,y2) : upper right
@@ -970,7 +970,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
           else
              z =  0.5 + fcy(i,j,k,1);  // (i,k) is in upper half of stencil so z > 0
 
-          if (i < ii && k < kk) // (i,k) is lower left, (i+1,k+1) is upper right 
+          if (i < ii && k < kk) // (i,k) is lower left, (i+1,k+1) is upper right
           {
               Real x_ll = -0.5+x01;
               Real z_ll = -0.5+z01;
@@ -983,7 +983,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
               phi_y(i,j,k,n) = EB_interp_in_quad(x,z, phi01, phi01_ii, phi01_ii_kk, phi01_kk,
                                                  x_ll, z_ll, x_hl, z_hl, x_hh, z_hh, x_lh, z_lh);
           }
-          else if (ii < i && k < kk) // (i-1,k) is lower left, (i,k+1) is upper right 
+          else if (ii < i && k < kk) // (i-1,k) is lower left, (i,k+1) is upper right
           {
               Real x_ll = -0.5+x01_ii;
               Real z_ll = -0.5+z01_ii;
@@ -996,7 +996,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
               phi_y(i,j,k,n) = EB_interp_in_quad(x,z,phi01_ii,phi01,phi01_kk, phi01_ii_kk,
                                                  x_ll, z_ll, x_hl, z_hl, x_hh, z_hh, x_lh, z_lh);
           }
-          else if (i < ii && kk < k) // (i,k-1) is lower left, (i+1,k) is upper right 
+          else if (i < ii && kk < k) // (i,k-1) is lower left, (i+1,k) is upper right
           {
               Real x_ll = -0.5+x01_kk;
               Real z_ll = -0.5+z01_kk;
@@ -1009,7 +1009,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
               phi_y(i,j,k,n) = EB_interp_in_quad(x,z,phi01_kk,phi01_ii_kk,phi01_ii, phi01,
                                                  x_ll, z_ll, x_hl, z_hl, x_hh, z_hh, x_lh, z_lh);
           }
-          else if (ii < i && kk < k) // (i-1,k-1) is lower left, (i,k) is upper right 
+          else if (ii < i && kk < k) // (i-1,k-1) is lower left, (i,k) is upper right
           {
               Real x_ll = -0.5+x01_ii_kk;
               Real z_ll = -0.5+z01_ii_kk;
@@ -1022,7 +1022,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
               phi_y(i,j,k,n) = EB_interp_in_quad(x,z,phi01_ii_kk,phi01_kk,phi01, phi01_ii,
                                                  x_ll, z_ll, x_hl, z_hl, x_hh, z_hh, x_lh, z_lh);
           }
-          else 
+          else
           {
               amrex::Abort("Bad option in interpolation from cell centroid to y-face centroid!");
           }
@@ -1073,7 +1073,7 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
             Real a1 = d0 / (d0 + d1);                                        // coefficient of phi(i,j,k-1,n)
             phi_z(i,j,k,n) = a0*phi(i,j,k,n) + a1*phi(i,j,k-1,n);            // interpolation of phi in z-direction
         }
-        else 
+        else
         {
           // We must add additional tests to avoid the case where fcz is very close to zero, but i-1/i+1 or j-1/j+1
           //    might be covered cells -- this can happen when the EB is exactly aligned with the grid planes
@@ -1103,15 +1103,15 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
               Real test_zero_ialt  = cvol(ialt,j,k-1) * cvol(i,jj  ,k-1) *  cvol(ialt,jj  ,k-1) *
                                      cvol(ialt,j,k  ) * cvol(i,jj  ,k  ) *  cvol(ialt,jj  ,k  );
 
-              Real test_zero_jalt  = cvol(ii  ,j,k-1) * cvol(i,jalt,k-1) *  cvol(ii  ,jalt,k-1) * 
+              Real test_zero_jalt  = cvol(ii  ,j,k-1) * cvol(i,jalt,k-1) *  cvol(ii  ,jalt,k-1) *
                                      cvol(ii  ,j,k  ) * cvol(i,jalt,k  ) *  cvol(ii  ,jalt,k  );
 
               Real test_zero_ijalt = cvol(ialt,j,k-1) * cvol(i,jalt,k-1) *  cvol(ialt,jalt,k-1) *
                                      cvol(ialt,j,k  ) * cvol(i,jalt,k  ) *  cvol(ialt,jalt,k  );
 
-              if (test_zero_ialt > 0.) 
+              if (test_zero_ialt > 0.)
                  ii = ialt;
-              else if (test_zero_jalt > 0.) 
+              else if (test_zero_jalt > 0.)
                  jj = jalt;
               else if (test_zero_ijalt > 0.)
               {
@@ -1160,11 +1160,11 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
           Real x01_ii_jj   = a0_ii_jj * ccent(ii,jj,k,0)  + a1_ii_jj * ccent(ii,jj,k-1,0); // interpolation of x-loc in z-direction
           Real y01_ii_jj   = a0_ii_jj * ccent(ii,jj,k,1)  + a1_ii_jj * ccent(ii,jj,k-1,1); // interpolation of y-loc in z-direction
 
-          // We order these in order to form a set of four points on the x-face ... 
-          // (x0,y0) : lower left  
+          // We order these in order to form a set of four points on the x-face ...
+          // (x0,y0) : lower left
           // (x1,y1) : lower right
           // (x2,y2) : upper right
-          // (x3,y3) : upper left 
+          // (x3,y3) : upper left
 
           Real x,y;
 
@@ -1180,7 +1180,7 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
           else
              y =  0.5 + fcz(i,j,k,1);  // (i,k) is in upper half of stencil so z > 0
 
-          if (i < ii && j < jj) // (i,j) is lower left, (i+1,j+1) is upper right 
+          if (i < ii && j < jj) // (i,j) is lower left, (i+1,j+1) is upper right
           {
               Real x_ll = -0.5+x01;
               Real y_ll = -0.5+y01;
@@ -1193,7 +1193,7 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
               phi_z(i,j,k,n) = EB_interp_in_quad(x,y, phi01, phi01_ii, phi01_ii_jj, phi01_jj,
                                                  x_ll, y_ll, x_hl, y_hl, x_hh, y_hh, x_lh, y_lh);
           }
-          else if (ii < i && j < jj) // (i-1,j) is lower left, (i,j+1) is upper right 
+          else if (ii < i && j < jj) // (i-1,j) is lower left, (i,j+1) is upper right
           {
               Real x_ll = -0.5+x01_ii;
               Real y_ll = -0.5+y01_ii;
@@ -1206,7 +1206,7 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
               phi_z(i,j,k,n) = EB_interp_in_quad(x,y,phi01_ii,phi01,phi01_jj, phi01_ii_jj,
                                                  x_ll, y_ll, x_hl, y_hl, x_hh, y_hh, x_lh, y_lh);
           }
-          else if (i < ii && jj < j) // (i,j-1) is lower left, (i+1,j) is upper right 
+          else if (i < ii && jj < j) // (i,j-1) is lower left, (i+1,j) is upper right
           {
               Real x_ll = -0.5+x01_jj;
               Real y_ll = -0.5+y01_jj;
@@ -1219,7 +1219,7 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
               phi_z(i,j,k,n) = EB_interp_in_quad(x,y,phi01_jj,phi01_ii_jj,phi01_ii, phi01,
                                                  x_ll, y_ll, x_hl, y_hl, x_hh, y_hh, x_lh, y_lh);
           }
-          else if (ii < i && jj < j) // (i-1,j-1) is lower left, (i,j) is upper right 
+          else if (ii < i && jj < j) // (i-1,j-1) is lower left, (i,j) is upper right
           {
               Real x_ll = -0.5+x01_ii_jj;
               Real y_ll = -0.5+y01_ii_jj;
@@ -1232,7 +1232,7 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
               phi_z(i,j,k,n) = EB_interp_in_quad(x,y,phi01_ii_jj,phi01_jj,phi01, phi01_ii,
                                                  x_ll, y_ll, x_hl, y_hl, x_hh, y_hh, x_lh, y_lh);
           }
-          else 
+          else
           {
               amrex::Abort("Bad option in interpolation from cell centroid to z-face centroid!");
           }
@@ -1263,7 +1263,7 @@ void eb_interp_cc2face_x (Box const& ubx,
     else
     {
       edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
-    } 
+    }
   });
 }
 

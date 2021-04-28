@@ -126,7 +126,7 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx,
                         fx(i,0,0,n) = Real(0.0);
                     else
                     {
-                        fx(i,0,0,n) = Real(2.0) / ( Real(1.0) / cc(i-1,0,0,n) + Real(1.0) / cc(i,0,0,n) ); 
+                        fx(i,0,0,n) = Real(2.0) / ( Real(1.0) / cc(i-1,0,0,n) + Real(1.0) / cc(i,0,0,n) );
                     }
                 }}
             } else {
@@ -142,7 +142,7 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx,
         {
             const Real problo = gd.ProbLo(0);
             const Real dx = gd.CellSize(0);
-    
+
             for (int n = 0; n < ncomp; ++n) {
             AMREX_PRAGMA_SIMD
             for (int i = xlo.x; i <= xhi.x; ++i) {
@@ -157,7 +157,7 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx,
         {
             const Real problo = gd.ProbLo(0);
             const Real dx = gd.CellSize(0);
-    
+
             for (int n = 0; n < ncomp; ++n) {
             AMREX_PRAGMA_SIMD
             for (int i = xlo.x; i <= xhi.x; ++i) {

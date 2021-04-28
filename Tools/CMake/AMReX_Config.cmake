@@ -148,27 +148,14 @@ function (configure_amrex)
         WINDOWS_EXPORT_ALL_SYMBOLS ON )
    endif ()
 
-   if ( BUILD_SHARED_LIBS OR AMReX_CUDA )
-      set(host_link_supported OLD)
-      if(CMP0105)
-        cmake_policy(GET CMP0105 host_link_supported)
-      endif()
-
-      if(APPLE)
-        if( host_link_supported STREQUAL "NEW" ) # CMake 3.18+
-          target_link_options(amrex PUBLIC "LINKER:-undefined,warning")
-        else()
-          target_link_options(amrex PUBLIC "-Wl,-undefined,warning")
-        endif()
-      elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR
-             CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
-        # nothing
+   # IPO/LTO
+   if (AMReX_IPO)
+      include(CheckIPOSupported)
+      check_ipo_supported(RESULT is_IPO_available)
+      if(is_IPO_available)
+          set_target_properties(amrex PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
       else()
-        if( host_link_supported STREQUAL "NEW" ) # CMake 3.18+
-          target_link_options(amrex PUBLIC "$<HOST_LINK:LINKER:--warn-unresolved-symbols>")
-        else()
-          target_link_options(amrex PUBLIC "-Wl,--warn-unresolved-symbols")
-        endif()
+          message(FATAL_ERROR "Interprocedural optimization is not available, set AMReX_IPO=OFF")
       endif()
    endif()
 

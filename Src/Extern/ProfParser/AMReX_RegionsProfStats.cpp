@@ -57,8 +57,8 @@ Vector<std::ifstream *> RegionsProfStats::regDataStreams;
 extern std::string SanitizeName(const std::string &s);
 extern void amrex::MakeFuncPctTimesMF(const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
                                       const Vector<std::string> &blpFNames,
-			              const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
-			              Real runTime, int dataNProcs);
+                                      const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
+                                      Real runTime, int dataNProcs);
 extern void amrex::CollectMProfStats(std::map<std::string, BLProfiler::ProfStats> &mProfStats,
                                      const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
                                      const Vector<std::string> &fNames,
@@ -72,15 +72,15 @@ extern void amrex::GraphTopPct(const std::map<std::string, BLProfiler::ProfStats
 #define PRINTCS(CS) CS.csFNameNumber << " :: " << fNumberNames[CS.csFNameNumber] << " :: " \
                  << CS.totalTime << " :: " << CS.stackTime << " :: " << \
                  ((CS.totalTime > 0.0) ? (( 1.0 - (CS.stackTime / CS.totalTime)) * 100.0) :  ( 0.0 )) \
-		 << " % :: " \
-		 << CS.nCSCalls  << " :: " << CS.callStackDepth << " :: " \
-		 << CS.callTime
+                 << " % :: " \
+                 << CS.nCSCalls  << " :: " << CS.callStackDepth << " :: " \
+                 << CS.callTime
 
 #define PRINTCSNC(CS) CS.csFNameNumber << " :: " << fNumberNames[CS.csFNameNumber] << " :: " \
                    << CS.totalTime << " :: " << CS.stackTime << " :: " << \
                    ((CS.totalTime > 0.0) ? (( 1.0 - (CS.stackTime / CS.totalTime)) * 100.0) :  ( 0.0 )) \
-		   << " % :: " \
-		   << CS.nCSCalls  << " :: " << CS.callStackDepth
+                   << " % :: " \
+                   << CS.nCSCalls  << " :: " << CS.callStackDepth
 
 
 // ----------------------------------------------------------------------
@@ -142,21 +142,21 @@ void RegionsProfStats::SyncFNamesAndNumbers() {
       int localIndex(mfnnit->second);
       for(int n(0); n < syncedStrings.size(); ++n) {
         if(findName == syncedStrings[n]) {
-	  fnameRemap[p][localIndex] = n;
-	  foundStrings[n] = n;
-	  //cout << "      p fname localIndex n = " << p << "  " << findName << "  "
-	       //<< localIndex << "  " << n << endl;
-	}
+          fnameRemap[p][localIndex] = n;
+          foundStrings[n] = n;
+          //cout << "      p fname localIndex n = " << p << "  " << findName << "  "
+               //<< localIndex << "  " << n << endl;
+        }
       }
     }
     for(int n(0); n < foundStrings.size(); ++n) {  // fill in unfound strings
       if(foundStrings[n] < 0) {
         for(int ii(0); ii < fnameRemap[p].size(); ++ii) {
-	  if(fnameRemap[p][ii] < 0) {
-	    fnameRemap[p][ii] = n;
-	    break;
-	  }
-	}
+          if(fnameRemap[p][ii] < 0) {
+            fnameRemap[p][ii] = n;
+            break;
+          }
+        }
       }
     }
   }
@@ -202,7 +202,7 @@ void RegionsProfStats::AddTimeMinMax(double tmin, double tmax) {
 // ----------------------------------------------------------------------
 BLProfStats::TimeRange RegionsProfStats::MakeRegionPlt(FArrayBox &rFab, int noregionnumber,
                                      int width, int height,
-				     Vector<Vector<Box>> &regionBoxes)
+                                     Vector<Vector<Box>> &regionBoxes)
 {
   amrex::ignore_unused(noregionnumber);
 
@@ -259,10 +259,10 @@ BLProfStats::TimeRange RegionsProfStats::MakeRegionPlt(FArrayBox &rFab, int nore
           rStartTime[rss.rssRNumber] = -1.0;
           int xStart = int(xLength * rtStart / timeMax);
           int xStop = int(xLength * rtStop / timeMax);
-	  xStop = std::min(xStop, xLength - 1);
+          xStop = std::min(xStop, xLength - 1);
           int yLo(rss.rssRNumber * yHeight), yHi(((rss.rssRNumber + 1) *  yHeight) - 1);
           Box rBox(IntVect(xStart, yLo), IntVect(xStop, yHi));
-	  regionBoxes[rss.rssRNumber].push_back(rBox);
+          regionBoxes[rss.rssRNumber].push_back(rBox);
           rFab.setVal<RunOn::Host>(rss.rssRNumber, rBox, 0);
         }
       }
@@ -302,7 +302,7 @@ void RegionsProfStats::FillRegionTimeRanges(Vector<Vector<TimeRange>> &rtr,
       } else {            // stop region
         if(rStartTime[rss.rssRNumber] < 0.0) {  // not started yet, mismatched start/stop
         } else {                             // stopping
-	  rtr[rss.rssRNumber].push_back(TimeRange(rStartTime[rss.rssRNumber], rss.rssTime));
+          rtr[rss.rssRNumber].push_back(TimeRange(rStartTime[rss.rssRNumber], rss.rssTime));
           rStartTime[rss.rssRNumber] = -1.0;
         }
       }
@@ -376,13 +376,13 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
       for(int i(0); i < dBlock.rStartStop.size(); ++i) {
         BLProfiler::RStartStop &rss = dBlock.rStartStop[i];
         if(rss.rssStart) {     // start region
-	  if(rss.rssRNumber >= 0) {
+          if(rss.rssRNumber >= 0) {
             regionTimeRanges[dBlock.proc][rss.rssRNumber].push_back(TimeRange(rss.rssTime, -1.0));
-	  }
+          }
         } else {            // stop region
-	  if(rss.rssRNumber >= 0) {
+          if(rss.rssRNumber >= 0) {
             regionTimeRanges[dBlock.proc][rss.rssRNumber].back().stopTime = rss.rssTime;
-	  }
+          }
         }
       }
       ClearBlock(dBlock);
@@ -414,9 +414,9 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
     for(int r(0); r < regionTimeRanges[p].size(); ++r) {
       if( ! (p >= smallY && p <= bigY)) {    // ---- not within myproc range
 //        if(regionTimeRanges[p][r].size() > 0) {
-//	  amrex::Abort("regionTimeRanges size error 0");
-//	}
-	regionTimeRanges[p][r].resize(nRanges[r]);
+//          amrex::Abort("regionTimeRanges size error 0");
+//        }
+        regionTimeRanges[p][r].resize(nRanges[r]);
       }
     }
   }
@@ -428,9 +428,9 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
     for(int r(0); r < regionTimeRanges[p].size(); ++r) {
       if(p >= smallY && p <= bigY) {    // ---- within myproc range
         for(int t(0); t < regionTimeRanges[p][r].size(); ++t) {
-/*	  int index((p * (maxRNumber + 1) * totalRanges * 2) +
-	            (r * totalRanges * 2) + (t * 2)); */
-	  long index((r * totalRanges * 2) + (t * 2) +
+/*          int index((p * (maxRNumber + 1) * totalRanges * 2) +
+                    (r * totalRanges * 2) + (t * 2)); */
+          long index((r * totalRanges * 2) + (t * 2) +
                      (p * (maxRNumber + 1) * totalRanges * 2));
 
           gAllRanges[index]     = regionTimeRanges[p][r][t].startTime;
@@ -456,7 +456,7 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
   }
   MPI_Allgatherv(localGAllRanges.dataPtr(), sendCount, ParallelDescriptor::Mpi_typemap<Real>::type(),
                  gAllRanges.dataPtr(), recvCounts.dataPtr(), recvDispl.dataPtr(),
-		 ParallelDescriptor::Mpi_typemap<Real>::type(),
+                 ParallelDescriptor::Mpi_typemap<Real>::type(),
                  ParallelDescriptor::Communicator());
 #endif
 
@@ -466,7 +466,7 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
         for(int t(0); t < regionTimeRanges[p][r].size(); ++t) {
 /*        int index((p * (maxRNumber + 1) * totalRanges * 2) +
                     (r * totalRanges * 2) + (t * 2));       */
-	  long index((r * totalRanges * 2) + (t * 2) +
+          long index((r * totalRanges * 2) + (t * 2) +
                      (p * (maxRNumber + 1) * totalRanges * 2));
           regionTimeRanges[p][r][t].startTime = gAllRanges[index];
           regionTimeRanges[p][r][t].stopTime  = gAllRanges[index + 1];
@@ -483,11 +483,11 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
     for(int r(0); r < regionTimeRanges[p].size(); ++r) {
       for(int t(0); t < regionTimeRanges[p][r].size(); ++t) {
         if(regionTimeRanges[p][r][t].startTime != checkRegionTimeRanges[p][r][t].startTime) {
-	  amrex::Abort("Bad checkRegionTimeRanges startTime");
-	}
+          amrex::Abort("Bad checkRegionTimeRanges startTime");
+        }
         if(regionTimeRanges[p][r][t].stopTime != checkRegionTimeRanges[p][r][t].stopTime) {
-	  amrex::Abort("Bad checkRegionTimeRanges stopTime");
-	}
+          amrex::Abort("Bad checkRegionTimeRanges stopTime");
+        }
       }
     }
   }
@@ -593,7 +593,7 @@ bool RegionsProfStats::AllCallTimesFAB(FArrayBox &actFab,
 // ----------------------------------------------------------------------
 void RegionsProfStats::FillAllCallTimes(Vector<Vector<Real> > &allCallTimes,
                                         const std::string whichFuncName,
-					int whichFuncNumber, const Box &procBox)
+                                        int whichFuncNumber, const Box &procBox)
 {
   BL_PROFILE("RegionsProfStats::FillAllCallTimes");
 
@@ -671,7 +671,7 @@ void RegionsProfStats::WriteSummary(std::ostream &ios, bool /*bwriteavg*/,
 
   Real timeMin(std::numeric_limits<Real>::max());
   Real timeMax(-std::numeric_limits<Real>::max());
-	 
+
   Vector<std::string> fNames(numbersToFName.size());
   for(int i(0); i < fNames.size(); ++i) {
     if(i >= 0) {
@@ -690,21 +690,21 @@ void RegionsProfStats::WriteSummary(std::ostream &ios, bool /*bwriteavg*/,
     ReadBlock(dBlock);
     if(dBlock.proc == whichProc) {
       for(int i(0); i < dBlock.vCallStats.size(); ++i) {
-	// ---- here we have to add only the part of this
-	// ---- callstat that intersects the region time range
+        // ---- here we have to add only the part of this
+        // ---- callstat that intersects the region time range
         BLProfiler::CallStats &cs = dBlock.vCallStats[i];
-	TimeRange tRangeFull(cs.callTime, cs.callTime + cs.totalTime);
-	std::list<TimeRange> intersectList =
-	    RegionsProfStats::RangeIntersection(filterTimeRanges[whichProc], tRangeFull);
-	std::list<TimeRange>::iterator tri;
-	for(tri = intersectList.begin(); tri != intersectList.end(); ++tri) {
+        TimeRange tRangeFull(cs.callTime, cs.callTime + cs.totalTime);
+        std::list<TimeRange> intersectList =
+            RegionsProfStats::RangeIntersection(filterTimeRanges[whichProc], tRangeFull);
+        std::list<TimeRange>::iterator tri;
+        for(tri = intersectList.begin(); tri != intersectList.end(); ++tri) {
           BLProfiler::CallStats csis(dBlock.vCallStats[i]);
-	  csis.callTime  = tri->startTime;
-	  csis.totalTime = tri->stopTime - tri->startTime;
+          csis.callTime  = tri->startTime;
+          csis.totalTime = tri->stopTime - tri->startTime;
           if(InTimeRange(dBlock.proc, cs.callTime)) {
             vCallStatsAllOneProc.push_back(csis);
           }
-	}
+        }
       }
     }
 
@@ -773,14 +773,14 @@ void RegionsProfStats::CheckRegionsData()
   for(int p(0); p < regionTimeRangesCount.size(); ++p) {
     regionTimeRangesCount[p].resize(dataNProcs, 0);
   }
- 
+
   for(int idb(0); idb < dataBlocks.size(); ++idb) {
     DataBlock &dBlock = dataBlocks[idb];
     if(verbose) {
       cout << myProc << ":  " << "RegionsProfProc  " << dBlock.proc << "  nTraceStats  "
            << dBlock.nTraceStats << " nRSS " << dBlock.nRSS << " fileName "
            << dBlock.fileName << "  seekpos  "
-	   << dBlock.seekpos << endl;
+           << dBlock.seekpos << endl;
     }
     ReadBlock(dBlock, true, false); // dont need to read the trace data
 
@@ -790,7 +790,7 @@ void RegionsProfStats::CheckRegionsData()
         if(bIOP)
         {
           cerr << "***RegionsProfStats::CheckRegionsData: region number is greater than max number: "
-               << rss.rssRNumber << " > " << maxRNumber + 1 << endl; 
+               << rss.rssRNumber << " > " << maxRNumber + 1 << endl;
         }
       if(rss.rssStart) {     // start region
         regionTimeRangesCount[rss.rssRNumber][dBlock.proc]++;
@@ -804,7 +804,7 @@ void RegionsProfStats::CheckRegionsData()
   }
 
   cout << myProc << ":  " << "---------------------- checking regions consistency." << endl;
- 
+
   for (int r(0); r<regionTimeRangesCount.size(); ++r) {
     if (verbose)
     {
@@ -816,7 +816,7 @@ void RegionsProfStats::CheckRegionsData()
         cerr << "***Region " << r << " was called a different number of times on processor " << n << " : "
              << regionTimeRangesCount[r][0] << " != " << regionTimeRangesCount[r][n] << endl;
       }
-    } 
+    }
   }
 
   cout << myProc << ":  " << "---------------------- checking time range consistency." << endl;
@@ -888,7 +888,7 @@ void RegionsProfStats::WriteHTML(std::ostream &csHTMLFile,
 
   csHTMLFile << "<h3>Function call times  "
              << "(function number :: function name :: inclusive time :: exclusive time :: 1-e/i % :: ncalls :: callstackdepth :: call time)</h3>"
-	     << '\n';
+             << '\n';
 
   csHTMLFile << "<ul>" << '\n';
   listEnds.push("</ul>");
@@ -925,119 +925,119 @@ void RegionsProfStats::WriteHTML(std::ostream &csHTMLFile,
         vCallTrace[0] = lastFlushedCS;  // copy to the unused cs
       }
       for(int iCT(0); iCT < vCallTrace.size(); ++iCT) {
-	++nodeNumber;
+        ++nodeNumber;
         BLProfiler::CallStats &cs = vCallTrace[iCT];
         if(cs.callStackDepth < 0 || cs.csFNameNumber < 0) {  // ---- the unused cs
-	  continue;
+          continue;
         }
         if(cs.nCSCalls > 1) {
-	  static int count(0);
-	  if(count++ < 8) {
+          static int count(0);
+          if(count++ < 8) {
             std::cout << "DDDDDDDDDD cs.nCalls = " << cs.nCSCalls << "  "
-	              << fNumberNames[cs.csFNameNumber] << std::endl;
-	  }
+                      << fNumberNames[cs.csFNameNumber] << std::endl;
+          }
         }
 
         if(iCT == vCallTrace.size() - 1) {
-	  if(combCallStats != 0) {
+          if(combCallStats != 0) {
             IcsHTMLFile << "<li>" << PRINTCS((*combCallStats)) << "</li>" << '\n';
-	    delete combCallStats;
-	    combCallStats = 0;
-	  }
-	  if(bLastBlock) {
+            delete combCallStats;
+            combCallStats = 0;
+          }
+          if(bLastBlock) {
             IcsHTMLFile << "<li>" << PRINTCS(cs) << "</li>" << '\n';
             for(int n(0); n < cs.callStackDepth; ++n) {
-	      if( ! listEnds.empty()) {
+              if( ! listEnds.empty()) {
                 IIcsHTMLFile << listEnds.top() << '\n';
                 listEnds.pop();
-	      } else {
-	        std::cout << "WriteHTML::0:  listEnds.empty():  csd n = "
-		          << cs.callStackDepth << "  " << n << std::endl;
-	      }
-	      if( ! listEnds.empty()) {
+              } else {
+                std::cout << "WriteHTML::0:  listEnds.empty():  csd n = "
+                          << cs.callStackDepth << "  " << n << std::endl;
+              }
+              if( ! listEnds.empty()) {
                 IIcsHTMLFile << listEnds.top() << '\n';
                 listEnds.pop();
-	      } else {
-	        std::cout << "WriteHTML::1:  listEnds.empty():  csd n = "
-		          << cs.callStackDepth << "  " << n << std::endl;
-	      }
+              } else {
+                std::cout << "WriteHTML::1:  listEnds.empty():  csd n = "
+                          << cs.callStackDepth << "  " << n << std::endl;
+              }
             }
-	  } else {  // ---- save the last calltrace
-	    lastFlushedCS = cs;
-	  }
+          } else {  // ---- save the last calltrace
+            lastFlushedCS = cs;
+          }
         } else {
           BLProfiler::CallStats &csNext = vCallTrace[iCT + 1];
           if(csNext.callStackDepth > cs.callStackDepth) {
-	    if(combCallStats != 0) {
+            if(combCallStats != 0) {
               IcsHTMLFile << "<li>" << PRINTCS((*combCallStats)) << "</li>" << '\n';
-	      delete combCallStats;
-	      combCallStats = 0;
-	    }
+              delete combCallStats;
+              combCallStats = 0;
+            }
             IcsHTMLFile << "<li>" << '\n';
             listEnds.push("</li>");
-	    colorLinkTime = colorLinkTimeStack.top();
-	    colorLinkTimeStack.push(cs.totalTime);
-	    if(cs.totalTime > colorLinkTime * colorLinkPct) {
+            colorLinkTime = colorLinkTimeStack.top();
+            colorLinkTimeStack.push(cs.totalTime);
+            if(cs.totalTime > colorLinkTime * colorLinkPct) {
               IcsHTMLFile << "<a style=\"color:#800000\" href=\"javascript:void(0)\" onclick=\"collapse('node"
-	                  << nodeNumber << "')\">" << PRINTCS(cs) << "</a>" << '\n';
-	    } else {
+                          << nodeNumber << "')\">" << PRINTCS(cs) << "</a>" << '\n';
+            } else {
               IcsHTMLFile << "<a href=\"javascript:void(0)\" onclick=\"collapse('node"
-	                  << nodeNumber << "')\">" << PRINTCS(cs) << "</a>" << '\n';
-	    }
-	    if(cs.totalTime > colorLinkTime * colorLinkPct) {  // ---- expand link
+                          << nodeNumber << "')\">" << PRINTCS(cs) << "</a>" << '\n';
+            }
+            if(cs.totalTime > colorLinkTime * colorLinkPct) {  // ---- expand link
               IcsHTMLFile << "<ul id=\"node" << nodeNumber << "\" style=\"display:\">" << '\n';
             } else {
               IcsHTMLFile << "<ul id=\"node" << nodeNumber << "\" style=\"display:none\">" << '\n';
             }
             listEnds.push("</ul>");
           } else  if(csNext.callStackDepth == cs.callStackDepth) {
-	    if(simpleCombine) {
-	      if(iCT <  vCallTrace.size() - 2 && cs.csFNameNumber == csNext.csFNameNumber) {
-	        if(combCallStats == 0) {
-		  combCallStats = new BLProfiler::CallStats(cs);
-		} else {
-		  combCallStats->nCSCalls  += cs.nCSCalls;
-		  combCallStats->totalTime += cs.totalTime;
-		  combCallStats->stackTime += cs.stackTime;
-		}
-	      } else {
-	        if(combCallStats != 0) {
-		  if(cs.csFNameNumber == combCallStats->csFNameNumber) {
-		    combCallStats->nCSCalls  += cs.nCSCalls;
-		    combCallStats->totalTime += cs.totalTime;
-		    combCallStats->stackTime += cs.stackTime;
-		  }
+            if(simpleCombine) {
+              if(iCT <  vCallTrace.size() - 2 && cs.csFNameNumber == csNext.csFNameNumber) {
+                if(combCallStats == 0) {
+                  combCallStats = new BLProfiler::CallStats(cs);
+                } else {
+                  combCallStats->nCSCalls  += cs.nCSCalls;
+                  combCallStats->totalTime += cs.totalTime;
+                  combCallStats->stackTime += cs.stackTime;
+                }
+              } else {
+                if(combCallStats != 0) {
+                  if(cs.csFNameNumber == combCallStats->csFNameNumber) {
+                    combCallStats->nCSCalls  += cs.nCSCalls;
+                    combCallStats->totalTime += cs.totalTime;
+                    combCallStats->stackTime += cs.stackTime;
+                  }
                   IcsHTMLFile << "<li>" << PRINTCS((*combCallStats)) << "</li>" << '\n';
-	          delete combCallStats;
-	          combCallStats = 0;
-		} else {
+                  delete combCallStats;
+                  combCallStats = 0;
+                } else {
                   IcsHTMLFile << "<li>" << PRINTCS(cs) << "</li>" << '\n';
-	        }
-	      }
-	    } else {
+                }
+              }
+            } else {
               IcsHTMLFile << "<li>" << PRINTCS(cs) << "</li>" << '\n';
-	    }
+            }
           } else {
-	    if(combCallStats != 0) {
-	      if(cs.csFNameNumber == combCallStats->csFNameNumber) {
-	        combCallStats->nCSCalls  += cs.nCSCalls;
-	        combCallStats->totalTime += cs.totalTime;
-	        combCallStats->stackTime += cs.stackTime;
-	      }
+            if(combCallStats != 0) {
+              if(cs.csFNameNumber == combCallStats->csFNameNumber) {
+                combCallStats->nCSCalls  += cs.nCSCalls;
+                combCallStats->totalTime += cs.totalTime;
+                combCallStats->stackTime += cs.stackTime;
+              }
               IcsHTMLFile << "<li>" << PRINTCS((*combCallStats)) << "</li>" << '\n';
-	      delete combCallStats;
-	      combCallStats = 0;
-	    } else {
+              delete combCallStats;
+              combCallStats = 0;
+            } else {
               IcsHTMLFile << "<li>" << PRINTCS(cs) << "</li>" << '\n';
-	    }
+            }
             for(int n(0); n < cs.callStackDepth - csNext.callStackDepth; ++n) {
               IIcsHTMLFile << listEnds.top() << '\n';
               listEnds.pop();
               IIcsHTMLFile << listEnds.top() << '\n';
               listEnds.pop();
-	      colorLinkTimeStack.pop();
+              colorLinkTimeStack.pop();
             }
-	    colorLinkTime = colorLinkTimeStack.top();
+            colorLinkTime = colorLinkTimeStack.top();
           }
         }
       }
@@ -1085,7 +1085,7 @@ void RegionsProfStats::PrintCallTreeNode(CallTreeNode &callTree,
     std::cout << "PCTN:  " << fNumberNames[callTree.fnameNumber]
               << "  stackDepth = " << callTree.stackDepth
               << "  nCalls = " << callTree.nCalls << "  stackTime = "
-	      << callTree.stackTime << std::endl;
+              << callTree.stackTime << std::endl;
   }
   for(miter = callTree.calledFunctions.begin(); miter != callTree.calledFunctions.end(); ++miter) {
     PrintCallTreeNode(miter->second, fNumberNames);
@@ -1129,7 +1129,7 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
 
   csHTMLFile << "<h3>Function calls "
              << "(function number :: function name :: inclusive time :: exclusive time :: 1-e/i % :: ncalls :: callstackdepth)</h3>"
-	     << '\n';
+             << '\n';
 
   csHTMLFile << "<ul>" << '\n';
   listEnds.push("</ul>");
@@ -1159,7 +1159,7 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
   BLProfiler::CallStats lastFlushedCS;
 
   int totalCalls(0);
-  
+
   for(int idb(0); idb < dataBlocks.size(); ++idb) {
     DataBlock &dBlock = dataBlocks[idb];
     if(dBlock.proc == whichProc) {
@@ -1171,59 +1171,59 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
 
       std::cout << "vCallTrace.size() = " << vCallTrace.size() << std::endl;
       if( ! bFirstBlock) {
-	vCallTrace[0] = lastFlushedCS;  // copy to the unused cs
+        vCallTrace[0] = lastFlushedCS;  // copy to the unused cs
       }
       for(int iCT(0); iCT < vCallTrace.size(); ++iCT) {
         BLProfiler::CallStats &cs = vCallTrace[iCT];
         if(cs.callStackDepth < 0 || cs.csFNameNumber < 0) {  // ---- the unused cs
-	  continue;
+          continue;
         }
 
-	if(bAddFirstNode) {
-	// ---- add the node
-	std::pair<std::map<int, CallTreeNode>::iterator, bool> retval;
-	retval = currentCTN->calledFunctions.insert(
-	               std::pair<int, CallTreeNode>(cs.csFNameNumber, CallTreeNode()));
-	miter = retval.first;
-	if(retval.second) {  // ---- value inserted
-	  miter->second.fnameNumber = cs.csFNameNumber;
-	  miter->second.stackDepth  = cs.callStackDepth;
-	  miter->second.nCalls = 1;
-	  miter->second.totalTime = cs.totalTime;
-	  miter->second.stackTime = cs.stackTime;
-	} else {      // ---- value existed
-	  miter->second.nCalls += 1;
-	  miter->second.totalTime += cs.totalTime;
-	  miter->second.stackTime += cs.stackTime;
-	}
-	++totalCalls;
-	}
-	bAddFirstNode = true;
-	    
+        if(bAddFirstNode) {
+        // ---- add the node
+        std::pair<std::map<int, CallTreeNode>::iterator, bool> retval;
+        retval = currentCTN->calledFunctions.insert(
+                       std::pair<int, CallTreeNode>(cs.csFNameNumber, CallTreeNode()));
+        miter = retval.first;
+        if(retval.second) {  // ---- value inserted
+          miter->second.fnameNumber = cs.csFNameNumber;
+          miter->second.stackDepth  = cs.callStackDepth;
+          miter->second.nCalls = 1;
+          miter->second.totalTime = cs.totalTime;
+          miter->second.stackTime = cs.stackTime;
+        } else {      // ---- value existed
+          miter->second.nCalls += 1;
+          miter->second.totalTime += cs.totalTime;
+          miter->second.stackTime += cs.stackTime;
+        }
+        ++totalCalls;
+        }
+        bAddFirstNode = true;
+
         if(iCT == vCallTrace.size() - 1) {
-	  if(bLastBlock) {
-	  } else {
-	    lastFlushedCS = cs;
-	    bAddFirstNode = false;
-	  }
-	} else {
+          if(bLastBlock) {
+          } else {
+            lastFlushedCS = cs;
+            bAddFirstNode = false;
+          }
+        } else {
 
           BLProfiler::CallStats &csNext = vCallTrace[iCT + 1];
 
           if(csNext.callStackDepth > cs.callStackDepth) {
-	    currentCTN = &(miter->second);
-	    if(currentCTN != 0) {
-	      ctStack.push(currentCTN);
-	    }
-	  } else  if(csNext.callStackDepth == cs.callStackDepth) {
-	    // ---- node added above
-	  } else {
-	    for(int s(0); s < cs.callStackDepth  - csNext.callStackDepth; ++s) {
-	      ctStack.pop();
-	    }
-	    currentCTN = ctStack.top();
-	  }
-	}
+            currentCTN = &(miter->second);
+            if(currentCTN != 0) {
+              ctStack.push(currentCTN);
+            }
+          } else  if(csNext.callStackDepth == cs.callStackDepth) {
+            // ---- node added above
+          } else {
+            for(int s(0); s < cs.callStackDepth  - csNext.callStackDepth; ++s) {
+              ctStack.pop();
+            }
+            currentCTN = ctStack.top();
+          }
+        }
       }
       bFirstBlock = false;
     }
@@ -1238,10 +1238,10 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
       int nodeNumber(-1);
 
       for(int iCT(0); iCT < vCallTrace.size(); ++iCT) {
-	++nodeNumber;
+        ++nodeNumber;
         BLProfiler::CallStats &cs = vCallTrace[iCT];
         if(cs.callStackDepth < 0 || cs.csFNameNumber < 0) {  // ---- the unused cs
-	  continue;
+          continue;
         }
         if(iCT == vCallTrace.size() - 1) {
           IcsHTMLFile << "<li>" << PRINTCSNC(cs) << "</li>" << '\n';
@@ -1251,14 +1251,14 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
               listEnds.pop();
             } else {
               std::cout << "WriteHTMLNC::0:  listEnds.empty():  csd n = "
-	                << cs.callStackDepth << "  " << n << std::endl;
+                        << cs.callStackDepth << "  " << n << std::endl;
             }
             if( ! listEnds.empty()) {
               IIcsHTMLFile << listEnds.top() << '\n';
               listEnds.pop();
             } else {
               std::cout << "WriteHTMLNC::1:  listEnds.empty():  csd n = "
-	                << cs.callStackDepth << "  " << n << std::endl;
+                        << cs.callStackDepth << "  " << n << std::endl;
             }
           }
         } else {
@@ -1267,7 +1267,7 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
             IcsHTMLFile << "<li>" << '\n';
             listEnds.push("</li>");
             IcsHTMLFile << "<a href=\"javascript:void(0)\" onclick=\"collapse('node"
-	                << nodeNumber << "')\">" << PRINTCSNC(cs) << "</a>" << '\n';
+                        << nodeNumber << "')\">" << PRINTCSNC(cs) << "</a>" << '\n';
             if(cs.callStackDepth < 100) {
               IcsHTMLFile << "<ul id=\"node" << nodeNumber << "\" style=\"display:\">" << '\n';
             } else {
@@ -1284,14 +1284,14 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
                 listEnds.pop();
               } else {
                 std::cout << "WriteHTMLNC::2:  listEnds.empty():  csd n = "
-		          << cs.callStackDepth << "  " << n << std::endl;
+                          << cs.callStackDepth << "  " << n << std::endl;
               }
               if( ! listEnds.empty()) {
                 IIcsHTMLFile << listEnds.top() << '\n';
                 listEnds.pop();
               } else {
                 std::cout << "WriteHTMLNC::3:  listEnds.empty():  csd n = "
-		          << cs.callStackDepth << "  " << n << std::endl;
+                          << cs.callStackDepth << "  " << n << std::endl;
               }
             }
           }
@@ -1305,7 +1305,7 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
     csHTMLFile << listEnds.top() << '\n';
     listEnds.pop();
   }
-  
+
 
   csHTMLFile << "</body>" << '\n';
   csHTMLFile << "</html>" << '\n';
@@ -1342,15 +1342,15 @@ void RegionsProfStats::WriteTextTrace(std::ostream &ios, bool simpleCombine,
 
         for(int i(0); i < vCallTrace.size(); ++i) {
           BLProfiler::CallStats &cs = vCallTrace[i];
-	  if(cs.callStackDepth < 0 || cs.csFNameNumber < 0) {  // ---- the unused cs
-	    continue;
-	  }
+          if(cs.callStackDepth < 0 || cs.csFNameNumber < 0) {  // ---- the unused cs
+            continue;
+          }
 
-	  if(i < vCallTrace.size() - 2) {
+          if(i < vCallTrace.size() - 2) {
             BLProfiler::CallStats &csNext = vCallTrace[i + 1];
-	    if(csNext.callStackDepth == cs.callStackDepth &&
-	       cs.csFNameNumber == csNext.csFNameNumber)
-	    {
+            if(csNext.callStackDepth == cs.callStackDepth &&
+               cs.csFNameNumber == csNext.csFNameNumber)
+            {
               if(combCallStats == 0) {
                 combCallStats = new BLProfiler::CallStats(cs);
               } else {
@@ -1358,26 +1358,26 @@ void RegionsProfStats::WriteTextTrace(std::ostream &ios, bool simpleCombine,
                 combCallStats->totalTime += cs.totalTime;
                 combCallStats->stackTime += cs.stackTime;
               }
-	    } else {
+            } else {
               if(combCallStats == 0) {
-	        PRINTCSTT(ios, cs, delimString);
-	      } else {
+                PRINTCSTT(ios, cs, delimString);
+              } else {
                 combCallStats->nCSCalls  += cs.nCSCalls;
                 combCallStats->totalTime += cs.totalTime;
                 combCallStats->stackTime += cs.stackTime;
-	        PRINTCSTT(ios, (*combCallStats), delimString);
+                PRINTCSTT(ios, (*combCallStats), delimString);
                 delete combCallStats;
                 combCallStats = 0;
               }
-	    }
-	  } else {
+            }
+          } else {
             if(combCallStats != 0) {
-	      PRINTCSTT(ios, (*combCallStats), delimString);
+              PRINTCSTT(ios, (*combCallStats), delimString);
               delete combCallStats;
               combCallStats = 0;
             }
-	    PRINTCSTT(ios, cs, delimString);
-	  }
+            PRINTCSTT(ios, cs, delimString);
+          }
         }
         ClearBlock(dBlock);
       }
@@ -1392,10 +1392,10 @@ void RegionsProfStats::WriteTextTrace(std::ostream &ios, bool simpleCombine,
 
         for(int i(0); i < vCallTrace.size(); ++i) {
           BLProfiler::CallStats &cs = vCallTrace[i];
-	  if(cs.callStackDepth < 0 || cs.csFNameNumber < 0) {
-	    continue;
-	  }
-	  PRINTCSTT(ios, cs, delimString);
+          if(cs.callStackDepth < 0 || cs.csFNameNumber < 0) {
+            continue;
+          }
+          PRINTCSTT(ios, cs, delimString);
         }
         ClearBlock(dBlock);
       }

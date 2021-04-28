@@ -3,7 +3,7 @@ module amrex_error_module
 
   use iso_c_binding
   use amrex_string_module
-  
+
   implicit none
 
   interface amrex_error
@@ -26,7 +26,7 @@ module amrex_error_module
      subroutine amrex_fi_abort (message) bind(c)
        import
        character(kind=c_char), intent(in) :: message(*)
-     end subroutine amrex_fi_abort       
+     end subroutine amrex_fi_abort
 
      subroutine amrex_fi_warning (message) bind(c)
        import
