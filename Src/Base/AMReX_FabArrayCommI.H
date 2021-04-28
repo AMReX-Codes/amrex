@@ -373,6 +373,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     // Send/Recv at most MaxComp components at a time to cut down memory usage.
     //
     int NCompLeft = ncomp;
+    int SC = scomp, DC = dcomp, NC;
 
     for (int ipass = 0; ipass < ncomp; )
     {
@@ -383,13 +384,10 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         pcd->dnghost = dnghost;
         pcd->period = period;
         pcd->op = op;
-        pcd->SC = scomp;
-        pcd->DC = dcomp;
-        pcd->NC = std::min(NCompLeft,FabArrayBase::MaxComp);
         pcd->tag = tag;
 
-        const bool last_iter = (NCompLeft == pcd->NC);
-
+        NC = std::min(NCompLeft,FabArrayBase::MaxComp);
+        const bool last_iter = (NCompLeft == NC);
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
@@ -398,7 +396,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         pcd->actual_n_rcvs = 0;
         if (N_rcvs > 0) {
             PostRcvs(*thecpc.m_RcvTags, pcd->the_recv_data,
-                     pcd->recv_data, pcd->recv_size, pcd->recv_from, pcd->recv_reqs, pcd->NC, pcd->tag);
+                     pcd->recv_data, pcd->recv_size, pcd->recv_from, pcd->recv_reqs, NC, pcd->tag);
             pcd->actual_n_rcvs = N_rcvs - std::count(pcd->recv_size.begin(), pcd->recv_size.end(), 0);
         }
 
@@ -413,17 +411,17 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         if (N_snds > 0)
         {
             src.PrepareSendBuffers(*thecpc.m_SndTags, pcd->the_send_data, send_data, send_size,
-                                   send_rank, pcd->send_reqs, send_cctc, pcd->NC);
+                                   send_rank, pcd->send_reqs, send_cctc, NC);
 
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion())
             {
-                pack_send_buffer_gpu(src, pcd->SC, pcd->NC, send_data, send_size, send_cctc);
+                pack_send_buffer_gpu(src, SC, NC, send_data, send_size, send_cctc);
             }
             else
 #endif
             {
-                pack_send_buffer_cpu(src, pcd->SC, pcd->NC, send_data, send_size, send_cctc);
+                pack_send_buffer_cpu(src, SC, NC, send_data, send_size, send_cctc);
             }
 
             AMREX_ASSERT(pcd->send_reqs.size() == N_snds);
@@ -438,26 +436,34 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion())
             {
-                PC_local_gpu(thecpc, src, pcd->SC, pcd->DC, pcd->NC, op);
+                PC_local_gpu(thecpc, src, SC, DC, NC, op);
             }
             else
 #endif
             {
-                PC_local_cpu(thecpc, src, pcd->SC, pcd->DC, pcd->NC, op);
+                PC_local_cpu(thecpc, src, SC, DC, NC, op);
             }
         }
 
         if (!last_iter)
         {
+            pcd->SC = SC;
+            pcd->DC = DC;
+            pcd->NC = NC;
+
             ParallelCopy_finish();
 
-            pcd->SC += pcd->NC;
-            pcd->DC += pcd->NC;
+            SC += NC;
+            DC += NC;
         }
 
-        ipass     += pcd->NC;
-        NCompLeft -= pcd->NC;
+        ipass     += NC;
+        NCompLeft -= NC;
     }
+
+    pcd->SC = SC;
+    pcd->DC = DC;
+    pcd->NC = NC;
 
 #endif /*BL_USE_MPI*/
 }
