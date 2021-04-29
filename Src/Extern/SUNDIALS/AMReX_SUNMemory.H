@@ -3,7 +3,7 @@
 
 namespace amrex {
 namespace sundials {
-  
+
 class MemoryHelper {
 public:
   MemoryHelper();

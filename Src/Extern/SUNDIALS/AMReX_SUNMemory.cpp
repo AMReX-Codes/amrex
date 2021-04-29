@@ -20,7 +20,7 @@ namespace {
     mem->ptr = NULL;
     mem->own = SUNTRUE;
     mem->type = mem_type;
-  
+
     if (mem_type == SUNMEMTYPE_HOST) {
       mem->ptr = The_Cpu_Arena()->alloc(memsize);
     } else if (mem_type == SUNMEMTYPE_UVM) {
@@ -76,7 +76,7 @@ namespace {
     SUNMemoryHelper helper;
 
     helper = SUNMemoryHelper_NewEmpty();
-    
+
     helper->content        = NULL;
     helper->ops->clone     = CloneMemoryHelper;
     helper->ops->alloc     = Alloc;
@@ -91,7 +91,7 @@ namespace {
 #elif defined(AMREX_USE_DPCPP)
     helper->ops->copy      = SUNMemoryHelper_Copy_Sycl;
     helper->ops->copyasync = SUNMemoryHelper_CopyAsync_Sycl;
-    helper->ops->clone     = SUNMemoryHelper_Clone_Sycl;    
+    helper->ops->clone     = SUNMemoryHelper_Clone_Sycl;
 
     // Attach the queue pointer as the content
     helper->content = (void*) &amrex::Gpu::Device::streamQueue();
