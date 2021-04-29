@@ -4,9 +4,6 @@
 namespace amrex {
 namespace sundials {
   
-void Initialize();
-void Finalize();
-
 class MemoryHelper {
 public:
   MemoryHelper();
@@ -16,7 +13,10 @@ private:
   SUNMemoryHelper helper;
 };
 
-MemoryHelper* The_SUNMemory_Helper ();
+void Initialize();
+void Finalize();
+
+MemoryHelper* The_SUNMemory_Helper();
 
 }
 }

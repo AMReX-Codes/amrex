@@ -20,8 +20,7 @@ namespace {
     mem->ptr = NULL;
     mem->own = SUNTRUE;
     mem->type = mem_type;
-    
-
+  
     if (mem_type == SUNMEMTYPE_HOST) {
       mem->ptr = The_Cpu_Arena()->alloc(memsize);
     } else if (mem_type == SUNMEMTYPE_UVM) {
@@ -66,9 +65,9 @@ namespace {
 
   int DestroyMemoryHelper(SUNMemoryHelper helper)
   {
-    helper->content = NULL;
-    free(helper->ops);
-    free(helper);
+    // We just return because we do not want our
+    // single memory helper instance to be destroyed
+    // except when Finalize is called.
     return(0);
   }
 
@@ -80,9 +79,9 @@ namespace {
     
     helper->content        = NULL;
     helper->ops->clone     = CloneMemoryHelper;
-    helper->ops->destroy   = DestroyMemoryHelper;
     helper->ops->alloc     = Alloc;
     helper->ops->dealloc   = Dealloc;
+    helper->ops->destroy   = DestroyMemoryHelper;
 #if defined(AMREX_USE_HIP)
     helper->ops->copy      = SUNMemoryHelper_Copy_Hip;
     helper->ops->copyasync = SUNMemoryHelper_CopyAsync_Hip;
@@ -94,7 +93,7 @@ namespace {
     helper->ops->copyasync = SUNMemoryHelper_CopyAsync_Sycl;
     helper->ops->clone     = SUNMemoryHelper_Clone_Sycl;    
 
-    /* Attach the sycl queue pointer as the content */
+    // Attach the queue pointer as the content
     helper->content = (void*) &amrex::Gpu::Device::streamQueue();
 #endif
 
