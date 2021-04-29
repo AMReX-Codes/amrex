@@ -849,7 +849,15 @@ f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
 tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
 
 includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS)) $(addprefix -isystem , $(SYSTEM_INCLUDE_LOCATIONS))
-fincludes	= $(includes)
+ifeq ($(lowercase_comp),pgi)
+  # pgfortran-Error-Unknown switch: -isystem
+  fincludes = $(subst -isystem,-I,$(includes))
+else ifeq ($(lowercase_comp),nvhpc)
+  # nvfortran-Error-Unknown switch: -isystem
+  fincludes = $(subst -isystem,-I,$(includes))
+else
+  fincludes = $(includes)
+endif
 fmoddir         = $(objEXETempDir)
 
 amrexlib = $(objEXETempDir)/libamrex.a
