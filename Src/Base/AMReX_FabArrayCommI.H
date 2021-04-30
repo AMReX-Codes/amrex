@@ -847,7 +847,7 @@ FabArray<FAB>::FillBoundary_test ()
     // We only test if no DEBUG because in DEBUG we check the status later.
     // If Test is done here, the status check will fail.
     int flag;
-    ParallelDescriptor::Test(fb_recv_reqs, flag, fb_recv_stat);
+    ParallelDescriptor::Test(fbd->recv_reqs, flag, fbd->recv_stat);
 #endif
 }
 
