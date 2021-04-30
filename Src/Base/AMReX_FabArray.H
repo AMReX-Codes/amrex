@@ -493,7 +493,7 @@ public:
                        CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy(fa,0,0,nComp(),0,0,period,op); }
 
-    [[deprecated("Use FabArray::ParallelCopy instead.")]]
+    [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& fa,
                const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY)
@@ -529,7 +529,7 @@ public:
                        CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy(src,src_comp,dest_comp,num_comp,0,0,period,op); }
 
-    [[deprecated("Use FabArray::ParallelCopy instead.")]]
+    [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
@@ -629,7 +629,7 @@ public:
 
     void ParallelCopy_finish ();
 
-    [[deprecated("Use FabArray::ParallelCopy instead.")]]
+    [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
@@ -640,7 +640,7 @@ public:
                CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),IntVect(dst_nghost),period,op); }
 
-    [[deprecated("Use FabArray::ParallelCopy instead.")]]
+    [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
