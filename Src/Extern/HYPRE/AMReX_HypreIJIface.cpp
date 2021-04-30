@@ -243,7 +243,7 @@ void HypreIJIface::boomeramg_precond_configure(const std::string& prefix)
         hpp("bamg_up_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 2);
         hpp("bamg_coarse_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 3);
     } else {
-        hpp("bamg_relax_type", HYPRE_BoomerAMGSetRelaxType, 11);
+        hpp("bamg_relax_type", HYPRE_BoomerAMGSetRelaxType, 6);
     }
 
     if (hpp.pp.contains("bamg_num_down_sweeps") && hpp.pp.contains("bamg_num_up_sweeps") && hpp.pp.contains("bamg_num_coarse_sweeps")) {
@@ -362,7 +362,7 @@ void HypreIJIface::boomeramg_solver_configure(const std::string& prefix)
         hpp("bamg_up_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 2);
         hpp("bamg_coarse_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 3);
     } else {
-        hpp("bamg_relax_type", HYPRE_BoomerAMGSetRelaxType, 11);
+        hpp("bamg_relax_type", HYPRE_BoomerAMGSetRelaxType, 6);
     }
 
     if (hpp.pp.contains("bamg_num_down_sweeps") && hpp.pp.contains("bamg_num_up_sweeps") && hpp.pp.contains("bamg_num_coarse_sweeps")) {
