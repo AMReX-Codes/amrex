@@ -40,7 +40,7 @@ FabSet::copyFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
             });
         }
     } else {
-        m_mf.copy(src.m_mf,scomp,dcomp,ncomp);
+        m_mf.ParallelCopy(src.m_mf,scomp,dcomp,ncomp);
     }
     return *this;
 }
@@ -50,7 +50,7 @@ FabSet::copyFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncom
                   const Periodicity& period)
 {
     BL_ASSERT(boxArray() != src.boxArray());
-    m_mf.copy(src,scomp,dcomp,ncomp,ngrow,0,period);
+    m_mf.ParallelCopy(src,scomp,dcomp,ncomp,ngrow,0,period);
     return *this;
 }
 
@@ -81,7 +81,7 @@ FabSet::plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncom
                   const Periodicity& period)
 {
     BL_ASSERT(boxArray() != src.boxArray());
-    m_mf.copy(src,scomp,dcomp,ncomp,ngrow,0,period,FabArrayBase::ADD);
+    m_mf.ParallelCopy(src,scomp,dcomp,ncomp,ngrow,0,period,FabArrayBase::ADD);
     return *this;
 }
 
@@ -90,7 +90,7 @@ FabSet::copyTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
                 const Periodicity& period) const
 {
     BL_ASSERT(boxArray() != dest.boxArray());
-    dest.copy(m_mf,scomp,dcomp,ncomp,0,ngrow,period);
+    dest.ParallelCopy(m_mf,scomp,dcomp,ncomp,0,ngrow,period);
 }
 
 void
@@ -98,7 +98,7 @@ FabSet::plusTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
                 const Periodicity& period) const
 {
     BL_ASSERT(boxArray() != dest.boxArray());
-    dest.copy(m_mf,scomp,dcomp,ncomp,0,ngrow,period,FabArrayBase::ADD);
+    dest.ParallelCopy(m_mf,scomp,dcomp,ncomp,0,ngrow,period,FabArrayBase::ADD);
 }
 
 void
@@ -193,8 +193,8 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
         });
     }
 
-    bdrya.copy(mfa,a_comp,0,ncomp,ngrow,0);
-    bdryb.copy(mfb,b_comp,0,ncomp,ngrow,0);
+    bdrya.ParallelCopy(mfa,a_comp,0,ncomp,ngrow,0);
+    bdryb.ParallelCopy(mfb,b_comp,0,ncomp,ngrow,0);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())

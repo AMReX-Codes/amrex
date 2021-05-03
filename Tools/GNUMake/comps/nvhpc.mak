@@ -19,12 +19,28 @@ gcc_minor_version = $(shell g++ -dumpfullversion -dumpversion | head -1 | sed -e
 
 COMP_VERSION = $(nvhpc_version)
 
+# -MP not supported by nvhpc and -MMD's output is put in the wrong directory
+USE_LEGACY_DEPFLAGS = TRUE
+DEPFLAGS =
+
 ########################################################################
 
 GENERIC_NVHPC_FLAGS =
 
 ifeq ($(USE_OMP),TRUE)
   GENERIC_NVHPC_FLAGS += -mp -Minfo=mp
+endif
+
+ifeq ($(USE_OMP_OFFLOAD),TRUE)
+  # CUDA + NVIDIA OpenMP-offload requires CUDA 11.0 or later:
+  # "nvfortran-Fatal-Use of -Mcuda and -mp=gpu requires CUDA 11.0 or later"
+  # My Cori GPU interactive tests worked without needing to specify
+  # a CUDA version: I used nvhpc/21.3 and cuda/11.1.1 modules.
+  # (The USE_ACC code path below should be revisited)
+  GENERIC_NVHPC_FLAGS += -mp=gpu -Minfo=mp
+  ifneq ($(CUDA_ARCH),)
+    GENERIC_NVHPC_FLAGS += -gpu=cc$(CUDA_ARCH)
+  endif
 endif
 
 ifeq ($(USE_ACC),TRUE)
@@ -208,7 +224,9 @@ F90FLAGS += $(GENERIC_NVHPC_FLAGS)
 
 ########################################################################
 
-override XTRALIBS += -lstdc++ -latomic -lnvf
+# Add -lrt for the missing "aio_return" symbol
+# /usr/common/software/sles15_cgpu/nvhpc/21.3/Linux_x86_64/21.3/compilers/lib/libnvf.a:async.o:                 U aio_return
+override XTRALIBS += -lstdc++ -latomic -lnvf -lrt
 
 LINK_WITH_FORTRAN_COMPILER ?= $(USE_F_INTERFACES)
 

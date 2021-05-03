@@ -306,7 +306,7 @@ namespace amrex
             });
         }
 
-        S_crse.copy(crse_S_fine,0,scomp,ncomp);
+        S_crse.ParallelCopy(crse_S_fine,0,scomp,ncomp);
 #endif
    }
 
@@ -354,8 +354,8 @@ namespace amrex
             });
         }
 
-        S_crse.copy(crse_S_fine, 0, scomp, ncomp, nGrow, 0,
-                    cgeom.periodicity(), FabArrayBase::ADD);
+        S_crse.ParallelCopy(crse_S_fine, 0, scomp, ncomp, nGrow, 0,
+                            cgeom.periodicity(), FabArrayBase::ADD);
     }
 
     void average_down (const MultiFab& S_fine, MultiFab& S_crse,
@@ -429,7 +429,7 @@ namespace amrex
                 }
             }
 
-            S_crse.copy(crse_S_fine,0,scomp,ncomp);
+            S_crse.ParallelCopy(crse_S_fine,0,scomp,ncomp);
         }
    }
 

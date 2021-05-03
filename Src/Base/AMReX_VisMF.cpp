@@ -1809,7 +1809,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     if( ! inFileOrder) {
       faCopyTime = amrex::second();
-      mf.copy(fafabFileOrder);
+      mf.ParallelCopy(fafabFileOrder);
       faCopyTime = amrex::second() - faCopyTime;
     }
 

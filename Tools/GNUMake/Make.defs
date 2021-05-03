@@ -362,9 +362,7 @@ else
   LOG_BUILD_TIME := FALSE
 endif
 
-ifeq ($(LOG_BUILD_TIME),TRUE)
-  build_time_begin := $(shell date +"%s")
-endif
+build_time_begin := $(shell date +"%s")
 
 ALLOW_DIFFERENT_COMP ?= TRUE
 SKIP_LINKING ?= FALSE
@@ -386,7 +384,9 @@ MKCONFIG        = $(AMREX_HOME)/Tools/libamrex/mkconfig.py
 MKPKGCONFIG     = $(AMREX_HOME)/Tools/libamrex/mkpkgconfig.py
 GATHERBUILDTIME = $(AMREX_HOME)/Tools/C_scripts/gatherbuildtime.py
 
-DEPFLAGS        = -MM
+USE_LEGACY_DEPFLAGS = FALSE
+DEPFLAGS = -MMD -MP
+LEGACY_DEPFLAGS = -MM
 
 RANLIB          = ranlib
 
@@ -849,7 +849,15 @@ f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
 tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
 
 includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS)) $(addprefix -isystem , $(SYSTEM_INCLUDE_LOCATIONS))
-fincludes	= $(includes)
+ifeq ($(lowercase_comp),pgi)
+  # pgfortran-Error-Unknown switch: -isystem
+  fincludes = $(subst -isystem,-I,$(includes))
+else ifeq ($(lowercase_comp),nvhpc)
+  # nvfortran-Error-Unknown switch: -isystem
+  fincludes = $(subst -isystem,-I,$(includes))
+else
+  fincludes = $(includes)
+endif
 fmoddir         = $(objEXETempDir)
 
 amrexlib = $(objEXETempDir)/libamrex.a

@@ -1240,7 +1240,7 @@ MultiFab::SumBoundary_finish ()
 
     if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) return;
 
-    FabArray<FArrayBox>* tmp = const_cast<FabArray<FArrayBox>*> (this->pc_src);
+    FabArray<FArrayBox>* tmp = const_cast<FabArray<FArrayBox>*> (this->pcd->src);
     this->ParallelCopy_finish();
     tmp->clear();
 }
