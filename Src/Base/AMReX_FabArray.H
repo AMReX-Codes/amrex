@@ -144,6 +144,34 @@ struct TheFaArenaDeleter {
 };
 using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
 
+// Data used in non-blocking fill boundary.
+template <class FAB>
+struct FBData {
+
+    //! Data used in non-blocking FillBoundary
+    const FabArrayBase::FB*  fb = nullptr;
+    int                 scomp;
+    int                 ncomp;
+    IntVect             nghost;
+    Periodicity         period;
+    bool                cross;
+    bool                epo;
+
+    //
+    char*               the_recv_data = nullptr;
+    char*               the_send_data = nullptr;
+    Vector<int>         recv_from;
+    Vector<char*>       recv_data;
+    Vector<std::size_t> recv_size;
+    Vector<MPI_Request> recv_reqs;
+    Vector<MPI_Status>  recv_stat;
+    //
+    Vector<char*>       send_data;
+    Vector<MPI_Request> send_reqs;
+    int                 tag;
+
+};
+
 // Data used in non-blocking parallel copy.
 template <class FAB>
 struct PCData {
@@ -986,24 +1014,7 @@ public:
                           int                        SeqNum);
 #endif
 
-    //! Data used in non-blocking FillBoundary
-    bool fb_cross, fb_epo;
-    int fb_scomp, fb_ncomp;
-    IntVect fb_nghost;
-    Periodicity fb_period;
-
-    //
-    char*               fb_the_recv_data = nullptr;
-    char*               fb_the_send_data = nullptr;
-    Vector<int>         fb_recv_from;
-    Vector<char*>       fb_recv_data;
-    Vector<std::size_t> fb_recv_size;
-    Vector<MPI_Request> fb_recv_reqs;
-    Vector<MPI_Status>  fb_recv_stat;
-    //
-    Vector<char*>       fb_send_data;
-    Vector<MPI_Request> fb_send_reqs;
-    int                 fb_tag;
+    std::unique_ptr<FBData<FAB>> fbd;
 
     std::unique_ptr<PCData<FAB>> pcd;
 };
