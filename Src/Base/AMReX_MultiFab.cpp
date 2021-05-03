@@ -1197,7 +1197,7 @@ MultiFab::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Period
     MultiFab tmp(boxArray(), DistributionMap(), ncomp, n_grow, MFInfo(), Factory());
     MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow);
     this->setVal(0.0, scomp, ncomp, nghost);
-    this->copy(tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
+    this->ParallelCopy(tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
 }
 
 void

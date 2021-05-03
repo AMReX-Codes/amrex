@@ -12,7 +12,7 @@ namespace amrex {
         template<typename T>
         struct SymmetricGhost {
             static void copy (T & target, const T & source, int nc, int ng) {
-                target.copy(source, 0, 0, nc, ng, ng);
+                target.ParallelCopy(source, 0, 0, nc, ng, ng);
             }
         };
 
@@ -23,7 +23,7 @@ namespace amrex {
         template<typename T> // T can be either MultiFab or iMultiFab
         struct AsymmetricGhost {
             static void copy (T & target, const T & source, int nc, int ng) {
-                target.copy(source, 0, 0, nc, 0, ng);
+                target.ParallelCopy(source, 0, 0, nc, 0, ng);
             }
         };
 
