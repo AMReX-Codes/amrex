@@ -982,7 +982,6 @@ BoxArray::contains (const Box& b, bool assume_disjoint_ba) const
         if (isects.size() > 0)
         {
             if (assume_disjoint_ba) {
-                BL_ASSERT(isDisjoint());
                 Long nbx = b.numPts(), nisects = 0L;
                 for (int i = 0, N = isects.size(); i < N; i++) {
                     nisects += isects[i].second.numPts();
