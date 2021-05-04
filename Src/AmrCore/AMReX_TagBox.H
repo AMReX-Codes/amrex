@@ -21,8 +21,6 @@ namespace amrex {
 * This class is used to tag cells in a Box that need addition refinement.
 */
 
-class BoxDomain;
-
 class TagBox final
     :
     public BaseFab<char>
@@ -189,22 +187,6 @@ public:
     * \param geom
     */
     void mapPeriodicRemoveDuplicates (const Geometry& geom);
-
-    /**
-    * \brief Set values in bl to val.
-    *
-    * \param bl
-    * \param val
-    */
-    void setVal (const BoxList& bl, TagBox::TagVal val);
-
-    /**
-    * \brief Set values in bd to val.
-    *
-    * \param bd
-    * \param val
-    */
-    void setVal (const BoxDomain& bd, TagBox::TagVal val);
 
     /**
     * \brief Set values in ba to val.
