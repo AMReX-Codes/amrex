@@ -1,3 +1,6 @@
+#ifndef AMREX_SUNMEMORY_H_
+#define AMREX_SUNMEMORY_H_
+
 #include <AMReX.H>
 #include <sundials/sundials_memory.h>
 
@@ -20,3 +23,5 @@ MemoryHelper* The_SUNMemory_Helper();
 
 }
 }
+
+#endif

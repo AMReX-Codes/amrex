@@ -157,7 +157,7 @@ add_amrex_define(AMREX_USE_HDF5_ASYNC NO_LEGACY IF AMReX_HDF5_ASYNC)
 #
 # SUNDIALS
 #
-add_amrex_define(AMREX_USE_SUNDIALS IF AMReX_SUNDIALS)
+add_amrex_define(AMREX_USE_SUNDIALS NO_LEGACY IF AMReX_SUNDIALS)
 
 #
 # Miscellaneous

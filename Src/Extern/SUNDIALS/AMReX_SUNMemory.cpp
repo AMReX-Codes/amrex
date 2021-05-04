@@ -25,7 +25,7 @@ namespace {
       mem->ptr = The_Cpu_Arena()->alloc(memsize);
     } else if (mem_type == SUNMEMTYPE_UVM) {
         if (The_Arena()->isManaged()) {
-          mem->ptr = The_Arena_Arena()->alloc(memsize);
+          mem->ptr = The_Arena()->alloc(memsize);
         } else if (The_Managed_Arena()->isManaged()) {
           mem->ptr = The_Managed_Arena()->alloc(memsize);
         } else {
@@ -38,16 +38,16 @@ namespace {
       mem->ptr = The_Pinned_Arena()->alloc(memsize);
     } else {
       free(mem);
-      return(-1);
+      return -1;
     }
 
     *memptr = mem;
-    return(0);
+    return 0;
   }
 
   int Dealloc(SUNMemoryHelper, SUNMemory mem)
   {
-    if (mem == NULL) return(0);
+    if (mem == NULL) return 0;
 
     if (mem->type == SUNMEMTYPE_HOST) {
       if (mem->own) The_Cpu_Arena()->free(mem->ptr);
@@ -58,11 +58,12 @@ namespace {
     } else if (mem->type == SUNMEMTYPE_PINNED) {
       if (mem->own) The_Pinned_Arena()->free(mem->ptr);
     } else {
-      return(-1);
+      free(mem);
+      return -1;
     }
 
     free(mem);
-    return(0);
+    return 0;
   }
 
   SUNMemoryHelper CloneMemoryHelper(SUNMemoryHelper)
@@ -70,12 +71,12 @@ namespace {
     return *The_SUNMemory_Helper();
   }
 
-  int DestroyMemoryHelper(SUNMemoryHelper helper)
+  int DestroyMemoryHelper(SUNMemoryHelper)
   {
     // We just return because we do not want our
     // single memory helper instance to be destroyed
     // except when Finalize is called.
-    return(0);
+    return 0;
   }
 
   SUNMemoryHelper CreateMemoryHelper()
