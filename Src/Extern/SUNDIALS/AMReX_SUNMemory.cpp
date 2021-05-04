@@ -24,9 +24,16 @@ namespace {
     if (mem_type == SUNMEMTYPE_HOST) {
       mem->ptr = The_Cpu_Arena()->alloc(memsize);
     } else if (mem_type == SUNMEMTYPE_UVM) {
-      mem->ptr = The_Managed_Arena()->alloc(memsize);
+        if (The_Arena()->isManaged()) {
+          mem->ptr = The_Arena_Arena()->alloc(memsize);
+        } else if (The_Managed_Arena()->isManaged()) {
+          mem->ptr = The_Managed_Arena()->alloc(memsize);
+        } else {
+          free(mem);
+          return -1;
+        }
     } else if (mem_type == SUNMEMTYPE_DEVICE) {
-      mem->ptr = The_Device_Arena()->alloc(memsize);
+      mem->ptr = The_Arena()->alloc(memsize);
     } else if (mem_type == SUNMEMTYPE_PINNED) {
       mem->ptr = The_Pinned_Arena()->alloc(memsize);
     } else {
