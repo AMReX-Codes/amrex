@@ -661,19 +661,6 @@ TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
 }
 
 void
-TagBoxArray::setVal (const BoxList& bl, TagBox::TagVal val)
-{
-    BoxArray ba(bl);
-    setVal(ba,val);
-}
-
-void
-TagBoxArray::setVal (const BoxDomain& bd, TagBox::TagVal val)
-{
-    setVal(bd.boxList(),val);
-}
-
-void
 TagBoxArray::setVal (const BoxArray& ba, TagBox::TagVal val)
 {
     Vector<Array4BoxTag<char> > tags;

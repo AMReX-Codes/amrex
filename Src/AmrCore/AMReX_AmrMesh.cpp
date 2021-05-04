@@ -503,38 +503,51 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
     //
     // Construct proper nesting domains.
     //
-    Vector<BoxList> p_n(max_level);      // Proper nesting domain.
-    Vector<BoxList> p_n_comp(max_level); // Complement proper nesting domain.
+    Vector<BoxArray> p_n_ba(max_level); // Proper nesting domain.
+    Vector<BoxArray> p_n_comp_ba(max_level); // Complement proper nesting domain.
+    BoxList p_n, p_n_comp;
 
     BoxList bl = grids[lbase].simplified_list();
     bl.coarsen(bf_lev[lbase]);
-    p_n_comp[lbase].parallelComplementIn(pc_domain[lbase],bl);
-    p_n_comp[lbase].simplify();
-    p_n_comp[lbase].accrete(n_proper);
-    if (geom[lbase].isAnyPeriodic()) {
-        ProjPeriodic(p_n_comp[lbase], pc_domain[lbase],
-                     geom[lbase].isPeriodic());
-    }
-    p_n[lbase].parallelComplementIn(pc_domain[lbase],p_n_comp[lbase]);
-    p_n[lbase].simplify();
+    p_n_comp.parallelComplementIn(pc_domain[lbase],bl);
     bl.clear();
+    p_n_comp.simplify();
+    p_n_comp.accrete(n_proper);
+    if (geom[lbase].isAnyPeriodic()) {
+        ProjPeriodic(p_n_comp, pc_domain[lbase], geom[lbase].isPeriodic());
+    }
+
+    p_n_comp_ba[lbase].define(std::move(p_n_comp));
+    p_n_comp = BoxList();
+
+    p_n.parallelComplementIn(pc_domain[lbase],p_n_comp_ba[lbase]);
+    p_n.simplify();
+
+    p_n_ba[lbase].define(std::move(p_n));
+    p_n = BoxList();
 
     for (int i = lbase+1; i <= max_crse; i++)
     {
-        p_n_comp[i] = p_n_comp[i-1];
+        p_n_comp = p_n_comp_ba[i-1].boxList();
 
         // Need to simplify p_n_comp or the number of grids can too large for many levels.
-        p_n_comp[i].simplify();
+        p_n_comp.simplify();
 
-        p_n_comp[i].refine(rr_lev[i-1]);
-        p_n_comp[i].accrete(n_proper);
+        p_n_comp.refine(rr_lev[i-1]);
+        p_n_comp.accrete(n_proper);
 
         if (geom[i].isAnyPeriodic()) {
-            ProjPeriodic(p_n_comp[i], pc_domain[i], geom[i].isPeriodic());
+            ProjPeriodic(p_n_comp, pc_domain[i], geom[i].isPeriodic());
         }
 
-        p_n[i].parallelComplementIn(pc_domain[i],p_n_comp[i]);
-        p_n[i].simplify();
+        p_n_comp_ba[i].define(std::move(p_n_comp));
+        p_n_comp = BoxList();
+
+        p_n.parallelComplementIn(pc_domain[i],p_n_comp_ba[i]);
+        p_n.simplify();
+
+        p_n_ba[i].define(std::move(p_n));
+        p_n = BoxList();
     }
 
     //
@@ -630,7 +643,8 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         //
         // Remove cells outside proper nesting domain for this level.
         //
-        tags.setVal(p_n_comp[levc],TagBox::CLEAR);
+        tags.setVal(p_n_comp_ba[levc],TagBox::CLEAR);
+        p_n_comp_ba[levc].clear();
         //
         // Create initial cluster containing all tagged points.
         //
@@ -660,10 +674,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     } else {
                         clist.chop(grid_eff);
                     }
-                    BoxDomain bd;
-                    bd.add(p_n[levc]);
-                    clist.intersect(bd);
-                    bd.clear();
+                    clist.intersect(p_n_ba[levc]);
                     //
                     // Efficient properly nested Clusters have been constructed
                     // now generate list of grids at level levf.

@@ -13,6 +13,7 @@
 namespace amrex
 {
     class BoxDomain;
+    class BoxArray;
 
     //! Returns the complement of BoxDomain bl in Box b.
     BoxDomain complementIn (const Box& b, const BoxDomain& bl);
@@ -67,6 +68,7 @@ class BoxDomain
     protected BoxList
 {
 public:
+    friend class ClusterList;
 
     typedef BoxList::const_iterator const_iterator;
     //! Construct an empty BoxDomain of IndexType::TheCellType().
@@ -158,6 +160,10 @@ public:
     //! Creates the complement of BoxDomain bl in Box b.
     BoxDomain& complementIn (const Box&       b,
                              const BoxDomain& bl);
+
+private:
+    //! Construct from a BoxList that has no overlap
+    explicit BoxDomain (BoxList&& bl);
 };
 
 }
