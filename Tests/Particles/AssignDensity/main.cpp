@@ -30,9 +30,6 @@ void test_assign_density(TestParams& parms)
   IntVect domain_hi(AMREX_D_DECL(parms.nx - 1, parms.ny - 1, parms.nz-1));
   const Box domain(domain_lo, domain_hi);
 
-  // This says we are using Cartesian coordinates
-  int coord = 0;
-
   // This sets the boundary conditions to be doubly or triply periodic
   int is_per[BL_SPACEDIM];
   for (int i = 0; i < BL_SPACEDIM; i++)
@@ -68,7 +65,7 @@ void test_assign_density(TestParams& parms)
   int iseed = 451;
   Real mass = 10.0;
 
-  MyParticleContainer::ParticleInitData pdata = {mass, AMREX_D_DECL(1.0, 2.0, 3.0)};
+  MyParticleContainer::ParticleInitData pdata = {mass, AMREX_D_DECL(1.0, 2.0, 3.0), {}, {}, {}};
   myPC.InitRandom(num_particles, iseed, pdata, serialize);
   myPC.AssignCellDensitySingleLevel(0, partMF, 0, 4, 0);
 
