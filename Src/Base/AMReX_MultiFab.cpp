@@ -1231,6 +1231,9 @@ MultiFab::SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost, const
     MultiFab::Copy(*tmp, *this, scomp, 0, ncomp, n_grow);
     this->setVal(0.0, scomp, ncomp, nghost);
     this->ParallelCopy_nowait(*tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
+
+    // All local. Operation complete.
+    if (!this->pcd) { delete tmp; }
 }
 
 void
@@ -1238,12 +1241,12 @@ MultiFab::SumBoundary_finish ()
 {
     BL_PROFILE("MultiFab::SumBoundary_finish()");
 
-    // If pcd doesn't exist, was all local and operation was fully completed in "SumBoundary_nowait".
+    // If pcd doesn't exist, ParallelCopy was all local and operation was fully completed in "SumBoundary_nowait".
     if ( (n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) || !(this->pcd) ) return;
 
     FabArray<FArrayBox>* tmp = const_cast<FabArray<FArrayBox>*> (this->pcd->src);
     this->ParallelCopy_finish();
-    tmp->clear();
+    delete tmp;
 }
 
 std::unique_ptr<MultiFab>
