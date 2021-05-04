@@ -65,7 +65,7 @@ void test_assign_density(TestParams& parms)
   int iseed = 451;
   Real mass = 10.0;
 
-  MyParticleContainer::ParticleInitData pdata = {mass, AMREX_D_DECL(1.0, 2.0, 3.0), {}, {}, {}};
+  MyParticleContainer::ParticleInitData pdata = {{mass, AMREX_D_DECL(1.0, 2.0, 3.0)}, {}, {}, {}};
   myPC.InitRandom(num_particles, iseed, pdata, serialize);
   myPC.AssignCellDensitySingleLevel(0, partMF, 0, 4, 0);
 
