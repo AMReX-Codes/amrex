@@ -1238,7 +1238,8 @@ MultiFab::SumBoundary_finish ()
 {
     BL_PROFILE("MultiFab::SumBoundary_finish()");
 
-    if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) return;
+    // If pcd doesn't exist, was all local and operation was fully completed in "SumBoundary_nowait".
+    if ( (n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) || !(this->pcd) ) return;
 
     FabArray<FArrayBox>* tmp = const_cast<FabArray<FArrayBox>*> (this->pcd->src);
     this->ParallelCopy_finish();
