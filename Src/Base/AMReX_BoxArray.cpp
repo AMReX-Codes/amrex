@@ -967,52 +967,50 @@ BoxArray::contains (const IntVect& iv) const
 }
 
 bool
-BoxArray::contains (const Box& b, bool assume_disjoint_ba) const
+BoxArray::contains (const Box& b, bool assume_disjoint_ba, const IntVect& ng) const
 {
-    bool result = false;
-
     if (size() > 0)
     {
         BL_ASSERT(ixType() == b.ixType());
 
         std::vector< std::pair<int,Box> > isects;
 
-        intersections(b,isects);
+        intersections(b,isects,false,ng);
 
         if (isects.size() > 0)
         {
-            if (assume_disjoint_ba) {
+            if (assume_disjoint_ba && ng == 0) {
                 Long nbx = b.numPts(), nisects = 0L;
-                for (int i = 0, N = isects.size(); i < N; i++) {
-                    nisects += isects[i].second.numPts();
+                for (auto const& is : isects) {
+                    nisects += is.second.numPts();
                 }
-                result = nbx == nisects;
+                return (nbx == nisects);
             } else {
-                Vector<char> vflag(b.numPts(), 1);
-                BaseFab<char> fabflag(b, 1, vflag.data());
-                for (int i = 0, N = isects.size(); i < N; i++) {
-                    fabflag.setVal<RunOn::Host>(0, isects[i].second, 0, 1);
+                BoxList bl(ixType());
+                bl.reserve(isects.size());
+                for (auto const& is : isects) {
+                    bl.push_back(is.second);
                 }
-                for (const auto& x : vflag) {
-                    if (x == 1) return false;
-                }
-                result = true;
+                auto const& blin = amrex::complementIn(b, bl);
+                return blin.isEmpty();
             }
+        } else {
+            return false;
         }
+    } else {
+        return false;
     }
-
-    return result;
 }
 
 bool
-BoxArray::contains (const BoxArray& ba, bool assume_disjoint_ba) const
+BoxArray::contains (const BoxArray& ba, bool assume_disjoint_ba, const IntVect& ng) const
 {
     if (size() == 0) return false;
 
-    if (!minimalBox().contains(ba.minimalBox())) return false;
+    if (!minimalBox().grow(ng).contains(ba.minimalBox())) return false;
 
     for (int i = 0, N = ba.size(); i < N; ++i) {
-        if (!contains(ba[i],assume_disjoint_ba)) {
+        if (!contains(ba[i],assume_disjoint_ba, ng)) {
             return false;
         }
     }

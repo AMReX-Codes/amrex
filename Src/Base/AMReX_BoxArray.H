@@ -726,13 +726,17 @@ public:
     bool contains (const IntVect& v) const;
 
     /**
-    * \brief True if the Box is within any of the Boxes in the List.
+    * \brief True if the Box is contained in this BoxArray(+ng).
     * The Box must also have the same IndexType as those in this BoxArray.
     */
-    bool contains (const Box& b, bool assume_disjoint_ba = false) const;
+    bool contains (const Box& b, bool assume_disjoint_ba = false,
+                   const IntVect& ng = IntVect(0)) const;
 
-    //! True if all Boxes in bl are contained in this BoxArray.
-    bool contains (const BoxArray& bl, bool assume_disjoint_ba = false) const;
+    /**
+     * \brief True if all Boxes in ba are contained in this BoxArray(+ng).
+     */
+    bool contains (const BoxArray& ba, bool assume_disjoint_ba = false,
+                   const IntVect& ng = IntVect(0)) const;
 
     //! Return smallest Box that contains all Boxes in this BoxArray.
     Box minimalBox () const;
