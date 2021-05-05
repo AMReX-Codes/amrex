@@ -5,7 +5,6 @@
 #include <AMReX_REAL.H>
 #include <AMReX_GpuQualifiers.H>
 
-#include <iosfwd>
 #include <iostream>
 
 namespace amrex {
