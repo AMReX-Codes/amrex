@@ -68,6 +68,8 @@ std::uint32_t splitBits10 (std::uint32_t x) noexcept {
     // 0x55555555  : 0101,0101,0101,0101,0101,0101,0101,0101
     // x           : 0g0f,0e0d,0c0b,0a09,0807,0605,0403,0201
     return x;
+#elif (AMREX_SPACEDIM == 1)
+    return x;
 #endif
 }
 
