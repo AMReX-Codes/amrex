@@ -91,7 +91,6 @@ target_sources( amrex
    AMReX_BoxIterator.H
    AMReX_BoxIterator.cpp
    AMReX_Dim3.H
-   AMReX_Dim3.cpp
    AMReX_IntVect.H
    AMReX_IntVect.cpp
    AMReX_IndexType.H
