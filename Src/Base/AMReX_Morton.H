@@ -135,7 +135,7 @@ std::uint32_t toUInt16 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexc
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::uint32_t toUInt32 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexcept {
     AMREX_ASSERT(x >= xmin && x < xmax);
-    constexpr std::uint64_t code_offset = (1ul << 32);
+    constexpr unsigned long long code_offset = (1ull << 32);
     return (std::uint32_t)(((x - xmin)/(xmax - xmin)) * code_offset);
 }
 
