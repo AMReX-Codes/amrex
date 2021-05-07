@@ -210,6 +210,45 @@ struct TransformerGhost
     }
 };
 
+struct TransformerVirt
+{
+    int aggregation_type_int;
+    /**
+       \brief This copies the particle but multiplies all the idata by m_factor
+       *
+     **/
+    TransformerVirt (std::string aggregation_type_in)
+    {
+      aggregation_type_int = -1;
+      aggregation_type_int = (aggregation_type_in == "None") ? 0 : aggregation_type_int;
+      aggregation_type_int = (aggregation_type_in == "Cell") ? 1 : aggregation_type_int;
+    }
+
+    template <typename DstData, typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    void operator() (DstData& dst, const SrcData& src,
+                     int src_i, int dst_i) const noexcept
+    {
+        dst.m_aos[dst_i] = src.m_aos[src_i];
+        for (int j = 0; j < DstData::NAR; ++j)
+            dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
+        for (int j = 0; j < dst.m_num_runtime_real; ++j)
+            dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
+        for (int j = 0; j < DstData::NAI; ++j)
+            dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
+        for (int j = 0; j < dst.m_num_runtime_int; ++j)
+            dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
+
+    if (aggregation_type_int == 0)
+        (dst.m_aos[dst_i]).m_idcpu = VirtualParticleID;
+
+    if (aggregation_type_int == 1)
+      {
+        (dst.m_aos[dst_i]).m_idcpu = -1;
+      }
+    }
+};
+
 
 struct Transformer
 {
@@ -607,6 +646,37 @@ void testAssignGridFilterAndTransformerGhost (const PC& pc)
     pc2.clearParticles();
 }
 
+
+template <typename PC>
+void testAssignGridFilterAndTransformerVirt (const PC& pc)
+{
+    using PType = typename PC::SuperParticleType;
+
+    auto np_old = pc.TotalNumberOfParticles();
+
+    PC pc2(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
+
+    if (! pc.m_particle_locator.isValid(pc.GetParGDB())) pc.m_particle_locator.build(pc.GetParGDB());
+    pc.m_particle_locator.setGeometry(pc.GetParGDB());
+    AmrAssignGrid<DenseBinIteratorFactory<Box>> assign_grid = pc.m_particle_locator.getGridAssignor();
+    auto assign_grid_ptr = & assign_grid;
+    pc2.copyParticles(pc);//, AssignGridFilter(assign_grid_ptr,2));
+    filterAndTransformParticles(pc2, AssignGridFilter(assign_grid_ptr,2), TransformerVirt(pc2.AggregationType()));
+
+    auto np_new = pc2.TotalNumberOfParticles(false);
+
+    AMREX_ALWAYS_ASSERT(2*np_new == np_old);
+    auto all_odd = amrex::ReduceLogicalAnd(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return amrex::get<0>((*assign_grid_ptr)(p,0,0,0)) % 2 == 0; });
+
+    AMREX_ALWAYS_ASSERT(all_odd);
+
+    auto all_virt = amrex::ReduceLogicalAnd(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() != VirtualParticleID; });
+
+    AMREX_ALWAYS_ASSERT(all_virt);
+
+    pc2.clearParticles();
+}
+
 template <typename PC>
 void testAssignGridFilter (const PC& pc)
 {
@@ -711,6 +781,8 @@ void testTransformations ()
     testAssignGridFilter(pc);
 
     testAssignGridFilterAndTransformerGhost(pc);
+
+    testAssignGridFilterAndTransformerVirt(pc);
 
     amrex::Print() << "pass \n";
 }
