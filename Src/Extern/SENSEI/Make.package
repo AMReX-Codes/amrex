@@ -14,6 +14,14 @@ ifeq ($(USE_SENSEI_INSITU),TRUE)
   C$(SENSEI_INSITU)_sources += AMReX_AmrMeshDataAdaptor.cpp \
                               AMReX_AmrMeshInSituBridge.cpp
 
+# Amr Particle adaptor and bridge
+  C$(SENSEI_INSITU)_headers += AMReX_AmrParticleDataAdaptor.H \
+                              AMReX_AmrParticleInSituBridge.H
+
+  C$(SENSEI_INSITU)_sources += AMReX_AmrParticleDataAdaptor.cpp \
+                              AMReX_AmrParticleInSituBridge.cpp
+
+
   # Amr adaptor and bridge
   C$(SENSEI_INSITU)_headers += AMReX_AmrDataAdaptor.H \
                               AMReX_AmrInSituBridge.H

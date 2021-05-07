@@ -1,0 +1,100 @@
+#ifndef AMReX_AmrParticleInSituBridge_H
+#define AMReX_AmrParticleInSituBridge_H
+#include <AMReX_Config.H>
+
+#ifdef AMREX_PARTICLES
+#include <AMReX_InSituBridge.H>
+#include <AMReX_Vector.H>
+
+#include <AMReX_AmrParticles.H>
+
+
+#include <AMReX_AmrParticleDataAdaptor.H>
+#include <AMReX_AmrDataAdaptor.H>
+
+#include <AMReX_Amr.H>
+
+#ifdef BL_USE_SENSEI_INSITU
+#include <AnalysisAdaptor.h>
+#include <Profiler.h>
+#endif
+
+#include <chrono>
+
+namespace amrex
+{
+/// Bridge for simulations that use amrex::ParticleContainer
+/// inherits intialize and finalize from amrex::InSituBridge
+template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+class AmrParticleInSituBridge : public InSituBridge
+{
+public:
+  AmrParticleInSituBridge() {}
+  ~AmrParticleInSituBridge() {}
+
+  AmrParticleInSituBridge(const AmrParticleInSituBridge&) = delete;
+  void operator=(const AmrParticleInSituBridge&) = delete;
+
+  // invoke the in situ analysis with data from an AmrMesh
+  // instance.
+  int update(
+    amrex::Amr *amr, 
+    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *tracers,
+    std::map<std::string, std::vector<int>> particles_rStructs = {},
+    std::map<std::string, int> particles_iStructs = {},
+    std::map<std::string, std::vector<int>> particles_rArrays = {},
+    std::map<std::string, int> particles_iArrays = {});
+};
+
+template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+int AmrParticleInSituBridge<NStructReal, NStructInt, NArrayReal, NArrayInt>::update(
+  amrex::Amr *amr,
+  amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *tracers,
+  std::map<std::string, std::vector<int>> particles_rStructs,
+  std::map<std::string, int> particles_iStructs,
+  std::map<std::string, std::vector<int>> particles_rArrays,
+  std::map<std::string, int> particles_iArrays)
+{
+  int ret = 0;
+#if defined(BL_USE_SENSEI_INSITU)
+  if (doUpdate())
+  {
+    amrex::Print() << "SENSEI Particles Begin update..." << std::endl;
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    sensei::TimeEvent<64> event("AmrParticleInSituBridge::update");
+
+    if(!tracers)
+    {
+      SENSEI_ERROR("no particles presented at update call");
+      return -1;
+    }
+    AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt> *data_adaptor 
+      = AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New();
+    if (comm != MPI_COMM_NULL)
+        data_adaptor->SetCommunicator(comm);
+    data_adaptor->SetDataSource(
+      tracers, 
+      particles_rStructs, 
+      particles_iStructs, 
+      particles_rArrays, 
+      particles_iArrays
+    );
+    data_adaptor->SetDataTime(amr->cumTime());
+    data_adaptor->SetDataTimeStep(amr->levelSteps(0));
+    ret = analysis_adaptor->Execute(data_adaptor) ? 0 : -1;
+    data_adaptor->ReleaseData();
+    data_adaptor->Delete();
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+    auto dt = std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t0);
+    amrex::Print() << "SENSEI update complete (" << dt.count() << " sec)" << std::endl;
+  }
+#endif
+  return ret;
+}
+
+}
+
+#endif // AMREX_PARTICLES
+#endif // AMReX_AmrParticleInSituBridge_H

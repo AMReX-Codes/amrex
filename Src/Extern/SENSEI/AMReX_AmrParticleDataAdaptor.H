@@ -1,0 +1,103 @@
+#ifndef AMReX_AmrParticleDataAdaptor_h
+#define AMReX_AmrParticleDataAdaptor_h
+
+// AMReX includes
+#include <AMReX_Config.H>
+#ifdef AMREX_PARTICLES
+#include <AMReX_Particles.H>
+
+#include <AMReX_AmrMesh.H>
+#include <AMReX_MultiFab.H>
+
+// sensei includes
+#include "DataAdaptor.h"
+
+
+class vtkPolyData;
+namespace amrex
+{
+
+template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+class AmrParticleDataAdaptor : public sensei::DataAdaptor
+{
+public:
+  static AmrParticleDataAdaptor* New();
+  senseiTypeMacro(AmrParticleDataAdaptor, sensei::DataAdaptor);
+
+  // set the source of the simulation data
+  int SetDataSource(
+    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *tracers,
+    std::map<std::string, std::vector<int>> rStructs = {},
+    std::map<std::string, int> iStructs = {},
+    std::map<std::string, std::vector<int>> rArrays = {},
+    std::map<std::string, int> iArrays = {}
+  );
+
+  // set the data array names maps internally
+  int SetArrayNames(
+    std::map<std::string, std::vector<int>> rStructs,
+    std::map<std::string, int> iStructs,
+    std::map<std::string, std::vector<int>> rArrays,
+    std::map<std::string, int> iArrays);
+
+  // force mesh origin to 0,0,0. off by default
+  void SetPinMesh(int val);
+
+  // get particle id numbers 
+  int AddParticlesIDArray(vtkDataObject* mesh);
+
+  // get particle cpu numbers (process each particle was generated on)
+  int AddParticlesCPUArray(vtkDataObject* mesh);
+
+  // get particle integer arrays in Structs of Arrays format
+  int AddParticlesSOAIntArray(const std::string &arrayName, vtkDataObject* mesh);
+
+  // get particle real arrays in Structs of Arrays format
+  int AddParticlesSOARealArray(const std::string &arrayName, vtkDataObject* mesh);
+
+  // get particle integer arrays in Array Of Structs format
+  int AddParticlesAOSIntArray(const std::string &arrayName, vtkDataObject* mesh);
+
+  // get particle real arrays in Array Of Structs format
+  int AddParticlesAOSRealArray(const std::string &arrayName, vtkDataObject* mesh);
+
+  
+
+  // SENSEI API
+#if SENSEI_VERSION_MAJOR >= 3
+  int GetMeshMetadata(unsigned int id, sensei::MeshMetadataPtr &metadata) override;
+#else
+  int GetMeshName(unsigned int id, std::string &meshName) override;
+  int GetMeshHasGhostNodes(const std::string &meshName, int &nLayers) override;
+  int GetMeshHasGhostCells(const std::string &meshName, int &nLayers) override;
+  int GetNumberOfArrays(const std::string &meshName, int association, unsigned int &numberOfArrays) override;
+  int GetArrayName(const std::string &meshName, int association, unsigned int index, std::string &arrayName) override;
+#endif
+  int GetNumberOfMeshes(unsigned int &numMeshes) override;
+  int GetMesh(const std::string &meshName, bool structureOnly, vtkDataObject *&mesh) override;
+  int AddGhostNodesArray(vtkDataObject* mesh, const std::string &meshName) override;
+  int AddGhostCellsArray(vtkDataObject* mesh, const std::string &meshName) override;
+  int AddArray(vtkDataObject* mesh, const std::string &meshName, int association, const std::string &arrayName) override;
+  int ReleaseData() override;
+
+protected:
+  AmrParticleDataAdaptor() = default;
+  ~AmrParticleDataAdaptor() = default;
+
+private:
+  vtkPolyData* BuildParticles();
+
+  const std::string m_particlesName = "particles";
+  amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>* m_tracers;
+  std::map<std::string, std::vector<int>> m_realStructs;
+  std::map<std::string, int> m_intStructs;
+  std::map<std::string, std::vector<int>> m_realArrays;
+  std::map<std::string, int> m_intArrays;
+};
+
+}
+
+#include "AMReX_AmrParticleDataAdaptorI.H"
+
+#endif // AMREX_PARTICLES
+#endif // AMReX_AmrParticleDataAdaptor_h
