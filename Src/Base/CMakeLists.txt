@@ -30,6 +30,7 @@ target_sources( amrex
    AMReX_Reduce.H
    AMReX_Scan.H
    AMReX_Partition.H
+   AMReX_Morton.H
    AMReX_Random.H
    AMReX_RandomEngine.H
    AMReX_Random.cpp
