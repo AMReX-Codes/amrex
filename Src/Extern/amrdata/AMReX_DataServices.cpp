@@ -2196,7 +2196,7 @@ void DataServices::RunSendsPF(std::string &plotfileName,
       b.setBig(XDIR, iX);
       BoxArray bA(b);
       MultiFab mfLine(bA, dmapOneProc, 1, 0);
-      mfLine.copy(sendMF);
+      mfLine.ParallelCopy(sendMF);
       Real value(0.0);
       if(bIOP) {
         for(int iLine(0); iLine < b.length(YDIR); ++iLine) {
@@ -2258,7 +2258,7 @@ void DataServices::RunSendsPF(std::string &plotfileName,
       const DistributionMapping sqDM(sqBA);
       sqState[i].define(sqBA, sqDM, numState, nGrow);
       sqState[i].setVal(0.0);
-      sqState[i].copy(state[i]);
+      sqState[i].ParallelCopy(state[i]);
     }
 
 
@@ -2533,7 +2533,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       const DistributionMapping sqDM(sqBA);
       sqState[i].define(sqBA, sqDM, numState, nGrow);
       sqState[i].setVal(0.0);
-      sqState[i].copy(state[i]);
+      sqState[i].ParallelCopy(state[i]);
     }
 
 
@@ -2894,7 +2894,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
     state[finestLevel].define(dnpBoxArray, dnpDM, numState, nGrow);
     MultiFab &fLMF = state[finestLevel];
     fLMF.setVal(0.0);
-    fLMF.copy(mfWFN);
+    fLMF.ParallelCopy(mfWFN);
 
     // ---- make an xgraph of coefficient of variation for each call
     Vector<Real> coeffVar(whichFuncNCalls, 0.0);
@@ -2976,7 +2976,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
       sqBA.maxSize(sqMG);
       sqState[i].define(sqBA, sqDM, numState, nGrow);
       sqState[i].setVal(0.0);
-      sqState[i].copy(state[i]);
+      sqState[i].ParallelCopy(state[i]);
     }
 
 

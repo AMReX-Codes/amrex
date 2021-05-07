@@ -150,7 +150,7 @@ void amrex::avgDown(MultiFab &S_crse, MultiFab &S_fine, int scomp, int dcomp,
       avgDown_doit(S_fine[i], crse_S_fine[i], crse_S_fine_BA[i],
                    scomp, 0, ncomp, ratio);
     }
-    S_crse.copy(crse_S_fine, 0, dcomp, ncomp);
+    S_crse.ParallelCopy(crse_S_fine, 0, dcomp, ncomp);
 }
 
 

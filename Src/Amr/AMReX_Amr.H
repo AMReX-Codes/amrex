@@ -19,7 +19,6 @@ namespace amrex {
 
 class AmrLevel;
 class LevelBld;
-class BoxDomain;
 #if defined(BL_USE_SENSEI_INSITU)
 class AmrInSituBridge;
 #endif

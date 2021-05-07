@@ -144,6 +144,57 @@ struct TheFaArenaDeleter {
 };
 using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
 
+// Data used in non-blocking fill boundary.
+template <class FAB>
+struct FBData {
+
+    //! Data used in non-blocking FillBoundary
+    const FabArrayBase::FB*  fb = nullptr;
+    int                 scomp;
+    int                 ncomp;
+    IntVect             nghost;
+    Periodicity         period;
+    bool                cross;
+    bool                epo;
+
+    //
+    char*               the_recv_data = nullptr;
+    char*               the_send_data = nullptr;
+    Vector<int>         recv_from;
+    Vector<char*>       recv_data;
+    Vector<std::size_t> recv_size;
+    Vector<MPI_Request> recv_reqs;
+    Vector<MPI_Status>  recv_stat;
+    //
+    Vector<char*>       send_data;
+    Vector<MPI_Request> send_reqs;
+    int                 tag;
+
+};
+
+// Data used in non-blocking parallel copy.
+template <class FAB>
+struct PCData {
+
+    const FabArrayBase::CPC*  cpc = nullptr;
+    const FabArray<FAB>*      src = nullptr;
+    FabArrayBase::CpOp  op;
+    int                 tag = -1;
+    int                 actual_n_rcvs = -1;
+    IntVect             snghost, dnghost;
+    Periodicity         period;
+    int                 SC = -1, NC = -1, DC = -1;
+
+    char*               the_recv_data = nullptr;
+    char*               the_send_data = nullptr;
+    Vector<int>         recv_from;
+    Vector<char*>       recv_data;
+    Vector<std::size_t> recv_size;
+    Vector<MPI_Request> recv_reqs;
+    Vector<MPI_Request> send_reqs;
+
+};
+
 template <class FAB>
 class FabArray
     :
@@ -492,14 +543,16 @@ public:
                        const Periodicity&   period = Periodicity::NonPeriodic(),
                        CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy(fa,0,0,nComp(),0,0,period,op); }
+
+    [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& fa,
                const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY)
         { ParallelCopy(fa,period,op); }
 
-    void ParallelAdd_nowait(const FabArray<FAB>& fa,
-                            const Periodicity& period = Periodicity::NonPeriodic())
-       { ParallelCopy_nowait(fa,period,FabArray::ADD); }
+    void ParallelAdd_nowait (const FabArray<FAB>& fa,
+                             const Periodicity& period = Periodicity::NonPeriodic())
+        { ParallelCopy_nowait(fa,period,FabArray::ADD); }
     void ParallelCopy_nowait (const FabArray<FAB>& fa,
                               const Periodicity&   period = Periodicity::NonPeriodic(),
                               CpOp                 op = FabArrayBase::COPY)
@@ -526,6 +579,8 @@ public:
                        const Periodicity&   period = Periodicity::NonPeriodic(),
                        CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy(src,src_comp,dest_comp,num_comp,0,0,period,op); }
+
+    [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
@@ -593,7 +648,8 @@ public:
                              int                  dst_nghost,
                              const Periodicity&   period = Periodicity::NonPeriodic())
        { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),
-                             IntVect(dst_nghost),period,FabArrayBase::ADD); }
+                               IntVect(dst_nghost),period,FabArrayBase::ADD); }
+
     void ParallelAdd_nowait (const FabArray<FAB>& src,
                              int                  src_comp,
                              int                  dest_comp,
@@ -603,6 +659,7 @@ public:
                              const Periodicity&   period = Periodicity::NonPeriodic())
        { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,src_nghost,
                              dst_nghost,period,FabArrayBase::ADD); }
+
     void ParallelCopy_nowait (const FabArray<FAB>& src,
                               int                  src_comp,
                               int                  dest_comp,
@@ -613,6 +670,7 @@ public:
                               CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),
                              IntVect(dst_nghost),period,op); }
+
     void ParallelCopy_nowait (const FabArray<FAB>& src,
                               int                  src_comp,
                               int                  dest_comp,
@@ -625,7 +683,7 @@ public:
 
     void ParallelCopy_finish ();
 
-
+    [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
@@ -635,6 +693,8 @@ public:
                const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),IntVect(dst_nghost),period,op); }
+
+    [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
@@ -954,45 +1014,9 @@ public:
                           int                        SeqNum);
 #endif
 
-    //! Data used in non-blocking FillBoundary
-    bool fb_cross, fb_epo;
-    int fb_scomp, fb_ncomp;
-    IntVect fb_nghost;
-    Periodicity fb_period;
+    std::unique_ptr<FBData<FAB>> fbd;
 
-    //
-    char*               fb_the_recv_data = nullptr;
-    char*               fb_the_send_data = nullptr;
-    Vector<int>         fb_recv_from;
-    Vector<char*>       fb_recv_data;
-    Vector<std::size_t> fb_recv_size;
-    Vector<MPI_Request> fb_recv_reqs;
-    Vector<MPI_Status>  fb_recv_stat;
-    //
-    Vector<char*>       fb_send_data;
-    Vector<MPI_Request> fb_send_reqs;
-    int                 fb_tag;
-
-    //! Data used in non-blocking ParallelCopy
-    const CPC*           pc_cpc = nullptr;
-    const FabArray<FAB>* pc_src = nullptr;
-    CpOp                 pc_op;
-    int                  pc_tag;
-    int                  pc_actual_n_rcvs;
-    IntVect              pc_snghost, pc_dnghost;
-    Periodicity          pc_period;
-    int                  pc_SC, pc_NC, pc_DC;
-    bool                 pc_finished;
-
-    //
-    char*                pc_the_recv_data = nullptr;
-    char*                pc_the_send_data = nullptr;
-    Vector<int>          pc_recv_from;
-    Vector<char*>        pc_recv_data;
-    Vector<std::size_t>  pc_recv_size;
-    Vector<MPI_Request>  pc_recv_reqs;
-    Vector<MPI_Request>  pc_send_reqs;
-
+    std::unique_ptr<PCData<FAB>> pcd;
 };
 
 

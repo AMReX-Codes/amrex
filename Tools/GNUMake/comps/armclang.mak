@@ -1,10 +1,10 @@
 #
-# Generic setup for using gcc
+# Setup for using clang/flang
 #
-CXX = clang++
-CC  = clang
-FC  = gfortran
-F90 = gfortran
+CXX = armclang++
+CC  = armclang
+FC  = armflang
+F90 = armflang
 
 CXXFLAGS =
 CFLAGS   =
@@ -13,11 +13,9 @@ F90FLAGS =
 
 ########################################################################
 
-clang_version       = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/')
-clang_major_version = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' | sed -e 's;\..*;;')
-clang_minor_version = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
-
-COMP_VERSION = $(clang_version)
+#armclang_version       = $(shell $(CXX) --version | head -1 | sed -e 's/.*version *\([0-9]\+\.[0-9]\+\).*/\1/')
+#armclang_major_version = $(shell $(CXX) --version | head -1 | sed -e 's/.*version *\([0-9]\+\.[0-9]\+\).*/\1/' | sed -e 's/\.[0-9]\+//')
+#armclang_minor_version = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\).*/\1/' | sed -e 's/.*\.//')
 
 ########################################################################
 
@@ -25,9 +23,8 @@ ifeq ($(DEBUG),TRUE)
 
   CXXFLAGS += -g -O0 -ftrapv
   CFLAGS   += -g -O0 -ftrapv
-
-  FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
-  F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
+  FFLAGS   += -g -O0 -ftrapv
+  F90FLAGS += -g -O0 -ftrapv
 
 else
 
@@ -73,10 +70,7 @@ endif
 CXXFLAGS += -std=$(CXXSTD)
 CFLAGS   += -std=c99
 
-FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore
-F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
-
-FMODULES =  -J$(fmoddir) -I $(fmoddir)
+FMODULES = -J$(fmoddir) -I $(fmoddir)
 
 ########################################################################
 
@@ -107,21 +101,7 @@ F90FLAGS += $(GENERIC_COMP_FLAGS)
 ########################################################################
 
 ifneq ($(BL_NO_FORT),TRUE)
-
-# ask gfortran the name of the library to link in.  First check for the
-# static version.  If it returns only the name w/o a path, then it
-# was not found.  In that case, ask for the shared-object version.
-gfortran_liba  = $(shell $(F90) -print-file-name=libgfortran.a)
-gfortran_libso = $(shell $(F90) -print-file-name=libgfortran.so)
-
-ifneq ($(gfortran_liba),libgfortran.a)  # if found the full path is printed, thus `neq`.
-  LIBRARY_LOCATIONS += $(dir $(gfortran_liba))
-else
-  LIBRARY_LOCATIONS += $(dir $(gfortran_libso))
-endif
-
-override XTRALIBS += -lgfortran -lquadmath
-
+  override XTRALIBS += -lflang
 endif
 
 ifeq ($(FSANITIZER),TRUE)

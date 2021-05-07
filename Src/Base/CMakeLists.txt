@@ -30,6 +30,7 @@ target_sources( amrex
    AMReX_Reduce.H
    AMReX_Scan.H
    AMReX_Partition.H
+   AMReX_Morton.H
    AMReX_Random.H
    AMReX_RandomEngine.H
    AMReX_Random.cpp
@@ -91,7 +92,6 @@ target_sources( amrex
    AMReX_BoxIterator.H
    AMReX_BoxIterator.cpp
    AMReX_Dim3.H
-   AMReX_Dim3.cpp
    AMReX_IntVect.H
    AMReX_IntVect.cpp
    AMReX_IndexType.H

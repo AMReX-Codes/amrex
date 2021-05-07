@@ -112,6 +112,11 @@ BoxDomain::BoxDomain (const Box& bx)
 {
 }
 
+//! Construct from a BoxList that has no overlap
+BoxDomain::BoxDomain (BoxList&& bl)
+    : BoxList(std::move(bl))
+{}
+
 void
 BoxDomain::add (const Box& b)
 {

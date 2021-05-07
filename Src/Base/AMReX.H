@@ -109,8 +109,11 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Error (const char* msg = 0) {
 #if AMREX_DEVICE_COMPILE
-#ifdef NDEBUG
+#if defined(NDEBUG) || defined(AMREX_USE_HIP)
         amrex::ignore_unused(msg);
+//#elif defined(AMREX_USE_HIP)
+//        if (msg) { AMREX_DEVICE_PRINTF("%s", msg); }
+//        assert(0);
 #else
         Error_device(msg);
 #endif
@@ -132,8 +135,10 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Warning (const char * msg) {
 #if AMREX_DEVICE_COMPILE
-#ifdef NDEBUG
+#if defined(NDEBUG) || defined(AMREX_USE_HIP)
         amrex::ignore_unused(msg);
+//#elif defined(AMREX_USE_HIP)
+//        if (msg) { AMREX_DEVICE_PRINTF("%s", msg); }
 #else
         Warning_device(msg);
 #endif
@@ -155,8 +160,11 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Abort (const char * msg = 0) {
 #if AMREX_DEVICE_COMPILE
-#ifdef NDEBUG
+#if defined(NDEBUG) || defined(AMREX_USE_HIP)
         amrex::ignore_unused(msg);
+//#elif defined(AMREX_USE_HIP)
+//        if (msg) { AMREX_DEVICE_PRINTF("%s", msg); }
+//        assert(0);
 #else
         Abort_device(msg);
 #endif
@@ -181,8 +189,17 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Assert (const char* EX, const char* file, int line, const char* msg = nullptr) {
 #if AMREX_DEVICE_COMPILE
-#ifdef NDEBUG
+#if defined(NDEBUG) || defined(AMREX_USE_HIP)
         amrex::ignore_unused(EX,file,line,msg);
+//#elif defined(AMREX_USE_HIP)
+//        if (msg) {
+//            AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
+//                                EX, file, line, msg);
+//        } else {
+//            AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
+//                                EX, file, line);
+//        }
+//        assert(0);
 #else
         Assert_device(EX,file,line,msg);
 #endif

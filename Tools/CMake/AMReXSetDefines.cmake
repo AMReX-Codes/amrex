@@ -79,6 +79,12 @@ if (AMReX_FORTRAN)
       $<$<COMPILE_LANGUAGE:Fortran>:BL_LANG_FORT AMREX_LANG_FORT>
       )
 
+    if (AMReX_MPI)
+      target_compile_definitions( amrex PRIVATE
+        $<$<COMPILE_LANGUAGE:Fortran>:BL_USE_MPI>
+        )
+    endif()
+
    #
    # Fortran/C mangling scheme
    #

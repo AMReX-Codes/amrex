@@ -406,6 +406,149 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
     return totalsum;
 }
 
+#elif defined(AMREX_USE_HIP)
+
+template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
+          typename M=std::enable_if_t<std::is_integral<N>::value &&
+                                      (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
+                                       std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
+T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
+{
+    if (n <= 0) return 0;
+    constexpr int nwarps_per_block = 4;
+    constexpr int nthreads = nwarps_per_block*Gpu::Device::warp_size; // # of threads per block
+    constexpr int nelms_per_thread = sizeof(T) >= 8 ? 8 : 16;
+    constexpr int nelms_per_block = nthreads * nelms_per_thread;
+    int nblocks = (n + nelms_per_block - 1) / nelms_per_block;
+    std::size_t sm = 0;
+    auto stream = Gpu::gpuStream();
+
+    typedef rocprim::detail::lookback_scan_state<T> ScanTileState;
+    typedef rocprim::detail::ordered_block_id<unsigned int> OrderedBlockId;
+
+    std::size_t nbytes_tile_state = rocprim::detail::align_size
+        (ScanTileState::get_storage_size(nblocks));
+    std::size_t nbytes_block_id = OrderedBlockId::get_storage_size();
+
+    auto dp = (char*)(The_Arena()->alloc(nbytes_tile_state+nbytes_block_id));
+
+    ScanTileState tile_state = ScanTileState::create(dp, nblocks);
+    auto ordered_block_id = OrderedBlockId::create
+        (reinterpret_cast<OrderedBlockId::id_type*>(dp + nbytes_tile_state));
+
+    // Init ScanTileState on device
+    amrex::launch((nblocks+nthreads-1)/nthreads, nthreads, 0, stream, [=] AMREX_GPU_DEVICE ()
+    {
+        auto& scan_tile_state = const_cast<ScanTileState&>(tile_state);
+        auto& scan_bid = const_cast<OrderedBlockId&>(ordered_block_id);
+        const unsigned int gid = blockIdx.x*blockDim.x + threadIdx.x;
+        if (gid == 0) { scan_bid.reset(); }
+        scan_tile_state.initialize_prefix(gid, nblocks);
+    });
+
+    T* totalsum_p = (a_ret_sum) ? (T*)(The_Pinned_Arena()->alloc(sizeof(T))) : nullptr;
+
+    amrex::launch_global<nthreads> <<<nblocks, nthreads, sm, stream>>> (
+    [=] AMREX_GPU_DEVICE () noexcept
+    {
+        typedef rocprim::block_load<T, nthreads, nelms_per_thread,
+                                    rocprim::block_load_method::block_load_transpose> BlockLoad;
+        typedef rocprim::block_scan<T, nthreads,
+                                    rocprim::block_scan_algorithm::using_warp_scan> BlockScan;
+        typedef rocprim::block_exchange<T, nthreads, nelms_per_thread> BlockExchange;
+        typedef rocprim::detail::lookback_scan_prefix_op
+            <T, rocprim::plus<T>, ScanTileState> LookbackScanPrefixOp;
+
+        __shared__ struct TempStorage {
+            typename OrderedBlockId::storage_type ordered_bid;
+            union {
+                typename BlockLoad::storage_type     load;
+                typename BlockExchange::storage_type exchange;
+                typename BlockScan::storage_type     scan;
+            };
+        } temp_storage;
+
+        // Lambda captured tile_state is const.  We have to cast the const away.
+        auto& scan_tile_state = const_cast<ScanTileState&>(tile_state);
+        auto& scan_bid = const_cast<OrderedBlockId&>(ordered_block_id);
+
+        auto const virtual_block_id = scan_bid.get(threadIdx.x, temp_storage.ordered_bid);
+
+        // Each block processes [ibegin,iend).
+        N ibegin = nelms_per_block * virtual_block_id;
+        N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
+
+        auto input_begin = rocprim::make_transform_iterator(
+            rocprim::make_counting_iterator(N(0)),
+            [&] (N i) -> T { return fin(i+ibegin); });
+
+        T data[nelms_per_thread];
+        if (static_cast<int>(iend-ibegin) == nelms_per_block) {
+            BlockLoad().load(input_begin, data, temp_storage.load);
+        } else {
+            // padding with 0
+            BlockLoad().load(input_begin, data, iend-ibegin, 0, temp_storage.load);
+        }
+
+        __syncthreads();
+
+        constexpr bool is_exclusive = std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value;
+
+        if (virtual_block_id == 0) {
+            T block_agg;
+            AMREX_IF_CONSTEXPR(is_exclusive) {
+                BlockScan().exclusive_scan(data, data, T{0}, block_agg, temp_storage.scan);
+            } else {
+                BlockScan().inclusive_scan(data, data, block_agg, temp_storage.scan);
+            }
+            if (threadIdx.x == 0) {
+                if (nblocks > 1) {
+                    scan_tile_state.set_complete(0, block_agg);
+                } else if (nblocks == 1 && totalsum_p) {
+                    *totalsum_p = block_agg;
+                }
+            }
+        } else {
+            T last = data[nelms_per_thread-1]; // Need this for the total sum in exclusive case
+
+            LookbackScanPrefixOp prefix_op(virtual_block_id, rocprim::plus<T>(), scan_tile_state);
+            AMREX_IF_CONSTEXPR(is_exclusive) {
+                BlockScan().exclusive_scan(data, data, temp_storage.scan, prefix_op,
+                                           rocprim::plus<T>());
+            } else {
+                BlockScan().inclusive_scan(data, data, temp_storage.scan, prefix_op,
+                                           rocprim::plus<T>());
+            }
+            if (totalsum_p) {
+                if (iend == n && threadIdx.x == blockDim.x-1) { // last thread of last block
+                    T tsum = data[nelms_per_thread-1];
+                    AMREX_IF_CONSTEXPR(is_exclusive) { tsum += last; }
+                    *totalsum_p = tsum;
+                }
+            }
+        }
+
+        __syncthreads();
+
+        BlockExchange().blocked_to_striped(data, data, temp_storage.exchange);
+
+        for (int i = 0; i < nelms_per_thread; ++i) {
+            N offset = ibegin + i*blockDim.x + threadIdx.x;
+            if (offset < iend) { fout(offset, data[i]); }
+        }
+    });
+
+    Gpu::streamSynchronize();
+    AMREX_GPU_ERROR_CHECK();
+
+    The_Arena()->free(dp);
+
+    T ret = (a_ret_sum) ? *totalsum_p : T(0);
+    if (totalsum_p) { The_Pinned_Arena()->free(totalsum_p); }
+
+    return ret;
+}
+
 #elif defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
 
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
@@ -415,9 +558,9 @@ template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
 T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) return 0;
-    constexpr int nwarps_per_block = AMREX_HIP_OR_CUDA_OR_DPCPP(4,4,8);
+    constexpr int nwarps_per_block = 8;
     constexpr int nthreads = nwarps_per_block*Gpu::Device::warp_size; // # of threads per block
-    constexpr int nelms_per_thread = 15;
+    constexpr int nelms_per_thread = sizeof(T) >= 8 ? 4 : 8;
     constexpr int nelms_per_block = nthreads * nelms_per_thread;
     int nblocks = (n + nelms_per_block - 1) / nelms_per_block;
     std::size_t sm = 0;
@@ -428,34 +571,22 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
     ScanTileState::AllocationSize(nblocks, tile_state_size);
 
     std::size_t nbytes_tile_state = Arena::align(tile_state_size);
-    std::size_t nbytes_block_id = Arena::align(sizeof(unsigned int));
-    auto dp = (char*)(The_Arena()->alloc(nbytes_tile_state+nbytes_block_id));
-    auto tile_state_p = dp;
+    auto tile_state_p = (char*)(The_Arena()->alloc(nbytes_tile_state));
 
     ScanTileState tile_state;
     tile_state.Init(nblocks, tile_state_p, tile_state_size); // Init ScanTileState on host
 
-    // Init ScanTileState on device
-    amrex::launch((nblocks+nthreads-1)/nthreads, nthreads, 0, stream, [=] AMREX_GPU_DEVICE ()
-    {
-        const_cast<ScanTileState&>(tile_state).InitializeStatus(nblocks);
-    });
-
-    struct InputIterator {
-        InputIterator (FIN const& a_fin, N a_offset)
-            : m_fin(a_fin), m_offset(a_offset) {}
-
-        AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-        T operator[] (N i) const { return m_fin(i+m_offset); }
-
-    private:
-        FIN m_fin;
-        N m_offset;
-    };
+    if (nblocks > 1) {
+        // Init ScanTileState on device
+        amrex::launch((nblocks+nthreads-1)/nthreads, nthreads, 0, stream, [=] AMREX_GPU_DEVICE ()
+        {
+            const_cast<ScanTileState&>(tile_state).InitializeStatus(nblocks);
+        });
+    }
 
     T* totalsum_p = (a_ret_sum) ? (T*)(The_Pinned_Arena()->alloc(sizeof(T))) : nullptr;
 
-    amrex::launch(nblocks, nthreads, sm, stream,
+    amrex::launch_global<nthreads> <<<nblocks, nthreads, sm, stream>>> (
     [=] AMREX_GPU_DEVICE () noexcept
     {
         typedef cub::BlockLoad<T, nthreads, nelms_per_thread, cub::BLOCK_LOAD_WARP_TRANSPOSE>
@@ -483,12 +614,15 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
         N ibegin = nelms_per_block * virtual_block_id;
         N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
 
+        auto input_lambda = [&] (N i) -> T { return fin(i+ibegin); };
+        cub::TransformInputIterator<T,decltype(input_lambda),cub::CountingInputIterator<N> >
+            input_begin(cub::CountingInputIterator<N>(0), input_lambda);
+
         T data[nelms_per_thread];
         if (static_cast<int>(iend-ibegin) == nelms_per_block) {
-            BlockLoad(temp_storage.load).Load(InputIterator(fin, ibegin), data);
+            BlockLoad(temp_storage.load).Load(input_begin, data);
         } else {
-            BlockLoad(temp_storage.load).Load(InputIterator(fin, ibegin), data,
-                                              iend-ibegin, 0); // padding with 0
+            BlockLoad(temp_storage.load).Load(input_begin, data, iend-ibegin, 0); // padding with 0
         }
 
         __syncthreads();
@@ -534,15 +668,14 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
 
         for (int i = 0; i < nelms_per_thread; ++i) {
             N offset = ibegin + i*blockDim.x + threadIdx.x;
-            if (offset >= iend) break;
-            fout(offset, data[i]);
+            if (offset < iend) { fout(offset, data[i]); }
         }
     });
 
     Gpu::streamSynchronize();
     AMREX_GPU_ERROR_CHECK();
 
-    The_Arena()->free(dp);
+    The_Arena()->free(tile_state_p);
 
     T ret = (a_ret_sum) ? *totalsum_p : T(0);
     if (totalsum_p) { The_Pinned_Arena()->free(totalsum_p); }

@@ -77,14 +77,15 @@ TagBox::coarsen (const IntVect& ratio, const Box& cbox) noexcept
 void
 TagBox::buffer (const IntVect& a_nbuff, const IntVect& a_nwid) noexcept
 {
-    amrex::ignore_unused(a_nbuff, a_nwid);
+    Box const& interior = amrex::grow(domain, -a_nwid);
+    Dim3 nbuf = a_nbuff.dim3();
     Array4<char> const& a = this->array();
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
-        Dim3 nbuf = a_nbuff.dim3();
-        const auto lo = amrex::lbound(domain);
-        const auto hi = amrex::ubound(domain);
-        AMREX_HOST_DEVICE_FOR_3D(domain, i, j, k,
+        Box const& interiorplusbuf = amrex::grow(interior, a_nbuff);
+        const auto lo = amrex::lbound(interiorplusbuf);
+        const auto hi = amrex::ubound(interiorplusbuf);
+        AMREX_HOST_DEVICE_FOR_3D(interiorplusbuf, i, j, k,
         {
             if (a(i,j,k) == TagBox::CLEAR) {
                 bool to_buf = false;
@@ -107,14 +108,12 @@ TagBox::buffer (const IntVect& a_nbuff, const IntVect& a_nwid) noexcept
     } else
 #endif
     {
-        Dim3 nwid = a_nwid.dim3();
-        Box const& interior = amrex::grow(domain, -a_nwid);
         AMREX_LOOP_3D(interior, i, j, k,
         {
             if (a(i,j,k) == TagBox::SET) {
-                for (int kk = k-nwid.z; kk <= k+nwid.z; ++kk) {
-                for (int jj = j-nwid.y; jj <= j+nwid.y; ++jj) {
-                for (int ii = i-nwid.x; ii <= i+nwid.x; ++ii) {
+                for (int kk = k-nbuf.z; kk <= k+nbuf.z; ++kk) {
+                for (int jj = j-nbuf.y; jj <= j+nbuf.y; ++jj) {
+                for (int ii = i-nbuf.x; ii <= i+nbuf.x; ++ii) {
                     if (a(ii,jj,kk) == TagBox::CLEAR) { a(ii,jj,kk) = TagBox::BUF; }
                 }}}
             }
@@ -659,19 +658,6 @@ TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
 #else
     TheGlobalCollateSpace = std::move(TheLocalCollateSpace);
 #endif
-}
-
-void
-TagBoxArray::setVal (const BoxList& bl, TagBox::TagVal val)
-{
-    BoxArray ba(bl);
-    setVal(ba,val);
-}
-
-void
-TagBoxArray::setVal (const BoxDomain& bd, TagBox::TagVal val)
-{
-    setVal(bd.boxList(),val);
 }
 
 void
