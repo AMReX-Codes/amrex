@@ -1,5 +1,6 @@
 #ifndef AMREX_MORTON_H_
 #define AMREX_MORTON_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_REAL.H>
 #include <AMReX_Dim3.H>
@@ -13,15 +14,22 @@ namespace Morton {
 
 /**
  * \brief
- *  On input, the lowest 10 bits of x are filled, the next 22 are 0
+ *  This makes space in the input 32-bit integer by splitting the bits
+ *  so they can be interleaved.
+ *
+ *  In 3D, the lowest 10 bits of x are assumed filled, with the next 22 0.
  *  On output, x has been "stretched" to 30 bits, with each input bit
- *  followed by interleaving bits set to 0. In 2D, there is one
- *  interleaving bit, and in 3D, there are 2.
+ *  followed by two interleaving bits set to 0.
+ *
+ *  In 2D, it is the same except the lowest 16 bits on x are filled,
+ *  and there is only one interleaving bit.
+ *
+ *  In 1D no interleaving is needed and x is just returned.
  *
  * \param x unsigned int holding the input to be split
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-std::uint32_t splitBits10 (std::uint32_t x) noexcept {
+std::uint32_t makeSpace (std::uint32_t x) noexcept {
 #if (AMREX_SPACEDIM == 3)
     // x            : 0000,0000,0000,0000,0000,00a9,8765,4321
     x = (x | (x << 16)) & 0x030000FF;
@@ -75,39 +83,114 @@ std::uint32_t splitBits10 (std::uint32_t x) noexcept {
 
 /**
  * \brief
- *  Put the first 10 bits of x into retval with the 22 highest bits set to 0.
+ *  Convert a Real to a uint32, keeping only 10 significant bits.
+ *  This puts the first 10 bits of x into retval with the 22 highest bits set to 0.
  *  It is assumed that xmin <= x < xmax.
+ *
+ *  This is useful in 3D, because you can interleave the bits of 3 10-bit
+ *  numbers and store the result in one 32-bit integer.
  *
  * \param x the coordinate to convert.
  * \param xmin the low end of the domain.
  * \param xmax the high end of the domain.
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-std::uint32_t packBits10 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexcept {
-    constexpr std::uint32_t code_offset = (1 << 10);
+std::uint32_t toUInt10 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexcept {
+    AMREX_ASSERT(x >= xmin && x < xmax);
+    constexpr std::uint32_t code_offset = (1u << 10);
     return (std::uint32_t)(((x - xmin)/(xmax - xmin)) * code_offset);
 }
 
 /**
  * \brief
- * Given a 3D real-space coordinate, returns a 30 bit Morton code, stored in an
- * unsigned 32 bit int. This works by converting the coordinate to a 10-bit
- * nonnegative integer in each direction and then interleaving the bits.
+ *  Convert a Real to a uint32, keeping only 16 significant bits.
+ *  This puts the first 16 bits of x into retval with the 16 highest bits set to 0.
+ *  It is assumed that xmin <= x < xmax.
+ *
+ *  This is useful in 2D, because you can interleave the bits of two 16-bit
+ *  numbers and store the result in one 32-bit integer.
+ *
+ * \param x the coordinate to convert.
+ * \param xmin the low end of the domain.
+ * \param xmax the high end of the domain.
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::uint32_t toUInt16 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexcept {
+    AMREX_ASSERT(x >= xmin && x < xmax);
+    constexpr std::uint32_t code_offset = (1u << 16);
+    return (std::uint32_t)(((x - xmin)/(xmax - xmin)) * code_offset);
+}
+
+/**
+ * \brief
+ *  Convert a Real to a uint32, keeping all significant bits.
+ *  It is assumed that xmin <= x < xmax.
+ *
+ *  This is useful in 1D, because no interleaving is needed.
+ *
+ * \param x the coordinate to convert.
+ * \param xmin the low end of the domain.
+ * \param xmax the high end of the domain.
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::uint32_t toUInt32 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexcept {
+    AMREX_ASSERT(x >= xmin && x < xmax);
+    constexpr std::uint64_t code_offset = (1ul << 32);
+    return (std::uint32_t)(((x - xmin)/(xmax - xmin)) * code_offset);
+}
+
+/**
+ * \brief
+ * Given a 3D real-space coordinate, returns a Morton code stored in an
+ * unsigned 32 bit integer.
+ *
+ * In 3D, this works by converting the coordinate to a 10-bit nonnegative
+ * integer in each direction and then interleaving the bits.
+ *
+ * In 2D, it is same except the lowest 16 bits of of the coordinates are kept.
+ *
  * It is assumed that plo <= p < phi has already been enforced.
+ *
+ * \param x, y, z the coordinates to convert.
+ * \param plo the low end of the domain.
+ * \param phi the high end of the domain.
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::uint32_t get32BitCode (AMREX_D_DECL(Real x, Real y, Real z),
+                            const GpuArray<amrex::Real,AMREX_SPACEDIM>& plo,
+                            const GpuArray<amrex::Real,AMREX_SPACEDIM>& phi) noexcept {
+#if (AMREX_SPACEDIM == 3)
+    std::uint32_t a = toUInt10(x, plo[0], phi[0]);
+    std::uint32_t b = toUInt10(y, plo[1], phi[1]);
+    std::uint32_t c = toUInt10(z, plo[2], phi[2]);
+#elif (AMREX_SPACEDIM == 2)
+    std::uint32_t a = toUInt16(x, plo[0], phi[0]);
+    std::uint32_t b = toUInt16(y, plo[1], phi[1]);
+#elif (AMREX_SPACEDIM == 1)
+    std::uint32_t a = toUInt32(x, plo[0], phi[0]);
+#endif
+    return AMREX_D_TERM(makeSpace(a), | (makeSpace(b) << 1), | (makeSpace(c) << 2));
+}
+
+/**
+ * \brief
+ * Given a 3D real-space coordinate, returns a Morton code stored in an
+ * unsigned 32 bit integer.
+ *
+ * Same as the above, except takes an XDim3. Assumes 3D.
  *
  * \param p the coordinate to convert.
  * \param plo the low end of the domain.
  * \param phi the high end of the domain.
  */
+#if (AMREX_SPACEDIM == 3)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-std::uint32_t get30BitCode (const XDim3& p,
+std::uint32_t get32BitCode (const XDim3& p,
                             const GpuArray<amrex::Real,AMREX_SPACEDIM>& plo,
                             const GpuArray<amrex::Real,AMREX_SPACEDIM>& phi) noexcept {
-    std::uint32_t a = packBits10(p.x, plo[0], phi[0]);
-    std::uint32_t b = packBits10(p.y, plo[1], phi[1]);
-    std::uint32_t c = packBits10(p.z, plo[2], phi[2]);
-    return splitBits10(a) | (splitBits10(b) << 1) | (splitBits10(c) << 2);
+    return get32BitCode(p.x, p.y, p.z, plo, phi);
 }
+#endif
 
 }
 }

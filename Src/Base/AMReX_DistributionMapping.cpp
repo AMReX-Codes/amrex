@@ -949,21 +949,21 @@ namespace {
         uint32_t y = iv[1] - imin;
         uint32_t z = iv[2] - imin;
         // extract lowest 10 bits and make space for interleaving
-        token.m_morton[0] = Morton::splitBits10(x & 0x3FF)
-                         | (Morton::splitBits10(y & 0x3FF) << 1)
-                         | (Morton::splitBits10(z & 0x3FF) << 2);
+        token.m_morton[0] = Morton::makeSpace(x & 0x3FF)
+                         | (Morton::makeSpace(y & 0x3FF) << 1)
+                         | (Morton::makeSpace(z & 0x3FF) << 2);
         x = x >> 10;
         y = y >> 10;
         z = z >> 10;
-        token.m_morton[1] = Morton::splitBits10(x & 0x3FF)
-                         | (Morton::splitBits10(y & 0x3FF) << 1)
-                         | (Morton::splitBits10(z & 0x3FF) << 2);
+        token.m_morton[1] = Morton::makeSpace(x & 0x3FF)
+                         | (Morton::makeSpace(y & 0x3FF) << 1)
+                         | (Morton::makeSpace(z & 0x3FF) << 2);
         x = x >> 10;
         y = y >> 10;
         z = z >> 10;
-        token.m_morton[2] = Morton::splitBits10(x & 0x3FF)
-                         | (Morton::splitBits10(y & 0x3FF) << 1)
-                         | (Morton::splitBits10(z & 0x3FF) << 2);
+        token.m_morton[2] = Morton::makeSpace(x & 0x3FF)
+                         | (Morton::makeSpace(y & 0x3FF) << 1)
+                         | (Morton::makeSpace(z & 0x3FF) << 2);
 
 #elif (AMREX_SPACEDIM == 2)
 
@@ -975,11 +975,11 @@ namespace {
         uint32_t y = (iv[1] >= 0) ? static_cast<uint32_t>(iv[1]) + offset
             : static_cast<uint32_t>(iv[1]-std::numeric_limits<int>::lowest());
         // extract lowest 16 bits and make sapce for interleaving
-        token.m_morton[0] = Morton::splitBits10(x & 0xFFFF)
-                         | (Morton::splitBits10(y & 0xFFFF) << 1);
+        token.m_morton[0] = Morton::makeSpace(x & 0xFFFF)
+                         | (Morton::makeSpace(y & 0xFFFF) << 1);
         x = x >> 16;
         y = y >> 16;
-        token.m_morton[1] = Morton::splitBits10(x) | (Morton::splitBits10(y) << 1);
+        token.m_morton[1] = Morton::makeSpace(x) | (Morton::makeSpace(y) << 1);
 
 #elif (AMREX_SPACEDIM == 1)
 
