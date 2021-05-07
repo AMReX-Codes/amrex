@@ -113,10 +113,80 @@ public:
     }
 };
 
+struct AssignGridFilter
+{
+
+  int m_lev_min, m_lev_max, m_nGrow, m_gid;
+  amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> * m_assign_grid;
+    
+    /**
+       \brief This filters based on matching grids
+       *
+     **/
+  AssignGridFilter (amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> * assign_grid, int gid)
+    //  AssignGridFilter (AmrParticleLocator<DenseBinIteratorFactory<Box>> * assign_grid, int gid)
+    : m_assign_grid(assign_grid), m_gid(gid)
+  { m_lev_min=0;
+    m_lev_max=0;
+    m_nGrow=0;}
+  /*
+    template <typename DstData, typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    void operator() (const DstData& dst, const SrcData& src,
+                     int src_i, int dst_i) const noexcept
+    {
+        const auto tup = (*m_assign_grid)(src.m_aos[src_i], m_lev_min, m_lev_max, m_nGrow);
+        const auto p_boxes = amrex::get<0>(tup);
+        const auto p_levs  = amrex::get<1>(tup);
+
+	//	return m_gid >=0 & p_boxes == m_gid;
+	return m_gid >=0 & p_boxes % 2 == 0;
+	/*
+	if(p_boxes == m_gid)
+	{
+        dst.m_aos[dst_i] = src.m_aos[src_i];
+        for (int j = 0; j < DstData::NAR; ++j)
+            dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
+        for (int j = 0; j < dst.m_num_runtime_real; ++j)
+            dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
+        for (int j = 0; j < DstData::NAI; ++j)
+            dst.m_idata[j][dst_i] = m_factor*src.m_idata[j][src_i];
+        for (int j = 0; j < dst.m_num_runtime_int; ++j)
+            dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
+	    }*/
+  //    }
+
+    template <typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    int operator() (const SrcData& src, int src_i) const noexcept
+    {
+        const auto tup = (*m_assign_grid)(src.m_aos[src_i], m_lev_min, m_lev_max, m_nGrow);
+        const auto p_boxes = amrex::get<0>(tup);
+        const auto p_levs  = amrex::get<1>(tup);
+
+	//	return m_gid >=0 & p_boxes == m_gid;
+	return m_gid >=0 & p_boxes % 2 == 0;
+	/*
+	if(p_boxes == m_gid)
+	{
+        dst.m_aos[dst_i] = src.m_aos[src_i];
+        for (int j = 0; j < DstData::NAR; ++j)
+            dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
+        for (int j = 0; j < dst.m_num_runtime_real; ++j)
+            dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
+        for (int j = 0; j < DstData::NAI; ++j)
+            dst.m_idata[j][dst_i] = m_factor*src.m_idata[j][src_i];
+        for (int j = 0; j < dst.m_num_runtime_int; ++j)
+            dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
+	    }*/
+    }
+};
+
+
 struct Transformer
 {
     int m_factor;
-
+    
     /**
        \brief This copies the particle but multiplies all the idata by m_factor
        *
@@ -479,6 +549,48 @@ void testTwoWayFilterAndTransform (const PC& pc)
     AMREX_ALWAYS_ASSERT(mx3 == 3*mx1);
 }
 
+template <typename PC>
+void testAssignGridFilter (const PC& pc)
+{
+    using PType = typename PC::SuperParticleType;
+
+    auto np_old = pc.TotalNumberOfParticles();
+
+    PC pc2(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
+
+    if (! pc.m_particle_locator.isValid(pc.GetParGDB())) pc.m_particle_locator.build(pc.GetParGDB());
+    pc.m_particle_locator.setGeometry(pc.GetParGDB());
+    AmrAssignGrid<DenseBinIteratorFactory<Box>> assign_grid = pc.m_particle_locator.getGridAssignor();
+    auto assign_grid_ptr = & assign_grid;
+    pc2.copyParticles(pc);//, AssignGridFilter(assign_grid_ptr,2));
+    filterParticles(pc2, AssignGridFilter(assign_grid_ptr,2));
+
+    auto np_new = pc2.TotalNumberOfParticles();
+
+    AMREX_ALWAYS_ASSERT(2*np_new == np_old);
+    auto all_odd = amrex::ReduceLogicalAnd(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return amrex::get<0>((*assign_grid_ptr)(p,0,0,0)) % 2 == 0; });
+
+    AMREX_ALWAYS_ASSERT(all_odd);
+
+    pc2.clearParticles();
+    pc2.copyParticles(pc, KeepEvenFilter());
+
+    np_new = pc2.TotalNumberOfParticles();
+
+    AMREX_ALWAYS_ASSERT(2*np_new == np_old);
+
+    auto all_even = amrex::ReduceLogicalAnd(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() % 2 == 0; });
+
+    AMREX_ALWAYS_ASSERT(all_even);
+
+    filterParticles(pc2, KeepOddFilter());
+
+    np_new = pc2.TotalNumberOfParticles();
+
+    AMREX_ALWAYS_ASSERT(np_new == 0);
+}
+
+
 struct TestParams
 {
     IntVect size;
@@ -552,6 +664,8 @@ void testTransformations ()
     testTwoWayTransform(pc);
 
     testTwoWayFilterAndTransform(pc);
+
+    testAssignGridFilter(pc);
 
     amrex::Print() << "pass \n";
 }
