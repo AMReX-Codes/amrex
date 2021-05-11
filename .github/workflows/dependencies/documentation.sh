@@ -16,5 +16,6 @@ sudo apt-get install -y --no-install-recommends\
     texlive \
     texlive-latex-extra \
     texlive-lang-cjk \
+    tex-gyre \
     latexmk
 
