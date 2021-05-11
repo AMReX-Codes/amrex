@@ -118,6 +118,14 @@ function (setup_target_for_cuda_compilation _target)
    set_target_properties( ${_target}
       PROPERTIES
       CUDA_SEPARABLE_COMPILATION ON      # This adds -dc
+      CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS}
       )
    set_cpp_sources_to_cuda_language(${_target})
+
+   if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.20)
+      set_target_properties( ${_target}
+         PROPERTIES
+         CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS}
+         )
+   endif ()
 endfunction ()

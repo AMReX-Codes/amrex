@@ -129,6 +129,8 @@ list( GET _cuda_compiler_version 1 _nvcc_version_minor )
 set(NVCC_VERSION_MAJOR "${_nvcc_version_major}" CACHE INTERNAL "CUDA compiler version (major)")
 set(NVCC_VERSION_MINOR "${_nvcc_version_minor}" CACHE INTERNAL "CUDA compiler version (minor)")
 
+return ()
+
 # We gotta set CUDA flags globally since there is no other way at this time to pass CUDA flags to
 # device linking stage
 if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Windows" ) )

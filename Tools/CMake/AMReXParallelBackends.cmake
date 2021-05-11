@@ -44,8 +44,6 @@ else ()
       $<$<CXX_COMPILER_ID:Cray>:-h;noomp> )
 endif ()
 
-
-
 #
 #
 # CUDA
@@ -54,6 +52,32 @@ endif ()
 # For now this is a place holder.
 # CUDA stuff will go here after we get rid of AMReXSetupCUDA
 #
+if (AMReX_GPU_BACKEND STREQUAL "CUDA" AND
+      CMAKE_VERSION VERSION_GREATER_EQUAL 3.20)
+
+   # Required CUDA flags
+   set(_genex "$<COMPILE_LANGUAGE:CUDA>")
+   target_compile_options( amrex
+      PUBLIC
+      $<${_genex}:
+      --expt-relaxed-constexpr --expt-extended-lambda
+      -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored
+      #${NVCC_ARCH_FLAGS}
+      -maxrregcount=${AMReX_CUDA_MAXREGCOUNT}>
+      )
+
+   if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Windows" ) )
+      target_compile_options( amrex
+         PUBLIC
+         $<${_genex}: -m64>)
+   endif ()
+
+
+   # AMREX_CUDA_ARCHS will go in the config file
+   get_target_property(AMREX_CUDA_ARCHS amrex CUDA_ARCHITECTURES)
+   set(AMREX_CUDA_ARCHS ${AMREX_CUDA_ARCHS} CACHE INTERNAL "CUDA archs AMReX is built for")
+
+endif ()
 
 #
 #
