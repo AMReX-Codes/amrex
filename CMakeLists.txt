@@ -73,6 +73,9 @@ endif()
 # Include options, utilities and other stuff we need
 #
 include( AMReXOptions )
+if (AMReX_GPU_BACKEND STREQUAL "CUDA")
+   include(AMReXCUDAOptions)
+endif ()
 
 #
 # Enable Fortran if requested
