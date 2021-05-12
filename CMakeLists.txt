@@ -101,8 +101,8 @@ endif ()
 #
 # Check compiler version
 #
-set_mininum_cxx_compiler_version(GNU 4.8)
-set_mininum_cxx_compiler_version(MSVC 19.23)
+set_mininum_compiler_version(CXX GNU 4.8)
+set_mininum_compiler_version(CXX MSVC 19.23)
 
 #
 # Set CMAKE_<LANG>_FLAGS_<CONFIG> if not already defined
