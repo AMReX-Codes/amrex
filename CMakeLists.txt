@@ -28,7 +28,7 @@ set( CMAKE_MODULE_PATH ${AMREX_CMAKE_MODULES_PATH} )
 #
 # Retrieve amrex version
 #
-include( AMReX_Utils )
+include( AMReXUtils )
 get_amrex_version()
 
 
