@@ -1003,14 +1003,14 @@ amrex_lim_slopes_eb (int i, int j, int k, int n,
 
     // Setting limiter to 1 for stencils that just consists of non-EB cells because
     // amrex_calc_slopes_eb routine will call the slope routine for non-EB stencils that has already a limiter
-    if ( flag(i,j,k).isRegular() and flag(i-1,j,k).isRegular() and flag(i+1,j,k).isRegular() )
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.)
       alpha_lim[0] = 1.0;
 
-    if ( flag(i,j,k).isRegular() and flag(i,j-1,k).isRegular() and flag(i,j+1,k).isRegular() )
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.)
       alpha_lim[1] = 1.0;
 
 #if (AMREX_SPACEDIM == 3)
-    if ( flag(i,j,k).isRegular() and flag(i,j,k-1).isRegular() and flag(i,j,k+1).isRegular() )
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.)
       alpha_lim[2] = 1.0;
 #endif
 
