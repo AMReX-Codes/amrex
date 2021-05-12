@@ -1,52 +1,24 @@
-#
-# Setup the CUDA enviroment
-#
-#  Authors: Michele Rosso, Axel Huebl
-#  Date   : April 4, 2019
-#
-#
 include_guard(GLOBAL)
 
 include(CMakeDependentOption)
 
-#
-# Define a macro to print active options
-#
-macro (cuda_print_option _var)
-   if (${_var})
-      message( STATUS "   ${_var}")
-   endif ()
-endmacro ()
-
+if (CMAKE_VERSION  VERSION_GREATER_EQUAL 3.20)
+   message(WARNING "\nAMReX_SetupCUDA is deprecated for CMake >= 3.20: it will not be processed!\n")
+   return()
+endif ()
 
 get_property(_lang GLOBAL PROPERTY ENABLED_LANGUAGES)
 if (NOT ("CUDA" IN_LIST _lang ))
-    message(WARNING "AMReX_SetupCUDA will not be processed because CUDA language has not been enabled.")
-    return()
+   message(WARNING "AMReX_SetupCUDA will not be processed because CUDA language has not been enabled.")
+   return()
 endif ()
 
 #
-# Makes sure the CUDA host compiler and CXX compiler are the same.
-# CMake lets you decide which host compiler to use via the env variable
-# CUDAHOSTCXX and the CMake variable CMAKE_CUDA_HOST_COMPILER.
-# For the time being we force the CUDA host compiler to be the C++ compiler.
+# Check CUDA compiler and host compiler
 #
-# Note: just comparing the CMAKE_..._COMPILER vars is not sufficient and raises
-#       false negatives on e.g. /usr/bin/g++-8 and /usr/bin/c++
-# Note: blocked by https://gitlab.kitware.com/cmake/cmake/-/issues/20901
-#
-if (CMAKE_CUDA_HOST_COMPILER)
-  if (NOT "${CMAKE_CXX_COMPILER}" STREQUAL "${CMAKE_CUDA_HOST_COMPILER}")
-    if (NOT "$ENV{CUDAHOSTCXX}" STREQUAL "" OR NOT "$ENV{CXX}" STREQUAL "")
-      message(WARNING "CUDA host compiler "
-                      "(${CMAKE_CUDA_HOST_COMPILER}) "
-                      "does not match the C++ compiler "
-                      "(${CMAKE_CXX_COMPILER})! "
-                      "Consider setting the CXX and CUDAHOSTCXX environment "
-                      "variables.")
-    endif ()
-  endif ()
-endif ()
+include(AMReXUtils)
+set_mininum_compiler_version(CUDA NVIDIA 9.0)
+check_cuda_host_compiler()
 
 #
 #  CUDA-related options
@@ -54,62 +26,9 @@ endif ()
 include(AMReXCUDAOptions)
 
 #
-# Error if NVCC is too old
+# Find cuda flags for target architecture.
 #
-if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS "9.0")
-   message(FATAL_ERROR "Your nvcc version is ${CMAKE_CUDA_COMPILER_VERSION}."
-      "This is unsupported. Please use CUDA toolkit version 9.0 or newer.")
-endif ()
-
-#
-# Find cuda flags for target architecture. If CUDA_ARCH is not set by the user,
-# autodetection is enabled
-#
-include(FindCUDA/select_compute_arch)
-cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${AMReX_CUDA_ARCH})
-
-#
-# Remove unsupported architecture: anything less the 3.5 must go
-#
-string(REPLACE "-gencode;" "-gencode=" _nvcc_arch_flags "${_nvcc_arch_flags}")
-
-foreach (_item IN LISTS _nvcc_arch_flags)
-   # Match one time the regex [0-9]+.
-   # [0-9]+ means any number between 0 and 9 will be matched one or more times (option +)
-   string(REGEX MATCH "[0-9]+" _cuda_compute_capability "${_item}")
-
-   if (_cuda_compute_capability LESS 35)
-      message(STATUS "Ignoring unsupported CUDA architecture ${_cuda_compute_capability}")
-      list(REMOVE_ITEM _nvcc_arch_flags ${_item})
-   endif ()
-
-endforeach ()
-
-
-if (AMReX_CUDA_LTO)
-    # we replace
-    #   -gencode=arch=compute_NN,code=sm_NN
-    # with
-    #   -gencode=arch=compute_NN,code=lto_NN
-    set(_nvcc_arch_flags_org ${_nvcc_arch_flags})
-    foreach (_item IN LISTS _nvcc_arch_flags_org)
-       string(REGEX MATCH "[0-9]+" _cuda_compute_capability "${_item}")
-       string(REPLACE "code=sm_${_cuda_compute_capability}"
-                      "code=lto_${_cuda_compute_capability}"
-              _nvcc_arch_flags "${_nvcc_arch_flags}")
-    endforeach ()
-endif ()
-
-if (NOT _nvcc_arch_flags)
-   message(FATAL_ERROR "the given target CUDA architectures are not supported by AMReX")
-endif ()
-
-#
-# Set architecture-dependent flags
-#
-string(REPLACE ";" " " _nvcc_arch_flags "${_nvcc_arch_flags}")
-set(NVCC_ARCH_FLAGS ${_nvcc_arch_flags} CACHE INTERNAL "CUDA architecture-dependent flags")
-unset(_nvcc_arch_flags)
+set_nvcc_arch_flags(AMReX_CUDA_ARCH AMReX_CUDA_LTO)
 
 
 # CUDA compiler is in the form CUDA_HOME/bin/compiler-name

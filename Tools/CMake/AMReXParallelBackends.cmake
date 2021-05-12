@@ -49,20 +49,22 @@ endif ()
 # CUDA
 #
 #
-# For now this is a place holder.
-# CUDA stuff will go here after we get rid of AMReXSetupCUDA
 #
-if (AMReX_GPU_BACKEND STREQUAL "CUDA" AND
-      CMAKE_VERSION VERSION_GREATER_EQUAL 3.20)
+if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
+      AND
+      CMAKE_VERSION VERSION_GREATER_EQUAL 3.20 )
+
+   # Check cuda compiler and host compiler
+   set_mininum_compiler_version(CUDA NVIDIA 9.0)
+   check_cuda_host_compiler()
 
    # Required CUDA flags
-   set(_genex "$<COMPILE_LANGUAGE:CUDA>")
+   set(_genex "$<COMPILE_LANG_AND_ID:CUDA,NVIDIA>")
    target_compile_options( amrex
       PUBLIC
       $<${_genex}:
       --expt-relaxed-constexpr --expt-extended-lambda
       -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored
-      #${NVCC_ARCH_FLAGS}
       -maxrregcount=${AMReX_CUDA_MAXREGCOUNT}>
       )
 
@@ -72,10 +74,12 @@ if (AMReX_GPU_BACKEND STREQUAL "CUDA" AND
          $<${_genex}: -m64>)
    endif ()
 
-
-   # AMREX_CUDA_ARCHS will go in the config file
-   get_target_property(AMREX_CUDA_ARCHS amrex CUDA_ARCHITECTURES)
-   set(AMREX_CUDA_ARCHS ${AMREX_CUDA_ARCHS} CACHE INTERNAL "CUDA archs AMReX is built for")
+   # Take care of cuda archs
+   set_cuda_architectures(AMReX_CUDA_ARCH)
+   set_target_properties( amrex
+      PROPERTIES
+      CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS}
+      )
 
 endif ()
 

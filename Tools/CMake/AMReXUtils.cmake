@@ -144,3 +144,144 @@ function (set_mininum_compiler_version _lang _comp_id  _minimum_version)
          " Minimum required is ${_minimum_version}.\n")
    endif ()
 endfunction ()
+
+
+
+#
+#
+# FUNCTION: check_cuda_host_compiler
+#
+#
+# Makes sure the CUDA host compiler and CXX compiler are the same.
+# CMake lets you decide which host compiler to use via the env variable
+# CUDAHOSTCXX and the CMake variable CMAKE_CUDA_HOST_COMPILER.
+# For the time being we force the CUDA host compiler to be the C++ compiler.
+#
+# Note: just comparing the CMAKE_..._COMPILER vars is not sufficient and raises
+#       false negatives on e.g. /usr/bin/g++-8 and /usr/bin/c++
+# Note: blocked by https://gitlab.kitware.com/cmake/cmake/-/issues/20901
+#
+#
+function (check_cuda_host_compiler)
+   if (CMAKE_CUDA_HOST_COMPILER)
+      if (NOT "${CMAKE_CXX_COMPILER}" STREQUAL "${CMAKE_CUDA_HOST_COMPILER}")
+         if (NOT "$ENV{CUDAHOSTCXX}" STREQUAL "" OR NOT "$ENV{CXX}" STREQUAL "")
+            message(WARNING "CUDA host compiler "
+                            "(${CMAKE_CUDA_HOST_COMPILER}) "
+                            "does not match the C++ compiler "
+                            "(${CMAKE_CXX_COMPILER})! "
+                            "Consider setting the CXX and CUDAHOSTCXX environment "
+                            "variables.")
+         endif ()
+      endif ()
+   endif ()
+endfunction ()
+
+
+#
+#
+# FUNCTION: set_cuda_architectures
+#
+#
+# Detects the cuda capabilities of the GPU and set the internal
+# variable AMREX_CUDA_ARCHS.
+#
+# Arguments:
+#
+#    _cuda_archs   = the target architecture(s) (select "Auto" for autodetection)
+#
+# Note: if no target arch is specified, it will try to determine
+# which GPU architecture is supported by the system. If more than one is found,
+# it will build for all of them.
+# If autodetection fails, a list of “common” architectures is assumed.
+#
+function (set_cuda_architectures _cuda_archs)
+
+   include(FindCUDA/select_compute_arch)
+   cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${${_cuda_archs}})
+
+   # Extract architecture number: anything less the 3.5 must go
+   string(REPLACE "-gencode;" "-gencode=" _nvcc_arch_flags "${_nvcc_arch_flags}")
+
+   foreach (_item IN LISTS _nvcc_arch_flags)
+      # Match one time the regex [0-9]+.
+      # [0-9]+ means any number between 0 and 9 will be matched one or more times (option +)
+      string(REGEX MATCH "[0-9]+" _cuda_compute_capability "${_item}")
+
+      if (_cuda_compute_capability LESS 35)
+         message(STATUS "Ignoring unsupported CUDA architecture ${_cuda_compute_capability}")
+      else ()
+         list(APPEND _tmp ${_cuda_compute_capability})
+      endif ()
+   endforeach ()
+
+   set(AMREX_CUDA_ARCHS ${_tmp} CACHE INTERNAL "CUDA archs AMReX is built for")
+
+endfunction()
+
+
+#
+#
+# FUNCTION: set_nvcc_arch_flags
+#
+#
+# Detects the cuda capabilities of the GPU and set the internal
+# variable NVCC_ARCH_FLAGS.
+#
+# Arguments:
+#
+#    _cuda_archs   = the target architecture(s) (select "Auto" for autodetection)
+#    _lto          = true if LTO flags are required
+#
+# Note: if no target arch is specified, it will try to determine
+# which GPU architecture is supported by the system. If more than one is found,
+# it will build for all of them.
+# If autodetection fails, a list of “common” architectures is assumed.
+#
+function (set_nvcc_arch_flags _cuda_archs _lto)
+
+   include(FindCUDA/select_compute_arch)
+   cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${${_cuda_archs}})
+
+   #
+   # Remove unsupported architecture: anything less the 3.5 must go
+   #
+   string(REPLACE "-gencode;" "-gencode=" _nvcc_arch_flags "${_nvcc_arch_flags}")
+
+   foreach (_item IN LISTS _nvcc_arch_flags)
+      # Match one time the regex [0-9]+.
+      # [0-9]+ means any number between 0 and 9 will be matched one or more times (option +)
+      string(REGEX MATCH "[0-9]+" _cuda_compute_capability "${_item}")
+
+      if (_cuda_compute_capability LESS 35)
+         message(STATUS "Ignoring unsupported CUDA architecture ${_cuda_compute_capability}")
+         list(REMOVE_ITEM _nvcc_arch_flags ${_item})
+      endif ()
+
+   endforeach ()
+
+   if (${_lto})
+      # we replace
+      #   -gencode=arch=compute_NN,code=sm_NN
+      # with
+      #   -gencode=arch=compute_NN,code=lto_NN
+      set(_nvcc_arch_flags_org ${_nvcc_arch_flags})
+      foreach (_item IN LISTS _nvcc_arch_flags_org)
+         string(REGEX MATCH "[0-9]+" _cuda_compute_capability "${_item}")
+         string(REPLACE "code=sm_${_cuda_compute_capability}"
+            "code=lto_${_cuda_compute_capability}"
+            _nvcc_arch_flags "${_nvcc_arch_flags}")
+      endforeach ()
+   endif ()
+
+   if (NOT _nvcc_arch_flags)
+      message(FATAL_ERROR "the given target CUDA architectures are not supported by AMReX")
+   endif ()
+
+   #
+   # Set architecture-dependent flags
+   #
+   string(REPLACE ";" " " _nvcc_arch_flags "${_nvcc_arch_flags}")
+   set(NVCC_ARCH_FLAGS ${_nvcc_arch_flags} CACHE INTERNAL "CUDA architecture-dependent flags")
+
+endfunction()
