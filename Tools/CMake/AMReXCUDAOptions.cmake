@@ -18,8 +18,11 @@ endmacro ()
 message(STATUS "Enabled CUDA options:")
 
 set(AMReX_CUDA_ARCH_DEFAULT "Auto")
+if(DEFINED CMAKE_CUDA_ARCHITECTURES)
+   set(AMReX_CUDA_ARCH_DEFAULT "${CMAKE_CUDA_ARCHITECTURES}")
+endif ()
 if(DEFINED ENV{AMREX_CUDA_ARCH})
-    set(AMReX_CUDA_ARCH_DEFAULT "$ENV{AMREX_CUDA_ARCH}")
+   set(AMReX_CUDA_ARCH_DEFAULT "$ENV{AMREX_CUDA_ARCH}")
 endif()
 set(AMReX_CUDA_ARCH ${AMReX_CUDA_ARCH_DEFAULT} CACHE STRING "CUDA architecture (Use 'Auto' for automatic detection)")
 

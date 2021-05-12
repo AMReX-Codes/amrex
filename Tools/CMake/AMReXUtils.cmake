@@ -180,6 +180,42 @@ endfunction ()
 
 #
 #
+# FUNCTION: convert_cuda_archs
+#
+#
+# cuda_select_nvcc_arch_flags accepts CUDA architecture in the form of
+# names (Turing, Volta, ...) or decimal numbers (10.0, 9.0, ...).
+# However, CMAKE_CUDA_ARCHITECTURES only accepts integer numbers.
+# We need to convert the latter to decimal format, else cuda_select_nvcc_arch_flags
+# will complain
+#
+# Arguments:
+#
+#    _cuda_archs   = the target architecture(s)
+#
+#
+function (convert_cuda_archs  _cuda_archs)
+
+   foreach (_item IN LISTS ${_cuda_archs})
+      string(REGEX MATCH "\\." _has_decimal "${_item}")
+      string(REGEX MATCH "[0-9]+" _is_number "${_item}")
+
+      if (NOT _has_decimal AND _is_number)
+         math(EXPR _int "${_item}/10" OUTPUT_FORMAT DECIMAL)
+         math(EXPR _mod "${_item}%10" OUTPUT_FORMAT DECIMAL)
+         list(APPEND _tmp "${_int}.${_mod}")
+      else ()
+         list(APPEND _tmp ${_item})
+      endif()
+   endforeach ()
+
+   set(${_cuda_archs} ${_tmp} PARENT_SCOPE)
+
+endfunction ()
+
+
+#
+#
 # FUNCTION: set_cuda_architectures
 #
 #
@@ -197,8 +233,11 @@ endfunction ()
 #
 function (set_cuda_architectures _cuda_archs)
 
+   set(_archs ${${_cuda_archs}})
+   convert_cuda_archs(_archs)
+
    include(FindCUDA/select_compute_arch)
-   cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${${_cuda_archs}})
+   cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${_archs})
 
    # Extract architecture number: anything less the 3.5 must go
    string(REPLACE "-gencode;" "-gencode=" _nvcc_arch_flags "${_nvcc_arch_flags}")
@@ -240,8 +279,11 @@ endfunction()
 #
 function (set_nvcc_arch_flags _cuda_archs _lto)
 
+   set(_archs ${${_cuda_archs}})
+   convert_cuda_archs(_archs)
+
    include(FindCUDA/select_compute_arch)
-   cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${${_cuda_archs}})
+   cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${_cuda_archs})
 
    #
    # Remove unsupported architecture: anything less the 3.5 must go
