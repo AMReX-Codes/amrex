@@ -268,6 +268,7 @@ jobs:
   # https://github.com/ROCm-Developer-Tools/HIP/issues/2246
   tests-hip:
     name: HIP ROCm GFortran@9.3 C++17 [tests]
+    if : false # skip this for now because of the VOP bug in ROCm 4.2
     runs-on: ubuntu-20.04
     env: {CXXFLAGS: "-fno-operator-names"}
     steps:
@@ -381,6 +382,7 @@ jobs:
   # Build 2D libamrex hip build with configure
   configure-2d-single-hip:
     name: HIP EB [configure 2D]
+    if : false # skip this for now because of the VOP bug in ROCm 4.2
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
