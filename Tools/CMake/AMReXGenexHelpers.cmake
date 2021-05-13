@@ -219,6 +219,9 @@ function ( eval_genex _list _lang _comp )
    # Auxiliary list
    set(_in "${${_list}}")
 
+   # Remove SHELL
+   string(REGEX REPLACE "SHELL:" ""  _in "${_in}")
+
    #
    # Loop to deal with nested genex if any are present
    #
