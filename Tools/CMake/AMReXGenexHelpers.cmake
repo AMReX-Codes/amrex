@@ -240,6 +240,9 @@ function ( eval_genex _list _lang _comp )
          string(REGEX REPLACE "\\$<CONFIG>" "${ARG_CONFIG}"  _in "${_in}")
       endif ()
 
+      # Genex in the form $<PLATFORM_ID>
+      string(REGEX REPLACE "\\$<PLATFORM_ID>" "${CMAKE_SYSTEM_NAME}"  _in "${_in}")
+
       # Genex in the form $<*_COMPILER_ID>
       string(REGEX REPLACE "\\$<${_lang}_COMPILER_ID>" "${_comp}"  _in "${_in}")
       string(REGEX REPLACE "\\$<[A-Za-z]*_COMPILER_ID>" ""  _in "${_in}")
@@ -267,6 +270,10 @@ function ( eval_genex _list _lang _comp )
          string(REGEX REPLACE "\\$<CONFIG:${ARG_CONFIG}>" "1"  _in "${_in}")
       endif ()
       string(REGEX REPLACE "\\$<CONFIG:[A-Za-z]*>" "0"  _in "${_in}")
+
+      # Genex in the form $<PLATFORM_ID:platform_ids>
+      string(REGEX REPLACE "\\$<PLATFORM_ID:[^>]*${CMAKE_SYSTEM_NAME}[^>]*>" "1"  _in "${_in}")
+      string(REGEX REPLACE "\\$<PLATFORM_ID:[A-Za-z]*>" "0"  _in "${_in}")
 
       # Genex in the form $<*_COMPILER_ID:compiler_ids>
       string(REGEX REPLACE "\\$<${_lang}_COMPILER_ID:[^>]*${_comp}[^>]*>" "1"  _in "${_in}")
