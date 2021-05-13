@@ -189,7 +189,7 @@ function (print_amrex_configuration_summary)
 
   get_target_properties_flattened(amrex  _includes _defines _flags _link_line)
 
-  set(_lang CXX Fortran)
+  set(_lang CXX Fortran CUDA)
   set(_prop _includes _defines _flags _link_line )
 
 
@@ -229,6 +229,7 @@ function (print_amrex_configuration_summary)
    string ( TOUPPER "${CMAKE_BUILD_TYPE}"  AMREX_BUILD_TYPE )
    set(_cxx_flags "${CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CXX_FLAGS} ${_cxx_flags}")
    set(_fortran_flags "${CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_Fortran_FLAGS} ${_fortran_flags}")
+   set(_cuda_flags   "${CMAKE_CUDA_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CUDA_FLAGS} ${_cuda_flags}")
 
 
    #
@@ -241,6 +242,7 @@ function (print_amrex_configuration_summary)
    if (CMAKE_Fortran_COMPILER_LOADED)
       message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
    endif ()
+
    if (AMReX_CUDA)
       message( STATUS "   CUDA compiler            = ${CMAKE_CUDA_COMPILER}")
    endif ()
@@ -255,8 +257,7 @@ function (print_amrex_configuration_summary)
       message( STATUS "   Fortran flags            = ${_fortran_flags}")
    endif ()
    if (AMReX_CUDA)
-      message( STATUS "   CUDA flags               = ${CMAKE_CUDA_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CUDA_FLAGS}"
-         "${AMREX_CUDA_FLAGS}")
+      message( STATUS "   CUDA flags               = ${_cuda_flags}")
    endif ()
    message( STATUS "   C++ include paths        = ${_cxx_includes}")
    if (CMAKE_Fortran_COMPILER_LOADED)
