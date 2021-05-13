@@ -101,7 +101,7 @@ endif ()
 #
 # Check compiler version
 #
-set_mininum_compiler_version(CXX GNU 4.8)
+set_mininum_compiler_version(CXX GNU 5.1)
 set_mininum_compiler_version(CXX MSVC 19.23)
 
 #
