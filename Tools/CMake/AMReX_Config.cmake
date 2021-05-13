@@ -126,7 +126,7 @@ function (configure_amrex)
          CONFIG       ${CMAKE_BUILD_TYPE}
          INTERFACE    BUILD
          STRING )
-      print_list(_amrex_flags)
+
       if (_amrex_flags)
          target_compile_options(amrex PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_amrex_flags}>)
       endif ()
