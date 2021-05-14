@@ -283,7 +283,7 @@ function (set_nvcc_arch_flags _cuda_archs _lto)
    convert_cuda_archs(_archs)
 
    include(FindCUDA/select_compute_arch)
-   cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${_cuda_archs})
+   cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${_archs})
 
    #
    # Remove unsupported architecture: anything less the 3.5 must go
