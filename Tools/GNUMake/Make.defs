@@ -689,7 +689,6 @@ else ifeq ($(USE_CUDA),TRUE)
 
     USE_GPU := TRUE
 
-
     ifeq ($(lowercase_comp),pgi)
         LINK_WITH_FORTRAN_COMPILER=TRUE
     else ifeq ($(lowercase_comp),nvhpc)
