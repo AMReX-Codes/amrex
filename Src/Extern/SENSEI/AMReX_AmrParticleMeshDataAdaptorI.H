@@ -4,12 +4,12 @@ namespace amrex
 {
 //-----------------------------------------------------------------------------
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>* 
-AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New() 
+AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>*
+AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New()
 {
-  auto result = new AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>; 
-  result->InitializeObjectBase(); 
-  return result; 
+  auto result = new AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  result->InitializeObjectBase();
+  return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -31,7 +31,7 @@ int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 #if SENSEI_VERSION_MAJOR >= 3
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshMetadata(
-  unsigned int id, 
+  unsigned int id,
   sensei::MeshMetadataPtr &metadata)
 {
   if(id == 0)
@@ -49,7 +49,7 @@ int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 #else
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshName(
-  unsigned int id, 
+  unsigned int id,
   std::string &meshName)
 {
   if(id == 0)
@@ -98,8 +98,8 @@ int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetNumberOfArrays(
-  const std::string &meshName, 
-  int association, 
+  const std::string &meshName,
+  int association,
   unsigned int &numberOfArrays)
 {
   if(id == 0)
@@ -116,9 +116,9 @@ int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetArrayName(
-  const std::string &meshName, 
-  int association, 
-  unsigned int index, 
+  const std::string &meshName,
+  int association,
+  unsigned int index,
   std::string &arrayName)
 {
   if(id == 0)
@@ -144,8 +144,8 @@ int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh(
-  const std::string &meshName, 
-  bool structureOnly, 
+  const std::string &meshName,
+  bool structureOnly,
   vtkDataObject *&mesh)
 {
   if(meshName == m_meshName)
@@ -162,7 +162,7 @@ int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhostNodesArray(
-  vtkDataObject* mesh, 
+  vtkDataObject* mesh,
   const std::string &meshName)
 {
   if(meshName == m_meshName)
@@ -179,7 +179,7 @@ int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhostCellsArray(
-  vtkDataObject* mesh, 
+  vtkDataObject* mesh,
   const std::string &meshName)
 {
   if(meshName == m_meshName)
@@ -196,9 +196,9 @@ int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddArray(
-  vtkDataObject* mesh, 
-  const std::string &meshName, 
-  int association, 
+  vtkDataObject* mesh,
+  const std::string &meshName,
+  int association,
   const std::string &arrayName)
 {
   if(meshName == m_meshName)

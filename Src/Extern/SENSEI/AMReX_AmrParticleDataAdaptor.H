@@ -43,7 +43,7 @@ public:
   // force mesh origin to 0,0,0. off by default
   void SetPinMesh(int val);
 
-  // get particle id numbers 
+  // get particle id numbers
   int AddParticlesIDArray(vtkDataObject* mesh);
 
   // get particle cpu numbers (process each particle was generated on)
@@ -61,7 +61,7 @@ public:
   // get particle real arrays in Array Of Structs format
   int AddParticlesAOSRealArray(const std::string &arrayName, vtkDataObject* mesh);
 
-  
+
 
   // SENSEI API
 #if SENSEI_VERSION_MAJOR >= 3

@@ -38,7 +38,7 @@ public:
   // invoke the in situ analysis with data from an AmrMesh
   // instance.
   int update(
-    amrex::Amr *amr, 
+    amrex::Amr *amr,
     amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *tracers,
     std::map<std::string, std::vector<int>> particles_rStructs = {},
     std::map<std::string, int> particles_iStructs = {},
@@ -69,15 +69,15 @@ int AmrParticleInSituBridge<NStructReal, NStructInt, NArrayReal, NArrayInt>::upd
       SENSEI_ERROR("no particles presented at update call");
       return -1;
     }
-    AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt> *data_adaptor 
+    AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt> *data_adaptor
       = AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New();
     if (comm != MPI_COMM_NULL)
         data_adaptor->SetCommunicator(comm);
     data_adaptor->SetDataSource(
-      tracers, 
-      particles_rStructs, 
-      particles_iStructs, 
-      particles_rArrays, 
+      tracers,
+      particles_rStructs,
+      particles_iStructs,
+      particles_rArrays,
       particles_iArrays
     );
     data_adaptor->SetDataTime(amr->cumTime());

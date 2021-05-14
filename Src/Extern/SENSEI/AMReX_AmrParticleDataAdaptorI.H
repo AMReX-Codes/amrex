@@ -19,12 +19,12 @@ namespace amrex
 {
 //-----------------------------------------------------------------------------
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>* 
-AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New() 
+AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>*
+AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New()
 {
-  auto result = new AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>; 
-  result->InitializeObjectBase(); 
-  return result; 
+  auto result = new AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  result->InitializeObjectBase();
+  return result;
 }
 // senseiNewMacro(AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>);
 
@@ -123,7 +123,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetA
       }
     }
     m_realArrays = rArrays;
-  } 
+  }
   else
   {
     SENSEI_ERROR("rArrays array size exceeds internal storage size");
@@ -172,7 +172,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetM
 #if SENSEI_VERSION_MAJOR < 3
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshHasGhostNodes(
-  const std::string &meshName, 
+  const std::string &meshName,
   int &nLayers)
 {
   nLayers = 0;
@@ -184,7 +184,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetM
 #if SENSEI_VERSION_MAJOR < 3
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshHasGhostCells(
-  const std::string &meshName, 
+  const std::string &meshName,
   int &nLayers)
 {
   nLayers = 0;
@@ -196,16 +196,16 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetM
 #if SENSEI_VERSION_MAJOR < 3
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetNumberOfArrays(
-  const std::string &meshName, 
-  int association, 
+  const std::string &meshName,
+  int association,
   unsigned int &numberOfArrays)
-{ 
+{
   numberOfArrays = 0;
   if(association == vtkDataObject::POINT)
   {
-    numberOfArrays = m_realStructs.size() 
-                   + m_intStructs.size() 
-                   + m_realArrays.size() 
+    numberOfArrays = m_realStructs.size()
+                   + m_intStructs.size()
+                   + m_realArrays.size()
                    + m_intArrays.size();
   }
   return 0;
@@ -215,9 +215,9 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetN
 #if SENSEI_VERSION_MAJOR < 3
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetArrayName(
-  const std::string &meshName, 
-  int association, 
-  unsigned int index, 
+  const std::string &meshName,
+  int association,
+  unsigned int index,
   std::string &arrayName)
 {
   if(association == vtkDataObject::POINT)
@@ -250,7 +250,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetA
       return 0;
     }
   }
-  
+
   return -1;
 }
 #endif
@@ -258,9 +258,9 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetA
 //-----------------------------------------------------------------------------
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh(
-  const std::string &meshName, 
-  bool structureOnly, 
-  vtkDataObject *&mesh) 
+  const std::string &meshName,
+  bool structureOnly,
+  vtkDataObject *&mesh)
 {
   mesh = nullptr;
   int nprocs = 1;
@@ -285,15 +285,15 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetM
   vtkPolyData *pd = BuildParticles();
   mb->SetBlock(rank, pd);
   pd->Delete();
-  mesh = mb;  
+  mesh = mb;
   return 0;
 }
 
 //-----------------------------------------------------------------------------
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhostNodesArray(
-  vtkDataObject*, 
-  const std::string &meshName) 
+  vtkDataObject*,
+  const std::string &meshName)
 {
   if (meshName != m_particlesName)
   {
@@ -306,8 +306,8 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddG
 //-----------------------------------------------------------------------------
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhostCellsArray(
-  vtkDataObject*, 
-  const std::string &meshName) 
+  vtkDataObject*,
+  const std::string &meshName)
 {
   if (meshName != m_particlesName)
   {
@@ -320,10 +320,10 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddG
 //-----------------------------------------------------------------------------
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddArray(
-  vtkDataObject* mesh, 
-  const std::string &meshName, 
-  int association, 
-  const std::string &arrayName) 
+  vtkDataObject* mesh,
+  const std::string &meshName,
+  int association,
+  const std::string &arrayName)
 {
   if (meshName != m_particlesName)
   {
@@ -372,7 +372,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::Rele
 #if SENSEI_VERSION_MAJOR >= 3
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshMetadata(
-  unsigned int id, 
+  unsigned int id,
   sensei::MeshMetadataPtr &metadata)
 {
   sensei::TimeEvent<64> event("AmrMeshDataAdaptor::GetMeshMetadata");
@@ -407,13 +407,13 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetM
 
   // number of blocks on each rank (all)
   metadata->NumBlocksLocal = {1};
-  
+
   // global cell index space extent (Cartesian, AMR, optional)
   // std::array<int,6> Extent;
 
-  // global bounding box (all, optional) 
+  // global bounding box (all, optional)
   // std::array<double,6> Bounds;
-  
+
   // type enum of point data (unstructured, optional)
   // int CoordinateType;
 
@@ -425,7 +425,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetM
 
   // total cell array size in all blocks (all, optional)
   // long CellArraySize;
-  
+
   // number of arrays (all)
   metadata->NumArrays = m_realStructs.size()
                       + m_intStructs.size()
@@ -436,10 +436,10 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetM
 
   // number of ghost node layers (all)
   metadata->NumGhostNodes = 0;
-  
+
   // number of AMR levels (AMR)
   metadata->NumLevels;
-  
+
   // non zero if the mesh does not change in time (all)
   metadata->StaticMesh = 0;
 
@@ -529,7 +529,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetM
 
   // global id of each block (all, optional)
   // TO DO: this is lazy
-  metadata->BlockIds = metadata->BlockOwner;               
+  metadata->BlockIds = metadata->BlockOwner;
 
   // note: for AMR BlockNumPoints and BlockNumCells are always global
   // metadata->BlockNumPoints.resize(metadata->NumBlocks);
@@ -548,14 +548,14 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetM
 
   // note: for AMR BlockExtents and BlockBounds are always global
   // index space extent of each block [i0,i1, j0,j1, k0,k1] (Cartesian, AMR, optional)
-  // std::vector<std::array<int,6>> BlockExtents;   
+  // std::vector<std::array<int,6>> BlockExtents;
 
   // bounds of each block [x0,x1, y0,y1, z0,z1] (all, optional)
   // std::vector<std::array<double,6>> BlockBounds;
 
   // min max of each array on each block.
   // indexed by block then array. (all, optional)
-  // std::vector<std::vector<std::array<double,2>>> BlockArrayRange; 
+  // std::vector<std::vector<std::array<double,2>>> BlockArrayRange;
 
   // refinement ratio in i,j, and k directions for each level (AMR)
   // std::vector<std::array<int,3>> RefRatio;
@@ -599,7 +599,7 @@ vtkPolyData* AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayI
       SENSEI_ERROR("too many points in BuildParticles!");
       return nullptr;
     }
-    
+
     // loop over ParticleTiles on level
     auto& pmap = particles[lev];
     for (const auto& kv : pmap)
@@ -621,7 +621,7 @@ vtkPolyData* AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayI
       }
     }
   }
-  
+
   // add point and vertex data to output mesh
   pd->SetPoints(points);
   pd->SetVerts(vertex);
@@ -657,7 +657,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
       }
     }
   }
-  
+
   // the association for this array is vtkDataObject::POINT
   tracers->GetPointData()->AddArray(intArray);
 
@@ -762,7 +762,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
           {
             tuple[i] = soa.GetRealData(indices[i])[element];
           }
-            
+
           doubleArray->SetTuple(count, tuple.data());
           element++;
           count++;

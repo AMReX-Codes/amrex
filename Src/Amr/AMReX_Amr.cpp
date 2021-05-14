@@ -504,7 +504,7 @@ Amr::InitAmr ()
 int
 Amr::initInSitu()
 {
-#ifdef AMREX_USE_SENSEI_AUTO 
+#ifdef AMREX_USE_SENSEI_AUTO
     insitu_bridge = new AmrInSituBridge;
     if (insitu_bridge->initialize())
     {

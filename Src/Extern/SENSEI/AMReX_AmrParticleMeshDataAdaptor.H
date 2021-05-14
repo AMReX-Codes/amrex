@@ -55,7 +55,7 @@ protected:
     m_meshAdaptor = AmrDataAdaptor::New();
     m_particleAdaptor = AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New();
   }
-  
+
   ~AmrParticleMeshDataAdaptor()
   {
     m_meshAdaptor->Delete();
