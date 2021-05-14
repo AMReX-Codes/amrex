@@ -39,6 +39,9 @@ namespace {
     bool use_buddy_allocator = false;
     Long buddy_allocator_size = 0L;
     Long the_arena_init_size = 0L;
+    Long the_device_arena_init_size = 1024*1024*8;
+    Long the_managed_arena_init_size = 1024*1024*8;
+    Long the_pinned_arena_init_size = 1024*1024*8;
     Long the_arena_release_threshold = std::numeric_limits<Long>::max();
     Long the_device_arena_release_threshold = std::numeric_limits<Long>::max();
     Long the_managed_arena_release_threshold = std::numeric_limits<Long>::max();
@@ -236,7 +239,10 @@ Arena::Initialize ()
     ParmParse pp("amrex");
     pp.query("use_buddy_allocator", use_buddy_allocator);
     pp.query("buddy_allocator_size", buddy_allocator_size);
-    pp.query("the_arena_init_size", the_arena_init_size);
+    pp.query(        "the_arena_init_size",         the_arena_init_size);
+    pp.query( "the_device_arena_init_size",  the_device_arena_init_size);
+    pp.query("the_managed_arena_init_size", the_managed_arena_init_size);
+    pp.query( "the_pinned_arena_init_size",  the_pinned_arena_init_size);
     pp.query(       "the_arena_release_threshold" ,         the_arena_release_threshold);
     pp.query( "the_device_arena_release_threshold",  the_device_arena_release_threshold);
     pp.query("the_managed_arena_release_threshold", the_managed_arena_release_threshold);
@@ -294,16 +300,20 @@ Arena::Initialize ()
     // When USE_CUDA=TRUE, we call cudaHostAlloc to pin the host memory.
     the_pinned_arena = new CArena(0, ArenaInfo{}.SetHostAlloc().SetReleaseThreshold(the_pinned_arena_release_threshold));
 
-    std::size_t N = 1024UL*1024UL*8UL;
+    if (the_device_arena_init_size > 0) {
+        void *p = the_device_arena->alloc(the_device_arena_init_size);
+        the_device_arena->free(p);
+    }
 
-    void *p = the_device_arena->alloc(N);
-    the_device_arena->free(p);
+    if (the_managed_arena_init_size > 0) {
+        void *p = the_managed_arena->alloc(the_managed_arena_init_size);
+        the_managed_arena->free(p);
+    }
 
-    p = the_managed_arena->alloc(N);
-    the_managed_arena->free(p);
-
-    p = the_pinned_arena->alloc(N);
-    the_pinned_arena->free(p);
+    if (the_pinned_arena_init_size > 0) {
+        void *p = the_pinned_arena->alloc(the_pinned_arena_init_size);
+        the_pinned_arena->free(p);
+    }
 
     the_cpu_arena = new BArena;
 }

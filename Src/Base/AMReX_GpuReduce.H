@@ -554,8 +554,6 @@ void deviceReduceSum (T * dest, T source, Gpu::Handler const& handler) noexcept
             deviceReduceSum_full<128,T>(dest, source);
         } else if (blockDim.x == 256) {
             deviceReduceSum_full<256,T>(dest, source);
-        } else if (blockDim.x == 512) {
-            deviceReduceSum_full<512,T>(dest, source);
         } else {
             deviceReduceSum_full<T>(dest, source);
         }
@@ -575,8 +573,6 @@ void deviceReduceMin (T * dest, T source, Gpu::Handler const& handler) noexcept
             deviceReduceMin_full<128,T>(dest, source);
         } else if (blockDim.x == 256) {
             deviceReduceMin_full<256,T>(dest, source);
-        } else if (blockDim.x == 512) {
-            deviceReduceMin_full<512,T>(dest, source);
         } else {
             deviceReduceMin_full<T>(dest, source);
         }
@@ -596,8 +592,6 @@ void deviceReduceMax (T * dest, T source, Gpu::Handler const& handler) noexcept
             deviceReduceMax_full<128,T>(dest, source);
         } else if (blockDim.x == 256) {
             deviceReduceMax_full<256,T>(dest, source);
-        } else if (blockDim.x == 512) {
-            deviceReduceMax_full<512,T>(dest, source);
         } else {
             deviceReduceMax_full<T>(dest, source);
         }
@@ -616,8 +610,6 @@ void deviceReduceLogicalAnd (int * dest, int source, Gpu::Handler const& handler
             deviceReduceLogicalAnd_full<128>(dest, source);
         } else if (blockDim.x == 256) {
             deviceReduceLogicalAnd_full<256>(dest, source);
-        } else if (blockDim.x == 512) {
-            deviceReduceLogicalAnd_full<512>(dest, source);
         } else {
             deviceReduceLogicalAnd_full(dest, source);
         }
@@ -636,8 +628,6 @@ void deviceReduceLogicalOr (int * dest, int source, Gpu::Handler const& handler)
             deviceReduceLogicalOr_full<128>(dest, source);
         } else if (blockDim.x == 256) {
             deviceReduceLogicalOr_full<256>(dest, source);
-        } else if (blockDim.x == 512) {
-            deviceReduceLogicalOr_full<512>(dest, source);
         } else {
             deviceReduceLogicalOr_full(dest, source);
         }

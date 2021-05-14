@@ -431,8 +431,10 @@ ifdef AMREX_CCOMP
     AMREX_CCOMP = gnu
   else ifeq ($(lowercase_amrex_comp),nec)
     AMREX_CCOMP = nec
+  else ifeq ($(lowercase_amrex_comp),armclang)
+    AMREX_CCOMP = armclang
   else
-    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, nvhpc, ibm, llvm, nag, and nec)
+    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, nvhpc, ibm, llvm, nag, nec, and armclang)
   endif
 endif
 
@@ -496,6 +498,11 @@ else ifeq ($(lowercase_comp),nec)
   AMREX_CCOMP ?= nec
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak
+else ifeq ($(lowercase_comp),armclang)
+  AMREX_FCOMP ?= armflang
+  AMREX_CCOMP ?= armclang
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/armclang.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/armclang.mak
 else ifeq ($(lowercase_comp),hip)
   AMREX_FCOMP ?= gnu
   AMREX_CCOMP ?= hip
@@ -688,9 +695,6 @@ else ifeq ($(USE_CUDA),TRUE)
         LINK_WITH_FORTRAN_COMPILER=TRUE
     else ifeq ($(lowercase_comp),ibm)
         LINK_WITH_FORTRAN_COMPILER=TRUE
-    else ifeq ($(lowercase_comp),gnu)
-    else
-        $(error CUDA can only be used with COMP=pgi or nvhpc or ibm or gnu)
     endif
 
     include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
