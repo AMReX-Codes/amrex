@@ -12,6 +12,8 @@
 
 #include <AMReX_OpenMP.H>
 
+#include <iostream>
+
 namespace amrex {
 
 #ifdef AMREX_MEM_PROFILING
@@ -30,54 +32,54 @@ namespace {
     const int bl_ignore_max = 100000;
 }
 
-BARef::BARef () 
-{ 
+BARef::BARef ()
+{
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
-#endif	    
+#endif
 }
 
-BARef::BARef (size_t size) 
-    : m_abox(size) 
-{ 
+BARef::BARef (size_t size)
+    : m_abox(size)
+{
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
-#endif	    
+#endif
 }
- 
+
 BARef::BARef (const Box& b)
-{ 
-    define(b); 
+{
+    define(b);
 }
 
 BARef::BARef (const BoxList& bl)
     : m_abox(bl.data())
-{ 
+{
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
-#endif	    
+#endif
 }
 
 BARef::BARef (BoxList&& bl) noexcept
     : m_abox(std::move(bl.data()))
-{ 
+{
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
-#endif	    
+#endif
 }
 
 BARef::BARef (std::istream& is)
-{ 
+{
     int ndims;
-    define(is, ndims); 
+    define(is, ndims);
 }
 
-BARef::BARef (const BARef& rhs) 
+BARef::BARef (const BARef& rhs)
     : m_abox(rhs.m_abox) // don't copy hash
 {
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
-#endif	    
+#endif
 }
 
 BARef::~BARef ()
@@ -85,7 +87,7 @@ BARef::~BARef ()
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(-1);
     updateMemoryUsage_hash(-1);
-#endif	    
+#endif
 }
 
 void
@@ -171,7 +173,7 @@ BARef::define (BoxList&& bl) noexcept
 #endif
 }
 
-void 
+void
 BARef::resize (Long n) {
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(-1);
@@ -190,16 +192,16 @@ void
 BARef::updateMemoryUsage_box (int s)
 {
     if (m_abox.size() > 1) {
-	Long b = amrex::bytesOf(m_abox);
-	if (s > 0) {
-	    total_box_bytes += b;
-	    total_box_bytes_hwm = std::max(total_box_bytes_hwm, total_box_bytes);
-	    ++numboxarrays;
-	    numboxarrays_hwm = std::max(numboxarrays_hwm, numboxarrays);
-	} else {
-	    total_box_bytes -= b;
-	    --numboxarrays;
-	}
+        Long b = amrex::bytesOf(m_abox);
+        if (s > 0) {
+            total_box_bytes += b;
+            total_box_bytes_hwm = std::max(total_box_bytes_hwm, total_box_bytes);
+            ++numboxarrays;
+            numboxarrays_hwm = std::max(numboxarrays_hwm, numboxarrays);
+        } else {
+            total_box_bytes -= b;
+            --numboxarrays;
+        }
     }
 }
 
@@ -207,17 +209,17 @@ void
 BARef::updateMemoryUsage_hash (int s)
 {
     if (hash.size() > 0) {
-	Long b = sizeof(hash);
-	for (const auto& x: hash) {
-	    b += amrex::gcc_map_node_extra_bytes
-		+ sizeof(IntVect) + amrex::bytesOf(x.second);
-	}
-	if (s > 0) {
-	    total_hash_bytes += b;
-	    total_hash_bytes_hwm = std::max(total_hash_bytes_hwm, total_hash_bytes);
-	} else {
-	    total_hash_bytes -= b;
-	}
+        Long b = sizeof(hash);
+        for (const auto& x: hash) {
+            b += amrex::gcc_map_node_extra_bytes
+                + sizeof(IntVect) + amrex::bytesOf(x.second);
+        }
+        if (s > 0) {
+            total_hash_bytes += b;
+            total_hash_bytes_hwm = std::max(total_hash_bytes_hwm, total_hash_bytes);
+        } else {
+            total_hash_bytes -= b;
+        }
     }
 }
 #endif
@@ -226,20 +228,20 @@ void
 BARef::Initialize ()
 {
     if (!initialized) {
-	initialized = true;
+        initialized = true;
 #ifdef AMREX_MEM_PROFILING
-	MemProfiler::add("BoxArray", std::function<MemProfiler::MemInfo()>
-			 ([] () -> MemProfiler::MemInfo {
-			     return {total_box_bytes, total_box_bytes_hwm};
-			 }));
-	MemProfiler::add("BoxArrayHash", std::function<MemProfiler::MemInfo()>
-			 ([] () -> MemProfiler::MemInfo {
-			     return {total_hash_bytes, total_hash_bytes_hwm};
-			 }));
-	MemProfiler::add("BoxArray Innard", std::function<MemProfiler::NBuildsInfo()>
-			 ([] () -> MemProfiler::NBuildsInfo {
-			     return {numboxarrays, numboxarrays_hwm};
-			 }));
+        MemProfiler::add("BoxArray", std::function<MemProfiler::MemInfo()>
+             ([] () -> MemProfiler::MemInfo {
+                 return {total_box_bytes, total_box_bytes_hwm};
+             }));
+        MemProfiler::add("BoxArrayHash", std::function<MemProfiler::MemInfo()>
+             ([] () -> MemProfiler::MemInfo {
+                 return {total_hash_bytes, total_hash_bytes_hwm};
+             }));
+        MemProfiler::add("BoxArray Innard", std::function<MemProfiler::NBuildsInfo()>
+             ([] () -> MemProfiler::NBuildsInfo {
+                 return {numboxarrays, numboxarrays_hwm};
+             }));
 #endif
     }
 
@@ -256,8 +258,8 @@ void
 BoxArray::Initialize ()
 {
     if (!initialized) {
-	initialized = true;
-	BARef::Initialize();
+        initialized = true;
+        BARef::Initialize();
     }
 
     amrex::ExecOnFinalize(BoxArray::Finalize);
@@ -374,7 +376,7 @@ void
 BoxArray::clear ()
 {
     m_bat = BATransformer();
-    m_ref.reset(new BARef());
+    m_ref = std::make_unique<BARef>();
     m_simplified_list.reset();
 }
 
@@ -392,7 +394,7 @@ BoxArray::numPts () const noexcept
     const int N = size();
     auto const& bxs = this->m_ref->m_abox;
     if (m_bat.is_null()) {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(+:result)
 #endif
         for (int i = 0; i < N; ++i)
@@ -402,7 +404,7 @@ BoxArray::numPts () const noexcept
     } else if (m_bat.is_simple()) {
         IndexType t = ixType();
         IntVect cr = crseRatio();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(+:result)
 #endif
         for (int i = 0; i < N; ++i)
@@ -410,7 +412,7 @@ BoxArray::numPts () const noexcept
             result += amrex::convert(amrex::coarsen(bxs[i],cr),t).numPts();
         }
     } else {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(+:result)
 #endif
         for (int i = 0; i < N; ++i)
@@ -429,7 +431,7 @@ BoxArray::d_numPts () const noexcept
     const int N = size();
     auto const& bxs = this->m_ref->m_abox;
     if (m_bat.is_null()) {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(+:result)
 #endif
         for (int i = 0; i < N; ++i)
@@ -439,7 +441,7 @@ BoxArray::d_numPts () const noexcept
     } else if (m_bat.is_simple()) {
         IndexType t = ixType();
         IntVect cr = crseRatio();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(+:result)
 #endif
         for (int i = 0; i < N; ++i)
@@ -447,7 +449,7 @@ BoxArray::d_numPts () const noexcept
             result += amrex::convert(amrex::coarsen(bxs[i],cr),t).d_numPts();
         }
     } else {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(+:result)
 #endif
         for (int i = 0; i < N; ++i)
@@ -580,11 +582,11 @@ BoxArray::refine (const IntVect& iv)
     uniqify();
 
     const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < N; i++) {
-	BL_ASSERT(m_ref->m_abox[i].ok());
+        BL_ASSERT(m_ref->m_abox[i].ok());
         m_ref->m_abox[i].refine(iv);
     }
     return *this;
@@ -593,11 +595,17 @@ BoxArray::refine (const IntVect& iv)
 bool
 BoxArray::coarsenable(int refinement_ratio, int min_width) const
 {
-    return coarsenable(IntVect{refinement_ratio}, min_width);
+    return coarsenable(IntVect{refinement_ratio}, IntVect(min_width));
 }
 
 bool
 BoxArray::coarsenable(const IntVect& refinement_ratio, int min_width) const
+{
+    return coarsenable(refinement_ratio, IntVect(min_width));
+}
+
+bool
+BoxArray::coarsenable(const IntVect& refinement_ratio, const IntVect& min_width) const
 {
     const Long sz = size();
     if(size() == 0) return false;
@@ -608,7 +616,7 @@ BoxArray::coarsenable(const IntVect& refinement_ratio, int min_width) const
 
     auto const& bxs = this->m_ref->m_abox;
     if (m_bat.is_null()) {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(&&:res)
 #endif
         for (Long ibox = 0; ibox < sz; ++ibox)
@@ -619,7 +627,7 @@ BoxArray::coarsenable(const IntVect& refinement_ratio, int min_width) const
     } else if (m_bat.is_simple()) {
         IndexType t = ixType();
         IntVect cr = crseRatio();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(&&:res)
 #endif
         for (Long ibox = 0; ibox < sz; ++ibox)
@@ -628,7 +636,7 @@ BoxArray::coarsenable(const IntVect& refinement_ratio, int min_width) const
             res = res && thisbox.coarsenable(refinement_ratio,min_width);
         }
     } else {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for reduction(&&:res)
 #endif
         for (Long ibox = 0; ibox < sz; ++ibox)
@@ -666,7 +674,7 @@ BoxArray::growcoarsen (IntVect const& ngrow, const IntVect& iv)
     uniqify();
 
     const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < N; i++) {
@@ -681,7 +689,7 @@ BoxArray::grow (int n)
     uniqify();
 
     const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < N; i++) {
@@ -696,7 +704,7 @@ BoxArray::grow (const IntVect& iv)
     uniqify();
 
     const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < N; i++) {
@@ -712,7 +720,7 @@ BoxArray::grow (int dir,
     uniqify();
 
     const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < N; i++) {
@@ -728,7 +736,7 @@ BoxArray::growLo (int dir,
     uniqify();
 
     const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < N; i++) {
@@ -744,7 +752,7 @@ BoxArray::growHi (int dir,
     uniqify();
 
     const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < N; i++) {
@@ -756,7 +764,7 @@ BoxArray::growHi (int dir,
 BoxArray&
 BoxArray::surroundingNodes ()
 {
-    
+
     return this->convert(IndexType::TheNodeType());
 }
 
@@ -806,7 +814,7 @@ BoxArray::convert (Box (*fp)(const Box&))
     if (N > 0) {
         uniqify();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < N; ++i) {
@@ -823,7 +831,7 @@ BoxArray::shift (int dir,
     uniqify();
 
     const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < N; i++) {
@@ -838,7 +846,7 @@ BoxArray::shift (const IntVect& iv)
     uniqify();
 
     const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < N; i++) {
@@ -927,7 +935,7 @@ BoxArray::boxList () const
     BoxList newb;
     newb.data().reserve(N);
     if (N > 0) {
-	newb.set(ixType());
+        newb.set(ixType());
         auto const& bxs = this->m_ref->m_abox;
         if (m_bat.is_null()) {
             for (int i = 0; i < N; ++i) {
@@ -952,62 +960,59 @@ bool
 BoxArray::contains (const IntVect& iv) const
 {
     if (size() > 0) {
-	return intersects(Box(iv,iv,ixType()));
+        return intersects(Box(iv,iv,ixType()));
     } else {
-	return false;
+        return false;
     }
 }
 
 bool
-BoxArray::contains (const Box& b, bool assume_disjoint_ba) const
+BoxArray::contains (const Box& b, bool assume_disjoint_ba, const IntVect& ng) const
 {
-    bool result = false;
-
     if (size() > 0)
     {
         BL_ASSERT(ixType() == b.ixType());
 
         std::vector< std::pair<int,Box> > isects;
 
-        intersections(b,isects);
+        intersections(b,isects,false,ng);
 
         if (isects.size() > 0)
         {
-	    if (assume_disjoint_ba) {
-                BL_ASSERT(isDisjoint());
-		Long nbx = b.numPts(), nisects = 0L;
-		for (int i = 0, N = isects.size(); i < N; i++) {
-		    nisects += isects[i].second.numPts();
-		}
-		result = nbx == nisects;
-	    } else {
-                Vector<char> vflag(b.numPts(), 1);
-                BaseFab<char> fabflag(b, 1, vflag.data());
-                for (int i = 0, N = isects.size(); i < N; i++) {
-                    fabflag.setVal<RunOn::Host>(0, isects[i].second, 0, 1);
+            if (assume_disjoint_ba && ng == 0) {
+                Long nbx = b.numPts(), nisects = 0L;
+                for (auto const& is : isects) {
+                    nisects += is.second.numPts();
                 }
-                for (const auto& x : vflag) {
-                    if (x == 1) return false;
+                return (nbx == nisects);
+            } else {
+                BoxList bl(ixType());
+                bl.reserve(isects.size());
+                for (auto const& is : isects) {
+                    bl.push_back(is.second);
                 }
-                result = true;
-	    }
+                auto const& blin = amrex::complementIn(b, bl);
+                return blin.isEmpty();
+            }
+        } else {
+            return false;
         }
+    } else {
+        return false;
     }
-
-    return result;
 }
 
 bool
-BoxArray::contains (const BoxArray& ba, bool assume_disjoint_ba) const
+BoxArray::contains (const BoxArray& ba, bool assume_disjoint_ba, const IntVect& ng) const
 {
     if (size() == 0) return false;
 
-    if (!minimalBox().contains(ba.minimalBox())) return false;
+    if (!minimalBox().grow(ng).contains(ba.minimalBox())) return false;
 
     for (int i = 0, N = ba.size(); i < N; ++i) {
-        if (!contains(ba[i],assume_disjoint_ba)) {
+        if (!contains(ba[i],assume_disjoint_ba, ng)) {
             return false;
-	}
+        }
     }
 
     return true;
@@ -1021,40 +1026,40 @@ BoxArray::minimalBox () const
     const int N = size();
     if (N > 0)
     {
-#ifdef _OPENMP
-	bool use_single_thread = omp_in_parallel();
-	const int nthreads = use_single_thread ? 1 : omp_get_max_threads();
+#ifdef AMREX_USE_OMP
+        bool use_single_thread = omp_in_parallel();
+        const int nthreads = use_single_thread ? 1 : omp_get_max_threads();
 #else
-	bool use_single_thread = true;
-	const int nthreads = 1;
+        bool use_single_thread = true;
+        const int nthreads = 1;
 #endif
-	if (use_single_thread)
-	{
-	    minbox = m_ref->m_abox[0];
-	    for (int i = 1; i < N; ++i) {
-		minbox.minBox(m_ref->m_abox[i]);
-	    }
-	}
-	else
-	{
-	    Vector<Box> bxs(nthreads, m_ref->m_abox[0]);
-#ifdef _OPENMP
+        if (use_single_thread)
+        {
+            minbox = m_ref->m_abox[0];
+            for (int i = 1; i < N; ++i) {
+                minbox.minBox(m_ref->m_abox[i]);
+            }
+        }
+        else
+        {
+            Vector<Box> bxs(nthreads, m_ref->m_abox[0]);
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
-	    {
+            {
                 int tid = OpenMP::get_thread_num();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp for
 #endif
-		for (int i = 0; i < N; ++i) {
-		    bxs[tid].minBox(m_ref->m_abox[i]);
-		}
-	    }
-	    minbox = bxs[0];
-	    for (int i = 1; i < nthreads; ++i) {
-		minbox.minBox(bxs[i]);
-	    }
-	}
+                for (int i = 0; i < N; ++i) {
+                    bxs[tid].minBox(m_ref->m_abox[i]);
+                }
+            }
+            minbox = bxs[0];
+            for (int i = 1; i < nthreads; ++i) {
+                minbox.minBox(bxs[i]);
+            }
+        }
     }
     minbox.coarsen(crseRatio()).convert(ixType());
     return minbox;
@@ -1069,7 +1074,7 @@ BoxArray::minimalBox (Long& npts_avg_box) const
     Long npts_tot = 0;
     if (N > 0)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
         bool use_single_thread = omp_in_parallel();
         const int nthreads = use_single_thread ? 1 : omp_get_max_threads();
 #else
@@ -1088,12 +1093,12 @@ BoxArray::minimalBox (Long& npts_avg_box) const
         else
         {
             Vector<Box> bxs(nthreads, m_ref->m_abox[0]);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(+:npts_tot)
 #endif
             {
                 int tid = OpenMP::get_thread_num();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp for
 #endif
                 for (int i = 0; i < N; ++i) {
@@ -1166,8 +1171,8 @@ BoxArray::intersections (const Box&                         bx,
 void
 BoxArray::intersections (const Box&                         bx,
                          std::vector< std::pair<int,Box> >& isects,
-			 bool                               first_only,
-			 int                                ng) const
+                         bool                               first_only,
+                         int                                ng) const
 {
     intersections(bx,isects,first_only,IntVect(ng));
 }
@@ -1175,10 +1180,10 @@ BoxArray::intersections (const Box&                         bx,
 void
 BoxArray::intersections (const Box&                         bx,
                          std::vector< std::pair<int,Box> >& isects,
-			 bool                               first_only,
-			 const IntVect&                     ng) const
+                         bool                               first_only,
+                         const IntVect&                     ng) const
 {
-  // This is called too many times BL_PROFILE("BoxArray::intersections()");
+    // This is called too many times BL_PROFILE("BoxArray::intersections()");
 
     BARef::HashType& BoxHashMap = getHashMap();
 
@@ -1188,25 +1193,25 @@ BoxArray::intersections (const Box&                         bx,
     {
         BL_ASSERT(bx.ixType() == ixType());
 
-	Box gbx = amrex::grow(bx,ng);
+        Box gbx = amrex::grow(bx,ng);
 
-	IntVect glo = gbx.smallEnd();
-	IntVect ghi = gbx.bigEnd();
-	const IntVect& doilo = getDoiLo();
-	const IntVect& doihi = getDoiHi();
+        IntVect glo = gbx.smallEnd();
+        IntVect ghi = gbx.bigEnd();
+        const IntVect& doilo = getDoiLo();
+        const IntVect& doihi = getDoiHi();
 
-	gbx.setSmall(glo - doihi).setBig(ghi + doilo);
+        gbx.setSmall(glo - doihi).setBig(ghi + doilo);
         gbx.refine(crseRatio()).coarsen(m_ref->crsn);
-	
+
         const IntVect& sm = amrex::max(gbx.smallEnd()-1, m_ref->bbox.smallEnd());
         const IntVect& bg = amrex::min(gbx.bigEnd(),     m_ref->bbox.bigEnd());
 
         Box cbx(sm,bg);
         cbx.normalize();
 
-	if (!cbx.intersects(m_ref->bbox)) return;
+        if (!cbx.intersects(m_ref->bbox)) return;
 
-	auto TheEnd = BoxHashMap.cend();
+        auto TheEnd = BoxHashMap.cend();
 
         auto& abox = m_ref->m_abox;
 
@@ -1365,7 +1370,7 @@ BoxArray::clear_hash_bin () const
     if (!m_ref->hash.empty())
     {
 #ifdef AMREX_MEM_PROFILING
-	m_ref->updateMemoryUsage_hash(-1);
+        m_ref->updateMemoryUsage_hash(-1);
 #endif
         m_ref->hash.clear();
         m_ref->has_hashmap = false;
@@ -1440,7 +1445,7 @@ BoxArray::removeOverlap (bool simplify)
             bl.push_back(b);
         }
     }
-    
+
     if (simplify) {
         bl.simplify();
     }
@@ -1461,12 +1466,12 @@ BoxArray::type_update ()
 {
     if (!empty())
     {
-	if (! ixType().cellCentered())
-	{
+        if (! ixType().cellCentered())
+        {
             for (auto& bx : m_ref->m_abox) {
-		bx.enclosedCells();
-	    }
-	}
+                bx.enclosedCells();
+            }
+        }
     }
 }
 
@@ -1489,7 +1494,7 @@ BoxArray::getHashMap () const
 
     if (m_ref->HasHashMap()) return BoxHashMap;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical(intersections_lock)
 #endif
     {
@@ -1498,11 +1503,11 @@ BoxArray::getHashMap () const
             //
             // Calculate the bounding box & maximum extent of the boxes.
             //
-	    IntVect maxext = IntVect::TheUnitVector();
+            IntVect maxext = IntVect::TheUnitVector();
             Box boundingbox = m_ref->m_abox[0];
 
-	    const int N = size();
-	    for (int i = 0; i < N; ++i)
+            const int N = size();
+            for (int i = 0; i < N; ++i)
             {
                 Box bx = m_ref->m_abox[i];
                 bx.normalize();
@@ -1512,8 +1517,8 @@ BoxArray::getHashMap () const
 
             for (int i = 0; i < N; i++)
             {
-                const IntVect& crsnsmlend 
-		    = amrex::coarsen(m_ref->m_abox[i].smallEnd(),maxext);
+                const IntVect& crsnsmlend
+                    = amrex::coarsen(m_ref->m_abox[i].smallEnd(),maxext);
                 BoxHashMap[crsnsmlend].push_back(i);
             }
 
@@ -1522,10 +1527,10 @@ BoxArray::getHashMap () const
             m_ref->bbox.normalize();
 
 #ifdef AMREX_MEM_PROFILING
-	    m_ref->updateMemoryUsage_hash(1);
+            m_ref->updateMemoryUsage_hash(1);
 #endif
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp flush
 #pragma omp atomic write
 #endif
@@ -1542,13 +1547,13 @@ BoxArray::uniqify ()
     if (m_ref.use_count() == 1) {
         clear_hash_bin();
     } else {
-	auto p = std::make_shared<BARef>(*m_ref);
-	std::swap(m_ref,p);
+        auto p = std::make_shared<BARef>(*m_ref);
+        std::swap(m_ref,p);
     }
     IntVect cr = crseRatio();
     if (cr != IntVect::TheUnitVector()) {
         const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < N; i++) {
@@ -1628,7 +1633,7 @@ intersect (const BoxArray& ba,
     BoxArray r(N);
 
     if (N > 0) {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < N; i++)
@@ -1654,7 +1659,7 @@ intersect (const BoxArray& ba,
     BoxArray r(N);
 
     if (N > 0) {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < N; i++)
@@ -1759,7 +1764,7 @@ GetBndryCells (const BoxArray& ba,
     BoxList bl_diff(btype);
     for (int i = 0, N = tba.size(); i < N; ++i)
     {
-	const Box& bx = tba[i];
+        const Box& bx = tba[i];
         amrex::boxDiff(bl_diff, amrex::grow(bx,ngrow), bx);
         gcells.join(bl_diff);
     }
@@ -1830,13 +1835,13 @@ readBoxArray (BoxArray&     ba,
 bool match (const BoxArray& x, const BoxArray& y)
 {
     if (x == y) {
-	return true;
+        return true;
     } else {
-	bool m = (x.size() == y.size()) && (x.ixType() == y.ixType());
-	for (int i = 0, N = x.size(); i < N && m; ++i) {
-	    m = x[i] == y[i];
-	}
-	return m;
+        bool m = (x.size() == y.size()) && (x.ixType() == y.ixType());
+        for (int i = 0, N = x.size(); i < N && m; ++i) {
+            m = x[i] == y[i];
+        }
+        return m;
     }
 }
 

@@ -23,15 +23,12 @@ public:
                    const iMultiFab* overset_mask = nullptr);
     virtual ~HypreABecLap3 ();
 
-    virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
+    virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
                         int max_iter, const BndryData& bndry, int max_bndry_order) final;
 
 #ifdef AMREX_USE_EB
     void setEBDirichlet (MultiFab const* beb) { m_eb_b_coeffs = beb; }
 #endif
-
-    // public for CUDA
-    void getSolution (MultiFab& soln);
 
 private :
     std::unique_ptr<HypreIJIface> hypre_ij;
@@ -42,14 +39,16 @@ private :
     HYPRE_IJVector x = NULL;
 
     LayoutData<HYPRE_Int> ncells_grid;
-    LayoutData<Gpu::ManagedDeviceVector<HYPRE_Int> > cell_id_vec;
     FabArray<BaseFab<HYPRE_Int> > cell_id;
+    FabArray<BaseFab<HYPRE_Int> > cell_id_vec;
 
     MultiFab const* m_eb_b_coeffs = nullptr;
 
     iMultiFab const* m_overset_mask = nullptr;
 
+public: // for CUDA
     void prepareSolver ();
+    void getSolution (MultiFab& soln);
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
 };
 

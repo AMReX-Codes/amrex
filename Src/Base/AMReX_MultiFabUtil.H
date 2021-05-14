@@ -43,10 +43,14 @@ namespace amrex
     //! Average cell-centered MultiFab onto face-based MultiFab.
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc,
                                      const MultiFab& cc,
-                                     const Geometry& geom);
+                                     const Geometry& geom,
+                                     int ncomp = 1,
+                                     bool use_harmonic_averaging = false);
     void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc,
                                      const MultiFab& cc,
-                                     const Geometry& geom);
+                                     const Geometry& geom,
+                                     int ncomp = 1,
+                                     bool use_harmonic_averaging = false);
 
     //! Average fine face-based MultiFab onto crse face-based MultiFab.
     void average_down_faces (const Vector<const MultiFab*>& fine,
@@ -194,7 +198,7 @@ namespace amrex
     {
         T mf_out(mf_in.boxArray(), mf_in.DistributionMap(), mf_in.nComp(), mf_in.nGrowVect());
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(mf_in); mfi.isValid(); ++mfi)
@@ -283,7 +287,7 @@ void average_down_nodal (const FabArray<FAB>& fine, FabArray<FAB>& crse,
 
     if (mfiter_is_definitely_safe || isMFIterSafe(fine, crse))
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)

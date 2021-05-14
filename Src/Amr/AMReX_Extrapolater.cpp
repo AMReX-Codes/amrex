@@ -3,7 +3,7 @@
 #include <AMReX_extrapolater_K.H>
 #include <AMReX_iMultiFab.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -13,7 +13,7 @@ namespace Extrapolater
 {
     void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp)
     {
-        BL_ASSERT(mf.nGrow() == 1);
+        BL_ASSERT(mf.nGrow() >= 1);
         BL_ASSERT(scomp >= 0);
         BL_ASSERT((scomp+ncomp) <= mf.nComp());
 
@@ -22,7 +22,7 @@ namespace Extrapolater
         mask.BuildMask(geom.Domain(), geom.periodicity(),
                        finebnd, crsebnd, physbnd, interior);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)

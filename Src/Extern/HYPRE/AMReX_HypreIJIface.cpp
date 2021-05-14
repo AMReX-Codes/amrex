@@ -39,6 +39,14 @@ struct HypreOptParse
         func(solver, val);
     }
 
+    template <typename F, typename T>
+    void operator()(const std::string& key, F&& func, T default_val, int index)
+    {
+        T val = default_val;
+        pp.query(key.c_str(), val);
+        func(solver, val, index);
+    }
+
     template <typename T, typename F>
     void set(const std::string& key, F&& func)
     {
@@ -228,9 +236,24 @@ void HypreIJIface::boomeramg_precond_configure(const std::string& prefix)
     hpp("bamg_precond_tolerance", HYPRE_BoomerAMGSetTol, 0.0);
     hpp("bamg_coarsen_type", HYPRE_BoomerAMGSetCoarsenType, 6);
     hpp("bamg_cycle_type", HYPRE_BoomerAMGSetCycleType, 1);
-    hpp("bamg_relax_type", HYPRE_BoomerAMGSetRelaxType, 6);
     hpp("bamg_relax_order", HYPRE_BoomerAMGSetRelaxOrder, 1);
-    hpp("bamg_num_sweeps", HYPRE_BoomerAMGSetNumSweeps, 2);
+
+    if (hpp.pp.contains("bamg_down_relax_type") && hpp.pp.contains("bamg_up_relax_type") && hpp.pp.contains("bamg_coarse_relax_type")) {
+        hpp("bamg_down_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 1);
+        hpp("bamg_up_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 2);
+        hpp("bamg_coarse_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 3);
+    } else {
+        hpp("bamg_relax_type", HYPRE_BoomerAMGSetRelaxType, 6);
+    }
+
+    if (hpp.pp.contains("bamg_num_down_sweeps") && hpp.pp.contains("bamg_num_up_sweeps") && hpp.pp.contains("bamg_num_coarse_sweeps")) {
+        hpp("bamg_num_down_sweeps", HYPRE_BoomerAMGSetCycleNumSweeps, 2, 1);
+        hpp("bamg_num_up_sweeps", HYPRE_BoomerAMGSetCycleNumSweeps, 2, 2);
+        hpp("bamg_num_coarse_sweeps", HYPRE_BoomerAMGSetCycleNumSweeps, 1, 3);
+    } else {
+        hpp("bamg_num_sweeps", HYPRE_BoomerAMGSetNumSweeps, 2);
+    }
+
     hpp("bamg_max_levels", HYPRE_BoomerAMGSetMaxLevels, 20);
     hpp("bamg_strong_threshold", HYPRE_BoomerAMGSetStrongThreshold,
         (AMREX_SPACEDIM == 3) ? 0.57 : 0.25);
@@ -244,7 +267,7 @@ void HypreIJIface::boomeramg_precond_configure(const std::string& prefix)
     hpp("bamg_agg_num_levels", HYPRE_BoomerAMGSetAggNumLevels);
     hpp("bamg_agg_interp_type", HYPRE_BoomerAMGSetAggInterpType);
     hpp("bamg_agg_pmax_elmts", HYPRE_BoomerAMGSetAggPMaxElmts);
-    hpp("bamg_set_trunc_factor", HYPRE_BoomerAMGSetTruncFactor);
+    hpp("bamg_trunc_factor", HYPRE_BoomerAMGSetTruncFactor, 0.1);
 
     if (hpp.pp.contains("bamg_non_galerkin_tol")) {
         hpp("bamg_non_galerkin_tol", HYPRE_BoomerAMGSetNonGalerkinTol);
@@ -332,10 +355,24 @@ void HypreIJIface::boomeramg_solver_configure(const std::string& prefix)
     HypreOptParse hpp(prefix, m_solver);
     hpp("verbose", HYPRE_BoomerAMGSetPrintLevel);
     hpp("logging", HYPRE_BoomerAMGSetLogging);
-
-    hpp("bamg_relax_type", HYPRE_BoomerAMGSetRelaxType, 6);
     hpp("bamg_relax_order", HYPRE_BoomerAMGSetRelaxOrder, 1);
-    hpp("bamg_num_sweeps", HYPRE_BoomerAMGSetNumSweeps, 2);
+
+    if (hpp.pp.contains("bamg_down_relax_type") && hpp.pp.contains("bamg_up_relax_type") && hpp.pp.contains("bamg_coarse_relax_type")) {
+        hpp("bamg_down_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 1);
+        hpp("bamg_up_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 2);
+        hpp("bamg_coarse_relax_type", HYPRE_BoomerAMGSetCycleRelaxType, 11, 3);
+    } else {
+        hpp("bamg_relax_type", HYPRE_BoomerAMGSetRelaxType, 6);
+    }
+
+    if (hpp.pp.contains("bamg_num_down_sweeps") && hpp.pp.contains("bamg_num_up_sweeps") && hpp.pp.contains("bamg_num_coarse_sweeps")) {
+        hpp("bamg_num_down_sweeps", HYPRE_BoomerAMGSetCycleNumSweeps, 2, 1);
+        hpp("bamg_num_up_sweeps", HYPRE_BoomerAMGSetCycleNumSweeps, 2, 2);
+        hpp("bamg_num_coarse_sweeps", HYPRE_BoomerAMGSetCycleNumSweeps, 1, 3);
+    } else {
+        hpp("bamg_num_sweeps", HYPRE_BoomerAMGSetNumSweeps, 2);
+    }
+
     hpp("bamg_strong_threshold", HYPRE_BoomerAMGSetStrongThreshold,
         (AMREX_SPACEDIM == 3) ? 0.57 : 0.25);
     hpp("bamg_coarsen_type", HYPRE_BoomerAMGSetCoarsenType);

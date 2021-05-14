@@ -73,7 +73,7 @@ void test ()
     Vector<Geometry> geom(nlevs);
     geom[0].define(domains[0], &real_box, CoordSys::cartesian, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
-	geom[lev].define(domains[lev], &real_box, CoordSys::cartesian, is_per);
+        geom[lev].define(domains[lev], &real_box, CoordSys::cartesian, is_per);
     }
 
     Vector<DistributionMapping> dmap(nlevs);
@@ -81,28 +81,9 @@ void test ()
     Vector<std::unique_ptr<MultiFab> > mf(nlevs);
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping{ba[lev]};
-        mf[lev].reset(new MultiFab(ba[lev], dmap[lev], ncomp, nghost));
+        mf[lev] = std::make_unique<MultiFab>(ba[lev], dmap[lev], ncomp, nghost);
         mf[lev]->setVal(lev);
     }
-
-    // Add some particles
-    constexpr int NStructReal = 4;
-    constexpr int NStructInt  = 1;
-    constexpr int NArrayReal  = 8;
-    constexpr int NArrayInt   = 3;
-
-    typedef ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> MyPC;
-    MyPC myPC(geom, dmap, ba, ref_ratio);
-    myPC.SetVerbose(false);
-
-    int num_particles = nppc * AMREX_D_TERM(ncells, * ncells, * ncells);
-    bool serialize = false;
-    int iseed = 451;
-    MyPC::ParticleInitData pdata = {1.0, 2.0, 3.0, 4.0, 5, 6.0,
-                                    7.0, 8.0, 9.0, 10.0, 11.0,
-                                    12.0, 13.0, 14, 15, 16};
-
-    myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
     // these don't really matter, make something up
     const Real time = 0.0;
@@ -130,7 +111,7 @@ void test ()
         }
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "Writing plot file [" << fname << "]" << std::endl;
+            std::cout << "Writing plot file [" << fname << ".h5]" << std::endl;
 #ifdef AMREX_USE_HDF5
         WriteMultiLevelPlotfileHDF5(fname, nlevs, amrex::GetVecOfConstPtrs(mf),
                                     varnames, geom, time, level_steps, ref_ratio);
@@ -140,52 +121,67 @@ void test ()
 #endif
     }
 
-#ifdef AMREX_USE_HDF5_ASYNC
-    // Complete all previous async writes
-    H5VLasync_waitall();
-#endif
-
     /* ParallelDescriptor::Barrier(); */
 
-    Vector<std::string> particle_realnames;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i)
-    {
-        particle_realnames.push_back("particle_real_component_" + std::to_string(i));
-    }
+    // Add some particles
+    constexpr int NStructReal = 4;
+    constexpr int NStructInt  = 1;
+    constexpr int NArrayReal  = 8;
+    constexpr int NArrayInt   = 3;
 
-    Vector<std::string> particle_intnames;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i)
-    {
-        particle_intnames.push_back("particle_int_component_" + std::to_string(i));
-    }
+    typedef ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> MyPC;
+    MyPC myPC(geom, dmap, ba, ref_ratio);
+    myPC.SetVerbose(false);
 
-    for (int ts = 0; ts < nparticlefile; ts++) {
-        sprintf(fname, "plt%05d", ts);
+    int num_particles = nppc * AMREX_D_TERM(ncells, * ncells, * ncells);
+    bool serialize = false;
+    int iseed = 451;
+    MyPC::ParticleInitData pdata = {1.0, 2.0, 3.0, 4.0, 5, 6.0,
+                                    7.0, 8.0, 9.0, 10.0, 11.0,
+                                    12.0, 13.0, 14, 15, 16};
 
-        // Fake computation
-        if (ts > 0 && sleeptime > 0) {
-            if (ParallelDescriptor::IOProcessor()) {
-                std::cout << "Sleep for " << sleeptime << " seconds." << std::endl;
-                fflush(stdout);
+    if (nparticlefile > 0) {
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "Init particles..." << std::endl;
+
+        myPC.InitRandom(num_particles, iseed, pdata, serialize);
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "done" << std::endl;
+
+        Vector<std::string> particle_realnames;
+        for (int i = 0; i < NStructReal + NArrayReal; ++i)
+            particle_realnames.push_back("particle_real_component_" + std::to_string(i));
+
+        Vector<std::string> particle_intnames;
+        for (int i = 0; i < NStructInt + NArrayInt; ++i)
+            particle_intnames.push_back("particle_int_component_" + std::to_string(i));
+
+        for (int ts = 0; ts < nparticlefile; ts++) {
+            sprintf(fname, "plt%05d", ts);
+
+            // Fake computation
+            if (ts > 0 && sleeptime > 0) {
+                if (ParallelDescriptor::IOProcessor()) {
+                    std::cout << "Sleep for " << sleeptime << " seconds." << std::endl;
+                    fflush(stdout);
+                }
+                sleep(sleeptime);
             }
-            sleep(sleeptime);
-        }
+
+            if (ParallelDescriptor::IOProcessor())
+                std::cout << "Writing particle file [" << fname << "/particle0.h5]" << std::endl;
 
 #ifdef AMREX_USE_HDF5
-        myPC.CheckpointHDF5(fname, "particle0", false, particle_realnames, particle_intnames);
+            myPC.CheckpointHDF5(fname, "particle0", false, particle_realnames, particle_intnames);
 #else
-        myPC.Checkpoint(fname, "particle0", false, particle_realnames, particle_intnames);
-        /* myPC.WriteAsciiFile("particle0_ascii"); */
+            myPC.Checkpoint(fname, "particle0", false, particle_realnames, particle_intnames);
+            /* myPC.WriteAsciiFile("particle0_ascii"); */
 #endif
+        }
     }
 
-#ifdef AMREX_USE_HDF5_ASYNC
-    // Complete all previous async writes
-    H5VLasync_waitall();
-    /* ParallelDescriptor::Barrier(); */
-#endif
-
-    if (restart_check)
+    if (restart_check && nparticlefile > 0)
     {
         MyPC newPC(geom, dmap, ba, ref_ratio);
 #ifdef AMREX_USE_HDF5
@@ -264,8 +260,8 @@ void set_grids_nested (Vector<Box>& domains,
     // Now we make the refined level be the center eighth of the domain
     if (nlevs > 1) {
         int n_fine = ncells*ref_ratio[0][0];
-        IntVect refined_lo(D_DECL(n_fine/4,n_fine/4,n_fine/4));
-        IntVect refined_hi(D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
+        IntVect refined_lo(AMREX_D_DECL(n_fine/4,n_fine/4,n_fine/4));
+        IntVect refined_hi(AMREX_D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
 
         // Build a box for the level 1 domain
         Box refined_patch(refined_lo, refined_hi);
@@ -278,7 +274,7 @@ void set_grids_nested (Vector<Box>& domains,
     }
 
     for (int lev = 1; lev < nlevs; lev++) {
-	domains[lev] = amrex::refine(domains[lev-1], ref_ratio[lev-1]);
+        domains[lev] = amrex::refine(domains[lev-1], ref_ratio[lev-1]);
     }
 }
 

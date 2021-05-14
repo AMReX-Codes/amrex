@@ -2,13 +2,13 @@
 #define AMREX_Derive_H_
 #include <AMReX_Config.H>
 
-#include <list>
-#include <string>
-
 #include <AMReX_ArrayLim.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 #include <AMReX_Interpolater.H>
+
+#include <list>
+#include <string>
 
 namespace amrex {
 
@@ -75,13 +75,13 @@ extern "C"
     * \param grid_no
     */
     typedef void (*DeriveFunc3D)(amrex::Real* data, const int* dlo, const int* dhi, const int* nvar,
-				 const amrex::Real* compdat, const int* clo, const int* chi, const int* ncomp,
-				 const int* lo, const int* hi,
-				 const int* domain_lo, const int* domain_hi,
-				 const amrex::Real* delta, const amrex::Real* xlo,
-				 const amrex::Real* time, const amrex::Real* dt,
-				 const int* bcrec,
-				 const int* level, const int* grid_no) ;
+                                 const amrex::Real* compdat, const int* clo, const int* chi, const int* ncomp,
+                                 const int* lo, const int* hi,
+                                 const int* domain_lo, const int* domain_hi,
+                                 const amrex::Real* delta, const amrex::Real* xlo,
+                                 const amrex::Real* time, const amrex::Real* dt,
+                                 const int* bcrec,
+                                 const int* level, const int* grid_no) ;
 }
 
 typedef void (*DeriveFuncFab) (const amrex::Box& bx, amrex::FArrayBox& derfab, int dcomp, int ncomp,
@@ -252,7 +252,7 @@ protected:
     DeriveRec (const std::string&  name,
                IndexType           result_type,
                int                 nvar_derive,
-	       Vector<std::string>& var_names,
+               Vector<std::string>& var_names,
                DeriveFunc          der_func,
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
@@ -260,7 +260,7 @@ protected:
     DeriveRec (const std::string&  name,
                IndexType           result_type,
                int                 nvar_derive,
-	       Vector<std::string>& var_names,
+               Vector<std::string>& var_names,
                DeriveFunc3D        der_func_3d,
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
@@ -268,7 +268,7 @@ protected:
     DeriveRec (const std::string&  name,
                IndexType           result_type,
                int                 nvar_derive,
-	       Vector<std::string>& var_names,
+               Vector<std::string>& var_names,
                DeriveFuncFab       der_func_fab,
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);

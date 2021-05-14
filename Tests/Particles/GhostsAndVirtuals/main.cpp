@@ -35,8 +35,8 @@ void test_ghosts_and_virtuals (TestParams& parms)
        fine_box.setHi(n,0.75);
     }
 
-    IntVect domain_lo(D_DECL(0 , 0, 0));
-    IntVect domain_hi(D_DECL(parms.nx - 1, parms.ny - 1, parms.nz-1));
+    IntVect domain_lo(AMREX_D_DECL(0 , 0, 0));
+    IntVect domain_hi(AMREX_D_DECL(parms.nx - 1, parms.ny - 1, parms.nz-1));
     const Box domain(domain_lo, domain_hi);
 
     // Define the refinement ratio
@@ -53,8 +53,8 @@ void test_ghosts_and_virtuals (TestParams& parms)
     Vector<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, CoordSys::cartesian, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
-	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
-			 &real_box, CoordSys::cartesian, is_per);
+        geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
+                         &real_box, CoordSys::cartesian, is_per);
     }
 
     Vector<BoxArray> ba(nlevs);
@@ -62,8 +62,8 @@ void test_ghosts_and_virtuals (TestParams& parms)
 
     if (nlevs > 1) {
         int n_fine = parms.nx*rr[0];
-        IntVect refined_lo(D_DECL(n_fine/4,n_fine/4,n_fine/4));
-        IntVect refined_hi(D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
+        IntVect refined_lo(AMREX_D_DECL(n_fine/4,n_fine/4,n_fine/4));
+        IntVect refined_hi(AMREX_D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
 
         // Build a box for the level 1 domain
         Box refined_patch(refined_lo, refined_hi);
@@ -88,7 +88,7 @@ void test_ghosts_and_virtuals (TestParams& parms)
     bool serialize = true;
     int iseed = 451;
     Real mass = 10.0;
-    MyParticleContainer::ParticleInitData pdata = {mass};
+    MyParticleContainer::ParticleInitData pdata = {{},{}, mass};
 
     myPC.InitRandom(num_particles, iseed, pdata, serialize);
 

@@ -14,14 +14,14 @@
 #include <AMReX_EB2_C.H>
 #include <AMReX_EB2_IF_AllRegular.H>
 
+#ifdef AMREX_USE_OMP
+#include <omp.h>
+#endif
+
 #include <unordered_map>
 #include <limits>
 #include <cmath>
 #include <type_traits>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 namespace amrex { namespace EB2 {
 
@@ -45,8 +45,10 @@ public:
     void fillBndryNorm (   MultiFab& bndrynorm, const Geometry& geom) const;
     void fillAreaFrac (Array<MultiCutFab*,AMREX_SPACEDIM> const& areafrac, const Geometry& geom) const;
     void fillAreaFrac (Array<   MultiFab*,AMREX_SPACEDIM> const& areafrac, const Geometry& geom) const;
-    void fillFaceCent (Array<MultiCutFab*,AMREX_SPACEDIM> const& facefrac, const Geometry& geom) const;
-    void fillFaceCent (Array<   MultiFab*,AMREX_SPACEDIM> const& facefrac, const Geometry& geom) const;
+    void fillFaceCent (Array<MultiCutFab*,AMREX_SPACEDIM> const& facecent, const Geometry& geom) const;
+    void fillFaceCent (Array<   MultiFab*,AMREX_SPACEDIM> const& facecent, const Geometry& geom) const;
+    void fillEdgeCent (Array<MultiCutFab*,AMREX_SPACEDIM> const& edgecent, const Geometry& geom) const;
+    void fillEdgeCent (Array<   MultiFab*,AMREX_SPACEDIM> const& edgecent, const Geometry& geom) const;
     void fillLevelSet (MultiFab& levelset, const Geometry& geom) const;
 
     const BoxArray& boxArray () const noexcept { return m_grids; }
@@ -81,6 +83,7 @@ protected:
     MultiFab m_bndrynorm;
     Array<MultiFab,AMREX_SPACEDIM> m_areafrac;
     Array<MultiFab,AMREX_SPACEDIM> m_facecent;
+    Array<MultiFab,AMREX_SPACEDIM> m_edgecent;
     bool m_allregular = false;
     bool m_ok = false;
     IndexSpace const* m_parent;
@@ -118,9 +121,11 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     BL_PROFILE("EB2::GShopLevel()-fine");
 
     Real small_volfrac = 1.e-14;
+    bool cover_multiple_cuts = false;
     {
         ParmParse pp("eb2");
         pp.query("small_volfrac", small_volfrac);
+        pp.query("cover_multiple_cuts", cover_multiple_cuts);
     }
 
     // make sure ngrow is multiple of 16
@@ -179,8 +184,8 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     amrex::AllGatherBoxes(cut_boxes);
     amrex::AllGatherBoxes(covered_boxes);
 
-    if ( cut_boxes.empty() && 
-        !covered_boxes.empty()) 
+    if ( cut_boxes.empty() &&
+        !covered_boxes.empty())
     {
         amrex::Abort("AMReX_EB2_Level.H: Domain is completely covered");
     }
@@ -201,7 +206,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     m_dmap = DistributionMapping(m_grids);
 
     m_mgf.define(m_grids, m_dmap);
-    const int ng = 2;
+    const int ng = GFab::ng;
     MFInfo mf_info;
     mf_info.SetTag("EB2::Level");
     m_cellflag.define(m_grids, m_dmap, 1, ng, mf_info);
@@ -215,6 +220,8 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                                 m_dmap, 1, ng, mf_info);
         m_facecent[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
                                 m_dmap, AMREX_SPACEDIM-1, ng, mf_info);
+        IntVect edge_type{1}; edge_type[idim] = 0;
+        m_edgecent[idim].define(amrex::convert(m_grids, edge_type), m_dmap, 1, ng, mf_info);
     }
 
     const auto dx = geom.CellSizeArray();
@@ -231,11 +238,10 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
     bool hybrid = Gpu::inLaunchRegion() && (gshop_run_on == RunOn::Cpu);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        Array<BaseFab<Real>, AMREX_SPACEDIM> intercept;
         Array<BaseFab<Real>, AMREX_SPACEDIM> M2;
         EBCellFlagFab cellflagtmp;
 
@@ -251,7 +257,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
             auto& cellflag = m_cellflag[mfi];
 
-            gfab.buildTypes(cellflag);
+            gfab.buildTypes(cellflag, cover_multiple_cuts);
 
             Array4<Real const> const& lst = levelset.const_array();
             Array4<EBCellFlag> const& cfg = m_cellflag.array(mfi);
@@ -274,34 +280,29 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
 #if (AMREX_SPACEDIM == 3)
             auto& edgetype = gfab.getEdgeType();
-            Array4<Type_t> const& xdg = edgetype[0].array();
-            Array4<Type_t> const& ydg = edgetype[1].array();
-            Array4<Type_t> const& zdg = edgetype[2].array();
+            Array4<Type_t const> const& xdg = edgetype[0].const_array();
+            Array4<Type_t const> const& ydg = edgetype[1].const_array();
+            Array4<Type_t const> const& zdg = edgetype[2].const_array();
 
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                intercept[idim].resize(edgetype[idim].box());
-            }
-            Elixir xinter_eli = intercept[0].elixir();
-            Elixir yinter_eli = intercept[1].elixir();
-            Elixir zinter_eli = intercept[2].elixir();
-            Array4<Real> const& xip = intercept[0].array();
-            Array4<Real> const& yip = intercept[1].array();
-            Array4<Real> const& zip = intercept[2].array();
+            Array4<Real> const& xip = m_edgecent[0].array(mfi);
+            Array4<Real> const& yip = m_edgecent[1].array(mfi);
+            Array4<Real> const& zip = m_edgecent[2].array(mfi);
 
             if (hybrid) {
                 Gpu::streamSynchronize();
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     edgetype[idim].prefetchToHost();
-                    intercept[idim].prefetchToHost();
+                    m_edgecent[idim][mfi].prefetchToHost();
                 }
             }
 
-            gshop.getIntercept(intercept, edgetype, geom, gshop_run_on, bounding_box);
+            gshop.getIntercept({xip,yip,zip}, {xdg,ydg,zdg},
+                               geom, gshop_run_on, bounding_box);
 
             if (hybrid) {
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     edgetype[idim].prefetchToDevice();
-                    intercept[idim].prefetchToDevice();
+                    m_edgecent[idim][mfi].prefetchToDevice();
                 }
             }
 
@@ -326,39 +327,40 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
             build_cells(vbx, cfg, ftx, fty, ftz, apx, apy, apz,
                         fcx, fcy, fcz, xm2, ym2, zm2, vfr, ctr,
-                        bar, bct, bnm, cfgtmp, small_volfrac, 
+                        bar, bct, bnm, cfgtmp, small_volfrac,
                         geom, extend_domain_face);
 
+            intercept_to_edge_centroid(xip, yip, zip, xdg, ydg, zdg, lst, dx, problo);
+
 #elif (AMREX_SPACEDIM == 2)
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                intercept[idim].resize(facetype[idim].box());
-            }
-            Elixir xinter_eli = intercept[0].elixir();
-            Elixir yinter_eli = intercept[1].elixir();
-            Array4<Real> const& xip = intercept[0].array();
-            Array4<Real> const& yip = intercept[1].array();
+            Array4<Real> const& xip = m_edgecent[0].array(mfi);
+            Array4<Real> const& yip = m_edgecent[1].array(mfi);
 
             if (hybrid) {
                 Gpu::streamSynchronize();
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     facetype[idim].prefetchToHost();
-                    intercept[idim].prefetchToHost();
+                    m_edgecent[idim][mfi].prefetchToHost();
                 }
             }
 
-            gshop.getIntercept(intercept, facetype, geom, gshop_run_on, bounding_box);
+            //                         yes, factype[1] and then [0]
+            gshop.getIntercept({xip,yip}, {facetype[1].const_array(), facetype[0].const_array()},
+                               geom, gshop_run_on, bounding_box);
 
             if (hybrid) {
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     facetype[idim].prefetchToDevice();
-                    intercept[idim].prefetchToDevice();
+                    m_edgecent[idim][mfi].prefetchToDevice();
                 }
             }
 
             build_faces(vbx, cfg, ftx, fty, lst, xip, yip, apx, apy, fcx, fcy, dx, problo);
 
-            build_cells(vbx, cfg, ftx, fty, apx, apy, vfr, ctr, bar, bct, bnm, small_volfrac, 
+            build_cells(vbx, cfg, ftx, fty, apx, apy, vfr, ctr, bar, bct, bnm, small_volfrac,
                         geom, extend_domain_face);
+
+            intercept_to_edge_centroid(xip, yip, fty, ftx, lst, dx, problo); // fty then ftx
 #endif
         }
     }

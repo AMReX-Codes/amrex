@@ -41,7 +41,7 @@ public:
 
     //! The constructor, given number of cells in/out, extent and number of components (assumes cell-centered boxes, and allocates cell-centered FABs)
     BndryRegister (const BoxArray& grids_,
-		   const DistributionMapping& dmap,
+                   const DistributionMapping& dmap,
                    int             in_rad,
                    int             out_rad,
                    int             extent_rad,
@@ -61,19 +61,19 @@ public:
     BndryRegister& operator= (BndryRegister&& rhs) = delete;
 
     void define (const BoxArray& grids_,
-		 const DistributionMapping& dmap,
-		 int             in_rad,
-		 int             out_rad,
-		 int             extent_rad,
-		 int             ncomp);
+                 const DistributionMapping& dmap,
+                 int             in_rad,
+                 int             out_rad,
+                 int             extent_rad,
+                 int             ncomp);
     //! Build FABs along given face, specifying the DistributionMapping.
     void define (Orientation                face,
-		 IndexType                  typ,
-		 int                        in_rad,
-		 int                        out_rad,
-		 int                        extent_rad,
-		 int                        ncomp,
-		 const DistributionMapping& dm);
+                 IndexType                  typ,
+                 int                        in_rad,
+                 int                        out_rad,
+                 int                        extent_rad,
+                 int                        ncomp,
+                 const DistributionMapping& dm);
 
     void clear ();
 

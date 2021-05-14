@@ -2,16 +2,14 @@
 #define AMREX_BL_BACKTRACE_H_
 #include <AMReX_Config.H>
 
+#ifdef AMREX_USE_OMP
+#include <omp.h>
+#endif
+
 #include <stack>
 #include <string>
 #include <utility>
-#include <sstream>
-#include <cstdio>
 #include <cstdlib>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #define BL_PASTE2(x, y) x##y
 #define BL_PASTE(x, y) BL_PASTE2(x, y)
@@ -30,7 +28,7 @@ struct BLBackTrace
 
     static std::stack<std::pair<std::string, std::string> > bt_stack;
 // threadprivate here doesn't work with Cray and Intel
-#if defined(_OPENMP) && !defined(_CRAYC) && !defined(__INTEL_COMPILER) && !defined(__PGI)
+#if defined(AMREX_USE_OMP) && !defined(_CRAYC) && !defined(__INTEL_COMPILER) && !defined(__PGI)
 #pragma omp threadprivate(bt_stack)
 #endif
 };

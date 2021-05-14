@@ -11,3 +11,4 @@ brew update
 brew install gfortran || true
 brew install libomp || true
 brew install open-mpi || true
+brew install ccache || true

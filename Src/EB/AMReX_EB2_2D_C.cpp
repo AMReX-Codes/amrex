@@ -100,8 +100,8 @@ void set_eb_data (const int i, const int j,
         } else {
             vcent(i,j,0,0) *= (1.0/vfrac(i,j,0));
             vcent(i,j,0,1) *= (1.0/vfrac(i,j,0));
-            vcent(i,j,0,0) = amrex::min(amrex::max(vcent(i,j,0,0),-0.5),0.5);
-            vcent(i,j,0,1) = amrex::min(amrex::max(vcent(i,j,0,1),-0.5),0.5);
+            vcent(i,j,0,0) = amrex::min(amrex::max(vcent(i,j,0,0),Real(-0.5)),Real(0.5));
+            vcent(i,j,0,1) = amrex::min(amrex::max(vcent(i,j,0,1),Real(-0.5)),Real(0.5));
         }
     }
 }
@@ -111,7 +111,7 @@ void set_covered(const int i, const int j,
                  Array4<EBCellFlag> const& cell,
                  Array4<Real> const& vfrac, Array4<Real> const& vcent,
                  Array4<Real> const& barea, Array4<Real> const& bcent,
-                 Array4<Real> const& bnorm) 
+                 Array4<Real> const& bnorm)
 {
    vfrac(i,j,0) = 0.0;
    vcent(i,j,0,0) = 0.0;
@@ -155,10 +155,10 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 fcx(i,j,0) = 0.0;
             } else {
                 if (levset(i,j,0) < 0.0) {
-                    apx(i,j,0) = (interx(i,j,0)-(problo[1]+j*dx[1]))*dyinv;
+                    apx(i,j,0) = (intery(i,j,0)-(problo[1]+j*dx[1]))*dyinv;
                     fcx(i,j,0) = 0.5*apx(i,j,0) - 0.5;
                 } else {
-                    apx(i,j,0) = 1.0 - (interx(i,j,0)-(problo[1]+j*dx[1]))*dyinv;
+                    apx(i,j,0) = 1.0 - (intery(i,j,0)-(problo[1]+j*dx[1]))*dyinv;
                     fcx(i,j,0) = 0.5 - 0.5*apx(i,j,0);
                 }
 
@@ -188,10 +188,10 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 fcy(i,j,0) = 0.0;
             } else {
                 if (levset(i,j,0) < 0.0) {
-                    apy(i,j,0) = (intery(i,j,0)-(problo[0]+i*dx[0]))*dxinv;
+                    apy(i,j,0) = (interx(i,j,0)-(problo[0]+i*dx[0]))*dxinv;
                     fcy(i,j,0) = 0.5*apy(i,j,0) - 0.5;
                 } else {
-                    apy(i,j,0) = 1.0 - (intery(i,j,0)-(problo[0]+i*dx[0]))*dxinv;
+                    apy(i,j,0) = 1.0 - (interx(i,j,0)-(problo[0]+i*dx[0]))*dxinv;
                     fcy(i,j,0) = 0.5 - 0.5*apy(i,j,0);
                 }
 
@@ -211,6 +211,7 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
     const Box& bxg1 = amrex::grow(bx, 1);
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
     {
+        amrex::ignore_unused(k);
         if (cell(i,j,0).isSingleValued()) {
             if (fx(i,j,0) == Type::regular && fx(i+1,j,0) == Type::regular &&
                 fy(i,j,0) == Type::regular && fy(i,j+1,0) == Type::regular)
@@ -320,8 +321,8 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
               }
 
               // set cell in extendable region to covered if necessary
-              if( in_extended_domain && (! cell(i,j,k).isCovered()) 
-                  && cell(ii,jj,kk).isCovered() ) 
+              if( in_extended_domain && (! cell(i,j,k).isCovered())
+                  && cell(ii,jj,kk).isCovered() )
               {
                   set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
               }
@@ -334,6 +335,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     const Box xbx = Box(bx).surroundingNodes(0).grow(1,1);
     AMREX_HOST_DEVICE_FOR_3D ( xbx, i, j, k,
     {
+        amrex::ignore_unused(k);
         if (vfrac(i-1,j,0) == 0._rt || vfrac(i,j,0) == 0._rt) {
             fx(i,j,0) = Type::covered;
             apx(i,j,0) = 0.0;
@@ -354,6 +356,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     const Box ybx = Box(bx).surroundingNodes(1).grow(0,1);
     AMREX_HOST_DEVICE_FOR_3D ( ybx, i, j, k,
     {
+        amrex::ignore_unused(k);
         if (vfrac(i,j-1,0) == 0._rt || vfrac(i,j,0) == 0._rt) {
             fy(i,j,0) = Type::covered;
             apy(i,j,0) = 0.0;
@@ -373,6 +376,8 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     // Build neighbors.  By default, all neighbors are already set.
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
     {
+        amrex::ignore_unused(k);
+
         auto flg = cell(i,j,0);
 
         if (fx(i  ,j  ,0) == Type::covered) flg.setDisconnected(IntVect(-1, 0));

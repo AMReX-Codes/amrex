@@ -1,7 +1,7 @@
 # Setup for HIP, using hipcc (HCC and clang will use the same compiler name).
 
 ifneq ($(NO_CONFIG_CHECKING),TRUE)
-  HIP_PATH=$(shell hipconfig --path)
+  HIP_PATH=$(realpath $(shell hipconfig --path))
   ifeq ($(HIP_PATH),)
     $(error hipconfig failed. Is the HIP toolkit available?)
   endif
@@ -93,21 +93,21 @@ ifeq ($(HIP_COMPILER),clang)
 
   # Generic HIP info
   ROC_PATH=$(realpath $(dir $(HIP_PATH)))
-  INCLUDE_LOCATIONS += $(HIP_PATH)/include
+  SYSTEM_INCLUDE_LOCATIONS += $(HIP_PATH)/include
 
   # rocRand
-  INCLUDE_LOCATIONS += $(ROC_PATH)/rocrand/include $(ROC_PATH)/hiprand/include
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocrand/include $(ROC_PATH)/hiprand/include
   LIBRARY_LOCATIONS += $(ROC_PATH)/rocrand/lib $(ROC_PATH)/hiprand/lib
   LIBRARIES += -Wl,--rpath=$(ROC_PATH)/rocrand/lib -Wl,--rpath=$(ROC_PATH)/hiprand/lib -lhiprand -lrocrand 
 
   # rocPrim - Header only
-  INCLUDE_LOCATIONS += $(ROC_PATH)/rocprim/include
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocprim/include
 
   # rocThrust - Header only
-  # INCLUDE_LOCATIONS += $(ROC_PATH)/rocthrust/include
+  # SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocthrust/include
 
   # hipcc passes a lot of unused arguments to clang
-  DEPFLAGS += -Wno-unused-command-line-argument
+  LEGACY_DEPFLAGS += -Wno-unused-command-line-argument
 
 # =============================================================================================
 

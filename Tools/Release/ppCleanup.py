@@ -13,7 +13,7 @@ def ppCleanup(cwfile, infile, oufile):
     except IOError:
         print "ERROR: ", cwfile, " doesn't appear to exist."
         sys.exit(2)
-    
+
     cleanWords = []
     for line in f.readlines():
         word = line[:-1].strip()
@@ -98,14 +98,14 @@ def ppCleanup(cwfile, infile, oufile):
                 if status:
                     # "ifdef" block is CLEANUP, so "else" block is KEEP
                     cleanupstack.append(False)
-                else: # There are two possibilies: 
+                else: # There are two possibilies:
                     if dw in cleanWords:
                         cleanupstack.append(True)
                     else:
-                        # we keep this "ELSE" line and the following block 
+                        # we keep this "ELSE" line and the following block
                         # because the def word is in in our list for cleanup
                         cleanupstack.append(False)
-                        fou.write(line)  
+                        fou.write(line)
 
             defstack.append(dw)  # do we need this????
 
@@ -134,13 +134,13 @@ def ppCleanup(cwfile, infile, oufile):
             else:
                 if dw in cleanWords:
                     cleanupstack.append(False)
-                else:  
+                else:
                     # Its word is not on out list
                     cleanupstack.append(False)
                     fou.write(line)
 
         else:
-            
+
             if not cleanupstack[-1]:
                 fou.write(line)
 
@@ -160,7 +160,7 @@ if __name__== "__main__":
 
     try:
         opts, args = getopt.getopt(argv[1:], "c:o:", [])
-    
+
     except getopt.GetoptError:
         print "invalid calling sequence"
         print usage

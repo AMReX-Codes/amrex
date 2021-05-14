@@ -32,9 +32,9 @@ MyTest::solve ()
 
     std::unique_ptr<MLTensorOp> mltensor;
     if (do_overset) {
-        mltensor.reset(new MLTensorOp({geom}, {grids}, {dmap}, {&oversetmask}, info));
+        mltensor = std::make_unique<MLTensorOp>({geom}, {grids}, {dmap}, {&oversetmask}, info);
     } else {
-        mltensor.reset(new MLTensorOp({geom}, {grids}, {dmap}, info));
+        mltensor = std::make_unique<MLTensorOp>({geom}, {grids}, {dmap}, info);
     }
 
     mltensor->setDomainBC(mlmg_lobc, mlmg_hibc);
@@ -137,7 +137,7 @@ MyTest::initData ()
     const auto probhi = geom.ProbHiArray();
     const auto dx     = geom.CellSizeArray();
     auto loverset = do_overset;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(rhs, TilingIfNotGPU()); mfi.isValid(); ++mfi)

@@ -4,7 +4,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_VisMF.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -27,10 +27,10 @@ FabSet&
 FabSet::copyFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
 {
     if (boxArray() == src.boxArray() && DistributionMap() == src.DistributionMap()) {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
+        for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
             const Box& bx = fsi.validbox();
             auto const srcfab =   src.array(fsi);
             auto       dstfab = this->array(fsi);
@@ -38,19 +38,19 @@ FabSet::copyFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
             {
                 dstfab(i,j,k,n+dcomp) = srcfab(i,j,k,n+scomp);
             });
-	}
+        }
     } else {
-	m_mf.copy(src.m_mf,scomp,dcomp,ncomp);
+        m_mf.ParallelCopy(src.m_mf,scomp,dcomp,ncomp);
     }
     return *this;
 }
 
 FabSet&
 FabSet::copyFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp,
-		  const Periodicity& period)
+                  const Periodicity& period)
 {
     BL_ASSERT(boxArray() != src.boxArray());
-    m_mf.copy(src,scomp,dcomp,ncomp,ngrow,0,period);
+    m_mf.ParallelCopy(src,scomp,dcomp,ncomp,ngrow,0,period);
     return *this;
 }
 
@@ -58,10 +58,10 @@ FabSet&
 FabSet::plusFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
 {
     if (boxArray() == src.boxArray() && DistributionMap() == src.DistributionMap()) {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
+        for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
             const Box& bx = fsi.validbox();
             auto const srcfab =   src.array(fsi);
             auto       dstfab = this->array(fsi);
@@ -69,43 +69,43 @@ FabSet::plusFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
             {
                 dstfab(i,j,k,n+dcomp) += srcfab(i,j,k,n+scomp);
             });
-	}
+        }
     } else {
-	amrex::Abort("FabSet::plusFrom: parallel plusFrom not supported");
+        amrex::Abort("FabSet::plusFrom: parallel plusFrom not supported");
     }
     return *this;
 }
 
 FabSet&
 FabSet::plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp,
-		  const Periodicity& period)
+                  const Periodicity& period)
 {
     BL_ASSERT(boxArray() != src.boxArray());
-    m_mf.copy(src,scomp,dcomp,ncomp,ngrow,0,period,FabArrayBase::ADD);
+    m_mf.ParallelCopy(src,scomp,dcomp,ncomp,ngrow,0,period,FabArrayBase::ADD);
     return *this;
 }
 
 void
 FabSet::copyTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
-		const Periodicity& period) const
+                const Periodicity& period) const
 {
     BL_ASSERT(boxArray() != dest.boxArray());
-    dest.copy(m_mf,scomp,dcomp,ncomp,0,ngrow,period);
+    dest.ParallelCopy(m_mf,scomp,dcomp,ncomp,0,ngrow,period);
 }
 
 void
 FabSet::plusTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
-		const Periodicity& period) const
+                const Periodicity& period) const
 {
     BL_ASSERT(boxArray() != dest.boxArray());
-    dest.copy(m_mf,scomp,dcomp,ncomp,0,ngrow,period,FabArrayBase::ADD);
+    dest.ParallelCopy(m_mf,scomp,dcomp,ncomp,0,ngrow,period,FabArrayBase::ADD);
 }
 
 void
 FabSet::setVal (Real val)
 {
     const int ncomp = nComp();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
@@ -121,7 +121,7 @@ FabSet::setVal (Real val)
 void
 FabSet::setVal (Real val, int comp, int num_comp)
 {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
@@ -141,7 +141,7 @@ FabSet::linComb (Real a, Real b, const FabSet& src, int scomp, int dcomp, int nc
 {
     BL_ASSERT(size() == src.size());
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
@@ -158,11 +158,11 @@ FabSet::linComb (Real a, Real b, const FabSet& src, int scomp, int dcomp, int nc
 }
 
 // Linear combination: this := a*mfa + b*mfb
-// CastroRadiation is the only code that uses this function. 
+// CastroRadiation is the only code that uses this function.
 FabSet&
 FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
-		 Real b, const MultiFab& mfb, int b_comp,
-		 int dcomp, int ncomp, int ngrow)
+                 Real b, const MultiFab& mfb, int b_comp,
+                 int dcomp, int ncomp, int ngrow)
 {
     BL_PROFILE("FabSet::linComb()");
     BL_ASSERT(ngrow <= mfa.nGrow());
@@ -173,7 +173,7 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
     MultiFab bdrya(boxArray(),DistributionMap(),ncomp,0,MFInfo(),FArrayBoxFactory());
     MultiFab bdryb(boxArray(),DistributionMap(),ncomp,0,MFInfo(),FArrayBoxFactory());
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(bdrya); mfi.isValid(); ++mfi) // tiling is not safe for this BoxArray
@@ -193,10 +193,10 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
         });
     }
 
-    bdrya.copy(mfa,a_comp,0,ncomp,ngrow,0);
-    bdryb.copy(mfb,b_comp,0,ncomp,ngrow,0);
+    bdrya.ParallelCopy(mfa,a_comp,0,ncomp,ngrow,0);
+    bdryb.ParallelCopy(mfb,b_comp,0,ncomp,ngrow,0);
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
@@ -228,7 +228,7 @@ void
 FabSet::read(const std::string& name)
 {
     if (m_mf.empty()) {
-	amrex::Abort("FabSet::read: not predefined");
+        amrex::Abort("FabSet::read: not predefined");
     }
     VisMF::Read(m_mf,name);
 }
@@ -239,7 +239,7 @@ FabSet::Copy (FabSet& dst, const FabSet& src)
     BL_ASSERT(amrex::match(dst.boxArray(), src.boxArray()));
     BL_ASSERT(dst.DistributionMap() == src.DistributionMap());
     int ncomp = dst.nComp();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (FabSetIter fsi(dst); fsi.isValid(); ++fsi) {

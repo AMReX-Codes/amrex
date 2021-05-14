@@ -83,7 +83,7 @@ void mlpoisson_flux_xface_m (Box const& box, Array4<Real> const& fx,
     const auto lo = amrex::lbound(box);
 
     int i = lo.x;
-    Real re = (probxlo + i*dx) * (probxlo + i*dx);    
+    Real re = (probxlo + i*dx) * (probxlo + i*dx);
     fx(i,0,0) = dxinv*re*(sol(i,0,0)-sol(i-1,0,0));
     i += xlen;
     re = (probxlo + i*dx) * (probxlo + i*dx);
@@ -187,7 +187,7 @@ void mlpoisson_gsrb_m (Box const& box, Array4<Real> const& phi, Array4<Real cons
 
             Real res = rhs(i,0,0) - gamma*phi(i,0,0)
                 - dhx*(rel*phi(i-1,0,0) + rer*phi(i+1,0,0));
-       
+
             phi(i,0,0) = phi(i,0,0) + res /g_m_d;
         }
     }

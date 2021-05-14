@@ -1,0 +1,4 @@
+
+CEXE_sources += main.cpp
+CEXE_sources += MyTest.cpp initEB.cpp initData.cpp initPoiseuilleData.cpp initPoiseuilleDataFor2D.cpp initPoiseuilleDataFor3D.cpp initTriangleWaveData.cpp initTriangleWaveDataFor2D.cpp
+CEXE_headers += MyTest.H MyEB.H

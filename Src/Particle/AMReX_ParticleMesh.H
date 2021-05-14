@@ -4,24 +4,35 @@
 
 #include <AMReX_TypeTraits.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_ParticleUtil.H>
 
 namespace amrex
 {
 
-template <class PC, class MF, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class MF, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void
-ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
+ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input=true)
 {
     BL_PROFILE("amrex::ParticleToMesh");
-    
-    MultiFab* mf_pointer = pc.OnSameGrids(lev, mf) ?
-        &mf : new MultiFab(pc.ParticleBoxArray(lev), 
-                           pc.ParticleDistributionMap(lev),
-                           mf.nComp(), mf.nGrow());
-    mf_pointer->setVal(0.);
+
+    if (zero_out_input) { mf.setVal(0.0); }
+
+    MultiFab* mf_pointer;
+
+    if (pc.OnSameGrids(lev, mf) && zero_out_input)
+    {
+        mf_pointer = &mf;
+    } else {
+        mf_pointer = new MultiFab(pc.ParticleBoxArray(lev),
+                                  pc.ParticleDistributionMap(lev),
+                                  mf.nComp(), mf.nGrowVect());
+        mf_pointer->setVal(0.0);
+    }
+
+    const auto plo = pc.Geom(lev).ProbLoArray();
+    const auto dxi = pc.Geom(lev).InvCellSizeArray();
 
     using ParIter = typename PC::ParConstIterType;
-    const auto& plevel = pc.GetParticles(lev);
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
@@ -30,21 +41,21 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
             const auto& tile = pti.GetParticleTile();
             const auto np = tile.numParticles();
             const auto& aos = tile.GetArrayOfStructs();
-            const auto pstruct = aos().dataPtr();        
+            const auto pstruct = aos().dataPtr();
 
             FArrayBox& fab = (*mf_pointer)[pti];
             auto fabarr = fab.array();
-            
+
             AMREX_FOR_1D( np, i,
             {
-                f(pstruct[i], fabarr);
+                particle_detail::call_f(f, pstruct[i], fabarr, plo, dxi);
             });
         }
     }
     else
 #endif
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
@@ -54,51 +65,55 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
                 const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();        
+                const auto pstruct = aos().dataPtr();
 
                 FArrayBox& fab = (*mf_pointer)[pti];
 
                 Box tile_box = pti.tilebox();
-                tile_box.grow(mf_pointer->nGrow());
+                tile_box.grow(mf_pointer->nGrowVect());
                 local_fab.resize(tile_box,mf_pointer->nComp());
                 local_fab.setVal<RunOn::Host>(0.0);
                 auto fabarr = local_fab.array();
-                
+
                 AMREX_FOR_1D( np, i,
                 {
-                    f(pstruct[i], fabarr);
+                    particle_detail::call_f(f, pstruct[i], fabarr, plo, dxi);
                 });
-                
-                fab.atomicAdd<RunOn::Host>(local_fab, tile_box, tile_box, 0, 0, mf_pointer->nComp());
+
+                fab.atomicAdd<RunOn::Host>(local_fab, tile_box, tile_box,
+                                           0, 0, mf_pointer->nComp());
             }
         }
     }
 
-    mf_pointer->SumBoundary(pc.Geom(lev).periodicity());
-
     if (mf_pointer != &mf)
     {
-        mf.copy(*mf_pointer,0,0,mf_pointer->nComp());
+        mf.ParallelAdd(*mf_pointer, 0, 0, mf_pointer->nComp(),
+                       mf_pointer->nGrowVect(), IntVect(0), pc.Geom(lev).periodicity());
         delete mf_pointer;
+    } else {
+        mf_pointer->SumBoundary(pc.Geom(lev).periodicity());
     }
 }
 
-template <class PC, class MF, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class MF, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void
 MeshToParticle (PC& pc, MF const& mf, int lev, F&& f)
 {
     BL_PROFILE("amrex::MeshToParticle");
 
     MultiFab* mf_pointer = pc.OnSameGrids(lev, mf) ?
-        const_cast<MultiFab*>(&mf) : new MultiFab(pc.ParticleBoxArray(lev), 
+        const_cast<MultiFab*>(&mf) : new MultiFab(pc.ParticleBoxArray(lev),
                                                   pc.ParticleDistributionMap(lev),
-                                                  mf.nComp(), mf.nGrow());
+                                                  mf.nComp(), mf.nGrowVect());
 
-    if (mf_pointer != &mf) mf_pointer->copy(mf,0,0,mf.nComp(),0,mf.nGrow());
-        
-    auto& plevel = pc.GetParticles(lev);
+    if (mf_pointer != &mf) mf_pointer->ParallelCopy(mf,0,0,mf.nComp(),mf.nGrowVect(),mf.nGrowVect());
+
+    const auto plo = pc.Geom(lev).ProbLoArray();
+    const auto dxi = pc.Geom(lev).InvCellSizeArray();
+
     using ParIter = typename PC::ParIterType;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for(ParIter pti(pc, lev); pti.isValid(); ++pti)
@@ -106,14 +121,14 @@ MeshToParticle (PC& pc, MF const& mf, int lev, F&& f)
         auto& tile = pti.GetParticleTile();
         const auto np = tile.numParticles();
         auto& aos = tile.GetArrayOfStructs();
-        auto pstruct = aos().dataPtr();        
+        auto pstruct = aos().dataPtr();
 
         const FArrayBox& fab = (*mf_pointer)[pti];
-        auto fabarr = fab.array();        
+        auto fabarr = fab.array();
 
         AMREX_FOR_1D( np, i,
         {
-            f(pstruct[i], fabarr);
+            particle_detail::call_f(f, pstruct[i], fabarr, plo, dxi);
         });
     }
 

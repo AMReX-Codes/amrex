@@ -30,6 +30,7 @@ target_sources( amrex
    AMReX_Reduce.H
    AMReX_Scan.H
    AMReX_Partition.H
+   AMReX_Morton.H
    AMReX_Random.H
    AMReX_RandomEngine.H
    AMReX_Random.cpp
@@ -66,6 +67,8 @@ target_sources( amrex
    AMReX_DArena.cpp
    AMReX_EArena.H
    AMReX_EArena.cpp
+   AMReX_PArena.H
+   AMReX_PArena.cpp
    AMReX_BLProfiler.H
    AMReX_BLBackTrace.H
    AMReX_BLFort.H
@@ -168,6 +171,7 @@ target_sources( amrex
    AMReX_FilND_C.cpp
    # Non-Local BC
    AMReX_NonLocalBC.H
+   AMReX_NonLocalBC.cpp
    AMReX_NonLocalBCImpl.H
    # Plotfile ----------------------------------------------------------------
    AMReX_PlotFileUtil.cpp

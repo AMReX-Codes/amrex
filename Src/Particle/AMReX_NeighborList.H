@@ -187,9 +187,9 @@ public:
                                       AMREX_ASSERT((p.pos(1)-plo[1])*dxi[1] - lo.y >= 0.0);,
                                       AMREX_ASSERT((p.pos(2)-plo[2])*dxi[2] - lo.z >= 0.0));
 
-                         return IntVect(AMREX_D_DECL(static_cast<int>((p.pos(0)-plo[0])*dxi[0] - lo.x),
-                                                     static_cast<int>((p.pos(1)-plo[1])*dxi[1] - lo.y),
-                                                     static_cast<int>((p.pos(2)-plo[2])*dxi[2] - lo.z)));
+                         return IntVect(AMREX_D_DECL(static_cast<int>(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])) - lo.x,
+                                                     static_cast<int>(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])) - lo.y,
+                                                     static_cast<int>(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2])) - lo.z));
                      });
 
         // first pass - count the number of neighbors for each particle
@@ -203,16 +203,21 @@ public:
 
         AMREX_FOR_1D ( np_real, i,
         {
-            int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z;
+            IntVect iv(AMREX_D_DECL(
+                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(0)-plo[0])*dxi[0])) - lo.x,
+                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(1)-plo[1])*dxi[1])) - lo.y,
+                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(2)-plo[2])*dxi[2])) - lo.z));
+            auto iv3 = iv.dim3();
+
+            int ix = iv3.x;
+            int iy = iv3.y;
+            int iz = iv3.z;
 
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
             int nz = hi.z-lo.z+1;
 
             int count = 0;
-
             for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
                 for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
                     for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
@@ -246,9 +251,15 @@ public:
 
         AMREX_FOR_1D ( np_real, i,
         {
-            int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z;
+            IntVect iv(AMREX_D_DECL(
+                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(0)-plo[0])*dxi[0])) - lo.x,
+                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(1)-plo[1])*dxi[1])) - lo.y,
+                static_cast<int>(amrex::Math::floor((pstruct_ptr[i].pos(2)-plo[2])*dxi[2])) - lo.z));
+            auto iv3 = iv.dim3();
+
+            int ix = iv3.x;
+            int iy = iv3.y;
+            int iz = iv3.z;
 
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;

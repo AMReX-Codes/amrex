@@ -2,13 +2,14 @@
 #define AMREX_EBCELLFLAG_H_
 #include <AMReX_Config.H>
 
-#include <cstdint>
-#include <iostream>
-#include <map>
 #include <AMReX_Array.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_FabFactory.H>
+
+#include <cstdint>
+#include <map>
+#include <iosfwd>
 
 namespace amrex {
 
@@ -283,7 +284,7 @@ private:
 template <>
 struct IsStoreAtomic<EBCellFlag> : std::true_type {};
 
-class EBCellFlagFab
+class EBCellFlagFab final
     : public BaseFab<EBCellFlag>
 {
 public:
@@ -302,7 +303,7 @@ public:
 
     EBCellFlagFab () = default;
     EBCellFlagFab (EBCellFlagFab&& rhs) = default;
-    ~EBCellFlagFab () = default;
+    virtual ~EBCellFlagFab () override = default;
 
     EBCellFlagFab (const EBCellFlagFab&) = delete;
     EBCellFlagFab& operator= (const EBCellFlagFab&) = delete;

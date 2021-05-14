@@ -365,7 +365,7 @@ Sharing the Command Line
 ------------------------
 
 In some cases we want AMReX to only read part of the command line -- this happens, for example, when we
-are going to use AMReX in cooperation with another code package and that code also takes command-line 
+are going to use AMReX in cooperation with another code package and that code also takes command-line
 arguments.
 
 .. highlight:: console
@@ -1477,6 +1477,39 @@ Here the number of ghost cells involved is zero, and the copy is performed on
 all components if unspecified (assuming the two MultiFabs have the same number
 of components).
 
+Both :cpp:`ParallelCopy(...)` and :cpp:`FillBoundary(...)` are blocking calls. They
+will only return when the communication is completed and the destination MultiFab is
+guaranteed to be properly updated.  AMReX also provides non-blocking versions of
+these calls to allow users to overlap communication with calculation and potentially
+improve overall application performance.
+
+The non-blocking calls are used by calling the :cpp:`***_nowait(...)` function
+to begin the comm operation, followed by the :cpp:`***_finish()` function at a later
+time to complete it. For example:
+
+.. highlight:: c++
+
+::
+
+      mfA.ParallelCopy_nowait(mfsrc, period, op);
+
+      // ... Any overlapping calc work here on other data, e.g.
+      mfB.setVal(0.0);
+
+      mfA.ParallelCopy_finish();
+
+      mfB.FillBoundary_nowait(period);
+      // ... Overlapping work here
+      mfB.FillBoundary_finish();
+
+
+All function signatures of the blocking calls are also available in the non-blocking
+calls and should be used in the `nowait` function.  The `finish` functions take no
+parameters, as the required data is stored during `nowait` and retrieved.  Users that
+choose to use non-blocking calls must ensure the calls are properly used to avoid race
+conditions, which typically means not interacting with the MultiFab between the
+:cpp:`_nowait` and :cpp:`_finish` calls.
+
 
 .. _sec:basics:mfiter:
 
@@ -1518,7 +1551,7 @@ together. In this section, we will show how you can operate on the
           // Call function f1 to work on the region specified by box.
           // Note that the whole region of the Fab includes ghost
           // cells (if there are any), and is thus larger than or
-          // equal to "box". 
+          // equal to "box".
           f1(box, a);
       }
 
@@ -1786,7 +1819,7 @@ parallel region:
   // Dynamic tiling, one box per OpenMP thread.
   // No further tiling details,
   //   so each thread works on a single tilebox.
-  #ifdef _OPENMP
+  #ifdef AMREX_USE_OMP
   #pragma omp parallel
   #endif
       for (MFIter mfi(mf,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
@@ -1803,7 +1836,7 @@ Dynamic tiling also allows explicit definition of a tile size:
 
   // Dynamic tiling, one box per OpenMP thread.
   // No tiling in x-direction. Tile size is 16 for y and 32 for z.
-  #ifdef _OPENMP
+  #ifdef AMREX_USE_OMP
   #pragma omp parallel
   #endif
       for (MFIter mfi(mf,MFItInfo().SetDynamic(true).EnableTiling(1024000,16,32)); mfi.isValid(); ++mfi)
@@ -2214,7 +2247,7 @@ macro on loops that are not safe for vectorization may lead to errors,
 so if unsure about the independence of the iterations of a
 loop, test and verify before adding the macro.
 
-These loops should usually use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when 
+These loops should usually use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when
 defining the loop bounds. If not, the highest index cells will be left out
 of the calculation.
 
@@ -2232,7 +2265,7 @@ like below,
 
 ::
 
-  #ifdef _OPENMP
+  #ifdef AMREX_USE_OMP
   #pragma omp parallel if (Gpu::notInLaunchRegion())
   #endif
     for (MFIter mfi(mfa,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -2611,6 +2644,21 @@ For example,
 ::
 
     mpiexec -n 4 valgrind --leak-check=yes --track-origins=yes --log-file=vallog.%p ./foo.exe ...
+
+Breaking into Debuggers
+=======================
+
+In order to break into debuggers and use modern IDEs, the backtrace signal handling described above needs to be disabled.
+
+The following runtime options need to be set in order to prevent AMReX from catching the break signals before a debugger can attach to a crashing process:
+
+::
+
+   amrex.throw_exception = 1
+   amrex.signal_handling = 0
+
+This default behavior can also be modified by applications, see for example `this custom application initializer <https://github.com/Exawind/amr-wind/blob/84f81a990152f4f748c1ab0fa17c8c663e51df86/amr-wind/main.cpp#L21>`__.
+
 
 .. _sec:basics:heat1:
 

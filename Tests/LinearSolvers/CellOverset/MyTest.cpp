@@ -34,9 +34,9 @@ MyTest::solve ()
 
     std::unique_ptr<MLABecLaplacian> mlabec;
     if (do_overset) {
-        mlabec.reset(new MLABecLaplacian({geom}, {grids}, {dmap}, {&oversetmask}, info));
+        mlabec = std::make_unique<MLABecLaplacian>({geom}, {grids}, {dmap}, {&oversetmask}, info);
     } else {
-        mlabec.reset(new MLABecLaplacian({geom}, {grids}, {dmap}, info));
+        mlabec = std::make_unique<MLABecLaplacian>({geom}, {grids}, {dmap}, info);
     }
 
     mlabec->setDomainBC(mlmg_lobc, mlmg_hibc);
@@ -144,7 +144,7 @@ MyTest::initData ()
     auto a = ascalar;
     auto b = bscalar;
     auto loverset = do_overset;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(rhs, TilingIfNotGPU()); mfi.isValid(); ++mfi)

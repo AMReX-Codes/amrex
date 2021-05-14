@@ -24,6 +24,7 @@
 #cmakedefine AMREX_SPACEDIM @AMREX_SPACEDIM@
 #cmakedefine BL_SPACEDIM @BL_SPACEDIM@
 #cmakedefine AMREX_USE_ASSERTION
+#cmakedefine AMREX_BOUND_CHECK
 #cmakedefine BL_FORT_USE_UNDERSCORE
 #cmakedefine BL_FORT_USE_LOWERCASE
 #cmakedefine BL_FORT_USE_UPPERCASE
@@ -46,6 +47,8 @@
 #cmakedefine AMREX_USE_HDF5_ASYNC
 #cmakedefine AMREX_USE_HYPRE
 #cmakedefine AMREX_USE_PETSC
+#cmakedefine AMREX_NO_PROBINIT
+#cmakedefine AMREX_IS_DLL
 #ifdef __cplusplus@COMP_DECLS@
 @OMP_DECLS@
 #endif

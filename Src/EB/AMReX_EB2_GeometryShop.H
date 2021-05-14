@@ -269,7 +269,7 @@ public:
                 }
                 return {nbody,nzero,nfluid};
             });
-            ReduceTuple hv = reduce_data.value();
+            ReduceTuple hv = reduce_data.value(reduce_op);
             int nbody = amrex::get<0>(hv);
             // int nzero = amrex::get<1>(hv);
             int nfluid = amrex::get<2>(hv);
@@ -338,8 +338,8 @@ public:
     }
 
     template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
-    void getIntercept (Array<BaseFab<Real>,AMREX_SPACEDIM>& inter_fab,
-                       Array<BaseFab<Type_t>,AMREX_SPACEDIM> const& type_fab,
+    void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
+                       Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
                        Geometry const& geom, RunOn run_on,
                        Box const& bounding_box) const noexcept
     {
@@ -349,16 +349,15 @@ public:
         const auto bhi = amrex::ubound(bounding_box);
         auto f = m_f;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            Array4<Real> const& inter = inter_fab[idim].array();
-            Array4<Type_t const> const& type = type_fab[idim].array();
-            const Box& bx = inter_fab[idim].box();
-            int dir = (AMREX_SPACEDIM==2) ? 1-idim : idim;
+            Array4<Real> const& inter = inter_arr[idim];
+            Array4<Type_t const> const& type = type_arr[idim];
+            const Box bx{inter};
             AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
             {
                 if (type(i,j,k) == Type::irregular) {
                     IntVect ivlo(AMREX_D_DECL(i,j,k));
                     IntVect ivhi(AMREX_D_DECL(i,j,k));
-                    ivhi[dir] += 1;
+                    ivhi[idim] += 1;
                     inter(i,j,k) = BrentRootFinder
                         ({AMREX_D_DECL(problo[0]+amrex::Clamp(ivlo[0],blo.x,bhi.x)*dx[0],
                                        problo[1]+amrex::Clamp(ivlo[1],blo.y,bhi.y)*dx[1],
@@ -366,7 +365,7 @@ public:
                          {AMREX_D_DECL(problo[0]+amrex::Clamp(ivhi[0],blo.x,bhi.x)*dx[0],
                                        problo[1]+amrex::Clamp(ivhi[1],blo.y,bhi.y)*dx[1],
                                        problo[2]+amrex::Clamp(ivhi[2],blo.z,bhi.z)*dx[2])},
-                            dir, f);
+                            idim, f);
                 } else {
                     inter(i,j,k) = std::numeric_limits<Real>::quiet_NaN();
                 }
@@ -375,8 +374,8 @@ public:
     }
 
     template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
-    void getIntercept (Array<BaseFab<Real>,AMREX_SPACEDIM>& inter_fab,
-                       Array<BaseFab<Type_t>,AMREX_SPACEDIM> const& type_fab,
+    void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
+                       Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
                        Geometry const& geom, RunOn,
                        Box const& bounding_box) const noexcept
     {
@@ -385,16 +384,15 @@ public:
         const auto blo = amrex::lbound(bounding_box);
         const auto bhi = amrex::ubound(bounding_box);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            Array4<Real> const& inter = inter_fab[idim].array();
-            Array4<Type_t const> const& type = type_fab[idim].array();
-            const Box& bx = inter_fab[idim].box();
-            int dir = (AMREX_SPACEDIM==2) ? 1-idim : idim;
+            Array4<Real> const& inter = inter_arr[idim];
+            Array4<Type_t const> const& type = type_arr[idim];
+            const Box bx{inter};
             amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
             {
                 if (type(i,j,k) == Type::irregular) {
                     IntVect ivlo(AMREX_D_DECL(i,j,k));
                     IntVect ivhi(AMREX_D_DECL(i,j,k));
-                    ivhi[dir] += 1;
+                    ivhi[idim] += 1;
                     inter(i,j,k) = BrentRootFinder
                         ({AMREX_D_DECL(problo[0]+amrex::Clamp(ivlo[0],blo.x,bhi.x)*dx[0],
                                        problo[1]+amrex::Clamp(ivlo[1],blo.y,bhi.y)*dx[1],
@@ -402,7 +400,7 @@ public:
                          {AMREX_D_DECL(problo[0]+amrex::Clamp(ivhi[0],blo.x,bhi.x)*dx[0],
                                        problo[1]+amrex::Clamp(ivhi[1],blo.y,bhi.y)*dx[1],
                                        problo[2]+amrex::Clamp(ivhi[2],blo.z,bhi.z)*dx[2])},
-                          dir, m_f);
+                          idim, m_f);
                 } else {
                     inter(i,j,k) = std::numeric_limits<Real>::quiet_NaN();
                 }

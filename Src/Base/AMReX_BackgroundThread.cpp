@@ -4,7 +4,7 @@ namespace amrex {
 
 BackgroundThread::BackgroundThread ()
 {
-    m_thread.reset(new std::thread(&BackgroundThread::do_job, this));
+    m_thread = std::make_unique<std::thread>(&BackgroundThread::do_job, this);
 }
 
 BackgroundThread::~BackgroundThread ()

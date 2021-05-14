@@ -14,7 +14,7 @@ using std::cerr;
 using std::set_new_handler;
 
 static
-void 
+void
 PrintUsage(int argc, char *argv[])
 {
     cout << "Usage: " << endl;
@@ -37,7 +37,7 @@ main (int   argc,
         PrintUsage(argc,argv);
 
     ParmParse pp;
-    
+
     std::string iFile; pp.get("iFile", iFile);
 
 //
@@ -64,7 +64,7 @@ main (int   argc,
             comps[i] = sComp + i;
     }
 
-    
+
     int ngrow = mf.nGrow();
     pp.query("ngrow",ngrow);
     ngrow = std::min(ngrow,mf.nGrow());
@@ -73,6 +73,6 @@ main (int   argc,
         for (int n=0; n<comps.size(); ++n)
             cout << "Comp: " << comps[n] << ", (min,max): " << mf.min(comps[n]) << ", " << mf.max(comps[n])  << endl;
     }
-    
+
     amrex::Finalize();
 }

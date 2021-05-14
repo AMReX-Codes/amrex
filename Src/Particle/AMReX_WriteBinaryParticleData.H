@@ -24,7 +24,7 @@ std::size_t PSizeInFile (const Vector<int>& wrc, const Vector<int>& wic)
     return rsize + isize + AMREX_SPACEDIM*sizeof(ParticleReal) + 2*sizeof(int);
 }
 
-template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void WriteBinaryParticleDataSync (PC const& pc,
                                   const std::string& dir, const std::string& name,
                                   const Vector<int>& write_real_comp,
@@ -140,11 +140,11 @@ void WriteBinaryParticleDataSync (PC const& pc,
         //
         if (sizeof(typename PC::ParticleType::RealType) == 4)
         {
-            HdrFile << PC::ParticleType::Version() << "_single" << '\n';
+            HdrFile << PC::Version() << "_single" << '\n';
         }
         else
         {
-            HdrFile << PC::ParticleType::Version() << "_double" << '\n';
+            HdrFile << PC::Version() << "_double" << '\n';
         }
 
         int num_output_real = 0;
@@ -256,7 +256,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
 
         std::string filePrefix(LevelDir);
         filePrefix += '/';
-        filePrefix += PC::ParticleType::DataPrefix();
+        filePrefix += PC::DataPrefix();
         if(pc.usePrePost) {
             pc.filePrefixPrePost[lev] = filePrefix;
         }
@@ -325,7 +325,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
     }
 }
 
-template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void WriteBinaryParticleDataAsync (PC const& pc,
                                    const std::string& dir, const std::string& name,
                                    const Vector<int>& write_real_comp,
@@ -355,10 +355,11 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     for (int lev = 0; lev <= pc.finestLevel(); lev++)
     {
         np_per_grid_local[lev].define(pc.ParticleBoxArray(lev), pc.ParticleDistributionMap(lev));
-        for (MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+        using ParIter = typename PC::ParConstIterType;
+        for (ParIter pti(pc, lev); pti.isValid(); ++pti)
         {
-            int gid = mfi.index();
-            const auto& ptile = pc.ParticlesAt(lev, mfi);
+            int gid = pti.index();
+            const auto& ptile = pc.ParticlesAt(lev, pti);
             const auto& aos = ptile.GetArrayOfStructs();
             const auto pstruct = aos().dataPtr();
             const int np = ptile.numParticles();
@@ -373,7 +374,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 return (pstruct[i].id() > 0) ? 1 : 0;
             });
 
-            int np_valid = amrex::get<0>(reduce_data.value());
+            int np_valid = amrex::get<0>(reduce_data.value(reduce_op));
             np_per_grid_local[lev][gid] += np_valid;
         }
     }
@@ -519,11 +520,11 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
             if (sizeof(typename PC::ParticleType::RealType) == 4)
             {
-                HdrFile << PC::ParticleType::Version() << "_single" << '\n';
+                HdrFile << PC::Version() << "_single" << '\n';
             }
             else
             {
-                HdrFile << PC::ParticleType::Version() << "_double" << '\n';
+                HdrFile << PC::Version() << "_double" << '\n';
             }
 
             int num_output_real = 0;
@@ -608,7 +609,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
             std::string filePrefix(LevelDir);
             filePrefix += '/';
-            filePrefix += PC::ParticleType::DataPrefix();
+            filePrefix += PC::DataPrefix();
             auto info = AsyncOut::GetWriteInfo(MyProc);
             std::string file_name = amrex::Concatenate(filePrefix, info.ifile, 5);
             std::ofstream ofs;

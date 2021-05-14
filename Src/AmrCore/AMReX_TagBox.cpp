@@ -1,8 +1,3 @@
-#include <algorithm>
-#include <cstdlib>
-#include <cmath>
-#include <climits>
-
 #include <AMReX_TagBox.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -10,6 +5,11 @@
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_MultiFabUtil.H>
+
+#include <algorithm>
+#include <cstdlib>
+#include <cmath>
+#include <climits>
 
 namespace amrex {
 
@@ -75,30 +75,50 @@ TagBox::coarsen (const IntVect& ratio, const Box& cbox) noexcept
 }
 
 void
-TagBox::buffer (const IntVect& a_nbuff) noexcept
+TagBox::buffer (const IntVect& a_nbuff, const IntVect& a_nwid) noexcept
 {
-    Array4<char> const& a = this->array();
+    Box const& interior = amrex::grow(domain, -a_nwid);
     Dim3 nbuf = a_nbuff.dim3();
-    const auto lo = amrex::lbound(domain);
-    const auto hi = amrex::ubound(domain);
-    AMREX_HOST_DEVICE_FOR_3D(domain, i, j, k,
+    Array4<char> const& a = this->array();
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        Box const& interiorplusbuf = amrex::grow(interior, a_nbuff);
+        const auto lo = amrex::lbound(interiorplusbuf);
+        const auto hi = amrex::ubound(interiorplusbuf);
+        AMREX_HOST_DEVICE_FOR_3D(interiorplusbuf, i, j, k,
+        {
+            if (a(i,j,k) == TagBox::CLEAR) {
+                bool to_buf = false;
+                int imin = amrex::max(i-nbuf.x, lo.x);
+                int jmin = amrex::max(j-nbuf.y, lo.y);
+                int kmin = amrex::max(k-nbuf.z, lo.z);
+                int imax = amrex::min(i+nbuf.x, hi.x);
+                int jmax = amrex::min(j+nbuf.y, hi.y);
+                int kmax = amrex::min(k+nbuf.z, hi.z);
+                // xxxxx TODO: If nbuf is large, this is not efficient.
+                //             We need to find another better way.
+                for (int kk = kmin; kk <= kmax && !to_buf; ++kk) {
+                for (int jj = jmin; jj <= jmax && !to_buf; ++jj) {
+                for (int ii = imin; ii <= imax && !to_buf; ++ii) {
+                    if (a(ii,jj,kk) == TagBox::SET) to_buf = true;
+                }}}
+                if (to_buf) a(i,j,k) = TagBox::BUF;
+            }
+        });
+    } else
+#endif
     {
-        if (a(i,j,k) == TagBox::CLEAR) {
-            bool to_buf = false;
-            int imin = amrex::max(i-nbuf.x, lo.x);
-            int jmin = amrex::max(j-nbuf.y, lo.y);
-            int kmin = amrex::max(k-nbuf.z, lo.z);
-            int imax = amrex::min(i+nbuf.x, hi.x);
-            int jmax = amrex::min(j+nbuf.y, hi.y);
-            int kmax = amrex::min(k+nbuf.z, hi.z);
-            for (int kk = kmin; kk <= kmax && !to_buf; ++kk) {
-            for (int jj = jmin; jj <= jmax && !to_buf; ++jj) {
-            for (int ii = imin; ii <= imax && !to_buf; ++ii) {
-                if (a(ii,jj,kk) == TagBox::SET) to_buf = true;
-            }}}
-            if (to_buf) a(i,j,k) = TagBox::BUF;
-        }
-    });
+        AMREX_LOOP_3D(interior, i, j, k,
+        {
+            if (a(i,j,k) == TagBox::SET) {
+                for (int kk = k-nbuf.z; kk <= k+nbuf.z; ++kk) {
+                for (int jj = j-nbuf.y; jj <= j+nbuf.y; ++jj) {
+                for (int ii = i-nbuf.x; ii <= i+nbuf.x; ++ii) {
+                    if (a(ii,jj,kk) == TagBox::CLEAR) { a(ii,jj,kk) = TagBox::BUF; }
+                }}}
+            }
+        });
+    }
 }
 
 // DEPRECATED
@@ -157,9 +177,9 @@ TagBox::tags_and_untags (const Vector<int>& ar) noexcept
 
 // DEPRECATED
 // Since a TagBox is a BaseFab<char>, we can use this utility
-// function to allocate an integer array to have the same number 
+// function to allocate an integer array to have the same number
 // of elements as cells in tilebx
-void 
+void
 TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const noexcept
 {
     auto dlen = length();
@@ -167,7 +187,7 @@ TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const noexcept
     for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
         Lbx[idim] = dlen[idim];
     }
-    
+
     Long stride[] = {1, Lbx[0], Long(Lbx[0])*Long(Lbx[1])};
 
     Long Ntb = 1, stb=0;
@@ -177,9 +197,9 @@ TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const noexcept
         Ntb *= Ltb[idim];
         stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
     }
-    
+
     if (ar.size() < Ntb) ar.resize(Ntb);
-    
+
     const TagType* const p0   = dataPtr() + stb;  // +stb to the lower corner of tilebox
     int*                 iptr = ar.dataPtr();
 
@@ -201,7 +221,7 @@ TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const noexcept
 // DEPRECATED
 // Set values as specified by the array -- this only tags.
 // only changes values in the tilebx region
-void 
+void
 TagBox::tags (const Vector<int>& ar, const Box& tilebx) noexcept
 {
     auto dlen = length();
@@ -209,7 +229,7 @@ TagBox::tags (const Vector<int>& ar, const Box& tilebx) noexcept
     for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
         Lbx[idim] = dlen[idim];
     }
-    
+
     Long stride[] = {1, Lbx[0], Long(Lbx[0])*Long(Lbx[1])};
 
     Long stb=0;
@@ -218,7 +238,7 @@ TagBox::tags (const Vector<int>& ar, const Box& tilebx) noexcept
         Ltb[idim] = tilebx.length(idim);
         stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
     }
-    
+
     TagType* const p0   = dataPtr() + stb;  // +stb to the lower corner of tilebox
     const int*     iptr = ar.dataPtr();
 
@@ -235,7 +255,7 @@ TagBox::tags (const Vector<int>& ar, const Box& tilebx) noexcept
 // DEPRECATED
 // Set values as specified by the array -- this tags and untags.
 // only changes values in the tilebx region
-void 
+void
 TagBox::tags_and_untags (const Vector<int>& ar, const Box& tilebx) noexcept
 {
     auto dlen = length();
@@ -243,7 +263,7 @@ TagBox::tags_and_untags (const Vector<int>& ar, const Box& tilebx) noexcept
     for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
         Lbx[idim] = dlen[idim];
     }
-    
+
     Long stride[] = {1, Lbx[0], Long(Lbx[0])*Long(Lbx[1])};
 
     Long stb=0;
@@ -252,7 +272,7 @@ TagBox::tags_and_untags (const Vector<int>& ar, const Box& tilebx) noexcept
         Ltb[idim] = tilebx.length(idim);
         stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
     }
-    
+
     TagType* const p0   = dataPtr() + stb;  // +stb to the lower corner of tilebox
     const int*     iptr = ar.dataPtr();
 
@@ -267,7 +287,7 @@ TagBox::tags_and_untags (const Vector<int>& ar, const Box& tilebx) noexcept
 }
 
 TagBoxArray::TagBoxArray (const BoxArray& ba,
-			  const DistributionMapping& dm,
+                          const DistributionMapping& dm,
                           int             _ngrow)
     :
     FabArray<TagBox>(ba,dm,1,_ngrow,MFInfo(),DefaultFabFactory<TagBox>())
@@ -276,7 +296,7 @@ TagBoxArray::TagBoxArray (const BoxArray& ba,
 }
 
 TagBoxArray::TagBoxArray (const BoxArray& ba,
-			  const DistributionMapping& dm,
+                          const DistributionMapping& dm,
                           const IntVect&  _ngrow)
     :
     FabArray<TagBox>(ba,dm,1,_ngrow,MFInfo(),DefaultFabFactory<TagBox>())
@@ -284,18 +304,18 @@ TagBoxArray::TagBoxArray (const BoxArray& ba,
     setVal(TagBox::CLEAR);
 }
 
-void 
+void
 TagBoxArray::buffer (const IntVect& nbuf)
 {
     AMREX_ASSERT(nbuf.allLE(n_grow));
 
     if (nbuf.max() > 0)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
        for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
-           get(mfi).buffer(nbuf);
+           get(mfi).buffer(nbuf, n_grow);
        }
     }
 }
@@ -315,7 +335,7 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
 
         // We need to keep tags in periodic boundary
         const auto owner_mask = amrex::OwnerMask(tmp, Periodicity::NonPeriodic(), nGrowVect());
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(tmp); mfi.isValid(); ++mfi) {
@@ -341,7 +361,7 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
 
         // We need to keep tags in periodic boundary
         const auto owner_mask = amrex::OwnerMask(tmp, Periodicity::NonPeriodic(), nGrowVect());
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(tmp); mfi.isValid(); ++mfi) {
@@ -359,12 +379,12 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
 }
 
 void
-TagBoxArray::local_collate_cpu (Vector<IntVect>& v) const
+TagBoxArray::local_collate_cpu (Gpu::PinnedVector<IntVect>& v) const
 {
     if (this->local_size() == 0) return;
 
     Vector<int> count(this->local_size());
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     for (MFIter fai(*this); fai.isValid(); ++fai)
@@ -386,7 +406,7 @@ TagBoxArray::local_collate_cpu (Vector<IntVect>& v) const
 
     if (v.empty()) return;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     for (MFIter fai(*this); fai.isValid(); ++fai)
@@ -408,7 +428,7 @@ TagBoxArray::local_collate_cpu (Vector<IntVect>& v) const
 
 #ifdef AMREX_USE_GPU
 void
-TagBoxArray::local_collate_gpu (Vector<IntVect>& v) const
+TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
 {
     const int nfabs = this->local_size();
     if (nfabs == 0) return;
@@ -575,11 +595,11 @@ TagBoxArray::local_collate_gpu (Vector<IntVect>& v) const
 #endif
 
 void
-TagBoxArray::collate (Vector<IntVect>& TheGlobalCollateSpace) const
+TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
 {
     BL_PROFILE("TagBoxArray::collate()");
 
-    Vector<IntVect> TheLocalCollateSpace;
+    Gpu::PinnedVector<IntVect> TheLocalCollateSpace;
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         local_collate_gpu(TheLocalCollateSpace);
@@ -625,8 +645,8 @@ TagBoxArray::collate (Vector<IntVect>& TheGlobalCollateSpace) const
     std::vector<int> offset(countvec.size(),0);
     if (ParallelDescriptor::IOProcessor()) {
         for (int i = 1, N = offset.size(); i < N; i++) {
-	    offset[i] = offset[i-1] + countvec[i-1];
-	}
+            offset[i] = offset[i-1] + countvec[i-1];
+        }
     }
     //
     // Gather all the tags to IOProcNumber into TheGlobalCollateSpace.
@@ -641,24 +661,11 @@ TagBoxArray::collate (Vector<IntVect>& TheGlobalCollateSpace) const
 }
 
 void
-TagBoxArray::setVal (const BoxList& bl, TagBox::TagVal val)
-{
-    BoxArray ba(bl);
-    setVal(ba,val);
-}
-
-void
-TagBoxArray::setVal (const BoxDomain& bd, TagBox::TagVal val)
-{
-    setVal(bd.boxList(),val);
-}
-
-void
 TagBoxArray::setVal (const BoxArray& ba, TagBox::TagVal val)
 {
     Vector<Array4BoxTag<char> > tags;
     bool run_on_gpu = Gpu::inLaunchRegion();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
 #endif
     {
@@ -701,7 +708,7 @@ TagBoxArray::coarsen (const IntVect & ratio)
         new_n_grow[idim] = (n_grow[idim]+ratio[idim]-1)/ratio[idim];
     }
 
-#if defined(_OPENMP)
+#if defined(AMREX_USE_OMP)
 #pragma omp parallel if (teamsize == 1 && Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
@@ -738,12 +745,12 @@ TagBoxArray::hasTags (Box const& a_bx) const
             }
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         has_tags = static_cast<bool>(amrex::get<0>(hv));
     } else
 #endif
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(||:has_tags)
 #endif
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
@@ -764,4 +771,3 @@ TagBoxArray::hasTags (Box const& a_bx) const
 }
 
 }
-

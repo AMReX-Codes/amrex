@@ -1,14 +1,30 @@
 #
 # List of subdirectories to search for CMakeLists.
 #
-set( AMREX_TESTS_SUBDIRS AsyncOut )
+set( AMREX_TESTS_SUBDIRS AsyncOut MultiBlock Amr)
 
 if (AMReX_PARTICLES)
    list(APPEND AMREX_TESTS_SUBDIRS Particles)
 endif ()
 
+if (AMReX_EB)
+   list(APPEND AMREX_TESTS_SUBDIRS EB)
+endif ()
+
+if (AMReX_LINEAR_SOLVERS)
+   list(APPEND AMREX_TESTS_SUBDIRS LinearSolvers)
+endif ()
+
 if (AMReX_HDF5)
    list(APPEND AMREX_TESTS_SUBDIRS HDF5Benchmark)
+endif ()
+
+if (AMReX_FORTRAN_INTERFACES)
+   list(APPEND AMREX_TESTS_SUBDIRS FortranInterface)
+endif ()
+
+if (AMReX_CUDA)
+   list(APPEND AMREX_TESTS_SUBDIRS GPU)
 endif ()
 
 list(TRANSFORM AMREX_TESTS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
@@ -63,7 +79,7 @@ function (setup_test _srcs  _inputs)
          ${CMAKE_CURRENT_BINARY_DIR}/mod_files )
    endif ()
 
-   target_link_libraries( ${_exe_name} amrex )
+   target_link_libraries( ${_exe_name} AMReX::amrex )
 
    if (AMReX_CUDA)
       setup_target_for_cuda_compilation( ${_exe_name} )
@@ -80,7 +96,9 @@ function (setup_test _srcs  _inputs)
 
    if (${_inputs})
       file( COPY ${${_inputs}} DESTINATION ${_exe_dir} )
-      list(APPEND _cmd ${${_inputs}})
+      list(GET ${_inputs} 0 _first_inputs)
+      get_filename_component( _inputs_filename ${_first_inputs} NAME )
+      list(APPEND _cmd ${_inputs_filename})
    endif ()
 
    #

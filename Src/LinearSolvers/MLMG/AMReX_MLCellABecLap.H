@@ -63,7 +63,7 @@ public:
 
     virtual void applyOverset (int amlev, MultiFab& rhs) const override;
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
 #endif
 
@@ -73,6 +73,10 @@ public:
 
 protected:
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_overset_mask;
+
+    LPInfo m_lpinfo_arg;
+
+    virtual bool supportInhomogNeumannBC () const noexcept override { return true; }
 };
 
 }

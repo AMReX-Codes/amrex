@@ -17,11 +17,10 @@
 #include <AMReX_MakeType.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Reduce.H>
-//#include <AMReX_Scan.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Math.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -47,7 +46,7 @@ extern Long private_total_bytes_allocated_in_fabs;     //!< total bytes at any g
 extern Long private_total_bytes_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
 extern Long private_total_cells_allocated_in_fabs;     //!< total cells at any given time
 extern Long private_total_cells_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp threadprivate(private_total_bytes_allocated_in_fabs)
 #pragma omp threadprivate(private_total_bytes_allocated_in_fabs_hwm)
 #pragma omp threadprivate(private_total_cells_allocated_in_fabs)
@@ -144,7 +143,8 @@ placementNew (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
-typename std::enable_if< AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T) && !std::is_arithmetic<T>::value >::type
+std::enable_if_t<std::is_trivially_default_constructible<T>::value
+                 && !std::is_arithmetic<T>::value>
 placementNew (T* const ptr, Long n)
 {
     for (Long i = 0; i < n; ++i) {
@@ -153,7 +153,7 @@ placementNew (T* const ptr, Long n)
 }
 
 template <typename T>
-typename std::enable_if<!AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T)>::type
+std::enable_if_t<!std::is_trivially_default_constructible<T>::value>
 placementNew (T* const ptr, Long n)
 {
     AMREX_HOST_DEVICE_FOR_1D ( n, i,
@@ -224,7 +224,7 @@ public:
 
     //!  Make BaseFab with desired domain (box) and number of components.
     explicit BaseFab (const Box& bx, int n = 1, bool alloc = true,
-		      bool shared = false, Arena* ar = nullptr);
+                      bool shared = false, Arena* ar = nullptr);
 
     BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp);
 
@@ -245,7 +245,7 @@ public:
     explicit BaseFab (Array4<T const> const& a, IndexType t) noexcept;
 
     //! The destructor deletes the array memory.
-    ~BaseFab () noexcept;
+    virtual ~BaseFab () noexcept;
 
     BaseFab (const BaseFab<T>& rhs) = delete;
     BaseFab<T>& operator= (const BaseFab<T>& rhs) = delete;
@@ -273,8 +273,10 @@ public:
     * space which must be a different size whenever it is used.
     * Resizing is typically faster than re-allocating a
     * BaseFab because memory allocation can often be avoided.
+    * If a nullptr is provided as Arena*, the Arena already in BaseFab will
+    * be used. Otherwise, the Arena argument will be used.
     */
-    void resize (const Box& b, int N = 1);
+    void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
     template <class U=T, typename std::enable_if<std::is_trivially_destructible<U>::value,int>::type = 0>
     Elixir elixir () noexcept;
@@ -1275,7 +1277,7 @@ public:
     template <RunOn run_on=RunOn::Host>
 #endif
     T dot (const Box& xbx, int xcomp, const BaseFab<T>& y, const Box& ybx, int ycomp,
-	   int numcomp = 1) const noexcept;
+           int numcomp = 1) const noexcept;
 
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
@@ -1677,8 +1679,7 @@ void
 BaseFab<T>::prefetchToHost () const noexcept
 {
 #ifdef AMREX_USE_GPU
-    if ((this->arena() == The_Arena() && this->arena()->arenaInfo().device_use_managed_memory) ||
-        this->arena() == The_Managed_Arena()) {
+    if (this->arena()->isManaged()) {
 #if defined(AMREX_USE_DPCPP)
         // xxxxx DPCPP todo: prefetchToHost
         // std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
@@ -1703,8 +1704,7 @@ void
 BaseFab<T>::prefetchToDevice () const noexcept
 {
 #ifdef AMREX_USE_GPU
-    if ((this->arena() == The_Arena() && this->arena()->arenaInfo().device_use_managed_memory) ||
-        this->arena() == The_Managed_Arena()) {
+    if (this->arena()->isManaged()) {
 #if defined(AMREX_USE_DPCPP)
         std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
         auto& q = Gpu::Device::streamQueue();
@@ -1952,7 +1952,7 @@ BaseFab<T>::BaseFab (const Box& bx, int n, bool alloc, bool shared, Arena* ar)
 
 template <class T>
 BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp)
-    : DataAllocator{rhs.arena()}, 
+    : DataAllocator{rhs.arena()},
       dptr(const_cast<T*>(rhs.dataPtr(scomp))),
       domain(rhs.domain), nvar(ncomp),
       truesize(ncomp*rhs.domain.numPts())
@@ -2042,23 +2042,32 @@ BaseFab<T>::operator= (T const& t) noexcept
 
 template <class T>
 void
-BaseFab<T>::resize (const Box& b, int n)
+BaseFab<T>::resize (const Box& b, int n, Arena* ar)
 {
     this->nvar   = n;
     this->domain = b;
 
-    if (this->dptr == 0 || !this->ptr_owner)
+    if (ar == nullptr) {
+        ar = m_arena;
+    }
+
+    if (arena() != DataAllocator(ar).arena()) {
+        clear();
+        m_arena = ar;
+        define();
+    }
+    else if (this->dptr == 0 || !this->ptr_owner)
     {
-	if (this->shared_memory)
-	    amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
+        if (this->shared_memory)
+            amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
 
         this->dptr = nullptr;
         define();
     }
     else if (this->nvar*this->domain.numPts() > this->truesize)
     {
-	if (this->shared_memory)
-	    amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
+        if (this->shared_memory)
+            amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
 
         clear();
 
@@ -2097,26 +2106,26 @@ BaseFab<T>::clear () noexcept
         //
         // Call T::~T() on the to-be-destroyed memory.
         //
-	if (this->ptr_owner)
-	{
-	    if (this->shared_memory)
-	    {
-		amrex::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
-	    }
+        if (this->ptr_owner)
+        {
+            if (this->shared_memory)
+            {
+                amrex::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
+            }
 
             placementDelete(this->dptr, this->truesize);
 
-	    this->free(this->dptr);
+            this->free(this->dptr);
 
-	    if (this->nvar > 1) {
-		amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
-	    } else {
-		amrex::update_fab_stats(0, -this->truesize, sizeof(T));
-	    }
-	}
+            if (this->nvar > 1) {
+                amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
+            } else {
+                amrex::update_fab_stats(0, -this->truesize, sizeof(T));
+            }
+        }
 
-	this->dptr = 0;
-	this->truesize = 0;
+        this->dptr = 0;
+        this->truesize = 0;
     }
 }
 
@@ -2284,7 +2293,7 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
@@ -2333,7 +2342,7 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
                 }
                 return {t};
             });
-            ReduceTuple hv = reduce_data.value();
+            ReduceTuple hv = reduce_data.value(reduce_op);
             nrm = amrex::get<0>(hv);
         } else if (p == 1) {
             ReduceOps<ReduceOpSum> reduce_op;
@@ -2348,7 +2357,7 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
                 }
                 return {t};
             });
-            ReduceTuple hv = reduce_data.value();
+            ReduceTuple hv = reduce_data.value(reduce_op);
             nrm = amrex::get<0>(hv);
         } else if (p == 2) {
             ReduceOps<ReduceOpSum> reduce_op;
@@ -2363,7 +2372,7 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
                 }
                 return {t};
             });
-            ReduceTuple hv = reduce_data.value();
+            ReduceTuple hv = reduce_data.value(reduce_op);
             nrm = amrex::get<0>(hv);
         } else {
             amrex::Error("BaseFab<T>::norm: wrong p");
@@ -2419,7 +2428,7 @@ BaseFab<T>::min (const Box& subbox, int comp) const noexcept
         {
             return { a(i,j,k) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
@@ -2457,7 +2466,7 @@ BaseFab<T>::max (const Box& subbox, int comp) const noexcept
         {
             return { a(i,j,k) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
@@ -2496,7 +2505,7 @@ BaseFab<T>::minmax (const Box& subbox, int comp) const noexcept
             auto const x = a(i,j,k);
             return { x, x };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return std::make_pair(amrex::get<0>(hv), amrex::get<1>(hv));
     } else
 #endif
@@ -2537,7 +2546,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
         {
             return { amrex::Math::abs(a(i,j,k)) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
@@ -2670,7 +2679,7 @@ BaseFab<T>::maskLT (BaseFab<int>& mask, T const& val, int comp) const noexcept
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         cnt = amrex::get<0>(hv);
     } else
 #endif
@@ -2716,7 +2725,7 @@ BaseFab<T>::maskLE (BaseFab<int>& mask, T const& val, int comp) const noexcept
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         cnt = amrex::get<0>(hv);
     } else
 #endif
@@ -2762,7 +2771,7 @@ BaseFab<T>::maskEQ (BaseFab<int>& mask, T const& val, int comp) const noexcept
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         cnt = amrex::get<0>(hv);
     } else
 #endif
@@ -2808,7 +2817,7 @@ BaseFab<T>::maskGT (BaseFab<int>& mask, T const& val, int comp) const noexcept
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         cnt = amrex::get<0>(hv);
     } else
 #endif
@@ -2854,7 +2863,7 @@ BaseFab<T>::maskGE (BaseFab<int>& mask, T const& val, int comp) const noexcept
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         cnt = amrex::get<0>(hv);
     } else
 #endif
@@ -2999,7 +3008,7 @@ BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
     const auto slo1 = amrex::lbound(b1);
     const auto slo2 = amrex::lbound(b2);
     const Dim3 off1{slo1.x-dlo.x,slo1.y-dlo.y,slo1.z-dlo.z};
-    const Dim3 off2{slo2.x-dlo.x,slo2.y-dlo.y,slo2.z-dlo.z};    
+    const Dim3 off2{slo2.x-dlo.x,slo2.y-dlo.y,slo2.z-dlo.z};
 
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, b, numcomp, i, j, k, n,
     {
@@ -3045,7 +3054,7 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
@@ -3098,7 +3107,7 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
@@ -4013,7 +4022,7 @@ BaseFab<T>::sum (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
             }
             return { t };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
@@ -4053,7 +4062,7 @@ BaseFab<T>::dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp d
             }
             return { t };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
@@ -4099,7 +4108,7 @@ BaseFab<T>::dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
             }
             return { t };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
@@ -4143,7 +4152,7 @@ BaseFab<T>::dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& m
             }
             return { t };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif

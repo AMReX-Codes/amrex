@@ -253,7 +253,7 @@ struct ParticleTile
     using ParticleTileDataType = ParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ConstParticleTileDataType = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
-    ParticleTile()
+    ParticleTile ()
         : m_defined(false)
     {}
 
@@ -333,7 +333,7 @@ struct ParticleTile
     /// Add one particle to this tile.
     ///
     template < int NR = NArrayReal, int NI = NArrayInt,
-               EnableIf_t<NR != 0 || NI != 0, int> foo = 0>
+               std::enable_if_t<NR != 0 || NI != 0, int> foo = 0>
     void push_back (const SuperParticleType& sp)
     {
         auto np = numParticles();
@@ -472,7 +472,7 @@ struct ParticleTile
         return nbytes;
     }
 
-    void swap (ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt>& other)
+    void swap (ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>& other)
     {
         m_aos_tile().swap(other.GetArrayOfStructs()());
         for (int j = 0; j < NumRealComps(); ++j)

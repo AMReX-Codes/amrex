@@ -3,7 +3,7 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBCellFlag.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -18,7 +18,7 @@ TagCutCells (TagBoxArray& tags, const MultiFab& state)
     auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
     auto const& flags = factory.getMultiEBCellFlagFab();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(state, TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -51,7 +51,7 @@ TagVolfrac (TagBoxArray& tags, const MultiFab& volfrac, Real tol)
 //    const char clearval = TagBox::CLEAR;
     const char   tagval = TagBox::SET;
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(volfrac, TilingIfNotGPU()); mfi.isValid(); ++mfi) {

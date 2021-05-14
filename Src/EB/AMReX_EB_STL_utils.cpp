@@ -8,7 +8,7 @@ namespace amrex
     {
         std::string tmpline,tmp1,tmp2;
         int nlines=0;
-    
+
         Vector<char> fileCharPtr;
         ParallelDescriptor::ReadAndBcastFile(fname, fileCharPtr);
         std::string fileCharPtrString(fileCharPtr.dataPtr());
@@ -65,7 +65,7 @@ namespace amrex
 
             std::getline(infile,tmpline); //vertex 2
             std::istringstream vertex2(tmpline);
-            vertex2>>tmp1 
+            vertex2>>tmp1
                 >>m_tri_pts_h[i*m_ndata_per_tri+3]
                 >>m_tri_pts_h[i*m_ndata_per_tri+4]
                 >>m_tri_pts_h[i*m_ndata_per_tri+5];
@@ -81,13 +81,13 @@ namespace amrex
             std::getline(infile,tmpline); //end facet
         }
 
-        //device vectors  
+        //device vectors
         m_tri_pts_d.resize(m_num_tri*m_ndata_per_tri);
         m_tri_normals_d.resize(m_num_tri*m_ndata_per_normal);
 
         Gpu::copy(Gpu::hostToDevice, m_tri_pts_h.begin(),
                 m_tri_pts_h.end(), m_tri_pts_d.begin());
-        Gpu::copy(Gpu::hostToDevice, 
+        Gpu::copy(Gpu::hostToDevice,
                 m_tri_normals_h.begin(), m_tri_normals_h.end(),
                 m_tri_normals_d.begin());
     }

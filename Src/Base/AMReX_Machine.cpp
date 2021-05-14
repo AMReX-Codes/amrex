@@ -93,14 +93,14 @@ Coord df_id_to_coord (int id)
 }
 
 template <class T, size_t N>
-std::string to_str(const Array<T, N> & a)
+std::string to_str (const Array<T, N> & a)
 {
     std::ostringstream oss;
     oss << "(";
     bool first = true;
-    for (int i = 0; i < N; ++i) {
+    for (auto const& item : a) {
         if (!first) oss << ",";
-        oss << a[i];
+        oss << item;
         first = false;
     }
     oss << ")";
@@ -108,14 +108,14 @@ std::string to_str(const Array<T, N> & a)
 }
 
 template <class T>
-std::string to_str(const Vector<T> & v)
+std::string to_str (const Vector<T> & v)
 {
     std::ostringstream oss;
     oss << "(";
     bool first = true;
-    for (int i = 0; i < v.size(); ++i) {
+    for (auto const& item : v) {
         if (!first) oss << ",";
-        oss << v[i];
+        oss << item;
         first = false;
     }
     oss << ")";
@@ -283,7 +283,7 @@ class Machine
             int local_nbh_size = local_nbh.size();
             MPI_Bcast(&local_nbh_size, 1, MPI_INT, winner_rank, ParallelContext::CommunicatorSub());
             local_nbh.resize(local_nbh_size);
-            MPI_Bcast(local_nbh.data(), local_nbh.size(), MPI_INT, winner_rank, ParallelContext::CommunicatorSub()); 
+            MPI_Bcast(local_nbh.data(), local_nbh.size(), MPI_INT, winner_rank, ParallelContext::CommunicatorSub());
 
             std::sort(local_nbh.begin(), local_nbh.end());
             if (flag_verbose) {
@@ -384,7 +384,7 @@ class Machine
                 }
             } else {
                 if (cluster_name == "escori")
-		    tag = "cgpu";
+                    tag = "cgpu";
                 auto mpi_proc_name = get_mpi_processor_name();
                 Print() << "MPI_Get_processor_name: " << mpi_proc_name << std::endl;
                 pos = mpi_proc_name.find(tag);
@@ -582,7 +582,7 @@ namespace amrex {
 namespace machine {
 
 void Initialize () {
-    the_machine.reset(new Machine());
+    the_machine = std::make_unique<Machine>();
     amrex::ExecOnFinalize(machine::Finalize);
 }
 

@@ -21,9 +21,7 @@ namespace amrex {
 * This class is used to tag cells in a Box that need addition refinement.
 */
 
-class BoxDomain;
-
-class TagBox
+class TagBox final
     :
     public BaseFab<char>
 {
@@ -46,7 +44,7 @@ public:
 
     TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp);
 
-    ~TagBox () = default;
+    virtual ~TagBox () noexcept override = default;
 
     TagBox (TagBox&& rhs) noexcept = default;
 
@@ -63,10 +61,13 @@ public:
 
     /**
     * \brief Mark neighbors of every tagged cell a distance nbuff away
+    * only search interior for initial tagged points where nwid
+    * is given as the width of the bndry region.
     *
     * \param nbuff
+    * \param nwid
     */
-    void buffer (const IntVect& nbuf) noexcept;
+    void buffer (const IntVect& nbuf, const IntVect& nwid) noexcept;
 
     /**
     * \brief Returns Vector\<int\> of size domain.numPts() suitable for calling
@@ -188,22 +189,6 @@ public:
     void mapPeriodicRemoveDuplicates (const Geometry& geom);
 
     /**
-    * \brief Set values in bl to val.
-    *
-    * \param bl
-    * \param val
-    */
-    void setVal (const BoxList& bl, TagBox::TagVal val);
-
-    /**
-    * \brief Set values in bd to val.
-    *
-    * \param bd
-    * \param val
-    */
-    void setVal (const BoxDomain& bd, TagBox::TagVal val);
-
-    /**
     * \brief Set values in ba to val.
     *
     * \param ba
@@ -224,14 +209,14 @@ public:
     *
     * \param TheGlobalCollateSpace
     */
-    void collate (Vector<IntVect>& TheGlobalCollateSpace) const;
+    void collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const;
 
     // \brief Are there tags in the region defined by bx?
     bool hasTags (Box const& bx) const;
 
-    void local_collate_cpu (Vector<IntVect>& v) const;
+    void local_collate_cpu (Gpu::PinnedVector<IntVect>& v) const;
 #ifdef AMREX_USE_GPU
-    void local_collate_gpu (Vector<IntVect>& v) const;
+    void local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const;
 #endif
 };
 

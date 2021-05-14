@@ -3,7 +3,7 @@
 #include <AMReX_EBFluxRegister_C.H>
 #include <AMReX_EBFArrayBox.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -45,7 +45,7 @@ EBFluxRegister::defineExtra (const BoxArray& fba, const DistributionMapping& fdm
     BoxArray cfba = fba;
     cfba.coarsen(m_ratio);
     m_cfp_inside_mask.define(cfba, fdm, 1, 0, MFInfo(),DefaultFabFactory<IArrayBox>());
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(m_cfp_inside_mask); mfi.isValid(); ++mfi)
@@ -233,7 +233,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
 {
     if (!m_cfp_mask.empty())
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(m_cfpatch); mfi.isValid(); ++mfi)
@@ -255,9 +255,9 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                                  m_ncomp, 1, MFInfo(), FArrayBoxFactory());
         MultiFab::Copy(grown_crse_data, m_crse_data, 0, 0, m_ncomp, 0);
         grown_crse_data.FillBoundary(m_crse_geom.periodicity());
-        
+
         m_crse_data.setVal(0.0);
-        
+
         auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(crse_state.Factory());
         auto const& flags = factory.getMultiEBCellFlagFab();
 
@@ -265,7 +265,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
 
         MFItInfo info;
         if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(m_crse_data, info); mfi.isValid(); ++mfi)
@@ -314,16 +314,16 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
 
     Dim3 ratio = m_ratio.dim3();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(cf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& cbx = mfi.tilebox();
         const Box& fbx = amrex::refine(cbx, m_ratio);
-        
+
         const auto& ebflag = flags[mfi];
-        
+
         if (ebflag.getType(fbx) != FabType::covered)
         {
             Array4<Real> const& d = fine_state.array(mfi);

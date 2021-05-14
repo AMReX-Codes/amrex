@@ -395,7 +395,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
   amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n) noexcept
-    {
+  {
       if (apx(i,j,k) == 0)
       {
           edg_x(i,j,k,n) = 1e40;
@@ -408,14 +408,32 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
       {
           edg_x(i,j,k,n) = phi(domhi.x+1,j,k,n);
       }
-      else if (apx(i,j,k) == 1 && cvol(i,j,k) == 1 && cvol(i-1,j,k) == 1)
+      else if ( apx(i,j,k) == 1 && (cvol(i,j,k) == 1 && cvol(i-1,j,k) == 1) )
       {
           edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
-      } 
-      else 
+      }
+      else if (apx(i,j,k) == 1 && (amrex::Math::abs(ccent(i,j,k,1)-ccent(i-1,j,k,1)) < 1.e-8) )
+      {
+          Real d0 = 0.5 + ccent(i  ,j,k,0);                               // distance in x-dir from centroid(i  ,j) to face(i,j)
+          Real d1 = 0.5 - ccent(i-1,j,k,0);                               // distance in x-dir from centroid(i-1,j) to face(i,j)
+          Real a0 = d1 / (d0 + d1);                                       // coefficient of phi(i  ,j,k,n)
+          Real a1 = d0 / (d0 + d1);                                       // coefficient of phi(i-1,j,k,n)
+          edg_x(i,j,k,n) = a0*phi(i,j,k,n) + a1*phi(i-1,j,k,n);           // interpolation of phi in x-direction
+      }
+      else
       {
           int ii = i - 1;
-          int jj = (fcx(i,j,k) < 0.0) ? j - 1 : j + 1;
+          int jj;
+          if (amrex::Math::abs(fcx(i,j,k)) > 1.e-8) {
+              jj = (fcx(i,j,k) < 0.0) ? j - 1 : j + 1;
+          } else {
+
+              // We must add an additional test to avoid the case where fcx is very close to zero,
+              //     but the cells at (j-1) or (j+1) might be covered or very small cells
+              Real min_vol_lo = std::min(cvol(i,j-1,k),cvol(ii,j-1,k));
+              Real min_vol_hi = std::min(cvol(i,j+1,k),cvol(ii,j+1,k));
+              jj = (min_vol_lo > min_vol_hi) ? j - 1 : j + 1;
+          }
 
           Real d0    = 0.5 + ccent( i,j,k,0);                                 // distance in x-dir from centroid(i  ,j) to face(i,j)
           Real d1    = 0.5 - ccent(ii,j,k,0);                                 // distance in x-dir from centroid(i-1,j) to face(i,j)
@@ -434,11 +452,11 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
 
           Real phi01_jj = a0_jj *   phi(i,jj,k,n)  + a1_jj *   phi(ii,jj,k,n); // interpolation of phi   in x-direction
           Real y01_jj   = a0_jj * ccent(i,jj,k,1)  + a1_jj * ccent(ii,jj,k,1); // interpolation of y-loc in x-direction
-          
-          edg_x(i,j,k,n) = ( (     fcx(i,j,k) - y01   ) * phi01_jj + 
+
+          edg_x(i,j,k,n) = ( (     fcx(i,j,k) - y01   ) * phi01_jj +
                              (1. - fcx(i,j,k) + y01_jj) * phi01    ) / (1. - y01 + y01_jj);
       }
-    });
+  });
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -456,27 +474,47 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
   amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n) noexcept
-    {
-        if (apy(i,j,k) == 0)
-        {
-            edg_y(i,j,k,n) = 1e40;
-        }
-        else if ( (j == domlo.y) && (bc[n].lo(1) == BCType::ext_dir) )
-        {
-            edg_y(i,j,k,n) = phi(i,domlo.y-1,k,n);
-        }
-        else if ( (j == domhi.y+1) && (bc[n].hi(1) == BCType::ext_dir) )
-        {
-            edg_y(i,j,k,n) = phi(i,domhi.y+1,k,n);
-        }
-        else if (apy(i,j,k) == 1 && cvol(i,j,k) == 1 && cvol(i,j-1,k) == 1)
-        {
-            edg_y(i,j,k,n) = 0.5 * (phi(i,j  ,k,n) + phi(i,j-1,k,n));
-        }
-        else 
-        {
+   {
+      if (apy(i,j,k) == 0)
+      {
+          edg_y(i,j,k,n) = 1e40;
+      }
+      else if ( (j == domlo.y) && (bc[n].lo(1) == BCType::ext_dir) )
+      {
+          edg_y(i,j,k,n) = phi(i,domlo.y-1,k,n);
+      }
+      else if ( (j == domhi.y+1) && (bc[n].hi(1) == BCType::ext_dir) )
+      {
+          edg_y(i,j,k,n) = phi(i,domhi.y+1,k,n);
+      }
+      else if (apy(i,j,k) == 1. && cvol(i,j,k) == 1 && cvol(i,j-1,k) == 1)
+      {
+          edg_y(i,j,k,n) = 0.5 * (phi(i,j  ,k,n) + phi(i,j-1,k,n));
+      }
+      else if (apy(i,j,k) == 1. && (amrex::Math::abs(ccent(i,j,k,0)-ccent(i,j-1,k,0)) < 1.e-8) )
+      {
+          Real d0 = 0.5 + ccent(i,j  ,k,1);                                // distance in y-dir from centroid(i,j  ) to face(i,j)
+          Real d1 = 0.5 - ccent(i,j-1,k,1);                                // distance in y-dir from centroid(i,j-1) to face(i,j)
+          Real a0 = d1 / (d0 + d1);                                        // coefficient of phi(i,j  ,k,n)
+          Real a1 = d0 / (d0 + d1);                                        // coefficient of phi(i,j-1,k,n)
+          edg_y(i,j,k,n) = a0*phi(i,j,k,n) + a1*phi(i,j-1,k,n);            // interpolation of phi in y-direction
+      }
+      else
+      {
           int jj = j - 1;
-          int ii = (fcy(i,j,k) < 0.0) ? i - 1 : i + 1;
+          int ii;
+
+          // We must add an additional test to avoid the case where fcy is very close to zero, but (i-1) or (i+1)
+          //    might be covered cells -- this can happen when the EB is exactly aligned with the horizontal grid lines
+          if (amrex::Math::abs(fcy(i,j,k)) > 1.e-8) {
+              ii = (fcy(i,j,k) < 0.0) ? i - 1 : i + 1;
+          } else {
+              // We must add an additional test to avoid the case where fcx is very close to zero,
+              //     but the cells at (i-1) or (i+1) might be covered or very small cells
+              Real min_vol_lo = std::min(cvol(i-1,j,k),cvol(i-1,jj,k));
+              Real min_vol_hi = std::min(cvol(i+1,j,k),cvol(i+1,jj,k));
+              ii = (min_vol_lo > min_vol_hi) ? i - 1 : i + 1;
+          }
 
           Real d0    = 0.5 + ccent(i, j,k,1);                                 // distance in y-dir from centroid(i,j  ) to face(i,j)
           Real d1    = 0.5 - ccent(i,jj,k,1);                                 // distance in y-dir from centroid(i,j-1) to face(i,j)
@@ -495,8 +533,8 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
 
           Real phi01_ii = a0_ii *   phi(ii,j,k,n)  + a1_ii *   phi(ii,jj,k,n); // interpolation of phi   in y-direction
           Real x01_ii   = a0_ii * ccent(ii,j,k,0)  + a1_ii * ccent(ii,jj,k,0); // interpolation of x-loc in y-direction
-          
-          edg_y(i,j,k,n) = ( (     fcy(i,j,k) - x01   ) * phi01_ii + 
+
+          edg_y(i,j,k,n) = ( (     fcy(i,j,k) - x01   ) * phi01_ii +
                              (1. - fcy(i,j,k) + x01_ii) * phi01    ) / (1. - x01 + x01_ii);
         }
     });
@@ -525,7 +563,7 @@ void eb_interp_cc2face_x (Box const& ubx,
         else
         {
           edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
-        } 
+        }
     });
 }
 

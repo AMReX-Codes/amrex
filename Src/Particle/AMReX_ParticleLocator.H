@@ -124,7 +124,7 @@ public:
                     AMREX_D_DECL(si[0], si[1], si[2])};
         });
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
 
         m_bins_lo  = IntVect(AMREX_D_DECL(amrex::get<0>(hv),
                                           amrex::get<1>(hv),

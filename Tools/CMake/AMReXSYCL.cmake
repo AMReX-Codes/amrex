@@ -28,7 +28,7 @@ if (DPCPP_BETA_VERSION LESS "09")
 endif ()
 
 
-set(_cxx_dpcpp "$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:IntelClang>,$<CXX_COMPILER_ID:IntelDPCPP>>")
+set(_cxx_dpcpp "$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:IntelClang>,$<CXX_COMPILER_ID:IntelDPCPP>,$<CXX_COMPILER_ID:IntelLLVM>>")
 set(_cxx_dpcpp "$<AND:$<COMPILE_LANGUAGE:CXX>,${_cxx_dpcpp}>")
 
 #
@@ -43,10 +43,9 @@ target_compile_features(SYCL INTERFACE cxx_std_17)
 #
 # Compiler options
 #
-
 target_compile_options( SYCL
    INTERFACE
-   $<${_cxx_dpcpp}:-Wno-error=sycl-strict -fsycl>
+   $<${_cxx_dpcpp}:-Wno-error=sycl-strict -Wno-pass-failed -fsycl>
    $<${_cxx_dpcpp}:$<$<BOOL:${AMReX_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
 
 # temporary work-around for DPC++ beta08 bug

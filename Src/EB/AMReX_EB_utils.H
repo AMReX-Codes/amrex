@@ -17,6 +17,16 @@ namespace amrex {
     void single_level_weighted_redistribute (MultiFab& div_tmp_in, MultiFab& div_out, const MultiFab& weights,
                                              int div_comp, int ncomp, const Geometry& geom);
 
+    void apply_flux_redistribution ( const Box& bx,
+                                     Array4<Real      > const& div,
+                                     Array4<Real const> const& divc,
+                                     Array4<Real const> const& wt,
+                                     const int icomp,
+                                     const int ncomp,
+                                     Array4<EBCellFlag const> const& flags,
+                                     Array4<Real const>    const& vfrac,
+                                     const Geometry & geom);
+
 #if (__cplusplus >= 201402L)
     [[deprecated]]
 #endif
@@ -46,7 +56,7 @@ namespace amrex {
             }
         }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for(MFIter mfi(mf); mfi.isValid(); ++ mfi) {

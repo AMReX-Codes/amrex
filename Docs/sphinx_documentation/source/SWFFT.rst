@@ -7,8 +7,8 @@
 .. role:: underline
     :class: underline
 
-.. _swfftdoc:	    
-	    
+.. _swfftdoc:
+
 SWFFT
 =======
 
@@ -53,7 +53,7 @@ The following figures illustrate how data is distributed from block structured g
 
 .. table:: SWFFT Redistribution from :math:`4 \times 4 \times 4` Box Array into Pencils
    :align: center
-   
+
    +---------------------------------------------------------+------------------------------------------------------+
    |                        |a|                              |                        |b|                           |
    +---------------------------------------------------------+------------------------------------------------------+

@@ -9,11 +9,11 @@ extern "C" {
 
     void amrex_fi_new_boxarray (BoxArray*& ba, int lo[3], int hi[3])
     {
-	IntVect small(lo), big(hi);
-	ba = new BoxArray(Box(small,big));
+        IntVect small(lo), big(hi);
+        ba = new BoxArray(Box(small,big));
     }
 
-    void amrex_fi_new_boxarray_from_bxfarr (BoxArray*& ba, const int* bxs, 
+    void amrex_fi_new_boxarray_from_bxfarr (BoxArray*& ba, const int* bxs,
                                             const int nsides, const int ndims, const int nbxs)
     {
         amrex::ignore_unused(nsides);
@@ -27,18 +27,18 @@ extern "C" {
             bl.push_back(Box{lo,hi});
             bxs += 2*ndims;
         }
-	ba = new BoxArray(bl);
+        ba = new BoxArray(bl);
     }
 
     void amrex_fi_delete_boxarray (BoxArray* ba)
     {
-	delete ba;
+        delete ba;
     }
 
     void amrex_fi_clone_boxarray (BoxArray*& bao, const BoxArray* bai)
     {
-	delete bao;
-	bao = new BoxArray(*bai);
+        delete bao;
+        bao = new BoxArray(*bai);
     }
 
     void amrex_fi_boxarray_maxsize (BoxArray* ba, int sz[])
@@ -51,16 +51,16 @@ extern "C" {
     {
         const Box& bx = (*ba)[i];
         const int* lov = bx.loVect();
-	const int* hiv = bx.hiVect();
-	for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-	    lo[idim] = lov[idim];
-	    hi[idim] = hiv[idim];
-	}
+        const int* hiv = bx.hiVect();
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+            lo[idim] = lov[idim];
+            hi[idim] = hiv[idim];
+        }
     }
 
     void amrex_fi_print_boxarray (const BoxArray* ba)
     {
-	AllPrint() << *ba;
+        AllPrint() << *ba;
     }
 
     void amrex_fi_boxarray_nodal_type (const BoxArray* ba, int inodal[3])

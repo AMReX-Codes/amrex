@@ -2,7 +2,7 @@
 #include <AMReX_YAFluxRegister.H>
 #include <AMReX_YAFluxRegister_K.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -55,7 +55,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         const FabArrayBase::CPC& cpc0 = m_crse_flag.getCPC(IntVect(1), foo, IntVect(0), cperiod);
         m_crse_flag.setVal(fine_cell, cpc0, 0, 1);
         auto recv_layout_mask = m_crse_flag.RecvLayoutMask(cpc0);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(m_crse_flag); mfi.isValid(); ++mfi) {
@@ -72,8 +72,8 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     const int n_cfba = cfba.size();
     cfba.uniqify();
 
-#ifdef _OPENMP
-    
+#ifdef AMREX_USE_OMP
+
     const int nthreads = omp_get_max_threads();
     Vector<BoxList> bl_priv(nthreads, BoxList());
     Vector<Vector<int> > procmap_priv(nthreads);
@@ -176,7 +176,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
 
         const Box& domainbox = m_crse_geom.Domain();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
 #endif
         {
@@ -299,7 +299,7 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
             flux[idim] = &ftmp[idim];
         }
     }
-    
+
     AMREX_ASSERT(bx.cellCentered());
 
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
@@ -350,7 +350,7 @@ YAFluxRegister::Reflux (MultiFab& state, int dc)
     if (!m_cfp_mask.empty())
     {
         const int ncomp = m_ncomp;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(m_cfpatch); mfi.isValid(); ++mfi)

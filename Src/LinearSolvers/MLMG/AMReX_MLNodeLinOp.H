@@ -5,7 +5,7 @@
 #include <AMReX_MLLinOp.H>
 #include <AMReX_iMultiFab.H>
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 #include <AMReX_HypreNodeLap.H>
 #endif
 
@@ -35,7 +35,9 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
-    virtual void setLevelBC (int /*amrlev*/, const MultiFab* /*levelbcdata*/) final override {}
+    virtual void setLevelBC (int /*amrlev*/, const MultiFab* /*levelbcdata*/,
+                             const MultiFab* = nullptr, const MultiFab* = nullptr,
+                             const MultiFab* = nullptr) final override {}
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
@@ -55,7 +57,7 @@ public:
                            MultiFab& /*sol*/, Location /*loc*/) const override {
         amrex::Abort("AMReX_MLNodeLinOp::compGrad::How did we get here?");
     }
-    
+
     virtual void applyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final override {}
     virtual void unapplyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final override {}
 
@@ -96,17 +98,27 @@ public:
     // omask is either 0 or 1. 1 means the node is an unknown. 0 means it's known.
     void setOversetMask (int amrlev, const iMultiFab& a_omask);
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
         int bottom_verbose,
         const std::string& options_namespace) const override;
 
-    virtual void fillIJMatrix (MFIter const& /*mfi*/, Array4<HypreNodeLap::Int const> const& /*nid*/,
-                               Array4<int const> const& /*owner*/,
-                               Vector<HypreNodeLap::Int>& /*ncols*/, Vector<HypreNodeLap::Int>& /*rows*/,
-                               Vector<HypreNodeLap::Int>& /*cols*/, Vector<Real>& /*mat*/) const
+    virtual void fillIJMatrix (MFIter const& /*mfi*/,
+                               Array4<HypreNodeLap::AtomicInt const> const& /*gid*/,
+                               Array4<int const> const& /*lid*/,
+                               HypreNodeLap::Int* const /*ncols*/,
+                               HypreNodeLap::Int* const /*cols*/,
+                               Real* const /*mat*/) const
     {
-        amrex::Abort("MLNodeLinOp: how did we get here?");
+        amrex::Abort("MLNodeLinOp::fillIJMatrix: how did we get here?");
+    }
+
+    virtual void fillRHS (MFIter const& /*mfi*/,
+                          Array4<int const> const& /*lid*/,
+                          Real* const /*rhs*/,
+                          Array4<Real const> const& /*bfab*/) const
+    {
+        amrex::Abort("MLNodeLinOp:fillRHS: how did we get here?");
     }
 #endif
 

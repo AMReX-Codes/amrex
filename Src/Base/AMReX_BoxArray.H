@@ -3,15 +3,15 @@
 #define BL_BOXARRAY_H
 #include <AMReX_Config.H>
 
-#include <iostream>
-#include <cstddef>
-#include <map>
-#include <unordered_map>
-
 #include <AMReX_IndexType.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
+
+#include <iosfwd>
+#include <cstddef>
+#include <map>
+#include <unordered_map>
 
 namespace amrex
 {
@@ -52,7 +52,6 @@ namespace amrex
     //! Note that two BoxArrays that match are not necessarily equal.
     bool match (const BoxArray& x, const BoxArray& y);
 
-// \cond CODEGEN
 struct BARef
 {
     BARef ();
@@ -79,7 +78,7 @@ struct BARef
 
     inline bool HasHashMap () const {
         bool r;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp atomic read
 #endif
         r = has_hashmap;
@@ -559,7 +558,7 @@ public:
     BoxArray (const BoxArray& rhs, const BATransformer& trans);
 
     BoxArray (BoxList&& bl, IntVect const& max_grid_size);
-    
+
     /**
     * \brief Initialize the BoxArray from a single box.
     * It is an error if the BoxArray has already been initialized.
@@ -632,6 +631,7 @@ public:
     //! Coarsen each Box in the BoxArray to the specified ratio.
     bool coarsenable(int refinement_ratio, int min_width=1) const;
     bool coarsenable(const IntVect& refinement_ratio, int min_width=1) const;
+    bool coarsenable(const IntVect& refinement_ratio, const IntVect& min_width) const;
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (const IntVect& refinement_ratio);
@@ -726,13 +726,17 @@ public:
     bool contains (const IntVect& v) const;
 
     /**
-    * \brief True if the Box is within any of the Boxes in the List.
+    * \brief True if the Box is contained in this BoxArray(+ng).
     * The Box must also have the same IndexType as those in this BoxArray.
     */
-    bool contains (const Box& b, bool assume_disjoint_ba = false) const;
+    bool contains (const Box& b, bool assume_disjoint_ba = false,
+                   const IntVect& ng = IntVect(0)) const;
 
-    //! True if all Boxes in bl are contained in this BoxArray.
-    bool contains (const BoxArray& bl, bool assume_disjoint_ba = false) const;
+    /**
+     * \brief True if all Boxes in ba are contained in this BoxArray(+ng).
+     */
+    bool contains (const BoxArray& ba, bool assume_disjoint_ba = false,
+                   const IntVect& ng = IntVect(0)) const;
 
     //! Return smallest Box that contains all Boxes in this BoxArray.
     Box minimalBox () const;
@@ -759,10 +763,10 @@ public:
 
     //! intersect Box and BoxArray(+ghostcells), then store the result in isects
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
-			bool first_only, int ng) const;
+                        bool first_only, int ng) const;
 
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
-			bool first_only, const IntVect& ng) const;
+                        bool first_only, const IntVect& ng) const;
 
     //! Return box - boxarray
     BoxList complementIn (const Box& b) const;
@@ -804,15 +808,15 @@ public:
     //! Make ourselves unique.
     void uniqify ();
 
+    BoxList const& simplified_list () const; // For regular AMR grids only!!!
+    BoxArray simplified () const; // For regular AMR grids only!!!
+
     friend class AmrMesh;
     friend class FabArrayBase;
 
 private:
     //!  Update BoxArray index type according the box type, and then convert boxes to cell-centered.
     void type_update ();
-
-    BoxList const& simplified_list () const; // For regular AMR grids only
-    BoxArray simplified () const;
 
     BARef::HashType& getHashMap () const;
 

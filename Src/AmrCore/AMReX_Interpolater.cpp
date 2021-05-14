@@ -1,6 +1,4 @@
 
-#include <climits>
-
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IArrayBox.H>
 #include <AMReX_Geometry.H>
@@ -10,6 +8,8 @@
 #ifndef BL_NO_FORT
 #include <AMReX_INTERP_F.H>
 #endif
+
+#include <climits>
 
 namespace amrex {
 
@@ -868,7 +868,7 @@ CellConservativeQuartic::~CellConservativeQuartic () {}
 
 Box
 CellConservativeQuartic::CoarseBox (const Box& fine,
-				    int        ratio)
+                                    int        ratio)
 {
     Box crse(amrex::coarsen(fine,ratio));
     crse.grow(2);
@@ -877,7 +877,7 @@ CellConservativeQuartic::CoarseBox (const Box& fine,
 
 Box
 CellConservativeQuartic::CoarseBox (const Box&     fine,
-				    const IntVect& ratio)
+                                    const IntVect& ratio)
 {
     Box crse = amrex::coarsen(fine,ratio);
     crse.grow(2);
@@ -886,17 +886,17 @@ CellConservativeQuartic::CoarseBox (const Box&     fine,
 
 void
 CellConservativeQuartic::interp (const FArrayBox&  crse,
-				 int               crse_comp,
-				 FArrayBox&        fine,
-				 int               fine_comp,
-				 int               ncomp,
-				 const Box&        fine_region,
-				 const IntVect&    ratio,
-				 const Geometry&   /* crse_geom */,
-				 const Geometry&   /* fine_geom */,
-				 Vector<BCRec> const&   bcr,
-				 int               actual_comp,
-				 int               actual_state,
+                                 int               crse_comp,
+                                 FArrayBox&        fine,
+                                 int               fine_comp,
+                                 int               ncomp,
+                                 const Box&        fine_region,
+                                 const IntVect&    ratio,
+                                 const Geometry&   /* crse_geom */,
+                                 const Geometry&   /* fine_geom */,
+                                 Vector<BCRec> const&   bcr,
+                                 int               actual_comp,
+                                 int               actual_state,
                                  RunOn             /*runon*/)
 {
     BL_PROFILE("CellConservativeQuartic::interp()");
@@ -955,13 +955,13 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 #endif
 
     amrex_quartinterp (fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
-		      fblo, fbhi, fb2lo, fb2hi,
-		      cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),
-		      cblo, cbhi, cb2lo, cb2hi,
-		      &ncomp,
-		      AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
-		      AMREX_D_DECL(ftmp.dataPtr(), ctmp.dataPtr(), ctmp2.dataPtr()),
-		      bc.dataPtr(),&actual_comp,&actual_state);
+                       fblo, fbhi, fb2lo, fb2hi,
+                       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),
+                       cblo, cbhi, cb2lo, cb2hi,
+                       &ncomp,
+                       AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
+                       AMREX_D_DECL(ftmp.dataPtr(), ctmp.dataPtr(), ctmp2.dataPtr()),
+                       bc.dataPtr(),&actual_comp,&actual_state);
 }
 #endif
 

@@ -42,31 +42,38 @@ function (configure_amrex)
    # Moreover, it will also enforce such standard on all the consuming targets
    #
    set_target_properties(amrex PROPERTIES CXX_EXTENSIONS OFF)
-   # minimum: C++11 on Linux, C++17 on Windows, C++17 for dpc++
+   # minimum: C++14 on Linux, C++17 on Windows, C++17 for dpc++
    if (AMReX_DPCPP)
       target_compile_features(amrex PUBLIC cxx_std_17)
    else ()
-      target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cxx_std_17,cxx_std_11>)
+      target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cxx_std_17,cxx_std_14>)
    endif ()
 
    if (AMReX_CUDA AND (CMAKE_VERSION VERSION_GREATER_EQUAL 3.17) )
       set_target_properties(amrex PROPERTIES CUDA_EXTENSIONS OFF)
-      # minimum: C++11 on Linux, C++17 on Windows
-      target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cuda_std_17,cuda_std_11>)
+      # minimum: C++14 on Linux, C++17 on Windows
+      target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cuda_std_17,cuda_std_14>)
    endif()
 
    #
    # Special flags for MSVC compiler
    #
    set(_cxx_msvc   "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>")
-   set(_condition  "$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19.26>")
 
    target_compile_options( amrex PRIVATE $<${_cxx_msvc}:/bigobj> )
    target_compile_options( amrex PRIVATE $<${_cxx_msvc}:-wd4244;-wd4267;-wd4996> )
 
+   # modern preprocessor
+   set(_condition  "$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19.26>")
    target_compile_options( amrex PUBLIC
       $<${_cxx_msvc}:$<IF:${_condition},/experimental:preprocessor,/Zc:preprocessor>>
-      )
+   )
+   # proper __cplusplus macro:
+   #   https://docs.microsoft.com/en-us/cpp/build/reference/zc-cplusplus?view=msvc-160
+   set(_condition  "$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,19.14>")
+   target_compile_options( amrex PUBLIC
+      $<${_cxx_msvc}:$<${_condition}:/Zc:__cplusplus>>
+   )
 
    unset(_condition)
    unset(_cxx_msvc)
@@ -136,30 +143,19 @@ function (configure_amrex)
    endif ()
 
    if ( AMReX_PIC OR BUILD_SHARED_LIBS )
-      set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
+      set_target_properties ( amrex PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+        WINDOWS_EXPORT_ALL_SYMBOLS ON )
    endif ()
 
-   if ( BUILD_SHARED_LIBS OR AMReX_CUDA )
-      set(host_link_supported OLD)
-      if(CMP0105)
-        cmake_policy(GET CMP0105 host_link_supported)
-      endif()
-
-      if(APPLE)
-        if( host_link_supported STREQUAL "NEW" ) # CMake 3.18+
-          target_link_options(amrex PUBLIC "LINKER:-undefined,warning")
-        else()
-          target_link_options(amrex PUBLIC "-Wl,-undefined,warning")
-        endif()
-      elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR
-             CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
-        # nothing
+   # IPO/LTO
+   if (AMReX_IPO)
+      include(CheckIPOSupported)
+      check_ipo_supported(RESULT is_IPO_available)
+      if(is_IPO_available)
+          set_target_properties(amrex PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
       else()
-        if( host_link_supported STREQUAL "NEW" ) # CMake 3.18+
-          target_link_options(amrex PUBLIC "$<HOST_LINK:LINKER:--warn-unresolved-symbols>")
-        else()
-          target_link_options(amrex PUBLIC "-Wl,--warn-unresolved-symbols")
-        endif()
+          message(FATAL_ERROR "Interprocedural optimization is not available, set AMReX_IPO=OFF")
       endif()
    endif()
 

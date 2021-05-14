@@ -44,7 +44,7 @@ MyTest::solve ()
             mlmg_hibc[idim] = LinOpBCType::Dirichlet;
         }
     }
-            
+
     LPInfo info;
     info.setMaxCoarseningLevel(max_coarsening_level);
     info.setAgglomerationGridSize(agg_grid_size);
@@ -118,7 +118,7 @@ MyTest::writePlotfile ()
 
 void
 MyTest::readParameters ()
-{   
+{
     ParmParse pp;
     pp.query("max_level", max_level);
     pp.query("n_cell", n_cell);
@@ -188,7 +188,7 @@ MyTest::initGrids ()
         grids[ilev].define(domain);
         grids[ilev].maxSize(max_grid_size);
         domain.grow(-n_cell/4);   // fine level cover the middle of the coarse domain
-        domain.refine(ref_ratio); 
+        domain.refine(ref_ratio);
     }
 }
 
@@ -208,8 +208,8 @@ MyTest::initData ()
         dmap[ilev].define(grids[ilev]);
         const EB2::IndexSpace& eb_is = EB2::IndexSpace::top();
         const EB2::Level& eb_level = eb_is.getLevel(geom[ilev]);
-        factory[ilev].reset(new EBFArrayBoxFactory(eb_level, geom[ilev], grids[ilev], dmap[ilev],
-                                                   {2,2,2}, EBSupport::full));
+        factory[ilev] = std::make_unique<EBFArrayBoxFactory>
+            (eb_level, geom[ilev], grids[ilev], dmap[ilev], Vector<int>{2,2,2}, EBSupport::full);
 
         phi[ilev].define(amrex::convert(grids[ilev],IntVect::TheNodeVector()),
                          dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);
@@ -241,9 +241,9 @@ MyTest::initData ()
                     fab(i,j,k,0) += 2.0*r*ry/r*fac;
                     fab(i,j,k,1) -= 2.0*r*rx/r*fac;
                });
-            } 
+            }
 #if (AMREX_SPACEDIM > 2)
-            else if (cylinder_direction == 1) 
+            else if (cylinder_direction == 1)
             {
                 amrex::ParallelFor(bx,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
@@ -254,8 +254,8 @@ MyTest::initData ()
                     fab(i,j,k,0) -= 2.0*r*rz/r*fac;
                     fab(i,j,k,2) += 2.0*r*rx/r*fac;
                 });
-            } 
-            else if (cylinder_direction == 0) 
+            }
+            else if (cylinder_direction == 0)
             {
                 amrex::ParallelFor(bx,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
@@ -266,7 +266,7 @@ MyTest::initData ()
                     fab(i,j,k,1) += 2.0*r*rz/r*fac;
                     fab(i,j,k,2) -= 2.0*r*ry/r*fac;
                 });
-            } 
+            }
 #endif
         }
     }

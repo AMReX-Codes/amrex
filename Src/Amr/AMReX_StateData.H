@@ -3,8 +3,6 @@
 #define AMREX_StateData_H_
 #include <AMReX_Config.H>
 
-#include <memory>
-
 #include <AMReX_Box.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_MultiFab.H>
@@ -18,6 +16,8 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_RealBox.H>
 #include <AMReX_StateDescriptor.H>
+
+#include <memory>
 
 namespace amrex {
 
@@ -54,7 +54,7 @@ public:
     */
     StateData (const Box&             p_domain,
                const BoxArray&        grds,
-	       const DistributionMapping& dm,
+               const DistributionMapping& dm,
                const StateDescriptor* d,
                Real                   cur_time,
                Real                   dt,
@@ -85,7 +85,7 @@ public:
     */
     void define (const Box&             p_domain,
                  const BoxArray&        grds,
-		 const DistributionMapping& dm,
+                 const DistributionMapping& dm,
                  const StateDescriptor& d,
                  Real                   cur_time,
                  Real                   dt,
@@ -193,25 +193,25 @@ public:
                        Vector<MultiFabId>&      mfid);
 
     void InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
-		       Vector<MultiFabId>&      mfid,
-		       BoxList*                returnedUnfillableBoxes,
-		       Vector<FillBoxId>&       returnedFillBoxIds,
-		       const Box&              subbox,
-		       Real                    time,
-		       int                     src_comp,
-		       int                     dest_comp,
-		       int                     num_comp,
-		       bool                    extrap = false);
+                       Vector<MultiFabId>&      mfid,
+                       BoxList*                returnedUnfillableBoxes,
+                       Vector<FillBoxId>&       returnedFillBoxIds,
+                       const Box&              subbox,
+                       Real                    time,
+                       int                     src_comp,
+                       int                     dest_comp,
+                       int                     num_comp,
+                       bool                    extrap = false);
 
     void InterpFillFab (MultiFabCopyDescriptor&  fabCopyDesc,
-			const Vector<MultiFabId>& mfid,
-			const Vector<FillBoxId>&  fillBoxIds,
-			FArrayBox&               dest,
-			Real                     time,
-			int                      src_comp,
-			int                      dest_comp,
-			int                      num_comp,
-			bool                     extrap = false);
+                        const Vector<MultiFabId>& mfid,
+                        const Vector<FillBoxId>&  fillBoxIds,
+                        FArrayBox&               dest,
+                        Real                     time,
+                        int                      src_comp,
+                        int                      dest_comp,
+                        int                      num_comp,
+                        bool                     extrap = false);
 
 
     /**
@@ -268,9 +268,9 @@ public:
     * \param restart_file
     */
     void restart (std::istream&          is,
-		  const Box&             p_domain,
-		  const BoxArray&        grds,
-		  const DistributionMapping& dm,
+                  const Box&             p_domain,
+                  const BoxArray&        grds,
+                  const DistributionMapping& dm,
                   const FabFactory<FArrayBox>& factroy,
                   const StateDescriptor& d,
                   const std::string&     restart_file);
@@ -282,7 +282,7 @@ public:
     * \param rhs
     */
     void restart (const StateDescriptor& d,
-		  const StateData& rhs);
+                  const StateData& rhs);
 
     /**
     * \brief Returns the StateDescriptor.
@@ -313,16 +313,16 @@ public:
     * \brief Returns the current time.
     */
     Real curTime () const noexcept {
-	return (desc->timeType() == StateDescriptor::Point) ?
-	    new_time.stop : 0.5_rt*(new_time.start + new_time.stop);
+        return (desc->timeType() == StateDescriptor::Point) ?
+            new_time.stop : 0.5_rt*(new_time.start + new_time.stop);
     }
 
     /**
     * \brief Returns the previous time.
     */
     Real prevTime () const noexcept {
-	return (desc->timeType() == StateDescriptor::Point) ?
-	    old_time.stop : 0.5_rt*(old_time.start + old_time.stop);
+        return (desc->timeType() == StateDescriptor::Point) ?
+            old_time.stop : 0.5_rt*(old_time.start + old_time.stop);
     }
 
     /**
@@ -385,8 +385,8 @@ public:
     bool hasNewData () const noexcept { return new_data != nullptr; }
 
     void getData (Vector<MultiFab*>& data,
-		  Vector<Real>& datatime,
-		  Real time) const;
+                  Vector<Real>& datatime,
+                  Real time) const;
 
     /**
     * \brief Get the Arena used.
@@ -461,7 +461,7 @@ class StateDataPhysBCFunct
 public:
 
     StateDataPhysBCFunct (StateData& sd, int sc, const Geometry& geom_);
-    
+
     void operator() (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
                      Real time, int bccomp);
 

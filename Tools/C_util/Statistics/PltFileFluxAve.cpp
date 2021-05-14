@@ -24,7 +24,7 @@ PrintUsage (const char* progName)
     std::cout << '\n';
     std::cout << "This routine reads a set of pltfiles "
               << "and determines x/y fluxes. " << std::endl
-	      << std::endl;
+              << std::endl;
     std::cout << "Usage:" << '\n';
     std::cout << progName << '\n';
     std::cout << "   infile=inputFileName" << '\n';
@@ -41,7 +41,7 @@ SumThisComp(AmrData &amrData, int iComp)
 {
   Real sum(0.0);
   Real phi(1.0);
-  int finestLevel = amrData.FinestLevel();      
+  int finestLevel = amrData.FinestLevel();
   int nComp = amrData.NComp();
 
   Vector<int> refMult(finestLevel + 1, 1);
@@ -60,7 +60,7 @@ SumThisComp(AmrData &amrData, int iComp)
   //
   long total_volume = 0;
   Vector<MultiFab*> error(finestLevel+1);
-  
+
   for (int iLevel = finestLevel; iLevel>=0; --iLevel)
   {
     const BoxArray& ba = amrData.boxArray(iLevel);
@@ -76,19 +76,19 @@ SumThisComp(AmrData &amrData, int iComp)
     long covered_volume = 0;
     if (iLevel != finestLevel)
     {
-      int ref_ratio = amrData.RefRatio()[iLevel];	    
+      int ref_ratio = amrData.RefRatio()[iLevel];
       BoxArray baF = ::BoxArray(amrData.boxArray(iLevel+1)).coarsen(ref_ratio);
       for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
       {
-	for (int iGrid=0; iGrid<baF.size(); ++iGrid)
-	{
-	  Box ovlp = baF[iGrid] & mfi.validbox();
-	  if (ovlp.ok())
-	  {
-	    (*error[iLevel])[mfi].setVal(0.0, ovlp, 0, nComp);
-	    covered_volume += ovlp.numPts()*refMult[iLevel];
-	  }
-	}
+        for (int iGrid=0; iGrid<baF.size(); ++iGrid)
+        {
+          Box ovlp = baF[iGrid] & mfi.validbox();
+          if (ovlp.ok())
+          {
+            (*error[iLevel])[mfi].setVal(0.0, ovlp, 0, nComp);
+            covered_volume += ovlp.numPts()*refMult[iLevel];
+          }
+        }
       }
       ParallelDescriptor::ReduceLongSum(covered_volume);
     }
@@ -103,48 +103,48 @@ SumThisComp(AmrData &amrData, int iComp)
     {
       // Convert volume in numPts to volume in number of fine cells
       total_volume += long(level_volume);
-      
+
       // Get norms at this level
       Real n1 = 0.0;
-      
+
       for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
       {
-	FArrayBox& fab = (*error[iLevel])[mfi];
-	const Box& fabbox = mfi.validbox();
-	const int* lo = fab.loVect();
-	const int* hi = fab.hiVect();
+        FArrayBox& fab = (*error[iLevel])[mfi];
+        const Box& fabbox = mfi.validbox();
+        const int* lo = fab.loVect();
+        const int* hi = fab.hiVect();
 
-#if (BL_SPACEDIM == 2)	
-	for (int iy=lo[1]; iy<hi[1]+1; iy++) {
-	  for (int ix=lo[0]; ix<hi[0]+1; ix++) {
-	    Real sum = fab(IntVect(ix,iy),0) + fab(IntVect(ix,iy),1);
-	    
-	    if (sum > 0.0)
-	      n1 += fab(IntVect(ix,iy),iComp)*dx[0]*dx[1];
-	  }
-	}
+#if (BL_SPACEDIM == 2)
+        for (int iy=lo[1]; iy<hi[1]+1; iy++) {
+          for (int ix=lo[0]; ix<hi[0]+1; ix++) {
+            Real sum = fab(IntVect(ix,iy),0) + fab(IntVect(ix,iy),1);
+
+            if (sum > 0.0)
+              n1 += fab(IntVect(ix,iy),iComp)*dx[0]*dx[1];
+          }
+        }
 #else
-	for (int iz=lo[2]; iz<hi[2]+1; iz++) {
-	  for (int iy=lo[1]; iy<hi[1]+1; iy++) {
-	    for (int ix=lo[0]; ix<hi[0]+1; ix++) {
-	      Real sum = fab(IntVect(ix,iy,iz),0) + fab(IntVect(ix,iy,iz),1);
-	    
-	      if (sum > 0.0)
-		n1 += fab(IntVect(ix,iy,iz),iComp)*dx[0]*dx[1]*dx[2];
-	    }
-	  }
-	}
+        for (int iz=lo[2]; iz<hi[2]+1; iz++) {
+          for (int iy=lo[1]; iy<hi[1]+1; iy++) {
+            for (int ix=lo[0]; ix<hi[0]+1; ix++) {
+              Real sum = fab(IntVect(ix,iy,iz),0) + fab(IntVect(ix,iy,iz),1);
+
+              if (sum > 0.0)
+                n1 += fab(IntVect(ix,iy,iz),iComp)*dx[0]*dx[1]*dx[2];
+            }
+          }
+        }
 #endif
       }
 
       // Do necessary communication, then blend this level's norms
       //  in with the running global values
       ParallelDescriptor::ReduceRealSum(n1);
-      
+
       sum += n1;
     }
   }
-  
+
 
   // Clean up memory
   for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
@@ -159,7 +159,7 @@ main (int   argc,
 {
   if (argc == 1)
         PrintUsage(argv[0]);
-    
+
     amrex::Initialize(argc,argv);
     ParmParse pp;
 
@@ -196,7 +196,7 @@ main (int   argc,
     pp.query("dir", dir);
 
 
-    // limit to a smaller region   
+    // limit to a smaller region
     Vector<Real> barr;
     bool do_bounds = 0;
     if (int nx=pp.countval("bounds"))
@@ -218,17 +218,17 @@ main (int   argc,
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
 
-    
+
 
     int analysis;
     pp.query("analysis",analysis);
 
-    if (analysis == 0) { 
+    if (analysis == 0) {
       if (pfile.empty()) {
-	compute_flux_all(nstart, nmax, nfac, dir, iFile, phi);
+        compute_flux_all(nstart, nmax, nfac, dir, iFile, phi);
       }
       else
-	compute_flux_all(nstart, nmax, nfac, dir, iFile, phidata);
+        compute_flux_all(nstart, nmax, nfac, dir, iFile, phidata);
     }
     else if (analysis == 1) {
 
@@ -242,47 +242,47 @@ main (int   argc,
       for (int i = nstart; i < nmax; i++) {
 
         File = amrex::Concatenate(iFile, i*nfac, 5);
-      
-	DataServices dataServices(File, fileType);
 
-	if (!dataServices.AmrDataOk())
-	  //
-	  // This calls ParallelDescriptor::EndParallel() and exit()
-	  //
-	  DataServices::Dispatch(DataServices::ExitRequest, NULL);
+        DataServices dataServices(File, fileType);
 
-	AmrData& amrData = dataServices.AmrDataRef();
-	dtnew = amrData.Time();
-	dt    = dtnew - dtold;
-	dtold = dtnew;
+        if (!dataServices.AmrDataOk())
+          //
+          // This calls ParallelDescriptor::EndParallel() and exit()
+          //
+          DataServices::Dispatch(DataServices::ExitRequest, NULL);
 
-	if (i == nstart) {
-	  cNames[0] = amrData.PlotVarNames()[0];
-	  cNames[1] = amrData.PlotVarNames()[1];
-	  do_init = true;
-	}
-	else
-	  do_init = false;
-	
-	compute_flux(amrData,dir,cNames,dt,xold,flux,phi,do_init,barr);
-		
-	std::cout << dtnew <<  " " << flux << std::endl;
+        AmrData& amrData = dataServices.AmrDataRef();
+        dtnew = amrData.Time();
+        dt    = dtnew - dtold;
+        dtold = dtnew;
+
+        if (i == nstart) {
+          cNames[0] = amrData.PlotVarNames()[0];
+          cNames[1] = amrData.PlotVarNames()[1];
+          do_init = true;
+        }
+        else
+          do_init = false;
+
+        compute_flux(amrData,dir,cNames,dt,xold,flux,phi,do_init,barr);
+
+        std::cout << dtnew <<  " " << flux << std::endl;
       }
     }
-    else 
+    else
       amrex::Abort("Analysis type not defined");
 
     amrex::Finalize();
 
 }
 
-void 
+void
 compute_flux_all(int nstart,
-		 int nmax,
-		 int nfac,
-		 int dir,
-		 std::string iFile,
-		 Real phi)
+                 int nmax,
+                 int nfac,
+                 int dir,
+                 std::string iFile,
+                 Real phi)
 {
   DataServices::SetBatchMode();
   Amrvis::FileType fileType(Amrvis::NEWPLT);
@@ -297,11 +297,11 @@ compute_flux_all(int nstart,
   MultiFab tmpmean;
   Real dtnew, dtold;
   dtold = 0.;
-    
+
   for (int i = nstart; i < nmax; i++)
   {
     std::string File = amrex::Concatenate(iFile, i*nfac, 5);
-      
+
     DataServices dataServices(File, fileType);
 
     if (!dataServices.AmrDataOk())
@@ -321,12 +321,12 @@ compute_flux_all(int nstart,
     names[1] = amrData.PlotVarNames()[1];
     destcomp[0] = 0;
     destcomp[1] = 1;
-	
+
 
     if (i == nstart) {
       finestLevel = 0;
       BoxArray ba = amrData.boxArray(finestLevel);
-      
+
       tmpmean.define(ba,nComp,0,Fab_allocate);
 
       dmn = amrData.ProbDomain()[finestLevel];
@@ -338,22 +338,22 @@ compute_flux_all(int nstart,
       FLs.resize(dmn.bigEnd(dir)+1);
 
       for (int iy=0;iy<xold.size();iy++)
-	xold[iy] = 0.0;
+        xold[iy] = 0.0;
     }
 
     const Vector<Real>& dx = amrData.DxLevel()[finestLevel];
-    
+
     amrData.FillVar(tmpmean,finestLevel,names,destcomp);
-    
+
     for (int n = 0; n < nComp; n++)
       amrData.FlushGrids(destcomp[n]);
-    
+
     Real dt = dtnew - dtold;
     dtold = dtnew;
-    
+
     for (int ix = 0; ix < xnew.size(); ix++)
       xnew[ix] = 0.0;
-    
+
     Real dmn_length;
 #if (BL_SPACEDIM == 2)
     if (dir == 0)dmn_length = dmn.length(1);
@@ -368,34 +368,34 @@ compute_flux_all(int nstart,
     {
       const int* lo = tmpmean[mfi].loVect();
       const int* hi = tmpmean[mfi].hiVect();
-      
+
 #if (BL_SPACEDIM == 2)
       if (dir == 0) {
-	for (int ix=lo[0]; ix<=hi[0]; ix++){
-	  for (int iy=lo[1]; iy<=hi[1]; iy++) {
-	    xnew[ix] += tmpmean[mfi](IntVect(ix,iy),0)*phi;
-	  }
-	}
+        for (int ix=lo[0]; ix<=hi[0]; ix++){
+          for (int iy=lo[1]; iy<=hi[1]; iy++) {
+            xnew[ix] += tmpmean[mfi](IntVect(ix,iy),0)*phi;
+          }
+        }
       }
       if (dir == 1) {
-	for (int iy=lo[1]; iy<=hi[1]; iy++){
-	  for (int ix=lo[0]; ix<=hi[0]; ix++) {
-	    xnew[iy] += tmpmean[mfi](IntVect(ix,iy),0)*phi;
-	  }
-	}
+        for (int iy=lo[1]; iy<=hi[1]; iy++){
+          for (int ix=lo[0]; ix<=hi[0]; ix++) {
+            xnew[iy] += tmpmean[mfi](IntVect(ix,iy),0)*phi;
+          }
+        }
       }
 #else
       if (dir == 2) {
-	for (int iz=lo[2]; iz<=hi[2]; iz++)
-	  for (int iy=lo[1]; iy<=hi[1]; iy++)
-	    for (int ix=lo[0]; ix<=hi[0]; ix++)
-	      xnew[iz] += tmpmean[mfi](IntVect(ix,iy,iz),0)*phi;
+        for (int iz=lo[2]; iz<=hi[2]; iz++)
+          for (int iy=lo[1]; iy<=hi[1]; iy++)
+            for (int ix=lo[0]; ix<=hi[0]; ix++)
+              xnew[iz] += tmpmean[mfi](IntVect(ix,iy,iz),0)*phi;
       }
 #endif
     }
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
-     
+
     ParallelDescriptor::ReduceRealSum(xnew.dataPtr(), xnew.size(), IOProc);
 
     if (ParallelDescriptor::IOProcessor())
@@ -404,11 +404,11 @@ compute_flux_all(int nstart,
 
       for (int iy = xnew.size()-1; iy >=0; iy--)
       {
-	xnew[iy] = xnew[iy]/dmn_length;
-	Real ct = (xnew[iy]-xold[iy])/dt;
-	FL += ct*dx[dir];
-	FLs[iy] = FL;
-	xold[iy] = xnew[iy];
+        xnew[iy] = xnew[iy]/dmn_length;
+        Real ct = (xnew[iy]-xold[iy])/dt;
+        FL += ct*dx[dir];
+        FLs[iy] = FL;
+        xold[iy] = xnew[iy];
       }
 
       std::cout << dtnew <<  " " << FL << std::endl;
@@ -417,17 +417,17 @@ compute_flux_all(int nstart,
     //sumnew = SumThisComp(amrData, 0);
     //Real dF = phi*(sumnew - sumold)/dt;
     //sumold = sumnew;
-    
-  }    
+
+  }
 
 }
-void 
+void
 compute_flux_all(int nstart,
-		 int nmax,
-		 int nfac,
-		 int dir,
-		 std::string iFile,
-		 MultiFab& phidata)
+                 int nmax,
+                 int nfac,
+                 int dir,
+                 std::string iFile,
+                 MultiFab& phidata)
 {
   DataServices::SetBatchMode();
   Amrvis::FileType fileType(Amrvis::NEWPLT);
@@ -442,14 +442,14 @@ compute_flux_all(int nstart,
   Vector<int>    destcomp(2);
   Real sumnew;
   MultiFab tmpmean;
-  MultiFab tmpphi; 
+  MultiFab tmpphi;
   Real dtnew, dtold;
   dtold = 0.;
-    
+
   for (int i = nstart; i < nmax; i++)
   {
     std::string File = amrex::Concatenate(iFile, i*nfac, 5);
-      
+
     DataServices dataServices(File, fileType);
 
     if (!dataServices.AmrDataOk())
@@ -460,7 +460,7 @@ compute_flux_all(int nstart,
 
     AmrData& amrData = dataServices.AmrDataRef();
     dtnew = amrData.Time();
-    
+
     if (i == nstart) {
 
       names[0] = amrData.PlotVarNames()[0];
@@ -475,27 +475,27 @@ compute_flux_all(int nstart,
 
       //int baseLevel = 0;
       //BoxArray ba = amrData.boxArray(baseLevel);
-      
+
       int ng_twoexp = 1;
       for (int ii = 0; ii<finestLevel; ii++) {
-	ng_twoexp *= amrData.RefRatio()[ii];
-      }	
+        ng_twoexp *= amrData.RefRatio()[ii];
+      }
       ng_twoexp = ng_twoexp*3;
       BoxArray ba2(ba.size());
       for (int ii=0; ii<ba.size(); ii++) {
-	Box bx=ba[ii];
-	bx.grow(ng_twoexp);
-	ba2.set(ii,bx);
+        Box bx=ba[ii];
+        bx.grow(ng_twoexp);
+        ba2.set(ii,bx);
       }
-      
+
       MultiFab mftmp(ba2,1,0);
       mftmp.copy(phidata);
-      
+
       tmpmean.define(ba,nComp,0,Fab_allocate);
       tmpphi.define(ba,nComp,0,Fab_allocate);
       for (MFIter mfi(mftmp);mfi.isValid();++mfi)
-	tmpphi[mfi].copy(mftmp[mfi]);
-      mftmp.clear();      
+        tmpphi[mfi].copy(mftmp[mfi]);
+      mftmp.clear();
 
       //
       // Currently we assume dmn starts at zero.
@@ -505,19 +505,19 @@ compute_flux_all(int nstart,
       FLs.resize(dmn.bigEnd(dir)+1);
 
       for (int iy=0;iy<xold.size();iy++)
-	xold[iy] = 0.0;
+        xold[iy] = 0.0;
     }
 
     const Vector<Real>& dx = amrData.DxLevel()[finestLevel];
-    
+
     amrData.FillVar(tmpmean,finestLevel,names,destcomp);
-    
+
     for (int n = 0; n < nComp; n++)
       amrData.FlushGrids(destcomp[n]);
-    
+
     Real dt = dtnew - dtold;
     dtold = dtnew;
-    
+
     for (int ix = 0; ix < xnew.size(); ix++)
       xnew[ix] = 0.0;
 
@@ -530,42 +530,42 @@ compute_flux_all(int nstart,
     if (dir == 1)dmn_length = dmn.length(0)*dmn.length(2);
     if (dir == 2)dmn_length = dmn.length(0)*dmn.length(1);
 #endif
-    
+
     for (MFIter mfi(tmpmean); mfi.isValid(); ++mfi)
     {
       const int* lo = tmpmean[mfi].loVect();
       const int* hi = tmpmean[mfi].hiVect();
-      
+
 #if (BL_SPACEDIM == 2)
       if (dir == 0) {
-	for (int ix=lo[0]; ix<=hi[0]; ix++) {
-	  for (int iy=lo[1]; iy<=hi[1]; iy++) {
-	    xnew[ix] += tmpmean[mfi](IntVect(ix,iy),0)*
-	      tmpphi[mfi](IntVect(ix,iy),0);
-	  }
-	}
+        for (int ix=lo[0]; ix<=hi[0]; ix++) {
+          for (int iy=lo[1]; iy<=hi[1]; iy++) {
+            xnew[ix] += tmpmean[mfi](IntVect(ix,iy),0)*
+              tmpphi[mfi](IntVect(ix,iy),0);
+          }
+        }
       }
       if (dir == 1) {
-	for (int iy=lo[1]; iy<=hi[1]; iy++) {
-	  for (int ix=lo[0]; ix<=hi[0]; ix++) {
-	    xnew[iy] += tmpmean[mfi](IntVect(ix,iy),0)*
-	      tmpphi[mfi](IntVect(ix,iy),0);
-	  }
-	}
+        for (int iy=lo[1]; iy<=hi[1]; iy++) {
+          for (int ix=lo[0]; ix<=hi[0]; ix++) {
+            xnew[iy] += tmpmean[mfi](IntVect(ix,iy),0)*
+              tmpphi[mfi](IntVect(ix,iy),0);
+          }
+        }
       }
 #else
       if (dir == 2) {
-	for (int iz=lo[2]; iz<=hi[2]; iz++)
-	  for (int iy=lo[1]; iy<=hi[1]; iy++)
-	    for (int ix=lo[0]; ix<=hi[0]; ix++)
-	      xnew[iz] += tmpmean[mfi](IntVect(ix,iy,iz),0)*
-		tmpphi[mfi](IntVect(ix,iy),0);
+        for (int iz=lo[2]; iz<=hi[2]; iz++)
+          for (int iy=lo[1]; iy<=hi[1]; iy++)
+            for (int ix=lo[0]; ix<=hi[0]; ix++)
+              xnew[iz] += tmpmean[mfi](IntVect(ix,iy,iz),0)*
+                tmpphi[mfi](IntVect(ix,iy),0);
       }
 #endif
     }
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
-    
+
     ParallelDescriptor::ReduceRealSum(xnew.dataPtr(), xnew.size(), IOProc);
 
     if (ParallelDescriptor::IOProcessor())
@@ -574,31 +574,31 @@ compute_flux_all(int nstart,
 
       for (int iy = 0; iy < xnew.size(); iy++)
       {
-	xnew[iy] = xnew[iy]/dmn_length;
-	Real ct = (xnew[iy]-xold[iy])/dt;
-	FL += ct*dx[dir];
-	FLs[iy] = FL;
-	xold[iy] = xnew[iy];
-	std::cout << ct << " " <<dx[dir] << " " << FL << std::endl;
+        xnew[iy] = xnew[iy]/dmn_length;
+        Real ct = (xnew[iy]-xold[iy])/dt;
+        FL += ct*dx[dir];
+        FLs[iy] = FL;
+        xold[iy] = xnew[iy];
+        std::cout << ct << " " <<dx[dir] << " " << FL << std::endl;
       }
 
       std::cout << dtnew <<  " " << FL << std::endl;
 
     }
-  }    
+  }
 }
 
 void
-compute_flux(AmrData&           amrData, 
-	     int                dir, 
-	     Vector<std::string> cNames,
-	     Real               dt,
-	     Vector<Real>&       xold,
-	     Real&              flux,
-	     Real               phi,
-	     bool               do_init,
- 	     Vector<Real>&       barr)
-{ 
+compute_flux(AmrData&           amrData,
+             int                dir,
+             Vector<std::string> cNames,
+             Real               dt,
+             Vector<Real>&       xold,
+             Real&              flux,
+             Real               phi,
+             bool               do_init,
+              Vector<Real>&       barr)
+{
   Vector<Real> xnew;
   Vector<Real> FLs;
   MultiFab tmpmean;
@@ -609,7 +609,7 @@ compute_flux(AmrData&           amrData,
   Vector<int> destFillComps(nComp);
   for (int i=0; i<nComp; ++i)
     destFillComps[i] = i;
-  
+
   Box domain = amrData.ProbDomain()[finestLevel];
   xnew.resize(domain.bigEnd(dir)-domain.smallEnd(dir)+1);
   for (int ix = 0; ix < xnew.size(); ix++)
@@ -632,12 +632,12 @@ compute_flux(AmrData&           amrData,
 
     // Find coarse-grid coordinates of bounding box, round outwardly
     for (int i=0; i<BL_SPACEDIM; ++i) {
-      const Real dx = amrData.ProbSize()[i]/ 
-	amrData.ProbDomain()[0].length(i);
-      domain.setSmall(i,std::max(domain.smallEnd()[i], 
-	(int)((bbll[i]-amrData.ProbLo()[i]+.0001*dx)/dx)));
-      domain.setBig(i,std::min(domain.bigEnd()[i], 
-	(int)((bbur[i]-amrData.ProbLo()[i]-.0001*dx)/dx)));
+      const Real dx = amrData.ProbSize()[i]/
+        amrData.ProbDomain()[0].length(i);
+      domain.setSmall(i,std::max(domain.smallEnd()[i],
+        (int)((bbll[i]-amrData.ProbLo()[i]+.0001*dx)/dx)));
+      domain.setBig(i,std::min(domain.bigEnd()[i],
+        (int)((bbur[i]-amrData.ProbLo()[i]-.0001*dx)/dx)));
     }
 
    //for (int i=1; i<=finestLevel; i++)
@@ -655,7 +655,7 @@ compute_flux(AmrData&           amrData,
       xold[iy] = 0.0;
   }
   const Vector<Real>& dx = amrData.DxLevel()[finestLevel];
-      
+
   amrData.FillVar(tmpmean,finestLevel,cNames,destFillComps);
 
   for (int n = 0; n < nComp; n++)
@@ -675,26 +675,26 @@ compute_flux(AmrData&           amrData,
   {
     const int* lo = tmpmean[mfi].loVect();
     const int* hi = tmpmean[mfi].hiVect();
-      
+
 #if (BL_SPACEDIM == 2)
     if (dir == 0) {
       for (int ix=lo[0]; ix<=hi[0]; ix++) {
-	for (int iy=lo[1]; iy<=hi[1]; iy++) {
-	  xnew[ix] += tmpmean[mfi](IntVect(ix,iy),0)*phi;
-	}
+        for (int iy=lo[1]; iy<=hi[1]; iy++) {
+          xnew[ix] += tmpmean[mfi](IntVect(ix,iy),0)*phi;
+        }
       }
     }
     if (dir == 1) {
       for (int iy=lo[1]; iy<=hi[1]; iy++)
-	for (int ix=lo[0]; ix<=hi[0]; ix++)
-	  xnew[iy] += tmpmean[mfi](IntVect(ix,iy),0)*phi;
+        for (int ix=lo[0]; ix<=hi[0]; ix++)
+          xnew[iy] += tmpmean[mfi](IntVect(ix,iy),0)*phi;
     }
 #else
     if (dir == 2) {
       for (int iz=lo[2]; iz<=hi[2]; iz++)
-	for (int iy=lo[1]; iy<=hi[1]; iy++)
-	  for (int ix=lo[0]; ix<=hi[0]; ix++)
-	    xnew[iz] += tmpmean[mfi](IntVect(ix,iy,iz),0)*phi;
+        for (int iy=lo[1]; iy<=hi[1]; iy++)
+          for (int ix=lo[0]; ix<=hi[0]; ix++)
+            xnew[iz] += tmpmean[mfi](IntVect(ix,iy,iz),0)*phi;
     }
 #endif
   }
@@ -715,7 +715,7 @@ compute_flux(AmrData&           amrData,
       FLs[iy]  = FL;
       xold[iy] = xtmp;
     }
-    flux = FL;  
+    flux = FL;
   }
 }
 

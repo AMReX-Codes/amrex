@@ -65,6 +65,9 @@ add_amrex_define( AMREX_${CMAKE_SYSTEM_NAME} )
 #  Assertions
 add_amrex_define( AMREX_USE_ASSERTION NO_LEGACY IF AMReX_ASSERTIONS )
 
+# Bound checking
+add_amrex_define( AMREX_BOUND_CHECK NO_LEGACY IF AMReX_BOUND_CHECK )
+
 #
 # Fortran-specific defines: BL_LANG_FORT and AMREX_LANG_FORT
 #
@@ -75,6 +78,12 @@ if (AMReX_FORTRAN)
       $<$<COMPILE_LANGUAGE:Fortran>:AMREX_SPACEDIM=${AMReX_SPACEDIM}>
       $<$<COMPILE_LANGUAGE:Fortran>:BL_LANG_FORT AMREX_LANG_FORT>
       )
+
+    if (AMReX_MPI)
+      target_compile_definitions( amrex PRIVATE
+        $<$<COMPILE_LANGUAGE:Fortran>:BL_USE_MPI>
+        )
+    endif()
 
    #
    # Fortran/C mangling scheme
@@ -149,3 +158,17 @@ endif ()
 #
 add_amrex_define(AMREX_USE_HDF5 NO_LEGACY IF AMReX_HDF5)
 add_amrex_define(AMREX_USE_HDF5_ASYNC NO_LEGACY IF AMReX_HDF5_ASYNC)
+
+#
+# Miscellaneous
+#
+add_amrex_define( AMREX_NO_PROBINIT NO_LEGACY IF_NOT AMReX_PROBINIT)
+
+#
+# Windows DLLs and Global Symbols
+# https://stackoverflow.com/questions/54560832/cmake-windows-export-all-symbols-does-not-cover-global-variables/54568678#54568678
+#
+if(WIN32 AND BUILD_SHARED_LIBS)
+  add_amrex_define(AMREX_IS_DLL NO_LEGACY)
+  target_compile_definitions( amrex PRIVATE AMREX_IS_DLL_BUILDING)
+endif()

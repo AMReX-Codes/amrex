@@ -9,7 +9,7 @@
 
 namespace amrex
 {
-    void EB_set_covered (MultiFab& mf,                                               Real   val);    
+    void EB_set_covered (MultiFab& mf,                                               Real   val);
     void EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow,              Real   val);
     void EB_set_covered (MultiFab& mf, int icomp, int ncomp,            const Vector<Real>& vals);
     void EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, const Vector<Real>& vals);
@@ -48,10 +48,10 @@ namespace amrex
     // Cell faces to cell centers
     void EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
                                         const Array<MultiFab const*,AMREX_SPACEDIM>& fmf);
-    
+
     // Cell centers to cell centroids
     void EB_interp_CC_to_Centroid (MultiFab& cntrd, const MultiFab& cc, int scomp, int dcomp, int ncomp, const Geometry& geom);
-    
+
     // Cell centers to face centroids
     void EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
                                        AMREX_D_DECL( MultiFab& fcx,
