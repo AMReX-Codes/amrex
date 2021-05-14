@@ -859,6 +859,9 @@ ifeq ($(lowercase_comp),pgi)
 else ifeq ($(lowercase_comp),nvhpc)
   # nvfortran-Error-Unknown switch: -isystem
   fincludes = $(subst -isystem,-I,$(includes))
+else ifeq ($(lowercase_comp),cray)
+  # ftn-"-i" is an invalid command-line option.
+  fincludes = $(subst -isystem,-I,$(includes))
 else
   fincludes = $(includes)
 endif
