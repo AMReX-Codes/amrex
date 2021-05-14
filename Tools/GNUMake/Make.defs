@@ -402,6 +402,8 @@ ifeq ($(USE_HIP),TRUE)
 else ifeq ($(USE_CUDA),TRUE)
   ifdef NVCC_HOST_COMP
     AMREX_CCOMP = $(NVCC_HOST_COMP)
+  else ifeq ($(COMP),cray)
+    AMREX_CCOMP = cray
   else
     AMREX_CCOMP = gnu
   endif
@@ -1059,7 +1061,7 @@ else ifeq ($(USE_CUDA),TRUE)
     DEFINES += -DAMREX_GPU_MAX_THREADS=$(CUDA_MAX_THREADS)
 
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-      LINKFLAGS = $(NVCC_FLAGS)
+      LINKFLAGS = $(NVCC_FLAGS) $(CXXFLAGS_FROM_HOST)
       AMREX_LINKER = nvcc
     endif
 
