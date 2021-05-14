@@ -695,9 +695,6 @@ else ifeq ($(USE_CUDA),TRUE)
         LINK_WITH_FORTRAN_COMPILER=TRUE
     else ifeq ($(lowercase_comp),ibm)
         LINK_WITH_FORTRAN_COMPILER=TRUE
-    else ifeq ($(lowercase_comp),gnu)
-    else
-        $(error CUDA can only be used with COMP=pgi or nvhpc or ibm or gnu)
     endif
 
     include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
