@@ -271,6 +271,7 @@ main (int argc, char* argv[])
             amrDataIn.FlushGrids(oldCompNums[i]);
         }
 
+        int old_flag = amrex::MFIter::allowMultipleMFIters(true);
         // Copy Old Data
         {
             MFIter omfi(dataIn);                // old
