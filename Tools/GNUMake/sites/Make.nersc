@@ -2,10 +2,33 @@
 # For NERSC machines: Cori and corigpu
 #
 
-NERSC_MACHINES := cori cgpu
+NERSC_MACHINES := cori cgpu perlmutter
 
 ifneq ($(which_computer),$(filter $(which_computer), ${NERSC_MACHINES}))
   $(error Unknown NERSC computer, $(which_computer))
+endif
+
+ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
+
+  ifdef PE_ENV
+  ifneq ($(USE_CUDA),TRUE)
+    lowercase_peenv := $(shell echo $(PE_ENV) | tr A-Z a-z)
+    ifneq ($(lowercase_peenv),$(lowercase_comp))
+      has_compiler_mismatch = COMP=$(COMP) does not match PrgEnv-$(lowercase_peenv)
+    endif
+  endif
+  endif
+
+  ifeq ($(USE_MPI),TRUE)
+    ifneq ($(USE_CUDA),TRUE)
+      CC  = cc
+      CXX = CC
+      FC  = ftn
+      F90 = ftn
+      LIBRARIES += -lmpichf90
+    endif
+  endif
+
 endif
 
 ifeq ($(which_computer),$(filter $(which_computer),cori))

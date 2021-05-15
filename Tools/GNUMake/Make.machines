@@ -25,6 +25,11 @@ else
 ifeq ($(NERSC_HOST), cori)
   which_site := nersc
   which_computer := cori
+else
+ifeq ($(NERSC_HOST), perlmutter)
+  which_site := nersc
+  which_computer := perlmutter
+endif
 endif
 endif
 endif
