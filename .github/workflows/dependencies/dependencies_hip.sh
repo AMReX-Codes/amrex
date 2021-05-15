@@ -15,7 +15,9 @@ set -eu -o pipefail
 # Ref.: https://rocmdocs.amd.com/en/latest/Installation_Guide/Installation-Guide.html#ubuntu
 wget -q -O - http://repo.radeon.com/rocm/rocm.gpg.key \
   | sudo apt-key add -
-echo 'deb [arch=amd64] http://repo.radeon.com/rocm/apt/debian/ xenial main' \
+#echo 'deb [arch=amd64] http://repo.radeon.com/rocm/apt/debian/ xenial main' \
+# Use 4.1.1 till the VOP bug in 4.2 is fixed
+echo 'deb [arch=amd64] http://repo.radeon.com/rocm/apt/4.1.1/ xenial main' \
   | sudo tee /etc/apt/sources.list.d/rocm.list
 
 echo 'export PATH=$PATH:/opt/rocm/bin:/opt/rocm/profiler/bin:/opt/rocm/opencl/bin' \
