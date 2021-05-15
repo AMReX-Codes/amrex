@@ -13,7 +13,7 @@ F90FLAGS =
 
 ########################################################################
 
-ifneq ($(shell CC --version | grep "LLVM"),)
+ifneq ($(shell CC --version | grep -E "LLVM|clang"),)
   CRAY_IS_CLANG_BASED = TRUE
 else
   CRAY_IS_CLANG_BASED = FALSE
