@@ -11,6 +11,9 @@ CFLAGS   =
 FFLAGS   =
 F90FLAGS =
 
+AMREX_CCOMP = cray
+AMREX_FCOMP = cray
+
 ########################################################################
 
 ifneq ($(shell CC --version | grep -E "LLVM|clang"),)
