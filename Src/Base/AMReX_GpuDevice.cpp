@@ -311,7 +311,7 @@ Device::Initialize ()
 #if (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
     nvtxRangeEnd(nvtx_init);
 #endif
-    cudaProfilerStart();
+    profilerStart();
 
     if (amrex::Verbose()) {
 #if defined(AMREX_USE_MPI) && (__CUDACC_VER_MAJOR__ >= 10)
@@ -330,7 +330,7 @@ Device::Initialize ()
 #endif // AMREX_USE_MPI && NVCC >= 10
     }
 
-    cudaProfilerStart();
+    profilerStart();
 
 #elif defined(AMREX_USE_HIP)
     if (amrex::Verbose()) {
@@ -988,6 +988,22 @@ Device::freeMemAvailable ()
     return f;
 #else
     return 0;
+#endif
+}
+
+void
+Device::profilerStart ()
+{
+#ifdef AMREX_USE_CUDA
+    AMREX_GPU_SAFE_CALL(cudaProfilerStart());
+#endif
+}
+
+void
+Device::profilerStop ()
+{
+#ifdef AMREX_USE_CUDA
+    AMREX_GPU_SAFE_CALL(cudaProfilerStop());
 #endif
 }
 
