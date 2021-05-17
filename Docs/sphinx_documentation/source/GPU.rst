@@ -280,7 +280,8 @@ the following code into the appropriate CMakeLists.txt file:
 
 
 If instead of using an external installation of AMReX you prefer to include AMReX as a subproject
-in your CMake setup, we strongly encourage you to use the ``AMReX_SetupCUDA`` module as shown below:
+in your CMake setup, we strongly encourage you to use the ``AMReX_SetupCUDA`` module as shown below
+if the CMake version is less than 3.20:
 
 .. highlight:: console
 
@@ -289,7 +290,7 @@ in your CMake setup, we strongly encourage you to use the ``AMReX_SetupCUDA`` mo
    # Enable CUDA in your CMake project
    enable_language(CUDA)
 
-   # Include the AMReX-provided CUDA setup module
+   # Include the AMReX-provided CUDA setup module -- OBSOLETE with CMake >= 3.20
    include(AMReX_SetupCUDA)
 
    # Include AMReX source directory ONLY AFTER the two steps above
