@@ -472,7 +472,7 @@ protected:
     static Vector<BoxArray> regrid_ba;
     static int compute_new_dt_on_regrid;
 
-#if defined(BL_USE_SENSEI_AUTO)
+#if defined(AMREX_USE_SENSEI_AUTO)
     static AmrInSituBridge *insitu_bridge;
 #endif
 
