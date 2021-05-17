@@ -39,7 +39,7 @@ AuxBoundaryData::copy (const AuxBoundaryData& src,
     BL_ASSERT(src_comp + num_comp <= src.m_fabs.nComp());
     BL_ASSERT(dst_comp + num_comp <= m_fabs.nComp());
 
-    m_fabs.copy(src.m_fabs,src_comp,dst_comp,num_comp);
+    m_fabs.ParallelCopy(src.m_fabs,src_comp,dst_comp,num_comp);
 }
 
 AuxBoundaryData::AuxBoundaryData (const AuxBoundaryData& rhs)
@@ -48,7 +48,7 @@ AuxBoundaryData::AuxBoundaryData (const AuxBoundaryData& rhs)
            MFInfo(), FArrayBoxFactory()),
     m_ngrow(rhs.m_ngrow)
 {
-    m_fabs.copy(rhs.m_fabs,0,0,rhs.m_fabs.nComp());
+    m_fabs.ParallelCopy(rhs.m_fabs,0,0,rhs.m_fabs.nComp());
     m_empty = false;
     m_initialized = true;
 }
@@ -134,7 +134,7 @@ AuxBoundaryData::copyTo (MultiFab& mf,
 
     if (!m_empty && mf.size() > 0)
     {
-        mf.copy(m_fabs,src_comp,dst_comp,num_comp,0,mf.nGrow());
+        mf.ParallelCopy(m_fabs,src_comp,dst_comp,num_comp,0,mf.nGrow());
     }
 }
 
@@ -149,7 +149,7 @@ AuxBoundaryData::copyFrom (const MultiFab& mf,
 
     if (!m_empty && mf.size() > 0)
     {
-        m_fabs.copy(mf,src_comp,dst_comp,num_comp,src_ng,0);
+        m_fabs.ParallelCopy(mf,src_comp,dst_comp,num_comp,src_ng,0);
     }
 }
 

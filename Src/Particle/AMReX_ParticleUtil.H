@@ -158,7 +158,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
         iv += domain.smallEnd();
         return !box.contains(iv);
     });
-    int hv = amrex::get<0>(reduce_data.value());
+    int hv = amrex::get<0>(reduce_data.value(reduce_op));
     return hv;
 }
 
@@ -543,6 +543,10 @@ IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
 
 Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow);
 
+#ifdef AMREX_USE_HDF5_ASYNC
+void async_vol_es_wait_particle();
+void async_vol_es_wait_close_particle();
+#endif
 }
 
 #endif // include guard

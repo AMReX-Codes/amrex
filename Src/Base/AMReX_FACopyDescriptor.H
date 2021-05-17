@@ -836,12 +836,12 @@ FabArrayCopyDescriptor<FAB>::FillFab (FabArrayId       faid,
 
     BL_ASSERT(fcdp->subBox.sameSize(destBox));
 
-    destFab.copy(*fcdp->localFabSource,
-                 fcdp->subBox,
-                 fcdp->fillType == FillLocally ? fcdp->srcComp : 0,
-                 destBox,
-                 fcdp->destComp,
-                 fcdp->nComp);
+    destFab.ParallelCopy(*fcdp->localFabSource,
+                         fcdp->subBox,
+                         fcdp->fillType == FillLocally ? fcdp->srcComp : 0,
+                         destBox,
+                         fcdp->destComp,
+                         fcdp->nComp);
 
     BL_ASSERT(++fmi == fabCopyDescList[faid.Id()].upper_bound(fillboxid.Id()));
 }

@@ -13,8 +13,10 @@
 #define AMREX_USE_CUB 1
 #endif
 
-#ifdef AMREX_USE_CUB
+#if defined(AMREX_USE_CUB)
 #include <cub/cub.cuh>
+#elif defined(AMREX_USE_HIP)
+#include <rocprim/rocprim.hpp>
 #endif
 
 //
@@ -101,47 +103,85 @@ void blockReduce_partial (T* dest, T x, WARPREDUCE && warp_reduce, ATOMICOP && a
    }
 }
 
+// block-wide reduction for thread0
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+T blockReduceSum (T source, Gpu::Handler const& h) noexcept
+{
+    return Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Plus<T> >(), (T)0, h);
+}
+
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceSum_full (T * dest, T source, Gpu::Handler const& h) noexcept
 {
-    source = Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Plus<T> >(), (T)0, h);
-    if (h.item->get_local_id(0) == 0) { Gpu::Atomic::AddNoRet(dest, source); }
+    T aggregate = blockReduceSum(source, h);
+    if (h.item->get_local_id(0) == 0) { Gpu::Atomic::AddNoRet(dest, aggregate); }
+}
+
+// block-wide reduction for thread0
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+T blockReduceMin (T source, Gpu::Handler const& h) noexcept
+{
+    return Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Less<T> >(), source, h);
 }
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMin_full (T * dest, T source, Gpu::Handler const& h) noexcept
 {
-    source = Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Less<T> >(), source, h);
-    if (h.item->get_local_id(0) == 0) { Gpu::Atomic::Min(dest, source); }
+    T aggregate = blockReduceMin(source, h);
+    if (h.item->get_local_id(0) == 0) { Gpu::Atomic::Min(dest, aggregate); }
+}
+
+// block-wide reduction for thread0
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+T blockReduceMax (T source, Gpu::Handler const& h) noexcept
+{
+    return Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Greater<T> >(), source, h);
 }
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMax_full (T * dest, T source, Gpu::Handler const& h) noexcept
 {
-    source = Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Greater<T> >(), source, h);
-    if (h.item->get_local_id(0) == 0) { Gpu::Atomic::Max(dest, source); }
+    T aggregate = blockReduceMax(source, h);
+    if (h.item->get_local_id(0) == 0) { Gpu::Atomic::Max(dest, aggregate); }
+}
+
+// block-wide reduction for thread0
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+int blockReduceLogicalAnd (int source, Gpu::Handler const& h) noexcept
+{
+    return Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalAnd<int> >(), 1, h);
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceLogicalAnd_full (int * dest, int source, Gpu::Handler const& h) noexcept
 {
-    source = Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalAnd<int> >(), 1, h);
-    if (h.item->get_local_id(0) == 0) { Gpu::Atomic::LogicalAnd(dest, source); }
+    int aggregate = blockReduceLogicalAnd(source, h);
+    if (h.item->get_local_id(0) == 0) { Gpu::Atomic::LogicalAnd(dest, aggregate); }
+}
+
+// block-wide reduction for thread0
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+int blockReduceLogicalOr (int source, Gpu::Handler const& h) noexcept
+{
+    return Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalOr<int> >(), 0, h);
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceLogicalOr_full (int * dest, int source, Gpu::Handler const& h) noexcept
 {
-    source = Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalOr<int> >(), 0, h);
-    if (h.item->get_local_id(0) == 0) { Gpu::Atomic::LogicalOr(dest, source); }
+    int aggregate = blockReduceLogicalOr(source, h);
+    if (h.item->get_local_id(0) == 0) { Gpu::Atomic::LogicalOr(dest, aggregate); }
 }
 
 template <typename T>
@@ -259,65 +299,79 @@ void blockReduce_partial (T* dest, T x, WARPREDUCE && warp_reduce, ATOMICOP && a
     }
 }
 
-#if defined(AMREX_USE_CUB)
-template <int BLOCKDIMX, typename T>
+// Compute the block-wide reduction for thread0
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+T blockReduceSum (T source) noexcept
+{
+    return Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Plus<T> >(), (T)0);
+}
+
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceSum_full (T * dest, T source) noexcept
 {
-    typedef cub::BlockReduce<T,BLOCKDIMX> BlockReduce;
-    __shared__ typename BlockReduce::TempStorage temp_storage;
-    // __syncthreads() prior to writing to shared memory is necessary
-    // if this reduction call is occurring multiple times in a kernel,
-    // and since we don't know how many times the user is calling it,
-    // we do it always to be safe.
-    __syncthreads();
-    // Compute the block-wide reduction for thread0
-    T aggregate = BlockReduce(temp_storage).Sum(source);
+    T aggregate = blockReduceSum(source);
     if (threadIdx.x == 0) { Gpu::Atomic::AddNoRet(dest, aggregate); }
 }
-#endif
 
-template <typename T>
+// Compute the block-wide reduction for thread0
+template <int BLOCKDIMX, typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+T blockReduceSum (T source) noexcept
+{
+#if defined(AMREX_USE_CUB)
+    typedef cub::BlockReduce<T,BLOCKDIMX> BlockReduce;
+    __shared__ typename BlockReduce::TempStorage temp_storage;
+    // __syncthreads() prior to writing to shared memory is necessary
+    // if this reduction call is occurring multiple times in a kernel,
+    // and since we don't know how many times the user is calling it,
+    // we do it always to be safe.
+    __syncthreads();
+    return BlockReduce(temp_storage).Sum(source);
+#elif defined(AMREX_USE_HIP)
+    typedef rocprim::block_reduce<T,BLOCKDIMX> BlockReduce;
+    __shared__ typename BlockReduce::storage_type temp_storage;
+    __syncthreads();
+    BlockReduce().reduce(source, source, temp_storage, rocprim::plus<T>());
+    return source;
+#else
+    return blockReduceSum(source);
+#endif
+}
+
+template <int BLOCKDIMX, typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceSum_full (T * dest, T source) noexcept
 {
-    source = Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Plus<T> >(), (T)0);
-    if (threadIdx.x == 0) { Gpu::Atomic::AddNoRet(dest, source); }
+    T aggregate = blockReduceSum<BLOCKDIMX>(source);
+    if (threadIdx.x == 0) { Gpu::Atomic::AddNoRet(dest, aggregate); }
 }
 
-#if defined(AMREX_USE_CUB)
-template <int BLOCKDIMX, typename T>
+// Compute the block-wide reduction for thread0
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+T blockReduceMin (T source) noexcept
+{
+    return Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Less<T> >(), source);
+}
+
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMin_full (T * dest, T source) noexcept
 {
-    typedef cub::BlockReduce<T,BLOCKDIMX> BlockReduce;
-    __shared__ typename BlockReduce::TempStorage temp_storage;
-    // __syncthreads() prior to writing to shared memory is necessary
-    // if this reduction call is occurring multiple times in a kernel,
-    // and since we don't know how many times the user is calling it,
-    // we do it always to be safe.
-    __syncthreads();
-    // Compute the block-wide reduction for thread0
-    T aggregate = BlockReduce(temp_storage).Reduce(source, cub::Min());
+    T aggregate = blockReduceMin(source);
     if (threadIdx.x == 0) { Gpu::Atomic::Min(dest, aggregate); }
 }
-#endif
 
-template <typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void deviceReduceMin_full (T * dest, T source) noexcept
-{
-    source = Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Less<T> >(), source);
-    if (threadIdx.x == 0) { Gpu::Atomic::Min(dest, source); }
-}
-
-#if defined(AMREX_USE_CUB)
+// Compute the block-wide reduction for thread0
 template <int BLOCKDIMX, typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void deviceReduceMax_full (T * dest, T source) noexcept
+T blockReduceMin (T source) noexcept
 {
+#if defined(AMREX_USE_CUB)
     typedef cub::BlockReduce<T,BLOCKDIMX> BlockReduce;
     __shared__ typename BlockReduce::TempStorage temp_storage;
     // __syncthreads() prior to writing to shared memory is necessary
@@ -325,52 +379,97 @@ void deviceReduceMax_full (T * dest, T source) noexcept
     // and since we don't know how many times the user is calling it,
     // we do it always to be safe.
     __syncthreads();
-    // Compute the block-wide reduction for thread0
-    T aggregate = BlockReduce(temp_storage).Reduce(source, cub::Max());
-    if (threadIdx.x == 0) { Gpu::Atomic::Max(dest, aggregate); }
-}
+    return BlockReduce(temp_storage).Reduce(source, cub::Min());
+#elif defined(AMREX_USE_HIP)
+    typedef rocprim::block_reduce<T,BLOCKDIMX> BlockReduce;
+    __shared__ typename BlockReduce::storage_type temp_storage;
+    __syncthreads();
+    BlockReduce().reduce(source, source, temp_storage, rocprim::minimum<T>());
+    return source;
+#else
+    return blockReduceMin(source);
 #endif
+}
+
+template <int BLOCKDIMX, typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deviceReduceMin_full (T * dest, T source) noexcept
+{
+    T aggregate = blockReduceMin<BLOCKDIMX>(source);
+    if (threadIdx.x == 0) { Gpu::Atomic::Min(dest, aggregate); }
+}
+
+// Compute the block-wide reduction for thread0
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+T blockReduceMax (T source) noexcept
+{
+    return Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Greater<T> >(), source);
+}
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMax_full (T * dest, T source) noexcept
 {
-    source = Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Greater<T> >(), source);
-    if (threadIdx.x == 0) { Gpu::Atomic::Max(dest, source); }
+    T aggregate = blockReduceMax(source);
+    if (threadIdx.x == 0) { Gpu::Atomic::Max(dest, aggregate); }
 }
 
-#if defined(AMREX_USE_CUB)
-template <int BLOCKDIMX>
+// Compute the block-wide reduction for thread0
+template <int BLOCKDIMX, typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void deviceReduceLogicalAnd_full (int * dest, int source) noexcept
+T blockReduceMax (T source) noexcept
 {
-    typedef cub::BlockReduce<int,BLOCKDIMX> BlockReduce;
+#if defined(AMREX_USE_CUB)
+    typedef cub::BlockReduce<T,BLOCKDIMX> BlockReduce;
     __shared__ typename BlockReduce::TempStorage temp_storage;
     // __syncthreads() prior to writing to shared memory is necessary
     // if this reduction call is occurring multiple times in a kernel,
     // and since we don't know how many times the user is calling it,
     // we do it always to be safe.
     __syncthreads();
-    // Compute the block-wide reduction for thread0
-    int aggregate = BlockReduce(temp_storage).Reduce(source, amrex::LogicalAnd<int>());
+    return BlockReduce(temp_storage).Reduce(source, cub::Max());
+#elif defined(AMREX_USE_HIP)
+    typedef rocprim::block_reduce<T,BLOCKDIMX> BlockReduce;
+    __shared__ typename BlockReduce::storage_type temp_storage;
+    __syncthreads();
+    BlockReduce().reduce(source, source, temp_storage, rocprim::maximum<T>());
+    return source;
+#else
+    return blockReduceMax(source);
+#endif
+}
+
+template <int BLOCKDIMX, typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deviceReduceMax_full (T * dest, T source) noexcept
+{
+    T aggregate = blockReduceMax<BLOCKDIMX>(source);
+    if (threadIdx.x == 0) { Gpu::Atomic::Max(dest, aggregate); }
+}
+
+// Compute the block-wide reduction for thread0
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+int blockReduceLogicalAnd (int source) noexcept
+{
+    return Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalAnd<int> >(), 1);
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deviceReduceLogicalAnd_full (int * dest, int source) noexcept
+{
+    int aggregate = blockReduceLogicalAnd(source);
     if (threadIdx.x == 0) { Gpu::Atomic::LogicalAnd(dest, aggregate); }
 }
-#endif
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void deviceReduceLogicalAnd_full (int * dest, int source) noexcept
-{
-    source = Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalAnd<int> >(), 1);
-    if (threadIdx.x == 0) { Gpu::Atomic::LogicalAnd(dest, source); }
-}
-
-#if defined(AMREX_USE_CUB)
+// Compute the block-wide reduction for thread0
 template <int BLOCKDIMX>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void deviceReduceLogicalOr_full (int * dest, int source) noexcept
+int blockReduceLogicalAnd (int source) noexcept
 {
+#if defined(AMREX_USE_CUB)
     typedef cub::BlockReduce<int,BLOCKDIMX> BlockReduce;
     __shared__ typename BlockReduce::TempStorage temp_storage;
     // __syncthreads() prior to writing to shared memory is necessary
@@ -378,18 +477,72 @@ void deviceReduceLogicalOr_full (int * dest, int source) noexcept
     // and since we don't know how many times the user is calling it,
     // we do it always to be safe.
     __syncthreads();
-    // Compute the block-wide reduction for thread0
-    int aggregate = BlockReduce(temp_storage).Reduce(source, amrex::LogicalOr<int>());
-    if (threadIdx.x == 0) { Gpu::Atomic::LogicalOr(dest, aggregate); }
-}
+    return BlockReduce(temp_storage).Reduce(source, amrex::LogicalAnd<int>());
+#elif defined(AMREX_USE_HIP)
+    typedef rocprim::block_reduce<int,BLOCKDIMX> BlockReduce;
+    __shared__ typename BlockReduce::storage_type temp_storage;
+    __syncthreads();
+    BlockReduce().reduce(source, source, temp_storage, amrex::LogicalAnd<int>());
+    return source;
+#else
+    return blockReduceLogicalAnd(source);
 #endif
+}
+
+template <int BLOCKDIMX>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deviceReduceLogicalAnd_full (int * dest, int source) noexcept
+{
+    int aggregate = blockReduceLogicalAnd<BLOCKDIMX>(source);
+    if (threadIdx.x == 0) { Gpu::Atomic::LogicalAnd(dest, aggregate); }
+}
+
+// Compute the block-wide reduction for thread0
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+int blockReduceLogicalOr (int source) noexcept
+{
+    return Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalOr<int> >(), 0);
+}
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceLogicalOr_full (int * dest, int source) noexcept
 {
-    source = Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalOr<int> >(), 0);
-    if (threadIdx.x == 0) { Gpu::Atomic::LogicalOr(dest, source); }
+    int aggregate = blockReduceLogicalOr(source);
+    if (threadIdx.x == 0) { Gpu::Atomic::LogicalOr(dest, aggregate); }
+}
+
+// Compute the block-wide reduction for thread0
+template <int BLOCKDIMX>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+int blockReduceLogicalOr (int source) noexcept
+{
+#if defined(AMREX_USE_CUB)
+    typedef cub::BlockReduce<int,BLOCKDIMX> BlockReduce;
+    __shared__ typename BlockReduce::TempStorage temp_storage;
+    // __syncthreads() prior to writing to shared memory is necessary
+    // if this reduction call is occurring multiple times in a kernel,
+    // and since we don't know how many times the user is calling it,
+    // we do it always to be safe.
+    __syncthreads();
+    return BlockReduce(temp_storage).Reduce(source, amrex::LogicalOr<int>());
+#elif defined(AMREX_USE_HIP)
+    typedef rocprim::block_reduce<int,BLOCKDIMX> BlockReduce;
+    __shared__ typename BlockReduce::storage_type temp_storage;
+    __syncthreads();
+    BlockReduce().reduce(source, source, temp_storage, amrex::LogicalOr<int>());
+    return source;
+#else
+    return blockReduceLogicalOr(source);
+#endif
+}
+
+template <int BLOCKDIMX>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deviceReduceLogicalOr_full (int * dest, int source) noexcept
+{
+    int aggregate = blockReduceLogicalOr<BLOCKDIMX>(source);
+    if (threadIdx.x == 0) { Gpu::Atomic::LogicalOr(dest, aggregate); }
 }
 
 template <typename T>
@@ -397,16 +550,11 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceSum (T * dest, T source, Gpu::Handler const& handler) noexcept
 {
     if (handler.isFullBlock()) {
-#if defined(AMREX_USE_CUB)
         if (blockDim.x == 128) {
             deviceReduceSum_full<128,T>(dest, source);
         } else if (blockDim.x == 256) {
             deviceReduceSum_full<256,T>(dest, source);
-        } else if (blockDim.x == 512) {
-            deviceReduceSum_full<512,T>(dest, source);
-        } else
-#endif
-        {
+        } else {
             deviceReduceSum_full<T>(dest, source);
         }
     } else {
@@ -421,16 +569,11 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMin (T * dest, T source, Gpu::Handler const& handler) noexcept
 {
     if (handler.isFullBlock()) {
-#if defined(AMREX_USE_CUB)
         if (blockDim.x == 128) {
             deviceReduceMin_full<128,T>(dest, source);
         } else if (blockDim.x == 256) {
             deviceReduceMin_full<256,T>(dest, source);
-        } else if (blockDim.x == 512) {
-            deviceReduceMin_full<512,T>(dest, source);
-        } else
-#endif
-        {
+        } else {
             deviceReduceMin_full<T>(dest, source);
         }
     } else {
@@ -445,16 +588,11 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMax (T * dest, T source, Gpu::Handler const& handler) noexcept
 {
     if (handler.isFullBlock()) {
-#if defined(AMREX_USE_CUB)
         if (blockDim.x == 128) {
             deviceReduceMax_full<128,T>(dest, source);
         } else if (blockDim.x == 256) {
             deviceReduceMax_full<256,T>(dest, source);
-        } else if (blockDim.x == 512) {
-            deviceReduceMax_full<512,T>(dest, source);
-        } else
-#endif
-        {
+        } else {
             deviceReduceMax_full<T>(dest, source);
         }
     } else {
@@ -468,16 +606,11 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceLogicalAnd (int * dest, int source, Gpu::Handler const& handler) noexcept
 {
     if (handler.isFullBlock()) {
-#if defined(AMREX_USE_CUB)
         if (blockDim.x == 128) {
             deviceReduceLogicalAnd_full<128>(dest, source);
         } else if (blockDim.x == 256) {
             deviceReduceLogicalAnd_full<256>(dest, source);
-        } else if (blockDim.x == 512) {
-            deviceReduceLogicalAnd_full<512>(dest, source);
-        } else
-#endif
-        {
+        } else {
             deviceReduceLogicalAnd_full(dest, source);
         }
     } else {
@@ -491,16 +624,11 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceLogicalOr (int * dest, int source, Gpu::Handler const& handler) noexcept
 {
     if (handler.isFullBlock()) {
-#if defined(AMREX_USE_CUB)
         if (blockDim.x == 128) {
             deviceReduceLogicalOr_full<128>(dest, source);
         } else if (blockDim.x == 256) {
             deviceReduceLogicalOr_full<256>(dest, source);
-        } else if (blockDim.x == 512) {
-            deviceReduceLogicalOr_full<512>(dest, source);
-        } else
-#endif
-        {
+        } else {
             deviceReduceLogicalOr_full(dest, source);
         }
     } else {

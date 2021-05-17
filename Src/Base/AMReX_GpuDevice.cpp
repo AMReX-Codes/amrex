@@ -125,6 +125,7 @@ Device::Initialize ()
 
     ParmParse ppamrex("amrex");
     ppamrex.query("max_gpu_streams", max_gpu_streams);
+    max_gpu_streams = std::min(max_gpu_streams, AMREX_GPU_MAX_STREAMS);
 
     ParmParse pp("device");
 
@@ -310,7 +311,7 @@ Device::Initialize ()
 #if (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
     nvtxRangeEnd(nvtx_init);
 #endif
-    cudaProfilerStart();
+    profilerStart();
 
     if (amrex::Verbose()) {
 #if defined(AMREX_USE_MPI) && (__CUDACC_VER_MAJOR__ >= 10)
@@ -329,7 +330,7 @@ Device::Initialize ()
 #endif // AMREX_USE_MPI && NVCC >= 10
     }
 
-    cudaProfilerStart();
+    profilerStart();
 
 #elif defined(AMREX_USE_HIP)
     if (amrex::Verbose()) {
@@ -550,6 +551,19 @@ Device::numDevicesUsed () noexcept
 {
     return num_devices_used;
 }
+
+#ifdef AMREX_USE_GPU
+int
+Device::streamIndex (gpuStream_t s) noexcept
+{
+    if (s == nullStream()) {
+        return -1;
+    } else {
+        auto it = std::find(std::begin(gpu_stream_pool), std::end(gpu_stream_pool), s);
+        return static_cast<int>(std::distance(std::begin(gpu_stream_pool), it));
+    }
+}
+#endif
 
 void
 Device::setStreamIndex (const int idx) noexcept
@@ -974,6 +988,22 @@ Device::freeMemAvailable ()
     return f;
 #else
     return 0;
+#endif
+}
+
+void
+Device::profilerStart ()
+{
+#ifdef AMREX_USE_CUDA
+    AMREX_GPU_SAFE_CALL(cudaProfilerStart());
+#endif
+}
+
+void
+Device::profilerStop ()
+{
+#ifdef AMREX_USE_CUDA
+    AMREX_GPU_SAFE_CALL(cudaProfilerStop());
 #endif
 }
 

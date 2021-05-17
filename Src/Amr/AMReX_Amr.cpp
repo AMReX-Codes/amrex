@@ -4,7 +4,6 @@
 #include <AMReX_Vector.H>
 #include <AMReX_CoordSys.H>
 #include <AMReX_ParmParse.H>
-#include <AMReX_BoxDomain.H>
 #include <AMReX_Cluster.H>
 #include <AMReX_LevelBld.H>
 #include <AMReX_AmrLevel.H>
@@ -3338,4 +3337,3 @@ Amr::RedistributeParticles ()
 #endif
 
 }
-

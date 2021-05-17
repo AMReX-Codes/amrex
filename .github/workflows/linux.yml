@@ -318,7 +318,7 @@ jobs:
     - name: Build & Install
       run: |
         ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-error=c++17-extensions"
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-c++17-extensions"
         make install
 
   # Build 3D libamrex with configure
@@ -376,6 +376,20 @@ jobs:
       run: |
         ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes --with-omp yes --debug yes
         make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names
+        make install
+
+  # Build 2D libamrex hip build with configure
+  configure-2d-single-hip:
+    name: HIP EB [configure 2D]
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_hip.sh
+    - name: Build & Install
+      run: |
+        ./configure --dim 2 --with-hip yes --enable-eb yes --enable-xsdk-defaults yes --with-mpi no --with-omp no --single-precision yes --single-precision-particles yes
+        make -j2 WARN_ALL=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-c++17-extensions"
         make install
 
   # Build Tools/Plotfile

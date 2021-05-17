@@ -9,14 +9,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             const Periodicity& period, bool cross,
                             bool enforce_periodicity_only)
 {
-    fb_cross = cross;
-    fb_epo   = enforce_periodicity_only;
-    fb_scomp = scomp;
-    fb_ncomp = ncomp;
-    fb_nghost = nghost;
-    fb_period = period;
-
-    fb_recv_reqs.clear();
+    AMREX_ASSERT_WITH_MESSAGE(!fbd, "FillBoundary_nowait() called when comm operation already in progress.");
 
     bool work_to_do;
     if (enforce_periodicity_only) {
@@ -24,7 +17,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     } else {
         work_to_do = nghost.max() > 0;
     }
-    if (!work_to_do) return;
+    if (!work_to_do) { return; }
 
     const FB& TheFB = getFB(nghost, period, cross, enforce_periodicity_only);
 
@@ -65,36 +58,45 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     // Otherwise sequence numbers will not match across MPI processes.
     //
     int SeqNum = ParallelDescriptor::SeqNum();
-    fb_tag = SeqNum;
 
     const int N_locs = TheFB.m_LocTags->size();
     const int N_rcvs = TheFB.m_RcvTags->size();
     const int N_snds = TheFB.m_SndTags->size();
 
-    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0)
+    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0) {
         // No work to do.
         return;
+    }
+
+    fbd = std::make_unique<FBData<FAB>>();
+    fbd->fb    = &TheFB;
+    fbd->scomp = scomp;
+    fbd->ncomp = ncomp;
+    fbd->nghost = nghost;
+    fbd->period = period;
+    fbd->cross = cross;
+    fbd->epo   = enforce_periodicity_only;
+    fbd->tag   = SeqNum;
 
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
-    fb_the_recv_data = nullptr;
 
     if (N_rcvs > 0) {
-        PostRcvs(*TheFB.m_RcvTags, fb_the_recv_data,
-                 fb_recv_data, fb_recv_size, fb_recv_from, fb_recv_reqs,
+        PostRcvs(*TheFB.m_RcvTags, fbd->the_recv_data,
+                 fbd->recv_data, fbd->recv_size, fbd->recv_from, fbd->recv_reqs,
                  ncomp, SeqNum);
-        fb_recv_stat.resize(N_rcvs);
+        fbd->recv_stat.resize(N_rcvs);
     }
 
     //
     // Post send's
     //
-    char*&                          the_send_data = fb_the_send_data;
-    Vector<char*> &                     send_data = fb_send_data;
+    char*&                          the_send_data = fbd->the_send_data;
+    Vector<char*> &                     send_data = fbd->send_data;
     Vector<std::size_t>                 send_size;
     Vector<int>                         send_rank;
-    Vector<MPI_Request>&                send_reqs = fb_send_reqs;
+    Vector<MPI_Request>&                send_reqs = fbd->send_reqs;
     Vector<const CopyComTagsContainer*> send_cctc;
 
     if (N_snds > 0)
@@ -162,43 +164,39 @@ template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::FillBoundary_finish ()
 {
-    BL_PROFILE("FillBoundary_finish()");
-
-    if ( n_grow.allLE(IntVect::TheZeroVector()) && !fb_epo ) return; // For epo (Enforce Periodicity Only), there may be no ghost cells.
-
-    n_filled = fb_nghost;
-
-    if (ParallelContext::NProcsSub() == 1) return;
-
 #ifdef AMREX_USE_MPI
 
-    const FB& TheFB = getFB(fb_nghost,fb_period,fb_cross,fb_epo);
-    const int N_rcvs = TheFB.m_RcvTags->size();
+    BL_PROFILE("FillBoundary_finish()");
+
+    if (!fbd) { n_filled = IntVect::TheZeroVector(); return; }
+
+    const FB* TheFB = fbd->fb;
+    const int N_rcvs = TheFB->m_RcvTags->size();
     if (N_rcvs > 0)
     {
         Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
         for (int k = 0; k < N_rcvs; k++)
         {
-            if (fb_recv_size[k] > 0)
+            if (fbd->recv_size[k] > 0)
             {
-                auto const& cctc = TheFB.m_RcvTags->at(fb_recv_from[k]);
+                auto const& cctc = TheFB->m_RcvTags->at(fbd->recv_from[k]);
                 recv_cctc[k] = &cctc;
             }
         }
 
-        int actual_n_rcvs = N_rcvs - std::count(fb_recv_data.begin(), fb_recv_data.end(), nullptr);
+        int actual_n_rcvs = N_rcvs - std::count(fbd->recv_data.begin(), fbd->recv_data.end(), nullptr);
 
         if (actual_n_rcvs > 0) {
-            ParallelDescriptor::Waitall(fb_recv_reqs, fb_recv_stat);
+            ParallelDescriptor::Waitall(fbd->recv_reqs, fbd->recv_stat);
 #ifdef AMREX_DEBUG
-            if (!CheckRcvStats(fb_recv_stat, fb_recv_size, fb_tag))
+            if (!CheckRcvStats(fbd->recv_stat, fbd->recv_size, fbd->tag))
             {
                 amrex::Abort("FillBoundary_finish failed with wrong message size");
             }
 #endif
         }
 
-        bool is_thread_safe = TheFB.m_threadsafe_rcv;
+        bool is_thread_safe = TheFB->m_threadsafe_rcv;
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
@@ -206,38 +204,41 @@ FabArray<FAB>::FillBoundary_finish ()
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
             if (Gpu::inGraphRegion())
             {
-                FB_unpack_recv_buffer_cuda_graph(TheFB, fb_scomp, fb_ncomp,
-                                                 fb_recv_data, fb_recv_size,
+                FB_unpack_recv_buffer_cuda_graph(*TheFB, fbd->scomp, fbd->ncomp,
+                                                 fbd->recv_data, fbd->recv_size,
                                                  recv_cctc, is_thread_safe);
             }
             else
 #endif
             {
-                unpack_recv_buffer_gpu(*this, fb_scomp, fb_ncomp, fb_recv_data, fb_recv_size,
+                unpack_recv_buffer_gpu(*this, fbd->scomp, fbd->ncomp, fbd->recv_data, fbd->recv_size,
                                        recv_cctc, FabArrayBase::COPY, is_thread_safe);
             }
         }
         else
 #endif
         {
-            unpack_recv_buffer_cpu(*this, fb_scomp, fb_ncomp, fb_recv_data, fb_recv_size,
+            unpack_recv_buffer_cpu(*this, fbd->scomp, fbd->ncomp, fbd->recv_data, fbd->recv_size,
                                    recv_cctc, FabArrayBase::COPY, is_thread_safe);
         }
 
-        if (fb_the_recv_data)
+        if (fbd->the_recv_data)
         {
-            amrex::The_FA_Arena()->free(fb_the_recv_data);
-            fb_the_recv_data = nullptr;
+            amrex::The_FA_Arena()->free(fbd->the_recv_data);
+            fbd->the_recv_data = nullptr;
         }
     }
 
-    const int N_snds = TheFB.m_SndTags->size();
+    const int N_snds = TheFB->m_SndTags->size();
     if (N_snds > 0) {
-        Vector<MPI_Status> stats(fb_send_reqs.size());
-        ParallelDescriptor::Waitall(fb_send_reqs, stats);
-        amrex::The_FA_Arena()->free(fb_the_send_data);
-        fb_the_send_data = nullptr;
+        Vector<MPI_Status> stats(fbd->send_reqs.size());
+        ParallelDescriptor::Waitall(fbd->send_reqs, stats);
+        amrex::The_FA_Arena()->free(fbd->the_send_data);
+        fbd->the_send_data = nullptr;
     }
+
+    fbd.reset();
+
 #endif
 }
 
@@ -273,25 +274,16 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 {
     BL_PROFILE("FabArray::ParallelCopy_nowait()");
 
-    pc_finished = false;
+    AMREX_ASSERT_WITH_MESSAGE(!pcd, "ParallelCopy_nowait() called when comm operation already in progress.");
 
-    if (size() == 0 || src.size() == 0) { pc_finished = true; return; }
+    if (size() == 0 || src.size() == 0) {
+        return;
+    }
 
     BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
     BL_ASSERT(boxArray().ixType() == src.boxArray().ixType());
-
     BL_ASSERT(src.nGrowVect().allGE(snghost));
     BL_ASSERT(    nGrowVect().allGE(dnghost));
-
-    pc_src = &(src);
-    pc_snghost = snghost;
-    pc_dnghost = dnghost;
-    pc_period = period;
-    pc_cpc = a_cpc;
-    pc_op = op;
-
-    pc_SC = scomp;
-    pc_DC = dcomp;
 
     n_filled = dnghost;
 
@@ -331,8 +323,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
             }
         }
 
-        pc_finished = true;
-
         return;
     }
 
@@ -343,8 +333,9 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         //
         // There can only be local work to do.
         //
+
         int N_locs = (*thecpc.m_LocTags).size();
-        if (N_locs == 0) return;
+        if (N_locs == 0) { return; }
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
@@ -356,8 +347,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
             PC_local_cpu(thecpc, src, scomp, dcomp, ncomp, op);
         }
 
-        pc_finished = true;
-
         return;
     }
 
@@ -367,7 +356,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    pc_tag = ParallelDescriptor::SeqNum();
+    int tag = ParallelDescriptor::SeqNum();
 
     const int N_snds = thecpc.m_SndTags->size();
     const int N_rcvs = thecpc.m_RcvTags->size();
@@ -377,7 +366,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         //
         // No work to do.
         //
-        pc_finished = true;
+
         return;
     }
 
@@ -385,27 +374,36 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     // Send/Recv at most MaxComp components at a time to cut down memory usage.
     //
     int NCompLeft = ncomp;
+    int SC = scomp, DC = dcomp, NC;
 
     for (int ipass = 0; ipass < ncomp; )
     {
-        pc_NC = std::min(NCompLeft,FabArrayBase::MaxComp);
-        const bool last_iter = (NCompLeft == pc_NC);
-/*
-        Vector<int>         recv_from;
-        Vector<char*>       recv_data;
-        Vector<std::size_t> recv_size;
-        Vector<MPI_Request> recv_reqs;
-*/
+        pcd = std::make_unique<PCData<FAB>>();
+        pcd->cpc = &thecpc;
+        pcd->src = &src;
+        pcd->snghost = snghost;
+        pcd->dnghost = dnghost;
+        pcd->period = period;
+        pcd->op = op;
+        pcd->tag = tag;
+
+        NC = std::min(NCompLeft,FabArrayBase::MaxComp);
+        const bool last_iter = (NCompLeft == NC);
+
+        pcd->SC = SC;
+        pcd->DC = DC;
+        pcd->NC = NC;
+
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
-        pc_the_recv_data = nullptr;
+        pcd->the_recv_data = nullptr;
 
-        pc_actual_n_rcvs = 0;
+        pcd->actual_n_rcvs = 0;
         if (N_rcvs > 0) {
-            PostRcvs(*thecpc.m_RcvTags, pc_the_recv_data,
-                     pc_recv_data, pc_recv_size, pc_recv_from, pc_recv_reqs, pc_NC, pc_tag);
-            pc_actual_n_rcvs = N_rcvs - std::count(pc_recv_size.begin(), pc_recv_size.end(), 0);
+            PostRcvs(*thecpc.m_RcvTags, pcd->the_recv_data,
+                     pcd->recv_data, pcd->recv_size, pcd->recv_from, pcd->recv_reqs, NC, pcd->tag);
+            pcd->actual_n_rcvs = N_rcvs - std::count(pcd->recv_size.begin(), pcd->recv_size.end(), 0);
         }
 
         //
@@ -418,22 +416,22 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
         if (N_snds > 0)
         {
-            src.PrepareSendBuffers(*thecpc.m_SndTags, pc_the_send_data, send_data, send_size,
-                                   send_rank, pc_send_reqs, send_cctc, pc_NC);
+            src.PrepareSendBuffers(*thecpc.m_SndTags, pcd->the_send_data, send_data, send_size,
+                                   send_rank, pcd->send_reqs, send_cctc, NC);
 
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion())
             {
-                pack_send_buffer_gpu(src, pc_SC, pc_NC, send_data, send_size, send_cctc);
+                pack_send_buffer_gpu(src, SC, NC, send_data, send_size, send_cctc);
             }
             else
 #endif
             {
-                pack_send_buffer_cpu(src, pc_SC, pc_NC, send_data, send_size, send_cctc);
+                pack_send_buffer_cpu(src, SC, NC, send_data, send_size, send_cctc);
             }
 
-            AMREX_ASSERT(pc_send_reqs.size() == N_snds);
-            FabArray<FAB>::PostSnds(send_data, send_size, send_rank, pc_send_reqs, pc_tag);
+            AMREX_ASSERT(pcd->send_reqs.size() == N_snds);
+            FabArray<FAB>::PostSnds(send_data, send_size, send_rank, pcd->send_reqs, pcd->tag);
         }
 
         //
@@ -444,12 +442,12 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion())
             {
-                PC_local_gpu(thecpc, src, pc_SC, pc_DC, pc_NC, op);
+                PC_local_gpu(thecpc, src, SC, DC, NC, op);
             }
             else
 #endif
             {
-                PC_local_cpu(thecpc, src, pc_SC, pc_DC, pc_NC, op);
+                PC_local_cpu(thecpc, src, SC, DC, NC, op);
             }
         }
 
@@ -457,15 +455,13 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         {
             ParallelCopy_finish();
 
-            pc_SC += pc_NC;
-            pc_DC += pc_NC;
+            SC += NC;
+            DC += NC;
         }
 
-        ipass     += pc_NC;
-        NCompLeft -= pc_NC;
+        ipass     += NC;
+        NCompLeft -= NC;
     }
-
-    return;
 
 #endif /*BL_USE_MPI*/
 }
@@ -474,74 +470,76 @@ template <class FAB>
 void
 FabArray<FAB>::ParallelCopy_finish ()
 {
-    BL_PROFILE("FabArray::ParallelCopy_finish()");
-
-    if (pc_finished) { return; }
 
 #ifdef BL_USE_MPI
 
-    const CPC& thecpc = (pc_cpc) ? *pc_cpc : getCPC(pc_dnghost, *pc_src, pc_snghost, pc_period);
+    BL_PROFILE("FabArray::ParallelCopy_finish()");
 
-    const int N_snds = thecpc.m_SndTags->size();
-    const int N_rcvs = thecpc.m_RcvTags->size();
+    if (!pcd) { return; }
+
+    const CPC* thecpc = pcd->cpc;
+
+    const int N_snds = thecpc->m_SndTags->size();
+    const int N_rcvs = thecpc->m_RcvTags->size();
 
     if (N_rcvs > 0)
     {
         Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
         for (int k = 0; k < N_rcvs; ++k)
         {
-            if (pc_recv_size[k] > 0)
+            if (pcd->recv_size[k] > 0)
             {
-                auto const& cctc = thecpc.m_RcvTags->at(pc_recv_from[k]);
+                auto const& cctc = thecpc->m_RcvTags->at(pcd->recv_from[k]);
                 recv_cctc[k] = &cctc;
             }
         }
 
-        if (pc_actual_n_rcvs > 0) {
+        if (pcd->actual_n_rcvs > 0) {
             Vector<MPI_Status> stats(N_rcvs);
-            ParallelDescriptor::Waitall(pc_recv_reqs, stats);
+            ParallelDescriptor::Waitall(pcd->recv_reqs, stats);
 #ifdef AMREX_DEBUG
-            if (!CheckRcvStats(stats, pc_recv_size, pc_tag))
+            if (!CheckRcvStats(stats, pcd->recv_size, pcd->tag))
             {
                 amrex::Abort("ParallelCopy failed with wrong message size");
             }
 #endif
         }
 
-        bool is_thread_safe = thecpc.m_threadsafe_rcv;
+        bool is_thread_safe = thecpc->m_threadsafe_rcv;
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            unpack_recv_buffer_gpu(*this, pc_DC, pc_NC, pc_recv_data, pc_recv_size,
-                                   recv_cctc, pc_op, is_thread_safe);
+            unpack_recv_buffer_gpu(*this, pcd->DC, pcd->NC, pcd->recv_data, pcd->recv_size,
+                                   recv_cctc, pcd->op, is_thread_safe);
         }
         else
 #endif
         {
-            unpack_recv_buffer_cpu(*this, pc_DC, pc_NC, pc_recv_data, pc_recv_size,
-                                   recv_cctc, pc_op, is_thread_safe);
+            unpack_recv_buffer_cpu(*this, pcd->DC, pcd->NC, pcd->recv_data, pcd->recv_size,
+                                   recv_cctc, pcd->op, is_thread_safe);
         }
 
-        if (pc_the_recv_data)
+        if (pcd->the_recv_data)
         {
-            amrex::The_FA_Arena()->free(pc_the_recv_data);
-            pc_the_recv_data = nullptr;
+            amrex::The_FA_Arena()->free(pcd->the_recv_data);
+            pcd->the_recv_data = nullptr;
         }
     }
 
     if (N_snds > 0) {
-        if (! thecpc.m_SndTags->empty()) {
-            Vector<MPI_Status> stats(pc_send_reqs.size());
-            ParallelDescriptor::Waitall(pc_send_reqs, stats);
+        if (! thecpc->m_SndTags->empty()) {
+            Vector<MPI_Status> stats(pcd->send_reqs.size());
+            ParallelDescriptor::Waitall(pcd->send_reqs, stats);
         }
-        amrex::The_FA_Arena()->free(pc_the_send_data);
-        pc_the_send_data = nullptr;
+        amrex::The_FA_Arena()->free(pcd->the_send_data);
+        pcd->the_send_data = nullptr;
     }
 
-    return;
+    pcd.reset();
 
 #endif /*BL_USE_MPI*/
+
 }
 
 template <class FAB>
@@ -846,7 +844,7 @@ FabArray<FAB>::FillBoundary_test ()
     // We only test if no DEBUG because in DEBUG we check the status later.
     // If Test is done here, the status check will fail.
     int flag;
-    ParallelDescriptor::Test(fb_recv_reqs, flag, fb_recv_stat);
+    ParallelDescriptor::Test(fbd->recv_reqs, flag, fbd->recv_stat);
 #endif
 }
 

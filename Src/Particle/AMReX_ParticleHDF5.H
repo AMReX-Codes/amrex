@@ -275,7 +275,11 @@ static int ReadHDF5AttrLong(hid_t loc, const char *name, void *data)
     return 1;
 }
 
+#ifdef BL_USE_MPI
 static void SetHDF5fapl(hid_t fapl, MPI_Comm comm)
+#else
+static void SetHDF5fapl(hid_t fapl)
+#endif
 {
 #ifdef BL_USE_MPI
     H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
@@ -425,19 +429,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         HDF5FileName += ".h5";
     HdrFileNamePrePost = HDF5FileName;
 
+    BL_PROFILE_VAR("H5FileCreate", h5fg);
+
     if (ParallelDescriptor::IOProcessor()) {
 
-        // Have only one rank to create and write metadata (header)
-        fapl = H5Pcreate (H5P_FILE_ACCESS);
-
-#ifdef BL_USE_MPI
-        SetHDF5fapl(fapl, MPI_COMM_SELF);
-#else
-        SetHDF5fapl(fapl, NULL);
-#endif
-
         // Create the HDF5 file
-        fid = H5Fcreate(HDF5FileName.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
+        fid = H5Fcreate(HDF5FileName.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
         if (fid < 0)
             amrex::FileOpenFailed(HDF5FileName.c_str());
 
@@ -552,27 +549,36 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             H5Gclose(grp);
         }
 
-        H5Pclose(fapl);
         H5Fclose(fid);
     }
 
     ParallelDescriptor::Barrier();
+    BL_PROFILE_VAR_STOP(h5fg);
 
     fapl = H5Pcreate (H5P_FILE_ACCESS);
 
 #ifdef BL_USE_MPI
     SetHDF5fapl(fapl, ParallelDescriptor::Communicator());
 #else
-    SetHDF5fapl(fapl, NULL);
+    SetHDF5fapl(fapl);
 #endif
 
 #ifdef AMREX_USE_HDF5_ASYNC
-    // Only use HDF5 async I/O for data write
-    H5Pset_vol_async(fapl);
+    // For HDF5 async VOL, block and wait previous tasks have all completed
+    if (es_par_g != 0)
+        async_vol_es_wait_particle();
+    else {
+        ExecOnFinalize(async_vol_es_wait_close_particle);
+        es_par_g = H5EScreate();
+    }
 #endif
 
     // All process open the file
+#ifdef AMREX_USE_HDF5_ASYNC
+    fid = H5Fopen_async(HDF5FileName.c_str(), H5F_ACC_RDWR, fapl, es_par_g);
+#else
     fid = H5Fopen(HDF5FileName.c_str(), H5F_ACC_RDWR, fapl);
+#endif
     if (fid < 0)
         FileOpenFailed(HDF5FileName.c_str());
 
@@ -580,7 +586,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     for (int lev = 0; lev <= finestLevel(); lev++)
     {
         sprintf(level_name, "level_%d", lev);
+#ifdef AMREX_USE_HDF5_ASYNC
+        grp = H5Gopen_async(fid, level_name, H5P_DEFAULT, es_par_g);
+#else
         grp = H5Gopen(fid, level_name, H5P_DEFAULT);
+#endif
 
         bool gotsome;
         if(usePrePost)
@@ -617,12 +627,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             }
         }
 
+#ifdef AMREX_USE_HDF5_ASYNC
+        H5Gclose_async(grp, es_par_g);
+#else
         H5Gclose(grp);
+#endif
     }            // ---- end for(lev...)
 
     H5Tclose(comp_dtype);
     H5Pclose(fapl);
+#ifdef AMREX_USE_HDF5_ASYNC
+    H5Fclose_async(fid, es_par_g);
+#else
     H5Fclose(fid);
+#endif
 
     if (m_verbose > 1)
     {
@@ -648,10 +666,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     dxpl = H5Pcreate(H5P_DATASET_XFER);
     #ifdef BL_USE_MPI
     H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_INDEPENDENT);
-    #endif
-
-    #ifdef AMREX_USE_HDF5_ASYNC
-    H5Pset_dxpl_async(dxpl, true);
     #endif
 
     for (const auto& kv : m_particles[lev])
@@ -717,15 +731,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     MPI_Allgather(&my_mfi_int_total_size, 1, ParallelDescriptor::Mpi_typemap<ULong>::type(),
                   &(all_mfi_int_total_size[0]), 1, ParallelDescriptor::Mpi_typemap<ULong>::type(), ParallelDescriptor::Communicator());
     #else
-    all_mfi_cnt[0] = &my_mfi_cnt;
+    all_mfi_cnt[0] = my_mfi_cnt;
     all_mfi_int_total_size[0] = my_mfi_int_total_size;
     #endif
 
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
-        total_int_size += all_mfi_int_total_size[i];
-
     int_dset_space = H5Screate_simple(1, &total_int_size, NULL);
+#ifdef AMREX_USE_HDF5_ASYNC
+    int_dset_id  = H5Dcreate_async(grp, "data:datatype=0", H5T_NATIVE_INT, int_dset_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_par_g);
+#else
     int_dset_id  = H5Dcreate(grp, "data:datatype=0", H5T_NATIVE_INT, int_dset_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+#endif
     H5Sclose(int_dset_space);
 
     int_file_offset = 0;
@@ -747,12 +762,24 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         total_real_size += all_mfi_real_total_size[i];
 
     real_dset_space = H5Screate_simple(1, &total_real_size, NULL);
-    if (sizeof(typename ParticleType::RealType) == 4)
+    if (sizeof(typename ParticleType::RealType) == 4) {
+#ifdef AMREX_USE_HDF5_ASYNC
+        real_dset_id  = H5Dcreate_async(grp, "data:datatype=1", H5T_NATIVE_FLOAT, real_dset_space,
+                                  H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_par_g);
+#else
         real_dset_id  = H5Dcreate(grp, "data:datatype=1", H5T_NATIVE_FLOAT, real_dset_space,
                                   H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    else
+#endif
+    }
+    else {
+#ifdef AMREX_USE_HDF5_ASYNC
+        real_dset_id  = H5Dcreate_async(grp, "data:datatype=1", H5T_NATIVE_DOUBLE, real_dset_space,
+                                  H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_par_g);
+#else
         real_dset_id  = H5Dcreate(grp, "data:datatype=1", H5T_NATIVE_DOUBLE, real_dset_space,
                                   H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+#endif
+    }
     H5Sclose(real_dset_space);
 
     real_file_offset = 0;
@@ -800,7 +827,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         /*         my_int_offset << ", my_int_count = " << my_int_count << ", total_int_size = " << total_int_size << '\n'; */
         int_dset_space = H5Screate_simple(1, &total_int_size, NULL);
         H5Sselect_hyperslab (int_dset_space, H5S_SELECT_SET, &my_int_offset, NULL, &my_int_count, NULL);
+
+#ifdef AMREX_USE_HDF5_ASYNC
+        H5Dwrite_async(int_dset_id, H5T_NATIVE_INT, int_mem_space, int_dset_space, dxpl, istuff.dataPtr(), es_par_g);
+#else
         H5Dwrite(int_dset_id, H5T_NATIVE_INT, int_mem_space, int_dset_space, dxpl, istuff.dataPtr());
+#endif
         H5Sclose(int_mem_space);
         H5Sclose(int_dset_space);
 
@@ -840,10 +872,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         /*         my_real_offset << ", my_real_count = " << my_real_count << ", total_real_size = " << total_real_size << '\n'; */
         real_dset_space = H5Screate_simple(1, &total_real_size, NULL);
         H5Sselect_hyperslab (real_dset_space, H5S_SELECT_SET, &my_real_offset, NULL, &my_real_count, NULL);
-        if (sizeof(typename ParticleType::RealType) == 4)
+        if (sizeof(typename ParticleType::RealType) == 4) {
+#ifdef AMREX_USE_HDF5_ASYNC
+            H5Dwrite_async(real_dset_id, H5T_NATIVE_FLOAT, real_mem_space, real_dset_space, dxpl, rstuff.dataPtr(), es_par_g);
+#else
             H5Dwrite(real_dset_id, H5T_NATIVE_FLOAT, real_mem_space, real_dset_space, dxpl, rstuff.dataPtr());
-        else
+#endif
+        }
+        else {
+#ifdef AMREX_USE_HDF5_ASYNC
+            H5Dwrite_async(real_dset_id, H5T_NATIVE_DOUBLE, real_mem_space, real_dset_space, dxpl, rstuff.dataPtr(), es_par_g);
+#else
             H5Dwrite(real_dset_id, H5T_NATIVE_DOUBLE, real_mem_space, real_dset_space, dxpl, rstuff.dataPtr());
+#endif
+        }
         H5Sclose(real_mem_space);
         H5Sclose(real_dset_space);
 
@@ -851,13 +893,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         /* WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs, ParticleRealDescriptor); */
     } // End for mfi(state)
 
+#ifdef AMREX_USE_HDF5_ASYNC
+    H5Dclose_async(real_dset_id, es_par_g);
+    H5Dclose_async(int_dset_id, es_par_g);
+#else
     H5Dclose(real_dset_id);
-
     H5Dclose(int_dset_id);
+#endif
 
     // Create and write the size dataset
     offset_space = H5Screate_simple(1, &total_mfi, NULL);
+#ifdef AMREX_USE_HDF5_ASYNC
+    offset_id  = H5Dcreate_async(grp, "nparticles_grid", H5T_NATIVE_INT, offset_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, es_par_g);
+#else
     offset_id  = H5Dcreate(grp, "nparticles_grid", H5T_NATIVE_INT, offset_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+#endif
 
     my_int_offset = 0;
     for (int i = 0; i < ParallelDescriptor::MyProc(); i++)
@@ -872,17 +922,24 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     #ifdef BL_USE_MPI
     H5Pset_dxpl_mpio(dxpl_col, H5FD_MPIO_COLLECTIVE);
     #endif
-    #ifdef AMREX_USE_HDF5_ASYNC
-    H5Pset_dxpl_async(dxpl_col, true);
-    #endif
+
+#ifdef AMREX_USE_HDF5_ASYNC
+    H5Dwrite_async(offset_id, H5T_NATIVE_INT, int_mem_space, offset_space, dxpl_col, &(my_nparticles[0]), es_par_g);
+#else
     H5Dwrite(offset_id, H5T_NATIVE_INT, int_mem_space, offset_space, dxpl_col, &(my_nparticles[0]));
+#endif
 
     H5Pclose(dxpl);
     H5Pclose(dxpl_col);
 
     H5Sclose(int_mem_space);
-    H5Dclose(offset_id);
     H5Sclose(offset_space);
+
+#ifdef AMREX_USE_HDF5_ASYNC
+    H5Dclose_async(offset_id, es_par_g);
+#else
+    H5Dclose(offset_id);
+#endif
 
 } // End WriteParticlesHDF5
 
@@ -926,7 +983,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 #ifdef BL_USE_MPI
     SetHDF5fapl(fapl, ParallelDescriptor::Communicator());
 #else
-    SetHDF5fapl(fapl, NULL);
+    SetHDF5fapl(fapl);
 #endif
 
 
@@ -1411,8 +1468,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     Gpu::streamSynchronize();
 }
 
-
-
-#endif
+#endif /*end ifdef AMREX_USE_HDF5 */
 
 #endif

@@ -19,6 +19,10 @@ gcc_minor_version = $(shell g++ -dumpfullversion -dumpversion | head -1 | sed -e
 
 COMP_VERSION = $(pgi_version)
 
+# -MP not supported by pgi and -MMD's output is put in the wrong directory
+USE_LEGACY_DEPFLAGS = TRUE
+DEPFLAGS =
+
 ########################################################################
 
 GENERIC_PGI_FLAGS =

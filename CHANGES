@@ -1,3 +1,59 @@
+# 21.05
+
+  -- Support OpenMP offload with the NVHPC compiler in GNU make (#1980)
+
+  -- In GNU make, use -MMD -MP instead of -MM to generate dependency if
+     supported (#1967)
+
+  -- Workaround compile error on Apple M1 (ARM64) (#1969)
+
+  -- Changes to EB slopes (#1965)
+
+  -- In GNU make, use `LOG_BUILD_TIME=TRUE` to log build time. (#1963)
+
+  -- Using rocPRIM in HIP Version of Scan (#1962)
+
+  -- Reimplementation of ReduceOps (#1955) The new approach does reduction
+     in two passes and therefore does not require atomics.
+
+  -- CMake: implement logic to support compiler ID IntelLLVM (new in CMake
+     3.20) (#1959)
+
+  -- CPU version of TagBox::buffer (#1957)
+
+  -- Fix out of bound error in AsyncWrite (#1753)
+
+  -- Use pinned memory ad buffer in Fab data I/O (#1956)
+
+  -- Allow user to opt out of renaming MTMPI suffix (#1954)
+
+  -- Port FluxRegister::ClearInternalBorders to GPU (#1952)
+
+  -- Skip temporary in ParticleToMesh when it is not needed. (#1949)
+
+  -- Multilevel version of ParticleToMesh (#1945)
+
+  -- Use CUB for block reduction (#1943)
+
+  -- Reimplementation of PrefixSum with cub (#1942)
+
+  -- Cell-Centered Overset Solver Coarsening (#1915)
+
+  -- Hypre Nodal Setup (#1906) Allow CoarseningStrategy::Sigma in Hypre
+     nodal solver and port setup to GPU.
+
+  -- CMake: add support for BOUND_CHECK (#1934)
+
+  -- Alias HostVector to PinnedVector and update documentation. (#1931)
+
+  -- Make CNS work on CPU too (#1930)
+
+  -- std::isfinite/inf for SYCL (#1929)
+
+  -- Update RNG for latest oneAPI (#1928)
+
+  -- Use pinned memory for data transfer between host and device (#1923)
+
 # 21.04
 
   -- ParmParse parameter, nodal_proj.normalization_threshold, for setting

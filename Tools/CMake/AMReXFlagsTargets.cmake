@@ -27,7 +27,7 @@ foreach (_language CXX Fortran )
    set(_comp_lang   "$<COMPILE_LANGUAGE:${_language}>")
    string(TOLOWER "${_language}" _lang)
 
-   foreach (_comp GNU Intel PGI Cray Clang AppleClang MSVC )
+   foreach (_comp GNU Intel PGI Cray Clang AppleClang IntelLLVM MSVC )
       string(TOLOWER "${_comp}" _id)
       # Define variables
       set(_comp_id              "$<${_language}_COMPILER_ID:${_comp}>")
@@ -70,6 +70,9 @@ target_compile_options( Flags_CXX
    $<${_cxx_appleclang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-pass-failed>
    $<${_cxx_appleclang_rwdbg}:-Wno-pass-failed>
    $<${_cxx_appleclang_rel}:-Wno-pass-failed>
+   $<${_cxx_intelllvm_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-pass-failed>
+   $<${_cxx_intelllvm_rwdbg}:-Wno-pass-failed>
+   $<${_cxx_intelllvm_rel}:-Wno-pass-failed>
    )
 
 #

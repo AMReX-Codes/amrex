@@ -104,7 +104,7 @@ void testIntersection()
                 return {grids_ptr[j] != i};
             });
 
-            ReduceTuple hv = reduce_data.value();
+            ReduceTuple hv = reduce_data.value(reduce_op);
 
             int num_wrong = amrex::get<0>(hv);
             AMREX_ALWAYS_ASSERT(num_wrong == 0);

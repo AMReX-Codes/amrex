@@ -386,7 +386,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
         }
     }
 
-    S_crse.copy(crse_S_fine,0,scomp,ncomp);
+    S_crse.ParallelCopy(crse_S_fine,0,scomp,ncomp);
 }
 
 
@@ -491,7 +491,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
                 }
             }
 
-            S_crse.copy(crse_S_fine,0,scomp,ncomp);
+            S_crse.ParallelCopy(crse_S_fine,0,scomp,ncomp);
         }
     }
 }

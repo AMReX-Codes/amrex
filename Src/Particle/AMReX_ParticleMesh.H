@@ -107,7 +107,7 @@ MeshToParticle (PC& pc, MF const& mf, int lev, F&& f)
                                                   pc.ParticleDistributionMap(lev),
                                                   mf.nComp(), mf.nGrowVect());
 
-    if (mf_pointer != &mf) mf_pointer->copy(mf,0,0,mf.nComp(),mf.nGrowVect(),mf.nGrowVect());
+    if (mf_pointer != &mf) mf_pointer->ParallelCopy(mf,0,0,mf.nComp(),mf.nGrowVect(),mf.nGrowVect());
 
     const auto plo = pc.Geom(lev).ProbLoArray();
     const auto dxi = pc.Geom(lev).InvCellSizeArray();

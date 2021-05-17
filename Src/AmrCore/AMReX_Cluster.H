@@ -3,11 +3,7 @@
 #define AMREX_Cluster_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_IntVect.H>
-#include <AMReX_Box.H>
-#include <AMReX_Array.H>
-#include <AMReX_Vector.H>
-#include <AMReX_BoxArray.H>
+#include <AMReX_BoxList.H>
 #include <AMReX_REAL.H>
 
 #include <list>
@@ -15,6 +11,7 @@
 namespace amrex {
 
 class BoxDomain;
+class BoxArray;
 class ClusterList;
 
 
@@ -220,12 +217,13 @@ public:
     void new_chop (Real eff);
 
     /**
-    * \brief Intersect clusters with BoxDomain to insure cluster
-    * boxes are interior to domain.
+    * \brief Intersect clusters with BoxArray to insure cluster
+    * boxes are interior to the domain of BoxArray.  Note that
+    * ba is modified during the process.
     *
-    * \param dom
+    * \param ba
     */
-    void intersect (const BoxDomain& dom);
+    void intersect (BoxArray& ba);
 
 private:
 

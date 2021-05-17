@@ -356,6 +356,14 @@ else
   AMREX_NO_PROBINIT := FALSE
 endif
 
+ifdef LOG_BUILD_TIME
+  LOG_BUILD_TIME := $(strip $(LOG_BUILD_TIME))
+else
+  LOG_BUILD_TIME := FALSE
+endif
+
+build_time_begin := $(shell date +"%s")
+
 ALLOW_DIFFERENT_COMP ?= TRUE
 SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
@@ -374,8 +382,11 @@ MODDEP		= $(AMREX_HOME)/Tools/F_scripts/dep.py
 CHECKFORT       = $(AMREX_HOME)/Tools/typechecker/typechecker.py
 MKCONFIG        = $(AMREX_HOME)/Tools/libamrex/mkconfig.py
 MKPKGCONFIG     = $(AMREX_HOME)/Tools/libamrex/mkpkgconfig.py
+GATHERBUILDTIME = $(AMREX_HOME)/Tools/C_scripts/gatherbuildtime.py
 
-DEPFLAGS        = -MM
+USE_LEGACY_DEPFLAGS = FALSE
+DEPFLAGS = -MMD -MP
+LEGACY_DEPFLAGS = -MM
 
 RANLIB          = ranlib
 
@@ -391,6 +402,8 @@ ifeq ($(USE_HIP),TRUE)
 else ifeq ($(USE_CUDA),TRUE)
   ifdef NVCC_HOST_COMP
     AMREX_CCOMP = $(NVCC_HOST_COMP)
+  else ifeq ($(COMP),cray)
+    AMREX_CCOMP = cray
   else
     AMREX_CCOMP = gnu
   endif
@@ -420,8 +433,10 @@ ifdef AMREX_CCOMP
     AMREX_CCOMP = gnu
   else ifeq ($(lowercase_amrex_comp),nec)
     AMREX_CCOMP = nec
+  else ifeq ($(lowercase_amrex_comp),armclang)
+    AMREX_CCOMP = armclang
   else
-    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, nvhpc, ibm, llvm, nag, and nec)
+    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, nvhpc, ibm, llvm, nag, nec, and armclang)
   endif
 endif
 
@@ -485,6 +500,11 @@ else ifeq ($(lowercase_comp),nec)
   AMREX_CCOMP ?= nec
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak
+else ifeq ($(lowercase_comp),armclang)
+  AMREX_FCOMP ?= armflang
+  AMREX_CCOMP ?= armclang
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/armclang.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/armclang.mak
 else ifeq ($(lowercase_comp),hip)
   AMREX_FCOMP ?= gnu
   AMREX_CCOMP ?= hip
@@ -677,9 +697,6 @@ else ifeq ($(USE_CUDA),TRUE)
         LINK_WITH_FORTRAN_COMPILER=TRUE
     else ifeq ($(lowercase_comp),ibm)
         LINK_WITH_FORTRAN_COMPILER=TRUE
-    else ifeq ($(lowercase_comp),gnu)
-    else
-        $(error CUDA can only be used with COMP=pgi or nvhpc or ibm or gnu)
     endif
 
     include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
@@ -838,7 +855,18 @@ f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
 tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
 
 includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS)) $(addprefix -isystem , $(SYSTEM_INCLUDE_LOCATIONS))
-fincludes	= $(includes)
+ifeq ($(lowercase_comp),pgi)
+  # pgfortran-Error-Unknown switch: -isystem
+  fincludes = $(subst -isystem,-I,$(includes))
+else ifeq ($(lowercase_comp),nvhpc)
+  # nvfortran-Error-Unknown switch: -isystem
+  fincludes = $(subst -isystem,-I,$(includes))
+else ifeq ($(lowercase_comp),cray)
+  # ftn-"-i" is an invalid command-line option.
+  fincludes = $(subst -isystem,-I,$(includes))
+else
+  fincludes = $(includes)
+endif
 fmoddir         = $(objEXETempDir)
 
 amrexlib = $(objEXETempDir)/libamrex.a
@@ -1036,7 +1064,7 @@ else ifeq ($(USE_CUDA),TRUE)
     DEFINES += -DAMREX_GPU_MAX_THREADS=$(CUDA_MAX_THREADS)
 
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-      LINKFLAGS = $(NVCC_FLAGS)
+      LINKFLAGS = $(NVCC_FLAGS) $(CXXFLAGS_FROM_HOST)
       AMREX_LINKER = nvcc
     endif
 

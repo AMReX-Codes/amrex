@@ -107,7 +107,7 @@ ifeq ($(HIP_COMPILER),clang)
   # SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocthrust/include
 
   # hipcc passes a lot of unused arguments to clang
-  DEPFLAGS += -Wno-unused-command-line-argument
+  LEGACY_DEPFLAGS += -Wno-unused-command-line-argument
 
 # =============================================================================================
 
