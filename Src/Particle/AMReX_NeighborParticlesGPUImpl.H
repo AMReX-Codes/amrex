@@ -106,8 +106,10 @@ buildNeighborMask ()
             Vector<Box> bl = detail::getBoundaryBoxes(
                 amrex::grow(ba[mfi], -m_num_neighbor_cells), m_num_neighbor_cells);
 
+            Gpu::HostVector<int> h_off;
+            Gpu::HostVector<NeighborCode> h_arr;
             m_grid_map[grid].resize(bl.size());
-            m_code_offsets[grid].push_back(0);
+            h_off.push_back(0);
             for (int i = 0; i < static_cast<int>(bl.size()); ++i)
             {
                 const Box& box = bl[i];
@@ -124,13 +126,21 @@ buildNeighborMask ()
                     code.grid_id = isec_grids[isec.first];
                     code.periodic_shift = isec_pshifts[isec.first];
                     m_grid_map[grid][i].push_back(code);
-                    m_code_array[grid].push_back(code);
+                    h_arr[grid].push_back(code);
                     const int global_rank = dmap[code.grid_id];
                     neighbor_procs.push_back(ParallelContext::global_to_local_rank(global_rank));
                     ++num_codes;
                 }
-                m_code_offsets[grid].push_back(m_code_array[grid].size());
+                h_off.push_back(h_arr.size());
             }
+
+            m_code_offsets[grid].resize(h_off.size);
+            Gpu::copy(Gpu::hostToDevice, h_off.begin(), h_off.end(),
+                      m_code_offsets[grid].begin());
+
+            m_code_array[grid].resize(h_arr.size);
+            Gpu::copy(Gpu::hostToDevice, h_arr.begin(), h_arr.end(),
+                      m_code_array[grid].begin());
         }
         RemoveDuplicates(neighbor_procs);
     }
