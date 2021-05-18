@@ -13,6 +13,27 @@ namespace amrex {
 namespace sundials {
 
 namespace {
+  amrex::Arena* getArena (SUNMemoryType mem_type)
+  {
+    if (mem_type == SUNMEMTYPE_HOST) {
+      return The_Cpu_Arena();
+    } else if (mem_type == SUNMEMTYPE_UVM) {
+        if (The_Arena()->isManaged()) {
+          return The_Arena();
+        } else if (The_Managed_Arena()->isManaged()) {
+          return The_Managed_Arena();
+        } else {
+          return nullptr;
+        }
+    } else if (mem_type == SUNMEMTYPE_DEVICE) {
+      return The_Device_Arena();
+    } else if (mem_type == SUNMEMTYPE_PINNED) {
+      return The_Pinned_Arena();
+    } else {
+      return nullptr;
+    } 
+  }
+
   int Alloc(SUNMemoryHelper, SUNMemory* memptr, size_t memsize, SUNMemoryType mem_type)
   {
     SUNMemory mem = SUNMemoryNewEmpty();
@@ -21,53 +42,36 @@ namespace {
     mem->own = SUNTRUE;
     mem->type = mem_type;
 
-    if (mem_type == SUNMEMTYPE_HOST) {
-      mem->ptr = The_Cpu_Arena()->alloc(memsize);
-    } else if (mem_type == SUNMEMTYPE_UVM) {
-        if (The_Arena()->isManaged()) {
-          mem->ptr = The_Arena()->alloc(memsize);
-        } else if (The_Managed_Arena()->isManaged()) {
-          mem->ptr = The_Managed_Arena()->alloc(memsize);
-        } else {
-          free(mem);
-          return -1;
-        }
-    } else if (mem_type == SUNMEMTYPE_DEVICE) {
-      mem->ptr = The_Device_Arena()->alloc(memsize);
-    } else if (mem_type == SUNMEMTYPE_PINNED) {
-      mem->ptr = The_Pinned_Arena()->alloc(memsize);
-    } else {
+    if (mem == nullptr) return 0;
+    auto arena = getArena(mem->type);
+    if (arena) {
+      mem->ptr = arena->alloc(memsize);
+      *memptr = mem;
+      return 0;
+    }
+    else {
       free(mem);
+      memptr = nullptr;
       return -1;
     }
 
-    *memptr = mem;
-    return 0;
+    return -1;
   }
 
   int Dealloc(SUNMemoryHelper, SUNMemory mem)
   {
-    if (mem == NULL) return 0;
 
-    if (mem->type == SUNMEMTYPE_HOST) {
-      if (mem->own) The_Cpu_Arena()->free(mem->ptr);
-    } else if (mem->type == SUNMEMTYPE_UVM) {
-    if (mem->own)
+    if (mem == nullptr) return 0;
+    auto arena = getArena(mem->type);
+    if (arena) {
+      if(mem->own)
       {
-        if (The_Arena()->isManaged()) {
-          The_Arena()->free(mem->ptr);
-        } else if (The_Managed_Arena()->isManaged()) {
-          The_Managed_Arena()->free(mem->ptr);
-        } else {
-          free(mem);
-          return -1;
-        }
+        arena->free(mem->ptr);
+        free(mem);
+        return 0;
       }
-    } else if (mem->type == SUNMEMTYPE_DEVICE) {
-      if (mem->own) The_Device_Arena()->free(mem->ptr);
-    } else if (mem->type == SUNMEMTYPE_PINNED) {
-      if (mem->own) The_Pinned_Arena()->free(mem->ptr);
-    } else {
+    }
+    else {
       free(mem);
       return -1;
     }
