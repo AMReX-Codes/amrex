@@ -109,7 +109,7 @@ macro( add_test_install_target _dir _amrex_root )
 
    get_filename_component( _dirname ${_dir} NAME )
    set(_builddir  ${CMAKE_CURRENT_BINARY_DIR}/${_dirname})
-   add_custom_target(test_amrex_install
+   add_custom_target(test_install
       COMMAND ${CMAKE_COMMAND} -E echo ""
       COMMAND ${CMAKE_COMMAND} -E echo "------------------------------------"
       COMMAND ${CMAKE_COMMAND} -E echo "     Testing AMReX installation     "
