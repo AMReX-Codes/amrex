@@ -143,6 +143,12 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
       endif ()
    endif ()
 
+   # Flags to make it an error to write a device variable in
+   # a host function.
+   if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL)
+      list(APPEND _cuda_flag --display-error-number --diag-error 20092)
+   endif ()
+
    target_compile_options( amrex PUBLIC $<${_genex}:${_cuda_flags}> )
 
 endif ()
