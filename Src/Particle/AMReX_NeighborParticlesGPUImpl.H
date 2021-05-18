@@ -126,7 +126,7 @@ buildNeighborMask ()
                     code.grid_id = isec_grids[isec.first];
                     code.periodic_shift = isec_pshifts[isec.first];
                     m_grid_map[grid][i].push_back(code);
-                    h_arr[grid].push_back(code);
+                    h_arr.push_back(code);
                     const int global_rank = dmap[code.grid_id];
                     neighbor_procs.push_back(ParallelContext::global_to_local_rank(global_rank));
                     ++num_codes;
