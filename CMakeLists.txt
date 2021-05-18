@@ -28,7 +28,7 @@ set( CMAKE_MODULE_PATH ${AMREX_CMAKE_MODULES_PATH} )
 #
 # Retrieve amrex version
 #
-include( AMReX_Utils )
+include( AMReXUtils )
 get_amrex_version()
 
 
@@ -73,6 +73,9 @@ endif()
 # Include options, utilities and other stuff we need
 #
 include( AMReXOptions )
+if (AMReX_GPU_BACKEND STREQUAL "CUDA")
+   include(AMReXCUDAOptions)
+endif ()
 
 #
 # Enable Fortran if requested
@@ -98,8 +101,8 @@ endif ()
 #
 # Check compiler version
 #
-set_mininum_cxx_compiler_version(GNU 4.8)
-set_mininum_cxx_compiler_version(MSVC 19.23)
+set_mininum_compiler_version(CXX GNU 5.1)
+set_mininum_compiler_version(CXX MSVC 19.23)
 
 #
 # Set CMAKE_<LANG>_FLAGS_<CONFIG> if not already defined

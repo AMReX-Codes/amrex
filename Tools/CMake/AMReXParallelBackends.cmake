@@ -44,16 +44,108 @@ else ()
       $<$<CXX_COMPILER_ID:Cray>:-h;noomp> )
 endif ()
 
-
-
 #
 #
 # CUDA
 #
 #
-# For now this is a place holder.
-# CUDA stuff will go here after we get rid of AMReXSetupCUDA
 #
+if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
+      AND
+      CMAKE_VERSION VERSION_GREATER_EQUAL 3.20 )
+
+   # Check cuda compiler and host compiler
+   set_mininum_compiler_version(CUDA NVIDIA 9.0)
+   check_cuda_host_compiler()
+
+   # Required CUDA flags
+   set(_genex "$<COMPILE_LANG_AND_ID:CUDA,NVIDIA>")
+   target_compile_options( amrex
+      PUBLIC
+      $<${_genex}:
+      --expt-relaxed-constexpr --expt-extended-lambda
+      "SHELL:-Xcudafe --diag_suppress=esa_on_defaulted_function_ignored"
+      -maxrregcount=${AMReX_CUDA_MAXREGCOUNT}
+      "SHELL:-Xcudafe --display_error_number"
+      $<$<STREQUAL:$<PLATFORM_ID>,Windows>:-m64> >
+      )
+
+   # Take care of cuda archs
+   set_cuda_architectures(AMReX_CUDA_ARCH)
+   set_target_properties( amrex
+      PROPERTIES
+      CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS}
+      )
+
+   #
+   # CUDA specific warnings
+   #
+   set(_cuda_flags)
+   if (AMReX_CUDA_WARN_CAPTURE_THIS)
+      list(APPEND _cuda_flags --Wext-lambda-captures-this)
+   endif()
+   if (AMReX_CUDA_ERROR_CAPTURE_THIS)
+      # note: prefer double-dash --Werror!
+      # https://github.com/ccache/ccache/issues/598
+      list(APPEND _cuda_flags --Werror ext-lambda-captures-this)
+   endif()
+   if (AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL)
+      list(APPEND _cuda_flags --Werror cross-execution-space-call)
+   endif()
+
+   #
+   # Forward unknown NVCC flags to the host compiler
+   #
+   if (CUDA_FORWARD_UNKNOWN_FLAGS_HOST)
+      list(APPEND _cuda_flags --forward-unknown-to-host-compiler)
+   endif()
+
+   #
+   # Code generation
+   #
+   if (AMReX_CUDA_PTX_VERBOSE)
+      list(APPEND _cuda_flags --ptxas-options=-v)
+   endif()
+
+   # keep intermediately generated files
+   if (AMReX_CUDA_KEEP_FILES)
+      make_directory("${PROJECT_BINARY_DIR}/nvcc_tmp")
+      list(APPEND _cuda_flags --keep --keep-dir ${PROJECT_BINARY_DIR}/nvcc_tmp)
+   endif ()
+
+   # compilation timings
+   if (AMReX_CUDA_COMPILATION_TIMER)
+      file(REMOVE "${PROJECT_BINARY_DIR}/nvcc_timings.csv")
+      list(APPEND _cuda_flags --time ${PROJECT_BINARY_DIR}/nvcc_timings.csv)
+   endif ()
+
+   #
+   # Debugging
+   #
+   if (AMReX_CUDA_DEBUG)
+      # is this unsupported with MSVC?
+      list(APPEND _cuda_flags -G)
+   endif()
+
+   if (AMReX_CUDA_SHOW_LINENUMBERS AND NOT AMReX_CUDA_DEBUG)
+      # nvcc warning : '--device-debug (-G)' overrides '--generate-line-info (-lineinfo)'
+      list(APPEND _cuda_flags --generate-line-info)
+   endif ()
+   if (AMReX_CUDA_SHOW_CODELINES)
+      list(APPEND _cuda_flags --source-in-ptx)
+   endif ()
+
+   if (AMReX_CUDA_BACKTRACE)
+      if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+         list(APPEND _cuda_flags "SHELL:-Xcompiler /Zi") # comes with Debug & RelWithDebInfo
+      else ()
+         list(APPEND _cuda_flags "SHELL:Xcompiler -rdynamic")
+      endif ()
+   endif ()
+
+   target_compile_options( amrex PUBLIC $<${_genex}:${_cuda_flags}> )
+
+endif ()
 
 #
 #
