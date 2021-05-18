@@ -33,7 +33,7 @@ namespace {
           return -1;
         }
     } else if (mem_type == SUNMEMTYPE_DEVICE) {
-      mem->ptr = The_Arena()->alloc(memsize);
+      mem->ptr = The_Device_Arena()->alloc(memsize);
     } else if (mem_type == SUNMEMTYPE_PINNED) {
       mem->ptr = The_Pinned_Arena()->alloc(memsize);
     } else {
@@ -52,7 +52,17 @@ namespace {
     if (mem->type == SUNMEMTYPE_HOST) {
       if (mem->own) The_Cpu_Arena()->free(mem->ptr);
     } else if (mem->type == SUNMEMTYPE_UVM) {
-    if (mem->own) The_Managed_Arena()->free(mem->ptr);
+    if (mem->own)
+      {
+        if (The_Arena()->isManaged()) {
+          The_Arena()->free(mem->ptr);
+        } else if (The_Managed_Arena()->isManaged()) {
+          The_Managed_Arena()->free(mem->ptr);
+        } else {
+          free(mem);
+          return -1;
+        }
+      }
     } else if (mem->type == SUNMEMTYPE_DEVICE) {
       if (mem->own) The_Device_Arena()->free(mem->ptr);
     } else if (mem->type == SUNMEMTYPE_PINNED) {
