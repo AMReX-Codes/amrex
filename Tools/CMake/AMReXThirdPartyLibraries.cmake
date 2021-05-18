@@ -78,7 +78,7 @@ endif ()
 # SUNDIALS
 #
 if (AMReX_SUNDIALS)
-    find_package(SUNDIALS 5.7.0 REQUIRED)
+#    find_package(SUNDIALS 5.7.0 REQUIRED)
     if (AMReX_GPU_BACKEND STREQUAL "CUDA")
        target_link_libraries( amrex PUBLIC SUNDIALS::nveccuda)
     elseif (AMReX_GPU_BACKEND STREQUAL "HIP")
