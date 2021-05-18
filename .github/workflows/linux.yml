@@ -293,6 +293,23 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
         make -j 2
 
+  XXXXX-tests-hip-config:
+    name: HIP ROCm GFortran@9.3 config [tests]
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_hip.sh
+    - name: Build & Install
+      run: |
+        source /etc/profile.d/rocm.sh
+        hipcc --version
+        ./configure --with-hip yes --enable-fortran-api no
+        make -j2 AMD_ARCH=gfx900
+        make install
+        cd Tests/AsyncOut/multifab
+        make -j2 -f GNUmakefile-libamrex AMD_ARCH=gfx900
+
   # Build 1D libamrex with configure
   configure-1d:
     name: GNU@7.5 Release [configure 1D]

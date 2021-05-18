@@ -1,0 +1,32 @@
+AMREX_INSTALL_DIR ?= ../../../tmp_install_dir
+
+CXX = hipcc
+
+HIP_PATH=$(realpath $(shell hipconfig --path))
+ROC_PATH=$(realpath $(dir $(HIP_PATH)))
+HIP_INCLUDE_LOCATIONS += $(HIP_PATH)/include
+HIP_INCLUDE_LOCATIONS += $(ROC_PATH)/rocrand/include $(ROC_PATH)/hiprand/include
+HIP_INCLUDE_LOCATIONS += $(ROC_PATH)/rocprim/include
+
+CXXFLAGS = $(addprefix -isystem,$(HIP_INCLUDE_LOCATIONS))
+# for openmpi
+CXXFLAGS += $(shell mpicxx -showme:compile)
+
+CXXFLAGS += $(shell PKG_CONFIG_PATH=$(AMREX_INSTALL_DIR)/lib/pkgconfig pkg-config --cflags amrex)
+LIBRARIES = $(shell PKG_CONFIG_PATH=$(AMREX_INSTALL_DIR)/lib/pkgconfig pkg-config --libs amrex)
+
+default: main.exe
+
+main.exe: main.o
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(LIBRARIES)
+
+main.o: main.cpp
+	$(CXX) -o $@ -c $(CXXFLAGS) $<
+
+.PHONY: clean realclean
+
+clean:
+	$(RM) *.o
+
+realclean: clean
+	$(RM) main.exe
