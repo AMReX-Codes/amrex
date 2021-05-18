@@ -129,3 +129,7 @@ if (AMReX_CUDA_BACKTRACE)
         string(APPEND CMAKE_CUDA_FLAGS " -Xcompiler -rdynamic")
     endif ()
 endif ()
+
+if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.2)
+   string(APPEND CMAKE_CUDA_FLAGS " --display-error-number --diag-error 20092")
+endif ()
