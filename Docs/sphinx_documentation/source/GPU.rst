@@ -291,7 +291,9 @@ if the CMake version is less than 3.20:
    enable_language(CUDA)
 
    # Include the AMReX-provided CUDA setup module -- OBSOLETE with CMake >= 3.20
-   include(AMReX_SetupCUDA)
+   if(CMAKE_VERSION VERSION_LESS 3.20)
+       include(AMReX_SetupCUDA)
+   endif()
 
    # Include AMReX source directory ONLY AFTER the two steps above
    add_subdirectory(/path/to/amrex/source/dir)
