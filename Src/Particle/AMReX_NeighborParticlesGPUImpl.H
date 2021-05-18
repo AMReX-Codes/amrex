@@ -134,13 +134,15 @@ buildNeighborMask ()
                 h_off.push_back(h_arr.size());
             }
 
-            m_code_offsets[grid].resize(h_off.size);
+            m_code_offsets[grid].resize(h_off.size());
             Gpu::copy(Gpu::hostToDevice, h_off.begin(), h_off.end(),
                       m_code_offsets[grid].begin());
 
-            m_code_array[grid].resize(h_arr.size);
+            m_code_array[grid].resize(h_arr.size());
             Gpu::copy(Gpu::hostToDevice, h_arr.begin(), h_arr.end(),
                       m_code_array[grid].begin());
+
+            Gpu::Device::synchronize();
         }
         RemoveDuplicates(neighbor_procs);
     }
