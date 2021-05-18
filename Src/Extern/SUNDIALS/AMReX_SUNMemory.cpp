@@ -31,7 +31,7 @@ namespace {
       return The_Pinned_Arena();
     } else {
       return nullptr;
-    } 
+    }
   }
 
   int Alloc(SUNMemoryHelper, SUNMemory* memptr, size_t memsize, SUNMemoryType mem_type)
