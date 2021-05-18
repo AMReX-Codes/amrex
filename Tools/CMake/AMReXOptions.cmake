@@ -153,6 +153,10 @@ cmake_dependent_option( AMReX_DPCPP_SPLIT_KERNEL "Enable DPCPP kernel splitting"
    "AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
 print_option(  AMReX_DPCPP_SPLIT_KERNEL )
 
+cmake_dependent_option( AMReX_DPCPP_ONEDPL "Enable DPCPP's oneDPL algorithms"  OFF
+   "AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
+print_option(  AMReX_DPCPP_ONEDPL )
+
 # --- HIP ----
 if (AMReX_HIP)
    set(AMReX_AMD_ARCH "IGNORE" CACHE STRING
