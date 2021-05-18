@@ -46,6 +46,13 @@ ifdef OLCF_MODULEPATH_ROOT
   endif
 endif
 
+ifdef OLCF_ROCM_ROOT
+  ifeq ($(findstring spock, $(host_name)), spock)
+    which_site := olcf
+    which_computer := spock
+  endif
+endif
+
 ifeq ($(findstring theta, $(host_name)), theta)
   which_site := alcf
   which_computer := theta
