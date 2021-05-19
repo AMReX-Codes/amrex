@@ -168,7 +168,7 @@ unsigned builtin_clz_wrapper (clzll_tag_host, T x) noexcept
     return __builtin_clzll(x) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
 }
 
-#if AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA
 // likewise with CUDA, there are __clz functions that take (signed) int and long long int
 struct clzll_tag_device {};
 struct clz_tag_device : clzll_tag_device {};
@@ -193,7 +193,7 @@ int clz_wrapper (clzll_tag_device, T x) noexcept
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (std::uint8_t x) noexcept
 {
-#if (AMREX_DEVICE_COMPILE && AMREX_USE_CUDA) // all supported cuda versions have __clz
+#if (AMREX_DEVICE_COMPILE && defined(AMREX_USE_CUDA)) // all supported cuda versions have __clz
     return detail::clz_wrapper(detail::clz_tag_device{}, x);
 #elif (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
     return detail::builtin_clz_wrapper(detail::clz_tag_host{}, x);
@@ -208,7 +208,7 @@ int clz (std::uint8_t x) noexcept
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (std::uint16_t x) noexcept
 {
-#if (AMREX_DEVICE_COMPILE && AMREX_USE_CUDA) // all supported cuda versions have __clz
+#if (AMREX_DEVICE_COMPILE && defined(AMREX_USE_CUDA)) // all supported cuda versions have __clz
     return detail::clz_wrapper(detail::clz_tag_device{}, x);
 #elif (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
     return detail::builtin_clz_wrapper(detail::clz_tag_host{}, x);
@@ -222,7 +222,7 @@ int clz (std::uint16_t x) noexcept
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (std::uint32_t x) noexcept
 {
-#if (AMREX_DEVICE_COMPILE && AMREX_USE_CUDA) // all supported cuda versions have __clz
+#if (AMREX_DEVICE_COMPILE && defined(AMREX_USE_CUDA)) // all supported cuda versions have __clz
     return detail::clz_wrapper(detail::clz_tag_device{}, x);
 #elif (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
     return detail::builtin_clz_wrapper(detail::clz_tag_host{}, x);
@@ -236,7 +236,7 @@ int clz (std::uint32_t x) noexcept
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (std::uint64_t x) noexcept
 {
-#if (AMREX_DEVICE_COMPILE && AMREX_USE_CUDA) // all supported cuda versions have __clz
+#if (AMREX_DEVICE_COMPILE && defined(AMREX_USE_CUDA)) // all supported cuda versions have __clz
     return detail::clz_wrapper(detail::clz_tag_device{}, x);
 #elif (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
     return detail::builtin_clz_wrapper(detail::clz_tag_host{}, x);
