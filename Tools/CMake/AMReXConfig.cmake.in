@@ -176,7 +176,8 @@ endif ()
 # Third party libraries
 #
 if (@AMReX_SENSEI@)
-   find_dependency(SENSEI REQUIRED)
+    set(SENSEI_DIR @SENSEI_DIR@)
+    find_dependency(SENSEI REQUIRED)
 endif ()
 
 if (@AMReX_ASCENT@)
