@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <limits>
 #include <type_traits>
+#include <cstdint>
+#include <climits>
 
 namespace amrex
 {
@@ -134,6 +136,117 @@ namespace amrex
 
         return mi;
     }
+
+namespace detail {
+
+// in gcc and clang, there are three versions of __builtin_clz taking unsigned int,
+// unsigned long, and unsigned long long inputs. Because the sizes of these data types
+// vary on different platforms, we work with fixed-width integer types.
+// these tags and overloads select the smallest version of __builtin_clz that will hold the input type
+struct clzll_tag_host {};
+struct clzl_tag_host : clzll_tag_host {};
+struct clz_tag_host : clzl_tag_host {};
+
+template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(unsigned int)>::type>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+unsigned builtin_clz_wrapper (clz_tag_host, T x) noexcept
+{
+    return __builtin_clz(x) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+}
+
+template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(unsigned long)>::type>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+unsigned builtin_clz_wrapper (clzl_tag_host, T x) noexcept
+{
+    return __builtin_clzl(x) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+}
+
+template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(unsigned long long)>::type>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+unsigned builtin_clz_wrapper (clzll_tag_host, T x) noexcept
+{
+    return __builtin_clzll(x) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+}
+
+#if AMREX_USE_CUDA
+// likewise with CUDA, there are __clz functions that take (signed) int and long long int
+struct clzll_tag_device {};
+struct clz_tag_device : clzll_tag_device {};
+
+template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(int)>::type>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+int clz_wrapper (clz_tag_device, T x) noexcept
+{
+    return __clz((int) x) - (sizeof(int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+}
+
+template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(long long int)>::type>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+int clz_wrapper (clzll_tag_device, T x) noexcept
+{
+    return __clzll((long long int) x) - (sizeof(long long int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+}
+#endif
+
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz (std::uint8_t x) noexcept
+{
+#if (AMREX_DEVICE_COMPILE && AMREX_USE_CUDA) // all supported cuda versions have __clz
+    return detail::clz_wrapper(detail::clz_tag_device{}, x);
+#elif (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
+    return detail::builtin_clz_wrapper(detail::clz_tag_host{}, x);
+#else
+    static constexpr std::uint8_t clz_lookup[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+    auto upper = x >> 4;
+    auto lower = x & 0xF;
+    return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz (std::uint16_t x) noexcept
+{
+#if (AMREX_DEVICE_COMPILE && AMREX_USE_CUDA) // all supported cuda versions have __clz
+    return detail::clz_wrapper(detail::clz_tag_device{}, x);
+#elif (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
+    return detail::builtin_clz_wrapper(detail::clz_tag_host{}, x);
+#else
+    auto upper = std::uint8_t(x >> 8);
+    auto lower = std::uint8_t(x & 0xFF);
+    return upper ? clz(upper) : 8 + clz(lower);
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz (std::uint32_t x) noexcept
+{
+#if (AMREX_DEVICE_COMPILE && AMREX_USE_CUDA) // all supported cuda versions have __clz
+    return detail::clz_wrapper(detail::clz_tag_device{}, x);
+#elif (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
+    return detail::builtin_clz_wrapper(detail::clz_tag_host{}, x);
+#else
+    auto upper = std::uint16_t(x >> 16);
+    auto lower = std::uint16_t(x & 0xFFFF);
+    return upper ? clz(upper) : 16 + clz(lower);
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz (std::uint64_t x) noexcept
+{
+#if (AMREX_DEVICE_COMPILE && AMREX_USE_CUDA) // all supported cuda versions have __clz
+    return detail::clz_wrapper(detail::clz_tag_device{}, x);
+#elif (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
+    return detail::builtin_clz_wrapper(detail::clz_tag_host{}, x);
+#else
+    auto upper = std::uint32_t(x >> 32);
+    auto lower = std::uint32_t(x & 0xFFFFFFFF);
+    return upper ? clz(upper) : 32 + clz(lower);
+#endif
+}
+
 }
 
 #endif
