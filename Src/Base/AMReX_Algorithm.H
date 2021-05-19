@@ -148,21 +148,21 @@ struct clzl_tag_host : clzll_tag_host {};
 struct clz_tag_host : clzl_tag_host {};
 
 template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(unsigned int)>::type>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+AMREX_FORCE_INLINE
 unsigned builtin_clz_wrapper (clz_tag_host, T x) noexcept
 {
     return __builtin_clz(x) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
 }
 
 template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(unsigned long)>::type>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+AMREX_FORCE_INLINE
 unsigned builtin_clz_wrapper (clzl_tag_host, T x) noexcept
 {
     return __builtin_clzl(x) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
 }
 
 template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(unsigned long long)>::type>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+AMREX_FORCE_INLINE
 unsigned builtin_clz_wrapper (clzll_tag_host, T x) noexcept
 {
     return __builtin_clzll(x) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
