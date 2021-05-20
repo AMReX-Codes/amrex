@@ -336,6 +336,7 @@ Since CMake does not support autodetection of HIP compilers/target architectures
 yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``hipcc`` or ``nvcc``,
 and ``AMReX_AMD_ARCH`` to the target architecture you are building for.
 Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user-inputs when AMReX_GPU_BACKEND=HIP**.
+We again read also an *environment variable*: ``AMREX_AMD_ARCH`` (note: all caps).
 Below is an example configuration for HIP on Tulip:
 
 .. highlight:: console

@@ -155,8 +155,14 @@ print_option(  AMReX_DPCPP_SPLIT_KERNEL )
 
 # --- HIP ----
 if (AMReX_HIP)
-   set(AMReX_AMD_ARCH "IGNORE" CACHE STRING
+   set(AMReX_AMD_ARCH_DEFAULT "IGNORE")
+   if(DEFINED ENV{AMREX_AMD_ARCH})
+      set(AMReX_AMD_ARCH_DEFAULT "$ENV{AMREX_AMD_ARCH}")
+   endif()
+
+   set(AMReX_AMD_ARCH ${AMReX_AMD_ARCH_DEFAULT} CACHE STRING
       "AMD GPU architecture (Must be provided if AMReX_HIP=ON)")
+
    if (NOT AMReX_AMD_ARCH)
       message(FATAL_ERROR "\nMust specify AMReX_AMD_ARCH if AMReX_HIP=ON\n")
    endif ()
