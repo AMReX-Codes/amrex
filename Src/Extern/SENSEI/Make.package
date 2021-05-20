@@ -14,13 +14,6 @@ ifeq ($(USE_SENSEI_INSITU),TRUE)
   C$(SENSEI_INSITU)_sources += AMReX_AmrMeshDataAdaptor.cpp \
                               AMReX_AmrMeshInSituBridge.cpp
 
-# Amr Particle adaptor and bridge
-  C$(SENSEI_INSITU)_headers += AMReX_AmrParticleDataAdaptor.H \
-                              AMReX_AmrParticleInSituBridge.H
-
-  C$(SENSEI_INSITU)_sources += AMReX_AmrParticleDataAdaptor.cpp \
-                              AMReX_AmrParticleInSituBridge.cpp
-
 
   # Amr adaptor and bridge
   C$(SENSEI_INSITU)_headers += AMReX_AmrDataAdaptor.H \
@@ -28,6 +21,19 @@ ifeq ($(USE_SENSEI_INSITU),TRUE)
 
   C$(SENSEI_INSITU)_sources += AMReX_AmrDataAdaptor.cpp \
                               AMReX_AmrInSituBridge.cpp
+
+  # Amr Particle adaptor and bridge
+  ifeq ($(USE_PARTICLES), TRUE)
+    C$(SENSEI_INSITU)_headers += AMReX_AmrParticleInSituBridge.H \
+                                AMReX_AmrParticleMeshInSituBridge.H \
+                                AMReX_AmrParticleDataAdaptor.H \
+                                AMReX_AmrParticleDataAdaptorI.H \
+                                AMReX_AmrParticleMeshDataAdaptor.H \
+                                AMReX_AmrParticleMeshDataAdaptorI.H
+
+    C$(SENSEI_INSITU)_sources += AMReX_AmrParticleInSituBridge.cpp \
+                                AMReX_AmrParticleMeshInSituBridge.cpp
+  endif
 endif
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/SENSEI
