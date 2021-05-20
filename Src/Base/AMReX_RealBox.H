@@ -111,6 +111,7 @@ public:
     }
 
     //! Is the specified RealVect contained in this RealBox?
+    AMREX_GPU_HOST_DEVICE
     bool contains (const RealVect& rv,
                    Real eps=0.0) const noexcept { return contains(rv.dataPtr(), eps); }
 

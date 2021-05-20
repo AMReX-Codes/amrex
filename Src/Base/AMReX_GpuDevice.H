@@ -129,6 +129,8 @@ public:
 #endif
 
     static std::size_t freeMemAvailable ();
+    static void profilerStart ();
+    static void profilerStop ();
 
 #ifdef AMREX_USE_GPU
 

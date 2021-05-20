@@ -9,6 +9,9 @@
 #  include <cub/cub.cuh>
 #elif defined(AMREX_USE_HIP)
 #  include <rocprim/rocprim.hpp>
+#elif defined(AMREX_USE_DPCPP) && defined(AMREX_USE_ONEDPL)
+#  include <oneapi/dpl/execution>
+#  include <oneapi/dpl/numeric>
 #endif
 
 #include <cstdint>
@@ -55,7 +58,11 @@ struct BlockStatus<T, true>
     Data<T> d;
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+#if defined(AMREX_USE_DPCPP)
+    void write (char a_status, T a_value, sycl::nd_item<1> const& /*item*/) {
+#else
     void write (char a_status, T a_value) {
+#endif
 #if defined(AMREX_USE_CUDA)
         volatile uint64_t tmp;
         reinterpret_cast<STVA<T> volatile&>(tmp).status = a_status;
@@ -130,7 +137,7 @@ struct BlockStatus<T, false>
             inclusive = a_value;
         }
 #if defined(AMREX_USE_DPCPP)
-        item.mem_fence(); // xxxxx DPCPP todo: This is at block level, but needs to be device level fence, which is currently a PR in intel/llvm
+        item.mem_fence(sycl::access::fence_space::global_and_local);
 #else
         __threadfence();
 #endif
@@ -164,7 +171,7 @@ struct BlockStatus<T, false>
         do {
             r = read();
 #if defined(AMREX_USE_DPCPP)
-            item.mem_fence(); // xxxxx DPCPP todo: This is at block level, but needs to be device level fence, which is currently a PR in intel/llvm
+            item.mem_fence(sycl::access::fence_space::global_and_local);
 #else
             __threadfence();
 #endif
@@ -314,7 +321,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
         // sum_prev_chunk now holds the sum of the whole block.
         if (threadIdxx == 0 && gridDimx > 1) {
             block_status.write((virtual_block_id == 0) ? 'p' : 'a',
-                               sum_prev_chunk);
+                               sum_prev_chunk, *gh.item);
         }
 
         if (virtual_block_id == 0) {
@@ -373,7 +380,8 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
                 }
 
                 if (lane == 0) {
-                    block_status.write('p', block_status.get_aggregate() + exclusive_prefix);
+                    block_status.write('p', block_status.get_aggregate() + exclusive_prefix,
+                                       *gh.item);
                     shared[0] = exclusive_prefix;
                 }
             }
@@ -963,6 +971,16 @@ T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
     The_Arena()->free(d_temp);
     AMREX_GPU_ERROR_CHECK();
     return totalsum;
+#elif defined(AMREX_USE_DPCPP) && defined(AMREX_USE_ONEDPL)
+    auto policy = oneapi::dpl::execution::make_device_policy(Gpu::Device::streamQueue());
+    std::inclusive_scan(policy, in, in+n, out, std::plus<T>(), T(0));
+    T totalsum = 0;
+    if (a_ret_sum) {
+        Gpu::dtoh_memcpy_async(&totalsum, out+(n-1), sizeof(T));
+    }
+    Gpu::streamSynchronize();
+    AMREX_GPU_ERROR_CHECK();
+    return totalsum;
 #else
     if (static_cast<Long>(n) <= static_cast<Long>(std::numeric_limits<int>::max())) {
         return PrefixSum<T>(static_cast<int>(n),
@@ -1014,6 +1032,17 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
     }
     Gpu::streamSynchronize();
     The_Arena()->free(d_temp);
+    AMREX_GPU_ERROR_CHECK();
+    return in_last+out_last;
+#elif defined(AMREX_USE_DPCPP) && defined(AMREX_USE_ONEDPL)
+    auto policy = oneapi::dpl::execution::make_device_policy(Gpu::Device::streamQueue());
+    std::exclusive_scan(policy, in, in+n, out, T(0), std::plus<T>());
+    T in_last = 0, out_last = 0;
+    if (a_ret_sum) {
+        Gpu::dtoh_memcpy_async(&in_last, in+(n-1), sizeof(T));
+        Gpu::dtoh_memcpy_async(&out_last, out+(n-1), sizeof(T));
+    }
+    Gpu::streamSynchronize();
     AMREX_GPU_ERROR_CHECK();
     return in_last+out_last;
 #else

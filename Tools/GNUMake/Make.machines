@@ -25,6 +25,11 @@ else
 ifeq ($(NERSC_HOST), cori)
   which_site := nersc
   which_computer := cori
+else
+ifeq ($(NERSC_HOST), perlmutter)
+  which_site := nersc
+  which_computer := perlmutter
+endif
 endif
 endif
 endif
@@ -38,6 +43,13 @@ ifdef OLCF_MODULEPATH_ROOT
   ifeq ($(findstring ascent, $(host_name)), ascent)
     which_site := olcf
     which_computer := ascent
+  endif
+endif
+
+ifdef OLCF_ROCM_ROOT
+  ifeq ($(findstring spock, $(host_name)), spock)
+    which_site := olcf
+    which_computer := spock
   endif
 endif
 

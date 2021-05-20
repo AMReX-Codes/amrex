@@ -45,14 +45,7 @@ void amrex_mempool_init ()
 
         the_memory_pool.resize(nthreads);
         for (int i=0; i<nthreads; ++i) {
-// xxxxx HIP FIX THIS - Default Arena w/o managed?
-// Default arena is currently Device on HIP where there is no managed option.
-// Need to adjust to CPU specifically in that case.
-#ifdef AMREX_USE_HIP
             the_memory_pool[i] = std::make_unique<CArena>(0, ArenaInfo().SetCpuMemory());
-#else
-            the_memory_pool[i] = std::make_unique<CArena>();
-#endif
         }
 
 #ifdef AMREX_USE_OMP
