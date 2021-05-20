@@ -38,6 +38,11 @@ HIPCC_FLAGS += --amdgpu-target=$(AMD_ARCH)
 
 CXXFLAGS += $(HIPCC_FLAGS)
 
+ifeq ($(USE_OMP),TRUE)
+  CXXFLAGS += -fopenmp
+  CFLAGS   += -fopenmp
+endif
+
 # =============================================================================================
 
 ifneq ($(BL_NO_FORT),TRUE)

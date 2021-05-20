@@ -47,7 +47,15 @@ using sycl::isfinite;
 using sycl::isinf;
 
 #else
-
+#ifdef AMREX_USE_OMP && AMREX_USE_HIP
+using ::abs;
+using ::ceil;
+using ::copysign;
+using ::floor;
+using ::round;
+using ::isfinite;
+using ::isinf;
+#else
 using std::abs;
 using std::ceil;
 using std::copysign;
@@ -56,6 +64,7 @@ using std::round;
 using std::isfinite;
 using std::isinf;
 
+#endif
 #endif
 
 }}
