@@ -194,6 +194,13 @@
 #   define AMREX_IF_CONSTEXPR if
 #endif
 
+#if !defined(AMREX_NO_BUILTIN_CLZ)
+#   if defined(__clang__) || defined(__GNUC__)
+#      define AMREX_HAS_BUILTIN_CLZ 1
+#   endif
+#endif
+
+
 #endif /* !BL_LANG_FORT */
 
 #endif
