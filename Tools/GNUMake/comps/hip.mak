@@ -41,6 +41,7 @@ CXXFLAGS += $(HIPCC_FLAGS)
 ifeq ($(USE_OMP),TRUE)
   CXXFLAGS += -fopenmp
   CFLAGS   += -fopenmp
+  HIPCC_FLAGS += -fopenmp
 endif
 
 # =============================================================================================

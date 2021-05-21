@@ -47,7 +47,7 @@ using sycl::isfinite;
 using sycl::isinf;
 
 #else
-#ifdef AMREX_USE_OMP && AMREX_USE_HIP
+#if (defined(AMREX_USE_OMP) && defined(AMREX_USE_HIP))
 using ::abs;
 using ::ceil;
 using ::copysign;
