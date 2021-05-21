@@ -44,6 +44,11 @@ ifeq ($(USE_DPCPP),TRUE)
   USE_CCACHE := FALSE
   # Make.unknown's mpi checking does not work with mpiicpc
   NO_MPI_CHECKING := TRUE
+  ifdef USE_ONEDPL
+    USE_ONEDPL := $(strip $(USE_ONEDPL))
+  else
+    USE_ONEDPL := FALSE
+  endif
 endif
 
 ifdef USE_HIP

@@ -29,6 +29,10 @@ F90FLAGS := -ffree-line-length-none -fno-range-check -fno-second-underscore -fim
 
 FMODULES =  -J$(fmoddir) -I $(fmoddir)
 
+# rdc support
+CXXFLAGS += -fgpu-rdc
+HIPCC_FLAGS += -fgpu-rdc # This will be added to link flags
+
 # =============================================================================================
 
 ifneq ($(BL_NO_FORT),TRUE)

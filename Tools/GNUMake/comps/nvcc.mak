@@ -168,6 +168,21 @@ endif
 endif
 endif
 
+nvcc_diag_error = 0
+ifeq ($(shell expr $(nvcc_major_version) \>= 12),1)
+  nvcc_diag_error = 1
+else
+ifeq ($(shell expr $(nvcc_major_version) \= 11),1)
+ifeq ($(shell expr $(nvcc_minor_version) \>= 2),1)
+  nvcc_diag_error = 1
+endif
+endif
+endif
+# warning #20092-D: a __device__ variable cannot be directly written in a host function
+ifeq ($(nvcc_diag_error),1)
+  NVCC_FLAGS += --display-error-number --diag-error 20092
+endif
+
 CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
 CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
 
