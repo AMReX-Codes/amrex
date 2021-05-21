@@ -280,7 +280,8 @@ the following code into the appropriate CMakeLists.txt file:
 
 
 If instead of using an external installation of AMReX you prefer to include AMReX as a subproject
-in your CMake setup, we strongly encourage you to use the ``AMReX_SetupCUDA`` module as shown below:
+in your CMake setup, we strongly encourage you to use the ``AMReX_SetupCUDA`` module as shown below
+if the CMake version is less than 3.20:
 
 .. highlight:: console
 
@@ -289,8 +290,10 @@ in your CMake setup, we strongly encourage you to use the ``AMReX_SetupCUDA`` mo
    # Enable CUDA in your CMake project
    enable_language(CUDA)
 
-   # Include the AMReX-provided CUDA setup module
-   include(AMReX_SetupCUDA)
+   # Include the AMReX-provided CUDA setup module -- OBSOLETE with CMake >= 3.20
+   if(CMAKE_VERSION VERSION_LESS 3.20)
+       include(AMReX_SetupCUDA)
+   endif()
 
    # Include AMReX source directory ONLY AFTER the two steps above
    add_subdirectory(/path/to/amrex/source/dir)
@@ -333,6 +336,7 @@ Since CMake does not support autodetection of HIP compilers/target architectures
 yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``hipcc`` or ``nvcc``,
 and ``AMReX_AMD_ARCH`` to the target architecture you are building for.
 Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user-inputs when AMReX_GPU_BACKEND=HIP**.
+We again read also an *environment variable*: ``AMREX_AMD_ARCH`` (note: all caps).
 Below is an example configuration for HIP on Tulip:
 
 .. highlight:: console

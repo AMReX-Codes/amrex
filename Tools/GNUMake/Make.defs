@@ -44,6 +44,11 @@ ifeq ($(USE_DPCPP),TRUE)
   USE_CCACHE := FALSE
   # Make.unknown's mpi checking does not work with mpiicpc
   NO_MPI_CHECKING := TRUE
+  ifdef USE_ONEDPL
+    USE_ONEDPL := $(strip $(USE_ONEDPL))
+  else
+    USE_ONEDPL := FALSE
+  endif
 endif
 
 ifdef USE_HIP
@@ -402,6 +407,8 @@ ifeq ($(USE_HIP),TRUE)
 else ifeq ($(USE_CUDA),TRUE)
   ifdef NVCC_HOST_COMP
     AMREX_CCOMP = $(NVCC_HOST_COMP)
+  else ifeq ($(COMP),cray)
+    AMREX_CCOMP = cray
   else
     AMREX_CCOMP = gnu
   endif
@@ -695,9 +702,6 @@ else ifeq ($(USE_CUDA),TRUE)
         LINK_WITH_FORTRAN_COMPILER=TRUE
     else ifeq ($(lowercase_comp),ibm)
         LINK_WITH_FORTRAN_COMPILER=TRUE
-    else ifeq ($(lowercase_comp),gnu)
-    else
-        $(error CUDA can only be used with COMP=pgi or nvhpc or ibm or gnu)
     endif
 
     include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
@@ -861,6 +865,9 @@ ifeq ($(lowercase_comp),pgi)
   fincludes = $(subst -isystem,-I,$(includes))
 else ifeq ($(lowercase_comp),nvhpc)
   # nvfortran-Error-Unknown switch: -isystem
+  fincludes = $(subst -isystem,-I,$(includes))
+else ifeq ($(lowercase_comp),cray)
+  # ftn-"-i" is an invalid command-line option.
   fincludes = $(subst -isystem,-I,$(includes))
 else
   fincludes = $(includes)
@@ -1062,7 +1069,7 @@ else ifeq ($(USE_CUDA),TRUE)
     DEFINES += -DAMREX_GPU_MAX_THREADS=$(CUDA_MAX_THREADS)
 
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-      LINKFLAGS = $(NVCC_FLAGS)
+      LINKFLAGS = $(NVCC_FLAGS) $(CXXFLAGS_FROM_HOST)
       AMREX_LINKER = nvcc
     endif
 
