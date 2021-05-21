@@ -212,15 +212,6 @@ F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fim
 
 FMODULES =  -J$(fmoddir) -I $(fmoddir)
 
-# gcc 10 has treated mismatches between actuall and dummy argument lists
-# in a single file as errors. This is a workaround.
-ifeq ($(USE_MPI),TRUE)
-ifeq ($(gcc_major_ge_10),1)
-  F90FLAGS += -fallow-argument-mismatch
-  FFLAGS   += -fallow-argument-mismatch
-endif
-endif
-
 ########################################################################
 
 ifneq ($(BL_NO_FORT),TRUE)

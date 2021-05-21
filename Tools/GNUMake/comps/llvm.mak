@@ -78,15 +78,6 @@ F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fim
 
 FMODULES =  -J$(fmoddir) -I $(fmoddir)
 
-ifeq ($(USE_MPI),TRUE)
-gfortran_major_version = $(shell gfortran -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
-gfortran_major_ge_10 = $(shell expr $(gfortran_major_version) \>= 10)
-ifeq ($(gfortran_major_ge_10),1)
-  F90FLAGS += -fallow-argument-mismatch
-  FFLAGS   += -fallow-argument-mismatch
-endif
-endif
-
 ########################################################################
 
 GENERIC_COMP_FLAGS =

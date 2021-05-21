@@ -38,6 +38,14 @@ target_sources( amrex PRIVATE
    Base/AMReX_FPhysBC.cpp
    )
 
+if (AMReX_MPI)
+  target_sources( amrex PRIVATE
+    Base/AMReX_fi_mpi_mod.F90
+    Base/AMReX_mpi_reduce_int.F90
+    Base/AMReX_mpi_reduce_real.F90
+    )
+endif ()
+
 #
 # AMRCORE subdir
 #
