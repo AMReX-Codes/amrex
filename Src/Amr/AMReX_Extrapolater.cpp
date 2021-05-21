@@ -49,9 +49,9 @@ namespace Extrapolater
                        const auto hi = amrex::ubound(gbx);
                        if (   i < lo.x || i > hi.x
 #if (AMREX_SPACEDIM > 1)
-                           || j < lo.y || j > hi.y 
+                           || j < lo.y || j > hi.y
 #if (AMREX_SPACEDIM > 2)
-                           || k < lo.z || k > hi.z 
+                           || k < lo.z || k > hi.z
 #endif
 #endif
                           ) {
