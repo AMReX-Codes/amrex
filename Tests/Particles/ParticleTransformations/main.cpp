@@ -113,7 +113,7 @@ public:
     }
 };
 
-struct AssignGridFilter
+struct AssignGridFilterTest
 {
 
   int m_lev_min, m_lev_max, m_nGrow, m_gid;
@@ -123,7 +123,7 @@ struct AssignGridFilter
        \brief This filters based on matching grids
        *
      **/
-  AssignGridFilter (amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> * assign_grid, int gid)
+  AssignGridFilterTest (amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> * assign_grid, int gid)
     //  AssignGridFilter (AmrParticleLocator<DenseBinIteratorFactory<Box>> * assign_grid, int gid)
     : m_assign_grid(assign_grid), m_gid(gid)
   { m_lev_min=0;
@@ -182,14 +182,14 @@ struct AssignGridFilter
     }
 };
 
-struct TransformerGhost
+struct TransformerGhostTest
 {
     
     /**
        \brief This copies the particle but multiplies all the idata by m_factor
        *
      **/
-    TransformerGhost ()
+    TransformerGhostTest ()
     {}
 
     template <typename DstData, typename SrcData>
@@ -210,14 +210,14 @@ struct TransformerGhost
     }
 };
 
-struct TransformerVirt
+struct TransformerVirtTest
 {
     int aggregation_type_int;
     /**
        \brief This copies the particle but multiplies all the idata by m_factor
        *
      **/
-    TransformerVirt (std::string aggregation_type_in)
+    TransformerVirtTest (std::string aggregation_type_in)
     {
       aggregation_type_int = -1;
       aggregation_type_int = (aggregation_type_in == "None") ? 0 : aggregation_type_int;
@@ -630,7 +630,7 @@ void testAssignGridFilterAndTransformerGhost (const PC& pc)
     AmrAssignGrid<DenseBinIteratorFactory<Box>> assign_grid = pc.m_particle_locator.getGridAssignor();
     auto assign_grid_ptr = & assign_grid;
     pc2.copyParticles(pc);//, AssignGridFilter(assign_grid_ptr,2));
-    filterAndTransformParticles(pc2, AssignGridFilter(assign_grid_ptr,2), TransformerGhost());
+    filterAndTransformParticles(pc2, AssignGridFilterTest(assign_grid_ptr,2), TransformerGhostTest());
 
     auto np_new = pc2.TotalNumberOfParticles(false);
 
@@ -661,7 +661,7 @@ void testAssignGridFilterAndTransformerVirt (const PC& pc)
     AmrAssignGrid<DenseBinIteratorFactory<Box>> assign_grid = pc.m_particle_locator.getGridAssignor();
     auto assign_grid_ptr = & assign_grid;
     pc2.copyParticles(pc);//, AssignGridFilter(assign_grid_ptr,2));
-    filterAndTransformParticles(pc2, AssignGridFilter(assign_grid_ptr,2), TransformerVirt(pc2.AggregationType()));
+    filterAndTransformParticles(pc2, AssignGridFilterTest(assign_grid_ptr,2), TransformerVirtTest(pc2.AggregationType()));
 
     auto np_new = pc2.TotalNumberOfParticles(false);
 
@@ -691,7 +691,7 @@ void testAssignGridFilter (const PC& pc)
     AmrAssignGrid<DenseBinIteratorFactory<Box>> assign_grid = pc.m_particle_locator.getGridAssignor();
     auto assign_grid_ptr = & assign_grid;
     pc2.copyParticles(pc);//, AssignGridFilter(assign_grid_ptr,2));
-    filterParticles(pc2, AssignGridFilter(assign_grid_ptr,2));
+    filterParticles(pc2, AssignGridFilterTest(assign_grid_ptr,2));
 
     auto np_new = pc2.TotalNumberOfParticles();
 
