@@ -25,3 +25,9 @@ verbose = true   # set to true to get more verbosity
 
 # Number of levels
 nlevs = 2
+
+nx=2
+ny=2
+nz=2
+max_grid_size=4
+nppc = 1
