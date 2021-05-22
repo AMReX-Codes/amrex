@@ -394,7 +394,7 @@ auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
     amrex::ParallelForRNG(np,
     [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        p_mask[i] = particle_detail::call_f(p, src_data, i, engine);
+        p_mask[i] = particle_detail::call_f(p, src_data, src_start+i, engine);
     });
 
     return filterParticles(dst, src, mask.dataPtr(), src_start, dst_start, n);
@@ -636,7 +636,7 @@ auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&
     amrex::ParallelForRNG(np,
     [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        p_mask[i] = particle_detail::call_f(p, src_data, i, engine);
+        p_mask[i] = particle_detail::call_f(p, src_data, src_start+i, engine);
     });
 
     return filterAndTransformParticles(dst, src, mask.dataPtr(), std::forward<F>(f), src_start, dst_start, n);

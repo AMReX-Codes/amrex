@@ -795,8 +795,8 @@ struct AssignGridFilter
         const auto tup = (*m_assign_grid)(src.m_aos[src_i], m_lev_min, m_lev_max, m_nGrow);
         const auto p_boxes = amrex::get<0>(tup);
         const auto p_levs  = amrex::get<1>(tup);
-
-	return m_gid >=0 & p_boxes == m_gid;
+	AMREX_DEVICE_PRINTF("src_i %d\tgid %15d\tp_boxes %15d\tcompare %d\n",src_i,m_gid,p_boxes,(m_gid >=0 && p_boxes == m_gid));
+	return m_gid >=0 && p_boxes == m_gid;
     }
 };
 
@@ -824,7 +824,7 @@ struct TransformerGhost
             dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
         for (int j = 0; j < dst.m_num_runtime_int; ++j)
             dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
-        (dst.m_aos[dst_i]).m_idcpu = GhostParticleID;
+        ParticleIDWrapper((dst.m_aos[dst_i]).m_idcpu) = GhostParticleID;
     }
 };
 
@@ -851,6 +851,29 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     if (level >= static_cast<int>(m_particles.size()))
         return;
+    amrex::Print()<<"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"<<std::endl;
+    const BoxArray& fine = ParticleBoxArray(level + 1);
+    std::vector< std::pair<int,Box> > isects;
+    for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
+      {
+	const auto& ptile = ParticlesAt(level, pti);
+        const auto src = ptile.getConstParticleTileData();
+
+        auto& aos = ptile.GetArrayOfStructs();
+        for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
+	  {
+            const IntVect& iv = Index(aos[pindex], level+1);
+            fine.intersections(Box(iv,iv),isects,true,nGrow);
+            if (isects.size() > 0)
+	      {
+                SuperParticleType p = src.getSuperParticle(pindex);
+                p.id() = GhostParticleID;
+		amrex::Print()<<p<<std::endl;
+		//ghosts.push_back(p);
+	      }
+	  }
+      }
+    amrex::Print()<<"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"<<std::endl;
 
     if (! m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
     m_particle_locator.setGeometry(GetParGDB());
@@ -867,10 +890,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         auto np = src_tile.numParticles();
         auto ghost_offset = ghosts.numParticles();
 	ghosts.resize(ghost_offset+np);
-	filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid), TransformerGhost(), ghosts.numParticles(),0,np);
-	//	filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid), TransformerGhost());
+	amrex::Print()<<gid<<std::endl;
+	amrex::Print()<<ghost_offset<<std::endl;
+	amrex::Print()<<np<<std::endl;
+        filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid), TransformerGhost(),0,ghost_offset,np);
+	amrex::Gpu::Device::synchronize();
+	for(int i=0; i<ghosts.numParticles(); i++)
+	  {
+	    amrex::Print()<<((ghosts.getParticleTileData()).getSuperParticle(i))<<std::endl;
+	  }
+	amrex::Gpu::Device::synchronize();
+        //	filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid), TransformerGhost());
 
     }
+    amrex::Print()<<"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"<<std::endl;
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
