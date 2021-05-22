@@ -782,21 +782,26 @@ struct AssignGridFilter
        \brief This filters based on matching grids
        *
      **/
-  AssignGridFilter (amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> * assign_grid, int gid, int level)
-    : m_assign_grid(assign_grid), m_gid(gid)
+  AssignGridFilter (amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> * assign_grid, int gid, int level, int nGrow)
+    : m_assign_grid(assign_grid), m_gid(gid), m_nGrow(nGrow)
   { m_lev_min=level;
-    m_lev_max=level+1;
-    m_nGrow=0;}
+    m_lev_max=level+1;}
 
     template <typename SrcData>
     AMREX_GPU_HOST_DEVICE
     int operator() (const SrcData& src, int src_i) const noexcept
     {
-        const auto tup = (*m_assign_grid)(src.m_aos[src_i], m_lev_min, m_lev_max, m_nGrow);
-        const auto p_boxes = amrex::get<0>(tup);
-        const auto p_levs  = amrex::get<1>(tup);
-	AMREX_DEVICE_PRINTF("src_i %d\tgid %15d\tp_boxes %15d\tcompare %d\n",src_i,m_gid,p_boxes,(m_gid >=0 && p_boxes == m_gid));
-	return m_gid >=0 && p_boxes == m_gid;
+        const auto tup_min = (*m_assign_grid)(src.m_aos[src_i], m_lev_min, m_lev_max, m_nGrow);
+        const auto tup_max = (*m_assign_grid)(src.m_aos[src_i], m_lev_max, m_lev_max, m_nGrow);
+        const auto p_boxes = amrex::get<0>(tup_min);
+        const auto p_levs  = amrex::get<1>(tup_min);
+	AMREX_DEVICE_PRINTF("src_i %d\tgid %15d\tp_boxes %15d\tcompare %d\tp_levs %d\n",src_i,m_gid,p_boxes,(m_gid >=0 && p_boxes == m_gid),p_levs);
+        const auto p_boxes_max = amrex::get<0>(tup_max);
+        const auto p_levs_max  = amrex::get<1>(tup_max);
+	AMREX_DEVICE_PRINTF("src_i %d\tgid %15d\tp_boxes %15d\tcompare %d\tp_levs %d\n",src_i,m_gid,p_boxes_max,(m_gid >=0 && p_boxes == m_gid),p_levs_max);
+	if(p_levs_max==2)
+	  AMREX_DEVICE_PRINTF("src_i %d\tsrcrdata %15g\n",src_i,src.m_rdata[0][src_i]);
+	return m_gid >=0 && p_boxes == m_gid && p_levs_max == m_lev_max;
     }
 };
 
@@ -848,12 +853,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     BL_PROFILE("ParticleContainer::CreateGhostParticles()");
     AMREX_ASSERT(ghosts.empty());
     AMREX_ASSERT(level < finestLevel());
-
     if (level >= static_cast<int>(m_particles.size()))
         return;
 
-#ifndef AMREX_USE_GPU
+    //#ifndef AMREX_USE_GPU
     const BoxArray& fine = ParticleBoxArray(level + 1);
+    std::cout<<fine<<std::endl;
     std::vector< std::pair<int,Box> > isects;
     for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
       {
@@ -865,15 +870,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 	  {
             const IntVect& iv = Index(aos[pindex], level+1);
             fine.intersections(Box(iv,iv),isects,true,nGrow);
+	    std::cout<<iv<<nGrow<<std::endl;
             if (isects.size() > 0)
 	      {
                 SuperParticleType p = src.getSuperParticle(pindex);
                 p.id() = GhostParticleID;
-		ghosts.push_back(p);
+		std::cout<<p<<std::endl;
+		//		ghosts.push_back(p);
 	      }
 	  }
       }
-#else
+    //#else
     if (! m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
     m_particle_locator.setGeometry(GetParGDB());
     AmrAssignGrid<DenseBinIteratorFactory<Box>> assign_grid = m_particle_locator.getGridAssignor();
@@ -887,9 +894,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         auto np = src_tile.numParticles();
         auto ghost_offset = ghosts.numParticles();
 	ghosts.resize(ghost_offset+np);
-        filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid,level), TransformerGhost(),0,ghost_offset,np);
+        filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid,level,nGrow), TransformerGhost(),0,ghost_offset,np);
+       for(int i=0; i<ghosts.numParticles(); i++)
+         {
+	   std::cout<<((ghosts.getParticleTileData()).getSuperParticle(i))<<std::endl;
+         }
     }
-#endif
+    //#endif
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
