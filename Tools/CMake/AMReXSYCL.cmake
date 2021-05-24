@@ -68,6 +68,15 @@ if (AMReX_MPI)
     $<${_cxx_dpcpp}:-fsycl-unnamed-lambda>)
 endif ()
 
+if(AMReX_DPCPP_ONEDPL)
+    # TBB and PSTL are broken in oneAPI 2021.3.0
+    # https://software.intel.com/content/www/us/en/develop/articles/intel-oneapi-dpcpp-library-release-notes.html#inpage-nav-2-3
+    # at least since 2021.1.1 and probably won't be fixed until glibc version 10 is gone
+    target_compile_definitions( SYCL
+        INTERFACE
+        $<${_cxx_dpcpp}:_GLIBCXX_USE_TBB_PAR_BACKEND=0 PSTL_USE_PARALLEL_POLICIES=0>)
+endif()
+
 #
 # Link options
 #

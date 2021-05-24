@@ -18,6 +18,7 @@
 #cmakedefine AMREX_USE_OMP
 #cmakedefine BL_USE_OMP
 #cmakedefine AMREX_USE_DPCPP
+#cmakedefine AMREX_USE_ONEDPL
 #cmakedefine AMREX_USE_FLOAT
 #cmakedefine AMREX_SINGLE_PRECISION_PARTICLES
 #cmakedefine BL_USE_FLOAT
