@@ -19,6 +19,8 @@
 #include <cctype>
 #include <vector>
 #include <list>
+#include <set>
+#include <string>
 
 extern "C" void amrex_init_namelist (const char*);
 extern "C" void amrex_finalize_namelist ();
@@ -1148,12 +1150,12 @@ ParmParse::getUnusedInputs (const std::string& prefix)
     return r;
 }
 
-std::vector<std::string>
+std::set<std::string>
 ParmParse::getEntries (const std::string& prefix)
 {
     std::vector<std::string> r;
     get_entries_under_prefix(r, g_table, prefix, false, false);
-    return r;
+    return std::set<std::string>(r.begin(), r.end());
 }
 
 void

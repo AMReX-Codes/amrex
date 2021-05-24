@@ -5,6 +5,7 @@
 
 #include <AMReX_BLassert.H>
 
+#include <set>
 #include <stack>
 #include <string>
 #include <iosfwd>
@@ -936,7 +937,7 @@ public:
     static std::vector<std::string> getUnusedInputs (const std::string& prefix = std::string());
 
     //! Returns [prefix.]* parameters.
-    static std::vector<std::string> getEntries (const std::string& prefix = std::string());
+    static std::set<std::string> getEntries (const std::string& prefix = std::string());
 
     struct PP_entry;
     typedef std::list<PP_entry> Table;
