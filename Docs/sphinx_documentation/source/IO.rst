@@ -101,20 +101,22 @@ by a persistent thread created during AMReX's initialization.  This allows
 the calculation to continue immediately, which can drastically reduce
 walltime spent writing to disk.
 
-If writing to more than one file per MPI rank, AMReX's async output requires
-MPI to be initialized with THREAD_MULTIPLE support. THREAD_MULTIPLE support
-allows multiple unique threads to run unique MPI calls simultaneously.  This
-support is required to allow AMReX applications to perform MPI work while the
-Async Output is performed.  However, this can introduce additional overhead as
-the thread's MPI operations are scheduled safely around each other.  Therefore,
-AMReX uses a lower level of support, SERIALIZED, by default and applications
-have to turn on THREAD_MULTIPLE support.
+If the number of output files is less than the number of MPI ranks,
+AMReX's async output requires MPI to be initialized with THREAD_MULTIPLE
+support. THREAD_MULTIPLE support allows multiple unique threads to run unique
+MPI calls simultaneously.  This support is required to allow AMReX applications
+to perform MPI work while the Async Output concurrently pings ranks to signal
+that they can safely begin writing to their assigned files.  However,
+THREAD_MULTIPLE can introduce additional overhead as each threads' MPI operations
+must be scheduled safely around each other. Therefore, AMReX uses a lower level
+of support, SERIALIZED, by default and applications have to turn on THREAD_MULTIPLE
+support.
 
 To turn on Async Output, use the input flag ``amrex.async_out=1``.  The number
 of output files can also be set, using ``amrex.async_out_nfiles``.  The default
 number of files is ``64``. If the number of ranks is larger than the number of
 files, THREAD_MULTIPLE must be turned on by adding
-``DEFINES+=-DMPI_THREAD_MULTIPLE=TRUE`` to the GNUMakefile. Otherwise, AMReX
+``MPI_THREAD_MULTIPLE=TRUE`` to the GNUMakefile. Otherwise, AMReX
 will throw an error.
 
 Async Output works for a wide range of AMReX calls, including:
@@ -134,9 +136,9 @@ Async Output works for a wide range of AMReX calls, including:
 Be aware: when using Async Output, a thread is spawned and exclusively used
 to perform output throughout the runtime.  As such, you may oversubscribe
 resources if you launch an AMReX application that assigns all available
-hardware threads in another way, such as OpenMP threadsin.  If you see any
-degradation when using Async Output and OpenMP, try using one less thread
-in ``OMP_NUM_THREADS`` to prevent oversubscription and get more consistent
+hardware threads in another way, such as OpenMP.  If you see any degradation
+when using Async Output and OpenMP, try using one less thread in
+``OMP_NUM_THREADS`` to prevent oversubscription and get more consistent
 results.
 
 Checkpoint File
