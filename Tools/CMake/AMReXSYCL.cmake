@@ -71,11 +71,10 @@ endif ()
 if(AMReX_DPCPP_ONEDPL)
     # TBB and PSTL are broken in oneAPI 2021.3.0
     # https://software.intel.com/content/www/us/en/develop/articles/intel-oneapi-dpcpp-library-release-notes.html#inpage-nav-2-3
-    if(DPCPP_VERSION VERSION_GREATER_EQUAL 2021.3.0 AND DPCPP_VERSION VERSION_LESS 2021.4.0)
-        target_compile_definitions( SYCL
-            INTERFACE
-            $<${_cxx_dpcpp}:_GLIBCXX_USE_TBB_PAR_BACKEND=0 PSTL_USE_PARALLEL_POLICIES=0>)
-    endif()
+    # at least since 2021.1.1 and probably won't be fixed until glibc version 10 is gone
+    target_compile_definitions( SYCL
+        INTERFACE
+        $<${_cxx_dpcpp}:_GLIBCXX_USE_TBB_PAR_BACKEND=0 PSTL_USE_PARALLEL_POLICIES=0>)
 endif()
 
 #
