@@ -57,8 +57,11 @@ endif ()
 # HYPRE
 #
 if (AMReX_HYPRE)
-    if(ENABLE_CUDA)
+    if(AMReX_CUDA)
         find_package(HYPRE 2.20.0 REQUIRED)
+        find_library(LIBCUSPARSE cusparse PATHS ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+        find_library(LIBCURAND curand PATHS ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+        target_link_libraries(amrex PUBLIC ${LIBCUSPARSE} ${LIBCURAND})
     else()
         find_package(HYPRE 2.19.0 REQUIRED)
     endif()
