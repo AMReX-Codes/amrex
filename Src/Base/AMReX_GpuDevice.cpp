@@ -133,11 +133,6 @@ Device::Initialize ()
     nvtx_init = nvtxRangeStartA(pname);
 #endif
 
-#if defined(AMREX_USE_HIP) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)) && defined(AMREX_USE_ROCTX)
-    const char* pname = "initialize_device";
-    roctxRangePush(pname);
-#endif
-
     ParmParse ppamrex("amrex");
     ppamrex.query("max_gpu_streams", max_gpu_streams);
     max_gpu_streams = std::min(max_gpu_streams, AMREX_GPU_MAX_STREAMS);
@@ -357,13 +352,10 @@ Device::Initialize ()
         } else {
             amrex::Print() << "HIP initialized.\n";
         }
+    }
 #if defined(AMREX_USE_ROCTX)
-#if (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
-    roctxRangePop();
-#endif
     roctracer_start();
 #endif
-    }
 #elif defined(AMREX_USE_DPCPP)
     if (amrex::Verbose()) {
         amrex::Print() << "oneAPI initialized.\n";
