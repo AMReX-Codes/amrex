@@ -98,6 +98,12 @@ TinyProfiler::start () noexcept
         }
         nvtxRangePush(fname.c_str());
 #endif
+#ifdef AMREX_USE_HIP
+        if (device_synchronize_around_region) {
+            amrex::Gpu::Device::synchronize();
+        }
+        roctxRangePush(fname.c_str());
+#endif
 
         for (auto const& region : regionstack)
         {
@@ -179,6 +185,12 @@ TinyProfiler::stop () noexcept
             }
             nvtxRangePop();
 #endif
+#ifdef AMREX_USE_HIP
+        if (device_synchronize_around_region) {
+            amrex::Gpu::Device::synchronize();
+        }
+        roctxRangePop();
+#endif
         } else {
             improperly_nested_timers.insert(fname);
         }
@@ -252,6 +264,12 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
                 amrex::Gpu::Device::synchronize();
             }
             nvtxRangePop();
+#endif
+#ifdef AMREX_USE_HIP
+        if (device_synchronize_around_region) {
+            amrex::Gpu::Device::synchronize();
+        }
+        roctxRangePop();
 #endif
         } else
         {

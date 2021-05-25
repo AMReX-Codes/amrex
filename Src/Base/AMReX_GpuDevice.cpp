@@ -19,6 +19,14 @@
 #endif
 #endif
 
+#if defined(AMREX_USE_HIP)
+#include <hip/hip_runtime.h>
+#if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
+#include "roctracer_ext.h"
+#include "roctx.h"
+#endif
+#endif
+
 #ifdef AMREX_USE_ACC
 #include <openacc.h>
 
@@ -121,6 +129,11 @@ Device::Initialize ()
     nvtxRangeId_t nvtx_init;
     const char* pname = "initialize_device";
     nvtx_init = nvtxRangeStartA(pname);
+#endif
+
+#if defined(AMREX_USE_HIP) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
+    const char* pname = "initialize_device";
+    roctxRangePush(pname);
 #endif
 
     ParmParse ppamrex("amrex");
@@ -342,6 +355,10 @@ Device::Initialize ()
         } else {
             amrex::Print() << "HIP initialized.\n";
         }
+#if (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
+    roctxRangePop();
+#endif
+    roctracer_start();
     }
 #elif defined(AMREX_USE_DPCPP)
     if (amrex::Verbose()) {
@@ -357,6 +374,11 @@ Device::Finalize ()
 #ifdef AMREX_USE_CUDA
     cudaProfilerStop();
 #endif
+
+#ifdef AMREX_USE_HIP
+    roctracer_stop();
+#endif
+
 
     for (int i = 0; i < max_gpu_streams; ++i)
     {

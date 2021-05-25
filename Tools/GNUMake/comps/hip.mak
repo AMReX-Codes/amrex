@@ -114,6 +114,11 @@ ifeq ($(HIP_COMPILER),clang)
   # rocThrust - Header only
   # SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocthrust/include
 
+  # rocTracer
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/roctracer/include $(ROC_PATH)/rocprofiler/include
+  LIBRARY_LOCATIONS += $(ROC_PATH)/roctracer/lib $(ROC_PATH)/rocprofiler/lib
+  LIBRARIES +=  -Wl,--rpath=${ROC_PATH}/roctracer/lib -lroctracer64 -lroctx64
+
   # hipcc passes a lot of unused arguments to clang
   LEGACY_DEPFLAGS += -Wno-unused-command-line-argument
 

@@ -9,6 +9,10 @@
 #include "nvToolsExt.h"
 #endif
 
+#if defined(AMREX_USE_HIP)
+#include "roctx.h"
+#endif
+
 #include <deque>
 #include <iosfwd>
 #include <limits>
