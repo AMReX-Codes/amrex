@@ -46,6 +46,7 @@ add_amrex_define( AMREX_USE_OMP IF AMReX_OMP )
 # DPCPP
 add_amrex_define( AMREX_USE_DPCPP NO_LEGACY IF AMReX_DPCPP )
 add_amrex_define( AMREX_USE_GPU NO_LEGACY IF AMReX_DPCPP )
+add_amrex_define( AMREX_USE_ONEDPL NO_LEGACY IF AMReX_DPCPP_ONEDPL )
 
 # HIP
 add_amrex_define( AMREX_USE_HIP NO_LEGACY IF AMReX_HIP )

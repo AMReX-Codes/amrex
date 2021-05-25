@@ -48,8 +48,7 @@ endif
 ifeq ($(which_computer),spock)
   ifeq ($(USE_HIP),TRUE)
     # MI100
-    CXXFLAGS += --amdgpu-target=gfx908
-    HIPCC_FLAGS += --amdgpu-target=gfx908
+    AMD_ARCH=gfx908
   endif
 
   ifeq ($(USE_MPI),TRUE)
@@ -60,6 +59,8 @@ ifeq ($(which_computer),spock)
     endif
     LIBRARIES += -lmpi
     # for gpu aware mpi
-    LIBRARIES += $(PE_MPICH_GTL_DIR_gfx908) -lmpi_gtl_hsa
+    ifeq ($(USE_HIP),TRUE)
+      LIBRARIES += $(PE_MPICH_GTL_DIR_gfx908) -lmpi_gtl_hsa
+    endif
   endif
 endif

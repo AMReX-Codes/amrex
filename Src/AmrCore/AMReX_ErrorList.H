@@ -406,7 +406,7 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
   {
   public:
 
-    enum TEST {GRAD=0, LESS, GREATER, VORT, BOX, USER};
+    enum TEST {GRAD=0, RELGRAD, LESS, GREATER, VORT, BOX, USER};
 
     struct UserFunc
     {
