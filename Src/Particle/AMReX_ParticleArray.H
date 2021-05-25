@@ -130,19 +130,19 @@ struct DataLayoutPolicy<ContainerType, ParticleType<Types...>, DataLayout::SoA> 
 
     constexpr static raw_type get_raw_data (container_type& a_container)
     {
-        return get_raw_data_impl(a_container, amrex::makeIndexSequence<sizeof...(Types)>());
+        return get_raw_data_impl(a_container, std::make_index_sequence<sizeof...(Types)>());
     }
 
     constexpr static void resize (container_type& a_container, std::size_t a_size)
     {
-        resize_impl(a_container, a_size, amrex::makeIndexSequence<sizeof...(Types)>());
+        resize_impl(a_container, a_size, std::make_index_sequence<sizeof...(Types)>());
     }
 
     template <typename ValueType>
     constexpr static void push_back (container_type& a_container, ValueType&& a_value)
     {
         push_back_impl(a_container, std::forward<ValueType>(a_value),
-                       amrex::makeIndexSequence<sizeof...(Types)>());
+                       std::make_index_sequence<sizeof...(Types)>());
     }
 
     static constexpr std::size_t size (container_type& a_container)
@@ -154,14 +154,14 @@ private:
 
     template <std::size_t... Is>
     constexpr static auto get_raw_data_impl (container_type& a_container,
-                                             amrex::IndexSequence<Is...>)
+                                             std::index_sequence<Is...>)
     {
         return raw_type{static_cast<Types*>(&std::get<Is>(a_container)[0])... };
     }
 
     template <std::size_t... Is>
     constexpr static void resize_impl (container_type& a_container, std::size_t a_size,
-                                       amrex::IndexSequence<Is...>)
+                                       std::index_sequence<Is...>)
     {
         using expander = int[];
         (void) expander{ 0, (std::get<Is>(a_container).resize(a_size), 0)... };
@@ -169,7 +169,7 @@ private:
 
     template <typename ValueType, std::size_t... Is>
     constexpr static void push_back_impl(container_type& a_container, ValueType&& a_value,
-                                         amrex::IndexSequence<Is...>)
+                                         std::index_sequence<Is...>)
     {
         using expander = int[];
         (void) expander{ 0, (std::get<Is>(a_container).push_back(
@@ -188,7 +188,7 @@ struct DataLayoutPolicyRaw<ParticleType<Types...>, DataLayout::SoA> {
     AMREX_GPU_HOST_DEVICE
     constexpr static value_type get (raw_type& a_tuple, std::size_t a_index)
     {
-        return get_impl(a_tuple, a_index, amrex::makeIndexSequence<sizeof...(Types)>());
+        return get_impl(a_tuple, a_index, std::make_index_sequence<sizeof...(Types)>());
     }
 
 private:
@@ -196,7 +196,7 @@ private:
     template <std::size_t... Is>
     AMREX_GPU_HOST_DEVICE
     constexpr static auto get_impl (raw_type& a_tuple, std::size_t a_index,
-                                    amrex::IndexSequence<Is...>)
+                                    std::index_sequence<Is...>)
     {
         return value_type{ref_wrapper<Types>(amrex::get<Is>(a_tuple)[a_index])... };
     }
