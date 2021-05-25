@@ -22,6 +22,10 @@ else
 endif
 
 #if less than a given version, throw error.
+hipcc_major_lt_4 = $(shell expr $(hipcc_major_version) \< 4)
+ifeq ($(hipcc_major_lt_4),1)
+  $(error Your hipcc version is $(hipcc_version). This is unsupported. Please use ROCm version 4.0 or newer.)
+endif
 
 # Generic flags, always used
 CXXFLAGS = -std=$(CXXSTD) -m64
@@ -32,13 +36,8 @@ F90FLAGS = -ffree-line-length-none -fno-range-check -fno-second-underscore -fimp
 
 FMODULES =  -J$(fmoddir) -I $(fmoddir)
 
-
-ifeq ($(hipcc_major_version),4)
-ifneq ($(hipcc_minor_version),0)
 # rdc support
 HIPCC_FLAGS += -fgpu-rdc
-endif
-endif
 
 # amd gpu target
 HIPCC_FLAGS += --amdgpu-target=$(AMD_ARCH)
