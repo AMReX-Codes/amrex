@@ -9,7 +9,7 @@
 #include "nvToolsExt.h"
 #endif
 
-#if defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
 #include "roctx.h"
 #endif
 

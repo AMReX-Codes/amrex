@@ -98,7 +98,7 @@ TinyProfiler::start () noexcept
         }
         nvtxRangePush(fname.c_str());
 #endif
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
         if (device_synchronize_around_region) {
             amrex::Gpu::Device::synchronize();
         }
@@ -185,7 +185,7 @@ TinyProfiler::stop () noexcept
             }
             nvtxRangePop();
 #endif
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
         if (device_synchronize_around_region) {
             amrex::Gpu::Device::synchronize();
         }
@@ -265,7 +265,7 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
             }
             nvtxRangePop();
 #endif
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
         if (device_synchronize_around_region) {
             amrex::Gpu::Device::synchronize();
         }

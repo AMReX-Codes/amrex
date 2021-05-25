@@ -21,9 +21,11 @@
 
 #if defined(AMREX_USE_HIP)
 #include <hip/hip_runtime.h>
+#if defined(AMREX_USE_ROCTX)
 #if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
 #include "roctracer_ext.h"
 #include "roctx.h"
+#endif
 #endif
 #endif
 
@@ -131,7 +133,7 @@ Device::Initialize ()
     nvtx_init = nvtxRangeStartA(pname);
 #endif
 
-#if defined(AMREX_USE_HIP) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
+#if defined(AMREX_USE_HIP) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)) && defined(AMREX_USE_ROCTX)
     const char* pname = "initialize_device";
     roctxRangePush(pname);
 #endif
@@ -355,10 +357,12 @@ Device::Initialize ()
         } else {
             amrex::Print() << "HIP initialized.\n";
         }
+#if defined(AMREX_USE_ROCTX)
 #if (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
     roctxRangePop();
 #endif
     roctracer_start();
+#endif
     }
 #elif defined(AMREX_USE_DPCPP)
     if (amrex::Verbose()) {
@@ -375,7 +379,7 @@ Device::Finalize ()
     cudaProfilerStop();
 #endif
 
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
     roctracer_stop();
 #endif
 
