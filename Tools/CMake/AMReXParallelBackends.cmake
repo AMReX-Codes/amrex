@@ -208,8 +208,9 @@ if (AMReX_HIP)
 
    # Link to hiprand -- must include rocrand too
    find_package(rocrand REQUIRED CONFIG)
+   find_package(rocprim REQUIRED CONFIG)
    find_package(hiprand REQUIRED CONFIG)
-   target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand)
+   target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand roc::rocprim)
 
    # ARCH flags -- these must be PUBLIC for all downstream targets to use,
    # else there will be a runtime issue (cannot find
