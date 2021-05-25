@@ -19,6 +19,8 @@
 #include <cctype>
 #include <vector>
 #include <list>
+#include <set>
+#include <string>
 
 extern "C" void amrex_init_namelist (const char*);
 extern "C" void amrex_finalize_namelist ();
@@ -1112,23 +1114,30 @@ ParmParse::hasUnusedInputs (const std::string& prefix)
 
 static
 void
-get_unused_inputs(std::vector<std::string>& unused, const ParmParse::Table& table,
-                  const std::string& prefix)
+get_entries_under_prefix (std::vector<std::string>& found_entries,
+                         const ParmParse::Table& table,
+                         const std::string& prefix,
+                         const bool only_unused = false,
+                         const bool add_values = false)
 {
     const std::string prefixdot = prefix.empty() ? std::string() : prefix+".";
     for (auto const& entry : table) {
-        if (! entry.m_queried) {
+        if ((! only_unused) || (only_unused && ! entry.m_queried)) {
             if (entry.m_name.substr(0,prefixdot.size()) == prefixdot) {
-                std::string tmp(entry.m_name + " =");
-                for (auto const& v : entry.m_vals) {
-                    tmp += " " + v;
+                std::string tmp(entry.m_name);
+                if (add_values) {
+                    tmp.append(" =");
+                    for (auto const& v : entry.m_vals) {
+                        tmp += " " + v;
+                    }
                 }
-                unused.emplace_back(std::move(tmp));
+                found_entries.emplace_back(std::move(tmp));
             }
         }
 
         if (entry.m_table) {
-            get_unused_inputs(unused, table, prefix);
+            get_entries_under_prefix(found_entries, table, prefix,
+                                     only_unused, add_values);
         }
     }
 }
@@ -1137,8 +1146,16 @@ std::vector<std::string>
 ParmParse::getUnusedInputs (const std::string& prefix)
 {
     std::vector<std::string> r;
-    get_unused_inputs(r, g_table, prefix);
+    get_entries_under_prefix(r, g_table, prefix, true, true);
     return r;
+}
+
+std::set<std::string>
+ParmParse::getEntries (const std::string& prefix)
+{
+    std::vector<std::string> r;
+    get_entries_under_prefix(r, g_table, prefix, false, false);
+    return std::set<std::string>(r.begin(), r.end());
 }
 
 void

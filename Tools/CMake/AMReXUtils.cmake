@@ -239,7 +239,7 @@ function (set_cuda_architectures _cuda_archs)
    include(FindCUDA/select_compute_arch)
    cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${_archs})
 
-   # Extract architecture number: anything less the 3.5 must go
+   # Extract architecture number: anything less than 3.5 must go
    string(REPLACE "-gencode;" "-gencode=" _nvcc_arch_flags "${_nvcc_arch_flags}")
 
    foreach (_item IN LISTS _nvcc_arch_flags)
@@ -286,7 +286,7 @@ function (set_nvcc_arch_flags _cuda_archs _lto)
    cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${_archs})
 
    #
-   # Remove unsupported architecture: anything less the 3.5 must go
+   # Remove unsupported architecture: anything less than 3.5 must go
    #
    string(REPLACE "-gencode;" "-gencode=" _nvcc_arch_flags "${_nvcc_arch_flags}")
 

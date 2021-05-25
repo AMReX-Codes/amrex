@@ -62,6 +62,9 @@ list of important variables.
    | AMREX_CUDA_ARCH | CUDA arch such as 70                | 70 if not set      |
    |    or CUDA_ARCH |                                     | or detected        |
    +-----------------+-------------------------------------+--------------------+
+   | AMREX_AMD_ARCH  | AMD GPU arch such as gfx908         | none if the        |
+   |    or AMD_ARCH  |                                     | machine is unknown |
+   +-----------------+-------------------------------------+--------------------+
 
 .. raw:: latex
 

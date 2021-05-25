@@ -21,17 +21,21 @@ endif
 #if less than a given version, throw error.
 
 # Generic flags, always used
-CXXFLAGS := -std=$(CXXSTD) -m64
-CFLAGS   := -std=c99 -m64
+CXXFLAGS = -std=$(CXXSTD) -m64
+CFLAGS   = -std=c99 -m64
 
-FFLAGS   := -ffixed-line-length-none -fno-range-check -fno-second-underscore
-F90FLAGS := -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
+FFLAGS   = -ffixed-line-length-none -fno-range-check -fno-second-underscore
+F90FLAGS = -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
 
 FMODULES =  -J$(fmoddir) -I $(fmoddir)
 
 # rdc support
-CXXFLAGS += -fgpu-rdc
-HIPCC_FLAGS += -fgpu-rdc # This will be added to link flags
+HIPCC_FLAGS += -fgpu-rdc
+
+# amd gpu target
+HIPCC_FLAGS += --amdgpu-target=$(AMD_ARCH)
+
+CXXFLAGS += $(HIPCC_FLAGS)
 
 # =============================================================================================
 
