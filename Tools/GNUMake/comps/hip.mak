@@ -24,7 +24,7 @@ endif
 #if less than a given version, throw error.
 hipcc_major_lt_4 = $(shell expr $(hipcc_major_version) \< 4)
 ifeq ($(hipcc_major_lt_4),1)
-  $(error Your hipcc version is $(hipcc_version). This is unsupported. Please use ROCm version 4.0 or newer.)
+  $(warning Your hipcc version is $(hipcc_version). Please use ROCm version 4.0 or newer.)
 endif
 
 # Generic flags, always used
