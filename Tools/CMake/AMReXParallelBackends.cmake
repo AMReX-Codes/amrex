@@ -209,6 +209,13 @@ if (AMReX_HIP)
    # Link to hiprand -- must include rocrand too
    find_package(rocrand REQUIRED CONFIG)
    find_package(hiprand REQUIRED CONFIG)
+   if (AMReX_ROCTX)
+   find_package(roctracer REQUIRED CONFIG)
+   find_package(rocprofiler REQUIRED CONFIG)
+   target_include_directories(amrex PUBLIC ${HIP_PATH}/roctracer/include ${HIP_PATH}/rocprofiler/include)
+   target_link_libraries(amrex PUBLIC roctracer64 roctx64)
+#   target_link_libraries(amrex PUBLIC roctracer::roctracer64 roctracer::roctx64)
+   endif
    target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand)
 
    # ARCH flags -- these must be PUBLIC for all downstream targets to use,
@@ -216,6 +223,6 @@ if (AMReX_HIP)
    # missing gpu devices)
    target_compile_options(amrex
       PUBLIC
-      $<$<COMPILE_LANGUAGE:CXX>:-m64 --amdgpu-target=${AMReX_AMD_ARCH}> )
+      $<$<COMPILE_LANGUAGE:CXX>:-m64 -fgpu-rdc --amdgpu-target=${AMReX_AMD_ARCH}> )
 
 endif ()

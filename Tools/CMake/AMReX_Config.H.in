@@ -10,6 +10,7 @@
 #cmakedefine AMREX_COMM_PROFILING
 #cmakedefine BL_COMM_PROFILING
 #cmakedefine AMREX_TINY_PROFILING
+#cmakedefine AMREX_USE_ROCTX
 #cmakedefine AMREX_MEM_PROFILING
 #cmakedefine AMREX_TESTING
 #cmakedefine AMREX_USE_MPI

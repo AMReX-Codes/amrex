@@ -473,6 +473,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PROFPARSER             |  Build with profile parser support              | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_ROCTX                  |  Build with roctx markup profiling support      | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FPE                    |  Build with Floating Point Exceptions checks    | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_ASSERTIONS             |  Build with assertions turned on                | NO                      | YES, NO               |
