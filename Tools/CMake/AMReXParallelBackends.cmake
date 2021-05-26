@@ -211,7 +211,7 @@ if (AMReX_HIP)
    find_package(rocprim REQUIRED CONFIG)
    find_package(hiprand REQUIRED CONFIG)
    target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand roc::rocprim)
-   if(NOT ${AMReX_FORTRAN)
+   if(NOT AMReX_FORTRAN)
      target_link_libraries(amrex PUBLIC $<$<LINK_LANGUAGE:CXX>:${HIP_LIBRARIES}>)
    endif()
    
