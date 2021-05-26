@@ -321,7 +321,7 @@ cmake_dependent_option(AMReX_PROFPARSER "Enable profile parser" OFF
    "AMReX_BASE_PROFILE;AMReX_TRACE_PROFILE;AMReX_AMRDATA" OFF)
 print_option( AMReX_PROFPARSER )
 
-cmkae_dependent_option(AMReX_ROCTX  "Enable roctx markup for HIP with ROCm" OFF
+cmake_dependent_option(AMReX_ROCTX  "Enable roctx markup for HIP with ROCm" OFF
      "AMReX_GPU_BACKEND STREQUAL HIP" ON)
 print_option( AMReX_ROCTX )
 

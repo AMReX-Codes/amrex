@@ -22,8 +22,8 @@
 #if defined(AMREX_USE_HIP)
 #include <hip/hip_runtime.h>
 #if defined(AMREX_USE_ROCTX)
-#if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
 #include "roctracer_ext.h"
+#if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
 #include "roctx.h"
 #endif
 #endif
