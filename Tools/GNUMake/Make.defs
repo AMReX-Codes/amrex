@@ -367,6 +367,12 @@ else
   LOG_BUILD_TIME := FALSE
 endif
 
+ifdef USE_GPU_RDC
+  USE_GPU_RDC := $(strip $(USE_GPU_RDC))
+else
+  USE_GPU_RDC := FALSE
+endif
+
 build_time_begin := $(shell date +"%s")
 
 ALLOW_DIFFERENT_COMP ?= TRUE

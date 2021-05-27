@@ -180,6 +180,12 @@ if (AMReX_CUDA OR AMReX_HIP)
    print_option(GPUS_PER_NODE)
 endif ()
 
+#
+# GPU RDC support
+#
+cmake_dependent_option( AMReX_GPU_RDC "Enable GPU RDC" OFF
+   "AMReX_CUDA OR AMReX_HIP" OFF)
+print_option(AMReX_GPU_RDC)
 
 #
 # Parallel backends    ========================================================

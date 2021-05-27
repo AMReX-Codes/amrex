@@ -18,11 +18,7 @@ namespace amrex
     *  distribution between 0.0 and 1.0 (0.0 included, 1.0 excluded)
     *
     */
-#ifdef AMREX_USE_CUDA
-    AMREX_GPU_HOST_DEVICE Real Random ();
-#else
     Real Random ();
-#endif
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real Random (RandomEngine const& random_engine)
@@ -55,11 +51,7 @@ namespace amrex
     *  distribution with mean 'mean' and standard deviation 'stddev'.
     *
     */
-#ifdef AMREX_USE_CUDA
-    AMREX_GPU_HOST_DEVICE Real RandomNormal (Real mean, Real stddev);
-#else
     Real RandomNormal (Real mean, Real stddev);
-#endif
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real RandomNormal (Real mean, Real stddev, RandomEngine const& random_engine)
@@ -94,11 +86,7 @@ namespace amrex
     *  The GPU version of this function relies on the cuRAND library
     *
     */
-#ifdef AMREX_USE_CUDA
-    AMREX_GPU_HOST_DEVICE unsigned int RandomPoisson (Real lambda);
-#else
     unsigned int RandomPoisson (Real lambda);
-#endif
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     unsigned int RandomPoisson (Real lambda, RandomEngine const& random_engine)
@@ -123,11 +111,7 @@ namespace amrex
     * The CPU version of this function uses C++11's mt19937.
     * The GPU version uses CURAND's XORWOW generator.
     */
-#ifdef AMREX_USE_CUDA
-    AMREX_GPU_HOST_DEVICE unsigned int Random_int (unsigned int n); // [0,n-1]
-#else
     unsigned int Random_int (unsigned int n); // [0,n-1]
-#endif
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     unsigned int Random_int (unsigned int n, RandomEngine const& random_engine)
@@ -151,12 +135,6 @@ namespace amrex
 #endif
     }
 
-#ifdef AMREX_USE_GPU
-    // Locking mechanism functions for locking and unlocking
-    AMREX_GPU_DEVICE int get_state (int tid);
-    AMREX_GPU_DEVICE void free_state (int tid);
-#endif
-
     /**
     * \brief Generates one pseudorandom unsigned long which is
     *  uniformly distributed on [0,n-1]-interval for each call.
@@ -164,7 +142,7 @@ namespace amrex
     * The CPU version of this function uses C++11's mt19937.
     * There is no GPU version.
     */
-    AMREX_GPU_HOST ULong Random_long (ULong n); // [0,n-1]
+    ULong Random_long (ULong n); // [0,n-1]
 
     /** \brief Set the seed of the random number generator.
     *
