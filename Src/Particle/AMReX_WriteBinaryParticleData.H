@@ -111,7 +111,7 @@ countFlags (const Container<int,Allocator>& pflags, int& nparticles)
 template <template <class, class> class Container, class Allocator, class PC>
 typename std::enable_if<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>::type
 countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>& particle_io_flags,
-            const PC& pc, int& nparticles)
+            const PC& pc, amrex::Long& nparticles)
 {
     for (int lev = 0; lev < pc.GetParticles().size();  lev++)
     {
@@ -129,7 +129,7 @@ countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>&
 
 template <template <class, class> class Container, class Allocator>
 typename std::enable_if<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>::type
-countFlags (const Container<int,Allocator>& pflags, amrex::Long& nparticles)
+countFlags (const Container<int,Allocator>& pflags, int& nparticles)
 {
     for (std::size_t k = 0; k < pflags.size(); ++k)
     {
@@ -184,8 +184,13 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
         int num_copies;
         {
             int last_flag;
+#ifdef AMREX_USE_GPU
             Gpu::dtoh_memcpy(&num_copies, offsets.dataPtr()+np_tile-1, sizeof(int));
             Gpu::dtoh_memcpy(&last_flag, pflags.dataPtr()+np_tile-1, sizeof(int));
+#else
+            std::memcpy(&num_copies, offsets.dataPtr()+np_tile-1, sizeof(int));
+            std::memcpy(&last_flag, pflags.dataPtr()+np_tile-1, sizeof(int));
+#endif
             num_copies += last_flag;
         }
 
