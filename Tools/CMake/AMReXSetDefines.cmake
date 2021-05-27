@@ -32,6 +32,7 @@ add_amrex_define( AMREX_COMM_PROFILING  IF AMReX_COMM_PROFILE )
 
 # Tiny profiler
 add_amrex_define( AMREX_TINY_PROFILING NO_LEGACY IF AMReX_TINY_PROFILE )
+add_amrex_define( AMREX_USE_ROCTX NO_LEGACY IF AMReX_ROCTX )
 
 # Mem profiler
 add_amrex_define( AMREX_MEM_PROFILING NO_LEGACY IF AMReX_MEM_PROFILE )

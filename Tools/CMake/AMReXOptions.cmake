@@ -321,6 +321,10 @@ cmake_dependent_option(AMReX_PROFPARSER "Enable profile parser" OFF
    "AMReX_BASE_PROFILE;AMReX_TRACE_PROFILE;AMReX_AMRDATA" OFF)
 print_option( AMReX_PROFPARSER )
 
+cmake_dependent_option(AMReX_ROCTX  "Enable roctx markup for HIP with ROCm" OFF
+     "AMReX_GPU_BACKEND STREQUAL HIP" OFF)
+print_option( AMReX_ROCTX )
+
 set(AMReX_TP_PROFILE_VALUES IGNORE CRAYPAT FORGE VTUNE)
 set(AMReX_TP_PROFILE IGNORE CACHE STRING "Third-party profiling options: <CRAYPAT,FORGE,VTUNE>")
 set_property(CACHE AMReX_TP_PROFILE PROPERTY STRINGS ${AMReX_TP_PROFILE_VALUES})

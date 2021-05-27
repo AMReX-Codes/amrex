@@ -175,7 +175,7 @@ if (AMReX_HIP)
    get_filename_component(_this_comp ${CMAKE_CXX_COMPILER} NAME)
 
    if (NOT (_this_comp IN_LIST _valid_hip_compilers) )
-      message(FATAL_ERROR "\nCMAKE_CXX_COMPILER is incompatible with HIP.\n"
+      message(FATAL_ERROR "\nCMAKE_CXX_COMPILER=${_this_comp} is incompatible with HIP.\n"
          "Set CMAKE_CXX_COMPILER to either hipcc or nvcc for HIP builds.\n")
    endif ()
 
@@ -200,7 +200,7 @@ if (AMReX_HIP)
 
    if(HIP_FOUND)
       message(STATUS "Found HIP: ${HIP_VERSION}")
-      message(STATUS "HIP: Platform=${HIP_PLATFORM} Compiler=${HIP_COMPILER}")
+      message(STATUS "HIP: Platform=${HIP_PLATFORM} Compiler=${HIP_COMPILER} Path=${HIP_PATH}")
    else()
       message(FATAL_ERROR "Could not find HIP."
          " Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
@@ -222,6 +222,12 @@ if (AMReX_HIP)
    find_package(rocrand REQUIRED CONFIG)
    find_package(rocprim REQUIRED CONFIG)
    find_package(hiprand REQUIRED CONFIG)
+   if (AMReX_ROCTX)
+       # To be modernized in the future, please see:
+       # https://github.com/ROCm-Developer-Tools/roctracer/issues/56
+       target_include_directories(amrex PUBLIC ${HIP_PATH}/../roctracer/include ${HIP_PATH}/../rocprofiler/include)
+       target_link_libraries(amrex PUBLIC "-L${HIP_PATH}/../roctracer/lib/ -lroctracer64" "-L${HIP_PATH}/../roctracer/lib -lroctx64")
+   endif ()
    target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand roc::rocprim)
 
    # ARCH flags -- these must be PUBLIC for all downstream targets to use,

@@ -2,6 +2,9 @@
 
 ifneq ($(NO_CONFIG_CHECKING),TRUE)
   HIP_PATH=$(realpath $(shell hipconfig --path))
+  hipcc_version := $(shell hipcc --version | grep "HIP version: " | cut -d" " -f3)
+  hipcc_major_version := $(shell hipcc --version | grep "HIP version: " | cut -d" " -f3 | cut -d. -f1)
+  hipcc_minor_version := $(shell hipcc --version | grep "HIP version: " | cut -d" " -f3 | cut -d. -f2)
   ifeq ($(HIP_PATH),)
     $(error hipconfig failed. Is the HIP toolkit available?)
   endif
@@ -17,8 +20,6 @@ ifdef CXXSTD
 else
   CXXSTD := c++14
 endif
-
-#if less than a given version, throw error.
 
 # Generic flags, always used
 CXXFLAGS = -std=$(CXXSTD) -m64
@@ -113,6 +114,15 @@ ifeq ($(HIP_COMPILER),clang)
 
   # rocThrust - Header only
   # SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocthrust/include
+
+  ifeq ($(USE_ROCTX),TRUE)
+  # rocTracer
+  CXXFLAGS += -DAMREX_USE_ROCTX
+  HIPCC_FLAGS += -DAMREX_USE_ROCTX
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/roctracer/include $(ROC_PATH)/rocprofiler/include
+  LIBRARY_LOCATIONS += $(ROC_PATH)/roctracer/lib $(ROC_PATH)/rocprofiler/lib
+  LIBRARIES +=  -Wl,--rpath=${ROC_PATH}/roctracer/lib -lroctracer64 -lroctx64
+  endif
 
   # hipcc passes a lot of unused arguments to clang
   LEGACY_DEPFLAGS += -Wno-unused-command-line-argument

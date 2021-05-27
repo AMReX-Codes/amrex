@@ -92,11 +92,16 @@ TinyProfiler::start () noexcept
         ttstack.emplace_back(std::make_tuple(t, 0.0, &fname));
         global_depth = ttstack.size();
 
+#ifdef AMREX_USE_GPU
+            if (device_synchronize_around_region) {
+                amrex::Gpu::Device::synchronize();
+            }
+#endif
+
 #ifdef AMREX_USE_CUDA
-        if (device_synchronize_around_region) {
-            amrex::Gpu::Device::synchronize();
-        }
         nvtxRangePush(fname.c_str());
+#elif defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
+        roctxRangePush(fname.c_str());
 #endif
 
         for (auto const& region : regionstack)
@@ -173,11 +178,16 @@ TinyProfiler::stop () noexcept
                 std::get<1>(parent) += dtin;
             }
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
             if (device_synchronize_around_region) {
                 amrex::Gpu::Device::synchronize();
             }
+#endif
+
+#ifdef AMREX_USE_CUDA
             nvtxRangePop();
+#elif defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
+            roctxRangePop();
 #endif
         } else {
             improperly_nested_timers.insert(fname);
@@ -247,11 +257,14 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
                 std::get<1>(parent) += dtin;
             }
 
-#ifdef AMREX_USE_CUDA
             if (device_synchronize_around_region) {
                 amrex::Gpu::Device::synchronize();
             }
+
+#ifdef AMREX_USE_CUDA
             nvtxRangePop();
+#elif defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
+            roctxRangePop();
 #endif
         } else
         {
