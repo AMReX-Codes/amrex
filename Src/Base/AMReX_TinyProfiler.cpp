@@ -92,16 +92,16 @@ TinyProfiler::start () noexcept
         ttstack.emplace_back(std::make_tuple(t, 0.0, &fname));
         global_depth = ttstack.size();
 
+#ifdef AMREX_USE_GPU
+            if (device_synchronize_around_region) {
+                amrex::Gpu::Device::synchronize();
+            }
+#endif
+
 #ifdef AMREX_USE_CUDA
-        if (device_synchronize_around_region) {
-            amrex::Gpu::Device::synchronize();
-        }
         nvtxRangePush(fname.c_str());
 #endif
 #if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
-        if (device_synchronize_around_region) {
-            amrex::Gpu::Device::synchronize();
-        }
         roctxRangePush(fname.c_str());
 #endif
 
@@ -179,9 +179,11 @@ TinyProfiler::stop () noexcept
                 std::get<1>(parent) += dtin;
             }
 
+#ifdef AMREX_USE_GPU
             if (device_synchronize_around_region) {
                 amrex::Gpu::Device::synchronize();
             }
+#endif
 
 #ifdef AMREX_USE_CUDA
             nvtxRangePop();
