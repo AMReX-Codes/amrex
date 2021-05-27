@@ -12,7 +12,7 @@
 #include <AMReX_AmrParticleMeshDataAdaptor.H>
 #include <AMReX_Amr.H>
 
-#ifdef BL_USE_SENSEI_INSITU
+#ifdef AMREX_USE_SENSEI_INSITU
 #include <AnalysisAdaptor.h>
 #include <Profiler.h>
 #endif
@@ -21,8 +21,8 @@
 
 namespace amrex
 {
-/// Bridge for simulations that use amrex::Amr/Core and ParticleContainer
-/// inherits intialize and finalize from amrex::InSituBridge
+
+/// SENSEI bridge code for simulations proccessing both amrex::Amr and amrex::ParticleContainer
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 class AmrParticleMeshInSituBridge : public InSituBridge
 {
@@ -35,8 +35,7 @@ public:
 
   // invoke the in situ analysis with data from an AmrMesh and ParticleContainer
   // instance.
-  int update(
-    amrex::Amr *amr,
+  int update(amrex::Amr *amr,
     amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *tracers,
     std::map<std::string, std::vector<int>> particles_rStructs = {},
     std::map<std::string, int> particles_iStructs = {},
@@ -54,7 +53,7 @@ int AmrParticleMeshInSituBridge<NStructReal, NStructInt, NArrayReal, NArrayInt>:
   std::map<std::string, int> particles_iArrays)
 {
   int ret = 0;
-#if defined(BL_USE_SENSEI_INSITU)
+#if defined(AMREX_USE_SENSEI_INSITU)
   if (doUpdate())
   {
     amrex::Print() << "SENSEI Particles Begin update..." << std::endl;
@@ -67,19 +66,15 @@ int AmrParticleMeshInSituBridge<NStructReal, NStructInt, NArrayReal, NArrayInt>:
       SENSEI_ERROR("no particles presented at update call");
       return -1;
     }
+
     amrex::AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt> *data_adaptor
       = amrex::AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New();
+
     if (comm != MPI_COMM_NULL)
       data_adaptor->SetCommunicator(comm);
 
-    data_adaptor->SetDataSource(
-      amr,
-      tracers,
-      particles_rStructs,
-      particles_iStructs,
-      particles_rArrays,
-      particles_iArrays
-    );
+    data_adaptor->SetDataSource(amr, tracers, particles_rStructs,
+      particles_iStructs, particles_rArrays, particles_iArrays);
 
     data_adaptor->SetDataTime(amr->cumTime());
     data_adaptor->SetDataTimeStep(amr->levelSteps(0));

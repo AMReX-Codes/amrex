@@ -14,7 +14,7 @@
 
 #include <AMReX_Amr.H>
 
-#ifdef BL_USE_SENSEI_INSITU
+#ifdef AMREX_USE_SENSEI_INSITU
 #include <AnalysisAdaptor.h>
 #include <Profiler.h>
 #endif
@@ -56,7 +56,7 @@ int AmrParticleInSituBridge<NStructReal, NStructInt, NArrayReal, NArrayInt>::upd
   std::map<std::string, int> particles_iArrays)
 {
   int ret = 0;
-#if defined(BL_USE_SENSEI_INSITU)
+#if defined(AMREX_USE_SENSEI_INSITU)
   if (doUpdate())
   {
     amrex::Print() << "SENSEI Particles Begin update..." << std::endl;

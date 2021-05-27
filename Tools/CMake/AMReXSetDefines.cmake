@@ -112,9 +112,11 @@ else ()
    add_amrex_define(BL_NO_FORT)
 endif ()
 
-# SENSEI Insitu -- only legacy
-add_amrex_define( BL_USE_SENSEI_INSITU IF AMReX_SENSEI )
-add_amrex_define( AMREX_USE_SENSEI_AUTO IF AMReX_SENSEI_AUTO )
+#
+# SENSEI Insitu
+#
+add_amrex_define( AMREX_USE_SENSEI_INSITU NO_LEGACY IF AMReX_SENSEI )
+add_amrex_define( AMREX_NO_SENSEI_AMR_INST NO_LEGACY IF AMReX_NO_SENSEI_AMR_INST )
 
 # Conduit Support
 add_amrex_define( AMREX_USE_CONDUIT NO_LEGACY IF AMReX_CONDUIT )
