@@ -322,7 +322,7 @@ cmake_dependent_option(AMReX_PROFPARSER "Enable profile parser" OFF
 print_option( AMReX_PROFPARSER )
 
 cmake_dependent_option(AMReX_ROCTX  "Enable roctx markup for HIP with ROCm" OFF
-     "AMReX_GPU_BACKEND STREQUAL HIP" ON)
+     "AMReX_GPU_BACKEND STREQUAL HIP" OFF)
 print_option( AMReX_ROCTX )
 
 set(AMReX_TP_PROFILE_VALUES IGNORE CRAYPAT FORGE VTUNE)
