@@ -114,12 +114,10 @@ endfunction ()
 # is compatible with amrex CUDA build.
 #
 function (setup_target_for_cuda_compilation _target)
-   if (AMReX_GPU_RDC)
-      set_target_properties( ${_target}
-         PROPERTIES
-         CUDA_SEPARABLE_COMPILATION ON      # This adds -dc
-         )
-   endif ()
+   set_target_properties( ${_target}
+      PROPERTIES
+      CUDA_SEPARABLE_COMPILATION ${AMReX_GPU_RDC}      # This adds -dc
+   )
    set_cpp_sources_to_cuda_language(${_target})
 
    if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.20)
