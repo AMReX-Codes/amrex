@@ -59,7 +59,7 @@ bool ParallelCopyWithItselfIsCorrect(amrex::iMultiFab& mf, const amrex::Box& dom
             int value = si.x + si.y*nx + si.z*nx*ny;
             fails += (array(i,j,k) != value);
 
-            AMREX_ASSERT(fails);  // If DEBUG, crash on first error.
+            AMREX_ASSERT(fails==0);  // If DEBUG, crash on first error.
         });
     }
     return fails == 0;
@@ -122,7 +122,7 @@ bool ParallelCopyFaceToFace(amrex::iMultiFab& dest, const amrex::Box& domain_des
             int value = si.x + si.y*nx + si.z*nx*ny;
             fails += (darray(i,j,k) != value);
 
-            AMREX_ASSERT(fails); // If in debug, crash on first error.
+            AMREX_ASSERT(fails==0); // If in debug, crash on first error.
         });
     }
     return fails == 0;
