@@ -278,20 +278,30 @@ jobs:
       run: |
         source /etc/profile.d/rocm.sh
         hipcc --version
-        mkdir build
-        cd build
-        cmake ..                                          \
+        cmake -S . -B build_full                          \
             -DCMAKE_VERBOSE_MAKEFILE=ON                   \
             -DAMReX_ENABLE_TESTS=ON                       \
             -DAMReX_PARTICLES=ON                          \
             -DAMReX_FORTRAN=ON                            \
             -DAMReX_LINEAR_SOLVERS=ON                     \
             -DAMReX_GPU_BACKEND=HIP                       \
-            -DAMReX_AMD_ARCH=gfx900                       \
+            -DAMReX_AMD_ARCH=gfx908                       \
             -DCMAKE_C_COMPILER=$(which clang)             \
             -DCMAKE_CXX_COMPILER=$(which hipcc)           \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)
-        make -j 2
+        cmake --build build_full -j 2
+        cmake -S . -B build_nofortran                     \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                   \
+            -DAMReX_ENABLE_TESTS=ON                       \
+            -DAMReX_PARTICLES=ON                          \
+            -DAMReX_FORTRAN=OFF                           \
+            -DAMReX_LINEAR_SOLVERS=ON                     \
+            -DAMReX_GPU_BACKEND=HIP                       \
+            -DAMReX_AMD_ARCH=gfx908                       \
+            -DCMAKE_C_COMPILER=$(which clang)             \
+            -DCMAKE_CXX_COMPILER=$(which hipcc)           \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)
+        cmake --build build_nofortran -j 2
 
   # Build 1D libamrex with configure
   configure-1d:
