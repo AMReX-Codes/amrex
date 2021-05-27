@@ -56,7 +56,7 @@ bool ParallelCopyWithItselfIsCorrect(amrex::iMultiFab& mf, const amrex::Box& dom
         amrex::LoopOnCpu(section, [&](int i, int j, int k)
         {
             amrex::Dim3 si = dtos(amrex::Dim3{i,j,k});
-            int value = si.x + si.y*nx + si.z*nx*xy;
+            int value = si.x + si.y*nx + si.z*nx*ny;
             fails += (array(i,j,k) != value);
 
             AMREX_ASSERT(fails);  // If DEBUG, crash on first error.
