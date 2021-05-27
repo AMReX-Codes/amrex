@@ -45,16 +45,7 @@ namespace Extrapolater
                     ParallelFor(amrex::grow(gbx,1), ncomp,
                     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
-                       const auto lo = amrex::lbound(gbx);
-                       const auto hi = amrex::ubound(gbx);
-                       if (   i < lo.x || i > hi.x
-#if (AMREX_SPACEDIM > 1)
-                           || j < lo.y || j > hi.y
-#if (AMREX_SPACEDIM > 2)
-                           || k < lo.z || k > hi.z
-#endif
-#endif
-                          ) {
+                       if (!gbx.contains(i,j,k)) {
                            if (mask_arr(i,j,k) == crsebnd) data_arr(i,j,k,n) = 0.0;
                        }
                     });
