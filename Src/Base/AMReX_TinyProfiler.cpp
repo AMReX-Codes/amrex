@@ -179,17 +179,14 @@ TinyProfiler::stop () noexcept
                 std::get<1>(parent) += dtin;
             }
 
-#ifdef AMREX_USE_CUDA
             if (device_synchronize_around_region) {
                 amrex::Gpu::Device::synchronize();
             }
+
+#ifdef AMREX_USE_CUDA
             nvtxRangePop();
-#endif
-#if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
-        if (device_synchronize_around_region) {
-            amrex::Gpu::Device::synchronize();
-        }
-        roctxRangePop();
+#elif defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
+            roctxRangePop();
 #endif
         } else {
             improperly_nested_timers.insert(fname);
@@ -259,17 +256,14 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
                 std::get<1>(parent) += dtin;
             }
 
-#ifdef AMREX_USE_CUDA
             if (device_synchronize_around_region) {
                 amrex::Gpu::Device::synchronize();
             }
+
+#ifdef AMREX_USE_CUDA
             nvtxRangePop();
-#endif
-#if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
-        if (device_synchronize_around_region) {
-            amrex::Gpu::Device::synchronize();
-        }
-        roctxRangePop();
+#elif defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
+            roctxRangePop();
 #endif
         } else
         {

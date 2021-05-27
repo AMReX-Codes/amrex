@@ -6,11 +6,11 @@
 #include <AMReX_REAL.H>
 
 #ifdef AMREX_USE_CUDA
-#include "nvToolsExt.h"
+#include <nvToolsExt.h>
 #endif
 
 #if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
-#include "roctx.h"
+#include <roctx.h>
 #endif
 
 #include <deque>
