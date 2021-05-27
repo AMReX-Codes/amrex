@@ -2,6 +2,7 @@
 #define AMREX_SUNMEMORY_H_
 
 #include <AMReX.H>
+#include <AMReX_Arena.H>
 #include <sundials/sundials_memory.h>
 
 namespace amrex {
@@ -20,6 +21,7 @@ void Initialize();
 void Finalize();
 
 MemoryHelper* The_SUNMemory_Helper();
+amrex::Arena* getArena (SUNMemoryType type);
 
 }
 }
