@@ -171,12 +171,13 @@ endif ()
 #
 if (AMReX_HIP)
 
-   set(_valid_hip_compilers hipcc nvcc)
+   set(_valid_hip_compilers hipcc nvcc)  # later: CC, clang++
    get_filename_component(_this_comp ${CMAKE_CXX_COMPILER} NAME)
 
    if (NOT (_this_comp IN_LIST _valid_hip_compilers) )
-      message(FATAL_ERROR "\nCMAKE_CXX_COMPILER=${_this_comp} is incompatible with HIP.\n"
-         "Set CMAKE_CXX_COMPILER to either hipcc or nvcc for HIP builds.\n")
+      message(WARNING "\nCMAKE_CXX_COMPILER=${_this_comp} is potentially "
+         "not a valid HIP device compiler.\n"
+         "For now, set CMAKE_CXX_COMPILER to hipcc for HIP builds.\n")
    endif ()
 
    unset(_hip_compiler)
