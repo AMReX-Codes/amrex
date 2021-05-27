@@ -211,6 +211,8 @@ if (AMReX_HIP)
    find_package(rocprim REQUIRED CONFIG)
    find_package(hiprand REQUIRED CONFIG)
    if (AMReX_ROCTX)
+       # To be modernized in the future, please see:
+       # https://github.com/ROCm-Developer-Tools/roctracer/issues/56
        target_include_directories(amrex PUBLIC ${HIP_PATH}/../roctracer/include ${HIP_PATH}/../rocprofiler/include)
        target_link_libraries(amrex PUBLIC "-L${HIP_PATH}/../roctracer/lib/ -lroctracer64" "-L${HIP_PATH}/../roctracer/lib -lroctx64")
    endif ()
