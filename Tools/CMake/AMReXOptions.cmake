@@ -183,7 +183,13 @@ endif ()
 #
 # GPU RDC support
 #
-cmake_dependent_option( AMReX_GPU_RDC "Enable GPU RDC" OFF
+# https://cmake.org/cmake/help/latest/variable/CMAKE_CUDA_SEPARABLE_COMPILATION.html
+set(_GPU_RDC_default OFF)
+if(AMReX_CUDA AND DEFINED CMAKE_CUDA_SEPARABLE_COMPILATION)
+    set(_GPU_RDC_default "${CMAKE_CUDA_SEPARABLE_COMPILATION}")
+endif()
+cmake_dependent_option( AMReX_GPU_RDC "Enable GPU RDC" ${_GPU_RDC_default} )
+unset(_GPU_RDC_default)
    "AMReX_CUDA OR AMReX_HIP" OFF)
 print_option(AMReX_GPU_RDC)
 
