@@ -56,8 +56,7 @@ bool ParallelCopyWithItselfIsCorrect(amrex::iMultiFab& mf, const amrex::Box& dom
         amrex::LoopOnCpu(section, [&](int i, int j, int k)
         {
             amrex::Dim3 si = dtos(amrex::Dim3{i,j,k});
-            int value = si.x + si.y*nx + si.z*nx*ny;
-            AMREX_ASSERT(array(i,j,k) == value);
+            AMREX_ASSERT(array(i,j,k) == (si.x + si.y*nx + si.z*nx*ny));
         });
     }
     return fails == 0;
