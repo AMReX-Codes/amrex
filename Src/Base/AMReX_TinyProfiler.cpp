@@ -100,8 +100,7 @@ TinyProfiler::start () noexcept
 
 #ifdef AMREX_USE_CUDA
         nvtxRangePush(fname.c_str());
-#endif
-#if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
+#elif defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
         roctxRangePush(fname.c_str());
 #endif
 
