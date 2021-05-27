@@ -56,7 +56,10 @@ bool ParallelCopyWithItselfIsCorrect(amrex::iMultiFab& mf, const amrex::Box& dom
         amrex::LoopOnCpu(section, [&](int i, int j, int k)
         {
             amrex::Dim3 si = dtos(amrex::Dim3{i,j,k});
-            AMREX_ASSERT(array(i,j,k) == (si.x + si.y*nx + si.z*nx*ny));
+            int value = si.x + si.y*nx + si.z*nx*xy;
+            fails += (array(i,j,k) != value);
+
+            AMREX_ASSERT(fails);  // If DEBUG, crash on first error.
         });
     }
     return fails == 0;
@@ -116,8 +119,8 @@ bool ParallelCopyFaceToFace(amrex::iMultiFab& dest, const amrex::Box& domain_des
         amrex::LoopOnCpu(section, [&](int i, int j, int k)
         {
             amrex::Dim3 si = dtos(amrex::Dim3{i,j,k});
-	    int value = si.x + si.y*nx + si.z*nx*ny;
-	    fails += (darray(i,j,k) != value);
+            int value = si.x + si.y*nx + si.z*nx*ny;
+            fails += (darray(i,j,k) != value);
 
             AMREX_ASSERT(fails); // If in debug, crash on first error.
         });
