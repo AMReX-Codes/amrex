@@ -41,6 +41,8 @@ function ( generate_config_header )
            set(COMPILER_ID_MACRO  __CRAYC)
        elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI" )
            set(COMPILER_ID_MACRO  __PGI)
+       elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "NVHPC" )
+           set(COMPILER_ID_MACRO  __NVCOMPILER)
        elseif ( ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" )       OR
                 ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" )  OR
                 ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "ROCMClang" )   OR
