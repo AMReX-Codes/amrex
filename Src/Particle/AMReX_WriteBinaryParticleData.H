@@ -173,7 +173,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     const auto write_real_comp_d_ptr = write_real_comp_d.data();
 
     std::size_t poffset = 0;
-    for (std::size_t i = 0; i < tiles.size(); i++) {
+    for (int i = 0; i < tiles.size(); i++) {
         const auto& ptile = pc.ParticlesAt(lev, grid, tiles[i]);
         const auto& pflags = particle_io_flags[lev].at(std::make_pair(grid, tiles[i]));
         int np_tile = ptile.GetArrayOfStructs().numParticles();
