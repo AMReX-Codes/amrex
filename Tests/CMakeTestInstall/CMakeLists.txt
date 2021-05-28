@@ -7,6 +7,10 @@ cmake_minimum_required(VERSION 3.14)
 
 project(amrex-test-install)
 
+if(DEFINED CMAKE_Fortran_COMPILER)
+    enable_language(Fortran)
+endif()
+
 get_filename_component(_base_dir ${CMAKE_CURRENT_LIST_DIR} DIRECTORY)
 
 set(_base_dir  ${_base_dir}/Amr/Advection_AmrCore)
