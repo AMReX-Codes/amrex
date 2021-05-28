@@ -176,7 +176,6 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     for (std::size_t i = 0; i < tiles.size(); i++) {
         const auto& ptile = pc.ParticlesAt(lev, grid, tiles[i]);
         const auto& pflags = particle_io_flags[lev].at(std::make_pair(grid, tiles[i]));
-
         int np_tile = ptile.GetArrayOfStructs().numParticles();
         typename PC::IntVector offsets(np_tile);
         Gpu::exclusive_scan(pflags.begin(), pflags.end(), offsets.begin());
@@ -208,21 +207,22 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
             const auto p = ptd.getSuperParticle(pindex);
 
             if (flag_ptr[pindex]) {
-                std::size_t out_index = (pindex+poffset)*iChunkSize;
-                idata_d_ptr[out_index] = p.id();
-                idata_d_ptr[out_index+1] = p.cpu();
+                std::size_t iout_index = (pindex+poffset)*iChunkSize;
+                idata_d_ptr[iout_index] = p.id();
+                idata_d_ptr[iout_index+1] = p.cpu();
 
-                for (int j = 0; j < AMREX_SPACEDIM; j++) rdata_d_ptr[out_index+j] = p.pos(j);
+                std::size_t rout_index = (pindex+poffset)*rChunkSize;
+                for (int j = 0; j < AMREX_SPACEDIM; j++) rdata_d_ptr[rout_index+j] = p.pos(j);
 
                 for (int j = 0; j < PC::SuperParticleType::NInt; j++) {
                     if (write_int_comp_d_ptr[j]) {
-                        idata_d_ptr[out_index+2+j] = p.idata(j);
+                        idata_d_ptr[iout_index+2+j] = p.idata(j);
                     }
                 }
 
                 for (int j = 0; j < PC::SuperParticleType::NReal; j++) {
                     if (write_real_comp_d_ptr[j]) {
-                        rdata_d_ptr[out_index+AMREX_SPACEDIM+j] = p.rdata(j);
+                        rdata_d_ptr[rout_index+AMREX_SPACEDIM+j] = p.rdata(j);
                     }
                 }
             }
