@@ -9,6 +9,10 @@
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
 
+#ifdef AMREX_USE_GPU
+#include <AMReX_MFParallelForG.H>
+#endif
+
 #ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
@@ -65,6 +69,10 @@ FabArrayBase::RB180Cache           FabArrayBase::m_TheRB180Cache;
 FabArrayBase::PolarBCache          FabArrayBase::m_ThePolarBCache;
 FabArrayBase::FPinfoCache          FabArrayBase::m_TheFillPatchCache;
 FabArrayBase::CFinfoCache          FabArrayBase::m_TheCrseFineCache;
+
+#ifdef AMREX_USE_GPU
+std::multimap<FabArrayBase::BDKey,FabArrayBase::ParForInfo*> FabArrayBase::m_TheParForCache;
+#endif
 
 FabArrayBase::CacheStats           FabArrayBase::m_TAC_stats("TileArrayCache");
 FabArrayBase::CacheStats           FabArrayBase::m_FBC_stats("FBCache");
@@ -2077,6 +2085,10 @@ FabArrayBase::Finalize ()
     FabArrayBase::flushPolarBCache();
     FabArrayBase::flushTileArrayCache();
 
+#ifdef AMREX_USE_GPU
+    FabArrayBase::flushParForCache();
+#endif
+
     if (ParallelDescriptor::IOProcessor() && amrex::system::verbose > 1) {
         m_FA_stats.print();
         m_TAC_stats.print();
@@ -2313,6 +2325,9 @@ FabArrayBase::clearThisBD (bool no_assertion)
             flushRB90(no_assertion);
             flushRB180(no_assertion);
             flushPolarB(no_assertion);
+#ifdef AMREX_USE_GPU
+            flushParForInfo(no_assertion);
+#endif
         }
     }
 }
@@ -2471,5 +2486,69 @@ FabArrayBase::is_cell_centered () const noexcept
 {
     return boxArray().ixType().cellCentered();
 }
+
+#ifdef AMREX_USE_GPU
+
+FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& nghost)
+    : m_typ(fa.boxArray().ixType()),
+      m_crse_ratio(fa.boxArray().crseRatio()),
+      m_nblocks_x({nullptr,nullptr})
+{
+    Vector<Long> ncells;
+    ncells.reserve(fa.indexArray.size());
+    for (int K : fa.indexArray) {
+        Box const& b = amrex::grow(fa.box(K), nghost);
+        ncells.push_back(b.numPts());
+    }
+    m_nblocks_x = detail::build_par_for_nblocks(ncells);
+}
+
+FabArrayBase::ParForInfo::~ParForInfo ()
+{
+    detail::destroy_par_for_nblocks(m_nblocks_x);
+}
+
+FabArrayBase::ParForInfo const&
+FabArrayBase::getParForInfo (const IntVect& nghost) const
+{
+    AMREX_ASSERT(getBDKey() == m_bdkey);
+    auto er_it = m_TheParForCache.equal_range(m_bdkey);
+    for (auto it = er_it.first; it != er_it.second; ++it) {
+        if (it->second->m_typ        == boxArray().ixType()    &&
+            it->second->m_crse_ratio == boxArray().crseRatio())
+        {
+            return *(it->second);
+        }
+    }
+
+    ParForInfo* new_pfi = new ParForInfo(*this, nghost);
+    m_TheParForCache.insert(er_it.second,
+                            std::multimap<BDKey,ParForInfo*>::value_type(m_bdkey,new_pfi));
+    return *new_pfi;
+}
+
+void
+FabArrayBase::flushParForInfo (bool no_assertion) const
+{
+    amrex::ignore_unused(no_assertion);
+    AMREX_ASSERT(no_assertion || getBDKey() == m_bdkey);
+    AMREX_ASSERT(getBDKey() == m_bdkey);
+    auto er_it = m_TheParForCache.equal_range(m_bdkey);
+    for (auto it = er_it.first; it != er_it.second; ++it) {
+        delete it->second;
+    }
+    m_TheParForCache.erase(er_it.first, er_it.second);
+}
+
+void
+FabArrayBase::flushParForCache ()
+{
+    for (auto it = m_TheParForCache.begin(); it != m_TheParForCache.end(); ++it) {
+        delete it->second;
+    }
+    m_TheParForCache.clear();
+}
+
+#endif
 
 }
