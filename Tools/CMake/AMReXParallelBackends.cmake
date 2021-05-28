@@ -207,18 +207,6 @@ if (AMReX_HIP)
          " Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
    endif()
 
-   # avoid forcing the rocm LLVM flags on a gfortran
-   # https://github.com/ROCm-Developer-Tools/HIP/issues/2275
-   if(AMReX_FORTRAN)
-       message(WARNING "As of ROCm/HIP <= 4.2.0, Fortran support might be flaky.\n"
-                       "Especially, we cannot yet support reloctable device code (RDC)."
-                       "See https://github.com/ROCm-Developer-Tools/HIP/issues/2275 "
-                       "and https://github.com/AMReX-Codes/amrex/pull/2031 "
-                       "for details.")
-   else()
-       target_link_libraries(amrex PUBLIC ${HIP_LIBRARIES})
-   endif()
-
    # Link to hiprand -- must include rocrand too
    find_package(rocrand REQUIRED CONFIG)
    find_package(rocprim REQUIRED CONFIG)
@@ -230,6 +218,18 @@ if (AMReX_HIP)
        target_link_libraries(amrex PUBLIC "-L${HIP_PATH}/../roctracer/lib/ -lroctracer64" "-L${HIP_PATH}/../roctracer/lib -lroctx64")
    endif ()
    target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand roc::rocprim)
+
+   # avoid forcing the rocm LLVM flags on a gfortran
+   # https://github.com/ROCm-Developer-Tools/HIP/issues/2275
+   if(AMReX_FORTRAN)
+       message(WARNING "As of ROCm/HIP <= 4.2.0, Fortran support might be flaky.\n"
+                       "Especially, we cannot yet support reloctable device code (RDC)."
+                       "See https://github.com/ROCm-Developer-Tools/HIP/issues/2275 "
+                       "and https://github.com/AMReX-Codes/amrex/pull/2031 "
+                       "for details.")
+   else()
+       target_link_libraries(amrex PUBLIC ${HIP_LIBRARIES})
+   endif()
 
    # ARCH flags -- these must be PUBLIC for all downstream targets to use,
    # else there will be a runtime issue (cannot find
