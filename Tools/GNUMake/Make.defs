@@ -370,7 +370,7 @@ endif
 ifdef USE_GPU_RDC
   USE_GPU_RDC := $(strip $(USE_GPU_RDC))
 else
-  USE_GPU_RDC := FALSE
+  USE_GPU_RDC := TRUE
 endif
 
 build_time_begin := $(shell date +"%s")
