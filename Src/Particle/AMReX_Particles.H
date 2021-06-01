@@ -154,6 +154,9 @@ private:
     friend class ParIterBase<false,NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
 
 public:
+    //! \brief The memory allocator in use.
+    template <typename T>
+    using AllocatorType = Allocator<T>;
     //! \brief The type of Particles we hold.
     using ParticleType = Particle<NStructReal, NStructInt>;
     //! \brief The type of the "SuperParticle" which stored all components in AoS form
@@ -1151,7 +1154,7 @@ public:
     WriteParticles (int level, std::ofstream& ofs, int fnum,
                     Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                     const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
-                    const Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int>>>& particle_io_flags) const;
+                    const Vector<std::map<std::pair<int, int>,IntVector>>& particle_io_flags) const;
 protected:
 
 #ifdef AMREX_USE_HDF5
