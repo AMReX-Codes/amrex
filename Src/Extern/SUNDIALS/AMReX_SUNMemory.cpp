@@ -39,7 +39,6 @@ namespace {
     SUNMemory mem = SUNMemoryNewEmpty();
 
     if (mem == nullptr) return -1;
- 
     mem->ptr = NULL;
     mem->own = SUNTRUE;
     mem->type = mem_type;
