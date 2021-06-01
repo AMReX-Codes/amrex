@@ -31,7 +31,9 @@ F90FLAGS = -ffree-line-length-none -fno-range-check -fno-second-underscore -fimp
 FMODULES =  -J$(fmoddir) -I $(fmoddir)
 
 # rdc support
-HIPCC_FLAGS += -fgpu-rdc
+ifeq ($(USE_GPU_RDC),TRUE)
+  HIPCC_FLAGS += -fgpu-rdc
+endif
 
 # amd gpu target
 HIPCC_FLAGS += --amdgpu-target=$(AMD_ARCH)

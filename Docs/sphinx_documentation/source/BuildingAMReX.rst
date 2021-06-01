@@ -65,6 +65,9 @@ list of important variables.
    | AMREX_AMD_ARCH  | AMD GPU arch such as gfx908         | none if the        |
    |    or AMD_ARCH  |                                     | machine is unknown |
    +-----------------+-------------------------------------+--------------------+
+   | USE_GPU_RDC     | TRUE or FALSE                       | TRUE               |
+   +-----------------+-------------------------------------+--------------------+
+
 
 .. raw:: latex
 
@@ -444,6 +447,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    | AMReX_OMP                    |  Build with OpenMP support                      | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_GPU_BACKEND            |  Build with on-node, accelerated GPU backend    | NONE                    | NONE, SYCL, HIP, CUDA |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_GPU_RDC                |  Build with GPU RDC support                     | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FORTRAN_INTERFACES     |  Build Fortran API                              | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+

@@ -220,18 +220,6 @@ amrex::Error_host (const char * msg)
     }
 }
 
-#if defined(AMREX_USE_GPU)
-#if AMREX_DEVICE_COMPILE
-AMREX_GPU_DEVICE
-void
-amrex::Error_device (const char * msg)
-{
-    if (msg) AMREX_DEVICE_PRINTF("Error %s\n", msg);
-    AMREX_DEVICE_ASSERT(0);
-}
-#endif
-#endif
-
 void
 amrex::Warning_host (const char * msg)
 {
@@ -239,17 +227,6 @@ amrex::Warning_host (const char * msg)
         amrex::Print(Print::AllProcs,amrex::ErrorStream()) << msg << '!' << '\n';
     }
 }
-
-#if defined(AMREX_USE_GPU)
-#if AMREX_DEVICE_COMPILE
-AMREX_GPU_DEVICE
-void
-amrex::Warning_device (const char * msg)
-{
-    if (msg) AMREX_DEVICE_PRINTF("Warning %s\n", msg);
-}
-#endif
-#endif
 
 void
 amrex::Abort_host (const char * msg)
@@ -267,18 +244,6 @@ amrex::Abort_host (const char * msg)
        ParallelDescriptor::Abort();
    }
 }
-
-#if defined(AMREX_USE_GPU)
-#if AMREX_DEVICE_COMPILE
-AMREX_GPU_DEVICE
-void
-amrex::Abort_device (const char * msg)
-{
-    if (msg) AMREX_DEVICE_PRINTF("Abort %s\n", msg);
-    AMREX_DEVICE_ASSERT(0);
-}
-#endif
-#endif
 
 void
 amrex::Assert_host (const char* EX, const char* file, int line, const char* msg)
@@ -316,24 +281,6 @@ amrex::Assert_host (const char* EX, const char* file, int line, const char* msg)
        ParallelDescriptor::Abort();
    }
 }
-
-#if defined(AMREX_USE_GPU)
-#if AMREX_DEVICE_COMPILE
-AMREX_GPU_DEVICE
-void
-amrex::Assert_device (const char* EX, const char* file, int line, const char* msg)
-{
-    if (msg) {
-        AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
-                            EX, file, line, msg);
-    } else {
-        AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
-                            EX, file, line);
-    }
-    AMREX_DEVICE_ASSERT(0);
-}
-#endif
-#endif
 
 namespace
 {
