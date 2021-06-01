@@ -38,11 +38,11 @@ namespace {
   {
     SUNMemory mem = SUNMemoryNewEmpty();
 
+    if (mem == nullptr) return 0;
+ 
     mem->ptr = NULL;
     mem->own = SUNTRUE;
     mem->type = mem_type;
-
-    if (mem == nullptr) return 0;
     auto arena = getArena(mem->type);
     if (arena) {
       mem->ptr = arena->alloc(memsize);
