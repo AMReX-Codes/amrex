@@ -148,7 +148,7 @@ void main_main()
         kloc = (hi0.z-lo0.z+1)/2 + lo0.z;
     }
 
-    if (xcoord > -1.e-36 && AMREX_SPACEDIM >= 1) {
+    if (xcoord > -1.e36 && AMREX_SPACEDIM >= 1) {
         // we specified the x value to pass through
         iloc = hi0.x;
         for (int i = lo0.x; i <= hi0.x; ++i) {
@@ -160,7 +160,7 @@ void main_main()
         }
     }
 
-    if (ycoord > -1.e-36 && AMREX_SPACEDIM >= 2) {
+    if (ycoord > -1.e36 && AMREX_SPACEDIM >= 2) {
         // we specified the y value to pass through
         jloc = hi0.y;
         for (int j = lo0.y; j <= hi0.y; ++j) {
@@ -172,7 +172,7 @@ void main_main()
         }
     }
 
-    if (zcoord > -1.e-36 && AMREX_SPACEDIM == 3) {
+    if (zcoord > -1.e36 && AMREX_SPACEDIM == 3) {
         // we specified the z value to pass through
         kloc = hi0.z;
         for (int k = lo0.z; k <= hi0.z; ++k) {
