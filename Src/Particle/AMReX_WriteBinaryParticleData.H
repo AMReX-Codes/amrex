@@ -178,20 +178,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
         const auto& pflags = particle_io_flags[lev].at(std::make_pair(grid, tiles[i]));
         int np_tile = ptile.GetArrayOfStructs().numParticles();
         typename PC::IntVector offsets(np_tile);
-        Gpu::exclusive_scan(pflags.begin(), pflags.end(), offsets.begin());
-
-        int num_copies;
-        {
-            int last_flag;
-#ifdef AMREX_USE_GPU
-            Gpu::dtoh_memcpy(&num_copies, offsets.dataPtr()+np_tile-1, sizeof(int));
-            Gpu::dtoh_memcpy(&last_flag, pflags.dataPtr()+np_tile-1, sizeof(int));
-#else
-            std::memcpy(&num_copies, offsets.dataPtr()+np_tile-1, sizeof(int));
-            std::memcpy(&last_flag, pflags.dataPtr()+np_tile-1, sizeof(int));
-#endif
-            num_copies += last_flag;
-        }
+        int num_copies = Scan::ExclusiveSum(np_tile, pflags.begin(), offsets.begin(), Scan::retSum);
 
         const auto flag_ptr = pflags.data();
         const auto offsets_ptr = offsets.data();
