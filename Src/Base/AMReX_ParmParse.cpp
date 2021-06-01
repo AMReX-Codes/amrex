@@ -19,6 +19,7 @@
 #include <cctype>
 #include <vector>
 #include <list>
+#include <regex>
 #include <set>
 #include <string>
 
@@ -459,6 +460,26 @@ ppindex (const ParmParse::Table& table,
 void
 bldTable (const char*& str, std::list<ParmParse::PP_entry>& tab);
 
+namespace {
+    bool isTrue(std::smatch const& sm) {
+        const std::string op = sm[1].str();
+        const int dim = std::stoi(sm[2].str());
+        if (op == "<") {
+            return AMREX_SPACEDIM < dim;
+        } else if (op == ">") {
+            return AMREX_SPACEDIM > dim;
+        } else if (op == "==") {
+            return AMREX_SPACEDIM == dim;
+        } else if (op == "<=") {
+            return AMREX_SPACEDIM <= dim;
+        } else if (op == ">=") {
+            return AMREX_SPACEDIM >= dim;
+        } else {
+            return false;
+        }
+    }
+}
+
 static void
 read_file (const char*                     fname,
            std::list<ParmParse::PP_entry>& tab)
@@ -476,7 +497,49 @@ read_file (const char*                     fname,
         std::ostringstream os_cxx(std::ios_base::out);
         std::ostringstream os_fortran(std::ios_base::out);
         bool fortran_namelist = false;
+        std::regex if_regex("^\\s*#\\s*if\\s+\\(?\\s*AMREX_SPACEDIM\\s*(>|<|==|>=|<=)\\s*([1-3])\\s*\\)?\\s*$");
+        std::regex elif_regex("^\\s*#\\s*elif\\s+\\(?\\s*AMREX_SPACEDIM\\s*(>|<|==|>=|<=)\\s*([1-3])\\s*\\)?\\s*$");
+        std::regex else_regex("^\\s*#\\s*else\\s*$");
+        std::regex endif_regex("^\\s*#\\s*endif\\s*$");
+        std::vector<bool> valid_region;  // Keep this block or not?
+        std::vector<bool> has_true;      // Has previous if/elif ever been true?
         for (std::string line; std::getline(is, line); ) {
+            std::smatch sm;
+            if (std::regex_match(line, sm, if_regex)) {
+                bool r = isTrue(sm);
+                valid_region.push_back(r);
+                has_true.push_back(r);
+                continue;
+            } else if (std::regex_match(line, sm, elif_regex)) {
+                if (has_true.back() == false) {
+                    // If none of the previous if/elif is true
+                    bool r = isTrue(sm);
+                    valid_region.back() = r;
+                    has_true.back() = r;
+                } else {
+                    // If any of the previous if/elif is true
+                    valid_region.back() = false;
+                }
+                continue;
+            } else if (std::regex_match(line, sm, else_regex)) {
+                if (has_true.back() == false) {
+                    // If none of the previous if/elif is true,
+                    valid_region.back() = true;
+                } else {
+                    valid_region.back() = false;
+                }
+                continue;
+            } else if (std::regex_match(line, sm, endif_regex)) {
+                valid_region.pop_back();
+                has_true.pop_back();
+                continue;
+            }
+
+            if (std::find(std::begin(valid_region), std::end(valid_region), false)
+                != std::end(valid_region)) {
+                continue;
+            }
+
             auto r = std::find_if(std::begin(line), std::end(line),
                                   [](int c) -> bool { return !std::isspace(c); });
             if (fortran_namelist) { // already inside fortran namelist
