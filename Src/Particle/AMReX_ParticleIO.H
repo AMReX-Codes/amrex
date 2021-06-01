@@ -587,9 +587,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         const auto& pflags = particle_io_flags[lev].at(kv.first);
 
         // Only write out valid particles.
-        int cnt = 0;
-        particle_detail::countFlags(pflags, cnt);
-        count[grid] += cnt;
+        count[grid] += particle_detail::countFlags(pflags);
     }
 
     MFInfo info;

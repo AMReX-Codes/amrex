@@ -64,9 +64,8 @@ fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F&& f)
 }
 
 template <template <class, class> class Container, class Allocator, class PC>
-typename std::enable_if<RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>::type
-countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>& particle_io_flags,
-            const PC& pc, amrex::Long& nparticles)
+typename std::enable_if<RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, amrex::Long>::type
+countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>& particle_io_flags, const PC& pc)
 {
     ReduceOps<ReduceOpSum> reduce_op;
     ReduceData<Long> reduce_data(reduce_op);
@@ -87,12 +86,12 @@ countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>&
         }
     }
     ReduceTuple hv = reduce_data.value(reduce_op);
-    nparticles += amrex::get<0>(hv);
+    return amrex::get<0>(hv);
 }
 
 template <template <class, class> class Container, class Allocator>
-typename std::enable_if<RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>::type
-countFlags (const Container<int,Allocator>& pflags, int& nparticles)
+typename std::enable_if<RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, int>::type
+countFlags (const Container<int,Allocator>& pflags)
 {
     ReduceOps<ReduceOpSum> reduce_op;
     ReduceData<Long> reduce_data(reduce_op);
@@ -105,14 +104,14 @@ countFlags (const Container<int,Allocator>& pflags, int& nparticles)
             return flag_ptr[i] ? 1 : 0;
         });
     ReduceTuple hv = reduce_data.value(reduce_op);
-    nparticles += amrex::get<0>(hv);
+    return amrex::get<0>(hv);
 }
 
 template <template <class, class> class Container, class Allocator, class PC>
-typename std::enable_if<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>::type
-countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>& particle_io_flags,
-            const PC& pc, amrex::Long& nparticles)
+typename std::enable_if<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, amrex::Long>::type
+countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>& particle_io_flags, const PC& pc)
 {
+    amrex::Long nparticles = 0;
     for (int lev = 0; lev < pc.GetParticles().size();  lev++)
     {
         const auto& pmap = pc.GetParticles(lev);
@@ -125,16 +124,19 @@ countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>&
             }
         }
     }
+    return nparticles;
 }
 
 template <template <class, class> class Container, class Allocator>
-typename std::enable_if<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>::type
-countFlags (const Container<int,Allocator>& pflags, int& nparticles)
+typename std::enable_if<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, int>::type
+countFlags (const Container<int,Allocator>& pflags)
 {
+    int nparticles = 0;
     for (std::size_t k = 0; k < pflags.size(); ++k)
     {
         if (pflags[k]) nparticles++;
     }
+    return nparticles;
 }
 
 template <class PC>
@@ -358,11 +360,8 @@ void WriteBinaryParticleDataSync (PC const& pc,
     }
     else
     {
-        nparticles = 0;
+        nparticles = particle_detail::countFlags(particle_io_flags, pc);
         maxnextid  = PC::ParticleType::NextID();
-
-        particle_detail::countFlags(particle_io_flags, pc, nparticles);
-
         ParallelDescriptor::ReduceLongSum(nparticles, IOProcNumber);
         PC::ParticleType::NextID(maxnextid);
         ParallelDescriptor::ReduceLongMax(maxnextid, IOProcNumber);
