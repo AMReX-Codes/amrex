@@ -1113,13 +1113,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             for (int lev = 0; lev < m_particles.size();  lev++) {
               auto& pmap = m_particles[lev];
               for (const auto& kv : pmap) {
-                const auto& aos = kv.second.GetArrayOfStructs();
-                const auto& soa = kv.second.GetStructOfArrays();
+                ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt,
+                             amrex::PinnedArenaAllocator> pinned_ptile;
+                pinned_ptile.define(NumRuntimeRealComps(), NumRuntimeIntComps());
+                pinned_ptile.resize(kv.second.numParticles());
+                amrex::copyParticles(pinned_ptile, kv.second);
+                const auto& host_aos = pinned_ptile.GetArrayOfStructs();
+                const auto& host_soa = pinned_ptile.GetStructOfArrays();
 
-                auto np = aos.numParticles();
-                Gpu::HostVector<ParticleType> host_aos(np);
-                Gpu::copy(Gpu::deviceToHost, aos.begin(), aos.end(), host_aos.begin());
-
+                auto np = host_aos.numParticles();
                 for (int index = 0; index < np; ++index) {
                     const ParticleType* it = &host_aos[index];
                     if (it->id() > 0) {
@@ -1140,10 +1142,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
                         // then the particle attributes.
                         for (int i = 0; i < NumRealComps(); i++)
-                            File << soa.GetRealData(i)[index] << ' ';
+                            File << host_soa.GetRealData(i)[index] << ' ';
 
                         for (int i = 0; i < NumIntComps(); i++)
-                            File << soa.GetIntData(i)[index] << ' ';
+                            File << host_soa.GetIntData(i)[index] << ' ';
 
                         File << '\n';
                     }
