@@ -27,18 +27,18 @@ public:
   // set the source of the simulation data
   int SetDataSource(
     amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *tracers,
-    std::map<std::string, std::vector<int>> rStructs = {},
-    std::map<std::string, int> iStructs = {},
-    std::map<std::string, std::vector<int>> rArrays = {},
-    std::map<std::string, int> iArrays = {}
+    const std::map<std::string, std::vector<int>> & rStructs = {},
+    const std::map<std::string, int> & iStructs = {},
+    const std::map<std::string, std::vector<int>> & rArrays = {},
+    const std::map<std::string, int> & iArrays = {}
   );
 
   // set the data array names maps internally
   int SetArrayNames(
-    std::map<std::string, std::vector<int>> rStructs,
-    std::map<std::string, int> iStructs,
-    std::map<std::string, std::vector<int>> rArrays,
-    std::map<std::string, int> iArrays);
+    const std::map<std::string, std::vector<int>> & rStructs,
+    const std::map<std::string, int> & iStructs,
+    const std::map<std::string, std::vector<int>> & rArrays,
+    const std::map<std::string, int> & iArrays);
 
   // force mesh origin to 0,0,0. off by default
   void SetPinMesh(int val);

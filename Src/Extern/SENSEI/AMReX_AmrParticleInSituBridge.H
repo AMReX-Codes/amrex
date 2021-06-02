@@ -40,20 +40,20 @@ public:
   int update(
     amrex::Amr *amr,
     amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *tracers,
-    std::map<std::string, std::vector<int>> particles_rStructs = {},
-    std::map<std::string, int> particles_iStructs = {},
-    std::map<std::string, std::vector<int>> particles_rArrays = {},
-    std::map<std::string, int> particles_iArrays = {});
+    const std::map<std::string, std::vector<int>> & particles_rStructs = {},
+    const std::map<std::string, int> & particles_iStructs = {},
+    const std::map<std::string, std::vector<int>> & particles_rArrays = {},
+    const std::map<std::string, int> & particles_iArrays = {});
 };
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleInSituBridge<NStructReal, NStructInt, NArrayReal, NArrayInt>::update(
   amrex::Amr *amr,
   amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *tracers,
-  std::map<std::string, std::vector<int>> particles_rStructs,
-  std::map<std::string, int> particles_iStructs,
-  std::map<std::string, std::vector<int>> particles_rArrays,
-  std::map<std::string, int> particles_iArrays)
+  const std::map<std::string, std::vector<int>> & particles_rStructs,
+  const std::map<std::string, int> & particles_iStructs,
+  const std::map<std::string, std::vector<int>> & particles_rArrays,
+  const std::map<std::string, int> & particles_iArrays)
 {
   int ret = 0;
 #if defined(AMREX_USE_SENSEI_INSITU)

@@ -32,10 +32,10 @@ AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New()
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetDataSource(
     amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *tracers,
-    std::map<std::string, std::vector<int>> rStructs,
-    std::map<std::string, int> iStructs,
-    std::map<std::string, std::vector<int>> rArrays,
-    std::map<std::string, int> iArrays)
+    const std::map<std::string, std::vector<int>> & rStructs,
+    const std::map<std::string, int> & iStructs,
+    const std::map<std::string, std::vector<int>> & rArrays,
+    const std::map<std::string, int> & iArrays)
 {
   int ret = 0;
   // set the data source on the tracers
@@ -61,10 +61,10 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetD
 //-----------------------------------------------------------------------------
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetArrayNames(
-  std::map<std::string, std::vector<int>> rStructs,
-  std::map<std::string, int> iStructs,
-  std::map<std::string, std::vector<int>> rArrays,
-  std::map<std::string, int> iArrays)
+  const std::map<std::string, std::vector<int>> & rStructs,
+  const std::map<std::string, int> & iStructs,
+  const std::map<std::string, std::vector<int>> & rArrays,
+  const std::map<std::string, int> & iArrays)
 {
     if(rStructs.size() <= NStructReal)
   {
