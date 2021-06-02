@@ -25,7 +25,7 @@ public:
 
   int SetDataSource(
     Amr *amr,
-    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *tracers,
+    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> * particles,
     const std::map<std::string, std::vector<int>> & rStructs = {},
     const std::map<std::string, int> & iStructs = {},
     const std::map<std::string, std::vector<int>> & rArrays = {},

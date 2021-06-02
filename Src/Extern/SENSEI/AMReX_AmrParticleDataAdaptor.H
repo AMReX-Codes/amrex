@@ -26,7 +26,7 @@ public:
 
   // set the source of the simulation data
   int SetDataSource(
-    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *tracers,
+    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> * particles,
     const std::map<std::string, std::vector<int>> & rStructs = {},
     const std::map<std::string, int> & iStructs = {},
     const std::map<std::string, std::vector<int>> & rArrays = {},
@@ -88,7 +88,7 @@ private:
   vtkPolyData* BuildParticles();
 
   const std::string m_particlesName = "particles";
-  amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>* m_tracers;
+  amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>* m_particles;
   std::map<std::string, std::vector<int>> m_realStructs;
   std::map<std::string, int> m_intStructs;
   std::map<std::string, std::vector<int>> m_realArrays;

@@ -39,7 +39,7 @@ public:
   // instance.
   int update(
     amrex::Amr *amr,
-    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *tracers,
+    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *particles,
     const std::map<std::string, std::vector<int>> & particles_rStructs = {},
     const std::map<std::string, int> & particles_iStructs = {},
     const std::map<std::string, std::vector<int>> & particles_rArrays = {},
@@ -49,7 +49,7 @@ public:
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleInSituBridge<NStructReal, NStructInt, NArrayReal, NArrayInt>::update(
   amrex::Amr *amr,
-  amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *tracers,
+  amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *particles,
   const std::map<std::string, std::vector<int>> & particles_rStructs,
   const std::map<std::string, int> & particles_iStructs,
   const std::map<std::string, std::vector<int>> & particles_rArrays,
@@ -64,7 +64,7 @@ int AmrParticleInSituBridge<NStructReal, NStructInt, NArrayReal, NArrayInt>::upd
 
     sensei::TimeEvent<64> event("AmrParticleInSituBridge::update");
 
-    if(!tracers)
+    if(!particles)
     {
       SENSEI_ERROR("no particles presented at update call");
       return -1;
@@ -74,7 +74,7 @@ int AmrParticleInSituBridge<NStructReal, NStructInt, NArrayReal, NArrayInt>::upd
     if (comm != MPI_COMM_NULL)
         data_adaptor->SetCommunicator(comm);
     data_adaptor->SetDataSource(
-      tracers,
+      particles,
       particles_rStructs,
       particles_iStructs,
       particles_rArrays,

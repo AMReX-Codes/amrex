@@ -31,25 +31,18 @@ AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New()
 //-----------------------------------------------------------------------------
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetDataSource(
-    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *tracers,
+    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> * particles,
     const std::map<std::string, std::vector<int>> & rStructs,
     const std::map<std::string, int> & iStructs,
     const std::map<std::string, std::vector<int>> & rArrays,
     const std::map<std::string, int> & iArrays)
 {
-  int ret = 0;
-  // set the data source on the tracers
+  // set the data source on the particles
   this->ReleaseData();
-  this->m_tracers = tracers;
-
-  if(ret)
-  {
-    SENSEI_ERROR("problem with tracers in SetDataSource");
-    return ret;
-  }
+  this->m_particles = particles;
 
   // set the array names
-  ret = this->SetArrayNames(rStructs, iStructs, rArrays, iArrays);
+  int ret = this->SetArrayNames(rStructs, iStructs, rArrays, iArrays);
   if(ret)
   {
     SENSEI_ERROR("problem with array names in SetDataSource");
@@ -364,7 +357,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddA
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::ReleaseData()
 {
-  this->m_tracers = nullptr;
+  this->m_particles = nullptr;
   return 0;
 }
 
@@ -537,7 +530,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetM
   // metadata->BlockCellArraySize.resize(metadata->NumBlocks);
 
   // number of points for each block (all, optional)
-  auto nptsOnProc = this->m_tracers->TotalNumberOfParticles(true, true);
+  auto nptsOnProc = this->m_particles->TotalNumberOfParticles(true, true);
   metadata->BlockNumPoints = {nptsOnProc};
 
   // number of cells for each block (all, optional)
@@ -579,8 +572,8 @@ vtkPolyData* AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayI
   // return particle data pd
   vtkPolyData* pd  = vtkPolyData::New();
 
-  const auto& particles = this->m_tracers->GetParticles();
-  const int numParticles = this->m_tracers->TotalNumberOfParticles(true, true);
+  const auto& particles = this->m_particles->GetParticles();
+  const int numParticles = this->m_particles->TotalNumberOfParticles(true, true);
 
   // allocate vertex storage for particles
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
@@ -632,9 +625,9 @@ vtkPolyData* AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayI
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesIDArray(vtkDataObject* mesh)
 {
-  auto tracers = dynamic_cast<vtkPolyData*>(mesh);
-  const auto& particles = this->m_tracers->GetParticles();
-  auto nptsOnProc = this->m_tracers->TotalNumberOfParticles(true, true);
+  auto vtk_particles = dynamic_cast<vtkPolyData*>(mesh);
+  const auto& particles = this->m_particles->GetParticles();
+  auto nptsOnProc = this->m_particles->TotalNumberOfParticles(true, true);
 
   vtkSmartPointer<vtkIntArray> intArray = vtkSmartPointer<vtkIntArray>::New();
   intArray->SetName("id");
@@ -659,7 +652,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
   }
 
   // the association for this array is vtkDataObject::POINT
-  tracers->GetPointData()->AddArray(intArray);
+  vtk_particles->GetPointData()->AddArray(intArray);
 
   return 0;
 }
@@ -669,9 +662,9 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesCPUArray(
   vtkDataObject* mesh)
 {
-  auto tracers = dynamic_cast<vtkPolyData*>(mesh);
-  const auto& particles = this->m_tracers->GetParticles();
-  auto nptsOnProc = this->m_tracers->TotalNumberOfParticles(true, true);
+  auto vtk_particles = dynamic_cast<vtkPolyData*>(mesh);
+  const auto& particles = this->m_particles->GetParticles();
+  auto nptsOnProc = this->m_particles->TotalNumberOfParticles(true, true);
 
   vtkSmartPointer<vtkIntArray> intArray = vtkSmartPointer<vtkIntArray>::New();
   intArray->SetName("cpu");
@@ -696,7 +689,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
   }
 
   // the association for this array is vtkDataObject::POINT
-  tracers->GetPointData()->AddArray(intArray);
+  vtk_particles->GetPointData()->AddArray(intArray);
 
   return 0;
 }
@@ -708,8 +701,8 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
   vtkDataObject* mesh)
 {
   // get the particles from the particle container
-  const auto& particles = this->m_tracers->GetParticles();
-  auto nptsOnProc = this->m_tracers->TotalNumberOfParticles(true, true);
+  const auto& particles = this->m_particles->GetParticles();
+  auto nptsOnProc = this->m_particles->TotalNumberOfParticles(true, true);
 
   // check that the name of the arrays is listed in the m_realArrays
   if (m_realArrays.find(arrayName) == m_realArrays.end())
@@ -736,7 +729,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
   MPI_Comm_rank(this->GetCommunicator(), &rank);
   // allocate the vtkArray
   auto blocks = dynamic_cast<vtkMultiBlockDataSet*>(mesh);
-  auto tracers = dynamic_cast<vtkPolyData*>(blocks->GetBlock(rank));
+  auto vtk_particles = dynamic_cast<vtkPolyData*>(blocks->GetBlock(rank));
 
   vtkSmartPointer<vtkDoubleArray> doubleArray = vtkSmartPointer<vtkDoubleArray>::New();
   doubleArray->SetName(arrayName.c_str());
@@ -770,7 +763,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
       }
     }
   }
-  tracers->GetPointData()->AddArray(doubleArray);
+  vtk_particles->GetPointData()->AddArray(doubleArray);
 
   return 0;
 }
@@ -782,8 +775,8 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
   vtkDataObject* mesh)
 {
   // get the particles from the particle container
-  const auto& particles = this->m_tracers->GetParticles();
-  auto nptsOnProc = this->m_tracers->TotalNumberOfParticles(true, true);
+  const auto& particles = this->m_particles->GetParticles();
+  auto nptsOnProc = this->m_particles->TotalNumberOfParticles(true, true);
 
   // check that the name of the arrays is listed in the m_intArrays
   if (m_intArrays.find(arrayName) == m_intArrays.end())
@@ -806,7 +799,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
   }
 
   // allocate vtkArray
-  auto tracers = dynamic_cast<vtkPolyData*>(mesh);
+  auto vtk_particles = dynamic_cast<vtkPolyData*>(mesh);
   vtkSmartPointer<vtkIntArray> intArray = vtkSmartPointer<vtkIntArray>::New();
   intArray->SetName(arrayName.c_str());
   intArray->SetNumberOfComponents(nComps);
@@ -834,7 +827,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
       }
     }
   }
-  tracers->GetPointData()->AddArray(intArray);
+  vtk_particles->GetPointData()->AddArray(intArray);
 
   return 0;
 }
@@ -846,8 +839,8 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
   vtkDataObject* mesh)
 {
   // get the particles from the particle container
-  const auto& particles = this->m_tracers->GetParticles();
-  auto nptsOnProc = this->m_tracers->TotalNumberOfParticles(true, true);
+  const auto& particles = this->m_particles->GetParticles();
+  auto nptsOnProc = this->m_particles->TotalNumberOfParticles(true, true);
 
   // check that the name of the struct data is listed in the m_realStructs
   if (m_realStructs.find(arrayName) == m_realStructs.end())
@@ -874,7 +867,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
   MPI_Comm_rank(this->GetCommunicator(), &rank);
   // allocate the vtkArray
   auto blocks = dynamic_cast<vtkMultiBlockDataSet*>(mesh);
-  auto tracers = dynamic_cast<vtkPolyData*>(blocks->GetBlock(rank));
+  auto vtk_particles = dynamic_cast<vtkPolyData*>(blocks->GetBlock(rank));
 
   vtkSmartPointer<vtkDoubleArray> doubleArray = vtkSmartPointer<vtkDoubleArray>::New();
   doubleArray->SetName(arrayName.c_str());
@@ -904,7 +897,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
       }
     }
   }
-  tracers->GetPointData()->AddArray(doubleArray);
+  vtk_particles->GetPointData()->AddArray(doubleArray);
 
   return 0;
 }
@@ -917,8 +910,8 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
 )
 {
   // get the particles from the particle container
-  const auto& particles = this->m_tracers->GetParticles();
-  auto nptsOnProc = this->m_tracers->TotalNumberOfParticles(true, true);
+  const auto& particles = this->m_particles->GetParticles();
+  auto nptsOnProc = this->m_particles->TotalNumberOfParticles(true, true);
 
   // check that the name of the struct data is listed in the m_intStructs
   if (m_intStructs.find(arrayName) == m_intStructs.end())
@@ -941,7 +934,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
   }
 
   // allocate vtkArray
-  auto tracers = dynamic_cast<vtkPolyData*>(mesh);
+  auto vtk_particles = dynamic_cast<vtkPolyData*>(mesh);
   vtkSmartPointer<vtkIntArray> intArray = vtkSmartPointer<vtkIntArray>::New();
   intArray->SetName(arrayName.c_str());
   intArray->SetNumberOfComponents(nComps);
@@ -966,7 +959,7 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddP
     }
   }
 
-  tracers->GetPointData()->AddArray(intArray);
+  vtk_particles->GetPointData()->AddArray(intArray);
 
   return 0;
 }

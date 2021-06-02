@@ -16,14 +16,14 @@ AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New(
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetDataSource(
   Amr *amr,
-  amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *tracers,
+  amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> * particles,
   const std::map<std::string, std::vector<int>> & rStructs,
   const std::map<std::string, int> & iStructs,
   const std::map<std::string, std::vector<int>> & rArrays,
   const std::map<std::string, int> & iArrays)
 {
   int retMesh = this->m_meshAdaptor->SetDataSource(amr);
-  int retPtls = this->m_particleAdaptor->SetDataSource(tracers, rStructs, iStructs, rArrays, iArrays);
+  int retPtls = this->m_particleAdaptor->SetDataSource(particles, rStructs, iStructs, rArrays, iArrays);
   return retMesh + retPtls;
 }
 
