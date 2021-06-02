@@ -24,15 +24,12 @@ ifeq ($(USE_SENSEI_INSITU),TRUE)
 
   # Amr Particle adaptor and bridge
   ifeq ($(USE_PARTICLES), TRUE)
-    C$(SENSEI_INSITU)_headers += AMReX_AmrParticleInSituBridge.H \
-                                AMReX_AmrParticleMeshInSituBridge.H \
+    C$(SENSEI_INSITU)_headers += AMReX_ParticleInSituBridge.H \
+                                AMReX_AmrParticleInSituBridge.H \
+                                AMReX_ParticleDataAdaptor.H \
+                                AMReX_ParticleDataAdaptorI.H \
                                 AMReX_AmrParticleDataAdaptor.H \
-                                AMReX_AmrParticleDataAdaptorI.H \
-                                AMReX_AmrParticleMeshDataAdaptor.H \
-                                AMReX_AmrParticleMeshDataAdaptorI.H
-
-    C$(SENSEI_INSITU)_sources += AMReX_AmrParticleInSituBridge.cpp \
-                                AMReX_AmrParticleMeshInSituBridge.cpp
+                                AMReX_AmrParticleDataAdaptorI.H
   endif
 endif
 

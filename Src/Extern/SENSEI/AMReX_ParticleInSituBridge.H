@@ -1,16 +1,15 @@
-#ifndef AMReX_AmrParticleMeshInSituBridge_H
-#define AMReX_AmrParticleMeshInSituBridge_H
+#ifndef AMReX_ParticleInSituBridge_H
+#define AMReX_ParticleInSituBridge_H
 #include <AMReX_Config.H>
 
 #ifdef AMREX_PARTICLES
-
 #include <AMReX_InSituBridge.H>
 #include <AMReX_Vector.H>
 
 #include <AMReX_AmrParticles.H>
 
-#include <AMReX_AmrParticleMeshDataAdaptor.H>
-#include <AMReX_Amr.H>
+#include <AMReX_ParticleDataAdaptor.H>
+#include <AMReX_AmrDataAdaptor.H>
 
 #ifdef AMREX_USE_SENSEI_INSITU
 #include <AnalysisAdaptor.h>
@@ -21,22 +20,24 @@
 
 namespace amrex
 {
-
-/// SENSEI bridge code for simulations proccessing both amrex::Amr and amrex::ParticleContainer
-class AmrParticleMeshInSituBridge : public InSituBridge
+/// Bridge for simulations that use amrex::ParticleContainer
+/// inherits intialize and finalize from amrex::InSituBridge
+class ParticleInSituBridge : public InSituBridge
 {
 public:
-  AmrParticleMeshInSituBridge() {}
-  ~AmrParticleMeshInSituBridge() {}
+  ParticleInSituBridge() {}
+  ~ParticleInSituBridge() {}
 
-  AmrParticleMeshInSituBridge(const AmrParticleMeshInSituBridge&) = delete;
-  void operator=(const AmrParticleMeshInSituBridge&) = delete;
+  ParticleInSituBridge(const ParticleInSituBridge&) = delete;
+  void operator=(const ParticleInSituBridge&) = delete;
 
-  // invoke the in situ analysis with data from an AmrMesh and ParticleContainer
+  // invoke the in situ analysis with data from an AmrMesh
   // instance.
   template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-  int update(amrex::Amr *amr,
-    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> * particles,
+  int update(
+    const double time,
+    const int time_step,
+    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *particles,
     const std::map<std::string, std::vector<int>> & particles_rStructs = {},
     const std::map<std::string, int> & particles_iStructs = {},
     const std::map<std::string, std::vector<int>> & particles_rArrays = {},
@@ -44,9 +45,10 @@ public:
 };
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleMeshInSituBridge::update<NStructReal, NStructInt, NArrayReal, NArrayInt>(
-  amrex::Amr *amr,
-  amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> * particles,
+int ParticleInSituBridge::update<NStructReal, NStructInt, NArrayReal, NArrayInt>(
+  const double time,
+  const int time_step,
+  amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *particles,
   const std::map<std::string, std::vector<int>> & particles_rStructs,
   const std::map<std::string, int> & particles_iStructs,
   const std::map<std::string, std::vector<int>> & particles_rArrays,
@@ -59,25 +61,26 @@ int AmrParticleMeshInSituBridge::update<NStructReal, NStructInt, NArrayReal, NAr
     amrex::Print() << "SENSEI Particles Begin update..." << std::endl;
     auto t0 = std::chrono::high_resolution_clock::now();
 
-    sensei::TimeEvent<64> event("AmrParticleMeshInSituBridge::update");
+    sensei::TimeEvent<64> event("ParticleInSituBridge::update");
 
     if(!particles)
     {
       SENSEI_ERROR("no particles presented at update call");
       return -1;
     }
-
-    amrex::AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt> *data_adaptor
-      = amrex::AmrParticleMeshDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New();
-
+    ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt> *data_adaptor
+      = ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New();
     if (comm != MPI_COMM_NULL)
-      data_adaptor->SetCommunicator(comm);
-
-    data_adaptor->SetDataSource(amr, particles, particles_rStructs,
-      particles_iStructs, particles_rArrays, particles_iArrays);
-
-    data_adaptor->SetDataTime(amr->cumTime());
-    data_adaptor->SetDataTimeStep(amr->levelSteps(0));
+        data_adaptor->SetCommunicator(comm);
+    data_adaptor->SetDataSource(
+      particles,
+      particles_rStructs,
+      particles_iStructs,
+      particles_rArrays,
+      particles_iArrays
+    );
+    data_adaptor->SetDataTime(time);
+    data_adaptor->SetDataTimeStep(time_step);
     ret = analysis_adaptor->Execute(data_adaptor) ? 0 : -1;
     data_adaptor->ReleaseData();
     data_adaptor->Delete();
@@ -93,4 +96,4 @@ int AmrParticleMeshInSituBridge::update<NStructReal, NStructInt, NArrayReal, NAr
 }
 
 #endif // AMREX_PARTICLES
-#endif // AMReX_AmrParticleMeshInSituBridge_H
+#endif // AMReX_ParticleInSituBridge_H

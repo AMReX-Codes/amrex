@@ -32,12 +32,12 @@ set ( amrex_sensei_sources
 #
 if ( AMReX_PARTICLES )
    list ( APPEND amrex_sensei_sources
+      AMReX_ParticleDataAdaptor.H
+      AMReX_ParticleDataAdaptorI.H
       AMReX_AmrParticleDataAdaptor.H
       AMReX_AmrParticleDataAdaptorI.H
-      AMReX_AmrParticleMeshDataAdaptor.H
-      AMReX_AmrParticleMeshDataAdaptorI.H
-      AMReX_AmrParticleInSituBridge.H
-      AMReX_AmrParticleMeshInSituBridge.H )
+      AMReX_ParticleInSituBridge.H
+      AMReX_AmrParticleInSituBridge.H )
 endif ()
 
 target_include_directories( amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}> )
