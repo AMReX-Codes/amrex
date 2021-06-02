@@ -448,7 +448,7 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_GPU_BACKEND            |  Build with on-node, accelerated GPU backend    | NONE                    | NONE, SYCL, HIP, CUDA |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_GPU_RDC                |  Build with GPU RDC support                     | YES                     | YES, NO               |
+   | AMReX_GPU_RDC                |  Build with Relocatable Device Code support     | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FORTRAN_INTERFACES     |  Build Fortran API                              | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
