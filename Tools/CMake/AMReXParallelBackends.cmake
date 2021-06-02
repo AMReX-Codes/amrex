@@ -74,7 +74,7 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    set_cuda_architectures(AMReX_CUDA_ARCH)
    set_target_properties( amrex
       PROPERTIES
-      CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS}
+      CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}"
       )
 
    #
