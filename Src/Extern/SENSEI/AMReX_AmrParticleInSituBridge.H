@@ -22,7 +22,6 @@ namespace amrex
 {
 /// Bridge for simulations that use amrex::ParticleContainer
 /// inherits intialize and finalize from amrex::InSituBridge
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 class AmrParticleInSituBridge : public InSituBridge
 {
 public:
@@ -34,6 +33,7 @@ public:
 
   // invoke the in situ analysis with data from an AmrMesh
   // instance.
+  template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
   int update(
     const double time,
     const int time_step,
@@ -45,7 +45,7 @@ public:
 };
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleInSituBridge<NStructReal, NStructInt, NArrayReal, NArrayInt>::update(
+int AmrParticleInSituBridge::update<NStructReal, NStructInt, NArrayReal, NArrayInt>(
   const double time,
   const int time_step,
   amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *particles,

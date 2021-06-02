@@ -37,9 +37,7 @@ if ( AMReX_PARTICLES )
       AMReX_AmrParticleMeshDataAdaptor.H
       AMReX_AmrParticleMeshDataAdaptorI.H
       AMReX_AmrParticleInSituBridge.H
-      AMReX_AmrParticleInSituBridge.cpp
-      AMReX_AmrParticleMeshInSituBridge.H
-      AMReX_AmrParticleMeshInSituBridge.cpp )
+      AMReX_AmrParticleMeshInSituBridge.H )
 endif ()
 
 target_include_directories( amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}> )

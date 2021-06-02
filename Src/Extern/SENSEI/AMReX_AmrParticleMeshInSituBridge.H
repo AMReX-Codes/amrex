@@ -23,7 +23,6 @@ namespace amrex
 {
 
 /// SENSEI bridge code for simulations proccessing both amrex::Amr and amrex::ParticleContainer
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 class AmrParticleMeshInSituBridge : public InSituBridge
 {
 public:
@@ -35,6 +34,7 @@ public:
 
   // invoke the in situ analysis with data from an AmrMesh and ParticleContainer
   // instance.
+  template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
   int update(amrex::Amr *amr,
     amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> * particles,
     const std::map<std::string, std::vector<int>> & particles_rStructs = {},
@@ -44,7 +44,7 @@ public:
 };
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleMeshInSituBridge<NStructReal, NStructInt, NArrayReal, NArrayInt>::update(
+int AmrParticleMeshInSituBridge::update<NStructReal, NStructInt, NArrayReal, NArrayInt>(
   amrex::Amr *amr,
   amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> * particles,
   const std::map<std::string, std::vector<int>> & particles_rStructs,
