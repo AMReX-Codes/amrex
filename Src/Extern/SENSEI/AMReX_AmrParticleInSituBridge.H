@@ -8,11 +8,8 @@
 
 #include <AMReX_AmrParticles.H>
 
-
 #include <AMReX_AmrParticleDataAdaptor.H>
 #include <AMReX_AmrDataAdaptor.H>
-
-#include <AMReX_Amr.H>
 
 #ifdef AMREX_USE_SENSEI_INSITU
 #include <AnalysisAdaptor.h>
@@ -38,7 +35,8 @@ public:
   // invoke the in situ analysis with data from an AmrMesh
   // instance.
   int update(
-    amrex::Amr *amr,
+    const double time,
+    const int time_step,
     amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *particles,
     const std::map<std::string, std::vector<int>> & particles_rStructs = {},
     const std::map<std::string, int> & particles_iStructs = {},
@@ -48,7 +46,8 @@ public:
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 int AmrParticleInSituBridge<NStructReal, NStructInt, NArrayReal, NArrayInt>::update(
-  amrex::Amr *amr,
+  const double time,
+  const int time_step,
   amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *particles,
   const std::map<std::string, std::vector<int>> & particles_rStructs,
   const std::map<std::string, int> & particles_iStructs,
@@ -80,8 +79,8 @@ int AmrParticleInSituBridge<NStructReal, NStructInt, NArrayReal, NArrayInt>::upd
       particles_rArrays,
       particles_iArrays
     );
-    data_adaptor->SetDataTime(amr->cumTime());
-    data_adaptor->SetDataTimeStep(amr->levelSteps(0));
+    data_adaptor->SetDataTime(time);
+    data_adaptor->SetDataTimeStep(time_step);
     ret = analysis_adaptor->Execute(data_adaptor) ? 0 : -1;
     data_adaptor->ReleaseData();
     data_adaptor->Delete();
