@@ -346,7 +346,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
         const auto& pmap = pc.GetParticles(lev);
         for (const auto& kv : pmap)
         {
-            Gpu::DeviceVector<int>& flags = particle_io_flags[lev][kv.first];
+            auto& flags = particle_io_flags[lev][kv.first];
             particle_detail::fillFlags(flags, kv.second, std::forward<F>(f));
         }
     }
