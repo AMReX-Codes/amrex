@@ -43,6 +43,10 @@ namespace amrex
     template <> struct HasAtomicAdd<float> : std::true_type {};
     template <> struct HasAtomicAdd<double> : std::true_type {};
 
+    class MFIter;
+    template <typename T>
+    struct IsMultiFabIterator : public std::is_base_of<MFIter, T>::type {};
+
 #ifdef AMREX_PARTICLES
     template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
               template<class> class Allocator>
@@ -56,11 +60,10 @@ namespace amrex
               template<class> class Allocator>
     class ParConstIter;
 
-    class MFIter;
     class ParticleContainerBase;
 
     template <typename T>
-    struct IsParticleIterator : public std::is_base_of<MFIter, T>::type {};
+    struct IsParticleIterator : public std::is_base_of<MFIter, T>::type {}; // not exactly right
 
     template <typename T>
     struct IsParticleContainer : public std::is_base_of<ParticleContainerBase, T>::type {};

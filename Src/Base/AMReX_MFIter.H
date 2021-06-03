@@ -2,18 +2,7 @@
 #define BL_MFITER_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Arena.H>
-#include <AMReX_Extension.H>
 #include <AMReX_FabArrayBase.H>
-#include <AMReX_IntVect.H>
-#include <AMReX_FArrayBox.H>
-#include <AMReX_RealBox.H>
-
-#include <AMReX_Gpu.H>
-
-#ifdef AMREX_USE_OMP
-#include <omp.h>
-#endif
 
 #include <memory>
 
@@ -193,7 +182,15 @@ protected:
     IndexType     typ;
 
     bool          dynamic;
-    bool          device_sync = true;
+
+    struct DeviceSync {
+        DeviceSync () = default;
+        DeviceSync (bool f) : flag(f) {}
+        DeviceSync (DeviceSync&& rhs) : flag(std::exchange(rhs.flag,false)) {}
+        explicit operator bool() const noexcept { return flag; }
+        bool flag = true;
+    };
+    DeviceSync device_sync;
 
     const Vector<int>* index_map;
     const Vector<int>* local_index_map;
