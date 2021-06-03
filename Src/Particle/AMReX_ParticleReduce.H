@@ -762,7 +762,6 @@ template <class RD, class PC, class F, class ReduceOps,
 typename RD::Type
 ParticleReduce (PC const& pc, int lev_min, int lev_max, F&& f, ReduceOps& reduce_ops)
 {
-    using ReduceTuple = typename RD::Type;
     RD reduce_data(reduce_ops);
     using ParIter = typename PC::ParConstIterType;
 #if !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP)
