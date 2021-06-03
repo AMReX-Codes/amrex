@@ -70,22 +70,13 @@ add_amrex_define( AMREX_USE_ASSERTION NO_LEGACY IF AMReX_ASSERTIONS )
 # Bound checking
 add_amrex_define( AMREX_BOUND_CHECK NO_LEGACY IF AMReX_BOUND_CHECK )
 
-#
-# Fortran-specific defines: BL_LANG_FORT and AMREX_LANG_FORT
-#
 if (AMReX_FORTRAN)
 
-   # These defines are needed only by AMReX source files
+   # Fortran-specific defines, BL_LANG_FORT and AMREX_LANG_FORT do not get
+   # stored in AMReX_Config.H
    target_compile_definitions( amrex PRIVATE
-      $<$<COMPILE_LANGUAGE:Fortran>:AMREX_SPACEDIM=${AMReX_SPACEDIM}>
       $<$<COMPILE_LANGUAGE:Fortran>:BL_LANG_FORT AMREX_LANG_FORT>
       )
-
-    if (AMReX_MPI)
-      target_compile_definitions( amrex PRIVATE
-        $<$<COMPILE_LANGUAGE:Fortran>:BL_USE_MPI>
-        )
-    endif()
 
    #
    # Fortran/C mangling scheme

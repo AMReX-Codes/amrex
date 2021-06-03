@@ -1,3 +1,4 @@
+#include <AMReX_Config.H>
 
 module amrex_mllinop_nd_module
 
