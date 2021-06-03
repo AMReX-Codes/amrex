@@ -153,6 +153,8 @@ if (AMReX_CUDA OR AMReX_HIP)
 
    add_amrex_define( AMREX_GPUS_PER_NODE=${GPUS_PER_NODE}
       NO_LEGACY IF GPUS_PER_NODE)
+
+   add_amrex_define( AMREX_USE_GPU_RDC NO_LEGACY IF AMReX_GPU_RDC )
 endif ()
 
 #
