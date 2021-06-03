@@ -375,6 +375,7 @@ print_option(AMReX_DIFFERENT_COMPILER)
 if (BUILD_SHARED_LIBS AND NOT (CMAKE_SYSTEM_NAME STREQUAL "Linux") )
    option(AMReX_PROBINIT "Enable support for probin file" OFF)
 else ()
-   option(AMReX_PROBINIT "Enable support for probin file" ON)
+   cmake_dependent_option(AMReX_PROBINIT "Enable support for probin file" ON
+       "AMReX_AMRLEVEL" OFF)
 endif ()
 print_option(AMReX_PROBINIT)
