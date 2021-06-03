@@ -912,7 +912,7 @@ std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 {
     if (amrex::isEmpty(n)) return;
-#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
+#if defined(AMREX_USE_GPU_RDC) && (defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION)))
     if (!info.hasReduction() && Gpu::inFuseRegion() && info.isFusible() && Long(n) <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(n, f);
     } else
@@ -938,7 +938,7 @@ ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
 {
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
-#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
+#if defined(AMREX_USE_GPU_RDC) && (defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION)))
     if (!info.hasReduction() && Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(box, f);
     } else
@@ -973,7 +973,7 @@ ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexce
 {
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
-#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
+#if defined(AMREX_USE_GPU_RDC) && (defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION)))
     if (!info.hasReduction() && Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(box, ncomp, f);
     } else
@@ -1087,7 +1087,7 @@ ParallelFor (Gpu::KernelInfo const& info,
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
-#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
+#if defined(AMREX_USE_GPU_RDC) && (defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION)))
     if (Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(box1, f1);
         Gpu::Register(box2, f2);
@@ -1139,7 +1139,7 @@ ParallelFor (Gpu::KernelInfo const& info,
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
     int ncells = amrex::max(ncells1, ncells2, ncells3);
-#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
+#if defined(AMREX_USE_GPU_RDC) && (defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION)))
     if (Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(box1, f1);
         Gpu::Register(box2, f2);
@@ -1204,7 +1204,7 @@ ParallelFor (Gpu::KernelInfo const& info,
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
-#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
+#if defined(AMREX_USE_GPU_RDC) && (defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION)))
     if (Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(box1, ncomp1, f1);
         Gpu::Register(box2, ncomp2, f2);
@@ -1264,7 +1264,7 @@ ParallelFor (Gpu::KernelInfo const& info,
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
     int ncells = amrex::max(ncells1, ncells2, ncells3);
-#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
+#if defined(AMREX_USE_GPU_RDC) && (defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION)))
     if (Gpu::inFuseRegion() && info.isFusible() && ncells <= Gpu::getFuseSizeThreshold()) {
         Gpu::Register(box1, ncomp1, f1);
         Gpu::Register(box2, ncomp2, f2);

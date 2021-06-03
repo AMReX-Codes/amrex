@@ -686,6 +686,10 @@ ifeq ($(USE_CUPTI),TRUE)
   endif
 endif
 
+ifeq ($(USE_GPU_RDC),TRUE)
+    DEFINES += -DAMREX_USE_GPU_RDC
+endif
+
 ifeq ($(USE_HIP),TRUE)
 
     USE_GPU := TRUE
