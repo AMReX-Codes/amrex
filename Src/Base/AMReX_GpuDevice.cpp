@@ -905,7 +905,7 @@ Device::grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads) noexc
 {
     int num_SMs = device_prop.multiProcessorCount;
 
-    int SM_mult_factor = device_prop.warp_size;
+    int SM_mult_factor = device_prop.warpSize;
 
     if (num_SMs > 0) {
 
