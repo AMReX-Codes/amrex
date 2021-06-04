@@ -4,40 +4,11 @@
 
 #ifdef AMREX_USE_GPU
 
-#include <AMReX_FabArrayBase.H>
-#include <AMReX_TypeTraits.H>
-
 #include <algorithm>
 #include <cmath>
 #include <limits>
 
 namespace amrex {
-
-namespace detail {
-    template <typename MF, typename F>
-    std::enable_if_t<IsFabArray<MF>::value>
-    ParallelFor_doit (MF const&, IntVect const&, F&&);
-}
-
-
-namespace experimental {
-
-template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
-ParallelFor (MF const& mf, F&& f)
-{
-    detail::ParallelFor_doit(mf, IntVect(0), std::forward<F>(f));
-}
-
-template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
-ParallelFor (MF const& mf, IntVect const& nghost, F&& f)
-{
-    detail::ParallelFor_doit(mf, nghost, std::forward<F>(f));
-}
-
-}
-
 namespace detail {
 
 inline
@@ -74,10 +45,32 @@ void destroy_par_for_nblocks (std::pair<int*,int*> const& pp)
     The_Pinned_Arena()->free(pp.first);
     The_Arena()->free(pp.second);
 }
+}
+
+namespace experimental {
+namespace detail {
+
+namespace parfor_mf_detail {
+    template <typename F>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, int b, int i, int j, int k, int) noexcept
+        -> decltype(f(0,0,0,0))
+    {
+        f(b,i,j,k);
+    }
+
+    template <typename F>
+    AMREX_GPU_DEVICE
+    auto call_f (F const& f, int b, int i, int j, int k, int n) noexcept
+        -> decltype(f(0,0,0,0,0))
+    {
+        f(b,i,j,k,n);
+    }
+}
 
 template <typename MF, typename F>
 std::enable_if_t<IsFabArray<MF>::value>
-ParallelFor_doit (MF const& mf, IntVect const& nghost, F&& f)
+ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, F&& f)
 {
     const auto& index_array = mf.IndexArray();
     const int nboxes = index_array.size();
@@ -100,26 +93,29 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, F&& f)
          {
              int ibox, icell;
              if (dp_nblocks) {
-                 int blo = 0;
-                 int bhi = nboxes;
-                 int bid = blockIdx.x;
-                 while (blo <= bhi) {
-                     int mid = (blo+bhi)/2;
-                     if (bid >= dp_nblocks[mid] && bid < dp_nblocks[mid+1]) {
-                         ibox = mid;
-                         break;
-                     } else if (bid < dp_nblocks[mid]) {
-                         bhi = mid-1;
-                     } else {
-                         blo = mid+1;
-                     }
-                 };
+                 ibox = amrex::bisect(dp_nblocks, 0, nboxes, static_cast<int>(blockIdx.x));
                  icell = (blockIdx.x-dp_nblocks[ibox])*AMREX_GPU_MAX_THREADS + threadIdx.x;
              } else {
                  ibox = blockIdx.x / block_0_size;
                  icell = (blockIdx.x-ibox*block_0_size)*AMREX_GPU_MAX_THREADS + threadIdx.x;
              }
 
+#elif defined(AMREX_USE_DPCPP)
+
+    amrex::launch(nblocks, AMREX_GPU_MAX_THREADS, Gpu::gpuStream(),
+         [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+         {
+             int ibox, icell;
+             int blockIdxx = item.get_group_linear_id();
+             int threadIdxx = item.get_local_linear_id();
+             if (dp_nblocks) {
+                 ibox = amrex::bisect(dp_nblocks, 0, nboxes, static_cast<int>(blockIdxx));
+                 icell = (blockIdxx-dp_nblocks[ibox])*AMREX_GPU_MAX_THREADS + threadIdxx;
+             } else {
+                 ibox = blockIdxx / block_0_size;
+                 icell = (blockIdxx-ibox*block_0_size)*AMREX_GPU_MAX_THREADS + threadIdxx;
+             }
+#endif
              Box b(ma[ibox]);
              b.grow(ngrow);
              int ncells = b.numPts();
@@ -131,21 +127,25 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, F&& f)
                  AMREX_D_TERM(i += b.smallEnd(0);,
                               j += b.smallEnd(1);,
                               k += b.smallEnd(2);)
-                 f(ibox, i, j, k);
+                 for (int n = 0; n < ncomp; ++n) {
+                     parfor_mf_detail::call_f(f, ibox, i, j, k, n);
+                 }
              }
          });
-
-#elif defined(AMREX_USE_DPCPP)
-    // xxxxx dpcpp TODO: ParallelFor(MF)
-#endif
 
     AMREX_GPU_ERROR_CHECK();
 }
 
+template <typename MF, typename F>
+std::enable_if_t<IsFabArray<MF>::value>
+ParallelFor (MF const& mf, IntVect const& nghost, IntVect const& ts, F&& f)
+{
+    ParallelFor(mf, nghost, 1, ts, std::forward<F>(f));
 }
 
+}
+}
 }
 
 #endif
-
 #endif

@@ -2497,8 +2497,13 @@ FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& ngh
     Vector<Long> ncells;
     ncells.reserve(fa.indexArray.size());
     for (int K : fa.indexArray) {
-        Box const& b = amrex::grow(fa.box(K), nghost);
-        ncells.push_back(b.numPts());
+        Long N = 0;
+        Box b = fa.box(K);
+        if (b.ok()) {
+            b.grow(nghost);
+            N = b.numPts();
+        }
+        ncells.push_back(N);
     }
     m_nblocks_x = detail::build_par_for_nblocks(ncells);
 }
