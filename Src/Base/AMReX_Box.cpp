@@ -1,12 +1,12 @@
 
-#include <iostream>
-#include <limits>
-
 #include <AMReX_BLassert.H>
 #include <AMReX.H>
 #include <AMReX_Box.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParallelDescriptor.H>
+
+#include <iostream>
+#include <limits>
 
 namespace amrex {
 
@@ -48,26 +48,26 @@ operator>> (std::istream& is,
     if (c == '(')
     {
         is >> lo >> hi;
-	is >> c;
-	// Read an optional IndexType
-	is.putback(c);
-	if ( c == '(' )
-	{
-	    is >> typ;
-	}
+        is >> c;
+        // Read an optional IndexType
+        is.putback(c);
+        if ( c == '(' )
+        {
+            is >> typ;
+        }
         is.ignore(BL_IGNORE_MAX,')');
     }
     else if (c == '<')
     {
-	is.putback(c);
+        is.putback(c);
         is >> lo >> hi;
-	is >> c;
-	// Read an optional IndexType
-	is.putback(c);
-	if ( c == '<' )
-	{
-	    is >> typ;
-	}
+        is >> c;
+        // Read an optional IndexType
+        is.putback(c);
+        if ( c == '<' )
+        {
+            is >> typ;
+        }
         //is.ignore(BL_IGNORE_MAX,'>');
     }
     else
@@ -87,36 +87,68 @@ BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
     : p(p_)
 {
     if (p == 0) {
-	v.resize(3*AMREX_SPACEDIM);
-	p = &v[0];
+        v.resize(3*AMREX_SPACEDIM);
+        p = &v[0];
     }
 
-    AMREX_D_EXPR(p[0]               = bx.smallend[0],
-	   p[1]               = bx.smallend[1],
-	   p[2]               = bx.smallend[2]);
-    AMREX_D_EXPR(p[0+AMREX_SPACEDIM]   = bx.bigend[0],
-	   p[1+AMREX_SPACEDIM]   = bx.bigend[1],
-	   p[2+AMREX_SPACEDIM]   = bx.bigend[2]);
+    AMREX_D_EXPR(p[0]                = bx.smallend[0],
+                 p[1]                = bx.smallend[1],
+                 p[2]                = bx.smallend[2]);
+    AMREX_D_EXPR(p[0+AMREX_SPACEDIM] = bx.bigend[0],
+                 p[1+AMREX_SPACEDIM] = bx.bigend[1],
+                 p[2+AMREX_SPACEDIM] = bx.bigend[2]);
     const IntVect& typ = bx.btype.ixType();
     AMREX_D_EXPR(p[0+AMREX_SPACEDIM*2] = typ[0],
-	   p[1+AMREX_SPACEDIM*2] = typ[1],
-	   p[2+AMREX_SPACEDIM*2] = typ[2]);
+                 p[1+AMREX_SPACEDIM*2] = typ[1],
+                 p[2+AMREX_SPACEDIM*2] = typ[2]);
 }
 
 void
-AllGatherBoxes (Vector<Box>& bxs)
+AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)
 {
 #ifdef BL_USE_MPI
-    // cell centered boxes only!
-    const auto szof_bx = Box::linearSize();
 
-    const Long count = bxs.size() * static_cast<Long>(szof_bx);
-    const auto& countvec = ParallelDescriptor::Gather(count, ParallelDescriptor::IOProcessorNumber());
-    
+#if 0
+    // In principle, MPI_Allgather/MPI_Allgatherv should not be slower than
+    // MPI_Gather/MPI_Gatherv followed by MPI_Bcast.  But that's not true on Summit.
+    MPI_Comm comm = ParallelContext::CommunicatorSub();
+    const int count = bxs.size();
+    Vector<int> countvec(ParallelContext::NProcsSub());
+    MPI_Allgather(&count, 1, MPI_INT, countvec.data(), 1, MPI_INT, comm);
+
+    Vector<int> offset(countvec.size(),0);
+    Long count_tot = countvec[0];
+    for (int i = 1, N = offset.size(); i < N; ++i) {
+        offset[i] = offset[i-1] + countvec[i-1];
+        count_tot += countvec[i];
+    }
+
+    if (count_tot == 0) return;
+
+    if (count_tot > static_cast<Long>(std::numeric_limits<int>::max())) {
+        amrex::Abort("AllGatherBoxes: not many boxes");
+    }
+
+    Vector<Box> recv_buffer;
+    recv_buffer.reserve(count_tot+n_extra_reserve);
+    recv_buffer.resize(count_tot);
+    MPI_Allgatherv(bxs.data(), count, ParallelDescriptor::Mpi_typemap<Box>::type(),
+                   recv_buffer.data(), countvec.data(), offset.data(),
+                   ParallelDescriptor::Mpi_typemap<Box>::type(), comm);
+
+    std::swap(bxs,recv_buffer);
+#else
+    MPI_Comm comm = ParallelContext::CommunicatorSub();
+    const int root = ParallelContext::IOProcessorNumberSub();
+    const int myproc = ParallelContext::MyProcSub();
+    const int nprocs = ParallelContext::NProcsSub();
+    const int count = bxs.size();
+    Vector<int> countvec(nprocs);
+    MPI_Gather(&count, 1, MPI_INT, countvec.data(), 1, MPI_INT, root, comm);
+
     Long count_tot = 0L;
-    Vector<Long> offset(countvec.size(),0L);
-    if (ParallelDescriptor::IOProcessor())
-    {
+    Vector<int> offset(countvec.size(),0);
+    if (myproc == root) {
         count_tot = countvec[0];
         for (int i = 1, N = offset.size(); i < N; ++i) {
             offset[i] = offset[i-1] + countvec[i-1];
@@ -124,31 +156,28 @@ AllGatherBoxes (Vector<Box>& bxs)
         }
     }
 
-    ParallelDescriptor::Bcast(&count_tot, 1, ParallelDescriptor::IOProcessorNumber());
+    MPI_Bcast(&count_tot, 1, MPI_INT, root, comm);
 
     if (count_tot == 0) return;
 
-    Vector<char> send_buffer(count);
-    char* psend = (count > 0) ? send_buffer.data() : nullptr;
-    char* p = psend;
-    for (const auto& b : bxs) {
-        b.linearOut(p);
-        p += szof_bx;
+    if (count_tot > static_cast<Long>(std::numeric_limits<int>::max())) {
+        amrex::Abort("AllGatherBoxes: not many boxes");
     }
 
-    Vector<char> recv_buffer(count_tot);
-    ParallelDescriptor::Gatherv(psend, count, recv_buffer.data(), countvec, offset, ParallelDescriptor::IOProcessorNumber());
+    Vector<Box> recv_buffer;
+    recv_buffer.reserve(count_tot+n_extra_reserve);
+    recv_buffer.resize(count_tot);
+    MPI_Gatherv(bxs.data(), count, ParallelDescriptor::Mpi_typemap<Box>::type(),
+                recv_buffer.data(), countvec.data(), offset.data(),
+                ParallelDescriptor::Mpi_typemap<Box>::type(), root, comm);
+    MPI_Bcast(recv_buffer.data(), count_tot, ParallelDescriptor::Mpi_typemap<Box>::type(),
+              root, comm);
 
-    ParallelDescriptor::Bcast(recv_buffer.data(), count_tot, ParallelDescriptor::IOProcessorNumber());
+    std::swap(bxs,recv_buffer);
+#endif
 
-    const Long nboxes_tot = count_tot/szof_bx;
-    bxs.resize(nboxes_tot);
-
-    p = recv_buffer.data();
-    for (auto& b : bxs) {
-        b.linearIn(p);
-        p += szof_bx;
-    }
+#else
+    amrex::ignore_unused(bxs,n_extra_reserve);
 #endif
 }
 

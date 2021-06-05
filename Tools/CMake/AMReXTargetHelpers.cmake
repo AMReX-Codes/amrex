@@ -1,3 +1,4 @@
+
 #[=======================================================================[
 AMReXTargetHelpers
 ----------------
@@ -74,8 +75,7 @@ function (get_target_prop_recursive _target _lincludes _ldefines _lflags _llink_
 
    # Remove INTERFACE genex: choose build
    include(AMReXGenexHelpers)
-   evaluate_genex(_interface_link_libraries
-      _interface_link_libraries
+   eval_genex(_interface_link_libraries NONE NONE
       CONFIG ${CMAKE_BUILD_TYPE}
       INTERFACE BUILD)
 
@@ -104,7 +104,7 @@ endfunction ()
 #
 function (set_cpp_sources_to_cuda_language _target)
    get_target_property(_sources ${_target} SOURCES)
-   list(FILTER _sources INCLUDE REGEX "\\.cpp")
+   list(FILTER _sources INCLUDE REGEX "\\.cpp$")
    set_source_files_properties(${_sources} PROPERTIES LANGUAGE CUDA )
 endfunction ()
 
@@ -114,11 +114,16 @@ endfunction ()
 # is compatible with amrex CUDA build.
 #
 function (setup_target_for_cuda_compilation _target)
-   # separable compilation:
-   #   mainly due to amrex::Random which uses global device variables
    set_target_properties( ${_target}
       PROPERTIES
-      CUDA_SEPARABLE_COMPILATION ON      # This adds -dc
-      )
+      CUDA_SEPARABLE_COMPILATION ${AMReX_GPU_RDC}      # This adds -dc
+   )
    set_cpp_sources_to_cuda_language(${_target})
+
+   if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.20)
+      set_target_properties( ${_target}
+         PROPERTIES
+         CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}"
+         )
+   endif ()
 endfunction ()

@@ -1,7 +1,7 @@
 #ifndef AMREX_MultiFabUtil_H_
 #define AMREX_MultiFabUtil_H_
+#include <AMReX_Config.H>
 
-#include <AMReX_BaseFabUtility.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_LayoutData.H>
@@ -43,10 +43,14 @@ namespace amrex
     //! Average cell-centered MultiFab onto face-based MultiFab.
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc,
                                      const MultiFab& cc,
-                                     const Geometry& geom);
+                                     const Geometry& geom,
+                                     int ncomp = 1,
+                                     bool use_harmonic_averaging = false);
     void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc,
                                      const MultiFab& cc,
-                                     const Geometry& geom);
+                                     const Geometry& geom,
+                                     int ncomp = 1,
+                                     bool use_harmonic_averaging = false);
 
     //! Average fine face-based MultiFab onto crse face-based MultiFab.
     void average_down_faces (const Vector<const MultiFab*>& fine,
@@ -71,6 +75,14 @@ namespace amrex
     void average_down_faces (const MultiFab& fine, MultiFab& crse,
                              const IntVect& ratio, int ngcrse=0);
 
+    //  This version takes periodicity into account.
+    void average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                             const IntVect& ratio, const Geometry& crse_geom);
+    //  This version takes periodicity into account.
+    void average_down_faces (const MultiFab& fine, MultiFab& crse,
+                             const IntVect& ratio, const Geometry& crse_geom);
+
     //! Average fine edge-based MultiFab onto crse edge-based MultiFab.
     void average_down_edges (const Vector<const MultiFab*>& fine,
                              const Vector<MultiFab*>& crse,
@@ -91,7 +103,8 @@ namespace amrex
     void average_down_nodal (const FabArray<FAB>& S_fine,
                              FabArray<FAB>& S_crse,
                              const IntVect& ratio,
-                             int ngcrse = 0);
+                             int ngcrse = 0,
+                             bool mfiter_is_definitely_safe=false);
 
     //! Average fine cell-based MultiFab onto crse cell-centered MultiFab using
     //! volume-weighting. This routine DOES NOT assume that the crse BoxArray is
@@ -185,7 +198,7 @@ namespace amrex
     {
         T mf_out(mf_in.boxArray(), mf_in.DistributionMap(), mf_in.nComp(), mf_in.nGrowVect());
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(mf_in); mfi.isValid(); ++mfi)
@@ -263,7 +276,7 @@ makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
 //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
 template <typename FAB>
 void average_down_nodal (const FabArray<FAB>& fine, FabArray<FAB>& crse,
-                         const IntVect& ratio, int ngcrse)
+                         const IntVect& ratio, int ngcrse, bool mfiter_is_definitely_safe)
 {
     AMREX_ASSERT(fine.is_nodal());
     AMREX_ASSERT(crse.is_nodal());
@@ -272,9 +285,9 @@ void average_down_nodal (const FabArray<FAB>& fine, FabArray<FAB>& crse,
     int ncomp = crse.nComp();
     using value_type = typename FAB::value_type;
 
-    if (isMFIterSafe(fine, crse))
+    if (mfiter_is_definitely_safe || isMFIterSafe(fine, crse))
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)

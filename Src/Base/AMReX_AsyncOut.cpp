@@ -1,45 +1,29 @@
 #include <AMReX_AsyncOut.H>
+#include <AMReX_BackgroundThread.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Vector.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
 #include <AMReX.H>
-#include <algorithm>
-#include <condition_variable>
-#include <memory>
-#include <mutex>
-#include <queue>
-#include <thread>
 
 namespace amrex {
 namespace AsyncOut {
 
 namespace {
 
+#if defined(AMREX_USE_DPCPP) || defined(AMREX_USE_HIP)
+int s_asyncout = true; // Have this on by default for DPC++ for now so that
+                       // I/O writing plotfile does not depend on unified
+                       // memory.
+#else
 int s_asyncout = false;
+#endif
 int s_noutfiles = 64;
 MPI_Comm s_comm = MPI_COMM_NULL;
 
-std::unique_ptr<std::thread> s_thread;
-std::mutex s_mutx;
-std::condition_variable s_cond;
-static std::queue<std::function<void()> > s_func;
-static bool s_finalizing = false;
+std::unique_ptr<BackgroundThread> s_thread;
 
 WriteInfo s_info;
-
-void do_job ()
-{
-    while (true)
-    {
-        std::unique_lock<std::mutex> lck(s_mutx);
-        s_cond.wait(lck, [] () -> bool { return not s_func.empty(); });
-        auto f = s_func.front();
-        s_func.pop();
-        lck.unlock();
-        f();
-        if (s_finalizing) break;
-    }
-}
 
 }
 
@@ -54,19 +38,26 @@ void Initialize ()
     int nprocs = ParallelDescriptor::NProcs();
     s_noutfiles = std::min(s_noutfiles, nprocs);
 
-    if (s_asyncout and s_noutfiles < nprocs)
+#ifdef AMREX_USE_MPI
+    if (s_asyncout && s_noutfiles < nprocs)
     {
-#ifdef AMREX_MPI_THREAD_MULTIPLE
+        int provided = -1;
+        MPI_Query_thread(&provided);
+        if (provided < MPI_THREAD_MULTIPLE) {
+            amrex::Abort("AsyncOut with " + std::to_string(s_noutfiles) + " and "
+                         + std::to_string(nprocs) + " processes requires "
+                         + "MPI_THREAD_MULTIPLE at runtime, but got "
+                         + ParallelDescriptor::mpi_level_to_string(provided));
+        }
         int myproc = ParallelDescriptor::MyProc();
         s_info = GetWriteInfo(myproc);
         MPI_Comm_split(ParallelDescriptor::Communicator(), s_info.ifile, myproc, &s_comm);
-#else
-        amrex::Abort("AsyncOut with " + std::to_string(s_noutfiles) + " and "
-                     +std::to_string(nprocs) + " processes requires MPI_THREAD_MULTIPLE");
-#endif
     }
+#endif
 
-    if (s_asyncout) s_thread.reset(new std::thread(do_job));
+    if (s_asyncout) {
+        s_thread = std::make_unique<BackgroundThread>();
+    }
 
     ExecOnFinalize(Finalize);
 }
@@ -74,8 +65,6 @@ void Initialize ()
 void Finalize ()
 {
     if (s_thread) {
-        Submit([] () { s_finalizing = true; });
-        s_thread->join();
         s_thread.reset();
     }
 
@@ -112,25 +101,17 @@ WriteInfo GetWriteInfo (int rank)
 
 void Submit (std::function<void()>&& a_f)
 {
-    std::lock_guard<std::mutex> lck(s_mutx);
-    s_func.emplace(std::move(a_f));
-    s_cond.notify_one();
+    s_thread->Submit(std::move(a_f));
 }
 
 void Submit (std::function<void()> const& a_f)
 {
-    std::lock_guard<std::mutex> lck(s_mutx);
-    s_func.emplace(a_f);
-    s_cond.notify_one();
+    s_thread->Submit(a_f);
 }
 
 void Finish ()
 {
-    if (s_thread) {
-        Submit([] () { s_finalizing = true; });
-        s_thread->join();
-        s_thread.reset(new std::thread(do_job));
-    }
+    s_thread->Finish();
 }
 
 void Wait ()

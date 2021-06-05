@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_GEOMETRYSHOP_H_
 #define AMREX_EB2_GEOMETRYSHOP_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_EB2_IF_Base.H>
 #include <AMReX_EB2_Graph.H>
@@ -27,6 +28,7 @@ Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
 {
 #if AMREX_DEVICE_COMPILE
+    amrex::ignore_unused(f,p);
     amrex::Error("EB2::GeometryShop: how did this happen?");
     return 0.0;
 #else
@@ -253,6 +255,7 @@ public:
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
+                amrex::ignore_unused(j,k);
                 Real v = f(AMREX_D_DECL(problo[0]+i*dx[0],
                                         problo[1]+j*dx[1],
                                         problo[2]+k*dx[2]));
@@ -266,7 +269,7 @@ public:
                 }
                 return {nbody,nzero,nfluid};
             });
-            ReduceTuple hv = reduce_data.value();
+            ReduceTuple hv = reduce_data.value(reduce_op);
             int nbody = amrex::get<0>(hv);
             // int nzero = amrex::get<1>(hv);
             int nfluid = amrex::get<2>(hv);
@@ -298,63 +301,71 @@ public:
     static constexpr bool isGPUable () noexcept { return false; }
 
     template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
-    void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn run_on) const noexcept
+    void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn run_on,
+                  Box const& bounding_box) const noexcept
     {
         const auto problo = geom.ProbLoArray();
         const auto dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
         const auto& a = levelset.array();
+        const auto blo = amrex::lbound(bounding_box);
+        const auto bhi = amrex::ubound(bounding_box);
         auto f = m_f;
         AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
         {
-            a(i,j,k) = f(AMREX_D_DECL(problo[0]+i*dx[0],
-                                      problo[1]+j*dx[1],
-                                      problo[2]+k*dx[2]));
+            a(i,j,k) = f(AMREX_D_DECL(problo[0]+amrex::Clamp(i,blo.x,bhi.x)*dx[0],
+                                      problo[1]+amrex::Clamp(j,blo.y,bhi.y)*dx[1],
+                                      problo[2]+amrex::Clamp(k,blo.z,bhi.z)*dx[2]));
         });
     }
 
     template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
-    void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn) const noexcept
+    void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn,
+                  Box const& bounding_box) const noexcept
     {
         const auto problo = geom.ProbLoArray();
         const auto dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
         const auto& a = levelset.array();
+        const auto blo = amrex::lbound(bounding_box);
+        const auto bhi = amrex::ubound(bounding_box);
         amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
         {
-            a(i,j,k) = m_f(RealArray{AMREX_D_DECL(problo[0]+i*dx[0],
-                                                  problo[1]+j*dx[1],
-                                                  problo[2]+k*dx[2])});
+            a(i,j,k) = m_f(RealArray{AMREX_D_DECL(problo[0]+amrex::Clamp(i,blo.x,bhi.x)*dx[0],
+                                                  problo[1]+amrex::Clamp(j,blo.y,bhi.y)*dx[1],
+                                                  problo[2]+amrex::Clamp(k,blo.z,bhi.z)*dx[2])});
         });
     }
 
     template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
-    void getIntercept (Array<BaseFab<Real>,AMREX_SPACEDIM>& inter_fab,
-                       Array<BaseFab<Type_t>,AMREX_SPACEDIM> const& type_fab,
-                       Geometry const& geom, RunOn run_on) const noexcept
+    void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
+                       Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
+                       Geometry const& geom, RunOn run_on,
+                       Box const& bounding_box) const noexcept
     {
         auto const& dx = geom.CellSizeArray();
         auto const& problo = geom.ProbLoArray();
+        const auto blo = amrex::lbound(bounding_box);
+        const auto bhi = amrex::ubound(bounding_box);
         auto f = m_f;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            Array4<Real> const& inter = inter_fab[idim].array();
-            Array4<Type_t const> const& type = type_fab[idim].array();
-            const Box& bx = inter_fab[idim].box();
-            int dir = (AMREX_SPACEDIM==2) ? 1-idim : idim;
+            Array4<Real> const& inter = inter_arr[idim];
+            Array4<Type_t const> const& type = type_arr[idim];
+            const Box bx{inter};
             AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
             {
                 if (type(i,j,k) == Type::irregular) {
                     IntVect ivlo(AMREX_D_DECL(i,j,k));
                     IntVect ivhi(AMREX_D_DECL(i,j,k));
-                    ivhi[dir] += 1;
+                    ivhi[idim] += 1;
                     inter(i,j,k) = BrentRootFinder
-                        ({AMREX_D_DECL(problo[0]+ivlo[0]*dx[0],
-                                       problo[1]+ivlo[1]*dx[1],
-                                       problo[2]+ivlo[2]*dx[2])},
-                         {AMREX_D_DECL(problo[0]+ivhi[0]*dx[0],
-                                       problo[1]+ivhi[1]*dx[1],
-                                       problo[2]+ivhi[2]*dx[2])},
-                            dir, f);
+                        ({AMREX_D_DECL(problo[0]+amrex::Clamp(ivlo[0],blo.x,bhi.x)*dx[0],
+                                       problo[1]+amrex::Clamp(ivlo[1],blo.y,bhi.y)*dx[1],
+                                       problo[2]+amrex::Clamp(ivlo[2],blo.z,bhi.z)*dx[2])},
+                         {AMREX_D_DECL(problo[0]+amrex::Clamp(ivhi[0],blo.x,bhi.x)*dx[0],
+                                       problo[1]+amrex::Clamp(ivhi[1],blo.y,bhi.y)*dx[1],
+                                       problo[2]+amrex::Clamp(ivhi[2],blo.z,bhi.z)*dx[2])},
+                            idim, f);
                 } else {
                     inter(i,j,k) = std::numeric_limits<Real>::quiet_NaN();
                 }
@@ -363,31 +374,33 @@ public:
     }
 
     template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
-    void getIntercept (Array<BaseFab<Real>,AMREX_SPACEDIM>& inter_fab,
-                       Array<BaseFab<Type_t>,AMREX_SPACEDIM> const& type_fab,
-                       Geometry const& geom, RunOn) const noexcept
+    void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
+                       Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
+                       Geometry const& geom, RunOn,
+                       Box const& bounding_box) const noexcept
     {
         auto const& dx = geom.CellSizeArray();
         auto const& problo = geom.ProbLoArray();
+        const auto blo = amrex::lbound(bounding_box);
+        const auto bhi = amrex::ubound(bounding_box);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            Array4<Real> const& inter = inter_fab[idim].array();
-            Array4<Type_t const> const& type = type_fab[idim].array();
-            const Box& bx = inter_fab[idim].box();
-            int dir = (AMREX_SPACEDIM==2) ? 1-idim : idim;
+            Array4<Real> const& inter = inter_arr[idim];
+            Array4<Type_t const> const& type = type_arr[idim];
+            const Box bx{inter};
             amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
             {
                 if (type(i,j,k) == Type::irregular) {
                     IntVect ivlo(AMREX_D_DECL(i,j,k));
                     IntVect ivhi(AMREX_D_DECL(i,j,k));
-                    ivhi[dir] += 1;
+                    ivhi[idim] += 1;
                     inter(i,j,k) = BrentRootFinder
-                        ({AMREX_D_DECL(problo[0]+ivlo[0]*dx[0],
-                                       problo[1]+ivlo[1]*dx[1],
-                                       problo[2]+ivlo[2]*dx[2])},
-                         {AMREX_D_DECL(problo[0]+ivhi[0]*dx[0],
-                                       problo[1]+ivhi[1]*dx[1],
-                                       problo[2]+ivhi[2]*dx[2])},
-                          dir, m_f);
+                        ({AMREX_D_DECL(problo[0]+amrex::Clamp(ivlo[0],blo.x,bhi.x)*dx[0],
+                                       problo[1]+amrex::Clamp(ivlo[1],blo.y,bhi.y)*dx[1],
+                                       problo[2]+amrex::Clamp(ivlo[2],blo.z,bhi.z)*dx[2])},
+                         {AMREX_D_DECL(problo[0]+amrex::Clamp(ivhi[0],blo.x,bhi.x)*dx[0],
+                                       problo[1]+amrex::Clamp(ivhi[1],blo.y,bhi.y)*dx[1],
+                                       problo[2]+amrex::Clamp(ivhi[2],blo.z,bhi.z)*dx[2])},
+                          idim, m_f);
                 } else {
                     inter(i,j,k) = std::numeric_limits<Real>::quiet_NaN();
                 }

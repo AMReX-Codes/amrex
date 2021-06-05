@@ -96,16 +96,16 @@
          }
      }
 
-     void amrex_fi_multigrid_set_cg_verbose (MLMG* mlmg, int n)
+     void amrex_fi_multigrid_set_bottom_verbose (MLMG* mlmg, int n)
      {
-         mlmg->setCGVerbose(n);
+         mlmg->setBottomVerbose(n);
      }
-     
+
      void amrex_fi_multigrid_set_always_use_bnorm (MLMG* mlmg, int f)
      {
          mlmg->setAlwaysUseBNorm(f);
      }
-     
+
      void amrex_fi_multigrid_set_final_fill_bc (MLMG* mlmg, int f)
      {
          mlmg->setFinalFillBC(f);

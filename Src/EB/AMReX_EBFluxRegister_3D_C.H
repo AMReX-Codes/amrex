@@ -1,5 +1,6 @@
 #ifndef AMREX_EB_FLUXREGISTER_3D_C_H_
 #define AMREX_EB_FLUXREGISTER_3D_C_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
@@ -12,7 +13,7 @@ void eb_flux_reg_crseadd_va(int i, int j, int k, Array4<Real> const& d,
                             Real dtdx, Real dtdy, Real dtdz)
 {
     if (flag(i,j,k) == amrex_yafluxreg_crse_fine_boundary_cell
-        and vfrac(i,j,k) > 1.e-14)
+        && vfrac(i,j,k) > 1.e-14)
     {
         int ncomp = d.nComp();
         Real volinv = 1.0/vfrac(i,j,k);
@@ -232,7 +233,7 @@ void eb_rereflux_from_crse (int i, int j, int k, int n, Box const& bx, Array4<Re
             for (int kk = -1; kk <= 1; ++kk) {
             for (int jj = -1; jj <= 1; ++jj) {
             for (int ii = -1; ii <= 1; ++ii) {
-                if ((ii != 0 or jj != 0 or kk != 0) and flag.isConnected(ii,jj,kk)) {
+                if ((ii != 0 || jj != 0 || kk != 0) && flag.isConnected(ii,jj,kk)) {
                     wtot += vfrac(i+ii,j+jj,k+kk);
                 }
             }}}
@@ -241,7 +242,7 @@ void eb_rereflux_from_crse (int i, int j, int k, int n, Box const& bx, Array4<Re
             for (int kk = -1; kk <= 1; ++kk) {
             for (int jj = -1; jj <= 1; ++jj) {
             for (int ii = -1; ii <= 1; ++ii) {
-                if ((ii != 0 or jj != 0 or kk != 0) and flag.isConnected(ii,jj,kk)) {
+                if ((ii != 0 || jj != 0 || kk != 0) && flag.isConnected(ii,jj,kk)) {
                     if (bx.contains(IntVect(i+ii,j+jj,k+kk))) {
                         HostDevice::Atomic::Add(d.ptr(i+ii,j+jj,k+kk,n), drho);
                     }

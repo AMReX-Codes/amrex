@@ -38,6 +38,9 @@ ifeq ($(EXPORT_DYNAMIC),TRUE)
   GENERIC_GNU_FLAGS += -rdynamic -fno-omit-frame-pointer
 endif
 
+gcc_major_ge_5 = $(shell expr $(gcc_major_version) \>= 5)
+gcc_major_ge_6 = $(shell expr $(gcc_major_version) \>= 6)
+gcc_major_ge_7 = $(shell expr $(gcc_major_version) \>= 7)
 gcc_major_ge_8 = $(shell expr $(gcc_major_version) \>= 8)
 gcc_major_ge_9 = $(shell expr $(gcc_major_version) \>= 9)
 gcc_major_ge_10 = $(shell expr $(gcc_major_version) \>= 10)
@@ -75,32 +78,49 @@ CXXFLAGS += -Werror=return-type
 CFLAGS   += -Werror=return-type
 
 ifeq ($(DEBUG),TRUE)
+  CXXFLAGS += -g -O0 -ggdb -ftrapv
+  CFLAGS   += -g -O0 -ggdb -ftrapv
+else
+  CXXFLAGS += -g -O3
+  CFLAGS   += -g -O3
+endif
 
-  CXXFLAGS += -g -O0 -ggdb -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
-  CFLAGS   += -g -O0 -ggdb -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
+ifeq ($(WARN_ALL),TRUE)
+  warning_flags = -Wall -Wextra -Wunreachable-code
 
-  ifneq ($(gcc_major_version),$(filter $(gcc_major_version),4 5))
-    CXXFLAGS += -Wnull-dereference
-    CFLAGS += -Wnull-dereference
+  ifeq ($(WARN_SIGN_COMPARE),FALSE)
+    warning_flags += -Wno-sign-compare
   endif
 
-  ifneq ($(gcc_major_version),$(filter $(gcc_major_version),4))
-    CXXFLAGS += -Wfloat-conversion
-    CFLAGS += -Wfloat-conversion
+  ifneq ($(USE_CUDA),TRUE)
+    # With -Wpedantic I got 650 MB of warnings
+    warning_flags += -Wpedantic
+  endif
+
+  ifeq ($(gcc_major_ge_6),1)
+    warning_flags += -Wnull-dereference
+  endif
+
+  ifeq ($(gcc_major_ge_5),1)
+    warning_flags += -Wfloat-conversion
   endif
 
   ifneq ($(WARN_SHADOW),FALSE)
-    CXXFLAGS += -Wshadow
-    CFLAGS += -Wshadow
+    warning_flags += -Wshadow
   endif
 
-else
+  ifeq ($(gcc_major_version),7)
+    warning_flags += -Wno-array-bounds
+  endif
 
-  CXXFLAGS += -g -O3
-  CFLAGS   += -g -O3
-
+  CXXFLAGS += $(warning_flags) -Woverloaded-virtual
+  CFLAGS += $(warning_flags)
 endif
 
+ifeq ($(WARN_ERROR),TRUE)
+  CXXFLAGS += -Werror
+  CFLAGS += -Werror
+endif
 
 ifeq ($(USE_GPROF),TRUE)
   CXXFLAGS += -pg
@@ -123,15 +143,15 @@ endif
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
   ifeq ($(shell expr $(gcc_major_version) \< 5),1)
-    ifeq ($(CXXSTD),c++14)
-      $(error C++14 support requires GCC 5 or newer.)
+    ifneq ($(NO_CONFIG_CHECKING),TRUE)
+      ifeq ($(CXXSTD),c++14)
+        $(error C++14 support requires GCC 5 or newer.)
+      endif
     endif
   endif
   CXXFLAGS += -std=$(CXXSTD)
 else
-  ifeq ($(gcc_major_version),4)
-    CXXFLAGS += -std=c++11
-  else ifeq ($(gcc_major_version),5)
+  ifeq ($(gcc_major_version),5)
     CXXFLAGS += -std=c++14
   endif
 endif

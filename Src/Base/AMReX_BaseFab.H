@@ -1,20 +1,8 @@
 #ifndef AMREX_BASEFAB_H_
 #define AMREX_BASEFAB_H_
+#include <AMReX_Config.H>
 
-#include <cmath>
-#include <cstdlib>
-#include <algorithm>
-#include <limits>
-#include <climits>
-#include <array>
-#include <type_traits>
-#include <memory>
-#include <atomic>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
+#include <AMReX_Algorithm.H>
 #include <AMReX_Extension.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Array.H>
@@ -29,14 +17,23 @@
 #include <AMReX_MakeType.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Reduce.H>
-//#include <AMReX_Scan.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Math.H>
 
-#ifdef USE_PERILLA
-#include <LocalConnection.H>
-#include <RemoteConnection.H>
+#ifdef AMREX_USE_OMP
+#include <omp.h>
 #endif
+
+#include <cmath>
+#include <cstdlib>
+#include <algorithm>
+#include <limits>
+#include <climits>
+#include <array>
+#include <type_traits>
+#include <memory>
+#include <atomic>
+#include <utility>
 
 namespace amrex
 {
@@ -49,7 +46,7 @@ extern Long private_total_bytes_allocated_in_fabs;     //!< total bytes at any g
 extern Long private_total_bytes_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
 extern Long private_total_cells_allocated_in_fabs;     //!< total cells at any given time
 extern Long private_total_cells_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp threadprivate(private_total_bytes_allocated_in_fabs)
 #pragma omp threadprivate(private_total_bytes_allocated_in_fabs_hwm)
 #pragma omp threadprivate(private_total_cells_allocated_in_fabs)
@@ -146,7 +143,8 @@ placementNew (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
-typename std::enable_if< AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T) && !std::is_arithmetic<T>::value >::type
+std::enable_if_t<std::is_trivially_default_constructible<T>::value
+                 && !std::is_arithmetic<T>::value>
 placementNew (T* const ptr, Long n)
 {
     for (Long i = 0; i < n; ++i) {
@@ -155,7 +153,7 @@ placementNew (T* const ptr, Long n)
 }
 
 template <typename T>
-typename std::enable_if<!AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T)>::type
+std::enable_if_t<!std::is_trivially_default_constructible<T>::value>
 placementNew (T* const ptr, Long n)
 {
     AMREX_HOST_DEVICE_FOR_1D ( n, i,
@@ -226,7 +224,7 @@ public:
 
     //!  Make BaseFab with desired domain (box) and number of components.
     explicit BaseFab (const Box& bx, int n = 1, bool alloc = true,
-		      bool shared = false, Arena* ar = nullptr);
+                      bool shared = false, Arena* ar = nullptr);
 
     BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp);
 
@@ -247,7 +245,7 @@ public:
     explicit BaseFab (Array4<T const> const& a, IndexType t) noexcept;
 
     //! The destructor deletes the array memory.
-    ~BaseFab () noexcept;
+    virtual ~BaseFab () noexcept;
 
     BaseFab (const BaseFab<T>& rhs) = delete;
     BaseFab<T>& operator= (const BaseFab<T>& rhs) = delete;
@@ -275,8 +273,10 @@ public:
     * space which must be a different size whenever it is used.
     * Resizing is typically faster than re-allocating a
     * BaseFab because memory allocation can often be avoided.
+    * If a nullptr is provided as Arena*, the Arena already in BaseFab will
+    * be used. Otherwise, the Arena argument will be used.
     */
-    void resize (const Box& b, int N = 1);
+    void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
     template <class U=T, typename std::enable_if<std::is_trivially_destructible<U>::value,int>::type = 0>
     Elixir elixir () noexcept;
@@ -298,7 +298,7 @@ public:
     }
 
     //! Returns bytes used in the Box for those components
-    std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const noexcept
+    std::size_t nBytes (const Box& bx, int ncomps) const noexcept
         { return bx.numPts() * sizeof(T) * ncomps; }
 
     //! Returns the number of components
@@ -404,6 +404,12 @@ public:
     }
 
     AMREX_FORCE_INLINE
+    Array4<T const> array (int start_comp, int num_comps) const noexcept
+    {
+        return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
+    }
+
+    AMREX_FORCE_INLINE
     Array4<T> array () noexcept
     {
         return makeArray4<T>(this->dptr, this->domain, this->nvar);
@@ -416,6 +422,12 @@ public:
     }
 
     AMREX_FORCE_INLINE
+    Array4<T> array (int start_comp, int num_comps) noexcept
+    {
+        return Array4<T>(makeArray4<T>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
+    }
+
+    AMREX_FORCE_INLINE
     Array4<T const> const_array () const noexcept
     {
         return makeArray4<T const>(this->dptr, this->domain, this->nvar);
@@ -425,6 +437,12 @@ public:
     Array4<T const> const_array (int start_comp) const noexcept
     {
         return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar),start_comp);
+    }
+
+    AMREX_FORCE_INLINE
+    Array4<T const> const_array (int start_comp, int num_comps) const noexcept
+    {
+        return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
     }
 
     //! Returns true if the data for the FAB has been allocated.
@@ -689,6 +707,24 @@ public:
     template <RunOn run_on=RunOn::Host>
 #endif
     T max (const Box& subbox, int comp = 0) const noexcept;
+    /**
+    * \return Minimum and Maximum of given component
+    */
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template <RunOn run_on=RunOn::Host>
+#endif
+    std::pair<T,T> minmax (int comp = 0) const noexcept;
+    /**
+    * \return Minimum and Maximum of given component in given subbox.
+    */
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template <RunOn run_on=RunOn::Host>
+#endif
+    std::pair<T,T> minmax (const Box& subbox, int comp = 0) const noexcept;
     /**
     * \return Maximum of the absolute value of given component.
     */
@@ -1241,7 +1277,7 @@ public:
     template <RunOn run_on=RunOn::Host>
 #endif
     T dot (const Box& xbx, int xcomp, const BaseFab<T>& y, const Box& ybx, int ycomp,
-	   int numcomp = 1) const noexcept;
+           int numcomp = 1) const noexcept;
 
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
@@ -1610,15 +1646,6 @@ protected:
     Long truesize = 0L;         //!< nvar*numpts that was allocated on heap.
     bool ptr_owner = false;     //!< Owner of T*?
     bool shared_memory = false; //!< Is the memory allocated in shared memory?
-
-#ifdef USE_PERILLA
-public:
-    LocalConnection l_con;
-    RemoteConnection r_con;
-    bool fireable;
-    int padding[1024];
-#endif
-
 };
 
 template <class T>
@@ -1652,19 +1679,21 @@ void
 BaseFab<T>::prefetchToHost () const noexcept
 {
 #ifdef AMREX_USE_GPU
-    if (this->arena() == The_Arena() or this->arena() == The_Managed_Arena()) {
+    if (this->arena()->isManaged()) {
 #if defined(AMREX_USE_DPCPP)
         // xxxxx DPCPP todo: prefetchToHost
         // std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
         // auto& q = Gpu::Device::streamQueue();
         // q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
-#elif defined(AMREX_USE_CUDA)
-        std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-        AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
-                                                  cudaCpuDeviceId,
-                                                  Gpu::gpuStream()));
+#elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
+        if (Gpu::Device::devicePropMajor() >= 6) {
+            std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
+                                                      cudaCpuDeviceId,
+                                                      Gpu::gpuStream()));
+        }
 #elif defined(AMREX_USE_HIP)
-        // HIP FIX HERE
+        // xxxxx HIP FIX HERE after managed memory is supported
 #endif
     }
 #endif
@@ -1675,18 +1704,20 @@ void
 BaseFab<T>::prefetchToDevice () const noexcept
 {
 #ifdef AMREX_USE_GPU
-    if (this->arena() == The_Arena() or this->arena() == The_Managed_Arena()) {
+    if (this->arena()->isManaged()) {
 #if defined(AMREX_USE_DPCPP)
         std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
         auto& q = Gpu::Device::streamQueue();
         q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
-#elif defined(AMREX_USE_CUDA)
-        std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-        AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
-                                                  Gpu::Device::deviceId(),
-                                                  Gpu::gpuStream()));
+#elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
+        if (Gpu::Device::devicePropMajor() >= 6) {
+            std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
+                                                      Gpu::Device::deviceId(),
+                                                      Gpu::gpuStream()));
+        }
 #elif defined(AMREX_USE_HIP)
-        // HIP FIX HERE
+        // xxxxx HIP FIX HERE after managed memory is supported
 #endif
     }
 #endif
@@ -1921,7 +1952,7 @@ BaseFab<T>::BaseFab (const Box& bx, int n, bool alloc, bool shared, Arena* ar)
 
 template <class T>
 BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp)
-    : DataAllocator{rhs.arena()}, 
+    : DataAllocator{rhs.arena()},
       dptr(const_cast<T*>(rhs.dataPtr(scomp))),
       domain(rhs.domain), nvar(ncomp),
       truesize(ncomp*rhs.domain.numPts())
@@ -2011,23 +2042,32 @@ BaseFab<T>::operator= (T const& t) noexcept
 
 template <class T>
 void
-BaseFab<T>::resize (const Box& b, int n)
+BaseFab<T>::resize (const Box& b, int n, Arena* ar)
 {
     this->nvar   = n;
     this->domain = b;
 
-    if (this->dptr == 0 || !this->ptr_owner)
+    if (ar == nullptr) {
+        ar = m_arena;
+    }
+
+    if (arena() != DataAllocator(ar).arena()) {
+        clear();
+        m_arena = ar;
+        define();
+    }
+    else if (this->dptr == 0 || !this->ptr_owner)
     {
-	if (this->shared_memory)
-	    amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
+        if (this->shared_memory)
+            amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
 
         this->dptr = nullptr;
         define();
     }
     else if (this->nvar*this->domain.numPts() > this->truesize)
     {
-	if (this->shared_memory)
-	    amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
+        if (this->shared_memory)
+            amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
 
         clear();
 
@@ -2066,26 +2106,26 @@ BaseFab<T>::clear () noexcept
         //
         // Call T::~T() on the to-be-destroyed memory.
         //
-	if (this->ptr_owner)
-	{
-	    if (this->shared_memory)
-	    {
-		amrex::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
-	    }
+        if (this->ptr_owner)
+        {
+            if (this->shared_memory)
+            {
+                amrex::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
+            }
 
             placementDelete(this->dptr, this->truesize);
 
-	    this->free(this->dptr);
+            this->free(this->dptr);
 
-	    if (this->nvar > 1) {
-		amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
-	    } else {
-		amrex::update_fab_stats(0, -this->truesize, sizeof(T));
-	    }
-	}
+            if (this->nvar > 1) {
+                amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
+            } else {
+                amrex::update_fab_stats(0, -this->truesize, sizeof(T));
+            }
+        }
 
-	this->dptr = 0;
-	this->truesize = 0;
+        this->dptr = 0;
+        this->truesize = 0;
     }
 }
 
@@ -2238,7 +2278,7 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
     Array4<int const> const& m = mask.const_array();
     Real r = 0.0;
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpMax> reduce_op;
         ReduceData<Real> reduce_data(reduce_op);
         using ReduceTuple = ReduceData<Real>::Type;
@@ -2253,7 +2293,7 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
@@ -2288,7 +2328,7 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
     Array4<T const> const& a = this->const_array();
     Real nrm = 0.;
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         if (p == 0) {
             ReduceOps<ReduceOpMax> reduce_op;
             ReduceData<Real> reduce_data(reduce_op);
@@ -2302,7 +2342,7 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
                 }
                 return {t};
             });
-            ReduceTuple hv = reduce_data.value();
+            ReduceTuple hv = reduce_data.value(reduce_op);
             nrm = amrex::get<0>(hv);
         } else if (p == 1) {
             ReduceOps<ReduceOpSum> reduce_op;
@@ -2317,7 +2357,7 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
                 }
                 return {t};
             });
-            ReduceTuple hv = reduce_data.value();
+            ReduceTuple hv = reduce_data.value(reduce_op);
             nrm = amrex::get<0>(hv);
         } else if (p == 2) {
             ReduceOps<ReduceOpSum> reduce_op;
@@ -2332,7 +2372,7 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
                 }
                 return {t};
             });
-            ReduceTuple hv = reduce_data.value();
+            ReduceTuple hv = reduce_data.value(reduce_op);
             nrm = amrex::get<0>(hv);
         } else {
             amrex::Error("BaseFab<T>::norm: wrong p");
@@ -2379,7 +2419,7 @@ BaseFab<T>::min (const Box& subbox, int comp) const noexcept
 {
     Array4<T const> const& a = this->const_array(comp);
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpMin> reduce_op;
         ReduceData<T> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -2388,7 +2428,7 @@ BaseFab<T>::min (const Box& subbox, int comp) const noexcept
         {
             return { a(i,j,k) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
@@ -2417,7 +2457,7 @@ BaseFab<T>::max (const Box& subbox, int comp) const noexcept
 {
     Array4<T const> const& a = this->const_array(comp);
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpMax> reduce_op;
         ReduceData<T> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -2426,7 +2466,7 @@ BaseFab<T>::max (const Box& subbox, int comp) const noexcept
         {
             return { a(i,j,k) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
@@ -2437,6 +2477,48 @@ BaseFab<T>::max (const Box& subbox, int comp) const noexcept
             r = amrex::max(r, a(i,j,k));
         });
         return r;
+    }
+}
+
+template <class T>
+template <RunOn run_on>
+std::pair<T,T>
+BaseFab<T>::minmax (int comp) const noexcept
+{
+    return this->minmax<run_on>(this->domain,comp);
+}
+
+template <class T>
+template <RunOn run_on>
+std::pair<T,T>
+BaseFab<T>::minmax (const Box& subbox, int comp) const noexcept
+{
+    Array4<T const> const& a = this->const_array(comp);
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpMin,ReduceOpMax> reduce_op;
+        ReduceData<T,T> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(subbox, reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            auto const x = a(i,j,k);
+            return { x, x };
+        });
+        ReduceTuple hv = reduce_data.value(reduce_op);
+        return std::make_pair(amrex::get<0>(hv), amrex::get<1>(hv));
+    } else
+#endif
+    {
+        T rmax = std::numeric_limits<T>::lowest();
+        T rmin = std::numeric_limits<T>::max();
+        amrex::LoopOnCpu(subbox, [=,&rmin,&rmax] (int i, int j, int k) noexcept
+        {
+            auto const x = a(i,j,k);
+            rmin = amrex::min(rmin, x);
+            rmax = amrex::max(rmax, x);
+        });
+        return std::make_pair(rmin,rmax);
     }
 }
 
@@ -2455,7 +2537,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
 {
     Array4<T const> const& a = this->const_array(comp);
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpMax> reduce_op;
         ReduceData<T> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -2464,13 +2546,13 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
         {
             return { amrex::Math::abs(a(i,j,k)) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
     {
         T r = 0;
-        amrex::Loop(subbox, [=,&r] (int i, int j, int k) AMREX_NOEXCEPT
+        amrex::LoopOnCpu(subbox, [=,&r] (int i, int j, int k) noexcept
         {
             r = amrex::max(r, amrex::Math::abs(a(i,j,k)));
         });
@@ -2486,7 +2568,7 @@ BaseFab<T>::indexFromValue (Box const& subbox, int comp, T const& value) const n
 {
     Array4<T const> const& a = this->const_array(comp);
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         Array<int,1+AMREX_SPACEDIM> ha{0,AMREX_D_DECL(std::numeric_limits<int>::lowest(),
                                                       std::numeric_limits<int>::lowest(),
                                                       std::numeric_limits<int>::lowest())};
@@ -2496,7 +2578,7 @@ BaseFab<T>::indexFromValue (Box const& subbox, int comp, T const& value) const n
         amrex::ParallelFor(subbox, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             int* flag = p;
-            if ((*flag == 0) and (a(i,j,k) == value)) {
+            if ((*flag == 0) && (a(i,j,k) == value)) {
                 if (Gpu::Atomic::Exch(flag,1) == 0) {
                     AMREX_D_TERM(p[1] = i;,
                                  p[2] = j;,
@@ -2580,7 +2662,7 @@ BaseFab<T>::maskLT (BaseFab<int>& mask, T const& val, int comp) const noexcept
     Array4<int> const& m = mask.array();
     Array4<T const> const& a = this->const_array(comp);
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -2597,7 +2679,7 @@ BaseFab<T>::maskLT (BaseFab<int>& mask, T const& val, int comp) const noexcept
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         cnt = amrex::get<0>(hv);
     } else
 #endif
@@ -2626,7 +2708,7 @@ BaseFab<T>::maskLE (BaseFab<int>& mask, T const& val, int comp) const noexcept
     Array4<int> const& m = mask.array();
     Array4<T const> const& a = this->const_array(comp);
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -2643,7 +2725,7 @@ BaseFab<T>::maskLE (BaseFab<int>& mask, T const& val, int comp) const noexcept
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         cnt = amrex::get<0>(hv);
     } else
 #endif
@@ -2672,7 +2754,7 @@ BaseFab<T>::maskEQ (BaseFab<int>& mask, T const& val, int comp) const noexcept
     Array4<int> const& m = mask.array();
     Array4<T const> const& a = this->const_array(comp);
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -2689,7 +2771,7 @@ BaseFab<T>::maskEQ (BaseFab<int>& mask, T const& val, int comp) const noexcept
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         cnt = amrex::get<0>(hv);
     } else
 #endif
@@ -2718,7 +2800,7 @@ BaseFab<T>::maskGT (BaseFab<int>& mask, T const& val, int comp) const noexcept
     Array4<int> const& m = mask.array();
     Array4<T const> const& a = this->const_array(comp);
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -2735,7 +2817,7 @@ BaseFab<T>::maskGT (BaseFab<int>& mask, T const& val, int comp) const noexcept
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         cnt = amrex::get<0>(hv);
     } else
 #endif
@@ -2764,7 +2846,7 @@ BaseFab<T>::maskGE (BaseFab<int>& mask, T const& val, int comp) const noexcept
     Array4<int> const& m = mask.array();
     Array4<T const> const& a = this->const_array(comp);
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -2781,7 +2863,7 @@ BaseFab<T>::maskGE (BaseFab<int>& mask, T const& val, int comp) const noexcept
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         cnt = amrex::get<0>(hv);
     } else
 #endif
@@ -2926,7 +3008,7 @@ BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
     const auto slo1 = amrex::lbound(b1);
     const auto slo2 = amrex::lbound(b2);
     const Dim3 off1{slo1.x-dlo.x,slo1.y-dlo.y,slo1.z-dlo.z};
-    const Dim3 off2{slo2.x-dlo.x,slo2.y-dlo.y,slo2.z-dlo.z};    
+    const Dim3 off2{slo2.x-dlo.x,slo2.y-dlo.y,slo2.z-dlo.z};
 
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, b, numcomp, i, j, k, n,
     {
@@ -2959,7 +3041,7 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
     Array4<T const> const& ya = y.const_array();
 
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<T> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -2972,7 +3054,7 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
@@ -3011,7 +3093,7 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
     Array4<int const> const& ma = mask.const_array();
 
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<T> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -3025,7 +3107,7 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
@@ -3433,9 +3515,15 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1, const Box& b1, int comp1,
                        Real t1, Real t2, Real t,
                        const Box& b, int comp, int numcomp) noexcept
 {
-    Real alpha = (t2-t)/(t2-t1);
-    Real beta = (t-t1)/(t2-t1);
-    return linComb<run_on>(f1,b1,comp1,f2,b2,comp2,alpha,beta,b,comp,numcomp);
+    if (amrex::almostEqual(t1,t2) || amrex::almostEqual(t1,t)) {
+        return copy<run_on>(f1,b1,comp1,b,comp,numcomp);
+    } else if (amrex::almostEqual(t2,t)) {
+        return copy<run_on>(f2,b2,comp2,b,comp,numcomp);
+    } else {
+        Real alpha = (t2-t)/(t2-t1);
+        Real beta = (t-t1)/(t2-t1);
+        return linComb<run_on>(f1,b1,comp1,f2,b2,comp2,alpha,beta,b,comp,numcomp);
+    }
 }
 
 template <class T>
@@ -3446,19 +3534,15 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1, int comp1,
                        Real t1, Real t2, Real t,
                        const Box& b, int comp, int numcomp) noexcept
 {
-    Real tol = 1.0e-16;
-    if(amrex::Math::abs(t2-t1) > tol)
-    {
+    if (amrex::almostEqual(t1,t2) || amrex::almostEqual(t1,t)) {
+        return copy<run_on>(f1,b,comp1,b,comp,numcomp);
+    } else if (amrex::almostEqual(t2,t)) {
+        return copy<run_on>(f2,b,comp2,b,comp,numcomp);
+    } else {
         Real alpha = (t2-t)/(t2-t1);
         Real beta = (t-t1)/(t2-t1);
-
         return linComb<run_on>(f1,b,comp1,f2,b,comp2,alpha,beta,b,comp,numcomp);
     }
-    else
-    {
-        copy<run_on>(f1,b,comp1,b,comp,numcomp);
-    }
-    return *this;
 }
 
 //
@@ -3536,11 +3620,11 @@ void
 BaseFab<T>::setComplement (T const& x, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         Array4<T> const& a = this->array();
         amrex::ParallelFor(this->domain, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (not bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+            if (! bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
                 for (int n = dcomp.i; n < ncomp.n+dcomp.i; ++n) {
                     a(i,j,k,n) = x;
                 }
@@ -3925,7 +4009,7 @@ BaseFab<T>::sum (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
     T r = 0;
     Array4<T const> const& a = this->const_array();
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<T> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -3938,12 +4022,12 @@ BaseFab<T>::sum (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
             }
             return { t };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
     {
-        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
         {
             r += a(i,j,k,n+dcomp.i);
         });
@@ -3965,7 +4049,7 @@ BaseFab<T>::dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp d
     Array4<T const> const& d = this->const_array();
     Array4<T const> const& s = src.const_array();
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<T> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -3978,12 +4062,12 @@ BaseFab<T>::dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp d
             }
             return { t };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
     {
-        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
         {
             r += d(i,j,k,n+dcomp.i) * s(i,j,k,n+scomp.i);
         });
@@ -4011,7 +4095,7 @@ BaseFab<T>::dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
     T r = 0;
     Array4<T const> const& a = this->const_array();
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<T> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -4024,12 +4108,12 @@ BaseFab<T>::dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
             }
             return { t };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
     {
-        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
         {
             r += a(i,j,k,n+dcomp.i)*a(i,j,k,n+dcomp.i);
         });
@@ -4054,7 +4138,7 @@ BaseFab<T>::dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& m
     Array4<T const> const& s = src.const_array();
     Array4<int const> const& m = mask.const_array();
 #ifdef AMREX_USE_GPU
-    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+    if (run_on == RunOn::Device && Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<T> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -4068,12 +4152,12 @@ BaseFab<T>::dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& m
             }
             return { t };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
     {
-        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
         {
             int mi = static_cast<int>(static_cast<bool>(m(i,j,k)));
             r += d(i,j,k,n+dcomp.i)*s(i,j,k,n+scomp.i)*mi;

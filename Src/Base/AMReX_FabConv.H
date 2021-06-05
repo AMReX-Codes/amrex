@@ -1,14 +1,15 @@
 
 #ifndef BL_FABCONV_H
 #define BL_FABCONV_H
-
-#include <iosfwd>
+#include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
 #include <AMReX_INT.H>
+
+#include <iosfwd>
 
 namespace amrex {
 

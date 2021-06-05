@@ -1,10 +1,7 @@
 
 #ifndef AMREX_Amr_H_
 #define AMREX_Amr_H_
-
-#include <fstream>
-#include <memory>
-#include <list>
+#include <AMReX_Config.H>
 
 #include <AMReX_Box.H>
 #include <AMReX_Geometry.H>
@@ -12,22 +9,16 @@
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_BCRec.H>
-
 #include <AMReX_AmrCore.H>
 
-#ifdef USE_PERILLA
-#include <RegionGraph.H>
-#include <Perilla.H>
-#endif
+#include <iosfwd>
+#include <list>
+#include <memory>
 
 namespace amrex {
 
 class AmrLevel;
 class LevelBld;
-class BoxDomain;
-template <class T>
-class MFGraph;
-class AmrTask;
 #if defined(BL_USE_SENSEI_INSITU)
 class AmrInSituBridge;
 #endif
@@ -43,16 +34,14 @@ class AmrInSituBridge;
 class Amr
     : public AmrCore
 {
-  template <class T>
-  friend class MFGraph;
-  friend class AmrTask;
   typedef std::multimap< std::pair<int, int>, double >  BoundaryPointList;
 
 public:
     //! The constructor.
-    Amr ();
+    Amr (LevelBld* a_levelbld /* One must pass LevelBld* as an argument now*/);
 
-    Amr (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord);
+    Amr (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord,
+        LevelBld* a_levelbld /* One must pass LevelBld* as an argument now*/);
 
     Amr (const Amr& rhs) = delete;
     Amr& operator= (const Amr& rhs) = delete;
@@ -189,6 +178,8 @@ public:
     static void fillDerivePlotVarList ();
     static void fillDeriveSmallPlotVarList ();
 
+    static void setComputeNewDtOnRegrid (int flag) { compute_new_dt_on_regrid = flag; }
+
     static void Initialize ();
     static void Finalize ();
     //! AmrLevel lev.
@@ -221,9 +212,9 @@ public:
     Real coarseTimeStepDt (Real stop_time);
     //! Retrieve derived data. User is responsible for deleting pointer.
     std::unique_ptr<MultiFab> derive (const std::string& name,
-				      Real           time,
-				      int            lev,
-				      int            ngrow);
+                                      Real           time,
+                                      int            lev,
+                                      int            ngrow);
     //! Name of the restart chkpoint file.
     const std::string& theRestartFile () const noexcept { return restart_chkfile; }
     //! Name of the restart plotfile.
@@ -274,7 +265,7 @@ public:
         intersect_hix = IntersectHiX;
         intersect_loy = IntersectLoY;
         intersect_hiy = IntersectHiY;
-    };
+    }
 
     /**
     * \brief More general version:
@@ -296,32 +287,32 @@ public:
         intersect_hiy = IntersectHiY;
         intersect_loz = IntersectLoZ;
         intersect_hiz = IntersectHiZ;
-    };
+    }
 
     BoundaryPointList& getIntersectLoX() noexcept
     {
         return intersect_lox;
-    };
+    }
     BoundaryPointList& getIntersectHiX() noexcept
     {
         return intersect_hix;
-    };
+    }
     BoundaryPointList& getIntersectLoY() noexcept
     {
         return intersect_loy;
-    };
+    }
     BoundaryPointList& getIntersectHiY() noexcept
     {
         return intersect_hiy;
-    };
+    }
     BoundaryPointList& getIntersectLoZ() noexcept
     {
         return intersect_loz;
-    };
+    }
     BoundaryPointList& getIntersectHiZ() noexcept
     {
         return intersect_hiz;
-    };
+    }
 
 #ifdef AMREX_PARTICLES
     //! Redistribute particles
@@ -337,8 +328,10 @@ protected:
     //! Initialize grid hierarchy -- called by Amr::init.
     void initialInit (Real strt_time, Real stop_time,
                       const BoxArray* lev0_grids = 0, const Vector<int>* pmap = 0);
+#ifndef AMREX_NO_PROBINIT
     //! Read the probin file.
     void readProbinFile (int& init);
+#endif
     //! Check for valid input.
     void checkInput ();
     //! Restart from a checkpoint file.
@@ -374,14 +367,14 @@ protected:
                            Real stop_time);
 
     // pure virtural function in AmrCore
-    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
-	{ amrex::Abort("How did we get her!"); }
-    virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
-	{ amrex::Abort("How did we get her!"); }
-    virtual void RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
-	{ amrex::Abort("How did we get her!"); }
-    virtual void ClearLevel (int lev) override
-	{ amrex::Abort("How did we get her!"); }
+    virtual void MakeNewLevelFromScratch (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
+        { amrex::Abort("How did we get here!"); }
+    virtual void MakeNewLevelFromCoarse (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
+        { amrex::Abort("How did we get here!"); }
+    virtual void RemakeLevel (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
+        { amrex::Abort("How did we get here!"); }
+    virtual void ClearLevel (int /*lev*/) override
+        { amrex::Abort("How did we get here!"); }
 
     //! Whether to write a plotfile now
     bool writePlotNow () noexcept;
@@ -453,7 +446,9 @@ protected:
     int              sub_cycle;
     std::string      restart_chkfile;
     std::string      restart_pltfile;
+#ifndef AMREX_NO_PROBINIT
     std::string      probin_file;
+#endif
     LevelBld*        levelbld;
     bool             abort_on_stream_retry_failure;
     int              stream_max_tries;
@@ -475,18 +470,13 @@ protected:
     static Vector<BoxArray> initial_ba;
     //! Array of BoxArrays read in to externally define grid hierarchy at each regrid
     static Vector<BoxArray> regrid_ba;
+    static int compute_new_dt_on_regrid;
 
 #if defined(BL_USE_SENSEI_INSITU)
     static AmrInSituBridge *insitu_bridge;
 #endif
 
 public:
-#ifdef USE_PERILLA
-    std::vector<std::vector<RegionGraph*> > graphArray;
-    std::vector<RegionGraph*> amrGraphArray;
-    std::vector<RegionGraph*> &get_graphArray(int level){return graphArray[level];}
-#endif
-
     BoundaryPointList intersect_lox;
     BoundaryPointList intersect_loy;
     BoundaryPointList intersect_loz;

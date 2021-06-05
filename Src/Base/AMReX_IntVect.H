@@ -1,5 +1,6 @@
 #ifndef AMREX_INTVECT_H_
 #define AMREX_INTVECT_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_INT.H>
 #include <AMReX_ccse-mpi.H>
@@ -49,20 +50,20 @@ public:
 
     class shift_hasher {
     private:
-	static constexpr unsigned shift1 = sizeof(size_t)>=8 ? 20 : 10;
-	static constexpr unsigned shift2 = sizeof(size_t)>=8 ? 40 : 20;
+        static constexpr unsigned shift1 = sizeof(size_t)>=8 ? 20 : 10;
+        static constexpr unsigned shift2 = sizeof(size_t)>=8 ? 40 : 20;
     public:
-	std::size_t operator()(const IntVect& vec) const noexcept
+        std::size_t operator()(const IntVect& vec) const noexcept
         {
-	    AMREX_D_DECL(std::size_t ret0 = vec[0], ret1 = vec[1], ret2 = vec[2]);
+            AMREX_D_DECL(std::size_t ret0 = vec[0], ret1 = vec[1], ret2 = vec[2]);
 #if AMREX_SPACEDIM == 1
-	    return ret0;
+            return ret0;
 #elif AMREX_SPACEDIM == 2
-	    return ret0 ^ (ret1 << shift1);
+            return ret0 ^ (ret1 << shift1);
 #else
-	    return ret0 ^ (ret1 << shift1) ^ (ret2 << shift2);
+            return ret0 ^ (ret1 << shift1) ^ (ret2 << shift2);
 #endif
-	}
+        }
     };
 
     using hasher = shift_hasher;
@@ -133,6 +134,17 @@ public:
         return Dim3{vect[0],vect[1],vect[2]};
 #endif
     }
+
+#if __cplusplus >= 201402L
+    template< typename T = int >
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Array<T, AMREX_SPACEDIM>
+    toArray () const noexcept {
+        return Array<T, AMREX_SPACEDIM>{
+            AMREX_D_DECL(T(vect[0]), T(vect[1]), T(vect[2]))
+        };
+    }
+#endif
 
   ///
   /**
@@ -262,19 +274,19 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator<= (const IntVect& rhs) const noexcept
     {
-	return !(rhs < *this);
+        return !(rhs < *this);
     }
     //! Retrun true if this is lexicographically greater than rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator> (const IntVect& rhs) const noexcept
     {
-	return rhs < *this;
+        return rhs < *this;
     }
     //! Retrun true if this is lexicographically greater than or equal to rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator>= (const IntVect& rhs) const noexcept
     {
-	return !(*this < rhs);
+        return !(*this < rhs);
     }
     /**
     * \brief Returns true if this is less than argument for all components.
@@ -468,18 +480,6 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     IntVect& coarsen (int p) noexcept;
 
-    //! for serialization
-    static size_t AMREX_FORCE_INLINE
-    linearSize () noexcept
-    {
-        size_t retval = AMREX_SPACEDIM*sizeof(int);
-        return retval;
-    }
-
-    //! for serialization
-    void linearOut (void* a_buffer ) const noexcept;
-    void linearIn (void* a_buffer ) noexcept;
-
     /**
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose AMREX_SPACEDIM arguments are set to zero (0).
@@ -627,32 +627,6 @@ IntVect::maxDir(bool a_doAbsValue) const noexcept
         }
     }
     return retval;
-}
-
-AMREX_FORCE_INLINE
-void
-IntVect::linearOut(void* a_buffer ) const noexcept
-{
-    int* intbuf = (int *) a_buffer;
-    const IntVect& iv = *this;
-    for(int idir = 0; idir < SpaceDim; idir++)
-    {
-        *intbuf = iv[idir];
-        intbuf++;
-    }
-}
-
-AMREX_FORCE_INLINE
-void
-IntVect::linearIn(void* a_buffer ) noexcept
-{
-    int* intbuf = (int *) a_buffer;
-    IntVect& iv = *this;
-    for(int idir = 0; idir < SpaceDim; idir++)
-    {
-        iv[idir] = *intbuf;
-        intbuf++;
-    }
 }
 
 //! Returns p + s.

@@ -1,11 +1,12 @@
 #ifndef AMREX_ML_MG_H_
 #define AMREX_ML_MG_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MLLinOp.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_MLCGSolver.H>
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 #include <AMReX_Hypre.H>
 #include <AMReX_HypreNodeLap.H>
 #endif
@@ -87,9 +88,6 @@ public:
     void setBottomTolerance (Real t) noexcept { bottom_reltol = t; }
     void setBottomToleranceAbs (Real t) noexcept { bottom_abstol = t;}
     Real getBottomToleranceAbs () noexcept{ return bottom_abstol; }
-    void setCGVerbose (int v) noexcept { bottom_verbose = v; }
-    void setCGMaxIter (int n) noexcept { bottom_maxiter = n; }
-    void setCGTolerance (Real t) noexcept { bottom_reltol = t; }
 
     void setAlwaysUseBNorm (int flag) noexcept { always_use_bnorm = flag; }
 
@@ -100,13 +98,27 @@ public:
     void setNSolve (int flag) noexcept { do_nsolve = flag; }
     void setNSolveGridSize (int s) noexcept { nsolve_grid_size = s; }
 
-#ifdef AMREX_USE_HYPRE
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     void setHypreInterface (Hypre::Interface f) noexcept {
         // must use ij interface for EB
 #ifndef AMREX_USE_EB
         hypre_interface = f;
+#else
+        amrex::ignore_unused(f);
 #endif
     }
+
+    //! Set the namespace in input file for parsing HYPRE specific options
+    void setHypreOptionsNamespace(const std::string& prefix) noexcept
+    {
+        hypre_options_namespace = prefix;
+    }
+
+    void setHypreOldDefault (bool l) noexcept {hypre_old_default = l;}
+    void setHypreRelaxType (int n) noexcept {hypre_relax_type = n;}
+    void setHypreRelaxOrder (int n) noexcept {hypre_relax_order = n;}
+    void setHypreNumSweeps (int n) noexcept {hypre_num_sweeps = n;}
+    void setHypreStrongThreshold (Real t) noexcept {hypre_strong_threshold = t;}
 #endif
 
     void prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs);
@@ -146,7 +158,9 @@ public:
     void makeSolvable (int amrlev, int mglev, MultiFab& mf);
     Real getNodalSum (int amrlev, int mglev, MultiFab& mf) const;
 
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     void bottomSolveWithHypre (MultiFab& x, const MultiFab& b);
+#endif
 
     void bottomSolveWithPETSc (MultiFab& x, const MultiFab& b);
 
@@ -179,8 +193,8 @@ private:
     CFStrategy cf_strategy     = CFStrategy::none;
     int  bottom_verbose        = 0;
     int  bottom_maxiter        = 200;
-    Real bottom_reltol         = 1.e-4;
-    Real bottom_abstol         = -1.0;
+    Real bottom_reltol         = Real(1.e-4);
+    Real bottom_abstol         = Real(-1.0);
 
     int always_use_bnorm = 0;
 
@@ -202,18 +216,21 @@ private:
     std::unique_ptr<MultiFab> ns_rhs;
 
     //! Hypre
-#ifdef AMREX_USE_HYPRE
-#ifdef AMREX_USE_EB
-    Hypre::Interface hypre_interface = Hypre::Interface::ij;
-#else
-
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     // Hypre::Interface hypre_interface = Hypre::Interface::structed;
-    Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
-//    Hypre::Interface hypre_interface = Hypre::Interface::ij;
-#endif
+    // Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
+    Hypre::Interface hypre_interface = Hypre::Interface::ij;
+
     std::unique_ptr<Hypre> hypre_solver;
     std::unique_ptr<MLMGBndry> hypre_bndry;
     std::unique_ptr<HypreNodeLap> hypre_node_solver;
+
+    std::string hypre_options_namespace = "hypre";
+    bool hypre_old_default = true; // Falgout coarsening with modified classical interpolation
+    int hypre_relax_type = 6;  // G-S/Jacobi hybrid relaxation
+    int hypre_relax_order = 1; // uses C/F relaxation
+    int hypre_num_sweeps = 2;  // Sweeps on each level
+    Real hypre_strong_threshold = 0.25; // Hypre default is 0.25
 #endif
 
     //! PETSc
@@ -248,7 +265,7 @@ private:
     Vector<std::unique_ptr<MultiFab> > scratch;
 
     enum timer_types { solve_time=0, iter_time, bottom_time, ntimers };
-    Vector<Real> timer;
+    Vector<double> timer;
 
     Real m_rhsnorm0 = -1.0;
     Real m_init_resnorm0 = -1.0;

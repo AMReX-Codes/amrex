@@ -39,6 +39,9 @@ endif
 ifeq ($(USE_SENSEI_INSITU),TRUE)
 	Pdirs += Extern/SENSEI
 endif
+ifeq ($(USE_SUNDIALS),TRUE)
+    Pdirs += Extern/SUNDIALS
+endif
 Ppack := $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 include $(Ppack)
 

@@ -9,7 +9,7 @@ MultiMask::MultiMask (const BoxArray& ba, const DistributionMapping& dm, int nco
 { }
 
 MultiMask::MultiMask (const BoxArray& regba, const DistributionMapping& dm, const Geometry& geom,
-		      Orientation face, int in_rad, int out_rad, int extent_rad, int ncomp, bool initval)
+                      Orientation face, int in_rad, int out_rad, int extent_rad, int ncomp, bool initval)
 {
     define(regba, dm, geom, face, in_rad, out_rad, extent_rad, ncomp, initval);
 }
@@ -23,7 +23,7 @@ MultiMask::define (const BoxArray& ba, const DistributionMapping& dm, int ncomp)
 
 void
 MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const Geometry& geom,
-		   Orientation face, int in_rad, int out_rad, int extent_rad, int ncomp, bool initval)
+                   Orientation face, int in_rad, int out_rad, int extent_rad, int ncomp, bool initval)
 {
     BL_ASSERT(m_fa.size() == 0);
 
@@ -44,7 +44,7 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
             }
         }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(m_fa); mfi.isValid(); ++mfi)
@@ -70,14 +70,14 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
     }
 }
 
-void 
+void
 MultiMask::Copy (MultiMask& dst, const MultiMask& src)
 {
     BL_ASSERT(dst.nComp() == src.nComp());
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.DistributionMap() == src.DistributionMap());
     const int ncomp = dst.nComp();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dst.m_fa); mfi.isValid(); ++mfi) {

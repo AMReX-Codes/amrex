@@ -13,15 +13,18 @@ constexpr HYPRE_Int Hypre::eb_stencil_size;
 
 std::unique_ptr<Hypre>
 makeHypre (const BoxArray& grids, const DistributionMapping& dmap,
-           const Geometry& geom, MPI_Comm comm_, Hypre::Interface interface)
+           const Geometry& geom, MPI_Comm comm_, Hypre::Interface interface,
+           const iMultiFab* overset_mask)
 {
-    if (interface == Hypre::Interface::structed) {
-        return std::unique_ptr<Hypre>(new HypreABecLap(grids, dmap, geom, comm_));
+    if (overset_mask) {
+        return std::make_unique<HypreABecLap3>(grids, dmap, geom, comm_, overset_mask);
+    } else if (interface == Hypre::Interface::structed) {
+        return std::make_unique<HypreABecLap>(grids, dmap, geom, comm_);
     } else if (interface == Hypre::Interface::semi_structed) {
-        return std::unique_ptr<Hypre>(new HypreABecLap2(grids, dmap, geom, comm_));
+        return std::make_unique<HypreABecLap2>(grids, dmap, geom, comm_);
     } else {
-        return std::unique_ptr<Hypre>(new HypreABecLap3(grids, dmap, geom, comm_));
-    }    
+        return std::make_unique<HypreABecLap3>(grids, dmap, geom, comm_);
+    }
 }
 
 Hypre::Hypre (const BoxArray& grids, const DistributionMapping& dmap,
@@ -42,11 +45,11 @@ Hypre::Hypre (const BoxArray& grids, const DistributionMapping& dmap,
     int ngrow = 0;
     acoefs.define(grids, dmap, ncomp, ngrow);
     acoefs.setVal(0.0);
-    
+
 #ifdef AMREX_USE_EB
     ngrow = 1;
 #endif
-    
+
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         BoxArray edge_boxes(grids);
         edge_boxes.surroundingNodes(i);

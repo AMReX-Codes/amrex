@@ -179,7 +179,20 @@ function( add_typecheck_target _target)
       Fortran_MODULE_DIRECTORY  "${_typecheck_dir}"
       COMPILE_DEFINITIONS       "${_defines}"
       COMPILE_OPTIONS           "${_amrex_flags}"
+      WINDOWS_EXPORT_ALL_SYMBOLS ON
       )
+
+   # IPO/LTO
+   if (AMReX_IPO)
+      include(CheckIPOSupported)
+      check_ipo_supported(RESULT is_IPO_available)
+      if(is_IPO_available)
+          set_target_properties(${_typecheckobjs} PROPERTIES
+              INTERPROCEDURAL_OPTIMIZATION TRUE)
+      else()
+          message(FATAL_ERROR "Interprocedural optimization is not available, set AMReX_IPO=OFF")
+      endif()
+   endif()
 
    # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
    # STEP 2: create CPPD files from C++ headers
@@ -192,25 +205,22 @@ function( add_typecheck_target _target)
 
    # expand genex-es
    include(AMReXGenexHelpers)
-   
-   evaluate_genex(_defines _cxx_defines
-      LANG CXX
-      COMP GNU
-      CONFIG ${CMAKE_BUILD_TYPE}
-      INTERFACE BUILD)
-   
-   evaluate_genex(_defines _fortran_defines
-      LANG Fortran
-      COMP GNU
-      CONFIG ${CMAKE_BUILD_TYPE}
-      INTERFACE BUILD)
 
-   evaluate_genex(_amrex_flags _amrex_fortran_flags
-      LANG Fortran
-      COMP GNU
-      CONFIG ${CMAKE_BUILD_TYPE}
-      INTERFACE BUILD) 
-   
+   set(_cxx_defines "${_defines}")
+   eval_genex(_cxx_defines  CXX GNU
+      CONFIG        ${CMAKE_BUILD_TYPE}
+      INTERFACE     BUILD)
+
+   set(_fortran_defines "${_defines}")
+   eval_genex(_fortran_defines Fortran GNU
+      CONFIG        ${CMAKE_BUILD_TYPE}
+      INTERFACE     BUILD)
+
+   set(_amrex_fortran_flags "${_amrex_flags}")
+   eval_genex(_amrex_fortran_flags Fortran GNU
+      CONFIG        ${CMAKE_BUILD_TYPE}
+      INTERFACE     BUILD)
+
    if (_cxx_defines)
       string(REPLACE ";" ";-D" _cxx_defines "-D${_cxx_defines}")
    endif ()

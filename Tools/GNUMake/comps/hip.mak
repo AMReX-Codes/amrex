@@ -1,8 +1,13 @@
 # Setup for HIP, using hipcc (HCC and clang will use the same compiler name).
 
-HIP_PATH=$(shell hipconfig --path)
-ifeq ($(HIP_PATH),)
-  $(error hipconfig failed. Is the HIP toolkit available?)
+ifneq ($(NO_CONFIG_CHECKING),TRUE)
+  HIP_PATH=$(realpath $(shell hipconfig --path))
+  hipcc_version := $(shell hipcc --version | grep "HIP version: " | cut -d" " -f3)
+  hipcc_major_version := $(shell hipcc --version | grep "HIP version: " | cut -d" " -f3 | cut -d. -f1)
+  hipcc_minor_version := $(shell hipcc --version | grep "HIP version: " | cut -d" " -f3 | cut -d. -f2)
+  ifeq ($(HIP_PATH),)
+    $(error hipconfig failed. Is the HIP toolkit available?)
+  endif
 endif
 
 CXX = $(HIP_PATH)/bin/hipcc
@@ -16,16 +21,24 @@ else
   CXXSTD := c++14
 endif
 
-#if less than a given version, throw error.
-
 # Generic flags, always used
-CXXFLAGS := -std=$(CXXSTD) -m64
-CFLAGS   := -std=c99 -m64
+CXXFLAGS = -std=$(CXXSTD) -m64
+CFLAGS   = -std=c99 -m64
 
-FFLAGS   := -ffixed-line-length-none -fno-range-check -fno-second-underscore
-F90FLAGS := -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
+FFLAGS   = -ffixed-line-length-none -fno-range-check -fno-second-underscore
+F90FLAGS = -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
 
 FMODULES =  -J$(fmoddir) -I $(fmoddir)
+
+# rdc support
+ifeq ($(USE_GPU_RDC),TRUE)
+  HIPCC_FLAGS += -fgpu-rdc
+endif
+
+# amd gpu target
+HIPCC_FLAGS += --amdgpu-target=$(AMD_ARCH)
+
+CXXFLAGS += $(HIPCC_FLAGS)
 
 # =============================================================================================
 
@@ -50,59 +63,76 @@ endif  # BL_NO_FORT
 
 # =============================================================================================
 
-# This is designed only for dogora for now.
-ifeq ($(HIP_PLATFORM),hcc)
+ifeq ($(HIP_COMPILER),clang)
 
   ifeq ($(DEBUG),TRUE)
-    # From llvm
-    CXXFLAGS += -g
-    CFLAGS   += -g 
+    CXXFLAGS += -g -O0 -ftrapv
+    CFLAGS   += -g -O0 -ftrapv
+
     FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
     F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
 
   else  # DEBUG=FALSE flags
+
+    CXXFLAGS += -g -O3
+    CFLAGS   += -g -O3
+    FFLAGS   += -g -O3
+    F90FLAGS += -g -O3
+
   endif
 
+  CXXFLAGS += -Wno-pass-failed  # disable this warning
+
+  ifeq ($(WARN_ALL),TRUE)
+    warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
+    warning_flags += -Wfloat-conversion -Wextra-semi
+
+    warning_flags += -Wpedantic
+
+    ifneq ($(WARN_SHADOW),FALSE)
+      warning_flags += -Wshadow
+    endif
+
+    CXXFLAGS += $(warning_flags) -Woverloaded-virtual
+    CFLAGS += $(warning_flags)
+  endif
+
+#  ifeq ($(WARN_ERROR),TRUE)
+#    CXXFLAGS += -Werror
+#    CFLAGS += -Werror
+#  endif
+
   # Generic HIP info
-  ROC_PATH=/opt/rocm
-  INCLUDE_LOCATIONS += $(HIP_PATH)/include
+  ROC_PATH=$(realpath $(dir $(HIP_PATH)))
+  SYSTEM_INCLUDE_LOCATIONS += $(HIP_PATH)/include
 
   # rocRand
-  INCLUDE_LOCATIONS += $(ROC_PATH)/rocrand/include $(ROC_PATH)/hiprand/include
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocrand/include $(ROC_PATH)/hiprand/include
   LIBRARY_LOCATIONS += $(ROC_PATH)/rocrand/lib $(ROC_PATH)/hiprand/lib
   LIBRARIES += -Wl,--rpath=$(ROC_PATH)/rocrand/lib -Wl,--rpath=$(ROC_PATH)/hiprand/lib -lhiprand -lrocrand 
 
   # rocPrim - Header only
-  INCLUDE_LOCATIONS += $(ROC_PATH)/rocprim/include
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocprim/include
 
   # rocThrust - Header only
-  INCLUDE_LOCATIONS += $(ROC_PATH)/rocthrust/include
+  # SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocthrust/include
+
+  ifeq ($(USE_ROCTX),TRUE)
+  # rocTracer
+  CXXFLAGS += -DAMREX_USE_ROCTX
+  HIPCC_FLAGS += -DAMREX_USE_ROCTX
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/roctracer/include $(ROC_PATH)/rocprofiler/include
+  LIBRARY_LOCATIONS += $(ROC_PATH)/roctracer/lib $(ROC_PATH)/rocprofiler/lib
+  LIBRARIES += -lroctracer64 -lroctx64
+  endif
+
+  # hipcc passes a lot of unused arguments to clang
+  LEGACY_DEPFLAGS += -Wno-unused-command-line-argument
 
 # =============================================================================================
 
-# This is Summit. Likely broken.
-else ifeq ($(HIP_PLATFORM),nvcc)
-  $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms.)
-#
-#  CXXFLAGS_FROM_HOST := -ccbin=$(CXX) --std=c++14
-#  CFLAGS_FROM_HOST := -ccbin=$(CXX)
-#  HIPCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT)
-#
-#  ifeq ($(DEBUG),TRUE)
-#    HIPCC_FLAGS += -g -G
-#  else
-#    HIPCC_FLAGS += -lineinfo --ptxas-options=-O3,-v
-#  endif
-#
-#  ifneq ($(USE_CUDA_FAST_MATH),FALSE)
-#    HIPCC_FLAGS += --use_fast_math
-#  endif
-#
-#  CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(HIPCC_FLAGS) -c -dc
-#  CFLAGS   =   $(CFLAGS_FROM_HOST) $(HIPCC_FLAGS) -dc
-#
-#  CXXFLAGS += --expt-relaxed-constexpr --expt-extended-lambda
-#
+else ifeq ($(HIP_COMPILER),nvcc)
+  $(error HIP_COMPILER nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms.)
 endif
 
 # =============================================================================================

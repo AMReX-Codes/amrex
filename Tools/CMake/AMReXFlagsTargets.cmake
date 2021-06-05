@@ -4,8 +4,6 @@
 #
 #   Flags_CXX                 --> Optional flags for C++ code
 #   Flags_Fortran             --> Optional flags for Fortran code
-#   Flags_CXX_REQUIRED        --> Required C++ flags
-#   Flags_Fortran_REQUIRED    --> Required Fortran flags for some components of AMReX
 #   Flags_FPE                 --> Floating-Point Exception flags for both C++ and Fortran
 #
 # These INTERFACE targets can be added to the AMReX export set.
@@ -25,23 +23,42 @@ include_guard(GLOBAL)
 #     <lang> = cxx,fortran
 #     <id>   = gnu,intel,pgi,cray,clang,appleclang,msvc
 #
-foreach (_language CXX Fortran )
-   set(_comp_lang   "$<COMPILE_LANGUAGE:${_language}>")
-   string(TOLOWER "${_language}" _lang)
+if (CMAKE_VERSION VERSION_LESS 3.20)
+   foreach (_language CXX Fortran )
+      set(_comp_lang   "$<COMPILE_LANGUAGE:${_language}>")
+      string(TOLOWER "${_language}" _lang)
 
-   foreach (_comp GNU Intel PGI Cray Clang AppleClang MSVC )
-      string(TOLOWER "${_comp}" _id)
-      # Define variables
-      set(_comp_id              "$<${_language}_COMPILER_ID:${_comp}>")
-      set(_${_lang}_${_id}      "$<AND:${_comp_lang},${_comp_id}>")
-      set(_${_lang}_${_id}_dbg  "$<AND:${_comp_lang},${_comp_id},$<CONFIG:Debug>>")
-      set(_${_lang}_${_id}_rel  "$<AND:${_comp_lang},${_comp_id},$<CONFIG:Release>>")
-      unset(_comp_id)
+      foreach (_comp GNU Intel PGI Cray Clang AppleClang IntelLLVM MSVC )
+         string(TOLOWER "${_comp}" _id)
+         # Define variables
+         set(_comp_id              "$<${_language}_COMPILER_ID:${_comp}>")
+         set(_${_lang}_${_id}      "$<AND:${_comp_lang},${_comp_id}>")
+         set(_${_lang}_${_id}_dbg  "$<AND:${_comp_lang},${_comp_id},$<CONFIG:Debug>>")
+         set(_${_lang}_${_id}_rel  "$<AND:${_comp_lang},${_comp_id},$<CONFIG:Release>>")
+         set(_${_lang}_${_id}_rwdbg "$<AND:${_comp_lang},${_comp_id},$<CONFIG:RelWithDebInfo>>")
+         unset(_comp_id)
+      endforeach ()
+
+      unset(_comp_lang)
+      unset(_lang)
    endforeach ()
+else ()
+   foreach (_language CXX Fortran )
+      string(TOLOWER "${_language}" _lang)
 
-   unset(_comp_lang)
-   unset(_lang)
-endforeach ()
+      foreach (_comp GNU Intel PGI Cray Clang AppleClang IntelLLVM MSVC )
+         string(TOLOWER "${_comp}" _id)
+         # Define variables
+         set(_${_lang}_${_id}      "$<COMPILE_LANG_AND_ID:${_language},${_comp}>")
+         set(_${_lang}_${_id}_dbg  "$<AND:${_${_lang}_${_id}},$<CONFIG:Debug>>")
+         set(_${_lang}_${_id}_rel  "$<AND:${_${_lang}_${_id}},$<CONFIG:Release>>")
+         set(_${_lang}_${_id}_rwdbg "$<AND:${_${_lang}_${_id}},$<CONFIG:RelWithDebInfo>>")
+         unset(_id)
+      endforeach ()
+
+      unset(_lang)
+   endforeach ()
+endif ()
 
 
 #
@@ -54,17 +71,26 @@ target_compile_options( Flags_CXX
    INTERFACE
    $<${_cxx_gnu_dbg}:-O0 -ggdb -Wall -Wno-sign-compare -Wno-unused-but-set-variable -Werror=return-type>
 #    $<$<VERSION_GREATER:$<CXX_COMPILER_VERSION>,5.0>:-Wnull-dereference>
+   $<${_cxx_gnu_rwdbg}:-Werror=return-type>
    $<${_cxx_gnu_rel}:-Werror=return-type>
    $<${_cxx_intel_dbg}:-O0 -traceback -Wcheck>
+   $<${_cxx_intel_rwdbg}:-ip -qopt-report=5 -qopt-report-phase=vec>
    $<${_cxx_intel_rel}:-ip -qopt-report=5 -qopt-report-phase=vec>
    $<${_cxx_pgi_dbg}:-O0 -Mbounds>
+   $<${_cxx_pgi_rwdbg}:-gopt -fast>
    $<${_cxx_pgi_rel}:-gopt -fast>
    $<${_cxx_cray_dbg}:-O0>
+   $<${_cxx_cray_rwdbg}:>
    $<${_cxx_cray_rel}:>
-   $<${_cxx_clang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
-   $<${_cxx_clang_rel}:>
-   $<${_cxx_appleclang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
-   $<${_cxx_appleclang_rel}:>
+   $<${_cxx_clang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-pass-failed>
+   $<${_cxx_clang_rwdbg}:-Wno-pass-failed>
+   $<${_cxx_clang_rel}:-Wno-pass-failed>
+   $<${_cxx_appleclang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-pass-failed>
+   $<${_cxx_appleclang_rwdbg}:-Wno-pass-failed>
+   $<${_cxx_appleclang_rel}:-Wno-pass-failed>
+   $<${_cxx_intelllvm_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-pass-failed>
+   $<${_cxx_intelllvm_rwdbg}:-Wno-pass-failed>
+   $<${_cxx_intelllvm_rel}:-Wno-pass-failed>
    )
 
 #
@@ -84,47 +110,6 @@ target_compile_options( Flags_Fortran
    $<${_fortran_pgi_rel}:-gopt -fast>
    $<${_fortran_cray_dbg}:-O0 -e i>
    $<${_fortran_cray_rel}:>
-   )
-
-#
-# CXX REQUIRED flags
-#
-add_library(Flags_CXX_REQUIRED INTERFACE)
-add_library(AMReX::Flags_CXX_REQUIRED ALIAS Flags_CXX_REQUIRED)
-
-target_compile_options( Flags_CXX_REQUIRED
-   INTERFACE
-   $<${_cxx_msvc}:/bigobj>
-   )
-
-# Currently can't make this a generator expression as amrex_evaluate_genex fails
-# to parse it and propagate the flags to cuda
-if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-   if (CXX_COMPILER_VERSION VERSION_LESS 19.26)
-      target_compile_options( Flags_CXX_REQUIRED
-         INTERFACE
-         $<${_cxx_msvc}:/experimental:preprocessor>
-         )
-   else ()
-      target_compile_options( Flags_CXX_REQUIRED
-         INTERFACE
-         $<${_cxx_msvc}:/Zc:preprocessor>
-         )
-   endif ()
-endif()
-
-#
-# Fortran REQUIRED flags -- This is for internal use only: it is useless to export it
-#
-add_library(Flags_Fortran_REQUIRED INTERFACE)
-add_library(AMReX::Flags_Fortran_REQUIRED ALIAS Flags_Fortran_REQUIRED)
-
-target_compile_options( Flags_Fortran_REQUIRED
-   INTERFACE
-   $<${_fortran_gnu}:-ffixed-line-length-none -ffree-line-length-none>
-   $<${_fortran_intel}:-extend_source>
-   $<${_fortran_pgi}:-Mextend>
-   $<${_fortran_cray}:-N 255 -h list=a>
    )
 
 

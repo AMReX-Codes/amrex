@@ -1,13 +1,15 @@
 
 #ifndef AMREX_COORDSYS_H_
 #define AMREX_COORDSYS_H_
+#include <AMReX_Config.H>
 
-#include <limits>
 #include <AMReX.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Box.H>
+
+#include <limits>
 
 namespace amrex {
 
@@ -82,7 +84,7 @@ public:
 
     GpuArray<Real,AMREX_SPACEDIM> CellSizeArray () const noexcept {
         BL_ASSERT(ok);
-        return { AMREX_D_DECL(dx[0],dx[1],dx[2]) };
+        return {{ AMREX_D_DECL(dx[0],dx[1],dx[2]) }};
     }
 
     //! Returns the inverse cellsize for each coordinate direction.
@@ -93,13 +95,13 @@ public:
 
     GpuArray<Real,AMREX_SPACEDIM> InvCellSizeArray () const noexcept {
         BL_ASSERT(ok);
-        return { AMREX_D_DECL(inv_dx[0],inv_dx[1],inv_dx[2]) };
+        return {{ AMREX_D_DECL(inv_dx[0],inv_dx[1],inv_dx[2]) }};
     }
 
     //! Returns location of cell center in specified direction.
     Real CellCenter (int point, int dir) const noexcept
     {
-        BL_ASSERT(ok); return offset[dir] + dx[dir]*(0.5+ (Real)point);
+        BL_ASSERT(ok); return offset[dir] + dx[dir]*((Real)0.5+ (Real)point);
     }
 
     //! Return location of cell center.

@@ -2,75 +2,85 @@
 
 from __future__ import print_function
 
-import sys
+import sys, re
 
 if sys.version_info < (2, 7):
     sys.exit("ERROR: need python 2.7 or later for mkconfig.py")
 
 import argparse
 
-def doit(defines, undefines, comp, allow_diff_comp, use_omp):
-    print("#ifndef AMREX_CONFIG_H_")
-    print("#define AMREX_CONFIG_H_")
+def doit(defines, undefines, comp, allow_diff_comp):
+    print("#ifndef AMREX_HAVE_NO_CONFIG_H")
+    print("#define AMREX_HAVE_NO_CONFIG_H")
+
+    # Remove -I from input
+    defines = re.sub(r'-I.*?(-D|$)', r'\1', defines)
 
     defs = defines.split("-D")
     for d in defs:
         dd = d.strip()
         if dd:
             v = dd.split("=")
+            print("#ifndef",v[0])
             if len(v) == 2:
                 print("#define",v[0],v[1])
             else:
                 print("#define",v[0],1)
+            print("#endif")
 
-    print("#undef",undefines)
+    for ud in undefines:
+        print("#undef",ud)
 
     print("#ifdef __cplusplus");
 
     if allow_diff_comp == "FALSE":
         if comp == "gnu" or comp == "nag":
-            print("#ifndef __GNUC__")
-            print('static_assert(false,"libamrex was built with GNU");')
-            print("#endif")
+            comp_macro = "__GNUC__"
+            comp_id    = "GNU"
         elif comp == "intel":
-            print("#ifndef __INTEL_COMPILER")
-            print('static_assert(false,"libamrex was built with Intel");')
-            print("#endif")
+            comp_macro = "__INTEL_COMPILER"
+            comp_id    = "Intel"
         elif comp == "cray":
-            print("#ifndef _CRAYC")
-            print('static_assert(false,"libamrex was built with Cray");')
-            print("#endif")
+            comp_macro = "_CRAYC"
+            comp_id    = "Cray"
         elif comp == "pgi":
-            print("#ifndef __PGI")
-            print('static_assert(false,"libamrex was built with PGI");')
-            print("#endif")
+            comp_macro = "__PGI"
+            comp_id    = "PGI"
+        elif comp == "nvhpc":
+            comp_macro = "__NVCOMPILER"
+            comp_id    = "NVHPC"
         elif comp == "llvm":
-            print("#ifndef __llvm__")
-            print('static_assert(false,"libamrex was built with Clang/LLVM");')
-            print("#endif")
+            comp_macro = "__llvm__"
+            comp_id    = "Clang/LLVM"
         elif comp == "nec":
-            print("#ifndef __NEC__")
-            print('static_assert(false,"libamrex was built with NEC");')
-            print("#endif")
+            comp_macro = "__NEC__"
+            comp_id    = "NEC"
         elif comp == "ibm":
-            print("#ifndef __ibmxl__")
-            print('static_assert(false,"libamrex was built with IBM");')
-            print("#endif")
+            comp_macro = "__ibmxl__"
+            comp_id    = "IBM"
+        elif comp == "armclang":
+            comp_macro = "__armclang_version__"
+            comp_id    = "ArmClang"
+        elif comp == "hip":
+            comp_macro = "__HIP__"
+            comp_id    = "HIP"
+        elif comp == "dpcpp":
+            comp_macro = "__INTEL_CLANG_COMPILER"
+            comp_id    = "DPCPP"
         else:
             sys.exit("ERROR: unknown compiler "+comp+" to mkconfig.py")
 
-    if use_omp == "TRUE":
-        print("#ifndef _OPENMP")
-        print('static_assert(false,"libamrex was built with OpenMP");')
+        msg = "#error libamrex was built with " + comp_id + ". "
+        msg = msg + "To avoid this error, reconfigure with --allow-different-compiler=yes"
+        print("#ifndef " + comp_macro )
+        print(msg)
         print("#endif")
-    elif use_omp == "FALSE":
-        print("#ifdef _OPENMP")
-        print('static_assert(false,"libamrex was built without OpenMP");')
-        print("#endif")
-    else:
-        sys.exit("ERROR: unknown use_omp flag "+use_omp+" in mkconfig.py")
 
     print("#endif") #  ifdef __cplusplus
+
+    print("#if defined(AMREX_USE_OMP) && !defined(_OPENMP)")
+    print('#error libamrex was built with OpenMP')
+    print("#endif")
 
     print("#endif")
 
@@ -85,20 +95,16 @@ if __name__ == "__main__":
                         default="")
     parser.add_argument("--comp",
                         help="compiler",
-                        choices=["gnu","intel","cray","pgi","llvm","nag","nec","ibm"])
+                        choices=["gnu","intel","cray","pgi","nvhpc","llvm","nag","nec","ibm",
+                                 "armclang","hip","dpcpp"])
     parser.add_argument("--allow-different-compiler",
                         help="allow an application to use a different compiler than the one used to build libamrex",
-                        choices=["TRUE","FALSE"])
-    parser.add_argument("--use-omp",
-                        help="use openmp",
                         choices=["TRUE","FALSE"])
     args = parser.parse_args()
 
     try:
         doit(defines=args.defines, undefines=args.undefines, comp=args.comp,
-             allow_diff_comp=args.allow_different_compiler,
-             use_omp=args.use_omp)
+             allow_diff_comp=args.allow_different_compiler)
     except:
         # something went wrong
         print("$(error something went wrong in mkconfig.py)")
-

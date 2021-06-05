@@ -1,6 +1,7 @@
 
 #ifndef AMREX_BOUNDCOND_H_
 #define AMREX_BOUNDCOND_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
 #include <AMReX_GpuQualifiers.H>

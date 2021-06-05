@@ -1,5 +1,6 @@
 #ifndef AMREX_EB2_MULTIGFAB_H_
 #define AMREX_EB2_MULTIGFAB_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_EB2_Graph.H>
 #include <AMReX_EBCellFlag.H>
@@ -46,7 +47,7 @@ public:
     const Graph& getGraph () const { return m_graph; }
     Graph& getGraph () { return m_graph; }
 
-    void buildTypes (EBCellFlagFab& celltype);
+    void buildTypes (EBCellFlagFab& celltype, bool cover_multiple_cuts = false);
 
 private:
 

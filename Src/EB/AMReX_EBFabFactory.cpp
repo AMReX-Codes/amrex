@@ -22,6 +22,7 @@ EBFArrayBoxFactory::EBFArrayBoxFactory (const EB2::Level& a_level,
       m_parent(&a_level)
 {}
 
+AMREX_NODISCARD
 FArrayBox*
 EBFArrayBoxFactory::create (const Box& box, int ncomps,
                             const FabInfo& info, int box_index) const
@@ -37,6 +38,7 @@ EBFArrayBoxFactory::create (const Box& box, int ncomps,
     }
 }
 
+AMREX_NODISCARD
 FArrayBox*
 EBFArrayBoxFactory::create_alias (FArrayBox const& rhs, int scomp, int ncomp) const
 {
@@ -65,6 +67,7 @@ EBFArrayBoxFactory::destroy (FArrayBox* fab) const
     }
 }
 
+AMREX_NODISCARD
 EBFArrayBoxFactory*
 EBFArrayBoxFactory::clone () const
 {
@@ -112,11 +115,9 @@ makeEBFabFactory (const Geometry& a_geom,
                   const DistributionMapping& a_dm,
                   const Vector<int>& a_ngrow, EBSupport a_support)
 {
-    std::unique_ptr<EBFArrayBoxFactory> r;
     const EB2::IndexSpace& index_space = EB2::IndexSpace::top();
     const EB2::Level& eb_level = index_space.getLevel(a_geom);
-    r.reset(new EBFArrayBoxFactory(eb_level, a_geom, a_ba, a_dm, a_ngrow, a_support));
-    return r;
+    return std::make_unique<EBFArrayBoxFactory>(eb_level, a_geom, a_ba, a_dm, a_ngrow, a_support);
 }
 
 std::unique_ptr<EBFArrayBoxFactory>
@@ -125,9 +126,8 @@ makeEBFabFactory (const EB2::Level* eb_level,
                   const DistributionMapping& a_dm,
                   const Vector<int>& a_ngrow, EBSupport a_support)
 {
-    return std::unique_ptr<EBFArrayBoxFactory> (
-        new EBFArrayBoxFactory(*eb_level, eb_level->Geom(),
-                               a_ba, a_dm, a_ngrow, a_support));
+    return std::make_unique<EBFArrayBoxFactory>(*eb_level, eb_level->Geom(),
+                                                a_ba, a_dm, a_ngrow, a_support);
 }
 
 std::unique_ptr<EBFArrayBoxFactory>
@@ -137,9 +137,8 @@ makeEBFabFactory (const EB2::IndexSpace* index_space, const Geometry& a_geom,
                   const Vector<int>& a_ngrow, EBSupport a_support)
 {
     const EB2::Level& eb_level = index_space->getLevel(a_geom);
-    return std::unique_ptr<EBFArrayBoxFactory> (
-        new EBFArrayBoxFactory(eb_level, a_geom,
-                               a_ba, a_dm, a_ngrow, a_support));
+    return std::make_unique<EBFArrayBoxFactory>(eb_level, a_geom,
+                                                a_ba, a_dm, a_ngrow, a_support);
 }
 
 }

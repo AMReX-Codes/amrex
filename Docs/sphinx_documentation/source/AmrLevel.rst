@@ -111,10 +111,10 @@ the :cpp:`AmrLevelAdv` class, e.g.,
         for (int i = 0; i < BL_SPACEDIM; ++i) {
         lo_bc[i] = hi_bc[i] = INT_DIR;   // periodic boundaries
         }
-        
+
         BCRec bc(lo_bc, hi_bc);
 
-        desc_lst.setComponent(Phi_Type, 0, "phi", bc, 
+        desc_lst.setComponent(Phi_Type, 0, "phi", bc,
                   StateDescriptor::BndryFunc(nullfill));
     }
 
@@ -125,7 +125,7 @@ cells, number of components, and the interlevel interpolation (See
 AMReX_Interpolator for various interpolation types. We also see how to specify
 physical boundary functions by providing a function (in this case,
 :cpp:`nullfill` since we are not using physical boundary conditions), where
-:cpp:`nullfill` is defined in a fortran routine in the tutorial source code.
+:cpp:`nullfill` is defined in a Fortran routine in the tutorial source code.
 
 Example: Advection_AmrLevel
 ===========================
@@ -168,7 +168,7 @@ The figure above shows the :ref:`fig:AmrAdvection_AmrLevel_flowchart`
     main()
       Amr amr;
       amr.init()
-      loop { 
+      loop {
         amr.coarseTimeStep()
           /* compute dt */
           timeStep()

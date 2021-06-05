@@ -1,10 +1,10 @@
 #ifndef AMREX_DISTFCNELEMENT_H_
 #define AMREX_DISTFCNELEMENT_H_
+#include <AMReX_Config.H>
 
-#include <vector>
-#include "AMReX_RealVect.H"
-#include "AMReX.H"
-#include "AMReX_Vector.H"
+#include <AMReX_RealVect.H>
+#include <AMReX.H>
+#include <AMReX_Vector.H>
 
 namespace amrex {
 

@@ -1,5 +1,6 @@
 #ifndef AMREX_YAFLUXREGISTER_1D_K_H_
 #define AMREX_YAFLUXREGISTER_1D_K_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
 
@@ -33,7 +34,6 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real> const& d, Array4<Real const>
                         Real dtdx, int nc, int dirside, Dim3 const& rr) noexcept
 {
     const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubound(bx);
 
     switch (dirside) {
     case 0 :

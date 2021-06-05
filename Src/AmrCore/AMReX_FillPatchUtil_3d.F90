@@ -23,7 +23,7 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
   real(amrex_real) :: coe_c0, coe_cx, coe_cy, coe_cz, coe_cxz, coe_cyz, coe_czz
   real(amrex_real), parameter :: theta = 2.d0 ! 1: minmod, 2: MC
   real(amrex_real), parameter :: one = 1.0_amrex_real
-  
+
   clo = amrex_coarsen_intvect(3,lo,rr);
   chi = amrex_coarsen_intvect(3,hi,rr);
 
@@ -51,7 +51,7 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
               c3 = theta*(cx(i,j+1,k)-cx(i,j  ,k))
               dCxdy(i,j,k) = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                    *min(abs(c1),abs(c2),abs(c3))
-              
+
               c1 = theta*(cx(i,j,k  )-cx(i,j,k-1))
               c2 = 0.5d0*(cx(i,j,k+1)-cx(i,j,k-1))
               c3 = theta*(cx(i,j,k+1)-cx(i,j,k  ))
@@ -76,7 +76,7 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
               c3 = theta*(cy(i+1,j,k)-cy(i  ,j,k))
               dCydx(i,j,k) = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                    *min(abs(c1),abs(c2),abs(c3))
-              
+
               c1 = theta*(cy(i,j,k  )-cy(i,j,k-1))
               c2 = 0.5d0*(cy(i,j,k+1)-cy(i,j,k-1))
               c3 = theta*(cy(i,j,k+1)-cy(i,j,k  ))
@@ -101,7 +101,7 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
               c3 = theta*(cz(i+1,j,k)-cz(i  ,j,k))
               dCzdx(i,j,k) = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                    *min(abs(c1),abs(c2),abs(c3))
-              
+
               c1 = theta*(cz(i,j  ,k)-cz(i,j-1,k))
               c2 = 0.5d0*(cz(i,j+1,k)-cz(i,j-1,k))
               c3 = theta*(cz(i,j+1,k)-cz(i,j  ,k))
@@ -248,12 +248,12 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
         end do
      end do
   end do
-           
+
   do       k  =  lo(3), hi(3)+1
      do    j  =  lo(2), hi(2)+1
         if (use_limiter .eq. 0) then
            do ic = clo(1),chi(1)
-              dc = 0.5d0*(tmpx(ic+1,j,k) - tmpx(ic-1,j,k))              
+              dc = 0.5d0*(tmpx(ic+1,j,k) - tmpx(ic-1,j,k))
               ex(ic*2  ,j,k) = tmpx(ic,j,k) - 0.25d0*dc
               ex(ic*2+1,j,k) = tmpx(ic,j,k) + 0.25d0*dc
            end do
@@ -264,7 +264,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
               c3 = theta*(tmpx(ic+1,j,k) - tmpx(ic  ,j,k))
               dc = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                    *min(abs(c1),abs(c2),abs(c3))
-              
+
               ex(ic*2  ,j,k) = tmpx(ic,j,k) - 0.25d0*dc
               ex(ic*2+1,j,k) = tmpx(ic,j,k) + 0.25d0*dc
            end do
@@ -280,7 +280,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
            tmpy(ic*2+1,jc,kc*2) = 0.5d0*(cy(ic,jc,kc)+cy(ic+1,jc,kc))
         end do
         ic = chi(1)+1
-        tmpy(ic*2,jc,kc*2) = cy(ic,jc,kc)        
+        tmpy(ic*2,jc,kc*2) = cy(ic,jc,kc)
      end do
   end do
 
@@ -291,12 +291,12 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
         end do
      end do
   end do
-  
+
   do       k  =  lo(3),  hi(3)+1
      do    jc = clo(2), chi(2)
         if (use_limiter .eq. 0) then
            do i  =  lo(1),  hi(1)+1
-              dc = 0.5d0*(tmpy(i,jc+1,k) - tmpy(i,jc-1,k))              
+              dc = 0.5d0*(tmpy(i,jc+1,k) - tmpy(i,jc-1,k))
               ey(i,jc*2  ,k) = tmpy(i,jc,k) - 0.25d0*dc
               ey(i,jc*2+1,k) = tmpy(i,jc,k) + 0.25d0*dc
            end do
@@ -307,7 +307,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
               c3 = theta*(tmpy(i,jc+1,k) - tmpy(i,jc  ,k))
               dc = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                    *min(abs(c1),abs(c2),abs(c3))
-              
+
               ey(i,jc*2  ,k) = tmpy(i,jc,k) - 0.25d0*dc
               ey(i,jc*2+1,k) = tmpy(i,jc,k) + 0.25d0*dc
            end do
@@ -315,7 +315,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
      end do
   end do
 
-  
+
   ! ez
   do       kc = clo(3)-1, chi(3)+1
      do    jc = clo(2)  , chi(2)+1
@@ -338,7 +338,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
      do    j  =  lo(2),  hi(2)+1
         if (use_limiter .eq. 0) then
            do i  =  lo(1),  hi(1)+1
-              dc = 0.5d0*(tmpz(i,j,kc+1) - tmpz(i,j,kc-1))              
+              dc = 0.5d0*(tmpz(i,j,kc+1) - tmpz(i,j,kc-1))
               ez(i,j,kc*2  ) = tmpz(i,j,kc) - 0.25d0*dc
               ez(i,j,kc*2+1) = tmpz(i,j,kc) + 0.25d0*dc
            end do
@@ -349,16 +349,16 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
               c3 = theta*(tmpz(i,j,kc+1) - tmpz(i,j,kc  ))
               dc = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                    *min(abs(c1),abs(c2),abs(c3))
-              
+
               ez(i,j,kc*2  ) = tmpz(i,j,kc) - 0.25d0*dc
               ez(i,j,kc*2+1) = tmpz(i,j,kc) + 0.25d0*dc
            end do
         end if
      end do
   end do
-  
+
   call bl_deallocate(tmpx)
   call bl_deallocate(tmpy)
   call bl_deallocate(tmpz)
-  
+
 end subroutine amrex_interp_efield

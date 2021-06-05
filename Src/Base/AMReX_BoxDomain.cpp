@@ -1,9 +1,9 @@
 
-#include <iostream>
-
 #include <AMReX_BoxDomain.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Print.H>
+
+#include <iostream>
 
 namespace amrex {
 
@@ -63,6 +63,7 @@ BoxDomain&
 BoxDomain::complementIn (const Box&       b,
                          const BoxDomain& bl)
 {
+    BL_PROFILE("BoxDomain::complementIn()");
     BoxList::complementIn(b,bl);
     BL_ASSERT(ok());
     return *this;
@@ -110,6 +111,11 @@ BoxDomain::BoxDomain (const Box& bx)
     BoxList(bx)
 {
 }
+
+//! Construct from a BoxList that has no overlap
+BoxDomain::BoxDomain (BoxList&& bl)
+    : BoxList(std::move(bl))
+{}
 
 void
 BoxDomain::add (const Box& b)
@@ -189,9 +195,9 @@ BoxDomain::ok () const
             {
                 if (bli->intersects(*blii))
                 {
-//		    amrex::Print(Print::AllProcs) << "Invalid DOMAIN, boxes overlap" << '\n'
-//						  << "b1 = " << *bli << '\n'
-//						  << "b2 = " << *blii << '\n';
+//            amrex::Print(Print::AllProcs) << "Invalid DOMAIN, boxes overlap" << '\n'
+//                          << "b1 = " << *bli << '\n'
+//                          << "b2 = " << *blii << '\n';
                     status = false;
                 }
             }

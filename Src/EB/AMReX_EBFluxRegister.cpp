@@ -3,7 +3,7 @@
 #include <AMReX_EBFluxRegister_C.H>
 #include <AMReX_EBFArrayBox.H>
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
 
@@ -45,7 +45,7 @@ EBFluxRegister::defineExtra (const BoxArray& fba, const DistributionMapping& fdm
     BoxArray cfba = fba;
     cfba.coarsen(m_ratio);
     m_cfp_inside_mask.define(cfba, fdm, 1, 0, MFInfo(),DefaultFabFactory<IArrayBox>());
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(m_cfp_inside_mask); mfi.isValid(); ++mfi)
@@ -229,11 +229,11 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
 
 void
 EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
-                        MultiFab& fine_state, const amrex::MultiFab& fine_vfrac)
+                        MultiFab& fine_state, const amrex::MultiFab& /*fine_vfrac*/)
 {
     if (!m_cfp_mask.empty())
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(m_cfpatch); mfi.isValid(); ++mfi)
@@ -255,15 +255,17 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                                  m_ncomp, 1, MFInfo(), FArrayBoxFactory());
         MultiFab::Copy(grown_crse_data, m_crse_data, 0, 0, m_ncomp, 0);
         grown_crse_data.FillBoundary(m_crse_geom.periodicity());
-        
+
         m_crse_data.setVal(0.0);
-        
+
         auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(crse_state.Factory());
         auto const& flags = factory.getMultiEBCellFlagFab();
 
+        const Box& gdomain = m_crse_geom.growPeriodicDomain(1);
+
         MFItInfo info;
         if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(m_crse_data, info); mfi.isValid(); ++mfi)
@@ -273,7 +275,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                 const Box& bx = mfi.tilebox();
                 const auto& ebflag = flags[mfi];
                 if (ebflag.getType(bx) != FabType::covered) {
-                    const Box& bxg1 = amrex::grow(bx,1);
+                    const Box& bxg1 = amrex::grow(bx,1) & gdomain;
                     Array4<Real> const& dfab = m_crse_data.array(mfi);
                     Array4<Real const> const& sfab = grown_crse_data.const_array(mfi);
                     if (ebflag.getType(bxg1) == FabType::regular)
@@ -312,16 +314,16 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
 
     Dim3 ratio = m_ratio.dim3();
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(cf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& cbx = mfi.tilebox();
         const Box& fbx = amrex::refine(cbx, m_ratio);
-        
+
         const auto& ebflag = flags[mfi];
-        
+
         if (ebflag.getType(fbx) != FabType::covered)
         {
             Array4<Real> const& d = fine_state.array(mfi);

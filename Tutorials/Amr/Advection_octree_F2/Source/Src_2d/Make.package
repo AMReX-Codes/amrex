@@ -1,5 +1,0 @@
-
-F90EXE_sources += advect_$(DIM)d_mod.F90
-
-f90EXE_sources += compute_flux_$(DIM)d.f90 slope_$(DIM)d.f90
-

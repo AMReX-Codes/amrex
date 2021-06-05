@@ -26,7 +26,7 @@ void init_prob_parms ()
     pp.query("b"    , b);
     pp.query("sigma", sigma);
     pp.query("w"    , w);
-    
+
     std::string bc_type_s;
     pp.query("bc_type", bc_type_s);
     if (bc_type_s == "Dirichlet") {
@@ -57,7 +57,7 @@ void init_prob (const Vector<Geometry>& geom, Vector<MultiFab>& alpha, Vector<Mu
     }
 
     const int nlevels = geom.size();
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     for (int ilev = 0; ilev < nlevels; ++ilev)

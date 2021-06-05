@@ -42,7 +42,7 @@ void main_main ()
         pp.query("nwork", nwork);
         pp.query("nwrites", nwrites);
 
-        // inputs hierarchy: 
+        // inputs hierarchy:
         // n_cell > n_boxes_per_rank > n_cell_3d
 
         if (n_cell != 0)
@@ -66,7 +66,7 @@ void main_main ()
     Gpu::ManagedVector< Array4<Real> > arrs(nwrites);
 
     for (int m = 0; m < nwrites; ++m) {
-        mfs[m].define(ba, dm, 1, 0);   
+        mfs[m].define(ba, dm, 1, 0);
     }
 
     for (MFIter mfi(mfs[0]); mfi.isValid(); ++mfi) {
@@ -77,10 +77,11 @@ void main_main ()
 
         auto arrs_ptr = arrs.dataPtr();
 
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelForRNG(bx,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
         {
             for (int m = 0; m < nwrites; ++m) {
-               arrs_ptr[m](i,j,k) = amrex::Random();
+               arrs_ptr[m](i,j,k) = amrex::Random(engine);
             }
         });
         Gpu::streamSynchronize(); // because of arrs
@@ -97,7 +98,7 @@ void main_main ()
     }
 
     amrex::Print() << "I/O printing randomly filled multifab with: "
-                   << "\n  dimensions = "    << ba.minimalBox() 
+                   << "\n  dimensions = "    << ba.minimalBox()
                    << "\n  max_grid_size = " << max_grid_size
                    << "\n  boxes = "         << ba.size()
                    << "\n  and nwork = "     << nwork << std::endl;
@@ -173,7 +174,7 @@ void main_main ()
 
 // ***************************************************************
 
-    amrex::Print() << " AsyncOut " << std::endl; 
+    amrex::Print() << " AsyncOut " << std::endl;
     {
         BL_PROFILE_REGION("vismf-async-overlap");
         for (int m = 0; m < nwrites; ++m) {

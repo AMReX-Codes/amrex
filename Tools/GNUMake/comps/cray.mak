@@ -11,19 +11,29 @@ CFLAGS   =
 FFLAGS   =
 F90FLAGS =
 
+AMREX_CCOMP = cray
+AMREX_FCOMP = cray
+
 ########################################################################
 
-# CRAY_CC_VERSION is defined by the 'cce' module. Starting with CCE 9, Cray
-# changed the C and C++ compilers to clang/LLVM based, so all of the
-# options/flags for those compilers changed. But the Cray Fortran compiler is
-# still based on CCE 8 and so it has the same options as before.
-COMP_VERSION = $(shell echo $(CRAY_CC_VERSION) | cut -f 1 -d .)
+ifneq ($(shell CC --version | grep -E "LLVM|clang"),)
+  CRAY_IS_CLANG_BASED = TRUE
+else
+  CRAY_IS_CLANG_BASED = FALSE
+endif
+
+ifeq ($(CRAY_IS_CLANG_BASED),FALSE)
+  # -MMD -MP not supprted
+  USE_LEGACY_DEPFLAGS = TRUE
+  DEPFLAGS =
+  LEGACY_DEPFLAGS = -M
+endif
 
 ########################################################################
 
 ifeq ($(DEBUG),TRUE)
 
-  ifeq ($(COMP_VERSION),9)
+  ifeq ($(CRAY_IS_CLANG_BASED),TRUE)
     CXXFLAGS += -g -O0
     CFLAGS   += -g -O0
     FFLAGS   += -g -O0 -e i -K trap=fp
@@ -38,7 +48,7 @@ ifeq ($(DEBUG),TRUE)
   endif
 
 else
-  ifeq ($(COMP_VERSION),9)
+  ifeq ($(CRAY_IS_CLANG_BASED),TRUE)
     # The LLVM optimizer is not as aggressive as the native Cray optimizer from
     # CCE <= 8. So we adjust some flags to achieve similar optimization. See
     # this page:
@@ -63,10 +73,10 @@ endif
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
 else
-  CXXSTD := c++11
+  CXXSTD := c++14
 endif
 
-ifeq ($(COMP_VERSION),9)
+ifeq ($(CRAY_IS_CLANG_BASED),TRUE)
   CXXFLAGS += -std=$(CXXSTD)
   CFLAGS   += -std=c99
 else
@@ -84,7 +94,7 @@ FMODULES = -I $(fmoddir) -J $(fmoddir)
 ifeq ($(USE_OMP),TRUE)
   # Starting in CCE 9, OpenMP is disabled by default in each of C/C++/Fortran
   # compilers.
-  ifeq ($(COMP_VERSION),9)
+  ifeq ($(CRAY_IS_CLANG_BASED),TRUE)
     CXXFLAGS += -fopenmp
     CFLAGS   += -fopenmp
     FFLAGS   += -h omp
@@ -93,20 +103,24 @@ ifeq ($(USE_OMP),TRUE)
     GENERIC_COMP_FLAGS += -h omp
   endif
 else
-  ifneq ($(COMP_VERSION),9)
+  ifeq ($(CRAY_IS_CLANG_BASED),FALSE)
     GENERIC_COMP_FLAGS += -h noomp
   endif
 endif
 
 ifeq ($(USE_ACC),TRUE)
   # OpenACC is removed from CCE altogether in CCE 9.
-  ifeq ($(COMP_VERSION),9)
-    $(error OpenACC has been removed from CCE 9.)
+  ifeq ($(CRAY_IS_CLANG_BASED),TRUE)
+    $(error OpenACC has been removed from CCE >= 9.)
   endif
 else
-  ifneq ($(COMP_VERSION),9)
+  ifeq ($(CRAY_IS_CLANG_BASED),FALSE)
     GENERIC_COMP_FLAGS += -h noacc
   endif
+endif
+
+ifeq ($(CRAY_IS_CLANG_BASED),TRUE)
+  CXXFLAGS += -Wno-pass-failed -Wno-c++17-extensions
 endif
 
 CXXFLAGS += $(GENERIC_COMP_FLAGS)

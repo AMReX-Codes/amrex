@@ -1,5 +1,6 @@
 #ifndef AMREX_EXTRAPOLATER_H_
 #define AMREX_EXTRAPOLATER_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
@@ -19,6 +20,9 @@ namespace Extrapolater
 
     //! It is expected that FillBoundary (w/ periodicity) has been called on mf.
     void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp);
+
+    //! It is expected that FillBoundary (w/ periodicity) has been called on mf.
+    void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp, int nGrow);
 }
 
 }

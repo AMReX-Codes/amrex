@@ -1,15 +1,14 @@
-
-#include <iostream>
-#include <cstdlib>
-#include <limits>
-#include <cstring>
-
 #include <AMReX.H>
 #include <AMReX_FabConv.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FPC.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Utility.H>
+
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <limits>
 
 namespace amrex {
 
@@ -221,7 +220,7 @@ selectOrdering (int prec,
 RealDescriptor*
 RealDescriptor::newRealDescriptor (int         iot,
                                    int         prec,
-                                   const char* sys,
+                                   const char* /*sys*/,
                                    int         ordering)
 {
     RealDescriptor* rd = 0;
@@ -238,6 +237,8 @@ RealDescriptor::newRealDescriptor (int         iot,
             return rd;
         case FABio::FAB_DOUBLE:
             rd = new RealDescriptor(FPC::ieee_double, ord, 8);
+            return rd;
+        default:
             return rd;
         }
     }
@@ -498,7 +499,7 @@ _pd_reorder (char*      arr,
              const int* ord)
 {
     const int MAXLINE = 16;
-    char local[MAXLINE];
+    char local[MAXLINE] = {0};
 
     for (int j; nitems > 0; nitems--)
     {
@@ -521,11 +522,11 @@ permute_real_word_order (void*       out,
                          const void* in,
                          Long        nitems,
                          const int*  outord,
-                         const int*  inord, 
+                         const int*  inord,
                          int         REALSIZE)
 {
 //    BL_PROFILE("permute_real_word_order");
-    
+
     char* pin  = (char*) in;
     char* pout = (char*) out;
 
@@ -970,7 +971,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 
     if(bAlwaysFixDenormals) {
       PD_fixdenormals(out, nitems, FPC::NativeRealDescriptor().format(),
-		      FPC::NativeRealDescriptor().order());
+                      FPC::NativeRealDescriptor().order());
     }
 }
 
@@ -1003,7 +1004,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 
         if(bAlwaysFixDenormals) {
           PD_fixdenormals(out, get, FPC::NativeRealDescriptor().format(),
-			  FPC::NativeRealDescriptor().order());
+                          FPC::NativeRealDescriptor().order());
         }
         nitems -= get;
         out    += get;
@@ -1191,7 +1192,7 @@ RealDescriptor::convertToNativeFloatFormat (float*                out,
 
         if(bAlwaysFixDenormals) {
           PD_fixdenormals(out, get, FPC::Native32RealDescriptor().format(),
-			  FPC::Native32RealDescriptor().order());
+                          FPC::Native32RealDescriptor().order());
         }
         nitems -= get;
         out    += get;
@@ -1233,7 +1234,7 @@ RealDescriptor::convertToNativeDoubleFormat (double*               out,
 
         if(bAlwaysFixDenormals) {
           PD_fixdenormals(out, get, FPC::Native64RealDescriptor().format(),
-			  FPC::Native64RealDescriptor().order());
+                          FPC::Native64RealDescriptor().order());
         }
         nitems -= get;
         out    += get;

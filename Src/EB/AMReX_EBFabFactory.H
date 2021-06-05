@@ -1,5 +1,6 @@
 #ifndef AMREX_EBFABFACTORY_H_
 #define AMREX_EBFABFACTORY_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_FabFactory.H>
 
@@ -33,12 +34,15 @@ public:
     EBFArrayBoxFactory& operator= (const EBFArrayBoxFactory&) = delete;
     EBFArrayBoxFactory& operator= (EBFArrayBoxFactory&&) = delete;
 
+    AMREX_NODISCARD
     virtual FArrayBox* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const final;
 
+    AMREX_NODISCARD
     virtual FArrayBox* create_alias (FArrayBox const& rhs, int scomp, int ncomp) const final;
 
     virtual void destroy (FArrayBox* fab) const final;
 
+    AMREX_NODISCARD
     virtual EBFArrayBoxFactory* clone () const final;
 
     const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const noexcept
@@ -63,6 +67,10 @@ public:
         return m_ebdc->getFaceCent();
     }
 
+    Array<const MultiCutFab*,AMREX_SPACEDIM> getEdgeCent () const noexcept {
+        return m_ebdc->getEdgeCent();
+    }
+
     bool isAllRegular () const noexcept;
 
     EB2::Level const* getEBLevel () const noexcept { return m_parent; }
@@ -71,6 +79,7 @@ public:
 
     const DistributionMapping& DistributionMap () const noexcept;
     const BoxArray& boxArray () const noexcept;
+    const Geometry& Geom () const noexcept { return m_geom; }
 
 private:
 

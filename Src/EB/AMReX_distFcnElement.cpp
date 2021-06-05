@@ -110,7 +110,7 @@ amrex::Real SplineDistFcnElement2d::cpside(amrex::RealVect pt,
   amrex::Real t;
   amrex::RealVect cp;
   amrex::Real dist;
-  amrex::Real x0, x1, y0, y1, Dx0, Dx1, Dy0, Dy1, tmin;
+  amrex::Real x0=0., x1=0., y0=0., y1=0., Dx0=0., Dx1=0., Dy0=0., Dy1=0., tmin=0.;
   int nsplines = Dx.size() - 1;
   for (int i=0; i<nsplines; ++i) {
     single_spline_cpdist(pt, control_points_x[i], control_points_x[i+1],
@@ -224,7 +224,7 @@ void SplineDistFcnElement2d::dxbydt(amrex::Real t,
 
 
 void SplineDistFcnElement2d::calc_D(bool clamped_bc) {
-  unsigned nsplines = control_points_x.size() - 1;
+  int nsplines = control_points_x.size() - 1;
 
   std::vector<amrex::Real> rhsx, rhsy, diag, diagminus, diagplus;
   rhsx.resize(nsplines+1);
@@ -338,7 +338,7 @@ amrex::Real LineDistFcnElement2d::cpdist(amrex::RealVect pt,
   mindist = 1.0e29;
   amrex::RealVect cp;
 
-  for (int i=1; i<control_points_x.size(); ++i) {
+  for (int i=1, N=control_points_x.size(); i<N; ++i) {
     single_seg_cpdist(pt,
                       control_points_x[i-1], control_points_x[i],
                       control_points_y[i-1], control_points_y[i],
@@ -359,7 +359,7 @@ amrex::Real LineDistFcnElement2d::cpside(amrex::RealVect pt,
   amrex::RealVect cp;
   amrex::RealVect l0, l1;
 
-  for (int i=1; i<control_points_x.size(); ++i) {
+  for (int i=1, N=control_points_x.size(); i<N; ++i) {
     single_seg_cpdist(pt,
                       control_points_x[i-1], control_points_x[i],
                       control_points_y[i-1], control_points_y[i],
@@ -400,7 +400,6 @@ amrex::Real LineDistFcnElement2d::cpside(amrex::RealVect pt,
     }
     */
   }
-  amrex::Abort("Should not get here");
 }
 
 void LineDistFcnElement2d::set_control_points
@@ -439,7 +438,7 @@ void LineDistFcnElement2d::single_seg_cpdist(amrex::RealVect pt,
 
   void LineDistFcnElement2d::print_control_points() {
 
-  for (int i=1; i<control_points_x.size(); ++i) {
+  for (int i=1, N=control_points_x.size(); i<N; ++i) {
   std::cout << "(" << control_points_x[i-1] << ", "<< control_points_y[i-1] << ")" << "---"
             << "(" << control_points_x[i] << ", " << control_points_y[i] << ")" << std::endl;
 }

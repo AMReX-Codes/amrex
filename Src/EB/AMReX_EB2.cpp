@@ -15,14 +15,16 @@
 
 namespace amrex { namespace EB2 {
 
-Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
+AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 
-int max_grid_size = 64;
+AMREX_EXPORT int max_grid_size = 64;
+AMREX_EXPORT bool extend_domain_face = true;
 
 void Initialize ()
 {
     ParmParse pp("eb2");
     pp.query("max_grid_size", max_grid_size);
+    pp.query("extend_domain_face", extend_domain_face);
 
     amrex::ExecOnFinalize(Finalize);
 }
@@ -30,6 +32,11 @@ void Initialize ()
 void Finalize ()
 {
     IndexSpace::clear();
+}
+
+bool ExtendDomainFace ()
+{
+    return extend_domain_face;
 }
 
 void

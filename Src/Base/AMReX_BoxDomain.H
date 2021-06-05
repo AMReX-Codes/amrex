@@ -1,17 +1,19 @@
 
 #ifndef BL_BOXDOMAIN_H
 #define BL_BOXDOMAIN_H
-
-#include <iosfwd>
+#include <AMReX_Config.H>
 
 #include <AMReX_IndexType.H>
 #include <AMReX_Box.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BoxList.H>
 
+#include <iosfwd>
+
 namespace amrex
 {
     class BoxDomain;
+    class BoxArray;
 
     //! Returns the complement of BoxDomain bl in Box b.
     BoxDomain complementIn (const Box& b, const BoxDomain& bl);
@@ -66,6 +68,7 @@ class BoxDomain
     protected BoxList
 {
 public:
+    friend class ClusterList;
 
     typedef BoxList::const_iterator const_iterator;
     //! Construct an empty BoxDomain of IndexType::TheCellType().
@@ -157,6 +160,10 @@ public:
     //! Creates the complement of BoxDomain bl in Box b.
     BoxDomain& complementIn (const Box&       b,
                              const BoxDomain& bl);
+
+private:
+    //! Construct from a BoxList that has no overlap
+    explicit BoxDomain (BoxList&& bl);
 };
 
 }

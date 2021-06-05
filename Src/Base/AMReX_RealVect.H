@@ -1,19 +1,20 @@
 #ifndef AMREX_REALVECT_H_
 #define AMREX_REALVECT_H_
-
-#include <cstddef>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-#include <cmath>
+#include <AMReX_Config.H>
 
 #include <AMReX_Box.H>
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
-#include <vector>
 #include <AMReX_IntVect.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Math.H>
+
+#include <cmath>
+#include <cstddef>
+#include <cstdlib>
+#include <cstring>
+#include <iosfwd>
+#include <vector>
 
 namespace amrex
 {
@@ -118,7 +119,7 @@ public:
   AMREX_GPU_HOST_DEVICE
   inline
   Real* begin () noexcept { return vect; }
-  
+
   ///
   /**
      Return pointer to the first component.
@@ -126,7 +127,7 @@ public:
   AMREX_GPU_HOST_DEVICE
   inline
   const Real* begin () const noexcept { return vect; }
-  
+
   ///
   /**
      Return pointer to the one past last component
@@ -134,7 +135,7 @@ public:
   AMREX_GPU_HOST_DEVICE
   inline
   Real* end () noexcept { return vect + AMREX_SPACEDIM; }
-  
+
   ///
   /**
      Return pointer to the one past last component
@@ -142,7 +143,7 @@ public:
   AMREX_GPU_HOST_DEVICE
   inline
   const Real* end () const noexcept { return vect + AMREX_SPACEDIM; }
-  
+
   /*@}*/
 
   /**
@@ -348,7 +349,7 @@ public:
 
   ///
   /**
-     Returns an IntVect whose components are the std::floor of the RealVect 
+     Returns an IntVect whose components are the std::floor of the RealVect
      components.
   */
   AMREX_GPU_HOST_DEVICE inline
@@ -356,7 +357,7 @@ public:
 
   ///
   /**
-     Returns an IntVect whose components are the std::floor of the RealVect 
+     Returns an IntVect whose components are the std::floor of the RealVect
      components.
   */
   AMREX_GPU_HOST_DEVICE inline
@@ -364,7 +365,7 @@ public:
 
   ///
   /**
-     Returns an IntVect whose components are the std::floor of the RealVect 
+     Returns an IntVect whose components are the std::floor of the RealVect
      components.
   */
   AMREX_GPU_HOST_DEVICE inline
@@ -741,7 +742,7 @@ Real
 RealVect::vectorLength () const noexcept
 {
   Real len = this->radSquared();
-  len = amrex::Math::sqrt(len);
+  len = std::sqrt(len);
   return len;
 }
 

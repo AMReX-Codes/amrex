@@ -19,6 +19,10 @@ gcc_minor_version = $(shell g++ -dumpfullversion -dumpversion | head -1 | sed -e
 
 COMP_VERSION = $(pgi_version)
 
+# -MP not supported by pgi and -MMD's output is put in the wrong directory
+USE_LEGACY_DEPFLAGS = TRUE
+DEPFLAGS =
+
 ########################################################################
 
 GENERIC_PGI_FLAGS =
@@ -82,18 +86,16 @@ else
 endif
 
 # The logic here should be consistent with what's in nvcc.mak
+
+ifeq ($(shell expr $(gcc_major_version) \< 5),1)
+  $(error C++14 support requires GCC 5 or newer.)
+endif
+
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
-  ifeq ($(shell expr $(gcc_major_version) \< 5),1)
-    ifeq ($(CXXSTD),c++14)
-      $(error C++14 support requires GCC 5 or newer.)
-    endif
-  endif
   CXXFLAGS += -std=$(CXXSTD)
 else
-  ifeq ($(gcc_major_version),4)
-    CXXFLAGS += -std=c++11
-  else ifeq ($(gcc_major_version),5)
+  ifeq ($(gcc_major_version),5)
     CXXFLAGS += -std=c++14
   endif
 endif
@@ -188,9 +190,12 @@ ifeq ($(USE_CUDA),TRUE)
     FFLAGS   += -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT)
   endif
 
-  DEFINES += -DAMREX_USE_CUDA_FORTRAN
-
-  LINK_WITH_FORTRAN_COMPILER = TRUE
+  ifeq ($(USE_MPI),TRUE)
+  ifneq ($(findstring Open MPI, $(shell mpicxx -showme:version 2>&1)),)
+    OMPI_FCFLAGS_ORIG = $(shell mpif90 -showme:compile)
+    export OMPI_FCFLAGS := $(subst -pthread,-lpthread,$(OMPI_FCFLAGS_ORIG))
+  endif
+  endif
 
 endif
 

@@ -1,6 +1,7 @@
 
 #ifndef AMREX_FABSET_H_
 #define AMREX_FABSET_H_
+#include <AMReX_Config.H>
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
@@ -77,7 +78,7 @@ public:
     const BoxArray& boxArray () const noexcept { return m_mf.boxArray(); }
 
     const DistributionMapping& DistributionMap () const noexcept
-	{ return m_mf.DistributionMap(); }
+        { return m_mf.DistributionMap(); }
 
     int nComp () const noexcept { return m_mf.nComp(); }
 
@@ -91,13 +92,13 @@ public:
     FabSet& plusFrom (const FabSet& src, int scomp, int dcomp, int ncomp);
 
     FabSet& plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp,
-		      const Periodicity& period = Periodicity::NonPeriodic());
+                      const Periodicity& period = Periodicity::NonPeriodic());
 
     void copyTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
-		 const Periodicity& period = Periodicity::NonPeriodic()) const;
+                 const Periodicity& period = Periodicity::NonPeriodic()) const;
 
     void plusTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
-		 const Periodicity& period = Periodicity::NonPeriodic()) const;
+                 const Periodicity& period = Periodicity::NonPeriodic()) const;
 
     void setVal (Real val);
 
@@ -108,7 +109,7 @@ public:
 
     //!< Linear combination: this := a*mfa + b*mfb
     FabSet& linComb (Real a, const MultiFab& mfa, int a_comp,
-		     Real b, const MultiFab& mfb, int b_comp,
+                     Real b, const MultiFab& mfb, int b_comp,
                      int dcomp, int ncomp, int ngrow);
 
     //
@@ -130,7 +131,7 @@ class FabSetIter
 {
 public:
     explicit FabSetIter (const FabSet& fs)
-	: MFIter(fs.m_mf) { }
+        : MFIter(fs.m_mf) { }
 };
 
 }

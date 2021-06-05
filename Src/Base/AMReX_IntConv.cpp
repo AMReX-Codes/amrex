@@ -9,7 +9,7 @@ std::int16_t swapBytes(std::int16_t val)
 
 std::int32_t swapBytes(std::int32_t val)
 {
-    val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF ); 
+    val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF );
     return (val << 16) | ((val >> 16) & 0xFFFF);
 }
 
@@ -27,7 +27,7 @@ std::uint16_t swapBytes(std::uint16_t val)
 
 std::uint32_t swapBytes(std::uint32_t val)
 {
-    val = ((val << 8) & 0xFF00FF00 ) | ((val >> 8) & 0xFF00FF ); 
+    val = ((val << 8) & 0xFF00FF00 ) | ((val >> 8) & 0xFF00FF );
     return (val << 16) | (val >> 16);
 }
 

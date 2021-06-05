@@ -1,20 +1,31 @@
 
-#include <iostream>
-#include <map>
-#include <algorithm>
-#include <string>
-#include <unordered_set>
-#include <exception>
 #include <AMReX_GpuDevice.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 #include <AMReX_GpuLaunch.H>
 
+#include <iostream>
+#include <map>
+#include <algorithm>
+#include <string>
+#include <unordered_set>
+#include <exception>
+
 #if defined(AMREX_USE_CUDA)
 #include <cuda_profiler_api.h>
 #if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
-#include "nvToolsExt.h"
+#include <nvToolsExt.h>
+#endif
+#endif
+
+#if defined(AMREX_USE_HIP)
+#include <hip/hip_runtime.h>
+#if defined(AMREX_USE_ROCTX)
+#include <roctracer_ext.h>
+#if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
+#include <roctx.h>
+#endif
 #endif
 #endif
 
@@ -48,20 +59,25 @@ namespace Gpu {
 int Device::device_id = 0;
 int Device::num_devices_used = 0;
 int Device::verbose = 0;
+#ifdef AMREX_USE_GPU
+int Device::max_gpu_streams = 4;
+#else
+int Device::max_gpu_streams = 1;
+#endif
 
 #ifdef AMREX_USE_GPU
-constexpr int Device::max_gpu_streams;
 dim3 Device::numThreadsMin      = dim3(1, 1, 1);
 dim3 Device::numThreadsOverride = dim3(0, 0, 0);
 dim3 Device::numBlocksOverride  = dim3(0, 0, 0);
-int  Device::max_blocks_per_launch = 640;
+unsigned int Device::max_blocks_per_launch = 2560;
 
-std::array<gpuStream_t,Device::max_gpu_streams> Device::gpu_streams;
-gpuStream_t                                     Device::gpu_default_stream;
-Vector<gpuStream_t>                             Device::gpu_stream;
-gpuDeviceProp_t                                 Device::device_prop;
+gpuStream_t         Device::gpu_default_stream;
+Vector<gpuStream_t> Device::gpu_stream_pool;
+Vector<gpuStream_t> Device::gpu_stream;
+gpuDeviceProp_t     Device::device_prop;
+int                 Device::memory_pools_supported = 0;
 
-constexpr int                                   Device::warp_size;
+constexpr int Device::warp_size;
 
 #ifdef AMREX_USE_DPCPP
 std::unique_ptr<sycl::context> Device::sycl_context;
@@ -76,12 +92,14 @@ namespace {
 
     void InitializeGraph(int graph_size)
     {
+        amrex::ignore_unused(graph_size);
+
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
 
         BL_PROFILE("InitGraph");
 
         int streams = Gpu::Device::numGpuStreams();
-        cudaGraphExec_t graphExec;
+        cudaGraphExec_t graphExec{};
         for (int n=0; n<(graph_size); ++n)
         {
             Gpu::Device::startGraphRecording((n == 0), NULL, NULL, 0);
@@ -115,6 +133,10 @@ Device::Initialize ()
     nvtx_init = nvtxRangeStartA(pname);
 #endif
 
+    ParmParse ppamrex("amrex");
+    ppamrex.query("max_gpu_streams", max_gpu_streams);
+    max_gpu_streams = std::min(max_gpu_streams, AMREX_GPU_MAX_STREAMS);
+
     ParmParse pp("device");
 
     pp.query("v", verbose);
@@ -127,13 +149,6 @@ Device::Initialize ()
               amrex::Print() << "Initializing oneAPI...\n"; )
     }
 
-    // XL CUDA Fortran support needs to be initialized
-    // before any CUDA API calls.
-
-#if (defined(AMREX_USE_CUDA) && defined(__ibmxl__) && !defined(BL_NO_FORT))
-    __xlcuf_init();
-#endif
-
     // Count the number of GPU devices.
     int gpu_device_count = 0;
 #ifdef AMREX_USE_DPCPP
@@ -144,8 +159,6 @@ Device::Initialize ()
         gpu_device_count = gpu_devices.size();
         if (gpu_device_count <= 0) {
             amrex::Abort("No GPU device found");
-        } else if (gpu_device_count > 1) {
-            amrex::Abort("DPCPP TODO: more than one device not supported yet");
         }
     }
 #else
@@ -159,6 +172,9 @@ Device::Initialize ()
     // Now, assign ranks to GPUs. If we only have one GPU,
     // or only one MPI rank, this is easy. Otherwise, we
     // need to do a little more work.
+
+    int n_local_procs = 1;
+    amrex::ignore_unused(n_local_procs);
 
     if (ParallelDescriptor::NProcs() == 1) {
         device_id = 0;
@@ -198,9 +214,11 @@ Device::Initialize ()
         // this is if the number of visible devices is smaller than
         // the known number of GPUs per socket.
 
+#if defined(AMREX_USE_CUDA)
 #if (!defined(AMREX_GPUS_PER_SOCKET) && !defined(AMREX_GPUS_PER_NODE))
         amrex::Warning("Multiple GPUs are visible to each MPI rank, but the number of GPUs per socket or node has not been provided.\n"
                        "This may lead to incorrect or suboptimal rank-to-GPU mapping.");
+#endif
 #endif
 
         MPI_Comm local_comm;
@@ -222,8 +240,7 @@ Device::Initialize ()
         MPI_Comm_split_type(ParallelDescriptor::Communicator(), split_type, key, MPI_INFO_NULL, &local_comm);
 
         // Get rank within the local communicator, and number of ranks.
-        int n_procs;
-        MPI_Comm_size(local_comm, &n_procs);
+        MPI_Comm_size(local_comm, &n_local_procs);
 
         int my_rank;
         MPI_Comm_rank(local_comm, &my_rank);
@@ -242,7 +259,7 @@ Device::Initialize ()
         // that this will fail in the case where the devices are
         // set to exclusive process mode and MPS is not enabled.
 
-        if (n_procs > gpu_device_count) {
+        if (n_local_procs > gpu_device_count) {
             amrex::Print() << "Mapping more than one rank per GPU. This will fail if the GPUs are in exclusive process mode\n"
                            << "and MPS is not enabled. In that case you will see an error such as: 'all CUDA-capable devices are\n"
                            << "busy'. To resolve that issue, set the GPUs to the default compute mode, or enable MPS. If you are\n"
@@ -255,8 +272,6 @@ Device::Initialize ()
 
     AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipSetDevice(device_id));,
                       AMREX_CUDA_SAFE_CALL(cudaSetDevice(device_id)); );
-    AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipSetDeviceFlags(hipDeviceMapHost));,
-                      AMREX_CUDA_SAFE_CALL(cudaSetDeviceFlags(cudaDeviceMapHost)); );
 
 #ifdef AMREX_USE_ACC
     amrex_initialize_acc(device_id);
@@ -306,8 +321,6 @@ Device::Initialize ()
 #if (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
     nvtxRangeEnd(nvtx_init);
 #endif
-    cudaProfilerStart();
-
     if (amrex::Verbose()) {
 #if defined(AMREX_USE_MPI) && (__CUDACC_VER_MAJOR__ >= 10)
         if (num_devices_used == ParallelDescriptor::NProcs())
@@ -315,21 +328,26 @@ Device::Initialize ()
             amrex::Print() << "CUDA initialized with 1 GPU per MPI rank; "
                            << num_devices_used << " GPU(s) used in total\n";
         }
-        else 
+        else
         {
             amrex::Print() << "CUDA initialized with " << num_devices_used << " GPU(s) and "
                            << ParallelDescriptor::NProcs() << " ranks.\n";
         }
 #else  // Should always be using NVCC >= 10 now, so not going to bother with other combinations.
-        amrex::Print() << "CUDA initialized with 1 GPU\n"; 
+        amrex::Print() << "CUDA initialized with 1 GPU\n";
 #endif // AMREX_USE_MPI && NVCC >= 10
     }
 
-    cudaProfilerStart();
-
-#elif defined(AMREX_USE_HIP) 
+#elif defined(AMREX_USE_HIP)
     if (amrex::Verbose()) {
-        amrex::Print() << "HIP initialized.\n";
+        if (ParallelDescriptor::NProcs() > 1) {
+#ifdef BL_USE_MPI
+            amrex::Print() << "HIP initialized.  On the first node/socket, there are "
+                           << n_local_procs << " processes and " << gpu_device_count << " GPUs\n";
+#endif
+        } else {
+            amrex::Print() << "HIP initialized.\n";
+        }
     }
 #elif defined(AMREX_USE_DPCPP)
     if (amrex::Verbose()) {
@@ -337,25 +355,26 @@ Device::Initialize ()
     }
 #endif
 
+    Device::profilerStart();
+
 }
 
 void
 Device::Finalize ()
 {
-#ifdef AMREX_USE_CUDA
-    cudaProfilerStop();
-#endif
+
+    Device::profilerStop();
 
     for (int i = 0; i < max_gpu_streams; ++i)
     {
-        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL( hipStreamDestroy(gpu_streams[i]));,
-                          AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(gpu_streams[i])); );
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL( hipStreamDestroy(gpu_stream_pool[i]));,
+                          AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(gpu_stream_pool[i])); );
     }
 
 #ifdef AMREX_USE_DPCPP
     sycl_context.reset();
     sycl_device.reset();
-    for (auto& s : gpu_streams) {
+    for (auto& s : gpu_stream_pool) {
         delete s.queue;
         s.queue = nullptr;
     }
@@ -374,6 +393,8 @@ Device::initialize_gpu ()
 {
 #ifdef AMREX_USE_GPU
 
+    gpu_stream_pool.resize(max_gpu_streams);
+
 #ifdef AMREX_USE_HIP
 
     AMREX_HIP_SAFE_CALL(hipGetDeviceProperties(&device_prop, device_id));
@@ -388,16 +409,18 @@ Device::initialize_gpu ()
 
     gpu_default_stream = 0;
     for (int i = 0; i < max_gpu_streams; ++i) {
-        AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_streams[i]));
+        AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_stream_pool[i]));
     }
 
 #elif defined(AMREX_USE_CUDA)
     AMREX_CUDA_SAFE_CALL(cudaGetDeviceProperties(&device_prop, device_id));
 
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 6, "Compute capability must be >= 6");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 4 || (device_prop.major == 3 && device_prop.minor >= 5),
+                                     "Compute capability must be >= 3.5");
 
-    // Prefer L1 cache to shared memory (this has no effect on GPUs with a fixed L1 cache size).
-    AMREX_CUDA_SAFE_CALL(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
+#ifdef AMREX_CUDA_GE_11_2
+    cudaDeviceGetAttribute(&memory_pools_supported, cudaDevAttrMemoryPoolsSupported, device_id);
+#endif
 
     if (sizeof(Real) == 8) {
         AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
@@ -407,9 +430,9 @@ Device::initialize_gpu ()
 
     gpu_default_stream = 0;
     for (int i = 0; i < max_gpu_streams; ++i) {
-        AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_streams[i]));
+        AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_stream_pool[i]));
 #ifdef AMREX_USE_ACC
-        acc_set_cuda_stream(i, gpu_streams[i]);
+        acc_set_cuda_stream(i, gpu_stream_pool[i]);
 #endif
     }
 
@@ -417,13 +440,15 @@ Device::initialize_gpu ()
 
 #elif defined(AMREX_USE_DPCPP)
     { // create device, context and queues
-        sycl::gpu_selector device_selector;
-        sycl_device.reset(new sycl::device(device_selector));
-        sycl_context.reset(new sycl::context(*sycl_device, amrex_sycl_error_handler));
-        gpu_default_stream.queue = new sycl::queue(*sycl_context, device_selector,
+        sycl::gpu_selector gpu_device_selector;
+        sycl::platform platform(gpu_device_selector);
+        auto const& gpu_devices = platform.get_devices();
+        sycl_device = std::make_unique<sycl::device>(gpu_devices[device_id]);
+        sycl_context = std::make_unique<sycl::context>(*sycl_device, amrex_sycl_error_handler);
+        gpu_default_stream.queue = new sycl::queue(*sycl_context, *sycl_device,
                                          sycl::property_list{sycl::property::queue::in_order{}});
         for (int i = 0; i < max_gpu_streams; ++i) {
-            gpu_streams[i].queue = new sycl::queue(*sycl_context, device_selector,
+            gpu_stream_pool[i].queue = new sycl::queue(*sycl_context, *sycl_device,
                                          sycl::property_list{sycl::property::queue::in_order{}});
         }
     }
@@ -514,9 +539,9 @@ Device::initialize_gpu ()
     }
 
 #ifdef AMREX_USE_DPCPP
-    max_blocks_per_launch = 1000000; // xxxxx DPCPP todo
+    // max_blocks_per_launch = 100000; // xxxxx DPCPP todo
 #else
-    max_blocks_per_launch = numMultiProcessors() * maxThreadsPerMultiProcessor() / AMREX_GPU_MAX_THREADS;
+    max_blocks_per_launch = 4 * numMultiProcessors() * maxThreadsPerMultiProcessor() / AMREX_GPU_MAX_THREADS;
 #endif
 
 #endif
@@ -534,9 +559,23 @@ Device::numDevicesUsed () noexcept
     return num_devices_used;
 }
 
+#ifdef AMREX_USE_GPU
+int
+Device::streamIndex (gpuStream_t s) noexcept
+{
+    if (s == nullStream()) {
+        return -1;
+    } else {
+        auto it = std::find(std::begin(gpu_stream_pool), std::end(gpu_stream_pool), s);
+        return static_cast<int>(std::distance(std::begin(gpu_stream_pool), it));
+    }
+}
+#endif
+
 void
 Device::setStreamIndex (const int idx) noexcept
 {
+    amrex::ignore_unused(idx);
 #ifdef AMREX_USE_GPU
     if (idx < 0) {
         gpu_stream[OpenMP::get_thread_num()] = gpu_default_stream;
@@ -545,7 +584,7 @@ Device::setStreamIndex (const int idx) noexcept
         amrex_set_acc_stream(acc_async_sync);
 #endif
     } else {
-        gpu_stream[OpenMP::get_thread_num()] = gpu_streams[idx % max_gpu_streams];
+        gpu_stream[OpenMP::get_thread_num()] = gpu_stream_pool[idx % max_gpu_streams];
 
 #ifdef AMREX_USE_ACC
         amrex_set_acc_stream(idx % max_gpu_streams);
@@ -608,7 +647,7 @@ Device::streamSynchronize () noexcept
 void
 Device::nonNullStreamSynchronize () noexcept
 {
-    for (auto const& s : gpu_streams) {
+    for (auto const& s : gpu_stream_pool) {
         try {
             s.queue->wait_and_throw();
         } catch (sycl::exception const& ex) {
@@ -625,7 +664,7 @@ Device::startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz
 {
     if ((first_iter) && inLaunchRegion() && inGraphRegion())
     {
-        // Uses passed information to do initial async memcpy in graph and 
+        // Uses passed information to do initial async memcpy in graph and
         //    links dependency to all streams using cudaEvents.
 
         setStreamIndex(0);
@@ -635,7 +674,7 @@ Device::startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz
 
 #if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
         AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(graph_stream));
-#else  
+#else
         AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(graph_stream, cudaStreamCaptureModeGlobal));
 #endif
 
@@ -658,7 +697,7 @@ Device::startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz
 cudaGraphExec_t
 Device::stopGraphRecording(bool last_iter)
 {
-    cudaGraphExec_t graphExec;
+    cudaGraphExec_t graphExec{};
 
     if (last_iter && inLaunchRegion() && inGraphRegion())
     {
@@ -694,14 +733,14 @@ Device::instantiateGraph(cudaGraph_t graph)
 {
     cudaGraphExec_t graphExec;
 
-#ifdef AMREX_DEBUG 
+#ifdef AMREX_DEBUG
 //  Implementes cudaGraphInstantiate error logging feature.
-//  Upon error, delays abort until message is output. 
+//  Upon error, delays abort until message is output.
     constexpr int log_size = 1028;
     char graph_log[log_size];
     graph_log[0]='\0';
 
-    cudaGraphInstantiate(&graphExec, graph, NULL, &(graph_log[0]), log_size); 
+    cudaGraphInstantiate(&graphExec, graph, NULL, &(graph_log[0]), log_size);
 
     if (graph_log[0] != '\0')
     {
@@ -710,7 +749,7 @@ Device::instantiateGraph(cudaGraph_t graph)
     }
 #else
 
-    AMREX_CUDA_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0)); 
+    AMREX_CUDA_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0));
 
 #endif
 
@@ -737,6 +776,7 @@ Device::executeGraph(const cudaGraphExec_t &graphExec, bool synch)
 void
 Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int device)
 {
+    amrex::ignore_unused(p,sz,device);
     // HIP does not support memory advise.
 #ifdef AMREX_USE_CUDA
 #ifndef AMREX_USE_HIP
@@ -758,6 +798,7 @@ Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int devic
 void
 Device::mem_advise_set_readonly (void* p, const std::size_t sz)
 {
+    amrex::ignore_unused(p,sz);
     // HIP does not support memory advise.
 #ifdef AMREX_USE_CUDA
 #ifndef AMREX_USE_HIP
@@ -790,7 +831,7 @@ void
 Device::n_threads_and_blocks (const Long N, dim3& numBlocks, dim3& numThreads) noexcept
 {
     numThreads = AMREX_GPU_MAX_THREADS;
-    numBlocks = std::max((N + AMREX_GPU_MAX_THREADS - 1) / AMREX_GPU_MAX_THREADS, 1L); // in case N = 0
+    numBlocks = std::max((N + AMREX_GPU_MAX_THREADS - 1) / AMREX_GPU_MAX_THREADS, static_cast<Long>(1)); // in case N = 0
 }
 
 void
@@ -847,10 +888,10 @@ Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim
 
 #endif
 
-    AMREX_ASSERT(numThreads.x <= device_prop.maxThreadsDim[0]);
-    AMREX_ASSERT(numThreads.y <= device_prop.maxThreadsDim[1]);
-    AMREX_ASSERT(numThreads.z <= device_prop.maxThreadsDim[2]);
-    AMREX_ASSERT(numThreads.x*numThreads.y*numThreads.z <= device_prop.maxThreadsPerBlock);
+    AMREX_ASSERT(numThreads.x <= static_cast<unsigned>(device_prop.maxThreadsDim[0]));
+    AMREX_ASSERT(numThreads.y <= static_cast<unsigned>(device_prop.maxThreadsDim[1]));
+    AMREX_ASSERT(numThreads.z <= static_cast<unsigned>(device_prop.maxThreadsDim[2]));
+    AMREX_ASSERT(numThreads.x*numThreads.y*numThreads.z <= static_cast<unsigned>(device_prop.maxThreadsPerBlock));
     AMREX_ASSERT(numThreads.x > 0);
     AMREX_ASSERT(numThreads.y > 0);
     AMREX_ASSERT(numThreads.z > 0);
@@ -938,135 +979,44 @@ Device::grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads) noexc
 
 }
 
-void
-Device::box_threads_and_blocks (const Box& bx, dim3& numBlocks, dim3& numThreads) noexcept
-{
-    int num_SMs = device_prop.multiProcessorCount;
-
-    int SM_mult_factor = 32;
-
-    if (num_SMs > 0) {
-
-        // Default to only an x loop in most cases.
-        if (numThreadsMin.y == 1 && numThreadsMin.z == 1) {
-
-            numBlocks.x = SM_mult_factor * num_SMs;
-            numBlocks.y = 1;
-            numBlocks.z = 1;
-
-        } else {
-
-            numBlocks.x = 1;
-            numBlocks.y = SM_mult_factor;
-            numBlocks.z = num_SMs;
-
-        }
-
-    } else {
-
-        // Arbitrarily set this to a somewhat large number.
-
-        numBlocks.x = 1000;
-        numBlocks.y = 1;
-        numBlocks.z = 1;
-
-    }
-
-#if (AMREX_SPACEDIM == 1)
-
-    numThreads.x = std::min(device_prop.maxThreadsDim[0], AMREX_GPU_MAX_THREADS);
-    numThreads.x = std::max(numThreads.x, numThreadsMin.x);
-    numThreads.y = 1;
-    numThreads.z = 1;
-
-    // Limit the number of threads per block to be no larger in each dimension
-    // than the sizes of the box in the corresponding dimension.
-    numThreads.x = std::min(numThreads.x, static_cast<unsigned>(bx.length(0)));
-    
-#elif (AMREX_SPACEDIM == 2)
-
-    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_GPU_MAX_THREADS / numThreadsMin.y);
-    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_GPU_MAX_THREADS / numThreads.x);
-    numThreads.x = std::max(numThreadsMin.x, numThreads.x);
-    numThreads.y = std::max(numThreadsMin.y, numThreads.y);
-    numThreads.z = 1;
-
-    // Limit the number of threads per block to be no larger in each dimension
-    // than the sizes of the box in the corresponding dimension.
-    numThreads.x = std::min(numThreads.x, static_cast<unsigned>(bx.length(0)));
-    numThreads.y = std::min(numThreads.y, static_cast<unsigned>(bx.length(1)));
-    
-#else
-
-    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_GPU_MAX_THREADS / (numThreadsMin.y * numThreadsMin.z));
-    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_GPU_MAX_THREADS / (numThreads.x    * numThreadsMin.z));
-    numThreads.z = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[2]), AMREX_GPU_MAX_THREADS / (numThreads.x    * numThreads.y   ));
-
-    numThreads.x = std::max(numThreadsMin.x, numThreads.x);
-    numThreads.y = std::max(numThreadsMin.y, numThreads.y);
-    numThreads.z = std::max(numThreadsMin.z, numThreads.z);
-
-    // Limit the number of threads per block to be no larger in each dimension
-    // than the sizes of the box in the corresponding dimension.
-    numThreads.x = std::min(numThreads.x, static_cast<unsigned>(bx.length(0)));
-    numThreads.y = std::min(numThreads.y, static_cast<unsigned>(bx.length(1)));
-    numThreads.z = std::min(numThreads.z, static_cast<unsigned>(bx.length(2)));
-    
-#endif
-
-    // Allow the user to override these at runtime.
-
-    if (numBlocksOverride.x > 0)
-        numBlocks.x = numBlocksOverride.x;
-    if (numBlocksOverride.y > 0)
-        numBlocks.y = numBlocksOverride.y;
-    if (numBlocksOverride.z > 0)
-        numBlocks.z = numBlocksOverride.z;
-
-    if (numThreadsOverride.x > 0)
-        numThreads.x = numThreadsOverride.x;
-    if (numThreadsOverride.y > 0)
-        numThreads.y = numThreadsOverride.y;
-    if (numThreadsOverride.z > 0)
-        numThreads.z = numThreadsOverride.z;
-
-}
-
 #endif
 
 std::size_t
 Device::freeMemAvailable ()
 {
 #ifdef AMREX_USE_GPU
-    std::size_t f, t;
+    std::size_t f;
+#ifndef AMREX_USE_DPCPP
+    std::size_t t;
+#endif
     AMREX_HIP_OR_CUDA_OR_DPCPP( AMREX_HIP_SAFE_CALL(hipMemGetInfo(&f,&t));,
                                 AMREX_CUDA_SAFE_CALL(cudaMemGetInfo(&f,&t));,
-                                f = device_prop.totalGlobalMem; ); // xxxxx DPCPP tod
+                                f = device_prop.totalGlobalMem; ); // xxxxx DPCPP todo
     return f;
 #else
     return 0;
 #endif
 }
 
-#ifdef AMREX_USE_GPU
-namespace {
-    static int ncallbacks = 0;
-}
-
-void callbackAdded ()
+void
+Device::profilerStart ()
 {
-    ++ncallbacks;
-}
-
-void resetNumCallbacks ()
-{
-    ncallbacks = 0;
-}
-
-int getNumCallbacks ()
-{
-    return ncallbacks;
-}
+#ifdef AMREX_USE_CUDA
+    AMREX_GPU_SAFE_CALL(cudaProfilerStart());
+#elif (defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX))
+    roctracer_start();
 #endif
+
+}
+
+void
+Device::profilerStop ()
+{
+#ifdef AMREX_USE_CUDA
+    AMREX_GPU_SAFE_CALL(cudaProfilerStop());
+#elif (defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX))
+    roctracer_stop();
+#endif
+}
 
 }}

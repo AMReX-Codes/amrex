@@ -30,4 +30,4 @@ Key features of AMReX include:
 -  Plotfile format supported by AmrVis, VisIt, ParaView, and yt.
 
 AMReX is developed at LBNL, NREL, and ANL as part of the Block-Structured AMR
-Co-Design Center in DOE's Exascale Computing Project. 
+Co-Design Center in DOE's Exascale Computing Project.

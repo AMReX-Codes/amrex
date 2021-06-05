@@ -1,14 +1,17 @@
 
 #ifndef BL_PARMPARSE_H
 #define BL_PARMPARSE_H
+#include <AMReX_Config.H>
 
+#include <AMReX_BLassert.H>
+
+#include <set>
 #include <stack>
 #include <string>
 #include <iosfwd>
 #include <vector>
 #include <list>
 #include <array>
-#include <AMReX_BLassert.H>
 
 namespace amrex {
 
@@ -234,6 +237,26 @@ class IntVect;
 *     test = apple "boy blue" 10 20 30 40
 *
 *     FILE = prob_file
+*
+*  Preprocessing of AMREX_SPACEDIM is supported. It supports #if, #elif,
+*  #else, and #endif.  The condition must be `AMREX_SPACEDIM op D`, where op
+*  is >, <, >=, <=, or ==, and D is 1, 2, or 3. The parentheses around the
+*  condition are optional. Some examples are shown below.
+*
+*    #if (AMREX_SPACEDIM == 1)
+*    n_cell = 256
+*    #elif (AMREX_SPACEDIM == 2)
+*    n_cell = 128 128
+*    #else
+*    n_cell = 64 64 64
+*    #endif
+*
+*    #if AMREX_SPACEDIM >= 2
+*    t = 0.5
+*    #else
+*    t = 1.5
+*    #endif
+*
 */
 
 class ParmParse
@@ -917,8 +940,8 @@ public:
     * ParmParse object.
     */
     static void Initialize(int         argc,
-			   char**      argv,
-			   const char* parfile);
+                           char**      argv,
+                           const char* parfile);
     /**
     * \brief The destructor.  The internal static table will only be deleted
     * if there are no other ParmParse objects in existence.
@@ -926,7 +949,16 @@ public:
     static void Finalize();
 
     static bool QueryUnusedInputs ();
-    
+
+    //! Any unused [prefix.]* parameters?
+    static bool hasUnusedInputs (const std::string& prefix = std::string());
+
+    //! Returns unused [prefix.]* parameters.
+    static std::vector<std::string> getUnusedInputs (const std::string& prefix = std::string());
+
+    //! Returns [prefix.]* parameters.
+    static std::set<std::string> getEntries (const std::string& prefix = std::string());
+
     struct PP_entry;
     typedef std::list<PP_entry> Table;
     static void appendTable(ParmParse::Table& tab);
@@ -969,7 +1001,7 @@ struct ParmParse::PP_entry
     PP_entry (const std::string& name,
               const std::string& vals);
     PP_entry (const std::string& name,
-	      const Table& table);
+              const Table& table);
     PP_entry (const PP_entry& pe);
     PP_entry& operator= (const PP_entry& pe);
     ~PP_entry ();

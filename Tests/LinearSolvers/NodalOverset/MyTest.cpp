@@ -36,7 +36,7 @@ MyTest::solve ()
 
     mlndlap.setDomainBC(mlmg_lobc, mlmg_hibc);
 
-    mlndlap.setDirichletMask(0, dmask);
+    mlndlap.setOversetMask(0, dmask);
 
     {
         MultiFab sigma(grids, dmap, 1, 0);
@@ -58,12 +58,12 @@ MyTest::solve ()
         amrex::ParallelFor(bx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (domain.strictly_contains(IntVect(AMREX_D_DECL(i,j,k))) and
-                ma(i,j,k) == 0)
-            {  // Let's set phi = 0 for non-Dirichlet nodes
+            if (domain.strictly_contains(IntVect(AMREX_D_DECL(i,j,k))) &&
+                ma(i,j,k) == 1)
+            {  // Let's set phi = 0 for unknown nodes
                 pa(i,j,k) = 0.0;
             }
-            if (ma(i,j,k) == 1) {  // Let's set rhs = 0 for Dirichlet nodes
+            if (ma(i,j,k) == 0) {  // Let's set rhs = 0 for masked out known nodes
                 ra(i,j,k) = 0.0;
             }
         });
@@ -138,9 +138,9 @@ MyTest::initData ()
             ra(i,j,k) = 7.0*r2*std::cos(3.0*theta);
             Real r = std::sqrt(r2);
             if (r < (0.3 + 0.15*std::cos(6.*theta))) {
-                ma(i,j,k) = 1; // Dirichlet nodes
+                ma(i,j,k) = 0; // masked out known nodes
             } else {
-                ma(i,j,k) = 0;
+                ma(i,j,k) = 1;
             }
         });
     }

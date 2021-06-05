@@ -144,7 +144,7 @@ FPC::Native64RealDescriptor ()
 
     return n64rd;
 }
-    
+
 const
 RealDescriptor&
 FPC::Ieee32NormalRealDescriptor ()

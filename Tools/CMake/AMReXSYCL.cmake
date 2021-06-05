@@ -1,7 +1,7 @@
 #
 # This module defines the INTERFACE target SYCL and its alias AMReX::SYCL.
 # These targets provides build/link requirements for the SYCL language.
-# For the time being, only dpc++  is supported
+# For the time being, only dpc++ is supported
 #
 
 # Provide a cache variable for the dpc++ root directory installation by probing
@@ -11,13 +11,25 @@ string(REGEX MATCH "InstalledDir: (.*)" _tmp "${_tmp}")
 unset(_tmp)
 
 get_filename_component(DPCPP_ROOT ${CMAKE_MATCH_1} DIRECTORY CACHE)
+message(STATUS "dpc++ root directory: ${DPCPP_ROOT}")
 
-find_file(LIBSYCL_GLIBC_OBJ libsycl-glibc.o
-   PATHS ${DPCPP_ROOT} ENV LD_LIBRARY_PATH
-   PATH_SUFFIXES lib
-   DOC "Full path to libsycl-glibc.o")
+# Provide cache variable to identify the dpc++ version, including the "beta"
+string(REGEX MATCH "[^//]*beta(.[^//])" DPCPP_VERSION "${DPCPP_ROOT}")
+set(DPCPP_VERSION ${DPCPP_VERSION} CACHE INTERNAL "dpc++ version")
+set(DPCPP_BETA_VERSION ${CMAKE_MATCH_1} CACHE INTERNAL "dpc++ beta version")
+message(STATUS "dpc++ version: ${DPCPP_VERSION}")
 
-set(_cxx_clang "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>") # Only Clang for now
+# We do not support anything lower than beta09
+if (DPCPP_BETA_VERSION LESS "09")
+   message(FATAL_ERROR
+      "\nUnsupported dpc++ compiler version."
+      "\nAMReX requires dpc++ \"beta\" version >= 08. "
+      "The current compiler \"beta\" version is ${DPCPP_BETA_VERSION}.\n")
+endif ()
+
+
+set(_cxx_dpcpp "$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:IntelClang>,$<CXX_COMPILER_ID:IntelDPCPP>,$<CXX_COMPILER_ID:IntelLLVM>>")
+set(_cxx_dpcpp "$<AND:$<COMPILE_LANGUAGE:CXX>,${_cxx_dpcpp}>")
 
 #
 # SYCL and AMReX::SYCL targets
@@ -27,21 +39,78 @@ add_library(AMReX::SYCL ALIAS SYCL)
 
 target_compile_features(SYCL INTERFACE cxx_std_17)
 
-target_link_libraries(SYCL INTERFACE ${LIBSYCL_GLIBC_OBJ})
 
+#
+# Compiler options
+#
 target_compile_options( SYCL
    INTERFACE
-   $<${_cxx_clang}:-Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda>
-   $<${_cxx_clang}:$<$<BOOL:${ENABLE_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
+   $<${_cxx_dpcpp}:-Wno-error=sycl-strict -Wno-pass-failed -fsycl>
+   $<${_cxx_dpcpp}:$<$<BOOL:${AMReX_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
+
+# temporary work-around for DPC++ beta08 bug
+#   define "long double" as 64bit for C++ user-defined literals
+#   https://github.com/intel/llvm/issues/2187
+target_compile_options( SYCL
+   INTERFACE
+   $<${_cxx_dpcpp}:-mlong-double-64 "SHELL:-Xclang -mlong-double-64">)
+
+# Beta09 has enabled eary optimizations by default.  But this causes many
+# tests to crash.  So we disable it.
+target_compile_options( SYCL
+   INTERFACE
+   $<${_cxx_dpcpp}:-fno-sycl-early-optimizations>)
+
+# Need this option to compile with mpiicpc
+if (AMReX_MPI)
+  target_compile_options( SYCL
+    INTERFACE
+    $<${_cxx_dpcpp}:-fsycl-unnamed-lambda>)
+endif ()
+
+if(AMReX_DPCPP_ONEDPL)
+    # TBB and PSTL are broken in oneAPI 2021.3.0
+    # https://software.intel.com/content/www/us/en/develop/articles/intel-oneapi-dpcpp-library-release-notes.html#inpage-nav-2-3
+    # at least since 2021.1.1 and probably won't be fixed until glibc version 10 is gone
+    target_compile_definitions( SYCL
+        INTERFACE
+        $<${_cxx_dpcpp}:_GLIBCXX_USE_TBB_PAR_BACKEND=0 PSTL_USE_PARALLEL_POLICIES=0>)
+endif()
+
+#
+# Link options
+#
+if (DPCPP_BETA_VERSION LESS "10")   # If beta < 10
+
+   find_file(LIBSYCL_GLIBC_OBJ libsycl-glibc.o
+      PATHS ${DPCPP_ROOT} ENV LD_LIBRARY_PATH
+      PATH_SUFFIXES lib
+      DOC "Full path to libsycl-glibc.o")
+
+   target_link_libraries(SYCL INTERFACE ${LIBSYCL_GLIBC_OBJ})
+
+   target_link_options( SYCL
+      INTERFACE
+      $<${_cxx_dpcpp}:-fsycl -device-math-lib=fp32,fp64> )
+
+else ()  # for beta >= 10
+
+   target_link_options( SYCL
+      INTERFACE
+      $<${_cxx_dpcpp}:-fsycl -fsycl-device-lib=libc,libm-fp32,libm-fp64> )
+
+endif ()
+
+
 
 # TODO: use $<LINK_LANG_AND_ID:> genex for CMake >=3.17
 target_link_options( SYCL
    INTERFACE
-   $<${_cxx_clang}:-fsycl -device-math-lib=fp32,fp64>
-   $<${_cxx_clang}:$<$<BOOL:${ENABLE_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
+   $<${_cxx_dpcpp}:$<$<BOOL:${AMReX_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
 
-if (ENABLE_DPCPP_AOT)
-   message(FATAL_ERROR "\nAhead-of-time (AOT) compilation support not available yet.\nRe-configure with ENABLE_DPCPP_AOT=OFF.")
+
+if (AMReX_DPCPP_AOT)
+   message(FATAL_ERROR "\nAhead-of-time (AOT) compilation support not available yet.\nRe-configure with AMReX_DPCPP_AOT=OFF.")
 
    #
    # TODO: remove comments to enable AOT support when the time comes
@@ -51,7 +120,7 @@ if (ENABLE_DPCPP_AOT)
    #    ## TODO: use file(READ)
    #    execute_process( COMMAND cat /sys/devices/cpu/caps/pmu_name OUTPUT_VARIABLE _cpu_long_name )
    # else ()
-   #    message(FATAL_ERROR "\nENABLE_DPCPP_AOT is not supported on ${CMAKE_SYSTEM_NAME}\n")
+   #    message(FATAL_ERROR "\nAMReX_DPCPP_AOT is not supported on ${CMAKE_SYSTEM_NAME}\n")
    # endif ()
 
    # string(STRIP "${_cpu_long_name}" _cpu_long_name)
@@ -63,7 +132,7 @@ if (ENABLE_DPCPP_AOT)
    #    set(_cpu_short_name "cfl")
    # else ()
    #    message(FATAL_ERROR "\n Ahead-of-time compilation for CPU ${_cpu_long_name} is not yet supported\n"
-   #       "Maybe set ENABLE_DPCPP_AOT to OFF?\n")
+   #       "Maybe set AMReX_DPCPP_AOT to OFF?\n")
    # endif ()
 
    # target_compile_options( amrex
@@ -76,4 +145,4 @@ if (ENABLE_DPCPP_AOT)
 endif ()
 
 
-unset(_cxx_clang)
+unset(_cxx_dpcpp)

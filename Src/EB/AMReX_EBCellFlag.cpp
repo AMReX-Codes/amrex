@@ -1,5 +1,6 @@
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_Reduce.H>
+#include <iostream>
 
 namespace amrex {
 
@@ -37,7 +38,7 @@ EBCellFlagFab::getType (const Box& bx_in) const noexcept
     {
         const Box& bx = amrex::enclosedCells(bx_in);
         std::map<Box,FabType>::iterator it;
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical (amrex_ebcellflagfab_gettype)
 #endif
         it = m_typemap.find(bx);
@@ -71,7 +72,7 @@ EBCellFlagFab::getType (const Box& bx_in) const noexcept
                     }
                     return {nr, ns, nm, nc};
                 });
-                ReduceTuple hv = reduce_data.value();
+                ReduceTuple hv = reduce_data.value(reduce_op);
                 nregular = amrex::get<0>(hv);
                 nsingle  = amrex::get<1>(hv);
                 nmulti   = amrex::get<2>(hv);
@@ -108,7 +109,7 @@ EBCellFlagFab::getType (const Box& bx_in) const noexcept
                 t = FabType::singlevalued;
             }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp critical (amrex_ebcellflagfab_gettype)
 #endif
             m_typemap.insert({bx,t});

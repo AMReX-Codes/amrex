@@ -1,5 +1,6 @@
 #ifndef AMREX_ML_CELL_LINOP_H_H
 #define AMREX_ML_CELL_LINOP_H_H
+#include <AMReX_Config.H>
 
 #include <AMReX_MLLinOp.H>
 
@@ -27,7 +28,10 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
-    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) final override;
+    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata,
+                             const MultiFab* robinbc_a = nullptr,
+                             const MultiFab* robinbc_b = nullptr,
+                             const MultiFab* robinbc_f = nullptr) final override;
 
     virtual bool needsUpdate () const override {
         return MLLinOp::needsUpdate();
@@ -142,6 +146,11 @@ public:
                         const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, Location loc, const int face_only=0) const = 0;
 
+    struct BCTL {
+        BoundCond type;
+        Real location;
+    };
+
 protected:
 
     bool m_has_metric_term = false;
@@ -181,12 +190,19 @@ protected:
         const RealTuple& bndryLocs (const MFIter& mfi, int icomp) const noexcept {
             return bcloc[mfi][icomp];
         }
+        GpuArray<BCTL,2*AMREX_SPACEDIM> const* getBCTLPtr (const MFIter& mfi) const noexcept {
+            return bctl[mfi];
+        }
     private:
         LayoutData<Vector<BCTuple> >   bcond;
         LayoutData<Vector<RealTuple> > bcloc;
+        LayoutData<GpuArray<BCTL,2*AMREX_SPACEDIM>*> bctl;
+        Gpu::DeviceVector<GpuArray<BCTL,2*AMREX_SPACEDIM> > bctl_dv;
         int m_ncomp;
     };
     Vector<Vector<std::unique_ptr<BndryCondLoc> > > m_bcondloc;
+
+    Vector<std::unique_ptr<MultiFab> > m_robin_bcval;
 
     // used to save interpolation coefficients of the first interior cells
     mutable Vector<Vector<BndryRegister> > m_undrrelxr;

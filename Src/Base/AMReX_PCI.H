@@ -12,7 +12,7 @@ FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
 
     if (is_thread_safe)
     {
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < N_locs; ++i)
@@ -45,7 +45,7 @@ FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
             }
         }
 
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
@@ -100,8 +100,8 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     Vector<Array4<int> > masks;
     if (!is_thread_safe)
     {
-        if ((op == FabArrayBase::COPY and !amrex::IsStoreAtomic<value_type>::value) or
-            (op == FabArrayBase::ADD  and !amrex::HasAtomicAdd <value_type>::value))
+        if ((op == FabArrayBase::COPY && !amrex::IsStoreAtomic<value_type>::value) ||
+            (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value))
         {
             maskfabs.resize(this->local_size());
             masks.reserve(N_locs);

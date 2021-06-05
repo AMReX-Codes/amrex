@@ -1,6 +1,7 @@
 
 #ifndef AMREX_BLASSERT_H_
 #define AMREX_BLASSERT_H_
+#include <AMReX_Config.H>
 
 #include <AMReX.H>
 

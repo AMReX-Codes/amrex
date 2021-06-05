@@ -28,7 +28,7 @@ void WritePlotfile(const std::string         &pfversion,
                    const bool                 verbose,
                    const bool                 isCartGrid,
                    const Real                *vfeps,
-		   const int                 *levelSteps)
+                   const int                 *levelSteps)
 {
     if(ParallelDescriptor::IOProcessor()) {
       if( ! amrex::UtilCreateDirectory(oFile,0755)) {
@@ -44,18 +44,18 @@ void WritePlotfile(const std::string         &pfversion,
     const int finestLevel(data.size() - 1);
 
     if(ParallelDescriptor::IOProcessor()) {
-        
+
     std::string oFileHeader(oFile);
     oFileHeader += "/Header";
-    
+
     //os.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-    
+
     if(verbose && ParallelDescriptor::IOProcessor()) {
       std::cout << "Opening file = " << oFileHeader << '\n';
     }
-    
+
     os.open(oFileHeader.c_str(), std::ios::out|std::ios::binary);
-    
+
     if(os.fail()) {
       amrex::FileOpenFailed(oFileHeader);
     }
@@ -109,15 +109,15 @@ void WritePlotfile(const std::string         &pfversion,
         int nGrids = ba.size();
         char buf[64];
         sprintf(buf, "Level_%d", iLevel);
-        
+
         if(ParallelDescriptor::IOProcessor()) {
             os << iLevel << ' ' << nGrids << ' ' << time << '\n';
             if(levelSteps != 0) {
               os << levelSteps[iLevel] << '\n';
-	    } else {
+            } else {
               os << 0 << '\n';
-	    }
-            
+            }
+
             for(int i(0); i < nGrids; ++i) {
               const Box &b = ba[i];
               for(int n(0); n < BL_SPACEDIM; ++n) {
@@ -130,22 +130,22 @@ void WritePlotfile(const std::string         &pfversion,
             std::string Level(oFile);
             Level += '/';
             Level += buf;
-            
+
             if( ! amrex::UtilCreateDirectory(Level, 0755)) {
               amrex::CreateDirectoryFailed(Level);
-	    }
+            }
         }
         // Force other processors to wait till directory is built.
         ParallelDescriptor::Barrier();
         // Now build the full relative pathname of the MultiFab.
         static const std::string MultiFabBaseName("MultiFab");
-        
+
         std::string PathName(oFile);
         PathName += '/';
         PathName += buf;
         PathName += '/';
         PathName += MultiFabBaseName;
-        
+
         if(ParallelDescriptor::IOProcessor()) {
             //
             // The full name relative to the Header file.
@@ -157,7 +157,7 @@ void WritePlotfile(const std::string         &pfversion,
         }
         VisMF::Write(data[iLevel], PathName);
     }
-    
+
     if(ParallelDescriptor::IOProcessor()) {
       os.close();
     }
@@ -334,9 +334,9 @@ void WritePlotfile2DFrom3D(const std::string &pfversion,
                            const std::string         &oFile,
                            const Vector<std::string>  &names,
                            const bool                 verbose,
-		           const bool                 isCartGrid,
-		           const Real                *vfeps,
-		           const int                 *levelSteps)
+                           const bool                 isCartGrid,
+                           const Real                *vfeps,
+                           const int                 *levelSteps)
 {
 
     int whichPlane;
@@ -357,22 +357,22 @@ void WritePlotfile2DFrom3D(const std::string &pfversion,
     }
     // Force other processors to wait till directory is built.
     ParallelDescriptor::Barrier();
-    
+
     std::string oFileHeader(oFile);
     oFileHeader += "/Header";
-    
+
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-    
+
     std::ofstream os;
-    
+
     //os.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-    
+
     if(verbose && ParallelDescriptor::IOProcessor()) {
       std::cout << "Opening file = " << oFileHeader << '\n';
     }
-    
+
     os.open(oFileHeader.c_str(), std::ios::out|std::ios::binary);
-    
+
     if(os.fail()) {
       FileOpenFailed(oFileHeader);
     }
@@ -419,7 +419,7 @@ void WritePlotfile2DFrom3D(const std::string &pfversion,
       for(int k = 0; k < bl_spacedim; k++) {
         if(k != whichPlane) {
           os << dxLevel[i][k] << ' ';
-	}
+        }
       }
       os << '\n';
     }
@@ -442,15 +442,15 @@ void WritePlotfile2DFrom3D(const std::string &pfversion,
         int nGrids = ba.size();
         char buf[64];
         sprintf(buf, "Level_%d", iLevel);
-        
+
         if(ParallelDescriptor::IOProcessor()) {
             os << iLevel << ' ' << nGrids << ' ' << time << '\n';
             if(levelSteps != 0) {
               os << levelSteps[iLevel] << '\n';
-	    } else {
+            } else {
               os << 0 << '\n';
-	    }
-            
+            }
+
             for(int i(0); i < nGrids; ++i) {
               const Box &b = ba[i];
               for(int n(0); n < bl_spacedim; ++n) {
@@ -458,7 +458,7 @@ void WritePlotfile2DFrom3D(const std::string &pfversion,
                   Real glo = b.smallEnd()[n] * dxLevel[iLevel][n];
                   Real ghi = (b.bigEnd()[n]+1) * dxLevel[iLevel][n];
                   os << glo << ' ' << ghi << '\n';
-		}
+                }
               }
             }
             //
@@ -467,10 +467,10 @@ void WritePlotfile2DFrom3D(const std::string &pfversion,
             std::string Level(oFile);
             Level += '/';
             Level += buf;
-            
+
             if( ! UtilCreateDirectory(Level, 0755)) {
               CreateDirectoryFailed(Level);
-	    }
+            }
         }
         //
         // Force other processors to wait till directory is built.
@@ -480,13 +480,13 @@ void WritePlotfile2DFrom3D(const std::string &pfversion,
         // Now build the full relative pathname of the MultiFab.
         //
         static const std::string MultiFabBaseName("MultiFab");
-        
+
         std::string PathName(oFile);
         PathName += '/';
         PathName += buf;
         PathName += '/';
         PathName += MultiFabBaseName;
-        
+
         if(ParallelDescriptor::IOProcessor()) {
             // The full name relative to the Header file.
             std::string RelativePathName(buf);
@@ -531,7 +531,7 @@ void WritePlotfile2DFrom3D(const std::string &pfversion,
 // ======================================
 
     }
-    
+
     os.close();
 }
 // --------------------------------------------------------------------

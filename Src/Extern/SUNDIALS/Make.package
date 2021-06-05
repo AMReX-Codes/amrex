@@ -1,0 +1,6 @@
+CEXE_sources += AMReX_SUNMemory.cpp
+CEXE_headers += AMReX_SUNMemory.H
+CEXE_headers += AMReX_Sundials.H
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/SUNDIALS
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SUNDIALS

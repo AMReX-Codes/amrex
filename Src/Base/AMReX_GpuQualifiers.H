@@ -1,5 +1,6 @@
 #ifndef AMREX_GPU_QUALIFIERS_H_
 #define AMREX_GPU_QUALIFIERS_H_
+#include <AMReX_Config.H>
 
 #if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
 
@@ -45,7 +46,7 @@
 # define AMREX_REQUIRE_SUBGROUP_SIZE(x) \
   _Pragma("clang diagnostic push") \
   _Pragma("clang diagnostic ignored \"-Wattributes\"") \
-  [[cl::intel_reqd_sub_group_size(x)]] \
+  [[intel::reqd_sub_group_size(x)]]                \
   _Pragma("clang diagnostic pop")
 #endif // AMREX_USE_DPCPP
 

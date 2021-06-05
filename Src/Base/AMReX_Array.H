@@ -1,14 +1,7 @@
 #ifndef AMREX_ARRAY_H_
 #define AMREX_ARRAY_H_
+#include <AMReX_Config.H>
 
-#include <array>
-#include <memory>
-#include <utility>
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <cstdio>
-#include <type_traits>
 #include <AMReX.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
@@ -17,6 +10,12 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Algorithm.H>
 #include <AMReX_Dim3.H>
+
+#include <array>
+#include <memory>
+#include <utility>
+#include <string>
+#include <type_traits>
 
 namespace amrex {
 
@@ -32,6 +31,9 @@ namespace amrex {
     template <class T, std::size_t N>
     struct GpuArray
     {
+        using value_type = T;
+        using reference_type = T&;
+
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator [] (int i) const noexcept { return arr[i]; }
 
@@ -39,25 +41,29 @@ namespace amrex {
         T& operator [] (int i) noexcept { return arr[i]; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T* data () const noexcept { return arr; };
+        const T* data () const noexcept { return arr; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T* data () noexcept { return arr; };
+        T* data () noexcept { return arr; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        std::size_t size() const noexcept { return N; };
+        constexpr std::size_t size() const noexcept { return N; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T* begin() const noexcept { return arr; };
+        const T* begin() const noexcept { return arr; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T* end() const noexcept { return arr + N; };
+        const T* end() const noexcept { return arr + N; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T* begin() noexcept { return arr; };
+        T* begin() noexcept { return arr; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T* end() noexcept { return arr + N; };
+        T* end() noexcept { return arr + N; }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void fill( const T& value ) noexcept
+        { for (std::size_t i = 0; i < N; ++i) arr[i] = value; }
 
         T arr[amrex::max(N,std::size_t{1})];
     };
@@ -75,11 +81,13 @@ namespace amrex {
     {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i) const noexcept {
+            AMREX_ASSERT(i >= XLO && i <= XHI);
             return arr[i-XLO];
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i) noexcept {
+            AMREX_ASSERT(i >= XLO && i <= XHI);
             return arr[i-XLO];
         }
 
@@ -94,6 +102,7 @@ namespace amrex {
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j) const noexcept {
+            AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
             return arr[i+j*(XHI-XLO+1)-(YLO*(XHI-XLO+1)+XLO)];
         }
 
@@ -101,6 +110,7 @@ namespace amrex {
                   typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j) noexcept {
+            AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
             return arr[i+j*(XHI-XLO+1)-(YLO*(XHI-XLO+1)+XLO)];
         }
 
@@ -108,6 +118,7 @@ namespace amrex {
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j) const noexcept {
+            AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
             return arr[j+i*(YHI-YLO+1)-(XLO*(YHI-YLO+1)+YLO)];
         }
 
@@ -115,6 +126,7 @@ namespace amrex {
                   typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j) noexcept {
+            AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
             return arr[j+i*(YHI-YLO+1)-(XLO*(YHI-YLO+1)+YLO)];
         }
 
@@ -166,31 +178,31 @@ namespace amrex
     template <class T, typename = typename T::FABType>
     std::array<T*,AMREX_SPACEDIM> GetArrOfPtrs (std::array<T,AMREX_SPACEDIM>& a) noexcept
     {
-        return {AMREX_D_DECL(&a[0], &a[1], &a[2])};
+        return {{AMREX_D_DECL(&a[0], &a[1], &a[2])}};
     }
 
     template <class T>
     std::array<T*,AMREX_SPACEDIM> GetArrOfPtrs (const std::array<std::unique_ptr<T>,AMREX_SPACEDIM>& a) noexcept
     {
-        return {AMREX_D_DECL(a[0].get(), a[1].get(), a[2].get())};
+        return {{AMREX_D_DECL(a[0].get(), a[1].get(), a[2].get())}};
     }
-    
+
     template <class T>
     std::array<T const*,AMREX_SPACEDIM> GetArrOfConstPtrs (const std::array<T,AMREX_SPACEDIM>& a) noexcept
     {
-        return {AMREX_D_DECL(&a[0], &a[1], &a[2])};
+        return {{AMREX_D_DECL(&a[0], &a[1], &a[2])}};
     }
 
     template <class T>
     std::array<T const*,AMREX_SPACEDIM> GetArrOfConstPtrs (const std::array<T*,AMREX_SPACEDIM>& a) noexcept
     {
-       return {AMREX_D_DECL(a[0], a[1], a[2])};
+        return {{AMREX_D_DECL(a[0], a[1], a[2])}};
     }
 
     template <class T>
     std::array<T const*,AMREX_SPACEDIM> GetArrOfConstPtrs (const std::array<std::unique_ptr<T>,AMREX_SPACEDIM>& a) noexcept
     {
-        return {AMREX_D_DECL(a[0].get(), a[1].get(), a[2].get())};
+        return {{AMREX_D_DECL(a[0].get(), a[1].get(), a[2].get())}};
     }
 
 }
@@ -210,4 +222,3 @@ namespace amrex
 }
 
 #endif
-
