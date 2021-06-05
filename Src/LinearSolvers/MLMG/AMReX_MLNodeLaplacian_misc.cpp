@@ -26,11 +26,11 @@ MLNodeLaplacian::averageDownCoeffs ()
         {
             for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
             {
-                int ndims = (m_use_harmonic_average) ? AMREX_SPACEDIM : 1;
+                int ndims = (m_use_harmonic_average || m_use_mapped) ? AMREX_SPACEDIM : 1;
                 for (int idim = 0; idim < ndims; ++idim)
                 {
                     if (m_sigma[amrlev][mglev][idim] == nullptr) {
-                        if (mglev == 0) {
+                        if (m_use_harmonic_average && mglev == 0) {
                             m_sigma[amrlev][mglev][idim] = std::make_unique<MultiFab>
                                 (*m_sigma[amrlev][mglev][0], amrex::make_alias, 0, 1);
                         } else {
@@ -54,10 +54,11 @@ MLNodeLaplacian::averageDownCoeffs ()
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        if (m_use_harmonic_average) {
+        if (m_use_harmonic_average || m_use_mapped) {
             int mglev = 0;
             FillBoundaryCoeff(*m_sigma[amrlev][mglev][0], m_geom[amrlev][mglev]);
-            for (mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
+            int starting_mglev = m_use_harmonic_average ? 1 : 0;
+            for (mglev = starting_mglev; mglev < m_num_mg_levels[amrlev]; ++mglev)
             {
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     if (m_sigma[amrlev][mglev][idim]) {
@@ -100,7 +101,7 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
 
     if (m_coarsening_strategy != CoarseningStrategy::Sigma) return;
 
-    const int nsigma = (m_use_harmonic_average) ? AMREX_SPACEDIM : 1;
+    const int nsigma = (m_use_harmonic_average || m_use_mapped) ? AMREX_SPACEDIM : 1;
 
     for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
     {
@@ -224,7 +225,8 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
             });
 #endif
         }
-        else if (m_use_harmonic_average && mglev > 0)
+        else if ( (m_use_harmonic_average && mglev > 0) ||
+                   m_use_mapped )
         {
             AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
                          Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
@@ -313,7 +315,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                          dmskarr, dxinvarr);
                     });
                 }
-                else if (m_use_harmonic_average && mglev > 0)
+                else if ( (m_use_harmonic_average && mglev > 0) || m_use_mapped )
                 {
                     AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
                                  Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
@@ -407,7 +409,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                     }
                 }
             }
-            else if (m_use_harmonic_average && mglev > 0)
+            else if ( (m_use_harmonic_average && mglev > 0) || m_use_mapped )
             {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -512,7 +514,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                       dmskarr, dxinvarr);
                 }
             }
-            else if (m_use_harmonic_average && mglev > 0)
+            else if ( (m_use_harmonic_average && mglev > 0) || m_use_mapped )
             {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
