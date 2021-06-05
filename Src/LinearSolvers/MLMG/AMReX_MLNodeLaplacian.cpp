@@ -160,7 +160,7 @@ MLNodeLaplacian::setSigma (int amrlev, const MultiFab& a_sigma)
                                                                   m_dmap[amrlev][0],
                                                                   1, 1, MFInfo());
         setMapped(true);
-    
+
         for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
             MultiFab::Copy(*m_sigma[amrlev][0][idim], a_sigma, idim, 0, 1, 0);
 
