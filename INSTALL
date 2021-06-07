@@ -17,5 +17,5 @@ There are three ways to use AMReX.
     `Tools/GNUMake/`.  See `Tools/GNUMake/README.md` for more details
     on the make system.
 
-(3) CMake.
+(3) CMake. See [this page](https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html#building-with-cmake) in the AMReX documentation for more details.
 
