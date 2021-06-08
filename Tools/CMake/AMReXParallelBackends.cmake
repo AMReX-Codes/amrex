@@ -87,10 +87,10 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    if (AMReX_CUDA_ERROR_CAPTURE_THIS)
       # note: prefer double-dash --Werror!
       # https://github.com/ccache/ccache/issues/598
-      list(APPEND _cuda_flags --Werror ext-lambda-captures-this)
+      list(APPEND _cuda_flags "SHELL:--Werror ext-lambda-captures-this")
    endif()
    if (AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL)
-      list(APPEND _cuda_flags --Werror cross-execution-space-call)
+      list(APPEND _cuda_flags "SHELL:--Werror cross-execution-space-call")
    endif()
 
    #
