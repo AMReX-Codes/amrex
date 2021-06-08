@@ -20,6 +20,9 @@ namespace Extrapolater
 
     //! It is expected that FillBoundary (w/ periodicity) has been called on mf.
     void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp);
+
+    //! It is expected that FillBoundary (w/ periodicity) has been called on mf.
+    void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp, int nGrow);
 }
 
 }

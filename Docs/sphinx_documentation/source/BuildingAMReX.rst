@@ -65,6 +65,9 @@ list of important variables.
    | AMREX_AMD_ARCH  | AMD GPU arch such as gfx908         | none if the        |
    |    or AMD_ARCH  |                                     | machine is unknown |
    +-----------------+-------------------------------------+--------------------+
+   | USE_GPU_RDC     | TRUE or FALSE                       | TRUE               |
+   +-----------------+-------------------------------------+--------------------+
+
 
 .. raw:: latex
 
@@ -445,6 +448,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_GPU_BACKEND            |  Build with on-node, accelerated GPU backend    | NONE                    | NONE, SYCL, HIP, CUDA |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_GPU_RDC                |  Build with Relocatable Device Code support     | YES                     | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FORTRAN_INTERFACES     |  Build Fortran API                              | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_LINEAR_SOLVERS         |  Build AMReX linear solvers                     | YES                     | YES, NO               |
@@ -473,6 +478,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PROFPARSER             |  Build with profile parser support              | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_ROCTX                  |  Build with roctx markup profiling support      | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FPE                    |  Build with Floating Point Exceptions checks    | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_ASSERTIONS             |  Build with assertions turned on                | NO                      | YES, NO               |
@@ -488,6 +495,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    | AMReX_HYPRE                  |  Enable HYPRE interfaces                        | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PETSC                  |  Enable PETSc interfaces                        | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_SUNDIALS               |  Enable SUNDIALS interfaces                     | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_HDF5                   |  Enable HDF5-based I/O                          | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+

@@ -52,12 +52,12 @@ ifeq ($(which_computer),spock)
   endif
 
   ifeq ($(USE_MPI),TRUE)
-    INCLUDE_LOCATIONS += $(MPICH_DIR)/include
-    LIBRARY_LOCATIONS += $(MPICH_DIR)/lib
+    includes += $(shell CC --cray-print-opts=cflags)
     ifneq ($(BL_NO_FORT),TRUE)
-      LIBRARIES += -lmpifort
+      LIBRARIES += $(shell ftn --cray-print-opts=libs)
+    else
+      LIBRARIES += $(shell CC --cray-print-opts=libs)
     endif
-    LIBRARIES += -lmpi
     # for gpu aware mpi
     ifeq ($(USE_HIP),TRUE)
       LIBRARIES += $(PE_MPICH_GTL_DIR_gfx908) -lmpi_gtl_hsa

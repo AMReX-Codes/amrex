@@ -180,6 +180,18 @@ if (AMReX_CUDA OR AMReX_HIP)
    print_option(GPUS_PER_NODE)
 endif ()
 
+#
+# GPU RDC support
+#
+# https://cmake.org/cmake/help/latest/variable/CMAKE_CUDA_SEPARABLE_COMPILATION.html
+set(_GPU_RDC_default ON)
+if(AMReX_CUDA AND DEFINED CMAKE_CUDA_SEPARABLE_COMPILATION)
+    set(_GPU_RDC_default "${CMAKE_CUDA_SEPARABLE_COMPILATION}")
+endif()
+cmake_dependent_option( AMReX_GPU_RDC "Enable Relocatable Device Code" ${_GPU_RDC_default}
+   "AMReX_CUDA OR AMReX_HIP" OFF)
+unset(_GPU_RDC_default)
+print_option(AMReX_GPU_RDC)
 
 #
 # Parallel backends    ========================================================
@@ -272,6 +284,10 @@ if (AMReX_HDF5_ASYNC)
    message(FATAL_ERROR "\nAMReX_HDF5_ASYNC not yet supported\n")
 endif ()
 
+# SUNDIALS
+option( AMReX_SUNDIALS "Enable SUNDIALS interfaces" OFF )
+print_option( AMReX_SUNDIALS )
+
 
 #
 # Miscellanoues options  =====================================================
@@ -321,6 +337,10 @@ cmake_dependent_option(AMReX_PROFPARSER "Enable profile parser" OFF
    "AMReX_BASE_PROFILE;AMReX_TRACE_PROFILE;AMReX_AMRDATA" OFF)
 print_option( AMReX_PROFPARSER )
 
+cmake_dependent_option(AMReX_ROCTX  "Enable roctx markup for HIP with ROCm" OFF
+     "AMReX_GPU_BACKEND STREQUAL HIP" OFF)
+print_option( AMReX_ROCTX )
+
 set(AMReX_TP_PROFILE_VALUES IGNORE CRAYPAT FORGE VTUNE)
 set(AMReX_TP_PROFILE IGNORE CACHE STRING "Third-party profiling options: <CRAYPAT,FORGE,VTUNE>")
 set_property(CACHE AMReX_TP_PROFILE PROPERTY STRINGS ${AMReX_TP_PROFILE_VALUES})
@@ -355,6 +375,7 @@ print_option(AMReX_DIFFERENT_COMPILER)
 if (BUILD_SHARED_LIBS AND NOT (CMAKE_SYSTEM_NAME STREQUAL "Linux") )
    option(AMReX_PROBINIT "Enable support for probin file" OFF)
 else ()
-   option(AMReX_PROBINIT "Enable support for probin file" ON)
+   cmake_dependent_option(AMReX_PROBINIT "Enable support for probin file" ON
+       "AMReX_AMRLEVEL" OFF)
 endif ()
 print_option(AMReX_PROBINIT)

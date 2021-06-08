@@ -74,7 +74,7 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    set_cuda_architectures(AMReX_CUDA_ARCH)
    set_target_properties( amrex
       PROPERTIES
-      CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS}
+      CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}"
       )
 
    #
@@ -171,12 +171,13 @@ endif ()
 #
 if (AMReX_HIP)
 
-   set(_valid_hip_compilers hipcc nvcc)
+   set(_valid_hip_compilers hipcc nvcc)  # later: CC, clang++
    get_filename_component(_this_comp ${CMAKE_CXX_COMPILER} NAME)
 
    if (NOT (_this_comp IN_LIST _valid_hip_compilers) )
-      message(FATAL_ERROR "\nCMAKE_CXX_COMPILER is incompatible with HIP.\n"
-         "Set CMAKE_CXX_COMPILER to either hipcc or nvcc for HIP builds.\n")
+      message(WARNING "\nCMAKE_CXX_COMPILER=${_this_comp} is potentially "
+         "not a valid HIP device compiler.\n"
+         "For now, set CMAKE_CXX_COMPILER to hipcc for HIP builds.\n")
    endif ()
 
    unset(_hip_compiler)
@@ -200,7 +201,7 @@ if (AMReX_HIP)
 
    if(HIP_FOUND)
       message(STATUS "Found HIP: ${HIP_VERSION}")
-      message(STATUS "HIP: Platform=${HIP_PLATFORM} Compiler=${HIP_COMPILER}")
+      message(STATUS "HIP: Platform=${HIP_PLATFORM} Compiler=${HIP_COMPILER} Path=${HIP_PATH}")
    else()
       message(FATAL_ERROR "Could not find HIP."
          " Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
@@ -208,8 +209,27 @@ if (AMReX_HIP)
 
    # Link to hiprand -- must include rocrand too
    find_package(rocrand REQUIRED CONFIG)
+   find_package(rocprim REQUIRED CONFIG)
    find_package(hiprand REQUIRED CONFIG)
-   target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand)
+   if (AMReX_ROCTX)
+       # To be modernized in the future, please see:
+       # https://github.com/ROCm-Developer-Tools/roctracer/issues/56
+       target_include_directories(amrex PUBLIC ${HIP_PATH}/../roctracer/include ${HIP_PATH}/../rocprofiler/include)
+       target_link_libraries(amrex PUBLIC "-L${HIP_PATH}/../roctracer/lib/ -lroctracer64" "-L${HIP_PATH}/../roctracer/lib -lroctx64")
+   endif ()
+   target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand roc::rocprim)
+
+   # avoid forcing the rocm LLVM flags on a gfortran
+   # https://github.com/ROCm-Developer-Tools/HIP/issues/2275
+   if(AMReX_FORTRAN)
+       message(WARNING "As of ROCm/HIP <= 4.2.0, Fortran support might be flaky.\n"
+                       "Especially, we cannot yet support reloctable device code (RDC)."
+                       "See https://github.com/ROCm-Developer-Tools/HIP/issues/2275 "
+                       "and https://github.com/AMReX-Codes/amrex/pull/2031 "
+                       "for details.")
+   else()
+       target_link_libraries(amrex PUBLIC ${HIP_LIBRARIES})
+   endif()
 
    # ARCH flags -- these must be PUBLIC for all downstream targets to use,
    # else there will be a runtime issue (cannot find

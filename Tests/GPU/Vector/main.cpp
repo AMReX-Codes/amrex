@@ -5,6 +5,29 @@
 
 using namespace amrex;
 
+// v3 should contain the integers from -5 to 5, inclusive
+template <template <typename> class Container>
+typename std::enable_if<RunOnGpu<typename Container<int>::allocator_type>::value>::type
+checkV3 (const Container<int>& c)
+{
+    const auto c_ptr = c.dataPtr();
+    amrex::ParallelFor(11, [=] AMREX_GPU_DEVICE (const int index) noexcept {
+            AMREX_ALWAYS_ASSERT(c_ptr[index] == index-5);
+        });
+    Gpu::Device::streamSynchronize();
+}
+
+// v3 should contain the integers from -5 to 5, inclusive
+template <template <typename> class Container>
+typename std::enable_if<!RunOnGpu<typename Container<int>::allocator_type>::value>::type
+checkV3 (const Container<int>& c)
+{
+    for (int i=-5, index=0; i <= 5; ++i, ++index)
+    {
+        AMREX_ALWAYS_ASSERT(c[index] == i);
+    }
+}
+
 template <template <typename> class Container>
 void test_container()
 {
@@ -30,11 +53,7 @@ void test_container()
     Container<int> v3;
     v3.assign(v.begin(), v.end());
 
-    // v3 should now contain all integers, -5 to 5, inclusive
-    for (int i=-5, index=0; i <= 5; ++i, ++index)
-    {
-        AMREX_ALWAYS_ASSERT(v3[index] == i);
-    }
+    checkV3<Container>(v3);
 }
 
 int main (int argc, char* argv[])

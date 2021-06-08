@@ -2,6 +2,9 @@
 
 ifneq ($(NO_CONFIG_CHECKING),TRUE)
   HIP_PATH=$(realpath $(shell hipconfig --path))
+  hipcc_version := $(shell hipcc --version | grep "HIP version: " | cut -d" " -f3)
+  hipcc_major_version := $(shell hipcc --version | grep "HIP version: " | cut -d" " -f3 | cut -d. -f1)
+  hipcc_minor_version := $(shell hipcc --version | grep "HIP version: " | cut -d" " -f3 | cut -d. -f2)
   ifeq ($(HIP_PATH),)
     $(error hipconfig failed. Is the HIP toolkit available?)
   endif
@@ -18,8 +21,6 @@ else
   CXXSTD := c++14
 endif
 
-#if less than a given version, throw error.
-
 # Generic flags, always used
 CXXFLAGS = -std=$(CXXSTD) -m64
 CFLAGS   = -std=c99 -m64
@@ -30,7 +31,9 @@ F90FLAGS = -ffree-line-length-none -fno-range-check -fno-second-underscore -fimp
 FMODULES =  -J$(fmoddir) -I $(fmoddir)
 
 # rdc support
-HIPCC_FLAGS += -fgpu-rdc
+ifeq ($(USE_GPU_RDC),TRUE)
+  HIPCC_FLAGS += -fgpu-rdc
+endif
 
 # amd gpu target
 HIPCC_FLAGS += --amdgpu-target=$(AMD_ARCH)
@@ -113,6 +116,15 @@ ifeq ($(HIP_COMPILER),clang)
 
   # rocThrust - Header only
   # SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocthrust/include
+
+  ifeq ($(USE_ROCTX),TRUE)
+  # rocTracer
+  CXXFLAGS += -DAMREX_USE_ROCTX
+  HIPCC_FLAGS += -DAMREX_USE_ROCTX
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/roctracer/include $(ROC_PATH)/rocprofiler/include
+  LIBRARY_LOCATIONS += $(ROC_PATH)/roctracer/lib $(ROC_PATH)/rocprofiler/lib
+  LIBRARIES += -lroctracer64 -lroctx64
+  endif
 
   # hipcc passes a lot of unused arguments to clang
   LEGACY_DEPFLAGS += -Wno-unused-command-line-argument

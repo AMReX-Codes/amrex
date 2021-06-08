@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_FabArray.H>
+#include <AMReX_FArrayBox.H>
 
 namespace amrex { namespace NonLocalBC {
 

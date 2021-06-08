@@ -77,7 +77,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
         {
             int dst = map.bucketToGrid(bucket);
             int lev = map.bucketToLevel(bucket);
-            AMREX_ASSERT(m_box_counts_h[bucket] <= std::numeric_limits<int>::max());
+            AMREX_ASSERT(m_box_counts_h[bucket] <= static_cast<unsigned int>(std::numeric_limits<int>::max()));
             int npart = static_cast<int>(m_box_counts_h[bucket]);
             if (npart == 0) continue;
             m_snd_num_particles[i] += npart;

@@ -91,6 +91,56 @@ We note that AMReX does not overwrite old plotfiles if the new
 plotfile has the same name. The old plotfiles will be renamed to
 new directories named like plt00350.old.46576787980.
 
+Async Output
+============
+
+AMReX provides the ability to print MultiFabs, plotfiles and
+particle data asynchronously.  Asynchronous output works by creating
+a copy of the data at the time of the call, which is written to disk
+by a persistent thread created during AMReX's initialization.  This allows
+the calculation to continue immediately, which can drastically reduce
+walltime spent writing to disk.
+
+If the number of output files is less than the number of MPI ranks,
+AMReX's async output requires MPI to be initialized with THREAD_MULTIPLE
+support. THREAD_MULTIPLE support allows multiple unique threads to run unique
+MPI calls simultaneously.  This support is required to allow AMReX applications
+to perform MPI work while the Async Output concurrently pings ranks to signal
+that they can safely begin writing to their assigned files.  However,
+THREAD_MULTIPLE can introduce additional overhead as each threads' MPI operations
+must be scheduled safely around each other. Therefore, AMReX uses a lower level
+of support, SERIALIZED, by default and applications have to turn on THREAD_MULTIPLE
+support.
+
+To turn on Async Output, use the input flag ``amrex.async_out=1``.  The number
+of output files can also be set, using ``amrex.async_out_nfiles``.  The default
+number of files is ``64``. If the number of ranks is larger than the number of
+files, THREAD_MULTIPLE must be turned on by adding
+``MPI_THREAD_MULTIPLE=TRUE`` to the GNUMakefile. Otherwise, AMReX
+will throw an error.
+
+Async Output works for a wide range of AMReX calls, including:
+* amrex::WriteSingleLevelPlotfile()
+* amrex::WriteMultiLevelPlotfile()
+* amrex::WriteMLMF()
+* VisMF::AsyncWrite()
+* ParticleContainer::Checkpoint()
+* ParticleContainer::WritePlotFile()
+* Amr::writePlotFile()
+* Amr::writeSmallPlotFile()
+* Amr::checkpoint()
+* AmrLevel::writePlotFile()
+* StateData::checkPoint()
+* FabSet::write()
+
+Be aware: when using Async Output, a thread is spawned and exclusively used
+to perform output throughout the runtime.  As such, you may oversubscribe
+resources if you launch an AMReX application that assigns all available
+hardware threads in another way, such as OpenMP.  If you see any degradation
+when using Async Output and OpenMP, try using one less thread in
+``OMP_NUM_THREADS`` to prevent oversubscription and get more consistent
+results.
+
 Checkpoint File
 ===============
 

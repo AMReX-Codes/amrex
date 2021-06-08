@@ -4,7 +4,6 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_TypeTraits.H>
-#include <AMReX_IndexSequence.H>
 #include <AMReX_Functional.H>
 #include <AMReX_GpuQualifiers.H>
 
@@ -273,7 +272,7 @@ namespace detail {
     template <typename R, typename TP1, typename TP2, std::size_t... N1, std::size_t... N2>
     AMREX_GPU_HOST_DEVICE constexpr R
     make_tuple (TP1 && a, TP2 && b,
-                IndexSequence<N1...> const& /*n1*/, IndexSequence<N2...> const& /*n2*/)
+                std::index_sequence<N1...> const& /*n1*/, std::index_sequence<N2...> const& /*n2*/)
     {
         return R(amrex::get<N1>(a)..., amrex::get<N2>(b)...);
     }
@@ -300,8 +299,8 @@ TupleCat (TP1 && a, TP2 && b) -> typename detail::tuple_cat_result<detail::tuple
                                               detail::tuple_decay_t<TP2> >::type ReturnType;
     return detail::make_tuple<ReturnType>
         (a, b,
-         makeIndexSequence<GpuTupleSize<typename std::decay<TP1>::type>::value>(),
-         makeIndexSequence<GpuTupleSize<typename std::decay<TP2>::type>::value>());
+         std::make_index_sequence<GpuTupleSize<typename std::decay<TP1>::type>::value>(),
+         std::make_index_sequence<GpuTupleSize<typename std::decay<TP2>::type>::value>());
 }
 
 template <typename TP1, typename TP2, typename... TPs>
@@ -344,7 +343,7 @@ namespace detail {
     template <typename F, typename TP, std::size_t... N>
     AMREX_GPU_HOST_DEVICE
     constexpr auto
-    apply_impl (F&& f, TP&& t, IndexSequence<N...> /*is*/)
+    apply_impl (F&& f, TP&& t, std::index_sequence<N...> /*is*/)
         -> typename detail::apply_result<F,detail::tuple_decay_t<TP> >::type
     {
         return f(amrex::get<N>(std::forward<TP>(t))...);
@@ -357,7 +356,7 @@ constexpr auto
 Apply (F&& f, TP&& t) -> typename detail::apply_result<F,detail::tuple_decay_t<TP> >::type
 {
     return detail::apply_impl(std::forward<F>(f), std::forward<TP>(t),
-                              makeIndexSequence<GpuTupleSize<typename std::decay<TP>::type>::value>());
+                              std::make_index_sequence<GpuTupleSize<typename std::decay<TP>::type>::value>());
 }
 
 // Tie

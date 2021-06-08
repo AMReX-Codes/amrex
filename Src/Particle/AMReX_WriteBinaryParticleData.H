@@ -5,6 +5,7 @@
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Particles.H>
 #include <AMReX_ParticleUtil.H>
+#include <AMReX_GpuDevice.H>
 
 struct KeepValidFilter
 {
@@ -16,12 +17,287 @@ struct KeepValidFilter
     }
 };
 
+namespace particle_detail {
+
 template <typename ParticleReal>
 std::size_t PSizeInFile (const Vector<int>& wrc, const Vector<int>& wic)
 {
     std::size_t rsize = sizeof(ParticleReal)*std::accumulate(wrc.begin(), wrc.end(), 0);
     std::size_t isize = sizeof(int)*std::accumulate(wic.begin(), wic.end(), 0);
     return rsize + isize + AMREX_SPACEDIM*sizeof(ParticleReal) + 2*sizeof(int);
+}
+
+template <template <class, class> class Container,
+          class Allocator,
+          class PTile,
+          class F>
+typename std::enable_if<RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>::type
+fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F&& f)
+{
+    const auto ptd = ptile.getConstParticleTileData();
+    const auto np = ptile.numParticles();
+    pflags.resize(np, 0);
+    auto flag_ptr = pflags.data();
+    amrex::ParallelForRNG(np,
+        [=] AMREX_GPU_DEVICE (int k, amrex::RandomEngine const& engine) noexcept
+        {
+            const auto p = ptd.getSuperParticle(k);
+            flag_ptr[k] = particle_detail::call_f(f,p,engine);
+        });
+}
+
+template <template <class, class> class Container,
+          class Allocator,
+          class PTile,
+          class F>
+typename std::enable_if<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>::type
+fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F&& f)
+{
+    const auto ptd = ptile.getConstParticleTileData();
+    const auto np = ptile.numParticles();
+    pflags.resize(np, 0);
+    auto flag_ptr = pflags.data();
+    for (int k = 0; k < np; ++k) {
+        const auto p = ptd.getSuperParticle(k);
+        flag_ptr[k] = particle_detail::call_f(f,p,RandomEngine{});
+    }
+}
+
+template <template <class, class> class Container, class Allocator, class PC>
+typename std::enable_if<RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, amrex::Long>::type
+countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>& particle_io_flags, const PC& pc)
+{
+    ReduceOps<ReduceOpSum> reduce_op;
+    ReduceData<Long> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+
+    for (int lev = 0; lev < pc.GetParticles().size();  lev++)
+    {
+        const auto& pmap = pc.GetParticles(lev);
+        for (const auto& kv : pmap)
+        {
+            const auto& pflags = particle_io_flags[lev].at(kv.first);
+            const auto flag_ptr = pflags.data();
+            reduce_op.eval(pflags.size(), reduce_data,
+                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple
+                {
+                    return flag_ptr[i] ? 1 : 0;
+                });
+        }
+    }
+    ReduceTuple hv = reduce_data.value(reduce_op);
+    return amrex::get<0>(hv);
+}
+
+template <template <class, class> class Container, class Allocator>
+typename std::enable_if<RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, int>::type
+countFlags (const Container<int,Allocator>& pflags)
+{
+    ReduceOps<ReduceOpSum> reduce_op;
+    ReduceData<Long> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+
+    const auto flag_ptr = pflags.data();
+    reduce_op.eval(pflags.size(), reduce_data,
+        [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple
+        {
+            return flag_ptr[i] ? 1 : 0;
+        });
+    ReduceTuple hv = reduce_data.value(reduce_op);
+    return amrex::get<0>(hv);
+}
+
+template <template <class, class> class Container, class Allocator, class PC>
+typename std::enable_if<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, amrex::Long>::type
+countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>& particle_io_flags, const PC& pc)
+{
+    amrex::Long nparticles = 0;
+    for (int lev = 0; lev < pc.GetParticles().size();  lev++)
+    {
+        const auto& pmap = pc.GetParticles(lev);
+        for (const auto& kv : pmap)
+        {
+            const auto& pflags = particle_io_flags[lev].at(kv.first);
+            for (int k = 0; k < kv.second.numParticles(); ++k)
+            {
+                if (pflags[k]) nparticles++;
+            }
+        }
+    }
+    return nparticles;
+}
+
+template <template <class, class> class Container, class Allocator>
+typename std::enable_if<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, int>::type
+countFlags (const Container<int,Allocator>& pflags)
+{
+    int nparticles = 0;
+    for (std::size_t k = 0; k < pflags.size(); ++k)
+    {
+        if (pflags[k]) nparticles++;
+    }
+    return nparticles;
+}
+
+template <class PC>
+typename std::enable_if<RunOnGpu<typename PC::template AllocatorType<int>>::value>::type
+packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int lev, int grid,
+            const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
+            const Vector<std::map<std::pair<int, int>, typename PC::IntVector>>& particle_io_flags,
+            const Vector<int>& tiles, int np)
+{
+    int num_output_int = 0;
+    for (int i = 0; i < pc.NumIntComps() + PC::NStructInt; ++i)
+        if (write_int_comp[i]) ++num_output_int;
+
+    const int iChunkSize = 2 + num_output_int;
+    idata.resize(np*iChunkSize);
+
+    int num_output_real = 0;
+    for (int i = 0; i < pc.NumRealComps() + PC::NStructReal; ++i)
+        if (write_real_comp[i]) ++num_output_real;
+
+    const int rChunkSize = AMREX_SPACEDIM + num_output_real;
+    rdata.resize(np*rChunkSize);
+
+    typename PC::IntVector  idata_d(idata.size());
+    typename PC::RealVector rdata_d(rdata.size());
+
+    typename PC::IntVector write_int_comp_d(write_int_comp.size());
+    typename PC::IntVector write_real_comp_d(write_real_comp.size());
+    Gpu::copy(Gpu::hostToDevice, write_int_comp.begin(), write_int_comp.end(),
+              write_int_comp_d.begin());
+    Gpu::copy(Gpu::hostToDevice, write_real_comp.begin(), write_real_comp.end(),
+              write_real_comp_d.begin());
+    Gpu::Device::synchronize();
+
+    const auto write_int_comp_d_ptr = write_int_comp_d.data();
+    const auto write_real_comp_d_ptr = write_real_comp_d.data();
+
+    std::size_t poffset = 0;
+    for (int i = 0; i < tiles.size(); i++) {
+        const auto& ptile = pc.ParticlesAt(lev, grid, tiles[i]);
+        const auto& pflags = particle_io_flags[lev].at(std::make_pair(grid, tiles[i]));
+        int np_tile = ptile.GetArrayOfStructs().numParticles();
+        typename PC::IntVector offsets(np_tile);
+        int num_copies = Scan::ExclusiveSum(np_tile, pflags.begin(), offsets.begin(), Scan::retSum);
+
+        const auto flag_ptr = pflags.data();
+        const auto offsets_ptr = offsets.data();
+
+        auto idata_d_ptr = idata_d.data();
+        auto rdata_d_ptr = rdata_d.data();
+
+        const auto ptd = ptile.getConstParticleTileData();
+        amrex::ParallelFor(num_copies,
+        [=] AMREX_GPU_DEVICE (int pindex) noexcept
+        {
+            // might be worth using shared memory here
+            const auto p = ptd.getSuperParticle(pindex);
+
+            if (flag_ptr[pindex]) {
+                std::size_t iout_index = (pindex+poffset)*iChunkSize;
+                idata_d_ptr[iout_index] = p.id();
+                idata_d_ptr[iout_index+1] = p.cpu();
+                iout_index += 2;
+
+                std::size_t rout_index = (pindex+poffset)*rChunkSize;
+                for (int j = 0; j < AMREX_SPACEDIM; j++) {
+                  rdata_d_ptr[rout_index] = p.pos(j);
+                  rout_index++;
+                }
+
+                for (int j = 0; j < PC::SuperParticleType::NInt; j++) {
+                    if (write_int_comp_d_ptr[j]) {
+                        idata_d_ptr[iout_index] = p.idata(j);
+                        iout_index++;
+                    }
+                }
+
+                for (int j = 0; j < PC::SuperParticleType::NReal; j++) {
+                    if (write_real_comp_d_ptr[j]) {
+                        rdata_d_ptr[rout_index] = p.rdata(j);
+                        rout_index++;
+                    }
+                }
+            }
+        });
+
+        poffset += num_copies;
+    }
+
+    Gpu::copy(Gpu::deviceToHost, idata_d.begin(), idata_d.end(), idata.begin());
+    Gpu::copy(Gpu::deviceToHost, rdata_d.begin(), rdata_d.end(), rdata.begin());
+    Gpu::Device::synchronize();
+}
+
+template <class PC>
+typename std::enable_if<!RunOnGpu<typename PC::template AllocatorType<int>>::value>::type
+packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int lev, int grid,
+            const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
+            const Vector<std::map<std::pair<int, int>, typename PC::IntVector>>& particle_io_flags,
+            const Vector<int>& tiles, int np)
+{
+    int num_output_int = 0;
+    for (int i = 0; i < pc.NumIntComps() + PC::NStructInt; ++i)
+        if (write_int_comp[i]) ++num_output_int;
+
+    const int iChunkSize = 2 + num_output_int;
+    idata.resize(np*iChunkSize);
+
+    int num_output_real = 0;
+    for (int i = 0; i < pc.NumRealComps() + PC::NStructReal; ++i)
+        if (write_real_comp[i]) ++num_output_real;
+
+    const int rChunkSize = AMREX_SPACEDIM + num_output_real;
+    rdata.resize(np*rChunkSize);
+
+    int* iptr = idata.dataPtr();
+    ParticleReal* rptr = rdata.dataPtr();
+    for (unsigned i = 0; i < tiles.size(); i++) {
+        const auto& ptile = pc.ParticlesAt(lev, grid, tiles[i]);
+        const auto& pflags = particle_io_flags[lev].at(std::make_pair(grid, tiles[i]));
+        for (int pindex = 0; pindex < ptile.GetArrayOfStructs().numParticles(); ++pindex) {
+            const auto& aos = ptile.GetArrayOfStructs();
+            const auto& p = aos[pindex];
+            if (pflags[pindex]) {
+                *iptr = p.id(); ++iptr;
+                *iptr = p.cpu(); ++iptr;
+                for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.pos(j);
+                rptr += AMREX_SPACEDIM;
+
+                for (int j = 0; j < PC::NStructInt; j++) {
+                    if (write_int_comp[j]) {
+                        *iptr = p.idata(j);
+                        ++iptr;
+                    }
+                }
+
+                const auto& soa  = ptile.GetStructOfArrays();
+                for (int j = 0; j < pc.NumIntComps(); j++) {
+                    if (write_int_comp[PC::NStructInt+j]) {
+                        *iptr = soa.GetIntData(j)[pindex];
+                        ++iptr;
+                    }
+                }
+
+                for (int j = 0; j < PC::NStructReal; j++) {
+                    if (write_real_comp[j]) {
+                        *rptr = p.rdata(j);
+                        ++rptr;
+                    }
+                }
+
+                for (int j = 0; j < pc.NumRealComps(); j++) {
+                    if (write_real_comp[PC::NStructReal+j]) {
+                        *rptr = (ParticleReal) soa.GetRealData(j)[pindex];
+                        ++rptr;
+                    }
+                }
+            }
+        }
+    }
+}
 }
 
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
@@ -69,22 +345,15 @@ void WriteBinaryParticleDataSync (PC const& pc,
     Long maxnextid;
 
     // evaluate f for every particle to determine which ones to output
-    Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int> > > particle_io_flags(pc.GetParticles().size());
+    Vector<std::map<std::pair<int, int>, typename PC::IntVector > >
+        particle_io_flags(pc.GetParticles().size());
     for (int lev = 0; lev < pc.GetParticles().size();  lev++)
     {
         const auto& pmap = pc.GetParticles(lev);
         for (const auto& kv : pmap)
         {
-            const auto ptd = kv.second.getConstParticleTileData();
-            const auto np = kv.second.numParticles();
-            particle_io_flags[lev][kv.first].resize(np, 0);
-            auto pflags = particle_io_flags[lev][kv.first].data();
-            amrex::ParallelForRNG(np,
-            [=] AMREX_GPU_DEVICE (int k, amrex::RandomEngine const& engine) noexcept
-            {
-                const auto p = ptd.getSuperParticle(k);
-                pflags[k] = particle_detail::call_f(f,p,engine);
-            });
+            auto& flags = particle_io_flags[lev][kv.first];
+            particle_detail::fillFlags(flags, kv.second, std::forward<F>(f));
         }
     }
 
@@ -97,22 +366,8 @@ void WriteBinaryParticleDataSync (PC const& pc,
     }
     else
     {
-        nparticles = 0;
+        nparticles = particle_detail::countFlags(particle_io_flags, pc);
         maxnextid  = PC::ParticleType::NextID();
-
-        for (int lev = 0; lev < pc.GetParticles().size();  lev++)
-        {
-            const auto& pmap = pc.GetParticles(lev);
-            for (const auto& kv : pmap)
-            {
-                const auto& pflags = particle_io_flags[lev][kv.first];
-                for (int k = 0; k < kv.second.numParticles(); ++k)
-                {
-                    if (pflags[k]) nparticles++;
-                }
-            }
-        }
-
         ParallelDescriptor::ReduceLongSum(nparticles, IOProcNumber);
         PC::ParticleType::NextID(maxnextid);
         ParallelDescriptor::ReduceLongMax(maxnextid, IOProcNumber);
@@ -444,7 +699,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     ParallelDescriptor::ReduceLongMax(maxnextid, IOProcNumber);
 
     Vector<Long> np_on_rank(NProcs, 0L);
-    std::size_t psize = PSizeInFile<ParticleReal>(write_real_comp, write_int_comp);
+    std::size_t psize = particle_detail::PSizeInFile<ParticleReal>(write_real_comp, write_int_comp);
     Vector<int64_t> rank_start_offset(NProcs);
     if (MyProc == IOProcNumber)
     {
