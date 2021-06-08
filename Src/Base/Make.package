@@ -96,6 +96,7 @@ C$(AMREX_BASE)_headers += AMReX_CudaGraph.H AMReX_GpuContainers.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuAllocators.H
 
+C$(AMREX_BASE)_headers += AMReX_MFParallelFor.H
 C$(AMREX_BASE)_headers += AMReX_MFParallelForC.H
 C$(AMREX_BASE)_headers += AMReX_MFParallelForG.H
 
