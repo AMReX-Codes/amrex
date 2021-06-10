@@ -1,22 +1,17 @@
 #ifndef AMReX_ParticleInSituBridge_H
 #define AMReX_ParticleInSituBridge_H
+
 #include <AMReX_Config.H>
-
 #ifdef AMREX_PARTICLES
-#include <AMReX_InSituBridge.H>
 #include <AMReX_Vector.H>
-
 #include <AMReX_AmrParticles.H>
-
-#include <AMReX_ParticleDataAdaptor.H>
-#include <AMReX_AmrDataAdaptor.H>
-
 #ifdef AMREX_USE_SENSEI_INSITU
+#include <AMReX_InSituBridge.H>
+#include <AMReX_ParticleDataAdaptor.H>
 #include <AnalysisAdaptor.h>
 #include <Profiler.h>
-#endif
-
 #include <chrono>
+#endif
 
 namespace amrex
 {
@@ -45,7 +40,7 @@ public:
 };
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleInSituBridge::update<NStructReal, NStructInt, NArrayReal, NArrayInt>(
+int ParticleInSituBridge::update(
   const double time,
   const int time_step,
   amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *particles,
@@ -58,27 +53,26 @@ int ParticleInSituBridge::update<NStructReal, NStructInt, NArrayReal, NArrayInt>
 #if defined(AMREX_USE_SENSEI_INSITU)
   if (doUpdate())
   {
+    sensei::TimeEvent<64> event("ParticleInSituBridge::update");
+
     amrex::Print() << "SENSEI Particles Begin update..." << std::endl;
     auto t0 = std::chrono::high_resolution_clock::now();
 
-    sensei::TimeEvent<64> event("ParticleInSituBridge::update");
-
-    if(!particles)
+    if (!particles)
     {
       SENSEI_ERROR("no particles presented at update call");
       return -1;
     }
+
     ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt> *data_adaptor
       = ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New();
+
     if (comm != MPI_COMM_NULL)
         data_adaptor->SetCommunicator(comm);
-    data_adaptor->SetDataSource(
-      particles,
-      particles_rStructs,
-      particles_iStructs,
-      particles_rArrays,
-      particles_iArrays
-    );
+
+    data_adaptor->SetDataSource(particles, particles_rStructs,
+      particles_iStructs, particles_rArrays, particles_iArrays);
+
     data_adaptor->SetDataTime(time);
     data_adaptor->SetDataTimeStep(time_step);
     ret = analysis_adaptor->Execute(data_adaptor) ? 0 : -1;
@@ -92,8 +86,6 @@ int ParticleInSituBridge::update<NStructReal, NStructInt, NArrayReal, NArrayInt>
 #endif
   return ret;
 }
-
 }
-
-#endif // AMREX_PARTICLES
-#endif // AMReX_ParticleInSituBridge_H
+#endif
+#endif
