@@ -1,0 +1,58 @@
+name: hip
+
+on: [push, pull_request]
+
+jobs:
+  # MPI_C is broken since HIP 4.1
+  # https://gitlab.kitware.com/cmake/cmake/-/issues/21968
+  # https://github.com/ROCm-Developer-Tools/HIP/issues/2246
+  tests-hip:
+    name: HIP ROCm GFortran@9.3 C++17 [tests]
+    runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_hip.sh
+    - name: Build & Install
+      run: |
+        source /etc/profile.d/rocm.sh
+        hipcc --version
+        cmake -S . -B build_full                          \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                   \
+            -DAMReX_ENABLE_TESTS=ON                       \
+            -DAMReX_PARTICLES=ON                          \
+            -DAMReX_FORTRAN=ON                            \
+            -DAMReX_LINEAR_SOLVERS=ON                     \
+            -DAMReX_GPU_BACKEND=HIP                       \
+            -DAMReX_AMD_ARCH=gfx908                       \
+            -DCMAKE_C_COMPILER=$(which clang)             \
+            -DCMAKE_CXX_COMPILER=$(which hipcc)           \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)
+        cmake --build build_full -j 2
+        cmake -S . -B build_nofortran                     \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                   \
+            -DAMReX_ENABLE_TESTS=ON                       \
+            -DAMReX_PARTICLES=ON                          \
+            -DAMReX_FORTRAN=OFF                           \
+            -DAMReX_LINEAR_SOLVERS=ON                     \
+            -DAMReX_GPU_BACKEND=HIP                       \
+            -DAMReX_AMD_ARCH=gfx908                       \
+            -DCMAKE_C_COMPILER=$(which clang)             \
+            -DCMAKE_CXX_COMPILER=$(which hipcc)           \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)
+        cmake --build build_nofortran -j 2
+
+  # Build 2D libamrex hip build with configure
+  configure-2d-single-hip:
+    name: HIP EB [configure 2D]
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_hip.sh
+    - name: Build & Install
+      run: |
+        ./configure --dim 2 --with-hip yes --enable-eb yes --enable-xsdk-defaults yes --with-mpi no --with-omp no --single-precision yes --single-precision-particles yes
+        make -j2 WARN_ALL=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-c++17-extensions"
+        make install
