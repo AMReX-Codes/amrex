@@ -1,23 +1,18 @@
 #ifndef AMReX_AmrParticleInSituBridge_H
 #define AMReX_AmrParticleInSituBridge_H
+
 #include <AMReX_Config.H>
-
 #ifdef AMREX_PARTICLES
-
-#include <AMReX_InSituBridge.H>
 #include <AMReX_Vector.H>
-
 #include <AMReX_AmrParticles.H>
-
-#include <AMReX_AmrParticleDataAdaptor.H>
 #include <AMReX_Amr.H>
-
 #ifdef AMREX_USE_SENSEI_INSITU
+#include <AMReX_AmrParticleDataAdaptor.H>
+#include <AMReX_InSituBridge.H>
 #include <AnalysisAdaptor.h>
 #include <Profiler.h>
-#endif
-
 #include <chrono>
+#endif
 
 namespace amrex
 {
@@ -32,8 +27,9 @@ public:
   AmrParticleInSituBridge(const AmrParticleInSituBridge&) = delete;
   void operator=(const AmrParticleInSituBridge&) = delete;
 
-  // invoke the in situ analysis with data from an AmrMesh and ParticleContainer
-  // instance.
+  /** invoke the in situ analysis with data from an AmrMesh and ParticleContainer
+   * instance.
+   */
   template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
   int update(amrex::Amr *amr,
     amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> * particles,
@@ -44,7 +40,7 @@ public:
 };
 
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleInSituBridge::update<NStructReal, NStructInt, NArrayReal, NArrayInt>(
+int AmrParticleInSituBridge::update(
   amrex::Amr *amr,
   amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> * particles,
   const std::map<std::string, std::vector<int>> & particles_rStructs,
@@ -56,10 +52,10 @@ int AmrParticleInSituBridge::update<NStructReal, NStructInt, NArrayReal, NArrayI
 #if defined(AMREX_USE_SENSEI_INSITU)
   if (doUpdate())
   {
+    sensei::TimeEvent<64> event("AmrParticleInSituBridge::update");
+
     amrex::Print() << "SENSEI Particles Begin update..." << std::endl;
     auto t0 = std::chrono::high_resolution_clock::now();
-
-    sensei::TimeEvent<64> event("AmrParticleInSituBridge::update");
 
     if(!particles)
     {
@@ -89,8 +85,6 @@ int AmrParticleInSituBridge::update<NStructReal, NStructInt, NArrayReal, NArrayI
 #endif
   return ret;
 }
-
 }
-
-#endif // AMREX_PARTICLES
-#endif // AMReX_AmrParticleInSituBridge_H
+#endif
+#endif
