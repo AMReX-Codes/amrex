@@ -1,19 +1,15 @@
 #ifndef AMReX_ParticleDataAdaptor_h
 #define AMReX_ParticleDataAdaptor_h
 
-// AMReX includes
 #include <AMReX_Config.H>
 #ifdef AMREX_PARTICLES
 #include <AMReX_Particles.H>
-
 #include <AMReX_AmrMesh.H>
 #include <AMReX_MultiFab.H>
 
-// sensei includes
-#include "DataAdaptor.h"
-
-
+#include <DataAdaptor.h>
 class vtkPolyData;
+
 namespace amrex
 {
 
@@ -61,8 +57,6 @@ public:
   // get particle real arrays in Array Of Structs format
   int AddParticlesAOSRealArray(const std::string &arrayName, vtkDataObject* mesh);
 
-
-
   // SENSEI API
 #if SENSEI_VERSION_MAJOR >= 3
   int GetMeshMetadata(unsigned int id, sensei::MeshMetadataPtr &metadata) override;
@@ -88,16 +82,21 @@ private:
   vtkPolyData* BuildParticles();
 
   const std::string m_particlesName = "particles";
+
   amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>* m_particles;
-  std::map<std::string, std::vector<int>> m_realStructs;
-  std::map<std::string, int> m_intStructs;
-  std::map<std::string, std::vector<int>> m_realArrays;
-  std::map<std::string, int> m_intArrays;
+
+  using RealDataMapType = std::map<std::string, std::vector<int>>;
+  using IntDataMapType = std::map<std::string, int>;
+
+  RealDataMapType m_realStructs;
+  IntDataMapType m_intStructs;
+  RealDataMapType m_realArrays;
+  IntDataMapType m_intArrays;
 };
 
 }
 
 #include "AMReX_ParticleDataAdaptorI.H"
 
-#endif // AMREX_PARTICLES
-#endif // AMReX_ParticleDataAdaptor_h
+#endif
+#endif
