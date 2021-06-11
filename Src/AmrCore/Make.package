@@ -12,6 +12,8 @@ ifeq ($(USE_PARTICLES), TRUE)
   CEXE_headers += AMReX_AmrParGDB.H AMReX_AmrParticles.H
 endif
 
+CEXE_headers += AMReX_AmrCoreFwd.H
+
 ifneq ($(BL_NO_FORT),TRUE)
   FEXE_headers += AMReX_FillPatchUtil_F.H
   F90EXE_sources += AMReX_FillPatchUtil_$(DIM)d.F90
