@@ -224,6 +224,8 @@ target_sources( amrex
    # Profiling ---------------------------------------------------------------
    AMReX_BLProfiler.cpp
    AMReX_BLBackTrace.cpp
+   # Forward declaration -----------------------------------------------------
+   AMReX_BaseFwd.H
    )
 
 # Fortran stuff
