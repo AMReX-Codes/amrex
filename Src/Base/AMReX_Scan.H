@@ -1124,7 +1124,7 @@ namespace Gpu
     }
 
     template<class InIter, class OutIter>
-    OutIter exclusive_scan(InIter begin, InIter end, OutIter result)
+    OutIter exclusive_scan (InIter begin, InIter end, OutIter result)
     {
 #if defined(AMREX_USE_GPU)
         auto N = std::distance(begin, end);

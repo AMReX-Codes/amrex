@@ -353,7 +353,7 @@ public:
             ReduceTuple r;
             Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
             ReduceTuple& dst = *(dp+blockIdx.x);
-            if (threadIdx.x == 0 && blockIdx.x >= nblocks) {
+            if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
@@ -421,7 +421,7 @@ public:
             ReduceTuple r;
             Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
             ReduceTuple& dst = *(dp+blockIdx.x);
-            if (threadIdx.x == 0 && blockIdx.x >= nblocks) {
+            if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
@@ -481,7 +481,7 @@ public:
             ReduceTuple r;
             Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
             ReduceTuple& dst = *(dp+blockIdx.x);
-            if (threadIdx.x == 0 && blockIdx.x >= nblocks) {
+            if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
             for (N i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
