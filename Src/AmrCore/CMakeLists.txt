@@ -23,6 +23,7 @@ target_sources(amrex
    AMReX_FluxReg_C.H
    AMReX_Interp_C.H
    AMReX_Interp_${AMReX_SPACEDIM}D_C.H
+   AMReX_AmrCoreFwd.H
    )
 
 if (AMReX_FORTRAN)
