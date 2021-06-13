@@ -241,6 +241,7 @@ if (AMReX_HIP)
    # missing gpu devices)
    target_compile_options(amrex
       PUBLIC
-      $<$<COMPILE_LANGUAGE:CXX>:-m64 --amdgpu-target=${AMReX_AMD_ARCH}> )
+      # There are a lot of warnings due to #define AMREX_PRAGMA_SIMD _Pragma("clang loop vectorize(enable)")
+      $<$<COMPILE_LANGUAGE:CXX>:-m64 --amdgpu-target=${AMReX_AMD_ARCH} -Wno-pass-failed> )
 
 endif ()

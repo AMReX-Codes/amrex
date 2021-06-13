@@ -183,7 +183,6 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
         int num_copies = Scan::ExclusiveSum(np_tile, pflags.begin(), offsets.begin(), Scan::retSum);
 
         const auto flag_ptr = pflags.data();
-        const auto offsets_ptr = offsets.data();
 
         auto idata_d_ptr = idata_d.data();
         auto rdata_d_ptr = rdata_d.data();
