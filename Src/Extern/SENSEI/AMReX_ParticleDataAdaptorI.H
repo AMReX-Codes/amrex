@@ -382,6 +382,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
     return -1;
   }
 
+
   // AMR data is always expected to be a global view
   metadata->GlobalView = false;      // tells if the information describes data
                                      // on this rank or all ranks. Passed into
@@ -410,7 +411,11 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
   // std::array<double,6> Bounds;
 
   // type enum of point data (unstructured, optional)
-  // int CoordinateType;
+#ifdef AMREX_SINGLE_PRECISION_PARTICLES
+  metadata->CoordinateType = VTK_FLOAT;
+#else
+  metadata->CoordinateType = VTK_DOUBLE;
+#endif
 
   // total number of points in all blocks (all, optional)
   // long NumPoints;
@@ -426,6 +431,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
                       + m_intStructs.size()
                       + m_realArrays.size()
                       + m_intArrays.size();
+
   // number of ghost cell layers (all)
   metadata->NumGhostCells = 0;
 
@@ -433,7 +439,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
   metadata->NumGhostNodes = 0;
 
   // number of AMR levels (AMR)
-  metadata->NumLevels;
+  // metadata->NumLevels;
 
   // non zero if the mesh does not change in time (all)
   metadata->StaticMesh = 0;
@@ -499,7 +505,11 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
   metadata->ArrayType = {};
   for(auto s : m_realStructs)
   {
+#ifdef AMREX_SINGLE_PRECISION_PARTICLES
+    metadata->ArrayType.push_back(VTK_FLOAT);
+#else
     metadata->ArrayType.push_back(VTK_DOUBLE);
+#endif
   }
   for(auto s : m_intStructs)
   {
@@ -507,7 +517,11 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
   }
   for(auto s : m_realArrays)
   {
+#ifdef AMREX_SINGLE_PRECISION_PARTICLES
+    metadata->ArrayType.push_back(VTK_FLOAT);
+#else
     metadata->ArrayType.push_back(VTK_DOUBLE);
+#endif
   }
   for(auto s : m_intArrays)
   {
@@ -518,18 +532,10 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
   // metadata->ArrayRange = {};
 
   // rank where each block resides (all, optional)
-  // metadata->BlockOwner.resize(nprocs);
   metadata->BlockOwner = {rank};
-  // std::iota(metadata->BlockOwner.begin(), metadata->BlockOwner.end(), 0);
 
   // global id of each block (all, optional)
-  // TO DO: this is lazy
   metadata->BlockIds = metadata->BlockOwner;
-
-  // note: for AMR BlockNumPoints and BlockNumCells are always global
-  // metadata->BlockNumPoints.resize(metadata->NumBlocks);
-  // metadata->BlockNumCells.resize(metadata->NumBlocks);
-  // metadata->BlockCellArraySize.resize(metadata->NumBlocks);
 
   // number of points for each block (all, optional)
   auto nptsOnProc = this->m_particles->TotalNumberOfParticles(true, true);
@@ -547,10 +553,75 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
 
   // bounds of each block [x0,x1, y0,y1, z0,z1] (all, optional)
   // std::vector<std::array<double,6>> BlockBounds;
+  if (metadata->Flags.BlockBoundsSet())
+  {
+    std::array<double,6> bounds({
+      std::numeric_limits<double>::max(),
+      std::numeric_limits<double>::lowest(),
+#if (AMREX_SPACEDIM == 1)
+      0.0, 0.0, 0.0, 0.0
+#elif (AMREX_SPACEDIM == 2)
+      std::numeric_limits<double>::max(),
+      std::numeric_limits<double>::lowest(),
+      0.0, 0.0
+#elif (AMREX_SPACEDIM == 3)
+      std::numeric_limits<double>::max(),
+      std::numeric_limits<double>::lowest(),
+      std::numeric_limits<double>::max(),
+      std::numeric_limits<double>::lowest()
+#endif
+      });
+
+    // loop over levels in the particle container
+    const auto& particles = this->m_particles->GetParticles();
+    for (int lev = 0; lev < particles.size();  lev++)
+    {
+      // loop over ParticleTiles on level
+      auto& pmap = particles[lev];
+      for (const auto& kv : pmap)
+      {
+        // loop over particles in ParticleTile
+        const auto& aos = kv.second.GetArrayOfStructs();
+        const auto &parts = aos();
+
+        // visit only the "real" particles, skip the "neighbor" particles.
+        long long numReal = aos.numRealParticles();
+        for (long long i = 0; i < numReal; ++i)
+        {
+          const auto &part = parts[i];
+          if (part.id() > 0)
+          {
+#if (AMREX_SPACEDIM == 1)
+            bounds[0] = bounds[0] > part.pos(0) ? part.pos(0) : bounds[0];
+            bounds[1] = bounds[1] < part.pos(0) ? part.pos(0) : bounds[1];
+#elif (AMREX_SPACEDIM == 2)
+            bounds[0] = bounds[0] > part.pos(0) ? part.pos(0) : bounds[0];
+            bounds[1] = bounds[1] < part.pos(0) ? part.pos(0) : bounds[1];
+            bounds[2] = bounds[2] > part.pos(1) ? part.pos(1) : bounds[2];
+            bounds[3] = bounds[3] < part.pos(1) ? part.pos(1) : bounds[3];
+#elif (AMREX_SPACEDIM == 3)
+            bounds[0] = bounds[0] > part.pos(0) ? part.pos(0) : bounds[0];
+            bounds[1] = bounds[1] < part.pos(0) ? part.pos(0) : bounds[1];
+            bounds[2] = bounds[2] > part.pos(1) ? part.pos(1) : bounds[2];
+            bounds[3] = bounds[3] < part.pos(1) ? part.pos(1) : bounds[3];
+            bounds[4] = bounds[4] > part.pos(2) ? part.pos(2) : bounds[4];
+            bounds[5] = bounds[5] < part.pos(2) ? part.pos(2) : bounds[5];
+#endif
+          }
+        }
+      }
+    }
+
+    metadata->BlockBounds = {bounds};
+  }
 
   // min max of each array on each block.
   // indexed by block then array. (all, optional)
   // std::vector<std::vector<std::array<double,2>>> BlockArrayRange;
+  if (metadata->Flags.BlockArrayRangeSet())
+  {
+    SENSEI_ERROR("BlockArrayRange requested but not yet implemented.")
+  }
 
   // refinement ratio in i,j, and k directions for each level (AMR)
   // std::vector<std::array<int,3>> RefRatio;
@@ -563,6 +634,11 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
 
   // flag indicating presence of a periodic boundary in the i,j,k direction (all)
   // std::array<int,3> PeriodicBoundary;
+
+#if defined(SENSEI_DEBUG)
+  metadata->Validate(this->GetCommunicator(), sensei::MeshMetadataFlags());
+  metadata->ToStream(std::cerr);
+#endif
 
   return 0;
 }
