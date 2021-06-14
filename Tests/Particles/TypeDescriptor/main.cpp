@@ -135,7 +135,7 @@ void testFloatIO(const RealDescriptor& rd_out) {
 
     amrex::Vector<float> rdata_out;
     for (int i = -99; i <= 100; ++i) {
-        rdata_out.push_back(amrex::Random());
+        rdata_out.push_back(static_cast<float>(amrex::Random()));
     }
 
     std::ofstream ofs;

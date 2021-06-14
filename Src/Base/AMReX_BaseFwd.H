@@ -5,7 +5,7 @@ namespace amrex {
 
 class MultiFab;
 class iMultiFab;
-template <class FAB> FabArray;
+template <class FAB> class FabArray;
 template <typename T> class LayoutData;
 class FabArrayBase;
 
@@ -14,7 +14,7 @@ class IArrayBox;
 template <class T> class BaseFab;
 template <typename T> struct Array4;
 
-template <class T, std::size_t N> struct GpuArray;
+template <class T, unsigned int N> struct GpuArray;
 
 class BoxArray;
 class BoxList;

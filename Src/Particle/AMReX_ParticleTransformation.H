@@ -423,7 +423,7 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
     Gpu::DeviceVector<Index> offsets(np);
     Gpu::exclusive_scan(mask, mask+np, offsets.begin());
 
-    Index last_mask, last_offset;
+    Index last_mask=0, last_offset=0;
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
 
@@ -502,7 +502,7 @@ Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
     Gpu::DeviceVector<Index> offsets(np);
     Gpu::exclusive_scan(mask, mask+np, offsets.begin());
 
-    Index last_mask, last_offset;
+    Index last_mask=0, last_offset=0;
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
 

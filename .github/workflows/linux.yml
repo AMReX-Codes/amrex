@@ -1,3 +1,7 @@
+# -Wextra-semi: GCC < 10 does not have this.
+# -Wunreachable-code: GCC no longer has this option.
+# -Wno-c++17-extensions: Clang complains about nodiscard if the standard is not set to c++17.
+
 name: linux
 
 on: [push, pull_request]
@@ -7,7 +11,7 @@ jobs:
   library:
     name: GNU@7.5 C++17 Release [lib]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -32,7 +36,7 @@ jobs:
   library_clang:
     name: Clang@6.0 C++14 SP NOMPI Debug [lib]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -fno-operator-names"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -66,7 +70,7 @@ jobs:
   tests_build:
     name: GNU@7.5 C++14 [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -87,7 +91,7 @@ jobs:
   tests_cxx20:
     name: GNU@10.1 C++20 OMP [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-Werror -Wno-error=deprecated-declarations -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -112,7 +116,7 @@ jobs:
   tests_clang:
     name: Clang@6.0 C++14 SP Particles DP Mesh Debug [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -fno-operator-names"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -140,7 +144,7 @@ jobs:
   tests-nonmpi:
     name: GNU@7.5 C++14 NOMPI [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -162,7 +166,7 @@ jobs:
   tests-nofortran:
     name: GNU@7.5 C++14 w/o Fortran [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
@@ -267,7 +271,7 @@ jobs:
   tests_run:
     name: GNU@7.5 C++14 [tests]
     runs-on: ubuntu-18.04
-    env: {CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wunreachable-code -fno-operator-names"}
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
