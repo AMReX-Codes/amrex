@@ -14,7 +14,7 @@ class IArrayBox;
 template <class T> class BaseFab;
 template <typename T> struct Array4;
 
-template <class T, std::size_t N> struct GpuArray;
+template <class T, unsigned int N> struct GpuArray;
 
 class BoxArray;
 class BoxList;
