@@ -5,7 +5,7 @@ namespace amrex {
 
 class MultiFab;
 class iMultiFab;
-template <class FAB> FabArray;
+template <class FAB> class FabArray;
 template <typename T> class LayoutData;
 class FabArrayBase;
 
