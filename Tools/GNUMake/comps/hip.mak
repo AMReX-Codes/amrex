@@ -18,7 +18,7 @@ F90 = gfortran
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
 else
-  CXXSTD := c++14
+  CXXSTD := c++17
 endif
 
 # Generic flags, always used
