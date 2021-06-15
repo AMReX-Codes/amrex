@@ -66,5 +66,5 @@ jobs:
     - name: Build & Install
       run: |
         ./configure --dim 2 --with-hip yes --enable-eb yes --enable-xsdk-defaults yes --with-mpi no --with-omp no --single-precision yes --single-precision-particles yes
-        make -j2 WARN_ALL=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-c++17-extensions"
+        make -j2 WARN_ALL=TRUE XTRA_CXXFLAGS="-fno-operator-names"
         make install
