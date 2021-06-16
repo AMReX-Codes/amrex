@@ -79,11 +79,11 @@ struct ParticleCopyPlan
     Gpu::HostVector<unsigned int>   m_box_counts_h;
     Gpu::DeviceVector<unsigned int> m_box_offsets;
 
-    Gpu::DeviceVector<int> m_rcv_box_counts;
-    Gpu::DeviceVector<int> m_rcv_box_offsets;
-    Gpu::DeviceVector<int> m_rcv_box_ids;
-    Gpu::DeviceVector<int> m_rcv_box_pids;
-    Gpu::DeviceVector<int> m_rcv_box_levs;
+    Vector<int> m_rcv_box_counts;
+    Vector<int> m_rcv_box_offsets;
+    Vector<int> m_rcv_box_ids;
+    Vector<int> m_rcv_box_pids;
+    Vector<int> m_rcv_box_levs;
 
     Long m_NumSnds;
     int m_nrcvs;
