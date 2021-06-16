@@ -224,7 +224,7 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
         m_rcv_box_levs.resize(0);
         m_rcv_box_pids.resize(0);
 
-        rcv_box_offsets.push_back(0);
+        m_rcv_box_offsets.push_back(0);
         for (int i = 0, N = m_rcv_data.size(); i < N; i+=4)
         {
             m_rcv_box_counts.push_back(m_rcv_data[i]);
@@ -232,7 +232,7 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
             m_rcv_box_ids.push_back(m_rcv_data[i+1]);
             m_rcv_box_levs.push_back(m_rcv_data[i+2]);
             m_rcv_box_pids.push_back(m_rcv_data[i+3]);
-            m_rcv_box_offsets.push_back(rcv_box_offsets.back() + rcv_box_counts.back());
+            m_rcv_box_offsets.push_back(m_rcv_box_offsets.back() + m_rcv_box_counts.back());
         }
     }
 
