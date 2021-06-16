@@ -45,6 +45,16 @@ struct Array4BoxTag {
     Box const& box () const noexcept { return dbox; }
 };
 
+template <class T>
+struct Array4BoxValTag {
+    Array4<T> dfab;
+    Box       dbox;
+    T          val;
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Box const& box () const noexcept { return dbox; }
+};
+
 #ifdef AMREX_USE_GPU
 namespace detail {
 template <class TagType, class F>

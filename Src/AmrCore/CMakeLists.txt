@@ -31,8 +31,6 @@ if (AMReX_FORTRAN)
       PRIVATE
       AMReX_FillPatchUtil_F.H
       AMReX_FillPatchUtil_${AMReX_SPACEDIM}d.F90
-      AMReX_FLUXREG_F.H
-      AMReX_FLUXREG_nd.F90
       AMReX_INTERP_F.H
       AMReX_INTERP_${AMReX_SPACEDIM}D.F90
       )
