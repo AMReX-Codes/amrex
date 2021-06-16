@@ -6,7 +6,11 @@
 #include <AMReX_REAL.H>
 
 #ifdef AMREX_USE_CUDA
-#include "nvToolsExt.h"
+#include <nvToolsExt.h>
+#endif
+
+#if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
+#include <roctx.h>
 #endif
 
 #include <deque>
@@ -90,6 +94,7 @@ private:
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
     static double t_init;
     static int device_synchronize_around_region;
+    static int n_print_tabs;
     static int verbose;
 
     static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);

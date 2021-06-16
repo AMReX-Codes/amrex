@@ -77,7 +77,7 @@ FPC::NativeIntDescriptor ()
 {
 #ifdef AMREX_LITTLE_ENDIAN
     static const IntDescriptor nld(sizeof(int), IntDescriptor::ReverseOrder);
-#elif AMREX_BIG_ENDIAN
+#elif defined(AMREX_BIG_ENDIAN)
     static const IntDescriptor  nld(sizeof(int), IntDescriptor::NormalOrder);
 #endif
 
@@ -91,7 +91,7 @@ FPC::NativeLongDescriptor ()
 
 #ifdef AMREX_LITTLE_ENDIAN
     static const IntDescriptor nld(sizeof(Long), IntDescriptor::ReverseOrder);
-#elif AMREX_BIG_ENDIAN
+#elif defined(AMREX_BIG_ENDIAN)
     static const IntDescriptor  nld(sizeof(Long), IntDescriptor::NormalOrder);
 #endif
 
@@ -108,7 +108,7 @@ FPC::NativeRealDescriptor ()
 #else
     static const RealDescriptor nrd(ieee_double, reverse_double_order, 8);
 #endif
-#elif AMREX_BIG_ENDIAN
+#elif defined(AMREX_BIG_ENDIAN)
 #ifdef BL_USE_FLOAT
     static const RealDescriptor nrd(ieee_float, normal_float_order, 4);
 #else
@@ -125,7 +125,7 @@ FPC::Native32RealDescriptor ()
 {
 #ifdef AMREX_LITTLE_ENDIAN
     static const RealDescriptor n32rd(ieee_float, reverse_float_order, 4);
-#elif AMREX_BIG_ENDIAN
+#elif defined(AMREX_BIG_ENDIAN)
     static const RealDescriptor n32rd(ieee_float, normal_float_order, 4);
 #endif
 
@@ -138,7 +138,7 @@ FPC::Native64RealDescriptor ()
 {
 #ifdef AMREX_LITTLE_ENDIAN
     static const RealDescriptor n64rd(ieee_double, reverse_double_order, 8);
-#elif AMREX_BIG_ENDIAN
+#elif defined(AMREX_BIG_ENDIAN)
     static const RealDescriptor n64rd(ieee_double, normal_double_order, 8);
 #endif
 

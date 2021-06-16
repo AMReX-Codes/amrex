@@ -70,6 +70,8 @@ buildNeighborMask ()
         const Periodicity& periodicity = geom.periodicity();
         const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
 
+        Vector<Array4BoxValTag<int> > tags;
+
         for (MFIter mfi(ba, dmap); mfi.isValid(); ++mfi)
         {
             int grid = mfi.index();
@@ -118,7 +120,9 @@ buildNeighborMask ()
                 const bool first_only = false;
                 auto isecs = isec_ba.intersections(box, first_only, nGrow);
 
-                if (! isecs.empty() ) (*m_neighbor_mask_ptr)[mfi].setVal<RunOn::Host>(i, box);
+                if (! isecs.empty() ) {
+                    tags.push_back({(*m_neighbor_mask_ptr)[mfi].array(), box, i});
+                }
 
                 for (auto& isec : isecs)
                 {
@@ -144,6 +148,13 @@ buildNeighborMask ()
 
             Gpu::Device::synchronize();
         }
+
+        amrex::ParallelFor(tags, 1,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, const Array4BoxValTag<int>& tag) noexcept
+            {
+                tag.dfab(i,j,k,n) = tag.val;
+            });
+
         RemoveDuplicates(neighbor_procs);
     }
 }

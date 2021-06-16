@@ -13,8 +13,6 @@ C$(AMREX_BASE)_headers += AMReX_Extension.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuComplex.H
 
-C$(AMREX_BASE)_headers += AMReX_IndexSequence.H
-
 C$(AMREX_BASE)_headers += AMReX_PODVector.H
 
 C$(AMREX_BASE)_headers += AMReX_BlockMutex.H
@@ -97,6 +95,10 @@ C$(AMREX_BASE)_headers += AMReX_GpuReduce.H
 C$(AMREX_BASE)_headers += AMReX_CudaGraph.H AMReX_GpuContainers.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuAllocators.H
+
+C$(AMREX_BASE)_headers += AMReX_MFParallelFor.H
+C$(AMREX_BASE)_headers += AMReX_MFParallelForC.H
+C$(AMREX_BASE)_headers += AMReX_MFParallelForG.H
 
 #
 # I/O stuff.
@@ -256,6 +258,10 @@ endif
 # Machine model
 CEXE_headers += AMReX_Machine.H
 CEXE_sources += AMReX_Machine.cpp
+
+# Forward declaration
+CEXE_headers += AMReX_BaseFwd.H
+
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base

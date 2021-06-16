@@ -572,7 +572,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                   Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                   const Vector<int>& write_real_comp,
                   const Vector<int>& write_int_comp,
-                  const Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int>>>& particle_io_flags) const
+                  const Vector<std::map<std::pair<int, int>, IntVector>>& particle_io_flags) const
 {
     BL_PROFILE("ParticleContainer::WriteParticles()");
 
@@ -587,13 +587,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         const auto& pflags = particle_io_flags[lev].at(kv.first);
 
         // Only write out valid particles.
-        int cnt = 0;
-        for (int k = 0; k < kv.second.GetArrayOfStructs().numParticles(); ++k)
-        {
-            if (pflags[k]) cnt++;
-        }
-
-        count[grid] += cnt;
+        count[grid] += particle_detail::countFlags(pflags);
     }
 
     MFInfo info;
@@ -609,98 +603,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
         if (count[grid] == 0) continue;
 
-        // First write out the integer data in binary.
-        int num_output_int = 0;
-        for (int i = 0; i < NumIntComps() + NStructInt; ++i)
-            if (write_int_comp[i]) ++num_output_int;
-
-        const int iChunkSize = 2 + num_output_int;
-        Vector<int> istuff(count[grid]*iChunkSize);
-        int* iptr = istuff.dataPtr();
-
-        for (unsigned i = 0; i < tile_map[grid].size(); i++) {
-            auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
-            const auto& pbox = m_particles[lev].at(ptile_index);
-            const auto& pflags = particle_io_flags[lev].at(ptile_index);
-            for (int pindex = 0; pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex) {
-                const auto& aos = pbox.GetArrayOfStructs();
-                const auto& p = aos[pindex];
-                if (pflags[pindex])
-                {
-                    // always write these
-                    *iptr = p.id(); ++iptr;
-                    *iptr = p.cpu(); ++iptr;
-
-                    // optionally write these
-                    for (int j = 0; j < NStructInt; j++)
-                    {
-                        if (write_int_comp[j])
-                        {
-                            *iptr = p.idata(j);
-                            ++iptr;
-                        }
-                    }
-
-                    const auto& soa  = pbox.GetStructOfArrays();
-                    for (int j = 0; j < NumIntComps(); j++)
-                    {
-                        if (write_int_comp[NStructInt+j])
-                        {
-                            *iptr = soa.GetIntData(j)[pindex];
-                            ++iptr;
-                        }
-                    }
-                }
-            }
-        }
+        Vector<int> istuff;
+        Vector<ParticleReal> rstuff;
+        particle_detail::packIOData(istuff, rstuff, *this, lev, grid,
+                                    write_real_comp, write_int_comp,
+                                    particle_io_flags, tile_map[grid], count[grid]);
 
         writeIntData(istuff.dataPtr(), istuff.size(), ofs);
         ofs.flush();  // Some systems require this flush() (probably due to a bug)
-
-        // Write the Real data in binary.
-        int num_output_real = 0;
-        for (int i = 0; i < NumRealComps() + NStructReal; ++i)
-            if (write_real_comp[i]) ++num_output_real;
-
-        const int rChunkSize = AMREX_SPACEDIM + num_output_real;
-        Vector<typename ParticleType::RealType> rstuff(count[grid]*rChunkSize);
-        typename ParticleType::RealType* rptr = rstuff.dataPtr();
-
-        for (unsigned i = 0; i < tile_map[grid].size(); i++) {
-                        auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
-            const auto& pbox = m_particles[lev].at(ptile_index);
-                        const auto& pflags = particle_io_flags[lev].at(ptile_index);
-            for (int pindex = 0; pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex) {
-                const auto& aos = pbox.GetArrayOfStructs();
-                const auto& p = aos[pindex];
-                if (pflags[pindex])
-                {
-                    // always write these
-                    for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.pos(j);
-                    rptr += AMREX_SPACEDIM;
-
-                    // optionally write these
-                    for (int j = 0; j < NStructReal; j++)
-                    {
-                        if (write_real_comp[j])
-                        {
-                            *rptr = p.rdata(j);
-                            ++rptr;
-                        }
-                    }
-
-                    const auto& soa  = pbox.GetStructOfArrays();
-                    for (int j = 0; j < NumRealComps(); j++)
-                    {
-                        if (write_real_comp[NStructReal+j])
-                        {
-                            *rptr = (typename ParticleType::RealType) soa.GetRealData(j)[pindex];
-                            ++rptr;
-                        }
-                    }
-                }
-            }
-        }
 
         WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs);
         ofs.flush();  // Some systems require this flush() (probably due to a bug)
@@ -1203,13 +1113,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             for (int lev = 0; lev < m_particles.size();  lev++) {
               auto& pmap = m_particles[lev];
               for (const auto& kv : pmap) {
-                const auto& aos = kv.second.GetArrayOfStructs();
-                const auto& soa = kv.second.GetStructOfArrays();
+                ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt,
+                             amrex::PinnedArenaAllocator> pinned_ptile;
+                pinned_ptile.define(NumRuntimeRealComps(), NumRuntimeIntComps());
+                pinned_ptile.resize(kv.second.numParticles());
+                amrex::copyParticles(pinned_ptile, kv.second);
+                const auto& host_aos = pinned_ptile.GetArrayOfStructs();
+                const auto& host_soa = pinned_ptile.GetStructOfArrays();
 
-                auto np = aos.numParticles();
-                Gpu::HostVector<ParticleType> host_aos(np);
-                Gpu::copy(Gpu::deviceToHost, aos.begin(), aos.end(), host_aos.begin());
-
+                auto np = host_aos.numParticles();
                 for (int index = 0; index < np; ++index) {
                     const ParticleType* it = &host_aos[index];
                     if (it->id() > 0) {
@@ -1230,10 +1142,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
                         // then the particle attributes.
                         for (int i = 0; i < NumRealComps(); i++)
-                            File << soa.GetRealData(i)[index] << ' ';
+                            File << host_soa.GetRealData(i)[index] << ' ';
 
                         for (int i = 0; i < NumIntComps(); i++)
-                            File << soa.GetIntData(i)[index] << ' ';
+                            File << host_soa.GetIntData(i)[index] << ' ';
 
                         File << '\n';
                     }

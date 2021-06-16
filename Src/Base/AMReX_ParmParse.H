@@ -5,6 +5,7 @@
 
 #include <AMReX_BLassert.H>
 
+#include <set>
 #include <stack>
 #include <string>
 #include <iosfwd>
@@ -236,6 +237,26 @@ class IntVect;
 *     test = apple "boy blue" 10 20 30 40
 *
 *     FILE = prob_file
+*
+*  Preprocessing of AMREX_SPACEDIM is supported. It supports #if, #elif,
+*  #else, and #endif.  The condition must be `AMREX_SPACEDIM op D`, where op
+*  is >, <, >=, <=, or ==, and D is 1, 2, or 3. The parentheses around the
+*  condition are optional. Some examples are shown below.
+*
+*    #if (AMREX_SPACEDIM == 1)
+*    n_cell = 256
+*    #elif (AMREX_SPACEDIM == 2)
+*    n_cell = 128 128
+*    #else
+*    n_cell = 64 64 64
+*    #endif
+*
+*    #if AMREX_SPACEDIM >= 2
+*    t = 0.5
+*    #else
+*    t = 1.5
+*    #endif
+*
 */
 
 class ParmParse
@@ -934,6 +955,9 @@ public:
 
     //! Returns unused [prefix.]* parameters.
     static std::vector<std::string> getUnusedInputs (const std::string& prefix = std::string());
+
+    //! Returns [prefix.]* parameters.
+    static std::set<std::string> getEntries (const std::string& prefix = std::string());
 
     struct PP_entry;
     typedef std::list<PP_entry> Table;

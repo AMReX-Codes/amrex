@@ -44,9 +44,7 @@ ifeq ($(WARN_ALL),TRUE)
   warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
   warning_flags += -Wfloat-conversion -Wextra-semi
 
-  ifneq ($(USE_CUDA),TRUE)
-    warning_flags += -Wpedantic
-  endif
+  warning_flags += -Wpedantic
 
   ifneq ($(WARN_SHADOW),FALSE)
     warning_flags += -Wshadow

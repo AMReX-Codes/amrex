@@ -17,7 +17,6 @@ target_sources( amrex
    AMReX.H
    AMReX_Exception.H
    AMReX_Extension.H
-   AMReX_IndexSequence.H
    AMReX_PODVector.H
    AMReX_ParmParse.cpp
    AMReX_parmparse_fi.cpp
@@ -211,6 +210,9 @@ target_sources( amrex
    AMReX_GpuReduce.H
    AMReX_GpuAllocators.H
    AMReX_GpuContainers.H
+   AMReX_MFParallelFor.H
+   AMReX_MFParallelForC.H
+   AMReX_MFParallelForG.H
    # CUDA --------------------------------------------------------------------
    AMReX_CudaGraph.H
    # Machine model -----------------------------------------------------------
@@ -222,6 +224,8 @@ target_sources( amrex
    # Profiling ---------------------------------------------------------------
    AMReX_BLProfiler.cpp
    AMReX_BLBackTrace.cpp
+   # Forward declaration -----------------------------------------------------
+   AMReX_BaseFwd.H
    )
 
 # Fortran stuff

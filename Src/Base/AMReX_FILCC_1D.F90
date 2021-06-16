@@ -1,3 +1,4 @@
+#include <AMReX_Config.H>
 
 ! -----------------------------------------------------------
 !> This routine is intended to be a generic fill function

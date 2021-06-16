@@ -15,7 +15,17 @@
 #if defined(AMREX_USE_CUDA)
 #include <cuda_profiler_api.h>
 #if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
-#include "nvToolsExt.h"
+#include <nvToolsExt.h>
+#endif
+#endif
+
+#if defined(AMREX_USE_HIP)
+#include <hip/hip_runtime.h>
+#if defined(AMREX_USE_ROCTX)
+#include <roctracer_ext.h>
+#if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
+#include <roctx.h>
+#endif
 #endif
 #endif
 
@@ -311,8 +321,6 @@ Device::Initialize ()
 #if (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
     nvtxRangeEnd(nvtx_init);
 #endif
-    profilerStart();
-
     if (amrex::Verbose()) {
 #if defined(AMREX_USE_MPI) && (__CUDACC_VER_MAJOR__ >= 10)
         if (num_devices_used == ParallelDescriptor::NProcs())
@@ -329,8 +337,6 @@ Device::Initialize ()
         amrex::Print() << "CUDA initialized with 1 GPU\n";
 #endif // AMREX_USE_MPI && NVCC >= 10
     }
-
-    profilerStart();
 
 #elif defined(AMREX_USE_HIP)
     if (amrex::Verbose()) {
@@ -349,14 +355,15 @@ Device::Initialize ()
     }
 #endif
 
+    Device::profilerStart();
+
 }
 
 void
 Device::Finalize ()
 {
-#ifdef AMREX_USE_CUDA
-    cudaProfilerStop();
-#endif
+
+    Device::profilerStop();
 
     for (int i = 0; i < max_gpu_streams; ++i)
     {
@@ -996,7 +1003,10 @@ Device::profilerStart ()
 {
 #ifdef AMREX_USE_CUDA
     AMREX_GPU_SAFE_CALL(cudaProfilerStart());
+#elif (defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX))
+    roctracer_start();
 #endif
+
 }
 
 void
@@ -1004,6 +1014,8 @@ Device::profilerStop ()
 {
 #ifdef AMREX_USE_CUDA
     AMREX_GPU_SAFE_CALL(cudaProfilerStop());
+#elif (defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX))
+    roctracer_stop();
 #endif
 }
 

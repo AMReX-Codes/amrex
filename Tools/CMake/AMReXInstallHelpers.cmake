@@ -109,6 +109,10 @@ macro( add_test_install_target _dir _amrex_root )
 
    get_filename_component( _dirname ${_dir} NAME )
    set(_builddir  ${CMAKE_CURRENT_BINARY_DIR}/${_dirname})
+   set(_enable_fortran)
+   if(AMReX_FORTRAN)
+      set(_enable_fortran -DCMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER})
+   endif()
    add_custom_target(test_install
       COMMAND ${CMAKE_COMMAND} -E echo ""
       COMMAND ${CMAKE_COMMAND} -E echo "------------------------------------"
@@ -117,7 +121,7 @@ macro( add_test_install_target _dir _amrex_root )
       COMMAND ${CMAKE_COMMAND} -E echo ""
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_builddir}
       COMMAND ${CMAKE_COMMAND} -E echo "Configuring test project"
-      COMMAND ${CMAKE_COMMAND} -S ${_dir} -B ${_builddir} -DAMReX_ROOT=${_amrex_root} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+      COMMAND ${CMAKE_COMMAND} -S ${_dir} -B ${_builddir} -DAMReX_ROOT=${_amrex_root} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} ${_enable_fortran}
       COMMAND ${CMAKE_COMMAND} -E echo "Building test project"
       COMMAND ${CMAKE_COMMAND} --build ${_builddir}
       COMMAND ${CMAKE_COMMAND} -E echo ""

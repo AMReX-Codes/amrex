@@ -2,6 +2,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_OpenMP.H>
+#include <limits>
 
 namespace amrex {
 namespace Gpu {
@@ -11,15 +12,20 @@ namespace Gpu {
 namespace {
     bool s_in_fuse_region = false;
     bool s_in_fuse_reduction_region = false;
+#if defined(AMREX_USE_GPU_RDC)
     // Fusing kernels with elements greater than this are not recommended based tests on v100
     Long s_fuse_size_threshold = 257*257;
     // If the number of kernels is less than this, fusing is not recommended based on tests on v100
     int s_fuse_numkernels_threshold = 3;
+#else
+    Long s_fuse_size_threshold = std::numeric_limits<Long>::max();
+    int s_fuse_numkernels_threshold = std::numeric_limits<int>::max();
+#endif
 }
 
 std::unique_ptr<Fuser> Fuser::m_instance = nullptr;
 
-#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
+#if defined(AMREX_USE_GPU_RDC) && (defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION)))
 
 Fuser::Fuser ()
 {
