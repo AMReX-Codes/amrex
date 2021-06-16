@@ -118,7 +118,7 @@ struct AssignGridFilterTest
 
   int m_lev_min, m_lev_max, m_nGrow, m_gid;
   amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> * m_assign_grid;
-    
+
     /**
        \brief This filters based on matching grids
        *
@@ -139,11 +139,11 @@ struct AssignGridFilterTest
         const auto p_boxes = amrex::get<0>(tup);
         const auto p_levs  = amrex::get<1>(tup);
 
-	//	return m_gid >=0 & p_boxes == m_gid;
-	return m_gid >=0 & p_boxes % 2 == 0;
-	/*
-	if(p_boxes == m_gid)
-	{
+        //      return m_gid >=0 & p_boxes == m_gid;
+        return m_gid >=0 & p_boxes % 2 == 0;
+        /*
+        if(p_boxes == m_gid)
+        {
         dst.m_aos[dst_i] = src.m_aos[src_i];
         for (int j = 0; j < DstData::NAR; ++j)
             dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
@@ -153,7 +153,7 @@ struct AssignGridFilterTest
             dst.m_idata[j][dst_i] = m_factor*src.m_idata[j][src_i];
         for (int j = 0; j < dst.m_num_runtime_int; ++j)
             dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
-	    }*/
+            }*/
   //    }
 
     template <typename SrcData>
@@ -164,11 +164,11 @@ struct AssignGridFilterTest
         const auto p_boxes = amrex::get<0>(tup);
         const auto p_levs  = amrex::get<1>(tup);
 
-	//	return m_gid >=0 & p_boxes == m_gid;
-	return m_gid >=0 & p_boxes % 2 == 0;
-	/*
-	if(p_boxes == m_gid)
-	{
+        //      return m_gid >=0 & p_boxes == m_gid;
+        return m_gid >=0 & p_boxes % 2 == 0;
+        /*
+        if(p_boxes == m_gid)
+        {
         dst.m_aos[dst_i] = src.m_aos[src_i];
         for (int j = 0; j < DstData::NAR; ++j)
             dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
@@ -178,13 +178,13 @@ struct AssignGridFilterTest
             dst.m_idata[j][dst_i] = m_factor*src.m_idata[j][src_i];
         for (int j = 0; j < dst.m_num_runtime_int; ++j)
             dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
-	    }*/
+            }*/
     }
 };
 
 struct TransformerGhostTest
 {
-    
+
     /**
        \brief This copies the particle but multiplies all the idata by m_factor
        *
@@ -253,7 +253,7 @@ struct TransformerVirtTest
 struct Transformer
 {
     int m_factor;
-    
+
     /**
        \brief This copies the particle but multiplies all the idata by m_factor
        *

@@ -777,7 +777,7 @@ struct AssignGridFilter
 
   int m_lev_min, m_lev_max, m_nGrow, m_gid;
   amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> * m_assign_grid;
-    
+
     /**
        \brief This filters based on matching grids
        *
@@ -795,19 +795,19 @@ struct AssignGridFilter
         const auto tup_max = (*m_assign_grid)(src.m_aos[src_i], m_lev_max, m_lev_max, m_nGrow);
         const auto p_boxes = amrex::get<0>(tup_min);
         const auto p_levs  = amrex::get<1>(tup_min);
-	AMREX_DEVICE_PRINTF("src_i %d\tgid %15d\tp_boxes %15d\tcompare %d\tp_levs %d\n",src_i,m_gid,p_boxes,(m_gid >=0 && p_boxes == m_gid),p_levs);
+    //        AMREX_DEVICE_PRINTF("src_i %d\tgid %15d\tp_boxes %15d\tcompare %d\tp_levs %d\n",src_i,m_gid,p_boxes,(m_gid >=0 && p_boxes == m_gid),p_levs);
         const auto p_boxes_max = amrex::get<0>(tup_max);
         const auto p_levs_max  = amrex::get<1>(tup_max);
-	AMREX_DEVICE_PRINTF("src_i %d\tgid %15d\tp_boxes %15d\tcompare %d\tp_levs %d\n",src_i,m_gid,p_boxes_max,(m_gid >=0 && p_boxes == m_gid),p_levs_max);
-	if(p_levs_max==2)
-	  AMREX_DEVICE_PRINTF("src_i %d\tsrcrdata %15g\n",src_i,src.m_rdata[0][src_i]);
-	return m_gid >=0 && p_boxes == m_gid && p_levs_max == m_lev_max;
+    //        AMREX_DEVICE_PRINTF("src_i %d\tgid %15d\tp_boxes %15d\tcompare %d\tp_levs %d\n",src_i,m_gid,p_boxes_max,(m_gid >=0 && p_boxes == m_gid),p_levs_max);
+    //        if(p_levs_max==2)
+    //          AMREX_DEVICE_PRINTF("src_i %d\tsrcrdata %15g\n",src_i,src.m_rdata[0][src_i]);
+        return m_gid >=0 && p_boxes == m_gid && p_levs_max == m_lev_max;
     }
 };
 
 struct TransformerGhost
 {
-    
+
     /**
        \brief This copies the particle but multiplies all the idata by m_factor
        *
@@ -862,23 +862,23 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     std::vector< std::pair<int,Box> > isects;
     for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
       {
-	const auto& ptile = ParticlesAt(level, pti);
+        const auto& ptile = ParticlesAt(level, pti);
         const auto src = ptile.getConstParticleTileData();
 
         auto& aos = ptile.GetArrayOfStructs();
         for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
-	  {
+          {
             const IntVect& iv = Index(aos[pindex], level+1);
             fine.intersections(Box(iv,iv),isects,true,nGrow);
-	    std::cout<<iv<<nGrow<<std::endl;
+            std::cout<<iv<<nGrow<<std::endl;
             if (isects.size() > 0)
-	      {
+              {
                 SuperParticleType p = src.getSuperParticle(pindex);
                 p.id() = GhostParticleID;
-		std::cout<<p<<std::endl;
-		//		ghosts.push_back(p);
-	      }
-	  }
+                std::cout<<p<<std::endl;
+                //              ghosts.push_back(p);
+              }
+          }
       }
     //#else
     if (! m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
@@ -893,11 +893,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
         auto np = src_tile.numParticles();
         auto ghost_offset = ghosts.numParticles();
-	ghosts.resize(ghost_offset+np);
+        ghosts.resize(ghost_offset+np);
         filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid,level,nGrow), TransformerGhost(),0,ghost_offset,np);
        for(int i=0; i<ghosts.numParticles(); i++)
          {
-	   std::cout<<((ghosts.getParticleTileData()).getSuperParticle(i))<<std::endl;
+           std::cout<<((ghosts.getParticleTileData()).getSuperParticle(i))<<std::endl;
          }
     }
     //#endif
