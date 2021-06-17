@@ -686,10 +686,6 @@ ifeq ($(USE_CUPTI),TRUE)
   endif
 endif
 
-ifeq ($(USE_GPU_RDC),TRUE)
-    DEFINES += -DAMREX_USE_GPU_RDC
-endif
-
 ifeq ($(USE_HIP),TRUE)
 
     USE_GPU := TRUE
@@ -770,6 +766,9 @@ ifeq ($(USE_GPU),TRUE)
     DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS
     ifeq ($(GPU_ERROR_CHECK),FALSE)
         DEFINES += -DAMREX_GPU_NO_ERROR_CHECK
+    endif
+    ifeq ($(USE_GPU_RDC),TRUE)
+        DEFINES += -DAMREX_USE_GPU_RDC
     endif
 endif
 
