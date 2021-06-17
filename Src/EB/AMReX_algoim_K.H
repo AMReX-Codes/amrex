@@ -433,6 +433,7 @@ struct ImplicitIntegral
 
     // Main calling engine; parameters with underscores are copied
     // upon entry but modified internally in the ctor
+    template <int K = M, std::enable_if_t<K==1,int> = 0>
     AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
                       const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
@@ -442,17 +443,24 @@ struct ImplicitIntegral
     {
         // For the one-dimensional base case, evaluate the
         // bottom-level integral.
-        if (M == 1)
-        {
-            for (int dim = 0; dim < N; ++dim) {
-                if (free[dim]) {
-                    e0 = dim;
-                }
+        for (int dim = 0; dim < N; ++dim) {
+            if (free[dim]) {
+                e0 = dim;
             }
-            evalIntegrand(GpuArray<Real,N>{}, 1.0);
-            return;
         }
+        evalIntegrand(GpuArray<Real,N>{}, 1.0);
+    }
 
+    // Main calling engine; parameters with underscores are copied
+    // upon entry but modified internally in the ctor
+    template <int K = M, std::enable_if_t<(K>1),int> = 0>
+    AMREX_GPU_HOST_DEVICE
+    ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
+                      const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
+                      int psiCount_) noexcept
+        : phi(phi_), f(f_), free(free_), psi(psi_), psiCount(psiCount_),
+          xrange()
+    {
         // Establish interval bounds for prune() and remaining part of ctor.
         for (int dim = 0; dim < N; ++dim)
         {
