@@ -1477,6 +1477,39 @@ Here the number of ghost cells involved is zero, and the copy is performed on
 all components if unspecified (assuming the two MultiFabs have the same number
 of components).
 
+Both :cpp:`ParallelCopy(...)` and :cpp:`FillBoundary(...)` are blocking calls. They
+will only return when the communication is completed and the destination MultiFab is
+guaranteed to be properly updated.  AMReX also provides non-blocking versions of
+these calls to allow users to overlap communication with calculation and potentially
+improve overall application performance.
+
+The non-blocking calls are used by calling the :cpp:`***_nowait(...)` function
+to begin the comm operation, followed by the :cpp:`***_finish()` function at a later
+time to complete it. For example:
+
+.. highlight:: c++
+
+::
+
+      mfA.ParallelCopy_nowait(mfsrc, period, op);
+
+      // ... Any overlapping calc work here on other data, e.g.
+      mfB.setVal(0.0);
+
+      mfA.ParallelCopy_finish();
+
+      mfB.FillBoundary_nowait(period);
+      // ... Overlapping work here
+      mfB.FillBoundary_finish();
+
+
+All function signatures of the blocking calls are also available in the non-blocking
+calls and should be used in the `nowait` function.  The `finish` functions take no
+parameters, as the required data is stored during `nowait` and retrieved.  Users that
+choose to use non-blocking calls must ensure the calls are properly used to avoid race
+conditions, which typically means not interacting with the MultiFab between the
+:cpp:`_nowait` and :cpp:`_finish` calls.
+
 
 .. _sec:basics:mfiter:
 

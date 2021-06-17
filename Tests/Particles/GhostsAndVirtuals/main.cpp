@@ -88,13 +88,11 @@ void test_ghosts_and_virtuals (TestParams& parms)
     bool serialize = true;
     int iseed = 451;
     Real mass = 10.0;
-    MyParticleContainer::ParticleInitData pdata = {{},{}, mass};
+    MyParticleContainer::ParticleInitData pdata = {{},{}, {mass}, {}};
 
     myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
     {
-        const int src_lev = 1;
-        const int dst_lev = 0;
         MyParticleContainer virtPC(geom, dmap, ba, rr);
         MyParticleContainer::ParticleTileType virts;
         myPC.CreateVirtualParticles(1, virts);

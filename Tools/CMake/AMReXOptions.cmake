@@ -38,7 +38,7 @@ message(STATUS "Configuring AMReX with the following options enabled: ")
 #
 # This is the option to enable/disable xSDK mode
 #
-# To handle both XDSK options and correponding plain AMReX options,
+# To handle both XSDK options and correponding plain AMReX options,
 # we make use of policy CMP0077 introduced as a default in CMake 3.13
 # Under policy CMP0077, normal variables prevent option()
 # to set internal variables of the same name.
@@ -136,7 +136,7 @@ endif ()
 
 # --- SYCL ---
 if (AMReX_DPCPP)
-   set(_valid_dpcpp_compiler_ids Clang IntelClang IntelDPCPP)
+   set(_valid_dpcpp_compiler_ids Clang IntelClang IntelDPCPP IntelLLVM)
    if (NOT (CMAKE_CXX_COMPILER_ID IN_LIST _valid_dpcpp_compiler_ids) )
       message(WARNING "\nAMReX_GPU_BACKEND=${AMReX_GPU_BACKEND} is tested with "
          "DPCPP. Verify '${CMAKE_CXX_COMPILER_ID}' is correct and potentially "
@@ -153,10 +153,20 @@ cmake_dependent_option( AMReX_DPCPP_SPLIT_KERNEL "Enable DPCPP kernel splitting"
    "AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
 print_option(  AMReX_DPCPP_SPLIT_KERNEL )
 
+cmake_dependent_option( AMReX_DPCPP_ONEDPL "Enable DPCPP's oneDPL algorithms"  OFF
+   "AMReX_GPU_BACKEND STREQUAL SYCL" OFF)
+print_option(  AMReX_DPCPP_ONEDPL )
+
 # --- HIP ----
 if (AMReX_HIP)
-   set(AMReX_AMD_ARCH "IGNORE" CACHE STRING
+   set(AMReX_AMD_ARCH_DEFAULT "IGNORE")
+   if(DEFINED ENV{AMREX_AMD_ARCH})
+      set(AMReX_AMD_ARCH_DEFAULT "$ENV{AMREX_AMD_ARCH}")
+   endif()
+
+   set(AMReX_AMD_ARCH ${AMReX_AMD_ARCH_DEFAULT} CACHE STRING
       "AMD GPU architecture (Must be provided if AMReX_HIP=ON)")
+
    if (NOT AMReX_AMD_ARCH)
       message(FATAL_ERROR "\nMust specify AMReX_AMD_ARCH if AMReX_HIP=ON\n")
    endif ()
@@ -170,6 +180,18 @@ if (AMReX_CUDA OR AMReX_HIP)
    print_option(GPUS_PER_NODE)
 endif ()
 
+#
+# GPU RDC support
+#
+# https://cmake.org/cmake/help/latest/variable/CMAKE_CUDA_SEPARABLE_COMPILATION.html
+set(_GPU_RDC_default ON)
+if(AMReX_CUDA AND DEFINED CMAKE_CUDA_SEPARABLE_COMPILATION)
+    set(_GPU_RDC_default "${CMAKE_CUDA_SEPARABLE_COMPILATION}")
+endif()
+cmake_dependent_option( AMReX_GPU_RDC "Enable Relocatable Device Code" ${_GPU_RDC_default}
+   "AMReX_CUDA OR AMReX_HIP" OFF)
+unset(_GPU_RDC_default)
+print_option(AMReX_GPU_RDC)
 
 #
 # Parallel backends    ========================================================
@@ -262,6 +284,10 @@ if (AMReX_HDF5_ASYNC)
    message(FATAL_ERROR "\nAMReX_HDF5_ASYNC not yet supported\n")
 endif ()
 
+# SUNDIALS
+option( AMReX_SUNDIALS "Enable SUNDIALS interfaces" OFF )
+print_option( AMReX_SUNDIALS )
+
 
 #
 # Miscellanoues options  =====================================================
@@ -311,6 +337,10 @@ cmake_dependent_option(AMReX_PROFPARSER "Enable profile parser" OFF
    "AMReX_BASE_PROFILE;AMReX_TRACE_PROFILE;AMReX_AMRDATA" OFF)
 print_option( AMReX_PROFPARSER )
 
+cmake_dependent_option(AMReX_ROCTX  "Enable roctx markup for HIP with ROCm" OFF
+     "AMReX_GPU_BACKEND STREQUAL HIP" OFF)
+print_option( AMReX_ROCTX )
+
 set(AMReX_TP_PROFILE_VALUES IGNORE CRAYPAT FORGE VTUNE)
 set(AMReX_TP_PROFILE IGNORE CACHE STRING "Third-party profiling options: <CRAYPAT,FORGE,VTUNE>")
 set_property(CACHE AMReX_TP_PROFILE PROPERTY STRINGS ${AMReX_TP_PROFILE_VALUES})
@@ -345,6 +375,7 @@ print_option(AMReX_DIFFERENT_COMPILER)
 if (BUILD_SHARED_LIBS AND NOT (CMAKE_SYSTEM_NAME STREQUAL "Linux") )
    option(AMReX_PROBINIT "Enable support for probin file" OFF)
 else ()
-   option(AMReX_PROBINIT "Enable support for probin file" ON)
+   cmake_dependent_option(AMReX_PROBINIT "Enable support for probin file" ON
+       "AMReX_AMRLEVEL" OFF)
 endif ()
 print_option(AMReX_PROBINIT)

@@ -237,6 +237,9 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator=DefaultAllocator>
 struct ParticleTile
 {
+    template <typename T>
+    using AllocatorType = Allocator<T>;
+
     using ParticleType = Particle<NStructReal, NStructInt>;
     static constexpr int NAR = NArrayReal;
     static constexpr int NAI = NArrayInt;

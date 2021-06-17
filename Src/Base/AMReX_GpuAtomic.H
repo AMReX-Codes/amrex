@@ -82,7 +82,7 @@ namespace detail {
         constexpr auto mo = sycl::memory_order::relaxed;
         constexpr auto as = sycl::access::address_space::global_space;
         sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(sum)};
-        return sycl::atomic_fetch_add(a, value, mo);
+        return a.fetch_add(value, mo);
 #else
         amrex::ignore_unused(sum, value);
         return T(); // should never get here, but have to return something
@@ -98,6 +98,12 @@ namespace detail {
     double Add_device (double* const sum, double const value) noexcept
     {
         return detail::atomic_op<double, unsigned long long>(sum, value, amrex::Plus<double>());
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    float Add_device (float* const sum, float const value) noexcept
+    {
+        return detail::atomic_op<float, unsigned int>(sum, value, amrex::Plus<float>());
     }
 
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
@@ -182,7 +188,7 @@ namespace detail {
         constexpr auto mo = sycl::memory_order::relaxed;
         constexpr auto as = sycl::access::address_space::global_space;
         sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(m)};
-        return sycl::atomic_fetch_min(a, value, mo);
+        return a.fetch_min(value, mo);
 #else
         amrex::ignore_unused(m,value);
         return T(); // should never get here, but have to return something
@@ -242,7 +248,7 @@ namespace detail {
         constexpr auto mo = sycl::memory_order::relaxed;
         constexpr auto as = sycl::access::address_space::global_space;
         sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(m)};
-        return sycl::atomic_fetch_max(a, value, mo);
+        return a.fetch_max(value, mo);
 #else
         amrex::ignore_unused(m,value);
         return T(); // should never get here, but have to return something
@@ -299,7 +305,7 @@ namespace detail {
         constexpr auto mo = sycl::memory_order::relaxed;
         constexpr auto as = sycl::access::address_space::global_space;
         sycl::atomic<int,as> a{sycl::multi_ptr<int,as>(m)};
-        return sycl::atomic_fetch_or(a, value, mo);
+        return a.fetch_or(value, mo);
 #else
         int const old = *m;
         *m = (*m) || value;
@@ -320,7 +326,7 @@ namespace detail {
         constexpr auto mo = sycl::memory_order::relaxed;
         constexpr auto as = sycl::access::address_space::global_space;
         sycl::atomic<int,as> a{sycl::multi_ptr<int,as>(m)};
-        return sycl::atomic_fetch_and(a, value ? ~0x0 : 0, mo);
+        return a.fetch_and(value ? ~0x0 : 0, mo);
 #else
         int const old = *m;
         *m = (*m) && value;

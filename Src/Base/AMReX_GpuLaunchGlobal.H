@@ -10,6 +10,10 @@ namespace amrex {
     // We cannot take rvalue lambdas.
     template<class L>
     AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
+
+    template<int amrex_launch_bounds_max_threads, class L>
+    __launch_bounds__(amrex_launch_bounds_max_threads)
+    AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
 #endif
 
 }

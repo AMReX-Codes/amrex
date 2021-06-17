@@ -259,13 +259,14 @@ For example, on Cori GPUs you can specify the architecture as follows:
 
 If no architecture is specified, CMake will default to the architecture defined in the
 *environment variable* ``AMREX_CUDA_ARCH`` (note: all caps).
-If the latter is not defined, CMake will try to determine which GPU
-architecture is supported by the system. If more than one is found, CMake will build for all of them.
-This will generally results in a larger library and longer build times.
-If autodetection fails, a set of "common" architectures is assumed.
-**Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
-CUDA Toolkit version 9.0 or higher**.
+If the latter is not defined, CMake will try to determine which GPU architecture is supported by the system.
+If more than one is found, CMake will build for all of them.
+If autodetection fails, a list of "common" architectures is assumed.
+`Multiple CUDA architectures <https://cmake.org/cmake/help/latest/module/FindCUDA.html#commands>`__ can also be set manually as semicolon-separated list, e.g. ``-DAMReX_CUDA_ARCH=7.0;8.0``.
+Building for multiple CUDA architectures will generally result in a larger library and longer build times.
 
+**Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
+CUDA Toolkit version 9.0 or higher.**
 
 In order to import the CUDA-enabled AMReX library into your CMake project, you need to include
 the following code into the appropriate CMakeLists.txt file:
@@ -279,7 +280,8 @@ the following code into the appropriate CMakeLists.txt file:
 
 
 If instead of using an external installation of AMReX you prefer to include AMReX as a subproject
-in your CMake setup, we strongly encourage you to use the ``AMReX_SetupCUDA`` module as shown below:
+in your CMake setup, we strongly encourage you to use the ``AMReX_SetupCUDA`` module as shown below
+if the CMake version is less than 3.20:
 
 .. highlight:: console
 
@@ -288,8 +290,10 @@ in your CMake setup, we strongly encourage you to use the ``AMReX_SetupCUDA`` mo
    # Enable CUDA in your CMake project
    enable_language(CUDA)
 
-   # Include the AMReX-provided CUDA setup module
-   include(AMReX_SetupCUDA)
+   # Include the AMReX-provided CUDA setup module -- OBSOLETE with CMake >= 3.20
+   if(CMAKE_VERSION VERSION_LESS 3.20)
+       include(AMReX_SetupCUDA)
+   endif()
 
    # Include AMReX source directory ONLY AFTER the two steps above
    add_subdirectory(/path/to/amrex/source/dir)
@@ -332,6 +336,7 @@ Since CMake does not support autodetection of HIP compilers/target architectures
 yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``hipcc`` or ``nvcc``,
 and ``AMReX_AMD_ARCH`` to the target architecture you are building for.
 Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user-inputs when AMReX_GPU_BACKEND=HIP**.
+We again read also an *environment variable*: ``AMREX_AMD_ARCH`` (note: all caps).
 Below is an example configuration for HIP on Tulip:
 
 .. highlight:: console
@@ -383,6 +388,8 @@ Below is an example configuration for SYCL:
    | AMReX_DPCPP_AOT              | Enable DPCPP ahead-of-time compilation          | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_DPCPP_SPLIT_KERNEL     | Enable DPCPP kernel splitting                   | YES         | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | AMReX_DPCPP_ONEDPL           | Enable DPCPP's oneDPL algorithms                | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
 .. raw:: latex
 
@@ -486,6 +493,17 @@ gradually.  :cpp:`The_Managed_Arena()` is a separate pool of
 managed memory, that is distinguished from :cpp:`The_Arena()` for
 performance reasons.  If you want to print out the current memory usage
 of the Arenas, you can call :cpp:`amrex::Arena::PrintUsage()`.
+When AMReX is built with SUNDIALS turned on, :cpp:`amrex::sundials::The_SUNMemory_Helper()`
+can be provided to SUNDIALS data structures so that they use the appropriate
+Arena object when allocating memory. For example, it can be provided to the
+SUNDIALS CUDA vector:
+
+.. highlight:: c++
+
+::
+
+  N_Vector x = N_VNewWithMemHelp_Cuda(size, use_managed_memory, *The_SUNMemory_Helper());
+
 
 .. ===================================================================
 
@@ -1584,7 +1602,7 @@ by "amrex" in your :cpp:`inputs` file.
 |                            | pinned memory. In practice, we find it is usually not worth it to use |             |             |
 |                            | GPU aware MPI.                                                        |             |             |
 +----------------------------+-----------------------------------------------------------------------+-------------+-------------+
-| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is greater than the size of a   | Bool        | False       |
+| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | False       |
 |                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |             |
 |                            | describing how much free memory there is and what was requested.      |             |             |
 +----------------------------+-----------------------------------------------------------------------+-------------+-------------+

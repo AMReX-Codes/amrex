@@ -2,6 +2,9 @@
 
 ifneq ($(NO_CONFIG_CHECKING),TRUE)
   HIP_PATH=$(realpath $(shell hipconfig --path))
+  hipcc_version := $(shell hipcc --version | grep "HIP version: " | cut -d" " -f3)
+  hipcc_major_version := $(shell hipcc --version | grep "HIP version: " | cut -d" " -f3 | cut -d. -f1)
+  hipcc_minor_version := $(shell hipcc --version | grep "HIP version: " | cut -d" " -f3 | cut -d. -f2)
   ifeq ($(HIP_PATH),)
     $(error hipconfig failed. Is the HIP toolkit available?)
   endif
@@ -15,19 +18,27 @@ F90 = gfortran
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
 else
-  CXXSTD := c++14
+  CXXSTD := c++17
 endif
 
-#if less than a given version, throw error.
-
 # Generic flags, always used
-CXXFLAGS := -std=$(CXXSTD) -m64
-CFLAGS   := -std=c99 -m64
+CXXFLAGS = -std=$(CXXSTD) -m64
+CFLAGS   = -std=c99 -m64
 
-FFLAGS   := -ffixed-line-length-none -fno-range-check -fno-second-underscore
-F90FLAGS := -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
+FFLAGS   = -ffixed-line-length-none -fno-range-check -fno-second-underscore
+F90FLAGS = -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
 
 FMODULES =  -J$(fmoddir) -I $(fmoddir)
+
+# rdc support
+ifeq ($(USE_GPU_RDC),TRUE)
+  HIPCC_FLAGS += -fgpu-rdc
+endif
+
+# amd gpu target
+HIPCC_FLAGS += --amdgpu-target=$(AMD_ARCH)
+
+CXXFLAGS += $(HIPCC_FLAGS)
 
 # =============================================================================================
 
@@ -73,7 +84,7 @@ ifeq ($(HIP_COMPILER),clang)
   CXXFLAGS += -Wno-pass-failed  # disable this warning
 
   ifeq ($(WARN_ALL),TRUE)
-    warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
+    warning_flags = -Wall -Wextra -Wunreachable-code -Wnull-dereference
     warning_flags += -Wfloat-conversion -Wextra-semi
 
     warning_flags += -Wpedantic
@@ -86,10 +97,10 @@ ifeq ($(HIP_COMPILER),clang)
     CFLAGS += $(warning_flags)
   endif
 
-#  ifeq ($(WARN_ERROR),TRUE)
-#    CXXFLAGS += -Werror
-#    CFLAGS += -Werror
-#  endif
+  ifeq ($(WARN_ERROR),TRUE)
+    CXXFLAGS += -Werror -Wno-deprecated-declarations -Wno-gnu-zero-variadic-macro-arguments
+    CFLAGS += -Werror
+  endif
 
   # Generic HIP info
   ROC_PATH=$(realpath $(dir $(HIP_PATH)))
@@ -106,8 +117,17 @@ ifeq ($(HIP_COMPILER),clang)
   # rocThrust - Header only
   # SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocthrust/include
 
+  ifeq ($(USE_ROCTX),TRUE)
+  # rocTracer
+  CXXFLAGS += -DAMREX_USE_ROCTX
+  HIPCC_FLAGS += -DAMREX_USE_ROCTX
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/roctracer/include $(ROC_PATH)/rocprofiler/include
+  LIBRARY_LOCATIONS += $(ROC_PATH)/roctracer/lib $(ROC_PATH)/rocprofiler/lib
+  LIBRARIES += -lroctracer64 -lroctx64
+  endif
+
   # hipcc passes a lot of unused arguments to clang
-  DEPFLAGS += -Wno-unused-command-line-argument
+  LEGACY_DEPFLAGS += -Wno-unused-command-line-argument
 
 # =============================================================================================
 

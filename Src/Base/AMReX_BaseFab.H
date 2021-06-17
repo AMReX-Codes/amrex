@@ -2293,7 +2293,7 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
@@ -2342,7 +2342,7 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
                 }
                 return {t};
             });
-            ReduceTuple hv = reduce_data.value();
+            ReduceTuple hv = reduce_data.value(reduce_op);
             nrm = amrex::get<0>(hv);
         } else if (p == 1) {
             ReduceOps<ReduceOpSum> reduce_op;
@@ -2357,7 +2357,7 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
                 }
                 return {t};
             });
-            ReduceTuple hv = reduce_data.value();
+            ReduceTuple hv = reduce_data.value(reduce_op);
             nrm = amrex::get<0>(hv);
         } else if (p == 2) {
             ReduceOps<ReduceOpSum> reduce_op;
@@ -2372,7 +2372,7 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
                 }
                 return {t};
             });
-            ReduceTuple hv = reduce_data.value();
+            ReduceTuple hv = reduce_data.value(reduce_op);
             nrm = amrex::get<0>(hv);
         } else {
             amrex::Error("BaseFab<T>::norm: wrong p");
@@ -2428,7 +2428,7 @@ BaseFab<T>::min (const Box& subbox, int comp) const noexcept
         {
             return { a(i,j,k) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
@@ -2466,7 +2466,7 @@ BaseFab<T>::max (const Box& subbox, int comp) const noexcept
         {
             return { a(i,j,k) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
@@ -2505,7 +2505,7 @@ BaseFab<T>::minmax (const Box& subbox, int comp) const noexcept
             auto const x = a(i,j,k);
             return { x, x };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return std::make_pair(amrex::get<0>(hv), amrex::get<1>(hv));
     } else
 #endif
@@ -2546,7 +2546,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
         {
             return { amrex::Math::abs(a(i,j,k)) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
@@ -2679,7 +2679,7 @@ BaseFab<T>::maskLT (BaseFab<int>& mask, T const& val, int comp) const noexcept
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         cnt = amrex::get<0>(hv);
     } else
 #endif
@@ -2725,7 +2725,7 @@ BaseFab<T>::maskLE (BaseFab<int>& mask, T const& val, int comp) const noexcept
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         cnt = amrex::get<0>(hv);
     } else
 #endif
@@ -2771,7 +2771,7 @@ BaseFab<T>::maskEQ (BaseFab<int>& mask, T const& val, int comp) const noexcept
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         cnt = amrex::get<0>(hv);
     } else
 #endif
@@ -2817,7 +2817,7 @@ BaseFab<T>::maskGT (BaseFab<int>& mask, T const& val, int comp) const noexcept
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         cnt = amrex::get<0>(hv);
     } else
 #endif
@@ -2863,7 +2863,7 @@ BaseFab<T>::maskGE (BaseFab<int>& mask, T const& val, int comp) const noexcept
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         cnt = amrex::get<0>(hv);
     } else
 #endif
@@ -3054,7 +3054,7 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
@@ -3107,7 +3107,7 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
             }
             return {t};
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
@@ -4022,7 +4022,7 @@ BaseFab<T>::sum (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
             }
             return { t };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
@@ -4062,7 +4062,7 @@ BaseFab<T>::dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp d
             }
             return { t };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
@@ -4108,7 +4108,7 @@ BaseFab<T>::dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
             }
             return { t };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif
@@ -4152,7 +4152,7 @@ BaseFab<T>::dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& m
             }
             return { t };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     } else
 #endif

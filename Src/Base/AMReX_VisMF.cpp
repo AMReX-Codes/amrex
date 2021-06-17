@@ -972,8 +972,6 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
         }
     }
 
-    amrex::prefetchToHost(mf);
-
     // ---- check if mf has sparse data
     bool useSparseFPP(false);
     const Vector<int> &pmap = mf.DistributionMap().ProcessorMap();
@@ -1047,12 +1045,24 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                     auto tstr = hss.str();
                     memcpy(afPtr, tstr.c_str(), hLength);  // ---- the fab header
                 }
+                Real const* fabdata = fab.dataPtr();
+#ifdef AMREX_USE_GPU
+                std::unique_ptr<FArrayBox> hostfab;
+                if (fab.arena()->isManaged() || fab.arena()->isDevice()) {
+                    hostfab = std::make_unique<FArrayBox>(fab.box(), fab.nComp(),
+                                                          The_Pinned_Arena());
+                    Gpu::dtoh_memcpy_async(hostfab->dataPtr(), fab.dataPtr(),
+                                           fab.size()*sizeof(Real));
+                    Gpu::streamSynchronize();
+                    fabdata = hostfab->dataPtr();
+                }
+#endif
                 if(doConvert) {
                     RealDescriptor::convertFromNativeFormat(static_cast<void *> (afPtr + hLength),
                                                             writeDataItems,
-                                                            fab.dataPtr(), *whichRD);
+                                                            fabdata, *whichRD);
                 } else {    // ---- copy from the fab
-                    memcpy(afPtr + hLength, fab.dataPtr(), writeDataSize);
+                    memcpy(afPtr + hLength, fabdata, writeDataSize);
                 }
                 writePosition += hLength + writeDataSize;
             }
@@ -1074,16 +1084,28 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                     nfi.Stream().write(tstr.c_str(), hLength);    // ---- the fab header
                     nfi.Stream().flush();
                 }
+                Real const* fabdata = fab.dataPtr();
+#ifdef AMREX_USE_GPU
+                std::unique_ptr<FArrayBox> hostfab;
+                if (fab.arena()->isManaged() || fab.arena()->isDevice()) {
+                    hostfab = std::make_unique<FArrayBox>(fab.box(), fab.nComp(),
+                                                          The_Pinned_Arena());
+                    Gpu::dtoh_memcpy_async(hostfab->dataPtr(), fab.dataPtr(),
+                                           fab.size()*sizeof(Real));
+                    Gpu::streamSynchronize();
+                    fabdata = hostfab->dataPtr();
+                }
+#endif
                 if(doConvert) {
                     char *cDataPtr = new char[writeDataSize];
                     RealDescriptor::convertFromNativeFormat(static_cast<void *> (cDataPtr),
                                                             writeDataItems,
-                                                            fab.dataPtr(), *whichRD);
+                                                            fabdata, *whichRD);
                     nfi.Stream().write(cDataPtr, writeDataSize);
                     nfi.Stream().flush();
                     delete [] cDataPtr;
                 } else {    // ---- copy from the fab
-                    nfi.Stream().write((char *) fab.dataPtr(), writeDataSize);
+                    nfi.Stream().write((char *) fabdata, writeDataSize);
                     nfi.Stream().flush();
                 }
             }
@@ -1092,10 +1114,6 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
     if(nfi.GetDynamic()) {
         coordinatorProc = nfi.CoordinatorProc();
-    }
-
-    if (Gpu::inLaunchRegion()) {
-        amrex::prefetchToDevice(mf);  // CalculateMinMax might do work on device
     }
 
     if(currentVersion == VisMF::Header::Version_v1 ||
@@ -1406,12 +1424,20 @@ VisMF::readFAB (int                  idx,
         fab->readFrom(*infs, whichComp);
       }
     } else {
+      Real* fabdata = fab->dataPtr();
+#ifdef AMREX_USE_GPU
+      std::unique_ptr<FArrayBox> hostfab;
+      if (fab->arena()->isManaged() || fab->arena()->isDevice()) {
+          hostfab = std::make_unique<FArrayBox>(fab->box(), fab->nComp(), The_Pinned_Arena());
+          fabdata = hostfab->dataPtr();
+      }
+#endif
       if(whichComp == -1) {    // ---- read all components
         if(hdr.m_writtenRD == FPC::NativeRealDescriptor()) {
-          infs->read((char *) fab->dataPtr(), fab->nBytes());
+          infs->read((char *) fabdata, fab->nBytes());
         } else {
           Long readDataItems(fab->box().numPts() * fab->nComp());
-          RealDescriptor::convertToNativeFormat(fab->dataPtr(), readDataItems,
+          RealDescriptor::convertToNativeFormat(fabdata, readDataItems,
                                                 *infs, hdr.m_writtenRD);
         }
 
@@ -1419,13 +1445,19 @@ VisMF::readFAB (int                  idx,
         Long bytesPerComp(fab->box().numPts() * hdr.m_writtenRD.numBytes());
         infs->seekg(bytesPerComp * whichComp, std::ios::cur);
         if(hdr.m_writtenRD == FPC::NativeRealDescriptor()) {
-          infs->read((char *) fab->dataPtr(), bytesPerComp);
+          infs->read((char *) fabdata, bytesPerComp);
         } else {
           Long readDataItems(fab->box().numPts());  // ---- one component only
-          RealDescriptor::convertToNativeFormat(fab->dataPtr(), readDataItems,
+          RealDescriptor::convertToNativeFormat(fabdata, readDataItems,
                                                 *infs, hdr.m_writtenRD);
         }
       }
+#ifdef AMREX_USE_GPU
+      if (hostfab) {
+          Gpu::htod_memcpy_async(fab->dataPtr(), hostfab->dataPtr(), fab->size()*sizeof(Real));
+          Gpu::streamSynchronize();
+      }
+#endif
     }
 
     VisMF::CloseStream(FullName);
@@ -1450,13 +1482,27 @@ VisMF::readFAB (FabArray<FArrayBox> &mf,
     infs->seekg(hdr.m_fod[idx].m_head, std::ios::beg);
 
     if(NoFabHeader(hdr)) {
+      Real* fabdata = fab.dataPtr();
+#ifdef AMREX_USE_GPU
+      std::unique_ptr<FArrayBox> hostfab;
+      if (fab.arena()->isManaged() || fab.arena()->isDevice()) {
+          hostfab = std::make_unique<FArrayBox>(fab.box(), fab.nComp(), The_Pinned_Arena());
+          fabdata = hostfab->dataPtr();
+      }
+#endif
       if(hdr.m_writtenRD == FPC::NativeRealDescriptor()) {
-        infs->read((char *) fab.dataPtr(), fab.nBytes());
+        infs->read((char *) fabdata, fab.nBytes());
       } else {
         Long readDataItems(fab.box().numPts() * fab.nComp());
-        RealDescriptor::convertToNativeFormat(fab.dataPtr(), readDataItems,
+        RealDescriptor::convertToNativeFormat(fabdata, readDataItems,
                                               *infs, hdr.m_writtenRD);
       }
+#ifdef AMREX_USE_GPU
+      if (hostfab) {
+          Gpu::htod_memcpy_async(fab.dataPtr(), hostfab->dataPtr(), fab.size()*sizeof(Real));
+          Gpu::streamSynchronize();
+      }
+#endif
     } else {
       fab.readFrom(*infs);
     }
@@ -1693,14 +1739,30 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                   if(myProc == frc[i].rankToRead) {
                     char *afPtr = allFabData + currentOffset;
                     FArrayBox &fab = whichFA[frc[i].faIndex];
+                    Real* fabdata = fab.dataPtr();
+#ifdef AMREX_USE_GPU
+                    std::unique_ptr<FArrayBox> hostfab;
+                    if (fab.arena()->isManaged() || fab.arena()->isDevice()) {
+                        hostfab = std::make_unique<FArrayBox>(fab.box(), fab.nComp(),
+                                                              The_Pinned_Arena());
+                        fabdata = hostfab->dataPtr();
+                    }
+#endif
                     Long readDataItems(fab.box().numPts() * fab.nComp());
                     if(doConvert) {
-                      RealDescriptor::convertToNativeFormat(fab.dataPtr(), readDataItems,
+                      RealDescriptor::convertToNativeFormat(fabdata, readDataItems,
                                                             afPtr, hdr.m_writtenRD);
                     } else {
-                      memcpy(fab.dataPtr(), afPtr, fab.nBytes());
+                      memcpy(fabdata, afPtr, fab.nBytes());
                     }
                     currentOffset += readDataItems * hdr.m_writtenRD.numBytes();
+#ifdef AMREX_USE_GPU
+                    if (hostfab) {
+                        Gpu::htod_memcpy_async(fab.dataPtr(), hostfab->dataPtr(),
+                                               fab.size()*sizeof(Real));
+                        Gpu::streamSynchronize();
+                    }
+#endif
                   }
                 }
                 delete [] allFabData;
@@ -1712,13 +1774,29 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                       nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
                     }
                     FArrayBox &fab = whichFA[frc[i].faIndex];
+                    Real* fabdata = fab.dataPtr();
+#ifdef AMREX_USE_GPU
+                    std::unique_ptr<FArrayBox> hostfab;
+                    if (fab.arena()->isManaged() || fab.arena()->isDevice()) {
+                        hostfab = std::make_unique<FArrayBox>(fab.box(), fab.nComp(),
+                                                              The_Pinned_Arena());
+                        fabdata = hostfab->dataPtr();
+                    }
+#endif
                     Long readDataItems(fab.box().numPts() * fab.nComp());
                     if(doConvert) {
-                      RealDescriptor::convertToNativeFormat(fab.dataPtr(), readDataItems,
+                      RealDescriptor::convertToNativeFormat(fabdata, readDataItems,
                                                             nfi.Stream(), hdr.m_writtenRD);
                     } else {
-                      nfi.Stream().read((char *) fab.dataPtr(), fab.nBytes());
+                      nfi.Stream().read((char *) fabdata, fab.nBytes());
                     }
+#ifdef AMREX_USE_GPU
+                    if (hostfab) {
+                        Gpu::htod_memcpy_async(fab.dataPtr(), hostfab->dataPtr(),
+                                               fab.size()*sizeof(Real));
+                        Gpu::streamSynchronize();
+                    }
+#endif
                   }
                 }
               }
@@ -1731,7 +1809,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     if( ! inFileOrder) {
       faCopyTime = amrex::second();
-      mf.copy(fafabFileOrder);
+      mf.ParallelCopy(fafabFileOrder);
       faCopyTime = amrex::second() - faCopyTime;
     }
 
@@ -1921,8 +1999,6 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     }
 
     BL_ASSERT(mf.ok());
-
-    if (Gpu::inLaunchRegion()) amrex::prefetchToDevice(mf);
 }
 
 
@@ -2228,7 +2304,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
     bool strip_ghost = valid_cells_only && mf.nGrowVect() != 0;
 
     int64_t total_bytes = 0;
-    auto pld = (char*)(&(localdata[1]));
+    char* pld = (localdata.size() > 1) ? (char*)(&(localdata[1])) : nullptr;
     const FABio& fio = FArrayBox::getFABio();
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
@@ -2399,18 +2475,20 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
         AsyncOut::Wait();  // Wait for my turn
 
         auto info = AsyncOut::GetWriteInfo(myproc);
-        std::string file_name = amrex::Concatenate(mf_name + FabFileSuffix, info.ifile, 5);
-        std::ofstream ofs;
-        ofs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-        ofs.open(file_name.c_str(), (info.ispot == 0) ? (std::ios::binary | std::ios::trunc)
-                                                      : (std::ios::binary | std::ios::app));
-        if (!ofs.good()) amrex::FileOpenFailed(file_name);
-        for (auto const& fab : *myfabs) {
-            fabio->write_header(ofs, fab, fab.nComp());
-            fabio->write(ofs, fab, 0, fab.nComp());
+        if (! myfabs->empty()) {
+            std::string file_name = amrex::Concatenate(mf_name + FabFileSuffix, info.ifile, 5);
+            std::ofstream ofs;
+            ofs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+            ofs.open(file_name.c_str(), (info.ispot == 0) ? (std::ios::binary | std::ios::trunc)
+                                                          : (std::ios::binary | std::ios::app));
+            if (!ofs.good()) amrex::FileOpenFailed(file_name);
+            for (auto const& fab : *myfabs) {
+                fabio->write_header(ofs, fab, fab.nComp());
+                fabio->write(ofs, fab, 0, fab.nComp());
+            }
+            ofs.flush();
+            ofs.close();
         }
-        ofs.flush();
-        ofs.close();
 
         AsyncOut::Notify();  // Notify others I am done
     });

@@ -10,6 +10,7 @@
 #cmakedefine AMREX_COMM_PROFILING
 #cmakedefine BL_COMM_PROFILING
 #cmakedefine AMREX_TINY_PROFILING
+#cmakedefine AMREX_USE_ROCTX
 #cmakedefine AMREX_MEM_PROFILING
 #cmakedefine AMREX_TESTING
 #cmakedefine AMREX_USE_MPI
@@ -18,6 +19,7 @@
 #cmakedefine AMREX_USE_OMP
 #cmakedefine BL_USE_OMP
 #cmakedefine AMREX_USE_DPCPP
+#cmakedefine AMREX_USE_ONEDPL
 #cmakedefine AMREX_USE_FLOAT
 #cmakedefine AMREX_SINGLE_PRECISION_PARTICLES
 #cmakedefine BL_USE_FLOAT
@@ -42,11 +44,13 @@
 #cmakedefine BL_COALESCE_FABS
 #cmakedefine AMREX_GPUS_PER_SOCKET @AMREX_GPUS_PER_SOCKET@
 #cmakedefine AMREX_GPUS_PER_NODE   @AMREX_GPUS_PER_NODE@
+#cmakedefine AMREX_USE_GPU_RDC
 #cmakedefine AMREX_PARTICLES
 #cmakedefine AMREX_USE_HDF5
 #cmakedefine AMREX_USE_HDF5_ASYNC
 #cmakedefine AMREX_USE_HYPRE
 #cmakedefine AMREX_USE_PETSC
+#cmakedefine AMREX_USE_SUNDIALS
 #cmakedefine AMREX_NO_PROBINIT
 #cmakedefine AMREX_IS_DLL
 #ifdef __cplusplus@COMP_DECLS@

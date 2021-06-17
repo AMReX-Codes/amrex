@@ -33,6 +33,23 @@ namespace amrex
             std::uninitialized_fill_n<U*, Size, Value>(data, count, value);
         }
 
+        template <typename T, typename U, typename Size>
+        typename std::enable_if<RunOnGpu<T>::value>::type
+        fillValuesImpl (U* dst, const U* src, Size count)
+        {
+            amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
+                dst[i] = src[i];
+            });
+            Gpu::Device::streamSynchronize();
+        }
+
+        template <typename T, typename U, typename Size>
+        typename std::enable_if<!RunOnGpu<T>::value>::type
+        fillValuesImpl (U* dst, const U* src, Size count)
+        {
+            for (Size i = 0; i < count; ++i) { dst[i] = src[i];}
+        }
+
         template <typename T>
         typename std::enable_if<RunOnGpu<T>::value>::type
         memCopyImpl (void* dst, const void* src, std::size_t count)
@@ -282,8 +299,7 @@ namespace amrex
                 ++m_size;
             }
 
-            *const_cast<iterator>(a_pos) = a_item;
-
+            detail::uninitializedFillNImpl<Allocator>(const_cast<iterator>(a_pos), 1, a_item);
             return const_cast<iterator>(a_pos);
         }
 
@@ -301,9 +317,8 @@ namespace amrex
             {
                 detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T), *this);
                 m_size += count;
-            }        // copy the initializer list
-            pointer dst = const_cast<iterator>(a_pos);
-            for (const auto& value : a_initializer_list) { *(dst++) = value; }
+            }
+            detail::initFromListImpl<Allocator>(const_cast<iterator>(a_pos), a_initializer_list);
             return const_cast<iterator>(a_pos);
         }
 
@@ -324,7 +339,7 @@ namespace amrex
                 detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T), *this);
                 m_size += count;
             }        pointer dst = const_cast<iterator>(a_pos);
-            while(a_first != a_last) { *(dst++) = *(a_first++); }
+            detail::fillValuesImpl<Allocator>(dst, a_first, count);
             return const_cast<iterator>(a_pos);
         }
 
@@ -339,9 +354,8 @@ namespace amrex
         {
             if(a_initializer_list.size() > capacity())
                 AllocateBuffer(GetNewCapacity(a_initializer_list.size()));
-            m_size = a_initializer_list.size();        // copy the initializer list
-            pointer dst = const_cast<iterator>(m_data);
-            for (const auto& value : a_initializer_list) { *(dst++) = value; }
+            m_size = a_initializer_list.size();
+            detail::initFromListImpl<Allocator>(const_cast<iterator>(m_data), a_initializer_list);
         }
 
         template <class InputIt, class bar = typename std::iterator_traits<InputIt>::difference_type>
@@ -350,7 +364,7 @@ namespace amrex
             size_t count = std::distance(a_first, a_last);
             if (count > capacity()) AllocateBuffer(GetNewCapacity(count));
             m_size = count;        pointer dst = const_cast<iterator>(m_data);
-            while(a_first != a_last) { *(dst++) = *(a_first++); }
+            detail::fillValuesImpl<Allocator>(dst, a_first, count);
         }
 
         // don't have the emplace methods, but not sure how often we use those.
@@ -366,7 +380,7 @@ namespace amrex
         void push_back (T&& a_value) noexcept
         {
             if (m_size == m_capacity) AllocateBuffer(GetNewCapacity(1));
-            m_data[m_size] = std::move(a_value);
+            detail::uninitializedFillNImpl<Allocator>(m_data+m_size, 1, a_value);
             ++m_size;
         }
 

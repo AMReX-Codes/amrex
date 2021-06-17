@@ -1,5 +1,6 @@
 
 #include <AMReX_PPMUtil.H>
+#include <AMReX_INT.H>
 #include <cstdio>
 #include <cstdlib>
 

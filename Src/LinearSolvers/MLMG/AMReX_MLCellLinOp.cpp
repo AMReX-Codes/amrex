@@ -562,8 +562,11 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                                    amrex::max(len[0],len[1]);,
                                    amrex::max(len[0]*len[1],len[0]*len[2],len[1]*len[2]));
                 if (hasHiddenDimension()) {
-                    nthreads = (AMREX_SPACEDIM == 2) ? 1
-                        : amrex::max(AMREX_D_DECL(len[0],len[1],len[2]));
+#if AMREX_SPACEDIM <= 2
+                    nthreads = 1;
+#else
+                    nthreads = amrex::max(AMREX_D_DECL(len[0],len[1],len[2]));
+#endif
                 }
                 amrex::ParallelFor(Gpu::KernelInfo().setFusible(true), nthreads,
                 [=] AMREX_GPU_DEVICE (int tid) noexcept
@@ -954,8 +957,11 @@ MLCellLinOp::prepareForSolve ()
                                        amrex::max(len[0],len[1]);,
                                        amrex::max(len[0]*len[1],len[0]*len[2],len[1]*len[2]));
                     if (hasHiddenDimension()) {
-                        nthreads = (AMREX_SPACEDIM == 2) ? 1
-                            : amrex::max(AMREX_D_DECL(len[0],len[1],len[2]));
+#if AMREX_SPACEDIM <= 2
+                        nthreads = 1;
+#else
+                        amrex::max(AMREX_D_DECL(len[0],len[1],len[2]));
+#endif
                     }
 #ifdef AMREX_USE_EB
                     if (fabtyp == FabType::singlevalued) {

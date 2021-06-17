@@ -20,7 +20,9 @@ void main_main()
     bool center = true;
     int coarse_level = 0;
     int fine_level = -1;  // This will be fixed later
+    Real xcoord = std::numeric_limits<Real>::lowest();
     Real ycoord = std::numeric_limits<Real>::lowest();
+    Real zcoord = std::numeric_limits<Real>::lowest();
     bool scientific = false;
     bool csv = false;
     int  precision = 17;
@@ -36,8 +38,12 @@ void main_main()
             idir = std::stoi(amrex::get_command_argument(++farg));
         } else if (name == "-v" || name == "--variable") {
             varnames_arg = amrex::get_command_argument(++farg);
+        } else if (name == "-x") {
+            xcoord = std::stod(amrex::get_command_argument(++farg));
         } else if (name == "-y") {
             ycoord = std::stod(amrex::get_command_argument(++farg));
+        } else if (name == "-z") {
+            zcoord = std::stod(amrex::get_command_argument(++farg));
         } else if (name == "-l" || name == "--lower_left") {
             center = false;
         } else if (name == "-c" || name == "--coarse_level") {
@@ -80,7 +86,7 @@ void main_main()
             << "                                         multiple variables)\n"
             << "      [-l|--lower_left]                : slice through lower left corner\n"
             << "                                         instead of center\n"
-            << "      [-y]                             : y-coordinate to pass through\n"
+            << "      [-x][-y][-z]                     : (x,y,z)-coordinate to pass through\n"
             << "                                         (overrides center/lower-left)\n"
             << "      [-c|--coarse_level] coarse level : coarsest level to extract from\n"
             << "      [-f|--fine_level]   fine level   : finest level to extract from\n"
@@ -105,19 +111,6 @@ void main_main()
     }
 
     PlotFileData pf(pltfile);
-    const int dim = pf.spaceDim();
-
-    if (idir < 0 || idir >= dim) {
-        amrex::Print() << " invalid direction\n";
-        return;
-    } else if (idir == 0) {
-        amrex::Print() << " slicing along x-direction and output to " << slicefile << "\n";
-    } else if (idir == 1) {
-        amrex::Print() << " slicing along y-direction and output to " << slicefile << "\n";
-    } else if (idir == 2) {
-        amrex::Print() << " slicing along z-direction and output to " << slicefile << "\n";
-    }
-
     const Vector<std::string>& var_names_pf = pf.varNames();
 
     Vector<std::string> var_names;
@@ -155,8 +148,21 @@ void main_main()
         kloc = (hi0.z-lo0.z+1)/2 + lo0.z;
     }
 
-    if (ycoord > -1.e-36 && AMREX_SPACEDIM >= 2) {
+    if (xcoord > -1.e36 && AMREX_SPACEDIM >= 1) {
+        // we specified the x value to pass through
+        iloc = hi0.x;
+        for (int i = lo0.x; i <= hi0.x; ++i) {
+            amrex::Real xc = problo[0] + (i+0.5)*dx0[0];
+            if (xc > xcoord) {
+                iloc = i;
+                break;
+            }
+        }
+    }
+
+    if (ycoord > -1.e36 && AMREX_SPACEDIM >= 2) {
         // we specified the y value to pass through
+        jloc = hi0.y;
         for (int j = lo0.y; j <= hi0.y; ++j) {
             amrex::Real yc = problo[1] + (j+0.5)*dx0[1];
             if (yc > ycoord) {
@@ -165,6 +171,32 @@ void main_main()
             }
         }
     }
+
+    if (zcoord > -1.e36 && AMREX_SPACEDIM == 3) {
+        // we specified the z value to pass through
+        kloc = hi0.z;
+        for (int k = lo0.z; k <= hi0.z; ++k) {
+            amrex::Real zc = problo[2] + (k+0.5)*dx0[2];
+            if (zc > zcoord) {
+                kloc = k;
+                break;
+            }
+        }
+    }
+
+    const int dim = pf.spaceDim();
+
+    if (idir < 0 || idir >= dim) {
+        amrex::Print() << " invalid direction\n";
+        return;
+    } else if (idir == 0) {
+        amrex::Print() << " slicing along x-direction at coarse grid (j,k)=(" << jloc << "," << kloc << ") and output to " << slicefile << "\n";
+    } else if (idir == 1) {
+        amrex::Print() << " slicing along y-direction at coarse grid (i,k)=(" << iloc << "," << kloc << ") and output to " << slicefile << "\n";
+    } else if (idir == 2) {
+        amrex::Print() << " slicing along z-direction at coarse grid (i,j)=(" << iloc << "," << jloc << ") and output to " << slicefile << "\n";
+    }
+
 
     const IntVect ivloc{AMREX_D_DECL(iloc,jloc,kloc)};
 
@@ -263,10 +295,10 @@ void main_main()
             disp.resize(numpts_vec.size());
             int ntot = 0;
             disp[0] = 0;
-            for (int i = 0; i < numpts_vec.size(); ++i) {
+            for (int i = 0, N = numpts_vec.size(); i < N; ++i) {
                 ntot += numpts_vec[i];
                 recvcnt[i] = numpts_vec[i];
-                if (i+1 < numpts_vec.size()) {
+                if (i+1 < N) {
                     disp[i+1] = disp[i] + numpts_vec[i];
                 }
             }

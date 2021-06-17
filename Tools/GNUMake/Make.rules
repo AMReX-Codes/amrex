@@ -40,8 +40,8 @@ else
 endif
 endif
 
-CXXDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(CPPFLAGS) $(includes)
-CDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes)
+CXXDEPFLAGS = $(LEGACY_DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(CPPFLAGS) $(includes)
+CDEPFLAGS = $(LEGACY_DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes)
 
 #
 # Rules for building executable.
@@ -52,22 +52,29 @@ ifeq ($(multiple_executables),)
 $(executable): $(objForExecs)
 ifneq ($(SKIP_LINKING),TRUE)
 	@echo Linking $@ ...
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" > $(tmpEXETempDir)/link.log
+endif
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
 	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(FCPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(FINAL_LIBS)
 else
 	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(FINAL_LIBS)
 endif
-#	@echo SUCCESS
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/link.log
+	@$(SHELL) -ec '$(GATHERBUILDTIME) $(tmpEXETempDir)/build_time.txt $(build_time_begin) $$(date +"%s")'
 endif
+#	@echo SUCCESS
 ifdef CRAY_CPU_TARGET
 	@echo "Built for target ===> $(CRAY_CPU_TARGET) <==="
+endif
 endif
 
 else
 
 # multiple executables
 %.$(machineSuffix).ex:%.cpp $(objForExecs)
-	$(SLIENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
+	$(SLIENT) $(CCACHE) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
 	@echo "Linking $@ ..."
 	$(SLIENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$(subst /,_,$<).o $(objForExecs) $(FINAL_LIBS)
 
@@ -187,43 +194,85 @@ FORCE:
 #
 # Rules for objects.
 #
-$(objEXETempDir)/%.o: %.cpp
+$(objEXETempDir)/%.o: %.cpp $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.cpp ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
+	$(SILENT) $(CCACHE) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
+endif
 
-$(objEXETempDir)/%.o: %.c
+$(objEXETempDir)/%.o: %.c $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.c ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
+	$(SILENT) $(CCACHE) $(CC) $(DEPFLAGS) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
+endif
 
 $(objEXETempDir)/%.o: %.f
 	@echo Compiling $*.f ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
 	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(FMODULES) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
+endif
 
-$(objEXETempDir)/%.o: %.F
+$(objEXETempDir)/%.o: %.F $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.F ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
 	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes) $< | $(FORTPREP) > $(f77EXETempDir)/$*.f
 	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(FMODULES) $(fincludes) -c $(f77EXETempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
+endif
 
 $(objEXETempDir)/%.o: %.f90
 	@echo Compiling $*.f90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
 	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
+endif
 
-$(objEXETempDir)/%.o: %.F90
+$(objEXETempDir)/%.o: %.F90 $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.F90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
+endif
 	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+ifeq ($(LOG_BUILD_TIME),TRUE)
+	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
+endif
 
 #
 # Rules for dependencies in bare object files.
 #
 
-$(depEXETempDir)/%.d: %.cpp $(srcTempDir)/AMReX_Config.H
+$(depEXETempDir)/%.d: %.cpp $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
@@ -236,7 +285,7 @@ else
 endif
 	@$(SHELL) -ec 'sed -i -e '\''s,$*\.o,$(objEXETempDir)/& $@,g'\'' $@'
 
-$(depEXETempDir)/%.d: %.c $(srcTempDir)/AMReX_Config.H
+$(depEXETempDir)/%.d: %.c $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
@@ -280,14 +329,14 @@ endif
 # The final result is `$(objEXETempDir)/x.o $(depEXETempDir)/x.d: /path/to/y.cpp`.
 #
 
-$(depEXETempDir)/%.d: %.F $(srcTempDir)/AMReX_Config.H
+$(depEXETempDir)/%.d: %.F $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*\.o,$(objEXETempDir)/& $@,'\'' > $@'
 
-$(depEXETempDir)/%.d: %.f $(srcTempDir)/AMReX_Config.H
+$(depEXETempDir)/%.d: %.f $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
@@ -296,7 +345,7 @@ $(depEXETempDir)/%.d: %.f $(srcTempDir)/AMReX_Config.H
 
 DEP_CHECK_OPTS :=
 
-$(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) 
+$(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
@@ -362,11 +411,19 @@ ifneq ($(findstring print-,$(MAKECMDGOALS)),print-)
 ifneq ($(MAKECMDGOALS),help)
 
 ifdef CEXE_sources
--include $(CEXE_sources:%.cpp=$(depEXETempDir)/%.d)
+ifeq ($(USE_LEGACY_DEPFLAGS),TRUE)
+  -include $(CEXE_sources:%.cpp=$(depEXETempDir)/%.d)
+else
+  -include $(CEXE_sources:%.cpp=$(objEXETempDir)/%.d)
+endif
 endif
 
 ifdef cEXE_sources
--include $(cEXE_sources:%.c=$(depEXETempDir)/%.d)
+ifeq ($(USE_LEGACY_DEPFLAGS),TRUE)
+  -include $(cEXE_sources:%.c=$(depEXETempDir)/%.d)
+else
+  -include $(cEXE_sources:%.c=$(objEXETempDir)/%.d)
+endif
 endif
 
 ifdef fEXE_sources

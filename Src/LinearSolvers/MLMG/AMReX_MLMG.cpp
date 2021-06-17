@@ -395,25 +395,6 @@ MLMG::miniCycle (int amrlev)
     mgVcycle(amrlev, mglev);
 }
 
-namespace {
-
-void make_str_helper (std::ostringstream & /*oss*/) { }
-
-template <class T, class... Ts>
-void make_str_helper (std::ostringstream & oss, T x, Ts... xs) {
-    oss << x;
-    make_str_helper(oss, xs...);
-}
-
-template <class... Ts>
-std::string make_str (Ts... xs) {
-    std::ostringstream oss;
-    make_str_helper(oss, xs...);
-    return oss.str();
-}
-
-}
-
 // in   : Residual (res)
 // out  : Correction (cor) from bottom to this function's local top
 void
@@ -425,8 +406,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
 
     for (int mglev = mglev_top; mglev < mglev_bottom; ++mglev)
     {
-        std::string blp_mgv_down_lev_str = make_str("MLMG::mgVcycle_down::", mglev);
-        BL_PROFILE_VAR(blp_mgv_down_lev_str, blp_mgv_down_lev);
+        BL_PROFILE_VAR("MLMG::mgVcycle_down::"+std::to_string(mglev), blp_mgv_down_lev);
 
         if (verbose >= 4)
         {
@@ -504,8 +484,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
 
     for (int mglev = mglev_bottom-1; mglev >= mglev_top; --mglev)
     {
-        std::string blp_mgv_up_lev_str = make_str("MLMG::mgVcycle_up::", mglev);
-        BL_PROFILE_VAR(blp_mgv_up_lev_str, blp_mgv_up_lev);
+        BL_PROFILE_VAR("MLMG::mgVcycle_up::"+std::to_string(mglev), blp_mgv_up_lev);
         // cor_fine += I(cor_crse)
         addInterpCorrection(amrlev, mglev);
         if (verbose >= 4)

@@ -35,7 +35,7 @@ MyTest::compute_gradient ()
     int ilev = 0;
 
     bool is_eb_dirichlet = true;
-    bool is_eb_inhomog  = false;
+    bool is_eb_inhomog  = !eb_is_homog_dirichlet;
 
     int ncomp = phi[0].nComp();
 
@@ -256,7 +256,7 @@ MyTest::apply ()
            }
 
            if (eb_is_dirichlet) {
-             phi_eb[ilev] = MultiFab(phi[ilev]  , make_alias, n, 1);
+             phi_eb[ilev] = MultiFab(phieb[ilev]  , make_alias, n, 1);
            }
 
 
@@ -310,9 +310,6 @@ MyTest::apply ()
        } else if (eb_is_dirichlet) {
          amrex::Print() << "setting EB Dirichlet\n";
          for (int ilev = 0; ilev <= max_level; ++ilev) {
-           // This case was setup for Poiseuille flow so the walls
-           // are set to no-slip (zero velocity).
-           phi_eb[ilev].setVal(0.0);
            mleb.setEBDirichlet(ilev, phi_eb[ilev], bcoef_eb_comp[ilev]);
          }
        }
@@ -354,7 +351,7 @@ MyTest::writePlotfile ()
                             geom, 0.0, Vector<int>(max_level+1,0),
                             Vector<IntVect>(max_level,IntVect{2}));
 
-    if(use_poiseuille) {
+    if(use_poiseuille || use_triangle_wave) {
        Vector<MultiFab> plotmf_analytic(max_level+1);
        for (int ilev = 0; ilev <= max_level; ++ilev) {
            plotmf_analytic[ilev].define(grids[ilev],dmap[ilev],8,0);
@@ -475,6 +472,7 @@ MyTest::readParameters ()
     pp.query("use_petsc",use_petsc);
 #endif
     pp.query("use_poiseuille", use_poiseuille);
+    pp.query("use_triangle_wave", use_triangle_wave);
     pp.query("poiseuille_askew", poiseuille_askew);
     pp.queryarr("poiseuille_pt_on_top_wall",poiseuille_pt_on_top_wall);
     pp.query("poiseuille_height",poiseuille_height);

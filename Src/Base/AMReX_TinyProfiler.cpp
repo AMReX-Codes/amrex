@@ -33,6 +33,7 @@ std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
 std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
 double TinyProfiler::t_init = std::numeric_limits<double>::max();
 int TinyProfiler::device_synchronize_around_region = 0;
+int TinyProfiler::n_print_tabs = 0;
 int TinyProfiler::verbose = 0;
 
 namespace {
@@ -92,11 +93,16 @@ TinyProfiler::start () noexcept
         ttstack.emplace_back(std::make_tuple(t, 0.0, &fname));
         global_depth = ttstack.size();
 
+#ifdef AMREX_USE_GPU
+            if (device_synchronize_around_region) {
+                amrex::Gpu::Device::synchronize();
+            }
+#endif
+
 #ifdef AMREX_USE_CUDA
-        if (device_synchronize_around_region) {
-            amrex::Gpu::Device::synchronize();
-        }
         nvtxRangePush(fname.c_str());
+#elif defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
+        roctxRangePush(fname.c_str());
 #endif
 
         for (auto const& region : regionstack)
@@ -105,9 +111,15 @@ TinyProfiler::start () noexcept
             ++st.depth;
             stats.push_back(&st);
         }
-    }
-    if (verbose) {
-        amrex::Print() << "  TP: Entering " << fname << std::endl;
+
+        if (verbose) {
+            ++n_print_tabs;
+            std::string whitespace;
+            for (int itab = 0; itab < n_print_tabs; ++itab) {
+                whitespace += "  ";
+            }
+            amrex::Print() << whitespace << "TP: Entering " << fname << std::endl;
+        }
     }
 }
 
@@ -173,20 +185,31 @@ TinyProfiler::stop () noexcept
                 std::get<1>(parent) += dtin;
             }
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
             if (device_synchronize_around_region) {
                 amrex::Gpu::Device::synchronize();
             }
+#endif
+
+#ifdef AMREX_USE_CUDA
             nvtxRangePop();
+#elif defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
+            roctxRangePop();
 #endif
         } else {
             improperly_nested_timers.insert(fname);
         }
 
         stats.clear();
-    }
-    if (verbose) {
-        amrex::Print() << "  TP: Leaving " << fname << std::endl;
+
+        if (verbose) {
+            std::string whitespace;
+            for (int itab = 0; itab < n_print_tabs; ++itab) {
+                whitespace += "  ";
+            }
+            --n_print_tabs;
+            amrex::Print() << whitespace << "TP: Leaving  " << fname << std::endl;
+        }
     }
 }
 
@@ -247,11 +270,14 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
                 std::get<1>(parent) += dtin;
             }
 
-#ifdef AMREX_USE_CUDA
             if (device_synchronize_around_region) {
                 amrex::Gpu::Device::synchronize();
             }
+
+#ifdef AMREX_USE_CUDA
             nvtxRangePop();
+#elif defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
+            roctxRangePop();
 #endif
         } else
         {

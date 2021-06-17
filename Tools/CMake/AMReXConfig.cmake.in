@@ -21,8 +21,9 @@ macro(check_required_components _NAME)
    endforeach()
 endmacro()
 
-# Set the minimum CMake version required
-cmake_minimum_required(VERSION @CMAKE_MINIMUM_REQUIRED_VERSION@)
+# Set the minimum CMake version required -- This must be the version
+# of CMake used to build the library
+cmake_minimum_required(VERSION @CMAKE_VERSION@)
 
 # Provides find_dependency
 include(CMakeFindDependencyMacro)
@@ -77,6 +78,7 @@ set(AMReX_CONDUIT_FOUND             @AMReX_CONDUIT@)
 set(AMReX_ASCENT_FOUND              @AMReX_ASCENT@)
 set(AMReX_HYPRE_FOUND               @AMReX_HYPRE@)
 set(AMReX_PETSC_FOUND               @AMReX_PETSC@)
+set(AMReX_SUNDIALS_FOUND            @AMReX_SUNDIALS@)
 
 # Compilation options
 set(AMReX_FPE_FOUND                 @AMReX_FPE@)
@@ -151,6 +153,10 @@ if (@AMReX_PETSC@)
    find_dependency(PETSc 2.13 REQUIRED)
 endif ()
 
+if (@AMReX_SUNDIALS@)
+   find_dependency(SUNDIALS 5.7.0 REQUIRED)
+endif ()
+
 #
 # CUDA
 #
@@ -158,12 +164,17 @@ if (@AMReX_CUDA@)
    include(AMReX_SetupCUDA)
 endif ()
 
-
-#include("${CMAKE_CURRENT_LIST_DIR}/@targets_export_name@.cmake")
 include( "${CMAKE_CURRENT_LIST_DIR}/AMReXTargets.cmake" )
+
+if (@CMAKE_VERSION@ VERSION_GREATER_EQUAL 3.20 AND  @AMReX_CUDA@ )
+   # CUDA architectures amrex was built for -- should we make
+   set(AMREX_CUDA_ARCHS @AMREX_CUDA_ARCHS@ CACHE INTERNAL "CUDA archs AMReX is built for")
+   set_target_properties(AMReX::amrex
+      PROPERTIES
+      CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS})
+endif ()
 
 #
 # Check components
 #
 check_required_components("@PROJECT_NAME@")
-#check_required_components(AMReX)

@@ -152,7 +152,7 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
                 return {ierror};
             });
         }
-        ReduceTuple rv = reduce_data.value();
+        ReduceTuple rv = reduce_data.value(reduce_op);
         mvmc_error = amrex::max(0, amrex::get<0>(rv));
     }
 
@@ -378,7 +378,7 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
             });
         }
 
-        ReduceTuple rv = reduce_data.value();
+        ReduceTuple rv = reduce_data.value(reduce_op);
         error = amrex::max(0, amrex::get<0>(rv));
     }
 

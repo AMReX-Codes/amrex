@@ -1,5 +1,6 @@
 
 #include <AMReX_Cluster.H>
+#include <AMReX_BoxArray.H>
 #include <AMReX_BoxDomain.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Array.H>
@@ -562,15 +563,13 @@ ClusterList::new_chop (Real eff)
 }
 
 void
-ClusterList::intersect (const BoxDomain& dom)
+ClusterList::intersect (BoxArray& domba)
 {
     BL_PROFILE("ClusterList::intersect()");
 
-    //
-    // Make a BoxArray covering dom.
-    // We'll use this to speed up the contains() test below.
-    //
-    BoxArray domba(dom.boxList());
+    domba.removeOverlap();
+
+    BoxDomain dom(domba.boxList());
 
     for (std::list<Cluster*>::iterator cli = lst.begin(); cli != lst.end(); )
     {
@@ -601,6 +600,8 @@ ClusterList::intersect (const BoxDomain& dom)
             lst.erase(cli++);
         }
     }
+
+    domba.clear();
 }
 
 }

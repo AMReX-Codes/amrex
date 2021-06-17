@@ -68,7 +68,7 @@ struct Neighbors
         void operator++ () { ++m_index;; }
 
         AMREX_GPU_HOST_DEVICE
-        bool operator!= (const_iterator const& rhs) const { return m_index < m_stop; }
+        bool operator!= (const_iterator const& /*rhs*/) const { return m_index < m_stop; }
 
         AMREX_GPU_HOST_DEVICE
         const ParticleType& operator* () const { return m_pstruct[m_nbor_list_ptr[m_index]];  }

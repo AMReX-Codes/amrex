@@ -53,6 +53,46 @@ auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const&) no
     return f(src,i);
 }
 
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P const& p, Array4<T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const& plo,
+             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
+    -> decltype(f(p, fabarr, plo, dxi))
+{
+    return f(p, fabarr, plo, dxi);
+}
+
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P const& p, Array4<T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const&,
+             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
+    -> decltype(f(p, fabarr))
+{
+    return f(p, fabarr);
+}
+
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P& p, Array4<const T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const& plo,
+             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
+    -> decltype(f(p, fabarr, plo, dxi))
+{
+    return f(p, fabarr, plo, dxi);
+}
+
+template <typename F, typename P, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f, P& p, Array4<const T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const&,
+             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
+    -> decltype(f(p, fabarr))
+{
+    return f(p, fabarr);
+}
+
 }
 
 /**
@@ -118,7 +158,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
         iv += domain.smallEnd();
         return !box.contains(iv);
     });
-    int hv = amrex::get<0>(reduce_data.value());
+    int hv = amrex::get<0>(reduce_data.value(reduce_op));
     return hv;
 }
 
@@ -457,14 +497,9 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                           },
                           [=] AMREX_GPU_DEVICE (int i, int const& s)
                           {
-                              if ( particle_stays(i) )
-                              {
-                                  copyParticle(dst_data, src_data, i + this_offset, s);
-                              }
-                              else
-                              {
-                                  copyParticle(dst_data, src_data, i + this_offset, this_chunk_size-1-(i-s));
-                              }
+                              int src_i = i + this_offset;
+                              int dst_i = particle_stays(i) ? s : this_chunk_size-1-(i-s);
+                              copyParticle(dst_data, src_data, src_i, dst_i);
                           },
                           Scan::Type::exclusive);
         }
@@ -503,6 +538,10 @@ IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
 
 Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow);
 
+#ifdef AMREX_USE_HDF5_ASYNC
+void async_vol_es_wait_particle();
+void async_vol_es_wait_close_particle();
+#endif
 }
 
 #endif // include guard

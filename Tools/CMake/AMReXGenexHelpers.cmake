@@ -219,6 +219,9 @@ function ( eval_genex _list _lang _comp )
    # Auxiliary list
    set(_in "${${_list}}")
 
+   # Remove SHELL
+   string(REGEX REPLACE "SHELL:" ""  _in "${_in}")
+
    #
    # Loop to deal with nested genex if any are present
    #
@@ -239,6 +242,9 @@ function ( eval_genex _list _lang _comp )
       if (ARG_CONFIG)
          string(REGEX REPLACE "\\$<CONFIG>" "${ARG_CONFIG}"  _in "${_in}")
       endif ()
+
+      # Genex in the form $<PLATFORM_ID>
+      string(REGEX REPLACE "\\$<PLATFORM_ID>" "${CMAKE_SYSTEM_NAME}"  _in "${_in}")
 
       # Genex in the form $<*_COMPILER_ID>
       string(REGEX REPLACE "\\$<${_lang}_COMPILER_ID>" "${_comp}"  _in "${_in}")
@@ -268,6 +274,10 @@ function ( eval_genex _list _lang _comp )
       endif ()
       string(REGEX REPLACE "\\$<CONFIG:[A-Za-z]*>" "0"  _in "${_in}")
 
+      # Genex in the form $<PLATFORM_ID:platform_ids>
+      string(REGEX REPLACE "\\$<PLATFORM_ID:[^>]*${CMAKE_SYSTEM_NAME}[^>]*>" "1"  _in "${_in}")
+      string(REGEX REPLACE "\\$<PLATFORM_ID:[A-Za-z]*>" "0"  _in "${_in}")
+
       # Genex in the form $<*_COMPILER_ID:compiler_ids>
       string(REGEX REPLACE "\\$<${_lang}_COMPILER_ID:[^>]*${_comp}[^>]*>" "1"  _in "${_in}")
       string(REGEX REPLACE "\\$<[A-Za-z]*_COMPILER_ID:[A-Za-z]*>" "0"  _in "${_in}")
@@ -279,9 +289,9 @@ function ( eval_genex _list _lang _comp )
       endif ()
       string(REGEX REPLACE "\\$<[A-Za-z]*_COMPILER_VERSION:[^\$>]*>" "0"  _in "${_in}")
 
-      # Genex in the form $<COMPILE_LANGUAGE_AND_ID:language,compiler_ids>
-      string(REGEX REPLACE "\\$<COMPILE_LANGUAGE_AND_ID:${_lang},[^\$>]*${_comp}[^\$>]*>" "1"  _in "${_in}")
-      string(REGEX REPLACE "\\$<COMPILE_LANGUAGE_AND_ID:[A-Za-z,]*>" "0"  _in "${_in}")
+      # Genex in the form $<COMPILE_LANG_AND_ID:language,compiler_ids>
+      string(REGEX REPLACE "\\$<COMPILE_LANG_AND_ID:${_lang},[^\$>]*${_comp}[^\$>]*>" "1"  _in "${_in}")
+      string(REGEX REPLACE "\\$<COMPILE_LANG_AND_ID:[A-Za-z,]*>" "0"  _in "${_in}")
 
       # Genex in the form $<COMPILE_LANGUAGE:languages>
       string(REGEX REPLACE "\\$<COMPILE_LANGUAGE:[^\$>]*${_lang}[^\$>]*>" "1"  _in "${_in}")

@@ -70,6 +70,8 @@ buildNeighborMask ()
         const Periodicity& periodicity = geom.periodicity();
         const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
 
+        Vector<Array4BoxValTag<int> > tags;
+
         for (MFIter mfi(ba, dmap); mfi.isValid(); ++mfi)
         {
             int grid = mfi.index();
@@ -106,8 +108,10 @@ buildNeighborMask ()
             Vector<Box> bl = detail::getBoundaryBoxes(
                 amrex::grow(ba[mfi], -m_num_neighbor_cells), m_num_neighbor_cells);
 
+            Gpu::HostVector<int> h_off;
+            Gpu::HostVector<NeighborCode> h_arr;
             m_grid_map[grid].resize(bl.size());
-            m_code_offsets[grid].push_back(0);
+            h_off.push_back(0);
             for (int i = 0; i < static_cast<int>(bl.size()); ++i)
             {
                 const Box& box = bl[i];
@@ -116,7 +120,9 @@ buildNeighborMask ()
                 const bool first_only = false;
                 auto isecs = isec_ba.intersections(box, first_only, nGrow);
 
-                if (! isecs.empty() ) (*m_neighbor_mask_ptr)[mfi].setVal<RunOn::Host>(i, box);
+                if (! isecs.empty() ) {
+                    tags.push_back({(*m_neighbor_mask_ptr)[mfi].array(), box, i});
+                }
 
                 for (auto& isec : isecs)
                 {
@@ -124,14 +130,31 @@ buildNeighborMask ()
                     code.grid_id = isec_grids[isec.first];
                     code.periodic_shift = isec_pshifts[isec.first];
                     m_grid_map[grid][i].push_back(code);
-                    m_code_array[grid].push_back(code);
+                    h_arr.push_back(code);
                     const int global_rank = dmap[code.grid_id];
                     neighbor_procs.push_back(ParallelContext::global_to_local_rank(global_rank));
                     ++num_codes;
                 }
-                m_code_offsets[grid].push_back(m_code_array[grid].size());
+                h_off.push_back(h_arr.size());
             }
+
+            m_code_offsets[grid].resize(h_off.size());
+            Gpu::copy(Gpu::hostToDevice, h_off.begin(), h_off.end(),
+                      m_code_offsets[grid].begin());
+
+            m_code_array[grid].resize(h_arr.size());
+            Gpu::copy(Gpu::hostToDevice, h_arr.begin(), h_arr.end(),
+                      m_code_array[grid].begin());
+
+            Gpu::Device::synchronize();
         }
+
+        amrex::ParallelFor(tags, 1,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, const Array4BoxValTag<int>& tag) noexcept
+            {
+                tag.dfab(i,j,k,n) = tag.val;
+            });
+
         RemoveDuplicates(neighbor_procs);
     }
 }
