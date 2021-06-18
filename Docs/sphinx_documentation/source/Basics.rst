@@ -307,6 +307,62 @@ Then we would pass :cpp:`add_par` into :cpp:`amrex::Initialize`:
 This value replaces the current default value of true in AMReX itself, but
 can still be over-written by setting a value in the inputs file.
 
+.. _sec:basics:parser:
+
+Parser
+======
+
+AMReX provides a parser that can be used at runtime to evaluate mathematical
+expressions given in the form of string.  It supports ``+``, ``-``, ``*``,
+``/``, ``**`` (power), ``^`` (power), ``sqrt``, ``exp``, ``log``, ``log10``,
+``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``sinh``, ``cosh``,
+``tanh``, and ``abs``.  The minimum and maximum of two numbers can be
+computed with ``min`` and ``max``, respectively.  It supports the Heaviside
+step function, ``heaviside(x1,x2)`` that gives ``0``, ``x2``, ``1``, for
+``x1 < 0``, ``x1 = 0`` and ``x1 > 0``, respectively.  There is ``if(a,b,c)``
+that gives ``b`` or ``c`` depending on the value of ``a``.  A number of
+comparison operators are supported, including ``<``, ``>``, ``==``, ``!=``,
+``<=``, and ``>=``.  The Boolean results from comparison can be combined by
+``and`` and ``or``, and they hold the value ``1`` for true and ``0`` for
+false.  The precedence of the operators follows the convention of the C and
+C++ programming languages.  Here is an example of using the parser.
+
+.. highlight: c++
+
+::
+
+   Parser parser("if(x>a and x<b, sin(x)*cos(y)*if(z<0, 1.0, exp(-z)), .3*c**2)");
+   parser.setConstant(a, ...);
+   parser.setConstant(b, ...);
+   parser.setConstant(c, ...);
+   parser.registerVariables({"x","y","z"});
+   auto f = parser.compile<3>();  // 3 because there are three variables.
+
+   // f can be used in both host and device code.  It takes 3 arguments in
+   // this example.  The parser object must be alive for f to be valid.
+   for (int k = 0; ...) {
+     for (int j = 0; ...) {
+       for (int i = 0; ...) {
+         a(i,j,k) = f(i*dx, j*dy, k*dz);
+       }
+     }
+   }
+
+Local automatic variables can be defined in the expression.  For example,
+
+.. highlight: c++
+
+::
+
+   Parser parser("r2=x*x+y*y; r=sqrt(r2); cos(a+r2)*log(r)"
+   parser.setConstant(a, ...);
+   parser.registerVariables({"x","y"});
+   auto f = parser.compile<2>();  // 2 because there are two variables.
+
+Note that an assignment to an automatic variable must be terminated with
+``;``, and one should avoid name conflict between the local variables and
+the constants set by :cpp:`setConstant` and the variables registered by
+:cpp:`registerVariables`.
 
 .. _sec:basics:initialize:
 

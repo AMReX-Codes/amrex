@@ -7,7 +7,7 @@ find . -type d \( -name .git \
                   -o -name build -o -name install \
                   -o -name tmp_build_dir -o -name tmp_install_dir \
                \) -prune -o \
-       -type f \( -name "*.H" -o -name "*.h" -o -name "*.hh" -o -name "*.hpp" \
+       -type f \( \( -name "*.H" -o -name "*.h" -o -name "*.hh" -o -name "*.hpp" \
                   -o -name "*.c" -o -name "*.cc" -o -name "*.cpp" -o -name "*.cxx" \
                   -o -name "*.f" -o -name "*.F" -o -name "*.f90" -o -name "*.F90" \
                   -o -name "*.py" \
@@ -15,7 +15,9 @@ find . -type d \( -name .git \
                   -o -name "*.sh" \
                   -o -name "*.tex" \
                   -o -name "*.txt" \
-                  -o -name "*.yml" \
+                  -o -name "*.yml" \) \
+                 -a \( ! -name "*.tab.h" -a ! -name "*.tab.cpp" \
+                    -a ! -name "*.lex.h" -a ! -name "*.lex.cpp" \) \
                \) \
     -exec grep -Iq . {} \; \
     -exec sed -i 's/\t/\ \ \ \ /g' {} +
