@@ -100,6 +100,11 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
       list(APPEND _cuda_flags --forward-unknown-to-host-compiler)
    endif()
 
+   # fast math
+   if (AMReX_CUDA_FASTMATH)
+      list(APPEND _cuda_flags --use_fast_math)
+   endif ()
+
    #
    # Code generation
    #
@@ -236,6 +241,7 @@ if (AMReX_HIP)
    # missing gpu devices)
    target_compile_options(amrex
       PUBLIC
-      $<$<COMPILE_LANGUAGE:CXX>:-m64 --amdgpu-target=${AMReX_AMD_ARCH}> )
+      # There are a lot of warnings due to #define AMREX_PRAGMA_SIMD _Pragma("clang loop vectorize(enable)")
+      $<$<COMPILE_LANGUAGE:CXX>:-m64 --amdgpu-target=${AMReX_AMD_ARCH} -Wno-pass-failed> )
 
 endif ()

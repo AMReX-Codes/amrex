@@ -624,6 +624,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::sumNeighbors (int real_start_comp, int real_num_comp,
                 int int_start_comp,  int int_num_comp) {
 #ifdef AMREX_USE_GPU
+    amrex::ignore_unused(real_start_comp,real_num_comp,int_start_comp,int_num_comp);
     amrex::Abort("Not implemented.");
 #else
     sumNeighborsCPU(real_start_comp, real_num_comp, int_start_comp, int_num_comp);

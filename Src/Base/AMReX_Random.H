@@ -121,7 +121,7 @@ namespace amrex
         mkl::rng::device::uniform<unsigned int> distr(0,n);
         return mkl::rng::device::generate(distr, *random_engine.engine);
 #else
-        int rand;
+        unsigned int rand;
         constexpr unsigned int RAND_M = 4294967295; // 2**32-1
         do {
             AMREX_HIP_OR_CUDA( rand = hiprand(random_engine.rand_state);,
