@@ -775,17 +775,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 struct AssignGridFilter
 {
 
-  int m_lev_min, m_lev_max, m_nGrow, m_gid;
-  amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> * m_assign_grid;
+    int m_lev_min, m_lev_max, m_nGrow, m_gid;
+    amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> * m_assign_grid;
 
     /**
        \brief This filters based on matching grids
        *
      **/
-  AssignGridFilter (amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> * assign_grid, int gid, int level, int nGrow)
-    : m_assign_grid(assign_grid), m_gid(gid), m_nGrow(nGrow)
-  { m_lev_min=level;
-    m_lev_max=level+1;}
+    AssignGridFilter (amrex::AmrAssignGrid<amrex::DenseBinIteratorFactory<amrex::Box>> * assign_grid, int gid, int level, int nGrow)
+      : m_lev_min(level), m_lev_max(level+1), m_nGrow(nGrow), m_gid(gid), m_assign_grid(assign_grid)
+    {}
 
     template <typename SrcData>
     AMREX_GPU_HOST_DEVICE
