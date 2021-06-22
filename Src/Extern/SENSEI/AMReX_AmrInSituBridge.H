@@ -9,7 +9,7 @@ namespace amrex
 
 class Amr;
 
-/// Conatins the bridge code for simulations that use amrex::Amr
+/// Contains the bridge code for simulations that use amrex::Amr
 class AmrInSituBridge : public InSituBridge
 {
 public:

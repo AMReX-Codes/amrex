@@ -477,7 +477,7 @@ int AmrMeshDataAdaptor::GetMeshHasGhostCells(const std::string &meshName, int &n
 int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
     bool structureOnly, vtkDataObject *&mesh)
 {
-    (void) structureOnly;
+    amrex::ignore_unused(structureOnly);
 
     mesh = nullptr;
 
@@ -600,8 +600,8 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
 int AmrMeshDataAdaptor::AddGhostNodesArray(vtkDataObject *mesh,
     const std::string &meshName)
 {
-    (void) mesh;
-    (void) meshName;
+    amrex::ignore_unused(mesh);
+    amrex::ignore_unused(meshName);
 
     if (meshName != "mesh")
     {

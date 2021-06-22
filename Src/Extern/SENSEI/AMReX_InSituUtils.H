@@ -238,7 +238,7 @@ int MaskCoveredCells(const amrex::Box &pdom, const amrex::BoxArray &cBoxes,
     const amrex::DistributionMapping &cMap, amrex::BoxArray fBoxes,
     const IntVect &fRefRatio, int ng, std::vector<n_t*> &cMasks)
 {
-    (void) pdom;
+    amrex::ignore_unused(pdom);
 
     int rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -324,4 +324,3 @@ protected:
 }
 
 #endif
-

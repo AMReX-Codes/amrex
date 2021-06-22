@@ -819,8 +819,8 @@ int AmrDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
 int AmrDataAdaptor::AddGhostNodesArray(vtkDataObject *mesh,
     const std::string &meshName)
 {
-    (void) mesh;
-    (void) meshName;
+    amrex::ignore_unused(mesh);
+    amrex::ignore_unused(meshName);
 
     sensei::TimeEvent<64> event("AmrDataAdaptor::AddGhostNodesArray");
 
