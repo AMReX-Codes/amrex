@@ -830,6 +830,8 @@ struct TransformerGhost
         for (int j = 0; j < dst.m_num_runtime_int; ++j)
             dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
         ParticleIDWrapper((dst.m_aos[dst_i]).m_idcpu) = GhostParticleID;
+	std::cout<<"in transform:s"<<src.m_aos[src_i]<<std::endl;
+	std::cout<<"in transform:d"<<dst.m_aos[dst_i]<<std::endl;
     }
 };
 
@@ -875,7 +877,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
               {
                 SuperParticleType p = src.getSuperParticle(pindex);
                 p.id() = GhostParticleID;
-                std::cout<<p<<std::endl;
+                std::cout<<"push_back add: "<<p<<std::endl;
                 //              ghosts.push_back(p);
               }
           }
@@ -885,7 +887,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     m_particle_locator.setGeometry(GetParGDB());
     AmrAssignGrid<DenseBinIteratorFactory<Box>> assign_grid = m_particle_locator.getGridAssignor();
     auto assign_grid_ptr = & assign_grid;
-
+    ghosts.resize(0);
     for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
     {
         const auto& src_tile = ParticlesAt(level, pti);
@@ -894,10 +896,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         auto np = src_tile.numParticles();
         auto ghost_offset = ghosts.numParticles();
         ghosts.resize(ghost_offset+np);
-        filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid,level,nGrow), TransformerGhost(),0,ghost_offset,np);
+        auto ghost_index = filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid,level,nGrow), TransformerGhost(),0,ghost_offset,np);
+        ghosts.resize(ghost_offset+ghost_index);
        for(int i=0; i<ghosts.numParticles(); i++)
          {
-           std::cout<<((ghosts.getParticleTileData()).getSuperParticle(i))<<std::endl;
+           std::cout<<"transform add: "<<((ghosts.getParticleTileData()).getSuperParticle(i))<<std::endl;
+	   std::cout<<"ghosts    add: "<<((ghosts.GetArrayOfStructs()))[i]<<std::endl;
          }
     }
     //#endif
