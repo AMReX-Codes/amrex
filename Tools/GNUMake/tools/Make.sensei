@@ -1,9 +1,15 @@
 # enable the SENSEI bridge and data adaptor in AMReX
-DEFINES += -DBL_USE_SENSEI_INSITU
+DEFINES += -DAMREX_USE_SENSEI_INSITU
 
-# the following environment variables which tell AMReX how
-# to compile and link with SENSEI can be set by running
+ifeq ($(NO_SENSEI_AMR_INST), TRUE)
+    DEFINES += -DAMREX_NO_SENSEI_AMR_INST
+endif
+
+# the following environment variables which tell AMReX how to compile and link
+# with SENSEI can be set by running:
+#
 #   source sensei_config
+#
 # where sensei_config is in the SENSEI install bin dir
 
 ifndef SENSEI_INCLUDES

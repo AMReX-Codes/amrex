@@ -287,8 +287,12 @@ endif
 
 ifdef USE_SENSEI_INSITU
   USE_SENSEI_INSITU := $(strip $(USE_SENSEI_INSITU))
+  ifdef NO_SENSEI_AMR_INST
+    NO_SENSEI_AMR_INST := $(strip $(NO_SENSEI_AMR_INST))
+  endif
 else
   USE_SENSEI_INSITU := FALSE
+  NO_SENSEI_AMR_INST := FALSE
 endif
 
 ifdef USE_HDF5
