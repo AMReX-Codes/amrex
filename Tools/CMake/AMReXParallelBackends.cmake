@@ -258,9 +258,6 @@ if (AMReX_HIP)
                        "See https://github.com/ROCm-Developer-Tools/HIP/issues/2275 "
                        "and https://github.com/AMReX-Codes/amrex/pull/2031 "
                        "for details.")
-       if(AMReX_GPU_RDC)
-           message(FATAL_ERROR "ROCm/HIP <= 4.2.0 cannot build Fortran + AMReX_GPU_RDC.")
-       endif()
    elseif(${_this_comp} STREQUAL hipcc)
        target_link_libraries(amrex PUBLIC ${HIP_LIBRARIES})
        # ARCH flags -- these must be PUBLIC for all downstream targets to use,
@@ -276,7 +273,7 @@ if (AMReX_HIP)
    # device variable support (for codes that use global variables on device)
    # as well as our kernel fusion in AMReX, e.g. happening likely in amr regrid
    # As of ROCm 4.1, we cannot enable this with hipcc, as it looks...
-   if(AMReX_GPU_RDC AND NOT ${_this_comp} STREQUAL hipcc)
+   if(AMReX_GPU_RDC)
        target_compile_options(amrex PUBLIC
           $<$<COMPILE_LANGUAGE:CXX>:-fgpu-rdc> )
        if(CMAKE_VERSION VERSION_LESS 3.18)
