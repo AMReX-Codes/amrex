@@ -98,7 +98,7 @@ template <typename n_t>
 int AllocateBoxArray(const amrex::Box &pdom, const amrex::BoxArray &boxes,
     const amrex::DistributionMapping &dmap, int ng, std::vector<n_t*> &darrays)
 {
-    (void) pdom;
+    amrex::ignore_unused(pdom);
 
     int rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -156,7 +156,7 @@ int MaskGhostCells(const amrex::Box &pdom, const amrex::BoxArray &boxes,
     const amrex::DistributionMapping &dmap, unsigned int ng,
     std::vector<n_t*> &darrays)
 {
-    (void) pdom;
+    amrex::ignore_unused(pdom);
 
     // no ghosts to mask
     if (ng < 1)
