@@ -182,7 +182,6 @@ can run it and that will generate results like:
    Total GPU global memory (MB): 6069
    Free  GPU global memory (MB): 5896
    [The         Arena] space (MB): 4552
-   [The  Device Arena] space (MB): 8
    [The Managed Arena] space (MB): 8
    [The  Pinned Arena] space (MB): 8
    AMReX (19.06-404-g0455b168b69c-dirty) finalized
