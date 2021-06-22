@@ -253,6 +253,11 @@ endif ()
 option( AMReX_SENSEI "Enable SENSEI in situ infrastructure" OFF )
 print_option( AMReX_SENSEI )
 
+cmake_dependent_option( AMReX_NO_SENSEI_AMR_INST
+   "Disables the SENSEI instrumentation in amrex::Amr" FALSE
+   "AMReX_SENSEI" FALSE )
+print_option( AMReX_NO_SENSEI_AMR_INST )
+
 # Conduit (requires CONDUIT_DIR)
 option( AMReX_CONDUIT "Enable Conduit support" OFF )
 print_option( AMReX_CONDUIT )
