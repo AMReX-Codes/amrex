@@ -605,7 +605,7 @@ int AmrDataAdaptor::GetArrayName(const std::string &meshName,
 int AmrDataAdaptor::GetMesh(const std::string &meshName,
     bool structureOnly, vtkDataObject *&mesh)
 {
-    (void) structureOnly;
+    amrex::ignore_unused(structureOnly);
 
     sensei::TimeEvent<64> event("AmrDataAdaptor::GetMesh");
 
