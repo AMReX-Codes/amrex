@@ -887,23 +887,25 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     m_particle_locator.setGeometry(GetParGDB());
     AmrAssignGrid<DenseBinIteratorFactory<Box>> assign_grid = m_particle_locator.getGridAssignor();
     auto assign_grid_ptr = & assign_grid;
-    ghosts.resize(0);
+    //    ghosts.resize(0);
+    auto ghost_offset = ghosts.numParticles();
     for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
     {
         const auto& src_tile = ParticlesAt(level, pti);
         int gid = pti.index();
 
         auto np = src_tile.numParticles();
-        auto ghost_offset = ghosts.numParticles();
         ghosts.resize(ghost_offset+np);
-        auto ghost_index = filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid,level,nGrow), TransformerGhost(),0,ghost_offset,np);
-        ghosts.resize(ghost_offset+ghost_index);
-       for(int i=0; i<ghosts.numParticles(); i++)
+        ghost_offset = filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid,level,nGrow), TransformerGhost(),0,ghost_offset,np);
+	//       ghosts.resize(ghost_offset);
+	//       for(int i=0; i<ghosts.numParticles(); i++)
+        for(int i=0; i<ghost_offset; i++)
          {
            std::cout<<"transform add: "<<((ghosts.getParticleTileData()).getSuperParticle(i))<<std::endl;
 	   std::cout<<"ghosts    add: "<<((ghosts.GetArrayOfStructs()))[i]<<std::endl;
          }
     }
+    ghosts.resize(ghost_offset);
     //#endif
 }
 
