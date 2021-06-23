@@ -646,6 +646,36 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::Re
   }
 }
 
+struct TransformerVirt
+{
+    int aggregation_type_int;
+    /**
+       \brief This copies the particle but multiplies all the idata by m_factor
+       *
+     **/
+    TransformerVirt ()
+    { }
+
+    template <typename DstData, typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    void operator() (DstData& dst, const SrcData& src,
+                     int src_i, int dst_i) const noexcept
+    {
+        dst.m_aos[dst_i] = src.m_aos[src_i];
+        for (int j = 0; j < DstData::NAR; ++j)
+            dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
+        for (int j = 0; j < dst.m_num_runtime_real; ++j)
+            dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
+        for (int j = 0; j < DstData::NAI; ++j)
+            dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
+        for (int j = 0; j < dst.m_num_runtime_int; ++j)
+            dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
+
+        ParticleIDWrapper((dst.m_aos[dst_i]).m_idcpu) = VirtualParticleID;
+    }
+};
+
+
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
           template<class> class Allocator>
 void
@@ -675,20 +705,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     if (aggregation_type == "None")
     {
+
+        auto virts_offset = virts.numParticles();
         for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
         {
-            const auto& ptile = ParticlesAt(level, pti);
-            const auto src = ptile.getConstParticleTileData();
+            const auto& src_tile = ParticlesAt(level, pti);
+            int gid = pti.index();
 
-            for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
-            {
-                SuperParticleType p = src.getSuperParticle(pindex);
-                p.id() = VirtualParticleID;
-                virts.push_back(p);
-            }
+            auto np = src_tile.numParticles();
+            virts.resize(virts_offset+np);
+            transformParticles(virts, src_tile, 0, virts_offset, np, TransformerVirt());
         }
     }
-
     if (aggregation_type == "Cell")
     {
         BoxList bl_buffer;
@@ -893,6 +921,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     }
     ghosts.resize(ghost_offset);
     #endif
+    Gpu::synchronize();
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,

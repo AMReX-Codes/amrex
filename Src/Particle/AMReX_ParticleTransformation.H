@@ -396,7 +396,7 @@ auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
     {
         p_mask[i] = particle_detail::call_f(p, src_data, src_start+i, engine);
     });
-
+    Gpu::streamSynchronize();
     return filterParticles(dst, src, mask.dataPtr(), src_start, dst_start, n);
 }
 
@@ -515,7 +515,7 @@ auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&
     {
         p_mask[i] = particle_detail::call_f(p, src_data, i, engine);
     });
-
+    Gpu::streamSynchronize();
     return filterAndTransformParticles(dst, src, mask.dataPtr(), std::forward<F>(f));
 }
 
@@ -599,7 +599,7 @@ auto filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile&
     {
         p_mask[i] = particle_detail::call_f(p, src_data, i, engine);
     });
-
+    Gpu::streamSynchronize();
     return filterAndTransformParticles(dst1, dst2, src, mask.dataPtr(), std::forward<F>(f));
 }
 
@@ -638,6 +638,7 @@ auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&
     {
         p_mask[i] = particle_detail::call_f(p, src_data, src_start+i, engine);
     });
+    Gpu::streamSynchronize();
     return filterAndTransformParticles(dst, src, mask.dataPtr(), std::forward<F>(f), src_start, dst_start);
 }
 

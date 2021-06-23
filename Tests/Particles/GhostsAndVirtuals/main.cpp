@@ -97,15 +97,6 @@ void test_ghosts_and_virtuals (TestParams& parms)
         MyParticleContainer::ParticleTileType virts;
         myPC.CreateVirtualParticles(1, virts);
         virtPC.AddParticlesAtLevel(virts, 0);
-        MultiFab partMF(ba[1], dmap[1], 1 + BL_SPACEDIM, 1);
-        myPC.AssignCellDensitySingleLevel(0, partMF, 1, 4, 0);
-        WriteSingleLevelPlotfile("pltPClev1", partMF,
-                                 {"density", "vx", "vy", "vz"},
-                                 geom[1], 0.0, 0);
-        virtPC.AssignCellDensitySingleLevel(0, partMF, 1, 4, 0);
-        WriteSingleLevelPlotfile("pltVirtlev1", partMF,
-                                 {"density", "vx", "vy", "vz"},
-                                 geom[1], 0.0, 0);
     }
 
     {
@@ -116,11 +107,6 @@ void test_ghosts_and_virtuals (TestParams& parms)
         MyParticleContainer::ParticleTileType ghosts;
         myPC.CreateGhostParticles(src_lev, ngrow, ghosts);
         ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
-        MultiFab partMF(ba[1], dmap[1], 1 + BL_SPACEDIM, 1);
-        ghostPC.AssignCellDensitySingleLevel(0, partMF, 1, 4, 0);
-        WriteSingleLevelPlotfile("pltGhostlev1", partMF,
-                                 {"density", "vx", "vy", "vz"},
-                                 geom[1], 0.0, 0);
     }
 }
 
