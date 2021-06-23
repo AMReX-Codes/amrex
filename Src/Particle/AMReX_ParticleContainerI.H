@@ -793,13 +793,10 @@ struct AssignGridFilter
         const auto tup_min = (*m_assign_grid)(src.m_aos[src_i], m_lev_min, m_lev_max, m_nGrow);
         const auto tup_max = (*m_assign_grid)(src.m_aos[src_i], m_lev_max, m_lev_max, m_nGrow);
         const auto p_boxes = amrex::get<0>(tup_min);
-        const auto p_levs  = amrex::get<1>(tup_min);
-    //        AMREX_DEVICE_PRINTF("src_i %d\tgid %15d\tp_boxes %15d\tcompare %d\tp_levs %d\n",src_i,m_gid,p_boxes,(m_gid >=0 && p_boxes == m_gid),p_levs);
+	//        const auto p_levs  = amrex::get<1>(tup_min);
         const auto p_boxes_max = amrex::get<0>(tup_max);
         const auto p_levs_max  = amrex::get<1>(tup_max);
-    //        AMREX_DEVICE_PRINTF("src_i %d\tgid %15d\tp_boxes %15d\tcompare %d\tp_levs %d\n",src_i,m_gid,p_boxes_max,(m_gid >=0 && p_boxes == m_gid),p_levs_max);
-    //        if(p_levs_max==2)
-    //          AMREX_DEVICE_PRINTF("src_i %d\tsrcrdata %15g\n",src_i,src.m_rdata[0][src_i]);
+
         return p_boxes_max >=0 && p_boxes == m_gid && p_levs_max == m_lev_max;
     }
 };

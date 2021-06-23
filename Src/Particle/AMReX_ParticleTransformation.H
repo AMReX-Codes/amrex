@@ -415,10 +415,10 @@ auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
  * \param f defines the transformation that will be applied to the particles on copy
  *
  */
-template <typename DstTile, typename SrcTile, typename Index, typename F, typename N,
+template <typename DstTile, typename SrcTile, typename Index, typename F,
           std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask, F&& f,
-                                   Index src_start, Index dst_start, N n) noexcept
+                                   Index src_start, Index dst_start) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> offsets(np);
@@ -622,9 +622,9 @@ auto filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile&
  *
  */
 
-template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index, typename N>
+template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index>
 auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f,
-                      Index src_start, Index dst_start, N n) noexcept
+                      Index src_start, Index dst_start) noexcept
     -> decltype(particle_detail::call_f(p, typename SrcTile::ConstParticleTileDataType(), int{}, RandomEngine{}))
 {
     auto np = src.numParticles();
@@ -638,7 +638,7 @@ auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&
     {
         p_mask[i] = particle_detail::call_f(p, src_data, src_start+i, engine);
     });
-    return filterAndTransformParticles(dst, src, mask.dataPtr(), std::forward<F>(f), src_start, dst_start, n);
+    return filterAndTransformParticles(dst, src, mask.dataPtr(), std::forward<F>(f), src_start, dst_start);
 }
 
 
