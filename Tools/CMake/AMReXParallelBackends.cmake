@@ -199,6 +199,15 @@ if (AMReX_HIP)
 
    set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
 
+
+   if(DEFINED AMReX_AMD_ARCH)
+      # Set the GPU to compile for: semicolon-separated list
+      set(GPU_TARGETS "${AMReX_AMD_ARCH}" CACHE STRING "GPU targets to compile for" FORCE)
+      set(AMDGPU_TARGETS "${AMReX_AMD_ARCH}" CACHE STRING "GPU targets to compile for" FORCE)
+      mark_as_advanced(AMDGPU_TARGETS)
+      mark_as_advanced(GPU_TARGETS)
+   endif()
+
    find_package(hip)
 
    if("${HIP_COMPILER}" STREQUAL "hcc")
@@ -259,12 +268,15 @@ if (AMReX_HIP)
                        "and https://github.com/AMReX-Codes/amrex/pull/2031 "
                        "for details.")
    elseif(${_this_comp} STREQUAL hipcc)
+       # hipcc expects a comma-separeted list
+       string(REPLACE ";" "," AMReX_AMD_ARCH_HIPCC "${AMReX_AMD_ARCH}")
+
        target_link_libraries(amrex PUBLIC ${HIP_LIBRARIES})
        # ARCH flags -- these must be PUBLIC for all downstream targets to use,
        # else there will be a runtime issue (cannot find
        # missing gpu devices)
        target_compile_options(amrex PUBLIC
-          $<$<COMPILE_LANGUAGE:CXX>:--amdgpu-target=${AMReX_AMD_ARCH} -Wno-pass-failed>)
+          $<$<COMPILE_LANGUAGE:CXX>:--amdgpu-target=${AMReX_AMD_ARCH_HIPCC} -Wno-pass-failed>)
    endif()
 
    target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-m64>)

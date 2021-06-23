@@ -347,7 +347,7 @@ Below is an example configuration for HIP on Tulip:
 
 ::
 
-   cmake -S . -B build -DAMReX_GPU_BACKEND=HIP -DCMAKE_CXX_COMPILER=$(which clang++) -DAMReX_AMD_ARCH="gfx906,gfx908"  # [other options]
+   cmake -S . -B build -DAMReX_GPU_BACKEND=HIP -DCMAKE_CXX_COMPILER=$(which clang++) -DAMReX_AMD_ARCH="gfx906;gfx908"  # [other options]
    cmake --build build -j 6
 
 
