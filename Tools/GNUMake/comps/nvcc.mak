@@ -183,8 +183,16 @@ ifeq ($(nvcc_diag_error),1)
   NVCC_FLAGS += --display-error-number --diag-error 20092
 endif
 
-CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
-CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
+CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) -x cu
+CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) -x cu
+
+ifeq ($(USE_GPU_RDC),TRUE)
+  CXXFLAGS += -dc
+  CFLAGS   += -dc
+else
+  CXXFLAGS += -c
+  CFLAGS   += -c
+endif
 
 ifeq ($(nvcc_version),9.2)
   # relaxed constexpr not supported

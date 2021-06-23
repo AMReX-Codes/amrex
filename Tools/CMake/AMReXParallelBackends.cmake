@@ -74,7 +74,7 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    set_cuda_architectures(AMReX_CUDA_ARCH)
    set_target_properties( amrex
       PROPERTIES
-      CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS}
+      CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}"
       )
 
    #
@@ -87,10 +87,10 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    if (AMReX_CUDA_ERROR_CAPTURE_THIS)
       # note: prefer double-dash --Werror!
       # https://github.com/ccache/ccache/issues/598
-      list(APPEND _cuda_flags --Werror ext-lambda-captures-this)
+      list(APPEND _cuda_flags "SHELL:--Werror ext-lambda-captures-this")
    endif()
    if (AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL)
-      list(APPEND _cuda_flags --Werror cross-execution-space-call)
+      list(APPEND _cuda_flags "SHELL:--Werror cross-execution-space-call")
    endif()
 
    #
@@ -99,6 +99,11 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    if (CUDA_FORWARD_UNKNOWN_FLAGS_HOST)
       list(APPEND _cuda_flags --forward-unknown-to-host-compiler)
    endif()
+
+   # fast math
+   if (AMReX_CUDA_FASTMATH)
+      list(APPEND _cuda_flags --use_fast_math)
+   endif ()
 
    #
    # Code generation
@@ -110,13 +115,13 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    # keep intermediately generated files
    if (AMReX_CUDA_KEEP_FILES)
       make_directory("${PROJECT_BINARY_DIR}/nvcc_tmp")
-      list(APPEND _cuda_flags --keep --keep-dir ${PROJECT_BINARY_DIR}/nvcc_tmp)
+      list(APPEND _cuda_flags --keep "SHELL:--keep-dir ${PROJECT_BINARY_DIR}/nvcc_tmp")
    endif ()
 
    # compilation timings
    if (AMReX_CUDA_COMPILATION_TIMER)
       file(REMOVE "${PROJECT_BINARY_DIR}/nvcc_timings.csv")
-      list(APPEND _cuda_flags --time ${PROJECT_BINARY_DIR}/nvcc_timings.csv)
+      list(APPEND _cuda_flags "SHELL:--time ${PROJECT_BINARY_DIR}/nvcc_timings.csv")
    endif ()
 
    #
@@ -146,7 +151,7 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    # Flags to make it an error to write a device variable in
    # a host function.
    if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.2)
-      list(APPEND _cuda_flag --display-error-number --diag-error 20092)
+      list(APPEND _cuda_flag --display-error-number "SHELL:--diag-error 20092")
    endif ()
 
    target_compile_options( amrex PUBLIC $<${_genex}:${_cuda_flags}> )
@@ -236,6 +241,7 @@ if (AMReX_HIP)
    # missing gpu devices)
    target_compile_options(amrex
       PUBLIC
-      $<$<COMPILE_LANGUAGE:CXX>:-m64 --amdgpu-target=${AMReX_AMD_ARCH}> )
+      # There are a lot of warnings due to #define AMREX_PRAGMA_SIMD _Pragma("clang loop vectorize(enable)")
+      $<$<COMPILE_LANGUAGE:CXX>:-m64 --amdgpu-target=${AMReX_AMD_ARCH} -Wno-pass-failed> )
 
 endif ()

@@ -60,7 +60,7 @@ void testParticleMesh (TestParams& parms)
   int iseed = 451;
   Real mass = 10.0;
 
-  MyParticleContainer::ParticleInitData pdata = {mass, AMREX_D_DECL(1.0, 2.0, 3.0), AMREX_D_DECL(0.0, 0.0, 0.0)};
+  MyParticleContainer::ParticleInitData pdata = {{mass, AMREX_D_DECL(1.0, 2.0, 3.0), AMREX_D_DECL(0.0, 0.0, 0.0)}, {},{},{}};
   myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
   int nc = 1 + BL_SPACEDIM;
@@ -74,9 +74,9 @@ void testParticleMesh (TestParams& parms)
           amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
           amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
 
-          int i = amrex::Math::floor(lx);
-          int j = amrex::Math::floor(ly);
-          int k = amrex::Math::floor(lz);
+          int i = static_cast<int>(amrex::Math::floor(lx));
+          int j = static_cast<int>(amrex::Math::floor(ly));
+          int k = static_cast<int>(amrex::Math::floor(lz));
 
           amrex::Real xint = lx - i;
           amrex::Real yint = ly - j;
@@ -119,9 +119,9 @@ void testParticleMesh (TestParams& parms)
           amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
           amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
 
-          int i = amrex::Math::floor(lx);
-          int j = amrex::Math::floor(ly);
-          int k = amrex::Math::floor(lz);
+          int i = static_cast<int>(amrex::Math::floor(lx));
+          int j = static_cast<int>(amrex::Math::floor(ly));
+          int k = static_cast<int>(amrex::Math::floor(lz));
 
           amrex::Real xint = lx - i;
           amrex::Real yint = ly - j;

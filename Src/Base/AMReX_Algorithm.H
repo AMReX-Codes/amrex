@@ -137,6 +137,26 @@ namespace amrex
         return mi;
     }
 
+    // Find I in the range [lo,hi) that T[I] <= v < T[I+1].
+    // It is assumed that the input data are sorted and T[lo] <= v < T[hi].
+    // Note that this is different from std::lower_bound.
+    template <typename T, typename I,
+              typename std::enable_if<std::is_integral<I>::value,int>::type = 0>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    I bisect (T const* d, I lo, I hi, T const& v) {
+        while (lo <= hi) {
+            int mid = (lo+hi)/2;
+            if (v >= d[mid] && v < d[mid+1]) {
+                return mid;
+            } else if (v < d[mid]) {
+                hi = mid-1;
+            } else {
+                lo = mid+1;
+            }
+        };
+        return hi;
+    }
+
 namespace detail {
 
 struct clzll_tag {};

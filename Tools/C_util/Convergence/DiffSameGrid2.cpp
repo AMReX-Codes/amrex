@@ -28,11 +28,14 @@ static
 void
 PrintUsage (const char* progName)
 {
-    std::cout << "\nThis utility performs a diff operation between two"      << std::endl
+    std::cout << std::endl
+              << "This utility performs a diff operation between two"        << std::endl
               << "plotfiles which have the exact same grids."                << std::endl
               << "Both absolute and relative differences are reported."      << std::endl
-              << "Note: no attempt has been made to prevent a divide by 0, " << std::endl
-              << "so some relative errors may not be well defined."          << std::endl;
+              << "For L0 norm we also report max absolute difference"        << std::endl
+              << "divided by the maximum coarse level value."                << std::endl
+              << "Note: no attempt has been made to prevent a divide by 0,"  << std::endl
+              << "for relative error, so some may not be well defined."      << std::endl;
     std::cout << '\n';
     std::cout << "Usage:" << '\n';
     std::cout << progName << '\n';
@@ -137,9 +140,17 @@ main (int   argc,
     // then we failed the comparison
     bool failed = false;
 
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "L"<< norm << " norm of Absolute and Relative Error in Each Component" << std::endl
-                  << std::setfill('-') << std::setw(80) << "-" << std::setfill(' ') << std::endl;
+    if (ParallelDescriptor::IOProcessor()) {
+        if (norm == 0) {
+            std::cout << "L"<< norm << " norm of absolute error, relative error, and absolute error divided by the max coarse absolute value" << std::endl
+                      << std::setfill('-') << std::setw(80) << "-" << std::setfill(' ') << std::endl;
+        } else {
+            std::cout << "L"<< norm << " norm of Absolute and Relative Error in Each Component" << std::endl
+                      << std::setfill('-') << std::setw(80) << "-" << std::setfill(' ') << std::endl;
+        }
+    }
+
+    Vector<Real> maxAbsVal(nComp);
 
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
     {
@@ -164,6 +175,12 @@ main (int   argc,
 
         amrDataI.FillVar(dataI, iLevel, derives, destComps);
         amrDataE.FillVar(dataE, iLevel, derives, destComps);
+
+        if (iLevel == 0) {
+            for (int iComp=0; iComp < nComp; ++iComp) {
+                maxAbsVal[iComp] = dataI.norm0(iComp);
+            }
+        }
 
         // this part needs to be checked -- it appears that
         // FlushGrids works on all levels at once -- but we are
@@ -305,9 +322,20 @@ main (int   argc,
 
                 if (anorms[iComp] != 0.0) failed = true;
 
-                std::cout << "  " << std::setw(32) << derives[iComp]
-                          << ": " << std::setw(20) << anorms[iComp]
-                          << std::setw(20) << rnorms[iComp] << std::endl;
+                if (norm == 0) {
+                    Real absOverMax = (maxAbsVal[iComp] == 0.) ? 0. : anorms[iComp]/maxAbsVal[iComp];
+
+                    std::cout << "  " << std::setw(32) << derives[iComp]
+                              << ": " << std::setw(20) << anorms[iComp]
+                              << std::setw(20) << rnorms[iComp]
+                              << std::setw(20) << absOverMax
+                              << std::endl;
+                } else {
+                    std::cout << "  " << std::setw(32) << derives[iComp]
+                              << ": " << std::setw(20) << anorms[iComp]
+                              << std::setw(20) << rnorms[iComp]
+                              << std::endl;
+                }
             }
             std::cout << std::endl;
         }

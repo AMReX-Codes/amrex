@@ -182,7 +182,6 @@ can run it and that will generate results like:
    Total GPU global memory (MB): 6069
    Free  GPU global memory (MB): 5896
    [The         Arena] space (MB): 4552
-   [The  Device Arena] space (MB): 8
    [The Managed Arena] space (MB): 8
    [The  Pinned Arena] space (MB): 8
    AMReX (19.06-404-g0455b168b69c-dirty) finalized
@@ -462,8 +461,6 @@ specific type of GPU memory:
     +=====================+============================+
     | The_Arena()         |  managed or device memory  |
     +---------------------+----------------------------+
-    | The_Device_Arena()  |  device memory             |
-    +---------------------+----------------------------+
     | The_Managed_Arena() |  managed memory            |
     +---------------------+----------------------------+
     | The_Pinned_Arena()  |  pinned memory             |
@@ -489,10 +486,25 @@ a boolean runtime parameter ``amrex.the_arena_is_managed``.
 Therefore the data in a :cpp:`MultiFab` is placed in
 managed memory by default and is accessible from both CPU host and GPU device.
 This allows application codes to develop their GPU capability
-gradually.  :cpp:`The_Managed_Arena()` is a separate pool of
-managed memory, that is distinguished from :cpp:`The_Arena()` for
-performance reasons.  If you want to print out the current memory usage
+gradually. The behavior of :cpp:`The_Managed_Arena()` likewise depends on the
+``amrex.the_arena_is_managed`` parameter. If ``amrex.the_arena_is_managed=0``,
+:cpp:`The_Managed_Arena()` is a separate pool of managed memory. If
+``amrex.the_arena_is_managed=1``, :cpp:`The_Managed_Arena()` is simply aliased
+to :cpp:`The_Arena()` to reduce memory fragmentation.
+
+If you want to print out the current memory usage
 of the Arenas, you can call :cpp:`amrex::Arena::PrintUsage()`.
+When AMReX is built with SUNDIALS turned on, :cpp:`amrex::sundials::The_SUNMemory_Helper()`
+can be provided to SUNDIALS data structures so that they use the appropriate
+Arena object when allocating memory. For example, it can be provided to the
+SUNDIALS CUDA vector:
+
+.. highlight:: c++
+
+::
+
+  N_Vector x = N_VNewWithMemHelp_Cuda(size, use_managed_memory, *The_SUNMemory_Helper());
+
 
 .. ===================================================================
 
@@ -622,11 +634,9 @@ allocations and deallocations when (for example) resizing vectors.
     +================+======================+
     | DeviceVector   | The_Arena()          |
     +----------------+----------------------+
-    | HostVector     | None                 |
+    | HostVector     | The_Pinned_Arena()   |
     +----------------+----------------------+
     | ManagedVector  | The_Managed_Arena()  |
-    +----------------+----------------------+
-    | PinnedVector   | The_Pinned_Arena()   |
     +----------------+----------------------+
 
 .. raw:: latex
@@ -636,7 +646,8 @@ allocations and deallocations when (for example) resizing vectors.
 These classes behave identically to an
 :cpp:`amrex::Vector`, (see :ref:`sec:basics:vecandarr`), except that they
 can only hold "plain-old-data" objects (e.g. Reals, integers, amrex Particles,
-etc... ).
+etc... ). If you want a resizable vector that doesn't use a memory Arena,
+simply use :cpp:`amrex::Vector`.
 
 Note that, even if the data in the vector is  managed and available on GPUs,
 the member functions of e.g. :cpp:`Gpu::ManagedVector` are not.

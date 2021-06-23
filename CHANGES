@@ -1,5 +1,80 @@
 # 21.05
 
+  -- Add roctx ranges to TinyProfiler (#2057)
+
+  -- CMake: Link with HIP_LIBRARIES (#2055)
+
+  -- Extrapolator with nGrow > 1. (#2054)
+
+  -- Perlmutter make (#2058)
+
+  -- Fix to correct CUDA flag and add missing libraries in hypre cmake (#2056)
+
+  -- Remove IndexSequence (#2052)
+
+  -- CMake link with roc::rocprim for HIP (#2050)
+
+  -- Fix PODVector to work without managed memory. (#2048)
+
+  -- When building neighbor masks, perform setVal on device so it will work
+     without managed memory. (#2046)
+
+  -- Async Output Docs (#2041)
+
+  -- Option to set amd gpu targets (#2038)
+
+  -- Work-Around: oneAPI 2021.3.0 SYCL with oneDPL (#2025)
+
+  -- ParamParse: Find Entries under Prefix (#2043)
+
+  -- Add relative gradient to AMRErrorTag (#2044)
+
+  -- Workaround argument mismatch in MPI reduce for gfortran >= 10 (#2042)
+
+  -- Wrappers for builtin clz extensions and tests thereof. (#2036)
+
+  -- HIP: AMREX_AMD_ARCH Env Variable (#2034)
+
+  -- Add spock support to GNU make (#2028)
+
+  -- nvcc --display-error-number --diag-error errNum (#2033)
+
+  -- Build neighbor masks without managed memory (#2030)
+
+  -- Option to use oneDPL (#2027)
+
+  -- CMake: add support for CMake >= 3.20 (#2012)
+
+  -- Turn on RDC support for HIP (#2029)
+
+  -- Device profilerStart and profilerStop APIs (#2026)
+
+  -- Launch bounds (#2013)
+
+  -- Arena initial size (#2007)
+
+  -- Use CPU memory in memory pools for OpenMP threads (#2006)
+
+  -- No casting to unsigned long long needed in iMultiFab::sum (#2005)
+
+  -- Arm Clang (#2002)
+
+  -- Templated implementation of ostream operator for both Dim3 and XDim3 (#1997)
+
+  -- Generalize elemwiseMin and elemwiseMax. (#1996)
+
+  -- Optimizing away temporary BoxArrays in AmrMesh::MakeNewGrids (#1994)
+
+  -- Non-blocking SumBoundary (#1991)
+
+  -- Deprecate FabArray::copy() (#1985)
+
+  -- Fix proper nesting issue for large error buffer (#1987)
+
+  -- Update HDF5 I/O to use new HDF5 Async VOL APIs (#1948)
+
+# 21.05
+
   -- Support OpenMP offload with the NVHPC compiler in GNU make (#1980)
 
   -- In GNU make, use -MMD -MP instead of -MM to generate dependency if

@@ -287,8 +287,12 @@ endif
 
 ifdef USE_SENSEI_INSITU
   USE_SENSEI_INSITU := $(strip $(USE_SENSEI_INSITU))
+  ifdef NO_SENSEI_AMR_INST
+    NO_SENSEI_AMR_INST := $(strip $(NO_SENSEI_AMR_INST))
+  endif
 else
   USE_SENSEI_INSITU := FALSE
+  NO_SENSEI_AMR_INST := FALSE
 endif
 
 ifdef USE_HDF5
@@ -365,6 +369,12 @@ ifdef LOG_BUILD_TIME
   LOG_BUILD_TIME := $(strip $(LOG_BUILD_TIME))
 else
   LOG_BUILD_TIME := FALSE
+endif
+
+ifdef USE_GPU_RDC
+  USE_GPU_RDC := $(strip $(USE_GPU_RDC))
+else
+  USE_GPU_RDC := TRUE
 endif
 
 build_time_begin := $(shell date +"%s")
@@ -761,6 +771,9 @@ ifeq ($(USE_GPU),TRUE)
     ifeq ($(GPU_ERROR_CHECK),FALSE)
         DEFINES += -DAMREX_GPU_NO_ERROR_CHECK
     endif
+    ifeq ($(USE_GPU_RDC),TRUE)
+        DEFINES += -DAMREX_USE_GPU_RDC
+    endif
 endif
 
 ifeq ($(USE_SINGLE_PRECISION_PARTICLES), TRUE)
@@ -981,6 +994,11 @@ endif
 ifeq ($(USE_SENSEI_INSITU),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.sensei...)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.sensei
+endif
+
+ifeq ($(USE_SUNDIALS),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials
 endif
 
 ifeq ($(USE_HDF5),TRUE)

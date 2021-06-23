@@ -1,0 +1,82 @@
+name: cuda
+
+on: [push, pull_request]
+
+jobs:
+  # Build libamrex and all tests with CUDA 9.2
+  tests-cuda9:
+    name: CUDA@9.2 GNU@6.5.0 C++14 Release [tests]
+    runs-on: ubuntu-18.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_nvcc9.sh
+    - name: Build & Install
+      run: |
+        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+        which nvcc || echo "nvcc not in PATH!"
+        mkdir build
+        cd build
+        cmake ..                                           \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DAMReX_ENABLE_TESTS=ON                        \
+            -DAMReX_FORTRAN=OFF                            \
+            -DAMReX_PARTICLES=ON                           \
+            -DAMReX_GPU_BACKEND=CUDA                       \
+            -DCMAKE_C_COMPILER=$(which gcc-6)              \
+            -DCMAKE_CXX_COMPILER=$(which g++-6)            \
+            -DCMAKE_CUDA_HOST_COMPILER=$(which g++-6)      \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-6)   \
+            -DAMReX_CUDA_ARCH=6.0 \
+            -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON
+        make -j 2
+
+  # Build libamrex and all tests with CUDA 11.0.2 (recent supported)
+  tests-cuda11:
+    name: CUDA@11.2 GNU@9.3.0 C++17 Release [tests]
+    runs-on: ubuntu-20.04
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_nvcc11.sh
+    - name: Build & Install
+      run: |
+        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+        which nvcc || echo "nvcc not in PATH!"
+
+        cmake -S . -B build                              \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+            -DAMReX_ENABLE_TESTS=ON                      \
+            -DAMReX_FORTRAN=OFF                          \
+            -DAMReX_PARTICLES=ON                         \
+            -DAMReX_GPU_BACKEND=CUDA                     \
+            -DCMAKE_C_COMPILER=$(which gcc)              \
+            -DCMAKE_CXX_COMPILER=$(which g++)            \
+            -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)   \
+            -DCMAKE_CUDA_STANDARD=17                     \
+            -DCMAKE_CXX_STANDARD=17                      \
+            -DAMReX_CUDA_ARCH=8.0                        \
+            -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
+            -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
+
+        cmake --build build -j 2
+
+  # Build 3D libamrex cuda build with configure
+  configure-3d-cuda:
+    name: CUDA@11.2 GNU@9.3.0 [configure 3D]
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_nvcc11.sh
+    - name: Build & Install
+      run: |
+        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+        ./configure --dim 3 --with-cuda yes --enable-eb yes --enable-xsdk-defaults yes --with-fortran no
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names CXXSTD=c++17
+        make install

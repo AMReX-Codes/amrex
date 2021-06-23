@@ -629,5 +629,157 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
 
     return r;
 }
+
+/**
+ * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
+ * This version operates over all particles on all levels.
+ *
+ * This version can operate on a GpuTuple worth of data at once.
+ * It also takes an arbitrary tuple of reduction operators.
+ *
+ * Note that there is no MPI reduction performed at the end of this operation. Users should manually
+ * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
+ *
+ * Unlike the other reduction functions in this file, this version does not respect the
+ * Gpu::launchRegion flag. If AMReX is built with GPU support, this reduction will always be
+ * done on the device.
+ *
+ * \tparam RD an amrex::ReduceData type
+ * \tparam PC the ParticleContainer type
+ * \tparam F a function object
+ * \tparam ReduceOps a ReduceOps type
+ *
+ * \param pc the ParticleContainer to operate on
+ * \param f a function that takes a "superparticle" and returns a tuple of values to be reduced over all particles.
+ * \param reduce_ops specifies the reduction operations for each tuple element
+ *
+ * Example usage:
+ *    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
+ *    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
+ *                 pc, [=] AMREX_GPU_DEVICE (const PType& p) noexcept
+ *                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
+ *             {
+ *                 const amrex::Real a = p.rdata(1);
+ *                 const amrex::Real b = p.rdata(2);
+ *                 const int c = p.idata(1);
+ *                 return {a, b, c};
+ *             }, reduce_ops);
+ *
+ */
+template <class RD, class PC, class F, class ReduceOps,
+          std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+typename RD::Type
+ParticleReduce (PC const& pc, F&& f, ReduceOps& reduce_ops)
+{
+    return ParticleReduce<RD>(pc, 0, pc.finestLevel(), std::forward<F>(f), reduce_ops);
+}
+
+/**
+ * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
+ * This version operates only on the specified level.
+ *
+ * This version can operate on a GpuTuple worth of data at once.
+ * It also takes an arbitrary tuple of reduction operators.
+ *
+ * Note that there is no MPI reduction performed at the end of this operation. Users should manually
+ * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
+ *
+ * Unlike the other reduction functions in this file, this version does not respect the
+ * Gpu::launchRegion flag. If AMReX is built with GPU support, this reduction will always be
+ * done on the device.
+ *
+ * \tparam RD an amrex::ReduceData type
+ * \tparam PC the ParticleContainer type
+ * \tparam F a function object
+ * \tparam ReduceOps a ReduceOps type
+ *
+ * \param pc the ParticleContainer to operate on
+ * \param lev the level to operate on
+ * \param f a function that takes a "superparticle" and returns a tuple of values to be reduced over all particles.
+ * \param reduce_ops specifies the reduction operations for each tuple element
+ *
+ * Example usage:
+ *    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
+ *    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
+ *                 pc, 0, [=] AMREX_GPU_DEVICE (const PType& p) noexcept
+ *                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
+ *             {
+ *                 const amrex::Real a = p.rdata(1);
+ *                 const amrex::Real b = p.rdata(2);
+ *                 const int c = p.idata(1);
+ *                 return {a, b, c};
+ *             }, reduce_ops);
+ *
+ */
+template <class RD, class PC, class F, class ReduceOps,
+          std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+typename RD::Type
+ParticleReduce (PC const& pc, int lev, F&& f, ReduceOps& reduce_ops)
+{
+    return ParticleReduce<RD>(pc, lev, lev, std::forward<F>(f), reduce_ops);
+}
+
+/**
+ * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
+ * This version operates from the specified lev_min to lev_max.
+ *
+ * This version can operate on a GpuTuple worth of data at once.
+ * It also takes an arbitrary tuple of reduction operators.
+ *
+ * Note that there is no MPI reduction performed at the end of this operation. Users should manually
+ * call the MPI reduction operations described in ParallelDescriptor if they want that behavior.
+ *
+ * Unlike the other reduction functions in this file, this version does not respect the
+ * Gpu::launchRegion flag. If AMReX is built with GPU support, this reduction will always be
+ * done on the device.
+ *
+ * \tparam RD an amrex::ReduceData type
+ * \tparam PC the ParticleContainer type
+ * \tparam F a function object
+ * \tparam ReduceOps a ReduceOps type
+ *
+ * \param pc the ParticleContainer to operate on
+ * \param lev_min the minimum level to include
+ * \param lev_max the maximum level to include
+ * \param f a function that takes a "superparticle" and returns a tuple of values to be reduced over all particles.
+ * \param reduce_ops specifies the reduction operations for each tuple element
+ *
+ * Example usage:
+ *    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
+ *    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
+ *                 pc, 0, 1, [=] AMREX_GPU_DEVICE (const PType& p) noexcept
+ *                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
+ *             {
+ *                 const amrex::Real a = p.rdata(1);
+ *                 const amrex::Real b = p.rdata(2);
+ *                 const int c = p.idata(1);
+ *                 return {a, b, c};
+ *             }, reduce_ops);
+ *
+ */
+template <class RD, class PC, class F, class ReduceOps,
+          std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+typename RD::Type
+ParticleReduce (PC const& pc, int lev_min, int lev_max, F&& f, ReduceOps& reduce_ops)
+{
+    RD reduce_data(reduce_ops);
+    using ParIter = typename PC::ParConstIterType;
+#if !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP)
+#pragma omp parallel
+#endif
+    for (int lev = lev_min; lev <= lev_max; ++lev) {
+        for (ParIter pti(pc, lev); pti.isValid(); ++pti) {
+            const auto& tile = pti.GetParticleTile();
+            const auto np = tile.numParticles();
+            const auto ptd = tile.getConstParticleTileData();
+            reduce_ops.eval(np, reduce_data,
+                            [=] AMREX_GPU_DEVICE (const int i) noexcept
+                            {
+                                return f(ptd.getSuperParticle(i));
+                            });
+        }
+    }
+    return reduce_data.value(reduce_ops);
+}
 }
 #endif

@@ -78,6 +78,7 @@ set(AMReX_CONDUIT_FOUND             @AMReX_CONDUIT@)
 set(AMReX_ASCENT_FOUND              @AMReX_ASCENT@)
 set(AMReX_HYPRE_FOUND               @AMReX_HYPRE@)
 set(AMReX_PETSC_FOUND               @AMReX_PETSC@)
+set(AMReX_SUNDIALS_FOUND            @AMReX_SUNDIALS@)
 
 # Compilation options
 set(AMReX_FPE_FOUND                 @AMReX_FPE@)
@@ -94,6 +95,49 @@ set(AMReX_PROFPARSER_FOUND          @AMReX_PROFPARSER@)
 
 # Plotfile tools
 set(AMReX_PFTOOLS_FOUND             @AMReX_PLOTFILE_TOOLS@)
+
+
+# export the actual values as well.
+# General options
+set(AMReX_SPACEDIM                  @AMReX_SPACEDIM@)
+set(AMReX_MPI                       @AMReX_MPI@)
+set(AMReX_MPI_THREAD_MULTIPLE       @AMReX_MPI_THREAD_MULTIPLE@)
+set(AMReX_OMP                       @AMReX_OMP@)
+set(AMReX_CUDA                      @AMReX_CUDA@)
+set(AMReX_SYCL                      @AMReX_DPCPP@)
+set(AMReX_HIP                       @AMReX_HIP@)
+set(AMReX_GPU_BACKEND               @AMReX_GPU_BACKEND@)
+set(AMReX_PRECISION                 @AMReX_PRECISION@)
+set(AMReX_FORTRAN                   @AMReX_FORTRAN@)
+
+# Actual components selection
+set(AMReX_AMRLEVEL                  @AMReX_AMRLEVEL@)
+set(AMReX_EB                        @AMReX_EB@)
+set(AMReX_FINTERFACES               @AMReX_FORTRAN_INTERFACES@)
+set(AMReX_LSOLVERS                  @AMReX_LINEAR_SOLVERS@)
+set(AMReX_AMRDATA                   @AMReX_AMRDATA@)
+set(AMReX_PARTICLES                 @AMReX_PARTICLES@)
+set(AMReX_PARTICLES_PRECISION       @AMReX_PARTICLES_PRECISION@)
+set(AMReX_SENSEI                    @AMReX_SENSEI@)
+set(AMReX_NO_SENSEI_AMR_INST        @AMReX_NO_SENSEI_AMR_INST@)
+set(AMReX_CONDUIT                   @AMReX_CONDUIT@)
+set(AMReX_ASCENT                    @AMReX_ASCENT@)
+set(AMReX_HYPRE                     @AMReX_HYPRE@)
+set(AMReX_PETSC                     @AMReX_PETSC@)
+
+# Compilation options
+set(AMReX_FPE                       @AMReX_FPE@)
+set(AMReX_PIC                       @AMReX_PIC@)
+set(AMReX_ASSERTIONS                @AMReX_ASSERTIONS@)
+
+# Profiling options
+set(AMReX_BASE_PROFILE              @AMReX_BASE_PROFILE@)
+set(AMReX_TINY_PROFILE              @AMReX_TINY_PROFILE@)
+set(AMReX_TRACE_PROFILE             @AMReX_TRACE_PROFILE@)
+set(AMReX_MEM_PROFILE               @AMReX_MEM_PROFILE@)
+set(AMReX_COMM_PROFILE              @AMReX_COMM_PROFILE@)
+set(AMReX_PROFPARSER                @AMReX_PROFPARSER@)
+set(AMReX_PROFILE_FTOOLS            @AMReX_PLOTFILE_TOOLS@)
 
 #
 # If Fortran is enabled, downstream project
@@ -133,7 +177,8 @@ endif ()
 # Third party libraries
 #
 if (@AMReX_SENSEI@)
-   find_dependency(SENSEI REQUIRED)
+    set(SENSEI_DIR @SENSEI_DIR@)
+    find_dependency(SENSEI REQUIRED)
 endif ()
 
 if (@AMReX_ASCENT@)
@@ -150,6 +195,10 @@ endif ()
 
 if (@AMReX_PETSC@)
    find_dependency(PETSc 2.13 REQUIRED)
+endif ()
+
+if (@AMReX_SUNDIALS@)
+   find_dependency(SUNDIALS 5.7.0 REQUIRED)
 endif ()
 
 #

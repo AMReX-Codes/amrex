@@ -497,14 +497,9 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                           },
                           [=] AMREX_GPU_DEVICE (int i, int const& s)
                           {
-                              if ( particle_stays(i) )
-                              {
-                                  copyParticle(dst_data, src_data, i + this_offset, s);
-                              }
-                              else
-                              {
-                                  copyParticle(dst_data, src_data, i + this_offset, this_chunk_size-1-(i-s));
-                              }
+                              int src_i = i + this_offset;
+                              int dst_i = particle_stays(i) ? s : this_chunk_size-1-(i-s);
+                              copyParticle(dst_data, src_data, src_i, dst_i);
                           },
                           Scan::Type::exclusive);
         }

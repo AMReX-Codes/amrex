@@ -18,7 +18,7 @@ F90 = gfortran
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
 else
-  CXXSTD := c++14
+  CXXSTD := c++17
 endif
 
 # Generic flags, always used
@@ -31,7 +31,9 @@ F90FLAGS = -ffree-line-length-none -fno-range-check -fno-second-underscore -fimp
 FMODULES =  -J$(fmoddir) -I $(fmoddir)
 
 # rdc support
-HIPCC_FLAGS += -fgpu-rdc
+ifeq ($(USE_GPU_RDC),TRUE)
+  HIPCC_FLAGS += -fgpu-rdc
+endif
 
 # amd gpu target
 HIPCC_FLAGS += --amdgpu-target=$(AMD_ARCH)
@@ -88,7 +90,7 @@ ifeq ($(HIP_COMPILER),clang)
   CXXFLAGS += -Wno-pass-failed  # disable this warning
 
   ifeq ($(WARN_ALL),TRUE)
-    warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
+    warning_flags = -Wall -Wextra -Wunreachable-code -Wnull-dereference
     warning_flags += -Wfloat-conversion -Wextra-semi
 
     warning_flags += -Wpedantic
@@ -101,10 +103,10 @@ ifeq ($(HIP_COMPILER),clang)
     CFLAGS += $(warning_flags)
   endif
 
-#  ifeq ($(WARN_ERROR),TRUE)
-#    CXXFLAGS += -Werror
-#    CFLAGS += -Werror
-#  endif
+  ifeq ($(WARN_ERROR),TRUE)
+    CXXFLAGS += -Werror -Wno-deprecated-declarations -Wno-gnu-zero-variadic-macro-arguments
+    CFLAGS += -Werror
+  endif
 
   # Generic HIP info
   ROC_PATH=$(realpath $(dir $(HIP_PATH)))
@@ -127,7 +129,7 @@ ifeq ($(HIP_COMPILER),clang)
   HIPCC_FLAGS += -DAMREX_USE_ROCTX
   SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/roctracer/include $(ROC_PATH)/rocprofiler/include
   LIBRARY_LOCATIONS += $(ROC_PATH)/roctracer/lib $(ROC_PATH)/rocprofiler/lib
-  LIBRARIES +=  -Wl,--rpath=${ROC_PATH}/roctracer/lib -lroctracer64 -lroctx64
+  LIBRARIES += -lroctracer64 -lroctx64
   endif
 
   # hipcc passes a lot of unused arguments to clang

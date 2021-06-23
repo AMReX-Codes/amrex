@@ -65,6 +65,9 @@ list of important variables.
    | AMREX_AMD_ARCH  | AMD GPU arch such as gfx908         | none if the        |
    |    or AMD_ARCH  |                                     | machine is unknown |
    +-----------------+-------------------------------------+--------------------+
+   | USE_GPU_RDC     | TRUE or FALSE                       | TRUE               |
+   +-----------------+-------------------------------------+--------------------+
+
 
 .. raw:: latex
 
@@ -114,6 +117,7 @@ MPI with support for concurrent MPI calls from multiple threads.
 Variables ``USE_CUDA``, ``USE_HIP`` and ``USE_DPCPP`` are used for
 targeting Nvidia, AMD and Intel GPUs, respectively.  At most one of
 the three can be TRUE.
+For HIP and DPC++/SYCL builds, we do only test against C++17 builds at the moment.
 
 The variable ``USE_RPATH`` controls the link mechanism to dependent libraries.
 If enabled, the library path at link time will be saved as a
@@ -425,7 +429,7 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | CMAKE_CXX_FLAGS              |  User-defined C++ flags                         |                         | user-defined          |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | CMAKE_CXX_STANDARD           |  C++ standard                                   | compiler/11             | 11, 14, 17, 20        |
+   | CMAKE_CXX_STANDARD           |  C++ standard                                   | compiler/14             | 14, 17, 20            |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_SPACEDIM               |  Dimension of AMReX build                       | 3                       | 1, 2, 3               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -444,6 +448,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    | AMReX_OMP                    |  Build with OpenMP support                      | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_GPU_BACKEND            |  Build with on-node, accelerated GPU backend    | NONE                    | NONE, SYCL, HIP, CUDA |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_GPU_RDC                |  Build with Relocatable Device Code support     | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FORTRAN_INTERFACES     |  Build Fortran API                              | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -481,7 +487,9 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_BOUND_CHECK            |  Enable bound checking in Array4 class          | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_SENSEI                 |  Enable SENSEI_IN_SITU infrastucture            | NO                      | YES, NO               |
+   | AMReX_SENSEI                 |  Enable the SENSEI in situ infrastucture        | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_NO_SENSEI_AMR_INST     |  Disables the instrumentation in amrex::Amr     | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_CONDUIT                |  Enable Conduit support                         | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -490,6 +498,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    | AMReX_HYPRE                  |  Enable HYPRE interfaces                        | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PETSC                  |  Enable PETSc interfaces                        | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_SUNDIALS               |  Enable SUNDIALS interfaces                     | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_HDF5                   |  Enable HDF5-based I/O                          | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+

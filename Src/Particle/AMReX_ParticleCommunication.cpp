@@ -41,6 +41,8 @@ void ParticleCopyPlan::clear ()
     m_rcv_box_counts.clear();
     m_rcv_box_offsets.clear();
     m_rcv_box_ids.clear();
+    m_rcv_box_pids.clear();
+    m_rcv_box_levs.clear();
 }
 
 void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
@@ -77,7 +79,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
         {
             int dst = map.bucketToGrid(bucket);
             int lev = map.bucketToLevel(bucket);
-            AMREX_ASSERT(m_box_counts_h[bucket] <= std::numeric_limits<int>::max());
+            AMREX_ASSERT(m_box_counts_h[bucket] <= static_cast<unsigned int>(std::numeric_limits<int>::max()));
             int npart = static_cast<int>(m_box_counts_h[bucket]);
             if (npart == 0) continue;
             m_snd_num_particles[i] += npart;
@@ -216,37 +218,22 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
     {
         ParallelDescriptor::Waitall(m_build_rreqs, m_build_stats);
 
-        Gpu::HostVector<int> rcv_box_offsets;
-        Gpu::HostVector<int> rcv_box_counts;
-        Gpu::HostVector<int> rcv_box_ids;
-        Gpu::HostVector<int> rcv_box_levs;
-        Gpu::HostVector<int> rcv_box_pids;
+        m_rcv_box_offsets.resize(0);
+        m_rcv_box_counts.resize(0);
+        m_rcv_box_ids.resize(0);
+        m_rcv_box_levs.resize(0);
+        m_rcv_box_pids.resize(0);
 
-        rcv_box_offsets.push_back(0);
+        m_rcv_box_offsets.push_back(0);
         for (int i = 0, N = m_rcv_data.size(); i < N; i+=4)
         {
-            rcv_box_counts.push_back(m_rcv_data[i]);
+            m_rcv_box_counts.push_back(m_rcv_data[i]);
             AMREX_ASSERT(ParallelContext::MyProcSub() == map.procID(m_rcv_data[i+1], m_rcv_data[i+2]));
-            rcv_box_ids.push_back(m_rcv_data[i+1]);
-            rcv_box_levs.push_back(m_rcv_data[i+2]);
-            rcv_box_pids.push_back(m_rcv_data[i+3]);
-            rcv_box_offsets.push_back(rcv_box_offsets.back() + rcv_box_counts.back());
+            m_rcv_box_ids.push_back(m_rcv_data[i+1]);
+            m_rcv_box_levs.push_back(m_rcv_data[i+2]);
+            m_rcv_box_pids.push_back(m_rcv_data[i+3]);
+            m_rcv_box_offsets.push_back(m_rcv_box_offsets.back() + m_rcv_box_counts.back());
         }
-
-        m_rcv_box_counts.resize(rcv_box_counts.size());
-        Gpu::copy(Gpu::hostToDevice, rcv_box_counts.begin(), rcv_box_counts.end(), m_rcv_box_counts.begin());
-
-        m_rcv_box_offsets.resize(rcv_box_offsets.size());
-        Gpu::copy(Gpu::hostToDevice, rcv_box_offsets.begin(), rcv_box_offsets.end(), m_rcv_box_offsets.begin());
-
-        m_rcv_box_ids.resize(rcv_box_ids.size());
-        Gpu::copy(Gpu::hostToDevice, rcv_box_ids.begin(), rcv_box_ids.end(), m_rcv_box_ids.begin());
-
-        m_rcv_box_levs.resize(rcv_box_levs.size());
-        Gpu::copy(Gpu::hostToDevice, rcv_box_levs.begin(), rcv_box_levs.end(), m_rcv_box_levs.begin());
-
-        m_rcv_box_pids.resize(rcv_box_pids.size());
-        Gpu::copy(Gpu::hostToDevice, rcv_box_pids.begin(), rcv_box_pids.end(), m_rcv_box_pids.begin());
     }
 
     for (int j = 0; j < m_nrcvs; ++j)

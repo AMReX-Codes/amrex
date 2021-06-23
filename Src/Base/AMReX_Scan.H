@@ -2,6 +2,7 @@
 #define AMREX_SCAN_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Extension.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Arena.H>
 
@@ -15,6 +16,7 @@
 #endif
 
 #include <cstdint>
+#include <numeric>
 #include <type_traits>
 
 namespace amrex {
@@ -404,6 +406,8 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
 
     T totalsum = 0;
     if (a_ret_sum) {
+        // xxxxx DPCPP todo: Should test if using pinned memory and thus
+        // avoiding memcpy is faster.
         Gpu::dtoh_memcpy_async(&totalsum, totalsum_p, sizeof(T));
     }
     Gpu::streamSynchronize();
@@ -923,6 +927,8 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
 
     T totalsum = 0;
     if (a_ret_sum) {
+        // xxxxx CUDA < 11 todo: Should test if using pinned memory and thus
+        // avoiding memcpy is faster.
         Gpu::dtoh_memcpy_async(&totalsum, totalsum_p, sizeof(T));
     }
     Gpu::streamSynchronize();
@@ -1001,6 +1007,10 @@ template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N
 T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
+    T in_last = 0;
+    if (a_ret_sum) {
+        Gpu::dtoh_memcpy_async(&in_last, in+(n-1), sizeof(T));
+    }
     void* d_temp = nullptr;
     std::size_t temp_bytes = 0;
     AMREX_GPU_SAFE_CALL(cub::DeviceScan::ExclusiveSum(d_temp, temp_bytes, in, out, n,
@@ -1008,9 +1018,8 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
     d_temp = The_Arena()->alloc(temp_bytes);
     AMREX_GPU_SAFE_CALL(cub::DeviceScan::ExclusiveSum(d_temp, temp_bytes, in, out, n,
                                                       Gpu::gpuStream()));
-    T in_last = 0, out_last = 0;
+    T out_last = 0;
     if (a_ret_sum) {
-        Gpu::dtoh_memcpy_async(&in_last, in+(n-1), sizeof(T));
         Gpu::dtoh_memcpy_async(&out_last, out+(n-1), sizeof(T));
     }
     Gpu::streamSynchronize();
@@ -1018,6 +1027,10 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
     AMREX_GPU_ERROR_CHECK();
     return in_last+out_last;
 #elif defined(AMREX_USE_HIP)
+    T in_last = 0;
+    if (a_ret_sum) {
+        Gpu::dtoh_memcpy_async(&in_last, in+(n-1), sizeof(T));
+    }
     void* d_temp = nullptr;
     std::size_t temp_bytes = 0;
     AMREX_GPU_SAFE_CALL(rocprim::exclusive_scan(d_temp, temp_bytes, in, out, T{0}, n,
@@ -1025,9 +1038,8 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
     d_temp = The_Arena()->alloc(temp_bytes);
     AMREX_GPU_SAFE_CALL(rocprim::exclusive_scan(d_temp, temp_bytes, in, out, T{0}, n,
                                                 rocprim::plus<T>(), Gpu::gpuStream()));
-    T in_last = 0, out_last = 0;
+    T out_last = 0;
     if (a_ret_sum) {
-        Gpu::dtoh_memcpy_async(&in_last, in+(n-1), sizeof(T));
         Gpu::dtoh_memcpy_async(&out_last, out+(n-1), sizeof(T));
     }
     Gpu::streamSynchronize();
@@ -1035,11 +1047,14 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
     AMREX_GPU_ERROR_CHECK();
     return in_last+out_last;
 #elif defined(AMREX_USE_DPCPP) && defined(AMREX_USE_ONEDPL)
-    auto policy = oneapi::dpl::execution::make_device_policy(Gpu::Device::streamQueue());
-    std::exclusive_scan(policy, in, in+n, out, T(0), std::plus<T>());
-    T in_last = 0, out_last = 0;
+    T in_last = 0;
     if (a_ret_sum) {
         Gpu::dtoh_memcpy_async(&in_last, in+(n-1), sizeof(T));
+    }
+    auto policy = oneapi::dpl::execution::make_device_policy(Gpu::Device::streamQueue());
+    std::exclusive_scan(policy, in, in+n, out, T(0), std::plus<T>());
+    T out_last = 0;
+    if (a_ret_sum) {
         Gpu::dtoh_memcpy_async(&out_last, out+(n-1), sizeof(T));
     }
     Gpu::streamSynchronize();
@@ -1086,7 +1101,12 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE)
 template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
 T InclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
 {
+#if (__cplusplus >= 201703L) && (!defined(AMREX_CXX_GCC) || __GNUC__ >= 10)
+    // GCC's __cplusplus is not a reliable indication for C++17 support
+    std::inclusive_scan(in, in+n, out);
+#else
     std::partial_sum(in, in+n, out);
+#endif
     return (n > 0) ? out[n-1] : T(0);
 }
 
@@ -1094,13 +1114,17 @@ T InclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
 template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
 T ExclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
 {
-    if (n > 0) {
-        out[0] = 0;
-        std::partial_sum(in, in+n-1, out+1);
-        return in[n-1]+out[n-1];
-    } else {
-        return 0;
-    }
+    if (n <= 0) return 0;
+
+    auto in_last = in[n-1];
+#if (__cplusplus >= 201703L) && (!defined(AMREX_CXX_GCC) || __GNUC__ >= 10)
+    // GCC's __cplusplus is not a reliable indication for C++17 support
+    std::exclusive_scan(in, in+n, out, 0);
+#else
+    out[0] = 0;
+    std::partial_sum(in, in+n-1, out+1);
+#endif
+    return in_last + out[n-1];
 }
 
 #endif
@@ -1118,13 +1142,16 @@ namespace Gpu
         OutIter result_end = result;
         std::advance(result_end, N);
         return result_end;
+#elif (__cplusplus >= 201703L) && (!defined(AMREX_CXX_GCC) || __GNUC__ >= 10)
+        // GCC's __cplusplus is not a reliable indication for C++17 support
+        return std::inclusive_scan(begin, end, result);
 #else
         return std::partial_sum(begin, end, result);
 #endif
     }
 
     template<class InIter, class OutIter>
-    OutIter exclusive_scan(InIter begin, InIter end, OutIter result)
+    OutIter exclusive_scan (InIter begin, InIter end, OutIter result)
     {
 #if defined(AMREX_USE_GPU)
         auto N = std::distance(begin, end);
@@ -1132,6 +1159,9 @@ namespace Gpu
         OutIter result_end = result;
         std::advance(result_end, N);
         return result_end;
+#elif (__cplusplus >= 201703L) && (!defined(AMREX_CXX_GCC) || __GNUC__ >= 10)
+        // GCC's __cplusplus is not a reliable indication for C++17 support
+        return std::exclusive_scan(begin, end, result, 0);
 #else
         if (begin == end) return result;
 

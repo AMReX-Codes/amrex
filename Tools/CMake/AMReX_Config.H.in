@@ -31,7 +31,8 @@
 #cmakedefine BL_FORT_USE_LOWERCASE
 #cmakedefine BL_FORT_USE_UPPERCASE
 #cmakedefine BL_NO_FORT
-#cmakedefine BL_USE_SENSEI_INSITU
+#cmakedefine AMREX_USE_SENSEI_INSITU
+#cmakedefine AMREX_NO_SENSEI_AMR_INST
 #cmakedefine AMREX_USE_CONDUIT
 #cmakedefine AMREX_USE_ASCENT
 #cmakedefine AMREX_USE_EB
@@ -44,11 +45,13 @@
 #cmakedefine BL_COALESCE_FABS
 #cmakedefine AMREX_GPUS_PER_SOCKET @AMREX_GPUS_PER_SOCKET@
 #cmakedefine AMREX_GPUS_PER_NODE   @AMREX_GPUS_PER_NODE@
+#cmakedefine AMREX_USE_GPU_RDC
 #cmakedefine AMREX_PARTICLES
 #cmakedefine AMREX_USE_HDF5
 #cmakedefine AMREX_USE_HDF5_ASYNC
 #cmakedefine AMREX_USE_HYPRE
 #cmakedefine AMREX_USE_PETSC
+#cmakedefine AMREX_USE_SUNDIALS
 #cmakedefine AMREX_NO_PROBINIT
 #cmakedefine AMREX_IS_DLL
 #ifdef __cplusplus@COMP_DECLS@
