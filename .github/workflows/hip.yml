@@ -49,6 +49,7 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON                       \
             -DAMReX_PARTICLES=ON                          \
             -DAMReX_FORTRAN=ON                            \
+            -DAMReX_GPU_RDC=OFF                           \
             -DAMReX_LINEAR_SOLVERS=ON                     \
             -DAMReX_GPU_BACKEND=HIP                       \
             -DAMReX_AMD_ARCH=gfx908                       \
