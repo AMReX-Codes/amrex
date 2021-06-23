@@ -800,15 +800,6 @@ struct AssignGridFilter
     //        AMREX_DEVICE_PRINTF("src_i %d\tgid %15d\tp_boxes %15d\tcompare %d\tp_levs %d\n",src_i,m_gid,p_boxes_max,(m_gid >=0 && p_boxes == m_gid),p_levs_max);
     //        if(p_levs_max==2)
     //          AMREX_DEVICE_PRINTF("src_i %d\tsrcrdata %15g\n",src_i,src.m_rdata[0][src_i]);
-	std::cout<<"BLOCK ~~~~~~~~"<<src_i<<std::endl;
-	std::cout<<"tests: "<<(p_boxes>=0)<<std::endl;
-	std::cout<<"tests: "<<(p_boxes_max>=0)<<std::endl;
-	std::cout<<"tests: "<<(p_boxes==m_gid)<<std::endl;
-	std::cout<<"tests: "<<(p_boxes_max==m_gid)<<std::endl;
-	std::cout<<"tests: "<<(p_levs>=m_lev_min)<<std::endl;
-	std::cout<<"tests: "<<(p_levs_max>=m_lev_min)<<std::endl;						
-	std::cout<<"tests: "<<(p_levs>=m_lev_max)<<std::endl;
-	std::cout<<"tests: "<<(p_levs_max>=m_lev_max)<<std::endl;						
         return p_boxes_max >=0 && p_boxes == m_gid && p_levs_max == m_lev_max;
     }
 };
@@ -838,8 +829,6 @@ struct TransformerGhost
         for (int j = 0; j < dst.m_num_runtime_int; ++j)
             dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
         ParticleIDWrapper((dst.m_aos[dst_i]).m_idcpu) = GhostParticleID;
-	std::cout<<"in transform:s"<<src.m_aos[src_i]<<std::endl;
-	std::cout<<"in transform:d"<<dst.m_aos[dst_i]<<std::endl;
     }
 };
 
@@ -870,7 +859,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     //#ifndef AMREX_USE_GPU
     #if 1
     const BoxArray& fine = ParticleBoxArray(level + 1);
-    std::cout<<fine<<std::endl;
     std::vector< std::pair<int,Box> > isects;
     for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
       {
@@ -882,13 +870,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
           {
             const IntVect& iv = Index(aos[pindex], level+1);
             fine.intersections(Box(iv,iv),isects,true,nGrow);
-            std::cout<<iv<<nGrow<<std::endl;
             if (isects.size() > 0)
               {
                 SuperParticleType p = src.getSuperParticle(pindex);
                 p.id() = GhostParticleID;
-                std::cout<<"push_back add: "<<p<<std::endl;
-		//                ghosts.push_back(p);
+        //                std::cout<<"push_back add: "<<p<<std::endl;
+        //                ghosts.push_back(p);
               }
           }
       }
@@ -907,21 +894,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         auto np = src_tile.numParticles();
         ghosts.resize(ghost_offset+np);
         ghost_offset += filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid,level,nGrow), TransformerGhost(),0,ghost_offset,np);
-	//       ghosts.resize(ghost_offset);
-	//       for(int i=0; i<ghosts.numParticles(); i++)
-        for(int i=0; i<ghost_offset; i++)
-         {
-           std::cout<<"transform add: "<<((ghosts.getParticleTileData()).getSuperParticle(i))<<std::endl;
-	   std::cout<<"ghosts    add: "<<((ghosts.GetArrayOfStructs()))[i]<<std::endl;
-         }
-         for(int i=ghost_offset; i<ghosts.numParticles(); i++)
-         {
-           std::cout<<"2ransform add: "<<((ghosts.getParticleTileData()).getSuperParticle(i))<<std::endl;
-	   std::cout<<"2hosts    add: "<<((ghosts.GetArrayOfStructs()))[i]<<std::endl;
-         }
     }
-    std::cout<<"ghost_offset: "<<ghost_offset<<std::endl;
-    std::cout<<"ghost_numParticles: "<<ghosts.numParticles()<<std::endl;
     ghosts.resize(ghost_offset);
     #endif
 }

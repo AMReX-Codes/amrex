@@ -637,7 +637,6 @@ auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&
     [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
         p_mask[i] = particle_detail::call_f(p, src_data, src_start+i, engine);
-        std::cout<<"~~~~~~~~~"<<p_mask[i]<<std::endl;
     });
     return filterAndTransformParticles(dst, src, mask.dataPtr(), std::forward<F>(f), src_start, dst_start, n);
 }
