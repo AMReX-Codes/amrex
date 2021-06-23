@@ -800,7 +800,16 @@ struct AssignGridFilter
     //        AMREX_DEVICE_PRINTF("src_i %d\tgid %15d\tp_boxes %15d\tcompare %d\tp_levs %d\n",src_i,m_gid,p_boxes_max,(m_gid >=0 && p_boxes == m_gid),p_levs_max);
     //        if(p_levs_max==2)
     //          AMREX_DEVICE_PRINTF("src_i %d\tsrcrdata %15g\n",src_i,src.m_rdata[0][src_i]);
-        return m_gid >=0 && p_boxes_max == m_gid;
+	std::cout<<"BLOCK ~~~~~~~~"<<src_i<<std::endl;
+	std::cout<<"tests: "<<(p_boxes>=0)<<std::endl;
+	std::cout<<"tests: "<<(p_boxes_max>=0)<<std::endl;
+	std::cout<<"tests: "<<(p_boxes==m_gid)<<std::endl;
+	std::cout<<"tests: "<<(p_boxes_max==m_gid)<<std::endl;
+	std::cout<<"tests: "<<(p_levs>=m_lev_min)<<std::endl;
+	std::cout<<"tests: "<<(p_levs_max>=m_lev_min)<<std::endl;						
+	std::cout<<"tests: "<<(p_levs>=m_lev_max)<<std::endl;
+	std::cout<<"tests: "<<(p_levs_max>=m_lev_max)<<std::endl;						
+        return p_boxes_max >=0 && p_boxes == m_gid && p_levs_max == m_lev_max;
     }
 };
 
@@ -843,6 +852,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     ParticleTileType ptile;
     CreateGhostParticles(level, nGrow, ptile);
     ptile.GetArrayOfStructs().swap(ghosts);
+
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
@@ -858,7 +868,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         return;
 
     //#ifndef AMREX_USE_GPU
-    #if 0
+    #if 1
     const BoxArray& fine = ParticleBoxArray(level + 1);
     std::cout<<fine<<std::endl;
     std::vector< std::pair<int,Box> > isects;
@@ -878,11 +888,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                 SuperParticleType p = src.getSuperParticle(pindex);
                 p.id() = GhostParticleID;
                 std::cout<<"push_back add: "<<p<<std::endl;
-                              ghosts.push_back(p);
+		//                ghosts.push_back(p);
               }
           }
       }
-    #else
+    //        #else
     if (! m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
     m_particle_locator.setGeometry(GetParGDB());
     AmrAssignGrid<DenseBinIteratorFactory<Box>> assign_grid = m_particle_locator.getGridAssignor();
@@ -896,7 +906,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
         auto np = src_tile.numParticles();
         ghosts.resize(ghost_offset+np);
-        ghost_offset = filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid,level,nGrow), TransformerGhost(),0,ghost_offset,np);
+        ghost_offset += filterAndTransformParticles(ghosts, src_tile, AssignGridFilter(assign_grid_ptr,gid,level,nGrow), TransformerGhost(),0,ghost_offset,np);
 	//       ghosts.resize(ghost_offset);
 	//       for(int i=0; i<ghosts.numParticles(); i++)
         for(int i=0; i<ghost_offset; i++)
@@ -904,7 +914,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
            std::cout<<"transform add: "<<((ghosts.getParticleTileData()).getSuperParticle(i))<<std::endl;
 	   std::cout<<"ghosts    add: "<<((ghosts.GetArrayOfStructs()))[i]<<std::endl;
          }
+         for(int i=ghost_offset; i<ghosts.numParticles(); i++)
+         {
+           std::cout<<"2ransform add: "<<((ghosts.getParticleTileData()).getSuperParticle(i))<<std::endl;
+	   std::cout<<"2hosts    add: "<<((ghosts.GetArrayOfStructs()))[i]<<std::endl;
+         }
     }
+    std::cout<<"ghost_offset: "<<ghost_offset<<std::endl;
+    std::cout<<"ghost_numParticles: "<<ghosts.numParticles()<<std::endl;
     ghosts.resize(ghost_offset);
     #endif
 }
@@ -1932,6 +1949,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt, Allocator>
     }
 
     Redistribute(level, level, nGrow);
+    //    Real sm = amrex::ReduceSum(*this, [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p) -> Real { return (amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
     particles.resize(0);
 }
 
