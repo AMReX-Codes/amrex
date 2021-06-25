@@ -39,6 +39,9 @@ class BCRec;
 class ParmParse;
 struct RandomEngine;
 
+template <int N> struct ParserExecutor;
+class Parser;
+
 namespace Gpu {
     class Elixir;
 }

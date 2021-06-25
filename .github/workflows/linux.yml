@@ -68,7 +68,7 @@ jobs:
 
   # Build libamrex and all tests
   tests_build:
-    name: GNU@7.5 C++14 [tests]
+    name: GNU@7.5 C++14 Debug Fortran [tests]
     runs-on: ubuntu-18.04
     env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual"}
     steps:
