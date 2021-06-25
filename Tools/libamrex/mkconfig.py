@@ -78,7 +78,7 @@ def doit(defines, undefines, comp, allow_diff_comp):
 
     print("#endif") #  ifdef __cplusplus
 
-    print("#if defined(AMREX_USE_OMP) && !defined(_OPENMP) && !defined(AMREX_USE_HIP)")
+    print("#if defined(AMREX_USE_OMP) && !defined(_OPENMP) && !defined(__HIP_DEVICE_COMPILE__)")
     print('#error libamrex was built with OpenMP')
     print("#endif")
 
