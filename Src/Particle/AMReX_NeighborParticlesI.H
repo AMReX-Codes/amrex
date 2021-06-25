@@ -687,7 +687,6 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
         }
 #endif
 
-        IntVect ref_fac = computeRefFac(0, lev);
               auto& plev = this->GetParticles(lev);
         const auto& geom = this->Geom(lev);
 
@@ -705,7 +704,6 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
             if (ptile.numParticles() == 0) continue;
 
             Box bx = pti.tilebox();
-            bx.coarsen(ref_fac);
             bx.grow(m_num_neighbor_cells);
 
             m_neighbor_list[lev][index].build(ptile, bx, geom,
