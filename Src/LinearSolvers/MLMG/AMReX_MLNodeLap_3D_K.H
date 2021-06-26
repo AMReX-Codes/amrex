@@ -2618,7 +2618,7 @@ namespace {
         if (msk(ii,jj,kk)) {
             Real facx = Real(1./36.)*dxinv[0]*dxinv[0];
             Real facy = Real(1./36.)*dxinv[1]*dxinv[1];
-            Real facz = Real(1./36.)*dxinv[1]*dxinv[1];
+            Real facz = Real(1./36.)*dxinv[2]*dxinv[2];
 
             auto is_fine = [&ccbx] (int ix, int iy, int iz) -> bool {
                 return ccbx.contains(ix,iy,iz);

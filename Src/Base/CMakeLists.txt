@@ -1,4 +1,5 @@
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
+target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/Parser>)
 
 target_sources( amrex
    PRIVATE
@@ -224,6 +225,17 @@ target_sources( amrex
    # Profiling ---------------------------------------------------------------
    AMReX_BLProfiler.cpp
    AMReX_BLBackTrace.cpp
+   # Parser ---------------------------------------------------------------
+   Parser/AMReX_Parser.cpp
+   Parser/AMReX_Parser.H
+   Parser/AMReX_Parser_Exe.cpp
+   Parser/AMReX_Parser_Exe.H
+   Parser/AMReX_Parser_Y.cpp
+   Parser/AMReX_Parser_Y.H
+   Parser/amrex_parser.lex.cpp
+   Parser/amrex_parser.lex.h
+   Parser/amrex_parser.tab.cpp
+   Parser/amrex_parser.tab.h
    # Forward declaration -----------------------------------------------------
    AMReX_BaseFwd.H
    )
