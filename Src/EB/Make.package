@@ -57,6 +57,7 @@ CEXE_headers += AMReX_EB2_IF_Translation.H
 CEXE_headers += AMReX_EB2_IF_Union.H
 CEXE_headers += AMReX_EB2_IF_Extrusion.H
 CEXE_headers += AMReX_EB2_IF_Difference.H
+CEXE_headers += AMReX_EB2_IF_Parser.H
 CEXE_headers += AMReX_EB2_IF.H
 CEXE_headers += AMReX_EB2_IF_Base.H
 
