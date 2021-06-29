@@ -77,7 +77,11 @@ public:
 
     std::set<std::string> symbols () const;
 
+    //! This compiles for both GPU and CPU
     template <int N> ParserExecutor<N> compile () const;
+
+    //! This compiles for CPU only
+    template <int N> ParserExecutor<N> compileHost () const;
 
 private:
 
@@ -90,6 +94,7 @@ private:
         mutable char* m_device_executor = nullptr;
 #endif
         mutable int m_max_stack_size = 0;
+        mutable int m_exe_size = 0;
         ~Data ();
     };
 
@@ -98,13 +103,14 @@ private:
 
 template <int N>
 ParserExecutor<N>
-Parser::compile () const
+Parser::compileHost () const
 {
     AMREX_ASSERT(N == m_data->m_nvars);
 
     if (!(m_data->m_host_executor)) {
         int stack_size;
-        int exe_size = parser_exe_size(m_data->m_parser, m_data->m_max_stack_size, stack_size);
+        m_data->m_exe_size = parser_exe_size(m_data->m_parser, m_data->m_max_stack_size,
+                                             stack_size);
 
         if (m_data->m_max_stack_size > AMREX_PARSER_STACK_SIZE) {
             amrex::Abort("amrex::Parser: AMREX_PARSER_STACK_SIZE, "
@@ -116,23 +122,35 @@ Parser::compile () const
                          + std::to_string(stack_size));
         }
 
-        m_data->m_host_executor = (char*)The_Pinned_Arena()->alloc(exe_size);
+        m_data->m_host_executor = (char*)The_Pinned_Arena()->alloc(m_data->m_exe_size);
 
         parser_compile(m_data->m_parser, m_data->m_host_executor);
-
-#ifdef AMREX_USE_GPU
-        m_data->m_device_executor = (char*)The_Arena()->alloc(exe_size);
-        Gpu::htod_memcpy_async(m_data->m_device_executor, m_data->m_host_executor, exe_size);
-        Gpu::streamSynchronize();
-#endif
     }
-
 
 #ifdef AMREX_USE_GPU
     return ParserExecutor<N>{m_data->m_host_executor, m_data->m_device_executor};
 #else
     return ParserExecutor<N>{m_data->m_host_executor};
 #endif
+}
+
+template <int N>
+ParserExecutor<N>
+Parser::compile () const
+{
+    auto exe = compileHost<N>();
+
+#ifdef AMREX_USE_GPU
+    if (!(m_data->m_device_executor)) {
+        m_data->m_device_executor = (char*)The_Arena()->alloc(m_data->m_exe_size);
+        Gpu::htod_memcpy_async(m_data->m_device_executor, m_data->m_host_executor,
+                               m_data->m_exe_size);
+        Gpu::streamSynchronize();
+        exe.m_device_executor = m_data->m_device_executor;
+    }
+#endif
+
+    return exe;
 }
 
 }
