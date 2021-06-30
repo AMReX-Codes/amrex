@@ -726,7 +726,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             virts_offset += np;
         }
     }
-    #if 0
+    #if 1
     if (aggregation_type == "Cell")
     {
         BoxList bl_buffer;
@@ -796,6 +796,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                             pold.rdata(i) = static_cast<ParticleReal>((old_mass*pold.rdata(i) + new_mass*pnew.rdata(i))/total_mass);
                         }
                         pold.rdata(0) = static_cast<ParticleReal>(total_mass);
+			std::cout<<"push_back increased "<<old_mass<<" to "<<total_mass<<std::endl;
                     }
                 }
             }
@@ -848,22 +849,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 	    else
             {
 
-   	        const Real           old_mass   = partData(iv,AMREX_SPACEDIM+0);
-		const Real           new_mass   = p.rdata(0);
-		const Real           total_mass = old_mass + new_mass;
+   	        const ParticleReal           old_mass   = partData(iv,AMREX_SPACEDIM+0);
+		const ParticleReal           new_mass   = p.rdata(0);
+		const ParticleReal           total_mass = old_mass + new_mass;
 
 	        for (int i = 0; i < AMREX_SPACEDIM; ++i)
 		{
-		    Real old_pos = partData(iv,i);
-		    amrex::Gpu::Atomic::CAS(&partData(iv,i), old_mass, static_cast<ParticleReal>((old_mass*old_pos + new_mass*p.pos(i))/total_mass));
+		    ParticleReal old_pos = partData(iv,i);
+		    amrex::Gpu::Atomic::AddNoRet(&partData(iv,i), static_cast<ParticleReal>((old_mass*old_pos + new_mass*p.pos(i))/total_mass-old_mass));
 		}
 		for (int i = 1; i < NStructReal; ++i)
   		{
-		  Real old_rdata = partData(iv,AMREX_SPACEDIM+i);
-		  amrex::Gpu::Atomic::CAS(&partData(iv,AMREX_SPACEDIM+i), old_rdata, static_cast<ParticleReal>((old_mass*old_rdata + new_mass*p.rdata(i))/total_mass));
+		  ParticleReal old_rdata = partData(iv,AMREX_SPACEDIM+i);
+		  amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<ParticleReal>((old_mass*old_rdata + new_mass*p.rdata(i))/total_mass-old_rdata));
 		}
                 for (int i = 0; i < 1; ++i)
-		  amrex::Gpu::Atomic::CAS(&partData(iv,AMREX_SPACEDIM+i), old_mass, static_cast<ParticleReal>(total_mass));
+		  amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<ParticleReal>(total_mass-old_mass));
 	      
 	    }
 
@@ -918,7 +919,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
   			  if(imf_arr(i,j,k,0)!=0)
 			    {
 			      ParticleType p=dst.getSuperParticle(offsets[((i-imf_arr.begin.x)+(j-imf_arr.begin.y)*imf_arr.jstride+(k-imf_arr.begin.z)*imf_arr.kstride)]);
-			      p.id() = VirtualParticleID;
+			      ParticleIDWrapper((p).m_idcpu) = VirtualParticleID;//			      p.id() = VirtualParticleID;
+
 			  for (int n = 0; n < AMREX_SPACEDIM; ++n)
 			    amrex::Gpu::Atomic::AddNoRet(&p.pos(n),partData(i,j,k,n));
 			  for (int n = 0; n < NStructReal; ++n)
@@ -926,14 +928,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 			  for (int n = 0; n < NArrayReal; ++n)
 			    amrex::Gpu::Atomic::AddNoRet(&p.rdata(NStructReal+n), partData(i,j,k,AMREX_SPACEDIM+NStructReal+n));
 			  for (int n = 0; n < NStructInt; ++n)
-			    amrex::Gpu::Atomic::AddNoRet(&p.idata(n), (long unsigned int) imf_arr(i,j,k,AMREX_SPACEDIM+n));
+			    amrex::Gpu::Atomic::AddNoRet(&p.idata(n), (long unsigned int) imf_arr(i,j,k,1+n));
 			  for (int n = 0; n < NArrayInt; ++n)
-			    amrex::Gpu::Atomic::AddNoRet(&p.idata(NStructInt+n), (long unsigned int) imf_arr(i,j,k,AMREX_SPACEDIM+NStructInt+n));
+			    amrex::Gpu::Atomic::AddNoRet(&p.idata(NStructInt+n), (long unsigned int) imf_arr(i,j,k,1+NStructInt+n));
 			  //			  virts.push_back(p);
 			  std::cout<<i<<"\t"<<j<<"\t"<<k<<"\t"<<imf_arr(i,j,k,0)<<"~";
 			  for(int n=0;n<mf_arr.nComp();n++)
 			    std::cout<< mf_arr(i,j,k,n)<<" ";
-			  for(int n=1;n<imf_arr.nComp()-1;n++)
+			  for(int n=1;n<imf_arr.nComp();n++)
 			    std::cout<< imf_arr(i,j,k,n)<<" ";
 			  std::cout<<std::endl;
 			  std::cout<<"transfer: "<<p<<std::endl;
