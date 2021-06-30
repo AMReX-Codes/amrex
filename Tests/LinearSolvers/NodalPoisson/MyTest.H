@@ -48,7 +48,7 @@ private:
     int max_semicoarsening_level = 0;
 
     bool use_hypre = false;
-    
+
 #ifdef AMREX_USE_HYPRE
     int hypre_interface_i = 1;  // 1. structed, 2. semi-structed, 3. ij
     amrex::Hypre::Interface hypre_interface = amrex::Hypre::Interface::structed;
