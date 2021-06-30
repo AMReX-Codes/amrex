@@ -92,8 +92,7 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input=true)
                        mf_pointer->nGrowVect(), IntVect(0), pc.Geom(lev).periodicity());
         delete mf_pointer;
     } else {
-         amrex::Abort("Commenting out SumBoundary in ParticleToMesh since this doesn't work for iMultiFab");
-      //        mf_pointer->SumBoundary(pc.Geom(lev).periodicity());
+        mf_pointer->SumBoundary(pc.Geom(lev).periodicity());
     }
 }
 
