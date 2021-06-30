@@ -726,7 +726,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             virts_offset += np;
         }
     }
-    #if 1
+    #if 0
     if (aggregation_type == "Cell")
     {
         BoxList bl_buffer;
@@ -883,11 +883,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             if(partData(iv,0)==0)
             {
           //                amrex::Gpu::Atomic::AddNoRet(&partData(iv,0), VirtualParticleID);
-                amrex::Gpu::Atomic::AddNoRet(&partData(iv,0), (amrex::Real) 1);
+                amrex::Gpu::Atomic::AddNoRet(&partData(iv,0), std::round((amrex::Real) 1));
                 for (int i = 0; i < NStructInt; ++i)
-                    amrex::Gpu::Atomic::AddNoRet(&partData(iv,1+i), (amrex::Real) p.idata(i));
+                  amrex::Gpu::Atomic::AddNoRet(&partData(iv,1+i), std::round((amrex::Real) p.idata(i)));
                 for (int i = 0; i < NArrayInt; ++i)
-                    amrex::Gpu::Atomic::AddNoRet(&partData(iv,1+NStructInt+i), (amrex::Real) p.idata(NStructInt+i));
+                  amrex::Gpu::Atomic::AddNoRet(&partData(iv,1+NStructInt+i), std::round((amrex::Real) p.idata(NStructInt+i)));
             }
 
         });
@@ -922,15 +922,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                    ParticleIDWrapper((p).m_idcpu) = VirtualParticleID;//                  p.id() = VirtualParticleID;
 
                    for (int n = 0; n < AMREX_SPACEDIM; ++n)
-                       amrex::Gpu::Atomic::AddNoRet(&p.pos(n),partData(i,j,k,n));
+                       amrex::Gpu::Atomic::CAS(&p.pos(n), p.pos(n), partData(i,j,k,n));
                    for (int n = 0; n < NStructReal; ++n)
-                       amrex::Gpu::Atomic::AddNoRet(&p.rdata(n), partData(i,j,k,AMREX_SPACEDIM+n));
+                       amrex::Gpu::Atomic::CAS(&p.rdata(n), p.rdata(n), partData(i,j,k,AMREX_SPACEDIM+n));
                    for (int n = 0; n < NArrayReal; ++n)
-                       amrex::Gpu::Atomic::AddNoRet(&p.rdata(NStructReal+n), partData(i,j,k,AMREX_SPACEDIM+NStructReal+n));
+                       amrex::Gpu::Atomic::CAS(&p.rdata(NStructReal+n), p.rdata(NStructReal+n), partData(i,j,k,AMREX_SPACEDIM+NStructReal+n));
                    for (int n = 0; n < NStructInt; ++n)
-                       amrex::Gpu::Atomic::AddNoRet(&p.idata(n), (long unsigned int) imf_arr(i,j,k,1+n));
+                       amrex::Gpu::Atomic::CAS(&p.idata(n), p.idata(n), (long unsigned int) imf_arr(i,j,k,1+n));
                    for (int n = 0; n < NArrayInt; ++n)
-                       amrex::Gpu::Atomic::AddNoRet(&p.idata(NStructInt+n), (long unsigned int) imf_arr(i,j,k,1+NStructInt+n));
+                       amrex::Gpu::Atomic::CAS(&p.idata(NStructInt+n), p.idata(NStructInt+n), (long unsigned int) imf_arr(i,j,k,1+NStructInt+n));
               //              virts.push_back(p);
                    std::cout<<i<<"\t"<<j<<"\t"<<k<<"\t"<<imf_arr(i,j,k,0)<<"~";
                    for(int n=0;n<mf_arr.nComp();n++)
