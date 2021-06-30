@@ -821,7 +821,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         int nGhost = 0;
         mf.define(ParticleBoxArray(level), ParticleDistributionMap(level), nComp, nGhost);
 
-        MultiFab imf;
+        iMultiFab imf;
         nComp = 1 + NStructInt + NArrayInt;
         imf.define(ParticleBoxArray(level), ParticleDistributionMap(level), nComp, nGhost);
 
@@ -833,49 +833,34 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         amrex::ParticleToMesh(*this, mf, level,
         [=] AMREX_GPU_DEVICE (const ParticleType& p,
                               amrex::Array4<amrex::Real> const& partData,
-                              amrex::GpuArray<double,AMREX_SPACEDIM> const& plo, amrex::GpuArray<double,AMREX_SPACEDIM> const& dxi)
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
         {
             auto iv = getParticleCell(p, plo, dxi, domain);
-            //if this cell has no mass, do a straight copy, otherwise scale it
-            if(partData(iv,AMREX_SPACEDIM+0)==0)
-            {
-                for (int i = 0; i < AMREX_SPACEDIM; ++i)
-                    amrex::Gpu::Atomic::AddNoRet(&partData(iv,i), p.pos(i));
-                for (int i = 0; i < NStructReal; ++i)
-                    amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), p.rdata(i));
-                for (int i = 0; i < NArrayReal; ++i)
-                    amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+NStructReal+i), p.rdata(NStructReal+i));
-            }
-            else
-            {
 
-               const ParticleReal           old_mass   = partData(iv,AMREX_SPACEDIM+0);
-               const ParticleReal           new_mass   = p.rdata(0);
-               const ParticleReal           total_mass = old_mass + new_mass;
+	       //Ordering may make this not unique
+	       for (int i = 0; i < NArrayReal; ++i)
+		 amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+NStructReal+i), partData(iv,AMREX_SPACEDIM) ? 0 : p.rdata(NStructReal+i));
 
-               for (int i = 0; i < AMREX_SPACEDIM; ++i)
+	       for (int i = 0; i < AMREX_SPACEDIM; ++i)
                {
-                   ParticleReal old_pos = partData(iv,i);
-                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,i), static_cast<ParticleReal>((old_mass*old_pos + new_mass*p.pos(i))/total_mass-old_mass));
+                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,i), static_cast<ParticleReal>((p.rdata(0)*p.pos(i))));
                }
                for (int i = 1; i < NStructReal; ++i)
                {
-                   ParticleReal old_rdata = partData(iv,AMREX_SPACEDIM+i);
-                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<ParticleReal>((old_mass*old_rdata + new_mass*p.rdata(i))/total_mass-old_rdata));
+                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<ParticleReal>((p.rdata(0)*p.rdata(i))));
                }
                for (int i = 0; i < 1; ++i)
-                   amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<ParticleReal>(total_mass-old_mass));
-
-        }
+		   amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<ParticleReal>(p.rdata(0)));
 
         }); //skipping extra false argument, doing mf.setVal(0) at beginning
     //    Vector<Long> mask(imf.size());
 
         amrex::ParticleToMesh(*this, imf, level,
         [=] AMREX_GPU_DEVICE (const ParticleType& p,
-                              amrex::Array4<amrex::Real> const& partData,
-                              amrex::GpuArray<double,AMREX_SPACEDIM> const& plo,
-                              amrex::GpuArray<double,AMREX_SPACEDIM> const& dxi)
+                              amrex::Array4<int> const& partData,
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
         {
 
             auto iv = getParticleCell(p, plo, dxi, domain);
@@ -883,11 +868,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
             if(partData(iv,0)==0)
             {
           //                amrex::Gpu::Atomic::AddNoRet(&partData(iv,0), VirtualParticleID);
-                amrex::Gpu::Atomic::AddNoRet(&partData(iv,0), std::round((amrex::Real) 1));
+                amrex::Gpu::Atomic::AddNoRet(&partData(iv,0), 1);
                 for (int i = 0; i < NStructInt; ++i)
-                  amrex::Gpu::Atomic::AddNoRet(&partData(iv,1+i), std::round((amrex::Real) p.idata(i)));
+                  amrex::Gpu::Atomic::AddNoRet(&partData(iv,1+i), p.idata(i));
                 for (int i = 0; i < NArrayInt; ++i)
-                  amrex::Gpu::Atomic::AddNoRet(&partData(iv,1+NStructInt+i), std::round((amrex::Real) p.idata(NStructInt+i)));
+                  amrex::Gpu::Atomic::AddNoRet(&partData(iv,1+NStructInt+i), p.idata(NStructInt+i));
             }
 
         });
@@ -910,31 +895,34 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
           const auto imf_arr = imf.array(mfi);
           //            Box grid = ParticleBoxArray(level)[mfi.index()];
 
-           Vector<Real> offsets;
+           Vector<int> offsets;
            offsets.resize(bx.numPts());
-           Real last_offset = Scan::ExclusiveSum(bx.numPts(),(imf_arr.ptr(bx.smallEnd(),0)),(offsets.dataPtr()),Scan::retSum);
+           int last_offset = Scan::ExclusiveSum(bx.numPts(),(imf_arr.ptr(bx.smallEnd(),0)),(offsets.dataPtr()),Scan::retSum);
            auto dst = virts.getParticleTileData();
            ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
            {
                if(imf_arr(i,j,k,0)!=0)
                {
-                   ParticleType p=dst.getSuperParticle(offsets[((i-imf_arr.begin.x)+(j-imf_arr.begin.y)*imf_arr.jstride+(k-imf_arr.begin.z)*imf_arr.kstride)]);
+                   SuperParticleType p=dst.getSuperParticle(offsets[((i-imf_arr.begin.x)+(j-imf_arr.begin.y)*imf_arr.jstride+(k-imf_arr.begin.z)*imf_arr.kstride)]);
                    ParticleIDWrapper((p).m_idcpu) = VirtualParticleID;//                  p.id() = VirtualParticleID;
 
+   		   p.rdata(0) = partData(i,j,k,AMREX_SPACEDIM);
                    for (int n = 0; n < AMREX_SPACEDIM; ++n)
-                       amrex::Gpu::Atomic::CAS(&p.pos(n), p.pos(n), partData(i,j,k,n));
-                   for (int n = 0; n < NStructReal; ++n)
-                       amrex::Gpu::Atomic::CAS(&p.rdata(n), p.rdata(n), partData(i,j,k,AMREX_SPACEDIM+n));
+		     p.pos(n) = partData(i,j,k,n) / p.rdata(0);
+		   for (int n = 0; n < NStructReal; ++n)
+                       p.rdata(n) = partData(i,j,k,AMREX_SPACEDIM+n) / p.rdata(0);
                    for (int n = 0; n < NArrayReal; ++n)
-                       amrex::Gpu::Atomic::CAS(&p.rdata(NStructReal+n), p.rdata(NStructReal+n), partData(i,j,k,AMREX_SPACEDIM+NStructReal+n));
+                       p.rdata(NStructReal+n) = partData(i,j,k,AMREX_SPACEDIM+NStructReal+n);
                    for (int n = 0; n < NStructInt; ++n)
-                       amrex::Gpu::Atomic::CAS(&p.idata(n), p.idata(n), (long unsigned int) imf_arr(i,j,k,1+n));
+                       p.idata(n) = (long unsigned int) imf_arr(i,j,k,1+n);
                    for (int n = 0; n < NArrayInt; ++n)
-                       amrex::Gpu::Atomic::CAS(&p.idata(NStructInt+n), p.idata(NStructInt+n), (long unsigned int) imf_arr(i,j,k,1+NStructInt+n));
+                       p.idata(NStructInt+n) = (long unsigned int) imf_arr(i,j,k,1+NStructInt+n);
               //              virts.push_back(p);
                    std::cout<<i<<"\t"<<j<<"\t"<<k<<"\t"<<imf_arr(i,j,k,0)<<"~";
-                   for(int n=0;n<mf_arr.nComp();n++)
+                   for(int n=0;n<AMREX_SPACEDIM+1;n++)
                        std::cout<< mf_arr(i,j,k,n)<<" ";
+		   for(int n=AMREX_SPACEDIM+1;n<mf_arr.nComp();n++)
+		     std::cout<< mf_arr(i,j,k,n)/mf_arr(i,j,k,AMREX_SPACEDIM)<<" ";
                    for(int n=1;n<imf_arr.nComp();n++)
                        std::cout<< imf_arr(i,j,k,n)<<" ";
                    std::cout<<std::endl;
