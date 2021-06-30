@@ -43,7 +43,7 @@ MyTest::solve ()
         mlmg.setMaxFmgIter(max_fmg_iter);
         mlmg.setVerbose(verbose);
         mlmg.setBottomVerbose(bottom_verbose);
-
+        mlmg.setBottomTolerance(bottom_reltol);
         // solution is passed to MLMG::solve to provide an initial guess.
         // Additionally it also provides boundary conditions for Dirichlet
         // boundaries if there are any.
@@ -79,7 +79,13 @@ MyTest::solve ()
             mlmg.setMaxFmgIter(max_fmg_iter);
             mlmg.setVerbose(verbose);
             mlmg.setBottomVerbose(bottom_verbose);
-
+            mlmg.setBottomTolerance(bottom_reltol);
+#ifdef AMREX_USE_HYPRE
+            if (use_hypre) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+                mlmg.setHypreInterface(hypre_interface);
+            }
+#endif
             // solution is passed to MLMG::solve to provide an initial guess.
             // Additionally it also provides boundary conditions for Dirichlet
             // boundaries if there are any.
@@ -145,6 +151,7 @@ MyTest::readParameters ()
     pp.query("max_iter", max_iter);
     pp.query("max_fmg_iter", max_fmg_iter);
     pp.query("reltol", reltol);
+    pp.query("bottom_reltol",bottom_reltol);
 
     pp.query("gpu_regtest", gpu_regtest);
 
@@ -153,6 +160,18 @@ MyTest::readParameters ()
     pp.query("semicoarsening", semicoarsening);
     pp.query("max_coarsening_level", max_coarsening_level);
     pp.query("max_semicoarsening_level", max_semicoarsening_level);
+
+#ifdef AMREX_USE_HYPRE
+    pp.query("use_hypre", use_hypre);
+    pp.query("hypre_interface", hypre_interface_i);
+    if (hypre_interface_i == 1) {
+        hypre_interface = Hypre::Interface::structed;
+    } else if (hypre_interface_i == 2) {
+        hypre_interface = Hypre::Interface::semi_structed;
+    } else {
+        hypre_interface = Hypre::Interface::ij;
+    }
+#endif
 }
 
 void
