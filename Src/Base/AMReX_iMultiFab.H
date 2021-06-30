@@ -431,6 +431,13 @@ public:
                       int             numcomp,
                       int             nghost);
 
+    static void Copy (iMultiFab&       dst,
+                      const iMultiFab& src,
+                      int             srccomp,
+                      int             dstcomp,
+                      int             numcomp,
+                      const IntVect&  nghost);
+
     /**
     * \brief Subtract src from dst including nghost ghost cells.
     * The two iMultiFabs MUST have the same underlying BoxArray.
@@ -508,6 +515,29 @@ public:
                          const MFInfo&              info = MFInfo(),
                          const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>()) override;
 #endif
+
+
+    /**
+    * \brief Sum values in overlapped cells.  The destination is limited to valid cells.
+    */
+    void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic());
+
+    void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
+
+    void SumBoundary_nowait (const Periodicity& period = Periodicity::NonPeriodic());
+
+    void SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
+
+    /**
+    * \brief Sum values in overlapped cells.  The destination is limited to valid + ngrow cells.
+    */
+    void SumBoundary (int scomp, int ncomp, IntVect const& ngrow,
+                      const Periodicity& period = Periodicity::NonPeriodic());
+
+    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& ngrow,
+                             const Periodicity& period = Periodicity::NonPeriodic());
+
+    void SumBoundary_finish ();
 
     static void Initialize ();
     static void Finalize ();

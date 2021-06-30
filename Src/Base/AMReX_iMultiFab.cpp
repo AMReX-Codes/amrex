@@ -52,6 +52,19 @@ iMultiFab::Copy (iMultiFab&       dst,
 }
 
 void
+iMultiFab::Copy (iMultiFab& dst, const iMultiFab& src,
+                 int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+// don't have to BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost));
+
+    BL_PROFILE("MultiFab::Copy()");
+
+    amrex::Copy(dst,src,srccomp,dstcomp,numcomp,nghost);
+}
+
+void
 iMultiFab::Subtract (iMultiFab&       dst,
                     const iMultiFab& src,
                     int             srccomp,
@@ -595,6 +608,68 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngr
 #endif
 
     return p;
+}
+
+void
+iMultiFab::SumBoundary (const Periodicity& period)
+{
+    SumBoundary(0, n_comp, IntVect(0), period);
+}
+
+void
+iMultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
+{
+    SumBoundary(scomp, ncomp, IntVect(0), period);
+}
+
+void
+iMultiFab::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
+{
+    BL_PROFILE("iMultiFab::SumBoundary()");
+
+    SumBoundary_nowait(scomp, ncomp, nghost, period);
+    SumBoundary_finish();
+}
+
+void
+iMultiFab::SumBoundary_nowait (const Periodicity& period)
+{
+    SumBoundary_nowait(0, n_comp, IntVect(0), period);
+}
+
+void
+iMultiFab::SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period)
+{
+    SumBoundary_nowait(scomp, ncomp, IntVect(0), period);
+}
+
+void
+iMultiFab::SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
+{
+    BL_PROFILE("iMultiFab::SumBoundary_nowait()");
+
+    if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) return;
+
+    iMultiFab* tmp = new iMultiFab( boxArray(), DistributionMap(), ncomp, n_grow, MFInfo(), Factory() );
+    iMultiFab::Copy(*tmp, *this, scomp, 0, ncomp, n_grow);
+    this->setVal(0.0, scomp, ncomp, nghost);
+    this->ParallelCopy_nowait(*tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
+
+    // All local. Operation complete.
+    if (!this->pcd) { delete tmp; }
+}
+
+void
+iMultiFab::SumBoundary_finish ()
+{
+    BL_PROFILE("iMultiFab::SumBoundary_finish()");
+
+    // If pcd doesn't exist, ParallelCopy was all local and operation was fully completed in "SumBoundary_nowait".
+    if ( (n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) || !(this->pcd) ) return;
+
+    FabArray<IArrayBox>* tmp = const_cast<FabArray<IArrayBox>*> (this->pcd->src);
+    this->ParallelCopy_finish();
+    delete tmp;
 }
 
 }
