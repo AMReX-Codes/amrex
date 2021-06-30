@@ -5,6 +5,7 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_LayoutData.H>
 #include <AMReX_Print.H>
+#include <AMReX_Reduce.H>
 #include <limits>
 
 namespace amrex {
