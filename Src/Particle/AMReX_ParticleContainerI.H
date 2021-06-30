@@ -728,85 +728,114 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     }
     if (aggregation_type == "Cell")
     {
-        BoxList bl_buffer;
-        bl_buffer.complementIn(Geom(level).Domain(), ParticleBoxArray(level));
-        BoxArray buffer(std::move(bl_buffer));
-        buffer.grow(aggregation_buffer);
+        //Components would be based on 
+        MultiFab mf;
+        int nComp = AMREX_SPACEDIM + NStructReal + NArrayReal;
+	// NArrayReal, NStructInt, NArrayInt behavior as before
+        int nGhost = 0;
+	mf.define(ParticleBoxArray(level), ParticleDistributionMap(level), nComp, nGhost);
 
-        for(ParConstIterType pti(*this, level); pti.isValid(); ++pti)
+	iMultiFab imf;
+	nComp = 1 + NStructInt + NArrayInt;
+        imf.define(ParticleBoxArray(level), ParticleDistributionMap(level), nComp, nGhost);
+
+        const auto& geom = Geom(level);
+        const auto plo = geom.ProbLoArray();
+        const auto dxi = geom.InvCellSizeArray();
+        const auto domain = geom.Domain();
+
+        amrex::ParticleToMesh(*this, mf, level,
+        [=] AMREX_GPU_DEVICE (const ParticleType& p,
+                              amrex::Array4<amrex::Real> const& partData)
         {
-            const auto& ptile = ParticlesAt(level, pti);
-            const auto& aos = pti.GetArrayOfStructs();
-            const auto src = ptile.getConstParticleTileData();
-
-            std::map<IntVect,SuperParticleType> agg_map;
-
-            for (int pindex = 0; pindex < ptile.numParticles(); ++pindex)
+            auto iv = getParticleCell(p, plo, dxi, domain);
+	    //if this cell has no mass, do a straight copy, otherwise scale it
+	    if(partData(iv,AMREX_SPACEDIM+0)==0)
             {
-                IntVect cell = Index(aos[pindex], level);
-                if (buffer.contains(cell))
-                {
-                    // It's in the no-aggregation buffer.
-                    // Set its id to indicate that it's a virt.
-                    SuperParticleType p = src.getSuperParticle(pindex);
-                    p.id() = VirtualParticleID;
-                    virts.push_back(p);
-                }
-                else
-                {
-                    //
-                    // Note that Cell aggregation assumes that p.rdata(0) is mass and
-                    // that all other components should be combined in a mass-weighted
-                    // average.
-                    //
-                    auto agg_map_it = agg_map.find(cell);
+	        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+		    amrex::Gpu::Atomic::AddNoRet(&partData(iv,i), p.pos(i));
+		for (int i = 0; i < NStructReal; ++i)
+		    amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), p.rdata(i));
+		for (int i = 0; i < NArrayReal; ++i)
+  		    amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+NStructReal+i), p.rdata(NstructReal+i));
+            }
+	    else
+            {
 
-                    if (agg_map_it == agg_map.end())
-                    {
-                        //
-                        // Add the particle.
-                        //
-                        SuperParticleType p = src.getSuperParticle(pindex);
-                        p.id() = VirtualParticleID;
-                        agg_map[cell] = p;
-                    }
-                    else
-                    {
-                        AMREX_ASSERT(agg_map_it != agg_map.end());
-                        const SuperParticleType&  pnew       = src.getSuperParticle(pindex);
-                        SuperParticleType&        pold       = agg_map_it->second;
-                        const Real           old_mass   = pold.rdata(0);
-                        const Real           new_mass   = pnew.rdata(0);
-                        const Real           total_mass = old_mass + new_mass;
-                        //
-                        // Set the position to the center of mass.
-                        //
-                        for (int i = 0; i < AMREX_SPACEDIM; i++)
-                        {
-                            pold.pos(i) = static_cast<ParticleReal>((old_mass*pold.pos(i) + new_mass*pnew.pos(i))/total_mass);
-                        }
-                        AMREX_ASSERT(this->Index(pold, level) == cell);
-                        //
-                        // Set the metadata (presumably velocity) to the mass-weighted average.
-                        //
-                        for (int i = 1; i < NStructReal; i++)
-                        {
-                            pold.rdata(i) = static_cast<ParticleReal>((old_mass*pold.rdata(i) + new_mass*pnew.rdata(i))/total_mass);
-                        }
-                        pold.rdata(0) = static_cast<ParticleReal>(total_mass);
-                    }
-                }
+   	        const Real           old_mass   = partData(iv,AMREX_SPACEDIM+0);
+		const Real           new_mass   = p.rdata(0);
+		const Real           total_mass = old_mass + new_mass;
+
+	        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+		    amrex::Gpu::Atomic::AddNoRet(&partData(iv,i), static_cast<ParticleReal>((old_mass*pold.pos(i) + new_mass*pnew.pos(i))/total_mass-old_mass));
+		for (int i = 1; i < NStructReal; ++i)
+		  amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<ParticleReal>((old_mass*pold.rdata(i) + new_mass*pnew.rdata(i))/total_mass-partData(iv,AMREX_SPACEDIM+i)));
+                for (int i = 0; i < 1; ++i)
+		  amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), static_cast<ParticleReal>(total_mass-partData(iv,AMREX_SPACEDIM+i)));
+	      
+	    }
+
+        }); //skipping extra false argument, doing mf.setVal(0) at beginning
+
+        amrex::ParticleToMesh(*this, imf, level,
+        [=] AMREX_GPU_DEVICE (const ParticleType& p,
+                              amrex::Array4<int> const& partData)
+        {
+            auto iv = getParticleCell(p, plo, dxi, domain);
+	    //if this cell has no particle id info, do a straight copy
+	    if(partData(iv,0)==0)
+            {
+                amrex::Gpu::Atomic::AddNoRet(&partData(iv,0), VirtualParticleID);
+                amrex::Gpu::Atomic::AddNoRet(&partData(iv,0), 1);
+		for (int i = 0; i < NStructInt; ++i)
+		    amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+i), p.idata(i));
+		for (int i = 0; i < NArrayInt; ++i)
+  		    amrex::Gpu::Atomic::AddNoRet(&partData(iv,AMREX_SPACEDIM+NStructInt+i), p.idata(NstructInt+i));
             }
 
-            //
-            // Add the aggregated particles to the virtuals.
-            //
-            for (const auto& agg_particle : agg_map)
-            {
-                virts.push_back(agg_particle.second);
-            }
-        }
+        });
+
+	//There may be a better way to ensure virts is the right length
+	///////////	virts.resize(imf.sum(0)/VirtualParticleID);
+	/////////// I don't know the right loop, since virts won't have the correct pos yet
+	Long sm = amrex::ReduceSum(mf, imf, nGhost,
+        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& mffab, Array4<int const> const& imffab) -> Long
+        {
+
+            return 1;
+        });
+	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+	{
+  	    const bx = mfi.tilebox();
+	    const auto mf_arr = mf.array(mfi);
+	    const auto imf_arr = imf.array(mfi);
+            Box grid = ParticleBoxArray(level)[mfi.index()];
+	    ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+			{
+
+			});
+
+	}
+  amrex::MeshToParticle(virts, mf, level,
+        [=] AMREX_GPU_DEVICE (ParticleContainer::ParticleType& p,
+                              amrex::Array4<const amrex::Real> const& partData)
+        {
+            amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
+	    amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
+	    amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
+
+	    int i = static_cast<int>(amrex::Math::floor(lx));
+	    int j = static_cast<int>(amrex::Math::floor(ly));
+	    int k = static_cast<int>(amrex::Math::floor(lz));
+	    for (int n = 0; n < AMREX_SPACEDIM; ++n)
+	      amrex::Gpu::Atomic::AddNoRet(&p.pos(n),partData(i,j,k,n));
+	    for (int n = 0; n < NStructReal; ++n)
+   	      amrex::Gpu::Atomic::AddNoRet(&p.rdata(n), partData(i,j,k,AMREX_SPACEDIM+n));
+	    for (int n = 0; n < NArrayReal; ++n)
+	      amrex::Gpu::Atomic::AddNoRet(&p.rdata(NStructReal+n), partData(i,j,k,AMREX_SPACEDIM+NStructReal+n));
+	});
     }
+			      
 }
 
 struct AssignGridFilter
