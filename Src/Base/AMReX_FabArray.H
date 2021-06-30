@@ -10,6 +10,7 @@
 #include <AMReX.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_BoxDomain.H>
+#include <AMReX_FabArrayUtility.H>
 #include <AMReX_FabFactory.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Geometry.H>
@@ -111,32 +112,6 @@ Long nBytesOwned (BaseFab<T> const& fab) noexcept { return fab.nBytesOwned(); }
 //
 // alloc: allocate memory or not
 //
-struct MFInfo {
-    bool    alloc = true;
-    Arena*  arena = nullptr;
-    Vector<std::string> tags;
-
-    MFInfo& SetAlloc (bool a) noexcept { alloc = a; return *this; }
-
-    MFInfo& SetArena (Arena* ar) noexcept { arena = ar; return *this; }
-
-    MFInfo& SetTag (const char* t) noexcept {
-        tags.emplace_back(t);
-        return *this;
-    }
-
-    MFInfo& SetTag (std::string t) noexcept {
-        tags.emplace_back(std::move(t));
-        return *this;
-    }
-
-    template <typename T, typename... Ts>
-    MFInfo& SetTag (T&& t, Ts&&... ts) noexcept {
-        tags.emplace_back(std::forward<T>(t));
-        return SetTag(std::forward<Ts>(ts)...);
-    }
-};
-
 struct TheFaArenaDeleter {
     using pointer = char*;
     void operator()(pointer p) const noexcept {
@@ -821,6 +796,23 @@ public:
     void FillBoundary_finish ();
 
     void FillBoundary_test ();
+
+    /**
+    * \brief Sum values in overlapped cells.  The destination is limited to valid cells.
+    */
+    void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary_nowait (const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
+
+    /**
+    * \brief Sum values in overlapped cells.  The destination is limited to valid + ngrow cells.
+    */
+    void SumBoundary (int scomp, int ncomp, IntVect const& ngrow,
+                      const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& ngrow,
+                             const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary_finish ();
 
     /** \brief Fill cells outside periodic domains with their corresponding cells inside
     * the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
@@ -2254,6 +2246,75 @@ void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 {
     FillBoundary_nowait(scomp, ncomp, nGrowVect(), Periodicity::NonPeriodic(), cross);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary (const Periodicity& period)
+{
+    SumBoundary(0, n_comp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary (int scomp, int ncomp, const Periodicity& period)
+{
+    SumBoundary(scomp, ncomp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
+{
+    BL_PROFILE("FabArray<FAB>::SumBoundary()");
+
+    SumBoundary_nowait(scomp, ncomp, nghost, period);
+    SumBoundary_finish();
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary_nowait (const Periodicity& period)
+{
+    SumBoundary_nowait(0, n_comp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period)
+{
+    SumBoundary_nowait(scomp, ncomp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
+{
+    BL_PROFILE("FabArray<FAB>::SumBoundary_nowait()");
+
+    if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) return;
+
+    FabArray<FAB>* tmp = new FabArray<FAB>( boxArray(), DistributionMap(), ncomp, n_grow, MFInfo(), Factory() );
+    amrex::Copy(*tmp, *this, scomp, 0, ncomp, n_grow);
+    this->setVal(0.0, scomp, ncomp, nghost);
+    this->ParallelCopy_nowait(*tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
+
+    // All local. Operation complete.
+    if (!this->pcd) { delete tmp; }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary_finish ()
+{
+    BL_PROFILE("FabArray<FAB>::SumBoundary_finish()");
+
+    // If pcd doesn't exist, ParallelCopy was all local and operation was fully completed in "SumBoundary_nowait".
+    if ( (n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) || !(this->pcd) ) return;
+
+    FabArray<FAB>* tmp = const_cast<FabArray<FAB>*> (this->pcd->src);
+    this->ParallelCopy_finish();
+    delete tmp;
 }
 
 template <class FAB>

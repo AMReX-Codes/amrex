@@ -1666,6 +1666,32 @@ prefetchToDevice (FabArray<FAB> const& fa, const bool synchronous = true)
 #endif
 }
 
+struct MFInfo {
+    bool    alloc = true;
+    Arena*  arena = nullptr;
+    Vector<std::string> tags;
+
+    MFInfo& SetAlloc (bool a) noexcept { alloc = a; return *this; }
+
+    MFInfo& SetArena (Arena* ar) noexcept { arena = ar; return *this; }
+
+    MFInfo& SetTag (const char* t) noexcept {
+        tags.emplace_back(t);
+        return *this;
+    }
+
+    MFInfo& SetTag (std::string t) noexcept {
+        tags.emplace_back(std::move(t));
+        return *this;
+    }
+
+    template <typename T, typename... Ts>
+    MFInfo& SetTag (T&& t, Ts&&... ts) noexcept {
+        tags.emplace_back(std::forward<T>(t));
+        return SetTag(std::forward<Ts>(ts)...);
+    }
+};
+
 template <class FAB, class IFAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value
                                                                && IsBaseFab<IFAB>::value> >
 void
