@@ -36,7 +36,7 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
     CUDA_ARCH = 80
 
     comm := ,
-    ifneq ($(BL_NO_FORT), TRUE)
+    ifneq ($(BL_NO_FORT),TRUE)
         LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell ftn --cray-print-opts=libs))
     else
         LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell CC --cray-print-opts=libs))
