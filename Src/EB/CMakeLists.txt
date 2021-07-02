@@ -50,6 +50,7 @@ target_sources(amrex
    AMReX_EB2_IF_Union.H
    AMReX_EB2_IF_Extrusion.H
    AMReX_EB2_IF_Difference.H
+   AMReX_EB2_IF_Parser.H
    AMReX_EB2_IF.H
    AMReX_EB2_IF_Base.H
    AMReX_distFcnElement.cpp

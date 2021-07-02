@@ -1,4 +1,65 @@
-# 21.05
+# 21.07
+
+  -- Parser: This can be used at runtime to evaluate math expressions given
+     by strings. It's ported from WarpX. (#2121, #2129, #2132)
+
+  -- Bug fix in neighbor particle list construction. (#2131)
+
+  -- Bug fix in multi-level nodal solver with non-uniform cell size. (#2126)
+
+  -- Add SENSEI Adaptor for Particles Containers (#2016)
+
+  -- Enhance DiffSameGrid2.cpp (#2114)
+
+  -- Don't rely on managed memory in ParticleCopyPlan (#2116)
+
+  -- HIP: Increase to C++17 (#2113)
+
+  -- Port remaining Fortran and CPU kernels in FluxRegister to GPU (#2112)
+
+  -- Reimplement partitionParticlesByDest (#2109)
+
+  -- Fix a bug in in-place ExclusiveSum (#2105)
+
+  -- Add AUTO_BUILD_SOURCES to the dependencies for GNU make (#2101)
+
+  -- Add a number of forward declaration headers (#2100)
+
+  -- CMake 3.20+ CUDA: Fast Math (#2094) Honor CUDA fast math option
+    `AMReX_CUDA_FASTMATH` (default: ON) in modernized CUDA CMake logic.
+
+  -- Remove VecReduce and FabReduce (#2091)
+
+  -- Fix indexes bug for particles output in GPU version of packIOData (#2087)
+
+  -- Remove deprecated Reduce functions (#2086)
+
+  -- Disable kernel fusing if gpu rdc is off. (#2083) Because the kernel
+     fusing depends on rdc.
+
+  -- ParallelFor for MultiFab/FabArray (#2073, #2089)
+
+  -- ParticleContainer-level reduction functions that work on tuples of data at once. (#2082)
+
+  -- AMReX_PROBINT: Depends on AMReX_AMRLEVEL (#2081)
+
+  -- Arena aliases (#2078)
+
+  -- CMake 3.20+ CUDA: Policy & Include (#2074)
+
+  -- GPU RDC Support (#2061)
+
+  -- Generalize fextract allowing to specify coords perpendicular to slicedir (#2035)
+
+  -- Add interface between sundials SUNMemory and the Arena (#1800)
+
+  -- Do not rely on managed memory in ParticleContainer::WriteAsciiFile (#2070)
+
+  -- Particle plotfile/checkpoint without managed memory. (#2063)
+
+  -- Support preprocessing of AMREX_SPACEDIM in input files. (#2049)
+
+# 21.06
 
   -- Add roctx ranges to TinyProfiler (#2057)
 
