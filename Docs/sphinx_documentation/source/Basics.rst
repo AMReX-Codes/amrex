@@ -2619,6 +2619,8 @@ want AMReX to handle this, ``ParmParse`` parameter
 `amrex.signal_handling=0` can be used to disable it.
 
 
+.. _sec:basics:debugging:
+
 Debugging
 =========
 

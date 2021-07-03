@@ -325,6 +325,10 @@ Enabling HIP support (experimental)
 To build AMReX with HIP support in CMake, add
 ``-DAMReX_GPU_BACKEND=HIP -DAMReX_AMD_ARCH=<target-arch> -DCMAKE_CXX_COMPILER=<your-hip-compiler>``
 to the ``cmake`` invocation.
+If you don't need Fortran features (``AMReX_FORTRAN=OFF``), it is recomended to use AMD's ``clang++`` as the HIP compiler.
+(Please see these issues for reference in rocm/HIP <= 4.2.0
+`[1] <https://github.com/ROCm-Developer-Tools/HIP/issues/2275>`__
+`[2] <https://github.com/AMReX-Codes/amrex/pull/2031>`__.)
 
 In AMReX CMake, the HIP compiler is treated as a special C++ compiler and therefore
 the standard CMake variables used to customize the compilation process for C++,
@@ -332,17 +336,18 @@ for example ``CMAKE_CXX_FLAGS``, can be used for HIP as well.
 
 
 Since CMake does not support autodetection of HIP compilers/target architectures
-yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``hipcc`` or ``nvcc``,
+yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``clang++`` or ``hipcc`` or ``nvcc``,
 and ``AMReX_AMD_ARCH`` to the target architecture you are building for.
 Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user-inputs when AMReX_GPU_BACKEND=HIP**.
-We again read also an *environment variable*: ``AMREX_AMD_ARCH`` (note: all caps).
+We again read also an *environment variable*: ``AMREX_AMD_ARCH`` (note: all caps) and the C++ compiler can be hinted as always, e.g. with ``export CXX=$(which clang++)``.
 Below is an example configuration for HIP on Tulip:
 
 .. highlight:: console
 
 ::
 
-   cmake -DAMReX_GPU_BACKEND=HIP -DCMAKE_CXX_COMPILER=$(which hipcc) -DAMReX_AMD_ARCH="gfx906,gfx908"  [other options] /path/to/amrex/source
+   cmake -S . -B build -DAMReX_GPU_BACKEND=HIP -DCMAKE_CXX_COMPILER=$(which clang++) -DAMReX_AMD_ARCH="gfx906;gfx908"  # [other options]
+   cmake --build build -j 6
 
 
 Enabling SYCL support (experimental)

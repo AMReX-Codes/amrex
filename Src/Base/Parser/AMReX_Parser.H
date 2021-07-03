@@ -50,9 +50,18 @@ struct ParserExecutor
 #endif
     }
 
-    char* m_host_executor;
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    explicit operator bool () const {
+#if AMREX_DEVICE_COMPILE
+        return m_device_executor != nullptr;
+#else
+        return m_host_executor != nullptr;
+#endif
+    }
+
+    char* m_host_executor = nullptr;
 #ifdef AMREX_USE_GPU
-    char* m_device_executor;
+    char* m_device_executor = nullptr;
 #endif
 };
 
