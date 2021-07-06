@@ -109,6 +109,7 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
             const auto& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE ( bx, i, j, k,
             {
+                amrex::ignore_unused(j,k);
                 mlpoisson_adotx_os(AMREX_D_DECL(i,j,k), yfab, xfab, osm,
                                    AMREX_D_DECL(dhx,dhy,dhz));
             });
@@ -133,11 +134,13 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
             if (m_has_metric_term) {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
                 {
+                    amrex::ignore_unused(k);
                     mlpoisson_adotx_m(i, j, yfab, xfab, dhx, dhy, dx, probxlo);
                 });
             } else {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
                 {
+                    amrex::ignore_unused(k);
                     mlpoisson_adotx(i, j, yfab, xfab, dhx, dhy);
                 });
             }
@@ -145,11 +148,13 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
             if (m_has_metric_term) {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
                 {
+                    amrex::ignore_unused(j,k);
                     mlpoisson_adotx_m(i, yfab, xfab, dhx, dx, probxlo);
                 });
             } else {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FUSIBLE (bx, i, j, k,
                 {
+                    amrex::ignore_unused(j,k);
                     mlpoisson_adotx(i, yfab, xfab, dhx);
                 });
             }

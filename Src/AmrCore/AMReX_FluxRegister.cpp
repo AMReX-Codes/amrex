@@ -6,12 +6,6 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
 
-#ifndef BL_NO_FORT
-#include <AMReX_FLUXREG_F.H>
-#endif
-
-#include <vector>
-
 namespace amrex {
 
 FluxRegister::FluxRegister ()
@@ -455,21 +449,25 @@ FluxRegister::FineSetVal (int              dir,
                           int              destcomp,
                           int              numcomp,
                           Real             val,
-                          RunOn           /*runon*/) noexcept
+                          RunOn            runon) noexcept
 {
-    Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
-
-    // This routine used by FLASH does NOT run on gpu for safety.
-
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
     BL_ASSERT(numcomp <= loreg.nComp());
-    loreg.setVal<RunOn::Host>(val, loreg.box(), destcomp, numcomp);
+    if ((runon == RunOn::Gpu) && Gpu::inLaunchRegion()) {
+        loreg.setVal<RunOn::Device>(val, loreg.box(), destcomp, numcomp);
+    } else {
+        loreg.setVal<RunOn::Host>(val, loreg.box(), destcomp, numcomp);
+    }
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
     BL_ASSERT(numcomp <= hireg.nComp());
-    hireg.setVal<RunOn::Host>(val, hireg.box(), destcomp, numcomp);
+    if ((runon == RunOn::Gpu) && Gpu::inLaunchRegion()) {
+        hireg.setVal<RunOn::Device>(val, hireg.box(), destcomp, numcomp);
+    } else {
+        hireg.setVal<RunOn::Host>(val, hireg.box(), destcomp, numcomp);
+    }
 }
 
 void
@@ -661,14 +659,11 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 #endif
 }
 
-#ifndef BL_NO_FORT
 void
 FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
                              Real scale, int srccomp, int destcomp, int numcomp,
                              const Geometry& crse_geom)
 {
-    Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
-
     BL_PROFILE("FluxRegister::OverwriteFlux()");
 
     const auto& cperiod = crse_geom.periodicity();
@@ -678,35 +673,61 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
         if (crse_geom.isPeriodic(idim)) cdomain.grow(idim, 1);
     }
 
-    // cell-centered mask: 0: coarse, 1: covered by fine, 2: phys bc
+    bool run_on_gpu = Gpu::inLaunchRegion();
+
+    // cell-centered mask:
+    constexpr int crse_cell = 0;
+    constexpr int fine_cell = 1; // covered by fine
+    constexpr int phbc_cell = 2;
     const BoxArray& cba = amrex::convert(crse_fluxes[0]->boxArray(), IntVect::TheCellVector());
     iMultiFab cc_mask(cba, crse_fluxes[0]->DistributionMap(), 1, 1);
     {
         const std::vector<IntVect>& pshifts = cperiod.shiftIntVect();
+        Vector<Array4BoxTag<int> > tags;
 
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (!run_on_gpu)
 #endif
         {
             std::vector< std::pair<int,Box> > isects;
 
             for (MFIter mfi(cc_mask); mfi.isValid(); ++mfi)
             {
-                IArrayBox& fab = cc_mask[mfi];
-                fab.setVal<RunOn::Host>(0);  // coarse by default
-                fab.setComplement<RunOn::Host>(2, cdomain, 0, 1); // phys bc
+                auto const& fab = cc_mask.array(mfi);
+                const Box& bx = mfi.fabbox();
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    if (cdomain.contains(i,j,k)) {
+                        fab(i,j,k) = crse_cell;
+                    } else {
+                        fab(i,j,k) = phbc_cell;
+                    }
+                });
 
-                const Box& bx = fab.box();
                 for (const auto& iv : pshifts)
                 {
                     grids.intersections(bx+iv, isects);
                     for (const auto& is : isects)
                     {
-                        fab.setVal<RunOn::Host>(1, is.second-iv, 0, 1);
+                        Box const& b = is.second-iv;
+                        if (run_on_gpu) {
+                            tags.push_back({fab,b});
+                        } else {
+                            cc_mask[mfi].setVal<RunOn::Host>(fine_cell, b, 0, 1);
+                        }
                     }
                 }
             }
         }
+
+#ifdef AMREX_USE_GPU
+        amrex::ParallelFor(tags, 1,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n,
+                              Array4BoxTag<int> const& tag) noexcept
+        {
+            tag.dfab(i,j,k,n) = fine_cell;
+        });
+#endif
     }
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -723,20 +744,42 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
         bndry[hi_face].plusTo(fine_flux, 0, srccomp, 0, numcomp, cperiod);
 
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel if (!run_on_gpu)
 #endif
-        for (MFIter mfi(crse_flux,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_flux,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            amrex_froverwrite_cfb(BL_TO_FORTRAN_BOX(bx),
-                                  BL_TO_FORTRAN_N_ANYD(crse_flux[mfi],destcomp),
-                                  BL_TO_FORTRAN_ANYD(fine_flux[mfi]),
-                                  BL_TO_FORTRAN_ANYD(cc_mask[mfi]),
-                                  &numcomp, &idim, &scale);
+            auto const& cflx = crse_flux[mfi].array(destcomp);
+            auto const& fflx = fine_flux[mfi].const_array();
+            auto const& msk = cc_mask[mfi].const_array();
+            if (idim == 0) {
+                AMREX_HOST_DEVICE_FOR_4D(bx, numcomp, i, j, k, n,
+                {
+                    if ( (msk(i-1,j,k) == crse_cell && msk(i,j,k) == fine_cell) ||
+                         (msk(i-1,j,k) == fine_cell && msk(i,j,k) == crse_cell) ) {
+                        cflx(i,j,k,n) = scale*fflx(i,j,k,n);
+                    }
+                });
+            } else if (idim == 1) {
+                AMREX_HOST_DEVICE_FOR_4D(bx, numcomp, i, j, k, n,
+                {
+                    if ( (msk(i,j-1,k) == crse_cell && msk(i,j,k) == fine_cell) ||
+                         (msk(i,j-1,k) == fine_cell && msk(i,j,k) == crse_cell) ) {
+                        cflx(i,j,k,n) = scale*fflx(i,j,k,n);
+                    }
+                });
+            } else if(idim == 2) {
+                AMREX_HOST_DEVICE_FOR_4D(bx, numcomp, i, j, k, n,
+                {
+                    if ( (msk(i,j,k-1) == crse_cell && msk(i,j,k) == fine_cell) ||
+                         (msk(i,j,k-1) == fine_cell && msk(i,j,k) == crse_cell) ) {
+                        cflx(i,j,k,n) = scale*fflx(i,j,k,n);
+                    }
+                });
+            }
         }
     }
 }
-#endif
 
 void
 FluxRegister::write (const std::string& name, std::ostream& os) const

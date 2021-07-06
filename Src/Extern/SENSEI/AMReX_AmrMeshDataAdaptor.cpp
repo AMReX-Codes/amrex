@@ -162,7 +162,7 @@ int AmrMeshDataAdaptor::GetMeshMetadata(unsigned int id,
     metadata->NumLevels = this->Internals->Mesh->finestLevel() + 1;
 
     // total number of blocks
-    for (unsigned int i = 0; i < metadata->NumLevels; ++i)
+    for (int i = 0; i < metadata->NumLevels; ++i)
     {
         int numBlocks = this->Internals->Mesh->boxArray(i).size();
         metadata->NumBlocks += numBlocks;
@@ -285,7 +285,7 @@ int AmrMeshDataAdaptor::GetMeshMetadata(unsigned int id,
 
     // gather per block metadata
     long gid = 0;
-    for (unsigned int i = 0; i < metadata->NumLevels; ++i)
+    for (int i = 0; i < metadata->NumLevels; ++i)
     {
         // domain decomp
         const amrex::DistributionMapping &dmap = this->Internals->Mesh->DistributionMap(i);
@@ -477,6 +477,8 @@ int AmrMeshDataAdaptor::GetMeshHasGhostCells(const std::string &meshName, int &n
 int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
     bool structureOnly, vtkDataObject *&mesh)
 {
+    amrex::ignore_unused(structureOnly);
+
     mesh = nullptr;
 
     if (meshName != "mesh")
@@ -494,7 +496,7 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
     int rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    unsigned int nLevels = this->Internals->Mesh->finestLevel() + 1;
+    int nLevels = this->Internals->Mesh->finestLevel() + 1;
 
     // initialize new vtk datasets
     vtkOverlappingAMR *amrMesh = vtkOverlappingAMR::New();
@@ -505,7 +507,7 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
 
     // num levels and blocks per level
     std::vector<int> nBlocks(nLevels);
-    for (unsigned int i = 0; i < nLevels; ++i)
+    for (int i = 0; i < nLevels; ++i)
         nBlocks[i] = this->Internals->Mesh->boxArray(i).size();
 
     amrMesh->Initialize(nLevels, nBlocks.data());
@@ -525,7 +527,7 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
     amrMesh->SetOrigin(origin);
 
     long gid = 0;
-    for (unsigned int i = 0; i < nLevels; ++i)
+    for (int i = 0; i < nLevels; ++i)
     {
         // domain decomp
         const amrex::DistributionMapping &dmap = this->Internals->Mesh->DistributionMap(i);
@@ -598,6 +600,9 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
 int AmrMeshDataAdaptor::AddGhostNodesArray(vtkDataObject *mesh,
     const std::string &meshName)
 {
+    amrex::ignore_unused(mesh);
+    amrex::ignore_unused(meshName);
+
     if (meshName != "mesh")
     {
         SENSEI_ERROR("no mesh named \"" << meshName << "\"")

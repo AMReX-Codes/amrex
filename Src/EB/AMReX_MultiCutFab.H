@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_FabArray.H>
+#include <AMReX_FArrayBox.H>
 #include <AMReX_EBCellFlag.H>
 
 namespace amrex {

@@ -437,7 +437,7 @@ contains
                enddo
                enddo
 
-#ifdef AMREX_DEBUG
+#if 0
                if (abs(sum_fine_new - sum_fine_old) .gt. 1.e-8) then
                   print *,' '
                   print *, &

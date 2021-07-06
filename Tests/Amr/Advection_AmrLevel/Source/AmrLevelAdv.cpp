@@ -222,7 +222,7 @@ Real
 AmrLevelAdv::advance (Real time,
                       Real dt,
                       int  iteration,
-                      int  ncycle)
+                      int  /*ncycle*/)
 {
     MultiFab& S_mm = get_new_data(Phi_Type);
     Real maxval = S_mm.max(0);
@@ -419,9 +419,9 @@ AmrLevelAdv::initialTimeStep ()
 //
 void
 AmrLevelAdv::computeInitialDt (int                   finest_level,
-                               int                   sub_cycle,
+                               int                   /*sub_cycle*/,
                                Vector<int>&           n_cycle,
-                               const Vector<IntVect>& ref_ratio,
+                               const Vector<IntVect>& /*ref_ratio*/,
                                Vector<Real>&          dt_level,
                                Real                  stop_time)
 {
@@ -463,9 +463,9 @@ AmrLevelAdv::computeInitialDt (int                   finest_level,
 //
 void
 AmrLevelAdv::computeNewDt (int                   finest_level,
-                           int                   sub_cycle,
+                           int                   /*sub_cycle*/,
                            Vector<int>&           n_cycle,
-                           const Vector<IntVect>& ref_ratio,
+                           const Vector<IntVect>& /*ref_ratio*/,
                            Vector<Real>&          dt_min,
                            Vector<Real>&          dt_level,
                            Real                  stop_time,
@@ -572,11 +572,13 @@ AmrLevelAdv::post_timestep (int iteration)
 //Do work after regrid().
 //
 void
-AmrLevelAdv::post_regrid (int lbase, int new_finest) {
+AmrLevelAdv::post_regrid (int lbase, int /*new_finest*/) {
 #ifdef AMREX_PARTICLES
   if (TracerPC && level == lbase) {
       TracerPC->Redistribute(lbase);
   }
+#else
+  amrex::ignore_unused(lbase);
 #endif
 }
 
@@ -599,7 +601,7 @@ AmrLevelAdv::post_restart()
 //Do work after init().
 //
 void
-AmrLevelAdv::post_init (Real stop_time)
+AmrLevelAdv::post_init (Real /*stop_time*/)
 {
     if (level > 0)
         return;
@@ -620,8 +622,8 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
                        int          clearval,
                        int          tagval,
                        Real         time,
-                       int          n_error_buf,
-                       int          ngrow)
+                       int          /*n_error_buf*/,
+                       int          /*ngrow*/)
 {
     const Real* dx        = geom.CellSize();
     const Real* prob_lo   = geom.ProbLo();
@@ -766,7 +768,7 @@ AmrLevelAdv::init_particles ()
 
       TracerPC = std::make_unique<AmrTracerParticleContainer>(parent);
 
-      AmrTracerParticleContainer::ParticleInitData pdata = {AMREX_D_DECL(0.0, 0.0, 0.0)};
+      AmrTracerParticleContainer::ParticleInitData pdata = {{AMREX_D_DECL(0.0, 0.0, 0.0)},{},{},{}};
 
       TracerPC->SetVerbose(0);
       TracerPC->InitOnePerCell(0.5, 0.5, 0.5, pdata);

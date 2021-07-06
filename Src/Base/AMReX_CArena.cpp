@@ -115,13 +115,15 @@ CArena::alloc (std::size_t nbytes)
 void
 CArena::free (void* vp)
 {
-    std::lock_guard<std::mutex> lock(carena_mutex);
-
-    if (vp == 0)
+    if (vp == 0) {
         //
         // Allow calls with NULL as allowed by C++ delete.
         //
         return;
+    }
+
+    std::lock_guard<std::mutex> lock(carena_mutex);
+
     //
     // `vp' had better be in the busy list.
     //

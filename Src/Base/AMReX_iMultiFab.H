@@ -431,6 +431,13 @@ public:
                       int             numcomp,
                       int             nghost);
 
+    static void Copy (iMultiFab&       dst,
+                      const iMultiFab& src,
+                      int             srccomp,
+                      int             dstcomp,
+                      int             numcomp,
+                      const IntVect&  nghost);
+
     /**
     * \brief Subtract src from dst including nghost ghost cells.
     * The two iMultiFabs MUST have the same underlying BoxArray.

@@ -1,3 +1,4 @@
+#include <AMReX_Config.H>
 
 #ifndef AMREX_XSDK
 

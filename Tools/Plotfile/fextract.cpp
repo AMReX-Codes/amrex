@@ -295,10 +295,10 @@ void main_main()
             disp.resize(numpts_vec.size());
             int ntot = 0;
             disp[0] = 0;
-            for (int i = 0; i < numpts_vec.size(); ++i) {
+            for (int i = 0, N = numpts_vec.size(); i < N; ++i) {
                 ntot += numpts_vec[i];
                 recvcnt[i] = numpts_vec[i];
-                if (i+1 < numpts_vec.size()) {
+                if (i+1 < N) {
                     disp[i+1] = disp[i] + numpts_vec[i];
                 }
             }

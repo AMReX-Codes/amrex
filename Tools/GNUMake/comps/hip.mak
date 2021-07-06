@@ -18,7 +18,7 @@ F90 = gfortran
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
 else
-  CXXSTD := c++14
+  CXXSTD := c++17
 endif
 
 # Generic flags, always used
@@ -84,7 +84,7 @@ ifeq ($(HIP_COMPILER),clang)
   CXXFLAGS += -Wno-pass-failed  # disable this warning
 
   ifeq ($(WARN_ALL),TRUE)
-    warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
+    warning_flags = -Wall -Wextra -Wunreachable-code -Wnull-dereference
     warning_flags += -Wfloat-conversion -Wextra-semi
 
     warning_flags += -Wpedantic
@@ -97,10 +97,10 @@ ifeq ($(HIP_COMPILER),clang)
     CFLAGS += $(warning_flags)
   endif
 
-#  ifeq ($(WARN_ERROR),TRUE)
-#    CXXFLAGS += -Werror
-#    CFLAGS += -Werror
-#  endif
+  ifeq ($(WARN_ERROR),TRUE)
+    CXXFLAGS += -Werror -Wno-deprecated-declarations -Wno-gnu-zero-variadic-macro-arguments
+    CFLAGS += -Werror
+  endif
 
   # Generic HIP info
   ROC_PATH=$(realpath $(dir $(HIP_PATH)))

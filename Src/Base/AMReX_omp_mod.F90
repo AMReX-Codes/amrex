@@ -1,14 +1,12 @@
-#ifdef BL_USE_OMP
+#include <AMReX_Config.H>
+
+#ifdef AMREX_USE_OMP
 
 module amrex_omp_module
 
   implicit none
 
-#ifdef AMREX_USE_OMP
   integer, parameter :: amrex_omp_support = (_OPENMP)
-#else
-  integer, parameter :: amrex_omp_support = 0 ! Should this be allowed??
-#endif
 
   integer, external :: omp_get_num_threads
   integer, external :: omp_get_max_threads

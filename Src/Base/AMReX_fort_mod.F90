@@ -1,3 +1,5 @@
+#include <AMReX_Config.H>
+
 module amrex_fort_module
 
   use iso_c_binding, only : c_char, c_short, c_int, c_long, c_long_long, c_float, c_double, c_size_t, c_ptr
@@ -7,7 +9,7 @@ module amrex_fort_module
   integer, parameter ::    bl_spacedim = AMREX_SPACEDIM
   integer, parameter :: amrex_spacedim = AMREX_SPACEDIM
 
-#ifdef BL_USE_FLOAT
+#ifdef AMREX_USE_FLOAT
   integer, parameter :: amrex_real = c_float
   ! We could/should use Fortran 2008 c_sizeof here.
   integer (kind=c_size_t), parameter :: amrex_real_size = 4_c_size_t

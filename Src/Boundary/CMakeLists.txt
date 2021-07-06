@@ -26,6 +26,7 @@ target_sources(amrex
    AMReX_YAFluxRegister_K.H
    AMReX_YAFluxRegister_${AMReX_SPACEDIM}D_K.H
    AMReX_YAFluxRegister.cpp
+   AMReX_BoundaryFwd.H
    )
 
 if (AMReX_FORTRAN)

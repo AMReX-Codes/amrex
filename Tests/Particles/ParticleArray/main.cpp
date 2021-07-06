@@ -53,7 +53,7 @@ void testLayout ()
     amrex::ParallelFor( particles.size(), [=] AMREX_GPU_DEVICE (int i) noexcept
     {
         auto&& p = particles[i];
-        AMREX_ALWAYS_ASSERT(p.x() == p.y() == p.z() == 1.0);
+        AMREX_ALWAYS_ASSERT((p.x() == 1.0) && (p.y() == 1.0) && (p.z() == 1.0));
     });
 }
 

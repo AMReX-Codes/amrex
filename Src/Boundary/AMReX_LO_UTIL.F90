@@ -37,7 +37,7 @@ contains
             num = num*(xInt - x(i))
             den = den*(x(j) - x(i))
          end do
-#ifdef AMREX_DEBUG
+#if 0
          if (den .eq. zero) STOP 'polyInterpCoeff::invalid data'
 #endif
          c(j) = num/den

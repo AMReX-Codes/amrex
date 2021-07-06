@@ -8,6 +8,8 @@ int MyMain();
 int main(int argc, char** argv) {
 #ifdef AMREX_USE_MPI
     MPI_Init(&argc, &argv);
+#else
+    amrex::ignore_unused(argc,argv);
 #endif
     // Let me throw exceptions for triggering my debugger
     amrex::Initialize(MPI_COMM_WORLD, std::cout, std::cerr, [](const char* msg) { throw std::runtime_error(msg); });
@@ -115,7 +117,6 @@ bool ParallelCopyFaceToFace(amrex::iMultiFab& dest, const amrex::Box& domain_des
         const amrex::Box section = dest_box & mfi.tilebox();
         if (section.isEmpty()) continue;
         auto darray = dest.const_array(mfi);
-        auto sarray = src.const_array(mfi);
         amrex::LoopOnCpu(section, [&](int i, int j, int k)
         {
             amrex::Dim3 si = dtos(amrex::Dim3{i,j,k});

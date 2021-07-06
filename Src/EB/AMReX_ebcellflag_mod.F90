@@ -1,3 +1,4 @@
+#include <AMReX_Config.H>
 
 module amrex_ebcellflag_module
   use amrex_fort_module, only : amrex_real

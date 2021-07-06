@@ -1,7 +1,7 @@
 #include <AMReX_AmrInSituBridge.H>
 
 #include <AMReX_Amr.H>
-#ifdef BL_USE_SENSEI_INSITU
+#ifdef AMREX_USE_SENSEI_INSITU
 #include <chrono>
 #include <AnalysisAdaptor.h>
 #include <Profiler.h>
@@ -14,7 +14,7 @@ int
 AmrInSituBridge::update(Amr *dataSource)
 {
     int ret = 0;
-#if defined(BL_USE_SENSEI_INSITU)
+#if defined(AMREX_USE_SENSEI_INSITU)
     if (doUpdate())
     {
         amrex::Print() << "SENSEI Begin update..." << std::endl;

@@ -331,7 +331,7 @@ contains
       integer icase
 
       if (MAX(lratiox,lratioy).gt.rMAX) then
-#ifdef AMREX_DEBUG
+#if 0
          print *,'rMAX in INTERP_2D::AMREX_PROTECT_INTERP must be >= ',MAX(lratiox,lratioy)
 #endif
          call bl_abort("rMAX in INTERP_2D")
@@ -551,7 +551,7 @@ contains
                enddo
                enddo
 
-#ifdef AMREX_DEBUG
+#if 0
                if (abs(crseTotnew - crseTot)/cvol .gt. 1.e-8) then
                   print *,' '
                   print *,'BLEW CONSERVATION with ICASE = ',icase

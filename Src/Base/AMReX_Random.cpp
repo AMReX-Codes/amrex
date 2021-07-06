@@ -12,13 +12,7 @@
 namespace
 {
     int nthreads;
-
     amrex::Vector<std::mt19937> generators;
-
-#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
-    AMREX_GPU_DEVICE int gpu_nstates_d;
-    AMREX_GPU_DEVICE amrex::randState_t* d_states_d_ptr;
-#endif
 }
 
 #ifdef AMREX_USE_GPU
@@ -26,7 +20,7 @@ namespace amrex {
 #ifdef AMREX_USE_DPCPP
     dpcpp_rng_descr* rand_engine_descr = nullptr;
 #else
-    amrex::randState_t* d_states_h_ptr = nullptr;
+    amrex::randState_t* gpu_rand_state = nullptr;
 #endif
 }
 #endif
@@ -51,23 +45,15 @@ void ResizeRandomSeed ()
 
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
-    d_states_h_ptr =  static_cast<randState_t*>(The_Arena()->alloc(N*sizeof(randState_t)));
-
-    randState_t* d_states_h_ptr_local = d_states_h_ptr;
-
-    amrex::single_task([=] AMREX_GPU_DEVICE () noexcept
-    {
-        d_states_d_ptr = d_states_h_ptr_local;
-        gpu_nstates_d = N;
-    });
-
+    gpu_rand_state =  static_cast<randState_t*>(The_Arena()->alloc(N*sizeof(randState_t)));
+    randState_t* gpu_rand_state_local = gpu_rand_state;
     const int MyProc = amrex::ParallelDescriptor::MyProc();
     amrex::ParallelFor(N, [=] AMREX_GPU_DEVICE (int idx) noexcept
     {
         amrex::ULong seed = MyProc*1234567ULL + 12345ULL ;
         int seqstart = idx + 10 * idx ;
-        AMREX_HIP_OR_CUDA( hiprand_init(seed, seqstart, 0, &d_states_d_ptr[idx]);,
-                            curand_init(seed, seqstart, 0, &d_states_d_ptr[idx]); )
+        AMREX_HIP_OR_CUDA( hiprand_init(seed, seqstart, 0, &gpu_rand_state_local[idx]);,
+                            curand_init(seed, seqstart, 0, &gpu_rand_state_local[idx]); )
     });
 #endif
 
@@ -201,10 +187,10 @@ amrex::DeallocateRandomSeedDevArray ()
         rand_engine_descr = nullptr;
     }
 #else
-    if (d_states_h_ptr != nullptr)
+    if (gpu_rand_state != nullptr)
     {
-        The_Arena()->free(d_states_h_ptr);
-        d_states_h_ptr = nullptr;
+        The_Arena()->free(gpu_rand_state);
+        gpu_rand_state = nullptr;
     }
 #endif
 #endif

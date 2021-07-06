@@ -2,7 +2,7 @@
 
 #include <AMReX_ParmParse.H>
 
-#ifdef BL_USE_SENSEI_INSITU
+#ifdef AMREX_USE_SENSEI_INSITU
 #include <chrono>
 #include <DataAdaptor.h>
 #include <AnalysisAdaptor.h>
@@ -18,12 +18,12 @@ InSituBridge::InSituBridge() :
 #if defined(BL_USE_MPI)
     comm(MPI_COMM_NULL),
 #endif
-#if defined(BL_USE_SENSEI_INSITU)
+#if defined(AMREX_USE_SENSEI_INSITU)
     analysis_adaptor(nullptr),
 #endif
     enabled(0), frequency(1), counter(0), pinMesh(0)
 {
-#if defined(BL_USE_SENSEI_INSITU)
+#if defined(AMREX_USE_SENSEI_INSITU)
     sensei::Profiler::Initialize();
     sensei::Profiler::StartEvent("InSituBridge::LifeTime");
 #endif
@@ -31,7 +31,7 @@ InSituBridge::InSituBridge() :
 
 InSituBridge::~InSituBridge()
 {
-#if defined(BL_USE_SENSEI_INSITU)
+#if defined(AMREX_USE_SENSEI_INSITU)
     if (analysis_adaptor)
         analysis_adaptor->Delete();
     sensei::Profiler::EndEvent("InSituBridge::LifeTime");
@@ -42,7 +42,7 @@ InSituBridge::~InSituBridge()
 int
 InSituBridge::initialize()
 {
-#if defined(BL_USE_SENSEI_INSITU)
+#if defined(AMREX_USE_SENSEI_INSITU)
     auto t0 = std::chrono::high_resolution_clock::now();
     sensei::TimeEvent<64> event("InSituBridge::initialize");
 
@@ -115,7 +115,7 @@ int
 InSituBridge::finalize()
 {
     int ret = 0;
-#if defined(BL_USE_SENSEI_INSITU)
+#if defined(AMREX_USE_SENSEI_INSITU)
     if (!analysis_adaptor)
         return ret;
 

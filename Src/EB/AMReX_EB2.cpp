@@ -7,6 +7,7 @@
 #include <AMReX_EB2_IF_Sphere.H>
 #include <AMReX_EB2_IF_Torus.H>
 #include <AMReX_EB2_IF_Spline.H>
+#include <AMReX_EB2_IF_Parser.H>
 #include <AMReX_EB2_GeometryShop.H>
 #include <AMReX_EB2.H>
 #include <AMReX_ParmParse.H>
@@ -174,6 +175,17 @@ Build (const Geometry& geom, int required_coarsening_level,
         EB2::TorusIF sf(large_radius, small_radius, center, has_fluid_inside);
 
         EB2::GeometryShop<EB2::TorusIF> gshop(sf);
+        EB2::Build(gshop, geom, required_coarsening_level,
+                   max_coarsening_level, ngrow, build_coarse_level_by_coarsening);
+    }
+    else if (geom_type == "parser")
+    {
+        std::string fn_string;
+        pp.get("parser_function", fn_string);
+        Parser parser(fn_string);
+        parser.registerVariables({"x","y","z"});
+        EB2::ParserIF pif(parser.compile<3>());
+        EB2::GeometryShop<EB2::ParserIF,Parser> gshop(pif,parser);
         EB2::Build(gshop, geom, required_coarsening_level,
                    max_coarsening_level, ngrow, build_coarse_level_by_coarsening);
     }

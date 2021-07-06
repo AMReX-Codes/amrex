@@ -79,10 +79,10 @@ int DescriptorMap::Initialize(const DescriptorList &descriptors)
 }
 
 // return the number of levels currently in use
-unsigned int NumActiveLevels(
+int NumActiveLevels(
     amrex::Vector<std::unique_ptr<amrex::AmrLevel>> &levels)
 {
-    unsigned int nLevels = levels.size();
+    int nLevels = levels.size();
     for (int i = 0; i < nLevels; ++i)
     {
         if (!levels[i])
@@ -99,11 +99,11 @@ template <typename n_t>
 int GenerateMasks(amrex::Vector<std::unique_ptr<amrex::AmrLevel>> &levels,
     std::vector<std::vector<n_t*>> &masks)
 {
-    unsigned int nLevels = InSituUtils::NumActiveLevels(levels);
+    int nLevels = InSituUtils::NumActiveLevels(levels);
 
     masks.resize(nLevels);
 
-    for (unsigned int i = 0; i < nLevels; ++i)
+    for (int i = 0; i < nLevels; ++i)
     {
         // allocate mask arrays
         const amrex::BoxArray &boxes = levels[i]->boxArray();
@@ -124,8 +124,8 @@ int GenerateMasks(amrex::Vector<std::unique_ptr<amrex::AmrLevel>> &levels,
     }
 
     // loop over coarse levels
-    unsigned int nCoarseLevels = nLevels - 1;
-    for (unsigned int i = 0; i < nCoarseLevels; ++i)
+    int nCoarseLevels = nLevels - 1;
+    for (int i = 0; i < nCoarseLevels; ++i)
     {
         int ii = i + 1;
 
@@ -216,10 +216,10 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
     sensei::TimeEvent<64> event("AmrDataAdaptor::GetMeshMetadata");
 
     if (id != 0)
-      {
-      SENSEI_ERROR("invalid mesh id " << id)
-      return -1;
-      }
+    {
+        SENSEI_ERROR("invalid mesh id " << id)
+        return -1;
+    }
 
     // AMR data is always expected to be a global view
     metadata->GlobalView = true;
@@ -242,7 +242,7 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
     metadata->NumLevels = InSituUtils::NumActiveLevels(levels);
 
     metadata->NumBlocks = 0;
-    for (unsigned int i = 0; i < metadata->NumLevels; ++i)
+    for (int i = 0; i < metadata->NumLevels; ++i)
     {
         unsigned long nb = levels[i]->boxArray().size();
         metadata->NumBlocks += nb;
@@ -345,7 +345,7 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
 
     // per-level and per-block metadata
     long gid = 0;
-    for (unsigned int i = 0; i < metadata->NumLevels; ++i)
+    for (int i = 0; i < metadata->NumLevels; ++i)
     {
         // domain decomp
         const amrex::DistributionMapping &dmap = levels[i]->DistributionMap();
@@ -438,7 +438,7 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
                     amrex::MultiFab &state = levels[i]->get_new_data(k);
 
                     int ncomp = desc.nComp();
-                    IndexType itype = desc.getType();
+                    //IndexType itype = desc.getType();
 
                     if (state[j].box().ixType() == amrex::IndexType::TheCellType())
                     {
@@ -605,6 +605,8 @@ int AmrDataAdaptor::GetArrayName(const std::string &meshName,
 int AmrDataAdaptor::GetMesh(const std::string &meshName,
     bool structureOnly, vtkDataObject *&mesh)
 {
+    amrex::ignore_unused(structureOnly);
+
     sensei::TimeEvent<64> event("AmrDataAdaptor::GetMesh");
 
     mesh = nullptr;
@@ -817,6 +819,9 @@ int AmrDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
 int AmrDataAdaptor::AddGhostNodesArray(vtkDataObject *mesh,
     const std::string &meshName)
 {
+    amrex::ignore_unused(mesh);
+    amrex::ignore_unused(meshName);
+
     sensei::TimeEvent<64> event("AmrDataAdaptor::AddGhostNodesArray");
 
     if (meshName != "mesh")

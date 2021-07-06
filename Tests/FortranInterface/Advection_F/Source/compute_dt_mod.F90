@@ -1,3 +1,5 @@
+#include <AMReX_Config.H>
+
 module compute_dt_module
 
   use amrex_amr_module

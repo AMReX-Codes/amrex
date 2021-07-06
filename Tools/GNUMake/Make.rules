@@ -194,7 +194,7 @@ FORCE:
 #
 # Rules for objects.
 #
-$(objEXETempDir)/%.o: %.cpp $(srcTempDir)/AMReX_Config.H
+$(objEXETempDir)/%.o: %.cpp $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.cpp ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(LOG_BUILD_TIME),TRUE)
@@ -206,7 +206,7 @@ ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
-$(objEXETempDir)/%.o: %.c $(srcTempDir)/AMReX_Config.H
+$(objEXETempDir)/%.o: %.c $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.c ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(LOG_BUILD_TIME),TRUE)
@@ -230,7 +230,7 @@ ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
-$(objEXETempDir)/%.o: %.F $(srcTempDir)/AMReX_Config.H
+$(objEXETempDir)/%.o: %.F $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.F ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
@@ -256,7 +256,7 @@ ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
 
-$(objEXETempDir)/%.o: %.F90 $(srcTempDir)/AMReX_Config.H
+$(objEXETempDir)/%.o: %.F90 $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Compiling $*.F90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(LOG_BUILD_TIME),TRUE)
@@ -272,7 +272,7 @@ endif
 # Rules for dependencies in bare object files.
 #
 
-$(depEXETempDir)/%.d: %.cpp $(srcTempDir)/AMReX_Config.H
+$(depEXETempDir)/%.d: %.cpp $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
@@ -285,7 +285,7 @@ else
 endif
 	@$(SHELL) -ec 'sed -i -e '\''s,$*\.o,$(objEXETempDir)/& $@,g'\'' $@'
 
-$(depEXETempDir)/%.d: %.c $(srcTempDir)/AMReX_Config.H
+$(depEXETempDir)/%.d: %.c $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 ifeq ($(USE_DPCPP),TRUE)
@@ -329,14 +329,14 @@ endif
 # The final result is `$(objEXETempDir)/x.o $(depEXETempDir)/x.d: /path/to/y.cpp`.
 #
 
-$(depEXETempDir)/%.d: %.F $(srcTempDir)/AMReX_Config.H
+$(depEXETempDir)/%.d: %.F $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*\.o,$(objEXETempDir)/& $@,'\'' > $@'
 
-$(depEXETempDir)/%.d: %.f $(srcTempDir)/AMReX_Config.H
+$(depEXETempDir)/%.d: %.f $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
@@ -345,7 +345,7 @@ $(depEXETempDir)/%.d: %.f $(srcTempDir)/AMReX_Config.H
 
 DEP_CHECK_OPTS :=
 
-$(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) $(srcTempDir)/AMReX_Config.H
+$(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) $(srcTempDir)/AMReX_Config.H $(AUTO_BUILD_SOURCES)
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi

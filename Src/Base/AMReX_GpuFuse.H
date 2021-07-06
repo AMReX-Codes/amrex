@@ -16,7 +16,7 @@ namespace Gpu {
 
 #ifdef AMREX_USE_GPU
 
-#if defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION))
+#if defined(AMREX_USE_GPU_RDC) && (defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(AMREX_HIP_INDIRECT_FUNCTION)))
 
 typedef void (*Lambda1DLauncher)(char*,int);
 typedef void (*Lambda3DLauncher)(char*,int,int,int);

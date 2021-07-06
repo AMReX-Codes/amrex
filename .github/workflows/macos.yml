@@ -3,7 +3,8 @@ name: macos
 on: [push, pull_request]
 
 env:
-  CXXFLAGS: "-Werror -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -fno-operator-names"
+  # -Wno-range-loop-analysis: Apple clang has a bug in range-loop-analysis
+  CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-c++17-extensions -Wno-range-loop-analysis"
 
 jobs:
   # Build libamrex and all tests

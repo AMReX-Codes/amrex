@@ -44,10 +44,10 @@ namespace amrex
     using randState_t = curandState_t;
 #endif
 
-    extern randState_t* d_states_h_ptr;
+    extern randState_t* gpu_rand_state;
 
     AMREX_FORCE_INLINE
-    randState_t* getRandState () { return d_states_h_ptr; }
+    randState_t* getRandState () { return gpu_rand_state; }
 
     struct RandomEngine {
         randState_t* rand_state;

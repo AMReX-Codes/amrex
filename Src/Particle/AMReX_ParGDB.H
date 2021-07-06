@@ -51,7 +51,8 @@ public:
 
     virtual Vector<IntVect> refRatio () const = 0;
 
-    bool OnSameGrids (int level, const MultiFab& mf) const;
+    template <class MF>
+    bool OnSameGrids (int level, const MF& mf) const;
 };
 
 //
@@ -125,9 +126,9 @@ protected:
     int                         m_nlevels;
 };
 
-inline
+template <class MF>
 bool
-ParGDBBase::OnSameGrids (int level, const MultiFab& mf) const
+ParGDBBase::OnSameGrids (int level, const MF& mf) const
 {
     return (mf.DistributionMap() == ParticleDistributionMap(level) &&
             mf.boxArray().CellEqual(ParticleBoxArray(level)));

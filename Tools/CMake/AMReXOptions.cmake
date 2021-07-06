@@ -188,7 +188,7 @@ set(_GPU_RDC_default ON)
 if(AMReX_CUDA AND DEFINED CMAKE_CUDA_SEPARABLE_COMPILATION)
     set(_GPU_RDC_default "${CMAKE_CUDA_SEPARABLE_COMPILATION}")
 endif()
-cmake_dependent_option( AMReX_GPU_RDC "Enable GPU RDC" ${_GPU_RDC_default}
+cmake_dependent_option( AMReX_GPU_RDC "Enable Relocatable Device Code" ${_GPU_RDC_default}
    "AMReX_CUDA OR AMReX_HIP" OFF)
 unset(_GPU_RDC_default)
 print_option(AMReX_GPU_RDC)
@@ -252,6 +252,11 @@ endif ()
 # sensei
 option( AMReX_SENSEI "Enable SENSEI in situ infrastructure" OFF )
 print_option( AMReX_SENSEI )
+
+cmake_dependent_option( AMReX_NO_SENSEI_AMR_INST
+   "Disables the SENSEI instrumentation in amrex::Amr" FALSE
+   "AMReX_SENSEI" FALSE )
+print_option( AMReX_NO_SENSEI_AMR_INST )
 
 # Conduit (requires CONDUIT_DIR)
 option( AMReX_CONDUIT "Enable Conduit support" OFF )
@@ -375,6 +380,7 @@ print_option(AMReX_DIFFERENT_COMPILER)
 if (BUILD_SHARED_LIBS AND NOT (CMAKE_SYSTEM_NAME STREQUAL "Linux") )
    option(AMReX_PROBINIT "Enable support for probin file" OFF)
 else ()
-   option(AMReX_PROBINIT "Enable support for probin file" ON)
+   cmake_dependent_option(AMReX_PROBINIT "Enable support for probin file" ON
+       "AMReX_AMRLEVEL" OFF)
 endif ()
 print_option(AMReX_PROBINIT)

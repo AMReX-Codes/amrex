@@ -25,6 +25,7 @@
 #include <AMReX_TypeTraits.H>
 #include <AMReX_LayoutData.H>
 #include <AMReX_BaseFabUtility.H>
+#include <AMReX_MFParallelFor.H>
 
 #include <AMReX_Gpu.H>
 
@@ -194,6 +195,57 @@ struct PCData {
     Vector<MPI_Request> send_reqs;
 
 };
+
+template <typename T>
+struct MultiArray4
+{
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Array4<T> const& operator[] (int li) const noexcept {
+#if AMREX_DEVICE_COMPILE
+        return dp[li];
+#else
+        return hp[li];
+#endif
+    }
+
+#ifdef AMREX_USE_GPU
+    Array4<T>* dp = nullptr;
+#endif
+    Array4<T>* hp = nullptr;
+};
+
+template <class FAB> class FabArray;
+
+template <class FAB,
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+void
+Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+template <class FAB,
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+void
+Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        if (bx.ok())
+        {
+            auto const srcFab = src.array(mfi);
+            auto       dstFab = dst.array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
+            {
+                dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
+            });
+        }
+    }
+}
 
 template <class FAB>
 class FabArray
@@ -399,6 +451,15 @@ public:
     //
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     Array4<typename FabArray<FAB>::value_type const> const_array (int K, int start_comp) const noexcept;
+
+    template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
+    MultiArray4<typename FabArray<FAB>::value_type> arrays () noexcept;
+
+    template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
+    MultiArray4<typename FabArray<FAB>::value_type const> arrays () const noexcept;
+
+    template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
+    MultiArray4<typename FabArray<FAB>::value_type const> const_arrays () const noexcept;
 
     //! Explicitly set the Kth FAB in the FabArray to point to elem.
     void setFab (int K, std::unique_ptr<FAB> elem);
@@ -794,6 +855,23 @@ public:
 
     void FillBoundary_test ();
 
+    /**
+    * \brief Sum values in overlapped cells.  The destination is limited to valid cells.
+    */
+    void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary_nowait (const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
+
+    /**
+    * \brief Sum values in overlapped cells.  The destination is limited to valid + ngrow cells.
+    */
+    void SumBoundary (int scomp, int ncomp, IntVect const& ngrow,
+                      const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& ngrow,
+                             const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary_finish ();
+
     /** \brief Fill cells outside periodic domains with their corresponding cells inside
     * the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
     * is allowed to be overlapping.
@@ -903,6 +981,13 @@ protected:
     //! The data.
     std::vector<FAB*> m_fabs_v;
 
+#ifdef AMREX_USE_GPU
+    mutable void* m_dp_arrays = nullptr;
+#endif
+    mutable void* m_hp_arrays = nullptr;
+    mutable MultiArray4<value_type> m_arrays;
+    mutable MultiArray4<value_type const> m_const_arrays;
+
     Vector<std::string> m_tags;
 
     //! for shared memory
@@ -966,6 +1051,9 @@ private:
                     const Vector<std::string>& tags);
 
     void setFab_assert (int K, FAB const& fab) const;
+
+    template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
+    void build_arrays () const;
 
 public:
 
@@ -1207,6 +1295,63 @@ FabArray<FAB>::const_array (int K, int start_comp) const noexcept
 }
 
 template <class FAB>
+template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type>
+MultiArray4<typename FabArray<FAB>::value_type>
+FabArray<FAB>::arrays () noexcept
+{
+    build_arrays();
+    return m_arrays;
+}
+
+template <class FAB>
+template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type>
+MultiArray4<typename FabArray<FAB>::value_type const>
+FabArray<FAB>::arrays () const noexcept
+{
+    build_arrays();
+    return m_const_arrays;
+}
+
+template <class FAB>
+template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type>
+MultiArray4<typename FabArray<FAB>::value_type const>
+FabArray<FAB>::const_arrays () const noexcept
+{
+    build_arrays();
+    return m_const_arrays;
+}
+
+template <class FAB>
+template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type>
+void
+FabArray<FAB>::build_arrays () const
+{
+    using A = Array4<value_type>;
+    using AC = Array4<value_type const>;
+    static_assert(sizeof(A) == sizeof(AC), "sizeof(Array4<T>) != sizeof(Array4<T const>)");
+    if (!m_hp_arrays && local_size() > 0) {
+        const int n = local_size();
+#ifdef AMREX_USE_GPU
+        m_hp_arrays = (void*)The_Pinned_Arena()->alloc(n*2*sizeof(A));
+        m_dp_arrays = (void*)The_Arena()->alloc(n*2*sizeof(A));
+#else
+        m_hp_arrays = (void*)std::malloc(n*2*sizeof(A));
+#endif
+        for (int li = 0; li < n; ++li) {
+            new ((A*)m_hp_arrays+li) A(m_fabs_v[li]->array());
+            new ((AC*)m_hp_arrays+li+n) AC(m_fabs_v[li]->const_array());
+        }
+        m_arrays.hp = (A*)m_hp_arrays;
+        m_const_arrays.hp = (AC*)m_hp_arrays + n;
+#ifdef AMREX_USE_GPU
+        m_arrays.dp = (A*)m_dp_arrays;
+        m_const_arrays.dp = (AC*)m_dp_arrays + n;
+        Gpu::htod_memcpy(m_dp_arrays, m_hp_arrays, n*2*sizeof(A));
+#endif
+    }
+}
+
+template <class FAB>
 AMREX_NODISCARD
 FAB*
 FabArray<FAB>::release (int K)
@@ -1262,6 +1407,14 @@ FabArray<FAB>::clear ()
         }
     }
     m_fabs_v.clear();
+#ifdef AMREX_USE_GPU
+    The_Pinned_Arena()->free(m_hp_arrays);
+    The_Arena()->free(m_dp_arrays);
+    m_dp_arrays = nullptr;
+#else
+    std::free(m_hp_arrays);
+#endif
+    m_hp_arrays = nullptr;
     m_factory.reset();
     m_dallocator.m_arena = nullptr;
     // no need to clear the non-blocking fillboundary stuff
@@ -1368,6 +1521,10 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     , m_dallocator (std::move(rhs.m_dallocator))
     , define_function_called(rhs.define_function_called)
     , m_fabs_v     (std::move(rhs.m_fabs_v))
+#ifdef AMREX_USE_GPU
+    , m_dp_arrays  (std::exchange(rhs.m_dp_arrays, nullptr))
+#endif
+    , m_hp_arrays  (std::exchange(rhs.m_hp_arrays, nullptr))
     , m_tags       (std::move(rhs.m_tags))
     , shmem        (std::move(rhs.shmem))
     // no need to worry about the data used in non-blocking FillBoundary.
@@ -1391,6 +1548,10 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
         m_dallocator = std::move(rhs.m_dallocator);
         define_function_called = rhs.define_function_called;
         std::swap(m_fabs_v, rhs.m_fabs_v);
+#ifdef AMREX_USE_GPU
+        std::swap(m_dp_arrays, rhs.m_dp_arrays);
+#endif
+        std::swap(m_hp_arrays, rhs.m_hp_arrays);
         std::swap(m_tags, rhs.m_tags);
         shmem = std::move(rhs.shmem);
 
@@ -2143,6 +2304,75 @@ void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 {
     FillBoundary_nowait(scomp, ncomp, nGrowVect(), Periodicity::NonPeriodic(), cross);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary (const Periodicity& period)
+{
+    SumBoundary(0, n_comp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary (int scomp, int ncomp, const Periodicity& period)
+{
+    SumBoundary(scomp, ncomp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
+{
+    BL_PROFILE("FabArray<FAB>::SumBoundary()");
+
+    SumBoundary_nowait(scomp, ncomp, nghost, period);
+    SumBoundary_finish();
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary_nowait (const Periodicity& period)
+{
+    SumBoundary_nowait(0, n_comp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period)
+{
+    SumBoundary_nowait(scomp, ncomp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
+{
+    BL_PROFILE("FabArray<FAB>::SumBoundary_nowait()");
+
+    if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) return;
+
+    FabArray<FAB>* tmp = new FabArray<FAB>( boxArray(), DistributionMap(), ncomp, n_grow, MFInfo(), Factory() );
+    amrex::Copy(*tmp, *this, scomp, 0, ncomp, n_grow);
+    this->setVal(0.0, scomp, ncomp, nghost);
+    this->ParallelCopy_nowait(*tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
+
+    // All local. Operation complete.
+    if (!this->pcd) { delete tmp; }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary_finish ()
+{
+    BL_PROFILE("FabArray<FAB>::SumBoundary_finish()");
+
+    // If pcd doesn't exist, ParallelCopy was all local and operation was fully completed in "SumBoundary_nowait".
+    if ( (n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) || !(this->pcd) ) return;
+
+    FabArray<FAB>* tmp = const_cast<FabArray<FAB>*> (this->pcd->src);
+    this->ParallelCopy_finish();
+    delete tmp;
 }
 
 template <class FAB>

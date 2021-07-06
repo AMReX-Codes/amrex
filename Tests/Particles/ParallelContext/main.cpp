@@ -175,7 +175,6 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            const Geometry& geom = Geom(lev);
             const auto dx = Geom(lev).CellSizeArray();
             auto& plev  = GetParticles(lev);
 
@@ -234,8 +233,6 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            const Geometry& geom = Geom(lev);
-            const auto dx = Geom(lev).CellSizeArray();
             auto& plev  = GetParticles(lev);
 
             for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)

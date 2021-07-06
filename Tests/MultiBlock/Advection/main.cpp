@@ -12,6 +12,8 @@ void MyMain();
 int main(int argc, char** argv) {
 #ifdef AMREX_USE_MPI
     MPI_Init(&argc, &argv);
+#else
+    amrex::ignore_unused(argc,argv);
 #endif
     // Let me throw exceptions for triggering my debugger
     amrex::Initialize(MPI_COMM_WORLD, std::cout, std::cerr, [](const char* msg) { throw std::runtime_error(msg); });

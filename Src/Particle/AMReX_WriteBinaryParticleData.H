@@ -183,7 +183,6 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
         int num_copies = Scan::ExclusiveSum(np_tile, pflags.begin(), offsets.begin(), Scan::retSum);
 
         const auto flag_ptr = pflags.data();
-        const auto offsets_ptr = offsets.data();
 
         auto idata_d_ptr = idata_d.data();
         auto rdata_d_ptr = rdata_d.data();
@@ -199,19 +198,25 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
                 std::size_t iout_index = (pindex+poffset)*iChunkSize;
                 idata_d_ptr[iout_index] = p.id();
                 idata_d_ptr[iout_index+1] = p.cpu();
+                iout_index += 2;
 
                 std::size_t rout_index = (pindex+poffset)*rChunkSize;
-                for (int j = 0; j < AMREX_SPACEDIM; j++) rdata_d_ptr[rout_index+j] = p.pos(j);
+                for (int j = 0; j < AMREX_SPACEDIM; j++) {
+                  rdata_d_ptr[rout_index] = p.pos(j);
+                  rout_index++;
+                }
 
                 for (int j = 0; j < PC::SuperParticleType::NInt; j++) {
                     if (write_int_comp_d_ptr[j]) {
-                        idata_d_ptr[iout_index+2+j] = p.idata(j);
+                        idata_d_ptr[iout_index] = p.idata(j);
+                        iout_index++;
                     }
                 }
 
                 for (int j = 0; j < PC::SuperParticleType::NReal; j++) {
                     if (write_real_comp_d_ptr[j]) {
-                        rdata_d_ptr[rout_index+AMREX_SPACEDIM+j] = p.rdata(j);
+                        rdata_d_ptr[rout_index] = p.rdata(j);
+                        rout_index++;
                     }
                 }
             }

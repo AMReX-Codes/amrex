@@ -16,6 +16,7 @@
 #endif
 
 #include <string>
+#include <utility>
 
 namespace amrex {
 
@@ -645,6 +646,36 @@ public:
     //
     void flushPolarB (bool no_assertion=false) const; //!< This flushes its own PolarB.
     static void flushPolarBCache (); //!< This flushes the entire cache.
+
+#ifdef AMREX_USE_GPU
+    //
+    //! For ParalleFor(FabArray)
+    struct ParForInfo
+    {
+        ParForInfo (const FabArrayBase& fa, const IntVect& nghost);
+        ~ParForInfo ();
+
+        std::pair<int*,int*> const& getBlocks () const { return m_nblocks_x; }
+
+        ParForInfo () = delete;
+        ParForInfo (ParForInfo const&) = delete;
+        ParForInfo (ParForInfo &&) = delete;
+        void operator= (ParForInfo const&) = delete;
+        void operator= (ParForInfo &&) = delete;
+
+        IndexType m_typ;
+        IntVect m_crse_ratio;
+        std::pair<int*,int*> m_nblocks_x;
+    };
+
+    ParForInfo const& getParForInfo (const IntVect& nghost) const;
+
+    static std::multimap<BDKey,ParForInfo*> m_TheParForCache;
+
+    void flushParForInfo (bool no_assertion=false) const; // flushes its own cache
+    static void flushParForCache (); // flushes the entire cache
+
+#endif
 
     //
     //! Keep track of how many FabArrays are built with the same BDKey.

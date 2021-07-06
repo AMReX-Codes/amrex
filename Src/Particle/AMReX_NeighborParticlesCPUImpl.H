@@ -260,6 +260,8 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
             }
         }
     }
+#else
+    amrex::ignore_unused(not_ours, real_start_comp, real_num_comp, int_start_comp, int_num_comp);
 #endif
 }
 
@@ -639,6 +641,8 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
             }
         }
     }
+#else
+    amrex::ignore_unused(reuse_rcv_counts);
 #endif
 }
 

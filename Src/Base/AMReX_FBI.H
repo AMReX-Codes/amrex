@@ -45,6 +45,16 @@ struct Array4BoxTag {
     Box const& box () const noexcept { return dbox; }
 };
 
+template <class T>
+struct Array4BoxValTag {
+    Array4<T> dfab;
+    Box       dbox;
+    T          val;
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Box const& box () const noexcept { return dbox; }
+};
+
 #ifdef AMREX_USE_GPU
 namespace detail {
 template <class TagType, class F>
@@ -100,23 +110,7 @@ ParallelFor_doit (Vector<TagType> const& tags, F && f)
         int g_wid = g_tid / Gpu::Device::warp_size;
         if (g_wid >= ntotwarps) return;
 
-        int tag_id = -10000;
-        {
-            int lo = 0;
-            int hi = ntags;
-            while (lo <= hi)
-            {
-                int mid = (lo+hi)/2;
-                if (g_wid >= d_nwarps[mid] && g_wid < d_nwarps[mid+1]) {
-                    tag_id = mid;
-                    break;
-                } else if (g_wid < d_nwarps[mid]) {
-                    hi = mid-1;
-                } else {
-                    lo = mid+1;
-                }
-            };
-        }
+        int tag_id = amrex::bisect(d_nwarps, 0, ntags, g_wid);
 
         auto tag = d_tags[tag_id];
         int ncells = tag.box().numPts();

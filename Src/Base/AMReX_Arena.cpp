@@ -285,27 +285,38 @@ Arena::Initialize ()
     the_async_arena = new PArena(the_async_arena_release_threshold);
 
 #ifdef AMREX_USE_GPU
-    the_device_arena = new CArena(0, ArenaInfo{}.SetDeviceMemory().SetReleaseThreshold(the_device_arena_release_threshold));
+    if (the_arena->isDevice() || the_arena->isManaged()) {
+        the_device_arena = the_arena;
+    } else {
+        the_device_arena = new CArena(0, ArenaInfo{}.SetDeviceMemory().SetReleaseThreshold
+                                      (the_device_arena_release_threshold));
+    }
 #else
     the_device_arena = new BArena;
 #endif
 
 #ifdef AMREX_USE_GPU
-    the_managed_arena = new CArena(0, ArenaInfo{}.SetReleaseThreshold(the_managed_arena_release_threshold));
+    if (the_arena->isManaged()) {
+        the_managed_arena = the_arena;
+    } else {
+        the_managed_arena = new CArena(0, ArenaInfo{}.SetReleaseThreshold
+                                       (the_managed_arena_release_threshold));
+    }
 #else
     the_managed_arena = new BArena;
 #endif
 
     // When USE_CUDA=FALSE, we call mlock to pin the cpu memory.
     // When USE_CUDA=TRUE, we call cudaHostAlloc to pin the host memory.
-    the_pinned_arena = new CArena(0, ArenaInfo{}.SetHostAlloc().SetReleaseThreshold(the_pinned_arena_release_threshold));
+    the_pinned_arena = new CArena(0, ArenaInfo{}.SetHostAlloc().SetReleaseThreshold
+                                  (the_pinned_arena_release_threshold));
 
-    if (the_device_arena_init_size > 0) {
+    if (the_device_arena_init_size > 0 && the_device_arena != the_arena) {
         void *p = the_device_arena->alloc(the_device_arena_init_size);
         the_device_arena->free(p);
     }
 
-    if (the_managed_arena_init_size > 0) {
+    if (the_managed_arena_init_size > 0 && the_managed_arena != the_arena) {
         void *p = the_managed_arena->alloc(the_managed_arena_init_size);
         the_managed_arena->free(p);
     }
@@ -354,13 +365,13 @@ Arena::PrintUsage ()
             p->PrintUsage("The         Arena");
         }
     }
-    if (The_Device_Arena()) {
+    if (The_Device_Arena() && The_Device_Arena() != The_Arena()) {
         CArena* p = dynamic_cast<CArena*>(The_Device_Arena());
         if (p) {
             p->PrintUsage("The  Device Arena");
         }
     }
-    if (The_Managed_Arena()) {
+    if (The_Managed_Arena() && The_Managed_Arena() != The_Arena()) {
         CArena* p = dynamic_cast<CArena*>(The_Managed_Arena());
         if (p) {
             p->PrintUsage("The Managed Arena");
@@ -387,17 +398,21 @@ Arena::Finalize ()
 
     initialized = false;
 
+    if (the_device_arena != the_arena) {
+        delete the_device_arena;
+    }
+    the_device_arena = nullptr;
+
+    if (the_managed_arena != the_arena) {
+        delete the_managed_arena;
+    }
+    the_managed_arena = nullptr;
+
     delete the_arena;
     the_arena = nullptr;
 
     delete the_async_arena;
     the_async_arena = nullptr;
-
-    delete the_device_arena;
-    the_device_arena = nullptr;
-
-    delete the_managed_arena;
-    the_managed_arena = nullptr;
 
     delete the_pinned_arena;
     the_pinned_arena = nullptr;

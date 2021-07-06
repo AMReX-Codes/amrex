@@ -1,0 +1,35 @@
+name: intel
+
+on: [push, pull_request]
+
+jobs:
+  tests-dpcpp:
+    name: DPCPP GFortran@7.5 C++17 [tests]
+    runs-on: ubuntu-20.04
+    # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
+    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wno-sign-compare"}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_dpcpp.sh
+    - name: Build & Install
+      run: |
+        set +e
+        source /opt/intel/oneapi/setvars.sh
+        set -e
+        cmake -S . -B build                                \
+            -DCMAKE_CXX_COMPILER_ID="Clang"                \
+            -DCMAKE_CXX_COMPILER_VERSION=12.0              \
+            -DCMAKE_CXX_STANDARD_COMPUTED_DEFAULT="17"     \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DAMReX_ENABLE_TESTS=ON                        \
+            -DAMReX_FORTRAN=OFF                            \
+            -DAMReX_PARTICLES=ON                           \
+            -DAMReX_GPU_BACKEND=SYCL                       \
+            -DCMAKE_C_COMPILER=$(which clang)              \
+            -DCMAKE_CXX_COMPILER=$(which dpcpp)            \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)
+        cmake --build build --parallel 2
+    # note: setting the CXX compiler ID is a work-around for
+    # the 2021.1 DPC++ release / CMake 3.19.0-3.19.1
+    # https://gitlab.kitware.com/cmake/cmake/-/issues/21551#note_869580

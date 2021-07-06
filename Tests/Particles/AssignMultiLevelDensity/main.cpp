@@ -97,7 +97,7 @@ void test_assign_density(TestParams& parms)
     bool serialize = true;
     int iseed = 451;
     Real mass = 10.0;
-    MyParticleContainer::ParticleInitData pdata = {mass};
+    MyParticleContainer::ParticleInitData pdata = {{mass},{},{},{}};
 
     //    myPC.InitRandom(num_particles, iseed, pdata, serialize, fine_box);
     myPC.InitRandom(num_particles, iseed, pdata, serialize);

@@ -26,21 +26,21 @@ struct ParticleIDWrapper
 {
     uint64_t& m_idata;
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleIDWrapper (uint64_t& idata) noexcept
         : m_idata(idata)
     {}
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleIDWrapper (const ParticleIDWrapper& rhs) = default;
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleIDWrapper& operator= (const ParticleIDWrapper& pidw) noexcept
     {
         return this->operator=(Long(pidw));
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleIDWrapper& operator= (const Long id) noexcept
     {
         // zero out the 40 leftmost bits, which store the sign and the abs of the id;
@@ -50,13 +50,13 @@ struct ParticleIDWrapper
         uint64_t sign = id >= 0;
         if (sign)
         {
-            // 2**39-1, the max value representible in this fashion
+            // 2**39-1, the max value representable in this fashion
             AMREX_ASSERT(id <= 549755813887L);
             val = id;
         }
         else
         {
-            // -2**39-1, the min value representible in this fashion
+            // -2**39-1, the min value representable in this fashion
             AMREX_ASSERT(id >= -549755813887L);
             val = -id;
         }
@@ -66,7 +66,7 @@ struct ParticleIDWrapper
         return *this;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     operator Long () const noexcept
     {
         Long r = 0;
@@ -84,21 +84,21 @@ struct ParticleCPUWrapper
 {
     uint64_t& m_idata;
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleCPUWrapper (uint64_t& idata) noexcept
         : m_idata(idata)
     {}
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleCPUWrapper (const ParticleCPUWrapper& rhs) = default;
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleCPUWrapper& operator= (const ParticleCPUWrapper& pcpuw) noexcept
     {
         return this->operator=(int(pcpuw));
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleCPUWrapper& operator= (const int cpu) noexcept
     {
         // zero out the first 24 bits, which are used to store the cpu number
@@ -111,7 +111,7 @@ struct ParticleCPUWrapper
         return *this;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     operator int () const noexcept
     {
         return (m_idata & 0x00FFFFFF);
@@ -122,12 +122,12 @@ struct ConstParticleIDWrapper
 {
     const uint64_t& m_idata;
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ConstParticleIDWrapper (const uint64_t& idata) noexcept
         : m_idata(idata)
     {}
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     operator Long () const noexcept
     {
         Long r = 0;
@@ -145,12 +145,12 @@ struct ConstParticleCPUWrapper
 {
     const uint64_t& m_idata;
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ConstParticleCPUWrapper (const uint64_t& idata) noexcept
         : m_idata(idata)
     {}
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     operator int () const noexcept { return (m_idata & 0x00FFFFFF); }
 };
 
@@ -208,57 +208,73 @@ struct Particle
 
     static Long the_next_id;
 
-    AMREX_GPU_HOST_DEVICE ParticleCPUWrapper cpu () & { return ParticleCPUWrapper(this->m_idcpu); }
-    AMREX_GPU_HOST_DEVICE ParticleIDWrapper id () & { return ParticleIDWrapper(this->m_idcpu); }
-    AMREX_GPU_HOST_DEVICE ConstParticleCPUWrapper cpu () const & { return ConstParticleCPUWrapper(this->m_idcpu); }
-    AMREX_GPU_HOST_DEVICE ConstParticleIDWrapper id () const & { return ConstParticleIDWrapper(this->m_idcpu); }
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    ParticleCPUWrapper cpu () & { return ParticleCPUWrapper(this->m_idcpu); }
 
-    AMREX_GPU_HOST_DEVICE RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_pos[0], this->m_pos[1], this->m_pos[2]));}
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    ParticleIDWrapper id () & { return ParticleIDWrapper(this->m_idcpu); }
 
-    AMREX_GPU_HOST_DEVICE RealType& pos (int index) &
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    ConstParticleCPUWrapper cpu () const & { return ConstParticleCPUWrapper(this->m_idcpu); }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    ConstParticleIDWrapper id () const & { return ConstParticleIDWrapper(this->m_idcpu); }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_pos[0], this->m_pos[1], this->m_pos[2]));}
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealType& pos (int index) &
     {
         AMREX_ASSERT(index < AMREX_SPACEDIM);
         return this->m_pos[index];
     }
 
-    AMREX_GPU_HOST_DEVICE RealType  pos (int index) const &
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealType  pos (int index) const &
     {
         AMREX_ASSERT(index < AMREX_SPACEDIM);
         return this->m_pos[index];
     }
 
     template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE RealType& rdata (int index) &
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealType& rdata (int index) &
     {
         AMREX_ASSERT(index < NReal);
         return this->m_rdata[index];
     }
 
     template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE RealType& rdata (int /*index*/) &
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealType& rdata (int /*index*/) &
     {
         AMREX_ALWAYS_ASSERT(false);
         return this->pos(0);  // bc we must return something
     }
 
     template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE const RealType& rdata (int index) const &
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    const RealType& rdata (int index) const &
     {
         AMREX_ASSERT(index < NReal);
         return this->m_rdata[index];
     }
 
     template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE RealType rdata (int /*index*/) const &
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealType rdata (int /*index*/) const &
     {
         AMREX_ALWAYS_ASSERT(false);
         return this->pos(0);  // because we must return something
     }
 
-    AMREX_GPU_HOST_DEVICE RealType rdata (int /*index*/) && = delete;
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealType rdata (int /*index*/) && = delete;
 
     template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE RealVect  rvec (AMREX_D_DECL(int indx, int indy, int indz)) const &
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealVect rvec (AMREX_D_DECL(int indx, int indy, int indz)) const &
     {
         AMREX_ASSERT(AMREX_D_TERM(indx < NReal, && indy < NReal, && indz < NReal));
         return RealVect(AMREX_D_DECL(this->m_rdata[indx],
@@ -267,14 +283,16 @@ struct Particle
     }
 
     template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE RealVect  rvec (AMREX_D_DECL(int /*indx*/, int /*indy*/, int /*indz*/)) const &
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealVect rvec (AMREX_D_DECL(int /*indx*/, int /*indy*/, int /*indz*/)) const &
     {
         AMREX_ALWAYS_ASSERT(false);
         return RealVect(AMREX_D_DECL(0.0, 0.0, 0.0)); // bc we must return something
     }
 
     template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE RealVect  rvec (const IntVect& indices) const &
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealVect rvec (const IntVect& indices) const &
     {
         AMREX_ASSERT(indices.max() < NReal);
         return RealVect(AMREX_D_DECL(this->m_rdata[indices[0]],
@@ -283,41 +301,47 @@ struct Particle
     }
 
     template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE RealVect  rvec (const IntVect& /*indices*/) const &
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealVect rvec (const IntVect& /*indices*/) const &
     {
         AMREX_ALWAYS_ASSERT(false);
         return RealVect(AMREX_D_DECL(0.0, 0.0, 0.0)); // bc we must return something
     }
 
     template <int U = T_NInt, typename std::enable_if<U != 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE int& idata (int index) &
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    int& idata (int index) &
     {
         AMREX_ASSERT(index < NInt);
         return this->m_idata[index];
     }
 
     template <int U = T_NInt, typename std::enable_if<U == 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE uint64_t& idata (int /*index*/) &
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    uint64_t& idata (int /*index*/) &
     {
         AMREX_ALWAYS_ASSERT(false);
         return this->m_idcpu;  //bc we must return something
     }
 
     template <int U = T_NInt, typename std::enable_if<U != 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE const int& idata (int index) const &
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    const int& idata (int index) const &
     {
         AMREX_ASSERT(index < NInt);
         return this->m_idata[index];
     }
 
     template <int U = T_NInt, typename std::enable_if<U == 0, int>::type = 0>
-    AMREX_GPU_HOST_DEVICE int idata (int /*index*/) const &
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    int idata (int /*index*/) const &
     {
         AMREX_ALWAYS_ASSERT(false);
         return this->m_idcpu;  //bc we must return something
     }
 
-    AMREX_GPU_HOST_DEVICE RealType idata (int /*index*/) && = delete;
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealType idata (int /*index*/) && = delete;
 
     /**
     * \brief Returns the next particle ID for this processor.

@@ -644,28 +644,6 @@ public:
     bool contains_inf (int scomp, int ncomp, const IntVect& ngrow, bool local=false) const;
 
     /**
-    * \brief Sum values in overlapped cells.  The destination is limited to valid cells.
-    */
-    void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic());
-
-    void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
-
-    void SumBoundary_nowait (const Periodicity& period = Periodicity::NonPeriodic());
-
-    void SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
-
-    /**
-    * \brief Sum values in overlapped cells.  The destination is limited to valid + ngrow cells.
-    */
-    void SumBoundary (int scomp, int ncomp, IntVect const& ngrow,
-                      const Periodicity& period = Periodicity::NonPeriodic());
-
-    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& ngrow,
-                             const Periodicity& period = Periodicity::NonPeriodic());
-
-    void SumBoundary_finish ();
-
-    /**
      * \brief Return a mask indicating how many duplicates are in each point.
      */
     std::unique_ptr<MultiFab> OverlapMask (const Periodicity& period = Periodicity::NonPeriodic()) const;

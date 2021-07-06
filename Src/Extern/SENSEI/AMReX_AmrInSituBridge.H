@@ -9,8 +9,7 @@ namespace amrex
 
 class Amr;
 
-/// Bridge for simulations that use amrex::Amr
-/// inherits intialize and finalize from amrex::InSituBridge
+/// Contains the bridge code for simulations that use amrex::Amr
 class AmrInSituBridge : public InSituBridge
 {
 public:
@@ -20,8 +19,7 @@ public:
     AmrInSituBridge(const AmrInSituBridge&) = delete;
     void operator=(const AmrInSituBridge&) = delete;
 
-    // invoke the in situ analysis with data from an Amr
-    // instance
+    /// invoke the in situ analysis with data from an amrex::Amr instance
     int update(amrex::Amr *dataSource);
 };
 

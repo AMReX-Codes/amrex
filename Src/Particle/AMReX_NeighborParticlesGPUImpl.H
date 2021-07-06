@@ -45,16 +45,6 @@ namespace detail
     }
 }
 
-template <class T>
-struct Array4BoxValTag {
-    Array4<T> dfab;
-    Box       dbox;
-    T          val;
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Box const& box () const noexcept { return dbox; }
-};
-
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::

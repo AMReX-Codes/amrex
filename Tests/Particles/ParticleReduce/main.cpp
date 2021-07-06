@@ -214,5 +214,21 @@ void testReduce ()
         AMREX_ALWAYS_ASSERT(r == 0);
     }
 
+    {
+        amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
+        auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
+         pc, [=] AMREX_GPU_DEVICE (const PType& p) noexcept -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
+           {
+               const amrex::Real a = p.rdata(1);
+               const amrex::Real b = p.rdata(2);
+               const int c = p.idata(1);
+               return {a, b, c};
+           }, reduce_ops);
+
+        AMREX_ALWAYS_ASSERT(amrex::get<0>(r) == 16777216.0);
+        AMREX_ALWAYS_ASSERT(amrex::get<1>(r) == 2.0);
+        AMREX_ALWAYS_ASSERT(amrex::get<2>(r) == 1);
+    }
+
     amrex::Print() << "pass \n";
 }

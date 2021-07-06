@@ -98,7 +98,6 @@ InitParticles(const IntVect& a_num_particles_per_cell,
             }
         }
 
-        auto& particles = GetParticles(lev);
         auto& particle_tile = DefineAndReturnParticleTile(lev, mfi);
         auto old_size = particle_tile.GetArrayOfStructs().size();
         auto new_size = old_size + host_particles.size();
@@ -136,7 +135,6 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
     BL_PROFILE("MDParticleContainer::minAndMaxDistance");
 
     const int lev = 0;
-    const Geometry& geom = Geom(lev);
     auto& plev  = GetParticles(lev);
 
     Real min_d = std::numeric_limits<Real>::max();
@@ -196,7 +194,6 @@ void MDParticleContainer::moveParticles(amrex::Real dx)
     BL_PROFILE("MDParticleContainer::moveParticles");
 
     const int lev = 0;
-    const Geometry& geom = Geom(lev);
     auto& plev  = GetParticles(lev);
 
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -233,7 +230,6 @@ void MDParticleContainer::checkNeighborParticles()
     BL_PROFILE("MDParticleContainer::checkNeighborParticles");
 
     const int lev = 0;
-    const Geometry& geom = Geom(lev);
     auto& plev  = GetParticles(lev);
 
     int ngrids = ParticleBoxArray(0).size();
@@ -253,7 +249,7 @@ void MDParticleContainer::checkNeighborParticles()
         auto& ptile = plev[index];
         auto& aos   = ptile.GetArrayOfStructs();
         auto& soa   = ptile.GetStructOfArrays();
-        const size_t np = aos.numTotalParticles();
+        const int np = aos.numTotalParticles();
 
         ParticleType* pstruct = aos().dataPtr();
         auto rdata = soa.GetRealData(0).dataPtr();
@@ -327,19 +323,11 @@ void MDParticleContainer::checkNeighborList()
     BL_PROFILE("MDParticleContainer::checkNeighborList");
 
     const int lev = 0;
-    const Geometry& geom = Geom(lev);
     auto& plev  = GetParticles(lev);
-
-    int ngrids = ParticleBoxArray(0).size();
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
-
-        int mine = 0;
-
-        amrex::Gpu::DeviceScalar<int> d_mine(mine);
-        int* p_mine = d_mine.dataPtr();
 
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
@@ -347,8 +335,8 @@ void MDParticleContainer::checkNeighborList()
         auto& ptile = plev[index];
         auto& aos   = ptile.GetArrayOfStructs();
 
-        const size_t np       = aos.numParticles();
-        const size_t np_total = aos.numTotalParticles();
+        const int np       = aos.numParticles();
+        const int np_total = aos.numTotalParticles();
 
         amrex::Gpu::ManagedVector<int> d_neighbor_count(np,0);
         int* p_neighbor_count = d_neighbor_count.data();
@@ -436,7 +424,6 @@ void MDParticleContainer::reset_test_id()
     BL_PROFILE("MDParticleContainer::reset_test_id");
 
     const int lev = 0;
-    const Geometry& geom = Geom(lev);
     auto& plev  = GetParticles(lev);
 
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
