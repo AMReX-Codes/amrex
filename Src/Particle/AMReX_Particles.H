@@ -140,13 +140,13 @@ template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArra
 class ParticleContainer : public ParticleContainerBase
 {
 public:
-    //! \brief number of extra Real components in the particle struct
+    //! \brief Number of extra Real components in the particle struct
     static constexpr int NStructReal = T_NStructReal;
-    //! \brief number of extra integer components in the particle struct
+    //! \brief Number of extra integer components in the particle struct
     static constexpr int NStructInt = T_NStructInt;
-    //! \brief number of extra Real components stored in struct-of-array form
+    //! \brief Number of extra Real components stored in struct-of-array form
     static constexpr int NArrayReal = T_NArrayReal;
-    //! \brief number of extra integer components stored in struct-of-array form
+    //! \brief Number of extra integer components stored in struct-of-array form
     static constexpr int NArrayInt = T_NArrayInt;
 
 private:
@@ -1102,17 +1102,17 @@ public:
     Gpu::DeviceVector<int> d_communicate_real_comp;
     Gpu::DeviceVector<int> d_communicate_int_comp;
 
-    //! variables for i/o optimization saved for pre and post checkpoint
+    //! Variables for i/o optimization saved for pre and post checkpoint
     mutable bool levelDirectoriesCreated;
     mutable bool usePrePost;
     mutable bool doUnlink;
     int maxnextidPrePost;
     mutable int nOutFilesPrePost;
     Long nparticlesPrePost;
-    Vector<Long> nParticlesAtLevelPrePost;          //!< ---- [level]
-    mutable Vector<Vector<int>>  whichPrePost;      //!< ---- [level]
-    mutable Vector<Vector<int>>  countPrePost;      //!< ---- [level]
-    mutable Vector<Vector<Long>> wherePrePost;      //!< ---- [level]
+    Vector<Long> nParticlesAtLevelPrePost;          //!< \verbatim [level] \endverbatim
+    mutable Vector<Vector<int>>  whichPrePost;      //!< \verbatim [level] \endverbatim 
+    mutable Vector<Vector<int>>  countPrePost;      //!< \verbatim [level] \endverbatim
+    mutable Vector<Vector<Long>> wherePrePost;      //!< \verbatim [level] \endverbatim
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
 
