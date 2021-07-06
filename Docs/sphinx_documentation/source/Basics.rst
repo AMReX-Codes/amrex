@@ -312,7 +312,7 @@ can still be over-written by setting a value in the inputs file.
 Parser
 ======
 
-AMReX provides a parser that can be used at runtime to evaluate mathematical
+AMReX provides a parser in ``AMReX_Parser.H`` that can be used at runtime to evaluate mathematical
 expressions given in the form of string.  It supports ``+``, ``-``, ``*``,
 ``/``, ``**`` (power), ``^`` (power), ``sqrt``, ``exp``, ``log``, ``log10``,
 ``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``sinh``, ``cosh``,
@@ -2618,6 +2618,8 @@ segfault occurs or ``Abort`` is called.  If the application does not
 want AMReX to handle this, ``ParmParse`` parameter
 `amrex.signal_handling=0` can be used to disable it.
 
+
+.. _sec:basics:debugging:
 
 Debugging
 =========

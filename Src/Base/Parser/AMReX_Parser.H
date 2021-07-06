@@ -7,6 +7,7 @@
 #include <AMReX_Parser_Exe.H>
 #include <AMReX_Vector.H>
 
+#include <memory>
 #include <string>
 #include <set>
 
@@ -49,9 +50,18 @@ struct ParserExecutor
 #endif
     }
 
-    char* m_host_executor;
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    explicit operator bool () const {
+#if AMREX_DEVICE_COMPILE
+        return m_device_executor != nullptr;
+#else
+        return m_host_executor != nullptr;
+#endif
+    }
+
+    char* m_host_executor = nullptr;
 #ifdef AMREX_USE_GPU
-    char* m_device_executor;
+    char* m_device_executor = nullptr;
 #endif
 };
 
@@ -76,58 +86,80 @@ public:
 
     std::set<std::string> symbols () const;
 
+    //! This compiles for both GPU and CPU
     template <int N> ParserExecutor<N> compile () const;
 
-private:
-    void clear ();
+    //! This compiles for CPU only
+    template <int N> ParserExecutor<N> compileHost () const;
 
-    std::string m_expression;
-    struct amrex_parser* m_parser = nullptr;
-    int m_nvars = 0;
-    mutable char* m_host_executor = nullptr;
+private:
+
+    struct Data {
+        std::string m_expression;
+        struct amrex_parser* m_parser = nullptr;
+        int m_nvars = 0;
+        mutable char* m_host_executor = nullptr;
 #ifdef AMREX_USE_GPU
-    mutable char* m_device_executor = nullptr;
+        mutable char* m_device_executor = nullptr;
 #endif
-    mutable int m_max_stack_size = 0;
+        mutable int m_max_stack_size = 0;
+        mutable int m_exe_size = 0;
+        ~Data ();
+    };
+
+    std::shared_ptr<Data> m_data;
 };
 
 template <int N>
 ParserExecutor<N>
-Parser::compile () const
+Parser::compileHost () const
 {
-    AMREX_ASSERT(N == m_nvars);
+    AMREX_ASSERT(N == m_data->m_nvars);
 
-    if (!m_host_executor) {
+    if (!(m_data->m_host_executor)) {
         int stack_size;
-        int exe_size = parser_exe_size(m_parser, m_max_stack_size, stack_size);
+        m_data->m_exe_size = parser_exe_size(m_data->m_parser, m_data->m_max_stack_size,
+                                             stack_size);
 
-        if (m_max_stack_size > AMREX_PARSER_STACK_SIZE) {
+        if (m_data->m_max_stack_size > AMREX_PARSER_STACK_SIZE) {
             amrex::Abort("amrex::Parser: AMREX_PARSER_STACK_SIZE, "
                          + std::to_string(AMREX_PARSER_STACK_SIZE) + ", is too small for "
-                         + m_expression);
+                         + m_data->m_expression);
         }
         if (stack_size != 0) {
             amrex::Abort("amrex::Parser: something went wrong with parser stack! "
                          + std::to_string(stack_size));
         }
 
-        m_host_executor = (char*)The_Pinned_Arena()->alloc(exe_size);
+        m_data->m_host_executor = (char*)The_Pinned_Arena()->alloc(m_data->m_exe_size);
 
-        parser_compile(m_parser, m_host_executor);
-
-#ifdef AMREX_USE_GPU
-        m_device_executor = (char*)The_Arena()->alloc(exe_size);
-        Gpu::htod_memcpy_async(m_device_executor, m_host_executor, exe_size);
-        Gpu::streamSynchronize();
-#endif
+        parser_compile(m_data->m_parser, m_data->m_host_executor);
     }
 
+#ifdef AMREX_USE_GPU
+    return ParserExecutor<N>{m_data->m_host_executor, m_data->m_device_executor};
+#else
+    return ParserExecutor<N>{m_data->m_host_executor};
+#endif
+}
+
+template <int N>
+ParserExecutor<N>
+Parser::compile () const
+{
+    auto exe = compileHost<N>();
 
 #ifdef AMREX_USE_GPU
-    return ParserExecutor<N>{m_host_executor, m_device_executor};
-#else
-    return ParserExecutor<N>{m_host_executor};
+    if (!(m_data->m_device_executor)) {
+        m_data->m_device_executor = (char*)The_Arena()->alloc(m_data->m_exe_size);
+        Gpu::htod_memcpy_async(m_data->m_device_executor, m_data->m_host_executor,
+                               m_data->m_exe_size);
+        Gpu::streamSynchronize();
+        exe.m_device_executor = m_data->m_device_executor;
+    }
 #endif
+
+    return exe;
 }
 
 }
