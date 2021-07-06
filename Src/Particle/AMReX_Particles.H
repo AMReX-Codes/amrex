@@ -1109,10 +1109,10 @@ public:
     int maxnextidPrePost;
     mutable int nOutFilesPrePost;
     Long nparticlesPrePost;
-    Vector<Long> nParticlesAtLevelPrePost;          //!< \verbatim [level] \endverbatim
-    mutable Vector<Vector<int>>  whichPrePost;      //!< \verbatim [level] \endverbatim 
-    mutable Vector<Vector<int>>  countPrePost;      //!< \verbatim [level] \endverbatim
-    mutable Vector<Vector<Long>> wherePrePost;      //!< \verbatim [level] \endverbatim
+    Vector<Long> nParticlesAtLevelPrePost;          
+    mutable Vector<Vector<int>>  whichPrePost;      
+    mutable Vector<Vector<int>>  countPrePost;      
+    mutable Vector<Vector<Long>> wherePrePost;      
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
 
