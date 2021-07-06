@@ -113,11 +113,11 @@ bool Nestsets(const int level,
         {
             window["dims/k"] = overlap.size()[2];
         }
-        window["ratio/i"] = ref_ratio[level+1][0];
-        window["ratio/j"] = ref_ratio[level+1][1];
+        window["ratio/i"] = ref_ratio[level][0];
+        window["ratio/j"] = ref_ratio[level][1];
         if(dims == 3)
         {
-            window["ratio/k"] = ref_ratio[level+1][2];
+            window["ratio/k"] = ref_ratio[level][2];
         }
       }
     }
@@ -361,13 +361,16 @@ MultiLevelToBlueprint (int n_levels,
 
     Vector<const BoxArray*> box_arrays;
     Vector<int> box_offsets;
+
+    box_offsets.resize(n_levels);
+
     for(int i = 0; i < n_levels; i++)
     {
       const BoxArray &boxs = mfs[i]->boxArray();
       box_arrays.push_back(&boxs);
       if(i == 0)
       {
-        box_offsets.push_back(0);
+        box_offsets[i] = 0;
       }
       else
       {
