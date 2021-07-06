@@ -10,7 +10,6 @@
 #include <AMReX.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_BoxDomain.H>
-#include <AMReX_FabArrayUtility.H>
 #include <AMReX_FabFactory.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Geometry.H>
@@ -112,6 +111,32 @@ Long nBytesOwned (BaseFab<T> const& fab) noexcept { return fab.nBytesOwned(); }
 //
 // alloc: allocate memory or not
 //
+struct MFInfo {
+    bool    alloc = true;
+    Arena*  arena = nullptr;
+    Vector<std::string> tags;
+
+    MFInfo& SetAlloc (bool a) noexcept { alloc = a; return *this; }
+
+    MFInfo& SetArena (Arena* ar) noexcept { arena = ar; return *this; }
+
+    MFInfo& SetTag (const char* t) noexcept {
+        tags.emplace_back(t);
+        return *this;
+    }
+
+    MFInfo& SetTag (std::string t) noexcept {
+        tags.emplace_back(std::move(t));
+        return *this;
+    }
+
+    template <typename T, typename... Ts>
+    MFInfo& SetTag (T&& t, Ts&&... ts) noexcept {
+        tags.emplace_back(std::forward<T>(t));
+        return SetTag(std::forward<Ts>(ts)...);
+    }
+};
+
 struct TheFaArenaDeleter {
     using pointer = char*;
     void operator()(pointer p) const noexcept {
@@ -188,6 +213,39 @@ struct MultiArray4
 #endif
     Array4<T>* hp = nullptr;
 };
+
+template <class FAB> class FabArray;
+
+template <class FAB,
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+void
+Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+template <class FAB,
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+void
+Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        if (bx.ok())
+        {
+            auto const srcFab = src.array(mfi);
+            auto       dstFab = dst.array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
+            {
+                dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
+            });
+        }
+    }
+}
 
 template <class FAB>
 class FabArray
