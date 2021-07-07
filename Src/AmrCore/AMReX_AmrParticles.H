@@ -202,7 +202,7 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
     // configure this to do a no-op at the physical boundaries.
     int lo_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
     int hi_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
-    Vector<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+    Vector<BCRec> bcs(mf_part[lev_min].nComp(), BCRec(lo_bc, hi_bc));
     PCInterp mapper;
 
     for (int lev = lev_min; lev <= lev_max; ++lev)
