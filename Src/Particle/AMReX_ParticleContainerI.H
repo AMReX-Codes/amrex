@@ -5,7 +5,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::SetParticleSize ()
 {
     if (NumRealComps() > 0 || NumIntComps() > 0) {
-        IF (NumRealComps() > 0) {
+        if (NumRealComps() > 0) {
             d_communicate_real_comp.resize(NumRealComps());
             Gpu::copyAsync(Gpu::hostToDevice,
                            h_communicate_real_comp.begin(),
@@ -933,7 +933,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
                 }
 
             });
-
+	   std::cout<<"Number of particles: "<<virts.numParticles()<<std::endl;
     }
 
     /*        amrex::MeshToParticle(virts, mf, level,

@@ -80,7 +80,7 @@ void test_ghosts_and_virtuals (TestParams& parms)
         dmap[lev] = DistributionMapping{ba[lev]};
     }
 
-    typedef AmrParticleContainer<0, 0, 1> MyParticleContainer;
+    typedef AmrParticleContainer<1, 0, 0, 0> MyParticleContainer;
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
 
@@ -88,7 +88,7 @@ void test_ghosts_and_virtuals (TestParams& parms)
     bool serialize = true;
     int iseed = 451;
     Real mass = 10.0;
-    MyParticleContainer::ParticleInitData pdata = {{},{}, {mass}, {}};
+    MyParticleContainer::ParticleInitData pdata = {{mass}, {}, {}, {}};
 
     myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
@@ -107,6 +107,142 @@ void test_ghosts_and_virtuals (TestParams& parms)
         MyParticleContainer::ParticleTileType ghosts;
         myPC.CreateGhostParticles(src_lev, ngrow, ghosts);
         ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
+    }
+}
+
+void test_ghosts_and_virtuals_ascii (TestParams& parms)
+{
+    int nlevs = parms.nlevs;
+
+    RealBox real_box;
+    for (int n = 0; n < BL_SPACEDIM; n++) {
+        real_box.setLo(n, 0.0);
+        real_box.setHi(n, 1.0);
+    }
+
+    RealBox fine_box;
+    for (int n = 0; n < BL_SPACEDIM; n++)
+    {
+       fine_box.setLo(n,0.25);
+       fine_box.setHi(n,0.75);
+    }
+
+    IntVect domain_lo(AMREX_D_DECL(0 , 0, 0));
+    IntVect domain_hi(AMREX_D_DECL(parms.nx - 1, parms.ny - 1, parms.nz-1));
+    const Box domain(domain_lo, domain_hi);
+
+    // Define the refinement ratio
+    Vector<int> rr(nlevs-1);
+    for (int lev = 1; lev < nlevs; lev++)
+        rr[lev-1] = 2;
+
+    // This sets the boundary conditions to be doubly or triply periodic
+    int is_per[BL_SPACEDIM];
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        is_per[i] = 1;
+
+    // This defines a Geometry object which is useful for writing the plotfiles
+    Vector<Geometry> geom(nlevs);
+    geom[0].define(domain, &real_box, CoordSys::cartesian, is_per);
+    for (int lev = 1; lev < nlevs; lev++) {
+        geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
+                         &real_box, CoordSys::cartesian, is_per);
+    }
+
+    Vector<BoxArray> ba(nlevs);
+    ba[0].define(domain);
+
+    if (nlevs > 1) {
+        int n_fine = parms.nx*rr[0];
+        IntVect refined_lo(AMREX_D_DECL(n_fine/4,n_fine/4,n_fine/4));
+        IntVect refined_hi(AMREX_D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
+
+        // Build a box for the level 1 domain
+        Box refined_patch(refined_lo, refined_hi);
+        ba[1].define(refined_patch);
+    }
+
+    // break the BoxArrays at both levels into max_grid_size^3 boxes
+    for (int lev = 0; lev < nlevs; lev++) {
+        ba[lev].maxSize(parms.max_grid_size);
+    }
+
+    Vector<DistributionMapping> dmap(nlevs);
+    for (int lev = 0; lev < nlevs; lev++) {
+        dmap[lev] = DistributionMapping{ba[lev]};
+    }
+
+    typedef AmrParticleContainer<4, 0, 0, 0> MyParticleContainer;
+    using PType = typename amrex::ParticleContainer<4, 0>::SuperParticleType;
+    MyParticleContainer myPC(geom, dmap, ba, rr);
+    myPC.SetVerbose(false);
+
+    int num_particles = parms.nppc;
+    bool serialize = true;
+    int iseed = 451;
+    Real mass = 10.0;
+    Real xvel, yvel, zvel;
+    xvel = 1.0;
+    yvel = 2.0;
+    zvel = 3.0;
+    MyParticleContainer::ParticleInitData pdata = {{mass, xvel, yvel, zvel},{}, {}, {}};
+    myPC.InitRandomPerBox(num_particles, iseed, pdata);
+
+    mass = 1000.0;
+    xvel = 1.0e-5;
+    yvel = 2.0e-5;
+    zvel = 3.0e-5;
+    MyParticleContainer::ParticleInitData pdata_big = {{mass, xvel, yvel, zvel},{}, {}, {}};
+    myPC.InitRandomPerBox(num_particles, iseed, pdata_big);
+
+    {
+        MyParticleContainer virtPC(geom, dmap, ba, rr);
+        MyParticleContainer::ParticleTileType virts;
+        myPC.CreateVirtualParticles(1, virts);
+        virtPC.AddParticlesAtLevel(virts, 0);
+        Real sum_test = amrex::ReduceSum(virtPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
+        std::cout<<"Found sum of virts"<<sum_test<<std::endl;
+
+    }
+
+    {
+        const int ngrow = 1;
+        const int src_lev = 0;
+        const int dst_lev = 1;
+        MyParticleContainer ghostPC(geom, dmap, ba, rr);
+        MyParticleContainer::ParticleTileType ghosts;
+        myPC.CreateGhostParticles(src_lev, ngrow, ghosts);
+        ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
+        Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
+        std::cout<<"Found sum of ghosts"<<sum_test<<std::endl;
+    }
+
+    mass = 1000000.0;
+    xvel = 1.0e-8;
+    yvel = 2.0e-8;
+    zvel = 3.0e-8;
+    MyParticleContainer::ParticleInitData pdata_bigger = {{mass, xvel, yvel, zvel},{}, {}, {}};
+    myPC.InitRandomPerBox(num_particles, iseed+5, pdata_bigger);
+
+    {
+        MyParticleContainer virtPC(geom, dmap, ba, rr);
+        MyParticleContainer::ParticleTileType virts;
+        myPC.CreateVirtualParticles(1, virts);
+        virtPC.AddParticlesAtLevel(virts, 0);
+        Real sum_test = amrex::ReduceSum(virtPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
+        std::cout<<"Found sum of virts"<<sum_test<<std::endl;
+    }
+
+    {
+        const int ngrow = 1;
+        const int src_lev = 0;
+        const int dst_lev = 1;
+        MyParticleContainer ghostPC(geom, dmap, ba, rr);
+        MyParticleContainer::ParticleTileType ghosts;
+        myPC.CreateGhostParticles(src_lev, ngrow, ghosts);
+        ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
+        Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
+        std::cout<<"Found sum of ghosts"<<sum_test<<std::endl;
     }
 }
 
@@ -140,7 +276,9 @@ int main(int argc, char* argv[])
     std::cout << parms.nx << " " << parms.ny << " " << parms.nz << std::endl;
   }
 
-  test_ghosts_and_virtuals(parms);
+  test_ghosts_and_virtuals_ascii(parms);
+
+  //  test_ghosts_and_virtuals(parms);
 
   amrex::Finalize();
 }

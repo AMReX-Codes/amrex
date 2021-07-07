@@ -1254,9 +1254,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         for (Long jcnt = 0; jcnt < icount_per_box; jcnt++) {
         for (Long kcnt = 0; kcnt < icount_per_box; kcnt++)
         {
-            p.pos(0) = static_cast<ParticleReal>(grid_box.lo(0) + (dist(mt) + icnt) / icount_per_box);
-            p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (dist(mt) + jcnt) / icount_per_box);
-            p.pos(2) = static_cast<ParticleReal>(grid_box.lo(2) + (dist(mt) + kcnt) / icount_per_box);
+            p.pos(0) = static_cast<ParticleReal>(grid_box.lo(0) + (dist(mt) + icnt) / icount_per_box * grid_box.length(0));
+            p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (dist(mt) + jcnt) / icount_per_box * grid_box.length(1));
+            p.pos(2) = static_cast<ParticleReal>(grid_box.lo(2) + (dist(mt) + kcnt) / icount_per_box * grid_box.length(2));
 
             for (int i = 0; i < AMREX_SPACEDIM; i++)
                 AMREX_ASSERT(p.pos(i) < grid_box.hi(i));
@@ -1276,6 +1276,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
             // locate the particle
             if (!Where(p, pld)) {
+              std::cout<<grid_box<<"\t"<<pld.m_lev<<"\t"<<pld.m_grid<<"\t"<<icnt<<"\t"<<dist(mt)<<std::endl;
+              std::cout<<p<<"\t"<<pld.m_lev<<"\t"<<pld.m_grid<<std::endl;
                 amrex::Abort("ParticleContainer::InitRandomPerBox(): invalid particle");
             }
             AMREX_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
