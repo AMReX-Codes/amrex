@@ -201,7 +201,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         myPC.CreateVirtualParticles(1, virts);
         virtPC.AddParticlesAtLevel(virts, 0);
         Real sum_test = amrex::ReduceSum(virtPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
-        std::cout<<"Found sum of virts"<<sum_test<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
 
     }
 
@@ -214,7 +214,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         myPC.CreateGhostParticles(src_lev, ngrow, ghosts);
         ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
         Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
-        std::cout<<"Found sum of ghosts"<<sum_test<<std::endl;
+	amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
     }
 
     mass = 1000000.0;
@@ -230,7 +230,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         myPC.CreateVirtualParticles(1, virts);
         virtPC.AddParticlesAtLevel(virts, 0);
         Real sum_test = amrex::ReduceSum(virtPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
-        std::cout<<"Found sum of virts"<<sum_test<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
     }
 
     {
@@ -242,7 +242,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         myPC.CreateGhostParticles(src_lev, ngrow, ghosts);
         ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
         Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
-        std::cout<<"Found sum of ghosts"<<sum_test<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
     }
 }
 
