@@ -190,7 +190,7 @@ and then taking the divergence to update the cells,
 
 The implementation details of the code are discussed in section
 :ref:`sec:basics:heat1`.  For now let's just build and run the code, and
-visualizae the results.
+visualize the results.
 
 Building and Running the Code
 -----------------------------
