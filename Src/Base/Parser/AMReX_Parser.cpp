@@ -19,16 +19,18 @@ Parser::define (std::string const& func_body)
 {
     m_data = std::make_shared<Data>();
 
-    m_data->m_expression = func_body;
-    m_data->m_expression.erase(std::remove(m_data->m_expression.begin(),
-                                           m_data->m_expression.end(),'\n'),
-                               m_data->m_expression.end());
-    std::string f = m_data->m_expression + "\n";
+    if (!func_body.empty()) {
+        m_data->m_expression = func_body;
+        m_data->m_expression.erase(std::remove(m_data->m_expression.begin(),
+                                               m_data->m_expression.end(),'\n'),
+                                   m_data->m_expression.end());
+        std::string f = m_data->m_expression + "\n";
 
-    YY_BUFFER_STATE buffer = amrex_parser_scan_string(f.c_str());
-    amrex_parserparse();
-    m_data->m_parser = amrex_parser_new();
-    amrex_parser_delete_buffer(buffer);
+        YY_BUFFER_STATE buffer = amrex_parser_scan_string(f.c_str());
+        amrex_parserparse();
+        m_data->m_parser = amrex_parser_new();
+        amrex_parser_delete_buffer(buffer);
+    }
 }
 
 Parser::~Parser ()
@@ -47,49 +49,76 @@ Parser::Data::~Data ()
 #endif
 }
 
+Parser::operator bool () const
+{
+    return m_data && m_data->m_parser;
+}
+
 void
 Parser::setConstant (std::string const& name, amrex::Real c)
 {
-    parser_setconst(m_data->m_parser, name.c_str(), c);
+    if (m_data && m_data->m_parser) {
+        parser_setconst(m_data->m_parser, name.c_str(), c);
+    }
 }
 
 void
 Parser::registerVariables (Vector<std::string> const& vars)
 {
-    m_data->m_nvars = vars.size();
-    for (int i = 0; i < m_data->m_nvars; ++i) {
-        parser_regvar(m_data->m_parser, vars[i].c_str(), i);
+    if (m_data && m_data->m_parser) {
+        m_data->m_nvars = vars.size();
+        for (int i = 0; i < m_data->m_nvars; ++i) {
+            parser_regvar(m_data->m_parser, vars[i].c_str(), i);
+        }
     }
 }
 
 void
 Parser::print () const
 {
-    parser_print(m_data->m_parser);
+    if (m_data && m_data->m_parser) {
+        parser_print(m_data->m_parser);
+    }
 }
 
 int
 Parser::depth () const
 {
-    return parser_depth(m_data->m_parser);
+    if (m_data && m_data->m_parser) {
+        return parser_depth(m_data->m_parser);
+    } else {
+        return 0;
+    }
 }
 
 int
 Parser::maxStackSize () const
 {
-    return m_data->m_max_stack_size;
+    if (m_data && m_data->m_parser) {
+        return m_data->m_max_stack_size;
+    } else {
+        return 0;
+    }
 }
 
-std::string const&
+std::string
 Parser::expr () const
 {
-    return m_data->m_expression;
+    if (m_data && m_data->m_parser) {
+        return m_data->m_expression;
+    } else {
+        return std::string{};
+    }
 }
 
 std::set<std::string>
 Parser::symbols () const
 {
-    return parser_get_symbols(m_data->m_parser);
+    if (m_data && m_data->m_parser) {
+        return parser_get_symbols(m_data->m_parser);
+    } else {
+        return std::set<std::string>{};
+    }
 }
 
 }
