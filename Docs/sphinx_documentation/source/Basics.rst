@@ -364,6 +364,13 @@ Note that an assignment to an automatic variable must be terminated with
 the constants set by :cpp:`setConstant` and the variables registered by
 :cpp:`registerVariables`.
 
+Besides :cpp:`amrex::Parser` for floating point numbers, AMReX also provides
+:cpp:`amrex::IParser` for integers.  The two parsers have a lot of
+similarity, but floating point number specific functions (e.g., ``sqrt``,
+``sin``, etc.) are not supported in ``IParser``.  In addition to ``/`` whose
+result truncates towards zero, the integer parser also supports ``//`` whose
+result truncates towards negative infinity.
+
 .. _sec:basics:initialize:
 
 Initialize and Finalize
