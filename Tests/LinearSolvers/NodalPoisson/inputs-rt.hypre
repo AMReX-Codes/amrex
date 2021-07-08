@@ -1,4 +1,3 @@
-
 max_level = 1
 ref_ratio = 2
 n_cell = 128
@@ -21,8 +20,6 @@ consolidation = 1
 max_coarsening_level = 0  # No. of GMG coarsening level before calling hypre
 linop_maxorder = 3
 hypre_interface = 3
-
-bottom_rtol       = 1.e-12
 
 hypre.hypre_solver = BiCGSTAB
 hypre.hypre_preconditioner = BoomerAMG

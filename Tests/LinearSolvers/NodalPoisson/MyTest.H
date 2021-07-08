@@ -37,7 +37,6 @@ private:
     int max_iter = 100;
     int max_fmg_iter = 0;
     amrex::Real reltol = 1.e-11;
-    amrex::Real bottom_reltol = 1.e-11;
     int gpu_regtest = 0;
 
 
