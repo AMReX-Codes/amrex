@@ -73,6 +73,8 @@ public:
     ~Parser ();
     void define (std::string const& func_body);
 
+    explicit operator bool () const;
+
     void setConstant (std::string const& name, amrex::Real c);
 
     void registerVariables (Vector<std::string> const& vars);
@@ -82,7 +84,7 @@ public:
     int depth () const;
     int maxStackSize () const;
 
-    std::string const& expr () const;
+    std::string expr () const;
 
     std::set<std::string> symbols () const;
 
@@ -114,33 +116,37 @@ template <int N>
 ParserExecutor<N>
 Parser::compileHost () const
 {
-    AMREX_ASSERT(N == m_data->m_nvars);
+    if (m_data && m_data->m_parser) {
+        AMREX_ASSERT(N == m_data->m_nvars);
 
-    if (!(m_data->m_host_executor)) {
-        int stack_size;
-        m_data->m_exe_size = parser_exe_size(m_data->m_parser, m_data->m_max_stack_size,
-                                             stack_size);
+        if (!(m_data->m_host_executor)) {
+            int stack_size;
+            m_data->m_exe_size = parser_exe_size(m_data->m_parser, m_data->m_max_stack_size,
+                                                 stack_size);
 
-        if (m_data->m_max_stack_size > AMREX_PARSER_STACK_SIZE) {
-            amrex::Abort("amrex::Parser: AMREX_PARSER_STACK_SIZE, "
-                         + std::to_string(AMREX_PARSER_STACK_SIZE) + ", is too small for "
-                         + m_data->m_expression);
+            if (m_data->m_max_stack_size > AMREX_PARSER_STACK_SIZE) {
+                amrex::Abort("amrex::Parser: AMREX_PARSER_STACK_SIZE, "
+                             + std::to_string(AMREX_PARSER_STACK_SIZE) + ", is too small for "
+                             + m_data->m_expression);
+            }
+            if (stack_size != 0) {
+                amrex::Abort("amrex::Parser: something went wrong with parser stack! "
+                             + std::to_string(stack_size));
+            }
+
+            m_data->m_host_executor = (char*)The_Pinned_Arena()->alloc(m_data->m_exe_size);
+
+            parser_compile(m_data->m_parser, m_data->m_host_executor);
         }
-        if (stack_size != 0) {
-            amrex::Abort("amrex::Parser: something went wrong with parser stack! "
-                         + std::to_string(stack_size));
-        }
-
-        m_data->m_host_executor = (char*)The_Pinned_Arena()->alloc(m_data->m_exe_size);
-
-        parser_compile(m_data->m_parser, m_data->m_host_executor);
-    }
 
 #ifdef AMREX_USE_GPU
-    return ParserExecutor<N>{m_data->m_host_executor, m_data->m_device_executor};
+        return ParserExecutor<N>{m_data->m_host_executor, m_data->m_device_executor};
 #else
-    return ParserExecutor<N>{m_data->m_host_executor};
+        return ParserExecutor<N>{m_data->m_host_executor};
 #endif
+    } else {
+        return ParserExecutor<N>{};
+    }
 }
 
 template <int N>
@@ -150,7 +156,7 @@ Parser::compile () const
     auto exe = compileHost<N>();
 
 #ifdef AMREX_USE_GPU
-    if (!(m_data->m_device_executor)) {
+    if (m_data && m_data->m_parser && !(m_data->m_device_executor)) {
         m_data->m_device_executor = (char*)The_Arena()->alloc(m_data->m_exe_size);
         Gpu::htod_memcpy_async(m_data->m_device_executor, m_data->m_host_executor,
                                m_data->m_exe_size);

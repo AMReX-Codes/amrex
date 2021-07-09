@@ -255,7 +255,7 @@ parser_call_f2 (enum parser_f2_t type, Real a, Real b)
     case PARSER_HEAVISIDE:
         return (a < Real(0.0)) ? Real(0.0) : ((a > Real(0.0)) ? Real(1.0) : b);
     case PARSER_JN:
-#ifdef AMREX_USE_DPCPP
+#if defined AMREX_USE_DPCPP || defined __MINGW32__
         // neither jn(f) nor std::cyl_bessel_j work yet
         // https://github.com/oneapi-src/oneAPI-spec/issues/308
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser_call_f2: jn in SYCL/DPC++ not supported yet");
