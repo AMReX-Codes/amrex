@@ -905,6 +905,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
 #ifdef BL_USE_MPI
     SetHDF5fapl(fapl, ParallelDescriptor::Communicator());
+    H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_COLLECTIVE);
 #else
     SetHDF5fapl(fapl);
 #endif
@@ -912,8 +913,11 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
     dcpl = H5Pcreate(H5P_DATASET_CREATE);
 
 #ifdef AMREX_USE_HDF5_ZFP
+    ret = H5Z_zfp_initialize();
+    if (ret < 0) amrex::Abort("ZFP initialize failed!");
+
     char *chunk_env = NULL, *mode_env = NULL, *value_env = NULL;
-    double zfp_value = -1.0;
+    double comp_value = -1.0;
     hsize_t chunk_dim = 1048576;
 
     chunk_env = getenv("HDF5_CHUNK_SIZE");
@@ -923,22 +927,23 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
     H5Pset_chunk(dcpl, 1, &chunk_dim);
     H5Pset_alloc_time(dcpl, H5D_ALLOC_TIME_LATE);
 
-    value_env = getenv("HDF5_ZFP_VALUE");
+    value_env = getenv("HDF5_COMPRESSION_VALUE");
     if (value_env != NULL)
-        zfp_value = atof(value_env);
+        comp_value = atof(value_env);
 
-    mode_env = getenv("HDF5_ZFP_MODE");
+    mode_env = getenv("HDF5_COMPRESSION_MODE");
     if (mode_env != NULL) {
         if (strcmp(mode_env, "ZFP_RATE") == 0)
-            H5Pset_zfp_rate(dcpl, zfp_value);
-        if (strcmp(mode_env, "ZFP_PRECISION") == 0)
-            H5Pset_zfp_precision(dcpl, (unsigned int)zfp_value);
-        if (strcmp(mode_env, "ZFP_ACCURACY") == 0)
-            H5Pset_zfp_accuracy(dcpl, zfp_value);
-        if (strcmp(mode_env, "ZFP_REVERSIBLE") == 0)
+            H5Pset_zfp_rate(dcpl, comp_value);
+        else if (strcmp(mode_env, "ZFP_PRECISION") == 0)
+            H5Pset_zfp_precision(dcpl, (unsigned int)comp_value);
+        else if (strcmp(mode_env, "ZFP_ACCURACY") == 0)
+            H5Pset_zfp_accuracy(dcpl, comp_value);
+        else if (strcmp(mode_env, "ZFP_REVERSIBLE") == 0)
             H5Pset_zfp_reversible(dcpl);
+        else if (strcmp(mode_env, "ZLIB") == 0)
+            H5Pset_deflate(dcpl, (int)comp_value);
     }
-    std::cout << mode_env << ", " << value_env << ", " << chunk_dim << std::endl;
 #endif
 
     BL_PROFILE_VAR("H5writeAllLevel", h5dwd);
@@ -1080,9 +1085,9 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
                 ++vbCount;
             }
 
-#ifdef BL_USE_MPI
-            H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_INDEPENDENT);
-#endif
+/* #ifdef BL_USE_MPI */
+/*             H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_INDEPENDENT); */
+/* #endif */
 
             // Only proc zero needs to write out this information
 #ifdef AMREX_USE_HDF5_ASYNC
@@ -1157,9 +1162,9 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         if(dataset < 0)
             std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
 
-#ifdef BL_USE_MPI
-        ret = H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_COLLECTIVE);
-#endif
+/* #ifdef BL_USE_MPI */
+/*         ret = H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_COLLECTIVE); */
+/* #endif */
 
 #ifdef AMREX_USE_HDF5_ASYNC
         ret = H5Dwrite_async(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl, a_buffer.dataPtr(), es_id_g);
