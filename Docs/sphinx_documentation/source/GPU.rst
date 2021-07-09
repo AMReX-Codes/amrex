@@ -182,7 +182,6 @@ can run it and that will generate results like:
    Total GPU global memory (MB): 6069
    Free  GPU global memory (MB): 5896
    [The         Arena] space (MB): 4552
-   [The  Device Arena] space (MB): 8
    [The Managed Arena] space (MB): 8
    [The  Pinned Arena] space (MB): 8
    AMReX (19.06-404-g0455b168b69c-dirty) finalized
@@ -259,13 +258,14 @@ For example, on Cori GPUs you can specify the architecture as follows:
 
 If no architecture is specified, CMake will default to the architecture defined in the
 *environment variable* ``AMREX_CUDA_ARCH`` (note: all caps).
-If the latter is not defined, CMake will try to determine which GPU
-architecture is supported by the system. If more than one is found, CMake will build for all of them.
-This will generally results in a larger library and longer build times.
-If autodetection fails, a set of "common" architectures is assumed.
-**Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
-CUDA Toolkit version 9.0 or higher**.
+If the latter is not defined, CMake will try to determine which GPU architecture is supported by the system.
+If more than one is found, CMake will build for all of them.
+If autodetection fails, a list of "common" architectures is assumed.
+`Multiple CUDA architectures <https://cmake.org/cmake/help/latest/module/FindCUDA.html#commands>`__ can also be set manually as semicolon-separated list, e.g. ``-DAMReX_CUDA_ARCH=7.0;8.0``.
+Building for multiple CUDA architectures will generally result in a larger library and longer build times.
 
+**Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
+CUDA Toolkit version 9.0 or higher.**
 
 In order to import the CUDA-enabled AMReX library into your CMake project, you need to include
 the following code into the appropriate CMakeLists.txt file:
@@ -279,7 +279,8 @@ the following code into the appropriate CMakeLists.txt file:
 
 
 If instead of using an external installation of AMReX you prefer to include AMReX as a subproject
-in your CMake setup, we strongly encourage you to use the ``AMReX_SetupCUDA`` module as shown below:
+in your CMake setup, we strongly encourage you to use the ``AMReX_SetupCUDA`` module as shown below
+if the CMake version is less than 3.20:
 
 .. highlight:: console
 
@@ -288,8 +289,10 @@ in your CMake setup, we strongly encourage you to use the ``AMReX_SetupCUDA`` mo
    # Enable CUDA in your CMake project
    enable_language(CUDA)
 
-   # Include the AMReX-provided CUDA setup module
-   include(AMReX_SetupCUDA)
+   # Include the AMReX-provided CUDA setup module -- OBSOLETE with CMake >= 3.20
+   if(CMAKE_VERSION VERSION_LESS 3.20)
+       include(AMReX_SetupCUDA)
+   endif()
 
    # Include AMReX source directory ONLY AFTER the two steps above
    add_subdirectory(/path/to/amrex/source/dir)
@@ -322,6 +325,10 @@ Enabling HIP support (experimental)
 To build AMReX with HIP support in CMake, add
 ``-DAMReX_GPU_BACKEND=HIP -DAMReX_AMD_ARCH=<target-arch> -DCMAKE_CXX_COMPILER=<your-hip-compiler>``
 to the ``cmake`` invocation.
+If you don't need Fortran features (``AMReX_FORTRAN=OFF``), it is recomended to use AMD's ``clang++`` as the HIP compiler.
+(Please see these issues for reference in rocm/HIP <= 4.2.0
+`[1] <https://github.com/ROCm-Developer-Tools/HIP/issues/2275>`__
+`[2] <https://github.com/AMReX-Codes/amrex/pull/2031>`__.)
 
 In AMReX CMake, the HIP compiler is treated as a special C++ compiler and therefore
 the standard CMake variables used to customize the compilation process for C++,
@@ -329,16 +336,18 @@ for example ``CMAKE_CXX_FLAGS``, can be used for HIP as well.
 
 
 Since CMake does not support autodetection of HIP compilers/target architectures
-yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``hipcc`` or ``nvcc``,
+yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``clang++`` or ``hipcc`` or ``nvcc``,
 and ``AMReX_AMD_ARCH`` to the target architecture you are building for.
 Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user-inputs when AMReX_GPU_BACKEND=HIP**.
+We again read also an *environment variable*: ``AMREX_AMD_ARCH`` (note: all caps) and the C++ compiler can be hinted as always, e.g. with ``export CXX=$(which clang++)``.
 Below is an example configuration for HIP on Tulip:
 
 .. highlight:: console
 
 ::
 
-   cmake -DAMReX_GPU_BACKEND=HIP -DCMAKE_CXX_COMPILER=$(which hipcc) -DAMReX_AMD_ARCH="gfx906,gfx908"  [other options] /path/to/amrex/source
+   cmake -S . -B build -DAMReX_GPU_BACKEND=HIP -DCMAKE_CXX_COMPILER=$(which clang++) -DAMReX_AMD_ARCH="gfx906;gfx908"  # [other options]
+   cmake --build build -j 6
 
 
 Enabling SYCL support (experimental)
@@ -383,6 +392,8 @@ Below is an example configuration for SYCL:
    | AMReX_DPCPP_AOT              | Enable DPCPP ahead-of-time compilation          | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_DPCPP_SPLIT_KERNEL     | Enable DPCPP kernel splitting                   | YES         | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | AMReX_DPCPP_ONEDPL           | Enable DPCPP's oneDPL algorithms                | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
 .. raw:: latex
 
@@ -455,8 +466,6 @@ specific type of GPU memory:
     +=====================+============================+
     | The_Arena()         |  managed or device memory  |
     +---------------------+----------------------------+
-    | The_Device_Arena()  |  device memory             |
-    +---------------------+----------------------------+
     | The_Managed_Arena() |  managed memory            |
     +---------------------+----------------------------+
     | The_Pinned_Arena()  |  pinned memory             |
@@ -482,10 +491,25 @@ a boolean runtime parameter ``amrex.the_arena_is_managed``.
 Therefore the data in a :cpp:`MultiFab` is placed in
 managed memory by default and is accessible from both CPU host and GPU device.
 This allows application codes to develop their GPU capability
-gradually.  :cpp:`The_Managed_Arena()` is a separate pool of
-managed memory, that is distinguished from :cpp:`The_Arena()` for
-performance reasons.  If you want to print out the current memory usage
+gradually. The behavior of :cpp:`The_Managed_Arena()` likewise depends on the
+``amrex.the_arena_is_managed`` parameter. If ``amrex.the_arena_is_managed=0``,
+:cpp:`The_Managed_Arena()` is a separate pool of managed memory. If
+``amrex.the_arena_is_managed=1``, :cpp:`The_Managed_Arena()` is simply aliased
+to :cpp:`The_Arena()` to reduce memory fragmentation.
+
+If you want to print out the current memory usage
 of the Arenas, you can call :cpp:`amrex::Arena::PrintUsage()`.
+When AMReX is built with SUNDIALS turned on, :cpp:`amrex::sundials::The_SUNMemory_Helper()`
+can be provided to SUNDIALS data structures so that they use the appropriate
+Arena object when allocating memory. For example, it can be provided to the
+SUNDIALS CUDA vector:
+
+.. highlight:: c++
+
+::
+
+  N_Vector x = N_VNewWithMemHelp_Cuda(size, use_managed_memory, *The_SUNMemory_Helper());
+
 
 .. ===================================================================
 
@@ -615,11 +639,9 @@ allocations and deallocations when (for example) resizing vectors.
     +================+======================+
     | DeviceVector   | The_Arena()          |
     +----------------+----------------------+
-    | HostVector     | None                 |
+    | HostVector     | The_Pinned_Arena()   |
     +----------------+----------------------+
     | ManagedVector  | The_Managed_Arena()  |
-    +----------------+----------------------+
-    | PinnedVector   | The_Pinned_Arena()   |
     +----------------+----------------------+
 
 .. raw:: latex
@@ -629,7 +651,8 @@ allocations and deallocations when (for example) resizing vectors.
 These classes behave identically to an
 :cpp:`amrex::Vector`, (see :ref:`sec:basics:vecandarr`), except that they
 can only hold "plain-old-data" objects (e.g. Reals, integers, amrex Particles,
-etc... ).
+etc... ). If you want a resizable vector that doesn't use a memory Arena,
+simply use :cpp:`amrex::Vector`.
 
 Note that, even if the data in the vector is  managed and available on GPUs,
 the member functions of e.g. :cpp:`Gpu::ManagedVector` are not.

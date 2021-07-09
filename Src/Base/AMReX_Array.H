@@ -28,7 +28,7 @@ namespace amrex {
 }
 
 namespace amrex {
-    template <class T, std::size_t N>
+    template <class T, unsigned int N>
     struct GpuArray
     {
         using value_type = T;
@@ -47,7 +47,7 @@ namespace amrex {
         T* data () noexcept { return arr; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr std::size_t size() const noexcept { return N; }
+        constexpr unsigned int size() const noexcept { return N; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin() const noexcept { return arr; }
@@ -63,9 +63,9 @@ namespace amrex {
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void fill( const T& value ) noexcept
-        { for (std::size_t i = 0; i < N; ++i) arr[i] = value; }
+        { for (unsigned int i = 0; i < N; ++i) arr[i] = value; }
 
-        T arr[amrex::max(N,std::size_t{1})];
+        T arr[amrex::max(N,1u)];
     };
 }
 

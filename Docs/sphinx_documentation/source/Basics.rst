@@ -307,6 +307,62 @@ Then we would pass :cpp:`add_par` into :cpp:`amrex::Initialize`:
 This value replaces the current default value of true in AMReX itself, but
 can still be over-written by setting a value in the inputs file.
 
+.. _sec:basics:parser:
+
+Parser
+======
+
+AMReX provides a parser in ``AMReX_Parser.H`` that can be used at runtime to evaluate mathematical
+expressions given in the form of string.  It supports ``+``, ``-``, ``*``,
+``/``, ``**`` (power), ``^`` (power), ``sqrt``, ``exp``, ``log``, ``log10``,
+``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``sinh``, ``cosh``,
+``tanh``, and ``abs``.  The minimum and maximum of two numbers can be
+computed with ``min`` and ``max``, respectively.  It supports the Heaviside
+step function, ``heaviside(x1,x2)`` that gives ``0``, ``x2``, ``1``, for
+``x1 < 0``, ``x1 = 0`` and ``x1 > 0``, respectively.  There is ``if(a,b,c)``
+that gives ``b`` or ``c`` depending on the value of ``a``.  A number of
+comparison operators are supported, including ``<``, ``>``, ``==``, ``!=``,
+``<=``, and ``>=``.  The Boolean results from comparison can be combined by
+``and`` and ``or``, and they hold the value ``1`` for true and ``0`` for
+false.  The precedence of the operators follows the convention of the C and
+C++ programming languages.  Here is an example of using the parser.
+
+.. highlight: c++
+
+::
+
+   Parser parser("if(x>a and x<b, sin(x)*cos(y)*if(z<0, 1.0, exp(-z)), .3*c**2)");
+   parser.setConstant(a, ...);
+   parser.setConstant(b, ...);
+   parser.setConstant(c, ...);
+   parser.registerVariables({"x","y","z"});
+   auto f = parser.compile<3>();  // 3 because there are three variables.
+
+   // f can be used in both host and device code.  It takes 3 arguments in
+   // this example.  The parser object must be alive for f to be valid.
+   for (int k = 0; ...) {
+     for (int j = 0; ...) {
+       for (int i = 0; ...) {
+         a(i,j,k) = f(i*dx, j*dy, k*dz);
+       }
+     }
+   }
+
+Local automatic variables can be defined in the expression.  For example,
+
+.. highlight: c++
+
+::
+
+   Parser parser("r2=x*x+y*y; r=sqrt(r2); cos(a+r2)*log(r)"
+   parser.setConstant(a, ...);
+   parser.registerVariables({"x","y"});
+   auto f = parser.compile<2>();  // 2 because there are two variables.
+
+Note that an assignment to an automatic variable must be terminated with
+``;``, and one should avoid name conflict between the local variables and
+the constants set by :cpp:`setConstant` and the variables registered by
+:cpp:`registerVariables`.
 
 .. _sec:basics:initialize:
 
@@ -1477,6 +1533,39 @@ Here the number of ghost cells involved is zero, and the copy is performed on
 all components if unspecified (assuming the two MultiFabs have the same number
 of components).
 
+Both :cpp:`ParallelCopy(...)` and :cpp:`FillBoundary(...)` are blocking calls. They
+will only return when the communication is completed and the destination MultiFab is
+guaranteed to be properly updated.  AMReX also provides non-blocking versions of
+these calls to allow users to overlap communication with calculation and potentially
+improve overall application performance.
+
+The non-blocking calls are used by calling the :cpp:`***_nowait(...)` function
+to begin the comm operation, followed by the :cpp:`***_finish()` function at a later
+time to complete it. For example:
+
+.. highlight:: c++
+
+::
+
+      mfA.ParallelCopy_nowait(mfsrc, period, op);
+
+      // ... Any overlapping calc work here on other data, e.g.
+      mfB.setVal(0.0);
+
+      mfA.ParallelCopy_finish();
+
+      mfB.FillBoundary_nowait(period);
+      // ... Overlapping work here
+      mfB.FillBoundary_finish();
+
+
+All function signatures of the blocking calls are also available in the non-blocking
+calls and should be used in the `nowait` function.  The `finish` functions take no
+parameters, as the required data is stored during `nowait` and retrieved.  Users that
+choose to use non-blocking calls must ensure the calls are properly used to avoid race
+conditions, which typically means not interacting with the MultiFab between the
+:cpp:`_nowait` and :cpp:`_finish` calls.
+
 
 .. _sec:basics:mfiter:
 
@@ -2529,6 +2618,8 @@ segfault occurs or ``Abort`` is called.  If the application does not
 want AMReX to handle this, ``ParmParse`` parameter
 `amrex.signal_handling=0` can be used to disable it.
 
+
+.. _sec:basics:debugging:
 
 Debugging
 =========

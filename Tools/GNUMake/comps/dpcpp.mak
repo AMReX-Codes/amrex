@@ -11,6 +11,12 @@ CFLAGS   =
 FFLAGS   =
 F90FLAGS =
 
+ifeq ($(USE_ONEDPL),TRUE)
+# TBB and PSTL are broken in oneAPI 2021.3.0
+# https://software.intel.com/content/www/us/en/develop/articles/intel-oneapi-dpcpp-library-release-notes.html#inpage-nav-2-3
+  CPPFLAGS += -DAMREX_USE_ONEDPL -D_GLIBCXX_USE_TBB_PAR_BACKEND=0 -DPSTL_USE_PARALLEL_POLICIES=0
+endif
+
 ########################################################################
 
 ifeq ($(DEBUG),TRUE)
@@ -38,9 +44,7 @@ ifeq ($(WARN_ALL),TRUE)
   warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
   warning_flags += -Wfloat-conversion -Wextra-semi
 
-  ifneq ($(USE_CUDA),TRUE)
-    warning_flags += -Wpedantic
-  endif
+  warning_flags += -Wpedantic
 
   ifneq ($(WARN_SHADOW),FALSE)
     warning_flags += -Wshadow

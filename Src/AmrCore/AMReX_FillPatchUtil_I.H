@@ -785,7 +785,7 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
     }
     mf_set_domain_bndry (mf_crse_patch, cgeom);
 
-    mf_crse_patch.copy(cmf, scomp, 0, ncomp, cgeom.periodicity());
+    mf_crse_patch.ParallelCopy(cmf, scomp, 0, ncomp, cgeom.periodicity());
 
     cbc(mf_crse_patch, 0, ncomp, mf_crse_patch.nGrowVect(), time, cbccomp);
 
@@ -919,7 +919,7 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
 #endif
         mf_set_domain_bndry(mf_crse_patch[d], cgeom);
 
-        mf_crse_patch[d].copy(*(cmf[d]), scomp, 0, ncomp, cgeom.periodicity());
+        mf_crse_patch[d].ParallelCopy(*(cmf[d]), scomp, 0, ncomp, cgeom.periodicity());
         cbc[d](mf_crse_patch[d], 0, ncomp, mf_crse_patch[d].nGrowVect(), time, cbccomp);
     }
 

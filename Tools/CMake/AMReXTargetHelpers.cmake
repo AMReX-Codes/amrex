@@ -1,3 +1,4 @@
+
 #[=======================================================================[
 AMReXTargetHelpers
 ----------------
@@ -23,8 +24,9 @@ function (get_target_properties_flattened _target _includes _defines _flags _lin
    set(_local_defines)
    set(_local_flags)
    set(_local_link_line)
+   set(_local_tgts)
 
-   get_target_prop_recursive(${_target} _local_includes _local_defines _local_flags _local_link_line)
+   get_target_prop_recursive(${_target} _local_includes _local_defines _local_flags _local_link_line _local_tgts)
    # Set results in parent scope
    set(${_includes}  "${_local_includes}"   PARENT_SCOPE)
    set(${_defines}   "${_local_defines}"    PARENT_SCOPE)
@@ -39,11 +41,19 @@ endfunction ()
 # NOT RECOMMENDED to use this function directly.
 # Use get_target_properties_flattened INSTEAD!
 #
-function (get_target_prop_recursive _target _lincludes _ldefines _lflags _llink_line )
+function (get_target_prop_recursive _target _lincludes _ldefines _lflags _llink_line _ltgts)
 
    if (NOT TARGET ${_target})
       return()
    endif ()
+
+   # only look at each target once
+   list(FIND ${_ltgts} ${_target} idx)
+   if (${idx} GREATER_EQUAL 0)
+       return()
+   else()
+        set(${_ltgts} ${${_ltgts}} ${_target} PARENT_SCOPE)
+   endif()
 
    # defines
    get_target_property(_interface_defines ${_target} INTERFACE_COMPILE_DEFINITIONS)
@@ -83,7 +93,7 @@ function (get_target_prop_recursive _target _lincludes _ldefines _lflags _llink_
          if ( NOT TARGET ${_item} )
             list(APPEND ${_llink_line} ${_item})
          else ()
-            get_target_prop_recursive(${_item} ${_lincludes} ${_ldefines} ${_lflags} ${_llink_line})
+            get_target_prop_recursive(${_item} ${_lincludes} ${_ldefines} ${_lflags} ${_llink_line} ${_ltgts})
          endif ()
       endforeach ()
    endif ()
@@ -113,11 +123,16 @@ endfunction ()
 # is compatible with amrex CUDA build.
 #
 function (setup_target_for_cuda_compilation _target)
-   # separable compilation:
-   #   mainly due to amrex::Random which uses global device variables
    set_target_properties( ${_target}
       PROPERTIES
-      CUDA_SEPARABLE_COMPILATION ON      # This adds -dc
-      )
+      CUDA_SEPARABLE_COMPILATION ${AMReX_GPU_RDC}      # This adds -dc
+   )
    set_cpp_sources_to_cuda_language(${_target})
+
+   if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.20)
+      set_target_properties( ${_target}
+         PROPERTIES
+         CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}"
+         )
+   endif ()
 endfunction ()

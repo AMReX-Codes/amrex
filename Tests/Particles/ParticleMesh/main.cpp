@@ -18,7 +18,7 @@ struct TestParams {
   bool verbose;
 };
 
-void testParticleMesh(TestParams& parms)
+void testParticleMesh (TestParams& parms)
 {
 
   RealBox real_box;
@@ -48,7 +48,10 @@ void testParticleMesh(TestParams& parms)
   MultiFab partMF(ba, dmap, 1 + BL_SPACEDIM, 1);
   partMF.setVal(0.0);
 
-  typedef ParticleContainer<1 + 2*BL_SPACEDIM> MyParticleContainer;
+  iMultiFab partiMF(ba, dmap, 1 + BL_SPACEDIM, 1);
+  partiMF.setVal(0);
+
+  typedef ParticleContainer<1 + 2*BL_SPACEDIM, 1> MyParticleContainer;
   MyParticleContainer myPC(geom, dmap, ba);
   myPC.SetVerbose(false);
 
@@ -60,7 +63,7 @@ void testParticleMesh(TestParams& parms)
   int iseed = 451;
   Real mass = 10.0;
 
-  MyParticleContainer::ParticleInitData pdata = {mass, AMREX_D_DECL(1.0, 2.0, 3.0), AMREX_D_DECL(0.0, 0.0, 0.0)};
+  MyParticleContainer::ParticleInitData pdata = {{mass, AMREX_D_DECL(1.0, 2.0, 3.0), AMREX_D_DECL(0.0, 0.0, 0.0)}, {},{},{}};
   myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
   int nc = 1 + BL_SPACEDIM;
@@ -74,9 +77,9 @@ void testParticleMesh(TestParams& parms)
           amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
           amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
 
-          int i = amrex::Math::floor(lx);
-          int j = amrex::Math::floor(ly);
-          int k = amrex::Math::floor(lz);
+          int i = static_cast<int>(amrex::Math::floor(lx));
+          int j = static_cast<int>(amrex::Math::floor(ly));
+          int k = static_cast<int>(amrex::Math::floor(lz));
 
           amrex::Real xint = lx - i;
           amrex::Real yint = ly - j;
@@ -119,9 +122,9 @@ void testParticleMesh(TestParams& parms)
           amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
           amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
 
-          int i = amrex::Math::floor(lx);
-          int j = amrex::Math::floor(ly);
-          int k = amrex::Math::floor(lz);
+          int i = static_cast<int>(amrex::Math::floor(lx));
+          int j = static_cast<int>(amrex::Math::floor(ly));
+          int k = static_cast<int>(amrex::Math::floor(lz));
 
           amrex::Real xint = lx - i;
           amrex::Real yint = ly - j;
@@ -140,6 +143,37 @@ void testParticleMesh(TestParams& parms)
                   }
               }
           }
+      });
+
+  // now also try the iMultiFab versions
+  amrex::ParticleToMesh(myPC, partiMF, 0,
+      [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
+                            amrex::Array4<int> const& count)
+      {
+          amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
+          amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
+          amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
+
+          int i = static_cast<int>(amrex::Math::floor(lx));
+          int j = static_cast<int>(amrex::Math::floor(ly));
+          int k = static_cast<int>(amrex::Math::floor(lz));
+
+          amrex::Gpu::Atomic::AddNoRet(&count(i, j, k), 1);
+      });
+
+  amrex::MeshToParticle(myPC, partiMF, 0,
+      [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& p,
+                            amrex::Array4<const int> const& count)
+      {
+          amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
+          amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
+          amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
+
+          int i = static_cast<int>(amrex::Math::floor(lx));
+          int j = static_cast<int>(amrex::Math::floor(ly));
+          int k = static_cast<int>(amrex::Math::floor(lz));
+
+          p.idata(0) = count(i, j, k);
       });
 
   WriteSingleLevelPlotfile("plot", partMF,

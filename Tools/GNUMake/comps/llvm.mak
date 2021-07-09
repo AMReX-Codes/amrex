@@ -38,8 +38,6 @@ else
 
 endif
 
-CXXFLAGS += -Wno-pass-failed  # disable this warning
-
 ifeq ($(WARN_ALL),TRUE)
   warning_flags = -Wall -Wextra -Wno-sign-compare -Wunreachable-code -Wnull-dereference
   warning_flags += -Wfloat-conversion -Wextra-semi
@@ -60,6 +58,9 @@ ifeq ($(WARN_ERROR),TRUE)
   CXXFLAGS += -Werror
   CFLAGS += -Werror
 endif
+
+# disable some warnings
+CXXFLAGS += -Wno-pass-failed -Wno-c++17-extensions
 
 ########################################################################
 

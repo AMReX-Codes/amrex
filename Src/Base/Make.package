@@ -13,8 +13,6 @@ C$(AMREX_BASE)_headers += AMReX_Extension.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuComplex.H
 
-C$(AMREX_BASE)_headers += AMReX_IndexSequence.H
-
 C$(AMREX_BASE)_headers += AMReX_PODVector.H
 
 C$(AMREX_BASE)_headers += AMReX_BlockMutex.H
@@ -61,6 +59,7 @@ C$(AMREX_BASE)_headers += AMReX_BLFort.H
 C$(AMREX_BASE)_sources += AMReX_NFiles.cpp
 C$(AMREX_BASE)_headers += AMReX_NFiles.H
 
+C$(AMREX_BASE)_headers += AMReX_Morton.H
 
 C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
@@ -97,6 +96,10 @@ C$(AMREX_BASE)_headers += AMReX_CudaGraph.H AMReX_GpuContainers.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuAllocators.H
 
+C$(AMREX_BASE)_headers += AMReX_MFParallelFor.H
+C$(AMREX_BASE)_headers += AMReX_MFParallelForC.H
+C$(AMREX_BASE)_headers += AMReX_MFParallelForG.H
+
 #
 # I/O stuff.
 #
@@ -109,7 +112,6 @@ C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp AMReX_IntConv.cpp AMRe
 C$(AMREX_BASE)_sources += AMReX_Box.cpp AMReX_BoxIterator.cpp AMReX_IntVect.cpp AMReX_IndexType.cpp AMReX_Orientation.cpp AMReX_Periodicity.cpp
 C$(AMREX_BASE)_headers += AMReX_Box.H AMReX_BoxIterator.H AMReX_IntVect.H AMReX_IndexType.H AMReX_Orientation.H AMReX_Periodicity.H
 
-C$(AMREX_BASE)_sources += AMReX_Dim3.cpp
 C$(AMREX_BASE)_headers += AMReX_Dim3.H AMReX_Loop.H
 
 #
@@ -257,5 +259,25 @@ endif
 CEXE_headers += AMReX_Machine.H
 CEXE_sources += AMReX_Machine.cpp
 
+# Forward declaration
+CEXE_headers += AMReX_BaseFwd.H
+
+
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+
+
+CEXE_headers += amrex_parser.lex.h amrex_parser.tab.h
+CEXE_sources += amrex_parser.lex.cpp amrex_parser.tab.cpp
+
+CEXE_headers += AMReX_Parser_Y.H
+CEXE_sources += AMReX_Parser_Y.cpp
+
+CEXE_headers += AMReX_Parser_Exe.H
+CEXE_sources += AMReX_Parser_Exe.cpp
+
+CEXE_headers += AMReX_Parser.H
+CEXE_sources += AMReX_Parser.cpp
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base/Parser
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base/Parser

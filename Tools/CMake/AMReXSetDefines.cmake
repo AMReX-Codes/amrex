@@ -32,6 +32,7 @@ add_amrex_define( AMREX_COMM_PROFILING  IF AMReX_COMM_PROFILE )
 
 # Tiny profiler
 add_amrex_define( AMREX_TINY_PROFILING NO_LEGACY IF AMReX_TINY_PROFILE )
+add_amrex_define( AMREX_USE_ROCTX NO_LEGACY IF AMReX_ROCTX )
 
 # Mem profiler
 add_amrex_define( AMREX_MEM_PROFILING NO_LEGACY IF AMReX_MEM_PROFILE )
@@ -46,6 +47,7 @@ add_amrex_define( AMREX_USE_OMP IF AMReX_OMP )
 # DPCPP
 add_amrex_define( AMREX_USE_DPCPP NO_LEGACY IF AMReX_DPCPP )
 add_amrex_define( AMREX_USE_GPU NO_LEGACY IF AMReX_DPCPP )
+add_amrex_define( AMREX_USE_ONEDPL NO_LEGACY IF AMReX_DPCPP_ONEDPL )
 
 # HIP
 add_amrex_define( AMREX_USE_HIP NO_LEGACY IF AMReX_HIP )
@@ -68,14 +70,11 @@ add_amrex_define( AMREX_USE_ASSERTION NO_LEGACY IF AMReX_ASSERTIONS )
 # Bound checking
 add_amrex_define( AMREX_BOUND_CHECK NO_LEGACY IF AMReX_BOUND_CHECK )
 
-#
-# Fortran-specific defines: BL_LANG_FORT and AMREX_LANG_FORT
-#
 if (AMReX_FORTRAN)
 
-   # These defines are needed only by AMReX source files
+   # Fortran-specific defines, BL_LANG_FORT and AMREX_LANG_FORT do not get
+   # stored in AMReX_Config.H
    target_compile_definitions( amrex PRIVATE
-      $<$<COMPILE_LANGUAGE:Fortran>:AMREX_SPACEDIM=${AMReX_SPACEDIM}>
       $<$<COMPILE_LANGUAGE:Fortran>:BL_LANG_FORT AMREX_LANG_FORT>
       )
 
@@ -113,8 +112,11 @@ else ()
    add_amrex_define(BL_NO_FORT)
 endif ()
 
-# SENSEI Insitu -- only legacy
-add_amrex_define( BL_USE_SENSEI_INSITU IF AMReX_SENSEI )
+#
+# SENSEI Insitu
+#
+add_amrex_define( AMREX_USE_SENSEI_INSITU NO_LEGACY IF AMReX_SENSEI )
+add_amrex_define( AMREX_NO_SENSEI_AMR_INST NO_LEGACY IF AMReX_NO_SENSEI_AMR_INST )
 
 # Conduit Support
 add_amrex_define( AMREX_USE_CONDUIT NO_LEGACY IF AMReX_CONDUIT )
@@ -145,6 +147,8 @@ if (AMReX_CUDA OR AMReX_HIP)
 
    add_amrex_define( AMREX_GPUS_PER_NODE=${GPUS_PER_NODE}
       NO_LEGACY IF GPUS_PER_NODE)
+
+   add_amrex_define( AMREX_USE_GPU_RDC NO_LEGACY IF AMReX_GPU_RDC )
 endif ()
 
 #
@@ -152,6 +156,12 @@ endif ()
 #
 add_amrex_define(AMREX_USE_HDF5 NO_LEGACY IF AMReX_HDF5)
 add_amrex_define(AMREX_USE_HDF5_ASYNC NO_LEGACY IF AMReX_HDF5_ASYNC)
+
+
+#
+# SUNDIALS
+#
+add_amrex_define(AMREX_USE_SUNDIALS NO_LEGACY IF AMReX_SUNDIALS)
 
 #
 # Miscellaneous

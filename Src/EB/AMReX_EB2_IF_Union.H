@@ -4,7 +4,6 @@
 
 #include <AMReX_EB2_IF_Base.H>
 #include <AMReX_Array.H>
-#include <AMReX_IndexSequence.H>
 #include <AMReX_Tuple.H>
 
 #include <algorithm>
@@ -53,27 +52,27 @@ public:
 
     inline Real operator() (const RealArray& p) const noexcept
     {
-        return op_impl(p, makeIndexSequence<sizeof...(Fs)>());
+        return op_impl(p, std::make_index_sequence<sizeof...(Fs)>());
     }
 
     template <class U=UnionIF<Fs...>, typename std::enable_if<IsGPUable<U>::value,int>::type = 0>
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
-        return op_impl(AMREX_D_DECL(x,y,z), makeIndexSequence<sizeof...(Fs)>());
+        return op_impl(AMREX_D_DECL(x,y,z), std::make_index_sequence<sizeof...(Fs)>());
     }
 
 protected:
 
     template <std::size_t... Is>
-    inline Real op_impl (const RealArray& p, IndexSequence<Is...>) const noexcept
+    inline Real op_impl (const RealArray& p, std::index_sequence<Is...>) const noexcept
     {
         return UIF_detail::do_max(p, amrex::get<Is>(*this)...);
     }
 
     template <std::size_t... Is>
     AMREX_GPU_HOST_DEVICE inline
-    Real op_impl (AMREX_D_DECL(Real x, Real y, Real z), IndexSequence<Is...>) const noexcept
+    Real op_impl (AMREX_D_DECL(Real x, Real y, Real z), std::index_sequence<Is...>) const noexcept
     {
         return UIF_detail::do_max(AMREX_D_DECL(x,y,z), amrex::get<Is>(*this)...);
     }

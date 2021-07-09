@@ -5,6 +5,7 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_LayoutData.H>
 #include <AMReX_Print.H>
+#include <AMReX_Reduce.H>
 #include <limits>
 
 namespace amrex {
@@ -65,7 +66,7 @@ ReduceSum_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         sm = amrex::get<0>(hv);
     }
 
@@ -173,7 +174,7 @@ ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         sm = amrex::get<0>(hv);
     }
 
@@ -286,7 +287,7 @@ ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         sm = amrex::get<0>(hv);
     }
 
@@ -393,7 +394,7 @@ ReduceMin_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -501,7 +502,7 @@ ReduceMin_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -616,7 +617,7 @@ ReduceMin_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -724,7 +725,7 @@ ReduceMax_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -832,7 +833,7 @@ ReduceMax_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -947,7 +948,7 @@ ReduceMax_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -1052,7 +1053,7 @@ ReduceLogicalAnd_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -1158,7 +1159,7 @@ ReduceLogicalAnd_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -1263,7 +1264,7 @@ ReduceLogicalOr_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -1369,7 +1370,7 @@ ReduceLogicalOr_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         r = amrex::get<0>(hv);
     }
 
@@ -1477,39 +1478,6 @@ Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
         }
     }
 }
-
-
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
-void
-Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
-{
-    Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
-}
-
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
-void
-Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
-{
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        if (bx.ok())
-        {
-            auto const srcFab = src.array(mfi);
-            auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
-            {
-                dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
-            });
-        }
-    }
-}
-
 
 template <class FAB,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >

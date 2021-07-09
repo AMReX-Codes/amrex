@@ -60,7 +60,7 @@ namespace amrex
 
                 cmf[idim].define(cba, dm, 1, 1, MFInfo(), crse[0]->Factory());
 
-                cmf[idim].copy(*crse[idim], 0, 0, 1, 0, 1, cgeom.periodicity());
+                cmf[idim].ParallelCopy(*crse[idim], 0, 0, 1, 0, 1, cgeom.periodicity());
             }
 
             const Real* dx = cgeom.CellSize();

@@ -519,7 +519,7 @@ FArrayBox::contains_nan () const noexcept
         {
             return { static_cast<int>(amrex::isnan(dp[i])) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
@@ -559,7 +559,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const noexcept
             }
             return { static_cast<int>(t) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
@@ -663,7 +663,7 @@ FArrayBox::contains_inf () const noexcept
         {
             return { static_cast<int>(amrex::isinf(dp[i])) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif
@@ -703,7 +703,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const noexcept
             }
             return { static_cast<int>(t) };
         });
-        ReduceTuple hv = reduce_data.value();
+        ReduceTuple hv = reduce_data.value(reduce_op);
         return amrex::get<0>(hv);
     } else
 #endif

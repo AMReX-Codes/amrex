@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
+#include <AMReX_INT.H>
 #include <cstddef>
 #include <cstdlib>
 #include <limits>

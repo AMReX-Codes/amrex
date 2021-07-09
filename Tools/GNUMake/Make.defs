@@ -44,6 +44,11 @@ ifeq ($(USE_DPCPP),TRUE)
   USE_CCACHE := FALSE
   # Make.unknown's mpi checking does not work with mpiicpc
   NO_MPI_CHECKING := TRUE
+  ifdef USE_ONEDPL
+    USE_ONEDPL := $(strip $(USE_ONEDPL))
+  else
+    USE_ONEDPL := FALSE
+  endif
 endif
 
 ifdef USE_HIP
@@ -200,6 +205,7 @@ endif
 
 ifdef MPI_THREAD_MULTIPLE
   MPI_THREAD_MULTIPLE := $(strip $(MPI_THREAD_MULTIPLE))
+  MPI_THREAD_MULTIPLE_UPDATE_SUFFIX ?= TRUE
   ifeq ($(MPI_THREAD_MULTIPLE),TRUE)
     USE_MPI := TRUE
   endif
@@ -281,8 +287,12 @@ endif
 
 ifdef USE_SENSEI_INSITU
   USE_SENSEI_INSITU := $(strip $(USE_SENSEI_INSITU))
+  ifdef NO_SENSEI_AMR_INST
+    NO_SENSEI_AMR_INST := $(strip $(NO_SENSEI_AMR_INST))
+  endif
 else
   USE_SENSEI_INSITU := FALSE
+  NO_SENSEI_AMR_INST := FALSE
 endif
 
 ifdef USE_HDF5
@@ -355,11 +365,28 @@ else
   AMREX_NO_PROBINIT := FALSE
 endif
 
+ifdef LOG_BUILD_TIME
+  LOG_BUILD_TIME := $(strip $(LOG_BUILD_TIME))
+else
+  LOG_BUILD_TIME := FALSE
+endif
+
+ifdef USE_GPU_RDC
+  USE_GPU_RDC := $(strip $(USE_GPU_RDC))
+else
+  USE_GPU_RDC := TRUE
+endif
+
+build_time_begin := $(shell date +"%s")
+
 ALLOW_DIFFERENT_COMP ?= TRUE
 SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
 
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
+ifndef AMREX_GIT_VERSION
+  AMREX_GIT_VERSION := $(shell grep -o -m 1 -E "[0-9]{2}\.[0-9]{2}(\.[0-9]+)?" $(AMREX_HOME)/CHANGES)
+endif
 DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
 
 FORTLINK  	= UNDERSCORE
@@ -373,8 +400,11 @@ MODDEP		= $(AMREX_HOME)/Tools/F_scripts/dep.py
 CHECKFORT       = $(AMREX_HOME)/Tools/typechecker/typechecker.py
 MKCONFIG        = $(AMREX_HOME)/Tools/libamrex/mkconfig.py
 MKPKGCONFIG     = $(AMREX_HOME)/Tools/libamrex/mkpkgconfig.py
+GATHERBUILDTIME = $(AMREX_HOME)/Tools/C_scripts/gatherbuildtime.py
 
-DEPFLAGS        = -MM
+USE_LEGACY_DEPFLAGS = FALSE
+DEPFLAGS = -MMD -MP
+LEGACY_DEPFLAGS = -MM
 
 RANLIB          = ranlib
 
@@ -390,6 +420,8 @@ ifeq ($(USE_HIP),TRUE)
 else ifeq ($(USE_CUDA),TRUE)
   ifdef NVCC_HOST_COMP
     AMREX_CCOMP = $(NVCC_HOST_COMP)
+  else ifeq ($(COMP),cray)
+    AMREX_CCOMP = cray
   else
     AMREX_CCOMP = gnu
   endif
@@ -419,8 +451,10 @@ ifdef AMREX_CCOMP
     AMREX_CCOMP = gnu
   else ifeq ($(lowercase_amrex_comp),nec)
     AMREX_CCOMP = nec
+  else ifeq ($(lowercase_amrex_comp),armclang)
+    AMREX_CCOMP = armclang
   else
-    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, nvhpc, ibm, llvm, nag, and nec)
+    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, nvhpc, ibm, llvm, nag, nec, and armclang)
   endif
 endif
 
@@ -484,6 +518,11 @@ else ifeq ($(lowercase_comp),nec)
   AMREX_CCOMP ?= nec
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak
+else ifeq ($(lowercase_comp),armclang)
+  AMREX_FCOMP ?= armflang
+  AMREX_CCOMP ?= armclang
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/armclang.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/armclang.mak
 else ifeq ($(lowercase_comp),hip)
   AMREX_FCOMP ?= gnu
   AMREX_CCOMP ?= hip
@@ -588,7 +627,11 @@ ifeq ($(USE_MPI),TRUE)
     CPPFLAGS += -DBL_USE_MPI -DAMREX_USE_MPI
 
     ifeq ($(MPI_THREAD_MULTIPLE),TRUE)
-        MPISuffix := .MTMPI
+        ifeq ($(MPI_THREAD_MULTIPLE_UPDATE_SUFFIX),TRUE)
+            MPISuffix := .MTMPI
+        else
+            MPISuffix := .MPI
+        endif
         CPPFLAGS += -DAMREX_MPI_THREAD_MULTIPLE
     else
         MPISuffix := .MPI
@@ -662,6 +705,27 @@ ifeq ($(USE_HIP),TRUE)
       DEFINES += -DAMREX_HIP_INDIRECT_FUNCTION
     endif
 
+    ifeq ($(USE_MPI),TRUE)
+      # Make sure that the C/C++ MPI
+      # wrappers are calling hipcc to compile the code.
+      # Right now we handle OpenMPI, MPICH, and HPE MPT.
+      # Other MPI implementations could be added later.
+
+      export OMPI_CC := $(CXX)
+      export OMPI_CXX := $(CC)
+      export OMPI_F77 := $(FC)
+      export OMPI_FC  := $(F90)
+
+      export MPICH_CC  := $(CXX)
+      export MPICH_CXX := $(CC)
+      export MPICH_F77 := $(FC)
+      export MPICH_FC  := $(F90)
+
+      export MPICXX_CXX := $(CXX)
+      export MPICC_CC   := $(CXX)
+      export MPIF90_F90 := $(F90)
+    endif
+
 else ifeq ($(USE_CUDA),TRUE)
 
     USE_GPU := TRUE
@@ -672,9 +736,6 @@ else ifeq ($(USE_CUDA),TRUE)
         LINK_WITH_FORTRAN_COMPILER=TRUE
     else ifeq ($(lowercase_comp),ibm)
         LINK_WITH_FORTRAN_COMPILER=TRUE
-    else ifeq ($(lowercase_comp),gnu)
-    else
-        $(error CUDA can only be used with COMP=pgi or nvhpc or ibm or gnu)
     endif
 
     include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
@@ -712,6 +773,9 @@ ifeq ($(USE_GPU),TRUE)
     DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS
     ifeq ($(GPU_ERROR_CHECK),FALSE)
         DEFINES += -DAMREX_GPU_NO_ERROR_CHECK
+    endif
+    ifeq ($(USE_GPU_RDC),TRUE)
+        DEFINES += -DAMREX_USE_GPU_RDC
     endif
 endif
 
@@ -833,7 +897,18 @@ f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
 tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
 
 includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS)) $(addprefix -isystem , $(SYSTEM_INCLUDE_LOCATIONS))
-fincludes	= $(includes)
+ifeq ($(lowercase_comp),pgi)
+  # pgfortran-Error-Unknown switch: -isystem
+  fincludes = $(subst -isystem,-I,$(includes))
+else ifeq ($(lowercase_comp),nvhpc)
+  # nvfortran-Error-Unknown switch: -isystem
+  fincludes = $(subst -isystem,-I,$(includes))
+else ifeq ($(lowercase_comp),cray)
+  # ftn-"-i" is an invalid command-line option.
+  fincludes = $(subst -isystem,-I,$(includes))
+else
+  fincludes = $(includes)
+endif
 fmoddir         = $(objEXETempDir)
 
 amrexlib = $(objEXETempDir)/libamrex.a
@@ -924,6 +999,11 @@ ifeq ($(USE_SENSEI_INSITU),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.sensei
 endif
 
+ifeq ($(USE_SUNDIALS),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials
+endif
+
 ifeq ($(USE_HDF5),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.hdf5...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hdf5
@@ -950,6 +1030,10 @@ else ifeq ($(USE_HIP),TRUE)
 
     LINKFLAGS = $(HIPCC_FLAGS)
     AMREX_LINKER = hipcc
+
+    ifdef AMREX_AMD_ARCH
+      AMD_ARCH = $(AMREX_AMD_ARCH)
+    endif
 
     ifeq ($(HIP_SAVE_TEMPS),TRUE)
       # Issue: hipcc does not seem to respect the arg to --save-temps
@@ -1031,7 +1115,7 @@ else ifeq ($(USE_CUDA),TRUE)
     DEFINES += -DAMREX_GPU_MAX_THREADS=$(CUDA_MAX_THREADS)
 
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-      LINKFLAGS = $(NVCC_FLAGS)
+      LINKFLAGS = $(NVCC_FLAGS) $(CXXFLAGS_FROM_HOST)
       AMREX_LINKER = nvcc
     endif
 

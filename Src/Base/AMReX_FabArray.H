@@ -25,6 +25,7 @@
 #include <AMReX_TypeTraits.H>
 #include <AMReX_LayoutData.H>
 #include <AMReX_BaseFabUtility.H>
+#include <AMReX_MFParallelFor.H>
 
 #include <AMReX_Gpu.H>
 
@@ -143,6 +144,108 @@ struct TheFaArenaDeleter {
     }
 };
 using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
+
+// Data used in non-blocking fill boundary.
+template <class FAB>
+struct FBData {
+
+    //! Data used in non-blocking FillBoundary
+    const FabArrayBase::FB*  fb = nullptr;
+    int                 scomp;
+    int                 ncomp;
+    IntVect             nghost;
+    Periodicity         period;
+    bool                cross;
+    bool                epo;
+
+    //
+    char*               the_recv_data = nullptr;
+    char*               the_send_data = nullptr;
+    Vector<int>         recv_from;
+    Vector<char*>       recv_data;
+    Vector<std::size_t> recv_size;
+    Vector<MPI_Request> recv_reqs;
+    Vector<MPI_Status>  recv_stat;
+    //
+    Vector<char*>       send_data;
+    Vector<MPI_Request> send_reqs;
+    int                 tag;
+
+};
+
+// Data used in non-blocking parallel copy.
+template <class FAB>
+struct PCData {
+
+    const FabArrayBase::CPC*  cpc = nullptr;
+    const FabArray<FAB>*      src = nullptr;
+    FabArrayBase::CpOp  op;
+    int                 tag = -1;
+    int                 actual_n_rcvs = -1;
+    IntVect             snghost, dnghost;
+    Periodicity         period;
+    int                 SC = -1, NC = -1, DC = -1;
+
+    char*               the_recv_data = nullptr;
+    char*               the_send_data = nullptr;
+    Vector<int>         recv_from;
+    Vector<char*>       recv_data;
+    Vector<std::size_t> recv_size;
+    Vector<MPI_Request> recv_reqs;
+    Vector<MPI_Request> send_reqs;
+
+};
+
+template <typename T>
+struct MultiArray4
+{
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Array4<T> const& operator[] (int li) const noexcept {
+#if AMREX_DEVICE_COMPILE
+        return dp[li];
+#else
+        return hp[li];
+#endif
+    }
+
+#ifdef AMREX_USE_GPU
+    Array4<T>* dp = nullptr;
+#endif
+    Array4<T>* hp = nullptr;
+};
+
+template <class FAB> class FabArray;
+
+template <class FAB,
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+void
+Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+template <class FAB,
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+void
+Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        if (bx.ok())
+        {
+            auto const srcFab = src.array(mfi);
+            auto       dstFab = dst.array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FUSIBLE ( bx, numcomp, i, j, k, n,
+            {
+                dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
+            });
+        }
+    }
+}
 
 template <class FAB>
 class FabArray
@@ -349,6 +452,15 @@ public:
     template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
     Array4<typename FabArray<FAB>::value_type const> const_array (int K, int start_comp) const noexcept;
 
+    template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
+    MultiArray4<typename FabArray<FAB>::value_type> arrays () noexcept;
+
+    template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
+    MultiArray4<typename FabArray<FAB>::value_type const> arrays () const noexcept;
+
+    template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
+    MultiArray4<typename FabArray<FAB>::value_type const> const_arrays () const noexcept;
+
     //! Explicitly set the Kth FAB in the FabArray to point to elem.
     void setFab (int K, std::unique_ptr<FAB> elem);
 
@@ -492,14 +604,16 @@ public:
                        const Periodicity&   period = Periodicity::NonPeriodic(),
                        CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy(fa,0,0,nComp(),0,0,period,op); }
+
+    [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& fa,
                const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY)
         { ParallelCopy(fa,period,op); }
 
-    void ParallelAdd_nowait(const FabArray<FAB>& fa,
-                            const Periodicity& period = Periodicity::NonPeriodic())
-       { ParallelCopy_nowait(fa,period,FabArray::ADD); }
+    void ParallelAdd_nowait (const FabArray<FAB>& fa,
+                             const Periodicity& period = Periodicity::NonPeriodic())
+        { ParallelCopy_nowait(fa,period,FabArray::ADD); }
     void ParallelCopy_nowait (const FabArray<FAB>& fa,
                               const Periodicity&   period = Periodicity::NonPeriodic(),
                               CpOp                 op = FabArrayBase::COPY)
@@ -526,6 +640,8 @@ public:
                        const Periodicity&   period = Periodicity::NonPeriodic(),
                        CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy(src,src_comp,dest_comp,num_comp,0,0,period,op); }
+
+    [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
@@ -593,7 +709,8 @@ public:
                              int                  dst_nghost,
                              const Periodicity&   period = Periodicity::NonPeriodic())
        { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),
-                             IntVect(dst_nghost),period,FabArrayBase::ADD); }
+                               IntVect(dst_nghost),period,FabArrayBase::ADD); }
+
     void ParallelAdd_nowait (const FabArray<FAB>& src,
                              int                  src_comp,
                              int                  dest_comp,
@@ -603,6 +720,7 @@ public:
                              const Periodicity&   period = Periodicity::NonPeriodic())
        { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,src_nghost,
                              dst_nghost,period,FabArrayBase::ADD); }
+
     void ParallelCopy_nowait (const FabArray<FAB>& src,
                               int                  src_comp,
                               int                  dest_comp,
@@ -613,6 +731,7 @@ public:
                               CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),
                              IntVect(dst_nghost),period,op); }
+
     void ParallelCopy_nowait (const FabArray<FAB>& src,
                               int                  src_comp,
                               int                  dest_comp,
@@ -625,7 +744,7 @@ public:
 
     void ParallelCopy_finish ();
 
-
+    [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
@@ -635,6 +754,8 @@ public:
                const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),IntVect(dst_nghost),period,op); }
+
+    [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
@@ -733,6 +854,23 @@ public:
     void FillBoundary_finish ();
 
     void FillBoundary_test ();
+
+    /**
+    * \brief Sum values in overlapped cells.  The destination is limited to valid cells.
+    */
+    void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary_nowait (const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
+
+    /**
+    * \brief Sum values in overlapped cells.  The destination is limited to valid + ngrow cells.
+    */
+    void SumBoundary (int scomp, int ncomp, IntVect const& ngrow,
+                      const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& ngrow,
+                             const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary_finish ();
 
     /** \brief Fill cells outside periodic domains with their corresponding cells inside
     * the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
@@ -843,6 +981,13 @@ protected:
     //! The data.
     std::vector<FAB*> m_fabs_v;
 
+#ifdef AMREX_USE_GPU
+    mutable void* m_dp_arrays = nullptr;
+#endif
+    mutable void* m_hp_arrays = nullptr;
+    mutable MultiArray4<value_type> m_arrays;
+    mutable MultiArray4<value_type const> m_const_arrays;
+
     Vector<std::string> m_tags;
 
     //! for shared memory
@@ -907,6 +1052,9 @@ private:
 
     void setFab_assert (int K, FAB const& fab) const;
 
+    template <class F=FAB, typename std::enable_if<IsBaseFab<F>::value,int>::type = 0>
+    void build_arrays () const;
+
 public:
 
 #ifdef BL_USE_MPI
@@ -954,45 +1102,9 @@ public:
                           int                        SeqNum);
 #endif
 
-    //! Data used in non-blocking FillBoundary
-    bool fb_cross, fb_epo;
-    int fb_scomp, fb_ncomp;
-    IntVect fb_nghost;
-    Periodicity fb_period;
+    std::unique_ptr<FBData<FAB>> fbd;
 
-    //
-    char*               fb_the_recv_data = nullptr;
-    char*               fb_the_send_data = nullptr;
-    Vector<int>         fb_recv_from;
-    Vector<char*>       fb_recv_data;
-    Vector<std::size_t> fb_recv_size;
-    Vector<MPI_Request> fb_recv_reqs;
-    Vector<MPI_Status>  fb_recv_stat;
-    //
-    Vector<char*>       fb_send_data;
-    Vector<MPI_Request> fb_send_reqs;
-    int                 fb_tag;
-
-    //! Data used in non-blocking ParallelCopy
-    const CPC*           pc_cpc = nullptr;
-    const FabArray<FAB>* pc_src = nullptr;
-    CpOp                 pc_op;
-    int                  pc_tag;
-    int                  pc_actual_n_rcvs;
-    IntVect              pc_snghost, pc_dnghost;
-    Periodicity          pc_period;
-    int                  pc_SC, pc_NC, pc_DC;
-    bool                 pc_finished;
-
-    //
-    char*                pc_the_recv_data = nullptr;
-    char*                pc_the_send_data = nullptr;
-    Vector<int>          pc_recv_from;
-    Vector<char*>        pc_recv_data;
-    Vector<std::size_t>  pc_recv_size;
-    Vector<MPI_Request>  pc_recv_reqs;
-    Vector<MPI_Request>  pc_send_reqs;
-
+    std::unique_ptr<PCData<FAB>> pcd;
 };
 
 
@@ -1183,6 +1295,63 @@ FabArray<FAB>::const_array (int K, int start_comp) const noexcept
 }
 
 template <class FAB>
+template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type>
+MultiArray4<typename FabArray<FAB>::value_type>
+FabArray<FAB>::arrays () noexcept
+{
+    build_arrays();
+    return m_arrays;
+}
+
+template <class FAB>
+template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type>
+MultiArray4<typename FabArray<FAB>::value_type const>
+FabArray<FAB>::arrays () const noexcept
+{
+    build_arrays();
+    return m_const_arrays;
+}
+
+template <class FAB>
+template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type>
+MultiArray4<typename FabArray<FAB>::value_type const>
+FabArray<FAB>::const_arrays () const noexcept
+{
+    build_arrays();
+    return m_const_arrays;
+}
+
+template <class FAB>
+template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type>
+void
+FabArray<FAB>::build_arrays () const
+{
+    using A = Array4<value_type>;
+    using AC = Array4<value_type const>;
+    static_assert(sizeof(A) == sizeof(AC), "sizeof(Array4<T>) != sizeof(Array4<T const>)");
+    if (!m_hp_arrays && local_size() > 0) {
+        const int n = local_size();
+#ifdef AMREX_USE_GPU
+        m_hp_arrays = (void*)The_Pinned_Arena()->alloc(n*2*sizeof(A));
+        m_dp_arrays = (void*)The_Arena()->alloc(n*2*sizeof(A));
+#else
+        m_hp_arrays = (void*)std::malloc(n*2*sizeof(A));
+#endif
+        for (int li = 0; li < n; ++li) {
+            new ((A*)m_hp_arrays+li) A(m_fabs_v[li]->array());
+            new ((AC*)m_hp_arrays+li+n) AC(m_fabs_v[li]->const_array());
+        }
+        m_arrays.hp = (A*)m_hp_arrays;
+        m_const_arrays.hp = (AC*)m_hp_arrays + n;
+#ifdef AMREX_USE_GPU
+        m_arrays.dp = (A*)m_dp_arrays;
+        m_const_arrays.dp = (AC*)m_dp_arrays + n;
+        Gpu::htod_memcpy(m_dp_arrays, m_hp_arrays, n*2*sizeof(A));
+#endif
+    }
+}
+
+template <class FAB>
 AMREX_NODISCARD
 FAB*
 FabArray<FAB>::release (int K)
@@ -1238,6 +1407,14 @@ FabArray<FAB>::clear ()
         }
     }
     m_fabs_v.clear();
+#ifdef AMREX_USE_GPU
+    The_Pinned_Arena()->free(m_hp_arrays);
+    The_Arena()->free(m_dp_arrays);
+    m_dp_arrays = nullptr;
+#else
+    std::free(m_hp_arrays);
+#endif
+    m_hp_arrays = nullptr;
     m_factory.reset();
     m_dallocator.m_arena = nullptr;
     // no need to clear the non-blocking fillboundary stuff
@@ -1344,6 +1521,10 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     , m_dallocator (std::move(rhs.m_dallocator))
     , define_function_called(rhs.define_function_called)
     , m_fabs_v     (std::move(rhs.m_fabs_v))
+#ifdef AMREX_USE_GPU
+    , m_dp_arrays  (std::exchange(rhs.m_dp_arrays, nullptr))
+#endif
+    , m_hp_arrays  (std::exchange(rhs.m_hp_arrays, nullptr))
     , m_tags       (std::move(rhs.m_tags))
     , shmem        (std::move(rhs.shmem))
     // no need to worry about the data used in non-blocking FillBoundary.
@@ -1367,6 +1548,10 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
         m_dallocator = std::move(rhs.m_dallocator);
         define_function_called = rhs.define_function_called;
         std::swap(m_fabs_v, rhs.m_fabs_v);
+#ifdef AMREX_USE_GPU
+        std::swap(m_dp_arrays, rhs.m_dp_arrays);
+#endif
+        std::swap(m_hp_arrays, rhs.m_hp_arrays);
         std::swap(m_tags, rhs.m_tags);
         shmem = std::move(rhs.shmem);
 
@@ -2119,6 +2304,75 @@ void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 {
     FillBoundary_nowait(scomp, ncomp, nGrowVect(), Periodicity::NonPeriodic(), cross);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary (const Periodicity& period)
+{
+    SumBoundary(0, n_comp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary (int scomp, int ncomp, const Periodicity& period)
+{
+    SumBoundary(scomp, ncomp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
+{
+    BL_PROFILE("FabArray<FAB>::SumBoundary()");
+
+    SumBoundary_nowait(scomp, ncomp, nghost, period);
+    SumBoundary_finish();
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary_nowait (const Periodicity& period)
+{
+    SumBoundary_nowait(0, n_comp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period)
+{
+    SumBoundary_nowait(scomp, ncomp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
+{
+    BL_PROFILE("FabArray<FAB>::SumBoundary_nowait()");
+
+    if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) return;
+
+    FabArray<FAB>* tmp = new FabArray<FAB>( boxArray(), DistributionMap(), ncomp, n_grow, MFInfo(), Factory() );
+    amrex::Copy(*tmp, *this, scomp, 0, ncomp, n_grow);
+    this->setVal(0.0, scomp, ncomp, nghost);
+    this->ParallelCopy_nowait(*tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
+
+    // All local. Operation complete.
+    if (!this->pcd) { delete tmp; }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundary_finish ()
+{
+    BL_PROFILE("FabArray<FAB>::SumBoundary_finish()");
+
+    // If pcd doesn't exist, ParallelCopy was all local and operation was fully completed in "SumBoundary_nowait".
+    if ( (n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) || !(this->pcd) ) return;
+
+    FabArray<FAB>* tmp = const_cast<FabArray<FAB>*> (this->pcd->src);
+    this->ParallelCopy_finish();
+    delete tmp;
 }
 
 template <class FAB>

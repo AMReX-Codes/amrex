@@ -1,4 +1,5 @@
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
+target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/Parser>)
 
 target_sources( amrex
    PRIVATE
@@ -17,7 +18,6 @@ target_sources( amrex
    AMReX.H
    AMReX_Exception.H
    AMReX_Extension.H
-   AMReX_IndexSequence.H
    AMReX_PODVector.H
    AMReX_ParmParse.cpp
    AMReX_parmparse_fi.cpp
@@ -30,6 +30,7 @@ target_sources( amrex
    AMReX_Reduce.H
    AMReX_Scan.H
    AMReX_Partition.H
+   AMReX_Morton.H
    AMReX_Random.H
    AMReX_RandomEngine.H
    AMReX_Random.cpp
@@ -91,7 +92,6 @@ target_sources( amrex
    AMReX_BoxIterator.H
    AMReX_BoxIterator.cpp
    AMReX_Dim3.H
-   AMReX_Dim3.cpp
    AMReX_IntVect.H
    AMReX_IntVect.cpp
    AMReX_IndexType.H
@@ -211,6 +211,9 @@ target_sources( amrex
    AMReX_GpuReduce.H
    AMReX_GpuAllocators.H
    AMReX_GpuContainers.H
+   AMReX_MFParallelFor.H
+   AMReX_MFParallelForC.H
+   AMReX_MFParallelForG.H
    # CUDA --------------------------------------------------------------------
    AMReX_CudaGraph.H
    # Machine model -----------------------------------------------------------
@@ -222,6 +225,19 @@ target_sources( amrex
    # Profiling ---------------------------------------------------------------
    AMReX_BLProfiler.cpp
    AMReX_BLBackTrace.cpp
+   # Parser ---------------------------------------------------------------
+   Parser/AMReX_Parser.cpp
+   Parser/AMReX_Parser.H
+   Parser/AMReX_Parser_Exe.cpp
+   Parser/AMReX_Parser_Exe.H
+   Parser/AMReX_Parser_Y.cpp
+   Parser/AMReX_Parser_Y.H
+   Parser/amrex_parser.lex.cpp
+   Parser/amrex_parser.lex.h
+   Parser/amrex_parser.tab.cpp
+   Parser/amrex_parser.tab.h
+   # Forward declaration -----------------------------------------------------
+   AMReX_BaseFwd.H
    )
 
 # Fortran stuff

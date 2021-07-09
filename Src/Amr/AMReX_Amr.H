@@ -19,8 +19,7 @@ namespace amrex {
 
 class AmrLevel;
 class LevelBld;
-class BoxDomain;
-#if defined(BL_USE_SENSEI_INSITU)
+#if defined(AMREX_USE_SENSEI_INSITU) && !defined(AMREX_NO_SENSEI_AMR_INST)
 class AmrInSituBridge;
 #endif
 
@@ -473,7 +472,7 @@ protected:
     static Vector<BoxArray> regrid_ba;
     static int compute_new_dt_on_regrid;
 
-#if defined(BL_USE_SENSEI_INSITU)
+#if defined(AMREX_USE_SENSEI_INSITU) && !defined(AMREX_NO_SENSEI_AMR_INST)
     static AmrInSituBridge *insitu_bridge;
 #endif
 
