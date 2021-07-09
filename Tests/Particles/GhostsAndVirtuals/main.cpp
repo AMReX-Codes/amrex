@@ -178,7 +178,6 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
     myPC.SetVerbose(false);
 
     int num_particles = parms.nppc;
-    bool serialize = true;
     int iseed = 451;
     Real mass = 10.0;
     Real xvel, yvel, zvel;
@@ -214,7 +213,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         myPC.CreateGhostParticles(src_lev, ngrow, ghosts);
         ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
         Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
-	amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
+    amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
     }
 
     mass = 1000000.0;
