@@ -40,12 +40,9 @@ Parser::Data::~Data ()
 {
     m_expression.clear();
     if (m_parser) { amrex_parser_delete(m_parser); }
-    m_parser = nullptr;
     if (m_host_executor) { The_Pinned_Arena()->free(m_host_executor); }
-    m_host_executor = nullptr;
 #ifdef AMREX_USE_GPU
     if (m_device_executor) { The_Arena()->free(m_device_executor); }
-    m_device_executor = nullptr;
 #endif
 }
 

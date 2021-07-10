@@ -56,7 +56,7 @@ int amrex_parserlex (void);
 
 /* This specifies the type of `exp` (i.e., struct parser_node*).  Rules
    specified later pass `exp` to parser_new* functions declared in
-   AMReX_Parser_y.H.
+   AMReX_Parser_Y.H.
 */
 %type <n> exp
 
@@ -65,7 +65,7 @@ int amrex_parserlex (void);
 %%
 
 /* Given `\n` terminated input, a tree is generated and passed to
- * function parser_defexpr defined in AMReX_Parser_y.cpp.
+ * function parser_defexpr defined in AMReX_Parser_Y.cpp.
  */
 input:
   %empty
@@ -74,7 +74,7 @@ input:
   }
 ;
 
-/* Enum types PARSER_ADD, PARSER_SUB, etc. are defined in AMReX_Parser_y.H
+/* Enum types PARSER_ADD, PARSER_SUB, etc. are defined in AMReX_Parser_Y.H
  * Functions parser_new* are also declared in that file.
  */
 exp:

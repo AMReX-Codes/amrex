@@ -111,7 +111,7 @@ parser_newlist (struct parser_node* nl, struct parser_node* nr)
 {
     if (nr == nullptr) {
         return nl;
-    } {
+    } else {
         auto r = (struct parser_node*) std::malloc(sizeof(struct parser_node));
         r->type = PARSER_LIST;
         r->l = nl;
@@ -1204,7 +1204,7 @@ parser_ast_print_f1 (struct parser_f1* f1, std::string const& space, AllPrint& p
     case PARSER_POW_P2:      printer << "POW(,2)\n";     break;
     case PARSER_POW_P3:      printer << "POW(,3)\n";     break;
     default:
-        amrex::AllPrint() << "parser_ast+print_f1: Unknow function " << f1->ftype << "\n";
+        amrex::AllPrint() << "parser_ast_print_f1: Unknow function " << f1->ftype << "\n";
     }
     parser_ast_print(f1->l, space+"  ", printer);
 }
