@@ -72,7 +72,7 @@ void testParticleMesh (TestParams& parms)
         density2[lev].define(ba[lev], dm[lev], 1, 1);
         density2[lev].setVal(0.0);
     }
-    
+
     MyParticleContainer myPC(geom, dm, ba, rr);
     myPC.SetVerbose(false);
 
