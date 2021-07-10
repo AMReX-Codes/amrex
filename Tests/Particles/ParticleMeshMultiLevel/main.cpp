@@ -86,9 +86,9 @@ void testParticleMesh (TestParams& parms)
     MyParticleContainer::ParticleInitData pdata = {{mass}, {}, {}, {}};
     myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
-    // 
+    //
     // Here we provide an example of one way to call ParticleToMesh
-    // 
+    //
     amrex::ParticleToMesh(myPC, GetVecOfPtrs(density1), 0, parms.nlevs-1,
         [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
                               amrex::Array4<amrex::Real> const& rho,
@@ -121,9 +121,9 @@ void testParticleMesh (TestParams& parms)
           }
       });
 
-    // 
+    //
     // Here we provide an example of another way to call ParticleToMesh
-    // 
+    //
     int start_part_comp = 0;
     int start_mesh_comp = 0;
     int        num_comp = 1;
