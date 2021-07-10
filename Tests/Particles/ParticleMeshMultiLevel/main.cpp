@@ -7,7 +7,7 @@
 #include "AMReX_PlotFileUtil.H"
 #include <AMReX_AmrParticles.H>
 
-#include <trilinear_deposition_K.H>
+#include "trilinear_deposition_K.H"
 
 using namespace amrex;
 
