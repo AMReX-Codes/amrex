@@ -131,9 +131,9 @@ void testParticleMesh (TestParams& parms)
     ParticleToMesh(myPC,GetVecOfPtrs(density2),0,parms.nlevs-1,
                    TrilinearDeposition{start_part_comp,start_mesh_comp,num_comp});
 
-    // 
+    //
     // Now write the output from each into separate plotfiles for comparison
-    // 
+    //
 
     Vector<std::string> varnames;
     varnames.push_back("density");
