@@ -5,8 +5,6 @@
 #include <AMReX_Particles.H>
 #include <AMReX_AmrParticles.H>
 
-typedef amrex::ParticleContainer<1> MyParticleContainer;
-
 struct TrilinearDeposition
 {
   int start_part_comp;

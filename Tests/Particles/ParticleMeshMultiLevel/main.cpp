@@ -7,6 +7,7 @@
 #include "AMReX_PlotFileUtil.H"
 #include <AMReX_AmrParticles.H>
 
+#include "mypc.H"
 #include "trilinear_deposition_K.H"
 
 using namespace amrex;
@@ -71,8 +72,7 @@ void testParticleMesh (TestParams& parms)
         density2[lev].define(ba[lev], dm[lev], 1, 1);
         density2[lev].setVal(0.0);
     }
-
-    typedef ParticleContainer<1> MyParticleContainer;
+    
     MyParticleContainer myPC(geom, dm, ba, rr);
     myPC.SetVerbose(false);
 
