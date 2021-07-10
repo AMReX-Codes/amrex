@@ -52,7 +52,7 @@ Parser::operator bool () const
 }
 
 void
-Parser::setConstant (std::string const& name, amrex::Real c)
+Parser::setConstant (std::string const& name, double c)
 {
     if (m_data && m_data->m_parser) {
         parser_setconst(m_data->m_parser, name.c_str(), c);

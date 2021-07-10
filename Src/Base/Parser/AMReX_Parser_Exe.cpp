@@ -330,7 +330,7 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
             if (p) {
                 auto t = new(p) ParserExeMUL_VN;
                 p     += sizeof(ParserExeMUL_VN);
-                t->v = Real(1.0) / ((struct parser_number*)(node->r))->value;
+                t->v = 1.0 / ((struct parser_number*)(node->r))->value;
             }
             exe_size += sizeof(ParserExeMUL_VN);
         }
