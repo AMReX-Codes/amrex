@@ -35,33 +35,33 @@
    especially those whose name start with YY_ or yy_.  They are
    private implementation details that can be changed or removed.  */
 
-#ifndef YY_AMREX_PARSER_AMREX_PARSER_TAB_H_INCLUDED
-# define YY_AMREX_PARSER_AMREX_PARSER_TAB_H_INCLUDED
+#ifndef YY_AMREX_IPARSER_AMREX_IPARSER_TAB_H_INCLUDED
+# define YY_AMREX_IPARSER_AMREX_IPARSER_TAB_H_INCLUDED
 /* Debug traces.  */
-#ifndef AMREX_PARSERDEBUG
+#ifndef AMREX_IPARSERDEBUG
 # if defined YYDEBUG
 #if YYDEBUG
-#   define AMREX_PARSERDEBUG 1
+#   define AMREX_IPARSERDEBUG 1
 #  else
-#   define AMREX_PARSERDEBUG 0
+#   define AMREX_IPARSERDEBUG 0
 #  endif
 # else /* ! defined YYDEBUG */
-#  define AMREX_PARSERDEBUG 0
+#  define AMREX_IPARSERDEBUG 0
 # endif /* ! defined YYDEBUG */
-#endif  /* ! defined AMREX_PARSERDEBUG */
-#if AMREX_PARSERDEBUG
-extern int amrex_parserdebug;
+#endif  /* ! defined AMREX_IPARSERDEBUG */
+#if AMREX_IPARSERDEBUG
+extern int amrex_iparserdebug;
 #endif
 
 /* Token kinds.  */
-#ifndef AMREX_PARSERTOKENTYPE
-# define AMREX_PARSERTOKENTYPE
-  enum amrex_parsertokentype
+#ifndef AMREX_IPARSERTOKENTYPE
+# define AMREX_IPARSERTOKENTYPE
+  enum amrex_iparsertokentype
   {
-    AMREX_PARSEREMPTY = -2,
-    AMREX_PARSEREOF = 0,           /* "end of file"  */
-    AMREX_PARSERerror = 256,       /* error  */
-    AMREX_PARSERUNDEF = 257,       /* "invalid token"  */
+    AMREX_IPARSEREMPTY = -2,
+    AMREX_IPARSEREOF = 0,          /* "end of file"  */
+    AMREX_IPARSERerror = 256,      /* error  */
+    AMREX_IPARSERUNDEF = 257,      /* "invalid token"  */
     NODE = 258,                    /* NODE  */
     NUMBER = 259,                  /* NUMBER  */
     SYMBOL = 260,                  /* SYMBOL  */
@@ -69,41 +69,42 @@ extern int amrex_parserdebug;
     F2 = 262,                      /* F2  */
     F3 = 263,                      /* F3  */
     EOL = 264,                     /* EOL  */
-    POW = 265,                     /* "**"  */
-    GEQ = 266,                     /* ">="  */
-    LEQ = 267,                     /* "<="  */
-    EQ = 268,                      /* "=="  */
-    NEQ = 269,                     /* "!="  */
-    AND = 270,                     /* "and"  */
-    OR = 271,                      /* "or"  */
-    NEG = 272,                     /* NEG  */
-    UPLUS = 273                    /* UPLUS  */
+    FLRDIV = 265,                  /* "//"  */
+    POW = 266,                     /* "**"  */
+    GEQ = 267,                     /* ">="  */
+    LEQ = 268,                     /* "<="  */
+    EQ = 269,                      /* "=="  */
+    NEQ = 270,                     /* "!="  */
+    AND = 271,                     /* "and"  */
+    OR = 272,                      /* "or"  */
+    NEG = 273,                     /* NEG  */
+    UPLUS = 274                    /* UPLUS  */
   };
-  typedef enum amrex_parsertokentype amrex_parsertoken_kind_t;
+  typedef enum amrex_iparsertokentype amrex_iparsertoken_kind_t;
 #endif
 
 /* Value type.  */
-#if ! defined AMREX_PARSERSTYPE && ! defined AMREX_PARSERSTYPE_IS_DECLARED
-union AMREX_PARSERSTYPE
+#if ! defined AMREX_IPARSERSTYPE && ! defined AMREX_IPARSERSTYPE_IS_DECLARED
+union AMREX_IPARSERSTYPE
 {
 
-    struct amrex::parser_node* n;
-    double d;
-    struct amrex::parser_symbol* s;
-    enum amrex::parser_f1_t f1;
-    enum amrex::parser_f2_t f2;
-    enum amrex::parser_f3_t f3;
+    struct amrex::iparser_node* n;
+    int d;
+    struct amrex::iparser_symbol* s;
+    enum amrex::iparser_f1_t f1;
+    enum amrex::iparser_f2_t f2;
+    enum amrex::iparser_f3_t f3;
 
 
 };
-typedef union AMREX_PARSERSTYPE AMREX_PARSERSTYPE;
-# define AMREX_PARSERSTYPE_IS_TRIVIAL 1
-# define AMREX_PARSERSTYPE_IS_DECLARED 1
+typedef union AMREX_IPARSERSTYPE AMREX_IPARSERSTYPE;
+# define AMREX_IPARSERSTYPE_IS_TRIVIAL 1
+# define AMREX_IPARSERSTYPE_IS_DECLARED 1
 #endif
 
 
-extern AMREX_PARSERSTYPE amrex_parserlval;
+extern AMREX_IPARSERSTYPE amrex_iparserlval;
 
-int amrex_parserparse (void);
+int amrex_iparserparse (void);
 
-#endif /* !YY_AMREX_PARSER_AMREX_PARSER_TAB_H_INCLUDED  */
+#endif /* !YY_AMREX_IPARSER_AMREX_IPARSER_TAB_H_INCLUDED  */

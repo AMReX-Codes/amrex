@@ -13,7 +13,7 @@
 %option prefix="amrex_parser"
 
  /* Tokens NUMBER, SYMBOL, F1, POW, F2, etc. are defined in amrex_parser.y. */
- /* Types PARSER_SQRT, PARSER_SQRT, etc. are defined in AMReX_Parser_y.H. */
+ /* Types PARSER_SQRT, PARSER_EXP, etc. are defined in AMReX_Parser_y.H. */
 
  /* Used later to define NUMBER */
 EXP	([Ee][-+]?[0-9]+)
