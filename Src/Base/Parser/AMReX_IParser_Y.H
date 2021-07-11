@@ -111,7 +111,7 @@ struct iparser_f2 {  /* Builtin functions with two arguments */
     enum iparser_f2_t ftype;
 };
 
-struct iparser_f3 { /* Builtin funcitons with three arguments */
+struct iparser_f3 { /* Builtin functions with three arguments */
     enum iparser_node_t type;
     struct iparser_node* n1;
     struct iparser_node* n2;

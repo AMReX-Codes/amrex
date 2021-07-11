@@ -73,7 +73,7 @@ subroutine advect(time, lo, hi, &
   ! We like to allocate these **pointers** here and then pass them to a function
   ! to remove their pointerness for performance, because normally pointers could
   ! be aliasing.  We need to use pointers instead of allocatable arrays because
-  ! we like to use AMReX's bl_allocate to allocate memeory instead of the intrinsic
+  ! we like to use AMReX's bl_allocate to allocate memory instead of the intrinsic
   ! allocate.  Bl_allocate is much faster than allocate inside OMP.
   ! Note that one MUST CALL BL_DEALLOCATE.
 

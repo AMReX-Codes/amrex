@@ -649,7 +649,7 @@ public:
 
 #ifdef AMREX_USE_GPU
     //
-    //! For ParalleFor(FabArray)
+    //! For ParallelFor(FabArray)
     struct ParForInfo
     {
         ParForInfo (const FabArrayBase& fa, const IntVect& nghost);

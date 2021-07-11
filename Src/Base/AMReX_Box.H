@@ -468,7 +468,7 @@ public:
     Box& shift (const IntVect& iv) noexcept { smallend.shift(iv); bigend.shift(iv); return *this; }
 
     /**
-    * \brief This member shifts the Box by "half" indicies, thereby
+    * \brief This member shifts the Box by "half" indices, thereby
     * converting the Box from type CELL to NODE and visa-versa.
     * b.shiftHalf(0,1)  shifts b to the right by 1/2 cells.
     * b.shiftHalf(1,-3) shifts b in the -j direction by 3/2 cells.
@@ -1053,7 +1053,7 @@ Box::chop (int dir, int chop_pnt) noexcept
         //
         BL_ASSERT(chop_pnt > smallend[dir] && chop_pnt <= bigend[dir]);
         //
-        // Shrink origional Box to one below chop_pnt.
+        // Shrink original Box to one below chop_pnt.
         //
         bigend.setVal(dir,chop_pnt-1);
     }

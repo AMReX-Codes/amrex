@@ -28,7 +28,7 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
       LIBRARIES += -lmpichf90
     endif
 
-#    For Refernce --> getting cflags on Perlmutter.
+#    For Reference --> getting cflags on Perlmutter.
 #    includes += $(shell CC --cray-print-opts=cflags)
   endif
 

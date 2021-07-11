@@ -980,7 +980,7 @@ iparser_ast_print_f1 (struct iparser_f1* f1, std::string const& space, AllPrint&
     switch (f1->ftype) {
     case IPARSER_ABS:         printer << "ABS\n";         break;
     default:
-        amrex::AllPrint() << "iparser_ast_print_f1: Unknow function " << f1->ftype << "\n";
+        amrex::AllPrint() << "iparser_ast_print_f1: Unknown function " << f1->ftype << "\n";
     }
     iparser_ast_print(f1->l, space+"  ", printer);
 }
@@ -1044,7 +1044,7 @@ iparser_ast_print_f3 (struct iparser_f3* f3, std::string const& space, AllPrint&
         printer << space << "IF\n";
         break;
     default:
-        amrex::AllPrint() << "iparser_ast_print_f3: Unknow funciton " << f3->ftype << "\n";
+        amrex::AllPrint() << "iparser_ast_print_f3: Unknown function " << f3->ftype << "\n";
     }
     iparser_ast_print(f3->n1, more_space, printer);
     iparser_ast_print(f3->n2, more_space, printer);

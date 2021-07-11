@@ -143,7 +143,7 @@ main (int   argc,
     BoxArray ba_c2 = ba_c;
     ba_c2.refine(rr);
 
-    // grab the distribtion map from the coarse MultiFab
+    // grab the distribution map from the coarse MultiFab
     DistributionMapping dm = mf_c.DistributionMap();
 
     // create a fine MultiFab with same distribution mapping as coarse MultiFab

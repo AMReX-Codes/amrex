@@ -348,7 +348,7 @@
      with `AMREX_USE_OMP` for all parallel "backend" implementations and
      control of MFIter loops.
 
-  -- Update Make.nrel to accomodate MPT MPI with CUDA enabled (#1726)
+  -- Update Make.nrel to accommodate MPT MPI with CUDA enabled (#1726)
 
   -- Cell-centered Hypre and Petsc setup on GPU (#1709)
 
@@ -434,7 +434,7 @@
   -- Fix a bug that causes errors when writing HDF5 plotfile and particle
      (#1621)
 
-  -- Fortran Inteface: Porting more MultiFab functions (#1609)
+  -- Fortran Interface: Porting more MultiFab functions (#1609)
 
   -- Remove alternative operators from AMReX (#1599)
 
@@ -604,7 +604,7 @@
   -- Only check the requested MPI Threading level if AMReX also initialized
      MPI. (#1406)
 
-  -- DPCPP support for mulitple GPUs (#1392)
+  -- DPCPP support for multiple GPUs (#1392)
 
   -- Random Number Generation on Device (#1363) In order to support RNG on
      device with DPC++, we have to change the API because DPC++ does not
@@ -866,7 +866,7 @@
      now requires RunOn::Device or RunOn::Host template parameter when
      GPU support is enabled.
 
-  -- FillPatch* funcitons are now templated to support FabArray in
+  -- FillPatch* functions are now templated to support FabArray in
      addition to MultiFab.
 
   -- Fix -pthread for nvcc by default in Make.unknown
@@ -1028,7 +1028,7 @@
      now non-static.  The default Geometry can been obtained via
      `DefaultGeometry()` function.
 
-  -- Funciton amrex::Loop and amrex:LoopConcurrent are added to help
+  -- Function amrex::Loop and amrex:LoopConcurrent are added to help
      looping over cells in a Box.
 
   -- Nodal solver: A bug in nodal owner mask that could affect
@@ -1117,7 +1117,7 @@
      to C++ (F_Interfaces) are still there.
 
   -- In addition to launch macros, there are now functions for
-     lauching, amrex::launch, amrex::For and amrex::ParallelFor.
+     launching, amrex::launch, amrex::For and amrex::ParallelFor.
      These improves debuggability. 
 
   -- If compiled with BASEFAB_IS_PINNED, pinned memory will be used
@@ -1209,7 +1209,7 @@
      can be passed in and their defaults are std::cout and std::cerr.
 
   -- ParmParse inputs files can now contain Fortran namelist that can
-     be accessed from Fortan (and Frotran only).  These Fortran inputs
+     be accessed from Fortran (and Frotran only).  These Fortran inputs
      are stored in amrex_namelist character variable in
      amrex_parmparse_module, and can be read with standard Fortran
      I/O.
