@@ -1024,7 +1024,7 @@ ParmParse::ParmParse (const std::string& prefix)
     m_pstack.push(prefix);
 }
 
-ParmParse::ParmParse (const Table& a_table)
+ParmParse::ParmParse (Table& a_table)
     : m_table(a_table)
 {
     m_pstack.push("");
@@ -2013,7 +2013,7 @@ ParmParse::addarr (const char* name,
     saddarr(prefixedName(name),ptr);
 }
 
-
+
 //
 // Return number of occurences of parameter name.
 //
@@ -2073,6 +2073,21 @@ ParmParse::contains (const char* name) const
     return false;
 }
 
+int
+ParmParse::remove (const char* name)
+{
+    int r = 0;
+    for (auto it = m_table.begin(); it != m_table.end(); ) {
+        if (ppfound(prefixedName(name), *it, false)) {
+            it = m_table.erase(it);
+            ++r;
+        } else {
+            ++it;
+        }
+    }
+    return r;
+}
+
 ParmParse::Record
 ParmParse::getRecord (const std::string& name, int n) const
 {
@@ -2085,7 +2100,6 @@ ParmParse::getRecord (const std::string& name, int n) const
     return Record(ParmParse(*pe->m_table));
 }
 
-
 //
 //
 //

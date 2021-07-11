@@ -930,6 +930,9 @@ public:
         return exist;
     }
 
+    //! Remove given name from the table.
+    int remove (const char* name);
+
     /**
     * \brief Construct an initial ParmParse object from the argc and argv
     * passed in to main().  An error will be signalled if another
@@ -980,7 +983,7 @@ protected:
     friend class Frame;
     friend class Record;
 
-    explicit ParmParse (const Table& tbl);
+    explicit ParmParse (Table& tbl);
     //
     //! Set/Get the prefix.
     std::string getPrefix() const;
@@ -991,7 +994,7 @@ protected:
     //
     //! Prefix used in keyword search.
     std::stack<std::string> m_pstack;
-    const Table& m_table;
+    Table& m_table;
 };
 
 struct ParmParse::PP_entry
