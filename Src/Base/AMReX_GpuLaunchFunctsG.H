@@ -200,6 +200,8 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
+    const auto lenxy = len.x*len.y;
+    const auto lenx = len.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
@@ -219,9 +221,9 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
                 {
                     for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                          icell < ncells; icell += stride) {
-                        int k =  icell /   (len.x*len.y);
-                        int j = (icell - k*(len.x*len.y)) /   len.x;
-                        int i = (icell - k*(len.x*len.y)) - j*len.x;
+                        int k =  icell /   lenxy;
+                        int j = (icell - k*lenxy) /   lenx;
+                        int i = (icell - k*lenxy) - j*lenx;
                         i += lo.x;
                         j += lo.y;
                         k += lo.z;
@@ -241,9 +243,9 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
                 {
                     for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                          icell < ncells; icell += stride) {
-                        int k =  icell /   (len.x*len.y);
-                        int j = (icell - k*(len.x*len.y)) /   len.x;
-                        int i = (icell - k*(len.x*len.y)) - j*len.x;
+                        int k =  icell /   lenxy;
+                        int j = (icell - k*lenxy) /   lenx;
+                        int i = (icell - k*lenxy) - j*lenx;
                         i += lo.x;
                         j += lo.y;
                         k += lo.z;
@@ -264,6 +266,8 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) n
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
+    const auto lenxy = len.x*len.y;
+    const auto lenx = len.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
@@ -283,9 +287,9 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) n
                 {
                     for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                          icell < ncells; icell += stride) {
-                        int k =  icell /   (len.x*len.y);
-                        int j = (icell - k*(len.x*len.y)) /   len.x;
-                        int i = (icell - k*(len.x*len.y)) - j*len.x;
+                        int k =  icell /   lenxy;
+                        int j = (icell - k*lenxy) /   lenx;
+                        int i = (icell - k*lenxy) - j*lenx;
                         i += lo.x;
                         j += lo.y;
                         k += lo.z;
@@ -306,9 +310,9 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) n
                 {
                     for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                          icell < ncells; icell += stride) {
-                        int k =  icell /   (len.x*len.y);
-                        int j = (icell - k*(len.x*len.y)) /   len.x;
-                        int i = (icell - k*(len.x*len.y)) - j*len.x;
+                        int k =  icell /   lenxy;
+                        int j = (icell - k*lenxy) /   lenx;
+                        int i = (icell - k*lenxy) - j*lenx;
                         i += lo.x;
                         j += lo.y;
                         k += lo.z;
@@ -363,6 +367,8 @@ void ParallelForRNG (Box const& box, L&& f) noexcept
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
+    const auto lenxy = len.x*len.y;
+    const auto lenx = len.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
@@ -383,9 +389,9 @@ void ParallelForRNG (Box const& box, L&& f) noexcept
                 RandomEngine rand_eng{&engine};
                 for (int icell = tid, stride = item.get_global_range(0);
                      icell < ncells; icell += stride) {
-                    int k =  icell /   (len.x*len.y);
-                    int j = (icell - k*(len.x*len.y)) /   len.x;
-                    int i = (icell - k*(len.x*len.y)) - j*len.x;
+                    int k =  icell /   lenxy;
+                    int j = (icell - k*lenxy) /   lenx;
+                    int i = (icell - k*lenxy) - j*lenx;
                     i += lo.x;
                     j += lo.y;
                     k += lo.z;
@@ -407,6 +413,8 @@ void ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
+    const auto lenxy = len.x*len.y;
+    const auto lenx = len.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
@@ -427,9 +435,9 @@ void ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
                 RandomEngine rand_eng{&engine};
                 for (int icell = tid, stride = item.get_global_range(0);
                      icell < ncells; icell += stride) {
-                    int k =  icell /   (len.x*len.y);
-                    int j = (icell - k*(len.x*len.y)) /   len.x;
-                    int i = (icell - k*(len.x*len.y)) - j*len.x;
+                    int k =  icell /   lenxy;
+                    int j = (icell - k*lenxy) /   lenx;
+                    int i = (icell - k*lenxy) - j*lenx;
                     i += lo.x;
                     j += lo.y;
                     k += lo.z;
@@ -457,6 +465,10 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box1, Box const& b
     const auto lo2  = amrex::lbound(box2);
     const auto len1 = amrex::length(box1);
     const auto len2 = amrex::length(box2);
+    const auto len1xy = len1.x*len1.y;
+    const auto len2xy = len2.x*len2.y;
+    const auto len1x = len1.x;
+    const auto len2x = len2.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
@@ -473,18 +485,18 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box1, Box const& b
                 for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                      icell < ncells; icell += stride) {
                     if (icell < ncells1) {
-                        int k =  icell /   (len1.x*len1.y);
-                        int j = (icell - k*(len1.x*len1.y)) /   len1.x;
-                        int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                        int k =  icell /   len1xy;
+                        int j = (icell - k*len1xy) /   len1x;
+                        int i = (icell - k*len1xy) - j*len1x;
                         i += lo1.x;
                         j += lo1.y;
                         k += lo1.z;
                         f1(i,j,k);
                     }
                     if (icell < ncells2) {
-                        int k =  icell /   (len2.x*len2.y);
-                        int j = (icell - k*(len2.x*len2.y)) /   len2.x;
-                        int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                        int k =  icell /   len2xy;
+                        int j = (icell - k*len2xy) /   len2x;
+                        int i = (icell - k*len2xy) - j*len2x;
                         i += lo2.x;
                         j += lo2.y;
                         k += lo2.z;
@@ -514,6 +526,12 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     const auto len1 = amrex::length(box1);
     const auto len2 = amrex::length(box2);
     const auto len3 = amrex::length(box3);
+    const auto len1xy = len1.x*len1.y;
+    const auto len2xy = len2.x*len2.y;
+    const auto len3xy = len3.x*len3.y;
+    const auto len1x = len1.x;
+    const auto len2x = len2.x;
+    const auto len3x = len3.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
@@ -530,27 +548,27 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                 for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                      icell < ncells; icell += stride) {
                     if (icell < ncells1) {
-                        int k =  icell /   (len1.x*len1.y);
-                        int j = (icell - k*(len1.x*len1.y)) /   len1.x;
-                        int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                        int k =  icell /   len1xy;
+                        int j = (icell - k*len1xy) /   len1x;
+                        int i = (icell - k*len1xy) - j*len1x;
                         i += lo1.x;
                         j += lo1.y;
                         k += lo1.z;
                         f1(i,j,k);
                     }
                     if (icell < ncells2) {
-                        int k =  icell /   (len2.x*len2.y);
-                        int j = (icell - k*(len2.x*len2.y)) /   len2.x;
-                        int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                        int k =  icell /   len2xy;
+                        int j = (icell - k*len2xy) /   len2x;
+                        int i = (icell - k*len2xy) - j*len2x;
                         i += lo2.x;
                         j += lo2.y;
                         k += lo2.z;
                         f2(i,j,k);
                     }
                     if (icell < ncells3) {
-                        int k =  icell /   (len3.x*len3.y);
-                        int j = (icell - k*(len3.x*len3.y)) /   len3.x;
-                        int i = (icell - k*(len3.x*len3.y)) - j*len3.x;
+                        int k =  icell /   len3xy;
+                        int j = (icell - k*len3xy) /   len3x;
+                        int i = (icell - k*len3xy) - j*len3x;
                         i += lo3.x;
                         j += lo3.y;
                         k += lo3.z;
@@ -579,6 +597,10 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     const auto lo2  = amrex::lbound(box2);
     const auto len1 = amrex::length(box1);
     const auto len2 = amrex::length(box2);
+    const auto len1xy = len1.x*len1.y;
+    const auto len2xy = len2.x*len2.y;
+    const auto len1x = len1.x;
+    const auto len2x = len2.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
@@ -595,9 +617,9 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                 for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                      icell < ncells; icell += stride) {
                     if (icell < ncells1) {
-                        int k =  icell /   (len1.x*len1.y);
-                        int j = (icell - k*(len1.x*len1.y)) /   len1.x;
-                        int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                        int k =  icell /   len1xy;
+                        int j = (icell - k*len1xy) /   len1x;
+                        int i = (icell - k*len1xy) - j*len1x;
                         i += lo1.x;
                         j += lo1.y;
                         k += lo1.z;
@@ -606,9 +628,9 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                         }
                     }
                     if (icell < ncells2) {
-                        int k =  icell /   (len2.x*len2.y);
-                        int j = (icell - k*(len2.x*len2.y)) /   len2.x;
-                        int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                        int k =  icell /   len2xy;
+                        int j = (icell - k*len2xy) /   len2x;
+                        int i = (icell - k*len2xy) - j*len2x;
                         i += lo2.x;
                         j += lo2.y;
                         k += lo2.z;
@@ -644,6 +666,12 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     const auto len1 = amrex::length(box1);
     const auto len2 = amrex::length(box2);
     const auto len3 = amrex::length(box3);
+    const auto len1xy = len1.x*len1.y;
+    const auto len2xy = len2.x*len2.y;
+    const auto len3xy = len3.x*len3.y;
+    const auto len1x = len1.x;
+    const auto len2x = len2.x;
+    const auto len3x = len3.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
@@ -660,9 +688,9 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                 for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                      icell < ncells; icell += stride) {
                     if (icell < ncells1) {
-                        int k =  icell /   (len1.x*len1.y);
-                        int j = (icell - k*(len1.x*len1.y)) /   len1.x;
-                        int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                        int k =  icell /   len1xy;
+                        int j = (icell - k*len1xy) /   len1x;
+                        int i = (icell - k*len1xy) - j*len1x;
                         i += lo1.x;
                         j += lo1.y;
                         k += lo1.z;
@@ -671,9 +699,9 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                         }
                     }
                     if (icell < ncells2) {
-                        int k =  icell /   (len2.x*len2.y);
-                        int j = (icell - k*(len2.x*len2.y)) /   len2.x;
-                        int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                        int k =  icell /   len2xy;
+                        int j = (icell - k*len2xy) /   len2x;
+                        int i = (icell - k*len2xy) - j*len2x;
                         i += lo2.x;
                         j += lo2.y;
                         k += lo2.z;
@@ -682,9 +710,9 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                         }
                     }
                     if (icell < ncells3) {
-                        int k =  icell /   (len3.x*len3.y);
-                        int j = (icell - k*(len3.x*len3.y)) /   len3.x;
-                        int i = (icell - k*(len3.x*len3.y)) - j*len3.x;
+                        int k =  icell /   len3xy;
+                        int j = (icell - k*len3xy) /   len3x;
+                        int i = (icell - k*len3xy) - j*len3x;
                         i += lo3.x;
                         j += lo3.y;
                         k += lo3.z;
@@ -830,6 +858,8 @@ ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
         amrex::ignore_unused(info);
         const auto lo  = amrex::lbound(box);
         const auto len = amrex::length(box);
+        const auto lenxy = len.x*len.y;
+        const auto lenx = len.x;
         const auto ec = Gpu::ExecutionConfig(ncells);
 
         AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
@@ -837,9 +867,9 @@ ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  icell < ncells; icell += stride)
             {
-                int k =  icell /   (len.x*len.y);
-                int j = (icell - k*(len.x*len.y)) /   len.x;
-                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                int k =  icell /   lenxy;
+                int j = (icell - k*lenxy) /   lenx;
+                int i = (icell - k*lenxy) - j*lenx;
                 i += lo.x;
                 j += lo.y;
                 k += lo.z;
@@ -865,15 +895,17 @@ ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexce
         amrex::ignore_unused(info);
         const auto lo  = amrex::lbound(box);
         const auto len = amrex::length(box);
+        const auto lenxy = len.x*len.y;
+        const auto lenx = len.x;
         const auto ec = Gpu::ExecutionConfig(ncells);
 
         AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  icell < ncells; icell += stride) {
-                int k =  icell /   (len.x*len.y);
-                int j = (icell - k*(len.x*len.y)) /   len.x;
-                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                int k =  icell /   lenxy;
+                int j = (icell - k*lenxy) /   lenx;
+                int i = (icell - k*lenxy) - j*lenx;
                 i += lo.x;
                 j += lo.y;
                 k += lo.z;
@@ -912,6 +944,8 @@ ParallelForRNG (Box const& box, L&& f) noexcept
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
+    const auto lenxy = len.x*len.y;
+    const auto lenx = len.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
     AMREX_LAUNCH_KERNEL(amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
                         ec.numThreads, 0, Gpu::nullStream(),  // use null stream
@@ -919,9 +953,9 @@ ParallelForRNG (Box const& box, L&& f) noexcept
         int tid = blockDim.x*blockIdx.x+threadIdx.x;
         RandomEngine engine{&(rand_state[tid])};
         for (int icell = tid, stride = blockDim.x*gridDim.x; icell < ncells; icell += stride) {
-            int k =  icell /   (len.x*len.y);
-            int j = (icell - k*(len.x*len.y)) /   len.x;
-            int i = (icell - k*(len.x*len.y)) - j*len.x;
+            int k =  icell /   lenxy;
+            int j = (icell - k*lenxy) /   lenx;
+            int i = (icell - k*lenxy) - j*lenx;
             i += lo.x;
             j += lo.y;
             k += lo.z;
@@ -940,6 +974,8 @@ ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
+    const auto lenxy = len.x*len.y;
+    const auto lenx = len.x;
     const auto ec = Gpu::ExecutionConfig(ncells);
     AMREX_LAUNCH_KERNEL(amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
                         ec.numThreads, 0, Gpu::nullStream(), // use null stream
@@ -947,9 +983,9 @@ ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
         int tid = blockDim.x*blockIdx.x+threadIdx.x;
         RandomEngine engine{&(rand_state[tid])};
         for (int icell = tid, stride = blockDim.x*gridDim.x; icell < ncells; icell += stride) {
-            int k =  icell /   (len.x*len.y);
-            int j = (icell - k*(len.x*len.y)) /   len.x;
-            int i = (icell - k*(len.x*len.y)) - j*len.x;
+            int k =  icell /   lenxy;
+            int j = (icell - k*lenxy) /   lenx;
+            int i = (icell - k*lenxy) - j*lenx;
             i += lo.x;
             j += lo.y;
             k += lo.z;
@@ -982,24 +1018,28 @@ ParallelFor (Gpu::KernelInfo const& info,
         const auto lo2  = amrex::lbound(box2);
         const auto len1 = amrex::length(box1);
         const auto len2 = amrex::length(box2);
+        const auto len1xy = len1.x*len1.y;
+        const auto len2xy = len2.x*len2.y;
+        const auto len1x = len1.x;
+        const auto len2x = len2.x;
         const auto ec = Gpu::ExecutionConfig(ncells);
         AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  icell < ncells; icell += stride) {
                 if (icell < ncells1) {
-                    int k =  icell /   (len1.x*len1.y);
-                    int j = (icell - k*(len1.x*len1.y)) /   len1.x;
-                    int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                    int k =  icell /   len1xy;
+                    int j = (icell - k*len1xy) /   len1x;
+                    int i = (icell - k*len1xy) - j*len1x;
                     i += lo1.x;
                     j += lo1.y;
                     k += lo1.z;
                     f1(i,j,k);
                 }
                 if (icell < ncells2) {
-                    int k =  icell /   (len2.x*len2.y);
-                    int j = (icell - k*(len2.x*len2.y)) /   len2.x;
-                    int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                    int k =  icell /   len2xy;
+                    int j = (icell - k*len2xy) /   len2x;
+                    int i = (icell - k*len2xy) - j*len2x;
                     i += lo2.x;
                     j += lo2.y;
                     k += lo2.z;
@@ -1037,33 +1077,39 @@ ParallelFor (Gpu::KernelInfo const& info,
         const auto len1 = amrex::length(box1);
         const auto len2 = amrex::length(box2);
         const auto len3 = amrex::length(box3);
+        const auto len1xy = len1.x*len1.y;
+        const auto len2xy = len2.x*len2.y;
+        const auto len3xy = len3.x*len3.y;
+        const auto len1x = len1.x;
+        const auto len2x = len2.x;
+        const auto len3x = len3.x;
         const auto ec = Gpu::ExecutionConfig(ncells);
         AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  icell < ncells; icell += stride) {
                 if (icell < ncells1) {
-                    int k =  icell /   (len1.x*len1.y);
-                    int j = (icell - k*(len1.x*len1.y)) /   len1.x;
-                    int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                    int k =  icell /   len1xy;
+                    int j = (icell - k*len1xy) /   len1x;
+                    int i = (icell - k*len1xy) - j*len1x;
                     i += lo1.x;
                     j += lo1.y;
                     k += lo1.z;
                     f1(i,j,k);
                 }
                 if (icell < ncells2) {
-                    int k =  icell /   (len2.x*len2.y);
-                    int j = (icell - k*(len2.x*len2.y)) /   len2.x;
-                    int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                    int k =  icell /   len2xy;
+                    int j = (icell - k*len2xy) /   len2x;
+                    int i = (icell - k*len2xy) - j*len2x;
                     i += lo2.x;
                     j += lo2.y;
                     k += lo2.z;
                     f2(i,j,k);
                 }
                 if (icell < ncells3) {
-                    int k =  icell /   (len3.x*len3.y);
-                    int j = (icell - k*(len3.x*len3.y)) /   len3.x;
-                    int i = (icell - k*(len3.x*len3.y)) - j*len3.x;
+                    int k =  icell /   len3xy;
+                    int j = (icell - k*len3xy) /   len3x;
+                    int i = (icell - k*len3xy) - j*len3x;
                     i += lo3.x;
                     j += lo3.y;
                     k += lo3.z;
@@ -1099,15 +1145,19 @@ ParallelFor (Gpu::KernelInfo const& info,
         const auto lo2  = amrex::lbound(box2);
         const auto len1 = amrex::length(box1);
         const auto len2 = amrex::length(box2);
+        const auto len1xy = len1.x*len1.y;
+        const auto len2xy = len2.x*len2.y;
+        const auto len1x = len1.x;
+        const auto len2x = len2.x;
         const auto ec = Gpu::ExecutionConfig(ncells);
         AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  icell < ncells; icell += stride) {
                 if (icell < ncells1) {
-                    int k =  icell /   (len1.x*len1.y);
-                    int j = (icell - k*(len1.x*len1.y)) /   len1.x;
-                    int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                    int k =  icell /   len1xy;
+                    int j = (icell - k*len1xy) /   len1x;
+                    int i = (icell - k*len1xy) - j*len1x;
                     i += lo1.x;
                     j += lo1.y;
                     k += lo1.z;
@@ -1116,9 +1166,9 @@ ParallelFor (Gpu::KernelInfo const& info,
                     }
                 }
                 if (icell < ncells2) {
-                    int k =  icell /   (len2.x*len2.y);
-                    int j = (icell - k*(len2.x*len2.y)) /   len2.x;
-                    int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                    int k =  icell /   len2xy;
+                    int j = (icell - k*len2xy) /   len2x;
+                    int i = (icell - k*len2xy) - j*len2x;
                     i += lo2.x;
                     j += lo2.y;
                     k += lo2.z;
@@ -1162,15 +1212,21 @@ ParallelFor (Gpu::KernelInfo const& info,
         const auto len1 = amrex::length(box1);
         const auto len2 = amrex::length(box2);
         const auto len3 = amrex::length(box3);
+        const auto len1xy = len1.x*len1.y;
+        const auto len2xy = len2.x*len2.y;
+        const auto len3xy = len3.x*len3.y;
+        const auto len1x = len1.x;
+        const auto len2x = len2.x;
+        const auto len3x = len3.x;
         const auto ec = Gpu::ExecutionConfig(ncells);
         AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  icell < ncells; icell += stride) {
                 if (icell < ncells1) {
-                    int k =  icell /   (len1.x*len1.y);
-                    int j = (icell - k*(len1.x*len1.y)) /   len1.x;
-                    int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                    int k =  icell /   len1xy;
+                    int j = (icell - k*len1xy) /   len1x;
+                    int i = (icell - k*len1xy) - j*len1x;
                     i += lo1.x;
                     j += lo1.y;
                     k += lo1.z;
@@ -1179,9 +1235,9 @@ ParallelFor (Gpu::KernelInfo const& info,
                     }
                 }
                 if (icell < ncells2) {
-                    int k =  icell /   (len2.x*len2.y);
-                    int j = (icell - k*(len2.x*len2.y)) /   len2.x;
-                    int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                    int k =  icell /   len2xy;
+                    int j = (icell - k*len2xy) /   len2x;
+                    int i = (icell - k*len2xy) - j*len2x;
                     i += lo2.x;
                     j += lo2.y;
                     k += lo2.z;
@@ -1190,9 +1246,9 @@ ParallelFor (Gpu::KernelInfo const& info,
                     }
                 }
                 if (icell < ncells3) {
-                    int k =  icell /   (len3.x*len3.y);
-                    int j = (icell - k*(len3.x*len3.y)) /   len3.x;
-                    int i = (icell - k*(len3.x*len3.y)) - j*len3.x;
+                    int k =  icell /   len3xy;
+                    int j = (icell - k*len3xy) /   len3x;
+                    int i = (icell - k*len3xy) - j*len3x;
                     i += lo3.x;
                     j += lo3.y;
                     k += lo3.z;
