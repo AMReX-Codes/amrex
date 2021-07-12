@@ -27,4 +27,4 @@ verbose = true   # set to true to get more verbosity
 nlevs = 3
 
 # Grids
-regrid_file = fixed_grids.mass
+regrid_file = fixed_grids.init
