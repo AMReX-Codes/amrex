@@ -67,9 +67,7 @@ public:
         */
         AllBoxes      = 0x02,
         //! NoTeamBarrier: This option is for Team only. If on, there is no barrier in MFIter dtor.
-        NoTeamBarrier = 0x04,
-        //! SkipInit: Used by MFGhostIter
-        SkipInit      = 0x08
+        NoTeamBarrier = 0x04
     };
 
     /**
@@ -207,18 +205,6 @@ protected:
     static AMREX_EXPORT int allow_multiple_mfiters;
 
     void Initialize ();
-};
-
-//! Iterate over ghost cells.  Lots of MFIter functions do not work.
-class MFGhostIter
-    :
-    public MFIter
-{
-public:
-    explicit MFGhostIter (const FabArrayBase& fabarray);
-private:
-    void Initialize ();
-    FabArrayBase::TileArray lta;
 };
 
 //! Is it safe to have these two MultiFabs in the same MFiter?
