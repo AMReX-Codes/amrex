@@ -342,7 +342,7 @@ protected:
     void calcCommSize ();
 
     ///
-    /// Perform the MPI communication neccesary to fill neighbor buffers
+    /// Perform the MPI communication necessary to fill neighbor buffers
     ///
     void fillNeighborsMPI (bool reuse_rcv_counts);
 

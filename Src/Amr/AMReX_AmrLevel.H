@@ -251,7 +251,7 @@ public:
     //! Get the area not to tag.
     const BoxArray& getAreaNotToTag() noexcept;
     const Box& getAreaToTag() noexcept;
-    //! Constuct the area not to tag.
+    //! Construct the area not to tag.
     void constructAreaNotToTag();
     //! Set the area not to tag.
     void setAreaNotToTag(BoxArray& ba) noexcept;

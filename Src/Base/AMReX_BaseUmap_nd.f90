@@ -11,10 +11,10 @@ contains
        bind(c,name='amrex_fort_umap_norm')
     integer, intent(in) :: lo(3), hi(3), ktlo(3), kthi(3), p, max_mv, ncomp, src_sz
     ! This dangerous - key_table_type is currently int, but could be changed to long
-    ! mabye that should be an amrex_size_t?
+    ! maybe that should be an amrex_size_t?
     integer, intent(in) :: kt(ktlo(1):kthi(1),ktlo(2):kthi(2),ktlo(3):kthi(3),max_mv,ncomp)
 
-    real(amrex_real), intent(in) :: src(0:src_sz-1) ! 0-indexing for c compatability
+    real(amrex_real), intent(in) :: src(0:src_sz-1) ! 0-indexing for c compatibility
     real(amrex_real) :: nrm
 
     integer :: i,j,k,n, m, key
@@ -43,7 +43,7 @@ contains
        bind(c,name='amrex_fort_umap_norm_direct')
     integer, intent(in) :: lo(3), hi(3), ktlo(3), kthi(3), p, max_mv, ncomp, src_sz
     ! This dangerous - key_table_type is currently int, but could be changed to long
-    ! mabye that should be an amrex_size_t?
+    ! maybe that should be an amrex_size_t?
     integer, intent(in) :: kt(ktlo(1):kthi(1),ktlo(2):kthi(2),ktlo(3):kthi(3),max_mv,ncomp)
 
     real(amrex_real), intent(in) :: src(src_sz)

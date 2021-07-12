@@ -787,7 +787,7 @@ parser_ast_optimize (struct parser_node* node)
                 node->type = PARSER_DIV;
             }
             else if (node->l->r->type == PARSER_NUMBER)
-            { // (node_ll / #lr) * #r -> node_ll * (#r / #lr), smae type
+            { // (node_ll / #lr) * #r -> node_ll * (#r / #lr), same type
                 double v = ((struct parser_number*)(node->r))->value
                     / ((struct parser_number*)(node->l->r))->value;
                 node->l = node->l->l;
@@ -1204,7 +1204,7 @@ parser_ast_print_f1 (struct parser_f1* f1, std::string const& space, AllPrint& p
     case PARSER_POW_P2:      printer << "POW(,2)\n";     break;
     case PARSER_POW_P3:      printer << "POW(,3)\n";     break;
     default:
-        amrex::AllPrint() << "parser_ast_print_f1: Unknow function " << f1->ftype << "\n";
+        amrex::AllPrint() << "parser_ast_print_f1: Unknown function " << f1->ftype << "\n";
     }
     parser_ast_print(f1->l, space+"  ", printer);
 }
@@ -1271,7 +1271,7 @@ parser_ast_print_f3 (struct parser_f3* f3, std::string const& space, AllPrint& p
         printer << space << "IF\n";
         break;
     default:
-        amrex::AllPrint() << "parser_ast_print_f3: Unknow funciton " << f3->ftype << "\n";
+        amrex::AllPrint() << "parser_ast_print_f3: Unknown function " << f3->ftype << "\n";
     }
     parser_ast_print(f3->n1, more_space, printer);
     parser_ast_print(f3->n2, more_space, printer);

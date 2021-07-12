@@ -131,7 +131,7 @@ struct parser_f2 {  /* Builtin functions with two arguments */
     enum parser_f2_t ftype;
 };
 
-struct parser_f3 { /* Builtin funcitons with three arguments */
+struct parser_f3 { /* Builtin functions with three arguments */
     enum parser_node_t type;
     struct parser_node* n1;
     struct parser_node* n2;

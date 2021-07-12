@@ -366,7 +366,7 @@ protected:
                            int  niter,
                            Real stop_time);
 
-    // pure virtural function in AmrCore
+    // pure virtual function in AmrCore
     virtual void MakeNewLevelFromScratch (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override
         { amrex::Abort("How did we get here!"); }
     virtual void MakeNewLevelFromCoarse (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) override

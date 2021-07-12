@@ -1227,7 +1227,7 @@ FabArrayBase::RB90::define (const FabArrayBase& fa)
                     const int ksnd = isects[j].first;
                     Box bxsnd = isects[j].second;
                     // the ghost cells at hi-x, hi-y, lo-z, and hi-z
-                    // boundares are also the source
+                    // boundaries are also the source
                     if (bxsnd.bigEnd(n) == m_domain.bigEnd(n)) {
                         bxsnd.growHi(n,m_ngrow[n]);
                     }
@@ -1395,7 +1395,7 @@ FabArrayBase::RB180::define (const FabArrayBase& fa)
                 const int ksnd = isects[j].first;
                 Box bxsnd = isects[j].second;
                 // the ghost cells at lo-y, hi-y, lo-z, and hi-z
-                // boundares are also the source
+                // boundaries are also the source
                 for (int idim = 1; idim < AMREX_SPACEDIM; ++idim) {
                     if (bxsnd.smallEnd(idim) == m_domain.smallEnd(idim)) {
                         bxsnd.growLo(idim, m_ngrow[idim]);

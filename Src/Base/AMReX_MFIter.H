@@ -168,7 +168,7 @@ public:
 
 protected:
 
-    std::unique_ptr<FabArrayBase> m_fa;  //!< This must be the first memeber!
+    std::unique_ptr<FabArrayBase> m_fa;  //!< This must be the first member!
 
     const FabArrayBase& fabArray;
 
@@ -222,7 +222,7 @@ private:
 };
 
 //! Is it safe to have these two MultiFabs in the same MFiter?
-//! Ture means safe; false means maybe.
+//! True means safe; false means maybe.
 inline bool isMFIterSafe (const FabArrayBase& x, const FabArrayBase& y) {
     return x.DistributionMap() == y.DistributionMap()
         && BoxArray::SameRefs(x.boxArray(), y.boxArray());

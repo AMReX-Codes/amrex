@@ -1158,7 +1158,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     }
     break;
 
-// May be unnessecary or unwanted, but profiling data has a default.
+// May be unnecessary or unwanted, but profiling data has a default.
 // Placed here for consistency.
 
     default:
