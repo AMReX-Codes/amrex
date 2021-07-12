@@ -511,6 +511,9 @@ public:
 #ifdef AMREX_USE_DPCPP
         // device reduce needs local(i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
+#ifndef AMREX_NO_DPCPP_REDUCE_WORKAROUND
+        for (int ipass = 0; ipass < 2; ++ipass) // xxxxx DPCPP todo: reduce bug
+#endif
         amrex::launch(1, AMREX_GPU_MAX_THREADS, shared_mem_bytes, stream,
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
