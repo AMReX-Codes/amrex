@@ -78,6 +78,8 @@ public :
     void setGaussSeidel (bool flag) noexcept { m_use_gauss_seidel = flag; }
     void setHarmonicAverage (bool flag) noexcept { m_use_harmonic_average = flag; }
 
+    void setMapped (bool flag) noexcept { m_use_mapped = flag; }
+
     void setCoarseningStrategy (CoarseningStrategy cs) noexcept {
         if (m_const_sigma == Real(0.0)) m_coarsening_strategy = cs;
     }
@@ -177,8 +179,9 @@ private:
     bool m_integral_built = false;
 #endif
 
-    bool m_use_gauss_seidel = true;
+    bool m_use_gauss_seidel     = true;
     bool m_use_harmonic_average = false;
+    bool m_use_mapped           = false;
 
     virtual void checkPoint (std::string const& file_name) const final;
 };
