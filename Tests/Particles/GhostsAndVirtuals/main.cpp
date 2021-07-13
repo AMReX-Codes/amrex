@@ -173,7 +173,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
                 is >> bx;
                 STRIP;
                  bx.refine(rr[lev-1]);
-		 /*
+         /*
                  for (int idim = 0 ; idim < AMREX_SPACEDIM; ++idim)
                  {
                      if (bx.length(idim) > parms.max_grid_size)
@@ -186,14 +186,14 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
                  bl.push_back(bx);
             }
             ba[lev-1].define(bl);
-	    //            amrex::Print()<<(geom[lev-1].ProbHi(0))<<"\n"<<ba[lev-1]<<std::endl;
+        //            amrex::Print()<<(geom[lev-1].ProbHi(0))<<"\n"<<ba[lev-1]<<std::endl;
         }
         is.close();
 #undef STRIP
     }
     /*
     for (int lev = 0; lev < nlevs; lev++)
-	AmrMesh::ChopGrids(lev,ba[lev],ParallelDescriptor::NProcs()); 
+    AmrMesh::ChopGrids(lev,ba[lev],ParallelDescriptor::NProcs());
     */
     Vector<BoxArray> ba_orig(nlevs);
     ba_orig[0].define(domain);
@@ -225,7 +225,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
     typedef AmrParticleContainer<4, 0, 0, 0> MyParticleContainer;
     using PType = typename amrex::ParticleContainer<4, 0>::SuperParticleType;
     MyParticleContainer myPC(geom, dmap_orig, ba_orig, rr);
-    
+
     myPC.SetVerbose(parms.verbose);
     /*
     for (int lev = 0; lev < nlevs; lev++) {
@@ -240,7 +240,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
     myPC.SetParticleDistributionMap(lev, dmap[lev]);
     }
     myPC.Redistribute();
-    
+
     {
 
         MyParticleContainer virtPC(geom, dmap, ba, rr);
