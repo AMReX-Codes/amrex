@@ -253,6 +253,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         myPC.CreateVirtualParticles(1, virts);
         virtPC.AddParticlesAtLevel(virts, 0);
         Real sum_test = amrex::ReduceSum(virtPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
+        amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
         amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
         AMREX_ALWAYS_ASSERT(virtPC.TotalNumberOfParticles(true,false)==3);
         AMREX_ALWAYS_ASSERT(amrex::Math::abs(sum_test-3029.00000028022578)<tol);
@@ -266,6 +267,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         myPC.CreateVirtualParticles(2, virts);
         virtPC.AddParticlesAtLevel(virts, 0);
         Real sum_test = amrex::ReduceSum(virtPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
+        amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
         amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
         AMREX_ALWAYS_ASSERT(virtPC.TotalNumberOfParticles(true,false)==0);
         AMREX_ALWAYS_ASSERT(amrex::Math::abs(sum_test-0.0)<tol);
@@ -280,6 +282,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         myPC.CreateGhostParticles(src_lev, ngrow, ghosts);
         ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
         Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
+        amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
         amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
         AMREX_ALWAYS_ASSERT(ghostPC.TotalNumberOfParticles(true,false)==0);
         AMREX_ALWAYS_ASSERT(amrex::Math::abs(sum_test-0.0)<tol);
@@ -294,6 +297,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         myPC.CreateGhostParticles(src_lev, ngrow, ghosts);
         ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
         Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
+        amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
         amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
         AMREX_ALWAYS_ASSERT(ghostPC.TotalNumberOfParticles(true,false)==3);
         AMREX_ALWAYS_ASSERT(amrex::Math::abs(sum_test-3035.00000001795206)<tol);
@@ -308,6 +312,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         myPC.CreateGhostParticles(src_lev, ngrow, ghosts);
         ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
         Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
+        amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
         amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
         AMREX_ALWAYS_ASSERT(ghostPC.TotalNumberOfParticles(true,false)==1);
         AMREX_ALWAYS_ASSERT(amrex::Math::abs(sum_test-1005.00000009692667)<tol);
