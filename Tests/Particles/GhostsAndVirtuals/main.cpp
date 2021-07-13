@@ -83,7 +83,7 @@ void test_ghosts_and_virtuals (TestParams& parms)
 
     typedef AmrParticleContainer<1, 0, 0, 0> MyParticleContainer;
     MyParticleContainer myPC(geom, dmap, ba, rr);
-    myPC.SetVerbose(false);
+    myPC.SetVerbose(parms.verbose);
 
     int num_particles = parms.nppc * AMREX_D_TERM(parms.nx, * parms.ny, * parms.nz);
     bool serialize = true;
@@ -128,7 +128,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
 
     // Define the refinement ratio
     Vector<int> rr(nlevs-1);
-    rr[0] = 2;
+    rr[0] = 1;
     for (int lev = 1; lev < nlevs; lev++)
         rr[lev] = 2;
 
@@ -162,7 +162,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         is >> in_finest;
         STRIP;
         ba.resize(in_finest);
-        for (int lev = 2; lev <= in_finest; lev++)
+        for (int lev = 1; lev <= in_finest; lev++)
         {
             BoxList bl;
             is >> ngrid;
@@ -221,9 +221,9 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
     typedef AmrParticleContainer<4, 0, 0, 0> MyParticleContainer;
     using PType = typename amrex::ParticleContainer<4, 0>::SuperParticleType;
     MyParticleContainer myPC(geom, dmap_orig, ba_orig, rr);
-    /*
-    myPC.SetVerbose(true);
     
+    myPC.SetVerbose(parms.verbose);
+    /*
     for (int lev = 0; lev < nlevs; lev++) {
     amrex::Print()<<myPC.ParticleBoxArray(lev)<<std::endl;
     amrex::Print()<<myPC.ParticleDistributionMap(lev)<<std::endl;
@@ -245,6 +245,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         virtPC.AddParticlesAtLevel(virts, 0);
         Real sum_test = amrex::ReduceSum(virtPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
         amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
+        virtPC.WriteAsciiFile("virt_1_0");
     }
 
     {
@@ -255,6 +256,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         virtPC.AddParticlesAtLevel(virts, 0);
         Real sum_test = amrex::ReduceSum(virtPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
         amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
+        virtPC.WriteAsciiFile("virt_2_0");
     }
 
     {
@@ -267,6 +269,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
         Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
         amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
+        ghostPC.WriteAsciiFile("ghost_0_0_1");
     }
 
     {
@@ -279,6 +282,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
         Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
         amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
+        ghostPC.WriteAsciiFile("ghost_1_0_1");
     }
 
     {
@@ -291,6 +295,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
         Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
         amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
+        ghostPC.WriteAsciiFile("ghost_4_1_2");
     }
 }
 
