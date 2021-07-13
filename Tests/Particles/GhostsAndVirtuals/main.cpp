@@ -233,7 +233,8 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
     amrex::Print()<<myPC.ParticleDistributionMap(lev)<<std::endl;
     }*/
 
-    myPC.InitFromAsciiFile("particle_file.init", 4, nullptr);
+    const auto Nrep = IntVect::TheUnitVector();
+    myPC.InitFromAsciiFile("particle_file.init", 4, &Nrep);
 
     for (int lev = 0; lev < nlevs; lev++) {
     myPC.SetParticleBoxArray(lev, ba[lev]);
