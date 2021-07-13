@@ -16,7 +16,6 @@ struct TestParams {
   int nppc;
   int nlevs;
   bool verbose;
-  std::string regrid_file;
 };
 
 void test_ghosts_and_virtuals (TestParams& parms)
@@ -114,7 +113,7 @@ void test_ghosts_and_virtuals (TestParams& parms)
 void test_ghosts_and_virtuals_ascii (TestParams& parms)
 {
 
-    int nlevs = parms.nlevs;
+    int nlevs = 3;
 
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++) {
@@ -122,9 +121,13 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         real_box.setHi(n, 64.0);
     }
 
+    int nx,ny,nz;
+    nx = ny = nz = 32;
     IntVect domain_lo(AMREX_D_DECL(0 , 0, 0));
-    IntVect domain_hi(AMREX_D_DECL(parms.nx - 1, parms.ny - 1, parms.nz-1));
+    IntVect domain_hi(AMREX_D_DECL(nx - 1, ny - 1, nz-1));
     const Box domain(domain_lo, domain_hi);
+
+    amrex::Print()<<"Hardcoding ascii to nx=ny=nz=32 and nlevs=3"<<std::endl;
 
     // Define the refinement ratio
     Vector<int> rr(nlevs-1);
@@ -145,7 +148,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
                          &real_box, CoordSys::cartesian, is_per);
     }
 
-    const auto regrid_grids_file = parms.regrid_file;
+    const std::string regrid_grids_file = "fixed_grids.init";
 
     Vector<BoxArray> ba(nlevs);
     ba[0].define(domain);
@@ -242,6 +245,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
     }
     myPC.Redistribute();
 
+    Real tol = 1e-8;
     {
 
         MyParticleContainer virtPC(geom, dmap, ba, rr);
@@ -250,7 +254,9 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         virtPC.AddParticlesAtLevel(virts, 0);
         Real sum_test = amrex::ReduceSum(virtPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
         amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
-        virtPC.WriteAsciiFile("virt_1_0");
+        AMREX_ALWAYS_ASSERT(virtPC.TotalNumberOfParticles(true,false)==3);
+        AMREX_ALWAYS_ASSERT(amrex::Math::abs(sum_test-3029.00000028022578)<tol);
+
     }
 
     {
@@ -261,7 +267,8 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         virtPC.AddParticlesAtLevel(virts, 0);
         Real sum_test = amrex::ReduceSum(virtPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
         amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
-        virtPC.WriteAsciiFile("virt_2_0");
+        AMREX_ALWAYS_ASSERT(virtPC.TotalNumberOfParticles(true,false)==0);
+        AMREX_ALWAYS_ASSERT(amrex::Math::abs(sum_test-0.0)<tol);
     }
 
     {
@@ -274,7 +281,8 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
         Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
         amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
-        ghostPC.WriteAsciiFile("ghost_0_0_1");
+        AMREX_ALWAYS_ASSERT(ghostPC.TotalNumberOfParticles(true,false)==0);
+        AMREX_ALWAYS_ASSERT(amrex::Math::abs(sum_test-0.0)<tol);
     }
 
     {
@@ -287,7 +295,8 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
         Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
         amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
-        ghostPC.WriteAsciiFile("ghost_1_0_1");
+        AMREX_ALWAYS_ASSERT(ghostPC.TotalNumberOfParticles(true,false)==3);
+        AMREX_ALWAYS_ASSERT(amrex::Math::abs(sum_test-3035.00000001795206)<tol);
     }
 
     {
@@ -300,7 +309,8 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
         Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
         amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
-        ghostPC.WriteAsciiFile("ghost_4_1_2");
+        AMREX_ALWAYS_ASSERT(ghostPC.TotalNumberOfParticles(true,false)==1);
+        AMREX_ALWAYS_ASSERT(amrex::Math::abs(sum_test-1005.00000009692667)<tol);
     }
 }
 
@@ -440,6 +450,152 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
     }
 }
 
+void test_ghosts_and_virtuals_onepercell (TestParams& parms)
+{
+
+    int nlevs = parms.nlevs;
+
+    RealBox real_box;
+    for (int n = 0; n < BL_SPACEDIM; n++) {
+        real_box.setLo(n, 0.0);
+        real_box.setHi(n, 1.0);
+    }
+
+    RealBox fine_box;
+    for (int n = 0; n < BL_SPACEDIM; n++)
+    {
+       fine_box.setLo(n,0.25);
+       fine_box.setHi(n,0.75);
+    }
+
+    IntVect domain_lo(AMREX_D_DECL(0 , 0, 0));
+    IntVect domain_hi(AMREX_D_DECL(parms.nx - 1, parms.ny - 1, parms.nz-1));
+    const Box domain(domain_lo, domain_hi);
+
+    // Define the refinement ratio
+    Vector<int> rr(nlevs-1);
+    for (int lev = 1; lev < nlevs; lev++)
+        rr[lev-1] = 2;
+
+    // This sets the boundary conditions to be doubly or triply periodic
+    int is_per[BL_SPACEDIM];
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        is_per[i] = 1;
+
+    // This defines a Geometry object which is useful for writing the plotfiles
+    Vector<Geometry> geom(nlevs);
+    geom[0].define(domain, &real_box, CoordSys::cartesian, is_per);
+    for (int lev = 1; lev < nlevs; lev++) {
+        geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
+                         &real_box, CoordSys::cartesian, is_per);
+    }
+
+    Vector<BoxArray> ba(nlevs);
+    ba[0].define(domain);
+
+    if (nlevs > 1) {
+        int n_fine = parms.nx*rr[0];
+        IntVect refined_lo(AMREX_D_DECL(n_fine/4,n_fine/4,n_fine/4));
+        IntVect refined_hi(AMREX_D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
+
+        // Build a box for the level 1 domain
+        Box refined_patch(refined_lo, refined_hi);
+        ba[1].define(refined_patch);
+    }
+
+    // break the BoxArrays at both levels into max_grid_size^3 boxes
+    for (int lev = 0; lev < nlevs; lev++) {
+        ba[lev].maxSize(parms.max_grid_size);
+    }
+
+    Vector<DistributionMapping> dmap(nlevs);
+    for (int lev = 0; lev < nlevs; lev++) {
+        dmap[lev] = DistributionMapping{ba[lev]};
+    }
+
+    typedef AmrParticleContainer<4, 0, 0, 0> MyParticleContainer;
+    using PType = typename amrex::ParticleContainer<4, 0>::SuperParticleType;
+    MyParticleContainer myPC(geom, dmap, ba, rr);
+    myPC.SetVerbose(false);
+
+    int num_particles = parms.nppc;
+    int iseed = 451;
+    Real mass = 10.0;
+    Real xvel, yvel, zvel;
+    Real xoff, yoff, zoff;
+    xvel = 1.0;
+    yvel = 2.0;
+    zvel = 3.0;
+    xoff = 0.5;
+    yoff = 0.5;
+    zoff = 0.5;
+    MyParticleContainer::ParticleInitData pdata = {{mass, xvel, yvel, zvel},{}, {}, {}};
+    myPC.InitOnePerCell(xoff, yoff, zoff, pdata);
+
+    mass = 1000.0;
+    xvel = 1.0e-5;
+    yvel = 2.0e-5;
+    zvel = 3.0e-5;
+    xoff = 0.25;
+    yoff = 0.25;
+    zoff = 0.25;
+    MyParticleContainer::ParticleInitData pdata_big = {{mass, xvel, yvel, zvel},{}, {}, {}};
+    myPC.InitOnePerCell(xoff, yoff, zoff, pdata_big);
+
+    {
+        MyParticleContainer virtPC(geom, dmap, ba, rr);
+        MyParticleContainer::ParticleTileType virts;
+        myPC.CreateVirtualParticles(1, virts);
+        virtPC.AddParticlesAtLevel(virts, 0);
+        Real sum_test = amrex::ReduceSum(virtPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
+        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
+
+    }
+
+    {
+        const int ngrow = 1;
+        const int src_lev = 0;
+        const int dst_lev = 1;
+        MyParticleContainer ghostPC(geom, dmap, ba, rr);
+        MyParticleContainer::ParticleTileType ghosts;
+        myPC.CreateGhostParticles(src_lev, ngrow, ghosts);
+        ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
+        Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
+    amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
+    }
+
+    mass = 1000000.0;
+    xvel = 1.0e-8;
+    yvel = 2.0e-8;
+    zvel = 3.0e-8;
+    xoff = 0.75;
+    yoff = 0.75;
+    zoff = 0.75;
+    MyParticleContainer::ParticleInitData pdata_bigger = {{mass, xvel, yvel, zvel},{}, {}, {}};
+    myPC.InitOnePerCell(xoff, yoff, zoff, pdata_bigger);
+
+    {
+        MyParticleContainer virtPC(geom, dmap, ba, rr);
+        MyParticleContainer::ParticleTileType virts;
+        myPC.CreateVirtualParticles(1, virts);
+        virtPC.AddParticlesAtLevel(virts, 0);
+        Real sum_test = amrex::ReduceSum(virtPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
+        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
+    }
+
+    {
+        const int ngrow = 1;
+        const int src_lev = 0;
+        const int dst_lev = 1;
+        MyParticleContainer ghostPC(geom, dmap, ba, rr);
+        MyParticleContainer::ParticleTileType ghosts;
+        myPC.CreateGhostParticles(src_lev, ngrow, ghosts);
+        ghostPC.AddParticlesAtLevel(ghosts, dst_lev, ngrow);
+        Real sum_test = amrex::ReduceSum(ghostPC, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return (amrex::Math::abs(p.rdata(0))+amrex::Math::abs(p.rdata(1))+amrex::Math::abs(p.rdata(2))+amrex::Math::abs(p.rdata(3))); });
+        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
+    }
+}
+
 int main(int argc, char* argv[])
 {
   amrex::Initialize(argc,argv);
@@ -470,12 +626,13 @@ int main(int argc, char* argv[])
     std::cout << parms.nx << " " << parms.ny << " " << parms.nz << std::endl;
   }
 
-  parms.regrid_file = "";
-  pp.query("regrid_file", parms.regrid_file);
-  std::cout<<parms.regrid_file<<std::endl;
   test_ghosts_and_virtuals_ascii(parms);
 
-  //  test_ghosts_and_virtuals(parms);
+  test_ghosts_and_virtuals(parms);
+
+  test_ghosts_and_virtuals_randomperbox(parms);
+
+  test_ghosts_and_virtuals_onepercell(parms);
 
   amrex::Finalize();
 }

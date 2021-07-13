@@ -25,6 +25,3 @@ verbose = true   # set to true to get more verbosity
 
 # Number of levels
 nlevs = 3
-
-# Grids
-regrid_file = fixed_grids.init
