@@ -53,10 +53,6 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
             Real apym = apy(i,j,k);
             Real apyp = apy(i,j+1,k);
 
-            // First get EB-aware slope that doesn't know about extdir
-            bool needs_bdry_stencil = (i <= domlo_x) || (i >= domhi_x) ||
-                                      (j <= domlo_y) || (j >= domhi_y);
-
             // if phi_on_centroid -- A second order least squares fit is used
             // to approximate the slope on the high and low faces. Note that if
             // any of the three cells --e.g., (i-1,j), (i,j), or (i-1,j)-- are
@@ -69,33 +65,23 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
             {
                 Real yloc_on_xface = fcx(i,j,k);
 
-                if(needs_bdry_stencil) {
+                fxm = grad_x_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
+                                                        yloc_on_xface,is_eb_dirichlet,is_eb_inhomog,
+                                                        on_x_face, domlo_x, domhi_x,
+                                                        on_y_face, domlo_y, domhi_y);
 
-                  fxm = grad_x_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
-                                                          yloc_on_xface,is_eb_dirichlet,is_eb_inhomog,
-                                                          on_x_face, domlo_x, domhi_x,
-                                                          on_y_face, domlo_y, domhi_y);
-
-                } else {
-                  fxm = grad_x_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,
-                                                   yloc_on_xface,is_eb_dirichlet,is_eb_inhomog);
-                }
                 fxm *= bX(i,j,k,n);
             }
 
             Real fxp = bX(i+1,j,k,n)*(x(i+1,j,k,n)-x(i,j,k,n));
             if ( (apxp != 0.0) && (vfrc(i,j,k) != 1.0 || vfrc(i+1,j,k) != 1.0 || vfrc(i-1,j,k) != 1.0) ) {
                 Real yloc_on_xface = fcx(i+1,j,k,0);
-                if(needs_bdry_stencil) {
-                  fxp = grad_x_of_phi_on_centroids_extdir(i+1,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
-                                                          yloc_on_xface,is_eb_dirichlet,is_eb_inhomog,
-                                                          on_x_face, domlo_x, domhi_x,
-                                                          on_y_face, domlo_y, domhi_y);
 
-                } else {
-                  fxp = grad_x_of_phi_on_centroids(i+1,j,k,n,x,phieb,flag,ccent,bcent,
-                                                   yloc_on_xface,is_eb_dirichlet,is_eb_inhomog);
-                }
+                fxp = grad_x_of_phi_on_centroids_extdir(i+1,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
+                                                        yloc_on_xface,is_eb_dirichlet,is_eb_inhomog,
+                                                        on_x_face, domlo_x, domhi_x,
+                                                        on_y_face, domlo_y, domhi_y);
+
                 fxp *= bX(i+1,j,k,n);
 
             }
@@ -104,33 +90,23 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
             if ( (apym != 0.0) && (vfrc(i,j,k) != 1.0 || vfrc(i,j-1,k) != 1.0 || vfrc(i,j+1,k) != 1.0) ) {
                 Real xloc_on_yface = fcy(i,j,k,0);
 
-                if(needs_bdry_stencil) {
+                fym = grad_y_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
+                                                        xloc_on_yface,is_eb_dirichlet,is_eb_inhomog,
+                                                        on_x_face, domlo_x, domhi_x,
+                                                        on_y_face, domlo_y, domhi_y);
 
-                  fym = grad_y_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
-                                                          xloc_on_yface,is_eb_dirichlet,is_eb_inhomog,
-                                                          on_x_face, domlo_x, domhi_x,
-                                                          on_y_face, domlo_y, domhi_y);
-
-                } else {
-                  fym = grad_y_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,
-                                                   xloc_on_yface,is_eb_dirichlet,is_eb_inhomog);
-                }
                 fym *= bY(i,j,k,n);
             }
 
             Real fyp = bY(i,j+1,k,n)*(x(i,j+1,k,n)-x(i,j,k,n));
             if ( (apyp != 0.0) && (vfrc(i,j,k) != 1.0 || vfrc(i,j+1,k) != 1.0 || vfrc(i,j-1,k) != 1.0) ) {
                 Real xloc_on_yface = fcy(i,j+1,k,0);
-                if(needs_bdry_stencil) {
-                  fyp = grad_y_of_phi_on_centroids_extdir(i,j+1,k,n,x,phieb,flag,ccent,bcent,vfrc,
-                                                          xloc_on_yface,is_eb_dirichlet,is_eb_inhomog,
-                                                          on_x_face, domlo_x, domhi_x,
-                                                          on_y_face, domlo_y, domhi_y);
 
-                } else {
-                  fyp = grad_y_of_phi_on_centroids(i,j+1,k,n,x,phieb,flag,ccent,bcent,
-                                                   xloc_on_yface,is_eb_dirichlet,is_eb_inhomog);
-                }
+                fyp = grad_y_of_phi_on_centroids_extdir(i,j+1,k,n,x,phieb,flag,ccent,bcent,vfrc,
+                                                        xloc_on_yface,is_eb_dirichlet,is_eb_inhomog,
+                                                        on_x_face, domlo_x, domhi_x,
+                                                        on_y_face, domlo_y, domhi_y);
+
                 fyp *= bY(i,j+1,k,n);
             }
 

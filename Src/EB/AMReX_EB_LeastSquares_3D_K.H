@@ -658,6 +658,15 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 {
     AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
 
+    bool needs_bdry_stencil = ((on_x_face && ((i <= domlo_x+1) || (i >= domhi_x))) ||
+                               (on_y_face && ((j <= domlo_y)   || (j >= domhi_y))) ||
+                               (on_z_face && ((k <= domlo_z)   || (k >= domhi_z))));
+
+    if (!needs_bdry_stencil) {
+      return grad_x_of_phi_on_centroids(i,j,k,n,phi,phieb,flag,ccent,bcent,
+         yloc_on_xface,zloc_on_xface,is_eb_dirichlet,is_eb_inhomog);
+    }
+
     Array2D<Real,0,53,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
 
@@ -800,6 +809,16 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 const bool on_z_face, const int domlo_z, const int domhi_z)
 {
     AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
+
+    bool needs_bdry_stencil = ((on_x_face && ((i <= domlo_x)   || (i >= domhi_x))) ||
+                               (on_y_face && ((j <= domlo_y+1) || (j >= domhi_y))) ||
+                               (on_z_face && ((k <= domlo_z)   || (k >= domhi_z))));
+
+    if (!needs_bdry_stencil) {
+      return grad_y_of_phi_on_centroids(i,j,k,n,phi,phieb,flag,ccent,bcent,
+         xloc_on_yface,zloc_on_yface,is_eb_dirichlet,is_eb_inhomog);
+    }
+
     Array2D<Real,0,53,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
 
@@ -941,6 +960,16 @@ Real grad_z_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                                 const bool on_z_face, const int domlo_z, const int domhi_z)
 {
     AMREX_ALWAYS_ASSERT(is_eb_dirichlet);
+
+    bool needs_bdry_stencil = ((on_x_face && ((i <= domlo_x)   || (i >= domhi_x))) ||
+                               (on_y_face && ((j <= domlo_y)   || (j >= domhi_y))) ||
+                               (on_z_face && ((k <= domlo_z+1) || (k >= domhi_z))));
+
+    if (!needs_bdry_stencil) {
+      return grad_z_of_phi_on_centroids(i,j,k,n,phi,phieb,flag,ccent,bcent,
+         xloc_on_zface,yloc_on_zface,is_eb_dirichlet,is_eb_inhomog);
+    }
+
     Array2D<Real,0,53,0,9> Amatrix;
     Array1D<Real,0, 9    > rhs;
 
