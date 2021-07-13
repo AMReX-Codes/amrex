@@ -230,7 +230,7 @@ MacProjector::project (Real reltol, Real atol)
     {
       if ( m_umac[0][0] )
       {
-	Array<MultiFab const*, AMREX_SPACEDIM> u;
+        Array<MultiFab const*, AMREX_SPACEDIM> u;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             u[idim] = m_umac[ilev][idim];
         }
@@ -260,8 +260,8 @@ MacProjector::project (Real reltol, Real atol)
 
       if (m_divu[ilev].ok())
       {
-	MultiFab::Saxpy(m_rhs[ilev], m_poisson ? Real(-1.0)/m_const_beta : Real(1.0),
-			m_divu[ilev], 0, 0, 1, 0);
+        MultiFab::Saxpy(m_rhs[ilev], m_poisson ? Real(-1.0)/m_const_beta : Real(1.0),
+                        m_divu[ilev], 0, 0, 1, 0);
       }
 
       // Always reset initial phi to be zero. This is needed to handle the
