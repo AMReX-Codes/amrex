@@ -119,7 +119,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++) {
         real_box.setLo(n, 0.0);
-        real_box.setHi(n, 32.0);
+        real_box.setHi(n, 64.0);
     }
 
     IntVect domain_lo(AMREX_D_DECL(0 , 0, 0));
@@ -128,7 +128,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
 
     // Define the refinement ratio
     Vector<int> rr(nlevs-1);
-    rr[0] = 1;
+    rr[0] = 2;
     for (int lev = 1; lev < nlevs; lev++)
         rr[lev] = 2;
 
@@ -162,7 +162,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         is >> in_finest;
         STRIP;
         ba.resize(in_finest);
-        for (int lev = 1; lev <= in_finest; lev++)
+        for (int lev = 2; lev <= in_finest; lev++)
         {
             BoxList bl;
             is >> ngrid;
@@ -173,6 +173,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
                 is >> bx;
                 STRIP;
                  bx.refine(rr[lev-1]);
+		 /*
                  for (int idim = 0 ; idim < AMREX_SPACEDIM; ++idim)
                  {
                      if (bx.length(idim) > parms.max_grid_size)
@@ -181,7 +182,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
                          ss << "Grid " << bx << " too large" << '\n';
                          amrex::Error(ss.str());
                      }
-                 }
+                 }*/
                  bl.push_back(bx);
             }
             ba[lev-1].define(bl);
@@ -190,7 +191,10 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         is.close();
 #undef STRIP
     }
-
+    /*
+    for (int lev = 0; lev < nlevs; lev++)
+	AmrMesh::ChopGrids(lev,ba[lev],ParallelDescriptor::NProcs()); 
+    */
     Vector<BoxArray> ba_orig(nlevs);
     ba_orig[0].define(domain);
 
