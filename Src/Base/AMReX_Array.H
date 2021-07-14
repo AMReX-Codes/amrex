@@ -35,10 +35,10 @@ namespace amrex {
         using reference_type = T&;
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T& operator [] (int i) const noexcept { return arr[i]; }
+        const T& operator [] (unsigned int i) const noexcept { return arr[i]; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T& operator [] (int i) noexcept { return arr[i]; }
+        T& operator [] (unsigned int i) noexcept { return arr[i]; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* data () const noexcept { return arr; }
