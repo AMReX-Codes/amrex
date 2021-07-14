@@ -512,7 +512,11 @@ public:
         // device reduce needs local(i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
 #ifndef AMREX_NO_DPCPP_REDUCE_WORKAROUND
-        for (int ipass = 0; ipass < 2; ++ipass) // xxxxx DPCPP todo: reduce bug
+        // xxxxx DPCPP todo: reduce bug workaround
+        Gpu::DeviceVector<ReduceTuple> dtmp(1);
+        auto presult = dtmp.data();
+#else
+        auto presult = hp;
 #endif
         amrex::launch(1, AMREX_GPU_MAX_THREADS, shared_mem_bytes, stream,
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
@@ -528,8 +532,11 @@ public:
                 }
             }
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
-            if (gh.threadIdx() == 0) { *hp = dst; }
+            if (gh.threadIdx() == 0) { *presult = dst; }
         });
+#ifndef AMREX_NO_DPCPP_REDUCE_WORKAROUND
+        Gpu::dtoh_memcpy_async(hp, dtmp.data(), sizeof(ReduceTuple));
+#endif
 #else
         amrex::launch(1, AMREX_GPU_MAX_THREADS, 0, stream,
         [=] AMREX_GPU_DEVICE () noexcept
